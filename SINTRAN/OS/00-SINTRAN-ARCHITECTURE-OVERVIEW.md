@@ -59,45 +59,91 @@ SINTRAN III is built on the principle of **hardware-assisted software**:
 
 ### 2.1 Major Components
 
+#### High-Level Architecture
+
 ```mermaid
 graph TD
-    A[SINTRAN III] --> B[Real Time Monitor]
+    A[SINTRAN III<br/>Operating System] --> B[Real Time Monitor]
     A --> C[Background Processor]
     
-    B --> D[Kernel]
-    B --> E[Segment Handling]
-    B --> F[I/O System]
-    B --> G[Time Handling]
-    B --> H[Error Recording]
-    
-    C --> I[System Segment]
-    C --> J[Time Slicer]
-    C --> K[File System Interface]
-    
-    D --> L[Monitor Queue]
-    D --> M[Execution Queue]
-    D --> N[Waiting Queues]
-    D --> O[Monitor Calls]
-    
-    E --> P[Paging]
-    E --> Q[Swapping]
-    E --> R[Page Fault Handler]
-    
-    F --> S[Device Drivers]
-    F --> T[Interrupt Handlers]
-    F --> U[DMA Management]
+    B --> D[Core Services<br/>Kernel, I/O, Memory]
+    C --> E[User Services<br/>Time-sharing, File System]
     
     style A fill:#3F51B5,stroke:#303F9F,stroke-width:2px,color:#fff
     style B fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
-    style C fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    style C fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
     style D fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style E fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style F fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style G fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style H fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style I fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
-    style J fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
-    style K fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
+    style E fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
+```
+
+#### Real Time Monitor Components
+
+```mermaid
+graph TD
+    RTM[Real Time Monitor] --> K[Kernel]
+    RTM --> SH[Segment Handling]
+    RTM --> IO[I/O System]
+    RTM --> TH[Time Handling]
+    RTM --> ER[Error Recording]
+    
+    K --> MQ[Monitor Queue]
+    K --> EQ[Execution Queue]
+    K --> WQ[Waiting Queues]
+    K --> MC[Monitor Calls]
+    
+    SH --> PG[Paging]
+    SH --> SW[Swapping]
+    SH --> PF[Page Fault Handler]
+    
+    IO --> DD[Device Drivers]
+    IO --> IH[Interrupt Handlers]
+    IO --> DMA[DMA Management]
+    
+    style RTM fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    style K fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
+    style SH fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
+    style IO fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
+    style TH fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
+    style ER fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
+    style MQ fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
+    style EQ fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
+    style WQ fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
+    style MC fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
+    style PG fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
+    style SW fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
+    style PF fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
+    style DD fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
+    style IH fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
+    style DMA fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
+```
+
+#### Background Processor Components
+
+```mermaid
+graph TD
+    BP[Background Processor] --> SS[System Segment]
+    BP --> TS[Time Slicer]
+    BP --> FS[File System Interface]
+    
+    SS --> UI[User Interface]
+    SS --> CMD[Command Processor]
+    
+    TS --> RT[RT Programs]
+    TS --> BG[Background Jobs]
+    
+    FS --> FH[File Handlers]
+    FS --> IO[I/O Interface]
+    
+    style BP fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
+    style SS fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
+    style TS fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
+    style FS fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
+    style UI fill:#E91E63,stroke:#C2185B,stroke-width:2px,color:#fff
+    style CMD fill:#E91E63,stroke:#C2185B,stroke-width:2px,color:#fff
+    style RT fill:#E91E63,stroke:#C2185B,stroke-width:2px,color:#fff
+    style BG fill:#E91E63,stroke:#C2185B,stroke-width:2px,color:#fff
+    style FH fill:#E91E63,stroke:#C2185B,stroke-width:2px,color:#fff
+    style IO fill:#E91E63,stroke:#C2185B,stroke-width:2px,color:#fff
 ```
 
 ### 2.2 Real Time Monitor
