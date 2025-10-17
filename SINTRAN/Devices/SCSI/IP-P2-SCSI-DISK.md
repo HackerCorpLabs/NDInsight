@@ -992,12 +992,17 @@ graph TD
     AR --> AA
     BI --> AA
 
-    style AA fill:#ccffcc
-    style F fill:#ffcccc
-    style M fill:#ffcccc
-    style U fill:#ffcccc
-    style AL fill:#ffcccc
-    style AR fill:#ffcccc
+    style A fill:#3F51B5,stroke:#303F9F,stroke-width:2px,color:#fff
+    style AA fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
+    style F fill:#F44336,stroke:#D32F2F,stroke-width:2px,color:#fff
+    style M fill:#F44336,stroke:#D32F2F,stroke-width:2px,color:#fff
+    style U fill:#F44336,stroke:#D32F2F,stroke-width:2px,color:#fff
+    style AL fill:#F44336,stroke:#D32F2F,stroke-width:2px,color:#fff
+    style AR fill:#F44336,stroke:#D32F2F,stroke-width:2px,color:#fff
+    style AP fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
+    style AM fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    style AJ fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    style AG fill:#FF9800,stroke:#F57C00,stroke-width:2px,color:#fff
 ```
 
 ### 8.8 Complete Write Operation
@@ -1076,12 +1081,18 @@ graph TD
     AI --> BC
     AP --> BC
 
-    style BC fill:#ccffcc
-    style F fill:#ffcccc
-    style L fill:#ffcccc
-    style AI fill:#ffcccc
-    style AP fill:#ffcccc
-    style AY fill:#ffccaa
+    style A fill:#3F51B5,stroke:#303F9F,stroke-width:2px,color:#fff
+    style BC fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
+    style F fill:#F44336,stroke:#D32F2F,stroke-width:2px,color:#fff
+    style L fill:#F44336,stroke:#D32F2F,stroke-width:2px,color:#fff
+    style AI fill:#F44336,stroke:#D32F2F,stroke-width:2px,color:#fff
+    style AP fill:#F44336,stroke:#D32F2F,stroke-width:2px,color:#fff
+    style AY fill:#FF9800,stroke:#F57C00,stroke-width:2px,color:#fff
+    style AN fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
+    style AK fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    style AG fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    style AD fill:#FF9800,stroke:#F57C00,stroke-width:2px,color:#fff
+    style S fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
 ```
 
 ### 8.9 Function 42 (Format Info) Processing
