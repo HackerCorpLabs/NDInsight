@@ -65,20 +65,6 @@ sequenceDiagram
     COM->>Line: Transmit Frame
     COM-->>SINTRAN: Interrupt (Complete)
     SINTRAN-->>App: Success/Failure
-    
-    box Blue Application Layer
-    participant App
-    end
-    box Teal Operating System
-    participant SINTRAN
-    end
-    box Orange DMA
-    participant DMA
-    end
-    box Purple Hardware
-    participant COM
-    participant Line
-    end
 ```
 
 ### Reception
@@ -97,20 +83,6 @@ sequenceDiagram
     DMA-->>SINTRAN: Interrupt (Data Ready)
     SINTRAN->>SINTRAN: Validate & Process
     SINTRAN->>App: Deliver Data
-    
-    box Purple Hardware
-    participant Line
-    participant COM
-    end
-    box Orange DMA
-    participant DMA
-    end
-    box Teal Operating System
-    participant SINTRAN
-    end
-    box Blue Application Layer
-    participant App
-    end
 ```
 
 ---

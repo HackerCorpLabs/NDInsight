@@ -66,21 +66,6 @@ sequenceDiagram
     TAD->>User: Escape Char Set
 
     Note over TAD,RTAD: Connection Established
-    
-    box Blue User Space
-    participant User
-    end
-    box Teal Local TAD
-    participant TAD
-    participant XMSG
-    end
-    box Green Network
-    participant Net
-    end
-    box Magenta Remote TAD
-    participant RXMSG
-    participant RTAD
-    end
 ```
 
 ### Connection State Machine
@@ -152,19 +137,6 @@ sequenceDiagram
     end
 
     IOTRANS-->>User: Character Accepted
-    
-    box Blue User Space
-    participant User
-    end
-    box Teal TAD Driver
-    participant IOTRANS
-    participant Buffer
-    participant Driver
-    end
-    box Green Network
-    participant XMSG
-    participant Remote
-    end
 ```
 
 ### Input Data Flow (Remote → User)
@@ -205,19 +177,6 @@ sequenceDiagram
     end
 
     IOTRANS-->>User: Character Returned
-    
-    box Green Network
-    participant Remote
-    participant XMSG
-    end
-    box Teal TAD Driver
-    participant Driver
-    participant Buffer
-    participant IOTRANS
-    end
-    box Blue User Space
-    participant User
-    end
 ```
 
 ### 8-Byte Transfer (BB8OUT/BB8INP)

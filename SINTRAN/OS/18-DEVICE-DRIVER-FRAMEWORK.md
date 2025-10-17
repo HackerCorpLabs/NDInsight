@@ -95,19 +95,6 @@ sequenceDiagram
     Note over Mon: Task now ready
     Mon->>Task: Context switch (if high priority)
     Note over Task: I/O data available
-    
-    box Blue User Space
-    participant Task
-    end
-    box Teal Monitor Kernel
-    participant Mon
-    end
-    box Orange Device Driver
-    participant Drv
-    end
-    box Purple Hardware
-    participant HW
-    end
 ```
 
 ---
@@ -531,20 +518,6 @@ sequenceDiagram
     
     Drv->>Drv: Loop back to ID<level>
     Note over Drv: Wait for next interrupt
-    
-    box Purple Hardware
-    participant HW
-    end
-    box Orange Device Driver
-    participant Drv
-    end
-    box Teal Monitor Kernel
-    participant Mon
-    participant Sched
-    end
-    box Blue User Space
-    participant Task
-    end
 ```
 
 ---

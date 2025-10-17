@@ -368,20 +368,6 @@ sequenceDiagram
     L11->>Mon: STRETRANS (transfer complete)
     Mon->>Prog: Wake program
     Prog->>Prog: Continue execution
-    
-    box Blue User Space
-    participant Prog
-    end
-    box Teal Monitor Kernel
-    participant Mon
-    participant Queue
-    end
-    box Orange Interrupt Driver
-    participant L11
-    end
-    box Purple Hardware
-    participant HW
-    end
 ```
 
 ### 5.2 Completion - STRETRANS
