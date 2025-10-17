@@ -8,6 +8,9 @@
 
 **NDInsight** is a centralized repository of deep technical analysis, reverse-engineered documentation, and implementation guides for the **Norsk Data NORD computer systems**, focusing on the **SINTRAN III operating system** and its hardware architecture.
 
+The analysis is made out of original SINTRAN III source code, quite many Norsk Data technical manuals, and with heavy use of AI (Claude AI, Cursor AI, ChatGPT AI)
+(So there might be errors and hallusinations, hopefully not to much)
+
 This repository contains:
 - **Kernel-level documentation** extracted from SINTRAN III source code
 - **Hardware analysis** of communication protocols (HDLC, X.21, TAD)
