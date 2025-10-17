@@ -309,6 +309,21 @@ flowchart TD
     RetIn --> Use
 
     Wait1 --> GetOut
+    
+    style Start fill:#3F51B5,stroke:#303F9F,stroke-width:2px,color:#fff
+    style Init fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    style Alloc fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    style GetBuf fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    style AddPool fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    style Ready fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
+    style GetOut fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
+    style UseOut fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
+    style SendOut fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
+    style RetOut fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
+    style GetIn fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
+    style UseIn fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
+    style RetIn fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
+    style Wait1 fill:#FF9800,stroke:#F57C00,stroke-width:2px,color:#fff
 ```
 
 ### Buffer State Transitions
@@ -338,6 +353,16 @@ stateDiagram-v2
 
     OutputActive --> Relocated : MOVITO
     Relocated --> InputActive : Buffer Moved
+    
+    classDef freeState fill:#9E9E9E,stroke:#616161,stroke-width:2px,color:#fff
+    classDef activeState fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    classDef processingState fill:#FF9800,stroke:#F57C00,stroke-width:2px,color:#fff
+    classDef completeState fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
+    
+    class Free freeState
+    class OutputActive,InputActive,TempActive,MailActive activeState
+    class Sending,Processing,MailSending,Relocated processingState
+    class Sent,Processed completeState
 ```
 
 ---
@@ -458,6 +483,15 @@ flowchart TD
     RetBuf --> End([Continue])
     Process --> End
     ProcCtrl --> End
+    
+    style Start fill:#3F51B5,stroke:#303F9F,stroke-width:2px,color:#fff
+    style Process fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
+    style ProcCtrl fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
+    style Reject fill:#F44336,stroke:#D32F2F,stroke-width:2px,color:#fff
+    style AddRFI fill:#FF9800,stroke:#F57C00,stroke-width:2px,color:#fff
+    style SendRej fill:#FF9800,stroke:#F57C00,stroke-width:2px,color:#fff
+    style SendBoth fill:#FF9800,stroke:#F57C00,stroke-width:2px,color:#fff
+    style End fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
 ```
 
 ### Ready-For-Input (RFI) Flow
