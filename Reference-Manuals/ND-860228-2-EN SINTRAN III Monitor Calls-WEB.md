@@ -1182,26 +1182,26 @@ The parameter type differs from language to language. The type ARR means an inte
 
 | NAME, SHORT NAME, NUMBER, AND PARAMETERS                                                                                                                           | TYPE                    | I/O         | ERR   | 100   | 500   |
 |--------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------|-------------|-------|-------|-------|
-| **AccessRTCommon** (RWRTC 406B)                                                                                                                                    |                         |             |       |       |       |
+| **[AccessRTCommon](#accessrtcommon)** (RWRTC 406B)                                                                                                                                    |                         |             |       |       |       |
 | 1. Function                                                                                                                                                        | INT                     | I           |       |       | •     |
 | 2. RT common address                                                                                                                                               | INT                     | I           |       |       |       |
 | 3. Number of bytes to read or write                                                                                                                                | INT                     | I           |       |       |       |
 | 4. Data to be read or written                                                                                                                                      | ARR                     | I           |       |       |       |
-| **AdjustClock** (CLADJ 112B)                                                                                                                                       |                         |             |       |       |       |
+| **[AdjustClock](#112b-adjustclock)** (CLADJ 112B)                                                                                                                                       |                         |             |       |       |       |
 | 1. Number of time units                                                                                                                                            | INT                     | I           | •     | •     |       |
 | 2. Type of time unit                                                                                                                                               | INT                     | I           |       |       |       |
-| **AltPageTable** (ALTON 33B)                                                                                                                                       |                         |             |       |       |       |
+| **[AltPageTable](#33b-altpagetable)** (ALTON 33B)                                                                                                                                       |                         |             |       |       |       |
 | 1. Page table number                                                                                                                                               | INT                     | I           |       |       | •     |
-| **AppendSpooling** (APSPF 240B)                                                                                                                                    |                         |             |       |       |       |
+| **[AppendSpooling](#240b-appendspooling)** (APSPF 240B)                                                                                                                                    |                         |             |       |       |       |
 | 1. Name of file to be printed                                                                                                                                      | STR                     | I           | •     |       | •     |
 | 2. Peripheral file name of printer                                                                                                                                 | STR                     | I           |       |       |       |
 | 3. Number of copies                                                                                                                                                | INT                     | I           |       |       |       |
 | 4. Message (optional)                                                                                                                                              | STR                     | I           |       |       |       |
-| **AssignCAMACLAM** (ASSIG 154B)                                                                                                                                    |                         |             |       |       |       |
+| **[AssignCAMACLAM](#assigncamaclam)** (ASSIG 154B)                                                                                                                                    |                         |             |       |       |       |
 | 1. Logical device number                                                                                                                                           | INT                     | I           | •     | •     | •     |
 | 2. Graded LAM number                                                                                                                                               | INT                     | I           |       |       |       |
 | 3. CAMAC crate number                                                                                                                                              | INT                     | I           |       |       |       |
-| **Attach500Segment** (AT5SGM 440B)                                                                                                                                 |                         |             |       |       |       |
+| **[Attach500Segment](#attach500segment)** (AT5SGM 440B)                                                                                                                                 |                         |             |       |       |       |
 | 1. Function code                                                                                                                                                   | INT                     | I           |       |       | •     |
 | 2. Function dependent parameter                                                                                                                                    | INT                     | I           |       |       |       |
 | (optional) 3. Function dependent parameter                                                                                                                         | INT                     | I           |       |       |       |
@@ -1209,7 +1209,7 @@ The parameter type differs from language to language. The type ARR means an inte
 | (optional) 5. Function dependent parameter                                                                                                                         | STR                     | I           |       |       |       |
 | (optional) 6. Function dependent parameter                                                                                                                         | INT                     | I           |       |       |       |
 | (optional) 7. Function dependent parameter                                                                                                                         | INT                     | I           |       |       |       |
-| **AttachSegment** (REENT 167B)                                                                                                                                     |                         |             |       |       |       |
+| **[AttachSegment](#attachsegment)** (REENT 167B)                                                                                                                                     |                         |             |       |       |       |
 | 1. Segment number                                                                                                                                                  | INT                     | I           |       |       | •     |
 | **AwaitFileTransfer (WAITF 121B)**                                                                                                                                 |                         |             |       | •     | •     |
 | 1. File number                                                                                                                                                     | INT                     | I           |       |       |       |
@@ -1291,43 +1291,43 @@ The parameter type differs from language to language. The type ARR means an inte
 | 4. Block address on the disk                                                                                                                                       | INT                     | I           |       |       |       |
 | 5. Number of blocks to transfer                                                                                                                                    | INT                     | I           |       |       |       |
 | 6. Return status                                                                                                                                                   | INT                     | 0           |       |       |       |
-| **DefaultRemoteSystem** (SRUSI 314B)                                                                                                                               |                         |             |       |       |       |
+| **[DefaultRemoteSystem](#defaultremotesystem)** (SRUSI 314B)                                                                                                                               |                         |             |       |       |       |
 | 1. Remote system name                                                                                                                                              | STR                     | I           |       | ●     | ●     |
 | 2. Remote user name                                                                                                                                                | STR                     | I           |       | ●     |       |
 | 3. Remote user password                                                                                                                                            | STR                     | I           |       | ●     |       |
 | 4. Remote project password                                                                                                                                         | STR                     | I           |       | ●     |       |
-| **DelayStart** (SET 101B)                                                                                                                                          |                         |             |       |       |       |
+| **[DelayStart](#101b-delaystart)** (SET 101B)                                                                                                                                          |                         |             |       |       |       |
 | 1. Address of RT description                                                                                                                                       | INT                     | I           |       | ●     | ●     |
 | 2. Number of time units                                                                                                                                            | INT                     | I           |       |       |       |
 | 3. Type of time units                                                                                                                                              | INT                     | I           |       |       |       |
 | **DeleteFile** (MDLFI 548)                                                                                                                                         |                         |             |       |       |       |
 | 1. File name                                                                                                                                                       | STR                     | I           |       | ●     | ●     |
-| **DeletePage** (DELPG 272B)                                                                                                                                        |                         |             |       |       |       |
+| **[DeletePage](#deletepage)** (DELPG 272B)                                                                                                                                        |                         |             |       |       |       |
 | 1. File number                                                                                                                                                     | INT                     | I           |       | ●     | ●     |
 | 2. First page to be deleted                                                                                                                                        | INT4                    | I           |       |       |       |
 | 3. Last page to be deleted                                                                                                                                         | INT4                    | I           |       |       |       |
 | 4. Number of pages deleted                                                                                                                                         | INT4                    | O           |       |       |       |
-| **DeviceControl** (IOSET 141B)                                                                                                                                     |                         |             |       |       |       |
+| **[DeviceControl](#devicecontrol)** (IOSET 141B)                                                                                                                                     |                         |             |       |       |       |
 | 1. Logical device number                                                                                                                                           | INT                     | I           |       | ●     | ●     |
 | 2. Input or output flag                                                                                                                                            | INT                     | I           |       |       |       |
 | 3. Address of RT description of reserving program                                                                                                                  | INT                     | I           |       |       |       |
 | 4. Control flag                                                                                                                                                    | INT                     | I           |       |       |       |
 | 5. Return status                                                                                                                                                   | INT                     | O           |       |       |       |
-| **DeviceFunction** (MAGTP 144B)                                                                                                                                    |                         |             |       |       |       |
+| **[DeviceFunction](#144b-devicefunction)** (MAGTP 144B)                                                                                                                                    |                         |             |       |       |       |
 | 1. Function code                                                                                                                                                   | INT                     | I           |       | ●     | ●     |
 | 2. Buffer used for data transfer                                                                                                                                   | ARR                     | I           |       |       |       |
 | 3. Logical device number                                                                                                                                           | INT                     | I           |       |       |       |
 | 4. 1st device-dependent parameter                                                                                                                                  | INT                     | I           |       |       |       |
 | 5. 2nd device-dependent parameter                                                                                                                                  | INT                     | I           |       |       |       |
-| **DirectOpen** (DOPEN 220B)                                                                                                                                        |                         |             |       |       |       |
+| **[DirectOpen](#220b-directopen)** (DOPEN 220B)                                                                                                                                        |                         |             |       |       |       |
 | 1. File number                                                                                                                                                     | INT                     | O           |       | ●     | ●     |
 | 2. Access code                                                                                                                                                     | INT                     | I           |       |       |       |
 | 3. File name                                                                                                                                                       | STR                     | I           |       |       |       |
 | 4. File type                                                                                                                                                       | STR                     | I           |       |       |       |
-| **DisableEscape** (DESCF 71B)                                                                                                                                      |                         |             |       |       |       |
+| **[DisableEscape](#71b-disableescape)** (DESCF 71B)                                                                                                                                      |                         |             |       |       |       |
 | 1. Logical device number                                                                                                                                           | INT                     | I           |       | ●     | ●     |
-| **DisableLocal** (DLOFU 277B)                                                                                                                                      |                         |             | ●     |       |       |
-| **DisableRTStart** (RTOFF 137B)                                                                                                                                    |                         |             |       |       |       |
+| **[DisableLocal](#277b-disablelocal)** (DLOFU 277B)                                                                                                                                      |                         |             | ●     |       |       |
+| **[DisableRTStart](#disablertstart)** (RTOFF 137B)                                                                                                                                    |                         |             |       |       |       |
 | 1. Address of RT description                                                                                                                                       | INT                     | I           |       | ●     | ●     |
 | **DisAssemble** (DISASS 401B)                                                                                                                                      |                         |             |       |       |       |
 | 1. Program address                                                                                                                                                 | INT                     | I           |       |       | ●     |
@@ -1341,25 +1341,25 @@ The parameter type differs from language to language. The type ARR means an inte
 | **LDN of device (depends on the function code)**                                                                                                                   |                         |             |       |       |       |
 | 4. Input parameter (function-dependent)                                                                                                                            | INT4                    | I           |       |       |       |
 | 5. Output parameter (function-dependent)                                                                                                                           | INT4                    | O           |       |       |       |
-| **EnableEscape** (EESCF 72B)                                                                                                                                       |                         |             |       |       |       |
+| **[EnableEscape](#72b-enableescape)** (EESCF 72B)                                                                                                                                       |                         |             |       |       |       |
 | 1. Logical device number                                                                                                                                           | INT                     | I           | ●     | ●     | ●     |
-| **EnableLocal** (ELOFU 276B)                                                                                                                                       |                         |             |       |       |       |
+| **[EnableLocal](#enablelocal)** (ELOFU 276B)                                                                                                                                       |                         |             |       |       |       |
 | 1. Program address for local handling                                                                                                                              | INT                     | I           | ●     | ●     | ●     |
-| **EnableRTStart** (RTON 136B)                                                                                                                                      |                         |             |       |       |       |
+| **[EnableRTStart](#enablertstart)** (RTON 136B)                                                                                                                                      |                         |             |       |       |       |
 | 1. Address of RT description                                                                                                                                       | INT                     | I           | ●     | ●     | ●     |
-| **ErrorMessage** (QERMS 65B)                                                                                                                                       |                         |             |       |       |       |
+| **[ErrorMessage](#errormessage)** (QERMS 65B)                                                                                                                                       |                         |             |       |       |       |
 | 1. Error code of message to be printed (octal)                                                                                                                     | INT                     | I           | ●     | ●     | ●     |
-| **ErrorReturn** (MACROE 400B)                                                                                                                                      |                         |             |       |       |       |
+| **[ErrorReturn](#400b-errorreturn)** (MACROE 400B)                                                                                                                                      |                         |             |       |       |       |
 | **ExactDelayStart** (DSET 126B)                                                                                                                                    |                         |             |       |       |       |
 | 1. Address of RT description                                                                                                                                       | INT                     | I           | ●     | ●     | ●     |
 | 2. Number of basic time intervals before start                                                                                                                     | INT                     | I           |       |       |       |
-| **ExactInterval** (DINTV 130B)                                                                                                                                     |                         |             |       |       |       |
+| **[ExactInterval](#exactinterval)** (DINTV 130B)                                                                                                                                     |                         |             |       |       |       |
 | 1. Address of RT description                                                                                                                                       | INT                     | I           | ●     | ●     | ●     |
 | 2. Period between executions in basic time units                                                                                                                   | INT                     | I           |       |       |       |
-| **ExactStartup** (DABST 127B)                                                                                                                                      |                         |             |       |       |       |
+| **[ExactStartup](#exactstartup)** (DABST 127B)                                                                                                                                      |                         |             |       |       |       |
 | 1. Address of RT description                                                                                                                                       | INT                     | I           | ●     | ●     | ●     |
 | 2. Startup time                                                                                                                                                    | INT                     | I           |       |       |       |
-| **ExecuteCommand** (UECOM 317B)                                                                                                                                    |                         |             |       |       |       |
+| **[ExecuteCommand](#executecommand)** (UECOM 317B)                                                                                                                                    |                         |             |       |       |       |
 | 1. Command with parameters                                                                                                                                         | STR                     | I           | ●     |       |       |
 | **ExecutionInfo (RSIO 143B)**                                                                                                                                      | INT                     | 0           | ●     | ●     | ●     |
 | 1. Execution mode                                                                                                                                                  | INT                     | 0           |       |       |       |
@@ -1525,41 +1525,41 @@ The parameter type differs from language to language. The type ARR means an inte
 | 1. CPU time used                                                                                                                                                   |                         |             |       |       |       |
 | **GetTrapReason (GERRCOD 505B)**                                                                                                                                   | INT                     | 0           |       | •     | •     |
 | 1. Error code                                                                                                                                                      |                         |             |       |       |       |
-| **GetUserEntry** (RUSER 44B)                                                                                                                                       |                         |             |       |       |       |
+| **[GetUserEntry](#getuserentry)** (RUSER 44B)                                                                                                                                       |                         |             |       |       |       |
 | 1. User name                                                                                                                                                       | STR                     | I           |       | •     | •     |
 | 2. User entry, 64 bytes                                                                                                                                            | ARR                     | O           |       |       |       |
-| **GetUserName** (GUSNA 214B)                                                                                                                                       |                         |             |       |       |       |
+| **[GetUserName](#getusername)** (GUSNA 214B)                                                                                                                                       |                         |             |       |       |       |
 | 1. User name                                                                                                                                                       | STR                     | O           |       | •     | •     |
 | 2. Directory index                                                                                                                                                 | INT                     | I           |       | •     | •     |
 | 3. User index                                                                                                                                                      | INT                     | I           |       | •     | •     |
 | 4. Remote flag                                                                                                                                                     | INT                     | I           |       |       |       |
 | 5. Remote system identification                                                                                                                                    | STR                     | I           |       |       |       |
 | **(dummy on ND-500)**                                                                                                                                              |                         |             |       |       |       |
-| **GetUserParam** (PAGET 57B)                                                                                                                                       |                         |             |       |       |       |
+| **[GetUserParam](#getuserparam)** (PAGET 57B)                                                                                                                                       |                         |             |       |       |       |
 | 1. The five user parameters,                                                                                                                                       | ARR                     | O           |       | •     | •     |
 | **5*16 bit (ND-100)**                                                                                                                                              |                         |             |       |       |       |
 | **5*32 bit (ND-500)**                                                                                                                                              |                         |             |       |       |       |
-| **GetUserRegisters** (GRBLK 420B)                                                                                                                                  |                         |             |       |       |       |
+| **[GetUserRegisters](#getuserregisters)** (GRBLK 420B)                                                                                                                                  |                         |             |       |       |       |
 | 1. Contents of the registers                                                                                                                                       | ARR                     | O           |       | •     |       |
 | 154 bytes                                                                                                                                                          |                         |             |       |       |       |
-| **GraphicFunction** (GRAPHI 155B)                                                                                                                                  |                         |             |       |       |       |
+| **[GraphicFunction](#155b-graphicfunction)** (GRAPHI 155B)                                                                                                                                  |                         |             |       |       |       |
 | 1. X-coordinate of new line                                                                                                                                        | INT                     | I           |       | •     | •     |
 | 2. Y-coordinate of new line                                                                                                                                        | INT                     | I           |       | •     | •     |
 | 3. Integer code                                                                                                                                                    | INT                     | I           |       | •     | •     |
 | 4. Logical device number                                                                                                                                           | INT                     | I           |       |       |       |
 | 5. Function code                                                                                                                                                   | INT                     | I           |       |       |       |
 | 6. Output parameter for the PLOT function                                                                                                                          | INT                     | O           |       |       |       |
-| **HDLCfunction** (MHDLC 201B)                                                                                                                                      |                         |             |       |       |       |
+| **[HDLCfunction](#hdlcfunction)** (MHDLC 201B)                                                                                                                                      |                         |             |       |       |       |
 | 1. Function code                                                                                                                                                   | INT                     | I           |       | •     | •     |
 | 2. Logical device number                                                                                                                                           | INT                     | I           |       | •     | •     |
 | 3. Driver control-block address                                                                                                                                    | INT                     | I           |       |       |       |
 | 4. Size of used part of driver control block                                                                                                                       | INT                     | I/O         |       |       |       |
 | 5. (Depends on function code)                                                                                                                                      |                         | I/O         |       |       |       |
-| **In4x2Bytes** (B4INW 63B)                                                                                                                                         |                         |             |       |       |       |
+| **[In4x2Bytes](#in4x2bytes)** (B4INW 63B)                                                                                                                                         |                         |             |       |       |       |
 | 1. Logical device number                                                                                                                                           | INT                     | I           |       | •     | •     |
 | 2. Number of bytes read                                                                                                                                            | INT                     | O           |       | •     | •     |
 | 3. The string of bytes read                                                                                                                                        | STR                     | O           |       |       |       |
-| **In8AndFlag** (T8INB 310B)                                                                                                                                        |                         |             |       |       |       |
+| **[In8AndFlag](#in8andflag)** (T8INB 310B)                                                                                                                                        |                         |             |       |       |       |
 | 1. Logical device number                                                                                                                                           | INT                     | I           |       | •     | •     |
 | 2. Number of bytes read                                                                                                                                            | INT                     | O           |       | •     | •     |
 | 3. The string of bytes read                                                                                                                                        | STR                     | O           |       |       |       |
@@ -1977,20 +1977,20 @@ This section lists some commonly-used monitor calls. The numbers are the octal m
 
 | Name               | Mnemonic | Code | Description                                    |
 |--------------------|----------|------|------------------------------------------------|
-| CloseFile          | CLOSE    | 43B  | Close file after access                        |
-| CreateFile         | CRALF    | 221B | Create or allocate a file                      |
-| DeleteFile         | MDLFI    | 54B  | Delete a file                                  |
-| ErrorMessage       | QERMS    | 65B  | Output error message and stop                  |
-| ExecuteCommand     | UECOM    | 317B | Execute a SINTRAN III command                  |
+|[CloseFile](#closefile)|CLOSE|43B|Close file after access|
+|[CreateFile](#createfile)|CRALF|221B|Create or allocate a file|
+|[DeleteFile](#deletefile)|MDLFI|54B|Delete a file|
+|[ErrorMessage](#errormessage)|QERMS|65B|Output error message and stop|
+|[ExecuteCommand](#executecommand)|UECOM|317B|Execute a SINTRAN III command|
 |[ExitFromProgram](#ob-exitfromprogram-leave)|LEAVE|0B|Terminate program|
-| GetCurrentTime     | CLOCK    | 113B | Get the current time                           |
-| InByte             | INBT     | 1B   | Read a byte from a character device            |
+|[GetCurrentTime](#getcurrenttime)|CLOCK|113B|Get the current time|
+|[InByte](#inbyte)|INBT|1B|Read a byte from a character device|
 |[InString](#161b-instring)|INSTR|161B|Read char.string from peripheral device|
 | OpenFile           | OPEN     | 50B  | Open a file                                    |
-| OutByte            | OUTBT    | 2B   | Write one byte to a character device           |
+|[OutByte](#outbyte)|OUTBT|2B|Write one byte to a character device|
 |[OutString](#162b-outstring)|OUTST|162B|Write char. string to peripheral device|
-| ReadFromFile       | RFILE    | 117B | Read bytes from a file                         |
-| SuspendProgram     | HOLD     | 104B | Suspend execution for a given time             |
+|[ReadFromFile](#readfromfile)|RFILE|117B|Read bytes from a file|
+|[SuspendProgram](#suspendprogram)|HOLD|104B|Suspend execution for a given time|
 |[WarningMessage](#64b-warningmessage)|ERMSG|64B|Output error message|
 |[WriteToFile](#12ob-writetofile)|WFILE|120B|Write random bytes to file|
 
@@ -2010,50 +2010,50 @@ This section lists some common monitor calls for simple file operations. The adv
 |-----------------|-------|-------------------------------------------|
 |[AppendSpooling](#240b-appendspooling)|APSPF|240B Print a file|
 | AwaitFileTransfer | WAITF | 121B Check data transfer                |
-| AwaitTransfer   | MWAITF | 431B Check data transfer                 |
+|[AwaitTransfer](#awaittransfer)|MWAITF|431B Check data transfer|
 |[BackupClose](#252b-backupclose-bclos)|BCLOS|252B Close file for the BACKUP-SYSTEM|
-| CloseFile       | CLOSE | 43B Close file after access               |
-| CreateFile      | CRALF | 221B Create or allocate a file            |
-| DeleteFile      | MDLFI | 54B Delete a file                         |
-| DeletePage      | DELPG | 272B Delete page(s) from a file           |
+|[CloseFile](#closefile)|CLOSE|43B Close file after access|
+|[CreateFile](#createfile)|CRALF|221B Create or allocate a file|
+|[DeleteFile](#deletefile)|MDLFI|54B Delete a file|
+|[DeletePage](#deletepage)|DELPG|272B Delete page(s) from a file|
 |[DirectOpen](#220b-directopen)|DOPEN|220B Open file with special access rights|
 |[ExpandFile](#231b-expandfile)|EXPFI|231B Increase the file size|
 |[FullFileName](#256b-fullfilename)|DEABF|256B Gets file name in full|
 |[GetBytesInFile](#62b-getbytesinfile-rmax)|RMAX|62B Get the number of bytes in a file|
-| GetStartByte    | REABT | 75B Get the next byte to access in a file |
-| GetUserName     | GUSNA | 214B Get current user name                |
-| In8AndFlag      | T8IN8 | 310B Read 8 bytes with break checking     |
-| In8Bytes        | B8INB | 23B Read 8 bytes                          |
-| InByte          | INBT  | 1B Read one byte from a device or a file  |
+|[GetStartByte](#getstartbyte)|REABT|75B Get the next byte to access in a file|
+|[GetUserName](#getusername)|GUSNA|214B Get current user name|
+|[In8AndFlag](#in8andflag)|T8IN8|310B Read 8 bytes with break checking|
+|[In8Bytes](#in8bytes)|B8INB|23B Read 8 bytes|
+|[InByte](#inbyte)|INBT|1B Read one byte from a device or a file|
 |[InString](#161b-instring)|INSTR|161B Read a string from a device|
-| NewFileVersion  | CRALN | 253B Create new file version              |
+|[NewFileVersion](#newfileversion)|CRALN|253B Create new file version|
 |[NewUser](#241b-newuser)|SUSCN|241B Switch user name you are logged in as|
-| OldUser         | RUSCN | 242B Reset old user name                  |
+|[OldUser](#olduser)|RUSCN|242B Reset old user name|
 | OpenFile        | OPEN  | 50B Open a file                           |
-| Out8Bytes       | B8OUT | 24B Write 8 bytes                         |
-| OutByte         | OUTBT | 2B Write one byte to a device or a file   |
+|[Out8Bytes](#out8bytes)|B8OUT|24B Write 8 bytes|
+|[OutByte](#outbyte)|OUTBT|2B Write one byte to a device or a file|
 | OutMessage      | MSG   | 32B Write a message to a terminal         |
 |[OutNumber](#35b-outnumber)|IOUT|35B Write a number to a terminal|
 |[OutputString](#504b-outputstring)|DVOUT|504B Write a string to a file|
 |[OutString](#162b-outstring)|OUST|162B Write to a peripheral file|
-| OutUpTo8Bytes   | M8OUT | 22B Write up to 8 characters              |
-| ReadBlock       | RPAGE | 7B Read random blocks from a file         |
-| ReadDiskPage    | RDPAG | 270B Read a disk page                     |
-| ReadFromFile    | RFILE | 117B Read randomly from a file            |
+|[OutUpTo8Bytes](#outupto8bytes)|M8OUT|22B Write up to 8 characters|
+|[ReadBlock](#readblock)|RPAGE|7B Read random blocks from a file|
+|[ReadDiskPage](#readdiskpage)|RDPAG|270B Read a disk page|
+|[ReadFromFile](#readfromfile)|RFILE|117B Read randomly from a file|
 |[ReadScratchfile](#5b-readscratchfile-rdisk)|RDISK|5B Read randomly from the scratch file|
-| ReleaseResource | RELES | 123B Release a device or a file           |
+|[ReleaseResource](#releaseresource)|RELES|123B Release a device or a file|
 | Renamefile      | MRNFI | 232B Rename a file                        |
-| ReserveResource | RESRV | 122B Reserve a file or device             |
+|[ReserveResource](#reserveresource)|RESRV|122B Reserve a file or device|
 |[ScratchOpen](#235b-scratchopen)|SCROP|235B Open a file as a scratch file|
-| SetBlockSize    | SETB8 | 76B Set block size of file                |
-| SetFileAccess   | SFACC | 237B Set file access                      |
-| SetMaxBytes     | SMAX  | 73B Set the size of an opened file        |
-| SetPermanentOpen| SPERD | 236B Set a file permanently open          |
-| SetStartBlock   | SETBL | 77B Set start block in a file             |
-| SetStartByte    | SETBT | 74B Set start byte of a file              |
+|[SetBlockSize](#setblocksize)|SETB8|76B Set block size of file|
+|[SetFileAccess](#setfileaccess)|SFACC|237B Set file access|
+|[SetMaxBytes](#setmaxbytes)|SMAX|73B Set the size of an opened file|
+|[SetPermanentOpen](#setpermanentopen)|SPERD|236B Set a file permanently open|
+|[SetStartBlock](#setstartblock)|SETBL|77B Set start block in a file|
+|[SetStartByte](#setstartbyte)|SETBT|74B Set start byte of a file|
 |[SetTemporaryFile](#233b-settemporaryfile)|STEFI|233B Set file as temporary|
-| WriteBlock      | WPAGE | 108 Write random blocks to a file         |
-| WriteDiskPage   | WDPAG | 271B Write to a disk page                 |
+|[WriteBlock](#writeblock)|WPAGE|108 Write random blocks to a file|
+|[WriteDiskPage](#writediskpage)|WDPAG|271B Write to a disk page|
 |[WriteScratchfile](#6b-writescratchfile)|WDISK|6B Write randomly to the scratch file|
 |[WriteToFile](#12ob-writetofile)|WFILE|120B Write randomly to a file|
 
@@ -2152,31 +2152,31 @@ This section lists the monitor calls which handle terminals. See also the monito
 |[DisableEscape](#71b-disableescape)|DESCF|71B Disable the ESCAPE key|
 |[DisableLocal](#277b-disablelocal)|DLOFU|277B Disable the local function|
 |[EnableEscape](#72b-enableescape)|EESCF|72B Enable the ESCAPE key|
-| EnableLocal        | ELOFU | 276B Enable the local function                |
+|[EnableLocal](#enablelocal)|ELOFU|276B Enable the local function|
 |[ExecutionInfo](#143b-executioninfo-rs10)|RSIO|143B Get execution information|
-| GetErrorDevice     | GERDV | 254B Find error device                        |
-| GetLastByte        | LASTC | 26B Get last byte typed on a terminal         |
-| GetOwnRTAddress    | GETRT | 30B Get own RT description address            |
-| GetTerminalMode    | GTMOD | 306B Get terminal mode                        |
+|[GetErrorDevice](#geterrordevice)|GERDV|254B Find error device|
+|[GetLastByte](#getlastbyte)|LASTC|26B Get last byte typed on a terminal|
+|[GetOwnRTAddress](#getownrtaddress)|GETRT|30B Get own RT description address|
+|[GetTerminalMode](#getterminalmode)|GTMOD|306B Get terminal mode|
 |[GetTerminalType](#16b-getterminaltype)|MGTTY|16B Get the terminal type|
-| In8AndFlag         | T8INB | 310B Read 8 bytes with break checking         |
-| In8Bytes           | B8INB | 23B Read 8 bytes                              |
-| InBufferSpace      | ISIZE | 66B Get number of bytes in input buffer       |
-| InBufferState      | IBSRIZ| 313B Get information about input buffer       |
+|[In8AndFlag](#in8andflag)|T8INB|310B Read 8 bytes with break checking|
+|[In8Bytes](#in8bytes)|B8INB|23B Read 8 bytes|
+|[InBufferSpace](#inbufferspace)|ISIZE|66B Get number of bytes in input buffer|
+|[InBufferState](#inbufferstate)|IBSRIZ|313B Get information about input buffer|
 | InUpTo8Bytes       | M8INB | 21B Read up to 8 bytes from a device          |
-| Out8Bytes          | B8OUT | 24B Write 8 bytes                             |
-| SetBreak           | BRKM  | 4B Set break characters                       |
-| SetCommandBuffer   | SETCM | 12B Set command input buffer                  |
+|[Out8Bytes](#out8bytes)|B8OUT|24B Write 8 bytes|
+|[SetBreak](#setbreak)|BRKM|4B Set break characters|
+|[SetCommandBuffer](#setcommandbuffer)|SETCM|12B Set command input buffer|
 |[SetEcho](#3b-setecho)|ECHOM|3B Set echo for a terminal|
-| SetEscapeHandling  | EUSEL | 300B User defined escape handling             |
+|[SetEscapeHandling](#setescapehandling)|EUSEL|300B User defined escape handling|
 | SetScLocalChars    | MSDAE | 227B Set escape and local characters          |
-| SetTerminalName    | STRFI | 275B Set file name for terminals              |
+|[SetTerminalName](#setterminalname)|STRFI|275B Set file name for terminals|
 | SetTerminalType    | MSTTY | 17B Set terminal type                         |
 | StopEscapeHandling | DUSEL | 301B Stop user-defined escape handling        |
-| SwitchUserBreak    | STBRK | 405B Control escape handling                  |
-| TerminalLineInfo   | TREPP | 332B Get terminal line information            |
-| TerminalMode       | TERMO | 52B Set terminal mode                         |
-| TerminalStatus     | TEERST| 330B Get terminal status                      |
+|[SwitchUserBreak](#switchuserbreak)|STBRK|405B Control escape handling|
+|[TerminalLineInfo](#terminallineinfo)|TREPP|332B Get terminal line information|
+|[TerminalMode](#terminalmode)|TERMO|52B Set terminal mode|
+|[TerminalStatus](#terminalstatus)|TEERST|330B Get terminal status|
 
 ---
 
@@ -2193,8 +2193,8 @@ This section lists the monitor calls which handle printers.
 |[Function](#336b-terminal-function)|Code|Hex|Description|
 |----------------------|------|-----|---------------------------------|
 |[AppendSpooling](#240b-appendspooling)|APSPF|240B|Print a file|
-| CloseSpoolingFile    | SPCLO | 40B  | Close and print a file           |
-| GetSpoolingEntry     | RSPQE | 55B  | Get spooling queue information   |
+|[CloseSpoolingFile](#closespoolingfile)|SPCLO|40B|Close and print a file|
+|[GetSpoolingEntry](#getspoolingentry)|RSPQE|55B|Get spooling queue information|
 | SetPeripheralName    | SPEFI | 234B | Set a file as peripheral         |
 
 ---
@@ -2207,17 +2207,17 @@ This section lists the monitor calls which relate to error handling.
 
 | Command            | Code   | Description                             |
 |--------------------|--------|-----------------------------------------|
-| ErrorMessage       | QERMS  | 65B  | Output error message and stop        |
+|[ErrorMessage](#errormessage)|QERMS|65B|Output error message and stop|
 |[ErrorReturn](#400b-errorreturn)|MACROE|400B|Error return from program|
-| GetErrorDevice     | GERDV  | 254B | Find error device                    |
-| GetErrorInfo       | RERRP  | 207B | Get error information                 |
-| GetErrorMessage    | GETXM  | 334B | Get error message text                |
-| GetND500Param      | 5PAGET | 437B | Get information about termination     |
-| GetTrapReason      | GERRCOD| 505B | Read swapper error                    |
-| GetUserParam       | PAGET  | 57B  | Get information about termination     |
+|[GetErrorDevice](#geterrordevice)|GERDV|254B|Find error device|
+|[GetErrorInfo](#geterrorinfo)|RERRP|207B|Get error information|
+|[GetErrorMessage](#geterrormessage)|GETXM|334B|Get error message text|
+|[GetND500Param](#getnd500param)|5PAGET|437B|Get information about termination|
+|[GetTrapReason](#gettrapreason)|GERRCOD|505B|Read swapper error|
+|[GetUserParam](#getuserparam)|PAGET|57B|Get information about termination|
 |[SetND500Param](#436b-setnd500param)|5PASET|436B|Set information about termination|
-| SetUserParam       | PASET  | 56B  | Set information about termination     |
-| TerminationHandling| EDTRM  | 206B | Set termination handling              |
+|[SetUserParam](#setuserparam)|PASET|56B|Set information about termination|
+|[TerminationHandling](#terminationhandling)|EDTRM|206B|Set termination handling|
 |[ToErrorDevice](#142b-toerrordevice)|ERMON|142B|Write to the error device|
 |[WarningMessage](#64b-warningmessage)|ERMSG|64B|Output error message|
 
@@ -2235,37 +2235,37 @@ This section lists the monitor calls related to the file system structure. Secti
 
 |[Function](#336b-terminal-function)|Code|Description|
 |-----------------------|-------|----------------------------------------------|
-| FileAsSegment         | FSCNT | 412B Connect file as segment                 |
+|[FileAsSegment](#fileassegment)|FSCNT|412B Connect file as segment|
 | FileNotAsSegment      | FSDCNT| 413B Disconnect file as segment              |
-| FileSystemFunction    | FSMTY | 327B Various file system functions           |
+|[FileSystemFunction](#filesystemfunction)|FSMTY|327B Various file system functions|
 |[FullFileName](#256b-fullfilename)|DEABF|256B Get file name in full|
-| GetAllFileIndexes     | GUIO1 | 217B Get directory, user, and object index   |
-| GetDefaultDir         | FDFDI | 250B Get the default directory               |
+|[GetAllFileIndexes](#getallfileindexes)|GUIO1|217B Get directory, user, and object index|
+|[GetDefaultDir](#getdefaultdir)|FDFDI|250B Get the default directory|
 |[GetDirEntry](#244b-getdirentry)|GDIEN|244B Get directory entry|
-| GetDirNameIndex       | FDINA | 243B Get directory and name indexes          |
+|[GetDirNameIndex](#getdirnameindex)|FDINA|243B Get directory and name indexes|
 |[GetDirUserIndexes](#213b-getdiruserindexes)|MUID1|213B Get user and directory indexes|
-| GetFileIndexes        | FOBJN | 274B Get the file indexes                    |
-| GetFileName           | MGFIL | 273B Get file name                           |
-| GetObjectEntry        | DROBJ | 215B Get file information                    |
-| GetSpoolingEntry      | RSPQE | 55B Get spooling queue information           |
-| GetUserEntry          | RUSER | 448 Get information about a user             |
-| GetUserName           | GUSNA | 214B Get current user name                   |
+|[GetFileIndexes](#getfileindexes)|FOBJN|274B Get the file indexes|
+|[GetFileName](#getfilename)|MGFIL|273B Get file name|
+|[GetObjectEntry](#getobjectentry)|DROBJ|215B Get file information|
+|[GetSpoolingEntry](#getspoolingentry)|RSPQE|55B Get spooling queue information|
+|[GetUserEntry](#getuserentry)|RUSER|448 Get information about a user|
+|[GetUserName](#getusername)|GUSNA|214B Get current user name|
 |[NewUser](#241b-newuser)|SUSCN|241B Switch user name|
-| OffEscLocalFunction   | ELOFF | 303B Disable escape and local characters     |
-| OldUser               | RUSCN | 242B Reset old user name                     |
+|[OffEscLocalFunction](#offesclocalfunction)|ELOFF|303B Disable escape and local characters|
+|[OldUser](#olduser)|RUSCN|242B Reset old user name|
 |[OnEscLocalFunction](#302b-onesclocalfunction-elon)|ELON|302B Enable escape and local characters|
 | OpenFileInfo          | FOPEN | 257B Get file number                         |
-| ReadBlock             | RPAGE | 78B Read random blocks from a file           |
-| ReadFromFile          | RFILE | 117B Read randomly from a file               |
+|[ReadBlock](#readblock)|RPAGE|78B Read random blocks from a file|
+|[ReadFromFile](#readfromfile)|RFILE|117B Read randomly from a file|
 |[ReadObjectEntry](#41b-readobjectentry)|ROBJE|41B Get information about opened files|
 | ReleaseDir            | RLDIR | 247B Release a directory                     |
-| ReserveDir            | REDIR | 246B Reserve directory                       |
-| SetMaxBytes           | SMAX  | 73B Set the size of an opened file           |
-| SetObjectEntry        | DWBJ  | 216B Change file information                 |
+|[ReserveDir](#reservedir)|REDIR|246B Reserve directory|
+|[SetMaxBytes](#setmaxbytes)|SMAX|73B Set the size of an opened file|
+|[SetObjectEntry](#setobjectentry)|DWBJ|216B Change file information|
 | SetPeripheralName     | SPEFI | 234B Set a file as peripheral                |
 |[SetRemoteAccess](#316b-setremoteaccess)|SRLMO|316B Set remote file access|
-| WriteBlock            | WPAGE | 10B Write random blocks to a file            |
-| WriteDirEntry         | WDIEN | 311B Change a directory entry                |
+|[WriteBlock](#writeblock)|WPAGE|10B Write random blocks to a file|
+|[WriteDirEntry](#writedirentry)|WDIEN|311B Change a directory entry|
 |[WriteToFile](#12ob-writetofile)|WFILE|120B Write randomly to a file|
 
 ---
@@ -2278,35 +2278,35 @@ This section lists the monitor calls which relate to RT program execution.
 
 | Command          | Code  | Hex  | Description                                      |
 |------------------|-------|------|--------------------------------------------------|
-| AccessRTCommon   | RWRTC | 406B | Access RT common from ND-500                      |
+|[AccessRTCommon](#accessrtcommon)|RWRTC|406B|Access RT common from ND-500|
 |[ChangeSegment](#337b-changesegment-spchg)|SPCHG|337B|Change segment and page table|
 |[DelayStart](#101b-delaystart)|SET|101B|Start RT program after specified time|
-| DisableRTStart   | RTOFF | 137B | Disable start of RT programs                      |
-| EnableRTStart    | RTON  | 136B | Enable start of RT programs                       |
+|[DisableRTStart](#disablertstart)|RTOFF|137B|Disable start of RT programs|
+|[EnableRTStart](#enablertstart)|RTON|136B|Enable start of RT programs|
 | ExactDelayStart  | DSET  | 126B | Start RT program after given period               |
-| ExactInterval    | DINTV | 130B | Periodic execution of RT program                  |
-| ExactStartup     | DABST | 127B | Start RT program at a specific time               |
+|[ExactInterval](#exactinterval)|DINTV|130B|Periodic execution of RT program|
+|[ExactStartup](#exactstartup)|DABST|127B|Start RT program at a specific time|
 |[ExecutionInfo](#143b-executioninfo-rs10)|RSIO|143B|Get execution information|
-| ExitRTProgram    | RTEXT | 134B | Exit from RT program                              |
-| ForceRelease     | PRLS  | 125B | Release another program's device                  |
+|[ExitRTProgram](#exitrtprogram)|RTEXT|134B|Exit from RT program|
+|[ForceRelease](#forcerelease)|PRLS|125B|Release another program's device|
 | ForceReserve     | PRSRV | 124B | Force reserve a device                            |
 |[GetBasicTime](#11b-getbasictime)|TIME|11B|Get the internal time|
-| GetOwnRTAddress  | GETRT | 30B  | Get own RT description address                    |
-| GetProcessNo     | GPRNUM| 426B | Get process number                                |
+|[GetOwnRTAddress](#getownrtaddress)|GETRT|30B|Get own RT description address|
+|[GetProcessNo](#getprocessno)|GPRNUM|426B|Get process number|
 |[GetRTAddress](#151b-getrtaddress)|GRTDA|151B|Get RT description address|
-| GetRTDescr       | RTDSC | 27B  | Get RT description                                |
-| GetRTName        | GRTNA | 152B | Get the name of an RT program                     |
-| NoInterruptStart | DSCNT | 107B | Disconnect program from interrupt                 |
+|[GetRTDescr](#getrtdescr)|RTDSC|27B|Get RT description|
+|[GetRTName](#getrtname)|GRTNA|152B|Get the name of an RT program|
+|[NoInterruptStart](#nointerruptstart)|DSCNT|107B|Disconnect program from interrupt|
 |[PrivInstruction](#146b-privinstruction)|IPRIV|146B|Execute privileged instruction|
-| SegmentToPageTable| ENTSEG| 157B| Enter a routine as a direct task                  |
-| SetProcessPriority| SPRIO| 507B | Set ND-500 process priority                       |
-| SetRTPriority    | PRIOR | 110B | Set the priority of an RT program                 |
+|[SegmentToPageTable](#segmenttopagetable)|ENTSEG|157B|Enter a routine as a direct task|
+|[SetProcessPriority](#setprocesspriority)|SPRIO|507B|Set ND-500 process priority|
+|[SetRTPriority](#setrtpriority)|PRIOR|110B|Set the priority of an RT program|
 |[StartOnInterrupt](#106b-startoninterrupt)|CONCT|106B|Connect a program to an interrupt|
-| StartRTProgram   | RT    | 100B | Start RT program                                  |
+|[StartRTProgram](#startrtprogram)|RT|100B|Start RT program|
 |[StartupInterval](#103b-startupinterval)|INTV|103B|Periodic execution of RT program|
-| StartupTime      | ABSET | 102B | Start RT program at a specified time              |
-| StopRTProgram    | ABORT | 105B | Abort an RT program                               |
-| SuspendProgram   | HOLD  | 104B | Suspend execution for a given time                |
+|[StartupTime](#startuptime)|ABSET|102B|Start RT program at a specified time|
+|[StopRTProgram](#stoprtprogram)|ABORT|105B|Abort an RT program|
+|[SuspendProgram](#suspendprogram)|HOLD|104B|Suspend execution for a given time|
 |[WaitForRestart](#135b-waitforrestart)|RTWT|135B|Set RT program in wait state|
 
 ---
@@ -2407,32 +2407,32 @@ This section lists the monitor calls which relate to segment administration. You
 |[Function](#336b-terminal-function)|Code|Description|
 |------------------------|--------|----------------------------------|
 |[AltPageTable](#33b-altpagetable)|ALTON|33B|Switch page table|
-| AttachSegment          | REENT  | 167B  | Attach a reentrant segment        |
+|[AttachSegment](#attachsegment)|REENT|167B|Attach a reentrant segment|
 |[ChangeSegment](#337b-changesegment-spchg)|SPCHG|337B|Change segment and page table|
 |[ClearCapability](#424b-clearcapability)|CAPCLE|424B|Clear capability|
 |[CopyCapability](#423b-copycapability)|CAPCOP|423B|Copy a capability|
-| ExitFromSegment        | MEXIT  | 133B  | Exchange current segments         |
-| FileAsSegment          | FSCNT  | 412B  | Connect file as segment           |
+|[ExitFromSegment](#exitfromsegment)|MEXIT|133B|Exchange current segments|
+|[FileAsSegment](#fileassegment)|FSCNT|412B|Connect file as segment|
 | FileNotAsSegment       | FSDCNT | 413B  | Disconnect file as segment        |
 |[FixContiguous](#160b-fixcontiguous-fixc)|FIXC|160B|Fix a segment in memory|
 |[FixInMemory](#410b-fixinmemory)|FIXMEM|410B|Fix a shared segment|
 |[FixScattered](#115b-fixscattered)|FIX|115B|Fix a segment in memory|
 |[GetActiveSegment](#421b-getactivesegment)|GASGM|421B|Get names of active segments|
-| GetAddressArea         | GBSIZ  | 222B  | Get address area size             |
+|[GetAddressArea](#getaddressarea)|GBSIZ|222B|Get address area size|
 |[GetScratchSegment](#422b-getscratchsegment)|GSWSF|422B|Get scratch segment|
-| GetSegmentEntry        | RSEGM  | 53B   | Get segment information           |
+|[GetSegmentEntry](#getsegmententry)|RSEGM|53B|Get segment information|
 |[GetSegmentNo](#322b-getsegmentno)|GSGNO|322B|Get segment number|
-| JumpToSegment          | MCALL  | 132B  | Jump to another ND-100 segment    |
-| LAMUFunction           | MLAMU  | 315B  | Operate the LAMU system           |
-| MaxPagesInMemory       | MXPISG | 417B  | Set maximum pages in memory       |
-| MemoryAllocation       | FIXC5  | 61B   | Fix or unfix an ND-100 segment    |
+|[JumpToSegment](#jumptosegment)|MCALL|132B|Jump to another ND-100 segment|
+|[LAMUFunction](#lamufunction)|MLAMU|315B|Operate the LAMU system|
+|[MaxPagesInMemory](#maxpagesinmemory)|MXPISG|417B|Set maximum pages in memory|
+|[MemoryAllocation](#memoryallocation)|FIXC5|61B|Fix or unfix an ND-100 segment|
 | MemoryUnfix            | UNFIXM | 411B  | Release fixed ND-500 segment      |
 |[ReentrantSegment](#212b-reentrantsegment)|SREEN|212B|Connect reentrant segment|
 |[SaveND500Segment](#416b-savend500segment)|WSEGN|416B|Save a segment in a domain|
 |[SaveSegment](#164b-savesegment-wseg)|WSEG|164B|Save a segment|
 |[SegmentOverlay](#323b-segmentoverlay)|SPLRE|323B|Create segment overlay systems|
-| SegmentToPageTable     | ENTSEG | 157B  | Enter a routine as a direct task  |
-| UnFixSegment           | UNFIX  | 116B  | Release a fixed segment           |
+|[SegmentToPageTable](#segmenttopagetable)|ENTSEG|157B|Enter a routine as a direct task|
+|[UnFixSegment](#unfixsegment)|UNFIX|116B|Release a fixed segment|
 
 ---
 
@@ -2447,17 +2447,17 @@ This section lists the monitor calls which relate to data communication and netw
 
 |[Function](#336b-terminal-function)|Code|Description|
 |------------------------|-------|--------------------------------------------|
-| DefaultRemoteSystem    | SRUSI | 314B Set default remote system             |
+|[DefaultRemoteSystem](#defaultremotesystem)|SRUSI|314B Set default remote system|
 |[DisableLocal](#277b-disablelocal)|DLOFU|277B Disable the local function|
-| EnableLocal            | ELOFU | 276B Enable the local function             |
+|[EnableLocal](#enablelocal)|ELOFU|276B Enable the local function|
 |[GetEscLocalChars](#230b-getesclocalchars)|MGDAE|230B Get escape and local characters|
-| HDLCfunction           | MHDLC | 201B Operate link to remote computer       |
-| OffEscLocalFunction    | ELOFF | 303B Disable escape and local characters   |
+|[HDLCfunction](#hdlcfunction)|MHDLC|201B Operate link to remote computer|
+|[OffEscLocalFunction](#offesclocalfunction)|ELOFF|303B Disable escape and local characters|
 |[OnEscLocalFunction](#302b-onesclocalfunction-elon)|ELON|302B Enable escape and local characters|
-| SetEscapeHandling      | EUSEL | 300B User defined escape handling          |
+|[SetEscapeHandling](#setescapehandling)|EUSEL|300B User defined escape handling|
 |[SetRemoteAccess](#316b-setremoteaccess)|SRLMO|316B Set remote file access|
 | StopEscapeHandling     | DUSEL | 301B Stop user defined escape handling     |
-| XMSGFunction           | XMSG  | 200B Program to program communication      |
+|[XMSGFunction](#xmsgfunction)|XMSG|200B Program to program communication|
 
 ---
 
