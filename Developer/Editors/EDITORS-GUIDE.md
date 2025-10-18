@@ -92,17 +92,20 @@ Here's a complete example of creating a new NPL program using QED:
 
 ```sintran
 @QED HELLO:NPL             # Start QED with new file
-* FILE DOES NOT EXIST      # QED informs you it's a new file
+
+QED 4.3
+
+NO SUCH FILE NAME          # QED informs you the file doesn't exist
+?
 *A                         # Append mode - start adding lines
-)PROGRAM HELLO;            # Type line 1
-DEFINE                     # Type line 2
-  OUTTEXT(1);              # Type line 3
-BEGIN                      # Type line 4
-  OUTTEXT("Hello, SINTRAN III!");  # Type line 5
-  OUTNEWLINE;              # Type line 6
-END                        # Type line 7
-<CTRL-L>                   # End append mode (CTRL-L or .)
-*                          # Back to command mode
+)PROGRAM HELLO;            # Type line 1 and press ENTER
+DEFINE                     # Type line 2 and press ENTER
+  OUTTEXT(1);              # Type line 3 and press ENTER
+BEGIN                      # Type line 4 and press ENTER
+  OUTTEXT("Hello, SINTRAN III!");  # Type line 5 and press ENTER
+  OUTNEWLINE;              # Type line 6 and press ENTER
+END                        # Type line 7 and press ENTER
+                           # Press CTRL-L (or . alone on a line) to exit append mode
 *L1,$                      # List all lines (line 1 to end)
 )PROGRAM HELLO;
 DEFINE
@@ -111,8 +114,8 @@ BEGIN
   OUTTEXT("Hello, SINTRAN III!");
   OUTNEWLINE;
 END
-*                          # Looks good!
-*W HELLO:NPL               # Write (save) to file
+*W "HELLO:NPL"             # Write (save) to file - NOTE: Filename in QUOTES!
+96 WORDS WRITTEN           # QED confirms the write
 *EX                        # Exit QED
 @                          # Back to SINTRAN
 ```
@@ -120,9 +123,13 @@ END
 **Key Points:**
 - `A` command enters append mode - type your lines
 - Each line is added as you press ENTER
-- `CTRL-L` (or a single `.` on a line) exits append mode
+- Press CTRL-L (or type `.` alone on a line) to exit append mode
 - `L1,$` lists all lines from line 1 to end ($)
-- `W filename` writes (saves) the buffer to disk
+- **IMPORTANT:** `W "filename"` - filename MUST be in quotes for file creation!
+  - This is a SINTRAN requirement - quotes tell the system to create the file
+  - Without quotes: `W HELLO:NPL` will fail with "NO SUCH FILE NAME"
+  - With quotes: `W "HELLO:NPL"` creates the file successfully
+- QED confirms with "96 WORDS WRITTEN" (or similar)
 - `EX` exits QED
 
 ### Basic Workflow for Existing Files
