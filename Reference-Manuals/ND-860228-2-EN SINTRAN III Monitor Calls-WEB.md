@@ -1045,7 +1045,8 @@ Here are the monitor calls sorted by numbers. The numbers are octal.
 | 126B | [ExactDelayStart](#126b-exactdelaystart-dset) | DSET |
 | 127B | [ExactStartup](#exactstartup) | DABST |
 | 130B | [ExactInterval](#exactinterval) | DINTV |
-| 131B | DataTransfer             | ABSTR     |
+| 131B | [DataTransfer](#131b-datatransfer) | ABSTR     |
+
 | 132B | [JumpToSegment](#132b-jumptosegment) | MCALL     |
 | 133B | [ExitFromSegment](#133b-exitfromsegment) | MEXIT     |
 | 134B | [ExitRTProgram](#134b-exitrtprogram) | REXIT     |
@@ -1058,7 +1059,7 @@ Here are the monitor calls sorted by numbers. The numbers are octal.
 | 142B | DeviceInfo               | RSIO      |
 | 143B | [DeviceFunction](#143b-devicefunction) | MAGTYP    |
 | 144B | [PrivInstruction](#146b-privinstruction) | IPRIV     |
-| 147B | CAMAC4Function           | CAMAC     |
+| 147B | CAMACFunction           | CAMAC     |
 | 150B | [CAMACGLRegister](#150b-camacglregister) | GL        |
 | 151B | [GetRTAddress](#151b-getrtaddress) | GRTDA     |
 | 152B | [GetRTName](#152b-getrtname) | GRTNA     |
@@ -1073,13 +1074,20 @@ Here are the monitor calls sorted by numbers. The numbers are octal.
 | 162B | [GetInRegisters](#162b-getinregisters) | DIVI      |
 | 168B | [AttachSegment](#167b-attachsegment) | REENT     |
 | 170B | [UserDef0](#170b-userdef0) | U50       |
-| 171B | UserDef1                 | U51       |
-| 172B | UserDef2                 | U52       |
-| 173B | UserDef3                 | U53       |
-| 174B | UserDef4                 | U54       |
-| 175B | UserDef5                 | U55       |
-| 176B | UserDef6                 | U56       |
-| 177B | UserDef7                 | U57       |
+| 171B | [UserDef1](#171b-userdef1) | U51       |
+
+| 172B | [UserDef2](#172b-userdef2) | U52       |
+
+| 173B | [UserDef3](#173b-userdef3) | U53       |
+
+| 174B | [UserDef4](#174b-userdef4) | U54       |
+
+| 175B | [UserDef5](#175b-userdef5) | U55       |
+
+| 176B | [UserDef6](#176b-userdef6) | U56       |
+
+| 177B | [UserDef7](#177b-userdef7) | U57       |
+
 | 178B | [XMSGFunction](#178b-xmsgfunction) | XMSGF     |
 | 200B | [HDLCFunction](#200b-hdlcfunction) | MHDLC     |
 | 206B | [TerminationHandling](#206b-terminationhandling) | EDTMR     |
@@ -1151,12 +1159,14 @@ Here are the monitor calls sorted by numbers. The numbers are octal.
 | 340B | [ReadSystemRecord](#340b-readsystemrecord) | RSREC         |
 | 341B | [SegmentFunction](#341b-segmentfunction) | SGMTY         |
 | 400B | [ErrorReturn](#400b-errorreturn) | MACROE        |
-| 401B | DisAssemble                | DISASS        |
+| 401B | [DisAssemble](#401b-disassemble) | DISASS        |
+
 | 402B | [GetInputFlags](#402b-getinputflags) | RFLAG         |
 | 403B | [SetOutputFlags](#403b-setoutputflags) | WFLAG         |
 | 404B | [FixIOArea](#404b-fixioarea) | IOFIX         |
 | 405B | [SwitchUserBreak](#405b-switchuserbreak) | USTRBK        |
-| 406B | AccessRTCommon             | RWRTC         |
+| 406B | [AccessRTCommon](#406b-accessrtcommon) | RWRTC         |
+
 | 410B | [FixInMemory](#410b-fixinmemory) | FIXMEM        |
 | 411B | [MemoryUnFix](#411b-memoryunfix) | UNFIXM        |
 | 412B | [FileAsSegment](#412b-fileassegment) | FSCNT         |
@@ -1175,7 +1185,8 @@ Here are the monitor calls sorted by numbers. The numbers are octal.
 | 427B | [GetOwnProcessInfo](#427b-getownprocessinfo) | GPRNAME       |
 | 430B | [TranslateAddress](#430b-translateaddress) | ADR100        |
 | 431B | [AwaitTransfer](#431b-awaittransfer) | MWAITF        |
-| 435B | ForceTrap                  | PRT           |
+| 435B | [ForceTrap](#435b-forcetrap) | PRT           |
+
 | 436B | [SetND500Param](#436b-setnd500param) | 5PASET        |
 | 437B | [GetND500Param](#437b-getnd500param) | 5PAGET        |
 | 440B | [Attach500Segment](#440b-attach500segment) | AT5SGM        |
@@ -2713,7 +2724,7 @@ Please refer to page 2 for an explanation of how to use this reference.
 
 ## Page 72
 
-# AccessRTCommon
+# 406B AccessRTCommon RWRTC
 
 Reads from or writes to RT common from an ND-500 program. RT common is an area in physical memory where RT programs may exchange data.
 
@@ -25114,6 +25125,46 @@ ND-100 and ND-500 All users Background programs
 ## Page 570
 
 # 178B Xmsgfunction
+# 131B DataTransfer ABSTR
+
+Data to and from mass storage.
+
+# 171B UserDef1 U51
+
+User-defined monitor call 1.
+
+# 172B UserDef2 U52
+
+User-defined monitor call 2.
+
+# 173B UserDef3 U53
+
+User-defined monitor call 3.
+
+# 174B UserDef4 U54
+
+User-defined monitor call 4.
+
+# 175B UserDef5 U55
+
+User-defined monitor call 5.
+
+# 176B UserDef6 U56
+
+User-defined monitor call 6.
+
+# 177B UserDef7 U57
+
+User-defined monitor call 7.
+
+# 401B DisAssemble DISASS
+
+Disassembles one machine instruction on the ND-500.
+
+# 435B ForceTrap PRT
+
+Forces a trap to a process.
+
 
 Performs various data communication functions. All types of programs may communicate through this monitor call. The programs may be in different computers in a network.
 
