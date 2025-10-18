@@ -112,7 +112,7 @@ BEGIN
   OUTTEXT("Hello, SINTRAN III!");
   OUTNEWLINE;
 END
-*W "HELLO:NPL"             # Write (save) to file - NOTE: Filename in QUOTES!
+*W "HELLO:NPL"             # Write (save) to file - NOTE: Filename in QUOTES to CREATE a new file
 64 WORDS WRITTEN           # QED confirms the write
 *EX                        # Exit QED
 @                          # Back to SINTRAN
@@ -143,17 +143,50 @@ END
 ```
 Note: If you create the file when starting QED (using quotes), you must save WITHOUT quotes later!
 
-### Basic Workflow for Existing Files
+### Editing an Existing File
 
-```
-@QED SOURCE:NPL            # Open existing file
-*L1,10                     # List lines 1-10
-*C5                        # Change line 5
-<type new content>
-<CTRL-L>                   # End input
-*W SOURCE:NPL              # Write file
+Here's how to edit an existing file in QED:
+
+```sintran
+@QED HELLO:NPL             # Open existing file
+
+QED 4.3
+64 WORDS READ              # QED confirms file was read
+
+*L1,$                      # List all lines (1 to end)
+)PROGRAM HELLO;
+DEFINE
+  OUTTEXT(1);
+BEGIN
+  OUTTEXT("Hello, SINTRAN III!");
+  OUTNEWLINE;
+END
+
+*C5                        # Change line 5 (the OUTTEXT line)
+  OUTTEXT("Hello, WORLD!");  # Type the new content
+                           # Press ENTER to confirm
+
+*L1,$                      # List to verify the change
+)PROGRAM HELLO;
+DEFINE
+  OUTTEXT(1);
+BEGIN
+  OUTTEXT("Hello, WORLD!");  # Line 5 is now changed
+  OUTNEWLINE;
+END
+
+*W HELLO:NPL               # Write (save) - NO quotes needed for existing files!
+64 WORDS WRITTEN
+
 *EX                        # Exit QED
 ```
+
+**Key Points for Editing Existing Files:**
+- Open with `@QED filename` (no quotes needed)
+- `C` followed by line number changes that line (e.g., `C5` = change line 5)
+- Type the new content and press ENTER
+- `W filename` saves changes - **NO quotes** needed for existing files!
+- Use `L1,$` to list all lines and verify changes
 
 **Quick Reference:**  
 See **[QED-QUICK-REFERENCE.md](QED-QUICK-REFERENCE.md)** for complete command reference.
