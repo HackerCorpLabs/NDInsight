@@ -3858,7 +3858,7 @@ CTRL, ...
 
 ## Page 94
 
-# BCNAF1CAMAC
+# 415B BCNAF1CAMAC BCNAF1
 
 Special CAMAC monitor call for the ND-500. (Same as mon 176 - user-defined monitor call.)
 
@@ -20558,7 +20558,7 @@ Not available.
 
 ## Page 456
 
-# 234B **SetPeripheralName** SPEF1
+# 234B SetPeripheralName SPEF1
 
 Defines a peripheral file, e.g. a printer. You connect a file name to the logical device number of the peripheral.
 
@@ -24269,7 +24269,7 @@ MODE, ...
 
 ## Page 534
 
-# TerminalNoWait
+# 307B TerminalNoWait TNOWAI
 
 Switches No Wait on and off. No Wait is useful for input from, and output to, character devices, e.g. terminals. In No Wait, the program does not wait for input or output. Monitor calls like InByte return the error code 3 instead.
 

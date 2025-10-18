@@ -2093,7 +2093,7 @@ This section lists the monitor calls which handle printers.
 |[AppendSpooling](#240b-appendspooling)|APSPF|240B|Print a file|
 |[CloseSpoolingFile](#closespoolingfile)|SPCLO|40B|Close and print a file|
 |[GetSpoolingEntry](#getspoolingentry)|RSPQE|55B|Get spooling queue information|
-| SetPeripheralName    | SPEFI | 234B | Set a file as peripheral         |
+|[SetPeripheralName](#234b-setperipheralname-spef1)|SPEFI|234B|Set a file as peripheral|
 
 ---
 
@@ -2160,7 +2160,7 @@ This section lists the monitor calls related to the file system structure. Secti
 |[ReserveDir](#reservedir)|REDIR|246B Reserve directory|
 |[SetMaxBytes](#setmaxbytes)|SMAX|73B Set the size of an opened file|
 |[SetObjectEntry](#setobjectentry)|DWBJ|216B Change file information|
-| SetPeripheralName     | SPEFI | 234B Set a file as peripheral                |
+|[SetPeripheralName](#234b-setperipheralname-spef1)|SPEFI|234B Set a file as peripheral|
 |[SetRemoteAccess](#316b-setremoteaccess)|SRLMO|316B Set remote file access|
 |[WriteBlock](#writeblock)|WPAGE|10B Write random blocks to a file|
 |[WriteDirEntry](#writedirentry)|WDIEN|311B Change a directory entry|
@@ -2227,7 +2227,7 @@ This section lists the monitor calls which relate to device handling.
 | AwaitFileTransfer | WAITF | 121B Check data transfer                          |
 |[AwaitTransfer](#awaittransfer)|MWAITF|431B Check data transfer|
 |[BatchModeEcho](#325b-batchmodeecho)|MBECH|325B Set batch and mode job echo|
-| BCNAF1CAMAC       | BCNAF1| 415B CAMAC function on ND-500                     |
+|[BCNAF1CAMAC](#415b-bcnaf1camac-bcnaf1)|BCNAF1|415B CAMAC function on ND-500|
 |[BCNAFCAMAC](#414b-bcnafcamac-bcnaf)|BCNAF|414B CAMAC function|
 |[CAMACFunction](#camacfunction)|CAMAC|147B Operate CAMAC|
 |[CAMACGlRegister](#camacglregister)|GL|150B Read the CAMAC GL register|
@@ -2279,9 +2279,9 @@ This section lists the monitor calls which relate to device handling.
 
 |[Function](#336b-terminal-function)|Code|Hex|Description|
 |------------------|-------|------|---------------------------------------|
-| SetPeripheralName| SPEFI | 234B | Set a file as peripheral              |
+|[SetPeripheralName](#234b-setperipheralname-spef1)|SPEFI|234B|Set a file as peripheral|
 |[StartOnInterrupt](#106b-startoninterrupt)|CONCT|106B|Connect a program to an interrupt|
-| TerminaNoWait    | TNOWAI| 307B | Switch No Wait on and off             |
+|[TerminalNoWait](#307b-terminalnowait-tnowai) | TNOWAI| 307B | Switch No Wait on and off             |
 |[TransferData](#335b-transferdata)|EXABS|335B|Data to and from mass storage|
 |[WriteDiskPage](#writediskpage)|WDPAG|271B|Write to a disk page|
 
@@ -2421,7 +2421,7 @@ Here are the monitor calls sorted according to their short names. You will also 
 |B8OUT|24B|[Out8Bytes](#out8bytes)|FIX|115B|[FixScattered](#115b-fixscattered)|
 |BCLOS|252B|[BackupClose](#252b-backupclose-bclos)|FIXC|160B|[FixContiguous](#160b-fixcontiguous-fixc)|
 |BCNAF|414B|[BCNAFCAMAC](#414b-bcnafcamac-bcnaf)|FIXC5|61B|[MemoryAllocation](#memoryallocation)|
-|BCNAF1|415B|BCNAF1CAMAC|FIXMEM|410B|[FixInMemory](#410b-fixinmemory)|
+|BCNAF1|415B|[BCNAF1CAMAC](#415b-bcnaf1camac-bcnaf1)|FIXMEM|410B|[FixInMemory](#410b-fixinmemory)|
 |BRKM|4B|[SetBreak](#setbreak)|F0BJN|274B|[GetFileIndexes](#getfileindexes)|
 |CAMAC|147B|[CAMACFunction](#camacfunction)|FOPEN|257B|OpenFileInfo|
 |CAPCLE|424B|[ClearCapability](#424b-clearcapability)|FSCNT|412B|[FileAsSegment](#fileassegment)|
@@ -2491,7 +2491,7 @@ Here are the monitor calls sorted according to their short names. You will also 
 |MXPISG|417B|[MaxPagesInMemory](#maxpagesinmemory)|SMAX|738B|[SetMaxBytes](#setmaxbytes)|
 |NOWT|36B|[NowaitSwitch](#nowaitswitch)|SPCHG|337B|[ChangeSegment](#337b-changesegment-spchg)|
 |OCTO|324B|[OctobusFunction](#octobusfunction)|SPCLO|40B|[CloseSpoolingFile](#closespoolingfile)|
-|OPEN|50B|OpenFile|SPEFI|234B|SetPeripheralName|
+|OPEN|50B|OpenFile|SPEFI|234B|[SetPeripheralName](#234b-setperipheralname-spef1)|
 |OSIZE|67B|[OutBufferSpace](#outbufferspace)|SPERD|236B|[SetPermanentOpen](#setpermanentopen)|
 |OUTBT|2B|[OutByte](#outbyte)|SPLRE|323B|[SegmentOverlay](#323b-segmentoverlay)|
 |OUTSt|162B|[OutString](#162b-outstring)|SPRIO|507B|[SetProcessPriority](#setprocesspriority)|
@@ -3616,7 +3616,7 @@ CTRL, ...
 
 ## Page 94
 
-# BCNAF1CAMAC
+# 415B BCNAF1CAMAC BCNAF1
 
 Special CAMAC monitor call for the ND-500. (Same as mon 176 - user-defined monitor call.)
 
@@ -20316,7 +20316,7 @@ Not available.
 
 ## Page 456
 
-# 234B **SetPeripheralName** SPEF1
+# 234B SetPeripheralName SPEF1
 
 Defines a peripheral file, e.g. a printer. You connect a file name to the logical device number of the peripheral.
 
@@ -24027,7 +24027,7 @@ MODE, ...
 
 ## Page 534
 
-# TerminalNoWait
+# 307B TerminalNoWait TNOWAI
 
 Switches No Wait on and off. No Wait is useful for input from, and output to, character devices, e.g. terminals. In No Wait, the program does not wait for input or output. Monitor calls like InByte return the error code 3 instead.
 
