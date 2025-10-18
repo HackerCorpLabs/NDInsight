@@ -1979,7 +1979,7 @@ This section lists the monitor calls for input and output to files, printers, an
 |-------------------|-------|------|--------------------------------------------------------|
 |[AppendSpooling](#240b-appendspooling)|APSPF|240B|Print a file|
 | AwaitFileTransfer | WAITF | 121B | Check data transfer                                    |
-| AwaiTransfer      | MWAITF| 431B | Check data transfer                                    |
+|[AwaitTransfer](#431b-awaittransfer-mwaitf)|MWAITF|431B|Check data transfer|
 |[BatchModeEcho](#325b-batchmodeecho)|MBECH|325B|Set batch and mode job echo|
 |[ClearInBuffer](#clearinbuffer)|CIBUF|13B|Clear a device's input buffer|
 |[ClearOutBuffer](#14b-clearoutbuffer)|COBUF|14B|Clear a device's output buffer|
@@ -1996,14 +1996,14 @@ This section lists the monitor calls for input and output to files, printers, an
 |[GetStartByte](#getstartbyte)|REABT|75B|Get the next byte to access in a file|
 |[GetTerminalMode](#getterminalmode)|GTMOD|306B|Get terminal mode|
 |[GraphicFunction](#155b-graphicfunction)|GRAPHIC|155B|Execute graphic function|
-| In4x2Btyes        | I4WIN | 63B  | Read 4 words from a device                             |
+|[In4x2Bytes](#63b-in4x2bytes-b4inw)|B4INW|63B|Read 4 words from a device|
 |[In8AndFlag](#in8andflag)|T81NB|310B|Read 8 bytes with break checking|
 |[In8Bytes](#in8bytes)|8BINB|23B|Read 8 bytes|
 |[InBufferSpace](#inbufferspace)|ISIZE|66B|Get number of bytes in input buffer|
 |[InBufferState](#inbufferstate)|IBRSIZ|313B|Get input buffer information|
 |[InByte](#inbyte)|INBT|18|Read one byte from a device or a file|
 |[InString](#161b-instring)|INSTR|161B|Read a string from a device|
-| InUpTo8Btyes      | M8INB | 218B | Read up to 8 bytes from a device                       |
+| InUpTo8Bytes      | M8INB | 218B | Read up to 8 bytes from a device                       |
 |[NoWaitSwitch](#nowaitswitch)|NOWT|36B|Switch No Wait on and off|
 |[Out8Bytes](#out8bytes)|B8OUT|24B|Write 8 bytes|
 |[OutBufferSpace](#outbufferspace)|OSIZE|67B|Get number of bytes in output buffer|
@@ -2134,7 +2134,7 @@ This section lists the monitor calls related to the file system structure. Secti
 |[Function](#336b-terminal-function)|Code|Description|
 |-----------------------|-------|----------------------------------------------|
 |[FileAsSegment](#fileassegment)|FSCNT|412B Connect file as segment|
-| FileNotAsSegment      | FSDCNT| 413B Disconnect file as segment              |
+|[FileNotAsSegment](#413b-filenotassegment-fsdcnt)|FSDCNT|413B Disconnect file as segment|
 |[FileSystemFunction](#filesystemfunction)|FSMTY|327B Various file system functions|
 |[FullFileName](#256b-fullfilename)|DEABF|256B Get file name in full|
 |[GetAllFileIndexes](#getallfileindexes)|GUIO1|217B Get directory, user, and object index|
@@ -2300,7 +2300,7 @@ This section lists the monitor calls which relate to segment administration. You
 |[CopyCapability](#423b-copycapability)|CAPCOP|423B|Copy a capability|
 |[ExitFromSegment](#exitfromsegment)|MEXIT|133B|Exchange current segments|
 |[FileAsSegment](#fileassegment)|FSCNT|412B|Connect file as segment|
-| FileNotAsSegment       | FSDCNT | 413B  | Disconnect file as segment        |
+|[FileNotAsSegment](#413b-filenotassegment-fsdcnt)|FSDCNT|413B|Disconnect file as segment|
 |[FixContiguous](#160b-fixcontiguous-fixc)|FIXC|160B|Fix a segment in memory|
 |[FixInMemory](#410b-fixinmemory)|FIXMEM|410B|Fix a shared segment|
 |[FixScattered](#115b-fixscattered)|FIX|115B|Fix a segment in memory|
@@ -2425,7 +2425,7 @@ Here are the monitor calls sorted according to their short names. You will also 
 |BRKM|4B|[SetBreak](#setbreak)|F0BJN|274B|[GetFileIndexes](#getfileindexes)|
 |CAMAC|147B|[CAMACFunction](#camacfunction)|FOPEN|257B|OpenFileInfo|
 |CAPCLE|424B|[ClearCapability](#424b-clearcapability)|FSCNT|412B|[FileAsSegment](#fileassegment)|
-|CAPCOP|423B|[CopyCapability](#423b-copycapability)|FSCDNT|413B|FileNotAsSegment|
+|CAPCOP|423B|[CopyCapability](#423b-copycapability)|FSCDNT|413B|[FileNotAsSegment](#413b-filenotassegment-fsdcnt)|
 |CIBUF|13B|[ClearInBuffer](#clearinbuffer)|FSMTY|327B|[FileSystemFunction](#filesystemfunction)|
 |CLADJ|112B|[AdjustClock](#112b-adjustclock)|GASGM|421B|[GetActiveSegment](#421b-getactivesegment)|
 |CLOCK|113B|[GetCurrentTime](#getcurrenttime)|GBSIZ|222B|[GetAddressArea](#getaddressarea)|
@@ -3356,7 +3356,7 @@ FLAG, 0
 
 ## Page 88
 
-# AwaitTransfer
+# 431B AwaitTransfer MWAITF
 
 Checks that a data transfer to or from a mass-storage file is completed. The monitor call is relevant to DeviceFunction, ReadFromFile and WriteToFile operations. These are carried out independently of the CPU. The number of bytes read or written is returned.
 
@@ -8030,7 +8030,7 @@ Not available.
 
 ## Page 194
 
-# 413B **FILENOTASSEGMENT**
+# 413B FileNotAsSegment FSDCNT
 
 Disconnects a file as a segment in your domain. FileAsSegment allows files to be accessed as segments. This monitor call disconnects the file.
 
@@ -13358,7 +13358,7 @@ PAR, ...
 
 ## Page 308
 
-# In4x2Bytes
+# 63B In4x2Bytes B4INW
 
 Reads 8 bytes from a word-oriented or character-oriented device, e.g. internal devices.
 
@@ -16236,7 +16236,7 @@ ND-100 and ND-500 | All users | All programs
 
 # SINTRAN III Monitor Calls
 
-## 257B OPENFILEINFO POPFN
+## 257B OPENFILEINFO FOPEN
 
 Gets information about an open file. You specify the file name. The monitor call returns the file number and the access type. The logical device number of peripheral equipment is returned for peripheral files. Accepts COSMOS RFA.
 

@@ -3598,7 +3598,7 @@ FLAG, 0
 
 ## Page 88
 
-# AwaitTransfer
+# 431B AwaitTransfer MWAITF
 
 Checks that a data transfer to or from a mass-storage file is completed. The monitor call is relevant to DeviceFunction, ReadFromFile and WriteToFile operations. These are carried out independently of the CPU. The number of bytes read or written is returned.
 
@@ -8272,7 +8272,7 @@ Not available.
 
 ## Page 194
 
-# 413B **FILENOTASSEGMENT**
+# 413B FileNotAsSegment FSDCNT
 
 Disconnects a file as a segment in your domain. FileAsSegment allows files to be accessed as segments. This monitor call disconnects the file.
 
@@ -13600,7 +13600,7 @@ PAR, ...
 
 ## Page 308
 
-# In4x2Bytes
+# 63B In4x2Bytes B4INW
 
 Reads 8 bytes from a word-oriented or character-oriented device, e.g. internal devices.
 
