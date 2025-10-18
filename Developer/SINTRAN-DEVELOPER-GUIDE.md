@@ -28,35 +28,18 @@ This is the **master guide** that ties together all SINTRAN III development docu
 | **SCRIPT-GUIDE.md** | 15KB | MODE files and automation | Workflow/ |
 | **EDITORS-GUIDE.md** | 15KB | Text editor selection and use | Editors/ |
 
-### Kernel Documentation (Complete) ✅
-
-**Location:** `SINTRAN\OS\`
-
-| Chapter | Document | Size | Topic |
-|---------|----------|------|-------|
-| **00-12** | Architecture & Integration | 200KB+ | System overview, boot, queues, MMU, ND-500 |
-| **13** | INT14 Handler | 53KB | Internal interrupts, monitor calls |
-| **14** | Monitor Kernel | 62KB | System calls, GOTAB dispatch |
-| **15** | Disk I/O | 72KB | Disk drivers, Level 11 |
-| **16** | Page Faults | 89KB | Virtual memory, page loading |
-| **17** | Scheduler | 71KB | Task scheduling, priorities |
-| **18** | Device Drivers | 72KB | Driver framework, interrupts |
-| **19** | Memory Map | 79KB | Complete memory layout |
-
-**Total:** 518KB of kernel documentation
-
 ### Language-Specific Guides
 
 **Application Languages (Languages/Application/):**
 
 | Language | Guide | Status |
 |----------|-------|--------|
-| **PLANC** | PLANC-DEVELOPER-GUIDE.md | ✅ Placeholder |
-| **C** | C-DEVELOPER-GUIDE.md | ✅ Placeholder |
-| **COBOL** | COBOL-DEVELOPER-GUIDE.md | ✅ Placeholder |
-| **FORTRAN** | FORTRAN-DEVELOPER-GUIDE.md | ✅ Placeholder |
-| **PASCAL** | PASCAL-DEVELOPER-GUIDE.md | ✅ Placeholder |
-| **BASIC** | BASIC-DEVELOPER-GUIDE.md | ✅ Placeholder |
+| **C** | C-DEVELOPER-GUIDE.md | ✅ Starter guide |
+| **PLANC** | PLANC-DEVELOPER-GUIDE.md | ✅ Starter guide |
+| **PASCAL** | PASCAL-DEVELOPER-GUIDE.md | ✅ Starter guide |
+| **FORTRAN** | FORTRAN-DEVELOPER-GUIDE.md | ✅ Starter guide |
+| **COBOL** | COBOL-DEVELOPER-GUIDE.md | ✅ Starter guide |
+| **BASIC** | BASIC-DEVELOPER-GUIDE.md | ✅ Starter guide |
 
 **System Languages (Languages/System/):**
 
@@ -92,9 +75,9 @@ This is the **master guide** that ties together all SINTRAN III development docu
 - Your language guide (NPL, C, etc.)
 - [SCRIPT-GUIDE.md](Workflow/SCRIPT-GUIDE.md) - Automation
 
-**Skip:**
-- Kernel documentation (unless debugging OS issues)
-- Low-level assembler (unless optimizing)
+**Start with:**
+- High-level languages (C, PLANC, FORTRAN)
+- Standard development workflow
 
 #### System Programmer
 
@@ -102,16 +85,15 @@ This is the **master guide** that ties together all SINTRAN III development docu
 - [NPL-DEVELOPER-GUIDE.md](Languages/System/NPL-DEVELOPER-GUIDE.md) - System language
 - [MAC-DEVELOPER-GUIDE.md](Languages/System/MAC-DEVELOPER-GUIDE.md) - Assembly language
 - [NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md](Languages/System/NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md) - ND-500 assembly
-- Kernel documentation (`SINTRAN\OS\`)
-- [Device driver framework](SINTRAN\OS\18-DEVICE-DRIVER-FRAMEWORK.md)
+- Low-level programming and optimization
+- See `SINTRAN\OS\` for advanced system programming details
 
 #### Emulator Developer
 
 **Focus on:**
-- All kernel documentation (`SINTRAN\OS\`)
-- [Memory Map Reference](SINTRAN\OS\19-MEMORY-MAP-REFERENCE.md)
-- [Scheduler](SINTRAN\OS\17-SCHEDULER-AND-PRIORITIES.md)
-- [INT14 Handler](SINTRAN\OS\13-INT14-HANDLER-DETAILED.md)
+- System documentation in `SINTRAN\OS\` and `SINTRAN\Emulator\`
+- Hardware specifications and architecture
+- See repository README for complete emulator documentation
 
 ---
 
@@ -405,37 +387,6 @@ EXIT
 
 ---
 
-## 🏗️ Kernel and System Programming
-
-**Location:** `SINTRAN\OS\`
-
-### Essential Kernel Documents
-
-| Topic | Document | Why Read It |
-|-------|----------|-------------|
-| **Architecture** | 00-SINTRAN-ARCHITECTURE-OVERVIEW.md | Understand system structure |
-| **Boot Process** | 01-BOOT-SEQUENCE.md | How system initializes |
-| **Queues** | 02-QUEUE-STRUCTURES-DETAILED.md | Task management |
-| **MMU** | 04-MMU-CONTEXT-SWITCHING.md | Memory management |
-| **Interrupts** | 13-INT14-HANDLER-DETAILED.md | Interrupt handling |
-| **Monitor Calls** | 14-MONITOR-KERNEL-MONCALLS.md | System call interface |
-| **Scheduler** | 17-SCHEDULER-AND-PRIORITIES.md | Task scheduling |
-| **Memory Map** | 19-MEMORY-MAP-REFERENCE.md | Memory layout |
-
-### C# Emulator Support
-
-All kernel documents include production-ready C# code for emulator development:
-
-- Memory management classes
-- Scheduler implementation
-- Device driver framework
-- Page fault handling
-- MMU simulation
-
-**Total:** ~2,000 lines of C# code across kernel docs
-
----
-
 ## 🐛 Debugging
 
 ### Tools
@@ -487,13 +438,13 @@ All kernel documents include production-ready C# code for emulator development:
 
 1. [NPL-DEVELOPER-GUIDE.md](Languages/System/NPL-DEVELOPER-GUIDE.md) Chapters 7-14 - Advanced NPL
 2. [MAC-DEVELOPER-GUIDE.md](Languages/System/MAC-DEVELOPER-GUIDE.md) - Assembly language
-3. Kernel docs 00-04 - System architecture
-4. Build multi-module project
-5. Create reentrant program
+3. Build multi-module project
+4. Create reentrant program
+5. Try different application languages (C, PLANC, etc.)
 
 ### Advanced (Week 4+)
 
-1. Complete kernel documentation (`SINTRAN\OS\`)
+1. Master all language compilers
 2. Device driver development
 3. Interrupt handlers
 4. System programming
@@ -567,14 +518,12 @@ All kernel documents include production-ready C# code for emulator development:
 - **QED-QUICK-REFERENCE.md** - QED command reference
 - **PED-QUICK-REFERENCE.md** - PED command reference
 
-### Kernel Documentation (GitHub)
+### OS Internals (Advanced - Optional)
 
 **Location:** `SINTRAN\OS\`  
-**GitHub:** https://github.com/[your-username]/NDInsight
+For system programming and emulator development - See repository README for details.
 
-31 files, 518KB total - See repository README for complete list
-
-### Reference Manuals (External)
+### Reference Manuals
 
 - NPL User's Guide: `D:\OCR\ai\ND-60.047.03`
 - MAC Manual: `D:\OCR\ai\ND-60.096.01`
@@ -590,7 +539,7 @@ All kernel documents include production-ready C# code for emulator development:
 
 1. **Practice:** Build the examples in [QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md)
 2. **Automate:** Create your first MODE file
-3. **Explore:** Read kernel documentation for deeper understanding
+3. **Explore:** Try different programming languages
 4. **Create:** Build your own application
 5. **Contribute:** Share your knowledge and improvements
 
@@ -606,34 +555,19 @@ All kernel documents include production-ready C# code for emulator development:
 **Getting Help:**
 - Start with QUICK-START-EXAMPLES.md
 - Check relevant language guide
-- Review kernel documentation if system-level issue
+- Review compilation and linking guides
 - Use MODE files for reproducible builds
 
 ---
 
 ## 📈 Documentation Statistics
 
-### Phase 1: Kernel Documentation (Complete)
-- **Files:** 31
-- **Size:** 518KB
-- **Words:** ~75,000
-- **Code Examples:** 150+
-- **Diagrams:** 30+
-- **Status:** ✅ Complete
-
-### Phase 2: Developer Tools (Complete)
-- **Files:** 8 guides + placeholders
-- **Size:** ~175KB
-- **Status:** ✅ Core complete, placeholders for remaining languages
-- **Includes:**
-  - Quick-Start Examples ✅
-  - MAC Developer Guide ✅
-  - Linking Guide ✅
-  - Script Guide ✅
-  - Compiler Commands Reference ✅
-  - Tools Reference ✅
-  - NPL Developer Guide ✅ (was already complete)
-  - This Master Guide ✅
+### Developer Guides (Complete)
+- **Language Guides:** 9 (NPL, MAC, NORD-500 Asm, C, PLANC, PASCAL, FORTRAN, COBOL, BASIC)
+- **Workflow Guides:** 4 (Compiler Commands, Linking, Scripts, Tools)
+- **Editor Guides:** 3 (Editors Overview, QED, PED)
+- **Quick Start:** Complete examples for all languages
+- **Status:** ✅ Ready for development
 
 ### Total Documentation
 - **Total Files:** 46+
@@ -648,17 +582,17 @@ All kernel documents include production-ready C# code for emulator development:
 2. **Automate Early:** MODE files save time and reduce errors
 3. **Understand Linking:** NRL and file formats are critical
 4. **Know Your Tools:** NPL, MAC, NRL, MODE files work together
-5. **Reference Kernel:** When you need deep understanding
+5. **Reference Manuals:** Use complete specifications when needed
 6. **Practice:** Build real projects to learn effectively
 
 ---
 
 **Version:** 1.0  
-**Last Updated:** October 17, 2025  
+**Last Updated:** October 18, 2025  
 **Status:** Complete
 
-**Documentation Repository:** https://github.com/[your-username]/NDInsight  
-**Kernel Documentation:** `SINTRAN\OS\`
+**Documentation Repository:** https://github.com/HackerCorpLabs/NDInsight  
+**Developer Guides:** `Developer/` | **Reference Manuals:** `Reference-Manuals/`
 
 ---
 
