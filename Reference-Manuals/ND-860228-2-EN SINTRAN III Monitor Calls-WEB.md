@@ -1017,7 +1017,7 @@ Here are the monitor calls sorted by numbers. The numbers are octal.
 | 13B | [ClearInBuffer](#clearinbuffer) | CIBUF |
 | 14B | [ClearOutBuffer](#14b-clearoutbuffer) | COBUF |
 | 16B | [GetTerminalType](#16b-getterminaltype) | MGTTY |
-| 17B | SetTerminalType | MSTTY |
+| 17B | [SetTerminalType](#17b-setterminaltype-mstty) | MSTTY |
 | 21B | InUpTo8Bytes | M8INB |
 | 22B | [OutUpTo8Bytes](#outupto8bytes) | M8OUTB |
 | 23B | [In8Bytes](#in8bytes) | B8INB |
@@ -1031,7 +1031,7 @@ Here are the monitor calls sorted by numbers. The numbers are octal.
 | 34B | [NormalPageTable](#normalpagetable) | ALTOFF |
 | 35B | [OutNumber](#35b-outnumber) | IOUT |
 | 36B | [NoWaitSwitch](#nowaitswitch) | NOWT |
-| 37B | ReadAOChannel | AIDRW |
+| 37B | [ReadADChannel](#37b-readadchannel-airdw) | AIRDW |
 | 40B | [CloseSpoolingFile](#closespoolingfile) | SPCLO |
 | 41B | [ReadObjectEntry](#41b-readobjectentry) | ROBJE |
 | 43B | [CloseFile](#closefile) | CLOSE |
@@ -1071,7 +1071,7 @@ Here are the monitor calls sorted by numbers. The numbers are octal.
 | 112B | [AdjustClock](#112b-adjustclock) | CLADJ |
 | 113B | [GetCurrentTime](#getcurrenttime) | CLOCK |
 | 114B | [GetTimeUsed](#114b-gettimeused) | TUSED |
-| 115B | FixScatter | FIX |
+| 115B | [FixScatter](#115b-fixscatter-fix) | FIX |
 | 116B | [UnFixSegment](#unfixsegment) | UNFIX |
 | 117B | [ReadFromFile](#readfromfile) | RFILE |
 | 120B | [WriteToFile](#12ob-writetofile) | WFILE |
@@ -8551,7 +8551,7 @@ Not available.
 
 ## Page 206
 
-# 115B FIXSCATTERED
+# 115B FixScatter FIX
 
 Place a segment in physical memory. Its pages will no longer be swapped to the disk. The segment must be non demand. Its pages will be scattered in physical memory. You may, for example, use this function for time critical operations or for allocating DMA buffers.
 

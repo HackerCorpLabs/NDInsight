@@ -8793,7 +8793,7 @@ Not available.
 
 ## Page 206
 
-# 115B FIXSCATTERED
+# 115B FixScatter FIX
 
 Place a segment in physical memory. Its pages will no longer be swapped to the disk. The segment must be non demand. Its pages will be scattered in physical memory. You may, for example, use this function for time critical operations or for allocating DMA buffers.
 
