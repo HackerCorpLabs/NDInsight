@@ -40,7 +40,7 @@ PROCEDURE DIVISION.
 
 **Complete COBOL language documentation:**
 
-**Location:** `D:\OCR\ai\ND-60.144.3 EN COBOL Reference Manual-Gandalf-OCR_combined.md`
+**Location:** [Reference-Manuals/ND-60.144.3 EN COBOL Reference Manual.md](../../../Reference-Manuals/ND-60.144.3%20EN%20COBOL%20Reference%20Manual.md)
 
 **Manual:** ND-60.144.3 EN COBOL Reference Manual
 
@@ -60,7 +60,7 @@ PROCEDURE DIVISION.
 - **[QUICK-START-EXAMPLES.md](../../QUICK-START-EXAMPLES.md)** - Complete working example
 - **[LINKING-GUIDE.md](../../Workflow/LINKING-GUIDE.md)** - Linking COBOL programs
 - **[SINTRAN-DEVELOPER-GUIDE.md](../../SINTRAN-DEVELOPER-GUIDE.md)** - Master guide
-- **Reference Manual:** `D:\OCR\ai\ND-60.144.3`
+- **Reference Manual:** [ND-60.144.3 EN COBOL Reference Manual](../../../Reference-Manuals/ND-60.144.3%20EN%20COBOL%20Reference%20Manual.md)
 
 ---
 

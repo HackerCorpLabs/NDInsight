@@ -34,7 +34,7 @@ RUN "HELLO"                 # Run program HELLO:BAS
 
 **Complete BASIC language documentation:**
 
-**Location:** `D:\OCR\ai\ND-60.040.02_NORD_BASIC_Reference_Manual_January_1975_combined.md`
+**Location:** [Reference-Manuals/ND-60.040.02 NORD BASIC Reference Manual.md](../../../Reference-Manuals/ND-60.040.02%20NORD%20BASIC%20Reference%20Manual.md)
 
 **Manual:** ND-60.040.02 NORD BASIC Reference Manual (January 1975)
 
@@ -53,7 +53,7 @@ RUN "HELLO"                 # Run program HELLO:BAS
 
 - **[QUICK-START-EXAMPLES.md](../../QUICK-START-EXAMPLES.md)** - Complete working example
 - **[SINTRAN-DEVELOPER-GUIDE.md](../../SINTRAN-DEVELOPER-GUIDE.md)** - Master guide
-- **Reference Manual:** `D:\OCR\ai\ND-60.040.02`
+- **Reference Manual:** [ND-60.040.02 NORD BASIC Reference Manual](../../../Reference-Manuals/ND-60.040.02%20NORD%20BASIC%20Reference%20Manual.md)
 
 ---
 

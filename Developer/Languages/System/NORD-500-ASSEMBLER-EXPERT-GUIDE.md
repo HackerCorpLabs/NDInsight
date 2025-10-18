@@ -1797,7 +1797,7 @@ Each section provides expert-level detail with production code examples.
 **Last Updated:** October 18, 2025  
 **Status:** Complete - Expert Level (Part 1 of 2)
 
-**Reference Manual:** `D:\OCR\ai\ND-60.113.02 NORD-500 ASSEMBLER Reference Manual-Gandalf-OCR_combined.md`
+**Reference Manual:** [ND-60.113.02 EN Assembler Reference Manual](../../../Reference-Manuals/ND-60.113.02%20EN%20Assembler%20Reference%20Manual.md)
 
 **For Introduction:** See [NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md](NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md)
 

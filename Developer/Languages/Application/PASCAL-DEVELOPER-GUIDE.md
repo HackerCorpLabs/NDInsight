@@ -39,7 +39,7 @@ END.
 
 **Complete PASCAL language documentation:**
 
-**Location:** `D:\OCR\ai\ND-60.124.05 ND-PASCAL User's Guide-Gandalf-OCR\ND-60.124.05 ND-PASCAL User's Guide-Gandalf-OCR_combined.md`
+**Location:** [Reference-Manuals/ND-60.124.05 ND-PASCAL User's Guide.md](../../../Reference-Manuals/ND-60.124.05%20ND-PASCAL%20User's%20Guide.md)
 
 **Manual:** ND-60.124.05 ND-PASCAL User's Guide
 
@@ -59,7 +59,7 @@ END.
 - **[QUICK-START-EXAMPLES.md](../../QUICK-START-EXAMPLES.md)** - Complete working example
 - **[LINKING-GUIDE.md](../../Workflow/LINKING-GUIDE.md)** - Linking PASCAL programs
 - **[SINTRAN-DEVELOPER-GUIDE.md](../../SINTRAN-DEVELOPER-GUIDE.md)** - Master guide
-- **Reference Manual:** `D:\OCR\ai\ND-60.124.05`
+- **Reference Manual:** [ND-60.124.05 ND-PASCAL User's Guide](../../../Reference-Manuals/ND-60.124.05%20ND-PASCAL%20User's%20Guide.md)
 
 ---
 

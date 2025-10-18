@@ -1048,7 +1048,7 @@ DONE:
 ### 13.2 Reference Materials
 
 **Essential documentation:**
-- **Reference Manual:** `D:\OCR\ai\ND-60.113.02 NORD-500 ASSEMBLER Reference Manual`
+- **Reference Manual:** [ND-60.113.02 EN Assembler Reference Manual](../../../Reference-Manuals/ND-60.113.02%20EN%20Assembler%20Reference%20Manual.md)
 - **Expert Guide:** [NORD-500-ASSEMBLER-EXPERT-GUIDE.md](NORD-500-ASSEMBLER-EXPERT-GUIDE.md)
 - **CPU Manual:** NORD-500 CPU Reference Manual (for instruction details)
 
@@ -1105,7 +1105,7 @@ DONE:
 
 **For advanced topics, see:** [NORD-500-ASSEMBLER-EXPERT-GUIDE.md](NORD-500-ASSEMBLER-EXPERT-GUIDE.md)
 
-**Reference Manual:** `D:\OCR\ai\ND-60.113.02 NORD-500 ASSEMBLER Reference Manual-Gandalf-OCR_combined.md`
+**Reference Manual:** [ND-60.113.02 EN Assembler Reference Manual](../../../Reference-Manuals/ND-60.113.02%20EN%20Assembler%20Reference%20Manual.md)
 
 ---
 

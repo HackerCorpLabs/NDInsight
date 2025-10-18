@@ -280,16 +280,16 @@ Developer/
 
 | Manual | Location |
 |--------|----------|
-| **NPL User's Guide** | `D:\OCR\ai\ND-60.047.03` |
-| **MAC Reference** | `D:\OCR\ai\ND-60.096.01` |
-| **NORD-500 Assembler** | `D:\OCR\ai\ND-60.113.02` |
-| **CC-100/500 C Compiler** | `D:\OCR\ai\ND-60.214.01` |
-| **PLANC Reference** | `D:\OCR\ai\ND-60.117.5` |
-| **PASCAL User's Guide** | `D:\OCR\ai\ND-60.124.05` |
-| **COBOL Reference** | `D:\OCR\ai\ND-60.144.3` |
-| **FORTRAN Reference** | `D:\OCR\ai\ND-60.145.7A` |
-| **BASIC Reference** | `D:\OCR\ai\ND-60.040.02` |
-| **NRL Linker** | `D:\OCR\ai\ND-60.066.04` |
+| **NPL User's Guide** | [Reference-Manuals/ND-60.047.03 NORD PL User's Guide.md](../Reference-Manuals/ND-60.047.03%20NORD%20PL%20User's%20Guide.md) |
+| **MAC Reference** | [Reference-Manuals/ND-60.096.01 MAC Interactive Assembly User's Guide.md](../Reference-Manuals/ND-60.096.01%20MAC%20Interactive%20Assembly%20and%20Debugging%20System%20User's%20Guide.md) |
+| **NORD-500 Assembler** | [Reference-Manuals/ND-60.113.02 EN Assembler Reference Manual.md](../Reference-Manuals/ND-60.113.02%20EN%20Assembler%20Reference%20Manual.md) |
+| **CC-100/500 C Compiler** | [Reference-Manuals/ND-60.214.01 CC-100 and CC-500 C-Compiler User Manual.md](../Reference-Manuals/ND-60.214.01%20CC-100%20and%20CC-500%20C-Compiler%20User%20Manual.md) |
+| **PLANC Reference** | [Reference-Manuals/ND-60.117.5 EN PLANC Reference Manual.md](../Reference-Manuals/ND-60.117.5%20EN%20PLANC%20Reference%20Manual.md) |
+| **PASCAL User's Guide** | [Reference-Manuals/ND-60.124.05 ND-PASCAL User's Guide.md](../Reference-Manuals/ND-60.124.05%20ND-PASCAL%20User's%20Guide.md) |
+| **COBOL Reference** | [Reference-Manuals/ND-60.144.3 EN COBOL Reference Manual.md](../Reference-Manuals/ND-60.144.3%20EN%20COBOL%20Reference%20Manual.md) |
+| **FORTRAN Reference** | [Reference-Manuals/ND-60.145.7A EN ND FORTRAN Reference Manual.md](../Reference-Manuals/ND-60.145.7A%20EN%20ND%20FORTRAN%20Reference%20Manual.md) |
+| **BASIC Reference** | [Reference-Manuals/ND-60.040.02 NORD BASIC Reference Manual.md](../Reference-Manuals/ND-60.040.02%20NORD%20BASIC%20Reference%20Manual.md) |
+| **NRL Linker** | [Reference-Manuals/ND-60.066.04 ND Relocating Loader.md](../Reference-Manuals/ND-60.066.04%20ND%20Relocating%20Loader.md) |
 
 ---
 

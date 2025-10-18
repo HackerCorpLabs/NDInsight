@@ -59,7 +59,7 @@ QUIT        - Exit
 **Purpose:** Full-featured program editor with syntax awareness
 
 **Manual:** ND-60.121.4 PED User's Guide  
-**Location:** `D:\OCR\ai\ND-60.121.4 PED User's Guide-Gandalf-OCR\`
+**Location:** [Reference-Manuals/ND-60.121.4 PED User's Guide.md](../../Reference-Manuals/ND-60.121.4%20PED%20User's%20Guide.md)
 
 **Features:**
 - Syntax-aware editing
@@ -99,7 +99,7 @@ EXIT            - Quit editor
 **Purpose:** Context-based text editor
 
 **Manual:** ND-60.031.04 EN QED User Manual  
-**Location:** `D:\OCR\ai\ND-60.031.04 EN QED User Manual-Sintran-OCR\`
+**Location:** [Reference-Manuals/ND-60.031.04 EN QED User Manual.md](../../Reference-Manuals/ND-60.031.04%20EN%20QED%20User%20Manual.md)
 
 **Features:**
 - Context editing
@@ -317,7 +317,7 @@ EXIT
 **Purpose:** Edit symbols and create libraries from BRF files
 
 **Manual:** ND-60.085.01 BRF EDITOR  
-**Location:** `D:\OCR\ai\ND-60.085.01 BRF EDITOR-Gandalf-OCR\`
+**Location:** [Reference-Manuals/ND-60.085.01 BRF EDITOR.md](../../Reference-Manuals/ND-60.085.01%20BRF%20EDITOR.md)
 
 **Commands:**
 ```
@@ -361,7 +361,7 @@ EXIT
 **Invocation:** Start MAC in debug mode
 
 **Manual:** ND-60.096.01 MAC Interactive Assembly and Debugging System  
-**Location:** `D:\OCR\ai\ND-60.096.01_MAC_Interactive_Assembly_and_Debugging_System_Users_Guide_March_1978_ocr\`
+**Location:** [Reference-Manuals/ND-60.096.01 MAC Interactive Assembly and Debugging System User's Guide.md](../../Reference-Manuals/ND-60.096.01%20MAC%20Interactive%20Assembly%20and%20Debugging%20System%20User's%20Guide.md)
 
 **Purpose:** Debug assembly programs at instruction level
 
@@ -795,14 +795,14 @@ All tools are typically in `(PACK-ONE:SYSTEM)` or `(PACK-ONE:BPUN-FILES)`.
 
 | Tool | Manual | Location |
 |------|--------|----------|
-| **NPL** | ND-60.047.03 | `D:\OCR\ai\ND-60.047.03` |
-| **MAC** | ND-60.096.01 | `D:\OCR\ai\ND-60.096.01` |
-| **CC-100** | ND-60.214.01 | `D:\OCR\ai\ND-60.214.01` |
-| **PLANC** | ND-60.117.5 | `D:\OCR\ai\ND-60.117.5` |
-| **NRL** | ND-60.066.04 | `D:\OCR\ai\ND-60.066.04` |
-| **BRF-EDITOR** | ND-60.085.01 | `D:\OCR\ai\ND-60.085.01` |
-| **PED** | ND-60.121.4 | `D:\OCR\ai\ND-60.121.4` |
-| **QED** | ND-60.031.04 | `D:\OCR\ai\ND-60.031.04` |
+| **NPL** | ND-60.047.03 | [NORD PL User's Guide](../../Reference-Manuals/ND-60.047.03%20NORD%20PL%20User's%20Guide.md) |
+| **MAC** | ND-60.096.01 | [MAC Interactive Assembly User's Guide](../../Reference-Manuals/ND-60.096.01%20MAC%20Interactive%20Assembly%20and%20Debugging%20System%20User's%20Guide.md) |
+| **CC-100** | ND-60.214.01 | [CC-100 and CC-500 C-Compiler User Manual](../../Reference-Manuals/ND-60.214.01%20CC-100%20and%20CC-500%20C-Compiler%20User%20Manual.md) |
+| **PLANC** | ND-60.117.5 | [PLANC Reference Manual](../../Reference-Manuals/ND-60.117.5%20EN%20PLANC%20Reference%20Manual.md) |
+| **NRL** | ND-60.066.04 | [ND Relocating Loader](../../Reference-Manuals/ND-60.066.04%20ND%20Relocating%20Loader.md) |
+| **BRF-EDITOR** | ND-60.085.01 | [BRF EDITOR](../../Reference-Manuals/ND-60.085.01%20BRF%20EDITOR.md) |
+| **PED** | ND-60.121.4 | [PED User's Guide](../../Reference-Manuals/ND-60.121.4%20PED%20User's%20Guide.md) |
+| **QED** | ND-60.031.04 | [QED User Manual](../../Reference-Manuals/ND-60.031.04%20EN%20QED%20User%20Manual.md) |
 | **Debugger** | ND-60.158-5 | Coming |
 
 ### Local Guides

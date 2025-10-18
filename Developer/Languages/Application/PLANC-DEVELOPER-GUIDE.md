@@ -42,7 +42,7 @@ EXIT
 
 **Complete PLANC language documentation:**
 
-**Location:** `D:\OCR\ai\ND-60.117.5 EN PLANC Reference Manual-missing page-Gandalf-OCR\`
+**Location:** [Reference-Manuals/ND-60.117.5 EN PLANC Reference Manual.md](../../../Reference-Manuals/ND-60.117.5%20EN%20PLANC%20Reference%20Manual.md)
 
 **Manual:** ND-60.117.5 EN PLANC Reference Manual
 
@@ -62,7 +62,7 @@ EXIT
 - **[QUICK-START-EXAMPLES.md](../../QUICK-START-EXAMPLES.md)** - Complete working example
 - **[LINKING-GUIDE.md](../../Workflow/LINKING-GUIDE.md)** - Linking PLANC programs
 - **[SINTRAN-DEVELOPER-GUIDE.md](../../SINTRAN-DEVELOPER-GUIDE.md)** - Master guide
-- **Reference Manual:** `D:\OCR\ai\ND-60.117.5`
+- **Reference Manual:** [ND-60.117.5 EN PLANC Reference Manual](../../../Reference-Manuals/ND-60.117.5%20EN%20PLANC%20Reference%20Manual.md)
 
 ---
 

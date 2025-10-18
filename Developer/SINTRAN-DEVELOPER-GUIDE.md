@@ -18,37 +18,37 @@ This is the **master guide** that ties together all SINTRAN III development docu
 
 ### Core Documentation (Complete) ✅
 
-| Document | Size | Description | Location |
-|----------|------|-------------|----------|
-| **QUICK-START-EXAMPLES.md** | 12KB | Hello World for all languages | Developer/ |
-| **NPL-DEVELOPER-GUIDE.md** | 70KB | Complete NPL language guide | Languages/System/ |
-| **MAC-DEVELOPER-GUIDE.md** | 21KB | MAC assembler reference | Languages/System/ |
-| **NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md** | 30KB | NORD-500 assembly language | Languages/System/ |
-| **LINKING-GUIDE.md** | 17KB | NRL, BRF, BPUN, PROG files | Workflow/ |
-| **SCRIPT-GUIDE.md** | 15KB | MODE files and automation | Workflow/ |
-| **EDITORS-GUIDE.md** | 15KB | Text editor selection and use | Editors/ |
+| Document | Size | Description |
+|----------|------|-------------|
+| **[QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md)** | 12KB | Hello World for all languages |
+| **[NPL-DEVELOPER-GUIDE.md](Languages/System/NPL-DEVELOPER-GUIDE.md)** | 70KB | Complete NPL language guide |
+| **[MAC-DEVELOPER-GUIDE.md](Languages/System/MAC-DEVELOPER-GUIDE.md)** | 21KB | MAC assembler reference |
+| **[NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md](Languages/System/NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md)** | 30KB | NORD-500 assembly language |
+| **[LINKING-GUIDE.md](Workflow/LINKING-GUIDE.md)** | 17KB | NRL, BRF, BPUN, PROG files |
+| **[SCRIPT-GUIDE.md](Workflow/SCRIPT-GUIDE.md)** | 15KB | MODE files and automation |
+| **[EDITORS-GUIDE.md](Editors/EDITORS-GUIDE.md)** | 15KB | Text editor selection and use |
 
 ### Language-Specific Guides
 
 **Application Languages (Languages/Application/):**
 
-| Language | Guide | Status |
-|----------|-------|--------|
-| **C** | C-DEVELOPER-GUIDE.md | ✅ Starter guide |
-| **PLANC** | PLANC-DEVELOPER-GUIDE.md | ✅ Starter guide |
-| **PASCAL** | PASCAL-DEVELOPER-GUIDE.md | ✅ Starter guide |
-| **FORTRAN** | FORTRAN-DEVELOPER-GUIDE.md | ✅ Starter guide |
-| **COBOL** | COBOL-DEVELOPER-GUIDE.md | ✅ Starter guide |
-| **BASIC** | BASIC-DEVELOPER-GUIDE.md | ✅ Starter guide |
+| Language | Guide |
+|----------|-------|
+| **C** | [C-DEVELOPER-GUIDE.md](Languages/Application/C-DEVELOPER-GUIDE.md) |
+| **PLANC** | [PLANC-DEVELOPER-GUIDE.md](Languages/Application/PLANC-DEVELOPER-GUIDE.md) |
+| **PASCAL** | [PASCAL-DEVELOPER-GUIDE.md](Languages/Application/PASCAL-DEVELOPER-GUIDE.md) |
+| **FORTRAN** | [FORTRAN-DEVELOPER-GUIDE.md](Languages/Application/FORTRAN-DEVELOPER-GUIDE.md) |
+| **COBOL** | [COBOL-DEVELOPER-GUIDE.md](Languages/Application/COBOL-DEVELOPER-GUIDE.md) |
+| **BASIC** | [BASIC-DEVELOPER-GUIDE.md](Languages/Application/BASIC-DEVELOPER-GUIDE.md) |
 
 **System Languages (Languages/System/):**
 
-| Language | Guide | Status |
-|----------|-------|--------|
-| **NPL** | NPL-DEVELOPER-GUIDE.md | ✅ Complete (70KB) |
-| **MAC** | MAC-DEVELOPER-GUIDE.md | ✅ Complete (21KB) |
-| **NORD-500 ASM** | NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md | ✅ Complete (30KB) |
-| **NORD-500 ASM** | NORD-500-ASSEMBLER-EXPERT-GUIDE.md | ✅ Complete (Expert) |
+| Language | Guide |
+|----------|-------|
+| **NPL** | [NPL-DEVELOPER-GUIDE.md](Languages/System/NPL-DEVELOPER-GUIDE.md) |
+| **MAC** | [MAC-DEVELOPER-GUIDE.md](Languages/System/MAC-DEVELOPER-GUIDE.md) |
+| **NORD-500 Assembler** | [NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md](Languages/System/NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md) |
+| **NORD-500 Expert** | [NORD-500-ASSEMBLER-EXPERT-GUIDE.md](Languages/System/NORD-500-ASSEMBLER-EXPERT-GUIDE.md) |
 
 ---
 
@@ -224,7 +224,7 @@ MSG,    'HELLO MAC!'
 
 **Status:** ✅ Placeholder  
 **Guide:** [C-DEVELOPER-GUIDE.md](Languages/Application/C-DEVELOPER-GUIDE.md)  
-**Reference:** `D:\OCR\ai\ND-60.214.01 CC-100 and CC-500 C-Compiler`
+**Reference:** [ND-60.214.01 CC-100 and CC-500 C-Compiler User Manual](../Reference-Manuals/ND-60.214.01%20CC-100%20and%20CC-500%20C-Compiler%20User%20Manual.md)
 
 **When to use:**
 - Portable applications
@@ -258,7 +258,7 @@ main() {
 
 **Status:** ✅ Placeholder  
 **Guide:** [PLANC-DEVELOPER-GUIDE.md](Languages/Application/PLANC-DEVELOPER-GUIDE.md)  
-**Reference:** `D:\OCR\ai\ND-60.117.5 EN PLANC Reference Manual`
+**Reference:** [ND-60.117.5 EN PLANC Reference Manual](../Reference-Manuals/ND-60.117.5%20EN%20PLANC%20Reference%20Manual.md)
 
 **When to use:**
 - Structured programming
@@ -525,11 +525,12 @@ For system programming and emulator development - See repository README for deta
 
 ### Reference Manuals
 
-- NPL User's Guide: `D:\OCR\ai\ND-60.047.03`
-- MAC Manual: `D:\OCR\ai\ND-60.096.01`
-- CC-100/500: `D:\OCR\ai\ND-60.214.01`
-- PLANC: `D:\OCR\ai\ND-60.117.5`
-- NRL: `D:\OCR\ai\ND-60.066.04`
+See [Reference-Manuals/README.md](../Reference-Manuals/README.md) for complete list of all manuals:
+- [NPL User's Guide](../Reference-Manuals/ND-60.047.03%20NORD%20PL%20User's%20Guide.md)
+- [MAC Manual](../Reference-Manuals/ND-60.096.01%20MAC%20Interactive%20Assembly%20and%20Debugging%20System%20User's%20Guide.md)
+- [CC-100/500 C Compiler](../Reference-Manuals/ND-60.214.01%20CC-100%20and%20CC-500%20C-Compiler%20User%20Manual.md)
+- [PLANC Reference](../Reference-Manuals/ND-60.117.5%20EN%20PLANC%20Reference%20Manual.md)
+- [NRL Linker](../Reference-Manuals/ND-60.066.04%20ND%20Relocating%20Loader.md)
 
 ---
 

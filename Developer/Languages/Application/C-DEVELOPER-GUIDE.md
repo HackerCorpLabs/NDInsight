@@ -45,7 +45,7 @@ main()
 
 **Complete C compiler documentation:**
 
-**Location:** `D:\OCR\ai\ND-60.214.01 CC-100 and CC-500 C-Compiler ND-100 500 User Manual-Gandalf-OCR\`
+**Location:** [Reference-Manuals/ND-60.214.01 CC-100 and CC-500 C-Compiler User Manual.md](../../../Reference-Manuals/ND-60.214.01%20CC-100%20and%20CC-500%20C-Compiler%20User%20Manual.md)
 
 **Manual:** ND-60.214.01 CC-100 and CC-500 C-Compiler User Manual
 
@@ -65,7 +65,7 @@ main()
 - **[QUICK-START-EXAMPLES.md](../../QUICK-START-EXAMPLES.md)** - Complete working example
 - **[LINKING-GUIDE.md](../../Workflow/LINKING-GUIDE.md)** - Linking C programs with runtime
 - **[SINTRAN-DEVELOPER-GUIDE.md](../../SINTRAN-DEVELOPER-GUIDE.md)** - Master guide
-- **Reference Manual:** `D:\OCR\ai\ND-60.214.01`
+- **Reference Manual:** [ND-60.214.01 CC-100 and CC-500 C-Compiler User Manual](../../../Reference-Manuals/ND-60.214.01%20CC-100%20and%20CC-500%20C-Compiler%20User%20Manual.md)
 
 ---
 
