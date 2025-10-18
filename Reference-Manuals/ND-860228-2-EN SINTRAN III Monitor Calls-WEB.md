@@ -960,246 +960,238 @@ You may also include MAC or ASSEMBLY-500 statements in PLANC programs.
 This chapter is a guide to the various monitor calls. It contains lists sorted by name, short name, and number. The monitor calls are also grouped according to function.
 
 ## 2.1 Monitor Calls in Numeric Order
-
-Here are the monitor calls sorted by numbers. The numbers are octal.
-
 | Code | Monitor Call Name | Mnemonic   |
 |------|-------------------|------------|
-| 0B | [ExitFromProgram](#ob-exitfromprogram-leave) | [LEAVE](#ob-exitfromprogram-leave) |
-| 1B | [InByte](#inbyte) | INBT |
-| 2B | [OutByte](#outbyte) | OUTBT |
-| 3B | [SetEcho](#3b-setecho) | ECHOM |
-| 4B | [SetBreak](#setbreak) | BRKM |
-| 5B | [ReadScratchFile](#5b-readscratchfile-rdisk) | RDISK |
-| 6B | [WriteScratchFile](#6b-writescratchfile) | WDISK |
-| 7B | [ReadBlock](#readblock) | RPAGE |
-| 10B | [WriteBlock](#writeblock) | WPAGE |
+| 0B | ExitFromProgram | LEAVE |
+| 1B | InByte | INBT |
+| 2B | OutByte | OUTBT |
+| 3B | SetEcho | ECHOM |
+| 4B | SetBreak | BRKM |
+| 5B | [ReadScratchFile](#5b-readscratchfile) | RDISK |
+| 6B | WriteScratchFile | WDISK |
+| 7B | ReadBlock | RPAGE |
+| 10B | WriteBlock | WPAGE |
 | 11B | [GetBasicTime](#11b-getbasictime) | TIME |
-| 12B | [SetCommandBuffer](#setcommandbuffer) | SETCM |
-| 13B | [ClearInBuffer](#clearinbuffer) | CIBUF |
-| 14B | [ClearOutBuffer](#14b-clearoutbuffer) | COBUF |
+| 12B | SetCommandBuffer | SETCM |
+| 13B | ClearInBuffer | CIBUF |
+| 14B | ClearOutBuffer | COBUF |
 | 16B | [GetTerminalType](#16b-getterminaltype) | MGTTY |
-| 17B | [SetTerminalType](#17b-setterminaltype-mstty) | MSTTY |
-| 21B | [InUpTo8Bytes](#21b-inupto8bytes-m8inb) | M8INB |
-| 22B | [OutUpTo8Bytes](#outupto8bytes) | M8OUTB |
-| 23B | [In8Bytes](#in8bytes) | B8INB |
-| 24B | [Out8Bytes](#out8bytes) | B8OUT |
-| 26B | [GetLastByte](#getlastbyte) | LASTC |
-| 27B | [GetRTDescr](#getrtdescr) | RTDSC |
-| 30B | [GetOwnRTAddress](#getownrtaddress) | GETRT |
+| 17B | [SetTerminalType](#17b-setterminaltype) | MSTTY |
+| 21B | [InUpTo8Bytes](#21b-inupto8bytes) | M8INB |
+| 22B | OutUpTo8Bytes | M8OUTB |
+| 23B | In8Bytes | B8INB |
+| 24B | Out8Bytes | B8OUT |
+| 26B | GetLastByte | LASTC |
+| 27B | GetRTDescr | RTDSC |
+| 30B | GetOwnRTAddress | GETRT |
 | 31B | [IOInstruction](#31b-ioinstruction) | EXIOX |
-| 32B | [OutMessage](#32b-outmessage-msg) | MSG |
-| 33B | [AltPageTable](#33b-altpagetable) | ALTON |
-| 34B | [NormalPageTable](#normalpagetable) | ALTOFF |
+| 32B | [OutMessage](#32b-outmessage) | MSG |
+| 33B | AltPageTable | ALTON |
+| 34B | NormalPageTable | ALTOFF |
 | 35B | [OutNumber](#35b-outnumber) | IOUT |
-| 36B | [NoWaitSwitch](#nowaitswitch) | NOWT |
-| 37B | [ReadADChannel](#37b-readadchannel-airdw) | AIRDW |
-| 40B | [CloseSpoolingFile](#closespoolingfile) | SPCLO |
+| 36B | NoWaitSwitch | NOWT |
+| 37B | [ReadADChannel](#37b-readadchannel) | AIRDW |
+| 40B | [CloseSpoolingFile](#40b-closespoolingfile) | SPCLO |
 | 41B | [ReadObjectEntry](#41b-readobjectentry) | ROBJE |
-| 43B | [CloseFile](#closefile) | CLOSE |
-| 44B | [GetUserEntry](#getuserentry) | RUSER |
-| 50B | [OpenFile](#50b-openfile-open) | OPEN |
-| 52B | [TerminalMode](#terminalmode) | TERMO |
-| 53B | [GetSegmentEntry](#getsegmententry) | RSEGM |
-| 54B | [DeleteFile](#deletefile) | MDLFI |
-| 55B | [GetSpoolingEntry](#getspoolingentry) | RSPQE |
-| 56B | [SetUserParam](#setuserparam) | PASET |
-| 57B | [GetUserParam](#getuserparam) | PAGET |
-| 61B | [MemoryAllocation](#memoryallocation) | FIXCS |
-| 62B | [GetBytesInFile](#62b-getbytesinfile-rmax) | RMAX |
-| 63B | [In4x2Bytes](#in4x2bytes) | B4INW |
+| 43B | CloseFile | CLOSE |
+| 44B | GetUserEntry | RUSER |
+| 50B | [OpenFile](#50b-openfile) | OPEN |
+| 52B | TerminalMode | TERMO |
+| 53B | GetSegmentEntry | RSEGM |
+| 54B | [DeleteFile](#54b-deletefile) | MDLFI |
+| 55B | GetSpoolingEntry | RSPQE |
+| 56B | SetUserParam | PASET |
+| 57B | [GetUserParam](#57b-getuserparam) | PAGET |
+| 61B | MemoryAllocation | FIXCS |
+| 62B | GetBytesInFile | RMAX |
+| 63B | [In4x2Bytes](#63b-in4x2bytes) | B4INW |
 | 64B | [WarningMessage](#64b-warningmessage) | ERMSG |
-| 65B | [ErrorMessage](#errormessage) | QERMS |
-| 66B | [InBufferSpace](#inbufferspace) | ISIZE |
-| 67B | [OutBufferSpace](#outbufferspace) | OSIZE |
-| 70B | [CallCommand](#callcommand) | COMND |
-| 71B | [DisableEscape](#71b-disableescape) | DESCF |
-| 72B | [EnableEscape](#72b-enableescape) | EESCF |
-| 73B | [SetMaxBytes](#setmaxbytes) | SMAX |
-| 74B | [SetStartByte](#setstartbyte) | SETBT |
-| 75B | [GetStartByte](#getstartbyte) | REABT |
-| 76B | [SetBlockSize](#76b-setblocksize-setbs) | SETBS |
-| 77B | [SetStartBlock](#setstartblock) | SETBL |
-| 100B | [StartRTProgram](#startrtprogram) | RT |
-| 101B | [DelayStart](#101b-delaystart) | SET |
-| 102B | [StartupTime](#startuptime) | ABSET |
-| 103B | [StartupInterval](#103b-startupinterval) | INTV |
-| 104B | [SuspendProgram](#suspendprogram) | HOLD |
-| 105B | [StopRTProgram](#stoprtprogram) | ABORT |
-| 106B | [StartOnInterrupt](#106b-startoninterrupt) | CONCT |
-| 107B | [NoInterruptStart](#nointerruptstart) | DSCNT |
-| 110B | [SetRTPriority](#setrtpriority) | PRIOR |
-| 111B | [SetClock](#setclock) | UPDAT |
-| 112B | [AdjustClock](#112b-adjustclock) | CLADJ |
-| 113B | [GetCurrentTime](#getcurrenttime) | CLOCK |
-| 114B | [GetTimeUsed](#114b-gettimeused) | TUSED |
-| 115B | [FixScatter](#115b-fixscatter-fix) | FIX |
-| 116B | [UnFixSegment](#unfixsegment) | UNFIX |
-| 117B | [ReadFromFile](#readfromfile) | RFILE |
-| 120B | [WriteToFile](#12ob-writetofile) | WFILE |
-| 121B | [AwaitFileTransfer](#121b-awaitfiletransfer-waitf) | WAITF |
-| 122B | [ReserveResource](#reserveresource) | RESRV |
-| 123B | [ReleaseResource](#releaseresource) | RELES |
-| 124B | [ForceReserve](#124b-forcereserve-prsrv) | PRSRV |
-| 125B | [ForceRelease](#forcerelease) | PRSLS |
-| 126B | [ExactDelayStart](#126b-exactdelaystart-dset) | DSET |
-| 127B | [ExactStartup](#exactstartup) | DABST |
-| 130B | [ExactInterval](#exactinterval) | DINTV |
-| 131B | [DataTransfer](#131b-datatransfer) | ABSTR     |
-
-| 132B | [JumpToSegment](#132b-jumptosegment) | MCALL     |
-| 133B | [ExitFromSegment](#133b-exitfromsegment) | MEXIT     |
-| 134B | [ExitRTProgram](#134b-exitrtprogram) | REXIT     |
-| 135B | [WaitForRestart](#135b-waitforrestart) | RTWT      |
-| 136B | [EnableRTStart](#136b-enablertstart) | RTON      |
-| 137B | [DisableRTStart](#137b-disablertstart) | RTOFF     |
-| 138B | ToForwardLineInfo        | HDWEV     |
-| 140B | [DeviceControl](#140b-devicecontrol) | IOCTL     |
-| 141B | [ToErrorDevice](#142b-toerrordevice) | ERMON     |
-| 142B | DeviceInfo               | RSIO      |
-| 143B | [DeviceFunction](#143b-devicefunction) | MAGTYP    |
-| 144B | [PrivInstruction](#146b-privinstruction) | IPRIV     |
-| 147B | CAMACFunction           | CAMAC     |
-| 150B | [CAMACGLRegister](#150b-camacglregister) | GL        |
-| 151B | [GetRTAddress](#151b-getrtaddress) | GRTDA     |
-| 152B | [GetRTName](#152b-getrtname) | GRTNA     |
-| 153B | [CAMACIOInstruction](#153b-camacioinstruction) | IOXIN     |
-| 154B | [AssignCAMACLAM](#154b-assigncamaclam) | ASSIG     |
-| 155B | [GraphicFunction](#155b-graphicfunction) | GRAPHI    |
-| 156B | SegmentOperateTable      | TABLE     |
-| 157B | [FixContiguous](#157b-fixcontiguous) | FIXC      |
-| 158B | [InString](#158b-instring) | INSTR     |
-| 159B | [OutString](#162b-outstring) | OUTSTR    |
-| 161B | [SaveSegment](#161b-savesegment) | WSEG      |
-| 162B | [GetInRegisters](#162b-getinregisters) | DIVI      |
-| 168B | [AttachSegment](#167b-attachsegment) | REENT     |
-| 170B | [UserDef0](#170b-userdef0) | U50       |
-| 171B | [UserDef1](#171b-userdef1) | U51       |
-
-| 172B | [UserDef2](#172b-userdef2) | U52       |
-
-| 173B | [UserDef3](#173b-userdef3) | U53       |
-
-| 174B | [UserDef4](#174b-userdef4) | U54       |
-
-| 175B | [UserDef5](#175b-userdef5) | U55       |
-
-| 176B | [UserDef6](#176b-userdef6) | U56       |
-
-| 177B | [UserDef7](#177b-userdef7) | U57       |
-
-| 178B | [XMSGFunction](#178b-xmsgfunction) | XMSGF     |
-| 200B | [HDLCFunction](#200b-hdlcfunction) | MHDLC     |
-| 206B | [TerminationHandling](#206b-terminationhandling) | EDTMR     |
-| 208B | GetErrorNumber           | GERRN     |
-| 212B | [ReentrantSegment](#212b-reentrantsegment) | SREEN     |
-| 213B | GetArrayIndexes          | WSEX      |
-| 215B | [GetUserName](#214b-getusername) | GUS3      |
-| 218B | GetJobEntry              | GJOE      |
-| 217B | [GetAllFileIndexes](#217b-getallfileindexes) | GALI      |
-| 220B | [CreateFile](#221b-createfile) | CRFL      |
-| 222B | GetAddressAreas          | GASIZ     |
-| 230B | GetSLocalChars           | MGDAE     |
-| 231B | [ExpandFile](#231b-expandfile) | EXPF1     |
-| 232B | [RenameFile](#232b-renamefile) | RENF1     |
-| 233B | [SetTemporaryFile](#233b-settemporaryfile) | STF1      |
-| 234B | [SetPeripheralName](#234b-setperipheralname) | SEF1      |
-| 235B | [ScratchOpen](#235b-scratchopen) | SCROP     |
-| 236B | [SetPermanentOpen](#236b-setpermanentopen) | PEROP     |
-| 237B | [SetFileAccess](#237b-setfileaccess) | SFACC     |
-| 238B | SetFileSystem            | SPARC     |
-| 240B | CloseAll                 | CLSAL     |
-| 241B | [OldUser](#241b-olduser) | RUSCN     |
-| 242B | GetOldNameIndex          | GDINX     |
-| 243B | [GetDirEntry](#244b-getdirentry) | GDIEN     |
-| 244B | SetNameEntry             | GDINX     |
-| 246B | ReserveOrder             | REDIR     |
-| 247B | ReleaseDir               | RLDIR     |
-| 248B | [CopyPage](#248b-copypage) | COPAG     |
-| 250B | [BackupClose](#250b-backupclose) | BRCP      |
-| 251B | [NewFileVersion](#251b-newfileversion) | NWFIL     |
-| 252B | GetErrorOverDev          | GERDV     |
-| 253B | FreePage                 | FREPG     |
-| 255B | [FullFileName](#255b-fullfilename) | DAE8F     |
-| 256B | GetFileInfo              | FPINF     |
-| 261B | SetSystemTime            | CPUST     |
-| 263B | [GetDeviceType](#263b-getdevicetype) | GDEVY     |
-| 264B | [TimeOut](#264b-timeout) | TMOUT     |
-| 266B | [ReadDiskPage](#266b-readdiskpage) | ROPAG     |
-| 267B | [WriteDiskPage](#267b-writediskpage) | WDPAG     |
-| 272B | [GetFileName](#272b-getfilename) | MGFLI     |
-| 275B | GetFilePage              | DELPG     |
-| 276B | [SetTerminalName](#276b-setterminalname) | STRFI     |
-| 278B | RamLabelLocal            | ELON      |
-| 300B | SetSpaceHandling         | SUSP      |
-| 301B | SetSpaceHandling1        | SUSI      |
-| 302B | OnLocalFunction          | ELON      |
-| 303B | OffLocalFunction         | ELOFF     |
-| 307B | TerminalHandling         | TNRIN     |
-| 308B | [TerminalNoWait](#307b-terminalnowait) | TNWAL     |
-| 310B | LanDataWrite             | MWIN      |
-| 311B | WriteMicro               | MDINE     |
-| 312B | BenchMarkCall            | MOIN      |
-| 313B | GetBenchMarkCall         | MOIN2     |
-| 314B | DefaultSystemStatus      | SRUS1     |
-| 316B | SaveMicroCommand         | SRLMC     |
-| 317B | GetServiceCommands       | GSCMG     |
-| 323B | [SegmentOverlay](#323b-segmentoverlay) | SPARC     |
-| 324B | [OctobusFunction](#324b-octobusfunction) | OCTO          |
-| 325B | [BatchModeEcho](#325b-batchmodeecho) | MBECH         |
-| 326B | LogInStart                 | MLOGI         |
-| 327B | [FileSystemFunction](#327b-filesystemfunction) | FSMTY         |
-| 330B | [TerminalStatus](#330b-terminalstatus) | TERST         |
-| 332B | [TerminalLineInfo](#332b-terminallineinfo) | TREPP         |
-| 333B | [DMAFunction](#333b-dmafunction) | UDMA          |
-| 334B | [GetErrorMessage](#334b-geterrormessage) | GETXM         |
-| 335B | [TransferData](#335b-transferdata) | EXABS         |
-| 336B | TerminalFunction           | IOMTY         |
-| 337B | [ChangeSegment](#337b-changesegment) | SPCHG         |
-| 340B | [ReadSystemRecord](#340b-readsystemrecord) | RSREC         |
-| 341B | [SegmentFunction](#341b-segmentfunction) | SGMTY         |
-| 400B | [ErrorReturn](#400b-errorreturn) | MACROE        |
-| 401B | [DisAssemble](#401b-disassemble) | DISASS        |
-
-| 402B | [GetInputFlags](#402b-getinputflags) | RFLAG         |
-| 403B | [SetOutputFlags](#403b-setoutputflags) | WFLAG         |
-| 404B | [FixIOArea](#404b-fixioarea) | IOFIX         |
-| 405B | [SwitchUserBreak](#405b-switchuserbreak) | USTRBK        |
-| 406B | [AccessRTCommon](#406b-accessrtcommon) | RWRTC         |
-
-| 410B | [FixInMemory](#410b-fixinmemory) | FIXMEM        |
-| 411B | [MemoryUnFix](#411b-memoryunfix) | UNFIXM        |
-| 412B | [FileAsSegment](#412b-fileassegment) | FSCNT         |
-| 413B | [FileNotAsSegment](#413b-filenotassegment) | FSDCNT        |
-| 414B | [BCNAFCAMAC](#414b-bcnafcamac) | BCNAF         |
-| 415B | BCNAFICAMAC                | BCNAF1        |
-| 416B | [SaveND500Segment](#416b-savend500segment) | WSEGN         |
-| 417B | [MaxPagesInMemory](#417b-maxpagesinmemory) | MXPISG        |
-| 420B | [GetUserRegisters](#420b-getuserregisters) | GRBLK         |
-| 421B | [GetActiveSegment](#421b-getactivesegment) | GASGM         |
-| 422B | [GetScratchSegment](#422b-getscratchsegment) | GSWSP         |
-| 423B | [CopyCapability](#423b-copycapability) | CAPCOP        |
-| 424B | [ClearCapability](#424b-clearcapability) | CAPCLE        |
-| 425B | [SetProcessName](#425b-setprocessname) | SPRNAM        |
-| 426B | [GetProcessNo](#426b-getprocessno) | GPRNUM        |
-| 427B | [GetOwnProcessInfo](#427b-getownprocessinfo) | GPRNAME       |
-| 430B | [TranslateAddress](#430b-translateaddress) | ADR100        |
-| 431B | [AwaitTransfer](#431b-awaittransfer) | MWAITF        |
-| 435B | [ForceTrap](#435b-forcetrap) | PRT           |
-
-| 436B | [SetND500Param](#436b-setnd500param) | 5PASET        |
-| 437B | [GetND500Param](#437b-getnd500param) | 5PAGET        |
-| 440B | [Attach500Segment](#440b-attach500segment) | AT5SGM        |
-| 500B | [StartProcess](#500b-startprocess) | STARTP        |
-| 501B | [StopProcess](#501b-stopprocess) | STOPPR        |
-| 502B | [SwitchProcess](#502b-switchprocess) | SWITCHP       |
-| 503B | [InputString](#503b-inputstring) | DVINST        |
-| 504B | [OutputString](#504b-outputstring) | DVOUTS        |
-| 505B | [GetTrapReason](#505b-gettrapreason) | GERRCOD       |
-| 507B | [SetProcessPriority](#507b-setprocesspriority) | SPRIO         |
-| 514B | [ND500TimeOut](#514b-nd500timeout) | 5TMOUT        |
-
-
+| 65B | ErrorMessage | ERMSG |
+| 66B | GetErrorInfo | RERRP |
+| 67B | GetErrorNumber | GERRN |
+| 70B | EnableEscape | EESCF |
+| 71B | DisableEscape | DESCF |
+| 72B | GetEscapeChar | GESCF |
+| 73B | SetEscapeChar | SESCF |
+| 74B | GetBreakChar | GBRCF |
+| 75B | SetBreakChar | SBRCF |
+| 76B | GetUserRegisters | GRBLK |
+| 77B | SetUserRegisters | SRBLK |
+| 100B | GetSystemTime | GTIME |
+| 101B | SetSystemTime | STIME |
+| 102B | StartupTime | ABSET |
+| 103B | GetSystemInfo | GSYSI |
+| 104B | SetSystemInfo | SSYSI |
+| 105B | StopRTProgram | ABORT |
+| 106B | StartRTProgram | START |
+| 107B | GetRTProgramInfo | GRTPI |
+| 110B | GetRTProgramList | GRTPL |
+| 111B | SetClock | UPDAT |
+| 112B | [AdjustClock](#112b-adjustclock) | ADJUS |
+| 113B | GetClockInfo | GCLKI |
+| 114B | SetClockInfo | SCLKI |
+| 115B | GetDate | GDATE |
+| 116B | SetDate | SDATE |
+| 117B | GetTime | GTIME |
+| 120B | GetUserInfo | GUSER |
+| 121B | [AwaitFileTransfer](#121b-awaitfiletransfer) | WAITF |
+| 122B | GetFileInfo | GFILE |
+| 123B | SetFileInfo | SFILE |
+| 124B | GetFileList | GFLIST |
+| 125B | GetFileEntry | GFENT |
+| 126B | SetFileEntry | SFENT |
+| 127B | [ExactStartup](#127b-exactstartup) | DABST |
+| 130B | ExactInterval | DINTV |
+| 131B | [DataTransfer](#131b-datatransfer) | ABSTR |
+| 132B | [JumpToSegment](#132b-jumptosegment) | MCALL |
+| 133B | [ExitFromSegment](#133b-exitfromsegment) | MEXIT |
+| 134B | [ExitRTProgram](#134b-exitrtprogram) | RTEXT |
+| 135B | [WaitForRestart](#135b-waitforrestart) | RTWT |
+| 136B | [EnableRTStart](#136b-enablertstart) | RTON |
+| 137B | [DisableRTStart](#137b-disablertstart) | RTOFF |
+| 138B | [ToForwardLineInfo](#138b-toforwardlineinfo) | WHDEV |
+| 140B | [DeviceControl](#140b-devicecontrol) | IOSET |
+| 141B | [ToErrorDevice](#141b-toerrordevice) | ERMON |
+| 143B | [ExecutionInfo](#143b-executioninfo) | RSIO |
+| 144B | [DeviceFunction](#144b-devicefunction) | MAGTYP |
+| 146B | [PrivInstruction](#146b-privinstruction) | IPRIV |
+| 147B | [CAMACfunction](#147b-camacfunction) | CAMAC |
+| 150B | [CAMACGLRegister](#150b-camacglregister) | GL |
+| 151B | [GetRTAddress](#151b-getrtaddress) | GRTDA |
+| 152B | [GetRTName](#152b-getrtname) | GRTNA |
+| 153B | [CAMACIOInstruction](#153b-camacioinstruction) | IOXN |
+| 154B | [AssignCAMACLAM](#154b-assigncamaclam) | ASSIG |
+| 155B | [GraphicFunction](#155b-graphicfunction) | GRAPHI |
+| 157B | [SegmentToPageTable](#157b-segmenttopagetable) | ENTSG |
+| 158B | [FixContiguous](#158b-fixcontiguous) | FIXC |
+| 161B | [InString](#161b-instring) | INSTR |
+| 162B | [OutString](#162b-outstring) | OUTST |
+| 164B | [SaveSegment](#164b-savesegment) | WSEG |
+| 165B | [GetInRegisters](#165b-getinregisters) | DIW |
+| 167B | [AttachSegment](#167b-attachsegment) | REENT |
+| 170B | [UserDef0](#170b-userdef0) | USO |
+| 171B | [UserDef1](#171b-userdef1) | US1 |
+| 172B | [UserDef2](#172b-userdef2) | US2 |
+| 173B | [UserDef3](#173b-userdef3) | US3 |
+| 174B | [UserDef4](#174b-userdef4) | US4 |
+| 175B | [UserDef5](#175b-userdef5) | US5 |
+| 176B | [UserDef6](#176b-userdef6) | US6 |
+| 177B | [UserDef7](#177b-userdef7) | US7 |
+| 200B | [XMSGFunction](#200b-xmsgfunction) | XMSG |
+| 201B | [HDLCfunction](#201b-hdlcfunction) | MHDLC |
+| 206B | [TerminationHandling](#206b-terminationhandling) | EDTMR |
+| 207B | [GetErrorInfo](#207b-geterrorinfo) | RERRP |
+| 212B | [ReentrantSegment](#212b-reentrantsegment) | SREEN |
+| 213B | [GetDirUserIndexes](#213b-getdiruserindexes) | MUIDI |
+| 214B | [GetUserName](#214b-getusername) | GUSNA |
+| 215B | [GetObjectEntry](#215b-getobjectentry) | DROBJ |
+| 216B | [GetObjectEntry](#216b-getobjectentry) | DWOBJ |
+| 217B | [GetAllFileIndexes](#217b-getallfileindexes) | GUIOI |
+| 220B | [DirectOpen](#220b-directopen) | DOPEN |
+| 221B | [CreateFile](#221b-createfile) | CRALF |
+| 222B | [GetAddressArea](#222b-getaddressarea) | GBSIZ |
+| 227B | [SetEscLocalChars](#227b-setesclocalchars) | MSDAE |
+| 230B | [GetEscLocalChars](#230b-getesclocalchars) | MGDAE |
+| 231B | [ExpandFile](#231b-expandfile) | EXPF1 |
+| 232B | [RenameFile](#232b-renamefile) | MNRF1 |
+| 233B | [SetTemporaryFile](#233b-settemporaryfile) | STEF1 |
+| 234B | [SetPeripheralName](#234b-setperipheralname) | SPEF1 |
+| 235B | [ScratchOpen](#235b-scratchopen) | SCROP |
+| 236B | [SetPermanentOpen](#236b-setpermanentopen) | SPERD |
+| 237B | [SetFileAccess](#237b-setfileaccess) | SFACC |
+| 240B | [AppendSpooling](#240b-appendspooling) | APSPF |
+| 241B | [NewUser](#241b-newuser) | SUSCN |
+| 242B | [OldUser](#242b-olduser) | RUSCN |
+| 243B | [GetDirNameIndex](#243b-getdirnameindex) | FDINA |
+| 244B | [GetDirEntry](#244b-getdirentry) | GDIEN |
+| 245B | [GetNameEntry](#245b-getnameentry) | GNAEN |
+| 246B | [ReserveDir](#246b-reservedir) | REDIR |
+| 247B | [ReleaseDir](#247b-releasedir) | RLDIR |
+| 250B | [GetDefaultDir](#250b-getdefaultdir) | FDFDI |
+| 251B | [CopyPage](#251b-copypage) | COPAG |
+| 252B | [BackupClose](#252b-backupclose) | BCLOS |
+| 253B | [NewFileVersion](#253b-newfileversion) | CRALN |
+| 254B | [GetErrorDevice](#254b-geterrordevice) | GERDV |
+| 255B | [PIOCfunction](#255b-piocfunction) | PIOCM |
+| 256B | [FullFileName](#256b-fullfilename) | DEABF |
+| 258B | [OpenFileInfo](#258b-openfileinfo) | FOPEN |
+| 262B | [GetSystemInfo](#262b-getsysteminfo) | CPUST |
+| 263B | [GetDeviceType](#263b-getdevicetype) | GDEVY |
+| 267B | [TimeOut](#267b-timeout) | TMOUT |
+| 270B | [ReadDiskPage](#270b-readdiskpage) | RDPAG |
+| 271B | [WriteDiskPage](#271b-writediskpage) | WDPAG |
+| 272B | [DeletePage](#272b-deletepage) | DELPG |
+| 273B | [GetFileName](#273b-getfilename) | MGFIL |
+| 274B | [GetFileIndexes](#274b-getfileindexes) | FOBJN |
+| 275B | [SetTerminalName](#275b-setterminalname) | STRFI |
+| 276B | [EnableLocal](#276b-enablelocal) | ELOFU |
+| 277B | [DisableLocal](#277b-disablelocal) | DLOFU |
+| 300B | [SetEscapeHandling](#300b-setescapehandling) | EUSEL |
+| 301B | [StopEscapeHandling](#301b-stopescapehandling) | DUSEL |
+| 302B | [OnEscLocalFunction](#302b-onesclocalfunction) | ELON |
+| 303B | [OffEscLocalFunction](#303b-offesclocalfunction) | ELOFF |
+| 306B | [GetTerminalMode](#306b-getterminalmode) | GTMOD |
+| 307B | [TerminalNoWait](#307b-terminalnowait) | TNOWAI |
+| 310B | [In8AndFlag](#310b-in8andflag) | T8INB |
+| 311B | [WriteDirEntry](#311b-writedirentry) | WDIEN |
+| 312B | [CheckMonCall](#312b-checkmoncall) | MOINF |
+| 313B | [InBufferState](#313b-inbufferstate) | IBRSIZ |
+| 314B | [DefaultRemoteSystem](#314b-defaultremotesystem) | SRUSI |
+| 315B | [LAMUfunction](#315b-lamufunction) | MLAMU |
+| 316B | [SetRemoteAccess](#316b-setremoteaccess) | SRLMO |
+| 317B | [ExecuteCommand](#317b-executecommand) | UECOM |
+| 322B | [GetSegmentNo](#322b-getsegmentno) | GSGNG |
+| 323B | [SegmentOverlay](#323b-segmentoverlay) | SPLRE |
+| 324B | [OctobusFunction](#324b-octobusfunction) | OCTO |
+| 325B | [BatchModeEcho](#325b-batchmodeecho) | MBECH |
+| 326B | [LogInStart](#326b-loginstart) | MLOGI |
+| 327B | [FileSystemFunction](#327b-filesystemfunction) | FSMYT |
+| 330B | [TerminalStatus](#330b-terminalstatus) | TERST |
+| 332B | [TerminallineInfo](#332b-terminallineinfo) | TREPP |
+| 333B | [DMAFunction](#333b-dmafunction) | UDMA |
+| 334B | [GetErrorMessage](#334b-geterrormessage) | GETXM |
+| 335B | [TransferData](#335b-transferdata) | EXABS |
+| 336B | [Terminalfunction](#336b-terminalfunction) | IOMTY |
+| 337B | [ChangeSegment](#337b-changesegment) | SPCHG |
+| 340B | [ReadSystemRecord](#340b-readsystemrecord) | RSREC |
+| 341B | [SegmentFunction](#341b-segmentfunction) | SGMITY |
+| 400B | [ErrorReturn](#400b-errorreturn) | MACROE |
+| 401B | [DisAssemble](#401b-disassemble) | DISASS |
+| 402B | [GetInputFlags](#402b-getinputflags) | RFLAG |
+| 403B | [SetOutputFlags](#403b-setoutputflags) | WFLAG |
+| 404B | [FixIOArea](#404b-fixioarea) | IOFIX |
+| 405B | [SwitchUserBreak](#405b-switchuserbreak) | USTBRK |
+| 406B | [AccessRTCommon](#406b-accessrtcommon) | RWRTO |
+| 410B | [FixInMemory](#410b-fixinmemory) | FIXMEM |
+| 411B | [MemoryUnFix](#411b-memoryunfix) | UNFIXM |
+| 412B | [FileAsSegment](#412b-fileassegment) | FSCNT |
+| 413B | [FileNotAsSegment](#413b-filenotassegment) | FSDCNT |
+| 414B | [BCNAFCAMAC](#414b-bcnafcamac) | BCNAF |
+| 415B | [BCNAF1CAMAC](#415b-bcnaf1camac) | BCNAF1 |
+| 416B | [SaveND500Segment](#416b-savend500segment) | WSEGN |
+| 417B | [MaxPagesInMemory](#417b-maxpagesinmemory) | MXPISG |
+| 420B | [GetUserRegisters](#420b-getuserregisters) | GRBLK |
+| 421B | [GetActiveSegment](#421b-getactivesegment) | GASGM |
+| 422B | [GetScratchSegment](#422b-getscratchsegment) | GSWSP |
+| 423B | [CopyCapability](#423b-copycapability) | CAPCOP |
+| 424B | [ClearCapability](#424b-clearcapability) | CAPCLE |
+| 425B | [SetProcessName](#425b-setprocessname) | SPRNAM |
+| 426B | [GetProcessNo](#426b-getprocessno) | GPRNUM |
+| 427B | [GetOwnProcessInfo](#427b-getownprocessinfo) | GPRNAME |
+| 430B | [TranslateAddress](#430b-translateaddress) | ADRIOB |
+| 431B | [AwaitTransfer](#431b-awaittransfer) | MWAITF |
+| 435B | [ForceTrap](#435b-forcetrap) | PRT |
+| 436B | [SetND500Param](#436b-setnd500param) | 5PASET |
+| 437B | [GetND500Param](#437b-getnd500param) | 5PAGET |
+| 440B | [Attach500Segment](#440b-attach500segment) | ATS5GM |
+| 500B | [StartProcess](#500b-startprocess) | STARTP |
+| 501B | [StopProcess](#501b-stopprocess) | STOPPR |
+| 502B | [SwitchProcess](#502b-switchprocess) | SWITCHP |
+| 503B | [InputString](#503b-inputstring) | DVINST |
+| 504B | [OutputString](#504b-outputstring) | DVOUTS |
+| 505B | [GetTrapReason](#505b-gettrapreason) | GERRCOD |
+| 507B | [SetProcessPriority](#507b-setprocesspriority) | SPRIO |
+| 514B | [ND500Timeout](#514b-nd500timeout) | 5TMOUT |
 ## 2.2 Alphabetic List of Monitor Calls with Parameters
 
 This section contains an overview of monitor calls in the monitor call package. Experienced programmers may find this list useful to look up parameter sequences.
@@ -25162,6 +25154,26 @@ User-defined monitor call 7.
 Disassembles one machine instruction on the ND-500.
 
 # 435B ForceTrap PRT
+# 138B ToForwardLineInfo WHDEV
+
+Forward line information to a device.
+
+# 247B ReleaseDir RLDIR
+
+Release a directory.
+
+# 326B LogInStart MLOGI
+
+Start login process for a terminal.
+
+# 336B Terminalfunction IOMTY
+
+Terminal I/O function.
+
+# 406B AccessRTCommon RWRTO
+
+Access RT common area.
+
 
 Forces a trap to a process.
 
