@@ -15414,7 +15414,7 @@ Scanned by Jonny Oddene for Sintran Data © 2020
 
 # SINTRAN III Monitor Calls
 
-## MEMORYUNFIX
+# 411B MemoryUnfix UNFIXM
 
 Releases a fixed segment in your domain from physical memory. A fixed segment has all its pages fixed in physical memory. After MemoryUnfix the pages may be swapped between the disk and physical memory.
 
@@ -17556,7 +17556,7 @@ ND-100 and ND-500   User RT and user SYSTEM   RT programs
 
 # SINTRAN III Monitor Calls
 
-## 37B ReadADChannel A1RDW
+# 37B ReadADChannel AIRDW
 
 Reads an analog to digital channel.
 
@@ -19972,7 +19972,7 @@ Not available.
 
 ## Page 444
 
-# SetEscLocalChars
+# 227B SetEscLocalChars MSDAE
 
 You can terminate most programs with the ESCAPE key. A LOCAL key has a similar function. It terminates a connection to a remote computer in a network. This monitor call allows you to select other keys for these functions.
 
@@ -22068,7 +22068,7 @@ ND-100 and ND-500 - User RT and user SYSTEM - RT programs
 
 # SINTRAN III Monitor Calls
 
-## 301B StopEscapeHandling
+# 301B StopEscapeHandling DUSEL
 
 Disables user-defined escape handling. The ESCAPE key terminates the program as normal. StartEscapeHandling starts user-defined escape handling.
 

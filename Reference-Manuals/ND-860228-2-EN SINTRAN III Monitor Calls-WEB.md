@@ -1952,7 +1952,7 @@ This section lists some common monitor calls for simple file operations. The adv
 |[ReadFromFile](#readfromfile)|RFILE|117B Read randomly from a file|
 |[ReadScratchfile](#5b-readscratchfile-rdisk)|RDISK|5B Read randomly from the scratch file|
 |[ReleaseResource](#releaseresource)|RELES|123B Release a device or a file|
-| Renamefile      | MRNFI | 232B Rename a file                        |
+| RenameFile      | MRNFI | 232B Rename a file                        |
 |[ReserveResource](#reserveresource)|RESRV|122B Reserve a file or device|
 |[ScratchOpen](#235b-scratchopen)|SCROP|235B Open a file as a scratch file|
 |[SetBlockSize](#setblocksize)|SETB8|76B Set block size of file|
@@ -2013,7 +2013,7 @@ This section lists the monitor calls for input and output to files, printers, an
 |[OutputString](#504b-outputstring)|DVOUTS|504B|Write a string to a file|
 |[OutString](#162b-outstring)|OUTST|162B|Write to a peripheral file|
 |[OutUpTo8Bytes](#outupto8bytes)|M8OUT|22B|Write up to 8 characters|
-| ReadADChannel     | AIRDW | 37B  | Read analog to digital channels                        |
+|[ReadADChannel](#37b-readadchannel-airdw)|AIRDW|37B|Read analog to digital channels|
 |[ReadBlock](#readblock)|RPAGE|7B|Read random blocks from a file|
 |[ReadFromFile](#readfromfile)|RFILE|117B|Read randomly from a file|
 |[ReadScratchFile](#5b-readscratchfile-rdisk)|RDISK|5B|Read randomly from the scratch file|
@@ -2067,10 +2067,10 @@ This section lists the monitor calls which handle terminals. See also the monito
 |[SetCommandBuffer](#setcommandbuffer)|SETCM|12B Set command input buffer|
 |[SetEcho](#3b-setecho)|ECHOM|3B Set echo for a terminal|
 |[SetEscapeHandling](#setescapehandling)|EUSEL|300B User defined escape handling|
-| SetScLocalChars    | MSDAE | 227B Set escape and local characters          |
+|[SetEscLocalChars](#227b-setesclocalchars-msdae)|MSDAE|227B|Set escape and local characters|
 |[SetTerminalName](#setterminalname)|STRFI|275B Set file name for terminals|
 |[SetTerminalType](#17b-setterminaltype-mstty)|MSTTY|17B Set terminal type|
-| StopEscapeHandling | DUSEL | 301B Stop user-defined escape handling        |
+|[StopEscapeHandling](#301b-stopescapehandling-dusel)|DUSEL|301B|Stop user-defined escape handling|
 |[SwitchUserBreak](#switchuserbreak)|STBRK|405B Control escape handling|
 |[TerminalLineInfo](#terminallineinfo)|TREPP|332B Get terminal line information|
 |[TerminalMode](#terminalmode)|TERMO|52B Set terminal mode|
@@ -2265,7 +2265,7 @@ This section lists the monitor calls which relate to device handling.
 |[OutPutString](#504b-outputstring)|DVOUT|504B Write a string to a file|
 |[OutString](#162b-outstring)|OUST|162B Write to a peripheral file|
 |[OutUpTo8Bytes](#outupto8bytes)|M8OUT|22B Write up to 8 characters|
-| ReadADCChannel    | AIBOW | 37B Read analog to digital channels               |
+|[ReadADChannel](#37b-readadchannel-airdw)|AIRDW|37B|Read analog to digital channels|
 |[ReadDiskPage](#readdiskpage)|RDPAG|270B Read a disk page|
 | ReleaseDir        | RLDR  | 247B Release a directory                          |
 |[ReleaseResource](#releaseresource)|RELES|123B Release a device or a file|
@@ -2313,7 +2313,7 @@ This section lists the monitor calls which relate to segment administration. You
 |[LAMUFunction](#lamufunction)|MLAMU|315B|Operate the LAMU system|
 |[MaxPagesInMemory](#maxpagesinmemory)|MXPISG|417B|Set maximum pages in memory|
 |[MemoryAllocation](#memoryallocation)|FIXC5|61B|Fix or unfix an ND-100 segment|
-| MemoryUnfix            | UNFIXM | 411B  | Release fixed ND-500 segment      |
+|[MemoryUnfix](#411b-memoryunfix-unfixm)|UNFIXM|411B|Release fixed ND-500 segment|
 |[ReentrantSegment](#212b-reentrantsegment)|SREEN|212B|Connect reentrant segment|
 |[SaveND500Segment](#416b-savend500segment)|WSEGN|416B|Save a segment in a domain|
 |[SaveSegment](#164b-savesegment-wseg)|WSEG|164B|Save a segment|
@@ -2343,7 +2343,7 @@ This section lists the monitor calls which relate to data communication and netw
 |[OnEscLocalFunction](#302b-onesclocalfunction-elon)|ELON|302B Enable escape and local characters|
 |[SetEscapeHandling](#setescapehandling)|EUSEL|300B User defined escape handling|
 |[SetRemoteAccess](#316b-setremoteaccess)|SRLMO|316B Set remote file access|
-| StopEscapeHandling     | DUSEL | 301B Stop user defined escape handling     |
+|[StopEscapeHandling](#301b-stopescapehandling-dusel)|DUSEL|301B|Stop user defined escape handling|
 |[XMSGFunction](#xmsgfunction)|XMSG|200B Program to program communication|
 
 ---
@@ -2410,7 +2410,7 @@ Here are the monitor calls sorted according to their short names. You will also 
 |ABSET|102B|[StartupTime](#startuptime)|ELOFU|276B|[EnableLocal](#enablelocal)|
 |ABSTR|131B|DataTransfer|ELON|302B|[OnEscLocalFunction](#302b-onesclocalfunction-elon)|
 |ADR100|430B|TranslateAddress|ENTSG|157B|[SegmentToPageTable](#segmenttopagetable)|
-|AIRDW|37B|ReadADChannel|ERMON|142B|[ToErrorDevice](#142b-toerrordevice)|
+|AIRDW|37B|[ReadADChannel](#37b-readadchannel-airdw)|ERMON|142B|[ToErrorDevice](#142b-toerrordevice)|
 |ALTOFF|34B|[NormalPageTable](#normalpagetable)|ERMSG|64B|[WarningMessage](#64b-warningmessage)|
 |ALTON|33B|[AltPageTable](#33b-altpagetable)|EUSEL|300B|[SetEscapeHandling](#setescapehandling)|
 |APSPF|240B|[AppendSpooling](#240b-appendspooling)|EXABS|335B|[TransferData](#335b-transferdata)|
@@ -2449,7 +2449,7 @@ Here are the monitor calls sorted according to their short names. You will also 
 |DROBJ|215B|[GetObjectEntry](#getobjectentry)|GUIOI|217B|[GetAllFileIndexes](#getallfileindexes)|
 |DSCNT|107B|[NoInterruptStart](#nointerruptstart)|GUSNA|214B|[GetUserName](#getusername)|
 |DSET|126B|ExactDelayStart|HOLO|104B|[SuspendProgram](#suspendprogram)|
-|DUSEL|301B|StopEscapeHandling|IBRSIZ|313B|[InBufferState](#inbufferstate)|
+|DUSEL|301B|[StopEscapeHandling](#301b-stopescapehandling-dusel)|IBRSIZ|313B|[InBufferState](#inbufferstate)|
 |DVINST|503B|[InputString](#inputstring)|INBT|1B|In8Byte|
 |DVOUTS|504B|[OutputString](#504b-outputstring)|INSTR|161B|[InString](#161b-instring)|
 |DWOBJ|216B|[SetObjectEntry](#setobjectentry)|INTIV|103B|[StartupInterval](#103b-startupinterval)|
@@ -2521,7 +2521,7 @@ Here are the monitor calls sorted according to their short names. You will also 
 |UDMA|333B|DMAFunction|
 |UECOM|317B|[ExecuteCommand](#executecommand)|
 |UNFIX|116B|[UnfixSegment](#unfixsegment)|
-|UNFIXM|411B|MemoryUnfix|
+|UNFIXM|411B|[MemoryUnfix](#411b-memoryunfix-unfixm)|
 |UPDAT|111B|[SetClock](#setclock)|
 |US0|170B|UserDef0|
 |US1|171B|UserDef1|
@@ -15172,7 +15172,7 @@ Scanned by Jonny Oddene for Sintran Data © 2020
 
 # SINTRAN III Monitor Calls
 
-## MEMORYUNFIX
+# 411B MemoryUnfix UNFIXM
 
 Releases a fixed segment in your domain from physical memory. A fixed segment has all its pages fixed in physical memory. After MemoryUnfix the pages may be swapped between the disk and physical memory.
 
@@ -17314,7 +17314,7 @@ ND-100 and ND-500   User RT and user SYSTEM   RT programs
 
 # SINTRAN III Monitor Calls
 
-## 37B ReadADChannel A1RDW
+# 37B ReadADChannel AIRDW
 
 Reads an analog to digital channel.
 
@@ -19730,7 +19730,7 @@ Not available.
 
 ## Page 444
 
-# SetEscLocalChars
+# 227B SetEscLocalChars MSDAE
 
 You can terminate most programs with the ESCAPE key. A LOCAL key has a similar function. It terminates a connection to a remote computer in a network. This monitor call allows you to select other keys for these functions.
 
@@ -21826,7 +21826,7 @@ ND-100 and ND-500 - User RT and user SYSTEM - RT programs
 
 # SINTRAN III Monitor Calls
 
-## 301B StopEscapeHandling
+# 301B StopEscapeHandling DUSEL
 
 Disables user-defined escape handling. The ESCAPE key terminates the program as normal. StartEscapeHandling starts user-defined escape handling.
 
