@@ -32,18 +32,18 @@
 4. **[QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md)** - Hello World for all 8 languages
 
 ### Language Guides
-5. **[NPL-DEVELOPER-GUIDE.md](NPL-DEVELOPER-GUIDE.md)** - Complete NPL guide (70KB)
-6. **[MAC-DEVELOPER-GUIDE.md](MAC-DEVELOPER-GUIDE.md)** - MAC assembler guide
-7. **[C-DEVELOPER-GUIDE.md](C-DEVELOPER-GUIDE.md)** - C compiler (placeholder)
-8. **[PLANC-DEVELOPER-GUIDE.md](PLANC-DEVELOPER-GUIDE.md)** - PLANC (placeholder)
+5. **[NPL-DEVELOPER-GUIDE.md](Languages/System/NPL-DEVELOPER-GUIDE.md)** - Complete NPL guide (70KB)
+6. **[MAC-DEVELOPER-GUIDE.md](Languages/System/MAC-DEVELOPER-GUIDE.md)** - MAC assembler guide
+7. **[C-DEVELOPER-GUIDE.md](Languages/Application/C-DEVELOPER-GUIDE.md)** - C compiler (placeholder)
+8. **[PLANC-DEVELOPER-GUIDE.md](Languages/Application/PLANC-DEVELOPER-GUIDE.md)** - PLANC (placeholder)
 
 ### Process Guides
-9. **[LINKING-GUIDE.md](LINKING-GUIDE.md)** - NRL linker, BRF/BPUN/PROG files
-10. **[SCRIPT-GUIDE.md](SCRIPT-GUIDE.md)** - MODE files and build automation
+9. **[LINKING-GUIDE.md](Workflow/LINKING-GUIDE.md)** - NRL linker, BRF/BPUN/PROG files
+10. **[SCRIPT-GUIDE.md](Workflow/SCRIPT-GUIDE.md)** - MODE files and build automation
 
 ### Reference Guides
-11. **[COMPILER-COMMANDS-REFERENCE.md](COMPILER-COMMANDS-REFERENCE.md)** - All commands
-12. **[TOOLS-REFERENCE.md](TOOLS-REFERENCE.md)** - All development tools
+11. **[COMPILER-COMMANDS-REFERENCE.md](Workflow/COMPILER-COMMANDS-REFERENCE.md)** - All commands
+12. **[TOOLS-REFERENCE.md](Workflow/TOOLS-REFERENCE.md)** - All development tools
 
 ### Status Reports
 13. **[PHASE2-SUMMARY.md](PHASE2-SUMMARY.md)** - Phase 2 completion
@@ -55,25 +55,25 @@
 ## 🎯 Common Tasks
 
 ### "I'm brand new to SINTRAN"
-1. Read [_START-HERE.md](_START-HERE.md) (2 minutes)
-2. Read [README.md](README.md) (10 minutes)
-3. Try [QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md) (5 minutes)
+1. Read [README.md](README.md) (10 minutes)
+2. Try [QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md) (5 minutes)
+3. Explore [SINTRAN-DEVELOPER-GUIDE.md](SINTRAN-DEVELOPER-GUIDE.md) for navigation
 
 ### "I want to learn NPL"
 1. [QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md) - Section 1
-2. [NPL-DEVELOPER-GUIDE.md](NPL-DEVELOPER-GUIDE.md) - Complete guide
+2. [NPL-DEVELOPER-GUIDE.md](Languages/System/NPL-DEVELOPER-GUIDE.md) - Complete guide
 
 ### "I need to find a command"
-→ [COMPILER-COMMANDS-REFERENCE.md](COMPILER-COMMANDS-REFERENCE.md)
+→ [COMPILER-COMMANDS-REFERENCE.md](Workflow/COMPILER-COMMANDS-REFERENCE.md)
 
 ### "I need to use a tool"
-→ [TOOLS-REFERENCE.md](TOOLS-REFERENCE.md)
+→ [TOOLS-REFERENCE.md](Workflow/TOOLS-REFERENCE.md)
 
 ### "I want to automate my build"
-→ [SCRIPT-GUIDE.md](SCRIPT-GUIDE.md)
+→ [SCRIPT-GUIDE.md](Workflow/SCRIPT-GUIDE.md)
 
 ### "I have linker errors"
-→ [LINKING-GUIDE.md](LINKING-GUIDE.md)
+→ [LINKING-GUIDE.md](Workflow/LINKING-GUIDE.md)
 
 ---
 

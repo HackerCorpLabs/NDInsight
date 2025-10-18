@@ -794,9 +794,9 @@ ROUTINE, LDA LOCAL
 
 ## See Also
 
-- **[NPL-DEVELOPER-GUIDE.md](KERNEL/NPL-DEVELOPER-GUIDE.md)** - NPL language guide
-- **[LINKING-GUIDE.md](LINKING-GUIDE.md)** - NRL linker guide
-- **[QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md)** - Hello World examples
+- **[NPL-DEVELOPER-GUIDE.md](NPL-DEVELOPER-GUIDE.md)** - NPL language guide
+- **[LINKING-GUIDE.md](../../Workflow/LINKING-GUIDE.md)** - NRL linker guide
+- **[QUICK-START-EXAMPLES.md](../../QUICK-START-EXAMPLES.md)** - Hello World examples
 - **Kernel Documentation:** `SINTRAN\OS\`
 
 ---

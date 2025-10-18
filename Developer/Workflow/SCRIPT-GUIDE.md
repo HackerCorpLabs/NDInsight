@@ -745,9 +745,9 @@ OUTPUT FILE: @               % Reset to terminal
 
 ## See Also
 
-- **[QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md)** - Basic examples
+- **[QUICK-START-EXAMPLES.md](../QUICK-START-EXAMPLES.md)** - Basic examples
 - **[LINKING-GUIDE.md](LINKING-GUIDE.md)** - NRL linking
-- **[NPL-DEVELOPER-GUIDE.md](KERNEL/NPL-DEVELOPER-GUIDE.md)** - NPL language
+- **[NPL-DEVELOPER-GUIDE.md](../Languages/System/NPL-DEVELOPER-GUIDE.md)** - NPL language
 - **Kernel Documentation:** `SINTRAN\OS\`
 
 ---

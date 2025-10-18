@@ -10,7 +10,7 @@
 
 ## Quick Start
 
-**See [QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md) Section 3 for complete Hello World example.**
+**See [QUICK-START-EXAMPLES.md](../../QUICK-START-EXAMPLES.md) Section 3 for complete Hello World example.**
 
 ### Minimal Example
 
@@ -62,9 +62,9 @@ main()
 
 ## See Also
 
-- **[QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md)** - Complete working example
-- **[LINKING-GUIDE.md](LINKING-GUIDE.md)** - Linking C programs with runtime
-- **[SINTRAN-DEVELOPER-GUIDE.md](SINTRAN-DEVELOPER-GUIDE.md)** - Master guide
+- **[QUICK-START-EXAMPLES.md](../../QUICK-START-EXAMPLES.md)** - Complete working example
+- **[LINKING-GUIDE.md](../../Workflow/LINKING-GUIDE.md)** - Linking C programs with runtime
+- **[SINTRAN-DEVELOPER-GUIDE.md](../../SINTRAN-DEVELOPER-GUIDE.md)** - Master guide
 - **Reference Manual:** `D:\OCR\ai\ND-60.214.01`
 
 ---

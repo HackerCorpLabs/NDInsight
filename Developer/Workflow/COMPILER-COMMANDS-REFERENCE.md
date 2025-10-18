@@ -1058,11 +1058,11 @@ FILE ALREADY EXISTS
 
 ### NPL
 - **Manual:** ND-60.047.03 NORD PL User's Guide
-- **Guide:** [NPL-DEVELOPER-GUIDE.md](NPL-DEVELOPER-GUIDE.md)
+- **Guide:** [NPL-DEVELOPER-GUIDE.md](../Languages/System/NPL-DEVELOPER-GUIDE.md)
 
 ### MAC
 - **Manual:** ND-60.096.01 MAC User's Guide
-- **Guide:** [MAC-DEVELOPER-GUIDE.md](MAC-DEVELOPER-GUIDE.md)
+- **Guide:** [MAC-DEVELOPER-GUIDE.md](../Languages/System/MAC-DEVELOPER-GUIDE.md)
 
 ### NRL
 - **Manual:** ND-60.066.04 ND Relocating Loader
@@ -1104,8 +1104,8 @@ FILE ALREADY EXISTS
 **Source:** Official manuals, source code analysis, verified examples
 
 **See Also:**
-- [QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md) - Working examples
-- [MAC-DEVELOPER-GUIDE.md](MAC-DEVELOPER-GUIDE.md) - Complete MAC guide
+- [QUICK-START-EXAMPLES.md](../QUICK-START-EXAMPLES.md) - Working examples
+- [MAC-DEVELOPER-GUIDE.md](../Languages/System/MAC-DEVELOPER-GUIDE.md) - Complete MAC guide
 - [LINKING-GUIDE.md](LINKING-GUIDE.md) - Complete linking guide
-- [SINTRAN-DEVELOPER-GUIDE.md](SINTRAN-DEVELOPER-GUIDE.md) - Master guide
+- [SINTRAN-DEVELOPER-GUIDE.md](../SINTRAN-DEVELOPER-GUIDE.md) - Master guide
 

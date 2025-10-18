@@ -706,8 +706,8 @@ EXIT
 
 ## See Also
 
-- **[NPL-DEVELOPER-GUIDE.md](KERNEL/NPL-DEVELOPER-GUIDE.md)** - NPL language
-- **[MAC-DEVELOPER-GUIDE.md](MAC-DEVELOPER-GUIDE.md)** - MAC assembler
+- **[NPL-DEVELOPER-GUIDE.md](../Languages/System/NPL-DEVELOPER-GUIDE.md)** - NPL language
+- **[MAC-DEVELOPER-GUIDE.md](../Languages/System/MAC-DEVELOPER-GUIDE.md)** - MAC assembler
 - **[SCRIPT-GUIDE.md](SCRIPT-GUIDE.md)** - Automation with MODE files
 - **Kernel Documentation:** `SINTRAN\OS\`
 

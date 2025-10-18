@@ -90,7 +90,7 @@ This is the **master guide** that ties together all SINTRAN III development docu
 **Focus on:**
 - [QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md) - Basic examples
 - Your language guide (NPL, C, etc.)
-- [SCRIPT-GUIDE.md](SCRIPT-GUIDE.md) - Automation
+- [SCRIPT-GUIDE.md](Workflow/SCRIPT-GUIDE.md) - Automation
 
 **Skip:**
 - Kernel documentation (unless debugging OS issues)
@@ -121,31 +121,31 @@ This is the **master guide** that ties together all SINTRAN III development docu
 
 ```
 ┌─────────────────────────────────────────┐
-│ 1. EDIT                                  │
+│ 1. EDIT                                 │
 │    @ED or @PED or @QED                  │
 │    Create SOURCE:NPL (or .C, .MAC, etc) │
 └──────────────┬──────────────────────────┘
                │
 ┌──────────────▼──────────────────────────┐
-│ 2. COMPILE                               │
-│    @NPL SOURCE:NPL → SOURCE:MAC          │
-│    @CC-100 SOURCE:C → SOURCE:BRF         │
+│ 2. COMPILE                              │
+│    @NPL SOURCE:NPL → SOURCE:MAC         │
+│    @CC-100 SOURCE:C → SOURCE:BRF        │
 └──────────────┬──────────────────────────┘
                │
 ┌──────────────▼──────────────────────────┐
 │ 3. ASSEMBLE (if NPL/MAC source)         │
-│    @MAC SOURCE:MAC → SOURCE:BRF          │
+│    @MAC SOURCE:MAC → SOURCE:BRF         │
 └──────────────┬──────────────────────────┘
                │
 ┌──────────────▼──────────────────────────┐
-│ 4. LINK                                  │
-│    @NRL + commands → SOURCE:PROG/BPUN    │
+│ 4. LINK                                 │
+│    @NRL + commands → SOURCE:PROG/BPUN   │
 └──────────────┬──────────────────────────┘
                │
 ┌──────────────▼──────────────────────────┐
-│ 5. RUN                                   │
-│    @SOURCE                               │
-└──────────────────────────────────────────┘
+│ 5. RUN                                  │
+│    @SOURCE                              │
+└─────────────────────────────────────────┘
 ```
 
 ### Automated Build (Recommended)
@@ -165,7 +165,7 @@ EXIT
 @MODE BUILD:MODE
 ```
 
-**See:** [SCRIPT-GUIDE.md](SCRIPT-GUIDE.md) for complete automation guide
+**See:** [SCRIPT-GUIDE.md](Workflow/SCRIPT-GUIDE.md) for complete automation guide
 
 ---
 
@@ -478,15 +478,15 @@ All kernel documents include production-ready C# code for emulator development:
 ### Beginner (Week 1)
 
 1. **Day 1-2:** Read [QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md), run Hello World examples
-2. **Day 3-4:** [NPL-DEVELOPER-GUIDE.md](KERNEL/NPL-DEVELOPER-GUIDE.md) Chapters 1-6
-3. **Day 5:** [LINKING-GUIDE.md](LINKING-GUIDE.md) - Understand build process
-4. **Day 6:** [SCRIPT-GUIDE.md](SCRIPT-GUIDE.md) - Automate builds
+2. **Day 3-4:** [NPL-DEVELOPER-GUIDE.md](Languages/System/NPL-DEVELOPER-GUIDE.md) Chapters 1-6
+3. **Day 5:** [LINKING-GUIDE.md](Workflow/LINKING-GUIDE.md) - Understand build process
+4. **Day 6:** [SCRIPT-GUIDE.md](Workflow/SCRIPT-GUIDE.md) - Automate builds
 5. **Day 7:** Build a simple utility program
 
 ### Intermediate (Week 2-3)
 
-1. [NPL-DEVELOPER-GUIDE.md](KERNEL/NPL-DEVELOPER-GUIDE.md) Chapters 7-14 - Advanced NPL
-2. [MAC-DEVELOPER-GUIDE.md](MAC-DEVELOPER-GUIDE.md) - Assembly language
+1. [NPL-DEVELOPER-GUIDE.md](Languages/System/NPL-DEVELOPER-GUIDE.md) Chapters 7-14 - Advanced NPL
+2. [MAC-DEVELOPER-GUIDE.md](Languages/System/MAC-DEVELOPER-GUIDE.md) - Assembly language
 3. Kernel docs 00-04 - System architecture
 4. Build multi-module project
 5. Create reentrant program
@@ -515,7 +515,7 @@ All kernel documents include production-ready C# code for emulator development:
 1. Check all modules compiled: `@LI *.BRF`
 2. Verify external references: `)EXTR` declarations
 3. Check for multiply defined symbols
-4. See [LINKING-GUIDE.md](LINKING-GUIDE.md) Section 3
+4. See [LINKING-GUIDE.md](Workflow/LINKING-GUIDE.md) Section 3
 
 ### "Program won't run"
 
@@ -526,7 +526,7 @@ All kernel documents include production-ready C# code for emulator development:
 
 ### "Want to automate"
 
-1. Create MODE file - See [SCRIPT-GUIDE.md](SCRIPT-GUIDE.md)
+1. Create MODE file - See [SCRIPT-GUIDE.md](Workflow/SCRIPT-GUIDE.md)
 2. Test commands manually first
 3. Add to MODE file one at a time
 4. Use logging: `OUTPUT FILE: @LOG:TXT`

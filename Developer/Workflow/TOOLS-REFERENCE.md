@@ -155,7 +155,7 @@ END OF COMPILATION - 0 ERRORS DETECTED   # Success
 END OF COMPILATION - X ERRORS DETECTED   # X errors
 ```
 
-**See:** [NPL-DEVELOPER-GUIDE.md](NPL-DEVELOPER-GUIDE.md)
+**See:** [NPL-DEVELOPER-GUIDE.md](../Languages/System/NPL-DEVELOPER-GUIDE.md)
 
 ---
 
@@ -181,7 +181,7 @@ END OF COMPILATION - X ERRORS DETECTED   # X errors
 @MAC prog:MAC
 ```
 
-**See:** [MAC-DEVELOPER-GUIDE.md](MAC-DEVELOPER-GUIDE.md)
+**See:** [MAC-DEVELOPER-GUIDE.md](../Languages/System/MAC-DEVELOPER-GUIDE.md)
 
 ---
 
@@ -209,7 +209,7 @@ Code: 130w Data: 107w
 
 **Requires:** Link with CC-2HEADER, CC-2BANK, CC-2TRAILER
 
-**See:** [C-DEVELOPER-GUIDE.md](C-DEVELOPER-GUIDE.md)
+**See:** [C-DEVELOPER-GUIDE.md](../Languages/Application/C-DEVELOPER-GUIDE.md)
 
 ---
 
@@ -230,7 +230,7 @@ COMPILE filename:PLANC
 EXIT
 ```
 
-**See:** [PLANC-DEVELOPER-GUIDE.md](PLANC-DEVELOPER-GUIDE.md)
+**See:** [PLANC-DEVELOPER-GUIDE.md](../Languages/Application/PLANC-DEVELOPER-GUIDE.md)
 
 ---
 
@@ -809,12 +809,12 @@ All tools are typically in `(PACK-ONE:SYSTEM)` or `(PACK-ONE:BPUN-FILES)`.
 
 | Guide | File |
 |-------|------|
-| **Master Guide** | [SINTRAN-DEVELOPER-GUIDE.md](SINTRAN-DEVELOPER-GUIDE.md) |
-| **NPL Guide** | [NPL-DEVELOPER-GUIDE.md](NPL-DEVELOPER-GUIDE.md) |
-| **MAC Guide** | [MAC-DEVELOPER-GUIDE.md](MAC-DEVELOPER-GUIDE.md) |
+| **Master Guide** | [SINTRAN-DEVELOPER-GUIDE.md](../SINTRAN-DEVELOPER-GUIDE.md) |
+| **NPL Guide** | [NPL-DEVELOPER-GUIDE.md](../Languages/System/NPL-DEVELOPER-GUIDE.md) |
+| **MAC Guide** | [MAC-DEVELOPER-GUIDE.md](../Languages/System/MAC-DEVELOPER-GUIDE.md) |
 | **Linking Guide** | [LINKING-GUIDE.md](LINKING-GUIDE.md) |
 | **Commands** | [COMPILER-COMMANDS-REFERENCE.md](COMPILER-COMMANDS-REFERENCE.md) |
-| **Quick Start** | [QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md) |
+| **Quick Start** | [QUICK-START-EXAMPLES.md](../QUICK-START-EXAMPLES.md) |
 
 ---
 
@@ -843,8 +843,8 @@ All tools are typically in `(PACK-ONE:SYSTEM)` or `(PACK-ONE:BPUN-FILES)`.
 **Status:** Complete  
 
 **See Also:**
-- [SINTRAN-DEVELOPER-GUIDE.md](SINTRAN-DEVELOPER-GUIDE.md) - Master guide
+- [SINTRAN-DEVELOPER-GUIDE.md](../SINTRAN-DEVELOPER-GUIDE.md) - Master guide
 - [COMPILER-COMMANDS-REFERENCE.md](COMPILER-COMMANDS-REFERENCE.md) - Command reference
-- [QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md) - Working examples
-- [README.md](README.md) - Documentation overview
+- [QUICK-START-EXAMPLES.md](../QUICK-START-EXAMPLES.md) - Working examples
+- [README.md](../README.md) - Documentation overview
 

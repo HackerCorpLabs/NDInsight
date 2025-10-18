@@ -417,12 +417,12 @@ EXIT
 
 After validating these examples:
 
-1. **NPL:** See [NPL-DEVELOPER-GUIDE.md](KERNEL/NPL-DEVELOPER-GUIDE.md) for complete language guide
-2. **MAC:** See [MAC-DEVELOPER-GUIDE.md](MAC-DEVELOPER-GUIDE.md) for assembler details
-3. **C:** See [C-DEVELOPER-GUIDE.md](C-DEVELOPER-GUIDE.md) for C compiler guide
-4. **PLANC:** See [PLANC-DEVELOPER-GUIDE.md](PLANC-DEVELOPER-GUIDE.md) for PLANC guide
-5. **Linking:** See [LINKING-GUIDE.md](LINKING-GUIDE.md) for advanced linking
-6. **Automation:** See [SCRIPT-GUIDE.md](SCRIPT-GUIDE.md) for MODE files
+1. **NPL:** See [NPL-DEVELOPER-GUIDE.md](Languages/System/NPL-DEVELOPER-GUIDE.md) for complete language guide
+2. **MAC:** See [MAC-DEVELOPER-GUIDE.md](Languages/System/MAC-DEVELOPER-GUIDE.md) for assembler details
+3. **C:** See [C-DEVELOPER-GUIDE.md](Languages/Application/C-DEVELOPER-GUIDE.md) for C compiler guide
+4. **PLANC:** See [PLANC-DEVELOPER-GUIDE.md](Languages/Application/PLANC-DEVELOPER-GUIDE.md) for PLANC guide
+5. **Linking:** See [LINKING-GUIDE.md](Workflow/LINKING-GUIDE.md) for advanced linking
+6. **Automation:** See [SCRIPT-GUIDE.md](Workflow/SCRIPT-GUIDE.md) for MODE files
 
 ---
 

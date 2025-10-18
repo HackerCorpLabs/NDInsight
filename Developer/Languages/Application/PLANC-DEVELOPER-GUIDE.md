@@ -10,7 +10,7 @@
 
 ## Quick Start
 
-**See [QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md) Section 4 for complete Hello World example.**
+**See [QUICK-START-EXAMPLES.md](../../QUICK-START-EXAMPLES.md) Section 4 for complete Hello World example.**
 
 ### Minimal Example
 
@@ -59,9 +59,9 @@ EXIT
 
 ## See Also
 
-- **[QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md)** - Complete working example
-- **[LINKING-GUIDE.md](LINKING-GUIDE.md)** - Linking PLANC programs
-- **[SINTRAN-DEVELOPER-GUIDE.md](SINTRAN-DEVELOPER-GUIDE.md)** - Master guide
+- **[QUICK-START-EXAMPLES.md](../../QUICK-START-EXAMPLES.md)** - Complete working example
+- **[LINKING-GUIDE.md](../../Workflow/LINKING-GUIDE.md)** - Linking PLANC programs
+- **[SINTRAN-DEVELOPER-GUIDE.md](../../SINTRAN-DEVELOPER-GUIDE.md)** - Master guide
 - **Reference Manual:** `D:\OCR\ai\ND-60.117.5`
 
 ---
