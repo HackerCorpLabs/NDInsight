@@ -88,15 +88,13 @@ QED (Quick EDitor) is a powerful and compact text editor designed for rapid file
 
 ### Example: Creating a New File from Scratch
 
-Here's a complete example of creating a new NPL program using QED:
+Here's the recommended way to create a new NPL program using QED:
 
 ```sintran
-@QED HELLO:NPL             # Start QED with new file
+@QED                       # Start QED without specifying a filename
 
 QED 4.3
 
-NO SUCH FILE NAME          # QED informs you the file doesn't exist
-?
 *A                         # Append mode - start adding lines
 )PROGRAM HELLO;            # Type line 1 and press ENTER
 DEFINE                     # Type line 2 and press ENTER
@@ -115,22 +113,35 @@ BEGIN
   OUTNEWLINE;
 END
 *W "HELLO:NPL"             # Write (save) to file - NOTE: Filename in QUOTES!
-96 WORDS WRITTEN           # QED confirms the write
+64 WORDS WRITTEN           # QED confirms the write
 *EX                        # Exit QED
 @                          # Back to SINTRAN
 ```
 
 **Key Points:**
+- Start `@QED` without a filename - cleaner workflow
 - `A` command enters append mode - type your lines
 - Each line is added as you press ENTER
 - Press CTRL-L (or type `.` alone on a line) to exit append mode
 - `L1,$` lists all lines from line 1 to end ($)
-- **IMPORTANT:** `W "filename"` - filename MUST be in quotes for file creation!
+- **IMPORTANT:** `W "filename"` - filename MUST be in quotes for new file creation!
   - This is a SINTRAN requirement - quotes tell the system to create the file
   - Without quotes: `W HELLO:NPL` will fail with "NO SUCH FILE NAME"
   - With quotes: `W "HELLO:NPL"` creates the file successfully
-- QED confirms with "96 WORDS WRITTEN" (or similar)
+- QED confirms with "64 WORDS WRITTEN" (or similar)
 - `EX` exits QED
+
+**Alternative Method:**
+```sintran
+@QED "HELLO:NPL"           # Start with filename in quotes (creates file)
+0 WORDS READ               # New file created
+*A                         # Add your content
+...
+*W HELLO:NPL               # Save WITHOUT quotes (file already exists)
+88 WORDS WRITTEN
+*EX
+```
+Note: If you create the file when starting QED (using quotes), you must save WITHOUT quotes later!
 
 ### Basic Workflow for Existing Files
 
