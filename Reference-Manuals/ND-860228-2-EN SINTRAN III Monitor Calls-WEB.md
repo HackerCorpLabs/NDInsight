@@ -1056,7 +1056,7 @@ Here are the monitor calls sorted by numbers. The numbers are octal.
 | 73B | [SetMaxBytes](#setmaxbytes) | SMAX |
 | 74B | [SetStartByte](#setstartbyte) | SETBT |
 | 75B | [GetStartByte](#getstartbyte) | REABT |
-| 76B | GetBlockSize | SETBS |
+| 76B | [SetBlockSize](#76b-setblocksize-setbs) | SETBS |
 | 77B | [SetStartBlock](#setstartblock) | SETBL |
 | 100B | [StartRTProgram](#startrtprogram) | RT |
 | 101B | [DelayStart](#101b-delaystart) | SET |
@@ -1078,9 +1078,9 @@ Here are the monitor calls sorted by numbers. The numbers are octal.
 | 121B | AWaitFileTransfer | WAITF |
 | 122B | [ReserveResource](#reserveresource) | RESRV |
 | 123B | [ReleaseResource](#releaseresource) | RELES |
-| 124B | ForceReserve | PRSRV |
+| 124B | [ForceReserve](#124b-forcereserve-prsrv) | PRSRV |
 | 125B | [ForceRelease](#forcerelease) | PRSLS |
-| 126B | ExactDelayStart | DSET |
+| 126B | [ExactDelayStart](#126b-exactdelaystart-dset) | DSET |
 | 127B | [ExactStartup](#exactstartup) | DABST |
 | 130B | [ExactInterval](#exactinterval) | DINTV |
 
@@ -1260,7 +1260,7 @@ The parameter type differs from language to language. The type ARR means an inte
 | **[ErrorMessage](#errormessage)** (QERMS 65B)                                                                                                                                       |                         |             |       |       |       |
 | 1. Error code of message to be printed (octal)                                                                                                                     | INT                     | I           | ●     | ●     | ●     |
 | **[ErrorReturn](#400b-errorreturn)** (MACROE 400B)                                                                                                                                      |                         |             |       |       |       |
-| **ExactDelayStart** (DSET 126B)                                                                                                                                    |                         |             |       |       |       |
+| **[ExactDelayStart](#126b-exactdelaystart-dset)** (DSET 126B)                                                                                                                                    |                         |             |       |       |       |
 | 1. Address of RT description                                                                                                                                       | INT                     | I           | ●     | ●     | ●     |
 | 2. Number of basic time intervals before start                                                                                                                     | INT                     | I           |       |       |       |
 | **[ExactInterval](#exactinterval)** (DINTV 130B)                                                                                                                                     |                         |             |       |       |       |
@@ -2181,13 +2181,13 @@ This section lists the monitor calls which relate to RT program execution.
 |[DelayStart](#101b-delaystart)|SET|101B|Start RT program after specified time|
 |[DisableRTStart](#disablertstart)|RTOFF|137B|Disable start of RT programs|
 |[EnableRTStart](#enablertstart)|RTON|136B|Enable start of RT programs|
-| ExactDelayStart  | DSET  | 126B | Start RT program after given period               |
+|[ExactDelayStart](#126b-exactdelaystart-dset)|DSET|126B|Start RT program after given period|
 |[ExactInterval](#exactinterval)|DINTV|130B|Periodic execution of RT program|
 |[ExactStartup](#exactstartup)|DABST|127B|Start RT program at a specific time|
 |[ExecutionInfo](#143b-executioninfo-rs10)|RSIO|143B|Get execution information|
 |[ExitRTProgram](#exitrtprogram)|RTEXT|134B|Exit from RT program|
 |[ForceRelease](#forcerelease)|PRLS|125B|Release another program's device|
-| ForceReserve     | PRSRV | 124B | Force reserve a device                            |
+|[ForceReserve](#124b-forcereserve-prsrv)|PRSRV|124B|Force reserve a device|
 |[GetBasicTime](#11b-getbasictime)|TIME|11B|Get the internal time|
 |[GetOwnRTAddress](#getownrtaddress)|GETRT|30B|Get own RT description address|
 |[GetProcessNo](#getprocessno)|GPRNUM|426B|Get process number|
@@ -2242,7 +2242,7 @@ This section lists the monitor calls which relate to device handling.
 | DMAFunction       | UDMA  | 333B Various DMA functions                        |
 |[EnableEscape](#72b-enableescape)|EESC|72B Enable the ESCAPE key|
 |[ForceRelease](#forcerelease)|PRLS|125B Release another program's device|
-| ForceReserve      | PRSRV | 124B Force reserve a device                       |
+|[ForceReserve](#124b-forcereserve-prsrv)|PRSRV|124B Force reserve a device|
 |[GetDeviceType](#getdevicetype)|GDEVT|263B Get information about a device|
 |[GetDirNameIndex](#getdirnameindex)|FDINA|243B Get directory and name indexes|
 |[GetErrorDevice](#geterrordevice)|GERDV|254B Find error device|
@@ -2448,7 +2448,7 @@ Here are the monitor calls sorted according to their short names. You will also 
 |DOPEN|220B|[DirectOpen](#220b-directopen)|GTMOD|306B|[GetTerminalMode](#getterminalmode)|
 |DROBJ|215B|[GetObjectEntry](#getobjectentry)|GUIOI|217B|[GetAllFileIndexes](#getallfileindexes)|
 |DSCNT|107B|[NoInterruptStart](#nointerruptstart)|GUSNA|214B|[GetUserName](#getusername)|
-|DSET|126B|ExactDelayStart|HOLO|104B|[SuspendProgram](#suspendprogram)|
+|DSET|126B|[ExactDelayStart](#126b-exactdelaystart-dset)|HOLO|104B|[SuspendProgram](#suspendprogram)|
 |DUSEL|301B|[StopEscapeHandling](#301b-stopescapehandling-dusel)|IBRSIZ|313B|[InBufferState](#inbufferstate)|
 |DVINST|503B|[InputString](#inputstring)|INBT|1B|In8Byte|
 |DVOUTS|504B|[OutputString](#504b-outputstring)|INSTR|161B|[InString](#161b-instring)|
@@ -2500,7 +2500,7 @@ Here are the monitor calls sorted according to their short names. You will also 
 |PIOCM|255B|PIOCFuntion|SRLMO|316B|[SetRemoteAccess](#316b-setremoteaccess)|
 |PRIOR|110B|[SetRTPriority](#setrtpriority)|SRUSI|314B|[DefaultRemoteSystem](#defaultremotesystem)|
 |PRLS|125B|[ForceRelease](#forcerelease)|STARTP|500B|[StartProcess](#500b-startprocess)|
-|PRSRV|124B|ForceReserve|STEFI|233B|[SetTemporaryFile](#233b-settemporaryfile)|
+|PRSRV|124B|[ForceReserve](#124b-forcereserve-prsrv)|STEFI|233B|[SetTemporaryFile](#233b-settemporaryfile)|
 |PRT|435B|ForceTrap|STOPPR|501B|[StopProcess](#stopprocess)|
 |QERMS|65B|[ErrorMessage](#errormessage)|STRFI|275B|[SetTerminalName](#setterminalname)|
 |RDISK|5B|[ReadScratchFile](#5b-readscratchfile-rdisk)|SUSCN|241B|[NewUser](#241b-newuser)|
@@ -7210,7 +7210,7 @@ Not available.
 
 ## Page 174
 
-## 126B ExactDelayStart
+# 126B ExactDelayStart DSET
 
 Sets an RT program to start after a given period. It is then moved from the time queue to the execution queue. The period is specified in basic time units. A basic time unit is 1/50th of a second. The period may be from 1 to 4294967647 basic time units.
 
@@ -8718,7 +8718,7 @@ IOFL, ...
 
 ## Page 210
 
-# 124B FORCE RESERVE
+# 124B ForceReserve PRSRV
 
 Reserves a device for an RT program other than that which is calling. Use ForceRelease if the device is already reserved.
 

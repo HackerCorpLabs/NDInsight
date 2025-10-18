@@ -7452,7 +7452,7 @@ Not available.
 
 ## Page 174
 
-## 126B ExactDelayStart
+# 126B ExactDelayStart DSET
 
 Sets an RT program to start after a given period. It is then moved from the time queue to the execution queue. The period is specified in basic time units. A basic time unit is 1/50th of a second. The period may be from 1 to 4294967647 basic time units.
 
@@ -8960,7 +8960,7 @@ IOFL, ...
 
 ## Page 210
 
-# 124B FORCE RESERVE
+# 124B ForceReserve PRSRV
 
 Reserves a device for an RT program other than that which is calling. Use ForceRelease if the device is already reserved.
 
