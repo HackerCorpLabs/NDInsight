@@ -180,11 +180,78 @@ END
 ```
 
 **Key Points for Editing Existing Files:**
-- Open with `@QED filename` (no quotes needed)
+- Open with `@QED filename` (no quotes needed - file already exists)
 - `C` followed by line number changes that line (e.g., `C5` = change line 5)
 - Type the new content and press ENTER
 - `W filename` saves changes - **NO quotes** needed for existing files!
 - Use `L1,$` to list all lines and verify changes
+
+---
+
+### Complete Workflow: Create, Save, Edit
+
+Here's a real-world example showing the complete file lifecycle:
+
+**Step 1: Create the file**
+```sintran
+@qed "HELLO:NPL"           # Create new file (quotes!)
+
+QED 4.3
+0 WORDS READ
+
+*A                         # Append mode
+)PROGRAM HELLO;
+DEFINE
+  OUTTEXT(1);
+BEGIN
+  OUTTEXT("Hello, SINTRAN III!");
+  OUTNEWLINE;
+END
+*                          # Exit append mode
+*W HELLO:NPL               # Save (no quotes - file exists!)
+51 WORDS WRITTEN
+*ex
+```
+
+**Step 2: Edit the file**
+```sintran
+@qed hello:npl             # Open existing file (no quotes)
+
+QED 4.3
+51 WORDS READ              # File loaded
+
+*l1,$                      # List all lines
+)PROGRAM HELLO;
+DEFINE
+  OUTTEXT(1);
+BEGIN
+  OUTTEXT("Hello, SINTRAN III!");
+  OUTNEWLINE;
+END
+
+*C5                        # Change line 5
+ OUTTEXT("Hello, WORLD!"); # New content
+
+*L1,$                      # Verify the change
+)PROGRAM HELLO;
+DEFINE
+  OUTTEXT(1);
+BEGIN
+ OUTTEXT("Hello, WORLD!");
+  OUTNEWLINE;
+END
+
+*w HELLO:NPL               # Save (no quotes - existing file)
+47 WORDS WRITTEN
+*ex
+```
+
+**The Pattern:**
+1. **Create once** with quotes: `@qed "filename"`
+2. **Edit many times** without quotes: `@qed filename`
+3. **Save** always without quotes once file exists
+
+---
 
 **Quick Reference:**  
 See **[QED-QUICK-REFERENCE.md](QED-QUICK-REFERENCE.md)** for complete command reference.
