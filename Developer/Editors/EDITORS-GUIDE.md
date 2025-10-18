@@ -86,9 +86,49 @@ QED (Quick EDitor) is a powerful and compact text editor designed for rapid file
 @QED filename              # Start QED editing file
 ```
 
-**Basic workflow:**
+### Example: Creating a New File from Scratch
+
+Here's a complete example of creating a new NPL program using QED:
+
+```sintran
+@QED HELLO:NPL             # Start QED with new file
+* FILE DOES NOT EXIST      # QED informs you it's a new file
+*A                         # Append mode - start adding lines
+)PROGRAM HELLO;            # Type line 1
+DEFINE                     # Type line 2
+  OUTTEXT(1);              # Type line 3
+BEGIN                      # Type line 4
+  OUTTEXT("Hello, SINTRAN III!");  # Type line 5
+  OUTNEWLINE;              # Type line 6
+END                        # Type line 7
+<CTRL-L>                   # End append mode (CTRL-L or .)
+*                          # Back to command mode
+*L1,$                      # List all lines (line 1 to end)
+)PROGRAM HELLO;
+DEFINE
+  OUTTEXT(1);
+BEGIN
+  OUTTEXT("Hello, SINTRAN III!");
+  OUTNEWLINE;
+END
+*                          # Looks good!
+*W HELLO:NPL               # Write (save) to file
+*EX                        # Exit QED
+@                          # Back to SINTRAN
 ```
-@QED SOURCE:NPL            # Open file
+
+**Key Points:**
+- `A` command enters append mode - type your lines
+- Each line is added as you press ENTER
+- `CTRL-L` (or a single `.` on a line) exits append mode
+- `L1,$` lists all lines from line 1 to end ($)
+- `W filename` writes (saves) the buffer to disk
+- `EX` exits QED
+
+### Basic Workflow for Existing Files
+
+```
+@QED SOURCE:NPL            # Open existing file
 *L1,10                     # List lines 1-10
 *C5                        # Change line 5
 <type new content>
