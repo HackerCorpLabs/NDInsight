@@ -1914,7 +1914,7 @@ This section lists some common monitor calls for simple file operations. The adv
 |[ReadFromFile](#readfromfile)|RFILE|117B Read randomly from a file|
 |[ReadScratchfile](#5b-readscratchfile-rdisk)|RDISK|5B Read randomly from the scratch file|
 |[ReleaseResource](#releaseresource)|RELES|123B Release a device or a file|
-| RenameFile      | MRNFI | 232B Rename a file                        |
+|[RenameFile](#232b-renamefile-mrnfi)|MRNFI|232B Rename a file|
 |[ReserveResource](#reserveresource)|RESRV|122B Reserve a file or device|
 |[ScratchOpen](#235b-scratchopen)|SCROP|235B Open a file as a scratch file|
 |[SetBlockSize](#setblocksize)|SETB8|76B Set block size of file|
@@ -2114,7 +2114,7 @@ This section lists the monitor calls related to the file system structure. Secti
 |[OffEscLocalFunction](#offesclocalfunction)|ELOFF|303B Disable escape and local characters|
 |[OldUser](#olduser)|RUSCN|242B Reset old user name|
 |[OnEscLocalFunction](#302b-onesclocalfunction-elon)|ELON|302B Enable escape and local characters|
-| OpenFileInfo          | FOPEN | 257B Get file number                         |
+|[OpenFileInfo](#257b-openfileinfo-fopen)|FOPEN|257B Get file number|
 |[ReadBlock](#readblock)|RPAGE|78B Read random blocks from a file|
 |[ReadFromFile](#readfromfile)|RFILE|117B Read randomly from a file|
 |[ReadObjectEntry](#41b-readobjectentry)|ROBJE|41B Get information about opened files|
@@ -2371,7 +2371,7 @@ Here are the monitor calls sorted according to their short names. You will also 
 |ABORT|105B|[StopRTProgram](#stoprtprogram)|ELOFF|303B|[OffEscLocalFunction](#offesclocalfunction)|
 |ABSET|102B|[StartupTime](#startuptime)|ELOFU|276B|[EnableLocal](#enablelocal)|
 |ABSTR|131B|DataTransfer|ELON|302B|[OnEscLocalFunction](#302b-onesclocalfunction-elon)|
-|ADR100|430B|TranslateAddress|ENTSG|157B|[SegmentToPageTable](#segmenttopagetable)|
+|ADR100|430B|[TranslateAddress](#430b-translateaddress)|ENTSG|157B|[SegmentToPageTable](#segmenttopagetable)|
 |AIRDW|37B|[ReadADChannel](#37b-readadchannel-airdw)|ERMON|142B|[ToErrorDevice](#142b-toerrordevice)|
 |ALTOFF|34B|[NormalPageTable](#normalpagetable)|ERMSG|64B|[WarningMessage](#64b-warningmessage)|
 |ALTON|33B|[AltPageTable](#33b-altpagetable)|EUSEL|300B|[SetEscapeHandling](#setescapehandling)|
@@ -2385,7 +2385,7 @@ Here are the monitor calls sorted according to their short names. You will also 
 |BCNAF|414B|[BCNAFCAMAC](#414b-bcnafcamac-bcnaf)|FIXC5|61B|[MemoryAllocation](#memoryallocation)|
 |BCNAF1|415B|[BCNAF1CAMAC](#415b-bcnaf1camac-bcnaf1)|FIXMEM|410B|[FixInMemory](#410b-fixinmemory)|
 |BRKM|4B|[SetBreak](#setbreak)|F0BJN|274B|[GetFileIndexes](#getfileindexes)|
-|CAMAC|147B|[CAMACFunction](#camacfunction)|FOPEN|257B|OpenFileInfo|
+|CAMAC|147B|[CAMACFunction](#camacfunction)|FOPEN|257B|[OpenFileInfo](#257b-openfileinfo-fopen)|
 |CAPCLE|424B|[ClearCapability](#424b-clearcapability)|FSCNT|412B|[FileAsSegment](#fileassegment)|
 |CAPCOP|423B|[CopyCapability](#423b-copycapability)|FSCDNT|413B|[FileNotAsSegment](#413b-filenotassegment-fsdcnt)|
 |CIBUF|13B|[ClearInBuffer](#clearinbuffer)|FSMTY|327B|[FileSystemFunction](#filesystemfunction)|
@@ -2444,7 +2444,7 @@ Here are the monitor calls sorted according to their short names. You will also 
 |MLAMU|315B|[LAMUFunction](#lamufunction)|RWRITC|406B|[AccessRTCommon](#accessrtcommon)|
 |MLOGI|326B|LogInStart|SCROP|235B|[ScratchOpen](#235b-scratchopen)|
 |MOINF|312B|[CheckMonCall](#checkmoncall)|SET|101B|[DelayStart](#101b-delaystart)|
-|MRNFI|232B|RenameFile|SETBL|77B|[SetStartBlock](#setstartblock)|
+|MRNFI|232B|[RenameFile](#232b-renamefile-mrnfi)|SETBL|77B|[SetStartBlock](#setstartblock)|
 |MSDAE|227B|[SetEscLocalChars](#setesclocalchars)|SETBS|76B|[SetBlockSize](#setblocksize)|
 |MSG|32B|[OutMessage](#32b-outmessage-msg)|SETBT|74B|[SetStartByte](#setstartbyte)|
 |MSTTY|17B|[SetTerminalType](#17b-setterminaltype-mstty)|SETCM|12B|[SetCommandBuffer](#setcommandbuffer)|
@@ -15817,7 +15817,8 @@ ND-100 and ND-500 | All users | All programs
 
 # SINTRAN III Monitor Calls
 
-## 257B OPENFILEINFO FOPEN
+---
+# 257B OPENFILEINFO FOPEN
 
 Gets information about an open file. You specify the file name. The monitor call returns the file number and the access type. The logical device number of peripheral equipment is returned for peripheral files. Accepts COSMOS RFA.
 
@@ -17728,7 +17729,8 @@ IOF, ...
 
 # SINTRAN III Monitor Calls
 
-## 232B RENAMEFILE MRNFI
+---
+# 232B RENAMEFILE MRNFI
 
 Renames a file. You need directory access to the file.
 
@@ -24117,7 +24119,8 @@ Disk layout table (8 words) is returned in physical memory address.
 
 # SINTRAN III Monitor Calls
 
-## 430B TranslateAddress
+---
+# 430B TranslateAddress
 
 Translates an ND-500 logical address to an ND-100 physical address. Use this monitor call to set up communication areas between the two CPUs.
 
