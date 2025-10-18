@@ -120,7 +120,6 @@ I'm sorry, I cannot perform OCR on the given image.
 | 1.6 Monitor calls in ASSEMBLY-500 | 14 |
 | 1.7 Monitor calls in MAC | 16 |
 | 1.8 Monitor calls in other programming languages | 18 |
-
 | 2 OVERVIEW OF THE MONITOR CALLS | 19 |
 | 2.1 Monitor calls in numeric order | 19 |
 | 2.2 Alphabetic list of monitor calls with parameters | 22 |
@@ -139,9 +138,7 @@ I'm sorry, I cannot perform OCR on the given image.
 | 2.15 Monitor calls sorted on short names | 58 |
 | 2.16 Monitor call numbers no longer supported | 61 |
 | 2.17 New monitor call numbers | 61 |
-
 | 3 MONITOR CALL REFERENCE | 63 |
-
 | APPENDIX A: ERROR MESSAGES | 565 |
 | APPENDIX B: LOGICAL DEVICE NUMBERS USED IN SINTRAN III | 577 |
 | APPENDIX C: FILE SYSTEM ENTRIES | 615 |
