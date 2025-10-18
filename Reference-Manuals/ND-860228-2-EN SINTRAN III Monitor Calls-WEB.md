@@ -111,34 +111,34 @@ I'm sorry, I cannot perform OCR on the given image.
 
 | Section | Page |
 |---------|------|
-| 1 MONITOR CALLS | 1 |
-| 1.1 How to use this manual | 2 |
-| 1.2 Monitor calls in PASCAL | 5 |
-| 1.3 Monitor calls in COBOL | 7 |
-| 1.4 Monitor calls in FORTRAN | 9 |
-| 1.5 Monitor calls in PLANC | 11 |
-| 1.6 Monitor calls in ASSEMBLY-500 | 14 |
-| 1.7 Monitor calls in MAC | 16 |
-| 1.8 Monitor calls in other programming languages | 18 |
-| 2 OVERVIEW OF THE MONITOR CALLS | 19 |
-| 2.1 Monitor calls in numeric order | 19 |
-| 2.2 Alphabetic list of monitor calls with parameters | 22 |
-| 2.3 Commonly-used monitor calls | 44 |
-| 2.4 File operations | 45 |
-| 2.5 Input and output monitor calls | 46 |
-| 2.6 Monitor calls for terminal handling | 48 |
-| 2.7 Monitor calls for printer handling | 49 |
-| 2.8 Monitor calls for error handling | 50 |
-| 2.9 File system operations | 51 |
-| 2.10 RT program execution | 52 |
-| 2.11 Device handling | 53 |
-| 2.12 Segment administration | 55 |
-| 2.13 Data communication | 56 |
-| 2.14 Monitor calls for internal use | 57 |
-| 2.15 Monitor calls sorted on short names | 58 |
-| 2.16 Monitor call numbers no longer supported | 61 |
-| 2.17 New monitor call numbers | 61 |
-| 3 MONITOR CALL REFERENCE | 63 |
+| [1 MONITOR CALLS](#1-monitor-calls) | 1 |
+| [1.1 How to use this manual](#11-how-to-use-this-manual) | 2 |
+| [1.2 Monitor calls in PASCAL](#12-monitor-calls-in-pascal) | 5 |
+| [1.3 Monitor calls in COBOL](#13-monitor-calls-in-cobol) | 7 |
+| [1.4 Monitor calls in FORTRAN](#14-monitor-calls-in-fortran) | 9 |
+| [1.5 Monitor calls in PLANC](#15-monitor-calls-in-planc) | 11 |
+| [1.6 Monitor calls in ASSEMBLY-500](#16-monitor-calls-in-assembly-500) | 14 |
+| [1.7 Monitor calls in MAC](#17-monitor-calls-in-mac) | 16 |
+| [1.8 Monitor calls in other programming languages](#18-monitor-calls-in-other-programming-languages) | 18 |
+| [2 OVERVIEW OF THE MONITOR CALLS](#2-overview-of-the-monitor-calls) | 19 |
+| [2.1 Monitor calls in numeric order](#21-monitor-calls-in-numeric-order) | 19 |
+| [2.2 Alphabetic list of monitor calls with parameters](#22-alphabetic-list-of-monitor-calls-with-parameters) | 22 |
+| [2.3 Commonly-used monitor calls](#23-commonly-used-monitor-calls) | 44 |
+| [2.4 File operations](#24-file-operations) | 45 |
+| [2.5 Input and output monitor calls](#25-input-and-output-monitor-calls) | 46 |
+| [2.6 Monitor calls for terminal handling](#26-monitor-calls-for-terminal-handling) | 48 |
+| [2.7 Monitor calls for printer handling](#27-monitor-calls-for-printer-handling) | 49 |
+| [2.8 Monitor calls for error handling](#28-monitor-calls-for-error-handling) | 50 |
+| [2.9 File system operations](#29-file-system-operations) | 51 |
+| [2.10 RT program execution](#210-rt-program-execution) | 52 |
+| [2.11 Device handling](#211-device-handling) | 53 |
+| [2.12 Segment administration](#212-segment-administration) | 55 |
+| [2.13 Data communication](#213-data-communication) | 56 |
+| [2.14 Monitor calls for internal use](#214-monitor-calls-for-internal-use) | 57 |
+| [2.15 Monitor calls sorted on short names](#215-monitor-calls-sorted-on-short-names) | 58 |
+| [2.16 Monitor call numbers no longer supported](#216-monitor-call-numbers-no-longer-supported) | 61 |
+| [2.17 New monitor call numbers](#217-new-monitor-call-numbers) | 61 |
+| [3 MONITOR CALL REFERENCE](#3-monitor-call-reference) | 63 |
 | APPENDIX A: ERROR MESSAGES | 565 |
 | APPENDIX B: LOGICAL DEVICE NUMBERS USED IN SINTRAN III | 577 |
 | APPENDIX C: FILE SYSTEM ENTRIES | 615 |
@@ -1977,80 +1977,68 @@ This section lists the monitor calls for input and output to files, printers, an
 
 | Command           | Code  | Size | Description                                            |
 |-------------------|-------|------|--------------------------------------------------------|
-| AppendSpooling    | APSPF | 240B | Print a file                                           |
+|[AppendSpooling](#240b-appendspooling)|APSPF|240B|Print a file|
 | AwaitFileTransfer | WAITF | 121B | Check data transfer                                    |
 | AwaiTransfer      | MWAITF| 431B | Check data transfer                                    |
-| BatchModeEcho     | MBECH | 325B | Set batch and mode job echo                            |
-| ClearInBuffer     | CIBUF | 13B  | Clear a device's input buffer                          |
-| ClearOutBuffer    | COBUF | 14B  | Clear a device's output buffer                         |
-| Closefile         | CLOSE | 43B  | Close file after access                                |
-| CloseSpoolingFile | SPCLO | 40B  | Close and print a file                                 |
-| CopyPage          | COPAG | 251B | Copy page for the BACKUP-SYSTEM                        |
+|[BatchModeEcho](#325b-batchmodeecho)|MBECH|325B|Set batch and mode job echo|
+|[ClearInBuffer](#clearinbuffer)|CIBUF|13B|Clear a device's input buffer|
+|[ClearOutBuffer](#14b-clearoutbuffer)|COBUF|14B|Clear a device's output buffer|
+|[Closefile](#closefile)|CLOSE|43B|Close file after access|
+|[CloseSpoolingFile](#closespoolingfile)|SPCLO|40B|Close and print a file|
+|[CopyPage](#251b-copypage-copag)|COPAG|251B|Copy page for the BACKUP-SYSTEM|
 | DataTransfer      | ABSTR | 131B | Data to and from mass storage                          |
-| DisableEscape     | DESCF | 71B  | Disable the ESCAPE key                                 |
-| EnableEscape      | EESCF | 72B  | Enable the ESCAPE key                                  |
-| ErrorMessage      | QERMS | 65B  | Output error message and stop                          |
-| FixIOArea         | IOFIX | 404B | Fix an area for input and output                       |
-| GetLastByte       | LASTC | 26B  | Get last byte typed on a terminal                      |
-| GetSpoolingEntry  | RSQPE | 55B  | Get spooling queue information                         |
-| GetStartByte      | REABT | 75B  | Get the next byte to access in a file                  |
-| GetTerminalMode   | GTMOD | 306B | Get terminal mode                                      |
-| GraphicFunction   | GRAPHIC| 155B| Execute graphic function                               |
+|[DisableEscape](#71b-disableescape)|DESCF|71B|Disable the ESCAPE key|
+|[EnableEscape](#72b-enableescape)|EESCF|72B|Enable the ESCAPE key|
+|[ErrorMessage](#errormessage)|QERMS|65B|Output error message and stop|
+|[FixIOArea](#fixioarea)|IOFIX|404B|Fix an area for input and output|
+|[GetLastByte](#getlastbyte)|LASTC|26B|Get last byte typed on a terminal|
+|[GetSpoolingEntry](#getspoolingentry)|RSQPE|55B|Get spooling queue information|
+|[GetStartByte](#getstartbyte)|REABT|75B|Get the next byte to access in a file|
+|[GetTerminalMode](#getterminalmode)|GTMOD|306B|Get terminal mode|
+|[GraphicFunction](#155b-graphicfunction)|GRAPHIC|155B|Execute graphic function|
 | In4x2Btyes        | I4WIN | 63B  | Read 4 words from a device                             |
-| In8AndFlag        | T81NB | 310B | Read 8 bytes with break checking                       |
-| In8Bytes          | 8BINB | 23B  | Read 8 bytes                                           |
-| InBufferSpace     | ISIZE | 66B  | Get number of bytes in input buffer                    |
-| InBufferState     | IBRSIZ| 313B | Get input buffer information                           |
-| InByte            | INBT  | 18   | Read one byte from a device or a file                  |
-| InString          | INSTR | 161B | Read a string from a device                            |
+|[In8AndFlag](#in8andflag)|T81NB|310B|Read 8 bytes with break checking|
+|[In8Bytes](#in8bytes)|8BINB|23B|Read 8 bytes|
+|[InBufferSpace](#inbufferspace)|ISIZE|66B|Get number of bytes in input buffer|
+|[InBufferState](#inbufferstate)|IBRSIZ|313B|Get input buffer information|
+|[InByte](#inbyte)|INBT|18|Read one byte from a device or a file|
+|[InString](#161b-instring)|INSTR|161B|Read a string from a device|
 | InUpTo8Btyes      | M8INB | 218B | Read up to 8 bytes from a device                       |
-| NoWaitSwitch      | NOWT  | 36B  | Switch No Wait on and off                              |
-| Out8Bytes         | B8OUT | 24B  | Write 8 bytes                                          |
-| OutBufferSpace    | OSIZE | 67B  | Get number of bytes in output buffer                   |
-| OutByte           | OUTBT | 2B   | Write one byte to a device or a file                   |
+|[NoWaitSwitch](#nowaitswitch)|NOWT|36B|Switch No Wait on and off|
+|[Out8Bytes](#out8bytes)|B8OUT|24B|Write 8 bytes|
+|[OutBufferSpace](#outbufferspace)|OSIZE|67B|Get number of bytes in output buffer|
+|[OutByte](#outbyte)|OUTBT|2B|Write one byte to a device or a file|
 | OutMessage        | MSG   | 32B  | Write a message to a terminal                          |
-| OutNumber         | IOUT  | 35B  | Write a number to a terminal                           |
-| OutputString      | DVOUTS| 504B | Write a string to a file                               |
-| OutString         | OUTST | 162B | Write to a peripheral file                             |
-| OutUpTo8Bytes     | M8OUT | 22B  | Write up to 8 characters                               |
+|[OutNumber](#35b-outnumber)|IOUT|35B|Write a number to a terminal|
+|[OutputString](#504b-outputstring)|DVOUTS|504B|Write a string to a file|
+|[OutString](#162b-outstring)|OUTST|162B|Write to a peripheral file|
+|[OutUpTo8Bytes](#outupto8bytes)|M8OUT|22B|Write up to 8 characters|
 | ReadADChannel     | AIRDW | 37B  | Read analog to digital channels                        |
-| ReadBlock         | RPAGE | 7B   | Read random blocks from a file                         |
-| ReadFromFile      | RFILE | 117B | Read randomly from a file                              |
-| ReadScratchFile   | RDISK | 5B   | Read randomly from the scratch file                    |
-| ScratchOpen       | SCROP | 235B | Open a file as a scratch file                          |
-| SetBlockSize      | SETBS | 76B  | Set block size of files                                |
-| SetBreak          | BRKM  | 4B   | Set break characters                                   |
-| SetCommandBuffer  | SETCM | 128B | Set command input buffer                               |
-| SetEcho           | ECHOM | 3B   | Set echo for a terminal                                |
-| SetEscLocalChars  | MSDAE | 227B | Set escape and local characters                        |
-| SetStartBlock     | SETBL | 77B  | Set start block in a file                              |
-| SetStartByte      | SETBI | 74B  | Set start byte of a file                               |
-| TerminalNoWait    | TNOWAI| 307B | Switch No Wait on and off                              |
-| ToErrorDevice     | EROM  | 142B | Write to the error device                              |
+|[ReadBlock](#readblock)|RPAGE|7B|Read random blocks from a file|
+|[ReadFromFile](#readfromfile)|RFILE|117B|Read randomly from a file|
+|[ReadScratchFile](#5b-readscratchfile-rdisk)|RDISK|5B|Read randomly from the scratch file|
+|[ScratchOpen](#235b-scratchopen)|SCROP|235B|Open a file as a scratch file|
+|[SetBlockSize](#setblocksize)|SETBS|76B|Set block size of files|
+|[SetBreak](#setbreak)|BRKM|4B|Set break characters|
+|[SetCommandBuffer](#setcommandbuffer)|SETCM|128B|Set command input buffer|
+|[SetEcho](#3b-setecho)|ECHOM|3B|Set echo for a terminal|
+|[SetEscLocalChars](#setesclocalchars)|MSDAE|227B|Set escape and local characters|
+|[SetStartBlock](#setstartblock)|SETBL|77B|Set start block in a file|
+|[SetStartByte](#setstartbyte)|SETBI|74B|Set start byte of a file|
+|[TerminalNoWait](#terminalnowait)|TNOWAI|307B|Switch No Wait on and off|
+|[ToErrorDevice](#142b-toerrordevice)|EROM|142B|Write to the error device|
 
 ---
 
-## Page 55
-
-# SINTRAN III Monitor Calls
-
-## Overview of the Monitor Calls
-
-| Function         | Code  | ID  | Description                               |
+|[Function](#336b-terminal-function)|Code|ID|Description|
 |------------------|-------|-----|-------------------------------------------|
-| TransferData     | EXABS | 335B| Data to and from mass storage             |
-| WarningMessage   | ERMSG | 64B | Output error message                      |
-| WriteBlock       | WPAGE | 10B | Write random blocks to a file             |
-| WriteScratchFile | WDISK | 6B  | Write randomly to the scratch file        |
-| WriteToFile      | WFILE | 120B| Write randomly to a file                  |
+|[TransferData](#335b-transferdata)|EXABS|335B|Data to and from mass storage|
+|[WarningMessage](#64b-warningmessage)|ERMSG|64B|Output error message|
+|[WriteBlock](#writeblock)|WPAGE|10B|Write random blocks to a file|
+|[WriteScratchFile](#6b-writescratchfile)|WDISK|6B|Write randomly to the scratch file|
+|[WriteToFile](#12ob-writetofile)|WFILE|120B|Write randomly to a file|
 
 ---
-
-## Page 56
-
-# SINTRAN III Monitor Calls
-
-## Overview of the Monitor Calls
 
 ### 2.6 Monitor Calls for Terminal Handling
 
@@ -2235,80 +2223,69 @@ This section lists the monitor calls which relate to device handling.
 
 | Command           | Code  | Function Description                              |
 |-------------------|-------|---------------------------------------------------|
-| AssignCAMACLAM    | ASSIG | 154B Assign CAMAC LAM                             |
+|[AssignCAMACLAM](#assigncamaclam)|ASSIG|154B Assign CAMAC LAM|
 | AwaitFileTransfer | WAITF | 121B Check data transfer                          |
-| AwaitTransfer     | MWAITF| 431B Check data transfer                          |
-| BatchModeEcho     | MBECH | 325B Set batch and mode job echo                  |
+|[AwaitTransfer](#awaittransfer)|MWAITF|431B Check data transfer|
+|[BatchModeEcho](#325b-batchmodeecho)|MBECH|325B Set batch and mode job echo|
 | BCNAF1CAMAC       | BCNAF1| 415B CAMAC function on ND-500                     |
 | BCNAFCAMAC        | BCNAF | 414B CAMAC function                               |
-| CAMACFunction     | CAMAC | 147B Operate CAMAC                                |
-| CAMACGlRegister   | GL    | 150B Read the CAMAC GL register                   |
-| CAMACIOInstruction| IOXN  | 153B Execute an IOX instruction                   |
-| ClearInBuffer     | CIBUF | 13B Clear a device's input buffer                 |
-| ClearOutBuffer    | COBUF | 14B Clear a device's output buffer                |
-| CopyPage          | COPAG | 251B Copy page for the BACKUP-SYSTEM              |
+|[CAMACFunction](#camacfunction)|CAMAC|147B Operate CAMAC|
+|[CAMACGlRegister](#camacglregister)|GL|150B Read the CAMAC GL register|
+|[CAMACIOInstruction](#camacioinstruction)|IOXN|153B Execute an IOX instruction|
+|[ClearInBuffer](#clearinbuffer)|CIBUF|13B Clear a device's input buffer|
+|[ClearOutBuffer](#14b-clearoutbuffer)|COBUF|14B Clear a device's output buffer|
+|[CopyPage](#251b-copypage-copag)|COPAG|251B Copy page for the BACKUP-SYSTEM|
 | DataTransfer      | ABSTR | 131B Data to and from mass storage                |
-| DeviceControl     | IOSET | 141B Set control information for a device         |
-| DeviceFunction    | MAGTP | 144B Various device functions                     |
-| DisableEscape     | DESC  | 71B Disable the ESCAPE key                        |
+|[DeviceControl](#devicecontrol)|IOSET|141B Set control information for a device|
+|[DeviceFunction](#144b-devicefunction)|MAGTP|144B Various device functions|
+|[DisableEscape](#71b-disableescape)|DESC|71B Disable the ESCAPE key|
 | DMAFunction       | UDMA  | 333B Various DMA functions                        |
-| EnableEscape      | EESC  | 72B Enable the ESCAPE key                         |
-| ForceRelease      | PRLS  | 125B Release another program's device             |
+|[EnableEscape](#72b-enableescape)|EESC|72B Enable the ESCAPE key|
+|[ForceRelease](#forcerelease)|PRLS|125B Release another program's device|
 | ForceReserve      | PRSRV | 124B Force reserve a device                       |
-| GetDeviceType     | GDEVT | 263B Get information about a device               |
-| GetDirNameIndex   | FDINA | 243B Get directory and name indexes               |
-| GetErrorDevice    | GERDV | 254B Find error device                            |
-| GetLastByte       | LASTC | 26B Get last byte typed on a terminal             |
-| GetNameEntry      | GNANE | 245B Get disk information                         |
-| GraphicFunction   | GRAPHIC| 155B Execute graphic function                    |
-| In4x2Bytes        | B4INW | 63B Read 4 words from a device                    |
-| InBufferSpace     | ISIZE | 66B Get number of bytes in input buffer           |
-| InBufferState     | IBRISZ| 313B Get input buffer information                 |
-| InByte            | INBT  | 1B Read one byte from a device or a file          |
-| InString          | INSTR | 161B Read a string from a device                  |
+|[GetDeviceType](#getdevicetype)|GDEVT|263B Get information about a device|
+|[GetDirNameIndex](#getdirnameindex)|FDINA|243B Get directory and name indexes|
+|[GetErrorDevice](#geterrordevice)|GERDV|254B Find error device|
+|[GetLastByte](#getlastbyte)|LASTC|26B Get last byte typed on a terminal|
+|[GetNameEntry](#getnameentry)|GNANE|245B Get disk information|
+|[GraphicFunction](#155b-graphicfunction)|GRAPHIC|155B Execute graphic function|
+|[In4x2Bytes](#in4x2bytes)|B4INW|63B Read 4 words from a device|
+|[InBufferSpace](#inbufferspace)|ISIZE|66B Get number of bytes in input buffer|
+|[InBufferState](#inbufferstate)|IBRISZ|313B Get input buffer information|
+|[InByte](#inbyte)|INBT|1B Read one byte from a device or a file|
+|[InString](#161b-instring)|INSTR|161B Read a string from a device|
 | InUpTo8Bytes      | M8INB | 21B Read up to 8 bytes from a device              |
-| IOInstruction     | EXIOX | 318B Execute an IOX machine instruction           |
-| NoInterruptStart  | DSCNT | 107B Disconnect program from interrupt            |
-| NoWaitSwitch      | NOWT  | 36B Switch No Wait on and off                     |
-| OutBufferSpace    | OSIZE | 67B Get number of bytes in output buffer          |
-| OutByte           | OUTBT | 2B Write one byte to a device or a file           |
+|[IOInstruction](#31b-ioinstruction)|EXIOX|318B Execute an IOX machine instruction|
+|[NoInterruptStart](#nointerruptstart)|DSCNT|107B Disconnect program from interrupt|
+|[NoWaitSwitch](#nowaitswitch)|NOWT|36B Switch No Wait on and off|
+|[OutBufferSpace](#outbufferspace)|OSIZE|67B Get number of bytes in output buffer|
+|[OutByte](#outbyte)|OUTBT|2B Write one byte to a device or a file|
 | OutMessage        | MSG   | 32B Write a message to a terminal                 |
-| OutNumber         | IOUT  | 35B Write a number to a terminal                  |
-| OutPutString      | DVOUT | 504B Write a string to a file                     |
-| OutString         | OUST  | 162B Write to a peripheral file                   |
-| OutUpTo8Bytes     | M8OUT | 22B Write up to 8 characters                      |
+|[OutNumber](#35b-outnumber)|IOUT|35B Write a number to a terminal|
+|[OutPutString](#504b-outputstring)|DVOUT|504B Write a string to a file|
+|[OutString](#162b-outstring)|OUST|162B Write to a peripheral file|
+|[OutUpTo8Bytes](#outupto8bytes)|M8OUT|22B Write up to 8 characters|
 | ReadADCChannel    | AIBOW | 37B Read analog to digital channels               |
-| ReadDiskPage      | RDPAG | 270B Read a disk page                             |
+|[ReadDiskPage](#readdiskpage)|RDPAG|270B Read a disk page|
 | ReleaseDir        | RLDR  | 247B Release a directory                          |
-| ReleaseResource   | RELES | 123B Release a device or a file                   |
-| ReservationInfo   | WHDEV | 140B Check device reservation                     |
-| ReserveDir        | REDIR | 246B Reserve directory                            |
-| ReserveResource   | RESRV | 122B Reserve a file or device                     |
-| SetBreak          | BRKM  | 48B Set break characters                          |
-| SetClock          | UPDAT | 111B Set new time and date                        |
+|[ReleaseResource](#releaseresource)|RELES|123B Release a device or a file|
+|[ReservationInfo](#reservationinfo)|WHDEV|140B Check device reservation|
+|[ReserveDir](#reservedir)|REDIR|246B Reserve directory|
+|[ReserveResource](#reserveresource)|RESRV|122B Reserve a file or device|
+|[SetBreak](#setbreak)|BRKM|48B Set break characters|
+|[SetClock](#setclock)|UPDAT|111B Set new time and date|
 
 ---
 
-## Page 62
-
-# SINTRAN III Monitor Calls
-## Overview of the Monitor Calls
-
-| Function         | Code  | Hex  | Description                           |
+|[Function](#336b-terminal-function)|Code|Hex|Description|
 |------------------|-------|------|---------------------------------------|
 | SetPeripheralName| SPEFI | 234B | Set a file as peripheral              |
-| StartOnInterrupt | CONCT | 106B | Connect a program to an interrupt     |
+|[StartOnInterrupt](#106b-startoninterrupt)|CONCT|106B|Connect a program to an interrupt|
 | TerminaNoWait    | TNOWAI| 307B | Switch No Wait on and off             |
-| TransferData     | EXABS | 335B | Data to and from mass storage         |
-| WriteDiskPage    | WDPAG | 271B | Write to a disk page                  |
+|[TransferData](#335b-transferdata)|EXABS|335B|Data to and from mass storage|
+|[WriteDiskPage](#writediskpage)|WDPAG|271B|Write to a disk page|
 
 ---
-
-## Page 63
-
-# SINTRAN III Monitor Calls
-
-## Overview of the Monitor Calls
 
 ### 2.12 Segment Administration
 
@@ -2424,166 +2401,150 @@ You are advised not to use these monitor calls, and for this reason, specific do
 
 Here are the monitor calls sorted according to their short names. You will also find the short names in the index at the end of this manual.
 
-| Short Name | Number | Description            | Short Name | Number | Description              |
+|Short Name|Number|Description|Short Name|Number|Description|
 |------------|--------|------------------------|------------|--------|--------------------------|
-| 5PAGET     | 437B   | GetND500Param          | IECHOM     | 3B     | SetEcho                  |
-| 5PASET     | 436B   | SetND500Param          | EDTRM      | 206B   | TerminationHandling      |
-| 5TMOUT     | 514B   | ND500TimeOut           | EESCF      | 72B    | EnableEscape             |
-| ABORT      | 105B   | StopRTProgram          | ELOFF      | 303B   | OffEscLocalFunction      |
-| ABSET      | 102B   | StartupTime            | ELOFU      | 276B   | EnableLocal              |
-| ABSTR      | 131B   | DataTransfer           | ELON       | 302B   | OnEscLocalFunction       |
-| ADR100     | 430B   | TranslateAddress       | ENTSG      | 157B   | SegmentToPageTable       |
-| AIRDW      | 37B    | ReadADChannel          | ERMON      | 142B   | ToErrorDevice            |
-| ALTOFF     | 34B    | NormalPageTable        | ERMSG      | 64B    | WarningMessage           |
-| ALTON      | 33B    | AltPageTable           | EUSEL      | 300B   | SetEscapeHandling        |
-| APSPF      | 240B   | AppendSpooling         | EXABS      | 335B   | TransferData             |
-| ASSIG      | 154B   | AssignCAMACALAM        | EXIOX      | 31B    | IOInstruction            |
-| ATS5GM     | 440B   | Attach500Segment       | EXPFI      | 231B   | ExpandFile               |
-| B4INW      | 63B    | In4x2Bytes             | FDFO1      | 250B   | GetDefaultDir            |
-| B8INB      | 23B    | In8Bytes               | FDINA      | 243B   | GetDirNameIndex          |
-| B8OUT      | 24B    | Out8Bytes              | FIX        | 115B   | FixScattered             |
-| BCLOS      | 252B   | BackupClose            | FIXC       | 160B   | FixContiguous            |
-| BCNAF      | 414B   | BCNAFCAMAC             | FIXC5      | 61B    | MemoryAllocation         |
-| BCNAF1     | 415B   | BCNAF1CAMAC            | FIXMEM     | 410B   | FixInMemory              |
-| BRKM       | 4B     | SetBreak               | F0BJN      | 274B   | GetFileIndexes           |
-| CAMAC      | 147B   | CAMACFunction          | FOPEN      | 257B   | OpenFileInfo             |
-| CAPCLE     | 424B   | ClearCapability        | FSCNT     | 412B   | FileAsSegment            |
-| CAPCOP     | 423B   | CopyCapability         | FSCDNT    | 413B   | FileNotAsSegment         |
-| CIBUF      | 13B    | ClearInBuffer          | FSMTY     | 327B   | FileSystemFunction       |
-| CLADJ      | 112B   | AdjustClock            | GASGM     | 421B   | GetActiveSegment         |
-| CLOCK      | 113B   | GetCurrentTime         | GBSIZ     | 222B   | GetAddressArea           |
-| CLOSE      | 43B    | CloseFile              | GDEVT     | 263B   | GetDeviceType            |
-| CBOBUF     | 41B    | ClearOutBuffer         | GDEN8     | 244B   | GetDirEntry              |
-| COMND      | 70B    | CallCommand            | GERDV     | 254B   | GetErrorDevice           |
-| CONT       | 106B   | StartOnInterrupt       | GERRCOD   | 505B   | GetTrapReason            |
-| COPAG      | 251B   | CopyPage               | GETTR     | 30B    | GetOwnRTAddress          |
-| CPUTS      | 262B   | GetSystemInfo          | GETXM     | 334B   | GetErrorMessage          |
-| CRALF      | 248B   | CreateFile             | GL        | 150B   | CAMACGLRegister          |
-| CRNL       | 253B   | NewFileVersion         | GNANE     | 245B   | GetNameEntry             |
-| DABST      | 127B   | ExactStartup           | GPRNAME   | 427B   | GetOwnProcessInfo        |
-| DEABF      | 256B   | FullFileName           | GPRNUM    | 426B   | GetProcessNo             |
-| DELPG      | 272B   | DeletePage             | GRAPHI    | 155B   | GraphicFunction          |
-| DESCF      | 71B    | DisableEscape          | GRBLK     | 420B   | GetUserRegisters         |
-| DINTV      | 130B   | ExactInterval          | GRTDA     | 151B   | GetTRAddress             |
-| DISASS     | 401B   | DisAssemble            | GRTNA     | 152B   | GetTRName                |
-| DIW        | 165B   | GetInRegisters         | GSGNO     | 322B   | GetSegmentNo             |
-| DLOFUU     | 277B   | DisableLocal           | GSSWP     | 422B   | GetScratchSegment        |
-| DOPEN      | 220B   | DirectOpen             | GTMOD     | 306B   | GetTerminalMode          |
-| DROBJ      | 215B   | GetObjectEntry         | GUIOI     | 217B   | GetAllFileIndexes        |
-| DSCNT      | 107B   | NoInterruptStart       | GUSNA     | 214B   | GetUserName              |
-| DSET       | 126B   | ExactDelayStart        | HOLO      | 104B   | SuspendProgram           |
-| DUSEL      | 301B   | StopEscapeHandling     | IBRSIZ    | 313B   | InBufferState            |
-| DVINST     | 503B   | InputString            | INBT      | 1B     | In8Byte                  |
-| DVOUTS     | 504B   | OutputString           | INSTR     | 161B   | InString                 |
-| DWOBJ      | 216B   | SetObjectEntry         | INTIV     | 103B   | StartupInterval          |
+|5PAGET|437B|[GetND500Param](#getnd500param)|IECHOM|3B|[SetEcho](#3b-setecho)|
+|5PASET|436B|[SetND500Param](#436b-setnd500param)|EDTRM|206B|[TerminationHandling](#terminationhandling)|
+|5TMOUT|514B|[ND500TimeOut](#nd500timeout)|EESCF|72B|[EnableEscape](#72b-enableescape)|
+|ABORT|105B|[StopRTProgram](#stoprtprogram)|ELOFF|303B|[OffEscLocalFunction](#offesclocalfunction)|
+|ABSET|102B|[StartupTime](#startuptime)|ELOFU|276B|[EnableLocal](#enablelocal)|
+|ABSTR|131B|DataTransfer|ELON|302B|[OnEscLocalFunction](#302b-onesclocalfunction-elon)|
+|ADR100|430B|TranslateAddress|ENTSG|157B|[SegmentToPageTable](#segmenttopagetable)|
+|AIRDW|37B|ReadADChannel|ERMON|142B|[ToErrorDevice](#142b-toerrordevice)|
+|ALTOFF|34B|[NormalPageTable](#normalpagetable)|ERMSG|64B|[WarningMessage](#64b-warningmessage)|
+|ALTON|33B|[AltPageTable](#33b-altpagetable)|EUSEL|300B|[SetEscapeHandling](#setescapehandling)|
+|APSPF|240B|[AppendSpooling](#240b-appendspooling)|EXABS|335B|[TransferData](#335b-transferdata)|
+|ASSIG|154B|AssignCAMACALAM|EXIOX|31B|[IOInstruction](#31b-ioinstruction)|
+|ATS5GM|440B|[Attach500Segment](#attach500segment)|EXPFI|231B|[ExpandFile](#231b-expandfile)|
+|B4INW|63B|[In4x2Bytes](#in4x2bytes)|FDFO1|250B|[GetDefaultDir](#getdefaultdir)|
+|B8INB|23B|[In8Bytes](#in8bytes)|FDINA|243B|[GetDirNameIndex](#getdirnameindex)|
+|B8OUT|24B|[Out8Bytes](#out8bytes)|FIX|115B|[FixScattered](#115b-fixscattered)|
+|BCLOS|252B|[BackupClose](#252b-backupclose-bclos)|FIXC|160B|[FixContiguous](#160b-fixcontiguous-fixc)|
+|BCNAF|414B|BCNAFCAMAC|FIXC5|61B|[MemoryAllocation](#memoryallocation)|
+|BCNAF1|415B|BCNAF1CAMAC|FIXMEM|410B|[FixInMemory](#410b-fixinmemory)|
+|BRKM|4B|[SetBreak](#setbreak)|F0BJN|274B|[GetFileIndexes](#getfileindexes)|
+|CAMAC|147B|[CAMACFunction](#camacfunction)|FOPEN|257B|OpenFileInfo|
+|CAPCLE|424B|[ClearCapability](#424b-clearcapability)|FSCNT|412B|[FileAsSegment](#fileassegment)|
+|CAPCOP|423B|[CopyCapability](#423b-copycapability)|FSCDNT|413B|FileNotAsSegment|
+|CIBUF|13B|[ClearInBuffer](#clearinbuffer)|FSMTY|327B|[FileSystemFunction](#filesystemfunction)|
+|CLADJ|112B|[AdjustClock](#112b-adjustclock)|GASGM|421B|[GetActiveSegment](#421b-getactivesegment)|
+|CLOCK|113B|[GetCurrentTime](#getcurrenttime)|GBSIZ|222B|[GetAddressArea](#getaddressarea)|
+|CLOSE|43B|[CloseFile](#closefile)|GDEVT|263B|[GetDeviceType](#getdevicetype)|
+|CBOBUF|41B|[ClearOutBuffer](#14b-clearoutbuffer)|GDEN8|244B|[GetDirEntry](#244b-getdirentry)|
+|COMND|70B|[CallCommand](#callcommand)|GERDV|254B|[GetErrorDevice](#geterrordevice)|
+|CONT|106B|[StartOnInterrupt](#106b-startoninterrupt)|GERRCOD|505B|[GetTrapReason](#gettrapreason)|
+|COPAG|251B|[CopyPage](#251b-copypage-copag)|GETTR|30B|[GetOwnRTAddress](#getownrtaddress)|
+|CPUTS|262B|[GetSystemInfo](#getsysteminfo)|GETXM|334B|[GetErrorMessage](#geterrormessage)|
+|CRALF|248B|[CreateFile](#createfile)|GL|150B|[CAMACGLRegister](#camacglregister)|
+|CRNL|253B|[NewFileVersion](#newfileversion)|GNANE|245B|[GetNameEntry](#getnameentry)|
+|DABST|127B|[ExactStartup](#exactstartup)|GPRNAME|427B|[GetOwnProcessInfo](#getownprocessinfo)|
+|DEABF|256B|[FullFileName](#256b-fullfilename)|GPRNUM|426B|[GetProcessNo](#getprocessno)|
+|DELPG|272B|[DeletePage](#deletepage)|GRAPHI|155B|[GraphicFunction](#155b-graphicfunction)|
+|DESCF|71B|[DisableEscape](#71b-disableescape)|GRBLK|420B|[GetUserRegisters](#getuserregisters)|
+|DINTV|130B|[ExactInterval](#exactinterval)|GRTDA|151B|GetTRAddress|
+|DISASS|401B|DisAssemble|GRTNA|152B|GetTRName|
+|DIW|165B|[GetInRegisters](#165b-getinregisters)|GSGNO|322B|[GetSegmentNo](#322b-getsegmentno)|
+|DLOFUU|277B|[DisableLocal](#277b-disablelocal)|GSSWP|422B|[GetScratchSegment](#422b-getscratchsegment)|
+|DOPEN|220B|[DirectOpen](#220b-directopen)|GTMOD|306B|[GetTerminalMode](#getterminalmode)|
+|DROBJ|215B|[GetObjectEntry](#getobjectentry)|GUIOI|217B|[GetAllFileIndexes](#getallfileindexes)|
+|DSCNT|107B|[NoInterruptStart](#nointerruptstart)|GUSNA|214B|[GetUserName](#getusername)|
+|DSET|126B|ExactDelayStart|HOLO|104B|[SuspendProgram](#suspendprogram)|
+|DUSEL|301B|StopEscapeHandling|IBRSIZ|313B|[InBufferState](#inbufferstate)|
+|DVINST|503B|[InputString](#inputstring)|INBT|1B|In8Byte|
+|DVOUTS|504B|[OutputString](#504b-outputstring)|INSTR|161B|[InString](#161b-instring)|
+|DWOBJ|216B|[SetObjectEntry](#setobjectentry)|INTIV|103B|[StartupInterval](#103b-startupinterval)|
 
 ---
 
-## Page 67
-
-# SINTRAN III Monitor Calls
-
-## Overview of the Monitor Calls
-
-| Code  | Number | Function              | Code  | Number | Function              |
+|Code|Number|[Function](#336b-terminal-function)|Code|Number|[Function](#336b-terminal-function)|
 |-------|--------|-----------------------|-------|--------|-----------------------|
-| IOFIX | 404B   | FixIOArea             | RELES | 123B   | ReleaseResource       |
-| IOMTY | 336B   | TerminalFunction      | RERRP | 207B   | GetErrorInfo          |
-| IOSET | 141B   | DeviceControl         | RESRV | 122B   | ReserveResource       |
-| IOUT  | 35B    | OutNumber             | RFILE | 117B   | ReadFromFile          |
-| IOXIN | 153B   | CAMACIOInstruction    | RFLAG | 402B   | GetInputFlags         |
-| IPRIV | 146B   | PrivInstruction       | RLDIR | 247B   | ReleaseDir            |
-| ISIZE | 66B    | InBufferSpace         | RMAX  | 628B   | GetBytesInFile        |
-| LASTC | 26B    | GetLastByte           | ROBJE | 418B   | ReadObjectEntry       |
-| LEAVE | 0B     | ExitFromProgram       | RPAGE | 7B     | ReadBlock             |
-| M81NB | 218B   | InUpTo8Bytes          | RSEGM | 53B    | GetSegmentEntry       |
-| M8OUT | 22B    | OutUpTo8Bytes         | RSIO  | 143B   | ExecutionInfo         |
-| MACROE| 400B   | ErrorReturn           | RSPOE | 55B    | GetSpoolingEntry      |
-| MAGTP | 144B   | DeviceFunction        | RSREC | 340B   | ReadSystemRecord      |
-| MBECH | 325B   | BatchModeEcho         | RT    | 100B   | StartRTProgram        |
-| MCALL | 132B   | JumpToSegment         | RTDSC | 278B   | GetRTDescr            |
-| MDLFI | 54B    | DeleteFile            | RTEXT | 134B   | ExitRTProgram         |
-| MEXIT | 133B   | ExitFromSegment       | RTOFF | 137B   | DisableRTStart        |
-| MGDAE | 230B   | GetEscLocalChars      | RTON  | 136B   | EnableRTStart         |
-| MGFIL | 273B   | GetFileName           | RTWT  | 135B   | WaitForRestart        |
-| MGTITY| 16B    | GetTerminalType       | RUSCN | 242B   | OldUser               |
-| MHDLC | 201B   | HDLFunction           | RUSER | 44B    | GetUserEntry          |
-| MLAMU | 315B   | LAMUFunction          | RWRITC| 406B   | AccessRTCommon        |
-| MLOGI | 326B   | LogInStart            | SCROP | 235B   | ScratchOpen           |
-| MOINF | 312B   | CheckMonCall          | SET   | 101B   | DelayStart            |
-| MRNFI | 232B   | RenameFile            | SETBL | 77B    | SetStartBlock         |
-| MSDAE | 227B   | SetEscLocalChars      | SETBS | 76B    | SetBlockSize          |
-| MSG   | 32B    | OutMessage            | SETBT | 74B    | SetStartByte          |
-| MSTTY | 17B    | SetTerminalType       | SETCM | 12B    | SetCommandBuffer      |
-| MUIDI | 213B   | GetDirUserIndexes     | SFACC | 237B   | SetFileAccess         |
-| MWAITF| 431B   | AwaitTransfer         | SGMTY | 341B   | SegmentFunction       |
-| MXPISG| 417B   | MaxPagesInMemory      | SMAX  | 738B   | SetMaxBytes           |
-| NOWT  | 36B    | NowaitSwitch          | SPCHG | 337B   | ChangeSegment         |
-| OCTO  | 324B   | OctobusFunction       | SPCLO | 40B    | CloseSpoolingFile     |
-| OPEN  | 50B    | OpenFile              | SPEFI | 234B   | SetPeripheralName     |
-| OSIZE | 67B    | OutBufferSpace        | SPERD | 236B   | SetPermanentOpen      |
-| OUTBT | 2B     | OutByte               | SPLRE | 323B   | SegmentOverlay        |
-| OUTSt | 162B   | OutString             | SPRIO | 507B   | SetProcessPriority    |
-| PAGET | 57B    | GetUserParam          | SPRNAM| 425B   | SetProcessName        |
-| PASET | 56B    | SetUserParam          | SREEN | 212B   | ReentrantSegment      |
-| PIOCM | 255B   | PIOCFuntion           | SRLMO | 316B   | SetRemoteAccess       |
-| PRIOR | 110B   | SetRTPriority         | SRUSI | 314B   | DefaultRemoteSystem   |
-| PRLS  | 125B   | ForceRelease          | STARTP| 500B   | StartProcess          |
-| PRSRV | 124B   | ForceReserve          | STEFI | 233B   | SetTemporaryFile      |
-| PRT   | 435B   | ForceTrap             | STOPPR| 501B   | StopProcess           |
-| QERMS | 65B    | ErrorMessage          | STRFI | 275B   | SetTerminalName       |
-| RDISK | 5B     | ReadScratchFile       | SUSCN | 241B   | NewUser               |
-| RDPAG | 270B   | ReadDiskPage          | SWITCHP| 502B  | SwitchProcess         |
-| REBAT | 75B    | GetStartByte          | TBIN8 | 310B   | In8AndFlag            |
-| REDIR | 246B   | ReserveDir            | TERMO | 52B    | TerminalMode          |
-| REENT | 167B   | AttachSegment         | TERST | 330B   | TerminalStatus        |
+|IOFIX|404B|[FixIOArea](#fixioarea)|RELES|123B|[ReleaseResource](#releaseresource)|
+|IOMTY|336B|TerminalFunction|RERRP|207B|[GetErrorInfo](#geterrorinfo)|
+|IOSET|141B|[DeviceControl](#devicecontrol)|RESRV|122B|[ReserveResource](#reserveresource)|
+|IOUT|35B|[OutNumber](#35b-outnumber)|RFILE|117B|[ReadFromFile](#readfromfile)|
+|IOXIN|153B|[CAMACIOInstruction](#camacioinstruction)|RFLAG|402B|[GetInputFlags](#402b-getinputflags)|
+|IPRIV|146B|[PrivInstruction](#146b-privinstruction)|RLDIR|247B|ReleaseDir|
+|ISIZE|66B|[InBufferSpace](#inbufferspace)|RMAX|628B|[GetBytesInFile](#62b-getbytesinfile-rmax)|
+|LASTC|26B|[GetLastByte](#getlastbyte)|ROBJE|418B|[ReadObjectEntry](#41b-readobjectentry)|
+|LEAVE|0B|[ExitFromProgram](#ob-exitfromprogram-leave)|RPAGE|7B|[ReadBlock](#readblock)|
+|M81NB|218B|InUpTo8Bytes|RSEGM|53B|[GetSegmentEntry](#getsegmententry)|
+|M8OUT|22B|[OutUpTo8Bytes](#outupto8bytes)|RSIO|143B|[ExecutionInfo](#143b-executioninfo-rs10)|
+|MACROE|400B|[ErrorReturn](#400b-errorreturn)|RSPOE|55B|[GetSpoolingEntry](#getspoolingentry)|
+|MAGTP|144B|[DeviceFunction](#144b-devicefunction)|RSREC|340B|[ReadSystemRecord](#340b-readsystemrecord)|
+|MBECH|325B|[BatchModeEcho](#325b-batchmodeecho)|RT|100B|[StartRTProgram](#startrtprogram)|
+|MCALL|132B|[JumpToSegment](#jumptosegment)|RTDSC|278B|[GetRTDescr](#getrtdescr)|
+|MDLFI|54B|[DeleteFile](#deletefile)|RTEXT|134B|[ExitRTProgram](#exitrtprogram)|
+|MEXIT|133B|[ExitFromSegment](#exitfromsegment)|RTOFF|137B|[DisableRTStart](#disablertstart)|
+|MGDAE|230B|[GetEscLocalChars](#230b-getesclocalchars)|RTON|136B|[EnableRTStart](#enablertstart)|
+|MGFIL|273B|[GetFileName](#getfilename)|RTWT|135B|[WaitForRestart](#135b-waitforrestart)|
+|MGTITY|16B|[GetTerminalType](#16b-getterminaltype)|RUSCN|242B|[OldUser](#olduser)|
+|MHDLC|201B|HDLFunction|RUSER|44B|[GetUserEntry](#getuserentry)|
+|MLAMU|315B|[LAMUFunction](#lamufunction)|RWRITC|406B|[AccessRTCommon](#accessrtcommon)|
+|MLOGI|326B|LogInStart|SCROP|235B|[ScratchOpen](#235b-scratchopen)|
+|MOINF|312B|[CheckMonCall](#checkmoncall)|SET|101B|[DelayStart](#101b-delaystart)|
+|MRNFI|232B|RenameFile|SETBL|77B|[SetStartBlock](#setstartblock)|
+|MSDAE|227B|[SetEscLocalChars](#setesclocalchars)|SETBS|76B|[SetBlockSize](#setblocksize)|
+|MSG|32B|OutMessage|SETBT|74B|[SetStartByte](#setstartbyte)|
+|MSTTY|17B|SetTerminalType|SETCM|12B|[SetCommandBuffer](#setcommandbuffer)|
+|MUIDI|213B|[GetDirUserIndexes](#213b-getdiruserindexes)|SFACC|237B|[SetFileAccess](#setfileaccess)|
+|MWAITF|431B|[AwaitTransfer](#awaittransfer)|SGMTY|341B|[SegmentFunction](#segmentfunction)|
+|MXPISG|417B|[MaxPagesInMemory](#maxpagesinmemory)|SMAX|738B|[SetMaxBytes](#setmaxbytes)|
+|NOWT|36B|[NowaitSwitch](#nowaitswitch)|SPCHG|337B|[ChangeSegment](#337b-changesegment-spchg)|
+|OCTO|324B|[OctobusFunction](#octobusfunction)|SPCLO|40B|[CloseSpoolingFile](#closespoolingfile)|
+|OPEN|50B|OpenFile|SPEFI|234B|SetPeripheralName|
+|OSIZE|67B|[OutBufferSpace](#outbufferspace)|SPERD|236B|[SetPermanentOpen](#setpermanentopen)|
+|OUTBT|2B|[OutByte](#outbyte)|SPLRE|323B|[SegmentOverlay](#323b-segmentoverlay)|
+|OUTSt|162B|[OutString](#162b-outstring)|SPRIO|507B|[SetProcessPriority](#setprocesspriority)|
+|PAGET|57B|[GetUserParam](#getuserparam)|SPRNAM|425B|[SetProcessName](#setprocessname)|
+|PASET|56B|[SetUserParam](#setuserparam)|SREEN|212B|[ReentrantSegment](#212b-reentrantsegment)|
+|PIOCM|255B|PIOCFuntion|SRLMO|316B|[SetRemoteAccess](#316b-setremoteaccess)|
+|PRIOR|110B|[SetRTPriority](#setrtpriority)|SRUSI|314B|[DefaultRemoteSystem](#defaultremotesystem)|
+|PRLS|125B|[ForceRelease](#forcerelease)|STARTP|500B|[StartProcess](#500b-startprocess)|
+|PRSRV|124B|ForceReserve|STEFI|233B|[SetTemporaryFile](#233b-settemporaryfile)|
+|PRT|435B|ForceTrap|STOPPR|501B|[StopProcess](#stopprocess)|
+|QERMS|65B|[ErrorMessage](#errormessage)|STRFI|275B|[SetTerminalName](#setterminalname)|
+|RDISK|5B|[ReadScratchFile](#5b-readscratchfile-rdisk)|SUSCN|241B|[NewUser](#241b-newuser)|
+|RDPAG|270B|[ReadDiskPage](#readdiskpage)|SWITCHP|502B|[SwitchProcess](#switchprocess)|
+|REBAT|75B|[GetStartByte](#getstartbyte)|TBIN8|310B|[In8AndFlag](#in8andflag)|
+|REDIR|246B|[ReserveDir](#reservedir)|TERMO|52B|[TerminalMode](#terminalmode)|
+|REENT|167B|[AttachSegment](#attachsegment)|TERST|330B|[TerminalStatus](#terminalstatus)|
 
 ---
 
-## Page 68
-
-# SINTRAN III Monitor Calls
-## Overview of the monitor calls
-
-| Call    | Code | Description           |
+|Call|Code|Description|
 |---------|------|-----------------------|
-| TIME    | 11B  | GetBasicTime          |
-| TMOUT   | 267B | TimeOut               |
-| TNOWAIT | 307B | TerminalNoWait        |
-| TREPP   | 332B | TerminalLineInfo      |
-| TUSED   | 114B | GetTimeUsed           |
-| UDMA    | 333B | DMAFunction           |
-| UECOM   | 317B | ExecuteCommand        |
-| UNFIX   | 116B | UnfixSegment          |
-| UNFIXM  | 411B | MemoryUnfix           |
-| UPDAT   | 111B | SetClock              |
-| US0     | 170B | UserDef0              |
-| US1     | 171B | UserDef1              |
-| US2     | 172B | UserDef2              |
-| US3     | 173B | UserDef3              |
-| US4     | 174B | UserDef4              |
-| US5     | 175B | UserDef5              |
-| US6     | 176B | UserDef6              |
-| US7     | 177B | UserDef7              |
-| USTBRK  | 405B | SwitchUserBreak       |
-| WAITF   | 121B | AwaitFileTransfer     |
-| WDIEN   | 311B | WriteDirEntry         |
-| WDISK   | 6B   | WriteScratchFile      |
-| WDPAG   | 271B | WriteDiskPage         |
-| WFILE   | 120B | WriteToFile           |
-| WFLAG   | 403B | SetOutputFlags        |
-| WHDEV   | 140B | ReservationInfo       |
-| WPAGE   | 10B  | WriteBlock            |
-| WSEG    | 164B | SaveSegment           |
-| WSEGN   | 416B | SaveN0500Segment      |
-| XMSG    | 200B | XMSGFunction          |
+|TIME|11B|[GetBasicTime](#11b-getbasictime)|
+|TMOUT|267B|[TimeOut](#timeout)|
+|TNOWAIT|307B|[TerminalNoWait](#terminalnowait)|
+|TREPP|332B|[TerminalLineInfo](#terminallineinfo)|
+|TUSED|114B|[GetTimeUsed](#114b-gettimeused)|
+|UDMA|333B|DMAFunction|
+|UECOM|317B|[ExecuteCommand](#executecommand)|
+|UNFIX|116B|[UnfixSegment](#unfixsegment)|
+|UNFIXM|411B|MemoryUnfix|
+|UPDAT|111B|[SetClock](#setclock)|
+|US0|170B|UserDef0|
+|US1|171B|UserDef1|
+|US2|172B|UserDef2|
+|US3|173B|UserDef3|
+|US4|174B|UserDef4|
+|US5|175B|UserDef5|
+|US6|176B|UserDef6|
+|US7|177B|UserDef7|
+|USTBRK|405B|[SwitchUserBreak](#switchuserbreak)|
+|WAITF|121B|AwaitFileTransfer|
+|WDIEN|311B|[WriteDirEntry](#writedirentry)|
+|WDISK|6B|[WriteScratchFile](#6b-writescratchfile)|
+|WDPAG|271B|[WriteDiskPage](#writediskpage)|
+|WFILE|120B|[WriteToFile](#12ob-writetofile)|
+|WFLAG|403B|[SetOutputFlags](#setoutputflags)|
+|WHDEV|140B|[ReservationInfo](#reservationinfo)|
+|WPAGE|10B|[WriteBlock](#writeblock)|
+|WSEG|164B|[SaveSegment](#164b-savesegment-wseg)|
+|WSEGN|416B|SaveN0500Segment|
+|XMSG|200B|[XMSGFunction](#xmsgfunction)|
 
 ---
-
-## Page 69
-
-# SINTRAN III Monitor Calls
-### Overview of the monitor calls
 
 ## 2.16 Monitor Call Numbers No Longer Supported
 

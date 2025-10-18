@@ -565,8 +565,8 @@ class MonitorCallsProcessor:
         self.process_section_21()
         self.process_section_22()
         self.process_all_single_page_tables()
-        # TODO: Add section 2.5, 2.11, 2.15 (multi-page tables)
-        # TODO: Add TOC linking
+        self.process_multipage_tables()
+        self.process_toc()
         self.write_output()
         
         print("\n" + "="*60)
