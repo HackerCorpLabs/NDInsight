@@ -1,9 +1,9 @@
 # Compiler Commands Reference
 
-**Complete command reference for NPL and MAC**
+**Complete command reference for NPL, MAC, and NORD-500 Assembler**
 
-**Version:** 1.0  
-**Date:** October 17, 2025  
+**Version:** 1.1  
+**Date:** October 18, 2025  
 **Source:** Official manuals and source code analysis
 
 ---
@@ -12,9 +12,10 @@
 
 1. [NPL Compiler Commands](#npl-compiler-commands)
 2. [MAC Assembler Commands](#mac-assembler-commands)
-3. [NRL Linker Commands](#nrl-linker-commands)
-4. [BRF-EDITOR Commands](#brf-editor-commands)
-5. [Quick Reference Tables](#quick-reference-tables)
+3. [NORD-500 Assembler Commands](#nord-500-assembler-commands)
+4. [NRL Linker Commands](#nrl-linker-commands)
+5. [BRF-EDITOR Commands](#brf-editor-commands)
+6. [Quick Reference Tables](#quick-reference-tables)
 
 ---
 
@@ -231,6 +232,389 @@ L2=*
     LDWB R1,100
 "               % End conditional
 ```
+
+---
+
+## NORD-500 Assembler Commands
+
+### Starting the NORD-500 Assembler
+
+The NORD-500 Assembler is a **cross-assembler** that runs on the NORD-100 CPU under SINTRAN III and produces NRF (NORD Relocatable Format) object files for the NORD-500 CPU.
+
+```bash
+@NORD-500-ASSEMBLER [source-file][:SYMB] [,list-file][:LST] [,object-file][:NRF]
+```
+
+**Alternative command names:**
+```bash
+@N500ASM
+@ND500ASM
+```
+
+**Parameters:**
+- `source-file` - Input NORD-500 assembly source file (default extension: `:SYMB` or `:ASM`)
+- `list-file` - Optional assembly listing output (default extension: `:LST`)
+- `object-file` - Output NRF object file (default extension: `:NRF`)
+
+**Examples:**
+```bash
+@NORD-500-ASSEMBLER PROGRAM:SYMB
+@N500ASM PROGRAM:SYMB,PROGRAM:LST,PROGRAM:NRF
+@ND500ASM MODULE1:ASM
+```
+
+### NORD-500 Assembler Commands (Interactive)
+
+#### ASSEMBLE - Assemble Source File
+
+**Syntax:**
+```
+ASSEMBLE filename[:SYMB]
+```
+
+**Purpose:** Assemble a NORD-500 source file
+
+**Example:**
+```
+ASSEMBLE PROGRAM:SYMB
+ASSEMBLE MODULE1:ASM
+```
+
+#### LIST / NO-LIST - Control Listing Output
+
+**Syntax:**
+```
+LIST
+NO-LIST
+```
+
+**Purpose:** Enable or disable assembly listing generation
+
+**Example:**
+```
+LIST                    % Generate listing
+NO-LIST                 % Skip listing (faster)
+```
+
+#### LINES - Set Lines Per Page
+
+**Syntax:**
+```
+LINES line-count
+```
+
+**Purpose:** Set number of lines per page in listing
+
+**Example:**
+```
+LINES 60               % 60 lines per page
+LINES 66               % Standard page size
+```
+
+#### EXIT - Exit Assembler
+
+**Syntax:**
+```
+EXIT
+```
+
+**Purpose:** Exit the NORD-500 assembler
+
+### NORD-500 Source Directives
+
+These directives appear **inside** NORD-500 assembly source files. See [NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md](../Languages/System/NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md) for complete directive reference.
+
+#### $MACRO / $ENDMACRO - Define Macro
+
+**Syntax:**
+```assembly
+$MACRO macro-name [parameter, ...]
+    [macro body]
+$ENDMACRO
+```
+
+**Purpose:** Define reusable code macro
+
+**Example:**
+```assembly
+$MACRO PUSH reg
+    W1 SUB 4
+    reg DATA IND(W1)
+$ENDMACRO
+```
+
+#### $IF / $ELSIF / $ELSE / $ENDIF - Conditional Assembly
+
+**Syntax:**
+```assembly
+$IF expression
+    [code if true]
+$ELSIF expression
+    [code if elsif true]
+$ELSE
+    [code if false]
+$ENDIF
+```
+
+**Purpose:** Conditional assembly based on expressions
+
+**Example:**
+```assembly
+$IF DEBUG
+    W1 := 1               % Debug mode
+$ELSE
+    W1 := 0               % Production mode
+$ENDIF
+```
+
+#### $INCLUDE - Include Source File
+
+**Syntax:**
+```assembly
+$INCLUDE filename
+```
+
+**Purpose:** Insert contents of another file
+
+**Example:**
+```assembly
+$INCLUDE DEFINES:SYMB
+$INCLUDE MACROS:SYMB
+```
+
+#### $LIST / $NOLIST - Control Listing
+
+**Syntax:**
+```assembly
+$LIST
+$NOLIST
+```
+
+**Purpose:** Control listing output within source
+
+**Example:**
+```assembly
+$NOLIST               % Don't list following code
+$INCLUDE STDMACROS:SYMB
+$LIST                 % Resume listing
+```
+
+#### $TITLE - Set Listing Title
+
+**Syntax:**
+```assembly
+$TITLE "title-string"
+```
+
+**Purpose:** Set title for listing page headers
+
+**Example:**
+```assembly
+$TITLE "NORD-500 Main Program - Version 1.0"
+```
+
+#### $EJECT - Page Break
+
+**Syntax:**
+```assembly
+$EJECT
+```
+
+**Purpose:** Force new page in listing
+
+**Example:**
+```assembly
+$EJECT                % Start new page
+% New section begins here
+```
+
+### NORD-500 Module Structure Directives
+
+#### MODULE / ENDMODULE - Define Module
+
+**Syntax:**
+```assembly
+MODULE [module-name [',' priority [',' language-code]]]
+    [module code]
+ENDMODULE [module-name]
+```
+
+**Purpose:** Delimit an assembly program module
+
+**Example:**
+```assembly
+MODULE MYPROG, 100, 0     % Priority 100, language 0 (assembly)
+    [code]
+ENDMODULE MYPROG
+```
+
+#### ROUTINE / ENDROUTINE - Define Routine
+
+**Syntax:**
+```assembly
+ROUTINE entry-point [, entry-point ...]
+    [routine code]
+ENDROUTINE
+```
+
+**Purpose:** Define a subroutine with entry points
+
+**Example:**
+```assembly
+ROUTINE MY_SUB, ALT_ENTRY
+    [subroutine code]
+    RET
+ENDROUTINE
+```
+
+#### IMPORT-P / IMPORT-D - Import Symbols
+
+**Syntax:**
+```assembly
+IMPORT-P symbol [, symbol ...]    % Import program addresses
+IMPORT-D symbol [, symbol ...]    % Import data addresses
+```
+
+**Purpose:** Import external program or data symbols
+
+**Example:**
+```assembly
+IMPORT-P EXT_ROUTINE, HELPER_FUNC
+IMPORT-D GLOBAL_VAR, SHARED_DATA
+```
+
+#### EXPORT - Export Symbols
+
+**Syntax:**
+```assembly
+EXPORT symbol [, symbol ...]
+```
+
+**Purpose:** Make symbols accessible to other modules
+
+**Example:**
+```assembly
+EXPORT MY_FUNC, SHARED_VAR
+```
+
+#### MAIN - Specify Main Entry Point
+
+**Syntax:**
+```assembly
+MAIN entry-label
+```
+
+**Purpose:** Specify the main program entry point
+
+**Example:**
+```assembly
+MAIN START_PROGRAM
+```
+
+### NORD-500 Loader Commands
+
+The NORD-500 loader links NRF files into executable programs.
+
+```bash
+@NORD-500-LOADER
+```
+
+**Interactive Commands:**
+
+#### LOAD - Load NRF File
+
+**Syntax:**
+```
+LOAD filename[:NRF]
+```
+
+**Purpose:** Load NORD-500 relocatable object file
+
+**Example:**
+```
+LOAD PROGRAM:NRF
+LOAD MODULE1:NRF
+```
+
+#### LIBRARY - Load Library
+
+**Syntax:**
+```
+LIBRARY library-name[:NRF]
+```
+
+**Purpose:** Load NORD-500 library for conditional linking
+
+**Example:**
+```
+LIBRARY N500LIB:NRF
+LIBRARY MATHLIB:NRF
+```
+
+#### PSEG - Specify Program Segment Output
+
+**Syntax:**
+```
+PSEG filename[:PSEG]
+```
+
+**Purpose:** Specify program segment output file
+
+**Example:**
+```
+PSEG PROGRAM:PSEG
+```
+
+#### DSEG - Specify Data Segment Output
+
+**Syntax:**
+```
+DSEG filename[:DSEG]
+```
+
+**Purpose:** Specify data segment output file
+
+**Example:**
+```
+DSEG PROGRAM:DSEG
+```
+
+#### LINK - Specify Link Information Output
+
+**Syntax:**
+```
+LINK filename[:LINK]
+```
+
+**Purpose:** Specify link information file
+
+**Example:**
+```
+LINK PROGRAM:LINK
+```
+
+#### MAP - Generate Memory Map
+
+**Syntax:**
+```
+MAP
+```
+
+**Purpose:** Generate and display memory map of linked program
+
+**Example:**
+```
+MAP                    % Show memory layout
+```
+
+#### EXIT - Exit Loader
+
+**Syntax:**
+```
+EXIT
+```
+
+**Purpose:** Exit the NORD-500 loader
 
 ---
 
@@ -493,6 +877,38 @@ EXIT              % Save and quit
 @HELLO                      # 3. Run
 ```
 
+### Build NORD-500 Program
+
+```bash
+@NORD-500-ASSEMBLER PROGRAM:SYMB  # 1. Assemble to NRF
+@NORD-500-LOADER                  # 2. Link
+LOAD PROGRAM:NRF
+PSEG PROGRAM:PSEG
+DSEG PROGRAM:DSEG
+LINK PROGRAM:LINK
+MAP
+EXIT
+# 3. Load and run on NORD-500 CPU
+```
+
+### Build Multi-Module NORD-500 Program
+
+```bash
+@N500ASM MODULE1:SYMB       # 1. Assemble module 1
+@N500ASM MODULE2:SYMB       # 2. Assemble module 2
+@N500ASM MODULE3:SYMB       # 3. Assemble module 3
+@NORD-500-LOADER            # 4. Link all modules
+LOAD MODULE1:NRF
+LOAD MODULE2:NRF
+LOAD MODULE3:NRF
+LIBRARY N500LIB:NRF         # Include library
+PSEG PROJECT:PSEG
+DSEG PROJECT:DSEG
+LINK PROJECT:LINK
+MAP
+EXIT
+```
+
 ### Rename Symbols for Library
 
 ```bash
@@ -523,12 +939,14 @@ EXIT
 | Tool | Input | Output | Command |
 |------|-------|--------|---------|
 | **MAC** | `.MAC` | `.BRF` | `@MAC source:MAC` |
+| **NORD-500 ASM** | `.SYMB`/`.ASM` | `.NRF` | `@NORD-500-ASSEMBLER source:SYMB` |
 
 ### Linking Phase
 
-| Tool | Input | Output | Command |
-|------|-------|--------|---------|
-| **NRL** | `.BRF` | `.PROG` | `@NRL` + commands |
+| Tool | Input | Output | Command | Target CPU |
+|------|-------|--------|---------|------------|
+| **NRL** | `.BRF` | `.PROG` | `@NRL` + commands | ND-100 |
+| **NORD-500 Loader** | `.NRF` | `.PSEG`/`.DSEG` | `@NORD-500-LOADER` + commands | ND-500 |
 
 ### Post-Processing
 

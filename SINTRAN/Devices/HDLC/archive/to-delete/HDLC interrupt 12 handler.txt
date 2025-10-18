@@ -1,0 +1,406 @@
+HDLC interrupt 12 handler
+(Sintran L)
+
+
+010002      12 Ptkzqocm |ONx|ON |        |     033513     146162                      COPY ST DP                                 [A:010000  D:000006  T:104317  L:033617  X:177777  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 075410 |     104317     054502                      LDX 102,B                      [EA:075410 ][A:010000  D:000006  T:104317  L:033617  X:177777  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 075426 |     104320     000520                      STZ 120,B                      [EA:075426 ][A:010000  D:000006  T:104317  L:033617  X:152223  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 075412 |     104321     044504                      LDA 104,B                      [EA:075412 ][A:010000  D:000006  T:104317  L:033617  X:152223  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 075303 |     104322     050775                      LDT -3,B                       [EA:075303 ][A:000000  D:000006  T:104317  L:033617  X:152223  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     104323     173013                      AAT 13                                     [A:000000  D:000006  T:165640  L:033617  X:152223  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     104324     140660                      EXR ST                                     [A:000000  D:000006  T:165653  L:033617  X:152223  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     104324     165653                      IOX 1653                                   [A:000000  D:000006  T:165653  L:033617  X:152223  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     104325     146105                      RCLR DA                                    [A:000000  D:000006  T:165653  L:033617  X:152223  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 103757 |     104326     135035                      JPL I *35                      [EA:103757 ][A:000000  D:000006  T:165653  L:033617  X:152223  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 075347 |     103757     050441                      LDT 41,B                       [EA:075347 ][A:000000  D:000006  T:165653  L:104327  X:152223  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     103760     143324                      STATX 2                                    [A:000000  D:000006  T:000006  L:104327  X:152223  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     103761     146142                      EXIT                                       [A:000000  D:000006  T:000006  L:104327  X:152223  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     104327     170503                      SAA 103                                    [A:000000  D:000006  T:000006  L:104327  X:152223  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 103703 |     104330     125035                      JMP I *35                      [EA:103703 ][A:000103  D:000006  T:000006  L:104327  X:152223  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 075410 |     103703     054502                      LDX 102,B                      [EA:075410 ][A:000103  D:000006  T:000006  L:104327  X:152223  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 075347 |     103704     050441                      LDT 41,B                       [EA:075347 ][A:000103  D:000006  T:000006  L:104327  X:152223  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     103705     143314                      STATX 1                                    [A:000103  D:000006  T:000006  L:104327  X:152223  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     103706     173773                      AAX -5                                     [A:000103  D:000006  T:000006  L:104327  X:152223  B:075306 ]
+010002      12 PtkzqoCm |ONx|ON |        |     103707     171006                      SAT 6                                      [A:000103  D:000006  T:000006  L:104327  X:152216  B:075306 ]
+010002      12 PtkzqoCm |ONx|ON | 103753 |     103710     135104                      JPL I *104                     [EA:103753 ][A:000103  D:000006  T:000006  L:104327  X:152216  B:075306 ]
+010002      12 PtkzqoCm |ONx|ON |        |     103753     146165                      COPY ST DA                                 [A:000103  D:000006  T:000006  L:103711  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 075347 |     103754     050441                      LDT 41,B                       [EA:075347 ][A:000006  D:000006  T:000006  L:103711  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     103755     143324                      STATX 2                                    [A:000006  D:000006  T:000006  L:103711  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     103756     146142                      EXIT                                       [A:000006  D:000006  T:000006  L:103711  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 021725 |     103711     135077                      JPL I *77                      [EA:021725 ][A:000006  D:000006  T:000006  L:103711  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 075347 |     021725     050441                      LDT 41,B                       [EA:075347 ][A:000006  D:000006  T:000006  L:103712  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     021726     143310                      LDATX 1                                    [A:000006  D:000006  T:000006  L:103712  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 021735 |     021727     130006                      JAP 6                          [EA:021735 ][A:177777  D:000006  T:000006  L:103712  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     021730     143300                      LDATX 0                                    [A:177777  D:000006  T:000006  L:103712  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 021734 |     021731     131003                      JAZ 3                          [EA:021734 ][A:007425  D:000006  T:000006  L:103712  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     021732     150402                      ION                                        [A:007425  D:000006  T:000006  L:103712  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     021733     146152                      COPY SA DP                                 [A:007425  D:000006  T:000006  L:103712  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 007423 |     007425     004376                      STA *-2                        [EA:007423 ][A:007425  D:000006  T:000006  L:103712  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     007426     146145                      COPY SL DA                                 [A:007425  D:000006  T:000006  L:103712  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 007424 |     007427     004375                      STA *-3                        [EA:007424 ][A:103712  D:000006  T:000006  L:103712  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 007227 |     007430     135056                      JPL I *56                      [EA:007227 ][A:103712  D:000006  T:000006  L:103712  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     007227     150001                      TRA STS                                    [A:103712  D:000006  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     007230     156573                      SHA ZIN SHR 5                              [A:176001  D:000006  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 007245 |     007231     070014                      AND *14                        [EA:007245 ][A:003740  D:000006  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     007232     146151                      COPY SA DD                                 [A:000140  D:000006  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     007233     150014                      TRA PGC                                    [A:000140  D:000140  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 007246 |     007234     070012                      AND *12                        [EA:007246 ][A:051746  D:000140  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     007235     145451                      RORA SA DD                                 [A:051606  D:000140  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     007236     174221                      BSET ONE 20 DD                             [A:051606  D:051746  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     007237     146115                      COPY SD DA                                 [A:051606  D:051746  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 007247 |     007240     070007                      AND *7                         [EA:007247 ][A:051746  D:051746  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 007250 |     007241     060007                      ADD *7                         [EA:007250 ][A:000146  D:051746  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     007242     150103                      TRR PCR                                    [A:031746  D:051746  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     007243     146115                      COPY SD DA                                 [A:031746  D:051746  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     007244     146142                      EXIT                                       [A:051746  D:051746  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 007422 |     007431     004371                      STA *-7                        [EA:007422 ][A:051746  D:051746  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 007423 |     007432     044371                      LDA *-7                        [EA:007423 ][A:051746  D:051746  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     007433     146171                      COPY SX DD                                 [A:007425  D:051746  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     007434     171410                      SAX 10                                     [A:007425  D:152216  T:000006  L:007431  X:152216  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON | 007351 |     007435     135050                      JPL I *50                      [EA:007351 ][A:007425  D:152216  T:000006  L:007431  X:000010  B:075306 ]
+010002      12 Ptkzqocm |ONx|ON |        |     007351     174000                      BSET ZRO SSPTM                             [A:007425  D:152216  T:000006  L:007436  X:000010  B:075306 ]
+010002      12 ptkzqocm |ONx|ON | 120617 |     007352     125365                      JMP I *-13                     [EA:120617 ][A:007425  D:152216  T:000006  L:007436  X:000010  B:075306 ]
+010002      12 ptkzqocm |ONx|ON |        |     120617     141007                      SKP IF DX GRE 0                            [A:007425  D:152216  T:000006  L:007436  X:000010  B:075306 ]
+010002      12 ptkzqocm |ONx|ON | 120616 |     120621     057003                      LDX ,X I *3                    [EA:120616 ][A:007425  D:152216  T:000006  L:007436  X:000010  B:075306 ]
+010002      12 ptkzqocm |ONx|ON |        |     120622     144017                      SWAP SD DX                                 [A:007425  D:152216  T:000006  L:007436  X:142410  B:075306 ]
+010002      12 ptkzqocm |ONx|ON |        |     120623     146112                      COPY SD DP                                 [A:007425  D:142410  T:000006  L:007436  X:152216  B:075306 ]
+010002      12 ptkzqocm |ONx|ON |        |     142410     173755                      AAX -23                                    [A:007425  D:142410  T:000006  L:007436  X:152216  B:075306 ]
+010002      12 ptkzqoCm |ONx|ON | 152223 |     142411     046030                      LDA 30,X                       [EA:152223 ][A:007425  D:142410  T:000006  L:007436  X:152173  B:075306 ]
+010002      12 ptkzqoCm |ONx|ON | 142550 |     142412     050136                      LDT *136                       [EA:142550 ][A:000006  D:142410  T:000006  L:007436  X:152173  B:075306 ]
+010002      12 ptkzqoCm |ONx|ON |        |     142413     140065                      SKP IF DA EQL ST                           [A:000006  D:142410  T:000006  L:007436  X:152173  B:075306 ]
+010002      12 ptkzqoCm |ONx|ON | 152217 |     142415     046024                      LDA 24,X                       [EA:152217 ][A:000006  D:142410  T:000006  L:007436  X:152173  B:075306 ]
+010002      12 ptkzqoCm |ONx|ON |        |     142416     171377                      SAT -1                                     [A:177777  D:142410  T:000006  L:007436  X:152173  B:075306 ]
+010002      12 ptkzqoCm |ONx|ON |        |     142417     142065                      SKP IF DA UEQ ST                           [A:177777  D:142410  T:177777  L:007436  X:152173  B:075306 ]
+010002      12 ptkzqoCm |ONx|ON | 142433 |     142420     124013                      JMP *13                        [EA:142433 ][A:177777  D:142410  T:177777  L:007436  X:152173  B:075306 ]
+010002      12 ptkzqoCm |ONx|ON | 152215 |     142433     042022                      MIN 22,X                       [EA:152215 ][A:177777  D:142410  T:177777  L:007436  X:152173  B:075306 ]
+010002      12 ptkzqoCm |ONx|ON | 137302 |     142434     125113                      JMP I *113                     [EA:137302 ][A:177777  D:142410  T:177777  L:007436  X:152173  B:075306 ]
+010002      12 ptkzqoCm |ONx|ON |        |     137302     146145                      COPY SL DA                                 [A:177777  D:142410  T:177777  L:007436  X:152173  B:075306 ]
+010002      12 ptkzqocm |ONx|ON |        |     137303     150401                      IOF                                        [A:007436  D:142410  T:177777  L:007436  X:152173  B:075306 ]
+010002      12 ptkzqocm |ONx|OFF| 152173 |     137304     052000                      LDT 0,X                        [EA:152173 ][A:007436  D:142410  T:177777  L:007436  X:152173  B:075306 ]
+010002      12 ptkzqocm |ONx|OFF|        |     137305     140067                      SKP IF DX EQL ST                           [A:007436  D:142410  T:152173  L:007436  X:152173  B:075306 ]
+010002      12 ptkzqocm |ONx|OFF| 137301 |     137307     004372                      STA *-6                        [EA:137301 ][A:007436  D:142410  T:152173  L:007436  X:152173  B:075306 ]
+010002      12 ptkzqocm |ONx|OFF| 137320 |     137310     044010                      LDA *10                        [EA:137320 ][A:007436  D:142410  T:152173  L:007436  X:152173  B:075306 ]
+010002      12 ptkzqocm |ONx|OFF|        |     137311     146151                      COPY SA DD                                 [A:120427  D:142410  T:152173  L:007436  X:152173  B:075306 ]
+010002      12 ptkzqocm |ONx|OFF| 122166 |     137312     135007                      JPL I *7                       [EA:122166 ][A:120427  D:120427  T:152173  L:007436  X:152173  B:075306 ]
+010002      12 ptkzqocm |ONx|OFF|        |     122166     144075                      SWAP SX DA                                 [A:120427  D:120427  T:152173  L:137313  X:152173  B:075306 ]
+010002      12 ptkzqocm |ONx|OFF| 120427 |     122167     052000                      LDT 0,X                        [EA:120427 ][A:152173  D:120427  T:152173  L:137313  X:120427  B:075306 ]
+010002      12 ptkzqocm |ONx|OFF|        |     122170     142061                      SKP IF DD UEQ ST                           [A:152173  D:120427  T:120427  L:137313  X:120427  B:075306 ]
+010002      12 ptkzqocm |ONx|OFF| 122174 |     122171     124003                      JMP *3                         [EA:122174 ][A:152173  D:120427  T:120427  L:137313  X:120427  B:075306 ]
+010002      12 ptkzqocm |ONx|OFF| 120427 |     122174     006000                      STA 0,X                        [EA:120427 ][A:152173  D:120427  T:120427  L:137313  X:120427  B:075306 ]
+010002      12 ptkzqocm |ONx|OFF|        |     122175     146157                      COPY SA DX                                 [A:152173  D:120427  T:120427  L:137313  X:120427  B:075306 ]
+010002      12 ptkzqocm |ONx|OFF|        |     122176     146115                      COPY SD DA                                 [A:152173  D:120427  T:120427  L:137313  X:152173  B:075306 ]
+010002      12 ptkzqocm |ONx|OFF| 152173 |     122177     006000                      STA 0,X                        [EA:152173 ][A:120427  D:120427  T:120427  L:137313  X:152173  B:075306 ]
+010002      12 ptkzqocm |ONx|OFF|        |     122200     146142                      EXIT                                       [A:120427  D:120427  T:120427  L:137313  X:152173  B:075306 ]
+010002      12 ptkzqocm |ONx|OFF| 137322 |     137313     044007                      LDA *7                         [EA:137322 ][A:120427  D:120427  T:120427  L:137313  X:152173  B:075306 ]
+010002      12 ptkzqocm |ONx|OFF|        |     137314     150306                      MST PID                                    [A:000040  D:120427  T:120427  L:137313  X:152173  B:075306 ]
+010042      12 ptkzqocm |ONx|OFF| 137301 |     137315     044364                      LDA *-14                       [EA:137301 ][A:000040  D:120427  T:120427  L:137313  X:152173  B:075306 ]
+010042      12 ptkzqocm |ONx|OFF|        |     137316     150402                      ION                                        [A:007436  D:120427  T:120427  L:137313  X:152173  B:075306 ]
+010042      12 ptkzqocm |ONx|ON |        |     137317     146152                      COPY SA DP                                 [A:007436  D:120427  T:120427  L:137313  X:152173  B:075306 ]
+010042      12 ptkzqocm |ONx|ON |        |     007436     146154                      COPY SA DL                                 [A:007436  D:120427  T:120427  L:137313  X:152173  B:075306 ]
+010042      12 ptkzqocm |ONx|ON | 007422 |     007437     044363                      LDA *-15                       [EA:007422 ][A:007436  D:120427  T:120427  L:007436  X:152173  B:075306 ]
+010042      12 ptkzqocm |ONx|ON |        |     007440     150103                      TRR PCR                                    [A:051746  D:120427  T:120427  L:007436  X:152173  B:075306 ]
+010042      12 ptkzqocm |ONx|ON |        |     007441     174200                      BSET ONE SSPTM                             [A:051746  D:120427  T:120427  L:007436  X:152173  B:075306 ]
+010042      12 Ptkzqocm |ONx|ON |        |     007442     146145                      COPY SL DA                                 [A:051746  D:120427  T:120427  L:007436  X:152173  B:075306 ]
+010042      12 Ptkzqocm |ONx|ON | 103712 |     007443     125361                      JMP I *-17                     [EA:103712 ][A:007436  D:120427  T:120427  L:007436  X:152173  B:075306 ]
+010042      12 Ptkzqocm |ONx|ON | 103636 |     103712     125077                      JMP I *77                      [EA:103636 ][A:007436  D:120427  T:120427  L:007436  X:152173  B:075306 ]
+010042      12 Ptkzqocm |ONx|ON | 021772 |     103636     135147                      JPL I *147                     [EA:021772 ][A:007436  D:120427  T:120427  L:007436  X:152173  B:075306 ]
+010042      12 Ptkzqocm |ONx|ON | 075367 |     021772     044461                      LDA 61,B                       [EA:075367 ][A:007436  D:120427  T:120427  L:103637  X:152173  B:075306 ]
+010042      12 Ptkzqocm |ONx|ON | 021776 |     021773     131403                      JAF 3                          [EA:021776 ][A:000000  D:120427  T:120427  L:103637  X:152173  B:075306 ]
+010042      12 Ptkzqocm |ONx|ON | 075371 |     021774     000463                      STZ 63,B                       [EA:075371 ][A:000000  D:120427  T:120427  L:103637  X:152173  B:075306 ]
+010042      12 Ptkzqocm |ONx|ON |        |     021775     146142                      EXIT                                       [A:000000  D:120427  T:120427  L:103637  X:152173  B:075306 ]
+010042      12 Ptkzqocm |ONx|ON | 033616 |     103637     135471                      JPL I 71,B                     [EA:033616 ][A:000000  D:120427  T:120427  L:103637  X:152173  B:075306 ]
+010042      12 Ptkzqocm |ONx|ON | 027245 |     033616     135115                      JPL I *115                     [EA:027245 ][A:000000  D:120427  T:120427  L:103640  X:152173  B:075306 ]
+010042      12 Ptkzqocm |ONx|ON | 027167 |     027245     044322                      LDA *-56                       [EA:027167 ][A:000000  D:120427  T:120427  L:033617  X:152173  B:075306 ]
+010042      12 Ptkzqocm |ONx|ON | 027250 |     027246     131402                      JAF 2                          [EA:027250 ][A:000000  D:120427  T:120427  L:033617  X:152173  B:075306 ]
+010042      12 Ptkzqocm |ONx|ON |        |     027247     146142                      EXIT                                       [A:000000  D:120427  T:120427  L:033617  X:152173  B:075306 ]
+010042      12 Ptkzqocm |ONx|ON |        |     033617     150401                      IOF                                        [A:000000  D:120427  T:120427  L:033617  X:152173  B:075306 ]
+010042      12 Ptkzqocm |ONx|OFF| 007265 |     033620     055114                      LDX I *114                     [EA:007265 ][A:000000  D:120427  T:120427  L:033617  X:152173  B:075306 ]
+010042      12 Ptkzqocm |ONx|OFF|        |     033621     171377                      SAT -1                                     [A:000000  D:120427  T:120427  L:033617  X:177777  B:075306 ]
+010042      12 Ptkzqocm |ONx|OFF|        |     033622     142067                      SKP IF DX UEQ ST                           [A:000000  D:120427  T:177777  L:033617  X:177777  B:075306 ]
+010042      12 Ptkzqocm |ONx|OFF| 033634 |     033623     124011                      JMP *11                        [EA:033634 ][A:000000  D:120427  T:177777  L:033617  X:177777  B:075306 ]
+010042      12 Ptkzqocm |ONx|OFF| 033735 |     033634     044101                      LDA *101                       [EA:033735 ][A:000000  D:120427  T:177777  L:033617  X:177777  B:075306 ]
+010042      12 Ptkzqocm |ONx|OFF|        |     033635     150206                      MCL PID                                    [A:010000  D:120427  T:177777  L:033617  X:177777  B:075306 ]
+000042      12 Ptkzqocm |ONx|OFF|        |     033636     150402                      ION                                        [A:010000  D:120427  T:177777  L:033617  X:177777  B:075306 ]
+
+
+// HDLC Level 12 Interrupt Handler (Assembly Behavior in C#)
+// This emulates the behavior of the interrupt routine shown in SINTRAN logs
+
+void HandleHDLCInterruptLevel12()
+{
+    // Save L register (program counter) and X
+    int returnAddress = L;
+    int savedX = X;
+
+    // Fetch the device pointer stored at offset 102,B (typically the HDLC device control block)
+    int devicePtr = ReadMemoryWord(B + 0102);
+    X = devicePtr;
+
+    // Clear location 120,B (used to store result status?)
+    WriteMemoryWord(B + 0120, 0);
+
+    // Load function code (stored at 104,B) into A
+    int functionCode = ReadMemoryWord(B + 0104);
+    A = functionCode;
+
+    // Load T from -3,B (TREG value, command ID?)
+    T = ReadMemoryWord(B - 3);
+
+    // AAT 13 → Write T to HDLC register offset 13 (WriteTransmitterTransferControl)
+    WriteIORegister(HDEV + 13, T);
+
+    // Decode A → check if this was a data frame (code 1)
+    if ((functionCode & 0x3F) == 1)
+    {
+        // Issue IOF + Write DMA address (M3 = address of buffer)
+        IOF();
+        WriteIORegister(HDEV + 15, A); // A holds DMA address lower
+
+        // Issue command 0x2000 + commandID
+        T = ((T >> 12) & 0x1F) + 0x2000;
+        WriteIORegister(HDEV + 17, T);
+
+        // Wait for interrupt to settle
+        ION();
+
+        // Read DMA transmitter status (RTTS)
+        A = ReadIORegister(HDEV + 12);
+
+        // Check DMA error bit BROCK (bit 10)
+        if ((A & (1 << 10)) != 0)
+        {
+            SetError(164);
+            goto InterruptError;
+        }
+
+        // Check BLOVF bit (bit 13) — buffer overflow
+        if ((A & (1 << 13)) != 0)
+        {
+            SetError(237);
+            goto InterruptError;
+        }
+
+        // If HCTRL BIT HDHDX (bit 5), write 0x200 to WTTC and then decrement it (EOM?)
+        if ((HCTRL & (1 << 5)) != 0)
+        {
+            WriteIORegister(HDEV + 13, 0x200);
+            WriteIORegister(HDEV + 13, 0x1FF);
+
+            // If HDRFS is set (bit 6), wait for interrupt again
+            if ((A & (1 << 6)) != 0)
+                WaitForInterrupt();
+        }
+
+        // On success: prepare to return
+        P = B + 2; // Return to status OK
+        return;
+    }
+
+    // Handle Control Block Send (code 55 octal = 45 decimal)
+    if (A == 55)
+    {
+        IOF();
+        WriteIORegister(HDEV + 15, A);
+        T = ((T >> 12) & 0x1F) + 0x1400;
+        WriteIORegister(HDEV + 17, T);
+        ION();
+        goto WaitAndStatus;
+    }
+
+    // Handle Initialization (code 52 octal = 42 decimal)
+    if (A == 52)
+    {
+        IOF();
+        WriteIORegister(HDEV + 15, A);
+        T = ((T >> 12) & 0x1F) + 0x3400;
+        WriteIORegister(HDEV + 17, T);
+        ION();
+
+        // Write DTR = 100 to WRTC (receiver transfer control)
+        WriteIORegister(HDEV + 11, 100);
+
+        // Read RTTS (transmit status)
+        ReadIORegister(HDEV + 12);
+
+        P = B + 2; // Return to OK
+        return;
+    }
+
+    // Any other value is an error
+    SetError(174);
+    X = 0;
+
+InterruptError:
+    P = B; // error return address
+    return;
+
+WaitAndStatus:
+    TMR = TTMR;
+    WaitForInterrupt();
+}
+
+
+// HDLC Level 12 Interrupt Handler (Actual SINTRAN Behavior in Assembly)
+// Reconstructed from emulator log
+
+HDMODRIV:
+    LDX 102,B           ; Load device pointer (control block) from offset 102,B to X
+    STZ 120,B           ; Clear result/status word in control block
+    LDA 104,B           ; Load function code (e.g., 1 = SEND DATA, 55 = CTRL BLOCK, 52 = INIT)
+    LDT -3,B            ; Load TREG (command ID or control)
+    AAT 13              ; Set address HDEV+13 (WriteTransmitterTransferControlRegister)
+    EXR ST              ; Execute register store (sets WTTC)
+
+    IOX 15              ; Write DMA address (A)
+    T := (T >> 12) & 037 + 02000
+    IOX 17              ; Write DMA command = TRANSMIT
+    ION                 ; Enable interrupts
+
+    CALL ID12           ; Wait for interrupt complete
+    AAT 12              ; Set address HDEV+12 (ReadTransmitterStatus)
+    EXR ST              ; Read into A
+
+    ; Check error conditions
+    SKP IF A BIT 10     ; BROCK: Buffer corruption
+    JMP ERROR_164
+
+    SKP IF A BIT 13     ; BLOVF: Buffer overflow
+    JMP ERROR_237
+
+    ; Optional: HDHDX set in HCTRL => write EOM then check HDRFS
+    SKP IF HCTRL BIT 5  ; HDHDX: End of Message
+    JMP CHECK_EOM
+
+CHECK_EOM:
+    LDA #0200           ; EOM marker
+    AAT 13
+    EXR ST
+    A := A - 1
+    EXR ST              ; Clear EOM
+    SKP IF A BIT 6      ; HDRFS: Retry flag
+    CALL ID12           ; Wait for complete if needed
+
+OK:
+    P := B + 2          ; Normal return
+    EXIT
+
+ERROR_164:
+    A := 164
+    X := A
+    P := B
+    EXIT
+
+ERROR_237:
+    A := 237
+    X := A
+    P := B
+    EXIT
+
+
+
+Heres a fully annotated walkthrough of the initial section of your log — line by line, in detail — explaining what the SINTRAN interrupt handler is doing for HDLC DMA (likely level 12 interrupt). The comments include register interpretation and device behavior based on the opcode.
+
+Legend:
+Column	Description
+A:	Accumulator
+T:	T register (often used for memory addresses)
+L:	L register (link register for jumps/subroutines)
+X:	Index register
+B:	Base register
+EA:	Effective Address of instruction
+
+🔧 Interrupt Handler Begins
+033513  146162  COPY ST DP
+📌 Save current stack top to data pointer (DP). Preparing to execute handler with full context saved.
+
+104317  054502  LDX 102,B
+EA:075410
+📌 Load the address at offset 102 from base register B=075306 into index register X. This is loading the HDLC control block pointer.
+
+104320  000520  STZ 120,B
+EA:075426
+📌 Zero out offset 120 in the control block — typically the status/result word.
+
+104321  044504  LDA 104,B
+EA:075412
+📌 Load the "function code" from offset 104 in control block — tells us the type of transfer (e.g., data send, init, etc.).
+
+104322  050775  LDT -3,B
+EA:075303
+📌 Load T register with value from offset -3 in B — possibly command word or encoded IO type (e.g., 52 = init, 1 = send, 55 = ctrl block).
+
+104323  173013  AAT 13
+📌 Address Transfer — set T register to the address of I/O register #13, which is WriteTransmitterTransferControl.
+
+104324  140660  EXR ST
+104324  165653  IOX 1653
+📌 Execute register ST (set address into device register), then do an IOX (I/O operation) with device and command in T. Likely sets the WTTC register.
+
+104325  146105  RCLR DA
+📌 Clear a device address — possibly resetting DMA register or sync status.
+
+104326  135035  JPL I *35
+EA:103757
+📌 Jump indirect to offset 35 in current page. This is a dispatch to handle a specific transfer or follow-up step.
+
+🔄 Subroutine: Maybe checking DMA status / wait
+css
+Kopier
+Rediger
+103757  050441  LDT 41,B
+EA:075347
+📌 Load T from 41,B — this is likely the hardware DMA status word.
+
+Kopier
+Rediger
+103760  143324  STATX 2
+📌 Store T to memory pointed by X+2 — likely saving the status for user retrieval.
+
+vbnet
+Kopier
+Rediger
+103761  146142  EXIT
+📌 Return from subroutine (or from interrupt) — finished handling this condition.
+
+📌 Recovering to main handler?
+Kopier
+Rediger
+104327  170503  SAA 103
+📌 Store A to address 103 — might set a status code or return control.
+
+css
+Kopier
+Rediger
+104330  125035  JMP I *35
+EA:103703
+📌 Indirect jump again to location 35 — jumps back to interrupt handler proper.
+
+css
+Kopier
+Rediger
+103703  054502  LDX 102,B
+EA:075410
+📌 Again, load control block pointer from 102,B to index register.
+
+css
+Kopier
+Rediger
+103704  050441  LDT 41,B
+EA:075347
+📌 Read status or some HDLC register.
+
+Kopier
+Rediger
+103705  143314  STATX 1
+📌 Store into [X+1] — possibly saving status or byte count.
+
+Kopier
+Rediger
+103706  173773  AAX -5
+📌 And with -5 — masking or checking some bits.
+
+Kopier
+Rediger
+103707  171006  SAT 6
+📌 Store A to [X+6] — updating the 6th word in the DMA control block?
+

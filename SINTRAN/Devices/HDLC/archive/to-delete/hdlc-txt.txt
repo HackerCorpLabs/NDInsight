@@ -1,0 +1,15283 @@
+High Level Data Link
+Control (HDLC) Interface §
+
+NORSK DATA AS
+
+ee *
+eee.
+
+00000
+.
+
+i
+ork
+
+000
+
+OGSOCOCCOSS
+0800
+800060
+| @0e0
+©eee
+added
+CL ie
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+High Level Data Link
+. Control (HDLC) Interface
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+REVISION
+Revision
+11/78
+
+.
+Or
+
+RECORD
+Notes
+
+| Printin
+
+HDLC — High Level Data Link Control
+Publication No. ND-12.018.01
+
+Interface
+
+NORSK
+
+DATA
+
+ASS.
+
+Ldrenveien 57, Postboks 163 Okern, Oslo 5, Norway
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+MAIN
+
++
+
+CONTENTS
+
++
+
++
+
+wr
+
+PART| ~— HDLC INTERFACE
+Introduction
+HDLC Configuration, ND No.720 and ND No.723
+HDLC Interface Versus Communication Standards
+
+PART Il — FUNCTIONAL
+
+DESCRIPTION
+
+Introduction
+
+HDLC
+HDLC
+
+Data
+DMA Control
+
+DoDD
+
+Doh Ww
+
+D>
+ho
+
+APPENDIXA
+HDLC 1/0 CONFIGURATION
+Detailed Description of the MultiProtocol Communication Controller
+HDLC Line Connection and Driver Specifications
+HDLC DATA — HDLC DMA Control Interconnection
+Programming Specifications
+HDLC Logical Diagrams
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+HDLC
+
+INTERFACE
+PARTI
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+DETAILED
++
+
++
+
+CONTENTS
++
+
+Section:
+
+Page:
+
+1.1
+
+INTRODUCTION
+
+1.2
+
+HDLC CONFIGURATION,
+
+1.2.1
+1.2.2
+
+HDLC !/O Interface ND No.723 Module 1141
+HDLC interface (DMA} ND Na.720 Modules 1141 and
+1151
+
+1.3
+
+HDLC INTERFACE VERSUS
+STANDARDS
+
+1.3.1
+
+Introduction
+
+I-3—-1
+
+1.3.2.1
+13.2.2
+
+Hardware Protocols Electrical and Mechanical Standards
+Data Link Control Procedures (Link Access Procedures,
+LAP)
+
+|—3—3
+
+|-3-3
+
+Communication Procedures
+
+I—3—4
+
+1.3.2
+
+3.2.2.1
+
+1.3,2.2.2
+1.3.3
+
+I—1—1
+ND NO.720 ANDNDNO.723.
+
+COMMUNICATION
+
+Standards
+
+Frame Format Standards
+
+HDLC Frame Format
+
+|—2—1
+|-2—1
+|—~2—2
+1-3-1
+
+I—-3-2
+
+I—-3-—3
+
+t—-3-—4
+
+1.3.4
+
+Standards Implemented on HDLC Interface
+
+I-3—6
+
+1.3.4.3
+
+Transmitting and Receiving Frames in Accordance With
+HDLC Frame Format Using HDLC Interface
+
+t-3—7?
+
+1.3.4.1
+1.3.4.2
+
+Electrical and Mechanical
+Communication Protocols
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+t—3—6
+1-3-6
+
+1-1-1
+
+INTRODUCTION
+High Level Data Link Control (HDLC) INTERFACE is a synchronous modem
+interface, however, is also well suited as an intercomputer link interface (See
+Figure |,1.1).
+
+NORD
+
+10/S
+
+SYNCH
+HDLC
+
+MODEM
+
+LINE
+
+aT,
+
+(DCE)
+
+SPEED
+BY
+
+NORD
+
+10/S
+
+NORD
+
+HDLC
+
+lag.
+
+OF
+
+HDLC
+
+LINE
+
+10/S
+
+HDLC
+
+MAX 307.2 Kbps
+
+Figure 1.1.1: APPLICATIONS
+
+DETERMINED
+
+INTERFACE
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+I—1—2
+
+Used as a synchronous modem controller HDLC INTERFACE includes
+features by means of communication standards implemented in hardware.
+
+several
+
+Used as an intercomputer link, HDLC INTERFACE contains internal timing. A
+strap switches from external timing (from modem) to internal timing which allows
+transfer rates from 2.4 kbps (kilo bits per second) up to 307.2 kbps.
+Independent of the use, dependent of the maximum required speed, HDLC could
+be delivered as two different products serving the same functions as observed in
+the external device (modem line, connected computer).
+—
+
+NDNo. 723:
+
+CPU controlled input/output transfer (PIO)
+Maximum speed 19.2 kbps
+
+—
+
+ND No. 720:
+
+Direct Memory Access (DMA)
+a DMA controller
+Maximum speed 307.2 kbps
+
+transfer including
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+1-2-1
+em
+
+1.2
+
+HDLC CONFIGURATION, ND No.720 AND ND No.723
+HDLC may consist of two modules both located in the I/O rack.
+_—
+
+1181 HDLC DATA
+
+(ND
+
+No. 723)
+
+—
+
+1151 HDLC DMA CONTROL
+
+ND No. 720
+
+Physical configuration in |/O-rack given in Appendix A1.
+
+1.2.1
+
+HDLC
+
+1/0
+
+INTERFACE
+
+ND No. 723 MODULE
+
+11817
+
+me
+
+The DATA
+interface.
+
+module
+
+may be used as an ordinary Programmed
+
+Input/Output (PIO)
+
+The data flow will be as indicated in Figure 1.2.1.
+
+=>
+q
+
+MPCC
+
+{OX
+
+DATA
+
+MAX SPEED 19.2 Kbps
+
+<>
+
+DATA
+
+ONE
+
+SLOT
+
+IN
+
+1/0 - SYSTEM
+
+Figure 1.2.1: ND No, 723
+
+BUS
+
+DATA
+
+SERIAL
+
+lead
+HDLC
+
+TO
+
+READ/WRITE
+
+1/0 -DATA
+
+DATA FLOW
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+SYNCH
+
+MODEM
+
+aa
+LINE
+
+|—2—2
+
+1.2.2
+
+HDLC INTERFACE (DMA) ND No.720
+
+MODULES
+
+1181 AND
+
+1151
+
+As indicated in Figure |.2.1, the maximum speed when using HDLC DATA alone
+is 19.2 kbps due to heavy CPU load on programmed input/output transfers. In
+order
+
+to
+
+increase
+
+speed
+
+and
+
+reduce
+
+CPU
+
+load
+
+to a
+
+minimum,
+
+the
+
+HDLC
+
+DMA
+
+plug
+
+field
+
+in the
+
+CONTROL module (1151) could be used together with the DATA module.
+
+The two modules are connected with special
+|/O-rack and occupy two slots in the I/O system.
+
+HDLC
+
+DMA
+
+CONTROL and HDLC
+
+wiring
+
+in the
+
+DATA working together allows DMA transfer
+
+of data from computer memory to the line and vice versa at a maximum
+307.2 kbps.
+
+speed of
+
+The data flow is shown in Figure 1.2.2.
+
+(18)
+
+Fi
+
+DMA
+
+ou"
+
+fv
+
+HDLC
+
+>
+
+HDLC
+
+DMA
+
+CONTROL
+
+ND
+
+720
+
+occupies
+
+No.
+
+TO/FROM
+
+SS MPCC .
+
+QS
+“10X" READ/
+WRITE
+slots
+
+in
+
+BUS
+
+DATA
+
+.
+
+MEMORY
+
+GY
+
+two
+
+1/0-DATA
+
+L
+
+DATA
+
+HDLC
+
+SERIAL
+MAX
+
+DATA
+
+1/O - System
+
+Figure /.2.2: ND No. 720
+
+DATA
+
+FLOW
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+SPEED
+
+307.2 Kbps
+
+|—3—1
+
+HDLC
+INTERFACE
+STANDARDS
+1.3.1
+
+VERSUS
+
+COMMUNICATION
+
+INTRODUCTION
+
+As a communication adaptor HDLC contains more communication standards
+implemented in hardware than any other designed at NORSK DATA. This is a
+consequence of advances in integrated circuit technology and international
+standardization work.
+All hardware related to communication standards is designed on HDLC DATA.
+That means that there is no difference between ND No. 720 (DMA version) and
+ND No. 723 (PIO version) observed ‘from the network. The difference is seen on
+the CPU load. (See Functional Description Part Il).
+
+ND—-12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+I—3—2
+
+1.3.2
+
+STANDARDS
+
+The involvement of two or more users and equipment from more than one
+manufacturer in data communication systems gives an increased need of a
+compatible method for connecting all of it together, an interface protocol.
+These protocols may be divided into levels (See Figure
+
+1.3.1.)
+
+USER \g
+PROGRAM
+
+USER
+PROGRAM
+
+DATA LINK
+CONTROL
+
+DATA LINK
+CONTROL
+
+r
+
+\4
+
+MDLC\'
+
+— a
+
+COMMUNICATION.
+
+PROTOCOLS
+
+/
+
+I\
+
+/ |
+
+|1 ON ©D Ly——7_ ae =D |, Bab | el) PHYSICAL/
+E
+c
+| | ELECTRICAL
+
+ELECTRICAL
+
+x. oy)
+
+V.24|
+
+|
+
+PUBLIC NETWORK
+
+——————
+
+:
+
+— ——
+
+: LOGICAL
+
+Figure 1.3.1:
+
+/
+
+| HOLC
+
+\
+
+PHYSICAL) |y
+
+-m
+
+|
+
+PHYSICAL
+
+X 21/\
+
+v.24!
+
+|
+
+'
+
+PATH
+
+PATH
+
+INTERFACE STANDARDS
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+|—-3—3
+
+1.3.2.1
+
+Hardware
+
+Protocols
+
+(Electrical
+
+and
+
+Mechanical
+
+These interfaces apply to the physical connection between
+and data communication equipment {(DCE,modem).
+
+Standards)
+
+user equipment (DTE)
+
+Possible interface standards are as follows:
+
+a)
+
+—
+
+CCITT V.24/V.28 and EIA RS-232c
+
+—
+
+V.35 (wide band transmission)
+For connection to the telephone network
+
+b)
+
+—
+
+CCITT X.21 bis (V.28 signal levels)
+
+—
+
+X.21(X.27 signal levels)
+For connection to the public data network
+
+1.3.2.2
+
+Data
+
+Link
+
+Control
+
+{Link Access
+
+Procedures
+
+Procedures, LAP}
+
+These protocols which have the purpose of controlling the exchange of data are
+again divided up into the following levels:
+
+|.3.2.2.1
+
+—
+
+Frame format standards
+
+—
+
+Communication procedures
+
+Frame
+
+Format
+
+Standards
+
+Most existing communication procedures transport data in blocks. However,
+each communication procedure (Byte Control Procedures - BCP) has its own
+block format, i.e., its own way of signaling “start of block’, “end of block”,
+checksum,
+
+etc.
+
+One of the first steps in communication standardization is the definition
+uniform transmission format to be used for data and control information.
+
+of a
+
+A transmission block is called a frame and a frame contains beginning and ending
+markers, control information, optional data and a checksum.
+
+The internationally accepted HDLC frame format is fully defined in ISO 1S3309.2
+standard. This procedure allows full bit sequency transparent data transmission
+and is referred to as a Bit Oriented Procedure (BOP) (See Section 3.3).
+At frame level HDLC (High Level Data Link Control) is fully compatible with SDLC
+(Synchronous
+Data
+Link
+Control}
+and
+with
+ADCCP
+(Advanced
+Data
+Communication Control Procedure).
+ND~-12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+1-3-4
+
+1.3.2.2.2
+
+Communication
+
+Procedures
+
+The standardization of communication
+procedures is not as easy as the
+standardization of a frame format. However, new standard procedures are
+emerging. SDLC procedures have existed for some time, HDLC procedures are
+being defined by CCITT and the X25 recommendation describes a procedure to be
+used in public packet switching networks.
+All the new procedures will, however,
+
+1.3.3
+
+HDLC
+
+FRAME
+
+use the HDLC frame format.
+
+FORMAT
+
+The HDLC frame format is depicted below.
+FLAG
+
+FLAG
+
+01111110
+
+FCS
+
+|
+
+Cc
+
+A
+
+01111110
+
+The frame consists of:
+
+1.
+
+A special bit sequence call, ‘flag’, that marks the beginning of the frame.
+The end of the frame is also marked by such a flag.
+The flag sequence consists of one zero bit, six one-bits and a zero bit.
+The contents of the frame between the opening and the closing flag shall
+not contain a flag sequence. To guarantee this, the transmitter inserts an
+extra zero-bit following five consecutive one-bits. These inserted zero-bits
+are removed by the receiver. These extra bits are called '’transparency bits”.
+An 8-bit byte called Address- Byte
+This
+
+field
+
+is meant
+
+as
+
+a station
+
+prescribed in the frame standard.
+
+address,
+
+but
+
+the
+
+contents
+
+or
+
+use
+
+are
+
+not
+
+information,
+
+but
+
+the
+
+frame
+
+be
+
+absent.
+
+The
+
+An 8-bit byte called Control Byte
+This fieid is intended for link management
+standard does not describe its use or contents.
+An Information field
+The information field may be any length, and may
+contents of the information field are not prescribed.
+
+also
+
+A 16-bit Frame Check Sequence (FCS)
+This field contains a 16-bit Cyclic Redundancy Check computed
+bits between the last bit of the opening flag and the first bit of FCS.
+Transparency bits are removed before the FCS is computed.
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+over the
+
+|-3-—5
+
+6.
+
+The closing flag that signals frame end
+The closing flag of one frame
+next frame.
+
+may
+
+be identical to the opening
+
+flag of the
+
+Frame Size:
+A valid frame shall contain at least 48 bits (Flag A, C, FCS).
+There is no prescribed upper limit to the frame size. However, frame size is limited
+by the properties of transmission channels and the 16-bit FCS computation.
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+|—3—6
+
+1.3.4
+
+STANDARDS
+
+IMPLEMENTED
+
+On
+HDLC
+DATA
+implemented.
+
+1.3.4.1
+
+Ffectrical
+
+and
+
+the following
+
+ON
+
+HDLC
+
+communication
+
+INTERFACE
+
+standards
+
+are
+
+hardware
+
+Mechanical
+
+Strap selectable:
+
+—
+
+V.24/V.28,RS-232C
+
+—
+
+V.35
+
+—
+
+X.21-bis (V.28-signal levels)
+
+—
+
+X.21(X.27 signal tevels)
+
+or
+
+1.3.4.2
+
+Telephone Network
+(V.series modem)
+
+7
+
+Communication
+
+public data
+network
+
+Protocols
+
+Selectable From Program:
+_
+
+Byte Oriented Procedures
+Including automatic SYN character detection/ generation
+
+=
+
+Bit Oriented Procedures (BOP);
+
+(ANSI) including:
+—
+—
+—
+~—
+—
+
+HDLC
+
+(1SO-IS 3309), SDLC
+
+(IBM), ADCCP
+
+automatic bit. stuffing/ stripping
+automatic frame character detection/ generation
+valid frame protection
+residue handling
+selectable:
+
+—
+
+—
+—
+—
+—
+
+byte length 1-8 bits
+
+error checking CRC (CRC-16, CCITT-0, CCITT-1)
+NONE
+primary/secondary address mode
+idle mode
+point to point, multi-drop,loop configuration
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+I-3-7
+
+1.3.4.3
+
+Transmitting and Receiving
+Frame Format Using HDLC
+
+Frames in
+Interface
+
+Accordance
+
+With
+
+HDLC
+
+The reason for calling the interface HDLC is related to the fact that frames in
+accordance with HDLC frame format are generated automatically in hardware
+when activated from driver software.
+
+TRANSMISSION
+When
+
+transmitting,
+
+software
+
+only
+
+has
+
+control and information field. Observed
+contain any user defined information.
+
+to
+
+know
+
+what
+
+should
+
+from the frame format,
+
+be
+
+in the
+
+address,
+
+these fields could
+
+In order to pack the information into HDLC frame format before transmitting it on
+the line, HDLC DATA (which handles the procedure) must be activated by some
+control signals.
+The control function is to first give the command Transmit Start Of Message
+(TSOM, i.e. send opening flag) and when all information in the frame is
+transmitted give the command Transmit End Of Message (TEOM, i.e. send
+closing flag).
+The Cyclic Redundancy Checksum (CRC)
+the frame when command TEOM is given.
+
+is generated automatically and put into
+
+RECEIVING
+When receiving HDLC DATA will give status on Received Start
+{(RSOM, i.e. opening flag received) and Received End Of Message
+end marker of the frame is received).
+
+Of Message
+(REOM, i.e.
+
+Then software knows that all information received
+has the sequence; address, control, information
+accordance with HDLC frame format.
+
+between RSOM and REOM
+and CRC; that means, in
+
+Therefore, successful communication
+control of HDLC DATA.
+
+line
+
+against
+
+the
+
+is
+
+related
+
+to
+
+successful
+
+In the data phase, that is:
+—
+
+_ Load X bits bytes (1<X<8) on output
+
+—
+
+Read X bits bytes (1<X<8) on input
+
+—
+
+Control of frame formatting functions (TSOM, TEOM
+
+This could be done by NORD 10/S (HDLC
+some overhead or by the DMA module
+overhead to a minimum (See Part Ill).
+
+and RSOM, REOM)
+
+in PIO version ND No. 723) introducing
+(HDLC DMA, ND No. 720) reducing
+
+ND-—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+PART II
+FUNCTIONAL DESCRIPTION
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+H—iii
+
+DETAILED
++
+
++
+
+CONTENTS
++
+
+Section:
+
+Page:
+
+1
+
+INTRODUCTION
+
+1-1-1
+
+1.2
+
+HDLC DATA
+
+Il—-2—1
+
+1.2.1
+1.2.7.1
+
+Control of HDLC Data
+Intialization of HDLC DATA, i.e. Loading of Mode Selection
+Registers
+
+Il-2—4
+l—-2—6
+
+1.2.1.2
+1.2.1.2.1
+11.2.1.2.2
+
+HDLC DATA in the Data Phase
+Receive (Input) Channel
+Transmit (Output) Channel
+
+Il-2—9
+{i—2— 10
+I1-2—15
+
+N.3
+
+HDLC DMA CONTROL
+
+W—3~-1
+
+.3.1
+11.3.2
+1.3.2.1
+1.3.2.2
+1.3.2.3
+1.3.3
+1.3.3.1
+11.3.3.1.1
+11.3.3.1.2
+
+Introducton
+Control of the DMA Processor (The Commands)
+Jnitializaton
+Data Transfer
+Maintenace
+HDLC DMA Structure
+The List Structure
+Receiver List
+Transmitter List
+
+ll-3—1
+H—-3-—2
+H—-3—3
+lt—3—5
+lI-3—6
+t#-—-3—7
+Ht-3-—7
+it—3—8
+i—3—14
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+1-1-1
+
+HW.
+
+INTRODUCTION
+As mentioned HDLC INTERFACE may consist of the following two modules:
+
+—
+
+HDLC DATA (PIO Version)
+
+~
+
+HDLC DMA CONTROL
+
+DMA Version
+
+HDLC DATA may be used alone as a Programmed Input/ Output interface.
+HDLC DMA CONTROL can only operate together with HDLC DATA.
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+H-—2-1
+
+H.2
+
+HDLC
+
+DATA
+
+The HDLC DATA module is designed after the same basic principles as other
+parallel to serial (output to line), serial to parallel (input from line) interfaces
+
+designed at NORSK DATA (See
+
+Figure I.2.1).
+
+>
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+i-2—2
+
+The module contains the following:
+—
+
+a device identification part including switches for setting of DEVICE NO. and
+
+_
+
+receivers
+
+=
+
+a 40 pins LSI chip, the
+which performs:
+
+IDENT CODE
+
+for
+
+local
+
+|/O-data bus
+
+—
+—
+—
+
+I/O-address
+
+bus
+
+MultiProtocol
+
+and
+
+receivers/transmitters
+
+Communication
+
+for
+
+local
+
+Controller - MPCC,
+
+parallel to serial convertion on output data
+serial to parallel convertion on input data
+selectable protocol
+—
+
+byte
+SYN
+
+oriented (BCP) including automatic generation/detection of
+character.
+(Block formatting must
+be done by driver
+
+software)
+or
+
+—
+
+bit
+
+protocols
+
+(BOP):
+
+HDLC,SDLC,ADCCP
+
+including
+
+frame format generation
+— automatic bit stuffing/stripping
+— automatic frame character detection/generation
+— valid frame protection
+— residue handling
+— selectable:
+— byte length 1-8 bits
+— error checking CRC (CRC-16,CCITT-0,CCITT-1)
+NONE
+— primary/secondary address mode
+— idle mode
+— point to point, multi-drop,loop configuration
+
+automatic
+
+For detailed description of the MPCC see Appendix A2.
+_
+
+line
+adapter
+for
+connection
+to
+Data
+(DCE, Modem) in accordance to standards
+—
+
+V.24/V.28, RS 232c
+
+—
+
+V.35
+
+Communication
+
+Equipment
+
+telephone network
+
+OR
+
+For
+
+~~
+
+X.21 bis (V.28 signal levels)
+
+public data
+
+—-
+
+X.21(X.27 signal levels)
+
+network
+
+detailed
+
+Appendix A3.
+—
+
+description
+
+special timing
+Appendix A3.
+
+In addition HDLC
+module.
+
+circuitry
+
+DATA
+
+of
+
+line
+
+for
+
+connection,
+
+pin
+
+configurations
+
+etc.,
+
+see
+
+inter-computer
+
+link
+
+connection,
+
+see
+
+also
+
+contains circuitry for connection to the DMA
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+CONTROL
+
+It-2—3
+
+WXINDULNITIVAVG
+
+.
+
+:
+
+NSHON
+
+S/¥
+
+FVSYIIN
+
+OL
+
+wens
+
+MIAIS
+
+TWie3S OL T3NGaes
+
+SRAINIES
+
+j
+
+7
+
+.
+
+62 Afra
+
+L2xfizx
+
+gooT
+AINBEYOD
+
+INI}
+
+—
+
+lg
+
+—
+
+@
+
+L— >
+
+ofr
+
+LINN
+
+- JIdH
+—
+
+1020L0%d
+TWSYFIAINA
+
+WNOD
+HINAS
+
+LYSA
+
+DZ
+
+—
+
+_
+
+<Q
+
+—
+
+—
+
+pusigze
+
+—
+
+|
+
+f
+
+—
+
+—
+
+-
+
+2IGH SNONOYHINKS
+
+—
+
+wWaxLNo?
+
+—
+
+YIN
+
+——
+
+—
+
+nO Mone
+——43180
+LM NO
+Hox
+NauNO? WIL LMSNUSL
+
+JOWLNOD
+YPRLSI9F7e
+_——
+LAD NT
+WOU.
+
+TH}
+
+—
+
+viva|
+
+-
+
+SNONOYHINKEY
+
+2 PIVAHZIN|
+SSPIVSHILNI
+
+—
+
+afun
+
+4s
+Bie
+
+TWSAIATNA
+
+SSIIVTHBLNI
+
+——
+
+a
+
+1617S
+
+ct
+
+XOF sMiana |
+3H)
+ON_321N30} ,
+
+\
+'
+
+|
+i
+
+MOLLHIISILNIO? |
+
+{
+'
+
+}
+
+—
+
+Loo eee 221Az0,
+
+foe
+
+| 7007 10301 | \aMTBILNT LNAI
+
+FIN17I9F 7
+
+WIYTS
+
+SnuwS
+L
+
+AMA LPO
+
+HFLLINSNYYL
+
+:
+
+W072
+
+LNISNI
+
+STTLLYLS
+
+NOMS
+
+SIAIFIFA
+
+UYFLLINSNVELT/SINFIIG
+
+WSNOYL
+
+—
+
+Off
+
+pee
+3 138
+
+o—|v200234
+|
+1
+
+YILSIBIAY SMLYLS
+SALKIS ¥aILLIWSNYYL TF
+
+OL
+
+20TD
+
+OL
+
+w2U8/99¥
+
+OF
+
+- LYYUN
+
+SNld
+
+TWSYZAINA
+
+(S71
+
+HINASH
+
+OinhD
+
+AMIN
+
+PIMIIIN
+
+OL
+
+PPLLIMGNYYL
+iMndiNo
+
+99L2F79S
+
+SSPHOCH
+
+—
+
+a2718UN3/NI012—
+1
+ot
+
+YPLS199N
+
+.
+
+279
+
+—
+
+WSNOYL
+
+YIMOYLNOI
+
+FHAID
+
+fame
+
+sniws
+FIA
+
+2091 NOD
+
+—
+
+SO9
+
+>
+"
+
+—
+
+i
+
+—
+
+YOLIZIBE
+
+=
+
+y
+
+>
+
+—
+
+:
+
+wd
+
+|
+
+|
+
+{
+
+|
+
+|
+
+|
+
+|
+
+|
+
+|
+|
+
+|
+
+|
+
+|
+
+|
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+IZNGYYS
+
+'
+
+I
+J
+
+|
+
+|
+|
+|
+
+|
+
+\
+
+oT}
+
+kL 67 i 7. 1A IS
+W. ty far
+
+—
+
+vivg
+
+ND—12.018.01
+
+aomertns
+arg
+
+Nini
+LMSLIO
+
+—
+
+FIVIYFLN
+
+DWIHIL — ISYPLLINSNG
+YL
+/
+ONY 1QY1NOD
+SHIAIDIZ¢
+nd
+
+a
+|
+
+|
+|
+|
+—
+
+soe
+
+INTERFACE
+
+TO
+
+SERIAL
+
+PARALLEL
+
+PARALLEL,
+
+I.2.1;:SERIAL
+TO
+PRINCIPLES
+
+Figure
+
+-2—4
+
+The DMA module contains a microprocessor to control the data transfer to/from
+computer memory and HDLC DATA.
+Therefore, HDLC DATA, in fact is designed to interface two processors:
+—
+
+The NORD
+
+10/S CPU (through standard |/O-system)
+
+—
+
+The
+processor
+on the
+DMA
+connection; see Appendix A4)
+
+module
+
+(through
+
+special
+
+inter-module
+
+Observed from the DATA module it makes no difference what processor is active.
+That means that the control of HDLC
+or the DMA processor.
+
+DATA
+
+could be done either by NORD
+
+10/S
+
+The most effective solution of course is to leave the input/output handling to the
+DMA processor. Then NORD 10/S CPU will have more time for data processing
+which is the computers purpose.
+:
+
+1.2.1
+
+CONTROL
+
+OF
+
+As
+
+in
+
+mentioned
+
+HDLC
+
+PART
+
+DATA
+
+|, Section
+
+3.4.3,
+
+successful
+
+communication
+
+between
+
+and computer is related to successful control of HDLC DATA.
+
+line
+
+Including input and output data register there are 12 eight bits registers to control
+the DATA
+module.
+All registers could
+be accessed
+by IOX instructions
+
+(IOX <device no.> + 0-13,).
+
+Instructions 0-7, operate directly on 8 eight bits registers internally in the MPCC.
+
+The
+
+instructions
+
+10-13,
+
+interrupt enabling and
+following description.
+
+operate
+
+modem
+
+on
+
+single
+
+status
+
+line indicators
+
+information.
+
+See
+
+to/from
+
+Figure
+
+the
+
+II.2.2
+
+NO-12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+MPCC,
+
+and
+
+the
+
+I1l—2—5
+
+FROM
+FROM
+FROM
+FROM
+
+RxEN
+REC:CONT.
+RSI
+LINE
+RxC
+TIMING
+, NT.MAINT.
+REC.CO
+
+|_p
+Lp
+
+MPCC 2652
+5025
+—Bcom
+
+P
+
+= 49x x40
+
+_g!
+
+—
+
+on
+
+-
+
+TXEN —p
+_gl
+TxC
+
+FROM TR. CONT.
+FROM TIMING
+
+P_—
+-_
+»
+
+lOX X+7
+
+SER
+
+RxA
+
+TO RECEIVER
+STATUS
+
+RxDA
+ORK
+RKSA
+TxA
+
+TxBE
+XBE
+
+TO TRANSMITTER
+
+TxU
+
+STATUS
+
+10
+
+TO LINE
+
+8
+
+8833
+RECEIVER
+
+(_——>
+RECEIWWER
+
+74LS
+175
+
+STATUS
+
+MUX
+TRANSMITTER
+
+xX
+
+—» 8
+
+OX X+11
+
+f
+
+STATUB
+
+10ox x +40
+1Oox
+
+CONTROL
+
+74LS
+257
+T
+
+a
+
+TRANSMITTER
+
+8
+
+CONTROL
+
++12
+
+74LS
+
+i
+
+175
+
+IOX
+
+X+13
+
+eae
+
+:
+
+8835
+
+Y
+
+8833
+
+8
+
+bits
+
+DATA
+
+BUS
+
+8
+
+bits
+TO/FROM
+
+1/0
+
+Figure 1.2.2: HDLC
+
+DATA
+
+— BLOCK
+
+DMA
+
+MODULE
+
+DIAGRAM
+
+There are five registers related to the output channel, four registers related to the
+input channel and three registers common for operation mode control.
+NOD—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+1-2-6
+
+1.2.1.1
+
+Initialization
+Registers
+
+of
+
+HDLC
+
+DATA,
+
+i.e.
+
+Before enabling input/output transfers
+initialized. That means after a MASTER
+mode selection registers.
+
+Loading
+
+of
+
+Mode
+
+Selection
+
+to HDLC DATA the module has to be
+CLEAR or DEVICE CLEAR, to load the
+
+The mode selection register is held internally in the MPCC
+mode of the chip.
+
+to control the operation
+
+Remember that the MPCC performs the necessary frame formatting functions.
+Therefore, both a local and remote HDLC interface should be put in the same
+mode of operation given in the mode registers.
+Loading of the mode registers is performed by l|OX <device no.> + 1,3,4.
+The format and function of the registers is given below:
+IOX <DEVICE
+WRITE
+
+NO.>
+
++1
+
+PARAMETER
+
+CONTROL
+
+REGISTER
+
+(PCR)
+
+FORMAT:
+15
+
+8
+N/A
+
+BITQ-2
+0-2
+
+ERROR
+CRC
+
+SEL
+
+7
+
+6
+
+5
+
+4
+
+PROTISTRIPISEL
+
+APA
+
+SEL | GA
+
+3
+
+2
+
+IDLE |
+
+CRC
+
+|AMODIVODE
+
+Zz
+
+1 |
+
+Y
+
+0
+
+SEL
+xX
+
+CHECK
+
+SELECTION
+
+BOP
+
+Error Control Mode
+
+2
+
+1
+
+Q
+
+Mode
+
+Char.Length
+
+CRC-CCITT presentto1’s
+
+0
+
+0
+
+O
+
+BOP
+
+1-8
+
+VRC odd
+
+1
+
+0
+
+0
+
+BCP
+
+5-7
+
+BCP
+
+CRC-CCITT presentto0’s
+Not used
+CRC-16 present to 0’s
+
+VRC even
+Not used
+No error control
+
+0 0
+1
+BOP
+010
+-0
+1
++1 + #42BCP
+1 0
+1
+BCP
+110
+-1
+1
+1 = BCP
+
+1-8
+8
+
+5-7
+
+5-8
+
+ECM
+should
+be loaded
+by the processor
+initialization or when both data paths are idle.
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+during
+
+1l—2-7
+
+BIT 3 IDLE
+3
+
+MODE
+
+SELECTION
+
+IDLE
+
+Determines fine fill character to be used if
+underrun
+occurs
+(TxU
+asserted
+and
+TERR
+transmission of special characters for BOP/ BCP.
+BOP
+
+IDLE=0, transmit ABORT characters during underrun and
+when TABORT= 1.
+IDLE=1, transmit FLAG characters during underrun and
+when TABORT
+= 1.
+IDLE=0 transmit initial SYNC characters and underrun line fill
+characters from the S/AR.
+IDLE=1
+transmit
+initial
+SYNC
+characters
+from
+TxDR
+(transmitter Data Register) and marks TxSO (transmitter
+serial output) during underrun.
+
+BCP
+
+BIT 4 SELECT
+
+transmitter
+set)
+and
+
+SECONDARY
+
+ADDRESS
+
+MODE
+
+Used in ring networks to select secondary station (remote site) dependent of
+received address compared with sync/address register {See |OX <device no.>
+3).
+4
+
+SAM
+
+BOP
+
+Secondary Address Mode = 1 if the MPCC is a secondary
+station. This facilitates automatic recognition of the received
+secondary station address. When transmitting, the processor
+must load the secondary address into TxDR (Output Data
+
+Register).
+
+SAM = 0 inhibits the received secondary address comparison
+which serves to activate the receiver after the first non-FLAG
+character has been received.
+
+BIT 5 STRIP
+
+GO
+
+AHEAD/SYNC
+
+Used in ring networks (BOP) to terminate message (frame).
+5
+
+SS/GA
+
+BOP
+
+BCP
+
+Strip SYNC/Go Ahead. Operation depends on mode. For
+loop
+mode
+only.
+SS/GA=1
+permits
+GA
+character to
+terminate a received message. When a GA is detected REOM
+and RAB/GA will be set and the processor should terminate
+the repeater function. SS/GA=0 permits only a FLAG or
+ABORT character to terminate a message.
+SS/GA=1, causes the receiver to strip SYNC’s immediately
+
+following
+middie
+
+" presents
+
+of
+
+processor.
+
+BIT
+6
+
+6
+
+PROTOCOL
+PROTO
+
+the
+a
+
+any
+
+first two
+
+message
+
+SYNC’s
+
+SYNC’s
+
+detected.
+
+SYNC’s
+
+in the
+
+after the initial two
+
+SYNC’s
+
+to the
+
+will
+
+not
+
+be
+
+stripped.
+
+SELECTION
+
+BOP
+BCP
+
+Determines MPCC Protocol mode
+
+PROTO = O0BOP
+PROTO = 1BCP
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+SS/GA=0,
+
+11—2—8
+
+BIT 7 ALL
+
+PARTIES
+
+ADDRESS
+
+Used in ring networks
+broadcast function.
+7
+
+APA
+
+1OX <DEVICE
+WRITE
+
+BOP
+
+REGISTER
+
+7,
+
+8
+
+rr Tr
+
+N/A
+
+as
+
+receivers,
+
+i.e.
+
+NAME
+
+MODE
+
+00-07
+
+S/AR
+
+BOP
+
+6
+
+t
+
+5
+
+t
+
+4
+
+Tt
+
+—F
+
+3,
+
+t
+
+2,
+
+7
+
+1,
+
+r
+
+0
+
+FUNCTION
+.
+
+BCP
+
+SYNC/ADDRESS Register. Contains the secondary station
+address if the MPCC is a secondary station. The contents of
+this register are compared with the first received non-FLAG
+character to determine if the message is meant for this
+station.
+SYNC character is loaded into this register by the processor.
+It is used for receive and transmit bit synchronization with bit
+length specified by RxCL and TxCL.
+
+NO.> + 4
+
+CHARACTER
+
+LENGTH
+
+(CL)
+
+FORMAT:
+15
+
+08-10
+
+RxCL
+
+au
+
+MODE
+
+o |
+
+2
+
++
+
+1
+
+}
+
+0
+
+REC.
+CHAR.LENGTH
+
+FUNCTION
+
+BOP/
+2710
+
+00
+0
+001
+010
+011
+10
+0
+10
+
+11
+
+TxCL
+
+0
+
+3
+
+BCP
+
+0-2
+
+5-7
+
+4
+
+5
+
+}
+
+TRANSM.
+CHAR.LENGTH
+
+N/A
+
+NAME
+
+6
+
+7
+
+8
+
+---
+
+BIT
+
+a
+
+(SAR)
+
+8 bits SYNCH/SEC. ADDRESS
+
+BIT
+
+WRITE
+
+computers
+
+All Parties Address. If this bit is set, the receiver data path is
+enabled by an address field of ‘11111111’ as well as the
+normal secondary station address.
+
+SYNC/ADDRESS
+
+IOX <DEVICE
+
+all connected
+
+NO.> +3
+
+FORMAT:
+
+15
+
+to enable
+
+BOP/
+BCP
+
+°0
+
+1
+
+Char.length (bits)
+
+8
+1
+2
+3
+4
+
+5
+
+6
+
+1
+1
+1
+7
+Character bit length specification format is identical to RxCL.
+
+ND-—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+I]—2-9
+
+1.2.1.2
+
+HDLC
+
+Data
+
+in
+
+the
+
+Data
+
+After the initialization (See
+turned into the data phase.
+
+Phase
+
+Section
+
+1.2.1.1),
+
+the
+
+DATA
+
+module
+
+is ready to be
+
+As mentioned in Section 1.2.1 there are five registers to control the transmitted
+(output) channel and four to control the receive (input) channel.
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+11—2—10
+
+N.2.1.2.1
+
+Receive
+
+(Input)
+
+Channel
+
+The control of the input channel is used to:
+—
+—
+
+write
+etc.)
+
+receiver
+
+control
+
+word
+
+read
+
+receiver
+
+status
+
+register
+
+available, error, etc.)
+
+—
+
+to enable
+to
+
+the input transfer (interrupt enable,
+
+check
+
+the
+
+transfer
+
+quality
+
+(valid
+
+data
+
+read x bit bytes (1 < x < 8) from input data register (see the following details)
+
+The input channel on HDLC DATA
+input is connected to level 12).
+
+is connected
+
+to interrupt level
+
+13 (normaily
+
+This is done in order to reduce possibility of receiver overrun at high transfer rates.
+RECEIVER
+
+TRANSFER
+
+CONTROL
+
+REGISTER
+
+Receiver control word is loaded by |OX <device no.> + 11.
+Format and description
+(See Appendix A5).
+
+of the
+
+bits are given
+
+in the programming
+
+specifications
+
+Special attention is drawn to control word bits 0, 1, 3, 4 and 7. Remember
+HDLC DATA is designed to meet two processors.
+
+that
+
+The above mentioned bits decide what processor should be active controlling the
+input channel.
+CASE
+
+1 DMA
+
+Module
+
+Not
+
+Installed
+
+Bit 3 and 4 in input control word should be ’’0” disabling the connection
+DMA module.
+
+to the
+
+Bit 0, 1 and 7 should be ’’1”’ enabling changes on the input channel to be reported
+to NORD 10/S through interrupt on level 13.
+The three following different changes’ can appear at the input channel:
+—
+
+—
+
+—
+
+Receiver Data Availabie (RxDA)
+signifies that input data register contains a valid data byte to be read
+
+Receiver Status Available (RxSA)
+
+coming from MPCC indicating a change in status has occured. Further
+information
+is found
+by
+reading
+MPCC
+status register
+(See
+l!OX
+<device no. > + 2)
+
+Modem Status Change (RMSC)
+
+signifies status change on the line
+
+All changes” mentioned will interrupt NORD 10/S to level 13. See
+for illustration and Figure |!.2.4 for details from HDLC DATA.
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+Figure II.2.3
+
+i{—2-11
+
+OL
+
+OuL
+
+“LN
+
+Y3AIS04Y
+
+LNI
+
+a-—
+
+N
+N
+
+xy
+
+I—enas
+Wax
+
+tNaL
+b N31 (0)
+aL
+
+|
+
+NI uu
+
+{
+
+|
+
+|
+
+!
+
+I
+
+}|
+
+|
+
+|
+|
+
+|
+|
+
+OSWL
+
+ee
+
+UU NAL
+
+uu
+
+N
+
+34
+
+IswHy
+
++ —|_——_______-<> +
+
+-- 4---
+
+HSLLIWSNVH 1
+
+---—
+
+7
+
+El+ <‘OU adnap>xXOl NI UL
+
+Lig 31aVN3 YALLINSNVHL
+
+—-
+
+[— 30aw St”
+\
+
+|
+|
+
+OAH ANI
+VWaxXL
+
+I|
+
+!
+HAAI3OaY
+
+I. Le
+
+!
+
+bye LL
+
+tH
+
+|
+
+l
+1
+
+A
+
+a
+md
+
+3axi~
+
+osu ini
+
+vWO XH
+WS*H
+
+vou
+
+XO]
+
+LIQ 378WN3 Y3AISZ03Y
+
+LL+<ou aainap>
+
+[|
+
+3NU1
+
+yOladvayv
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+ah
+Ply
+or
+
+N
+v
+a
+
+YIN
+oY
+
+ON3L
+
+ON3Y
+
+{Nau
+
+y Nad
+
+7 Nad
+
+ee
+
+0 Gy
+v
+
+KyN
+v
+
+ee
+Qa
+
+M
+a
+
+4
+
+ra
+
+8 y
+ol
+
+N
+
+¥
+
+G
+| wae
+
+ND—12.018.01
+
+J1NGOW VWO OL
+1S3NO3xY. LIWSNVYL
+
+LuVd
+
+YILLIWSNVEL
+
+at A317
+
+AYVd
+
+€b ADT
+
+JINGOW VWa
+1S3ND3Y H3AIZ9D3Y8
+
+N
+
+0 ri
+
+4
+
+SIGNALS
+
+CONTROL
+
+RECEIVER/TRANSMITTER
+
+DATA
+
+Figure I1.2.3: HDLC
+
+W—2-12
+
+0
+
+bua)
+
+|=
+‘9 Vi
+
+VOXHE
+
+ms
+
+att-—vsxue
+
+—s ae)
+
+—
+SLbbz
+
+cl
+
+%
+
+| ba
+l
+
+7
+
+a7
+
+OS We
+
+| bey
+s
+
+,
+
+lk-—voxae
+
+Fe
+
+CHOY
+
+Ol)
+Cl
+
+l
+
+€&}—
+
+080
+
+«EO
+
+7980
+
+—¥ 57
+
+L
+
+gg}
+
+7
+
+ce,
+
+[7
+
+—
+
+CS
+
+MODULE
+
+re ae,
+
+zy
+
+)
+
+yw
+
+FROM
+
+DATA. DETAILS
+
+Figure 11.2.4: HDLC
+
+NO—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+1W—2—13
+
+CASE
+
+2
+
+DMA
+
+Module
+
+Installed
+
+Refer to Figure Ii.2.3. The idea is that NORD-10/S should not be disturbed by
+RxDA and RxSA, thus being interrupted for every received character/status.
+(This effect is illustrated in the following example).
+This is done by disabling interrupt generation on RxDA and RxSA. That means,
+setting bit 0-1 in input control word to zero. Instead RxDA and RxSA is routed to
+the DMA processor as a Receiver Request (RRQ). That is accomplished by
+turning bit 3 on.
+Then the DMA processor will read input status and data. The DMA module
+have information to NORD 10/S (driver-software) related to the input transfer.
+The DMA processor then generates a Receiver DMA interrupt
+which gives interrupt on level 13 (enabled for in ICW bit 4).
+
+Request
+
+may
+
+(RDIR)
+
+Status change on the line (RMSC) is always reported directly to NORD 10/S.
+EXAMPLE:
+e
+e
+e
+
+Transfer RATE 19200 bits per second
+8 bits per character
+Characters per second: 19200/8 = 2400 “*/s
+
+That means 2400 interrupts to handle every second just to the input channel.
+RECEIVE
+
+STATUS
+
+REGISTERS
+
+{t should be noted that HDLC contains two status registers for the input channel.
+One of the registers is held internally in the MPCC. This register is accessed by
+IOX <device no.> + 2 and contains information about the frame formatting
+functions (See description below).
+The other status register (Receiver Transfer Status) holds information about fine
+status, feedback from the control register and single line status from the MPCC.
+This register is accessed by IOX <device no.> + 10 and is described in the
+programming specifications (See Appendix A5).
+1OX <DEVICE
+
+READ
+
+NO.>
+
+RECEIVER
+
++ 2
+
+STATUS—
+
+RxSR
+
+(FRAME
+
+INFORMATION)
+
+This register is dynamically set and located internally in the MPCC.
+the register will activate RxSA which is reset when the status is read.
+
+A change
+
+The format of the register and description of the bits is given below.
+
+FORMAT:
+15
+
+8
+77
+
+N/A
+
+7
+
+7
+RERR)
+
+5
+
+6
+7
+
+RSCLO -2
+
+CB
+
+OA
+
+4
+
+3
+
+2
+
+1
+
+0
+
+ROUR RAB |REOM RSM
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+in
+
+I1l—2—14
+
+Bit
+
+Name
+
+Mode
+
+Function
+
+RSOM
+
+BOP
+
+Receiver Start of Message = 1 when a FLAG followed by a
+non-FLAG has been received and the latter character matches
+the secondary station address if SAM = 1.
+RxA will be asserted when RSOM = 1. RSOM resets itself
+after one character time and has no effect on RxSA.
+
+REOM
+
+BOP
+
+RAB/GA
+
+BOP
+
+Received ABORT or GA character = 1 when the receiver
+senses an ABORT character if SS/GA = 0 or a GA character
+if SS/GA
+=
+1. RAB/GA
+is cleared on reading RxSR
+operation or dropping of RxE. A received ABORT inhibits
+RxDA.
+
+ROR
+
+BOP/
+BCP
+
+Receiver Overrun = 1 indicates the processor has not read
+the last character in the RxDR (Receiver Data Register) within
+one character time. Subsequent characters will be lost. ROR
+is cleared on reading RSR, reset operation, or dropping or
+RxE (receiver enable).
+
+ABC
+
+BOP
+
+Assembled Bit Count. Specifies the number of bits in the last
+received data character of a message and should be examined
+
+.
+
+46
+
+Receiver
+
+End
+
+of Message
+
+=
+
+1 when
+
+the closing
+
+FLAG
+
+is
+
+detected and the last data character is loaded into RxDB or
+when an ABORT/GA character is received. REOM is cleared
+on reading RSR (Receive Status Register) reset operation, or
+dropping of RxE.
+:
+
+by
+
+the
+
+asserted).
+
+processor
+ABC
+
+when
+
+=
+
+REOM
+
+0 indicates
+
+=
+
+the
+
+1
+
+(RxDA
+
+message
+
+and
+
+was
+
+RxSA
+
+terminated
+
+(by a FLAG or GA) on a character boundary as specified by
+WCLR (write character length register bit 0-2). Otherwise
+
+ABC = number of bits in the last data character. ABC is
+cleared when RDSR, is read, reset operation, or dropping
+RxE.
+RERR
+
+IOX <DEVICE
+READ
+
+Receiver Error indicator should be examined by the processor
+when REOM = 17 in BOP, or when the processor determines
+the last data character of the message in BCP with CRC or
+when RxSA is set in BCP with VRC.
+BOP
+
+CRC-CCITT preset to 1’s should be specified by PCSARg_49:
+
+BCP
+
+CRC-16 preset O’s on 8-bit data characters specified
+PCSARg.10:
+RERR = 1 indicates CRC-16 received correctly (CRC-O)
+RERR = O indicates CRC-16 error (CRC #0)
+VRC specified by PCSAR,_,9:
+RERR = 1 indicates VRC error
+RERR = O indicates VRC is correct
+
+RERR = 1 indicates FCS error (CRC # FOB8).
+RERR = O indicates FCS received correctly (CRC = FOB8)
+
+NO.> + 0
+
+RECEIVER
+
+DATA
+
+REGISTER
+
+(RxDR)
+
+FORMAT:
+15
+
+8
+
+7
+
+N/A
+
+6
+
+t
+
+5
+
+T
+
+RECEIVED
+B
+
+4
+
++
+
+3
+
+T
+
+2
+
++t
+
+i
+
+1
+
+T
+
+0
+
+DATA
+
+ND-12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+LSB
+
+by
+
+N—2-15
+
+11.2.1.2.2
+
+Transmit
+
+(Output)
+
+Channel
+
+The control of the output channel is to:
+
+—
+
+writex bits bytes (1<X<8) to output data register
+
+—
+
+load transmitter controt registers to control the frame formatting functions
+
+—
+
+(MPCC) and activate the output transfer
+
+_réad transmitter status registers to check end of transfer and error indicators
+
+(transmitter underrun)
+Details follows.
+
+The output channel on HDLC DATA is connected to interrupt level 12 (normally
+output is connected to level 10). This is done to reduce the possibility of
+transmitter underrun at high tranfer rates.
+
+TRANSMITTER
+
+DATA
+
+lIOX <DEVICE
+
+NO.> + 5
+
+REGISTER
+
+{TxDR}
+
+This register is held internally in the transmitter part of the MPCC
+1OX <device no.> + 5.
+
+and loaded by
+
+FORMAT:
+15
+
+8
+
+7
+
+6
+
+5
+
+4
+T
+
+OUTPUT
+
+3,
+
+2
+
+1
+
+DATA
+
+MSB
+
+TRANSMITTER
+There are two
+
+CONTROL
+
+LSB
+
+REGISTERS
+
+registers to control the transmit
+
+loaded directly into the MPCC
+
+below).
+
+0
+
+—t
+
+channel.
+
+One
+
+of the registers is
+
+to control the frame formatting
+
+functions {See
+
+The other control register (Transmitter Transfer Control! Register ~ 1OX <device
+no.> + 13) is used on the module and serves the same function for the output
+channel as the receiver control register for the input channel.
+That is, to connect or disconnect NORD
+output channel of the DATA module.
+
+10/S CPU or the DMA
+
+processor to the
+
+The format and bit definitions are given in the programming specifications.
+For a better understanding,
+HDLC DATA.
+
+refer to Figure II.2.3 and Figure II.2.5 for details from
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+11-2—16
+
+war
+|
+
+AER os
+
+_ date I
+
+lat éi
+
+SI — DSW
+
+€l
+
+—YIOL
+
+L
+
+; mes
+-— FOX
+
+5 M90
+
+bag
+
+tO
+
+089
+
+;
+
+or — eb19
+
+ie — UW
+
+ley 780
+
+[7
+
+5 sets er
+
+ol
+
+Z
+
+2) 34,
+
+iG
+
+Figure 11.2.5: HDLC Data, Details from Module
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+11—2-—17
+
+1IOX<DEVICE
+WRITE
+
+NO.> + 7.
+
+TRANSMITTER
+
+CONTROL
+
+REGISTER
+
+(TxCw)
+
+In this register the frame formatting function on output data is controlled. By
+loading the MPCC with one of the four least significant bits set to one _ in this
+register, either an opening flag (TSOM), closing flag (TEOM), go-ahead, or abort
+character automatically will be transmitted on the line (See details below).
+FORMAT:
+15
+
+8
+
+Bit
+
+Name
+
+0
+
+TSOM
+
+BCP
+
+TEOM
+
+6
+
+5
+
+Mode
+
+BOP
+
+1
+
+7
+
+BOP
+
+BCP
+
+4
+
+3
+
+2
+
+Tx
+
+Tx
+
+GA |
+
+AB
+
+1
+
+0
+
+TEOM| TSOM
+
+Function
+Transmitter Start of Message. Set by the processor to initiate
+message transmission provided TxE = 1.
+TSOM = 1 generates FLAGs. When TSOM = 0 transmission
+is from TxDB and FCS generation begins. FCS, as specified
+by PCR,.2, should be CRC-CCITT preset to 1's.
+TSOM = 1 generates SYNCs from PCSAR, or transmits from
+TxDB for IDLE = 0 or 1 respectively. When TSOM
+= 0
+transmission is from TxDB and CRC generation (if specified)
+begins.
+Transmit End of Message. Used to terminate a transmitted
+message when CRC error checking is used.
+TEOM = 1 causes the FCS and the closing FLAG to be transmitted following the transmission of the data character in
+TxSR. FLAGs are transmitted until TEOM = 0. ABORT or GA
+are transmitted if TABORT or TGA are set when TEOM = 1.
+TEOM = 1 causes CRC-16 to be transmitted (if selected)
+followed by SYNCs from SAR, or TxDB (IDLE = 0 or 1).
+Clearing TEOM
+prior to the end of CRC-16 transmission
+
+(when TxBE
+
+=
+
+1) causes TxSO to be marked following the
+
+CRC-16. TxE must be dropped before a new message can be
+initiated. If CRC is not selected, TEOM should not be set.
+3
+
+TABORT BOP
+
+Transmitter Abort = 1 will cause ABORT or FLAG to be sent
+(IDLE = O or 1) after the current character is transmitted.
+(ABORT = 11111111)
+
+4
+
+TGA
+
+Transmit Go Ahead (GA) instead of FLAG when
+This facilitates repeater termination in loop mode.
+(GA = 01111111)
+
+BOP
+
+Bit 5-7: Not Used.
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+TEOM
+
+=
+
+1.
+
+11-218
+
+TRANSMITTER
+
+STATUS
+
+REGISTERS
+
+(TxSR)
+
+Feedback from the output channel is carried through two status- registers.
+One of the registers is held internally in the MPCC and reached by:
+\
+
+|OX <device no.> + 6.
+This register holds the copy of transmitter control register (IOX <device no.> + 7)
+except from bit 7 which signifies transmitter underrun. Transmitter underrun TxU
+will generate interrupt if enabled for.
+
+FORMAT:
+15
+
+8
+
+N/A
+
+7
+
+6
+
+TxU
+
+0
+
+TxU:
+
+5
+
+0
+
+4
+
+0
+
+TRANSMITTER
+
+3
+Tx
+
+2
+Tx
+
+GA | AB
+
+1
+.
+
+0
+.
+
+|[TEOMITSOM
+
+UNDERRUN
+
+The other status register for the output channel contains information about line
+status and enabling done in output control register. The register (RECEIVER
+TRANSFER STATUS) is accessed by (IOX <device no.> + 12).
+The format and bit definitions are given in the programming specifications.
+
+ND-12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+1|—3—1
+
+1.3
+
+HDLC
+
+DMA
+
+1.3.1
+
+INTRODUCTION
+
+CONTROL
+
+In this chapter we will look at how the DMA
+DATA module and NORD 10/S.
+
+module functions together with the
+
+We assume that the DATA module and DMA
+together (See input/output transfer control words).
+
+module
+
+are
+
+enabled
+
+to work
+
+The DMA control is controlled by a microprocessor located on the module.
+main functions of the processor are to:
+
+The
+
+ON
+
+INPUT
+
+—
+
+read characters from HDLC DATA, group them into 16 bits words and place
+them in computer memory through Direct Memory Access (DMA)
+
+—
+
+take care of status change in input channel
+
+ON
+
+OUTPUT
+
+_
+
+"DMA read” 16 bits words in computer memory, split them
+transferred to output data register on the DATA module
+
+—
+
+take care of status change in output channel
+
+To do this the DMA processor has all !OX-instructions operating
+module implemented in its microprogram.
+NORD 10/S and the DMA
+area (the list structure).
+
+up into bytes
+
+on the DATA
+
+processor communicates through a common
+
+memory
+
+NORD 10/S controls the DMA processor by means of commands given in IOXinstructions. The manner in which this is accomplished will be described in the
+following sections.
+
+Transmitter
+
+Ko
+
+DMA
+
+Dat
+d
+ane an
+
+rj —_—_t—
+
+Status
+
+———_ |
+
+Receiver
+
+Commands
+
+Control
+
+ad
+
+Line
+=”
+
+and
+
+Status
+
+:
+Interrupt
+Status
+
+Adapter
+
+Figure I1.3.1: BLOCK
+
+DIAGRAM
+
+OVER
+
+HDLC
+
+INTERFACE
+
+(DMA)
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+N-—3—2
+
+H.3.2
+
+CONTROL
+
+OF
+
+THE DMA
+
+PROCESSOR
+
+(THE COMMANDS)
+
+Driver software controls the HDLC INTERFACE
+by means of 8 different
+commands given in !0X-instructions. Ail commands (with the exception of
+DEVICE CLEAR) need an 18 bits physical memory address due to reasons
+explained in the following sections.
+The 16 least significant bits of the address are transferred to the interface by |OX
+<device no.> + 15.
+The most significant address bits (Bank bits) are given in 1OX <device no.> + 17.
+In the format of IOX <device no.>
+no. (See format).
+
++
+
+17, three bits are left to specify command
+
+FORMAT:
+
+tt
+
+Q--- ------
+
+10X <DEVICE
+
+10
+
+9,
+
+COMMAND
+0 | CODE
+
+}
+|
+
+7,
+
+l,l,
+
+0
+
+1,
+
+0
+
+oO
+
+NO.> + 17
+
+The commands may be divided Up into the three following groups:
+
+a)
+
+INITIALIZATION
+— DEVICE CLEAR
+— INITIALIZE
+
+(0)
+(1)
+
+b)
+
+DATATRANSFER
+— RECEIVER START
+
+(2)
+
+— RECEIVER CONTINUE
+
+— TRANSMITTER START
+c)
+
+MAINTENANCE
+.
+— DUMP DATA MODULE
+— DUMP REGISTERS
+~— LOAD REGISTERS
+
+000040
+00040B
+00100B
+
+(3)
+
+001408
+
+(5)
+(6)
+(7)
+
+002408
+00300B
+00340B
+
+(4)
+
+002008
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+BANK
+BITS
+
+1-3-3
+
+Initialization
+
+DEVICE
+
+CLEAR
+
+(Command
+
+0)
+
+Before operating HDLC
+INTERFACE
+performed to ensure safe operation.
+
+(DMA),
+
+a
+
+DEVICE
+
+CLEAR
+
+should
+
+be
+
+Recommended program for Device Clear is:
+SAAO
+lOX GP + 11 (octal)
+BSET ONES50DA
+1OX GP + 11 (octal)
+
+%
+%
+%
+%
+
+IOX GP + 17 (octal)
+
+Areg. = 0
+Write Receiver Transfer Control
+Areg. = 40 (octal)
+Device Clear to Data Module
+
+% Device Clear to DMA Module
+
+f
+
+The Device Clear sequence as described above will stop all data transfers to and
+from the interface, and it can be used anytime. Device Clear will clear all interrupts
+from the interface, and a dialed up modem connection will be broken.
+INITIALIZE
+
+(Command
+
+The command
+
+17)
+
+INITIALIZE should be used after a Device Clear.
+
+The command will initialize the DATA module (See Section
+DMA module with necessary parameters related to the
+Section 11.3.3).
+To obtain the necessary information to perform
+requires 7 locations in memory (parameter buffer).
+These locations
+command.
+
+should
+
+be
+
+set
+
+by
+
+driver
+
+the
+
+software
+
+II.2.1.1) and load the
+DMA structure (see
+
+initialization;
+prior
+
+to
+
+the command
+
+execution
+
+of
+
+the
+
+module.
+
+The
+
+The contents of the parameter buffer are:
+
+WH
+
+Parameter Control Register
+
+NOOR
+
+N.3.2.1
+
+(lOX <device no.> + 1)
+
+Sync/ Address Register
+Character Length
+
+(l1OX <device no.> +3)
+(10X <device no.> + 4)
+
+Displacement 1
+Displacement 2
+Max. Receiver Block Length
+Checksum
+
+The contents of the three first locations are written into the DATA
+bit mapping of locations is described in Section II.2.1.1.
+
+Displacement 7 is the number of free bytes reserved at the beginning of each
+buffer containing the start of a message (Frame). Displacement2 is the number of
+free bytes reserved at the beginning of each buffer which do not contain the start
+of a message (Frame). Max. Receiver Block Length is the total number of bytes in
+a receiver buffer, including displacement. Long frames may be divided into blocks
+and stored in two or more buffers.
+The use
+transfer.
+
+of
+
+these
+
+parameters
+
+will
+
+be
+
+illustrated
+
+in the
+
+next
+
+section,
+
+i.e.
+
+data
+
+The checksum is set to 0 by driver software and set to 102164 by the DMA
+processor when INITIALIZE is finished. The interface should not be used in DMA
+mode if this checksum is wrong.
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+N-3—4
+
+When started the DMA processor with Direct Memory Access will read the
+parameter buffer. To accomplish this an address pointer to the parameter buffer is
+needed. The address is given in the start INITIALIZE sequence which consists of
+the following:
+—
+
+LDA <least address>
+
+% write DMA address
+
+1IOX <device no.> + 15
+Write least address to HDLC
+
+—
+
+LDA 00040B
+
+INTERFACE
+
+% write DMA command register
+
+1OX <device no.> + 17
+
+Write most address and start INITIALIZE
+Refer to Figure 11.3.2 for illustration.
+
+DRIVER
+
+SOFTWARE
+
+LDA <LEAST
+
+COMPUTER
+
+ADDR>
+
+1OX <device no. >+15
+
+LDA <o0040B>
+
+PCR
+
+1OX
+
+SAR
+
+<device no. >+17
+
+CL
+DISP1
+DISP 2
+MAX.REC.BLOCK
+CHECKSUM.
+
+—-—-
+
+|
+
+|
+
+;
+
+___.
+
+16
+|
+
+ADDRESS
+
+|
+|
+
+|
+
+MEMORY
+
+POINTER
+
+l
+
+PROCESSOR
+RUNNING
+INITIALIZE
+
+|
+i
+
+I
+
+DMA
+DMA WRITEBACK
+
+q
+
+|
+
+|
+
+|
+HDLC
+
+Figure 11.3.2: COMMAND
+
+DMA
+
+module
+
+INITIALIZE
+
+ILLUSTRATION
+
+ND~12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+READ
+
+i1—-3—5
+
+1.3.2.2
+
+Data
+
+Transfer
+
+After initialization (See Section II.3.2.1) the commands:
+RECEIVER START
+RECEIVER CONTINUE
+TRANSMITTER START
+may be used.
+Under this label only a description of how to use the command will be given. To
+understand how they operate, the reader is advised to study Section II.3.3 (HDLC
+DMA STRUCTURE).
+RECEIVER
+The
+
+START
+
+RECEIVER
+
+(Command
+START
+
+2)
+
+command
+
+will
+
+as
+
+microprogrammed receiver on HDLC INTERFACE.
+
+the
+
+name
+
+suggests,
+
+start
+
+the
+
+Three |OX-instructions are used to activate RECEIVER START.
+LDA <least address>
+|IOX <device no.> +15
+LDA 00100B
+IOX <device no.> + 17
+
+Write 18 bits DMA
+address to interface
+and start Receiver
+
+LDA (3334
+IOX <deviceno.>
+
+Enable receive channel
+to DMA module. (See Appendix A5
+1OX <device no.> + 11)
+
++11
+
+The address written to the interface in a Receiver Start sequence is denoted a
+“List Pointer’. This address is the first address of a list containing ‘Buffer
+Descriptors” (See HDLC DMA Structure). This command also selects Displacement
+
+1 for the first buffer,
+
+and should
+
+therefore be used
+
+is started after a power up or receiver disable.
+
+the first time the receiver
+
+The receiver should normally run. A Receiver Request from the DATA module will
+then automatically be handled.
+
+RECEIVER
+
+CONTINUE
+
+(Command
+
+3)
+
+This command is used to write a new List Pointer to an enabled and
+interface. It should only be used asa response to a “List Empty” interrupt.
+TRANSMITTER
+
+START
+
+(Command
+
+working
+
+4]
+
+This command is always used to start transmission of data. As for RECEIVER
+START, an address is written to the interface when the transmitter is started. To
+enable the transfer, the Transmitter Control register (IOX <device no.> +13) has
+to be loaded.
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+1-3-6
+ti
+
+1.3.2.3.
+
+MAINTENANCE
+DUMP
+
+DATA
+
+MODULE
+
+(Command
+
+5)
+
+This command is mainly for maintenance purpose. It requires
+memory, where the contents of the following registers are stored:
+1.
+
+2.
+
+Parameter Control Register
+
+(8 least sign. bits)
+
+Character Length
+
+(8 least sign. bits)
+
+Sync/ Address Register
+
+3.
+
+4.
+5.
+
+5 locations
+
+in
+
+(8 least sign. bits)
+
+Receiver Status Register
+Transmitter Status Register
+
+(8 least sign. bits, not accumulated)
+(8 least sign. bits, not accumulated)
+
+The contents of the registers in the Multi Protocol Communication Controller
+(MPCC) are transferred to memory. The Receiver Status Register is also OR-ed
+
+into the Receiver Dataflow Status Register to prevent loss of information.
+
+DUMP
+
+REGISTER
+
+(Command
+
+a,
+
+6)
+
+This command can be used to dump the contents of any number of the 256
+random access memory registers in the DMA module. Required space in memory
+is 2 locations plus one location for each register to be dumped. The contents of
+the two locations are:
+
+1.
+
+First Register Address
+
+2.
+
+Number of Registers
+
+\f both values are zero, the contents. of the 16 registers in the Bit Slice are written
+into memory.
+The meaning of the different values is illustrated by the figure below.
+DMA
+MODULE
+256 RAM
+
+0
+
+COMPUTER
+MEMORY
+Registers
+
+NO. OF
+
+'
+
+1
+'
+‘
+
+1
+i
+
+ADDRESS
+
+FIRST REG.
+
+WRITTEN
+
+BY 1OX GP+15, 1OX GP+17
+
+~
+
+REGS.
+
+DUMP
+
+ge AREA
+
+!
+
+}
+
+'
+
+Nt
+
+t
+
+‘
+(
+
+377
+
+atin
+
+Figure 11.3.3: DUMP/LOAD
+
+REGISTERS
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+1-3-7
+
+LOAD
+
+REGISTER
+
+(Command
+
+7)
+
+This command can be used to load any number of the 256 random access
+memory registers in the DMA module. Required space in memory is 2 locations
+plus one location for each register to be loaded. The contents of the two locations
+are:
+1.
+2.
+
+First register address
+Number of Registers
+
+The Load Register command is simular to Dump Register, except that data is
+moved in the opposite direction. It is not possible to load the registers in the Bit
+Slice by this command.
+The commands, how to activate them
+programs are given in Appendix A5.
+
+11.3.3
+
+HDLC
+
+DMA
+
+and use them
+
+in some simple debugging
+
+STRUCTURE
+
+The DMA structure is organized around lists which contain the necessary control
+and status information to connect ‘driver’ software and DMA
+processor
+together.
+The lists which reside in the computer memory could be accessed
+driver software and through DMA requests to/from HDLC interface.
+
+directly from
+
+The receiver and the transmitter works from separate lists, with the same
+structure and format. The information exchange between driver software and
+DMA processor through the list structure provides dynamic allocation and linking
+of data buffers.
+
+1.3.3.1
+
+The
+
+List
+
+Structure
+
+The list contains a number of entries of four words each. Each list entry describes
+a data block. In the receiver lists, each entry describes a receive data buffer where
+the received data is to be stored.
+In the transmitter
+transmitted.
+
+list,
+
+each
+
+entry
+
+describes
+
+a
+
+block
+
+of
+
+data
+
+The four words of each entry contain the following information:
+WORD
+
+1
+
+Block status and key
+
+WORD 2
+
+Amount of information in the data block
+(Byte Count)
+
+WORD 3-4
+
+18 bits physical memory address of data block
+
+More detailed description is given below.
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+that
+
+is to
+
+be
+
+1-3-8
+
+11.3.3.1.1
+
+Receiver
+
+List
+
+In this section the operation of the receiver list is described.
+After proper initialization (See Section II.3.2.1), the DMA
+pointer and the ‘“RECEIVER START” command.
+
+processor is given a list
+
+The liste pointer points to one of the entries in the receiver list (See Figure 11.3.4).
+
+DATA
+
+|
+
+LIST POINTER
+
+BUFFER
+
+BUFFER
+
+r
+DATAFLOW
+LKEY| COST.
+—
+
+DESCRIPTOR
+
+I
+
+BYTE COUNT
+Most Address
+Least Address
+
+Ve
+
+T
+
+LKEY,
+
+TDATAFLOW|
+
+DISPLACEMENT (D)
+(D =NUMBER OF FREE
+BYTES)
+
+COST
+
+BYTE COUNT =
+NUMBER OF INFORMATION BYTES
+
+Figure 1.3.4: LIST
+
+STRUCTURE
+
+The DMA processor will now generate a DMA request using the list pointer as
+address and fetch the first entry from the list beginning with the status word.
+
+ND~—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+1-3-9
+
+FORMAT OF THE STATUS WORD
+
+15
+
+_—oOo
+
+O-----
+
+10
+
+11
+
+KE
+
+0
+
+9
+
+Y
+
+BLOC
+
+7
+
+8
+
+DONE
+
+v
+
+6
+
+RCOST
+
+1
+v
+
+T
+
+v
+
+~T
+
+v
+
+2
+
+3,
+
+4
+
+5.
+7
+
+ee
+
+10
+0
+0
+1
+1
+1
+
+9
+
+8
+o7o-o
+
+BITS
+
+=-0o00
+- =
+
+RECEIVER DATAFLOW
+DESCRIPTION BELOW
+
+STATUS
+
+Empty Receiver Block
+Full Receiver Block
+Block to be Transmitted
+Already Transmitted Block
+
+~
+
+New List Pointer
+
+The status word should be all zero except for the key.
+The BLOCK DONE bit signifies used block.
+input or duplicated transmission on output.
+
+That
+
+is, to prevent
+
+overwriting
+
+on
+
+Legal keys for the receiver are 1000, (Bit 9 set) or 3000, (Bit9 and 10 set).
+CASE 1. Key is 1000,
+The key is tegal saying empty receiver block. The DMA processor will now read
+the block address (word 3&4), add Displacement 1 and incoming data will be
+stored in the block.
+
+When the block is filled (MAX.RECEIVER BLOCK) or the interface
+"frame end” (REOM), the DMA processor updates the list entry.
+
+recognizes
+
+Updating the list entry includes updating the status word and writing the number
+of bytes received into the byte count.
+Updating Status Word.
+Updating the status word is to change the key and update RCOST.
+The key
+Block.
+
+is changed
+
+by
+
+setting
+
+the
+
+BLOCK
+
+DONE
+
+bit signifying
+
+Full
+
+Receiver
+
+2
+
+1
+
+Updating RCOST, let us first see what RCOST contains.
+
+15
+
+11
+
+~
+
+Ores ee-
+
+__
+
+10
+
+O | KEY
+
+1
+
+9
+
+8
+
+BLOCK
+
+7
+
+Rx
+
+pone | ERR
+
+6
+
+5.
+
+.
+RSCLO
+
+,
+0-2
+
+4
+
+3
+
+Rx
+
+Rx
+
+OVR cwnaf
+
+EOM/RS
+
+om
+
+See Description of
+
+|OX <deviceno. >+2
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+READ RECEIVER
+STATUS
+
+1l—3—10
+
+RCOST is identical to Receiver Status Register in the MPCC.
+Suppose
+
+both
+
+bit
+
+0
+
+and
+
+1
+
+are
+
+set,
+
+that
+
+means
+
+the
+
+status
+
+word
+
+is updated
+
+to
+
+1403,. Then the list entry describes a Full Receiver Block which contains a whole
+frame because both RSOM and REOM are received within the block.
+
+If only bit 0 is set (1401, in status word) the list entry describes a full receiver block
+which only contains the first part of a frame. That means that "MAX. RECEIVER
+BLOCK” was recognized before frame end (REOM). In other words, the frame
+contains more information than the receive block could store. In this case the
+DMA processor automatically will increment its list pointer by four and read next
+list entry describing next data buffer.
+Suppose now that the new data block could store the last part of the frame. Than
+the status word of this list entry will be updated to 1402, signifiying full receive
+block and only closing flag received. This block change is accomplished fast
+enough to maintain continuous handling of incoming data. It is assumed possible
+
+to give BLOCK END interrupt (See Receive Transfer Control Register).
+That means,
+when
+“‘driver’’ software should
+take
+information it looks at the status word of the list entries.
+
+care
+
+of
+
+the
+
+incoming
+
+If status is 1403,, it knows there are no errors and a whole frame of valid data is in
+
+the data block.
+
+If status is 1401,, it knows that the block contains the first part of a frame and the
+
+next list entry with status 1402, contains the last part.
+This is illustrated
+11.3.7).
+
+in the
+
+receiver list illustrations (See
+
+Figures
+
+11.3.5,
+
+11.3.6, and
+
+CASE 2. KEY is 3000,
+The key is legal, however it does not define a data block. Instead the list entry in
+word 3 and 4 contains the address to a new list.
+That means, word 3 and 4 are
+procedure continues as in Case 1.
+
+taken
+
+as
+
+a
+
+new
+
+list pointer
+
+and
+
+the
+
+receive
+
+NOTE:
+If this list change occurs during input data, it takes too much time to
+maintain continuously input handling. Therefore, this situation will give List
+
+End interrupt (See Receiver Transfer Control/ Status registers).
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+1t—3-11
+
+RECEIVER
+
+LIST ILLUSTRATIONS.
+
+Example: Frame Size.
+
+FLAG
+
+ADDRESS | CONTROL
+?
+
+INFORMATION
+
+DATA FOR SOFTWARE
+100, BYTES
+
+CRC
+
+CLAG
+
+—
+
+USER DE FINED INFORMATION.
+OBSERVED FROM FRAME FORMAT
+Case 1. RECEIVER BLOCK SIZE: 1560 bytes
+
+LIST
+
+STRUCTURE
+IN
+
+INTERFACE
+
+IN COMPUTER
+
+LIST
+POINTER
+
+MEMORY
+DATA BLOCK
+CONTAINING A
+WHOLE FRAME
+
+1403,
+100
+- BLOCK —___ _
+ADDRESS
+
+Figure 3.5: CASE
+
+1 ILLUSTRATION
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+NO OF FREE
+BYTES DISP | 1
+
+11-312
+
+Case 1. RECEIVER
+LIST
+
+BLOCK
+
+SIZE: 75 bytes
+
+STRUCTURE
+IN
+
+INTERFACE
+
+IN COMPUTER MEMORY
+
+LIST
+
+.
+
+POINTER
+
+LP+4
+
+.
+
+= py
+
+«14018
+_ 75
+Lo BLOCK
+
+ADDRESS
+1402,
+
+_.
+—— __{h
+
+DISP
++Dis
+_
+
+_i}$.
+
+1
+
+NO OF FREE
+
+BYTES
+
+DISP1
+
+1’st Part
+
+3
+
+of
+
+Z BLOCK
+
+“ADDRESS
+— ~~
+
+_
+
+Frame
+
+Ef
++ DISP2
+NO OF FREE
+BYTES DISP 2
+2‘nd Part
+
+of Frame
+
+Figure 3.6: CASE
+
+1 ILLUSTRATION
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+H—3—13
+
+NOTE:
+If a frame is stored in more than two data blocks "middle blocks
+marked by ‘’not start of frame” and ‘’not end of frame” (i.e. 1400,).
+The data stored in a receiver block is now
+which also resets the list entry of the block.
+
+“taken
+
+The resetting is to change the status word to "Empty
+
+care
+
+of’
+
+are
+
+by driver software
+
+Receiver Block”’, i.e. 1000,
+
+or 3000,.
+
+Typical use of data blocks and list entries is illustrated below.
+
+LP
+
+1403
+
+100
+LP+4
+
+»
+
+TO
+
+oree
+ADDRESS
+
+Driver Software Operating on Already
+
+Recsiwed
+
+7000,
+
+eceive
+
+E
+
+rame.
+
+0
+
+| _BLOCK
+
+LP+0,
+
+ADDRESS
+
+30H,
+
+0
+NEW LIST
+POINTER
+DMA
+
+processor
+
+storing incoming
+data in this
+block
+
+Figure I1.3.7: TYPICAL
+
+LIST
+
+OPERATION
+
+This looping in receiver list requires that driver software is fast enough to reset the
+list entries. If the DMA processor reaches the NEW LIST POINTER and than Full
+Receiver Block, a LIST EMPTY interrupt is generated. (See Receiver Transfer
+
+Status Register).
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+I1-3-14
+
+11.3.3.1.2
+
+Transmitter
+
+List
+
+The transmitter list is identical in structure to the receive list.
+
+After initialization, the DMA.
+processor is given a list pointer and the
+“TRANSMITTER START” command. The DMA processor will than process the
+transmitter list entries as described in Section
+
+I1.3.3.1.1.
+
+Note the following differences:
+The transmitter list is updated
+data to be transmitted.
+
+by driver software
+
+The DMA processor outputs data and sets the
+entry signifying Already transmitted block.
+
+and
+
+describes
+
+Block
+
+Done
+
+blocks of
+
+bit in the list
+
+As for the receiver list there are special cases also for the tramsmitter list.
+The key could be either 2000, or 3000,. This situation is treated identically
+as for the receiver list and will not be discussed again.
+Data belonging to one frame could be placed in one, two or more data
+blocks. The case is set by driver software in the status word of the list entry.
+
+FORMAT
+
+~~
+
+S
+
+OF
+
+THE
+
+STATUS
+
+10
+
+9
+
+8
+
+KEY
+
+"
+
+WORD
+
+7
+
+6
+
+5
+
+stock Tx | NO OF BITS
+
+SEE EARLIER
+DESCRIPTION
+
+pone | ERR/IN LAST BYTE
+An
+
+SET BY DMA
+PROCESSOR WHEN
+BLOCK
+
+IS TRANSM.
+
+4
+
+Tx | Tx
+
+2
+
+|Ga | ag
+
+—_A
+
+1
+
+«0
+
+| EOMTSOM
+¥
+
+-
+
+SET BY DRIVER
+
+SOFTWARE PRIOR
+TO TRANSMISSION
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+11—3—15
+
+CASE 1. A
+
+Hole
+
+Frame
+
+In
+
+One
+
+Block
+
+Suppose the frame contains 100 bytes. Then the list entry set by driver software
+will be as shown below.
+
+IN COMPUTER
+
+LIST
+
+»|
+
+POINTER
+
+2003,
+
+100,
+| Blocks
+
+ssséd
+
+ADDRESS
+
+|
+
++DISP 1
+
+MEMORY
+
+Tx DATA BUFFER
+
+a
+
+The DMA processor will read the status word of the list entry. The status word
+contains legal key (Bit 10 set). Both TEOM and TSOM are set to 1.
+That means for the DMA processor:
+
+—
+
+first transmit TSOM (opening flag)
+
+—
+
+when 100, bytes are transmitted, send TEOM (closing flag)
+
+—
+
+_ update the list entry by setting the Block Done bit (in special cases also one
+of the bits 2-7)
+
+ND-12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+H—3—16
+
+CASE
+
+2.A
+
+Hole
+
+Frame
+
+In
+
+Two
+
+Blocks
+
+The list entries will now be-as indicated below.
+
+IN INTERFACE
+
+IN COMPUTER MEMORY
+
+_ 2001,
+
+LIST
+
+POINTER
+
+50,
+BLOCK
+
+Lp
+
++4
+
+|
+
+aie
+
+_ ADDRESS
+
+2002,
+
++ DISP 1
+
+|
+
+V'st
+
+Pert
+
+|
+
+of Frame
+
+30,
+
+=. __
+BLOCK __
+ADDRESS
+
+J}
+
+“disp 2
+
+2'nd
+Part
+
+of Frame
+
+The first list entry, which contains the first part of the frame, contains legal key
+and only TSOM set.
+
+The second list entry has also legal key and on/y TEOM set.
+NOTE:
+lf a frame
+
+is held
+
+in more
+
+than
+
+two
+
+data
+
+blocks,
+
+the middle
+
+marked by not start of frame’ and ‘not end of frame” (i.e. 2000,).
+
+‘blocks
+
+Use of data blocks and transmitter list is typically organized as for receiver list.
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+are
+
+APPENDIX A
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+HDLC 1/0 CONFIGURATION
+
+A.1
+
+“LELL
+
+g
+
+"W1IVG
+
+DIGH
+
+216 UOIlIsod Wo1y
+
+DIGH
+
+suOo!Tsod j}e Ul SajnDOWW aq PynoYs aay
+
+8
+
+L
+«el
+
+\
+
+os
+
+L
+
+0
+
+L
+
+€
+
+ajqeijaaun 0} ang
+
+€
+
+\
+
+6
+
+0
+
+6
+
+0
+
+L
+
+e1t
+alps]
+Tro.
+A103 SR'a———e
+
+L
+
+jje surewuos 1811
+
+“sng CO/| [2907 ul UOIIsOd Auy
+
+jequinu ajnpowW aul “Lp | UO auOp s,ODq
+
+[ir]
+
+le
+
+YO (SuapiC abueysy Bulsaaulbuy) 5,094 Auew szuauodwoo
+
+‘ajNpow au} so suoNouNy ul aBUeYS Aue Ajdui jou Op abueUD
+0} pabueys s) Jaquunii ay) pue paublsapai si ajnpow ay} (LOLL) VLVG
+
+Vwad
+
+YOd ONIYIM 1V104dS
+
+| Oe] Sel be] ec] eel iz Oc] StL Sift Ol Sti el| ever
+ze] te] OF] 6c] Scie
+fe—— S30A3Q VWQ = ——e} —_____
+.
+sng O/1 1v907
+
+.
+
+q
+
+alpLt YAGWAN 3INGOW
+€22 ON GN J0VAYSLNI 0/1 O10H
+
+|
+
+ND—-12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+€
+6
+0
+L
+
+x.
+
+E
+6
+0
+L
+
+‘(41q 61g) Sed!Aap WING Paldajsng yo U01s UI pue sadlAap WING PadayNqun pulyeq peoe|d aq Pinoys (YW) JOVAHSLNIDIGH
+
+ee
+
+ulorl
+
+otf t
+gs] 8
+tt
+zi]
+
+L
+0
+L
+L
+
+*
+
+Zz]
+€]|
+6}
+i
+eit
+
+ef zfi
+cz] of stv]
+yanlng034 sna ——
+
+JINGOW- = Ndd VIA AYOWSW OL VLVG
+022 ‘ON ON (VW) 39V4YH3S1NI OI0H
+
+6f s[
+ple
+
+‘ajqejieae ase Aau} UaYyM PaAocwas aq [JIM Pue sdiys ArowWaW a3
+Was a4I WO.y ajgeyleAe 1aA JOU ae pasn sdiys AIOWewW auy
+alejNuuis 0} PEsN $! MOGWHS VWWG O1GH ‘aunoepnueW JOLONPUOD-!
+"suONBOO| WY S119 8 X 9GZ ULM paubisap S$! JOH INOS VAG 91GH MOGVHS VG 91GH Palle9 s! ZE6L 4aquinu ajnpoy
+
+ci] otal wil
+zel velo lez] azlvzi od szi pel ez] ezi zlozjerferj{
+Sng O/1 1¥207
++
+vag.
+=
+
+«CE6L ISLE ‘(LSLL) LeLL SHYSSWAN
+
+C
+
+C
+
+ND-12,018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A-4
+
+ze | vel os] 6z[ ez] zz] oz] sz] vel éc[ eel izjoz [er] erl
+
+Zz}
+€|
+6}
+Ly}
+et]
+
+ttf
+
+ob ot
+g| 8
+ot
+tl
+oLt ou
+cif
+
+€]
+6|
+oO}
+Lb]
+
+0
+1
+ot
+
+6 | 8 | 2]
+
+se
+
+or;
+
+€
+6
+0
+L
+
+Ss]
+
+ri
+
+usnonvuae
+
+Y¥3AAIF039Y SNA
+
+gf
+
+=
+
+ej]
+
+‘abed snoiaaid ay) uO ,, Japun se Aydosojiyd yuauaoejd aes
+
+ziporfst | or]
+sng 0/1 TV¥907
+
+€
+6
+0
+L
+
+,
+
+|e
+|6
+jo
+fk
+
+e{t
+
+C
+
+¢
+
+AHOWSAW LYOdILINW OL LOSI VG
+OZZ ON GN (WING) SJOVAYALNI O10H
+
+ND—12,018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A
+
+A.2
+
+DETAILED DESCRIPTION
+ICATION CONTROLLER
+
+OF
+
+THE MULTIPROTOCOL
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+COMMUN-
+
+COM 5025
+[LPC FAMILY
+
+’ Preliminary Specifications
+
+Multi-Protocol
+Universal Synchronous Receiver/Transmitter
+USYNR/T
+
+PIN CONFIGURATION
+
+FEATURES
+
+Voo L} 1
+
+D Selectable Protocol—Bit or Byte oriented
+0 Direct TTL Compatibility
+.
+
+C Tri-state Input/Output Bus
+
+nee
+
+7
+
+ser] 4
+
+XA
+
+.
+
+Rn Soe :
+
+OC Processor Compatible—8 or 16 bit
+
+asa 7
+
+400) MSEL
+
+2H tee
+
+7p TXENA
+
+a798 ea
+
+34] Txact
+
+C1 High Speed Operation—2.0M Baud—typical
+
+memes
+
+33H we
+
+O Full or Half Duplex Operation—independent Transmitter and
+
+Dee "
+
+reH cane
+
+ben fis
+
+28 1) pBp3
+
+15
+eed
+
+moe |
+
+0 Fully Double Buffered—Data, Status, and Control Registers
+Receiver Clocks
+
+diy i
+—individually
+selectable data
+length for Receiver and
+4
+Transmitter
+
+.
+
+C Master Reset—resets all Data, Status, and Control Registers
+
+one C10
+rt is
+cond
+opathie
+
+CO Maintenance Select—built-in self checking
+BIT ORIENTED PROTOCOLS—SDLC,
+C1 Automatic bit stuffing and stripping
+
+HDLC, ADCCP
+
+© Automatic frame character detection and generation
+O) Valid message protection—a valid received message is
+protected from overrun
+OD Residue Handling—for messages which terminate with a
+partial data byte, the number of valid
+data bits is available
+
+SELECTABLE OPTIONS:
+
+C1 Variable Length Data—1
+
+to 8 bit bytes
+
+O Error Checking—CRC (CRC16, CCITT-O, or CCITT-1)
+
+az C19
+
+*1({20
+
+22[] evteor
+
+211
+
+49
+
+L.] Vanable Length Data—1 to 8 bit bytes
+(J Variable SYNC character—5, 6, 7, or B bits
+
+L.) Error Checking—CRC (CRC16, CCITT-0, or CCITT-1)
+‘
+—VRC (odd/even parity)
+
+—None
+C) Strip Sync—deletion of leading SYNC characters after
+synchronization
+£1) Idle Mode—idie SYNC characters or MARK the line
+
+APPLICATIONS
+LC] Terminal to Modem Interface
+[1 Modem to Terminal Interface
+
+?
+
+SELECTABLE OPTIONS:
+
+0 Point to Point, Muilti-drop, or Loop Configuration
+
+1 Modem to Computer Interface
+
+x27Dp onesowes
+25) ouge
+
+BYTE ORIENTED PROTOCOLS—BiSync, DDCMP
+Li Automatic detection and generation of SYNC characters
+
+—None
+QC Primary or Secondary Station Address Mode
+QO All Parties Address—APA
+C] Extendable Address Field—to any number of bytes
+O Extendable Controt Field—to 2 bytes
+Q Idle Mode—idie FLAG characters or MARK the line
+
+QC Computer to Modem Interface
+
+317 ones
+
+C) Peripheral to Modem Interface
+C1 Modem to Peripheral Interface
+Ci Serial Data Bus
+
+ND-12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+a
+
+General Description
+The COM 5025 is a COPLAMOS* nchannel silicon gate MOS/LS! device that meets the majority of
+synchronous communications requirements, by interfacing parallel digital systems to synchronous serial
+data communication channels while requiring a minimum of controller overhead.
+The COM 5025 is well suited for applications such as computer to modem interfaces, computer to computer
+serial links and in terminal applications. Since higher level decisions and responses are made or initiated by the
+controller, some degree of intelligence in each controller of the device is necessary.
+
+Newly emerging protocols such as SDLC, HDLC, and ADCCP will be able to utilize the COM 5025 witha
+
+high degree of efficiency as zero insertion for transmission and zero deletion for reception are done
+automatically. These protocols will be referred to as Bit Oriented Protocols (BOP). Any differences between
+them will be discussed in their respective sections. Conventional synchronous protocols that are control
+character oriented such as BISYNC can also utilize this device. Control Character oriented protocols will be
+referred to as CCP protocols. Other types of protocols that operate on a byte or character count basis can
+
+also utilize the COM 5025 with a high degree of efficiency in most cases. These protocols, such as DDCMP
+will also be referred to as CCP protocols.
+
+The COM 5025 is designed to operate in a synchronous communications system where some external
+source is expected to provide the necessary received serial data, and all clock signals properly
+synchronized according to EIA standard RS334. The external controller of the chip will provide the
+
+necessary control signals, intelligence in interpreting control signals from the device and data to be
+transmitted in accord with RS334.
+
+The receiver and transmitter are as symmetrical as possible without loss of efficiency. The controller of the
+device will be responsible for all higher level decisions and interpretation of some fields within message
+frames. The degree to which this occurs is dependent on the protocol being implemented, The receiver and
+transmitter logic operate as two totally independent sections with a minimum of common logic.
+
+References:
+1. ANSiI—Amertcan
+
+X353, XS34/589
+202-466-2299
+
+National Standards
+
+Institute
+
+2. CCITT—Consultative Committee for international
+
+Telephone and Telegraph
+X.25
+202-632-1007
+
+3. EtA—Electronic
+
+TR30, RS334
+202-659-2200
+
+Industries Association
+
+4. IBM
+General Information Brochure, GA27-3093
+Loop Interface—OEM Information, GA27-3098
+System Journal—Vol. 15, No. 1, 1976; G321-0044
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A-8
+
+MAXIMUM GUARANTEED RATINGS*
+Operating Temperature Range ©... 0.6
+ener eens O'Cto+ 70°C
+Storage Temperature Range «1. cence
+tee b ttn ett nce nett e ne nes -~55 Cto +150°C
+Lead Temperature (soldering, 10 S€C.) . 2...
+Positive Voltage on any Pin, with respect to Qround..
+Negative Voltage on any Pin, with respect to ground
+
+eet
+
+0...
+. 1.0...
+
+e entree tbe bene eee +325C
+tenet
+ttt ete tenes +18.0V
+eee
+tenes
+
+*Stresses above those listed may cause permanent damage to the device. This is a stress rating only and
+functional operation of the device at these or at any other condition above those indicated in the operational
+sections of this specification is not implied.
+ELECTRICAL CHARACTERISTICS (Ta=0'C to 70°C, Vec= +5V+5%, Voo= + 12V+5%, unless otherwise noted)
+
+Parameter
+
+Min.
+
+D.C. Characteristics
+INPUT VOLTAGE LEVELS
+Low Level, Vit
+
+High Level. Vin
+
+Vec-1.5
+
+OUTPUT VOLTAGE LEVELS
+Low Level, Var
+High Level, Vox
+INPUT LEAKAGE
+Data Bus
+All others
+INPUT CAPACITANCE
+Data Bus, Ciw
+Address Bus, Cin
+Clock, Cin
+
+All other, Cin
+
+POWER
+lec
+loo
+
+SUPPLY
+
+Typ.
+
+Unit
+
+0.8
+
+Vv
+
+0.4
+
+Vv
+
+lo. = 1.6ma
+lon- 40ua
+
+10.0
+
+pa
+pa
+
+O- Vin- 5v, DPENA- 0
+Vin- +5v
+
+Vcc
+
+2.4
+5.0
+
+Comments
+
+v
+
+pf
+pf
+pf
+
+pf
+
+CURRENT
+
+ma
+ma
+
+A.C. Characteristics
+CLOCK-RCP, TCP
+frequency
+PWu
+PWi
+
+Ta=25'C
+2.0
+250
+250
+
+tr, tr
+
+MHz
+ns
+ns
+
+10
+
+DPENA., Tworena
+Set-up Time, Tas
+
+350
+100
+
+Byte Op. W/R
+
+Az, Ar, Ao
+
+Hold Time, Tan
+
+Byte Op. WIR,
+
+Max.
+
+_
+
+Az, Ar, Ao
+DATA BUS ACCESS. Tora
+DATA BUS DISABLE DELAY, Toro
+DATA BUS SET-UP TIME, Toss
+DATA BUS HOLD TIME, Tosx
+MASTER RESET, MR
+
+.
+
+50 us
+
+ns
+
+ns
+ns
+
+60
+
+ns
+
+250
+50
+100
+60
+300
+
+ns
+ns
+ns
+ns
+ns
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+or W/R
+
+A-9
+
+Description of Pin Functions
+PinNo.
+
+Symbol
+
+Name
+
+VO
+
+Voo
+ACP
+
+Power Supply
+Receiver Clock
+
+RS)
+SFR
+
+Sync/Flag
+
+PS
+|
+}
+oO
+
+RXACT
+
+Receiver Active
+
+O
+
+Receiver Serial Input
+Received
+
+Function
++12 volt Power Supply.
+
+The positive-going edge of this clock shifts data into the receiver shift register.
+This input accepts the serial bit input stream.
+This output is set high, for 1 clock time of the
+
+RCP, each time a sync or flag character is received.
+This output is asserted when the RDP presents the first data character of the
+message to the controller. In the BOP mode the first data characteris the first
+non-flag character (address byte). In the CCP mode: 1. if strip-syncis set: the
+first non-sync character
+is the first data character 2. if strip-sync is not set; the
+
+firs! data characler is he character following the second sync. in the BOP
+mode the trailing (next) FLAG resets RXACT. In the CCP mode RXACT
+ts never reset, it can be cleared via RXENA.
+
+RDA
+
+Receiver Data
+Available
+
+RSA
+
+This output is set high when the ADP has assembled an entire character and
+transferred it into the|RDB. This output is reset by reading the RDB.
+
+Receiver Status
+Available
+
+This output is sel high: 1. CCP—in the event of receiver over run (ROR)
+
+RXENA
+
+Receiver Enable
+Ground
+
+GND
+
+Ground
+
+Data Bus
+
+Bidirectional Data Bus.
+
+Data Bus
+
+VO
+VO.
+
+Data Bus
+
+vO
+
+Bidirectiona! Data Bus
+
+Data Bus
+
+VO
+
+Bidirectional Data Bus.
+
+Data Bus
+
+Bidirectional Data Bus.
+
+Data Bus
+
+VO
+vo
+vO
+
+Data Bus
+
+vO
+
+Bidirectional Data Bus. “OR” with OP@7.
+
+22
+
+GND
+DBg8
+DBgY
+DB1g
+DBI1
+DBi2
+DB13
+DB14
+DBI5
+Wwi/R
+A2
+Al
+Ag
+BYTE OP
+
+23
+
+DPENA
+
+Data Port Enable
+
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+
+DBS7
+
+Data Bus
+
+DBS6
+
+Data Bus
+
+DBg5
+
+Data Bus
+
+10
+4
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+
+DBg
+
+Data Bus
+
+or parity error (if selected), 2. BOP—in the event of ROR, CRC error (if selected).
+receiving REOM or RAB/GA. This output is reset by reading the
+receiver status register or dropping of RXENA.
+A high level input allows the processing of RSI data. Alow
+level disables the RDP and resets RDA, RSA and RXACT.
+
+Bidirectional Data Bus.
+
+Bidirectional Data Bus.
+
+Bidirectional Data Bus.
+
+Wnrite/Read
+Address 2
+
+Controls direction ol data pon. W/R_
+
+Address 1
+
+Address input.
+
+Address 0
+
+Address input—LSB.
+
+Byte Operation
+
+If asserted, byte operation (data port is 8 bits wide) is
+selected. {BYTE OP
+0. data port is 16 bits wide.
+Strobe for data port. After address, byte op. W/R and data are set-up DPENA
+may be strobed. if reading the port. DPENA may reset (depending on register
+selected by address) RDA or RSA. If writing into the port, DPENA may reset
+(depending on register selected by address) TBMT.
+
+Data Bus
+
+Address input-—-MSB.
+
+vo
+VO
+vO
+vO
+VO
+10
+ie)
+vO
+PS
+
+1, Write. W/R_
+
+0. Read.
+
+Bidirectional Data Bus—MSB.
+Bidirectional Data Bus.
+Bidirectional Data Bus.
+Bidirectional Data Bus.
+
+DBS3
+
+Data Bus
+
+DB¢g2
+
+Data Bus
+
+DB#1
+
+Data Bus
+
+DBS
+Vee
+
+Data Bus
+
+MR
+
+Master Reset
+
+34
+
+TXACT
+
+Transmitter Active
+
+Oo
+
+This output indicates the status of the TDP. TXACT will go high after asserting
+TXENA and TSOM coinsidently with the first TSO bit. This output will reset one
+haif clock after the byte during which TXENA is dropped.
+
+35
+
+TBMT
+
+Transmitter Bulfer
+
+0
+
+36
+
+TSA
+
+37
+
+TXENA
+
+Transmitter Status
+Available
+
+0
+
+This output is at a high level when the TDB
+or the TX Status and Control Register may be loaded with
+the new data. TBMT
+0 on any write access to TDB or TX Status and
+Control Register. TBMT returns high when the TDSR is loaded.
+
+38:
+
+TSO
+
+39
+
+TCP
+
+Transmitter Serial
+Output
+Transmitter Clock
+
+40
+
+MSEL
+
+Maintenance
+
+Power Supply
+
+Empty
+
+Bidirectional Datla Bus.
+Bidirectional Data Bus.
+Bidirectional Data Bus—LSB.
++ 5 volt Power Supply.
+This input should be pulsed high after power turn on. This will: clear all flags, and
+status conditions. set TBMT
+1, TSO -1 and place the device in the primary
+BOP mode with 8 bit TX/RX data length, CRC CCITT inttialized to all 1's
+
+Transmitter Enable
+
+Select
+
+Bidirectional Data Bus.
+
+oO
+
+TERR bit. indicating !ransmitter underflow.
+Reset by MR or assertion of TSOM.
+A high level input allows the processing of transmitter
+data.
+This output is the transmitted character.
+The positive going edge of this clock shifts data out of the
+
+transmitter shift register.
+internally RS} becomes TSO and RCP becomes TCP.
+Externally ASI is disabled and TSO =1.
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+*
+
+A-—10
+
+Definition of Terms
+
+Register Bit Assignment Chart 1 and 2
+Term
+
+Definition
+
+RSOM
+
+Receiver Start of Message—read only bit. in BOP mode only, goes high when first non-flag (address byte)
+character loaded into RDB. It is cleared when the second byte is loaded into the RDB.
+Receiver End of Message—read only bit. In BOP mode only, set high when last byte of data loaded into RDB, or
+when an ABORT character is received. |i is cleared on reading of Receiver Status Register or dropping of RXENA.
+
+REOM
+
+RAB/GA
+ROR
+ABC
+ERR CHK
+
+TSOM
+
+Received ABORT or GO AHEAD character, read only bit. In BOP mode only, if LM = 0 this bit is set on receiving an
+ABORT character: if LM - 1 this bit is set on receiving a GO AHEAD character. This is cleared on reading of
+Receiver Status Register or dropping of RXENA.
+Receiver Over Run—read only bit. Set high when received data transferred into RDB and previous data has not
+
+been read, indicating failure to service RDA within one character time. Cleared on reading of Receiver Status
+
+Register or dropping of RXENA.
+Assembled Bit Count—read only bits. In BOP mode only, examine when REOM
+1. ABC-- 0, message terminated
+on stated boundary. ABC = XXX. message terminated (by FLAG or GA) on unstated boundary, binary value of ABC
+= number of valid bits. available in RDB (right hand justified).
+
+Error Check—read only bit. In BOP set high if CRC selected and received in error, examine when REOM= 1. In
+
+CCP mode:
+
+1. set high if parity selected and received in error, 2. if CRC selected (tested at end of each byte) ERR
+
+CHK = 1 if CRC GOOD, ERR CHK = O if CRC NOT GOOD. Controller must determine the last byte of the
+message.
+Transmitter Start of Message—W/R bit. Provided TXENA - 1, TSOM initiates start of message. In BOP, TSOM= 1
+generates FLAG and continues to send FLAG’s until TSOM -0. then begin data. In CCP: 1. IDLE =0, transmit out of
+SYNC register, continue until TSOM- 0, then begin data. 2. IDLE 1 transmit oul of TDB. In BOP made there is also
+a Special Space Sequence of 16-0's initiated by TSOM-.1
+
+and TEOM
+
+1. SSS is followed by FLAG.
+
+TEOM
+
+Transmit End of Message—W/RF bit. Used to terminate a message. Jn BOP mode, TEOM
+1 sends CRC, then
+FLAG: if TXENA = 1 and TEOM = 1 continue to send FLAG's, if TXENA :0 and TEOM=1 MARK line. In CCP: 1.
+IDLE. 0, TEOM
+1 send SYNC, if, TXENA:: 1 and TEOM:: 1 continue to send SYNC’s, if TXENA=0 and TEOM=1
+
+TXAB
+
+Transmitter Abon—W/R bit. In BOP mode only, TXAB = 1 finish present character then: 1. IDLE =0, transmit ABORT
+2. IDLE= 1, transmit FLAG.
+Transmit Go Ahead—W/R bit. In BOP mode only, modifies character called for by TEOM. GA sent in place of FLAG.
+Allows loop termination—GA character.
+
++00
+O70
+
+XYZ
+
+Transmitter Error—read only bit. Underflow, set high when TDB not loaded in time to maintain continuous
+transmission. In BOP automatically transmit: 1. IDLE-0, ABORT 2. IDLE-= 1, FLAG. In CCP automatically transmit:
+1. IDLE=0, SYNC 2. IDLE = 1, MARK. Cleared by TSOM.
+X
+—W/R bits. These are the error control bits.
+XE 4 X124 X54 1 CClTT—Inttialize to "1"
+X64 X24 X54 1 CCITT—Initiatize to "0"
+Not used
+X'64 X'1S¢ X24 1—CRC1B
+Odd Parity—CCP Only
+Even Parity—CCP Only
+Not Used
+“~-=OCO=-+00<
+
+TERR
+
+-~4=-3=4+OOOON
+
+TXGA
+
+MARK line. 2. IDLE~ 1, TEOM =: 1/MARK line.
+
+SEC ADD
+
+Secondary Address Mode—W/IR
+
+bit. ln BOP mode only—alter FLAG looks for address match prior to activating
+
+Strip Sync or Loop Mode--W/R
+
+bit. Effects receiver only. in BOP mode—aliows recognition of a GA character. In
+
+PROTOCOL
+“APA
+TXDL
+
+asserted or in the event of data underflow. In CCP—controls the method of initial SNYC character transmission and
+underflow, "1"
+transmit SYNC from TDB."'0" transmit SYNC from SYNC/ADORESS register.
+RDP, if no match found, begin FLAG search again. SEC ADD bit should not be set if EXADD
+
+CCP—atfter second SYNC, strip SYNC; when first data character detected, set RXACT = 1, stop stripping.
+PROTOCOL—W/R bit. BOP =0, CCP =1
+
+All Parties Address—W/R bit. If selected, modifies secondary mode so that the secondary address or 8-1's will
+activate the RDP
+
+Transmitter Data Length—W/R bits.
+TXDL3 TXDL2 TXDL1
+LENGTH
+0
+1
+1
+1
+1
+0
+0
+0
+
+RXDL
+
+0
+j
+1
+0
+0
+1
+1
+0
+
+—_Enght bits per character
+Seven bits per character
+Six bits per character
+Five bits per character
+Four bits per character*
+Three bits per character’
+Two bits per characler’
+One bit per character®
+
+0
+
+ow
+
+-0OO-4-90
+
+Eight bits per character
+Seven bits per character
+Six bits per character
+Five bits per character
+Four bits per character
+Three bits per character
+Two bits per character
+One bit per character
+Extended Control Field —W/R
+bit. In receiver only; if set, will receive control field as two 8-bit bytes. Excon bit should
+notbesetifSECADD
+1
+Extended Address Field-—-W/R bit. In receiver only; SB of address byte tested for a1". 1 NO—continue receiving
+address bytes. if YES go into control field. EXADD bit should notba set f SEC ADD
+1.
+Oo00o-4.4-8
+
+EXADD
+
+Q
+1
+0
+1
+0
+1
+0
+1
+
+*For data length only, not to be used for SYNC character (CCP mode).
+Receiver Data Length—W/R bits.
+RXDL3 RXOL2 RXDL1
+LENGTH
+0
+
+EXCON
+
+- 1 or EXCON= 1.
+
+—-~Oo-0+0-8
+
+STRIP SYNC/LOOP
+
+-
+
+IDLE
+
+Inhibit all error detection
+Note: Do not modify XYZ until both data paths are ide
+IDLE mode select—W/R bit. Effects transmitter only. ln BOP—control the type of character sent when TXAB
+
+- *Note: This leature does nol exist in the present version of the COM5025.
+
+It is in the Rev. A version due out in early 3077.
+
+ND—-12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+Register Bit Assignment Chart 1
+REGISTER
+
+DP987
+
+DP#6
+
+DP64
+
+DP@3
+
+DP#2
+
+DP#1
+
+DPS¢8
+
+Receiver Data
+
+RD7
+
+RD6
+
+RD4
+
+RD3
+
+RD2
+
+RD1
+
+RDG
+
+(Read Only-
+
+MSB
+
+Buffer
+
+Right JustifiedUnused Bits:: 0)
+Transmitter Data
+
+TD7
+
+Register
+
+(Read/WriteUnused Inputs | X)°
+
+MSB
+
+Sync/Secondary
+Address
+
+SSA7
+
+(Read/Write-
+
+Right JustitiedUnused Inputs
+
+LSB
+TD6
+
+.
+
+TD4
+
+TD3
+
+SSA6
+
+SSAS
+
+SSA4
+
+SSA3
+
+SSA2
+
+SSA1
+
+MSB
+
+To¢g
+
+SSAG
+LSB
+
+-X)
+
+REGISTER
+
+Receiver Status
+(Read Only)
+
+DP15
+
+DP14
+
+DP12
+
+OP11
+
+DP19
+
+DPg9
+
+DPg8
+
+Cc
+
+A
+
+ROR
+
+RAB/GA
+
+REOM
+
+RSOM
+
+0
+
+TXGA
+
+TXAB
+
+TEOM
+
+TSOM
+
+SEC ADD
+
+IDLE
+
+Z
+
+Y
+
+Xx
+
+EXADD
+
+EXCON
+
+RXDL3
+
+RXDL2
+
+RXDL1
+
+(Read Only)
+
+TERR
+
+0
+
+Mode Control
+
+*APA
+
+PROTOCOL
+
+(Read/Write)
+
+DP13
+
+Chart 2
+
+ERR CHK
+
+and Control
+
+(Read/Write)
+
+TO1
+
+LSB
+
+Register Bit Assignment
+
+TX Status
+
+TD2
+
+STRIP
+
+SYNC/
+
+LOOP
+
+Data Length
+
+TXDL3
+
+Select
+(Read/Write)
+
+TXDL2
+
+=TXDL1
+
+Register Address Selection
+1)
+
+BYTE OP
+
+= 0, data port 16 bits wide
+
+A2
+
+Al
+
+0
+a)
+1
+1
+
+0
+1
+0
+1
+
+Ag
+
+x
+x
+x
+x
+
+Register
+Receiver Status Register and Receiver Data Buffer
+
+Transmitter Status and Control Register and Transmitter Data Buffer
+
+Mode Control Register and SYNC/Address Register
+Data Length Select Register
+
+X = don't care
+
+2)
+
+BYTE
+
+OP
+
+=
+
+1, data port 8
+
+bits wide
+
+A2
+0
+0
+
+Al
+0
+0
+
+AG
+0
+{
+
+0
+0
+1
+1
+
+1
+1
+0
+0
+
+0
+1
+0
+1
+
+1
+1
+
+1
+1
+
+0
+1
+
+Register
+Receiver Data Buffer
+Receiver Status Register
+Transmitter Data Buffer
+
+Transmitter Status and Control Register
+SYNC/Address Register
+Mode Control Register
+Data Length Select Register
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A-12
+
+TRANSMITTER OPERATION
+Apply Power
+
+PulseMA:
+
+Protocol
+BOP
+APA =- NO
+
+TSO: 1
+TBMT - 1
+TXACT =@
+TSA - 0
+RXACT = 0
+RDA = 0
+RSA = 0
+
+Loop
+
+- NO
+
+Sec Add - NO
+!OLE = ABORT Character
+ZYX = CCITT-1
+TXDL3. TXDL2, TXOL1
+
+= Bbit
+
+RXDL3. AXDL2,. RXDL1 = 6 bit
+EXADD = NO
+EXCON - NO
+All register bits set to zero
+
+Set Byte Op = 1 (8 bits)
+Apply TCP
+
+Note: Example below based on initially Master Resetting. If other
+
+conditions are required (different Mode Control settings) load prior
+
+to TSOM:
+CONTROLLER
+
+TXENA=1
+
+TXGA = TXAB =
+
+USYNAT
+
+—
+
+1.
+
+COMMENT
+
+;
+
+TEOM<0,
+
+TSOM=1
+
+I
+
+>
+
+writing into TX
+
+Status & Control
+Register
+
+~TBMT
+
+—-TXACT
+TXGA=TXAB=
+
+Load Control
+
+Byte
+
+—
+
+i
+
+-—-TBMT
+1
+TSO: Address
+Character
+
+gnore
+
+must be loaded
+prior to TBMT = 1
+
+0
+
+Load Data
+
+TEOM =
+
+0,
+
+ad
+
+TSGA TXABTSOM ~ TEOM :0
+Load Address
+
+TXGA~
+
+returning loa "1"
+
+0
+
+—TBMT
+
+1
+
+>
+
+TXAB =
+
+ignore
+
+;
+
+must be loaded prior
+
+—
+
+end of message
+
+«-TBMT 0
+TSO CRC
++ -TBMT
+
+TXGA- TXAB TEOM - 0.
+TSOM -1
+
+TXGA
+
+—TBMT-0
+repeal sequence un-
+
+FLAG
+
+.- TBMT
+
+0
+
+—TBMT=1
+TSO= Last Data
+
+last data character being trans-
+
+til all DATA loaded
+
+mitted
+
+if desired, repeat
+FLAG
+
+3
+
+TSO
+
+FLAG
+
++-TBMT
+
+-0
+
+ignore
+
+must de loaded prior
+
+to TBMT= 1
+
+OR
+
+:
+
+TXGA: TXAB=
+TSOM~0,
+TEOM=1
+
+~
+
+end of message
+
++ TBMT
+
+«
+
+0
+
+TSO
+
+CRC
+
+TSO
+
+FLAG
+
+TSO
+
+1
+
+--TBMT
+
+0
+
+of next frame
+
+take down TSOM
+
+Byte
+
+TXENA:
+
+sequence
+
+-
+
+TXAB
+
+Load Address
+
+4
+
+TSO
+
+TEOM: TSOM:0~
+
+.
+
+Byte
+
+-—TBMT:0
+
+--TBMT
+
+TSO- DATA
+
+—TBMT=1
+
+share flag, for next
+frame
+
+to TBMT = 1
+
+TSOM 0,
+TEOM-:1
+
+ished prior to TBMT
+
+-TBMT
+
+SO=FLAG
+
+Byte
+
+desired. must be lin-
+
+—
+
+end of message
+
+~TeMt
+0
+TeMT CAC
+
+if other than 8 bits
+
+Length
+
+Load Data
+
+: TXAB-=
+
+OAR
+
++-TBMT 1+
+TSO. Control
+Character
+
+Load Data
+
+TSOM
+
+"TSs0take down TSOM
+
+~_TBMT-0
+
+«-TBMT
+
+TXGA
+
+1
+
+TSO.-FLAG
+_TBMT
+<1
+
+TEOM=TSOM=07
+
+Load Address
+Byte
+
+.O
+
+Typical Ending Sequences
+
+TXACT
+
+1
+
+flag will be sent
+
+aller FLAG, shut down
+0
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+TX. mark line
+
+RECEIVER OPERATION
+CONTROLLER
+W/R= 1, OPENA
+
+Apply Power
+
+PulseMR:
+
+TSO: 1
+
+TBMT -: 1
+TXACT = 0
+
+TSA
+0
+RXACT
+RDA
+
+= 0
+
+RSA = 0
+
+0
+
+Protocol
+BOP
+APA - NO
+Loop - NO
+SecAdd
+NO
+IDLE
+
+- ABORT
+
+COMMENT
+if required, load Mode
+
+Control and Data Length
+Select Registers
+enable reception begin
+FLAG search
+USYNRT synchronized be-
+
+RXENA=1
+Character
+
+—SFR=1
+
+ZYX = CCITT-1
+TXDL3, TXOL2, TXDL1 = Sbit
+RXDL3.RXOL2, RXDL1 = Bbit
+EXADD -- NO
+EXCON
+NO
+
+RDA
+1,RXACT=1,
+RSOM=1
+W/R=0, DPENA
+
+All register bits set to zero
+
+Set Byte Op = 1 (8 bits)
+Apply RCP
+
+W/R=0, OPENA
+
+Note: Example below based on initially Master Resetting. If other conditions are
+required (different Mode Control or Data Length settings) load prior to
+
+RXENA
+
+USYNAT
+—
+
+= 1,
+
+W/R=0, DPENA
+
+W/R=0, DPENA
+
+«-RDA-0
+«RDA= 1, RSOM=0
+—
+
+-—RDA-0
+-RDA- 1
+
+—-RDA=0
+
+«RDA.
+1,RSA=1
+REOM= 1, RXACT=0
+>
+
+-
+
+—
+
+RXENA=0
+
+—
+
+available
+RSA not raised
+
+read address byte
+
+control byte (8 bit)
+available
+read control byte
+
+first data byte (n bits)
+available
+read data byte
+
+—
+
+W/R=0, DPENA
+
+gin filling pipeline
+address byte (8 bit)
+
+RDA=0
+
+-RSA=0
+
+last data byte available
+read data byte
+read status
+receiver inactive
+
+OR
+
+«RDA=1
+
+WIR=0,OPENA
+W/R
+
+-0,O0PENA
+
+RXENA'O
+
+Term
+
+Definition
+
+BOP
+CCP
+
+_
+
+|
+
+«-RSA-
+
+-+
+«-RDA-0
+~
+
+- RSA
+
+“
+
+Nth byte available con.
+
+1, ROR=1
+
+ADB overwritten
+
+read data byte
+read status
+
+O
+
++ RXACT
+
+troller tails to read
+
+terminate reception
+
+0
+
+Term
+
+Definition
+
+Bit Oriented Protocols: SOLC, HOLC, ADCCP
+
+GA
+
+01111111
+
+Control Character Protocols: BiSync, DDCMP
+
+LSB
+
+First transmitted bit, First received bit
+
+TOB
+
+Transmitter Data Buffer
+
+MSB
+
+Last transmitted bit, Last received bit
+
+ROB
+
+Receiver Data Buffer
+
+RDP
+
+Receiver Data Path
+
+TDSR
+
+Transmitter Data Shift Register
+
+TDP
+
+Transmitter Data Path
+
+FLAG
+
+01111110
+
+LM
+
+Loop Mode
+
+ABORT
+
+11111114
+
+(0 (LSB) followed by 7-1's)
+
+(7 or more contiguous 1's)
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+.
+
+A-—14
+
+VN
+
+1
+:
+
+1
+
+wt
+i
+
+|
+
+rprcc
+
+'
+
+OFM
+
+«ye Og FIEG
+
+e----+--' |
+
+MA
+
+LL
+
+owas
+
+--J
+
+2310Rr!
+
+OtUM
+
+Coovgrieg
+
+i--
+
+Eee
+
+O° aM
+
+:
+
+zeergeieg
+
+Y—
+
+Oa M
+
+akg imo
+
+eg beg Ise7 |
+
+Le
+1 WOSL
+og e1eg
+peo}
+
+eg ouu0D |
+
+wSue7 RIEG
+peo?
+
+aidg ssesppy
+
+——
+
+mL
+wnu0>
+peo}
+
+LFLA
+
+.
+
+FL
+
+NOLLVW3d0 YALLINSNVYL
+
+On nM
+
+«84g Ste;DDY
+
+.
+
+t
+
+1
+
+“Lo
+
+eae
+
+O- uM
+
+SEIS DESY
+
+LIL et lL,
+
+|
+
+i
+
+-
+
+sse.ppy,
+peo7
+
+O-WOSL
+
+ZZ
+
+LLU
+
+dp
+
+wNadd
+
+doh
+
+"ws.
+
+nose
+
+~
+
+é
+
+®*
+
+wrt
+
+POIR@, C608 69019 :0U
+Ne:
+
+‘Jew YH
+
+vo uve ‘dou
+
+Ze OG. FIEQ Fe: 0} YN AGO OU H—Z 3LON
+OWE XS SB U! BUOD Ou JOG - penne y— | LON
+
+.
+
+beam
+
+LI Lt
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+9u9 |
+
+_
+
+OWA
+
+EY LIU
+
+isergeitg
+
+“LALA LL, Pn,
+--ee
+
+=
+
+sums prey
+
+JLEULeE
+
+ONIALL HAAIS9O38
+
+ND—-12,018.01
+
+A-15
+
+AC TIMING DIAGRAMS
+RCP
+Tt
+
+300 ns
+
+TCP
+
+TBMT
+
+,
+
+300 ns
+
+RXACT
+
+/
+
+300 ns
+RDA, RSA
+'
+
+DPENA
+
+DPENA
+
+to Transmitter
+
+to Receiver
+
+W/R=1
+
+W/R - 0
+
+Registers
+
+Registers
+
+300 ns
+
+300 ns
+TBMT
+
+\
+
+RDA, RSA
+
+\
+
+TCP
+——_
+
+150 ns
+baw.
+
+RXENA
+
+300 ns
+
+TSO
+Resets:
+
+300 ns
+
+RDP-RDA, RSA,
+RXACT, receiver
+into search
+
+mode (for FLAG)
+
+TXACT
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A-16
+Receiver Data
+and
+Receiver Status
+Access Sequence
+
+Preferred reading sequence of receiver ADA and RSA
+
+Read RDA and ASA pnor to reading
+data or status
+
+|
+
+ey"
+YES
+
+| &
+
+e No
+READ RpB
+
+|
+
+READ RDB
+
+READ
+STATUS
+
+READ
+STATUS
+
+'
+
+lL
+
+Data PortTiming
+
+oo
+
+fe
+
+READ FROM
+
+USYNR/T
+
+= YUBEMMTOK UU
+--—
+
+mph ne
+
+ot
+
+two
+
++
+
+eh
+
+we
+
+_
+
+yy
+
+WRITE TO USYNR/T
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A-17
+
+Mahee
+Of
+
+fhec
+2680
+
+apar3s
+
+faa
+séag
+
+9880
+
+93u
+
+ssayaav
+ONAS
+
+iit
+
+>
+
+$$
+
+JOULNOD W1¥ Xd
+ig!
+
+XL
+
+39 SYD Xt
+
+938 VLVO0 XL
+
+N
+
+N3D Alle
+
+dO3LAG
+
+5
+
+MA
+
+'
+
+e86q
+
+dvi
+
+viva
+
+rs
+
+6pe0
+
+938
+
+Eo
+
+—
+
+fea
+
+FON
+
+a
+
+6180
+
+2 OL
+
+21eq)0
+
+AS war
+
+31907
+Ond32
+ais
+
+BWYud
+
+93u
+ByHo
+
+1.03130
+
+bee
+
+O8LNOD
+300W
+
+93d
+
+4
+oS
+
+SNBOI3LVLS tH
+
+/N——
+
+7
+
+auvaNOO
+wOOV DNAS
+
+av1a0
+BNIN3dId
+
+21907
+cinave
+
+We sNO>
+
+43S HLON3T
+vivo
+
+19313S
+
+YADY
+
+Nad
+48
+
+TT
+
+193430
+
+4
+
+tec
+
+vec
+
+93y
+
+SNiv1sS
+AD”
+
+f
+
+$180
+
+I
+
+*ZI-
+
+4S~
+
+~2-0 ano
+
+2-0
+
+inGn
+
+<0
+
+O
+
+21907 | cingni wisas wade)
+'Su
+viva
+
+Wwe BS an
+
+oO)
+
+oD
+
+QO
+
+we
+O
+
+doy
+
+ily
+vNaxy
+
+vou
+
+vSa
+
+O wuss
+
+peX@HONINS31S w—O
+
+1
+
+iRia _ Litrrid
+
+=
+
+8 SNivLS
+KL
+
+93y Td1iNO
+
+BADE
+
+31907
+LYAHOS
+
+W31SI93u
+¥lva
+
+3002930 SS3uddv
+
+YN3d0
+
+Pi
+i
+
+W34ane
+
+viva
+YAH
+
+L—- I
+
+TOXLNOD F ONIWEL
+
+HO018
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+tga
+
+$NBO!31V1S bb
+
+¥343N8
+
+vlva
+XL
+
+$3002
+
+0u32 43718 | | 9305
+
+‘faq
+
+>
+
+21901
+
+Tritt
+
+Omen
+
+O~=a-—4 P
+
+TwisFS K1>
+
+os:
+
+LW6.
+
+vs. Owe
+20%., One
+O
+
+ot. O
+
+v2.
+
+t
+
+13S3¢
+
+¥31SVN
+
+WVYSVId
+
+ND—12.018.01
+
+A—18
+
+A.3
+
+HDLC LINE CONNECTION AND DRIVER SPECIFICATIONS
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+oa
+
+7
+
+c ¢
+
+sas
+
+2)
+
+=
+
+Daj =s
+
+==
+—-
+
+:
+
+S°V
+
+ViVO
+
+Jzelss
+
+1SWON
+
+oo
+
+70H
+
+BZA vA
+
+m
+H
+
+$104
+
+$49
+
+M30
+
+'yztana TINd
+3
+
+(9.490) S$i0a
+pruiunsb0sd
+40 Jd
+
+wioay A1}30
+
+Jd Qnusuosy
+
+sougs
+
+¥
+
+‘
+
+0
+
+4
+
+Qo
+
+SnIao23d
+
+as
+as
+
+0
+0
+
+0
+‘
+‘
+‘
+
+i
+0
+
+Foods
+
+(aS)°v3
+
+1
+
+;
+
+0
+
+, [*sida Kx0s)3;
+@
+
+;
+
+—
+
+/—
+0332) 75}
+
+pointe
+
+“yivd
+
+TYNS/S JIVIAIIN| WICOW
+Tasyv2
+
+*sida O—
+
+9aiz20 0.
+
+1
+
+abuny?
+
+t
+
+4
+
+srj0js
+
+£29 M31
+
+wapow
+
+ZL AZT LMI
+
+.
+
+b2°X'
+
+|
+
+as
+
+aiqnua -TF
+
+if
+
+|
+
+°
+
+9n100230
+xaH
+Waw wos
+
+pT
+aaom
+
+andu
+
+Tawor
+
+¢
+
+aScw
+
+BL
+
+Zuid 205
+
+*
+
+€ uid COL
+
+ang jeubis
+
+62
+
+DIOP
+Pryiwsuogy ~ ~YQL
+ADP Pryiwsuos
+
+02 Ud GOL
+
+:
+
+1g
+
+4
+
+Sb
+
+uid
+
+bib
+
+€ ued OL
+
+|
+
+ey
+
+5
+
+S
+
+Jud 205
+
+<8}
+
+N
+-
+
+.
+
+of
+
+F.C7-57
+
+NOYNYD
+
+Oa
+
+2
+
+a
+
+9 41d 60h
+
+oP
+
+pooy
+
+(GN9) 2 uid 07 pazrauuo7
+
+92)4-—_______»
+JINPOp poo?
+
+(6)
+
+INPOW
+
+Jrveytry)
+
+ZL)}4————_»
+
+a
+
+oy
+
+2B} 1" (GN) L wid OF papaauud)
+bard St
+
+(o0\-\ee
+
+6
+
+06
+
+fae\
+
+Lm.
+
+28
+
+S
+
+Kpoas }Ouiwsa} 030g -¥ 1d
+
+—
+
+lo
+
+y uid z Sol
+—~
+
+joubic
+
+.
+
+68
+PEA 329/25
+
+istn
+
+p21_
+
+39}2p
+
+Wz ud S2i
+
+99949P Jpuv!s — aS
+
+(e>\
+ea
+
+guid 905
+
+4
+
+39
+~
+
+“+
+Apoay ~ $4¥
+
++
+
+*
+
+.
+
+Of pazrauu0j
+
+ry
+
+Lud
+JIdwW O%
+Ud
+
+JOzD2ipul Buijo) ~ fa
+4
+
+uipuas 40;
+6E
+
+-3XY
+
+ZuId J9dW OL
+3412934
+
+490]? JiwSuds, —~JXL
+
+420)3
+
+(QNS)
+
+puas oy ysanbay -Siny
+
+PAdino powag
+
+|
+
+2a -~79ote
+2qpua
+
+[peise
+
+934
+Afani
+
+SALvLs
+
+“oad
+ka
+
+py}
+
+aw
+
+sporat—— 350
+Kq|
+
+4 99598
+
+43532. 4dzSDW
+
+peer
+
+1a
+
+(2s!
+
+rI9DsiP-
+
+apqpur Jt,
+
+—
+
+2Sasaw
+
+980 - 9318
+
+2OS!P 0.
+
+£39 m0
+
+X31dNG 47VH
+UE P2uls2P HON
+
+piwsues, ~ISWL
+
+a6uoys $nzojs wapoW 2419924 -ISWa
+
+€1 037 int GE)
+
+:
+
+-
+
+eud Jaw
+grdus pw149s aainr22y ~| Sy
+
+107.5
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A-20
+
+AIS
+
+MORSK
+
+GATA-
+
+Titlo
+
+HDLC
+
+VATA
+
+L141
+
+V-24/X21BIS
+
+(CPU
+
+SIGNAL
+
+POS.)
+
+ELERTRONIKK
+
+RECEIVE
+RECELVE
+
+DATA
+DATA
+
+A
+B
+
+RECEIVE CL.B
+L/TRANSN
+I/TRANSM.CL.B
+T
+Cc
+
+s
+
+AN
+
+STCNAL
+DETEC
+ING INDICAT
+EADY FOR SEND.
+DATA TERM.READY
+(S,
+REQUEST TO SEND(S
+RANSMIT
+DATA
+SIGNAL
+_Gi
+CEIVER
+DAT
+OCK
+fRAMSM BHA INT. RA
+REC.DMA INT. F
+Dif
+
+tle
+
+;
+
+:
+
+REC.DATA REQ.
+TRANSM.DATA RE
+MASTER RESET
+a
+A
+
+iS ¢
+Ss
+
+DATA
+ATA
+DATA
+DATA
+
+BUS
+BUS (S/D
+BUS(S/D)
+
+DATA
+
+5
+HS
+
+ONTR.BES
+CONTR.
+BUS
+CONTR. BUS
+CONNER.
+
+BY
+aPELOVED
+
+isfent
+
+CN
+(D>
+:
+
+emems
+
+Rephacemintfer
+
+CY
+
+sBupleced
+
+by
+
+here
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+i
+
+Gets
+
+A-21
+
+JOY2 avon
+
+Ei dio vees
+PLS
+oa
+
+VROLeeTTHY
+
+0H
+2x
+Dd
+
+Dd
+
+LNs LN
+
+7,
+
+words
+
+ONNOYD
+
+TWNIIS
+
+313734 -TSY
+
+L INIT
+(D FINIT
+
+TWwisdS
+
+WIYIS NSNYSL - OSL
+
+INN
+
+a1N0
+
+Wis?
+
+OL
+
+Ao
+
+Pata
+
+- yy
+99079 83ih29b
+
+6
+
+e
+
+Nd
+
+Ne
+
+[GON GvOT
+
+C
+
+ye
+
+Nee
+
+Ne
+
+NIeoS
+
+th Nid
+
+Ol
+
+GOH WY¥07
+
+-—_—_____}oe~
+
+es Nid
+
+9
+
+Nld
+
+Nid
+
+OL
+
+OL
+
+3
+
+INI
+
+LL INI?
+
+Y
+
+ANI?
+
+2 INT
+
+S aNi7
+
+I
+
+3IN7
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+S/V
+
+OSL
+
+CNS
+
+no iA
+HIAAN
+
+K
+
+“Ob
+
+Nid
+
+390
+
+ND—12.018.01
+
+ASUON
+
+pea
+
+LI713S
+
+ay —_
+
+oe
+Sils
+
+aA DINNOISIA ONY ANFHSITEYLSS
+NOILDINNOD DNINAG (SNOILMIYLSNI - XOT
+SYVYMLIOS KE OILveHIGO 78 45NN
+
+5
+
+-—~
+
+ore
+
+Pal? oo
+TE
+
+S
+
+Lex/lex
+
+FIVISAILNI
+
+)
+:
+
+wv
+
+2
+XIN
+
+WSNUYLo—}---77
+
+DadH OL
+
+MIOT)
+
+dd
+
+b66bo66
+
+WHNOULNIII-VAVG
+
+dt
+
+STONSIS AWISTINT
+$e xfi2 x
+m3svo - y1v
+STaH
+
+ALAIUH LON
+
+oo
+
+AQUIH LIS -VLUD ~ YSON
+
+; : ;
+
+r
+HE
+
+NWN
+
+<
+
+|
+
+|
+wey
+7 Ren
+
+wert
+meq
+
+WHINOWLNIIZ-VLIVO
+ASKON
+Sv
+
+NOLLDIINNOD
+
+wey
+
+JIGH
+
+OL: INIHIOH
+
+938S¥) - ¥lvG
+
+SNIHIOH
+
+WFIGOH LNOHLIM
+JT
+
+oo
+
+S4¥
+—_—
+
+}-@3)—
+
++
++
+
+=
++
+
+ONN0YD
+
+o
+SAx
+
++
+
+IXM
+
+1Sof
+
+TYNIIS
+
+XL)?
+
+SLO
+
+_
+
+XL/I
+
+=O
+
+— =
+
++
+
+> =)
+
+_
+
+oslg
+
+=6){-
+
+=)
+
+> =
+
++
+
+|.
+
+68)
+
+hig 5 013299
+
+_
+
+06)
+
+>)
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+PLS
+2! dtp vee | reas
+
+L'p'V uol9ag aes UO!}Dajag ajey pneg
+
+slow
+
+Ixy O_
+
+|
+
+NO iZWOL UOItIsog YOUMS
+
+(s0ejJ91U} 72" A 398/88)
+
+yz
+IxL/t
+
+96
+
+Z'6L
+v'BE
+
+IxL/9
+— [SYS
+
+—_—_—
+
+WSNVHL -OSLG
+
+FAIFIIE
+
+8?.
+
+vwa-o0otd(
+
+Ajuo WING)
+8'9Z
+Ore
+Z'LOE
+
+FTV IIWAV SALVH Lid
+twine
+
+WIS
+
+ND—12.018.01
+
+/
+
+dd
+
+LNALNO
+
+|
+
+1
+xxxX &
++.
+
+Cable length
+
+A-—23
+
+to*
+
+10
+
+;
+
+0?
+
+Data signalling rate
+
+Data signalling rate versus cable length for unbalanced
+
+10°
+
+1
+
+10° bit/s
+
+CONT-6r79-a
+
+interchange circuit related to
+
+V.10, X.26, RS 423.
+
+ND—-12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+Cable length
+
+10°
+
+0?
+
+wv‘
+
+0
+
+.
+
+Data signalling rate
+Curve 1: terminated interchange circuit
+Curve 2: unterminated interchange circuit
+
+Data signalling rate versus cable length for balanced
+V.11, X.27, RS 422.
+
+10
+
+,
+
+:
+
+10’ bivs
+Ocrrt- ates
+
+interchange circuit related to
+
+NO—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A-—25
+
+SUMMARY
+
+' A.
+
+OF EIA RS-422 STANDARD
+
+FOR A BALANCED
+
+B.
+
+Line Driver
+Open Circuit Voltage {either logic state}
+Differential
+Common
+
+Differential Output Voltage (across
+Either
+
+[Vgol = 6.0V
+IVemol *- 3.0V
+
+Mode
+
+logic state
+
+100 ohm
+
+IVgl
+
+~ max
+
+load)
+
+(0.5Vyo.
+
+2.0V)
+
+Line Receiver
+
+Rg =
+
+Mark-Space Level Symmetry
+
+(across
+
+Mode
+
+100 ohms
+
+100 ohm
+
+\Vasl
+
+Common
+Either
+
+IVemsl
+
+Single
+
+Range
+
+Vemml
+
+* 0.4V
+
+IIlgc]°
+
+(across
+
+100
+
+T = Baud Interval
+Ringing (across
+
+150mA
+
+100 ohm
+
+ohm
+
+load)
+
+(t,. ty) >
+
+max
+
+V,-
+
+x}
+
+>
+
++60V
+
+100A
+
+(0.1T, 20ns}
+
+Percentage
+
+Open
+
+Single Ended
+
+Val
+
+Input Impedance
+
+R,
+
+Threshold
+
+Connon
+Absolute
+
+IVa
+
+Vassi t 0.1Vg5
+
+2.0V-
+
+- 4000 ohms
+IVeml = 7.0¥
+
+Stata
+
+Maximum
+
+\Vy]°
+Input
+
+Balance
+
+|Vgl> 6.0V
+
+200mV
+
+Voltage
+
+Differential
+tnput
+
+3.0V
+
+Sensitivity
+
+Mode Voltage Range
+
+Logic
+
++
+
+(other input grounded)
+
+Either Input
+Oifferantial
+
+10V
+
+3.25mA
+
+(other input grounded)
+
+Circuit
+
+IVgl >
+
+Vy, >
+(threshold
+
+Mode Voltage Range
+
+Differential
+input}
+
+Threshold
+
+Termination
+
+(optional)
+
+12v
+
+10V
+
+shift)
+(500
+
+Vem
+
+ohms
+
+in series
+
+Either Logic State
+
+logic state)
+
+Absolute
+
+Input Bias Vultage
+
+Input
+
+Common
+
+load)
+
+Vass ~ Va (steady stale)
+Vss = Vas
+Vam (steady state)
+(either
+
+IV, |»
+
+Ibyp -
+
+Single-Ended
+
+Definitions
+
+Limits
+
+at V,
+
+Ended
+
+Either
+0.25V-
+
+Either Output at V,
+Fall Times
+
+Input Current (power ON or OFF)
+
+Input
+
+Either
+
+Output Leakage Current (power off)
+
+Rise and
+
+Mode
+
+Single: Ended
+
+load)
+
+Vgml ° 0.4V
+
+Output Short Circuit Current (to ground)
+Either Output
+Voltage
+
+\Vyl ~ 6.0V
+IVeml = 7-0V
+
+Differential
+
+Other Input Grounded
+
+Either logic state
+
+Common
+
+INTERFACE
+
+Signal Voltage Range
+
+Output Impedance
+
+Differential
+
+DIFFERENTIAL
+
+with
+
+>
+
+7.0V
+each
+
+IV, |. 400mVv
+
+Total Load Resistance (differential)
+
+Ry > 90 ohms
+
+Multiple Receivers (bus applications)
+Up to 10 receivers allowed. Differential threshold sensitivity of 200mMV
+
+must
+
+be maintained.
+
+Hysteresis (optional)
+As
+
+required
+
+for applications
+
+with
+
+receiver, to control oscillations.
+
+Fail Sufe
+
+slow
+
+rise/fall time
+
+at
+
+(optional)
+
+As required by application
+to provide
+a steady MARK or
+SPACE condition under open connector or driver
+
+power
+OFF condition.
+
+C. Interconnecting Cable
+Type
+
+Twisted Pair Wire or Flat Cable Conductor
+
+Pair
+
+Conductor Size
+Copper
+
+Wire
+
+(solid or stranded)
+
+Other (per conductor)
+
+R-
+
+24 AWG or larger
+30 ohms:1000 ft
+
+Capacitance
+
+Mutual Pair
+
+C -. 20pFif.
+
+C . 40pFift.
+
+Stray
+
+Pair-to-Pair Cross Talk (balanced)
+Attenuation at 150KHz
+
+A:
+
+40dB
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A~26
+
+A.4
+
+HDLC DATA — HDLC DMA CONTROL INTERCONNECTION
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A-27
+
+eg
+
+WUNOULNTIG-VLVO
+
+beg
+
+ASYON
+
+p
+
+Si¥
+
+wey
+
+S4NFAId
+
+ONT 70
+noniwaanz>}
+
+ONIN
+
+-
+
++
+
+7
+:
+
+1
+
+Ho
+
+Kt
+
+@ i
+
+@9)
+_
+
+MOL
+
+IWD2 - 250
+:
+
+sue
+XOL
+
+A WLYOD OL ‘ OFY IN1FI24 -. ONY
+
+AP OPLYAILIV QOH WLYT-120
+
+77000,
+
+YILSUW
+
+y=
+
+aN,
+
+TWNYFLNI
+
+-
+
+IN
+
+-€-O08%
+
+IN) YLVI AFLLINSNOML - AIL
+
+VVLNOD
+
+LISTS
+
+ODOM WLI OL 7OFY LLINSNUYL- , CYL
+
+SNE
+
+LSIOFS
+
+m
+
+¥
+
+gn
+
+9034
+
+1$703¥
+
+- S09 vL¥O
+
+TNE
+
+¥LU7 OL
+
+L-090!
+
+COW
+
+TwNNBIMNI
+
+- O4C
+
+ASFOW MdAAFLN VLOT YIA1FII9 ~ 4108
+
+(2)
+
+Ct)
+
+é9)
+
+6
+
+—
+%G
+
+~
+
+@)
+
+Ho (2)
+
+INIP
+
+wae
+
+32/030
+
+331
+
+SLI OINSINS
+
+D ¥ AG
+ORWAILW ‘ONYHNO
+ION ONY
+Set
+
+ASY7
+
+90d
+VA
+
+-
+
+WL
+
+D705
+
+i alvex¥INTIS
+
+POmONIIN
+
+oa
+
+yw 37
+
+03777
+
+IN 3!
+SVH 90¥ISOXI
+AG O1IGHH
+ORION
+
+NI
+
+Hea IOeS
+
+Ox II
+
+O2Lv¥INIO|OT
+
+an
+
+DICH
+
+@
+@)
+ie
+
+@
+
+:
+
+:
+Ot
+
+x72
+
+y
+
+(\
+
++
+
+4 L119 M20
+
+JAIFI2Y
+OL ACY 24
+Lyndon
+wisO
+
+2 fram
+
+¥L¥O
+
+PAILIYXOL
+4so@
+NOON
+
+OL NWKOW78
+vied
+
+aH
+
+JICH
+
+8
+
+fl
+
+WNOLLIIVIAIA
+
+Ny
+
+Ci
+
+6)
+
+©
+
+2) ng?
+
+€s AFT
+.
+
+yzairyo sng | 22dfW WOHS/OL
+
+FLYLSISL
+
+4 ile MI
+
+SSIUTCY
+
+YOs HOSS
+
+INOILD 7719S
+YPLSIDIY
+
+ILE AAIAO
+
+LLINSNYYL
+
+OL
+
+SLNINIAS
+
+L7vxXOT #0
+
+NOILYYINII
+
+Y/C¥
+
+@is wes
+
+(5)
+
+AN
+
+))
+
+@)
+
+PA
+
+a
+
+"|
+
+YL1YO
+
+7¥I07 - St-0ag
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+NOILIZNNOIAFINI
+VOXLNOD YHA
+JIGH/¥LUD JOH
+
+YIN
+
+70HLNO? UNO
+
+RLULSIAL |) yryg | WWNYZLNI
+.
+
+2
+$n@-%,
+
+ND~—12.018.01
+
+fee
+
+weirs
+
+Dy7z' 20
+BLS
+TC iO com | pose
+
+A
+
+—_o-f
+
+| Le
+
+——i
+
+3
+
+2
+4
+
+4
+
+y
+
+5Vv—
+6No0°-—
+
+5
+
+MM,
+
+)
+
+Card Moduie:
+
+“A, 10 AW,
+1
+‘
+12
+
+The interface module is fit into a 100 terminai
+
+al
+
+connector where 4 of the terminais are used for
+
+asl
+
+power (+5V) and 4 terminals for ground (GND).
+
+6|
+
+[17
+
+The terminals 4-55 are assianed for the focai 1/O
+
+118 |
+2
+
+| 19)
+
+BUS, while terminal 56-95 are used for
+
+201
+
+22
+
+21]
+
+to the external device via
+
+24]
+
+23
+
+[25]
+
+28}
+
+| 29]
+
+391
+
+33
+
+14
+
+—
+
+}
+
+26]
+
+[27
+
+0!
+
+rat
+
+34
+
+35
+
+lag)
+
+[37]
+
+r—
+
+connection
+
+the piug-panel.
+
+Local 1/O Bus Signal Levels:
+Local !/O Bus
+
+Local I/O Bus signals are TRI-STATE TTL for all
+
+signais except interrupt lines and OMA request
+line, which are open collector TTL.
+
+Logical “1" signal
+
+O<S
+
+< 0,4V
+
+Logical “0” signal
+
+2.4
+
+<< S<5V
+
+Vv
+
+36
+
+SS
+rt
+
+RT,
+
+Lo}
+
+tL
+
+t
+
+u
+
+BERG
+
+| |
+;_|
+
+|_|
+[714
+
+L|
+
+yd
+
+a
+
+eke)
+7
+burndy
+
+To
+
+|
+
+plug
+
+[7
+
+|
+
+L |
+
+MS42RM
+
+[|
+
+ielug
+
+pane}
+
++4
+
+qe
+Lf}
+_—
+
+—
+
+[]
+
+.
+
+4
+
+—
+
+~
+
+Lal fs Le
+94
+
+Piss
+FT
+
+Po
+
+to
+
+the next 1/C position
+
+{used for IDENT and GRANT}
+
+PLUG
+
+Device
+
+These terminals do not
+have a 1-1 connection
+“/
+
+|
+
+External
+
+fh h ts
+Mii
+
+JS
+
+ay
+
+3
+
+D
+
+Cc
+
+EN)
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A.4.1
+
+Speed Selection (Switch Setting on 1181) Intercomputer Link
+
+2,400 bps
+4,8000 bps
+9,600 bps
+19,200 bps
+38,400 bps
+76,800 bps
+153,600 bps
+307,200 bps
+
+11F1
+
+11F2
+
+11F3
+
+11F4
+
+11F5
+
+11F6
+
+OFF
+OFF
+OFF
+ON
+OFF
+OFF
+OFF
+ON
+
+OFF
+OFF
+ON
+OFF
+OFF
+OFF
+ON
+OFF
+
+OFF
+ON
+OFF
+OFF
+OFF
+ON
+OFF
+OFF
+
+ON
+OFF
+OFF
+OFF
+ON
+OFF
+OFF
+OFF
+
+OFF
+OFF
+OFF
+OFF
+ON
+ON
+ON
+ON
+
+ON
+ON
+ON
+ON
+OFF
+OFF
+OFF
+OFF
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A-30
+
+A.5
+
+PROGRAMMING
+
+SPECIFICATIONS
+
+The HDLC interface for NORD-10 computers is designed around a Multi Protocol
+Communication Controller, MPCC, of the type X2652 from Signetics or the
+almost equivalent COM 5025 from SMC Micro systems.
+Sixteen different I/O instructions are used to control the interface. Eight are used
+to read from or write into the MPCC, four are for status and control and four are
+
+for DMA
+
+Module Address and Command.
+
+Possible interface standards are:
+
+a)
+CCITT V-24,
+and EIA RS-422.
+b)
+
+CCITT X-21
+
+BIS,
+
+CCIT X-21
+
+(X-27 signal levels),
+
+EIA
+
+RS-232-C
+
+CCITT V-35.
+
+The interface is also equipped with an internal clock which makes it easy for two
+interfaces
+to
+communicate
+without
+external
+communication
+equipment
+(MODEMS).
+The
+
+interface may be extended
+
+interrupt and
+
+|/O handling.
+
+with a DMA
+
+module
+
+to reduce software
+
+Four |/O instructions are used separate from
+
+module and four are used together with data module.
+
+load on
+
+the DMA
+
+The 16 I/O instructions are:
+Group No.
+
++ 0
+
+Group
+Group
+Group
+Group
+Group
+Group
+
++
++
++
++
++
++
+
+Group No. + 1
+No.
+No.
+No.
+No.
+No.
+No.
+
+Group No.
+
++
+
+2
+3
+4
+5
+6
+7
+
+10
+
+Group No. + 11
+Group No. + 12
+
+Group No.
+
+Group
+Group
+Group
+Group
+
++
+
+13
+
+No. + 14
+No. + 15
+No. + 16
+No. + 17
+
+Read Receiver Data Register
+
+(RxDR)
+
+Read Receiver Status
+Write Synch/ Address Register
+Write Character Length
+Write Transmitter Data Register
+Read Transmitter Status Register
+Write Transmitter Control Register
+
+(RxSR)
+(SAR)
+(CL)
+(TxDR)
+(TxSR}
+(TxCW)
+
+Write Parameter Control Register
+
+Read Receiver Transfer Status
+
+(PCR)
+
+Write Receiver Transfer Control
+Read Transmitter Transfer Status
+
+Write Tranmitter Transfer Control
+
+Read DMA
+Write DMA
+Read DMA
+Write DMA
+
+Address
+Address
+Command Register
+Command
+
+Instructions 0-7 operate directly on the MPCC. For a detailed description of these
+registers (bit mapping, etc.) the reader is advised to study the data sheets from
+the manufacturers or the HDLC Interface Control Hardware Manual (ND-11.018).
+Note that all |/O instructions operate only on bits 0-7 when
+not installed.
+
+the DMA
+
+module
+
+is
+
+In this text registers 0-7 are named related to X2652 Signetics notations. For cross
+reference to COM 5025 and HDLC Hardware Manual equivalent register notations
+are given.
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A.5.1
+
+10X Instruction Overview Table
+
+{0X + GPO, Read Receiver Data Register:
+Receiver Data Register is the low byte of the Receiver Data/Status Register
+{(RDSRL) as described in the data sheet. An assembled character (byte) is read
+from the interface into the A register in the CPU. (Character length is specified by
+lIOX GP + 4 or indicated by RDSRH (IOX GP + 2.) The received character is right
+justified.
+IOX GP + 1, Write Parameter Control Register (PCSARH):
+This is the high byte (bits 8-15) of the Parameter Control Sync/Address Register
+(PCSARH) described in the data sheet. The register defines protocol, etc. Refer
+to the data sheet.
+1OX GP + 2, Read Receiver Status Register:
+This is the high byte of the Receive Data/Status Register (RDSRH) and contains
+receiver status information. Bit mapping is described in the data sheet.
+1OX GP + 3, Write Sync/ Address
+
+Register:
+
+The Sync/Address Register holds the secondary station address in bit-oriented
+procedures or the SYNC character in byte-oriented procedures. It is the lower
+byte (Byte Control Procedure) of the Parameter Control Sync/ Address Register
+(PCSARL). Refer to the data sheet.
+IOX GP + 4, Write Character Length:
+The high byte of the Parameter Control Register (PCRH) is used to specify
+_ character length for receiver (bits 0-2) and transmitter (bits 5-7). At this point there is a difference between X2652 and Signetics and COM 5025 from SMC Micro
+systems. See the data sheet. Equal operation when bits 3 and 4 are 0.
+lIOX GP + 5, Write Transmitter Data Register:
+The low byte of the Transmit Data/Status Register (TDSRL) holds the character
+to be transmitted. The character length is specified by |OX GP + 4. Character
+must be right-justified.
+1\OX GP
+
++ 6, Read Transmitter Status Register:
+
+The
+high byte of the Transmit
+Data/Status
+Register
+transmitter command and status information. The functions
+are described in the data sheets.
+
+(TOSRH)
+contains
+of the different bits
+
+1OX GP + 7, Write Transmitter Control Register:
+This is the same byte as may be read by l|OX GP + 6.
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+1OX GP + 10, Read Receiver Transfer Status:
+The low byte is the receiver transfer status from the data modules. The high byte
+is the transfer status from the DMA module, and is not used unless the DMA
+module is installed.
+Bit mapping:
+15
+
+14
+
+13
+
+12
+
+OR
+OMA
+
+Bit 0:
+
+4
+
+10
+
+269
+
+«8
+
+7
+
+6
+
+5
+
+4
+
+EMTY
+
+LE
+
+FE
+
+86E
+
+Ri
+
+|OSR|
+
+SO
+
+RG
+
+3
+
+2
+
+1
+
+SFR | RXAIRXSA
+
+0
+AXD
+
+ONLY
+
+Data Available
+Indicates that a character has been assembled and may be read
+from the Receiver Data Register (RDSRL). Interrupt on level 13
+if enabled.
+
+Bit 1:
+
+Status Available
+Indicates that status information is available in the Receiver
+Status Register (RDSRH). Interrupt on level 13 if enabled.
+
+Bit 2:
+
+Receiver Active
+The receiver has seen the start of a frame, but not the end. This
+means that the receiver is active within a frame.
+
+Bit 3:
+
+Sync/Flag Received
+At least one SYNC character or FLAG has been receiver after
+the last reading of Receiver Transfer Status or Master Clear/
+Device Clear.
+
+Bit 4:
+
+0 (DMA Module Request)
+This bit is activated by the DMA module. If the DMA module is
+installed, this bit may be the reason for an interrupt on level 13 if
+enabled. It is, however, always read as 0 because it is cleared at
+the beginning of IOX GP + 10. If the DMA module caused an interrupt, the reason for this interrupt is given in the most
+significant byte of the Transfer Status.
+
+Bit 5:
+
+Signal Detector (SD)
+Status of the Signal Detector (CCITT circuit 109) from the Data
+Communication Equipment. A change in the status causes an
+interrupt on level 13 if enabled.
+
+Bit 6:
+
+Data Set Ready/! (DSR)
+Status of the Data Set Ready (CCITT circuit 107) signal (V-24,
+X-21 BIS) or the | signal (X-21) from the Data Communication
+Equipment. A change in the status causes an interrupt on level
+13 if enabled.
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A-—33
+
+Bit 7:
+
+Ring Indicator (RI)
+Status of the Ring indicator (CCITT circuit 125) from the Data
+Communication. A change in the status causes an interrupt on
+level 13 if enabled.
+
+Bit 8:
+
+Block End Status bit from DMA module.
+
+Bit 9:
+
+Frame End Status bit from DMA module.
+
+Bit 10:
+
+List End Status bit from DMA module.
+
+Bit 11:
+
+List Empty Status bit from DMA module.
+
+Bit 15:
+
+Receiver Overrun Status bit.
+
+Note: Bits 8-15 are cleared by reading the Receiver Transfer Status.
+1OX GP
+
++
+
+11, Write Receiver Transfer Control:
+
+The low byte is for interrupt and data enabling on the data module and also some
+Data Communication Equipment contro! signals. The high byte is for DMA
+module control signal.
+Bit mapping:
+1514
+
+~=«13-—12
+
+0s
+LE
+Int.
+
+Ene. |
+
+OMA
+
+Bit 0:
+
+BO
+PE
+Int.
+
+Ene. |
+
+BE
+tne.
+
+Msc.
+Tine,
+
+Ena. | Ens.
+
+GUC
+
+KZ
+
+Maint
+OTR |i Dev.
+
+Int.
+Ena.|
+
+clear)
+
+DMA
+
+Ena.
+DMA|
+
+AXE
+
+Int.
+Ene
+
+Statuq
+
+Jat.
+Ene.
+
+Oate
+
+ONLY
+
+Data Available Interrupt Enable
+A 1 in this bit together with Data Available (RXDA) will cause an
+interrupt on level 13. The bit is cleared by a servicing IDENT, by
+MASTER CLEAR and by DEVICE CLEAR.
+
+Bit 1:
+
+Status Available Interrupt Enable
+A 1 in this bit together with Status Available (RXSA) will cause
+an interrupt on level 13. The bit is cleared by a servicing IDENT,
+by MASTER CLEAR and by DEVICE CLEAR.
+
+Bit 2:
+
+Enable Receiver (RXE)
+Incoming serial data stream is enabled into the receiver. The bit
+is cleared by MASTER CLEAR.
+
+Bit 3:
+
+Enable Receiver DMA
+With a 1 in this bit, Data Available (RXDA) will cause a request
+to the DMA module. The bit is cleared by MASTER CLEAR and
+by a’’List Empty’’ key during DMA operation.
+
+Bit 4:
+
+DMA Module Interrupt Enable
+A 1 in this bit together with a request from the DMA module will
+cause an interrupt on level 13. The bit is cleared by a servicing
+IDENT, by MASTER CLEAR and by DEVICE CLEAR.
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A-34
+
+Bit 5:
+
+Device Clear/Select Maintenance
+Writing
+
+a 1 into this bit first gives a DEVICE
+
+interrupts and
+
+interrupt enabling flip-flops,
+
+CLEAR,
+
+control
+
+clearing
+
+signals to the
+
+Data Communication Equipment, transmitter control signals,
+Data Communication Equipment status latches and the Multi
+Protocol Communication Controller. Then it turns the Muiti Protocol Communication Controller into maintenance mode, looping transmitted data back to the received data. When the interface
+
+is in maintenance
+
+mode,
+
+the
+
+DEVICE
+
+disabled. The bit is cleared by MASTER
+Bit 6:
+
+CLEAR
+
+function
+
+CLEAR.
+
+is
+
+Data Terminal Ready/C (DTR)
+This bit controls a line to the Data Communication Equipment. It
+is the Data Terminal Ready (CCITT circuit 108) signal (V-24,
+X-21 BiS} or the C signal (X-21). The bit is cleared by MASTER
+CLEAR.
+
+Bit 7:
+
+Modem Status Change Interrupt Enable
+When
+
+set, this bit will cause an.interrupt on level 13 when
+
+one or
+
+more of the Data Communication Equipment status signals
+connected to the receiver changed to a state different from the
+
+last reading
+
+(SD,
+
+IDENT, by MASTER
+Bit 8:
+
+DS/I,
+
+Rl}.
+
+The
+
+bit is cleared
+
+by servicing
+
+CLEAR and DEVICE CLEAR.
+
+Biock End Interrupt Enable
+This bit will, together with Block End and DMA
+Enable, cause an interrupt on level 13.
+
+Bit 9:
+
+Module Interrupt
+
+Frame End Interrupt Enable
+This bit will, together with
+
+Frame
+
+End and
+
+rupt Enable, cause an interrupt on level 13.
+
+Bit 10:
+
+DMA
+
+Module
+
+Inter-
+
+List End Interrupt Enable
+This bit will, together with List End and
+Enable, cause an interrupt on level 13.
+
+Bit 15:
+
+Always
+(M11).
+
+1 after |OX
+
+Note that List Empty (Receiver
+Module Request (Bit 4).
+
++
+
+11 if inspected
+
+Transfer
+
+Status,
+
+Bit
+
+DMA
+
+Module
+
+after a DUMP
+
+11)
+
+always
+
+Interrupt
+command
+
+gives
+
+a DMA
+
+1OX GP + 12, Read Transmitter Status:
+
+The low byte is the transmitter transfer status from the data module.
+byte is the transfer status from the DMA module if installed.
+Bit mapping:
+
+18
+ER
+
+14 «413°«:12, «1
+
+«109
+
+BT
+
+TR | ve | re | se
+
+CUS
+RFS
+
+tl
+pee
+
+TxA|TXU PX8E
+
+DMA ONLY
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+The high
+
+A-35
+
+Bit 0:
+
+Transmit Buffer Empty
+Indicates that the Transmit Buffer (TDSRL} may be loaded with
+a new character. Interrupt on level 12 if enabled.
+
+Bit 1:
+
+Transmitter Underrun
+Indicates that the Transmit Buffer has not been loaded with a
+new character in time. The transmitter will act as defined by the
+IOX GP + 1 instruction (PCSARH). The underrun condition
+may cause an interrupt on level 12 if enabled. Transmitter
+Underrun may be cleared by Master Clear, Device Clear or
+Transmit Start of Message (TSOM) command.
+
+Bit 2:
+
+Transmitter Active
+This bit is turned on by sending Start of Message. It will go off
+when Transmitter Enable (TXE) is turned off and the characters
+or sequences already in the transmitter are shifted out on the
+Transmit Data Line (TSO).
+
+Bit 3:
+
+Not used
+
+Bit 4:
+
+0 (DMA Module Request)
+This bit is activated
+meaning
+
+unless
+
+the
+
+by the
+
+DMA
+
+DMA
+
+module
+
+module,
+
+and
+
+is installed.
+
+thus
+
+It is,
+
+it has no
+however,
+
+always read as 0 because it is cleared at the beginning of |OX GP
++ 12. If the DMA module is installed, additional information is
+given in the high byte. DMA Module Request causes an interrupt on level 12 if enabled.
+Bit 5:
+
+Not used
+
+Bit 6:
+
+Ready for Sending (RFS)
+Status signal from the Data Communication Equipment {CCITT
+circuit 106). A change in the status causes an interrupt on level
+12 if enabled.
+
+Bit 7:
+
+Not used
+
+Bit 8:
+
+Block End Status bit fram DMA module.
+
+Bit 9:
+
+Frame End Status bit from DMA module.
+
+Bit 10:
+
+List End Status bit from DMA module.
+
+Bit 11:
+
+Transmission Finished status bit from the DMA module.
+
+Bit 15:
+
+Illegal Key or Illegal Format in Transmitter Buffer Descriptor
+This status bit indicates an error stop and the transmitter should
+be restarted.
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A-36
+
+IOX GP + 13, Write Transmitter Transfer Control:
+The low byte is for interrupt and data enabling on the data module and also two
+signals concerning the connection to the Data Communication Equipment. The
+high byte if for the DMA module.
+Bit mapping:
+15
+
+14
+
+Reserved
+
+#13
+tor
+
+OMA
+
+#12
+module
+
+DMA
+
+Bit 0:
+
+«14
+
+10
+
+9
+
+8
+
+7
+
+LE
+Int.
+
+FE
+Int.
+
+BE
+int.
+
+MSC
+Int.
+
+Ena. | Ena.|
+
+Ene. | Ena.
+
+6
+rRatq
+
+5
+
+4
+
+3
+
+HDX
+
+Int
+Ena. |
+
+EN
+OMA|TXE
+
+OMA
+
+2
+
+1
+
+0
+
+Int
+Int.
+Ena. | Ena.
+
+Statug
+
+Data
+
+ONLY
+
+Transmit Buffer Empty Interrupt Enable
+A 1 in this bit together with Transmit Buffer Empty (TXBE) will
+cause an interrupt on level 12. This bit is cleared by a servicing
+IDENT, by MASTER CLEAR or DEVICE CLEAR.
+
+Bit 1:
+
+Transmitter Underrun Interrupt Enabled
+A 1 in this bit together with a Transmitter Underrun condition
+will cause an interrupt on level 12. The bit is cleared by a
+servicing IDENT, by MASTER CLEAR and by DEVICE CLEAR.
+
+Bit 2:
+
+Transmitter Enabled (TXE)
+
+A 1 in this bit together with Ready for Sending
+
+(RFS)
+
+(CCITT
+
+circuit 106) enables the transmitter part of the Multi Protocol
+Communication Control (MPCC) to be 1 (MARK) and the
+Transmitter (TXA) to go off when closing flag or last character
+has been transmitted. The bit is cleared by MASTER CLEAR and
+by DEVICE CLEAR.
+Bit 3:
+
+Enable Transmitter DMA
+With
+
+a 1 in this bit, Transmitter
+
+Buffer
+
+Empty
+
+(TXBE)
+
+will cause
+
+a request to the DMA module. This bit is cleared by MASTER
+CLEAR by Transmission Finished or by Illegal Key/Format
+(DMA operation).
+
+Bit 4:
+
+DMA Module Interrupt Enable
+A 1 in this bit together with a request from the DMA module will
+cause an interrupt on level 12. The bit is cleared by a servicing
+IDENT, by MASTER CLEAR and by DEVICE CLEAR.
+
+Bit 5:
+
+Half Duplex
+A 1 in this bit will cause the interface to operate in a half duplex
+mode. The request to send (ROTS) (CCITT circuit 105) signal is
+not turned ON unless the Signal Detector (SD) (CCITT circuit
+109) is off. A 0 in this bit will cause the interface to operate in a
+full duplex mode. The bit is cleared by MASTER CLEAR and by
+DEVICE CLEAR.
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A-—37
+
+Bit 6:
+
+Request to Send (RQTS)
+This is a control signal to the Data Communication Equipment
+(CCITT circuit 105). In full duplex, 1 means ON and 0 means
+OFF. In half duplex, Signal Detector (SD) (CCITT circuit 109)
+must be OFF before the Request to Send fine goes ON. Normal
+response from the Data Communication Equipment is to turn
+Ready for Sending (CCITT circuit 106) ON when Request to
+Send is ON. The bit is cleared by MASTER CLEAR and by
+DEVICE CLEAR.
+
+Bit 7:
+
+’
+
+Modem Status Change Interrupt Enable
+When set, this bit will cause an interrupt on level 12 when Ready
+for Sending from the Data Communication Equipment changes
+to a state different from the last reading. The bit is cleared by
+servicing IDENT, by MASTER CLEAR and by DEVICE CLEAR.
+
+Bit 8:
+
+Block End Interrupt Enable
+This bit will, together with Block End and
+
+Module
+
+Interrupt
+
+DMA
+
+Module
+
+DMA
+
+Module
+
+Interrupt
+
+inspected
+
+after
+
+a
+
+DUMP
+
+bit
+
+11)
+
+always
+
+Enable, cause an interrupt on level 12.
+
+Bit 9:
+
+DMA
+
+Frame End Interrupt Enable
+This bit will, together with Frame End and
+Interrupt Enable, cause an interrupt on level 12.
+
+Bit 10:
+
+List End Interrupt Enable
+This bit will, together with
+
+List End and
+
+Always 1 after
+command (M15)
+
++
+
+Enable, cause an interrupt on level 12.
+
+Bit 15:
+
+|OX
+
+GP
+
+Note that Transmission Finished (Transmitter
+gives a DMA Module Request (bit 4).
+
+13
+
+if
+
+Transfer
+
+Status,
+
+Note that bit 15is 1 if inspected after a DUMP command.
+{OX GP + 14, Read DMA Address:
+The last value written to this register by IOX GP
+for debugging or control.
+
++
+
+15 is read back. May be used
+
+1OX GP + 15, Write DMA Address:
+The 16 least significant bits for the first location in a load/dump area or the first
+location in a list of buffer descriptors are written into a register (M3) in the DMA
+module.
+1IOX GP
+
++
+
+16, Read
+
+Before a new
+
+inspected.
+
+DMA
+
+Command
+
+Register:
+
+command
+
+is written
+
+to the
+
+If it is zero, the new command
+
+DMA
+
+module,
+
+this register should
+
+sequence can be started.
+
+til it becomes zero. A MASTER CLEAR command
+started even if the command register is not zero.
+
+sequence
+
+can,
+
+be
+
+If not, wait un-
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+however,
+
+be
+
+A-38
+
+1OX GP + 17, Write DMA Command:
+The two most significant bits of the address for the first location in a load/dump
+area or the first location in a list of buffer descriptors are written into a register
+(M2) in the DMA module together with a value giving one of 8 commands. The
+data format for this instruction is described in the next section.
+The HDLC DMA module is partly controlled by !/O instructions, and partly by control information in buffers in main memory. |/O instructions are used to set buffer
+addresses, to start operations (give commands), to enable interrupts and to read
+status.
+Control information in the memory is used as additional information for the interface when an operation has been started (by a command).
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A-39
+
+A.5.2
+
+The Commands
+
+The commands may be divided into 3 groups:
+1.
+
+Device Clear (1)
+
+3.
+
+Data Transfer (3)
+
+2.
+
+Load/Dump and Initialize (4)
+
+Device Clear
+
+is started by placing octal 40 in the A register and executing
+
+(octal).
+
+|OX GP
+
++
+
+17
+
+Load/ Dump and Initialize
+is started by first writing the least significant 16 bits of a buffer address to
+the interface (IOX GP + 15 (octal)) and then writing the two most
+significant buffer address bits (bank bits) together with the command bits to
+the interface (IOX GP + 17 (octal}).
+Data Transfer
+
+is started by first writing the least significant 16 bits of a buffer address to
+
+the interface (IOX GP + 15 (octal)), then the two most significant bits (bank
+bits) together with the command bits (IOX GP + 17 (octal)) and at last
+enable interrupt and DMA module (lIOX GP
+GP + 13 (octal) for transmitter).
+
++
+
+11(octal) for receiver and IOX
+
+A command sequence should never be interrupted.
+The Specific Commands
+Eight different commands may be used. They are:
+A register when IOX GP + 17 is executed. Y is bank address: BE. (0,3|
+—
+
+Device Clear
+
+(0)
+
+000040
+
+—
+—
+—
+—
+
+Receiver Start
+Receiver Continue
+Transmitter Start
+Dump Data Module
+
+(2)
+(3)
+(4)
+(5)
+
+00100Y
+00140Y
+00200Y
+00240Y
+
+—
+
+—
+—
+
+Initialize
+
+(1)
+
+Dump Register
+Load Register
+
+(6)
+(7)
+
+00040Y
+
+00300Y
+00340Y
+
+Device Clear (Command 0)
+Recommended program for Device Clear is:
+SAA0
+1IOX GP + 11 (octal)
+
+%
+%
+
+Aregister = 0
+Write Receiver Transfer Control
+
+1IOX GP + 11 (octal)
+IOX GP + 17 (octal)
+
+%
+%
+
+Device Clear to Data Module
+Device Clear to DMA Module
+
+BSET ONE50 DA
+
+%
+
+Aregister = 40 (octal)
+
+The Device Clear sequence as described above will stop all data transfers to and
+from the interface and it can be used at any time. Device Clear will clear all
+interrupts from the interface and a dialed up modem connection will be broken.
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+Initialize (Command 1)
+The Initialize sequence
+are:
+1.
+2.
+3.
+4.
+5.
+6.
+7.
+
+uses 7 locations in memory.
+
+Parameter Control Reg.
+Sync/Address Register
+Character Length
+Displacement 1
+Displacement 2
+Max. Rec. Block Length
+Checksum
+
+The contents of the locations
+
+(8 least significant bits)
+(8 least significant bits)
+(8 least significant bits)
+(No. of bytes, first block in frame)
+(No. of bytes, other blocks in frame)
+(No. of bytes, including displacement)
+(102164 is written back from interface
+
+The content of the 3 first locations are written into the Data Module and the
+mapping of the control bits are described in data sheets for SMC COM 5025 and
+Signetics MPCC 2652. Displacement 7 is the number of free bytes reserved at the
+beginnning of each buffer containing the start of a message (Frame). Displacement 2 is the number of free bytes reserved at the beginning of each buffer which
+does not contain the start of a message (Frame). Maximum Receiver Block
+Length is the total number of bytes in a receiver buffer, including displacement.
+The Checksum written back from the interface may be used as a control. The
+interface should not be used in DMA mode if this checksum is wrong.
+Receiver Start (Command 2)
+The address written to the interface in a Receiver Start sequence is denoted a
+"List Pointer’’. The address is the first address of a list containing ’’ Buffer Descriptors” {see the HDLC DMA List Structure). This command also selects Displacement 1 for the first buffer and should therefore be used the first time the receiver
+is started after a power up or receiver disable.
+Receiver Continue (Command 3)
+This command is used to write a new List Pointer to an enabled and working interface. It should only be used as a response to a “’ List Empty”’ interrupt.
+Transmitter Start (Command 4)
+This command is always used to start transmission of data. The address written to
+the interface is the ’ Transmitter List Pointer’’ or the start address for the list of
+Buffer Descriptors”.
+Dump Data Module
+
+WPWN>
+
+This command is mainly for maintenance purposes. It requires
+memory, where the contents of the following registers are stored:
+Parameter Control Reg.
+Sync/Address Register
+Character Length
+Receiver Status Register
+Transmitter Status Reg.
+
+5 location
+
+in
+
+(8 least significant bits)
+(8 least significant bits)
+(8 least significant bits)
+(8least significant bits, not accumulated)
+(8least significant bits, not accumulated)
+
+The contents of the registers in the Multi Protocol Communication Controller
+(MPCC) is transferred to memory. The Receiver Status Register is also ORed into
+the Receiver Dataflow Status Register to prevent loss of information.
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A—41
+
+Dump Register
+This command can be used to dump the contents of any number of the 256
+random access memory registers in the DMA module. Required space in memory
+is 2 locations plus 1 location for each register to be dumped. The contents of the 2
+locations are:
+1.
+2.
+
+First Register Address
+Number of Registers
+
+If both values are zero, the contents of the 16 registers in the Bit Slice are written
+into memory.
+The meaning of the different values are illustrated in the figure below.
+COMPUTER
+
+DMA
+
+MEMORY
+
+MODULE
+56 RAM
+
+Registers
+Address written
+
+First Register
+No. of Registers
+
+0
+
+1
+
+DUMP
+AREA
+
+by |OX GP
+
+15, IOX GP
+
+\
+1
+
+377
+
+Load Register
+This command can be used to load any number of the 256 random access
+memory register in the DMA module. Required space in memory is 2 locations
+plus 1 location for each register to be loaded. The contents of the 2 locations are:
+1.
+2.
+
+First Register Address
+Number of Registers
+
+The Load Register command is simular to Dump Register except that data is
+moved in the opposite direction. It is not possible to load the register in the Bit
+Slice by this command.
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A—42
+
+HDLC DMA LIST STRUCTURE
+
+DATA BUFFER
+
+‘KEY
+| Dataflow Co
+
+LIST POINTER
+
+| Displacement (D)
+(D = Number of free
+bytes)
+
+BYTE Count
+Most Address
+Least Address
+
+BUFFER
+
+DESCRIPTOR
+
+KE Y!Dataflowcost
+
+|
+
+Byte Count =
+Number of information
+bytes
+
+New List Pointer is old List Pointer+'4,
+or loaded from memory (if New List Pointer)
+
+Bits
+Key for Empty
+
+Receiver Block is
+
+Full Receiver Block is
+Block to be Transmitted is
+Already Transmitted Bloek is
+New List Pointer is
+
+10
+9
+0
+1
+071
+1 0
+1
+0
+1
+1°40
+
+8
+0
+1
+0
+1
+
+= 1000g
+= 2400,
+= 3000,
+
+Legal Keys for the Receiver
+
+= 1000, and 3000,
+
+Legal Keys for the Transmitter
+
+= 2000, and 3000,
+
+All other key bit combintations mean list empty.
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A-43
+
+HDLC DATA 1181
+Switch
+3C]
+
+Position
+
+Device No.
+
+foctali
+
+/dent Code
+
+(octal)
+
+OFF
+
+0
+
+OFF
+
+0
+
+ON
+
+]
+
+3C2
+
+ON
+
+_2
+
+3C3
+
+ON
+OFF
+ON
+OFF
+ON
+
+4
+0
+10
+0
+20
+
+ON
+OFF
+ON
+
+40
+0
+100
+
+ON
+OFF
+ON
+OFF
+ON
+
+200
+
+3C4
+3C5
+3C6
+3C7
+3¢8
+10A1
+1QA2
+10A3
+
+OFF
+
+OFF
+
+0
+
+0
+
+10A4
+
+ON
+OFF
+ON
+
+20
+0
+40
+
+10A5
+
+ON
+
+100
+
+ON
+
+200
+
+ON
+
+400
+
+ON
+
+1000
+
+10A6
+10A7
+10A8
+
+OFF
+
+OFF
+OFF
+OFF
+
+0
+
+0
+
+OFF
+
+OFF
+
+Comments
+
+Test, CLK Disconnected
+Normal, CLK Connected
+X-21 Interface
+V-24 Interface
+
+0
+0
+
+0
+
+0
+
+Standard Device Numbers:
+
+1640-1657
+1660-1667
+1700-1720
+1740-1757
+1760-1777
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A—44
+
+XO!
+
+(NOILONYLSNI
+
+FHL LV O3NVI19)
+
+OQNVWWOOD
+
+YV3TO
+
+301A3Q
+
+peg
+
+8pOD
+
+puewMody |,
+
+PUR UUIAT
+
+oO
+
+GO |
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+0
+
+OP
+
+Lunt |
+
+a7)
+
+as
+
+Na
+
+mi
+
+HILS(IOFY
+
+VIVO
+
+NES Lid xX
+
+“El+dO KOI 10
+
+Ov3¥
+
+2LiaM
+
+a1
+
+dt
+
+OT0H
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+0 38 GQINOHS ONVWINOO
+
+VWO
+
+VIA
+
+‘S3LON
+
+SI LSI LIGSIHL,
+
+GNYWWOO
+
+Gi
+
+eh
+
+Fl
+
+SLIM
+
+GNVAWOO
+
+V ddLsV O31L93dSNi
+
+YOsd 1d39X7
+dWOG
+
++ O94
+
+vwa
+
+JLIUM
+
+vwWa dvi"
+
+l
+
+Ol
+
+S3SSNVH1
+
+SLIM
+
+OV3IY
+
+YSLLINWSNVHL
+
+SNLVLS
+
+» | TOMLNOOD
+NOB
+
+YILLIWSNVYL
+
+Y3SAIZ9N3Y
+
+BYLNOOD ASNVEL
+
+ssaY¥aqqv
+
+¥31SIO39Y4
+
+#s900tHL
+
+‘ONVWANOD
+
+0
+
+0
+
+SI Od VWG
+
+0
+
+SAWM1Y
+
+0
+
+OSV GV3Y
+
+x
+
+x
+
+3HL AO LYVIS
+
+0
+
+0
+
+XOI
+
+0
+
+Ol+dD
+
+0
+JO
+
+33
+
+(3
+
+INI
+
+{3
+
+iND
+
+“ReTo
+
+f3
+
+SL
+
+“KL
+
+9
+
+‘OSH TOYLNOD
+
+H3ISNVHL
+
+it
+
+LSV371
+
+an
+
+igi
+
+BA
+
+31)
+
+38
+
+Zl
+
+LNVOISINDIS
+
+BLO
+vet
+
+OVIY
+
+SLIA
+
+SGNVWWOD
+
+ysa
+
+3LINM
+
+SS3¥OCV
+
+vine
+os |
+
+Y3SAISOS9Y
+
+ss3y¥ddv
+
+UNA
+woe
+
+HILLINSNVYL
+
+91
+
+oe
+u43
+
+BESENLVIS HSISNVYL
+
+LSV a7
+
+we
+
+Sau
+
+LNVOIFINSIS
+
+vex}
+
+TNIV
+
+SLIG
+
+vaxel
+
+0
+
+4aNnL
+
+0
+
+0
+
+g
+
+O
+
+voil
+9xXLf
+
+luogvi
+
+0
+
+S
+
+GXtp
+
+HSLLINSNY
+EL SLIM
+
+g
+
+‘O4a¥ SNLVLS HALLIWSNVYL OVaY
+
+exalt
+O
+evs]
+svs}
+
+evs]
+
+wu aH
+
+l
+
+ose
+7 98e
+
+gc
+
+jorsy
+
+SNLVis ¥3AIS93" OV3HY
+
+te
+
+XO
+
+4° ON. dNOYD
+xol
+
+0
+
+CVs"
+
+83cSo3e
+
+“O34 TOUINOD
+
+SLTHM
+
+0
+
+YSLIWVEWd
+7XY
+
+SNOILONYLSNI
+
+NOILONNS
+
+VIVd eaAlyosY
+
+1ou,
+é
+
+GRU
+S
+
+9
+
+Pee | SXT,
+v
+
+won caleta
+
+EXgl
+
+noo
+€
+
+ISil
+
+€
+
+?
+
+SL
+
+SLtuM
+
+voL|
+
+|wosi
+
+vo
+
+SS3YHOGOV ONVWWOD 4C
+ae
+xat | Sloe
+aN
+
+,
+
+0
+
+wa
+
+0
+
+yueg
+
+AXL
+
+spg yueg
+
+wN2
+
+sig
+
+ea
+
+Axi f wx
+
+pt
+
+JLIGM
+
+WOSL WO3) HuOosvd
+
+woSl
+
+uatlaine |
+
+guxip
+
+Ell
+
+HLONS TY SLOVYVHO
+
+Zt
+
+¥3LSID SY SSIHYQQV/ONAS
+
+bb
+
+cvs
+
+OL
+
+240%]
+
+0
+
+PRAT
+
+zas
+
+6
+
+ovsl
+
+ews
+
+ixr{
+
+as
+
+8
+
+foroxL | Eto%x1]
+
+zxth
+
+Oxi,
+uvs|
+2vs|
+
+1O%8 [i T97u |Z 1Oee
+ovs}|
+
+TE
+
+wosulwo3d | ca,
+OF"
+
+P0738
+z
+
+l
+
+tee
+
+reer
+
+ieli
+
+0
+
+r
+
+ND—12.018.01
+
+A—45
+
+4t4e
+
+ts
+
+OWT
+
+S14
+
+OGP Ss OM ANLIN
+D3y 1
+
+H38WON
+
+H38WON
+O34 1
+
+YSL
+
+al ( EN )
+
+S¥3iSiO3H GvOI
+
+Y3S8WNN
+
+Atrttte
+XxXXXXX
+
+|Z
+
+NI O=
+
+(SLIG ANV@) SS3HACV JO S1IG NOIS LSOWZ
+SS3¥dCV 4O SLIB ‘NOIS 1SV41 SL
+
+XXXXXX
+
+dWNG
+
+Si
+
+39OF1S LIG FHL YS1SIO3Y
+
+AO reo
+
+H3LSIOSY
+
+iL
+
+G3idO9 SI HOOT
+
+~
+
+SHAa1SIN3H dwnd
+
+‘AHOWASW OLNI
+
+~
+
+9
+
+2INAGOW VLVG
+
+XXXXXX
+
+S$
+
+SI
+
+XXXXXX
+
+AQOEDO
+
+Gt
+
+Lt
+
+Ao0¢zo0
+
+SL
+
+|
+
+XXXXXX |
+
+L
+
+SZ 1VULINI
+
+dWnG
+
+ZL
+
+-
+
+_
+
+LEVIS HILLUWSNVE
+
+-
+
+-
+
+fp
+él
+
+XXXXXX
+(L=€ Ltd)
+
+Gt
+el
+
+4.00200
+
+Q9O01d1e9S30 w3a4gNB)
+
+LYYLS YIAISDSY
+
+A00100
+
+SANILNOD SaATSOag
+dl
+
+2
+
+él
+
+XXXXXX | €
+(1=€ 119)
+
+St
+(t= € 118)
+
+XXXXXX
+
+SONVWAO9
+
+YV3I1D 3D1A30
+
+St
+
+ovo0cd | 0
+
+yalsioseV
++d9 XO!
+NOILONYASNI XOi ‘|
+
+Ah
+
+AO0v000
+
+HALSIDSY-V
++d XOI
+NOILONBLSN! XOlZ
+
+~
+
+ih
+
+AOt 100
+it
+
+=
+
+iL
+
+-
+
+:
+
+(do giasso ¥3s4ne
+
+OYoidtd 9530 Badans!
+
+XIN
+
+poL@ot
+zdsid
+
+[NOO TH
+
+_
+
+-
+
+YSISIOaY-V
++dD XOl
+NOILONYLSNI XO '€
+
+(
+
+(
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+PL
+
+WA LITASN YY
+
+(aNtO AO OL LOOPS A TAWAN
+0
+LLE S OUTS
+
+PESOS
+
+ySY
+VD
+
+WALSH
+
+TAL
+WALSEOEDL SLEW LS
+SAT WALOV EV ELD
+
+Td ShG
+
+Hod
+
+Yv¥S
+
+73
+
+1 asia
+AN
+
+~
+yading
+AYOWAW
+
+ONAS
+
+VEE?
+
+Yyod
+
+Yvs
+
+JAN
+SS"DLAGWAINAS
+
+Wa.
+
+WALSIO TH
+
+COSL) LdSIG SLOVTIS
+PASI SLT TIS
+
+WASH ALD
+
+ASIC TESTES WIN SU NTINGG
+
+HOW AM TENT IOUT
+
+LGN
+
+UNI Y
+
+UTATL YIN OX TIN
+
+Da
+
+AAA
+
+SSAA
+
+LOC LN
+
+OOOH
+
+TOMLNO
+
+DAH
+
+POEONGE
+
+HTH
+
+TEN
+
+SNOOTH
+
+HLON
+
+WESTOP
+
+S3.LON
+
+(
+
+ND—12.018.01
+
+A—46
+
+TOYLNOD
+
+(1) Aad
+(0) A3X
+
+“OTaVLVO
+
+Z19S1
+V1oSL
+O10SL
+Y5I
+TYOaVL
+WOaL
+WOSL
+(ozW) USODL)
+
+(0) Aa
+(L) Aa
+
+(OLY ‘OZW) (15094)
+TOHLNOD MOTS7VLV0
+
+a
+a
+0
+0
+
+0
+0
+
+0
+0
+0
+0
+a
+
+Te
+(0) A3x
+3NOQ 19074
+yest
+Z19SL
+11081
+O1OSL
+WoL
+LuOaVvL
+Woal
+WOSL
+(OEW) (1SO9.)
+
+SALYLS MOTVAVLIVO
+
+(0) Ay
+(4) Aa
+aNOG 19078
+WHO WH
+z 10S
+L OSH
+079SH
+NAY AOH
+Vv9/LYOBVH
+WOSH
+
+woay
+
+TOY INO
+
+¥SdSNVEL
+
+378VvNa
+JISVNG
+ERCLANE
+“LNT FONVHO WACOM JIEWN3
+SLOU
+XH
+ldNUeaLNI GOR VO a1aVNG
+TA CSLLINSNVELS TaV NG
+NaXL
+LdNUHALNI SNLVIS aTAVNG
+LdéNeyalNi VLVd 31aVNG
+(SUM) (O14) PEL 4 dd XOt
+
+SNLWLS 3T8VNA
+
+a18vNa
+378VN4
+a18VvNa
+"JN! 3ONVHO WSGOW 378VvN3
+ER)
+LNIVI
+LdNYHALNI GOW VING 378VN3
+VG HIAI30ay J19VNA
+Naxy
+LANYY SLM
+
+TdNyealnt VLVd JTaVNG
+(LEW) (014) Bib + dD xOF
+JONLNOD HSISNWHL
+
+0
+0
+0
+
+Q
+0
+
+0
+0
+v
+0
+6
+
+LWAUOF AT
+
+G
+0
+
+WOATT
+
+—
+
+377
+OSHSINIG NOISSINSNVHL |
+
+QNa LSI 7
+GNI aves |
+dwa 49078
+0|
+Sau
+0
+(LS3ND3d FINCOW WIG) O
+a
+
+SALVWLS
+
+YadISNVYL
+
+VXL
+NOUYSGNA UaLLIWSNYVEL
+1sanodu ¥LVG
+(bi) (S14) 821+ dd KO
+
+NNESAG
+oO |
+0
+0
+Aid W3 ist]
+ana LSi7
+ANA 3WVvuS
+QN3 19018
+IY
+LP uSO
+as
+(LSANDAY JINGOW YW)O
+udS
+WXH
+
+FAVUVAVSNLVIS—
+
+Flav UVvAy VLVG
+(oLw) (Siu) 8014 d5 x1
+SNLWLS H3ASNVUL
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+o
+0
+
+0
+0
+0
+0
+
+0
+0
+0
+o
+0
+0
+0
+0
+0
+0
+0
+0
+0
+
+0
+
+(Old ‘OZW) (14S09u)
+SNLVLS MOTAVLVO
+
+ND—12.018.01
+
+“a
+
+UST
+ee
+
+nor
+XN
+eerie
+
+©
+
+QrN
+MT
+ON
+WOM
+
+orn
+mew
+-—
+Ke
+Fe
+ee
+
+a
+
+OD
+
+Mm
+
+HO
+
+Tt
+
+NO
+
+OoOmr-
+
+RECEIVER
+TRANSMITTER
+
+A-—47
+
+A.5.3
+
+Simple Debugging Programs with Memory Map
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A-—48
+
+HDLC
+
+DMA
+
+MODULE
+
+USES
+
+DEVICE
+
+DEBUGGING
+
+NUMBERS
+
+PROGRAMS
+
+1640-1657
+
+ON
+
+INTERFACE
+
+Device Clear
+
+SAAO
+tOX 1651
+SAA 40
+1OX 1651
+1OX 1657
+WAIT
+
+20/
+
+Init
+
+LDA *5
+10X 1655
+LDA*4
+1OX 1657
+WAIT
+(ADDRESS)
+{COMMAND}
+/PCR
+SAR
+CL
+DISP 1
+DISP2
+MAX BLOCK
+CHECKSUM
+
+30/
+
+ADDRESS
+ALUO
+
+ALU 17
+DUMP MEMORY
+
+ADDRESS
+MO
+
+~~
+
+oanawnfS
+
+LDA *5
+1OX 1655
+LDA*4
+1OX 1657
+WAIT
+(ADDRESS)
+(COMMAND)
+/0
+0
+
+10
+7
+100
+0102164
+044005
+165655
+044004
+165657
+151000
+136
+
+136/
+137
+140
+
+157
+
+LDA*5
+tOX 1655
+LDA *4
+1OX 1657
+WAIT
+(ADDRESS)
+(COMMAND)
+/0
+40 (<377)
+
+™
+
+Dump ALU
+
+120
+
+anmawnig
+
+ADDRESS
+
+170400
+165651
+170440
+165651
+165657
+15100
+
+376/
+377
+
+044005
+165655
+044004
+165757
+151000
+376
+3000
+0
+40
+
+M37
+M40
+11377
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A—49
+
+LIST
+ADDRESS/
+
+2
+OORWNH-O
+=
+PON
+
+200
+1000
+154
+
+8
+
+~
+
+(maint.mode)
+
+LDA *7
+1OX 1655
+LDA*6
+lOX 1657
+LDA*5
+1OX 1653
+WAIT
+(LIST ADDRESS)
+(COMMAND)
+(CONTROL)
+KEY
+BYTE COUNT
+DATA ADDRESS
+DATA ADDRESS
+KEY
+
+1000
+0
+0
+1000
+1000
+
+044007
+
+165655
+165657
+165653
+151080
+240
+2000
+114
+
+240/
+WKH=
+
+Init Transmitter
+
+KEY
+BYTE COUNT
+DATA ADDRESS
+DATA ADDRESS
+KEY
+
+151000
+
+2003
+2000
+
+-&
+
+LIST
+ADDRESS/
+
+044007
+165655
+044006
+165657
+044005
+165651
+
+aun
+
+LDA*7
+1OX 1655
+LDA*6
+1OX 1657
+LDA *5
+1OX 1651
+WAIT
+(LIST ADDRESS)
+(COMMAND)
+(CONTROL)
+
+INIT RECEIVER
+
+a
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A-—50
+
+MEMORY MAPPING FOR HDLC DEBUGGING PROGRAMS
+Address:
+0
+10
+20
+30
+40
+50
+60
+70
+100
+110
+120
+130
+140
+150
+160
+170
+200
+210
+220
+230
+240
+250
+260
+270
+300
+310
+320
+330
+
+Program:
+
+Device Clear
+Init
+Dump ALU
+Dump Memory
+Init Receiver
+
+Address:
+
+Program:
+
+500
+
+Memory Dump
+”
+"
+"
+”
+"
+”
+"
+Memory Dump
+"
+"
+"
+"
+"
+”
+"
+Receiver Buffers
+"
+"
+"
+”
+"
+"
+"
+Transmitter Buffers
+”
+"
+”
+
+.
+600
+
+Init Transceiver
+Init Parameters
+ALU dump
+ALU dump:
+.
+Receiver List
+Receiver List
+Receiver List
+Receiver List
+Transmitter List
+Transmitter List
+Transmitter List
+Transmitter List
+
+.
+1000
+,
+
+.
+2000
+
+340
+
+af
+
+350
+
+"
+
+360
+
+370
+400
+
+or
+
+;
+Memory Dump
+
+”
+
+3000
+
+The following procedure should move the content of [2004, 2023] to [1004, 1023]:
+
+207
+102164
+1403
+
+Last DMA address (if displayed):
+Content of 126 should be:
+Content of 200 should be:
+Content of 201 should be:
+Content of 240 should be:
+
+2403
+
+ND—-12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+A.6
+
+HDLC LOGICAL DIAGRAMS
+
+ND—12.018.01
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+i
+
+(t)
+
+_f
+1797
+AL mn
+
+ere
+
+meg
+
+wee
+
+WUNOWLNTTI-ViVG NSYON Siv
+,
+
+viv 1H
+1 O1S-01 023 WO t¥add0
+
+fe
+
+:
+
+:
+
+€£60
+
+49
+
+4
+
+‘590
+
+700
+180
+
+‘ogg
+
+3520
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+ZZeLZ| ME -nos | remeron
+665 0
+
+HOTSCOS
+Zg9z
+6: 0N9
+2:74
+
+:
+
+ae
+
+ND—12.018.01
+
+Ma/Nt |
+
+A-52
+
+(2)
+
+18?
+ny
+
+AL wor
+
+mvs
+
+PL OF EZIMEL v801 | oreoreey
+
+“
+
+T
+
+1
+
+SALTO 3
+!
+
+1
+
+Viv
+
+XSHON
+
+370H
+
+2
+
+Ti?
+TCA
+oT “fH!
+‘
+
+\
++
+
+Lf
+
+ras
+
+8/¥
+
+“er
+
+t
+| 980
+
+Qe
+
+INO
+
+tL. * DX, af
+
+"Ly or
+
+¥S0
+ws
+
+ot
+
+ee eee ee
+$E°A 1410
+
+an
+
+eee
+
+= saoost
+
+E7- NIOXOL
+
+5 73201
+
+sok
+
+‘
+
+afe—-*—-osue
+net
+
+a"
+
+Gs)
+
+_panten
+
+t
+
+5 sea
+
+15. :
+
+ff \genet
+
+Lae re
+
+s
+
+Be
+
+WUNOULNIIE-VIVG
+
+(68)-
+
+if
+EK HPD4
+
+Zug
+
+|' tie tS
+
+V
+
+oO
+tere:
+
+per
+@
+
+r
+
+@—~ (68)—
+
+"l
+
+SHEA Kee
+
+ma
+
+Boroeaee Lene
+
+(9)
+
+|
+
+Yay
+
+ip
+<
+
+sG,
+
+in
+
+wc
+
+AS +O
+
+Adi¢
+‘N 3X0!
+
+N3dO
+
+329
+
+$
+! 7W
+boat
+4O9N
+
+ali
+
+493NNO2
+
+heoo
+omic
+
+Adie
+d
+
+ae"
+
+yOvx0!
+
+hovoua oe
+
+(
+
+WAS
+
+.
+
+1
+
+Sou 4S
+
+, 2H
+
+S$3u
+
+Ly —YST
+
+'
+
+75) |x—OND
+36t
+T
+
+Cow
+
+a
+
+get |
+
+t
+
+.
+
+j.
+
+Hult, he
+
+4
+
+t
+
+ak
+
+nt OXLA be
+feo
+
+&
+
+SI
+
+yg
+b
+
+$
+
+‘YSOW
+
+|
+
+1
+
+~
+
+wero ake
+12
+
+YOVXOL
+
+sexo
+,
+
+22v0r
+
+ts10
+
+SL0Ud
+
+“ox18
+
+i
+
+t6E
+
+sy
+
+INIO—
+
+4 IO— y
+
+s ZOE
+
+iN3IO—2y]
+INIO——y
+
+— £408
+mu
+(fl DOF
+
+THSTL toy
+
+.
+
+*n
+
+a
+
+Cag
+
+—bovor
+
+-
+
+o.
+
+be —4 3 3NNOII
+
+4
+
+°2INF
+
+OnAaY
+
+; r—TIN3
+
+Sis?
+~|
+
+rae
+
+ge PL-OND
+
+ive
+ova
+
+invuoino(@)}———{6)
+NvwONT
+
+imma Gc
+
+hse
+
+oxa|te
+IX%YO
+
+4HovxO!
+yx
+
+i se
+
+ea
+
+Z67 S37
+
+reel7 ze;
+—oyo
+a
+Jet
+howxoln , Bory
+e.
+gestlo6e,
+
+peter
+
+a
+
+1,
+
+ih —12v0r
+YovxoIn
+
+EL owe
+
+1
+
+bs oak
+
+Gh
+(INIVH)
+
+[Rao8).
+
+ye
+
+RD
+
+1
+
+6 lHu>-q
+MIK--4
+
+A OXLW
+
+7100IK
+
+73003 Sog)
+
+4g #0
+
+eve
+
+—
+
+ge fp—WOvXOIW
+
+[{}—
+
+Zi
+:
+1— duo
+
+nawe
+
+7
+
+sil
+
+'eN3901
+
+or
+
+Lr
+
+~
+z
+
+os
+
+ie
+
+SI
+
+WIGS -y
+
+NIIXOIS 0;
+IVXOIS
+
+@
+
+hicget
+
+Noh xor
+
+iy.
+
+4IVXOIS7
+
+4
+
+INZIAIO-z
+
+,
+OYOT<S> 3)
+
+NIKO
+
+bey OXY
+
+5
+
+cosh
+
+9 Pxalt
+ASO
+
+1
+
+nelt@_He9
+
+_
+
+él
+
+e plLNIVW
+Sul
+
+.
+
+eses Hr eH to
+
+7
+
+g NIKI Ke
+
+mln —
+
+271
+
+ap tsree,
+
+‘x1 >]
+
+NIXIO—,
+
+“un
+
+To
+
+s™
+
+we
+
+b2xX> -
+
+'oxipPro »
+'
+
+_.
+
+o%
+
+WANS
+
+WOW
+
++f
+
+-2H
+2591
+
+I
+
+so}
+Pi
+
+@!
+
+(6)
+
+an
+
+96
+9458
+Would
+
+92
+
+‘S10
+
+4USOW
+
+by
+L—Yso
+
+sw
+SPE PBT,
+
+4
+
+996/92
+
+—894 {99
+
+Zii
+
+SW
+
+sok out
+
+‘sw¥e
+
+1 '0sla
+
+108 @x<
+
+{f Prios
+
+—— 2 L0E/2 §64
+Tait
+.
+SNIWW
+t
+
+usa
+
+Ord
+
+—yuee
+
+(ce)'s su
+
+vos
+
+'w10he }-e<_ bua
+1993
+
+@)
+
+|
+
+2H
+
+ono.
+
+AS*
+
+es
+
+'SM93UO-—y
+4738994O-7
+MUS
+
+e038
+
+rd >
+
+e713 $934 On
+
+35yS
+
+ipa
+
+07
+
+36
+
+pase, tao! we
+
+-
+
+\
+
+Ps)
+
+S
+
+5
+
+=
+
+“
+
+2
+
+a
+
+Bayh
+
+.
+
+SOINNODI
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+(b)
+
+(
+-—
+
+THe
+
+iSv?7
+NL avoy
+
+MG veer
+
+8 S OE
+
+WHO
+
+WHNOULNIIT-VLVO
+
+TOYLNOD
+
+b 440d
+
+NSYON
+B/¥
+
+DICH
+
+JtGtt
+
+g
+
+‘3 UG -01 097 WO01 1vadd0
+
+s0L9
+YOR
+
+0
+
+(
+aK e— eto
+
+“ato @) ok jr—r04
+
+“ats
+
+LON 7
+
+ie
+
+br — LV XOL.
+
+99
+
+sord
+
+F909 IHL
+OV Ts:
+
+99 10HO—
+
+ICL
+uloe
+
+asd
+
+a ELY)
+
+INO
+
+§
+
+ber
+
+ooss
+10s3
+
+Ewve
+
+envy
+inva
+owva
+
+TSF
+
+by — De 72
+
+t poss
+6S¢S TH
+
+o6t
+
+z—
+
+0
+
+twa
+%
+
+36t
+
+tsish
+
+wWo—~za
+
+ung
+
+baat
+
+‘owed
+
+asa
+
+Lay yawn
+
+‘7388007
+
+D¥do—y
+
+‘oyort
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+ws
+
+MeINL
+
+°3001
+
+H0L7
+
+sore Be
+
+H0L7
+
+!35eurf
+
+Zvo—ql
+3e1
+iv
+ov’
+
+NO—12.018.01
+
+LL OL:
+
+A—54
+
+{Z]}
+
+vers
+
+NL
+
+ISv?
+
+meg
+
+ASCE
+
+WRNOWLNIIT-VLVO SHON
+
+:
+
+S/v
+
+weney
+
+JiSit
+2 ied
+VWG ICHJ10n
+7 OWINOD >YAO
+
+A
+
+eh,
+
+Py
+
+re
+
+FA
+
+1
+
+Lr — YA
+
+3 bG-05 093 W011 1Vadd0
+
+i es
+
+6
+
+a
+
+.
+
+f
+
+bo
+
+ust
+oe
+
+LOSZ4D
+4
+
+ve
+
+Bice
+ZAc
+
+iy
+
+35
+
+Fr
+
+a7
+re
+
+BESESESs
+
+og
+TO
+
+eons
+
+SGENMOENM
+
+SQ ee
+
+§7
+
+mOsm
+
+Lezlas Ma Jez Pt Lazio
+:
+
+T_T
+
+RE 833
+
+ZiNet
+
+2
+
+uouzio —_L,erly BBSnxeerns
+obo lg
+Ly,
+‘gAo
+
+bASy
+7 PAs
+va
+
+ess
+
+BaResaye
+Sees
+
+OND
+ON
+
+ote cA
+
+$l0uZ4>—
+x
+elleDarvon
+—«*L062
+'
+
+easesdgg
+
+_ 89
+Ge
+SAMS
+
+:
+
+Bs
+
+‘PE
+
+,
+
+i
+
+|
+
+280
+
+7
+T7104
+
+7,
+
+r
+
+bag
+
+4234
+
+2e180
+
+7180
+
+NTIS
+
+680
+01a
+
+280
+
+Ft y
+
+UV
+
+E
+
+S180
+swe
+
+——*@
+
+Gy (2
+
+c£7S%
+
+vootoo
+
+2554074
+
+Taf
+
+osezou
+
+NFU
+
+byzuc vy
+
+10SI>7}
+
+OOSA> FF
+
+20SIO-¥
+
+Bue
+
+S
+
+Ea
+
+| JOINS
+O¥ON oT
+
+DYv WO
+
+IMI
+1 IMeINOoy
+
+t
+
+1
+
+.
+
+GEtt00
+
+sel
+
+vEOt00
+
+set
+
+viotoo
+
+SSOtf
+
+rl
+aavovrlo-s|
+
+isa
+
+IM
+
+SO-7z
+
+Rom
+
+BOF
+
+(0891
+42K 7S) (9s)
+
+g9z000
+
+it
+
+weal)
+CHOKES)
+
+ee a
+
+4
+
+ININID rf
+
+{T3ISAS-44
+
+W700
+
+vistoo
+
+4
+
+RIS"Sa
+
+SIC F
+
+so
+
+81
+
+alél
+
+08K
+
+39
+
+CVI
+
+LISe
+
+z
+
+uS
+
+voloo
+
+ue ,
+
+Vez
+
+C8YO-s
+
+OVY Day
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+es
+Alon
+ZZ =LEI Miwon: | eeovmem
+
+ME
+
+.
+
+tLAWOT
+
+‘AN
+
+SNOW
+
+NAc
+
+ZS
+Fie
+
+SUS,
+919
+
+ND—12.018.01
+
+A—56
+
+—.
+
+E29L
+
+og
+
+WHINOBLIEIZ-VLVG
+XSYON
+
+8 Cel
+MOOVHS YWO JIGH
+
+S/¥
+
+ene
+
+nee
+
+(S136)
+
+giao!
+
+sal,
+
+49
+
+et}?
+zaNo
+
+=—a
+
+t
+
+‘
+
+52% 3
+
+a9
+
+Ss
+
+gi
+
+6
+
+ét
+
+eh
+
+g
+
+frye
+
+00872
+a7
+
+Be
+
+38
+
+3E
+
+era
+
+5
+
+{sr
+O0eS7L
+27
+
+24
+
+29
+
+—
+
+=
+
+7
+
+(2196)
+emod
+
+36)
+
+OLAW
+
+(636)
+
+(S36)
+—'sAn
+
+bk
+
+ONS
+
+la
+
+‘Qo wry
+
+wey
+
+{tH 36/
+li — ILAW
+
+Te
+
+‘SW
+
+i
+‘ewva
+We
+
+(hog)
+
+SLAW
+
+‘CLAW
+£626)
+
+1596)
+
+(6126)
+BAW
+
+(2126)
+amMou
+
+ON9
+
+Ti
+
+7
+
+L—
+
+“
+
+tl
+
+i
+‘ PTS.“Eda
+
+'Swee
+
+CHY
+
+CwrY
+
+.
+owes
+
+itwee
+OWYY
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
++} _eekss
+AE teen
+
+vag
+
+BLS 7S M@v604 | worsen
+
+9t301)
+ONO
+
+(61301)
+OA
+
+a6 o
+i736)
+‘660°
+(E136)
+
+(E1304)
+
+wey
+
+{9/208
+SEY
+
+a
+
+x
+
+WY
+
+($201)
+‘CA
+(6201)
+
+So
+q
+
+Wd
+
+we
+nav
+lewva
+
+Geis)
+PNP
+
+a
+
+(6t201)
+Ler— 7A
+
+ou
+
+je
+
+(1101)
+UA
+
+ws
+
+wes
+
+7
+
+f 7126)
+os
+g0o—W
+a6
+F126)
+oy
+wr
+ee)
+10O—a) \
+
+iwre
+‘owvy
+
+silt
+
+GCL
+
+9
+
+Z
+
+ZWvY
+“wey
+‘owvY
+
+Wve
+
+‘OLg0S
+
+‘
+
+(S126)
+
+{$3ot)
+BA
+
+fet fe
+
+size
+
+74
+
+Det
+
+t
+
+Swry
+
+wry
+ONE
+
+Leg
+
+f
+r
+
+29t
+jorayufe
+
+60
+
+{6.301}
+
+57%
+
+(E4201)
+
+4
+
+:
+
+(ex
+gg
+
+6
+
+(21301)
+1h
+
+{StJ01t}
+
+76802
+i201)
+Gage
+(1901)
+(z1901), °
+£80O—_| \
+
+a7
+
+Ty
+
+“Aaol
+if cot}
+‘A
+
+($1301)
+
+ta
+
+Ly
+
+Zé
+
+t
+
+WVY
+
+gwre
+wry
+
+NO—12.018.01
+
+A-—57
+
+SS
+
+|
+|
+
+|
+|
+
+[
+—
+
+eS
+
+eh
+
+Si
+
+miv
+IG P
+
+eee
+
+sev
+
+Lid p
+
+niv
+
+Ki
+
+Kt
+
+G
+
+GNVu3d0 ° 8 J
+es
+
+ee
+
+GNV¥3d0 V
+a ee eee
+
+3
+
+SC =
+
+8 HALSID3Y
+
+eS
+
+He
+
+Le
+
+E-0V1
+
+c0-VY
+
+wie.
+
+—
+
+=
+
+|
+
+|
+
+Ni viva
+
+c-+aa
+£-09d
+
+|
+
+|
+
+|
+
+|
+
+|
+
+|
+
+|
+
+l
+
+Niviva
+
+- shziga
+;
+-gga
+—
+
+—__
+
+@HOV
+Sv 935 dO
+
+Wainiog
+
+py
+
+NO 199735
+0
+
+£084 = kt
+
+Liapx ol
+
+49018 ¥3LSIDAY
+
+ee
+
+490718 HILSIOSY
+
+SS
+
+—
+
+10313S
+
+|
+
+/
+
+v u3lsioga
+
+@ ¥apSiOau
+
+Lig yx ol
+
+eS
+
+<=
+oc
+KG
+KG
+
+£081
+
+~~
+
+oYNOS Nv
+
+—_
+
+| ee
+
+e-OVi
+
+1oatas_
+4 NOS AV
+
+f
+t
+VOYLNOD
+
+81-91
+
+i
+
+NOWLWNILS3G
+3017S Lia
+
+|
+
+'
+
+anvuadov
+
+GNVH3d0 4
+
+a
+
+|
+
+s
+
+eS!
+
+eee
+
+09
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+SLA LSV31
+§$9011S 118 OML JO INO
+
+“pA
+E-0A
+LNo VLivVG
+
+418 OML 40 BNO
+|
+|
+|
+
+{
+
+—
+
+}
+
+9011S 118 1SOW OL
+
+4dG9 ODI
+
+ND—12.018.01
+
+IN
+
+LOCATED ON HDLC DMA CONTROL
+
+DMA PROCESSOR BLOCK DIAGRAM
+POSITIONS 6B, 6D, 4B, 4D.
+
+3.1A8 LSOW $39!1S
+
+SUZLA
+:
+<=
+bLBA
+ino viva
+|
+Le
+
+@'epz 40 3NO
+
+19373S NOILONNS
+
+siiges x
+
+WOHd NI SNOLLINGISNI QUOI
+
+/
+
+3011S 119 4SV37 0
+
+(
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+NORSK
+
+DATA
+
+Lgrenveien
+OSLO
+
+COMMENT
+
+AND
+
+HIGH LEVEL DATA
+NOVEMBER 1978
+
+LINK CONTROL
+
+INTERFACE
+
+57 - Postboks
+
+163,
+
+@kern
+
+1
+
+EVALUATION
+(HDLC)
+
+A.S,
+
+SHEET
+ND-12.018.01
+
+In order for this manual to develop to the point where it best suits
+your needs, we must have your comments, corrections,
+suggestions
+for additions, etc, Please write down your comments on this preaddressed form and post it. Please be specific wherever possible.
+
+FROM
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+eit: Com IRM
+
+aA
+
+Ulatias
+
+Scanned by Jonny Oddene for Sintran Data © 2010
+
+

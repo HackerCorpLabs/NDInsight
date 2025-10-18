@@ -1,9 +1,9 @@
 # SINTRAN III Linking and Binary Management Guide
 
-**Complete reference for NRL, BRF, BPUN, and PROG files**
+**Complete reference for NRL, BRF, BPUN, PROG, and NRF files**
 
-**Version:** 1.0  
-**Date:** October 17, 2025  
+**Version:** 1.1  
+**Date:** October 18, 2025  
 **Status:** Complete
 
 ---
@@ -31,10 +31,13 @@ Source → Compiler → Assembler → Linker → Executable
 ```
 
 **Key concepts:**
-- **BRF:** Binary Relocatable Format - object code from assembler
-- **NRL:** NORD Relocating Loader - links BRF files
-- **PROG:** Executable program file - ready to run
-- **BPUN:** Binary Punched format - alternative executable
+- **BRF:** Binary Relocatable Format - object code from MAC assembler (ND-100)
+- **NRF:** NORD Relocatable Format - object code from NORD-500 assembler (ND-500)
+- **NRL:** NORD Relocating Loader - links BRF files for ND-100
+- **NORD-500 Loader:** Links NRF files for ND-500
+- **PROG:** Executable program file - ready to run on ND-100
+- **BPUN:** Binary Punched format - alternative executable for ND-100
+- **PSEG/DSEG:** Program/Data segments for ND-500
 - **Reentrant:** Shared code in memory
 
 ---
@@ -90,16 +93,124 @@ Source → Compiler → Assembler → Linker → Executable
 - Programs that may be shared
 - Programs loaded via DUMP-REENTRANT
 
-### 2.4 Format Comparison
+### 2.4 NRF - NORD Relocatable Format (NORD-500)
 
-| Feature | BRF | PROG | BPUN |
-|---------|-----|------|------|
-| **Type** | Object | Executable | Executable |
-| **Relocatable** | Yes | No | No |
-| **Can Link** | Yes | No | No |
-| **Can Run** | No | Yes | Yes |
-| **Can Dump** | No | No | Yes |
-| **Reentrant** | N/A | No | Can be |
+**Purpose:** Object code output from NORD-500 Assembler
+
+**Contents:**
+- Relocatable machine code for NORD-500 CPU
+- Symbol table (exported/imported symbols)
+- Relocation information
+- Module and routine metadata
+- Stack and record definitions
+
+**Creation:**
+```
+@NORD-500-ASSEMBLER SOURCE:SYMB    →    SOURCE:NRF
+```
+
+**Target CPU:** ND-500 (cross-compiled on ND-100)
+
+**Characteristics:**
+- Different format from BRF (not compatible)
+- Supports NORD-500 instruction set
+- Linked by NORD-500 Loader (not NRL)
+- Output is PSEG/DSEG files (not PROG)
+
+**Why NRF instead of BRF?**
+- NORD-500 has different CPU architecture than ND-100
+- Supports NORD-500-specific features (descriptors, alternative areas, extended addressing)
+- Optimized for NORD-500 memory model
+
+### 2.5 PSEG/DSEG - NORD-500 Segments
+
+**PSEG:** Program Segment for NORD-500
+- Contains executable code
+- Loaded into NORD-500 program memory
+
+**DSEG:** Data Segment for NORD-500
+- Contains initialized data
+- Loaded into NORD-500 data memory
+
+**Creation:**
+```
+@NORD-500-LOADER
+LOAD PROGRAM:NRF
+PSEG PROGRAM:PSEG
+DSEG PROGRAM:DSEG
+EXIT
+```
+
+### 2.6 DOM and SEG - New Domain Format
+
+**`:DOM` files are the "new domain format" that replaces the old DESC-based system.**
+
+**Old Domain Format (Being Phased Out):**
+```
+User Directory:
+├── DESCRIPTION-FILE:DESC    ← All domain metadata
+├── PROGRAM1:PSEG            ← Program segment
+├── PROGRAM1:DSEG            ← Data segment
+├── PROGRAM1:LINK            ← Link info
+├── PROGRAM2:PSEG
+├── PROGRAM2:DSEG
+└── PROGRAM2:LINK
+```
+
+**New Domain Format (:DOM):**
+```
+User Directory:
+├── PROGRAM1:DOM             ← Self-contained domain
+│   ├── Header (domain metadata)
+│   ├── Slave segment 1 (embedded)
+│   └── Reference to free segments
+├── PROGRAM2:DOM
+└── SHARED-LIB:SEG           ← Free (shared) segment
+    ├── Header (segment metadata)
+    └── Segment contents
+```
+
+**Key Differences:**
+
+| Aspect | Old Format | New Format (:DOM) |
+|--------|-----------|-------------------|
+| **Metadata** | Shared DESC file | Header in each :DOM |
+| **Private segments** | Separate :PSEG/:DSEG/:LINK | Embedded in :DOM |
+| **Shared segments** | Separate :PSEG/:DSEG/:LINK | :SEG files |
+| **Copy domain** | Multiple files + DESC entry | Single file (`@COPY-FILE`) |
+| **Portability** | Low | High |
+| **Future** | Being phased out | Recommended |
+
+**Converting Between Formats:**
+```
+@ND CONVERT-DOMAIN destination source
+```
+
+**Example:**
+```
+@ND CONVERT-DOMAIN NEW-PROG OLD-PROG
+```
+
+This converts `OLD-PROG` (old format with DESC entry) to `NEW-PROG:DOM` (new self-contained format).
+
+**When to Use Each:**
+- **New :DOM format:** All new development, portable applications
+- **Old DESC format:** Legacy RT programs that don't recognize :DOM (e.g., old SIBAS, NOTIS versions)
+
+### 2.7 Format Comparison
+
+| Feature | BRF (ND-100) | NRF (ND-500) | PROG | BPUN | PSEG/DSEG/LINK<br/>(Old) | DOM/SEG<br/>(New) |
+|---------|--------------|--------------|------|------|--------------------------|-------------------|
+| **Type** | Object | Object | Executable | Executable | Executable | Executable |
+| **Target CPU** | ND-100 | ND-500 | ND-100 | ND-100 | ND-500 | ND-500 |
+| **Relocatable** | Yes | Yes | No | No | No | No |
+| **Can Link** | Yes (NRL) | Yes (ND-500 Loader) | No | No | No | No |
+| **Can Run** | No | No | Yes | Yes | Yes (via DESC) | Yes (self-contained) |
+| **Can Dump** | No | No | No | Yes | No | No |
+| **Reentrant** | N/A | N/A | No | Can be | N/A | N/A |
+| **Linker** | NRL | NORD-500 Loader | - | - | - | - |
+| **Format** | - | - | - | - | Separate files + DESC | Single :DOM or :SEG |
+| **Portability** | - | - | - | - | Low (needs DESC) | High (self-contained) |
 
 ---
 
@@ -491,6 +602,65 @@ EXIT
 *LIBRARY MYLIB          % Load library
 *LOAD MYAPP             % Load app
 *EXIT
+```
+
+### 7.5 NORD-500 Program Development
+
+**Goal:** Create and link NORD-500 assembly program
+
+**Files: N500PROG:SYMB, N500UTIL:SYMB**
+
+```bash
+# Step 1: Assemble NORD-500 modules
+@NORD-500-ASSEMBLER N500PROG:SYMB
+@NORD-500-ASSEMBLER N500UTIL:SYMB
+
+# Step 2: Link for NORD-500
+@NORD-500-LOADER
+LOAD N500PROG:NRF       % Main program
+LOAD N500UTIL:NRF       % Utility routines
+LIBRARY N500LIB:NRF     % NORD-500 system library
+PSEG N500PROG:PSEG      % Program segment output
+DSEG N500PROG:DSEG      % Data segment output
+LINK N500PROG:LINK      % Link information
+MAP                     % Display memory map
+EXIT
+
+# Step 3: Load and run on NORD-500
+# (Requires NORD-500 CPU or communication with ND-500 via XMSG)
+```
+
+**With MODE automation:**
+
+```mode
+% BUILD-N500:MODE - Automated NORD-500 build
+
+% Assemble
+@NORD-500-ASSEMBLER N500PROG:SYMB
+@IF-ERROR @GOTO ERROR
+@NORD-500-ASSEMBLER N500UTIL:SYMB
+@IF-ERROR @GOTO ERROR
+
+% Link
+@NORD-500-LOADER
+LOAD N500PROG:NRF
+LOAD N500UTIL:NRF
+LIBRARY N500LIB:NRF
+PSEG N500PROG:PSEG
+DSEG N500PROG:DSEG
+LINK N500PROG:LINK
+MAP
+EXIT
+
+@IF-ERROR @GOTO ERROR
+
+@CC Build successful!
+@GOTO END
+
+@ERROR:
+@CC Build failed!
+
+@END:
 ```
 
 ---

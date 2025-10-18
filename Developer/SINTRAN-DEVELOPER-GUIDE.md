@@ -20,11 +20,13 @@ This is the **master guide** that ties together all SINTRAN III development docu
 
 | Document | Size | Description | Location |
 |----------|------|-------------|----------|
-| **QUICK-START-EXAMPLES.md** | 12KB | Hello World for all languages | Current directory |
-| **NPL-DEVELOPER-GUIDE.md** | 70KB | Complete NPL language guide | Developer directory |
-| **MAC-DEVELOPER-GUIDE.md** | 21KB | MAC assembler reference | Current directory |
-| **LINKING-GUIDE.md** | 17KB | NRL, BRF, BPUN, PROG files | Current directory |
-| **SCRIPT-GUIDE.md** | 15KB | MODE files and automation | Current directory |
+| **QUICK-START-EXAMPLES.md** | 12KB | Hello World for all languages | Developer/ |
+| **NPL-DEVELOPER-GUIDE.md** | 70KB | Complete NPL language guide | Languages/System/ |
+| **MAC-DEVELOPER-GUIDE.md** | 21KB | MAC assembler reference | Languages/System/ |
+| **NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md** | 30KB | NORD-500 assembly language | Languages/System/ |
+| **LINKING-GUIDE.md** | 17KB | NRL, BRF, BPUN, PROG files | Workflow/ |
+| **SCRIPT-GUIDE.md** | 15KB | MODE files and automation | Workflow/ |
+| **EDITORS-GUIDE.md** | 15KB | Text editor selection and use | Editors/ |
 
 ### Kernel Documentation (Complete) ✅
 
@@ -43,18 +45,27 @@ This is the **master guide** that ties together all SINTRAN III development docu
 
 **Total:** 518KB of kernel documentation
 
-### Language-Specific Guides (Placeholders)
+### Language-Specific Guides
+
+**Application Languages (Languages/Application/):**
+
+| Language | Guide | Status |
+|----------|-------|--------|
+| **PLANC** | PLANC-DEVELOPER-GUIDE.md | ✅ Placeholder |
+| **C** | C-DEVELOPER-GUIDE.md | ✅ Placeholder |
+| **COBOL** | COBOL-DEVELOPER-GUIDE.md | ✅ Placeholder |
+| **FORTRAN** | FORTRAN-DEVELOPER-GUIDE.md | ✅ Placeholder |
+| **PASCAL** | PASCAL-DEVELOPER-GUIDE.md | ✅ Placeholder |
+| **BASIC** | BASIC-DEVELOPER-GUIDE.md | ✅ Placeholder |
+
+**System Languages (Languages/System/):**
 
 | Language | Guide | Status |
 |----------|-------|--------|
 | **NPL** | NPL-DEVELOPER-GUIDE.md | ✅ Complete (70KB) |
 | **MAC** | MAC-DEVELOPER-GUIDE.md | ✅ Complete (21KB) |
-| **C** | C-DEVELOPER-GUIDE.md | 📝 Placeholder |
-| **PLANC** | PLANC-DEVELOPER-GUIDE.md | 📝 Placeholder |
-| **FORTRAN** | FORTRAN-DEVELOPER-GUIDE.md | 📝 Placeholder |
-| **PASCAL** | PASCAL-DEVELOPER-GUIDE.md | 📝 Placeholder |
-| **COBOL** | COBOL-DEVELOPER-GUIDE.md | 📝 Placeholder |
-| **BASIC** | BASIC-DEVELOPER-GUIDE.md | 📝 Placeholder |
+| **NORD-500 ASM** | NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md | ✅ Complete (30KB) |
+| **NORD-500 ASM** | NORD-500-ASSEMBLER-EXPERT-GUIDE.md | ✅ Complete (Expert) |
 
 ---
 
@@ -65,9 +76,10 @@ This is the **master guide** that ties together all SINTRAN III development docu
 **Start with these in order:**
 
 1. **[QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md)** - Get something running immediately
-2. **[NPL-DEVELOPER-GUIDE.md](NPL-DEVELOPER-GUIDE.md)** Chapter 12 - Practical workflow
-3. **[SCRIPT-GUIDE.md](SCRIPT-GUIDE.md)** - Automate your builds
-4. **[LINKING-GUIDE.md](LINKING-GUIDE.md)** - Understand the build process
+2. **[NPL-DEVELOPER-GUIDE.md](Languages/System/NPL-DEVELOPER-GUIDE.md)** Chapter 12 - Practical workflow
+3. **[EDITORS-GUIDE.md](Editors/EDITORS-GUIDE.md)** - Choose your editor
+4. **[SCRIPT-GUIDE.md](Workflow/SCRIPT-GUIDE.md)** - Automate your builds
+5. **[LINKING-GUIDE.md](Workflow/LINKING-GUIDE.md)** - Understand the build process
 
 **Total reading time:** ~2 hours for basics
 
@@ -87,8 +99,9 @@ This is the **master guide** that ties together all SINTRAN III development docu
 #### System Programmer
 
 **Focus on:**
-- [NPL-DEVELOPER-GUIDE.md](NPL-DEVELOPER-GUIDE.md) - System language
-- [MAC-DEVELOPER-GUIDE.md](MAC-DEVELOPER-GUIDE.md) - Assembly language
+- [NPL-DEVELOPER-GUIDE.md](Languages/System/NPL-DEVELOPER-GUIDE.md) - System language
+- [MAC-DEVELOPER-GUIDE.md](Languages/System/MAC-DEVELOPER-GUIDE.md) - Assembly language
+- [NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md](Languages/System/NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md) - ND-500 assembly
 - Kernel documentation (`SINTRAN\OS\`)
 - [Device driver framework](SINTRAN\OS\18-DEVICE-DRIVER-FRAMEWORK.md)
 
@@ -161,7 +174,7 @@ EXIT
 ### NPL - NORD Programming Language
 
 **Status:** ✅ Complete  
-**Guide:** [NPL-DEVELOPER-GUIDE.md](NPL-DEVELOPER-GUIDE.md)  
+**Guide:** [NPL-DEVELOPER-GUIDE.md](Languages/System/NPL-DEVELOPER-GUIDE.md)  
 **Size:** 70KB, 3000+ lines
 
 **When to use:**
@@ -194,7 +207,7 @@ RBUS
 ### MAC - Macro Assembler
 
 **Status:** ✅ Complete  
-**Guide:** [MAC-DEVELOPER-GUIDE.md](MAC-DEVELOPER-GUIDE.md)  
+**Guide:** [MAC-DEVELOPER-GUIDE.md](Languages/System/MAC-DEVELOPER-GUIDE.md)  
 **Size:** 21KB
 
 **When to use:**
@@ -227,8 +240,8 @@ MSG,    'HELLO MAC!'
 
 ### C - CC-100/CC-500
 
-**Status:** 📝 Placeholder  
-**Guide:** C-DEVELOPER-GUIDE.md  
+**Status:** ✅ Placeholder  
+**Guide:** [C-DEVELOPER-GUIDE.md](Languages/Application/C-DEVELOPER-GUIDE.md)  
 **Reference:** `D:\OCR\ai\ND-60.214.01 CC-100 and CC-500 C-Compiler`
 
 **When to use:**
@@ -261,8 +274,8 @@ main() {
 
 ### PLANC
 
-**Status:** 📝 Placeholder  
-**Guide:** PLANC-DEVELOPER-GUIDE.md  
+**Status:** ✅ Placeholder  
+**Guide:** [PLANC-DEVELOPER-GUIDE.md](Languages/Application/PLANC-DEVELOPER-GUIDE.md)  
 **Reference:** `D:\OCR\ai\ND-60.117.5 EN PLANC Reference Manual`
 
 **When to use:**
@@ -281,13 +294,18 @@ END.
 
 ### Other Languages
 
-**FORTRAN, PASCAL, COBOL, BASIC** - See [QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md) for Hello World examples.
+**FORTRAN:** [FORTRAN-DEVELOPER-GUIDE.md](Languages/Application/FORTRAN-DEVELOPER-GUIDE.md)  
+**PASCAL:** [PASCAL-DEVELOPER-GUIDE.md](Languages/Application/PASCAL-DEVELOPER-GUIDE.md)  
+**COBOL:** [COBOL-DEVELOPER-GUIDE.md](Languages/Application/COBOL-DEVELOPER-GUIDE.md)  
+**BASIC:** [BASIC-DEVELOPER-GUIDE.md](Languages/Application/BASIC-DEVELOPER-GUIDE.md)
+
+See [QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md) for Hello World examples.
 
 ---
 
 ## 🔗 Linking and Binary Management
 
-**Guide:** [LINKING-GUIDE.md](LINKING-GUIDE.md)
+**Guide:** [LINKING-GUIDE.md](Workflow/LINKING-GUIDE.md)
 
 ### Key Concepts
 
@@ -335,7 +353,7 @@ END.
 
 ## 🤖 Automation with MODE Files
 
-**Guide:** [SCRIPT-GUIDE.md](SCRIPT-GUIDE.md)
+**Guide:** [SCRIPT-GUIDE.md](Workflow/SCRIPT-GUIDE.md)
 
 ### Basic MODE File
 
@@ -347,7 +365,7 @@ END.
 PROG-FILE "PROGRAM"
 LOAD SOURCE
 EXIT
-@ECHO "Build complete!"
+@CC Build complete!
 ```
 
 ### Advanced Features
@@ -356,7 +374,8 @@ EXIT
 - **Input redirection:** `INPUT FILE: @COMMANDS:TXT`
 - **Nested MODE files:** `@MODE SUBSCRIPT:MODE`
 - **User interaction:** `?` (wait for input)
-- **Comments:** `%` at start of line
+- **Comments:** `%` at start of line (not displayed)
+- **Display messages:** `@CC message` (Comment Command - displayed during execution)
 
 ### Real-World Example
 
@@ -381,7 +400,7 @@ LIBRARY SYSLIB
 MAP
 EXIT
 
-@ECHO "Project built successfully!"
+@CC Project built successfully!
 ```
 
 ---
@@ -518,15 +537,35 @@ All kernel documents include production-ready C# code for emulator development:
 
 ### Local Documentation (Developer Directory)
 
+**Core Guides:**
+- **README.md** - Master index and navigation
+- **SINTRAN-DEVELOPER-GUIDE.md** (This file) - Master technical guide
 - **QUICK-START-EXAMPLES.md** (12KB) - Hello World all languages
+
+**Languages/System/:**
 - **NPL-DEVELOPER-GUIDE.md** (70KB) - Complete NPL guide
 - **MAC-DEVELOPER-GUIDE.md** (21KB) - MAC assembler
+- **NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md** (30KB) - NORD-500 assembly (Intro)
+- **NORD-500-ASSEMBLER-EXPERT-GUIDE.md** (50KB) - NORD-500 assembly (Expert)
+
+**Languages/Application/:**
+- **PLANC-DEVELOPER-GUIDE.md** - PLANC guide
+- **C-DEVELOPER-GUIDE.md** - C compiler guide
+- **COBOL-DEVELOPER-GUIDE.md** - COBOL guide
+- **FORTRAN-DEVELOPER-GUIDE.md** - FORTRAN guide
+- **PASCAL-DEVELOPER-GUIDE.md** - PASCAL guide
+- **BASIC-DEVELOPER-GUIDE.md** - BASIC guide
+
+**Workflow/:**
 - **LINKING-GUIDE.md** (17KB) - NRL linking
 - **SCRIPT-GUIDE.md** (15KB) - MODE files
-- **COMPILER-COMMANDS-REFERENCE.md** (18KB) - All compiler/linker commands
+- **COMPILER-COMMANDS-REFERENCE.md** (18KB) - All commands
 - **TOOLS-REFERENCE.md** (22KB) - Complete tools reference
-- **SINTRAN-DEVELOPER-GUIDE.md** (This file) - Master guide
-- **NPL-DEVELOPMENT-TOOLS-PLAN.md** - Development roadmap
+
+**Editors/:**
+- **EDITORS-GUIDE.md** (15KB) - Editor selection and usage
+- **QED-QUICK-REFERENCE.md** - QED command reference
+- **PED-QUICK-REFERENCE.md** - PED command reference
 
 ### Kernel Documentation (GitHub)
 

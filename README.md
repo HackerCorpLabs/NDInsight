@@ -28,19 +28,26 @@ NDInsight/
 ├── README.md                    ← You are here
 ├── MERMAID_COLOR_STANDARDS.md   ← Mermaid diagram color standards
 ├── Developer/                   ← Developer guides and quick-start
-│   ├── _START-HERE.md           ← Start here for development
-│   ├── NPL-DEVELOPER-GUIDE.md   ← NORD PL language guide
-│   ├── MAC-DEVELOPER-GUIDE.md   ← Macro assembler guide
-│   ├── C-DEVELOPER-GUIDE.md     ← C compiler guide
-│   ├── PLANC-DEVELOPER-GUIDE.md ← PLAN C guide
-│   ├── LINKING-GUIDE.md         ← Linker and build system
-│   ├── SCRIPT-GUIDE.md          ← MODE files and automation
+│   ├── README.md                ← Developer documentation index
+│   ├── Editors/                 ← Editor guides (QED, PED, LED)
+│   ├── Languages/               ← Language-specific developer guides
+│   │   ├── Application/         ← PLANC, PASCAL, COBOL, FORTRAN, BASIC
+│   │   └── System/              ← NPL, MAC, NORD-500 Assembler
+│   ├── Workflow/                ← Compiler, linker, tools, scripts
 │   └── ...                      ← Additional developer docs
+├── Reference-Manuals/           ← Complete NORD/SINTRAN reference manuals ⭐
+│   ├── README.md                ← Manual index and navigation
+│   ├── ND-05.009.4 EN ND-500 Reference Manual.md
+│   ├── ND-60.113.02 EN Assembler Reference Manual.md
+│   ├── ND-60.047.03 NORD PL User's Guide.md
+│   ├── ND-60.117.5 EN PLANC Reference Manual.md
+│   ├── SINTRAN-COMMANDS-REFERENCE.md
+│   └── ...                      ← 14 complete reference manuals
 └── SINTRAN/                     ← SINTRAN III Operating System
     ├── Devices/                 ← Hardware device documentation
     │   ├── HDLC/                ← HDLC communication controller (30+ docs)
     │   └── SCSI/                ← SCSI disk controllers (10+ docs)
-    ├── Emulator/                ← C# emulator implementation guides  ⭐ NEW!
+    ├── Emulator/                ← C# emulator implementation guides
     │   ├── KERNEL-ACCESS-EMULATOR.md
     │   ├── ND500-EMULATION-COMPLETE.cs
     │   ├── ND500-INTEGRATION-GUIDE.md
@@ -50,6 +57,54 @@ NDInsight/
     ├── OS/                      ← Core OS kernel documentation (31 docs)
     └── TAD/                     ← TAD protocol analysis (7 docs)
 ```
+
+---
+
+## 📚 Reference-Manuals - Complete NORD/SINTRAN Documentation
+
+**Location:** `Reference-Manuals/`  
+**Size:** ~1.5MB+ across 14+ manuals  
+**Status:** ✅ Complete Collection
+
+The **Reference-Manuals** directory contains authoritative, complete reference manuals for all NORD/SINTRAN system components, programming languages, assemblers, and tools. These manuals serve as the primary source documentation for the developer guides.
+
+### 📖 Manual Categories
+
+**System & CPU Architecture:**
+- `ND-05.009.4 EN ND-500 Reference Manual.md` - Complete ND-500 CPU architecture (16,324 lines)
+- `SINTRAN-COMMANDS-REFERENCE.md` - Complete SINTRAN III command reference (11,657 lines)
+
+**Assemblers:**
+- `ND-60.113.02 EN Assembler Reference Manual.md` - NORD-500 Assembler (4,140 lines)
+- `ND-60.096.01 MAC Interactive Assembly and Debugging System User's Guide.md` - MAC assembler (6,020 lines)
+- `ND-60.009.02 MACM Mac Mass Storage Assembler.md` - MACM macro assembler
+
+**System Programming:**
+- `ND-60.047.03 NORD PL User's Guide.md` - NORD Programming Language (NPL)
+
+**Application Languages:**
+- `ND-60.117.5 EN PLANC Reference Manual.md` - PLANC language
+- `ND-60.124.05 ND-PASCAL User's Guide.md` - ND-PASCAL
+- `ND-60.144.3 EN COBOL Reference Manual.md` - COBOL
+- `ND-60.145.7A EN ND FORTRAN Reference Manual.md` - ND FORTRAN
+- `ND-60.011.04 NORD Standard FORTRAN Reference Manual.md` - NORD Standard FORTRAN
+- `ND-60.040.02 NORD BASIC Reference Manual.md` - NORD BASIC
+- `ND-60.071.01D NORD-10 BASIC Compiler Reference Manual.md` - NORD-10 BASIC Compiler (8,513 lines)
+
+**Editors:**
+- `ND-60.031.04 EN QED User Manual.md` - QED editor reference
+- `ND-60.121.4 PED User's Guide.md` - PED editor reference
+
+**System Tools:**
+- `ND-60.066.04 ND Relocating Loader.md` - Loader documentation
+
+### 🔗 Integration with Developer Guides
+
+The Reference-Manuals provide detailed specifications that complement the practical developer guides in `Developer/`:
+
+- **Quick Start** → `Developer/` guides (learning-focused)
+- **Deep Reference** → `Reference-Manuals/` (comprehensive specifications)
+- **Cross-Referenced** → All developer guides link to relevant reference manuals
 
 ---
 
@@ -378,12 +433,14 @@ Source Code → Extract Patterns → Verify Hardware → Document → Validate
 
 | Category | Files | Total Size |
 |----------|-------|------------|
+| **Reference Manuals** | 14+ | ~1.5MB+ |
+| **Developer Guides** | 20+ | ~500KB |
 | **OS Kernel** | 31 | 518KB |
 | **HDLC Analysis** | 60+ | ~2MB |
 | **SCSI Analysis** | 12 | ~500KB |
 | **ND-500** | 6 | ~200KB |
 | **TAD Protocol** | 7 | ~150KB |
-| **Device Drivers** | 1 | ~50KB |
+| **Emulator Code** | 6 | ~100KB |
 
 ---
 
@@ -463,7 +520,13 @@ Each major folder has its own README for detailed navigation:
 
 | Folder | README | Contents |
 |--------|--------|----------|
+| **Reference-Manuals/** | [Reference-Manuals/README.md](Reference-Manuals/README.md) | Complete NORD/SINTRAN reference manuals (14 manuals) |
 | **Developer/** | [Developer/README.md](Developer/README.md) | Development guides, quick-starts, language references |
+| **Developer/Editors/** | [Developer/Editors/README.md](Developer/Editors/README.md) | QED, PED, LED editor documentation |
+| **Developer/Languages/** | [Developer/Languages/README.md](Developer/Languages/README.md) | System (NPL, MAC) & Application (PLANC, PASCAL, etc.) languages |
+| **Developer/Languages/System/** | [Developer/Languages/System/README.md](Developer/Languages/System/README.md) | NPL, MAC, NORD-500 Assembler (3 guides) |
+| **Developer/Languages/Application/** | [Developer/Languages/Application/README.md](Developer/Languages/Application/README.md) | C, PLANC, PASCAL, FORTRAN, COBOL, BASIC (6 guides) |
+| **Developer/Workflow/** | [Developer/Workflow/README.md](Developer/Workflow/README.md) | Compiler commands, linking, scripts, tools |
 | **SINTRAN/** | [SINTRAN/README.md](SINTRAN/README.md) | SINTRAN III documentation overview |
 | **SINTRAN/OS/** | [SINTRAN/OS/README.md](SINTRAN/OS/README.md) | Operating system architecture (00-19) |
 | **SINTRAN/Devices/** | [SINTRAN/Devices/README.md](SINTRAN/Devices/README.md) | Hardware device documentation |

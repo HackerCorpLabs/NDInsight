@@ -61,12 +61,14 @@
 
 **Example:**
 ```mode
+@cc Building program...
 @NPL SOURCE:NPL
 @MAC SOURCE:MAC
 @NRL
 PROG-FILE "PROGRAM"
 LOAD SOURCE
 EXIT
+@cc Build complete!
 ```
 
 ### 2.2 Running MODE Files
@@ -86,16 +88,76 @@ or simply:
 @MODE BUILD:MODE
 ```
 
-### 2.3 Command Syntax
+### 2.3 Command Syntax - The `@` Symbol Rule
 
-Each line in a MODE file is executed as if typed at the SINTRAN command prompt:
+**CRITICAL CONCEPT:** The `@` symbol determines whether a line is a SINTRAN command or program input.
+
+#### Lines Starting with `@` - SINTRAN Commands
 
 ```mode
-% This is a comment
-@COMMAND PARAMETERS          % System command
-PROGRAM-INPUT                % Input to running program
-?                            % Wait for user input
+@NPL SOURCE:NPL              % SINTRAN: Start NPL compiler
+@MAC SOURCE:MAC              % SINTRAN: Start MAC assembler
+@NRL                         % SINTRAN: Start linker
+@CC This is a message        % SINTRAN: Display message
+@DELETE FILE:BRF             % SINTRAN: Delete file
 ```
+
+**These are SINTRAN system commands** executed by the operating system.
+
+#### Lines WITHOUT `@` - Program Input
+
+```mode
+PROG-FILE "HELLO"            % Input TO NRL
+LOAD MODULE                  % Input TO NRL
+EXIT                         % Input TO NRL (exits NRL)
+```
+
+**These lines are sent as input** to whatever program is currently running (started by the last `@` command).
+
+#### Complete Example Showing Both
+
+```mode
+% Start the NRL linker (SINTRAN command - has @)
+@NRL
+
+% The following lines are INPUT to NRL (no @)
+IMAGE 100
+PROG-FILE "HELLO"
+LOAD HELLO
+EXIT                         % Exits NRL, returns to SINTRAN
+
+% Back at SINTRAN level, run the program (SINTRAN command - has @)
+@HELLO
+```
+
+#### Another Example: NORD-500 Assembly
+
+```mode
+@CC Starting assembly...     % SINTRAN: Display message
+
+% Start the assembler (SINTRAN command - has @)
+@NORD-500-ASSEMBLER
+
+% Input to the assembler (no @)
+ASSEMBLE PROGRAM:SYMB
+LIST
+LINES 60
+EXIT                         % Exits assembler
+
+@CC Assembly complete!       % SINTRAN: Display message
+```
+
+#### Key Rules
+
+| Line Type | Starts with `@`? | Who Executes It? | Example |
+|-----------|------------------|------------------|---------|
+| **SINTRAN Command** | ✅ Yes | Operating System | `@NPL SOURCE:NPL` |
+| **Program Input** | ❌ No | Currently Running Program | `PROG-FILE "TEST"` |
+| **Comment/Message** | ✅ Yes (`@cc` or `@CC`) | Displayed during execution | `@cc Building...` |
+
+**Remember:** After starting a program with `@PROGRAM-NAME`, all following lines without `@` are sent as input to that program until it exits (usually with `EXIT`).
+
+**Note:** MODE files run automatically without user interaction - they are batch scripts.
 
 ---
 
@@ -136,22 +198,47 @@ EXIT                         % Input to NRL
 - Next lines are fed as input to NRL
 - Program processes input until it exits
 
-### 3.4 Comments
+### 3.4 Displaying Messages and Comments with @cc
 
 ```mode
-% This is a full-line comment
-
-@NPL SOURCE:NPL              % Inline comment after command
+@cc This message will be displayed during execution
+@cc =========================================
+@cc NORD-500 Build Process
+@cc =========================================
 ```
 
-### 3.5 Wait for User
+**`@cc` or `@CC` (Comment Command):** Displays text during MODE file execution. This is the ONLY way to add comments or status messages in MODE files.
 
+**Format:** `@cc <text>` or `@CC <text>`
+
+**Rules:**
+- There should be a space between the second C and the text
+- Case doesn't matter: `@cc` and `@CC` both work
+- The text is displayed during execution
+- Useful for progress messages, status updates, section headers, and documentation
+
+**Examples:**
 ```mode
-@ECHO "Press ENTER to continue"
-?                            % Wait for user input
+@cc ================================================
+@cc Multi-Module Build Script
+@cc ================================================
+
+@cc Step 1: Compiling modules...
+@NPL SOURCE:NPL
+
+@cc Step 2: Assembling...
+@MAC SOURCE:MAC
+
+@cc Step 3: Linking...
+@NRL
+PROG-FILE "PROGRAM"
+LOAD SOURCE
+EXIT
+
+@cc Build complete!
 ```
 
-The `?` character makes MODE file pause for user interaction.
+**Note:** MODE files have no other comment syntax. If you want to document your MODE file, use `@cc` (it will be displayed when the MODE file runs).
 
 ---
 
@@ -233,7 +320,7 @@ EXIT
 ```mode
 @MODE COMPILE:MODE
 @MODE LINK:MODE
-@ECHO "Build complete"
+@cc Build complete
 ```
 
 ---
@@ -245,17 +332,17 @@ EXIT
 **File: BUILD-NPL:MODE**
 
 ```mode
-% Compile, assemble, and link NPL program
+@cc Compile, assemble, and link NPL program
 
 OUTPUT FILE: @BUILD-LOG:TXT
 
-% Compile
+@cc Compile
 @NPL %1:NPL
 
-% Assemble
+@cc Assemble
 @MAC %1:MAC
 
-% Link
+@cc Link
 @NRL
 PROG-FILE "%1"
 LOAD %1
@@ -263,7 +350,7 @@ EXIT
 
 OUTPUT FILE: @
 
-@ECHO "Build complete: %1:PROG"
+@cc Build complete: %1:PROG
 ```
 
 **Usage:**
@@ -278,7 +365,7 @@ OUTPUT FILE: @
 **File: BUILD-C:MODE**
 
 ```mode
-% Build C program with runtime
+@cc Build C program with runtime
 
 @CC-100 %1:C
 
@@ -291,7 +378,7 @@ LOAD CC-2BANK
 LOAD CC-2TRAILER
 EXIT
 
-@ECHO "C build complete"
+@cc C build complete
 ```
 
 ### 6.3 Multi-Module Project
@@ -299,27 +386,27 @@ EXIT
 **File: BUILD-PROJECT:MODE**
 
 ```mode
-% Build complete project
+@cc Build complete project
 
-@ECHO "Compiling modules..."
+@cc Compiling modules...
 
-% Compile all NPL modules
+@cc Compile all NPL modules
 @NPL MAIN:NPL
 @NPL UTILS:NPL
 @NPL DATABASE:NPL
 @NPL NETWORK:NPL
 
-@ECHO "Assembling..."
+@cc Assembling...
 
-% Assemble all
+@cc Assemble all
 @MAC MAIN:MAC
 @MAC UTILS:MAC
 @MAC DATABASE:MAC
 @MAC NETWORK:MAC
 
-@ECHO "Linking..."
+@cc Linking...
 
-% Link all modules
+@cc Link all modules
 @NRL
 IMAGE 100
 PROG-FILE "PROJECT"
@@ -331,8 +418,8 @@ LIBRARY SYSLIB
 MAP
 EXIT
 
-@ECHO "Build successful!"
-@ECHO "Run with: @PROJECT"
+@cc Build successful!
+@cc Run with: @PROJECT
 ```
 
 ### 6.4 Clean and Rebuild
@@ -340,9 +427,9 @@ EXIT
 **File: REBUILD:MODE**
 
 ```mode
-% Clean and rebuild project
+@cc Clean and rebuild project
 
-@ECHO "Cleaning old files..."
+@cc Cleaning old files...
 
 @DELETE MAIN:MAC
 @DELETE MAIN:BRF
@@ -350,11 +437,11 @@ EXIT
 @DELETE UTILS:BRF
 @DELETE PROJECT:PROG
 
-@ECHO "Starting build..."
+@cc Starting build...
 
 @MODE BUILD-PROJECT:MODE
 
-@ECHO "Rebuild complete!"
+@cc Rebuild complete!
 ```
 
 ---
@@ -416,9 +503,9 @@ OUTPUT FILE: @
 **File: TEST:MODE**
 
 ```mode
-@ECHO "Running test suite..."
+@cc Running test suite...
 
-% Build test program
+@cc Build test program
 @NPL TEST-SUITE:NPL
 @MAC TEST-SUITE:MAC
 @NRL
@@ -426,13 +513,13 @@ PROG-FILE "TEST-SUITE"
 LOAD TEST-SUITE
 EXIT
 
-% Run tests
+@cc Run tests
 OUTPUT FILE: @TEST-RESULTS:TXT
 @TEST-SUITE
 OUTPUT FILE: @
 
-% Check results
-@ECHO "Tests complete. Results in TEST-RESULTS:TXT"
+@cc Check results
+@cc Tests complete. Results in TEST-RESULTS:TXT
 ```
 
 ---
@@ -443,28 +530,30 @@ OUTPUT FILE: @
 
 **Good structure:**
 ```mode
-% Header comment
-% Purpose: Build main application
-% Author: Name
-% Date: 2025-10-17
+@cc ================================================
+@cc Build Main Application
+@cc Author: Name
+@cc Date: 2025-10-18
+@cc ================================================
 
-% Clean phase
-@ECHO "Cleaning..."
+@cc Clean phase
+@cc Cleaning...
 @DELETE OLD-FILES
 
-% Build phase
-@ECHO "Building..."
+@cc Build phase
+@cc Building...
 @NPL SOURCE:NPL
 @MAC SOURCE:MAC
 
-% Link phase
-@ECHO "Linking..."
+@cc Link phase
+@cc Linking...
 @NRL
-% ... NRL commands ...
+PROG-FILE "APP"
+LOAD SOURCE
 EXIT
 
-% Done
-@ECHO "Complete!"
+@cc Done
+@cc Complete!
 ```
 
 ### 8.2 Error Handling
@@ -475,7 +564,7 @@ EXIT
 % If compilation fails, MODE file continues
 % Add manual checks if needed
 
-@ECHO "Check for errors above"
+@CC Check for errors above
 ?                            % Wait for user to verify
 ```
 
@@ -484,10 +573,10 @@ EXIT
 **Always log builds:**
 ```mode
 OUTPUT FILE: @BUILD-LOG:TXT
-@ECHO "Build started: %DATE %TIME"
+@CC Build started
 @NPL SOURCE:NPL
 @MAC SOURCE:MAC
-@ECHO "Build completed"
+@CC Build completed
 OUTPUT FILE: @
 ```
 
@@ -586,23 +675,27 @@ OUTPUT FILE: @
 
 ## Common Pitfalls
 
-### Pitfall 1: Context Switching
+### Pitfall 1: Context Switching - Mixing `@` and non-`@`
 
 **Problem:**
 ```mode
-@NRL                         % NRL starts
-PROG-FILE "TEST"
-@PROGRAM                     % Wrong! Still inside NRL
+@NRL                         % @ = SINTRAN: Start NRL
+PROG-FILE "TEST"             % No @ = Input to NRL
+@PROGRAM                     % Wrong! @ = SINTRAN command, but NRL still running!
 ```
+
+**Why this fails:** The `@PROGRAM` line has `@`, so SINTRAN tries to execute it as a system command. But NRL is still running and hasn't exited yet, causing confusion.
 
 **Solution:**
 ```mode
-@NRL
-PROG-FILE "TEST"
-LOAD SOURCE
-EXIT                         % Exit NRL first
-@PROGRAM                     % Now at SINTRAN level
+@NRL                         % @ = SINTRAN: Start NRL
+PROG-FILE "TEST"             % No @ = Input to NRL
+LOAD SOURCE                  % No @ = Input to NRL
+EXIT                         % No @ = Input to NRL (exits NRL)
+@PROGRAM                     % @ = SINTRAN: Now at SINTRAN level
 ```
+
+**Remember:** All lines without `@` go to the currently running program. Use `EXIT` (no `@`) to exit the program first, then you can use `@` commands again.
 
 ### Pitfall 2: Missing EXIT
 
@@ -637,8 +730,16 @@ OUTPUT FILE: @LOG:TXT
 OUTPUT FILE: @LOG:TXT
 @NPL SOURCE:NPL
 OUTPUT FILE: @               % Reset to terminal
-@ECHO "Compilation done"
+@CC Compilation done
 ```
+
+---
+
+## See Also
+
+- **[SINTRAN-COMMANDS-REFERENCE.md](../SINTRAN-COMMANDS-REFERENCE.md)** - Complete SINTRAN III command reference including @CC
+- **[COMPILER-COMMANDS-REFERENCE.md](COMPILER-COMMANDS-REFERENCE.md)** - Compiler and linker commands
+- **[LINKING-GUIDE.md](LINKING-GUIDE.md)** - Understanding the build process
 
 ---
 
