@@ -71,49 +71,49 @@ I'm sorry, I cannot perform OCR on the given image.
 
 # CONTENTS
 
-| Section | Page |
-|---------|------|
-| [1 MONITOR CALLS](#1-monitor-calls) | 1 |
-| [1.1 How to use this manual](#11-how-to-use-this-manual) | 2 |
-| [1.2 Monitor calls in PASCAL](#12-monitor-calls-in-pascal) | 5 |
-| [1.3 Monitor calls in COBOL](#13-monitor-calls-in-cobol) | 7 |
-| [1.4 Monitor calls in FORTRAN](#14-monitor-calls-in-fortran) | 9 |
-| [1.5 Monitor calls in PLANC](#15-monitor-calls-in-planc) | 11 |
-| [1.6 Monitor calls in ASSEMBLY-500](#16-monitor-calls-in-assembly-500) | 14 |
-| [1.7 Monitor calls in MAC](#17-monitor-calls-in-mac) | 16 |
-| [1.8 Monitor calls in other programming languages](#18-monitor-calls-in-other-programming-languages) | 18 |
-| [2 OVERVIEW OF THE MONITOR CALLS](#2-overview-of-the-monitor-calls) | 19 |
-| [2.1 Monitor calls in numeric order](#21-monitor-calls-in-numeric-order) | 19 |
-| [2.2 Alphabetic list of monitor calls with parameters](#22-alphabetic-list-of-monitor-calls-with-parameters) | 22 |
-| [2.3 Commonly-used monitor calls](#23-commonly-used-monitor-calls) | 44 |
-| [2.4 File operations](#24-file-operations) | 45 |
-| [2.5 Input and output monitor calls](#25-input-and-output-monitor-calls) | 46 |
-| [2.6 Monitor calls for terminal handling](#26-monitor-calls-for-terminal-handling) | 48 |
-| [2.7 Monitor calls for printer handling](#27-monitor-calls-for-printer-handling) | 49 |
-| [2.8 Monitor calls for error handling](#28-monitor-calls-for-error-handling) | 50 |
-| [2.9 File system operations](#29-file-system-operations) | 51 |
-| [2.10 RT program execution](#210-rt-program-execution) | 52 |
-| [2.11 Device handling](#211-device-handling) | 53 |
-| [2.12 Segment administration](#212-segment-administration) | 55 |
-| [2.13 Data communication](#213-data-communication) | 56 |
-| [2.14 Monitor calls for internal use](#214-monitor-calls-for-internal-use) | 57 |
-| [2.15 Monitor calls sorted on short names](#215-monitor-calls-sorted-on-short-names) | 58 |
-| [2.16 Monitor call numbers no longer supported](#216-monitor-call-numbers-no-longer-supported) | 61 |
-| [2.17 New monitor call numbers](#217-new-monitor-call-numbers) | 61 |
-| [3 MONITOR CALL REFERENCE](#3-monitor-call-reference) | 63 |
-| APPENDIX A: ERROR MESSAGES | 565 |
-| APPENDIX B: LOGICAL DEVICE NUMBERS USED IN SINTRAN III | 577 |
-| APPENDIX C: FILE SYSTEM ENTRIES | 615 |
-| APPENDIX D: RT PROGRAM DESCRIPTIONS | 619 |
-| APPENDIX E: ND-500(0) PROCESS DESCRIPTION | 621 |
-| APPENDIX F: SEGMENT DESCRIPTORS | 625 |
-| APPENDIX G: ASCII TABLE | 625 |
-| APPENDIX H: PERIPHERAL FILE NAMES | 627 |
-| APPENDIX I: ND TERMINAL TYPES | 629 |
-| APPENDIX J: HARDWARE STATUS VALUES | 633 |
-| APPENDIX K: GLOSSARY | 639 |
+| Section |
+|---------|
+| [1 MONITOR CALLS](#1-monitor-calls) |
+| [1.1 How to use this manual](#11-how-to-use-this-manual) |
+| [1.2 Monitor calls in PASCAL](#12-monitor-calls-in-pascal) |
+| [1.3 Monitor calls in COBOL](#13-monitor-calls-in-cobol) |
+| [1.4 Monitor calls in FORTRAN](#14-monitor-calls-in-fortran) |
+| [1.5 Monitor calls in PLANC](#15-monitor-calls-in-planc) |
+| [1.6 Monitor calls in ASSEMBLY-500](#16-monitor-calls-in-assembly-500) |
+| [1.7 Monitor calls in MAC](#17-monitor-calls-in-mac) |
+| [1.8 Monitor calls in other programming languages](#18-monitor-calls-in-other-programming-languages) |
+| [2 OVERVIEW OF THE MONITOR CALLS](#2-overview-of-the-monitor-calls) |
+| [2.1 Monitor calls in numeric order](#21-monitor-calls-in-numeric-order) |
+| [2.2 Alphabetic list of monitor calls with parameters](#22-alphabetic-list-of-monitor-calls-with-parameters) |
+| [2.3 Commonly-used monitor calls](#23-commonly-used-monitor-calls) |
+| [2.4 File operations](#24-file-operations) |
+| [2.5 Input and output monitor calls](#25-input-and-output-monitor-calls) |
+| [2.6 Monitor calls for terminal handling](#26-monitor-calls-for-terminal-handling) |
+| [2.7 Monitor calls for printer handling](#27-monitor-calls-for-printer-handling) |
+| [2.8 Monitor calls for error handling](#28-monitor-calls-for-error-handling) |
+| [2.9 File system operations](#29-file-system-operations) |
+| [2.10 RT program execution](#210-rt-program-execution) |
+| [2.11 Device handling](#211-device-handling) |
+| [2.12 Segment administration](#212-segment-administration) |
+| [2.13 Data communication](#213-data-communication) |
+| [2.14 Monitor calls for internal use](#214-monitor-calls-for-internal-use) |
+| [2.15 Monitor calls sorted on short names](#215-monitor-calls-sorted-on-short-names) |
+| [2.16 Monitor call numbers no longer supported](#216-monitor-call-numbers-no-longer-supported) |
+| [2.17 New monitor call numbers](#217-new-monitor-call-numbers) |
+| [3 MONITOR CALL REFERENCE](#3-monitor-call-reference) |
+| [APPENDIX A: ERROR MESSAGES](#appendix-a-error-messages) |
+| [APPENDIX B: LOGICAL DEVICE NUMBERS USED IN SINTRAN III](#appendix-b-logical-device-numbers-used-in-sintran-iii) |
+| [APPENDIX C: FILE SYSTEM ENTRIES](#appendix-c-file-system-entries) |
+| [APPENDIX D: RT PROGRAM DESCRIPTIONS](#appendix-d-rt-program-descriptions) |
+| [APPENDIX E: ND-500(0) PROCESS DESCRIPTION](#appendix-e-nd-5000-process-description) |
+| [APPENDIX F: SEGMENT DESCRIPTORS](#appendix-f-segment-descriptors) |
+| APPENDIX G: ASCII TABLE *(missing from document)* |
+| [APPENDIX H: PERIPHERAL FILE NAMES](#appendix-h-peripheral-file-names) |
+| [APPENDIX I: ND TERMINAL TYPES](#appendix-i-nd-terminal-types) |
+| [APPENDIX J: HARDWARE STATUS VALUES](#appendix-j-hardware-status-values) |
+| [APPENDIX K: GLOSSARY](#appendix-k-glossary) |
 
-Index 649
+Index
 
 ---
 
@@ -963,7 +963,7 @@ This chapter is a guide to the various monitor calls. It contains lists sorted b
 
 Here are the monitor calls sorted by numbers. The numbers are octal.
 
-| Code | Monitor Call Name | Short Name |
+| Code | Monitor Call Name | Mnemonic   |
 |------|-------------------|------------|
 | 0B | [ExitFromProgram](#ob-exitfromprogram-leave) | [LEAVE](#ob-exitfromprogram-leave) |
 | 1B | [InByte](#inbyte) | INBT |
@@ -1045,6 +1045,149 @@ Here are the monitor calls sorted by numbers. The numbers are octal.
 | 126B | [ExactDelayStart](#126b-exactdelaystart-dset) | DSET |
 | 127B | [ExactStartup](#exactstartup) | DABST |
 | 130B | [ExactInterval](#exactinterval) | DINTV |
+| 131B | DataTransfer             | ABSTR     |
+| 132B | [JumpToSegment](#132b-jumptosegment) | MCALL     |
+| 133B | [ExitFromSegment](#133b-exitfromsegment) | MEXIT     |
+| 134B | ExitRTProgram            | REXIT     |
+| 135B | WaitForRestart           | RTWT      |
+| 136B | EnableRTStart            | RTON      |
+| 137B | [DisableRTStart](#137b-disablertstart) | RTOFF     |
+| 138B | ToForwardLineInfo        | HDWEV     |
+| 140B | DeviceControl            | IOCTL     |
+| 141B | [ToErrorDevice](#142b-toerrordevice) | ERMON     |
+| 142B | DeviceInfo               | RSIO      |
+| 143B | DeviceFunction           | MAGTYP    |
+| 144B | [PrivInstruction](#146b-privinstruction) | IPRIV     |
+| 147B | CAMAC4Function           | CAMAC     |
+| 150B | [CAMACGLRegister](#150b-camacglregister) | GL        |
+| 151B | GetRTAddress             | GRTDA     |
+| 152B | GetRTName                | GRTNA     |
+| 153B | [CAMACIOInstruction](#153b-camacioinstruction) | IOXIN     |
+| 154B | [AssignCAMACLAM](#154b-assigncamaclam) | ASSIG     |
+| 155B | GraphicFunction          | GRAPHI    |
+| 156B | SegmentOperateTable      | TABLE     |
+| 157B | FixContiguous            | FIXC      |
+| 158B | InString                 | INSTR     |
+| 159B | [OutString](#162b-outstring) | OUTSTR    |
+| 161B | SaveSegment              | WSEG      |
+| 162B | GetInRegisters           | DIVI      |
+| 168B | [AttachSegment](#167b-attachsegment) | REENT     |
+| 170B | UserDef0                 | U50       |
+| 171B | UserDef1                 | U51       |
+| 172B | UserDef2                 | U52       |
+| 173B | UserDef3                 | U53       |
+| 174B | UserDef4                 | U54       |
+| 175B | UserDef5                 | U55       |
+| 176B | UserDef6                 | U56       |
+| 177B | UserDef7                 | U57       |
+| 178B | XMSGFunction             | XMSGF     |
+| 200B | HDLCFunction             | MHDLC     |
+| 206B | TerminationHandling      | EDTMR     |
+| 208B | GetErrorNumber           | GERRN     |
+| 212B | [ReentrantSegment](#212b-reentrantsegment) | SREEN     |
+| 213B | GetArrayIndexes          | WSEX      |
+| 215B | [GetUserName](#214b-getusername) | GUS3      |
+| 218B | GetJobEntry              | GJOE      |
+| 217B | GetAllFileIndexes        | GALI      |
+| 220B | [CreateFile](#221b-createfile) | CRFL      |
+| 222B | GetAddressAreas          | GASIZ     |
+| 230B | GetSLocalChars           | MGDAE     |
+| 231B | ExpandFile               | EXPF1     |
+| 232B | RenameFile               | RENF1     |
+| 233B | [SetTemporaryFile](#233b-settemporaryfile) | STF1      |
+| 234B | [SetPeripheralName](#234b-setperipheralname) | SEF1      |
+| 235B | ScratchOpen              | SCROP     |
+| 236B | SetPermanentOpen         | PEROP     |
+| 237B | [SetFileAccess](#237b-setfileaccess) | SFACC     |
+| 238B | SetFileSystem            | SPARC     |
+| 240B | CloseAll                 | CLSAL     |
+| 241B | OldUser                  | RUSCN     |
+| 242B | GetOldNameIndex          | GDINX     |
+| 243B | [GetDirEntry](#244b-getdirentry) | GDIEN     |
+| 244B | SetNameEntry             | GDINX     |
+| 246B | ReserveOrder             | REDIR     |
+| 247B | ReleaseDir               | RLDIR     |
+| 248B | CopyPage                 | COPAG     |
+| 250B | BackupClose              | BRCP      |
+| 251B | NewFileVersion           | NWFIL     |
+| 252B | GetErrorOverDev          | GERDV     |
+| 253B | FreePage                 | FREPG     |
+| 255B | FullFileName             | DAE8F     |
+| 256B | GetFileInfo              | FPINF     |
+| 261B | SetSystemTime            | CPUST     |
+| 263B | GetDeviceType            | GDEVY     |
+| 264B | TimeOut                  | TMOUT     |
+| 266B | ReadDiskPage             | ROPAG     |
+| 267B | WriteDiskPage            | WD PAG    |
+| 272B | GetFileName              | MGFLI     |
+| 275B | GetFilePage              | DELPG     |
+| 276B | SetTerminalName          | STRFI     |
+| 278B | RamLabelLocal            | ELON      |
+| 300B | SetSpaceHandling         | SUSP      |
+| 301B | SetSpaceHandling1        | SUSI      |
+| 302B | OnLocalFunction          | ELON      |
+| 303B | OffLocalFunction         | ELOFF     |
+| 307B | TerminalHandling         | TNRIN     |
+| 308B | [TerminalNoWait](#307b-terminalnowait) | TNWAL     |
+| 310B | LanDataWrite             | MWIN      |
+| 311B | WriteMicro               | MDINE     |
+| 312B | BenchMarkCall            | MOIN      |
+| 313B | GetBenchMarkCall         | MOIN2     |
+| 314B | DefaultSystemStatus      | SRUS1     |
+| 316B | SaveMicroCommand         | SRLMC     |
+| 317B | GetServiceCommands       | GSCMG     |
+| 323B | [SegmentOverlay](#323b-segmentoverlay) | SPARC     |
+| 324B | [OctobusFunction](#324b-octobusfunction) | OCTO          |
+| 325B | BatchModeEcho              | MBECH         |
+| 326B | LogInStart                 | MLOGI         |
+| 327B | FileSystemFunction         | FSMTY         |
+| 330B | TerminalStatus             | TERST         |
+| 332B | [TerminalLineInfo](#332b-terminallineinfo) | TREPP         |
+| 333B | DMAFunction                | UDMA          |
+| 334B | GetErrorMessage            | GETXM         |
+| 335B | TransferData               | EXABS         |
+| 336B | TerminalFunction           | IOMTY         |
+| 337B | [ChangeSegment](#337b-changesegment) | SPCHG         |
+| 340B | ReadSystemRecord           | RSREC         |
+| 341B | [SegmentFunction](#341b-segmentfunction) | SGMTY         |
+| 400B | ErrorReturn                | MACROE        |
+| 401B | DisAssemble                | DISASS        |
+| 402B | [GetInputFlags](#402b-getinputflags) | RFLAG         |
+| 403B | SetOutputFlags             | WFLAG         |
+| 404B | FixIOArea                  | IOFIX         |
+| 405B | [SwitchUserBreak](#405b-switchuserbreak) | USTRBK        |
+| 406B | AccessRTCommon             | RWRTC         |
+| 410B | FixInMemory                | FIXMEM        |
+| 411B | MemoryUnFix                | UNFIXM        |
+| 412B | [FileAsSegment](#412b-fileassegment) | FSCNT         |
+| 413B | [FileNotAsSegment](#413b-filenotassegment) | FSDCNT        |
+| 414B | [BCNAFCAMAC](#414b-bcnafcamac) | BCNAF         |
+| 415B | BCNAFICAMAC                | BCNAF1        |
+| 416B | [SaveND500Segment](#416b-savend500segment) | WSEGN         |
+| 417B | MaxPagesInMemory           | MXPISG        |
+| 420B | [GetUserRegisters](#420b-getuserregisters) | GRBLK         |
+| 421B | GetActiveSegment           | GASGM         |
+| 422B | GetScratchSegment          | GSWSP         |
+| 423B | [CopyCapability](#423b-copycapability) | CAPCOP        |
+| 424B | [ClearCapability](#424b-clearcapability) | CAPCLE        |
+| 425B | SetProcessName             | SPRNAM        |
+| 426B | GetProcessNo               | GPRNUM        |
+| 427B | GetOwnProcessInfo          | GPRNAME       |
+| 430B | [TranslateAddress](#430b-translateaddress) | ADR100        |
+| 431B | [AwaitTransfer](#431b-awaittransfer) | MWAITF        |
+| 435B | ForceTrap                  | PRT           |
+| 436B | [SetND500Param](#436b-setnd500param) | 5PASET        |
+| 437B | GetND500Param              | 5PAGET        |
+| 440B | Attach500Segment           | AT5SGM        |
+| 500B | StartProcess               | STARTP        |
+| 501B | StopProcess                | STOPPR        |
+| 502B | SwitchProcess              | SWITCHP       |
+| 503B | InputString                | DVINST        |
+| 504B | [OutputString](#504b-outputstring) | DVOUTS        |
+| 505B | [GetTrapReason](#505b-gettrapreason) | GERRCOD       |
+| 507B | SetProcessPriority         | SPRIO         |
+| 514B | ND500TimeOut               | 5TMOUT        |
+
 
 ## 2.2 Alphabetic List of Monitor Calls with Parameters
 
@@ -28124,7 +28267,7 @@ This appendix shows the contents of the segment descriptors. Bits are numbered f
 
 # SINTRAN III Monitor Calls
 
-## Appendix G: ASCII Table
+## APPENDIX G: ASCII Table
 
 The following numbers represent characters under SINTRAN III.
 
