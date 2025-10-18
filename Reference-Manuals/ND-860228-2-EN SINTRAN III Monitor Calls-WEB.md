@@ -107,7 +107,7 @@ I'm sorry, I cannot perform OCR on the given image.
 | [APPENDIX D: RT PROGRAM DESCRIPTIONS](#appendix-d-rt-program-descriptions) |
 | [APPENDIX E: ND-500(0) PROCESS DESCRIPTION](#appendix-e-nd-5000-process-description) |
 | [APPENDIX F: SEGMENT DESCRIPTORS](#appendix-f-segment-descriptors) |
-| APPENDIX G: ASCII TABLE *(missing from document)* |
+| [APPENDIX G: ASCII TABLE](#appendix-g-ascii-table) |
 | [APPENDIX H: PERIPHERAL FILE NAMES](#appendix-h-peripheral-file-names) |
 | [APPENDIX I: ND TERMINAL TYPES](#appendix-i-nd-terminal-types) |
 | [APPENDIX J: HARDWARE STATUS VALUES](#appendix-j-hardware-status-values) |
@@ -1048,31 +1048,31 @@ Here are the monitor calls sorted by numbers. The numbers are octal.
 | 131B | DataTransfer             | ABSTR     |
 | 132B | [JumpToSegment](#132b-jumptosegment) | MCALL     |
 | 133B | [ExitFromSegment](#133b-exitfromsegment) | MEXIT     |
-| 134B | ExitRTProgram            | REXIT     |
-| 135B | WaitForRestart           | RTWT      |
-| 136B | EnableRTStart            | RTON      |
+| 134B | [ExitRTProgram](#134b-exitrtprogram) | REXIT     |
+| 135B | [WaitForRestart](#135b-waitforrestart) | RTWT      |
+| 136B | [EnableRTStart](#136b-enablertstart) | RTON      |
 | 137B | [DisableRTStart](#137b-disablertstart) | RTOFF     |
 | 138B | ToForwardLineInfo        | HDWEV     |
-| 140B | DeviceControl            | IOCTL     |
+| 140B | [DeviceControl](#140b-devicecontrol) | IOCTL     |
 | 141B | [ToErrorDevice](#142b-toerrordevice) | ERMON     |
 | 142B | DeviceInfo               | RSIO      |
-| 143B | DeviceFunction           | MAGTYP    |
+| 143B | [DeviceFunction](#143b-devicefunction) | MAGTYP    |
 | 144B | [PrivInstruction](#146b-privinstruction) | IPRIV     |
 | 147B | CAMAC4Function           | CAMAC     |
 | 150B | [CAMACGLRegister](#150b-camacglregister) | GL        |
-| 151B | GetRTAddress             | GRTDA     |
-| 152B | GetRTName                | GRTNA     |
+| 151B | [GetRTAddress](#151b-getrtaddress) | GRTDA     |
+| 152B | [GetRTName](#152b-getrtname) | GRTNA     |
 | 153B | [CAMACIOInstruction](#153b-camacioinstruction) | IOXIN     |
 | 154B | [AssignCAMACLAM](#154b-assigncamaclam) | ASSIG     |
-| 155B | GraphicFunction          | GRAPHI    |
+| 155B | [GraphicFunction](#155b-graphicfunction) | GRAPHI    |
 | 156B | SegmentOperateTable      | TABLE     |
-| 157B | FixContiguous            | FIXC      |
-| 158B | InString                 | INSTR     |
+| 157B | [FixContiguous](#157b-fixcontiguous) | FIXC      |
+| 158B | [InString](#158b-instring) | INSTR     |
 | 159B | [OutString](#162b-outstring) | OUTSTR    |
-| 161B | SaveSegment              | WSEG      |
-| 162B | GetInRegisters           | DIVI      |
+| 161B | [SaveSegment](#161b-savesegment) | WSEG      |
+| 162B | [GetInRegisters](#162b-getinregisters) | DIVI      |
 | 168B | [AttachSegment](#167b-attachsegment) | REENT     |
-| 170B | UserDef0                 | U50       |
+| 170B | [UserDef0](#170b-userdef0) | U50       |
 | 171B | UserDef1                 | U51       |
 | 172B | UserDef2                 | U52       |
 | 173B | UserDef3                 | U53       |
@@ -1080,48 +1080,48 @@ Here are the monitor calls sorted by numbers. The numbers are octal.
 | 175B | UserDef5                 | U55       |
 | 176B | UserDef6                 | U56       |
 | 177B | UserDef7                 | U57       |
-| 178B | XMSGFunction             | XMSGF     |
-| 200B | HDLCFunction             | MHDLC     |
-| 206B | TerminationHandling      | EDTMR     |
+| 178B | [XMSGFunction](#178b-xmsgfunction) | XMSGF     |
+| 200B | [HDLCFunction](#200b-hdlcfunction) | MHDLC     |
+| 206B | [TerminationHandling](#206b-terminationhandling) | EDTMR     |
 | 208B | GetErrorNumber           | GERRN     |
 | 212B | [ReentrantSegment](#212b-reentrantsegment) | SREEN     |
 | 213B | GetArrayIndexes          | WSEX      |
 | 215B | [GetUserName](#214b-getusername) | GUS3      |
 | 218B | GetJobEntry              | GJOE      |
-| 217B | GetAllFileIndexes        | GALI      |
+| 217B | [GetAllFileIndexes](#217b-getallfileindexes) | GALI      |
 | 220B | [CreateFile](#221b-createfile) | CRFL      |
 | 222B | GetAddressAreas          | GASIZ     |
 | 230B | GetSLocalChars           | MGDAE     |
-| 231B | ExpandFile               | EXPF1     |
-| 232B | RenameFile               | RENF1     |
+| 231B | [ExpandFile](#231b-expandfile) | EXPF1     |
+| 232B | [RenameFile](#232b-renamefile) | RENF1     |
 | 233B | [SetTemporaryFile](#233b-settemporaryfile) | STF1      |
 | 234B | [SetPeripheralName](#234b-setperipheralname) | SEF1      |
-| 235B | ScratchOpen              | SCROP     |
-| 236B | SetPermanentOpen         | PEROP     |
+| 235B | [ScratchOpen](#235b-scratchopen) | SCROP     |
+| 236B | [SetPermanentOpen](#236b-setpermanentopen) | PEROP     |
 | 237B | [SetFileAccess](#237b-setfileaccess) | SFACC     |
 | 238B | SetFileSystem            | SPARC     |
 | 240B | CloseAll                 | CLSAL     |
-| 241B | OldUser                  | RUSCN     |
+| 241B | [OldUser](#241b-olduser) | RUSCN     |
 | 242B | GetOldNameIndex          | GDINX     |
 | 243B | [GetDirEntry](#244b-getdirentry) | GDIEN     |
 | 244B | SetNameEntry             | GDINX     |
 | 246B | ReserveOrder             | REDIR     |
 | 247B | ReleaseDir               | RLDIR     |
-| 248B | CopyPage                 | COPAG     |
-| 250B | BackupClose              | BRCP      |
-| 251B | NewFileVersion           | NWFIL     |
+| 248B | [CopyPage](#248b-copypage) | COPAG     |
+| 250B | [BackupClose](#250b-backupclose) | BRCP      |
+| 251B | [NewFileVersion](#251b-newfileversion) | NWFIL     |
 | 252B | GetErrorOverDev          | GERDV     |
 | 253B | FreePage                 | FREPG     |
-| 255B | FullFileName             | DAE8F     |
+| 255B | [FullFileName](#255b-fullfilename) | DAE8F     |
 | 256B | GetFileInfo              | FPINF     |
 | 261B | SetSystemTime            | CPUST     |
-| 263B | GetDeviceType            | GDEVY     |
-| 264B | TimeOut                  | TMOUT     |
-| 266B | ReadDiskPage             | ROPAG     |
-| 267B | WriteDiskPage            | WD PAG    |
-| 272B | GetFileName              | MGFLI     |
+| 263B | [GetDeviceType](#263b-getdevicetype) | GDEVY     |
+| 264B | [TimeOut](#264b-timeout) | TMOUT     |
+| 266B | [ReadDiskPage](#266b-readdiskpage) | ROPAG     |
+| 267B | [WriteDiskPage](#267b-writediskpage) | WDPAG     |
+| 272B | [GetFileName](#272b-getfilename) | MGFLI     |
 | 275B | GetFilePage              | DELPG     |
-| 276B | SetTerminalName          | STRFI     |
+| 276B | [SetTerminalName](#276b-setterminalname) | STRFI     |
 | 278B | RamLabelLocal            | ELON      |
 | 300B | SetSpaceHandling         | SUSP      |
 | 301B | SetSpaceHandling1        | SUSI      |
@@ -1138,55 +1138,55 @@ Here are the monitor calls sorted by numbers. The numbers are octal.
 | 317B | GetServiceCommands       | GSCMG     |
 | 323B | [SegmentOverlay](#323b-segmentoverlay) | SPARC     |
 | 324B | [OctobusFunction](#324b-octobusfunction) | OCTO          |
-| 325B | BatchModeEcho              | MBECH         |
+| 325B | [BatchModeEcho](#325b-batchmodeecho) | MBECH         |
 | 326B | LogInStart                 | MLOGI         |
-| 327B | FileSystemFunction         | FSMTY         |
-| 330B | TerminalStatus             | TERST         |
+| 327B | [FileSystemFunction](#327b-filesystemfunction) | FSMTY         |
+| 330B | [TerminalStatus](#330b-terminalstatus) | TERST         |
 | 332B | [TerminalLineInfo](#332b-terminallineinfo) | TREPP         |
-| 333B | DMAFunction                | UDMA          |
-| 334B | GetErrorMessage            | GETXM         |
-| 335B | TransferData               | EXABS         |
+| 333B | [DMAFunction](#333b-dmafunction) | UDMA          |
+| 334B | [GetErrorMessage](#334b-geterrormessage) | GETXM         |
+| 335B | [TransferData](#335b-transferdata) | EXABS         |
 | 336B | TerminalFunction           | IOMTY         |
 | 337B | [ChangeSegment](#337b-changesegment) | SPCHG         |
-| 340B | ReadSystemRecord           | RSREC         |
+| 340B | [ReadSystemRecord](#340b-readsystemrecord) | RSREC         |
 | 341B | [SegmentFunction](#341b-segmentfunction) | SGMTY         |
-| 400B | ErrorReturn                | MACROE        |
+| 400B | [ErrorReturn](#400b-errorreturn) | MACROE        |
 | 401B | DisAssemble                | DISASS        |
 | 402B | [GetInputFlags](#402b-getinputflags) | RFLAG         |
-| 403B | SetOutputFlags             | WFLAG         |
-| 404B | FixIOArea                  | IOFIX         |
+| 403B | [SetOutputFlags](#403b-setoutputflags) | WFLAG         |
+| 404B | [FixIOArea](#404b-fixioarea) | IOFIX         |
 | 405B | [SwitchUserBreak](#405b-switchuserbreak) | USTRBK        |
 | 406B | AccessRTCommon             | RWRTC         |
-| 410B | FixInMemory                | FIXMEM        |
-| 411B | MemoryUnFix                | UNFIXM        |
+| 410B | [FixInMemory](#410b-fixinmemory) | FIXMEM        |
+| 411B | [MemoryUnFix](#411b-memoryunfix) | UNFIXM        |
 | 412B | [FileAsSegment](#412b-fileassegment) | FSCNT         |
 | 413B | [FileNotAsSegment](#413b-filenotassegment) | FSDCNT        |
 | 414B | [BCNAFCAMAC](#414b-bcnafcamac) | BCNAF         |
 | 415B | BCNAFICAMAC                | BCNAF1        |
 | 416B | [SaveND500Segment](#416b-savend500segment) | WSEGN         |
-| 417B | MaxPagesInMemory           | MXPISG        |
+| 417B | [MaxPagesInMemory](#417b-maxpagesinmemory) | MXPISG        |
 | 420B | [GetUserRegisters](#420b-getuserregisters) | GRBLK         |
-| 421B | GetActiveSegment           | GASGM         |
-| 422B | GetScratchSegment          | GSWSP         |
+| 421B | [GetActiveSegment](#421b-getactivesegment) | GASGM         |
+| 422B | [GetScratchSegment](#422b-getscratchsegment) | GSWSP         |
 | 423B | [CopyCapability](#423b-copycapability) | CAPCOP        |
 | 424B | [ClearCapability](#424b-clearcapability) | CAPCLE        |
-| 425B | SetProcessName             | SPRNAM        |
-| 426B | GetProcessNo               | GPRNUM        |
-| 427B | GetOwnProcessInfo          | GPRNAME       |
+| 425B | [SetProcessName](#425b-setprocessname) | SPRNAM        |
+| 426B | [GetProcessNo](#426b-getprocessno) | GPRNUM        |
+| 427B | [GetOwnProcessInfo](#427b-getownprocessinfo) | GPRNAME       |
 | 430B | [TranslateAddress](#430b-translateaddress) | ADR100        |
 | 431B | [AwaitTransfer](#431b-awaittransfer) | MWAITF        |
 | 435B | ForceTrap                  | PRT           |
 | 436B | [SetND500Param](#436b-setnd500param) | 5PASET        |
-| 437B | GetND500Param              | 5PAGET        |
-| 440B | Attach500Segment           | AT5SGM        |
-| 500B | StartProcess               | STARTP        |
-| 501B | StopProcess                | STOPPR        |
-| 502B | SwitchProcess              | SWITCHP       |
-| 503B | InputString                | DVINST        |
+| 437B | [GetND500Param](#437b-getnd500param) | 5PAGET        |
+| 440B | [Attach500Segment](#440b-attach500segment) | AT5SGM        |
+| 500B | [StartProcess](#500b-startprocess) | STARTP        |
+| 501B | [StopProcess](#501b-stopprocess) | STOPPR        |
+| 502B | [SwitchProcess](#502b-switchprocess) | SWITCHP       |
+| 503B | [InputString](#503b-inputstring) | DVINST        |
 | 504B | [OutputString](#504b-outputstring) | DVOUTS        |
 | 505B | [GetTrapReason](#505b-gettrapreason) | GERRCOD       |
-| 507B | SetProcessPriority         | SPRIO         |
-| 514B | ND500TimeOut               | 5TMOUT        |
+| 507B | [SetProcessPriority](#507b-setprocesspriority) | SPRIO         |
+| 514B | [ND500TimeOut](#514b-nd500timeout) | 5TMOUT        |
 
 
 ## 2.2 Alphabetic List of Monitor Calls with Parameters
@@ -3174,7 +3174,7 @@ CRATE, ...
 
 ## Page 82
 
-# ATTACH500SEGMENT
+# 440B Attach500segment AT5SGM
 
 Maps a logical ND-500 data segment onto shared ND-100/ND-500(0) physical memory (multiport memory).
 
@@ -3518,7 +3518,7 @@ Not available.
 ## Page 90
 
 ---
-# 252B BACKUPCLOSE BCLOS
+# 250B Backupclose BACKUPCLOSE BCLOS BRCP
 
 Closes a file. The version number and the last date accessed are unchanged. The number of pages in temporary files and spooling files is not affected.
 
@@ -3612,7 +3612,7 @@ FLAG, ...
 ## Page 92
 
 ---
-# 325B BATCHMODEECHO
+# 325B Batchmodeecho MBECH
 
 Controls echo of input and output if the program is executed in a batch or mode job. The purpose is to allow the program to communicate with the terminal in mode jobs.
 
@@ -4948,7 +4948,7 @@ Not available.
 ## Page 122
 
 ---
-# 251B CopyPage Copag
+# 248B Copypage CopyPage Copag COPAG
 
 Copies file pages between two opened files. One of the files may be a magnetic tape or floppy disk with volume.
 
@@ -5825,7 +5825,7 @@ NODEL, 0               %A double word.
 
 ## Page 140
 
-# DeviceControl
+# 140B Devicecontrol IOCTL
 
 Sets control information for a character device, e.g. a terminal or a printer. The control information depends on the device.
 
@@ -5918,7 +5918,7 @@ CTRL, ...
 ## Page 142
 
 ---
-# 144B DEVICEFUNCTION
+# 143B Devicefunction DEVICEFUNCTION MAGTYP
 
 Performs various operations on floppy disks, magnetic tapes, Versatec plotters, and SCSI streamers.
 
@@ -6684,7 +6684,7 @@ Not available.
 
 # SINTRAN III Monitor Calls
 
-## DMAFUNCTION
+# 333B Dmafunction UDMA
 
 Performs various DMA functions. Most functions transfer data between your memory area and a DMA channel.
 
@@ -7008,7 +7008,7 @@ _ND-100_ | _All users_ | _All programs_
 
 ## Page 168
 
-# EnableRTStart
+# 136B Enablertstart RTON
 
 RTON  
 
@@ -7147,7 +7147,7 @@ ERRNO, ...
 ## Page 172
 
 ---
-# 400B ERRORRETURN
+# 400B Errorreturn MACROE
 
 Terminates the program and sets an error code. The error code can be tested by the commands IF-ERROR-MACRO-STOP and IF-ERROR-FULL-STOP commands in the ND-500 Monitor. See the manual ND Linker User Guide and Reference Manual (ND-860289) for details about macros.
 
@@ -7743,7 +7743,7 @@ ND-100 | User RT and user SYSTEM | RT programs
 
 ## Page 188
 
-# ExitRTProgram
+# 134B Exitrtprogram REXIT
 
 Terminates the calling RT or background program. Releases all reserved resources. The monitor call has the same effect as exit for interactive background programs.
 
@@ -7797,7 +7797,7 @@ This monitor call has no parameters.
 ## Page 190
 
 ---
-# 231B EXPANDFILE
+# 231B Expandfile EXPF1
 
 Expands the file size. You use this monitor call to increase the size of contiguous and allocated files. The space following the file on the disk must be free.
 
@@ -8055,7 +8055,7 @@ Not available.
 
 ## Page 196
 
-# FileSystemFunction
+# 327B Filesystemfunction FSMTY
 
 Multifunction monitor call to make sure that an uncontrolled system stop does not leave the file system inconsistent. The file index block of an open file is written back to the disk.
 
@@ -8264,7 +8264,7 @@ Get information of an open file identified by open file number or device number.
 ## Page 200
 
 ---
-# 160B FIXCONTIGUOUS `FIXC`
+# 157B Fixcontiguous FIXCONTIGUOUS `FIXC`
 
 Places a segment in physical memory. Its pages will no longer be swapped to the disk. The segment is placed in a contiguous area of physical memory. This function is useful for time-critical operations.
 
@@ -8353,7 +8353,7 @@ PAGE, ...
 ## Page 202
 
 ---
-# 410B FIXINMEMORY
+# 410B Fixinmemory FIXMEM
 
 Fixes a logical segment of your domain in physical memory. You can fix the whole or part of the segment. This speeds up access to the segment. It is also useful in segment sharing.
 
@@ -8428,7 +8428,7 @@ Not available.
 
 ## Page 204
 
-# FIXIOAREA
+# 404B Fixioarea IOFIX
 
 Fixes an address area in a domain in physical memory. The memory area can be used for later input and output monitor calls, e.g. ReadFromFile or WriteTofile.
 
@@ -8788,7 +8788,7 @@ Not available.
 ## Page 214
 
 ---
-# 256B FULLFILENAME
+# 255B Fullfilename FULLFILENAME DAE8F
 
 Returns a complete file name from an abbreviated one. The directory, the user, the file name, the file type, and the version are returned.
 
@@ -8895,7 +8895,7 @@ Scanned by Jonny Oddene for Sintran Data © 2020
 ## Page 216
 
 ---
-# 421B GETACTIVESEGMENT
+# 421B Getactivesegment GASGM
 
 Gets the name of the segments in your domain. A 2048 byte buffer is returned. It contains 32 pointers to segment names in the buffer. Each pointer consists of 12 bytes. The first four is an address. The second four is the offset from this address to the start of the segment name. The last four are the offset to the end of the segment name.
 
@@ -9023,7 +9023,7 @@ ND-100 | All users | Background programs
 
 ## Page 220
 
-# GetAllFileIndexes
+# 217B Getallfileindexes GALI
 
 Gets the directory index, the user index, and the object index of a file. These are indexes in the SINTRAN III File System. Appendix C describes the File System.
 
@@ -9528,7 +9528,7 @@ USRIX, 0
 
 ## Page 230
 
-# GetDeviceType
+# 263B Getdevicetype GDEVY
 
 Gets the device type, e.g. terminal, floppy disk, mass-storage file, etc. The monitor call also provides information on how to handle the device.
 
@@ -10163,7 +10163,7 @@ Not available.
 
 ## Page 242
 
-# GetErrorMessage
+# 334B Geterrormessage GETXM
 
 Gets a SINTRAN III error message text. Appendix A shows the messages connected to each error number. The error number is input. The program continues.
 
@@ -10467,7 +10467,7 @@ ND-100 and ND-500 | All users | All programs
 
 ## Page 248
 
-# GetFileName
+# 272B Getfilename MGFLI
 
 Gets the name of a file. You specify the directory index, the user index, and the object index. The file name, the file type, and the version are returned.
 
@@ -10646,7 +10646,7 @@ Not available.
 ## Page 252
 
 ---
-# 165B GETINREGISTERS
+# 162B Getinregisters GETINREGISTERS DIVI
 
 Reads the device interface registers.
 
@@ -10909,7 +10909,7 @@ BUFF, 0
 
 ## Page 258
 
-# GETND500PARAM
+# 437B Getnd500param 5PAGET
 
 Gets information about why the last ND-500 program terminated. There are five parameters for each background user. These can be set by SINTRAN III or your background program.
 
@@ -11107,7 +11107,7 @@ Scanned by Jonny Oddene for Sintran Data © 2020
 
 ## Page 262
 
-# GetOwnProcessInfo
+# 427B Getownprocessinfo GPRNAME
 
 Gets the name and number of your own process in the ND-500. You get a process each time you enter the ND-500 Monitor.
 
@@ -11243,7 +11243,7 @@ RTPRO, 0
 
 ## Page 266
 
-# GetProcessNo
+# 426B Getprocessno GPRNUM
 
 Gets the number of a process in the ND-500. You specify the process name. The process number is assigned when you start the ND-500 Monitor.
 
@@ -11314,7 +11314,7 @@ Not available.
 ## Page 268
 
 ---
-# 151B GETRTADDRESS
+# 151B Getrtaddress GRTDA
 
 Gets the address of an RT description. You specify the name of the RT program. See the SINTRAN III Real Time Guide (ND-860133) for further information.
 
@@ -11499,7 +11499,7 @@ Scanned by Jonny Oddene for Sintran Data © 2020
 
 ## Page 272
 
-# GETRTName
+# 152B Getrtname GRTNA
 
 Gets the name of an RT program. You specify the RT description address.
 
@@ -11593,7 +11593,7 @@ RTNAM, 0
 ## Page 274
 
 ---
-# 422B GETSCRATCHSEGMENT
+# 422B Getscratchsegment GSWSP
 
 Connects an empty data segment to your domain. The monitor call reserves space on the swap file for it.
 
@@ -12968,7 +12968,7 @@ Not available.
 ## Page 304
 
 ---
-# 155B GRAPHICFUNCTION
+# 155B Graphicfunction
 
 Executes various functions on a graphic peripheral, such as a NORDCOM terminal, a pen plotter, or a Textronix display.
 
@@ -13071,7 +13071,7 @@ FUNC, ...
 
 ## Page 306
 
-# HDLCFunction
+# 200B Hdlcfunction MHDLC
 
 Performs various HDLC functions. A HDLC is a high-level data link to another computer. You may send data, receive data, and control HDLC. Data is sent as Driver Control Blocks (DCB). This monitor call is also used by X.21 to transfer DCBs between the user programs and the X.21 driver. The system uses the Logical Device Number to distinguish between HDLC and X.21.
 
@@ -13800,7 +13800,7 @@ BYTE. 0
 
 ## Page 320
 
-# InputString
+# 503B Inputstring DVINST
 
 Reads a string from a device, e.g., a terminal or an opened file. This monitor call provides a fast input to ND-500 programs.
 
@@ -13922,7 +13922,7 @@ Not available.
 ## Page 322
 
 ---
-# 161B INSTRING
+# 158B Instring INSTRING
 
 Reads a string of characters from a peripheral device, e.g. a terminal.
 
@@ -14665,7 +14665,7 @@ STAT,  0
 
 ## Page 340
 
-# MaxPagesInMemory
+# 417B Maxpagesinmemory MXPISG
 
 Sets the maximum number of pages a segment may have in physical memory at a time.
 
@@ -14933,7 +14933,7 @@ Scanned by Jonny Oddene for Sintran Data © 2020
 # SINTRAN III Monitor Calls
 
 ---
-# 411B MemoryUnfix UNFIXM
+# 411B Memoryunfix UNFIXM
 
 Releases a fixed segment in your domain from physical memory. A fixed segment has all its pages fixed in physical memory. After MemoryUnfix the pages may be swapped between the disk and physical memory.
 
@@ -14997,7 +14997,7 @@ Not available.
 
 ## Page 348
 
-# ND500TimeOut
+# 514B Nd500timeout 5TMOUT
 
 Suspends the execution of an ND-500 program for a given time. The execution then continues after the monitor call. The program is placed in a time queue in the ND-500, not the ND-100.
 
@@ -15071,7 +15071,7 @@ Not available.
 
 ## Page 350
 
-# NewFileVersion
+# 251B Newfileversion NWFIL
 
 Creates new versions of a file. You may create new versions for both indexed, contiguous and allocated files.
 
@@ -15680,7 +15680,7 @@ ND-100 | All users | Background programs
 
 ## Page 364
 
-# OldUser
+# 241B Olduser RUSCN
 
 Switches back to the user name you were logged in under before NewUser. The command is similar to logging out and then log in as another user. Your program continues under the old user.
 
@@ -17147,7 +17147,7 @@ BUFF, 0
 
 ## Page 396
 
-# ReadDiskPage
+# 266B Readdiskpage ROPAG
 
 Reads one or more directory pages. Any page can be read.
 
@@ -17574,7 +17574,7 @@ ND-100 | All users | Background programs
 ## Page 404
 
 ---
-# 340B READSYSTEMRECORD
+# 340B Readsystemrecord RSREC
 
 Used to read the system record into a buffer.
 
@@ -17873,7 +17873,7 @@ IOF, ...
 # SINTRAN III Monitor Calls
 
 ---
-# 232B RENAMEFILE MRNFI
+# 232B Renamefile MRNFI RENF1
 
 Renames a file. You need directory access to the file.
 
@@ -18313,7 +18313,7 @@ Scanned by Jonny Oddene for Sintran Data © 2020
 ## Page 422
 
 ---
-# 164B SAVESEGMENT WSEG
+# 161B Savesegment SAVESEGMENT WSEG
 
 Saves a segment in the ND-100. All pages in physical memory which have been changed, are written back to the disk.
 
@@ -18386,7 +18386,7 @@ CALLG SaveSegment, 1, SegmentNumber
 ## Page 424
 
 ---
-# 235B SCRATCHOPEN
+# 235B Scratchopen SCROP
 
 Opens a file as a scratch file. A maximum of 64 pages of the file is kept when you close the file. Use SET-CLOSED-FILE-SIZE in the SINTRAN-SERVICE-PROGRAM to change this.
 
@@ -19849,7 +19849,7 @@ REMID, 0                  %Remote system identification string.
 
 ## Page 454
 
-# SetOutputFlags
+# 403B Setoutputflags WFLAG
 
 ND-100 and ND-500 programs may communicate through two 32-bit flag arrays. You can use the flags as you want. SetOutputFlags writes to the output flags. The ND-100 reads these flags with the monitor call ND500Function. See the manual ND Linker User Guide and Reference Manual (ND-860289).
 
@@ -20031,7 +20031,7 @@ DEVNO, 5              %Device number of line printer no. 1.
 
 ## Page 458
 
-# SetPermanentOpen
+# 236B Setpermanentopen PEROP
 
 Sets a file permanently open. The file is not closed by CloseFile with -1 as file number. You have to specify the file number or -2.
 
@@ -20123,7 +20123,7 @@ FILNO, ...
 
 ## Page 460
 
-# SetProcessName
+# 425B Setprocessname SPRNAM
 
 Defines a new name for your process.
 
@@ -20186,7 +20186,7 @@ Not available.
 
 ## Page 462
 
-# SetProcessPriority
+# 507B Setprocesspriority SPRIO
 
 Sets the priority for a process in the ND-500. The priorities vary from 0 to 255. The process with the highest priority is executed first.
 
@@ -20704,7 +20704,7 @@ FILE, 'TEMP-FILE:SYMB' %Treat TEMP-FILE:SYMB as a temporary file.
 
 ## Page 474
 
-# SetTerminalName
+# 276B Setterminalname STRFI
 
 Defines the file name to be used for terminals. This is normally `TERMINAL:`. Background users identify their own terminal with this file name.
 
@@ -21054,7 +21054,7 @@ ND-100 and ND-500 | User RT and user SYSTEM | RT programs
 ## Page 482
 
 ---
-# 500B STARTPROCESS
+# 500B Startprocess
 
 Starts a process in the ND-500. You identify the process with the process number.
 
@@ -21458,7 +21458,7 @@ Not available.
 
 ## Page 492
 
-# StopProcess
+# 501B Stopprocess STOPPR
 
 Sets the current process in a wait state. StartProcess restarts the process. Execution continues after the monitor call. The ESCAPE key terminates the waiting program.
 
@@ -21654,7 +21654,7 @@ ND-100 and ND-500 | All users | All programs
 
 ## Page 498
 
-# SwitchProcess
+# 502B Switchprocess SWITCHP
 
 Sets the current process in a wait state. Restarts another process. This is similar to executing a StartProcess followed by a StopProcess.
 
@@ -23636,7 +23636,7 @@ FLAG, ...
 
 ## Page 536
 
-# TerminalStatus
+# 330B Terminalstatus TERST
 
 Gets information about a terminal. The user logged in, the time logged in, the CPU time used, the job being executed, and more is returned.
 
@@ -23746,7 +23746,7 @@ STAT, 0
 
 ## Page 538
 
-# TerminationHandling
+# 206B Terminationhandling EDTMR
 
 Switches termination handling on and off.
 
@@ -23822,7 +23822,7 @@ ND-100 | All users | All programs
 
 ## Page 540
 
-# TimeOut
+# 264B Timeout TMOUT
 
 Suspends the execution of your program for a given time. The execution then continues after the monitor call. The restart cause is indicated. Avoid using Time Out from ND-500, use ND500TimeOut instead.
 
@@ -24010,7 +24010,7 @@ SUBER, ...                %Suberror number as two ASCII characters.
 ## Page 544
 
 ---
-# 335B TRANSFERDATA
+# 335B Transferdata EXABS
 
 Transfers data between physical memory and a mass-storage device, e.g. a disk. You may perform various device control functions. This monitor call is mainly used by the operating system itself.
 
@@ -24406,7 +24406,7 @@ CALLG UnfixSegment, 1, SegmentNumber
 
 ## Page 554
 
-# UserDef0..UserDef7
+# 170B Userdef0 U50
 
 User-defined monitor call. You can implement up to 8 monitor calls yourself. These are named UserDef0, UserDef1,... UserDef7. The short names are US0, US1,...US7. To do this you need good knowledge of SINTRAN III. See the SINTRAN III listing parts one and two.
 
@@ -24449,7 +24449,7 @@ Both input and output parameters are user defined. You are advised to transfer p
 ## Page 556
 
 ---
-# 135B WAITFORRESTART
+# 135B Waitforrestart RTWT
 
 Sets the RT program in a waiting state. It is restarted by StartRTProgram or @RT. Execution continues after the monitor call.
 
@@ -24781,7 +24781,7 @@ ENTRY, ...    %
 
 ## Page 564
 
-# Writediskpage
+# 267B Writediskpage WDPAG
 
 Writes to one or more pages in a directory. Any page can be written to.
 
@@ -25113,7 +25113,7 @@ ND-100 and ND-500 All users Background programs
 
 ## Page 570
 
-# XMSGFunction
+# 178B Xmsgfunction
 
 Performs various data communication functions. All types of programs may communicate through this monitor call. The programs may be in different computers in a network.
 
