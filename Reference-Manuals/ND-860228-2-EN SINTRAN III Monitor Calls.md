@@ -3219,7 +3219,7 @@ TEXT, 'GUMMED LABELS'  %Message to be send to error device.
 
 ## Page 80
 
-# ASSIGNCAMACLAM
+# 154B AssignCAMACLAM ASSIG
 
 Assigns a graded LAM in the CAMAC identification table to a logical device number in the logical number table. See CAMACFunction and CAMACGLRegister for more details.
 
@@ -3413,7 +3413,7 @@ Not available.
 
 ## Page 84
 
-# ATTACHSEGMENT
+# 167B AttachSegment REENT
 
 Attaches a reentrant segment to your two current segments. The address areas of the segments may overlap. Pages in the reentrant segment may be accessed for reading, writing, or fetching instructions. When written to, a page loses its reentrancy. It is stored on one of your current overlapping segments.
 
@@ -3939,7 +3939,7 @@ Not available.
 
 ## Page 96
 
-# BCNAFCAMAC
+# 414B BCNAFCAMAC BCNAF
 
 Special CAMAC function on the ND-500. (Same as mon 156 TRACB.)
 
@@ -4211,7 +4211,7 @@ CTRL, ...  %CAMAC control: station number/subaddress/function.
 
 ## Page 102
 
-# CAMACGLREGISTER
+# 150B CAMACGLRegister GL
 
 Read the CAMAC GL (Graded LAM -"look at me") register or the last CAMAC identification number. See under CAMACfunction (mon 147) for more general information.
 
@@ -4295,7 +4295,7 @@ CRATE, ...  % or GL register.
 
 ## Page 104
 
-# CAMACIOINSTRUCTION
+# 153B CAMACIOInstruction IOXN
 
 Executes a single IOX instruction for CAMAC. See under CAMACfunction (mon 147) for general information.
 
@@ -4914,7 +4914,7 @@ FILNO, ...
 
 ## Page 118
 
-# CLOSESPOOLINGFILE
+# 40B CloseSpoolingFile SPCLO
 
 Appends an opened file to a spooling queue. You specify a text to be printed on the error device when the file is to be printed.
 
@@ -5267,7 +5267,7 @@ ND-100 and ND-500 | All users | All programs
 
 ## Page 124
 
-# CREATEFILE
+# 221B CreateFile CRALF
 
 Creates a file. The file may be indexed, contiguous, or allocated. Most files are indexed. The size of indexed files expands automatically when written to. Contiguous and allocated files have shorter access time.
 
@@ -5845,7 +5845,7 @@ BASE,  ...  %Base time units.
 
 ## Page 136
 
-# DELETEFILE
+# 54B DeleteFile MDLFI
 
 Deletes a file. The pages of the file are released.
 
@@ -5938,7 +5938,7 @@ Scanned by Jonny Oddene for Sintran Data © 2020
 
 ## Page 138
 
-# DELETEPAGE
+# 272B DeletePage DELPG
 
 Deletes pages from a file. Pages between two page numbers are removed.
 
@@ -6771,7 +6771,7 @@ ND-100 | All users | All programs
 
 ## Page 156
 
-# DISABLERTSTART
+# 137B DisableRTStart RTOFF
 
 Disables start of RT programs. No RT program can be started before EnableRTStart is executed.
 
@@ -7631,7 +7631,7 @@ Scanned by Jonny Oddene for Sintran Data © 2020
 
 ## Page 178
 
-# EXACTSTARTUP
+# 127B ExactStartup DABST
 
 Starts an RT program at a specific time. The time is given in basic time units. A basic time unit is 1/50th of a second. The RT program is moved from the time queue to the execution queue at the specified time.
 
@@ -7717,7 +7717,7 @@ ND-100 and ND-500 | User RT and user SYSTEM | RT programs
 
 ## Page 180
 
-# EXECUTECOMMAND
+# 317B ExecuteCommand UECOM
 
 Executes a SINTRAN III command. Specify the command name and the parameters as a text string.
 
@@ -7954,7 +7954,7 @@ MON 0 %Monitor call ExitFromProgram.
 
 ## Page 186
 
-# EXITFROMSEGMENT
+# 133B ExitFromSegment MEXIT
 
 Exchanges one or both current segments. Commonly used to return after the monitor call JumpToSegment. ChangeSegment may be used instead of JumpToSegment and ExitFromSegment. The segment numbers are restricted to 8-bits (values 0-255). Use SegmentFunction (MON 341) with version K of SINTRAN III.
 
@@ -8181,7 +8181,7 @@ PAGES, ...             %A double word.
 
 ## Page 192
 
-# FILEASSEGMENT
+# 412B FileAsSegment FSCNT
 
 Connects a file as a segment to your domain. You can then access the file as a logical segment. This reduces the access time.
 
@@ -10416,7 +10416,7 @@ RTPRO, 0
 
 ## Page 240
 
-# GETERRORINFO
+# 207B GetErrorInfo RERRP
 
 Gets information about the last real-time error. The monitor call returns the error, the RT program responsible for the error, and the program address where it occurred. A flag tells whether the RT program was aborted or not.
 
@@ -10697,7 +10697,7 @@ CHAR, 0 %Left byte: discon char. Right byte: escape char.
 
 ## Page 246
 
-# GETFILEINDEXES
+# 274B GetFileIndexes FOBJN
 
 Gets the directory index, the user index, and the object index of a file. These are indexes in the file system. See the SINTRAN III System Supervisor {ND-830003} for more details.
 
@@ -12645,7 +12645,7 @@ Ensure that the monitor is properly configured before making calls.
 
 ## Page 288
 
-# GETTERMINALMODE
+# 306B GetTerminalMode GTMOD
 
 Gets the terminal mode. The terminal mode tells how the terminal function, i.e. if all letters are converted to uppercase, if output stops when a full page is displayed, etc.
 
@@ -12942,7 +12942,7 @@ TIME, 0       %A double word.
 
 ## Page 294
 
-# GETTRAPREASON
+# 505B GetTrapReason GERRCOD
 
 Gets the error code from the swapper process. This is only relevant to programmed trap handlers. The swapper process starts the trap handler when it detects a fatal error, e.g. address outside segment. Use this monitor call to get the error code.
 
@@ -13119,7 +13119,7 @@ BUFF, 0
 
 ## Page 298
 
-# GETUSERNAME
+# 214B GetUserName GUSNA
 
 Gets the name of a user. The user may be on a remote computer if the COSMOS network is installed. The remote system name is then returned.
 
@@ -13233,7 +13233,7 @@ REMID, 0            %Remote system identification string.
 
 ## Page 300
 
-# GETUSERPARAM
+# 57B GetUserParam PAGET
 
 Gets information about why the last program terminated. There are 5 parameters for each background user. These can be set by SINTRAN III or your background program.
 
@@ -13331,7 +13331,7 @@ ND-100 and ND-500 | All users | Background programs
 
 ## Page 302
 
-# GETUSERREGISTERS
+# 420B GetUserRegisters GRBLK
 
 SwitchUserBreak allows you to save the registers when you terminate an ND-500 program with the ESCAPE key. You can get the contents of the registers with GetUserRegisters.
 
@@ -13948,7 +13948,7 @@ Scanned by Jonny Oddene for Sintran Data © 2020
 
 ## Page 314
 
-# INBUFFERSPACE
+# 66B InBufferSpace ISIZE
 
 Gets the current number of bytes in the input buffer. Terminals and other character devices place input in a buffer. All input monitor calls read from this buffer.
 
@@ -14690,7 +14690,7 @@ DEV, ...
 
 ## Page 328
 
-# JUMPTOSEGMENT
+# 132B JumpToSegment MCALL
 
 Calls a routine on another segment in the ND-100. You can divide an ND-100 RT program between various segments. This monitor call switches one or both of the current segments according to what you specify in parameter 2. ChangeSegment may be used instead of JumpToSegment and ExitFromSegment. The segment numbers are restricted to 8-bits (values 0-255). Use SegmentFunction (MON 341) with version K of SINTRAN III.
 
@@ -14754,7 +14754,7 @@ Not available.
 
 ## Page 330
 
-# LAMUFUNCTION
+# 315B LAMUFunction MLAMU
 
 Performs various functions on the LAMU system. A LAMU is a logically addressed memory unit. The LAMU system is an extension to the ND-100 segment structure. Programs may address more space than provided by the 3 available segments.
 
@@ -16039,7 +16039,7 @@ WAITFL, ...
 
 ## Page 360
 
-# OCTOBUSFUNCTION
+# 324B OctobusFunction OCTO
 
 Performs various functions on an old Octobus (earlier than version 3).
 
@@ -16122,7 +16122,7 @@ STAT, ...
 
 ## Page 362
 
-# OFFESCLOCALFUNCTION
+# 303B OffEscLocalFunction ELOFF
 
 Delays the escape and local functions for your terminal. Then the ESCAPE key or LOCAL key does not terminate a program or remote connection immediately. Their functions are delayed until OnEscLocalFunction is executed.
 
@@ -16716,7 +16716,7 @@ BYTES, 'HELLO!!!'
 
 ## Page 374
 
-# OUTBUFFERSPACE
+# 67B OutBufferSpace OSIZE
 
 Gets the number of free bytes in the output buffer (number of bytes which can be written before the program must wait). Terminals and other character devices place output in a buffer. Monitor calls like OutByte writes to this buffer.
 
@@ -17823,7 +17823,7 @@ COUNT, 2    % Read 2 pages of 1024 words.
 
 ## Page 398
 
-# READFROMFILE
+# 117B ReadFromFile RFILE
 
 Reads any number of bytes from a file. The read operation must start at the beginning of a block. The file must be opened for random read access.
 
@@ -18540,7 +18540,7 @@ NEWFI, 'EXAMPLE:SYMB'
 
 ## Page 414
 
-# RESERVATIONINFO
+# 140B ReservationInfo WHDEV
 
 Checks that a device is not reserved. If it is reserved, you will receive information about which RT program that reserves it.
 
@@ -18718,7 +18718,7 @@ ND-100 and ND-500 | User RT and user SYSTEM | All programs
 
 ## Page 418
 
-# RESERVERESOURCE
+# 122B ReserveResource RESRV
 
 Reserves a device or file for your program only. You release it with ReleaseResource. Some devices, e.g. terminals, have both an input and output part. You can only reserve one part with each ReserveResource call.
 
@@ -19107,7 +19107,7 @@ TYPE, 'SYMB'
 
 ## Page 426
 
-# SEGMENTFUNCTION
+# 341B SegmentFunction SGMTY
 
 This is a multifunction monitor call used to change the active segments of a program, or the page index tables used by a program.
 
@@ -19304,7 +19304,7 @@ CLEAR, ...
 
 ## Page 430
 
-# SEGMENTTOPAGETABLE
+# 157B SegmentToPageTable ENTSG
 
 Enters a routine as a direct task or as a device driver, and "remembers" which segments have been entered (up to 24 segments). These are reentered at restart following a power failure. The routines are connected to the interrupt system. They are loaded with the RT LOADER or by DMAC.
 
@@ -19413,7 +19413,7 @@ ENTRY, ...
 
 ## Page 432
 
-# SETBLOCKSIZE
+# 76B SetBlockSize SETBS
 
 Sets the block size of an opened file. Monitor calls which read randomly from, or write randomly to a file, operate on blocks. See ReadFromFile and WriteToFile.
 
@@ -20061,7 +20061,7 @@ Scanned by Jonny Oddene for Sintran Data © 2020
 
 ## Page 446
 
-# SETFILEACCESS
+# 237B SetFileAccess SFACC
 
 Sets the access protection for a file. You should specify the access for yourself, friends, and other users. The default file access for yourself is full access. Your friends have read access only. Other users have no access.
 
@@ -21452,7 +21452,7 @@ NAME, 'TERMINAL'                   %Set terminal name to TERMINAL.
 
 ## Page 476
 
-# SETERMINALTYPE
+# 17B SetTerminalType MSTTY
 
 Sets the type of a terminal. The terminal type tells SINTRAN III how to handle a particular terminal. A wrong terminal type normally distorts the screen. The function keys cannot be used.
 
@@ -22416,7 +22416,7 @@ Not available.
 
 ## Page 500
 
-# SWITCHUSERBREAK
+# 405B SwitchUserBreak USTRBK
 
 Switches user-defined escape handling on and off. The user-defined escape handling transfers control to a routine when you press the ESCAPE key.
 
@@ -24046,7 +24046,7 @@ Word 4 = SCSI ID number (0-7)
 
 ## Page 530
 
-# TERMINALLINEINFO
+# 332B TerminalLineInfo TREPP
 
 Gets information about a terminal line. You may also enable programs to continue in spite of errors on the terminal line.
 
