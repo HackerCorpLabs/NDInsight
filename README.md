@@ -63,7 +63,7 @@ NDInsight/
 ## 📚 Reference-Manuals - Complete NORD/SINTRAN Documentation
 
 **Location:** `Reference-Manuals/`  
-**Size:** ~1.5MB+ across 14+ manuals  
+**Size:** ~1.75MB+ across 15 manuals  
 **Status:** ✅ Complete Collection
 
 The **Reference-Manuals** directory contains authoritative, complete reference manuals for all NORD/SINTRAN system components, programming languages, assemblers, and tools. These manuals serve as the primary source documentation for the developer guides.
@@ -433,7 +433,7 @@ Source Code → Extract Patterns → Verify Hardware → Document → Validate
 
 | Category | Files | Total Size |
 |----------|-------|------------|
-| **Reference Manuals** | 14+ | ~1.5MB+ |
+| **Reference Manuals** | 15 | ~1.75MB+ |
 | **Developer Guides** | 20+ | ~500KB |
 | **OS Kernel** | 31 | 518KB |
 | **HDLC Analysis** | 60+ | ~2MB |
@@ -520,7 +520,7 @@ Each major folder has its own README for detailed navigation:
 
 | Folder | README | Contents |
 |--------|--------|----------|
-| **Reference-Manuals/** | [Reference-Manuals/README.md](Reference-Manuals/README.md) | Complete NORD/SINTRAN reference manuals (14 manuals) |
+| **Reference-Manuals/** | [Reference-Manuals/README.md](Reference-Manuals/README.md) | Complete NORD/SINTRAN reference manuals (15 manuals) |
 | **Developer/** | [Developer/README.md](Developer/README.md) | Development guides, quick-starts, language references |
 | **Developer/Editors/** | [Developer/Editors/README.md](Developer/Editors/README.md) | QED, PED, LED editor documentation |
 | **Developer/Languages/** | [Developer/Languages/README.md](Developer/Languages/README.md) | System (NPL, MAC) & Application (PLANC, PASCAL, etc.) languages |

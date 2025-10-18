@@ -18,6 +18,7 @@ This folder contains complete reference manuals for NORD/SINTRAN system componen
 | Manual | Description | Lines | Key Topics |
 |--------|-------------|-------|------------|
 | `ND-05.009.4 EN ND-500 Reference Manual.md` | ND-500 CPU architecture and instruction set | 16,324 | CPU architecture, instruction set, domains, memory management |
+| `ND-860228-2-EN SINTRAN III Monitor Calls.md` | Complete SINTRAN III Monitor Calls reference | 23,478 | System calls, monitor routines, kernel interface, I/O operations |
 | `SINTRAN-COMMANDS-REFERENCE.md` | Complete SINTRAN III command reference | 11,657 | System commands, batch processing, file management, MODE files |
 
 ### Assemblers
@@ -135,6 +136,7 @@ All manuals in this collection are OCR-scanned versions of original NORD/SINTRAN
 | Doc Number | Title | Category |
 |------------|-------|----------|
 | ND-05.009.4 | ND-500 Reference Manual | System/CPU |
+| ND-860228-2 | SINTRAN III Monitor Calls | System |
 | ND-10309A | PLANC FOR ND-100 | Language |
 | ND-60.009.02 | MACM Mac Mass Storage Assembler | Assembler |
 | ND-60.011.04 | NORD Standard FORTRAN Reference Manual | Language |
@@ -173,6 +175,6 @@ When adding new reference manuals to this collection:
 ---
 
 **Last Updated**: October 18, 2025  
-**Total Manuals**: 14  
-**Total Documentation Lines**: ~50,000+
+**Total Manuals**: 15  
+**Total Documentation Lines**: ~75,000+
 
