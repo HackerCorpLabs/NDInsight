@@ -88,12 +88,13 @@ QED (Quick EDitor) is a powerful and compact text editor designed for rapid file
 
 ### Example: Creating a New File from Scratch
 
-Here's the recommended way to create a new NPL program using QED:
+**Method 1: Create file when starting QED (Simpler)**
 
 ```sintran
-@QED                       # Start QED without specifying a filename
+@QED "HELLO:NPL"           # Start with filename in quotes - creates the file
 
 QED 4.3
+0 WORDS READ               # Confirms new file created
 
 *A                         # Append mode - start adding lines
 )PROGRAM HELLO;            # Type line 1 and press ENTER
@@ -103,8 +104,20 @@ BEGIN                      # Type line 4 and press ENTER
   OUTTEXT("Hello, SINTRAN III!");  # Type line 5 and press ENTER
   OUTNEWLINE;              # Type line 6 and press ENTER
 END                        # Type line 7 and press ENTER
-                           # Press CTRL-L (or . alone on a line) to exit append mode
-*L1,$                      # List all lines (line 1 to end)
+*                          # Press CTRL-L (or . alone) to exit append mode
+*W HELLO:NPL               # Save WITHOUT quotes - file already exists!
+51 WORDS WRITTEN           # QED confirms the write
+*EX                        # Exit QED
+```
+
+**Method 2: Create file when saving**
+
+```sintran
+@QED                       # Start QED without specifying a filename
+
+QED 4.3
+
+*A                         # Append mode - start adding lines
 )PROGRAM HELLO;
 DEFINE
   OUTTEXT(1);
@@ -112,36 +125,21 @@ BEGIN
   OUTTEXT("Hello, SINTRAN III!");
   OUTNEWLINE;
 END
-*W "HELLO:NPL"             # Write (save) to file - NOTE: Filename in QUOTES to CREATE a new file
-64 WORDS WRITTEN           # QED confirms the write
+*                          # Exit append mode
+*W "HELLO:NPL"             # Write with quotes - creates the file
+64 WORDS WRITTEN
 *EX                        # Exit QED
-@                          # Back to SINTRAN
 ```
 
 **Key Points:**
-- Start `@QED` without a filename - cleaner workflow
-- `A` command enters append mode - type your lines
-- Each line is added as you press ENTER
-- Press CTRL-L (or type `.` alone on a line) to exit append mode
-- `L1,$` lists all lines from line 1 to end ($)
-- **IMPORTANT:** `W "filename"` - filename MUST be in quotes for new file creation!
-  - This is a SINTRAN requirement - quotes tell the system to create the file
-  - Without quotes: `W HELLO:NPL` will fail with "NO SUCH FILE NAME"
-  - With quotes: `W "HELLO:NPL"` creates the file successfully
-- QED confirms with "64 WORDS WRITTEN" (or similar)
-- `EX` exits QED
-
-**Alternative Method:**
-```sintran
-@QED "HELLO:NPL"           # Start with filename in quotes (creates file)
-0 WORDS READ               # New file created
-*A                         # Add your content
-...
-*W HELLO:NPL               # Save WITHOUT quotes (file already exists)
-88 WORDS WRITTEN
-*EX
-```
-Note: If you create the file when starting QED (using quotes), you must save WITHOUT quotes later!
+- **Method 1:** Start with `@QED "filename"` → Save with `W filename` (NO quotes)
+- **Method 2:** Start with `@QED` → Save with `W "filename"` (WITH quotes)
+- **Rule:** Quotes are needed when CREATING the file
+  - Create on start → Quotes at start, no quotes when saving
+  - Create on save → No quotes at start, quotes when saving
+- `A` command enters append mode
+- Press CTRL-L (or type `.` alone) to exit append mode
+- Both methods work equally well - choose what feels natural!
 
 ### Editing an Existing File
 
