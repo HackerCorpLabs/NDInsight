@@ -97,13 +97,15 @@ QED 4.3
 0 WORDS READ               # Confirms new file created
 
 *A                         # Append mode - start adding lines
-)PROGRAM HELLO;            # Type line 1 and press ENTER
-DEFINE                     # Type line 2 and press ENTER
-  OUTTEXT(1);              # Type line 3 and press ENTER
-BEGIN                      # Type line 4 and press ENTER
-  OUTTEXT("Hello, SINTRAN III!");  # Type line 5 and press ENTER
-  OUTNEWLINE;              # Type line 6 and press ENTER
-END                        # Type line 7 and press ENTER
+% HELLO.NPL - Simple NPL program
+SUBR HELLO, START
+
+INTEGER ARRAY MSG:='HELLO, WORLD!', 15, 12
+
+START:
+    A:=3           % Exit program
+    *MONITOR 3
+RBUS
 *                          # Press CTRL-L (or . alone) to exit append mode
 *W HELLO:NPL               # Save WITHOUT quotes - file already exists!
 51 WORDS WRITTEN           # QED confirms the write
@@ -118,13 +120,15 @@ END                        # Type line 7 and press ENTER
 QED 4.3
 
 *A                         # Append mode - start adding lines
-)PROGRAM HELLO;
-DEFINE
-  OUTTEXT(1);
-BEGIN
-  OUTTEXT("Hello, SINTRAN III!");
-  OUTNEWLINE;
-END
+% HELLO.NPL - Simple NPL program
+SUBR HELLO, START
+
+INTEGER ARRAY MSG:='HELLO, WORLD!', 15, 12
+
+START:
+    A:=3           % Exit program
+    *MONITOR 3
+RBUS
 *                          # Exit append mode
 *W "HELLO:NPL"             # Write with quotes - creates the file
 64 WORDS WRITTEN
@@ -152,26 +156,30 @@ QED 4.3
 64 WORDS READ              # QED confirms file was read
 
 *L1,$                      # List all lines (1 to end)
-)PROGRAM HELLO;
-DEFINE
-  OUTTEXT(1);
-BEGIN
-  OUTTEXT("Hello, SINTRAN III!");
-  OUTNEWLINE;
-END
+% HELLO.NPL - Simple NPL program
+SUBR HELLO, START
 
-*C5                        # Change line 5 (the OUTTEXT line)
-  OUTTEXT("Hello, WORLD!");  # Type the new content
+INTEGER ARRAY MSG:='HELLO, WORLD!', 15, 12
+
+START:
+    A:=3           % Exit program
+    *MONITOR 3
+RBUS
+
+*C4                        # Change line 4 (the message line)
+INTEGER ARRAY MSG:='GREETINGS FROM NPL!', 15, 12
                            # Press ENTER to confirm
 
 *L1,$                      # List to verify the change
-)PROGRAM HELLO;
-DEFINE
-  OUTTEXT(1);
-BEGIN
-  OUTTEXT("Hello, WORLD!");  # Line 5 is now changed
-  OUTNEWLINE;
-END
+% HELLO.NPL - Simple NPL program
+SUBR HELLO, START
+
+INTEGER ARRAY MSG:='GREETINGS FROM NPL!', 15, 12
+
+START:
+    A:=3           % Exit program
+    *MONITOR 3
+RBUS
 
 *W HELLO:NPL               # Write (save) - NO quotes needed for existing files!
 64 WORDS WRITTEN
@@ -190,7 +198,7 @@ END
 
 ### Complete Workflow: Create, Save, Edit
 
-Here's a real-world example showing the complete file lifecycle:
+Here's a real-world example showing the complete file lifecycle with actual NPL code:
 
 **Step 1: Create the file**
 ```sintran
@@ -200,13 +208,15 @@ QED 4.3
 0 WORDS READ
 
 *A                         # Append mode
-)PROGRAM HELLO;
-DEFINE
-  OUTTEXT(1);
-BEGIN
-  OUTTEXT("Hello, SINTRAN III!");
-  OUTNEWLINE;
-END
+% HELLO.NPL - Simple NPL program
+SUBR HELLO, START
+
+INTEGER ARRAY MSG:='HELLO, WORLD!', 15, 12
+
+START:
+    A:=3           % Exit program
+    *MONITOR 3
+RBUS
 *                          # Exit append mode
 *W HELLO:NPL               # Save (no quotes - file exists!)
 51 WORDS WRITTEN
@@ -221,25 +231,29 @@ QED 4.3
 51 WORDS READ              # File loaded
 
 *l1,$                      # List all lines
-)PROGRAM HELLO;
-DEFINE
-  OUTTEXT(1);
-BEGIN
-  OUTTEXT("Hello, SINTRAN III!");
-  OUTNEWLINE;
-END
+% HELLO.NPL - Simple NPL program
+SUBR HELLO, START
 
-*C5                        # Change line 5
- OUTTEXT("Hello, WORLD!"); # New content
+INTEGER ARRAY MSG:='HELLO, WORLD!', 15, 12
+
+START:
+    A:=3           % Exit program
+    *MONITOR 3
+RBUS
+
+*C4                        # Change line 4 (the message)
+INTEGER ARRAY MSG:='GREETINGS FROM NPL!', 15, 12
 
 *L1,$                      # Verify the change
-)PROGRAM HELLO;
-DEFINE
-  OUTTEXT(1);
-BEGIN
- OUTTEXT("Hello, WORLD!");
-  OUTNEWLINE;
-END
+% HELLO.NPL - Simple NPL program
+SUBR HELLO, START
+
+INTEGER ARRAY MSG:='GREETINGS FROM NPL!', 15, 12
+
+START:
+    A:=3           % Exit program
+    *MONITOR 3
+RBUS
 
 *w HELLO:NPL               # Save (no quotes - existing file)
 47 WORDS WRITTEN
