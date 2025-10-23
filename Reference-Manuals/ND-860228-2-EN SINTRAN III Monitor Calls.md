@@ -3497,7 +3497,7 @@ SEGNO, ...
 
 # SINTRAN III Monitor Calls
 
-## 121B AWAITFILETRANSFER WAITF
+# 121B AwaitFileTransfer WAITF
 
 Checks that a data transfer to or from a mass-storage file is completed. The monitor call is relevant to ReadFromFile and WriteToFile operations. These data transfers are carried out independently of the CPU.
 
@@ -16335,7 +16335,7 @@ ND-100 All users Background programs
 
 # SINTRAN III Monitor Calls
 
-## 50B OpenFile
+# 50B OpenFile OPEN
 
 Opens a file. You cannot access a file before you open it. Specify what kind of access you want, e.g. sequential write or random read.
 
@@ -16925,7 +16925,7 @@ Scanned by Jonny Oddene for Sintran Data © 2020
 
 # SINTRAN III Monitor Calls
 
-## 32B OutMessage MSG
+# 32B OutMessage MSG
 
 Writes a message to the user's terminal. This is convenient for error messages in background programs.
 
