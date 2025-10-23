@@ -8,3 +8,4 @@ print('CLEAROUTBUFFER ->', slugify('CLEAROUTBUFFER'))
 print('14B CLEAROUTBUFFER ->', slugify('14B CLEAROUTBUFFER'))
 print('ClearOutBuffer ->', slugify('ClearOutBuffer'))
 print('14b-clearoutbuffer ->', slugify('14b-clearoutbuffer'))
+
