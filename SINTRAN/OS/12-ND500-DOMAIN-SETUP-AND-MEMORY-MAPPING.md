@@ -35,7 +35,6 @@ ND-100 Side                    ND-500 Side
 ### 1.2 Setup Phases
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 flowchart TB
     A[1. Boot: Detect ND-500]
     B[2. Allocate 5MPM]
@@ -44,12 +43,12 @@ flowchart TB
     E[5. Setup MMU on ND-500]
     F[6. Initialize Message Buffers]
     G[7. Start Execution]
-    
+
     A --> B --> C --> D --> E --> F --> G
-    
-    style B fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style E fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style F fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+
+    style B fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style E fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#000
+    style F fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
 ```
 
 ---
@@ -331,20 +330,19 @@ Message Buffer (55MESSIZE words in 5MPM):
 ### 6.2 Communication Flow
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 sequenceDiagram
     participant N5 as ND-500 Process
     participant MPM as 5MPM Memory
     participant IF as 3022/5015 Interface
     participant N1 as ND-100 Monitor
-    
+
     Note over N5,N1: Domain Setup Phase
     N1->>MPM: Allocate process descriptor
     N1->>MPM: Allocate message buffer
     N1->>IF: Setup ADRZERO (5MPM base)
     N1->>IF: Write LCON5: Activate
     IF->>N5: Interrupt: Start domain
-    
+
     Note over N5,N1: Execution Phase
     N5->>MPM: Fill message buffer
     N5->>MPM: Set 5ITMQUEUE flag
@@ -359,9 +357,6 @@ sequenceDiagram
     IF->>N5: Interrupt: Message complete
     N5->>MPM: Read result
     N5->>N5: Continue execution
-    
-    style MPM fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style IF fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
 ```
 
 ---
@@ -838,7 +833,6 @@ public void PerformDMATransfer(uint sourceAddr, uint destAddr, uint byteCount, b
 ### 8.1 Complete Flow: ND-500 Program Writes to Terminal
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 sequenceDiagram
     participant User as User Program (ND-500)
     participant N5 as ND-500 CPU
@@ -848,18 +842,18 @@ sequenceDiagram
     participant N1 as ND-100 CPU
     participant TERM as Terminal Driver
     participant HW as Terminal Hardware
-    
+
     Note over User,HW: 1. User Program Requests Output
     User->>N5: CALL DVIO("TERM:", buffer, 80)
     N5->>MPM: Fill message buffer
     N5->>MPM: Set ITMQUEUE flag
     N5->>C15: LMAR5 := msgAddr
     N5->>C15: LCON5 := 0x0404 (Send)
-    
+
     Note over User,HW: 2. Interrupt ND-100
     C15->>C22: Signal message ready
     C22->>N1: Interrupt Level 12
-    
+
     Note over User,HW: 3. ND-100 Processes Request
     N1->>C22: Read interrupt
     N1->>MPM: Read message buffer
@@ -867,7 +861,7 @@ sequenceDiagram
     N1->>MPM: Read data from buffer
     N1->>TERM: Send to terminal driver
     TERM->>HW: Output to terminal
-    
+
     Note over User,HW: 4. Complete Operation
     N1->>MPM: Clear ITMQUEUE flag
     N1->>MPM: Set ErrorCode = 0 (success)
@@ -876,10 +870,6 @@ sequenceDiagram
     C15->>N5: Interrupt Level 14
     N5->>MPM: Read result
     N5->>User: Return from DVIO
-    
-    style MPM fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style C15 fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style C22 fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
 ```
 
 ### 8.2 C# Implementation of Complete Scenario

@@ -4,7 +4,7 @@
 
 **Target Compliance**: WCAG 2.1 Level AA (European Accessibility Act 2025)
 
-**Last Updated**: 2025-10-10
+**Last Updated**: 2025-10-23
 
 ---
 
@@ -86,21 +86,28 @@
 
 All colors tested against white background (#FFFFFF) with **minimum 4.5:1 contrast ratio**.
 
-| Color Name | Hex Code | RGB | Contrast Ratio | Use Case |
-|------------|----------|-----|----------------|----------|
-| **Sky Blue** | `#2196F3` | rgb(33, 150, 243) | 4.55:1 ✓ | Frontend/Pass 1/Parsing |
-| **Indigo** | `#3F51B5` | rgb(63, 81, 181) | 5.89:1 ✓ | Grammar/Syntax Trees |
-| **Purple** | `#9C27B0` | rgb(156, 39, 176) | 5.26:1 ✓ | Template Matching |
-| **Magenta** | `#E91E63` | rgb(233, 30, 99) | 4.76:1 ✓ | Backend/Pass 2/Code Gen |
-| **Red** | `#F44336` | rgb(244, 67, 54) | 4.74:1 ✓ | Errors/Critical Paths |
-| **Amber** | `#FFA726` | rgb(255, 167, 38) | 4.54:1 ✓ | Preprocessor/Warnings |
-| **Green** | `#4CAF50` | rgb(76, 175, 80) | 4.52:1 ✓ | Success/Optimization |
-| **Teal** | `#009688` | rgb(0, 150, 136) | 4.54:1 ✓ | Register Allocation |
-| **Cyan** | `#00BCD4` | rgb(0, 188, 212) | 3.26:1 † | Intermediate Code (large text only) |
+**Core Palette** - Most commonly used in NDInsight diagrams:
+
+| Color Name | Fill | Stroke | Text | Contrast | Primary Use Case |
+|------------|------|--------|------|----------|------------------|
+| **Sky Blue** | `#2196F3` | `#1565C0` | `#fff` | 4.55:1 ✓ | Hardware interfaces, ports, I/O components |
+| **Teal** | `#009688` | `#00695C` | `#fff` | 4.54:1 ✓ | Shared memory (5MPM), buffers, data structures |
+| **Red** | `#F44336` | `#C62828` | `#fff` | 4.74:1 ✓ | Critical paths, interrupts, error states |
+| **Green** | `#4CAF50` | `#2E7D32` | `#fff` | 4.52:1 ✓ | Success states, completion, optimization |
+| **Amber** | `#FFA726` | `#F57C00` | `#000` | 4.54:1 ✓ | Active states, processing, warnings |
+
+**Extended Palette** - For specialized diagrams:
+
+| Color Name | Fill | Stroke | Text | Contrast | Specialized Use Case |
+|------------|------|--------|------|----------|---------------------|
+| **Indigo** | `#3F51B5` | `#283593` | `#fff` | 5.89:1 ✓ | Symbol resolution, grammar, syntax trees |
+| **Magenta** | `#E91E63` | `#AD1457` | `#fff` | 4.76:1 ✓ | Code generation, relocation, backend |
+| **Purple** | `#9C27B0` | `#7B1FA2` | `#fff` | 5.26:1 ✓ | Template matching, pattern matching |
 
 **Note:**
 - ✓ = Passes WCAG AA for normal text (4.5:1+)
-- † = Passes for large text only (3.0:1+), use for node labels only, not small text
+- All colors include **fill**, **stroke** (border), and **text** color specifications
+- Stroke colors are darker shades from Material Design 700 series
 
 ### Color Palette Source
 
@@ -123,65 +130,83 @@ All colors tested against white background (#FFFFFF) with **minimum 4.5:1 contra
 
 Use colors consistently to convey meaning across all diagrams:
 
-#### 1. Compilation Pipeline Stages
+#### 1. ND-500/ND-100 System Architecture (Primary Use)
 
-| Stage | Color | Hex | Rationale |
-|-------|-------|-----|-----------|
-| **Preprocessor (cpp)** | Amber | `#FFA726` | Warm color for initial processing |
-| **Frontend (cc1)** | Sky Blue | `#2196F3` | Cool blue for analysis/parsing |
-| **Parser/Grammar** | Indigo | `#3F51B5` | Deep blue for syntax/structure |
-| **Tree Building** | Green | `#4CAF50` | Green for construction/growth |
-| **Optimization** | Green | `#4CAF50` | Green for improvement |
-| **Code Generation** | Red | `#F44336` | Red for output/emission |
-| **Backend (cc2)** | Magenta | `#E91E63` | Distinct from frontend |
-| **Template Matching** | Purple | `#9C27B0` | Purple for pattern matching |
-| **Register Allocation** | Teal | `#009688` | Teal for resource management |
+| Component Type | Color | Fill/Stroke | Rationale |
+|----------------|-------|-------------|-----------|
+| **Shared Memory (5MPM)** | Teal | `#009688` / `#00695C` | Central data structure, accessed by both systems |
+| **Hardware Interfaces** | Sky Blue | `#2196F3` / `#1565C0` | I/O ports, TAG registers, interface cards |
+| **Interrupt Handlers** | Red | `#F44336` / `#C62828` | Critical paths, Level 12/14 handlers |
+| **Message Buffers** | Teal | `#009688` / `#00695C` | Data structures in 5MPM |
+| **Success/Completion** | Green | `#4CAF50` / `#2E7D32` | Successful operations, loaded pages |
+| **Active Processing** | Amber | `#FFA726` / `#F57C00` | Current state, MMU setup, segment mapping |
 
-#### 2. State and Flow Indicators
+#### 2. Compilation and Linking (Specialized Use)
 
-| Concept | Color | Hex | Rationale |
-|---------|-------|-----|-----------|
-| **Success/Complete** | Green | `#4CAF50` | Universal success indicator |
-| **Error/Failure** | Red | `#F44336` | Universal error indicator |
-| **Warning/Caution** | Amber | `#FFA726` | Universal warning indicator |
-| **Processing/Active** | Sky Blue | `#2196F3` | Neutral active state |
-| **Data Flow** | Cyan | `#00BCD4` | Movement/transmission |
+| Stage | Color | Fill/Stroke | Rationale |
+|-------|-------|-------------|-----------|
+| **Symbol Resolution** | Indigo | `#3F51B5` / `#283593` | Grammar, syntax trees, linking |
+| **Code Generation** | Magenta | `#E91E63` / `#AD1457` | Backend, relocation, code emission |
+| **Optimization** | Green | `#4CAF50` / `#2E7D32` | Improvements, successful passes |
+| **Frontend/Parsing** | Sky Blue | `#2196F3` / `#1565C0` | Initial analysis, parsing phase |
+| **Template Matching** | Purple | `#9C27B0` / `#7B1FA2` | Pattern matching operations |
 
-#### 3. Data Structures
+#### 3. State and Flow Indicators
 
-| Type | Color | Hex | Rationale |
-|------|-------|-----|-----------|
-| **Nodes/Trees** | Indigo | `#3F51B5` | Structured data |
-| **Registers** | Teal | `#009688` | Hardware resources |
-| **Memory/Stack** | Purple | `#9C27B0` | Storage |
-| **Instructions** | Magenta | `#E91E63` | Machine code |
+| Concept | Color | Fill/Stroke | Rationale |
+|---------|-------|-------------|-----------|
+| **Success/Complete** | Green | `#4CAF50` / `#2E7D32` | Universal success indicator |
+| **Error/Failure** | Red | `#F44336` / `#C62828` | Universal error indicator |
+| **Warning/Caution** | Amber | `#FFA726` / `#F57C00` | Warning states, busy states |
+| **Active/Processing** | Amber | `#FFA726` / `#F57C00` | Currently executing, queued |
+| **Data Transfer** | Teal | `#009688` / `#00695C` | Memory operations, DMA |
 
 ### Mermaid Syntax
 
-**Basic Node Coloring:**
+**Basic Node Styling (Complete Specification):**
 ```mermaid
-graph TD
-    A[Node Name]
-    style A fill:#2196F3
+flowchart TB
+    A[5MPM Shared Memory]
+    style A fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
 ```
 
-**Multiple Nodes:**
+**Multiple Nodes with Different Colors:**
 ```mermaid
-graph TD
-    A[Frontend]
-    B[Backend]
-    style A fill:#2196F3
-    style B fill:#E91E63
+flowchart TB
+    MPM[5MPM Memory]
+    TAG[TAG Registers]
+    INT[Level 12 Handler]
+
+    style MPM fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style TAG fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style INT fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
 ```
 
-**Class-Based Styling (Recommended for Consistency):**
+**Class-Based Styling (Recommended for Multiple Nodes):**
 ```mermaid
-graph TD
-    A[Frontend]:::frontend
-    B[Backend]:::backend
+flowchart TB
+    MPM1[Message Buffer]
+    MPM2[Data Buffer]
+    TAG1[LTAG5]
+    TAG2[RTAG5]
 
-    classDef frontend fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
-    classDef backend fill:#E91E63,stroke:#C2185B,stroke-width:2px,color:#fff
+    classDef memory fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    classDef interface fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+
+    class MPM1,MPM2 memory
+    class TAG1,TAG2 interface
+```
+
+**State Diagram with Classes:**
+```mermaid
+stateDiagram-v2
+    [*] --> Queued
+    Queued --> Processing
+    Processing --> Completed
+    Completed --> [*]
+
+    classDef activeState fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#000
+    class Queued,Processing activeState
 ```
 
 ### Text Color Guidelines
@@ -204,16 +229,72 @@ For extremely light backgrounds (not our standard palette):
 
 **Stroke Color Reference:**
 
-| Fill Color | Fill Hex | Stroke Color | Stroke Hex |
-|------------|----------|--------------|------------|
-| Sky Blue | `#2196F3` | Blue 700 | `#1976D2` |
-| Indigo | `#3F51B5` | Indigo 700 | `#303F9F` |
-| Purple | `#9C27B0` | Purple 700 | `#7B1FA2` |
-| Magenta | `#E91E63` | Pink 700 | `#C2185B` |
-| Red | `#F44336` | Red 700 | `#D32F2F` |
-| Amber | `#FFA726` | Orange 700 | `#F57C00` |
-| Green | `#4CAF50` | Green 700 | `#388E3C` |
-| Teal | `#009688` | Teal 700 | `#00796B` |
+| Fill Color | Fill Hex | Stroke Color | Stroke Hex | Usage Example |
+|------------|----------|--------------|------------|---------------|
+| Sky Blue | `#2196F3` | Blue 700 | `#1565C0` | Hardware interfaces, I/O ports |
+| Indigo | `#3F51B5` | Indigo 700 | `#283593` | Symbol tables, linking |
+| Purple | `#9C27B0` | Purple 700 | `#7B1FA2` | Pattern matching |
+| Magenta | `#E91E63` | Pink 700 | `#AD1457` | Code generation, relocation |
+| Red | `#F44336` | Red 700 | `#C62828` | Interrupts, critical paths |
+| Amber | `#FFA726` | Orange 700 | `#F57C00` | Active states, MMU setup |
+| Green | `#4CAF50` | Green 700 | `#2E7D32` | Success, completion |
+| Teal | `#009688` | Teal 700 | `#00695C` | Shared memory, buffers |
+
+### VS Code Mermaid 9.x Compatibility
+
+**CRITICAL**: VS Code uses Mermaid 9.x which has stricter parsing rules than newer versions.
+
+**Rules to Avoid "Unsupported markdown: list" Errors:**
+
+1. **❌ NO Hyphens in Node Labels or Subgraph Titles**
+   ```mermaid
+   ❌ WRONG: [ND-100 CPU]
+   ✅ CORRECT: [ND100 CPU]
+
+   ❌ WRONG: subgraph ND100 ["ND-100 System"]
+   ✅ CORRECT: subgraph ND100 [ND100 System]
+   ```
+
+2. **❌ NO Slashes or Colons in Labels**
+   ```mermaid
+   ❌ WRONG: [I/O Proxy]
+   ✅ CORRECT: [IO Proxy]
+
+   ❌ WRONG: [TAG-IN / TAG-OUT]
+   ✅ CORRECT: [TAG IN TAG OUT]
+   ```
+
+3. **❌ NO HTML Tags (like `<br/>`)**
+   ```mermaid
+   ❌ WRONG: [Message Buffer<br/>in 5MPM]
+   ✅ CORRECT: [Message Buffer in 5MPM]
+   ```
+
+4. **❌ NO Parentheses in Subgraph Titles**
+   ```mermaid
+   ❌ WRONG: subgraph MPM ["Memory (5MPM)"]
+   ✅ CORRECT: subgraph MPM [Memory 5MPM]
+   ```
+
+5. **✅ Use Quoted Arrow Labels (Avoid List Syntax)**
+   ```mermaid
+   ❌ WRONG: A -->|1. First step| B
+   ✅ CORRECT: A -->|"1 First step"| B
+
+   ❌ WRONG: A -->|Step-by-step| B
+   ✅ CORRECT: A -->|"Step by step"| B
+   ```
+
+**Why This Matters:**
+- Older parsers interpret hyphens (`-`) as potential markdown list markers
+- Slashes (`/`) and colons (`:`) are special characters
+- HTML tags trigger markdown parsing
+- Using only **alphanumeric text and spaces** ensures compatibility
+
+**Testing Your Diagrams:**
+- Preview in VS Code (Ctrl+Shift+V or Cmd+Shift+V)
+- Check for "Unsupported markdown: list" errors
+- Ensure diagrams render on GitHub
 
 ---
 
@@ -496,8 +577,14 @@ graph TD
 **Next Review Date**: 2026-01-01
 
 **Change Log:**
+- 2025-10-23: Updated with real-world usage patterns from NDInsight diagrams
+  - Reorganized color palette into Core and Extended sections
+  - Added complete fill/stroke/text color specifications
+  - Added VS Code Mermaid 9.x compatibility section
+  - Updated stroke color hex codes to match Material Design 700 series
+  - Revised semantic assignments based on ND-500/ND-100 documentation
+  - Added practical examples from actual diagrams
 - 2025-10-10: Initial version - Defined WCAG AA compliant color palette
-- Future updates will be tracked here
 
 ---
 

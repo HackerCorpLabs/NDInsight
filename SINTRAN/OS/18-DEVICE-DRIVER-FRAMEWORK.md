@@ -253,21 +253,21 @@ ENTRY:
 │  [0] → Datafield addr for ID 1 │
 │  [1] → Datafield addr for ID 2 │
 │  [2] → Datafield addr for ID 3 │
-│  ...                            │
+│  ...                           │
 └────────────────────────────────┘
 
 ┌────────────────────────────────┐
 │  ITB11 (Level 11 - Storage)    │
 │  [0] → Datafield addr for ID 1 │
 │  [1] → Datafield addr for ID 2 │
-│  ...                            │
+│  ...                           │
 └────────────────────────────────┘
 
 ┌────────────────────────────────┐
 │  ITB12 (Level 12 - Input)      │
 │  [0] → Datafield addr for ID 1 │
 │  [1] → Datafield addr for ID 2 │
-│  ...                            │
+│  ...                           │
 └────────────────────────────────┘
 ```
 

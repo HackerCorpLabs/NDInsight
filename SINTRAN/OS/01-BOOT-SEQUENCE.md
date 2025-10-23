@@ -50,19 +50,19 @@ graph TD
     M --> N[System Operational]
     
     style A fill:#3F51B5,stroke:#303F9F,stroke-width:2px,color:#fff
-    style B fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
-    style C fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
-    style D fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
-    style E fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style F fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style G fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
-    style H fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style I fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
-    style J fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style K fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style L fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
-    style M fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
-    style N fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
+    style B fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style C fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style D fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
+    style E fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style F fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style G fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style H fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style I fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style J fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style K fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style L fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
+    style M fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
+    style N fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
 ```
 
 ### 1.2 Boot Entry Points
@@ -881,9 +881,9 @@ sequenceDiagram
     participant RT as First RT Program (Level 1)
     
     Boot->>Mon: Activate monitor level
-    Note over Mon: Initialize execution queue<br/>Set up first RT program
+    Note over Mon: Initialize execution queue Set up first RT program
     Mon->>RT: Switch to level 1
-    Note over RT: System is now operational<br/>Can execute user programs
+    Note over RT: System is now operational Can execute user programs
     RT->>Mon: Monitor call (request service)
     Mon->>RT: Return from monitor call
     
@@ -958,25 +958,25 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    START[SINTR Entry] --> INIT1[Disable Interrupts<br/>PIOF, Clear IIE/PID/PIE]
-    INIT1 --> INIT2[Set PCR for Level 0<br/>Ring 2, Basic PIT]
-    INIT2 --> CPU[Call SYSEVAL<br/>Detect CPU Type]
+    START[SINTR Entry] --> INIT1[Disable Interrupts PIOF Clear IIE PID PIE]
+    INIT1 --> INIT2[Set PCR for Level 0 Ring 2 Basic PIT]
+    INIT2 --> CPU[Call SYSEVAL Detect CPU Type]
     
     CPU --> CPUOK{ND-100/110/120?}
     CPUOK -->|No| ERR1[ERRFATAL]
     CPUOK -->|Yes| MMTEST[Setup Page Fault Test]
     
-    MMTEST --> MMTEST2[Enable Level 14<br/>Enable Page Faults]
+    MMTEST --> MMTEST2[Enable Level 14 Enable Page Faults]
     MMTEST2 --> MMTEST3[Try to Access Unmapped Page]
-    MMTEST3 --> MMTEST4{TSPCR Handler<br/>PGS OK?}
+    MMTEST3 --> MMTEST4{TSPCR Handler PGS OK?}
     MMTEST4 -->|No| ERR2[ERRFATAL]
     MMTEST4 -->|Yes| MEMSCAN[Scan Physical Memory]
     
-    MEMSCAN --> MEMSCAN2[Test Each Page<br/>1000₈ to ENDPAGE]
+    MEMSCAN --> MEMSCAN2[Test Each Page 1000₈ to ENDPAGE]
     MEMSCAN2 --> MEMSCAN3[Build TMMAP Bitmap]
-    MEMSCAN3 --> DISK[Call DPRE<br/>Read DPIT from Disk]
-    
-    DISK --> PITTBL[Call IPTMAP<br/>Setup Page Tables]
+    MEMSCAN3 --> DISK[Call DPRE Read DPIT from Disk]
+
+    DISK --> PITTBL[Call IPTMAP Setup Page Tables]
     PITTBL --> DEVHDLC[Scan HDLC Controllers]
     
     DEVHDLC --> DEVLOOP{More Devices?}
@@ -987,13 +987,13 @@ flowchart TD
     DEVCLR --> DEVLOOP
     
     DEVLOOP -->|No| IOBUF[Allocate I/O Buffers]
-    IOBUF --> IOBUF2[Walk IOBUTAB<br/>Assign Buffer Addresses]
-    IOBUF2 --> IOBUF3[Check HDLC/Sync Buffers]
-    IOBUF3 --> PCRINIT[Initialize PCRs<br/>All 16 Levels]
-    
-    PCRINIT --> INTV[Setup Interrupt Vectors<br/>P Registers per Level]
-    INTV --> IDENT[Initialize Ident Tables<br/>Levels 10, 11, 12]
-    IDENT --> ENABLE[Enable Interrupts<br/>Set PIE]
+    IOBUF --> IOBUF2[Walk IOBUTAB Assign Buffer Addresses]
+    IOBUF2 --> IOBUF3[Check HDLC Sync Buffers]
+    IOBUF3 --> PCRINIT[Initialize PCRs All 16 Levels]
+
+    PCRINIT --> INTV[Setup Interrupt Vectors P Registers per Level]
+    INTV --> IDENT[Initialize Ident Tables Levels 10 11 12]
+    IDENT --> ENABLE[Enable Interrupts Set PIE]
     
     ENABLE --> MONITOR[Activate Monitor Level]
     MONITOR --> DONE[Boot Complete]
@@ -1003,25 +1003,25 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    START[Device Config Entry] --> CHECK{Datafield<br/>Generated?}
+    START[Device Config Entry] --> CHECK{Datafield Generated?}
     CHECK -->|No| SKIP[Skip This Device]
-    CHECK -->|Yes| ENABLE[Enable IOX Error<br/>TRR IIE = 200₈]
-    
-    ENABLE --> TEST[Try Device Access<br/>EXR ST or IOXT]
-    TEST --> CHECKERR{IOX Error?<br/>TRA IIC}
-    
+    CHECK -->|Yes| ENABLE[Enable IOX Error TRR IIE = 200₈]
+
+    ENABLE --> TEST[Try Device Access EXR ST or IOXT]
+    TEST --> CHECKERR{IOX Error? TRA IIC}
+
     CHECKERR -->|Yes A=0| PRESENT[Device Present]
     CHECKERR -->|No A<>0| ABSENT[Device Absent]
-    
-    PRESENT --> CFG1[Update Logical<br/>Device Number Table]
-    CFG1 --> CFG2[Set Ident Code<br/>Table Entry]
+
+    PRESENT --> CFG1[Update Logical Device Number Table]
+    CFG1 --> CFG2[Set Ident Code Table Entry]
     CFG2 --> CFG3[Configure Datafield]
     CFG3 --> DONE[Device Ready]
-    
-    ABSENT --> CLR1[Clear Logical<br/>Device Table]
-    CLR1 --> CLR2[Clear Ident<br/>Table Entry]
-    CLR2 --> CLR3[Remove from<br/>IOBUTAB]
-    CLR3 --> CLR4[Clear Timer<br/>Table Entry]
+
+    ABSENT --> CLR1[Clear Logical Device Table]
+    CLR1 --> CLR2[Clear Ident Table Entry]
+    CLR2 --> CLR3[Remove from IOBUTAB]
+    CLR3 --> CLR4[Clear Timer Table Entry]
     CLR4 --> SKIP2[Device Disabled]
     
     DONE --> NEXT[Next Device]

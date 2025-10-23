@@ -38,41 +38,40 @@ The manual mentions "segments" in many contexts:
 ### 1.2 The Key Distinction
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 flowchart TB
-    subgraph DISK ["On Disk"]
-        SF0[SEGFIL 0<br/>System segments]
-        SF1[SEGFIL 1<br/>User segments]
-        SF2[SEGFIL 2<br/>More segments]
-        SAVE[SAVE area<br/>Boot images]
+    subgraph DISK [On Disk]
+        SF0[SEGFIL 0 System segments]
+        SF1[SEGFIL 1 User segments]
+        SF2[SEGFIL 2 More segments]
+        SAVE[SAVE area Boot images]
     end
-    
-    subgraph MEM ["In Memory"]
+
+    subgraph MEM [In Memory]
         SEG0[Segment 0]
         SEG1[Segment 1]
         SEG2[Segment 2]
-        RTCOM[RTCOMMON<br/>Shared area]
-        POF[POF area<br/>Paging off]
+        RTCOM[RTCOMMON Shared area]
+        POF[POF area Paging off]
     end
-    
-    subgraph RT ["RT Programs"]
-        RTP1[RT Program 1<br/>Uses Seg 5]
-        RTP2[RT Program 2<br/>Uses Seg 6,7]
+
+    subgraph RT [RT Programs]
+        RTP1[RT Program 1 Uses Seg 5]
+        RTP2[RT Program 2 Uses Seg 6 7]
     end
-    
-    SF0 -.Load on boot.-> SEG0
-    SF1 -.Load on demand.-> SEG1
-    SF2 -.Load on demand.-> SEG2
-    SAVE -.HENT restart.-> MEM
-    
+
+    SF0 -.->|"Load on boot"| SEG0
+    SF1 -.->|"Load on demand"| SEG1
+    SF2 -.->|"Load on demand"| SEG2
+    SAVE -.->|"HENT restart"| MEM
+
     SEG1 --> RTP1
     SEG2 --> RTP2
     RTCOM --> RTP1
     RTCOM --> RTP2
-    
-    style SF0 fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style SAVE fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style RTCOM fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+
+    style SF0 fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style SAVE fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style RTCOM fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
 ```
 
 **CRITICAL INSIGHT:**
@@ -96,25 +95,25 @@ SEGFSTART=:CBLST    % START OF SEGFILE 0
 
 Think of it like a library or archive:
 
-```
-┌────────────────────────────────────────┐
-│ SEGFIL 0 (System Segments)             │
-├────────────────────────────────────────┤
-│ Segment 0:  Offset 0, Size 20 pages    │
-│ Segment 1:  Offset 20, Size 16 pages   │
-│ Segment 2:  Offset 36, Size 10 pages   │
-│ Segment 3:  Offset 46, Size 5 pages    │
-│ ...                                    │
-│ Segment N:  Offset X, Size Y pages     │
-└────────────────────────────────────────┘
-
-┌────────────────────────────────────────┐
-│ SEGFIL 1 (User Segments)               │
-├────────────────────────────────────────┤
-│ Segment 0:  User A's program           │
-│ Segment 1:  User B's program           │
-│ ...                                    │
-└────────────────────────────────────────┘
+```text
+ ┌────────────────────────────────────────┐
+ │ SEGFIL 0 (System Segments)             │
+ ├────────────────────────────────────────┤
+ │ Segment 0:  Offset 0, Size 20 pages    │
+ │ Segment 1:  Offset 20, Size 16 pages   │
+ │ Segment 2:  Offset 36, Size 10 pages   │
+ │ Segment 3:  Offset 46, Size 5 pages    │
+ │ ...                                    │
+ │ Segment N:  Offset X, Size Y pages     │
+ └────────────────────────────────────────┘
+ 
+ ┌────────────────────────────────────────┐
+ │ SEGFIL 1 (User Segments)               │
+ ├────────────────────────────────────────┤
+ │ Segment 0:  User A's program           │
+ │ Segment 1:  User B's program           │
+ │ ...                                    │
+ └────────────────────────────────────────┘
 ```
 
 ### 2.2 Multiple SEGFILs
@@ -154,7 +153,7 @@ SINTRAN maintains a **Segment Table** (SGT) in memory:
 
 ```
 ┌──────────────────────────────────────┐
-│ Segment Table Entry (per segment)   │
+│ Segment Table Entry (per segment)    │
 ├──────────────────────────────────────┤
 │ SEGFIL number (which file?)          │ 16 bits
 │ Offset in SEGFIL (pages)             │ 16 bits
@@ -259,24 +258,24 @@ IF HENTFLAG><0 GO FAR OVCO    % HENT restart - skip SAVE copy
 ### 3.5 The Complete Picture
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 flowchart LR
-    subgraph COLD ["Cold Start (Power On)"]
-        S1[SAVE area<br/>Clean backup]
-        I1[IMAGE area<br/>SEGFIL 0]
-        M1[Memory<br/>Segments loaded]
+    subgraph COLD [Cold Start Power On]
+        S1[SAVE area Clean backup]
+        I1[IMAGE area SEGFIL 0]
+        M1[Memory Segments loaded]
     end
-    
-    subgraph HENT ["HENT Restart (Warm)"]
-        H1[HENT area<br/>Memory snapshot]
-        M2[Memory<br/>Exact restore]
+
+    subgraph HENT [HENT Restart Warm]
+        H1[HENT area Memory snapshot]
+        M2[Memory Exact restore]
     end
-    
-    S1 --Copy--> I1 --Load on demand--> M1
-    H1 --Bulk copy--> M2
-    
-    style S1 fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style H1 fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+
+    S1 -->|Copy| I1
+    I1 -->|"Load on demand"| M1
+    H1 -->|"Bulk copy"| M2
+
+    style S1 fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style H1 fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
 ```
 
 **Why three areas?**
@@ -313,31 +312,27 @@ Segment 5:
 ### 4.2 Segment Loading Process
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 sequenceDiagram
     participant RTP as RT Program
     participant SINT as SINTRAN
     participant SGT as Segment Table
     participant SEGF as SEGFIL on Disk
     participant MEM as Physical Memory
-    
+
     RTP->>SINT: Access segment 5
     SINT->>SGT: Lookup segment 5
-    SGT-->>SINT: SEGFIL 0, offset 100, len 20
-    
+    SGT-->>SINT: SEGFIL 0 offset 100 len 20
+
     alt Segment not loaded
         SINT->>MEM: Allocate 20 pages
-        SINT->>SEGF: Read pages 100-119
+        SINT->>SEGF: Read pages 100 to 119
         SEGF-->>MEM: Copy data
-        SINT->>SGT: Update: loaded at pages 150-169
+        SINT->>SGT: Update loaded at pages 150 to 169
     else Segment already loaded
         SINT->>SGT: Increment ref count
     end
-    
-    SINT-->>RTP: Physical address 150*4096
-    
-    style SINT fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style SGT fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+
+    SINT-->>RTP: Physical address 150 times 4096
 ```
 
 ### 4.3 Segment Naming
@@ -455,29 +450,29 @@ FI
 
 ### 6.2 RTCOMMON Layout
 
-```
+```text
 Logical Address Space:
-┌────────────────────────────────────┐
-│ Pages 0-127:  Normal memory        │
-├────────────────────────────────────┤
-│ Pages 128-159: RTCOMMON            │ ← 32 pages typical
+┌─────────────────────────────────────┐
+│ Pages 0-127:  Normal memory         │
+├─────────────────────────────────────┤
+│ Pages 128-159: RTCOMMON             │ ← 32 pages typical
 │                Fixed physical addr  │
 │                Contiguous           │
 │                Shared by all RT     │
-├────────────────────────────────────┤
-│ Pages 160-199: Other memory        │
-│ Page  200:     Start of RT segments│
-└────────────────────────────────────┘
+├─────────────────────────────────────┤
+│ Pages 160-199: Other memory         │
+│ Page  200:     Start of RT segments │
+└─────────────────────────────────────┘
 
 Physical Memory:
-┌────────────────────────────────────┐
-│ Pages 0-63:   POF area             │
-├────────────────────────────────────┤
-│ Pages 64-95:  RTCOMMON             │ ← Fixed location
+┌─────────────────────────────────────┐
+│ Pages 0-63:   POF area              │
+├─────────────────────────────────────┤
+│ Pages 64-95:  RTCOMMON              │ ← Fixed location
 │               CCSTART = 64          │
-├────────────────────────────────────┤
-│ Pages 96-...: Other memory         │
-└────────────────────────────────────┘
+├─────────────────────────────────────┤
+│ Pages 96-...: Other memory          │
+└─────────────────────────────────────┘
 ```
 
 ### 6.3 RTCOMMON for ND-500
@@ -520,28 +515,27 @@ Physical Memory:
 **How it works:**
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 flowchart TB
-    subgraph ND100 ["ND-100 Side"]
-        RTP[RT Program<br/>Segment 10]
-        SEG10[Segment 10<br/>in SEGFIL 1]
-        PHYS[Physical Pages<br/>200-219]
+    subgraph ND100 [ND100 Side]
+        RTP[RT Program Segment 10]
+        SEG10[Segment 10 in SEGFIL 1]
+        PHYS[Physical Pages 200 to 219]
     end
-    
-    subgraph ND500 ["ND-500 Side"]
-        DOMAIN[ND-500 Domain]
+
+    subgraph ND500 [ND500 Side]
+        DOMAIN[ND500 Domain]
         SEG1[Segment 1]
-        FIX[Fixed Pages<br/>200-219]
+        FIX[Fixed Pages 200 to 219]
     end
-    
-    SEG10 --Loaded--> PHYS
-    SEG1 --Mapped--> FIX
-    PHYS -.Same physical memory.-> FIX
-    RTP --Uses--> SEG10
-    DOMAIN --Uses--> SEG1
-    
-    style PHYS fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style FIX fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+
+    SEG10 -->|Loaded| PHYS
+    SEG1 -->|Mapped| FIX
+    PHYS -.->|"Same physical memory"| FIX
+    RTP -->|Uses| SEG10
+    DOMAIN -->|Uses| SEG1
+
+    style PHYS fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style FIX fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
 ```
 
 ### 7.2 Setup Process
@@ -595,7 +589,7 @@ NLL: EXIT
 ```
 Cold Start (HENTFLAG=0):
 ┌────────────────────────────────────────┐
-│ 1. Copy from SAVE to IMAGE on disk    │
+│ 1. Copy from SAVE to IMAGE on disk     │
 ├────────────────────────────────────────┤
 │ Extended Common    (MSECO → MIECO)     │
 │ DPIT               (MSDPT → MIDPT)     │
@@ -613,13 +607,13 @@ Cold Start (HENTFLAG=0):
 │ 5PIT Segment       (MS5PT → MI5PT)     │
 │ XMSG Kernel        (MSXMK → MIXMK)     │
 │ ND-500 Monitor     (MN5MO → MI5MO)     │
-│ (many more...)                          │
+│ (many more...)                         │
 └────────────────────────────────────────┘
 
 Warm Start (HENTFLAG<>0):
 ┌────────────────────────────────────────┐
-│ Copy HENT area → Memory (bulk copy)   │
-│ Much faster than cold start           │
+│ Copy HENT area → Memory (bulk copy)    │
+│ Much faster than cold start            │
 │ Exact memory state restored            │
 └────────────────────────────────────────┘
 ```

@@ -34,31 +34,30 @@ The SINTRAN system integrates the **ND-100** (main processor) with one or more *
 - High-speed computations
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 flowchart TB
-    subgraph ND100 ["ND-100 System"]
-        CPU[ND-100 CPU]
-        MEM[ND-100 Memory<br/>16-bit words]
+    subgraph ND100 [ND100 System]
+        CPU[ND100 CPU]
+        MEM[ND100 Memory 16bit words]
         MMUDB[MMU]
         KERNEL[SINTRAN Kernel]
     end
-    
-    subgraph MPM ["Multi-Port Memory (5MPM)"]
-        SHARED[Shared Memory<br/>Accessible by both]
+
+    subgraph MPM [MultiPort Memory 5MPM]
+        SHARED[Shared Memory Accessible by both]
         direction TB
     end
-    
-    subgraph ND500 ["ND-500 System"]
-        CPU5[ND-500 CPU]
-        MEM5[ND-500 Memory]
-        PROC5[ND-500 Processes]
+
+    subgraph ND500 [ND500 System]
+        CPU5[ND500 CPU]
+        MEM5[ND500 Memory]
+        PROC5[ND500 Processes]
     end
-    
-    subgraph COMM ["Communication"]
-        MSG[Message Buffers<br/>in 5MPM]
+
+    subgraph COMM [Communication]
+        MSG[Message Buffers in 5MPM]
         DMA[DMA Engine]
     end
-    
+
     CPU --> MMUDB
     MMUDB --> MEM
     CPU --> SHARED
@@ -67,10 +66,10 @@ flowchart TB
     MSG --> SHARED
     PROC5 --> MSG
     DMA --> SHARED
-    
-    style SHARED fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style MSG fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style DMA fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+
+    style SHARED fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style MSG fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style DMA fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#000
 ```
 
 ### 1.2 Key Communication Mechanisms
@@ -231,25 +230,24 @@ public struct ND500ProcessDescriptor
 From `RP-P2-N500.NPL` lines 751-793:
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 flowchart TD
-    A[SINTRAN Boot] --> B[Scan for ND-500<br/>CPU cards]
+    A[SINTRAN Boot] --> B[Scan for ND-500CPU cards]
     B --> C[For each ND-500 CPU]
     C --> D[Allocate datafield]
     D --> E[Configure IOX address]
-    E --> F[Setup multiport<br/>memory region]
-    F --> G[Allocate message<br/>buffers in 5MPM]
-    G --> H[Create process<br/>descriptors]
-    H --> I[Initialize XMSG<br/>protocol]
+    E --> F[Setup multiportmemory region]
+    F --> G[Allocate messagebuffers in 5MPM]
+    G --> H[Create processdescriptors]
+    H --> I[Initialize XMSGprotocol]
     I --> J[Setup DMA buffers]
     J --> K[Enable interrupts]
     K --> L{More CPUs?}
     L -->|Yes| C
     L -->|No| M[ND-500 Ready]
     
-    style F fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style G fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style J fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+    style F fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style G fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style J fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
 ```
 
 ### 3.2 Multiport Memory Allocation
@@ -362,7 +360,6 @@ public struct ND500Message
 ### 4.2 Sending a Message
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 sequenceDiagram
     participant RT as RT Program
     participant Kernel as SINTRAN Kernel
@@ -373,7 +370,7 @@ sequenceDiagram
     Kernel->>Kernel: Find ND-500 datafield
     Kernel->>MPM: Allocate message buffer
     Kernel->>MPM: Fill message fields
-    Note over MPM: Function code<br/>Byte count<br/>Addresses
+    Note over MPM: Function codeByte countAddresses
     Kernel->>Kernel: CNVWADR (convert addresses)
     Kernel->>MPM: Set 5ITMQUEUE flag
     Kernel->>ND500: Interrupt ND-500
@@ -410,27 +407,26 @@ GO NXTMSG
 ### 5.1 DMA Transfer Setup
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 flowchart TD
-    A[User requests<br/>data transfer] --> B[Kernel validates<br/>byte count]
+    A[User requestsdata transfer] --> B[Kernel validatesbyte count]
     B --> C{Size check}
-    C -->|<= GPUZI<br/>~4KB| D[Use regular<br/>message buffer]
-    C -->|> GPUZI<br/>> GPDZI| E[Error: too large]
+    C -->|<= GPUZI~4KB| D[Use regularmessage buffer]
+    C -->|> GPUZI> GPDZI| E[Error: too large]
     C -->|GPUZI to GPDZI| F[Setup DMA transfer]
     
-    F --> G[Allocate DMA buffer<br/>in 5MPM]
-    G --> H[Get ND-100 source<br/>logical address]
-    H --> I[**CNVWADR**<br/>Convert to physical]
-    I --> J[Get ND-500 dest<br/>logical address]
-    J --> K[Fill DMA message<br/>structure]
-    K --> L[Set DMA parameters:<br/>N100ADR physical<br/>N500ADR logical<br/>NRBYT count]
-    L --> M[Trigger ND-500<br/>DMA engine]
-    M --> N[ND-500 performs<br/>hardware DMA]
-    N --> O[Interrupt on<br/>completion]
+    F --> G[Allocate DMA bufferin 5MPM]
+    G --> H[Get ND-100 sourcelogical address]
+    H --> I[**CNVWADR**Convert to physical]
+    I --> J[Get ND-500 destlogical address]
+    J --> K[Fill DMA messagestructure]
+    K --> L[Set DMA parameters:N100ADR physicalN500ADR logicalNRBYT count]
+    L --> M[Trigger ND-500DMA engine]
+    M --> N[ND-500 performshardware DMA]
+    N --> O[Interrupt oncompletion]
     
-    style I fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style L fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style N fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+    style I fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style L fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style N fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
 ```
 
 ### 5.2 DMA Transfer Code
@@ -495,24 +491,23 @@ Format:       32-bit result
 ### 6.2 Address Translation Process
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 flowchart TD
-    A[ND-100 Logical Address<br/>16-bit word address] --> B[Get current PIT<br/>from PCR]
-    B --> C[Extract page number<br/>bits 15-10]
-    C --> D[Extract page offset<br/>bits 9-0]
-    D --> E[Lookup in PIT<br/>get physical page]
-    E --> F[Calculate physical<br/>word address:<br/>phys_page * 1024 + offset]
-    F --> G{In multiport<br/>memory range?}
-    G -->|Yes| H[Convert to byte address:<br/>word_addr * 2]
-    G -->|No| I[Local memory<br/>not accessible to ND-500]
-    H --> J[Subtract 5BIAS<br/>multiport base address]
-    J --> K[Set bit 31<br/>physical byte address]
-    K --> L[Return 32-bit address<br/>0x80000000 | byte_offset]
+    A[ND-100 Logical Address16-bit word address] --> B[Get current PITfrom PCR]
+    B --> C[Extract page numberbits 15-10]
+    C --> D[Extract page offsetbits 9-0]
+    D --> E[Lookup in PITget physical page]
+    E --> F[Calculate physicalword address:phys_page * 1024 + offset]
+    F --> G{In multiportmemory range?}
+    G -->|Yes| H[Convert to byte address:word_addr * 2]
+    G -->|No| I[Local memorynot accessible to ND-500]
+    H --> J[Subtract 5BIASmultiport base address]
+    J --> K[Set bit 31physical byte address]
+    K --> L[Return 32-bit address0x80000000 | byte_offset]
     I --> M[Error: Not in 5MPM]
     
-    style G fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style J fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style K fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+    style G fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style J fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style K fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
 ```
 
 ### 6.3 DCNVA - Address Conversion Routine
@@ -596,7 +591,6 @@ Final ND-500 Address: 0x80000000 (20000000000₈ octal, 32-bit)
 ### ND-500 Process Lifecycle
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 stateDiagram-v2
     [*] --> Initialized: Allocate Descriptor
     Initialized --> Inactive: SENDE=0
@@ -607,8 +601,8 @@ stateDiagram-v2
     Active --> Terminated: TERM5
     Terminated --> [*]
     
-    style Active fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style Running fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+    style Active fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style Running fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
 ```
 
 ### Process Descriptor Location
@@ -736,7 +730,6 @@ SUBR RTPROG
 **What happens:**
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 sequenceDiagram
     participant RT as RT Program
     participant K as SINTRAN Kernel
@@ -747,12 +740,12 @@ sequenceDiagram
     Note over K: Block RT program
     K->>MPM: Allocate message buffer
     K->>K: CNVWADR (translate buffer addr)
-    K->>MPM: Write message:<br/>Function=GRAPHICS_FUNC<br/>N100A=phys_addr<br/>ByteCount=2000
+    K->>MPM: Write message:Function=GRAPHICS_FUNCN100A=phys_addrByteCount=2000
     K->>MPM: Set 5ITMQUEUE flag
     K->>ND5: LTAG5 interrupt
     
     ND5->>MPM: Read message
-    ND5->>ND5: Process graphics<br/>(could take ms-seconds)
+    ND5->>ND5: Process graphics(could take ms-seconds)
     ND5->>MPM: Write result
     ND5->>K: Interrupt (Level 12)
     

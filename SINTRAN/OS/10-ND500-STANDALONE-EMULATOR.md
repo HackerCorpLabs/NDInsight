@@ -312,7 +312,6 @@ Bit 7-0:  Other status flags
 ### 3.3 Initialization Sequence
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 flowchart TB
     A[Power On / Reset]
     B[Clear all registers]
@@ -322,11 +321,11 @@ flowchart TB
     F[Set all capabilities = 0]
     G[Memory = all zeros?]
     H[CPU halted, waiting for PLACE-DOMAIN]
-    
+
     A --> B --> C --> D --> E --> F --> G --> H
-    
-    style B fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style E fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+
+    style B fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style E fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
 ```
 
 ### 3.4 C# CPU State

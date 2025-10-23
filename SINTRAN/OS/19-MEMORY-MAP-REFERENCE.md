@@ -57,26 +57,26 @@ Throughout this document:
 ```
 ND-100 Physical Memory (22-bit addresses, word-addressable):
 ┌──────────────────────────────────────────────┐
-│ 0x000000 - 0x00FFFF (64K words, 128KB)      │ Low RAM
+│ 0x000000 - 0x00FFFF (64K words, 128KB)       │ Low RAM
 │   - Boot code                                │
 │   - SINTRAN kernel                           │
 │   - System tables                            │
 │   - RT program code/data                     │
 ├──────────────────────────────────────────────┤
-│ 0x010000 - 0x03FFFF (192K words, 384KB)     │ Extended RAM
+│ 0x010000 - 0x03FFFF (192K words, 384KB)      │ Extended RAM
 │   - Additional kernel                        │
 │   - Background programs                      │
 │   - Segment buffers                          │
 │   - Swap space                               │
 ├──────────────────────────────────────────────┤
-│ 0x040000 - 0x05FFFF (128K words, 256KB)     │ 5MPM (Multiport Memory)
+│ 0x040000 - 0x05FFFF (128K words, 256KB)      │ 5MPM (Multiport Memory)
 │   - Shared with ND-500                       │
 │   - ND-500 process descriptors               │
 │   - Message buffers                          │
 │   - XMSG kernel                              │
 │   - Communication buffers                    │
 ├──────────────────────────────────────────────┤
-│ 0x060000 - 0x3FFFFF (3.75MB words, 7.5MB)   │ Extended RAM (if installed)
+│ 0x060000 - 0x3FFFFF (3.75MB words, 7.5MB)    │ Extended RAM (if installed)
 │   - Large segments                           │
 │   - File buffers                             │
 │   - Virtual memory backing store             │
@@ -135,22 +135,22 @@ Each ND-100 program sees a **64-page virtual address space** (128K words):
 ```
 Virtual Address Space (16-bit addresses):
 ┌──────────────────────────────────────────┐ 0x0000 (Page 0)
-│ Page 0: Interrupt vectors & boot code   │
+│ Page 0: Interrupt vectors & boot code    │
 ├──────────────────────────────────────────┤ 0x0800 (Page 1)
-│ Page 1-7: Kernel code                   │
+│ Page 1-7: Kernel code                    │
 │  - Monitor routines                      │
 │  - System calls                          │
 ├──────────────────────────────────────────┤ 0x4000 (Page 8)
-│ Page 8-15: Kernel data                  │
+│ Page 8-15: Kernel data                   │
 │  - System tables                         │
 │  - RTCOMMON                              │
 ├──────────────────────────────────────────┤ 0x8000 (Page 16)
-│ Page 16-47: User program                │
+│ Page 16-47: User program                 │
 │  - Application code                      │
 │  - Application data                      │
 │  - Stack                                 │
 ├──────────────────────────────────────────┤ 0xC000 (Page 48)
-│ Page 48-63: Buffers & Windows           │
+│ Page 48-63: Buffers & Windows            │
 │  - Buffer window (WNDBF)                 │
 │  - User window (WND41)                   │
 │  - I/O buffers                           │
@@ -201,10 +201,10 @@ Each ND-500 process runs in a **domain** with its own address space:
 ```
 Domain Address Space (per process):
 ┌──────────────────────────────────────────┐ 0x00000000
-│ Segment 0: System (Indirect to Seg 31)  │
+│ Segment 0: System (Indirect to Seg 31)   │
 │  - Monitor call interface                │
 ├──────────────────────────────────────────┤ 0x00001000
-│ Segment 1: Program Code                 │
+│ Segment 1: Program Code                  │
 │  - Loaded from :PSEG file                │
 │  - Read/Execute, no Write                │
 ├──────────────────────────────────────────┤ 0x00010000
@@ -221,7 +221,7 @@ Domain Address Space (per process):
 │  - Shared segments                       │
 │  - RTCOMMON mapping (if used)            │
 ├──────────────────────────────────────────┤ 0x80000000
-│ Segment 31: 5MPM (Shared Memory)        │
+│ Segment 31: 5MPM (Shared Memory)         │
 │  - Mapped to 5MPM physical memory        │
 │  - Accessible by both ND-100/ND-500      │
 │  - Message buffers here                  │
@@ -261,20 +261,20 @@ Physical Seg: Actual physical segment number (0-16383)
 
 ```
 Physical 5MPM Bank (256KB typical):
-┌─────────────────────────────────────────────────┐
-│ ND-100 View (0x040000)   ND-500 View (0x80000000)│
-│        ↓                          ↓              │
-│        └──────────┬────────────────┘              │
+┌───────────────────────────────────────────────────┐
+│ ND-100 View (0x040000)   ND-500 View (0x80000000) │
+│        ↓                          ↓               │ 
+│        └──────────┬───────────────┘               │
 │                   │                               │
 │              SAME PHYSICAL                        │
 │                   RAM                             │
 │                   │                               │
-├─────────────────────────────────────────────────┤
-│ Address Translation via BASE registers:          │
-│   ND-100: 0x040000 + offset = physical          │
-│   ND-500: 0x80000000 + offset = physical        │
-│   (BASE register converts ND-500 addr to phys)   │
-└─────────────────────────────────────────────────┘
+├───────────────────────────────────────────────────┤
+│ Address Translation via BASE registers:           │
+│   ND-100: 0x040000 + offset = physical            │
+│   ND-500: 0x80000000 + offset = physical          │
+│   (BASE register converts ND-500 addr to phys)    │
+└───────────────────────────────────────────────────┘
 ```
 
 ### 4.2 5MPM Internal Structure
@@ -492,19 +492,19 @@ SEGSTART + N * SEGSIZE = Address of segment N's table entry
 ```mermaid
 flowchart TD
     START([RT Program references Segment N]) --> LOOKUP[Look up in Segment Table]
-    LOOKUP --> CHECK{Segment<br/>in memory?}
-    
+    LOOKUP --> CHECK{Segment in memory?}
+
     CHECK -->|Yes| PHYSADDR[Return SGMEMADDR]
     CHECK -->|No| PAGEFAULT[Page Fault]
-    
+
     PAGEFAULT --> LOAD[Load from SEGFIL]
     LOAD --> UPDATE[Update Segment Table]
     UPDATE --> PHYSADDR
-    
+
     PHYSADDR --> END([Physical Address])
-    
-    style PAGEFAULT fill:#ff9800
-    style LOAD fill:#2196f3
+
+    style PAGEFAULT fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#000
+    style LOAD fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
 ```
 
 **Example:**
@@ -564,7 +564,7 @@ PIT 0 (System/Kernel):
 ┌───────────────────────────────────┐
 │ Entry 0: Physical page 0          │ → Physical 0x000000
 │ Entry 1: Physical page 1          │ → Physical 0x000800
-│ ...                                │
+│ ...                               │
 │ Entry 63: Physical page 63        │ → Physical 0x01F800
 └───────────────────────────────────┘
 
@@ -572,20 +572,20 @@ PIT 1 (RT Programs):
 ┌───────────────────────────────────┐
 │ Entry 0: Physical page 10         │ → Physical 0x005000
 │ Entry 1: Physical page 11         │ → Physical 0x005800
-│ ...                                │
+│ ...                               │
 │ Entry 63: Physical page 73        │ → Physical 0x024800
 └───────────────────────────────────┘
 
 PIT 2 (Background 1):
 ┌───────────────────────────────────┐
 │ Entry 0: Physical page 100        │ → Physical 0x032000
-│ ...                                │
+│ ...                               │
 └───────────────────────────────────┘
 
 PIT 3 (Background 2):
 ┌───────────────────────────────────┐
 │ Entry 0: Physical page 200        │ → Physical 0x064000
-│ ...                                │
+│ ...                               │
 └───────────────────────────────────┘
 ```
 
@@ -742,63 +742,63 @@ Swap File Structure:
 
 ```mermaid
 flowchart TD
-    START([ND-100 CPU Access]) --> VIRT[Virtual Address<br/>16-bit]
-    
-    VIRT --> PAGE[Calculate Page<br/>Addr >> 11]
-    PAGE --> PIT[Look up in PIT<br/>PIT[CurrentPIT][Page]]
-    
+    START([ND100 CPU Access]) --> VIRT[Virtual Address 16bit]
+
+    VIRT --> PAGE[Calculate Page Addr right shift 11]
+    PAGE --> PIT[Look up in PIT using CurrentPIT and Page]
+
     PIT --> CHECK{Entry valid?}
-    
-    CHECK -->|No| PF[Page Fault<br/>INT 14 IIC=03]
-    CHECK -->|Yes| PERM{Permission<br/>OK?}
-    
-    PERM -->|No| PROTECT[Protection Violation<br/>INT 14 IIC=02]
-    PERM -->|Yes| PHYS[Physical Address<br/>= PIT entry * 2048 + offset]
-    
+
+    CHECK -->|No| PF[Page Fault INT 14 IIC=03]
+    CHECK -->|Yes| PERM{Permission OK?}
+
+    PERM -->|No| PROTECT[Protection Violation INT 14 IIC=02]
+    PERM -->|Yes| PHYS[Physical Address = PIT entry times 2048 plus offset]
+
     PHYS --> MEM[(Physical Memory)]
-    
+
     PF --> HANDLER[Page Fault Handler]
     HANDLER --> LOAD[Load Page]
     LOAD --> PIT
-    
-    style PF fill:#ff9800
-    style PROTECT fill:#f44336
-    style MEM fill:#4caf50
+
+    style PF fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#000
+    style PROTECT fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
+    style MEM fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
 ```
 
 ### 9.2 ND-500 Memory Access
 
 ```mermaid
 flowchart TD
-    START([ND-500 CPU Access]) --> VIRT[Virtual Address<br/>32-bit byte address]
-    
-    VIRT --> SEG[Extract Segment<br/>Addr >> 16]
-    SEG --> CAP[Look up Capability<br/>Program or Data]
-    
-    CAP --> TYPE{Segment<br/>Type?}
-    
-    TYPE -->|Program| PROGCAP[Program Capability<br/>Check Indirect bit]
-    TYPE -->|Data| DATACAP[Data Capability<br/>Check S, W bits]
-    
-    PROGCAP --> PHYSSEG1[Physical Segment<br/>from capability]
+    START([ND500 CPU Access]) --> VIRT[Virtual Address 32bit byte address]
+
+    VIRT --> SEG[Extract Segment Addr right shift 16]
+    SEG --> CAP[Look up Capability Program or Data]
+
+    CAP --> TYPE{Segment Type?}
+
+    TYPE -->|Program| PROGCAP[Program Capability Check Indirect bit]
+    TYPE -->|Data| DATACAP[Data Capability Check S W bits]
+
+    PROGCAP --> PHYSSEG1[Physical Segment from capability]
     DATACAP --> CACHE{S bit set?}
-    
-    CACHE -->|Yes| BYPASS[Bypass Cache<br/>for 5MPM access]
+
+    CACHE -->|Yes| BYPASS[Bypass Cache for 5MPM access]
     CACHE -->|No| NORMAL[Normal Cache]
-    
-    BYPASS --> PHYSSEG2[Physical Segment<br/>from capability]
+
+    BYPASS --> PHYSSEG2[Physical Segment from capability]
     NORMAL --> PHYSSEG2
-    
-    PHYSSEG1 --> PHYS[Physical Address<br/>= Phys Seg * 4096 + offset]
+
+    PHYSSEG1 --> PHYS[Physical Address = Phys Seg times 4096 plus offset]
     PHYSSEG2 --> PHYS
-    
+
     PHYS --> CHECK{5MPM range?}
-    
-    CHECK -->|Yes| MPM[(5MPM Memory<br/>Shared with ND-100)]
-    CHECK -->|No| MEM[(ND-500 Private Memory)]
-    
-    style MPM fill:#ffc107
-    style MEM fill:#4caf50
+
+    CHECK -->|Yes| MPM[(5MPM Memory Shared with ND100)]
+    CHECK -->|No| MEM[(ND500 Private Memory)]
+
+    style MPM fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#000
+    style MEM fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
 ```
 
 ### 9.3 5MPM Shared Access

@@ -698,36 +698,36 @@ NOCORR:   A=:PEAERR; T:=PESERR; CALL 9ERR(#38) % NOT CORRECTABLE ERROR
 
 ```mermaid
 flowchart TD
-    START([IIC10: Parity Error]) --> READPES[Read PES Register]
-    READPES --> CHECK{Bit 5FATAL = 0?<br/>Correctable}
-    
+    START([IIC10 Parity Error]) --> READPES[Read PES Register]
+    READPES --> CHECK{Bit 5FATAL = 0 Correctable}
+
     CHECK -->|Yes| READPEA1[Read PEA Register]
-    READPEA1 --> LOG1[9ERR\(#44\)<br/>Correctable Error]
-    LOG1 --> CLEARECC[Clear ECCR<br/>ECC Register]
+    READPEA1 --> LOG1[9ERR code 44 Correctable Error]
+    LOG1 --> CLEARECC[Clear ECCR ECC Register]
     CLEARECC --> RET14
-    
+
     CHECK -->|No| READPEA2[Read PEA Register]
-    READPEA2 --> LOG2[9ERR\(#38\)<br/>Uncorrectable Error]
+    READPEA2 --> LOG2[9ERR code 38 Uncorrectable Error]
     LOG2 --> CHECKXMSG{XMSG Error?}
     CHECKXMSG -->|Yes| MFXMSG[MFXMSG Handler]
     CHECKXMSG -->|No| CHECKDMA
-    
-    MFXMSG --> CHECKDMA{DMA Fault?<br/>Bit 5DMAFAULT}
-    CHECKDMA -->|Yes| FATAL[ERRFATAL<br/>System Halt]
+
+    MFXMSG --> CHECKDMA{DMA Fault Bit 5DMAFAULT}
+    CHECKDMA -->|Yes| FATAL[ERRFATAL System Halt]
     CHECKDMA -->|No| CHECKLEV{ACTLV = ALEVL?}
-    
-    CHECKLEV -->|Yes| ABOR[ABOR<br/>Abort Program]
+
+    CHECKLEV -->|Yes| ABOR[ABOR Abort Program]
     CHECKLEV -->|No| CHECKLEV0{Level 0?}
-    CHECKLEV0 -->|Yes| TDTLEV[TDTLEV<br/>Continue]
+    CHECKLEV0 -->|Yes| TDTLEV[TDTLEV Continue]
     CHECKLEV0 -->|No| TDTLEV
-    
+
     TDTLEV --> RET14[Return]
-    
-    style LOG1 fill:#fff9c4
-    style LOG2 fill:#ffcdd2
-    style FATAL fill:#ef5350
-    style ABOR fill:#ffcdd2
-    style RET14 fill:#c8e6c9
+
+    style LOG1 fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#000
+    style LOG2 fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
+    style FATAL fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
+    style ABOR fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
+    style RET14 fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
 ```
 
 **Error Categories:**

@@ -36,17 +36,17 @@ What ND-500 Does NOT Have:
 ┌─────────────────────────────────────┐
 │ ND-500 CPU                          │
 │                                     │
-│ ✗ No terminal drivers               │
-│ ✗ No disk drivers                   │
-│ ✗ No device access                  │
+│ ✗ No terminal drivers              │
+│ ✗ No disk drivers                  │
+│ ✗ No device access                 │
 │ ✗ No stdin/stdout (UNIX concept)   │
-│ ✗ No file handles                   │
+│ ✗ No file handles                  │
 │                                     │
 │ Only has:                           │
 │ ✓ Compute power                     │
 │ ✓ Private memory                    │
 │ ✓ Access to 5MPM (multiport memory) │
-│ ✓ Message passing to ND-100        │
+│ ✓ Message passing to ND-100         │
 └─────────────────────────────────────┘
 ```
 
@@ -68,45 +68,65 @@ What ND-500 Does NOT Have:
 **All I/O operations go through the ND-100:**
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 flowchart TB
-    subgraph USER ["User at Terminal"]
-        TERM[Terminal<br/>Connected to ND-100]
+    %% ============================================
+    %% USER TERMINAL
+    %% ============================================
+    subgraph USER [User at Terminal]
         KEYBOARD[Keyboard]
         SCREEN[Screen]
+        TERM[Terminal connected to ND100]
+        KEYBOARD --> TERM
+        SCREEN <--> TERM
     end
-    
-    subgraph ND100 ["ND-100 System"]
-        TERMDRV[Terminal Driver<br/>Owns hardware]
-        KERNEL[SINTRAN Kernel<br/>I/O Proxy]
-        DATAFIELD[Terminal Datafield<br/>Buffer]
+
+    %% ============================================
+    %% ND100 SYSTEM
+    %% ============================================
+    subgraph ND100 [ND100 System]
+        TERMDRV[Terminal Driver owns hardware]
+        KERNEL[SINTRAN Kernel IO Proxy]
+        DATAFIELD[Terminal Datafield Buffer]
     end
-    
-    subgraph MPM ["5MPM (Multiport Memory)"]
+
+    %% ============================================
+    %% MULTIPORT MEMORY
+    %% ============================================
+    subgraph MPM [5MPM Multiport Memory]
         MSGBUF[Message Buffer]
-        DATABUF[Data Buffer<br/>Characters]
+        DATABUF[Data Buffer Characters]
     end
-    
-    subgraph ND500 ["ND-500 System"]
-        PROC[ND-500 Process<br/>Wants terminal I/O]
+
+    %% ============================================
+    %% ND500 SYSTEM
+    %% ============================================
+    subgraph ND500 [ND500 System]
+        PROC[ND500 Process wants terminal IO]
     end
-    
-    KEYBOARD --> TERM
+
+    %% ============================================
+    %% FLOW CONNECTIONS
+    %% ============================================
     TERM --> TERMDRV
     TERMDRV --> DATAFIELD
-    
-    PROC -->|1. DVIO/DVINST<br/>message| MSGBUF
-    MSGBUF -->|2. Kernel reads| KERNEL
-    KERNEL -->|3. Request I/O| DATAFIELD
-    DATAFIELD -->|4. Get data| TERMDRV
-    TERMDRV -->|5. Copy chars| DATABUF
-    DATABUF -->|6. Result ready| PROC
-    
-    SCREEN <--> TERM
-    
-    style TERM fill:#024959,stroke:#F24C3D,stroke-width:2px,color:#F2C777
-    style MSGBUF fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style DATABUF fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+
+    PROC -->|"1 DVIO DVINST message"| MSGBUF
+    MSGBUF -->|"2 Kernel reads"| KERNEL
+    KERNEL -->|"3 Request IO"| DATAFIELD
+    DATAFIELD -->|"4 Get data"| TERMDRV
+    TERMDRV -->|"5 Copy characters"| DATABUF
+    DATABUF -->|"6 Result ready"| PROC
+
+    %% ============================================
+    %% STYLE DEFINITIONS
+    %% ============================================
+    classDef blue fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    classDef green fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+
+    class TERM blue
+    class MSGBUF,DATABUF green
+
+
 ```
 
 ### 2.2 No stdin/stdout Concept
@@ -188,7 +208,6 @@ flowchart TB
 ### 3.2 Complete Terminal Input Sequence
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 sequenceDiagram
     autonumber
     participant U as User<br/>(Terminal)
@@ -196,16 +215,13 @@ sequenceDiagram
     participant K as SINTRAN Kernel
     participant MPM as 5MPM
     participant P as ND-500 Process
-    
-    rect rgb(36, 73, 89)
+
     note over P: ND-500 Process Needs Input
     P->>MPM: Prepare DVINST message<br/>(func=2, device, bufaddr, count)
     P->>MPM: Set 5ITMQUEUE flag
     P->>K: Interrupt (LTAG5)
     P->>P: Block waiting for response
-    end
-    
-    rect rgb(166, 47, 3)
+
     note over K,TD: ND-100 Processes Request
     K->>MPM: Read DVINST message
     K->>TD: Check terminal datafield
@@ -217,9 +233,7 @@ sequenceDiagram
         TD->>TD: Store in terminal buffer
         TD-->>K: Data ready
     end
-    end
-    
-    rect rgb(36, 73, 89)
+
     note over K,MPM: Copy Data to 5MPM
     loop For each character (XIBMOVE)
         K->>TD: Read one character (IOTRANS)
@@ -232,15 +246,12 @@ sequenceDiagram
     end
     K->>MPM: Update message:<br/>ByteCount=actual<br/>ErrorCode=0
     K->>MPM: Clear 5ITMQUEUE
-    end
-    
-    rect rgb(166, 47, 3)
+
     note over K,P: Resume ND-500 Process
     K->>P: Interrupt (Level 12 trigger)
     P->>MPM: Read message
     P->>MPM: Read data buffer
     P->>P: Process input<br/>Continue execution
-    end
 ```
 
 ### 3.3 Terminal Output Sequence
@@ -407,49 +418,48 @@ NOUTSTR:
 **Scenario:** ND-500 process running database query, needs SQL command from user
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 sequenceDiagram
     participant U as User
     participant T as Terminal
     participant K as SINTRAN
     participant M as 5MPM
     participant DB as ND-500<br/>Database Process
-    
+
     DB->>DB: Need SQL query
     DB->>M: Write DVINST message:<br/>func=2, term_df, buf, 256 bytes
     DB->>M: Set 5ITMQUEUE
     DB->>K: Interrupt
     DB->>DB: Block waiting
-    
+
     K->>M: Read message
     K->>T: Check terminal buffer
     T-->>K: Empty
-    
+
     T->>U: Display prompt (previous DVIO)
     U->>T: Types "SELECT * FROM customers"
     U->>T: Press ENTER
-    
+
     T->>T: Store in terminal buffer
     T->>K: Signal data available
-    
+
     loop Character by character
         K->>T: IOTRANS (read 1 char)
         T-->>K: Character
         K->>M: Write to 5MPM buffer
     end
-    
+
     K->>M: Update message:<br/>ByteCount=27<br/>ErrorCode=0
     K->>DB: Interrupt
-    
+
     DB->>M: Read message
     DB->>M: Read "SELECT * FROM customers"
     DB->>DB: Parse SQL
     DB->>DB: Execute query
-    
+
     DB->>M: Write result to 5MPM buffer
     DB->>M: Write DVIO message (output)
     DB->>K: Interrupt
-    
+
     K->>M: Read output data
     K->>T: Write to terminal
     T->>U: Display results
@@ -531,11 +541,4 @@ N5RST:  % Restart ND-500 process
    % Update message with final byte count
    % Send interrupt to ND-500
 ```
-
----
-
-*Continue to Part 2 for C# implementation and advanced topics...*
-
-**Should I continue with the C# implementation and file I/O examples?**
-
 

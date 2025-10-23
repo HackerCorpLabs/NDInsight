@@ -49,7 +49,7 @@ s to/from disk
 │  Monitor Level (Level 3)                                │
 │  - MTRANS: Initiate transfer                            │
 │  - STRNS: Start disk driver                             │
-│  - Queue management                                      │
+│  - Queue management                                     │
 └──────────────────────┬──────────────────────────────────┘
                        │ Activate Level 11
 ┌──────────────────────▼──────────────────────────────────┐
@@ -167,36 +167,36 @@ INTEGER ARRAY SCDIS:=(SCDI1,2210,SCSWD,SCSWD,144300);  % SCSI
 ┌──────────────────────────────────────┐
 │  MTRANS (Monitor Transfer)           │
 │  - Entry point from monitor level    │
-│  - Validates parameters               │
-│  - Calls STRNS                        │
+│  - Validates parameters              │
+│  - Calls STRNS                       │
 └─────────────────┬────────────────────┘
                   │
 ┌─────────────────▼────────────────────┐
-│  STRNS (Start Transfer)               │
-│  - Allocates queue element            │
-│  - Sets up DMA parameters             │
-│  - Activates Level 11                 │
+│  STRNS (Start Transfer)              │
+│  - Allocates queue element           │
+│  - Sets up DMA parameters            │
+│  - Activates Level 11                │
 └─────────────────┬────────────────────┘
                   │
 ┌─────────────────▼────────────────────┐
 │  Level 11: CTRDISK / CTRSCSI         │
-│  - Controller-specific logic          │
-│  - Issues hardware commands           │
-│  - Handles interrupts                 │
+│  - Controller-specific logic         │
+│  - Issues hardware commands          │
+│  - Handles interrupts                │
 └─────────────────┬────────────────────┘
                   │
 ┌─────────────────▼────────────────────┐
-│  Hardware Controller                  │
-│  - Executes DMA transfer              │
-│  - Generates completion interrupt     │
+│  Hardware Controller                 │
+│  - Executes DMA transfer             │
+│  - Generates completion interrupt    │
 └─────────────────┬────────────────────┘
                   │
 ┌─────────────────▼────────────────────┐
-│  STRETRANS (Transfer Complete)        │
-│  - Processes completion status        │
-│  - Wakes waiting program              │
-│  - Returns to monitor level           │
-└───────────────────────────────────────┘
+│  STRETRANS (Transfer Complete)       │
+│  - Processes completion status       │
+│  - Wakes waiting program             │
+│  - Returns to monitor level          │
+└──────────────────────────────────────┘
 ```
 
 ### 3.2 Datafield Structure

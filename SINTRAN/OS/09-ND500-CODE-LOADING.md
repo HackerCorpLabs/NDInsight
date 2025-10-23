@@ -26,14 +26,13 @@
 ## 1. Overview
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 flowchart TB
     subgraph COMP ["1. Compilation (ND-100 or ND-500)"]
         A1[Source Code<br/>.FTN, .PAS, etc.]
         A2[Compiler<br/>FORTRAN-500, etc.]
         A3[Relocatable Module<br/>.NRF file]
     end
-    
+
     subgraph LOAD ["2. Loading (ND-500 Linkage-Loader)"]
         B1[Create Domain]
         B2[Load Segments]
@@ -41,14 +40,14 @@ flowchart TB
         B4[Create Files<br/>:PSEG, :DSEG, :LINK]
         B5[Update DESCRIPTION-FILE:DESC]
     end
-    
+
     subgraph PLACE ["3. PLACE-DOMAIN (ND-100 Monitor)"]
         C1[Read domain from<br/>DESCRIPTION-FILE]
         C2[Map logical segments<br/>to physical segments]
         C3[Initialize registers<br/>PC, OTE, CTE, etc.]
         C4[Set up page tables<br/>PSEG→file, DSEG→file+swap]
     end
-    
+
     subgraph EXEC ["4. Execution"]
         D1[ND-500 starts at PC]
         D2[Page faults trigger<br/>on-demand loading]
@@ -56,16 +55,16 @@ flowchart TB
         D4[ND-100 loads pages<br/>into ND-500 memory]
         D5[Modified pages go to<br/>swap file]
     end
-    
+
     A1 --> A2 --> A3 --> B1
     B1 --> B2 --> B3 --> B4 --> B5
     B5 --> C1 --> C2 --> C3 --> C4
     C4 --> D1 --> D2 --> D3 --> D4 --> D5
     D5 -.-> D2
-    
-    style C2 fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style C4 fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style D3 fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+
+    style C2 fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#000
+    style C4 fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style D3 fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
 ```
 
 ---
@@ -118,14 +117,13 @@ NLL: EXIT
 ### 3.2 What the Loader Does
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 flowchart LR
     subgraph INPUT ["Input Files"]
         I1[MODULE1.NRF]
         I2[MODULE2.NRF]
         I3[LIBRARY.NRF]
     end
-    
+
     subgraph LOADER ["Linkage-Loader Process"]
         L1[Parse NRF modules]
         L2[Build symbol table]
@@ -133,14 +131,14 @@ flowchart LR
         L4[Relocate addresses]
         L5[Separate code/data]
     end
-    
+
     subgraph OUTPUT ["Output Files"]
         O1[PSEG-name:PSEG<br/>Program segment]
         O2[DSEG-name:DSEG<br/>Data segment]
         O3[LINK-name:LINK<br/>Symbol/debug info]
         O4[DESCRIPTION-FILE:DESC<br/>Domain metadata]
     end
-    
+
     I1 --> L1
     I2 --> L1
     I3 --> L1
@@ -149,9 +147,9 @@ flowchart LR
     L5 --> O2
     L5 --> O3
     L5 --> O4
-    
-    style L3 fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style L4 fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+
+    style L3 fill:#3F51B5,stroke:#283593,stroke-width:2px,color:#fff
+    style L4 fill:#E91E63,stroke:#AD1457,stroke-width:2px,color:#fff
 ```
 
 ### 3.3 Loader Operations in Detail
@@ -264,32 +262,28 @@ NLL: EXIT
 ### 5.2 Step-by-Step PLACE-DOMAIN Process
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 sequenceDiagram
     participant User
     participant Monitor as ND-100 Monitor
     participant DescFile as DESCRIPTION-FILE:DESC
     participant ND500 as ND-500 CPU
     participant MMU as ND-500 MMU
-    
+
     User->>Monitor: PLACE-DOMAIN MY-DOMAIN
     Monitor->>DescFile: Open and read
     DescFile-->>Monitor: Domain entry (segments, start addr)
-    
+
     Note over Monitor: For each segment in domain:
     Monitor->>Monitor: Allocate physical segment number
     Monitor->>MMU: Create page table entries
     Note over MMU: PSEG pages → :PSEG file<br/>DSEG pages → :DSEG file (initially)
-    
+
     Monitor->>ND500: Set PC = start address
     Monitor->>ND500: Set OTE (Own Trap Enable)
     Monitor->>ND500: Set trap handler addresses
     Monitor->>Monitor: Allocate swap space for modified pages
-    
+
     Monitor-->>User: Domain placed, ready to GO
-    
-    style Monitor fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style MMU fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
 ```
 
 ### 5.3 Memory Mapping Details
@@ -326,39 +320,35 @@ Swap File:
 ### 6.1 Demand Paging - How It Works
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 sequenceDiagram
     participant ND500 as ND-500 CPU
     participant MMU as ND-500 MMU
     participant Monitor as ND-100 Monitor
     participant Disk as ND-100 Disk
     participant Mem as ND-500 Memory
-    
+
     Note over ND500: Executing, accesses address 0x10234
     ND500->>MMU: Translate address
     MMU->>MMU: Check page table<br/>Page 1 not in memory!
     MMU->>Monitor: PAGE FAULT TRAP
-    
+
     Note over Monitor: Page fault handler activated
     Monitor->>Monitor: Find which file/sector
     Note over Monitor: Page 1 → :PSEG, sector 8
-    
+
     Monitor->>Disk: Read sector 8-15
     Disk-->>Monitor: 4KB page data
     Monitor->>Mem: Find free physical page
     Monitor->>Mem: Copy data to physical page
     Monitor->>MMU: Update page table<br/>Logical page 1 → Physical page 27
     Monitor->>MMU: Set "present" bit
-    
+
     Monitor-->>ND500: Resume execution
     ND500->>MMU: Retry translation
     MMU->>MMU: Page 1 → Phys 27, present!
     MMU-->>ND500: Physical address 0x1B234
     ND500->>Mem: Read from 0x1B234
     Note over ND500: Execution continues
-    
-    style Monitor fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style MMU fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
 ```
 
 ### 6.2 Modified Pages and Swap File
@@ -425,7 +415,6 @@ N500: MY-DOMAIN
 ### 7.2 What Happens at Execution Start
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 flowchart TB
     A[User types domain name]
     B{Domain search}
@@ -440,15 +429,15 @@ flowchart TB
     H[Page fault on first instruction]
     I[Monitor loads first code page]
     J[ND-500 continues]
-    
+
     A --> B
     B --> C1 --> C2 --> C3 --> C4
     C4 --> D --> E --> F --> G
     G --> H --> I --> J
-    
-    style D fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style H fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style I fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+
+    style D fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style H fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
+    style I fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
 ```
 
 ### 7.3 First Instructions Executed

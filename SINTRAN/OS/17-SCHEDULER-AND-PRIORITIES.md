@@ -50,7 +50,7 @@ The **SINTRAN Scheduler** is a **priority-based preemptive scheduler** with time
 │  Queue Management                        │
 │  - RTENTRY: Add to execution queue       │
 │  - FREXQU: Remove from execution queue   │
-│  - TOWQU: Add to waiting queue          │
+│  - TOWQU: Add to waiting queue           │
 │  - FWQU: Remove from waiting queue       │
 └──────────────────┬───────────────────────┘
                    │
@@ -250,16 +250,16 @@ From Chapter 02 (Queue Structures):
 Execution Queue (BEXEQU):
 ┌──────────────────────────────────┐
 │ Head → RT-Desc (Priority 225)    │
-│         ↓                         │
+│         ↓                        │
 │        RT-Desc (Priority 200)    │
-│         ↓                         │
+│         ↓                        │
 │        RT-Desc (Priority 150)    │
-│         ↓                         │
+│         ↓                        │
 │        RT-Desc (Priority 100)    │
-│         ↓                         │
+│         ↓                        │
 │        RT-Desc (Priority 50)     │
-│         ↓                         │
-│        NULL (-1)                  │
+│         ↓                        │
+│        NULL (-1)                 │
 └──────────────────────────────────┘
 ```
 

@@ -9,43 +9,44 @@
 ### 4.1 Interrupt Architecture Overview
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 flowchart LR
-    subgraph ND100INT ["ND-100 Interrupt System"]
+    subgraph ND100INT [ND100 Interrupt System]
         direction TB
-        INT12[Level 12 Handler<br/>ND-500 Events]
+        INT12[Level 12 Handler for ND500 Events]
         KERNEL[SINTRAN Kernel]
         RT[RT Programs]
     end
-    
-    subgraph INTERFACE ["ND-500 Interface Card"]
+
+    subgraph INTERFACE [ND500 Interface Card]
         direction TB
-        TAG[TAG Registers<br/>LTAG5/RTAG5]
-        CTRL[Control Registers<br/>LCON5/RCON5]
-        STAT[Status Register<br/>RSTA5]
-        MAR[MAR Register<br/>LMAR5]
+        TAG[TAG Registers LTAG5 RTAG5]
+        CTRL[Control Registers LCON5 RCON5]
+        STAT[Status Register RSTA5]
+        MAR[MAR Register LMAR5]
     end
-    
-    subgraph ND500INT ["ND-500 Interrupt System"]
+
+    subgraph ND500INT [ND500 Interrupt System]
         direction TB
         MICRO[Microcode Engine]
-        PROC[ND-500 Processes]
+        PROC[ND500 Processes]
     end
-    
-    RT -->|1. MON DVIO| KERNEL
-    KERNEL -->|2. Write 5MPM| 5MPM
-    KERNEL -->|3. LTAG5/LCON5| TAG
-    TAG -.4. Hardware Int.-> MICRO
-    MICRO -->|5. Read 5MPM| 5MPM
-    MICRO -->|6. Process| PROC
-    PROC -->|7. Write 5MPM| 5MPM
-    MICRO -.8. Hardware Int.-> INT12
-    INT12 -->|9. Read 5MPM| 5MPM
-    INT12 -->|10. Resume| RT
-    
-    style 5MPM fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style TAG fill:#024959,stroke:#F24C3D,stroke-width:2px,color:#F2C777
-    style INT12 fill:#024959,stroke:#F24C3D,stroke-width:2px,color:#F2C777
+
+    MPM[5MPM Shared Memory]
+
+    RT -->|"1 MON DVIO"| KERNEL
+    KERNEL -->|"2 Write 5MPM"| MPM
+    KERNEL -->|"3 LTAG5 LCON5"| TAG
+    TAG -.->|"4 Hardware Int"| MICRO
+    MICRO -->|"5 Read 5MPM"| MPM
+    MICRO -->|"6 Process"| PROC
+    PROC -->|"7 Write 5MPM"| MPM
+    MICRO -.->|"8 Hardware Int"| INT12
+    INT12 -->|"9 Read 5MPM"| MPM
+    INT12 -->|"10 Resume"| RT
+
+    style MPM fill:#009688,stroke:#00695C,stroke-width:3px,color:#fff
+    style TAG fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style INT12 fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
 ```
 
 ### 4.2 ND-100 → ND-500 Interrupt (Activation)
@@ -123,34 +124,30 @@ L12HANDLER:
 ### 4.4 Complete Interrupt Flow Diagram
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 sequenceDiagram
     autonumber
-    participant RT as RT Program<br/>(ND-100)
+    participant RT as RT Program ND100
     participant K as SINTRAN Kernel
     participant MPM as 5MPM
-    participant HW as ND-500 Interface
-    participant MC as ND-500 Microcode
-    participant P as ND-500 Process
+    participant HW as ND500 Interface
+    participant MC as ND500 Microcode
+    participant P as ND500 Process
     participant L12 as Level 12 Handler
-    
-    rect rgb(36, 73, 89)
-    note over RT,K: ND-100 → ND-500 Direction
+
+    note over RT,K: ND100 to ND500 Direction
     RT->>K: MON DVIO
     K->>MPM: Allocate message buffer
-    K->>MPM: Write message<br/>(function, addresses, data)
+    K->>MPM: Write message (function addresses data)
     K->>MPM: Set 5ITMQUEUE flag
     K->>HW: LMAR5 = buffer address
     K->>HW: LCON5 = 5 (activate)
     HW-->>MC: Hardware Interrupt
     MC->>HW: Read MAR
     MC->>MPM: Read message at MAR address
-    MC->>P: Dispatch to ND-500 process
-    end
-    
-    rect rgb(166, 47, 3)
-    note over P,L12: ND-500 → ND-100 Direction
-    P->>P: Process request<br/>(graphics, DB, compute)
+    MC->>P: Dispatch to ND500 process
+
+    note over P,L12: ND500 to ND100 Direction
+    P->>P: Process request (graphics DB compute)
     P->>MPM: Write result to message
     P->>MPM: Clear 5ITMQUEUE flag
     MC->>HW: Trigger completion interrupt
@@ -159,7 +156,6 @@ sequenceDiagram
     L12->>MPM: Read message buffer
     L12->>K: Process result
     K->>RT: Resume RT program
-    end
 ```
 
 ### 4.5 Interrupt Priority and Handling
@@ -181,7 +177,6 @@ sequenceDiagram
 ### 5.1 Complete Message Lifecycle
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 stateDiagram-v2
     [*] --> Allocated: Kernel allocates buffer
     Allocated --> Filled: Write function, addresses
@@ -192,22 +187,22 @@ stateDiagram-v2
     Completed --> Retrieved: ND-100 Level 12 reads
     Retrieved --> Released: Free buffer
     Released --> [*]
-    
+
     Processing --> Error: ND-500 error
     Error --> Retrieved
-    
+
     note right of Queued
         Message in 5MPM
         Visible to both CPUs
     end note
-    
+
     note right of Processing
         ND-500 executing
         May take milliseconds
     end note
-    
-    style Queued fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style Processing fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+
+    classDef activeState fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#000
+    class Queued,Processing activeState
 ```
 
 ### 5.2 Message States and Flags

@@ -24,41 +24,40 @@
 ### 1.1 The Core Mechanism
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 flowchart TB
-    subgraph PREP ["1. Message Preparation (ND-100 or ND-500)"]
-        A1[Allocate message buffer<br/>in 5MPM]
-        A2[Fill message fields<br/>in 5MPM]
-        A3[Set 5ITMQUEUE flag<br/>in 5MPM]
+    subgraph PREP [1 Message Preparation ND100 or ND500]
+        A1[Allocate message buffer in 5MPM]
+        A2[Fill message fields in 5MPM]
+        A3[Set 5ITMQUEUE flag in 5MPM]
     end
-    
-    subgraph TRIG ["2. Trigger (Hardware)"]
-        B1[Write to LMAR5 register<br/>IOX write]
-        B2[Write to LCON5 register<br/>IOX write]
-        B3[Hardware interrupt<br/>generated]
+
+    subgraph TRIG [2 Trigger Hardware]
+        B1[Write to LMAR5 register IOX write]
+        B2[Write to LCON5 register IOX write]
+        B3[Hardware interrupt generated]
     end
-    
-    subgraph PROC ["3. Processing (Receiving CPU)"]
-        C1[Interrupt handler<br/>activated]
-        C2[Read message from 5MPM<br/>using address from MAR]
-        C3[Process request<br/>call appropriate routine]
-        C4[Write result to 5MPM<br/>update message buffer]
+
+    subgraph PROC [3 Processing Receiving CPU]
+        C1[Interrupt handler activated]
+        C2[Read message from 5MPM using address from MAR]
+        C3[Process request call appropriate routine]
+        C4[Write result to 5MPM update message buffer]
     end
-    
-    subgraph RESP ["4. Response (Hardware)"]
-        D1[Clear 5ITMQUEUE flag<br/>in 5MPM]
-        D2[Write result/error code<br/>to message]
-        D3[Trigger return interrupt<br/>hardware]
-        D4[Resume waiting process<br/>on originating CPU]
+
+    subgraph RESP [4 Response Hardware]
+        D1[Clear 5ITMQUEUE flag in 5MPM]
+        D2[Write result error code to message]
+        D3[Trigger return interrupt hardware]
+        D4[Resume waiting process on originating CPU]
     end
-    
+
     A1 --> A2 --> A3 --> B1 --> B2 --> B3
     B3 --> C1 --> C2 --> C3 --> C4
     C4 --> D1 --> D2 --> D3 --> D4
-    
-    style A2 fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style C2 fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style C4 fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+
+    style A2 fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style C2 fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style C4 fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
 ```
 
 ---
@@ -332,36 +331,36 @@ Same as steps 8-10 above: update message, trigger ND-500, resume process.
 
 ### 4.1 The ND-500 Interface Card (3022/5015)
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │ ND-500 Interface Card Hardware                              │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  MAR (Memory Address Register) - 16 bits                   │
-│  ├─ Holds message buffer address in 5MPM                   │
-│  ├─ Written by: IOX write to HDEV+LMAR5                    │
-│  └─ Read by: Opposite CPU when interrupt occurs            │
+│  MAR (Memory Address Register) - 16 bits                    │
+│  ├─ Holds message buffer address in 5MPM                    │
+│  ├─ Written by: IOX write to HDEV+LMAR5                     │
+│  └─ Read by: Opposite CPU when interrupt occurs             │
 │                                                             │
-│  Control Register - 16 bits                                │
-│  ├─ Command codes written here                             │
-│  ├─ Value 5 = Activate                                     │
-│  ├─ Value 10 = Enable interrupt                            │
-│  └─ Written by: IOX write to HDEV+LCON5                    │
+│  Control Register - 16 bits                                 │
+│  ├─ Command codes written here                              │
+│  ├─ Value 5 = Activate                                      │
+│  ├─ Value 10 = Enable interrupt                             │
+│  └─ Written by: IOX write to HDEV+LCON5                     │
 │                                                             │
-│  Status Register - 16 bits                                 │
-│  ├─ Read by: IOX read from HDEV+RSTA5                      │
-│  ├─ Bit flags: 5CLOST, 5ILOCK, 5INTPEND, etc.             │
-│  └─ Checked to see if ND-500 is stopped/busy              │
+│  Status Register - 16 bits                                  │
+│  ├─ Read by: IOX read from HDEV+RSTA5                       │
+│  ├─ Bit flags: 5CLOST, 5ILOCK, 5INTPEND, etc.               │
+│  └─ Checked to see if ND-500 is stopped/busy                │
 │                                                             │
-│  TAG Registers - 16 bits each                              │
-│  ├─ LTAG5 (write) - Tag output                            │
-│  ├─ RTAG5 (read) - Tag input                              │
-│  └─ Used for additional control signaling                  │
+│  TAG Registers - 16 bits each                               │
+│  ├─ LTAG5 (write) - Tag output                              │
+│  ├─ RTAG5 (read) - Tag input                                │
+│  └─ Used for additional control signaling                   │
 │                                                             │
-│  Interrupt Logic                                           │
-│  ├─ Generates Level 12 interrupt to ND-100                │
-│  ├─ Generates interrupt to ND-500 (internal)              │
-│  └─ Hardware arbitration for simultaneous access           │
+│  Interrupt Logic                                            │
+│  ├─ Generates Level 12 interrupt to ND-100                  │
+│  ├─ Generates interrupt to ND-500 (internal)                │
+│  └─ Hardware arbitration for simultaneous access            │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -573,11 +572,4 @@ public class ND500MessageData
     }
 }
 ```
-
----
-
-**Continue to Part 2 with complete DVIO example and C# simulator...**
-
-*Should I continue with a working C# example that simulates the complete message passing?*
-
 

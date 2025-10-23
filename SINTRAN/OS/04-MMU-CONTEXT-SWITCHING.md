@@ -90,22 +90,21 @@ Where:
 ### 3.1 High-Level Context Switch Flow
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6','noteTextColor':'#024959','noteBkgColor':'#F2E8C6','textColor':'#024959','fontSize':'16px'}}}%%
 flowchart TD
-    A[Program A<br/>Running] -->|Timer interrupt<br/>or I/O wait| B[Save A's<br/>registers]
-    B --> C[Save A's<br/>CPU state to<br/>A's RT-Description]
-    C --> D[Scheduler<br/>selects<br/>Program B]
-    D --> E[Load B's<br/>RT-Description<br/>address into X]
-    E --> F[Load B's ACTPRI<br/>into A register]
-    F --> G[Execute<br/>*TRR PCR]
-    G --> H[MMU now uses<br/>B's page tables]
-    H --> I[Restore B's<br/>registers from<br/>RT-Description]
-    I --> J[Program B<br/>Running]
-    
-    style A fill:#024959,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style J fill:#024959,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style G fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style H fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+    A[Program A Running] -->|Timer interrupt or IO wait| B[Save A registers]
+    B --> C[Save A CPU state to A RT Description]
+    C --> D[Scheduler selects Program B]
+    D --> E[Load B RT Description address into X]
+    E --> F[Load B ACTPRI into A register]
+    F --> G[Execute TRR PCR]
+    G --> H[MMU now uses B page tables]
+    H --> I[Restore B registers from RT Description]
+    I --> J[Program B Running]
+
+    style A fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style J fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style G fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
+    style H fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
 ```
 
 ### 3.2 Detailed NPL Code Example
@@ -337,33 +336,32 @@ A:=L; *AAX LRET; STATX                    % Address to return to
 ### 7.1 Decision Tree for PIT Selection
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6','noteTextColor':'#024959','noteBkgColor':'#F2E8C6','textColor':'#024959','fontSize':'14px'}}}%%
 flowchart TD
-    A[Need to select PIT<br/>for program] --> B{Program type?}
-    B -->|RT Program| C[Use RPIT<br/>PIT 1]
-    B -->|Background| D[Use MPIT<br/>PIT 2]
-    B -->|ND-500 Program| E[Use 5PIT<br/>Special]
-    B -->|System/Driver| F[Use MPIT or IPIT<br/>PIT 2 or 3]
-    
-    C --> G{Need special<br/>access?}
+    A[Need to select PIT for program] --> B{Program type?}
+    B -->|RT Program| C[Use RPIT PIT 1]
+    B -->|Background| D[Use MPIT PIT 2]
+    B -->|ND500 Program| E[Use 5PIT Special]
+    B -->|System Driver| F[Use MPIT or IPIT PIT 2 or 3]
+
+    C --> G{Need special access?}
     D --> G
     E --> G
     F --> G
-    
-    G -->|No| H[Use normal PIT<br/>as NPIT in PCR]
-    G -->|Yes| I[Use special PIT<br/>as APIT in PCR]
-    
+
+    G -->|No| H[Use normal PIT as NPIT in PCR]
+    G -->|Yes| I[Use special PIT as APIT in PCR]
+
     H --> J[Build ACTPRI value]
     I --> J
-    
-    J --> K[Store in<br/>RT-Description<br/>ACTPRI field]
-    K --> L[On activation:<br/>Load ACTPRI to PCR]
-    
-    style C fill:#024959,stroke:#F24C3D,stroke-width:2px,color:#F2C777
-    style D fill:#024959,stroke:#F24C3D,stroke-width:2px,color:#F2C777
-    style E fill:#024959,stroke:#F24C3D,stroke-width:2px,color:#F2C777
-    style F fill:#024959,stroke:#F24C3D,stroke-width:2px,color:#F2C777
-    style L fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+
+    J --> K[Store in RT Description ACTPRI field]
+    K --> L[On activation Load ACTPRI to PCR]
+
+    style C fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style D fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style E fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style F fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style L fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
 ```
 
 ### 7.2 PIT Assignment Rules

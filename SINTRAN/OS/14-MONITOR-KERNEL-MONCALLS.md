@@ -70,21 +70,21 @@ Return to User Program (Ring 1, Level 1)
 
 ```
 ┌─────────────────────────────────────────┐
-│  User Programs (Ring 1, Level 1)       │
+│  User Programs (Ring 1, Level 1)        │
 │  - RT programs                          │
 │  - Background programs                  │
 │  - ND-500 programs (via proxy)          │
 └──────────────────┬──────────────────────┘
                    │ MON instruction
 ┌──────────────────▼──────────────────────┐
-│  INT 14 Handler (Ring 2, Level 14)     │
+│  INT 14 Handler (Ring 2, Level 14)      │
 │  - Decode MON call number               │
 │  - Validate parameters                  │
 │  - Dispatch via GOTAB                   │
 └──────────────────┬──────────────────────┘
                    │ JMP GOTAB[n]
 ┌──────────────────▼──────────────────────┐
-│  Monitor Call Handlers (Ring 2/3)      │
+│  Monitor Call Handlers (Ring 2/3)       │
 │  - File system (RP-P2-1.NPL)            │
 │  - Memory management (RP-P2-SEGADM.NPL) │
 │  - Device drivers (various)             │
@@ -99,14 +99,79 @@ Return to User Program (Ring 1, Level 1)
 └─────────────────────────────────────────┘
 ```
 
-### 2.2 Ring Protection
+### 2.2 Ring Protection System
 
 | Ring | Privilege Level | Usage |
 |------|----------------|-------|
-| **0** | Most Privileged | Unused in SINTRAN III |
-| **1** | User Programs | RT programs, background programs |
-| **2** | Kernel | Monitor call handlers, drivers |
+| **0** | Least Privileged | Timesharing users |
+| **1** | User Programs | RT programs, background programs, Compilers, assemblers, data bases |
+| **2** | Kernel | Monitor call handlers, drivers, File system, I/O system, monitor |
 | **3** | Monitor Level | Core kernel, scheduler |
+
+
+The ring protection system is a combined privileged instruction and memory protection system, where the 64K virtual address space is divided into four different rings. Two bits (9 and 10) in each protect entry are used to specify which ring the page belongs to.
+
+The privileges of the four rings are defined by the paging control register bits 0–1:
+
+| PCR bits | Ring   | Description                                                                                                                                                               |
+| -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0 0      | Ring 0 | Programs executed from this ring may not execute privileged instructions. They may only access locations in ring 0. Locations outside ring 0 are completely inaccessible. |
+| 0 1      | Ring 1 | Programs executed from this ring may not execute privileged instructions. They may access locations in ring 1 and ring 0.                                                 |
+| 1 0      | Ring 2 | All instructions are permitted on this ring. Programs executed from this ring may access locations in program 2, 1 and 0.                                                 |
+| 1 1      | Ring 3 | All instructions are permitted and the whole address space, including the page tables, is accessible if not otherwise protected by the RPM, WPM and FPM bits.             |
+
+
+The rings limit the privileges of a program and thereby its user.
+
+Ring 3 programs have no limitations imposed on them by the ring system (but may still be limited by the paging system). Only trusted programs can be allowed to operate in ring 3. The SINTRAN III monitor kernel operates in ring 3.
+
+At the other level, ring 0 programs have access only to areas in ring 0. User programs are operated in ring 0. When they need to access areas outside their ring, they must use monitor calls to the operating system.
+This forces all such accesses through the operating system which thereby can maintain system integrity.
+
+An illegal ring access or illegal use of privileged instructions will cause an internal interrupt on level 14, and the forbidden action will be avoided.
+
+
+
+#### Ring Assignment
+If a program in ring 3 executes instructions assigned to rings 0, 1, or 2, its ring number is reduced accordingly.
+Such accesses are detected by hardware which automatically changes the ring number in the PCR register for the current program level.
+
+**Note** This degrading only occurs when lower ring instruction codes are executed, but not when data is accessed.
+
+
+The recommended way of using the rings is:
+
+```text
+┌───────────────────────────────────┐
+|           Ring 0                  |
+|                                   |
+|      timesharing users            |
+|                                   |
+|  ┌──────────────────────────────┐ |
+|  │         Ring 1               | |
+|  |                              | |
+|  |   RT COMMON                  | |
+|  |   Compilers, editors, etc.   | |
+|  |   Databases                  | |
+|  |   Remote jobs                | |
+|  │                              | |
+|  │  ┌─────────────────────────┐ │ |
+|  │  │      Ring 2             │ │ |
+|  │  │                         | | |
+|  |  |    I/O System           | | |
+|  |  |    File System          │ │ │
+|  |  |    Rest of monitor      | | |
+|  |  |                         | | |
+|  │  │ ┌─────────────────────┐ │ │ |
+|  │  │ │    Ring 3           │ │ │ |
+|  │  │ │                     | | | |
+|  │  │ │    kernel           │ │ │ |
+|  │  │ └─────────────────────┘ │ │ |
+|  │  └─────────────────────────┘ │ |
+|  └──────────────────────────────┘ |
+└───────────────────────────────────┘
+```
+
 
 **Protection enforcement:**
 - Ring 1 programs **cannot** access Ring 2/3 data directly

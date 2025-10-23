@@ -29,42 +29,41 @@
 **ND-500 programs** are **NOT standard SINTRAN RT programs**. They are **shadow processes** that run on the ND-500 CPU(s), controlled and coordinated by the ND-100 SINTRAN kernel.
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 flowchart TB
-    subgraph ND100 ["ND-100 (SINTRAN Kernel)"]
-        RT[RT Programs<br/>Real-Time Programs<br/>Run on ND-100 CPU]
-        BG[Background Programs<br/>Time-Sharing<br/>Run on ND-100 CPU]
-        KERNEL[SINTRAN Kernel<br/>Manages All Programs]
+    subgraph ND100 [ND100 SINTRAN Kernel]
+        RT[RT Programs RealTime Run on ND100 CPU]
+        BG[Background Programs TimeSharing Run on ND100 CPU]
+        KERNEL[SINTRAN Kernel Manages All Programs]
     end
-    
-    subgraph ND500 ["ND-500 CPU(s)"]
-        P1[ND-500 Process 1<br/>Graphics/DB/etc.]
-        P2[ND-500 Process 2<br/>Application Logic]
-        P3[ND-500 Process N<br/>Computation]
+
+    subgraph ND500 [ND500 CPUs]
+        P1[ND500 Process 1 Graphics DB etc]
+        P2[ND500 Process 2 Application Logic]
+        P3[ND500 Process N Computation]
     end
-    
-    subgraph MPM ["Multiport Memory (5MPM)"]
+
+    subgraph MPM [Multiport Memory 5MPM]
         MSG[Message Buffers]
         DESC[Process Descriptors]
     end
-    
+
     KERNEL -->|Manages| RT
     KERNEL -->|Manages| BG
     KERNEL -->|Controls via Messages| P1
     KERNEL -->|Controls via Messages| P2
     KERNEL -->|Controls via Messages| P3
-    
-    RT -->|Send/Receive| MSG
-    P1 -->|Read/Write| MSG
-    P2 -->|Read/Write| MSG
-    P3 -->|Read/Write| MSG
-    
+
+    RT -->|"Send Receive"| MSG
+    P1 -->|"Read Write"| MSG
+    P2 -->|"Read Write"| MSG
+    P3 -->|"Read Write"| MSG
+
     KERNEL -->|Updates| DESC
-    
-    style P1 fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style P2 fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style P3 fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style MSG fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
+
+    style P1 fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style P2 fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style P3 fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style MSG fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
 ```
 
 ### 1.2 Key Concept: Shadow Processes
@@ -300,7 +299,6 @@ public struct ND500MessageBuffer
 ### 4.1 ND-500 Program Lifecycle
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 stateDiagram-v2
     [*] --> Created: Load ND-500 Code
     Created --> Initialized: Initialize Process Descriptor
@@ -387,25 +385,24 @@ TER500:
 ### 5.1 Message Passing Flow
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 sequenceDiagram
-    participant RT as RT Program<br/>(ND-100)
+    participant RT as RT Program(ND-100)
     participant Kernel as SINTRAN Kernel
-    participant MPM as 5MPM<br/>(Message Buffer)
+    participant MPM as 5MPM(Message Buffer)
     participant Proc as ND-500 Process
     
     RT->>Kernel: MON call (DVIO)
     Note over Kernel: Find ND-500 datafield
     Kernel->>Kernel: Allocate/Get message buffer
-    Kernel->>MPM: Write message<br/>(Function, addresses, data)
+    Kernel->>MPM: Write message(Function, addresses, data)
     Kernel->>Kernel: CNVWADR (address translation)
     Kernel->>MPM: Set 5ITMQUEUE flag
-    Kernel->>Proc: Interrupt ND-500<br/>(via LTAG5)
+    Kernel->>Proc: Interrupt ND-500(via LTAG5)
     
     Proc->>MPM: Read message
-    Note over Proc: Process request<br/>(Graphics, DB, etc.)
-    Proc->>MPM: Write response<br/>(Status, data)
-    Proc->>Kernel: Interrupt ND-100<br/>(Level 12)
+    Note over Proc: Process request(Graphics, DB, etc.)
+    Proc->>MPM: Write response(Status, data)
+    Proc->>Kernel: Interrupt ND-100(Level 12)
     
     Kernel->>MPM: Read response
     Kernel->>Kernel: Process result

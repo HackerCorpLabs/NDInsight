@@ -26,7 +26,8 @@ This version has been significantly updated based on the **official MPM5 hardwar
 
 ## Table of Contents
 
-- [Multiport Memory (5MPM) and Complete ND-500 Communication](#multiport-memory-5mpm-and-complete-nd-500-communication)
+- [Multiport Memory (MPM5) and Complete ND-500 Communication](#multiport-memory-mpm5-and-complete-nd-500-communication)
+  - [⚠️ Important Corrections in Version 2.0](#️-important-corrections-in-version-20)
   - [Table of Contents](#table-of-contents)
   - [1. What is Multiport Memory (5MPM)?](#1-what-is-multiport-memory-5mpm)
     - [1.1 Definition](#11-definition)
@@ -56,10 +57,10 @@ This version has been significantly updated based on the **official MPM5 hardwar
 - **Both see the SAME physical memory locations**
 - **No copying required** - changes are immediately visible to both CPUs
 
-```
+```text
 Regular Memory:           Multiport Memory (5MPM):
 ┌──────────────┐          ┌──────────────────────────┐
-│  ND-100      │          │  ND-100       ND-500    │
+│  ND-100      │          │  ND-100       ND-500     │
 │  Memory      │          │    │            │        │
 │              │          │    └────────────┘        │
 │  (private)   │          │         │                │
@@ -123,20 +124,20 @@ ND-500:
 
 ### 1.4 Physical Implementation
 
-```
+```text
 Hardware Level:
 ┌─────────────────────────────────────────────────────────┐
 │         Multiport Memory Hardware Board                 │
-│  ┌────────────────────────────────────────────────┐    │
-│  │  RAM Chips with Dual Port Controllers          │    │
-│  │  - Arbitration logic                            │    │
-│  │  - Address decoding                             │    │
-│  │  - Data buffering                               │    │
-│  └────────────────────────────────────────────────┘    │
-│           │                            │                 │
-│       ┌───┴───┐                    ┌───┴───┐           │
-│       │ Port A│                    │ Port B│           │
-│       └───┬───┘                    └───┬───┘           │
+│  ┌────────────────────────────────────────────────┐     │
+│  │  RAM Chips with Dual Port Controllers          │     │
+│  │  - Arbitration logic                           │     │
+│  │  - Address decoding                            │     │
+│  │  - Data buffering                              │     │
+│  └────────────────────────────────────────────────┘     │
+│           │                            │                │
+│       ┌───┴───┐                    ┌───┴───┐            │
+│       │ Port A│                    │ Port B│            │
+│       └───┬───┘                    └───┬───┘            │
 └───────────┼────────────────────────────┼────────────────┘
             │                            │
        ┌────┴────┐                  ┌────┴────┐
@@ -181,92 +182,91 @@ Example:
 ### 2.1 Complete System Diagram
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#024959','primaryTextColor':'#F2C777','primaryBorderColor':'#F24C3D','lineColor':'#F24C3D','secondaryColor':'#A62F03','tertiaryColor':'#F2E8C6'}}}%%
 flowchart TB
-    subgraph ND100 ["ND-100 System"]
-        CPU100[ND-100 CPU<br/>16-bit]
-        MMU100[MMU<br/>PITs]
-        MEM100[Local Memory<br/>Private]
+    subgraph ND100 [ND100 System]
+        CPU100[ND100 CPU 16bit]
+        MMU100[MMU PITs]
+        MEM100[Local Memory Private]
         IOX100[IOX Bus]
     end
-    
-    subgraph MPM ["Multiport Memory Hardware (5MPM)"]
+
+    subgraph MPM [Multiport Memory Hardware 5MPM]
         direction TB
         ARBITER[Arbitration Logic]
-        RAM[Dual-Port RAM<br/>256KB - 2MB]
-        PORTA[Port A<br/>ND-100 Side]
-        PORTB[Port B<br/>ND-500 Side]
-        
+        RAM[Dual Port RAM 256KB to 2MB]
+        PORTA[Port A ND100 Side]
+        PORTB[Port B ND500 Side]
+
         ARBITER --> RAM
         RAM --> PORTA
         RAM --> PORTB
     end
-    
-    subgraph ND500 ["ND-500 System"]
-        CPU500[ND-500 CPU<br/>32-bit]
-        MEM500[Local Memory<br/>Private]
+
+    subgraph ND500 [ND500 System]
+        CPU500[ND500 CPU 32bit]
+        MEM500[Local Memory Private]
         MICRO500[Microcode Engine]
     end
-    
-    subgraph INTERFACE ["ND-500 Interface Card (3022/5015)"]
-        REGS[Control Registers<br/>LMAR5, LCON5, etc.]
-        TAG[TAG-IN / TAG-OUT]
+
+    subgraph INTERFACE [ND500 Interface Card 3022 5015]
+        REGS[Control Registers LMAR5 LCON5 etc]
+        TAG[TAG IN TAG OUT]
         STATUS[Status Register]
         INT[Interrupt Logic]
     end
-    
+
     CPU100 --> MMU100
     MMU100 --> MEM100
     CPU100 --> IOX100
     IOX100 --> INTERFACE
     CPU100 --> PORTA
-    
+
     CPU500 --> MICRO500
     MICRO500 --> MEM500
     CPU500 --> PORTB
     CPU500 --> INTERFACE
-    
+
     INTERFACE -.Interrupts.-> CPU100
     INTERFACE -.Interrupts.-> CPU500
-    
-    style MPM fill:#A62F03,stroke:#F24C3D,stroke-width:4px,color:#F2C777
-    style RAM fill:#A62F03,stroke:#F24C3D,stroke-width:3px,color:#F2C777
-    style PORTA fill:#024959,stroke:#F24C3D,stroke-width:2px,color:#F2C777
-    style PORTB fill:#024959,stroke:#F24C3D,stroke-width:2px,color:#F2C777
+
+    style MPM fill:#009688,stroke:#00695C,stroke-width:3px,color:#fff
+    style RAM fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style PORTA fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style PORTB fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
 ```
 
 ### 2.2 Memory Address Spaces
 
-```
+```text
 ┌────────────────────────────────────────────────────────────┐
-│ ND-100 Physical Address Space (24-bit)                    │
+│ ND-100 Physical Address Space (24-bit)                     │
 ├────────────────────────────────────────────────────────────┤
-│ 00000000₈ - 07777777₈  │ Local Memory (4MB)              │
-│ 10000000₈ - 17777777₈  │ Bank 1                          │
-│ 20000000₈ - 27777777₈  │ Bank 2 (typical 5MPM location) ◄┼─┐
-│ 30000000₈ - 37777777₈  │ Bank 3                          │ │
-│ ...                     │                                 │ │
-│ 70000000₈ - 77777777₈  │ Bank 7                          │ │
+│ 00000000₈ - 07777777₈  │ Local Memory (4MB)                │
+│ 10000000₈ - 17777777₈  │ Bank 1                            │
+│ 20000000₈ - 27777777₈  │ Bank 2 (typical 5MPM location)   ◄┼─┐
+│ 30000000₈ - 37777777₈  │ Bank 3                            │ │
+│ ...                     │                                  │ │
+│ 70000000₈ - 77777777₈  │ Bank 7                            │ │
 └────────────────────────────────────────────────────────────┘ │
                                                                │
 ┌────────────────────────────────────────────────────────────┐ │
-│ Multiport Memory (5MPM) - Physical RAM                    │◄┘
+│ Multiport Memory (5MPM) - Physical RAM                     │◄┘
 ├────────────────────────────────────────────────────────────┤
-│ Offset 0     │ ND-500 Process Table (S500S - S500E)      │
-│ Offset +100  │ Message Buffers (per-process)              │
-│ Offset +500  │ ACCP Buffers (communication protocol)      │
-│ Offset +1000 │ OCTOBUS Buffers (network)                  │
-│ Offset +1500 │ HW Buffers (hardware interface)            │
-│ Offset +2000 │ DMA Transfer Buffers (dynamic)             │
-│ Offset +3000 │ System Coordination Structures             │
+│ Offset 0     │ ND-500 Process Table (S500S - S500E)        │
+│ Offset +100  │ Message Buffers (per-process)               │
+│ Offset +500  │ ACCP Buffers (communication protocol)       │
+│ Offset +1000 │ OCTOBUS Buffers (network)                   │
+│ Offset +1500 │ HW Buffers (hardware interface)             │
+│ Offset +2000 │ DMA Transfer Buffers (dynamic)              │
+│ Offset +3000 │ System Coordination Structures              │
 └────────────────────────────────────────────────────────────┘
                                                                │
 ┌────────────────────────────────────────────────────────────┐ │
-│ ND-500 Address Space (32-bit byte addresses)              │◄┘
+│ ND-500 Address Space (32-bit byte addresses)               │◄┘
 ├────────────────────────────────────────────────────────────┤
-│ 0x00000000 - 0x7FFFFFFF │ ND-500 Local Memory            │
-│ 0x80000000 - 0xFFFFFFFF │ Multiport Memory (bit 31 set) │
-│                         │ Offset = (addr & 0x7FFFFFFF)  │
+│ 0x00000000 - 0x7FFFFFFF │ ND-500 Local Memory              │
+│ 0x80000000 - 0xFFFFFFFF │ Multiport Memory (bit 31 set)    │
+│                         │ Offset = (addr & 0x7FFFFFFF)     │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -317,44 +317,44 @@ FI
 ```
 5MPM Memory Map (Typical 1MB configuration):
 ┌──────────────────────────────────────────────────────────┐
-│ Offset    │ Size    │ Content                           │
+│ Offset    │ Size    │ Content                            │
 ├──────────────────────────────────────────────────────────┤
-│ 0x000000  │ ~1KB    │ ND-500 Process Descriptors        │◄─ S500S
-│           │         │ - One per ND-500 process          │
-│           │         │ - Size: 5PRDSIZE words each       │
-│           │         │ - Max: MX5PROCS processes         │
+│ 0x000000  │ ~1KB    │ ND-500 Process Descriptors         │◄─ S500S
+│           │         │ - One per ND-500 process           │
+│           │         │ - Size: 5PRDSIZE words each        │
+│           │         │ - Max: MX5PROCS processes          │
 ├──────────────────────────────────────────────────────────┤
-│ 0x000400  │ ~10KB   │ Message Buffers                   │◄─ Per process
-│           │         │ - Size: 55MESSIZE words each      │
-│           │         │ - Contains function, addresses    │
-│           │         │ - Command/response data           │
+│ 0x000400  │ ~10KB   │ Message Buffers                    │◄─ Per process
+│           │         │ - Size: 55MESSIZE words each       │
+│           │         │ - Contains function, addresses     │
+│           │         │ - Command/response data            │
 ├──────────────────────────────────────────────────────────┤
-│ 0x003000  │ Varies  │ DMA Transfer Buffers              │
-│           │         │ - Allocated dynamically           │
-│           │         │ - Size: GPDZI max (typ. 4KB)     │
+│ 0x003000  │ Varies  │ DMA Transfer Buffers               │
+│           │         │ - Allocated dynamically            │
+│           │         │ - Size: GPDZI max (typ. 4KB)       │
 ├──────────────────────────────────────────────────────────┤
-│ 0x010000  │ ~32KB   │ ACCP Buffers                      │◄─ 5FPACCPBUF + offset
-│           │         │ - Communication protocol          │
-│           │         │ - MAXACCPBUFF per CPU             │
-│           │         │ - Used for structured messages    │
+│ 0x010000  │ ~32KB   │ ACCP Buffers                       │◄─ 5FPACCPBUF + offset
+│           │         │ - Communication protocol           │
+│           │         │ - MAXACCPBUFF per CPU              │
+│           │         │ - Used for structured messages     │
 ├──────────────────────────────────────────────────────────┤
-│ 0x018000  │ ~32KB   │ OCTOBUS Buffers                   │◄─ X5OCT
-│           │         │ - Network interface data          │
-│           │         │ - MAXOCTBUF buffers               │
-│           │         │ - Packet queuing                  │
+│ 0x018000  │ ~32KB   │ OCTOBUS Buffers                    │◄─ X5OCT
+│           │         │ - Network interface data           │
+│           │         │ - MAXOCTBUF buffers                │
+│           │         │ - Packet queuing                   │
 ├──────────────────────────────────────────────────────────┤
-│ 0x020000  │ ~16KB   │ HW Buffers                        │◄─ 5FPHWBUF + offset
-│           │         │ - Hardware coordination           │
-│           │         │ - Device status sharing           │
-│           │         │ - Interrupt coordination          │
+│ 0x020000  │ ~16KB   │ HW Buffers                         │◄─ 5FPHWBUF + offset
+│           │         │ - Hardware coordination            │
+│           │         │ - Device status sharing            │
+│           │         │ - Interrupt coordination           │
 ├──────────────────────────────────────────────────────────┤
-│ 0x024000  │ ~4KB    │ System Coordination               │
-│           │         │ - Mailbox links                   │
-│           │         │ - Execution queue head            │
-│           │         │ - Watchdog messages               │
-│           │         │ - Histogram messages              │
+│ 0x024000  │ ~4KB    │ System Coordination                │
+│           │         │ - Mailbox links                    │
+│           │         │ - Execution queue head             │
+│           │         │ - Watchdog messages                │
+│           │         │ - Histogram messages               │
 ├──────────────────────────────────────────────────────────┤
-│ 0x025000  │ Rest    │ Free / Reserved                   │
+│ 0x025000  │ Rest    │ Free / Reserved                    │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -525,7 +525,6 @@ public struct ND500MessageBuffer
 // Total size = 55MESSIZE * 2 bytes (word size)
 ```
 
----
 
-*This document continues in the next message due to length. Would you like me to continue with sections 4-10 covering interrupts, C# implementation, and complete examples?*
+
 

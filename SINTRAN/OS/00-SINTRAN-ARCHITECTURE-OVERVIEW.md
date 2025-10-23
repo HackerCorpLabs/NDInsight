@@ -63,16 +63,16 @@ SINTRAN III is built on the principle of **hardware-assisted software**:
 
 ```mermaid
 graph TD
-    A[SINTRAN III<br/>Operating System] --> B[Real Time Monitor]
+    A[SINTRAN III Operating System] --> B[Real Time Monitor]
     A --> C[Background Processor]
-    
-    B --> D[Core Services<br/>Kernel, I/O, Memory]
-    C --> E[User Services<br/>Time-sharing, File System]
+
+    B --> D[Core Services Kernel I/O Memory]
+    C --> E[User Services Time sharing File System]
     
     style A fill:#3F51B5,stroke:#303F9F,stroke-width:2px,color:#fff
-    style B fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
-    style C fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
-    style D fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
+    style B fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style C fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
+    style D fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
     style E fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
 ```
 
@@ -99,22 +99,22 @@ graph TD
     IO --> IH[Interrupt Handlers]
     IO --> DMA[DMA Management]
     
-    style RTM fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
-    style K fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style SH fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style IO fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style TH fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style ER fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style MQ fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
-    style EQ fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
-    style WQ fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
-    style MC fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
-    style PG fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
-    style SW fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
-    style PF fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
-    style DD fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
-    style IH fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
-    style DMA fill:#00BCD4,stroke:#0097A7,stroke-width:2px,color:#fff
+    style RTM fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style K fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style SH fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style IO fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style TH fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style ER fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style MQ fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style EQ fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style WQ fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style MC fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style PG fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style SW fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style PF fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style DD fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style IH fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style DMA fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
 ```
 
 #### Background Processor Components
@@ -134,7 +134,7 @@ graph TD
     FS --> FH[File Handlers]
     FS --> IO[I/O Interface]
     
-    style BP fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
+    style BP fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
     style SS fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
     style TS fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
     style FS fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
@@ -275,11 +275,11 @@ sequenceDiagram
     participant Handler as Monitor Call Handler
     
     User->>L14: Execute MON instruction
-    Note over L14: Internal interrupt<br/>(IIC=1, MC)
+    Note over L14: Internal interrupt IIC=1 MC
     L14->>Mon: Activate monitor level
-    Note over Mon: Create monitor queue entry<br/>with function address
+    Note over Mon: Create monitor queue entry with function address
     Mon->>Handler: Process monitor call
-    Note over Handler: Decode call number<br/>Fetch parameters<br/>Execute function
+    Note over Handler: Decode call number Fetch parameters Execute function
     Handler->>Mon: Return control
     Mon->>User: Resume RT program
     
@@ -518,14 +518,14 @@ The **Monitor Queue** is a FIFO queue of pending monitor activations.
 
 ```mermaid
 graph LR
-    A[MQUEUE<br/>Head] -->|mlink| B[Datafield<br/>Last Entry]
+    A[MQUEUE Head] -->|mlink| B[Datafield Last Entry]
     B -->|mlink| C[Datafield]
-    C -->|mlink| D[Datafield<br/>First Entry<br/>MLINK=-1]
+    C -->|mlink| D[Datafield First Entry MLINK=-1]
     
-    style A fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style B fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
-    style C fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
-    style D fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
+    style A fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style B fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style C fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style D fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
 ```
 
 **Operation:**
@@ -545,15 +545,15 @@ The **Execution Queue** contains RT programs ready to run, ordered by priority (
 
 ```mermaid
 graph LR
-    A[BEXQU<br/>Head] -->|wlink| B[RT-Desc<br/>Priority 225]
-    B -->|wlink| C[RT-Desc<br/>Priority 170]
-    C -->|wlink| D[RT-Desc<br/>Priority 150]
+    A[BEXQU Head] -->|wlink| B[RT Desc Priority 225]
+    B -->|wlink| C[RT Desc Priority 170]
+    C -->|wlink| D[RT Desc Priority 150]
     D -->|wlink| A
     
-    style A fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style B fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
-    style C fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
-    style D fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    style A fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style B fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
+    style C fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style D fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
 ```
 
 **Physical location:** Head pointer BEXQU is in kernel data area
@@ -570,12 +570,12 @@ graph LR
 
 ```mermaid
 graph TD
-    A[I/O Datafield<br/>Device X] -->|breslink| B[RT Program P1<br/>Owns resource]
-    A -->|bwlink| C[RT Program P2<br/>Waiting<br/>Priority 200]
-    C -->|wlink| D[RT Program P3<br/>Waiting<br/>Priority 150]
+    A[I/O Datafield Device X] -->|breslink| B[RT Program P1 Owns resource]
+    A -->|bwlink| C[RT Program P2 Waiting Priority 200]
+    C -->|wlink| D[RT Program P3 Waiting Priority 150]
     
-    style A fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style B fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
+    style A fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style B fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
     style C fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#fff
     style D fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#fff
 ```
@@ -610,14 +610,14 @@ The **Time Queue** holds programs scheduled for future execution, ordered by sch
 
 ```mermaid
 graph LR
-    A[BTIMQU<br/>Head] -->|tlink| B[RT-Desc<br/>Time 800]
-    B -->|tlink| C[RT-Desc<br/>Time 1100]
-    C -->|tlink| D[RT-Desc<br/>Time 1500<br/>TLINK=-1]
+    A[BTIMQU Head] -->|tlink| B[RT Desc Time 800]
+    B -->|tlink| C[RT Desc Time 1100]
+    C -->|tlink| D[RT Desc Time 1500 TLINK=-1]
     
-    style A fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff
-    style B fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
-    style C fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
-    style D fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    style A fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style B fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
+    style C fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style D fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
 ```
 
 **Clock interrupt handler** (ICLK) scans this queue each time unit, moving due programs to execution queue.
