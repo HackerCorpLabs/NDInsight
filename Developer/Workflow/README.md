@@ -56,6 +56,41 @@ Master the NORD relocating loader and build process.
 
 ---
 
+### [LINKING-GUIDE-500-DEEP-DIVE.md](LINKING-GUIDE-500-DEEP-DIVE.md)
+**ND-500 Linking and File Formats - Deep Dive**
+
+Comprehensive guide to ND-500 program linking, NRF format, and domain creation.
+
+**Contents:**
+- **ND Linker** (LINKER) complete command reference
+- **NRF format** binary specification (36 control groups)
+- **DOM files** (domains) - structure, loading, MMU setup
+- **SEG files** (free segments) - creation and linking
+- **Symbol resolution** mechanics and library handling
+- **Trap handling** configuration and custom handlers
+- **Domain loading** process and MMU initialization
+- **File format binary specs** for emulator developers
+
+**Topics:**
+- ND-500 vs ND-100 linking differences
+- Creating domains and free segments
+- Multi-segment applications (up to 32 segments)
+- NRF Library Handler (NLH) for library management
+- FORTRAN COMMON blocks handling
+- Troubleshooting undefined symbols, size issues
+- Complete NRF control group reference (BEG, END, DEF, REF, etc.)
+- DOM/SEG binary layout with C code examples
+
+**Target Audience:**
+- ND-500 assembly programmers
+- Emulator developers
+- System programmers
+- Developers troubleshooting complex linking
+
+**Size:** 3000+ lines, 12 comprehensive sections
+
+---
+
 ### [SCRIPT-GUIDE.md](SCRIPT-GUIDE.md)
 **MODE Scripts and Build Automation**
 
@@ -328,7 +363,7 @@ Run with: `@build:MODE`
 
 ---
 
-**Last Updated**: October 18, 2025  
-**Documentation Files**: 4 complete guides  
-**Documentation Status**: ✅ Complete workflow coverage
+**Last Updated**: October 20, 2025
+**Documentation Files**: 5 complete guides (including ND-500 deep-dive)
+**Documentation Status**: ✅ Complete workflow coverage with ND-500 binary specifications
 
