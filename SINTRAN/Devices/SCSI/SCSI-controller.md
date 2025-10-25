@@ -1,7 +1,5 @@
 ## C# implementation of controller
 
-Located in E:\Dev\Repos\Ronny\RetroCore\Emulated.HW\ND\CPU\NDBUS\NDBusDiscControllerSCSI.cs
-
 ## SCSI Interface IOX adddresses
 
 internal enum Register

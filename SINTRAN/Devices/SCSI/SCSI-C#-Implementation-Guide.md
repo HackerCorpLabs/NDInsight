@@ -1,8 +1,6 @@
 # SCSI C# Implementation Guide: Fixing Interrupt-Driven Operation
 
-**File:** `Z:\NorskData\Source Code\Sintran L\NPL\SCSI-C#-Implementation-Guide.md`
-
-**Target File:** `E:\Dev\Repos\Ronny\RetroCore\Emulated.HW\ND\CPU\NDBUS\NDBusDiscControllerSCSI.cs`
+**File:** `SCSI-C#-Implementation-Guide.md`
 
 ---
 

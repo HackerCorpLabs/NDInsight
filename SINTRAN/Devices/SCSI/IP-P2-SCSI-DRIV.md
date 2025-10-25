@@ -1,10 +1,8 @@
 # IP-P2-SCSI-DRIV - Critical C# Interrupt Implementation Guide
 
-**File:** `Z:\NorskData\Source Code\Sintran L\NPL\IP-P2-SCSI-DRIV.NPL`
+**File:** `IP-P2-SCSI-DRIV.NPL`
 
 **Purpose:** Essential documentation for C# SCSI driver interrupt implementation
-
-**C# Implementation:** `E:\Dev\Repos\Ronny\RetroCore\Emulated.HW\ND\CPU\NDBUS\NDBusDiscControllerSCSI.cs`
 
 ---
 

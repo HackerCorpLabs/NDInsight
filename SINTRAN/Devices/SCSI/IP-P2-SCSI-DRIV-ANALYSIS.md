@@ -1,6 +1,6 @@
 # IP-P2-SCSI-DRIV.NPL - Comprehensive Analysis
 
-**File:** `Z:\NorskData\Source Code\Sintran L\NPL\IP-P2-SCSI-DRIV.NPL`
+**File:** `IP-P2-SCSI-DRIV.NPL`
 
 **Purpose:** SCSI Driver for ND-100 with NCR 5386 Controller
 

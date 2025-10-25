@@ -1,6 +1,6 @@
 # IP-P2-SCSI-OPDI.NPL Comprehensive Analysis
 
-**File Path:** `Z:\NorskData\Source Code\Sintran L\NPL\IP-P2-SCSI-OPDI.NPL`
+**File Path:** `IP-P2-SCSI-OPDI.NPL`
 
 **Module Identifier:** `8SCOD` (SCSI Optical Disk)
 

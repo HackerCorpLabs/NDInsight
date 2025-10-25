@@ -1,6 +1,6 @@
 # IP-P2-SCSI-DISK - SCSI Disk Subsystem Documentation
 
-**File:** `Z:\NorskData\Source Code\Sintran L\NPL\IP-P2-SCSI-DISK.NPL`
+**File:** `IP-P2-SCSI-DISK.NPL`
 
 **Purpose:** SCSI Disk, Tape and Controller Drivers for ND-100
 

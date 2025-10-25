@@ -5,7 +5,6 @@
 This document maps the data fields described in **ND-60112-01-EN SINTRAN III System Documentation - Appendix A** to the actual device driver implementations in the SINTRAN L NPL source code. It explains how SINTRAN sets up its device drivers during system initialization.
 
 **Document Version:** Based on SINTRAN III/VS (1978 version)  
-**Source Files Location:** `Z:\NorskData\Source Code\Sintran L\NPL`  
 **Generated:** October 16, 2025
 
 ---
