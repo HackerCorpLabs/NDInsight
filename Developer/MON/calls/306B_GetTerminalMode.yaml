@@ -1,12 +1,9 @@
-# SINTRAN III Monitor Call: GetTerminalMode
-# Octal: 306B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 306B
 name: GetTerminalMode
 short_names:
 - GTMOD
-description: ''
+description: Gets the terminal mode. The terminal mode tells how the terminal function, i.e. if all letters
+  are converted to uppercase, if output stops when a full page is displayed, etc.
 see_also:
 - TerminalMode
 - '@TERMINAL-MODE'
@@ -94,68 +91,88 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      DeviceNumber, TerminalMode : INTEGER2;
+    code: 'DeviceNumber, TerminalMode : INTEGER2;
+
       ...
+
       GetTermMode(DeviceNumber, TerminalMode);  [Note routine name.]
-      IF ErrCode <> 0 THEN ...
+
+      IF ErrCode <> 0 THEN ...'
   cobol:
     available: true
-    code: |-
-      01 DeviceNumber  COMP.
+    code: '01 DeviceNumber  COMP.
+
       01 TerminalMode  COMP.
+
       01 ErrCode       COMP.
+
       ...
+
       MONITOR-CALL "GetTerminalMode" USING DeviceNumber, TerminalMode.
+
       CALL "CbError" USING ErrCode.
-      IF ErrCode NOT = 0 GO ...
+
+      IF ErrCode NOT = 0 GO ...'
   fortran:
     available: true
-    code: |-
-      INTEGER DeviceNumber, TerminalMode
+    code: 'INTEGER DeviceNumber, TerminalMode
+
       ...
-      Monitor_Call('GetTerminalMode', DeviceNumber, TerminalMode)
-      IF (ErrCode .NE. 0) THEN ...
+
+      Monitor_Call(''GetTerminalMode'', DeviceNumber, TerminalMode)
+
+      IF (ErrCode .NE. 0) THEN ...'
   planc:
     available: true
-    code: |-
-      INTEGER : DeviceNumber, TerminalMode
-      ...
-      ON ROUTINEERROR DO
-         IF ErrCode > 0 THEN ...
-      ENDON
-      Monitor_Call('GetTerminalMode', DeviceNumber, TerminalMode)
+    code: "INTEGER : DeviceNumber, TerminalMode\n...\nON ROUTINEERROR DO\n   IF ErrCode > 0 THEN ...\n\
+      ENDON\nMonitor_Call('GetTerminalMode', DeviceNumber, TerminalMode)"
   assembly_500:
     available: true
-    code: |-
-      Devno        : W DATA 1     % Own terminal
+    code: 'Devno        : W DATA 1     % Own terminal
+
       TermMode     : W BLOCK 1
+
       ErrCode      : W BLOCK 1
+
       GetTerminalMode: EQU 37B9+306B
 
-      ...
-      CALLG GetTerminalMode,2,DevNo,TerMode
-      IF K GO Error
+
       ...
 
-      Error: W1:=ErrCode %ErrorCode in I1 register
+      CALLG GetTerminalMode,2,DevNo,TerMode
+
+      IF K GO Error
+
+      ...
+
+
+      Error: W1:=ErrCode %ErrorCode in I1 register'
     octal_definition: 37B9 + 306B
   mac:
     available: true
-    code: |-
-      LDT DEVNO    %Logical device number.
+    code: 'LDT DEVNO    %Logical device number.
+
       MON 306      %Monitor call GetTerminalMode.
+
       JMP ERROR    %Error return from monitor call.
+
       STA TMODE    %Normal return, store terminal mode number.
+
       ...
+
       ERROR, ...
+
       ...
+
       DEVNO, ...
+
       TMODE, 0
 
 
+
       | ND-100 and ND-500 | All users | All programs |
-      |-------------------|-----------|--------------|
+
+      |-------------------|-----------|--------------|'
     mon_number: 306
 compatibility:
   nd100: true

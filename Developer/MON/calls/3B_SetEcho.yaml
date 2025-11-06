@@ -1,12 +1,13 @@
-# SINTRAN III Monitor Call: SetEcho
-# Octal: 3B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 3B
 name: SetEcho
 short_names:
 - ECHOM
-description: ''
+description: 'When you press a key on the terminal, a character is normally displayed. This is called
+  echo. You modify a terminal''s echo with this monitor call.
+
+
+  - If 8-bit I/O is set (TerminalFunction, function number 112), you will get echo always if bit 7 in
+  the echo table is set.'
 see_also:
 - SetBreak
 parameters:
@@ -52,59 +53,72 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      DeviceNumber, EchoStrategy : INTEGER2;
+    code: 'DeviceNumber, EchoStrategy : INTEGER2;
+
       Table : RECORD...END;
+
       ...
-      SetEcho(DeviceNumber, EchoStrategy, Table);
+
+      SetEcho(DeviceNumber, EchoStrategy, Table);'
   cobol:
     available: true
-    code: |-
-      01 DeviceNumber COMP.
-      01 EchoStrategy COMP.
-      01 Table.
-        02 array COMP OCCURS 8 TIMES.
-        ...
-      MONITOR-CALL "SetEcho" USING DeviceNumber, EchoStrategy, Table.
+    code: "01 DeviceNumber COMP.\n01 EchoStrategy COMP.\n01 Table.\n  02 array COMP OCCURS 8 TIMES.\n\
+      \  ...\nMONITOR-CALL \"SetEcho\" USING DeviceNumber, EchoStrategy, Table."
   fortran:
     available: true
-    code: |-
-      INTEGER DeviceNumber, EchoStrategy
+    code: 'INTEGER DeviceNumber, EchoStrategy
+
       INTEGER Table(8)
+
       ...
-      Monitor_Call('SetEcho', DeviceNumber, EchoStrategy, Table(1))
+
+      Monitor_Call(''SetEcho'', DeviceNumber, EchoStrategy, Table(1))'
   planc:
     available: true
-    code: |-
-      INTEGER : DeviceNumber, EchoStrategy
+    code: 'INTEGER : DeviceNumber, EchoStrategy
+
       INTEGER2ARRAY{0:7}
+
       ...
-      Monitor_Call('SetEcho', DeviceNumber, EchoStrategy, Table(0))
+
+      Monitor_Call(''SetEcho'', DeviceNumber, EchoStrategy, Table(0))'
   assembly_500:
     available: true
-    code: |-
-      DeviceNumber : W BLOCK 1
+    code: 'DeviceNumber : W BLOCK 1
+
       EchoStrategy : W BLOCK 1
+
       Table : H BLOCK 8
+
       SetEcho : EQU 37B9 + 3B
+
       ...
-      CALLG SetEcho, 3, DeviceNumber, EchoStrategy, Table
+
+      CALLG SetEcho, 3, DeviceNumber, EchoStrategy, Table'
     octal_definition: 37B9 + 3B
   mac:
     available: true
-    code: |-
-      LDT DEVNO  %Logical device number.
+    code: 'LDT DEVNO  %Logical device number.
+
       LDA STRAT  %Echo strategy.
+
       LDX (TABLE %Eight word large bit map.
+
       MON 3      %Monitor call SetEcho.
+
       ...
+
       DEVNO, ...
+
       STRAT, ...
+
       TABLE, ...
+
       *+10/ %Make a buffer of 8 words.
 
 
-      | ND-100 and ND-500 | All users | All programs |
+
+      | ND-100 and ND-500 | All users | All programs |'
     mon_number: 3
 compatibility:
   nd100: false

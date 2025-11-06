@@ -1,12 +1,9 @@
-# SINTRAN III Monitor Call: SwitchUserBreak
-# Octal: 405B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 405B
 name: SwitchUserBreak
 short_names:
 - USTRK
-description: ''
+description: Switches user-defined escape handling on and off. The user-defined escape handling transfers
+  control to a routine when you press the ESCAPE key.
 see_also:
 - GetUserRegisters
 parameters:
@@ -21,37 +18,38 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      Func, Address : LONGINT;
+    code: 'Func, Address : LONGINT;
+
       ...
-      SwitchUserBreak(Func, Address);
+
+      SwitchUserBreak(Func, Address);'
   cobol:
     available: true
-    code: |-
-      01 Func COMP.
+    code: '01 Func COMP.
+
       01 Address COMP.
+
       ...
-      MONITOR-CALL "SwitchUserBreak" USING Func, Address.
+
+      MONITOR-CALL "SwitchUserBreak" USING Func, Address.'
   fortran:
     available: true
-    code: |-
-      INTEGER Func, Address
+    code: 'INTEGER Func, Address
+
       ...
-      Monitor_Call('SwitchUserBreak', Func, Address)
+
+      Monitor_Call(''SwitchUserBreak'', Func, Address)'
   planc:
     available: true
-    code: |-
-      INTEGER : Func, Address
+    code: 'INTEGER : Func, Address
+
       ...
-      Monitor_Call('SwitchUserBreak', Func, Address)
+
+      Monitor_Call(''SwitchUserBreak'', Func, Address)'
   assembly_500:
     available: true
-    code: |-
-      Func : W BLOCK 1
-      Address : W BLOCK 1
-      SwitchUserBreak : EQU 37B9 + 405B
-      ...
-          CALLG SwitchUserBreak, 2, Func, Address
+    code: "Func : W BLOCK 1\nAddress : W BLOCK 1\nSwitchUserBreak : EQU 37B9 + 405B\n...\n    CALLG SwitchUserBreak,\
+      \ 2, Func, Address"
     octal_definition: 37B9 + 405B
   mac:
     available: false

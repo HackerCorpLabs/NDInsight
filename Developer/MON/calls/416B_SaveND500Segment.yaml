@@ -1,12 +1,11 @@
-# SINTRAN III Monitor Call: SaveND500Segment
-# Octal: 416B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 416B
 name: SaveND500Segment
 short_names:
 - WSEGN
-description: ''
+description: 'Writes all modified pages of a segment back to the disk.
+
+
+  - Not allowed when fixed in memory.'
 see_also:
 - SaveSegment
 parameters:
@@ -30,51 +29,48 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      LogSegmentNo, FirstPage, LastPage : LONGINT;
+    code: 'LogSegmentNo, FirstPage, LastPage : LONGINT;
+
       ...
+
       SaveND500Segment(LogicalSegmentNo, FirstPage, LastPage);
-      IF ErrCode <> 0 THEN ...
+
+      IF ErrCode <> 0 THEN ...'
   cobol:
     available: true
-    code: |-
-      01 LogSegmentNo COMP.
+    code: '01 LogSegmentNo COMP.
+
       01 FirstPage COMP.
+
       01 LastPage COMP.
+
       01 ErrCode COMP.
+
       ...
+
       MONITOR-CALL "SaveND500Segment" USING LogSegmentNo, FirstPage, LastPage.
+
       CALL "CbError" USING ErrCode.
-      IF ErrCode NOT = 0 GO ...
+
+      IF ErrCode NOT = 0 GO ...'
   fortran:
     available: true
-    code: |-
-      INTEGER LogSegmentNo, FirstPage, LastPage
+    code: 'INTEGER LogSegmentNo, FirstPage, LastPage
+
       ...
-      Monitor_Call('SaveND500Segment', LogSegmentNo, FirstPage, LastPage)
-      IF (ErrCode .NE. 0) THEN ...
+
+      Monitor_Call(''SaveND500Segment'', LogSegmentNo, FirstPage, LastPage)
+
+      IF (ErrCode .NE. 0) THEN ...'
   planc:
     available: true
-    code: |-
-      INTEGER : LogSegmentNo, FirstPage, LastPage
-      ...
-      ON ROUTINEERROR DO
-        IF ErrCode > 0 THEN ...
-      ENDON
-      Monitor_Call('SaveND500Segment', LogSegmentNo, FirstPage, LastPage)
+    code: "INTEGER : LogSegmentNo, FirstPage, LastPage\n...\nON ROUTINEERROR DO\n  IF ErrCode > 0 THEN\
+      \ ...\nENDON\nMonitor_Call('SaveND500Segment', LogSegmentNo, FirstPage, LastPage)"
   assembly_500:
     available: true
-    code: |-
-      LogSegmentNo : W BLOCK 1
-      FirstPage : W BLOCK 1
-      LastPage : W BLOCK 1
-      ErrCode : W BLOCK 1
-      SaveND500Segment : EQU 37B9 + 416B
-      ...
-        CALLG SaveND500Segment, 3, LogSegmentNo, FirstPage, LastPage
-        IF K GO ERROR
-      ...
-      ERROR : W1 =: ErrCode                    %ErrorCode in W1 register.
+    code: "LogSegmentNo : W BLOCK 1\nFirstPage : W BLOCK 1\nLastPage : W BLOCK 1\nErrCode : W BLOCK 1\n\
+      SaveND500Segment : EQU 37B9 + 416B\n...\n  CALLG SaveND500Segment, 3, LogSegmentNo, FirstPage, LastPage\n\
+      \  IF K GO ERROR\n...\nERROR : W1 =: ErrCode                    %ErrorCode in W1 register."
     octal_definition: 37B9 + 416B
   mac:
     available: false

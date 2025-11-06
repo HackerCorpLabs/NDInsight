@@ -1,12 +1,16 @@
-# SINTRAN III Monitor Call: OutBufferSpace
-# Octal: 67B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 67B
 name: OutBufferSpace
 short_names:
 - OSIZE
-description: ''
+description: 'Gets the number of free bytes in the output buffer (number of bytes which can be written
+  before the program must wait). Terminals and other character devices place output in a buffer. Monitor
+  calls like OutByte writes to this buffer.
+
+
+  - Use ExecutionInfo to get the logical device number for terminals. You can specify 1 for your own terminal.
+
+  - This monitor call is not available for internal devices. Use InBufferSpace and subtract this size
+  from the inbuffer size.'
 see_also:
 - ClearOutBuffer
 - InBufferSpace
@@ -26,66 +30,55 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      DeviceNumber, NoOfBytes : INTEGER2;
+    code: 'DeviceNumber, NoOfBytes : INTEGER2;
+
       ...
+
       OutBufferSpace(DeviceNumber, NoOfBytes);
-      IF ErrCode <> 0 THEN ...
+
+      IF ErrCode <> 0 THEN ...'
   cobol:
     available: true
-    code: |-
-      01 DeviceNumber  COMP.
+    code: '01 DeviceNumber  COMP.
+
       01 NoOfBytes     COMP.
+
       01 ErrCode       COMP.
+
       ...
+
       MONITOR-CALL "OutBufferSpace" USING DeviceNumber, NoOfBytes.
+
       CALL "CbError" USING ErrCode.
-      IF ErrCode NOT = 0 GO ...
+
+      IF ErrCode NOT = 0 GO ...'
   fortran:
     available: true
-    code: |-
-      INTEGER DeviceNumber, NoOfBytes
+    code: 'INTEGER DeviceNumber, NoOfBytes
+
       ...
-      Monitor_Cal1('OutBufferSpace', DeviceNumber, NoOfBytes)
-      IF (ErrCode .NE. 0) THEN ...
+
+      Monitor_Cal1(''OutBufferSpace'', DeviceNumber, NoOfBytes)
+
+      IF (ErrCode .NE. 0) THEN ...'
   planc:
     available: true
-    code: |-
-      INTEGER : DeviceNumber, NoOfBytes
-      ...
-      ON ROUTINEERROR DO
-          IF ErrCode > 0 THEN ...
-      ENDON
-      Monitor_Call('OutBufferSpace', DeviceNumber, NoOfBytes)
+    code: "INTEGER : DeviceNumber, NoOfBytes\n...\nON ROUTINEERROR DO\n    IF ErrCode > 0 THEN ...\nENDON\n\
+      Monitor_Call('OutBufferSpace', DeviceNumber, NoOfBytes)"
   assembly_500:
     available: true
-    code: |-
-      DeviceNumber : W BLOCK 1
-      NoOfBytes : W BLOCK 1
-      ErrCode : W BLOCK 1
-      OutBufferSpace : EQU 37B9 + 67B
-          ...
-          CALLG OutBufferSpace, 1, DeviceNumber
-          IF K GO ERROR
-          W1 =: NoOfBytes           %Result is returned in W1 register.
-          ...
-      ERROR : W1 =: ErrCode        %ErrorCode in W1 register.
+    code: "DeviceNumber : W BLOCK 1\nNoOfBytes : W BLOCK 1\nErrCode : W BLOCK 1\nOutBufferSpace : EQU\
+      \ 37B9 + 67B\n    ...\n    CALLG OutBufferSpace, 1, DeviceNumber\n    IF K GO ERROR\n    W1 =: NoOfBytes\
+      \           %Result is returned in W1 register.\n    ...\nERROR : W1 =: ErrCode        %ErrorCode\
+      \ in W1 register."
     octal_definition: 37B9 + 67B
   mac:
     available: true
-    code: |2-
-          LDT DEVNO                %Logical device number.
-          MON 67                   %Monitor call OutBufferSpace.
-          JMP ERROR                %Error return from monitor call.
-          STA COUNT                %Normal return, store number of bytes.
-      ERROR,
-          ...                      %Error number in register A.
-      DEVNO, ...
-      COUNT, 0                     %Number of bytes free space in outbuffer.
-
-
-      | ND-100 and ND-500 | All users | All programs |
-      |-------------------|-----------|--------------|
+    code: "    LDT DEVNO                %Logical device number.\n    MON 67                   %Monitor\
+      \ call OutBufferSpace.\n    JMP ERROR                %Error return from monitor call.\n    STA COUNT\
+      \                %Normal return, store number of bytes.\nERROR,\n    ...                      %Error\
+      \ number in register A.\nDEVNO, ...\nCOUNT, 0                     %Number of bytes free space in\
+      \ outbuffer.\n\n\n| ND-100 and ND-500 | All users | All programs |\n|-------------------|-----------|--------------|"
     mon_number: 67
 compatibility:
   nd100: true

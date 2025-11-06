@@ -6,10 +6,65 @@ octal: 126B
 name: ExactDelayStart
 short_names:
 - DSET
-description: ''
-see_also: []
-parameters: []
-examples: {}
+description: |-
+  Sets an RT program to start after a given period. It is then moved from the time queue to the execution queue. The period is specified in basic time units. A basic time unit is 1/50th of a second. The period may be from 1 to 4294967647 basic time units.
+
+  - The program may already be in the time queue. It is then reinserted according to the new specifications.
+  - A period less than or equal to 0 transfers the RT program to the execution queue the next time the basic time unit counter is incremented.
+  - SetClock, AdjustClock and @CLADJ do not affect the interval.
+see_also:
+- SetClock
+- AdjustClock
+- DelayStart
+parameters:
+- name: Param1
+  type: UNKNOWN
+  io: I
+  description: Address of the RT description. Use 0 for the calling program.
+- name: Param2
+  type: UNKNOWN
+  io: I
+  description: The number of basic time units to stay in the time queue.
+examples:
+  pascal:
+    available: true
+    code: |-
+      RTProgram, BasicTimeUnits : INTEGER2;
+      ...
+      ExactDelayStart(RTProgram, BasicTimeUnits);
+  cobol:
+    available: true
+    code: |-
+      01 RTProgram COMP.
+      01 BasicTimeUnits COMP.
+      ...
+      MONITOR-CALL "ExactDelayStart" USING RTProgram, BasicTimeUnits.
+  fortran:
+    available: true
+    code: |-
+      INTEGER RTProgram, BasicTimeUnits
+      ...
+      Monitor_Call('ExactDelayStart', RTProgram, BasicTimeUnits)
+  planc:
+    available: true
+    code: |-
+      INTEGER : RTProgram, BasicTimeUnits
+      ...
+      Monitor_Call('ExactDelayStart', RTProgram, BasicTimeUnits)
+  assembly_500:
+    available: true
+    code: |-
+      RTProgram : W BLOCK 1
+      BasicTimeUnits : W BLOCK 1
+      ExactDelayStart : EQU 37B9 + 126B
+      ...
+      CALLG ExactDelayStart, 2, RTProgram, BasicTimeUnits
+    octal_definition: 37B9 + 126B
+  mac:
+    available: true
+    code: |-
+      LDA  (PAR   %Load register A with address of parameter list.
+      MON  126    %Monitor call ExactDelayStart.
 compatibility:
   nd100: true
   nd500: true

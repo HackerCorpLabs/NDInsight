@@ -1,12 +1,17 @@
-# SINTRAN III Monitor Call: NewUser
-# Octal: 241B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 241B
 name: NewUser
 short_names:
 - SUSCN
-description: ''
+description: 'Switches the user name you are logged in under. The command is similar to logging out and
+  then logging in as another user. Your program continues under this user name.
+
+
+  - Restore the old user name with OldUser.
+
+  - OldUser always resets the first user name. From the ND-100 you may execute NewUser more than once
+  without OldUser in between. This is not the case from the ND-500.
+
+  - If originally logged in as user RT, it is not possible to log in as user SYSTEM.'
 see_also:
 - OldUser
 - '@ENTER'
@@ -34,75 +39,110 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      UserName, ProjPasswd : PACKED ARRAY [0..15] OF CHAR;
+    code: 'UserName, ProjPasswd : PACKED ARRAY [0..15] OF CHAR;
+
       UserPasswd : INTEGER2;
+
       ReturnStatus : INTEGER2;
+
       ...
+
       NewUser(UserName, UserPasswd, ProjPasswd, ReturnStatus);
-      IF ErrCode <> 0 THEN ...
+
+      IF ErrCode <> 0 THEN ...'
   cobol:
     available: true
-    code: |-
-      01 UserName PIC X(16).
+    code: '01 UserName PIC X(16).
+
       01 UserPasswd COMP.
+
       01 ProjPasswd PIC X(16).
+
       01 RetStat COMP.
+
       01 ErrCode COMP.
+
       ...
+
       MONITOR-CALL "NewUser" USING UserName, UserPasswd, ProjPasswd, RetStat.
 
+
       CALL "CbError" USING ErrCode.
-      IF ErrCode NOT = 0 GO ...
+
+      IF ErrCode NOT = 0 GO ...'
   fortran:
     available: true
-    code: |-
-      INTEGER ReturnStatus, UserPasswd
+    code: 'INTEGER ReturnStatus, UserPasswd
+
       CHARACTER UserName*16, ProjPasswd*16
+
       ...
-      Monitor_Call1('NewUser', UserName(1:16), UserPasswd,
+
+      Monitor_Call1(''NewUser'', UserName(1:16), UserPasswd,
+
       C ProjPasswd(1:16), ReturnStatus)
-      IF (ErrCode .NE. 0) THEN ...
+
+      IF (ErrCode .NE. 0) THEN ...'
   assembly_500:
     available: true
-    code: |-
-      UserType : W BLOCK 1
-      UserName : STRINGDATA 'A-HANSEN'''
+    code: 'UserType : W BLOCK 1
+
+      UserName : STRINGDATA ''A-HANSEN''''''
+
       UserPasswd : W BLOCK 1
+
       ProjPasswd : STRING 40B
+
       ErrCode : W BLOCK 1
+
       NewUser : EQU 37B9 + 241B
 
+
       ...
+
 
       CALLG NewUser, 4, UserName, UserPasswd, ProjPasswd, UserType
+
       IF K GO ERROR
+
 
       ...
 
-      ERROR : W1 =: ErrCode      %ErrorCode in W1 register.
+
+      ERROR : W1 =: ErrCode      %ErrorCode in W1 register.'
     octal_definition: 37B9 + 241B
   mac:
     available: true
-    code: |-
-      LDT (PROJP     %Address of project password.
+    code: 'LDT (PROJP     %Address of project password.
+
       LDX (USER     %Address of string containing user name.
+
       LDA (PASSW    %User password coded as integer.
+
       MON 241       %Monitor call NewUser.
+
       JMP ERROR     %Error return from monitor call.
+
       STA STAT      %Normal return, store status returned.
+
 
       ...
 
 
+
       ERROR, ...     %Error number in register A.
-      USER, 'A-HANSEN'     %Use A-HANSEN as user name.
+
+      USER, ''A-HANSEN''     %Use A-HANSEN as user name.
+
       PASSW, ...     %Password as represented in the user entry.
+
       PROJP, ...
+
       STAT, 0
 
 
-      | ND-100 and ND-500 | User RT and user SYSTEM | Background programs |
+
+      | ND-100 and ND-500 | User RT and user SYSTEM | Background programs |'
     mon_number: 241
 compatibility:
   nd100: true

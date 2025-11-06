@@ -1,12 +1,14 @@
-# SINTRAN III Monitor Call: AwaitTransfer
-# Octal: 431B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 431B
 name: AwaitTransfer
 short_names:
 - MWAITF
-description: ''
+description: 'Checks that a data transfer to or from a mass-storage file is completed. The monitor call
+  is relevant to DeviceFunction, ReadFromFile and WriteToFile operations. These are carried out independently
+  of the CPU. The number of bytes read or written is returned.
+
+
+  - You may specify that the program should wait if the transfer is not ready. It is set in the I/O wait
+  state.'
 see_also:
 - AwaitFileTransfer
 parameters:
@@ -26,43 +28,57 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      FileNumber, WaitFlag, NoOfBytes : LONGINT;
+    code: 'FileNumber, WaitFlag, NoOfBytes : LONGINT;
+
       ...
-      AwaitTransfer(FileNumber, WaitFlag, NoOfBytes);
+
+      AwaitTransfer(FileNumber, WaitFlag, NoOfBytes);'
   cobol:
     available: true
-    code: |-
-      01 FileNumber COMP.
+    code: '01 FileNumber COMP.
+
       01 WaitFlag COMP.
+
       01 NoOfBytes COMP.
+
       ...
-      MONITOR-CALL "AwaitTransfer" USING FileNumber, WaitFlag, NoOfBytes.
+
+      MONITOR-CALL "AwaitTransfer" USING FileNumber, WaitFlag, NoOfBytes.'
   fortran:
     available: true
-    code: |-
-      INTEGER FileNumber, WaitFlag, NoOfBytes
+    code: 'INTEGER FileNumber, WaitFlag, NoOfBytes
+
       ...
-      Monitor_Call('AwaitTransfer', FileNumber, WaitFlag, NoOfBytes)
+
+      Monitor_Call(''AwaitTransfer'', FileNumber, WaitFlag, NoOfBytes)'
   planc:
     available: true
-    code: |-
-      INTEGER : FileNumber, WaitFlag, NoOfBytes
+    code: 'INTEGER : FileNumber, WaitFlag, NoOfBytes
+
       ...
-      Monitor_Call('AwaitTransfer', FileNumber, WaitFlag, NoOfBytes)
+
+      Monitor_Call(''AwaitTransfer'', FileNumber, WaitFlag, NoOfBytes)'
   assembly_500:
     available: true
-    code: |-
-      FileNumber : W BLOCK 1
+    code: 'FileNumber : W BLOCK 1
+
       WaitFlag : W BLOCK 1
+
       NoOfBytes : W BLOCK 1
+
       ErrCode : W BLOCK 1
+
       AwaitTransfer : EQU 37B9 + 431B
+
       ...
+
       CALLG AwaitTransfer, 3, FileNumber, WaitFlag, NoOfBytes
+
       IF K GO Error
+
       ...
-      Error, Wl =: ErrCode
+
+      Error, Wl =: ErrCode'
     octal_definition: 37B9 + 431B
   mac:
     available: false

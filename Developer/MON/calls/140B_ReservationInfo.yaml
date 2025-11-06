@@ -1,12 +1,12 @@
-# SINTRAN III Monitor Call: ReservationInfo
-# Octal: 140B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 140B
 name: ReservationInfo
 short_names:
 - WHDEV
-description: ''
+description: 'Checks that a device is not reserved. If it is reserved, you will receive information about
+  which RT program that reserves it.
+
+
+  - Some devices have both an input and an output part. You have to use ReservationInfo for each part.'
 see_also:
 - ReserveResource
 - ReleaseResource
@@ -28,61 +28,85 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      DeviceNumber, IOFlag, ReturnValue : INTEGER2;
+    code: 'DeviceNumber, IOFlag, ReturnValue : INTEGER2;
+
       ...
-      ReservationInfo(DeviceNumber, IOFlag, ReturnValue);
+
+      ReservationInfo(DeviceNumber, IOFlag, ReturnValue);'
   cobol:
     available: true
-    code: |-
-      01 DeviceNumber COMP.
+    code: '01 DeviceNumber COMP.
+
       01 IOFlag COMP.
+
       01 ReturnValue COMP.
+
       ...
-      MONITOR-CALL "ReservationInfo" USING DeviceNumber, IOFlag, ReturnValue.
+
+      MONITOR-CALL "ReservationInfo" USING DeviceNumber, IOFlag, ReturnValue.'
   fortran:
     available: true
-    code: |-
-      INTEGER DeviceNo, IOFlag, ReturnValue
+    code: 'INTEGER DeviceNo, IOFlag, ReturnValue
+
       ...
-      Monitor_Call('ReservationInfo', DeviceNo, IOFlag, ReturnValue)
+
+      Monitor_Call(''ReservationInfo'', DeviceNo, IOFlag, ReturnValue)'
   planc:
     available: true
-    code: |-
-      INTEGER : DeviceNumber, IOFlag, ReturnValue
+    code: 'INTEGER : DeviceNumber, IOFlag, ReturnValue
+
       ...
-      Monitor_Call('ReservationInfo', DeviceNumber, IOFlag, ReturnValue)
+
+      Monitor_Call(''ReservationInfo'', DeviceNumber, IOFlag, ReturnValue)'
   assembly_500:
     available: true
-    code: |-
-      DeviceNumber : W BLOCK 1
+    code: 'DeviceNumber : W BLOCK 1
+
       IOFlag : W BLOCK 1
+
       ReturnValue : W BLOCK 1
+
       ReservationInfo : EQU 37B9 + 140B
+
       ...
+
       CALLG ReservationInfo, 2, DeviceNumber, IOFlag
-      W1 =: ReturnValue %Result is returned in W1 register.
+
+      W1 =: ReturnValue %Result is returned in W1 register.'
     octal_definition: 37B9 + 140B
   mac:
     available: true
-    code: |-
-      LDA   (PAR   %Load register A with address of parameter list.
+    code: 'LDA   (PAR   %Load register A with address of parameter list.
+
       MON   140    %Monitor call ReservationInfo.
+
       STA   STAT   %Store status returned.
+
       AAA   -1     %Test if -1. JAN not applicable because of RT
+
       JAZ   ERROR  %addresses above 100000.
+
       ...
+
       ...
+
       ERROR, ...
+
       STAT, 0      %RT description address if any.
+
       PAR, DEVNO  %Logical device number.
+
       IOF         %Input or output flag.
+
       DEVNO, ...
+
       IOF, ...
 
 
+
       | ND-100 and ND-500 | All users | All programs |
-      |-------------------|-----------|--------------|
+
+      |-------------------|-----------|--------------|'
     mon_number: 140
 compatibility:
   nd100: true

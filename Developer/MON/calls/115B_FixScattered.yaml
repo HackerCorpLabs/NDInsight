@@ -1,12 +1,19 @@
-# SINTRAN III Monitor Call: FixScattered
-# Octal: 115B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 115B
 name: FixScattered
 short_names:
 - FIX
-description: ''
+description: 'Place a segment in physical memory. Its pages will no longer be swapped to the disk. The
+  segment must be non demand. Its pages will be scattered in physical memory. You may, for example, use
+  this function for time critical operations or for allocating DMA buffers.
+
+
+  - Use UnFixSegment or @UNFIX to allow the RT LOADER to clear the segment.
+
+  - Your program terminates if you refer to a nonexistent segment or a demand segment. An error message
+  is output on the error device.
+
+  - Only a limited number of pages can be fixed. This limit is defined when SINTRAN III is generated.
+  You may change it with the command CHANGE-VARIABLE in the SINTRAN-SERVICE-PROGRAM.'
 see_also:
 - UnFixSegment
 - FixContiguous
@@ -22,50 +29,62 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      SegmentNumber : INTEGER2;
+    code: 'SegmentNumber : INTEGER2;
+
       ...
-      FixScattered(SegmentNumber);
+
+      FixScattered(SegmentNumber);'
   cobol:
     available: true
-    code: |-
-      01 SegmentNumber COMP.
+    code: '01 SegmentNumber COMP.
+
       ...
-      MONITOR-CALL "FixScattered" USING SegmentNumber.
+
+      MONITOR-CALL "FixScattered" USING SegmentNumber.'
   fortran:
     available: true
-    code: |-
-      INTEGER SegmentNumber
+    code: 'INTEGER SegmentNumber
+
       ...
-      Monitor_Call('FixScattered', SegmentNumber)
+
+      Monitor_Call(''FixScattered'', SegmentNumber)'
   planc:
     available: true
-    code: |-
-      INTEGER : SegmentNumber
+    code: 'INTEGER : SegmentNumber
+
       ...
-      Monitor_Call('FixScattered', SegmentNumber)
+
+      Monitor_Call(''FixScattered'', SegmentNumber)'
   assembly_500:
     available: true
-    code: |-
-      SegmentNumber : W BLOCK 1
+    code: 'SegmentNumber : W BLOCK 1
+
       FixScattered : EQU 37B9 + 115B
+
       ...
-      CALLG FixScattered, 1, SegmentNumber
+
+      CALLG FixScattered, 1, SegmentNumber'
     octal_definition: 37B9 + 115B
   mac:
     available: true
-    code: |-
-      LDA  (PAR   %Load register A with address of parameter list.
+    code: 'LDA  (PAR   %Load register A with address of parameter list.
+
       MON  115   %Monitor call FixScattered
+
       ...
+
       PAR,  SEGNO  %Segment number to be fixed in memory.
+
       ...
+
       SEGNO, ...
 
 
 
+
       | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
-      |-------------------|-------------------------|-------------|
+
+      |-------------------|-------------------------|-------------|'
     mon_number: 115
 compatibility:
   nd100: true

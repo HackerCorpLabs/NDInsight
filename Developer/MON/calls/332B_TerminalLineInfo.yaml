@@ -1,12 +1,9 @@
-# SINTRAN III Monitor Call: TerminalLineInfo
-# Octal: 332B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 332B
 name: TerminalLineInfo
 short_names:
 - TREPP
-description: ''
+description: Gets information about a terminal line. You may also enable programs to continue in spite
+  of errors on the terminal line.
 see_also:
 - TerminalStatus
 parameters:
@@ -51,73 +48,83 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      FuncCode, DeviceNo, ReturnInfo : INTEGER2
+    code: 'FuncCode, DeviceNo, ReturnInfo : INTEGER2
+
 
       TermLineInfo(FuncCode, DeviceNo, ReturnInfo); [note routine name.]
-      IF ErrCode <> 0 THEN ...
+
+      IF ErrCode <> 0 THEN ...'
   cobol:
     available: true
-    code: |-
-      01 FuncCode COMP.
+    code: '01 FuncCode COMP.
+
       01 DeviceNo COMP.
+
       01 ReturnInfo COMP.
+
       01 ErrCode COMP.
 
+
       MONITOR-CALL "TerminalLineInfo" USING FuncCode, DeviceNo, ReturnInfo.
+
       CALL "CbError" USING ErrCode.
-      IF ErrCode NOT = 0 GO ...
+
+      IF ErrCode NOT = 0 GO ...'
   fortran:
     available: true
-    code: |-
-      INTEGER FuncCode, DeviceNo, ReturnInfo
+    code: 'INTEGER FuncCode, DeviceNo, ReturnInfo
 
-      Monitor Call('TerminalLineInfo', FuncCode, DeviceNo, ReturnInfo)
-      IF (ErrCode .NE. 0) THEN ...
+
+      Monitor Call(''TerminalLineInfo'', FuncCode, DeviceNo, ReturnInfo)
+
+      IF (ErrCode .NE. 0) THEN ...'
   planc:
     available: true
-    code: |-
-      INTEGER : FuncCode, DeviceNo, ReturnInfo
+    code: 'INTEGER : FuncCode, DeviceNo, ReturnInfo
+
       ...
+
       ON ROUTINEERROR DO
+
       &nbsp;&nbsp;&nbsp;&nbsp;IF ErrCode >< 0 THEN ...
+
       ENDON
-      Monitor_Call('TerminalLineInfo', FuncCode, DeviceNo, ReturnInfo)
+
+      Monitor_Call(''TerminalLineInfo'', FuncCode, DeviceNo, ReturnInfo)'
   assembly_500:
     available: true
-    code: |-
-      FuncCode : W BLOCK 1
+    code: 'FuncCode : W BLOCK 1
+
       DeviceNo : W BLOCK 1
+
       ReturnInfo : W BLOCK 1
+
       ErrCode : W BLOCK 1
+
       TerminalLineInfo : EQU 37B9 + 332B
+
       ...
+
       &nbsp;&nbsp;&nbsp;&nbsp;CALLG TerminalLineInfo, 2, FuncCode, DeviceNo
+
       &nbsp;&nbsp;&nbsp;&nbsp;IF K GO ERROR
+
       &nbsp;&nbsp;&nbsp;&nbsp;W1 := ReturnInfo
+
       ...
+
       ERROR : W1 =: ErrCode
 
 
-      %ErrorCode in W1 register.
+
+      %ErrorCode in W1 register.'
     octal_definition: 37B9 + 332B
   mac:
     available: true
-    code: |-
-      LDT LDN %Load register T with the logical device number.
-      LDA FUNC %Load register A with function code.
-      MON 332 %Monitor call TerminalStatus.
-      STA STAT %Returned status. Standard Error Code.
-      STA LINFO %Returns here if function code = 2 and no
-               %errors have occurred.
-      ...
-      LDN, 1
-      FUNC, 0
-      LINFO, 0
-      STAT, 0
-
-
-      | ND-100 and ND-500 | All users | Background programs |
+    code: "LDT LDN %Load register T with the logical device number.\nLDA FUNC %Load register A with function\
+      \ code.\nMON 332 %Monitor call TerminalStatus.\nSTA STAT %Returned status. Standard Error Code.\n\
+      STA LINFO %Returns here if function code = 2 and no\n         %errors have occurred.\n...\nLDN,\
+      \ 1\nFUNC, 0\nLINFO, 0\nSTAT, 0\n\n\n| ND-100 and ND-500 | All users | Background programs |"
     mon_number: 332
 compatibility:
   nd100: true

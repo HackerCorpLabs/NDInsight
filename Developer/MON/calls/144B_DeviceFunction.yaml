@@ -1,12 +1,17 @@
-# SINTRAN III Monitor Call: DeviceFunction
-# Octal: 144B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 144B
 name: DeviceFunction
 short_names:
 - MAGTP
-description: ''
+description: 'Performs various operations on floppy disks, magnetic tapes, Versatec plotters, and SCSI
+  streamers.
+
+
+  - The parameter values depend on the device.
+
+  - If the function code is in the range 5B to 24B, except 23B, the parameter buffer and the two device
+  dependent parameters are dummies.
+
+  - If the function code is in the range 20B to 24B, except 23B, the hardware status is returned.'
 see_also:
 - DeviceControl
 - '@DEVICE-FUNCTION'
@@ -38,84 +43,101 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      DevNo, Func, Param1, Param2 : INTEGER2;
+    code: 'DevNo, Func, Param1, Param2 : INTEGER2;
+
       Buff : ARRAY [0..63] OF RECORD...END;
+
       ...
+
       DeviceFunction(Func, Buff, DevNo, Param1, Param2);
-      IF ErrCode <> 0 THEN ...
+
+      IF ErrCode <> 0 THEN ...'
   cobol:
     available: true
-    code: |-
-      01 DevNo COMP.
-      01 Func COMP.
-      01 Param1 COMP.
-      01 Param2 COMP.
-      01 Buff.
-         02 array COMP OCCURS 1024 TIMES.
-      01 ErrCode COMP.
-      ...
-      MONITOR-CALL "DeviceFunction" USING Func, Buff, DevNo, Param1, Param2.
-      CALL "CbError" USING ErrCode.
-      IF ErrCode NOT = 0 GO ...
+    code: "01 DevNo COMP.\n01 Func COMP.\n01 Param1 COMP.\n01 Param2 COMP.\n01 Buff.\n   02 array COMP\
+      \ OCCURS 1024 TIMES.\n01 ErrCode COMP.\n...\nMONITOR-CALL \"DeviceFunction\" USING Func, Buff, DevNo,\
+      \ Param1, Param2.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
   fortran:
     available: true
-    code: |-
-      INTEGER DevNo, Func, Param1, Param2
+    code: 'INTEGER DevNo, Func, Param1, Param2
+
       INTEGER Buff(1024)
+
       ...
-      Monitor Call('DeviceFunction', Func, Buff(1), DevNo, Param1, Param2)
-      IF (ErrCode .NE. 0) THEN ...
+
+      Monitor Call(''DeviceFunction'', Func, Buff(1), DevNo, Param1, Param2)
+
+      IF (ErrCode .NE. 0) THEN ...'
   planc:
     available: true
-    code: |-
-      INTEGER : DevNo, Func, Param1, Param2
-      BYTES : Buff(0:2047)
-      ...
-      ON ROUTINEERROR DO
-         IF ErrCode >‹ 0 THEN ...
-      ENDON
-      Monitor_Call(‘DeviceFunction‘, Func, Buff(0), DevNo, Param1, Param2)
+    code: "INTEGER : DevNo, Func, Param1, Param2\nBYTES : Buff(0:2047)\n...\nON ROUTINEERROR DO\n   IF\
+      \ ErrCode >‹ 0 THEN ...\nENDON\nMonitor_Call(‘DeviceFunction‘, Func, Buff(0), DevNo, Param1, Param2)"
   assembly_500:
     available: true
-    code: |-
-      DevNo : W BLOCK 1
+    code: 'DevNo : W BLOCK 1
+
       Func : W BLOCK 1
+
       Param1 : W BLOCK 1
+
       Param2 : W BLOCK 1
+
       Buff : W BLOCK 1024
+
       ErrCode : W BLOCK 1
+
       DeviceFunction : EQU 3789 + 144B
+
       ...
+
       CALLG DeviceFunction, 5, Func, Buff, DevNo, Param1, Param2
+
       IF K GO ERROR
+
       ...
-      ERROR : W1 =: ErrCode                      %ErrorCode in W1 register.
+
+      ERROR : W1 =: ErrCode                      %ErrorCode in W1 register.'
     octal_definition: 37B9 + 144B
   mac:
     available: true
-    code: |-
-      LDA (PAR                             %Load register A with address of parameter list.
+    code: 'LDA (PAR                             %Load register A with address of parameter list.
+
       MON 144                              %Monitor call DeviceFunction.
+
       STA STAT                             %Store status returned.
-      ...
-      STAT, 0
-      PAR, FUNC                            %Function to be performed.
-      BUFF                                 %Address of buffer used for data transfer.
-      DEVNO                                %Logical device number.
-      PARA1                                %Device dependent parameter.
-      PARA2                                %Device dependent parameter.
+
       ...
 
+      STAT, 0
+
+      PAR, FUNC                            %Function to be performed.
+
+      BUFF                                 %Address of buffer used for data transfer.
+
+      DEVNO                                %Logical device number.
+
+      PARA1                                %Device dependent parameter.
+
+      PARA2                                %Device dependent parameter.
+
+      ...
+
+
       FUNC, ...
+
       BUFF, 0
+
       **+120/                              %Make a buffer of 80 words.
+
       DEVNO, ...
+
       PARA1, ...
+
       PARA2, ...
 
 
-      | ND-100 and ND-500 | All users | All programs |
+
+      | ND-100 and ND-500 | All users | All programs |'
     mon_number: 144
 compatibility:
   nd100: true

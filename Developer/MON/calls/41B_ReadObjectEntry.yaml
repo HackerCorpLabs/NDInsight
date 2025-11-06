@@ -1,12 +1,17 @@
-# SINTRAN III Monitor Call: ReadObjectEntry
-# Octal: 41B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 41B
 name: ReadObjectEntry
 short_names:
 - ROBJE
-description: ''
+description: 'Gets information about an opened file. An object entry describes each file. It contains
+  the file name, the access rights, the date last opened for read and write, the size, and more. See the
+  file system description in the SINTRAN III System Supervisor (ND-830003). You specify the file number.
+
+
+  - There is one object entry for each version of a file.
+
+  - The device number location in the object entry contains the logical device number and the unit number
+  where the mass-storage file resides. The logical device number is placed in bit 11-0. The unit number
+  in bit 15-12. The location contains the logical device number for peripheral files.'
 see_also:
 - GetObjectEntry
 - SetObjectEntry
@@ -26,69 +31,102 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      FileNumber : INTEGER2;
+    code: 'FileNumber : INTEGER2;
+
       Buff : ARRAY [0..1] OF RECORD...END;
+
       ...
+
       ReadObjectEntry(FileNumber, Buff);
-      IF ErrCode <> 0 THEN ...
+
+      IF ErrCode <> 0 THEN ...'
   cobol:
     available: true
-    code: |-
-      01 FileNumber COMP.
+    code: '01 FileNumber COMP.
+
       01 Buff.
+
       02 array COMP OCCURS 32 TIMES.
+
       01 ErrCode COMP.
+
       ...
+
       MONITOR-CALL "ReadObjectEntry" USING FileNumber, Buff.
+
       CALL "CbError" USING ErrCode.
-      IF ErrCode NOT = 0 GO ...
+
+      IF ErrCode NOT = 0 GO ...'
   fortran:
     available: true
-    code: |-
-      INTEGER FileNumber
+    code: 'INTEGER FileNumber
+
       INTEGER Buff(32)
+
       ...
-      Monitor_Call('ReadObjectEntry', FileNumber, Buff(1))
-      IF (ErrCode .NE. 0) THEN ...
+
+      Monitor_Call(''ReadObjectEntry'', FileNumber, Buff(1))
+
+      IF (ErrCode .NE. 0) THEN ...'
   planc:
     available: true
-    code: |-
-      INTEGER : FileNumber
+    code: 'INTEGER : FileNumber
+
       BYTES : Buff(0:63)
+
       ...
+
       ON ROUTINEERROR DO
+
       IF ErrCode > 0 THEN ...
+
       ENDON
-      Monitor_Call('ReadObjectEntry', FileNumber, Buff(0))
+
+      Monitor_Call(''ReadObjectEntry'', FileNumber, Buff(0))'
   assembly_500:
     available: true
-    code: |-
-      FileNumber : W BLOCK 1
+    code: 'FileNumber : W BLOCK 1
+
       Buff : H BLOCK 40B
+
       ErrCode : W BLOCK 1
+
       ReadObjectEntry : EQU 37B9 + 41B
+
       ...
+
       CALLG ReadObjectEntry, 2, FileNumber, Buff
+
       IF K GO ERROR
+
       ...
-      ERROR : W1 =: ErrCode %ErrorCode in W1 register.
+
+      ERROR : W1 =: ErrCode %ErrorCode in W1 register.'
     octal_definition: 37B9 + 41B
   mac:
     available: true
-    code: |-
-      LDT FILNO %File number returned from earlier open.
+    code: 'LDT FILNO %File number returned from earlier open.
+
       LDA {BUFF %Address of buffer to receive object entry.
+
       MON 41 %Monitor call ReadObjectEntry.
+
       JMP ERROR %Error return from monitor call.
+
       ... %Normal return.
+
       ERROR, ... %Error number in register A.
+
       ...
+
       FILNO, ...
+
       BUFF, 0
+
       *+40/ %Make a 32 words large buffer.
 
-      | ND-100 and ND-500 | All users | All programs |
+
+      | ND-100 and ND-500 | All users | All programs |'
     mon_number: 41
 compatibility:
   nd100: true

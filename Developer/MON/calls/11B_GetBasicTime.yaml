@@ -1,12 +1,15 @@
-# SINTRAN III Monitor Call: GetBasicTime
-# Octal: 11B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 11B
 name: GetBasicTime
 short_names:
 - TIME
-description: ''
+description: '**Time**
+
+
+  Gets the current internal time. The internal time is specified in basic time units. There are 50 basic
+  time units in a second.
+
+
+  - The internal time is set to 0 each time SINTRAN III is started.'
 see_also:
 - GetCurrentTime
 - AdjustClock
@@ -19,49 +22,61 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      BasicTime : LONGINT;
+    code: 'BasicTime : LONGINT;
+
       ...
-      GetBasicTime(BasicTime);
+
+      GetBasicTime(BasicTime);'
   cobol:
     available: true
-    code: |-
-      01 BasicTime COMP PIC S9(10).
+    code: '01 BasicTime COMP PIC S9(10).
+
       ...
-      MONITOR-CALL "GetBasicTime" USING BasicTime.
+
+      MONITOR-CALL "GetBasicTime" USING BasicTime.'
   fortran:
     available: true
-    code: |-
-      INTEGER*4 BasicTime
+    code: 'INTEGER*4 BasicTime
+
       ...
-      Monitor_Call('GetBasicTime', BasicTime)
+
+      Monitor_Call(''GetBasicTime'', BasicTime)'
   planc:
     available: true
-    code: |-
-      INTEGER4 : BasicTime
+    code: 'INTEGER4 : BasicTime
+
       ...
-      Monitor_Call('GetBasicTime', BasicTime)
+
+      Monitor_Call(''GetBasicTime'', BasicTime)'
   assembly_500:
     available: true
-    code: |-
-      BasicTime : W BLOCK 1
+    code: 'BasicTime : W BLOCK 1
+
       GetBasicTime : EQU 37B9 + 11B
+
       ...
+
       CALLG GetBasicTime, 0
-      W1 =: BasicTime  %Result is returned in W1 register.
+
+      W1 =: BasicTime  %Result is returned in W1 register.'
     octal_definition: 37B9 + 11B
   mac:
     available: true
-    code: |-
-      | MON | 11   | %Monitor call GetTime.                                |
+    code: '| MON | 11   | %Monitor call GetTime.                                |
+
       |-----|------|-------------------------------------------------------|
+
       | STD | TIME | %Store time returned in the A and D register.         |
+
       | ... |      |                                                       |
+
       | TIME, 0 | | %Time in basic time units as a double word.            |
+
       | 0      |    | %                                                   |
 
 
-      | ND-100 and ND-500 | All users | All programs |
+
+      | ND-100 and ND-500 | All users | All programs |'
     mon_number: null
 compatibility:
   nd100: true

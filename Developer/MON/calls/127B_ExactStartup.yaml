@@ -1,12 +1,19 @@
-# SINTRAN III Monitor Call: ExactStartup
-# Octal: 127B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 127B
 name: ExactStartup
 short_names:
 - DABST
-description: ''
+description: 'Starts an RT program at a specific time. The time is given in basic time units. A basic
+  time unit is 1/50th of a second. The RT program is moved from the time queue to the execution queue
+  at the specified time.
+
+
+  - It may already be later than the time specified. The RT program is then scheduled for the next day.
+
+  - The RT program may already be in the time queue. It is then reinserted according to the new time specifications.
+
+  - AdjustClock and @CLADJ affect the startup. The RT program starts according to the new time.
+
+  - Use GetBasicTime to read the internal time in basic time units.'
 see_also:
 - StartupTime. StartupTime allows you to specify the time in hours
 - minutes or seconds
@@ -23,52 +30,67 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      RTProgram, BasicTimeUnits : INTEGER2;
+    code: 'RTProgram, BasicTimeUnits : INTEGER2;
+
       ...
-      ExactStartup(RTProgram, BasicTimeUnits);
+
+      ExactStartup(RTProgram, BasicTimeUnits);'
   cobol:
     available: true
-    code: |-
-      01 RTProgram COMP.
+    code: '01 RTProgram COMP.
+
       01 BasicTimeUnits COMP.
+
       ...
-      MONITOR-CALL "ExactStartup" USING RTProgram, BasicTimeUnits.
+
+      MONITOR-CALL "ExactStartup" USING RTProgram, BasicTimeUnits.'
   fortran:
     available: true
-    code: |-
-      INTEGER RTProgram, BasicTimeUnits
+    code: 'INTEGER RTProgram, BasicTimeUnits
+
       ...
-      Monitor_Call('ExactStartup', RTProgram, BasicTimeUnits)
+
+      Monitor_Call(''ExactStartup'', RTProgram, BasicTimeUnits)'
   planc:
     available: true
-    code: |-
-      INTEGER : RTProgram, BasicTimeUnits
+    code: 'INTEGER : RTProgram, BasicTimeUnits
+
       ...
-      Monitor_Call('ExactStartup', RTProgram, BasicTimeUnits)
+
+      Monitor_Call(''ExactStartup'', RTProgram, BasicTimeUnits)'
   assembly_500:
     available: true
-    code: |-
-      RTProgram : W BLOCK 1
+    code: 'RTProgram : W BLOCK 1
+
       BasicTimeUnits : W BLOCK 1
+
       ExactStartup : EQU 3789 + 127B
+
       ...
-      CALLG ExactStartup, 2, RTProgram, BasicTimeUnits
+
+      CALLG ExactStartup, 2, RTProgram, BasicTimeUnits'
     octal_definition: 37B9 + 127B
   mac:
     available: true
-    code: |-
-      | LDA | (PAR | %Load register A with address of parameter list. |
+    code: '| LDA | (PAR | %Load register A with address of parameter list. |
+
       | MON | 127 | %Monitor call ExactStartup. |
+
       | ... | | |
+
       | PAR, RTProgram | %Address of RT description. |
+
       | TIME | %Time when the program is to be executed. |
+
       | ... | | |
+
       | RTPRO, ... | %A double word giving time in basic time units. |
+
       | TIME, ... | % |
 
 
-      ND-100 and ND-500 | User RT and user SYSTEM | RT programs
+
+      ND-100 and ND-500 | User RT and user SYSTEM | RT programs'
     mon_number: null
 compatibility:
   nd100: true

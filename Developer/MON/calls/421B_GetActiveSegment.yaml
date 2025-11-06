@@ -1,12 +1,11 @@
-# SINTRAN III Monitor Call: GetActiveSegment
-# Octal: 421B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 421B
 name: GetActiveSegment
 short_names:
 - GASGM
-description: ''
+description: Gets the name of the segments in your domain. A 2048 byte buffer is returned. It contains
+  32 pointers to segment names in the buffer. Each pointer consists of 12 bytes. The first four is an
+  address. The second four is the offset from this address to the start of the segment name. The last
+  four are the offset to the end of the segment name.
 notes:
 - Unused segments have the address 0.
 see_also: []
@@ -18,36 +17,38 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      Buffer : ARRAY [0..31] OF RECORD...END;
+    code: 'Buffer : ARRAY [0..31] OF RECORD...END;
+
       ...
-      GetActiveSegment(Buffer);
+
+      GetActiveSegment(Buffer);'
   cobol:
     available: true
-    code: |-
-      01 Buffer.
-         02 array COMP OCCURS 1024 TIMES.
-         ...
-      MONITOR-CALL "GetActiveSegment" USING Buffer.
+    code: "01 Buffer.\n   02 array COMP OCCURS 1024 TIMES.\n   ...\nMONITOR-CALL \"GetActiveSegment\"\
+      \ USING Buffer."
   fortran:
     available: true
-    code: |-
-      INTEGER Buffer(1024)
+    code: 'INTEGER Buffer(1024)
+
       ...
-      Monitor_Call('GetActiveSegment', Buffer(1))
+
+      Monitor_Call(''GetActiveSegment'', Buffer(1))'
   planc:
     available: true
-    code: |-
-      BYTES : Buffer(0:2047)
+    code: 'BYTES : Buffer(0:2047)
+
       ...
-      Monitor_Call('GetActiveSegment', Buffer(0))
+
+      Monitor_Call(''GetActiveSegment'', Buffer(0))'
   assembly_500:
     available: true
-    code: |-
-      Buffer : W BLOCK 1024
+    code: 'Buffer : W BLOCK 1024
+
       GetActiveSegment : EQU 37B9 + 421B
+
       ...
-      CALLG GetActiveSegment, 1, Buffer
+
+      CALLG GetActiveSegment, 1, Buffer'
     octal_definition: 37B9 + 421B
   mac:
     available: false

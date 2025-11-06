@@ -1,12 +1,9 @@
-# SINTRAN III Monitor Call: GRAPHICFUNCTION
-# Octal: 155B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 155B
 name: GRAPHICFUNCTION
 short_names:
 - GRAPH
-description: ''
+description: Executes various functions on a graphic peripheral, such as a NORDCOM terminal, a pen plotter,
+  or a Textronix display.
 see_also: []
 parameters: []
 examples: {}

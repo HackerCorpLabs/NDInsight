@@ -1,12 +1,12 @@
-# SINTRAN III Monitor Call: OutNumber
-# Octal: 35B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 35B
 name: OutNumber
 short_names:
 - IOUT
-description: ''
+description: 'Writes a number to the user''s terminal. The number can be output as an octal or a decimal
+  value.
+
+
+  - The number may be in the range -32768 to 32767.'
 see_also:
 - OutMessage
 - OutUpTo8Bytes
@@ -26,53 +26,54 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |2-
-          Format, Number : INTEGER2;
-          ...
-          OutNumber(Format, Number);
+    code: "    Format, Number : INTEGER2;\n    ...\n    OutNumber(Format, Number);"
   cobol:
     available: true
-    code: |2-
-          01 Format COMP.
-          01 Number COMP.
-          ...
-          MONITOR-CALL "OutNumber" USING Format, Number.
+    code: "    01 Format COMP.\n    01 Number COMP.\n    ...\n    MONITOR-CALL \"OutNumber\" USING Format,\
+      \ Number."
   fortran:
     available: true
-    code: |2-
-          INTEGER Format, Number
-          ...
-          Monitor_Call('OutNumber', Format, Number)
+    code: "    INTEGER Format, Number\n    ...\n    Monitor_Call('OutNumber', Format, Number)"
   planc:
     available: true
-    code: |-
-      INTEGER : Format, Number
+    code: 'INTEGER : Format, Number
+
       ...
-      Monitor_Call('OutNumber', Format, Number)
+
+      Monitor_Call(''OutNumber'', Format, Number)'
   assembly_500:
     available: true
-    code: |-
-      Format : W BLOCK 1 %12B=decimal, 10B=octal, 20B=hexadecimal, 2=bitpattern.
+    code: 'Format : W BLOCK 1 %12B=decimal, 10B=octal, 20B=hexadecimal, 2=bitpattern.
+
       Number : W BLOCK 1
+
       OutNumber : EQU 37B9 + 35B
 
 
-      CALLG OutNumber, 2, Format, Number
+
+      CALLG OutNumber, 2, Format, Number'
     octal_definition: 37B9 + 35B
   mac:
     available: true
-    code: |-
-      | Instruction | Operand | Comment                          |
+    code: '| Instruction | Operand | Comment                          |
+
       |-------------|---------|----------------------------------|
+
       | LDT         | FORM    | %Format of number to be printed. |
+
       | LDA         | NUM     | %Number to be printed.           |
+
       | MON         | 35      | %Monitor call OutNumber.         |
+
       | ...         |         |                                  |
+
       | FORM,       | 12      | %Interpret NUM as a decimal digit.|
+
       | NUM,        | ...     |                                  |
 
 
-      | ND-100 and ND-500 | All users | Background programs |
+
+      | ND-100 and ND-500 | All users | Background programs |'
     mon_number: null
 compatibility:
   nd100: true

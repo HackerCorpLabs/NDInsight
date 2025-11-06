@@ -1,12 +1,14 @@
-# SINTRAN III Monitor Call: GetTimeUsed
-# Octal: 114B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 114B
 name: GetTimeUsed
 short_names:
 - TUSED
-description: ''
+description: 'Gets the time you have used the CPU since you logged in. In batch jobs, you get the time
+  since you entered the job.
+
+
+  - The CPU time used is given in basic time units. A basic time unit is 1/50th of a second.
+
+  - Can also be used from RT-programs.'
 see_also:
 - '@TIME-USED'
 parameters:
@@ -17,50 +19,62 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      TimeUsed : LONGINT;
+    code: 'TimeUsed : LONGINT;
+
       ...
-      GetTimeUsed(TimeUsed);
+
+      GetTimeUsed(TimeUsed);'
   cobol:
     available: true
-    code: |-
-      01 TimeUsed COMP PIC S9(10).
+    code: '01 TimeUsed COMP PIC S9(10).
+
       ...
-      MONITOR-CALL "GetTimeUsed" USING TimeUsed.
+
+      MONITOR-CALL "GetTimeUsed" USING TimeUsed.'
   fortran:
     available: true
-    code: |-
-      INTEGER*4 TimeUsed
+    code: 'INTEGER*4 TimeUsed
+
       ...
-      Monitor_Call('GetTimeUsed', TimeUsed)
+
+      Monitor_Call(''GetTimeUsed'', TimeUsed)'
   planc:
     available: true
-    code: |-
-      INTEGER4 : TimeUsed
+    code: 'INTEGER4 : TimeUsed
+
       ...
-      Monitor_Call('GetTimeUsed', TimeUsed)
+
+      Monitor_Call(''GetTimeUsed'', TimeUsed)'
   assembly_500:
     available: true
-    code: |-
-      TimeUsed : W BLOCK 1
+    code: 'TimeUsed : W BLOCK 1
+
       GetTimeUsed : EQU 37B9 + 114B
+
       ...
+
       CALLG GetTimeUsed, 0
-      W1 =: TimeUsed           %Result is returned in W1 register.
+
+      W1 =: TimeUsed           %Result is returned in W1 register.'
     octal_definition: 37B9 + 114B
   mac:
     available: true
-    code: |-
-      MON     114   %Monitor call GetTimeUsed.
+    code: 'MON     114   %Monitor call GetTimeUsed.
+
       STD     TIME  %Store CPU time.
+
       ...
+
       TIME, 0       %A double word.
+
       0             %
 
 
 
+
       | **ND-100 and ND-500** | **All users**   | **Background programs** |
-      |-----------------------|-----------------|------------------------|
+
+      |-----------------------|-----------------|------------------------|'
     mon_number: 114
 compatibility:
   nd100: true

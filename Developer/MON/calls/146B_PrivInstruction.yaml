@@ -1,66 +1,83 @@
-# SINTRAN III Monitor Call: PrivInstruction
-# Octal: 146B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 146B
 name: PrivInstruction
 short_names:
 - IPRIV
-description: ''
+description: 'Executes a privileged machine instruction on the ND-100. Privileged instructions may, for
+  example, turn the paging and interrupt mechanisms on and off.
+
+
+  - The instruction uses the register contents of the calling program. The registers may be changed.'
 see_also:
 - IOInstruction
 parameters: []
 examples:
   pascal:
     available: true
-    code: |-
-      Instruction : INTEGER2;
+    code: 'Instruction : INTEGER2;
+
       ...
-      PrivInstruction(Instruction);
+
+      PrivInstruction(Instruction);'
   cobol:
     available: true
-    code: |-
-      01 Instruction COMP.
+    code: '01 Instruction COMP.
+
       ...
-      MONITOR-CALL "PrivInstruction" USING Instruction.
+
+      MONITOR-CALL "PrivInstruction" USING Instruction.'
   fortran:
     available: true
-    code: |-
-      INTEGER Instruction
+    code: 'INTEGER Instruction
+
       ...
-      Monitor_Call('PrivInstruction', Instruction)
+
+      Monitor_Call(''PrivInstruction'', Instruction)'
   planc:
     available: true
-    code: |-
-      INTEGER : Instruction
+    code: 'INTEGER : Instruction
+
       ...
-      Monitor_Call('PrivInstruction', Instruction)
+
+      Monitor_Call(''PrivInstruction'', Instruction)'
   assembly_500:
     available: true
-    code: |-
-      TReg : W BLOCK 1
+    code: 'TReg : W BLOCK 1
+
       AReg : W BLOCK 1
+
       DReg : W BLOCK 1
+
       XReg : W BLOCK 1
+
       ErrCode : W BLOCK 1
+
       PrivInstruction : EQU 37B9 + 146B
+
       ...
+
       CALLG PrivInstruction, 4, TReg, AReg, DReg, XReg
+
       IF K GO Error
+
       ...
-      Error, W1 =: ErrCode
+
+      Error, W1 =: ErrCode'
     octal_definition: 37B9 + 146B
   mac:
     available: true
-    code: |-
-      | LDT  | INSTR  | %Instruction to be executed.                   |
+    code: '| LDT  | INSTR  | %Instruction to be executed.                   |
+
       |------|--------|------------------------------------------------|
+
       | MON  | 146    | %Monitor call PrivInstruction.                 |
+
       | ...  |        |                                                |
+
       | INSTR, | 150404 | %Turn off memory management system. Dangerous! |
 
 
-      ND-100 and ND-500   User RT and user SYSTEM   RT programs
+
+      ND-100 and ND-500   User RT and user SYSTEM   RT programs'
     mon_number: null
 compatibility:
   nd100: true

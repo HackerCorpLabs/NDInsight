@@ -1,12 +1,15 @@
-# SINTRAN III Monitor Call: OutputString
-# Octal: 504B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 504B
 name: OutputString
 short_names:
 - DVOUTS
-description: ''
+description: 'Writes a string to a device, e.g. a terminal or an opened file.
+
+
+  - This is the most efficient way to output strings on the ND-500.
+
+  - The maximum string length is 2048 bytes.
+
+  - Appendix F contains an ASCII table.'
 see_also:
 - OutMessage
 - OutUpTo8Bytes
@@ -36,48 +39,58 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      DeviceNo, NoOfBytes : LONGINT;
+    code: 'DeviceNo, NoOfBytes : LONGINT;
+
       Buff : ARRAY [0..8] OF RECORD...END;
+
       ...
-      OutputString(DeviceNo, NoOfBytes, Buff);
+
+      OutputString(DeviceNo, NoOfBytes, Buff);'
   cobol:
     available: true
-    code: |-
-      01  DeviceNo  COMP.
-      01  NoOfBytes COMP.
-      01  Buff.
-          02  array COMP OCCURS 100 TIMES.
-          ...
-      MONITOR-CALL "OutputString" USING DeviceNo, NoOfBytes, Buff.
+    code: "01  DeviceNo  COMP.\n01  NoOfBytes COMP.\n01  Buff.\n    02  array COMP OCCURS 100 TIMES.\n\
+      \    ...\nMONITOR-CALL \"OutputString\" USING DeviceNo, NoOfBytes, Buff."
   fortran:
     available: true
-    code: |-
-      INTEGER DeviceNo, NoOfBytes
+    code: 'INTEGER DeviceNo, NoOfBytes
+
       INTEGER Buff(100)
+
       ...
-      Monitor_Call('OutputString', DeviceNo, NoOfBytes, Buff(1))
+
+      Monitor_Call(''OutputString'', DeviceNo, NoOfBytes, Buff(1))'
   planc:
     available: true
-    code: |-
-      INTEGER : DeviceNo, NoOfBytes
+    code: 'INTEGER : DeviceNo, NoOfBytes
+
       BYTES : Buff(0:199)
+
       ...
-      Monitor_Call('OutputString', DeviceNo, NoOfBytes, Buff(0))
+
+      Monitor_Call(''OutputString'', DeviceNo, NoOfBytes, Buff(0))'
   assembly_500:
     available: true
-    code: |-
-      DeviceNo : W BLOCK 1
+    code: 'DeviceNo : W BLOCK 1
+
       NoOfBytes : W BLOCK 1
+
       Buff : BY BLOCK 4000B
+
       Status : W BLOCK 1
+
       OutputString : EQU 37B9 + 504B
+
       ...
+
       CALLG OutputString, 3, DeviceNo, NoOfBytes, Buff
+
       IF K GO Error
+
       W1 =: Status
+
       ...
-      Error, ...
+
+      Error, ...'
     octal_definition: 37B9 + 504B
   mac:
     available: false
