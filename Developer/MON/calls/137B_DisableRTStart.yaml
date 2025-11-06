@@ -4,13 +4,12 @@
 
 octal: 137B
 name: DisableRTStart
-short_names: []
+short_names:
+- RTOFF
 description: ''
-notes: []
 see_also:
 - EnableRTStart
 - and @RTOFF
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -23,73 +22,57 @@ parameters:
 examples:
   pascal:
     available: true
-    code: "RTProgram : INTEGER2;\n\n    DisableRTStart(RTProgram);"
-    notes: ''
+    code: |-
+      RTProgram : INTEGER2;
+
+          DisableRTStart(RTProgram);
   cobol:
     available: true
-    code: "01 RTProgram COMP.\n\n    MONITOR-CALL \"DisableRTStart\" USING RTProgram."
-    notes: ''
+    code: |-
+      01 RTProgram COMP.
+
+          MONITOR-CALL "DisableRTStart" USING RTProgram.
   fortran:
     available: true
-    code: "    INTEGER RTProgram\n\n    Monitor_Call('DisableRTStart', RTProgram)"
-    notes: ''
+    code: |2-
+          INTEGER RTProgram
+
+          Monitor_Call('DisableRTStart', RTProgram)
   planc:
     available: true
-    code: 'INTEGER : RTProgram
-
+    code: |-
+      INTEGER : RTProgram
       ...
-
-      Monitor_Call(''DisableRTStart'', RTProgram)'
-    notes: ''
+      Monitor_Call('DisableRTStart', RTProgram)
   assembly_500:
     available: true
-    code: 'RTProgram : W BLOCK 1
-
+    code: |-
+      RTProgram : W BLOCK 1
       DisableRTStart : EQU 37B9 + 137B
-
       ...
-
-      CALLG DisableRTStart, 1, RTProgram'
+      CALLG DisableRTStart, 1, RTProgram
     octal_definition: 37B9 + 137B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA (PAR %Load register A with address of parameter list.
-
       MON 137 %Monitor call DisableRTStart.
-
       ...
-
       PAR, RTPRO %Address of RT description.
-
       ...
-
       RTPRO, ...
-
-      ```
 
 
 
       | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
-
-      |-------------------|-------------------------|-------------|'
+      |-------------------|-------------------------|-------------|
     mon_number: 137
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 157
@@ -101,4 +84,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

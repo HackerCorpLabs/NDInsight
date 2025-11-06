@@ -4,15 +4,13 @@
 
 octal: 24B
 name: Out8Bytes
-short_names: []
-description: 'Writes 8 bytes to a character device, e.g. a terminal. All 8 bytes are
-  output. OutUpTo8Bytes stops if a byte is 0.
-
+short_names:
+- B8OUT
+description: |-
+  Writes 8 bytes to a character device, e.g. a terminal. All 8 bytes are output. OutUpTo8Bytes stops if a byte is 0.
 
   - On the ND-500, you are advised to use the faster OutputString.
-
-  - Appendix F contains an ASCII table.'
-notes: []
+  - Appendix F contains an ASCII table.
 see_also:
 - OutUpTo8Bytes
 - OutByte
@@ -21,7 +19,6 @@ see_also:
 - OutMessage
 - OutNumber
 - and In8Bytes
-references: []
 parameters:
 - name: Logical device number
   type: See appendix B.
@@ -38,118 +35,79 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber : INTEGER2;
-
       OutData : RECORD...END;
-
       ...
-
       Out8Bytes(DeviceNumber, OutData);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DeviceNumber COMP.
-
       01 OutData PIC X(8).
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "Out8Bytes" USING DeviceNumber, OutData.
-
       CALL "CBerror" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DeviceNumber
-
       CHARACTER OutData*8
-
       ...
-
-      Monitor_Call(''Out8Bytes'', DeviceNumber, OutData(1:8))
-
+      Monitor_Call('Out8Bytes', DeviceNumber, OutData(1:8))
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DeviceNumber\nBYTES : OutData(0:7)\n...\nON ROUTINEERROR\
-      \ DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('Out8Bytes', DeviceNumber,\
-      \ OutData)\n```"
-    notes: ''
+    code: |-
+      INTEGER : DeviceNumber
+      BYTES : OutData(0:7)
+      ...
+      ON ROUTINEERROR DO
+        IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('Out8Bytes', DeviceNumber, OutData)
   assembly_500:
     available: true
-    code: "```\nDeviceNumber : W BLOCK 1\nOutData : STRINGDATA 'HELLO!!!'\nErrCode\
-      \ : W BLOCK 1\nOut8Bytes : EQU 37B9 + 24B\n...\n  CALLG Out8Bytes, 2, DeviceNumber,\
-      \ OutData\n  IF K GO ERROR\n...\nERROR : W1 =: ErrCode          %ErrorCode in\
-      \ W1 register.\n```"
+    code: |-
+      DeviceNumber : W BLOCK 1
+      OutData : STRINGDATA 'HELLO!!!'
+      ErrCode : W BLOCK 1
+      Out8Bytes : EQU 37B9 + 24B
+      ...
+        CALLG Out8Bytes, 2, DeviceNumber, OutData
+        IF K GO ERROR
+      ...
+      ERROR : W1 =: ErrCode          %ErrorCode in W1 register.
     octal_definition: 37B9 + 24B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT DEVNO          %Logical device address.
-
       LDD BYTES          %First 4 bytes to be written.
-
       LDX BYTES+2        %Next 2 bytes to be written.
-
       COPY SX DL
-
       LDX BYTES+3        %Last 2 bytes to be written.
-
       MON 24             %Monitor call Out8Bytes.
-
       JMP ERROR          %Error return from monitor call.
-
       ...
-
       ERROR, ...         %Error number in register A.
-
       ...
-
       DEVNO, ...
-
-      BYTES, ''HELLO!!!''
-
-      ```
+      BYTES, 'HELLO!!!'
 
 
 
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 24
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 373
@@ -161,4 +119,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

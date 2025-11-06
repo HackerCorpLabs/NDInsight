@@ -4,14 +4,12 @@
 
 octal: 312B
 name: CheckMonCall
-short_names: []
-description: Some monitor calls are optional or only available in later versions of
-  SINTRAN III. This monitor call checks if a monitor call exists in your particular
-  SINTRAN III system. Optional monitor calls are included or left out when SINTRAN
-  III is generated.
-notes: []
+short_names:
+- MOINF
+description: Some monitor calls are optional or only available in later versions of SINTRAN III. This
+  monitor call checks if a monitor call exists in your particular SINTRAN III system. Optional monitor
+  calls are included or left out when SINTRAN III is generated.
 see_also: []
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -24,102 +22,61 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       MonCallNumber, MonCallEntry : INTEGER2;
-
       ...
-
       CheckMonCall(MonCallNumber, MonCallEntry);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 MonCallNumber COMP.
-
       01 MonCallEntry COMP.
-
       ...
-
       MONITOR-CALL "CheckMonCall" USING MonCallNumber, MonCallEntry.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER MonCallNumber, MonCallEntry
-
       ...
-
-      Monitor_Call(''CheckMonCall'', MonCallNumber, MonCallEntry)
-
-      ```'
-    notes: ''
+      Monitor_Call('CheckMonCall', MonCallNumber, MonCallEntry)
   planc:
     available: true
-    code: 'INTEGER : MonCallNumber, MonCallEntry
-
+    code: |-
+      INTEGER : MonCallNumber, MonCallEntry
       ...
-
-      Monitor_Call(''CheckMonCall'', MonCallNumber, MonCallEntry)'
-    notes: ''
+      Monitor_Call('CheckMonCall', MonCallNumber, MonCallEntry)
   assembly_500:
     available: true
-    code: 'MonCallNumber : W BLOCK 1
-
+    code: |-
+      MonCallNumber : W BLOCK 1
       MonCallEntry : W BLOCK 1
-
       CheckMonCall : EQU 3789 + 312B
-
       ...
-
       CALLG CheckMonCall, 2, MonCallNumber, MonCallEntry
-
-      ...'
+      ...
     octal_definition: 37B9 + 312B
-    notes: ''
   mac:
     available: true
-    code: 'LDA MONNO %Load register A with monitor call number.
-
+    code: |-
+      LDA MONNO %Load register A with monitor call number.
       MON 312 %Monitor call CheckMonCall.
-
       ...
-
       %Return: Monitor call not implemented in system.
-
       STA ENTRY %Skipreturn: Monitor call is implemented.
-
       ...
-
 
       MONNO, ... %Monitor call number.
-
       ENTRY, 0 %Monitor call entry returned if implemented.
 
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 312
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 109
@@ -131,4 +88,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

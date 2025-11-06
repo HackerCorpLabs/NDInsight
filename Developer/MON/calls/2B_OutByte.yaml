@@ -4,23 +4,16 @@
 
 octal: 2B
 name: OutByte
-short_names: []
-description: 'Writes one byte to a character device, e.g. a terminal or an opened
-  file. If the device is a word-oriented device, one word is written.
+short_names:
+- OUTBT
+description: |-
+  Writes one byte to a character device, e.g. a terminal or an opened file. If the device is a word-oriented device, one word is written.
 
-
-  - The program waits if the output buffer of the device is full. You can change this
-  with NoWaitSwitch or TerminalNoWait.
-
+  - The program waits if the output buffer of the device is full. You can change this with NoWaitSwitch or TerminalNoWait.
   - The pointer to the next byte is incremented when you write to a mass-storage file.
-
-  - Output from card readers are converted to ASCII characters. Use DeviceControl
-  to write the 12-bit card columns.
-
+  - Output from card readers are converted to ASCII characters. Use DeviceControl to write the 12-bit card columns.
   - You are advised to use the faster OutputString on the ND-500.
-
-  - Appendix F contains an ASCII table.'
-notes: []
+  - Appendix F contains an ASCII table.
 see_also:
 - OutUpTo8Bytes
 - Out8Bytes
@@ -29,7 +22,6 @@ see_also:
 - OutMessage
 - OutNumber
 - and InByte
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -46,112 +38,76 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber, OutputValue : INTEGER2;
-
       ...
-
       OutByte(DeviceNumber, OutputValue);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DeviceNumber COMP.
-
       01 OutputValue COMP.
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "OutByte" USING DeviceNumber, OutputValue.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DeviceNumber, OutputValue
-
       ...
-
-      Monitor_Call(''OutByte'', DeviceNumber, OutputValue)
-
+      Monitor_Call('OutByte', DeviceNumber, OutputValue)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DeviceNumber, OutputValue\n...\nON ROUTINEERROR DO\n   \
-      \ IF ErrCode >< 0 THEN ...\nENDON\nMonitor_call('OutByte', DeviceNumber, OutputValue)\n\
-      ```"
-    notes: ''
+    code: |-
+      INTEGER : DeviceNumber, OutputValue
+      ...
+      ON ROUTINEERROR DO
+          IF ErrCode >< 0 THEN ...
+      ENDON
+      Monitor_call('OutByte', DeviceNumber, OutputValue)
   assembly_500:
     available: true
-    code: "```\nDeviceNumber : W BLOCK 1\nOutputValue  : W BLOCK 1\nErrCode      :\
-      \ W BLOCK 1\nOutByte      : EQU 37B9 + 2B\n...\n    CALLG OutByte, 2, DeviceNumber,\
-      \ OutputValue\n    IF K GO ERROR\n...\nERROR : W1 =: ErrCode       %ErrorCode\
-      \ in W1 register.\n```"
+    code: |-
+      DeviceNumber : W BLOCK 1
+      OutputValue  : W BLOCK 1
+      ErrCode      : W BLOCK 1
+      OutByte      : EQU 37B9 + 2B
+      ...
+          CALLG OutByte, 2, DeviceNumber, OutputValue
+          IF K GO ERROR
+      ...
+      ERROR : W1 =: ErrCode       %ErrorCode in W1 register.
     octal_definition: 37B9 + 2B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT DEVNO        %Logical device number.
-
       LDA BYTE         %Byte to be written.
-
       MON 2            %Monitor call OutByte.
-
       JMP ERROR        %Error return from monitor call.
-
       ...              %Normal return.
-
       ERROR,           %Error number in A register.
 
-
       DEVNO,   ...
-
-      BYTE,   ''A''
-
-      ```
+      BYTE,   'A'
 
 
 
       | ND-100 and ND-500 | All users | All programs |
-
       |-------------------|-----------|--------------|
 
-
-      Scanned by Jonny Oddene for Sintran Data © 2020'
+      Scanned by Jonny Oddene for Sintran Data © 2020
     mon_number: 2
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 377
@@ -163,4 +119,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

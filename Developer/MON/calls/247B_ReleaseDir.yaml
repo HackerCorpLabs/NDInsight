@@ -4,12 +4,11 @@
 
 octal: 247B
 name: ReleaseDir
-short_names: []
+short_names:
+- RLDIR
 description: Releases a directory. The directory must have been reserved with ReserveDir.
-notes: []
 see_also:
 - ReleaseResource
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -22,110 +21,59 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DirectoryIndex : INTEGER2;
-
       ...
-
       RelDirectory(DirectoryIndex);      [Note routine name.]
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DirectoryIndex COMP.
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "ReleaseDir" USING DirectoryIndex.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DirectoryIndex
-
       ...
-
-      Monitor_Call(''ReleaseDir'', DirectoryIndex)
-
+      Monitor_Call('ReleaseDir', DirectoryIndex)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       DirectoryIndex : W BLOCK 1
-
       ErrCode : W BLOCK 1
-
       ReleaseDir : EQU 3789 + 247B
-
       ...
-
       CALLG ReleaseDir, 1, DirectoryIndex
-
       IF K GO ERROR
-
       ...
-
       ERROR : W1 =: ErrCode       %ErrorCode in W1 register.
-
-      ```'
     octal_definition: 37B9 + 247B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT DIRIX      %Directory index.
-
       MON 247        %Monitor call ReleaseDir.
-
       JMP ERROR      %Error return from monitor call.
-
       ...            %Normal return.
-
       ERROR, ...     %Error number in register A.
-
       ...
-
       DIRIX, ...
 
-      ```
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 247
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 409
@@ -137,4 +85,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

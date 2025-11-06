@@ -4,16 +4,13 @@
 
 octal: 23B
 name: In8Bytes
-short_names: []
-description: 'Reads 8 bytes from a device. The input is fast, but the monitor call
-  does not apply the defined echo and break setting.
+short_names:
+- B8INB
+description: |-
+  Reads 8 bytes from a device. The input is fast, but the monitor call does not apply the defined echo and break setting.
 
-
-  - Do not use this monitor call for terminals and TAD''s when echo and break should
-  be applied.
-
-  - Appendix F contains an ASCII table.'
-notes: []
+  - Do not use this monitor call for terminals and TAD's when echo and break should be applied.
+  - Appendix F contains an ASCII table.
 see_also:
 - In8AndFlag
 - InUpTo8Bytes
@@ -22,14 +19,13 @@ see_also:
 - InputString
 - In4x2Bytes
 - and Out8Bytes
-references: []
 parameters:
 - name: Logical device number. See appendix B.
   type: ''
   io: I
   description: ''
-- name: Number of bytes read. If the monitor call is used on a word-oriented device,
-    the number of words is returned.
+- name: Number of bytes read. If the monitor call is used on a word-oriented device, the number of words
+    is returned.
   type: ''
   io: I
   description: ''
@@ -44,156 +40,91 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber, NoOfBytes: INTEGER2;
-
       DataRead: PACKED ARRAY [0..7] OF CHAR;
-
       ...
-
       In8Bytes(DeviceNumber, NoOfBytes, DataRead);
-
       IF ErrCode <> O THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DeviceNumber COMP.
-
       01 NoOfBytes COMP.
-
       01 DataRead PIC X(8).
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "In8Bytes" USING DeviceNumber, NoOfBytes, DataRead.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DeviceNumber, NoOfBytes
-
       CHARACTER DataRead*8
-
       ...
-
-      Monitor_Call(''In8Bytes'', DeviceNumber, NoOfBytes, DataRead(1:8))
-
+      Monitor_Call('In8Bytes', DeviceNumber, NoOfBytes, DataRead(1:8))
       IF (ErrCode .NE. O) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DeviceNumber, NoOfBytes\nBYTES : DataRead(0:7)\n...\nON\
-      \ ROUTINEERROR DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('In8Bytes',\
-      \ DeviceNumber, NoOfBytes, DataRead)\n```"
-    notes: ''
+    code: |-
+      INTEGER : DeviceNumber, NoOfBytes
+      BYTES : DataRead(0:7)
+      ...
+      ON ROUTINEERROR DO
+          IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('In8Bytes', DeviceNumber, NoOfBytes, DataRead)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber : W BLOCK 1
-
       NoOfBytes : W BLOCK 1
-
       DataRead : STRING 8
-
       ErrCode : W BLOCK 1
-
       In8Bytes : EQU 37B9 + 23B
-
       ...
-
       CALLG In8Bytes, 3, DeviceNumber, NoOfBytes, DataRead
-
       IF K GO ERROR
-
       ...
-
       ERROR : W1 =: ErrCode
 
-      ```
 
-
-      %ErrorCode in W1 register.'
+      %ErrorCode in W1 register.
     octal_definition: 37B9 + 23B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT DEVNO         %Logical device number.
-
       MON 23            %Monitor call In8Bytes.
-
       JMP ERROR         %Error return from monitor call.
-
       STD BYTES         %Normal return, store first 4 bytes read.
-
       COPY SL DA
-
       STA BYTES+2       %Store next 2 bytes read.
-
       STX BYTES+3       %Store last 2 bytes read.
-
       STT COUNT         %Store number of bytes (or words) read.
-
       ...
-
       ERROR, ...        %Error number in register A.
-
       ...
-
       DEVNO, ...
-
       COUNT, 0
-
       BYTES, 0
-
       0
-
       0
-
       0
-
-      ```
 
 
       | ND-100 and ND-500 | All users | All programs |
-
       |-------------------|-----------|--------------|
 
-
-      Scanned by Jonny Oddene for Sintran Data © 2020'
+      Scanned by Jonny Oddene for Sintran Data © 2020
     mon_number: 23
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 313
@@ -205,4 +136,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

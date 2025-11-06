@@ -4,19 +4,15 @@
 
 octal: 336B
 name: TERMINAL
-short_names: []
-description: 'This I/O multifunction monitor call is used to change the attributes
-  of terminal and terminal access device (TAD) input/output. It is also used to configure
-  NET/One interfaces and SCSI disks.
+short_names:
+- IOMTY
+description: |-
+  This I/O multifunction monitor call is used to change the attributes of terminal and terminal access device (TAD) input/output. It is also used to configure NET/One interfaces and SCSI disks.
 
-
-  This monitor call needs a varying number of input and output parameters depending
-  upon function. All parameters are therefore placed in an array.'
-notes: []
+  This monitor call needs a varying number of input and output parameters depending upon function. All parameters are therefore placed in an array.
 see_also:
 - SetBreak
 - SetEcho
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -25,8 +21,8 @@ parameters:
 - name: Param2
   type: UNKNOWN
   io: I
-  description: Length of function parameter array (must be greater than or equal number
-    of input/output parameters specified for function).
+  description: Length of function parameter array (must be greater than or equal number of input/output
+    parameters specified for function).
 - name: Param3
   type: UNKNOWN
   io: I
@@ -50,27 +46,29 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: "| Instruction | Operand | Comment |\n|-------------|---------|---------|\n\
-      | LDT         | NTERM   | %Load register T with new terminal. |\n| SAA     \
-      \    | 0       |  |\n| COPY        | SA DL   | %Copy function code 0 to the\
-      \ L register |\n| LDA         | 0       | %No translation to uppercase letters.\
-      \ |\n| MON         | 336     | %TerminalFunction with function code 0. |\n|\
-      \ STA         | ERROR   | %Returns here if errors. |\n\n- **NTERM, ...**\n \
-      \ %Logical device number of a terminal.\n\n- **ERROR, ...**\n\n| ND-100 and\
-      \ ND-500 | All users | Background programs |"
+    code: |-
+      | Instruction | Operand | Comment |
+      |-------------|---------|---------|
+      | LDT         | NTERM   | %Load register T with new terminal. |
+      | SAA         | 0       |  |
+      | COPY        | SA DL   | %Copy function code 0 to the L register |
+      | LDA         | 0       | %No translation to uppercase letters. |
+      | MON         | 336     | %TerminalFunction with function code 0. |
+      | STA         | ERROR   | %Returns here if errors. |
+
+      - **NTERM, ...**
+        %Logical device number of a terminal.
+
+      - **ERROR, ...**
+
+      | ND-100 and ND-500 | All users | Background programs |
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 503
@@ -82,4 +80,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

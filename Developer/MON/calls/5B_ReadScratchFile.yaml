@@ -4,17 +4,17 @@
 
 octal: 5B
 name: ReadScratchFile
-short_names: []
-description: Reads randomly from the scratch file. One block is transferred. There
-  is one scratch file connected to each terminal. It is opened for random read and
-  write access when you log in. Its file number is 100B.
+short_names:
+- RDISK
+description: Reads randomly from the scratch file. One block is transferred. There is one scratch file
+  connected to each terminal. It is opened for random read and write access when you log in. Its file
+  number is 100B.
 notes:
-- The standard block size is 512 bytes. You can change this with SetBlockSize. The
-  first block is number 0.
+- The standard block size is 512 bytes. You can change this with SetBlockSize. The first block is number
+  0.
 see_also:
 - ReadBlock
 - ReadFromFile. ReadFromFile is the most efficient monitor call
-references: []
 parameters:
 - name: Block number
   type: Block number to start the reading.
@@ -31,49 +31,41 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       BlockNumber : INTEGER2;
-
       DataDestination : RECORD...END;
-
       ...
-
       ReadScratchFile(BlockNumber, DataDestination);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 BlockNumber COMP.\n01 DataDestination.\n   02 array COMP OCCURS\
-      \ 256 TIMES.\n01 ErrCode COMP.\n...\nMONITOR-CALL \"ReadScratchFile\" USING\
-      \ BlockNumber, DataDestination.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode\
-      \ NOT = 0 GO ...\n```"
-    notes: ''
+    code: |-
+      01 BlockNumber COMP.
+      01 DataDestination.
+         02 array COMP OCCURS 256 TIMES.
+      01 ErrCode COMP.
+      ...
+      MONITOR-CALL "ReadScratchFile" USING BlockNumber, DataDestination.
+      CALL "CbError" USING ErrCode.
+      IF ErrCode NOT = 0 GO ...
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER BlockNumber
-
       INTEGER DataDestination(256)
-
       ...
-
-      Monitor_Call(''ReadScratchFile'', BlockNumber, DataDestination(1))
-
+      Monitor_Call('ReadScratchFile', BlockNumber, DataDestination(1))
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : BlockNumber\nBYTES : DataDestination(0:511)\n...\nON ROUTINEERROR\
-      \ DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('ReadScratchFile', BlockNumber,\
-      \ DataDestination(0))\n```"
-    notes: ''
+    code: |-
+      INTEGER : BlockNumber
+      BYTES : DataDestination(0:511)
+      ...
+      ON ROUTINEERROR DO
+          IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('ReadScratchFile', BlockNumber, DataDestination(0))
   assembly_500:
     available: false
     code: ''
@@ -81,42 +73,27 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: '| Instruction | Description                                  |
-
+    code: |-
+      | Instruction | Description                                  |
       |-------------|----------------------------------------------|
-
       | LDT BLKNO   | %Block number to be read.                    |
-
       | LDX (BUFF   | %Address of buffer to receive block read.    |
-
       | MON 5       | %Monitor call ReadScratchFile.               |
-
       | JMP ERROR   | %Error return from monitor call.             |
-
       | ...         | %Normal return.                              |
-
       | ERROR, ...  | %Error number in register A.                 |
-
       | BLKNO, ...  |                                              |
-
       | BUFF, 0     | `*+400/` %Make a buffer of 256 words, 1 block. |
 
 
-
-      ND-100 | All users | Background programs'
+      ND-100 | All users | Background programs
     mon_number: 5
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 403
@@ -128,4 +105,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

@@ -4,141 +4,85 @@
 
 octal: 112B
 name: AdjustClock
-short_names: []
+short_names:
+- CLADJ
 description: ''
-notes: []
 see_also:
 - SetClock
 - GetCurrentTime
 - StartupTime
 - GetBasicTime
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
-  description: Number of time units the clock will be adjusted by. Negative values
-    make the clock halt for the specified time.
+  description: Number of time units the clock will be adjusted by. Negative values make the clock halt
+    for the specified time.
 - name: Param2
   type: UNKNOWN
   io: I
-  description: The type of time units. 1 = basic time units, i.e. 1/50th of a second,
-    2 = seconds, 3 = minutes, 4 = hours.
+  description: The type of time units. 1 = basic time units, i.e. 1/50th of a second, 2 = seconds, 3 =
+    minutes, 4 = hours.
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       TimeUnits, UnitType : INTEGER2;
-
       ...
-
       AdjustClock(TimeUnits, UnitType);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 TimeUnits COMP.
-
       01 UnitType COMP.
-
       ...
-
       MONITOR-CALL "AdjustClock" USING TimeUnits, UnitType.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER TimeUnits, UnitType
-
       ...
-
-      Monitor_Call(''AdjustClock'', TimeUnits, UnitType)
-
-      ```'
-    notes: ''
+      Monitor_Call('AdjustClock', TimeUnits, UnitType)
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : TimeUnits, UnitType
-
       ...
-
-      Monitor_Call(''AdjustClock'', TimeUnits, UnitType)
-
-      ```'
-    notes: ''
+      Monitor_Call('AdjustClock', TimeUnits, UnitType)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       TimeUnits : W BLOCK 1
-
       UnitType : W BLOCK 1
-
       ErrCode : W BLOCK 1
-
       AdjustClock : EQU 3789 + 112B
-
       ...
-
       CALLG AdjustClock, 2, TimeUnits, UnitType
-
       IF K GO ERROR
-
       ...
-
       Error : W1 =: ErrCode
-
-      ```'
     octal_definition: 37B9 + 112B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA (PAR %Load register A with address of parameter list.
-
       MON 112 %Monitor call AdjustClock.
-
       ...
-
       PAR,  TIME  %Number of time units the clock is adjusted by.
-
       BASE        %Time units.
-
       ...
-
       TIME, ...
-
       BASE, ...
 
-      ```
 
-
-      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'
+      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
     mon_number: 112
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 75
@@ -150,4 +94,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

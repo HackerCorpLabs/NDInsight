@@ -4,19 +4,17 @@
 
 octal: 113B
 name: GetCurrentTime
-short_names: []
-description: 'Gets the current system time and date.
+short_names:
+- CLOCK
+description: |-
+  Gets the current system time and date.
 
-
-  - The current system time is returned as basic time units, seconds, minutes, hours,
-  day, month, and year.'
-notes: []
+  - The current system time is returned as basic time units, seconds, minutes, hours, day, month, and year.
 see_also:
 - GetBasicTime
 - AdjustClock
 - SetClock
 - and @DATCL
-references: []
 parameters:
 - name: 0:1
   type: basic time units
@@ -49,106 +47,67 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       TimeBuffer : record;
-
       ...
-
       GetCurrentTime(TimeBuffer);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 TimeBuffer.\n   02 array COMP OCCURS 7 TIMES.\n   ...\nMONITOR-CALL\
-      \ \"GetCurrentTime\" USING TimeBuffer.\n```"
-    notes: ''
+    code: |-
+      01 TimeBuffer.
+         02 array COMP OCCURS 7 TIMES.
+         ...
+      MONITOR-CALL "GetCurrentTime" USING TimeBuffer.
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER TimeBuffer(7)
-
       ...
-
-      Monitor_Call(''GetCurrentTime'', TimeBuffer(1))
-
-      ```'
-    notes: ''
+      Monitor_Call('GetCurrentTime', TimeBuffer(1))
   planc:
     available: true
-    code: 'INTEGER ARRAY : TimeBuffer(0:6)
-
+    code: |-
+      INTEGER ARRAY : TimeBuffer(0:6)
       ...
-
-      Monitor_Call(''GetCurrentTime'', TimeBuffer(0))'
-    notes: ''
+      Monitor_Call('GetCurrentTime', TimeBuffer(0))
   assembly_500:
     available: true
-    code: 'TimeBuffer : W BLOCK 7
-
+    code: |-
+      TimeBuffer : W BLOCK 7
       GetCurrentTime : EQU 37B9 + 113B
-
       ...
-
-      CALLG GetCurrentTime, 1, TimeBuffer'
+      CALLG GetCurrentTime, 1, TimeBuffer
     octal_definition: 37B9 + 113B
-    notes: ''
   mac:
     available: true
-    code: '| Instruction | Parameter | Comment                                      |
-
+    code: |-
+      | Instruction | Parameter | Comment                                      |
       |-------------|-----------|----------------------------------------------|
-
-      | LDA         | (PAR      | %Load register A with address of parameter list.
-      |
-
+      | LDA         | (PAR      | %Load register A with address of parameter list. |
       | MON         | 113       | %Monitor call GetCurrentTime.                 |
-
       | ...         |           |                                              |
-
       | PAR,        | CLOK      |                                              |
-
       | ...         |           |                                              |
-
       | CLOK, 0     |           | %Basic time units.                           |
-
       |             | 0         | %Seconds.                                    |
-
       |             | 0         | %Minutes.                                    |
-
       |             | 0         | %Hours.                                      |
-
       |             | 0         | %Day.                                        |
-
       |             | 0         | %Month.                                      |
-
       |             | 0         | %Year.                                       |
 
 
-
       | ND-100 and ND-500 | All users | All programs |
-
       |-------------------|-----------|--------------|
 
-
-      Scanned by Jonny Oddene for Sintran Data © 2020'
+      Scanned by Jonny Oddene for Sintran Data © 2020
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 227
@@ -160,4 +119,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

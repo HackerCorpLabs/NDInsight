@@ -2,14 +2,12 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://ndinsight.com/schemas/mon-call.schema.json",
   "title": "SINTRAN III Monitor Call",
-  "description": "Schema for SINTRAN III Monitor Call YAML files",
+  "description": "Schema for SINTRAN III Monitor Call YAML files (Cleaned up version)",
   "type": "object",
   "required": [
     "octal",
     "name",
     "description",
-    "parameters",
-    "examples",
     "compatibility",
     "source"
   ],
@@ -29,7 +27,7 @@
       "items": {
         "type": "string"
       },
-      "description": "Alternative/abbreviated names"
+      "description": "Assembly language mnemonics (e.g., DXABS, EXPFI, LEAVE)"
     },
     "description": {
       "type": "string",
@@ -41,7 +39,7 @@
       "items": {
         "type": "string"
       },
-      "description": "Additional notes and warnings"
+      "description": "Additional notes and warnings (optional, rarely used)"
     },
     "see_also": {
       "type": "array",
@@ -49,13 +47,6 @@
         "type": "string"
       },
       "description": "Related monitor calls and commands"
-    },
-    "references": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "External documentation references"
     },
     "parameters": {
       "type": "array",
@@ -69,20 +60,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "STRING",
-              "INT",
-              "INT2",
-              "INT4",
-              "LONGINT",
-              "ARR",
-              "BYTES",
-              "REAL",
-              "DOUBLE",
-              "BOOLEAN",
-              "CHAR"
-            ],
-            "description": "Parameter data type"
+            "description": "Parameter data type (note: many are UNKNOWN due to extraction limitations)"
           },
           "io": {
             "type": "string",
@@ -164,83 +142,63 @@
     },
     "compatibility": {
       "type": "object",
-      "required": ["platforms", "users", "programs"],
+      "required": ["nd100", "nd500", "user_programs", "rt_programs", "system_programs"],
       "properties": {
-        "platforms": {
-          "type": "object",
-          "properties": {
-            "nd100": {
-              "type": "boolean"
-            },
-            "nd500": {
-              "type": "boolean"
-            }
-          }
+        "nd100": {
+          "type": "boolean",
+          "description": "Compatible with ND-100 platform"
         },
-        "users": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "nd500": {
+          "type": "boolean",
+          "description": "Compatible with ND-500 platform"
         },
-        "programs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "user_programs": {
+          "type": "boolean",
+          "description": "Can be called from user programs"
         },
-        "notes": {
-          "type": "string"
+        "rt_programs": {
+          "type": "boolean",
+          "description": "Can be called from RT (real-time) programs"
+        },
+        "system_programs": {
+          "type": "boolean",
+          "description": "Can be called from system programs"
         }
       },
-      "description": "Platform and usage compatibility information"
-    },
-    "errors": {
-      "type": "object",
-      "properties": {
-        "returns_error": {
-          "type": "boolean"
-        },
-        "error_codes": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "code": {
-                "type": "integer"
-              },
-              "description": {
-                "type": "string"
-              }
-            }
-          }
-        },
-        "error_reference": {
-          "type": "string"
-        }
-      },
-      "description": "Error handling information"
+      "description": "Platform and usage compatibility (simplified boolean flags)"
     },
     "source": {
       "type": "object",
-      "required": ["document", "page", "line"],
+      "required": ["document"],
       "properties": {
         "document": {
-          "type": "string"
+          "type": "string",
+          "description": "Source document identifier"
         },
         "page": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "description": "Page number in source document"
         },
         "line": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "description": "Line number in extracted markdown"
+        },
+        "page_references": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional page references"
         },
         "scan_date": {
-          "type": "string"
+          "type": "string",
+          "description": "Date the document was scanned"
         },
         "scanned_by": {
-          "type": "string"
+          "type": "string",
+          "description": "Person/organization who scanned the document"
         }
       },
       "description": "Source document metadata"
@@ -250,17 +208,24 @@
       "properties": {
         "date": {
           "type": "string",
-          "format": "date"
+          "format": "date",
+          "description": "Date of extraction"
         },
         "version": {
-          "type": "string"
+          "type": "string",
+          "description": "Version of extraction process"
         },
         "validated": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether the extraction has been validated"
         },
         "ocr_corrected": {
           "type": "boolean",
           "description": "Whether the header was missing/corrupted and corrected"
+        },
+        "ocr_notes": {
+          "type": "string",
+          "description": "Notes about OCR corrections or extraction issues"
         }
       },
       "description": "Extraction process metadata"

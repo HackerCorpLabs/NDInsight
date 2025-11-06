@@ -4,9 +4,10 @@
 
 octal: 32B
 name: OutMessage
-short_names: []
-description: Writes a message to the user's terminal. This is convenient for error
-  messages in background programs.
+short_names:
+- MSG
+description: Writes a message to the user's terminal. This is convenient for error messages in background
+  programs.
 notes:
 - The maximum string length is 512 characters.
 - Appendix F contains an ASCII table.
@@ -17,102 +18,58 @@ see_also:
 - OutputString
 - OutNumber
 - and OutByte
-references: []
 parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       Message : PACKED ARRAY [0..79] OF CHAR;
-
       ...
-
       OutMessage(Message);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 Message PIC X(100).
-
       ...
-
       MONITOR-CALL "OutMessage" USING Message.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       CHARACTER Message*80
-
       ...
-
-      Monitor_Call(''OutMessage'', Message(1:80))
-
-      ```'
-    notes: ''
+      Monitor_Call('OutMessage', Message(1:80))
   planc:
     available: true
-    code: '```
-
+    code: |-
       BYTES : Message(0:79)
-
       ...
-
-      Monitor_Call(''OutMessage'', Message)
-
-      ```'
-    notes: ''
+      Monitor_Call('OutMessage', Message)
   assembly_500:
     available: true
-    code: '| Message                | STRINGDATA ''This is a test...'' | %Message
-      to be sent.        |
-
+    code: |-
+      | Message                | STRINGDATA 'This is a test...' | %Message to be sent.        |
       |------------------------|--------------------------------|-----------------------------|
-
       | OutMessage             | EQU 37B9 + 32B                 |                             |
-
-      | CALLG OutMessage, 1, Message |                          |                             |'
+      | CALLG OutMessage, 1, Message |                          |                             |
     octal_definition: 37B9 + 32B
-    notes: ''
   mac:
     available: true
-    code: '```
-
-      LDX  (TEXT     %Address string to be sent to user''s terminal.
-
+    code: |-
+      LDX  (TEXT     %Address string to be sent to user's terminal.
       MON  32        %Monitor call OutMessage.
-
       ...
-
-      TEXT, ''THIS IS A TEXT''  %String to be written.
-
-      ```
+      TEXT, 'THIS IS A TEXT'  %String to be written.
 
 
       | ND-100 and ND-500 | All users | Background programs |
-
-      |-------------------|-----------|---------------------|'
+      |-------------------|-----------|---------------------|
     mon_number: 32
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - Background programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 379
@@ -124,4 +81,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

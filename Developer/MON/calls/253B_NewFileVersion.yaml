@@ -4,37 +4,29 @@
 
 octal: 253B
 name: NewFileVersion
-short_names: []
-description: 'Creates new versions of a file. You may create new versions for both
-  indexed, contiguous and allocated files.
+short_names:
+- CRALN
+description: |-
+  Creates new versions of a file. You may create new versions for both indexed, contiguous and allocated files.
 
-
-  - You must have directory access to the user area where you create the file. User
-  SYSTEM and RT get the owners access rights.
-
-  - The number following the semicolon in a file name is the version number. For example,
-  TEST:SYMB:4 version 4 of the file.
-
+  - You must have directory access to the user area where you create the file. User SYSTEM and RT get the owners access rights.
+  - The number following the semicolon in a file name is the version number. For example, TEST:SYMB:4 version 4 of the file.
   - The file must exist in advance.
-
-  - Use DeleteFile to delete file versions.'
-notes: []
+  - Use DeleteFile to delete file versions.
 see_also:
 - CreateFile
 - '@CREATE-NEW-VERSIONS'
 - and @ALLOCATE-NEW-VERSIONS
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
-  description: The file name including the version number. The version number defines
-    the total number of versions. It includes the existing versions.
+  description: The file name including the version number. The version number defines the total number
+    of versions. It includes the existing versions.
 - name: Param2
   type: UNKNOWN
   io: I
-  description: Start address of the first new version. Use 0 for contiguous and indexed
-    files.
+  description: Start address of the first new version. Use 0 for contiguous and indexed files.
 - name: Param3
   type: UNKNOWN
   io: I
@@ -46,122 +38,82 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FileName : PACKED ARRAY [0..63] OF CHAR;
-
       FirstPage, NoOfPages : LONGINT;
-
       ...
-
       NewFileVersion(FileName, FirstPage, NoOfPages);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 FileName       PIC X(64).
-
       01 FirstPage      COMP PIC S9(10).
-
       01 NoOfPages      COMP PIC S9(10).
-
       01 ErrCode        COMP.
-
       ...
-
       MONITOR-CALL "NewFileVersion" USING FileName, FirstPage, NoOfPages.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       CHARACTER FileName*64
-
       INTEGER*4 FirstPage, NoOfPages
-
       ...
-
-      Monitor_Call(''NewFileVersion'', FileName(1:64), FirstPage, NoOfPages)
-
+      Monitor_Call('NewFileVersion', FileName(1:64), FirstPage, NoOfPages)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER4 : FirstPage, NoOfPages\nBYTES : FileName(0:63)\n...\nON ROUTINEERROR\
-      \ DO\n   IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('NewFileVersion', FileName,\
-      \ FirstPage, NoOfPages)\n```"
-    notes: ''
+    code: |-
+      INTEGER4 : FirstPage, NoOfPages
+      BYTES : FileName(0:63)
+      ...
+      ON ROUTINEERROR DO
+         IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('NewFileVersion', FileName, FirstPage, NoOfPages)
   assembly_500:
     available: true
-    code: "```\nFileName : STRINGDATA 'EXAMPLE:SYMB;2'''  %Make a 2nd version of ...\n\
-      FirstPage : W BLOCK 1\nNoOfPages : W BLOCK 1\nErrCode : W BLOCK 1          \
-      \           % EXAMPLE:SYMB.\nNewFileVersion : EQU 37B9 + 253B\n...\n  CALLG\
-      \ NewFileVersion, 3, FileName, FirstPage, NoOfPages\n  IF K GO ERROR\n...\n\
-      ERROR : W1 =: ErrCode                %ErrorCode in W1 register.\n```"
+    code: |-
+      FileName : STRINGDATA 'EXAMPLE:SYMB;2'''  %Make a 2nd version of ...
+      FirstPage : W BLOCK 1
+      NoOfPages : W BLOCK 1
+      ErrCode : W BLOCK 1                     % EXAMPLE:SYMB.
+      NewFileVersion : EQU 37B9 + 253B
+      ...
+        CALLG NewFileVersion, 3, FileName, FirstPage, NoOfPages
+        IF K GO ERROR
+      ...
+      ERROR : W1 =: ErrCode                %ErrorCode in W1 register.
     octal_definition: 37B9 + 253B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDX (FILE                       %Address of string containing file name.
-
       LDD PAGNO                       %Page number of first page.
-
       LDT (PAGES                      %Address of number of pages.
-
       MON 253                         %Monitor call NewFileVersion.
-
       JMP ERROR                       %Error return from monitor call.
-
       ...                             %Normal return.
-
       ERROR, ...                      %Error number in register A.
 
-
-      FILE, ''EXAMPLE:SYMB;2''          %Create 2nd version of file EXAMPLE:SYMB
-
+      FILE, 'EXAMPLE:SYMB;2'          %Create 2nd version of file EXAMPLE:SYMB
       PAGNO, ...                      %
-
       ...                             %A double word.
-
       PAGES, ...                      %
-
       ...                             %A double word.
 
-      ```
 
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 253
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 351
@@ -173,4 +125,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

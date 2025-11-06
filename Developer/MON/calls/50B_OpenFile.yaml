@@ -4,22 +4,21 @@
 
 octal: 50B
 name: OpenFile
-short_names: []
-description: Opens a file. You cannot access a file before you open it. Specify what
-  kind of access you want, e.g. sequential write or random read.
+short_names:
+- OPEN
+description: Opens a file. You cannot access a file before you open it. Specify what kind of access you
+  want, e.g. sequential write or random read.
 notes:
 - CloseFile closes the file.
 - Opened files are closed when a program terminates.
 - You may have a maximum of 18 files opened at a time.
-- Files are protected from access by unauthorized users. Use @FILE-STATISTICS to list
-  the file access.
+- Files are protected from access by unauthorized users. Use @FILE-STATISTICS to list the file access.
 - ND-500 has its own file numbers which may differ from the SINTRAN III file numbers.
 see_also:
 - ScratchOpen
 - SetPermanentOpen
 - DirectOpen
 - and @OPEN-FILE
-references: []
 parameters:
 - name: '0'
   type: Sequential write.
@@ -54,8 +53,8 @@ parameters:
   io: I
   description: ''
 - name: '8'
-  type: Random read or write on contiguous files. Direct transfer for ReadFromFile,
-    WriteToFile and DeviceFunction in RT programs.
+  type: Random read or write on contiguous files. Direct transfer for ReadFromFile, WriteToFile and DeviceFunction
+    in RT programs.
   io: I
   description: ''
 - name: '9'
@@ -65,148 +64,91 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FileNo, AccessCode : INTEGER;
-
       FileName : PACKED ARRAY [0..63] OF CHAR;
-
       FileType : PACKED ARRAY [0..3] OF CHAR;
-
       ...
-
       OpenFile(FileNo, AccessCode, FileName, FileType);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 FileNo COMP.
-
       01 AccessCode COMP.
-
       01 FileName PIC X(64).
-
       01 FileType PIC X(4).
-
       01 ErrCode COMP.
-
       MOVE 0 TO FileNo.
-
       MONITOR-CALL "OpenFile" USING FileNo, AccessCode, FileName, FileType.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER FileNo, AccessCode
-
       CHARACTER FileName*64, FileType*4
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```plaintext\nINTEGER : FileNo, AccessCode\nBYTES : FileName(0:63), FileType(0:3)\n\
-      ...\nON ROUTINEERROR DO\n   IF ErrCode > 0 THEN ...\nENDON\n\n0 =: FileNo\n\
-      Monitor_Call('OpenFile', FileNo, AccessCode, FileName, FileType)\n```"
-    notes: ''
+    code: |-
+      plaintext
+      INTEGER : FileNo, AccessCode
+      BYTES : FileName(0:63), FileType(0:3)
+      ...
+      ON ROUTINEERROR DO
+         IF ErrCode > 0 THEN ...
+      ENDON
+
+      0 =: FileNo
+      Monitor_Call('OpenFile', FileNo, AccessCode, FileName, FileType)
   assembly_500:
     available: true
-    code: '| Variable   | Type      | Description                                                |
-
+    code: |-
+      | Variable   | Type      | Description                                                |
       |------------|-----------|------------------------------------------------------------|
-
       | FileNo     | W BLOCK 1 | %Returned ND-500 open file number if 0 on input.           |
-
       | S3No       | W BLOCK 1 | %SINTRAN III open file number as optional parameter.       |
-
       | AccessCode | W BLOCK 1 |                                                           |
-
-      | FileName   | STRINGDATA| ''EXAMPLE''                                                  |
-
-      | FileType   | STRINGDATA| ''SYMB''                                                     |
-
+      | FileName   | STRINGDATA| 'EXAMPLE'                                                  |
+      | FileType   | STRINGDATA| 'SYMB'                                                     |
       | ErrCode    | W BLOCK 1 |                                                           |
-
       | OpenFile   | EQU 37B9 + 50B |                                                      |
 
-
-      ```plaintext
-
+      plaintext
       ...
-
       CALLG OpenFile, 4, FileNo, AccessCode, FileName, FileType
-
       IF K GO ERROR
-
       ...
-
       ERROR = W1 =: ErrCode %ErrorCode in W1 register.
-
-      ```'
     octal_definition: 37B9 + 50B
-    notes: ''
   mac:
     available: true
-    code: '```plaintext
-
+    code: |-
+      plaintext
       LDX (FILE %If 0, the name is read from the terminal.
-
       LDA (TYPE %Address of default file type string.
-
       LDT ACCES %Access code.
-
       MON 50 %Monitor call OpenFile.
-
       JMP ERROR %Error return from monitor call.
-
       STA FILNO %Normal return, store the file number returned.
-
       ...
-
       ERROR, ... %Error number in register A.
-
       FILNO, 0
-
       ACCES, ...
-
-      FILE, ''EXAMPLE'' %Open EXAMPLE:SYMB
-
-      TYPE, ''SYMB'' %
-
-      ```
+      FILE, 'EXAMPLE' %Open EXAMPLE:SYMB
+      TYPE, 'SYMB' %
 
 
 
       ND-100 and ND-500 | All users | All programs
-
-      ---|---|---'
+      ---|---|---
     mon_number: 50
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 369
@@ -218,4 +160,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

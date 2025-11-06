@@ -4,111 +4,98 @@
 
 octal: 214B
 name: GetUserName
-short_names: []
+short_names:
+- GUSNA
 description: ''
-notes: []
 see_also:
 - GetUserEntry
 - ExecutionInfo
-references: []
 parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DirectoryIndex, UserIndex : INTEGER2;
-
       UserName : PACKED ARRAY [0..15] OF CHAR;
-
       ...
-
       FindUserName(UserName, DirectoryIndex, UserIndex); [Note routine name.]
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 DirectoryIndex COMP.\n01 UserIndex COMP.\n01 UserName PIC X(16).\n\
-      01 RemoteFlag COMP.\n01 RemoteSystem PIC X(64).\n01 ErrCode COMP.\n...\nMONITOR-CALL\
-      \ \"GetUserName\" USING UserName, DirectoryIndex, UserIndex,\n             \
-      \ RemoteFlag, RemoteSystem.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT\
-      \ = 0 GO ...\n```"
-    notes: ''
+    code: |-
+      01 DirectoryIndex COMP.
+      01 UserIndex COMP.
+      01 UserName PIC X(16).
+      01 RemoteFlag COMP.
+      01 RemoteSystem PIC X(64).
+      01 ErrCode COMP.
+      ...
+      MONITOR-CALL "GetUserName" USING UserName, DirectoryIndex, UserIndex,
+                    RemoteFlag, RemoteSystem.
+      CALL "CbError" USING ErrCode.
+      IF ErrCode NOT = 0 GO ...
   fortran:
     available: true
-    code: "```\nINTEGER DirIndex, UserIndex, RemoteFlag\nCHARACTER UserName*16, RemoteSystem*64\n\
-      ...\nMonitor_Call('GetUserName', UserName(1:16), DirIndex, UserIndex,\n    \
-      \         RemoteFlag, RemoteSystem(1:64))\nIF (ErrCode .NE. 0) THEN ...\n```"
-    notes: ''
+    code: |-
+      INTEGER DirIndex, UserIndex, RemoteFlag
+      CHARACTER UserName*16, RemoteSystem*64
+      ...
+      Monitor_Call('GetUserName', UserName(1:16), DirIndex, UserIndex,
+                   RemoteFlag, RemoteSystem(1:64))
+      IF (ErrCode .NE. 0) THEN ...
   planc:
     available: true
-    code: "```\nINTEGER : DirectoryIndex, UserIndex, RemoteFlag\nBYTES : UserName(0:15),\
-      \ RemoteSystem(0:63)\n...\nON ROUTINEERROR DO\n  IF ErrCode >< 0 THEN ...\n\
-      ENDON\nMonitor_Call('GetUserName', UserName, DirectoryIndex, UserIndex,&\n \
-      \ RemoteFlag, RemoteSystem)\n```"
-    notes: ''
+    code: |-
+      INTEGER : DirectoryIndex, UserIndex, RemoteFlag
+      BYTES : UserName(0:15), RemoteSystem(0:63)
+      ...
+      ON ROUTINEERROR DO
+        IF ErrCode >< 0 THEN ...
+      ENDON
+      Monitor_Call('GetUserName', UserName, DirectoryIndex, UserIndex,&
+        RemoteFlag, RemoteSystem)
   assembly_500:
     available: true
-    code: "```\nDirectoryIndex : W BLOCK 1\nUserIndex : W BLOCK 1\nUserName : STRING\
-      \ 16\nSysId : STRING 16   %Optional parameter for remote system.\nErrCode :\
-      \ W BLOCK 1\nGetUserName : EQU 37B9 + 214B\n...\nCALLG GetUserName, 3, UserName,\
-      \ DirectoryIndex, UserIndex\n  IF K GO ERROR\n...\nERROR : W1 =: ErrCode  %ErrorCode\
-      \ in W1 register.\n```"
+    code: |-
+      DirectoryIndex : W BLOCK 1
+      UserIndex : W BLOCK 1
+      UserName : STRING 16
+      SysId : STRING 16   %Optional parameter for remote system.
+      ErrCode : W BLOCK 1
+      GetUserName : EQU 37B9 + 214B
+      ...
+      CALLG GetUserName, 3, UserName, DirectoryIndex, UserIndex
+        IF K GO ERROR
+      ...
+      ERROR : W1 =: ErrCode  %ErrorCode in W1 register.
     octal_definition: 37B9 + 214B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA (USER           %Address of string to receive user name.
-
       LDX INDEX           %Left byte: Dir index. Right byte: User index.
-
       LDT (REMID          %Remote identification if bit 15 in register X.
-
       MON 214             %Monitor call GetUserName.
-
       JMP ERROR           %Error return from monitor call.
-
       ...                 %Normal return.
-
       ERROR, ...          %Error number in register A.
-
       ...
 
-
       USER, 0             %A string of 16 characters.
-
       *+10/
-
       INDEX, ...          %Set bit 15 if remote user.
-
       REMID, 0            %Remote system identification string.
-
       *+32/
 
-      ```
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 214
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 299
@@ -120,4 +107,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

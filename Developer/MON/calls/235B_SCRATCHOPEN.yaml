@@ -4,26 +4,19 @@
 
 octal: 235B
 name: SCRATCHOPEN
-short_names: []
-description: Opens a file as a scratch file. A maximum of 64 pages of the file is
-  kept when you close the file. Use SET-CLOSED-FILE-SIZE in the SINTRAN-SERVICE-PROGRAM
-  to change this.
-notes: []
+short_names:
+- SCROP
+description: Opens a file as a scratch file. A maximum of 64 pages of the file is kept when you close
+  the file. Use SET-CLOSED-FILE-SIZE in the SINTRAN-SERVICE-PROGRAM to change this.
 see_also: []
-references: []
 parameters: []
 examples: {}
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 0
@@ -35,4 +28,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

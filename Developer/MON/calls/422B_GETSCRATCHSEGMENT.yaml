@@ -4,25 +4,19 @@
 
 octal: 422B
 name: GETSCRATCHSEGMENT
-short_names: []
-description: Connects an empty data segment to your domain. The monitor call reserves
-  space on the swap file for it.
-notes: []
+short_names:
+- GSWSM
+description: Connects an empty data segment to your domain. The monitor call reserves space on the swap
+  file for it.
 see_also: []
-references: []
 parameters: []
 examples: {}
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 0
@@ -34,4 +28,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

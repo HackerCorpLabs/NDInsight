@@ -4,22 +4,18 @@
 
 octal: 236B
 name: SetPermanentOpen
-short_names: []
-description: 'Sets a file permanently open. The file is not closed by CloseFile with
-  -1 as file number. You have to specify the file number or -2.
-
+short_names:
+- SPERD
+description: |-
+  Sets a file permanently open. The file is not closed by CloseFile with -1 as file number. You have to specify the file number or -2.
 
   - The file must already be open.
-
   - Only mass-storage files can be set permanently open.
-
-  - The file is not closed when your program terminates.'
-notes: []
+  - The file is not closed when your program terminates.
 see_also:
 - OpenFile
 - CloseFile
 - and @SET-PERMANENT-OPEN
-references: []
 parameters:
 - name: File number
   type: See OpenFile.
@@ -32,99 +28,68 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FileNumber : INTEGER2;
-
       ...
-
       SetPermanentOpen(FileNumber);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 FileNumber COMP.
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "SetPermanentOpen" USING FileNumber.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER FileNumber
-
       ...
-
-      Monitor_Call(''SetPermanentOpen'', FileNumber)
-
+      Monitor_Call('SetPermanentOpen', FileNumber)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : FileNumber\n...\nON ROUTINEERROR DO\n     IF ErrCode > 0\
-      \ THEN ...\nENDON\nMonitor_Call('SetPermanentOpen', FileNumber)\n```"
-    notes: ''
+    code: |-
+      INTEGER : FileNumber
+      ...
+      ON ROUTINEERROR DO
+           IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('SetPermanentOpen', FileNumber)
   assembly_500:
     available: true
-    code: "```\nFileNumber : W BLOCK 1\nErrCode : W BLOCK 1\nSetPermanentOpen : EQU\
-      \ 3789 + 236B\n...\nCALLG SetPermanentOpen, 1, FileNumber\n     IF K GO ERROR\n\
-      ...\nERROR : W1 =: ErrCode       %ErrorCode in W1 register.\n```"
+    code: |-
+      FileNumber : W BLOCK 1
+      ErrCode : W BLOCK 1
+      SetPermanentOpen : EQU 3789 + 236B
+      ...
+      CALLG SetPermanentOpen, 1, FileNumber
+           IF K GO ERROR
+      ...
+      ERROR : W1 =: ErrCode       %ErrorCode in W1 register.
     octal_definition: 37B9 + 236B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT     FILNO       %File number returned from earlier open.
-
       MON     236         %Monitor call SetPermanentOpen.
-
       JMP     ERROR       %Error return from monitor call.
-
       ...                 %Normal return.
-
       ERROR, ...          %Error number in register A.
-
       ...
-
       FILNO, ...
 
-      ```
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 236
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 459
@@ -136,4 +101,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

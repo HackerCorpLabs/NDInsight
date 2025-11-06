@@ -4,94 +4,72 @@
 
 octal: 242B
 name: OldUser
-short_names: []
-description: 'Switches back to the user name you were logged in under before NewUser.
-  The command is similar to logging out and then log in as another user. Your program
-  continues under the old user.
-
+short_names:
+- RUSCN
+description: |-
+  Switches back to the user name you were logged in under before NewUser. The command is similar to logging out and then log in as another user. Your program continues under the old user.
 
   - The monitor call has no function if NewUser has not been executed.
-
-  - You may execute NewUser more than once without OldUser in between. OldUser always
-  reset the first user name.'
-notes: []
+  - You may execute NewUser more than once without OldUser in between. OldUser always reset the first user name.
 see_also:
 - NewUser
 - QENTER
-references: []
 parameters: []
 examples:
   pascal:
     available: true
-    code: 'OldUser;
-
-      IF ErrCode <> 0 THEN ...'
-    notes: ''
+    code: |-
+      OldUser;
+      IF ErrCode <> 0 THEN ...
   cobol:
     available: true
-    code: '01 ErrCode COMP.
-
+    code: |-
+      01 ErrCode COMP.
       ...
-
       MONITOR-CALL "OldUser"
-
       CALL "CbError" USING ErrCode.
-
-      IF ErrCode NOT = 0 GO ...'
-    notes: ''
+      IF ErrCode NOT = 0 GO ...
   fortran:
     available: true
-    code: 'Monitor Call(''OldUser'')
-
-      IF (ErrCode .NE. 0) THEN ...'
-    notes: ''
+    code: |-
+      Monitor Call('OldUser')
+      IF (ErrCode .NE. 0) THEN ...
   planc:
     available: true
-    code: "```\nON ROUTINEERROR DO\n  IF ErrCode >< 0 THEN ...\nENDON\nMonitor_Call('OldUser')\n\
-      ```"
-    notes: ''
+    code: |-
+      ON ROUTINEERROR DO
+        IF ErrCode >< 0 THEN ...
+      ENDON
+      Monitor_Call('OldUser')
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       ErrCode : W BLOCK 1
-
       OldUser : EQU 37B9 + 242B
-
       ...
-
       CALLG OldUser, 0
-
       IF K GO ERROR
-
       ...
-
       ERROR : W1 =: ErrCode     %ErrorCode in W1 register.
-
-      ```'
     octal_definition: 37B9 + 242B
-    notes: ''
   mac:
     available: true
-    code: "```\nMON 242       %Monitor call OldUser.\nJMP ERROR     %Error return\
-      \ from monitor call.\n              %Normal return.\nERROR, ...    %Error number\
-      \ in register A.\n...\n```\n\n| ND-100 and ND-500 | All users | Background programs\
-      \ |"
+    code: |-
+      MON 242       %Monitor call OldUser.
+      JMP ERROR     %Error return from monitor call.
+                    %Normal return.
+      ERROR, ...    %Error number in register A.
+      ...
+
+
+      | ND-100 and ND-500 | All users | Background programs |
     mon_number: 242
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - Background programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 365
@@ -103,4 +81,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

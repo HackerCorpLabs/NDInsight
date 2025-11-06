@@ -4,13 +4,12 @@
 
 octal: 101B
 name: DelayStart
-short_names: []
+short_names:
+- SET
 description: ''
-notes: []
 see_also:
 - '@SET'
 - StartupTime
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -23,119 +22,71 @@ parameters:
 - name: Param3
   type: UNKNOWN
   io: I
-  description: The type of time units. 1 = basic time units, i.e. 1/50th of a second,
-    2 = seconds, 3 = minutes, 4 = hours.
+  description: The type of time units. 1 = basic time units, i.e. 1/50th of a second, 2 = seconds, 3 =
+    minutes, 4 = hours.
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       RTProgram, TimeUnits, UnitType : INTEGER2;
-
       ...
-
       DelayStart(RTProgram, TimeUnits, UnitType);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 RTProgram COMP.
-
       01 TimeUnits COMP.
-
       01 UnitType COMP.
-
       ...
-
       MONITOR-CALL "DelayStart" USING RTProgram, TimeUnits, UnitType.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER RTProgram, TimeUnits, UnitType
-
       ...
-
-      Monitor_Call(''DelayStart'', RTProgram, TimeUnits, UnitType)
-
-      ```'
-    notes: ''
+      Monitor_Call('DelayStart', RTProgram, TimeUnits, UnitType)
   planc:
     available: true
-    code: 'INTEGER : RTProgram, TimeUnits, UnitType
-
+    code: |-
+      INTEGER : RTProgram, TimeUnits, UnitType
       ...
-
-      Monitor_Call(''DelayStart'', RTProgram, TimeUnits, UnitType)'
-    notes: ''
+      Monitor_Call('DelayStart', RTProgram, TimeUnits, UnitType)
   assembly_500:
     available: true
-    code: 'RTProgram : W BLOCK 1
-
+    code: |-
+      RTProgram : W BLOCK 1
       TimeUnits : W BLOCK 1
-
       UnitType : W BLOCK 1
-
       DelayStart : EQU 37B9 + 101B
-
       ...
-
-      CALLG DelayStart, 3, RTProgram, TimeUnits, UnitType'
+      CALLG DelayStart, 3, RTProgram, TimeUnits, UnitType
     octal_definition: 37B9 + 101B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA  (PAR   %Load register A with address of parameter list.
-
       MON  101    %Monitor call DelayStart.
-
       ...
-
 
       PAR,
-
       RTPRO
-
       TIME
-
       BASE
-
       ...
 
-
       RTPRO, ...  %Address of RT description.
-
       TIME,  ...  %Number of time units.
-
       BASE,  ...  %Base time units.
 
-      ```
 
-
-      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'
+      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
     mon_number: 101
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 135
@@ -147,4 +98,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

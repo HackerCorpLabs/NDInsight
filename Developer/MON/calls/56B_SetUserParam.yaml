@@ -6,8 +6,8 @@ octal: 56B
 name: SetUserParam
 short_names:
 - PASET
-description: 'Sets information about a background program. Use GetUserParam to read
-  the 5 parameters when a program is terminated.
+description: 'Sets information about a background program. Use GetUserParam to read the 5 parameters when
+  a program is terminated.
 
 
   - SINTRAN III sets some of the parameter values if you give the command @ENABLE-TERMINATION-HANDLING
@@ -19,7 +19,7 @@ compatibility:
   nd500: true
   user_programs: true
   rt_programs: true
-  system_programs: true
+  system_programs: false
 source:
   document: ND-860228.2 EN
   page_references: []

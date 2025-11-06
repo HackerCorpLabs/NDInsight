@@ -4,37 +4,36 @@
 
 octal: 237B
 name: SetFileAccess
-short_names: []
+short_names:
+- SFACC
 description: ''
-notes: []
 see_also:
 - CreateFriend
 - SetObjectEntry
 - '@SET-FILE-ACCESS'
 - and @SET-DEFAULT-FILE-ACCESS
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
-  description: File name. It is most efficient to use unabbreviated file names, e.g.
-    EXAMPLE:TEXT. The default file type is :SYMB.
+  description: File name. It is most efficient to use unabbreviated file names, e.g. EXAMPLE:TEXT. The
+    default file type is :SYMB.
 - name: Param2
   type: UNKNOWN
   io: I
-  description: Public access. Use N or a combination of R, W, A, C, and D. Public
-    access is typically set to R or N.
+  description: Public access. Use N or a combination of R, W, A, C, and D. Public access is typically
+    set to R or N.
 - name: Param3
   type: UNKNOWN
   io: I
-  description: Friend access. Use N or a combination of R, W, A, C, and D. Friend
-    access is typically set to RWA or R.
+  description: Friend access. Use N or a combination of R, W, A, C, and D. Friend access is typically
+    set to RWA or R.
 - name: Param4
   type: UNKNOWN
   io: I
-  description: Own access. Use N or a combination of R, W, A, C, and D. Own access
-    is typically RWACD, though lesser combinations can be used (e.g. RWAC to protect
-    your own files from accidental deletion by yourself).
+  description: Own access. Use N or a combination of R, W, A, C, and D. Own access is typically RWACD,
+    though lesser combinations can be used (e.g. RWAC to protect your own files from accidental deletion
+    by yourself).
 - name: Param5
   type: UNKNOWN
   io: I
@@ -42,140 +41,85 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FileName : PACKED ARRAY [0..63] OF CHAR;
-
       PubAccess, FriendAccess, OwnAccess : PACKED ARRAY [0..4] OF CHAR;
-
       ...
-
       SetFileAccess(FileName, PubAccess, FriendAccess, OwnAccess);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 FileName PIC X(64).
-
       01 PubAcc PIC X(5).
-
       01 FriendAcc PIC X(5).
-
       01 OwnAcc PIC X(5).
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "SetFileAccess" USING FileName, PubAcc, FriendAcc, OwnAcc.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: "```\nCHARACTER FileName*64, PubAcc*5, FriendAcc*5, OwnAcc*5\n...\nMonitor_Call('SetFileAccess',\
-      \ FileName(1:64), PubAcc(1:5),\n             FriendAcc(1:5), OwnAcc(1:5))\n\
-      IF (ErrCode .NE. 0) THEN ...\n```\n\nScanned by Jonny Oddene for Sintran Data\
-      \ © 2020"
-    notes: ''
+    code: |-
+      CHARACTER FileName*64, PubAcc*5, FriendAcc*5, OwnAcc*5
+      ...
+      Monitor_Call('SetFileAccess', FileName(1:64), PubAcc(1:5),
+                   FriendAcc(1:5), OwnAcc(1:5))
+      IF (ErrCode .NE. 0) THEN ...
+
+
+      Scanned by Jonny Oddene for Sintran Data © 2020
   planc:
     available: true
-    code: 'BYTES : FileName(0:63), PubAccess(0:5), FriendAccess(0:5), OwnAccess(0:5)
-
+    code: |-
+      BYTES : FileName(0:63), PubAccess(0:5), FriendAccess(0:5), OwnAccess(0:5)
       ...
-
       ON ROUTINEERROR DO
-
       &nbsp; &nbsp; IF ErrCode > 0 THEN ...
-
       ENDON
-
-      Monitor_Call(''SetFileAccess'', FileName, PubAccess, FriendAccess, OwnAccess)'
-    notes: ''
+      Monitor_Call('SetFileAccess', FileName, PubAccess, FriendAccess, OwnAccess)
   assembly_500:
     available: true
-    code: 'FileName : STRINGDATA ''EXAMPLE:SYMB'''''' &nbsp; &nbsp; %Set access of
-      file EXAMPLE:SYMB to
-
-      PubAccess : STRINGDATA ''N'''''' &nbsp; &nbsp; % no public access
-
-      FriendAccess : STRINGDATA ''RA'''''' &nbsp; &nbsp; % read, append access for
-      friends
-
-      OwnAccess : STRINGDATA ''RWACD'''''' &nbsp; &nbsp; % full own access
-
+    code: |-
+      FileName : STRINGDATA 'EXAMPLE:SYMB''' &nbsp; &nbsp; %Set access of file EXAMPLE:SYMB to
+      PubAccess : STRINGDATA 'N''' &nbsp; &nbsp; % no public access
+      FriendAccess : STRINGDATA 'RA''' &nbsp; &nbsp; % read, append access for friends
+      OwnAccess : STRINGDATA 'RWACD''' &nbsp; &nbsp; % full own access
       ErrCode : W BLOCK 1
-
       SetFileAccess : EQU 37B9 + 237B
-
       ...
-
       &nbsp; &nbsp; CALLG SetFileAccess, 4, FileName, PubAccess, FriendAccess, OwnAccess
-
       &nbsp; &nbsp; IF K GO ERROR
-
       ...
-
-      ERROR : W1 =: ErrCode &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
-      %ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; %ErrorCode in W1 register.
     octal_definition: 37B9 + 237B
-    notes: ''
   mac:
     available: true
-    code: 'LDX (FILE &nbsp; &nbsp; %Address of string with file name.
-
+    code: |-
+      LDX (FILE &nbsp; &nbsp; %Address of string with file name.
       LDT (PUBAC &nbsp; &nbsp; %Address of string with public access characters.
-
       LDA (FRIAC &nbsp; &nbsp; %Address of string with own access characters.
-
       COPY SA DD
-
       LDA (OWNAC &nbsp; &nbsp; %Address of string with friend access characters.
-
       MON 237 &nbsp; &nbsp; %Monitor call SetFileAccess.
-
       JMP ERROR &nbsp; &nbsp; %Error return from monitor call.
-
       ... &nbsp; &nbsp; %Normal return.
-
       ERROR, ... &nbsp; &nbsp; %Error number in register A.
-
       ...
+      FILE, 'EXAMPLE:SYMB' &nbsp; %Change access for EXAMPLE:SYMB.
+      PUBAC, 'N' &nbsp; %No public access.
+      FRIAC, 'RA' &nbsp; %Read write append access for friend.
+      OWNAC, 'RWACD' &nbsp; %Full own access.
 
-      FILE, ''EXAMPLE:SYMB'' &nbsp; %Change access for EXAMPLE:SYMB.
-
-      PUBAC, ''N'' &nbsp; %No public access.
-
-      FRIAC, ''RA'' &nbsp; %Read write append access for friend.
-
-      OWNAC, ''RWACD'' &nbsp; %Full own access.
-
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 237
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 447
@@ -187,4 +131,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

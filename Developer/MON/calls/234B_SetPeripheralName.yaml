@@ -4,13 +4,12 @@
 
 octal: 234B
 name: SetPeripheralName
-short_names: []
+short_names:
+- SPEFI
 description: ''
-notes: []
 see_also:
 - SetTerminalFile
 - '@SET-PERIPHERAL-FILE'
-references: []
 parameters:
 - name: ➞ File name for the peripheral. See appendix G.
   type: UNKNOWN
@@ -27,133 +26,82 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FileName : PACKED ARRAY [0..63] OF CHAR;
-
       DeviceNumber : INTEGER2;
-
       ...
-
       SetPeripheralName(FileName, DeviceNumber);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 FileName PIC X(64).
-
       01 DeviceNumber COMP.
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "SetPeripheralName" USING FileName, DeviceNumber.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       CHARACTER FileName*64
-
       INTEGER DeviceNumber
-
       ...
-
-      Monitor_Call(''SetPeripheralName'', FileName(1:64), DeviceNumber)
-
+      Monitor_Call('SetPeripheralName', FileName(1:64), DeviceNumber)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nBYTES : FileName(0:63)\nINTEGER : DeviceNumber\n\n...\n\nON ROUTINEERROR\
-      \ DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('SetPeripheralName',\
-      \ FileName, DeviceNumber)\n```"
-    notes: ''
+    code: |-
+      BYTES : FileName(0:63)
+      INTEGER : DeviceNumber
+
+      ...
+
+      ON ROUTINEERROR DO
+          IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('SetPeripheralName', FileName, DeviceNumber)
   assembly_500:
     available: true
-    code: '```
-
-      FileName : STRINGDATA ''LINE-PRINTER''''''   %Use LINE-PRINTER as name of dev.
-
+    code: |-
+      FileName : STRINGDATA 'LINE-PRINTER'''   %Use LINE-PRINTER as name of dev.
       DeviceNumber : W DATA 5                  % no. 5 (line printer no. 1).
-
       ErrCode : W BLOCK 1
-
       SetPeripheralName : EQU 37B9 + 234B
 
-
       ...
-
 
       CALLG SetPeripheralName, 2, FileName, DeviceNumber
-
       IF K GO ERROR
 
-
       ...
-
 
       ERROR : W1 =: ErrCode                    %ErrorCode in W1 register.
-
-      ```'
     octal_definition: 37B9 + 234B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDX    (FILE          %Address of string with file name.
-
       LDA    DEVNO          %Logical device number.
-
       MON    234            %Monitor call SetPeripheralFile.
-
       JMP    ERROR          %Error return from monitor call.
-
       ...                  %Normal return.
-
       ERROR, ...           %Error number in register A.
-
       ...
-
-      FILE, ''LINE-PRINTER''  %Use LINE-PRINTER as name of device number 5.
-
+      FILE, 'LINE-PRINTER'  %Use LINE-PRINTER as name of device number 5.
       DEVNO, 5              %Device number of line printer no. 1.
 
-      ```
 
 
-
-      | ND-100 and ND-500 | User SYSTEM | All programs |'
+      | ND-100 and ND-500 | User SYSTEM | All programs |
     mon_number: 234
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User SYSTEM
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 457
@@ -165,4 +113,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

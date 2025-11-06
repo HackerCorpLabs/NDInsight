@@ -4,13 +4,12 @@
 
 octal: 402B
 name: GetInputFlags
-short_names: []
+short_names:
+- RFLAG
 description: ''
-notes: []
 see_also:
 - SetOutputFlags
 - ND500Function
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -19,77 +18,47 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       Value : LONGINT;
-
       ...
-
       GetInputFlags(Value);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 Value COMP.
-
       ...
-
       MONITOR-CALL "GetInputFlags" USING Value.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER Value
-
       ...
-
-      Monitor_Call(''GetInputFlags'', Value)
-
-      ```'
-    notes: ''
+      Monitor_Call('GetInputFlags', Value)
   planc:
     available: true
-    code: 'INTEGER : Value
-
+    code: |-
+      INTEGER : Value
       ...
-
-      Monitor_Call(''GetInputFlags'', Value)'
-    notes: ''
+      Monitor_Call('GetInputFlags', Value)
   assembly_500:
     available: true
-    code: 'Value : W BLOCK 1
-
+    code: |-
+      Value : W BLOCK 1
       GetInputFlags : EQU 37B9 + 402B
-
       ...
-
-      CALLG GetInputFlags, 1, Value'
+      CALLG GetInputFlags, 1, Value
     octal_definition: 37B9 + 402B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 251
@@ -101,4 +70,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

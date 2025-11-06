@@ -4,119 +4,80 @@
 
 octal: 104B
 name: SuspendProgram
-short_names: []
-description: Suspends the execution of your program for a given time. The execution
-  then continues after the time specified by the monitor call.
+short_names:
+- HOLD
+description: Suspends the execution of your program for a given time. The execution then continues after
+  the time specified by the monitor call.
 notes:
 - No reserved files or devices are released.
 - The execution continues immediately if the program has the restart flag set.
 - You may use NoWaitSwitch. Then the program restarts when a break occurs.
-- If a program has been rescheduled by the monitor call? SET (mon 101, DelayStart)
-  or ABSET (mon 102, StartupTime), this rescheduling will be destroyed when you use
-  SuspendProgram.
+- If a program has been rescheduled by the monitor call? SET (mon 101, DelayStart) or ABSET (mon 102,
+  StartupTime), this rescheduling will be destroyed when you use SuspendProgram.
 - The parameters should not contain zero.
 - Number of time units to suspend the program.
-- The type of time units. 1 = basic time units, i.e. 1/50th of a second, 2 = seconds,
-  3 = minutes, 4 = hours.
+- The type of time units. 1 = basic time units, i.e. 1/50th of a second, 2 = seconds, 3 = minutes, 4 =
+  hours.
 see_also:
 - TimeOut
 - WaitForRestart
 - '@HOLD'
-references: []
 parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       TimeUnits, UnitType : INTEGER2;
-
       ...
-
       SuspendProgram(TimeUnits, UnitType);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 TimeUnits COMP.
-
       01 UnitType COMP.
-
       ...
-
       MONITOR-CALL "SuspendProgram" USING TimeUnits, UnitType.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER TimeUnits, UnitType
-
       ...
-
-      Monitor_Call(''SuspendProgram'', TimeUnits, UnitType)
-
-      ```'
-    notes: ''
+      Monitor_Call('SuspendProgram', TimeUnits, UnitType)
   planc:
     available: true
-    code: 'INTEGER : TimeUnits, UnitType
-
+    code: |-
+      INTEGER : TimeUnits, UnitType
       ...
-
-      Monitor_Call(''SuspendProgram'', TimeUnits, UnitType)'
-    notes: ''
+      Monitor_Call('SuspendProgram', TimeUnits, UnitType)
   assembly_500:
     available: true
-    code: 'TimeUnits : W BLOCK 1
-
+    code: |-
+      TimeUnits : W BLOCK 1
       UnitType : W BLOCK 1
-
       SuspendProgram : EQU 37B9 + 104B
-
       ...
-
-      CALLG SuspendProgram, 2, TimeUnits, UnitType'
+      CALLG SuspendProgram, 2, TimeUnits, UnitType
     octal_definition: 37B9 + 104B
-    notes: ''
   mac:
     available: true
-    code: '| LDA    | (PAR          | %Load register A with address of parameter list.
-      |
-
+    code: |-
+      | LDA    | (PAR          | %Load register A with address of parameter list. |
       |--------|---------------|--------------------------------------------------|
-
       | MON    | 104           | %Monitor call SuspendProgram.                    |
-
       | PAR,   | TIME          | %Number of time units the program has to wait.   |
-
       | BASE   |               | %Base time units.                                |
-
       | TIME,  | ...           |                                                  |
-
       | BASE,  | ...           |                                                  |
 
 
-
-      ND-100 and ND-500 | All users | All programs'
+      ND-100 and ND-500 | All users | All programs
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 497

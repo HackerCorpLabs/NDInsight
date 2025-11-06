@@ -4,110 +4,70 @@
 
 octal: 146B
 name: PrivInstruction
-short_names: []
+short_names:
+- IPRIV
 description: ''
-notes: []
 see_also:
 - IOInstruction
-references: []
 parameters: []
 examples:
   pascal:
     available: true
-    code: 'Instruction : INTEGER2;
-
+    code: |-
+      Instruction : INTEGER2;
       ...
-
-      PrivInstruction(Instruction);'
-    notes: ''
+      PrivInstruction(Instruction);
   cobol:
     available: true
-    code: '01 Instruction COMP.
-
+    code: |-
+      01 Instruction COMP.
       ...
-
-      MONITOR-CALL "PrivInstruction" USING Instruction.'
-    notes: ''
+      MONITOR-CALL "PrivInstruction" USING Instruction.
   fortran:
     available: true
-    code: 'INTEGER Instruction
-
+    code: |-
+      INTEGER Instruction
       ...
-
-      Monitor_Call(''PrivInstruction'', Instruction)'
-    notes: ''
+      Monitor_Call('PrivInstruction', Instruction)
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : Instruction
-
       ...
-
-      Monitor_Call(''PrivInstruction'', Instruction)
-
-      ```'
-    notes: ''
+      Monitor_Call('PrivInstruction', Instruction)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       TReg : W BLOCK 1
-
       AReg : W BLOCK 1
-
       DReg : W BLOCK 1
-
       XReg : W BLOCK 1
-
       ErrCode : W BLOCK 1
-
       PrivInstruction : EQU 37B9 + 146B
-
       ...
-
       CALLG PrivInstruction, 4, TReg, AReg, DReg, XReg
-
       IF K GO Error
-
       ...
-
       Error, W1 =: ErrCode
-
-      ```'
     octal_definition: 37B9 + 146B
-    notes: ''
   mac:
     available: true
-    code: '| LDT  | INSTR  | %Instruction to be executed.                   |
-
+    code: |-
+      | LDT  | INSTR  | %Instruction to be executed.                   |
       |------|--------|------------------------------------------------|
-
       | MON  | 146    | %Monitor call PrivInstruction.                 |
-
       | ...  |        |                                                |
-
       | INSTR, | 150404 | %Turn off memory management system. Dangerous! |
 
 
-      ```
-
       ND-100 and ND-500   User RT and user SYSTEM   RT programs
-
-      ```'
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 391
@@ -119,4 +79,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

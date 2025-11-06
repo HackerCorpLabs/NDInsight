@@ -4,25 +4,19 @@
 
 octal: 252B
 name: BACKUPCLOSE
-short_names: []
-description: Closes a file. The version number and the last date accessed are unchanged.
-  The number of pages in temporary files and spooling files is not affected.
-notes: []
+short_names:
+- BCLOS
+description: Closes a file. The version number and the last date accessed are unchanged. The number of
+  pages in temporary files and spooling files is not affected.
 see_also: []
-references: []
 parameters: []
 examples: {}
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 0
@@ -34,4 +28,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

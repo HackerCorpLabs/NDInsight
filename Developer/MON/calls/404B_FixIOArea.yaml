@@ -4,21 +4,18 @@
 
 octal: 404B
 name: FixIOArea
-short_names: []
-description: 'Fixes an address area in a domain in physical memory. The memory area
-  can be used for later input and output monitor calls, e.g. ReadFromFile or WriteTofile.
-
+short_names:
+- IOFIX
+description: |-
+  Fixes an address area in a domain in physical memory. The memory area can be used for later input and output monitor calls, e.g. ReadFromFile or WriteTofile.
 
   - Use MemoryUnFix to release the pages.
-
-  - The pages are released when the domain terminates.'
-notes: []
+  - The pages are released when the domain terminates.
 see_also:
 - FixScattered
 - FixContiguous
 - FixInMemory
 - and MemoryAllocation
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -31,81 +28,49 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FirstAddress, SizeOfArea : LONGINT;
-
       ...
-
       FixIOArea(FirstAddress, SizeOfArea);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 FirstAddress COMP.
-
       01 SizeOfArea COMP.
-
       ...
-
       MONITOR-CALL "FixIOArea" USING FirstAddress, SizeOfArea.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER FirstAddress, SizeOfArea
-
       ...
-
-      Monitor_Call(''FixIOArea'', FirstAddress, SizeOfArea)
-
-      ```'
-    notes: ''
+      Monitor_Call('FixIOArea', FirstAddress, SizeOfArea)
   planc:
     available: true
-    code: 'INTEGER : FirstAddress, SizeOfArea
-
+    code: |-
+      INTEGER : FirstAddress, SizeOfArea
       ...
-
-      Monitor_Call(''FixIOArea'', FirstAddress, SizeOfArea)'
-    notes: ''
+      Monitor_Call('FixIOArea', FirstAddress, SizeOfArea)
   assembly_500:
     available: true
-    code: 'Buffer : W BLOCK 1000B
-
+    code: |-
+      Buffer : W BLOCK 1000B
       SizeOfArea : W BLOCK 1
-
       FixIOArea : EQU 37B9 + 404B
-
       ...
-
-      CALLG FixIOArea, 2, Buffer, SizeOfArea'
+      CALLG FixIOArea, 2, Buffer, SizeOfArea
     octal_definition: 37B9 + 404B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 205
@@ -117,4 +82,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

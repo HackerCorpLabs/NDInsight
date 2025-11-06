@@ -4,18 +4,15 @@
 
 octal: 330B
 name: TerminalStatus
-short_names: []
-description: 'Gets information about a terminal. The user logged in, the time logged
-  in, the CPU time used, the job being executed, and more is returned.
-
+short_names:
+- TERST
+description: |-
+  Gets information about a terminal. The user logged in, the time logged in, the CPU time used, the job being executed, and more is returned.
 
   - You may use the monitor call for batch jobs.
-
-  - This call can only be used from background programs, not RT programs.'
-notes: []
+  - This call can only be used from background programs, not RT programs.
 see_also:
 - '@TERMINAL-STATUS'
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -34,8 +31,7 @@ parameters:
   io: I
   description: ''
 - name: '18:19'
-  type: State. -1 means no one logged in. 0 means idle batch processor. 1 means active
-    terminal.
+  type: State. -1 means no one logged in. 0 means idle batch processor. 1 means active terminal.
   io: I
   description: ''
 - name: '20:21'
@@ -57,95 +53,77 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber : INTEGER2;
-
       Buffer : ARRAY [0..1] OF RECORD...END;
-
       ...
-
       TermStatus(DeviceNumber, Buffer);   [Note routine name.]
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 DeviceNumber COMP.\n01 Buffer.\n   02 array COMP OCCURS 22 TIMES.\n\
-      01 ErrCode COMP.\n...\nMONITOR-CALL \"TerminalStatus\" USING DeviceNumber, Buffer.\n\
-      CALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
-    notes: ''
+    code: |-
+      01 DeviceNumber COMP.
+      01 Buffer.
+         02 array COMP OCCURS 22 TIMES.
+      01 ErrCode COMP.
+      ...
+      MONITOR-CALL "TerminalStatus" USING DeviceNumber, Buffer.
+      CALL "CbError" USING ErrCode.
+      IF ErrCode NOT = 0 GO ...
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DeviceNumber
-
       INTEGER Buffer(22)
-
       ...
-
-      Monitor_Call(''TerminalStatus'', DeviceNumber, Buffer(1))
-
+      Monitor_Call('TerminalStatus', DeviceNumber, Buffer(1))
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DeviceNumber\nBYTES : Buffer(0:43)\n...\nON ROUTINEERROR\
-      \ DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('TerminalStatus', DeviceNumber,\
-      \ Buffer(0))\n```"
-    notes: ''
+    code: |-
+      INTEGER : DeviceNumber
+      BYTES : Buffer(0:43)
+      ...
+      ON ROUTINEERROR DO
+          IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('TerminalStatus', DeviceNumber, Buffer(0))
   assembly_500:
     available: true
-    code: "```\nDeviceNumber : W BLOCK 1\nBuffer : H BLOCK 25B\nErrCode : W BLOCK\
-      \ 1\nTerminalStatus : EQU 37B9 + 330B\n...\nCALLG TerminalStatus, 2, DeviceNumber,\
-      \ Buffer\nIF K GO ERROR\n...\nERROR : W1 =: ErrCode\n       %ErrorCode in W1\
-      \ register.\n```"
+    code: |-
+      DeviceNumber : W BLOCK 1
+      Buffer : H BLOCK 25B
+      ErrCode : W BLOCK 1
+      TerminalStatus : EQU 37B9 + 330B
+      ...
+      CALLG TerminalStatus, 2, DeviceNumber, Buffer
+      IF K GO ERROR
+      ...
+      ERROR : W1 =: ErrCode
+             %ErrorCode in W1 register.
     octal_definition: 37B9 + 330B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT LDN       %Load register T with the logical device number.
-
       LDA (BUF      %Load register A with address of return buffer.
-
       MON 330       %Monitor call TerminalStatus.
-
       STA STAT      %Returned status.
-
       ...
-
       LDN, 1
-
       BUF, 0
-
       *+26/         %Buffer of 44 bytes.
-
       STAT, 0
 
-      ```
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 330
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 537
@@ -157,4 +135,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

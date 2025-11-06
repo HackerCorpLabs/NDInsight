@@ -4,17 +4,15 @@
 
 octal: 427B
 name: GetOwnProcessInfo
-short_names: []
-description: 'Gets the name and number of your own process in the ND-500. You get
-  a process each time you enter the ND-500 Monitor.
+short_names:
+- GPRNME
+description: |-
+  Gets the name and number of your own process in the ND-500. You get a process each time you enter the ND-500 Monitor.
 
-
-  - The default process names are TERMINAL-xx where xx is a number.'
-notes: []
+  - The default process names are TERMINAL-xx where xx is a number.
 see_also:
 - GetProcessNo
 - SetProcessName
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -31,87 +29,52 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       ProcessName : PACKED ARRAY [0..33] OF CHAR;
-
       ProcessNumber : LONGINT;
-
       ...
-
       GetOwnProcessInfo(ProcessName, ProcessNumber);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 ProcessName PIC X(34).
-
       01 ProcessNumber COMP.
-
       ...
-
       MONITOR-CALL "GetOwnProcessInfo" USING ProcessName, ProcessNumber.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       CHARACTER ProcessName*34
-
       INTEGER ProcessNumber
-
       ...
-
-      Monitor_Call(''GetOwnProcessInfo'', ProcessName(1:34), ProcessNumber)
-
-      ```'
-    notes: ''
+      Monitor_Call('GetOwnProcessInfo', ProcessName(1:34), ProcessNumber)
   planc:
     available: true
-    code: 'BYTES : ProcessName(0:33)
-
+    code: |-
+      BYTES : ProcessName(0:33)
       INTEGER : ProcessNumber
-
       ...
-
-      Monitor_Call(''GetOwnProcessInfo'', ProcessName, ProcessNumber)'
-    notes: ''
+      Monitor_Call('GetOwnProcessInfo', ProcessName, ProcessNumber)
   assembly_500:
     available: true
-    code: 'ProcessName : STRING 44B
-
+    code: |-
+      ProcessName : STRING 44B
       ProcessNumber : W BLOCK 1
-
       GetOwnProcessInfo : EQU 37B9 + 427B
-
       ...
-
-      CALLG GetOwnProcessInfo, 2, ProcessName, ProcessNumber'
+      CALLG GetOwnProcessInfo, 2, ProcessName, ProcessNumber
     octal_definition: 37B9 + 427B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 263
@@ -123,4 +86,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

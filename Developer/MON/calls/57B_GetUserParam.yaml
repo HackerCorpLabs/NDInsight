@@ -4,20 +4,18 @@
 
 octal: 57B
 name: GetUserParam
-short_names: []
+short_names:
+- PAGEI
 description: ''
-notes: []
 see_also:
 - TerminationHandling
 - GetND500Param
 - '@DEFINE-TERMINATION-HANDLING'
 - '@DISABLE-TERMINATION-HANDLING'
 - and @SET-USER-PARAMETERS
-references: []
 parameters:
 - name: '1'
-  type: The last byte contains the user index. The byte in front of it contains the
-    directory index.
+  type: The last byte contains the user index. The byte in front of it contains the directory index.
   io: I
   description: ''
 - name: '2'
@@ -25,8 +23,8 @@ parameters:
   io: I
   description: ''
 - name: '3'
-  type: Fatal error or the monitor call ErrorMessage returns the error number. If
-    escape was pressed, -1 is returned.
+  type: Fatal error or the monitor call ErrorMessage returns the error number. If escape was pressed,
+    -1 is returned.
   io: I
   description: ''
 - name: '4'
@@ -40,107 +38,65 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       Buff : RECORD...END;
-
       ...
-
       GetUserParam(Buff);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 Buff.\n   02 array COMP OCCURS 5 TIMES.\n   ...\n   MONITOR-CALL\
-      \ \"GetUserParam\" USING Buff.\n```"
-    notes: ''
+    code: |-
+      01 Buff.
+         02 array COMP OCCURS 5 TIMES.
+         ...
+         MONITOR-CALL "GetUserParam" USING Buff.
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER Buff(5)
-
       ...
-
-      Monitor_Call(''GetUserParam'', Buff(1))
-
-      ```'
-    notes: ''
+      Monitor_Call('GetUserParam', Buff(1))
   planc:
     available: true
-    code: '```
-
+    code: |-
       BYTES : Buff(0:9)
-
       ...
-
-      Monitor_Call(''GetUserParam'', Buff(0))
-
-      ```'
-    notes: ''
+      Monitor_Call('GetUserParam', Buff(0))
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       Buff : H BLOCK 5
-
       GetUserParam : EQU 37B9 + 57B
 
-
       CALLG GetUserParam, 1, Buff
-
-      ```'
     octal_definition: 37B9 + 57B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA (PAR %Load register A with address of parameter list.
-
       MON 57 %Monitor call GetUserParam.
-
-      ```
 
 
       PAR BUFF
-
       %Buffer of 5 words to receive user parameters.
 
-
       BUFF |
-
       ---|
-
       0 | %Left byte: dir.index. Right byte: user index.
-
       0 | %Logical device number, terminal number.
-
       0 | %-1 if escape, otherwise error number.
-
       0 | %User defined.
-
       0 | %User defined.
-
 
 
       ND-100 and ND-500 | All users | Background programs
-
-      ---|---|---'
+      ---|---|---
     mon_number: 57
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 301
@@ -152,4 +108,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

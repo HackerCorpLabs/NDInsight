@@ -14,7 +14,7 @@ compatibility:
   nd500: true
   user_programs: true
   rt_programs: true
-  system_programs: true
+  system_programs: false
 source:
   document: ND-860228.2 EN
   page_references: []

@@ -4,27 +4,21 @@
 
 octal: 325B
 name: BATCHMODEECHO
-short_names: []
-description: Controls echo of input and output if the program is executed in a batch
-  or mode job. The purpose is to allow the program to communicate with the terminal
-  in mode jobs.
+short_names:
+- MBECH
+description: Controls echo of input and output if the program is executed in a batch or mode job. The
+  purpose is to allow the program to communicate with the terminal in mode jobs.
 notes:
 - The state set by this monitor call is reset when the next batch or mode job starts.
 see_also: []
-references: []
 parameters: []
 examples: {}
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 0
@@ -36,4 +30,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

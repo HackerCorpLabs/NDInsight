@@ -4,12 +4,11 @@
 
 octal: 114B
 name: GetTimeUsed
-short_names: []
+short_names:
+- TUSED
 description: ''
-notes: []
 see_also:
 - '@TIME-USED'
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -18,105 +17,57 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       TimeUsed : LONGINT;
-
       ...
-
       GetTimeUsed(TimeUsed);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 TimeUsed COMP PIC S9(10).
-
       ...
-
       MONITOR-CALL "GetTimeUsed" USING TimeUsed.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER*4 TimeUsed
-
       ...
-
-      Monitor_Call(''GetTimeUsed'', TimeUsed)
-
-      ```'
-    notes: ''
+      Monitor_Call('GetTimeUsed', TimeUsed)
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER4 : TimeUsed
-
       ...
-
-      Monitor_Call(''GetTimeUsed'', TimeUsed)
-
-      ```'
-    notes: ''
+      Monitor_Call('GetTimeUsed', TimeUsed)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       TimeUsed : W BLOCK 1
-
       GetTimeUsed : EQU 37B9 + 114B
-
       ...
-
       CALLG GetTimeUsed, 0
-
       W1 =: TimeUsed           %Result is returned in W1 register.
-
-      ```'
     octal_definition: 37B9 + 114B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       MON     114   %Monitor call GetTimeUsed.
-
       STD     TIME  %Store CPU time.
-
       ...
-
       TIME, 0       %A double word.
-
       0             %
-
-      ```
 
 
 
       | **ND-100 and ND-500** | **All users**   | **Background programs** |
-
-      |-----------------------|-----------------|------------------------|'
+      |-----------------------|-----------------|------------------------|
     mon_number: 114
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - '**All users**'
-  programs:
-  - '**Background programs**'
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 293
@@ -128,4 +79,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

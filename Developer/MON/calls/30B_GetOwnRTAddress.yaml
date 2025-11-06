@@ -4,16 +4,15 @@
 
 octal: 30B
 name: GetOwnRTAddress
-short_names: []
-description: Gets the address of the calling program's RT description. Background
-  programs get the RT description address of the RT program which controls the terminal.
-notes: []
+short_names:
+- GETRT
+description: Gets the address of the calling program's RT description. Background programs get the RT
+  description address of the RT program which controls the terminal.
 see_also:
 - GetRTAddress
 - GetRTDescr
 - GetRTName
 - and @LIST-RT-PROGRAMS
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -22,88 +21,53 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       RTDescrAddress : INTEGER2;
-
       ...
-
       GetOwnRTAddress(RTDescrAddress);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 RTDescrAddress COMP.
-
       ...
-
       MONITOR-CALL "GetOwnRTAddress" USING RTDescrAddress.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER RTDescrAddress
-
       ...
-
-      Monitor_Call(''GetOwnRTAddress'', RTDescrAddress)
-
-      ```'
-    notes: ''
+      Monitor_Call('GetOwnRTAddress', RTDescrAddress)
   planc:
     available: true
-    code: 'INTEGER : RTDescrAddress
-
+    code: |-
+      INTEGER : RTDescrAddress
       ...
-
-      Monitor_Call(''GetOwnRTAddress'', RTDescrAddress)'
-    notes: ''
+      Monitor_Call('GetOwnRTAddress', RTDescrAddress)
   assembly_500:
     available: true
-    code: 'RTDescrAddress : W BLOCK 1
-
+    code: |-
+      RTDescrAddress : W BLOCK 1
       GetOwnRTAddress : EQU 37B9 + 30B
-
       ...
-
       CALLG GetOwnRTAddress, 0
-
-      W1 =: RTDescrAddress %Result is returned in W1 register.'
+      W1 =: RTDescrAddress %Result is returned in W1 register.
     octal_definition: 37B9 + 30B
-    notes: ''
   mac:
     available: true
-    code: 'MON 30 %Monitor call GetOwnRTAddress.
-
+    code: |-
+      MON 30 %Monitor call GetOwnRTAddress.
       STA RTPRO %Store address of RT description.
-
       ...
-
       RTPRO, 0
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 30
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 265
@@ -115,4 +79,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

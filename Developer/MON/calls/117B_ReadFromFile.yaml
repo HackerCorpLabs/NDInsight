@@ -4,9 +4,9 @@
 
 octal: 117B
 name: ReadFromFile
-short_names: []
+short_names:
+- RFILE
 description: ''
-notes: []
 see_also:
 - SetStartBlock
 - SetBlockSize
@@ -14,15 +14,14 @@ see_also:
 - ReadBlock
 - WriteBlock
 - and WriteToFile
-references: []
 parameters:
 - name: File number
   type: See Openfile.
   io: I
   description: ''
 - name: Wait flag
-  type: Use 0 to suspend the program until the transfer is completed. Other values
-    make the program continue. You may check that the transfer is completed by AwaitFileTransfer.
+  type: Use 0 to suspend the program until the transfer is completed. Other values make the program continue.
+    You may check that the transfer is completed by AwaitFileTransfer.
   io: I
   description: ''
 - name: Transferred data
@@ -44,138 +43,98 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FileNo, WaitFlag, BlockNo : INTEGER2;
-
       Buff : ARRAY [0..15] OF RECORD...END;
-
       NoOfBytes : LONGINT;
-
       ...
-
       ReadFromFile(FileNo, WaitFlag, Buff, BlockNo, NoOfBytes);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 FileNo COMP.\n01 WaitFlag COMP.\n01 Buff.\n   02 array COMP OCCURS\
-      \ 256 TIMES.\n01 BlockNo COMP.\n01 NoOfBytes COMP PIC S9(10).\n01 ErrCode COMP.\n\
-      ...\nMONITOR-CALL \"ReadFromFile\" USING FileNo, WaitFlag, Buff,\n         \
-      \                       BlockNo, NoOfBytes.\n\nCALL \"CbError\" USING ErrCode.\n\
-      IF ErrCode NOT = 0 GO ...\n```"
-    notes: ''
+    code: |-
+      01 FileNo COMP.
+      01 WaitFlag COMP.
+      01 Buff.
+         02 array COMP OCCURS 256 TIMES.
+      01 BlockNo COMP.
+      01 NoOfBytes COMP PIC S9(10).
+      01 ErrCode COMP.
+      ...
+      MONITOR-CALL "ReadFromFile" USING FileNo, WaitFlag, Buff,
+                                      BlockNo, NoOfBytes.
+
+      CALL "CbError" USING ErrCode.
+      IF ErrCode NOT = 0 GO ...
   fortran:
     available: true
-    code: "```\nINTEGER FileNo, WaitFlag, BlockNo\nINTEGER Buff(256)\nINTEGER*4 NoOfBytes\n\
-      ...\nMonitor_Call('ReadFromFile', FileNo, WaitFlag, Buff(1),\n             \
-      \                  BlockNo, NoOfBytes)\nC  IF (ErrCode .NE. 0) THEN ...\n```"
-    notes: ''
+    code: |-
+      INTEGER FileNo, WaitFlag, BlockNo
+      INTEGER Buff(256)
+      INTEGER*4 NoOfBytes
+      ...
+      Monitor_Call('ReadFromFile', FileNo, WaitFlag, Buff(1),
+                                     BlockNo, NoOfBytes)
+      C  IF (ErrCode .NE. 0) THEN ...
   planc:
     available: true
-    code: 'INTEGER : FileNo, RetFlag, BlockNo
-
+    code: |-
+      INTEGER : FileNo, RetFlag, BlockNo
       BYTES : Buff(0:511)
-
       INTEGER4 : NoOfBytes
-
       ...
-
       ON ROUTINEERROR DO
-
       &nbsp;&nbsp;&nbsp;&nbsp;IF ErrCode >< 0 THEN ...
-
       ENDON
-
-      Monitor_Call(''ReadfromFile'', FileNo, RetFlag, Buff(0), BlockNo, NoOfBytes)'
-    notes: ''
+      Monitor_Call('ReadfromFile', FileNo, RetFlag, Buff(0), BlockNo, NoOfBytes)
   assembly_500:
     available: true
-    code: 'FileNo : W BLOCK 1
-
+    code: |-
+      FileNo : W BLOCK 1
       WaitFlag : W BLOCK 1
-
       Buff : W BLOCK 256 %Must start on an even byte address.
-
       BlockNo : W BLOCK 1
-
       NoOfBytes : W BLOCK 1
-
       ErrCode : W BLOCK 1
-
       ReadFromFile : EQU 37B9 + 117B
 
-
       ...
-
       CALLG ReadfromFile, 5, FileNo, WaitFlag, Buff, BlockNo, NoOfBytes
-
       IF K GO ERROR
-
       ...
-
-      ERROR : W1 =: ErrCode %ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode %ErrorCode in W1 register.
     octal_definition: 37B9 + 117B
-    notes: ''
   mac:
     available: true
-    code: 'LDA (PAR %Load register A with address of parameter list.
-
+    code: |-
+      LDA (PAR %Load register A with address of parameter list.
       MON 117 %Monitor call ReadFromFile.
-
       JAF ERROR %Handle error if register A is non-zero.
-
       ...
-
       ERROR, ... %Error number in register A.
-
       ...
-
       PAR, FILNO %File number returned from earlier call to OpenFile.
-
       RETUR %Return flag.
-
       BUFF %Buffer to receive data.
-
       BLKNO %Block number in file where data starts.
-
       COUNT %Number of words to be read.
-
       ...
-
       FILNO, ...
-
       RETUR, 0
-
       BUFF, 0
-
       *+400/ %Make a buffer of 256 words.
-
       BLKNO, ...
-
       COUNT, ...
 
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 117
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 399
@@ -187,4 +146,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

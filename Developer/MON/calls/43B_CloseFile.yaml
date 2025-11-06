@@ -4,30 +4,26 @@
 
 octal: 43B
 name: CloseFile
-short_names: []
-description: 'Closes one or more files. Files must be opened before they are accessed.
-  Afterwards they should be closed.
+short_names:
+- CLOSE
+description: |-
+  Closes one or more files. Files must be opened before they are accessed. Afterwards they should be closed.
 
-
-  - **CloseFile** also resets peripheral files. This is similar to DeviceControl with
-  control flag -1.
-
-  - For non-RT programs, files are closed when your program terminates.'
-notes: []
+  - **CloseFile** also resets peripheral files. This is similar to DeviceControl with control flag -1.
+  - For non-RT programs, files are closed when your program terminates.
 see_also:
 - OpenFile
 - CloseSpoolingFile
 - BackupClose
 - and @CLOSE-FILE
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
-  description: File number returned when the file was opened. Use -1 to close all
-    your files which are not set permanently open. The block size of all scratch files
-    which are permanently opened is set to 400B. Use -2 to close all your files, including
-    your scratch file and those files set permanently open.
+  description: File number returned when the file was opened. Use -1 to close all your files which are
+    not set permanently open. The block size of all scratch files which are permanently opened is set
+    to 400B. Use -2 to close all your files, including your scratch file and those files set permanently
+    open.
 - name: Param2
   type: UNKNOWN
   io: I
@@ -35,115 +31,68 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FileNumber : INTEGER2;
-
       ...
-
       CloseFile(FileNumber);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 FileNumber COMP.
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "CloseFile" USING FileNumber.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER FileNumber
-
       ...
-
-      Monitor_Call(''CloseFile'', FileNumber)
-
+      Monitor_Call('CloseFile', FileNumber)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : FileNumber\n...\nON ROUTINEERROR DO\n   IF ErrCode > 0 THEN\
-      \ ...\nENDON\nMonitor_Call('Closefile', FileNumber)\n```"
-    notes: ''
+    code: |-
+      INTEGER : FileNumber
+      ...
+      ON ROUTINEERROR DO
+         IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('Closefile', FileNumber)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       FileNumber : W BLOCK 1
-
       ErrCode : W BLOCK 1
-
       CloseFile : EQU 37B9 + 43B
-
       ...
-
       CALLG CloseFile, 1, FileNumber
-
       IF K GO ERROR
-
       ...
-
       ERROR : W1 =: ErrCode          %ErrorCode in W1 register.
-
-      ```'
     octal_definition: 37B9 + 43B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT  FILNO                 %Load register T with file number.
-
       MON  43                   %Monitor call Closefile.
-
       JMP  ERROR                %Error return from monitor call.
-
       ...                        %Normal return.
-
       ERROR, ...                 %Error number in register A.
-
       ...
-
       FILNO, ...
 
-      ```
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 43
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 117
@@ -155,4 +104,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

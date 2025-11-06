@@ -4,13 +4,12 @@
 
 octal: 41B
 name: ReadObjectEntry
-short_names: []
+short_names:
+- ROBJE
 description: ''
-notes: []
 see_also:
 - GetObjectEntry
 - SetObjectEntry
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -27,134 +26,76 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FileNumber : INTEGER2;
-
       Buff : ARRAY [0..1] OF RECORD...END;
-
       ...
-
       ReadObjectEntry(FileNumber, Buff);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 FileNumber COMP.
-
       01 Buff.
-
       02 array COMP OCCURS 32 TIMES.
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "ReadObjectEntry" USING FileNumber, Buff.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER FileNumber
-
       INTEGER Buff(32)
-
       ...
-
-      Monitor_Call(''ReadObjectEntry'', FileNumber, Buff(1))
-
+      Monitor_Call('ReadObjectEntry', FileNumber, Buff(1))
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: 'INTEGER : FileNumber
-
+    code: |-
+      INTEGER : FileNumber
       BYTES : Buff(0:63)
-
       ...
-
       ON ROUTINEERROR DO
-
       IF ErrCode > 0 THEN ...
-
       ENDON
-
-      Monitor_Call(''ReadObjectEntry'', FileNumber, Buff(0))'
-    notes: ''
+      Monitor_Call('ReadObjectEntry', FileNumber, Buff(0))
   assembly_500:
     available: true
-    code: 'FileNumber : W BLOCK 1
-
+    code: |-
+      FileNumber : W BLOCK 1
       Buff : H BLOCK 40B
-
       ErrCode : W BLOCK 1
-
       ReadObjectEntry : EQU 37B9 + 41B
-
       ...
-
       CALLG ReadObjectEntry, 2, FileNumber, Buff
-
       IF K GO ERROR
-
       ...
-
-      ERROR : W1 =: ErrCode %ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode %ErrorCode in W1 register.
     octal_definition: 37B9 + 41B
-    notes: ''
   mac:
     available: true
-    code: 'LDT FILNO %File number returned from earlier open.
-
+    code: |-
+      LDT FILNO %File number returned from earlier open.
       LDA {BUFF %Address of buffer to receive object entry.
-
       MON 41 %Monitor call ReadObjectEntry.
-
       JMP ERROR %Error return from monitor call.
-
       ... %Normal return.
-
       ERROR, ... %Error number in register A.
-
       ...
-
       FILNO, ...
-
       BUFF, 0
-
       *+40/ %Make a 32 words large buffer.
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 41
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 401
@@ -166,4 +107,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

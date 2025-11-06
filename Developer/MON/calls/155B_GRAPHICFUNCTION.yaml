@@ -4,24 +4,18 @@
 
 octal: 155B
 name: GRAPHICFUNCTION
-short_names: []
+short_names:
+- GRAPH
 description: ''
-notes: []
 see_also: []
-references: []
 parameters: []
 examples: {}
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 0
@@ -33,4 +27,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

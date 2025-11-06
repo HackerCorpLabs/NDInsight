@@ -4,96 +4,58 @@
 
 octal: 505B
 name: GetTrapReason
-short_names: []
+short_names:
+- GERRCOD
 description: ''
 notes:
 - The error code may be a file system error or a swapper error.
 - You clear the error code when you read it.
 see_also: []
-references: []
 parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       ErrorCode : LONGINT;
-
       ...
-
       GetTrapReason(ErrorCode);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 ErrorCode COMP.
-
       ...
-
       MONITOR-CALL "GetTrapReason" USING ErrorCode.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER ErrorCode
-
       ...
-
-      Monitor_Call(''GetTrapReason'', ErrorCode)
-
-      ```'
-    notes: ''
+      Monitor_Call('GetTrapReason', ErrorCode)
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : ErrorCode
-
       ...
-
-      Monitor_Call(''GetTrapReason'', ErrorCode)
-
-      ```'
-    notes: ''
+      Monitor_Call('GetTrapReason', ErrorCode)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       ErrorCode : W BLOCK 1
-
       GetTrapReason : EQU 37B9 + 505B
-
       ...
-
       CALLG GetTrapReason, 1, ErrorCode
-
-      ```'
     octal_definition: 37B9 + 505B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 295
@@ -105,4 +67,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

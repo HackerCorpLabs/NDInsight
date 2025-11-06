@@ -4,18 +4,17 @@
 
 octal: 416B
 name: SaveND500Segment
-short_names: []
+short_names:
+- WSEGN
 description: ''
-notes: []
 see_also:
 - SaveSegment
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
-  description: Logical segment number in the domain. If 0, the segment number is retrieved
-    from the parameter address.
+  description: Logical segment number in the domain. If 0, the segment number is retrieved from the parameter
+    address.
 - name: Param2
   type: UNKNOWN
   io: I
@@ -31,86 +30,63 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       LogSegmentNo, FirstPage, LastPage : LONGINT;
-
       ...
-
       SaveND500Segment(LogicalSegmentNo, FirstPage, LastPage);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 LogSegmentNo COMP.
-
       01 FirstPage COMP.
-
       01 LastPage COMP.
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "SaveND500Segment" USING LogSegmentNo, FirstPage, LastPage.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER LogSegmentNo, FirstPage, LastPage
-
       ...
-
-      Monitor_Call(''SaveND500Segment'', LogSegmentNo, FirstPage, LastPage)
-
+      Monitor_Call('SaveND500Segment', LogSegmentNo, FirstPage, LastPage)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : LogSegmentNo, FirstPage, LastPage\n...\nON ROUTINEERROR\
-      \ DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('SaveND500Segment', LogSegmentNo,\
-      \ FirstPage, LastPage)\n```"
-    notes: ''
+    code: |-
+      INTEGER : LogSegmentNo, FirstPage, LastPage
+      ...
+      ON ROUTINEERROR DO
+        IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('SaveND500Segment', LogSegmentNo, FirstPage, LastPage)
   assembly_500:
     available: true
-    code: "```\nLogSegmentNo : W BLOCK 1\nFirstPage : W BLOCK 1\nLastPage : W BLOCK\
-      \ 1\nErrCode : W BLOCK 1\nSaveND500Segment : EQU 37B9 + 416B\n...\n  CALLG SaveND500Segment,\
-      \ 3, LogSegmentNo, FirstPage, LastPage\n  IF K GO ERROR\n...\nERROR : W1 =:\
-      \ ErrCode                    %ErrorCode in W1 register.\n```"
+    code: |-
+      LogSegmentNo : W BLOCK 1
+      FirstPage : W BLOCK 1
+      LastPage : W BLOCK 1
+      ErrCode : W BLOCK 1
+      SaveND500Segment : EQU 37B9 + 416B
+      ...
+        CALLG SaveND500Segment, 3, LogSegmentNo, FirstPage, LastPage
+        IF K GO ERROR
+      ...
+      ERROR : W1 =: ErrCode                    %ErrorCode in W1 register.
     octal_definition: 37B9 + 416B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 421
@@ -122,4 +98,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

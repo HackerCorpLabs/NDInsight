@@ -4,24 +4,21 @@
 
 octal: 417B
 name: MaxPagesInMemory
-short_names: []
-description: 'Sets the maximum number of pages a segment may have in physical memory
-  at a time.
-
+short_names:
+- MXPISG
+description: |-
+  Sets the maximum number of pages a segment may have in physical memory at a time.
 
   - This monitor call applies to ND-500 logical segments only.
-
-  - The segment must be in use.'
-notes: []
+  - The segment must be in use.
 see_also:
 - FixInMemory
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
-  description: Logical segment number in your domain. If you specify 0, a segment
-    number is found from the parameter address.
+  description: Logical segment number in your domain. If you specify 0, a segment number is found from
+    the parameter address.
 - name: Param2
   type: UNKNOWN
   io: I
@@ -37,99 +34,59 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       SegmentNo, SegType, NoOfPages : LONGINT;
-
       ...
-
       MaxPagesInMemory(SegmentNo, SegType, NoOfPages);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 SegmentNo COMP.
-
       01 SegType COMP.
-
       01 NoOfPages COMP.
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "MaxPagesInMemory" USING SegmentNo, SegType, NoOfPages.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER SegmentNo, SegType, NoOfPages
-
       ...
-
-      Monitor Call(''MaxPagesInMemory'', SegmentNo, SegType, NoOfPages)
-
+      Monitor Call('MaxPagesInMemory', SegmentNo, SegType, NoOfPages)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: 'INTEGER : SegmentNo, SegType, NoOfPages
-
+    code: |-
+      INTEGER : SegmentNo, SegType, NoOfPages
       ...
-
       ON ROUTINEERROR DO
-
       &nbsp;&nbsp;&nbsp;&nbsp;IF ErrCode > 0 THEN ...
-
       ENDON
-
-      Monitor_Call(''MaxPagesInMemory'', SegmentNo, SegType, NoOfPages)'
-    notes: ''
+      Monitor_Call('MaxPagesInMemory', SegmentNo, SegType, NoOfPages)
   assembly_500:
     available: true
-    code: 'SegmentNo : W BLOCK 1
-
+    code: |-
+      SegmentNo : W BLOCK 1
       SegType : W BLOCK 1
-
       NoOfPages : W BLOCK 1
-
       MaxPagesInMemory : EQU 37B9 + 417B
-
       ...
-
-      &nbsp;&nbsp;&nbsp;&nbsp;CALLG MaxPagesInMemory, 3, SegmentNo, SegType, NoOfPages'
+      &nbsp;&nbsp;&nbsp;&nbsp;CALLG MaxPagesInMemory, 3, SegmentNo, SegType, NoOfPages
     octal_definition: 37B9 + 417B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 341
@@ -141,4 +98,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

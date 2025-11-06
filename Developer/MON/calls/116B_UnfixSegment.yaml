@@ -4,20 +4,17 @@
 
 octal: 116B
 name: UnfixSegment
-short_names: []
-description: 'Releases a fixed segment and removes it from the Page Index Table (PIT).
-  Its pages may then be swapped from physical memory to the disk. Use FixScattered
-  or FixContiguous to fix the segment.
+short_names:
+- UNFIX
+description: |-
+  Releases a fixed segment and removes it from the Page Index Table (PIT). Its pages may then be swapped from physical memory to the disk. Use FixScattered or FixContiguous to fix the segment.
 
-
-  - You must use UnFixSegment or @UNFIX to allow the RT-LOADER to clear the segment.'
-notes: []
+  - You must use UnFixSegment or @UNFIX to allow the RT-LOADER to clear the segment.
 see_also:
 - FixInMemory
 - MemoryAllocation
 - FixIOArea
 - and @UNFIX
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -26,95 +23,58 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       SegmentNumber : INTEGER2;
-
       ...
-
       UnFixSegment(SegmentNumber);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 SegmentNumber COMP.
-
       ...
-
       MONITOR-CALL "UnfixSegment" USING SegmentNumber.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER SegmentNumber
-
       ...
-
-      Monitor_Call(''UnfixSegment'', SegmentNumber)
-
-      ```'
-    notes: ''
+      Monitor_Call('UnfixSegment', SegmentNumber)
   planc:
     available: true
-    code: 'INTEGER : SegmentNumber
-
+    code: |-
+      INTEGER : SegmentNumber
 
       ...
 
-
-      Monitor_Call(''UnfixSegment'', SegmentNumber)'
-    notes: ''
+      Monitor_Call('UnfixSegment', SegmentNumber)
   assembly_500:
     available: true
-    code: 'SegmentNumber : W BLOCK 1
-
+    code: |-
+      SegmentNumber : W BLOCK 1
       UnfixSegment : EQU 37B9 + 116B
-
       ...
 
-
-      CALLG UnfixSegment, 1, SegmentNumber'
+      CALLG UnfixSegment, 1, SegmentNumber
     octal_definition: 37B9 + 116B
-    notes: ''
   mac:
     available: true
-    code: '| LDA            | (PAR         | %Load register A with address of parameter
-      list.  |
-
+    code: |-
+      | LDA            | (PAR         | %Load register A with address of parameter list.  |
       | MON 116        |              | %Monitor call UnfixSegment.                       |
-
       | ...            |              |                                                   |
-
       | PAR, SEGNO     |              | %Segment number to be unfixed.                    |
-
       | ...            |              |                                                   |
-
       | SEGNO, ...     |              |                                                   |
 
 
-
-      | ND-100 and ND-500  | User RT and user SYSTEM | RT programs |'
+      | ND-100 and ND-500  | User RT and user SYSTEM | RT programs |
     mon_number: 116
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: false
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 553
@@ -126,4 +86,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

@@ -6,18 +6,16 @@ octal: 440B
 name: Attach500Segment
 short_names:
 - ATSGM
-description: 'Maps a logical ND-500 data segment onto shared ND-100/ND-500(0) physical
-  memory (multiport memory). Example: ``` @SINTRAN-SERVICE-PROGRAM *CHANGE-TABLE TABLE:
-  MEMORY-AREA-INVISIBLE-FOR-THIS-SYSTEM FUNCTION: INSERT-ELEMENT IMAGE OR SAVE AREA
-  (DEFAULT IS IMAGE)? IMAGE FIRST PAGE (OCT): 10000 LAST PAGE (OCT): 13777 FUNCTION:
-  EXIT *EXIT ```
+description: 'Maps a logical ND-500 data segment onto shared ND-100/ND-500(0) physical memory (multiport
+  memory). Example: ``` @SINTRAN-SERVICE-PROGRAM *CHANGE-TABLE TABLE: MEMORY-AREA-INVISIBLE-FOR-THIS-SYSTEM
+  FUNCTION: INSERT-ELEMENT IMAGE OR SAVE AREA (DEFAULT IS IMAGE)? IMAGE FIRST PAGE (OCT): 10000 LAST PAGE
+  (OCT): 13777 FUNCTION: EXIT *EXIT ```
 
 
-  - The specified physical memory area must be defined in the "Not initialize page"
-  table by use of the *CHANGE-TABLE command in the SINTRAN Service Program (follow
-  this command by a warm start to put the change into effect). Note that you should
-  not use the first pages of the multiport memory (starting at "ND-500 page 0") for
-  this.'
+  - The specified physical memory area must be defined in the "Not initialize page" table by use of the
+  *CHANGE-TABLE command in the SINTRAN Service Program (follow this command by a warm start to put the
+  change into effect). Note that you should not use the first pages of the multiport memory (starting
+  at "ND-500 page 0") for this.'
 parameters: []
 examples: {}
 compatibility:
@@ -25,7 +23,7 @@ compatibility:
   nd500: true
   user_programs: true
   rt_programs: true
-  system_programs: true
+  system_programs: false
 source:
   document: ND-860228.2 EN
   page_references: []

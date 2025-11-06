@@ -4,21 +4,17 @@
 
 octal: 111B
 name: SetClock
-short_names: []
-description: 'Gives new values to the computer''s clock and calendar. If the computer
-  panel has a clock, it is updated.
+short_names:
+- UPDAT
+description: |-
+  Gives new values to the computer's clock and calendar. If the computer panel has a clock, it is updated.
 
-
-  - The startup time for RT programs can be set by StartupTime. Such RT programs start
-  according to the new time.
-
-  - Illegal time values, e.g. 61 minutes, stop the program and output a message.'
-notes: []
+  - The startup time for RT programs can be set by StartupTime. Such RT programs start according to the new time.
+  - Illegal time values, e.g. 61 minutes, stop the program and output a message.
 see_also:
 - AdjustClock
 - GetCurrentTime
 - and GetBasicTime
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -43,134 +39,77 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       Minute, Hour, Day, Month, Year : INTEGER2;
-
       ...
-
       SetClock(Minute, Hour, Day, Month, Year);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 Minute COMP.
-
       01 Hour COMP.
-
       01 Day COMP.
-
       01 Month COMP.
-
       01 Year COMP.
-
       ...
-
       MONITOR-CALL "SetClock" USING Minute, Hour, Day, Month, Year.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER Minute, Hour, Day, Month, Year
-
       ...
-
-      Monitor_Call(''SetClock'', Minute, Hour, Day, Month, Year)
-
-      ```'
-    notes: ''
+      Monitor_Call('SetClock', Minute, Hour, Day, Month, Year)
   planc:
     available: true
-    code: 'INTEGER : Minute, Hour, Day, Month, Year
-
+    code: |-
+      INTEGER : Minute, Hour, Day, Month, Year
       ...
-
-      Monitor_Call(''SetClock'', Minute, Hour, Day, Month, Year)'
-    notes: ''
+      Monitor_Call('SetClock', Minute, Hour, Day, Month, Year)
   assembly_500:
     available: true
-    code: '| Minute | :W BLOCK 1 |
-
+    code: |-
+      | Minute | :W BLOCK 1 |
       | --- | --- |
-
       | Hour | :W BLOCK 1 |
-
       | Day | :W BLOCK 1 |
-
       | Month | :W BLOCK 1 |
-
       | Year | :W BLOCK 1 |
 
-
       SetClock : EQU 37B9 + 111B
-
       ...
-
-      CALLG SetClock, 5, Minute, Hour, Day, Month, Year'
+      CALLG SetClock, 5, Minute, Hour, Day, Month, Year
     octal_definition: 37B9 + 111B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA (PAR %Load register A with address of parameter list.
-
       MON 111 %Monitor call SetClock.
-
-      ```
 
 
       | PAR, | MIN | %New minutes of hour. |
-
       | --- | --- | --- |
-
       | | HOUR | %New hour of day. |
-
       | | DAY | %New day of month. |
-
       | | MONTH | %New month of year. |
-
       | | YEAR | %New value for year. |
 
 
-      ```
-
       MIN, ...
-
       HOUR, ...
-
       DAY, ...
-
       MONTH, ...
-
       YEAR, ...
 
-      ```
 
 
-
-      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'
+      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
     mon_number: 111
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 437
@@ -182,4 +121,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

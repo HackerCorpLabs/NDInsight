@@ -4,105 +4,88 @@
 
 octal: 423B
 name: CopyCapability
-short_names: []
+short_names:
+- CAPCOP
 description: ''
-notes: []
 see_also:
 - ClearCapability
-references: []
 parameters: []
 examples:
   pascal:
     available: true
-    code: "```\nSourceSegNo, SourceType, DestSegNo, DestType, AccCode, RetSegNo :\
-      \ LONGINT;\n...\nCopyCapability(SourceSegNo, SourceType, DestSegNo,\n      \
-      \         DestType, AccCode, RetSegNo)\nIF ErrCode <> 0 THEN ...\n```"
-    notes: ''
+    code: |-
+      SourceSegNo, SourceType, DestSegNo, DestType, AccCode, RetSegNo : LONGINT;
+      ...
+      CopyCapability(SourceSegNo, SourceType, DestSegNo,
+                     DestType, AccCode, RetSegNo)
+      IF ErrCode <> 0 THEN ...
   cobol:
     available: true
-    code: "```\n01  SourceSegNo  COMP.\n01  SourceType   COMP.\n01  DestSegNo    COMP.\n\
-      01  DestType     COMP.\n01  AccCode      COMP.\n01  RetSegNo     COMP.\n01 \
-      \ ErrCode      COMP.\n...\nMONITOR-CALL \"CopyCapability\" USING SourceSegNo,\
-      \ SourceType,\n                             DestSegNo, DestType, AccCode, RetSegNo.\n\
-      CALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
-    notes: ''
+    code: |-
+      01  SourceSegNo  COMP.
+      01  SourceType   COMP.
+      01  DestSegNo    COMP.
+      01  DestType     COMP.
+      01  AccCode      COMP.
+      01  RetSegNo     COMP.
+      01  ErrCode      COMP.
+      ...
+      MONITOR-CALL "CopyCapability" USING SourceSegNo, SourceType,
+                                   DestSegNo, DestType, AccCode, RetSegNo.
+      CALL "CbError" USING ErrCode.
+      IF ErrCode NOT = 0 GO ...
   fortran:
     available: true
-    code: "```\nINTEGER  SourceSegNo, SourceType, DestSegNo, DestType\nINTEGER  AccCode,\
-      \ RetSegNo\n...\nMonitor_Call('CopyCapability', SourceSegNo, SourceType,\n \
-      \            DestSegNo, DestType, AccCode, RetSegNo)\nIF (ErrCode .NE. 0) THEN\
-      \ ...\n```"
-    notes: ''
+    code: |-
+      INTEGER  SourceSegNo, SourceType, DestSegNo, DestType
+      INTEGER  AccCode, RetSegNo
+      ...
+      Monitor_Call('CopyCapability', SourceSegNo, SourceType,
+                   DestSegNo, DestType, AccCode, RetSegNo)
+      IF (ErrCode .NE. 0) THEN ...
   planc:
     available: true
-    code: 'INTEGER : SourceSegNo, SourceType, DestSegNo, DestType, AccCode, RetSegNo
-
+    code: |-
+      INTEGER : SourceSegNo, SourceType, DestSegNo, DestType, AccCode, RetSegNo
       ...
-
       ON ROUTINEERROR DO
-
       &emsp; IF ErrCode > 0 THEN ...
-
       ENDON
-
-      Monitor_Call(''CopyCapability'', SourceSegNo, SourceType, DestSegNo, &
-
-      &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;DestType, AccCode,
-      RetSegNo)'
-    notes: ''
+      Monitor_Call('CopyCapability', SourceSegNo, SourceType, DestSegNo, &
+      &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;DestType, AccCode, RetSegNo)
   assembly_500:
     available: true
-    code: '| Parameter     | Type   |
-
+    code: |-
+      | Parameter     | Type   |
       |---------------|--------|
-
       | SourceSegNo   | W BLOCK 1 |
-
       | SourceType    | W BLOCK 1 |
-
       | DestSegNo     | W BLOCK 1 |
-
       | DestType      | W BLOCK 1 |
-
       | AccCode       | W BLOCK 1 |
-
       | RetSegNo      | W BLOCK 1 |
-
       | ErrCode       | W BLOCK 1 |
 
-
       CopyCapability : EQU 37B9 + 423B
-
       ...
-
       CALLG CopyCapability, 6, SourceSegNo, SourceType, DestSegNo, &
-
       &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;DestType, AccCode, RetSegNo
 
-
       IF K GO ERROR
-
       ...
-
-      ERROR : W1 =: ErrCode &emsp;&emsp;%ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode &emsp;&emsp;%ErrorCode in W1 register.
     octal_definition: 37B9 + 423B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 121
@@ -114,4 +97,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

@@ -4,19 +4,15 @@
 
 octal: 0B
 name: ExitFromProgram
-short_names: []
-description: 'Terminates the program. Returns to SINTRAN III. Batch jobs continues
-  with the next command.
+short_names:
+- LEAVE
+description: |-
+  Terminates the program. Returns to SINTRAN III. Batch jobs continues with the next command.
 
-
-  - Background programs close all files not set permanently open. RT programs do not
-  close any files.
-
-  - RT programs release all reserved devices.'
-notes: []
+  - Background programs close all files not set permanently open. RT programs do not close any files.
+  - RT programs release all reserved devices.
 see_also:
 - ExitRTProgram
-references: []
 parameters:
 - name: Language
   type: Code
@@ -38,41 +34,28 @@ examples:
   planc:
     available: true
     code: Monitor_Call('ExitFromProgram')
-    notes: ''
   assembly_500:
     available: true
-    code: 'ExitFromProgram : EQU 37B9 + 0B
-
+    code: |-
+      ExitFromProgram : EQU 37B9 + 0B
       ...
-
       CALLG ExitFromProgram, 0
-
-      IF K GO Error %Possible if wrong number of parameters.'
+      IF K GO Error %Possible if wrong number of parameters.
     octal_definition: 37B9 + 0B
-    notes: ''
   mac:
     available: true
-    code: 'MON 0 %Monitor call ExitFromProgram.
-
+    code: |-
+      MON 0 %Monitor call ExitFromProgram.
 
       | ND-100 and ND-500 | All users | All programs |
-
-      |-------------------|-----------|--------------|'
+      |-------------------|-----------|--------------|
     mon_number: 0
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 185
@@ -84,4 +67,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

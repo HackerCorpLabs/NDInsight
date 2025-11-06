@@ -4,19 +4,14 @@
 
 octal: 123B
 name: ReleaseResource
-short_names: []
-description: 'Releases a reserved device or file. The resource can then be used by
-  another program. You reserve a device or opened file with ReserveResource. Some
-  devices, e.g. terminals, have both an input and output part. You can only release
-  one part with each ReleaseResource.
-
+short_names:
+- RELES
+description: |-
+  Releases a reserved device or file. The resource can then be used by another program. You reserve a device or opened file with ReserveResource. Some devices, e.g. terminals, have both an input and output part. You can only release one part with each ReleaseResource.
 
   - A normal termination of an RT program release all resources.
-
   - Reserve the device with ReserveResource or ForceReserve.
-
-  - CloseFile or @CLOSE-FILE releases reserved files.'
-notes: []
+  - CloseFile or @CLOSE-FILE releases reserved files.
 see_also:
 - ForceRelease
 - ReserveResource
@@ -24,7 +19,6 @@ see_also:
 - '@RESRV'
 - '@RELEASE-FILE'
 - and @RELEASE-DEVICE-UNIT
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -33,103 +27,62 @@ parameters:
 - name: Param2
   type: UNKNOWN
   io: I
-  description: Input or output flag. Use 0 for the input part and 1 for the output
-    part.
+  description: Input or output flag. Use 0 for the input part and 1 for the output part.
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber, IOFlag : INTEGER2;
-
       ...
-
       ReleaseResource(DeviceNumber, IOFlag);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DeviceNumber COMP.
-
       01 IOFlag COMP.
-
       ...
-
       MONITOR-CALL "ReleaseResource" USING DeviceNumber, IOFlag.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DeviceNumber, IOFlag
-
       ...
-
-      Monitor_Call(''ReleaseResource'', DeviceNumber, IOFlag)
-
-      ```'
-    notes: ''
+      Monitor_Call('ReleaseResource', DeviceNumber, IOFlag)
   planc:
     available: true
-    code: 'INTEGER : DeviceNumber, IOFlag
-
+    code: |-
+      INTEGER : DeviceNumber, IOFlag
       ...
-
-      Monitor_Call(''ReleaseResource'', DeviceNumber, IOFlag)'
-    notes: ''
+      Monitor_Call('ReleaseResource', DeviceNumber, IOFlag)
   assembly_500:
     available: true
-    code: 'DeviceNumber : W BLOCK 1
-
+    code: |-
+      DeviceNumber : W BLOCK 1
       IOFlag : W BLOCK 1
-
       ReleaseResource : EQU 3789 + 123B
-
       ...
-
-      CALLG ReleaseResource, 2, DeviceNumber, IOFlag'
+      CALLG ReleaseResource, 2, DeviceNumber, IOFlag
     octal_definition: 37B9 + 123B
-    notes: ''
   mac:
     available: true
-    code: 'LDA (PAR   %Load register A with address of parameter list.
-
+    code: |-
+      LDA (PAR   %Load register A with address of parameter list.
       MON 123    %Monitor call ReleaseResource.
-
       ...
-
       PAR, DEVNO %Logical device number.
-
       IOF        %Input/output flag.
-
       DEVNO, ...
-
       IOF, ...
 
-
       | ND-100 and ND-500 | All users | All programs |
-
-      |-------------------|-----------|--------------|'
+      |-------------------|-----------|--------------|
     mon_number: 123
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 411
@@ -141,4 +94,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

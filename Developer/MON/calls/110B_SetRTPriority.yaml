@@ -4,19 +4,16 @@
 
 octal: 110B
 name: SetRTPriority
-short_names: []
-description: 'Sets the priority of an RT program. RT programs may be given priorities
-  from 0 to 255. SINTRAN III executes the RT program with the highest priority.
-
+short_names:
+- PRIOR
+description: |-
+  Sets the priority of an RT program. RT programs may be given priorities from 0 to 255. SINTRAN III executes the RT program with the highest priority.
 
   - The priority of background programs vary between 20 and 60.
-
-  - Programs with priority 0 will never start. You may use this to suspend programs.'
-notes: []
+  - Programs with priority 0 will never start. You may use this to suspend programs.
 see_also:
 - SetND500Priority
 - '@PRIOR'
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -33,124 +30,67 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       RTProgram, PriorityLevel, OldPriority : INTEGER2;
-
       ...
-
       SetRTPriority(RTProgram, PriorityLevel, OldPriority);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 RTProgram COMP.
-
       01 PriorLevel COMP.
-
       01 OldPriority COMP.
-
       ...
-
       MONITOR-CALL "SetRTPriority" USING RTProgram, PriorLevel, OldPriority.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER RTProgram, PriorityLevel, OldPriority
-
       ...
-
-      Monitor_Call(''SetRTPriority'', RTProgram, PriorityLevel, OldPriority)
-
-      ```'
-    notes: ''
+      Monitor_Call('SetRTPriority', RTProgram, PriorityLevel, OldPriority)
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : RTProgram, PriorityLevel, OldPriority
-
       ...
-
-      Monitor_Call(''SetRTPriority'', RTProgram, PriorityLevel, OldPriority)
-
-      ```'
-    notes: ''
+      Monitor_Call('SetRTPriority', RTProgram, PriorityLevel, OldPriority)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       RTProgram : W BLOCK 1
-
       PriorityLevel : W BLOCK 1
-
       OldPriority : W BLOCK 1
-
       SetRTPriority : EQU 37B9 + 110B
 
-      ```
 
-
-      ```
 
       CALLG SetRTPriority, 2, RTProgram, PriorityLevel
-
       Wl =: OldPriority %Result is returned in Wl register.
-
-      ```'
     octal_definition: 37B9 + 110B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA (PAR %Load register A with address of parameter list.
-
       MON 110 %Monitor call SetRTPriority.
-
       STA OLDP %Store old priority returned.
-
       ...
-
       OLDP, 0
-
       PAR, RTPRO %Address of RT description.
-
       PRIOR %New priority.
-
       ...
-
       RTPRO, ...
-
       PRIOR, ...
 
-      ```
 
 
-
-      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'
+      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
     mon_number: 110
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 467
@@ -162,4 +102,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

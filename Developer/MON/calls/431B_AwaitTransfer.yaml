@@ -4,12 +4,11 @@
 
 octal: 431B
 name: AwaitTransfer
-short_names: []
+short_names:
+- MWAITF
 description: ''
-notes: []
 see_also:
 - AwaitFileTransfer
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -18,9 +17,8 @@ parameters:
 - name: Param2
   type: UNKNOWN
   io: I
-  description: Wait flag. If 0, the program waits until the data transfer is completed.
-    Other values return a value showing the state of the transfer. ND-500 programs
-    do not wait.
+  description: Wait flag. If 0, the program waits until the data transfer is completed. Other values return
+    a value showing the state of the transfer. ND-500 programs do not wait.
 - name: Param3
   type: UNKNOWN
   io: I
@@ -28,93 +26,55 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FileNumber, WaitFlag, NoOfBytes : LONGINT;
-
       ...
-
       AwaitTransfer(FileNumber, WaitFlag, NoOfBytes);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 FileNumber COMP.
-
       01 WaitFlag COMP.
-
       01 NoOfBytes COMP.
-
       ...
-
       MONITOR-CALL "AwaitTransfer" USING FileNumber, WaitFlag, NoOfBytes.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER FileNumber, WaitFlag, NoOfBytes
-
       ...
-
-      Monitor_Call(''AwaitTransfer'', FileNumber, WaitFlag, NoOfBytes)
-
-      ```'
-    notes: ''
+      Monitor_Call('AwaitTransfer', FileNumber, WaitFlag, NoOfBytes)
   planc:
     available: true
-    code: 'INTEGER : FileNumber, WaitFlag, NoOfBytes
-
+    code: |-
+      INTEGER : FileNumber, WaitFlag, NoOfBytes
       ...
-
-      Monitor_Call(''AwaitTransfer'', FileNumber, WaitFlag, NoOfBytes)'
-    notes: ''
+      Monitor_Call('AwaitTransfer', FileNumber, WaitFlag, NoOfBytes)
   assembly_500:
     available: true
-    code: 'FileNumber : W BLOCK 1
-
+    code: |-
+      FileNumber : W BLOCK 1
       WaitFlag : W BLOCK 1
-
       NoOfBytes : W BLOCK 1
-
       ErrCode : W BLOCK 1
-
       AwaitTransfer : EQU 37B9 + 431B
-
       ...
-
       CALLG AwaitTransfer, 3, FileNumber, WaitFlag, NoOfBytes
-
       IF K GO Error
-
       ...
-
-      Error, Wl =: ErrCode'
+      Error, Wl =: ErrCode
     octal_definition: 37B9 + 431B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 89
@@ -126,4 +86,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

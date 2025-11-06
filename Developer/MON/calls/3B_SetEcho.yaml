@@ -4,19 +4,17 @@
 
 octal: 3B
 name: SetEcho
-short_names: []
+short_names:
+- ECHOM
 description: ''
-notes: []
 see_also:
 - SetBreak
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
-  description: The terminal's logical device number. See appendix B. Only needed for
-    RT programs. Background programs ignore this parameter. The user's terminal is
-    assumed.
+  description: The terminal's logical device number. See appendix B. Only needed for RT programs. Background
+    programs ignore this parameter. The user's terminal is assumed.
 - name: Param2
   type: UNKNOWN
   io: I
@@ -44,122 +42,76 @@ parameters:
 - name: Param8
   type: UNKNOWN
   io: I
-  description: '8: Last user-defined echo table. (Only meaningful with echo strategy
-    7.)'
+  description: '8: Last user-defined echo table. (Only meaningful with echo strategy 7.)'
 - name: Param9
   type: UNKNOWN
   io: I
-  description: User-defined echo table. Ignored if the echo is different from 7. Use
-    128 bits to represent the ASCII characters. Use 0 for the character that should
-    have echo. For example, if bit number 65 is 0, the character A gives echo. See
-    the ASCII table in appendix F.
+  description: User-defined echo table. Ignored if the echo is different from 7. Use 128 bits to represent
+    the ASCII characters. Use 0 for the character that should have echo. For example, if bit number 65
+    is 0, the character A gives echo. See the ASCII table in appendix F.
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber, EchoStrategy : INTEGER2;
-
       Table : RECORD...END;
-
       ...
-
       SetEcho(DeviceNumber, EchoStrategy, Table);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 DeviceNumber COMP.\n01 EchoStrategy COMP.\n01 Table.\n  02 array\
-      \ COMP OCCURS 8 TIMES.\n  ...\nMONITOR-CALL \"SetEcho\" USING DeviceNumber,\
-      \ EchoStrategy, Table.\n```"
-    notes: ''
+    code: |-
+      01 DeviceNumber COMP.
+      01 EchoStrategy COMP.
+      01 Table.
+        02 array COMP OCCURS 8 TIMES.
+        ...
+      MONITOR-CALL "SetEcho" USING DeviceNumber, EchoStrategy, Table.
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DeviceNumber, EchoStrategy
-
       INTEGER Table(8)
-
       ...
-
-      Monitor_Call(''SetEcho'', DeviceNumber, EchoStrategy, Table(1))
-
-      ```'
-    notes: ''
+      Monitor_Call('SetEcho', DeviceNumber, EchoStrategy, Table(1))
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : DeviceNumber, EchoStrategy
-
       INTEGER2ARRAY{0:7}
-
       ...
-
-      Monitor_Call(''SetEcho'', DeviceNumber, EchoStrategy, Table(0))
-
-      ```'
-    notes: ''
+      Monitor_Call('SetEcho', DeviceNumber, EchoStrategy, Table(0))
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber : W BLOCK 1
-
       EchoStrategy : W BLOCK 1
-
       Table : H BLOCK 8
-
       SetEcho : EQU 37B9 + 3B
-
       ...
-
       CALLG SetEcho, 3, DeviceNumber, EchoStrategy, Table
-
-      ```'
     octal_definition: 37B9 + 3B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT DEVNO  %Logical device number.
-
       LDA STRAT  %Echo strategy.
-
       LDX (TABLE %Eight word large bit map.
-
       MON 3      %Monitor call SetEcho.
-
       ...
-
       DEVNO, ...
-
       STRAT, ...
-
       TABLE, ...
-
       *+10/ %Make a buffer of 8 words.
 
-      ```
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 3
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 441
@@ -171,4 +123,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

@@ -6,21 +6,19 @@ octal: 430B
 name: TranslateAddress
 short_names:
 - ADRIOO
-description: The call formats are marked from a-i. All formats give status on return.
-  See appendix A. The return status >=0 means the call terminated correctly. Parameters
-  which do not affect the call format are called "dummy" below. All call formats contain
-  logical unit number (0-3) in function code bits 6-8. Status=EXABS(logical device
-  number, Unit/function code, dummy, dummy, dummy) The hardware status is returned
-  as error code. The device must be reserved. Otherwise a positive error code may
-  not be the correct hardware status. Status=EXABS(logical device number, Unit/function
-  code, dummy, dummy, dummy) Status is Standard Error Code. Status=EXABS(logical device
-  number, Unit/function code, physical memory address, sector address, no of sectors
-  to read) Status=EXABS(logical device number, Unit/function code, physical memory
-  address, sector address, no of sectors to write) Status=EXABS(logical device number,
-  Unit/function code, dummy, dummy, floppy format number) Status=EXABS(logical device
-  number, Unit/function code, dummy, dummy, sector address) Status=EXABS(logical device
-  number, Unit/function code, dummy, dummy, destination unit number) Status=EXABS(logical
-  device number, Unit/function code, dummy, dummy, first sector address of track)
+description: The call formats are marked from a-i. All formats give status on return. See appendix A.
+  The return status >=0 means the call terminated correctly. Parameters which do not affect the call format
+  are called "dummy" below. All call formats contain logical unit number (0-3) in function code bits 6-8.
+  Status=EXABS(logical device number, Unit/function code, dummy, dummy, dummy) The hardware status is
+  returned as error code. The device must be reserved. Otherwise a positive error code may not be the
+  correct hardware status. Status=EXABS(logical device number, Unit/function code, dummy, dummy, dummy)
+  Status is Standard Error Code. Status=EXABS(logical device number, Unit/function code, physical memory
+  address, sector address, no of sectors to read) Status=EXABS(logical device number, Unit/function code,
+  physical memory address, sector address, no of sectors to write) Status=EXABS(logical device number,
+  Unit/function code, dummy, dummy, floppy format number) Status=EXABS(logical device number, Unit/function
+  code, dummy, dummy, sector address) Status=EXABS(logical device number, Unit/function code, dummy, dummy,
+  destination unit number) Status=EXABS(logical device number, Unit/function code, dummy, dummy, first
+  sector address of track)
 parameters: []
 examples: {}
 compatibility:
@@ -28,7 +26,7 @@ compatibility:
   nd500: true
   user_programs: true
   rt_programs: true
-  system_programs: true
+  system_programs: false
 source:
   document: ND-860228.2 EN
   page_references: []

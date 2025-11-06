@@ -4,13 +4,11 @@
 
 octal: 262B
 name: GetSystemInfo
-short_names: []
-description: Gets various system information. The system number, the CPU type, the
-  SINTRAN III version, the instruction set, the patch indicator, and the system generation
-  time are returned.
-notes: []
+short_names:
+- CPUST
+description: Gets various system information. The system number, the CPU type, the SINTRAN III version,
+  the instruction set, the patch indicator, and the system generation time are returned.
 see_also: []
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -19,8 +17,8 @@ parameters:
 - name: Param2
   type: UNKNOWN
   io: I
-  description: 'The i2-word (24 byte) array containing system information. Details
-    are given on page *3 #SYS-INFO'
+  description: 'The i2-word (24 byte) array containing system information. Details are given on page *3
+    #SYS-INFO'
 - name: Param3
   type: UNKNOWN
   io: I
@@ -28,97 +26,77 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       Number : INTEGER2;
-
       Buff : RECORD...END;
-
       ...
-
       GetSystemInfo(Number, Buff);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 Number COMP.\n01 Buff.\n  02 array COMP OCCURS 12 TIMES.\n01 ErrCode\
-      \ COMP.\n...\nMONITOR-CALL \"GetSystemInfo\" USING Number, Buff.\nCALL \"CbError\"\
-      \ USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
-    notes: ''
+    code: |-
+      01 Number COMP.
+      01 Buff.
+        02 array COMP OCCURS 12 TIMES.
+      01 ErrCode COMP.
+      ...
+      MONITOR-CALL "GetSystemInfo" USING Number, Buff.
+      CALL "CbError" USING ErrCode.
+      IF ErrCode NOT = 0 GO ...
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER Number
-
       INTEGER Buff(12)
-
       ...
-
-      Monitor_Call(''GetSystemInfo'', Number, Buff(1))
-
+      Monitor_Call('GetSystemInfo', Number, Buff(1))
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : Number\nBYTES : Buff(0:23)\n...\nON ROUTINEERROR DO\n  \
-      \  IF ErrCode >< 0 THEN ...\nENDON\nMonitor_Call('GetSystemInfo', Number, Buff(0))\n\
-      ```"
-    notes: ''
+    code: |-
+      INTEGER : Number
+      BYTES : Buff(0:23)
+      ...
+      ON ROUTINEERROR DO
+          IF ErrCode >< 0 THEN ...
+      ENDON
+      Monitor_Call('GetSystemInfo', Number, Buff(0))
   assembly_500:
     available: true
-    code: "```\nNumber : W BLOCK 1\nBuff : H BLOCK 14B\nErrCode : W BLOCK 1\nGetSystemInfo\
-      \ : EQU 3789 + 262B\n...\n    CALLG GetSystemInfo, 2. Number, Buff\n    IF K\
-      \ GO ERROR\n...\nERROR : W1 =: ErrCode                     %ErrorCode in W1\
-      \ register.\n```"
+    code: |-
+      Number : W BLOCK 1
+      Buff : H BLOCK 14B
+      ErrCode : W BLOCK 1
+      GetSystemInfo : EQU 3789 + 262B
+      ...
+          CALLG GetSystemInfo, 2. Number, Buff
+          IF K GO ERROR
+      ...
+      ERROR : W1 =: ErrCode                     %ErrorCode in W1 register.
     octal_definition: 37B9 + 262B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       SAA  0         %Load register A with zero.
-
       LDX  (BUFF     %Address of a 12-word long buffer.
-
       MON  262       %Monitor call GetSystemInfo.
-
       JMP  ERROR     %Error return from monitor call. (If A not 0.)
-
       ...            %Normal return.
-
       ERROR, ...     %Error number in register A.
-
       ...
 
-
       BUFF, 0
-
       *+14/          %A 12-word long buffer.
 
-      ```
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 262
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users:
-  - ND-110/CX or ND-120/CX microprogram version.
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 285
@@ -130,4 +108,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

@@ -4,103 +4,65 @@
 
 octal: 317B
 name: ExecuteCommand
-short_names: []
+short_names:
+- UECOM
 description: ''
-notes: []
 see_also:
 - CallCommand
 - SetCommandBuffer. CallCommand terminates the program if an error occurs
-references: []
 parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       Command : PACKED ARRAY [0..34] OF CHAR;
-
       ...
-
       ExecuteCommand(Command);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 Command    PIC X(35).
-
       ...
-
       MONITOR-CALL "ExecuteCommand" USING Command.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       CHARACTER Command*35
-
       ...
-
-      Monitor_Call(''ExecuteCommand'', Command(1:35))
-
-      ```'
-    notes: ''
+      Monitor_Call('ExecuteCommand', Command(1:35))
   planc:
     available: true
-    code: 'BYTES : Command(0:35)
-
+    code: |-
+      BYTES : Command(0:35)
       ...
-
-      Monitor_Call(''ExecuteCommand'', Command)'
-    notes: ''
+      Monitor_Call('ExecuteCommand', Command)
   assembly_500:
     available: true
-    code: 'Command : STRING 35
-
+    code: |-
+      Command : STRING 35
       ExecuteCommand : EQU 37B9 + 317B
-
       ...
-
-      CALLG ExecuteCommand, 1, Command'
+      CALLG ExecuteCommand, 1, Command
     octal_definition: 37B9 + 317B
-    notes: ''
   mac:
     available: true
-    code: '|        |                         |
-
+    code: |-
+      |        |                         |
       |--------|-------------------------|
-
-      | LDA    | (CMND                 | %Address of string with SINTRAN command.
-      |
-
+      | LDA    | (CMND                 | %Address of string with SINTRAN command. |
       | MON    | 317                   | %Monitor call ExecuteCommand.            |
-
       | ...    |                       |                                          |
-
-      | CMND,  | ''CLOSE-FILE 102''      | %Execute CLOSE-FILE 102.                 |
-
+      | CMND,  | 'CLOSE-FILE 102'      | %Execute CLOSE-FILE 102.                 |
 
 
-      | ND-100 and ND-500 | All users | Background programs |'
+      | ND-100 and ND-500 | All users | Background programs |
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - Background programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 181
@@ -112,4 +74,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

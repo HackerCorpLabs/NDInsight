@@ -4,15 +4,14 @@
 
 octal: 436B
 name: SetND500Param
-short_names: []
+short_names:
+- 5PASET
 description: ''
-notes: []
 see_also:
 - TerminationHandling
 - GetUserParam
 - SetUserParam
 - and GetND500Param
-references: []
 parameters:
 - name: '1'
   type: Bit 24:16 contains the user index. Bit 15:0 contains the directory index.
@@ -23,8 +22,8 @@ parameters:
   io: I
   description: ''
 - name: '3'
-  type: Fatal error or the monitor call ErrorMessage returns the error number. If
-    ESCAPE was pressed, -1 is returned.
+  type: Fatal error or the monitor call ErrorMessage returns the error number. If ESCAPE was pressed,
+    -1 is returned.
   io: I
   description: ''
 - name: '4'
@@ -38,81 +37,50 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       Buffer : RECORD...END;
-
       ...
-
       SetND500Param(Buffer);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 Buffer.\n   02 array COMP OCCURS 5 TIMES.\n   ...\n   MONITOR-CALL\
-      \ \"SetND500Param\" USING Buffer.\n```"
-    notes: ''
+    code: |-
+      01 Buffer.
+         02 array COMP OCCURS 5 TIMES.
+         ...
+         MONITOR-CALL "SetND500Param" USING Buffer.
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER Buffer(5)
-
       ...
-
-      Monitor_Call(''SetND500Param'', Buffer(1))
-
-      ```'
-    notes: ''
+      Monitor_Call('SetND500Param', Buffer(1))
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER ARRAY : Buffer(0:4)
-
       ...
-
-      Monitor_Call(''SetND500Param'', Buffer(0))
-
-      ```'
-    notes: ''
+      Monitor_Call('SetND500Param', Buffer(0))
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       Buffer : W BLOCK 5
-
       SetND500Param : EQU 37B9 + 436B
-
       ...
-
       CALLG SetND500Param, 1, Buffer
-
-      ```'
     octal_definition: 37B9 + 436B
-    notes: ''
   mac:
     available: true
-    code: 'This monitor call is not available on the ND-100. See SetUserParam.
+    code: |-
+      This monitor call is not available on the ND-100. See SetUserParam.
 
-
-      | ND-500 | All users | All programs |'
+      | ND-500 | All users | All programs |
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 451
@@ -124,4 +92,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

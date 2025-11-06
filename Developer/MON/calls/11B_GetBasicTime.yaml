@@ -4,14 +4,13 @@
 
 octal: 11B
 name: GetBasicTime
-short_names: []
+short_names:
+- TIME
 description: ''
-notes: []
 see_also:
 - GetCurrentTime
 - AdjustClock
 - and SetClock
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -20,93 +19,56 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       BasicTime : LONGINT;
-
       ...
-
       GetBasicTime(BasicTime);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 BasicTime COMP PIC S9(10).
-
       ...
-
       MONITOR-CALL "GetBasicTime" USING BasicTime.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER*4 BasicTime
-
       ...
-
-      Monitor_Call(''GetBasicTime'', BasicTime)
-
-      ```'
-    notes: ''
+      Monitor_Call('GetBasicTime', BasicTime)
   planc:
     available: true
-    code: 'INTEGER4 : BasicTime
-
+    code: |-
+      INTEGER4 : BasicTime
       ...
-
-      Monitor_Call(''GetBasicTime'', BasicTime)'
-    notes: ''
+      Monitor_Call('GetBasicTime', BasicTime)
   assembly_500:
     available: true
-    code: 'BasicTime : W BLOCK 1
-
+    code: |-
+      BasicTime : W BLOCK 1
       GetBasicTime : EQU 37B9 + 11B
-
       ...
-
       CALLG GetBasicTime, 0
-
-      W1 =: BasicTime  %Result is returned in W1 register.'
+      W1 =: BasicTime  %Result is returned in W1 register.
     octal_definition: 37B9 + 11B
-    notes: ''
   mac:
     available: true
-    code: '| MON | 11   | %Monitor call GetTime.                                |
-
+    code: |-
+      | MON | 11   | %Monitor call GetTime.                                |
       |-----|------|-------------------------------------------------------|
-
       | STD | TIME | %Store time returned in the A and D register.         |
-
       | ... |      |                                                       |
-
       | TIME, 0 | | %Time in basic time units as a double word.            |
-
       | 0      |    | %                                                   |
 
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 223
@@ -118,4 +80,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

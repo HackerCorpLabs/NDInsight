@@ -4,9 +4,9 @@
 
 octal: 160B
 name: FixContiguous
-short_names: []
+short_names:
+- FIXC
 description: ''
-notes: []
 see_also:
 - UnfixSegment
 - FixScattered
@@ -14,7 +14,6 @@ see_also:
 - MemoryAllocation
 - FixIOArea
 - and @FIXC
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -27,120 +26,69 @@ parameters:
 - name: Param3
   type: UNKNOWN
   io: I
-  description: Return status if bit 15 of the segment number is set. Dummy on the
-    ND-500. 0 means OK. -1 means space not available. -2 means illegal segment. -4
-    means attempt to fix demand segment. -5 means attempt to fix too many pages. -6
-    means segment already fixed at another address.
+  description: Return status if bit 15 of the segment number is set. Dummy on the ND-500. 0 means OK.
+    -1 means space not available. -2 means illegal segment. -4 means attempt to fix demand segment. -5
+    means attempt to fix too many pages. -6 means segment already fixed at another address.
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       SegmentNo, PageNumber, Stat : INTEGER2;
-
       ...
-
       FixContiguous(SegmentNo, PageNumber, Stat);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 SegmentNo COMP.
-
       01 PageNumber COMP.
-
       01 Stat COMP.
-
       ...
-
       MONITOR-CALL "FixContiguous" USING SegmentNo, PageNumber, Stat.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER SegmentNo, PageNumber, Stat
-
       ...
-
-      Monitor_Call(''FixContiguous'', SegmentNo, PageNumber, Stat)
-
-      ```'
-    notes: ''
+      Monitor_Call('FixContiguous', SegmentNo, PageNumber, Stat)
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : SegmentNo, PageNumber, Stat
-
       ...
-
-      Monitor_Call(''FixContiguous'', SegmentNo, PageNumber, Stat)
-
-      ```'
-    notes: ''
+      Monitor_Call('FixContiguous', SegmentNo, PageNumber, Stat)
   assembly_500:
     available: true
-    code: 'SegmentNo : W BLOCK 1
-
+    code: |-
+      SegmentNo : W BLOCK 1
       PageNumber : W BLOCK 1
-
       FixContiguous : EQU 37B9 + 160B
-
       ...
-
-      CALLG FixContiguous, 2, SegmentNo, PageNumber'
+      CALLG FixContiguous, 2, SegmentNo, PageNumber
     octal_definition: 37B9 + 160B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA (PAR   %Load register A with address of parameter list.
-
       MON 160    %Monitor call FixContiguous.
-
       STA STAT   %Returned status.
-
       ...
-
       STAT, 0
-
       PAR, SEGNO %Segment number to be fixed.
-
       PAGE       %First physical page number.
-
       ...
-
       SEGNO, ...
-
       PAGE, ...
 
-      ```
 
 
-
-      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'
+      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
     mon_number: 160
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 201
@@ -152,4 +100,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

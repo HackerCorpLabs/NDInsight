@@ -4,20 +4,15 @@
 
 octal: 406B
 name: AccessRTCommon
-short_names: []
-description: 'Reads from or writes to RT common from an ND-500 program. RT common
-  is an area in physical memory where RT programs may exchange data.
+short_names:
+- RWRTC
+description: |-
+  Reads from or writes to RT common from an ND-500 program. RT common is an area in physical memory where RT programs may exchange data.
 
-
-  - Some SINTRAN III systems are generated without RT common. The size of RT common
-  is defined at the time of system generation. The size may be increased by up to
-  8 pages by the SINTRAN-SERVICE-PROGRAM command DEFINE-RTCOMMON-SIZE (see the SINTRAN
-  III Commands Reference Manual, ND-860128, for more information).'
-notes: []
+  - Some SINTRAN III systems are generated without RT common. The size of RT common is defined at the time of system generation. The size may be increased by up to 8 pages by the SINTRAN-SERVICE-PROGRAM command DEFINE-RTCOMMON-SIZE (see the SINTRAN III Commands Reference Manual, ND-860128, for more information).
 see_also:
 - GetInputFlags
 - SetOutputFlags
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -26,8 +21,8 @@ parameters:
 - name: Param2
   type: UNKNOWN
   io: I
-  description: RT common address. This is a logical ND-100 address in the logical
-    address area of RT common. ND-100 has 16-bit word addresses.
+  description: RT common address. This is a logical ND-100 address in the logical address area of RT common.
+    ND-100 has 16-bit word addresses.
 - name: Param3
   type: UNKNOWN
   io: I
@@ -39,87 +34,62 @@ parameters:
 examples:
   pascal:
     available: true
-    code: "Func, RTCommon, NoOfBytes : LONGINT;\nBuffer : ARRAY [0..6] OF RECORD...END;\n\
-      \n    AccessRTCommon(Func, RTCommon, NoOfBytes, Buffer);"
-    notes: ''
+    code: |-
+      Func, RTCommon, NoOfBytes : LONGINT;
+      Buffer : ARRAY [0..6] OF RECORD...END;
+
+          AccessRTCommon(Func, RTCommon, NoOfBytes, Buffer);
   cobol:
     available: true
-    code: "```\n01 Func COMP.\n01 RTCommon COMP.\n01 NoOfBytes COMP.\n01 Buffer.\n\
-      \   02 array COMP OCCURS 100 TIMES.\n...\nMONITOR-CALL \"AccessRTCommon\" USING\
-      \ Func, RTCommon, NoOfBytes, Buffer.\n```"
-    notes: ''
+    code: |-
+      01 Func COMP.
+      01 RTCommon COMP.
+      01 NoOfBytes COMP.
+      01 Buffer.
+         02 array COMP OCCURS 100 TIMES.
+      ...
+      MONITOR-CALL "AccessRTCommon" USING Func, RTCommon, NoOfBytes, Buffer.
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER Func, RTCommon, NoOfBytes
-
       INTEGER Buffer(100)
-
       ...
-
-      Monitor_Call(''AccessRTCommon'', Func, RTCommon, NoOfBytes, Buffer(1))
-
-      ```'
-    notes: ''
+      Monitor_Call('AccessRTCommon', Func, RTCommon, NoOfBytes, Buffer(1))
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : Func, RTCommon, NoOfBytes
-
       BYTES : Buffer(0:199)
 
-
-      Monitor_Call(''AccessRTCommon'', Func, RTCommon, NoOfBytes, Buffer(0))
-
-      ```'
-    notes: ''
+      Monitor_Call('AccessRTCommon', Func, RTCommon, NoOfBytes, Buffer(0))
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       Func : W BLOCK 1
-
       RTCommon : W BLOCK 1
-
       NoOfBytes : W BLOCK 1
-
       Buffer : W ARRAY 100
-
       ErrCode : W BLOCK 1
-
       AccessRTCommon : EQU 37B9 + 406B
 
-
       CALLG AccessRTCommon, 4, Func, RTCommon, NoOfBytes, Buffer
-
       IF K GO ERROR
 
-      ```
 
-
-      Error : W1 = ErrCode  %Error code in the W1 register.'
+      Error : W1 = ErrCode  %Error code in the W1 register.
     octal_definition: 37B9 + 406B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 73
@@ -131,4 +101,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

@@ -4,12 +4,11 @@
 
 octal: 424B
 name: ClearCapability
-short_names: []
+short_names:
+- CAPCLE
 description: ''
-notes: []
 see_also:
 - CopyCapability
-references: []
 parameters:
 - name: Logical segment number in your domain.
   type: Logical segment number in your domain.
@@ -26,105 +25,61 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       LogicalSegmentNo, SegType : LONGINT;
-
       ...
-
       ClearCapability(LogicalSegmentNo, SegType);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 LogicalSegmentNo COMP.
-
       01 SegType COMP.
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "ClearCapability" USING LogicalSegmentNo, SegType.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER LogicalSegmentNo, SegType
-
       ...
-
-      Monitor_Call(''ClearCapability'', LogicalSegmentNo, SegType)
-
+      Monitor_Call('ClearCapability', LogicalSegmentNo, SegType)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: 'INTEGER : LogicalSegmentNo; SegType
-
+    code: |-
+      INTEGER : LogicalSegmentNo; SegType
       ...
-
       ON ROUTINEERROR DO
-
       &nbsp;&nbsp;&nbsp;&nbsp;IF ErrCode > 0 THEN ...
-
       ENDON
-
-      Monitor_Call(''ClearCapability'', LogicalSegmentNo, SegType)'
-    notes: ''
+      Monitor_Call('ClearCapability', LogicalSegmentNo, SegType)
   assembly_500:
     available: true
-    code: 'LogicalSegmentNo : W BLOCK 1
-
+    code: |-
+      LogicalSegmentNo : W BLOCK 1
       SegType : W BLOCK 1
-
       ErrCode : W BLOCK 1
-
       ClearCapability : EQU 37B9 + 424B
-
       ...
-
       &nbsp;&nbsp;&nbsp;&nbsp;CALLG ClearCapability, 2, LogicalSegmentNo, SegType
-
       &nbsp;&nbsp;&nbsp;&nbsp;IF K GO ERROR
-
       ...
-
-      ERROR : W1 =: ErrCode &nbsp;&nbsp;&nbsp;&nbsp;%ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode &nbsp;&nbsp;&nbsp;&nbsp;%ErrorCode in W1 register.
     octal_definition: 37B9 + 424B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 111
@@ -136,4 +91,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

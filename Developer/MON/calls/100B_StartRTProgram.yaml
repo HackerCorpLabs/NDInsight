@@ -4,21 +4,18 @@
 
 octal: 100B
 name: StartRTProgram
-short_names: []
-description: 'Starts an RT program. The program is moved to the execution queue. It
-  is executed according to its priority.
-
+short_names:
+- RT
+description: |-
+  Starts an RT program. The program is moved to the execution queue. It is executed according to its priority.
 
   - The program may be in the execution queue. Then it restarts as soon as it terminates.
-
-  - You can terminate RT programs with StopRTProgram.'
-notes: []
+  - You can terminate RT programs with StopRTProgram.
 see_also:
 - StartupTime
 - StartupInterval
 - DelayStart
 - and @RT
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -27,97 +24,58 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       RTProgram : INTEGER2;
-
       ...
-
       StartRTProgram(RTProgram);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 RTProgram COMP.
-
       ...
-
       MONITOR-CALL "StartRTProgram" USING RTProgram.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER RTProgram
-
       ...
-
-      Monitor_Call(''StartRTProgram'', RTProgram)
-
-      ```'
-    notes: ''
+      Monitor_Call('StartRTProgram', RTProgram)
   planc:
     available: true
-    code: 'INTEGER : RTProgram
-
+    code: |-
+      INTEGER : RTProgram
       ...
-
-      Monitor_Call(''StartRTProgram'', RTProgram)'
-    notes: ''
+      Monitor_Call('StartRTProgram', RTProgram)
   assembly_500:
     available: true
-    code: 'RTProgram : W BLOCK 1
-
+    code: |-
+      RTProgram : W BLOCK 1
       StartRTProgram : EQU 37B9 + 100B
-
       ...
-
-      CALLG StartRTProgram, 1, RTProgram'
+      CALLG StartRTProgram, 1, RTProgram
     octal_definition: 37B9 + 100B
-    notes: ''
   mac:
     available: true
-    code: '|        |            |                                                  |
-
+    code: |-
+      |        |            |                                                  |
       |--------|------------|--------------------------------------------------|
-
       | LDA    | (PAR       | %Load register A with address of parameter list. |
-
       | MON    | 100        | %Monitor call StartRTProgram.                    |
-
       | ...    |            |                                                  |
-
       | PAR,   | RTPRO      | %Address of RT description.                      |
-
       | ...    |            |                                                  |
-
       | RTPRO, |            |                                                  |
 
 
-
       | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
-
-      |-------------------|-------------------------|-------------|'
+      |-------------------|-------------------------|-------------|
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 485
@@ -129,4 +87,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

@@ -4,33 +4,30 @@
 
 octal: 201B
 name: HDLCfunction
-short_names: []
-description: Performs various HDLC functions. A HDLC is a high-level data link to
-  another computer. You may send data, receive data, and control HDLC. Data is sent
-  as Driver Control Blocks (DCB). This monitor call is also used by X.21 to transfer
-  DCBs between the user programs and the X.21 driver. The system uses the Logical
-  Device Number to distinguish between HDLC and X.21.
+short_names:
+- MHDLC
+description: Performs various HDLC functions. A HDLC is a high-level data link to another computer. You
+  may send data, receive data, and control HDLC. Data is sent as Driver Control Blocks (DCB). This monitor
+  call is also used by X.21 to transfer DCBs between the user programs and the X.21 driver. The system
+  uses the Logical Device Number to distinguish between HDLC and X.21.
 notes:
-- Use MON 122, ReserveResource, and MON 123, Release Resource for exclusive access
-  to a LDN.
+- Use MON 122, ReserveResource, and MON 123, Release Resource for exclusive access to a LDN.
 see_also: []
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
-  description: 'Function code: Use 0 to send DCB to driver and 1 to receive DCB from
-    driver'
+  description: 'Function code: Use 0 to send DCB to driver and 1 to receive DCB from driver'
 - name: Param2
   type: UNKNOWN
   io: I
-  description: 'Logical device number: There are different logical device numbers
-    for the input and output part. See appendix B.'
+  description: 'Logical device number: There are different logical device numbers for the input and output
+    part. See appendix B.'
 - name: Param3
   type: UNKNOWN
   io: I
-  description: 'Address of driver control block: The first word in the DCB contains
-    command information. The commands are:'
+  description: 'Address of driver control block: The first word in the DCB contains command information.
+    The commands are:'
 - name: Param4
   type: UNKNOWN
   io: I
@@ -38,9 +35,9 @@ parameters:
 - name: Param5
   type: UNKNOWN
   io: I
-  description: 'Depends on the function code: maximum size of the driver control block
-    in bytes for the SEND function, wait flag for the RECEIVE function. The program
-    waits for a driver control block if 1. Use 0 to make the program continue.'
+  description: 'Depends on the function code: maximum size of the driver control block in bytes for the
+    SEND function, wait flag for the RECEIVE function. The program waits for a driver control block if
+    1. Use 0 to make the program continue.'
 - name: Param6
   type: UNKNOWN
   io: I
@@ -92,81 +89,57 @@ examples:
     notes: Not available
   fortran:
     available: true
-    code: "```\nINTEGER SendRecDCB, LDN, Buffer, DCBusize, DCBmsize\nINTEGER Buff(1024)\n\
-      ...\nMonitor_Call('HDLCFunction', SendRecDCB, LDN, Buffer(1),\n    C DCBusize,\
-      \ DCBmsizeXcoor\n```\n\nScanned by Jonny Oddene for Sintran Data © 2020"
-    notes: ''
+    code: |-
+      INTEGER SendRecDCB, LDN, Buffer, DCBusize, DCBmsize
+      INTEGER Buff(1024)
+      ...
+      Monitor_Call('HDLCFunction', SendRecDCB, LDN, Buffer(1),
+          C DCBusize, DCBmsizeXcoor
+
+
+      Scanned by Jonny Oddene for Sintran Data © 2020
   planc:
     available: false
     code: ''
     notes: Not available
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       Func   : W BLOCK 1
-
       DevNo  : W BLOCK 1
-
       Buffer : W BLOCK 1024 %Even byte address.
-
       USize  : W BLOCK 1
-
       MSize  : W BLOCK 1
-
       Status : W BLOCK 1
-
       HDLCfunction : EQU 37B9 + 201B
-
-      ```
 
 
       CALLG HDLCfunction, 5, Func, DevNo, Buffer, USize, MSize,
-
       IF K GO Error
-
       W1 =: Status
 
-
-      Error,'
+      Error,
     octal_definition: 37B9 + 201B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA (PAR      %Load address of parameter list into reg.A
-
       MON 201       %Monitor call HDLCfunction.
-
       JMP ERROR
-
       JMP OK
-
-      ```
 
 
       ERROR, ...  %A-reg contains error code.
-
       PAR, ...
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 201
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 307
@@ -178,4 +151,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

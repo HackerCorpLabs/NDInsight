@@ -4,13 +4,12 @@
 
 octal: 241B
 name: NewUser
-short_names: []
+short_names:
+- SUSCN
 description: ''
-notes: []
 see_also:
 - OldUser
 - '@ENTER'
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -27,8 +26,7 @@ parameters:
 - name: Param4
   type: UNKNOWN
   io: I
-  description: Return status. Public users return 0. User SYSTEM returns 1. User RT
-    returns 2.
+  description: Return status. Public users return 0. User SYSTEM returns 1. User RT returns 2.
 - name: Param5
   type: UNKNOWN
   io: I
@@ -36,154 +34,82 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       UserName, ProjPasswd : PACKED ARRAY [0..15] OF CHAR;
-
       UserPasswd : INTEGER2;
-
       ReturnStatus : INTEGER2;
-
       ...
-
       NewUser(UserName, UserPasswd, ProjPasswd, ReturnStatus);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 UserName PIC X(16).
-
       01 UserPasswd COMP.
-
       01 ProjPasswd PIC X(16).
-
       01 RetStat COMP.
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "NewUser" USING UserName, UserPasswd, ProjPasswd, RetStat.
 
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER ReturnStatus, UserPasswd
-
       CHARACTER UserName*16, ProjPasswd*16
-
       ...
-
-      Monitor_Call1(''NewUser'', UserName(1:16), UserPasswd,
-
+      Monitor_Call1('NewUser', UserName(1:16), UserPasswd,
       C ProjPasswd(1:16), ReturnStatus)
-
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       UserType : W BLOCK 1
-
-      UserName : STRINGDATA ''A-HANSEN''''''
-
+      UserName : STRINGDATA 'A-HANSEN'''
       UserPasswd : W BLOCK 1
-
       ProjPasswd : STRING 40B
-
       ErrCode : W BLOCK 1
-
       NewUser : EQU 37B9 + 241B
 
-      ```
-
       ...
-
-      ```
 
       CALLG NewUser, 4, UserName, UserPasswd, ProjPasswd, UserType
-
       IF K GO ERROR
 
-      ```
-
       ...
-
-      ```
 
       ERROR : W1 =: ErrCode      %ErrorCode in W1 register.
-
-      ```'
     octal_definition: 37B9 + 241B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT (PROJP     %Address of project password.
-
       LDX (USER     %Address of string containing user name.
-
       LDA (PASSW    %User password coded as integer.
-
       MON 241       %Monitor call NewUser.
-
       JMP ERROR     %Error return from monitor call.
-
       STA STAT      %Normal return, store status returned.
-
-      ```
 
       ...
 
 
-      ```
-
       ERROR, ...     %Error number in register A.
-
-      USER, ''A-HANSEN''     %Use A-HANSEN as user name.
-
+      USER, 'A-HANSEN'     %Use A-HANSEN as user name.
       PASSW, ...     %Password as represented in the user entry.
-
       PROJP, ...
-
       STAT, 0
 
-      ```
 
-
-      | ND-100 and ND-500 | User RT and user SYSTEM | Background programs |'
+      | ND-100 and ND-500 | User RT and user SYSTEM | Background programs |
     mon_number: 241
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - Background programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 353
@@ -195,4 +121,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

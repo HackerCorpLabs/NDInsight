@@ -4,29 +4,22 @@
 
 octal: 167B
 name: AttachSegment
-short_names: []
-description: Attaches a reentrant segment to your two current segments. The address
-  areas of the segments may overlap. Pages in the reentrant segment may be accessed
-  for reading, writing, or fetching instructions. When written to, a page loses its
-  reentrancy. It is stored on one of your current overlapping segments.
+short_names:
+- REENT
+description: Attaches a reentrant segment to your two current segments. The address areas of the segments
+  may overlap. Pages in the reentrant segment may be accessed for reading, writing, or fetching instructions.
+  When written to, a page loses its reentrancy. It is stored on one of your current overlapping segments.
 notes:
-- The segment is treated as reentrant only for the RT programs which have attached
-  it.
+- The segment is treated as reentrant only for the RT programs which have attached it.
 see_also: []
-references: []
 parameters: []
 examples: {}
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 0
@@ -38,4 +31,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

@@ -4,19 +4,18 @@
 
 octal: 17B
 name: SetTerminalType
-short_names: []
+short_names:
+- MSTTY
 description: ''
-notes: []
 see_also:
 - GetTerminalType
 - '@SET-TERMINAL-TYPE'
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
-  description: The logical device number of the terminal. You may use 1 for your own
-    terminal in background programs.
+  description: The logical device number of the terminal. You may use 1 for your own terminal in background
+    programs.
 - name: Param2
   type: UNKNOWN
   io: I
@@ -28,126 +27,75 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber, TerminalType : INTEGER2;
-
       ...
-
       SetTerminalType(DeviceNumber, TerminalType);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DeviceNumber COMP.
-
       01 TerminalType COMP.
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "SetTerminalType" USING DeviceNumber, TerminalType.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DeviceNumber, TerminalType
-
       ...
-
-      Monitor Call(''SetTerminalType'', DeviceNumber, TerminalType)
-
+      Monitor Call('SetTerminalType', DeviceNumber, TerminalType)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DeviceNumber, TerminalType\n...\nON ROUTINEERROR DO\n  \
-      \  IF ErrCode <> 0 THEN ...\nENDON\n\nMonitor_Call('SetTerminalType', DeviceNumber,\
-      \ TerminalType)\n```"
-    notes: ''
+    code: |-
+      INTEGER : DeviceNumber, TerminalType
+      ...
+      ON ROUTINEERROR DO
+          IF ErrCode <> 0 THEN ...
+      ENDON
+
+      Monitor_Call('SetTerminalType', DeviceNumber, TerminalType)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber : W BLOCK 1
-
       TerminalType : W BLOCK 1
-
       ErrCode : W BLOCK 1
-
       SetTerminalType : EQU 37B9 + 17B
-
       ...
-
       CALLG SetTerminalType, 2, DeviceNumber, TerminalType
-
       IF K GO ERROR
-
       ...
-
 
       ERROR : W1 =: ErrCode             %ErrorCode in W1 register.
-
-      ```'
     octal_definition: 37B9 + 17B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT DEVNO        %Logical device number.
-
       LDA TYPE         %Terminal type number.
-
       MON 17           %Monitor call SetTerminalType.
-
       JMP ERROR        %Error return from monitor call.
-
       ...              %Normal return.
-
       ERROR, ...       %Error number in register A.
-
       ...
 
-
       DEVNO, ...
-
       TYPE, ...
 
-      ```
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 17
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 477
@@ -159,4 +107,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

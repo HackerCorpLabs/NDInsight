@@ -4,25 +4,19 @@
 
 octal: 151B
 name: GETRTADDRESS
-short_names: []
-description: Gets the address of an RT description. You specify the name of the RT
-  program. See the SINTRAN III Real Time Guide (ND-860133) for further information.
-notes: []
+short_names:
+- GRTDA
+description: Gets the address of an RT description. You specify the name of the RT program. See the SINTRAN
+  III Real Time Guide (ND-860133) for further information.
 see_also: []
-references: []
 parameters: []
 examples: {}
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 0
@@ -34,4 +28,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

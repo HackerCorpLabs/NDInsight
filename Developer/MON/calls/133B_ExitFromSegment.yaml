@@ -4,33 +4,26 @@
 
 octal: 133B
 name: ExitFromSegment
-short_names: []
-description: Exchanges one or both current segments. Commonly used to return after
-  the monitor call JumpToSegment. ChangeSegment may be used instead of JumpToSegment
-  and ExitFromSegment. The segment numbers are restricted to 8-bits (values 0-255).
-  Use SegmentFunction (MON 341) with version K of SINTRAN III.
+short_names:
+- MEXIT
+description: Exchanges one or both current segments. Commonly used to return after the monitor call JumpToSegment.
+  ChangeSegment may be used instead of JumpToSegment and ExitFromSegment. The segment numbers are restricted
+  to 8-bits (values 0-255). Use SegmentFunction (MON 341) with version K of SINTRAN III.
 notes:
-- The L register must contain the return address. This makes the monitor call complicated
-  to use in high level languages.
+- The L register must contain the return address. This makes the monitor call complicated to use in high
+  level languages.
 see_also:
 - JumpToSegment
 - ChangeSegment
 - SegmentFunction
-references: []
 parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       SegmentNumber : INTEGER2;
-
       ...
-
       ExitFromSegment(SegmentNumber);
-
-      ```'
-    notes: ''
   cobol:
     available: false
     code: ''
@@ -50,51 +43,31 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: '| Command | Description |
-
+    code: |-
+      | Command | Description |
       |---------|-------------|
-
       | ...     | %See JumpToSegment. |
-
       | ...     | %This code is on segment 30B. |
-
       | SUBR, STT SEGNO | %Entry point after JumpToSegment. |
-
       | COPY SL DT | %Save T and L registers. |
-
       | STT RETUR | %L register contains return address. |
-
       | ...     | %Any processing on the segment. |
-
       | ...     | |
-
       | LDT RETUR | %Restore return address in L register. |
-
       | COPY ST DL | |
-
       | LDT SEGNO | %Restore calling segment number. |
-
       | MON 133 | %Monitor call ExitFromSegment. |
-
       | SEGNO, ... | %Segment number. |
-
       | RETUR, ... | %Return address. |
 
-
-      ND-100 | User RT and user SYSTEM | RT programs'
+      ND-100 | User RT and user SYSTEM | RT programs
     mon_number: 133
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 187
@@ -106,4 +79,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

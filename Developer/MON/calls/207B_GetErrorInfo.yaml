@@ -4,21 +4,20 @@
 
 octal: 207B
 name: GetErrorInfo
-short_names: []
-description: Gets information about the last real-time error. The monitor call returns
-  the error, the RT program responsible for the error, and the program address where
-  it occurred. A flag tells whether the RT program was aborted or not.
-notes: []
+short_names:
+- RERRP
+description: Gets information about the last real-time error. The monitor call returns the error, the
+  RT program responsible for the error, and the program address where it occurred. A flag tells whether
+  the RT program was aborted or not.
 see_also: []
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
   description: A 12 byte error information. It has the meaning below.
 - name: 0:1
-  type: Error number as two ASCII characters. Parity bits are not set. See appendix
-    A and F for error codes together with an ASCII table.
+  type: Error number as two ASCII characters. Parity bits are not set. See appendix A and F for error
+    codes together with an ASCII table.
   io: I
   description: ''
 - name: '2:3'
@@ -48,53 +47,33 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       Buffer : RECORD...END;
-
       ReturnStatus : INTEGER2;
-
       ...
-
       ReadErrorParam(Buffer, ReturnStatus); [Note routine name.]
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 Buffer.
-
       02 array COMP OCCURS 6 TIMES.
-
       01 ReturnStatus COMP.
-
       ...
-
       MONITOR-CALL "GetErrorInfo" USING Buffer, ReturnStatus.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER Buffer(6)
-
       INTEGER ReturnStatus
-
       ...
-
-      Monitor_Call(''GetErrorInfo'', Buffer(1), ReturnStatus)
-
-      ```'
-    notes: ''
+      Monitor_Call('GetErrorInfo', Buffer(1), ReturnStatus)
   planc:
     available: true
-    code: "BYTES : Buffer(0:11)\nINTEGER : ReturnStatus\n\n    Monitor_Call('GetErrorInfo',\
-      \ Buffer(0), ReturnStatus)"
-    notes: ''
+    code: |-
+      BYTES : Buffer(0:11)
+      INTEGER : ReturnStatus
+
+          Monitor_Call('GetErrorInfo', Buffer(0), ReturnStatus)
   assembly_500:
     available: false
     code: ''
@@ -102,28 +81,32 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: "| LDA   | (PAR)  | %Load register A with address of parameter list.   |\n\
-      |-------|--------|---------------------------------------------------|\n| MON\
-      \   | 207    | %Monitor call GetErrorInfo.                       |\n| JAF  \
-      \ | ERROR  | %Do error handling if register A is non-zero.     |\n\n    ERROR,\
-      \ ...    %Error number in register A.\n\n    PAR, BUFF     %Buffer for returned\
-      \ error information.\n\n    BUFF, 0\n    0\n    0\n    0\n    0\n    0\n\n\n\
-      | ND-100 | User RT and user SYSTEM | RT programs |"
+    code: |-
+      | LDA   | (PAR)  | %Load register A with address of parameter list.   |
+      |-------|--------|---------------------------------------------------|
+      | MON   | 207    | %Monitor call GetErrorInfo.                       |
+      | JAF   | ERROR  | %Do error handling if register A is non-zero.     |
+
+          ERROR, ...    %Error number in register A.
+
+          PAR, BUFF     %Buffer for returned error information.
+
+          BUFF, 0
+          0
+          0
+          0
+          0
+          0
+
+
+      | ND-100 | User RT and user SYSTEM | RT programs |
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: false
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 241
@@ -135,4 +118,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

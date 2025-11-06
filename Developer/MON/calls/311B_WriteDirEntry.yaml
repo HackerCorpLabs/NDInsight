@@ -4,20 +4,16 @@
 
 octal: 311B
 name: WriteDirEntry
-short_names: []
-description: 'Changes the information about a directory. The complete contents of
-  the directory entry is set. The SINTRAN III System Supervisor (ND-830003) describes
-  the file system in more detail.
-
+short_names:
+- WDIEN
+description: |-
+  Changes the information about a directory. The complete contents of the directory entry is set. The SINTRAN III System Supervisor (ND-830003) describes the file system in more detail.
 
   - The directory must be entered.
-
-  - The directory must be reserved.'
-notes: []
+  - The directory must be reserved.
 see_also:
 - GetDirUserIndexes
 - and GetDirEntry
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -34,117 +30,78 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DirIndex : INTEGER2;
-
       DirEntry : ARRAY [0..1] OF RECORD...END;
-
       ...
-
       SetDirEntry(DirIndex, DirEntry);    [Note routine name.]
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 DirIndex COMP.\n01 DirEntry.\n   02 array COMP OCCURS 24 TIMES.\n\
-      01 ErrCode COMP.\n...\nMONITOR-CALL \"WriteDirEntry\" USING DirIndex, DirEntry.\n\
-      CALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
-    notes: ''
+    code: |-
+      01 DirIndex COMP.
+      01 DirEntry.
+         02 array COMP OCCURS 24 TIMES.
+      01 ErrCode COMP.
+      ...
+      MONITOR-CALL "WriteDirEntry" USING DirIndex, DirEntry.
+      CALL "CbError" USING ErrCode.
+      IF ErrCode NOT = 0 GO ...
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DirIndex
-
       INTEGER DirEntry(24)
-
       ...
-
-      Monitor_Call(''WriteDirEntry'', DirIndex, DirEntry(1))
-
+      Monitor_Call('WriteDirEntry', DirIndex, DirEntry(1))
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DirIndex\nBYTES : DirEntry(0:47)\n...\nON ROUTINEERROR DO\n\
-      \    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('WriteDirEntry', DirIndex,\
-      \ DirEntry(0))\n```"
-    notes: ''
+    code: |-
+      INTEGER : DirIndex
+      BYTES : DirEntry(0:47)
+      ...
+      ON ROUTINEERROR DO
+          IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('WriteDirEntry', DirIndex, DirEntry(0))
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       DirIndex : W BLOCK 1
-
       DirEntry : W ARRAY 24
-
       ErrCode : W BLOCK 1
-
       WriteDirEntry : EQU 37B9 + 311B
-
       ...
-
       CALLG WriteDirEntry, 2, DirIndex, DirEntry
-
       IF K GO ERROR
-
       ...
-
       ERROR : W1 =: ErrCode              %ErrorCode in W1 register.
-
-      ```'
     octal_definition: 37B9 + 311B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT DIRIX     %Directory index.
-
       LDX (ENTRY)   %Address of buffer containing directory entry.
-
       MON 311       %Monitor call WriteDirEntry.
-
       JMP ERROR     %Error return from monitor call.
-
       ...           %Normal return.
-
       ERROR, ...    %Error number in register A.
-
       ...
-
       DIRIX, ...
-
       ENTRY, ...    %
-
       ...           %A buffer of 24 words.
 
-      ```
 
 
-
-      | ND-100 and ND-500 | User SYSTEM | All programs |'
+      | ND-100 and ND-500 | User SYSTEM | All programs |
     mon_number: 311
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User SYSTEM
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 563
@@ -156,4 +113,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

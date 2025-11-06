@@ -4,27 +4,19 @@
 
 octal: 267B
 name: TimeOut
-short_names: []
-description: 'Suspends the execution of your program for a given time. The execution
-  then continues after the monitor call. The restart cause is indicated. Avoid using
-  Time Out from ND-500, use ND500TimeOut instead.
-
+short_names:
+- TMOUT
+description: |-
+  Suspends the execution of your program for a given time. The execution then continues after the monitor call. The restart cause is indicated. Avoid using Time Out from ND-500, use ND500TimeOut instead.
 
   - No reserved files or devices are released.
-
   - The execution continues immediately if the program has its restart flag set.
-
   - You may use NoWaitSwitch. Then the program restarts when a break occurs.
-
-  - If a program has been rescheduled by the monitor call SET (mon 101, DelayStart)
-  or ABSET (mon 102, StartupTime), this rescheduling will be destroyed when you use
-  TimeOut.'
-notes: []
+  - If a program has been rescheduled by the monitor call SET (mon 101, DelayStart) or ABSET (mon 102, StartupTime), this rescheduling will be destroyed when you use TimeOut.
 see_also:
 - SuspendProgram
 - WaitforRestart
 - and ND500TimeOut
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -33,148 +25,90 @@ parameters:
 - name: Param2
   type: UNKNOWN
   io: I
-  description: The type of time units. 1 = basic time units, i.e. 1/50th of a second,
-    2 = seconds, 3 = minutes, 4 = hours.
+  description: The type of time units. 1 = basic time units, i.e. 1/50th of a second, 2 = seconds, 3 =
+    minutes, 4 = hours.
 - name: Param3
   type: UNKNOWN
   io: I
-  description: Restart cause. 0 means that the defined time has elapsed. 1 means that
-    a break restarted the program. -1 means that the RT program was scheduled for
-    repeated execution.
+  description: Restart cause. 0 means that the defined time has elapsed. 1 means that a break restarted
+    the program. -1 means that the RT program was scheduled for repeated execution.
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       NoTimeUnits, UnitType, ReturnStatus : INTEGER2;
-
       ...
-
       TimeOut(NoTimeUnits, UnitType, ReturnStatus);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 NoTimeUnits  COMP.
-
       01 UnitType     COMP.
-
       01 ReturnStatus COMP.
-
       01 ErrCode      COMP.
-
       ...
-
       MONITOR-CALL "TimeOut" USING NoTimeUnits, UnitType, ReturnStatus.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER  NoTimeUnits, UnitType, ReturnStatus
-
       ...
-
-      Monitor_Call(''TimeOut'', NoTimeUnits, UnitType, ReturnStatus)
-
+      Monitor_Call('TimeOut', NoTimeUnits, UnitType, ReturnStatus)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : NoTimeUnits, UnitType, ReturnStatus\n...\nON ROUTINEERROR\
-      \ DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('TimeOut', NoTimeUnits,\
-      \ UnitType, ReturnStatus)\n```"
-    notes: ''
+    code: |-
+      INTEGER : NoTimeUnits, UnitType, ReturnStatus
+      ...
+      ON ROUTINEERROR DO
+        IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('TimeOut', NoTimeUnits, UnitType, ReturnStatus)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       NoTimeUnits : W BLOCK 1
-
       UnitType : W BLOCK 1
-
       RestartReason : W BLOCK 1
-
       ErrCode : W BLOCK 1
-
       TimeOut : EQU 37B9 + 267B
-
       ...
-
       CALLG TimeOut, 3, NoTimeUnits, UnitType, RestartReason
-
       IF K GO ERROR
-
       ...
-
       ERROR : W1 =: ErrCode                          %ErrorCode in W1 register.
-
-      ```'
     octal_definition: 37B9 + 267B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA (PAR                 %Load register A with address of parameter list.
-
       MON 267                  %Monitor call TimeOut.
-
       STA STAT                 %Store status returned.
-
       ...
-
       STAT, 0
-
       PAR, TIME                %Number of time units.
-
       BASE                     %Unit base type.
-
       ...
-
       TIME, ...
-
       BASE, ...
-
-      ```
 
 
 
       | ND-100 and ND-500 | All users | All programs |
-
       |-------------------|-----------|--------------|
 
 
-
-      Scanned by Jonny Oddene for Sintran Data © 2020'
+      Scanned by Jonny Oddene for Sintran Data © 2020
     mon_number: 267
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 541
@@ -186,4 +120,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

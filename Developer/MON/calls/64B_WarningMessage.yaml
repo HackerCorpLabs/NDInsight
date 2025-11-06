@@ -4,106 +4,68 @@
 
 octal: 64B
 name: WarningMessage
-short_names: []
+short_names:
+- ERMSG
 description: ''
-notes: []
 see_also:
 - GetErrorMessage
 - ErrorMessage. ErrorMessage writes out the error message
 - terminates the program
-references: []
 parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       ErrCode : INTEGER2;
-
       ...
-
       WarningMessage(ErrCode);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "WarningMessage" USING ErrCode.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER ErrCode
-
       ...
-
-      Monitor_Call(''WarningMessage'', ErrCode)
-
-      ```'
-    notes: ''
+      Monitor_Call('WarningMessage', ErrCode)
   planc:
     available: true
-    code: 'INTEGER : ErrCode
-
+    code: |-
+      INTEGER : ErrCode
       ...
-
-      Monitor_Call(''WarningMessage'', ErrCode)'
-    notes: ''
+      Monitor_Call('WarningMessage', ErrCode)
   assembly_500:
     available: true
-    code: 'ErrCode : W BLOCK 1
-
+    code: |-
+      ErrCode : W BLOCK 1
       WarningMessage : EQU 37B9 + 64B
-
       ...
-
-      CALLG WarningMessage, 1, ErrCode'
+      CALLG WarningMessage, 1, ErrCode
     octal_definition: 37B9 + 64B
-    notes: ''
   mac:
     available: true
-    code: '| Command | Parameter | Description                                  |
-
+    code: |-
+      | Command | Parameter | Description                                  |
       |---------|-----------|----------------------------------------------|
-
       | LDA     | ERRNO     | %Error number of error message to be printed.|
-
       | MON     | 64        | %Monitor call WarningMessage.                |
-
       |         |           |                                              |
 
-
       ...
-
       ERRNO, ...
 
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: false
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: false
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 559
@@ -115,4 +77,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''
