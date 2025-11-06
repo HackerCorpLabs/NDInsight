@@ -4,17 +4,16 @@
 
 octal: 277B
 name: DISABLELOCAL
-short_names: []
-description: You may log in on remote computers through the COSMOS data network. A
-  key on the terminal returns you to your local computer. This monitor call disables
-  the function of this key.
+short_names:
+- DLOFU
+description: You may log in on remote computers through the COSMOS data network. A key on the terminal
+  returns you to your local computer. This monitor call disables the function of this key.
 notes:
 - You enable the key with EnableLocal.
 - The key is not enabled when a program terminates.
 - The COSMOS CONNECT-TO program tells you which key to use as the LOCAL key.
 see_also:
 - EnableLocal
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -71,15 +70,12 @@ parameters:
 examples:
   planc:
     available: true
-    code: 'ON ROUTINEERROR DO
-
+    code: |-
+      ON ROUTINEERROR DO
       IF ErrCode > 0 THEN ...
 
-
       ENDON
-
-      Monitor_Call(''DisableLocal'')'
-    notes: ''
+      Monitor_Call('DisableLocal')
   assembly_500:
     available: false
     code: ''
@@ -87,36 +83,24 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: '|        |     |                                 |
-
+    code: |-
+      |        |     |                                 |
       |--------|-----|---------------------------------|
-
       | MON    | 277 | %Monitor call DisableLocal.     |
-
       | JMP    | ERROR | %Error return from monitor call. |
-
       |        |     | %Normal return.                 |
-
       | ERROR, | ... | %Error number in register A.    |
-
       |        |     |                                 |
 
 
-
-      ND-100 | All users | All programs'
+      ND-100 | All users | All programs
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 155
@@ -128,4 +112,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

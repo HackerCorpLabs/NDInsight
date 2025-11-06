@@ -4,21 +4,16 @@
 
 octal: 73B
 name: SetMaxBytes
-short_names: []
-description: 'Sets the value of the maximum byte pointer in an opened file (i.e. the
-  number of bytes minus 1). The specified number of bytes are stored when the file
-  is closed. The error code 3 is returned if you later try to read beyond this size.
-  Error code 3 means end of file.
-
+short_names:
+- SMAX
+description: |-
+  Sets the value of the maximum byte pointer in an opened file (i.e. the number of bytes minus 1). The specified number of bytes are stored when the file is closed. The error code 3 is returned if you later try to read beyond this size. Error code 3 means end of file.
 
   - The file must be opened for write.
-
-  - This monitor call is only relevant for sequential access.'
-notes: []
+  - This monitor call is only relevant for sequential access.
 see_also:
 - GetBytesInfile
 - SetStartByte
-references: []
 parameters:
 - name: File number. See OpenFile.
   type: UNKNOWN
@@ -35,115 +30,77 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FileNumber : INTEGER2;
-
       MaxBytePointer : LONGINT;
-
       ...
-
       SetMaxBytes(FileNumber, MaxBytePointer);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 FileNumber COMP.
-
       01 MaxBytePointer COMP PIC S9(10).
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "SetMaxBytes" USING FileNumber, MaxBytePointer.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER FileNumber
-
       INTEGER*4 MaxBytePointer
-
       ...
-
-      Monitor_Call(''SetMaxBytes'', FileNumber, MaxBytePointer)
-
+      Monitor_Call('SetMaxBytes', FileNumber, MaxBytePointer)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : FileNumber\nINTEGER4 : MaxBytePointer\n...\nON ROUTINEERROR\
-      \ DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('SetMaxBytes', FileNumber,\
-      \ MaxBytePointer)\n```"
-    notes: ''
+    code: |-
+      INTEGER : FileNumber
+      INTEGER4 : MaxBytePointer
+      ...
+      ON ROUTINEERROR DO
+          IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('SetMaxBytes', FileNumber, MaxBytePointer)
   assembly_500:
     available: true
-    code: "```\nFileNumber : W BLOCK 1\nMaxBytePointer : W BLOCK 1\nErrCode : W BLOCK\
-      \ 1\nSetMaxBytes : EQU 37B9 + 73B\n...\nCALLG SetMaxBytes, 2, FileNumber, MaxBytePointer\n\
-      \    IF K GO ERROR\n...\nERROR : W1 =: ErrCode              %ErrorCode in W1\
-      \ register.\n```"
+    code: |-
+      FileNumber : W BLOCK 1
+      MaxBytePointer : W BLOCK 1
+      ErrCode : W BLOCK 1
+      SetMaxBytes : EQU 37B9 + 73B
+      ...
+      CALLG SetMaxBytes, 2, FileNumber, MaxBytePointer
+          IF K GO ERROR
+      ...
+      ERROR : W1 =: ErrCode              %ErrorCode in W1 register.
     octal_definition: 37B9 + 73B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT  FILNO      %File number returned from earlier open.
-
       LDD  POINT      %Maximum byte pointer.
-
       MON  73         %Monitor call SetMaxBytes.
-
       JMP  ERROR      %Error return from monitor call.
-
       ...             %Normal return.
-
       ERROR,          %Error number in register A.
-
       ...
-
       FILNO,
-
       ...
-
       POINT,          %A double word.
-
       ...
 
-      ```
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 73
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 449
@@ -155,4 +112,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

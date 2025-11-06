@@ -4,19 +4,18 @@
 
 octal: 127B
 name: ExactStartup
-short_names: []
+short_names:
+- DABST
 description: ''
-notes: []
 see_also:
 - StartupTime. StartupTime allows you to specify the time in hours
 - minutes or seconds
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
-  description: Address of an RT description. 0 means calling program. GetRtAddress
-    gives RT description addresses.
+  description: Address of an RT description. 0 means calling program. GetRtAddress gives RT description
+    addresses.
 - name: Param2
   type: UNKNOWN
   io: I
@@ -24,97 +23,59 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       RTProgram, BasicTimeUnits : INTEGER2;
-
       ...
-
       ExactStartup(RTProgram, BasicTimeUnits);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 RTProgram COMP.
-
       01 BasicTimeUnits COMP.
-
       ...
-
       MONITOR-CALL "ExactStartup" USING RTProgram, BasicTimeUnits.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER RTProgram, BasicTimeUnits
-
       ...
-
-      Monitor_Call(''ExactStartup'', RTProgram, BasicTimeUnits)
-
-      ```'
-    notes: ''
+      Monitor_Call('ExactStartup', RTProgram, BasicTimeUnits)
   planc:
     available: true
-    code: 'INTEGER : RTProgram, BasicTimeUnits
-
+    code: |-
+      INTEGER : RTProgram, BasicTimeUnits
       ...
-
-      Monitor_Call(''ExactStartup'', RTProgram, BasicTimeUnits)'
-    notes: ''
+      Monitor_Call('ExactStartup', RTProgram, BasicTimeUnits)
   assembly_500:
     available: true
-    code: 'RTProgram : W BLOCK 1
-
+    code: |-
+      RTProgram : W BLOCK 1
       BasicTimeUnits : W BLOCK 1
-
       ExactStartup : EQU 3789 + 127B
-
       ...
-
-      CALLG ExactStartup, 2, RTProgram, BasicTimeUnits'
+      CALLG ExactStartup, 2, RTProgram, BasicTimeUnits
     octal_definition: 37B9 + 127B
-    notes: ''
   mac:
     available: true
-    code: '| LDA | (PAR | %Load register A with address of parameter list. |
-
+    code: |-
+      | LDA | (PAR | %Load register A with address of parameter list. |
       | MON | 127 | %Monitor call ExactStartup. |
-
       | ... | | |
-
       | PAR, RTProgram | %Address of RT description. |
-
       | TIME | %Time when the program is to be executed. |
-
       | ... | | |
-
       | RTPRO, ... | %A double word giving time in basic time units. |
-
       | TIME, ... | % |
 
 
-
-      ND-100 and ND-500 | User RT and user SYSTEM | RT programs'
+      ND-100 and ND-500 | User RT and user SYSTEM | RT programs
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 179
@@ -126,4 +87,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

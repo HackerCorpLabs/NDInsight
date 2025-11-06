@@ -4,16 +4,16 @@
 
 octal: 301B
 name: StopEscapeHandling
-short_names: []
-description: Disables user-defined escape handling. The ESCAPE key terminates the
-  program as normal. StartEscapeHandling starts user-defined escape handling.
+short_names:
+- DUSEL
+description: Disables user-defined escape handling. The ESCAPE key terminates the program as normal. StartEscapeHandling
+  starts user-defined escape handling.
 notes:
 - User-defined escape handling stops when a program terminates.
 - Standard Error Code. See appendix A.
 see_also:
 - StartEscapeHandling
 - DisableEscape
-references: []
 parameters: []
 examples:
   pascal:
@@ -22,31 +22,23 @@ examples:
     notes: Not available
   cobol:
     available: true
-    code: '```
-
+    code: |-
       MONITOR-CALL "StopEscapeHandling".
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT 0 GO ....
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
-      Monitor_Call (''StopEscapeHandling'')
-
+    code: |-
+      Monitor_Call ('StopEscapeHandling')
       IF (ErrCode .NE. 0) THEN...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nON ROUTINEERROR DO\n   IF ErrCode <> 0 THEN...\nENDON\n...\nMonitor_Call('StopEscapeHandling')\n\
-      ```"
-    notes: ''
+    code: |-
+      ON ROUTINEERROR DO
+         IF ErrCode <> 0 THEN...
+      ENDON
+      ...
+      Monitor_Call('StopEscapeHandling')
   assembly_500:
     available: false
     code: ''
@@ -54,38 +46,24 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: '| Command | Code | Description                        |
-
+    code: |-
+      | Command | Code | Description                        |
       |---------|------|------------------------------------|
-
       | MON     | 301  | %Monitor call StopEscapeHandling.  |
-
       | JMP     | ERROR| %Error return from monitor call.   |
-
       | ...     | ...  | %Normal return.                    |
-
       | ERROR,  | ...  | %Error number in register A.       |
-
       | ...     | ...  |                                    |
 
 
-
-      | ND-100 | All users | Background programs |'
+      | ND-100 | All users | Background programs |
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: false
-  users:
-  - All users
-  programs:
-  - Background programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: false
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 491
@@ -97,4 +75,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

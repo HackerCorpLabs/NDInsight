@@ -4,14 +4,12 @@
 
 octal: 250B
 name: GetDefaultDir
-short_names: []
-description: 'Gets the user’s default directory. The directory index and the user
-  index are returned.
+short_names:
+- FDFDI
+description: |-
+  Gets the user’s default directory. The directory index and the user index are returned.
 
-
-  - Use ExecutionInfo to get the user index and the directory index of the user executing
-  the program.'
-notes: []
+  - Use ExecutionInfo to get the user index and the directory index of the user executing the program.
 see_also:
 - GetDirUserIndexes
 - GetDirNameIndex
@@ -20,7 +18,6 @@ see_also:
 - GetUserEntry
 - GetObjectEntry
 - and GetAllFileIndexes
-references: []
 parameters:
 - name: ➞
   type: The user name. A user in a remote system may be identified.
@@ -41,140 +38,85 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DirectoryIndex, UserIndex : INTEGER2;
-
       UserName : PACKED ARRAY [0..15] OF CHAR;
-
       ...
-
       GetDefaultDir(UserName, DirectoryIndex, UserIndex);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DirectoryIndex COMP.
-
       01 UserIndex COMP.
-
       01 UserName PIC X(16).
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "GetDefaultDir" USING UserName, DirectoryIndex, UserIndex.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DirIndex, UserIndex
-
       CHARACTER UserName*16
-
       ...
-
-      Monitor_Call(''GetDefaultDir'', UserName(1:16), DirIndex, UserIndex)
-
+      Monitor_Call('GetDefaultDir', UserName(1:16), DirIndex, UserIndex)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DirectoryIndex, UserIndex\nBYTES : UserName(0:15)\n...\n\
-      \nON ROUTINEERROR DO\n  IF ErrCode >0 THEN ...\nENDON\n\nMonitor_Call('GetDefaultDir',\
-      \ UserName, DirectoryIndex, UserIndex)\n```"
-    notes: ''
+    code: |-
+      INTEGER : DirectoryIndex, UserIndex
+      BYTES : UserName(0:15)
+      ...
+
+      ON ROUTINEERROR DO
+        IF ErrCode >0 THEN ...
+      ENDON
+
+      Monitor_Call('GetDefaultDir', UserName, DirectoryIndex, UserIndex)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       DirectoryIndex : W BLOCK 1
-
       UserIndex : W BLOCK 1
-
-      UserName : STRINGDATA ''A-HANSEN''''''
-
+      UserName : STRINGDATA 'A-HANSEN'''
       ErrCode : W BLOCK 1
-
       GetDefaultDir : EQU 37B9 + 250B
-
       ...
-
 
       CALLG GetDefaultDir, 3, UserName, DirectoryIndex, UserIndex
-
       IF K GO ERROR
-
       ...
-
 
       ERROR : W1 =: ErrCode    %ErrorCode in W1 register.
-
-      ```'
     octal_definition: 37B9 + 250B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDX (USER      %Address of string containing user name.
-
       MON 250        %Monitor call GetDefaultDir.
-
       JMP ERROR      %Error return from monitor call.
-
       STT DIRIX      %Normal return, store directory index.
-
       STX USRIX      %Store user index in default directory.
-
       ...
-
 
       ERROR, ...     %Error number in register A.
-
       ...
 
-
-      USER, ''A-HANSEN''   %To find default directory of user A-HANSEN.
-
+      USER, 'A-HANSEN'   %To find default directory of user A-HANSEN.
       DIRIX, 0
-
       USRIX, 0
 
-      ```
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 250
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 229
@@ -186,4 +128,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

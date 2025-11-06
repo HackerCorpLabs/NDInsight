@@ -4,12 +4,11 @@
 
 octal: 322B
 name: GetSegmentNo
-short_names: []
+short_names:
+- GSGNO
 description: ''
-notes: []
 see_also:
 - GetSegmentEntry
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -22,132 +21,70 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       SegmentNumber : INTEGER2;
-
       SegmentName : PACKED ARRAY [0..5] OF CHAR;
-
       ...
-
       GetSegmentNo(SegmentName, SegmentNumber);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 SegmentNumber COMP.
-
       01 SegmentName PIC X(6).
-
       ...
-
       MONITOR-CALL "GetSegmentNo" USING SegmentName, SegmentNumber.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER SegmentNumber
-
       CHARACTER SegmentName*6
-
       ...
-
-      Monitor_Call(''GetSegmentNo'', SegmentName(1:6), SegmentNumber)
-
-      ```'
-    notes: ''
+      Monitor_Call('GetSegmentNo', SegmentName(1:6), SegmentNumber)
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : SegmentNumber
-
       BYTES : SegmentName(0:5)
-
       ...
-
-      Monitor_Call(''GetSegmentNo'', SegmentName, SegmentNumber)
-
-      ```'
-    notes: ''
+      Monitor_Call('GetSegmentNo', SegmentName, SegmentNumber)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       SegmentNumber : W BLOCK 1
-
-      SegmentName : STRINGDATA ''EXSEG'' %Get number of segment EXSEG.
-
+      SegmentName : STRINGDATA 'EXSEG' %Get number of segment EXSEG.
       ErrCode : W BLOCK 1
-
       GetSegmentNo : EQU 37B9 + 322B
-
       ...
-
       CALLG GetSegmentNo, 1, SegmentName
-
       IF K GO ERROR
-
       W1 =: SegmentNumber
-
       ...
-
       ERROR : W1 =: ErrCode %ErrorCode in W1 register.
-
-      ```'
     octal_definition: 37B9 + 322B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA (PAR %Load register A with address of parameter list.
-
       MON 322 %Monitor call GetSegmentNo.
-
       JAN ERROR %Handle error if register A is negative.
-
       STA SEGNO %Store segment number.
-
       ...
-
       ERROR, ... %No segment has EXSEG as name.
-
       ...
-
       SEGNO, 0
-
       PAR, SEGNAM %String containing segment name.
-
       ...
-
-      SEGNAM, ''EXSEG'' %Obtain segment number of EXSEG.
-
-      ```
+      SEGNAM, 'EXSEG' %Obtain segment number of EXSEG.
 
 
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 322
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 279
@@ -159,4 +96,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

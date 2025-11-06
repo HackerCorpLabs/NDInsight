@@ -4,20 +4,16 @@
 
 octal: 501B
 name: StopProcess
-short_names: []
-description: 'Sets the current process in a wait state. StartProcess restarts the
-  process. Execution continues after the monitor call. The ESCAPE key terminates the
-  waiting program.
-
+short_names:
+- STOPPR
+description: |-
+  Sets the current process in a wait state. StartProcess restarts the process. Execution continues after the monitor call. The ESCAPE key terminates the waiting program.
 
   - The process restarts immediately if it is scheduled for repeated execution.
-
-  - Use ExitFromProgram to terminate the execution.'
-notes: []
+  - Use ExitFromProgram to terminate the execution.
 see_also:
 - StartProcess
 - SwitchProcess
-references: []
 parameters: []
 examples:
   pascal:
@@ -26,24 +22,13 @@ examples:
     notes: Not available
   cobol:
     available: true
-    code: '```
-
-      MONITOR-CALL "StopProcess"
-
-      ```'
-    notes: ''
+    code: MONITOR-CALL "StopProcess"
   fortran:
     available: true
-    code: '```
-
-      Monitor_Call(''StopProcess'')
-
-      ```'
-    notes: ''
+    code: Monitor_Call('StopProcess')
   planc:
     available: true
     code: Monitor_Call('StopProcess')
-    notes: ''
   assembly_500:
     available: false
     code: ''
@@ -51,27 +36,18 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: 'StopProcess : EQU 37B9 + 501B
-
+    code: |-
+      StopProcess : EQU 37B9 + 501B
       CALLG StopProcess
 
-
-      | ND-500 | All users | All programs |'
+      | ND-500 | All users | All programs |
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 493
@@ -83,4 +59,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

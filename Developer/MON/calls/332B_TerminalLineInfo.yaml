@@ -4,18 +4,17 @@
 
 octal: 332B
 name: TerminalLineInfo
-short_names: []
+short_names:
+- TREPP
 description: ''
-notes: []
 see_also:
 - TerminalStatus
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
-  description: '**Function code.** Use 1 to enable program to continue after line
-    errors. 0 disables this function. Use 2 to get terminal line information.'
+  description: '**Function code.** Use 1 to enable program to continue after line errors. 0 disables this
+    function. Use 2 to get terminal line information.'
 - name: Param2
   type: UNKNOWN
   io: I
@@ -23,8 +22,8 @@ parameters:
 - name: Param3
   type: UNKNOWN
   io: I
-  description: '**Terminal line information.** Dummy for function code 0 and 1. The
-    following bits are used:'
+  description: '**Terminal line information.** Dummy for function code 0 and 1. The following bits are
+    used:'
 - name: Param4
   type: UNKNOWN
   io: I
@@ -52,120 +51,80 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FuncCode, DeviceNo, ReturnInfo : INTEGER2
 
-
       TermLineInfo(FuncCode, DeviceNo, ReturnInfo); [note routine name.]
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 FuncCode COMP.
-
       01 DeviceNo COMP.
-
       01 ReturnInfo COMP.
-
       01 ErrCode COMP.
 
-
       MONITOR-CALL "TerminalLineInfo" USING FuncCode, DeviceNo, ReturnInfo.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER FuncCode, DeviceNo, ReturnInfo
 
-
-      Monitor Call(''TerminalLineInfo'', FuncCode, DeviceNo, ReturnInfo)
-
+      Monitor Call('TerminalLineInfo', FuncCode, DeviceNo, ReturnInfo)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: 'INTEGER : FuncCode, DeviceNo, ReturnInfo
-
+    code: |-
+      INTEGER : FuncCode, DeviceNo, ReturnInfo
       ...
-
       ON ROUTINEERROR DO
-
       &nbsp;&nbsp;&nbsp;&nbsp;IF ErrCode >< 0 THEN ...
-
       ENDON
-
-      Monitor_Call(''TerminalLineInfo'', FuncCode, DeviceNo, ReturnInfo)'
-    notes: ''
+      Monitor_Call('TerminalLineInfo', FuncCode, DeviceNo, ReturnInfo)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       FuncCode : W BLOCK 1
-
       DeviceNo : W BLOCK 1
-
       ReturnInfo : W BLOCK 1
-
       ErrCode : W BLOCK 1
-
       TerminalLineInfo : EQU 37B9 + 332B
-
       ...
-
       &nbsp;&nbsp;&nbsp;&nbsp;CALLG TerminalLineInfo, 2, FuncCode, DeviceNo
-
       &nbsp;&nbsp;&nbsp;&nbsp;IF K GO ERROR
-
       &nbsp;&nbsp;&nbsp;&nbsp;W1 := ReturnInfo
-
       ...
-
       ERROR : W1 =: ErrCode
 
-      ```
 
-
-      %ErrorCode in W1 register.'
+      %ErrorCode in W1 register.
     octal_definition: 37B9 + 332B
-    notes: ''
   mac:
     available: true
-    code: "```\nLDT LDN %Load register T with the logical device number.\nLDA FUNC\
-      \ %Load register A with function code.\nMON 332 %Monitor call TerminalStatus.\n\
-      STA STAT %Returned status. Standard Error Code.\nSTA LINFO %Returns here if\
-      \ function code = 2 and no\n         %errors have occurred.\n...\nLDN, 1\nFUNC,\
-      \ 0\nLINFO, 0\nSTAT, 0\n```\n\n| ND-100 and ND-500 | All users | Background\
-      \ programs |"
+    code: |-
+      LDT LDN %Load register T with the logical device number.
+      LDA FUNC %Load register A with function code.
+      MON 332 %Monitor call TerminalStatus.
+      STA STAT %Returned status. Standard Error Code.
+      STA LINFO %Returns here if function code = 2 and no
+               %errors have occurred.
+      ...
+      LDN, 1
+      FUNC, 0
+      LINFO, 0
+      STAT, 0
+
+
+      | ND-100 and ND-500 | All users | Background programs |
     mon_number: 332
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - Background programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 531
@@ -177,4 +136,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

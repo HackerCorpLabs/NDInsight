@@ -4,12 +4,11 @@
 
 octal: 405B
 name: SwitchUserBreak
-short_names: []
+short_names:
+- USTRK
 description: ''
-notes: []
 see_also:
 - GetUserRegisters
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -22,78 +21,49 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       Func, Address : LONGINT;
-
       ...
-
       SwitchUserBreak(Func, Address);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 Func COMP.
-
       01 Address COMP.
-
       ...
-
       MONITOR-CALL "SwitchUserBreak" USING Func, Address.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER Func, Address
-
       ...
-
-      Monitor_Call(''SwitchUserBreak'', Func, Address)
-
-      ```'
-    notes: ''
+      Monitor_Call('SwitchUserBreak', Func, Address)
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : Func, Address
-
       ...
-
-      Monitor_Call(''SwitchUserBreak'', Func, Address)
-
-      ```'
-    notes: ''
+      Monitor_Call('SwitchUserBreak', Func, Address)
   assembly_500:
     available: true
-    code: "```\nFunc : W BLOCK 1\nAddress : W BLOCK 1\nSwitchUserBreak : EQU 37B9\
-      \ + 405B\n...\n    CALLG SwitchUserBreak, 2, Func, Address\n```"
+    code: |-
+      Func : W BLOCK 1
+      Address : W BLOCK 1
+      SwitchUserBreak : EQU 37B9 + 405B
+      ...
+          CALLG SwitchUserBreak, 2, Func, Address
     octal_definition: 37B9 + 405B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 501
@@ -105,4 +75,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

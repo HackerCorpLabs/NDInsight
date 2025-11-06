@@ -4,13 +4,12 @@
 
 octal: 105B
 name: StopRTProgram
-short_names: []
+short_names:
+- ABORT
 description: ''
-notes: []
 see_also:
 - ExitRTProgram
 - '@ABORT'
-references: []
 parameters: []
 examples:
   pascal:
@@ -19,84 +18,46 @@ examples:
     notes: Not available
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 RTProgram COMP.
-
       MONITOR-CALL "StopRTProgram" USING RTProgram.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER RTProgram
-
-      Monitor_Call(''StopRTProgram'', RTProgram)
-
-      ```'
-    notes: ''
+      Monitor_Call('StopRTProgram', RTProgram)
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : RTProgram
-
-      Monitor_Call(''StopRTProgram'', RTProgram)
-
-      ```'
-    notes: ''
+      Monitor_Call('StopRTProgram', RTProgram)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       RTDescr : W BLOCK 1
-
       ...
-
       StopRTProgram : EQU 37B9 + 105B
-
       CALLG StopRTProgram, 1, RTDescr
-
-      ```'
     octal_definition: 37B9 + 105B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA (PAR   %Load register A with address of parameter list.
-
       MON 105    %Monitor call StopRTProgram
-
       ...
-
       PAR, RTPRO %Address of RT description.
-
       ...
-
       RTPRO, ...
 
-      ```
 
-
-      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'
+      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
     mon_number: 105
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 495
@@ -108,4 +69,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

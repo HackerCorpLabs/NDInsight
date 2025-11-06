@@ -4,15 +4,15 @@
 
 octal: 37B
 name: ReadADChannel
-short_names: []
-description: 'Reads an analog to digital channel.
+short_names:
+- AIRDW
+description: |-
+  Reads an analog to digital channel.
 
-
-  ### PARAMETERS'
+  ### PARAMETERS
 notes:
 - Standard Error Code. See appendix A.
 see_also: []
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -33,100 +33,65 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FileNumber, BlockNo : INTEGER2;
-
       DataDestination : ARRAY [0..15] OF RECORD...END;
-
       ...
-
       ReadBlock(FileNumber, BlockNo, DataDestination);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 FileNumber COMP.\n01 BlockNo COMP.\n01 DataDestination.\n   02\
-      \ array COMP OCCURS 256 TIMES.\n01 ErrCode COMP.\n...\nMONITOR-CALL \"ReadBlock\"\
-      \ USING FileNumber, BlockNo, DataDestination.\nCALL \"CbError\" USING ErrCode.\n\
-      IF ErrCode NOT = 0 GO ...\n```"
-    notes: ''
+    code: |-
+      01 FileNumber COMP.
+      01 BlockNo COMP.
+      01 DataDestination.
+         02 array COMP OCCURS 256 TIMES.
+      01 ErrCode COMP.
+      ...
+      MONITOR-CALL "ReadBlock" USING FileNumber, BlockNo, DataDestination.
+      CALL "CbError" USING ErrCode.
+      IF ErrCode NOT = 0 GO ...
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER FileNumber, BlockNo
-
       INTEGER DataDestination(256)
-
       ...
-
-      Monitor Call(''ReadBlock'', FileNumber, BlockNo, DataDestination(1))
-
+      Monitor Call('ReadBlock', FileNumber, BlockNo, DataDestination(1))
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: false
     code: ''
     notes: Not available
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       NoOfChannels : W BLOCK 1
-
       Channel : W BLOCK 512
-
       Buffer : W BLOCK 512
-
       ReturnValue : W BLOCK 1
-
       ReadADChannel : EQU 37B9 + 37B
 
-
       ...
-
       CALLG ReadADChannel, 4, NoOfChannels, Channel, Buffer, ReturnValue
-
       IF K GO Error
-
       ...
-
       Error, ...
-
-      ```'
     octal_definition: 37B9 + 37B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       MON 37 %Monitor call ReadADChannel.
 
-      ```
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 37
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: false
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: false
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 393
@@ -138,4 +103,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

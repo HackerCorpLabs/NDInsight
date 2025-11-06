@@ -4,26 +4,19 @@
 
 octal: 102B
 name: StartupTime
-short_names: []
-description: 'Starts an RT program at a specified time of the day. The RT program
-  is then put in the time queue. It is moved to the execution queue at the specified
-  time.
+short_names:
+- ABSET
+description: |-
+  Starts an RT program at a specified time of the day. The RT program is then put in the time queue. It is moved to the execution queue at the specified time.
 
-
-  - The time of the day specified may have already passed. In this case, the program
-  starts the next day.
-
+  - The time of the day specified may have already passed. In this case, the program starts the next day.
   - RT programs already in the time queue are reinserted according to the new specifications.
-
-  - AdjustClock, and @CLADJ affect the system''s clock. Whenever the system time is
-  changed, RT programs start according to the new time.'
-notes: []
+  - AdjustClock, and @CLADJ affect the system's clock. Whenever the system time is changed, RT programs start according to the new time.
 see_also:
 - ExactStartup
 - DelayStartup
 - AdjustClock
 - '@ABSET'
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -44,120 +37,71 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       RTProgram, Seconds, Minutes, Hours: INTEGER2;
-
       ...
-
       StartTime(RTProgram, Seconds, Minutes, Hours); [Note routine name.]
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 RTProgram COMP.
-
       01 Seconds COMP.
-
       01 Minutes COMP.
-
       01 Hours COMP.
-
       ...
-
       MONITOR-CALL "StartupTime" USING RTProgram, Seconds, Minutes, Hours.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER RTProgram, Seconds, Minutes, Hours
-
       ...
-
-      Monitor_Call(''StartupTime'', RTProgram, Seconds, Minutes, Hours)
-
-      ```'
-    notes: ''
+      Monitor_Call('StartupTime', RTProgram, Seconds, Minutes, Hours)
   planc:
     available: true
-    code: 'INTEGER : RTProgram, Seconds, Minutes, Hours
-
+    code: |-
+      INTEGER : RTProgram, Seconds, Minutes, Hours
       ...
-
-      Monitor_Call(''StartupTime'', RTProgram, Seconds, Minutes, Hours)'
-    notes: ''
+      Monitor_Call('StartupTime', RTProgram, Seconds, Minutes, Hours)
   assembly_500:
     available: true
-    code: 'RTProgram : W BLOCK 1
-
+    code: |-
+      RTProgram : W BLOCK 1
       Seconds : W BLOCK 1
-
       Minutes : W BLOCK 1
-
       Hours : W BLOCK 1
-
       StartupTime : EQU 37B9 + 102B
-
       ...
-
-      CALLG StartupTime, 4, RTProgram, Seconds, Minutes, Hours'
+      CALLG StartupTime, 4, RTProgram, Seconds, Minutes, Hours
     octal_definition: 37B9 + 102B
-    notes: ''
   mac:
     available: true
-    code: '| Operation | Parameters     | Description                                      |
-
+    code: |-
+      | Operation | Parameters     | Description                                      |
       |-----------|----------------|--------------------------------------------------|
-
-      | LDA       | (PAR           | %Load register A with address of parameter list.
-      |
-
+      | LDA       | (PAR           | %Load register A with address of parameter list. |
       | MON       | 102            | %Monitor call StartupTime.                       |
 
-
       ...
-
       PAR, RTPRO   %Address of RT description.
-
       SEC          %Seconds.
-
       MIN          %Minutes.
-
       HOUR         %Hour of day.
-
       ...
-
 
       RTPRO, ...
-
       SEC, ...
-
       MIN, ...
-
       HOUR, ...
 
 
-
-      ND-100 and ND-500 - User RT and user SYSTEM - RT programs'
+      ND-100 and ND-500 - User RT and user SYSTEM - RT programs
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 489
@@ -169,4 +113,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

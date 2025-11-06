@@ -4,24 +4,21 @@
 
 octal: 141B
 name: DeviceControl
-short_names: []
-description: 'Sets control information for a character device, e.g. a terminal or
-  a printer. The control information depends on the device.
+short_names:
+- IOSET
+description: |-
+  Sets control information for a character device, e.g. a terminal or a printer. The control information depends on the device.
 
-
-  - The device must be reserved. See ReserveResource.'
-notes: []
+  - The device must be reserved. See ReserveResource.
 see_also:
 - DeviceFunction
 - '@IOSET'
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
-  description: Logical device number. See appendix B. You cannot use 1 for your own
-    terminal. Use ExecutionInfo to get its logical device number instead. File numbers
-    are illegal.
+  description: Logical device number. See appendix B. You cannot use 1 for your own terminal. Use ExecutionInfo
+    to get its logical device number instead. File numbers are illegal.
 - name: Param2
   type: UNKNOWN
   io: I
@@ -29,123 +26,88 @@ parameters:
 - name: Param3
   type: UNKNOWN
   io: I
-  description: Address of RT description of reserving program. Use 0 for the calling
-    program.
+  description: Address of RT description of reserving program. Use 0 for the calling program.
 - name: Param4
   type: UNKNOWN
   io: I
-  description: Control flag. Use -2 to empty the TAD output buffer. Use -1 to reset
-    the device. This sets card readers in ASCII mode. 0 sets ASCII mode without resetting
-    the device. 1 sets binary mode. InByte will then return a 12-bit card column image.
+  description: Control flag. Use -2 to empty the TAD output buffer. Use -1 to reset the device. This sets
+    card readers in ASCII mode. 0 sets ASCII mode without resetting the device. 1 sets binary mode. InByte
+    will then return a 12-bit card column image.
 - name: Param5
   type: UNKNOWN
   io: I
-  description: Return status. 0 means no errors. An illegal RT description address
-    returns -1.
+  description: Return status. 0 means no errors. An illegal RT description address returns -1.
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNo, IOFlag, RTProgram, CtrlFlag, Status : INTEGER2;
-
       ...
-
       DeviceControl(DeviceNo, IOFlag, RTProgram, CtrlFlag, Status);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 DevNo       COMP.\n01 IOFlag      COMP.\n01 RTProgram   COMP.\n\
-      01 CtrlFlag    COMP.\n01 ReturnStatus COMP.\n...\nMONITOR-CALL \"DeviceControl\"\
-      \ USING DevNo, IOFlag, RTProgram, CtrlFlag,\n                              \
-      \   ReturnStatus.\n```"
-    notes: ''
+    code: |-
+      01 DevNo       COMP.
+      01 IOFlag      COMP.
+      01 RTProgram   COMP.
+      01 CtrlFlag    COMP.
+      01 ReturnStatus COMP.
+      ...
+      MONITOR-CALL "DeviceControl" USING DevNo, IOFlag, RTProgram, CtrlFlag,
+                                       ReturnStatus.
   fortran:
     available: true
-    code: "```\nINTEGER DeviceNo, IOFlag, RTProgram, CtrlFlag, ReturnStatus\n...\n\
-      Monitor_Call('DeviceControl', DeviceNo, IOFlag, RTProgram,\n             CtrlFlag,\
-      \ ReturnStatus)\n```"
-    notes: ''
+    code: |-
+      INTEGER DeviceNo, IOFlag, RTProgram, CtrlFlag, ReturnStatus
+      ...
+      Monitor_Call('DeviceControl', DeviceNo, IOFlag, RTProgram,
+                   CtrlFlag, ReturnStatus)
   planc:
     available: true
-    code: 'INTEGER : DeviceNo, IOFlag, RTProgram, CtrlFlag, ReturnStatus
-
+    code: |-
+      INTEGER : DeviceNo, IOFlag, RTProgram, CtrlFlag, ReturnStatus
       ...
-
-      Monitor_Call(''DeviceControl'', DeviceNo, IOFlag, RTProgram, CtrlFlag, ReturnStatus)'
-    notes: ''
+      Monitor_Call('DeviceControl', DeviceNo, IOFlag, RTProgram, CtrlFlag, ReturnStatus)
   assembly_500:
     available: true
-    code: 'DeviceNo : W BLOCK 1
-
+    code: |-
+      DeviceNo : W BLOCK 1
       IOFlag : W BLOCK 1
-
       RTProgram : W BLOCK 1
-
       CtrlFlag : W BLOCK 1
-
       ReturnStatus : W BLOCK 1
-
       DeviceControl : EQU 37B9 + 141B
-
       ...
-
       CALLG DeviceControl, 4, DeviceNo, IOFlag, RTProgram, CtrlFlag
-
-      W1 =: ReturnStatus %Status is returned in W1 register.'
+      W1 =: ReturnStatus %Status is returned in W1 register.
     octal_definition: 37B9 + 141B
-    notes: ''
   mac:
     available: true
-    code: 'LDA (PAR %Load register A with address of parameter list.
-
+    code: |-
+      LDA (PAR %Load register A with address of parameter list.
       MON 141 %Monitor call DeviceControl.
-
       JAN ERROR %Error if register A is negative.
-
       ...
-
       ERROR, ... %Handle the error.
-
       ...
-
       PAR, DEVNO %Logical device number.
-
       IOF %Input or Output flag.
-
       PROG %RealTime (program) description.
-
       CTRL %Control flag.
-
       ...
-
       DEVNO, ...
-
       IOF, ...
-
       PROG, ...
-
       CTRL, ...
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 141
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 141
@@ -157,4 +119,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

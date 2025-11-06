@@ -4,9 +4,9 @@
 
 octal: 504B
 name: OutputString
-short_names: []
+short_names:
+- DVOUTS
 description: ''
-notes: []
 see_also:
 - OutMessage
 - OutUpTo8Bytes
@@ -15,11 +15,9 @@ see_also:
 - OutNumber
 - OutByte
 - and InputString
-references: []
 parameters:
-- name: Logical device number, e.g. a file number. See appendix B. You may use 1 for
-    your own terminal. Use the SINTRAN III open file number if output to a file. The
-    ND-500 open file number will not function.
+- name: Logical device number, e.g. a file number. See appendix B. You may use 1 for your own terminal.
+    Use the SINTRAN III open file number if output to a file. The ND-500 open file number will not function.
   type: UNKNOWN
   io: I
   description: ''
@@ -38,99 +36,60 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNo, NoOfBytes : LONGINT;
-
       Buff : ARRAY [0..8] OF RECORD...END;
-
       ...
-
       OutputString(DeviceNo, NoOfBytes, Buff);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01  DeviceNo  COMP.\n01  NoOfBytes COMP.\n01  Buff.\n    02  array\
-      \ COMP OCCURS 100 TIMES.\n    ...\nMONITOR-CALL \"OutputString\" USING DeviceNo,\
-      \ NoOfBytes, Buff.\n```"
-    notes: ''
+    code: |-
+      01  DeviceNo  COMP.
+      01  NoOfBytes COMP.
+      01  Buff.
+          02  array COMP OCCURS 100 TIMES.
+          ...
+      MONITOR-CALL "OutputString" USING DeviceNo, NoOfBytes, Buff.
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DeviceNo, NoOfBytes
-
       INTEGER Buff(100)
-
       ...
-
-      Monitor_Call(''OutputString'', DeviceNo, NoOfBytes, Buff(1))
-
-      ```'
-    notes: ''
+      Monitor_Call('OutputString', DeviceNo, NoOfBytes, Buff(1))
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : DeviceNo, NoOfBytes
-
       BYTES : Buff(0:199)
-
       ...
-
-      Monitor_Call(''OutputString'', DeviceNo, NoOfBytes, Buff(0))
-
-      ```'
-    notes: ''
+      Monitor_Call('OutputString', DeviceNo, NoOfBytes, Buff(0))
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       DeviceNo : W BLOCK 1
-
       NoOfBytes : W BLOCK 1
-
       Buff : BY BLOCK 4000B
-
       Status : W BLOCK 1
-
       OutputString : EQU 37B9 + 504B
-
       ...
-
       CALLG OutputString, 3, DeviceNo, NoOfBytes, Buff
-
       IF K GO Error
-
       W1 =: Status
-
       ...
-
       Error, ...
-
-      ```'
     octal_definition: 37B9 + 504B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 383
@@ -142,4 +101,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

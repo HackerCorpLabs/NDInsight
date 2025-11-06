@@ -4,14 +4,13 @@
 
 octal: 136B
 name: EnableRTStart
-short_names: []
-description: RTON RT programs cannot be started after DisableRTStart has been executed.
-  Use EnableRTStart to do this.
-notes: []
+short_names:
+- RTON
+description: RTON RT programs cannot be started after DisableRTStart has been executed. Use EnableRTStart
+  to do this.
 see_also:
 - DisableRTStart
 - and @RTON
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -20,59 +19,54 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'RTProgram : INTEGER2;
-
+    code: |-
+      RTProgram : INTEGER2;
       ...
-
-      EnableRTStart(RTProgram);'
-    notes: ''
+      EnableRTStart(RTProgram);
   cobol:
     available: true
-    code: '01 RTProgram  COMP.
-
+    code: |-
+      01 RTProgram  COMP.
       ...
-
-      MONITOR-CALL "EnableRTStart" USING RTProgram.'
-    notes: ''
+      MONITOR-CALL "EnableRTStart" USING RTProgram.
   fortran:
     available: true
-    code: 'INTEGER RTProgram
-
+    code: |-
+      INTEGER RTProgram
       ...
-
-      Monitor_Call(''EnableRTStart'', RTProgram)'
-    notes: ''
+      Monitor_Call('EnableRTStart', RTProgram)
   planc:
     available: true
-    code: "    INTEGER : RTProgram\n    ...\n    Monitor_Call('EnableRTStart', RTProgram)"
-    notes: ''
+    code: |2-
+          INTEGER : RTProgram
+          ...
+          Monitor_Call('EnableRTStart', RTProgram)
   assembly_500:
     available: true
-    code: "    RTProgram : W BLOCK 1\n    EnableRTStart : EQU 37B9 + 136B\n    ...\n\
-      \    CALLG EnableRTStart, 1:, RTProgram"
+    code: |2-
+          RTProgram : W BLOCK 1
+          EnableRTStart : EQU 37B9 + 136B
+          ...
+          CALLG EnableRTStart, 1:, RTProgram
     octal_definition: 37B9 + 136B
-    notes: ''
   mac:
     available: true
-    code: "    LDA (PAR %Load register A with address of parameter list.\n    MON\
-      \ 136 %Monitor call EnableRTStart.\n    ...\n    PAR, RTPRO %Address of RT description.\n\
-      \    ...\n    RTPRO, ...\n\n| ND-100 and ND-500 | User RT and user SYSTEM |\
-      \ RT programs |"
+    code: |2-
+          LDA (PAR %Load register A with address of parameter list.
+          MON 136 %Monitor call EnableRTStart.
+          ...
+          PAR, RTPRO %Address of RT description.
+          ...
+          RTPRO, ...
+
+      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
     mon_number: 136
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 169
@@ -84,4 +78,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

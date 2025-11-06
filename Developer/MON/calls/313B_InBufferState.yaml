@@ -4,19 +4,16 @@
 
 octal: 313B
 name: InBufferState
-short_names: []
-description: 'Gets information about an input buffer. The current number of bytes
-  in it, and the number of bytes until a break character, are returned.
+short_names:
+- IBRISZ
+description: |-
+  Gets information about an input buffer. The current number of bytes in it, and the number of bytes until a break character, are returned.
 
-
-  - Use ExecutionInfo to get the logical device number for terminals. You can specify
-  1 for your own terminal.'
-notes: []
+  - Use ExecutionInfo to get the logical device number for terminals. You can specify 1 for your own terminal.
 see_also:
 - InBufferSpace
 - ClearInBuffer
 - OutBufferSpace
-references: []
 parameters:
 - name: Logical device number.
   type: See appendix B.
@@ -37,115 +34,78 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber, NoInBuffer, NoUntilBreak : INTEGER2;
-
       ...
-
       InBufferState(DeviceNumber, NoInBuffer, NoUntilBreak);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DeviceNo COMP.
-
       01 NoInBuffer COMP.
-
       01 NoUntilBreak COMP.
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "InBufferState" USING DeviceNo, NoInBuffer, NoUntilBreak.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DeviceNumber, NoInBuffer, NoUntilBreak
-
       ...
-
-      Monitor_Call(''InBufferState'', DeviceNumber, NoInBuffer, NoUntilBreak)
-
+      Monitor_Call('InBufferState', DeviceNumber, NoInBuffer, NoUntilBreak)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DeviceNumber, NoInBuffer, NoUntilBreak\n...\nON ROUTINEERROR\
-      \ DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('InBufferState', DeviceNumber,\
-      \ NoInBuffer, NoUntilBreak)\n```"
-    notes: ''
+    code: |-
+      INTEGER : DeviceNumber, NoInBuffer, NoUntilBreak
+      ...
+      ON ROUTINEERROR DO
+        IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('InBufferState', DeviceNumber, NoInBuffer, NoUntilBreak)
   assembly_500:
     available: true
-    code: "```\nDeviceNumber : W BLOCK 1\nNoInBuffer : W BLOCK 1\nNoUntilBreak : W\
-      \ BLOCK 1\nErrCode : W BLOCK 1\nInBufferState : EQU 3789 + 313B\n...\n    CALLG\
-      \ InBufferState, 2, DeviceNumber, NoUntilBreak\n    IF K GO ERROR\n    W1 :=\
-      \ NoOfBytes\n...\nERROR : W1 =: ErrCode                    %ErrorCode in W1\
-      \ register.\n```"
+    code: |-
+      DeviceNumber : W BLOCK 1
+      NoInBuffer : W BLOCK 1
+      NoUntilBreak : W BLOCK 1
+      ErrCode : W BLOCK 1
+      InBufferState : EQU 3789 + 313B
+      ...
+          CALLG InBufferState, 2, DeviceNumber, NoUntilBreak
+          IF K GO ERROR
+          W1 := NoOfBytes
+      ...
+      ERROR : W1 =: ErrCode                    %ErrorCode in W1 register.
     octal_definition: 37B9 + 313B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT DEVNO %Logical device number.
-
       MON 313 %Monitor call InBufferState.
-
       JMP ERROR %Error return from monitor call.
-
       STA COUNT %Normal return, store number of bytes in inbuffer.
-
       STX NOBRK %Store number of bytes in inbuffer until break.
-
       ...
-
       ERROR, ... %Error number in register A.
-
       ...
-
       DEVNO, ...
-
       COUNT, 0
-
       NOBRK, 0
 
-      ```
 
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 313
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 317
@@ -157,4 +117,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

@@ -4,19 +4,18 @@
 
 octal: 337B
 name: ChangeSegment
-short_names: []
-description: Changes the segment and the page table your program uses. The monitor
-  call is similar to JumpToSegment and ExitFromSegment. In addition, you may change
-  the two page tables in use. The segment numbers are restricted to 8-bits (values
-  0-255). SegmentFunction (MON 341) is the equivalent monitor call for version K of
-  SINTRAN III.
+short_names:
+- SPCHG
+description: Changes the segment and the page table your program uses. The monitor call is similar to
+  JumpToSegment and ExitFromSegment. In addition, you may change the two page tables in use. The segment
+  numbers are restricted to 8-bits (values 0-255). SegmentFunction (MON 341) is the equivalent monitor
+  call for version K of SINTRAN III.
 notes:
 - You cannot change reentrant segments.
 see_also:
 - JumpToSegment
 - ExitFromSegment
 - and SegmentFunction
-references: []
 parameters:
 - name: Pascal
   type: Cobol
@@ -38,79 +37,46 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: '%Code on initial segment. JumpToSegment is performed.
-
+    code: |-
+      %Code on initial segment. JumpToSegment is performed.
 
       | Instruction   | Description                                       |
-
       |---------------|---------------------------------------------------|
-
       | SAA 3         | %Page table 1 and 2 in A register.                |
-
       | COPY SA DD    | %Copy to D register.                              |
-
       | LDT (PAR      | %Address of parameter list in T register.         |
-
       | MON 337       | %ChangeSegment with bit 15 in D register = 0.     |
-
       | CONT, ...     | %Execution continues here after ExitFromSegment.  |
-
       | PAR, SUBRO    | %Start address on the new segment.                |
-
       | 100201        | %Segment 200B and 201B.                           |
-
 
       %Code on new segment. ExitFromSegment is performed.
 
-
       | Instruction     | Description                                   |
-
       |-----------------|-----------------------------------------------|
-
       | SUBRO, STT SAVET| %Save T, L, and D registers.                  |
-
       | COPY SL DT      |                                               |
-
       | STT SAVEL       |                                               |
-
       | COPY SD DT      |                                               |
-
       | STT SAVED       |                                               |
-
       | ...             |                                               |
-
       | LDT SAVED       | %Restore D register                           |
-
       | COPY ST DD      |                                               |
-
       | BSET ONE DD 170 | %Set bit 15 for ExitFromSegment function.     |
-
       | LDT SAVEL       | %Restore L and T registers.                   |
-
       | COPY ST DL      |                                               |
-
       | LDT SAVET       |                                               |
-
       | MON 337         | %ChangeSegment to return to original segment. |
 
 
-
-      | ND-100 | User RT and user SYSTEM | RT programs |'
+      | ND-100 | User RT and user SYSTEM | RT programs |
     mon_number: 337
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: false
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: false
+  user_programs: false
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 107
@@ -122,4 +88,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

@@ -4,16 +4,15 @@
 
 octal: 122B
 name: ReserveResource
-short_names: []
+short_names:
+- RESRV
 description: ''
-notes: []
 see_also:
 - ForceReserve
 - ReserveDir
 - '@RESRV'
 - '@RESERVE-FILE'
 - and @RESERVE-DEVICE-UNIT
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -22,130 +21,82 @@ parameters:
 - name: Param2
   type: UNKNOWN
   io: I
-  description: Input or output flag. Use 0 for the input part and 1 for the output
-    part.
+  description: Input or output flag. Use 0 for the input part and 1 for the output part.
 - name: Param3
   type: UNKNOWN
   io: I
-  description: Wait flag. Use 0 to make the program wait if the resource is already
-    reserved. Use 1 to return a status value.
+  description: Wait flag. Use 0 to make the program wait if the resource is already reserved. Use 1 to
+    return a status value.
 - name: Param4
   type: UNKNOWN
   io: I
-  description: Return status. Only used if the wait flag is 1. A negative value is
-    returned if the resource is already reserved.
+  description: Return status. Only used if the wait flag is 1. A negative value is returned if the resource
+    is already reserved.
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNo, IOFlag, WaitFlag, ReturnStatus : INTEGER2;
-
       ...
-
       ReserveResource(DeviceNo, IOFlag, WaitFlag, ReturnStatus);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DevNo COMP.
-
       01 IOFlag COMP.
-
       01 WaitFlag COMP.
-
       01 RetStatus COMP.
-
       ...
-
       MONITOR-CALL "ReserveResource" USING DevNo, IOFlag, WaitFlag, RetStatus.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DevNo, IOFlag, WaitFlag, ReturnStatus
-
       ...
-
-      Monitor_Call(''ReserveResource'', DevNo, IOFlag, WaitFlag, ReturnStatus)
-
-      ```'
-    notes: ''
+      Monitor_Call('ReserveResource', DevNo, IOFlag, WaitFlag, ReturnStatus)
   planc:
     available: true
-    code: 'INTEGER: DeviceNo, IOFlag, WaitFlag, ReturnStatus
-
+    code: |-
+      INTEGER: DeviceNo, IOFlag, WaitFlag, ReturnStatus
       ...
-
-      Monitor_Call(''ReserveResource'', DeviceNo, IOFlag, WaitFlag, ReturnStatus)'
-    notes: ''
+      Monitor_Call('ReserveResource', DeviceNo, IOFlag, WaitFlag, ReturnStatus)
   assembly_500:
     available: true
-    code: 'DeviceNo : W BLOCK 1
-
+    code: |-
+      DeviceNo : W BLOCK 1
       IOFlag : W BLOCK 1
-
       WaitFlag : W BLOCK 1
-
       Status : W BLOCK 1
-
       ReserveResource : EQU 37B9 + 122B
-
       ...
-
       CALLG ReserveResource, 3, DeviceNo, IOFlag, WaitFlag
-
-      W1 =: Status'
+      W1 =: Status
     octal_definition: 37B9 + 122B
-    notes: ''
   mac:
     available: true
-    code: 'LDA (PAR %Load register A with address of parameter list.
-
+    code: |-
+      LDA (PAR %Load register A with address of parameter list.
       MON 122 %Monitor call ReserveResource.
-
       ...
-
       PAR, DEVNO %Logical device number.
-
       IOF %Input/output flag.
-
       WFLAG %Wait flag
-
       STAT %Status
 
-
       | DEVNO, ... |   |
-
       |------------|---|
-
       | IOF, ...   |   |
-
       | WFLAG, ... |   |
-
       | STAT, ...  |   |
 
-
-      ND-100 and ND-500 | All users | All programs'
+      ND-100 and ND-500 | All users | All programs
     mon_number: 122
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 419
@@ -157,4 +108,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

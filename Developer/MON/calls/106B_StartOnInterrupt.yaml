@@ -4,13 +4,12 @@
 
 octal: 106B
 name: StartOnInterrupt
-short_names: []
+short_names:
+- CONCT
 description: ''
-notes: []
 see_also:
 - NoInterruptStart
 - '@CONCT'
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -23,110 +22,61 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       RTProgram, DeviceNumber : INTEGER2;
-
       ...
-
       StartOnInterrupt(RTProgram, DeviceNumber);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 RTProgram COMP.
-
       01 DeviceNumber COMP.
-
       ...
-
       MONITOR-CALL "StartOnInterrupt" USING RTProgram, DeviceNumber.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER RTProgram, DeviceNumber
-
       ...
-
-      Monitor_Call(''StartOnInterrupt'', RTProgram, DeviceNumber)
-
-      ```'
-    notes: ''
+      Monitor_Call('StartOnInterrupt', RTProgram, DeviceNumber)
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : RTProgram, DeviceNumber
-
       ...
-
-      Monitor_Call(''StartOnInterrupt'', RTProgram, DeviceNumber)
-
-      ```'
-    notes: ''
+      Monitor_Call('StartOnInterrupt', RTProgram, DeviceNumber)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       RTProgram : W BLOCK 1
-
       DeviceNumber : W BLOCK 1
-
       StartOnInterrupt : EQU 3789 + 106B
-
       ...
-
       CALLG StartOnInterrupt, 2, RTProgram, DeviceNumber
-
-      ```'
     octal_definition: 37B9 + 106B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA (PAR %Load register A with address of parameter list.
-
       MON 106 %Monitor call StartOnInterrupt.
-
       ...
-
-      ```
 
 
       | PAR    | RTPRO       | %Address of RT description. |
-
       |--------|-------------|-----------------------------|
-
       | DEVNO  |             | %Logical device number.     |
-
       | ...    | RTPRO, ...  |                             |
-
       | DEVNO, | ...         |                             |
 
 
-
-      ND-100 and ND-500 | User RT and user SYSTEM | RT programs'
+      ND-100 and ND-500 | User RT and user SYSTEM | RT programs
     mon_number: 106
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 481
@@ -138,4 +88,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

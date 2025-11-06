@@ -4,18 +4,14 @@
 
 octal: 435B
 name: ForceTrap
-short_names: []
-description: 'Forces a programmed trap to occur in another ND-500 process. The trap
-  handler in this process is started.
+short_names:
+- PRT
+description: |-
+  Forces a programmed trap to occur in another ND-500 process. The trap handler in this process is started.
 
-
-  - The trapped process gets your process number through GetTrapReason. It is stored
-  in the upper half of the error code. The lower half contains the reason code you
-  specify as a parameter.'
-notes: []
+  - The trapped process gets your process number through GetTrapReason. It is stored in the upper half of the error code. The lower half contains the reason code you specify as a parameter.
 see_also:
 - GetTrapReason
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -24,8 +20,7 @@ parameters:
 - name: Param2
   type: UNKNOWN
   io: I
-  description: Reason code. Bit 31:16 contains the process number and bit 15:0 the
-    magic number.
+  description: Reason code. Bit 31:16 contains the process number and bit 15:0 the magic number.
 - name: Language
   type: Availability
   io: I
@@ -49,35 +44,24 @@ examples:
     notes: Not available
   assembly_500:
     available: true
-    code: 'ProcessNumber : W BLOCK 1
-
+    code: |-
+      ProcessNumber : W BLOCK 1
       ReasonCode : W BLOCK 1
-
       ForceTrap : EQU 37B9 + 435B
-
       ...
-
-      CALLG ForceTrap, 2, ProcessNumber, ReasonCode'
+      CALLG ForceTrap, 2, ProcessNumber, ReasonCode
     octal_definition: 37B9 + 435B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 213
@@ -89,4 +73,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

@@ -4,123 +4,70 @@
 
 octal: 65B
 name: ErrorMessage
-short_names: []
-description: 'Displays a file system error message. Appendix A shows the messages
-  connected to each error number. The error number is input. The program terminates.
+short_names:
+- QERMS
+description: |-
+  Displays a file system error message. Appendix A shows the messages connected to each error number. The error number is input. The program terminates.
 
-
-  - The error message is displayed on the terminal. RT programs write it to the error
-  device. The error device is normally the console.
-
-  - Do not input error number 0.'
-notes: []
+  - The error message is displayed on the terminal. RT programs write it to the error device. The error device is normally the console.
+  - Do not input error number 0.
 see_also:
 - GetErrorMessage
-- WarningMessage. WarningMessage writes out the error message without terminating
-  the program
-references: []
+- WarningMessage. WarningMessage writes out the error message without terminating the program
 parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       ErrNumber : INTEGER2;
-
       ...
-
       ErrorMessage(ErrNumber);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 ErrNumber COMP.
-
       ...
-
       MONITOR-CALL "ErrorMessage" USING ErrNumber.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER ErrNumber
-
       ...
-
-      Monitor_Call(''ErrorMessage'', ErrNumber)
-
-      ```'
-    notes: ''
+      Monitor_Call('ErrorMessage', ErrNumber)
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : ErrNumber
-
       ...
-
-      Monitor_Call(''ErrorMessage'', ErrNumber)
-
-      ```'
-    notes: ''
+      Monitor_Call('ErrorMessage', ErrNumber)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       ErrNumber : W BLOCK 1
-
       ErrorMessage : EQU 37B9 + 65B
-
       ...
-
       CALLG ErrorMessage, 1, ErrNumber
-
       IF K GO Error
-
       ...
-
       Error, ...
-
-      ```'
     octal_definition: 37B9 + 65B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA ERRNO     %Error number of message to be printed.
-
       MON 65        %Monitor call ErrorMessage.
-
       ...
-
       ERRNO, ...
 
-      ```
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 65
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 171
@@ -132,4 +79,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

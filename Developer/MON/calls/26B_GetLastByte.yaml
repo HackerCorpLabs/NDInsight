@@ -4,20 +4,15 @@
 
 octal: 26B
 name: GetLastByte
-short_names: []
-description: 'Gets the last character typed on a terminal. The monitor call can be
-  used to terminate long output sequences, reading from files, etc. The program never
-  enters the I/O wait state because of this monitor call.
-
+short_names:
+- LASTC
+description: |-
+  Gets the last character typed on a terminal. The monitor call can be used to terminate long output sequences, reading from files, etc. The program never enters the I/O wait state because of this monitor call.
 
   - Only user SYSTEM can execute this monitor call on a non-reserved terminal.
-
-  - This monitor call always returns -1 if an error is encountered, not the standard
-  SINTRAN error codes.'
-notes: []
+  - This monitor call always returns -1 if an error is encountered, not the standard SINTRAN error codes.
 see_also:
 - InByte
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -30,99 +25,63 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber, LastCharTyped : INTEGER2;
-
       ...
-
       GetLastByte(DeviceNumber, LastCharTyped);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DeviceNumber COMP.
-
       01 LastCharTyped COMP.
-
       ...
-
       MONITOR-CALL "GetLastByte" USING DeviceNumber, LastCharTyped.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DeviceNumber, LastCharTyped
-
       ...
-
-      Monitor_Call(''GetLastByte'', DeviceNumber, LastCharTyped)
-
-      ```'
-    notes: ''
+      Monitor_Call('GetLastByte', DeviceNumber, LastCharTyped)
   planc:
     available: true
-    code: 'INTEGER : DeviceNumber, LastCharTyped
-
+    code: |-
+      INTEGER : DeviceNumber, LastCharTyped
       ...
-
-      Monitor_Call(''GetLastByte'', DeviceNumber, LastCharTyped)'
-    notes: ''
+      Monitor_Call('GetLastByte', DeviceNumber, LastCharTyped)
   assembly_500:
     available: true
-    code: "DeviceNumber : W BLOCK 1\nLastCharTyped : W BLOCK 1\nGetLastByte : EQU\
-      \ 37B9 + 26B\n...\n    CALLG GetLastByte, 1, DeviceNumber\n    W1 := LastCharTyped\
-      \ %Result is returned in W1 register."
+    code: |-
+      DeviceNumber : W BLOCK 1
+      LastCharTyped : W BLOCK 1
+      GetLastByte : EQU 37B9 + 26B
+      ...
+          CALLG GetLastByte, 1, DeviceNumber
+          W1 := LastCharTyped %Result is returned in W1 register.
     octal_definition: 37B9 + 26B
-    notes: ''
   mac:
     available: true
-    code: 'LDA (PAR %Load register A with address of parameter list.
-
+    code: |-
+      LDA (PAR %Load register A with address of parameter list.
       MON 26 %Monitor call GetLastByte.
-
       JAN ERROR %Error in parameters return -1.
-
       STA CHAR %No errors, store byte returned.
-
       ...
-
       ERROR, ... %Handle the error.
-
       ...
-
       CHAR, O %Last typed character right adjusted.
-
       PAR, DEVNO %Logical device number of a terminal.
-
       ...
-
       DEVNO, ...
 
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 26
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 255
@@ -134,4 +93,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

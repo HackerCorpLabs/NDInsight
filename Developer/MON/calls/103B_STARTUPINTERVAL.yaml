@@ -4,32 +4,25 @@
 
 octal: 103B
 name: STARTUPINTERVAL
-short_names: []
-description: Prepares an RT program for periodic execution. The interval between the
-  executions can be specified in hours, minutes, seconds, and basic time units. A
-  basic time unit is 1/50th of a second.
+short_names:
+- INTV
+description: Prepares an RT program for periodic execution. The interval between the executions can be
+  specified in hours, minutes, seconds, and basic time units. A basic time unit is 1/50th of a second.
 notes:
 - The RT program is not started. Use StartRTProgram, @RT, or similar, to start it.
 - StopRTProgram, Disconnect, @ABORT or @DSCNT cancel this monitor call.
-- One execution may be unfinished when it is time for the next execution, in which
-  case the program's restart flag is set. If the delay becomes as long as two intervals,
-  one execution is lost.
+- One execution may be unfinished when it is time for the next execution, in which case the program's
+  restart flag is set. If the delay becomes as long as two intervals, one execution is lost.
 - The interval replaces any earlier specified intervals.
 see_also: []
-references: []
 parameters: []
 examples: {}
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 0
@@ -41,4 +34,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

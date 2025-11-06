@@ -4,14 +4,13 @@
 
 octal: 140B
 name: ReservationInfo
-short_names: []
+short_names:
+- WHDEV
 description: ''
-notes: []
 see_also:
 - ReserveResource
 - ReleaseResource
 - and @LIST-DEVICE
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -24,125 +23,73 @@ parameters:
 - name: Param3
   type: UNKNOWN
   io: I
-  description: RT description address of reserving RT program. 0 means not reserved.
-    Errors in the parameters return -1.
+  description: RT description address of reserving RT program. 0 means not reserved. Errors in the parameters
+    return -1.
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber, IOFlag, ReturnValue : INTEGER2;
-
       ...
-
       ReservationInfo(DeviceNumber, IOFlag, ReturnValue);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DeviceNumber COMP.
-
       01 IOFlag COMP.
-
       01 ReturnValue COMP.
-
       ...
-
       MONITOR-CALL "ReservationInfo" USING DeviceNumber, IOFlag, ReturnValue.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DeviceNo, IOFlag, ReturnValue
-
       ...
-
-      Monitor_Call(''ReservationInfo'', DeviceNo, IOFlag, ReturnValue)
-
-      ```'
-    notes: ''
+      Monitor_Call('ReservationInfo', DeviceNo, IOFlag, ReturnValue)
   planc:
     available: true
-    code: 'INTEGER : DeviceNumber, IOFlag, ReturnValue
-
+    code: |-
+      INTEGER : DeviceNumber, IOFlag, ReturnValue
       ...
-
-      Monitor_Call(''ReservationInfo'', DeviceNumber, IOFlag, ReturnValue)'
-    notes: ''
+      Monitor_Call('ReservationInfo', DeviceNumber, IOFlag, ReturnValue)
   assembly_500:
     available: true
-    code: 'DeviceNumber : W BLOCK 1
-
+    code: |-
+      DeviceNumber : W BLOCK 1
       IOFlag : W BLOCK 1
-
       ReturnValue : W BLOCK 1
-
       ReservationInfo : EQU 37B9 + 140B
-
       ...
-
       CALLG ReservationInfo, 2, DeviceNumber, IOFlag
-
-      W1 =: ReturnValue %Result is returned in W1 register.'
+      W1 =: ReturnValue %Result is returned in W1 register.
     octal_definition: 37B9 + 140B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA   (PAR   %Load register A with address of parameter list.
-
       MON   140    %Monitor call ReservationInfo.
-
       STA   STAT   %Store status returned.
-
       AAA   -1     %Test if -1. JAN not applicable because of RT
-
       JAZ   ERROR  %addresses above 100000.
-
       ...
-
       ...
-
       ERROR, ...
-
       STAT, 0      %RT description address if any.
-
       PAR, DEVNO  %Logical device number.
-
       IOF         %Input or output flag.
-
       DEVNO, ...
-
       IOF, ...
-
-      ```
 
 
       | ND-100 and ND-500 | All users | All programs |
-
-      |-------------------|-----------|--------------|'
+      |-------------------|-----------|--------------|
     mon_number: 140
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 415
@@ -154,4 +101,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

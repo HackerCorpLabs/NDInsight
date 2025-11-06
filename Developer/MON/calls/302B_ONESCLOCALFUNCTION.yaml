@@ -4,10 +4,11 @@
 
 octal: 302B
 name: ONESCLOCALFUNCTION
-short_names: []
-description: Enables delayed escape and local functions for your terminal. The ESCAPE
-  key then terminates a program unless it is disabled. The key with the local function
-  will terminate connections to remote computers.
+short_names:
+- ELON
+description: Enables delayed escape and local functions for your terminal. The ESCAPE key then terminates
+  a program unless it is disabled. The key with the local function will terminate connections to remote
+  computers.
 notes:
 - Delay the escape and local functions by OnEscLocalFunction.
 - A timeout from a remote computer enables the local function.
@@ -16,43 +17,33 @@ see_also:
 - OffEscLocalFunction
 - EnableEscape
 - and EnableLocal
-references: []
 parameters: []
 examples:
   pascal:
     available: true
-    code: 'OnEscLocalFunction;
-
-      IF ErrCode <> 0 THEN ...'
-    notes: ''
+    code: |-
+      OnEscLocalFunction;
+      IF ErrCode <> 0 THEN ...
   cobol:
     available: true
-    code: '01 ErrCode COMP.
-
+    code: |-
+      01 ErrCode COMP.
       ...
-
       MONITOR-CALL "OnEscLocalFunction".
-
       CALL "CbError" USING ErrCode.
-
-      IF ErrCode NOT = 0 GO ...'
-    notes: ''
+      IF ErrCode NOT = 0 GO ...
   fortran:
     available: true
-    code: 'Monitor Call(''OnEscLocalFunction'')
-
-      IF (ErrCode .NE. 0) THEN ...'
-    notes: ''
+    code: |-
+      Monitor Call('OnEscLocalFunction')
+      IF (ErrCode .NE. 0) THEN ...
   planc:
     available: true
-    code: 'ON ROUTINEERROR DO
-
+    code: |-
+      ON ROUTINEERROR DO
       IF ErrCode > 0 THEN ...
-
       ENDON
-
-      Monitor_Call(''OnEscLocalFunction'')'
-    notes: ''
+      Monitor_Call('OnEscLocalFunction')
   assembly_500:
     available: false
     code: ''
@@ -60,34 +51,23 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: '|         |       |                                           |
-
+    code: |-
+      |         |       |                                           |
       |---------|-------|-------------------------------------------|
-
       | MON     | 302   | %Monitor call OnEscLocalFunction.         |
-
       | JMP     | ERROR | %Error return from monitor call.          |
-
       | ...     |       | %Normal return.                           |
-
       | ERROR,  | ...   | %Error number in register A.              |
 
 
-
-      ND-100 All users Background programs'
+      ND-100 All users Background programs
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 367
@@ -99,4 +79,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

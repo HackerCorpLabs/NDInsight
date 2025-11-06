@@ -4,21 +4,17 @@
 
 octal: 334B
 name: GetErrorMessage
-short_names: []
-description: 'Gets a SINTRAN III error message text. Appendix A shows the messages
-  connected to each error number. The error number is input. The program continues.
+short_names:
+- GETXM
+description: |-
+  Gets a SINTRAN III error message text. Appendix A shows the messages connected to each error number. The error number is input. The program continues.
 
-
-  - This monitor call is convenient for advanced use of the terminal screen. For example,
-  you may output the error message in inverse video at the bottom line.
-
-  - Do not input error number 0.'
-notes: []
+  - This monitor call is convenient for advanced use of the terminal screen. For example, you may output the error message in inverse video at the bottom line.
+  - Do not input error number 0.
 see_also:
 - WarningMessage
 - ErrorMessage. ErrorMessage writes out the error message
 - terminates the program
-references: []
 parameters:
 - name: ➞ Error number of the message to be printed. Use octal numbers.
   type: ''
@@ -35,128 +31,75 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       ErrorNo : INTEGER2;
-
       Buffer : PACKED ARRAY [0..127] OF CHAR;
-
       ...
-
       GetErrorMessage(ErrorNo, Buffer);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 ErrCode COMP.
-
       01 Buffer PIC X(128).
-
       01 ErrorNo COMP.
-
       ...
-
       MONITOR-CALL "GetErrorMessage" USING ErrorNo, Buffer.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER ErrorNo
-
       CHARACTER Buffer*128
-
       ...
-
-      Monitor_Call(''GetErrorMessage'', ErrorNo, Buffer(1:128))
-
+      Monitor_Call('GetErrorMessage', ErrorNo, Buffer(1:128))
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : ErrorNo\nBYTES : Buffer(0:127)\n...\nON ROUTINEERROR DO\n\
-      \    IF ErrCode > < 0 THEN ...\nENDON\nMonitor_Call('GetErrorMessage', ErrorNo,\
-      \ Buffer)\n```"
-    notes: ''
+    code: |-
+      INTEGER : ErrorNo
+      BYTES : Buffer(0:127)
+      ...
+      ON ROUTINEERROR DO
+          IF ErrCode > < 0 THEN ...
+      ENDON
+      Monitor_Call('GetErrorMessage', ErrorNo, Buffer)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       ErrCode : W BLOCK 1
-
       Buffer : W BLOCK 100
-
       ErrorNo : W BLOCK 1
-
       GetErrorMessage : EQU 37B9 + 334B
-
       ...
-
       CALLG GetErrorMessage, 2, ErrorNo, Buffer
-
       IF K GO ERROR
-
       ...
-
       ERROR : W1 =: ErrCode  %ErrorCode in W1 register.
-
-      ```'
     octal_definition: 37B9 + 334B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA ERRNO   %Error number of error message to be printed.
-
       LDX (BUF    %Address of buffer to receive the error message.
-
       MON 334     %Monitor call GetErrorMessage.
-
       STA STAT    %Returns here if error occurs.
-
       ...         %Normal return here.
-
       ERRNO, ...
-
       BUF, ...
-
       *+100/
-
       STAT, ...
 
-      ```
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 334
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 243
@@ -168,4 +111,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

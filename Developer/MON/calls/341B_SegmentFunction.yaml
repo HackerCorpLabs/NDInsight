@@ -4,25 +4,23 @@
 
 octal: 341B
 name: SegmentFunction
-short_names: []
-description: This is a multifunction monitor call used to change the active segments
-  of a program, or the page index tables used by a program.
+short_names:
+- SGMTY
+description: This is a multifunction monitor call used to change the active segments of a program, or
+  the page index tables used by a program.
 notes:
-- This monitor call is meant to replace the older calls ChangeSegment (SPCHG, 337),
-  and JumpToSegment (MCALL, 132) and ExitFromSegment (MEXIT, 133) on the VSX version.
-- In ChangeSegment, JumpToSegment and ExitFromSegment, the segment numbers are limited
-  to 8 bits (values 0-255). With the monitor call SegmentFunction, the segment numbers
-  are 16 bits (values 0-65535).
-- The functionality of the calls MCALL and MEXIT is expanded so as to allow you to
-  change (or not) the page index table to be used with the new segment.
-- A new function has been introduced in this call, that of removing a routine from
-  being a direct task or a device driver, which has been entered as such by the monitor
-  call SegmentToPageTable (ENTSEG).
+- This monitor call is meant to replace the older calls ChangeSegment (SPCHG, 337), and JumpToSegment
+  (MCALL, 132) and ExitFromSegment (MEXIT, 133) on the VSX version.
+- In ChangeSegment, JumpToSegment and ExitFromSegment, the segment numbers are limited to 8 bits (values
+  0-255). With the monitor call SegmentFunction, the segment numbers are 16 bits (values 0-65535).
+- The functionality of the calls MCALL and MEXIT is expanded so as to allow you to change (or not) the
+  page index table to be used with the new segment.
+- A new function has been introduced in this call, that of removing a routine from being a direct task
+  or a device driver, which has been entered as such by the monitor call SegmentToPageTable (ENTSEG).
 see_also:
 - ChangeSegment
 - JumpToSegment
 - ExitFromSegment
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -124,32 +122,20 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: '| Command | Description |
-
+    code: |-
+      | Command | Description |
       |---------|-------------|
-
       | LDT (PARLI | %Load T register with address of parameter list. |
-
       | MON 341 | %Monitor call SegmentFunction. |
-
       | JMP ERROR | %Error return. |
-
-      | ... | %Normal return. |'
+      | ... | %Normal return. |
     mon_number: 341
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: false
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: false
+  user_programs: false
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 427
@@ -161,4 +147,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

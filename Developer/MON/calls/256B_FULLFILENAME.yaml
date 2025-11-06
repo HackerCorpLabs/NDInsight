@@ -4,27 +4,22 @@
 
 octal: 256B
 name: FULLFILENAME
-short_names: []
-description: Returns a complete file name from an abbreviated one. The directory,
-  the user, the file name, the file type, and the version are returned.
+short_names:
+- DEABF
+description: Returns a complete file name from an abbreviated one. The directory, the user, the file name,
+  the file type, and the version are returned.
 notes:
 - You must have read access to the file.
 - The abbreviation must be unambiguous.
 see_also: []
-references: []
 parameters: []
 examples: {}
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 0
@@ -36,4 +31,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

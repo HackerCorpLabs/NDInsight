@@ -4,70 +4,55 @@
 
 octal: 143B
 name: ExecutionInfo
-short_names: []
-description: Gets information about the execution of the calling program. You are
-  told whether the program executes interactively, as a batch or mode job, or as an
-  RT program. The monitor call returns some additional information for non-RT programs,
-  consisting of the command input file, the command output file, and the directory
-  index and user index of the program's owner.
+short_names:
+- RSIO
+description: Gets information about the execution of the calling program. You are told whether the program
+  executes interactively, as a batch or mode job, or as an RT program. The monitor call returns some additional
+  information for non-RT programs, consisting of the command input file, the command output file, and
+  the directory index and user index of the program's owner.
 notes:
-- Your terminal number is returned as the command input and output files in interactive
-  programs.
+- Your terminal number is returned as the command input and output files in interactive programs.
 - Execution mode.
 - 0 means interactive program
 - 1 means batch job
 - 2 means mode job
 - 3 means RT program
-- Logical device number for command input. This is your terminal number for interactive
-  programs. Batch and mode jobs return the file number of the command input file.
-  Not used for RT programs.
-- Logical device number for command output. This is your terminal number for interactive
-  programs. Batch and mode jobs return the file number of the command output file.
-  Not used for RT programs.
-- Directory and user index of the program's owner. On the ND-100, the Directory Index
-  is the uppermost 8 bits and the User Index is the lowermost 8 bits. On the ND-500,
-  the Directory Index is the uppermost 8 bits of the lowermost halfword. i.e. bits
-  8-15, and the User Index is the lowermost 8 bits, i.e. bits 0-7, (the uppermost
-  halfword, bits 16-31, is zero - i.e. all bits are cleared). Not used for RT programs.
+- Logical device number for command input. This is your terminal number for interactive programs. Batch
+  and mode jobs return the file number of the command input file. Not used for RT programs.
+- Logical device number for command output. This is your terminal number for interactive programs. Batch
+  and mode jobs return the file number of the command output file. Not used for RT programs.
+- Directory and user index of the program's owner. On the ND-100, the Directory Index is the uppermost
+  8 bits and the User Index is the lowermost 8 bits. On the ND-500, the Directory Index is the uppermost
+  8 bits of the lowermost halfword. i.e. bits 8-15, and the User Index is the lowermost 8 bits, i.e. bits
+  0-7, (the uppermost halfword, bits 16-31, is zero - i.e. all bits are cleared). Not used for RT programs.
 - Standard Error Code. See appendix A.
 see_also: []
-references: []
 parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
-      ExecutionMode, InputDev, OutputDev, UserIndex : INTEGER2;
+    code: 'ExecutionMode, InputDev, OutputDev, UserIndex : INTEGER2;
 
       ...
 
       ExecutionInfo(ExecutionMode, InputDev, OutputDev, UserIndex);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
+      IF ErrCode <> 0 THEN ...'
   cobol:
     available: true
-    code: "```\n01 ExecutionMode COMP.\n01 InputDev COMP.\n01 OutputDev COMP.\n01\
-      \ UserIndex COMP.\n01 ErrCode COMP.\n...\nMONITOR-CALL \"ExecutionInfo\" USING\
-      \ ExecutionMode, InputDev,\n              OutputDev, UserIndex.\nCALL \"CbError\"\
-      \ USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
-    notes: ''
+    code: "01 ExecutionMode COMP.\n01 InputDev COMP.\n01 OutputDev COMP.\n01 UserIndex COMP.\n01 ErrCode\
+      \ COMP.\n...\nMONITOR-CALL \"ExecutionInfo\" USING ExecutionMode, InputDev,\n              OutputDev,\
+      \ UserIndex.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
   fortran:
     available: true
-    code: "```\nINTEGER ExecutionMode, InputDev, OutputDev, UserIndex\nMonitor_Call('ExecutionInfo',\
-      \ ExecutionMode, InputDev,\n             OutputDev, UserIndex)\nC IF (ErrCode\
-      \ .NE. 0) THEN ...\n```"
-    notes: ''
+    code: "INTEGER ExecutionMode, InputDev, OutputDev, UserIndex\nMonitor_Call('ExecutionInfo', ExecutionMode,\
+      \ InputDev,\n             OutputDev, UserIndex)\nC IF (ErrCode .NE. 0) THEN ..."
   assembly_500:
     available: true
-    code: "```\nExecutMode  : W BLOCK 1\nInputDev    : W BLOCK 1\nOutputDev   : W\
-      \ BLOCK 1\nUserIndex   : W BLOCK 1\nExecutionInfo : EQU 37B9 + 143B\n...\n \
-      \   CALLG ExecutionInfo, 4, ExecutMode, InputDev, OutputDev, UserIndex\n```"
+    code: "ExecutMode  : W BLOCK 1\nInputDev    : W BLOCK 1\nOutputDev   : W BLOCK 1\nUserIndex   : W\
+      \ BLOCK 1\nExecutionInfo : EQU 37B9 + 143B\n...\n    CALLG ExecutionInfo, 4, ExecutMode, InputDev,\
+      \ OutputDev, UserIndex"
     octal_definition: 37B9 + 143B
-    notes: ''
   mac:
     available: true
     code: '| MON  | 143  | %Monitor call ExecutionInfo.                    |
@@ -87,7 +72,6 @@ examples:
       | ...  |      |                                               |
 
 
-      ```
 
       EXMOD, 0
 
@@ -97,25 +81,16 @@ examples:
 
       INDEX, 0
 
-      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 183
@@ -127,4 +102,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

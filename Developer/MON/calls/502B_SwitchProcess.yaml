@@ -4,15 +4,15 @@
 
 octal: 502B
 name: SwitchProcess
-short_names: []
-description: Sets the current process in a wait state. Restarts another process. This
-  is similar to executing a StartProcess followed by a StopProcess.
+short_names:
+- SWITCHP
+description: Sets the current process in a wait state. Restarts another process. This is similar to executing
+  a StartProcess followed by a StopProcess.
 notes:
 - The stopped process restarts immediately if it is scheduled for repeated execution.
 see_also:
 - StartProcess
 - StopProcess
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -21,77 +21,47 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       ProcessNumber : LONGINT;
-
       ...
-
       SwitchProcess(ProcessNumber);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 ProcessNumber COMP.
-
       ...
-
       MONITOR-CALL "SwitchProcess" USING ProcessNumber.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER ProcessNumber
-
       ...
-
-      Monitor_Call(''SwitchProcess'', ProcessNumber)
-
-      ```'
-    notes: ''
+      Monitor_Call('SwitchProcess', ProcessNumber)
   planc:
     available: true
-    code: 'INTEGER : ProcessNumber
-
+    code: |-
+      INTEGER : ProcessNumber
       ...
-
-      Monitor_Call(''SwitchProcess'', ProcessNumber)'
-    notes: ''
+      Monitor_Call('SwitchProcess', ProcessNumber)
   assembly_500:
     available: true
-    code: 'ProcessNumber : W BLOCK 1
-
+    code: |-
+      ProcessNumber : W BLOCK 1
       SwitchProcess : EQU 37B9 + 502B
-
       ...
-
-      CALLG SwitchProcess, 1, ProcessNumber'
+      CALLG SwitchProcess, 1, ProcessNumber
     octal_definition: 37B9 + 502B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 499

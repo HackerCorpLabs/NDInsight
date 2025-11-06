@@ -4,15 +4,14 @@
 
 octal: 244B
 name: GetDirEntry
-short_names: []
+short_names:
+- GDIEN
 description: ''
-notes: []
 see_also:
 - GetDirUserIndexes
 - WriteDirEntry
 - GetUserEntry
 - and GetObjectEntry
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -41,99 +40,95 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DirectoryIndex, Flag : INTEGER2;
-
       DirEntry : ARRAY [0..1] OF RECORD...END;
-
       ...
-
       GetDirEntry(DirectoryIndex, DirEntry, Flag);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 DirectoryIndex COMP.\n01 Flag COMP.\n01 DirEntry.\n   02 array\
-      \ COMP OCCURS 24 TIMES.\n01 RemoteFlag COMP.\n01 RemoteSystem PIC X(64).\n01\
-      \ ErrCode COMP.\n...\nMONITOR-CALL \"GetDirEntry\" USING DirectoryIndex, DirEntry,\
-      \ Flag,\n                                 RemoteFlag, RemoteSystem)\nCALL \"\
-      CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
-    notes: ''
+    code: |-
+      01 DirectoryIndex COMP.
+      01 Flag COMP.
+      01 DirEntry.
+         02 array COMP OCCURS 24 TIMES.
+      01 RemoteFlag COMP.
+      01 RemoteSystem PIC X(64).
+      01 ErrCode COMP.
+      ...
+      MONITOR-CALL "GetDirEntry" USING DirectoryIndex, DirEntry, Flag,
+                                       RemoteFlag, RemoteSystem)
+      CALL "CbError" USING ErrCode.
+      IF ErrCode NOT = 0 GO ...
   fortran:
     available: true
-    code: "```\nINTEGER DirectoryIndex, Flag, RemoteFlag\nCHARACTER RemoteSystem*64\n\
-      INTEGER DirEntry(24)\n...\nMonitor_Call('GetDirEntry', DirectoryIndex, DirEntry(1),\
-      \ Flag,\n             RemoteFlag, RemoteSystem(1:16))\nC    IF (ErrCode .NE.\
-      \ 0) THEN ...\n```"
-    notes: ''
+    code: |-
+      INTEGER DirectoryIndex, Flag, RemoteFlag
+      CHARACTER RemoteSystem*64
+      INTEGER DirEntry(24)
+      ...
+      Monitor_Call('GetDirEntry', DirectoryIndex, DirEntry(1), Flag,
+                   RemoteFlag, RemoteSystem(1:16))
+      C    IF (ErrCode .NE. 0) THEN ...
   planc:
     available: true
-    code: "```\nINTEGER : DirectoryIndex, Flag, RemoteFlag\nBYTES : DirEntry(0:47)\n\
-      BYTES : RemoteSystem(0:63)\n...\nON ROUTINEERROR DO\n    IF ErrCode > 0 THEN\
-      \ ...\nENDON\nMonitor_Call('GetDirEntry', DirectoryIndex, DirEntry(0), Flag,\
-      \ RemoteFlag, &\nRemoteSystem)\n```"
-    notes: ''
+    code: |-
+      INTEGER : DirectoryIndex, Flag, RemoteFlag
+      BYTES : DirEntry(0:47)
+      BYTES : RemoteSystem(0:63)
+      ...
+      ON ROUTINEERROR DO
+          IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('GetDirEntry', DirectoryIndex, DirEntry(0), Flag, RemoteFlag, &
+      RemoteSystem)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       DirectoryIndex : W BLOCK 1    %Bit 7 set if SysId is supplied.
-
       Flag : W BLOCK 1
-
       DirEntry : W ARRAY 25B
-
       SysId : STRING 16  %Remote system name as an optional 4th parameter.
-
       ErrCode : W BLOCK 1
-
       GetDirEntry : EQU 37B9 + 244B
-
       ...
-
       CALLG GetDirEntry, 3, DirectoryIndex, DirEntry, Flag
-
       IF K GO ERROR
-
       ...
-
       ERROR : W1 =: ErrCode         %ErrorCode in W1 register.
-
-      ```'
     octal_definition: 37B9 + 244B
-    notes: ''
   mac:
     available: true
-    code: "```\nLDT DIRIX        %Directory index.\nLDX (BUFF       %Buffer to receive\
-      \ directory entry.\nLDA (REMID      %Remote system identification in D register.\n\
-      COPY SA DD      %Used only if bit 15 in X register is set.\nMON 244        \
-      \ %Monitor call GetDirEntry.\nJMP ERROR       %Error return from monitor call.\n\
-      ...\n                %Normal return.\n                %A-reg.=1 or 5 : disk\
-      \ has spare-track allocation.\n                %A-reg.=3 : no spare-track allocation.\n\
-      ERROR, ...      %Error number in register A.\n...\nDIRIX, ...      %Set bit\
-      \ 15 if remote system.\nBUFF, 0         %\n*+30/           %24 word long buffer.\n\
-      REMID, 0        %Remote identification string.\n*+40/           %32 words for\
-      \ string.\n```\n\n\n| ND-100 and ND-500 | User RT and user SYSTEM | All programs\
-      \ |"
+    code: |-
+      LDT DIRIX        %Directory index.
+      LDX (BUFF       %Buffer to receive directory entry.
+      LDA (REMID      %Remote system identification in D register.
+      COPY SA DD      %Used only if bit 15 in X register is set.
+      MON 244         %Monitor call GetDirEntry.
+      JMP ERROR       %Error return from monitor call.
+      ...
+                      %Normal return.
+                      %A-reg.=1 or 5 : disk has spare-track allocation.
+                      %A-reg.=3 : no spare-track allocation.
+      ERROR, ...      %Error number in register A.
+      ...
+      DIRIX, ...      %Set bit 15 if remote system.
+      BUFF, 0         %
+      *+30/           %24 word long buffer.
+      REMID, 0        %Remote identification string.
+      *+40/           %32 words for string.
+
+
+
+      | ND-100 and ND-500 | User RT and user SYSTEM | All programs |
     mon_number: 244
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 233
@@ -145,4 +140,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

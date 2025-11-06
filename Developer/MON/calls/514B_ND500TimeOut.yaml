@@ -4,129 +4,81 @@
 
 octal: 514B
 name: ND500TimeOut
-short_names: []
-description: 'Suspends the execution of an ND-500 program for a given time. The execution
-  then continues after the monitor call. The program is placed in a time queue in
-  the ND-500, not the ND-100.
-
+short_names:
+- 5TMOUT
+description: |-
+  Suspends the execution of an ND-500 program for a given time. The execution then continues after the monitor call. The program is placed in a time queue in the ND-500, not the ND-100.
 
   - No reserved files or devices are released.
-
-  - Avoid using TimeOut (mon 267) from ND-500, use ND500TimeOut instead. Use TimeOut
-  from ND-100.'
-notes: []
+  - Avoid using TimeOut (mon 267) from ND-500, use ND500TimeOut instead. Use TimeOut from ND-100.
 see_also:
 - TimeOut
 - SuspendProgram
 - WaitForRestart
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
-  description: Number of time units to suspend the program. Use 0 to restart programs
-    immediately. This clears the restart flag.
+  description: Number of time units to suspend the program. Use 0 to restart programs immediately. This
+    clears the restart flag.
 - name: Param2
   type: UNKNOWN
   io: I
-  description: The type of time units. 1 = basic time units, i.e. 1/50th of a second,
-    2 = seconds, 3 = minutes, 4 = hours.
+  description: The type of time units. 1 = basic time units, i.e. 1/50th of a second, 2 = seconds, 3 =
+    minutes, 4 = hours.
 - name: Param3
   type: UNKNOWN
   io: I
-  description: Restart cause. 0 means that the defined time has elapsed. 1 means that
-    an interrupt occurred. -1 means that the RT program was scheduled for repeated
-    execution.
+  description: Restart cause. 0 means that the defined time has elapsed. 1 means that an interrupt occurred.
+    -1 means that the RT program was scheduled for repeated execution.
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       NoOfTimeUnits, TimeUnit, ReturnStatus : LONGINT;
-
       ...
-
       ND500TimeOut(NoOfTimeUnits, TimeUnit, ReturnStatus);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 NoOfTimeUnits COMP.
-
       01 TimeUnit COMP.
-
       01 ReturnStatus COMP.
-
       ...
-
       MONITOR-CALL "ND500TimeOut" USING NoOfTimeUnits, TimeUnit, ReturnStatus.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER NoOfTimeUnits, TimeUnit, ReturnStatus
-
       ...
-
-      Monitor_Call(''ND500TimeOut'', NoOfTimeUnits, TimeUnit, ReturnStatus)
-
-      ```'
-    notes: ''
+      Monitor_Call('ND500TimeOut', NoOfTimeUnits, TimeUnit, ReturnStatus)
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : NoOfTimeUnits, TimeUnit, ReturnStatus
-
       ...
-
-      Monitor_Call(''ND500TimeOut'', NoOfTimeUnits, TimeUnit, ReturnStatus)
-
-      ```'
-    notes: ''
+      Monitor_Call('ND500TimeOut', NoOfTimeUnits, TimeUnit, ReturnStatus)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       NoOfTimeUnits : W BLOCK 1
-
       TimeUnit : W BLOCK 1
-
       ReturnStatus : W BLOCK 1
-
       ND500TimeOut : EQU 3789 + 514B
-
       ...
-
       CALLG ND500TimeOut, 3, NoOfTimeUnits, TimeUnit, ReturnStatus
-
-      ```'
     octal_definition: 37B9 + 514B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 349
@@ -138,4 +90,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

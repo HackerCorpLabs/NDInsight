@@ -4,12 +4,11 @@
 
 octal: 412B
 name: FileAsSegment
-short_names: []
+short_names:
+- FSCNT
 description: ''
-notes: []
 see_also:
 - FileNotAsSegment which disconnects the file
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -18,15 +17,14 @@ parameters:
 - name: Param2
   type: UNKNOWN
   io: I
-  description: Logical segment number in the domain. The segment number must be free.
-    Use 0 to select the first free segment. The last parameter returns the logical
-    segment number.
+  description: Logical segment number in the domain. The segment number must be free. Use 0 to select
+    the first free segment. The last parameter returns the logical segment number.
 - name: Param3
   type: UNKNOWN
   io: I
-  description: Access type. Use 0 if the file contains initial data. 1 means uninitialized,
-    empty file. 2 means primarily sequential access. Use 3 for a combination of 1
-    and 2. Type 2 reduces the access time if access is sequential.
+  description: Access type. Use 0 if the file contains initial data. 1 means uninitialized, empty file.
+    2 means primarily sequential access. Use 3 for a combination of 1 and 2. Type 2 reduces the access
+    time if access is sequential.
 - name: Param4
   type: UNKNOWN
   io: I
@@ -38,100 +36,57 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FileNo, LogSegmentNo, Type, SegmentNo : LONGINT;
-
       ...
-
       FileAsSegment(FileNo, LogSegmentNo, Type, SegmentNo);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 FileNo COMP.
-
       01 LogSegmentNo COMP.
-
       01 Type COMP.
-
       01 SegNo COMP.
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "FileAsSegment" USING FileNo, LogSegmentNo, Type, SegNo.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER FileNo, LogSegmentNo, Type, SegmentNo
-
       ...
-
-      Monitor_Call(''FileAsSegment'', FileNo, LogSegmentNo, Type, SegmentNo)
-
+      Monitor_Call('FileAsSegment', FileNo, LogSegmentNo, Type, SegmentNo)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   assembly_500:
     available: true
-    code: 'FileNo : W BLOCK 1
-
+    code: |-
+      FileNo : W BLOCK 1
       LogSegmentNo : W BLOCK 1
-
       Type : W BLOCK 1
-
       SegmentNo : W BLOCK 1
-
       ErrCode : W BLOCK 1
-
       FileAsSegment : EQU 37B9 + 412B
 
-
       ...
-
       CALLG FileAsSegment, 4, FileNo, LogSegmentNo, Type, SegmentNo
-
       IF K GO ERROR
-
       ...
-
-      ERROR : W1 =: ErrCode &nbsp;&nbsp;&nbsp;&nbsp;%ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode &nbsp;&nbsp;&nbsp;&nbsp;%ErrorCode in W1 register.
     octal_definition: 37B9 + 412B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 193
@@ -143,4 +98,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

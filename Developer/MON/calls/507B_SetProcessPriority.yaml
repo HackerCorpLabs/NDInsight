@@ -4,95 +4,60 @@
 
 octal: 507B
 name: SetProcessPriority
-short_names: []
-description: 'Sets the priority for a process in the ND-500. The priorities vary from
-  0 to 255. The process with the highest priority is executed first.
+short_names:
+- SPRIO
+description: |-
+  Sets the priority for a process in the ND-500. The priorities vary from 0 to 255. The process with the highest priority is executed first.
 
-
-  - The priorities of background programs normally vary between 20 and 64. SINTRAN
-  III modifies the priorities all the time. This is done to allow several jobs to
-  share the CPU. Specify 0 to execute a process in the same way.
-
-  - With SetProcessPriority, you may fix the priority.'
-notes: []
+  - The priorities of background programs normally vary between 20 and 64. SINTRAN III modifies the priorities all the time. This is done to allow several jobs to share the CPU. Specify 0 to execute a process in the same way.
+  - With SetProcessPriority, you may fix the priority.
 see_also:
 - SetRTPriority
-references: []
 parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       NewPriority : LONGINT;
-
       ...
-
       SetProcessPriority(NewPriority);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 NewPriority COMP.
-
       ...
-
       MONITOR-CALL "SetProcessPriority" USING NewPriority.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER NewPriority
-
       ...
-
-      Monitor_Call(''SetProcessPriority'', NewPriority)
-
-      ```'
-    notes: ''
+      Monitor_Call('SetProcessPriority', NewPriority)
   planc:
     available: true
-    code: 'INTEGER : NewPriority
-
+    code: |-
+      INTEGER : NewPriority
       ...
-
-      Monitor_Call(''SetProcessPriority'', NewPriority)'
-    notes: ''
+      Monitor_Call('SetProcessPriority', NewPriority)
   assembly_500:
     available: true
-    code: 'NewPriority : W BLOCK 1
-
+    code: |-
+      NewPriority : W BLOCK 1
       SetProcessPriority : EQU 37B9 + 507B
-
       ...
-
-      CALLG SetProcessPriority, 1, NewPriority'
+      CALLG SetProcessPriority, 1, NewPriority
     octal_definition: 37B9 + 507B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 463
@@ -104,4 +69,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

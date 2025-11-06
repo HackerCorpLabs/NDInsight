@@ -4,20 +4,16 @@
 
 octal: 246B
 name: ReserveDir
-short_names: []
-description: 'Reserves a directory for special use. The directory must be entered.
-  Other users will not be able to open files on a reserved directory.
-
+short_names:
+- REDIR
+description: |-
+  Reserves a directory for special use. The directory must be entered. Other users will not be able to open files on a reserved directory.
 
   - All files in the directory must be closed.
-
   - Only user RT and the current user may be logged in if main directory.
-
-  - Use ReleaseDir to release the directory.'
-notes: []
+  - Use ReleaseDir to release the directory.
 see_also:
 - ReleaseDir
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -30,120 +26,71 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DirectoryIndex : INTEGER2;
-
       ...
-
       ResDirectory(DirectoryIndex);   [Note routine name.]
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DirectoryIndex COMP.
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "ReserveDir" USING DirectoryIndex.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DirectoryIndex
-
       ...
-
-      Monitor_Call(''ReserveDir'', DirectoryIndex)
-
+      Monitor_Call('ReserveDir', DirectoryIndex)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: 'INTEGER : DirectoryIndex
-
+    code: |-
+      INTEGER : DirectoryIndex
       ...
-
       ON ROUTINEERROR DO
-
       &nbsp;&nbsp;&nbsp;&nbsp;IF ErrCode > 0 THEN ...
-
       ENDON
-
-      Monitor_Call(''ReserveDir'', DirectoryIndex)'
-    notes: ''
+      Monitor_Call('ReserveDir', DirectoryIndex)
   assembly_500:
     available: true
-    code: '| DirectoryIndex : W BLOCK 1 |
-
+    code: |-
+      | DirectoryIndex : W BLOCK 1 |
       |----------------------------|
-
       | ErrCode : W BLOCK 1        |
-
       | ReserveDir : EQU 3789 + 246B  |
-
       | ...                        |
-
       | CALLG ReserveDir, 1, DirectoryIndex |
-
       | IF K GO ERROR              |
-
       | ...                        |
-
       | ERROR : W1 =: ErrCode      |
 
-
-      %ErrorCode in W1 register.'
+      %ErrorCode in W1 register.
     octal_definition: 37B9 + 246B
-    notes: ''
   mac:
     available: true
-    code: 'LDT DIRIX %Directory index.
-
+    code: |-
+      LDT DIRIX %Directory index.
       MON 246 %Monitor call ReserveDir.
-
       JMP ERROR %Error return from monitor call.
-
       ... %Normal return.
-
       ERROR, ... %Error number in register A.
-
       ...
-
       DIRIX, ...
 
 
-
-      ND-100 and ND-500 | User RT and user SYSTEM | All programs'
+      ND-100 and ND-500 | User RT and user SYSTEM | All programs
     mon_number: 246
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 417
@@ -155,4 +102,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

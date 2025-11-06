@@ -4,170 +4,102 @@
 
 octal: 240B
 name: AppendSpooling
-short_names: []
+short_names:
+- APSPE
 description: ''
-notes: []
 see_also:
 - CloseSpoolingFile
 - '@APPEND-SPOOLING-FILE'
-references: []
 parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FileName, PrinterName : PACKED ARRAY [0..63] OF CHAR;
-
       NoOfCopies : INTEGER2;
-
       UserText : PACKED ARRAY [0..127] OF CHAR;
-
       ...
-
       AppendSpooling(FileName, PrinterName, NoOfCopies, UserText);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 NoOfCopies COMP.
-
       01 FileName PIC X(64).
-
       01 PrinterName PIC X(64).
-
       01 UserText PIC X(128).
-
       01 ErrCode COMP.
-
       ...
-
       >>> Comment: If UserText is present, add 32768 to NumberOfCopies
-
       ADD 32768 TO NoOfCopies.
-
       MONITOR-CALL "AppendSpooling" USING FileName, PrinterName, NoOfCopies, UserText.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER NoOfCopies
-
       CHARACTER FileName*64, PrinterName*64, UserText*128
-
       ...
-
       C If UserText is present, add 100000B to NoOfCopies
-
       NoOfCopies=NoOfCopies+100000B
-
-      CALL Monitor_Call(''AppendSpooling'', FileName(1:64), PrinterName(1:64),
-
+      CALL Monitor_Call('AppendSpooling', FileName(1:64), PrinterName(1:64),
       & NoOfCopies, UserText(1:128))
-
       C IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : NoOfCopies\nBYTES : FileName(0:63), PrinterName(0:63), UserText(0:127)\n\
-      ...\n% If UserText is present, set bit 15 in NoOfCopies to 1\nTRUE =: Bit(NoOfCopies,15)\n\
-      ON ROUTINEERROR DO\n    IF ErrCode >< 0 THEN ...\nENDON\nMonitor_Call('AppendSpooling',\
-      \ FileName, PrinterName, NoOfCopies, UserText)\n```"
-    notes: ''
+    code: |-
+      INTEGER : NoOfCopies
+      BYTES : FileName(0:63), PrinterName(0:63), UserText(0:127)
+      ...
+      % If UserText is present, set bit 15 in NoOfCopies to 1
+      TRUE =: Bit(NoOfCopies,15)
+      ON ROUTINEERROR DO
+          IF ErrCode >< 0 THEN ...
+      ENDON
+      Monitor_Call('AppendSpooling', FileName, PrinterName, NoOfCopies, UserText)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       NoOfCopies : W BLOCK 1
-
-      FileName : STRINGDATA ''EXAMPLE:SYMB''...
-
-      PrinterName : STRINGDATA ''LINE-PRINTER''...
-
-      UserText : STRINGDATA ''File queued''...
-
+      FileName : STRINGDATA 'EXAMPLE:SYMB'...
+      PrinterName : STRINGDATA 'LINE-PRINTER'...
+      UserText : STRINGDATA 'File queued'...
       ErrCode : W BLOCK 1
-
       AppendSpooling : EQU 3789 + 240B
-
       ...
-
       CALLG AppendSpooling, 4, FileName, PrinterName, NoOfCopies, UserText
-
       IF K GO ERROR
-
       ...
-
       ERROR : W1 =: ErrCode  %ErrorCode in W1 register.
-
-      ```'
     octal_definition: 37B9 + 240B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDX    (FILE     %Memory address of file name.
-
       LDT    NOCOP   %Number of copies to be printed in bit 0:14.
-
       LDA    (TEXT    %Memory address of message to the error device.
-
       COPY   SA DO
-
       LDA    (DEV     %Memory address of name of spooling device.
-
       MON    240      %Monitor call AppendSpooling.
-
       JMP    ERROR    %Error return from monitor call.
-
       ...            %Normal return.
-
       ERROR, ...      %Error number in register A.
-
       ...
-
-      FILE, ''EXAMPLE:SYMB''   %Send EXAMPLE:SYMB to a printer.
-
-      DEV, ''LINE-PRINTER''    %Print file on the device LINE-PRINTER.
-
+      FILE, 'EXAMPLE:SYMB'   %Send EXAMPLE:SYMB to a printer.
+      DEV, 'LINE-PRINTER'    %Print file on the device LINE-PRINTER.
       NOCOP, ...             %Bit 15 set to 1 means print message.
-
-      TEXT, ''GUMMED LABELS''  %Message to be send to error device.
-
-      ```
+      TEXT, 'GUMMED LABELS'  %Message to be send to error device.
 
 
-      `ND-100 and ND-500` | `All users` | `All programs`'
+      `ND-100 and ND-500` | `All users` | `All programs`
     mon_number: 240
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 79
@@ -179,4 +111,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

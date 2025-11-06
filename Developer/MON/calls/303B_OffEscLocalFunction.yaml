@@ -4,10 +4,11 @@
 
 octal: 303B
 name: OffEscLocalFunction
-short_names: []
-description: Delays the escape and local functions for your terminal. Then the ESCAPE
-  key or LOCAL key does not terminate a program or remote connection immediately.
-  Their functions are delayed until OnEscLocalFunction is executed.
+short_names:
+- ELOFF
+description: Delays the escape and local functions for your terminal. Then the ESCAPE key or LOCAL key
+  does not terminate a program or remote connection immediately. Their functions are delayed until OnEscLocalFunction
+  is executed.
 notes:
 - Enable the escape and local functions again by OnEscLocalFunction.
 - If both the ESCAPE and the LOCAL keys are pressed, local is executed on OnEscLocalFunction.
@@ -17,7 +18,6 @@ see_also:
 - OnEscLocalFunction
 - DisableEscape
 - and DisableLocal
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -26,33 +26,29 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'OffEscLocalFunction;
-
-      IF ErrCode <> 0 THEN ...'
-    notes: ''
+    code: |-
+      OffEscLocalFunction;
+      IF ErrCode <> 0 THEN ...
   cobol:
     available: true
-    code: '01 ErrCode COMP.
-
+    code: |-
+      01 ErrCode COMP.
       ...
-
       MONITOR-CALL "OffEscLocalFunction".
-
       CALL "CbError" USING ErrCode.
-
-      IF ErrCode NOT = 0 GO ...'
-    notes: ''
+      IF ErrCode NOT = 0 GO ...
   fortran:
     available: true
-    code: 'Monitor_Call(''OffEscLocalFunction'')
-
-      IF (ErrCode .NE. 0) THEN ...'
-    notes: ''
+    code: |-
+      Monitor_Call('OffEscLocalFunction')
+      IF (ErrCode .NE. 0) THEN ...
   planc:
     available: true
-    code: "```\nON ROUTINEERROR DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('OffEscLocalFunction')\n\
-      ```"
-    notes: ''
+    code: |-
+      ON ROUTINEERROR DO
+          IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('OffEscLocalFunction')
   assembly_500:
     available: false
     code: ''
@@ -60,34 +56,23 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: '|     |     |     |
-
+    code: |-
+      |     |     |     |
       | --- | --- | --- |
-
       | MON | 303 | %Monitor call OffEscLocalFunction. |
-
       | JMP | ERROR | %Error return from monitor call. |
-
       | ... | ... | %Normal return. |
-
       | ERROR, | ... | %Error number in register A. |
 
 
-
-      ND-100 | All users | Background programs'
+      ND-100 | All users | Background programs
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 363
@@ -99,4 +84,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

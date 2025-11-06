@@ -4,15 +4,14 @@
 
 octal: 55B
 name: GetSpoolingEntry
-short_names: []
-description: Gets the next spooling queue entry, that is, the next file to be printed.
-  The entry is removed from the spooling queue.
-notes: []
+short_names:
+- RSQPE
+description: Gets the next spooling queue entry, that is, the next file to be printed. The entry is removed
+  from the spooling queue.
 see_also:
 - AppendSpooling
 - CloseSpoolingFile
 - and @LIST-SPOOLING-QUEUE
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -29,8 +28,7 @@ parameters:
 - name: Param4
   type: UNKNOWN
   io: I
-  description: 2:3 If ASCII apostrophe, the file is printed independently of spooling
-    conditions.
+  description: 2:3 If ASCII apostrophe, the file is printed independently of spooling conditions.
 - name: Param5
   type: UNKNOWN
   io: I
@@ -46,118 +44,78 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       SpoolDevNumber : INTEGER2;
-
       Buffer : ARRAY [0..8] OF RECORD...END;
-
       ...
-
       GetSpoolingEntry(SpoolDevNumber, Buffer);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 SpoolDevNumber COMP.\n01 Buffer.\n   02 array COMP OCCURS 136 TIMES.\n\
-      01 ErrCode COMP.\n...\nMONITOR-CALL \"GetSpoolingEntry\" USING SpoolDevNumber,\
-      \ Buffer.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
-    notes: ''
+    code: |-
+      01 SpoolDevNumber COMP.
+      01 Buffer.
+         02 array COMP OCCURS 136 TIMES.
+      01 ErrCode COMP.
+      ...
+      MONITOR-CALL "GetSpoolingEntry" USING SpoolDevNumber, Buffer.
+      CALL "CbError" USING ErrCode.
+      IF ErrCode NOT = 0 GO ...
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER SpoolDevNumber
-
       INTEGER Buffer(136)
-
       ...
-
-      Monitor Call(''GetSpoolingEntry'', SpoolDevNumber, Buffer(1))
-
+      Monitor Call('GetSpoolingEntry', SpoolDevNumber, Buffer(1))
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : SpoolDevNumber\nBYTES : Buffer(0:271)\n...\nON ROUTINEERROR\
-      \ DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('GetSpoolingEntry', SpoolDevNumber,\
-      \ Buffer(0))\n```"
-    notes: ''
+    code: |-
+      INTEGER : SpoolDevNumber
+      BYTES : Buffer(0:271)
+      ...
+      ON ROUTINEERROR DO
+          IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('GetSpoolingEntry', SpoolDevNumber, Buffer(0))
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       SpoolDevNumber : W BLOCK 1
-
       Buffer : BY BLOCK 1000B
-
       ErrCode : W BLOCK 1
-
       GetSpoolingEntry : EQU 37B9 + 55B
-
       ...
-
       CALLG GetSpoolingEntry, 2, SpoolDevNumber, Buffer
-
       IF K GO ERROR
-
       ...
-
       ERROR : W1 =: ErrCode  %ErrorCode in W1 register.
-
-      ```'
     octal_definition: 37B9 + 55B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDX  (BUFF       %Address of buffer for receiving queue entry.
-
       LDT  SPOOL       %Logical number of spooling device.
-
       MON  55          %Monitor call GetSpoolingEntry.
-
       JMP  ERROR       %Error return from monitor call.
-
       ...              %Normal return.
-
       ERROR, ...       %Error number in register A.
-
       ...
-
       SPOOL, 5         %Obtain spooling entry of line printer no. 1.
-
       BUFF, 0
-
       *+128/           %Make a buffer of 256 bytes.
-
-      ```
 
 
       | ND-100 and ND-500   | All users | All programs |
-
-      |---------------------|-----------|--------------|'
+      |---------------------|-----------|--------------|
     mon_number: 55
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 281
@@ -169,4 +127,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

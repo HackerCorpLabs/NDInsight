@@ -4,18 +4,18 @@
 
 octal: 6B
 name: WRITESCRATCHFILE
-short_names: []
-description: Writes randomly to the scratch file. One block is transferred. There
-  is one scratch file connected to each terminal. It is opened for random read and
-  write access when you log in. Its file number is 100B.
+short_names:
+- WDISK
+description: Writes randomly to the scratch file. One block is transferred. There is one scratch file
+  connected to each terminal. It is opened for random read and write access when you log in. Its file
+  number is 100B.
 notes:
-- The standard block size is 512 bytes. You can change this with SetBlockSize. The
-  first block is number 0.
+- The standard block size is 512 bytes. You can change this with SetBlockSize. The first block is number
+  0.
 see_also:
 - WriteBlock
 - WriteToFile
 - and ReadScratchFile
-references: []
 parameters:
 - name: ➔
   type: Block number to start the writing from.
@@ -32,48 +32,41 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       BlockNumber : INTEGER2;
-
       Buffer : ARRAY [0..15] OF RECORD...END;
-
       ...
-
       WriteScratchFile(BlockNumber, Buffer);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 BlockNumber COMP.\n01 Buffer.\n   02 array COMP OCCURS 256 TIMES.\n\
-      01 ErrCode COMP.\n...\nMONITOR-CALL \"WriteScratchFile\" USING BlockNumber,\
-      \ Buffer.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
-    notes: ''
+    code: |-
+      01 BlockNumber COMP.
+      01 Buffer.
+         02 array COMP OCCURS 256 TIMES.
+      01 ErrCode COMP.
+      ...
+      MONITOR-CALL "WriteScratchFile" USING BlockNumber, Buffer.
+      CALL "CbError" USING ErrCode.
+      IF ErrCode NOT = 0 GO ...
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER BlockNumber
-
       INTEGER Buffer(256)
-
       ...
-
-      Monitor Call(''WriteScratchFile'', BlockNumber, Buffer(1))
-
+      Monitor Call('WriteScratchFile', BlockNumber, Buffer(1))
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : BlockNumber\nBYTES : Buffer(0:511)\n...\nON ROUTINEERROR\
-      \ DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('WriteScratchFile', BlockNumber,\
-      \ Buffer(0))\n```"
-    notes: ''
+    code: |-
+      INTEGER : BlockNumber
+      BYTES : Buffer(0:511)
+      ...
+      ON ROUTINEERROR DO
+          IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('WriteScratchFile', BlockNumber, Buffer(0))
   assembly_500:
     available: false
     code: ''
@@ -81,47 +74,27 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT  BLKNO   %Block number to be written into.
-
       LDX  (BUFF   %Address of buffer containing data to be written.
-
       MON  6       %Monitor call WriteScratchFile.
-
       JMP  ERROR   %Error return from monitor call.
-
       ...          %Normal return.
-
       ERROR, ...   %Error number in register A.
-
       ...
-
       BLKNO, ...
-
       BUFF, 0
-
       *+400/       %Make a buffer of 256 words, 1 block.
 
-      ```
 
-
-      | ND-100 | All users | Background programs |'
+      | ND-100 | All users | Background programs |
     mon_number: 6
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: false
-  users:
-  - All users
-  programs:
-  - Background programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: false
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 567
@@ -133,4 +106,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

@@ -4,20 +4,18 @@
 
 octal: 152B
 name: GetRTName
-short_names: []
-description: 'Gets the name of an RT program. You specify the RT description address.
+short_names:
+- GRTNA
+description: |-
+  Gets the name of an RT program. You specify the RT description address.
 
-
-  - This monitor call is only available to background programs in SINTRAN III VSX,
-  version K.'
-notes: []
+  - This monitor call is only available to background programs in SINTRAN III VSX, version K.
 see_also:
 - GetOwnRTAddress
 - GetRTAddress
 - GetRTDescr
 - '@GET-RT-NAME'
 - and @LIST-RT-Programs
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -26,144 +24,80 @@ parameters:
 - name: Param2
   type: UNKNOWN
   io: I
-  description: Name of the RT program. The name is returned with a terminal apostrophe
-    if less than 7 characters long (applies to high-level languages). When using a
-    high-level language together with NPL or MAC, it is advisable to use an RT-program
-    name of not more than 5 characters. (If no name is found, D-reg.=0.)
+  description: Name of the RT program. The name is returned with a terminal apostrophe if less than 7
+    characters long (applies to high-level languages). When using a high-level language together with
+    NPL or MAC, it is advisable to use an RT-program name of not more than 5 characters. (If no name is
+    found, D-reg.=0.)
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       RTProgram : INTEGER2;
-
       RTProgramName : PACKED ARRAY [0..6] OF CHAR;
-
       ...
-
       GetRTName(RTProgram, RTProgramName);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 RTProgram COMP.
-
       01 RTProgramName PIC X(7).
-
       ...
-
       MONITOR-CALL "GetRTName" USING RTProgram, RTProgramName.
-
-      IF RTProgramName = "''"
-
+      IF RTProgramName = "'"
       ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER RTProgram
-
       CHARACTER RTProgramName*6
-
       ...
-
-      Monitor_Call1(''GetRTName'', RTProgram, RTProgramName(1:7))
-
-      IF RTProgramName(1) = ''
-
+      Monitor_Call1('GetRTName', RTProgram, RTProgramName(1:7))
+      IF RTProgramName(1) = '
       ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : RTProgram
-
       BYTES : RTProgramName(0:6)
-
       ...
-
-      Monitor_Call(''GetRTName'', RTProgram, RTProgramName)
-
+      Monitor_Call('GetRTName', RTProgram, RTProgramName)
       IF RTProgramName(0)=#1 THEN
-
       ...
-
-      ```'
-    notes: ''
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       RTProgram : W BLOCK 1
-
       RTProgramName : BY BLOCK 7
-
       GetRTName : EQU 37B9 + 152B
-
       ...
-
       CALLG GetRTName, 2, RTProgram, RTProgramName
-
-      ```'
     octal_definition: 37B9 + 152B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA (PAR  %Load register A with address of parameter list.
-
       MON 152   %Monitor call GetRTName.
-
       SKP IF DD UEQ 0
-
       JMP ERR
-
       STT RTNAM   %Store 1st word of packed RT name.
-
       STD RTNAM+1 %Store 2nd two words of packed RT name.
-
       ...
-
       ERR, ...
-
       PAR, RTPRO %Address of RT description.
-
       ...
-
       RTPRO, ...
-
       RTNAM, 0
-
       *+4/      %Make a string of 7 bytes.
 
-      ```
 
-
-      | ND-100 and ND-500 | All programs |'
+      | ND-100 and ND-500 | All programs |
     mon_number: 152
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All programs
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 273
@@ -175,4 +109,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

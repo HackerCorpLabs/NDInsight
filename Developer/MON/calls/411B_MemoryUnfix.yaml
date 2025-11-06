@@ -4,96 +4,63 @@
 
 octal: 411B
 name: MemoryUnfix
-short_names: []
-description: Releases a fixed segment in your domain from physical memory. A fixed
-  segment has all its pages fixed in physical memory. After MemoryUnfix the pages
-  may be swapped between the disk and physical memory.
+short_names:
+- UNFIXM
+description: Releases a fixed segment in your domain from physical memory. A fixed segment has all its
+  pages fixed in physical memory. After MemoryUnfix the pages may be swapped between the disk and physical
+  memory.
 notes:
 - Address. Only the segment number in the address is significant.
 see_also:
 - FixInMemory
-references: []
 parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       Address : LONGINT;
-
       ...
-
       MemoryUnfix(Address);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 Address COMP.
-
       ...
-
       MONITOR-CALL "MemoryUnfix" USING Address.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER Address
-
       ...
-
-      Monitor_Call(''MemoryUnfix'', Address)
-
-      ```'
-    notes: ''
+      Monitor_Call('MemoryUnfix', Address)
   planc:
     available: true
-    code: 'INTEGER : Address
-
+    code: |-
+      INTEGER : Address
       ...
-
-      Monitor_Call(''MemoryUnFix'', Address)'
-    notes: ''
+      Monitor_Call('MemoryUnFix', Address)
   assembly_500:
     available: true
-    code: 'Address : W BLOCK 1
-
+    code: |-
+      Address : W BLOCK 1
       MemoryUnfix : EQU 37B9 + 411B
-
       ...
-
       CALLG MemoryUnfix, 1, Address
-
       IF K GO error,
-
       ...
-
-      Error, ...'
+      Error, ...
     octal_definition: 37B9 + 411B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 347
@@ -105,4 +72,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

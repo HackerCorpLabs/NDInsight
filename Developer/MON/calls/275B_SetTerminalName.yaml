@@ -4,18 +4,15 @@
 
 octal: 275B
 name: SetTerminalName
-short_names: []
-description: 'Defines the file name to be used for terminals. This is normally `TERMINAL:`.
-  Background users identify their own terminal with this file name.
+short_names:
+- STRFI
+description: |-
+  Defines the file name to be used for terminals. This is normally `TERMINAL:`. Background users identify their own terminal with this file name.
 
-
-  - You may use this monitor call more than once. Each file name will identify the
-  terminals.'
-notes: []
+  - You may use this monitor call more than once. Each file name will identify the terminals.
 see_also:
 - SetPeripheralName
 - '@SET-TERMINAL-FILE'
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -32,82 +29,64 @@ examples:
     notes: Not available
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 TerminalName  PIC X(64).
-
       01 ErrCode       COMP.
-
       ...
-
       MONITOR-CALL "SetTerminalName" USING TerminalName.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       CHARACTER TerminalName*64
-
       ...
-
-      Monitor_Call(''SetTerminalName'', TerminalName(1:64))
-
+      Monitor_Call('SetTerminalName', TerminalName(1:64))
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "BYTES : TerminalName(0:63)\n\n```assemble\nON ROUTINEERROR DO\n  IF ErrCode\
-      \ <> 0 THEN ...\nENDON\nMonitor_Call('SetTerminalName', TerminalName)\n```"
-    notes: ''
+    code: |-
+      BYTES : TerminalName(0:63)
+
+      assemble
+      ON ROUTINEERROR DO
+        IF ErrCode <> 0 THEN ...
+      ENDON
+      Monitor_Call('SetTerminalName', TerminalName)
   assembly_500:
     available: true
-    code: "```assemble\nFileName : STRINGDATA 'TERMINAL'...\nErrCode : W BLOCK 1\n\
-      ...\n\nSetTerminalName : EQU 37B9 + 275B\n  CALLG SetTerminalName, 1, FileName\n\
-      \  IF K GO ERROR\n...\n\nERROR : W1 =. ErrCode              %ErrorCode in W1\
-      \ register.\n```"
-    octal_definition: 37B9 + 275B
-    notes: ''
-  mac:
-    available: true
-    code: '```assemble
-
-      LDX   (NAME                        %Address of string containing terminal name.
-
-      MON   275                          %Monitor call SetTerminalName.
-
+    code: |-
+      assemble
+      FileName : STRINGDATA 'TERMINAL'...
+      ErrCode : W BLOCK 1
       ...
 
-      NAME, ''TERMINAL''                   %Set terminal name to TERMINAL.
+      SetTerminalName : EQU 37B9 + 275B
+        CALLG SetTerminalName, 1, FileName
+        IF K GO ERROR
+      ...
 
-      ```
+      ERROR : W1 =. ErrCode              %ErrorCode in W1 register.
+    octal_definition: 37B9 + 275B
+  mac:
+    available: true
+    code: |-
+      assemble
+      LDX   (NAME                        %Address of string containing terminal name.
+      MON   275                          %Monitor call SetTerminalName.
+      ...
+      NAME, 'TERMINAL'                   %Set terminal name to TERMINAL.
 
 
       | ND-100 and ND-500 | User SYSTEM | All programs |
-
-      |-------------------|-------------|--------------|'
+      |-------------------|-------------|--------------|
     mon_number: 275
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User SYSTEM
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 475
@@ -119,4 +98,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

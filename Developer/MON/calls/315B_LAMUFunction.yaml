@@ -4,18 +4,17 @@
 
 octal: 315B
 name: LAMUFunction
-short_names: []
-description: Performs various functions on the LAMU system. A LAMU is a logically
-  addressed memory unit. The LAMU system is an extension to the ND-100 segment structure.
-  Programs may address more space than provided by the 3 available segments.
+short_names:
+- MLAMU
+description: Performs various functions on the LAMU system. A LAMU is a logically addressed memory unit.
+  The LAMU system is an extension to the ND-100 segment structure. Programs may address more space than
+  provided by the 3 available segments.
 notes:
 - Several CPUs may share the same LAMU address space.
-- The monitor call is implemented in Pascal as 10 separate routines, each corresponding
-  to one function code. In all other languages, it is presently implemented as one
-  routine, to which you pass the function code as the first parameter. This may change
-  in the future, i.e. separate routines may be added.
+- The monitor call is implemented in Pascal as 10 separate routines, each corresponding to one function
+  code. In all other languages, it is presently implemented as one routine, to which you pass the function
+  code as the first parameter. This may change in the future, i.e. separate routines may be added.
 see_also: []
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -36,8 +35,7 @@ parameters:
 - name: Param5
   type: UNKNOWN
   io: I
-  description: 4 means disconnect a particular LAMU or all LAMUs from the calling
-    program or another program.
+  description: 4 means disconnect a particular LAMU or all LAMUs from the calling program or another program.
 - name: Param6
   type: UNKNOWN
   io: I
@@ -53,8 +51,7 @@ parameters:
 - name: Param9
   type: UNKNOWN
   io: I
-  description: 10 means create temporary system LAMU and connect it to the calling
-    program.
+  description: 10 means create temporary system LAMU and connect it to the calling program.
 - name: Param10
   type: UNKNOWN
   io: I
@@ -74,60 +71,37 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       Func, Para2, Para3, Para4 : INTEGER2;
-
       ...
-
       LAMUfunction(Func, Para2, Para3, Para4);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 Func COMP.
-
       01 Para2 COMP.
-
       01 Para3 COMP.
-
       01 Para4 COMP.
-
       ...
-
       MONITOR-CALL "LAMUfunction" USING Func, Para2, Para3, Para4.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER Func, Para2, Para3, Para4
-
       ...
-
-      Monitor_Call(''LAMUfunction'', Func, Para2, Para3, Para4)
-
+      Monitor_Call('LAMUfunction', Func, Para2, Para3, Para4)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER . Func. Para2, Para3, Para4\nON ROUTINEERROR DO\n  [IF ErrCode\
-      \ >< 0 THEN ...\nENDON\nMonitor_Call('LAMUfunction', Func. Para2, Para3, Para4\n\
-      ```"
-    notes: ''
+    code: |-
+      INTEGER . Func. Para2, Para3, Para4
+      ON ROUTINEERROR DO
+        [IF ErrCode >< 0 THEN ...
+      ENDON
+      Monitor_Call('LAMUfunction', Func. Para2, Para3, Para4
   assembly_500:
     available: false
     code: ''
@@ -135,27 +109,32 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: "```\nLDA   {PAR      % Load register A with address of parameter list.\n\
-      MON   315       % Monitor call LAMUfunction.\nJMP   ERROR     % Error return\
-      \ from monitor call.\n               % Normal return.\nERROR           % Error\
-      \ number in register A.\n\nPAR, FUNC       % Function.\nPARA2\nPARA3\nPARA4\n\
-      \nFUNC,\nPARA2,\nPARA3,\nPARA4,\n```\n\n| ND-100 | All users | All programs\
-      \ |"
+    code: |-
+      LDA   {PAR      % Load register A with address of parameter list.
+      MON   315       % Monitor call LAMUfunction.
+      JMP   ERROR     % Error return from monitor call.
+                     % Normal return.
+      ERROR           % Error number in register A.
+
+      PAR, FUNC       % Function.
+      PARA2
+      PARA3
+      PARA4
+
+      FUNC,
+      PARA2,
+      PARA3,
+      PARA4,
+
+
+      | ND-100 | All users | All programs |
     mon_number: 315
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: false
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: false
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 331
@@ -167,4 +146,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

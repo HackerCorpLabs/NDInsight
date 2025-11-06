@@ -6,8 +6,7 @@ octal: 326B
 name: LogInStart
 short_names:
 - MLOGI
-description: 'Allowed in RT programs (ring ≥ 1), and in all programs run by users
-  RT and SYSTEM.
+description: 'Allowed in RT programs (ring ≥ 1), and in all programs run by users RT and SYSTEM.
 
 
   - Parameter 1: Function code.
@@ -32,7 +31,7 @@ compatibility:
   nd500: true
   user_programs: true
   rt_programs: true
-  system_programs: true
+  system_programs: false
 source:
   document: ND-860228.2 EN
   page_references: []

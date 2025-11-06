@@ -4,11 +4,10 @@
 
 octal: 324B
 name: OctobusFunction
-short_names: []
+short_names:
+- OCTIO
 description: Performs various functions on an old Octobus (earlier than version 3).
-notes: []
 see_also: []
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -77,82 +76,50 @@ examples:
     notes: Not available
   assembly_500:
     available: true
-    code: '| Parameter   | Type     | Block | Description                                     |
-
+    code: |-
+      | Parameter   | Type     | Block | Description                                     |
       |-------------|----------|-------|-------------------------------------------------|
-
       | Func        | W        | BLOCK 1 |                                                 |
-
       | DevNo       | W        | BLOCK 1 |                                                 |
-
       | Par3        | W        | BLOCK 1 | May be destination station or return value.     |
-
       | Status      | W        | BLOCK 1 |                                                 |
-
       | OctobusFunction | EQU  | 37B9 + 324B |                                           |
 
-
       CALLG OctobusFunction, 3, Func, DevNo, Par3
-
       IF K GO Error
-
       W1 =: Status
-
       ...
-
-      Error, ...'
+      Error, ...
     octal_definition: ''
-    notes: ''
   mac:
     available: true
-    code: 'LDA (PAR
-
+    code: |-
+      LDA (PAR
       %Load register A with address of parameter list.
-
       MON 324
-
       %Monitor call OctobusFunction.
 
-
       PAR, FUNC
-
       LDN
-
       STAT
 
-
       FUNC, O
-
       %Function.
-
       LDN, ...
-
       %Logical device number.
-
       STAT, ...
-
       %Status.
 
 
-
       | ND-100 and ND-500 | All users    | All programs |
-
-      |-------------------|--------------|--------------|'
+      |-------------------|--------------|--------------|
     mon_number: 324
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 361
@@ -164,4 +131,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

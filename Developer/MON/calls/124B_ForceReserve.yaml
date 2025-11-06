@@ -4,14 +4,13 @@
 
 octal: 124B
 name: ForceReserve
-short_names: []
+short_names:
+- PRSRV
 description: ''
-notes: []
 see_also:
 - ForceRelease
 - ReserveResource
 - and @PRSRV
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -20,132 +19,80 @@ parameters:
 - name: Param2
   type: UNKNOWN
   io: I
-  description: Input or output flag. Use 0 for the input part and 1 for the output
-    part.
+  description: Input or output flag. Use 0 for the input part and 1 for the output part.
 - name: Param3
   type: UNKNOWN
   io: I
-  description: RT description address of the RT program to reserve the device. Use
-    0 for your own program.
+  description: RT description address of the RT program to reserve the device. Use 0 for your own program.
 - name: Param4
   type: UNKNOWN
   io: I
-  description: Return status. 0 means OK. A negative value is returned if the device
-    already was reserved. No value is returned from the ND-500.
+  description: Return status. 0 means OK. A negative value is returned if the device already was reserved.
+    No value is returned from the ND-500.
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNo, IOflag, RTProgram, Stat : INTEGER2;
-
       ...
-
 
       PrivReserve(DeviceNo, IOflag, RTProgram, Stat); [Note routine name.]
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DeviceNo COMP.
-
       01 IOFlag COMP.
-
       01 RTProgram COMP.
-
       01 Stat COMP.
-
       ...
-
       MONITOR-CALL "ForceReserve" USING DeviceNo, IOFlag, RTProgram, Stat.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DeviceNo, IOFlag, RTProgram, Stat
-
       ...
-
-      Monitor_Call(''ForceReserve'', DeviceNo, IOFlag, RTProgram, Stat)
-
-      ```'
-    notes: ''
+      Monitor_Call('ForceReserve', DeviceNo, IOFlag, RTProgram, Stat)
   planc:
     available: true
-    code: 'INTEGER : DeviceNo, IOFlag, RTProgram, Stat
-
+    code: |-
+      INTEGER : DeviceNo, IOFlag, RTProgram, Stat
       ...
-
-      Monitor_Call(''ForceReserve'', DeviceNo, IOFlag, RTProgram, Stat)'
-    notes: ''
+      Monitor_Call('ForceReserve', DeviceNo, IOFlag, RTProgram, Stat)
   assembly_500:
     available: true
-    code: 'DeviceNo : W BLOCK 1
-
+    code: |-
+      DeviceNo : W BLOCK 1
       IOFlag : W BLOCK 1
-
       RTProgram : W BLOCK 1
-
       ForceReserve : EQU 3789 + 124B
-
       ...
-
-      CALLG ForceReserve, 3, DeviceNo, IOFlag, RTProgram'
+      CALLG ForceReserve, 3, DeviceNo, IOFlag, RTProgram
     octal_definition: 37B9 + 124B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA (PAR  %Load register A with address of parameter list.
-
       MON 124  %Monitor call ForceReserve.
-
       STA STAT %Store status returned.
-
       ...
-
       STAT, 0
-
       PAR, DEVNO  %Logical device number.
-
       IOF  %Input or Output flag.
-
       RTPRO %Address of RT description.
-
       ...
-
       DEVNO, ...
-
       IOF, ...
-
       RTPRO, ...
 
-      ```
 
-
-      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'
+      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
     mon_number: 124
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 211
@@ -157,4 +104,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

@@ -4,16 +4,14 @@
 
 octal: 245B
 name: GetNameEntry
-short_names: []
-description: 'Gets information about devices, e.g. disks and floppy disks. The monitor
-  call returns the name entry of a device. You specify the name index.
+short_names:
+- GNAEN
+description: |-
+  Gets information about devices, e.g. disks and floppy disks. The monitor call returns the name entry of a device. You specify the name index.
 
-
-  - GetDirNameIndex provides the name index.'
-notes: []
+  - GetDirNameIndex provides the name index.
 see_also:
 - GetDirEntry
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -92,8 +90,8 @@ parameters:
   io: I
   description: ''
 - name: Bit 2:0
-  type: Maximum number of subunits on this device (000<sub>2</sub> means 8 subunits,
-    001<sub>2</sub>-111<sub>2</sub> means maximum number of subunits).
+  type: Maximum number of subunits on this device (000<sub>2</sub> means 8 subunits, 001<sub>2</sub>-111<sub>2</sub>
+    means maximum number of subunits).
   io: I
   description: ''
 - name: '24:25'
@@ -111,96 +109,75 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       NameIndex : INTEGER2;
-
       NameTableEntry : RECORD...END;
-
       ...
-
       GetNameEntry(NameIndex, NameTableEntry);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 NameIndex COMP.\n01 NameTableEntry.\n    02 array COMP OCCURS 14\
-      \ TIMES.\n01 ErrCode COMP.\n...\nMONITOR-CALL \"GetNameEntry\" USING NameIndex,\
-      \ NameTableEntry.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n\
-      ```"
-    notes: ''
+    code: |-
+      01 NameIndex COMP.
+      01 NameTableEntry.
+          02 array COMP OCCURS 14 TIMES.
+      01 ErrCode COMP.
+      ...
+      MONITOR-CALL "GetNameEntry" USING NameIndex, NameTableEntry.
+      CALL "CbError" USING ErrCode.
+      IF ErrCode NOT = 0 GO ...
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER NameIndex
-
       INTEGER NameTableEntry(14)
-
       ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : NameIndex\nBYTES : NameTableEntry(0:27)\n...\nON ROUTINEERROR\
-      \ DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('GetNameEntry', NameIndex,\
-      \ NameTableEntry(0))\n```"
-    notes: ''
+    code: |-
+      INTEGER : NameIndex
+      BYTES : NameTableEntry(0:27)
+      ...
+      ON ROUTINEERROR DO
+        IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('GetNameEntry', NameIndex, NameTableEntry(0))
   assembly_500:
     available: true
-    code: "```\nNameIndex : W BLOCK 1\nNameTableEntry : BY BLOCK 34B\nErrCode : W\
-      \ BLOCK 1\nGetNameEntry : EQU 37B9 + 245B\n...\nCALLG GetNameEntry, 2, NameIndex,\
-      \ NameTableEntry\n  IF K GO ERROR\n...\nERROR : W1 =: ErrCode  %ErrorCode in\
-      \ W1 register.\n```"
+    code: |-
+      NameIndex : W BLOCK 1
+      NameTableEntry : BY BLOCK 34B
+      ErrCode : W BLOCK 1
+      GetNameEntry : EQU 37B9 + 245B
+      ...
+      CALLG GetNameEntry, 2, NameIndex, NameTableEntry
+        IF K GO ERROR
+      ...
+      ERROR : W1 =: ErrCode  %ErrorCode in W1 register.
     octal_definition: 37B9 + 245B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT NAMIX          %Name index.
-
       LDX (BUFF          %Address of buffer to receive name table entry.
-
       MON 245            %Monitor call GetNameEntry.
-
       JMP ERROR          %Error return from monitor call.
-
       ...                %Normal return.
-
       ERROR, ...         %Error number in register A.
-
       ...
-
       NAMIX, ...
-
       BUFF, 0
-
       +*16/              %Make a buffer of 14 words.
 
-      ```
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 245
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 257
@@ -212,4 +189,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

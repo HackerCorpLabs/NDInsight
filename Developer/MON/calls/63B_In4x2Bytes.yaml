@@ -4,9 +4,9 @@
 
 octal: 63B
 name: In4x2Bytes
-short_names: []
+short_names:
+- B41NW
 description: ''
-notes: []
 see_also:
 - In8Bytes
 - InUpTo8Bytes
@@ -15,7 +15,6 @@ see_also:
 - InputString
 - InByte
 - and Out8Bytes
-references: []
 parameters:
 - name: Logical device number.
   type: See appendix B.
@@ -36,131 +35,92 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber, NoOfBytes : INTEGER2;
-
       DataRead : PACKED ARRAY [0..7] OF CHAR;
-
       ...
-
       In4x2Bytes(DeviceNumber, NoOfBytes, DataRead);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DeviceNumber  COMP.
-
       01 NoOfBytes     COMP.
-
       01 DataRead      PIC X(8).
-
       01 ErrCode       COMP.
-
       ...
-
       MONITOR-CALL "In4x2Bytes" USING DeviceNumber, NoOfBytes, DataRead.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DeviceNumber, NoOfBytes
-
       CHARACTER DataRead*8
-
       ...
-
-      Monitor_Call(''In4x2Bytes'', DeviceNumber, NoOfBytes, DataRead(1:8))
-
+      Monitor_Call('In4x2Bytes', DeviceNumber, NoOfBytes, DataRead(1:8))
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DeviceNumber, NoOfBytes\nBYTES : DataRead(0:7)\n...\n\n\
-      ON ROUTINEERROR DO\n  IF ErrCode > 0 THEN ...\nENDON\n\nMonitor_Call(’In4x2Bytes’,\
-      \ DeviceNumber, NoOfBytes, DataRead)\n```"
-    notes: ''
+    code: |-
+      INTEGER : DeviceNumber, NoOfBytes
+      BYTES : DataRead(0:7)
+      ...
+
+      ON ROUTINEERROR DO
+        IF ErrCode > 0 THEN ...
+      ENDON
+
+      Monitor_Call(’In4x2Bytes’, DeviceNumber, NoOfBytes, DataRead)
   assembly_500:
     available: true
-    code: "```\nDeviceNumber : W BLOCK 1\nNoOfBytes : W BLOCK 1\nDataRead : STRING\
-      \ 8\nErrCode : W BLOCK 1\nIn4x2Bytes : EQU 37B9 + 63B\n...\n\nCALLG In4x2Bytes,\
-      \ 2, DeviceNumber, DataRead\n  IF K GO ERROR\n  W1 =: NoOfBytes\n...\n\nERROR\
-      \ : W1 =: ErrCode       % ErrorCode in W1 register.\n```"
+    code: |-
+      DeviceNumber : W BLOCK 1
+      NoOfBytes : W BLOCK 1
+      DataRead : STRING 8
+      ErrCode : W BLOCK 1
+      In4x2Bytes : EQU 37B9 + 63B
+      ...
+
+      CALLG In4x2Bytes, 2, DeviceNumber, DataRead
+        IF K GO ERROR
+        W1 =: NoOfBytes
+      ...
+
+      ERROR : W1 =: ErrCode       % ErrorCode in W1 register.
     octal_definition: 37B9 + 63B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT DEVNO            % Logical device number.
-
       MON 63               % Monitor call In4x2Bytes.
-
       JMP ERROR            % Error return from monitor call.
-
       STD BYTES            % Normal return, store first 4 bytes read.
-
       COPY SL DA
-
       STA BYTES+2          % Store next 2 bytes read.
-
       STX BYTES+3          % Store last 2 bytes read.
-
       STT COUNT            % Store number of bytes read.
-
       ...
-
 
       ERROR, ...           % Error number in register A.
-
       ...
 
-
       DEVNO, ...
-
       COUNT, 0
-
       BYTES, 0
-
+      0
+      0
       0
 
-      0
 
-      0
-
-      ```
-
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 63
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 309
@@ -172,4 +132,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

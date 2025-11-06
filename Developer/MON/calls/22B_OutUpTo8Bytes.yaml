@@ -4,19 +4,14 @@
 
 octal: 22B
 name: OutUpTo8Bytes
-short_names: []
-description: 'Writes up to 8 characters to a device, e.g. a terminal or an internal
-  device.
+short_names:
+- M8OUT
+description: |-
+  Writes up to 8 characters to a device, e.g. a terminal or an internal device.
 
-
-  - You can only use this monitor call for terminals, TADs, internal devices, and
-  synchronous modems.
-
-  - The writing terminates when a character with value 0 is found. The 0 byte is not
-  output.
-
-  - Appendix F contains an ASCII table.'
-notes: []
+  - You can only use this monitor call for terminals, TADs, internal devices, and synchronous modems.
+  - The writing terminates when a character with value 0 is found. The 0 byte is not output.
+  - Appendix F contains an ASCII table.
 see_also:
 - OutMessage
 - Out8Bytes
@@ -25,13 +20,12 @@ see_also:
 - OutNumber
 - OutByte
 - and InUpTo8Bytes
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
-  description: Logical device number. See appendix B. You can use 1 for your own terminal.
-    File numbers are illegal.
+  description: Logical device number. See appendix B. You can use 1 for your own terminal. File numbers
+    are illegal.
 - name: Param2
   type: UNKNOWN
   io: I
@@ -43,95 +37,79 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNo : INTEGER2;
-
       OutData : RECORD...END;
-
       ...
-
       OutUpTo8Bytes(DeviceNo, OutData);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DeviceNo COMP.
-
       01 OutData PIC X(8).
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "OutUpTo8Bytes" USING DeviceNo, OutData.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DeviceNo
-
       CHARACTER OutData*8
-
       ...
-
-      Monitor_Call(''OutUpTo8Bytes'', DeviceNo, OutData(1:8))
-
+      Monitor_Call('OutUpTo8Bytes', DeviceNo, OutData(1:8))
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "    INTEGER : DeviceNo\n    BYTES : OutData(0:7)\n    ...\n    ON ROUTINEERROR\
-      \ DO\n    IF ErrCode > 0 THEN ...\n    ENDON\n    Monitor_Call('OutUpTo8Bytes',\
-      \ DeviceNo, OutData)"
-    notes: ''
+    code: |2-
+          INTEGER : DeviceNo
+          BYTES : OutData(0:7)
+          ...
+          ON ROUTINEERROR DO
+          IF ErrCode > 0 THEN ...
+          ENDON
+          Monitor_Call('OutUpTo8Bytes', DeviceNo, OutData)
   assembly_500:
     available: true
-    code: "    DeviceNo : W BLOCK 1\n    OutData : STRINGDATA 8\n    ErrCode : W BLOCK\
-      \ 1\n    OutUpTo8Bytes : EQU 37B9 + 22B\n    ...\n    CALLG OutUpTo8Bytes, 2,\
-      \ DeviceNo, OutData\n    IF K GO ERROR\n    ...\n    ERROR : W1 =: ErrCode \
-      \              %ErrorCode in W1 register."
+    code: |2-
+          DeviceNo : W BLOCK 1
+          OutData : STRINGDATA 8
+          ErrCode : W BLOCK 1
+          OutUpTo8Bytes : EQU 37B9 + 22B
+          ...
+          CALLG OutUpTo8Bytes, 2, DeviceNo, OutData
+          IF K GO ERROR
+          ...
+          ERROR : W1 =: ErrCode               %ErrorCode in W1 register.
     octal_definition: 37B9 + 22B
-    notes: ''
   mac:
     available: true
-    code: "    LDT  DEVNO           %Logical device address.\n    LDD  BYTES     \
-      \      %First 4 bytes to be written.\n    LDX  BYTES+2         %Next 2 bytes\
-      \ to be written.\n    COPY SX DL\n    LDX  BYTES+3         %Last 2 bytes to\
-      \ be written.\n    MON  22              %Monitor call OutUpTo8Bytes.\n    JMP\
-      \  ERROR           %Error return from monitor call.\n    ...\n             \
-      \             %Normal return.\n    ERROR, ...           %Error number in register\
-      \ A.\n    ...\n    DEVNO, ...\n    BYTES, 'HELLO!!!'\n\n\n| ND-100 and ND-500\
-      \ | All users | All programs |"
+    code: |2-
+          LDT  DEVNO           %Logical device address.
+          LDD  BYTES           %First 4 bytes to be written.
+          LDX  BYTES+2         %Next 2 bytes to be written.
+          COPY SX DL
+          LDX  BYTES+3         %Last 2 bytes to be written.
+          MON  22              %Monitor call OutUpTo8Bytes.
+          JMP  ERROR           %Error return from monitor call.
+          ...
+                                %Normal return.
+          ERROR, ...           %Error number in register A.
+          ...
+          DEVNO, ...
+          BYTES, 'HELLO!!!'
+
+
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 22
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: false
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 387
@@ -143,4 +121,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

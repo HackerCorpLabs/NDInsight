@@ -4,36 +4,26 @@
 
 octal: 130B
 name: ExactInterval
-short_names: []
-description: 'Prepares an RT program for periodic execution. The interval between
-  the executions may be from 1 to 4294967647 basic time units. A basic time unit is
-  1/50th of a second.
+short_names:
+- DINTV
+description: |-
+  Prepares an RT program for periodic execution. The interval between the executions may be from 1 to 4294967647 basic time units. A basic time unit is 1/50th of a second.
 
-
-  - The RT program is not started. Use, for example, StartRTProgram or @RT to start
-  it.
-
+  - The RT program is not started. Use, for example, StartRTProgram or @RT to start it.
   - StopRTProgram, Disconnect, @ABORT or @DSCNT cancel this monitor call.
-
-  - One execution may be unfinished when it is time for the next execution. In this
-  case, the program''s restart flag is set. If the delay becomes as long as two intervals,
-  one execution is lost.
-
+  - One execution may be unfinished when it is time for the next execution. In this case, the program's restart flag is set. If the delay becomes as long as two intervals, one execution is lost.
   - The interval replaces any earlier specified intervals.
-
-  - AdjustClock and @CLADJ do not affect the interval.'
-notes: []
+  - AdjustClock and @CLADJ do not affect the interval.
 see_also:
 - StartupInterval
 - '@DINTV. StartupInterval allows you to specify intervals in seconds'
 - minutes or hours
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
-  description: Address of an RT description. 0 means calling program. GetRtAddress
-    gives RT description addresses.
+  description: Address of an RT description. 0 means calling program. GetRtAddress gives RT description
+    addresses.
 - name: Param2
   type: UNKNOWN
   io: I
@@ -41,115 +31,62 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       RTProgram, BasicTimeUnits : INTEGER2;
-
       ...
-
       ExactInterval(RTProgram, BasicTimeUnits);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 RTProgram COMP.
-
       01 BasicTimeUnits COMP.
-
       ...
-
       MONITOR-CALL "ExactInterval" USING RTProgram, BasicTimeUnits.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER RTProgram, BasicTimeUnits
-
       ...
-
-      Monitor_Call(''ExactInterval'', RTProgram, BasicTimeUnits)
-
-      ```'
-    notes: ''
+      Monitor_Call('ExactInterval', RTProgram, BasicTimeUnits)
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : RTProgram, BasicTimeUnits
-
       ...
-
-      Monitor_Call(''ExactInterval'', RTProgram, BasicTimeUnits)
-
-      ```'
-    notes: ''
+      Monitor_Call('ExactInterval', RTProgram, BasicTimeUnits)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       RTProgram : W BLOCK 1
-
       BasicTimeUnits : W BLOCK 1
-
       ExactInterval : EQU 37B9 + 130B
-
       ...
-
       CALLG ExactInterval, 2, RTProgram, BasicTimeUnits
-
-      ```'
     octal_definition: 37B9 + 130B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA  (PAR      %Load register A with address of parameter list.
-
       MON  130       %Monitor call ExactInterval.
-
       ...
-
       PAR, RTPRO    %Address of RT description.
-
       TIME          %Time of interval between each execution.
-
       ...
-
       RTPRO, ...
-
       TIME, ...      %A double word giving number of basic time units.
-
       ...
-
-      ```
 
 
       | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
 
-
-      Scanned by Jonny Oddene for Sintran Data © 2020'
+      Scanned by Jonny Oddene for Sintran Data © 2020
     mon_number: 130
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 177
@@ -161,4 +98,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

@@ -4,12 +4,12 @@
 
 octal: 421B
 name: GetActiveSegment
-short_names: []
+short_names:
+- GASGM
 description: ''
 notes:
 - Unused segments have the address 0.
 see_also: []
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -18,68 +18,48 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       Buffer : ARRAY [0..31] OF RECORD...END;
-
       ...
-
       GetActiveSegment(Buffer);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 Buffer.\n   02 array COMP OCCURS 1024 TIMES.\n   ...\nMONITOR-CALL\
-      \ \"GetActiveSegment\" USING Buffer.\n```"
-    notes: ''
+    code: |-
+      01 Buffer.
+         02 array COMP OCCURS 1024 TIMES.
+         ...
+      MONITOR-CALL "GetActiveSegment" USING Buffer.
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER Buffer(1024)
-
       ...
-
-      Monitor_Call(''GetActiveSegment'', Buffer(1))
-
-      ```'
-    notes: ''
+      Monitor_Call('GetActiveSegment', Buffer(1))
   planc:
     available: true
-    code: 'BYTES : Buffer(0:2047)
-
+    code: |-
+      BYTES : Buffer(0:2047)
       ...
-
-      Monitor_Call(''GetActiveSegment'', Buffer(0))'
-    notes: ''
+      Monitor_Call('GetActiveSegment', Buffer(0))
   assembly_500:
     available: true
-    code: 'Buffer : W BLOCK 1024
-
+    code: |-
+      Buffer : W BLOCK 1024
       GetActiveSegment : EQU 37B9 + 421B
-
       ...
-
-      CALLG GetActiveSegment, 1, Buffer'
+      CALLG GetActiveSegment, 1, Buffer
     octal_definition: 37B9 + 421B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 217
@@ -91,4 +71,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

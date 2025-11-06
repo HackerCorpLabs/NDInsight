@@ -6,8 +6,8 @@ octal: 300B
 name: SetEscapeHandling
 short_names:
 - EUSEL
-description: 'Enables user-defined escape handling. When the ESCAPE key is pressed,
-  execution continues at the specified address in your program.
+description: 'Enables user-defined escape handling. When the ESCAPE key is pressed, execution continues
+  at the specified address in your program.
 
 
   - Disable the user-defined escape handling with StopEscapeHandling.
@@ -20,7 +20,7 @@ compatibility:
   nd500: true
   user_programs: true
   rt_programs: true
-  system_programs: true
+  system_programs: false
 source:
   document: ND-860228.2 EN
   page_references: []

@@ -4,12 +4,11 @@
 
 octal: 157B
 name: SegmentToPageTable
-short_names: []
+short_names:
+- ENTSG
 description: ''
-notes: []
 see_also:
 - '@ENTSEG'
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -18,14 +17,13 @@ parameters:
 - name: Param2
   type: UNKNOWN
   io: I
-  description: Page table to use for the segment. In practice, this should be 3. For
-    SINTRAN III VSX, version K, the range is 0-17.
+  description: Page table to use for the segment. In practice, this should be 3. For SINTRAN III VSX,
+    version K, the range is 0-17.
 - name: Param3
   type: UNKNOWN
   io: I
-  description: The interrupt level where the direct task should run. You must specify
-    one of the free levels 6, 7, 10B or 11B. Do not use level 2B on SINTRAN III VSX,
-    version K.
+  description: The interrupt level where the direct task should run. You must specify one of the free
+    levels 6, 7, 10B or 11B. Do not use level 2B on SINTRAN III VSX, version K.
 - name: Param4
   type: UNKNOWN
   io: I
@@ -65,109 +63,71 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       SegmentNo, PageTable, InterruptLevel, StartAddr : INTEGER2;
-
       ... [Note routine name.]
-
       EnterSegment(SegmentNo, PageTable, InterruptLevel);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 SegmentNo COMP.\n01 PageTable COMP.\n01 InterruptLevel COMP.\n\
-      01 StartAddress COMP.\n...\nMONITOR-CALL \"SegmentToPageTable\" USING SegmentNo,\
-      \ PageTable,\n             InterruptLevel, StartAddress.\n```"
-    notes: ''
+    code: |-
+      01 SegmentNo COMP.
+      01 PageTable COMP.
+      01 InterruptLevel COMP.
+      01 StartAddress COMP.
+      ...
+      MONITOR-CALL "SegmentToPageTable" USING SegmentNo, PageTable,
+                   InterruptLevel, StartAddress.
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER SegmentNo, PageTable
-
       INTEGER InterLevel, StartAddress
-
       ...
-
-      Monitor_Call(''SegmentToPageTable'', SegmentNo, PageTable,
-
+      Monitor_Call('SegmentToPageTable', SegmentNo, PageTable,
       C            InterLevel, StartAddress)
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: 'INTEGER : SegNo, PageTable, InterruptLevel, StartAddress
-
+    code: |-
+      INTEGER : SegNo, PageTable, InterruptLevel, StartAddress
       ...
-
-      Monitor_Call(''SegmentToPageTable'', SegNo, PageTable, &
-
-      InterruptLevel, StartAddress)'
-    notes: ''
+      Monitor_Call('SegmentToPageTable', SegNo, PageTable, &
+      InterruptLevel, StartAddress)
   assembly_500:
     available: true
-    code: 'SegNo : W BLOCK 1
-
+    code: |-
+      SegNo : W BLOCK 1
       PageTable : W BLOCK 1
-
       InterLevel : W BLOCK 1
-
       StartAddr : W BLOCK 1
-
       SegmentToPageTable : EQU 37B9 + 157B
-
       ...
-
-      CALLG SegmentToPageTable, 4, SegNo, PageTable, InterLevel, StartAddr'
+      CALLG SegmentToPageTable, 4, SegNo, PageTable, InterLevel, StartAddr
     octal_definition: 37B9 + 157B
-    notes: ''
   mac:
     available: true
-    code: 'LDA (PAR %Load register A with address of parameter list.
-
+    code: |-
+      LDA (PAR %Load register A with address of parameter list.
       MON 157 %Monitor call SegmentToPageTable.
-
       ...
-
       PAR, SEG %The segment where the routine resides.
-
       PAGE %Page table to be used.
-
       INTR %Interrupt level where the direct task will run.
-
       ENTRY %Entry point, start address of direct task.
-
       ...
-
       SEG, ...
-
       PAGE, ...
-
       INTR, ...
-
       ENTRY, ...
 
 
-
-      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'
+      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
     mon_number: 157
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 431
@@ -179,4 +139,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

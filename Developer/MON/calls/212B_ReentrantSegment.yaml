@@ -4,16 +4,14 @@
 
 octal: 212B
 name: ReentrantSegment
-short_names: []
-description: Connects a reentrant segment to your two current segments. All modified
-  pages of your current segments are written to the segment file before the reentrant
-  segment is fetched. This is almost equivalent to SaveSegment followed by AttachSegment.
-  However, ReentrantSegment is more efficient. Only the modified pages overlapping
-  the reentrant segment are written back.
-notes: []
+short_names:
+- SREEN
+description: Connects a reentrant segment to your two current segments. All modified pages of your current
+  segments are written to the segment file before the reentrant segment is fetched. This is almost equivalent
+  to SaveSegment followed by AttachSegment. However, ReentrantSegment is more efficient. Only the modified
+  pages overlapping the reentrant segment are written back.
 see_also:
 - AttachSegment
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -22,48 +20,28 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       SegmentNumber : INTEGER2;
-
       ...
-
       ReentrantSegment(SegmentNumber);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 SegmentNumber COMP.
-
       ...
-
       MONITOR-CALL "ReentrantSegment" USING SegmentNumber.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER SegmentNumber
-
       ...
-
-      Monitor_Call(''ReentrantSegment'', SegmentNumber)
-
-      ```'
-    notes: ''
+      Monitor_Call('ReentrantSegment', SegmentNumber)
   planc:
     available: true
-    code: 'INTEGER : SegmentNumber
-
+    code: |-
+      INTEGER : SegmentNumber
       ...
-
-      Monitor_Call(''ReentrantSegment'', SegmentNumber)'
-    notes: ''
+      Monitor_Call('ReentrantSegment', SegmentNumber)
   assembly_500:
     available: false
     code: ''
@@ -71,37 +49,23 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: '| Instruction | Parameter | Description                             |
-
+    code: |-
+      | Instruction | Parameter | Description                             |
       |-------------|-----------|-----------------------------------------|
-
-      | LDA         | (PAR      | %Load register A with address of parameter list.
-      |
-
+      | LDA         | (PAR      | %Load register A with address of parameter list. |
       | MON         | 212       | %Monitor call ReentrantSegment.         |
-
       | PAR,        | SEGNO     | %Segment number.                        |
-
       | ...         | SEGNO,    | ...                                     |
 
 
-
-      | ND-100 | All users | All programs |'
+      | ND-100 | All users | All programs |
     mon_number: null
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: false
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 407
@@ -113,4 +77,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

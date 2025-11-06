@@ -6,12 +6,12 @@ octal: 7B
 name: ReadBlock
 short_names:
 - RPAGE
-description: 'Reads randomly from a file. You read one block at a time. The file must
-  be opened for random read access.
+description: 'Reads randomly from a file. You read one block at a time. The file must be opened for random
+  read access.
 
 
-  - The standard block size is 512 bytes. You can change this with `SetBlockSize`.
-  The first block is number 0.'
+  - The standard block size is 512 bytes. You can change this with `SetBlockSize`. The first block is
+  number 0.'
 parameters: []
 examples: {}
 compatibility:
@@ -19,7 +19,7 @@ compatibility:
   nd500: true
   user_programs: true
   rt_programs: true
-  system_programs: true
+  system_programs: false
 source:
   document: ND-860228.2 EN
   page_references: []

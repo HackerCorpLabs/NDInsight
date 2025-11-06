@@ -9,8 +9,8 @@ short_names:
 description: 'Switches termination handling on and off.
 
 
-  - Termination handling for RT programs is either on or off. Background programs
-  may have termination handling on or off for either user break or fatal errors.'
+  - Termination handling for RT programs is either on or off. Background programs may have termination
+  handling on or off for either user break or fatal errors.'
 parameters: []
 examples: {}
 compatibility:
@@ -18,7 +18,7 @@ compatibility:
   nd500: true
   user_programs: true
   rt_programs: true
-  system_programs: true
+  system_programs: false
 source:
   document: ND-860228.2 EN
   page_references: []

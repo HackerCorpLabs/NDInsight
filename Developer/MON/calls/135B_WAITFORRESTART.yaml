@@ -4,26 +4,21 @@
 
 octal: 135B
 name: WAITFORRESTART
-short_names: []
-description: Sets the RT program in a waiting state. It is restarted by StartRTProgram
-  or @RT. Execution continues after the monitor call.
+short_names:
+- RTWT
+description: Sets the RT program in a waiting state. It is restarted by StartRTProgram or @RT. Execution
+  continues after the monitor call.
 notes:
 - The RT program restarts immediately if its restart flag is set.
 see_also: []
-references: []
 parameters: []
 examples: {}
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 0
@@ -35,4 +30,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

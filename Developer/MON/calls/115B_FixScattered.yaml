@@ -4,9 +4,9 @@
 
 octal: 115B
 name: FixScattered
-short_names: []
+short_names:
+- FIX
 description: ''
-notes: []
 see_also:
 - UnFixSegment
 - FixContiguous
@@ -14,7 +14,6 @@ see_also:
 - MemoryAllocation
 - FixIOArea
 - and @FIXC
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -23,105 +22,57 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       SegmentNumber : INTEGER2;
-
       ...
-
       FixScattered(SegmentNumber);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 SegmentNumber COMP.
-
       ...
-
       MONITOR-CALL "FixScattered" USING SegmentNumber.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER SegmentNumber
-
       ...
-
-      Monitor_Call(''FixScattered'', SegmentNumber)
-
-      ```'
-    notes: ''
+      Monitor_Call('FixScattered', SegmentNumber)
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : SegmentNumber
-
       ...
-
-      Monitor_Call(''FixScattered'', SegmentNumber)
-
-      ```'
-    notes: ''
+      Monitor_Call('FixScattered', SegmentNumber)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       SegmentNumber : W BLOCK 1
-
       FixScattered : EQU 37B9 + 115B
-
       ...
-
       CALLG FixScattered, 1, SegmentNumber
-
-      ```'
     octal_definition: 37B9 + 115B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA  (PAR   %Load register A with address of parameter list.
-
       MON  115   %Monitor call FixScattered
-
       ...
-
       PAR,  SEGNO  %Segment number to be fixed in memory.
-
       ...
-
       SEGNO, ...
-
-      ```
 
 
 
       | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
-
-      |-------------------|-------------------------|-------------|'
+      |-------------------|-------------------------|-------------|
     mon_number: 115
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 207
@@ -133,4 +84,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

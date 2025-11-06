@@ -4,21 +4,16 @@
 
 octal: 27B
 name: GetRTDescr
-short_names: []
-description: 'Reads an RT description. The RT description contains various information
-  about an RT program. You specify the RT program address. See the SINTRAN III Real
-  Time Guide (ND-860133) for further details.
-
+short_names:
+- RTDSC
+description: |-
+  Reads an RT description. The RT description contains various information about an RT program. You specify the RT program address. See the SINTRAN III Real Time Guide (ND-860133) for further details.
 
   - Use GetRTAddress if you only know the name of the RT program.
-
-  - This monitor call is only available to background programs in SINTRAN III VSX,
-  version K.'
-notes: []
+  - This monitor call is only available to background programs in SINTRAN III VSX, version K.
 see_also:
 - GetOwnRTAddress
 - '@LIST-RT-DESCRIPTION'
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -31,122 +26,84 @@ parameters:
 - name: Param3
   type: UNKNOWN
   io: I
-  description: Number of devices connected to the RT program through StartOnInterrupt.
-    Wrong RT description addresses return -1.
+  description: Number of devices connected to the RT program through StartOnInterrupt. Wrong RT description
+    addresses return -1.
 examples:
   pascal:
     available: true
-    code: 'RTPogram, NoOfConnDev : INTEGER2;
-
+    code: |-
+      RTPogram, NoOfConnDev : INTEGER2;
       RTDescriptor : ARRAY [0..1] OF RECORD...END;
-
       ...
-
-      GetRTDescr(RTProgram, RTDescriptor, NoOfConnDev);'
-    notes: ''
+      GetRTDescr(RTProgram, RTDescriptor, NoOfConnDev);
   cobol:
     available: true
-    code: "01  RTProgram COMP.\n01  NoOfConnDev COMP.\n01  RTDescriptor.\n   02  array\
-      \ COMP OCCURS 26 TIMES.\n...\nMONITOR-CALL \"GetRTDescr\" USING RTProgram, RTDescriptor,\
-      \ NoOfConnDev."
-    notes: ''
+    code: |-
+      01  RTProgram COMP.
+      01  NoOfConnDev COMP.
+      01  RTDescriptor.
+         02  array COMP OCCURS 26 TIMES.
+      ...
+      MONITOR-CALL "GetRTDescr" USING RTProgram, RTDescriptor, NoOfConnDev.
   fortran:
     available: true
-    code: 'INTEGER  RTProgram, NoOfConnDev
-
+    code: |-
+      INTEGER  RTProgram, NoOfConnDev
       INTEGER  RTDescriptor(26)
-
       ...
-
-      Monitor_Call(''GetRTDescr'', RTProgram, RTDescriptor(1), NoOfConnDev)'
-    notes: ''
+      Monitor_Call('GetRTDescr', RTProgram, RTDescriptor(1), NoOfConnDev)
   planc:
     available: true
-    code: 'INTEGER : RTProgram, NoOfConnDev
-
+    code: |-
+      INTEGER : RTProgram, NoOfConnDev
       BYTES : RTDescriptor(0:51)
-
       ...
-
-      Monitor_Call(''GetRTDescr'', RTProgram, RTDescriptor(0), NoOfConnDev)'
-    notes: ''
+      Monitor_Call('GetRTDescr', RTProgram, RTDescriptor(0), NoOfConnDev)
   assembly_500:
     available: true
-    code: 'RTProgram : W BLOCK 1
-
+    code: |-
+      RTProgram : W BLOCK 1
       NoOfConnDev : W BLOCK 1
-
       RTDescriptor : H BLOCK 32B
-
       GetRTDescr : EQU 37B9 + 27B
-
       ...
-
       CALLG GetRTDescr, 2, RTProgram, RTDescriptor
-
       IF K GO Error
-
       W1 =: NoOfConnDev %Result is returned in W1 register.
-
       ...
-
-      Error, ...'
+      Error, ...
     octal_definition: 37B9 + 27B
-    notes: ''
   mac:
     available: true
-    code: 'LDA (PAR %Load register A with address of parameter list.
-
+    code: |-
+      LDA (PAR %Load register A with address of parameter list.
       MON 27 %Monitor call GetRTDescr.
-
       JAN ERROR %Handle error if register A is negative.
-
       STA NODEV %Store number of connected devices.
-
       ...
-
       ERROR, ... %Handle this error, register A = -1.
-
       ...
-
       NODEV, 0
-
       PAR, RTPRO %Address of RT description.
-
       BUFF %Buffer receiving RT description.
 
-
       ...
-
       RTPRO, ...
-
       BUFF, 0
-
       *+32B/ %Make a 52 byte buffer.
 
 
-
       | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
-
       |-------------------|-------------------------|-------------|
 
-
-      Scanned by Jonny Oddene for Sintran Data © 2020'
+      Scanned by Jonny Oddene for Sintran Data © 2020
     mon_number: 27
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 271
@@ -158,4 +115,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

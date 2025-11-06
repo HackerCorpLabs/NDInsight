@@ -4,13 +4,12 @@
 
 octal: 67B
 name: OutBufferSpace
-short_names: []
+short_names:
+- OSIZE
 description: ''
-notes: []
 see_also:
 - ClearOutBuffer
 - InBufferSpace
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -27,91 +26,73 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber, NoOfBytes : INTEGER2;
-
       ...
-
       OutBufferSpace(DeviceNumber, NoOfBytes);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DeviceNumber  COMP.
-
       01 NoOfBytes     COMP.
-
       01 ErrCode       COMP.
-
       ...
-
       MONITOR-CALL "OutBufferSpace" USING DeviceNumber, NoOfBytes.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DeviceNumber, NoOfBytes
-
       ...
-
-      Monitor_Cal1(''OutBufferSpace'', DeviceNumber, NoOfBytes)
-
+      Monitor_Cal1('OutBufferSpace', DeviceNumber, NoOfBytes)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DeviceNumber, NoOfBytes\n...\nON ROUTINEERROR DO\n    IF\
-      \ ErrCode > 0 THEN ...\nENDON\nMonitor_Call('OutBufferSpace', DeviceNumber,\
-      \ NoOfBytes)\n```"
-    notes: ''
+    code: |-
+      INTEGER : DeviceNumber, NoOfBytes
+      ...
+      ON ROUTINEERROR DO
+          IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('OutBufferSpace', DeviceNumber, NoOfBytes)
   assembly_500:
     available: true
-    code: "```\nDeviceNumber : W BLOCK 1\nNoOfBytes : W BLOCK 1\nErrCode : W BLOCK\
-      \ 1\nOutBufferSpace : EQU 37B9 + 67B\n    ...\n    CALLG OutBufferSpace, 1,\
-      \ DeviceNumber\n    IF K GO ERROR\n    W1 =: NoOfBytes           %Result is\
-      \ returned in W1 register.\n    ...\nERROR : W1 =: ErrCode        %ErrorCode\
-      \ in W1 register.\n```"
+    code: |-
+      DeviceNumber : W BLOCK 1
+      NoOfBytes : W BLOCK 1
+      ErrCode : W BLOCK 1
+      OutBufferSpace : EQU 37B9 + 67B
+          ...
+          CALLG OutBufferSpace, 1, DeviceNumber
+          IF K GO ERROR
+          W1 =: NoOfBytes           %Result is returned in W1 register.
+          ...
+      ERROR : W1 =: ErrCode        %ErrorCode in W1 register.
     octal_definition: 37B9 + 67B
-    notes: ''
   mac:
     available: true
-    code: "```\n    LDT DEVNO                %Logical device number.\n    MON 67 \
-      \                  %Monitor call OutBufferSpace.\n    JMP ERROR            \
-      \    %Error return from monitor call.\n    STA COUNT                %Normal\
-      \ return, store number of bytes.\nERROR,\n    ...                      %Error\
-      \ number in register A.\nDEVNO, ...\nCOUNT, 0                     %Number of\
-      \ bytes free space in outbuffer.\n```\n\n| ND-100 and ND-500 | All users | All\
-      \ programs |\n|-------------------|-----------|--------------|"
+    code: |2-
+          LDT DEVNO                %Logical device number.
+          MON 67                   %Monitor call OutBufferSpace.
+          JMP ERROR                %Error return from monitor call.
+          STA COUNT                %Normal return, store number of bytes.
+      ERROR,
+          ...                      %Error number in register A.
+      DEVNO, ...
+      COUNT, 0                     %Number of bytes free space in outbuffer.
+
+
+      | ND-100 and ND-500 | All users | All programs |
+      |-------------------|-----------|--------------|
     mon_number: 67
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 375
@@ -123,4 +104,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

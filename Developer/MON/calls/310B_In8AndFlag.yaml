@@ -4,19 +4,14 @@
 
 octal: 310B
 name: In8AndFlag
-short_names: []
-description: 'Reads 8 bytes from a device, e.g., a terminal. The monitor call applies
-  to the defined echo and break setting. See SetEcho and SetBreak.
+short_names:
+- TBIN8
+description: |-
+  Reads 8 bytes from a device, e.g., a terminal. The monitor call applies to the defined echo and break setting. See SetEcho and SetBreak.
 
-
-  - Input of a break character stops the reading. The number of characters read are
-  output. It is output as a negative number if a break character has been read. That
-  is, bit 15 is set to 1.
-
+  - Input of a break character stops the reading. The number of characters read are output. It is output as a negative number if a break character has been read. That is, bit 15 is set to 1.
   - This monitor call can be used together with SetBreak and SetEcho.
-
-  - Appendix F contains an ASCII table.'
-notes: []
+  - Appendix F contains an ASCII table.
 see_also:
 - In8Bytes
 - InUpTo8Bytes
@@ -25,7 +20,6 @@ see_also:
 - InputString
 - In4x2Bytes
 - and Out8Bytes
-references: []
 parameters:
 - name: Logical device number. See appendix B.
   type: UNKNOWN
@@ -46,146 +40,84 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber, NoOfBytes : INTEGER2;
-
       Buffer : PACKED ARRAY [0..7] OF CHAR;
-
       ...
-
       In8AndFlag(DeviceNumber, NoOfBytes, Buffer);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DeviceNumber  COMP.
-
       01 NoOfBytes     COMP.
-
       01 Buffer        PIC X(8).
-
       01 ErrCode       COMP.
-
       ...
-
       MONITOR-CALL "In8AndFlag" USING DeviceNumber, NoOfBytes, Buffer.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DeviceNumber, NoOfBytes
-
       CHARACTER Buffer*8
-
       ...
-
-      Monitor_Call(''In8AndFlag'', DeviceNumber, NoOfBytes, Buffer(1:8))
-
+      Monitor_Call('In8AndFlag', DeviceNumber, NoOfBytes, Buffer(1:8))
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DeviceNumber, NoOfBytes\nBYTES : Buffer(0:7)\n...\nON ROUTINEERROR\
-      \ DO\n   IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('In8AndFlag', DeviceNumber,\
-      \ NoOfBytes, Buffer)\n```"
-    notes: ''
+    code: |-
+      INTEGER : DeviceNumber, NoOfBytes
+      BYTES : Buffer(0:7)
+      ...
+      ON ROUTINEERROR DO
+         IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('In8AndFlag', DeviceNumber, NoOfBytes, Buffer)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber : W BLOCK 1
-
       NoOfBytes : W BLOCK 1
-
       Buffer : STRING 8
-
       In8AndFlag : EQU 37B9 + 310B
-
       ...
-
       CALLG In8AndFlag, 3, DeviceNumber, NoOfBytes, Buffer
-
       IF K GO Error,
-
       ...
-
       Error, ...
-
-      ```'
     octal_definition: 37B9 + 310B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT  DEVNO         %Logical device number.
-
       MON  310           %Monitor call In8AndFlag.
-
       JMP  ERROR         %Error return.
-
       STD  BYTES         %Store first 4 bytes read.
-
       COPY SL DA
-
       STA  BYTES+2       %Store next 2 bytes read.
-
       STX  BYTES+3       %Store last 2 bytes read.
-
       STT  COUNT         %Store number of bytes read.
-
       ...
-
       ERROR, ...         %Error handling.
-
       ...
-
       DEVNO, ...
-
       COUNT, 0
-
       BYTES, 0
-
+      0
+      0
       0
 
-      0
 
-      0
-
-      ```
-
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 310
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 311
@@ -197,4 +129,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

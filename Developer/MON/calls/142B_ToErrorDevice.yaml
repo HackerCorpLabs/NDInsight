@@ -4,24 +4,22 @@
 
 octal: 142B
 name: ToErrorDevice
-short_names: []
-description: 'Outputs a user-defined, real-time error. The error message is output
-  on the error device, i.e. normally the console. The following is an example of such
-  a message: 23.10.59 ERROR 59 AT XPROG AT 134562, USER ERROR, SUBERROR 4. See appendix
-  A.'
+short_names:
+- ERMON
+description: 'Outputs a user-defined, real-time error. The error message is output on the error device,
+  i.e. normally the console. The following is an example of such a message: 23.10.59 ERROR 59 AT XPROG
+  AT 134562, USER ERROR, SUBERROR 4. See appendix A.'
 notes:
 - The real-time errors numbers 50-69 can be used in this way.
 see_also:
 - WarningMessage
 - ErrorMessage
 - and OutMessage
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
-  description: Error number. You may use error numbers 50 to 69. This number is output
-    following ERROR.
+  description: Error number. You may use error numbers 50 to 69. This number is output following ERROR.
 - name: Param2
   type: UNKNOWN
   io: I
@@ -29,108 +27,59 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       ErrorNumber, SubErrorNumber : INTEGER2;
-
       ...
-
       ToErrorDevice(ErrorNumber, SubErrorNumber);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 ErrorNumber COMP.
-
       01 SubErrorNumber COMP.
-
       ...
-
       MONITOR-CALL "ToErrorDevice" USING ErrorNumber, SubErrorNumber.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER ErrorNumber, SubErrorNumber
-
       ...
-
-      Monitor_Call(''ToErrorDevice'', ErrorNumber, SubErrorNumber)
-
-      ```'
-    notes: ''
+      Monitor_Call('ToErrorDevice', ErrorNumber, SubErrorNumber)
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : ErrorNumber, SubErrorNumber
-
       ...
-
-      Monitor_Call(''ToErrorDevice'', ErrorNumber, SubErrorNumber)
-
-      ```'
-    notes: ''
+      Monitor_Call('ToErrorDevice', ErrorNumber, SubErrorNumber)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       ErrorNumber : W BLOCK  1                      %In ASCII characters.
-
       SubErrorNumber : W BLOCK  1
 
-
       ToErrorDevice : EQU 378B9 + 142B
-
       ...
-
       CALLG ToErrorDevice, 2, ErrorNumber, SubErrorNumber
-
-      ```'
     octal_definition: ''
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA     ERRNO            %Error number.
-
       LDT     SUBER            %Sub-error number.
-
       MON     142              %Monitor call ToErrorDevice.
-
       ...
 
-
       ERRNO, ...                %Error number as two ASCII characters.
-
       SUBER, ...                %Suberror number as two ASCII characters.
 
-      ```
 
-
-      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'
+      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
     mon_number: 142
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 543
@@ -142,4 +91,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

@@ -4,9 +4,9 @@
 
 octal: 162B
 name: OutString
-short_names: []
+short_names:
+- OUTST
 description: ''
-notes: []
 see_also:
 - OutMessage
 - OutUpTo8Bytes
@@ -15,14 +15,12 @@ see_also:
 - OutNumber
 - OutByte
 - and InString
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
   io: I
-  description: Logical device number. See appendix B. You cannot use 1 for your own
-    terminal. Use ExecutionInfo to get its logical device number instead. File numbers
-    are illegal.
+  description: Logical device number. See appendix B. You cannot use 1 for your own terminal. Use ExecutionInfo
+    to get its logical device number instead. File numbers are illegal.
 - name: Param2
   type: UNKNOWN
   io: I
@@ -38,142 +36,76 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNo, NoOfBytes, ReturnStatus : INTEGER2;
-
       TextWrite : PACKED ARRAY [0..79] OF CHAR;
-
       ...
-
       OutString(DeviceNo, TextWrite, NoOfBytes, ReturnStatus);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 DevNo COMP.
-
       01 NoOfBytes COMP.
-
       01 RetStatus COMP.
-
       01 TextWrite PIC X(100).
-
       ...
-
       MONITOR-CALL "OutString" USING DevNo, TextWrite, NoOfBytes, RetStatus.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER DeviceNo, NoOfBytes, RetStatus
-
       CHARACTER TextWrite*80
-
       ...
-
-      Monitor_Call(''OutString'', DeviceNo, TextWrite(1:80), NoOfBytes, RetStatus)
-
-      ```'
-    notes: ''
+      Monitor_Call('OutString', DeviceNo, TextWrite(1:80), NoOfBytes, RetStatus)
   planc:
     available: true
-    code: '```
-
+    code: |-
       INTEGER : DeviceNo, NoOfBytes, ReturnStatus
-
       BYTES : TextWrite(0:79)
-
       ...
-
-      Monitor_Call(''OutString'', DeviceNo, TextWrite, NoOfBytes, ReturnStatus)
-
-      ```'
-    notes: ''
+      Monitor_Call('OutString', DeviceNo, TextWrite, NoOfBytes, ReturnStatus)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       DeviceNo : W BLOCK 1
-
-      TextWrite : STRINGDATA ''This is a text...''
-
+      TextWrite : STRINGDATA 'This is a text...'
       ReturnStatus : W BLOCK 1
-
       OutString : EQU 37B9 + 162B
-
       ...
-
       CALLG OutString, 2, DeviceNo, TextWrite
-
       IF K GO Error
-
       W1 := ReturnStatus      % Status is returned in W1
-
       ...
-
       Error, ...
-
       register.
-
-      ```'
     octal_definition: 37B9 + 162B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LOA (PAR         % Load register A with address of parameter list.
-
       MON 162          % Monitor call OutString.
-
       STA STAT         % Store status returned.
-
       ...
-
       STAT, 0
-
       PAR, DEVNO       % Logical device number.
-
       TEXT             % String to be written.
-
       COUNT            % Number of characters to be written.
-
       ...
-
 
       DEVNO, ...
-
-      TEXT, ''THIS IS A TEST''
-
+      TEXT, 'THIS IS A TEST'
       COUNT, 16        % Write 14 characters.
 
-      ```
 
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 162
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 385
@@ -185,4 +117,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

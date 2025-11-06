@@ -4,27 +4,22 @@
 
 octal: 71B
 name: DISABLEESCAPE
-short_names: []
-description: The ESCAPE key on the terminal normally terminates a program. This is
-  called user break. This monitor call disables the escape function.
+short_names:
+- DESCF
+description: The ESCAPE key on the terminal normally terminates a program. This is called user break.
+  This monitor call disables the escape function.
 notes:
 - The escape function is enabled again by EnableEscape.
 - The escape function is enabled when you log out.
 see_also: []
-references: []
 parameters: []
 examples: {}
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 0
@@ -36,4 +31,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

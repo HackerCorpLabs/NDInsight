@@ -4,14 +4,13 @@
 
 octal: 54B
 name: DeleteFile
-short_names: []
+short_names:
+- MDLFI
 description: ''
-notes: []
 see_also:
 - '@DELETE-FILE'
 - '@DELETE-USERS-FILES'
 - and CreateFile
-references: []
 parameters:
 - name: File name
   type: ''
@@ -24,124 +23,71 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FileName : PACKED ARRAY [0..63] OF CHAR;
-
       ...
-
       DeleteFile(FileName);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 FileName PIC X(64).
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "DeleteFile" USING FileName.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       CHARACTER FileName*64
-
       ...
-
-      Monitor_Call(''DeleteFile'', FileName(1:64))
-
+      Monitor_Call('DeleteFile', FileName(1:64))
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: 'BYTES : FileName(0:63)
-
+    code: |-
+      BYTES : FileName(0:63)
       ...
-
       ON ROUTINEERROR DO
-
       &nbsp;&nbsp;&nbsp;&nbsp;IF ErrCode > 0 THEN ...
-
       ENDON
-
-      Monitor_Call(''DeleteFile'', FileName)'
-    notes: ''
+      Monitor_Call('DeleteFile', FileName)
   assembly_500:
     available: true
-    code: 'FileName : STRINGDATA ''EXAMPLE:SYMB''
-
+    code: |-
+      FileName : STRINGDATA 'EXAMPLE:SYMB'
       ErrCode : W BLOCK 1
-
       DeleteFile : EQU 37B9 + 54B
 
-
       ...
-
       CALLG DeleteFile, 1, FileName
-
       IF K GO ERROR
-
       ...
-
-      ERROR : W1 =: ErrCode'
+      ERROR : W1 =: ErrCode
     octal_definition: 37B9 + 54B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDX   (FILE        %Load register X with address of file name.
-
       MON   54           %Monitor call DeleteFile.
-
       JMP   ERROR        %Error return from monitor call.
-
       ...                %Normal return.
-
       ERROR, ...         %Error number in register A.
-
       ...
-
-      FILE, ''EXAMPLE:SYMB'' %Delete file EXAMPLE:SYMB.
-
-      ```
+      FILE, 'EXAMPLE:SYMB' %Delete file EXAMPLE:SYMB.
 
 
       | ND-100 and ND-500 | All users | All programs |
 
-
-      Scanned by Jonny Oddene for Sintran Data © 2020'
+      Scanned by Jonny Oddene for Sintran Data © 2020
     mon_number: 54
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 137
@@ -153,4 +99,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

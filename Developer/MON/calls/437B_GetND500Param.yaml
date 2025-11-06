@@ -4,23 +4,18 @@
 
 octal: 437B
 name: GetND500Param
-short_names: []
-description: 'Gets information about why the last ND-500 program terminated. There
-  are five parameters for each background user. These can be set by SINTRAN III or
-  your background program.
-
+short_names:
+- 5PAGET
+description: |-
+  Gets information about why the last ND-500 program terminated. There are five parameters for each background user. These can be set by SINTRAN III or your background program.
 
   - Use SetND500Param to set the parameter values.
-
-  - SINTRAN III sets some of the parameter values if you give the command @ENABLE-TERMINATION-HANDLING
-  first.'
-notes: []
+  - SINTRAN III sets some of the parameter values if you give the command @ENABLE-TERMINATION-HANDLING first.
 see_also:
 - TerminationHandling
 - SetND500Param
 - GetUserParam
 - and SetUserParam
-references: []
 parameters:
 - name: '1'
   type: Bit 24:16 contain the user index. Bit 7:0 contains the directory index.
@@ -31,8 +26,8 @@ parameters:
   io: I
   description: ''
 - name: '3'
-  type: Fatal error or the monitor call ErrorMessage returns the error number. If
-    escape was pressed, -1 is returned.
+  type: Fatal error or the monitor call ErrorMessage returns the error number. If escape was pressed,
+    -1 is returned.
   io: I
   description: ''
 - name: '4'
@@ -46,70 +41,48 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       Buffer : RECORD...END;
-
       ...
-
       GetND500Param(Buffer);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 Buffer.\n   02 array COMP OCCURS 5 TIMES.\n   ...\n   MONITOR-CALL\
-      \ \"GetND500Param\" USING Buffer.\n```"
-    notes: ''
+    code: |-
+      01 Buffer.
+         02 array COMP OCCURS 5 TIMES.
+         ...
+         MONITOR-CALL "GetND500Param" USING Buffer.
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER Buffer(5)
-
       ...
-
-      Monitor_Call(''GetND500Param'', Buffer(1))
-
-      ```'
-    notes: ''
+      Monitor_Call('GetND500Param', Buffer(1))
   planc:
     available: true
-    code: 'BYTES : Buffer(0:9)
-
+    code: |-
+      BYTES : Buffer(0:9)
       ...
-
-      Monitor_Call(''GetND500Param'', Buffer(0))'
-    notes: ''
+      Monitor_Call('GetND500Param', Buffer(0))
   assembly_500:
     available: true
-    code: 'Buffer : W BLOCK 5
-
+    code: |-
+      Buffer : W BLOCK 5
       GetND500Param : EQU 37B9 + 437B
-
       ...
-
-      CALLG GetND500Param, 1, Buffer'
+      CALLG GetND500Param, 1, Buffer
     octal_definition: 37B9 + 437B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - Background programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 259
@@ -121,4 +94,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

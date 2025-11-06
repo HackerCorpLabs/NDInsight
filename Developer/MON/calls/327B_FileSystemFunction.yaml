@@ -6,9 +6,8 @@ octal: 327B
 name: FileSystemFunction
 short_names:
 - FSMTY
-description: 'Multifunction monitor call to make sure that an uncontrolled system
-  stop does not leave the file system inconsistent. The file index block of an open
-  file is written back to the disk.
+description: 'Multifunction monitor call to make sure that an uncontrolled system stop does not leave
+  the file system inconsistent. The file index block of an open file is written back to the disk.
 
 
   - This monitor call is particularly useful for SIBAS and ISAM applications.'
@@ -19,7 +18,7 @@ compatibility:
   nd500: true
   user_programs: true
   rt_programs: true
-  system_programs: true
+  system_programs: false
 source:
   document: ND-860228.2 EN
   page_references: []

@@ -4,13 +4,12 @@
 
 octal: 220B
 name: DirectOpen
-short_names: []
+short_names:
+- DOPEN
 description: ''
-notes: []
 see_also:
 - OpenFile
 - CloseFile
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -53,8 +52,8 @@ parameters:
   io: I
   description: ''
 - name: '8'
-  type: Random read or write on contiguous files. Direct transfer for ReadFromFile,
-    WriteToFile and DeviceFunction in RT programs.
+  type: Random read or write on contiguous files. Direct transfer for ReadFromFile, WriteToFile and DeviceFunction
+    in RT programs.
   io: I
   description: ''
 - name: '9'
@@ -76,126 +75,84 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FileNumber, AccCode : INTEGER2;
-
       FileName : PACKED ARRAY [0..63] OF CHAR;
-
       FileType : PACKED ARRAY [0..3] OF CHAR;
-
       ...
-
       DirectOpen(FileNumber, AccCode, FileName, FileType);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 FileNumber COMP.
-
       01 AccCode COMP.
-
       01 FileName PIC X(64).
-
       01 FileType PIC X(4).
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "DirectOpen" USING FileNumber, AccCode, FileName, FileType.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER FileNumber, AccCode
-
       CHARACTER FileName*64, FileType*4
-
       ...
-
-      Monitor_Call(''DirectOpen'', FileNumber, AccCode, FileName(1:64), FileType(1:4))
-
+      Monitor_Call('DirectOpen', FileNumber, AccCode, FileName(1:64), FileType(1:4))
       C IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : FileNumber, AccCode\nBYTES : FileName(0:63), FileType(0:3)\n\
-      ...\nON ROUTINEERROR DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('DirectOpen',\
-      \ FileNumber, AccCode, FileName, FileType)\n```"
-    notes: ''
+    code: |-
+      INTEGER : FileNumber, AccCode
+      BYTES : FileName(0:63), FileType(0:3)
+      ...
+      ON ROUTINEERROR DO
+          IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('DirectOpen', FileNumber, AccCode, FileName, FileType)
   assembly_500:
     available: true
-    code: "```\nFileNumber : W BLOCK 1\nAccCode : W BLOCK 1\nFileName : STRINGDATA\
-      \ 'EXAMPLE'\nFileType : STRINGDATA 'SYMB'\nErrCode : W BLOCK 1\nDirectOpen :\
-      \ EQU 3789 + 220B\n...\n    CALLG DirectOpen, 4, FileNumber, AccCode, FileName,\
-      \ FileType\n    IF K GO ERROR\n...\nERROR : W1 =: ErrCode         %ErrorCode\
-      \ in W1 register.\n```"
+    code: |-
+      FileNumber : W BLOCK 1
+      AccCode : W BLOCK 1
+      FileName : STRINGDATA 'EXAMPLE'
+      FileType : STRINGDATA 'SYMB'
+      ErrCode : W BLOCK 1
+      DirectOpen : EQU 3789 + 220B
+      ...
+          CALLG DirectOpen, 4, FileNumber, AccCode, FileName, FileType
+          IF K GO ERROR
+      ...
+      ERROR : W1 =: ErrCode         %ErrorCode in W1 register.
     octal_definition: 37B9 + 220B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDX (FILE        %Address of file name string.
-
       LDA (TYPE        %Address of file type string.
-
       LDT ACCES        %Access code.
-
       MON 220          %Monitor call DirectOpen.
-
       JMP ERROR        %Error return from monitor call.
-
       STA FILNO        %Normal return, store the filenumber returned.
-
       ...
-
       ERROR, ...       %Error number in register A.
-
       ...
-
       FILNO, 0
-
       ACCES, ...
-
-      FILE, ''EXAMPLE''  %Open EXAMPLE:SYMB
-
-      TYPE, ''SYMB''     %
-
-      ```
+      FILE, 'EXAMPLE'  %Open EXAMPLE:SYMB
+      TYPE, 'SYMB'     %
 
 
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 220
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 151
@@ -207,4 +164,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

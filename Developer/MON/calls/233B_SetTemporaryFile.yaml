@@ -4,13 +4,12 @@
 
 octal: 233B
 name: SetTemporaryFile
-short_names: []
+short_names:
+- STEFI
 description: ''
-notes: []
 see_also:
 - CreateFile
 - '@SET-TEMPORARY-FILE'
-references: []
 parameters:
 - name: → File name.
   type: ''
@@ -23,101 +22,69 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FileName : PACKED ARRAY [0..63] OF CHAR;
-
       ...
-
       SetTemporaryFile(FileName);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 FileName PIC X(64).
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "SetTemporaryFile" USING FileName.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       CHARACTER FileName*64
-
       ...
-
-      Monitor_Call(''SetTemporaryFile'', FileName(1:64))
-
+      Monitor_Call('SetTemporaryFile', FileName(1:64))
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nBYTES : FileName(0:63)\n...\nON ROUTINEERROR DO\n    IF ErrCode >\
-      \ 0 THEN ...\nENDON\nMonitor_Call('SetTemporaryFile', FileName)\n```"
-    notes: ''
+    code: |-
+      BYTES : FileName(0:63)
+      ...
+      ON ROUTINEERROR DO
+          IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('SetTemporaryFile', FileName)
   assembly_500:
     available: true
-    code: "```\nFileName : STRINGDATA 'TEMP-FILE:SYMB''\nErrCode  : W BLOCK 1\nSetTemporaryFile\
-      \ : EQU 37B9 + 233B\n...\n    CALLG SetTemporaryFile, 1, FileName\n    IF K\
-      \ GO ERROR\n...\nERROR : W1 =: ErrCode    %ErrorCode in W1 register.\n```"
+    code: |-
+      FileName : STRINGDATA 'TEMP-FILE:SYMB''
+      ErrCode  : W BLOCK 1
+      SetTemporaryFile : EQU 37B9 + 233B
+      ...
+          CALLG SetTemporaryFile, 1, FileName
+          IF K GO ERROR
+      ...
+      ERROR : W1 =: ErrCode    %ErrorCode in W1 register.
     octal_definition: 37B9 + 233B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDX  (FILE          %Address of string with file name.
-
       MON 233            %Monitor call SetTemporaryFile.
-
       JMP ERROR          %Error return from monitor call.
-
       ...                %Normal return.
-
       ERROR, ...         %Error number in register A.
-
       ...
-
-      FILE, ''TEMP-FILE:SYMB'' %Treat TEMP-FILE:SYMB as a temporary file.
-
-      ```
+      FILE, 'TEMP-FILE:SYMB' %Treat TEMP-FILE:SYMB as a temporary file.
 
 
       | ND-100 and ND-500 | All users | All programs |
-
-      |-------------------|-----------|--------------|'
+      |-------------------|-----------|--------------|
     mon_number: 233
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 473
@@ -129,4 +96,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

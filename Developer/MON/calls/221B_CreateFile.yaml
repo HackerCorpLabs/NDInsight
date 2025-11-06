@@ -4,15 +4,14 @@
 
 octal: 221B
 name: CreateFile
-short_names: []
+short_names:
+- CRALF
 description: ''
-notes: []
 see_also:
 - '@CREATE-FILE'
 - '@ALLOCATE-FILE'
 - NewFileVersion
 - and ExpandFile
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -21,13 +20,11 @@ parameters:
 - name: Param2
   type: UNKNOWN
   io: I
-  description: Start address in the directory. Use 0 if you want to create a contiguous
-    or indexed file.
+  description: Start address in the directory. Use 0 if you want to create a contiguous or indexed file.
 - name: Param3
   type: UNKNOWN
   io: I
-  description: Length of the file in pages. Use 0 if you want to create an indexed
-    file.
+  description: Length of the file in pages. Use 0 if you want to create an indexed file.
 - name: Param4
   type: UNKNOWN
   io: I
@@ -35,140 +32,81 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       StartAddress, NoofPages : LONGINT;
-
       FileName : PACKED ARRAY [0..63] OF CHAR;
-
       ...
-
       CreateFile(FileName, StartAddress, NoofPages);
-
       IF ErrCode <> 0 THEN ...
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 StartAddress COMP PIC S9(10).
-
       01 NoofPages COMP PIC S9(10).
-
       01 FileName PIC X(64).
-
       01 ErrCode COMP.
-
       ...
-
       MONITOR-CALL "CreateFile" USING FileName, StartAddress, NoofPages.
-
       CALL "CbError" USING ErrCode.
-
       IF ErrCode NOT = 0 GO ...
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER*4 StartAddress, NoofPages
-
       CHARACTER FileName*64
-
       ...
-
-      Monitor_Call(''CreateFile'', FileName(1:64), StartAddress, NoofPages)
-
+      Monitor_Call('CreateFile', FileName(1:64), StartAddress, NoofPages)
       IF (ErrCode .NE. 0) THEN ...
-
-      ```'
-    notes: ''
   planc:
     available: true
-    code: "```\nINTEGER4 : StartAddress, NoOfPages\nBYTES : FileName(0:63)\n...\n\
-      ON ROUTINEERROR DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('CreateFile',\
-      \ FileName, StartAddress, NoOfPages)\n```"
-    notes: ''
+    code: |-
+      INTEGER4 : StartAddress, NoOfPages
+      BYTES : FileName(0:63)
+      ...
+      ON ROUTINEERROR DO
+          IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('CreateFile', FileName, StartAddress, NoOfPages)
   assembly_500:
     available: true
-    code: '```
-
+    code: |-
       StartAddress : W BLOCK 1
-
       NoOfPages : W BLOCK 1
-
-      FileName : STRINGDATA ''EXAMPLE:SYMB''...
-
+      FileName : STRINGDATA 'EXAMPLE:SYMB'...
       ErrCode : W BLOCK 1
-
       CreateFile : EQU 37B9 + 221B
-
       ...
-
       CALLG CreateFile, 3, FileName, StartAddress, NoOfPages
-
       IF K GO ERROR
-
       ...
-
       ERROR : W1 =: ErrCode        %ErrorCode in W1 register.
-
-      ```'
     octal_definition: 37B9 + 221B
-    notes: ''
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDX  (FILE         %Address of file name string.
-
       LDD  START         %Load register AD with start address.
-
       LDT  (SIZE         %Address of double word with number of pages.
-
       MON  221           %Monitor call CreateFile.
-
       JMP  ERROR         %Error return from monitor call.
-
       ...               %Normal return.
-
       ERROR, ...         %Error number in register A.
-
       ...
-
-      FILE, ''EXAMPLE:SYMB'' %Create EXAMPLE:SYMB.
-
+      FILE, 'EXAMPLE:SYMB' %Create EXAMPLE:SYMB.
       START, ...          %Start address, ie. page address in directory.
-
       ...               %A double word.
-
       SIZE, ...           %File size as a double word.
-
       ...               %
 
-      ```
 
-
-      | ND-100 and ND-500 | All users | All programs |'
+      | ND-100 and ND-500 | All users | All programs |
     mon_number: 221
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 125
@@ -180,4 +118,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

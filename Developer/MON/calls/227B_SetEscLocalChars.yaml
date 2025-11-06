@@ -4,27 +4,22 @@
 
 octal: 227B
 name: SetEscLocalChars
-short_names: []
-description: You can terminate most programs with the ESCAPE key. A LOCAL key has
-  a similar function. It terminates a connection to a remote computer in a network.
-  This monitor call allows you to select other keys for these functions.
+short_names:
+- MSDAE
+description: You can terminate most programs with the ESCAPE key. A LOCAL key has a similar function.
+  It terminates a connection to a remote computer in a network. This monitor call allows you to select
+  other keys for these functions.
 notes:
 - The local function is only used by COSMOS.
 see_also: []
-references: []
 parameters: []
 examples: {}
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 0
@@ -36,4 +31,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

@@ -4,14 +4,14 @@
 
 octal: 323B
 name: SegmentOverlay
-short_names: []
-description: Used to build multisegment programs in the ND-100. It is mainly for internal
-  use. A new reentrant segment and two address areas in this segment are specified.
+short_names:
+- SPLRE
+description: Used to build multisegment programs in the ND-100. It is mainly for internal use. A new reentrant
+  segment and two address areas in this segment are specified.
 notes:
-- The building of multisegment programs is taken care of automatically by the BRF-LINKER.
-  See the BRF-LINKER USER MANUAL (ND-860196).
+- The building of multisegment programs is taken care of automatically by the BRF-LINKER. See the BRF-LINKER
+  USER MANUAL (ND-860196).
 see_also: []
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -20,8 +20,7 @@ parameters:
 - name: Param2
   type: UNKNOWN
   io: I
-  description: Page number of first page in address-area 1. Normally in the program
-    bank.
+  description: Page number of first page in address-area 1. Normally in the program bank.
 - name: Param3
   type: UNKNOWN
   io: I
@@ -37,8 +36,8 @@ parameters:
 - name: Param6
   type: UNKNOWN
   io: I
-  description: Clear flag. If not 0, the earlier specified overlay areas are cleared.
-    Use 0 the first time SegmentOverlay is called.
+  description: Clear flag. If not 0, the earlier specified overlay areas are cleared. Use 0 the first
+    time SegmentOverlay is called.
 - name: Param7
   type: UNKNOWN
   io: I
@@ -46,35 +45,36 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       SegmentNo, Page1A1, NoPageA1, Page1A2, NoPageA2, ClearFlag : INTEGER2;
-
       ...
-
       SegmentOverlay(SegmentNo, Page1A1, NoPageA1, Page1A2, NoPageA2, ClearFlag);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 SegmentNo COMP.\n01 Page1A1 COMP.\n01 NoPageA1 COMP.\n01 Page1A2\
-      \ COMP.\n01 NoPageA2 COMP.\n01 ClearFlag COMP.\n...\nMONITOR-CALL \"SegmentOverlay\"\
-      \ USING SegmentNo, Page1A1, NoPageA1,\n                                  Page1A2,\
-      \ NoPageA2, ClearFlag.\n```"
-    notes: ''
+    code: |-
+      01 SegmentNo COMP.
+      01 Page1A1 COMP.
+      01 NoPageA1 COMP.
+      01 Page1A2 COMP.
+      01 NoPageA2 COMP.
+      01 ClearFlag COMP.
+      ...
+      MONITOR-CALL "SegmentOverlay" USING SegmentNo, Page1A1, NoPageA1,
+                                        Page1A2, NoPageA2, ClearFlag.
   fortran:
     available: true
-    code: "```\nINTEGER SegmentNo, Page1A1, NoPageA1, Page1A2, NoPageA2, ClearFlag\n\
-      ...\nMonitor_Call('SegmentOverlay', SegmentNo, Page1A1, NoPageA1,\n        \
-      \                       Page1A2, NoPageA2, ClearFlag)\n```"
-    notes: ''
+    code: |-
+      INTEGER SegmentNo, Page1A1, NoPageA1, Page1A2, NoPageA2, ClearFlag
+      ...
+      Monitor_Call('SegmentOverlay', SegmentNo, Page1A1, NoPageA1,
+                                     Page1A2, NoPageA2, ClearFlag)
   planc:
     available: true
-    code: "```\nINTEGER : SegmentNo, Page1A1, NoPageA1, Page1A2, NoPageA2, Clearflag\n\
-      ...\nMonitor_Call('SegmentOverlay', SegmentNo, Page1A1, NoPageA1, &\n      \
-      \       Page1A2, NoPageA2, Clearflag)\n```"
-    notes: ''
+    code: |-
+      INTEGER : SegmentNo, Page1A1, NoPageA1, Page1A2, NoPageA2, Clearflag
+      ...
+      Monitor_Call('SegmentOverlay', SegmentNo, Page1A1, NoPageA1, &
+                   Page1A2, NoPageA2, Clearflag)
   assembly_500:
     available: false
     code: ''
@@ -82,59 +82,33 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDA   (PAR  %Load register A with address of parameter list.
-
       MON   323   %Monitor call SegmentOverlay.
-
       ...
-
       PAR,  SEGNO %Segment number.
-
       AREA1       %First page in area 1.
-
       NUM1        %Number of pages in area 1.
-
       AREA2       %First page in area 2.
-
       NUM2        %Number of pages in area 2.
-
       CLEAR       %Clear flag.
-
       ...
-
       SEGNO, ...
-
       AREA1, ...
-
       NUM1, ...
-
       AREA2, ...
-
       NUM2, ...
-
       CLEAR, ...
 
-      ```
 
-
-      | ND-100   | All users      | Background programs |'
+      | ND-100   | All users      | Background programs |
     mon_number: 323
-    notes: ''
 compatibility:
-  platforms:
-    nd100: true
-    nd500: false
-  users:
-  - All users
-  programs:
-  - Background programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: true
+  nd500: false
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 429
@@ -146,4 +120,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

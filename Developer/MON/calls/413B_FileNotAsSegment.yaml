@@ -4,12 +4,11 @@
 
 octal: 413B
 name: FileNotAsSegment
-short_names: []
+short_names:
+- FSCDNT
 description: ''
-notes: []
 see_also:
 - FileAsSegment
-references: []
 parameters:
 - name: Param1
   type: UNKNOWN
@@ -22,79 +21,49 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       FileNumber, LogSegNumber: LONGINT;
-
       ...
-
       FileNotAsSegment(FileNumber, LogSegNumber);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: '```
-
+    code: |-
       01 FileNumber COMP.
-
       02 LogSegNumber COMP.
-
       ...
-
       MONITOR-CALL "FileNotAsSegment" USING FileNumber, LogSegNumber.
-
-      ```'
-    notes: ''
   fortran:
     available: true
-    code: '```
-
+    code: |-
       INTEGER FileNumber, LogSegNumber
-
       ...
-
-      Monitor_Call(''FileNotAsSegment'', FileNumber, LogSegNumber)
-
-      ```'
-    notes: ''
+      Monitor_Call('FileNotAsSegment', FileNumber, LogSegNumber)
   planc:
     available: true
-    code: 'INTEGER : FileNumber, LogSegNumber
-
+    code: |-
+      INTEGER : FileNumber, LogSegNumber
       ...
-
-      Monitor_Call(''FileNotAsSegment'', FileNumber, LogSegNumber)'
-    notes: ''
+      Monitor_Call('FileNotAsSegment', FileNumber, LogSegNumber)
   assembly_500:
     available: true
-    code: 'FileNumber : W BLOCK 1
-
+    code: |-
+      FileNumber : W BLOCK 1
       LogSegNumber : W BLOCK 1
-
       FileNotAsSegment : EQU 37B9 + 413B
-
       ...
-
-      CALLG FileNotAsSegment, 2, FileNumber, LogSegNumber'
+      CALLG FileNotAsSegment, 2, FileNumber, LogSegNumber
     octal_definition: 37B9 + 413B
-    notes: ''
   mac:
     available: false
     code: ''
     mon_number: null
     notes: Not available
 compatibility:
-  platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 195
@@ -106,4 +75,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''

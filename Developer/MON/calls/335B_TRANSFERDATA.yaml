@@ -4,67 +4,61 @@
 
 octal: 335B
 name: TRANSFERDATA
-short_names: []
-description: Transfers data between physical memory and a mass-storage device, e.g.
-  a disk. You may perform various device control functions. This monitor call is mainly
-  used by the operating system itself.
+short_names:
+- EXABS
+description: Transfers data between physical memory and a mass-storage device, e.g. a disk. You may perform
+  various device control functions. This monitor call is mainly used by the operating system itself.
 notes:
-- The program must run on ring 2. You may use any page table. Both demand and non-demand
-  segments are legal. Memory areas for DMA transfer must be fixed contiguously.
-- For calls to magnetic tape or other devices where the last parameter contains number
-  of bytes/words read or other return parameters, the parameter list must be in resident
-  memory, i.e. an area with fixed page-table contents.
-- The physical memory area must be contiguous. Older versions of magnetic tapes or
-  disk controllers cannot cross physical memory-bank boundaries of 128 Kbytes. These
-  magnetic tapes have ND numbers less than ND-537. The disks have ND numbers less
-  than ND-559.
+- The program must run on ring 2. You may use any page table. Both demand and non-demand segments are
+  legal. Memory areas for DMA transfer must be fixed contiguously.
+- For calls to magnetic tape or other devices where the last parameter contains number of bytes/words
+  read or other return parameters, the parameter list must be in resident memory, i.e. an area with fixed
+  page-table contents.
+- The physical memory area must be contiguous. Older versions of magnetic tapes or disk controllers cannot
+  cross physical memory-bank boundaries of 128 Kbytes. These magnetic tapes have ND numbers less than
+  ND-537. The disks have ND numbers less than ND-559.
 - Only two programs may execute TransferData at a time.
 see_also:
 - DataTransfer
 - ReadFromFile
 - and WriteToFile
-references: []
 parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
+    code: |-
       DeviceNumber, Func, RetStatus : INTEGER2;
-
       MemAddr, BlockAddr, NoOfBlocks : LONGINT;
-
       ...
-
       TransferData(DeviceNumber, Func, MemAddr, BlockAddr, NoOfBlocks, RetStatus);
-
-      ```'
-    notes: ''
   cobol:
     available: true
-    code: "```\n01 DeviceNumber COMP.\n01 Func COMP.\n01 ReturnStatus COMP.\n01 MemAddr\
-      \ COMP PIC S9(10).\n01 BlockAddr COMP PIC S9(10).\n01 NoOfBlocks COMP PIC S9(10).\n\
-      ...\nMONITOR-CALL \"TransferData\" USING DeviceNumber, Func, MemAddr,\n    \
-      \                       BlockAddr, NoOfBlocks, ReturnStatus.\n```"
-    notes: ''
+    code: |-
+      01 DeviceNumber COMP.
+      01 Func COMP.
+      01 ReturnStatus COMP.
+      01 MemAddr COMP PIC S9(10).
+      01 BlockAddr COMP PIC S9(10).
+      01 NoOfBlocks COMP PIC S9(10).
+      ...
+      MONITOR-CALL "TransferData" USING DeviceNumber, Func, MemAddr,
+                                 BlockAddr, NoOfBlocks, ReturnStatus.
   fortran:
     available: true
-    code: "```\nINTEGER DeviceNumber, Func, ReturnStatus\nINTEGER*4 MemAddr, BlockAddr,\
-      \ NoOfBlocks\n...\nMonitor_Call('TransferData', DeviceNumber, Func, MemAddr,\n\
-      \                          BlockAddr, NoOfBlocks, ReturnStatus)\n```"
-    notes: ''
+    code: |-
+      INTEGER DeviceNumber, Func, ReturnStatus
+      INTEGER*4 MemAddr, BlockAddr, NoOfBlocks
+      ...
+      Monitor_Call('TransferData', DeviceNumber, Func, MemAddr,
+                                BlockAddr, NoOfBlocks, ReturnStatus)
   planc:
     available: true
-    code: 'INTEGER : DeviceNumber, Func, ReturnStatus
-
+    code: |-
+      INTEGER : DeviceNumber, Func, ReturnStatus
       INTEGERA : MemAddr, BlockAddr, NoOfBlocks
-
       ...
-
-      Monitor_Call(''TransferData'', DeviceNumber, Func, MemAddr, &
-
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BlockAddr, NoOfBlocks, ReturnStatus)'
-    notes: ''
+      Monitor_Call('TransferData', DeviceNumber, Func, MemAddr, &
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BlockAddr, NoOfBlocks, ReturnStatus)
   assembly_500:
     available: false
     code: ''
@@ -72,64 +66,37 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: '```
-
+    code: |-
       LDT     DEVNO     %Logical device number.
-
       LDA     (PAR      %Load register A with address of parameter list.
-
       MON     335       %Monitor call DataTransfer.
-
       JAN     ERROR     %Error if register A is negative.
-
       ...               %Continue with processing.
-
       ERROR, ...        %Error number in register A.
-
-      ```
 
 
       | DEVNO, ... |       |
-
       |------------|-------|
-
       | PAR, FUNC  | %Function code etc. |
-
       |            | DMEM   %Memory address. |
-
       |            | BLOCK  %Block address. |
-
       |            | NOBLK  %Number of blocks to transfer. |
 
-
       | FUNC, ... |       |
-
       |-----------|-------|
-
       | DMEM, 0:0 | %These three parameters are 32-bit long. Use |
-
       | BLOCK, 0:0| %the most significant word for 16-bit parameters. |
-
       | NOBLK, 0:0| % |
 
 
-
-      ND-100 | User RT and user SYSTEM | RT programs'
+      ND-100 | User RT and user SYSTEM | RT programs
     mon_number: 335
-    notes: ''
 compatibility:
-  platforms:
-    nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
-  notes: ''
-errors:
-  returns_error: false
-  error_codes: []
-  error_reference: ''
+  nd100: false
+  nd500: true
+  user_programs: false
+  rt_programs: false
+  system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 545
@@ -141,4 +108,3 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
-  ocr_notes: ''
