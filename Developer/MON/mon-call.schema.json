@@ -1,0 +1,289 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ndinsight.com/schemas/mon-call.schema.json",
+  "title": "SINTRAN III Monitor Call",
+  "description": "Schema for SINTRAN III Monitor Call YAML files",
+  "type": "object",
+  "required": [
+    "octal",
+    "name",
+    "description",
+    "parameters",
+    "examples",
+    "compatibility",
+    "source"
+  ],
+  "properties": {
+    "octal": {
+      "type": "string",
+      "pattern": "^[0-7]+B$",
+      "description": "Octal number of the monitor call with 'B' suffix"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Za-z0-9]*$",
+      "description": "Primary name of the monitor call"
+    },
+    "short_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Alternative/abbreviated names"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Detailed description of the monitor call"
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Additional notes and warnings"
+    },
+    "see_also": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Related monitor calls and commands"
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "External documentation references"
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "type", "io", "description"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Parameter name"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "STRING",
+              "INT",
+              "INT2",
+              "INT4",
+              "LONGINT",
+              "ARR",
+              "BYTES",
+              "REAL",
+              "DOUBLE",
+              "BOOLEAN",
+              "CHAR"
+            ],
+            "description": "Parameter data type"
+          },
+          "io": {
+            "type": "string",
+            "enum": ["I", "O", "IO"],
+            "description": "Input/Output direction"
+          },
+          "description": {
+            "type": "string",
+            "description": "Parameter description"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Size in bytes/characters"
+          },
+          "implicit": {
+            "type": "boolean",
+            "description": "Whether this is an implicit return value"
+          }
+        }
+      },
+      "description": "Ordered list of parameters"
+    },
+    "examples": {
+      "type": "object",
+      "properties": {
+        "pascal": {
+          "$ref": "#/definitions/languageExample"
+        },
+        "cobol": {
+          "$ref": "#/definitions/languageExample"
+        },
+        "fortran": {
+          "$ref": "#/definitions/languageExample"
+        },
+        "planc": {
+          "$ref": "#/definitions/languageExample"
+        },
+        "assembly_500": {
+          "type": "object",
+          "required": ["available", "code"],
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "code": {
+              "type": "string"
+            },
+            "octal_definition": {
+              "type": "string",
+              "pattern": "^37B9 \\+ [0-7]+B$"
+            },
+            "notes": {
+              "type": "string"
+            }
+          }
+        },
+        "mac": {
+          "type": "object",
+          "required": ["available", "code"],
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "code": {
+              "type": "string"
+            },
+            "mon_number": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "notes": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "description": "Code examples in various languages"
+    },
+    "compatibility": {
+      "type": "object",
+      "required": ["platforms", "users", "programs"],
+      "properties": {
+        "platforms": {
+          "type": "object",
+          "properties": {
+            "nd100": {
+              "type": "boolean"
+            },
+            "nd500": {
+              "type": "boolean"
+            }
+          }
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "programs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "description": "Platform and usage compatibility information"
+    },
+    "errors": {
+      "type": "object",
+      "properties": {
+        "returns_error": {
+          "type": "boolean"
+        },
+        "error_codes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "integer"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "error_reference": {
+          "type": "string"
+        }
+      },
+      "description": "Error handling information"
+    },
+    "source": {
+      "type": "object",
+      "required": ["document", "page", "line"],
+      "properties": {
+        "document": {
+          "type": "string"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "scan_date": {
+          "type": "string"
+        },
+        "scanned_by": {
+          "type": "string"
+        }
+      },
+      "description": "Source document metadata"
+    },
+    "extraction": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "version": {
+          "type": "string"
+        },
+        "validated": {
+          "type": "boolean"
+        },
+        "ocr_corrected": {
+          "type": "boolean",
+          "description": "Whether the header was missing/corrupted and corrected"
+        }
+      },
+      "description": "Extraction process metadata"
+    }
+  },
+  "definitions": {
+    "languageExample": {
+      "type": "object",
+      "required": ["available", "code"],
+      "properties": {
+        "available": {
+          "type": "boolean",
+          "description": "Whether this language example is available"
+        },
+        "code": {
+          "type": "string",
+          "description": "Source code example"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional notes about this example"
+        }
+      }
+    }
+  }
+}

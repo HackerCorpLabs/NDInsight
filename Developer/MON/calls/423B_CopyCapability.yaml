@@ -1,0 +1,119 @@
+# SINTRAN III Monitor Call: CopyCapability
+# Octal: 423B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
+
+octal: 423B
+name: CopyCapability
+short_names: []
+description: Copies a capability for a segment. The segment itself is also copied.
+  A capability describes each logical segment in a domain.
+notes:
+- The destination segment number must be unused.
+see_also:
+- ClearCapability
+references: []
+parameters: []
+examples:
+  pascal:
+    available: true
+    code: "SourceSegNo, SourceType, DestSegNo, DestType, AccCode, RetSegNo : LONGINT;\n\
+      ...\nCopyCapability(SourceSegNo, SourceType, DestSegNo,\n               DestType,\
+      \ AccCode, RetSegNo)\nIF ErrCode <> 0 THEN ..."
+    notes: ''
+  cobol:
+    available: true
+    code: "01  SourceSegNo  COMP.\n01  SourceType   COMP.\n01  DestSegNo    COMP.\n\
+      01  DestType     COMP.\n01  AccCode      COMP.\n01  RetSegNo     COMP.\n01 \
+      \ ErrCode      COMP.\n...\nMONITOR-CALL \"CopyCapability\" USING SourceSegNo,\
+      \ SourceType,\n                             DestSegNo, DestType, AccCode, RetSegNo.\n\
+      CALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
+    notes: ''
+  fortran:
+    available: true
+    code: "INTEGER  SourceSegNo, SourceType, DestSegNo, DestType\nINTEGER  AccCode,\
+      \ RetSegNo\n...\nMonitor_Call('CopyCapability', SourceSegNo, SourceType,\n \
+      \            DestSegNo, DestType, AccCode, RetSegNo)\nIF (ErrCode .NE. 0) THEN\
+      \ ..."
+    notes: ''
+  planc:
+    available: true
+    code: 'INTEGER : SourceSegNo, SourceType, DestSegNo, DestType, AccCode, RetSegNo
+
+      ...
+
+      ON ROUTINEERROR DO
+
+      &emsp; IF ErrCode > 0 THEN ...
+
+      ENDON
+
+      Monitor_Call(''CopyCapability'', SourceSegNo, SourceType, DestSegNo, &
+
+      &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;DestType, AccCode,
+      RetSegNo)'
+    notes: ''
+  assembly_500:
+    available: true
+    code: '| Parameter     | Type   |
+
+      |---------------|--------|
+
+      | SourceSegNo   | W BLOCK 1 |
+
+      | SourceType    | W BLOCK 1 |
+
+      | DestSegNo     | W BLOCK 1 |
+
+      | DestType      | W BLOCK 1 |
+
+      | AccCode       | W BLOCK 1 |
+
+      | RetSegNo      | W BLOCK 1 |
+
+      | ErrCode       | W BLOCK 1 |
+
+
+      CopyCapability : EQU 37B9 + 423B
+
+      ...
+
+      CALLG CopyCapability, 6, SourceSegNo, SourceType, DestSegNo, &
+
+      &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;DestType, AccCode, RetSegNo
+
+
+      IF K GO ERROR
+
+      ...
+
+      ERROR : W1 =: ErrCode &emsp;&emsp;%ErrorCode in W1 register.'
+    octal_definition: 37B9 + 423B
+    notes: ''
+  mac:
+    available: false
+    code: ''
+    mon_number: null
+    notes: Not available
+compatibility:
+  platforms:
+    nd100: false
+    nd500: false
+  users: []
+  programs: []
+  notes: ''
+errors:
+  returns_error: false
+  error_codes: []
+  error_reference: ''
+source:
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 121
+  line: 5042
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
+extraction:
+  date: '2025-01-06'
+  version: '1.0'
+  validated: false
+  ocr_corrected: false
+  ocr_notes: ''
