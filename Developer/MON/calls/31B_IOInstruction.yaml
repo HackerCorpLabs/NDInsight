@@ -1,12 +1,15 @@
-# SINTRAN III Monitor Call: IOInstruction
-# Octal: 31B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 31B
 name: IOInstruction
 short_names:
 - EXIOX
-description: ''
+description: 'Executes an IOX machine instruction. The IOX instruction handles the device registers. The
+  IOX instruction must be inserted in the IOX table by the SINTRAN-SERVICE-PROGRAM command INSERT-IN-IOX-TABLE
+  first.
+
+
+  - SINTRAN III must know the device register addresses.
+
+  - This monitor call may be used in debugging of device interfaces.'
 see_also:
 - PrivInstruction
 - CAMACIOInstruction
@@ -27,62 +30,85 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      RegContents, DevRegAddr, ContentsAfter : INTEGER2;
+    code: 'RegContents, DevRegAddr, ContentsAfter : INTEGER2;
+
       ...
-      IOInstruction(RegContents, DevRegAddr, ContentsAfter);
+
+      IOInstruction(RegContents, DevRegAddr, ContentsAfter);'
   cobol:
     available: true
-    code: |-
-      01 RegContent COMP.
+    code: '01 RegContent COMP.
+
       01 DevRegAddr COMP.
+
       01 ContentAfter COMP.
+
       ...
-      MONITOR-CALL "IOInstruction" USING RegContent, DevRegAddr, ContentAfter.
+
+      MONITOR-CALL "IOInstruction" USING RegContent, DevRegAddr, ContentAfter.'
   fortran:
     available: true
-    code: |-
-      INTEGER RegContents, DevRegAddr, ContentAfter
+    code: 'INTEGER RegContents, DevRegAddr, ContentAfter
+
       ...
-      Monitor_Call('IOInstruction', RegContents, DevRegAddr, ContentAfter)
+
+      Monitor_Call(''IOInstruction'', RegContents, DevRegAddr, ContentAfter)'
   planc:
     available: true
-    code: |-
-      INTEGER : RegContents, DevRegAddr, ContentsAfter
+    code: 'INTEGER : RegContents, DevRegAddr, ContentsAfter
+
       ...
-      Monitor_Call('IOInstruction', RegContents, DevRegAddr, ContentsAfter)
+
+      Monitor_Call(''IOInstruction'', RegContents, DevRegAddr, ContentsAfter)'
   assembly_500:
     available: true
-    code: |-
-      RegContents : W BLOCK 1
+    code: 'RegContents : W BLOCK 1
+
       DevRegAddr : W BLOCK 1
+
       ContentsAfter : W BLOCK 1
+
       IOInstruction : EQU 3789 + 31B
+
       ...
+
       CALLG IOInstruction, 2, RegContents, DevRegAddr
+
       IF K GO error
+
       W1 =: ContentsAfter %Result is returned in W1 register.
+
       ...
-      Error, ...
+
+      Error, ...'
     octal_definition: 37B9 + 31B
   mac:
     available: true
-    code: |-
-      LDA (PAR %Load register A with address of parameter list.
+    code: 'LDA (PAR %Load register A with address of parameter list.
+
       MON 31 %Monitor call IOInstruction.
+
       STA STAT %Store status returned.
+
       ...
+
       STAT, 0
 
+
       | PAR, REG | %Register contents. |
+
       |----------|---------------------|
+
       | DEV      | %Device register address.  |
 
+
       REG, ...
+
       DEV, ...
 
 
-      | ND-100 and ND-500 | User RT and user SYSTEM | All programs |
+
+      | ND-100 and ND-500 | User RT and user SYSTEM | All programs |'
     mon_number: 31
 compatibility:
   nd100: true

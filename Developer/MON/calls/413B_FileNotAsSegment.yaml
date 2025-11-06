@@ -1,12 +1,14 @@
-# SINTRAN III Monitor Call: FileNotAsSegment
-# Octal: 413B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 413B
 name: FileNotAsSegment
 short_names:
 - FSCDNT
-description: ''
+description: 'Disconnects a file as a segment in your domain. FileAsSegment allows files to be accessed
+  as segments. This monitor call disconnects the file.
+
+
+  - The file is not closed.
+
+  - The file is automatically disconnected by CloseFile.'
 see_also:
 - FileAsSegment
 parameters:
@@ -21,37 +23,45 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      FileNumber, LogSegNumber: LONGINT;
+    code: 'FileNumber, LogSegNumber: LONGINT;
+
       ...
-      FileNotAsSegment(FileNumber, LogSegNumber);
+
+      FileNotAsSegment(FileNumber, LogSegNumber);'
   cobol:
     available: true
-    code: |-
-      01 FileNumber COMP.
+    code: '01 FileNumber COMP.
+
       02 LogSegNumber COMP.
+
       ...
-      MONITOR-CALL "FileNotAsSegment" USING FileNumber, LogSegNumber.
+
+      MONITOR-CALL "FileNotAsSegment" USING FileNumber, LogSegNumber.'
   fortran:
     available: true
-    code: |-
-      INTEGER FileNumber, LogSegNumber
+    code: 'INTEGER FileNumber, LogSegNumber
+
       ...
-      Monitor_Call('FileNotAsSegment', FileNumber, LogSegNumber)
+
+      Monitor_Call(''FileNotAsSegment'', FileNumber, LogSegNumber)'
   planc:
     available: true
-    code: |-
-      INTEGER : FileNumber, LogSegNumber
+    code: 'INTEGER : FileNumber, LogSegNumber
+
       ...
-      Monitor_Call('FileNotAsSegment', FileNumber, LogSegNumber)
+
+      Monitor_Call(''FileNotAsSegment'', FileNumber, LogSegNumber)'
   assembly_500:
     available: true
-    code: |-
-      FileNumber : W BLOCK 1
+    code: 'FileNumber : W BLOCK 1
+
       LogSegNumber : W BLOCK 1
+
       FileNotAsSegment : EQU 37B9 + 413B
+
       ...
-      CALLG FileNotAsSegment, 2, FileNumber, LogSegNumber
+
+      CALLG FileNotAsSegment, 2, FileNumber, LogSegNumber'
     octal_definition: 37B9 + 413B
   mac:
     available: false

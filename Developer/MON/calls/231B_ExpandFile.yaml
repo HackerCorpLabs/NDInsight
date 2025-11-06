@@ -1,12 +1,14 @@
-# SINTRAN III Monitor Call: ExpandFile
-# Octal: 231B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 231B
 name: ExpandFile
 short_names:
 - EXPFI
-description: ''
+description: 'Expands the file size. You use this monitor call to increase the size of contiguous and
+  allocated files. The space following the file on the disk must be free.
+
+
+  - Indexed files created with 0 pages may be expanded.
+
+  - Public users must have directory access to the file. User RT and SYSTEM can expand any file.'
 see_also:
 - CreateFile
 - '@EXPAND-FILE'
@@ -26,69 +28,76 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      NoOfPages : LONGINT;
+    code: 'NoOfPages : LONGINT;
+
       FileName : PACKED ARRAY [0..63] OF CHAR;
+
       ...
+
       ExpandFile(FileName, NoOfPages);
-      IF ErrCode <> 0 THEN ...
+
+      IF ErrCode <> 0 THEN ...'
   cobol:
     available: true
-    code: |-
-      01 NoOfPages COMP PIC S9(10).
+    code: '01 NoOfPages COMP PIC S9(10).
+
       01 FileName PIC X(64).
+
       01 ErrCode COMP.
+
       ...
+
       MONITOR-CALL "ExpandFile" USING FileName, NoOfPages.
+
       CALL "CbError" USING ErrCode.
-      IF ErrCode NOT = 0 GO ...
+
+      IF ErrCode NOT = 0 GO ...'
   fortran:
     available: true
-    code: |-
-      INTEGER*4 NoOfPages
+    code: 'INTEGER*4 NoOfPages
+
       CHARACTER FileName*64
+
       ...
-      Monitor_Call('ExpandFile', FileName(1:64), NoOfPages)
-      IF (ErrCode .NE. 0) THEN ...
+
+      Monitor_Call(''ExpandFile'', FileName(1:64), NoOfPages)
+
+      IF (ErrCode .NE. 0) THEN ...'
   planc:
     available: true
-    code: |-
-      INTEGER4 : NoOfPages
-      BYTES : FileName(0:63)
-      ...
-      ON ROUTINEERROR DO
-          IF ErrCode >‹ O THEN ...
-      ENDON
-      Monitor_Call('ExpandFile', FileName, NoOfPages)
+    code: "INTEGER4 : NoOfPages\nBYTES : FileName(0:63)\n...\nON ROUTINEERROR DO\n    IF ErrCode >‹ O\
+      \ THEN ...\nENDON\nMonitor_Call('ExpandFile', FileName, NoOfPages)"
   assembly_500:
     available: true
-    code: |-
-      NoOfPages : W BLOCK 1
-      FileName : STRING 64
-      ErrCode : W BLOCK 1
-      ExpandFile : EQU 37B9 + 231B
-      ...
-          CALLG ExpandFile, 2, FileName, NoOfPages
-          IF K GO ERROR
-          ...
-      ERROR : W1 =: ErrCode          %ErrorCode in W1 register.
+    code: "NoOfPages : W BLOCK 1\nFileName : STRING 64\nErrCode : W BLOCK 1\nExpandFile : EQU 37B9 + 231B\n\
+      ...\n    CALLG ExpandFile, 2, FileName, NoOfPages\n    IF K GO ERROR\n    ...\nERROR : W1 =: ErrCode\
+      \          %ErrorCode in W1 register."
     octal_definition: 37B9 + 231B
   mac:
     available: true
-    code: |-
-      LDX    (FILE    %Address of file name string.
+    code: 'LDX    (FILE    %Address of file name string.
+
       LDT    (PAGES   %Address of double word with number of pages.
+
       MON    231      %Monitor call ExpandFile.
+
       JMP    ERROR    %Error return from monitor call.
+
       ...             %Normal return.
+
       ERROR, ...      %Error number in register A.
+
       ...
-      FILE,  'EXAMPLE:SYMB'  %File name.
+
+      FILE,  ''EXAMPLE:SYMB''  %File name.
+
       PAGES, ...             %A double word.
+
       ...                    %
 
 
-      | ND-100 and ND-500 | All users | All programs |
+
+      | ND-100 and ND-500 | All users | All programs |'
     mon_number: 231
 compatibility:
   nd100: true

@@ -1,12 +1,22 @@
-# SINTRAN III Monitor Call: OutString
-# Octal: 162B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 162B
 name: OutString
 short_names:
 - OUTST
-description: ''
+description: 'Writes a string of characters to a peripheral file, e.g., a terminal or a printer.
+
+
+  - You cannot use this monitor call for mass-storage files.
+
+  - The output buffer of the device may be too small. Then the program waits until the required buffer
+  space becomes available.
+
+  - Parameters are fetched and returned through the alternative page table.
+
+  - The maximum string length is 2048 bytes (as in OutputString).
+
+  - For performance reasons, it is inadvisable to use this call from the ND-500(0). Use OutputString instead.
+
+  - Appendix F contains an ASCII table.'
 see_also:
 - OutMessage
 - OutUpTo8Bytes
@@ -36,69 +46,99 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      DeviceNo, NoOfBytes, ReturnStatus : INTEGER2;
+    code: 'DeviceNo, NoOfBytes, ReturnStatus : INTEGER2;
+
       TextWrite : PACKED ARRAY [0..79] OF CHAR;
+
       ...
-      OutString(DeviceNo, TextWrite, NoOfBytes, ReturnStatus);
+
+      OutString(DeviceNo, TextWrite, NoOfBytes, ReturnStatus);'
   cobol:
     available: true
-    code: |-
-      01 DevNo COMP.
+    code: '01 DevNo COMP.
+
       01 NoOfBytes COMP.
+
       01 RetStatus COMP.
+
       01 TextWrite PIC X(100).
+
       ...
-      MONITOR-CALL "OutString" USING DevNo, TextWrite, NoOfBytes, RetStatus.
+
+      MONITOR-CALL "OutString" USING DevNo, TextWrite, NoOfBytes, RetStatus.'
   fortran:
     available: true
-    code: |-
-      INTEGER DeviceNo, NoOfBytes, RetStatus
+    code: 'INTEGER DeviceNo, NoOfBytes, RetStatus
+
       CHARACTER TextWrite*80
+
       ...
-      Monitor_Call('OutString', DeviceNo, TextWrite(1:80), NoOfBytes, RetStatus)
+
+      Monitor_Call(''OutString'', DeviceNo, TextWrite(1:80), NoOfBytes, RetStatus)'
   planc:
     available: true
-    code: |-
-      INTEGER : DeviceNo, NoOfBytes, ReturnStatus
+    code: 'INTEGER : DeviceNo, NoOfBytes, ReturnStatus
+
       BYTES : TextWrite(0:79)
+
       ...
-      Monitor_Call('OutString', DeviceNo, TextWrite, NoOfBytes, ReturnStatus)
+
+      Monitor_Call(''OutString'', DeviceNo, TextWrite, NoOfBytes, ReturnStatus)'
   assembly_500:
     available: true
-    code: |-
-      DeviceNo : W BLOCK 1
-      TextWrite : STRINGDATA 'This is a text...'
+    code: 'DeviceNo : W BLOCK 1
+
+      TextWrite : STRINGDATA ''This is a text...''
+
       ReturnStatus : W BLOCK 1
+
       OutString : EQU 37B9 + 162B
+
       ...
+
       CALLG OutString, 2, DeviceNo, TextWrite
+
       IF K GO Error
+
       W1 := ReturnStatus      % Status is returned in W1
+
       ...
+
       Error, ...
-      register.
+
+      register.'
     octal_definition: 37B9 + 162B
   mac:
     available: true
-    code: |-
-      LOA (PAR         % Load register A with address of parameter list.
+    code: 'LOA (PAR         % Load register A with address of parameter list.
+
       MON 162          % Monitor call OutString.
+
       STA STAT         % Store status returned.
-      ...
-      STAT, 0
-      PAR, DEVNO       % Logical device number.
-      TEXT             % String to be written.
-      COUNT            % Number of characters to be written.
+
       ...
 
+      STAT, 0
+
+      PAR, DEVNO       % Logical device number.
+
+      TEXT             % String to be written.
+
+      COUNT            % Number of characters to be written.
+
+      ...
+
+
       DEVNO, ...
-      TEXT, 'THIS IS A TEST'
+
+      TEXT, ''THIS IS A TEST''
+
       COUNT, 16        % Write 14 characters.
 
 
 
-      | ND-100 and ND-500 | All users | All programs |
+
+      | ND-100 and ND-500 | All users | All programs |'
     mon_number: 162
 compatibility:
   nd100: true

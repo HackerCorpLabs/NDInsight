@@ -1,12 +1,18 @@
-# SINTRAN III Monitor Call: SegmentToPageTable
-# Octal: 157B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 157B
 name: SegmentToPageTable
 short_names:
 - ENTSG
-description: ''
+description: 'Enters a routine as a direct task or as a device driver, and "remembers" which segments
+  have been entered (up to 24 segments). These are reentered at restart following a power failure. The
+  routines are connected to the interrupt system. They are loaded with the RT LOADER or by DMAC.
+
+
+  - The segment where the routine resides must be fixed in memory. See FixScattered.
+
+  - The segments can be removed from the selected PIT by using function 4 of ChangeActiveSegments (MON
+  341).
+
+  - Unfixing the segment (using UnFixSegment, MON 116), removes it from the Page Index Table.'
 see_also:
 - '@ENTSEG'
 parameters:
@@ -63,64 +69,80 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      SegmentNo, PageTable, InterruptLevel, StartAddr : INTEGER2;
+    code: 'SegmentNo, PageTable, InterruptLevel, StartAddr : INTEGER2;
+
       ... [Note routine name.]
-      EnterSegment(SegmentNo, PageTable, InterruptLevel);
+
+      EnterSegment(SegmentNo, PageTable, InterruptLevel);'
   cobol:
     available: true
-    code: |-
-      01 SegmentNo COMP.
-      01 PageTable COMP.
-      01 InterruptLevel COMP.
-      01 StartAddress COMP.
-      ...
-      MONITOR-CALL "SegmentToPageTable" USING SegmentNo, PageTable,
-                   InterruptLevel, StartAddress.
+    code: "01 SegmentNo COMP.\n01 PageTable COMP.\n01 InterruptLevel COMP.\n01 StartAddress COMP.\n...\n\
+      MONITOR-CALL \"SegmentToPageTable\" USING SegmentNo, PageTable,\n             InterruptLevel, StartAddress."
   fortran:
     available: true
-    code: |-
-      INTEGER SegmentNo, PageTable
+    code: 'INTEGER SegmentNo, PageTable
+
       INTEGER InterLevel, StartAddress
+
       ...
-      Monitor_Call('SegmentToPageTable', SegmentNo, PageTable,
-      C            InterLevel, StartAddress)
+
+      Monitor_Call(''SegmentToPageTable'', SegmentNo, PageTable,
+
+      C            InterLevel, StartAddress)'
   planc:
     available: true
-    code: |-
-      INTEGER : SegNo, PageTable, InterruptLevel, StartAddress
+    code: 'INTEGER : SegNo, PageTable, InterruptLevel, StartAddress
+
       ...
-      Monitor_Call('SegmentToPageTable', SegNo, PageTable, &
-      InterruptLevel, StartAddress)
+
+      Monitor_Call(''SegmentToPageTable'', SegNo, PageTable, &
+
+      InterruptLevel, StartAddress)'
   assembly_500:
     available: true
-    code: |-
-      SegNo : W BLOCK 1
+    code: 'SegNo : W BLOCK 1
+
       PageTable : W BLOCK 1
+
       InterLevel : W BLOCK 1
+
       StartAddr : W BLOCK 1
+
       SegmentToPageTable : EQU 37B9 + 157B
+
       ...
-      CALLG SegmentToPageTable, 4, SegNo, PageTable, InterLevel, StartAddr
+
+      CALLG SegmentToPageTable, 4, SegNo, PageTable, InterLevel, StartAddr'
     octal_definition: 37B9 + 157B
   mac:
     available: true
-    code: |-
-      LDA (PAR %Load register A with address of parameter list.
+    code: 'LDA (PAR %Load register A with address of parameter list.
+
       MON 157 %Monitor call SegmentToPageTable.
+
       ...
+
       PAR, SEG %The segment where the routine resides.
+
       PAGE %Page table to be used.
+
       INTR %Interrupt level where the direct task will run.
+
       ENTRY %Entry point, start address of direct task.
+
       ...
+
       SEG, ...
+
       PAGE, ...
+
       INTR, ...
+
       ENTRY, ...
 
 
-      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
+
+      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'
     mon_number: 157
 compatibility:
   nd100: true

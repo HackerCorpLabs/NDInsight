@@ -1,12 +1,13 @@
-# SINTRAN III Monitor Call: EnableEscape
-# Octal: 72B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 72B
 name: EnableEscape
 short_names:
 - EESCF
-description: ''
+description: 'Enables the ESCAPE key on the terminal. The ESCAPE key normally terminates a program. This
+  is called user break. You can disable this key with DisableEscape. To enable it again you should use
+  EnableEscape.
+
+
+  - The escape function is enabled when you log out.'
 see_also:
 - DisableEscape
 - SetEscapeHandling
@@ -20,48 +21,60 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      DeviceNumber : INTEGER2;
+    code: 'DeviceNumber : INTEGER2;
+
       ...
-      EscapeEnable(DeviceNumber); [Note routine name.]
+
+      EscapeEnable(DeviceNumber); [Note routine name.]'
   cobol:
     available: true
-    code: |-
-      01 DeviceNumber COMP.
+    code: '01 DeviceNumber COMP.
+
       ...
-      MONITOR-CALL "EnableEscape" USING DeviceNumber.
+
+      MONITOR-CALL "EnableEscape" USING DeviceNumber.'
   fortran:
     available: true
-    code: |-
-      INTEGER DeviceNumber
+    code: 'INTEGER DeviceNumber
+
       ...
-      Monitor_Call('EnableEscape', DeviceNumber)
+
+      Monitor_Call(''EnableEscape'', DeviceNumber)'
   planc:
     available: true
-    code: |-
-      INTEGER : DeviceNumber
+    code: 'INTEGER : DeviceNumber
+
       ...
-      Monitor_Call('EnableEscape', DeviceNumber)
+
+      Monitor_Call(''EnableEscape'', DeviceNumber)'
   assembly_500:
     available: true
-    code: |-
-      DeviceNumber : W BLOCK 1
+    code: 'DeviceNumber : W BLOCK 1
+
       EnableEscape : EQU 37B9 + 72B
+
       ...
+
       CALLG EnableEscape, 1, DeviceNumber
+
       IF K GO Error
+
       ...
-      Error,
+
+      Error,'
     octal_definition: 37B9 + 72B
   mac:
     available: true
-    code: |-
-      | LDT | DEVNO | %Logical device number. |
+    code: '| LDT | DEVNO | %Logical device number. |
+
       | MON | 72    | %Monitor call EnableEscape. |
+
       | ... |       |                             |
+
       | DEVNO, ...  |                             |
 
-      | ND-100 and ND-500 | All users | All programs |
+
+      | ND-100 and ND-500 | All users | All programs |'
     mon_number: null
 compatibility:
   nd100: false

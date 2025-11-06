@@ -1,12 +1,8 @@
-# SINTRAN III Monitor Call: GETINREGISTERS
-# Octal: 165B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 165B
 name: GETINREGISTERS
 short_names:
 - DIW
-description: ''
+description: Reads the device interface registers.
 see_also: []
 parameters: []
 examples: {}

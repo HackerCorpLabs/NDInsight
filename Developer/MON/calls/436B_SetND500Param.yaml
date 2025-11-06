@@ -1,12 +1,13 @@
-# SINTRAN III Monitor Call: SetND500Param
-# Octal: 436B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 436B
 name: SetND500Param
 short_names:
 - 5PASET
-description: ''
+description: 'Sets information about an ND-500 program. Use GetND500Param to read the 5 parameters when
+  a program is terminated.
+
+
+  - SINTRAN III sets some of the parameter values if you give the command @ENABLE-TERMINATION-HANDLING
+  first.'
 see_also:
 - TerminationHandling
 - GetUserParam
@@ -37,43 +38,45 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      Buffer : RECORD...END;
+    code: 'Buffer : RECORD...END;
+
       ...
-      SetND500Param(Buffer);
+
+      SetND500Param(Buffer);'
   cobol:
     available: true
-    code: |-
-      01 Buffer.
-         02 array COMP OCCURS 5 TIMES.
-         ...
-         MONITOR-CALL "SetND500Param" USING Buffer.
+    code: "01 Buffer.\n   02 array COMP OCCURS 5 TIMES.\n   ...\n   MONITOR-CALL \"SetND500Param\" USING\
+      \ Buffer."
   fortran:
     available: true
-    code: |-
-      INTEGER Buffer(5)
+    code: 'INTEGER Buffer(5)
+
       ...
-      Monitor_Call('SetND500Param', Buffer(1))
+
+      Monitor_Call(''SetND500Param'', Buffer(1))'
   planc:
     available: true
-    code: |-
-      INTEGER ARRAY : Buffer(0:4)
+    code: 'INTEGER ARRAY : Buffer(0:4)
+
       ...
-      Monitor_Call('SetND500Param', Buffer(0))
+
+      Monitor_Call(''SetND500Param'', Buffer(0))'
   assembly_500:
     available: true
-    code: |-
-      Buffer : W BLOCK 5
+    code: 'Buffer : W BLOCK 5
+
       SetND500Param : EQU 37B9 + 436B
+
       ...
-      CALLG SetND500Param, 1, Buffer
+
+      CALLG SetND500Param, 1, Buffer'
     octal_definition: 37B9 + 436B
   mac:
     available: true
-    code: |-
-      This monitor call is not available on the ND-100. See SetUserParam.
+    code: 'This monitor call is not available on the ND-100. See SetUserParam.
 
-      | ND-500 | All users | All programs |
+
+      | ND-500 | All users | All programs |'
     mon_number: null
 compatibility:
   nd100: false

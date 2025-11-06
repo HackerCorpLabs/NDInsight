@@ -1,12 +1,9 @@
-# SINTRAN III Monitor Call: SaveSegment
-# Octal: 164B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 164B
 name: SaveSegment
 short_names:
 - WSEG
-description: ''
+description: Saves a segment in the ND-100. All pages in physical memory which have been changed, are
+  written back to the disk.
 see_also:
 - SaveND500Segment
 parameters:
@@ -17,50 +14,63 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      SegmentNumber : INTEGER2;
+    code: 'SegmentNumber : INTEGER2;
+
       ...
-      SaveSegment(SegmentNumber);
+
+      SaveSegment(SegmentNumber);'
   cobol:
     available: true
-    code: |-
-      01 SegmentNumber COMP.
+    code: '01 SegmentNumber COMP.
+
       ...
-      MONITOR-CALL "SaveSegment" USING SegmentNumber.
+
+      MONITOR-CALL "SaveSegment" USING SegmentNumber.'
   fortran:
     available: true
-    code: |-
-      INTEGER SegmentNumber
+    code: 'INTEGER SegmentNumber
+
       ...
-      Monitor_Call('SaveSegment', SegmentNumber)
+
+      Monitor_Call(''SaveSegment'', SegmentNumber)'
   planc:
     available: true
-    code: |-
-      INTEGER : SegmentNumber
+    code: 'INTEGER : SegmentNumber
+
       ...
-      Monitor_Call('SaveSegment', SegmentNumber)
+
+      Monitor_Call(''SaveSegment'', SegmentNumber)'
   assembly_500:
     available: true
-    code: |-
-      SegmentNumber : W BLOCK 1
+    code: 'SegmentNumber : W BLOCK 1
+
       SaveSegment : EQU 3789 + 164B
+
       ...
-      CALLG SaveSegment, 1, SegmentNumber
+
+      CALLG SaveSegment, 1, SegmentNumber'
     octal_definition: 37B9 + 164B
   mac:
     available: true
-    code: |-
-      | Instruction |  | Comment |
+    code: '| Instruction |  | Comment |
+
       |-------------|--|---------|
+
       | LDA | {PAR | %Load register A with address of parameter list. |
+
       | MON | 164 | %Monitor call SaveSegment. |
+
       | ... | | |
+
       | PAR, SEGNO | | %Segment number. |
+
       | ... | | |
+
       | SEGNO, ... | | |
 
 
-      | ND-100 and ND-500 | All users | All programs |
+
+      | ND-100 and ND-500 | All users | All programs |'
     mon_number: null
 compatibility:
   nd100: true

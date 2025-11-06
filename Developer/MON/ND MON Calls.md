@@ -22,82 +22,82 @@
 | [0B](#0b-exitfromprogram-leave) | [ExitFromProgram](#0b-exitfromprogram-leave) | LEAVE | Terminates the program. Returns to SINTRAN III. Batch jobs c... |
 | [1B](#1b-inbyte-inbt) | [InByte](#1b-inbyte-inbt) | INBT | Reads one byte from a character device, e.g. a terminal or a... |
 | [2B](#2b-outbyte-outbt) | [OutByte](#2b-outbyte-outbt) | OUTBT | Writes one byte to a character device, e.g. a terminal or an... |
-| [3B](#3b-setecho-echom) | [SetEcho](#3b-setecho-echom) | ECHOM | ... |
+| [3B](#3b-setecho-echom) | [SetEcho](#3b-setecho-echom) | ECHOM | When you press a key on the terminal, a character is normall... |
 | [4B](#4b-setbreak-brkm) | [SetBreak](#4b-setbreak-brkm) | BRKM | Sets the break characters for a terminal. Normally, a progra... |
 | [5B](#5b-readscratchfile-rdisk) | [ReadScratchFile](#5b-readscratchfile-rdisk) | RDISK | Reads randomly from the scratch file. One block is transferr... |
 | [6B](#6b-writescratchfile-wdisk) | [WRITESCRATCHFILE](#6b-writescratchfile-wdisk) | WDISK | Writes randomly to the scratch file. One block is transferre... |
 | [7B](#7b-readblock-rpage) | [ReadBlock](#7b-readblock-rpage) | RPAGE | Reads randomly from a file. You read one block at a time. Th... |
 | [10B](#10b-writeblock-wpage) | [WriteBlock](#10b-writeblock-wpage) | WPAGE | Writes randomly to a file. You write one block at a time. Th... |
-| [11B](#11b-getbasictime-time) | [GetBasicTime](#11b-getbasictime-time) | TIME | ... |
+| [11B](#11b-getbasictime-time) | [GetBasicTime](#11b-getbasictime-time) | TIME | **Time**... |
 | [12B](#12b-setcommandbuffer-setcm) | [SetCommandBuffer](#12b-setcommandbuffer-setcm) | SETCM | Transfers a string to the command buffer. The command buffer... |
 | [13B](#13b-clearinbuffer-cibuf) | [ClearInBuffer](#13b-clearinbuffer-cibuf) | CIBUF | Clears a device input buffer. Input from character devices, ... |
 | [14B](#14b-clearoutbuffer-cobuf) | [CLEAROUTBUFFER](#14b-clearoutbuffer-cobuf) | COBUF | Clears a device output buffer. Output to character devices, ... |
-| [16B](#16b-getterminaltype-mgtty) | [GetTerminalType](#16b-getterminaltype-mgtty) | MGTTY | ... |
-| [17B](#17b-setterminaltype-mstty) | [SetTerminalType](#17b-setterminaltype-mstty) | MSTTY | ... |
-| [21B](#21b-inupto8bytes-m8inb) | [InUpTo8Bytes](#21b-inupto8bytes-m8inb) | M8INB | ... |
+| [16B](#16b-getterminaltype-mgtty) | [GetTerminalType](#16b-getterminaltype-mgtty) | MGTTY | Gets the terminal type. The terminal type tells SINTRAN III ... |
+| [17B](#17b-setterminaltype-mstty) | [SetTerminalType](#17b-setterminaltype-mstty) | MSTTY | Sets the type of a terminal. The terminal type tells SINTRAN... |
+| [21B](#21b-inupto8bytes-m8inb) | [InUpTo8Bytes](#21b-inupto8bytes-m8inb) | M8INB | See also In8Bytes, InByte, InString, In4x2Bytes, and Out8Byt... |
 | [22B](#22b-outupto8bytes-m8out) | [OutUpTo8Bytes](#22b-outupto8bytes-m8out) | M8OUT | Writes up to 8 characters to a device, e.g. a terminal or an... |
 | [23B](#23b-in8bytes-b8inb) | [In8Bytes](#23b-in8bytes-b8inb) | B8INB | Reads 8 bytes from a device. The input is fast, but the moni... |
 | [24B](#24b-out8bytes-b8out) | [Out8Bytes](#24b-out8bytes-b8out) | B8OUT | Writes 8 bytes to a character device, e.g. a terminal. All 8... |
 | [26B](#26b-getlastbyte-lastc) | [GetLastByte](#26b-getlastbyte-lastc) | LASTC | Gets the last character typed on a terminal. The monitor cal... |
 | [27B](#27b-getrtdescr-rtdsc) | [GetRTDescr](#27b-getrtdescr-rtdsc) | RTDSC | Reads an RT description. The RT description contains various... |
 | [30B](#30b-getownrtaddress-getrt) | [GetOwnRTAddress](#30b-getownrtaddress-getrt) | GETRT | Gets the address of the calling program's RT description. Ba... |
-| [31B](#31b-ioinstruction-exiox) | [IOInstruction](#31b-ioinstruction-exiox) | EXIOX | ... |
+| [31B](#31b-ioinstruction-exiox) | [IOInstruction](#31b-ioinstruction-exiox) | EXIOX | Executes an IOX machine instruction. The IOX instruction han... |
 | [32B](#32b-outmessage-msg) | [OutMessage](#32b-outmessage-msg) | MSG | Writes a message to the user's terminal. This is convenient ... |
 | [33B](#33b-altpagetable-alton) | [ALTPAGETABLE](#33b-altpagetable-alton) | ALTON | Switches page table. Each page table allows you to access 12... |
 | [34B](#34b-normalpagetable-altoff) | [NormalPageTable](#34b-normalpagetable-altoff) | ALTOFF | **ALTOFF** Sets the alternative page table equal to the norm... |
-| [35B](#35b-outnumber-iout) | [OutNumber](#35b-outnumber-iout) | IOUT | ... |
+| [35B](#35b-outnumber-iout) | [OutNumber](#35b-outnumber-iout) | IOUT | Writes a number to the user's terminal. The number can be ou... |
 | [36B](#36b-nowaitswitch-nowt) | [NoWaitSwitch](#36b-nowaitswitch-nowt) | NOWT | Switches No Wait on and off. No Wait is useful for input fro... |
 | [37B](#37b-readadchannel-airdw) | [ReadADChannel](#37b-readadchannel-airdw) | AIRDW | Reads an analog to digital channel.... |
-| [40B](#40b-closespoolingfile-spclo) | [CloseSpoolingFile](#40b-closespoolingfile-spclo) | SPCLO | ... |
-| [41B](#41b-readobjectentry-robje) | [ReadObjectEntry](#41b-readobjectentry-robje) | ROBJE | ... |
+| [40B](#40b-closespoolingfile-spclo) | [CloseSpoolingFile](#40b-closespoolingfile-spclo) | SPCLO | Appends an opened file to a spooling queue. You specify a te... |
+| [41B](#41b-readobjectentry-robje) | [ReadObjectEntry](#41b-readobjectentry-robje) | ROBJE | Gets information about an opened file. An object entry descr... |
 | [43B](#43b-closefile-close) | [CloseFile](#43b-closefile-close) | CLOSE | Closes one or more files. Files must be opened before they a... |
 | [44B](#44b-getuserentry-ruser) | [GetUserEntry](#44b-getuserentry-ruser) | RUSER | Gets information about a user. The user entry in the directo... |
 | [50B](#50b-openfile-open) | [OpenFile](#50b-openfile-open) | OPEN | Opens a file. You cannot access a file before you open it. S... |
 | [52B](#52b-terminalmode-termo) | [TerminalMode](#52b-terminalmode-termo) | TERMO | Selects various terminal functions. You may stop output on f... |
 | [53B](#53b-getsegmententry-rsegm) | [GetSegmentEntry](#53b-getsegmententry-rsegm) | RSEGM | Gets information about a segment in the ND-100. The monitor ... |
-| [54B](#54b-deletefile-mdlfi) | [DeleteFile](#54b-deletefile-mdlfi) | MDLFI | ... |
+| [54B](#54b-deletefile-mdlfi) | [DeleteFile](#54b-deletefile-mdlfi) | MDLFI | Deletes a file. The pages of the file are released.... |
 | [55B](#55b-getspoolingentry-rsqpe) | [GetSpoolingEntry](#55b-getspoolingentry-rsqpe) | RSQPE | Gets the next spooling queue entry, that is, the next file t... |
 | [56B](#56b-setuserparam-paset) | [SetUserParam](#56b-setuserparam-paset) | PASET | Sets information about a background program. Use GetUserPara... |
-| [57B](#57b-getuserparam-pagei) | [GetUserParam](#57b-getuserparam-pagei) | PAGEI | ... |
+| [57B](#57b-getuserparam-pagei) | [GetUserParam](#57b-getuserparam-pagei) | PAGEI | Gets information about why the last program terminated. Ther... |
 | [61B](#61b-memoryallocation-fixcs) | [MemoryAllocation](#61b-memoryallocation-fixcs) | FIXCS | Fixes or unfixes ND-100 segments to be used by the ND-500 Mo... |
 | [62B](#62b-getbytesinfile-rmax) | [GETBYTESINFILE](#62b-getbytesinfile-rmax) | RMAX | Gets the number of bytes in a file. Only the bytes containin... |
-| [63B](#63b-in4x2bytes-b41nw) | [In4x2Bytes](#63b-in4x2bytes-b41nw) | B41NW | ... |
-| [64B](#64b-warningmessage-ermsg) | [WarningMessage](#64b-warningmessage-ermsg) | ERMSG | ... |
+| [63B](#63b-in4x2bytes-b41nw) | [In4x2Bytes](#63b-in4x2bytes-b41nw) | B41NW | Reads 8 bytes from a word-oriented or character-oriented dev... |
+| [64B](#64b-warningmessage-ermsg) | [WarningMessage](#64b-warningmessage-ermsg) | ERMSG | Outputs a file system error message. Appendix A shows the me... |
 | [65B](#65b-errormessage-qerms) | [ErrorMessage](#65b-errormessage-qerms) | QERMS | Displays a file system error message. Appendix A shows the m... |
-| [66B](#66b-inbufferspace-isize) | [InBufferSpace](#66b-inbufferspace-isize) | ISIZE | ... |
-| [67B](#67b-outbufferspace-osize) | [OutBufferSpace](#67b-outbufferspace-osize) | OSIZE | ... |
+| [66B](#66b-inbufferspace-isize) | [InBufferSpace](#66b-inbufferspace-isize) | ISIZE | Gets the current number of bytes in the input buffer. Termin... |
+| [67B](#67b-outbufferspace-osize) | [OutBufferSpace](#67b-outbufferspace-osize) | OSIZE | Gets the number of free bytes in the output buffer (number o... |
 | [70B](#70b-callcommand-commnd) | [CallCommand](#70b-callcommand-commnd) | COMMND | Executes a SINTRAN III command from a program. The program t... |
 | [71B](#71b-disableescape-descf) | [DISABLEESCAPE](#71b-disableescape-descf) | DESCF | The ESCAPE key on the terminal normally terminates a program... |
-| [72B](#72b-enableescape-eescf) | [EnableEscape](#72b-enableescape-eescf) | EESCF | ... |
+| [72B](#72b-enableescape-eescf) | [EnableEscape](#72b-enableescape-eescf) | EESCF | Enables the ESCAPE key on the terminal. The ESCAPE key norma... |
 | [73B](#73b-setmaxbytes-smax) | [SetMaxBytes](#73b-setmaxbytes-smax) | SMAX | Sets the value of the maximum byte pointer in an opened file... |
 | [74B](#74b-setstartbyte-setbt) | [SetStartByte](#74b-setstartbyte-setbt) | SETBT | Sets the next byte to be read or written in an opened mass-s... |
 | [75B](#75b-getstartbyte-reabt) | [GetStartByte](#75b-getstartbyte-reabt) | REABT | Gets the number of the next byte to access in a file. The by... |
-| [76B](#76b-setblocksize-setbs) | [SetBlockSize](#76b-setblocksize-setbs) | SETBS | ... |
+| [76B](#76b-setblocksize-setbs) | [SetBlockSize](#76b-setblocksize-setbs) | SETBS | Sets the block size of an opened file. Monitor calls which r... |
 | [77B](#77b-setstartblock-setbl) | [SetStartBlock](#77b-setstartblock-setbl) | SETBL | Sets the next block to be read or written in an opened file.... |
 | [100B](#100b-startrtprogram-rt) | [StartRTProgram](#100b-startrtprogram-rt) | RT | Starts an RT program. The program is moved to the execution ... |
-| [101B](#101b-delaystart-set) | [DelayStart](#101b-delaystart-set) | SET | ... |
+| [101B](#101b-delaystart-set) | [DelayStart](#101b-delaystart-set) | SET | Starts an RT program after a specified time. The RT program ... |
 | [102B](#102b-startuptime-abset) | [StartupTime](#102b-startuptime-abset) | ABSET | Starts an RT program at a specified time of the day. The RT ... |
 | [103B](#103b-startupinterval-intv) | [STARTUPINTERVAL](#103b-startupinterval-intv) | INTV | Prepares an RT program for periodic execution. The interval ... |
 | [104B](#104b-suspendprogram-hold) | [SuspendProgram](#104b-suspendprogram-hold) | HOLD | Suspends the execution of your program for a given time. The... |
-| [105B](#105b-stoprtprogram-abort) | [StopRTProgram](#105b-stoprtprogram-abort) | ABORT | ... |
-| [106B](#106b-startoninterrupt-conct) | [StartOnInterrupt](#106b-startoninterrupt-conct) | CONCT | ... |
+| [105B](#105b-stoprtprogram-abort) | [StopRTProgram](#105b-stoprtprogram-abort) | ABORT | Stops an RT program. It is removed from the time or executio... |
+| [106B](#106b-startoninterrupt-conct) | [StartOnInterrupt](#106b-startoninterrupt-conct) | CONCT | StartOnInterrupt connects an RT program to interrupts from a... |
 | [107B](#107b-nointerruptstart-dscnt) | [NoInterruptStart](#107b-nointerruptstart-dscnt) | DSCNT | StartOnInterrupt connects an RT program to interrupts from a... |
 | [110B](#110b-setrtpriority-prior) | [SetRTPriority](#110b-setrtpriority-prior) | PRIOR | Sets the priority of an RT program. RT programs may be given... |
 | [111B](#111b-setclock-updat) | [SetClock](#111b-setclock-updat) | UPDAT | Gives new values to the computer's clock and calendar. If th... |
-| [112B](#112b-adjustclock-cladj) | [AdjustClock](#112b-adjustclock-cladj) | CLADJ | ... |
+| [112B](#112b-adjustclock-cladj) | [AdjustClock](#112b-adjustclock-cladj) | CLADJ | Sets the computer's clock (i.e. the current system time) for... |
 | [113B](#113b-getcurrenttime-clock) | [GetCurrentTime](#113b-getcurrenttime-clock) | CLOCK | Gets the current system time and date.... |
-| [114B](#114b-gettimeused-tused) | [GetTimeUsed](#114b-gettimeused-tused) | TUSED | ... |
-| [115B](#115b-fixscattered-fix) | [FixScattered](#115b-fixscattered-fix) | FIX | ... |
+| [114B](#114b-gettimeused-tused) | [GetTimeUsed](#114b-gettimeused-tused) | TUSED | Gets the time you have used the CPU since you logged in. In ... |
+| [115B](#115b-fixscattered-fix) | [FixScattered](#115b-fixscattered-fix) | FIX | Place a segment in physical memory. Its pages will no longer... |
 | [116B](#116b-unfixsegment-unfix) | [UnfixSegment](#116b-unfixsegment-unfix) | UNFIX | Releases a fixed segment and removes it from the Page Index ... |
-| [117B](#117b-readfromfile-rfile) | [ReadFromFile](#117b-readfromfile-rfile) | RFILE | ... |
+| [117B](#117b-readfromfile-rfile) | [ReadFromFile](#117b-readfromfile-rfile) | RFILE | Reads any number of bytes from a file. The read operation mu... |
 | [120B](#120b-writetofile-wfile) | [WriteToFile](#120b-writetofile-wfile) | WFILE | Writes any number of bytes to a file. The read operation mus... |
 | [121B](#121b-awaitfiletransfer-waitf) | [AwaitFileTransfer](#121b-awaitfiletransfer-waitf) | WAITF | Checks that a data transfer to or from a mass-storage file i... |
-| [122B](#122b-reserveresource-resrv) | [ReserveResource](#122b-reserveresource-resrv) | RESRV | ... |
+| [122B](#122b-reserveresource-resrv) | [ReserveResource](#122b-reserveresource-resrv) | RESRV | Reserves a device or file for your program only. You release... |
 | [123B](#123b-releaseresource-reles) | [ReleaseResource](#123b-releaseresource-reles) | RELES | Releases a reserved device or file. The resource can then be... |
-| [124B](#124b-forcereserve-prsrv) | [ForceReserve](#124b-forcereserve-prsrv) | PRSRV | ... |
+| [124B](#124b-forcereserve-prsrv) | [ForceReserve](#124b-forcereserve-prsrv) | PRSRV | Reserves a device for an RT program other than that which is... |
 | [125B](#125b-forcerelease-prlrs) | [ForceRelease](#125b-forcerelease-prlrs) | PRLRS | Releases a device reserved by an RT program other than that ... |
-| [126B](#126b-exactdelaystart-dset) | [ExactDelayStart](#126b-exactdelaystart-dset) | DSET | ... |
-| [127B](#127b-exactstartup-dabst) | [ExactStartup](#127b-exactstartup-dabst) | DABST | ... |
+| [126B](#126b-exactdelaystart-dset) | [ExactDelayStart](#126b-exactdelaystart-dset) | DSET | Sets an RT program to start after a given period. It is then... |
+| [127B](#127b-exactstartup-dabst) | [ExactStartup](#127b-exactstartup-dabst) | DABST | Starts an RT program at a specific time. The time is given i... |
 | [130B](#130b-exactinterval-dintv) | [ExactInterval](#130b-exactinterval-dintv) | DINTV | Prepares an RT program for periodic execution. The interval ... |
 | [131B](#131b-datatransfer-abstr) | [DataTransfer](#131b-datatransfer-abstr) | ABSTR | Transfers data between physical memory and a mass-storage de... |
 | [132B](#132b-jumptosegment-mcall) | [JumpToSegment](#132b-jumptosegment-mcall) | MCALL | Calls a routine on another segment in the ND-100. You can di... |
@@ -105,26 +105,26 @@
 | [134B](#134b-exitrtprogram-rtext) | [ExitRTProgram](#134b-exitrtprogram-rtext) | RTEXT | Terminates the calling RT or background program. Releases al... |
 | [135B](#135b-waitforrestart-rtwt) | [WAITFORRESTART](#135b-waitforrestart-rtwt) | RTWT | Sets the RT program in a waiting state. It is restarted by S... |
 | [136B](#136b-enablertstart-rton) | [EnableRTStart](#136b-enablertstart-rton) | RTON | RTON RT programs cannot be started after DisableRTStart has ... |
-| [137B](#137b-disablertstart-rtoff) | [DisableRTStart](#137b-disablertstart-rtoff) | RTOFF | ... |
-| [140B](#140b-reservationinfo-whdev) | [ReservationInfo](#140b-reservationinfo-whdev) | WHDEV | ... |
+| [137B](#137b-disablertstart-rtoff) | [DisableRTStart](#137b-disablertstart-rtoff) | RTOFF | Disables start of RT programs. No RT program can be started ... |
+| [140B](#140b-reservationinfo-whdev) | [ReservationInfo](#140b-reservationinfo-whdev) | WHDEV | Checks that a device is not reserved. If it is reserved, you... |
 | [141B](#141b-devicecontrol-ioset) | [DeviceControl](#141b-devicecontrol-ioset) | IOSET | Sets control information for a character device, e.g. a term... |
 | [142B](#142b-toerrordevice-ermon) | [ToErrorDevice](#142b-toerrordevice-ermon) | ERMON | Outputs a user-defined, real-time error. The error message i... |
 | [143B](#143b-executioninfo-rsio) | [ExecutionInfo](#143b-executioninfo-rsio) | RSIO | Gets information about the execution of the calling program.... |
-| [144B](#144b-devicefunction-magtp) | [DeviceFunction](#144b-devicefunction-magtp) | MAGTP | ... |
-| [146B](#146b-privinstruction-ipriv) | [PrivInstruction](#146b-privinstruction-ipriv) | IPRIV | ... |
+| [144B](#144b-devicefunction-magtp) | [DeviceFunction](#144b-devicefunction-magtp) | MAGTP | Performs various operations on floppy disks, magnetic tapes,... |
+| [146B](#146b-privinstruction-ipriv) | [PrivInstruction](#146b-privinstruction-ipriv) | IPRIV | Executes a privileged machine instruction on the ND-100. Pri... |
 | [147B](#147b-camacfunction-camac) | [CAMACFunction](#147b-camacfunction-camac) | CAMAC | Operates the CAMAC, i.e. executes the NAF register. CAMAC is... |
 | [150B](#150b-camacglregister-gl) | [CAMACGLRegister](#150b-camacglregister-gl) | GL | Read the CAMAC GL (Graded LAM -"look at me") register or the... |
 | [151B](#151b-getrtaddress-grtda) | [GETRTADDRESS](#151b-getrtaddress-grtda) | GRTDA | Gets the address of an RT description. You specify the name ... |
 | [152B](#152b-getrtname-grtna) | [GetRTName](#152b-getrtname-grtna) | GRTNA | Gets the name of an RT program. You specify the RT descripti... |
 | [153B](#153b-camacioinstruction-ioxin) | [CAMACIOInstruction](#153b-camacioinstruction-ioxin) | IOXIN | Executes a single IOX instruction for CAMAC. See under CAMAC... |
 | [154B](#154b-assigncamaclam-assig) | [AssignCAMACLAM](#154b-assigncamaclam-assig) | ASSIG | Assigns a graded LAM in the CAMAC identification table to a ... |
-| [155B](#155b-graphicfunction-graph) | [GRAPHICFUNCTION](#155b-graphicfunction-graph) | GRAPH | ... |
-| [157B](#157b-segmenttopagetable-entsg) | [SegmentToPageTable](#157b-segmenttopagetable-entsg) | ENTSG | ... |
-| [160B](#160b-fixcontiguous-fixc) | [FixContiguous](#160b-fixcontiguous-fixc) | FIXC | ... |
+| [155B](#155b-graphicfunction-graph) | [GRAPHICFUNCTION](#155b-graphicfunction-graph) | GRAPH | Executes various functions on a graphic peripheral, such as ... |
+| [157B](#157b-segmenttopagetable-entsg) | [SegmentToPageTable](#157b-segmenttopagetable-entsg) | ENTSG | Enters a routine as a direct task or as a device driver, and... |
+| [160B](#160b-fixcontiguous-fixc) | [FixContiguous](#160b-fixcontiguous-fixc) | FIXC | Places a segment in physical memory. Its pages will no longe... |
 | [161B](#161b-instring-instr) | [INSTRING](#161b-instring-instr) | INSTR | Reads a string of characters from a peripheral device, e.g. ... |
-| [162B](#162b-outstring-outst) | [OutString](#162b-outstring-outst) | OUTST | ... |
-| [164B](#164b-savesegment-wseg) | [SaveSegment](#164b-savesegment-wseg) | WSEG | ... |
-| [165B](#165b-getinregisters-diw) | [GETINREGISTERS](#165b-getinregisters-diw) | DIW | ... |
+| [162B](#162b-outstring-outst) | [OutString](#162b-outstring-outst) | OUTST | Writes a string of characters to a peripheral file, e.g., a ... |
+| [164B](#164b-savesegment-wseg) | [SaveSegment](#164b-savesegment-wseg) | WSEG | Saves a segment in the ND-100. All pages in physical memory ... |
+| [165B](#165b-getinregisters-diw) | [GETINREGISTERS](#165b-getinregisters-diw) | DIW | Reads the device interface registers.... |
 | [167B](#167b-attachsegment-reent) | [AttachSegment](#167b-attachsegment-reent) | REENT | Attaches a reentrant segment to your two current segments. T... |
 | [170B](#170b-userdef0-us0) | [UserDef0](#170b-userdef0-us0) | US0 | User-defined monitor call. You can implement up to 8 monitor... |
 | [171B](#171b-userdef1-us1) | [UserDef1](#171b-userdef1-us1) | US1 | User-defined monitor call. You can implement up to 8 monitor... |
@@ -139,28 +139,28 @@
 | [206B](#206b-terminationhandling-edtmp) | [TerminationHandling](#206b-terminationhandling-edtmp) | EDTMP | Switches termination handling on and off.... |
 | [207B](#207b-geterrorinfo-rerrp) | [GetErrorInfo](#207b-geterrorinfo-rerrp) | RERRP | Gets information about the last real-time error. The monitor... |
 | [212B](#212b-reentrantsegment-sreen) | [ReentrantSegment](#212b-reentrantsegment-sreen) | SREEN | Connects a reentrant segment to your two current segments. A... |
-| [213B](#213b-getdiruserindexes-muidi) | [GetDirUserIndexes](#213b-getdiruserindexes-muidi) | MUIDI | ... |
-| [214B](#214b-getusername-gusna) | [GetUserName](#214b-getusername-gusna) | GUSNA | ... |
+| [213B](#213b-getdiruserindexes-muidi) | [GetDirUserIndexes](#213b-getdiruserindexes-muidi) | MUIDI | Gets a directory index and a user index. You have to specify... |
+| [214B](#214b-getusername-gusna) | [GetUserName](#214b-getusername-gusna) | GUSNA | Gets the name of a user. The user may be on a remote compute... |
 | [215B](#215b-getobjectentry-drobj) | [GetObjectEntry](#215b-getobjectentry-drobj) | DROBJ | Gets information about a file. An object entry describes eac... |
 | [216B](#216b-setobjectentry-dwobj) | [SetObjectEntry](#216b-setobjectentry-dwobj) | DWOBJ | Changes the description of a file. An object entry describes... |
 | [217B](#217b-getallfileindexes-guioi) | [GetAllFileIndexes](#217b-getallfileindexes-guioi) | GUIOI | Gets the directory index, the user index, and the object ind... |
-| [220B](#220b-directopen-dopen) | [DirectOpen](#220b-directopen-dopen) | DOPEN | ... |
-| [221B](#221b-createfile-cralf) | [CreateFile](#221b-createfile-cralf) | CRALF | ... |
+| [220B](#220b-directopen-dopen) | [DirectOpen](#220b-directopen-dopen) | DOPEN | Opens a file. Files must be opened before they can be access... |
+| [221B](#221b-createfile-cralf) | [CreateFile](#221b-createfile-cralf) | CRALF | Creates a file. The file may be indexed, contiguous, or allo... |
 | [222B](#222b-getaddressarea-gbsiz) | [GetAddressArea](#222b-getaddressarea-gbsiz) | GBSIZ | Gets the size of your address area. Your address area may co... |
 | [227B](#227b-setesclocalchars-msdae) | [SetEscLocalChars](#227b-setesclocalchars-msdae) | MSDAE | You can terminate most programs with the ESCAPE key. A LOCAL... |
 | [230B](#230b-getesclocalchars-mgdae) | [GEtEscLocalChars](#230b-getesclocalchars-mgdae) | MGDAE | Gets ESCAPE and LOCAL characters. You can terminate most pro... |
-| [231B](#231b-expandfile-expfi) | [ExpandFile](#231b-expandfile-expfi) | EXPFI | ... |
-| [232B](#232b-renamefile-mrnfi) | [RenameFile](#232b-renamefile-mrnfi) | MRNFI | ... |
-| [233B](#233b-settemporaryfile-stefi) | [SetTemporaryFile](#233b-settemporaryfile-stefi) | STEFI | ... |
-| [234B](#234b-setperipheralname-spefi) | [SetPeripheralName](#234b-setperipheralname-spefi) | SPEFI | ... |
+| [231B](#231b-expandfile-expfi) | [ExpandFile](#231b-expandfile-expfi) | EXPFI | Expands the file size. You use this monitor call to increase... |
+| [232B](#232b-renamefile-mrnfi) | [RenameFile](#232b-renamefile-mrnfi) | MRNFI | See also @RENAME-FILE.... |
+| [233B](#233b-settemporaryfile-stefi) | [SetTemporaryFile](#233b-settemporaryfile-stefi) | STEFI | Defines a file to store information temporarily. The file ca... |
+| [234B](#234b-setperipheralname-spefi) | [SetPeripheralName](#234b-setperipheralname-spefi) | SPEFI | Defines a peripheral file, e.g. a printer. You connect a fil... |
 | [235B](#235b-scratchopen-scrop) | [SCRATCHOPEN](#235b-scratchopen-scrop) | SCROP | Opens a file as a scratch file. A maximum of 64 pages of the... |
 | [236B](#236b-setpermanentopen-sperd) | [SetPermanentOpen](#236b-setpermanentopen-sperd) | SPERD | Sets a file permanently open. The file is not closed by Clos... |
-| [237B](#237b-setfileaccess-sfacc) | [SetFileAccess](#237b-setfileaccess-sfacc) | SFACC | ... |
-| [240B](#240b-appendspooling-apspe) | [AppendSpooling](#240b-appendspooling-apspe) | APSPE | ... |
-| [241B](#241b-newuser-suscn) | [NewUser](#241b-newuser-suscn) | SUSCN | ... |
+| [237B](#237b-setfileaccess-sfacc) | [SetFileAccess](#237b-setfileaccess-sfacc) | SFACC | Sets the access protection for a file. You should specify th... |
+| [240B](#240b-appendspooling-apspe) | [AppendSpooling](#240b-appendspooling-apspe) | APSPE | Prints a file. The printer has a queue of files waiting to b... |
+| [241B](#241b-newuser-suscn) | [NewUser](#241b-newuser-suscn) | SUSCN | Switches the user name you are logged in under. The command ... |
 | [242B](#242b-olduser-ruscn) | [OldUser](#242b-olduser-ruscn) | RUSCN | Switches back to the user name you were logged in under befo... |
 | [243B](#243b-getdirnameindex-fdina) | [GetDirNameIndex](#243b-getdirnameindex-fdina) | FDINA | Gets directory index and name index. The name index identifi... |
-| [244B](#244b-getdirentry-gdien) | [GetDirEntry](#244b-getdirentry-gdien) | GDIEN | ... |
+| [244B](#244b-getdirentry-gdien) | [GetDirEntry](#244b-getdirentry-gdien) | GDIEN | Gets information about a directory. The directory entry is r... |
 | [245B](#245b-getnameentry-gnaen) | [GetNameEntry](#245b-getnameentry-gnaen) | GNAEN | Gets information about devices, e.g. disks and floppy disks.... |
 | [246B](#246b-reservedir-redir) | [ReserveDir](#246b-reservedir-redir) | REDIR | Reserves a directory for special use. The directory must be ... |
 | [247B](#247b-releasedir-rldir) | [ReleaseDir](#247b-releasedir-rldir) | RLDIR | Releases a directory. The directory must have been reserved ... |
@@ -177,9 +177,9 @@
 | [267B](#267b-timeout-tmout) | [TimeOut](#267b-timeout-tmout) | TMOUT | Suspends the execution of your program for a given time. The... |
 | [270B](#270b-readdiskpage-rdpag) | [ReadDiskPage](#270b-readdiskpage-rdpag) | RDPAG | Reads one or more directory pages. Any page can be read.... |
 | [271B](#271b-writediskpage-wdpag) | [WriteDiskPage](#271b-writediskpage-wdpag) | WDPAG | Writes to one or more pages in a directory. Any page can be ... |
-| [272B](#272b-deletepage-delpg) | [DeletePage](#272b-deletepage-delpg) | DELPG | ... |
+| [272B](#272b-deletepage-delpg) | [DeletePage](#272b-deletepage-delpg) | DELPG | Deletes pages from a file. Pages between two page numbers ar... |
 | [273B](#273b-getfilename-mgfil) | [GetFileName](#273b-getfilename-mgfil) | MGFIL | Gets the name of a file. You specify the directory index, th... |
-| [274B](#274b-getfileindexes-fobjn) | [GetFileIndexes](#274b-getfileindexes-fobjn) | FOBJN | ... |
+| [274B](#274b-getfileindexes-fobjn) | [GetFileIndexes](#274b-getfileindexes-fobjn) | FOBJN | Gets the directory index, the user index, and the object ind... |
 | [275B](#275b-setterminalname-strfi) | [SetTerminalName](#275b-setterminalname-strfi) | STRFI | Defines the file name to be used for terminals. This is norm... |
 | [276B](#276b-enablelocal-elofu) | [EnableLocal](#276b-enablelocal-elofu) | ELOFU | You may log in on remote computers through the COSMOS data n... |
 | [277B](#277b-disablelocal-dlofu) | [DISABLELOCAL](#277b-disablelocal-dlofu) | DLOFU | You may log in on remote computers through the COSMOS data n... |
@@ -187,24 +187,24 @@
 | [301B](#301b-stopescapehandling-dusel) | [StopEscapeHandling](#301b-stopescapehandling-dusel) | DUSEL | Disables user-defined escape handling. The ESCAPE key termin... |
 | [302B](#302b-onesclocalfunction-elon) | [ONESCLOCALFUNCTION](#302b-onesclocalfunction-elon) | ELON | Enables delayed escape and local functions for your terminal... |
 | [303B](#303b-offesclocalfunction-eloff) | [OffEscLocalFunction](#303b-offesclocalfunction-eloff) | ELOFF | Delays the escape and local functions for your terminal. The... |
-| [306B](#306b-getterminalmode-gtmod) | [GetTerminalMode](#306b-getterminalmode-gtmod) | GTMOD | ... |
-| [307B](#307b-terminalnowait-tnowai) | [TerminalNoWait](#307b-terminalnowait-tnowai) | TNOWAI | ... |
+| [306B](#306b-getterminalmode-gtmod) | [GetTerminalMode](#306b-getterminalmode-gtmod) | GTMOD | Gets the terminal mode. The terminal mode tells how the term... |
+| [307B](#307b-terminalnowait-tnowai) | [TerminalNoWait](#307b-terminalnowait-tnowai) | TNOWAI | Switches No Wait on and off. No Wait is useful for input fro... |
 | [310B](#310b-in8andflag-tbin8) | [In8AndFlag](#310b-in8andflag-tbin8) | TBIN8 | Reads 8 bytes from a device, e.g., a terminal. The monitor c... |
 | [311B](#311b-writedirentry-wdien) | [WriteDirEntry](#311b-writedirentry-wdien) | WDIEN | Changes the information about a directory. The complete cont... |
 | [312B](#312b-checkmoncall-moinf) | [CheckMonCall](#312b-checkmoncall-moinf) | MOINF | Some monitor calls are optional or only available in later v... |
 | [313B](#313b-inbufferstate-ibrisz) | [InBufferState](#313b-inbufferstate-ibrisz) | IBRISZ | Gets information about an input buffer. The current number o... |
 | [314B](#314b-defaultremotesystem-srusi) | [DefaultRemoteSystem](#314b-defaultremotesystem-srusi) | SRUSI | Sets default values for COSMOS remote file access. You can s... |
 | [315B](#315b-lamufunction-mlamu) | [LAMUFunction](#315b-lamufunction-mlamu) | MLAMU | Performs various functions on the LAMU system. A LAMU is a l... |
-| [316B](#316b-setremoteaccess-srlmo) | [SetRemoteAccess](#316b-setremoteaccess-srlmo) | SRLMO | ... |
-| [317B](#317b-executecommand-uecom) | [ExecuteCommand](#317b-executecommand-uecom) | UECOM | ... |
-| [322B](#322b-getsegmentno-gsgno) | [GetSegmentNo](#322b-getsegmentno-gsgno) | GSGNO | ... |
+| [316B](#316b-setremoteaccess-srlmo) | [SetRemoteAccess](#316b-setremoteaccess-srlmo) | SRLMO | Switches remote file access on and off. The COSMOS network a... |
+| [317B](#317b-executecommand-uecom) | [ExecuteCommand](#317b-executecommand-uecom) | UECOM | Executes a SINTRAN III command. Specify the command name and... |
+| [322B](#322b-getsegmentno-gsgno) | [GetSegmentNo](#322b-getsegmentno-gsgno) | GSGNO | Gets the number of a segment in the ND-100. You specify the ... |
 | [323B](#323b-segmentoverlay-splre) | [SegmentOverlay](#323b-segmentoverlay-splre) | SPLRE | Used to build multisegment programs in the ND-100. It is mai... |
 | [324B](#324b-octobusfunction-octio) | [OctobusFunction](#324b-octobusfunction-octio) | OCTIO | Performs various functions on an old Octobus (earlier than v... |
 | [325B](#325b-batchmodeecho-mbech) | [BATCHMODEECHO](#325b-batchmodeecho-mbech) | MBECH | Controls echo of input and output if the program is executed... |
 | [326B](#326b-loginstart-mlogi) | [LogInStart](#326b-loginstart-mlogi) | MLOGI | Allowed in RT programs (ring ≥ 1), and in all programs run b... |
 | [327B](#327b-filesystemfunction-fsmty) | [FileSystemFunction](#327b-filesystemfunction-fsmty) | FSMTY | Multifunction monitor call to make sure that an uncontrolled... |
 | [330B](#330b-terminalstatus-terst) | [TerminalStatus](#330b-terminalstatus-terst) | TERST | Gets information about a terminal. The user logged in, the t... |
-| [332B](#332b-terminallineinfo-trepp) | [TerminalLineInfo](#332b-terminallineinfo-trepp) | TREPP | ... |
+| [332B](#332b-terminallineinfo-trepp) | [TerminalLineInfo](#332b-terminallineinfo-trepp) | TREPP | Gets information about a terminal line. You may also enable ... |
 | [333B](#333b-dmafunction-udma) | [DMAFunction](#333b-dmafunction-udma) | UDMA | Monitor call 333B - DMAFunction... |
 | [334B](#334b-geterrormessage-getxm) | [GetErrorMessage](#334b-geterrormessage-getxm) | GETXM | Gets a SINTRAN III error message text. Appendix A shows the ... |
 | [335B](#335b-transferdata-exabs) | [TRANSFERDATA](#335b-transferdata-exabs) | EXABS | Transfers data between physical memory and a mass-storage de... |
@@ -213,40 +213,40 @@
 | [340B](#340b-readsystemrecord-rsrec) | [READSYSTEMRECORD](#340b-readsystemrecord-rsrec) | RSREC | Used to read the system record into a buffer.... |
 | [341B](#341b-segmentfunction-sgmty) | [SegmentFunction](#341b-segmentfunction-sgmty) | SGMTY | This is a multifunction monitor call used to change the acti... |
 | [400B](#400b-errorreturn-macroe) | [ErrorReturn](#400b-errorreturn-macroe) | MACROE | Terminates the program and sets an error code. The error cod... |
-| [401B](#401b-disassemble-diass) | [DisAssemble](#401b-disassemble-diass) | DIASS | ... |
-| [402B](#402b-getinputflags-rflag) | [GetInputFlags](#402b-getinputflags-rflag) | RFLAG | ... |
+| [401B](#401b-disassemble-diass) | [DisAssemble](#401b-disassemble-diass) | DIASS | Disassembles one machine instruction on the ND-500. Output i... |
+| [402B](#402b-getinputflags-rflag) | [GetInputFlags](#402b-getinputflags-rflag) | RFLAG | ND-100 and ND-500 programs may communicate through two 32-bi... |
 | [403B](#403b-setoutputflags-wflag) | [SetOutputFlags](#403b-setoutputflags-wflag) | WFLAG | ND-100 and ND-500 programs may communicate through two 32-bi... |
 | [404B](#404b-fixioarea-iofix) | [FixIOArea](#404b-fixioarea-iofix) | IOFIX | Fixes an address area in a domain in physical memory. The me... |
-| [405B](#405b-switchuserbreak-ustrk) | [SwitchUserBreak](#405b-switchuserbreak-ustrk) | USTRK | ... |
+| [405B](#405b-switchuserbreak-ustrk) | [SwitchUserBreak](#405b-switchuserbreak-ustrk) | USTRK | Switches user-defined escape handling on and off. The user-d... |
 | [406B](#406b-accessrtcommon-rwrtc) | [AccessRTCommon](#406b-accessrtcommon-rwrtc) | RWRTC | Reads from or writes to RT common from an ND-500 program. RT... |
 | [410B](#410b-fixinmemory-fixmem) | [FIXINMEMORY](#410b-fixinmemory-fixmem) | FIXMEM | Fixes a logical segment of your domain in physical memory. Y... |
 | [411B](#411b-memoryunfix-unfixm) | [MemoryUnfix](#411b-memoryunfix-unfixm) | UNFIXM | Releases a fixed segment in your domain from physical memory... |
-| [412B](#412b-fileassegment-fscnt) | [FileAsSegment](#412b-fileassegment-fscnt) | FSCNT | ... |
-| [413B](#413b-filenotassegment-fscdnt) | [FileNotAsSegment](#413b-filenotassegment-fscdnt) | FSCDNT | ... |
+| [412B](#412b-fileassegment-fscnt) | [FileAsSegment](#412b-fileassegment-fscnt) | FSCNT | Connects a file as a segment to your domain. You can then ac... |
+| [413B](#413b-filenotassegment-fscdnt) | [FileNotAsSegment](#413b-filenotassegment-fscdnt) | FSCDNT | Disconnects a file as a segment in your domain. FileAsSegmen... |
 | [414B](#414b-bcnafcamac-bcnaf) | [BCNAFCAMAC](#414b-bcnafcamac-bcnaf) | BCNAF | Special CAMAC function on the ND-500. (Same as mon 156 TRACB... |
 | [415B](#415b-bcnaf1camac-bcnaf1) | [BCNAF1CAMAC](#415b-bcnaf1camac-bcnaf1) | BCNAF1 | Special CAMAC monitor call for the ND-500. (Same as mon 176 ... |
-| [416B](#416b-savend500segment-wsegn) | [SaveND500Segment](#416b-savend500segment-wsegn) | WSEGN | ... |
+| [416B](#416b-savend500segment-wsegn) | [SaveND500Segment](#416b-savend500segment-wsegn) | WSEGN | Writes all modified pages of a segment back to the disk.... |
 | [417B](#417b-maxpagesinmemory-mxpisg) | [MaxPagesInMemory](#417b-maxpagesinmemory-mxpisg) | MXPISG | Sets the maximum number of pages a segment may have in physi... |
 | [420B](#420b-getuserregisters-grblk) | [GetUserRegisters](#420b-getuserregisters-grblk) | GRBLK | SwitchUserBreak allows you to save the registers when you te... |
-| [421B](#421b-getactivesegment-gasgm) | [GetActiveSegment](#421b-getactivesegment-gasgm) | GASGM | ... |
+| [421B](#421b-getactivesegment-gasgm) | [GetActiveSegment](#421b-getactivesegment-gasgm) | GASGM | Gets the name of the segments in your domain. A 2048 byte bu... |
 | [422B](#422b-getscratchsegment-gswsm) | [GETSCRATCHSEGMENT](#422b-getscratchsegment-gswsm) | GSWSM | Connects an empty data segment to your domain. The monitor c... |
-| [423B](#423b-copycapability-capcop) | [CopyCapability](#423b-copycapability-capcop) | CAPCOP | ... |
-| [424B](#424b-clearcapability-capcle) | [ClearCapability](#424b-clearcapability-capcle) | CAPCLE | ... |
+| [423B](#423b-copycapability-capcop) | [CopyCapability](#423b-copycapability-capcop) | CAPCOP | Copies a capability for a segment. The segment itself is als... |
+| [424B](#424b-clearcapability-capcle) | [ClearCapability](#424b-clearcapability-capcle) | CAPCLE | Clears a capability. A capability describes each logical seg... |
 | [425B](#425b-setprocessname-sprnam) | [SetProcessName](#425b-setprocessname-sprnam) | SPRNAM | Defines a new name for your process.... |
 | [426B](#426b-getprocessno-gprnam) | [GetProcessNo](#426b-getprocessno-gprnam) | GPRNAM | Gets the number of a process in the ND-500. You specify the ... |
 | [427B](#427b-getownprocessinfo-gprnme) | [GetOwnProcessInfo](#427b-getownprocessinfo-gprnme) | GPRNME | Gets the name and number of your own process in the ND-500. ... |
 | [430B](#430b-translateaddress-adrioo) | [TranslateAddress](#430b-translateaddress-adrioo) | ADRIOO | The call formats are marked from a-i. All formats give statu... |
-| [431B](#431b-awaittransfer-mwaitf) | [AwaitTransfer](#431b-awaittransfer-mwaitf) | MWAITF | ... |
+| [431B](#431b-awaittransfer-mwaitf) | [AwaitTransfer](#431b-awaittransfer-mwaitf) | MWAITF | Checks that a data transfer to or from a mass-storage file i... |
 | [435B](#435b-forcetrap-prt) | [ForceTrap](#435b-forcetrap-prt) | PRT | Forces a programmed trap to occur in another ND-500 process.... |
-| [436B](#436b-setnd500param-5paset) | [SetND500Param](#436b-setnd500param-5paset) | 5PASET | ... |
+| [436B](#436b-setnd500param-5paset) | [SetND500Param](#436b-setnd500param-5paset) | 5PASET | Sets information about an ND-500 program. Use GetND500Param ... |
 | [437B](#437b-getnd500param-5paget) | [GetND500Param](#437b-getnd500param-5paget) | 5PAGET | Gets information about why the last ND-500 program terminate... |
 | [440B](#440b-attach500segment-atsgm) | [Attach500Segment](#440b-attach500segment-atsgm) | ATSGM | Maps a logical ND-500 data segment onto shared ND-100/ND-500... |
 | [500B](#500b-startprocess-startp) | [STARTPROCESS](#500b-startprocess-startp) | STARTP | Starts a process in the ND-500. You identify the process wit... |
 | [501B](#501b-stopprocess-stoppr) | [StopProcess](#501b-stopprocess-stoppr) | STOPPR | Sets the current process in a wait state. StartProcess resta... |
 | [502B](#502b-switchprocess-switchp) | [SwitchProcess](#502b-switchprocess-switchp) | SWITCHP | Sets the current process in a wait state. Restarts another p... |
 | [503B](#503b-inputstring-dvinst) | [InputString](#503b-inputstring-dvinst) | DVINST | Reads a string from a device, e.g., a terminal or an opened ... |
-| [504B](#504b-outputstring-dvouts) | [OutputString](#504b-outputstring-dvouts) | DVOUTS | ... |
-| [505B](#505b-gettrapreason-gerrcod) | [GetTrapReason](#505b-gettrapreason-gerrcod) | GERRCOD | ... |
+| [504B](#504b-outputstring-dvouts) | [OutputString](#504b-outputstring-dvouts) | DVOUTS | Writes a string to a device, e.g. a terminal or an opened fi... |
+| [505B](#505b-gettrapreason-gerrcod) | [GetTrapReason](#505b-gettrapreason-gerrcod) | GERRCOD | Gets the error code from the swapper process. This is only r... |
 | [507B](#507b-setprocesspriority-sprio) | [SetProcessPriority](#507b-setprocesspriority-sprio) | SPRIO | Sets the priority for a process in the ND-500. The prioritie... |
 | [514B](#514b-nd500timeout-5tmout) | [ND500TimeOut](#514b-nd500timeout-5tmout) | 5TMOUT | Suspends the execution of an ND-500 program for a given time... |
 
@@ -257,14 +257,14 @@
 | Name | Octal | Short Name | Description |
 |------|-------|------------|-------------|
 | [AccessRTCommon](#406b-accessrtcommon-rwrtc) | [406B](#406b-accessrtcommon-rwrtc) | RWRTC | Reads from or writes to RT common from an ND-500 program. RT... |
-| [AdjustClock](#112b-adjustclock-cladj) | [112B](#112b-adjustclock-cladj) | CLADJ | ... |
+| [AdjustClock](#112b-adjustclock-cladj) | [112B](#112b-adjustclock-cladj) | CLADJ | Sets the computer's clock (i.e. the current system time) for... |
 | [ALTPAGETABLE](#33b-altpagetable-alton) | [33B](#33b-altpagetable-alton) | ALTON | Switches page table. Each page table allows you to access 12... |
-| [AppendSpooling](#240b-appendspooling-apspe) | [240B](#240b-appendspooling-apspe) | APSPE | ... |
+| [AppendSpooling](#240b-appendspooling-apspe) | [240B](#240b-appendspooling-apspe) | APSPE | Prints a file. The printer has a queue of files waiting to b... |
 | [AssignCAMACLAM](#154b-assigncamaclam-assig) | [154B](#154b-assigncamaclam-assig) | ASSIG | Assigns a graded LAM in the CAMAC identification table to a ... |
 | [Attach500Segment](#440b-attach500segment-atsgm) | [440B](#440b-attach500segment-atsgm) | ATSGM | Maps a logical ND-500 data segment onto shared ND-100/ND-500... |
 | [AttachSegment](#167b-attachsegment-reent) | [167B](#167b-attachsegment-reent) | REENT | Attaches a reentrant segment to your two current segments. T... |
 | [AwaitFileTransfer](#121b-awaitfiletransfer-waitf) | [121B](#121b-awaitfiletransfer-waitf) | WAITF | Checks that a data transfer to or from a mass-storage file i... |
-| [AwaitTransfer](#431b-awaittransfer-mwaitf) | [431B](#431b-awaittransfer-mwaitf) | MWAITF | ... |
+| [AwaitTransfer](#431b-awaittransfer-mwaitf) | [431B](#431b-awaittransfer-mwaitf) | MWAITF | Checks that a data transfer to or from a mass-storage file i... |
 | [BACKUPCLOSE](#252b-backupclose-bclos) | [252B](#252b-backupclose-bclos) | BCLOS | Closes a file. The version number and the last date accessed... |
 | [BATCHMODEECHO](#325b-batchmodeecho-mbech) | [325B](#325b-batchmodeecho-mbech) | MBECH | Controls echo of input and output if the program is executed... |
 | [BCNAF1CAMAC](#415b-bcnaf1camac-bcnaf1) | [415B](#415b-bcnaf1camac-bcnaf1) | BCNAF1 | Special CAMAC monitor call for the ND-500. (Same as mon 176 ... |
@@ -275,71 +275,71 @@
 | [CAMACIOInstruction](#153b-camacioinstruction-ioxin) | [153B](#153b-camacioinstruction-ioxin) | IOXIN | Executes a single IOX instruction for CAMAC. See under CAMAC... |
 | [ChangeSegment](#337b-changesegment-spchg) | [337B](#337b-changesegment-spchg) | SPCHG | Changes the segment and the page table your program uses. Th... |
 | [CheckMonCall](#312b-checkmoncall-moinf) | [312B](#312b-checkmoncall-moinf) | MOINF | Some monitor calls are optional or only available in later v... |
-| [ClearCapability](#424b-clearcapability-capcle) | [424B](#424b-clearcapability-capcle) | CAPCLE | ... |
+| [ClearCapability](#424b-clearcapability-capcle) | [424B](#424b-clearcapability-capcle) | CAPCLE | Clears a capability. A capability describes each logical seg... |
 | [ClearInBuffer](#13b-clearinbuffer-cibuf) | [13B](#13b-clearinbuffer-cibuf) | CIBUF | Clears a device input buffer. Input from character devices, ... |
 | [CLEAROUTBUFFER](#14b-clearoutbuffer-cobuf) | [14B](#14b-clearoutbuffer-cobuf) | COBUF | Clears a device output buffer. Output to character devices, ... |
 | [CloseFile](#43b-closefile-close) | [43B](#43b-closefile-close) | CLOSE | Closes one or more files. Files must be opened before they a... |
-| [CloseSpoolingFile](#40b-closespoolingfile-spclo) | [40B](#40b-closespoolingfile-spclo) | SPCLO | ... |
-| [CopyCapability](#423b-copycapability-capcop) | [423B](#423b-copycapability-capcop) | CAPCOP | ... |
+| [CloseSpoolingFile](#40b-closespoolingfile-spclo) | [40B](#40b-closespoolingfile-spclo) | SPCLO | Appends an opened file to a spooling queue. You specify a te... |
+| [CopyCapability](#423b-copycapability-capcop) | [423B](#423b-copycapability-capcop) | CAPCOP | Copies a capability for a segment. The segment itself is als... |
 | [CopyPage](#251b-copypage-copag) | [251B](#251b-copypage-copag) | COPAG | Copies file pages between two opened files. One of the files... |
-| [CreateFile](#221b-createfile-cralf) | [221B](#221b-createfile-cralf) | CRALF | ... |
+| [CreateFile](#221b-createfile-cralf) | [221B](#221b-createfile-cralf) | CRALF | Creates a file. The file may be indexed, contiguous, or allo... |
 | [DataTransfer](#131b-datatransfer-abstr) | [131B](#131b-datatransfer-abstr) | ABSTR | Transfers data between physical memory and a mass-storage de... |
 | [DefaultRemoteSystem](#314b-defaultremotesystem-srusi) | [314B](#314b-defaultremotesystem-srusi) | SRUSI | Sets default values for COSMOS remote file access. You can s... |
-| [DelayStart](#101b-delaystart-set) | [101B](#101b-delaystart-set) | SET | ... |
-| [DeleteFile](#54b-deletefile-mdlfi) | [54B](#54b-deletefile-mdlfi) | MDLFI | ... |
-| [DeletePage](#272b-deletepage-delpg) | [272B](#272b-deletepage-delpg) | DELPG | ... |
+| [DelayStart](#101b-delaystart-set) | [101B](#101b-delaystart-set) | SET | Starts an RT program after a specified time. The RT program ... |
+| [DeleteFile](#54b-deletefile-mdlfi) | [54B](#54b-deletefile-mdlfi) | MDLFI | Deletes a file. The pages of the file are released.... |
+| [DeletePage](#272b-deletepage-delpg) | [272B](#272b-deletepage-delpg) | DELPG | Deletes pages from a file. Pages between two page numbers ar... |
 | [DeviceControl](#141b-devicecontrol-ioset) | [141B](#141b-devicecontrol-ioset) | IOSET | Sets control information for a character device, e.g. a term... |
-| [DeviceFunction](#144b-devicefunction-magtp) | [144B](#144b-devicefunction-magtp) | MAGTP | ... |
-| [DirectOpen](#220b-directopen-dopen) | [220B](#220b-directopen-dopen) | DOPEN | ... |
+| [DeviceFunction](#144b-devicefunction-magtp) | [144B](#144b-devicefunction-magtp) | MAGTP | Performs various operations on floppy disks, magnetic tapes,... |
+| [DirectOpen](#220b-directopen-dopen) | [220B](#220b-directopen-dopen) | DOPEN | Opens a file. Files must be opened before they can be access... |
 | [DISABLEESCAPE](#71b-disableescape-descf) | [71B](#71b-disableescape-descf) | DESCF | The ESCAPE key on the terminal normally terminates a program... |
 | [DISABLELOCAL](#277b-disablelocal-dlofu) | [277B](#277b-disablelocal-dlofu) | DLOFU | You may log in on remote computers through the COSMOS data n... |
-| [DisableRTStart](#137b-disablertstart-rtoff) | [137B](#137b-disablertstart-rtoff) | RTOFF | ... |
-| [DisAssemble](#401b-disassemble-diass) | [401B](#401b-disassemble-diass) | DIASS | ... |
+| [DisableRTStart](#137b-disablertstart-rtoff) | [137B](#137b-disablertstart-rtoff) | RTOFF | Disables start of RT programs. No RT program can be started ... |
+| [DisAssemble](#401b-disassemble-diass) | [401B](#401b-disassemble-diass) | DIASS | Disassembles one machine instruction on the ND-500. Output i... |
 | [DMAFunction](#333b-dmafunction-udma) | [333B](#333b-dmafunction-udma) | UDMA | Monitor call 333B - DMAFunction... |
-| [EnableEscape](#72b-enableescape-eescf) | [72B](#72b-enableescape-eescf) | EESCF | ... |
+| [EnableEscape](#72b-enableescape-eescf) | [72B](#72b-enableescape-eescf) | EESCF | Enables the ESCAPE key on the terminal. The ESCAPE key norma... |
 | [EnableLocal](#276b-enablelocal-elofu) | [276B](#276b-enablelocal-elofu) | ELOFU | You may log in on remote computers through the COSMOS data n... |
 | [EnableRTStart](#136b-enablertstart-rton) | [136B](#136b-enablertstart-rton) | RTON | RTON RT programs cannot be started after DisableRTStart has ... |
 | [ErrorMessage](#65b-errormessage-qerms) | [65B](#65b-errormessage-qerms) | QERMS | Displays a file system error message. Appendix A shows the m... |
 | [ErrorReturn](#400b-errorreturn-macroe) | [400B](#400b-errorreturn-macroe) | MACROE | Terminates the program and sets an error code. The error cod... |
-| [ExactDelayStart](#126b-exactdelaystart-dset) | [126B](#126b-exactdelaystart-dset) | DSET | ... |
+| [ExactDelayStart](#126b-exactdelaystart-dset) | [126B](#126b-exactdelaystart-dset) | DSET | Sets an RT program to start after a given period. It is then... |
 | [ExactInterval](#130b-exactinterval-dintv) | [130B](#130b-exactinterval-dintv) | DINTV | Prepares an RT program for periodic execution. The interval ... |
-| [ExactStartup](#127b-exactstartup-dabst) | [127B](#127b-exactstartup-dabst) | DABST | ... |
-| [ExecuteCommand](#317b-executecommand-uecom) | [317B](#317b-executecommand-uecom) | UECOM | ... |
+| [ExactStartup](#127b-exactstartup-dabst) | [127B](#127b-exactstartup-dabst) | DABST | Starts an RT program at a specific time. The time is given i... |
+| [ExecuteCommand](#317b-executecommand-uecom) | [317B](#317b-executecommand-uecom) | UECOM | Executes a SINTRAN III command. Specify the command name and... |
 | [ExecutionInfo](#143b-executioninfo-rsio) | [143B](#143b-executioninfo-rsio) | RSIO | Gets information about the execution of the calling program.... |
 | [ExitFromProgram](#0b-exitfromprogram-leave) | [0B](#0b-exitfromprogram-leave) | LEAVE | Terminates the program. Returns to SINTRAN III. Batch jobs c... |
 | [ExitFromSegment](#133b-exitfromsegment-mexit) | [133B](#133b-exitfromsegment-mexit) | MEXIT | Exchanges one or both current segments. Commonly used to ret... |
 | [ExitRTProgram](#134b-exitrtprogram-rtext) | [134B](#134b-exitrtprogram-rtext) | RTEXT | Terminates the calling RT or background program. Releases al... |
-| [ExpandFile](#231b-expandfile-expfi) | [231B](#231b-expandfile-expfi) | EXPFI | ... |
-| [FileAsSegment](#412b-fileassegment-fscnt) | [412B](#412b-fileassegment-fscnt) | FSCNT | ... |
-| [FileNotAsSegment](#413b-filenotassegment-fscdnt) | [413B](#413b-filenotassegment-fscdnt) | FSCDNT | ... |
+| [ExpandFile](#231b-expandfile-expfi) | [231B](#231b-expandfile-expfi) | EXPFI | Expands the file size. You use this monitor call to increase... |
+| [FileAsSegment](#412b-fileassegment-fscnt) | [412B](#412b-fileassegment-fscnt) | FSCNT | Connects a file as a segment to your domain. You can then ac... |
+| [FileNotAsSegment](#413b-filenotassegment-fscdnt) | [413B](#413b-filenotassegment-fscdnt) | FSCDNT | Disconnects a file as a segment in your domain. FileAsSegmen... |
 | [FileSystemFunction](#327b-filesystemfunction-fsmty) | [327B](#327b-filesystemfunction-fsmty) | FSMTY | Multifunction monitor call to make sure that an uncontrolled... |
-| [FixContiguous](#160b-fixcontiguous-fixc) | [160B](#160b-fixcontiguous-fixc) | FIXC | ... |
+| [FixContiguous](#160b-fixcontiguous-fixc) | [160B](#160b-fixcontiguous-fixc) | FIXC | Places a segment in physical memory. Its pages will no longe... |
 | [FIXINMEMORY](#410b-fixinmemory-fixmem) | [410B](#410b-fixinmemory-fixmem) | FIXMEM | Fixes a logical segment of your domain in physical memory. Y... |
 | [FixIOArea](#404b-fixioarea-iofix) | [404B](#404b-fixioarea-iofix) | IOFIX | Fixes an address area in a domain in physical memory. The me... |
-| [FixScattered](#115b-fixscattered-fix) | [115B](#115b-fixscattered-fix) | FIX | ... |
+| [FixScattered](#115b-fixscattered-fix) | [115B](#115b-fixscattered-fix) | FIX | Place a segment in physical memory. Its pages will no longer... |
 | [ForceRelease](#125b-forcerelease-prlrs) | [125B](#125b-forcerelease-prlrs) | PRLRS | Releases a device reserved by an RT program other than that ... |
-| [ForceReserve](#124b-forcereserve-prsrv) | [124B](#124b-forcereserve-prsrv) | PRSRV | ... |
+| [ForceReserve](#124b-forcereserve-prsrv) | [124B](#124b-forcereserve-prsrv) | PRSRV | Reserves a device for an RT program other than that which is... |
 | [ForceTrap](#435b-forcetrap-prt) | [435B](#435b-forcetrap-prt) | PRT | Forces a programmed trap to occur in another ND-500 process.... |
 | [FULLFILENAME](#256b-fullfilename-deabf) | [256B](#256b-fullfilename-deabf) | DEABF | Returns a complete file name from an abbreviated one. The di... |
-| [GetActiveSegment](#421b-getactivesegment-gasgm) | [421B](#421b-getactivesegment-gasgm) | GASGM | ... |
+| [GetActiveSegment](#421b-getactivesegment-gasgm) | [421B](#421b-getactivesegment-gasgm) | GASGM | Gets the name of the segments in your domain. A 2048 byte bu... |
 | [GetAddressArea](#222b-getaddressarea-gbsiz) | [222B](#222b-getaddressarea-gbsiz) | GBSIZ | Gets the size of your address area. Your address area may co... |
 | [GetAllFileIndexes](#217b-getallfileindexes-guioi) | [217B](#217b-getallfileindexes-guioi) | GUIOI | Gets the directory index, the user index, and the object ind... |
-| [GetBasicTime](#11b-getbasictime-time) | [11B](#11b-getbasictime-time) | TIME | ... |
+| [GetBasicTime](#11b-getbasictime-time) | [11B](#11b-getbasictime-time) | TIME | **Time**... |
 | [GETBYTESINFILE](#62b-getbytesinfile-rmax) | [62B](#62b-getbytesinfile-rmax) | RMAX | Gets the number of bytes in a file. Only the bytes containin... |
 | [GetCurrentTime](#113b-getcurrenttime-clock) | [113B](#113b-getcurrenttime-clock) | CLOCK | Gets the current system time and date.... |
 | [GetDefaultDir](#250b-getdefaultdir-fdfdi) | [250B](#250b-getdefaultdir-fdfdi) | FDFDI | Gets the user’s default directory. The directory index and t... |
 | [GetDeviceType](#263b-getdevicetype-gdevt) | [263B](#263b-getdevicetype-gdevt) | GDEVT | Gets the device type, e.g. terminal, floppy disk, mass-stora... |
-| [GetDirEntry](#244b-getdirentry-gdien) | [244B](#244b-getdirentry-gdien) | GDIEN | ... |
+| [GetDirEntry](#244b-getdirentry-gdien) | [244B](#244b-getdirentry-gdien) | GDIEN | Gets information about a directory. The directory entry is r... |
 | [GetDirNameIndex](#243b-getdirnameindex-fdina) | [243B](#243b-getdirnameindex-fdina) | FDINA | Gets directory index and name index. The name index identifi... |
-| [GetDirUserIndexes](#213b-getdiruserindexes-muidi) | [213B](#213b-getdiruserindexes-muidi) | MUIDI | ... |
+| [GetDirUserIndexes](#213b-getdiruserindexes-muidi) | [213B](#213b-getdiruserindexes-muidi) | MUIDI | Gets a directory index and a user index. You have to specify... |
 | [GetErrorDevice](#254b-geterrordevice-gerdv) | [254B](#254b-geterrordevice-gerdv) | GERDV | Gets the logical device number of the error device. The erro... |
 | [GetErrorInfo](#207b-geterrorinfo-rerrp) | [207B](#207b-geterrorinfo-rerrp) | RERRP | Gets information about the last real-time error. The monitor... |
 | [GetErrorMessage](#334b-geterrormessage-getxm) | [334B](#334b-geterrormessage-getxm) | GETXM | Gets a SINTRAN III error message text. Appendix A shows the ... |
 | [GEtEscLocalChars](#230b-getesclocalchars-mgdae) | [230B](#230b-getesclocalchars-mgdae) | MGDAE | Gets ESCAPE and LOCAL characters. You can terminate most pro... |
-| [GetFileIndexes](#274b-getfileindexes-fobjn) | [274B](#274b-getfileindexes-fobjn) | FOBJN | ... |
+| [GetFileIndexes](#274b-getfileindexes-fobjn) | [274B](#274b-getfileindexes-fobjn) | FOBJN | Gets the directory index, the user index, and the object ind... |
 | [GetFileName](#273b-getfilename-mgfil) | [273B](#273b-getfilename-mgfil) | MGFIL | Gets the name of a file. You specify the directory index, th... |
-| [GetInputFlags](#402b-getinputflags-rflag) | [402B](#402b-getinputflags-rflag) | RFLAG | ... |
-| [GETINREGISTERS](#165b-getinregisters-diw) | [165B](#165b-getinregisters-diw) | DIW | ... |
+| [GetInputFlags](#402b-getinputflags-rflag) | [402B](#402b-getinputflags-rflag) | RFLAG | ND-100 and ND-500 programs may communicate through two 32-bi... |
+| [GETINREGISTERS](#165b-getinregisters-diw) | [165B](#165b-getinregisters-diw) | DIW | Reads the device interface registers.... |
 | [GetLastByte](#26b-getlastbyte-lastc) | [26B](#26b-getlastbyte-lastc) | LASTC | Gets the last character typed on a terminal. The monitor cal... |
 | [GetNameEntry](#245b-getnameentry-gnaen) | [245B](#245b-getnameentry-gnaen) | GNAEN | Gets information about devices, e.g. disks and floppy disks.... |
 | [GetND500Param](#437b-getnd500param-5paget) | [437B](#437b-getnd500param-5paget) | 5PAGET | Gets information about why the last ND-500 program terminate... |
@@ -352,30 +352,30 @@
 | [GetRTName](#152b-getrtname-grtna) | [152B](#152b-getrtname-grtna) | GRTNA | Gets the name of an RT program. You specify the RT descripti... |
 | [GETSCRATCHSEGMENT](#422b-getscratchsegment-gswsm) | [422B](#422b-getscratchsegment-gswsm) | GSWSM | Connects an empty data segment to your domain. The monitor c... |
 | [GetSegmentEntry](#53b-getsegmententry-rsegm) | [53B](#53b-getsegmententry-rsegm) | RSEGM | Gets information about a segment in the ND-100. The monitor ... |
-| [GetSegmentNo](#322b-getsegmentno-gsgno) | [322B](#322b-getsegmentno-gsgno) | GSGNO | ... |
+| [GetSegmentNo](#322b-getsegmentno-gsgno) | [322B](#322b-getsegmentno-gsgno) | GSGNO | Gets the number of a segment in the ND-100. You specify the ... |
 | [GetSpoolingEntry](#55b-getspoolingentry-rsqpe) | [55B](#55b-getspoolingentry-rsqpe) | RSQPE | Gets the next spooling queue entry, that is, the next file t... |
 | [GetStartByte](#75b-getstartbyte-reabt) | [75B](#75b-getstartbyte-reabt) | REABT | Gets the number of the next byte to access in a file. The by... |
 | [GetSystemInfo](#262b-getsysteminfo-cpust) | [262B](#262b-getsysteminfo-cpust) | CPUST | Gets various system information. The system number, the CPU ... |
-| [GetTerminalMode](#306b-getterminalmode-gtmod) | [306B](#306b-getterminalmode-gtmod) | GTMOD | ... |
-| [GetTerminalType](#16b-getterminaltype-mgtty) | [16B](#16b-getterminaltype-mgtty) | MGTTY | ... |
-| [GetTimeUsed](#114b-gettimeused-tused) | [114B](#114b-gettimeused-tused) | TUSED | ... |
-| [GetTrapReason](#505b-gettrapreason-gerrcod) | [505B](#505b-gettrapreason-gerrcod) | GERRCOD | ... |
+| [GetTerminalMode](#306b-getterminalmode-gtmod) | [306B](#306b-getterminalmode-gtmod) | GTMOD | Gets the terminal mode. The terminal mode tells how the term... |
+| [GetTerminalType](#16b-getterminaltype-mgtty) | [16B](#16b-getterminaltype-mgtty) | MGTTY | Gets the terminal type. The terminal type tells SINTRAN III ... |
+| [GetTimeUsed](#114b-gettimeused-tused) | [114B](#114b-gettimeused-tused) | TUSED | Gets the time you have used the CPU since you logged in. In ... |
+| [GetTrapReason](#505b-gettrapreason-gerrcod) | [505B](#505b-gettrapreason-gerrcod) | GERRCOD | Gets the error code from the swapper process. This is only r... |
 | [GetUserEntry](#44b-getuserentry-ruser) | [44B](#44b-getuserentry-ruser) | RUSER | Gets information about a user. The user entry in the directo... |
-| [GetUserName](#214b-getusername-gusna) | [214B](#214b-getusername-gusna) | GUSNA | ... |
-| [GetUserParam](#57b-getuserparam-pagei) | [57B](#57b-getuserparam-pagei) | PAGEI | ... |
+| [GetUserName](#214b-getusername-gusna) | [214B](#214b-getusername-gusna) | GUSNA | Gets the name of a user. The user may be on a remote compute... |
+| [GetUserParam](#57b-getuserparam-pagei) | [57B](#57b-getuserparam-pagei) | PAGEI | Gets information about why the last program terminated. Ther... |
 | [GetUserRegisters](#420b-getuserregisters-grblk) | [420B](#420b-getuserregisters-grblk) | GRBLK | SwitchUserBreak allows you to save the registers when you te... |
-| [GRAPHICFUNCTION](#155b-graphicfunction-graph) | [155B](#155b-graphicfunction-graph) | GRAPH | ... |
+| [GRAPHICFUNCTION](#155b-graphicfunction-graph) | [155B](#155b-graphicfunction-graph) | GRAPH | Executes various functions on a graphic peripheral, such as ... |
 | [HDLCfunction](#201b-hdlcfunction-mhdlc) | [201B](#201b-hdlcfunction-mhdlc) | MHDLC | Performs various HDLC functions. A HDLC is a high-level data... |
-| [In4x2Bytes](#63b-in4x2bytes-b41nw) | [63B](#63b-in4x2bytes-b41nw) | B41NW | ... |
+| [In4x2Bytes](#63b-in4x2bytes-b41nw) | [63B](#63b-in4x2bytes-b41nw) | B41NW | Reads 8 bytes from a word-oriented or character-oriented dev... |
 | [In8AndFlag](#310b-in8andflag-tbin8) | [310B](#310b-in8andflag-tbin8) | TBIN8 | Reads 8 bytes from a device, e.g., a terminal. The monitor c... |
 | [In8Bytes](#23b-in8bytes-b8inb) | [23B](#23b-in8bytes-b8inb) | B8INB | Reads 8 bytes from a device. The input is fast, but the moni... |
-| [InBufferSpace](#66b-inbufferspace-isize) | [66B](#66b-inbufferspace-isize) | ISIZE | ... |
+| [InBufferSpace](#66b-inbufferspace-isize) | [66B](#66b-inbufferspace-isize) | ISIZE | Gets the current number of bytes in the input buffer. Termin... |
 | [InBufferState](#313b-inbufferstate-ibrisz) | [313B](#313b-inbufferstate-ibrisz) | IBRISZ | Gets information about an input buffer. The current number o... |
 | [InByte](#1b-inbyte-inbt) | [1B](#1b-inbyte-inbt) | INBT | Reads one byte from a character device, e.g. a terminal or a... |
 | [InputString](#503b-inputstring-dvinst) | [503B](#503b-inputstring-dvinst) | DVINST | Reads a string from a device, e.g., a terminal or an opened ... |
 | [INSTRING](#161b-instring-instr) | [161B](#161b-instring-instr) | INSTR | Reads a string of characters from a peripheral device, e.g. ... |
-| [InUpTo8Bytes](#21b-inupto8bytes-m8inb) | [21B](#21b-inupto8bytes-m8inb) | M8INB | ... |
-| [IOInstruction](#31b-ioinstruction-exiox) | [31B](#31b-ioinstruction-exiox) | EXIOX | ... |
+| [InUpTo8Bytes](#21b-inupto8bytes-m8inb) | [21B](#21b-inupto8bytes-m8inb) | M8INB | See also In8Bytes, InByte, InString, In4x2Bytes, and Out8Byt... |
+| [IOInstruction](#31b-ioinstruction-exiox) | [31B](#31b-ioinstruction-exiox) | EXIOX | Executes an IOX machine instruction. The IOX instruction han... |
 | [JumpToSegment](#132b-jumptosegment-mcall) | [132B](#132b-jumptosegment-mcall) | MCALL | Calls a routine on another segment in the ND-100. You can di... |
 | [LAMUFunction](#315b-lamufunction-mlamu) | [315B](#315b-lamufunction-mlamu) | MLAMU | Performs various functions on the LAMU system. A LAMU is a l... |
 | [LogInStart](#326b-loginstart-mlogi) | [326B](#326b-loginstart-mlogi) | MLOGI | Allowed in RT programs (ring ≥ 1), and in all programs run b... |
@@ -384,7 +384,7 @@
 | [MemoryUnfix](#411b-memoryunfix-unfixm) | [411B](#411b-memoryunfix-unfixm) | UNFIXM | Releases a fixed segment in your domain from physical memory... |
 | [ND500TimeOut](#514b-nd500timeout-5tmout) | [514B](#514b-nd500timeout-5tmout) | 5TMOUT | Suspends the execution of an ND-500 program for a given time... |
 | [NewFileVersion](#253b-newfileversion-craln) | [253B](#253b-newfileversion-craln) | CRALN | Creates new versions of a file. You may create new versions ... |
-| [NewUser](#241b-newuser-suscn) | [241B](#241b-newuser-suscn) | SUSCN | ... |
+| [NewUser](#241b-newuser-suscn) | [241B](#241b-newuser-suscn) | SUSCN | Switches the user name you are logged in under. The command ... |
 | [NoInterruptStart](#107b-nointerruptstart-dscnt) | [107B](#107b-nointerruptstart-dscnt) | DSCNT | StartOnInterrupt connects an RT program to interrupts from a... |
 | [NormalPageTable](#34b-normalpagetable-altoff) | [34B](#34b-normalpagetable-altoff) | ALTOFF | **ALTOFF** Sets the alternative page table equal to the norm... |
 | [NoWaitSwitch](#36b-nowaitswitch-nowt) | [36B](#36b-nowaitswitch-nowt) | NOWT | Switches No Wait on and off. No Wait is useful for input fro... |
@@ -395,74 +395,74 @@
 | [OpenFile](#50b-openfile-open) | [50B](#50b-openfile-open) | OPEN | Opens a file. You cannot access a file before you open it. S... |
 | [OpenFileInfo](#257b-openfileinfo-fopen) | [257B](#257b-openfileinfo-fopen) | FOPEN | Monitor call 257B - OpenFileInfo... |
 | [Out8Bytes](#24b-out8bytes-b8out) | [24B](#24b-out8bytes-b8out) | B8OUT | Writes 8 bytes to a character device, e.g. a terminal. All 8... |
-| [OutBufferSpace](#67b-outbufferspace-osize) | [67B](#67b-outbufferspace-osize) | OSIZE | ... |
+| [OutBufferSpace](#67b-outbufferspace-osize) | [67B](#67b-outbufferspace-osize) | OSIZE | Gets the number of free bytes in the output buffer (number o... |
 | [OutByte](#2b-outbyte-outbt) | [2B](#2b-outbyte-outbt) | OUTBT | Writes one byte to a character device, e.g. a terminal or an... |
 | [OutMessage](#32b-outmessage-msg) | [32B](#32b-outmessage-msg) | MSG | Writes a message to the user's terminal. This is convenient ... |
-| [OutNumber](#35b-outnumber-iout) | [35B](#35b-outnumber-iout) | IOUT | ... |
-| [OutputString](#504b-outputstring-dvouts) | [504B](#504b-outputstring-dvouts) | DVOUTS | ... |
-| [OutString](#162b-outstring-outst) | [162B](#162b-outstring-outst) | OUTST | ... |
+| [OutNumber](#35b-outnumber-iout) | [35B](#35b-outnumber-iout) | IOUT | Writes a number to the user's terminal. The number can be ou... |
+| [OutputString](#504b-outputstring-dvouts) | [504B](#504b-outputstring-dvouts) | DVOUTS | Writes a string to a device, e.g. a terminal or an opened fi... |
+| [OutString](#162b-outstring-outst) | [162B](#162b-outstring-outst) | OUTST | Writes a string of characters to a peripheral file, e.g., a ... |
 | [OutUpTo8Bytes](#22b-outupto8bytes-m8out) | [22B](#22b-outupto8bytes-m8out) | M8OUT | Writes up to 8 characters to a device, e.g. a terminal or an... |
 | [PIOCCFunction](#255b-pioccfunction-piocm) | [255B](#255b-pioccfunction-piocm) | PIOCM | PIOCC (Programmed Input/Output Control Channel) function mon... |
-| [PrivInstruction](#146b-privinstruction-ipriv) | [146B](#146b-privinstruction-ipriv) | IPRIV | ... |
+| [PrivInstruction](#146b-privinstruction-ipriv) | [146B](#146b-privinstruction-ipriv) | IPRIV | Executes a privileged machine instruction on the ND-100. Pri... |
 | [ReadADChannel](#37b-readadchannel-airdw) | [37B](#37b-readadchannel-airdw) | AIRDW | Reads an analog to digital channel.... |
 | [ReadBlock](#7b-readblock-rpage) | [7B](#7b-readblock-rpage) | RPAGE | Reads randomly from a file. You read one block at a time. Th... |
 | [ReadDiskPage](#270b-readdiskpage-rdpag) | [270B](#270b-readdiskpage-rdpag) | RDPAG | Reads one or more directory pages. Any page can be read.... |
-| [ReadFromFile](#117b-readfromfile-rfile) | [117B](#117b-readfromfile-rfile) | RFILE | ... |
-| [ReadObjectEntry](#41b-readobjectentry-robje) | [41B](#41b-readobjectentry-robje) | ROBJE | ... |
+| [ReadFromFile](#117b-readfromfile-rfile) | [117B](#117b-readfromfile-rfile) | RFILE | Reads any number of bytes from a file. The read operation mu... |
+| [ReadObjectEntry](#41b-readobjectentry-robje) | [41B](#41b-readobjectentry-robje) | ROBJE | Gets information about an opened file. An object entry descr... |
 | [ReadScratchFile](#5b-readscratchfile-rdisk) | [5B](#5b-readscratchfile-rdisk) | RDISK | Reads randomly from the scratch file. One block is transferr... |
 | [READSYSTEMRECORD](#340b-readsystemrecord-rsrec) | [340B](#340b-readsystemrecord-rsrec) | RSREC | Used to read the system record into a buffer.... |
 | [ReentrantSegment](#212b-reentrantsegment-sreen) | [212B](#212b-reentrantsegment-sreen) | SREEN | Connects a reentrant segment to your two current segments. A... |
 | [ReleaseDir](#247b-releasedir-rldir) | [247B](#247b-releasedir-rldir) | RLDIR | Releases a directory. The directory must have been reserved ... |
 | [ReleaseResource](#123b-releaseresource-reles) | [123B](#123b-releaseresource-reles) | RELES | Releases a reserved device or file. The resource can then be... |
-| [RenameFile](#232b-renamefile-mrnfi) | [232B](#232b-renamefile-mrnfi) | MRNFI | ... |
-| [ReservationInfo](#140b-reservationinfo-whdev) | [140B](#140b-reservationinfo-whdev) | WHDEV | ... |
+| [RenameFile](#232b-renamefile-mrnfi) | [232B](#232b-renamefile-mrnfi) | MRNFI | See also @RENAME-FILE.... |
+| [ReservationInfo](#140b-reservationinfo-whdev) | [140B](#140b-reservationinfo-whdev) | WHDEV | Checks that a device is not reserved. If it is reserved, you... |
 | [ReserveDir](#246b-reservedir-redir) | [246B](#246b-reservedir-redir) | REDIR | Reserves a directory for special use. The directory must be ... |
-| [ReserveResource](#122b-reserveresource-resrv) | [122B](#122b-reserveresource-resrv) | RESRV | ... |
-| [SaveND500Segment](#416b-savend500segment-wsegn) | [416B](#416b-savend500segment-wsegn) | WSEGN | ... |
-| [SaveSegment](#164b-savesegment-wseg) | [164B](#164b-savesegment-wseg) | WSEG | ... |
+| [ReserveResource](#122b-reserveresource-resrv) | [122B](#122b-reserveresource-resrv) | RESRV | Reserves a device or file for your program only. You release... |
+| [SaveND500Segment](#416b-savend500segment-wsegn) | [416B](#416b-savend500segment-wsegn) | WSEGN | Writes all modified pages of a segment back to the disk.... |
+| [SaveSegment](#164b-savesegment-wseg) | [164B](#164b-savesegment-wseg) | WSEG | Saves a segment in the ND-100. All pages in physical memory ... |
 | [SCRATCHOPEN](#235b-scratchopen-scrop) | [235B](#235b-scratchopen-scrop) | SCROP | Opens a file as a scratch file. A maximum of 64 pages of the... |
 | [SegmentFunction](#341b-segmentfunction-sgmty) | [341B](#341b-segmentfunction-sgmty) | SGMTY | This is a multifunction monitor call used to change the acti... |
 | [SegmentOverlay](#323b-segmentoverlay-splre) | [323B](#323b-segmentoverlay-splre) | SPLRE | Used to build multisegment programs in the ND-100. It is mai... |
-| [SegmentToPageTable](#157b-segmenttopagetable-entsg) | [157B](#157b-segmenttopagetable-entsg) | ENTSG | ... |
-| [SetBlockSize](#76b-setblocksize-setbs) | [76B](#76b-setblocksize-setbs) | SETBS | ... |
+| [SegmentToPageTable](#157b-segmenttopagetable-entsg) | [157B](#157b-segmenttopagetable-entsg) | ENTSG | Enters a routine as a direct task or as a device driver, and... |
+| [SetBlockSize](#76b-setblocksize-setbs) | [76B](#76b-setblocksize-setbs) | SETBS | Sets the block size of an opened file. Monitor calls which r... |
 | [SetBreak](#4b-setbreak-brkm) | [4B](#4b-setbreak-brkm) | BRKM | Sets the break characters for a terminal. Normally, a progra... |
 | [SetClock](#111b-setclock-updat) | [111B](#111b-setclock-updat) | UPDAT | Gives new values to the computer's clock and calendar. If th... |
 | [SetCommandBuffer](#12b-setcommandbuffer-setcm) | [12B](#12b-setcommandbuffer-setcm) | SETCM | Transfers a string to the command buffer. The command buffer... |
-| [SetEcho](#3b-setecho-echom) | [3B](#3b-setecho-echom) | ECHOM | ... |
+| [SetEcho](#3b-setecho-echom) | [3B](#3b-setecho-echom) | ECHOM | When you press a key on the terminal, a character is normall... |
 | [SetEscapeHandling](#300b-setescapehandling-eusel) | [300B](#300b-setescapehandling-eusel) | EUSEL | Enables user-defined escape handling. When the ESCAPE key is... |
 | [SetEscLocalChars](#227b-setesclocalchars-msdae) | [227B](#227b-setesclocalchars-msdae) | MSDAE | You can terminate most programs with the ESCAPE key. A LOCAL... |
-| [SetFileAccess](#237b-setfileaccess-sfacc) | [237B](#237b-setfileaccess-sfacc) | SFACC | ... |
+| [SetFileAccess](#237b-setfileaccess-sfacc) | [237B](#237b-setfileaccess-sfacc) | SFACC | Sets the access protection for a file. You should specify th... |
 | [SetMaxBytes](#73b-setmaxbytes-smax) | [73B](#73b-setmaxbytes-smax) | SMAX | Sets the value of the maximum byte pointer in an opened file... |
-| [SetND500Param](#436b-setnd500param-5paset) | [436B](#436b-setnd500param-5paset) | 5PASET | ... |
+| [SetND500Param](#436b-setnd500param-5paset) | [436B](#436b-setnd500param-5paset) | 5PASET | Sets information about an ND-500 program. Use GetND500Param ... |
 | [SetObjectEntry](#216b-setobjectentry-dwobj) | [216B](#216b-setobjectentry-dwobj) | DWOBJ | Changes the description of a file. An object entry describes... |
 | [SetOutputFlags](#403b-setoutputflags-wflag) | [403B](#403b-setoutputflags-wflag) | WFLAG | ND-100 and ND-500 programs may communicate through two 32-bi... |
-| [SetPeripheralName](#234b-setperipheralname-spefi) | [234B](#234b-setperipheralname-spefi) | SPEFI | ... |
+| [SetPeripheralName](#234b-setperipheralname-spefi) | [234B](#234b-setperipheralname-spefi) | SPEFI | Defines a peripheral file, e.g. a printer. You connect a fil... |
 | [SetPermanentOpen](#236b-setpermanentopen-sperd) | [236B](#236b-setpermanentopen-sperd) | SPERD | Sets a file permanently open. The file is not closed by Clos... |
 | [SetProcessName](#425b-setprocessname-sprnam) | [425B](#425b-setprocessname-sprnam) | SPRNAM | Defines a new name for your process.... |
 | [SetProcessPriority](#507b-setprocesspriority-sprio) | [507B](#507b-setprocesspriority-sprio) | SPRIO | Sets the priority for a process in the ND-500. The prioritie... |
-| [SetRemoteAccess](#316b-setremoteaccess-srlmo) | [316B](#316b-setremoteaccess-srlmo) | SRLMO | ... |
+| [SetRemoteAccess](#316b-setremoteaccess-srlmo) | [316B](#316b-setremoteaccess-srlmo) | SRLMO | Switches remote file access on and off. The COSMOS network a... |
 | [SetRTPriority](#110b-setrtpriority-prior) | [110B](#110b-setrtpriority-prior) | PRIOR | Sets the priority of an RT program. RT programs may be given... |
 | [SetStartBlock](#77b-setstartblock-setbl) | [77B](#77b-setstartblock-setbl) | SETBL | Sets the next block to be read or written in an opened file.... |
 | [SetStartByte](#74b-setstartbyte-setbt) | [74B](#74b-setstartbyte-setbt) | SETBT | Sets the next byte to be read or written in an opened mass-s... |
-| [SetTemporaryFile](#233b-settemporaryfile-stefi) | [233B](#233b-settemporaryfile-stefi) | STEFI | ... |
+| [SetTemporaryFile](#233b-settemporaryfile-stefi) | [233B](#233b-settemporaryfile-stefi) | STEFI | Defines a file to store information temporarily. The file ca... |
 | [SetTerminalName](#275b-setterminalname-strfi) | [275B](#275b-setterminalname-strfi) | STRFI | Defines the file name to be used for terminals. This is norm... |
-| [SetTerminalType](#17b-setterminaltype-mstty) | [17B](#17b-setterminaltype-mstty) | MSTTY | ... |
+| [SetTerminalType](#17b-setterminaltype-mstty) | [17B](#17b-setterminaltype-mstty) | MSTTY | Sets the type of a terminal. The terminal type tells SINTRAN... |
 | [SetUserParam](#56b-setuserparam-paset) | [56B](#56b-setuserparam-paset) | PASET | Sets information about a background program. Use GetUserPara... |
-| [StartOnInterrupt](#106b-startoninterrupt-conct) | [106B](#106b-startoninterrupt-conct) | CONCT | ... |
+| [StartOnInterrupt](#106b-startoninterrupt-conct) | [106B](#106b-startoninterrupt-conct) | CONCT | StartOnInterrupt connects an RT program to interrupts from a... |
 | [STARTPROCESS](#500b-startprocess-startp) | [500B](#500b-startprocess-startp) | STARTP | Starts a process in the ND-500. You identify the process wit... |
 | [StartRTProgram](#100b-startrtprogram-rt) | [100B](#100b-startrtprogram-rt) | RT | Starts an RT program. The program is moved to the execution ... |
 | [STARTUPINTERVAL](#103b-startupinterval-intv) | [103B](#103b-startupinterval-intv) | INTV | Prepares an RT program for periodic execution. The interval ... |
 | [StartupTime](#102b-startuptime-abset) | [102B](#102b-startuptime-abset) | ABSET | Starts an RT program at a specified time of the day. The RT ... |
 | [StopEscapeHandling](#301b-stopescapehandling-dusel) | [301B](#301b-stopescapehandling-dusel) | DUSEL | Disables user-defined escape handling. The ESCAPE key termin... |
 | [StopProcess](#501b-stopprocess-stoppr) | [501B](#501b-stopprocess-stoppr) | STOPPR | Sets the current process in a wait state. StartProcess resta... |
-| [StopRTProgram](#105b-stoprtprogram-abort) | [105B](#105b-stoprtprogram-abort) | ABORT | ... |
+| [StopRTProgram](#105b-stoprtprogram-abort) | [105B](#105b-stoprtprogram-abort) | ABORT | Stops an RT program. It is removed from the time or executio... |
 | [SuspendProgram](#104b-suspendprogram-hold) | [104B](#104b-suspendprogram-hold) | HOLD | Suspends the execution of your program for a given time. The... |
 | [SwitchProcess](#502b-switchprocess-switchp) | [502B](#502b-switchprocess-switchp) | SWITCHP | Sets the current process in a wait state. Restarts another p... |
-| [SwitchUserBreak](#405b-switchuserbreak-ustrk) | [405B](#405b-switchuserbreak-ustrk) | USTRK | ... |
+| [SwitchUserBreak](#405b-switchuserbreak-ustrk) | [405B](#405b-switchuserbreak-ustrk) | USTRK | Switches user-defined escape handling on and off. The user-d... |
 | [TERMINAL](#336b-terminal-iomty) | [336B](#336b-terminal-iomty) | IOMTY | This I/O multifunction monitor call is used to change the at... |
-| [TerminalLineInfo](#332b-terminallineinfo-trepp) | [332B](#332b-terminallineinfo-trepp) | TREPP | ... |
+| [TerminalLineInfo](#332b-terminallineinfo-trepp) | [332B](#332b-terminallineinfo-trepp) | TREPP | Gets information about a terminal line. You may also enable ... |
 | [TerminalMode](#52b-terminalmode-termo) | [52B](#52b-terminalmode-termo) | TERMO | Selects various terminal functions. You may stop output on f... |
-| [TerminalNoWait](#307b-terminalnowait-tnowai) | [307B](#307b-terminalnowait-tnowai) | TNOWAI | ... |
+| [TerminalNoWait](#307b-terminalnowait-tnowai) | [307B](#307b-terminalnowait-tnowai) | TNOWAI | Switches No Wait on and off. No Wait is useful for input fro... |
 | [TerminalStatus](#330b-terminalstatus-terst) | [330B](#330b-terminalstatus-terst) | TERST | Gets information about a terminal. The user logged in, the t... |
 | [TerminationHandling](#206b-terminationhandling-edtmp) | [206B](#206b-terminationhandling-edtmp) | EDTMP | Switches termination handling on and off.... |
 | [TimeOut](#267b-timeout-tmout) | [267B](#267b-timeout-tmout) | TMOUT | Suspends the execution of your program for a given time. The... |
@@ -479,7 +479,7 @@
 | [UserDef6](#176b-userdef6-us6) | [176B](#176b-userdef6-us6) | US6 | User-defined monitor call. You can implement up to 8 monitor... |
 | [UserDef7](#177b-userdef7-us7) | [177B](#177b-userdef7-us7) | US7 | User-defined monitor call. You can implement up to 8 monitor... |
 | [WAITFORRESTART](#135b-waitforrestart-rtwt) | [135B](#135b-waitforrestart-rtwt) | RTWT | Sets the RT program in a waiting state. It is restarted by S... |
-| [WarningMessage](#64b-warningmessage-ermsg) | [64B](#64b-warningmessage-ermsg) | ERMSG | ... |
+| [WarningMessage](#64b-warningmessage-ermsg) | [64B](#64b-warningmessage-ermsg) | ERMSG | Outputs a file system error message. Appendix A shows the me... |
 | [WriteBlock](#10b-writeblock-wpage) | [10B](#10b-writeblock-wpage) | WPAGE | Writes randomly to a file. You write one block at a time. Th... |
 | [WriteDirEntry](#311b-writedirentry-wdien) | [311B](#311b-writedirentry-wdien) | WDIEN | Changes the information about a directory. The complete cont... |
 | [WriteDiskPage](#271b-writediskpage-wdpag) | [271B](#271b-writediskpage-wdpag) | WDPAG | Writes to one or more pages in a directory. Any page can be ... |
@@ -494,19 +494,19 @@
 | Short Name | Name | Octal | Description |
 |------------|------|-------|-------------|
 | **5PAGET** | [GetND500Param](#437b-getnd500param-5paget) | [437B](#437b-getnd500param-5paget) | Gets information about why the last ND-500 program terminate... |
-| **5PASET** | [SetND500Param](#436b-setnd500param-5paset) | [436B](#436b-setnd500param-5paset) | ... |
+| **5PASET** | [SetND500Param](#436b-setnd500param-5paset) | [436B](#436b-setnd500param-5paset) | Sets information about an ND-500 program. Use GetND500Param ... |
 | **5TMOUT** | [ND500TimeOut](#514b-nd500timeout-5tmout) | [514B](#514b-nd500timeout-5tmout) | Suspends the execution of an ND-500 program for a given time... |
-| **ABORT** | [StopRTProgram](#105b-stoprtprogram-abort) | [105B](#105b-stoprtprogram-abort) | ... |
+| **ABORT** | [StopRTProgram](#105b-stoprtprogram-abort) | [105B](#105b-stoprtprogram-abort) | Stops an RT program. It is removed from the time or executio... |
 | **ABSET** | [StartupTime](#102b-startuptime-abset) | [102B](#102b-startuptime-abset) | Starts an RT program at a specified time of the day. The RT ... |
 | **ABSTR** | [DataTransfer](#131b-datatransfer-abstr) | [131B](#131b-datatransfer-abstr) | Transfers data between physical memory and a mass-storage de... |
 | **ADRIOO** | [TranslateAddress](#430b-translateaddress-adrioo) | [430B](#430b-translateaddress-adrioo) | The call formats are marked from a-i. All formats give statu... |
 | **AIRDW** | [ReadADChannel](#37b-readadchannel-airdw) | [37B](#37b-readadchannel-airdw) | Reads an analog to digital channel.... |
 | **ALTOFF** | [NormalPageTable](#34b-normalpagetable-altoff) | [34B](#34b-normalpagetable-altoff) | **ALTOFF** Sets the alternative page table equal to the norm... |
 | **ALTON** | [ALTPAGETABLE](#33b-altpagetable-alton) | [33B](#33b-altpagetable-alton) | Switches page table. Each page table allows you to access 12... |
-| **APSPE** | [AppendSpooling](#240b-appendspooling-apspe) | [240B](#240b-appendspooling-apspe) | ... |
+| **APSPE** | [AppendSpooling](#240b-appendspooling-apspe) | [240B](#240b-appendspooling-apspe) | Prints a file. The printer has a queue of files waiting to b... |
 | **ASSIG** | [AssignCAMACLAM](#154b-assigncamaclam-assig) | [154B](#154b-assigncamaclam-assig) | Assigns a graded LAM in the CAMAC identification table to a ... |
 | **ATSGM** | [Attach500Segment](#440b-attach500segment-atsgm) | [440B](#440b-attach500segment-atsgm) | Maps a logical ND-500 data segment onto shared ND-100/ND-500... |
-| **B41NW** | [In4x2Bytes](#63b-in4x2bytes-b41nw) | [63B](#63b-in4x2bytes-b41nw) | ... |
+| **B41NW** | [In4x2Bytes](#63b-in4x2bytes-b41nw) | [63B](#63b-in4x2bytes-b41nw) | Reads 8 bytes from a word-oriented or character-oriented dev... |
 | **B8INB** | [In8Bytes](#23b-in8bytes-b8inb) | [23B](#23b-in8bytes-b8inb) | Reads 8 bytes from a device. The input is fast, but the moni... |
 | **B8OUT** | [Out8Bytes](#24b-out8bytes-b8out) | [24B](#24b-out8bytes-b8out) | Writes 8 bytes to a character device, e.g. a terminal. All 8... |
 | **BCLOS** | [BACKUPCLOSE](#252b-backupclose-bclos) | [252B](#252b-backupclose-bclos) | Closes a file. The version number and the last date accessed... |
@@ -514,80 +514,80 @@
 | **BCNAF1** | [BCNAF1CAMAC](#415b-bcnaf1camac-bcnaf1) | [415B](#415b-bcnaf1camac-bcnaf1) | Special CAMAC monitor call for the ND-500. (Same as mon 176 ... |
 | **BRKM** | [SetBreak](#4b-setbreak-brkm) | [4B](#4b-setbreak-brkm) | Sets the break characters for a terminal. Normally, a progra... |
 | **CAMAC** | [CAMACFunction](#147b-camacfunction-camac) | [147B](#147b-camacfunction-camac) | Operates the CAMAC, i.e. executes the NAF register. CAMAC is... |
-| **CAPCLE** | [ClearCapability](#424b-clearcapability-capcle) | [424B](#424b-clearcapability-capcle) | ... |
-| **CAPCOP** | [CopyCapability](#423b-copycapability-capcop) | [423B](#423b-copycapability-capcop) | ... |
+| **CAPCLE** | [ClearCapability](#424b-clearcapability-capcle) | [424B](#424b-clearcapability-capcle) | Clears a capability. A capability describes each logical seg... |
+| **CAPCOP** | [CopyCapability](#423b-copycapability-capcop) | [423B](#423b-copycapability-capcop) | Copies a capability for a segment. The segment itself is als... |
 | **CIBUF** | [ClearInBuffer](#13b-clearinbuffer-cibuf) | [13B](#13b-clearinbuffer-cibuf) | Clears a device input buffer. Input from character devices, ... |
-| **CLADJ** | [AdjustClock](#112b-adjustclock-cladj) | [112B](#112b-adjustclock-cladj) | ... |
+| **CLADJ** | [AdjustClock](#112b-adjustclock-cladj) | [112B](#112b-adjustclock-cladj) | Sets the computer's clock (i.e. the current system time) for... |
 | **CLOCK** | [GetCurrentTime](#113b-getcurrenttime-clock) | [113B](#113b-getcurrenttime-clock) | Gets the current system time and date.... |
 | **CLOSE** | [CloseFile](#43b-closefile-close) | [43B](#43b-closefile-close) | Closes one or more files. Files must be opened before they a... |
 | **COBUF** | [CLEAROUTBUFFER](#14b-clearoutbuffer-cobuf) | [14B](#14b-clearoutbuffer-cobuf) | Clears a device output buffer. Output to character devices, ... |
 | **COMMND** | [CallCommand](#70b-callcommand-commnd) | [70B](#70b-callcommand-commnd) | Executes a SINTRAN III command from a program. The program t... |
-| **CONCT** | [StartOnInterrupt](#106b-startoninterrupt-conct) | [106B](#106b-startoninterrupt-conct) | ... |
+| **CONCT** | [StartOnInterrupt](#106b-startoninterrupt-conct) | [106B](#106b-startoninterrupt-conct) | StartOnInterrupt connects an RT program to interrupts from a... |
 | **COPAG** | [CopyPage](#251b-copypage-copag) | [251B](#251b-copypage-copag) | Copies file pages between two opened files. One of the files... |
 | **CPUST** | [GetSystemInfo](#262b-getsysteminfo-cpust) | [262B](#262b-getsysteminfo-cpust) | Gets various system information. The system number, the CPU ... |
-| **CRALF** | [CreateFile](#221b-createfile-cralf) | [221B](#221b-createfile-cralf) | ... |
+| **CRALF** | [CreateFile](#221b-createfile-cralf) | [221B](#221b-createfile-cralf) | Creates a file. The file may be indexed, contiguous, or allo... |
 | **CRALN** | [NewFileVersion](#253b-newfileversion-craln) | [253B](#253b-newfileversion-craln) | Creates new versions of a file. You may create new versions ... |
-| **DABST** | [ExactStartup](#127b-exactstartup-dabst) | [127B](#127b-exactstartup-dabst) | ... |
+| **DABST** | [ExactStartup](#127b-exactstartup-dabst) | [127B](#127b-exactstartup-dabst) | Starts an RT program at a specific time. The time is given i... |
 | **DEABF** | [FULLFILENAME](#256b-fullfilename-deabf) | [256B](#256b-fullfilename-deabf) | Returns a complete file name from an abbreviated one. The di... |
-| **DELPG** | [DeletePage](#272b-deletepage-delpg) | [272B](#272b-deletepage-delpg) | ... |
+| **DELPG** | [DeletePage](#272b-deletepage-delpg) | [272B](#272b-deletepage-delpg) | Deletes pages from a file. Pages between two page numbers ar... |
 | **DESCF** | [DISABLEESCAPE](#71b-disableescape-descf) | [71B](#71b-disableescape-descf) | The ESCAPE key on the terminal normally terminates a program... |
-| **DIASS** | [DisAssemble](#401b-disassemble-diass) | [401B](#401b-disassemble-diass) | ... |
+| **DIASS** | [DisAssemble](#401b-disassemble-diass) | [401B](#401b-disassemble-diass) | Disassembles one machine instruction on the ND-500. Output i... |
 | **DINTV** | [ExactInterval](#130b-exactinterval-dintv) | [130B](#130b-exactinterval-dintv) | Prepares an RT program for periodic execution. The interval ... |
-| **DIW** | [GETINREGISTERS](#165b-getinregisters-diw) | [165B](#165b-getinregisters-diw) | ... |
+| **DIW** | [GETINREGISTERS](#165b-getinregisters-diw) | [165B](#165b-getinregisters-diw) | Reads the device interface registers.... |
 | **DLOFU** | [DISABLELOCAL](#277b-disablelocal-dlofu) | [277B](#277b-disablelocal-dlofu) | You may log in on remote computers through the COSMOS data n... |
-| **DOPEN** | [DirectOpen](#220b-directopen-dopen) | [220B](#220b-directopen-dopen) | ... |
+| **DOPEN** | [DirectOpen](#220b-directopen-dopen) | [220B](#220b-directopen-dopen) | Opens a file. Files must be opened before they can be access... |
 | **DROBJ** | [GetObjectEntry](#215b-getobjectentry-drobj) | [215B](#215b-getobjectentry-drobj) | Gets information about a file. An object entry describes eac... |
 | **DSCNT** | [NoInterruptStart](#107b-nointerruptstart-dscnt) | [107B](#107b-nointerruptstart-dscnt) | StartOnInterrupt connects an RT program to interrupts from a... |
-| **DSET** | [ExactDelayStart](#126b-exactdelaystart-dset) | [126B](#126b-exactdelaystart-dset) | ... |
+| **DSET** | [ExactDelayStart](#126b-exactdelaystart-dset) | [126B](#126b-exactdelaystart-dset) | Sets an RT program to start after a given period. It is then... |
 | **DUSEL** | [StopEscapeHandling](#301b-stopescapehandling-dusel) | [301B](#301b-stopescapehandling-dusel) | Disables user-defined escape handling. The ESCAPE key termin... |
 | **DVINST** | [InputString](#503b-inputstring-dvinst) | [503B](#503b-inputstring-dvinst) | Reads a string from a device, e.g., a terminal or an opened ... |
-| **DVOUTS** | [OutputString](#504b-outputstring-dvouts) | [504B](#504b-outputstring-dvouts) | ... |
+| **DVOUTS** | [OutputString](#504b-outputstring-dvouts) | [504B](#504b-outputstring-dvouts) | Writes a string to a device, e.g. a terminal or an opened fi... |
 | **DWOBJ** | [SetObjectEntry](#216b-setobjectentry-dwobj) | [216B](#216b-setobjectentry-dwobj) | Changes the description of a file. An object entry describes... |
-| **ECHOM** | [SetEcho](#3b-setecho-echom) | [3B](#3b-setecho-echom) | ... |
+| **ECHOM** | [SetEcho](#3b-setecho-echom) | [3B](#3b-setecho-echom) | When you press a key on the terminal, a character is normall... |
 | **EDTMP** | [TerminationHandling](#206b-terminationhandling-edtmp) | [206B](#206b-terminationhandling-edtmp) | Switches termination handling on and off.... |
-| **EESCF** | [EnableEscape](#72b-enableescape-eescf) | [72B](#72b-enableescape-eescf) | ... |
+| **EESCF** | [EnableEscape](#72b-enableescape-eescf) | [72B](#72b-enableescape-eescf) | Enables the ESCAPE key on the terminal. The ESCAPE key norma... |
 | **ELOFF** | [OffEscLocalFunction](#303b-offesclocalfunction-eloff) | [303B](#303b-offesclocalfunction-eloff) | Delays the escape and local functions for your terminal. The... |
 | **ELOFU** | [EnableLocal](#276b-enablelocal-elofu) | [276B](#276b-enablelocal-elofu) | You may log in on remote computers through the COSMOS data n... |
 | **ELON** | [ONESCLOCALFUNCTION](#302b-onesclocalfunction-elon) | [302B](#302b-onesclocalfunction-elon) | Enables delayed escape and local functions for your terminal... |
-| **ENTSG** | [SegmentToPageTable](#157b-segmenttopagetable-entsg) | [157B](#157b-segmenttopagetable-entsg) | ... |
+| **ENTSG** | [SegmentToPageTable](#157b-segmenttopagetable-entsg) | [157B](#157b-segmenttopagetable-entsg) | Enters a routine as a direct task or as a device driver, and... |
 | **ERMON** | [ToErrorDevice](#142b-toerrordevice-ermon) | [142B](#142b-toerrordevice-ermon) | Outputs a user-defined, real-time error. The error message i... |
-| **ERMSG** | [WarningMessage](#64b-warningmessage-ermsg) | [64B](#64b-warningmessage-ermsg) | ... |
+| **ERMSG** | [WarningMessage](#64b-warningmessage-ermsg) | [64B](#64b-warningmessage-ermsg) | Outputs a file system error message. Appendix A shows the me... |
 | **EUSEL** | [SetEscapeHandling](#300b-setescapehandling-eusel) | [300B](#300b-setescapehandling-eusel) | Enables user-defined escape handling. When the ESCAPE key is... |
 | **EXABS** | [TRANSFERDATA](#335b-transferdata-exabs) | [335B](#335b-transferdata-exabs) | Transfers data between physical memory and a mass-storage de... |
-| **EXIOX** | [IOInstruction](#31b-ioinstruction-exiox) | [31B](#31b-ioinstruction-exiox) | ... |
-| **EXPFI** | [ExpandFile](#231b-expandfile-expfi) | [231B](#231b-expandfile-expfi) | ... |
+| **EXIOX** | [IOInstruction](#31b-ioinstruction-exiox) | [31B](#31b-ioinstruction-exiox) | Executes an IOX machine instruction. The IOX instruction han... |
+| **EXPFI** | [ExpandFile](#231b-expandfile-expfi) | [231B](#231b-expandfile-expfi) | Expands the file size. You use this monitor call to increase... |
 | **FDFDI** | [GetDefaultDir](#250b-getdefaultdir-fdfdi) | [250B](#250b-getdefaultdir-fdfdi) | Gets the user’s default directory. The directory index and t... |
 | **FDINA** | [GetDirNameIndex](#243b-getdirnameindex-fdina) | [243B](#243b-getdirnameindex-fdina) | Gets directory index and name index. The name index identifi... |
-| **FIX** | [FixScattered](#115b-fixscattered-fix) | [115B](#115b-fixscattered-fix) | ... |
-| **FIXC** | [FixContiguous](#160b-fixcontiguous-fixc) | [160B](#160b-fixcontiguous-fixc) | ... |
+| **FIX** | [FixScattered](#115b-fixscattered-fix) | [115B](#115b-fixscattered-fix) | Place a segment in physical memory. Its pages will no longer... |
+| **FIXC** | [FixContiguous](#160b-fixcontiguous-fixc) | [160B](#160b-fixcontiguous-fixc) | Places a segment in physical memory. Its pages will no longe... |
 | **FIXCS** | [MemoryAllocation](#61b-memoryallocation-fixcs) | [61B](#61b-memoryallocation-fixcs) | Fixes or unfixes ND-100 segments to be used by the ND-500 Mo... |
 | **FIXMEM** | [FIXINMEMORY](#410b-fixinmemory-fixmem) | [410B](#410b-fixinmemory-fixmem) | Fixes a logical segment of your domain in physical memory. Y... |
-| **FOBJN** | [GetFileIndexes](#274b-getfileindexes-fobjn) | [274B](#274b-getfileindexes-fobjn) | ... |
+| **FOBJN** | [GetFileIndexes](#274b-getfileindexes-fobjn) | [274B](#274b-getfileindexes-fobjn) | Gets the directory index, the user index, and the object ind... |
 | **FOPEN** | [OpenFileInfo](#257b-openfileinfo-fopen) | [257B](#257b-openfileinfo-fopen) | Monitor call 257B - OpenFileInfo... |
-| **FSCDNT** | [FileNotAsSegment](#413b-filenotassegment-fscdnt) | [413B](#413b-filenotassegment-fscdnt) | ... |
-| **FSCNT** | [FileAsSegment](#412b-fileassegment-fscnt) | [412B](#412b-fileassegment-fscnt) | ... |
+| **FSCDNT** | [FileNotAsSegment](#413b-filenotassegment-fscdnt) | [413B](#413b-filenotassegment-fscdnt) | Disconnects a file as a segment in your domain. FileAsSegmen... |
+| **FSCNT** | [FileAsSegment](#412b-fileassegment-fscnt) | [412B](#412b-fileassegment-fscnt) | Connects a file as a segment to your domain. You can then ac... |
 | **FSMTY** | [FileSystemFunction](#327b-filesystemfunction-fsmty) | [327B](#327b-filesystemfunction-fsmty) | Multifunction monitor call to make sure that an uncontrolled... |
-| **GASGM** | [GetActiveSegment](#421b-getactivesegment-gasgm) | [421B](#421b-getactivesegment-gasgm) | ... |
+| **GASGM** | [GetActiveSegment](#421b-getactivesegment-gasgm) | [421B](#421b-getactivesegment-gasgm) | Gets the name of the segments in your domain. A 2048 byte bu... |
 | **GBSIZ** | [GetAddressArea](#222b-getaddressarea-gbsiz) | [222B](#222b-getaddressarea-gbsiz) | Gets the size of your address area. Your address area may co... |
 | **GDEVT** | [GetDeviceType](#263b-getdevicetype-gdevt) | [263B](#263b-getdevicetype-gdevt) | Gets the device type, e.g. terminal, floppy disk, mass-stora... |
-| **GDIEN** | [GetDirEntry](#244b-getdirentry-gdien) | [244B](#244b-getdirentry-gdien) | ... |
+| **GDIEN** | [GetDirEntry](#244b-getdirentry-gdien) | [244B](#244b-getdirentry-gdien) | Gets information about a directory. The directory entry is r... |
 | **GERDV** | [GetErrorDevice](#254b-geterrordevice-gerdv) | [254B](#254b-geterrordevice-gerdv) | Gets the logical device number of the error device. The erro... |
-| **GERRCOD** | [GetTrapReason](#505b-gettrapreason-gerrcod) | [505B](#505b-gettrapreason-gerrcod) | ... |
+| **GERRCOD** | [GetTrapReason](#505b-gettrapreason-gerrcod) | [505B](#505b-gettrapreason-gerrcod) | Gets the error code from the swapper process. This is only r... |
 | **GETRT** | [GetOwnRTAddress](#30b-getownrtaddress-getrt) | [30B](#30b-getownrtaddress-getrt) | Gets the address of the calling program's RT description. Ba... |
 | **GETXM** | [GetErrorMessage](#334b-geterrormessage-getxm) | [334B](#334b-geterrormessage-getxm) | Gets a SINTRAN III error message text. Appendix A shows the ... |
 | **GL** | [CAMACGLRegister](#150b-camacglregister-gl) | [150B](#150b-camacglregister-gl) | Read the CAMAC GL (Graded LAM -"look at me") register or the... |
 | **GNAEN** | [GetNameEntry](#245b-getnameentry-gnaen) | [245B](#245b-getnameentry-gnaen) | Gets information about devices, e.g. disks and floppy disks.... |
 | **GPRNAM** | [GetProcessNo](#426b-getprocessno-gprnam) | [426B](#426b-getprocessno-gprnam) | Gets the number of a process in the ND-500. You specify the ... |
 | **GPRNME** | [GetOwnProcessInfo](#427b-getownprocessinfo-gprnme) | [427B](#427b-getownprocessinfo-gprnme) | Gets the name and number of your own process in the ND-500. ... |
-| **GRAPH** | [GRAPHICFUNCTION](#155b-graphicfunction-graph) | [155B](#155b-graphicfunction-graph) | ... |
+| **GRAPH** | [GRAPHICFUNCTION](#155b-graphicfunction-graph) | [155B](#155b-graphicfunction-graph) | Executes various functions on a graphic peripheral, such as ... |
 | **GRBLK** | [GetUserRegisters](#420b-getuserregisters-grblk) | [420B](#420b-getuserregisters-grblk) | SwitchUserBreak allows you to save the registers when you te... |
 | **GRTDA** | [GETRTADDRESS](#151b-getrtaddress-grtda) | [151B](#151b-getrtaddress-grtda) | Gets the address of an RT description. You specify the name ... |
 | **GRTNA** | [GetRTName](#152b-getrtname-grtna) | [152B](#152b-getrtname-grtna) | Gets the name of an RT program. You specify the RT descripti... |
-| **GSGNO** | [GetSegmentNo](#322b-getsegmentno-gsgno) | [322B](#322b-getsegmentno-gsgno) | ... |
+| **GSGNO** | [GetSegmentNo](#322b-getsegmentno-gsgno) | [322B](#322b-getsegmentno-gsgno) | Gets the number of a segment in the ND-100. You specify the ... |
 | **GSWSM** | [GETSCRATCHSEGMENT](#422b-getscratchsegment-gswsm) | [422B](#422b-getscratchsegment-gswsm) | Connects an empty data segment to your domain. The monitor c... |
-| **GTMOD** | [GetTerminalMode](#306b-getterminalmode-gtmod) | [306B](#306b-getterminalmode-gtmod) | ... |
+| **GTMOD** | [GetTerminalMode](#306b-getterminalmode-gtmod) | [306B](#306b-getterminalmode-gtmod) | Gets the terminal mode. The terminal mode tells how the term... |
 | **GUIOI** | [GetAllFileIndexes](#217b-getallfileindexes-guioi) | [217B](#217b-getallfileindexes-guioi) | Gets the directory index, the user index, and the object ind... |
-| **GUSNA** | [GetUserName](#214b-getusername-gusna) | [214B](#214b-getusername-gusna) | ... |
+| **GUSNA** | [GetUserName](#214b-getusername-gusna) | [214B](#214b-getusername-gusna) | Gets the name of a user. The user may be on a remote compute... |
 | **HOLD** | [SuspendProgram](#104b-suspendprogram-hold) | [104B](#104b-suspendprogram-hold) | Suspends the execution of your program for a given time. The... |
 | **IBRISZ** | [InBufferState](#313b-inbufferstate-ibrisz) | [313B](#313b-inbufferstate-ibrisz) | Gets information about an input buffer. The current number o... |
 | **INBT** | [InByte](#1b-inbyte-inbt) | [1B](#1b-inbyte-inbt) | Reads one byte from a character device, e.g. a terminal or a... |
@@ -596,46 +596,46 @@
 | **IOFIX** | [FixIOArea](#404b-fixioarea-iofix) | [404B](#404b-fixioarea-iofix) | Fixes an address area in a domain in physical memory. The me... |
 | **IOMTY** | [TERMINAL](#336b-terminal-iomty) | [336B](#336b-terminal-iomty) | This I/O multifunction monitor call is used to change the at... |
 | **IOSET** | [DeviceControl](#141b-devicecontrol-ioset) | [141B](#141b-devicecontrol-ioset) | Sets control information for a character device, e.g. a term... |
-| **IOUT** | [OutNumber](#35b-outnumber-iout) | [35B](#35b-outnumber-iout) | ... |
+| **IOUT** | [OutNumber](#35b-outnumber-iout) | [35B](#35b-outnumber-iout) | Writes a number to the user's terminal. The number can be ou... |
 | **IOXIN** | [CAMACIOInstruction](#153b-camacioinstruction-ioxin) | [153B](#153b-camacioinstruction-ioxin) | Executes a single IOX instruction for CAMAC. See under CAMAC... |
-| **IPRIV** | [PrivInstruction](#146b-privinstruction-ipriv) | [146B](#146b-privinstruction-ipriv) | ... |
-| **ISIZE** | [InBufferSpace](#66b-inbufferspace-isize) | [66B](#66b-inbufferspace-isize) | ... |
+| **IPRIV** | [PrivInstruction](#146b-privinstruction-ipriv) | [146B](#146b-privinstruction-ipriv) | Executes a privileged machine instruction on the ND-100. Pri... |
+| **ISIZE** | [InBufferSpace](#66b-inbufferspace-isize) | [66B](#66b-inbufferspace-isize) | Gets the current number of bytes in the input buffer. Termin... |
 | **LASTC** | [GetLastByte](#26b-getlastbyte-lastc) | [26B](#26b-getlastbyte-lastc) | Gets the last character typed on a terminal. The monitor cal... |
 | **LEAVE** | [ExitFromProgram](#0b-exitfromprogram-leave) | [0B](#0b-exitfromprogram-leave) | Terminates the program. Returns to SINTRAN III. Batch jobs c... |
-| **M8INB** | [InUpTo8Bytes](#21b-inupto8bytes-m8inb) | [21B](#21b-inupto8bytes-m8inb) | ... |
+| **M8INB** | [InUpTo8Bytes](#21b-inupto8bytes-m8inb) | [21B](#21b-inupto8bytes-m8inb) | See also In8Bytes, InByte, InString, In4x2Bytes, and Out8Byt... |
 | **M8OUT** | [OutUpTo8Bytes](#22b-outupto8bytes-m8out) | [22B](#22b-outupto8bytes-m8out) | Writes up to 8 characters to a device, e.g. a terminal or an... |
 | **MACROE** | [ErrorReturn](#400b-errorreturn-macroe) | [400B](#400b-errorreturn-macroe) | Terminates the program and sets an error code. The error cod... |
-| **MAGTP** | [DeviceFunction](#144b-devicefunction-magtp) | [144B](#144b-devicefunction-magtp) | ... |
+| **MAGTP** | [DeviceFunction](#144b-devicefunction-magtp) | [144B](#144b-devicefunction-magtp) | Performs various operations on floppy disks, magnetic tapes,... |
 | **MBECH** | [BATCHMODEECHO](#325b-batchmodeecho-mbech) | [325B](#325b-batchmodeecho-mbech) | Controls echo of input and output if the program is executed... |
 | **MCALL** | [JumpToSegment](#132b-jumptosegment-mcall) | [132B](#132b-jumptosegment-mcall) | Calls a routine on another segment in the ND-100. You can di... |
-| **MDLFI** | [DeleteFile](#54b-deletefile-mdlfi) | [54B](#54b-deletefile-mdlfi) | ... |
+| **MDLFI** | [DeleteFile](#54b-deletefile-mdlfi) | [54B](#54b-deletefile-mdlfi) | Deletes a file. The pages of the file are released.... |
 | **MEXIT** | [ExitFromSegment](#133b-exitfromsegment-mexit) | [133B](#133b-exitfromsegment-mexit) | Exchanges one or both current segments. Commonly used to ret... |
 | **MGDAE** | [GEtEscLocalChars](#230b-getesclocalchars-mgdae) | [230B](#230b-getesclocalchars-mgdae) | Gets ESCAPE and LOCAL characters. You can terminate most pro... |
 | **MGFIL** | [GetFileName](#273b-getfilename-mgfil) | [273B](#273b-getfilename-mgfil) | Gets the name of a file. You specify the directory index, th... |
-| **MGTTY** | [GetTerminalType](#16b-getterminaltype-mgtty) | [16B](#16b-getterminaltype-mgtty) | ... |
+| **MGTTY** | [GetTerminalType](#16b-getterminaltype-mgtty) | [16B](#16b-getterminaltype-mgtty) | Gets the terminal type. The terminal type tells SINTRAN III ... |
 | **MHDLC** | [HDLCfunction](#201b-hdlcfunction-mhdlc) | [201B](#201b-hdlcfunction-mhdlc) | Performs various HDLC functions. A HDLC is a high-level data... |
 | **MLAMU** | [LAMUFunction](#315b-lamufunction-mlamu) | [315B](#315b-lamufunction-mlamu) | Performs various functions on the LAMU system. A LAMU is a l... |
 | **MLOGI** | [LogInStart](#326b-loginstart-mlogi) | [326B](#326b-loginstart-mlogi) | Allowed in RT programs (ring ≥ 1), and in all programs run b... |
 | **MOINF** | [CheckMonCall](#312b-checkmoncall-moinf) | [312B](#312b-checkmoncall-moinf) | Some monitor calls are optional or only available in later v... |
-| **MRNFI** | [RenameFile](#232b-renamefile-mrnfi) | [232B](#232b-renamefile-mrnfi) | ... |
+| **MRNFI** | [RenameFile](#232b-renamefile-mrnfi) | [232B](#232b-renamefile-mrnfi) | See also @RENAME-FILE.... |
 | **MSDAE** | [SetEscLocalChars](#227b-setesclocalchars-msdae) | [227B](#227b-setesclocalchars-msdae) | You can terminate most programs with the ESCAPE key. A LOCAL... |
 | **MSG** | [OutMessage](#32b-outmessage-msg) | [32B](#32b-outmessage-msg) | Writes a message to the user's terminal. This is convenient ... |
-| **MSTTY** | [SetTerminalType](#17b-setterminaltype-mstty) | [17B](#17b-setterminaltype-mstty) | ... |
-| **MUIDI** | [GetDirUserIndexes](#213b-getdiruserindexes-muidi) | [213B](#213b-getdiruserindexes-muidi) | ... |
-| **MWAITF** | [AwaitTransfer](#431b-awaittransfer-mwaitf) | [431B](#431b-awaittransfer-mwaitf) | ... |
+| **MSTTY** | [SetTerminalType](#17b-setterminaltype-mstty) | [17B](#17b-setterminaltype-mstty) | Sets the type of a terminal. The terminal type tells SINTRAN... |
+| **MUIDI** | [GetDirUserIndexes](#213b-getdiruserindexes-muidi) | [213B](#213b-getdiruserindexes-muidi) | Gets a directory index and a user index. You have to specify... |
+| **MWAITF** | [AwaitTransfer](#431b-awaittransfer-mwaitf) | [431B](#431b-awaittransfer-mwaitf) | Checks that a data transfer to or from a mass-storage file i... |
 | **MXPISG** | [MaxPagesInMemory](#417b-maxpagesinmemory-mxpisg) | [417B](#417b-maxpagesinmemory-mxpisg) | Sets the maximum number of pages a segment may have in physi... |
 | **NOWT** | [NoWaitSwitch](#36b-nowaitswitch-nowt) | [36B](#36b-nowaitswitch-nowt) | Switches No Wait on and off. No Wait is useful for input fro... |
 | **OCTIO** | [OctobusFunction](#324b-octobusfunction-octio) | [324B](#324b-octobusfunction-octio) | Performs various functions on an old Octobus (earlier than v... |
 | **OPEN** | [OpenFile](#50b-openfile-open) | [50B](#50b-openfile-open) | Opens a file. You cannot access a file before you open it. S... |
-| **OSIZE** | [OutBufferSpace](#67b-outbufferspace-osize) | [67B](#67b-outbufferspace-osize) | ... |
+| **OSIZE** | [OutBufferSpace](#67b-outbufferspace-osize) | [67B](#67b-outbufferspace-osize) | Gets the number of free bytes in the output buffer (number o... |
 | **OUTBT** | [OutByte](#2b-outbyte-outbt) | [2B](#2b-outbyte-outbt) | Writes one byte to a character device, e.g. a terminal or an... |
-| **OUTST** | [OutString](#162b-outstring-outst) | [162B](#162b-outstring-outst) | ... |
-| **PAGEI** | [GetUserParam](#57b-getuserparam-pagei) | [57B](#57b-getuserparam-pagei) | ... |
+| **OUTST** | [OutString](#162b-outstring-outst) | [162B](#162b-outstring-outst) | Writes a string of characters to a peripheral file, e.g., a ... |
+| **PAGEI** | [GetUserParam](#57b-getuserparam-pagei) | [57B](#57b-getuserparam-pagei) | Gets information about why the last program terminated. Ther... |
 | **PASET** | [SetUserParam](#56b-setuserparam-paset) | [56B](#56b-setuserparam-paset) | Sets information about a background program. Use GetUserPara... |
 | **PIOCM** | [PIOCCFunction](#255b-pioccfunction-piocm) | [255B](#255b-pioccfunction-piocm) | PIOCC (Programmed Input/Output Control Channel) function mon... |
 | **PRIOR** | [SetRTPriority](#110b-setrtpriority-prior) | [110B](#110b-setrtpriority-prior) | Sets the priority of an RT program. RT programs may be given... |
 | **PRLRS** | [ForceRelease](#125b-forcerelease-prlrs) | [125B](#125b-forcerelease-prlrs) | Releases a device reserved by an RT program other than that ... |
-| **PRSRV** | [ForceReserve](#124b-forcereserve-prsrv) | [124B](#124b-forcereserve-prsrv) | ... |
+| **PRSRV** | [ForceReserve](#124b-forcereserve-prsrv) | [124B](#124b-forcereserve-prsrv) | Reserves a device for an RT program other than that which is... |
 | **PRT** | [ForceTrap](#435b-forcetrap-prt) | [435B](#435b-forcetrap-prt) | Forces a programmed trap to occur in another ND-500 process.... |
 | **QERMS** | [ErrorMessage](#65b-errormessage-qerms) | [65B](#65b-errormessage-qerms) | Displays a file system error message. Appendix A shows the m... |
 | **RDISK** | [ReadScratchFile](#5b-readscratchfile-rdisk) | [5B](#5b-readscratchfile-rdisk) | Reads randomly from the scratch file. One block is transferr... |
@@ -645,12 +645,12 @@
 | **REENT** | [AttachSegment](#167b-attachsegment-reent) | [167B](#167b-attachsegment-reent) | Attaches a reentrant segment to your two current segments. T... |
 | **RELES** | [ReleaseResource](#123b-releaseresource-reles) | [123B](#123b-releaseresource-reles) | Releases a reserved device or file. The resource can then be... |
 | **RERRP** | [GetErrorInfo](#207b-geterrorinfo-rerrp) | [207B](#207b-geterrorinfo-rerrp) | Gets information about the last real-time error. The monitor... |
-| **RESRV** | [ReserveResource](#122b-reserveresource-resrv) | [122B](#122b-reserveresource-resrv) | ... |
-| **RFILE** | [ReadFromFile](#117b-readfromfile-rfile) | [117B](#117b-readfromfile-rfile) | ... |
-| **RFLAG** | [GetInputFlags](#402b-getinputflags-rflag) | [402B](#402b-getinputflags-rflag) | ... |
+| **RESRV** | [ReserveResource](#122b-reserveresource-resrv) | [122B](#122b-reserveresource-resrv) | Reserves a device or file for your program only. You release... |
+| **RFILE** | [ReadFromFile](#117b-readfromfile-rfile) | [117B](#117b-readfromfile-rfile) | Reads any number of bytes from a file. The read operation mu... |
+| **RFLAG** | [GetInputFlags](#402b-getinputflags-rflag) | [402B](#402b-getinputflags-rflag) | ND-100 and ND-500 programs may communicate through two 32-bi... |
 | **RLDIR** | [ReleaseDir](#247b-releasedir-rldir) | [247B](#247b-releasedir-rldir) | Releases a directory. The directory must have been reserved ... |
 | **RMAX** | [GETBYTESINFILE](#62b-getbytesinfile-rmax) | [62B](#62b-getbytesinfile-rmax) | Gets the number of bytes in a file. Only the bytes containin... |
-| **ROBJE** | [ReadObjectEntry](#41b-readobjectentry-robje) | [41B](#41b-readobjectentry-robje) | ... |
+| **ROBJE** | [ReadObjectEntry](#41b-readobjectentry-robje) | [41B](#41b-readobjectentry-robje) | Gets information about an opened file. An object entry descr... |
 | **RPAGE** | [ReadBlock](#7b-readblock-rpage) | [7B](#7b-readblock-rpage) | Reads randomly from a file. You read one block at a time. Th... |
 | **RSEGM** | [GetSegmentEntry](#53b-getsegmententry-rsegm) | [53B](#53b-getsegmententry-rsegm) | Gets information about a segment in the ND-100. The monitor ... |
 | **RSIO** | [ExecutionInfo](#143b-executioninfo-rsio) | [143B](#143b-executioninfo-rsio) | Gets information about the execution of the calling program.... |
@@ -659,47 +659,47 @@
 | **RT** | [StartRTProgram](#100b-startrtprogram-rt) | [100B](#100b-startrtprogram-rt) | Starts an RT program. The program is moved to the execution ... |
 | **RTDSC** | [GetRTDescr](#27b-getrtdescr-rtdsc) | [27B](#27b-getrtdescr-rtdsc) | Reads an RT description. The RT description contains various... |
 | **RTEXT** | [ExitRTProgram](#134b-exitrtprogram-rtext) | [134B](#134b-exitrtprogram-rtext) | Terminates the calling RT or background program. Releases al... |
-| **RTOFF** | [DisableRTStart](#137b-disablertstart-rtoff) | [137B](#137b-disablertstart-rtoff) | ... |
+| **RTOFF** | [DisableRTStart](#137b-disablertstart-rtoff) | [137B](#137b-disablertstart-rtoff) | Disables start of RT programs. No RT program can be started ... |
 | **RTON** | [EnableRTStart](#136b-enablertstart-rton) | [136B](#136b-enablertstart-rton) | RTON RT programs cannot be started after DisableRTStart has ... |
 | **RTWT** | [WAITFORRESTART](#135b-waitforrestart-rtwt) | [135B](#135b-waitforrestart-rtwt) | Sets the RT program in a waiting state. It is restarted by S... |
 | **RUSCN** | [OldUser](#242b-olduser-ruscn) | [242B](#242b-olduser-ruscn) | Switches back to the user name you were logged in under befo... |
 | **RUSER** | [GetUserEntry](#44b-getuserentry-ruser) | [44B](#44b-getuserentry-ruser) | Gets information about a user. The user entry in the directo... |
 | **RWRTC** | [AccessRTCommon](#406b-accessrtcommon-rwrtc) | [406B](#406b-accessrtcommon-rwrtc) | Reads from or writes to RT common from an ND-500 program. RT... |
 | **SCROP** | [SCRATCHOPEN](#235b-scratchopen-scrop) | [235B](#235b-scratchopen-scrop) | Opens a file as a scratch file. A maximum of 64 pages of the... |
-| **SET** | [DelayStart](#101b-delaystart-set) | [101B](#101b-delaystart-set) | ... |
+| **SET** | [DelayStart](#101b-delaystart-set) | [101B](#101b-delaystart-set) | Starts an RT program after a specified time. The RT program ... |
 | **SETBL** | [SetStartBlock](#77b-setstartblock-setbl) | [77B](#77b-setstartblock-setbl) | Sets the next block to be read or written in an opened file.... |
-| **SETBS** | [SetBlockSize](#76b-setblocksize-setbs) | [76B](#76b-setblocksize-setbs) | ... |
+| **SETBS** | [SetBlockSize](#76b-setblocksize-setbs) | [76B](#76b-setblocksize-setbs) | Sets the block size of an opened file. Monitor calls which r... |
 | **SETBT** | [SetStartByte](#74b-setstartbyte-setbt) | [74B](#74b-setstartbyte-setbt) | Sets the next byte to be read or written in an opened mass-s... |
 | **SETCM** | [SetCommandBuffer](#12b-setcommandbuffer-setcm) | [12B](#12b-setcommandbuffer-setcm) | Transfers a string to the command buffer. The command buffer... |
-| **SFACC** | [SetFileAccess](#237b-setfileaccess-sfacc) | [237B](#237b-setfileaccess-sfacc) | ... |
+| **SFACC** | [SetFileAccess](#237b-setfileaccess-sfacc) | [237B](#237b-setfileaccess-sfacc) | Sets the access protection for a file. You should specify th... |
 | **SGMTY** | [SegmentFunction](#341b-segmentfunction-sgmty) | [341B](#341b-segmentfunction-sgmty) | This is a multifunction monitor call used to change the acti... |
 | **SMAX** | [SetMaxBytes](#73b-setmaxbytes-smax) | [73B](#73b-setmaxbytes-smax) | Sets the value of the maximum byte pointer in an opened file... |
 | **SPCHG** | [ChangeSegment](#337b-changesegment-spchg) | [337B](#337b-changesegment-spchg) | Changes the segment and the page table your program uses. Th... |
-| **SPCLO** | [CloseSpoolingFile](#40b-closespoolingfile-spclo) | [40B](#40b-closespoolingfile-spclo) | ... |
-| **SPEFI** | [SetPeripheralName](#234b-setperipheralname-spefi) | [234B](#234b-setperipheralname-spefi) | ... |
+| **SPCLO** | [CloseSpoolingFile](#40b-closespoolingfile-spclo) | [40B](#40b-closespoolingfile-spclo) | Appends an opened file to a spooling queue. You specify a te... |
+| **SPEFI** | [SetPeripheralName](#234b-setperipheralname-spefi) | [234B](#234b-setperipheralname-spefi) | Defines a peripheral file, e.g. a printer. You connect a fil... |
 | **SPERD** | [SetPermanentOpen](#236b-setpermanentopen-sperd) | [236B](#236b-setpermanentopen-sperd) | Sets a file permanently open. The file is not closed by Clos... |
 | **SPLRE** | [SegmentOverlay](#323b-segmentoverlay-splre) | [323B](#323b-segmentoverlay-splre) | Used to build multisegment programs in the ND-100. It is mai... |
 | **SPRIO** | [SetProcessPriority](#507b-setprocesspriority-sprio) | [507B](#507b-setprocesspriority-sprio) | Sets the priority for a process in the ND-500. The prioritie... |
 | **SPRNAM** | [SetProcessName](#425b-setprocessname-sprnam) | [425B](#425b-setprocessname-sprnam) | Defines a new name for your process.... |
 | **SREEN** | [ReentrantSegment](#212b-reentrantsegment-sreen) | [212B](#212b-reentrantsegment-sreen) | Connects a reentrant segment to your two current segments. A... |
-| **SRLMO** | [SetRemoteAccess](#316b-setremoteaccess-srlmo) | [316B](#316b-setremoteaccess-srlmo) | ... |
+| **SRLMO** | [SetRemoteAccess](#316b-setremoteaccess-srlmo) | [316B](#316b-setremoteaccess-srlmo) | Switches remote file access on and off. The COSMOS network a... |
 | **SRUSI** | [DefaultRemoteSystem](#314b-defaultremotesystem-srusi) | [314B](#314b-defaultremotesystem-srusi) | Sets default values for COSMOS remote file access. You can s... |
 | **STARTP** | [STARTPROCESS](#500b-startprocess-startp) | [500B](#500b-startprocess-startp) | Starts a process in the ND-500. You identify the process wit... |
-| **STEFI** | [SetTemporaryFile](#233b-settemporaryfile-stefi) | [233B](#233b-settemporaryfile-stefi) | ... |
+| **STEFI** | [SetTemporaryFile](#233b-settemporaryfile-stefi) | [233B](#233b-settemporaryfile-stefi) | Defines a file to store information temporarily. The file ca... |
 | **STOPPR** | [StopProcess](#501b-stopprocess-stoppr) | [501B](#501b-stopprocess-stoppr) | Sets the current process in a wait state. StartProcess resta... |
 | **STRFI** | [SetTerminalName](#275b-setterminalname-strfi) | [275B](#275b-setterminalname-strfi) | Defines the file name to be used for terminals. This is norm... |
-| **SUSCN** | [NewUser](#241b-newuser-suscn) | [241B](#241b-newuser-suscn) | ... |
+| **SUSCN** | [NewUser](#241b-newuser-suscn) | [241B](#241b-newuser-suscn) | Switches the user name you are logged in under. The command ... |
 | **SWITCHP** | [SwitchProcess](#502b-switchprocess-switchp) | [502B](#502b-switchprocess-switchp) | Sets the current process in a wait state. Restarts another p... |
 | **TBIN8** | [In8AndFlag](#310b-in8andflag-tbin8) | [310B](#310b-in8andflag-tbin8) | Reads 8 bytes from a device, e.g., a terminal. The monitor c... |
 | **TERMO** | [TerminalMode](#52b-terminalmode-termo) | [52B](#52b-terminalmode-termo) | Selects various terminal functions. You may stop output on f... |
 | **TERST** | [TerminalStatus](#330b-terminalstatus-terst) | [330B](#330b-terminalstatus-terst) | Gets information about a terminal. The user logged in, the t... |
-| **TIME** | [GetBasicTime](#11b-getbasictime-time) | [11B](#11b-getbasictime-time) | ... |
+| **TIME** | [GetBasicTime](#11b-getbasictime-time) | [11B](#11b-getbasictime-time) | **Time**... |
 | **TMOUT** | [TimeOut](#267b-timeout-tmout) | [267B](#267b-timeout-tmout) | Suspends the execution of your program for a given time. The... |
-| **TNOWAI** | [TerminalNoWait](#307b-terminalnowait-tnowai) | [307B](#307b-terminalnowait-tnowai) | ... |
-| **TREPP** | [TerminalLineInfo](#332b-terminallineinfo-trepp) | [332B](#332b-terminallineinfo-trepp) | ... |
-| **TUSED** | [GetTimeUsed](#114b-gettimeused-tused) | [114B](#114b-gettimeused-tused) | ... |
+| **TNOWAI** | [TerminalNoWait](#307b-terminalnowait-tnowai) | [307B](#307b-terminalnowait-tnowai) | Switches No Wait on and off. No Wait is useful for input fro... |
+| **TREPP** | [TerminalLineInfo](#332b-terminallineinfo-trepp) | [332B](#332b-terminallineinfo-trepp) | Gets information about a terminal line. You may also enable ... |
+| **TUSED** | [GetTimeUsed](#114b-gettimeused-tused) | [114B](#114b-gettimeused-tused) | Gets the time you have used the CPU since you logged in. In ... |
 | **UDMA** | [DMAFunction](#333b-dmafunction-udma) | [333B](#333b-dmafunction-udma) | Monitor call 333B - DMAFunction... |
-| **UECOM** | [ExecuteCommand](#317b-executecommand-uecom) | [317B](#317b-executecommand-uecom) | ... |
+| **UECOM** | [ExecuteCommand](#317b-executecommand-uecom) | [317B](#317b-executecommand-uecom) | Executes a SINTRAN III command. Specify the command name and... |
 | **UNFIX** | [UnfixSegment](#116b-unfixsegment-unfix) | [116B](#116b-unfixsegment-unfix) | Releases a fixed segment and removes it from the Page Index ... |
 | **UNFIXM** | [MemoryUnfix](#411b-memoryunfix-unfixm) | [411B](#411b-memoryunfix-unfixm) | Releases a fixed segment in your domain from physical memory... |
 | **UPDAT** | [SetClock](#111b-setclock-updat) | [111B](#111b-setclock-updat) | Gives new values to the computer's clock and calendar. If th... |
@@ -711,17 +711,17 @@
 | **US5** | [UserDef5](#175b-userdef5-us5) | [175B](#175b-userdef5-us5) | User-defined monitor call. You can implement up to 8 monitor... |
 | **US6** | [UserDef6](#176b-userdef6-us6) | [176B](#176b-userdef6-us6) | User-defined monitor call. You can implement up to 8 monitor... |
 | **US7** | [UserDef7](#177b-userdef7-us7) | [177B](#177b-userdef7-us7) | User-defined monitor call. You can implement up to 8 monitor... |
-| **USTRK** | [SwitchUserBreak](#405b-switchuserbreak-ustrk) | [405B](#405b-switchuserbreak-ustrk) | ... |
+| **USTRK** | [SwitchUserBreak](#405b-switchuserbreak-ustrk) | [405B](#405b-switchuserbreak-ustrk) | Switches user-defined escape handling on and off. The user-d... |
 | **WAITF** | [AwaitFileTransfer](#121b-awaitfiletransfer-waitf) | [121B](#121b-awaitfiletransfer-waitf) | Checks that a data transfer to or from a mass-storage file i... |
 | **WDIEN** | [WriteDirEntry](#311b-writedirentry-wdien) | [311B](#311b-writedirentry-wdien) | Changes the information about a directory. The complete cont... |
 | **WDISK** | [WRITESCRATCHFILE](#6b-writescratchfile-wdisk) | [6B](#6b-writescratchfile-wdisk) | Writes randomly to the scratch file. One block is transferre... |
 | **WDPAG** | [WriteDiskPage](#271b-writediskpage-wdpag) | [271B](#271b-writediskpage-wdpag) | Writes to one or more pages in a directory. Any page can be ... |
 | **WFILE** | [WriteToFile](#120b-writetofile-wfile) | [120B](#120b-writetofile-wfile) | Writes any number of bytes to a file. The read operation mus... |
 | **WFLAG** | [SetOutputFlags](#403b-setoutputflags-wflag) | [403B](#403b-setoutputflags-wflag) | ND-100 and ND-500 programs may communicate through two 32-bi... |
-| **WHDEV** | [ReservationInfo](#140b-reservationinfo-whdev) | [140B](#140b-reservationinfo-whdev) | ... |
+| **WHDEV** | [ReservationInfo](#140b-reservationinfo-whdev) | [140B](#140b-reservationinfo-whdev) | Checks that a device is not reserved. If it is reserved, you... |
 | **WPAGE** | [WriteBlock](#10b-writeblock-wpage) | [10B](#10b-writeblock-wpage) | Writes randomly to a file. You write one block at a time. Th... |
-| **WSEG** | [SaveSegment](#164b-savesegment-wseg) | [164B](#164b-savesegment-wseg) | ... |
-| **WSEGN** | [SaveND500Segment](#416b-savend500segment-wsegn) | [416B](#416b-savend500segment-wsegn) | ... |
+| **WSEG** | [SaveSegment](#164b-savesegment-wseg) | [164B](#164b-savesegment-wseg) | Saves a segment in the ND-100. All pages in physical memory ... |
+| **WSEGN** | [SaveND500Segment](#416b-savend500segment-wsegn) | [416B](#416b-savend500segment-wsegn) | Writes all modified pages of a segment back to the disk.... |
 | **XMSG** | [XMSGFunction](#200b-xmsgfunction-xmsg) | [200B](#200b-xmsgfunction-xmsg) | Performs various data communication functions. All types of ... |
 
 ---
@@ -1044,7 +1044,9 @@ Scanned by Jonny Oddene for Sintran Data © 2020
 
 ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+When you press a key on the terminal, a character is normally displayed. This is called echo. You modify a terminal's echo with this monitor call.
 
+- If 8-bit I/O is set (TerminalFunction, function number 112), you will get echo always if bit 7 in the echo table is set.
 
 #### Parameters
 
@@ -1522,7 +1524,11 @@ Writes randomly to a file. You write one block at a time. The file must be opene
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+**Time**
 
+Gets the current internal time. The internal time is specified in basic time units. There are 50 basic time units in a second.
+
+- The internal time is set to 0 each time SINTRAN III is started.
 
 #### Parameters
 
@@ -1840,7 +1846,9 @@ Clears a device output buffer. Output to character devices, e.g. terminals, are 
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Gets the terminal type. The terminal type tells SINTRAN III how to handle a particular terminal. A wrong terminal type normally distorts the screen. The function-keys cannot be used.
 
+- Appendix H lists the terminal types.
 
 #### Parameters
 
@@ -1956,7 +1964,10 @@ TYPE, 0
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Sets the type of a terminal. The terminal type tells SINTRAN III how to handle a particular terminal. A wrong terminal type normally distorts the screen. The function keys cannot be used.
 
+- Appendix H lists the terminal types.
+- Public background users may only set the terminal type for their own terminal. A background program must be run from user SYSTEM or RT to set the terminal type for another terminal.
 
 #### Parameters
 
@@ -2075,7 +2086,7 @@ TYPE, ...
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
-
+See also In8Bytes, InByte, InString, In4x2Bytes, and Out8Bytes.
 
 #### Parameters
 
@@ -2928,7 +2939,10 @@ RTPRO, 0
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Executes an IOX machine instruction. The IOX instruction handles the device registers. The IOX instruction must be inserted in the IOX table by the SINTRAN-SERVICE-PROGRAM command INSERT-IN-IOX-TABLE first.
 
+- SINTRAN III must know the device register addresses.
+- This monitor call may be used in debugging of device interfaces.
 
 #### Parameters
 
@@ -3231,7 +3245,9 @@ Monitor_Call('AltPageTable', PageTableNumber)
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Writes a number to the user's terminal. The number can be output as an octal or a decimal value.
 
+- The number may be in the range -32768 to 32767.
 
 #### Parameters
 
@@ -3559,7 +3575,10 @@ MON 37 %Monitor call ReadADChannel.
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Appends an opened file to a spooling queue. You specify a text to be printed on the error device when the file is to be printed.
 
+- If the file is not a spooling file, a normal close is performed.
+- Does not work for remote files. For these, a normal close is performed.
 
 #### Parameters
 
@@ -3693,7 +3712,10 @@ Scanned by Jonny Oddene for Sintran Data © 2020
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Gets information about an opened file. An object entry describes each file. It contains the file name, the access rights, the date last opened for read and write, the size, and more. See the file system description in the SINTRAN III System Supervisor (ND-830003). You specify the file number.
 
+- There is one object entry for each version of a file.
+- The device number location in the object entry contains the logical device number and the unit number where the mass-storage file resides. The logical device number is placed in bit 11-0. The unit number in bit 15-12. The location contains the logical device number for peripheral files.
 
 #### Parameters
 
@@ -4460,7 +4482,10 @@ BUFF, 0
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Deletes a file. The pages of the file are released.
 
+- You must have directory access to the file in order to delete it. RT programs can delete a file if user RT has directory access to it.
+- Include a version number in the file name to delete specific versions of a file. Otherwise, all versions are deleted.
 
 #### Parameters
 
@@ -4714,7 +4739,10 @@ Sets information about a background program. Use GetUserParam to read the 5 para
 
 ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Gets information about why the last program terminated. There are 5 parameters for each background user. These can be set by SINTRAN III or your background program.
 
+- Use SetUserParam to set the parameter values.
+- SINTRAN III sets some of the parameter values if you give the command @ENABLE-TERMINATION-HANDLING first.
 
 #### Parameters
 
@@ -4852,7 +4880,10 @@ Gets the number of bytes in a file. Only the bytes containing data are counted.
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Reads 8 bytes from a word-oriented or character-oriented device, e.g. internal devices.
 
+- Do not use this monitor call for terminals.
+- This monitor call was mainly used for SIBAS communication via ND-NET. It is now seldom used.
 
 #### Parameters
 
@@ -4989,7 +5020,10 @@ BYTES, 0
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green)
 
+Outputs a file system error message. Appendix A shows the messages connected to each error code. The error code is input. The program continues.
 
+- The error message is output to the terminal. In batch jobs, mode jobs, and RT programs it is output to the error device. The error device is normally the console.
+- Error code 0 is illegal.
 
 #### See Also
 
@@ -5177,7 +5211,10 @@ ERRNO, ...
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Gets the current number of bytes in the input buffer. Terminals and other character devices place input in a buffer. All input monitor calls read from this buffer.
 
+- Use ExecutionInfo to get the logical device number for terminals. You can specify 1 for your own terminal.
+- The buffer size depends on the device.
 
 #### Parameters
 
@@ -5293,7 +5330,10 @@ COUNT, 0
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Gets the number of free bytes in the output buffer (number of bytes which can be written before the program must wait). Terminals and other character devices place output in a buffer. Monitor calls like OutByte writes to this buffer.
 
+- Use ExecutionInfo to get the logical device number for terminals. You can specify 1 for your own terminal.
+- This monitor call is not available for internal devices. Use InBufferSpace and subtract this size from the inbuffer size.
 
 #### Parameters
 
@@ -5522,7 +5562,9 @@ The ESCAPE key on the terminal normally terminates a program. This is called use
 
 ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Enables the ESCAPE key on the terminal. The ESCAPE key normally terminates a program. This is called user break. You can disable this key with DisableEscape. To enable it again you should use EnableEscape.
 
+- The escape function is enabled when you log out.
 
 #### Parameters
 
@@ -5991,7 +6033,11 @@ POINT, 0         %A double word.
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Sets the block size of an opened file. Monitor calls which read randomly from, or write randomly to a file, operate on blocks. See ReadFromFile and WriteToFile.
 
+- The standard block size is 512 bytes. This block size is set when the file is opened.
+- The block size is reset when the file is closed.
+- Factors of 2048 bytes are the most efficient block sizes.
 
 #### Parameters
 
@@ -6334,7 +6380,11 @@ CALLG StartRTProgram, 1, RTProgram
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Starts an RT program after a specified time. The RT program is put in the time queue. It is moved to the execution queue after the specified period.
 
+- RT programs already in the time queue are reinserted according to the new specifications.
+- AdjustClock and @CLADJ do not affect the specified period.
+- A period less than or equal to 0 moves the RT program to the execution queue the next time the basic time unit counter is incremented.
 
 #### Parameters
 
@@ -6670,7 +6720,10 @@ ND-100 and ND-500 | All users | All programs
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Stops an RT program. It is removed from the time or execution queue. All reserved devices and files are released. RT programs schedules for periodic execution are also stopped.
 
+- Nothing happens if the RT program is already stopped.
+- The RT program restarts immediately if its restart flag is set.
 
 #### See Also
 
@@ -6747,7 +6800,11 @@ RTPRO, ...
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+StartOnInterrupt connects an RT program to interrupts from a device. The RT program starts when an interrupt occurs. Use either WaitForRestart or SuspendProgram to make the program wait.
 
+- You can remove this connection with NoInterruptStart.
+- Several devices may be connected to one program.
+- It is impossible to connect to some devices. Connection can be made if SINTRAN III has been generated with a connect driver routine for the device.
 
 #### Parameters
 
@@ -7182,7 +7239,9 @@ YEAR, ...
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Sets the computer's clock (i.e. the current system time) forward or back. If the operator panel has a clock, it is also adjusted.
 
+- The startup time for RT programs can be set by StartupTime. When the current system time is modified, the next startup times of periodic programs started by StartupTime are also affected. Other scheduling times are not affected.
 
 #### Parameters
 
@@ -7405,7 +7464,10 @@ Scanned by Jonny Oddene for Sintran Data © 2020
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Gets the time you have used the CPU since you logged in. In batch jobs, you get the time since you entered the job.
 
+- The CPU time used is given in basic time units. A basic time unit is 1/50th of a second.
+- Can also be used from RT-programs.
 
 #### Parameters
 
@@ -7504,7 +7566,11 @@ TIME, 0       %A double word.
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Place a segment in physical memory. Its pages will no longer be swapped to the disk. The segment must be non demand. Its pages will be scattered in physical memory. You may, for example, use this function for time critical operations or for allocating DMA buffers.
 
+- Use UnFixSegment or @UNFIX to allow the RT LOADER to clear the segment.
+- Your program terminates if you refer to a nonexistent segment or a demand segment. An error message is output on the error device.
+- Only a limited number of pages can be fixed. This limit is defined when SINTRAN III is generated. You may change it with the command CHANGE-VARIABLE in the SINTRAN-SERVICE-PROGRAM.
 
 #### Parameters
 
@@ -7705,7 +7771,12 @@ CALLG UnfixSegment, 1, SegmentNumber
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Reads any number of bytes from a file. The read operation must start at the beginning of a block. The file must be opened for random read access.
 
+- The standard block size is 512 bytes. You can change this with SetBlockSize. The first block is number 0.
+- You may use access code D for direct transfer. Then the block size must be a multiple of the page size. The number of bytes to transfer must be a multiple of the block size.
+- Peripheral files are always read sequentially.
+- Data transfer across segment or RT common limits is illegal as this would be likely to result in inconsistent data.
 
 #### Parameters
 
@@ -8114,7 +8185,11 @@ FLAG, 0
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Reserves a device or file for your program only. You release it with ReleaseResource. Some devices, e.g. terminals, have both an input and output part. You can only reserve one part with each ReserveResource call.
 
+- A normal termination of an RT program releases all resources.
+- Release the device with ReleaseResource or ForceRelease.
+- A background program does not release a resource when you press the ESCAPE key.
 
 #### Parameters
 
@@ -8332,7 +8407,11 @@ IOF, ...
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Reserves a device for an RT program other than that which is calling. Use ForceRelease if the device is already reserved.
 
+- You can only release peripheral devices, such as terminals and printers, and semaphores in this way.
+- Programs in a waiting queue may reserve the device between your ForceRelease and ForceReserve calls if they have higher priority than your program.
+- The SINTRAN III Real Time Guide (ND-860133) describes this in more detail.
 
 #### Parameters
 
@@ -8551,7 +8630,92 @@ IOFL, ...
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Sets an RT program to start after a given period. It is then moved from the time queue to the execution queue. The period is specified in basic time units. A basic time unit is 1/50th of a second. The period may be from 1 to 4294967647 basic time units.
 
+- The program may already be in the time queue. It is then reinserted according to the new specifications.
+- A period less than or equal to 0 transfers the RT program to the execution queue the next time the basic time unit counter is incremented.
+- SetClock, AdjustClock and @CLADJ do not affect the interval.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Param1` | UNKNOWN | I | Address of the RT description. Use 0 for the calling program. |
+| `Param2` | UNKNOWN | I | The number of basic time units to stay in the time queue. |
+
+#### See Also
+
+[SetClock](#111b-setclock-updat), [AdjustClock](#112b-adjustclock-cladj), [DelayStart](#101b-delaystart-set)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+RTProgram, BasicTimeUnits : INTEGER2;
+...
+ExactDelayStart(RTProgram, BasicTimeUnits);
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 RTProgram COMP.
+01 BasicTimeUnits COMP.
+...
+MONITOR-CALL "ExactDelayStart" USING RTProgram, BasicTimeUnits.
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER RTProgram, BasicTimeUnits
+...
+Monitor_Call('ExactDelayStart', RTProgram, BasicTimeUnits)
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : RTProgram, BasicTimeUnits
+...
+Monitor_Call('ExactDelayStart', RTProgram, BasicTimeUnits)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+RTProgram : W BLOCK 1
+BasicTimeUnits : W BLOCK 1
+ExactDelayStart : EQU 37B9 + 126B
+...
+CALLG ExactDelayStart, 2, RTProgram, BasicTimeUnits
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+LDA  (PAR   %Load register A with address of parameter list.
+MON  126    %Monitor call ExactDelayStart.
+```
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -8563,7 +8727,12 @@ IOFL, ...
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Starts an RT program at a specific time. The time is given in basic time units. A basic time unit is 1/50th of a second. The RT program is moved from the time queue to the execution queue at the specified time.
 
+- It may already be later than the time specified. The RT program is then scheduled for the next day.
+- The RT program may already be in the time queue. It is then reinserted according to the new time specifications.
+- AdjustClock and @CLADJ affect the startup. The RT program starts according to the new time.
+- Use GetBasicTime to read the internal time in basic time units.
 
 #### Parameters
 
@@ -9197,7 +9366,9 @@ LDA (PAR %Load register A with address of parameter list.
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Disables start of RT programs. No RT program can be started before EnableRTStart is executed.
 
+- RT programs in the time queue will not start. Other active RT programs are not affected.
 
 #### Parameters
 
@@ -9297,7 +9468,9 @@ RTPRO, ...
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Checks that a device is not reserved. If it is reserved, you will receive information about which RT program that reserves it.
 
+- Some devices have both an input and an output part. You have to use ReservationInfo for each part.
 
 #### Parameters
 
@@ -9729,7 +9902,11 @@ INDEX, 0
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Performs various operations on floppy disks, magnetic tapes, Versatec plotters, and SCSI streamers.
 
+- The parameter values depend on the device.
+- If the function code is in the range 5B to 24B, except 23B, the parameter buffer and the two device dependent parameters are dummies.
+- If the function code is in the range 20B to 24B, except 23B, the hardware status is returned.
 
 #### Parameters
 
@@ -9867,7 +10044,9 @@ PARA2, ...
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Executes a privileged machine instruction on the ND-100. Privileged instructions may, for example, turn the paging and interrupt mechanisms on and off.
 
+- The instruction uses the register contents of the calling program. The registers may be changed.
 
 #### See Also
 
@@ -10144,7 +10323,7 @@ Assigns a graded LAM in the CAMAC identification table to a logical device numbe
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
-
+Executes various functions on a graphic peripheral, such as a NORDCOM terminal, a pen plotter, or a Textronix display.
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -10156,7 +10335,11 @@ Assigns a graded LAM in the CAMAC identification table to a logical device numbe
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Enters a routine as a direct task or as a device driver, and "remembers" which segments have been entered (up to 24 segments). These are reentered at restart following a power failure. The routines are connected to the interrupt system. They are loaded with the RT LOADER or by DMAC.
 
+- The segment where the routine resides must be fixed in memory. See FixScattered.
+- The segments can be removed from the selected PIT by using function 4 of ChangeActiveSegments (MON 341).
+- Unfixing the segment (using UnFixSegment, MON 116), removes it from the Page Index Table.
 
 #### Parameters
 
@@ -10280,7 +10463,12 @@ ENTRY, ...
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Places a segment in physical memory. Its pages will no longer be swapped to the disk. The segment is placed in a contiguous area of physical memory. This function is useful for time-critical operations.
 
+- The segment must be created with the RT LOADER as a non-demand segment.
+- Use UnfixSegment or @UNFIX to allow the RT LOADER to clear the segment.
+- Your program normally terminates if you refer to a nonexistent segment or a demand segment. An error message is output on the error device. See parameters 1 and 3 to get a status value instead.
+- Only a limited number of pages can be fixed. This limit is defined when SINTRAN III is generated. You may change it with the command CHANGE-VARIABLE in the SINTRAN-SERVICE-PROGRAM.
 
 #### Parameters
 
@@ -10519,7 +10707,14 @@ ND-100 and ND-500 All users All programs
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Writes a string of characters to a peripheral file, e.g., a terminal or a printer.
 
+- You cannot use this monitor call for mass-storage files.
+- The output buffer of the device may be too small. Then the program waits until the required buffer space becomes available.
+- Parameters are fetched and returned through the alternative page table.
+- The maximum string length is 2048 bytes (as in OutputString).
+- For performance reasons, it is inadvisable to use this call from the ND-500(0). Use OutputString instead.
+- Appendix F contains an ASCII table.
 
 #### Parameters
 
@@ -10640,7 +10835,7 @@ COUNT, 16        % Write 14 characters.
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
-
+Saves a segment in the ND-100. All pages in physical memory which have been changed, are written back to the disk.
 
 #### Parameters
 
@@ -10739,7 +10934,7 @@ CALLG SaveSegment, 1, SegmentNumber
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
-
+Reads the device interface registers.
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -11214,7 +11409,9 @@ Monitor_Call('ReentrantSegment', SegmentNumber)
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Gets a directory index and a user index. You have to specify a directory name and a user name.
 
+- Use ExecutionInfo to get the user index and the directory index of the user executing a program.
 
 #### See Also
 
@@ -11336,7 +11533,9 @@ INDEX, 0
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Gets the name of a user. The user may be on a remote computer if the COSMOS network is installed. The remote system name is then returned.
 
+- RT programs return the name of user RT.
 
 #### See Also
 
@@ -11918,7 +12117,7 @@ BUFF, 0
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
-
+Opens a file. Files must be opened before they can be accessed. For public users this monitor call is identical to OpenFile. User SYSTEM and user RT are given the same access rights as the owner of a file.
 
 #### Parameters
 
@@ -12058,7 +12257,11 @@ TYPE, 'SYMB'     %
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Creates a file. The file may be indexed, contiguous, or allocated. Most files are indexed. The size of indexed files expands automatically when written to. Contiguous and allocated files have shorter access time.
 
+- You need directory access to the user who owns the file.
+- User SYSTEM and RT always have the owner's access rights.
+- An indexed file not yet written to may be converted to a contiguous file. Use ExpandFile or @EXPAND-FILE.
 
 #### Parameters
 
@@ -12222,7 +12425,10 @@ Gets ESCAPE and LOCAL characters. You can terminate most programs with the ESCAP
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Expands the file size. You use this monitor call to increase the size of contiguous and allocated files. The space following the file on the disk must be free.
 
+- Indexed files created with 0 pages may be expanded.
+- Public users must have directory access to the file. User RT and SYSTEM can expand any file.
 
 #### Parameters
 
@@ -12342,7 +12548,7 @@ PAGES, ...             %A double word.
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
-
+See also @RENAME-FILE.
 
 #### Parameters
 
@@ -12458,7 +12664,10 @@ NEWFI, 'EXAMPLE:SYMB'
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Defines a file to store information temporarily. The file can be read once. When it is closed, its contents are deleted. The empty file will still exist.
 
+- GetObjectEntry and @FILE-STATISTICS shows whether a file is temporary or not.
+- Files to be printed are commonly defined as temporary. Their contents exist until they have been printed.
 
 #### Parameters
 
@@ -12570,7 +12779,9 @@ FILE, 'TEMP-FILE:SYMB' %Treat TEMP-FILE:SYMB as a temporary file.
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Defines a peripheral file, e.g. a printer. You connect a file name to the logical device number of the peripheral.
 
+- The file name should exist in advance, but with no file type. Otherwise you may include the file name in double quotes ("..."). An empty file type is default.
 
 #### Parameters
 
@@ -12823,7 +13034,11 @@ FILNO, ...
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Sets the access protection for a file. You should specify the access for yourself, friends, and other users. The default file access for yourself is full access. Your friends have read access only. Other users have no access.
 
+- You need directory access to a file to change the file access. User SYSTEM and RT may set the access protection for any files.
+- Use the characters R, W, A, C, D, and N to specify the legal file access. R means Read. W means Write. A means Append to the end of a file. C means Common, i.e. more than one user may access the file at a time. D means Directory access, i.e. the file may be deleted, new versions created, etc. N means No access.
+- Use @FILE-STATISTICS to check the file access.
 
 #### Parameters
 
@@ -12954,7 +13169,11 @@ OWNAC, 'RWACD' &nbsp; %Full own access.
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Prints a file. The printer has a queue of files waiting to be output. The file is appended to this queue. One or more copies can be printed.
 
+- You may connect a text, e.g. INVOICE, to the job. The operator uses the text to select all files to be printed on special paper.
+- SINTRAN III, version K, allows both the file and the printer to be on remote systems. The complete standard syntax for remote file specification is as follows:
+`system(user(password:project)).(directory:user)file:type;version`
 
 #### See Also
 
@@ -13082,7 +13301,11 @@ TEXT, 'GUMMED LABELS'  %Message to be send to error device.
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Switches the user name you are logged in under. The command is similar to logging out and then logging in as another user. Your program continues under this user name.
 
+- Restore the old user name with OldUser.
+- OldUser always resets the first user name. From the ND-100 you may execute NewUser more than once without OldUser in between. This is not the case from the ND-500.
+- If originally logged in as user RT, it is not possible to log in as user SYSTEM.
 
 #### Parameters
 
@@ -13314,7 +13537,9 @@ Gets directory index and name index. The name index identifies the device descri
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Gets information about a directory. The directory entry is returned. Appendix C describes the file system in more detail.
 
+- You may access directories on remote systems. The computers must be connected through a COSMOS network.
 
 #### Parameters
 
@@ -14782,7 +15007,9 @@ PAGES, 2 %Transfer 2 pages.
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Deletes pages from a file. Pages between two page numbers are removed.
 
+- The file must be opened.
 
 #### Parameters
 
@@ -15058,7 +15285,9 @@ ND-100 and ND-500 | All users | All programs
 
 ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Gets the directory index, the user index, and the object index of a file. These are indexes in the file system. See the SINTRAN III System Supervisor {ND-830003} for more details.
 
+- The file need not be open.
 
 #### Parameters
 
@@ -15642,7 +15871,7 @@ ND-100 | All users | Background programs
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
-
+Gets the terminal mode. The terminal mode tells how the terminal function, i.e. if all letters are converted to uppercase, if output stops when a full page is displayed, etc.
 
 #### Parameters
 
@@ -15778,7 +16007,10 @@ TMODE, 0
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Switches No Wait on and off. No Wait is useful for input from, and output to, character devices, e.g. terminals. In No Wait, the program does not wait for input or output. Monitor calls like InByte return the error code 3 instead.
 
+- SuspendProgram or WaitForRestart may passivate the program afterwards. The program then restarts when the device detects a break.
+- The input buffer must be emptied before passivating the program.
 
 #### Parameters
 
@@ -16629,7 +16861,10 @@ PARA4,
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Switches remote file access on and off. The COSMOS network allows you to access files in remote computers directly. Use DefaultRemoteSystem or QSET-DEFAULT-REMOTE-SYSTEM to specify a default remote system. If a file does not exist in the local system, the default remote system is searched. SetRemoteAccess switches this function on and off.
 
+- You may include a remote system identification in the file name. Only the specified system is searched.
+- This monitor call is only available with COSMOS.
 
 #### Parameters
 
@@ -16732,7 +16967,13 @@ MON | 316 | %Monitor call SetRemoteAccess.
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Executes a SINTRAN III command. Specify the command name and the parameters as a text string.
 
+- An error message is output if an error occurs. The program does not terminate.
+- Some commands may destroy your program. Commands which affect your program’s memory area should be used with care.
+- Some commands have output, e.g. @LIST-FILES. This is displayed on the terminal.
+- Use SuspendProgram to wait a second between two ExecuteCommands which depend on each other, e.g. CreateFile and OpenFile.
+- It may be advisable to use @enable-escape before this call, to avoid having problems terminating some commands.
 
 #### See Also
 
@@ -16823,7 +17064,7 @@ CALLG ExecuteCommand, 1, Command
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
-
+Gets the number of a segment in the ND-100. You specify the segment name. Segment names are created with the RT LOADER or when a program is dumped reentrant. See @DUMP-PROGRAM-REENTRANT.
 
 #### Parameters
 
@@ -17297,7 +17538,7 @@ STAT, 0
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
-
+Gets information about a terminal line. You may also enable programs to continue in spite of errors on the terminal line.
 
 #### Parameters
 
@@ -18010,7 +18251,7 @@ TIME, ...  %A double word.
 
 ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
-
+Disassembles one machine instruction on the ND-500. Output is the instruction in ASSEMBLY-500 language. See the manual ND-500 ASSEMBLER Reference Manual (ND-860113).
 
 #### Parameters
 
@@ -18095,7 +18336,9 @@ CALLG DisAssemble, 3, ProgPointer, ReturnString, MaxNoOfChar
 
 ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+ND-100 and ND-500 programs may communicate through two 32-bit flag arrays. You can use the flags as you wish. GetInputFlags reads the input flags. The ND-100 sets these flags with the monitor call ND500Function. See the manual ND Linker User Guide and Reference Manual (ND-860289).
 
+- You get the last values written to the flags. There is no queue.
 
 #### Parameters
 
@@ -18343,7 +18586,7 @@ CALLG FixIOArea, 2, Buffer, SizeOfArea
 
 ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
-
+Switches user-defined escape handling on and off. The user-defined escape handling transfers control to a routine when you press the ESCAPE key.
 
 #### Parameters
 
@@ -18615,7 +18858,12 @@ Error, ...
 
 ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Connects a file as a segment to your domain. You can then access the file as a logical segment. This reduces the access time.
 
+- The file must be open. The access must be specified in the OpenFile call.
+- The file is disconnected when it is closed.
+- A file may be connected to several processes simultaneously. It is your responsibility to synchronize simultaneous accesses.
+- You may not use ReadFromFile (mon 117) or WriteToFile (mon 120) on a file which is connected to a segment. Refer to these monitor calls for further details.
 
 #### Parameters
 
@@ -18704,7 +18952,10 @@ ERROR : W1 =: ErrCode &nbsp;&nbsp;&nbsp;&nbsp;%ErrorCode in W1 register.
 
 ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Disconnects a file as a segment in your domain. FileAsSegment allows files to be accessed as segments. This monitor call disconnects the file.
 
+- The file is not closed.
+- The file is automatically disconnected by CloseFile.
 
 #### Parameters
 
@@ -18811,7 +19062,9 @@ Special CAMAC monitor call for the ND-500. (Same as mon 176 - user-defined monit
 
 ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Writes all modified pages of a segment back to the disk.
 
+- Not allowed when fixed in memory.
 
 #### Parameters
 
@@ -19020,7 +19273,7 @@ SwitchUserBreak allows you to save the registers when you terminate an ND-500 pr
 
 ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
-
+Gets the name of the segments in your domain. A 2048 byte buffer is returned. It contains 32 pointers to segment names in the buffer. Each pointer consists of 12 bytes. The first four is an address. The second four is the offset from this address to the start of the segment name. The last four are the offset to the end of the segment name.
 
 #### Parameters
 
@@ -19109,7 +19362,9 @@ Connects an empty data segment to your domain. The monitor call reserves space o
 
 ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
+Copies a capability for a segment. The segment itself is also copied. A capability describes each logical segment in a domain.
 
+- The destination segment number must be unused.
 
 #### See Also
 
@@ -19215,7 +19470,9 @@ ERROR : W1 =: ErrCode &emsp;&emsp;%ErrorCode in W1 register.
 
 ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Clears a capability. A capability describes each logical segment in a domain. The protection of the segment is removed. See the manual ND Linker User Guide and Reference Manual (ND-60289).
 
+- The logical segment is available for other physical segments.
 
 #### Parameters
 
@@ -19576,7 +19833,9 @@ The call formats are marked from a-i. All formats give status on return. See app
 
 ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Checks that a data transfer to or from a mass-storage file is completed. The monitor call is relevant to DeviceFunction, ReadFromFile and WriteToFile operations. These are carried out independently of the CPU. The number of bytes read or written is returned.
 
+- You may specify that the program should wait if the transfer is not ready. It is set in the I/O wait state.
 
 #### Parameters
 
@@ -19710,7 +19969,9 @@ CALLG ForceTrap, 2, ProcessNumber, ReasonCode
 
 ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Sets information about an ND-500 program. Use GetND500Param to read the 5 parameters when a program is terminated.
 
+- SINTRAN III sets some of the parameter values if you give the command @ENABLE-TERMINATION-HANDLING first.
 
 #### Parameters
 
@@ -20075,7 +20336,11 @@ Reads a string from a device, e.g., a terminal or an opened file. This monitor c
 
 ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
+Writes a string to a device, e.g. a terminal or an opened file.
 
+- This is the most efficient way to output strings on the ND-500.
+- The maximum string length is 2048 bytes.
+- Appendix F contains an ASCII table.
 
 #### Parameters
 
@@ -20171,7 +20436,7 @@ Error, ...
 
 ![ND-500](https://img.shields.io/badge/ND--500-Yes-green)
 
-
+Gets the error code from the swapper process. This is only relevant to programmed trap handlers. The swapper process starts the trap handler when it detects a fatal error, e.g. address outside segment. Use this monitor call to get the error code.
 
 #### Examples
 

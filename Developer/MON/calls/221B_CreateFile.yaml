@@ -1,12 +1,17 @@
-# SINTRAN III Monitor Call: CreateFile
-# Octal: 221B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 221B
 name: CreateFile
 short_names:
 - CRALF
-description: ''
+description: 'Creates a file. The file may be indexed, contiguous, or allocated. Most files are indexed.
+  The size of indexed files expands automatically when written to. Contiguous and allocated files have
+  shorter access time.
+
+
+  - You need directory access to the user who owns the file.
+
+  - User SYSTEM and RT always have the owner''s access rights.
+
+  - An indexed file not yet written to may be converted to a contiguous file. Use ExpandFile or @EXPAND-FILE.'
 see_also:
 - '@CREATE-FILE'
 - '@ALLOCATE-FILE'
@@ -32,74 +37,100 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      StartAddress, NoofPages : LONGINT;
+    code: 'StartAddress, NoofPages : LONGINT;
+
       FileName : PACKED ARRAY [0..63] OF CHAR;
+
       ...
+
       CreateFile(FileName, StartAddress, NoofPages);
-      IF ErrCode <> 0 THEN ...
+
+      IF ErrCode <> 0 THEN ...'
   cobol:
     available: true
-    code: |-
-      01 StartAddress COMP PIC S9(10).
+    code: '01 StartAddress COMP PIC S9(10).
+
       01 NoofPages COMP PIC S9(10).
+
       01 FileName PIC X(64).
+
       01 ErrCode COMP.
+
       ...
+
       MONITOR-CALL "CreateFile" USING FileName, StartAddress, NoofPages.
+
       CALL "CbError" USING ErrCode.
-      IF ErrCode NOT = 0 GO ...
+
+      IF ErrCode NOT = 0 GO ...'
   fortran:
     available: true
-    code: |-
-      INTEGER*4 StartAddress, NoofPages
+    code: 'INTEGER*4 StartAddress, NoofPages
+
       CHARACTER FileName*64
+
       ...
-      Monitor_Call('CreateFile', FileName(1:64), StartAddress, NoofPages)
-      IF (ErrCode .NE. 0) THEN ...
+
+      Monitor_Call(''CreateFile'', FileName(1:64), StartAddress, NoofPages)
+
+      IF (ErrCode .NE. 0) THEN ...'
   planc:
     available: true
-    code: |-
-      INTEGER4 : StartAddress, NoOfPages
-      BYTES : FileName(0:63)
-      ...
-      ON ROUTINEERROR DO
-          IF ErrCode > 0 THEN ...
-      ENDON
-      Monitor_Call('CreateFile', FileName, StartAddress, NoOfPages)
+    code: "INTEGER4 : StartAddress, NoOfPages\nBYTES : FileName(0:63)\n...\nON ROUTINEERROR DO\n    IF\
+      \ ErrCode > 0 THEN ...\nENDON\nMonitor_Call('CreateFile', FileName, StartAddress, NoOfPages)"
   assembly_500:
     available: true
-    code: |-
-      StartAddress : W BLOCK 1
+    code: 'StartAddress : W BLOCK 1
+
       NoOfPages : W BLOCK 1
-      FileName : STRINGDATA 'EXAMPLE:SYMB'...
+
+      FileName : STRINGDATA ''EXAMPLE:SYMB''...
+
       ErrCode : W BLOCK 1
+
       CreateFile : EQU 37B9 + 221B
+
       ...
+
       CALLG CreateFile, 3, FileName, StartAddress, NoOfPages
+
       IF K GO ERROR
+
       ...
-      ERROR : W1 =: ErrCode        %ErrorCode in W1 register.
+
+      ERROR : W1 =: ErrCode        %ErrorCode in W1 register.'
     octal_definition: 37B9 + 221B
   mac:
     available: true
-    code: |-
-      LDX  (FILE         %Address of file name string.
+    code: 'LDX  (FILE         %Address of file name string.
+
       LDD  START         %Load register AD with start address.
+
       LDT  (SIZE         %Address of double word with number of pages.
+
       MON  221           %Monitor call CreateFile.
+
       JMP  ERROR         %Error return from monitor call.
+
       ...               %Normal return.
+
       ERROR, ...         %Error number in register A.
+
       ...
-      FILE, 'EXAMPLE:SYMB' %Create EXAMPLE:SYMB.
+
+      FILE, ''EXAMPLE:SYMB'' %Create EXAMPLE:SYMB.
+
       START, ...          %Start address, ie. page address in directory.
+
       ...               %A double word.
+
       SIZE, ...           %File size as a double word.
+
       ...               %
 
 
-      | ND-100 and ND-500 | All users | All programs |
+
+      | ND-100 and ND-500 | All users | All programs |'
     mon_number: 221
 compatibility:
   nd100: true

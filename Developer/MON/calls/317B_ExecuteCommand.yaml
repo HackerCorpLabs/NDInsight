@@ -1,12 +1,22 @@
-# SINTRAN III Monitor Call: ExecuteCommand
-# Octal: 317B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 317B
 name: ExecuteCommand
 short_names:
 - UECOM
-description: ''
+description: 'Executes a SINTRAN III command. Specify the command name and the parameters as a text string.
+
+
+  - An error message is output if an error occurs. The program does not terminate.
+
+  - Some commands may destroy your program. Commands which affect your program’s memory area should be
+  used with care.
+
+  - Some commands have output, e.g. @LIST-FILES. This is displayed on the terminal.
+
+  - Use SuspendProgram to wait a second between two ExecuteCommands which depend on each other, e.g. CreateFile
+  and OpenFile.
+
+  - It may be advisable to use @enable-escape before this call, to avoid having problems terminating some
+  commands.'
 see_also:
 - CallCommand
 - SetCommandBuffer. CallCommand terminates the program if an error occurs
@@ -14,48 +24,59 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: |-
-      Command : PACKED ARRAY [0..34] OF CHAR;
+    code: 'Command : PACKED ARRAY [0..34] OF CHAR;
+
       ...
-      ExecuteCommand(Command);
+
+      ExecuteCommand(Command);'
   cobol:
     available: true
-    code: |-
-      01 Command    PIC X(35).
+    code: '01 Command    PIC X(35).
+
       ...
-      MONITOR-CALL "ExecuteCommand" USING Command.
+
+      MONITOR-CALL "ExecuteCommand" USING Command.'
   fortran:
     available: true
-    code: |-
-      CHARACTER Command*35
+    code: 'CHARACTER Command*35
+
       ...
-      Monitor_Call('ExecuteCommand', Command(1:35))
+
+      Monitor_Call(''ExecuteCommand'', Command(1:35))'
   planc:
     available: true
-    code: |-
-      BYTES : Command(0:35)
+    code: 'BYTES : Command(0:35)
+
       ...
-      Monitor_Call('ExecuteCommand', Command)
+
+      Monitor_Call(''ExecuteCommand'', Command)'
   assembly_500:
     available: true
-    code: |-
-      Command : STRING 35
+    code: 'Command : STRING 35
+
       ExecuteCommand : EQU 37B9 + 317B
+
       ...
-      CALLG ExecuteCommand, 1, Command
+
+      CALLG ExecuteCommand, 1, Command'
     octal_definition: 37B9 + 317B
   mac:
     available: true
-    code: |-
-      |        |                         |
+    code: '|        |                         |
+
       |--------|-------------------------|
+
       | LDA    | (CMND                 | %Address of string with SINTRAN command. |
+
       | MON    | 317                   | %Monitor call ExecuteCommand.            |
+
       | ...    |                       |                                          |
-      | CMND,  | 'CLOSE-FILE 102'      | %Execute CLOSE-FILE 102.                 |
+
+      | CMND,  | ''CLOSE-FILE 102''      | %Execute CLOSE-FILE 102.                 |
 
 
-      | ND-100 and ND-500 | All users | Background programs |
+
+      | ND-100 and ND-500 | All users | Background programs |'
     mon_number: null
 compatibility:
   nd100: true

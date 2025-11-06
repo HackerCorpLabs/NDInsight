@@ -1,12 +1,17 @@
-# SINTRAN III Monitor Call: ReserveResource
-# Octal: 122B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 122B
 name: ReserveResource
 short_names:
 - RESRV
-description: ''
+description: 'Reserves a device or file for your program only. You release it with ReleaseResource. Some
+  devices, e.g. terminals, have both an input and output part. You can only reserve one part with each
+  ReserveResource call.
+
+
+  - A normal termination of an RT program releases all resources.
+
+  - Release the device with ReleaseResource or ForceRelease.
+
+  - A background program does not release a resource when you press the ESCAPE key.'
 see_also:
 - ForceReserve
 - ReserveDir
@@ -35,61 +40,85 @@ parameters:
 examples:
   pascal:
     available: true
-    code: |-
-      DeviceNo, IOFlag, WaitFlag, ReturnStatus : INTEGER2;
+    code: 'DeviceNo, IOFlag, WaitFlag, ReturnStatus : INTEGER2;
+
       ...
-      ReserveResource(DeviceNo, IOFlag, WaitFlag, ReturnStatus);
+
+      ReserveResource(DeviceNo, IOFlag, WaitFlag, ReturnStatus);'
   cobol:
     available: true
-    code: |-
-      01 DevNo COMP.
+    code: '01 DevNo COMP.
+
       01 IOFlag COMP.
+
       01 WaitFlag COMP.
+
       01 RetStatus COMP.
+
       ...
-      MONITOR-CALL "ReserveResource" USING DevNo, IOFlag, WaitFlag, RetStatus.
+
+      MONITOR-CALL "ReserveResource" USING DevNo, IOFlag, WaitFlag, RetStatus.'
   fortran:
     available: true
-    code: |-
-      INTEGER DevNo, IOFlag, WaitFlag, ReturnStatus
+    code: 'INTEGER DevNo, IOFlag, WaitFlag, ReturnStatus
+
       ...
-      Monitor_Call('ReserveResource', DevNo, IOFlag, WaitFlag, ReturnStatus)
+
+      Monitor_Call(''ReserveResource'', DevNo, IOFlag, WaitFlag, ReturnStatus)'
   planc:
     available: true
-    code: |-
-      INTEGER: DeviceNo, IOFlag, WaitFlag, ReturnStatus
+    code: 'INTEGER: DeviceNo, IOFlag, WaitFlag, ReturnStatus
+
       ...
-      Monitor_Call('ReserveResource', DeviceNo, IOFlag, WaitFlag, ReturnStatus)
+
+      Monitor_Call(''ReserveResource'', DeviceNo, IOFlag, WaitFlag, ReturnStatus)'
   assembly_500:
     available: true
-    code: |-
-      DeviceNo : W BLOCK 1
+    code: 'DeviceNo : W BLOCK 1
+
       IOFlag : W BLOCK 1
+
       WaitFlag : W BLOCK 1
+
       Status : W BLOCK 1
+
       ReserveResource : EQU 37B9 + 122B
+
       ...
+
       CALLG ReserveResource, 3, DeviceNo, IOFlag, WaitFlag
-      W1 =: Status
+
+      W1 =: Status'
     octal_definition: 37B9 + 122B
   mac:
     available: true
-    code: |-
-      LDA (PAR %Load register A with address of parameter list.
+    code: 'LDA (PAR %Load register A with address of parameter list.
+
       MON 122 %Monitor call ReserveResource.
+
       ...
+
       PAR, DEVNO %Logical device number.
+
       IOF %Input/output flag.
+
       WFLAG %Wait flag
+
       STAT %Status
 
+
       | DEVNO, ... |   |
+
       |------------|---|
+
       | IOF, ...   |   |
+
       | WFLAG, ... |   |
+
       | STAT, ...  |   |
 
-      ND-100 and ND-500 | All users | All programs
+
+      ND-100 and ND-500 | All users | All programs'
     mon_number: 122
 compatibility:
   nd100: true

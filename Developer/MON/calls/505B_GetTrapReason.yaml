@@ -1,12 +1,10 @@
-# SINTRAN III Monitor Call: GetTrapReason
-# Octal: 505B
-# Extracted from: Monitor Calls.md (ND-860228.2 EN)
-
 octal: 505B
 name: GetTrapReason
 short_names:
 - GERRCOD
-description: ''
+description: Gets the error code from the swapper process. This is only relevant to programmed trap handlers.
+  The swapper process starts the trap handler when it detects a fatal error, e.g. address outside segment.
+  Use this monitor call to get the error code.
 notes:
 - The error code may be a file system error or a swapper error.
 - You clear the error code when you read it.
@@ -15,35 +13,41 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: |-
-      ErrorCode : LONGINT;
+    code: 'ErrorCode : LONGINT;
+
       ...
-      GetTrapReason(ErrorCode);
+
+      GetTrapReason(ErrorCode);'
   cobol:
     available: true
-    code: |-
-      01 ErrorCode COMP.
+    code: '01 ErrorCode COMP.
+
       ...
-      MONITOR-CALL "GetTrapReason" USING ErrorCode.
+
+      MONITOR-CALL "GetTrapReason" USING ErrorCode.'
   fortran:
     available: true
-    code: |-
-      INTEGER ErrorCode
+    code: 'INTEGER ErrorCode
+
       ...
-      Monitor_Call('GetTrapReason', ErrorCode)
+
+      Monitor_Call(''GetTrapReason'', ErrorCode)'
   planc:
     available: true
-    code: |-
-      INTEGER : ErrorCode
+    code: 'INTEGER : ErrorCode
+
       ...
-      Monitor_Call('GetTrapReason', ErrorCode)
+
+      Monitor_Call(''GetTrapReason'', ErrorCode)'
   assembly_500:
     available: true
-    code: |-
-      ErrorCode : W BLOCK 1
+    code: 'ErrorCode : W BLOCK 1
+
       GetTrapReason : EQU 37B9 + 505B
+
       ...
-      CALLG GetTrapReason, 1, ErrorCode
+
+      CALLG GetTrapReason, 1, ErrorCode'
     octal_definition: 37B9 + 505B
   mac:
     available: false
