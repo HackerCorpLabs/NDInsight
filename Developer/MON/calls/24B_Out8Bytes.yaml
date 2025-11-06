@@ -1,0 +1,145 @@
+# SINTRAN III Monitor Call: Out8Bytes
+# Octal: 24B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
+
+octal: 24B
+name: Out8Bytes
+short_names: []
+description: Writes 8 bytes to a character device, e.g. a terminal. All 8 bytes are
+  output. OutUpTo8Bytes stops if a byte is 0.
+notes:
+- On the ND-500, you are advised to use the faster OutputString.
+- Appendix F contains an ASCII table.
+see_also:
+- OutUpTo8Bytes
+- OutByte
+- OutString
+- OutputString
+- OutMessage
+- OutNumber
+- and In8Bytes
+references: []
+parameters:
+- name: Logicaldevicenumber
+  type: See appendix B.
+  io: I
+  description: ''
+- name: Thestringofbytestobewritten
+  type: ''
+  io: I
+  description: ''
+- name: StandardErrorCode
+  type: See appendix A.
+  io: I
+  description: ''
+examples:
+  pascal:
+    available: true
+    code: 'DeviceNumber : INTEGER2;
+
+      OutData : RECORD...END;
+
+      ...
+
+      Out8Bytes(DeviceNumber, OutData);
+
+      IF ErrCode <> 0 THEN ...'
+    notes: ''
+  cobol:
+    available: true
+    code: '01 DeviceNumber COMP.
+
+      01 OutData PIC X(8).
+
+      01 ErrCode COMP.
+
+      ...
+
+      MONITOR-CALL "Out8Bytes" USING DeviceNumber, OutData.
+
+      CALL "CBerror" USING ErrCode.
+
+      IF ErrCode NOT = 0 GO ...'
+    notes: ''
+  fortran:
+    available: true
+    code: 'INTEGER DeviceNumber
+
+      CHARACTER OutData*8
+
+      ...
+
+      Monitor_Call(''Out8Bytes'', DeviceNumber, OutData(1:8))
+
+      IF (ErrCode .NE. 0) THEN ...'
+    notes: ''
+  planc:
+    available: true
+    code: "INTEGER : DeviceNumber\nBYTES : OutData(0:7)\n...\nON ROUTINEERROR DO\n\
+      \  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('Out8Bytes', DeviceNumber, OutData)"
+    notes: ''
+  assembly_500:
+    available: true
+    code: "DeviceNumber : W BLOCK 1\nOutData : STRINGDATA 'HELLO!!!'\nErrCode : W\
+      \ BLOCK 1\nOut8Bytes : EQU 37B9 + 24B\n...\n  CALLG Out8Bytes, 2, DeviceNumber,\
+      \ OutData\n  IF K GO ERROR\n...\nERROR : W1 =: ErrCode          %ErrorCode in\
+      \ W1 register."
+    octal_definition: 37B9 + 24B
+    notes: ''
+  mac:
+    available: true
+    code: 'LDT DEVNO          %Logical device address.
+
+      LDD BYTES          %First 4 bytes to be written.
+
+      LDX BYTES+2        %Next 2 bytes to be written.
+
+      COPY SX DL
+
+      LDX BYTES+3        %Last 2 bytes to be written.
+
+      MON 24             %Monitor call Out8Bytes.
+
+      JMP ERROR          %Error return from monitor call.
+
+      ...
+
+      ERROR, ...         %Error number in register A.
+
+      ...
+
+      DEVNO, ...
+
+      BYTES, ''HELLO!!!''
+
+
+
+
+      | ND-100 and ND-500 | All users | All programs |'
+    mon_number: 24
+    notes: ''
+compatibility:
+  platforms:
+    nd100: true
+    nd500: true
+  users:
+  - All users
+  programs:
+  - All programs
+  notes: ''
+errors:
+  returns_error: false
+  error_codes: []
+  error_reference: ''
+source:
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 373
+  line: 16607
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
+extraction:
+  date: '2025-01-06'
+  version: '1.0'
+  validated: false
+  ocr_corrected: true
+  ocr_notes: Header missing octal - reconstructed

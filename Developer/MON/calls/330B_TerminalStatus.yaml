@@ -1,0 +1,145 @@
+# SINTRAN III Monitor Call: TerminalStatus
+# Octal: 330B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
+
+octal: 330B
+name: TerminalStatus
+short_names: []
+description: Gets information about a terminal. The user logged in, the time logged
+  in, the CPU time used, the job being executed, and more is returned.
+notes:
+- You may use the monitor call for batch jobs.
+- This call can only be used from background programs, not RT programs.
+see_also:
+- '@TERMINAL-STATUS'
+references: []
+parameters:
+- name: Param1
+  type: UNKNOWN
+  io: I
+  description: ⟶ Logical device number of a terminal. Use 1 for your own terminal.
+- name: Param2
+  type: UNKNOWN
+  io: I
+  description: '⟵ Information about the terminal. The 44 bytes are used as follows:'
+- name: 0:15
+  type: Name of user logged in. Terminated by '.' if less than 16 bytes.
+  io: I
+  description: ''
+- name: '16:17'
+  type: Mode. 1 means command. 2 means program running.
+  io: I
+  description: ''
+- name: '18:19'
+  type: State. -1 means no one logged in. 0 means idle batch processor. 1 means active
+    terminal.
+  io: I
+  description: ''
+- name: '20:21'
+  type: CPU time used in minutes.
+  io: I
+  description: ''
+- name: '22:23'
+  type: Time logged in in minutes.
+  io: I
+  description: ''
+- name: '24:43'
+  type: The last command executed. Terminated by an ' (apostrophe).
+  io: I
+  description: ''
+- name: Param9
+  type: UNKNOWN
+  io: I
+  description: ⟵ Standard Error Code. See appendix A.
+examples:
+  pascal:
+    available: true
+    code: 'DeviceNumber : INTEGER2;
+
+      Buffer : ARRAY [0..1] OF RECORD...END;
+
+      ...
+
+      TermStatus(DeviceNumber, Buffer);   [Note routine name.]
+
+      IF ErrCode <> 0 THEN ...'
+    notes: ''
+  cobol:
+    available: true
+    code: "01 DeviceNumber COMP.\n01 Buffer.\n   02 array COMP OCCURS 22 TIMES.\n\
+      01 ErrCode COMP.\n...\nMONITOR-CALL \"TerminalStatus\" USING DeviceNumber, Buffer.\n\
+      CALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
+    notes: ''
+  fortran:
+    available: true
+    code: 'INTEGER DeviceNumber
+
+      INTEGER Buffer(22)
+
+      ...
+
+      Monitor_Call(''TerminalStatus'', DeviceNumber, Buffer(1))
+
+      IF (ErrCode .NE. 0) THEN ...'
+    notes: ''
+  planc:
+    available: true
+    code: "INTEGER : DeviceNumber\nBYTES : Buffer(0:43)\n...\nON ROUTINEERROR DO\n\
+      \    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('TerminalStatus', DeviceNumber,\
+      \ Buffer(0))"
+    notes: ''
+  assembly_500:
+    available: true
+    code: "DeviceNumber : W BLOCK 1\nBuffer : H BLOCK 25B\nErrCode : W BLOCK 1\nTerminalStatus\
+      \ : EQU 37B9 + 330B\n...\nCALLG TerminalStatus, 2, DeviceNumber, Buffer\nIF\
+      \ K GO ERROR\n...\nERROR : W1 =: ErrCode\n       %ErrorCode in W1 register."
+    octal_definition: 37B9 + 330B
+    notes: ''
+  mac:
+    available: true
+    code: 'LDT LDN       %Load register T with the logical device number.
+
+      LDA (BUF      %Load register A with address of return buffer.
+
+      MON 330       %Monitor call TerminalStatus.
+
+      STA STAT      %Returned status.
+
+      ...
+
+      LDN, 1
+
+      BUF, 0
+
+      *+26/         %Buffer of 44 bytes.
+
+      STAT, 0
+
+
+
+      | ND-100 and ND-500 | All users | All programs |'
+    mon_number: 330
+    notes: ''
+compatibility:
+  platforms:
+    nd100: false
+    nd500: false
+  users: []
+  programs: []
+  notes: ''
+errors:
+  returns_error: false
+  error_codes: []
+  error_reference: ''
+source:
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 537
+  line: 24370
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
+extraction:
+  date: '2025-01-06'
+  version: '1.0'
+  validated: false
+  ocr_corrected: true
+  ocr_notes: Header missing octal - reconstructed
