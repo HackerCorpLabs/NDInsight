@@ -8,10 +8,10 @@ This directory contains YAML files for all 230 SINTRAN III Monitor Calls and too
 Developer/MON/
 ├── calls/                           # 230 YAML files (one per monitor call)
 ├── mon-call.schema.json             # JSON Schema for YAML validation
+├── mon-call-schema.yaml             # YAML Schema for reference
+├── Monitor Calls.md                 # Original OCR source material (931K)
 ├── ND MON Calls.md                  # Generated comprehensive documentation
-├── generate_mon_calls_markdown.py   # Script to regenerate markdown docs
-├── FINAL-EXTRACTION-REPORT.md       # Extraction process documentation
-└── SCHEMA-CLEANUP-ANALYSIS.md       # Schema analysis and cleanup report
+└── generate_mon_calls_markdown.py   # Script to regenerate markdown docs
 ```
 
 ## Regenerating Documentation
@@ -110,5 +110,4 @@ print('✓ Valid')
 4. **Short Names Population** - Added assembly mnemonics to all 230 calls
 5. **Quote Fixing** - Fixed apostrophe escaping in code examples
 6. **Markdown Generation** - Created comprehensive documentation with cross-references
-
-See `FINAL-EXTRACTION-REPORT.md` and `SCHEMA-CLEANUP-ANALYSIS.md` for complete details.
+7. **Directory Cleanup (Nov 2025)** - Removed backup files, historical extraction scripts, and redundant documentation
