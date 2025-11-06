@@ -121,29 +121,32 @@ ND-100 Physical Memory:
 
 ### 2.3 ND-500 CPU Startup
 
-**Initialization Sequence:**
+**Automatic Initialization Sequence:**
 
-1. **Hardware Detection**
-   ```
-   @SINTRAN-SERVICE
-   *TEST-ND500-PRESENCE
-   ```
-   - Checks for 5015 Control Board on 3022 bus
+After SINTRAN boot detects the ND-500 via `DETECTND500` (see section 2.1), the following happens automatically:
+
+1. **Hardware Detection** (Already completed during boot)
+   - `DETECTND500` NPL routine checks for 5015 Control Board on 3022 bus
    - Verifies ND-500 responds to control signals
+   - Sets `ND500PRESENT` flag if successful
+   - No user command needed - this is automatic
 
 2. **Memory Mapping**
    - ND-100 allocates physical 5MPM region
    - ND-500 maps same physical memory to its address space
    - Both CPUs can access 5MPM simultaneously
+   - Performed by `INIT5MPM` routine during boot
 
 3. **Process Table Initialization**
    - Create process descriptor slots (typically 8-16 slots)
    - Allocate message buffers for inter-CPU communication
    - Initialize TAG-IN/TAG-OUT signaling registers
+   - Performed by `INIT5PROCS` routine during boot
 
 4. **Ready State**
    - ND-500 waits for first domain to be placed
    - Monitor kernel ready to handle ND-500 requests
+   - User can now use PLACE-DOMAIN, RECOVER-DOMAIN commands
 
 ---
 
