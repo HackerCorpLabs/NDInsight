@@ -5,10 +5,8 @@
 octal: 245B
 name: GetNameEntry
 short_names: []
-description: Gets information about devices, e.g. disks and floppy disks. The monitor
-  call returns the name entry of a device. You specify the name index.
-notes:
-- GetDirNameIndex provides the name index.
+description: ''
+notes: []
 see_also:
 - GetDirEntry
 references: []
@@ -37,59 +35,59 @@ parameters:
   type: Various flags.
   io: I
   description: ''
-- name: Bit15
+- name: Bit 15
   type: Cartridge disk.
   io: I
   description: ''
-- name: Bit14
+- name: Bit 14
   type: Not used.
   io: I
   description: ''
-- name: Bit13
+- name: Bit 13
   type: Single user device, e.g. floppy disk or magnetic tape.
   io: I
   description: ''
-- name: Bit12
+- name: Bit 12
   type: Not used.
   io: I
   description: ''
-- name: Bit11
+- name: Bit 11
   type: Magnetic tape station.
   io: I
   description: ''
-- name: Bit10
+- name: Bit 10
   type: EEC disks.
   io: I
   description: ''
-- name: Bit9
+- name: Bit 9
   type: Not used.
   io: I
   description: ''
-- name: Bit8
+- name: Bit 8
   type: Floppy disk.
   io: I
   description: ''
-- name: Bit7
+- name: Bit 7
   type: Phoenix disk.
   io: I
   description: ''
-- name: Bit6
+- name: Bit 6
   type: Little Winchester disk.
   io: I
   description: ''
-- name: Bit5
+- name: Bit 5
   type: SCSI streamer.
   io: I
   description: ''
-- name: Bit4
+- name: Bit 4
   type: SCSI disk.
   io: I
   description: ''
-- name: Bit3
+- name: Bit 3
   type: Read-only WORM disk (optical).
   io: I
   description: ''
-- name: Bit2:0
+- name: Bit 2:0
   type: Maximum number of subunits on this device (000<sub>2</sub> means 8 subunits,
     001<sub>2</sub>-111<sub>2</sub> means maximum number of subunits).
   io: I
@@ -109,7 +107,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'NameIndex : INTEGER2;
+    code: '```
+
+      NameIndex : INTEGER2;
 
       NameTableEntry : RECORD...END;
 
@@ -117,39 +117,48 @@ examples:
 
       GetNameEntry(NameIndex, NameTableEntry);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 NameIndex COMP.\n01 NameTableEntry.\n    02 array COMP OCCURS 14 TIMES.\n\
-      01 ErrCode COMP.\n...\nMONITOR-CALL \"GetNameEntry\" USING NameIndex, NameTableEntry.\n\
-      CALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
+    code: "```\n01 NameIndex COMP.\n01 NameTableEntry.\n    02 array COMP OCCURS 14\
+      \ TIMES.\n01 ErrCode COMP.\n...\nMONITOR-CALL \"GetNameEntry\" USING NameIndex,\
+      \ NameTableEntry.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n\
+      ```"
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER NameIndex
+    code: '```
+
+      INTEGER NameIndex
 
       INTEGER NameTableEntry(14)
 
-      ...'
+      ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : NameIndex\nBYTES : NameTableEntry(0:27)\n...\nON ROUTINEERROR\
+    code: "```\nINTEGER : NameIndex\nBYTES : NameTableEntry(0:27)\n...\nON ROUTINEERROR\
       \ DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('GetNameEntry', NameIndex,\
-      \ NameTableEntry(0))"
+      \ NameTableEntry(0))\n```"
     notes: ''
   assembly_500:
     available: true
-    code: "NameIndex : W BLOCK 1\nNameTableEntry : BY BLOCK 34B\nErrCode : W BLOCK\
-      \ 1\nGetNameEntry : EQU 37B9 + 245B\n...\nCALLG GetNameEntry, 2, NameIndex,\
+    code: "```\nNameIndex : W BLOCK 1\nNameTableEntry : BY BLOCK 34B\nErrCode : W\
+      \ BLOCK 1\nGetNameEntry : EQU 37B9 + 245B\n...\nCALLG GetNameEntry, 2, NameIndex,\
       \ NameTableEntry\n  IF K GO ERROR\n...\nERROR : W1 =: ErrCode  %ErrorCode in\
-      \ W1 register."
+      \ W1 register.\n```"
     octal_definition: 37B9 + 245B
     notes: ''
   mac:
     available: true
-    code: 'LDT NAMIX          %Name index.
+    code: '```
+
+      LDT NAMIX          %Name index.
 
       LDX (BUFF          %Address of buffer to receive name table entry.
 
@@ -169,6 +178,7 @@ examples:
 
       +*16/              %Make a buffer of 14 words.
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'
@@ -176,12 +186,12 @@ examples:
     notes: ''
 compatibility:
   platforms:
-    nd100: false
+    nd100: true
     nd500: true
   users:
   - All users
   programs:
-  - Background programs
+  - All programs
   notes: ''
 errors:
   returns_error: false
@@ -190,12 +200,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 257
-  line: 11156
+  line: 11301
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

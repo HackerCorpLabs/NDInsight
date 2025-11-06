@@ -5,13 +5,8 @@
 octal: 431B
 name: AwaitTransfer
 short_names: []
-description: Checks that a data transfer to or from a mass-storage file is completed.
-  The monitor call is relevant to DeviceFunction, ReadFromFile and WriteToFile operations.
-  These are carried out independently of the CPU. The number of bytes read or written
-  is returned.
-notes:
-- You may specify that the program should wait if the transfer is not ready. It is
-  set in the I/O wait state.
+description: ''
+notes: []
 see_also:
 - AwaitFileTransfer
 references: []
@@ -33,15 +28,21 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'FileNumber, WaitFlag, NoOfBytes : LONGINT;
+    code: '```
+
+      FileNumber, WaitFlag, NoOfBytes : LONGINT;
 
       ...
 
-      AwaitTransfer(FileNumber, WaitFlag, NoOfBytes);'
+      AwaitTransfer(FileNumber, WaitFlag, NoOfBytes);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 FileNumber COMP.
+    code: '```
+
+      01 FileNumber COMP.
 
       01 WaitFlag COMP.
 
@@ -49,15 +50,21 @@ examples:
 
       ...
 
-      MONITOR-CALL "AwaitTransfer" USING FileNumber, WaitFlag, NoOfBytes.'
+      MONITOR-CALL "AwaitTransfer" USING FileNumber, WaitFlag, NoOfBytes.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER FileNumber, WaitFlag, NoOfBytes
+    code: '```
+
+      INTEGER FileNumber, WaitFlag, NoOfBytes
 
       ...
 
-      Monitor_Call(''AwaitTransfer'', FileNumber, WaitFlag, NoOfBytes)'
+      Monitor_Call(''AwaitTransfer'', FileNumber, WaitFlag, NoOfBytes)
+
+      ```'
     notes: ''
   planc:
     available: true
@@ -111,7 +118,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 89
-  line: 3601
+  line: 3616
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

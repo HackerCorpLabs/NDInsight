@@ -10,89 +10,16 @@ description: Gets the time you have used the CPU since you logged in. In batch j
 notes:
 - The CPU time used is given in basic time units. A basic time unit is 1/50th of a
   second.
-- Can also be used from RT-programs.
-see_also:
-- '@TIME-USED'
+see_also: []
 references: []
-parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
-  description: The CPU time used.
-examples:
-  pascal:
-    available: true
-    code: 'TimeUsed : LONGINT;
-
-      ...
-
-      GetTimeUsed(TimeUsed);'
-    notes: ''
-  cobol:
-    available: true
-    code: '01 TimeUsed COMP PIC S9(10).
-
-      ...
-
-      MONITOR-CALL "GetTimeUsed" USING TimeUsed.'
-    notes: ''
-  fortran:
-    available: true
-    code: 'INTEGER*4 TimeUsed
-
-      ...
-
-      Monitor_Call(''GetTimeUsed'', TimeUsed)'
-    notes: ''
-  planc:
-    available: true
-    code: 'INTEGER4 : TimeUsed
-
-      ...
-
-      Monitor_Call(''GetTimeUsed'', TimeUsed)'
-    notes: ''
-  assembly_500:
-    available: true
-    code: 'TimeUsed : W BLOCK 1
-
-      GetTimeUsed : EQU 37B9 + 114B
-
-      ...
-
-      CALLG GetTimeUsed, 0
-
-      W1 =: TimeUsed           %Result is returned in W1 register.'
-    octal_definition: 37B9 + 114B
-    notes: ''
-  mac:
-    available: true
-    code: 'MON     114   %Monitor call GetTimeUsed.
-
-      STD     TIME  %Store CPU time.
-
-      ...
-
-      TIME, 0       %A double word.
-
-      0             %
-
-
-
-
-      | **ND-100 and ND-500** | **All users**   | **Background programs** |
-
-      |-----------------------|-----------------|------------------------|'
-    mon_number: 114
-    notes: ''
+parameters: []
+examples: {}
 compatibility:
   platforms:
-    nd100: true
-    nd500: true
-  users:
-  - '**All users**'
-  programs:
-  - '**Background programs**'
+    nd100: false
+    nd500: false
+  users: []
+  programs: []
   notes: ''
 errors:
   returns_error: false
@@ -100,8 +27,8 @@ errors:
   error_reference: ''
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
-  page: 293
-  line: 12859
+  page: 0
+  line: 13033
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

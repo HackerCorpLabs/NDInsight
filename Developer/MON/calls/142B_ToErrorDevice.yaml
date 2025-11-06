@@ -29,41 +29,59 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'ErrorNumber, SubErrorNumber : INTEGER2;
+    code: '```
+
+      ErrorNumber, SubErrorNumber : INTEGER2;
 
       ...
 
-      ToErrorDevice(ErrorNumber, SubErrorNumber);'
+      ToErrorDevice(ErrorNumber, SubErrorNumber);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 ErrorNumber COMP.
+    code: '```
+
+      01 ErrorNumber COMP.
 
       01 SubErrorNumber COMP.
 
       ...
 
-      MONITOR-CALL "ToErrorDevice" USING ErrorNumber, SubErrorNumber.'
+      MONITOR-CALL "ToErrorDevice" USING ErrorNumber, SubErrorNumber.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER ErrorNumber, SubErrorNumber
+    code: '```
+
+      INTEGER ErrorNumber, SubErrorNumber
 
       ...
 
-      Monitor_Call(''ToErrorDevice'', ErrorNumber, SubErrorNumber)'
+      Monitor_Call(''ToErrorDevice'', ErrorNumber, SubErrorNumber)
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: 'INTEGER : ErrorNumber, SubErrorNumber
+    code: '```
+
+      INTEGER : ErrorNumber, SubErrorNumber
 
       ...
 
-      Monitor_Call(''ToErrorDevice'', ErrorNumber, SubErrorNumber)'
+      Monitor_Call(''ToErrorDevice'', ErrorNumber, SubErrorNumber)
+
+      ```'
     notes: ''
   assembly_500:
     available: true
-    code: 'ErrorNumber : W BLOCK  1                      %In ASCII characters.
+    code: '```
+
+      ErrorNumber : W BLOCK  1                      %In ASCII characters.
 
       SubErrorNumber : W BLOCK  1
 
@@ -72,12 +90,16 @@ examples:
 
       ...
 
-      CALLG ToErrorDevice, 2, ErrorNumber, SubErrorNumber'
+      CALLG ToErrorDevice, 2, ErrorNumber, SubErrorNumber
+
+      ```'
     octal_definition: ''
     notes: ''
   mac:
     available: true
-    code: 'LDA     ERRNO            %Error number.
+    code: '```
+
+      LDA     ERRNO            %Error number.
 
       LDT     SUBER            %Sub-error number.
 
@@ -90,6 +112,7 @@ examples:
 
       SUBER, ...                %Suberror number as two ASCII characters.
 
+      ```
 
 
       | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'
@@ -111,7 +134,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 543
-  line: 24678
+  line: 25014
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

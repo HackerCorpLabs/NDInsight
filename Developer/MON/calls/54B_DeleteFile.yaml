@@ -5,40 +5,42 @@
 octal: 54B
 name: DeleteFile
 short_names: []
-description: Deletes a file. The pages of the file are released.
-notes:
-- You must have directory access to the file in order to delete it. RT programs can
-  delete a file if user RT has directory access to it.
-- Include a version number in the file name to delete specific versions of a file.
-  Otherwise, all versions are deleted.
+description: ''
+notes: []
 see_also:
 - '@DELETE-FILE'
 - '@DELETE-USERS-FILES'
 - and CreateFile
 references: []
 parameters:
-- name: Filename
+- name: File name
   type: ''
   io: I
   description: ''
-- name: StandardErrorCode
+- name: Standard Error Code
   type: See appendix A.
   io: I
   description: ''
 examples:
   pascal:
     available: true
-    code: 'FileName : PACKED ARRAY [0..63] OF CHAR;
+    code: '```
+
+      FileName : PACKED ARRAY [0..63] OF CHAR;
 
       ...
 
       DeleteFile(FileName);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 FileName PIC X(64).
+    code: '```
+
+      01 FileName PIC X(64).
 
       01 ErrCode COMP.
 
@@ -48,17 +50,23 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'CHARACTER FileName*64
+    code: '```
+
+      CHARACTER FileName*64
 
       ...
 
       Monitor_Call(''DeleteFile'', FileName(1:64))
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
@@ -96,7 +104,9 @@ examples:
     notes: ''
   mac:
     available: true
-    code: 'LDX   (FILE        %Load register X with address of file name.
+    code: '```
+
+      LDX   (FILE        %Load register X with address of file name.
 
       MON   54           %Monitor call DeleteFile.
 
@@ -110,6 +120,7 @@ examples:
 
       FILE, ''EXAMPLE:SYMB'' %Delete file EXAMPLE:SYMB.
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |
@@ -134,7 +145,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 137
-  line: 5848
+  line: 5904
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

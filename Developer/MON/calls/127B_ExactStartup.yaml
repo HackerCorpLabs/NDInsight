@@ -5,17 +5,8 @@
 octal: 127B
 name: ExactStartup
 short_names: []
-description: Starts an RT program at a specific time. The time is given in basic time
-  units. A basic time unit is 1/50th of a second. The RT program is moved from the
-  time queue to the execution queue at the specified time.
-notes:
-- It may already be later than the time specified. The RT program is then scheduled
-  for the next day.
-- The RT program may already be in the time queue. It is then reinserted according
-  to the new time specifications.
-- AdjustClock and @CLADJ affect the startup. The RT program starts according to the
-  new time.
-- Use GetBasicTime to read the internal time in basic time units.
+description: ''
+notes: []
 see_also:
 - StartupTime. StartupTime allows you to specify the time in hours
 - minutes or seconds
@@ -33,29 +24,41 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'RTProgram, BasicTimeUnits : INTEGER2;
+    code: '```
+
+      RTProgram, BasicTimeUnits : INTEGER2;
 
       ...
 
-      ExactStartup(RTProgram, BasicTimeUnits);'
+      ExactStartup(RTProgram, BasicTimeUnits);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 RTProgram COMP.
+    code: '```
+
+      01 RTProgram COMP.
 
       01 BasicTimeUnits COMP.
 
       ...
 
-      MONITOR-CALL "ExactStartup" USING RTProgram, BasicTimeUnits.'
+      MONITOR-CALL "ExactStartup" USING RTProgram, BasicTimeUnits.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER RTProgram, BasicTimeUnits
+    code: '```
+
+      INTEGER RTProgram, BasicTimeUnits
 
       ...
 
-      Monitor_Call(''ExactStartup'', RTProgram, BasicTimeUnits)'
+      Monitor_Call(''ExactStartup'', RTProgram, BasicTimeUnits)
+
+      ```'
     notes: ''
   planc:
     available: true
@@ -115,7 +118,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 179
-  line: 7634
+  line: 7720
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

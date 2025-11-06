@@ -17,27 +17,39 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: 'Address : LONGINT;
+    code: '```
+
+      Address : LONGINT;
 
       ...
 
-      MemoryUnfix(Address);'
+      MemoryUnfix(Address);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 Address COMP.
+    code: '```
+
+      01 Address COMP.
 
       ...
 
-      MONITOR-CALL "MemoryUnfix" USING Address.'
+      MONITOR-CALL "MemoryUnfix" USING Address.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER Address
+    code: '```
+
+      INTEGER Address
 
       ...
 
-      Monitor_Call(''MemoryUnfix'', Address)'
+      Monitor_Call(''MemoryUnfix'', Address)
+
+      ```'
     notes: ''
   planc:
     available: true
@@ -85,7 +97,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 347
-  line: 15417
+  line: 15625
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

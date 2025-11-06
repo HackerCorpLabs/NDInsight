@@ -32,7 +32,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'BlockNumber : INTEGER2;
+    code: '```
+
+      BlockNumber : INTEGER2;
 
       Buffer : ARRAY [0..15] OF RECORD...END;
 
@@ -40,17 +42,21 @@ examples:
 
       WriteScratchFile(BlockNumber, Buffer);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 BlockNumber COMP.\n01 Buffer.\n   02 array COMP OCCURS 256 TIMES.\n\
+    code: "```\n01 BlockNumber COMP.\n01 Buffer.\n   02 array COMP OCCURS 256 TIMES.\n\
       01 ErrCode COMP.\n...\nMONITOR-CALL \"WriteScratchFile\" USING BlockNumber,\
-      \ Buffer.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
+      \ Buffer.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER BlockNumber
+    code: '```
+
+      INTEGER BlockNumber
 
       INTEGER Buffer(256)
 
@@ -58,13 +64,15 @@ examples:
 
       Monitor Call(''WriteScratchFile'', BlockNumber, Buffer(1))
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : BlockNumber\nBYTES : Buffer(0:511)\n...\nON ROUTINEERROR DO\n\
-      \    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('WriteScratchFile', BlockNumber,\
-      \ Buffer(0))"
+    code: "```\nINTEGER : BlockNumber\nBYTES : Buffer(0:511)\n...\nON ROUTINEERROR\
+      \ DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('WriteScratchFile', BlockNumber,\
+      \ Buffer(0))\n```"
     notes: ''
   assembly_500:
     available: false
@@ -73,7 +81,9 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: 'LDT  BLKNO   %Block number to be written into.
+    code: '```
+
+      LDT  BLKNO   %Block number to be written into.
 
       LDX  (BUFF   %Address of buffer containing data to be written.
 
@@ -93,6 +103,7 @@ examples:
 
       *+400/       %Make a buffer of 256 words, 1 block.
 
+      ```
 
 
       | ND-100 | All users | Background programs |'
@@ -100,10 +111,12 @@ examples:
     notes: ''
 compatibility:
   platforms:
-    nd100: false
+    nd100: true
     nd500: false
-  users: []
-  programs: []
+  users:
+  - All users
+  programs:
+  - Background programs
   notes: ''
 errors:
   returns_error: false
@@ -112,7 +125,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 567
-  line: 25685
+  line: 26031
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

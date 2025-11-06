@@ -5,15 +5,8 @@
 octal: 412B
 name: FileAsSegment
 short_names: []
-description: Connects a file as a segment to your domain. You can then access the
-  file as a logical segment. This reduces the access time.
-notes:
-- The file must be open. The access must be specified in the OpenFile call.
-- The file is disconnected when it is closed.
-- A file may be connected to several processes simultaneously. It is your responsibility
-  to synchronize simultaneous accesses.
-- You may not use ReadFromFile (mon 117) or WriteToFile (mon 120) on a file which
-  is connected to a segment. Refer to these monitor calls for further details.
+description: ''
+notes: []
 see_also:
 - FileNotAsSegment which disconnects the file
 references: []
@@ -45,17 +38,23 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'FileNo, LogSegmentNo, Type, SegmentNo : LONGINT;
+    code: '```
+
+      FileNo, LogSegmentNo, Type, SegmentNo : LONGINT;
 
       ...
 
       FileAsSegment(FileNo, LogSegmentNo, Type, SegmentNo);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 FileNo COMP.
+    code: '```
+
+      01 FileNo COMP.
 
       01 LogSegmentNo COMP.
 
@@ -71,17 +70,23 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER FileNo, LogSegmentNo, Type, SegmentNo
+    code: '```
+
+      INTEGER FileNo, LogSegmentNo, Type, SegmentNo
 
       ...
 
       Monitor_Call(''FileAsSegment'', FileNo, LogSegmentNo, Type, SegmentNo)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   assembly_500:
     available: true
@@ -130,7 +135,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 193
-  line: 8184
+  line: 8280
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

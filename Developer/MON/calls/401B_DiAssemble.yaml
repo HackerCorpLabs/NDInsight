@@ -5,91 +5,12 @@
 octal: 401B
 name: DiAssemble
 short_names: []
-description: Disassembles one machine instruction on the ND-500. Output is the instruction
-  in ASSEMBLY-500 language. See the manual ND-500 ASSEMBLER Reference Manual (ND-860113).
-notes:
-- The returned string is truncated if it contains more characters than given in the
-  last parameter.
-- Causes an error return in ND-500 if called from a standard domain started directly
-  from SINTRAN III.
+description: ''
+notes: []
 see_also: []
 references: []
-parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
-  description: Program address.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: The assembly instruction.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: Maximum number of characters in the assembly instruction.
-examples:
-  pascal:
-    available: true
-    code: 'ProgPointer, MaxNoOfChar : LONGINT;
-
-      ReturnString : PACKED ARRAY [0..79] OF CHAR;
-
-      ...
-
-      DisAssemble(ProgPointer, ReturnString, MaxNoOfChar);'
-    notes: ''
-  cobol:
-    available: true
-    code: '01 ProgPointer COMP.
-
-      01 MaxNoOfChar COMP.
-
-      01 ReturnString PIC X(100).
-
-      ...
-
-      MONITOR-CALL "DisAssemble" USING ProgPointer, ReturnString, MaxNoOfChar.'
-    notes: ''
-  fortran:
-    available: true
-    code: 'INTEGER ProgPointer, MaxChar
-
-      CHARACTER RetString*80
-
-      ...
-
-      Monitor_Call(''DisAssemble'', ProgPointer, RetString(1:80), MaxChar)'
-    notes: ''
-  planc:
-    available: true
-    code: 'INTEGER : ProgPointer, MaxNoOfChar
-
-      BYTES : ReturnString(0:79)
-
-      ...
-
-      Monitor_Call(''DisAssemble'', ProgPointer, ReturnString, MaxNoOfChar)'
-    notes: ''
-  assembly_500:
-    available: true
-    code: 'ProgPointer : W BLOCK 1
-
-      MaxNoOfChar : W BLOCK 1
-
-      ReturnString : STRINGDATA
-
-      DisAssemble : EQU 37B9 + 401B
-
-      ...
-
-      CALLG DisAssemble, 3, ProgPointer, ReturnString, MaxNoOfChar'
-    octal_definition: 37B9 + 401B
-    notes: ''
-  mac:
-    available: false
-    code: ''
-    mon_number: null
-    notes: Not available
+parameters: []
+examples: {}
 compatibility:
   platforms:
     nd100: false
@@ -103,8 +24,8 @@ errors:
   error_reference: ''
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
-  page: 159
-  line: 6850
+  page: 0
+  line: 6914
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

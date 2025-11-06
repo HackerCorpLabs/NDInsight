@@ -5,10 +5,8 @@
 octal: 141B
 name: DeviceControl
 short_names: []
-description: Sets control information for a character device, e.g. a terminal or a
-  printer. The control information depends on the device.
-notes:
-- The device must be reserved. See ReserveResource.
+description: ''
+notes: []
 see_also:
 - DeviceFunction
 - '@IOSET'
@@ -43,22 +41,28 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DeviceNo, IOFlag, RTProgram, CtrlFlag, Status : INTEGER2;
+    code: '```
+
+      DeviceNo, IOFlag, RTProgram, CtrlFlag, Status : INTEGER2;
 
       ...
 
-      DeviceControl(DeviceNo, IOFlag, RTProgram, CtrlFlag, Status);'
+      DeviceControl(DeviceNo, IOFlag, RTProgram, CtrlFlag, Status);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 DevNo       COMP.\n01 IOFlag      COMP.\n01 RTProgram   COMP.\n01 CtrlFlag\
-      \    COMP.\n01 ReturnStatus COMP.\n...\nMONITOR-CALL \"DeviceControl\" USING\
-      \ DevNo, IOFlag, RTProgram, CtrlFlag,\n                                 ReturnStatus."
+    code: "```\n01 DevNo       COMP.\n01 IOFlag      COMP.\n01 RTProgram   COMP.\n\
+      01 CtrlFlag    COMP.\n01 ReturnStatus COMP.\n...\nMONITOR-CALL \"DeviceControl\"\
+      \ USING DevNo, IOFlag, RTProgram, CtrlFlag,\n                              \
+      \   ReturnStatus.\n```"
     notes: ''
   fortran:
     available: true
-    code: "INTEGER DeviceNo, IOFlag, RTProgram, CtrlFlag, ReturnStatus\n...\nMonitor_Call('DeviceControl',\
-      \ DeviceNo, IOFlag, RTProgram,\n             CtrlFlag, ReturnStatus)"
+    code: "```\nINTEGER DeviceNo, IOFlag, RTProgram, CtrlFlag, ReturnStatus\n...\n\
+      Monitor_Call('DeviceControl', DeviceNo, IOFlag, RTProgram,\n             CtrlFlag,\
+      \ ReturnStatus)\n```"
     notes: ''
   planc:
     available: true
@@ -141,12 +145,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 141
-  line: 6052
+  line: 6111
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

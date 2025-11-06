@@ -5,50 +5,51 @@
 octal: 36B
 name: NoWaitSwitch
 short_names: []
-description: Switches No Wait on and off. No Wait is useful for input from, and output
-  to several devices simultaneously. In No Wait, the program does not wait for input
-  or output to complete. Monitor calls like InByte return error code 3 instead.
-notes:
-- '**SuspendProgram** or **WaitForRestart** may passivate the program afterwards.
-  The program restarts when input or output to the device is completed.'
-- For performance reasons, use **TerminalNoWait** (TNOWAI, mon 307) rather than NoWaitSwitch.
+description: ''
+notes: []
 see_also:
 - InByte
 - OutByte
 - and TerminalNoWait
 references: []
 parameters:
-- name: Logicaldevicenumberofacharacterdevice
+- name: Logical device number of a character device. See appendix B.
   type: UNKNOWN
   io: I
-  description: Logical device number of a character device. See appendix B.
-- name: Inputoroutputflag
+  description: ''
+- name: Input or output flag. Use 0 for input and 1 for output.
   type: UNKNOWN
   io: I
-  description: Input or output flag. Use 0 for input and 1 for output.
-- name: NoWaitflag
+  description: ''
+- name: No Wait flag. Use 0 to switch No Wait off, and any other number to switch
+    it on.
   type: UNKNOWN
   io: I
-  description: No Wait flag. Use 0 to switch No Wait off, and any other number to
-    switch it on.
-- name: StandardErrorCode
+  description: ''
+- name: Standard Error Code. See appendix A.
   type: UNKNOWN
   io: I
-  description: Standard Error Code. See appendix A.
+  description: ''
 examples:
   pascal:
     available: true
-    code: 'DeviceNumber, IOFlag, WaitFlag : INTEGER2;
+    code: '```
+
+      DeviceNumber, IOFlag, WaitFlag : INTEGER2;
 
       ...
 
       NoWaitSwitch(DeviceNumber, IOFlag, WaitFlag);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DeviceNumber COMP.
+    code: '```
+
+      01 DeviceNumber COMP.
 
       01 IOFlag COMP.
 
@@ -62,27 +63,35 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNumber, IOFlag, WaitFlag
+    code: '```
+
+      INTEGER DeviceNumber, IOFlag, WaitFlag
 
       ...
 
       Monitor_Call(''NoWaitSwitch'', DeviceNumber, IOFlag, WaitFlag)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : DeviceNumber, IOFlag, Waitflag\n...\nON ROUTINEERROR DO\n   \
-      \ IF ErrCode >< 0 THEN ...\nENDON\nMonitor_Call('NoWaitSwitch', DeviceNumber,\
-      \ IOFlag, Waitflag)"
+    code: "```\nINTEGER : DeviceNumber, IOFlag, Waitflag\n...\nON ROUTINEERROR DO\n\
+      \    IF ErrCode >< 0 THEN ...\nENDON\nMonitor_Call('NoWaitSwitch', DeviceNumber,\
+      \ IOFlag, Waitflag)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: 'DeviceNumber : W BLOCK 1
+    code: '```
+
+      DeviceNumber : W BLOCK 1
 
       IOFlag : W BLOCK 1
 
@@ -100,12 +109,16 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode                      %ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode                      %ErrorCode in W1 register.
+
+      ```'
     octal_definition: 37B9 + 36B
     notes: ''
   mac:
     available: true
-    code: 'LDA   (PAR                %Load register A with address of parameter list.
+    code: '```
+
+      LDA   (PAR                %Load register A with address of parameter list.
 
       MON   36                  %Monitor call NoWaitSwitch.
 
@@ -131,6 +144,7 @@ examples:
 
       WAITFL, ...
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'
@@ -152,12 +166,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 359
-  line: 15937
+  line: 16159
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

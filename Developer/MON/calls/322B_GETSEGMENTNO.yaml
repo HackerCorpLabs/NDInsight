@@ -5,123 +5,18 @@
 octal: 322B
 name: GETSEGMENTNO
 short_names: []
-description: Gets the number of a segment in the ND-100. You specify the segment name.
-  Segment names are created with the RT LOADER or when a program is dumped reentrant.
-  See @DUMP-PROGRAM-REENTRANT.
+description: ''
 notes: []
-see_also:
-- GetSegmentEntry
+see_also: []
 references: []
-parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
-  description: Segment name.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: Segment number. Nonexistent segment names return a negative value.
-examples:
-  pascal:
-    available: true
-    code: 'SegmentNumber : INTEGER2;
-
-      SegmentName : PACKED ARRAY [0..5] OF CHAR;
-
-      ...
-
-      GetSegmentNo(SegmentName, SegmentNumber);'
-    notes: ''
-  cobol:
-    available: true
-    code: '01 SegmentNumber COMP.
-
-      01 SegmentName PIC X(6).
-
-      ...
-
-      MONITOR-CALL "GetSegmentNo" USING SegmentName, SegmentNumber.'
-    notes: ''
-  fortran:
-    available: true
-    code: 'INTEGER SegmentNumber
-
-      CHARACTER SegmentName*6
-
-      ...
-
-      Monitor_Call(''GetSegmentNo'', SegmentName(1:6), SegmentNumber)'
-    notes: ''
-  planc:
-    available: true
-    code: 'INTEGER : SegmentNumber
-
-      BYTES : SegmentName(0:5)
-
-      ...
-
-      Monitor_Call(''GetSegmentNo'', SegmentName, SegmentNumber)'
-    notes: ''
-  assembly_500:
-    available: true
-    code: 'SegmentNumber : W BLOCK 1
-
-      SegmentName : STRINGDATA ''EXSEG'' %Get number of segment EXSEG.
-
-      ErrCode : W BLOCK 1
-
-      GetSegmentNo : EQU 37B9 + 322B
-
-      ...
-
-      CALLG GetSegmentNo, 1, SegmentName
-
-      IF K GO ERROR
-
-      W1 =: SegmentNumber
-
-      ...
-
-      ERROR : W1 =: ErrCode %ErrorCode in W1 register.'
-    octal_definition: 37B9 + 322B
-    notes: ''
-  mac:
-    available: true
-    code: 'LDA (PAR %Load register A with address of parameter list.
-
-      MON 322 %Monitor call GetSegmentNo.
-
-      JAN ERROR %Handle error if register A is negative.
-
-      STA SEGNO %Store segment number.
-
-      ...
-
-      ERROR, ... %No segment has EXSEG as name.
-
-      ...
-
-      SEGNO, 0
-
-      PAR, SEGNAM %String containing segment name.
-
-      ...
-
-      SEGNAM, ''EXSEG'' %Obtain segment number of EXSEG.
-
-
-
-      | ND-100 and ND-500 | All users | All programs |'
-    mon_number: 322
-    notes: ''
+parameters: []
+examples: {}
 compatibility:
   platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
+    nd100: false
+    nd500: false
+  users: []
+  programs: []
   notes: ''
 errors:
   returns_error: false
@@ -129,8 +24,8 @@ errors:
   error_reference: ''
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
-  page: 279
-  line: 12182
+  page: 0
+  line: 12344
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

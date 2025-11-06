@@ -5,13 +5,8 @@
 octal: 307B
 name: TerminalNoWait
 short_names: []
-description: Switches No Wait on and off. No Wait is useful for input from, and output
-  to, character devices, e.g. terminals. In No Wait, the program does not wait for
-  input or output. Monitor calls like InByte return the error code 3 instead.
-notes:
-- SuspendProgram or WaitForRestart may passivate the program afterwards. The program
-  then restarts when the device detects a break.
-- The input buffer must be emptied before passivating the program.
+description: ''
+notes: []
 see_also:
 - InByte
 - OutByte
@@ -38,15 +33,21 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DevNo, IOFlag, NoWaitFlag, RetStatus.: INTEGER2;
+    code: '```
+
+      DevNo, IOFlag, NoWaitFlag, RetStatus.: INTEGER2;
 
       ...
 
-      TermNoWait(DevNo, IOFlag, NoWaitFlag, RetStatus); [Note routine name.]'
+      TermNoWait(DevNo, IOFlag, NoWaitFlag, RetStatus); [Note routine name.]
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DevNo       COMP.
+    code: '```
+
+      01 DevNo       COMP.
 
       01 IOFlag      COMP.
 
@@ -56,24 +57,32 @@ examples:
 
       ...
 
-      MONITOR-CALL "TerminalNoWait" USING DevNo, IOFlag, NoWaitFlag, RetStat.'
+      MONITOR-CALL "TerminalNoWait" USING DevNo, IOFlag, NoWaitFlag, RetStat.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: "INTEGER\tDevNo, IOFlag, NoWaitFlag, RetStatus\n...\nMonitor_Call('TerminalNoWait',\
-      \ DevNo, IOFlag, NoWaitFlag, RetStatus)"
+    code: "```\nINTEGER\tDevNo, IOFlag, NoWaitFlag, RetStatus\n...\nMonitor_Call('TerminalNoWait',\
+      \ DevNo, IOFlag, NoWaitFlag, RetStatus)\n```"
     notes: ''
   planc:
     available: true
-    code: 'INTEGER : DevNo, IOFlag, NoWaitFlag, RetStatus
+    code: '```
+
+      INTEGER : DevNo, IOFlag, NoWaitFlag, RetStatus
 
       ...
 
-      Monitor_Call(''TerminalNoWait'', DevNo, IOFlag, NoWaitFlag, RetStatus)'
+      Monitor_Call(''TerminalNoWait'', DevNo, IOFlag, NoWaitFlag, RetStatus)
+
+      ```'
     notes: ''
   assembly_500:
     available: true
-    code: 'DeviceNumber : W BLOCK 1
+    code: '```
+
+      DeviceNumber : W BLOCK 1
 
       IOFlag : W BLOCK 1
 
@@ -83,12 +92,16 @@ examples:
 
       ...
 
-      CALLG TerminalNoWait, 3, DeviceNumber, IOFlag, NoWaitFlag'
+      CALLG TerminalNoWait, 3, DeviceNumber, IOFlag, NoWaitFlag
+
+      ```'
     octal_definition: 37B9 + 307B
     notes: ''
   mac:
     available: true
-    code: 'LDA (PAR        %Load register A with address of parameter list.
+    code: '```
+
+      LDA (PAR        %Load register A with address of parameter list.
 
       MON 307         %Monitor call TerminalNoWait.
 
@@ -118,6 +131,7 @@ examples:
 
       FLAG, ...
 
+      ```
 
 
 
@@ -140,7 +154,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 535
-  line: 24272
+  line: 24608
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

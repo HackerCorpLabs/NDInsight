@@ -5,92 +5,18 @@
 octal: 164B
 name: SAVESEGMENT
 short_names: []
-description: Saves a segment in the ND-100. All pages in physical memory which have
-  been changed, are written back to the disk.
+description: ''
 notes: []
-see_also:
-- SaveND500Segment
+see_also: []
 references: []
-parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
-  description: Segment number.
-examples:
-  pascal:
-    available: true
-    code: 'SegmentNumber : INTEGER2;
-
-      ...
-
-      SaveSegment(SegmentNumber);'
-    notes: ''
-  cobol:
-    available: true
-    code: '01 SegmentNumber COMP.
-
-      ...
-
-      MONITOR-CALL "SaveSegment" USING SegmentNumber.'
-    notes: ''
-  fortran:
-    available: true
-    code: 'INTEGER SegmentNumber
-
-      ...
-
-      Monitor_Call(''SaveSegment'', SegmentNumber)'
-    notes: ''
-  planc:
-    available: true
-    code: 'INTEGER : SegmentNumber
-
-      ...
-
-      Monitor_Call(''SaveSegment'', SegmentNumber)'
-    notes: ''
-  assembly_500:
-    available: true
-    code: 'SegmentNumber : W BLOCK 1
-
-      SaveSegment : EQU 3789 + 164B
-
-      ...
-
-      CALLG SaveSegment, 1, SegmentNumber'
-    octal_definition: 37B9 + 164B
-    notes: ''
-  mac:
-    available: true
-    code: '| Instruction |  | Comment |
-
-      |-------------|--|---------|
-
-      | LDA | {PAR | %Load register A with address of parameter list. |
-
-      | MON | 164 | %Monitor call SaveSegment. |
-
-      | ... | | |
-
-      | PAR, SEGNO | | %Segment number. |
-
-      | ... | | |
-
-      | SEGNO, ... | | |
-
-
-
-      | ND-100 and ND-500 | All users | All programs |'
-    mon_number: null
-    notes: ''
+parameters: []
+examples: {}
 compatibility:
   platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
+    nd100: false
+    nd500: false
+  users: []
+  programs: []
   notes: ''
 errors:
   returns_error: false
@@ -98,8 +24,8 @@ errors:
   error_reference: ''
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
-  page: 423
-  line: 18900
+  page: 0
+  line: 19158
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

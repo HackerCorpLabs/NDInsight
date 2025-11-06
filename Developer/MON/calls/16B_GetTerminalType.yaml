@@ -5,11 +5,8 @@
 octal: 16B
 name: GetTerminalType
 short_names: []
-description: Gets the terminal type. The terminal type tells SINTRAN III how to handle
-  a particular terminal. A wrong terminal type normally distorts the screen. The function-keys
-  cannot be used.
-notes:
-- Appendix H lists the terminal types.
+description: ''
+notes: []
 see_also:
 - SetTerminalType
 - and @GET-TERMINAL-TYPE
@@ -31,17 +28,23 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DeviceNumber, TerminalType : INTEGER2;
+    code: '```
+
+      DeviceNumber, TerminalType : INTEGER2;
 
       ...
 
       GetTerminalType(DeviceNumber, TerminalType);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DeviceNumber COMP.
+    code: '```
+
+      01 DeviceNumber COMP.
 
       01 TerminalType COMP.
 
@@ -53,26 +56,35 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNumber, TerminalType
+    code: '```
+
+      INTEGER DeviceNumber, TerminalType
 
       ...
 
       Monitor_Call(''GetTerminalType'', DeviceNumber, TerminalType)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : DeviceNumber, TerminalType\n...\nON ROUTINEERROR DO\n    IF ErrCode\
-      \ > 0 THEN ...\nENDON\nMonitor_Call('GetTerminalType', DeviceNumber, TerminalType)"
+    code: "```\nINTEGER : DeviceNumber, TerminalType\n...\nON ROUTINEERROR DO\n  \
+      \  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('GetTerminalType', DeviceNumber,\
+      \ TerminalType)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: 'DeviceNumber : W BLOCK 1
+    code: '```
+
+      DeviceNumber : W BLOCK 1
 
       TerminalType : W BLOCK 1
 
@@ -88,12 +100,16 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode   %ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode   %ErrorCode in W1 register.
+
+      ```'
     octal_definition: 37B9 + 16B
     notes: ''
   mac:
     available: true
-    code: 'LDT DEVNO    %Logical device number, must be a terminal.
+    code: '```
+
+      LDT DEVNO    %Logical device number, must be a terminal.
 
       MON 16       %Monitor call GetTerminalType.
 
@@ -111,6 +127,7 @@ examples:
 
       TYPE, 0
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'
@@ -132,7 +149,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 291
-  line: 12764
+  line: 12941
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

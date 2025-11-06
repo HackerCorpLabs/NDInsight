@@ -9,50 +9,16 @@ description: Sets the RT program in a waiting state. It is restarted by StartRTP
   or @RT. Execution continues after the monitor call.
 notes:
 - The RT program restarts immediately if its restart flag is set.
-- No reserved devices or files are released.
-see_also:
-- SuspendProgram. It makes programs wait for a specified time
+see_also: []
 references: []
 parameters: []
-examples:
-  pascal:
-    available: true
-    code: WaitForRestart;
-    notes: ''
-  cobol:
-    available: true
-    code: MONITOR-CALL "WaitForRestart".
-    notes: ''
-  fortran:
-    available: true
-    code: Monitor_Call('WaitForRestart')
-    notes: ''
-  planc:
-    available: true
-    code: '    Monitor_Call(''WaitForRestart'')'
-    notes: ''
-  assembly_500:
-    available: true
-    code: "    WaitForRestart: EQU 37B9 + 135B\n    CALLG WaitForRestart, 0"
-    octal_definition: 37B9 + 135B
-    notes: ''
-  mac:
-    available: true
-    code: '    MON 135  %Monitor call WaitForRestart
-
-
-
-      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'
-    mon_number: 135
-    notes: ''
+examples: {}
 compatibility:
   platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
+    nd100: false
+    nd500: false
+  users: []
+  programs: []
   notes: ''
 errors:
   returns_error: false
@@ -60,8 +26,8 @@ errors:
   error_reference: ''
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
-  page: 557
-  line: 25217
+  page: 0
+  line: 25555
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

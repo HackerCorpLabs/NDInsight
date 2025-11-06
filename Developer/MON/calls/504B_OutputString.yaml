@@ -5,11 +5,8 @@
 octal: 504B
 name: OutputString
 short_names: []
-description: Writes a string to a device, e.g. a terminal or an opened file.
-notes:
-- This is the most efficient way to output strings on the ND-500.
-- The maximum string length is 2048 bytes.
-- Appendix F contains an ASCII table.
+description: ''
+notes: []
 see_also:
 - OutMessage
 - OutUpTo8Bytes
@@ -20,64 +17,78 @@ see_also:
 - and InputString
 references: []
 parameters:
-- name: Logicaldevicenumber,e
-  type: UNKNOWN
-  io: I
-  description: Logical device number, e.g. a file number. See appendix B. You may
-    use 1 for your own terminal. Use the SINTRAN III open file number if output to
-    a file. The ND-500 open file number will not function.
-- name: Numberofbytestowrite.
+- name: Logical device number, e.g. a file number. See appendix B. You may use 1 for
+    your own terminal. Use the SINTRAN III open file number if output to a file. The
+    ND-500 open file number will not function.
   type: UNKNOWN
   io: I
   description: ''
-- name: Stringtobeoutput.
+- name: Number of bytes to write.
   type: UNKNOWN
   io: I
   description: ''
-- name: StandardErrorCode
+- name: String to be output.
   type: UNKNOWN
   io: I
-  description: Standard Error Code. See appendix A.
+  description: ''
+- name: Standard Error Code. See appendix A.
+  type: UNKNOWN
+  io: I
+  description: ''
 examples:
   pascal:
     available: true
-    code: 'DeviceNo, NoOfBytes : LONGINT;
+    code: '```
+
+      DeviceNo, NoOfBytes : LONGINT;
 
       Buff : ARRAY [0..8] OF RECORD...END;
 
       ...
 
-      OutputString(DeviceNo, NoOfBytes, Buff);'
+      OutputString(DeviceNo, NoOfBytes, Buff);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01  DeviceNo  COMP.\n01  NoOfBytes COMP.\n01  Buff.\n    02  array COMP\
-      \ OCCURS 100 TIMES.\n    ...\nMONITOR-CALL \"OutputString\" USING DeviceNo,\
-      \ NoOfBytes, Buff."
+    code: "```\n01  DeviceNo  COMP.\n01  NoOfBytes COMP.\n01  Buff.\n    02  array\
+      \ COMP OCCURS 100 TIMES.\n    ...\nMONITOR-CALL \"OutputString\" USING DeviceNo,\
+      \ NoOfBytes, Buff.\n```"
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNo, NoOfBytes
+    code: '```
+
+      INTEGER DeviceNo, NoOfBytes
 
       INTEGER Buff(100)
 
       ...
 
-      Monitor_Call(''OutputString'', DeviceNo, NoOfBytes, Buff(1))'
+      Monitor_Call(''OutputString'', DeviceNo, NoOfBytes, Buff(1))
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: 'INTEGER : DeviceNo, NoOfBytes
+    code: '```
+
+      INTEGER : DeviceNo, NoOfBytes
 
       BYTES : Buff(0:199)
 
       ...
 
-      Monitor_Call(''OutputString'', DeviceNo, NoOfBytes, Buff(0))'
+      Monitor_Call(''OutputString'', DeviceNo, NoOfBytes, Buff(0))
+
+      ```'
     notes: ''
   assembly_500:
     available: true
-    code: 'DeviceNo : W BLOCK 1
+    code: '```
+
+      DeviceNo : W BLOCK 1
 
       NoOfBytes : W BLOCK 1
 
@@ -97,7 +108,9 @@ examples:
 
       ...
 
-      Error, ...'
+      Error, ...
+
+      ```'
     octal_definition: 37B9 + 504B
     notes: ''
   mac:
@@ -121,7 +134,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 383
-  line: 17075
+  line: 17310
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

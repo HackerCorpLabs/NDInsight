@@ -5,9 +5,7 @@
 octal: 220B
 name: DirectOpen
 short_names: []
-description: Opens a file. Files must be opened before they can be accessed. For public
-  users this monitor call is identical to OpenFile. User SYSTEM and user RT are given
-  the same access rights as the owner of a file.
+description: ''
 notes: []
 see_also:
 - OpenFile
@@ -78,7 +76,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'FileNumber, AccCode : INTEGER2;
+    code: '```
+
+      FileNumber, AccCode : INTEGER2;
 
       FileName : PACKED ARRAY [0..63] OF CHAR;
 
@@ -88,11 +88,15 @@ examples:
 
       DirectOpen(FileNumber, AccCode, FileName, FileType);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 FileNumber COMP.
+    code: '```
+
+      01 FileNumber COMP.
 
       01 AccCode COMP.
 
@@ -108,11 +112,15 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER FileNumber, AccCode
+    code: '```
+
+      INTEGER FileNumber, AccCode
 
       CHARACTER FileName*64, FileType*4
 
@@ -120,25 +128,30 @@ examples:
 
       Monitor_Call(''DirectOpen'', FileNumber, AccCode, FileName(1:64), FileType(1:4))
 
-      C IF (ErrCode .NE. 0) THEN ...'
+      C IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : FileNumber, AccCode\nBYTES : FileName(0:63), FileType(0:3)\n\
+    code: "```\nINTEGER : FileNumber, AccCode\nBYTES : FileName(0:63), FileType(0:3)\n\
       ...\nON ROUTINEERROR DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('DirectOpen',\
-      \ FileNumber, AccCode, FileName, FileType)"
+      \ FileNumber, AccCode, FileName, FileType)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: "FileNumber : W BLOCK 1\nAccCode : W BLOCK 1\nFileName : STRINGDATA 'EXAMPLE'\n\
-      FileType : STRINGDATA 'SYMB'\nErrCode : W BLOCK 1\nDirectOpen : EQU 3789 + 220B\n\
-      ...\n    CALLG DirectOpen, 4, FileNumber, AccCode, FileName, FileType\n    IF\
-      \ K GO ERROR\n...\nERROR : W1 =: ErrCode         %ErrorCode in W1 register."
+    code: "```\nFileNumber : W BLOCK 1\nAccCode : W BLOCK 1\nFileName : STRINGDATA\
+      \ 'EXAMPLE'\nFileType : STRINGDATA 'SYMB'\nErrCode : W BLOCK 1\nDirectOpen :\
+      \ EQU 3789 + 220B\n...\n    CALLG DirectOpen, 4, FileNumber, AccCode, FileName,\
+      \ FileType\n    IF K GO ERROR\n...\nERROR : W1 =: ErrCode         %ErrorCode\
+      \ in W1 register.\n```"
     octal_definition: 37B9 + 220B
     notes: ''
   mac:
     available: true
-    code: 'LDX (FILE        %Address of file name string.
+    code: '```
+
+      LDX (FILE        %Address of file name string.
 
       LDA (TYPE        %Address of file type string.
 
@@ -164,6 +177,7 @@ examples:
 
       TYPE, ''SYMB''     %
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'
@@ -185,7 +199,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 151
-  line: 6518
+  line: 6579
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

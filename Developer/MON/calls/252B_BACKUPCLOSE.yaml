@@ -7,119 +7,17 @@ name: BACKUPCLOSE
 short_names: []
 description: Closes a file. The version number and the last date accessed are unchanged.
   The number of pages in temporary files and spooling files is not affected.
-notes:
-- This monitor call is mainly used by the BACKUP-SYSTEM.
-see_also:
-- CloseFile
+notes: []
+see_also: []
 references: []
-parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
-  description: File number of the opened file. See OpenFile.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: Modified flag. If 0, the file is not marked as modified.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
-examples:
-  pascal:
-    available: true
-    code: 'FileNumber, Flag : INTEGER2;
-
-      ...
-
-      BackupClose(FileNumber, Flag);
-
-      IF ErrCode <> 0 THEN ...'
-    notes: ''
-  cobol:
-    available: true
-    code: '01 FileNumber COMP.
-
-      01 Flag COMP.
-
-      01 ErrCode COMP.
-
-      ...
-
-      MONITOR-CALL "BackupClose" USING FileNumber, Flag.
-
-      CALL "CbError" USING ErrCode.
-
-      IF ErrCode NOT = 0 GO ...'
-    notes: ''
-  fortran:
-    available: true
-    code: 'INTEGER FileNumber, Flag
-
-      ...
-
-      Monitor_Call(''BackupClose'', FileNumber, Flag)
-
-      IF (ErrCode .NE. 0) THEN ...'
-    notes: ''
-  planc:
-    available: true
-    code: "INTEGER : FileNumber, Flag\n...\nON ROUTINEERROR DO\n    IF ErrCode > 0\
-      \ THEN ...\nENDON\nMonitor_Call('BackupClose', FileNumber, Flag)"
-    notes: ''
-  assembly_500:
-    available: true
-    code: 'FileNumber : W  BLOCK  1
-
-      Flag : W  BLOCK  1
-
-      ErrCode : W  BLOCK  1
-
-      BackupClose : EQU 37B9 + 252B
-
-      ...
-
-      CALLG BackupClose, 2, FileNumber, Flag
-
-      IF K GO ERROR
-
-      ...
-
-      ERROR : W1 =: ErrCode                         %ErrorCode in W1 register.'
-    octal_definition: 37B9 + 252B
-    notes: ''
-  mac:
-    available: true
-    code: 'LDT FILNO            %File number returned from earlier open.
-
-      LDA FLAG             %Reset modified flag.
-
-      MON 252              %Monitor call BackupClose.
-
-      JMP ERROR            %Error return from monitor call.
-
-      ...                  %Normal return.
-
-      ERROR, ...           %Error number in register A.
-
-
-      FILNO, ...
-
-      FLAG, ...
-
-
-
-      | ND-100 and ND-500 | All users | All programs |'
-    mon_number: 252
-    notes: ''
+parameters: []
+examples: {}
 compatibility:
   platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
+    nd100: false
+    nd500: false
+  users: []
+  programs: []
   notes: ''
 errors:
   returns_error: false
@@ -127,8 +25,8 @@ errors:
   error_reference: ''
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
-  page: 91
-  line: 3676
+  page: 0
+  line: 3688
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

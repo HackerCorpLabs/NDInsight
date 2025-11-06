@@ -22,27 +22,39 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'SegmentNumber : INTEGER2;
+    code: '```
+
+      SegmentNumber : INTEGER2;
 
       ...
 
-      ReentrantSegment(SegmentNumber);'
+      ReentrantSegment(SegmentNumber);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 SegmentNumber COMP.
+    code: '```
+
+      01 SegmentNumber COMP.
 
       ...
 
-      MONITOR-CALL "ReentrantSegment" USING SegmentNumber.'
+      MONITOR-CALL "ReentrantSegment" USING SegmentNumber.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER SegmentNumber
+    code: '```
+
+      INTEGER SegmentNumber
 
       ...
 
-      Monitor_Call(''ReentrantSegment'', SegmentNumber)'
+      Monitor_Call(''ReentrantSegment'', SegmentNumber)
+
+      ```'
     notes: ''
   planc:
     available: true
@@ -80,7 +92,7 @@ examples:
 compatibility:
   platforms:
     nd100: true
-    nd500: true
+    nd500: false
   users:
   - All users
   programs:
@@ -93,7 +105,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 407
-  line: 18219
+  line: 18463
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

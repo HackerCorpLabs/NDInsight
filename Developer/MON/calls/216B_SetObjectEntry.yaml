@@ -5,17 +5,8 @@
 octal: 216B
 name: SetObjectEntry
 short_names: []
-description: Changes the description of a file. An object entry describes each file.
-  It contains the file name, the access rights, the date it was last opened for read
-  and write, the size, and more. You may use GetObjectEntry to read an object entry,
-  change parts of it, then write it back with SetObjectEntry.
-notes:
-- You specify the directory index, the user index, and the object index.
-- There is one object entry for each version of a file.
-- Only user SYSTEM can change the object entry of a file without read or write access
-  to the file.
-- On the ND-100 you may access files on remote computer systems if the computers are
-  connected through a COSMOS network.
+description: ''
+notes: []
 see_also:
 - GetObjectEntry
 - GetAllFileIndexes
@@ -53,7 +44,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'Buff : ARRAY [0..1] OF RECORD...END;
+    code: '```
+
+      Buff : ARRAY [0..1] OF RECORD...END;
 
       DirIndex, UserIndex, ObjectIndex : INTEGER2;
 
@@ -61,33 +54,38 @@ examples:
 
       SetObjectEntry(Buff, DirIndex, UserIndex, ObjectIndex);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 Buff.\n   02 array COMP OCCURS 32 TIMES.\n01 DirIndex COMP.\n01 UserIndex\
-      \ COMP.\n01 ObjectIndex COMP.\n01 RemoteFlag COMP.\n01 RemoteSystem PIC X(64).\n\
-      01 ErrCode COMP.\n...\nMONITOR-CALL \"SetObjectEntry\" USING Buff, DirIndex,\
-      \ UserIndex, ObjIndex,\n                                     RemoteFlag, RemoteSystem.\n\
-      CALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
+    code: "```\n01 Buff.\n   02 array COMP OCCURS 32 TIMES.\n01 DirIndex COMP.\n01\
+      \ UserIndex COMP.\n01 ObjectIndex COMP.\n01 RemoteFlag COMP.\n01 RemoteSystem\
+      \ PIC X(64).\n01 ErrCode COMP.\n...\nMONITOR-CALL \"SetObjectEntry\" USING Buff,\
+      \ DirIndex, UserIndex, ObjIndex,\n                                     RemoteFlag,\
+      \ RemoteSystem.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n\
+      ```"
     notes: ''
   fortran:
     available: true
-    code: "INTEGER Buff(32)\nINTEGER DirIndex, UserIndex, ObjIndex, RemoteFlag\nCHARACTER\
-      \ RemoteSystem*64\n...\nMonitor_Call('SetObjectEntry', Buff(1), DirIndex, UserIndex,\
-      \ ObjIndex,\n             RemoteFlag, RemoteSystem(1:64))\nIF (ErrCode .NE.\
-      \ 0) THEN ..."
+    code: "```\nINTEGER Buff(32)\nINTEGER DirIndex, UserIndex, ObjIndex, RemoteFlag\n\
+      CHARACTER RemoteSystem*64\n...\nMonitor_Call('SetObjectEntry', Buff(1), DirIndex,\
+      \ UserIndex, ObjIndex,\n             RemoteFlag, RemoteSystem(1:64))\nIF (ErrCode\
+      \ .NE. 0) THEN ...\n```"
     notes: ''
   planc:
     available: true
-    code: "BYTES : Buff(0:63)\nINTEGER : DirIndex, UserIndex, ObjIndex, RemoteFlag\n\
+    code: "```\nBYTES : Buff(0:63)\nINTEGER : DirIndex, UserIndex, ObjIndex, RemoteFlag\n\
       BYTES : RemoteSystem(0:63)\n...\nON ROUTINEERROR DO\n  IF ErrCode > 0 THEN ...\n\
       ENDON\nMonitor_Call('SetObjectEntry', Buff(0), DirIndex, UserIndex, ObjIndex,&\n\
-      \  RemoteFlag, RemoteSystem)"
+      \  RemoteFlag, RemoteSystem)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: 'Buff : H BLOCK 32
+    code: '```
+
+      Buff : H BLOCK 32
 
       DirIndex : W BLOCK 1      %SysId used if bit 7 is set to 1.
 
@@ -109,12 +107,16 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode     %ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode     %ErrorCode in W1 register.
+
+      ```'
     octal_definition: 37B9 + 216B
     notes: ''
   mac:
     available: true
-    code: 'LDA   (REMID)             %Remote identification in register D.
+    code: '```
+
+      LDA   (REMID)             %Remote identification in register D.
 
       COPY  SA DD               %Used if bit 15 in register X is set.
 
@@ -146,6 +148,7 @@ examples:
 
       *+32/                     %Space for the string.
 
+      ```
 
 
 
@@ -170,12 +173,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 453
-  line: 20353
+  line: 20643
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

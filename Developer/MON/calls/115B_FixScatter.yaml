@@ -13,95 +13,16 @@ notes:
 - Use UnFixSegment or @UNFIX to allow the RT LOADER to clear the segment.
 - Your program terminates if you refer to a nonexistent segment or a demand segment.
   An error message is output on the error device.
-- Only a limited number of pages can be fixed. This limit is defined when SINTRAN
-  III is generated. You may change it with the command CHANGE-VARIABLE in the SINTRAN-SERVICE-PROGRAM.
-see_also:
-- UnFixSegment
-- FixContiguous
-- FixInMemory
-- MemoryAllocation
-- FixIOArea
-- and @FIXC
+see_also: []
 references: []
-parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
-  description: Segment number to be fixed in memory.
-examples:
-  pascal:
-    available: true
-    code: 'SegmentNumber : INTEGER2;
-
-      ...
-
-      FixScattered(SegmentNumber);'
-    notes: ''
-  cobol:
-    available: true
-    code: '01 SegmentNumber COMP.
-
-      ...
-
-      MONITOR-CALL "FixScattered" USING SegmentNumber.'
-    notes: ''
-  fortran:
-    available: true
-    code: 'INTEGER SegmentNumber
-
-      ...
-
-      Monitor_Call(''FixScattered'', SegmentNumber)'
-    notes: ''
-  planc:
-    available: true
-    code: 'INTEGER : SegmentNumber
-
-      ...
-
-      Monitor_Call(''FixScattered'', SegmentNumber)'
-    notes: ''
-  assembly_500:
-    available: true
-    code: 'SegmentNumber : W BLOCK 1
-
-      FixScattered : EQU 37B9 + 115B
-
-      ...
-
-      CALLG FixScattered, 1, SegmentNumber'
-    octal_definition: 37B9 + 115B
-    notes: ''
-  mac:
-    available: true
-    code: 'LDA  (PAR   %Load register A with address of parameter list.
-
-      MON  115   %Monitor call FixScattered
-
-      ...
-
-      PAR,  SEGNO  %Segment number to be fixed in memory.
-
-      ...
-
-      SEGNO, ...
-
-
-
-
-      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
-
-      |-------------------|-------------------------|-------------|'
-    mon_number: 115
-    notes: ''
+parameters: []
+examples: {}
 compatibility:
   platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
+    nd100: false
+    nd500: false
+  users: []
+  programs: []
   notes: ''
 errors:
   returns_error: false
@@ -109,8 +30,8 @@ errors:
   error_reference: ''
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
-  page: 207
-  line: 8796
+  page: 0
+  line: 8894
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

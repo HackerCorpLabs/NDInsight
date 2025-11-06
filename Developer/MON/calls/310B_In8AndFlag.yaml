@@ -1,0 +1,190 @@
+# SINTRAN III Monitor Call: In8AndFlag
+# Octal: 310B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
+
+octal: 310B
+name: In8AndFlag
+short_names: []
+description: ''
+notes: []
+see_also:
+- In8Bytes
+- InUpTo8Bytes
+- InByte
+- InString
+- InputString
+- In4x2Bytes
+- and Out8Bytes
+references: []
+parameters:
+- name: Logical device number. See appendix B.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Number of bytes read. A negative number means that a break character is read.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: The string of bytes read.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Standard Error Code. See appendix A.
+  type: UNKNOWN
+  io: I
+  description: ''
+examples:
+  pascal:
+    available: true
+    code: '```
+
+      DeviceNumber, NoOfBytes : INTEGER2;
+
+      Buffer : PACKED ARRAY [0..7] OF CHAR;
+
+      ...
+
+      In8AndFlag(DeviceNumber, NoOfBytes, Buffer);
+
+      IF ErrCode <> 0 THEN ...
+
+      ```'
+    notes: ''
+  cobol:
+    available: true
+    code: '```
+
+      01 DeviceNumber  COMP.
+
+      01 NoOfBytes     COMP.
+
+      01 Buffer        PIC X(8).
+
+      01 ErrCode       COMP.
+
+      ...
+
+      MONITOR-CALL "In8AndFlag" USING DeviceNumber, NoOfBytes, Buffer.
+
+      CALL "CbError" USING ErrCode.
+
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
+    notes: ''
+  fortran:
+    available: true
+    code: '```
+
+      INTEGER DeviceNumber, NoOfBytes
+
+      CHARACTER Buffer*8
+
+      ...
+
+      Monitor_Call(''In8AndFlag'', DeviceNumber, NoOfBytes, Buffer(1:8))
+
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
+    notes: ''
+  planc:
+    available: true
+    code: "```\nINTEGER : DeviceNumber, NoOfBytes\nBYTES : Buffer(0:7)\n...\nON ROUTINEERROR\
+      \ DO\n   IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('In8AndFlag', DeviceNumber,\
+      \ NoOfBytes, Buffer)\n```"
+    notes: ''
+  assembly_500:
+    available: true
+    code: '```
+
+      DeviceNumber : W BLOCK 1
+
+      NoOfBytes : W BLOCK 1
+
+      Buffer : STRING 8
+
+      In8AndFlag : EQU 37B9 + 310B
+
+      ...
+
+      CALLG In8AndFlag, 3, DeviceNumber, NoOfBytes, Buffer
+
+      IF K GO Error,
+
+      ...
+
+      Error, ...
+
+      ```'
+    octal_definition: 37B9 + 310B
+    notes: ''
+  mac:
+    available: true
+    code: '```
+
+      LDT  DEVNO         %Logical device number.
+
+      MON  310           %Monitor call In8AndFlag.
+
+      JMP  ERROR         %Error return.
+
+      STD  BYTES         %Store first 4 bytes read.
+
+      COPY SL DA
+
+      STA  BYTES+2       %Store next 2 bytes read.
+
+      STX  BYTES+3       %Store last 2 bytes read.
+
+      STT  COUNT         %Store number of bytes read.
+
+      ...
+
+      ERROR, ...         %Error handling.
+
+      ...
+
+      DEVNO, ...
+
+      COUNT, 0
+
+      BYTES, 0
+
+      0
+
+      0
+
+      0
+
+      ```
+
+
+      | ND-100 and ND-500 | All users | All programs |'
+    mon_number: 310
+    notes: ''
+compatibility:
+  platforms:
+    nd100: true
+    nd500: true
+  users:
+  - All users
+  programs:
+  - All programs
+  notes: ''
+errors:
+  returns_error: false
+  error_codes: []
+  error_reference: ''
+source:
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 311
+  line: 13921
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
+extraction:
+  date: '2025-01-06'
+  version: '1.0'
+  validated: false
+  ocr_corrected: false
+  ocr_notes: ''

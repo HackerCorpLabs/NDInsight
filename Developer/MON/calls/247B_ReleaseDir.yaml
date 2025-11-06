@@ -1,0 +1,140 @@
+# SINTRAN III Monitor Call: ReleaseDir
+# Octal: 247B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
+
+octal: 247B
+name: ReleaseDir
+short_names: []
+description: ''
+notes: []
+see_also:
+- ReleaseResource
+references: []
+parameters:
+- name: Param1
+  type: UNKNOWN
+  io: I
+  description: Directory index. Use @LIST-DIRECTORIES to find the directory index.
+- name: Param2
+  type: UNKNOWN
+  io: I
+  description: Standard Error Code. See appendix A.
+examples:
+  pascal:
+    available: true
+    code: '```
+
+      DirectoryIndex : INTEGER2;
+
+      ...
+
+      RelDirectory(DirectoryIndex);      [Note routine name.]
+
+      IF ErrCode <> 0 THEN ...
+
+      ```'
+    notes: ''
+  cobol:
+    available: true
+    code: '```
+
+      01 DirectoryIndex COMP.
+
+      01 ErrCode COMP.
+
+      ...
+
+      MONITOR-CALL "ReleaseDir" USING DirectoryIndex.
+
+      CALL "CbError" USING ErrCode.
+
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
+    notes: ''
+  fortran:
+    available: true
+    code: '```
+
+      INTEGER DirectoryIndex
+
+      ...
+
+      Monitor_Call(''ReleaseDir'', DirectoryIndex)
+
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
+    notes: ''
+  assembly_500:
+    available: true
+    code: '```
+
+      DirectoryIndex : W BLOCK 1
+
+      ErrCode : W BLOCK 1
+
+      ReleaseDir : EQU 3789 + 247B
+
+      ...
+
+      CALLG ReleaseDir, 1, DirectoryIndex
+
+      IF K GO ERROR
+
+      ...
+
+      ERROR : W1 =: ErrCode       %ErrorCode in W1 register.
+
+      ```'
+    octal_definition: 37B9 + 247B
+    notes: ''
+  mac:
+    available: true
+    code: '```
+
+      LDT DIRIX      %Directory index.
+
+      MON 247        %Monitor call ReleaseDir.
+
+      JMP ERROR      %Error return from monitor call.
+
+      ...            %Normal return.
+
+      ERROR, ...     %Error number in register A.
+
+      ...
+
+      DIRIX, ...
+
+      ```
+
+
+      | ND-100 and ND-500 | All users | All programs |'
+    mon_number: 247
+    notes: ''
+compatibility:
+  platforms:
+    nd100: true
+    nd500: true
+  users:
+  - All users
+  programs:
+  - All programs
+  notes: ''
+errors:
+  returns_error: false
+  error_codes: []
+  error_reference: ''
+source:
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 409
+  line: 18533
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
+extraction:
+  date: '2025-01-06'
+  version: '1.0'
+  validated: false
+  ocr_corrected: false
+  ocr_notes: ''

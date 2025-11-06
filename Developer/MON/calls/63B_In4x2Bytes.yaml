@@ -5,12 +5,8 @@
 octal: 63B
 name: In4x2Bytes
 short_names: []
-description: Reads 8 bytes from a word-oriented or character-oriented device, e.g.
-  internal devices.
-notes:
-- Do not use this monitor call for terminals.
-- This monitor call was mainly used for SIBAS communication via ND-NET. It is now
-  seldom used.
+description: ''
+notes: []
 see_also:
 - In8Bytes
 - InUpTo8Bytes
@@ -21,26 +17,28 @@ see_also:
 - and Out8Bytes
 references: []
 parameters:
-- name: Logicaldevicenumber.
+- name: Logical device number.
   type: See appendix B.
   io: I
   description: ''
-- name: Numberofbytesread.
+- name: Number of bytes read.
   type: ''
   io: I
   description: ''
-- name: Thestringofbytesread.
+- name: The string of bytes read.
   type: ''
   io: I
   description: ''
-- name: StandardErrorCode.
+- name: Standard Error Code.
   type: See appendix A.
   io: I
   description: ''
 examples:
   pascal:
     available: true
-    code: 'DeviceNumber, NoOfBytes : INTEGER2;
+    code: '```
+
+      DeviceNumber, NoOfBytes : INTEGER2;
 
       DataRead : PACKED ARRAY [0..7] OF CHAR;
 
@@ -48,11 +46,15 @@ examples:
 
       In4x2Bytes(DeviceNumber, NoOfBytes, DataRead);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DeviceNumber  COMP.
+    code: '```
+
+      01 DeviceNumber  COMP.
 
       01 NoOfBytes     COMP.
 
@@ -66,11 +68,15 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNumber, NoOfBytes
+    code: '```
+
+      INTEGER DeviceNumber, NoOfBytes
 
       CHARACTER DataRead*8
 
@@ -78,25 +84,29 @@ examples:
 
       Monitor_Call(''In4x2Bytes'', DeviceNumber, NoOfBytes, DataRead(1:8))
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : DeviceNumber, NoOfBytes\nBYTES : DataRead(0:7)\n...\n\nON ROUTINEERROR\
-      \ DO\n  IF ErrCode > 0 THEN ...\nENDON\n\nMonitor_Call(’In4x2Bytes’, DeviceNumber,\
-      \ NoOfBytes, DataRead)"
+    code: "```\nINTEGER : DeviceNumber, NoOfBytes\nBYTES : DataRead(0:7)\n...\n\n\
+      ON ROUTINEERROR DO\n  IF ErrCode > 0 THEN ...\nENDON\n\nMonitor_Call(’In4x2Bytes’,\
+      \ DeviceNumber, NoOfBytes, DataRead)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: "DeviceNumber : W BLOCK 1\nNoOfBytes : W BLOCK 1\nDataRead : STRING 8\n\
-      ErrCode : W BLOCK 1\nIn4x2Bytes : EQU 37B9 + 63B\n...\n\nCALLG In4x2Bytes, 2,\
-      \ DeviceNumber, DataRead\n  IF K GO ERROR\n  W1 =: NoOfBytes\n...\n\nERROR :\
-      \ W1 =: ErrCode       % ErrorCode in W1 register."
+    code: "```\nDeviceNumber : W BLOCK 1\nNoOfBytes : W BLOCK 1\nDataRead : STRING\
+      \ 8\nErrCode : W BLOCK 1\nIn4x2Bytes : EQU 37B9 + 63B\n...\n\nCALLG In4x2Bytes,\
+      \ 2, DeviceNumber, DataRead\n  IF K GO ERROR\n  W1 =: NoOfBytes\n...\n\nERROR\
+      \ : W1 =: ErrCode       % ErrorCode in W1 register.\n```"
     octal_definition: 37B9 + 63B
     notes: ''
   mac:
     available: true
-    code: 'LDT DEVNO            % Logical device number.
+    code: '```
+
+      LDT DEVNO            % Logical device number.
 
       MON 63               % Monitor call In4x2Bytes.
 
@@ -132,6 +142,7 @@ examples:
 
       0
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'
@@ -153,7 +164,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 309
-  line: 13603
+  line: 13799
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

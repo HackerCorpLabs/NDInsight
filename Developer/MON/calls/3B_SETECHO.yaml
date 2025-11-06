@@ -7,132 +7,11 @@ name: SETECHO
 short_names: []
 description: When you press a key on the terminal, a character is normally displayed.
   This is called echo. You modify a terminal's echo with this monitor call.
-notes:
-- If 8-bit I/O is set (TerminalFunction, function number 112), you will get echo always
-  if bit 7 in the echo table is set.
-see_also:
-- SetBreak
+notes: []
+see_also: []
 references: []
-parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
-  description: The terminal's logical device number. See appendix B. Only needed for
-    RT programs. Background programs ignore this parameter. The user's terminal is
-    assumed.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: 'Echo strategy. Less than 0: No echo, e.g. for password fields.'
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: '0: Echo on all characters.'
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: '1: Echo on all characters except control characters.'
-- name: Param5
-  type: UNKNOWN
-  io: I
-  description: '2: Special echo used by MAC.'
-- name: Param6
-  type: UNKNOWN
-  io: I
-  description: '3-6: System defined echo.'
-- name: Param7
-  type: UNKNOWN
-  io: I
-  description: '7: User-defined echo. See the next parameter.'
-- name: Param8
-  type: UNKNOWN
-  io: I
-  description: '8: Last user-defined echo table. (Only meaningful with echo strategy
-    7.)'
-- name: Param9
-  type: UNKNOWN
-  io: I
-  description: User-defined echo table. Ignored if the echo is different from 7. Use
-    128 bits to represent the ASCII characters. Use 0 for the character that should
-    have echo. For example, if bit number 65 is 0, the character A gives echo. See
-    the ASCII table in appendix F.
-examples:
-  pascal:
-    available: true
-    code: 'DeviceNumber, EchoStrategy : INTEGER2;
-
-      Table : RECORD...END;
-
-      ...
-
-      SetEcho(DeviceNumber, EchoStrategy, Table);'
-    notes: ''
-  cobol:
-    available: true
-    code: "01 DeviceNumber COMP.\n01 EchoStrategy COMP.\n01 Table.\n  02 array COMP\
-      \ OCCURS 8 TIMES.\n  ...\nMONITOR-CALL \"SetEcho\" USING DeviceNumber, EchoStrategy,\
-      \ Table."
-    notes: ''
-  fortran:
-    available: true
-    code: 'INTEGER DeviceNumber, EchoStrategy
-
-      INTEGER Table(8)
-
-      ...
-
-      Monitor_Call(''SetEcho'', DeviceNumber, EchoStrategy, Table(1))'
-    notes: ''
-  planc:
-    available: true
-    code: 'INTEGER : DeviceNumber, EchoStrategy
-
-      INTEGER2ARRAY{0:7}
-
-      ...
-
-      Monitor_Call(''SetEcho'', DeviceNumber, EchoStrategy, Table(0))'
-    notes: ''
-  assembly_500:
-    available: true
-    code: 'DeviceNumber : W BLOCK 1
-
-      EchoStrategy : W BLOCK 1
-
-      Table : H BLOCK 8
-
-      SetEcho : EQU 37B9 + 3B
-
-      ...
-
-      CALLG SetEcho, 3, DeviceNumber, EchoStrategy, Table'
-    octal_definition: 37B9 + 3B
-    notes: ''
-  mac:
-    available: true
-    code: 'LDT DEVNO  %Logical device number.
-
-      LDA STRAT  %Echo strategy.
-
-      LDX (TABLE %Eight word large bit map.
-
-      MON 3      %Monitor call SetEcho.
-
-      ...
-
-      DEVNO, ...
-
-      STRAT, ...
-
-      TABLE, ...
-
-      *+10/ %Make a buffer of 8 words.
-
-
-
-      | ND-100 and ND-500 | All users | All programs |'
-    mon_number: 3
-    notes: ''
+parameters: []
+examples: {}
 compatibility:
   platforms:
     nd100: false
@@ -146,8 +25,8 @@ errors:
   error_reference: ''
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
-  page: 441
-  line: 19788
+  page: 0
+  line: 20060
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

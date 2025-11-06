@@ -5,11 +5,8 @@
 octal: 140B
 name: ReservationInfo
 short_names: []
-description: Checks that a device is not reserved. If it is reserved, you will receive
-  information about which RT program that reserves it.
-notes:
-- Some devices have both an input and an output part. You have to use ReservationInfo
-  for each part.
+description: ''
+notes: []
 see_also:
 - ReserveResource
 - ReleaseResource
@@ -32,15 +29,21 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DeviceNumber, IOFlag, ReturnValue : INTEGER2;
+    code: '```
+
+      DeviceNumber, IOFlag, ReturnValue : INTEGER2;
 
       ...
 
-      ReservationInfo(DeviceNumber, IOFlag, ReturnValue);'
+      ReservationInfo(DeviceNumber, IOFlag, ReturnValue);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DeviceNumber COMP.
+    code: '```
+
+      01 DeviceNumber COMP.
 
       01 IOFlag COMP.
 
@@ -48,15 +51,21 @@ examples:
 
       ...
 
-      MONITOR-CALL "ReservationInfo" USING DeviceNumber, IOFlag, ReturnValue.'
+      MONITOR-CALL "ReservationInfo" USING DeviceNumber, IOFlag, ReturnValue.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNo, IOFlag, ReturnValue
+    code: '```
+
+      INTEGER DeviceNo, IOFlag, ReturnValue
 
       ...
 
-      Monitor_Call(''ReservationInfo'', DeviceNo, IOFlag, ReturnValue)'
+      Monitor_Call(''ReservationInfo'', DeviceNo, IOFlag, ReturnValue)
+
+      ```'
     notes: ''
   planc:
     available: true
@@ -85,7 +94,9 @@ examples:
     notes: ''
   mac:
     available: true
-    code: 'LDA   (PAR   %Load register A with address of parameter list.
+    code: '```
+
+      LDA   (PAR   %Load register A with address of parameter list.
 
       MON   140    %Monitor call ReservationInfo.
 
@@ -111,6 +122,7 @@ examples:
 
       IOF, ...
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |
@@ -134,7 +146,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 415
-  line: 18543
+  line: 18798
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

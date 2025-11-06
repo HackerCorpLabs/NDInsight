@@ -5,11 +5,8 @@
 octal: 274B
 name: GetFileIndexes
 short_names: []
-description: Gets the directory index, the user index, and the object index of a file.
-  These are indexes in the file system. See the SINTRAN III System Supervisor {ND-830003}
-  for more details.
-notes:
-- The file need not be open.
+description: ''
+notes: []
 see_also:
 - GetAllFileIndexes
 - GetDirUserIndexes
@@ -20,77 +17,79 @@ see_also:
 - and GetDefaultDir
 references: []
 parameters:
-- name: Filename
+- name: File name
   type: Abbreviated file names are less efficient.
   io: I
   description: ''
-- name: Filetype
+- name: File type
   type: Not used on the ND-100. Do not include the colon.
   io: I
   description: ''
-- name: Directoryindex
+- name: Directory index
   type: '-'
   io: I
   description: ''
-- name: Userindex
+- name: User index
   type: '-'
   io: I
   description: ''
-- name: Objectindex
+- name: Object index
   type: '-'
   io: I
   description: ''
-- name: Objectindexofthenextfileversion
+- name: Object index of the next file version
   type: Equal to object index if no more versions exist.
   io: I
   description: ''
-- name: StandardErrorCode
+- name: Standard Error Code
   type: See appendix A.
   io: I
   description: ''
 examples:
   pascal:
     available: true
-    code: "FileName : PACKED ARRAY [0..63] OF CHAR;\nFileType : PACKED ARRAY [0..3]\
-      \ OF CHAR;\nDirIndex, UserIndex, ObjectIndex, NextObjectIndex : INTEGER2;\n\
+    code: "```\nFileName : PACKED ARRAY [0..63] OF CHAR;\nFileType : PACKED ARRAY\
+      \ [0..3] OF CHAR;\nDirIndex, UserIndex, ObjectIndex, NextObjectIndex : INTEGER2;\n\
       ...\nFindFileIndexes(FileName, FileType, DirIndex, UserIndex,\n  ObjectIndex,\
-      \ NextObjectIndex); [Note routine name.]\n\nIF ErrCode <> 0 THEN ..."
+      \ NextObjectIndex); [Note routine name.]\n\nIF ErrCode <> 0 THEN ...\n```"
     notes: ''
   cobol:
     available: true
-    code: "01 FileName PIC X(64).\n01 FileType PIC X(4).\n01 DirIndex COMP.\n01 UserIndex\
-      \ COMP.\n01 ObjectIndex COMP.\n01 NextObjectIndex COMP.\n01 ErrCode COMP.\n\
-      ...\nMONITOR-CALL \"GetfileIndexes\" USING FileName, FileType, DirIndex,\n \
-      \ UserIndex, ObjectIndex, NextObjectIndex.\nCALL \"CbError\" USING ErrCode.\n\
-      IF ErrCode NOT = 0 GO ..."
+    code: "```\n01 FileName PIC X(64).\n01 FileType PIC X(4).\n01 DirIndex COMP.\n\
+      01 UserIndex COMP.\n01 ObjectIndex COMP.\n01 NextObjectIndex COMP.\n01 ErrCode\
+      \ COMP.\n...\nMONITOR-CALL \"GetfileIndexes\" USING FileName, FileType, DirIndex,\n\
+      \  UserIndex, ObjectIndex, NextObjectIndex.\nCALL \"CbError\" USING ErrCode.\n\
+      IF ErrCode NOT = 0 GO ...\n```"
     notes: ''
   fortran:
     available: true
-    code: "CHARACTER  FileName*64, FileType*4\nINTEGER DirIndex, UserIndex, ObjectIndex,\
+    code: "```\nCHARACTER  FileName*64, FileType*4\nINTEGER DirIndex, UserIndex, ObjectIndex,\
       \ NextObjectIndex\n...\nMonitor_Call('GetFileIndexes', FileName(1:64), FileType(1:4),\n\
       \ C      DirIndex, UserIndex, ObjectIndex, NextObjectIndex)\nIF (ErrCode .NE.\
-      \ 0) THEN ..."
+      \ 0) THEN ...\n```"
     notes: ''
   planc:
     available: true
-    code: "BYTES : FileName(0:63), FileType(0:3)\nINTEGER : DirIndex, UserIndex, ObjectIndex,\
-      \ NextObjectIndex\n...\nON ROUTINEERROR DO\n  IF ErrCode >< 0 THEN ...\nENDON\n\
-      Monitor_Call('GetFileIndexes', FileName, FileType, DirIndex, &\n           \
-      \  UserIndex, ObjectIndex, NextObjectIndex)"
+    code: "```\nBYTES : FileName(0:63), FileType(0:3)\nINTEGER : DirIndex, UserIndex,\
+      \ ObjectIndex, NextObjectIndex\n...\nON ROUTINEERROR DO\n  IF ErrCode >< 0 THEN\
+      \ ...\nENDON\nMonitor_Call('GetFileIndexes', FileName, FileType, DirIndex, &\n\
+      \             UserIndex, ObjectIndex, NextObjectIndex)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: "FileName : STRING 64\nFileType : STRING 4\nDirIndex : W BLOCK 1\nUserIndex\
-      \ : W BLOCK 1\nObjectIndex : W BLOCK 1\nNextObjectIndex : W BLOCK 1\nErrCode\
-      \ : W BLOCK 1\nGetFileIndexes : EQU 37B9 + 274B\n...\n  CALLG GetFileIndexes,\
+    code: "```\nFileName : STRING 64\nFileType : STRING 4\nDirIndex : W BLOCK 1\n\
+      UserIndex : W BLOCK 1\nObjectIndex : W BLOCK 1\nNextObjectIndex : W BLOCK 1\n\
+      ErrCode : W BLOCK 1\nGetFileIndexes : EQU 37B9 + 274B\n...\n  CALLG GetFileIndexes,\
       \ 6, FileName, FileType, DirIndex, &\n        UserIndex, ObjectIndex, NextObjectIndex\n\
       \  IF K GO ERROR\n...\n\nERROR : W1 =: ErrCode                     %ErrorCode\
-      \ in W1 register."
+      \ in W1 register.\n```"
     octal_definition: 37B9 + 274B
     notes: ''
   mac:
     available: true
-    code: 'LDX  (FILE            %Address of file name string.
+    code: '```
+
+      LDX  (FILE            %Address of file name string.
 
       MON  274              %Monitor call GetFileIndexes.
 
@@ -117,6 +116,7 @@ examples:
 
       NEXTO,  0
 
+      ```
 
 
 
@@ -139,7 +139,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 247
-  line: 10700
+  line: 10835
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

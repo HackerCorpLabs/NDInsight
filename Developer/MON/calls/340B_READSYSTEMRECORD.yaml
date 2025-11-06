@@ -42,7 +42,7 @@ parameters:
   type: ''
   io: I
   description: ''
-- name: Notavailable.
+- name: Not available.
   type: ''
   io: I
   description: ''
@@ -50,7 +50,7 @@ parameters:
   type: ''
   io: I
   description: ''
-- name: Notavailable.
+- name: Not available.
   type: ''
   io: I
   description: ''
@@ -58,7 +58,7 @@ parameters:
   type: ''
   io: I
   description: ''
-- name: Notavailable.
+- name: Not available.
   type: ''
   io: I
   description: ''
@@ -113,7 +113,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 405
-  line: 18144
+  line: 18388
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

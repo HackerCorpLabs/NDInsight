@@ -5,11 +5,8 @@
 octal: 436B
 name: SetND500Param
 short_names: []
-description: Sets information about an ND-500 program. Use GetND500Param to read the
-  5 parameters when a program is terminated.
-notes:
-- SINTRAN III sets some of the parameter values if you give the command @ENABLE-TERMINATION-HANDLING
-  first.
+description: ''
+notes: []
 see_also:
 - TerminationHandling
 - GetUserParam
@@ -41,42 +38,58 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'Buffer : RECORD...END;
+    code: '```
+
+      Buffer : RECORD...END;
 
       ...
 
-      SetND500Param(Buffer);'
+      SetND500Param(Buffer);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 Buffer.\n   02 array COMP OCCURS 5 TIMES.\n   ...\n   MONITOR-CALL \"\
-      SetND500Param\" USING Buffer."
+    code: "```\n01 Buffer.\n   02 array COMP OCCURS 5 TIMES.\n   ...\n   MONITOR-CALL\
+      \ \"SetND500Param\" USING Buffer.\n```"
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER Buffer(5)
+    code: '```
+
+      INTEGER Buffer(5)
 
       ...
 
-      Monitor_Call(''SetND500Param'', Buffer(1))'
+      Monitor_Call(''SetND500Param'', Buffer(1))
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: 'INTEGER ARRAY : Buffer(0:4)
+    code: '```
+
+      INTEGER ARRAY : Buffer(0:4)
 
       ...
 
-      Monitor_Call(''SetND500Param'', Buffer(0))'
+      Monitor_Call(''SetND500Param'', Buffer(0))
+
+      ```'
     notes: ''
   assembly_500:
     available: true
-    code: 'Buffer : W BLOCK 5
+    code: '```
+
+      Buffer : W BLOCK 5
 
       SetND500Param : EQU 37B9 + 436B
 
       ...
 
-      CALLG SetND500Param, 1, Buffer'
+      CALLG SetND500Param, 1, Buffer
+
+      ```'
     octal_definition: 37B9 + 436B
     notes: ''
   mac:
@@ -103,7 +116,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 451
-  line: 20273
+  line: 20558
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

@@ -15,114 +15,16 @@ notes:
   case the program's restart flag is set. If the delay becomes as long as two intervals,
   one execution is lost.
 - The interval replaces any earlier specified intervals.
-- AdjustClock and @CLADJ do not affect the interval.
-see_also:
-- ExactInterval
-- '@INTV. ExactInterval allows you to specify intervals between 0'
-- 4294967647 basic time units
+see_also: []
 references: []
-parameters:
-- name: AddressofanRTdescription
-  type: UNKNOWN
-  io: I
-  description: Address of an RT description. 0 means calling program. GetRtAddress
-    gives RT description addresses.
-- name: Numberoftimeunitsbetweenexecutionsoftheprogram.
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: Thetypeoftimeunits
-  type: UNKNOWN
-  io: I
-  description: The type of time units. 1 = basic time units, i.e. 1/50th of a second,
-    2 = seconds, 3 = minutes, 4 = hours.
-examples:
-  pascal:
-    available: true
-    code: 'RTProgram, Time, Units : INTEGER2;
-
-      ...
-
-      StartInterval(RTProgram, Time, Units); [Note routine name.]'
-    notes: ''
-  cobol:
-    available: true
-    code: '01 RTProgram COMP.
-
-      01 Time COMP.
-
-      01 Units COMP.
-
-      ...
-
-      MONITOR-CALL "StartupInterval" USING RTProgram, Time, Units.'
-    notes: ''
-  fortran:
-    available: true
-    code: 'INTEGER RTProgram, Time, Units
-
-      ...
-
-      Monitor_Call(''StartupInterval'', RTProgram, Time, Units)'
-    notes: ''
-  planc:
-    available: true
-    code: 'INTEGER : RTProgram, Time, Units
-
-      ...
-
-      Monitor_Call(''StartupInterval'', RTProgram, Time, Units)'
-    notes: ''
-  assembly_500:
-    available: true
-    code: 'RTProgram : W BLOCK 1
-
-      Time : W BLOCK 1
-
-      Units : W BLOCK 1
-
-      StartupInterval : EQU 37B9 + 103B
-
-      ...
-
-      CALLG StartupInterval, 3, RTProgram, Time, Units'
-    octal_definition: 37B9 + 103B
-    notes: ''
-  mac:
-    available: true
-    code: 'LDA (PAR %Load register A with address of parameter list.
-
-      MON 103 %Monitor call StartupInterval.
-
-      ...
-
-      PAR, RTPRO %Address of RT description.
-
-      TIME %Interval between each execution of program.
-
-      UNIT %Time units.
-
-      ...
-
-      RTPRO, ...
-
-      UNIT, ...
-
-      BASE, ...
-
-
-
-      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'
-    mon_number: 103
-    notes: ''
+parameters: []
+examples: {}
 compatibility:
   platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
+    nd100: false
+    nd500: false
+  users: []
+  programs: []
   notes: ''
 errors:
   returns_error: false
@@ -130,8 +32,8 @@ errors:
   error_reference: ''
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
-  page: 487
-  line: 21884
+  page: 0
+  line: 22198
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

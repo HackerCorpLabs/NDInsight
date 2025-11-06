@@ -1,0 +1,84 @@
+# SINTRAN III Monitor Call: GetUserRegister
+# Octal: 420B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
+
+octal: 420B
+name: GetUserRegister
+short_names: []
+description: ''
+notes: []
+see_also:
+- SwitchUserBreak
+references: []
+parameters: []
+examples:
+  pascal:
+    available: true
+    code: 'Buffer : ARRAY [0..4] OF RECORD...END;
+
+      ...
+
+      GetUserRegister(Buffer);'
+    notes: ''
+  cobol:
+    available: true
+    code: "01 Buffer.\n  02 array COMP OCCURS 77 TIMES.\n  ...\n  MONITOR-CALL \"\
+      GetUserRegister\" USING Buffer."
+    notes: ''
+  fortran:
+    available: true
+    code: 'INTEGER Buffer(77)
+
+      ...
+
+      Monitor_Call(''GetUserRegister'', Buffer(1))'
+    notes: ''
+  planc:
+    available: true
+    code: 'BYTES : Buffer(0:153)
+
+      ...
+
+      Monitor_Call(''GetUserRegister'', Buffer(0))'
+    notes: ''
+  assembly_500:
+    available: true
+    code: 'Buffer : W BLOCK 50B
+
+      GetUserRegister : EQU 37B9 + 420B
+
+      ...
+
+      CALLG GetUserRegister, 1, Buffer'
+    octal_definition: 37B9 + 420B
+    notes: ''
+  mac:
+    available: false
+    code: ''
+    mon_number: null
+    notes: Not available
+compatibility:
+  platforms:
+    nd100: false
+    nd500: true
+  users:
+  - All users
+  programs:
+  - All programs
+  notes: ''
+errors:
+  returns_error: false
+  error_codes: []
+  error_reference: ''
+source:
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 303
+  line: 13523
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
+extraction:
+  date: '2025-01-06'
+  version: '1.0'
+  validated: false
+  ocr_corrected: false
+  ocr_notes: ''

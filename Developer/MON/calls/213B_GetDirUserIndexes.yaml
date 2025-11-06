@@ -5,11 +5,8 @@
 octal: 213B
 name: GetDirUserIndexes
 short_names: []
-description: Gets a directory index and a user index. You have to specify a directory
-  name and a user name.
-notes:
-- Use ExecutionInfo to get the user index and the directory index of the user executing
-  a program.
+description: ''
+notes: []
 see_also:
 - GetDirNameIndexes
 - GetUserIndex
@@ -19,7 +16,9 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: 'UserName : PACKED ARRAY [0..15] OF CHAR;
+    code: '```
+
+      UserName : PACKED ARRAY [0..15] OF CHAR;
 
       DirIndex, UserIndex : INTEGER2;
 
@@ -27,11 +26,15 @@ examples:
 
       GetDirUserIndexes(UserName, DirIndex, UserIndex);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01  UserName  PIC X(16).
+    code: '```
+
+      01  UserName  PIC X(16).
 
       01  DirIndex  COMP.
 
@@ -45,11 +48,15 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'CHARACTER  UserName*16
+    code: '```
+
+      CHARACTER  UserName*16
 
       INTEGER    DirIndex, UserIndex
 
@@ -57,17 +64,21 @@ examples:
 
       Monitor Call(''GetDirUserIndexes'',UserName(1:16),DirIndex,UserIndex)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "BYTES : UserName(0:15)\nINTEGER : DirIndex, UserIndex\n...\nON ROUTINEERROR\
+    code: "```\nBYTES : UserName(0:15)\nINTEGER : DirIndex, UserIndex\n...\nON ROUTINEERROR\
       \ DO\n    IF ErrCode >< 0 THEN ...\nENDON\nMonitor_Call('GetDirUserIndexes',\
-      \ UserName, DirIndex, UserIndex)"
+      \ UserName, DirIndex, UserIndex)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: 'UserName : STRINGDATA ''A-HANSEN''''''
+    code: '```
+
+      UserName : STRINGDATA ''A-HANSEN''''''
 
       DirIndex : W BLOCK 1
 
@@ -85,12 +96,16 @@ examples:
 
       ERROR : W1 =: ErrCode
 
-      %ErrorCode in W1 register.'
+      %ErrorCode in W1 register.
+
+      ```'
     octal_definition: 37B9 + 213B
     notes: ''
   mac:
     available: true
-    code: 'LDX (USER
+    code: '```
+
+      LDX (USER
 
       %Address of string with directory and user name.
 
@@ -120,6 +135,7 @@ examples:
 
       %Left byte: dir index. Right byte: user index.
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |
@@ -143,7 +159,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 237
-  line: 10231
+  line: 10358
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

@@ -74,17 +74,23 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'Func, Para2, Para3, Para4 : INTEGER2;
+    code: '```
+
+      Func, Para2, Para3, Para4 : INTEGER2;
 
       ...
 
       LAMUfunction(Func, Para2, Para3, Para4);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 Func COMP.
+    code: '```
+
+      01 Func COMP.
 
       01 Para2 COMP.
 
@@ -98,22 +104,29 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER Func, Para2, Para3, Para4
+    code: '```
+
+      INTEGER Func, Para2, Para3, Para4
 
       ...
 
       Monitor_Call(''LAMUfunction'', Func, Para2, Para3, Para4)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER . Func. Para2, Para3, Para4\nON ROUTINEERROR DO\n  [IF ErrCode\
-      \ >< 0 THEN ...\nENDON\nMonitor_Call('LAMUfunction', Func. Para2, Para3, Para4"
+    code: "```\nINTEGER . Func. Para2, Para3, Para4\nON ROUTINEERROR DO\n  [IF ErrCode\
+      \ >< 0 THEN ...\nENDON\nMonitor_Call('LAMUfunction', Func. Para2, Para3, Para4\n\
+      ```"
     notes: ''
   assembly_500:
     available: false
@@ -122,11 +135,12 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: "LDA   {PAR      % Load register A with address of parameter list.\nMON\
-      \   315       % Monitor call LAMUfunction.\nJMP   ERROR     % Error return from\
-      \ monitor call.\n               % Normal return.\nERROR           % Error number\
-      \ in register A.\n\nPAR, FUNC       % Function.\nPARA2\nPARA3\nPARA4\n\nFUNC,\n\
-      PARA2,\nPARA3,\nPARA4,\n\n\n| ND-100 | All users | All programs |"
+    code: "```\nLDA   {PAR      % Load register A with address of parameter list.\n\
+      MON   315       % Monitor call LAMUfunction.\nJMP   ERROR     % Error return\
+      \ from monitor call.\n               % Normal return.\nERROR           % Error\
+      \ number in register A.\n\nPAR, FUNC       % Function.\nPARA2\nPARA3\nPARA4\n\
+      \nFUNC,\nPARA2,\nPARA3,\nPARA4,\n```\n\n| ND-100 | All users | All programs\
+      \ |"
     mon_number: 315
     notes: ''
 compatibility:
@@ -145,7 +159,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 331
-  line: 14757
+  line: 14963
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

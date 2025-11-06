@@ -5,17 +5,8 @@
 octal: 117B
 name: ReadFromFile
 short_names: []
-description: Reads any number of bytes from a file. The read operation must start
-  at the beginning of a block. The file must be opened for random read access.
-notes:
-- The standard block size is 512 bytes. You can change this with SetBlockSize. The
-  first block is number 0.
-- You may use access code D for direct transfer. Then the block size must be a multiple
-  of the page size. The number of bytes to transfer must be a multiple of the block
-  size.
-- Peripheral files are always read sequentially.
-- Data transfer across segment or RT common limits is illegal as this would be likely
-  to result in inconsistent data.
+description: ''
+notes: []
 see_also:
 - SetStartBlock
 - SetBlockSize
@@ -25,35 +16,37 @@ see_also:
 - and WriteToFile
 references: []
 parameters:
-- name: Filenumber
+- name: File number
   type: See Openfile.
   io: I
   description: ''
-- name: Waitflag
+- name: Wait flag
   type: Use 0 to suspend the program until the transfer is completed. Other values
     make the program continue. You may check that the transfer is completed by AwaitFileTransfer.
   io: I
   description: ''
-- name: Transferreddata
+- name: Transferred data
   type: ''
   io: I
   description: ''
-- name: Blocknumber
+- name: Block number
   type: To start the read operation. Use -1 to read the next block.
   io: I
   description: ''
-- name: Numberofbytes
+- name: Number of bytes
   type: To read.
   io: I
   description: ''
-- name: StandardErrorCode
+- name: Standard Error Code
   type: See appendix A.
   io: I
   description: ''
 examples:
   pascal:
     available: true
-    code: 'FileNo, WaitFlag, BlockNo : INTEGER2;
+    code: '```
+
+      FileNo, WaitFlag, BlockNo : INTEGER2;
 
       Buff : ARRAY [0..15] OF RECORD...END;
 
@@ -63,21 +56,23 @@ examples:
 
       ReadFromFile(FileNo, WaitFlag, Buff, BlockNo, NoOfBytes);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 FileNo COMP.\n01 WaitFlag COMP.\n01 Buff.\n   02 array COMP OCCURS 256\
-      \ TIMES.\n01 BlockNo COMP.\n01 NoOfBytes COMP PIC S9(10).\n01 ErrCode COMP.\n\
+    code: "```\n01 FileNo COMP.\n01 WaitFlag COMP.\n01 Buff.\n   02 array COMP OCCURS\
+      \ 256 TIMES.\n01 BlockNo COMP.\n01 NoOfBytes COMP PIC S9(10).\n01 ErrCode COMP.\n\
       ...\nMONITOR-CALL \"ReadFromFile\" USING FileNo, WaitFlag, Buff,\n         \
       \                       BlockNo, NoOfBytes.\n\nCALL \"CbError\" USING ErrCode.\n\
-      IF ErrCode NOT = 0 GO ..."
+      IF ErrCode NOT = 0 GO ...\n```"
     notes: ''
   fortran:
     available: true
-    code: "INTEGER FileNo, WaitFlag, BlockNo\nINTEGER Buff(256)\nINTEGER*4 NoOfBytes\n\
+    code: "```\nINTEGER FileNo, WaitFlag, BlockNo\nINTEGER Buff(256)\nINTEGER*4 NoOfBytes\n\
       ...\nMonitor_Call('ReadFromFile', FileNo, WaitFlag, Buff(1),\n             \
-      \                  BlockNo, NoOfBytes)\nC  IF (ErrCode .NE. 0) THEN ..."
+      \                  BlockNo, NoOfBytes)\nC  IF (ErrCode .NE. 0) THEN ...\n```"
     notes: ''
   planc:
     available: true
@@ -184,7 +179,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 399
-  line: 17826
+  line: 18074
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

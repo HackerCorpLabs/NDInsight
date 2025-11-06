@@ -5,12 +5,8 @@
 octal: 43B
 name: CloseFile
 short_names: []
-description: Closes one or more files. Files must be opened before they are accessed.
-  Afterwards they should be closed.
-notes:
-- '**CloseFile** also resets peripheral files. This is similar to DeviceControl with
-  control flag -1.'
-- For non-RT programs, files are closed when your program terminates.
+description: ''
+notes: []
 see_also:
 - OpenFile
 - CloseSpoolingFile
@@ -32,17 +28,23 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'FileNumber : INTEGER2;
+    code: '```
+
+      FileNumber : INTEGER2;
 
       ...
 
       CloseFile(FileNumber);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 FileNumber COMP.
+    code: '```
+
+      01 FileNumber COMP.
 
       01 ErrCode COMP.
 
@@ -52,26 +54,34 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER FileNumber
+    code: '```
+
+      INTEGER FileNumber
 
       ...
 
       Monitor_Call(''CloseFile'', FileNumber)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : FileNumber\n...\nON ROUTINEERROR DO\n   IF ErrCode > 0 THEN ...\n\
-      ENDON\nMonitor_Call('Closefile', FileNumber)"
+    code: "```\nINTEGER : FileNumber\n...\nON ROUTINEERROR DO\n   IF ErrCode > 0 THEN\
+      \ ...\nENDON\nMonitor_Call('Closefile', FileNumber)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: 'FileNumber : W BLOCK 1
+    code: '```
+
+      FileNumber : W BLOCK 1
 
       ErrCode : W BLOCK 1
 
@@ -85,12 +95,16 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode          %ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode          %ErrorCode in W1 register.
+
+      ```'
     octal_definition: 37B9 + 43B
     notes: ''
   mac:
     available: true
-    code: 'LDT  FILNO                 %Load register T with file number.
+    code: '```
+
+      LDT  FILNO                 %Load register T with file number.
 
       MON  43                   %Monitor call Closefile.
 
@@ -104,6 +118,7 @@ examples:
 
       FILNO, ...
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'
@@ -125,12 +140,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 117
-  line: 4826
+  line: 4868
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

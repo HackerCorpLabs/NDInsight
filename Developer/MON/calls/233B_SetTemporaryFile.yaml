@@ -5,39 +5,41 @@
 octal: 233B
 name: SetTemporaryFile
 short_names: []
-description: Defines a file to store information temporarily. The file can be read
-  once. When it is closed, its contents are deleted. The empty file will still exist.
-notes:
-- GetObjectEntry and @FILE-STATISTICS shows whether a file is temporary or not.
-- Files to be printed are commonly defined as temporary. Their contents exist until
-  they have been printed.
+description: ''
+notes: []
 see_also:
 - CreateFile
 - '@SET-TEMPORARY-FILE'
 references: []
 parameters:
-- name: →Filename.
+- name: → File name.
   type: ''
   io: I
   description: ''
-- name: ←StandardErrorCode.
+- name: ← Standard Error Code.
   type: See appendix A.
   io: I
   description: ''
 examples:
   pascal:
     available: true
-    code: 'FileName : PACKED ARRAY [0..63] OF CHAR;
+    code: '```
+
+      FileName : PACKED ARRAY [0..63] OF CHAR;
 
       ...
 
       SetTemporaryFile(FileName);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 FileName PIC X(64).
+    code: '```
+
+      01 FileName PIC X(64).
 
       01 ErrCode COMP.
 
@@ -47,33 +49,41 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'CHARACTER FileName*64
+    code: '```
+
+      CHARACTER FileName*64
 
       ...
 
       Monitor_Call(''SetTemporaryFile'', FileName(1:64))
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "BYTES : FileName(0:63)\n...\nON ROUTINEERROR DO\n    IF ErrCode > 0 THEN\
-      \ ...\nENDON\nMonitor_Call('SetTemporaryFile', FileName)"
+    code: "```\nBYTES : FileName(0:63)\n...\nON ROUTINEERROR DO\n    IF ErrCode >\
+      \ 0 THEN ...\nENDON\nMonitor_Call('SetTemporaryFile', FileName)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: "FileName : STRINGDATA 'TEMP-FILE:SYMB''\nErrCode  : W BLOCK 1\nSetTemporaryFile\
+    code: "```\nFileName : STRINGDATA 'TEMP-FILE:SYMB''\nErrCode  : W BLOCK 1\nSetTemporaryFile\
       \ : EQU 37B9 + 233B\n...\n    CALLG SetTemporaryFile, 1, FileName\n    IF K\
-      \ GO ERROR\n...\nERROR : W1 =: ErrCode    %ErrorCode in W1 register."
+      \ GO ERROR\n...\nERROR : W1 =: ErrCode    %ErrorCode in W1 register.\n```"
     octal_definition: 37B9 + 233B
     notes: ''
   mac:
     available: true
-    code: 'LDX  (FILE          %Address of string with file name.
+    code: '```
+
+      LDX  (FILE          %Address of string with file name.
 
       MON 233            %Monitor call SetTemporaryFile.
 
@@ -87,6 +97,7 @@ examples:
 
       FILE, ''TEMP-FILE:SYMB'' %Treat TEMP-FILE:SYMB as a temporary file.
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |
@@ -110,7 +121,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 473
-  line: 21276
+  line: 21584
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

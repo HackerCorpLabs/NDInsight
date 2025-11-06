@@ -5,16 +5,8 @@
 octal: 41B
 name: ReadObjectEntry
 short_names: []
-description: Gets information about an opened file. An object entry describes each
-  file. It contains the file name, the access rights, the date last opened for read
-  and write, the size, and more. See the file system description in the SINTRAN III
-  System Supervisor (ND-830003). You specify the file number.
-notes:
-- There is one object entry for each version of a file.
-- The device number location in the object entry contains the logical device number
-  and the unit number where the mass-storage file resides. The logical device number
-  is placed in bit 11-0. The unit number in bit 15-12. The location contains the logical
-  device number for peripheral files.
+description: ''
+notes: []
 see_also:
 - GetObjectEntry
 - SetObjectEntry
@@ -35,7 +27,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'FileNumber : INTEGER2;
+    code: '```
+
+      FileNumber : INTEGER2;
 
       Buff : ARRAY [0..1] OF RECORD...END;
 
@@ -43,11 +37,15 @@ examples:
 
       ReadObjectEntry(FileNumber, Buff);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 FileNumber COMP.
+    code: '```
+
+      01 FileNumber COMP.
 
       01 Buff.
 
@@ -61,11 +59,15 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER FileNumber
+    code: '```
+
+      INTEGER FileNumber
 
       INTEGER Buff(32)
 
@@ -73,7 +75,9 @@ examples:
 
       Monitor_Call(''ReadObjectEntry'', FileNumber, Buff(1))
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
@@ -154,7 +158,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 401
-  line: 17957
+  line: 18205
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

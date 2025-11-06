@@ -22,7 +22,7 @@ parameters:
   type: Cobol
   io: Fortran
   description: ''
-- name: Notavailable.
+- name: Not available.
   type: Not available.
   io: Not available.
   description: ''
@@ -114,7 +114,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 107
-  line: 4388
+  line: 4416
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

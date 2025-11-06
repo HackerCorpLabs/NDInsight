@@ -7,93 +7,17 @@ name: STARTPROCESS
 short_names: []
 description: Starts a process in the ND-500. You identify the process with the process
   number.
-notes:
-- The process may be active. The process then restarts as soon as it terminates.
-see_also:
-- StopProcess
-- SwitchProcess
+notes: []
+see_also: []
 references: []
-parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
-  description: Process number.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
-examples:
-  pascal:
-    available: true
-    code: 'ProcessNumber : LONGINT;
-
-      ...
-
-      StartProcess(ProcessNumber);
-
-      IF ErrCode <> 0 THEN ...'
-    notes: ''
-  cobol:
-    available: true
-    code: '01 ProcessNumber COMP.
-
-      01 ErrCode COMP.
-
-      ...
-
-      MONITOR-CALL "StartProcess" USING ProcessNumber.
-
-      CALL "CbError" USING ErrCode.
-
-      IF ErrCode NOT = 0 GO ...'
-    notes: ''
-  fortran:
-    available: true
-    code: 'INTEGER ProcessNumber
-
-      ...
-
-      Monitor_Call(''StartProcess'', ProcessNumber)
-
-      IF (ErrCode .NE. 0) THEN ...'
-    notes: ''
-  planc:
-    available: true
-    code: "INTEGER : ProcessNumber\n...\nON ROUTINEERROR DO\n    IF ErrCode > 0 THEN\
-      \ ...\nENDON\nMonitor_Call('StartProcess', ProcessNumber)"
-    notes: ''
-  assembly_500:
-    available: true
-    code: 'ProcessNumber : W BLOCK 1
-
-      ErrCode : W BLOCK 1
-
-      StartProcess : EQU 3789 + 500B
-
-      ...
-
-      CALLG StartProcess, 1, ProcessNumber
-
-      IF K GO ERROR
-
-      ...
-
-      ERROR : W1 =: ErrCode              %ErrorCode in W1 register.'
-    octal_definition: 37B9 + 500B
-    notes: ''
-  mac:
-    available: false
-    code: ''
-    mon_number: null
-    notes: Not available
+parameters: []
+examples: {}
 compatibility:
   platforms:
     nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
+    nd500: false
+  users: []
+  programs: []
   notes: ''
 errors:
   returns_error: false
@@ -101,8 +25,8 @@ errors:
   error_reference: ''
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
-  page: 483
-  line: 21726
+  page: 0
+  line: 22036
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

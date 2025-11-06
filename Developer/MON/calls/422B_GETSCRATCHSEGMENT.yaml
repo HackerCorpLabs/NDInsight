@@ -7,99 +7,17 @@ name: GETSCRATCHSEGMENT
 short_names: []
 description: Connects an empty data segment to your domain. The monitor call reserves
   space on the swap file for it.
-notes:
-- The segment is given the default name SCRATCH-SEGMENT:DSEG.
-see_also:
-- ClearCapability
+notes: []
+see_also: []
 references: []
-parameters:
-- name: Segmentsizeinbytes.
-  type: ''
-  io: I
-  description: ''
-- name: Logicalsegmentnumber
-  type: ''
-  io: I
-  description: Logical segment number. The segment must be free. Use 0 to get the
-    first free segment.
-- name: ↤Selectedlogicalsegmentnumberifyouspecified0aslogicalsegmentnumber.
-  type: ''
-  io: I
-  description: ''
-examples:
-  pascal:
-    available: true
-    code: 'SizeInBytes, LogSegmentNo, RetLogSegmentNo : LONGINT;
-
-      ...
-
-      GetScratchSegment(SizeInBytes, LogSegmentNo, RetLogSegmentNo);
-
-      IF ErrCode <> 0 THEN ...'
-    notes: ''
-  cobol:
-    available: true
-    code: "01 SizeInBytes COMP.\n01 LogSegmentNo COMP.\n01 RetLogSegmentNo COMP.\n\
-      01 ErrCode COMP.\n...\nMONITOR-CALL \"GetScratchSegment\" USING SizeInBytes,\
-      \ LogSegmentNo,\n                                    RetLogSegmentNo.\nCALL\
-      \ \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
-    notes: ''
-  fortran:
-    available: true
-    code: "INTEGER SizeInBytes, LogSegmentNo, RetLogSegmentNo\n...\nMonitor_Call('GetScratchSegment',\
-      \ SizeInBytes, LogSegmentNo,\n                                 RetLogSegmentNo)\n\
-      C\nIF (ErrCode .NE. 0) THEN ..."
-    notes: ''
-  planc:
-    available: true
-    code: 'INTEGER : SizeInBytes, LogSegmentNo, RetLogSegNo
-
-      ...
-
-      ON ROUTINEERROR DO
-
-      &nbsp;&nbsp;&nbsp;&nbsp;IF ErrCode > 0 THEN ...
-
-      ENDON
-
-      Monitor_Call(''GetScratchSegment'', SizeInBytes, LogSegmentNo, RetLogSegNo)'
-    notes: ''
-  assembly_500:
-    available: true
-    code: 'SizeInBytes : W BLOCK 1
-
-      LogSegmentNo : W BLOCK 1
-
-      RetLogSegmentNo : W BLOCK 1
-
-      ErrCode : W BLOCK 1
-
-      GetScratchSegment : EQU 37B9 + 422B
-
-      ...
-
-      CALLG GetScratchSegment, 3, SizeInBytes, LogSegmentNo, RetLogSegmentNo
-
-      &nbsp;&nbsp;&nbsp;&nbsp;IF K GO ERROR
-
-      ...
-
-      ERROR : W1 =: ErrCode &nbsp;&nbsp;&nbsp;&nbsp;%ErrorCode in W1 register.'
-    octal_definition: 37B9 + 422B
-    notes: ''
-  mac:
-    available: false
-    code: ''
-    mon_number: null
-    notes: Not available
+parameters: []
+examples: {}
 compatibility:
   platforms:
     nd100: false
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
+    nd500: false
+  users: []
+  programs: []
   notes: ''
 errors:
   returns_error: false
@@ -107,8 +25,8 @@ errors:
   error_reference: ''
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
-  page: 275
-  line: 11989
+  page: 0
+  line: 12147
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

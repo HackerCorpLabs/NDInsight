@@ -5,32 +5,31 @@
 octal: 75B
 name: GetStartByte
 short_names: []
-description: Gets the number of the next byte to access in a file. The bytes in a
-  file are numbered from 0.
-notes:
-- The file must be opened for sequential access.
-- You cannot use this monitor call for peripheral files.
+description: ''
+notes: []
 see_also:
 - SetStartByte
 - SetStartBlock
 references: []
 parameters:
-- name: ➞Filenumber.
+- name: ➞ File number.
   type: See OpenFile.
   io: I
   description: ''
-- name: ↔Thenumberofthenextbytetoaccess.
+- name: ↔ The number of the next byte to access.
   type: UNKNOWN
   io: I
   description: ''
-- name: ←StandardErrorCode.
+- name: ← Standard Error Code.
   type: See appendix A.
   io: I
   description: ''
 examples:
   pascal:
     available: true
-    code: 'FileNumber : INTEGER2;
+    code: '```
+
+      FileNumber : INTEGER2;
 
       BytePointer : LONGINT;
 
@@ -38,11 +37,15 @@ examples:
 
       GetStartByte(FileNumber, BytePointer);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 FileNumber COMP.
+    code: '```
+
+      01 FileNumber COMP.
 
       01 BytePointer COMP PIC S9(10).
 
@@ -54,11 +57,15 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER FileNumber
+    code: '```
+
+      INTEGER FileNumber
 
       INTEGER*4 BytePointer
 
@@ -66,17 +73,21 @@ examples:
 
       Monitor Call1(''GetStartByte'', FileNumber, BytePointer)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : FileNumber\nINTEGER4 : BytePointer\n...\nON ROUTINEERROR DO\n\
-      \   IF ErrCode >< 0 THEN ...\nENDON\n\nMonitor_Call('GetStartByte', FileNumber,\
-      \ BytePointer)"
+    code: "```\nINTEGER : FileNumber\nINTEGER4 : BytePointer\n...\nON ROUTINEERROR\
+      \ DO\n   IF ErrCode >< 0 THEN ...\nENDON\n\nMonitor_Call('GetStartByte', FileNumber,\
+      \ BytePointer)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: 'FileNumber : W BLOCK 1
+    code: '```
+
+      FileNumber : W BLOCK 1
 
       BytePointer : W BLOCK 1
 
@@ -92,12 +103,16 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode          %ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode          %ErrorCode in W1 register.
+
+      ```'
     octal_definition: 37B9 + 75B
     notes: ''
   mac:
     available: true
-    code: 'LDT FILNO        %File number returned from earlier open.
+    code: '```
+
+      LDT FILNO        %File number returned from earlier open.
 
       MON 75           %Monitor call GetStartByte.
 
@@ -117,6 +132,7 @@ examples:
 
       0                %
 
+      ```
 
 
 
@@ -139,12 +155,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 283
-  line: 12381
+  line: 12553
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

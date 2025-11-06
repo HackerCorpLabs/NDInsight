@@ -10,79 +10,16 @@ description: The ESCAPE key on the terminal normally terminates a program. This 
 notes:
 - The escape function is enabled again by EnableEscape.
 - The escape function is enabled when you log out.
-- When escape function is disabled, the escape character is treated as any other character.
-see_also:
-- EnableEscape
-- SetEscapeHandling
-- and @DISABLE-ESCAPE-FUNCTION
+see_also: []
 references: []
 parameters: []
-examples:
-  pascal:
-    available: true
-    code: 'DeviceNumber : INTEGER2;
-
-      ...
-
-      EscapeDisable(DeviceNumber); {Note routine name.}'
-    notes: ''
-  cobol:
-    available: true
-    code: '01 DeviceNumber COMP.
-
-      ...
-
-      MONITOR-CALL "DisableEscape" USING DeviceNumber.'
-    notes: ''
-  fortran:
-    available: true
-    code: 'INTEGER DeviceNumber
-
-      ...
-
-      Monitor_Call(''DisableEscape'', DeviceNumber)'
-    notes: ''
-  planc:
-    available: true
-    code: 'INTEGER : DeviceNumber
-
-      ...
-
-      Monitor_Call(''DisableEscape'', DeviceNumber)'
-    notes: ''
-  assembly_500:
-    available: true
-    code: 'DeviceNumber : W BLOCK 1
-
-      DisableEscape : EQU 37B9 + 71B
-
-      ...
-
-      CALLG DisableEscape, 1, DeviceNumber'
-    octal_definition: 37B9 + 71B
-    notes: ''
-  mac:
-    available: true
-    code: 'LDT DEVNO %Logical device number.
-
-      MON 71 %Monitor call DisableEscape.
-
-      ...
-
-      DEVNO, ...
-
-
-      | ND-100 and ND-500 | All users | All programs |'
-    mon_number: 71
-    notes: ''
+examples: {}
 compatibility:
   platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
+    nd100: false
+    nd500: false
+  users: []
+  programs: []
   notes: ''
 errors:
   returns_error: false
@@ -90,8 +27,8 @@ errors:
   error_reference: ''
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
-  page: 153
-  line: 6639
+  page: 0
+  line: 6699
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

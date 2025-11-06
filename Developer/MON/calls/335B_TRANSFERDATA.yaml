@@ -28,26 +28,30 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: 'DeviceNumber, Func, RetStatus : INTEGER2;
+    code: '```
+
+      DeviceNumber, Func, RetStatus : INTEGER2;
 
       MemAddr, BlockAddr, NoOfBlocks : LONGINT;
 
       ...
 
-      TransferData(DeviceNumber, Func, MemAddr, BlockAddr, NoOfBlocks, RetStatus);'
+      TransferData(DeviceNumber, Func, MemAddr, BlockAddr, NoOfBlocks, RetStatus);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 DeviceNumber COMP.\n01 Func COMP.\n01 ReturnStatus COMP.\n01 MemAddr\
+    code: "```\n01 DeviceNumber COMP.\n01 Func COMP.\n01 ReturnStatus COMP.\n01 MemAddr\
       \ COMP PIC S9(10).\n01 BlockAddr COMP PIC S9(10).\n01 NoOfBlocks COMP PIC S9(10).\n\
       ...\nMONITOR-CALL \"TransferData\" USING DeviceNumber, Func, MemAddr,\n    \
-      \                       BlockAddr, NoOfBlocks, ReturnStatus."
+      \                       BlockAddr, NoOfBlocks, ReturnStatus.\n```"
     notes: ''
   fortran:
     available: true
-    code: "INTEGER DeviceNumber, Func, ReturnStatus\nINTEGER*4 MemAddr, BlockAddr,\
+    code: "```\nINTEGER DeviceNumber, Func, ReturnStatus\nINTEGER*4 MemAddr, BlockAddr,\
       \ NoOfBlocks\n...\nMonitor_Call('TransferData', DeviceNumber, Func, MemAddr,\n\
-      \                          BlockAddr, NoOfBlocks, ReturnStatus)"
+      \                          BlockAddr, NoOfBlocks, ReturnStatus)\n```"
     notes: ''
   planc:
     available: true
@@ -68,7 +72,9 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: 'LDT     DEVNO     %Logical device number.
+    code: '```
+
+      LDT     DEVNO     %Logical device number.
 
       LDA     (PAR      %Load register A with address of parameter list.
 
@@ -80,6 +86,7 @@ examples:
 
       ERROR, ...        %Error number in register A.
 
+      ```
 
 
       | DEVNO, ... |       |
@@ -112,8 +119,8 @@ examples:
     notes: ''
 compatibility:
   platforms:
-    nd100: true
-    nd500: false
+    nd100: false
+    nd500: true
   users:
   - All users
   programs:
@@ -126,7 +133,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 545
-  line: 24759
+  line: 25095
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

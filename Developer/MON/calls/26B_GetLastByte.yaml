@@ -5,13 +5,8 @@
 octal: 26B
 name: GetLastByte
 short_names: []
-description: Gets the last character typed on a terminal. The monitor call can be
-  used to terminate long output sequences, reading from files, etc. The program never
-  enters the I/O wait state because of this monitor call.
-notes:
-- Only user SYSTEM can execute this monitor call on a non-reserved terminal.
-- This monitor call always returns -1 if an error is encountered, not the standard
-  SINTRAN error codes.
+description: ''
+notes: []
 see_also:
 - InByte
 references: []
@@ -27,29 +22,41 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DeviceNumber, LastCharTyped : INTEGER2;
+    code: '```
+
+      DeviceNumber, LastCharTyped : INTEGER2;
 
       ...
 
-      GetLastByte(DeviceNumber, LastCharTyped);'
+      GetLastByte(DeviceNumber, LastCharTyped);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DeviceNumber COMP.
+    code: '```
+
+      01 DeviceNumber COMP.
 
       01 LastCharTyped COMP.
 
       ...
 
-      MONITOR-CALL "GetLastByte" USING DeviceNumber, LastCharTyped.'
+      MONITOR-CALL "GetLastByte" USING DeviceNumber, LastCharTyped.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNumber, LastCharTyped
+    code: '```
+
+      INTEGER DeviceNumber, LastCharTyped
 
       ...
 
-      Monitor_Call(''GetLastByte'', DeviceNumber, LastCharTyped)'
+      Monitor_Call(''GetLastByte'', DeviceNumber, LastCharTyped)
+
+      ```'
     notes: ''
   planc:
     available: true
@@ -111,12 +118,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 255
-  line: 11067
+  line: 11211
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

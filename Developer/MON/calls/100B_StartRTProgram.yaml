@@ -5,11 +5,8 @@
 octal: 100B
 name: StartRTProgram
 short_names: []
-description: Starts an RT program. The program is moved to the execution queue. It
-  is executed according to its priority.
-notes:
-- The program may be in the execution queue. Then it restarts as soon as it terminates.
-- You can terminate RT programs with StopRTProgram.
+description: ''
+notes: []
 see_also:
 - StartupTime
 - StartupInterval
@@ -24,27 +21,39 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'RTProgram : INTEGER2;
+    code: '```
+
+      RTProgram : INTEGER2;
 
       ...
 
-      StartRTProgram(RTProgram);'
+      StartRTProgram(RTProgram);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 RTProgram COMP.
+    code: '```
+
+      01 RTProgram COMP.
 
       ...
 
-      MONITOR-CALL "StartRTProgram" USING RTProgram.'
+      MONITOR-CALL "StartRTProgram" USING RTProgram.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER RTProgram
+    code: '```
+
+      INTEGER RTProgram
 
       ...
 
-      Monitor_Call(''StartRTProgram'', RTProgram)'
+      Monitor_Call(''StartRTProgram'', RTProgram)
+
+      ```'
     notes: ''
   planc:
     available: true
@@ -106,12 +115,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 485
-  line: 21808
+  line: 22126
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

@@ -1,0 +1,153 @@
+# SINTRAN III Monitor Call: GetCurrentTime
+# Octal: 113B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
+
+octal: 113B
+name: GetCurrentTime
+short_names: []
+description: Gets the current system time and date.
+notes:
+- The current system time is returned as basic time units, seconds, minutes, hours,
+  day, month, and year.
+see_also:
+- GetBasicTime
+- AdjustClock
+- SetClock
+- and @DATCL
+references: []
+parameters:
+- name: 0:1
+  type: basic time units
+  io: 0:3 on the ND-500
+  description: ''
+- name: '2:3'
+  type: seconds
+  io: 4:7 on the ND-500
+  description: ''
+- name: '4:5'
+  type: minutes
+  io: 8:11 on the ND-500
+  description: ''
+- name: '6:7'
+  type: hours
+  io: 12:15 on the ND-500
+  description: ''
+- name: '8:9'
+  type: day
+  io: 16:19 on the ND-500
+  description: ''
+- name: '10:11'
+  type: month
+  io: 20:23 on the ND-500
+  description: ''
+- name: '12:13'
+  type: year
+  io: 24:27 on the ND-500
+  description: ''
+examples:
+  pascal:
+    available: true
+    code: 'TimeBuffer : record;
+
+      ...
+
+      GetCurrentTime(TimeBuffer);'
+    notes: ''
+  cobol:
+    available: true
+    code: "01 TimeBuffer.\n   02 array COMP OCCURS 7 TIMES.\n   ...\nMONITOR-CALL\
+      \ \"GetCurrentTime\" USING TimeBuffer."
+    notes: ''
+  fortran:
+    available: true
+    code: 'INTEGER TimeBuffer(7)
+
+      ...
+
+      Monitor_Call(''GetCurrentTime'', TimeBuffer(1))'
+    notes: ''
+  planc:
+    available: true
+    code: 'INTEGER ARRAY : TimeBuffer(0:6)
+
+      ...
+
+      Monitor_Call(''GetCurrentTime'', TimeBuffer(0))'
+    notes: ''
+  assembly_500:
+    available: true
+    code: 'TimeBuffer : W BLOCK 7
+
+      GetCurrentTime : EQU 37B9 + 113B
+
+      ...
+
+      CALLG GetCurrentTime, 1, TimeBuffer'
+    octal_definition: 37B9 + 113B
+    notes: ''
+  mac:
+    available: true
+    code: '| Instruction | Parameter | Comment                                      |
+
+      |-------------|-----------|----------------------------------------------|
+
+      | LDA         | (PAR      | %Load register A with address of parameter list.
+      |
+
+      | MON         | 113       | %Monitor call GetCurrentTime.                 |
+
+      | ...         |           |                                              |
+
+      | PAR,        | CLOK      |                                              |
+
+      | ...         |           |                                              |
+
+      | CLOK, 0     |           | %Basic time units.                           |
+
+      |             | 0         | %Seconds.                                    |
+
+      |             | 0         | %Minutes.                                    |
+
+      |             | 0         | %Hours.                                      |
+
+      |             | 0         | %Day.                                        |
+
+      |             | 0         | %Month.                                      |
+
+      |             | 0         | %Year.                                       |
+
+
+
+      | ND-100 and ND-500 | All users | All programs |
+
+      |-------------------|-----------|--------------|
+
+
+      Scanned by Jonny Oddene for Sintran Data © 2020'
+    mon_number: null
+    notes: ''
+compatibility:
+  platforms:
+    nd100: true
+    nd500: true
+  users:
+  - All users
+  programs:
+  - All programs
+  notes: ''
+errors:
+  returns_error: false
+  error_codes: []
+  error_reference: ''
+source:
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 227
+  line: 9654
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
+extraction:
+  date: '2025-01-06'
+  version: '1.0'
+  validated: false
+  ocr_corrected: true
+  ocr_notes: Header missing octal - reconstructed

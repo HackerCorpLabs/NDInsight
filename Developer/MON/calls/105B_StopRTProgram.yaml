@@ -5,12 +5,8 @@
 octal: 105B
 name: StopRTProgram
 short_names: []
-description: Stops an RT program. It is removed from the time or execution queue.
-  All reserved devices and files are released. RT programs schedules for periodic
-  execution are also stopped.
-notes:
-- Nothing happens if the RT program is already stopped.
-- The RT program restarts immediately if its restart flag is set.
+description: ''
+notes: []
 see_also:
 - ExitRTProgram
 - '@ABORT'
@@ -23,36 +19,54 @@ examples:
     notes: Not available
   cobol:
     available: true
-    code: '01 RTProgram COMP.
+    code: '```
 
-      MONITOR-CALL "StopRTProgram" USING RTProgram.'
+      01 RTProgram COMP.
+
+      MONITOR-CALL "StopRTProgram" USING RTProgram.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER RTProgram
+    code: '```
 
-      Monitor_Call(''StopRTProgram'', RTProgram)'
+      INTEGER RTProgram
+
+      Monitor_Call(''StopRTProgram'', RTProgram)
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: 'INTEGER : RTProgram
+    code: '```
 
-      Monitor_Call(''StopRTProgram'', RTProgram)'
+      INTEGER : RTProgram
+
+      Monitor_Call(''StopRTProgram'', RTProgram)
+
+      ```'
     notes: ''
   assembly_500:
     available: true
-    code: 'RTDescr : W BLOCK 1
+    code: '```
+
+      RTDescr : W BLOCK 1
 
       ...
 
       StopRTProgram : EQU 37B9 + 105B
 
-      CALLG StopRTProgram, 1, RTDescr'
+      CALLG StopRTProgram, 1, RTDescr
+
+      ```'
     octal_definition: 37B9 + 105B
     notes: ''
   mac:
     available: true
-    code: 'LDA (PAR   %Load register A with address of parameter list.
+    code: '```
+
+      LDA (PAR   %Load register A with address of parameter list.
 
       MON 105    %Monitor call StopRTProgram
 
@@ -64,6 +78,7 @@ examples:
 
       RTPRO, ...
 
+      ```
 
 
       | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'
@@ -85,12 +100,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 495
-  line: 22195
+  line: 22523
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

@@ -1,0 +1,126 @@
+# SINTRAN III Monitor Call: GetErrorInfo
+# Octal: 207B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
+
+octal: 207B
+name: GetErrorInfo
+short_names: []
+description: Gets information about the last real-time error. The monitor call returns
+  the error, the RT program responsible for the error, and the program address where
+  it occurred. A flag tells whether the RT program was aborted or not.
+notes: []
+see_also: []
+references: []
+parameters:
+- name: Param1
+  type: UNKNOWN
+  io: I
+  description: A 12 byte error information. It has the meaning below.
+- name: 0:1
+  type: Error number as two ASCII characters. Parity bits are not set. See appendix
+    A and F for error codes together with an ASCII table.
+  io: I
+  description: ''
+- name: '2:3'
+  type: Pointer to the user program address where the error occurred.
+  io: I
+  description: ''
+- name: '4:5'
+  type: Additional error information. See appendix A.
+  io: I
+  description: ''
+- name: '6:7'
+  type: Additional error information. See appendix A.
+  io: I
+  description: ''
+- name: '8:9'
+  type: RT description address of the RT program causing the error.
+  io: I
+  description: ''
+- name: '10:11'
+  type: Flag. 0 if SINTRAN III aborted the RT program.
+  io: I
+  description: ''
+- name: Param8
+  type: UNKNOWN
+  io: I
+  description: Returned status. 0 means OK, 153B means illegal output buffer.
+examples:
+  pascal:
+    available: true
+    code: 'Buffer : RECORD...END;
+
+      ReturnStatus : INTEGER2;
+
+      ...
+
+      ReadErrorParam(Buffer, ReturnStatus); [Note routine name.]'
+    notes: ''
+  cobol:
+    available: true
+    code: '01 Buffer.
+
+      02 array COMP OCCURS 6 TIMES.
+
+      01 ReturnStatus COMP.
+
+      ...
+
+      MONITOR-CALL "GetErrorInfo" USING Buffer, ReturnStatus.'
+    notes: ''
+  fortran:
+    available: true
+    code: 'INTEGER Buffer(6)
+
+      INTEGER ReturnStatus
+
+      ...
+
+      Monitor_Call(''GetErrorInfo'', Buffer(1), ReturnStatus)'
+    notes: ''
+  planc:
+    available: true
+    code: "BYTES : Buffer(0:11)\nINTEGER : ReturnStatus\n\n    Monitor_Call('GetErrorInfo',\
+      \ Buffer(0), ReturnStatus)"
+    notes: ''
+  assembly_500:
+    available: false
+    code: ''
+    octal_definition: ''
+    notes: Not available
+  mac:
+    available: true
+    code: "| LDA   | (PAR)  | %Load register A with address of parameter list.   |\n\
+      |-------|--------|---------------------------------------------------|\n| MON\
+      \   | 207    | %Monitor call GetErrorInfo.                       |\n| JAF  \
+      \ | ERROR  | %Do error handling if register A is non-zero.     |\n\n    ERROR,\
+      \ ...    %Error number in register A.\n\n    PAR, BUFF     %Buffer for returned\
+      \ error information.\n\n    BUFF, 0\n    0\n    0\n    0\n    0\n    0\n\n\n\
+      | ND-100 | User RT and user SYSTEM | RT programs |"
+    mon_number: null
+    notes: ''
+compatibility:
+  platforms:
+    nd100: true
+    nd500: false
+  users:
+  - User RT and user SYSTEM
+  programs:
+  - RT programs
+  notes: ''
+errors:
+  returns_error: false
+  error_codes: []
+  error_reference: ''
+source:
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 241
+  line: 10419
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
+extraction:
+  date: '2025-01-06'
+  version: '1.0'
+  validated: false
+  ocr_corrected: false
+  ocr_notes: ''

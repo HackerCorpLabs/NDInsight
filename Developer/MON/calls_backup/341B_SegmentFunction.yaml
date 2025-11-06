@@ -1,0 +1,164 @@
+# SINTRAN III Monitor Call: SegmentFunction
+# Octal: 341B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
+
+octal: 341B
+name: SegmentFunction
+short_names: []
+description: This is a multifunction monitor call used to change the active segments
+  of a program, or the page index tables used by a program.
+notes:
+- This monitor call is meant to replace the older calls ChangeSegment (SPCHG, 337),
+  and JumpToSegment (MCALL, 132) and ExitFromSegment (MEXIT, 133) on the VSX version.
+- In ChangeSegment, JumpToSegment and ExitFromSegment, the segment numbers are limited
+  to 8 bits (values 0-255). With the monitor call SegmentFunction, the segment numbers
+  are 16 bits (values 0-65535).
+- The functionality of the calls MCALL and MEXIT is expanded so as to allow you to
+  change (or not) the page index table to be used with the new segment.
+- A new function has been introduced in this call, that of removing a routine from
+  being a direct task or a device driver, which has been entered as such by the monitor
+  call SegmentToPageTable (ENTSEG).
+see_also:
+- ChangeSegment
+- JumpToSegment
+- ExitFromSegment
+references: []
+parameters:
+- name: Param1
+  type: UNKNOWN
+  io: I
+  description: Function code.
+- name: Param2
+  type: UNKNOWN
+  io: I
+  description: 0 = JumpToSegment (MCALL) without PIT change
+- name: Param3
+  type: UNKNOWN
+  io: I
+  description: 1 = ExitFromSegment (MEXIT) without PIT change
+- name: Param4
+  type: UNKNOWN
+  io: I
+  description: 2 = JumpToSegment (MCALL) with PIT change
+- name: Param5
+  type: UNKNOWN
+  io: I
+  description: 3 = ExitFromSegment (MEXIT) with PIT change
+- name: Param6
+  type: UNKNOWN
+  io: I
+  description: 4 = REMSG (remove segment entered by ENTSEG)
+- name: Param7
+  type: UNKNOWN
+  io: I
+  description: Start/return address
+- name: Param8
+  type: UNKNOWN
+  io: I
+  description: New segment 1
+- name: Param9
+  type: UNKNOWN
+  io: I
+  description: New segment 2
+- name: Param10
+  type: UNKNOWN
+  io: I
+  description: New page index tables
+- name: Function
+  type: Register
+  io: I
+  description: ''
+- name: Functions0and2
+  type: '(MCALL):'
+  io: I
+  description: ''
+- name: T
+  type: Old segment 1
+  io: I
+  description: ''
+- name: D
+  type: Old segment 2
+  io: I
+  description: ''
+- name: L
+  type: Return address
+  io: I
+  description: ''
+- name: X
+  type: Old PITs if PITs changed (function 2)
+  io: I
+  description: ''
+- name: Functions1and3
+  type: '(MEXIT): No register change'
+  io: I
+  description: ''
+- name: Function4
+  type: '(REMSG): A  = 0 : ok'
+  io: I
+  description: ''
+- name: Param19
+  type: UNKNOWN
+  io: I
+  description: Standard Error Code. See appendix A.
+examples:
+  pascal:
+    available: false
+    code: ''
+    notes: Not available
+  cobol:
+    available: false
+    code: ''
+    notes: Not available
+  fortran:
+    available: false
+    code: ''
+    notes: Not available
+  planc:
+    available: false
+    code: ''
+    notes: Not available
+  assembly_500:
+    available: false
+    code: ''
+    octal_definition: ''
+    notes: Not available
+  mac:
+    available: true
+    code: '| Command | Description |
+
+      |---------|-------------|
+
+      | LDT (PARLI | %Load T register with address of parameter list. |
+
+      | MON 341 | %Monitor call SegmentFunction. |
+
+      | JMP ERROR | %Error return. |
+
+      | ... | %Normal return. |'
+    mon_number: 341
+    notes: ''
+compatibility:
+  platforms:
+    nd100: true
+    nd500: false
+  users:
+  - User RT and user SYSTEM
+  programs:
+  - RT programs
+  notes: ''
+errors:
+  returns_error: false
+  error_codes: []
+  error_reference: ''
+source:
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 427
+  line: 19110
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
+extraction:
+  date: '2025-01-06'
+  version: '1.0'
+  validated: false
+  ocr_corrected: false
+  ocr_notes: ''

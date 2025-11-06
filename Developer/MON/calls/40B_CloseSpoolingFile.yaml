@@ -5,18 +5,15 @@
 octal: 40B
 name: CloseSpoolingFile
 short_names: []
-description: Appends an opened file to a spooling queue. You specify a text to be
-  printed on the error device when the file is to be printed.
-notes:
-- If the file is not a spooling file, a normal close is performed.
-- Does not work for remote files. For these, a normal close is performed.
+description: ''
+notes: []
 see_also:
 - CloseFile
 - AppendSpooling
 - '@DEFINE-SPOOLING-CONDITIONS'
 references: []
 parameters:
-- name: FileNumber
+- name: File Number
   type: File number given when the file was opened.
   io: I
   description: ''
@@ -41,7 +38,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'FileNo, NoOfCopies, PrintFlag : INTEGER2;
+    code: '```
+
+      FileNo, NoOfCopies, PrintFlag : INTEGER2;
 
       UserText : PACKED ARRAY [0..79] OF CHAR;
 
@@ -49,35 +48,37 @@ examples:
 
       CloseSpoolingFile(FileNo, UserText, NoOfCopies, PrintFlag);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 FileNo COMP.\n01 NoOfCopies COMP.\n01 PrintFlag COMP.\n01 UserText PIC\
-      \ X(100).\n01 ErrCode COMP.\n...\nMONITOR-CALL \"CloseSpoolingFile\" USING FileNo,\
-      \ UserText,\n                                  NoOfCopies, PrintFlag.\n\nCALL\
-      \ \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
+    code: "```\n01 FileNo COMP.\n01 NoOfCopies COMP.\n01 PrintFlag COMP.\n01 UserText\
+      \ PIC X(100).\n01 ErrCode COMP.\n...\nMONITOR-CALL \"CloseSpoolingFile\" USING\
+      \ FileNo, UserText,\n                                  NoOfCopies, PrintFlag.\n\
+      \nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
     notes: ''
   fortran:
     available: true
-    code: "INTEGER FileNo, NoOfCopies, PrintFlag\nCHARACTER UserText*80\n...\nMonitor_Call('CloseSpoolingFile',\
-      \ FileNo, UserText(1:80),\n             NoOfCopies, PrintFlag)\nIF (ErrCode\
-      \ .NE. 0) THEN ..."
+    code: "```\nINTEGER FileNo, NoOfCopies, PrintFlag\nCHARACTER UserText*80\n...\n\
+      Monitor_Call('CloseSpoolingFile', FileNo, UserText(1:80),\n             NoOfCopies,\
+      \ PrintFlag)\nIF (ErrCode .NE. 0) THEN ...\n```"
     notes: ''
   planc:
     available: true
-    code: "INTEGER : FileNo, NoOfCopies, PrintFlag\nBYTES : UserText(0:79)\n...\n\
-      ON ROUTINEERROR DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('CloseSpoolingFile',\
-      \ FileNo, UserText, NoOfCopies, PrintFlag)"
+    code: "```\nINTEGER : FileNo, NoOfCopies, PrintFlag\nBYTES : UserText(0:79)\n\
+      ...\nON ROUTINEERROR DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('CloseSpoolingFile',\
+      \ FileNo, UserText, NoOfCopies, PrintFlag)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: "FileNo : W BLOCK 1\nNoOfCopies : W BLOCK 1\nPrintFlag : W BLOCK 1\nUserText\
-      \ : STRINGDATA 'Printing file...'\nErrCode : W BLOCK 1\nCloseSpoolingFile :\
-      \ EQU 37B9 + 40B\n...\n  CALLG CloseSpoolingFile. 4, FileNo, UserText, NoOfCopies,\
+    code: "```\nFileNo : W BLOCK 1\nNoOfCopies : W BLOCK 1\nPrintFlag : W BLOCK 1\n\
+      UserText : STRINGDATA 'Printing file...'\nErrCode : W BLOCK 1\nCloseSpoolingFile\
+      \ : EQU 37B9 + 40B\n...\n  CALLG CloseSpoolingFile. 4, FileNo, UserText, NoOfCopies,\
       \ PrintFlag\n  IF K GO ERROR\n  ...\nERROR : W1 =: ErrCode                 \
-      \ %ErrorCode in W1 register.\n\n\n\n\nLDT FILNO                 %File number\
-      \ returned from earlier open.\nLDA NOCOP                 %Number of copies.\n\
+      \ %ErrorCode in W1 register.\n```\n\n\n```\nLDT FILNO                 %File\
+      \ number returned from earlier open.\nLDA NOCOP                 %Number of copies.\n\
       COPY SA D0\nLDA FLAG                  %Condition flag.\nLDX (TEXT          \
       \       %Address of text to be sent to error device.\nMON 40               \
       \     %Monitor call CloseSpoolingFile.\nJMP ERROR                 %Error return\
@@ -85,9 +86,9 @@ examples:
       \                %Error number in register A.\n...\nFILNO, ...\nTEXT, 'GUMMED\
       \ LABELS'     %Message when the file is to be printed.\nNOCOP, ...\nFLAG, 0\
       \                   %Text is only written if required by\n                 \
-      \         % @DEFINE-SPOOLING-CONDITIONS.\n\n\n\n| ND-100 and ND-500 | All users\
-      \ | All programs |\n|-------------------|-----------|--------------|\n\nScanned\
-      \ by Jonny Oddene for Sintran Data © 2020"
+      \         % @DEFINE-SPOOLING-CONDITIONS.\n```\n\n\n| ND-100 and ND-500 | All\
+      \ users | All programs |\n|-------------------|-----------|--------------|\n\
+      \nScanned by Jonny Oddene for Sintran Data © 2020"
     octal_definition: 37B9 + 40B
     notes: ''
 compatibility:
@@ -106,7 +107,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 119
-  line: 4917
+  line: 4961
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

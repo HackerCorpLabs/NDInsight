@@ -24,29 +24,41 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'MonCallNumber, MonCallEntry : INTEGER2;
+    code: '```
+
+      MonCallNumber, MonCallEntry : INTEGER2;
 
       ...
 
-      CheckMonCall(MonCallNumber, MonCallEntry);'
+      CheckMonCall(MonCallNumber, MonCallEntry);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 MonCallNumber COMP.
+    code: '```
+
+      01 MonCallNumber COMP.
 
       01 MonCallEntry COMP.
 
       ...
 
-      MONITOR-CALL "CheckMonCall" USING MonCallNumber, MonCallEntry.'
+      MONITOR-CALL "CheckMonCall" USING MonCallNumber, MonCallEntry.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER MonCallNumber, MonCallEntry
+    code: '```
+
+      INTEGER MonCallNumber, MonCallEntry
 
       ...
 
-      Monitor_Call(''CheckMonCall'', MonCallNumber, MonCallEntry)'
+      Monitor_Call(''CheckMonCall'', MonCallNumber, MonCallEntry)
+
+      ```'
     notes: ''
   planc:
     available: true
@@ -111,12 +123,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 109
-  line: 4462
+  line: 4491
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

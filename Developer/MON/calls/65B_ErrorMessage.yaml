@@ -5,12 +5,8 @@
 octal: 65B
 name: ErrorMessage
 short_names: []
-description: Displays a file system error message. Appendix A shows the messages connected
-  to each error number. The error number is input. The program terminates.
-notes:
-- The error message is displayed on the terminal. RT programs write it to the error
-  device. The error device is normally the console.
-- Do not input error number 0.
+description: ''
+notes: []
 see_also:
 - GetErrorMessage
 - WarningMessage. WarningMessage writes out the error message without terminating
@@ -20,39 +16,57 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: 'ErrNumber : INTEGER2;
+    code: '```
+
+      ErrNumber : INTEGER2;
 
       ...
 
-      ErrorMessage(ErrNumber);'
+      ErrorMessage(ErrNumber);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 ErrNumber COMP.
+    code: '```
+
+      01 ErrNumber COMP.
 
       ...
 
-      MONITOR-CALL "ErrorMessage" USING ErrNumber.'
+      MONITOR-CALL "ErrorMessage" USING ErrNumber.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER ErrNumber
+    code: '```
+
+      INTEGER ErrNumber
 
       ...
 
-      Monitor_Call(''ErrorMessage'', ErrNumber)'
+      Monitor_Call(''ErrorMessage'', ErrNumber)
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: 'INTEGER : ErrNumber
+    code: '```
+
+      INTEGER : ErrNumber
 
       ...
 
-      Monitor_Call(''ErrorMessage'', ErrNumber)'
+      Monitor_Call(''ErrorMessage'', ErrNumber)
+
+      ```'
     notes: ''
   assembly_500:
     available: true
-    code: 'ErrNumber : W BLOCK 1
+    code: '```
+
+      ErrNumber : W BLOCK 1
 
       ErrorMessage : EQU 37B9 + 65B
 
@@ -64,12 +78,16 @@ examples:
 
       ...
 
-      Error, ...'
+      Error, ...
+
+      ```'
     octal_definition: 37B9 + 65B
     notes: ''
   mac:
     available: true
-    code: 'LDA ERRNO     %Error number of message to be printed.
+    code: '```
+
+      LDA ERRNO     %Error number of message to be printed.
 
       MON 65        %Monitor call ErrorMessage.
 
@@ -77,6 +95,7 @@ examples:
 
       ERRNO, ...
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'
@@ -98,12 +117,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 171
-  line: 7327
+  line: 7403
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

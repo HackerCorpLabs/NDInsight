@@ -33,7 +33,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'FileNumber, BlockNo : INTEGER2;
+    code: '```
+
+      FileNumber, BlockNo : INTEGER2;
 
       DataDestination : ARRAY [0..15] OF RECORD...END;
 
@@ -41,18 +43,22 @@ examples:
 
       ReadBlock(FileNumber, BlockNo, DataDestination);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 FileNumber COMP.\n01 BlockNo COMP.\n01 DataDestination.\n   02 array\
-      \ COMP OCCURS 256 TIMES.\n01 ErrCode COMP.\n...\nMONITOR-CALL \"ReadBlock\"\
+    code: "```\n01 FileNumber COMP.\n01 BlockNo COMP.\n01 DataDestination.\n   02\
+      \ array COMP OCCURS 256 TIMES.\n01 ErrCode COMP.\n...\nMONITOR-CALL \"ReadBlock\"\
       \ USING FileNumber, BlockNo, DataDestination.\nCALL \"CbError\" USING ErrCode.\n\
-      IF ErrCode NOT = 0 GO ..."
+      IF ErrCode NOT = 0 GO ...\n```"
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER FileNumber, BlockNo
+    code: '```
+
+      INTEGER FileNumber, BlockNo
 
       INTEGER DataDestination(256)
 
@@ -60,7 +66,9 @@ examples:
 
       Monitor Call(''ReadBlock'', FileNumber, BlockNo, DataDestination(1))
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: false
@@ -68,7 +76,9 @@ examples:
     notes: Not available
   assembly_500:
     available: true
-    code: 'NoOfChannels : W BLOCK 1
+    code: '```
+
+      NoOfChannels : W BLOCK 1
 
       Channel : W BLOCK 512
 
@@ -87,13 +97,18 @@ examples:
 
       ...
 
-      Error, ...'
+      Error, ...
+
+      ```'
     octal_definition: 37B9 + 37B
     notes: ''
   mac:
     available: true
-    code: 'MON 37 %Monitor call ReadADChannel.
+    code: '```
 
+      MON 37 %Monitor call ReadADChannel.
+
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'
@@ -115,7 +130,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 393
-  line: 17559
+  line: 17797
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

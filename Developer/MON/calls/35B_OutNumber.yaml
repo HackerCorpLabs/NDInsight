@@ -5,10 +5,8 @@
 octal: 35B
 name: OutNumber
 short_names: []
-description: Writes a number to the user's terminal. The number can be output as an
-  octal or a decimal value.
-notes:
-- The number may be in the range -32768 to 32767.
+description: ''
+notes: []
 see_also:
 - OutMessage
 - OutUpTo8Bytes
@@ -58,8 +56,11 @@ examples:
       OutNumber : EQU 37B9 + 35B
 
 
+      ```
 
-      CALLG OutNumber, 2, Format, Number'
+      CALLG OutNumber, 2, Format, Number
+
+      ```'
     octal_definition: 37B9 + 35B
     notes: ''
   mac:
@@ -101,7 +102,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 381
-  line: 17002
+  line: 17233
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

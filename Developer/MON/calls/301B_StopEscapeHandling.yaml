@@ -22,21 +22,30 @@ examples:
     notes: Not available
   cobol:
     available: true
-    code: 'MONITOR-CALL "StopEscapeHandling".
+    code: '```
+
+      MONITOR-CALL "StopEscapeHandling".
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT 0 GO ....'
+      IF ErrCode NOT 0 GO ....
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'Monitor_Call (''StopEscapeHandling'')
+    code: '```
 
-      IF (ErrCode .NE. 0) THEN...'
+      Monitor_Call (''StopEscapeHandling'')
+
+      IF (ErrCode .NE. 0) THEN...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "ON ROUTINEERROR DO\n   IF ErrCode <> 0 THEN...\nENDON\n...\nMonitor_Call('StopEscapeHandling')"
+    code: "```\nON ROUTINEERROR DO\n   IF ErrCode <> 0 THEN...\nENDON\n...\nMonitor_Call('StopEscapeHandling')\n\
+      ```"
     notes: ''
   assembly_500:
     available: false
@@ -80,7 +89,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 491
-  line: 22071
+  line: 22389
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

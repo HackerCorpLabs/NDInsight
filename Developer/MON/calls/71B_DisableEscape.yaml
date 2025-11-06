@@ -1,0 +1,110 @@
+# SINTRAN III Monitor Call: DisableEscape
+# Octal: 71B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
+
+octal: 71B
+name: DisableEscape
+short_names: []
+description: ''
+notes: []
+see_also:
+- EnableEscape
+- SetEscapeHandling
+- and @DISABLE-ESCAPE-FUNCTION
+references: []
+parameters: []
+examples:
+  pascal:
+    available: true
+    code: '```
+
+      DeviceNumber : INTEGER2;
+
+      ...
+
+      EscapeDisable(DeviceNumber); {Note routine name.}
+
+      ```'
+    notes: ''
+  cobol:
+    available: true
+    code: '```
+
+      01 DeviceNumber COMP.
+
+      ...
+
+      MONITOR-CALL "DisableEscape" USING DeviceNumber.
+
+      ```'
+    notes: ''
+  fortran:
+    available: true
+    code: '```
+
+      INTEGER DeviceNumber
+
+      ...
+
+      Monitor_Call(''DisableEscape'', DeviceNumber)
+
+      ```'
+    notes: ''
+  planc:
+    available: true
+    code: 'INTEGER : DeviceNumber
+
+      ...
+
+      Monitor_Call(''DisableEscape'', DeviceNumber)'
+    notes: ''
+  assembly_500:
+    available: true
+    code: 'DeviceNumber : W BLOCK 1
+
+      DisableEscape : EQU 37B9 + 71B
+
+      ...
+
+      CALLG DisableEscape, 1, DeviceNumber'
+    octal_definition: 37B9 + 71B
+    notes: ''
+  mac:
+    available: true
+    code: 'LDT DEVNO %Logical device number.
+
+      MON 71 %Monitor call DisableEscape.
+
+      ...
+
+      DEVNO, ...
+
+
+      | ND-100 and ND-500 | All users | All programs |'
+    mon_number: 71
+    notes: ''
+compatibility:
+  platforms:
+    nd100: true
+    nd500: true
+  users:
+  - All users
+  programs:
+  - All programs
+  notes: ''
+errors:
+  returns_error: false
+  error_codes: []
+  error_reference: ''
+source:
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 153
+  line: 6706
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
+extraction:
+  date: '2025-01-06'
+  version: '1.0'
+  validated: false
+  ocr_corrected: false
+  ocr_notes: ''

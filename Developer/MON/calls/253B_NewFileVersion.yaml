@@ -5,15 +5,8 @@
 octal: 253B
 name: NewFileVersion
 short_names: []
-description: Creates new versions of a file. You may create new versions for both
-  indexed, contiguous and allocated files.
-notes:
-- You must have directory access to the user area where you create the file. User
-  SYSTEM and RT get the owners access rights.
-- The number following the semicolon in a file name is the version number. For example,
-  TEST:SYMB:4 version 4 of the file.
-- The file must exist in advance.
-- Use DeleteFile to delete file versions.
+description: ''
+notes: []
 see_also:
 - CreateFile
 - '@CREATE-NEW-VERSIONS'
@@ -41,7 +34,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'FileName : PACKED ARRAY [0..63] OF CHAR;
+    code: '```
+
+      FileName : PACKED ARRAY [0..63] OF CHAR;
 
       FirstPage, NoOfPages : LONGINT;
 
@@ -49,11 +44,15 @@ examples:
 
       NewFileVersion(FileName, FirstPage, NoOfPages);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 FileName       PIC X(64).
+    code: '```
+
+      01 FileName       PIC X(64).
 
       01 FirstPage      COMP PIC S9(10).
 
@@ -67,11 +66,15 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'CHARACTER FileName*64
+    code: '```
+
+      CHARACTER FileName*64
 
       INTEGER*4 FirstPage, NoOfPages
 
@@ -79,26 +82,30 @@ examples:
 
       Monitor_Call(''NewFileVersion'', FileName(1:64), FirstPage, NoOfPages)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER4 : FirstPage, NoOfPages\nBYTES : FileName(0:63)\n...\nON ROUTINEERROR\
+    code: "```\nINTEGER4 : FirstPage, NoOfPages\nBYTES : FileName(0:63)\n...\nON ROUTINEERROR\
       \ DO\n   IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('NewFileVersion', FileName,\
-      \ FirstPage, NoOfPages)"
+      \ FirstPage, NoOfPages)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: "FileName : STRINGDATA 'EXAMPLE:SYMB;2'''  %Make a 2nd version of ...\n\
+    code: "```\nFileName : STRINGDATA 'EXAMPLE:SYMB;2'''  %Make a 2nd version of ...\n\
       FirstPage : W BLOCK 1\nNoOfPages : W BLOCK 1\nErrCode : W BLOCK 1          \
       \           % EXAMPLE:SYMB.\nNewFileVersion : EQU 37B9 + 253B\n...\n  CALLG\
       \ NewFileVersion, 3, FileName, FirstPage, NoOfPages\n  IF K GO ERROR\n...\n\
-      ERROR : W1 =: ErrCode                %ErrorCode in W1 register."
+      ERROR : W1 =: ErrCode                %ErrorCode in W1 register.\n```"
     octal_definition: 37B9 + 253B
     notes: ''
   mac:
     available: true
-    code: 'LDX (FILE                       %Address of string containing file name.
+    code: '```
+
+      LDX (FILE                       %Address of string containing file name.
 
       LDD PAGNO                       %Page number of first page.
 
@@ -123,6 +130,7 @@ examples:
 
       ...                             %A double word.
 
+      ```
 
 
 
@@ -145,12 +153,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 351
-  line: 15559
+  line: 15777
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

@@ -50,7 +50,8 @@ examples:
     notes: ''
   planc:
     available: true
-    code: "ON ROUTINEERROR DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('OffEscLocalFunction')"
+    code: "```\nON ROUTINEERROR DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('OffEscLocalFunction')\n\
+      ```"
     notes: ''
   assembly_500:
     available: false
@@ -90,7 +91,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 363
-  line: 16125
+  line: 16343
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

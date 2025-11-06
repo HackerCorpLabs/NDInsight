@@ -1,0 +1,126 @@
+# SINTRAN III Monitor Call: DeletePage
+# Octal: 272B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
+
+octal: 272B
+name: DeletePage
+short_names: []
+description: ''
+notes: []
+see_also:
+- DeleteFile
+references: []
+parameters:
+- name: Param1
+  type: UNKNOWN
+  io: I
+  description: File number.
+- name: Param2
+  type: UNKNOWN
+  io: I
+  description: First page to be deleted.
+- name: Param3
+  type: UNKNOWN
+  io: I
+  description: Last page to be deleted. The value -1 means delete to end of the file.
+- name: Param4
+  type: UNKNOWN
+  io: I
+  description: Number of pages deleted.
+- name: Param5
+  type: UNKNOWN
+  io: I
+  description: Standard Error Code. See appendix A.
+examples:
+  pascal:
+    available: true
+    code: '```
+
+      FileNo : INTEGER2;
+
+      FirstPage, LastPage, NoOfPages : LONGINT;
+
+      ...
+
+      DeletePage(FileNo, FirstPage, LastPage, NoOfPages);
+
+      IF ErrCode <> 0 THEN ...
+
+      ```'
+    notes: ''
+  cobol:
+    available: true
+    code: "```\n01 FileNo COMP.\n01 FirstPage COMP PIC S9(10).\n01 LastPage COMP PIC\
+      \ S9(10).\n01 NoOfPages COMP PIC S9(10).\n    ErrCode COMP.\n    ...\n    MONITOR-CALL\
+      \ \"DeletePage\" USING FileNo, FirstPage, LastPage, NoOfPages.\n    CALL \"\
+      CbError\" USING ErrCode.\n    IF ErrCode NOT = 0 GO ...\n```"
+    notes: ''
+  fortran:
+    available: true
+    code: '```
+
+      INTEGER FileNo
+
+      INTEGER*4 FirstPage, LastPage, NoOfPages
+
+      ...
+
+      Monitor Call1(''DeletePage'', FileNo, FirstPage, LastPage, NoOfPages)
+
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
+    notes: ''
+  planc:
+    available: true
+    code: "```\nINTEGER : FileNo\nINTEGER4 : FirstPage, LastPage, NoOfPages\n...\n\
+      ON ROUTINEERROR DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('DeletePage',\
+      \ FileNo, FirstPage, LastPage, NoOfPages)\n```"
+    notes: ''
+  assembly_500:
+    available: true
+    code: "```\nFileNo : W BLOCK 1\nFirstPage : W BLOCK 1\nLastPage : W BLOCK 1\n\
+      NoOfPages : W BLOCK 1\nErrCode : W BLOCK 1\nDeletePage : EQU 37B9 + 272B\n...\n\
+      CALLG DeletePage, 4, FileNo, FirstPage, LastPage, NoOfPages\n  IF K GO ERROR\n\
+      ...\nERROR : W1 =: ErrCode           %ErrorCode in W1 register.\n```"
+    octal_definition: 37B9 + 272B
+    notes: ''
+  mac:
+    available: true
+    code: "```\nLDT FILNO               %File number.\nLDA (FIRST              %Address\
+      \ of double word with first page.\nLDX (LAST               %Address of double\
+      \ word with last page.\nMON 272                 %Monitor call DeletePage.\n\
+      JMP ERROR               %Error return from monitor call.\nSTD NODEL        \
+      \       %Normal return, store the number of pages deleted.\n\nERROR, ...   \
+      \           %Error number in register A.\n...\nFILNO, ...\nFIRST, ...      \
+      \       %A double word.\n    ...                %\nLAST, ...              %A\
+      \ double word.\n    ...                %\nNODEL, 0               %A double word.\n\
+      0                      %\n```\n\n| ND-100 and ND-500 | All users | All programs\
+      \ |"
+    mon_number: 272
+    notes: ''
+compatibility:
+  platforms:
+    nd100: true
+    nd500: true
+  users:
+  - All users
+  programs:
+  - All programs
+  notes: ''
+errors:
+  returns_error: false
+  error_codes: []
+  error_reference: ''
+source:
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 139
+  line: 5998
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
+extraction:
+  date: '2025-01-06'
+  version: '1.0'
+  validated: false
+  ocr_corrected: false
+  ocr_notes: ''
