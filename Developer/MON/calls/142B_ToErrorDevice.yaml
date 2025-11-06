@@ -111,7 +111,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 543
-  line: 24678
+  line: 25014
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

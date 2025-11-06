@@ -1,0 +1,124 @@
+# SINTRAN III Monitor Call: FixInMemory
+# Octal: 410B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
+
+octal: 410B
+name: FixInMemory
+short_names: []
+description: ''
+notes: []
+see_also:
+- MemoryUnFix
+references: []
+parameters:
+- name: Param1
+  type: UNKNOWN
+  io: I
+  description: Type of fixing. 0 means fix the pages scattered. 1 means fix the pages
+    contiguously and return the start address. 2 means fix at the given memory address.
+- name: Param2
+  type: UNKNOWN
+  io: I
+  description: Start address in your domain. It should be a 32 bit address including
+    the segment number.
+- name: Param3
+  type: UNKNOWN
+  io: I
+  description: Length in bytes. Use -1 to fix the remaining part of the segment.
+- name: Param4
+  type: UNKNOWN
+  io: I
+  description: Physical memory address in the ND-100 if type 1 or 2 is used. The address
+    is the start of a physical page.
+examples:
+  pascal:
+    available: true
+    code: 'FixType, FirstAddr, Length, ND100Addr : LONGINT;
+
+      ...
+
+      FixInMemory(FixType, FirstAddr, Length, ND100Addr);'
+    notes: ''
+  cobol:
+    available: true
+    code: '01 FixType COMP.
+
+      01 FirstAddr COMP.
+
+      01 Length COMP.
+
+      01 ND100Addr COMP.
+
+      ...
+
+      MONITOR-CALL "FixInMemory" USING FixType, FirstAddr, Length, ND100Addr.'
+    notes: ''
+  fortran:
+    available: true
+    code: 'INTEGER FixType, FirstAddr, Length, ND100Addr
+
+      ...
+
+      Monitor_Call(''FixInMemory'', FixType, FirstAddr, Length, ND100Addr)'
+    notes: ''
+  planc:
+    available: true
+    code: 'INTEGER : FixType, FirstAddr, Length, ND100Addr
+
+      ...
+
+      Monitor_Call(''FixInMemory'', FixType, FirstAddr, Length, ND100Addr)'
+    notes: ''
+  assembly_500:
+    available: true
+    code: 'FixType : W BLOCK 1
+
+      FirstAddr : W BLOCK 1
+
+      Length : W BLOCK 1
+
+      ND100Addr : W BLOCK 1
+
+      FixInMemory : EQU 37B9 + 410B
+
+      ...
+
+      CALLG FixInMemory, 4, FixType, FirstAddr, Length, ND100Addr
+
+      IF K GO Error
+
+      ...
+
+      Error, ...'
+    octal_definition: 37B9 + 410B
+    notes: ''
+  mac:
+    available: false
+    code: ''
+    mon_number: null
+    notes: Not available
+compatibility:
+  platforms:
+    nd100: false
+    nd500: true
+  users:
+  - User RT and user SYSTEM
+  programs:
+  - RT programs
+  notes: ''
+errors:
+  returns_error: false
+  error_codes: []
+  error_reference: ''
+source:
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 203
+  line: 8749
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
+extraction:
+  date: '2025-01-06'
+  version: '1.0'
+  validated: false
+  ocr_corrected: false
+  ocr_notes: ''

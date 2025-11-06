@@ -5,15 +5,8 @@
 octal: 316B
 name: SetRemoteAccess
 short_names: []
-description: Switches remote file access on and off. The COSMOS network allows you
-  to access files in remote computers directly. Use DefaultRemoteSystem or QSET-DEFAULT-REMOTE-SYSTEM
-  to specify a default remote system. If a file does not exist in the local system,
-  the default remote system is searched. SetRemoteAccess switches this function on
-  and off.
-notes:
-- You may include a remote system identification in the file name. Only the specified
-  system is searched.
-- This monitor call is only available with COSMOS.
+description: ''
+notes: []
 see_also:
 - QSET-LOCAL-MODE or QSET-REMOTE-MODE
 references: []
@@ -116,7 +109,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 465
-  line: 20902
+  line: 21202
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

@@ -5,11 +5,8 @@
 octal: 234B
 name: SetPeripheralName
 short_names: []
-description: Defines a peripheral file, e.g. a printer. You connect a file name to
-  the logical device number of the peripheral.
-notes:
-- The file name should exist in advance, but with no file type. Otherwise you may
-  include the file name in double quotes ("..."). An empty file type is default.
+description: ''
+notes: []
 see_also:
 - SetTerminalFile
 - '@SET-PERIPHERAL-FILE'
@@ -142,7 +139,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 457
-  line: 20561
+  line: 20852
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

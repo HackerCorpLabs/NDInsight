@@ -5,17 +5,8 @@
 octal: 117B
 name: ReadFromFile
 short_names: []
-description: Reads any number of bytes from a file. The read operation must start
-  at the beginning of a block. The file must be opened for random read access.
-notes:
-- The standard block size is 512 bytes. You can change this with SetBlockSize. The
-  first block is number 0.
-- You may use access code D for direct transfer. Then the block size must be a multiple
-  of the page size. The number of bytes to transfer must be a multiple of the block
-  size.
-- Peripheral files are always read sequentially.
-- Data transfer across segment or RT common limits is illegal as this would be likely
-  to result in inconsistent data.
+description: ''
+notes: []
 see_also:
 - SetStartBlock
 - SetBlockSize
@@ -184,7 +175,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 399
-  line: 17826
+  line: 18074
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

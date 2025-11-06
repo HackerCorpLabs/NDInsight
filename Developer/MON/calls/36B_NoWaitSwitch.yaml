@@ -5,13 +5,8 @@
 octal: 36B
 name: NoWaitSwitch
 short_names: []
-description: Switches No Wait on and off. No Wait is useful for input from, and output
-  to several devices simultaneously. In No Wait, the program does not wait for input
-  or output to complete. Monitor calls like InByte return error code 3 instead.
-notes:
-- '**SuspendProgram** or **WaitForRestart** may passivate the program afterwards.
-  The program restarts when input or output to the device is completed.'
-- For performance reasons, use **TerminalNoWait** (TNOWAI, mon 307) rather than NoWaitSwitch.
+description: ''
+notes: []
 see_also:
 - InByte
 - OutByte
@@ -152,12 +147,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 359
-  line: 15937
+  line: 16159
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

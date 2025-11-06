@@ -5,12 +5,8 @@
 octal: 63B
 name: In4x2Bytes
 short_names: []
-description: Reads 8 bytes from a word-oriented or character-oriented device, e.g.
-  internal devices.
-notes:
-- Do not use this monitor call for terminals.
-- This monitor call was mainly used for SIBAS communication via ND-NET. It is now
-  seldom used.
+description: ''
+notes: []
 see_also:
 - In8Bytes
 - InUpTo8Bytes
@@ -153,7 +149,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 309
-  line: 13603
+  line: 13799
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

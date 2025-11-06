@@ -5,10 +5,8 @@
 octal: 423B
 name: CopyCapability
 short_names: []
-description: Copies a capability for a segment. The segment itself is also copied.
-  A capability describes each logical segment in a domain.
-notes:
-- The destination segment number must be unused.
+description: ''
+notes: []
 see_also:
 - ClearCapability
 references: []
@@ -108,7 +106,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 121
-  line: 5042
+  line: 5087
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

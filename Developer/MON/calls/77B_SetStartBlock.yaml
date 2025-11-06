@@ -5,12 +5,8 @@
 octal: 77B
 name: SetStartBlock
 short_names: []
-description: Sets the next block to be read or written in an opened file. You may
-  access the first bytes in the block with the monitor calls to read and write bytes.
-notes:
-- The standard block size is 512 bytes. This block size is set when the file is opened.
-  You can change this with SetBlockSize.
-- The first block of a file is number 0.
+description: ''
+notes: []
 see_also:
 - SetStartByte
 - '@SET-BLOCK-POINTER. The monitor call is identical to SetStartByte with the block
@@ -135,12 +131,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 469
-  line: 21070
+  line: 21374
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

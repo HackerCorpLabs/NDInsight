@@ -5,8 +5,7 @@
 octal: 405B
 name: SwitchUserBreak
 short_names: []
-description: Switches user-defined escape handling on and off. The user-defined escape
-  handling transfers control to a routine when you press the ESCAPE key.
+description: ''
 notes: []
 see_also:
 - GetUserRegisters
@@ -82,7 +81,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 501
-  line: 22419
+  line: 22746
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

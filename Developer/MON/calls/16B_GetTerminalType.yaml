@@ -5,11 +5,8 @@
 octal: 16B
 name: GetTerminalType
 short_names: []
-description: Gets the terminal type. The terminal type tells SINTRAN III how to handle
-  a particular terminal. A wrong terminal type normally distorts the screen. The function-keys
-  cannot be used.
-notes:
-- Appendix H lists the terminal types.
+description: ''
+notes: []
 see_also:
 - SetTerminalType
 - and @GET-TERMINAL-TYPE
@@ -132,7 +129,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 291
-  line: 12764
+  line: 12941
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

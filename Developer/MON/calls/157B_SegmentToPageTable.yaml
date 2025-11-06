@@ -5,16 +5,8 @@
 octal: 157B
 name: SegmentToPageTable
 short_names: []
-description: Enters a routine as a direct task or as a device driver, and "remembers"
-  which segments have been entered (up to 24 segments). These are reentered at restart
-  following a power failure. The routines are connected to the interrupt system. They
-  are loaded with the RT LOADER or by DMAC.
-notes:
-- The segment where the routine resides must be fixed in memory. See FixScattered.
-- The segments can be removed from the selected PIT by using function 4 of ChangeActiveSegments
-  (MON 341).
-- Unfixing the segment (using UnFixSegment, MON 116), removes it from the Page Index
-  Table.
+description: ''
+notes: []
 see_also:
 - '@ENTSEG'
 references: []
@@ -171,7 +163,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 431
-  line: 19307
+  line: 19576
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

@@ -5,11 +5,8 @@
 octal: 274B
 name: GetFileIndexes
 short_names: []
-description: Gets the directory index, the user index, and the object index of a file.
-  These are indexes in the file system. See the SINTRAN III System Supervisor {ND-830003}
-  for more details.
-notes:
-- The file need not be open.
+description: ''
+notes: []
 see_also:
 - GetAllFileIndexes
 - GetDirUserIndexes
@@ -139,7 +136,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 247
-  line: 10700
+  line: 10835
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

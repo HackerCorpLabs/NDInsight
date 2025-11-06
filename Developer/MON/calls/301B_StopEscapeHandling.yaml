@@ -80,7 +80,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 491
-  line: 22071
+  line: 22389
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

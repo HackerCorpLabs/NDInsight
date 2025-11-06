@@ -5,10 +5,8 @@
 octal: 137B
 name: DisableRTStart
 short_names: []
-description: Disables start of RT programs. No RT program can be started before EnableRTStart
-  is executed.
-notes:
-- RT programs in the time queue will not start. Other active RT programs are not affected.
+description: ''
+notes: []
 see_also:
 - EnableRTStart
 - and @RTOFF
@@ -92,7 +90,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 157
-  line: 6774
+  line: 6841
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

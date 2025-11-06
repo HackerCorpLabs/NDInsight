@@ -5,10 +5,8 @@
 octal: 214B
 name: GetUserName
 short_names: []
-description: Gets the name of a user. The user may be on a remote computer if the
-  COSMOS network is installed. The remote system name is then returned.
-notes:
-- RT programs return the name of user RT.
+description: ''
+notes: []
 see_also:
 - GetUserEntry
 - ExecutionInfo
@@ -106,7 +104,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 299
-  line: 13122
+  line: 13307
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

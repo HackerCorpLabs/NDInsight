@@ -5,14 +5,8 @@
 octal: 241B
 name: NewUser
 short_names: []
-description: Switches the user name you are logged in under. The command is similar
-  to logging out and then logging in as another user. Your program continues under
-  this user name.
-notes:
-- Restore the old user name with OldUser.
-- OldUser always resets the first user name. From the ND-100 you may execute NewUser
-  more than once without OldUser in between. This is not the case from the ND-500.
-- If originally logged in as user RT, it is not possible to log in as user SYSTEM.
+description: ''
+notes: []
 see_also:
 - OldUser
 - '@ENTER'
@@ -168,7 +162,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 353
-  line: 15675
+  line: 15894
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

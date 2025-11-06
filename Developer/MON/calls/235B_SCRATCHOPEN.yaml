@@ -8,151 +8,17 @@ short_names: []
 description: Opens a file as a scratch file. A maximum of 64 pages of the file is
   kept when you close the file. Use SET-CLOSED-FILE-SIZE in the SINTRAN-SERVICE-PROGRAM
   to change this.
-notes:
-- The file is closed as any other opened file.
-see_also:
-- OpenFile
-- SetPermanentOpen
-- DirectOpen
-- CloseFile
-- and @SCRATCH-OPEN
+notes: []
+see_also: []
 references: []
-parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
-  description: File number. Monitor calls for input and output use this number.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: Access code. The legal values are shown below.
-- name: '0'
-  type: Sequential write.
-  io: I
-  description: ''
-- name: '1'
-  type: Sequential read.
-  io: I
-  description: ''
-- name: '2'
-  type: Random read or write.
-  io: I
-  description: ''
-- name: '3'
-  type: Random read only.
-  io: I
-  description: ''
-- name: '4'
-  type: Sequential read or write.
-  io: I
-  description: ''
-- name: '5'
-  type: Sequential write append.
-  io: I
-  description: ''
-- name: '6'
-  type: Random read or write common on contiguous files.
-  io: I
-  description: ''
-- name: '7'
-  type: Random read common on contiguous files.
-  io: I
-  description: ''
-- name: '8'
-  type: Random read or write on contiguous files.
-  io: I
-  description: ''
-- name: '9'
-  type: Random read, write append for WriteToFile and ReadFromFile.
-  io: I
-  description: ''
-- name: Param13
-  type: UNKNOWN
-  io: I
-  description: File name.
-- name: Param14
-  type: UNKNOWN
-  io: I
-  description: Default file type. Do not include the colon.
-- name: Param15
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
-examples:
-  pascal:
-    available: true
-    code: 'FileNo, AccessCode : INTEGER2;
-
-      FileName : PACKED ARRAY [0..63] OF CHAR;
-
-      FileType : PACKED ARRAY [0..3] OF CHAR;
-
-      ...
-
-      ScratchOpen(FileNo, AccessCode, FileName, FileType);
-
-      IF ErrCode <> 0 THEN ...'
-    notes: ''
-  cobol:
-    available: true
-    code: '01 FileNo COMP.
-
-      01 AccessCode COMP.
-
-      01 FileName PIC X(64).
-
-      01 FileType PIC X(4).
-
-      01 ErrCode COMP.
-
-      ...
-
-      MONITOR-CALL "ScratchOpen" USING FileNo, AccessCode, FileName, FileType.
-
-      CALL "CbError" USING ErrCode.
-
-      IF ErrCode NOT = 0 GO ...'
-    notes: ''
-  fortran:
-    available: true
-    code: "INTEGER FileNo, AccessCode\nCHARACTER FileName*64, FileType*4\n...\nMonitor_Call1('ScratchOpen',\
-      \ FileNo, AccessCode, FileName(1:64),\n              FileType(1:4))\nIF (ErrCode\
-      \ .NE. 0) THEN ..."
-    notes: ''
-  planc:
-    available: true
-    code: "INTEGER : FileNo, AccessCode\nBYTES : FileName(0:63), FileType(0:3)\n...\n\
-      ON ROUTINEERROR DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('ScratchOpen',\
-      \ FileNo, AccessCode, FileName, FileType)"
-    notes: ''
-  assembly_500:
-    available: true
-    code: "FileNo : W BLOCK 1\nAccessCode : W BLOCK 1\nFileName : STRINGDATA 'EXAMPLE''\n\
-      FileType : STRINGDATA 'SYMB''\nErrCode : W BLOCK 1\nScratchOpen : EQU 37B9 +\
-      \ 235B\n...\n    CALLG ScratchOpen, 4, FileNo, AccessCode, FileName, FileType\n\
-      \    IF K GO ERROR\n...\nERROR : W1 =: ErrCode                     %ErrorCode\
-      \ in W1 register."
-    octal_definition: 37B9 + 235B
-    notes: ''
-  mac:
-    available: true
-    code: "    LDX (FILE        %Address of file name string.\n    LDA (TYPE     \
-      \   %Address of default file type string.\n    LDT ACODE        %Access code.\n\
-      \    MON 235          %Monitor call ScratchOpen.\n    JMP ERROR        %Error\
-      \ return from monitor call.\n    STA FILNO        %Normal return, store file\
-      \ number.\n...\nERROR, ...         %Error number in register A.\n...\nFILNO,\
-      \ 0\nACODE, ...\nFILE, 'EXAMPLE'    %Open EXAMPLE:SYMB as a scratch file.\n\
-      TYPE, 'SYMB'\n\n\n\n| ND-100 and ND-500 | All users | All programs |"
-    mon_number: 235
-    notes: ''
+parameters: []
+examples: {}
 compatibility:
   platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
+    nd100: false
+    nd500: false
+  users: []
+  programs: []
   notes: ''
 errors:
   returns_error: false
@@ -160,8 +26,8 @@ errors:
   error_reference: ''
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
-  page: 425
-  line: 18978
+  page: 0
+  line: 19238
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

@@ -5,12 +5,8 @@
 octal: 233B
 name: SetTemporaryFile
 short_names: []
-description: Defines a file to store information temporarily. The file can be read
-  once. When it is closed, its contents are deleted. The empty file will still exist.
-notes:
-- GetObjectEntry and @FILE-STATISTICS shows whether a file is temporary or not.
-- Files to be printed are commonly defined as temporary. Their contents exist until
-  they have been printed.
+description: ''
+notes: []
 see_also:
 - CreateFile
 - '@SET-TEMPORARY-FILE'
@@ -110,7 +106,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 473
-  line: 21276
+  line: 21584
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

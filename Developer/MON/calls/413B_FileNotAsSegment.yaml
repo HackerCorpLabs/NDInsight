@@ -5,11 +5,8 @@
 octal: 413B
 name: FileNotAsSegment
 short_names: []
-description: Disconnects a file as a segment in your domain. FileAsSegment allows
-  files to be accessed as segments. This monitor call disconnects the file.
-notes:
-- The file is not closed.
-- The file is automatically disconnected by CloseFile.
+description: ''
+notes: []
 see_also:
 - FileAsSegment
 references: []
@@ -89,7 +86,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 195
-  line: 8275
+  line: 8371
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

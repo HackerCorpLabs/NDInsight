@@ -5,11 +5,8 @@
 octal: 330B
 name: TerminalStatus
 short_names: []
-description: Gets information about a terminal. The user logged in, the time logged
-  in, the CPU time used, the job being executed, and more is returned.
-notes:
-- You may use the monitor call for batch jobs.
-- This call can only be used from background programs, not RT programs.
+description: ''
+notes: []
 see_also:
 - '@TERMINAL-STATUS'
 references: []
@@ -134,12 +131,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 537
-  line: 24370
+  line: 24708
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

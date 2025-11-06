@@ -1,0 +1,30 @@
+# Monitor Call: 56B SetUserParam
+# Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
+# Source lines: 21862-21912
+
+octal: 56B
+name: SetUserParam
+short_names:
+- PASET
+description: 'Sets information about a background program. Use GetUserParam to read
+  the 5 parameters when a program is terminated.
+
+  - SINTRAN III sets some of the parameter values if you give the command @ENABLE-TERMINATION-HANDLING
+  first.
+
+  See also TerminationHandling, GetUserParam, @DEFINE-TERMINATION-HANDLING, @DISABLE-TERMINATION-HANDLING,
+  and @SET-USER-PARAMETERS.'
+parameters: []
+examples: {}
+compatibility:
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: true
+source:
+  document: ND-860228.2 EN
+  page_references: []
+extraction:
+  ocr_corrected: true
+  ocr_notes: Extracted from header without octal (line 21862)

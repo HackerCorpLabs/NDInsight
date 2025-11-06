@@ -5,13 +5,8 @@
 octal: 217B
 name: GetAllFileIndexes
 short_names: []
-description: Gets the directory index, the user index, and the object index of a file.
-  These are indexes in the SINTRAN III File System. Appendix C describes the File
-  System.
-notes:
-- The file must be open.
-- You may get the information if the file is on your local computer, or on a remote
-  computer system if the computers are connected through a COSMOS network.
+description: ''
+notes: []
 see_also:
 - GetDirUserIndexes
 - GetDirNameIndex
@@ -197,12 +192,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 221
-  line: 9340
+  line: 9456
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

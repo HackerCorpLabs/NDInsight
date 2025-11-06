@@ -1,0 +1,38 @@
+# Monitor Call: 251B CopyPage
+# Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
+# Source lines: 5194-5242
+
+octal: 251B
+name: CopyPage
+short_names:
+- COPAG
+description: 'Copies file pages between two opened files. One of the files may be
+  a magnetic tape or floppy disk with volume.
+
+  - This is a special monitor call used by the BACKUP-SYSTEM. No high-level language
+  interface exists. The use of the X and D registers is tailored for reading labels
+  on magnetic tape.
+
+  - Copying stops at end-of-file, a non-existent page, or if a short magnetic tape
+  record is found.
+
+  - CopyPage is only used for sequential copying, i.e., a sequence of CopyPage calls
+  must start with page number zero.
+
+  - Files should be opened for random read or write.
+
+  - Both files must be local files.'
+parameters: []
+examples: {}
+compatibility:
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: true
+source:
+  document: ND-860228.2 EN
+  page_references: []
+extraction:
+  ocr_corrected: true
+  ocr_notes: Extracted from header without octal (line 5194)

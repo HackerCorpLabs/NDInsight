@@ -5,12 +5,8 @@
 octal: 23B
 name: In8Bytes
 short_names: []
-description: Reads 8 bytes from a device. The input is fast, but the monitor call
-  does not apply the defined echo and break setting.
-notes:
-- Do not use this monitor call for terminals and TAD's when echo and break should
-  be applied.
-- Appendix F contains an ASCII table.
+description: ''
+notes: []
 see_also:
 - In8AndFlag
 - InUpTo8Bytes
@@ -176,12 +172,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 313
-  line: 13834
+  line: 14034
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

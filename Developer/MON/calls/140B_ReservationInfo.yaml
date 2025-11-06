@@ -5,11 +5,8 @@
 octal: 140B
 name: ReservationInfo
 short_names: []
-description: Checks that a device is not reserved. If it is reserved, you will receive
-  information about which RT program that reserves it.
-notes:
-- Some devices have both an input and an output part. You have to use ReservationInfo
-  for each part.
+description: ''
+notes: []
 see_also:
 - ReserveResource
 - ReleaseResource
@@ -134,7 +131,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 415
-  line: 18543
+  line: 18798
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

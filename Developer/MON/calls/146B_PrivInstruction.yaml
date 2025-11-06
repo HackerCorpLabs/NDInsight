@@ -5,11 +5,8 @@
 octal: 146B
 name: PrivInstruction
 short_names: []
-description: Executes a privileged machine instruction on the ND-100. Privileged instructions
-  may, for example, turn the paging and interrupt mechanisms on and off.
-notes:
-- The instruction uses the register contents of the calling program. The registers
-  may be changed.
+description: ''
+notes: []
 see_also:
 - IOInstruction
 references: []
@@ -103,7 +100,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 391
-  line: 17481
+  line: 17722
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

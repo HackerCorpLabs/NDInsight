@@ -32,23 +32,7 @@ notes:
 - Standard Error Code. See appendix A.
 see_also: []
 references: []
-parameters:
-- name: Language
-  type: Code
-  io: I
-  description: ''
-- name: PASCAL
-  type: StopProgram; [Note routine name.]
-  io: I
-  description: ''
-- name: COBOL
-  type: MONITOR-CALL "ExitFromProgram".
-  io: I
-  description: ''
-- name: FORTRAN
-  type: Monitor_Call('ExitFromProgram')
-  io: I
-  description: ''
+parameters: []
 examples:
   pascal:
     available: true
@@ -72,10 +56,6 @@ examples:
     code: "INTEGER ExecutionMode, InputDev, OutputDev, UserIndex\nMonitor_Call('ExecutionInfo',\
       \ ExecutionMode, InputDev,\n             OutputDev, UserIndex)\nC IF (ErrCode\
       \ .NE. 0) THEN ..."
-    notes: ''
-  planc:
-    available: true
-    code: Monitor_Call('ExitFromProgram')
     notes: ''
   assembly_500:
     available: true
@@ -133,7 +113,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 183
-  line: 7802
+  line: 7884
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

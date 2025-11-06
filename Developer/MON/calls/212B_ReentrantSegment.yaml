@@ -80,7 +80,7 @@ examples:
 compatibility:
   platforms:
     nd100: true
-    nd500: true
+    nd500: false
   users:
   - All users
   programs:
@@ -93,7 +93,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 407
-  line: 18219
+  line: 18463
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

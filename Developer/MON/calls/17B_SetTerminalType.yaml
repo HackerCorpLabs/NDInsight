@@ -5,14 +5,8 @@
 octal: 17B
 name: SetTerminalType
 short_names: []
-description: Sets the type of a terminal. The terminal type tells SINTRAN III how
-  to handle a particular terminal. A wrong terminal type normally distorts the screen.
-  The function keys cannot be used.
-notes:
-- Appendix H lists the terminal types.
-- Public background users may only set the terminal type for their own terminal. A
-  background program must be run from user SYSTEM or RT to set the terminal type for
-  another terminal.
+description: ''
+notes: []
 see_also:
 - GetTerminalType
 - '@SET-TERMINAL-TYPE'
@@ -137,7 +131,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 477
-  line: 21455
+  line: 21767
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

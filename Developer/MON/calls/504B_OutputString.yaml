@@ -5,11 +5,8 @@
 octal: 504B
 name: OutputString
 short_names: []
-description: Writes a string to a device, e.g. a terminal or an opened file.
-notes:
-- This is the most efficient way to output strings on the ND-500.
-- The maximum string length is 2048 bytes.
-- Appendix F contains an ASCII table.
+description: ''
+notes: []
 see_also:
 - OutMessage
 - OutUpTo8Bytes
@@ -121,7 +118,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 383
-  line: 17075
+  line: 17310
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

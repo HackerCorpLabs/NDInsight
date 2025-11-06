@@ -12,86 +12,16 @@ description: Attaches a reentrant segment to your two current segments. The addr
 notes:
 - The segment is treated as reentrant only for the RT programs which have attached
   it.
-- Parts of the reentrant segment may not be outside the address area of your current
-  segments. OUTSIDE SEGMENT BOUNDS is output if these parts are written to.
-see_also:
-- ReentrantSegment
+see_also: []
 references: []
-parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
-  description: Segment number of the reentrant segment. See @LIST-REENTRANT.
-examples:
-  pascal:
-    available: true
-    code: 'SegmentNumber : INTEGER2;
-
-      ...
-
-      AttachSegment(SegmentNumber);'
-    notes: ''
-  cobol:
-    available: true
-    code: '01 SegmentNumber COMP.
-
-      ...
-
-      MONITOR-CALL "AttachSegment" USING SegmentNumber.'
-    notes: ''
-  fortran:
-    available: true
-    code: 'INTEGER SegmentNumber
-
-      ...
-
-      Monitor_Call(''AttachSegment'', SegmentNumber)'
-    notes: ''
-  planc:
-    available: true
-    code: 'INTEGER : SegmentNumber
-
-      ...
-
-      Monitor_Call(''AttachSegment'', SegmentNumber)'
-    notes: ''
-  assembly_500:
-    available: false
-    code: ''
-    octal_definition: ''
-    notes: Not available
-  mac:
-    available: true
-    code: '| Command | Argument | Description                                      |
-
-      |---------|----------|--------------------------------------------------|
-
-      | LDA     | (PAR     | %Load register A with address of parameter list. |
-
-      | MON     | 167      | %Monitor call AttachSegment.                     |
-
-
-
-      PAR, SEGNO    %Segment number
-
-      ...
-
-      SEGNO, ...
-
-
-
-
-      | ND-100 | All users | All programs |'
-    mon_number: null
-    notes: ''
+parameters: []
+examples: {}
 compatibility:
   platforms:
-    nd100: true
+    nd100: false
     nd500: false
-  users:
-  - All users
-  programs:
-  - All programs
+  users: []
+  programs: []
   notes: ''
 errors:
   returns_error: false
@@ -99,8 +29,8 @@ errors:
   error_reference: ''
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
-  page: 85
-  line: 3416
+  page: 0
+  line: 3424
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

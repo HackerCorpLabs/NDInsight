@@ -5,9 +5,8 @@
 octal: 416B
 name: SaveND500Segment
 short_names: []
-description: Writes all modified pages of a segment back to the disk.
-notes:
-- Not allowed when fixed in memory.
+description: ''
+notes: []
 see_also:
 - SaveSegment
 references: []
@@ -103,7 +102,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 421
-  line: 18810
+  line: 19071
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

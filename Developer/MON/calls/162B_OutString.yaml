@@ -5,17 +5,8 @@
 octal: 162B
 name: OutString
 short_names: []
-description: Writes a string of characters to a peripheral file, e.g., a terminal
-  or a printer.
-notes:
-- You cannot use this monitor call for mass-storage files.
-- The output buffer of the device may be too small. Then the program waits until the
-  required buffer space becomes available.
-- Parameters are fetched and returned through the alternative page table.
-- The maximum string length is 2048 bytes (as in OutputString).
-- For performance reasons, it is inadvisable to use this call from the ND-500(0).
-  Use OutputString instead.
-- Appendix F contains an ASCII table.
+description: ''
+notes: []
 see_also:
 - OutMessage
 - OutUpTo8Bytes
@@ -163,7 +154,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 385
-  line: 17166
+  line: 17406
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

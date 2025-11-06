@@ -5,11 +5,8 @@
 octal: 244B
 name: GetDirEntry
 short_names: []
-description: Gets information about a directory. The directory entry is returned.
-  Appendix C describes the file system in more detail.
-notes:
-- You may access directories on remote systems. The computers must be connected through
-  a COSMOS network.
+description: ''
+notes: []
 see_also:
 - GetDirUserIndexes
 - WriteDirEntry
@@ -132,7 +129,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 233
-  line: 9993
+  line: 10118
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

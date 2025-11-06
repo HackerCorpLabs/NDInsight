@@ -5,8 +5,7 @@
 octal: 332B
 name: TerminalLineInfo
 short_names: []
-description: Gets information about a terminal line. You may also enable programs
-  to continue in spite of errors on the terminal line.
+description: ''
 notes: []
 see_also:
 - TerminalStatus
@@ -154,7 +153,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 531
-  line: 24049
+  line: 24378
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

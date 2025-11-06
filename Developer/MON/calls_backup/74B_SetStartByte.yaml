@@ -1,0 +1,132 @@
+# SINTRAN III Monitor Call: SetStartByte
+# Octal: 74B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
+
+octal: 74B
+name: SetStartByte
+short_names: []
+description: Sets the next byte to be read or written in an opened mass-storage file.
+notes:
+- The bytes in a file are numbered upwards from 0.
+see_also:
+- GetStartByte
+- SetStartBlock
+- SetMaxBytes
+- and @SET-BYTE-POINTER
+references: []
+parameters:
+- name: Param1
+  type: UNKNOWN
+  io: I
+  description: File number. See OpenFile.
+- name: Param2
+  type: UNKNOWN
+  io: I
+  description: Start byte in the file, i.e. number of next byte to be read or written.
+- name: Param3
+  type: UNKNOWN
+  io: I
+  description: Standard Error Code. See appendix A.
+examples:
+  pascal:
+    available: true
+    code: 'FileNumber : INTEGER2;
+
+      BytePointer : LONGINT;
+
+      ...
+
+      SetBytePointer(FileNumber, BytePointer); [Note routine name.]
+
+      IF ErrCode <> 0 THEN ...'
+    notes: ''
+  cobol:
+    available: true
+    code: '01 FileNumber COMP.
+
+      01 BytePointer COMP PIC S9(10).
+
+      01 ErrCode COMP.
+
+      ...
+
+      MONITOR-CALL "SetStartByte" USING FileNumber, BytePointer.
+
+      CALL "CbError" USING ErrCode.
+
+      IF ErrCode NOT = 0 GO ...'
+    notes: ''
+  fortran:
+    available: true
+    code: 'INTEGER FileNumber
+
+      INTEGER*4 BytePointer
+
+      ...
+
+      Monitor_Call(''SetStartByte'', FileNumber, BytePointer)
+
+      IF (ErrCode .NE. 0) THEN ...'
+    notes: ''
+  planc:
+    available: true
+    code: "INTEGER : FileNumber\nINTEGER4 : BytePointer\n...\nON ROUTINEERROR DO\n\
+      \  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('SetStartByte', FileNumber,\
+      \ BytePointer)"
+    notes: ''
+  assembly_500:
+    available: true
+    code: 'FileNumber : W BLOCK 1
+
+      BytePointer : W BLOCK 1
+
+      ErrCode : W BLOCK 1
+
+      SetStartByte : EQU 37B9 + 74B
+
+      ...
+
+      CALLG SetStartByte, 2, FileNumber, BytePointer
+
+      IF K GO ERROR
+
+      ...
+
+      ERROR : W1 =: ErrCode           %ErrorCode in W1 register.'
+    octal_definition: 37B9 + 74B
+    notes: ''
+  mac:
+    available: true
+    code: "LDT    FILNO        %File number returned from earlier open.\nLOD    POINT\
+      \        %Byte pointer.\nMON    74           %Monitor call SetStartByte.\nJMP\
+      \    ERROR        %Error return from monitor call.\n                    ...\
+      \ %Normal return.\nERROR, ...          %Error number in register A.\n...\nFILNO,\
+      \ ...\nPOINT, ...          %A double word.\n                    ... %\n\n\n\n\
+      | ND-100 and ND-500 | All users | All programs |"
+    mon_number: 74
+    notes: ''
+compatibility:
+  platforms:
+    nd100: true
+    nd500: true
+  users:
+  - All users
+  programs:
+  - All programs
+  notes: ''
+errors:
+  returns_error: false
+  error_codes: []
+  error_reference: ''
+source:
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 471
+  line: 21169
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
+extraction:
+  date: '2025-01-06'
+  version: '1.0'
+  validated: false
+  ocr_corrected: true
+  ocr_notes: Header missing octal - reconstructed

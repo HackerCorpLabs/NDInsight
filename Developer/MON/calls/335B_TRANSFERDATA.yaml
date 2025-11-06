@@ -112,8 +112,8 @@ examples:
     notes: ''
 compatibility:
   platforms:
-    nd100: true
-    nd500: false
+    nd100: false
+    nd500: true
   users:
   - All users
   programs:
@@ -126,7 +126,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 545
-  line: 24759
+  line: 25095
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

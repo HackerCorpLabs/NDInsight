@@ -5,12 +5,8 @@
 octal: 112B
 name: AdjustClock
 short_names: []
-description: Sets the computer's clock (i.e. the current system time) forward or back.
-  If the operator panel has a clock, it is also adjusted.
-notes:
-- The startup time for RT programs can be set by StartupTime. When the current system
-  time is modified, the next startup times of periodic programs started by StartupTime
-  are also affected. Other scheduling times are not affected.
+description: ''
+notes: []
 see_also:
 - SetClock
 - GetCurrentTime
@@ -123,7 +119,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 75
-  line: 2945
+  line: 2952
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

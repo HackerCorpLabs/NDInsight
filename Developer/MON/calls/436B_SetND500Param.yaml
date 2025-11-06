@@ -5,11 +5,8 @@
 octal: 436B
 name: SetND500Param
 short_names: []
-description: Sets information about an ND-500 program. Use GetND500Param to read the
-  5 parameters when a program is terminated.
-notes:
-- SINTRAN III sets some of the parameter values if you give the command @ENABLE-TERMINATION-HANDLING
-  first.
+description: ''
+notes: []
 see_also:
 - TerminationHandling
 - GetUserParam
@@ -103,7 +100,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 451
-  line: 20273
+  line: 20558
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

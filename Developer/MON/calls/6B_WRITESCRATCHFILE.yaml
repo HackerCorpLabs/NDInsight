@@ -100,10 +100,12 @@ examples:
     notes: ''
 compatibility:
   platforms:
-    nd100: false
+    nd100: true
     nd500: false
-  users: []
-  programs: []
+  users:
+  - All users
+  programs:
+  - Background programs
   notes: ''
 errors:
   returns_error: false
@@ -112,7 +114,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 567
-  line: 25685
+  line: 26031
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

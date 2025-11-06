@@ -1,0 +1,34 @@
+# Monitor Call: 200B XMSGFunction
+# Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
+# Source lines: 26256-26279
+
+octal: 200B
+name: XMSGFunction
+short_names:
+- XMSG
+description: 'Performs various data communication functions. All types of programs
+  may communicate through this monitor call. The programs may be in different computers
+  in a network.
+
+  - The monitor call operates by sending and receiving messages.
+
+  - The COSMOS Programmer Guide (ND-860164) describes XMSGFunction.
+
+  - The COSMOS Programmer Guide (ND-860164) describes the communication facilities
+  offered to high-level languages.
+
+  See also HDLCFunction.'
+parameters: []
+examples: {}
+compatibility:
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: true
+source:
+  document: ND-860228.2 EN
+  page_references: []
+extraction:
+  ocr_corrected: true
+  ocr_notes: Extracted from header without octal (line 26256)

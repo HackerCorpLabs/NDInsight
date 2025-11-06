@@ -5,13 +5,8 @@
 octal: 122B
 name: ReserveResource
 short_names: []
-description: Reserves a device or file for your program only. You release it with
-  ReleaseResource. Some devices, e.g. terminals, have both an input and output part.
-  You can only reserve one part with each ReserveResource call.
-notes:
-- A normal termination of an RT program releases all resources.
-- Release the device with ReleaseResource or ForceRelease.
-- A background program does not release a resource when you press the ESCAPE key.
+description: ''
+notes: []
 see_also:
 - ForceReserve
 - ReserveDir
@@ -142,7 +137,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 419
-  line: 18721
+  line: 18982
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

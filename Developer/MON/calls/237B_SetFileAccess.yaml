@@ -5,17 +5,8 @@
 octal: 237B
 name: SetFileAccess
 short_names: []
-description: Sets the access protection for a file. You should specify the access
-  for yourself, friends, and other users. The default file access for yourself is
-  full access. Your friends have read access only. Other users have no access.
-notes:
-- You need directory access to a file to change the file access. User SYSTEM and RT
-  may set the access protection for any files.
-- Use the characters R, W, A, C, D, and N to specify the legal file access. R means
-  Read. W means Write. A means Append to the end of a file. C means Common, i.e. more
-  than one user may access the file at a time. D means Directory access, i.e. the
-  file may be deleted, new versions created, etc. N means No access.
-- Use @FILE-STATISTICS to check the file access.
+description: ''
+notes: []
 see_also:
 - CreateFriend
 - SetObjectEntry
@@ -180,7 +171,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 447
-  line: 20064
+  line: 20347
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

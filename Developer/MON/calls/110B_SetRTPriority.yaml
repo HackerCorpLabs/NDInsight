@@ -5,11 +5,8 @@
 octal: 110B
 name: SetRTPriority
 short_names: []
-description: Sets the priority of an RT program. RT programs may be given priorities
-  from 0 to 255. SINTRAN III executes the RT program with the highest priority.
-notes:
-- The priority of background programs vary between 20 and 60.
-- Programs with priority 0 will never start. You may use this to suspend programs.
+description: ''
+notes: []
 see_also:
 - SetND500Priority
 - '@PRIOR'
@@ -126,12 +123,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 467
-  line: 20976
+  line: 21278
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

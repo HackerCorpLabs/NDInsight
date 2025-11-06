@@ -1,0 +1,30 @@
+# Monitor Call: 300B SetEscapeHandling
+# Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
+# Source lines: 20157-20203
+
+octal: 300B
+name: SetEscapeHandling
+short_names:
+- EUSEL
+description: 'Enables user-defined escape handling. When the ESCAPE key is pressed,
+  execution continues at the specified address in your program.
+
+  - Disable the user-defined escape handling with StopEscapeHandling.
+
+  - The normal escape handling is reset when the program aborts.
+
+  See also EnableEscape and OffEscLocalFunction.'
+parameters: []
+examples: {}
+compatibility:
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: true
+source:
+  document: ND-860228.2 EN
+  page_references: []
+extraction:
+  ocr_corrected: true
+  ocr_notes: Extracted from header without octal (line 20157)

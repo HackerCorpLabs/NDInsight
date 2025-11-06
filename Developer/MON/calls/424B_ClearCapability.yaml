@@ -5,11 +5,8 @@
 octal: 424B
 name: ClearCapability
 short_names: []
-description: Clears a capability. A capability describes each logical segment in a
-  domain. The protection of the segment is removed. See the manual ND Linker User
-  Guide and Reference Manual (ND-60289).
-notes:
-- The logical segment is available for other physical segments.
+description: ''
+notes: []
 see_also:
 - CopyCapability
 references: []
@@ -119,7 +116,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 111
-  line: 4543
+  line: 4578
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

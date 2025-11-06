@@ -5,13 +5,8 @@
 octal: 307B
 name: TerminalNoWait
 short_names: []
-description: Switches No Wait on and off. No Wait is useful for input from, and output
-  to, character devices, e.g. terminals. In No Wait, the program does not wait for
-  input or output. Monitor calls like InByte return the error code 3 instead.
-notes:
-- SuspendProgram or WaitForRestart may passivate the program afterwards. The program
-  then restarts when the device detects a break.
-- The input buffer must be emptied before passivating the program.
+description: ''
+notes: []
 see_also:
 - InByte
 - OutByte
@@ -140,7 +135,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 535
-  line: 24272
+  line: 24608
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

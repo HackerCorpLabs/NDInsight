@@ -5,9 +5,7 @@
 octal: 306B
 name: GetTerminalMode
 short_names: []
-description: Gets the terminal mode. The terminal mode tells how the terminal function,
-  i.e. if all letters are converted to uppercase, if output stops when a full page
-  is displayed, etc.
+description: ''
 notes: []
 see_also:
 - TerminalMode
@@ -202,7 +200,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 289
-  line: 12648
+  line: 12821
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

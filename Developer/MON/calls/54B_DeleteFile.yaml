@@ -5,12 +5,8 @@
 octal: 54B
 name: DeleteFile
 short_names: []
-description: Deletes a file. The pages of the file are released.
-notes:
-- You must have directory access to the file in order to delete it. RT programs can
-  delete a file if user RT has directory access to it.
-- Include a version number in the file name to delete specific versions of a file.
-  Otherwise, all versions are deleted.
+description: ''
+notes: []
 see_also:
 - '@DELETE-FILE'
 - '@DELETE-USERS-FILES'
@@ -134,7 +130,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 137
-  line: 5848
+  line: 5904
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

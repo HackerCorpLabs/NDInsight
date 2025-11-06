@@ -5,12 +5,8 @@
 octal: 31B
 name: IOInstruction
 short_names: []
-description: Executes an IOX machine instruction. The IOX instruction handles the
-  device registers. The IOX instruction must be inserted in the IOX table by the SINTRAN-SERVICE-PROGRAM
-  command INSERT-IN-IOX-TABLE first.
-notes:
-- SINTRAN III must know the device register addresses.
-- This monitor call may be used in debugging of device interfaces.
+description: ''
+notes: []
 see_also:
 - PrivInstruction
 - CAMACIOInstruction
@@ -134,7 +130,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 327
-  line: 14600
+  line: 14810
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

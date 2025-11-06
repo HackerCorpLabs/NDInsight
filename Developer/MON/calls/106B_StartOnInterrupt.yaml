@@ -5,14 +5,8 @@
 octal: 106B
 name: StartOnInterrupt
 short_names: []
-description: StartOnInterrupt connects an RT program to interrupts from a device.
-  The RT program starts when an interrupt occurs. Use either WaitForRestart or SuspendProgram
-  to make the program wait.
-notes:
-- You can remove this connection with NoInterruptStart.
-- Several devices may be connected to one program.
-- It is impossible to connect to some devices. Connection can be made if SINTRAN III
-  has been generated with a connect driver routine for the device.
+description: ''
+notes: []
 see_also:
 - NoInterruptStart
 - '@CONCT'
@@ -113,7 +107,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 481
-  line: 21640
+  line: 21955
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

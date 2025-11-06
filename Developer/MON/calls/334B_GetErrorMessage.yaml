@@ -5,12 +5,8 @@
 octal: 334B
 name: GetErrorMessage
 short_names: []
-description: Gets a SINTRAN III error message text. Appendix A shows the messages
-  connected to each error number. The error number is input. The program continues.
-notes:
-- This monitor call is convenient for advanced use of the terminal screen. For example,
-  you may output the error message in inverse video at the bottom line.
-- Do not input error number 0.
+description: ''
+notes: []
 see_also:
 - WarningMessage
 - ErrorMessage. ErrorMessage writes out the error message
@@ -138,12 +134,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 243
-  line: 10515
+  line: 10647
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

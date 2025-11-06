@@ -147,12 +147,10 @@ examples:
     notes: ''
 compatibility:
   platforms:
-    nd100: true
-    nd500: true
-  users:
-  - All users
-  programs:
-  - All programs
+    nd100: false
+    nd500: false
+  users: []
+  programs: []
   notes: ''
 errors:
   returns_error: false
@@ -161,7 +159,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 323
-  line: 14373
+  line: 14575
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

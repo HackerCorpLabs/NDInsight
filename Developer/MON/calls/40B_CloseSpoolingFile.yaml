@@ -5,11 +5,8 @@
 octal: 40B
 name: CloseSpoolingFile
 short_names: []
-description: Appends an opened file to a spooling queue. You specify a text to be
-  printed on the error device when the file is to be printed.
-notes:
-- If the file is not a spooling file, a normal close is performed.
-- Does not work for remote files. For these, a normal close is performed.
+description: ''
+notes: []
 see_also:
 - CloseFile
 - AppendSpooling
@@ -106,7 +103,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 119
-  line: 4917
+  line: 4961
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

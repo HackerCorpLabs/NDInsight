@@ -5,13 +5,8 @@
 octal: 101B
 name: DelayStart
 short_names: []
-description: Starts an RT program after a specified time. The RT program is put in
-  the time queue. It is moved to the execution queue after the specified period.
-notes:
-- RT programs already in the time queue are reinserted according to the new specifications.
-- AdjustClock and @CLADJ do not affect the specified period.
-- A period less than or equal to 0 moves the RT program to the execution queue the
-  next time the basic time unit counter is incremented.
+description: ''
+notes: []
 see_also:
 - '@SET'
 - StartupTime
@@ -129,7 +124,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 135
-  line: 5761
+  line: 5816
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

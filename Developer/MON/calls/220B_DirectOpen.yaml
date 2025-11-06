@@ -5,9 +5,7 @@
 octal: 220B
 name: DirectOpen
 short_names: []
-description: Opens a file. Files must be opened before they can be accessed. For public
-  users this monitor call is identical to OpenFile. User SYSTEM and user RT are given
-  the same access rights as the owner of a file.
+description: ''
 notes: []
 see_also:
 - OpenFile
@@ -185,7 +183,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 151
-  line: 6518
+  line: 6579
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

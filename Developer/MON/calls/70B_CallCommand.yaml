@@ -5,25 +5,8 @@
 octal: 70B
 name: CallCommand
 short_names: []
-description: Executes a SINTRAN III command from a program. The program terminates
-  if an error occurs in the command.
-notes:
-- You are advised to use the newer monitor call, ExecuteCommand (UECOM), instead of
-  CallCommand.
-- Some commands may destroy your program. Use care with commands which affect your
-  program's memory area.
-- Note that the program may terminate if an error occurs. Use ExecuteCommand (UECOM)
-  to avoid this problem.
-- For commands with output, but without an output file as a parameter, e.g. @WHO,
-  output is displayed automatically on the terminal of the user executing the program.
-- Use SuspendProgram to wait a specified time interval between two CallCommands which
-  depend on each other, e.g. CreateFile and OpenFile.
-- 'The following commands are allowed from ND-500 programs: @DATCL, @COPY, @COPY-FILE,
-  @SCHEDULE, @HOLD, @TERMINAL-MODE, @OPERATOR, @WAIT-FOR-OPERATOR, @SET-TERMINAL-TYPE,
-  @GET-TERMINAL-TYPE, @CREATE-FILE, @EXPAND-FILE, @DELETE-FILE, @RENAME-FILE, @LIST-FILE,
-  @FILE-STATISTICS, @OPEN-FILE, @CONNECT-FILE, @SET-FILE-ACCESS, @CLOSE-FILE, @LIST-OPEN-FILE,
-  @SET-BLOCK-SIZE, @SET-PERMANENT-OPEN, @SET-BYTE-POINTER, @SET-BLOCK-POINTER, @APPEND-SPOOLING-FILE,
-  @DELETE-SPOOLING-FILE, @SET-TEMPORARY-FILE, and @SCRATCH-OPEN.'
+description: ''
+notes: []
 see_also:
 - ExecuteCommand
 - SetCommandBuffer. ExecuteCommand does not terminate the program if an error occurs
@@ -112,12 +95,12 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 99
-  line: 4012
+  line: 4042
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
   date: '2025-01-06'
   version: '1.0'
   validated: false
-  ocr_corrected: true
-  ocr_notes: Header missing octal - reconstructed
+  ocr_corrected: false
+  ocr_notes: ''

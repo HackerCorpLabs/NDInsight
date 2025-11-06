@@ -5,10 +5,7 @@
 octal: 505B
 name: GetTrapReason
 short_names: []
-description: Gets the error code from the swapper process. This is only relevant to
-  programmed trap handlers. The swapper process starts the trap handler when it detects
-  a fatal error, e.g. address outside segment. Use this monitor call to get the error
-  code.
+description: ''
 notes:
 - The error code may be a file system error or a swapper error.
 - You clear the error code when you read it.
@@ -80,7 +77,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 295
-  line: 12945
+  line: 13124
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

@@ -5,13 +5,8 @@
 octal: 240B
 name: AppendSpooling
 short_names: []
-description: Prints a file. The printer has a queue of files waiting to be output.
-  The file is appended to this queue. One or more copies can be printed.
-notes:
-- You may connect a text, e.g. INVOICE, to the job. The operator uses the text to
-  select all files to be printed on special paper.
-- 'SINTRAN III, version K, allows both the file and the printer to be on remote systems.
-  The complete standard syntax for remote file specification is as follows:'
+description: ''
+notes: []
 see_also:
 - CloseSpoolingFile
 - '@APPEND-SPOOLING-FILE'
@@ -157,7 +152,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 79
-  line: 3103
+  line: 3114
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

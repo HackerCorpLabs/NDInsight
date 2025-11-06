@@ -5,13 +5,8 @@
 octal: 66B
 name: InBufferSpace
 short_names: []
-description: Gets the current number of bytes in the input buffer. Terminals and other
-  character devices place input in a buffer. All input monitor calls read from this
-  buffer.
-notes:
-- Use ExecutionInfo to get the logical device number for terminals. You can specify
-  1 for your own terminal.
-- The buffer size depends on the device.
+description: ''
+notes: []
 see_also:
 - InBufferState
 - ClearInBuffer
@@ -144,7 +139,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 315
-  line: 13951
+  line: 14153
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

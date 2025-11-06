@@ -5,17 +5,8 @@
 octal: 317B
 name: ExecuteCommand
 short_names: []
-description: Executes a SINTRAN III command. Specify the command name and the parameters
-  as a text string.
-notes:
-- An error message is output if an error occurs. The program does not terminate.
-- Some commands may destroy your program. Commands which affect your program’s memory
-  area should be used with care.
-- Some commands have output, e.g. @LIST-FILES. This is displayed on the terminal.
-- Use SuspendProgram to wait a second between two ExecuteCommands which depend on
-  each other, e.g. CreateFile and OpenFile.
-- It may be advisable to use @enable-escape before this call, to avoid having problems
-  terminating some commands.
+description: ''
+notes: []
 see_also:
 - CallCommand
 - SetCommandBuffer. CallCommand terminates the program if an error occurs
@@ -101,7 +92,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 181
-  line: 7720
+  line: 7809
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

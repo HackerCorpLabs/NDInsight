@@ -5,14 +5,8 @@
 octal: 221B
 name: CreateFile
 short_names: []
-description: Creates a file. The file may be indexed, contiguous, or allocated. Most
-  files are indexed. The size of indexed files expands automatically when written
-  to. Contiguous and allocated files have shorter access time.
-notes:
-- You need directory access to the user who owns the file.
-- User SYSTEM and RT always have the owner's access rights.
-- An indexed file not yet written to may be converted to a contiguous file. Use ExpandFile
-  or @EXPAND-FILE.
+description: ''
+notes: []
 see_also:
 - '@CREATE-FILE'
 - '@ALLOCATE-FILE'
@@ -145,10 +139,12 @@ examples:
     notes: ''
 compatibility:
   platforms:
-    nd100: false
-    nd500: false
-  users: []
-  programs: []
+    nd100: true
+    nd500: true
+  users:
+  - All users
+  programs:
+  - All programs
   notes: ''
 errors:
   returns_error: false
@@ -157,7 +153,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 125
-  line: 5270
+  line: 5319
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

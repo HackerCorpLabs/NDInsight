@@ -5,78 +5,18 @@
 octal: 165B
 name: GETINREGISTERS
 short_names: []
-description: Reads the device interface registers.
+description: ''
 notes: []
-see_also:
-- SetOutRegisters
+see_also: []
 references: []
-parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
-  description: Number of registers.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: Buffer with logical unit.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: Data buffer.
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: Error indicator.
-- name: PASCAL
-  type: ''
-  io: I
-  description: ''
-- name: COBOL
-  type: ''
-  io: I
-  description: ''
-- name: FORTRAN
-  type: ''
-  io: I
-  description: ''
-examples:
-  planc:
-    available: false
-    code: ''
-    notes: Not available
-  assembly_500:
-    available: true
-    code: 'NoOfReg : W BLOCK 1
-
-      Buffer : W BLOCK 1024
-
-      DataBuffer : W BLOCK 1024
-
-      ErrorIndicator : W BLOCK 1
-
-      ...
-
-      GetInRegister : EQU 37B9 + 165B
-
-      CALLG GetInRegister, 4, NoOfReg, Buffer, DataBuffer, ErrorIndicator'
-    octal_definition: 37B9 + 165B
-    notes: ''
-  mac:
-    available: true
-    code: 'Internal usage.
-
-
-      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'
-    mon_number: null
-    notes: ''
+parameters: []
+examples: {}
 compatibility:
   platforms:
-    nd100: true
-    nd500: true
-  users:
-  - User RT and user SYSTEM
-  programs:
-  - RT programs
+    nd100: false
+    nd500: false
+  users: []
+  programs: []
   notes: ''
 errors:
   returns_error: false
@@ -84,8 +24,8 @@ errors:
   error_reference: ''
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
-  page: 253
-  line: 11010
+  page: 0
+  line: 11146
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:
