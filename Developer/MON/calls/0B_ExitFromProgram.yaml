@@ -5,7 +5,14 @@
 octal: 0B
 name: ExitFromProgram
 short_names: []
-description: ''
+description: 'Terminates the program. Returns to SINTRAN III. Batch jobs continues
+  with the next command.
+
+
+  - Background programs close all files not set permanently open. RT programs do not
+  close any files.
+
+  - RT programs release all reserved devices.'
 notes: []
 see_also:
 - ExitRTProgram

@@ -15,27 +15,39 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: 'Command : PACKED ARRAY [0..34] OF CHAR;
+    code: '```
+
+      Command : PACKED ARRAY [0..34] OF CHAR;
 
       ...
 
-      ExecuteCommand(Command);'
+      ExecuteCommand(Command);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 Command    PIC X(35).
+    code: '```
+
+      01 Command    PIC X(35).
 
       ...
 
-      MONITOR-CALL "ExecuteCommand" USING Command.'
+      MONITOR-CALL "ExecuteCommand" USING Command.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'CHARACTER Command*35
+    code: '```
+
+      CHARACTER Command*35
 
       ...
 
-      Monitor_Call(''ExecuteCommand'', Command(1:35))'
+      Monitor_Call(''ExecuteCommand'', Command(1:35))
+
+      ```'
     notes: ''
   planc:
     available: true

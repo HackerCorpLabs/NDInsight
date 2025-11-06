@@ -1,6 +1,6 @@
 # Monitor Call: 7B ReadBlock
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source lines: 17848-17900
+# Source line: 17848
 
 octal: 7B
 name: ReadBlock
@@ -9,10 +9,9 @@ short_names:
 description: 'Reads randomly from a file. You read one block at a time. The file must
   be opened for random read access.
 
-  - The standard block size is 512 bytes. You can change this with `SetBlockSize`.
-  The first block is number 0.
 
-  See also `SetStartBlock`, `SetBlockSize`, `ReadDiskPage`, `ReadFromFile`, and `WriteBlock`.'
+  - The standard block size is 512 bytes. You can change this with `SetBlockSize`.
+  The first block is number 0.'
 parameters: []
 examples: {}
 compatibility:
@@ -26,4 +25,4 @@ source:
   page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: Extracted from header without octal (line 17848)
+  ocr_notes: Extracted from line 17848 - was missing in initial extraction

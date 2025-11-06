@@ -5,7 +5,11 @@
 octal: 113B
 name: GetCurrentTime
 short_names: []
-description: ''
+description: 'Gets the current system time and date.
+
+
+  - The current system time is returned as basic time units, seconds, minutes, hours,
+  day, month, and year.'
 notes: []
 see_also:
 - GetBasicTime
@@ -45,24 +49,32 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'TimeBuffer : record;
+    code: '```
+
+      TimeBuffer : record;
 
       ...
 
-      GetCurrentTime(TimeBuffer);'
+      GetCurrentTime(TimeBuffer);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 TimeBuffer.\n   02 array COMP OCCURS 7 TIMES.\n   ...\nMONITOR-CALL\
-      \ \"GetCurrentTime\" USING TimeBuffer."
+    code: "```\n01 TimeBuffer.\n   02 array COMP OCCURS 7 TIMES.\n   ...\nMONITOR-CALL\
+      \ \"GetCurrentTime\" USING TimeBuffer.\n```"
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER TimeBuffer(7)
+    code: '```
+
+      INTEGER TimeBuffer(7)
 
       ...
 
-      Monitor_Call(''GetCurrentTime'', TimeBuffer(1))'
+      Monitor_Call(''GetCurrentTime'', TimeBuffer(1))
+
+      ```'
     notes: ''
   planc:
     available: true

@@ -21,27 +21,39 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'ProcessNumber : LONGINT;
+    code: '```
+
+      ProcessNumber : LONGINT;
 
       ...
 
-      SwitchProcess(ProcessNumber);'
+      SwitchProcess(ProcessNumber);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 ProcessNumber COMP.
+    code: '```
+
+      01 ProcessNumber COMP.
 
       ...
 
-      MONITOR-CALL "SwitchProcess" USING ProcessNumber.'
+      MONITOR-CALL "SwitchProcess" USING ProcessNumber.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER ProcessNumber
+    code: '```
+
+      INTEGER ProcessNumber
 
       ...
 
-      Monitor_Call(''SwitchProcess'', ProcessNumber)'
+      Monitor_Call(''SwitchProcess'', ProcessNumber)
+
+      ```'
     notes: ''
   planc:
     available: true

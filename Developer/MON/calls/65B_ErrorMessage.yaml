@@ -5,7 +5,14 @@
 octal: 65B
 name: ErrorMessage
 short_names: []
-description: ''
+description: 'Displays a file system error message. Appendix A shows the messages
+  connected to each error number. The error number is input. The program terminates.
+
+
+  - The error message is displayed on the terminal. RT programs write it to the error
+  device. The error device is normally the console.
+
+  - Do not input error number 0.'
 notes: []
 see_also:
 - GetErrorMessage
@@ -16,39 +23,57 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: 'ErrNumber : INTEGER2;
+    code: '```
+
+      ErrNumber : INTEGER2;
 
       ...
 
-      ErrorMessage(ErrNumber);'
+      ErrorMessage(ErrNumber);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 ErrNumber COMP.
+    code: '```
+
+      01 ErrNumber COMP.
 
       ...
 
-      MONITOR-CALL "ErrorMessage" USING ErrNumber.'
+      MONITOR-CALL "ErrorMessage" USING ErrNumber.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER ErrNumber
+    code: '```
+
+      INTEGER ErrNumber
 
       ...
 
-      Monitor_Call(''ErrorMessage'', ErrNumber)'
+      Monitor_Call(''ErrorMessage'', ErrNumber)
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: 'INTEGER : ErrNumber
+    code: '```
+
+      INTEGER : ErrNumber
 
       ...
 
-      Monitor_Call(''ErrorMessage'', ErrNumber)'
+      Monitor_Call(''ErrorMessage'', ErrNumber)
+
+      ```'
     notes: ''
   assembly_500:
     available: true
-    code: 'ErrNumber : W BLOCK 1
+    code: '```
+
+      ErrNumber : W BLOCK 1
 
       ErrorMessage : EQU 37B9 + 65B
 
@@ -60,12 +85,16 @@ examples:
 
       ...
 
-      Error, ...'
+      Error, ...
+
+      ```'
     octal_definition: 37B9 + 65B
     notes: ''
   mac:
     available: true
-    code: 'LDA ERRNO     %Error number of message to be printed.
+    code: '```
+
+      LDA ERRNO     %Error number of message to be printed.
 
       MON 65        %Monitor call ErrorMessage.
 
@@ -73,6 +102,7 @@ examples:
 
       ERRNO, ...
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

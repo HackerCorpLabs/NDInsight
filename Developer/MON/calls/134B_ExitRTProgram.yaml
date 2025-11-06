@@ -5,7 +5,12 @@
 octal: 134B
 name: ExitRTProgram
 short_names: []
-description: ''
+description: 'Terminates the calling RT or background program. Releases all reserved
+  resources. The monitor call has the same effect as exit for interactive background
+  programs.
+
+
+  - Batch jobs are aborted.'
 notes: []
 see_also:
 - ExitFromProgram
@@ -24,7 +29,7 @@ parameters:
   type: UNKNOWN
   io: I
   description: ''
-- name: MONITOR-CALL"ExitRTProgram".
+- name: MONITOR-CALL "ExitRTProgram".
   type: UNKNOWN
   io: I
   description: ''

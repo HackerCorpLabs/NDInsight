@@ -5,7 +5,15 @@
 octal: 507B
 name: SetProcessPriority
 short_names: []
-description: ''
+description: 'Sets the priority for a process in the ND-500. The priorities vary from
+  0 to 255. The process with the highest priority is executed first.
+
+
+  - The priorities of background programs normally vary between 20 and 64. SINTRAN
+  III modifies the priorities all the time. This is done to allow several jobs to
+  share the CPU. Specify 0 to execute a process in the same way.
+
+  - With SetProcessPriority, you may fix the priority.'
 notes: []
 see_also:
 - SetRTPriority
@@ -14,27 +22,39 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: 'NewPriority : LONGINT;
+    code: '```
+
+      NewPriority : LONGINT;
 
       ...
 
-      SetProcessPriority(NewPriority);'
+      SetProcessPriority(NewPriority);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 NewPriority COMP.
+    code: '```
+
+      01 NewPriority COMP.
 
       ...
 
-      MONITOR-CALL "SetProcessPriority" USING NewPriority.'
+      MONITOR-CALL "SetProcessPriority" USING NewPriority.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER NewPriority
+    code: '```
+
+      INTEGER NewPriority
 
       ...
 
-      Monitor_Call(''SetProcessPriority'', NewPriority)'
+      Monitor_Call(''SetProcessPriority'', NewPriority)
+
+      ```'
     notes: ''
   planc:
     available: true

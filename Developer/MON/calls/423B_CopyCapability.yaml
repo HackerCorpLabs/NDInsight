@@ -14,24 +14,24 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: "SourceSegNo, SourceType, DestSegNo, DestType, AccCode, RetSegNo : LONGINT;\n\
-      ...\nCopyCapability(SourceSegNo, SourceType, DestSegNo,\n               DestType,\
-      \ AccCode, RetSegNo)\nIF ErrCode <> 0 THEN ..."
+    code: "```\nSourceSegNo, SourceType, DestSegNo, DestType, AccCode, RetSegNo :\
+      \ LONGINT;\n...\nCopyCapability(SourceSegNo, SourceType, DestSegNo,\n      \
+      \         DestType, AccCode, RetSegNo)\nIF ErrCode <> 0 THEN ...\n```"
     notes: ''
   cobol:
     available: true
-    code: "01  SourceSegNo  COMP.\n01  SourceType   COMP.\n01  DestSegNo    COMP.\n\
+    code: "```\n01  SourceSegNo  COMP.\n01  SourceType   COMP.\n01  DestSegNo    COMP.\n\
       01  DestType     COMP.\n01  AccCode      COMP.\n01  RetSegNo     COMP.\n01 \
       \ ErrCode      COMP.\n...\nMONITOR-CALL \"CopyCapability\" USING SourceSegNo,\
       \ SourceType,\n                             DestSegNo, DestType, AccCode, RetSegNo.\n\
-      CALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
+      CALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
     notes: ''
   fortran:
     available: true
-    code: "INTEGER  SourceSegNo, SourceType, DestSegNo, DestType\nINTEGER  AccCode,\
+    code: "```\nINTEGER  SourceSegNo, SourceType, DestSegNo, DestType\nINTEGER  AccCode,\
       \ RetSegNo\n...\nMonitor_Call('CopyCapability', SourceSegNo, SourceType,\n \
       \            DestSegNo, DestType, AccCode, RetSegNo)\nIF (ErrCode .NE. 0) THEN\
-      \ ..."
+      \ ...\n```"
     notes: ''
   planc:
     available: true

@@ -1,6 +1,6 @@
 # Monitor Call: 171B UserDef1
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source: Combined UserDef section
+# Source line: 25511
 
 octal: 171B
 name: UserDef1
@@ -10,6 +10,7 @@ description: 'User-defined monitor call. You can implement up to 8 monitor calls
   These are named UserDef0, UserDef1,... UserDef7. The short names are US0, US1,...US7.
   To do this you need good knowledge of SINTRAN III. See the SINTRAN III listing parts
   one and two.
+
 
   - Use the DMAC subsystem or the @LOOK-AT command to patch in the MAC instructions
   of your monitor call. Place the code in physical memory after the SINTRAN III symbol
@@ -39,4 +40,4 @@ source:
   page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: Extracted from combined UserDef section (line 25511)
+  ocr_notes: Extracted from line 25511 - was missing in initial extraction

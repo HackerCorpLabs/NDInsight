@@ -5,14 +5,19 @@
 octal: 53B
 name: GetSegmentEntry
 short_names: []
-description: ''
+description: 'Gets information about a segment in the ND-100. The monitor call returns
+  the segment entry. You specify the segment number. See the SINTRAN III Real Time
+  Guide (ND-860133) for further information.
+
+
+  - Use GetSegmentNo to get a segment number from a segment name.'
 notes: []
 see_also:
 - '@LIST-SEGMENT'
 - the SINTRAN-SERVICE-PROGRAM command DUMP-SEGMENT-TABLE-ENTRY
 references: []
 parameters:
-- name: Segmentnumber
+- name: Segment number
   type: Use 0 for RT common. Only the returned segment link, the first physical page,
     and the flag are relevant to RT common.
   io: I
@@ -20,7 +25,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'SegmentNumber : INTEGER2;
+    code: '```
+
+      SegmentNumber : INTEGER2;
 
       Buffer : RECORD...END;
 
@@ -28,17 +35,21 @@ examples:
 
       ReadSegmentEntry(SegmentNumber, Buffer); [Note routine name.]
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 SegmentNumber COMP.\n01 Buffer.\n   02 array COMP OCCURS 5 TIMES.\n\
+    code: "```\n01 SegmentNumber COMP.\n01 Buffer.\n   02 array COMP OCCURS 5 TIMES.\n\
       01 ErrCode COMP.\n...\nMONITOR-CALL \"GetSegmentEntry\" USING SegmentNumber,\
-      \ Buffer.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
+      \ Buffer.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER SegmentNumber
+    code: '```
+
+      INTEGER SegmentNumber
 
       INTEGER Buffer(5)
 
@@ -46,7 +57,9 @@ examples:
 
       Monitor_Call1(''GetSegmentEntry'', SegmentNumber, Buffer(1))
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true

@@ -1,6 +1,6 @@
 # Monitor Call: 327B FileSystemFunction
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source lines: 8436-8495
+# Source line: 8436
 
 octal: 327B
 name: FileSystemFunction
@@ -9,6 +9,7 @@ short_names:
 description: 'Multifunction monitor call to make sure that an uncontrolled system
   stop does not leave the file system inconsistent. The file index block of an open
   file is written back to the disk.
+
 
   - This monitor call is particularly useful for SIBAS and ISAM applications.'
 parameters: []
@@ -24,4 +25,4 @@ source:
   page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: Extracted from header without octal (line 8436)
+  ocr_notes: Extracted from line 8436 - was missing in initial extraction

@@ -27,7 +27,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'FileNumber : INTEGER2;
+    code: '```
+
+      FileNumber : INTEGER2;
 
       Buff : ARRAY [0..1] OF RECORD...END;
 
@@ -35,11 +37,15 @@ examples:
 
       ReadObjectEntry(FileNumber, Buff);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 FileNumber COMP.
+    code: '```
+
+      01 FileNumber COMP.
 
       01 Buff.
 
@@ -53,11 +59,15 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER FileNumber
+    code: '```
+
+      INTEGER FileNumber
 
       INTEGER Buff(32)
 
@@ -65,7 +75,9 @@ examples:
 
       Monitor_Call(''ReadObjectEntry'', FileNumber, Buff(1))
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true

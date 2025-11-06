@@ -5,7 +5,15 @@
 octal: 514B
 name: ND500TimeOut
 short_names: []
-description: ''
+description: 'Suspends the execution of an ND-500 program for a given time. The execution
+  then continues after the monitor call. The program is placed in a time queue in
+  the ND-500, not the ND-100.
+
+
+  - No reserved files or devices are released.
+
+  - Avoid using TimeOut (mon 267) from ND-500, use ND500TimeOut instead. Use TimeOut
+  from ND-100.'
 notes: []
 see_also:
 - TimeOut
@@ -32,15 +40,21 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'NoOfTimeUnits, TimeUnit, ReturnStatus : LONGINT;
+    code: '```
+
+      NoOfTimeUnits, TimeUnit, ReturnStatus : LONGINT;
 
       ...
 
-      ND500TimeOut(NoOfTimeUnits, TimeUnit, ReturnStatus);'
+      ND500TimeOut(NoOfTimeUnits, TimeUnit, ReturnStatus);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 NoOfTimeUnits COMP.
+    code: '```
+
+      01 NoOfTimeUnits COMP.
 
       01 TimeUnit COMP.
 
@@ -48,27 +62,39 @@ examples:
 
       ...
 
-      MONITOR-CALL "ND500TimeOut" USING NoOfTimeUnits, TimeUnit, ReturnStatus.'
+      MONITOR-CALL "ND500TimeOut" USING NoOfTimeUnits, TimeUnit, ReturnStatus.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER NoOfTimeUnits, TimeUnit, ReturnStatus
+    code: '```
+
+      INTEGER NoOfTimeUnits, TimeUnit, ReturnStatus
 
       ...
 
-      Monitor_Call(''ND500TimeOut'', NoOfTimeUnits, TimeUnit, ReturnStatus)'
+      Monitor_Call(''ND500TimeOut'', NoOfTimeUnits, TimeUnit, ReturnStatus)
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: 'INTEGER : NoOfTimeUnits, TimeUnit, ReturnStatus
+    code: '```
+
+      INTEGER : NoOfTimeUnits, TimeUnit, ReturnStatus
 
       ...
 
-      Monitor_Call(''ND500TimeOut'', NoOfTimeUnits, TimeUnit, ReturnStatus)'
+      Monitor_Call(''ND500TimeOut'', NoOfTimeUnits, TimeUnit, ReturnStatus)
+
+      ```'
     notes: ''
   assembly_500:
     available: true
-    code: 'NoOfTimeUnits : W BLOCK 1
+    code: '```
+
+      NoOfTimeUnits : W BLOCK 1
 
       TimeUnit : W BLOCK 1
 
@@ -78,7 +104,9 @@ examples:
 
       ...
 
-      CALLG ND500TimeOut, 3, NoOfTimeUnits, TimeUnit, ReturnStatus'
+      CALLG ND500TimeOut, 3, NoOfTimeUnits, TimeUnit, ReturnStatus
+
+      ```'
     octal_definition: 37B9 + 514B
     notes: ''
   mac:

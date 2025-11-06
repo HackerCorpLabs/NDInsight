@@ -5,7 +5,13 @@
 octal: 330B
 name: TerminalStatus
 short_names: []
-description: ''
+description: 'Gets information about a terminal. The user logged in, the time logged
+  in, the CPU time used, the job being executed, and more is returned.
+
+
+  - You may use the monitor call for batch jobs.
+
+  - This call can only be used from background programs, not RT programs.'
 notes: []
 see_also:
 - '@TERMINAL-STATUS'
@@ -51,7 +57,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DeviceNumber : INTEGER2;
+    code: '```
+
+      DeviceNumber : INTEGER2;
 
       Buffer : ARRAY [0..1] OF RECORD...END;
 
@@ -59,17 +67,21 @@ examples:
 
       TermStatus(DeviceNumber, Buffer);   [Note routine name.]
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 DeviceNumber COMP.\n01 Buffer.\n   02 array COMP OCCURS 22 TIMES.\n\
+    code: "```\n01 DeviceNumber COMP.\n01 Buffer.\n   02 array COMP OCCURS 22 TIMES.\n\
       01 ErrCode COMP.\n...\nMONITOR-CALL \"TerminalStatus\" USING DeviceNumber, Buffer.\n\
-      CALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
+      CALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNumber
+    code: '```
+
+      INTEGER DeviceNumber
 
       INTEGER Buffer(22)
 
@@ -77,24 +89,29 @@ examples:
 
       Monitor_Call(''TerminalStatus'', DeviceNumber, Buffer(1))
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : DeviceNumber\nBYTES : Buffer(0:43)\n...\nON ROUTINEERROR DO\n\
-      \    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('TerminalStatus', DeviceNumber,\
-      \ Buffer(0))"
+    code: "```\nINTEGER : DeviceNumber\nBYTES : Buffer(0:43)\n...\nON ROUTINEERROR\
+      \ DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('TerminalStatus', DeviceNumber,\
+      \ Buffer(0))\n```"
     notes: ''
   assembly_500:
     available: true
-    code: "DeviceNumber : W BLOCK 1\nBuffer : H BLOCK 25B\nErrCode : W BLOCK 1\nTerminalStatus\
-      \ : EQU 37B9 + 330B\n...\nCALLG TerminalStatus, 2, DeviceNumber, Buffer\nIF\
-      \ K GO ERROR\n...\nERROR : W1 =: ErrCode\n       %ErrorCode in W1 register."
+    code: "```\nDeviceNumber : W BLOCK 1\nBuffer : H BLOCK 25B\nErrCode : W BLOCK\
+      \ 1\nTerminalStatus : EQU 37B9 + 330B\n...\nCALLG TerminalStatus, 2, DeviceNumber,\
+      \ Buffer\nIF K GO ERROR\n...\nERROR : W1 =: ErrCode\n       %ErrorCode in W1\
+      \ register.\n```"
     octal_definition: 37B9 + 330B
     notes: ''
   mac:
     available: true
-    code: 'LDT LDN       %Load register T with the logical device number.
+    code: '```
+
+      LDT LDN       %Load register T with the logical device number.
 
       LDA (BUF      %Load register A with address of return buffer.
 
@@ -112,6 +129,7 @@ examples:
 
       STAT, 0
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

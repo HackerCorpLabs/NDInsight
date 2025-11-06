@@ -1,19 +1,17 @@
 # Monitor Call: 34B NormalPageTable
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source lines: 16096-16119
+# Source line: 16096
 
 octal: 34B
 name: NormalPageTable
 short_names:
 - ALTOFF
-description: '**ALTOFF**
+description: '**ALTOFF** Sets the alternative page table equal to the normal page
+  table. All memory addresses are mapped through the normal page table after this
+  monitor call.
 
-  Sets the alternative page table equal to the normal page table. All memory addresses
-  are mapped through the normal page table after this monitor call.
 
-  - Use AltPageTable to set an alternative page table.
-
-  See also AltPageTable and @ALTOFF.'
+  - Use AltPageTable to set an alternative page table.'
 parameters: []
 examples: {}
 compatibility:
@@ -27,4 +25,4 @@ source:
   page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: Extracted from header without octal (line 16096)
+  ocr_notes: Extracted from line 16096 - was missing in initial extraction

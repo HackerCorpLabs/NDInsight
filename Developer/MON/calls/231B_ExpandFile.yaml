@@ -12,22 +12,24 @@ see_also:
 - '@EXPAND-FILE'
 references: []
 parameters:
-- name: Filename
-  type: UNKNOWN
-  io: I
-  description: File name. It may be abbreviated, but this slows down execution.
-- name: Numberofadditionalpages.
+- name: ➙ File name. It may be abbreviated, but this slows down execution.
   type: UNKNOWN
   io: I
   description: ''
-- name: StandardErrorCode
+- name: ➙ Number of additional pages.
   type: UNKNOWN
   io: I
-  description: Standard Error Code. See appendix A.
+  description: ''
+- name: ➙ Standard Error Code. See appendix A.
+  type: UNKNOWN
+  io: I
+  description: ''
 examples:
   pascal:
     available: true
-    code: 'NoOfPages : LONGINT;
+    code: '```
+
+      NoOfPages : LONGINT;
 
       FileName : PACKED ARRAY [0..63] OF CHAR;
 
@@ -35,11 +37,15 @@ examples:
 
       ExpandFile(FileName, NoOfPages);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 NoOfPages COMP PIC S9(10).
+    code: '```
+
+      01 NoOfPages COMP PIC S9(10).
 
       01 FileName PIC X(64).
 
@@ -51,11 +57,15 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER*4 NoOfPages
+    code: '```
+
+      INTEGER*4 NoOfPages
 
       CHARACTER FileName*64
 
@@ -63,23 +73,29 @@ examples:
 
       Monitor_Call(''ExpandFile'', FileName(1:64), NoOfPages)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER4 : NoOfPages\nBYTES : FileName(0:63)\n...\nON ROUTINEERROR DO\n\
-      \    IF ErrCode >‹ O THEN ...\nENDON\nMonitor_Call('ExpandFile', FileName, NoOfPages)"
+    code: "```\nINTEGER4 : NoOfPages\nBYTES : FileName(0:63)\n...\nON ROUTINEERROR\
+      \ DO\n    IF ErrCode >‹ O THEN ...\nENDON\nMonitor_Call('ExpandFile', FileName,\
+      \ NoOfPages)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: "NoOfPages : W BLOCK 1\nFileName : STRING 64\nErrCode : W BLOCK 1\nExpandFile\
-      \ : EQU 37B9 + 231B\n...\n    CALLG ExpandFile, 2, FileName, NoOfPages\n   \
-      \ IF K GO ERROR\n    ...\nERROR : W1 =: ErrCode          %ErrorCode in W1 register."
+    code: "```\nNoOfPages : W BLOCK 1\nFileName : STRING 64\nErrCode : W BLOCK 1\n\
+      ExpandFile : EQU 37B9 + 231B\n...\n    CALLG ExpandFile, 2, FileName, NoOfPages\n\
+      \    IF K GO ERROR\n    ...\nERROR : W1 =: ErrCode          %ErrorCode in W1\
+      \ register.\n```"
     octal_definition: 37B9 + 231B
     notes: ''
   mac:
     available: true
-    code: 'LDX    (FILE    %Address of file name string.
+    code: '```
+
+      LDX    (FILE    %Address of file name string.
 
       LDT    (PAGES   %Address of double word with number of pages.
 
@@ -99,6 +115,7 @@ examples:
 
       ...                    %
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

@@ -5,7 +5,11 @@
 octal: 271B
 name: WriteDiskPage
 short_names: []
-description: ''
+description: 'Writes to one or more pages in a directory. Any page can be written
+  to.
+
+
+  - The directory must be reserved with ReseveDir.'
 notes: []
 see_also:
 - ReadDiskPage
@@ -30,7 +34,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DirIndex, NoOfPages : INTEGER2;
+    code: '```
+
+      DirIndex, NoOfPages : INTEGER2;
 
       Buffer : ARRAY [0..63] OF RECORD...END;
 
@@ -40,18 +46,22 @@ examples:
 
       WriteDiskPage(DirIndex, Buffer, PageAddr, NoOfPages);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 DirIndex COMP.\n01 NoOfPages COMP.\n01 PageAddr COMP PIC S9(10).\n01\
-      \ Buffer.\n   02 array COMP OCCURS 1024 TIMES.\n01 ErrCode COMP.\n   ...\n \
-      \  MONITOR-CALL \"WriteDiskPage\" USING DirIndex, Buffer, PageAddr, NoOfPages.\n\
-      \   CALL \"CbError\" USING ErrCode.\n   IF ErrCode NOT = 0 GO ..."
+    code: "```\n01 DirIndex COMP.\n01 NoOfPages COMP.\n01 PageAddr COMP PIC S9(10).\n\
+      01 Buffer.\n   02 array COMP OCCURS 1024 TIMES.\n01 ErrCode COMP.\n   ...\n\
+      \   MONITOR-CALL \"WriteDiskPage\" USING DirIndex, Buffer, PageAddr, NoOfPages.\n\
+      \   CALL \"CbError\" USING ErrCode.\n   IF ErrCode NOT = 0 GO ...\n```"
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DirIndex, NoOfPages
+    code: '```
+
+      INTEGER DirIndex, NoOfPages
 
       INTEGER*4 PageAddr
 
@@ -61,17 +71,21 @@ examples:
 
       Monitor__Call(''WriteDiskPage'', DirIndex, Buffer(1), PageAddr, NoOfPages)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : DirIndex, NoOfPages\nINTEGER4 : PageAddr\nBYTES : Buffer(0:2047)\n\
+    code: "```\nINTEGER : DirIndex, NoOfPages\nINTEGER4 : PageAddr\nBYTES : Buffer(0:2047)\n\
       ...\nON ROUTINEERROR DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('WriteDiskPage',\
-      \ DirIndex, Buffer(0), PageAddr, NoOfPages)"
+      \ DirIndex, Buffer(0), PageAddr, NoOfPages)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: 'DirIndex : W BLOCK 1
+    code: '```
+
+      DirIndex : W BLOCK 1
 
       PageAddr : W BLOCK 1
 
@@ -91,12 +105,16 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode %ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode %ErrorCode in W1 register.
+
+      ```'
     octal_definition: 37B9 + 271B
     notes: ''
   mac:
     available: true
-    code: 'LDT DIRIX %Directory index.
+    code: '```
+
+      LDT DIRIX %Directory index.
 
       LDX (BUFF %Address of buffer containing data to be written.
 
@@ -128,6 +146,7 @@ examples:
 
       PAGES, 2 %Transfer 2 pages.
 
+      ```
 
 
 

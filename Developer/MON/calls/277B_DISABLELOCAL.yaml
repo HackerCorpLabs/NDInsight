@@ -24,11 +24,11 @@ parameters:
   type: UNKNOWN
   io: I
   description: ''
-- name: LocalDisable;[Noteroutinename.]
+- name: LocalDisable; [Note routine name.]
   type: UNKNOWN
   io: I
   description: ''
-- name: IFErrCode<>0THEN...
+- name: IF ErrCode <> 0 THEN ...
   type: UNKNOWN
   io: I
   description: ''
@@ -36,7 +36,7 @@ parameters:
   type: UNKNOWN
   io: I
   description: ''
-- name: 01ErrCodeCOMP.
+- name: 01 ErrCode COMP.
   type: UNKNOWN
   io: I
   description: ''
@@ -44,15 +44,15 @@ parameters:
   type: UNKNOWN
   io: I
   description: ''
-- name: MONITOR-CALL"DisableLocal".
+- name: MONITOR-CALL "DisableLocal".
   type: UNKNOWN
   io: I
   description: ''
-- name: CALL"CbError"USINGErrCode.
+- name: CALL "CbError" USING ErrCode.
   type: UNKNOWN
   io: I
   description: ''
-- name: IFErrCodeNOT=0GO...
+- name: IF ErrCode NOT = 0 GO ...
   type: UNKNOWN
   io: I
   description: ''
@@ -64,10 +64,10 @@ parameters:
   type: UNKNOWN
   io: I
   description: ''
-- name: IF(ErrCode
+- name: IF (ErrCode .NE. 0) THEN ...
   type: UNKNOWN
   io: I
-  description: IF (ErrCode .NE. 0) THEN ...
+  description: ''
 examples:
   planc:
     available: true

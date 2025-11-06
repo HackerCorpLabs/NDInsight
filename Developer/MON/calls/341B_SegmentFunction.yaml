@@ -68,7 +68,7 @@ parameters:
   type: Register
   io: I
   description: ''
-- name: Functions0and2
+- name: Functions 0 and 2
   type: '(MCALL):'
   io: I
   description: ''
@@ -88,11 +88,11 @@ parameters:
   type: Old PITs if PITs changed (function 2)
   io: I
   description: ''
-- name: Functions1and3
+- name: Functions 1 and 3
   type: '(MEXIT): No register change'
   io: I
   description: ''
-- name: Function4
+- name: Function 4
   type: '(REMSG): A  = 0 : ok'
   io: I
   description: ''

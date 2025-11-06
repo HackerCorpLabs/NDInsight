@@ -5,7 +5,14 @@
 octal: 23B
 name: In8Bytes
 short_names: []
-description: ''
+description: 'Reads 8 bytes from a device. The input is fast, but the monitor call
+  does not apply the defined echo and break setting.
+
+
+  - Do not use this monitor call for terminals and TAD''s when echo and break should
+  be applied.
+
+  - Appendix F contains an ASCII table.'
 notes: []
 see_also:
 - In8AndFlag
@@ -17,27 +24,29 @@ see_also:
 - and Out8Bytes
 references: []
 parameters:
-- name: Logicaldevicenumber
-  type: ''
-  io: I
-  description: Logical device number. See appendix B.
-- name: Numberofbytesread
-  type: ''
-  io: I
-  description: Number of bytes read. If the monitor call is used on a word-oriented
-    device, the number of words is returned.
-- name: Thestringofbytesread.
+- name: Logical device number. See appendix B.
   type: ''
   io: I
   description: ''
-- name: StandardErrorCode
+- name: Number of bytes read. If the monitor call is used on a word-oriented device,
+    the number of words is returned.
   type: ''
   io: I
-  description: Standard Error Code. See appendix A.
+  description: ''
+- name: The string of bytes read.
+  type: ''
+  io: I
+  description: ''
+- name: Standard Error Code. See appendix A.
+  type: ''
+  io: I
+  description: ''
 examples:
   pascal:
     available: true
-    code: 'DeviceNumber, NoOfBytes: INTEGER2;
+    code: '```
+
+      DeviceNumber, NoOfBytes: INTEGER2;
 
       DataRead: PACKED ARRAY [0..7] OF CHAR;
 
@@ -45,11 +54,15 @@ examples:
 
       In8Bytes(DeviceNumber, NoOfBytes, DataRead);
 
-      IF ErrCode <> O THEN ...'
+      IF ErrCode <> O THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DeviceNumber COMP.
+    code: '```
+
+      01 DeviceNumber COMP.
 
       01 NoOfBytes COMP.
 
@@ -63,11 +76,15 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNumber, NoOfBytes
+    code: '```
+
+      INTEGER DeviceNumber, NoOfBytes
 
       CHARACTER DataRead*8
 
@@ -75,17 +92,21 @@ examples:
 
       Monitor_Call(''In8Bytes'', DeviceNumber, NoOfBytes, DataRead(1:8))
 
-      IF (ErrCode .NE. O) THEN ...'
+      IF (ErrCode .NE. O) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : DeviceNumber, NoOfBytes\nBYTES : DataRead(0:7)\n...\nON ROUTINEERROR\
-      \ DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('In8Bytes', DeviceNumber,\
-      \ NoOfBytes, DataRead)"
+    code: "```\nINTEGER : DeviceNumber, NoOfBytes\nBYTES : DataRead(0:7)\n...\nON\
+      \ ROUTINEERROR DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('In8Bytes',\
+      \ DeviceNumber, NoOfBytes, DataRead)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: 'DeviceNumber : W BLOCK 1
+    code: '```
+
+      DeviceNumber : W BLOCK 1
 
       NoOfBytes : W BLOCK 1
 
@@ -105,6 +126,7 @@ examples:
 
       ERROR : W1 =: ErrCode
 
+      ```
 
 
       %ErrorCode in W1 register.'
@@ -112,7 +134,9 @@ examples:
     notes: ''
   mac:
     available: true
-    code: 'LDT DEVNO         %Logical device number.
+    code: '```
+
+      LDT DEVNO         %Logical device number.
 
       MON 23            %Monitor call In8Bytes.
 
@@ -146,6 +170,7 @@ examples:
 
       0
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |

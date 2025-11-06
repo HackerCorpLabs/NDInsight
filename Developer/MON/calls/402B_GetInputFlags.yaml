@@ -19,27 +19,39 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'Value : LONGINT;
+    code: '```
+
+      Value : LONGINT;
 
       ...
 
-      GetInputFlags(Value);'
+      GetInputFlags(Value);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 Value COMP.
+    code: '```
+
+      01 Value COMP.
 
       ...
 
-      MONITOR-CALL "GetInputFlags" USING Value.'
+      MONITOR-CALL "GetInputFlags" USING Value.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER Value
+    code: '```
+
+      INTEGER Value
 
       ...
 
-      Monitor_Call(''GetInputFlags'', Value)'
+      Monitor_Call(''GetInputFlags'', Value)
+
+      ```'
     notes: ''
   planc:
     available: true

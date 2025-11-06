@@ -5,7 +5,13 @@
 octal: 24B
 name: Out8Bytes
 short_names: []
-description: ''
+description: 'Writes 8 bytes to a character device, e.g. a terminal. All 8 bytes are
+  output. OutUpTo8Bytes stops if a byte is 0.
+
+
+  - On the ND-500, you are advised to use the faster OutputString.
+
+  - Appendix F contains an ASCII table.'
 notes: []
 see_also:
 - OutUpTo8Bytes
@@ -17,22 +23,24 @@ see_also:
 - and In8Bytes
 references: []
 parameters:
-- name: Logicaldevicenumber
+- name: Logical device number
   type: See appendix B.
   io: I
   description: ''
-- name: Thestringofbytestobewritten
+- name: The string of bytes to be written
   type: ''
   io: I
   description: ''
-- name: StandardErrorCode
+- name: Standard Error Code
   type: See appendix A.
   io: I
   description: ''
 examples:
   pascal:
     available: true
-    code: 'DeviceNumber : INTEGER2;
+    code: '```
+
+      DeviceNumber : INTEGER2;
 
       OutData : RECORD...END;
 
@@ -40,11 +48,15 @@ examples:
 
       Out8Bytes(DeviceNumber, OutData);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DeviceNumber COMP.
+    code: '```
+
+      01 DeviceNumber COMP.
 
       01 OutData PIC X(8).
 
@@ -56,11 +68,15 @@ examples:
 
       CALL "CBerror" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNumber
+    code: '```
+
+      INTEGER DeviceNumber
 
       CHARACTER OutData*8
 
@@ -68,24 +84,29 @@ examples:
 
       Monitor_Call(''Out8Bytes'', DeviceNumber, OutData(1:8))
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : DeviceNumber\nBYTES : OutData(0:7)\n...\nON ROUTINEERROR DO\n\
-      \  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('Out8Bytes', DeviceNumber, OutData)"
+    code: "```\nINTEGER : DeviceNumber\nBYTES : OutData(0:7)\n...\nON ROUTINEERROR\
+      \ DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('Out8Bytes', DeviceNumber,\
+      \ OutData)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: "DeviceNumber : W BLOCK 1\nOutData : STRINGDATA 'HELLO!!!'\nErrCode : W\
-      \ BLOCK 1\nOut8Bytes : EQU 37B9 + 24B\n...\n  CALLG Out8Bytes, 2, DeviceNumber,\
+    code: "```\nDeviceNumber : W BLOCK 1\nOutData : STRINGDATA 'HELLO!!!'\nErrCode\
+      \ : W BLOCK 1\nOut8Bytes : EQU 37B9 + 24B\n...\n  CALLG Out8Bytes, 2, DeviceNumber,\
       \ OutData\n  IF K GO ERROR\n...\nERROR : W1 =: ErrCode          %ErrorCode in\
-      \ W1 register."
+      \ W1 register.\n```"
     octal_definition: 37B9 + 24B
     notes: ''
   mac:
     available: true
-    code: 'LDT DEVNO          %Logical device address.
+    code: '```
+
+      LDT DEVNO          %Logical device address.
 
       LDD BYTES          %First 4 bytes to be written.
 
@@ -109,6 +130,7 @@ examples:
 
       BYTES, ''HELLO!!!''
 
+      ```
 
 
 

@@ -5,7 +5,12 @@
 octal: 116B
 name: UnfixSegment
 short_names: []
-description: ''
+description: 'Releases a fixed segment and removes it from the Page Index Table (PIT).
+  Its pages may then be swapped from physical memory to the disk. Use FixScattered
+  or FixContiguous to fix the segment.
+
+
+  - You must use UnFixSegment or @UNFIX to allow the RT-LOADER to clear the segment.'
 notes: []
 see_also:
 - FixInMemory
@@ -21,27 +26,39 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'SegmentNumber : INTEGER2;
+    code: '```
+
+      SegmentNumber : INTEGER2;
 
       ...
 
-      UnFixSegment(SegmentNumber);'
+      UnFixSegment(SegmentNumber);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 SegmentNumber COMP.
+    code: '```
+
+      01 SegmentNumber COMP.
 
       ...
 
-      MONITOR-CALL "UnfixSegment" USING SegmentNumber.'
+      MONITOR-CALL "UnfixSegment" USING SegmentNumber.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER SegmentNumber
+    code: '```
+
+      INTEGER SegmentNumber
 
       ...
 
-      Monitor_Call(''UnfixSegment'', SegmentNumber)'
+      Monitor_Call(''UnfixSegment'', SegmentNumber)
+
+      ```'
     notes: ''
   planc:
     available: true

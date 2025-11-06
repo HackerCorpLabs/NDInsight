@@ -11,32 +11,38 @@ see_also:
 - CopyCapability
 references: []
 parameters:
-- name: Logicalsegmentnumberinyourdomain.
+- name: Logical segment number in your domain.
   type: Logical segment number in your domain.
   io: I
   description: ''
-- name: Segmenttype
+- name: Segment type. Use 0 for data segments, and 1 for program segments.
   type: Segment type. Use 0 for data segments, and 1 for program segments.
   io: I
-  description: Segment type. Use 0 for data segments, and 1 for program segments.
-- name: StandardErrorCode
+  description: ''
+- name: Standard Error Code. See appendix A.
   type: Standard Error Code. See appendix A.
   io: I
-  description: Standard Error Code. See appendix A.
+  description: ''
 examples:
   pascal:
     available: true
-    code: 'LogicalSegmentNo, SegType : LONGINT;
+    code: '```
+
+      LogicalSegmentNo, SegType : LONGINT;
 
       ...
 
       ClearCapability(LogicalSegmentNo, SegType);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 LogicalSegmentNo COMP.
+    code: '```
+
+      01 LogicalSegmentNo COMP.
 
       01 SegType COMP.
 
@@ -48,17 +54,23 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER LogicalSegmentNo, SegType
+    code: '```
+
+      INTEGER LogicalSegmentNo, SegType
 
       ...
 
       Monitor_Call(''ClearCapability'', LogicalSegmentNo, SegType)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true

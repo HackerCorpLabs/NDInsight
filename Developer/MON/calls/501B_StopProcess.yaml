@@ -5,7 +5,14 @@
 octal: 501B
 name: StopProcess
 short_names: []
-description: ''
+description: 'Sets the current process in a wait state. StartProcess restarts the
+  process. Execution continues after the monitor call. The ESCAPE key terminates the
+  waiting program.
+
+
+  - The process restarts immediately if it is scheduled for repeated execution.
+
+  - Use ExitFromProgram to terminate the execution.'
 notes: []
 see_also:
 - StartProcess
@@ -19,11 +26,19 @@ examples:
     notes: Not available
   cobol:
     available: true
-    code: MONITOR-CALL "StopProcess"
+    code: '```
+
+      MONITOR-CALL "StopProcess"
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: Monitor_Call('StopProcess')
+    code: '```
+
+      Monitor_Call(''StopProcess'')
+
+      ```'
     notes: ''
   planc:
     available: true

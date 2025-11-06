@@ -1,6 +1,6 @@
 # Monitor Call: 10B WriteBlock
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source lines: 25698-25752
+# Source line: 25698
 
 octal: 10B
 name: WriteBlock
@@ -9,11 +9,9 @@ short_names:
 description: 'Writes randomly to a file. You write one block at a time. The file must
   be opened for random write access.
 
-  - The standard block size is 512 bytes. You can change this with SetBlockSize. The
-  first block is number 0.
 
-  See also SetStartBlock, SetBlockSize, WriteDiskPage, WriteFromFile, and ReadBlock.
-  WriteFromFile is the most efficient way to read randomly.'
+  - The standard block size is 512 bytes. You can change this with SetBlockSize. The
+  first block is number 0.'
 parameters: []
 examples: {}
 compatibility:
@@ -27,4 +25,4 @@ source:
   page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: Extracted from header without octal (line 25698)
+  ocr_notes: Extracted from line 25698 - was missing in initial extraction

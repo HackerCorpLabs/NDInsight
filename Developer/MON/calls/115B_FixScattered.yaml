@@ -23,50 +23,72 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'SegmentNumber : INTEGER2;
+    code: '```
+
+      SegmentNumber : INTEGER2;
 
       ...
 
-      FixScattered(SegmentNumber);'
+      FixScattered(SegmentNumber);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 SegmentNumber COMP.
+    code: '```
+
+      01 SegmentNumber COMP.
 
       ...
 
-      MONITOR-CALL "FixScattered" USING SegmentNumber.'
+      MONITOR-CALL "FixScattered" USING SegmentNumber.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER SegmentNumber
+    code: '```
+
+      INTEGER SegmentNumber
 
       ...
 
-      Monitor_Call(''FixScattered'', SegmentNumber)'
+      Monitor_Call(''FixScattered'', SegmentNumber)
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: 'INTEGER : SegmentNumber
+    code: '```
+
+      INTEGER : SegmentNumber
 
       ...
 
-      Monitor_Call(''FixScattered'', SegmentNumber)'
+      Monitor_Call(''FixScattered'', SegmentNumber)
+
+      ```'
     notes: ''
   assembly_500:
     available: true
-    code: 'SegmentNumber : W BLOCK 1
+    code: '```
+
+      SegmentNumber : W BLOCK 1
 
       FixScattered : EQU 37B9 + 115B
 
       ...
 
-      CALLG FixScattered, 1, SegmentNumber'
+      CALLG FixScattered, 1, SegmentNumber
+
+      ```'
     octal_definition: 37B9 + 115B
     notes: ''
   mac:
     available: true
-    code: 'LDA  (PAR   %Load register A with address of parameter list.
+    code: '```
+
+      LDA  (PAR   %Load register A with address of parameter list.
 
       MON  115   %Monitor call FixScattered
 
@@ -78,6 +100,7 @@ examples:
 
       SEGNO, ...
 
+      ```
 
 
 

@@ -32,27 +32,39 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'PageTableNumber : INTEGER2;
+    code: '```
+
+      PageTableNumber : INTEGER2;
 
       ...
 
-      AltPageTable(PageTableNumber);'
+      AltPageTable(PageTableNumber);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 PageTableNumber COMP.
+    code: '```
+
+      01 PageTableNumber COMP.
 
       ...
 
-      MONITOR-CALL "AltPageTable" USING PageTableNumber.'
+      MONITOR-CALL "AltPageTable" USING PageTableNumber.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER PageTableNumber
+    code: '```
+
+      INTEGER PageTableNumber
 
       ...
 
-      Monitor_Call(''AltPageTable'', PageTableNumber)'
+      Monitor_Call(''AltPageTable'', PageTableNumber)
+
+      ```'
     notes: ''
   planc:
     available: true

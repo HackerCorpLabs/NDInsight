@@ -15,27 +15,29 @@ see_also:
 - and Out8Bytes
 references: []
 parameters:
-- name: Logicaldevicenumber
-  type: ''
-  io: I
-  description: Logical device number. See appendix B.
-- name: Numberofbytesread
-  type: ''
-  io: I
-  description: Number of bytes read. If you use the monitor call on a word-oriented
-    device, it returns the number of words read.
-- name: The8bytes.
+- name: Logical device number. See appendix B.
   type: ''
   io: I
   description: ''
-- name: StandardErrorCode
+- name: Number of bytes read. If you use the monitor call on a word-oriented device,
+    it returns the number of words read.
   type: ''
   io: I
-  description: Standard Error Code. See appendix A.
+  description: ''
+- name: The 8 bytes.
+  type: ''
+  io: I
+  description: ''
+- name: Standard Error Code. See appendix A.
+  type: ''
+  io: I
+  description: ''
 examples:
   pascal:
     available: true
-    code: 'DeviceNumber, NoOfBytes : INTEGER2;
+    code: '```
+
+      DeviceNumber, NoOfBytes : INTEGER2;
 
       InData : RECORD...END;
 
@@ -43,11 +45,15 @@ examples:
 
       InUpTo8Bytes(DeviceNumber, NoOfBytes, InData);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DeviceNumber  COMP.
+    code: '```
+
+      01 DeviceNumber  COMP.
 
       01 NoOfBytes     COMP.
 
@@ -61,11 +67,15 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER  DeviceNumber, NoOfBytes
+    code: '```
+
+      INTEGER  DeviceNumber, NoOfBytes
 
       CHARACTER InData*8
 
@@ -73,7 +83,9 @@ examples:
 
       Monitor_Call(''InUpTo8Bytes'', DeviceNumber, NoOfBytes, InData(1:8))
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true

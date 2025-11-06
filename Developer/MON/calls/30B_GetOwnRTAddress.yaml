@@ -5,7 +5,8 @@
 octal: 30B
 name: GetOwnRTAddress
 short_names: []
-description: ''
+description: Gets the address of the calling program's RT description. Background
+  programs get the RT description address of the RT program which controls the terminal.
 notes: []
 see_also:
 - GetRTAddress
@@ -21,27 +22,39 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'RTDescrAddress : INTEGER2;
+    code: '```
+
+      RTDescrAddress : INTEGER2;
 
       ...
 
-      GetOwnRTAddress(RTDescrAddress);'
+      GetOwnRTAddress(RTDescrAddress);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 RTDescrAddress COMP.
+    code: '```
+
+      01 RTDescrAddress COMP.
 
       ...
 
-      MONITOR-CALL "GetOwnRTAddress" USING RTDescrAddress.'
+      MONITOR-CALL "GetOwnRTAddress" USING RTDescrAddress.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER RTDescrAddress
+    code: '```
+
+      INTEGER RTDescrAddress
 
       ...
 
-      Monitor_Call(''GetOwnRTAddress'', RTDescrAddress)'
+      Monitor_Call(''GetOwnRTAddress'', RTDescrAddress)
+
+      ```'
     notes: ''
   planc:
     available: true

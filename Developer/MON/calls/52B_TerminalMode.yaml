@@ -5,7 +5,13 @@
 octal: 52B
 name: TerminalMode
 short_names: []
-description: ''
+description: 'Selects various terminal functions. You may stop output on full page.
+  Input may be converted to uppercase letters. A delay after carriage return can be
+  set. You may also set automatic logout if the line between the terminal and the
+  computer is broken.
+
+
+  - Terminal mode can also be set on TADs.'
 notes: []
 see_also:
 - GetTerminalMode
@@ -21,7 +27,7 @@ parameters:
   type: UNKNOWN
   io: I
   description: The terminal mode. The numbers below are used.
-- name: Terminalmode
+- name: Terminal mode
   type: Capital letters?
   io: Delay after return?
   description: Stop on full page?

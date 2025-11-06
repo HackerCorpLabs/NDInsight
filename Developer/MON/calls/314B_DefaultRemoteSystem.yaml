@@ -5,37 +5,47 @@
 octal: 314B
 name: DefaultRemoteSystem
 short_names: []
-description: ''
+description: 'Sets default values for COSMOS remote file access. You can specify the
+  default remote system, the remote user, and the remote user''s passwords. The specified
+  values are used when you omit values in a remote file access.
+
+
+  - Empty parameters remove previous default values. Default values are then the local
+  user''s name and passwords.
+
+  - SetRemoteMode switches the remote search on and off.'
 notes: []
 see_also:
 - '@SET-DEFAULT-REMOTE-SYSTEM'
 - '@RESET-DEFAULT-REMOTE-SYSTEM'
 references: []
 parameters:
-- name: ➞Remotesystemname.
+- name: ➞ Remote system name.
   type: ''
   io: I
   description: ''
-- name: ➞Userowningthefilesintheremotesystem.
+- name: ➞ User owning the files in the remote system.
   type: ''
   io: I
   description: ''
-- name: ➞Theuser'spassword.
+- name: ➞ The user's password.
   type: ''
   io: I
   description: ''
-- name: ➞Theuser'sprojectpassword.
+- name: ➞ The user's project password.
   type: ''
   io: I
   description: ''
-- name: ➞StandardErrorCode
+- name: ➞ Standard Error Code. See appendix A.
   type: ''
   io: I
-  description: ➞ Standard Error Code. See appendix A.
+  description: ''
 examples:
   pascal:
     available: true
-    code: 'SystemName: PACKED ARRAY [0..15] OF CHAR;
+    code: '```
+
+      SystemName: PACKED ARRAY [0..15] OF CHAR;
 
       UserName, Password, ProjPassword : PACKED ARRAY [0..15] OF CHAR;
 
@@ -44,20 +54,23 @@ examples:
 
       DefaultRemoteSystem(SystemName, UserName, Password, ProjPassword);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 SystemName PIC X(16).\n01 UserName   PIC X(16).\n01 Password   PIC X(16).\n\
-      01 ProjPassword PIC X(16).\n01 ErrCode COMP.\n...\n\nMONITOR-CALL \"DefaultRemoteSystem\"\
-      \ USING SystemName, UserName,\n                                      Password,\
-      \ ProjPassword.\n\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
+    code: "```\n01 SystemName PIC X(16).\n01 UserName   PIC X(16).\n01 Password  \
+      \ PIC X(16).\n01 ProjPassword PIC X(16).\n01 ErrCode COMP.\n...\n\nMONITOR-CALL\
+      \ \"DefaultRemoteSystem\" USING SystemName, UserName,\n                    \
+      \                  Password, ProjPassword.\n\nCALL \"CbError\" USING ErrCode.\n\
+      IF ErrCode NOT = 0 GO ...\n```"
     notes: ''
   fortran:
     available: true
-    code: "CHARACTER SystemName*16\nCHARACTER UserName*16, Password*16, ProjPassword*16\n\
+    code: "```\nCHARACTER SystemName*16\nCHARACTER UserName*16, Password*16, ProjPassword*16\n\
       ...\nMonitor_Call('DefaultRemoteSystem', SystemName(1:16),\n             UserName(1:16),\
-      \ Password(1:16), ProjPassword(1:16))\nIF (ErrCode .NE. 0) THEN ..."
+      \ Password(1:16), ProjPassword(1:16))\nIF (ErrCode .NE. 0) THEN ...\n```"
     notes: ''
   planc:
     available: true

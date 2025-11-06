@@ -1,6 +1,6 @@
 # Monitor Call: 206B TerminationHandling
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source lines: 24816-24857
+# Source line: 24816
 
 octal: 206B
 name: TerminationHandling
@@ -8,10 +8,9 @@ short_names:
 - EDTMP
 description: 'Switches termination handling on and off.
 
-  - Termination handling for RT programs is either on or off. Background programs
-  may have termination handling on or off for either user break or fatal errors.
 
-  See also @ENABLE-TERMINATION-HANDLING and @DISABLE-TERMINATION-HANDLING.'
+  - Termination handling for RT programs is either on or off. Background programs
+  may have termination handling on or off for either user break or fatal errors.'
 parameters: []
 examples: {}
 compatibility:
@@ -25,4 +24,4 @@ source:
   page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: Extracted from header without octal (line 24816)
+  ocr_notes: Extracted from line 24816 - was missing in initial extraction

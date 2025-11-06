@@ -1,6 +1,6 @@
 # Monitor Call: 257B OpenFileInfo
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source lines: 16701-16759
+# Source line: 16701
 
 octal: 257B
 name: OpenFileInfo
@@ -20,4 +20,4 @@ source:
   page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: Extracted from header without octal (line 16701)
+  ocr_notes: Extracted from line 16701 - was missing in initial extraction

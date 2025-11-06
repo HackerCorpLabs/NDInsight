@@ -5,7 +5,15 @@
 octal: 437B
 name: GetND500Param
 short_names: []
-description: ''
+description: 'Gets information about why the last ND-500 program terminated. There
+  are five parameters for each background user. These can be set by SINTRAN III or
+  your background program.
+
+
+  - Use SetND500Param to set the parameter values.
+
+  - SINTRAN III sets some of the parameter values if you give the command @ENABLE-TERMINATION-HANDLING
+  first.'
 notes: []
 see_also:
 - TerminationHandling
@@ -38,24 +46,32 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'Buffer : RECORD...END;
+    code: '```
+
+      Buffer : RECORD...END;
 
       ...
 
-      GetND500Param(Buffer);'
+      GetND500Param(Buffer);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 Buffer.\n   02 array COMP OCCURS 5 TIMES.\n   ...\n   MONITOR-CALL \"\
-      GetND500Param\" USING Buffer."
+    code: "```\n01 Buffer.\n   02 array COMP OCCURS 5 TIMES.\n   ...\n   MONITOR-CALL\
+      \ \"GetND500Param\" USING Buffer.\n```"
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER Buffer(5)
+    code: '```
+
+      INTEGER Buffer(5)
 
       ...
 
-      Monitor_Call(''GetND500Param'', Buffer(1))'
+      Monitor_Call(''GetND500Param'', Buffer(1))
+
+      ```'
     notes: ''
   planc:
     available: true

@@ -5,7 +5,17 @@
 octal: 123B
 name: ReleaseResource
 short_names: []
-description: ''
+description: 'Releases a reserved device or file. The resource can then be used by
+  another program. You reserve a device or opened file with ReserveResource. Some
+  devices, e.g. terminals, have both an input and output part. You can only release
+  one part with each ReleaseResource.
+
+
+  - A normal termination of an RT program release all resources.
+
+  - Reserve the device with ReserveResource or ForceReserve.
+
+  - CloseFile or @CLOSE-FILE releases reserved files.'
 notes: []
 see_also:
 - ForceRelease
@@ -28,29 +38,41 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DeviceNumber, IOFlag : INTEGER2;
+    code: '```
+
+      DeviceNumber, IOFlag : INTEGER2;
 
       ...
 
-      ReleaseResource(DeviceNumber, IOFlag);'
+      ReleaseResource(DeviceNumber, IOFlag);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DeviceNumber COMP.
+    code: '```
+
+      01 DeviceNumber COMP.
 
       01 IOFlag COMP.
 
       ...
 
-      MONITOR-CALL "ReleaseResource" USING DeviceNumber, IOFlag.'
+      MONITOR-CALL "ReleaseResource" USING DeviceNumber, IOFlag.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNumber, IOFlag
+    code: '```
+
+      INTEGER DeviceNumber, IOFlag
 
       ...
 
-      Monitor_Call(''ReleaseResource'', DeviceNumber, IOFlag)'
+      Monitor_Call(''ReleaseResource'', DeviceNumber, IOFlag)
+
+      ```'
     notes: ''
   planc:
     available: true

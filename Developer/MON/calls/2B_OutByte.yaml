@@ -5,7 +5,21 @@
 octal: 2B
 name: OutByte
 short_names: []
-description: ''
+description: 'Writes one byte to a character device, e.g. a terminal or an opened
+  file. If the device is a word-oriented device, one word is written.
+
+
+  - The program waits if the output buffer of the device is full. You can change this
+  with NoWaitSwitch or TerminalNoWait.
+
+  - The pointer to the next byte is incremented when you write to a mass-storage file.
+
+  - Output from card readers are converted to ASCII characters. Use DeviceControl
+  to write the 12-bit card columns.
+
+  - You are advised to use the faster OutputString on the ND-500.
+
+  - Appendix F contains an ASCII table.'
 notes: []
 see_also:
 - OutUpTo8Bytes
@@ -32,17 +46,23 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DeviceNumber, OutputValue : INTEGER2;
+    code: '```
+
+      DeviceNumber, OutputValue : INTEGER2;
 
       ...
 
       OutByte(DeviceNumber, OutputValue);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DeviceNumber COMP.
+    code: '```
+
+      01 DeviceNumber COMP.
 
       01 OutputValue COMP.
 
@@ -54,34 +74,43 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNumber, OutputValue
+    code: '```
+
+      INTEGER DeviceNumber, OutputValue
 
       ...
 
       Monitor_Call(''OutByte'', DeviceNumber, OutputValue)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : DeviceNumber, OutputValue\n...\nON ROUTINEERROR DO\n    IF ErrCode\
-      \ >< 0 THEN ...\nENDON\nMonitor_call('OutByte', DeviceNumber, OutputValue)"
+    code: "```\nINTEGER : DeviceNumber, OutputValue\n...\nON ROUTINEERROR DO\n   \
+      \ IF ErrCode >< 0 THEN ...\nENDON\nMonitor_call('OutByte', DeviceNumber, OutputValue)\n\
+      ```"
     notes: ''
   assembly_500:
     available: true
-    code: "DeviceNumber : W BLOCK 1\nOutputValue  : W BLOCK 1\nErrCode      : W BLOCK\
-      \ 1\nOutByte      : EQU 37B9 + 2B\n...\n    CALLG OutByte, 2, DeviceNumber,\
+    code: "```\nDeviceNumber : W BLOCK 1\nOutputValue  : W BLOCK 1\nErrCode      :\
+      \ W BLOCK 1\nOutByte      : EQU 37B9 + 2B\n...\n    CALLG OutByte, 2, DeviceNumber,\
       \ OutputValue\n    IF K GO ERROR\n...\nERROR : W1 =: ErrCode       %ErrorCode\
-      \ in W1 register."
+      \ in W1 register.\n```"
     octal_definition: 37B9 + 2B
     notes: ''
   mac:
     available: true
-    code: 'LDT DEVNO        %Logical device number.
+    code: '```
+
+      LDT DEVNO        %Logical device number.
 
       LDA BYTE         %Byte to be written.
 
@@ -98,6 +127,7 @@ examples:
 
       BYTE,   ''A''
 
+      ```
 
 
 

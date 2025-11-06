@@ -1,14 +1,12 @@
 # Monitor Call: 414B BCNAFCAMAC
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source lines: 3960-4090
+# Source line: 3960
 
 octal: 414B
 name: BCNAFCAMAC
 short_names:
 - BCNAF
-description: 'Special CAMAC function on the ND-500. (Same as mon 156 TRACB.)
-
-  See also CAMACFunction, AssignCAMACLAM, BCNAF!CAMAC, CAMACIOInstruction, and CAMACGLRegister.'
+description: Special CAMAC function on the ND-500. (Same as mon 156 TRACB.)
 parameters: []
 examples: {}
 compatibility:
@@ -22,4 +20,4 @@ source:
   page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: Manually extracted - had duplicate headers in source
+  ocr_notes: Extracted from line 3960 - was missing in initial extraction

@@ -5,7 +5,13 @@
 octal: 110B
 name: SetRTPriority
 short_names: []
-description: ''
+description: 'Sets the priority of an RT program. RT programs may be given priorities
+  from 0 to 255. SINTRAN III executes the RT program with the highest priority.
+
+
+  - The priority of background programs vary between 20 and 60.
+
+  - Programs with priority 0 will never start. You may use this to suspend programs.'
 notes: []
 see_also:
 - SetND500Priority
@@ -27,15 +33,21 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'RTProgram, PriorityLevel, OldPriority : INTEGER2;
+    code: '```
+
+      RTProgram, PriorityLevel, OldPriority : INTEGER2;
 
       ...
 
-      SetRTPriority(RTProgram, PriorityLevel, OldPriority);'
+      SetRTPriority(RTProgram, PriorityLevel, OldPriority);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 RTProgram COMP.
+    code: '```
+
+      01 RTProgram COMP.
 
       01 PriorLevel COMP.
 
@@ -43,27 +55,39 @@ examples:
 
       ...
 
-      MONITOR-CALL "SetRTPriority" USING RTProgram, PriorLevel, OldPriority.'
+      MONITOR-CALL "SetRTPriority" USING RTProgram, PriorLevel, OldPriority.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER RTProgram, PriorityLevel, OldPriority
+    code: '```
+
+      INTEGER RTProgram, PriorityLevel, OldPriority
 
       ...
 
-      Monitor_Call(''SetRTPriority'', RTProgram, PriorityLevel, OldPriority)'
+      Monitor_Call(''SetRTPriority'', RTProgram, PriorityLevel, OldPriority)
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: 'INTEGER : RTProgram, PriorityLevel, OldPriority
+    code: '```
+
+      INTEGER : RTProgram, PriorityLevel, OldPriority
 
       ...
 
-      Monitor_Call(''SetRTPriority'', RTProgram, PriorityLevel, OldPriority)'
+      Monitor_Call(''SetRTPriority'', RTProgram, PriorityLevel, OldPriority)
+
+      ```'
     notes: ''
   assembly_500:
     available: true
-    code: 'RTProgram : W BLOCK 1
+    code: '```
+
+      RTProgram : W BLOCK 1
 
       PriorityLevel : W BLOCK 1
 
@@ -71,17 +95,23 @@ examples:
 
       SetRTPriority : EQU 37B9 + 110B
 
+      ```
 
 
+      ```
 
       CALLG SetRTPriority, 2, RTProgram, PriorityLevel
 
-      Wl =: OldPriority %Result is returned in Wl register.'
+      Wl =: OldPriority %Result is returned in Wl register.
+
+      ```'
     octal_definition: 37B9 + 110B
     notes: ''
   mac:
     available: true
-    code: 'LDA (PAR %Load register A with address of parameter list.
+    code: '```
+
+      LDA (PAR %Load register A with address of parameter list.
 
       MON 110 %Monitor call SetRTPriority.
 
@@ -101,6 +131,7 @@ examples:
 
       PRIOR, ...
 
+      ```
 
 
 

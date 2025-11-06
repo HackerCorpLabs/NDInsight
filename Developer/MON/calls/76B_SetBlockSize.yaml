@@ -29,7 +29,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'FileNumber : INTEGER2;
+    code: '```
+
+      FileNumber : INTEGER2;
 
       BlockSize : LONGINT;
 
@@ -37,11 +39,15 @@ examples:
 
       SetBlockSize(FileNumber, BlockSize);
 
-      If ErrCode <> 0 THEN ...'
+      If ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 FileNumber COMP.
+    code: '```
+
+      01 FileNumber COMP.
 
       01 BlockSize COMP PIC S9(10).
 
@@ -53,11 +59,15 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER FileNumber
+    code: '```
+
+      INTEGER FileNumber
 
       INTEGER*4 BlockSize
 
@@ -65,16 +75,21 @@ examples:
 
       Monitor_Call(''SetBlockSize'', FileNumber, BlockSize)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : FileNumber\nINTEGER : BlockSize\n...\nON ROUTINEERROR DO\n  IF\
-      \ ErrCode > 0 THEN ...\nENDON\nMonitor_Call('SetBlockSize', FileNumber, BlockSize)"
+    code: "```\nINTEGER : FileNumber\nINTEGER : BlockSize\n...\nON ROUTINEERROR DO\n\
+      \  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('SetBlockSize', FileNumber,\
+      \ BlockSize)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: 'FileNumber : W BLOCK 1
+    code: '```
+
+      FileNumber : W BLOCK 1
 
       BlockSize : W BLOCK 1
 
@@ -90,12 +105,16 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode       %ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode       %ErrorCode in W1 register.
+
+      ```'
     octal_definition: 37B9 + 76B
     notes: ''
   mac:
     available: true
-    code: 'LDT FILNO       %File number returned from earlier open.
+    code: '```
+
+      LDT FILNO       %File number returned from earlier open.
 
       LDA SIZE        %Block size in words.
 
@@ -112,6 +131,7 @@ examples:
 
       SIZE, ...       %New block size.
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |

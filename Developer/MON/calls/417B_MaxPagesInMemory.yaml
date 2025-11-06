@@ -5,7 +5,13 @@
 octal: 417B
 name: MaxPagesInMemory
 short_names: []
-description: ''
+description: 'Sets the maximum number of pages a segment may have in physical memory
+  at a time.
+
+
+  - This monitor call applies to ND-500 logical segments only.
+
+  - The segment must be in use.'
 notes: []
 see_also:
 - FixInMemory
@@ -31,17 +37,23 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'SegmentNo, SegType, NoOfPages : LONGINT;
+    code: '```
+
+      SegmentNo, SegType, NoOfPages : LONGINT;
 
       ...
 
       MaxPagesInMemory(SegmentNo, SegType, NoOfPages);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 SegmentNo COMP.
+    code: '```
+
+      01 SegmentNo COMP.
 
       01 SegType COMP.
 
@@ -55,17 +67,23 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER SegmentNo, SegType, NoOfPages
+    code: '```
+
+      INTEGER SegmentNo, SegType, NoOfPages
 
       ...
 
       Monitor Call(''MaxPagesInMemory'', SegmentNo, SegType, NoOfPages)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
