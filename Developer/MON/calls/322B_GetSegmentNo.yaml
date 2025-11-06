@@ -22,47 +22,65 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'SegmentNumber : INTEGER2;
+    code: '```
+
+      SegmentNumber : INTEGER2;
 
       SegmentName : PACKED ARRAY [0..5] OF CHAR;
 
       ...
 
-      GetSegmentNo(SegmentName, SegmentNumber);'
+      GetSegmentNo(SegmentName, SegmentNumber);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 SegmentNumber COMP.
+    code: '```
+
+      01 SegmentNumber COMP.
 
       01 SegmentName PIC X(6).
 
       ...
 
-      MONITOR-CALL "GetSegmentNo" USING SegmentName, SegmentNumber.'
+      MONITOR-CALL "GetSegmentNo" USING SegmentName, SegmentNumber.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER SegmentNumber
+    code: '```
+
+      INTEGER SegmentNumber
 
       CHARACTER SegmentName*6
 
       ...
 
-      Monitor_Call(''GetSegmentNo'', SegmentName(1:6), SegmentNumber)'
+      Monitor_Call(''GetSegmentNo'', SegmentName(1:6), SegmentNumber)
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: 'INTEGER : SegmentNumber
+    code: '```
+
+      INTEGER : SegmentNumber
 
       BYTES : SegmentName(0:5)
 
       ...
 
-      Monitor_Call(''GetSegmentNo'', SegmentName, SegmentNumber)'
+      Monitor_Call(''GetSegmentNo'', SegmentName, SegmentNumber)
+
+      ```'
     notes: ''
   assembly_500:
     available: true
-    code: 'SegmentNumber : W BLOCK 1
+    code: '```
+
+      SegmentNumber : W BLOCK 1
 
       SegmentName : STRINGDATA ''EXSEG'' %Get number of segment EXSEG.
 
@@ -80,12 +98,16 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode %ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode %ErrorCode in W1 register.
+
+      ```'
     octal_definition: 37B9 + 322B
     notes: ''
   mac:
     available: true
-    code: 'LDA (PAR %Load register A with address of parameter list.
+    code: '```
+
+      LDA (PAR %Load register A with address of parameter list.
 
       MON 322 %Monitor call GetSegmentNo.
 
@@ -107,6 +129,7 @@ examples:
 
       SEGNAM, ''EXSEG'' %Obtain segment number of EXSEG.
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

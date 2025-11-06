@@ -5,7 +5,14 @@
 octal: 77B
 name: SetStartBlock
 short_names: []
-description: ''
+description: 'Sets the next block to be read or written in an opened file. You may
+  access the first bytes in the block with the monitor calls to read and write bytes.
+
+
+  - The standard block size is 512 bytes. This block size is set when the file is
+  opened. You can change this with SetBlockSize.
+
+  - The first block of a file is number 0.'
 notes: []
 see_also:
 - SetStartByte
@@ -13,32 +20,38 @@ see_also:
   number multiplied by the block size as parameter'
 references: []
 parameters:
-- name: Filenumber
+- name: File number
   type: See OpenFile.
   io: I
   description: ''
-- name: Blocknumber
+- name: Block number
   type: Next block to be read or written.
   io: I
   description: ''
-- name: StandardErrorCode
+- name: Standard Error Code
   type: See appendix A.
   io: I
   description: ''
 examples:
   pascal:
     available: true
-    code: 'FileNumber, BlockNumber : INTEGER2;
+    code: '```
+
+      FileNumber, BlockNumber : INTEGER2;
 
       ...
 
       SetStartBlock(FileNumber, BlockNumber);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 FileNumber COMP.
+    code: '```
+
+      01 FileNumber COMP.
 
       01 BlockNumber COMP.
 
@@ -50,26 +63,35 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER FileNumber, BlockNumber
+    code: '```
+
+      INTEGER FileNumber, BlockNumber
 
       ...
 
       Monitor Call(''SetStartBlock'', FileNumber, BlockNumber)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : FileNumber, BlockNumber\n...\nON ROUTINEERROR DO\n  IF ErrCode\
-      \ > 0 THEN ...\nENDON\nMonitor_Call('SetStartBlock', FileNumber, BlockNumber)"
+    code: "```\nINTEGER : FileNumber, BlockNumber\n...\nON ROUTINEERROR DO\n  IF ErrCode\
+      \ > 0 THEN ...\nENDON\nMonitor_Call('SetStartBlock', FileNumber, BlockNumber)\n\
+      ```"
     notes: ''
   assembly_500:
     available: true
-    code: 'FileNumber : W BLOCK 1
+    code: '```
+
+      FileNumber : W BLOCK 1
 
       BlockNumber : W BLOCK 1
 
@@ -85,12 +107,16 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode      %ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode      %ErrorCode in W1 register.
+
+      ```'
     octal_definition: 37B9 + 77B
     notes: ''
   mac:
     available: true
-    code: 'LDT   FILNO    %File number returned from earlier open.
+    code: '```
+
+      LDT   FILNO    %File number returned from earlier open.
 
       LDA   BLKNO    %Block number.
 
@@ -108,6 +134,7 @@ examples:
 
       BLKNO, ...
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |

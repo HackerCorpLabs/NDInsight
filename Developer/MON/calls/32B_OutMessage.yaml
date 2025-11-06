@@ -22,35 +22,51 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: 'Message : PACKED ARRAY [0..79] OF CHAR;
+    code: '```
+
+      Message : PACKED ARRAY [0..79] OF CHAR;
 
       ...
 
-      OutMessage(Message);'
+      OutMessage(Message);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 Message PIC X(100).
+    code: '```
+
+      01 Message PIC X(100).
 
       ...
 
-      MONITOR-CALL "OutMessage" USING Message.'
+      MONITOR-CALL "OutMessage" USING Message.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'CHARACTER Message*80
+    code: '```
+
+      CHARACTER Message*80
 
       ...
 
-      Monitor_Call(''OutMessage'', Message(1:80))'
+      Monitor_Call(''OutMessage'', Message(1:80))
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: 'BYTES : Message(0:79)
+    code: '```
+
+      BYTES : Message(0:79)
 
       ...
 
-      Monitor_Call(''OutMessage'', Message)'
+      Monitor_Call(''OutMessage'', Message)
+
+      ```'
     notes: ''
   assembly_500:
     available: true
@@ -66,7 +82,9 @@ examples:
     notes: ''
   mac:
     available: true
-    code: 'LDX  (TEXT     %Address string to be sent to user''s terminal.
+    code: '```
+
+      LDX  (TEXT     %Address string to be sent to user''s terminal.
 
       MON  32        %Monitor call OutMessage.
 
@@ -74,6 +92,7 @@ examples:
 
       TEXT, ''THIS IS A TEXT''  %String to be written.
 
+      ```
 
 
       | ND-100 and ND-500 | All users | Background programs |

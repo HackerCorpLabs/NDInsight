@@ -5,7 +5,15 @@
 octal: 246B
 name: ReserveDir
 short_names: []
-description: ''
+description: 'Reserves a directory for special use. The directory must be entered.
+  Other users will not be able to open files on a reserved directory.
+
+
+  - All files in the directory must be closed.
+
+  - Only user RT and the current user may be logged in if main directory.
+
+  - Use ReleaseDir to release the directory.'
 notes: []
 see_also:
 - ReleaseDir
@@ -22,17 +30,23 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DirectoryIndex : INTEGER2;
+    code: '```
+
+      DirectoryIndex : INTEGER2;
 
       ...
 
       ResDirectory(DirectoryIndex);   [Note routine name.]
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DirectoryIndex COMP.
+    code: '```
+
+      01 DirectoryIndex COMP.
 
       01 ErrCode COMP.
 
@@ -42,17 +56,23 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DirectoryIndex
+    code: '```
+
+      INTEGER DirectoryIndex
 
       ...
 
       Monitor_Call(''ReserveDir'', DirectoryIndex)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true

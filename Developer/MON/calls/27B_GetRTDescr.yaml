@@ -5,7 +5,15 @@
 octal: 27B
 name: GetRTDescr
 short_names: []
-description: ''
+description: 'Reads an RT description. The RT description contains various information
+  about an RT program. You specify the RT program address. See the SINTRAN III Real
+  Time Guide (ND-860133) for further details.
+
+
+  - Use GetRTAddress if you only know the name of the RT program.
+
+  - This monitor call is only available to background programs in SINTRAN III VSX,
+  version K.'
 notes: []
 see_also:
 - GetOwnRTAddress

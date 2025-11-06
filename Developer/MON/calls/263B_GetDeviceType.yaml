@@ -1,6 +1,6 @@
 # Monitor Call: 263B GetDeviceType
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source lines: 9979-10053
+# Source line: 9979
 
 octal: 263B
 name: GetDeviceType
@@ -21,4 +21,4 @@ source:
   page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: Extracted from header without octal (line 9979)
+  ocr_notes: Extracted from line 9979 - was missing in initial extraction

@@ -5,7 +5,14 @@
 octal: 311B
 name: WriteDirEntry
 short_names: []
-description: ''
+description: 'Changes the information about a directory. The complete contents of
+  the directory entry is set. The SINTRAN III System Supervisor (ND-830003) describes
+  the file system in more detail.
+
+
+  - The directory must be entered.
+
+  - The directory must be reserved.'
 notes: []
 see_also:
 - GetDirUserIndexes
@@ -27,7 +34,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DirIndex : INTEGER2;
+    code: '```
+
+      DirIndex : INTEGER2;
 
       DirEntry : ARRAY [0..1] OF RECORD...END;
 
@@ -35,17 +44,21 @@ examples:
 
       SetDirEntry(DirIndex, DirEntry);    [Note routine name.]
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 DirIndex COMP.\n01 DirEntry.\n   02 array COMP OCCURS 24 TIMES.\n01\
-      \ ErrCode COMP.\n...\nMONITOR-CALL \"WriteDirEntry\" USING DirIndex, DirEntry.\n\
-      CALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
+    code: "```\n01 DirIndex COMP.\n01 DirEntry.\n   02 array COMP OCCURS 24 TIMES.\n\
+      01 ErrCode COMP.\n...\nMONITOR-CALL \"WriteDirEntry\" USING DirIndex, DirEntry.\n\
+      CALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DirIndex
+    code: '```
+
+      INTEGER DirIndex
 
       INTEGER DirEntry(24)
 
@@ -53,17 +66,21 @@ examples:
 
       Monitor_Call(''WriteDirEntry'', DirIndex, DirEntry(1))
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : DirIndex\nBYTES : DirEntry(0:47)\n...\nON ROUTINEERROR DO\n \
-      \   IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('WriteDirEntry', DirIndex,\
-      \ DirEntry(0))"
+    code: "```\nINTEGER : DirIndex\nBYTES : DirEntry(0:47)\n...\nON ROUTINEERROR DO\n\
+      \    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('WriteDirEntry', DirIndex,\
+      \ DirEntry(0))\n```"
     notes: ''
   assembly_500:
     available: true
-    code: 'DirIndex : W BLOCK 1
+    code: '```
+
+      DirIndex : W BLOCK 1
 
       DirEntry : W ARRAY 24
 
@@ -79,12 +96,16 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode              %ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode              %ErrorCode in W1 register.
+
+      ```'
     octal_definition: 37B9 + 311B
     notes: ''
   mac:
     available: true
-    code: 'LDT DIRIX     %Directory index.
+    code: '```
+
+      LDT DIRIX     %Directory index.
 
       LDX (ENTRY)   %Address of buffer containing directory entry.
 
@@ -104,6 +125,7 @@ examples:
 
       ...           %A buffer of 24 words.
 
+      ```
 
 
 

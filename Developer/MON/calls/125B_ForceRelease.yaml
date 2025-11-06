@@ -5,7 +5,19 @@
 octal: 125B
 name: ForceRelease
 short_names: []
-description: ''
+description: 'Releases a device reserved by an RT program other than that which is
+  calling. You can then reserve the device for your own RT program. Some devices,
+  such as terminals, have both an input and output part. You can only release one
+  part with each ForceRelease.
+
+
+  - Use ReservationInfo to get the RT description address of the reserving RT program.
+  You may then give the device back with ForceReserve.
+
+  - Programs in a waiting queue may reserve the device between your ForceRelease and
+  ReserveResource calls if they have higher priority than your program.
+
+  - The SINTRAN III Real Time Guide (ND-860133) describes this in more detail.'
 notes: []
 see_also:
 - ForceReserve
@@ -25,29 +37,41 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DeviceNumber, IOflag: INTEGER2;
+    code: '```
+
+      DeviceNumber, IOflag: INTEGER2;
 
       ...
 
-      PrivRelease(DeviceNumber, IOflag);   [Note routine name.]'
+      PrivRelease(DeviceNumber, IOflag);   [Note routine name.]
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DeviceNumber     COMP.
+    code: '```
+
+      01 DeviceNumber     COMP.
 
       01 IOflag           COMP.
 
       ...
 
-      MONITOR-CALL "ForceRelease" USING DeviceNumber, IOflag.'
+      MONITOR-CALL "ForceRelease" USING DeviceNumber, IOflag.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNumber, IOflag
+    code: '```
+
+      INTEGER DeviceNumber, IOflag
 
       ...
 
-      Monitor_Call(''ForceRelease'', DeviceNumber, IOflag)'
+      Monitor_Call(''ForceRelease'', DeviceNumber, IOflag)
+
+      ```'
     notes: ''
   planc:
     available: true

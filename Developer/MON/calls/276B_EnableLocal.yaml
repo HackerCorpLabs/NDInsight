@@ -1,6 +1,6 @@
 # Monitor Call: 276B EnableLocal
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source lines: 7252-7295
+# Source line: 7252
 
 octal: 276B
 name: EnableLocal
@@ -10,13 +10,12 @@ description: 'You may log in on remote computers through the COSMOS data network
   A key on the terminal returns you to your local computer. This local function can
   be disabled. You enable it again with EnableLocal.
 
+
   - You disable the key with DisableLocal.
 
   - The key is disabled when a program terminates.
 
-  - The COSMOS CONNECT-TO program tells you which key to use as the LOCAL key.
-
-  See also DisableLocal.'
+  - The COSMOS CONNECT-TO program tells you which key to use as the LOCAL key.'
 parameters: []
 examples: {}
 compatibility:
@@ -30,4 +29,4 @@ source:
   page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: Extracted from header without octal (line 7252)
+  ocr_notes: Extracted from line 7252 - was missing in initial extraction

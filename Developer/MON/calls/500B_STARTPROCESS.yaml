@@ -1,11 +1,12 @@
-# SINTRAN III Monitor Call: SAVESEGMENT
-# Octal: 164B
+# SINTRAN III Monitor Call: STARTPROCESS
+# Octal: 500B
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
-octal: 164B
-name: SAVESEGMENT
+octal: 500B
+name: STARTPROCESS
 short_names: []
-description: ''
+description: Starts a process in the ND-500. You identify the process with the process
+  number.
 notes: []
 see_also: []
 references: []
@@ -25,7 +26,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 0
-  line: 19158
+  line: 22036
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

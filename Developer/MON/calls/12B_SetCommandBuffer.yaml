@@ -5,7 +5,20 @@
 octal: 12B
 name: SetCommandBuffer
 short_names: []
-description: ''
+description: 'Transfers a string to the command buffer. The command buffer contains
+  the last command input from the terminal. You may read the command buffer by reading
+  from logical device number 0. See InByte.
+
+
+  - The command @TERMINAL-STATISTICS lists the command buffer.
+
+  - You may apply the SINTRAN III command editing characters to the command buffer
+  when the program has terminated.
+
+  - The parameter is fetched through the alternative page table.
+
+  - You may use this monitor call to erase sensitive information in the command buffer,
+  e.g., password parameters.'
 notes: []
 see_also:
 - '`ExecuteCommand`'

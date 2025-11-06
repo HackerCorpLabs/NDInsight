@@ -42,7 +42,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'FileName : PACKED ARRAY [0..63] OF CHAR;
+    code: '```
+
+      FileName : PACKED ARRAY [0..63] OF CHAR;
 
       PubAccess, FriendAccess, OwnAccess : PACKED ARRAY [0..4] OF CHAR;
 
@@ -50,11 +52,15 @@ examples:
 
       SetFileAccess(FileName, PubAccess, FriendAccess, OwnAccess);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 FileName PIC X(64).
+    code: '```
+
+      01 FileName PIC X(64).
 
       01 PubAcc PIC X(5).
 
@@ -70,14 +76,16 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: "CHARACTER FileName*64, PubAcc*5, FriendAcc*5, OwnAcc*5\n...\nMonitor_Call('SetFileAccess',\
+    code: "```\nCHARACTER FileName*64, PubAcc*5, FriendAcc*5, OwnAcc*5\n...\nMonitor_Call('SetFileAccess',\
       \ FileName(1:64), PubAcc(1:5),\n             FriendAcc(1:5), OwnAcc(1:5))\n\
-      IF (ErrCode .NE. 0) THEN ...\n\n\nScanned by Jonny Oddene for Sintran Data ©\
-      \ 2020"
+      IF (ErrCode .NE. 0) THEN ...\n```\n\nScanned by Jonny Oddene for Sintran Data\
+      \ © 2020"
     notes: ''
   planc:
     available: true

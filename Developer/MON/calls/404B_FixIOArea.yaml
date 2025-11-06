@@ -5,7 +5,13 @@
 octal: 404B
 name: FixIOArea
 short_names: []
-description: ''
+description: 'Fixes an address area in a domain in physical memory. The memory area
+  can be used for later input and output monitor calls, e.g. ReadFromFile or WriteTofile.
+
+
+  - Use MemoryUnFix to release the pages.
+
+  - The pages are released when the domain terminates.'
 notes: []
 see_also:
 - FixScattered
@@ -25,29 +31,41 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'FirstAddress, SizeOfArea : LONGINT;
+    code: '```
+
+      FirstAddress, SizeOfArea : LONGINT;
 
       ...
 
-      FixIOArea(FirstAddress, SizeOfArea);'
+      FixIOArea(FirstAddress, SizeOfArea);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 FirstAddress COMP.
+    code: '```
+
+      01 FirstAddress COMP.
 
       01 SizeOfArea COMP.
 
       ...
 
-      MONITOR-CALL "FixIOArea" USING FirstAddress, SizeOfArea.'
+      MONITOR-CALL "FixIOArea" USING FirstAddress, SizeOfArea.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER FirstAddress, SizeOfArea
+    code: '```
+
+      INTEGER FirstAddress, SizeOfArea
 
       ...
 
-      Monitor_Call(''FixIOArea'', FirstAddress, SizeOfArea)'
+      Monitor_Call(''FixIOArea'', FirstAddress, SizeOfArea)
+
+      ```'
     notes: ''
   planc:
     available: true

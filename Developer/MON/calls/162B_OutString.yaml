@@ -38,17 +38,23 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DeviceNo, NoOfBytes, ReturnStatus : INTEGER2;
+    code: '```
+
+      DeviceNo, NoOfBytes, ReturnStatus : INTEGER2;
 
       TextWrite : PACKED ARRAY [0..79] OF CHAR;
 
       ...
 
-      OutString(DeviceNo, TextWrite, NoOfBytes, ReturnStatus);'
+      OutString(DeviceNo, TextWrite, NoOfBytes, ReturnStatus);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DevNo COMP.
+    code: '```
+
+      01 DevNo COMP.
 
       01 NoOfBytes COMP.
 
@@ -58,31 +64,43 @@ examples:
 
       ...
 
-      MONITOR-CALL "OutString" USING DevNo, TextWrite, NoOfBytes, RetStatus.'
+      MONITOR-CALL "OutString" USING DevNo, TextWrite, NoOfBytes, RetStatus.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNo, NoOfBytes, RetStatus
+    code: '```
+
+      INTEGER DeviceNo, NoOfBytes, RetStatus
 
       CHARACTER TextWrite*80
 
       ...
 
-      Monitor_Call(''OutString'', DeviceNo, TextWrite(1:80), NoOfBytes, RetStatus)'
+      Monitor_Call(''OutString'', DeviceNo, TextWrite(1:80), NoOfBytes, RetStatus)
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: 'INTEGER : DeviceNo, NoOfBytes, ReturnStatus
+    code: '```
+
+      INTEGER : DeviceNo, NoOfBytes, ReturnStatus
 
       BYTES : TextWrite(0:79)
 
       ...
 
-      Monitor_Call(''OutString'', DeviceNo, TextWrite, NoOfBytes, ReturnStatus)'
+      Monitor_Call(''OutString'', DeviceNo, TextWrite, NoOfBytes, ReturnStatus)
+
+      ```'
     notes: ''
   assembly_500:
     available: true
-    code: 'DeviceNo : W BLOCK 1
+    code: '```
+
+      DeviceNo : W BLOCK 1
 
       TextWrite : STRINGDATA ''This is a text...''
 
@@ -102,12 +120,16 @@ examples:
 
       Error, ...
 
-      register.'
+      register.
+
+      ```'
     octal_definition: 37B9 + 162B
     notes: ''
   mac:
     available: true
-    code: 'LOA (PAR         % Load register A with address of parameter list.
+    code: '```
+
+      LOA (PAR         % Load register A with address of parameter list.
 
       MON 162          % Monitor call OutString.
 
@@ -132,6 +154,7 @@ examples:
 
       COUNT, 16        % Write 14 characters.
 
+      ```
 
 
 

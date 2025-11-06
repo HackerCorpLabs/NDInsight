@@ -20,7 +20,7 @@ parameters:
   type: UNKNOWN
   io: I
   description: The terminal mode. The numbers below are used.
-- name: Terminalmode
+- name: Terminal mode
   type: Capital letters?
   io: Delay after return?
   description: Stop on full page?
@@ -95,17 +95,23 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DeviceNumber, TerminalMode : INTEGER2;
+    code: '```
+
+      DeviceNumber, TerminalMode : INTEGER2;
 
       ...
 
       GetTermMode(DeviceNumber, TerminalMode);  [Note routine name.]
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DeviceNumber  COMP.
+    code: '```
+
+      01 DeviceNumber  COMP.
 
       01 TerminalMode  COMP.
 
@@ -117,26 +123,35 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNumber, TerminalMode
+    code: '```
+
+      INTEGER DeviceNumber, TerminalMode
 
       ...
 
       Monitor_Call(''GetTerminalMode'', DeviceNumber, TerminalMode)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : DeviceNumber, TerminalMode\n...\nON ROUTINEERROR DO\n   IF ErrCode\
-      \ > 0 THEN ...\nENDON\nMonitor_Call('GetTerminalMode', DeviceNumber, TerminalMode)"
+    code: "```\nINTEGER : DeviceNumber, TerminalMode\n...\nON ROUTINEERROR DO\n  \
+      \ IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('GetTerminalMode', DeviceNumber,\
+      \ TerminalMode)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: 'Devno        : W DATA 1     % Own terminal
+    code: '```
+
+      Devno        : W DATA 1     % Own terminal
 
       TermMode     : W BLOCK 1
 
@@ -154,12 +169,16 @@ examples:
       ...
 
 
-      Error: W1:=ErrCode %ErrorCode in I1 register'
+      Error: W1:=ErrCode %ErrorCode in I1 register
+
+      ```'
     octal_definition: 37B9 + 306B
     notes: ''
   mac:
     available: true
-    code: 'LDT DEVNO    %Logical device number.
+    code: '```
+
+      LDT DEVNO    %Logical device number.
 
       MON 306      %Monitor call GetTerminalMode.
 
@@ -177,6 +196,7 @@ examples:
 
       TMODE, 0
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |

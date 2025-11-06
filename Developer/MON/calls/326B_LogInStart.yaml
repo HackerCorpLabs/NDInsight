@@ -1,30 +1,41 @@
 # Monitor Call: 326B LogInStart
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source lines: 15227-15340
+# Source line: 15227
 
 octal: 326B
 name: LogInStart
 short_names:
 - MLOGI
-description: 'Logs in a user on a terminal and starts a subsystem.
+description: 'Allowed in RT programs (ring ≥ 1), and in all programs run by users
+  RT and SYSTEM.
 
 
-  - The terminal must be free.
+  - Parameter 1: Function code.
 
-  - The subsystem must be reentrant. See @DUMP-PROGRAM-REENTRANT.'
+  - Parameter 2: LAMU ID (identification) number.
+
+  - Specify the LAMU to get information about.
+
+  - Parameter 3: LAMU information. Three word array containing the following information:
+
+  - Word 1: the first physical page used by the LAMU
+
+  - Word 2: the number of pages in the LAMU
+
+  - Word 3: the LAMU protection information
+
+  - Parameter 4: Dummy.'
 parameters: []
 examples: {}
 compatibility:
   nd100: true
-  nd500: false
+  nd500: true
   user_programs: true
   rt_programs: true
   system_programs: true
 source:
   document: ND-860228.2 EN
-  page_references:
-  - '338'
-  - '339'
+  page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: 'Header has spaces: "LOG IN START" not "LogInStart"'
+  ocr_notes: Extracted from line 15227 - was missing in initial extraction

@@ -5,7 +5,28 @@
 octal: 1B
 name: InByte
 short_names: []
-description: ''
+description: 'Reads one byte from a character device, e.g. a terminal or an opened
+  file. If the device is a word-oriented device, one word is read. This monitor call
+  can be used on most input devices.
+
+
+  - Bit 7 is a parity bit if terminal or file input. IOMultiFunction may change this.
+
+  - The program waits if there is no bytes in the input buffer of the device. You
+  can change this with NoWaitSwitch or TerminalNoWait.
+
+  - The pointer to the next byte is incremented when you read from a mass-storage
+  file.
+
+  - Input from card readers are converted to ASCII characters. Use DeviceControl to
+  read the 12-bit card columns.
+
+  - Background programs may read from logical device number 0. This is the SINTRAN
+  III command buffer. You may read parameters following the program name this way.
+  Break and echo are both set to 1. Normal SINTRAN III command editing is available.
+  All letters are converted to uppercase. You may control this with IOMultiFunction.
+
+  - Appendix F contains an ASCII table.'
 notes: []
 see_also:
 - In8AndFlag
@@ -32,17 +53,23 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DeviceNumber, ReturnValue : INTEGER2;
+    code: '```
+
+      DeviceNumber, ReturnValue : INTEGER2;
 
       ...
 
       InByte(DeviceNumber, ReturnValue);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DeviceNumber COMP.
+    code: '```
+
+      01 DeviceNumber COMP.
 
       01 ReturnValue COMP.
 
@@ -54,26 +81,35 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNumber, ReturnValue
+    code: '```
+
+      INTEGER DeviceNumber, ReturnValue
 
       ...
 
       Monitor Call(''InByte'', DeviceNumber, ReturnValue)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER: DeviceNumber, ReturnValue\n..\nON ROUTINEERROR DO\n   IF ErrCode\
-      \ > 0 THEN ..\nENDON\nMonitor_Call('InByte', DeviceNumber, ReturnValue)"
+    code: "```\nINTEGER: DeviceNumber, ReturnValue\n..\nON ROUTINEERROR DO\n   IF\
+      \ ErrCode > 0 THEN ..\nENDON\nMonitor_Call('InByte', DeviceNumber, ReturnValue)\n\
+      ```"
     notes: ''
   assembly_500:
     available: true
-    code: 'DeviceNumber: W BLOCK 1
+    code: '```
+
+      DeviceNumber: W BLOCK 1
 
       ReturnValue: W BLOCK 1
 
@@ -87,12 +123,16 @@ examples:
       IF'' K GO ERROR
 
 
-      ERROR W1.. ErrCode %ErrorCode in W1 register.'
+      ERROR W1.. ErrCode %ErrorCode in W1 register.
+
+      ```'
     octal_definition: 37B9 + 1B
     notes: ''
   mac:
     available: true
-    code: 'LDT DEVNO %Logical device number.
+    code: '```
+
+      LDT DEVNO %Logical device number.
 
       MON 1    %Monitor call InByte.
 
@@ -108,6 +148,7 @@ examples:
 
       BYTE. 0
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

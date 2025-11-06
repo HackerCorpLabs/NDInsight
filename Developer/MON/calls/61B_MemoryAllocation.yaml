@@ -1,6 +1,6 @@
 # Monitor Call: 61B MemoryAllocation
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source lines: 15438-15496
+# Source line: 15438
 
 octal: 61B
 name: MemoryAllocation
@@ -10,11 +10,10 @@ description: 'Fixes or unfixes ND-100 segments to be used by the ND-500 Monitor.
   may also reserve a contiguous area in physical memory. Various other memory functions
   are reserved for the ND-500 Monitor.
 
+
   - This monitor call is not normally used by ordinary programs.
 
-  - You may use this monitor call to reserve space for DMA buffers.
-
-  See also FixScattered, FixInMemory, FixContiguous, and UnFixSegment.'
+  - You may use this monitor call to reserve space for DMA buffers.'
 parameters: []
 examples: {}
 compatibility:
@@ -28,4 +27,4 @@ source:
   page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: Extracted from header without octal (line 15438)
+  ocr_notes: Extracted from line 15438 - was missing in initial extraction

@@ -31,17 +31,23 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'LogSegmentNo, FirstPage, LastPage : LONGINT;
+    code: '```
+
+      LogSegmentNo, FirstPage, LastPage : LONGINT;
 
       ...
 
       SaveND500Segment(LogicalSegmentNo, FirstPage, LastPage);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 LogSegmentNo COMP.
+    code: '```
+
+      01 LogSegmentNo COMP.
 
       01 FirstPage COMP.
 
@@ -55,30 +61,36 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER LogSegmentNo, FirstPage, LastPage
+    code: '```
+
+      INTEGER LogSegmentNo, FirstPage, LastPage
 
       ...
 
       Monitor_Call(''SaveND500Segment'', LogSegmentNo, FirstPage, LastPage)
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : LogSegmentNo, FirstPage, LastPage\n...\nON ROUTINEERROR DO\n\
-      \  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('SaveND500Segment', LogSegmentNo,\
-      \ FirstPage, LastPage)"
+    code: "```\nINTEGER : LogSegmentNo, FirstPage, LastPage\n...\nON ROUTINEERROR\
+      \ DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('SaveND500Segment', LogSegmentNo,\
+      \ FirstPage, LastPage)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: "LogSegmentNo : W BLOCK 1\nFirstPage : W BLOCK 1\nLastPage : W BLOCK 1\n\
-      ErrCode : W BLOCK 1\nSaveND500Segment : EQU 37B9 + 416B\n...\n  CALLG SaveND500Segment,\
+    code: "```\nLogSegmentNo : W BLOCK 1\nFirstPage : W BLOCK 1\nLastPage : W BLOCK\
+      \ 1\nErrCode : W BLOCK 1\nSaveND500Segment : EQU 37B9 + 416B\n...\n  CALLG SaveND500Segment,\
       \ 3, LogSegmentNo, FirstPage, LastPage\n  IF K GO ERROR\n...\nERROR : W1 =:\
-      \ ErrCode                    %ErrorCode in W1 register."
+      \ ErrCode                    %ErrorCode in W1 register.\n```"
     octal_definition: 37B9 + 416B
     notes: ''
   mac:

@@ -5,7 +5,8 @@
 octal: 136B
 name: EnableRTStart
 short_names: []
-description: ''
+description: RTON RT programs cannot be started after DisableRTStart has been executed.
+  Use EnableRTStart to do this.
 notes: []
 see_also:
 - DisableRTStart

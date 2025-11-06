@@ -15,7 +15,9 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: 'FileName, PrinterName : PACKED ARRAY [0..63] OF CHAR;
+    code: '```
+
+      FileName, PrinterName : PACKED ARRAY [0..63] OF CHAR;
 
       NoOfCopies : INTEGER2;
 
@@ -25,11 +27,15 @@ examples:
 
       AppendSpooling(FileName, PrinterName, NoOfCopies, UserText);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 NoOfCopies COMP.
+    code: '```
+
+      01 NoOfCopies COMP.
 
       01 FileName PIC X(64).
 
@@ -49,11 +55,15 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER NoOfCopies
+    code: '```
+
+      INTEGER NoOfCopies
 
       CHARACTER FileName*64, PrinterName*64, UserText*128
 
@@ -67,18 +77,22 @@ examples:
 
       & NoOfCopies, UserText(1:128))
 
-      C IF (ErrCode .NE. 0) THEN ...'
+      C IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : NoOfCopies\nBYTES : FileName(0:63), PrinterName(0:63), UserText(0:127)\n\
+    code: "```\nINTEGER : NoOfCopies\nBYTES : FileName(0:63), PrinterName(0:63), UserText(0:127)\n\
       ...\n% If UserText is present, set bit 15 in NoOfCopies to 1\nTRUE =: Bit(NoOfCopies,15)\n\
       ON ROUTINEERROR DO\n    IF ErrCode >< 0 THEN ...\nENDON\nMonitor_Call('AppendSpooling',\
-      \ FileName, PrinterName, NoOfCopies, UserText)"
+      \ FileName, PrinterName, NoOfCopies, UserText)\n```"
     notes: ''
   assembly_500:
     available: true
-    code: 'NoOfCopies : W BLOCK 1
+    code: '```
+
+      NoOfCopies : W BLOCK 1
 
       FileName : STRINGDATA ''EXAMPLE:SYMB''...
 
@@ -98,12 +112,16 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode  %ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode  %ErrorCode in W1 register.
+
+      ```'
     octal_definition: 37B9 + 240B
     notes: ''
   mac:
     available: true
-    code: 'LDX    (FILE     %Memory address of file name.
+    code: '```
+
+      LDX    (FILE     %Memory address of file name.
 
       LDT    NOCOP   %Number of copies to be printed in bit 0:14.
 
@@ -131,6 +149,7 @@ examples:
 
       TEXT, ''GUMMED LABELS''  %Message to be send to error device.
 
+      ```
 
 
       `ND-100 and ND-500` | `All users` | `All programs`'

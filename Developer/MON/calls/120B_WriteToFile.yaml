@@ -5,7 +5,21 @@
 octal: 120B
 name: WriteToFile
 short_names: []
-description: ''
+description: 'Writes any number of bytes to a file. The read operation must start
+  at the beginning of a block. The file must be opened for random write access.
+
+
+  - The standard block size is 512 bytes. You can change this with SetBlockSize. The
+  first block is number 0.
+
+  - You may use access code D for direct transfer. Then the block size must be a multiple
+  of the page size. The number of bytes to transfer must be a multiple of the block
+  size. The data must be fixed contiguously in memory.
+
+  - Peripheral files are always written to sequentially.
+
+  - Data transfer across segment or RT common limits is illegal as this would be likely
+  to result in inconsistent data.'
 notes: []
 see_also:
 - SetStartBlock
@@ -72,13 +86,16 @@ examples:
     notes: ''
   planc:
     available: true
-    code: "INTEGER : FileNo, ReturnFlag, BlockNo\nBYTES : Buff(0:511)\nINTEGER4 :\
-      \ NoOfBytes\n\n...\n\nON ROUTINEERROR DO\n    IF ErrCode > 0 THEN ...\nENDON\n\
-      \nMonitor_Call('WriteToFile', FileNo, ReturnFlag, Buff(0), BlockNo, NoOfBytes)"
+    code: "```\nINTEGER : FileNo, ReturnFlag, BlockNo\nBYTES : Buff(0:511)\nINTEGER4\
+      \ : NoOfBytes\n\n...\n\nON ROUTINEERROR DO\n    IF ErrCode > 0 THEN ...\nENDON\n\
+      \nMonitor_Call('WriteToFile', FileNo, ReturnFlag, Buff(0), BlockNo, NoOfBytes)\n\
+      ```"
     notes: ''
   assembly_500:
     available: true
-    code: 'FileNo : W BLOCK 1
+    code: '```
+
+      FileNo : W BLOCK 1
 
       ReturnFlag : W BLOCK 1
 
@@ -104,20 +121,23 @@ examples:
       ...
 
 
-      ERROR : W1 =: ErrCode       %ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode       %ErrorCode in W1 register.
+
+      ```'
     octal_definition: 37B9 + 120B
     notes: ''
   mac:
     available: true
-    code: "LDA (PAR       %Load register A with address of parameter list.\nMON 120\
-      \        %Monitor call WriteToFile.\nJAF ERROR      %Do error handling if register\
-      \ A is non-zero.\n\nERROR, ...     %Error number in register A.\n\n...\n\nPAR,\
-      \ FILNO     %File number returned from earlier open.\n    FLAG       %Wait flag.\n\
-      \    BUFF       %Buffer containing data to be written.\n    BLKNO      %Block\
-      \ number where writing is started.\n    COUNT      %Number of words to transfer.\n\
-      \n...\n\nFILNO, ...\nFLAG, ...\nBUFF, 0\n    *+1000/    %Make a buffer of 512\
-      \ words, 4 blocks.\nBLKNO ...\nCOUNT, 0\n    1000       %Transfer 512 words.\n\
-      \n\n\nND-100 and ND-500 All users Background programs"
+    code: "```\nLDA (PAR       %Load register A with address of parameter list.\n\
+      MON 120        %Monitor call WriteToFile.\nJAF ERROR      %Do error handling\
+      \ if register A is non-zero.\n\nERROR, ...     %Error number in register A.\n\
+      \n...\n\nPAR, FILNO     %File number returned from earlier open.\n    FLAG \
+      \      %Wait flag.\n    BUFF       %Buffer containing data to be written.\n\
+      \    BLKNO      %Block number where writing is started.\n    COUNT      %Number\
+      \ of words to transfer.\n\n...\n\nFILNO, ...\nFLAG, ...\nBUFF, 0\n    *+1000/\
+      \    %Make a buffer of 512 words, 4 blocks.\nBLKNO ...\nCOUNT, 0\n    1000 \
+      \      %Transfer 512 words.\n```\n\n\nND-100 and ND-500 All users Background\
+      \ programs"
     mon_number: 120
     notes: ''
 compatibility:

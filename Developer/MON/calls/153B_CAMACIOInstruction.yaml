@@ -1,15 +1,13 @@
 # Monitor Call: 153B CAMACIOInstruction
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source lines: 4324-4450
+# Source line: 4324
 
 octal: 153B
 name: CAMACIOInstruction
 short_names:
 - IOXIN
-description: 'Executes a single IOX instruction for CAMAC. See under CAMACfunction
+description: Executes a single IOX instruction for CAMAC. See under CAMACfunction
   (mon 147) for general information.
-
-  See also CAMACfunction, AssignCAMACLAM, BCNAFCAMAC, BCNAF1CAMAC, and CAMACGLRegister.'
 parameters: []
 examples: {}
 compatibility:
@@ -23,4 +21,4 @@ source:
   page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: Manually extracted - had duplicate headers in source
+  ocr_notes: Extracted from line 4324 - was missing in initial extraction

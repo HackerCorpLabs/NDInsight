@@ -5,7 +5,11 @@
 octal: 425B
 name: SetProcessName
 short_names: []
-description: ''
+description: 'Defines a new name for your process.
+
+
+  - Process names may be up to 16 characters and contain an additional user name,
+  e.g. (P-HANSEN)WP-PROCESS.'
 notes: []
 see_also:
 - GetProcessNo
@@ -15,27 +19,39 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: 'ProcessName : PACKED ARRAY [0..33] OF CHAR;
+    code: '```
+
+      ProcessName : PACKED ARRAY [0..33] OF CHAR;
 
       ...
 
-      SetProcessName(ProcessName);'
+      SetProcessName(ProcessName);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 ProcessName PIC X(34).
+    code: '```
+
+      01 ProcessName PIC X(34).
 
       ...
 
-      MONITOR-CALL "SetProcessName" USING ProcessName.'
+      MONITOR-CALL "SetProcessName" USING ProcessName.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'CHARACTER ProcessName*34
+    code: '```
+
+      CHARACTER ProcessName*34
 
       ...
 
-      Monitor_Call(''SetProcessName'', ProcessName(1:34))'
+      Monitor_Call(''SetProcessName'', ProcessName(1:34))
+
+      ```'
     notes: ''
   planc:
     available: true

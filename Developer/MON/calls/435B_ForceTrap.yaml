@@ -5,7 +5,13 @@
 octal: 435B
 name: ForceTrap
 short_names: []
-description: ''
+description: 'Forces a programmed trap to occur in another ND-500 process. The trap
+  handler in this process is started.
+
+
+  - The trapped process gets your process number through GetTrapReason. It is stored
+  in the upper half of the error code. The lower half contains the reason code you
+  specify as a parameter.'
 notes: []
 see_also:
 - GetTrapReason

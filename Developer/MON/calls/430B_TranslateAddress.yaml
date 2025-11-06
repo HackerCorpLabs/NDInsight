@@ -1,15 +1,26 @@
 # Monitor Call: 430B TranslateAddress
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source lines: 25354-25425
+# Source line: 25354
 
 octal: 430B
 name: TranslateAddress
 short_names:
 - ADRIOO
-description: 'Translates an ND-500 logical address to an ND-100 physical address.
-  Use this monitor call to set up communication areas between the two CPUs.
-
-  - Applied only to data addresses, not program addresses.'
+description: The call formats are marked from a-i. All formats give status on return.
+  See appendix A. The return status >=0 means the call terminated correctly. Parameters
+  which do not affect the call format are called "dummy" below. All call formats contain
+  logical unit number (0-3) in function code bits 6-8. Status=EXABS(logical device
+  number, Unit/function code, dummy, dummy, dummy) The hardware status is returned
+  as error code. The device must be reserved. Otherwise a positive error code may
+  not be the correct hardware status. Status=EXABS(logical device number, Unit/function
+  code, dummy, dummy, dummy) Status is Standard Error Code. Status=EXABS(logical device
+  number, Unit/function code, physical memory address, sector address, no of sectors
+  to read) Status=EXABS(logical device number, Unit/function code, physical memory
+  address, sector address, no of sectors to write) Status=EXABS(logical device number,
+  Unit/function code, dummy, dummy, floppy format number) Status=EXABS(logical device
+  number, Unit/function code, dummy, dummy, sector address) Status=EXABS(logical device
+  number, Unit/function code, dummy, dummy, destination unit number) Status=EXABS(logical
+  device number, Unit/function code, dummy, dummy, first sector address of track)
 parameters: []
 examples: {}
 compatibility:
@@ -23,4 +34,4 @@ source:
   page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: 'Manually extracted - name/header format mismatch (doc: line 25354)'
+  ocr_notes: Extracted from line 25354 - was missing in initial extraction

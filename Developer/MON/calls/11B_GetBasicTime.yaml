@@ -20,27 +20,39 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'BasicTime : LONGINT;
+    code: '```
+
+      BasicTime : LONGINT;
 
       ...
 
-      GetBasicTime(BasicTime);'
+      GetBasicTime(BasicTime);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 BasicTime COMP PIC S9(10).
+    code: '```
+
+      01 BasicTime COMP PIC S9(10).
 
       ...
 
-      MONITOR-CALL "GetBasicTime" USING BasicTime.'
+      MONITOR-CALL "GetBasicTime" USING BasicTime.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER*4 BasicTime
+    code: '```
+
+      INTEGER*4 BasicTime
 
       ...
 
-      Monitor_Call(''GetBasicTime'', BasicTime)'
+      Monitor_Call(''GetBasicTime'', BasicTime)
+
+      ```'
     notes: ''
   planc:
     available: true

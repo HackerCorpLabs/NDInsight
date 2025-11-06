@@ -1,6 +1,6 @@
 # Monitor Call: 154B AssignCAMACLAM
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source lines: 3228-3360
+# Source line: 3228
 
 octal: 154B
 name: AssignCAMACLAM
@@ -10,9 +10,8 @@ description: 'Assigns a graded LAM in the CAMAC identification table to a logica
   device number in the logical number table. See CAMACFunction and CAMACGLRegister
   for more details.
 
-  - Remove the LAM by specifying logical device number -1.
 
-  See also CAMACFunction, BCNAFCAMAC, BCNAFFICAMAC, CAMACIOInstruction, and CAMACGLRegister.'
+  - Remove the LAM by specifying logical device number -1.'
 parameters: []
 examples: {}
 compatibility:
@@ -26,4 +25,4 @@ source:
   page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: Manually extracted - had duplicate headers in source
+  ocr_notes: Extracted from line 3228 - was missing in initial extraction

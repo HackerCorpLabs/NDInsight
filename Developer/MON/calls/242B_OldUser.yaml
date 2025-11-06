@@ -5,7 +5,15 @@
 octal: 242B
 name: OldUser
 short_names: []
-description: ''
+description: 'Switches back to the user name you were logged in under before NewUser.
+  The command is similar to logging out and then log in as another user. Your program
+  continues under the old user.
+
+
+  - The monitor call has no function if NewUser has not been executed.
+
+  - You may execute NewUser more than once without OldUser in between. OldUser always
+  reset the first user name.'
 notes: []
 see_also:
 - NewUser
@@ -39,11 +47,14 @@ examples:
     notes: ''
   planc:
     available: true
-    code: "ON ROUTINEERROR DO\n  IF ErrCode >< 0 THEN ...\nENDON\nMonitor_Call('OldUser')"
+    code: "```\nON ROUTINEERROR DO\n  IF ErrCode >< 0 THEN ...\nENDON\nMonitor_Call('OldUser')\n\
+      ```"
     notes: ''
   assembly_500:
     available: true
-    code: 'ErrCode : W BLOCK 1
+    code: '```
+
+      ErrCode : W BLOCK 1
 
       OldUser : EQU 37B9 + 242B
 
@@ -55,14 +66,16 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode     %ErrorCode in W1 register.'
+      ERROR : W1 =: ErrCode     %ErrorCode in W1 register.
+
+      ```'
     octal_definition: 37B9 + 242B
     notes: ''
   mac:
     available: true
-    code: "MON 242       %Monitor call OldUser.\nJMP ERROR     %Error return from\
-      \ monitor call.\n              %Normal return.\nERROR, ...    %Error number\
-      \ in register A.\n...\n\n\n| ND-100 and ND-500 | All users | Background programs\
+    code: "```\nMON 242       %Monitor call OldUser.\nJMP ERROR     %Error return\
+      \ from monitor call.\n              %Normal return.\nERROR, ...    %Error number\
+      \ in register A.\n...\n```\n\n| ND-100 and ND-500 | All users | Background programs\
       \ |"
     mon_number: 242
     notes: ''

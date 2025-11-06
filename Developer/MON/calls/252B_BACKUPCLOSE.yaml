@@ -1,16 +1,13 @@
-# SINTRAN III Monitor Call: DEVICEFUNCTION
-# Octal: 144B
+# SINTRAN III Monitor Call: BACKUPCLOSE
+# Octal: 252B
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
-octal: 144B
-name: DEVICEFUNCTION
+octal: 252B
+name: BACKUPCLOSE
 short_names: []
-description: Performs various operations on floppy disks, magnetic tapes, Versatec
-  plotters, and SCSI streamers.
-notes:
-- The parameter values depend on the device.
-- If the function code is in the range 5B to 24B, except 23B, the parameter buffer
-  and the two device dependent parameters are dummies.
+description: Closes a file. The version number and the last date accessed are unchanged.
+  The number of pages in temporary files and spooling files is not affected.
+notes: []
 see_also: []
 references: []
 parameters: []
@@ -29,7 +26,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 0
-  line: 6202
+  line: 3688
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

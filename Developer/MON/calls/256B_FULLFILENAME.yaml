@@ -1,12 +1,15 @@
-# SINTRAN III Monitor Call: GETACTIVESEGMENT
-# Octal: 421B
+# SINTRAN III Monitor Call: FULLFILENAME
+# Octal: 256B
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
-octal: 421B
-name: GETACTIVESEGMENT
+octal: 256B
+name: FULLFILENAME
 short_names: []
-description: ''
-notes: []
+description: Returns a complete file name from an abbreviated one. The directory,
+  the user, the file name, the file type, and the version are returned.
+notes:
+- You must have read access to the file.
+- The abbreviation must be unambiguous.
 see_also: []
 references: []
 parameters: []
@@ -25,7 +28,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 0
-  line: 9315
+  line: 9205
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

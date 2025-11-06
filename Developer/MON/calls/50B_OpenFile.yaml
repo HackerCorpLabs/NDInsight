@@ -65,7 +65,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'FileNo, AccessCode : INTEGER;
+    code: '```
+
+      FileNo, AccessCode : INTEGER;
 
       FileName : PACKED ARRAY [0..63] OF CHAR;
 
@@ -75,11 +77,15 @@ examples:
 
       OpenFile(FileNo, AccessCode, FileName, FileType);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 FileNo COMP.
+    code: '```
+
+      01 FileNo COMP.
 
       01 AccessCode COMP.
 
@@ -95,19 +101,25 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER FileNo, AccessCode
+    code: '```
 
-      CHARACTER FileName*64, FileType*4'
+      INTEGER FileNo, AccessCode
+
+      CHARACTER FileName*64, FileType*4
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "plaintext\nINTEGER : FileNo, AccessCode\nBYTES : FileName(0:63), FileType(0:3)\n\
+    code: "```plaintext\nINTEGER : FileNo, AccessCode\nBYTES : FileName(0:63), FileType(0:3)\n\
       ...\nON ROUTINEERROR DO\n   IF ErrCode > 0 THEN ...\nENDON\n\n0 =: FileNo\n\
-      Monitor_Call('OpenFile', FileNo, AccessCode, FileName, FileType)"
+      Monitor_Call('OpenFile', FileNo, AccessCode, FileName, FileType)\n```"
     notes: ''
   assembly_500:
     available: true
@@ -130,7 +142,7 @@ examples:
       | OpenFile   | EQU 37B9 + 50B |                                                      |
 
 
-      plaintext
+      ```plaintext
 
       ...
 
@@ -140,12 +152,14 @@ examples:
 
       ...
 
-      ERROR = W1 =: ErrCode %ErrorCode in W1 register.'
+      ERROR = W1 =: ErrCode %ErrorCode in W1 register.
+
+      ```'
     octal_definition: 37B9 + 50B
     notes: ''
   mac:
     available: true
-    code: 'plaintext
+    code: '```plaintext
 
       LDX (FILE %If 0, the name is read from the terminal.
 
@@ -171,6 +185,7 @@ examples:
 
       TYPE, ''SYMB'' %
 
+      ```
 
 
 

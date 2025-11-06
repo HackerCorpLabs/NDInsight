@@ -1,6 +1,6 @@
 # Monitor Call: 150B CAMACGLRegister
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source lines: 4238-4320
+# Source line: 4238
 
 octal: 150B
 name: CAMACGLRegister
@@ -8,7 +8,6 @@ short_names:
 - GL
 description: 'Read the CAMAC GL (Graded LAM -"look at me") register or the last CAMAC
   identification number. See under CAMACfunction (mon 147) for more general information.
-
   When a program requests interrupt, it generates a LAM to the control station. Up
   to 23 such signals may arrive, but for efficient handling in the computer, these
   must be reduced to 16 lines called Graded LAMs. The GL register, which may be read
@@ -17,9 +16,7 @@ description: 'Read the CAMAC GL (Graded LAM -"look at me") register or the last 
   LAM code. Bits 4-7: crate code. Bit 8=1 : CAMAC). A LAM Mask Register is used to
   enable (bit=1) or disable (bit=0) any of the 16 graded LAMs. Each time an IDENT
   code is read, the associated bit in the MASK register is cleared and must be set
-  by the program to enable a new interrupt.
-
-  See also CAMACfunction, AssignCAMACLAM, BCNAFCAMAC, BCNAF1CAMAC, and CAMACIOInstruction.'
+  by the program to enable a new interrupt.'
 parameters: []
 examples: {}
 compatibility:
@@ -33,4 +30,4 @@ source:
   page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: Manually extracted - had duplicate headers in source
+  ocr_notes: Extracted from line 4238 - was missing in initial extraction

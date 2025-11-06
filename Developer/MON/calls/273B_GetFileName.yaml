@@ -5,7 +5,14 @@
 octal: 273B
 name: GetFileName
 short_names: []
-description: ''
+description: 'Gets the name of a file. You specify the directory index, the user index,
+  and the object index. The file name, the file type, and the version are returned.
+
+
+  - The file need not be open.
+
+  - On the ND-100 you may specify a file on a remote computer system. The computers
+  must be connected through a COSMOS network.'
 notes: []
 see_also:
 - FullFileName
@@ -43,7 +50,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DirIndex, UserIndex, ObjectIndex : INTEGER2;
+    code: '```
+
+      DirIndex, UserIndex, ObjectIndex : INTEGER2;
 
       FileName : PACKED ARRAY [0..63] OF CHAR;
 
@@ -51,22 +60,24 @@ examples:
 
       GetFileName(DirIndex, UserIndex, ObjectIndex, FileName);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 DirIndex COMP.\n01 UserIndex COMP.\n01 ObjectIndex COMP.\n01 FileName\
+    code: "```\n01 DirIndex COMP.\n01 UserIndex COMP.\n01 ObjectIndex COMP.\n01 FileName\
       \ PIC X(64).\n01 RemoteFlag COMP.\n01 RemoteSystem PIC X(64).\n01 ErrCode COMP.\n\
       ...\nMONITOR-CALL \"GetFileName\" USING DirIndex, UserIndex, ObjectIndex,\n\
       \                FileName, RemoteFlag, RemoteSystem.\nCALL \"CbError\" USING\
-      \ ErrCode.\nIF ErrCode NOT = 0 GO ..."
+      \ ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
     notes: ''
   fortran:
     available: true
-    code: "INTEGER DirIndex, UserIndex, ObjIndex, RemoteFlag\nCHARACTER FileName*64,\
+    code: "```\nINTEGER DirIndex, UserIndex, ObjIndex, RemoteFlag\nCHARACTER FileName*64,\
       \ RemoteSystem*64\n...\nMonitor_Call('GetFileName', DirIndex, UserIndex, ObjIndex,\n\
       \              FileName(1:64), RemoteFlag, RemoteSystem(1:64))\nIF (ErrCode\
-      \ .NE. 0) THEN ..."
+      \ .NE. 0) THEN ...\n```"
     notes: ''
   planc:
     available: true

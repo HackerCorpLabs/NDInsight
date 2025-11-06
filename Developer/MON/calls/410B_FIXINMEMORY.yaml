@@ -1,11 +1,13 @@
-# SINTRAN III Monitor Call: ERRORRETURN
-# Octal: 400B
+# SINTRAN III Monitor Call: FIXINMEMORY
+# Octal: 410B
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
-octal: 400B
-name: ERRORRETURN
+octal: 410B
+name: FIXINMEMORY
 short_names: []
-description: ''
+description: Fixes a logical segment of your domain in physical memory. You can fix
+  the whole or part of the segment. This speeds up access to the segment. It is also
+  useful in segment sharing.
 notes: []
 see_also: []
 references: []
@@ -25,7 +27,7 @@ errors:
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 0
-  line: 7477
+  line: 8744
   scan_date: '2020'
   scanned_by: Jonny Oddene for Sintran Data
 extraction:

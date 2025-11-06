@@ -5,7 +5,11 @@
 octal: 201B
 name: HDLCfunction
 short_names: []
-description: ''
+description: Performs various HDLC functions. A HDLC is a high-level data link to
+  another computer. You may send data, receive data, and control HDLC. Data is sent
+  as Driver Control Blocks (DCB). This monitor call is also used by X.21 to transfer
+  DCBs between the user programs and the X.21 driver. The system uses the Logical
+  Device Number to distinguish between HDLC and X.21.
 notes:
 - Use MON 122, ReserveResource, and MON 123, Release Resource for exclusive access
   to a LDN.
@@ -88,9 +92,9 @@ examples:
     notes: Not available
   fortran:
     available: true
-    code: "INTEGER SendRecDCB, LDN, Buffer, DCBusize, DCBmsize\nINTEGER Buff(1024)\n\
+    code: "```\nINTEGER SendRecDCB, LDN, Buffer, DCBusize, DCBmsize\nINTEGER Buff(1024)\n\
       ...\nMonitor_Call('HDLCFunction', SendRecDCB, LDN, Buffer(1),\n    C DCBusize,\
-      \ DCBmsizeXcoor\n\n\nScanned by Jonny Oddene for Sintran Data © 2020"
+      \ DCBmsizeXcoor\n```\n\nScanned by Jonny Oddene for Sintran Data © 2020"
     notes: ''
   planc:
     available: false
@@ -98,7 +102,9 @@ examples:
     notes: Not available
   assembly_500:
     available: true
-    code: 'Func   : W BLOCK 1
+    code: '```
+
+      Func   : W BLOCK 1
 
       DevNo  : W BLOCK 1
 
@@ -112,6 +118,7 @@ examples:
 
       HDLCfunction : EQU 37B9 + 201B
 
+      ```
 
 
       CALLG HDLCfunction, 5, Func, DevNo, Buffer, USize, MSize,
@@ -126,7 +133,9 @@ examples:
     notes: ''
   mac:
     available: true
-    code: 'LDA (PAR      %Load address of parameter list into reg.A
+    code: '```
+
+      LDA (PAR      %Load address of parameter list into reg.A
 
       MON 201       %Monitor call HDLCfunction.
 
@@ -134,6 +143,7 @@ examples:
 
       JMP OK
 
+      ```
 
 
       ERROR, ...  %A-reg contains error code.

@@ -5,7 +5,18 @@
 octal: 102B
 name: StartupTime
 short_names: []
-description: ''
+description: 'Starts an RT program at a specified time of the day. The RT program
+  is then put in the time queue. It is moved to the execution queue at the specified
+  time.
+
+
+  - The time of the day specified may have already passed. In this case, the program
+  starts the next day.
+
+  - RT programs already in the time queue are reinserted according to the new specifications.
+
+  - AdjustClock, and @CLADJ affect the system''s clock. Whenever the system time is
+  changed, RT programs start according to the new time.'
 notes: []
 see_also:
 - ExactStartup
@@ -33,15 +44,21 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'RTProgram, Seconds, Minutes, Hours: INTEGER2;
+    code: '```
+
+      RTProgram, Seconds, Minutes, Hours: INTEGER2;
 
       ...
 
-      StartTime(RTProgram, Seconds, Minutes, Hours); [Note routine name.]'
+      StartTime(RTProgram, Seconds, Minutes, Hours); [Note routine name.]
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 RTProgram COMP.
+    code: '```
+
+      01 RTProgram COMP.
 
       01 Seconds COMP.
 
@@ -51,15 +68,21 @@ examples:
 
       ...
 
-      MONITOR-CALL "StartupTime" USING RTProgram, Seconds, Minutes, Hours.'
+      MONITOR-CALL "StartupTime" USING RTProgram, Seconds, Minutes, Hours.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER RTProgram, Seconds, Minutes, Hours
+    code: '```
+
+      INTEGER RTProgram, Seconds, Minutes, Hours
 
       ...
 
-      Monitor_Call(''StartupTime'', RTProgram, Seconds, Minutes, Hours)'
+      Monitor_Call(''StartupTime'', RTProgram, Seconds, Minutes, Hours)
+
+      ```'
     notes: ''
   planc:
     available: true

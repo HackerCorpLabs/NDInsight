@@ -5,7 +5,23 @@
 octal: 130B
 name: ExactInterval
 short_names: []
-description: ''
+description: 'Prepares an RT program for periodic execution. The interval between
+  the executions may be from 1 to 4294967647 basic time units. A basic time unit is
+  1/50th of a second.
+
+
+  - The RT program is not started. Use, for example, StartRTProgram or @RT to start
+  it.
+
+  - StopRTProgram, Disconnect, @ABORT or @DSCNT cancel this monitor call.
+
+  - One execution may be unfinished when it is time for the next execution. In this
+  case, the program''s restart flag is set. If the delay becomes as long as two intervals,
+  one execution is lost.
+
+  - The interval replaces any earlier specified intervals.
+
+  - AdjustClock and @CLADJ do not affect the interval.'
 notes: []
 see_also:
 - StartupInterval
@@ -25,41 +41,59 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'RTProgram, BasicTimeUnits : INTEGER2;
+    code: '```
+
+      RTProgram, BasicTimeUnits : INTEGER2;
 
       ...
 
-      ExactInterval(RTProgram, BasicTimeUnits);'
+      ExactInterval(RTProgram, BasicTimeUnits);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 RTProgram COMP.
+    code: '```
+
+      01 RTProgram COMP.
 
       01 BasicTimeUnits COMP.
 
       ...
 
-      MONITOR-CALL "ExactInterval" USING RTProgram, BasicTimeUnits.'
+      MONITOR-CALL "ExactInterval" USING RTProgram, BasicTimeUnits.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER RTProgram, BasicTimeUnits
+    code: '```
+
+      INTEGER RTProgram, BasicTimeUnits
 
       ...
 
-      Monitor_Call(''ExactInterval'', RTProgram, BasicTimeUnits)'
+      Monitor_Call(''ExactInterval'', RTProgram, BasicTimeUnits)
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: 'INTEGER : RTProgram, BasicTimeUnits
+    code: '```
+
+      INTEGER : RTProgram, BasicTimeUnits
 
       ...
 
-      Monitor_Call(''ExactInterval'', RTProgram, BasicTimeUnits)'
+      Monitor_Call(''ExactInterval'', RTProgram, BasicTimeUnits)
+
+      ```'
     notes: ''
   assembly_500:
     available: true
-    code: 'RTProgram : W BLOCK 1
+    code: '```
+
+      RTProgram : W BLOCK 1
 
       BasicTimeUnits : W BLOCK 1
 
@@ -67,12 +101,16 @@ examples:
 
       ...
 
-      CALLG ExactInterval, 2, RTProgram, BasicTimeUnits'
+      CALLG ExactInterval, 2, RTProgram, BasicTimeUnits
+
+      ```'
     octal_definition: 37B9 + 130B
     notes: ''
   mac:
     available: true
-    code: 'LDA  (PAR      %Load register A with address of parameter list.
+    code: '```
+
+      LDA  (PAR      %Load register A with address of parameter list.
 
       MON  130       %Monitor call ExactInterval.
 
@@ -90,6 +128,7 @@ examples:
 
       ...
 
+      ```
 
 
       | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |

@@ -1,6 +1,6 @@
 # Monitor Call: 503B InputString
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source lines: 14451-14516
+# Source line: 14451
 
 octal: 503B
 name: InputString
@@ -9,11 +9,10 @@ short_names:
 description: 'Reads a string from a device, e.g., a terminal or an opened file. This
   monitor call provides a fast input to ND-500 programs.
 
+
   - Only the first four parameters are used for file input.
 
-  - An ASCII table is given in Appendix G.
-
-  See also InByte, InString, and OutputString.'
+  - An ASCII table is given in Appendix G.'
 parameters: []
 examples: {}
 compatibility:
@@ -27,4 +26,4 @@ source:
   page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: Extracted from header without octal (line 14451)
+  ocr_notes: Extracted from line 14451 - was missing in initial extraction

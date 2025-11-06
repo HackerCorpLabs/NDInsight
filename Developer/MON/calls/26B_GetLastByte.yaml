@@ -5,7 +5,15 @@
 octal: 26B
 name: GetLastByte
 short_names: []
-description: ''
+description: 'Gets the last character typed on a terminal. The monitor call can be
+  used to terminate long output sequences, reading from files, etc. The program never
+  enters the I/O wait state because of this monitor call.
+
+
+  - Only user SYSTEM can execute this monitor call on a non-reserved terminal.
+
+  - This monitor call always returns -1 if an error is encountered, not the standard
+  SINTRAN error codes.'
 notes: []
 see_also:
 - InByte
@@ -22,29 +30,41 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DeviceNumber, LastCharTyped : INTEGER2;
+    code: '```
+
+      DeviceNumber, LastCharTyped : INTEGER2;
 
       ...
 
-      GetLastByte(DeviceNumber, LastCharTyped);'
+      GetLastByte(DeviceNumber, LastCharTyped);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DeviceNumber COMP.
+    code: '```
+
+      01 DeviceNumber COMP.
 
       01 LastCharTyped COMP.
 
       ...
 
-      MONITOR-CALL "GetLastByte" USING DeviceNumber, LastCharTyped.'
+      MONITOR-CALL "GetLastByte" USING DeviceNumber, LastCharTyped.
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNumber, LastCharTyped
+    code: '```
+
+      INTEGER DeviceNumber, LastCharTyped
 
       ...
 
-      Monitor_Call(''GetLastByte'', DeviceNumber, LastCharTyped)'
+      Monitor_Call(''GetLastByte'', DeviceNumber, LastCharTyped)
+
+      ```'
     notes: ''
   planc:
     available: true

@@ -28,7 +28,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'Number : INTEGER2;
+    code: '```
+
+      Number : INTEGER2;
 
       Buff : RECORD...END;
 
@@ -36,17 +38,21 @@ examples:
 
       GetSystemInfo(Number, Buff);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 Number COMP.\n01 Buff.\n  02 array COMP OCCURS 12 TIMES.\n01 ErrCode\
+    code: "```\n01 Number COMP.\n01 Buff.\n  02 array COMP OCCURS 12 TIMES.\n01 ErrCode\
       \ COMP.\n...\nMONITOR-CALL \"GetSystemInfo\" USING Number, Buff.\nCALL \"CbError\"\
-      \ USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
+      \ USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER Number
+    code: '```
+
+      INTEGER Number
 
       INTEGER Buff(12)
 
@@ -54,24 +60,29 @@ examples:
 
       Monitor_Call(''GetSystemInfo'', Number, Buff(1))
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: "INTEGER : Number\nBYTES : Buff(0:23)\n...\nON ROUTINEERROR DO\n    IF ErrCode\
-      \ >< 0 THEN ...\nENDON\nMonitor_Call('GetSystemInfo', Number, Buff(0))"
+    code: "```\nINTEGER : Number\nBYTES : Buff(0:23)\n...\nON ROUTINEERROR DO\n  \
+      \  IF ErrCode >< 0 THEN ...\nENDON\nMonitor_Call('GetSystemInfo', Number, Buff(0))\n\
+      ```"
     notes: ''
   assembly_500:
     available: true
-    code: "Number : W BLOCK 1\nBuff : H BLOCK 14B\nErrCode : W BLOCK 1\nGetSystemInfo\
+    code: "```\nNumber : W BLOCK 1\nBuff : H BLOCK 14B\nErrCode : W BLOCK 1\nGetSystemInfo\
       \ : EQU 3789 + 262B\n...\n    CALLG GetSystemInfo, 2. Number, Buff\n    IF K\
       \ GO ERROR\n...\nERROR : W1 =: ErrCode                     %ErrorCode in W1\
-      \ register."
+      \ register.\n```"
     octal_definition: 37B9 + 262B
     notes: ''
   mac:
     available: true
-    code: 'SAA  0         %Load register A with zero.
+    code: '```
+
+      SAA  0         %Load register A with zero.
 
       LDX  (BUFF     %Address of a 12-word long buffer.
 
@@ -90,6 +101,7 @@ examples:
 
       *+14/          %A 12-word long buffer.
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

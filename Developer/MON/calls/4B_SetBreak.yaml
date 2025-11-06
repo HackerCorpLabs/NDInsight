@@ -5,7 +5,20 @@
 octal: 4B
 name: SetBreak
 short_names: []
-description: ''
+description: 'Sets the break characters for a terminal. Normally, a program waits
+  for input. When a break character is typed, the program restarts. For example, most
+  subsystems restart when you press the RETURN-key after a command. The subsystems
+  have defined the RETURN-key as a break character.
+
+
+  - SINTRAN III has some predefined break tables.
+
+  - You may define your own break table. This is a 128-bit array where each bit represents
+  an ASCII character. Use 1 for the characters you want as break characters. The ability
+  to define your own break tables is optional in older versions of SINTRAN III.
+
+  - If 8-bit I/O is set (TerminalFunction, function number 112), you will get break
+  always if bit 7 in the break table is set.'
 notes: []
 see_also:
 - SetEcho
@@ -63,29 +76,37 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DeviceNo, BreakStrategy, NoOfChar : INTEGER2;
+    code: '```
+
+      DeviceNo, BreakStrategy, NoOfChar : INTEGER2;
 
       Table : RECORD...END;
 
       ...
 
-      SetBreak(DeviceNo, BreakStrategy, Table, NoOfChar);'
+      SetBreak(DeviceNo, BreakStrategy, Table, NoOfChar);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 DeviceNo COMP.\n01 BreakStrategy COMP.\n01 NoOfChar COMP.\n01 Table.\n\
+    code: "```\n01 DeviceNo COMP.\n01 BreakStrategy COMP.\n01 NoOfChar COMP.\n01 Table.\n\
       \   02 array COMP OCCURS 8 TIMES.\n...\nMONITOR-CALL \"SetBreak\" USING DeviceNo,\
-      \ BreakStrategy, Table, NoOfChar."
+      \ BreakStrategy, Table, NoOfChar.\n```"
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNo, Strategy, NoOfChar
+    code: '```
+
+      INTEGER DeviceNo, Strategy, NoOfChar
 
       INTEGER Table(8)
 
       ...
 
-      Monitor_Call(''SetBreak'', DeviceNo, Strategy, Table(1), NoOfChar)'
+      Monitor_Call(''SetBreak'', DeviceNo, Strategy, Table(1), NoOfChar)
+
+      ```'
     notes: ''
   planc:
     available: true

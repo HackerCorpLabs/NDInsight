@@ -56,43 +56,57 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DeviceNumber, EchoStrategy : INTEGER2;
+    code: '```
+
+      DeviceNumber, EchoStrategy : INTEGER2;
 
       Table : RECORD...END;
 
       ...
 
-      SetEcho(DeviceNumber, EchoStrategy, Table);'
+      SetEcho(DeviceNumber, EchoStrategy, Table);
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: "01 DeviceNumber COMP.\n01 EchoStrategy COMP.\n01 Table.\n  02 array COMP\
-      \ OCCURS 8 TIMES.\n  ...\nMONITOR-CALL \"SetEcho\" USING DeviceNumber, EchoStrategy,\
-      \ Table."
+    code: "```\n01 DeviceNumber COMP.\n01 EchoStrategy COMP.\n01 Table.\n  02 array\
+      \ COMP OCCURS 8 TIMES.\n  ...\nMONITOR-CALL \"SetEcho\" USING DeviceNumber,\
+      \ EchoStrategy, Table.\n```"
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNumber, EchoStrategy
+    code: '```
+
+      INTEGER DeviceNumber, EchoStrategy
 
       INTEGER Table(8)
 
       ...
 
-      Monitor_Call(''SetEcho'', DeviceNumber, EchoStrategy, Table(1))'
+      Monitor_Call(''SetEcho'', DeviceNumber, EchoStrategy, Table(1))
+
+      ```'
     notes: ''
   planc:
     available: true
-    code: 'INTEGER : DeviceNumber, EchoStrategy
+    code: '```
+
+      INTEGER : DeviceNumber, EchoStrategy
 
       INTEGER2ARRAY{0:7}
 
       ...
 
-      Monitor_Call(''SetEcho'', DeviceNumber, EchoStrategy, Table(0))'
+      Monitor_Call(''SetEcho'', DeviceNumber, EchoStrategy, Table(0))
+
+      ```'
     notes: ''
   assembly_500:
     available: true
-    code: 'DeviceNumber : W BLOCK 1
+    code: '```
+
+      DeviceNumber : W BLOCK 1
 
       EchoStrategy : W BLOCK 1
 
@@ -102,12 +116,16 @@ examples:
 
       ...
 
-      CALLG SetEcho, 3, DeviceNumber, EchoStrategy, Table'
+      CALLG SetEcho, 3, DeviceNumber, EchoStrategy, Table
+
+      ```'
     octal_definition: 37B9 + 3B
     notes: ''
   mac:
     available: true
-    code: 'LDT DEVNO  %Logical device number.
+    code: '```
+
+      LDT DEVNO  %Logical device number.
 
       LDA STRAT  %Echo strategy.
 
@@ -125,6 +143,7 @@ examples:
 
       *+10/ %Make a buffer of 8 words.
 
+      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

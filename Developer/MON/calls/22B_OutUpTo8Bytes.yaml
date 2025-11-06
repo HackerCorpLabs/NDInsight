@@ -5,7 +5,17 @@
 octal: 22B
 name: OutUpTo8Bytes
 short_names: []
-description: ''
+description: 'Writes up to 8 characters to a device, e.g. a terminal or an internal
+  device.
+
+
+  - You can only use this monitor call for terminals, TADs, internal devices, and
+  synchronous modems.
+
+  - The writing terminates when a character with value 0 is found. The 0 byte is not
+  output.
+
+  - Appendix F contains an ASCII table.'
 notes: []
 see_also:
 - OutMessage
@@ -33,7 +43,9 @@ parameters:
 examples:
   pascal:
     available: true
-    code: 'DeviceNo : INTEGER2;
+    code: '```
+
+      DeviceNo : INTEGER2;
 
       OutData : RECORD...END;
 
@@ -41,11 +53,15 @@ examples:
 
       OutUpTo8Bytes(DeviceNo, OutData);
 
-      IF ErrCode <> 0 THEN ...'
+      IF ErrCode <> 0 THEN ...
+
+      ```'
     notes: ''
   cobol:
     available: true
-    code: '01 DeviceNo COMP.
+    code: '```
+
+      01 DeviceNo COMP.
 
       01 OutData PIC X(8).
 
@@ -57,11 +73,15 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...'
+      IF ErrCode NOT = 0 GO ...
+
+      ```'
     notes: ''
   fortran:
     available: true
-    code: 'INTEGER DeviceNo
+    code: '```
+
+      INTEGER DeviceNo
 
       CHARACTER OutData*8
 
@@ -69,7 +89,9 @@ examples:
 
       Monitor_Call(''OutUpTo8Bytes'', DeviceNo, OutData(1:8))
 
-      IF (ErrCode .NE. 0) THEN ...'
+      IF (ErrCode .NE. 0) THEN ...
+
+      ```'
     notes: ''
   planc:
     available: true

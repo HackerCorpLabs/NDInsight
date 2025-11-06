@@ -1,6 +1,6 @@
 # Monitor Call: 333B DMAFunction
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source lines: 6996-7055
+# Source line: 6996
 
 octal: 333B
 name: DMAFunction
@@ -20,4 +20,4 @@ source:
   page_references: []
 extraction:
   ocr_corrected: true
-  ocr_notes: Extracted from header without octal (line 6996)
+  ocr_notes: Extracted from line 6996 - was missing in initial extraction
