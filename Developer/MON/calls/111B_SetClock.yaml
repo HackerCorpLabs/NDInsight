@@ -36,21 +36,15 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      Minute, Hour, Day, Month, Year : INTEGER2;
+    code: 'Minute, Hour, Day, Month, Year : INTEGER2;
 
       ...
 
-      SetClock(Minute, Hour, Day, Month, Year);
-
-      ```'
+      SetClock(Minute, Hour, Day, Month, Year);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 Minute COMP.
+    code: '01 Minute COMP.
 
       01 Hour COMP.
 
@@ -62,21 +56,15 @@ examples:
 
       ...
 
-      MONITOR-CALL "SetClock" USING Minute, Hour, Day, Month, Year.
-
-      ```'
+      MONITOR-CALL "SetClock" USING Minute, Hour, Day, Month, Year.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER Minute, Hour, Day, Month, Year
+    code: 'INTEGER Minute, Hour, Day, Month, Year
 
       ...
 
-      Monitor_Call(''SetClock'', Minute, Hour, Day, Month, Year)
-
-      ```'
+      Monitor_Call(''SetClock'', Minute, Hour, Day, Month, Year)'
     notes: ''
   planc:
     available: true
@@ -110,13 +98,10 @@ examples:
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDA (PAR %Load register A with address of parameter list.
+    code: 'LDA (PAR %Load register A with address of parameter list.
 
       MON 111 %Monitor call SetClock.
 
-      ```
 
 
       | PAR, | MIN | %New minutes of hour. |
@@ -132,7 +117,6 @@ examples:
       | | YEAR | %New value for year. |
 
 
-      ```
 
       MIN, ...
 
@@ -144,7 +128,6 @@ examples:
 
       YEAR, ...
 
-      ```
 
 
 

@@ -24,23 +24,17 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DeviceNumber : INTEGER2;
+    code: 'DeviceNumber : INTEGER2;
 
       ...
 
       ClearInBuffer(DeviceNumber);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DeviceNumber COMP.
+    code: '01 DeviceNumber COMP.
 
       01 ErrCode COMP.
 
@@ -50,34 +44,26 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DeviceNumber
+    code: 'INTEGER DeviceNumber
 
       ...
 
       Monitor_Call(''ClearInBuffer'', DeviceNumber)
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DeviceNumber\n...\nON ROUTINEERROR DO\n    IF ErrCode ><\
-      \ 0 THEN ...\nENDON\nMonitor_Call('ClearInBuffer', DeviceNumber)\n```"
+    code: "INTEGER : DeviceNumber\n...\nON ROUTINEERROR DO\n    IF ErrCode >< 0 THEN\
+      \ ...\nENDON\nMonitor_Call('ClearInBuffer', DeviceNumber)"
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      DeviceNumber : W BLOCK 1
+    code: 'DeviceNumber : W BLOCK 1
 
       ErrCode : W BLOCK 1
 
@@ -91,16 +77,12 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode            %ErrorCode in W1 register.
-
-      ```'
+      ERROR : W1 =: ErrCode            %ErrorCode in W1 register.'
     octal_definition: 37B9 + 13B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDT   DEVNO       %Load register T with logical device number.
+    code: 'LDT   DEVNO       %Load register T with logical device number.
 
       MON   13          %Monitor call ClearInBuffer.
 
@@ -114,7 +96,6 @@ examples:
 
       DEVNO, ...
 
-      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

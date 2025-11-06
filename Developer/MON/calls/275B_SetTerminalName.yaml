@@ -27,9 +27,7 @@ examples:
     notes: Not available
   cobol:
     available: true
-    code: '```
-
-      01 TerminalName  PIC X(64).
+    code: '01 TerminalName  PIC X(64).
 
       01 ErrCode       COMP.
 
@@ -39,40 +37,34 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      CHARACTER TerminalName*64
+    code: 'CHARACTER TerminalName*64
 
       ...
 
       Monitor_Call(''SetTerminalName'', TerminalName(1:64))
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
-    code: "BYTES : TerminalName(0:63)\n\n```assemble\nON ROUTINEERROR DO\n  IF ErrCode\
-      \ <> 0 THEN ...\nENDON\nMonitor_Call('SetTerminalName', TerminalName)\n```"
+    code: "BYTES : TerminalName(0:63)\n\nassemble\nON ROUTINEERROR DO\n  IF ErrCode\
+      \ <> 0 THEN ...\nENDON\nMonitor_Call('SetTerminalName', TerminalName)"
     notes: ''
   assembly_500:
     available: true
-    code: "```assemble\nFileName : STRINGDATA 'TERMINAL'...\nErrCode : W BLOCK 1\n\
-      ...\n\nSetTerminalName : EQU 37B9 + 275B\n  CALLG SetTerminalName, 1, FileName\n\
+    code: "assemble\nFileName : STRINGDATA 'TERMINAL'...\nErrCode : W BLOCK 1\n...\n\
+      \nSetTerminalName : EQU 37B9 + 275B\n  CALLG SetTerminalName, 1, FileName\n\
       \  IF K GO ERROR\n...\n\nERROR : W1 =. ErrCode              %ErrorCode in W1\
-      \ register.\n```"
+      \ register."
     octal_definition: 37B9 + 275B
     notes: ''
   mac:
     available: true
-    code: '```assemble
+    code: 'assemble
 
       LDX   (NAME                        %Address of string containing terminal name.
 
@@ -82,7 +74,6 @@ examples:
 
       NAME, ''TERMINAL''                   %Set terminal name to TERMINAL.
 
-      ```
 
 
       | ND-100 and ND-500 | User SYSTEM | All programs |

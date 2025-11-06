@@ -33,21 +33,15 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      RTProgram, Seconds, Minutes, Hours: INTEGER2;
+    code: 'RTProgram, Seconds, Minutes, Hours: INTEGER2;
 
       ...
 
-      StartTime(RTProgram, Seconds, Minutes, Hours); [Note routine name.]
-
-      ```'
+      StartTime(RTProgram, Seconds, Minutes, Hours); [Note routine name.]'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 RTProgram COMP.
+    code: '01 RTProgram COMP.
 
       01 Seconds COMP.
 
@@ -57,21 +51,15 @@ examples:
 
       ...
 
-      MONITOR-CALL "StartupTime" USING RTProgram, Seconds, Minutes, Hours.
-
-      ```'
+      MONITOR-CALL "StartupTime" USING RTProgram, Seconds, Minutes, Hours.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER RTProgram, Seconds, Minutes, Hours
+    code: 'INTEGER RTProgram, Seconds, Minutes, Hours
 
       ...
 
-      Monitor_Call(''StartupTime'', RTProgram, Seconds, Minutes, Hours)
-
-      ```'
+      Monitor_Call(''StartupTime'', RTProgram, Seconds, Minutes, Hours)'
     notes: ''
   planc:
     available: true

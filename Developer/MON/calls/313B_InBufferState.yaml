@@ -13,42 +13,36 @@ see_also:
 - OutBufferSpace
 references: []
 parameters:
-- name: Logical device number.
+- name: Logicaldevicenumber.
   type: See appendix B.
   io: I
   description: ''
-- name: Number of bytes in the buffer.
+- name: Numberofbytesinthebuffer.
   type: ''
   io: I
   description: ''
-- name: Number of bytes before break
+- name: Numberofbytesbeforebreak
   type: (zero if no break character in the buffer).
   io: I
   description: ''
-- name: Standard Error Code.
+- name: StandardErrorCode.
   type: See appendix A.
   io: I
   description: ''
 examples:
   pascal:
     available: true
-    code: '```
-
-      DeviceNumber, NoInBuffer, NoUntilBreak : INTEGER2;
+    code: 'DeviceNumber, NoInBuffer, NoUntilBreak : INTEGER2;
 
       ...
 
       InBufferState(DeviceNumber, NoInBuffer, NoUntilBreak);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DeviceNo COMP.
+    code: '01 DeviceNo COMP.
 
       01 NoInBuffer COMP.
 
@@ -62,44 +56,35 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DeviceNumber, NoInBuffer, NoUntilBreak
+    code: 'INTEGER DeviceNumber, NoInBuffer, NoUntilBreak
 
       ...
 
       Monitor_Call(''InBufferState'', DeviceNumber, NoInBuffer, NoUntilBreak)
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DeviceNumber, NoInBuffer, NoUntilBreak\n...\nON ROUTINEERROR\
+    code: "INTEGER : DeviceNumber, NoInBuffer, NoUntilBreak\n...\nON ROUTINEERROR\
       \ DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('InBufferState', DeviceNumber,\
-      \ NoInBuffer, NoUntilBreak)\n```"
+      \ NoInBuffer, NoUntilBreak)"
     notes: ''
   assembly_500:
     available: true
-    code: "```\nDeviceNumber : W BLOCK 1\nNoInBuffer : W BLOCK 1\nNoUntilBreak : W\
-      \ BLOCK 1\nErrCode : W BLOCK 1\nInBufferState : EQU 3789 + 313B\n...\n    CALLG\
-      \ InBufferState, 2, DeviceNumber, NoUntilBreak\n    IF K GO ERROR\n    W1 :=\
-      \ NoOfBytes\n...\nERROR : W1 =: ErrCode                    %ErrorCode in W1\
-      \ register.\n```"
+    code: "DeviceNumber : W BLOCK 1\nNoInBuffer : W BLOCK 1\nNoUntilBreak : W BLOCK\
+      \ 1\nErrCode : W BLOCK 1\nInBufferState : EQU 3789 + 313B\n...\n    CALLG InBufferState,\
+      \ 2, DeviceNumber, NoUntilBreak\n    IF K GO ERROR\n    W1 := NoOfBytes\n...\n\
+      ERROR : W1 =: ErrCode                    %ErrorCode in W1 register."
     octal_definition: 37B9 + 313B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDT DEVNO %Logical device number.
+    code: 'LDT DEVNO %Logical device number.
 
       MON 313 %Monitor call InBufferState.
 
@@ -121,7 +106,6 @@ examples:
 
       NOBRK, 0
 
-      ```
 
 
 

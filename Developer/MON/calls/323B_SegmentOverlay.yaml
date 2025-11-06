@@ -46,34 +46,30 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      SegmentNo, Page1A1, NoPageA1, Page1A2, NoPageA2, ClearFlag : INTEGER2;
+    code: 'SegmentNo, Page1A1, NoPageA1, Page1A2, NoPageA2, ClearFlag : INTEGER2;
 
       ...
 
-      SegmentOverlay(SegmentNo, Page1A1, NoPageA1, Page1A2, NoPageA2, ClearFlag);
-
-      ```'
+      SegmentOverlay(SegmentNo, Page1A1, NoPageA1, Page1A2, NoPageA2, ClearFlag);'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 SegmentNo COMP.\n01 Page1A1 COMP.\n01 NoPageA1 COMP.\n01 Page1A2\
-      \ COMP.\n01 NoPageA2 COMP.\n01 ClearFlag COMP.\n...\nMONITOR-CALL \"SegmentOverlay\"\
+    code: "01 SegmentNo COMP.\n01 Page1A1 COMP.\n01 NoPageA1 COMP.\n01 Page1A2 COMP.\n\
+      01 NoPageA2 COMP.\n01 ClearFlag COMP.\n...\nMONITOR-CALL \"SegmentOverlay\"\
       \ USING SegmentNo, Page1A1, NoPageA1,\n                                  Page1A2,\
-      \ NoPageA2, ClearFlag.\n```"
+      \ NoPageA2, ClearFlag."
     notes: ''
   fortran:
     available: true
-    code: "```\nINTEGER SegmentNo, Page1A1, NoPageA1, Page1A2, NoPageA2, ClearFlag\n\
-      ...\nMonitor_Call('SegmentOverlay', SegmentNo, Page1A1, NoPageA1,\n        \
-      \                       Page1A2, NoPageA2, ClearFlag)\n```"
+    code: "INTEGER SegmentNo, Page1A1, NoPageA1, Page1A2, NoPageA2, ClearFlag\n...\n\
+      Monitor_Call('SegmentOverlay', SegmentNo, Page1A1, NoPageA1,\n             \
+      \                  Page1A2, NoPageA2, ClearFlag)"
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : SegmentNo, Page1A1, NoPageA1, Page1A2, NoPageA2, Clearflag\n\
+    code: "INTEGER : SegmentNo, Page1A1, NoPageA1, Page1A2, NoPageA2, Clearflag\n\
       ...\nMonitor_Call('SegmentOverlay', SegmentNo, Page1A1, NoPageA1, &\n      \
-      \       Page1A2, NoPageA2, Clearflag)\n```"
+      \       Page1A2, NoPageA2, Clearflag)"
     notes: ''
   assembly_500:
     available: false
@@ -82,9 +78,7 @@ examples:
     notes: Not available
   mac:
     available: true
-    code: '```
-
-      LDA   (PAR  %Load register A with address of parameter list.
+    code: 'LDA   (PAR  %Load register A with address of parameter list.
 
       MON   323   %Monitor call SegmentOverlay.
 
@@ -116,7 +110,6 @@ examples:
 
       CLEAR, ...
 
-      ```
 
 
       | ND-100   | All users      | Background programs |'

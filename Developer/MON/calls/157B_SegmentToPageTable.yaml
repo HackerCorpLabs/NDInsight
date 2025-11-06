@@ -65,27 +65,21 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      SegmentNo, PageTable, InterruptLevel, StartAddr : INTEGER2;
+    code: 'SegmentNo, PageTable, InterruptLevel, StartAddr : INTEGER2;
 
       ... [Note routine name.]
 
-      EnterSegment(SegmentNo, PageTable, InterruptLevel);
-
-      ```'
+      EnterSegment(SegmentNo, PageTable, InterruptLevel);'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 SegmentNo COMP.\n01 PageTable COMP.\n01 InterruptLevel COMP.\n\
-      01 StartAddress COMP.\n...\nMONITOR-CALL \"SegmentToPageTable\" USING SegmentNo,\
-      \ PageTable,\n             InterruptLevel, StartAddress.\n```"
+    code: "01 SegmentNo COMP.\n01 PageTable COMP.\n01 InterruptLevel COMP.\n01 StartAddress\
+      \ COMP.\n...\nMONITOR-CALL \"SegmentToPageTable\" USING SegmentNo, PageTable,\n\
+      \             InterruptLevel, StartAddress."
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER SegmentNo, PageTable
+    code: 'INTEGER SegmentNo, PageTable
 
       INTEGER InterLevel, StartAddress
 
@@ -93,9 +87,7 @@ examples:
 
       Monitor_Call(''SegmentToPageTable'', SegmentNo, PageTable,
 
-      C            InterLevel, StartAddress)
-
-      ```'
+      C            InterLevel, StartAddress)'
     notes: ''
   planc:
     available: true

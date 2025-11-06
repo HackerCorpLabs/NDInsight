@@ -17,24 +17,22 @@ see_also:
 - and In8Bytes
 references: []
 parameters:
-- name: Logical device number
+- name: Logicaldevicenumber
   type: See appendix B.
   io: I
   description: ''
-- name: The string of bytes to be written
+- name: Thestringofbytestobewritten
   type: ''
   io: I
   description: ''
-- name: Standard Error Code
+- name: StandardErrorCode
   type: See appendix A.
   io: I
   description: ''
 examples:
   pascal:
     available: true
-    code: '```
-
-      DeviceNumber : INTEGER2;
+    code: 'DeviceNumber : INTEGER2;
 
       OutData : RECORD...END;
 
@@ -42,15 +40,11 @@ examples:
 
       Out8Bytes(DeviceNumber, OutData);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DeviceNumber COMP.
+    code: '01 DeviceNumber COMP.
 
       01 OutData PIC X(8).
 
@@ -62,15 +56,11 @@ examples:
 
       CALL "CBerror" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DeviceNumber
+    code: 'INTEGER DeviceNumber
 
       CHARACTER OutData*8
 
@@ -78,29 +68,24 @@ examples:
 
       Monitor_Call(''Out8Bytes'', DeviceNumber, OutData(1:8))
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DeviceNumber\nBYTES : OutData(0:7)\n...\nON ROUTINEERROR\
-      \ DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('Out8Bytes', DeviceNumber,\
-      \ OutData)\n```"
+    code: "INTEGER : DeviceNumber\nBYTES : OutData(0:7)\n...\nON ROUTINEERROR DO\n\
+      \  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('Out8Bytes', DeviceNumber, OutData)"
     notes: ''
   assembly_500:
     available: true
-    code: "```\nDeviceNumber : W BLOCK 1\nOutData : STRINGDATA 'HELLO!!!'\nErrCode\
-      \ : W BLOCK 1\nOut8Bytes : EQU 37B9 + 24B\n...\n  CALLG Out8Bytes, 2, DeviceNumber,\
+    code: "DeviceNumber : W BLOCK 1\nOutData : STRINGDATA 'HELLO!!!'\nErrCode : W\
+      \ BLOCK 1\nOut8Bytes : EQU 37B9 + 24B\n...\n  CALLG Out8Bytes, 2, DeviceNumber,\
       \ OutData\n  IF K GO ERROR\n...\nERROR : W1 =: ErrCode          %ErrorCode in\
-      \ W1 register.\n```"
+      \ W1 register."
     octal_definition: 37B9 + 24B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDT DEVNO          %Logical device address.
+    code: 'LDT DEVNO          %Logical device address.
 
       LDD BYTES          %First 4 bytes to be written.
 
@@ -124,7 +109,6 @@ examples:
 
       BYTES, ''HELLO!!!''
 
-      ```
 
 
 

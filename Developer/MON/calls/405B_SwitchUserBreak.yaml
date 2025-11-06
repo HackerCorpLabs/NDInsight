@@ -22,58 +22,42 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      Func, Address : LONGINT;
+    code: 'Func, Address : LONGINT;
 
       ...
 
-      SwitchUserBreak(Func, Address);
-
-      ```'
+      SwitchUserBreak(Func, Address);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 Func COMP.
+    code: '01 Func COMP.
 
       01 Address COMP.
 
       ...
 
-      MONITOR-CALL "SwitchUserBreak" USING Func, Address.
-
-      ```'
+      MONITOR-CALL "SwitchUserBreak" USING Func, Address.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER Func, Address
+    code: 'INTEGER Func, Address
 
       ...
 
-      Monitor_Call(''SwitchUserBreak'', Func, Address)
-
-      ```'
+      Monitor_Call(''SwitchUserBreak'', Func, Address)'
     notes: ''
   planc:
     available: true
-    code: '```
-
-      INTEGER : Func, Address
+    code: 'INTEGER : Func, Address
 
       ...
 
-      Monitor_Call(''SwitchUserBreak'', Func, Address)
-
-      ```'
+      Monitor_Call(''SwitchUserBreak'', Func, Address)'
     notes: ''
   assembly_500:
     available: true
-    code: "```\nFunc : W BLOCK 1\nAddress : W BLOCK 1\nSwitchUserBreak : EQU 37B9\
-      \ + 405B\n...\n    CALLG SwitchUserBreak, 2, Func, Address\n```"
+    code: "Func : W BLOCK 1\nAddress : W BLOCK 1\nSwitchUserBreak : EQU 37B9 + 405B\n\
+      ...\n    CALLG SwitchUserBreak, 2, Func, Address"
     octal_definition: 37B9 + 405B
     notes: ''
   mac:

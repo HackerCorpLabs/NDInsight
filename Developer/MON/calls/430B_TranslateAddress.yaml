@@ -1,0 +1,26 @@
+# Monitor Call: 430B TranslateAddress
+# Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
+# Source lines: 25354-25425
+
+octal: 430B
+name: TranslateAddress
+short_names:
+- ADRIOO
+description: 'Translates an ND-500 logical address to an ND-100 physical address.
+  Use this monitor call to set up communication areas between the two CPUs.
+
+  - Applied only to data addresses, not program addresses.'
+parameters: []
+examples: {}
+compatibility:
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: true
+source:
+  document: ND-860228.2 EN
+  page_references: []
+extraction:
+  ocr_corrected: true
+  ocr_notes: 'Manually extracted - name/header format mismatch (doc: line 25354)'

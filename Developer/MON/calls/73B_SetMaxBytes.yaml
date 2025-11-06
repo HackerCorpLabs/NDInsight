@@ -12,24 +12,22 @@ see_also:
 - SetStartByte
 references: []
 parameters:
-- name: File number. See OpenFile.
+- name: Filenumber
+  type: UNKNOWN
+  io: I
+  description: File number. See OpenFile.
+- name: Maximumfilesizeinbytes.
   type: UNKNOWN
   io: I
   description: ''
-- name: Maximum file size in bytes.
+- name: StandardErrorCode
   type: UNKNOWN
   io: I
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: I
-  description: ''
+  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true
-    code: '```
-
-      FileNumber : INTEGER2;
+    code: 'FileNumber : INTEGER2;
 
       MaxBytePointer : LONGINT;
 
@@ -37,15 +35,11 @@ examples:
 
       SetMaxBytes(FileNumber, MaxBytePointer);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 FileNumber COMP.
+    code: '01 FileNumber COMP.
 
       01 MaxBytePointer COMP PIC S9(10).
 
@@ -57,15 +51,11 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER FileNumber
+    code: 'INTEGER FileNumber
 
       INTEGER*4 MaxBytePointer
 
@@ -73,29 +63,25 @@ examples:
 
       Monitor_Call(''SetMaxBytes'', FileNumber, MaxBytePointer)
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : FileNumber\nINTEGER4 : MaxBytePointer\n...\nON ROUTINEERROR\
-      \ DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('SetMaxBytes', FileNumber,\
-      \ MaxBytePointer)\n```"
+    code: "INTEGER : FileNumber\nINTEGER4 : MaxBytePointer\n...\nON ROUTINEERROR DO\n\
+      \    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('SetMaxBytes', FileNumber,\
+      \ MaxBytePointer)"
     notes: ''
   assembly_500:
     available: true
-    code: "```\nFileNumber : W BLOCK 1\nMaxBytePointer : W BLOCK 1\nErrCode : W BLOCK\
-      \ 1\nSetMaxBytes : EQU 37B9 + 73B\n...\nCALLG SetMaxBytes, 2, FileNumber, MaxBytePointer\n\
+    code: "FileNumber : W BLOCK 1\nMaxBytePointer : W BLOCK 1\nErrCode : W BLOCK 1\n\
+      SetMaxBytes : EQU 37B9 + 73B\n...\nCALLG SetMaxBytes, 2, FileNumber, MaxBytePointer\n\
       \    IF K GO ERROR\n...\nERROR : W1 =: ErrCode              %ErrorCode in W1\
-      \ register.\n```"
+      \ register."
     octal_definition: 37B9 + 73B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDT  FILNO      %File number returned from earlier open.
+    code: 'LDT  FILNO      %File number returned from earlier open.
 
       LDD  POINT      %Maximum byte pointer.
 
@@ -117,7 +103,6 @@ examples:
 
       ...
 
-      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

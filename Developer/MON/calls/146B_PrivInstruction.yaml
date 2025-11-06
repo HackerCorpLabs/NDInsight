@@ -38,21 +38,15 @@ examples:
     notes: ''
   planc:
     available: true
-    code: '```
-
-      INTEGER : Instruction
+    code: 'INTEGER : Instruction
 
       ...
 
-      Monitor_Call(''PrivInstruction'', Instruction)
-
-      ```'
+      Monitor_Call(''PrivInstruction'', Instruction)'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      TReg : W BLOCK 1
+    code: 'TReg : W BLOCK 1
 
       AReg : W BLOCK 1
 
@@ -72,9 +66,7 @@ examples:
 
       ...
 
-      Error, W1 =: ErrCode
-
-      ```'
+      Error, W1 =: ErrCode'
     octal_definition: 37B9 + 146B
     notes: ''
   mac:
@@ -90,11 +82,8 @@ examples:
       | INSTR, | 150404 | %Turn off memory management system. Dangerous! |
 
 
-      ```
 
-      ND-100 and ND-500   User RT and user SYSTEM   RT programs
-
-      ```'
+      ND-100 and ND-500   User RT and user SYSTEM   RT programs'
     mon_number: null
     notes: ''
 compatibility:

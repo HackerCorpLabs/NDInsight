@@ -29,23 +29,17 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      RTProgram : INTEGER2;
+    code: 'RTProgram : INTEGER2;
 
       RTProgramName : PACKED ARRAY [0..6] OF CHAR;
 
       ...
 
-      GetRTName(RTProgram, RTProgramName);
-
-      ```'
+      GetRTName(RTProgram, RTProgramName);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 RTProgram COMP.
+    code: '01 RTProgram COMP.
 
       01 RTProgramName PIC X(7).
 
@@ -55,15 +49,11 @@ examples:
 
       IF RTProgramName = "''"
 
-      ...
-
-      ```'
+      ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER RTProgram
+    code: 'INTEGER RTProgram
 
       CHARACTER RTProgramName*6
 
@@ -73,15 +63,11 @@ examples:
 
       IF RTProgramName(1) = ''
 
-      ...
-
-      ```'
+      ...'
     notes: ''
   planc:
     available: true
-    code: '```
-
-      INTEGER : RTProgram
+    code: 'INTEGER : RTProgram
 
       BYTES : RTProgramName(0:6)
 
@@ -91,15 +77,11 @@ examples:
 
       IF RTProgramName(0)=#1 THEN
 
-      ...
-
-      ```'
+      ...'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      RTProgram : W BLOCK 1
+    code: 'RTProgram : W BLOCK 1
 
       RTProgramName : BY BLOCK 7
 
@@ -107,16 +89,12 @@ examples:
 
       ...
 
-      CALLG GetRTName, 2, RTProgram, RTProgramName
-
-      ```'
+      CALLG GetRTName, 2, RTProgram, RTProgramName'
     octal_definition: 37B9 + 152B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDA (PAR  %Load register A with address of parameter list.
+    code: 'LDA (PAR  %Load register A with address of parameter list.
 
       MON 152   %Monitor call GetRTName.
 
@@ -142,7 +120,6 @@ examples:
 
       *+4/      %Make a string of 7 bytes.
 
-      ```
 
 
       | ND-100 and ND-500 | All programs |'

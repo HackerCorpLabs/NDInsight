@@ -23,59 +23,41 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      RTProgram, DeviceNumber : INTEGER2;
+    code: 'RTProgram, DeviceNumber : INTEGER2;
 
       ...
 
-      StartOnInterrupt(RTProgram, DeviceNumber);
-
-      ```'
+      StartOnInterrupt(RTProgram, DeviceNumber);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 RTProgram COMP.
+    code: '01 RTProgram COMP.
 
       01 DeviceNumber COMP.
 
       ...
 
-      MONITOR-CALL "StartOnInterrupt" USING RTProgram, DeviceNumber.
-
-      ```'
+      MONITOR-CALL "StartOnInterrupt" USING RTProgram, DeviceNumber.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER RTProgram, DeviceNumber
+    code: 'INTEGER RTProgram, DeviceNumber
 
       ...
 
-      Monitor_Call(''StartOnInterrupt'', RTProgram, DeviceNumber)
-
-      ```'
+      Monitor_Call(''StartOnInterrupt'', RTProgram, DeviceNumber)'
     notes: ''
   planc:
     available: true
-    code: '```
-
-      INTEGER : RTProgram, DeviceNumber
+    code: 'INTEGER : RTProgram, DeviceNumber
 
       ...
 
-      Monitor_Call(''StartOnInterrupt'', RTProgram, DeviceNumber)
-
-      ```'
+      Monitor_Call(''StartOnInterrupt'', RTProgram, DeviceNumber)'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      RTProgram : W BLOCK 1
+    code: 'RTProgram : W BLOCK 1
 
       DeviceNumber : W BLOCK 1
 
@@ -83,22 +65,17 @@ examples:
 
       ...
 
-      CALLG StartOnInterrupt, 2, RTProgram, DeviceNumber
-
-      ```'
+      CALLG StartOnInterrupt, 2, RTProgram, DeviceNumber'
     octal_definition: 37B9 + 106B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDA (PAR %Load register A with address of parameter list.
+    code: 'LDA (PAR %Load register A with address of parameter list.
 
       MON 106 %Monitor call StartOnInterrupt.
 
       ...
 
-      ```
 
 
       | PAR    | RTPRO       | %Address of RT description. |

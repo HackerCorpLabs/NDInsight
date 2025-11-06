@@ -23,45 +23,33 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      ProcessName : PACKED ARRAY [0..33] OF CHAR;
+    code: 'ProcessName : PACKED ARRAY [0..33] OF CHAR;
 
       ProcessNumber : LONGINT;
 
       ...
 
-      GetProcessNo(ProcessName, ProcessNumber);
-
-      ```'
+      GetProcessNo(ProcessName, ProcessNumber);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 ProcessName PIC X(34).
+    code: '01 ProcessName PIC X(34).
 
       01 ProcessNumber COMP.
 
       ...
 
-      MONITOR-CALL "GetProcessNo" USING ProcessName, ProcessNumber.
-
-      ```'
+      MONITOR-CALL "GetProcessNo" USING ProcessName, ProcessNumber.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      CHARACTER ProcessName*34
+    code: 'CHARACTER ProcessName*34
 
       INTEGER ProcessNumber
 
       ...
 
-      Monitor_Call(''GetProcessNo'', ProcessName(1:34), ProcessNumber)
-
-      ```'
+      Monitor_Call(''GetProcessNo'', ProcessName(1:34), ProcessNumber)'
     notes: ''
   planc:
     available: true

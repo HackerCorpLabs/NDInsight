@@ -40,68 +40,49 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      Buff : RECORD...END;
+    code: 'Buff : RECORD...END;
 
       ...
 
-      GetUserParam(Buff);
-
-      ```'
+      GetUserParam(Buff);'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 Buff.\n   02 array COMP OCCURS 5 TIMES.\n   ...\n   MONITOR-CALL\
-      \ \"GetUserParam\" USING Buff.\n```"
+    code: "01 Buff.\n   02 array COMP OCCURS 5 TIMES.\n   ...\n   MONITOR-CALL \"\
+      GetUserParam\" USING Buff."
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER Buff(5)
+    code: 'INTEGER Buff(5)
 
       ...
 
-      Monitor_Call(''GetUserParam'', Buff(1))
-
-      ```'
+      Monitor_Call(''GetUserParam'', Buff(1))'
     notes: ''
   planc:
     available: true
-    code: '```
-
-      BYTES : Buff(0:9)
+    code: 'BYTES : Buff(0:9)
 
       ...
 
-      Monitor_Call(''GetUserParam'', Buff(0))
-
-      ```'
+      Monitor_Call(''GetUserParam'', Buff(0))'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      Buff : H BLOCK 5
+    code: 'Buff : H BLOCK 5
 
       GetUserParam : EQU 37B9 + 57B
 
 
-      CALLG GetUserParam, 1, Buff
-
-      ```'
+      CALLG GetUserParam, 1, Buff'
     octal_definition: 37B9 + 57B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDA (PAR %Load register A with address of parameter list.
+    code: 'LDA (PAR %Load register A with address of parameter list.
 
       MON 57 %Monitor call GetUserParam.
 
-      ```
 
 
       PAR BUFF

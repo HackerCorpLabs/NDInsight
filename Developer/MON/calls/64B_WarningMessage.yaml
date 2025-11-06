@@ -16,39 +16,27 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
-      ErrCode : INTEGER2;
+    code: 'ErrCode : INTEGER2;
 
       ...
 
-      WarningMessage(ErrCode);
-
-      ```'
+      WarningMessage(ErrCode);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 ErrCode COMP.
+    code: '01 ErrCode COMP.
 
       ...
 
-      MONITOR-CALL "WarningMessage" USING ErrCode.
-
-      ```'
+      MONITOR-CALL "WarningMessage" USING ErrCode.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER ErrCode
+    code: 'INTEGER ErrCode
 
       ...
 
-      Monitor_Call(''WarningMessage'', ErrCode)
-
-      ```'
+      Monitor_Call(''WarningMessage'', ErrCode)'
     notes: ''
   planc:
     available: true

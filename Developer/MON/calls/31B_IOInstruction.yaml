@@ -28,21 +28,15 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      RegContents, DevRegAddr, ContentsAfter : INTEGER2;
+    code: 'RegContents, DevRegAddr, ContentsAfter : INTEGER2;
 
       ...
 
-      IOInstruction(RegContents, DevRegAddr, ContentsAfter);
-
-      ```'
+      IOInstruction(RegContents, DevRegAddr, ContentsAfter);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 RegContent COMP.
+    code: '01 RegContent COMP.
 
       01 DevRegAddr COMP.
 
@@ -50,21 +44,15 @@ examples:
 
       ...
 
-      MONITOR-CALL "IOInstruction" USING RegContent, DevRegAddr, ContentAfter.
-
-      ```'
+      MONITOR-CALL "IOInstruction" USING RegContent, DevRegAddr, ContentAfter.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER RegContents, DevRegAddr, ContentAfter
+    code: 'INTEGER RegContents, DevRegAddr, ContentAfter
 
       ...
 
-      Monitor_Call(''IOInstruction'', RegContents, DevRegAddr, ContentAfter)
-
-      ```'
+      Monitor_Call(''IOInstruction'', RegContents, DevRegAddr, ContentAfter)'
     notes: ''
   planc:
     available: true

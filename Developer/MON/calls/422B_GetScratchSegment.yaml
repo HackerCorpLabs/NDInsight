@@ -11,46 +11,42 @@ see_also:
 - ClearCapability
 references: []
 parameters:
-- name: ➙ Segment size in bytes.
+- name: Segmentsizeinbytes.
   type: ''
   io: I
   description: ''
-- name: ➙ Logical segment number. The segment must be free. Use 0 to get the first
-    free segment.
+- name: Logicalsegmentnumber
   type: ''
   io: I
-  description: ''
-- name: ↤ Selected logical segment number if you specified 0 as logical segment number.
+  description: Logical segment number. The segment must be free. Use 0 to get the
+    first free segment.
+- name: ↤Selectedlogicalsegmentnumberifyouspecified0aslogicalsegmentnumber.
   type: ''
   io: I
   description: ''
 examples:
   pascal:
     available: true
-    code: '```
-
-      SizeInBytes, LogSegmentNo, RetLogSegmentNo : LONGINT;
+    code: 'SizeInBytes, LogSegmentNo, RetLogSegmentNo : LONGINT;
 
       ...
 
       GetScratchSegment(SizeInBytes, LogSegmentNo, RetLogSegmentNo);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 SizeInBytes COMP.\n01 LogSegmentNo COMP.\n01 RetLogSegmentNo COMP.\n\
+    code: "01 SizeInBytes COMP.\n01 LogSegmentNo COMP.\n01 RetLogSegmentNo COMP.\n\
       01 ErrCode COMP.\n...\nMONITOR-CALL \"GetScratchSegment\" USING SizeInBytes,\
       \ LogSegmentNo,\n                                    RetLogSegmentNo.\nCALL\
-      \ \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
+      \ \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
     notes: ''
   fortran:
     available: true
-    code: "```\nINTEGER SizeInBytes, LogSegmentNo, RetLogSegmentNo\n...\nMonitor_Call('GetScratchSegment',\
+    code: "INTEGER SizeInBytes, LogSegmentNo, RetLogSegmentNo\n...\nMonitor_Call('GetScratchSegment',\
       \ SizeInBytes, LogSegmentNo,\n                                 RetLogSegmentNo)\n\
-      C\nIF (ErrCode .NE. 0) THEN ...\n```"
+      C\nIF (ErrCode .NE. 0) THEN ..."
     notes: ''
   planc:
     available: true

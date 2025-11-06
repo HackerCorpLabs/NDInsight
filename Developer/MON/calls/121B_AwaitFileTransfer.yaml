@@ -29,21 +29,15 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
-      FileNumber, ReturnFlag, Status : INTEGER2;
+    code: 'FileNumber, ReturnFlag, Status : INTEGER2;
 
       ...
 
-      AwaitFileTransfer(FileNumber, ReturnFlag, Status);
-
-      ```'
+      AwaitFileTransfer(FileNumber, ReturnFlag, Status);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 FileNumber COMP.
+    code: '01 FileNumber COMP.
 
       01 ReturnFlag COMP.
 
@@ -51,21 +45,15 @@ examples:
 
       ...
 
-      MONITOR-CALL "AwaitFileTransfer" USING FileNumber, ReturnFlag, Status.
-
-      ```'
+      MONITOR-CALL "AwaitFileTransfer" USING FileNumber, ReturnFlag, Status.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER FileNumber, ReturnFlag, Status
+    code: 'INTEGER FileNumber, ReturnFlag, Status
 
       ...
 
-      Monitor_Call(''AwaitfileTransfer'', FileNumber, ReturnFlag, Status)
-
-      ```'
+      Monitor_Call(''AwaitfileTransfer'', FileNumber, ReturnFlag, Status)'
     notes: ''
   planc:
     available: true
@@ -98,9 +86,7 @@ examples:
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LOA (PAR %Load register A with address of parameter list.
+    code: 'LOA (PAR %Load register A with address of parameter list.
 
       MON 121 %Monitor call AwaitFileTransfer.
 
@@ -126,7 +112,6 @@ examples:
 
       FLAG, 0
 
-      ```
 
 
       | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'

@@ -14,39 +14,27 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
-      NewPriority : LONGINT;
+    code: 'NewPriority : LONGINT;
 
       ...
 
-      SetProcessPriority(NewPriority);
-
-      ```'
+      SetProcessPriority(NewPriority);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 NewPriority COMP.
+    code: '01 NewPriority COMP.
 
       ...
 
-      MONITOR-CALL "SetProcessPriority" USING NewPriority.
-
-      ```'
+      MONITOR-CALL "SetProcessPriority" USING NewPriority.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER NewPriority
+    code: 'INTEGER NewPriority
 
       ...
 
-      Monitor_Call(''SetProcessPriority'', NewPriority)
-
-      ```'
+      Monitor_Call(''SetProcessPriority'', NewPriority)'
     notes: ''
   planc:
     available: true

@@ -19,60 +19,42 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      RTProgram : INTEGER2;
+    code: 'RTProgram : INTEGER2;
 
       ...
 
-      NoInterruptStart(RTProgram);
-
-      ```'
+      NoInterruptStart(RTProgram);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 RTProgram COMP.
+    code: '01 RTProgram COMP.
 
       ...
 
-      MONITOR-CALL "NoInterruptStart" USING RTProgram.
-
-      ```'
+      MONITOR-CALL "NoInterruptStart" USING RTProgram.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER RTProgram
+    code: 'INTEGER RTProgram
 
       ...
 
-      Monitor_Call(''NoInterruptStart'', RTProgram)
-
-      ```'
+      Monitor_Call(''NoInterruptStart'', RTProgram)'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      RTProgram : W BLOCK 1
+    code: 'RTProgram : W BLOCK 1
 
       NoInterruptStart : EQU 37B9 + 107B
 
       ...
 
-      CALLG NoInterruptStart, 1, RTProgram
-
-      ```'
+      CALLG NoInterruptStart, 1, RTProgram'
     octal_definition: 37B9 + 107B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDA  (PAR       %Load register A with address of parameter list.
+    code: 'LDA  (PAR       %Load register A with address of parameter list.
 
       MON  107        %Monitor call NoInterruptStart.
 
@@ -84,7 +66,6 @@ examples:
 
       RTPRO, ...
 
-      ```
 
 
 

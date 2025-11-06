@@ -28,21 +28,15 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      FileNumber, WaitFlag, NoOfBytes : LONGINT;
+    code: 'FileNumber, WaitFlag, NoOfBytes : LONGINT;
 
       ...
 
-      AwaitTransfer(FileNumber, WaitFlag, NoOfBytes);
-
-      ```'
+      AwaitTransfer(FileNumber, WaitFlag, NoOfBytes);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 FileNumber COMP.
+    code: '01 FileNumber COMP.
 
       01 WaitFlag COMP.
 
@@ -50,21 +44,15 @@ examples:
 
       ...
 
-      MONITOR-CALL "AwaitTransfer" USING FileNumber, WaitFlag, NoOfBytes.
-
-      ```'
+      MONITOR-CALL "AwaitTransfer" USING FileNumber, WaitFlag, NoOfBytes.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER FileNumber, WaitFlag, NoOfBytes
+    code: 'INTEGER FileNumber, WaitFlag, NoOfBytes
 
       ...
 
-      Monitor_Call(''AwaitTransfer'', FileNumber, WaitFlag, NoOfBytes)
-
-      ```'
+      Monitor_Call(''AwaitTransfer'', FileNumber, WaitFlag, NoOfBytes)'
     notes: ''
   planc:
     available: true

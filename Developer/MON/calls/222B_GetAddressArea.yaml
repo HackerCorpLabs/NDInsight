@@ -1,0 +1,29 @@
+# Monitor Call: 222B GetAddressArea
+# Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
+# Source lines: 9381-9420
+
+octal: 222B
+name: GetAddressArea
+short_names:
+- GBSIZ
+description: 'Gets the size of your address area. Your address area may consist of
+  one or two 128 Kbyte areas. This depends on the size of the background segments:
+
+  - The size of the background segment is defined when SINTRAN III is generated for
+  your computer.
+
+  See also @CHANGE-BACKGROUND-SEGMENT-SIZE.'
+parameters: []
+examples: {}
+compatibility:
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: true
+source:
+  document: ND-860228.2 EN
+  page_references: []
+extraction:
+  ocr_corrected: true
+  ocr_notes: Extracted from header without octal (line 9381)

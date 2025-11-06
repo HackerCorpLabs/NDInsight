@@ -23,23 +23,17 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      ProcessNumber : LONGINT;
+    code: 'ProcessNumber : LONGINT;
 
       ...
 
       StartProcess(ProcessNumber);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 ProcessNumber COMP.
+    code: '01 ProcessNumber COMP.
 
       01 ErrCode COMP.
 
@@ -49,34 +43,26 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER ProcessNumber
+    code: 'INTEGER ProcessNumber
 
       ...
 
       Monitor_Call(''StartProcess'', ProcessNumber)
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : ProcessNumber\n...\nON ROUTINEERROR DO\n    IF ErrCode >\
-      \ 0 THEN ...\nENDON\nMonitor_Call('StartProcess', ProcessNumber)\n```"
+    code: "INTEGER : ProcessNumber\n...\nON ROUTINEERROR DO\n    IF ErrCode > 0 THEN\
+      \ ...\nENDON\nMonitor_Call('StartProcess', ProcessNumber)"
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      ProcessNumber : W BLOCK 1
+    code: 'ProcessNumber : W BLOCK 1
 
       ErrCode : W BLOCK 1
 
@@ -90,9 +76,7 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode              %ErrorCode in W1 register.
-
-      ```'
+      ERROR : W1 =: ErrCode              %ErrorCode in W1 register.'
     octal_definition: 37B9 + 500B
     notes: ''
   mac:

@@ -29,23 +29,17 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      ProgPointer, MaxNoOfChar : LONGINT;
+    code: 'ProgPointer, MaxNoOfChar : LONGINT;
 
       ReturnString : PACKED ARRAY [0..79] OF CHAR;
 
       ...
 
-      DisAssemble(ProgPointer, ReturnString, MaxNoOfChar);
-
-      ```'
+      DisAssemble(ProgPointer, ReturnString, MaxNoOfChar);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 ProgPointer COMP.
+    code: '01 ProgPointer COMP.
 
       01 MaxNoOfChar COMP.
 
@@ -53,43 +47,31 @@ examples:
 
       ...
 
-      MONITOR-CALL "DisAssemble" USING ProgPointer, ReturnString, MaxNoOfChar.
-
-      ```'
+      MONITOR-CALL "DisAssemble" USING ProgPointer, ReturnString, MaxNoOfChar.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER ProgPointer, MaxChar
+    code: 'INTEGER ProgPointer, MaxChar
 
       CHARACTER RetString*80
 
       ...
 
-      Monitor_Call(''DisAssemble'', ProgPointer, RetString(1:80), MaxChar)
-
-      ```'
+      Monitor_Call(''DisAssemble'', ProgPointer, RetString(1:80), MaxChar)'
     notes: ''
   planc:
     available: true
-    code: '```
-
-      INTEGER : ProgPointer, MaxNoOfChar
+    code: 'INTEGER : ProgPointer, MaxNoOfChar
 
       BYTES : ReturnString(0:79)
 
       ...
 
-      Monitor_Call(''DisAssemble'', ProgPointer, ReturnString, MaxNoOfChar)
-
-      ```'
+      Monitor_Call(''DisAssemble'', ProgPointer, ReturnString, MaxNoOfChar)'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      ProgPointer : W BLOCK 1
+    code: 'ProgPointer : W BLOCK 1
 
       MaxNoOfChar : W BLOCK 1
 
@@ -99,9 +81,7 @@ examples:
 
       ...
 
-      CALLG DisAssemble, 3, ProgPointer, ReturnString, MaxNoOfChar
-
-      ```'
+      CALLG DisAssemble, 3, ProgPointer, ReturnString, MaxNoOfChar'
     octal_definition: 37B9 + 401B
     notes: ''
   mac:

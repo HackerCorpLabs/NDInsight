@@ -17,66 +17,62 @@ see_also:
 - and GetDefaultDir
 references: []
 parameters:
-- name: File number
+- name: Filenumber
   type: See Openfile.
   io: I
   description: ''
-- name: Directory index
+- name: Directoryindex
   type: The directory index.
   io: I
   description: ''
-- name: User index
+- name: Userindex
   type: The user index.
   io: I
   description: ''
-- name: Object index
+- name: Objectindex
   type: The object index.
   io: I
   description: ''
-- name: Remote flag
+- name: Remoteflag
   type: Set to 0 if the file is on the local computer. A file on a remote computer
     returns 1.
   io: I
   description: ''
-- name: Remote system identification
+- name: Remotesystemidentification
   type: If the remote flag is set to 1. It includes information needed to log in,
     and is terminated by an apostrophe, e.g. SNURRE(P-HANSEN[&&&&&])'. The password,
     if present, is coded as a sequence of 6 control characters.
   io: I
   description: ''
-- name: Standard Error Code
+- name: StandardErrorCode
   type: See appendix A.
   io: I
   description: ''
 examples:
   pascal:
     available: true
-    code: '```
-
-      FileNo, DirIndex, UserIndex, ObjectIndex : INTEGER2;
+    code: 'FileNo, DirIndex, UserIndex, ObjectIndex : INTEGER2;
 
       ...
 
       GetAllFileIndexes(FileNo, DirIndex, UserIndex, ObjectIndex);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 FileNo COMP.\n01 DirIndex COMP.\n01 UserIndex COMP.\n01 ObjectIndex\
+    code: "01 FileNo COMP.\n01 DirIndex COMP.\n01 UserIndex COMP.\n01 ObjectIndex\
       \ COMP.\n01 RemoteFlag COMP.\n01 RemoteSystem PIC X(64).\n01 ErrCode COMP.\n\
       ...\nMONITOR-CALL \"GetAllFileIndexes\" USING FileNo, DirIndex, UserIndex,\n\
       \  ObjectIndex, RemoteFlag, RemoteSystem.\nCALL \"CbError\" USING ErrCode.\n\
-      IF ErrCode NOT = 0 GO ...\n```"
+      IF ErrCode NOT = 0 GO ..."
     notes: ''
   fortran:
     available: true
-    code: "```\nINTEGER FileNo, DirIndex, UserIndex, ObjectIndex, RemoteFlag\nCHARACTER\
+    code: "INTEGER FileNo, DirIndex, UserIndex, ObjectIndex, RemoteFlag\nCHARACTER\
       \ RemoteSystem*64\n...\nMonitor_Call('GetAllFileIndexes', FileNo, DirIndex,\
       \ UserIndex,\n  ObjectIndex, RemoteFlag, RemoteSystem(1:64))\nIF (ErrCode .NE.\
-      \ 0) THEN ...\n```\n\nScanned by Jonny Oddene for Sintran Data © 2020"
+      \ 0) THEN ...\n\n\nScanned by Jonny Oddene for Sintran Data © 2020"
     notes: ''
   planc:
     available: true

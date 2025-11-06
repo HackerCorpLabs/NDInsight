@@ -33,21 +33,15 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      FixType, FirstAddr, Length, ND100Addr : LONGINT;
+    code: 'FixType, FirstAddr, Length, ND100Addr : LONGINT;
 
       ...
 
-      FixInMemory(FixType, FirstAddr, Length, ND100Addr);
-
-      ```'
+      FixInMemory(FixType, FirstAddr, Length, ND100Addr);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 FixType COMP.
+    code: '01 FixType COMP.
 
       01 FirstAddr COMP.
 
@@ -57,21 +51,15 @@ examples:
 
       ...
 
-      MONITOR-CALL "FixInMemory" USING FixType, FirstAddr, Length, ND100Addr.
-
-      ```'
+      MONITOR-CALL "FixInMemory" USING FixType, FirstAddr, Length, ND100Addr.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER FixType, FirstAddr, Length, ND100Addr
+    code: 'INTEGER FixType, FirstAddr, Length, ND100Addr
 
       ...
 
-      Monitor_Call(''FixInMemory'', FixType, FirstAddr, Length, ND100Addr)
-
-      ```'
+      Monitor_Call(''FixInMemory'', FixType, FirstAddr, Length, ND100Addr)'
     notes: ''
   planc:
     available: true

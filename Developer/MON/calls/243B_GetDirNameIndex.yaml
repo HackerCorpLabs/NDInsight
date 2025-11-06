@@ -1,0 +1,26 @@
+# Monitor Call: 243B GetDirNameIndex
+# Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
+# Source lines: 10243-10292
+
+octal: 243B
+name: GetDirNameIndex
+short_names:
+- FDINA
+description: 'Gets directory index and name index. The name index identifies the device
+  description of the disk. You have to specify the directory name.
+
+  See also GetDirUserIndexes, GetAllFileIndexes, and GetDirEntry.'
+parameters: []
+examples: {}
+compatibility:
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: true
+source:
+  document: ND-860228.2 EN
+  page_references: []
+extraction:
+  ocr_corrected: true
+  ocr_notes: Extracted from header without octal (line 10243)

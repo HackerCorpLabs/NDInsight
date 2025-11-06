@@ -1,0 +1,30 @@
+# Monitor Call: 326B LogInStart
+# Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
+# Source lines: 15227-15340
+
+octal: 326B
+name: LogInStart
+short_names:
+- MLOGI
+description: 'Logs in a user on a terminal and starts a subsystem.
+
+
+  - The terminal must be free.
+
+  - The subsystem must be reentrant. See @DUMP-PROGRAM-REENTRANT.'
+parameters: []
+examples: {}
+compatibility:
+  nd100: true
+  nd500: false
+  user_programs: true
+  rt_programs: true
+  system_programs: true
+source:
+  document: ND-860228.2 EN
+  page_references:
+  - '338'
+  - '339'
+extraction:
+  ocr_corrected: true
+  ocr_notes: 'Header has spaces: "LOG IN START" not "LogInStart"'

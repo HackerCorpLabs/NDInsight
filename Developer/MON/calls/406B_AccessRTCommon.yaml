@@ -37,42 +37,32 @@ examples:
     notes: ''
   cobol:
     available: true
-    code: "```\n01 Func COMP.\n01 RTCommon COMP.\n01 NoOfBytes COMP.\n01 Buffer.\n\
-      \   02 array COMP OCCURS 100 TIMES.\n...\nMONITOR-CALL \"AccessRTCommon\" USING\
-      \ Func, RTCommon, NoOfBytes, Buffer.\n```"
+    code: "01 Func COMP.\n01 RTCommon COMP.\n01 NoOfBytes COMP.\n01 Buffer.\n   02\
+      \ array COMP OCCURS 100 TIMES.\n...\nMONITOR-CALL \"AccessRTCommon\" USING Func,\
+      \ RTCommon, NoOfBytes, Buffer."
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER Func, RTCommon, NoOfBytes
+    code: 'INTEGER Func, RTCommon, NoOfBytes
 
       INTEGER Buffer(100)
 
       ...
 
-      Monitor_Call(''AccessRTCommon'', Func, RTCommon, NoOfBytes, Buffer(1))
-
-      ```'
+      Monitor_Call(''AccessRTCommon'', Func, RTCommon, NoOfBytes, Buffer(1))'
     notes: ''
   planc:
     available: true
-    code: '```
-
-      INTEGER : Func, RTCommon, NoOfBytes
+    code: 'INTEGER : Func, RTCommon, NoOfBytes
 
       BYTES : Buffer(0:199)
 
 
-      Monitor_Call(''AccessRTCommon'', Func, RTCommon, NoOfBytes, Buffer(0))
-
-      ```'
+      Monitor_Call(''AccessRTCommon'', Func, RTCommon, NoOfBytes, Buffer(0))'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      Func : W BLOCK 1
+    code: 'Func : W BLOCK 1
 
       RTCommon : W BLOCK 1
 
@@ -89,7 +79,6 @@ examples:
 
       IF K GO ERROR
 
-      ```
 
 
       Error : W1 = ErrCode  %Error code in the W1 register.'

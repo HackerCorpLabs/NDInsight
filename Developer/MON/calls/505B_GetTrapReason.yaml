@@ -15,65 +15,45 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
-      ErrorCode : LONGINT;
+    code: 'ErrorCode : LONGINT;
 
       ...
 
-      GetTrapReason(ErrorCode);
-
-      ```'
+      GetTrapReason(ErrorCode);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 ErrorCode COMP.
+    code: '01 ErrorCode COMP.
 
       ...
 
-      MONITOR-CALL "GetTrapReason" USING ErrorCode.
-
-      ```'
+      MONITOR-CALL "GetTrapReason" USING ErrorCode.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER ErrorCode
+    code: 'INTEGER ErrorCode
 
       ...
 
-      Monitor_Call(''GetTrapReason'', ErrorCode)
-
-      ```'
+      Monitor_Call(''GetTrapReason'', ErrorCode)'
     notes: ''
   planc:
     available: true
-    code: '```
-
-      INTEGER : ErrorCode
+    code: 'INTEGER : ErrorCode
 
       ...
 
-      Monitor_Call(''GetTrapReason'', ErrorCode)
-
-      ```'
+      Monitor_Call(''GetTrapReason'', ErrorCode)'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      ErrorCode : W BLOCK 1
+    code: 'ErrorCode : W BLOCK 1
 
       GetTrapReason : EQU 37B9 + 505B
 
       ...
 
-      CALLG GetTrapReason, 1, ErrorCode
-
-      ```'
+      CALLG GetTrapReason, 1, ErrorCode'
     octal_definition: 37B9 + 505B
     notes: ''
   mac:

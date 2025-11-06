@@ -36,36 +36,32 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
-      ExecutionMode, InputDev, OutputDev, UserIndex : INTEGER2;
+    code: 'ExecutionMode, InputDev, OutputDev, UserIndex : INTEGER2;
 
       ...
 
       ExecutionInfo(ExecutionMode, InputDev, OutputDev, UserIndex);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 ExecutionMode COMP.\n01 InputDev COMP.\n01 OutputDev COMP.\n01\
-      \ UserIndex COMP.\n01 ErrCode COMP.\n...\nMONITOR-CALL \"ExecutionInfo\" USING\
-      \ ExecutionMode, InputDev,\n              OutputDev, UserIndex.\nCALL \"CbError\"\
-      \ USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
+    code: "01 ExecutionMode COMP.\n01 InputDev COMP.\n01 OutputDev COMP.\n01 UserIndex\
+      \ COMP.\n01 ErrCode COMP.\n...\nMONITOR-CALL \"ExecutionInfo\" USING ExecutionMode,\
+      \ InputDev,\n              OutputDev, UserIndex.\nCALL \"CbError\" USING ErrCode.\n\
+      IF ErrCode NOT = 0 GO ..."
     notes: ''
   fortran:
     available: true
-    code: "```\nINTEGER ExecutionMode, InputDev, OutputDev, UserIndex\nMonitor_Call('ExecutionInfo',\
+    code: "INTEGER ExecutionMode, InputDev, OutputDev, UserIndex\nMonitor_Call('ExecutionInfo',\
       \ ExecutionMode, InputDev,\n             OutputDev, UserIndex)\nC IF (ErrCode\
-      \ .NE. 0) THEN ...\n```"
+      \ .NE. 0) THEN ..."
     notes: ''
   assembly_500:
     available: true
-    code: "```\nExecutMode  : W BLOCK 1\nInputDev    : W BLOCK 1\nOutputDev   : W\
-      \ BLOCK 1\nUserIndex   : W BLOCK 1\nExecutionInfo : EQU 37B9 + 143B\n...\n \
-      \   CALLG ExecutionInfo, 4, ExecutMode, InputDev, OutputDev, UserIndex\n```"
+    code: "ExecutMode  : W BLOCK 1\nInputDev    : W BLOCK 1\nOutputDev   : W BLOCK\
+      \ 1\nUserIndex   : W BLOCK 1\nExecutionInfo : EQU 37B9 + 143B\n...\n    CALLG\
+      \ ExecutionInfo, 4, ExecutMode, InputDev, OutputDev, UserIndex"
     octal_definition: 37B9 + 143B
     notes: ''
   mac:
@@ -87,7 +83,6 @@ examples:
       | ...  |      |                                               |
 
 
-      ```
 
       EXMOD, 0
 
@@ -97,7 +92,6 @@ examples:
 
       INDEX, 0
 
-      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

@@ -38,23 +38,17 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      FileNo, LogSegmentNo, Type, SegmentNo : LONGINT;
+    code: 'FileNo, LogSegmentNo, Type, SegmentNo : LONGINT;
 
       ...
 
       FileAsSegment(FileNo, LogSegmentNo, Type, SegmentNo);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 FileNo COMP.
+    code: '01 FileNo COMP.
 
       01 LogSegmentNo COMP.
 
@@ -70,23 +64,17 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER FileNo, LogSegmentNo, Type, SegmentNo
+    code: 'INTEGER FileNo, LogSegmentNo, Type, SegmentNo
 
       ...
 
       Monitor_Call(''FileAsSegment'', FileNo, LogSegmentNo, Type, SegmentNo)
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   assembly_500:
     available: true

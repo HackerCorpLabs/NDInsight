@@ -13,24 +13,22 @@ see_also:
 - terminates the program
 references: []
 parameters:
-- name: ➞ Error number of the message to be printed. Use octal numbers.
+- name: ➞Errornumberofthemessagetobeprinted
+  type: ''
+  io: I
+  description: ➞ Error number of the message to be printed. Use octal numbers.
+- name: ➞Errormessagetext.
   type: ''
   io: I
   description: ''
-- name: ➞ Error message text.
+- name: ←StandardErrorCode
   type: ''
   io: I
-  description: ''
-- name: ← Standard Error Code. See appendix A.
-  type: ''
-  io: I
-  description: ''
+  description: ← Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true
-    code: '```
-
-      ErrorNo : INTEGER2;
+    code: 'ErrorNo : INTEGER2;
 
       Buffer : PACKED ARRAY [0..127] OF CHAR;
 
@@ -38,15 +36,11 @@ examples:
 
       GetErrorMessage(ErrorNo, Buffer);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 ErrCode COMP.
+    code: '01 ErrCode COMP.
 
       01 Buffer PIC X(128).
 
@@ -58,15 +52,11 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER ErrorNo
+    code: 'INTEGER ErrorNo
 
       CHARACTER Buffer*128
 
@@ -74,21 +64,17 @@ examples:
 
       Monitor_Call(''GetErrorMessage'', ErrorNo, Buffer(1:128))
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : ErrorNo\nBYTES : Buffer(0:127)\n...\nON ROUTINEERROR DO\n\
-      \    IF ErrCode > < 0 THEN ...\nENDON\nMonitor_Call('GetErrorMessage', ErrorNo,\
-      \ Buffer)\n```"
+    code: "INTEGER : ErrorNo\nBYTES : Buffer(0:127)\n...\nON ROUTINEERROR DO\n   \
+      \ IF ErrCode > < 0 THEN ...\nENDON\nMonitor_Call('GetErrorMessage', ErrorNo,\
+      \ Buffer)"
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      ErrCode : W BLOCK 1
+    code: 'ErrCode : W BLOCK 1
 
       Buffer : W BLOCK 100
 
@@ -104,16 +90,12 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode  %ErrorCode in W1 register.
-
-      ```'
+      ERROR : W1 =: ErrCode  %ErrorCode in W1 register.'
     octal_definition: 37B9 + 334B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDA ERRNO   %Error number of error message to be printed.
+    code: 'LDA ERRNO   %Error number of error message to be printed.
 
       LDX (BUF    %Address of buffer to receive the error message.
 
@@ -131,7 +113,6 @@ examples:
 
       STAT, ...
 
-      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

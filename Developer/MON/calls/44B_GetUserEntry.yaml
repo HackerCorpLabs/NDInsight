@@ -12,24 +12,22 @@ see_also:
 - '@DUMP-USER-ENTRY'
 references: []
 parameters:
-- name: User name
+- name: Username
   type: It may include a directory name, e.g. PACK-ONE:P-HANSEN.
   io: I
   description: ''
-- name: User entry
+- name: Userentry
   type: The 64-byte user entry. See appendix C.
   io: I
   description: ''
-- name: Error Code
+- name: ErrorCode
   type: Standard Error Code. See appendix A.
   io: I
   description: ''
 examples:
   pascal:
     available: true
-    code: '```
-
-      UserName : PACKED ARRAY [0..63] OF CHAR;
+    code: 'UserName : PACKED ARRAY [0..63] OF CHAR;
 
       Buff : ARRAY [0..1] OF RECORD...END;
 
@@ -37,15 +35,11 @@ examples:
 
       ReadUserEntry(UserName, Buff);  [Note routine name.]
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 UserName PIC X(64).
+    code: '01 UserName PIC X(64).
 
       01 Buff.
 
@@ -59,15 +53,11 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      CHARACTER UserName*64
+    code: 'CHARACTER UserName*64
 
       INTEGER Buff(32)
 
@@ -75,44 +65,32 @@ examples:
 
       Monitor Call(''GetUserEntry'', UserName(1:64), Buff(1))
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
-    code: '```
-
-      BYTES : UserName(0:63)
+    code: 'BYTES : UserName(0:63)
 
       BYTES : Buff(0:63)
 
-      ```
 
 
       **ON ROUTINEERROR DO**
 
 
-      ```
 
       IF ErrCode > 0 THEN ...
 
-      ```
 
 
-      ```
 
       ENDON
 
-      Monitor_Call(''GetUserEntry'', UserName, Buff(0))
-
-      ```'
+      Monitor_Call(''GetUserEntry'', UserName, Buff(0))'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      UserName : STRINGDATA ''A-HANSEN'' %Get entry of user A-HANSEN.
+    code: 'UserName : STRINGDATA ''A-HANSEN'' %Get entry of user A-HANSEN.
 
       Buff : H BLOCK 40B
 
@@ -126,21 +104,15 @@ examples:
 
       IF K GO ERROR
 
-      ```
 
 
-      ```
 
-      ERROR : W1 := ErrCode  %ErrorCode in W1 register.
-
-      ```'
+      ERROR : W1 := ErrCode  %ErrorCode in W1 register.'
     octal_definition: 37B9 + 44B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDA (BUFF  %Address for receiving user entry.
+    code: 'LDA (BUFF  %Address for receiving user entry.
 
       LDX (USER  %Address of string containing user name.
 
@@ -158,7 +130,6 @@ examples:
 
       *+40/ %Make a buffer of 32 words.
 
-      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

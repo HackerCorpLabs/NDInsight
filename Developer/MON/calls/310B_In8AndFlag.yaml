@@ -17,28 +17,27 @@ see_also:
 - and Out8Bytes
 references: []
 parameters:
-- name: Logical device number. See appendix B.
+- name: Logicaldevicenumber
+  type: UNKNOWN
+  io: I
+  description: Logical device number. See appendix B.
+- name: Numberofbytesread
+  type: UNKNOWN
+  io: I
+  description: Number of bytes read. A negative number means that a break character
+    is read.
+- name: Thestringofbytesread.
   type: UNKNOWN
   io: I
   description: ''
-- name: Number of bytes read. A negative number means that a break character is read.
+- name: StandardErrorCode
   type: UNKNOWN
   io: I
-  description: ''
-- name: The string of bytes read.
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: I
-  description: ''
+  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true
-    code: '```
-
-      DeviceNumber, NoOfBytes : INTEGER2;
+    code: 'DeviceNumber, NoOfBytes : INTEGER2;
 
       Buffer : PACKED ARRAY [0..7] OF CHAR;
 
@@ -46,15 +45,11 @@ examples:
 
       In8AndFlag(DeviceNumber, NoOfBytes, Buffer);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DeviceNumber  COMP.
+    code: '01 DeviceNumber  COMP.
 
       01 NoOfBytes     COMP.
 
@@ -68,15 +63,11 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DeviceNumber, NoOfBytes
+    code: 'INTEGER DeviceNumber, NoOfBytes
 
       CHARACTER Buffer*8
 
@@ -84,21 +75,17 @@ examples:
 
       Monitor_Call(''In8AndFlag'', DeviceNumber, NoOfBytes, Buffer(1:8))
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DeviceNumber, NoOfBytes\nBYTES : Buffer(0:7)\n...\nON ROUTINEERROR\
+    code: "INTEGER : DeviceNumber, NoOfBytes\nBYTES : Buffer(0:7)\n...\nON ROUTINEERROR\
       \ DO\n   IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('In8AndFlag', DeviceNumber,\
-      \ NoOfBytes, Buffer)\n```"
+      \ NoOfBytes, Buffer)"
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      DeviceNumber : W BLOCK 1
+    code: 'DeviceNumber : W BLOCK 1
 
       NoOfBytes : W BLOCK 1
 
@@ -114,16 +101,12 @@ examples:
 
       ...
 
-      Error, ...
-
-      ```'
+      Error, ...'
     octal_definition: 37B9 + 310B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDT  DEVNO         %Logical device number.
+    code: 'LDT  DEVNO         %Logical device number.
 
       MON  310           %Monitor call In8AndFlag.
 
@@ -157,7 +140,6 @@ examples:
 
       0
 
-      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

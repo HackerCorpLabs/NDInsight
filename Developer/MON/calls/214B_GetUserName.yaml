@@ -15,9 +15,7 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
-      DirectoryIndex, UserIndex : INTEGER2;
+    code: 'DirectoryIndex, UserIndex : INTEGER2;
 
       UserName : PACKED ARRAY [0..15] OF CHAR;
 
@@ -25,45 +23,40 @@ examples:
 
       FindUserName(UserName, DirectoryIndex, UserIndex); [Note routine name.]
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 DirectoryIndex COMP.\n01 UserIndex COMP.\n01 UserName PIC X(16).\n\
-      01 RemoteFlag COMP.\n01 RemoteSystem PIC X(64).\n01 ErrCode COMP.\n...\nMONITOR-CALL\
+    code: "01 DirectoryIndex COMP.\n01 UserIndex COMP.\n01 UserName PIC X(16).\n01\
+      \ RemoteFlag COMP.\n01 RemoteSystem PIC X(64).\n01 ErrCode COMP.\n...\nMONITOR-CALL\
       \ \"GetUserName\" USING UserName, DirectoryIndex, UserIndex,\n             \
       \ RemoteFlag, RemoteSystem.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT\
-      \ = 0 GO ...\n```"
+      \ = 0 GO ..."
     notes: ''
   fortran:
     available: true
-    code: "```\nINTEGER DirIndex, UserIndex, RemoteFlag\nCHARACTER UserName*16, RemoteSystem*64\n\
+    code: "INTEGER DirIndex, UserIndex, RemoteFlag\nCHARACTER UserName*16, RemoteSystem*64\n\
       ...\nMonitor_Call('GetUserName', UserName(1:16), DirIndex, UserIndex,\n    \
-      \         RemoteFlag, RemoteSystem(1:64))\nIF (ErrCode .NE. 0) THEN ...\n```"
+      \         RemoteFlag, RemoteSystem(1:64))\nIF (ErrCode .NE. 0) THEN ..."
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DirectoryIndex, UserIndex, RemoteFlag\nBYTES : UserName(0:15),\
+    code: "INTEGER : DirectoryIndex, UserIndex, RemoteFlag\nBYTES : UserName(0:15),\
       \ RemoteSystem(0:63)\n...\nON ROUTINEERROR DO\n  IF ErrCode >< 0 THEN ...\n\
       ENDON\nMonitor_Call('GetUserName', UserName, DirectoryIndex, UserIndex,&\n \
-      \ RemoteFlag, RemoteSystem)\n```"
+      \ RemoteFlag, RemoteSystem)"
     notes: ''
   assembly_500:
     available: true
-    code: "```\nDirectoryIndex : W BLOCK 1\nUserIndex : W BLOCK 1\nUserName : STRING\
-      \ 16\nSysId : STRING 16   %Optional parameter for remote system.\nErrCode :\
-      \ W BLOCK 1\nGetUserName : EQU 37B9 + 214B\n...\nCALLG GetUserName, 3, UserName,\
-      \ DirectoryIndex, UserIndex\n  IF K GO ERROR\n...\nERROR : W1 =: ErrCode  %ErrorCode\
-      \ in W1 register.\n```"
+    code: "DirectoryIndex : W BLOCK 1\nUserIndex : W BLOCK 1\nUserName : STRING 16\n\
+      SysId : STRING 16   %Optional parameter for remote system.\nErrCode : W BLOCK\
+      \ 1\nGetUserName : EQU 37B9 + 214B\n...\nCALLG GetUserName, 3, UserName, DirectoryIndex,\
+      \ UserIndex\n  IF K GO ERROR\n...\nERROR : W1 =: ErrCode  %ErrorCode in W1 register."
     octal_definition: 37B9 + 214B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDA (USER           %Address of string to receive user name.
+    code: 'LDA (USER           %Address of string to receive user name.
 
       LDX INDEX           %Left byte: Dir index. Right byte: User index.
 
@@ -90,7 +83,6 @@ examples:
 
       *+32/
 
-      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

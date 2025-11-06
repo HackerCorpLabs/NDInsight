@@ -28,41 +28,29 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DeviceNumber, IOFlag : INTEGER2;
+    code: 'DeviceNumber, IOFlag : INTEGER2;
 
       ...
 
-      ReleaseResource(DeviceNumber, IOFlag);
-
-      ```'
+      ReleaseResource(DeviceNumber, IOFlag);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DeviceNumber COMP.
+    code: '01 DeviceNumber COMP.
 
       01 IOFlag COMP.
 
       ...
 
-      MONITOR-CALL "ReleaseResource" USING DeviceNumber, IOFlag.
-
-      ```'
+      MONITOR-CALL "ReleaseResource" USING DeviceNumber, IOFlag.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DeviceNumber, IOFlag
+    code: 'INTEGER DeviceNumber, IOFlag
 
       ...
 
-      Monitor_Call(''ReleaseResource'', DeviceNumber, IOFlag)
-
-      ```'
+      Monitor_Call(''ReleaseResource'', DeviceNumber, IOFlag)'
     notes: ''
   planc:
     available: true

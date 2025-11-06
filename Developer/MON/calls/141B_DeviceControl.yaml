@@ -41,28 +41,22 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DeviceNo, IOFlag, RTProgram, CtrlFlag, Status : INTEGER2;
+    code: 'DeviceNo, IOFlag, RTProgram, CtrlFlag, Status : INTEGER2;
 
       ...
 
-      DeviceControl(DeviceNo, IOFlag, RTProgram, CtrlFlag, Status);
-
-      ```'
+      DeviceControl(DeviceNo, IOFlag, RTProgram, CtrlFlag, Status);'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 DevNo       COMP.\n01 IOFlag      COMP.\n01 RTProgram   COMP.\n\
-      01 CtrlFlag    COMP.\n01 ReturnStatus COMP.\n...\nMONITOR-CALL \"DeviceControl\"\
-      \ USING DevNo, IOFlag, RTProgram, CtrlFlag,\n                              \
-      \   ReturnStatus.\n```"
+    code: "01 DevNo       COMP.\n01 IOFlag      COMP.\n01 RTProgram   COMP.\n01 CtrlFlag\
+      \    COMP.\n01 ReturnStatus COMP.\n...\nMONITOR-CALL \"DeviceControl\" USING\
+      \ DevNo, IOFlag, RTProgram, CtrlFlag,\n                                 ReturnStatus."
     notes: ''
   fortran:
     available: true
-    code: "```\nINTEGER DeviceNo, IOFlag, RTProgram, CtrlFlag, ReturnStatus\n...\n\
-      Monitor_Call('DeviceControl', DeviceNo, IOFlag, RTProgram,\n             CtrlFlag,\
-      \ ReturnStatus)\n```"
+    code: "INTEGER DeviceNo, IOFlag, RTProgram, CtrlFlag, ReturnStatus\n...\nMonitor_Call('DeviceControl',\
+      \ DeviceNo, IOFlag, RTProgram,\n             CtrlFlag, ReturnStatus)"
     notes: ''
   planc:
     available: true

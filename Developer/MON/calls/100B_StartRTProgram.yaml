@@ -21,39 +21,27 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      RTProgram : INTEGER2;
+    code: 'RTProgram : INTEGER2;
 
       ...
 
-      StartRTProgram(RTProgram);
-
-      ```'
+      StartRTProgram(RTProgram);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 RTProgram COMP.
+    code: '01 RTProgram COMP.
 
       ...
 
-      MONITOR-CALL "StartRTProgram" USING RTProgram.
-
-      ```'
+      MONITOR-CALL "StartRTProgram" USING RTProgram.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER RTProgram
+    code: 'INTEGER RTProgram
 
       ...
 
-      Monitor_Call(''StartRTProgram'', RTProgram)
-
-      ```'
+      Monitor_Call(''StartRTProgram'', RTProgram)'
     notes: ''
   planc:
     available: true

@@ -18,57 +18,39 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      TimeUsed : LONGINT;
+    code: 'TimeUsed : LONGINT;
 
       ...
 
-      GetTimeUsed(TimeUsed);
-
-      ```'
+      GetTimeUsed(TimeUsed);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 TimeUsed COMP PIC S9(10).
+    code: '01 TimeUsed COMP PIC S9(10).
 
       ...
 
-      MONITOR-CALL "GetTimeUsed" USING TimeUsed.
-
-      ```'
+      MONITOR-CALL "GetTimeUsed" USING TimeUsed.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER*4 TimeUsed
+    code: 'INTEGER*4 TimeUsed
 
       ...
 
-      Monitor_Call(''GetTimeUsed'', TimeUsed)
-
-      ```'
+      Monitor_Call(''GetTimeUsed'', TimeUsed)'
     notes: ''
   planc:
     available: true
-    code: '```
-
-      INTEGER4 : TimeUsed
+    code: 'INTEGER4 : TimeUsed
 
       ...
 
-      Monitor_Call(''GetTimeUsed'', TimeUsed)
-
-      ```'
+      Monitor_Call(''GetTimeUsed'', TimeUsed)'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      TimeUsed : W BLOCK 1
+    code: 'TimeUsed : W BLOCK 1
 
       GetTimeUsed : EQU 37B9 + 114B
 
@@ -76,16 +58,12 @@ examples:
 
       CALLG GetTimeUsed, 0
 
-      W1 =: TimeUsed           %Result is returned in W1 register.
-
-      ```'
+      W1 =: TimeUsed           %Result is returned in W1 register.'
     octal_definition: 37B9 + 114B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      MON     114   %Monitor call GetTimeUsed.
+    code: 'MON     114   %Monitor call GetTimeUsed.
 
       STD     TIME  %Store CPU time.
 
@@ -95,7 +73,6 @@ examples:
 
       0             %
 
-      ```
 
 
 

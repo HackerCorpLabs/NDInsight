@@ -29,9 +29,7 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      FileNumber : INTEGER2;
+    code: 'FileNumber : INTEGER2;
 
       BytePointer : LONGINT;
 
@@ -39,15 +37,11 @@ examples:
 
       SetBytePointer(FileNumber, BytePointer); [Note routine name.]
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 FileNumber COMP.
+    code: '01 FileNumber COMP.
 
       01 BytePointer COMP PIC S9(10).
 
@@ -59,15 +53,11 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER FileNumber
+    code: 'INTEGER FileNumber
 
       INTEGER*4 BytePointer
 
@@ -75,21 +65,17 @@ examples:
 
       Monitor_Call(''SetStartByte'', FileNumber, BytePointer)
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : FileNumber\nINTEGER4 : BytePointer\n...\nON ROUTINEERROR\
-      \ DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('SetStartByte', FileNumber,\
-      \ BytePointer)\n```"
+    code: "INTEGER : FileNumber\nINTEGER4 : BytePointer\n...\nON ROUTINEERROR DO\n\
+      \  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('SetStartByte', FileNumber,\
+      \ BytePointer)"
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      FileNumber : W BLOCK 1
+    code: 'FileNumber : W BLOCK 1
 
       BytePointer : W BLOCK 1
 
@@ -105,19 +91,17 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode           %ErrorCode in W1 register.
-
-      ```'
+      ERROR : W1 =: ErrCode           %ErrorCode in W1 register.'
     octal_definition: 37B9 + 74B
     notes: ''
   mac:
     available: true
-    code: "```\nLDT    FILNO        %File number returned from earlier open.\nLOD\
-      \    POINT        %Byte pointer.\nMON    74           %Monitor call SetStartByte.\n\
-      JMP    ERROR        %Error return from monitor call.\n                    ...\
+    code: "LDT    FILNO        %File number returned from earlier open.\nLOD    POINT\
+      \        %Byte pointer.\nMON    74           %Monitor call SetStartByte.\nJMP\
+      \    ERROR        %Error return from monitor call.\n                    ...\
       \ %Normal return.\nERROR, ...          %Error number in register A.\n...\nFILNO,\
-      \ ...\nPOINT, ...          %A double word.\n                    ... %\n```\n\
-      \n\n| ND-100 and ND-500 | All users | All programs |"
+      \ ...\nPOINT, ...          %A double word.\n                    ... %\n\n\n\n\
+      | ND-100 and ND-500 | All users | All programs |"
     mon_number: 74
     notes: ''
 compatibility:

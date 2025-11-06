@@ -12,24 +12,22 @@ see_also:
 - '@SET-PERIPHERAL-FILE'
 references: []
 parameters:
-- name: ➞ File name for the peripheral. See appendix G.
+- name: ➞Filenamefortheperipheral
   type: UNKNOWN
   io: I
-  description: ''
-- name: ➞ Logical device number. See appendix B.
+  description: ➞ File name for the peripheral. See appendix G.
+- name: ➞Logicaldevicenumber
   type: UNKNOWN
   io: I
-  description: ''
-- name: ⬅ Standard Error Code. See appendix A.
+  description: ➞ Logical device number. See appendix B.
+- name: ⬅StandardErrorCode
   type: UNKNOWN
   io: I
-  description: ''
+  description: ⬅ Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true
-    code: '```
-
-      FileName : PACKED ARRAY [0..63] OF CHAR;
+    code: 'FileName : PACKED ARRAY [0..63] OF CHAR;
 
       DeviceNumber : INTEGER2;
 
@@ -37,15 +35,11 @@ examples:
 
       SetPeripheralName(FileName, DeviceNumber);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 FileName PIC X(64).
+    code: '01 FileName PIC X(64).
 
       01 DeviceNumber COMP.
 
@@ -57,15 +51,11 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      CHARACTER FileName*64
+    code: 'CHARACTER FileName*64
 
       INTEGER DeviceNumber
 
@@ -73,21 +63,18 @@ examples:
 
       Monitor_Call(''SetPeripheralName'', FileName(1:64), DeviceNumber)
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
-    code: "```\nBYTES : FileName(0:63)\nINTEGER : DeviceNumber\n\n...\n\nON ROUTINEERROR\
+    code: "BYTES : FileName(0:63)\nINTEGER : DeviceNumber\n\n...\n\nON ROUTINEERROR\
       \ DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('SetPeripheralName',\
-      \ FileName, DeviceNumber)\n```"
+      \ FileName, DeviceNumber)"
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      FileName : STRINGDATA ''LINE-PRINTER''''''   %Use LINE-PRINTER as name of dev.
+    code: 'FileName : STRINGDATA ''LINE-PRINTER''''''   %Use LINE-PRINTER as name
+      of dev.
 
       DeviceNumber : W DATA 5                  % no. 5 (line printer no. 1).
 
@@ -107,16 +94,12 @@ examples:
       ...
 
 
-      ERROR : W1 =: ErrCode                    %ErrorCode in W1 register.
-
-      ```'
+      ERROR : W1 =: ErrCode                    %ErrorCode in W1 register.'
     octal_definition: 37B9 + 234B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDX    (FILE          %Address of string with file name.
+    code: 'LDX    (FILE          %Address of string with file name.
 
       LDA    DEVNO          %Logical device number.
 
@@ -134,7 +117,6 @@ examples:
 
       DEVNO, 5              %Device number of line printer no. 1.
 
-      ```
 
 
 

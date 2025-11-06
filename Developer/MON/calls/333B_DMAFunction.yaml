@@ -1,0 +1,23 @@
+# Monitor Call: 333B DMAFunction
+# Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
+# Source lines: 6996-7055
+
+octal: 333B
+name: DMAFunction
+short_names:
+- UDMA
+description: Monitor call 333B - DMAFunction
+parameters: []
+examples: {}
+compatibility:
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: true
+source:
+  document: ND-860228.2 EN
+  page_references: []
+extraction:
+  ocr_corrected: true
+  ocr_notes: Extracted from header without octal (line 6996)

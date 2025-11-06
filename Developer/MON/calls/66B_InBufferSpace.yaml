@@ -28,23 +28,17 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DeviceNumber, NoOfBytes : INTEGER2;
+    code: 'DeviceNumber, NoOfBytes : INTEGER2;
 
       ...
 
       BytesInBuffer(DeviceNumber, NoOfBytes);   [Note routine name.]
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DeviceNumber COMP.
+    code: '01 DeviceNumber COMP.
 
       01 NoOfBytes COMP.
 
@@ -56,23 +50,17 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DeviceNumber, NoOfBytes
+    code: 'INTEGER DeviceNumber, NoOfBytes
 
       ...
 
       Monitor Call1(''InBufferSpace'', DeviceNumber, NoOfBytes)
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true

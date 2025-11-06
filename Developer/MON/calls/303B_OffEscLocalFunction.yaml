@@ -50,8 +50,7 @@ examples:
     notes: ''
   planc:
     available: true
-    code: "```\nON ROUTINEERROR DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('OffEscLocalFunction')\n\
-      ```"
+    code: "ON ROUTINEERROR DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('OffEscLocalFunction')"
     notes: ''
   assembly_500:
     available: false

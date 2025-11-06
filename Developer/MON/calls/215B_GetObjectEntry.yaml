@@ -44,9 +44,7 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DirIndex, UserIndex, ObjectIndex : INTEGER2;
+    code: 'DirIndex, UserIndex, ObjectIndex : INTEGER2;
 
       Buffer : ARRAY [0..1] OF RECORD...END;
 
@@ -54,37 +52,33 @@ examples:
 
       GetObjectEntry(Buffer, DirIndex, UserIndex, ObjectIndex);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 DirIndex COMP.\n01 UserIndex COMP.\n01 ObjectIndex COMP.\n01 RemoteFlag\
+    code: "01 DirIndex COMP.\n01 UserIndex COMP.\n01 ObjectIndex COMP.\n01 RemoteFlag\
       \ COMP.\n01 RemoteSystem PIC X(64).\n01 Buffer.\n   02 array COMP OCCURS 32\
       \ TIMES.\n01 ErrCode COMP.\n...\nMONITOR-CALL \"GetObjectEntry\" USING Buffer,\
       \ DirIndex, UserIndex,\n   ObjectIndex, RemoteFlag, RemoteSystem)\nCALL \"CbError\"\
-      \ USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
+      \ USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
     notes: ''
   fortran:
     available: true
-    code: "```\nINTEGER DirIndex, UserIndex, ObjectIndex, RemoteFlag\nCHARACTER RemoteSystem*64\n\
+    code: "INTEGER DirIndex, UserIndex, ObjectIndex, RemoteFlag\nCHARACTER RemoteSystem*64\n\
       INTEGER Buffer(32)\n...\nMonitor_Call('GetObjectEntry', Buffer(1), DirIndex,\
       \ UserIndex,\n   ObjectIndex, RemoteFlag, RemoteSystem(1:64))\nIF (ErrCode .NE.\
-      \ 0) THEN ...\n```"
+      \ 0) THEN ..."
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DirIndex, UserIndex, ObjIndex, RemoteFlag\nBYTES : RemoteSystem(0:63)\n\
+    code: "INTEGER : DirIndex, UserIndex, ObjIndex, RemoteFlag\nBYTES : RemoteSystem(0:63)\n\
       BYTES : Buffer(0:63)\n...\nON ROUTINEERROR DO\n  IF ErrCode > 0 THEN ...\nENDON\n\
       Monitor_Call('GetObjectEntry', Buffer(0), DirIndex, UserIndex, ObjIndex,&\n\
-      \             RemoteFlag, RemoteSystem)\n```"
+      \             RemoteFlag, RemoteSystem)"
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      DirIndex : W BLOCK 1
+    code: 'DirIndex : W BLOCK 1
 
       UserIndex : W BLOCK 1
 
@@ -108,23 +102,21 @@ examples:
       ...
 
 
-      ERROR : W1 =: ErrCode %ErrorCode in W1 register.
-
-      ```'
+      ERROR : W1 =: ErrCode %ErrorCode in W1 register.'
     octal_definition: 37B9 + 215B
     notes: ''
   mac:
     available: true
-    code: "```\nLDA (REMID      %Remote identification in register D.\nCOPY SA DD\
-      \      %Set bit 15 in register T if remote file.\nLDA (BUFF       %Address of\
-      \ buffer for returned object entry.\nLDT INDEX       %Left byte: Dir index.\
-      \ Right byte: User index.\nLDX OBJIX       %Object index.\nMON 215         %Monitor\
-      \ call GetObjectEntry.\nJMP ERROR       %Error return from monitor call.\n...\
-      \             %Normal return.\nERROR, ...      %Error number in register A.\n\
-      \  ...\nBUFF, 0\n*+40/           %Make a buffer of 32 words.\nINDEX, ...   \
-      \   %Set bit 15 if remote object entry.\nOBJIX, ...\nREMID, 0        %Remote\
-      \ identification string..\n*+40/           %Make a buffer of 32 words.\n```\n\
-      \n\n| ND-100 and ND-500 | All users | All programs |\n|-------------------|-----------|--------------|\n\
+    code: "LDA (REMID      %Remote identification in register D.\nCOPY SA DD     \
+      \ %Set bit 15 in register T if remote file.\nLDA (BUFF       %Address of buffer\
+      \ for returned object entry.\nLDT INDEX       %Left byte: Dir index. Right byte:\
+      \ User index.\nLDX OBJIX       %Object index.\nMON 215         %Monitor call\
+      \ GetObjectEntry.\nJMP ERROR       %Error return from monitor call.\n...   \
+      \          %Normal return.\nERROR, ...      %Error number in register A.\n \
+      \ ...\nBUFF, 0\n*+40/           %Make a buffer of 32 words.\nINDEX, ...    \
+      \  %Set bit 15 if remote object entry.\nOBJIX, ...\nREMID, 0        %Remote\
+      \ identification string..\n*+40/           %Make a buffer of 32 words.\n\n\n\
+      \n| ND-100 and ND-500 | All users | All programs |\n|-------------------|-----------|--------------|\n\
       \nScanned by Jonny Oddene for Sintran Data © 2020"
     mon_number: 215
     notes: ''

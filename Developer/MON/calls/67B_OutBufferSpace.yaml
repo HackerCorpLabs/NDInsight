@@ -27,23 +27,17 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DeviceNumber, NoOfBytes : INTEGER2;
+    code: 'DeviceNumber, NoOfBytes : INTEGER2;
 
       ...
 
       OutBufferSpace(DeviceNumber, NoOfBytes);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DeviceNumber  COMP.
+    code: '01 DeviceNumber  COMP.
 
       01 NoOfBytes     COMP.
 
@@ -55,48 +49,39 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DeviceNumber, NoOfBytes
+    code: 'INTEGER DeviceNumber, NoOfBytes
 
       ...
 
       Monitor_Cal1(''OutBufferSpace'', DeviceNumber, NoOfBytes)
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DeviceNumber, NoOfBytes\n...\nON ROUTINEERROR DO\n    IF\
-      \ ErrCode > 0 THEN ...\nENDON\nMonitor_Call('OutBufferSpace', DeviceNumber,\
-      \ NoOfBytes)\n```"
+    code: "INTEGER : DeviceNumber, NoOfBytes\n...\nON ROUTINEERROR DO\n    IF ErrCode\
+      \ > 0 THEN ...\nENDON\nMonitor_Call('OutBufferSpace', DeviceNumber, NoOfBytes)"
     notes: ''
   assembly_500:
     available: true
-    code: "```\nDeviceNumber : W BLOCK 1\nNoOfBytes : W BLOCK 1\nErrCode : W BLOCK\
-      \ 1\nOutBufferSpace : EQU 37B9 + 67B\n    ...\n    CALLG OutBufferSpace, 1,\
-      \ DeviceNumber\n    IF K GO ERROR\n    W1 =: NoOfBytes           %Result is\
-      \ returned in W1 register.\n    ...\nERROR : W1 =: ErrCode        %ErrorCode\
-      \ in W1 register.\n```"
+    code: "DeviceNumber : W BLOCK 1\nNoOfBytes : W BLOCK 1\nErrCode : W BLOCK 1\n\
+      OutBufferSpace : EQU 37B9 + 67B\n    ...\n    CALLG OutBufferSpace, 1, DeviceNumber\n\
+      \    IF K GO ERROR\n    W1 =: NoOfBytes           %Result is returned in W1\
+      \ register.\n    ...\nERROR : W1 =: ErrCode        %ErrorCode in W1 register."
     octal_definition: 37B9 + 67B
     notes: ''
   mac:
     available: true
-    code: "```\n    LDT DEVNO                %Logical device number.\n    MON 67 \
-      \                  %Monitor call OutBufferSpace.\n    JMP ERROR            \
-      \    %Error return from monitor call.\n    STA COUNT                %Normal\
-      \ return, store number of bytes.\nERROR,\n    ...                      %Error\
-      \ number in register A.\nDEVNO, ...\nCOUNT, 0                     %Number of\
-      \ bytes free space in outbuffer.\n```\n\n| ND-100 and ND-500 | All users | All\
-      \ programs |\n|-------------------|-----------|--------------|"
+    code: "    LDT DEVNO                %Logical device number.\n    MON 67      \
+      \             %Monitor call OutBufferSpace.\n    JMP ERROR                %Error\
+      \ return from monitor call.\n    STA COUNT                %Normal return, store\
+      \ number of bytes.\nERROR,\n    ...                      %Error number in register\
+      \ A.\nDEVNO, ...\nCOUNT, 0                     %Number of bytes free space in\
+      \ outbuffer.\n\n\n| ND-100 and ND-500 | All users | All programs |\n|-------------------|-----------|--------------|"
     mon_number: 67
     notes: ''
 compatibility:

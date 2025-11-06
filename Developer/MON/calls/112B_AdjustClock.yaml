@@ -27,59 +27,41 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      TimeUnits, UnitType : INTEGER2;
+    code: 'TimeUnits, UnitType : INTEGER2;
 
       ...
 
-      AdjustClock(TimeUnits, UnitType);
-
-      ```'
+      AdjustClock(TimeUnits, UnitType);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 TimeUnits COMP.
+    code: '01 TimeUnits COMP.
 
       01 UnitType COMP.
 
       ...
 
-      MONITOR-CALL "AdjustClock" USING TimeUnits, UnitType.
-
-      ```'
+      MONITOR-CALL "AdjustClock" USING TimeUnits, UnitType.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER TimeUnits, UnitType
+    code: 'INTEGER TimeUnits, UnitType
 
       ...
 
-      Monitor_Call(''AdjustClock'', TimeUnits, UnitType)
-
-      ```'
+      Monitor_Call(''AdjustClock'', TimeUnits, UnitType)'
     notes: ''
   planc:
     available: true
-    code: '```
-
-      INTEGER : TimeUnits, UnitType
+    code: 'INTEGER : TimeUnits, UnitType
 
       ...
 
-      Monitor_Call(''AdjustClock'', TimeUnits, UnitType)
-
-      ```'
+      Monitor_Call(''AdjustClock'', TimeUnits, UnitType)'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      TimeUnits : W BLOCK 1
+    code: 'TimeUnits : W BLOCK 1
 
       UnitType : W BLOCK 1
 
@@ -95,16 +77,12 @@ examples:
 
       ...
 
-      Error : W1 =: ErrCode
-
-      ```'
+      Error : W1 =: ErrCode'
     octal_definition: 37B9 + 112B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDA (PAR %Load register A with address of parameter list.
+    code: 'LDA (PAR %Load register A with address of parameter list.
 
       MON 112 %Monitor call AdjustClock.
 
@@ -120,7 +98,6 @@ examples:
 
       BASE, ...
 
-      ```
 
 
       | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'

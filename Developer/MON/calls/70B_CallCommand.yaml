@@ -15,39 +15,27 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
-      Command : PACKED ARRAY [0..79] OF CHAR;
+    code: 'Command : PACKED ARRAY [0..79] OF CHAR;
 
       ...
 
-      CallCommand(Command);
-
-      ```'
+      CallCommand(Command);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 Command PIC X(100).
+    code: '01 Command PIC X(100).
 
       ...
 
-      MONITOR-CALL "CallCommand" USING Command.
-
-      ```'
+      MONITOR-CALL "CallCommand" USING Command.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      CHARACTER Command*80
+    code: 'CHARACTER Command*80
 
       ...
 
-      Monitor_Call(''Call'')Command'', Command(1:80))
-
-      ```'
+      Monitor_Call(''Call'')Command'', Command(1:80))'
     notes: ''
   planc:
     available: true
@@ -78,9 +66,7 @@ examples:
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDA  (CMND    %Address of string with command to be executed.
+    code: 'LDA  (CMND    %Address of string with command to be executed.
 
       MON 70        %Monitor call CallCommand.
 
@@ -88,7 +74,6 @@ examples:
 
       CMND, ''CLOSE-FILE 102''  %Execute @CLOSE-FILE 102
 
-      ```
 
 
       | ND-100 and ND-500 | All users | Background programs |'

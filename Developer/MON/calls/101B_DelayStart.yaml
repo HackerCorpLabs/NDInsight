@@ -28,21 +28,15 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      RTProgram, TimeUnits, UnitType : INTEGER2;
+    code: 'RTProgram, TimeUnits, UnitType : INTEGER2;
 
       ...
 
-      DelayStart(RTProgram, TimeUnits, UnitType);
-
-      ```'
+      DelayStart(RTProgram, TimeUnits, UnitType);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 RTProgram COMP.
+    code: '01 RTProgram COMP.
 
       01 TimeUnits COMP.
 
@@ -50,21 +44,15 @@ examples:
 
       ...
 
-      MONITOR-CALL "DelayStart" USING RTProgram, TimeUnits, UnitType.
-
-      ```'
+      MONITOR-CALL "DelayStart" USING RTProgram, TimeUnits, UnitType.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER RTProgram, TimeUnits, UnitType
+    code: 'INTEGER RTProgram, TimeUnits, UnitType
 
       ...
 
-      Monitor_Call(''DelayStart'', RTProgram, TimeUnits, UnitType)
-
-      ```'
+      Monitor_Call(''DelayStart'', RTProgram, TimeUnits, UnitType)'
     notes: ''
   planc:
     available: true
@@ -91,9 +79,7 @@ examples:
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDA  (PAR   %Load register A with address of parameter list.
+    code: 'LDA  (PAR   %Load register A with address of parameter list.
 
       MON  101    %Monitor call DelayStart.
 
@@ -117,7 +103,6 @@ examples:
 
       BASE,  ...  %Base time units.
 
-      ```
 
 
       | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'

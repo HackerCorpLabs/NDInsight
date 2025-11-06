@@ -36,9 +36,7 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      UserName, ProjPasswd : PACKED ARRAY [0..15] OF CHAR;
+    code: 'UserName, ProjPasswd : PACKED ARRAY [0..15] OF CHAR;
 
       UserPasswd : INTEGER2;
 
@@ -48,15 +46,11 @@ examples:
 
       NewUser(UserName, UserPasswd, ProjPasswd, ReturnStatus);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 UserName PIC X(16).
+    code: '01 UserName PIC X(16).
 
       01 UserPasswd COMP.
 
@@ -73,15 +67,11 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER ReturnStatus, UserPasswd
+    code: 'INTEGER ReturnStatus, UserPasswd
 
       CHARACTER UserName*16, ProjPasswd*16
 
@@ -91,15 +81,11 @@ examples:
 
       C ProjPasswd(1:16), ReturnStatus)
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      UserType : W BLOCK 1
+    code: 'UserType : W BLOCK 1
 
       UserName : STRINGDATA ''A-HANSEN''''''
 
@@ -111,32 +97,24 @@ examples:
 
       NewUser : EQU 37B9 + 241B
 
-      ```
 
       ...
 
-      ```
 
       CALLG NewUser, 4, UserName, UserPasswd, ProjPasswd, UserType
 
       IF K GO ERROR
 
-      ```
 
       ...
 
-      ```
 
-      ERROR : W1 =: ErrCode      %ErrorCode in W1 register.
-
-      ```'
+      ERROR : W1 =: ErrCode      %ErrorCode in W1 register.'
     octal_definition: 37B9 + 241B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDT (PROJP     %Address of project password.
+    code: 'LDT (PROJP     %Address of project password.
 
       LDX (USER     %Address of string containing user name.
 
@@ -148,12 +126,10 @@ examples:
 
       STA STAT      %Normal return, store status returned.
 
-      ```
 
       ...
 
 
-      ```
 
       ERROR, ...     %Error number in register A.
 
@@ -165,7 +141,6 @@ examples:
 
       STAT, 0
 
-      ```
 
 
       | ND-100 and ND-500 | User RT and user SYSTEM | Background programs |'

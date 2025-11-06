@@ -37,21 +37,15 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DeviceNo, IOFlag, WaitFlag, ReturnStatus : INTEGER2;
+    code: 'DeviceNo, IOFlag, WaitFlag, ReturnStatus : INTEGER2;
 
       ...
 
-      ReserveResource(DeviceNo, IOFlag, WaitFlag, ReturnStatus);
-
-      ```'
+      ReserveResource(DeviceNo, IOFlag, WaitFlag, ReturnStatus);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DevNo COMP.
+    code: '01 DevNo COMP.
 
       01 IOFlag COMP.
 
@@ -61,21 +55,15 @@ examples:
 
       ...
 
-      MONITOR-CALL "ReserveResource" USING DevNo, IOFlag, WaitFlag, RetStatus.
-
-      ```'
+      MONITOR-CALL "ReserveResource" USING DevNo, IOFlag, WaitFlag, RetStatus.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DevNo, IOFlag, WaitFlag, ReturnStatus
+    code: 'INTEGER DevNo, IOFlag, WaitFlag, ReturnStatus
 
       ...
 
-      Monitor_Call(''ReserveResource'', DevNo, IOFlag, WaitFlag, ReturnStatus)
-
-      ```'
+      Monitor_Call(''ReserveResource'', DevNo, IOFlag, WaitFlag, ReturnStatus)'
     notes: ''
   planc:
     available: true

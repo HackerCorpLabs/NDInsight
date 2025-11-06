@@ -42,7 +42,7 @@ parameters:
   type: ''
   io: I
   description: ''
-- name: Not available.
+- name: Notavailable.
   type: ''
   io: I
   description: ''
@@ -50,7 +50,7 @@ parameters:
   type: ''
   io: I
   description: ''
-- name: Not available.
+- name: Notavailable.
   type: ''
   io: I
   description: ''
@@ -58,7 +58,7 @@ parameters:
   type: ''
   io: I
   description: ''
-- name: Not available.
+- name: Notavailable.
   type: ''
   io: I
   description: ''

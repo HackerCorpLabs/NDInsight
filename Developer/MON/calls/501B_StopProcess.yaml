@@ -19,19 +19,11 @@ examples:
     notes: Not available
   cobol:
     available: true
-    code: '```
-
-      MONITOR-CALL "StopProcess"
-
-      ```'
+    code: MONITOR-CALL "StopProcess"
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      Monitor_Call(''StopProcess'')
-
-      ```'
+    code: Monitor_Call('StopProcess')
     notes: ''
   planc:
     available: true

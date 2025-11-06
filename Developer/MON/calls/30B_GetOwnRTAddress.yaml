@@ -21,39 +21,27 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      RTDescrAddress : INTEGER2;
+    code: 'RTDescrAddress : INTEGER2;
 
       ...
 
-      GetOwnRTAddress(RTDescrAddress);
-
-      ```'
+      GetOwnRTAddress(RTDescrAddress);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 RTDescrAddress COMP.
+    code: '01 RTDescrAddress COMP.
 
       ...
 
-      MONITOR-CALL "GetOwnRTAddress" USING RTDescrAddress.
-
-      ```'
+      MONITOR-CALL "GetOwnRTAddress" USING RTDescrAddress.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER RTDescrAddress
+    code: 'INTEGER RTDescrAddress
 
       ...
 
-      Monitor_Call(''GetOwnRTAddress'', RTDescrAddress)
-
-      ```'
+      Monitor_Call(''GetOwnRTAddress'', RTDescrAddress)'
     notes: ''
   planc:
     available: true

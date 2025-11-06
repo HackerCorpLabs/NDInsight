@@ -24,41 +24,29 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      RTProgram, BasicTimeUnits : INTEGER2;
+    code: 'RTProgram, BasicTimeUnits : INTEGER2;
 
       ...
 
-      ExactStartup(RTProgram, BasicTimeUnits);
-
-      ```'
+      ExactStartup(RTProgram, BasicTimeUnits);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 RTProgram COMP.
+    code: '01 RTProgram COMP.
 
       01 BasicTimeUnits COMP.
 
       ...
 
-      MONITOR-CALL "ExactStartup" USING RTProgram, BasicTimeUnits.
-
-      ```'
+      MONITOR-CALL "ExactStartup" USING RTProgram, BasicTimeUnits.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER RTProgram, BasicTimeUnits
+    code: 'INTEGER RTProgram, BasicTimeUnits
 
       ...
 
-      Monitor_Call(''ExactStartup'', RTProgram, BasicTimeUnits)
-
-      ```'
+      Monitor_Call(''ExactStartup'', RTProgram, BasicTimeUnits)'
     notes: ''
   planc:
     available: true

@@ -14,27 +14,15 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
-      WaitForRestart;
-
-      ```'
+    code: WaitForRestart;
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      MONITOR-CALL "WaitForRestart".
-
-      ```'
+    code: MONITOR-CALL "WaitForRestart".
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      Monitor_Call(''WaitForRestart'')
-
-      ```'
+    code: Monitor_Call('WaitForRestart')
     notes: ''
   planc:
     available: true

@@ -27,41 +27,29 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
-      TimeUnits, UnitType : INTEGER2;
+    code: 'TimeUnits, UnitType : INTEGER2;
 
       ...
 
-      SuspendProgram(TimeUnits, UnitType);
-
-      ```'
+      SuspendProgram(TimeUnits, UnitType);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 TimeUnits COMP.
+    code: '01 TimeUnits COMP.
 
       01 UnitType COMP.
 
       ...
 
-      MONITOR-CALL "SuspendProgram" USING TimeUnits, UnitType.
-
-      ```'
+      MONITOR-CALL "SuspendProgram" USING TimeUnits, UnitType.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER TimeUnits, UnitType
+    code: 'INTEGER TimeUnits, UnitType
 
       ...
 
-      Monitor_Call(''SuspendProgram'', TimeUnits, UnitType)
-
-      ```'
+      Monitor_Call(''SuspendProgram'', TimeUnits, UnitType)'
     notes: ''
   planc:
     available: true

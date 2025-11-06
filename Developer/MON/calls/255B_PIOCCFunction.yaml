@@ -1,0 +1,30 @@
+# Monitor Call: 255B PIOCCFunction
+# Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
+# NOTE: This monitor call is NOT documented in the source manual
+
+octal: 255B
+name: PIOCCFunction
+short_names:
+- PIOCC
+description: 'PIOCC (Programmed Input/Output Control Channel) function monitor call.
+
+
+  WARNING: This monitor call is not documented in the ND-860228.2 EN manual.
+
+  It may be deprecated, renamed, or documented elsewhere.
+
+  '
+parameters: []
+examples: {}
+compatibility:
+  nd100: false
+  nd500: false
+  user_programs: false
+  rt_programs: false
+  system_programs: false
+source:
+  document: ND-860228.2 EN
+  page_references: []
+extraction:
+  ocr_corrected: false
+  ocr_notes: NOT FOUND in source document - likely missing from scanned PDF or deprecated

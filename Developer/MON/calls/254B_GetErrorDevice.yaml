@@ -23,59 +23,41 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      ErrorDevice, RTProgram : INTEGER2;
+    code: 'ErrorDevice, RTProgram : INTEGER2;
 
       ...
 
-      FindErrorDevice(ErrorDevice, RTProgram);   [Note routine name.]
-
-      ```'
+      FindErrorDevice(ErrorDevice, RTProgram);   [Note routine name.]'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 ErrorDevice COMP.
+    code: '01 ErrorDevice COMP.
 
       01 RTProgram COMP.
 
       ...
 
-      MONITOR-CALL "GetErrorDevice" USING ErrorDevice, RTProgram.
-
-      ```'
+      MONITOR-CALL "GetErrorDevice" USING ErrorDevice, RTProgram.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER ErrorDevice, RTProgram
+    code: 'INTEGER ErrorDevice, RTProgram
 
       ...
 
-      Monitor_Call(''GetErrorDevice'', ErrorDevice, RTProgram)
-
-      ```'
+      Monitor_Call(''GetErrorDevice'', ErrorDevice, RTProgram)'
     notes: ''
   planc:
     available: true
-    code: '```
-
-      INTEGER : ErrorDevice, RTProgram
+    code: 'INTEGER : ErrorDevice, RTProgram
 
       ...
 
-      Monitor_Call(''GetErrorDevice'', ErrorDevice, RTProgram)
-
-      ```'
+      Monitor_Call(''GetErrorDevice'', ErrorDevice, RTProgram)'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      ErrorDevice : W BLOCK 1
+    code: 'ErrorDevice : W BLOCK 1
 
       RTProgram : W BLOCK 1
 
@@ -83,16 +65,12 @@ examples:
 
       ...
 
-      CALLG GetErrorDevice, 2, ErrorDevice, RTProgram
-
-      ```'
+      CALLG GetErrorDevice, 2, ErrorDevice, RTProgram'
     octal_definition: 37B9 + 254B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      MON 254 %Monitor call GetErrorDevice.
+    code: 'MON 254 %Monitor call GetErrorDevice.
 
       STA ERDEV %Store logical number of error device.
 
@@ -106,7 +84,6 @@ examples:
 
       RTPRO, 0
 
-      ```
 
 
       | ND-100 and ND-500 | User SYSTEM | All programs |'

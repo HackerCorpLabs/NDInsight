@@ -19,54 +19,36 @@ examples:
     notes: Not available
   cobol:
     available: true
-    code: '```
+    code: '01 RTProgram COMP.
 
-      01 RTProgram COMP.
-
-      MONITOR-CALL "StopRTProgram" USING RTProgram.
-
-      ```'
+      MONITOR-CALL "StopRTProgram" USING RTProgram.'
     notes: ''
   fortran:
     available: true
-    code: '```
+    code: 'INTEGER RTProgram
 
-      INTEGER RTProgram
-
-      Monitor_Call(''StopRTProgram'', RTProgram)
-
-      ```'
+      Monitor_Call(''StopRTProgram'', RTProgram)'
     notes: ''
   planc:
     available: true
-    code: '```
+    code: 'INTEGER : RTProgram
 
-      INTEGER : RTProgram
-
-      Monitor_Call(''StopRTProgram'', RTProgram)
-
-      ```'
+      Monitor_Call(''StopRTProgram'', RTProgram)'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      RTDescr : W BLOCK 1
+    code: 'RTDescr : W BLOCK 1
 
       ...
 
       StopRTProgram : EQU 37B9 + 105B
 
-      CALLG StopRTProgram, 1, RTDescr
-
-      ```'
+      CALLG StopRTProgram, 1, RTDescr'
     octal_definition: 37B9 + 105B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDA (PAR   %Load register A with address of parameter list.
+    code: 'LDA (PAR   %Load register A with address of parameter list.
 
       MON 105    %Monitor call StopRTProgram
 
@@ -78,7 +60,6 @@ examples:
 
       RTPRO, ...
 
-      ```
 
 
       | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'

@@ -18,65 +18,45 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      Value : LONGINT;
+    code: 'Value : LONGINT;
 
       ...
 
-      SetOutputFlags(Value);
-
-      ```'
+      SetOutputFlags(Value);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 Value COMP.
+    code: '01 Value COMP.
 
       ...
 
-      MONITOR-CALL "SetOutputFlags" USING Value.
-
-      ```'
+      MONITOR-CALL "SetOutputFlags" USING Value.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER Value
+    code: 'INTEGER Value
 
       ...
 
-      Monitor_Call(''SetOutputFlags'', Value)
-
-      ```'
+      Monitor_Call(''SetOutputFlags'', Value)'
     notes: ''
   planc:
     available: true
-    code: '```
-
-      INTEGER : Value
+    code: 'INTEGER : Value
 
       ...
 
-      Monitor_Call(''SetOutputFlags'', Value)
-
-      ```'
+      Monitor_Call(''SetOutputFlags'', Value)'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      Value : W BLOCK 1
+    code: 'Value : W BLOCK 1
 
       SetOutputFlags : EQU 37B9 + 403B
 
       ...
 
-      CALLG SetOutputFlags, 1, Value
-
-      ```'
+      CALLG SetOutputFlags, 1, Value'
     octal_definition: 37B9 + 403B
     notes: ''
   mac:

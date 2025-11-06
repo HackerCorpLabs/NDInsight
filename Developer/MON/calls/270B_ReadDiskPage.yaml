@@ -30,9 +30,7 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DirIndex, NoOfPages : INTEGER2;
+    code: 'DirIndex, NoOfPages : INTEGER2;
 
       PageAddr : LONGINT;
 
@@ -42,22 +40,18 @@ examples:
 
       ReadDiskPage(DirIndex, Buffer, PageAddr, NoOfPages);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 DirIndex COMP.\n01 NoOfPages COMP.\n01 PageAddr COMP PIC S9(10).\n\
-      01 Buffer.\n   02 array COMP OCCURS 1024 TIMES.\n01 ErrCode COMP.\n   ...\n\
-      MONITOR-CALL \"ReadDiskPage\" USING DirIndex, Buffer, PageAddr, NoOfPages.\n\
-      CALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
+    code: "01 DirIndex COMP.\n01 NoOfPages COMP.\n01 PageAddr COMP PIC S9(10).\n01\
+      \ Buffer.\n   02 array COMP OCCURS 1024 TIMES.\n01 ErrCode COMP.\n   ...\nMONITOR-CALL\
+      \ \"ReadDiskPage\" USING DirIndex, Buffer, PageAddr, NoOfPages.\nCALL \"CbError\"\
+      \ USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DirIndex, NoOfPages
+    code: 'INTEGER DirIndex, NoOfPages
 
       INTEGER*4 PageAddr
 
@@ -67,21 +61,17 @@ examples:
 
       Monitor_Call(''ReadDiskPage'', DirIndex, Buffer(1), PageAddr, NoOfPages)
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DirIndex, NoOfPages\nINTEGER4 : PageAddr\nBYTES : Buffer(0:2047)\n\
+    code: "INTEGER : DirIndex, NoOfPages\nINTEGER4 : PageAddr\nBYTES : Buffer(0:2047)\n\
       ...\nON ROUTINEERROR DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('ReadDiskPage',\
-      \ DirIndex, Buffer(0), PageAddr, NoOfPages)\n```"
+      \ DirIndex, Buffer(0), PageAddr, NoOfPages)"
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      DirIndex : W BLOCK 1
+    code: 'DirIndex : W BLOCK 1
 
       PageAddr : W BLOCK 1
 
@@ -103,16 +93,12 @@ examples:
       ...
 
 
-      ERROR : W1 =: ErrCode % ErrorCode in W1 register.
-
-      ```'
+      ERROR : W1 =: ErrCode % ErrorCode in W1 register.'
     octal_definition: 37B9 + 270B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDT DIRIX % Directory index.
+    code: 'LDT DIRIX % Directory index.
 
       LDX (BUFF % Address of buffer to receive data read.
 
@@ -144,7 +130,6 @@ examples:
 
       COUNT, 2    % Read 2 pages of 1024 words.
 
-      ```
 
 
 

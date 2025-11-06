@@ -41,9 +41,7 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DirectoryIndex, Flag : INTEGER2;
+    code: 'DirectoryIndex, Flag : INTEGER2;
 
       DirEntry : ARRAY [0..1] OF RECORD...END;
 
@@ -51,37 +49,33 @@ examples:
 
       GetDirEntry(DirectoryIndex, DirEntry, Flag);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 DirectoryIndex COMP.\n01 Flag COMP.\n01 DirEntry.\n   02 array\
-      \ COMP OCCURS 24 TIMES.\n01 RemoteFlag COMP.\n01 RemoteSystem PIC X(64).\n01\
-      \ ErrCode COMP.\n...\nMONITOR-CALL \"GetDirEntry\" USING DirectoryIndex, DirEntry,\
-      \ Flag,\n                                 RemoteFlag, RemoteSystem)\nCALL \"\
-      CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
+    code: "01 DirectoryIndex COMP.\n01 Flag COMP.\n01 DirEntry.\n   02 array COMP\
+      \ OCCURS 24 TIMES.\n01 RemoteFlag COMP.\n01 RemoteSystem PIC X(64).\n01 ErrCode\
+      \ COMP.\n...\nMONITOR-CALL \"GetDirEntry\" USING DirectoryIndex, DirEntry, Flag,\n\
+      \                                 RemoteFlag, RemoteSystem)\nCALL \"CbError\"\
+      \ USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
     notes: ''
   fortran:
     available: true
-    code: "```\nINTEGER DirectoryIndex, Flag, RemoteFlag\nCHARACTER RemoteSystem*64\n\
-      INTEGER DirEntry(24)\n...\nMonitor_Call('GetDirEntry', DirectoryIndex, DirEntry(1),\
+    code: "INTEGER DirectoryIndex, Flag, RemoteFlag\nCHARACTER RemoteSystem*64\nINTEGER\
+      \ DirEntry(24)\n...\nMonitor_Call('GetDirEntry', DirectoryIndex, DirEntry(1),\
       \ Flag,\n             RemoteFlag, RemoteSystem(1:16))\nC    IF (ErrCode .NE.\
-      \ 0) THEN ...\n```"
+      \ 0) THEN ..."
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DirectoryIndex, Flag, RemoteFlag\nBYTES : DirEntry(0:47)\n\
-      BYTES : RemoteSystem(0:63)\n...\nON ROUTINEERROR DO\n    IF ErrCode > 0 THEN\
-      \ ...\nENDON\nMonitor_Call('GetDirEntry', DirectoryIndex, DirEntry(0), Flag,\
-      \ RemoteFlag, &\nRemoteSystem)\n```"
+    code: "INTEGER : DirectoryIndex, Flag, RemoteFlag\nBYTES : DirEntry(0:47)\nBYTES\
+      \ : RemoteSystem(0:63)\n...\nON ROUTINEERROR DO\n    IF ErrCode > 0 THEN ...\n\
+      ENDON\nMonitor_Call('GetDirEntry', DirectoryIndex, DirEntry(0), Flag, RemoteFlag,\
+      \ &\nRemoteSystem)"
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      DirectoryIndex : W BLOCK 1    %Bit 7 set if SysId is supplied.
+    code: 'DirectoryIndex : W BLOCK 1    %Bit 7 set if SysId is supplied.
 
       Flag : W BLOCK 1
 
@@ -101,14 +95,12 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode         %ErrorCode in W1 register.
-
-      ```'
+      ERROR : W1 =: ErrCode         %ErrorCode in W1 register.'
     octal_definition: 37B9 + 244B
     notes: ''
   mac:
     available: true
-    code: "```\nLDT DIRIX        %Directory index.\nLDX (BUFF       %Buffer to receive\
+    code: "LDT DIRIX        %Directory index.\nLDX (BUFF       %Buffer to receive\
       \ directory entry.\nLDA (REMID      %Remote system identification in D register.\n\
       COPY SA DD      %Used only if bit 15 in X register is set.\nMON 244        \
       \ %Monitor call GetDirEntry.\nJMP ERROR       %Error return from monitor call.\n\
@@ -117,7 +109,7 @@ examples:
       ERROR, ...      %Error number in register A.\n...\nDIRIX, ...      %Set bit\
       \ 15 if remote system.\nBUFF, 0         %\n*+30/           %24 word long buffer.\n\
       REMID, 0        %Remote identification string.\n*+40/           %32 words for\
-      \ string.\n```\n\n\n| ND-100 and ND-500 | User RT and user SYSTEM | All programs\
+      \ string.\n\n\n\n| ND-100 and ND-500 | User RT and user SYSTEM | All programs\
       \ |"
     mon_number: 244
     notes: ''

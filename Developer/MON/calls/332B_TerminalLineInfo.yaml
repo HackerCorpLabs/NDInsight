@@ -52,22 +52,16 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      FuncCode, DeviceNo, ReturnInfo : INTEGER2
+    code: 'FuncCode, DeviceNo, ReturnInfo : INTEGER2
 
 
       TermLineInfo(FuncCode, DeviceNo, ReturnInfo); [note routine name.]
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 FuncCode COMP.
+    code: '01 FuncCode COMP.
 
       01 DeviceNo COMP.
 
@@ -80,22 +74,16 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER FuncCode, DeviceNo, ReturnInfo
+    code: 'INTEGER FuncCode, DeviceNo, ReturnInfo
 
 
       Monitor Call(''TerminalLineInfo'', FuncCode, DeviceNo, ReturnInfo)
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
@@ -113,9 +101,7 @@ examples:
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      FuncCode : W BLOCK 1
+    code: 'FuncCode : W BLOCK 1
 
       DeviceNo : W BLOCK 1
 
@@ -137,7 +123,6 @@ examples:
 
       ERROR : W1 =: ErrCode
 
-      ```
 
 
       %ErrorCode in W1 register.'
@@ -145,12 +130,11 @@ examples:
     notes: ''
   mac:
     available: true
-    code: "```\nLDT LDN %Load register T with the logical device number.\nLDA FUNC\
-      \ %Load register A with function code.\nMON 332 %Monitor call TerminalStatus.\n\
-      STA STAT %Returned status. Standard Error Code.\nSTA LINFO %Returns here if\
-      \ function code = 2 and no\n         %errors have occurred.\n...\nLDN, 1\nFUNC,\
-      \ 0\nLINFO, 0\nSTAT, 0\n```\n\n| ND-100 and ND-500 | All users | Background\
-      \ programs |"
+    code: "LDT LDN %Load register T with the logical device number.\nLDA FUNC %Load\
+      \ register A with function code.\nMON 332 %Monitor call TerminalStatus.\nSTA\
+      \ STAT %Returned status. Standard Error Code.\nSTA LINFO %Returns here if function\
+      \ code = 2 and no\n         %errors have occurred.\n...\nLDN, 1\nFUNC, 0\nLINFO,\
+      \ 0\nSTAT, 0\n\n\n| ND-100 and ND-500 | All users | Background programs |"
     mon_number: 332
     notes: ''
 compatibility:

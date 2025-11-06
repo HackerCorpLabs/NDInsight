@@ -22,41 +22,29 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DeviceNumber, LastCharTyped : INTEGER2;
+    code: 'DeviceNumber, LastCharTyped : INTEGER2;
 
       ...
 
-      GetLastByte(DeviceNumber, LastCharTyped);
-
-      ```'
+      GetLastByte(DeviceNumber, LastCharTyped);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DeviceNumber COMP.
+    code: '01 DeviceNumber COMP.
 
       01 LastCharTyped COMP.
 
       ...
 
-      MONITOR-CALL "GetLastByte" USING DeviceNumber, LastCharTyped.
-
-      ```'
+      MONITOR-CALL "GetLastByte" USING DeviceNumber, LastCharTyped.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DeviceNumber, LastCharTyped
+    code: 'INTEGER DeviceNumber, LastCharTyped
 
       ...
 
-      Monitor_Call(''GetLastByte'', DeviceNumber, LastCharTyped)
-
-      ```'
+      Monitor_Call(''GetLastByte'', DeviceNumber, LastCharTyped)'
     notes: ''
   planc:
     available: true

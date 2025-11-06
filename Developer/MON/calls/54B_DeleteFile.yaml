@@ -13,34 +13,28 @@ see_also:
 - and CreateFile
 references: []
 parameters:
-- name: File name
+- name: Filename
   type: ''
   io: I
   description: ''
-- name: Standard Error Code
+- name: StandardErrorCode
   type: See appendix A.
   io: I
   description: ''
 examples:
   pascal:
     available: true
-    code: '```
-
-      FileName : PACKED ARRAY [0..63] OF CHAR;
+    code: 'FileName : PACKED ARRAY [0..63] OF CHAR;
 
       ...
 
       DeleteFile(FileName);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 FileName PIC X(64).
+    code: '01 FileName PIC X(64).
 
       01 ErrCode COMP.
 
@@ -50,23 +44,17 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      CHARACTER FileName*64
+    code: 'CHARACTER FileName*64
 
       ...
 
       Monitor_Call(''DeleteFile'', FileName(1:64))
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
@@ -104,9 +92,7 @@ examples:
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDX   (FILE        %Load register X with address of file name.
+    code: 'LDX   (FILE        %Load register X with address of file name.
 
       MON   54           %Monitor call DeleteFile.
 
@@ -120,7 +106,6 @@ examples:
 
       FILE, ''EXAMPLE:SYMB'' %Delete file EXAMPLE:SYMB.
 
-      ```
 
 
       | ND-100 and ND-500 | All users | All programs |

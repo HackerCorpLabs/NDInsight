@@ -28,23 +28,17 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      OldFileName, NewFileName : PACKED ARRAY [0..63] OF CHAR;
+    code: 'OldFileName, NewFileName : PACKED ARRAY [0..63] OF CHAR;
 
       ...
 
       RenameFile(OldFileName, NewFileName);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 OldFileName PIC X(64).
+    code: '01 OldFileName PIC X(64).
 
       01 NewFileName PIC X(64).
 
@@ -56,23 +50,17 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      CHARACTER OldFileName*64, NewFileName*64
+    code: 'CHARACTER OldFileName*64, NewFileName*64
 
       ...
 
       Monitor_Call(''RenameFile'', OldFileName(1:64), NewFileName(1:64))
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true

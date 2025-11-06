@@ -24,7 +24,7 @@ parameters:
   type: UNKNOWN
   io: I
   description: ''
-- name: MONITOR-CALL "ExitRTProgram".
+- name: MONITOR-CALL"ExitRTProgram".
   type: UNKNOWN
   io: I
   description: ''

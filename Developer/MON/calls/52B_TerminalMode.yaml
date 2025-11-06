@@ -21,7 +21,7 @@ parameters:
   type: UNKNOWN
   io: I
   description: The terminal mode. The numbers below are used.
-- name: Terminal mode
+- name: Terminalmode
   type: Capital letters?
   io: Delay after return?
   description: Stop on full page?

@@ -21,39 +21,27 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DeviceNumber : INTEGER2;
+    code: 'DeviceNumber : INTEGER2;
 
       ...
 
-      EscapeEnable(DeviceNumber); [Note routine name.]
-
-      ```'
+      EscapeEnable(DeviceNumber); [Note routine name.]'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DeviceNumber COMP.
+    code: '01 DeviceNumber COMP.
 
       ...
 
-      MONITOR-CALL "EnableEscape" USING DeviceNumber.
-
-      ```'
+      MONITOR-CALL "EnableEscape" USING DeviceNumber.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DeviceNumber
+    code: 'INTEGER DeviceNumber
 
       ...
 
-      Monitor_Call(''EnableEscape'', DeviceNumber)
-
-      ```'
+      Monitor_Call(''EnableEscape'', DeviceNumber)'
     notes: ''
   planc:
     available: true

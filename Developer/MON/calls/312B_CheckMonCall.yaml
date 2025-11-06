@@ -24,41 +24,29 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      MonCallNumber, MonCallEntry : INTEGER2;
+    code: 'MonCallNumber, MonCallEntry : INTEGER2;
 
       ...
 
-      CheckMonCall(MonCallNumber, MonCallEntry);
-
-      ```'
+      CheckMonCall(MonCallNumber, MonCallEntry);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 MonCallNumber COMP.
+    code: '01 MonCallNumber COMP.
 
       01 MonCallEntry COMP.
 
       ...
 
-      MONITOR-CALL "CheckMonCall" USING MonCallNumber, MonCallEntry.
-
-      ```'
+      MONITOR-CALL "CheckMonCall" USING MonCallNumber, MonCallEntry.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER MonCallNumber, MonCallEntry
+    code: 'INTEGER MonCallNumber, MonCallEntry
 
       ...
 
-      Monitor_Call(''CheckMonCall'', MonCallNumber, MonCallEntry)
-
-      ```'
+      Monitor_Call(''CheckMonCall'', MonCallNumber, MonCallEntry)'
     notes: ''
   planc:
     available: true

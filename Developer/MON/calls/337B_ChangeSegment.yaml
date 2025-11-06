@@ -22,7 +22,7 @@ parameters:
   type: Cobol
   io: Fortran
   description: ''
-- name: Not available.
+- name: Notavailable.
   type: Not available.
   io: Not available.
   description: ''

@@ -16,37 +16,35 @@ see_also:
 - and WriteToFile
 references: []
 parameters:
-- name: File number
+- name: Filenumber
   type: See Openfile.
   io: I
   description: ''
-- name: Wait flag
+- name: Waitflag
   type: Use 0 to suspend the program until the transfer is completed. Other values
     make the program continue. You may check that the transfer is completed by AwaitFileTransfer.
   io: I
   description: ''
-- name: Transferred data
+- name: Transferreddata
   type: ''
   io: I
   description: ''
-- name: Block number
+- name: Blocknumber
   type: To start the read operation. Use -1 to read the next block.
   io: I
   description: ''
-- name: Number of bytes
+- name: Numberofbytes
   type: To read.
   io: I
   description: ''
-- name: Standard Error Code
+- name: StandardErrorCode
   type: See appendix A.
   io: I
   description: ''
 examples:
   pascal:
     available: true
-    code: '```
-
-      FileNo, WaitFlag, BlockNo : INTEGER2;
+    code: 'FileNo, WaitFlag, BlockNo : INTEGER2;
 
       Buff : ARRAY [0..15] OF RECORD...END;
 
@@ -56,23 +54,21 @@ examples:
 
       ReadFromFile(FileNo, WaitFlag, Buff, BlockNo, NoOfBytes);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 FileNo COMP.\n01 WaitFlag COMP.\n01 Buff.\n   02 array COMP OCCURS\
-      \ 256 TIMES.\n01 BlockNo COMP.\n01 NoOfBytes COMP PIC S9(10).\n01 ErrCode COMP.\n\
+    code: "01 FileNo COMP.\n01 WaitFlag COMP.\n01 Buff.\n   02 array COMP OCCURS 256\
+      \ TIMES.\n01 BlockNo COMP.\n01 NoOfBytes COMP PIC S9(10).\n01 ErrCode COMP.\n\
       ...\nMONITOR-CALL \"ReadFromFile\" USING FileNo, WaitFlag, Buff,\n         \
       \                       BlockNo, NoOfBytes.\n\nCALL \"CbError\" USING ErrCode.\n\
-      IF ErrCode NOT = 0 GO ...\n```"
+      IF ErrCode NOT = 0 GO ..."
     notes: ''
   fortran:
     available: true
-    code: "```\nINTEGER FileNo, WaitFlag, BlockNo\nINTEGER Buff(256)\nINTEGER*4 NoOfBytes\n\
+    code: "INTEGER FileNo, WaitFlag, BlockNo\nINTEGER Buff(256)\nINTEGER*4 NoOfBytes\n\
       ...\nMonitor_Call('ReadFromFile', FileNo, WaitFlag, Buff(1),\n             \
-      \                  BlockNo, NoOfBytes)\nC  IF (ErrCode .NE. 0) THEN ...\n```"
+      \                  BlockNo, NoOfBytes)\nC  IF (ErrCode .NE. 0) THEN ..."
     notes: ''
   planc:
     available: true

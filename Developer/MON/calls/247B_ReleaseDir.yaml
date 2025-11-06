@@ -22,23 +22,17 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DirectoryIndex : INTEGER2;
+    code: 'DirectoryIndex : INTEGER2;
 
       ...
 
       RelDirectory(DirectoryIndex);      [Note routine name.]
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DirectoryIndex COMP.
+    code: '01 DirectoryIndex COMP.
 
       01 ErrCode COMP.
 
@@ -48,29 +42,21 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DirectoryIndex
+    code: 'INTEGER DirectoryIndex
 
       ...
 
       Monitor_Call(''ReleaseDir'', DirectoryIndex)
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      DirectoryIndex : W BLOCK 1
+    code: 'DirectoryIndex : W BLOCK 1
 
       ErrCode : W BLOCK 1
 
@@ -84,16 +70,12 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode       %ErrorCode in W1 register.
-
-      ```'
+      ERROR : W1 =: ErrCode       %ErrorCode in W1 register.'
     octal_definition: 37B9 + 247B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDT DIRIX      %Directory index.
+    code: 'LDT DIRIX      %Directory index.
 
       MON 247        %Monitor call ReleaseDir.
 
@@ -107,7 +89,6 @@ examples:
 
       DIRIX, ...
 
-      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

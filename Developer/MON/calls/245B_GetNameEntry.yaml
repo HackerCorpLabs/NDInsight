@@ -35,59 +35,59 @@ parameters:
   type: Various flags.
   io: I
   description: ''
-- name: Bit 15
+- name: Bit15
   type: Cartridge disk.
   io: I
   description: ''
-- name: Bit 14
+- name: Bit14
   type: Not used.
   io: I
   description: ''
-- name: Bit 13
+- name: Bit13
   type: Single user device, e.g. floppy disk or magnetic tape.
   io: I
   description: ''
-- name: Bit 12
+- name: Bit12
   type: Not used.
   io: I
   description: ''
-- name: Bit 11
+- name: Bit11
   type: Magnetic tape station.
   io: I
   description: ''
-- name: Bit 10
+- name: Bit10
   type: EEC disks.
   io: I
   description: ''
-- name: Bit 9
+- name: Bit9
   type: Not used.
   io: I
   description: ''
-- name: Bit 8
+- name: Bit8
   type: Floppy disk.
   io: I
   description: ''
-- name: Bit 7
+- name: Bit7
   type: Phoenix disk.
   io: I
   description: ''
-- name: Bit 6
+- name: Bit6
   type: Little Winchester disk.
   io: I
   description: ''
-- name: Bit 5
+- name: Bit5
   type: SCSI streamer.
   io: I
   description: ''
-- name: Bit 4
+- name: Bit4
   type: SCSI disk.
   io: I
   description: ''
-- name: Bit 3
+- name: Bit3
   type: Read-only WORM disk (optical).
   io: I
   description: ''
-- name: Bit 2:0
+- name: Bit2:0
   type: Maximum number of subunits on this device (000<sub>2</sub> means 8 subunits,
     001<sub>2</sub>-111<sub>2</sub> means maximum number of subunits).
   io: I
@@ -107,9 +107,7 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      NameIndex : INTEGER2;
+    code: 'NameIndex : INTEGER2;
 
       NameTableEntry : RECORD...END;
 
@@ -117,48 +115,39 @@ examples:
 
       GetNameEntry(NameIndex, NameTableEntry);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 NameIndex COMP.\n01 NameTableEntry.\n    02 array COMP OCCURS 14\
-      \ TIMES.\n01 ErrCode COMP.\n...\nMONITOR-CALL \"GetNameEntry\" USING NameIndex,\
-      \ NameTableEntry.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n\
-      ```"
+    code: "01 NameIndex COMP.\n01 NameTableEntry.\n    02 array COMP OCCURS 14 TIMES.\n\
+      01 ErrCode COMP.\n...\nMONITOR-CALL \"GetNameEntry\" USING NameIndex, NameTableEntry.\n\
+      CALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER NameIndex
+    code: 'INTEGER NameIndex
 
       INTEGER NameTableEntry(14)
 
-      ...
-
-      ```'
+      ...'
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : NameIndex\nBYTES : NameTableEntry(0:27)\n...\nON ROUTINEERROR\
+    code: "INTEGER : NameIndex\nBYTES : NameTableEntry(0:27)\n...\nON ROUTINEERROR\
       \ DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('GetNameEntry', NameIndex,\
-      \ NameTableEntry(0))\n```"
+      \ NameTableEntry(0))"
     notes: ''
   assembly_500:
     available: true
-    code: "```\nNameIndex : W BLOCK 1\nNameTableEntry : BY BLOCK 34B\nErrCode : W\
-      \ BLOCK 1\nGetNameEntry : EQU 37B9 + 245B\n...\nCALLG GetNameEntry, 2, NameIndex,\
+    code: "NameIndex : W BLOCK 1\nNameTableEntry : BY BLOCK 34B\nErrCode : W BLOCK\
+      \ 1\nGetNameEntry : EQU 37B9 + 245B\n...\nCALLG GetNameEntry, 2, NameIndex,\
       \ NameTableEntry\n  IF K GO ERROR\n...\nERROR : W1 =: ErrCode  %ErrorCode in\
-      \ W1 register.\n```"
+      \ W1 register."
     octal_definition: 37B9 + 245B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDT NAMIX          %Name index.
+    code: 'LDT NAMIX          %Name index.
 
       LDX (BUFF          %Address of buffer to receive name table entry.
 
@@ -178,7 +167,6 @@ examples:
 
       +*16/              %Make a buffer of 14 words.
 
-      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

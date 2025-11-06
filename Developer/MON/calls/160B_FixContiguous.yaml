@@ -34,21 +34,15 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      SegmentNo, PageNumber, Stat : INTEGER2;
+    code: 'SegmentNo, PageNumber, Stat : INTEGER2;
 
       ...
 
-      FixContiguous(SegmentNo, PageNumber, Stat);
-
-      ```'
+      FixContiguous(SegmentNo, PageNumber, Stat);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 SegmentNo COMP.
+    code: '01 SegmentNo COMP.
 
       01 PageNumber COMP.
 
@@ -56,33 +50,23 @@ examples:
 
       ...
 
-      MONITOR-CALL "FixContiguous" USING SegmentNo, PageNumber, Stat.
-
-      ```'
+      MONITOR-CALL "FixContiguous" USING SegmentNo, PageNumber, Stat.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER SegmentNo, PageNumber, Stat
+    code: 'INTEGER SegmentNo, PageNumber, Stat
 
       ...
 
-      Monitor_Call(''FixContiguous'', SegmentNo, PageNumber, Stat)
-
-      ```'
+      Monitor_Call(''FixContiguous'', SegmentNo, PageNumber, Stat)'
     notes: ''
   planc:
     available: true
-    code: '```
-
-      INTEGER : SegmentNo, PageNumber, Stat
+    code: 'INTEGER : SegmentNo, PageNumber, Stat
 
       ...
 
-      Monitor_Call(''FixContiguous'', SegmentNo, PageNumber, Stat)
-
-      ```'
+      Monitor_Call(''FixContiguous'', SegmentNo, PageNumber, Stat)'
     notes: ''
   assembly_500:
     available: true
@@ -99,9 +83,7 @@ examples:
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDA (PAR   %Load register A with address of parameter list.
+    code: 'LDA (PAR   %Load register A with address of parameter list.
 
       MON 160    %Monitor call FixContiguous.
 
@@ -121,7 +103,6 @@ examples:
 
       PAGE, ...
 
-      ```
 
 
 

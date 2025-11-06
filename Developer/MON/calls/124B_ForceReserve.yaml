@@ -35,22 +35,16 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DeviceNo, IOflag, RTProgram, Stat : INTEGER2;
+    code: 'DeviceNo, IOflag, RTProgram, Stat : INTEGER2;
 
       ...
 
 
-      PrivReserve(DeviceNo, IOflag, RTProgram, Stat); [Note routine name.]
-
-      ```'
+      PrivReserve(DeviceNo, IOflag, RTProgram, Stat); [Note routine name.]'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DeviceNo COMP.
+    code: '01 DeviceNo COMP.
 
       01 IOFlag COMP.
 
@@ -60,21 +54,15 @@ examples:
 
       ...
 
-      MONITOR-CALL "ForceReserve" USING DeviceNo, IOFlag, RTProgram, Stat.
-
-      ```'
+      MONITOR-CALL "ForceReserve" USING DeviceNo, IOFlag, RTProgram, Stat.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DeviceNo, IOFlag, RTProgram, Stat
+    code: 'INTEGER DeviceNo, IOFlag, RTProgram, Stat
 
       ...
 
-      Monitor_Call(''ForceReserve'', DeviceNo, IOFlag, RTProgram, Stat)
-
-      ```'
+      Monitor_Call(''ForceReserve'', DeviceNo, IOFlag, RTProgram, Stat)'
     notes: ''
   planc:
     available: true
@@ -101,9 +89,7 @@ examples:
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDA (PAR  %Load register A with address of parameter list.
+    code: 'LDA (PAR  %Load register A with address of parameter list.
 
       MON 124  %Monitor call ForceReserve.
 
@@ -127,7 +113,6 @@ examples:
 
       RTPRO, ...
 
-      ```
 
 
       | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |'

@@ -40,23 +40,17 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DeviceNo, Func, BlockAddr, NoOfBlocks, Stat : INTEGER2;
+    code: 'DeviceNo, Func, BlockAddr, NoOfBlocks, Stat : INTEGER2;
 
       MemoryAddr : LONGINT;
 
       ...
 
-      DataTransfer(DeviceNo, Func, MemoryAddr, BlockAddr, NoOfBlocks, Stat);
-
-      ```'
+      DataTransfer(DeviceNo, Func, MemoryAddr, BlockAddr, NoOfBlocks, Stat);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DeviceNo COMP.
+    code: '01 DeviceNo COMP.
 
       01 Func COMP.
 
@@ -71,15 +65,11 @@ examples:
       ...
 
       MONITOR-CALL "DataTransfer" USING DeviceNo, Func, MemoryAddr, BlockAddr, NoOfBlocks,
-      Stat.
-
-      ```'
+      Stat.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DeviceNo, Func, BlockAddr, NoOfBlocks, Stat
+    code: 'INTEGER DeviceNo, Func, BlockAddr, NoOfBlocks, Stat
 
       INTEGER*4 MemoryAddr
 
@@ -88,7 +78,6 @@ examples:
       Monitor_Call(''DataTransfer'', DeviceNo, Func, MemoryAddr, BlockAddr, NoOfBlocks,
       Stat)
 
-      ```
 
 
 
@@ -96,23 +85,17 @@ examples:
     notes: ''
   planc:
     available: true
-    code: '```
-
-      INTEGER : DeviceNo, Func, BlockAddr, NoOfBlocks, Stat
+    code: 'INTEGER : DeviceNo, Func, BlockAddr, NoOfBlocks, Stat
 
       INTEGER4 : MemoryAddr
 
 
       Monitor_Call(''DataTransfer'', DeviceNo, Func, MemoryAddr, & BlockAddr, NoOfBlocks,
-      Stat)
-
-      ```'
+      Stat)'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      DeviceNo : W BLOCK 1
+    code: 'DeviceNo : W BLOCK 1
 
       Func : W BLOCK 1
 
@@ -135,9 +118,7 @@ examples:
       IF K GO Error
 
 
-      Error, W1 =: Stat
-
-      ```'
+      Error, W1 =: Stat'
     octal_definition: 37B9 + 131B
     notes: ''
   mac:

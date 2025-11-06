@@ -45,32 +45,24 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      TimeBuffer : record;
+    code: 'TimeBuffer : record;
 
       ...
 
-      GetCurrentTime(TimeBuffer);
-
-      ```'
+      GetCurrentTime(TimeBuffer);'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 TimeBuffer.\n   02 array COMP OCCURS 7 TIMES.\n   ...\nMONITOR-CALL\
-      \ \"GetCurrentTime\" USING TimeBuffer.\n```"
+    code: "01 TimeBuffer.\n   02 array COMP OCCURS 7 TIMES.\n   ...\nMONITOR-CALL\
+      \ \"GetCurrentTime\" USING TimeBuffer."
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER TimeBuffer(7)
+    code: 'INTEGER TimeBuffer(7)
 
       ...
 
-      Monitor_Call(''GetCurrentTime'', TimeBuffer(1))
-
-      ```'
+      Monitor_Call(''GetCurrentTime'', TimeBuffer(1))'
     notes: ''
   planc:
     available: true

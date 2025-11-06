@@ -36,9 +36,7 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DirectoryIndex, UserIndex : INTEGER2;
+    code: 'DirectoryIndex, UserIndex : INTEGER2;
 
       UserName : PACKED ARRAY [0..15] OF CHAR;
 
@@ -46,15 +44,11 @@ examples:
 
       GetDefaultDir(UserName, DirectoryIndex, UserIndex);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DirectoryIndex COMP.
+    code: '01 DirectoryIndex COMP.
 
       01 UserIndex COMP.
 
@@ -68,15 +62,11 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DirIndex, UserIndex
+    code: 'INTEGER DirIndex, UserIndex
 
       CHARACTER UserName*16
 
@@ -84,21 +74,17 @@ examples:
 
       Monitor_Call(''GetDefaultDir'', UserName(1:16), DirIndex, UserIndex)
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : DirectoryIndex, UserIndex\nBYTES : UserName(0:15)\n...\n\
-      \nON ROUTINEERROR DO\n  IF ErrCode >0 THEN ...\nENDON\n\nMonitor_Call('GetDefaultDir',\
-      \ UserName, DirectoryIndex, UserIndex)\n```"
+    code: "INTEGER : DirectoryIndex, UserIndex\nBYTES : UserName(0:15)\n...\n\nON\
+      \ ROUTINEERROR DO\n  IF ErrCode >0 THEN ...\nENDON\n\nMonitor_Call('GetDefaultDir',\
+      \ UserName, DirectoryIndex, UserIndex)"
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      DirectoryIndex : W BLOCK 1
+    code: 'DirectoryIndex : W BLOCK 1
 
       UserIndex : W BLOCK 1
 
@@ -118,16 +104,12 @@ examples:
       ...
 
 
-      ERROR : W1 =: ErrCode    %ErrorCode in W1 register.
-
-      ```'
+      ERROR : W1 =: ErrCode    %ErrorCode in W1 register.'
     octal_definition: 37B9 + 250B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDX (USER      %Address of string containing user name.
+    code: 'LDX (USER      %Address of string containing user name.
 
       MON 250        %Monitor call GetDefaultDir.
 
@@ -151,7 +133,6 @@ examples:
 
       USRIX, 0
 
-      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

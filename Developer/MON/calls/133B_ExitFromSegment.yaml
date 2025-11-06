@@ -21,15 +21,11 @@ parameters: []
 examples:
   pascal:
     available: true
-    code: '```
-
-      SegmentNumber : INTEGER2;
+    code: 'SegmentNumber : INTEGER2;
 
       ...
 
-      ExitFromSegment(SegmentNumber);
-
-      ```'
+      ExitFromSegment(SegmentNumber);'
     notes: ''
   cobol:
     available: false

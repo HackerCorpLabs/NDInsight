@@ -39,14 +39,11 @@ examples:
     notes: ''
   planc:
     available: true
-    code: "```\nON ROUTINEERROR DO\n  IF ErrCode >< 0 THEN ...\nENDON\nMonitor_Call('OldUser')\n\
-      ```"
+    code: "ON ROUTINEERROR DO\n  IF ErrCode >< 0 THEN ...\nENDON\nMonitor_Call('OldUser')"
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      ErrCode : W BLOCK 1
+    code: 'ErrCode : W BLOCK 1
 
       OldUser : EQU 37B9 + 242B
 
@@ -58,16 +55,14 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode     %ErrorCode in W1 register.
-
-      ```'
+      ERROR : W1 =: ErrCode     %ErrorCode in W1 register.'
     octal_definition: 37B9 + 242B
     notes: ''
   mac:
     available: true
-    code: "```\nMON 242       %Monitor call OldUser.\nJMP ERROR     %Error return\
-      \ from monitor call.\n              %Normal return.\nERROR, ...    %Error number\
-      \ in register A.\n...\n```\n\n| ND-100 and ND-500 | All users | Background programs\
+    code: "MON 242       %Monitor call OldUser.\nJMP ERROR     %Error return from\
+      \ monitor call.\n              %Normal return.\nERROR, ...    %Error number\
+      \ in register A.\n...\n\n\n| ND-100 and ND-500 | All users | Background programs\
       \ |"
     mon_number: 242
     notes: ''

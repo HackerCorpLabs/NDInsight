@@ -22,41 +22,29 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      FileNumber, LogSegNumber: LONGINT;
+    code: 'FileNumber, LogSegNumber: LONGINT;
 
       ...
 
-      FileNotAsSegment(FileNumber, LogSegNumber);
-
-      ```'
+      FileNotAsSegment(FileNumber, LogSegNumber);'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 FileNumber COMP.
+    code: '01 FileNumber COMP.
 
       02 LogSegNumber COMP.
 
       ...
 
-      MONITOR-CALL "FileNotAsSegment" USING FileNumber, LogSegNumber.
-
-      ```'
+      MONITOR-CALL "FileNotAsSegment" USING FileNumber, LogSegNumber.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER FileNumber, LogSegNumber
+    code: 'INTEGER FileNumber, LogSegNumber
 
       ...
 
-      Monitor_Call(''FileNotAsSegment'', FileNumber, LogSegNumber)
-
-      ```'
+      Monitor_Call(''FileNotAsSegment'', FileNumber, LogSegNumber)'
     notes: ''
   planc:
     available: true

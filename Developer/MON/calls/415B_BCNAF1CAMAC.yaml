@@ -1,0 +1,26 @@
+# Monitor Call: 415B BCNAF1CAMAC
+# Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
+# Source lines: 3877-3960
+
+octal: 415B
+name: BCNAF1CAMAC
+short_names:
+- BCNAF1
+description: 'Special CAMAC monitor call for the ND-500. (Same as mon 176 - user-defined
+  monitor call.)
+
+  See also CAMACFunction, AssignCAMACLAM, BCNAFCAMAC, CAMACIOInstruction, and CAMACGLRegister.'
+parameters: []
+examples: {}
+compatibility:
+  nd100: true
+  nd500: true
+  user_programs: true
+  rt_programs: true
+  system_programs: true
+source:
+  document: ND-860228.2 EN
+  page_references: []
+extraction:
+  ocr_corrected: true
+  ocr_notes: Manually extracted - had duplicate headers in source

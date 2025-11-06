@@ -17,78 +17,64 @@ see_also:
 - and InputString
 references: []
 parameters:
-- name: Logical device number, e.g. a file number. See appendix B. You may use 1 for
-    your own terminal. Use the SINTRAN III open file number if output to a file. The
-    ND-500 open file number will not function.
+- name: Logicaldevicenumber,e
+  type: UNKNOWN
+  io: I
+  description: Logical device number, e.g. a file number. See appendix B. You may
+    use 1 for your own terminal. Use the SINTRAN III open file number if output to
+    a file. The ND-500 open file number will not function.
+- name: Numberofbytestowrite.
   type: UNKNOWN
   io: I
   description: ''
-- name: Number of bytes to write.
+- name: Stringtobeoutput.
   type: UNKNOWN
   io: I
   description: ''
-- name: String to be output.
+- name: StandardErrorCode
   type: UNKNOWN
   io: I
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: I
-  description: ''
+  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true
-    code: '```
-
-      DeviceNo, NoOfBytes : LONGINT;
+    code: 'DeviceNo, NoOfBytes : LONGINT;
 
       Buff : ARRAY [0..8] OF RECORD...END;
 
       ...
 
-      OutputString(DeviceNo, NoOfBytes, Buff);
-
-      ```'
+      OutputString(DeviceNo, NoOfBytes, Buff);'
     notes: ''
   cobol:
     available: true
-    code: "```\n01  DeviceNo  COMP.\n01  NoOfBytes COMP.\n01  Buff.\n    02  array\
-      \ COMP OCCURS 100 TIMES.\n    ...\nMONITOR-CALL \"OutputString\" USING DeviceNo,\
-      \ NoOfBytes, Buff.\n```"
+    code: "01  DeviceNo  COMP.\n01  NoOfBytes COMP.\n01  Buff.\n    02  array COMP\
+      \ OCCURS 100 TIMES.\n    ...\nMONITOR-CALL \"OutputString\" USING DeviceNo,\
+      \ NoOfBytes, Buff."
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DeviceNo, NoOfBytes
+    code: 'INTEGER DeviceNo, NoOfBytes
 
       INTEGER Buff(100)
 
       ...
 
-      Monitor_Call(''OutputString'', DeviceNo, NoOfBytes, Buff(1))
-
-      ```'
+      Monitor_Call(''OutputString'', DeviceNo, NoOfBytes, Buff(1))'
     notes: ''
   planc:
     available: true
-    code: '```
-
-      INTEGER : DeviceNo, NoOfBytes
+    code: 'INTEGER : DeviceNo, NoOfBytes
 
       BYTES : Buff(0:199)
 
       ...
 
-      Monitor_Call(''OutputString'', DeviceNo, NoOfBytes, Buff(0))
-
-      ```'
+      Monitor_Call(''OutputString'', DeviceNo, NoOfBytes, Buff(0))'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      DeviceNo : W BLOCK 1
+    code: 'DeviceNo : W BLOCK 1
 
       NoOfBytes : W BLOCK 1
 
@@ -108,9 +94,7 @@ examples:
 
       ...
 
-      Error, ...
-
-      ```'
+      Error, ...'
     octal_definition: 37B9 + 504B
     notes: ''
   mac:

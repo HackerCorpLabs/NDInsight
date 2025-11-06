@@ -22,30 +22,21 @@ examples:
     notes: Not available
   cobol:
     available: true
-    code: '```
-
-      MONITOR-CALL "StopEscapeHandling".
+    code: 'MONITOR-CALL "StopEscapeHandling".
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT 0 GO ....
-
-      ```'
+      IF ErrCode NOT 0 GO ....'
     notes: ''
   fortran:
     available: true
-    code: '```
+    code: 'Monitor_Call (''StopEscapeHandling'')
 
-      Monitor_Call (''StopEscapeHandling'')
-
-      IF (ErrCode .NE. 0) THEN...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN...'
     notes: ''
   planc:
     available: true
-    code: "```\nON ROUTINEERROR DO\n   IF ErrCode <> 0 THEN...\nENDON\n...\nMonitor_Call('StopEscapeHandling')\n\
-      ```"
+    code: "ON ROUTINEERROR DO\n   IF ErrCode <> 0 THEN...\nENDON\n...\nMonitor_Call('StopEscapeHandling')"
     notes: ''
   assembly_500:
     available: false

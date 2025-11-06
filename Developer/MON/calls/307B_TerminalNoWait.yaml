@@ -33,21 +33,15 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DevNo, IOFlag, NoWaitFlag, RetStatus.: INTEGER2;
+    code: 'DevNo, IOFlag, NoWaitFlag, RetStatus.: INTEGER2;
 
       ...
 
-      TermNoWait(DevNo, IOFlag, NoWaitFlag, RetStatus); [Note routine name.]
-
-      ```'
+      TermNoWait(DevNo, IOFlag, NoWaitFlag, RetStatus); [Note routine name.]'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DevNo       COMP.
+    code: '01 DevNo       COMP.
 
       01 IOFlag      COMP.
 
@@ -57,32 +51,24 @@ examples:
 
       ...
 
-      MONITOR-CALL "TerminalNoWait" USING DevNo, IOFlag, NoWaitFlag, RetStat.
-
-      ```'
+      MONITOR-CALL "TerminalNoWait" USING DevNo, IOFlag, NoWaitFlag, RetStat.'
     notes: ''
   fortran:
     available: true
-    code: "```\nINTEGER\tDevNo, IOFlag, NoWaitFlag, RetStatus\n...\nMonitor_Call('TerminalNoWait',\
-      \ DevNo, IOFlag, NoWaitFlag, RetStatus)\n```"
+    code: "INTEGER\tDevNo, IOFlag, NoWaitFlag, RetStatus\n...\nMonitor_Call('TerminalNoWait',\
+      \ DevNo, IOFlag, NoWaitFlag, RetStatus)"
     notes: ''
   planc:
     available: true
-    code: '```
-
-      INTEGER : DevNo, IOFlag, NoWaitFlag, RetStatus
+    code: 'INTEGER : DevNo, IOFlag, NoWaitFlag, RetStatus
 
       ...
 
-      Monitor_Call(''TerminalNoWait'', DevNo, IOFlag, NoWaitFlag, RetStatus)
-
-      ```'
+      Monitor_Call(''TerminalNoWait'', DevNo, IOFlag, NoWaitFlag, RetStatus)'
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      DeviceNumber : W BLOCK 1
+    code: 'DeviceNumber : W BLOCK 1
 
       IOFlag : W BLOCK 1
 
@@ -92,16 +78,12 @@ examples:
 
       ...
 
-      CALLG TerminalNoWait, 3, DeviceNumber, IOFlag, NoWaitFlag
-
-      ```'
+      CALLG TerminalNoWait, 3, DeviceNumber, IOFlag, NoWaitFlag'
     octal_definition: 37B9 + 307B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDA (PAR        %Load register A with address of parameter list.
+    code: 'LDA (PAR        %Load register A with address of parameter list.
 
       MON 307         %Monitor call TerminalNoWait.
 
@@ -131,7 +113,6 @@ examples:
 
       FLAG, ...
 
-      ```
 
 
 

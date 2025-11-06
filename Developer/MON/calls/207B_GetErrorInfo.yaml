@@ -48,23 +48,17 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      Buffer : RECORD...END;
+    code: 'Buffer : RECORD...END;
 
       ReturnStatus : INTEGER2;
 
       ...
 
-      ReadErrorParam(Buffer, ReturnStatus); [Note routine name.]
-
-      ```'
+      ReadErrorParam(Buffer, ReturnStatus); [Note routine name.]'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 Buffer.
+    code: '01 Buffer.
 
       02 array COMP OCCURS 6 TIMES.
 
@@ -72,23 +66,17 @@ examples:
 
       ...
 
-      MONITOR-CALL "GetErrorInfo" USING Buffer, ReturnStatus.
-
-      ```'
+      MONITOR-CALL "GetErrorInfo" USING Buffer, ReturnStatus.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER Buffer(6)
+    code: 'INTEGER Buffer(6)
 
       INTEGER ReturnStatus
 
       ...
 
-      Monitor_Call(''GetErrorInfo'', Buffer(1), ReturnStatus)
-
-      ```'
+      Monitor_Call(''GetErrorInfo'', Buffer(1), ReturnStatus)'
     notes: ''
   planc:
     available: true

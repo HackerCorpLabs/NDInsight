@@ -31,24 +31,18 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      AbbrevFileName, FileName : PACKED ARRAY [0..63] OF CHAR;
+    code: 'AbbrevFileName, FileName : PACKED ARRAY [0..63] OF CHAR;
 
       FileType : PACKED ARRAY [0..3] OF CHAR;
 
 
       FullFileName(AbbrevFileName, FileName, FileType);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 AbbrevFileName PIC X(64).
+    code: '01 AbbrevFileName PIC X(64).
 
       01 FileName PIC X(64).
 
@@ -61,24 +55,18 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      CHARACTER AbbrevFileName*64, FileName*64, FileType*4
+    code: 'CHARACTER AbbrevFileName*64, FileName*64, FileType*4
 
 
       Monitor_Call(''FullFileName'', AbbrevFileName(1:64), FileName(1:64),
 
       FileType(1:4))
 
-      C IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      C IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
@@ -96,9 +84,7 @@ examples:
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      AbbrevFileName : STRINGDATA ''EX''''''
+    code: 'AbbrevFileName : STRINGDATA ''EX''''''
 
       FileName : STRING 64
 
@@ -116,16 +102,12 @@ examples:
 
       ...
 
-      ERROR : W1 =: ErrCode %ErrorCode in W1 register.
-
-      ```'
+      ERROR : W1 =: ErrCode %ErrorCode in W1 register.'
     octal_definition: 37B9 + 256B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDX (ABBR %Address of abbreviated file name string.
+    code: 'LDX (ABBR %Address of abbreviated file name string.
 
       LDA (FILE %Address of string to receive full file name.
 
@@ -141,7 +123,6 @@ examples:
 
       ERROR, ... %Error number in register A.
 
-      ```
 
 
       | ABBR | ''EX''    | %Find full file name of EX.                  |

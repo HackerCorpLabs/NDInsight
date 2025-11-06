@@ -12,32 +12,30 @@ see_also:
 - '@RESET-DEFAULT-REMOTE-SYSTEM'
 references: []
 parameters:
-- name: ➞ Remote system name.
+- name: ➞Remotesystemname.
   type: ''
   io: I
   description: ''
-- name: ➞ User owning the files in the remote system.
+- name: ➞Userowningthefilesintheremotesystem.
   type: ''
   io: I
   description: ''
-- name: ➞ The user's password.
+- name: ➞Theuser'spassword.
   type: ''
   io: I
   description: ''
-- name: ➞ The user's project password.
+- name: ➞Theuser'sprojectpassword.
   type: ''
   io: I
   description: ''
-- name: ➞ Standard Error Code. See appendix A.
+- name: ➞StandardErrorCode
   type: ''
   io: I
-  description: ''
+  description: ➞ Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true
-    code: '```
-
-      SystemName: PACKED ARRAY [0..15] OF CHAR;
+    code: 'SystemName: PACKED ARRAY [0..15] OF CHAR;
 
       UserName, Password, ProjPassword : PACKED ARRAY [0..15] OF CHAR;
 
@@ -46,23 +44,20 @@ examples:
 
       DefaultRemoteSystem(SystemName, UserName, Password, ProjPassword);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 SystemName PIC X(16).\n01 UserName   PIC X(16).\n01 Password  \
-      \ PIC X(16).\n01 ProjPassword PIC X(16).\n01 ErrCode COMP.\n...\n\nMONITOR-CALL\
-      \ \"DefaultRemoteSystem\" USING SystemName, UserName,\n                    \
-      \                  Password, ProjPassword.\n\nCALL \"CbError\" USING ErrCode.\n\
-      IF ErrCode NOT = 0 GO ...\n```"
+    code: "01 SystemName PIC X(16).\n01 UserName   PIC X(16).\n01 Password   PIC X(16).\n\
+      01 ProjPassword PIC X(16).\n01 ErrCode COMP.\n...\n\nMONITOR-CALL \"DefaultRemoteSystem\"\
+      \ USING SystemName, UserName,\n                                      Password,\
+      \ ProjPassword.\n\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
     notes: ''
   fortran:
     available: true
-    code: "```\nCHARACTER SystemName*16\nCHARACTER UserName*16, Password*16, ProjPassword*16\n\
+    code: "CHARACTER SystemName*16\nCHARACTER UserName*16, Password*16, ProjPassword*16\n\
       ...\nMonitor_Call('DefaultRemoteSystem', SystemName(1:16),\n             UserName(1:16),\
-      \ Password(1:16), ProjPassword(1:16))\nIF (ErrCode .NE. 0) THEN ...\n```"
+      \ Password(1:16), ProjPassword(1:16))\nIF (ErrCode .NE. 0) THEN ..."
     notes: ''
   planc:
     available: true

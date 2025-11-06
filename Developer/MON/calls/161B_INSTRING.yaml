@@ -48,7 +48,7 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```pascal
+    code: 'pascal
 
       DeviceNo, NoOfBytes, Terminator, ReturnStatus : INTEGER2;
 
@@ -56,22 +56,19 @@ examples:
 
       ...
 
-      InString(DeviceNo, TextRead, NoOfBytes, Terminator, ReturnStatus);
-
-      ```'
+      InString(DeviceNo, TextRead, NoOfBytes, Terminator, ReturnStatus);'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 DeviceNo COMP.\n01 TextRead PIC X(256).\n01 NoOfBytes COMP.\n01\
-      \ Terminator COMP.\n01 ReturnStatus COMP.\n...\nMONITOR-CALL \"InString\" USING\
-      \ DeviceNo, TextRead, NoOfBytes,\n                          Terminator, ReturnStatus.\n\
-      ```"
+    code: "01 DeviceNo COMP.\n01 TextRead PIC X(256).\n01 NoOfBytes COMP.\n01 Terminator\
+      \ COMP.\n01 ReturnStatus COMP.\n...\nMONITOR-CALL \"InString\" USING DeviceNo,\
+      \ TextRead, NoOfBytes,\n                          Terminator, ReturnStatus."
     notes: ''
   fortran:
     available: true
-    code: "```fortran\nINTEGER DeviceNo, NoOfBytes, Terminator, ReturnStatus\nCHARACTER\
+    code: "fortran\nINTEGER DeviceNo, NoOfBytes, Terminator, ReturnStatus\nCHARACTER\
       \ TextRead*256\n...\nMonitor_Call('InString', DeviceNo, TextRead(1:256), NoOfBytes,\n\
-      \ C                       Terminator, ReturnStatus)\n```"
+      \ C                       Terminator, ReturnStatus)"
     notes: ''
   planc:
     available: true

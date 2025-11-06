@@ -54,9 +54,7 @@ examples:
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDA (PAR %Load register A with address of parameter list.
+    code: 'LDA (PAR %Load register A with address of parameter list.
 
       MON 137 %Monitor call DisableRTStart.
 
@@ -68,7 +66,6 @@ examples:
 
       RTPRO, ...
 
-      ```
 
 
 

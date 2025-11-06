@@ -32,23 +32,17 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DeviceNumber, ReturnValue : INTEGER2;
+    code: 'DeviceNumber, ReturnValue : INTEGER2;
 
       ...
 
       InByte(DeviceNumber, ReturnValue);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DeviceNumber COMP.
+    code: '01 DeviceNumber COMP.
 
       01 ReturnValue COMP.
 
@@ -60,35 +54,26 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DeviceNumber, ReturnValue
+    code: 'INTEGER DeviceNumber, ReturnValue
 
       ...
 
       Monitor Call(''InByte'', DeviceNumber, ReturnValue)
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER: DeviceNumber, ReturnValue\n..\nON ROUTINEERROR DO\n   IF\
-      \ ErrCode > 0 THEN ..\nENDON\nMonitor_Call('InByte', DeviceNumber, ReturnValue)\n\
-      ```"
+    code: "INTEGER: DeviceNumber, ReturnValue\n..\nON ROUTINEERROR DO\n   IF ErrCode\
+      \ > 0 THEN ..\nENDON\nMonitor_Call('InByte', DeviceNumber, ReturnValue)"
     notes: ''
   assembly_500:
     available: true
-    code: '```
-
-      DeviceNumber: W BLOCK 1
+    code: 'DeviceNumber: W BLOCK 1
 
       ReturnValue: W BLOCK 1
 
@@ -102,16 +87,12 @@ examples:
       IF'' K GO ERROR
 
 
-      ERROR W1.. ErrCode %ErrorCode in W1 register.
-
-      ```'
+      ERROR W1.. ErrCode %ErrorCode in W1 register.'
     octal_definition: 37B9 + 1B
     notes: ''
   mac:
     available: true
-    code: '```
-
-      LDT DEVNO %Logical device number.
+    code: 'LDT DEVNO %Logical device number.
 
       MON 1    %Monitor call InByte.
 
@@ -127,7 +108,6 @@ examples:
 
       BYTE. 0
 
-      ```
 
 
       | ND-100 and ND-500 | All users | All programs |'

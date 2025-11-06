@@ -25,41 +25,29 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DeviceNumber, IOflag: INTEGER2;
+    code: 'DeviceNumber, IOflag: INTEGER2;
 
       ...
 
-      PrivRelease(DeviceNumber, IOflag);   [Note routine name.]
-
-      ```'
+      PrivRelease(DeviceNumber, IOflag);   [Note routine name.]'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DeviceNumber     COMP.
+    code: '01 DeviceNumber     COMP.
 
       01 IOflag           COMP.
 
       ...
 
-      MONITOR-CALL "ForceRelease" USING DeviceNumber, IOflag.
-
-      ```'
+      MONITOR-CALL "ForceRelease" USING DeviceNumber, IOflag.'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DeviceNumber, IOflag
+    code: 'INTEGER DeviceNumber, IOflag
 
       ...
 
-      Monitor_Call(''ForceRelease'', DeviceNumber, IOflag)
-
-      ```'
+      Monitor_Call(''ForceRelease'', DeviceNumber, IOflag)'
     notes: ''
   planc:
     available: true

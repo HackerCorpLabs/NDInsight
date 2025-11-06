@@ -16,7 +16,7 @@ see_also:
 - ReadFromFile. ReadFromFile is the most efficient monitor call
 references: []
 parameters:
-- name: Block number
+- name: Blocknumber
   type: Block number to start the reading.
   io: I
   description: ''
@@ -24,16 +24,14 @@ parameters:
   type: Array for the transferred data.
   io: I
   description: ''
-- name: Standard Error Code
+- name: StandardErrorCode
   type: See appendix A.
   io: I
   description: ''
 examples:
   pascal:
     available: true
-    code: '```
-
-      BlockNumber : INTEGER2;
+    code: 'BlockNumber : INTEGER2;
 
       DataDestination : RECORD...END;
 
@@ -41,22 +39,17 @@ examples:
 
       ReadScratchFile(BlockNumber, DataDestination);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 BlockNumber COMP.\n01 DataDestination.\n   02 array COMP OCCURS\
-      \ 256 TIMES.\n01 ErrCode COMP.\n...\nMONITOR-CALL \"ReadScratchFile\" USING\
-      \ BlockNumber, DataDestination.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode\
-      \ NOT = 0 GO ...\n```"
+    code: "01 BlockNumber COMP.\n01 DataDestination.\n   02 array COMP OCCURS 256\
+      \ TIMES.\n01 ErrCode COMP.\n...\nMONITOR-CALL \"ReadScratchFile\" USING BlockNumber,\
+      \ DataDestination.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER BlockNumber
+    code: 'INTEGER BlockNumber
 
       INTEGER DataDestination(256)
 
@@ -64,15 +57,13 @@ examples:
 
       Monitor_Call(''ReadScratchFile'', BlockNumber, DataDestination(1))
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : BlockNumber\nBYTES : DataDestination(0:511)\n...\nON ROUTINEERROR\
+    code: "INTEGER : BlockNumber\nBYTES : DataDestination(0:511)\n...\nON ROUTINEERROR\
       \ DO\n    IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('ReadScratchFile', BlockNumber,\
-      \ DataDestination(0))\n```"
+      \ DataDestination(0))"
     notes: ''
   assembly_500:
     available: false

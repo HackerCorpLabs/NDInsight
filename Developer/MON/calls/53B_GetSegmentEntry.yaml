@@ -12,7 +12,7 @@ see_also:
 - the SINTRAN-SERVICE-PROGRAM command DUMP-SEGMENT-TABLE-ENTRY
 references: []
 parameters:
-- name: Segment number
+- name: Segmentnumber
   type: Use 0 for RT common. Only the returned segment link, the first physical page,
     and the flag are relevant to RT common.
   io: I
@@ -20,9 +20,7 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      SegmentNumber : INTEGER2;
+    code: 'SegmentNumber : INTEGER2;
 
       Buffer : RECORD...END;
 
@@ -30,21 +28,17 @@ examples:
 
       ReadSegmentEntry(SegmentNumber, Buffer); [Note routine name.]
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 SegmentNumber COMP.\n01 Buffer.\n   02 array COMP OCCURS 5 TIMES.\n\
+    code: "01 SegmentNumber COMP.\n01 Buffer.\n   02 array COMP OCCURS 5 TIMES.\n\
       01 ErrCode COMP.\n...\nMONITOR-CALL \"GetSegmentEntry\" USING SegmentNumber,\
-      \ Buffer.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ...\n```"
+      \ Buffer.\nCALL \"CbError\" USING ErrCode.\nIF ErrCode NOT = 0 GO ..."
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER SegmentNumber
+    code: 'INTEGER SegmentNumber
 
       INTEGER Buffer(5)
 
@@ -52,9 +46,7 @@ examples:
 
       Monitor_Call1(''GetSegmentEntry'', SegmentNumber, Buffer(1))
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true

@@ -34,9 +34,7 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      FileNo : INTEGER2;
+    code: 'FileNo : INTEGER2;
 
       FirstPage, LastPage, NoOfPages : LONGINT;
 
@@ -44,22 +42,18 @@ examples:
 
       DeletePage(FileNo, FirstPage, LastPage, NoOfPages);
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: "```\n01 FileNo COMP.\n01 FirstPage COMP PIC S9(10).\n01 LastPage COMP PIC\
-      \ S9(10).\n01 NoOfPages COMP PIC S9(10).\n    ErrCode COMP.\n    ...\n    MONITOR-CALL\
+    code: "01 FileNo COMP.\n01 FirstPage COMP PIC S9(10).\n01 LastPage COMP PIC S9(10).\n\
+      01 NoOfPages COMP PIC S9(10).\n    ErrCode COMP.\n    ...\n    MONITOR-CALL\
       \ \"DeletePage\" USING FileNo, FirstPage, LastPage, NoOfPages.\n    CALL \"\
-      CbError\" USING ErrCode.\n    IF ErrCode NOT = 0 GO ...\n```"
+      CbError\" USING ErrCode.\n    IF ErrCode NOT = 0 GO ..."
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER FileNo
+    code: 'INTEGER FileNo
 
       INTEGER*4 FirstPage, LastPage, NoOfPages
 
@@ -67,27 +61,25 @@ examples:
 
       Monitor Call1(''DeletePage'', FileNo, FirstPage, LastPage, NoOfPages)
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
-    code: "```\nINTEGER : FileNo\nINTEGER4 : FirstPage, LastPage, NoOfPages\n...\n\
-      ON ROUTINEERROR DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('DeletePage',\
-      \ FileNo, FirstPage, LastPage, NoOfPages)\n```"
+    code: "INTEGER : FileNo\nINTEGER4 : FirstPage, LastPage, NoOfPages\n...\nON ROUTINEERROR\
+      \ DO\n  IF ErrCode > 0 THEN ...\nENDON\nMonitor_Call('DeletePage', FileNo, FirstPage,\
+      \ LastPage, NoOfPages)"
     notes: ''
   assembly_500:
     available: true
-    code: "```\nFileNo : W BLOCK 1\nFirstPage : W BLOCK 1\nLastPage : W BLOCK 1\n\
-      NoOfPages : W BLOCK 1\nErrCode : W BLOCK 1\nDeletePage : EQU 37B9 + 272B\n...\n\
-      CALLG DeletePage, 4, FileNo, FirstPage, LastPage, NoOfPages\n  IF K GO ERROR\n\
-      ...\nERROR : W1 =: ErrCode           %ErrorCode in W1 register.\n```"
+    code: "FileNo : W BLOCK 1\nFirstPage : W BLOCK 1\nLastPage : W BLOCK 1\nNoOfPages\
+      \ : W BLOCK 1\nErrCode : W BLOCK 1\nDeletePage : EQU 37B9 + 272B\n...\nCALLG\
+      \ DeletePage, 4, FileNo, FirstPage, LastPage, NoOfPages\n  IF K GO ERROR\n...\n\
+      ERROR : W1 =: ErrCode           %ErrorCode in W1 register."
     octal_definition: 37B9 + 272B
     notes: ''
   mac:
     available: true
-    code: "```\nLDT FILNO               %File number.\nLDA (FIRST              %Address\
+    code: "LDT FILNO               %File number.\nLDA (FIRST              %Address\
       \ of double word with first page.\nLDX (LAST               %Address of double\
       \ word with last page.\nMON 272                 %Monitor call DeletePage.\n\
       JMP ERROR               %Error return from monitor call.\nSTD NODEL        \
@@ -95,7 +87,7 @@ examples:
       \           %Error number in register A.\n...\nFILNO, ...\nFIRST, ...      \
       \       %A double word.\n    ...                %\nLAST, ...              %A\
       \ double word.\n    ...                %\nNODEL, 0               %A double word.\n\
-      0                      %\n```\n\n| ND-100 and ND-500 | All users | All programs\
+      0                      %\n\n\n| ND-100 and ND-500 | All users | All programs\
       \ |"
     mon_number: 272
     notes: ''

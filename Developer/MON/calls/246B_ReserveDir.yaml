@@ -22,23 +22,17 @@ parameters:
 examples:
   pascal:
     available: true
-    code: '```
-
-      DirectoryIndex : INTEGER2;
+    code: 'DirectoryIndex : INTEGER2;
 
       ...
 
       ResDirectory(DirectoryIndex);   [Note routine name.]
 
-      IF ErrCode <> 0 THEN ...
-
-      ```'
+      IF ErrCode <> 0 THEN ...'
     notes: ''
   cobol:
     available: true
-    code: '```
-
-      01 DirectoryIndex COMP.
+    code: '01 DirectoryIndex COMP.
 
       01 ErrCode COMP.
 
@@ -48,23 +42,17 @@ examples:
 
       CALL "CbError" USING ErrCode.
 
-      IF ErrCode NOT = 0 GO ...
-
-      ```'
+      IF ErrCode NOT = 0 GO ...'
     notes: ''
   fortran:
     available: true
-    code: '```
-
-      INTEGER DirectoryIndex
+    code: 'INTEGER DirectoryIndex
 
       ...
 
       Monitor_Call(''ReserveDir'', DirectoryIndex)
 
-      IF (ErrCode .NE. 0) THEN ...
-
-      ```'
+      IF (ErrCode .NE. 0) THEN ...'
     notes: ''
   planc:
     available: true
