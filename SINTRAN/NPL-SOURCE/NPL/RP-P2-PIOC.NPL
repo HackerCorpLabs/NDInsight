@@ -1,0 +1,589 @@
+113750   @DEV (S-S-L)RP-P2-PIOC:NPL
+113750   *"8PIOC
+"113750
+113750   SUBR PIOCM,PIRET,EXEL,    PIDLO,PIDUN,PIDWS
+113750
+113750   %=======================================================================
+113750   %===================================================================== =
+113750   %                                                                    = =
+113750   %      MONITOR CALL PIOC                                             = =
+113750   %                                                                    = =
+113750   %===================================================================== =
+113750   %=======================================================================
+113750   %
+113750   %      THE MONITOR CALL  P I O C  ON RPIT
+113750   %
+113750   %      PURPOSE:              USED FOR COMMUNICATION WITH PIOC
+113750   %
+113750   %      ARGUMENTS:            X - DEMANDFIELD, B - PARAMPOINTER
+113750   %                            PT 0, APT = USERS APT, ION, PON
+113750   %
+113750   %      CALLING SEQUENCE:     T - FUNCTION
+113750   %                            X - PIOC LDN
+113750   %                            A - PARAM POINTER
+113750   %                            IF T = -1 THEN
+113750   %                               A ======> INSTRUCTION TO BE EXECUTED
+113750   %                                         KEY FOR SECURITY
+113750   %                                         X-REG
+113750   %                                         T-REG
+113750   %                                         A-REG
+113750   %                                         D-REG
+113750   %                              ELSE
+113750   %                               PARAMETERS IN REG (SEE INDIVIDUEL COMMANDS)
+113750   %                            ENDIF
+113750   %
+113750   %      RETURN:               STATUS IN T
+113750   %=======================================================================
+113750   INTEGER ARRAY PIENT:=(PIRES,PIREL,PIKIC,PIWKI,PILOA,PIUNL,PISTA,PISTO,PIDIS)
+113761   INTEGER PIDF
+113762   PIOCM:
+113762          X=:DEMSV; A:=B=:PIRSV
+113765          IF X.ZTREG = -1 THEN GO EXEL FI                     % SPECIAL FUNCTION (EXECUTE L-REG) NO RETURN
+113772          X.ZXREG; CALL LOGPH                                 % FIND DATAFIELD
+113774          IF A = 0 THEN D=:A FI                               % ACCEPT BOTH INPUT AND OUTPUT
+113776          IF A = 0 THEN PE1; GO PIRET; FI                     % ILLEGAL LDN
+114001          A=:B=:PIDF
+114003          IF PINIT >< 173 THEN PE1; GO PIRET; FI               % THIS IS NOT A PIOC DATAFIELD
+114011          IF X.ZTREG >= 20 THEN GO SWPIOC FI                   % SPECIAL LOAD/UNLOAD FOR PIOC MONITOR
+114016
+114016          CALL GET0
+114017          MLEV; *MST PIE                                      % IN CASE OF TIMEOUT
+114021          A:=PIDF=:B
+114023          IF DEMSV.ZTREG >> PMFUN THEN PILF; GO PIRET; FI      % ILLEGAL FUNCTION
+114032          *1BANK
+114033          PIENT(A);*2BANK; COPY SA DP                          % GO TO ACTION ROUTINE
+114037
+114037   SWPIOC:IF A-20 > 2 THEN PILF; GO PIRET; FI
+114045          GOSW PIDLO,PIDUN,PIDWS
+114051
+114051
+114051   %      RETURN FROM MONITOR CALL
+114051   %      RETURN STATUS IN A-REG
+114051
+114051   PIRET: X := DEMSV =: B:=RTRES
+114054          A=: ZTREG; *IOF
+114056          CALL BRELEASE; CALL RET
+114060   RBUS
+114077
+114077
+114077   %      SPECIAL FUNCTION   EXECUTE INSTRUCTION AND GIVE TADX BACK TO USER
+114077
+114077
+114077   SUBR EXEL
+114077   %==========================================================================
+114077   % SPECIAL MON PIOC FUNCTION
+114077   %==========================================================================
+114077   INTEGER POINTER PPAST:=PASSTYPE
+114100   INTEGER HPASS
+114101   TRIPLE TADR
+114104   EXEL:
+114104            CALL GET6;                      % ACCESS USER PARAMETERS
+114105
+114105            IF BACKG >< 0 THEN
+114107              PPAST=:HPASS                   % ACCSESS SYSTEM SEGMENT
+114111             ELSE
+114112              1=:HPASS
+114114            FI
+114114
+114114            IF X.OLDPAG/\3-1>0 OR HPASS = 2 THEN % RT AND RING 2 OR SYSTEM
+114125                  X.ZXREG; CALL LOGPH                                 % FIND DATAFIELD
+114127                  IF A = 0 THEN D=:A FI                               % ACCEPT BOTH INPUT AND OUTPUT
+114131                  IF A = 0 THEN PE1; GO PIRET; FI                     % ILLEGAL LDN
+114134                  A=:B
+114135                  IF X.D1 >< PIKEY THEN PNOTP; GO PIRET FI            % CHECK KEY IN USER PARAM
+114143                  IF X.D0 /\ 177700 = 143300 THEN                     % SEGMENT MUST BE FIXED BEFORE LOAD AND STORE
+114150                     CALL FIXOK
+114151                  FI
+114151                  X:=DEMSV
+114152                  X.D0=:L; * LDF D3,X
+114155                  X:=X.D2; * EXR SL
+114157                  TAD =:TADR
+114160                  DEMSV=:B; OLDPAG=:D; PIRSV=:B
+114166                  CALL DALTON; MLEV; *MST PIE
+114171                  TAD:=TADR
+114172                  A=:P4; T=:P3; A:=D=:P5; X=:P2
+114177                  MLEV; *MCL PIE
+114201                  CALL ALTOFF
+114202                  A:=POK
+114203            ELSE
+114204               A:=PNOTP
+114205            FI
+114205            GO FAR PIRET
+114206   RBUS
+114223
+114223   %      SEGNR IN A, PAGE IN D
+114223   SUBR PM116,PM160,PM164,PDISA,PDISO
+114223   INTEGER I
+114224   PM116:
+114224   %% UNFIX AND DISCONNECT ALL PROC
+114224          A=:PISEG; "PIMPA"; * MON 116              % UNFIX
+114227   PDISA:
+114227   %% DISCONNECT ALL PROC.
+114227          0=:I; K:="0";
+114231          FOR I STEP 1 TO 17 DO
+114235            A:=PXT(I)
+114237   L1:      IF A=:D >< 0 THEN                          % ANY XT BLOCK ?
+114241              0=:PXT(X)                             % YES, DISCONNECT AT LEVEL 12
+114242              *IOF
+114243              A:="DIS12"
+114244              *IRW LV12B DP
+114245              A:=D; *IRW LV12B DL
+114247              LV12; *MST PID; ION
+114252            FI
+114252            IF K GO L2
+114254          OD
+114260   L2:    EXIT
+114261   PDISO:
+114261   % DISCONNECT ONE PROC.
+114261          A:=PXT(A); K:="1"; GO L1
+114265
+114265   PM160: AD=:PIPPA; "PIMPA"; * MON 160;
+114270          EXIT
+114271
+114271   PM164: A=:PISEG:="PIMPA"; * MON 2WSEG
+114274          EXIT
+114275   RBUS
+114301
+114301
+114301   %==========================================================================
+114301   %            F I X O K    S E G F N    C H P O    P R E A D
+114301   %            P W R I T E    K R E A D    P I C A C
+114301   %
+114301   %            P I O C   U T I L I T Y    R O U T I N E S
+114301   %
+114301   %==========================================================================
+114301
+114301   SUBR PREAD,PWRIT,KREAD
+114301   %==========================================================================
+114301   %      LOAD AND STORE IN PHYSICAL MEMORY
+114301   %      (64K WORDS ONLY)
+114301   %==========================================================================
+114301   INTEGER SAVL
+114302   PREAD: A:=K1024; X+A; T:=PIOCA; *LDATX                     % DON'T LET CACH FOOL US
+114306          A:=K1024; X-A; *LDATX; EXIT
+114312   PWRIT: T:=PIOCA; *STATX; EXIT
+114315   KREAD: A:=L=:SAVL; CALL PREAD; A SHZ -1; T:=SAVL=:P        % CONVERT TO WORD BASE
+114323   RBUS
+114325
+114325   SUBR PICAC
+114325   %      INHIBIT PIOC FROM CACH
+114325   %      INPUT A REG POINTES TO FIRST PIOC PAGE
+114325   INTEGER SAVA
+114326   INTEGER POINTER LREG
+114327   PICAC: A=:SAVA:=L=:"LREG"
+114332          SAVA+PIMPG=:D; SAVA;
+114336          CALL DISMCACHE; GO ERR;
+114340          A:=SAVA; GO LREG
+114342   ERR:   -77; GO PIRET
+114344   RBUS
+114346
+114346
+114346   %      MAKE SURE THAT SOME SEGMENTS ARE FIXED IN ALL PIOC MEMORY
+114346
+114346   %      INPUT B PIOC DATAFIELD
+114346
+114346   SUBR FIXOK,PIFIX
+114346   INTEGER FPAG,DPAG
+114350   SYMBOL PILO=0
+114350   PIFIX: K:="0"; GO FELLS
+114352   FIXOK: K:="1"
+114353   FELLS: T:=HDEV; *IOXT; SHA ZIN SHR 10
+114356          A =: PIOCA; *SHA ZIN 6
+114360          A*4 =: FPAG; 0=: DPAG
+114363          DO WHILE DPAG <= PIMPG                                 % < 77 OR 377
+114367            T:=CORMBANK; DPAG SHZ 2 + FPAG =: X; *PROTE@3 LDATX  % GET PROTECT AND STATUS WORD
+114375            IF A NBIT 5FIX THEN
+114377              0=:PISTT
+114400              IF K THEN
+114402                A:=DEMSV=:B
+114404                DPAG =: ZAREG
+114406                PNOTFIX; GO PIRET
+114410              ELSE
+114411                DPAG; EXITA
+114413              FI
+114413            FI
+114413            DPAG + 1 =: DPAG
+114416          OD
+114417          PISTT BONE PILO =:PISTT        % MARK LOADED
+114422          EXIT
+114423   RBUS
+114427
+114427   %      FIND OUT IF A SEGMENT ( FOUND IN SEG) IS FIXED WITHIN CURRENT PIOC
+114427   %      IF SO UNFIX IT
+114427
+114427   %      INPUT B PIOC DATAFIELD
+114427   %            A SEGMENT NUMBER
+114427
+114427   SUBR PISEF
+114427   INTEGER FPAG
+114430   INTEGER DPAG
+114431   INTEGER SEG
+114432   INTEGER SAVL
+114433   PISEF: A=:SEG; T:=HDEV; *IOXT; SHA ZIN SHR 10
+114437          A =: PIOCA; *SHA ZIN 6
+114441          A*4 =: FPAG; 0=: DPAG
+114444          DO WHILE DPAG <= PIMPG                            % < 77 OR 377
+114450            T:=CORMBANK; DPAG SHZ 2 + FPAG =: X; *PROTE@3 LDATX  % GET PROTECT AND STATUS WORD
+114456            IF A BIT 5FIX THEN
+114460              DO; *PREVI@3 LDXTX
+114461                WHILE X NBIT 0 AND X NBIT 1
+114465              OD
+114466              A:=X SHZ -2                                   % SEGMENT NUMBER IN A
+114470              IF A = SEG THEN
+114473                X:=L=:SAVL
+114475                CALL PM116; A:=SAVL=:L                      % UNFIX
+114500                EXIT
+114501              FI
+114501            FI
+114501            DPAG + 1 =: DPAG
+114504          OD
+114505          EXIT
+114506
+114506   RBUS
+114511
+114511   %      CHECK IF YOU OPERATE ON LEGAL SLOT
+114511
+114511   SUBR CHPO
+114511   CHPO:  IF DEMSV.ZAREG >> SLMAX THEN PILSL; GO PIRET; FI     % ILLEGAL SLOT
+114520          A + "NDPRO" =:X ; L=:D; CALL PREAD; D=:L
+114525          IF A><CURPRG THEN PNOTY; GO PIRET; FI                % YOU HAVE NOT RESERVED SLOT
+114532          EXIT
+114533   RBUS
+114537
+114537   %      CHECK IF PIOC LOADED
+114537
+114537   SUBR CHRUN
+114537   CHRUN: IF PISTT >< 3 THEN                        % MUST BE STARTED AFTER LOAD
+114543             PNOTR; GO PIRET
+114545          FI
+114545          EXIT
+114546   RBUS
+114547
+114547   SUBR PISWP,PIRWP
+114547   % ------------------------------------------------------------
+114547   % SET/ RESET WRITTEN IN PAGE BIT AND EXSTRACT SEGMENT NO
+114547   % ENTRY: A= 1 PHYS PAGE
+114547   % RETURN: A= SEG. NO , T=1. PHYS PAGE NOT IN SEGMENT
+114547   PISWP:K:="1"; GO FELLS
+114551   PIRWP:K:="0"
+114552   FELLS:
+114552            T:=CORMBANK; A SHZ 2 =:X=:D
+114556            *PROTE@3 LDATX  % GET PROTECT AND STATUS WORD
+114557            IF A NBIT 5FIX THEN A:=X SHZ -2; EXIT; FI
+114564            DO; *PREVI@3 LDATX
+114565            WHILE A NBIT 0 AND A NBIT 1       % END OF PREVLINK ?
+114571                A=:X                          % NO TRY PREVIOUS
+114572            OD
+114573            A SHZ -2=:X                       % SEG NO
+114575            X:=:D                             % SAVE SEGNO IN D AND RESTORE 1. PHYS PAGE
+114576            DO; *PROTE@3 LDATX;
+114577                IF K THEN A BONE 5WIP
+114602                ELSE A BZERO 5WIP FI
+114604                *PROTE@3 STATX; PAGLI@3 LDATX
+114606            WHILE A >< 0                      % END OF PAGLINK ?
+114607                X:=A                          % NEXT IN PAGELINK
+114610            OD
+114611            T:=X SHZ -2+1                     % LAST PHYS PAGE IN T
+114614            A:=D                              % SEGNO IN D
+114615           EXITA
+114616   RBUS
+114617
+114617   %
+
+114617   %=======================================================================
+114617   % 39.18     L O A D    S T O P    S T A R T    R E S S L
+114617   %           R E L S L    K I C K    W K I C K    U N L O A D
+114617   %
+114617   %            P I O C    N O N R E S I D E N T (POF OR PIT3)  P A R T
+114617   %
+114617   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+114617
+114617
+114617   SUBR PILOA
+114617   % LOAD PIOC
+114617   % X: LDN
+114617   % A: SEGMENT NUMBER
+114617   % D: PAGE WITHIN PIOC
+114617   INTEGER SEG,PAGE
+114621   DOUBLE SEGPA = SEG
+114621   PILOA:  T:=HDEV; *IOXT; SHA ZIN SHR 10                      % BANK NUMBER
+114624           A*100+DEMSV.ZDREG =: PAGE; X.ZAREG =: SEG
+114632          CALL PISEF                                % UNFIX FIRST IF ALREADY FIXED WITHIN THIS PIOC
+114633          SEG BONE 17 =: SEG
+114636          AD:=SEGPA; CALL PM160                     % FIX IT
+114640          IF A >< 0 THEN
+114641            A-;A+40; GO PIRET
+114644          FI
+114644          CALL PIFIX; *JMP *+1
+114646          POK; GO PIRET
+114650   RBUS
+114656
+114656   %      STOP (PANIC)
+114656   SUBR  PISTO
+114656   PISTO: T:=HDEV+3; A:= 60=:PWCR; *IOXT            % RESET AND HALT
+114663         CALL FIXOK
+114664         X:=1002; A:=0; CALL PWRIT                  % MARK AS STOPPED IN PIOC
+114667         1=:PISTT
+114671         POK; GO PIRET
+114673   RBUS
+114677
+114677
+114677
+114677   %      START PIOC
+114677   %      X: LDN
+114677   %      AD: START-ADDR         =0 PIOCOS
+114677   %      ON RETURN : IF ERROR A = FIRST NONFIXED PAGE
+114677
+114677   SUBR PISTA
+114677   INTEGER LPOINTERS
+114700   INTEGER LKICKP
+114701   INTEGER ASAD,DELAY
+114703   PISTA: T:=HDEV; *IOXT; SHA ZIN SHR 10
+114706          A=:PIOCA; * SHA ZIN 6                               % SAVE PIOC BANK NUMBER
+114710          CALL PICAC; CALL FIXOK
+114712          X:=1002; A:=0; CALL PWRIT                           % RESET INITFLAG
+114715
+114715          T:=HDEV+3; A:=60; *IOXT                             % HALT AND RESET
+114721          A:=0=:PWCR; *IOXT                                   % INITIATE
+114724
+114724   %      WAIT FOR PIOC TO GET READY
+114724          -3 =: TMR
+114726          DO
+114726            A:=-500=:DELAY; *MIN DELAY; JMP *-1
+114732            X:=1002; CALL PREAD
+114734            WHILE A = 0
+114735          OD
+114736          0 =: TMR
+114737          IF A >< PRKEY THEN PPROM; GO PIRET FI
+114744   %      GIVE POINTERS TO PIOC DATAFIELD
+114744   %      ALL ADDRESSES ARE CONVERTED TO WORD BASE (ND100)
+114744
+114744          X:=1001; CALL KREAD; A=:LPOINT
+114747          A:=PIMPG; X:=LPOINT; *AAX PSIZ
+114752          CALL PWRIT; A:=PIOCN; X:=LPOINT; *AAX PINO          % PIOC SIZE (PAGES) TO PIOC
+114756          CALL PWRIT                                          % PIOC NUMBER (0,1..) TO PIOC
+114757          X:=LPOINT; *AAX PIMBL
+114761          CALL PREAD; A=:D; X:=LPOINT; *AAX PIMBH
+114765          CALL PREAD; AD=: MBOXH
+114767          X:=LPOINT; *AAX RTBL
+114771          CALL PREAD; A=:D; X:=LPOINT; *AAX RTBH
+114775          CALL PREAD; AD=:RTBOX
+114777          X:=LPOINT; *AAX CPUNR
+115001          A:=SYSNO; CALL PWRIT                                % ND100 CPU NUMBER
+115003          X:=LPOINT; *AAX PNOPC
+115005          CALL KREAD; A=:PNBOX                      % PIOC TO NORD MAILBOX
+115007          X:=LPOINT; *AAX NPOPC
+115011          CALL KREAD; A=:MASTA                      % NORD TO PIOC MAILBOX
+115013
+115013   %      KICK TABLE POINTERS TO DATAFIELD
+115013          X:=LPOINT; *AAX KICKP
+115015          CALL KREAD; A =:LKICKP=:PKICK             % ADDR KICKTABLE
+115020          X:=LKICKP; *AAX XPTN
+115022          CALL KREAD; A=:"PTN"
+115024          X:=LKICKP; *AAX XNTP
+115026          CALL KREAD; A=:"NTP"
+115030          X:=LKICKP; *AAX XPIPR
+115032          CALL KREAD; A=:"PIPRO"
+115034          X:=LKICKP; *AAX XNDPR
+115036          CALL KREAD; A=:"NDPRO"
+115040          X:=LKICKP; *AAX XNMAI
+115042          CALL KREAD; A=:"PNMAIL"
+115044          X:=LKICKP; *AAX XPMAI
+115046          CALL KREAD; A=:"NPMAIL"
+115050
+115050   %      SET START-ADDR
+115050
+115050          X:=LPOINT; *AAX PIOCO
+115052          CALL KREAD; A=:ASAD                       % ADDRESS OF LOCATION HOLDING START ADDRESS
+115054          IF DEMSV.ZAREG >< 0 THEN
+115057            X:=ASAD; CALL PWRIT
+115061          FI
+115061          IF DEMSV.ZDREG >< 0 THEN
+115064            X:=ASAD+1;  CALL PWRIT
+115067          FI
+115067
+115067
+115067   %      SO WE CAN GIVE THE START COMMAND
+115067
+115067          X:=MASTA; *AAX NPFUN
+115071          A:=MPIOC; CALL PWRIT
+115073          X:=MASTA; *AAX NPTIG
+115075          A:=TRIG; CALL PWRIT
+115077          A:=11; T:=HDEV+3; *IOXT
+115103          3 =: PISTT                                % MARK AS STARTED AFTER LOAD
+115105          POK; GO PIRET
+115107   RBUS
+115123
+115123   %      RESERVE SLOT
+115123   %      RESERVE SLOT NUMBER GIVEN IN A-REG
+115123
+115123   SUBR PIRES
+115123   PIRES: CALL CHRUN
+115124          IF DEMSV.ZAREG >> SLMAX THEN PILSL; GO PIRET; FI     % ILLEGAL SLOT
+115133          A + "NDPRO" =: X; CALL PREAD
+115136          IF A >< 0 THEN PSLBS GO PIRET; FI                    % IF FREE THEN
+115141          CURPRG; CALL PWRIT                                  % SET IT BUSY BY ME
+115143          POK; GO PIRET
+115145   RBUS
+115153
+115153   %      RELEASE SLOT
+115153   %      THE SLOT TO BE RELEASED IN A-REG
+115153
+115153   SUBR PIREL
+115153   PIREL: CALL CHRUN
+115154          IF DEMSV.ZAREG >> SLMAX THEN PILSL; GO PIRET; FI     % ILLEGAL SLOT
+115163          A + "NDPRO" =: X ; A:=0; CALL PWRIT
+115167          POK; GO PIRET
+115171   RBUS
+115175
+115175   %      KICK THROUGH SLOT
+115175   %      THE SLOT NUMBER IN A-REG, INFO IN D-REG
+115175
+115175   SUBR PIKIC
+115175   PIKIC: CALL CHRUN; CALL CHPO
+115177          IF DEMSV.ZDREG >< 0 THEN
+115202            A := "NPMAIL" + DEMSV.ZAREG =: X; CALL PREAD
+115207            IF A >< 0 THEN PFULL; GO PIRET; FI
+115212            T:=DEMSV.ZDREG; A := "NPMAIL" + X.ZAREG =: X; T=:A; CALL PWRIT
+115221          FI
+115221          A := "NTP" + DEMSV.ZAREG =: X; TRIG; CALL PWRIT
+115227          A:=PWCR BONE BNDC; T:=HDEV+3; *IOXT
+115234          POK; GO PIRET
+115236   RBUS
+115244
+115244   %      WAIT FOR PIOCINF
+115244   %      THE SLOT NUMBER IN A-REG, INFO IN D-REG
+115244
+115244   SUBR PIWKI
+115244   PIWKI: CALL CHRUN; CALL CHPO
+115246          A := "PNMAIL" + DEMSV.ZAREG=:X=:D; CALL PREAD
+115254          IF A >< 0 THEN                                     % ANY INFO ?
+115255            A =: DEMSV.ZDREG                                 % GIVE INFO WORD TO USER
+115257            D=:X; A:=0; CALL PWRIT                           % MAILBOX EMTY
+115262            POK; GO PIRET
+115264          ELSE
+115265            PNOMES; GO PIRET                                  % NO MESSAGE FOR YOU
+115267          FI
+115267   RBUS
+115275
+115275   %      UNLOAD PIOC    (UNFIX SEGMENTS FIXED IN PIOC MEMORY)
+115275
+115275   SUBR PIUNL
+115275   INTEGER SEG,FPAG,LPAG
+115300   PIUNL: T:=HDEV; *IOXT
+115302          A/\ 177400 SHZ -2 =: FPAG+PIMPG=:LPAG     % (BANK*100B*4)/4 = 1. PHYS PAGE
+115307          T+3; A:= 60; *IOXT                        % STOP IT FIRST
+115312          DO WHILE FPAG <=LPAG
+115316            FPAG; CALL PIRWP; GO PIRET; T=:FPAG     % GET SEGNO AND RESET WRITTEN IN PAGE
+115322            CALL PM116                              % UNFIX
+115323          OD
+115324          0=:PISTT                                  % NOT LOADED
+115325          POK; GO PIRET
+115327   RBUS
+115333   SUBR PIDIS
+115333   %-----------------------------------------------------------------------
+115333   % DISCONNECT FROM MESSAGE SYSTEM
+115333   %
+115333   %-----------------------------------------------------------------------
+115333   PIDIS:
+115333         IF DEMSV.ZAREG = -1 THEN
+115340           CALL PDISA;
+115341         ELSE
+115342           IF A <<= 17 THEN
+115345              CALL PDISO;
+115346              A:=D=:DEMSV.ZDREG
+115351            ELSE
+115352              PILF; GO PIRET
+115354           FI
+115354         FI
+115354         POK; GO PIRET
+115356   RBUS
+115362   SUBR PIDLO,PIDUN
+115362   %-----------------------------------------------------------------------
+115362   % LOAD/UNLOAD PIOC  FROM USER MEMORY
+115362   %  ENTRY: X=MONITOR CALL DF
+115362   %         B=PIOC DF
+115362   %
+115362   %-----------------------------------------------------------------------
+115362   %PARAMETER LIST:
+115362   DISP 0
+115362          DOUBLE  POINTER DP0
+115362   PSID
+115362
+115362        INTEGER PBANK        % PIOC BANK
+115363        INTEGER PPADR        % PIOC BANK ADDR
+115364        DOUBLE  PIADR=PBANK  % PIOC ADDRESS
+115364        INTEGER PIDIP
+115365        INTEGER PIDF=PIDIP
+115365        INTEGER PMONB        % ADDRESS USER MEMORY
+115366        INTEGER PMONL        % NO OF WORD TO TRANSF
+115367        INTEGER OOLD         % OLDPAGE
+115370        INTEGER PFLAG        % =0 FROM USER,=1 TO USER
+115371
+115371   PIDUN:1=:PFLAG
+115373         GO FELL
+115374   PIDLO:0=:PFLAG
+115375
+115375   FELL: X.OLDPAGE=:OOLD=:D
+115400         A:=B=:PIDF                   % MON DF
+115402         A:=PIRSV=:B                  % B= PARAM PIONTER
+115404
+115404         CALL DALTON
+115405         DP0 =:PIADR; "P1"=:PMONB; P2=:PMONL
+115413         CALL ALTOFF
+115414         CALL GET0; MLEV; *MST PIE
+115417         A:=PIDF=:B; *2BANK
+115422         CALL FIXOK
+115423
+115423         AD:=PIADR SHZ -1; A=:T;D=:L   % PIOC OFSET BYTES TO WORDS
+115427         A:=PIOCA; 0=:D                % PIOC START BANK TO WORDS IN AD
+115431         D+L; A:=A+C+T; AD=:PIADR      % AD PHYS START ADDR
+115435         OOLD=:D; CALL DALTON
+115440         A:=PMONB=:B
+115442         PFLAG; *BLDA 00 DA
+115444         A:=PMONL; A-;A=:PMONL
+115447         AD:=PIADR; A=:T;D=:X
+115452   LOOP:   IF K THEN
+115454             * LDATX; STA ,B
+115456            ELSE
+115457             * LDA ,B; STATX
+115461           FI
+115461           B+1; X+1; IF X=0 THEN T+1; FI
+115466         MIN PMONL;GO LOOP
+115470         CALL ALTOFF
+115471         A:=POK; GO PIRET
+115473   RBUS
+115501   SUBR PIDWS
+115501   %-----------------------------------------------------------------------
+115501   % PERFORM WSEG ON ALL SEGMENTS IN PIOC MEMORY
+115501   %
+115501   %-----------------------------------------------------------------------
+115501         INTEGER FPAG,LPAG,PIDF
+115504
+115504   PIDWS:A:=B=:PIDF
+115506         CALL GET0; MLEV; *MST PIE
+115511         PIDF=:B; *2BANK
+115514         CALL FIXOK
+115515         T:=HDEV; *IOXT
+115517         A/\ 177400 SHZ -2 =:FPAG+PIMPG=:LPAG     % (BANK*100B*4)/4 = 1. PHYS PAGE
+115524         DO WHILE FPAG <=LPAG
+115530            FPAG; CALL PISWP; GO ERR; T=:FPAG     % SET WRITTEN IN PAGE, AND GET SEGNO
+115534            CALL PM164                            % WSEG
+115535         OD
+115536         A:=POK; GO PIRET
+115540   ERR:  A:=DEMSV=:B
+115542         GO PIRET
+115543   RBUS
+115552
+115552   SUBR PITIM
+115552   %===================================================================
+115552   % TIMOUT AFTER REMOVING RESET AND START
+115552   % (TMSUB=PITIM)
+115552   %===================================================================
+115552   PITIM: L=:D;
+115553          X := 1002; A:=1; CALL PWRIT;       % SET FLAG TO STOP LOOP
+115556          D=:P
+115557   RBUS
+115561
+115561   *"
+"115561   @DEV 1

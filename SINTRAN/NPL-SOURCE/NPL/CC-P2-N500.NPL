@@ -1,0 +1,805 @@
+022140   @DEV (S-S-L)CC-P2-N500:NPL
+022140
+
+022140   *"8N500
+"022140   %==========================================================================
+022140   %
+022140   %       N D - 5 0 0   R O U T I N E S
+022140   %
+022140   %===========================================================================
+022140
+022140   %===========================================================================
+022140   %       ( C )     F S E M A
+022140   %
+022140   % CHECK IF THE PROGRAM HAS RESERVED A ND-500 PROCESS
+022140   % ENTRY:     D=RT-DESCRIPTION ADDRESS
+022140   %            WHEN CALLED FROM LEVEL 1, THEN  FSEMA MUST BE CALLED WITH
+022140   %            INTERRUPT OFF OR WITH MONITOR LEVEL DISABLED
+022140   % EXIT:      THE PROGRAM HAS NOT RESERVED ANY ND-500 PROCESS
+022140   % EXIT+1:    X=PROCESS DESCRIPTION OF THE RESERVED ND-500 PROCESS
+022140   %
+022140   SUBR FSEMA
+022140   FSEMA: X:="BRESLINK"+D
+022142          DO WHILE X:=X.RESLINK><D
+022145             IF X>>="S500S"+5PRDSIZE AND X<<"S500E" THEN EXITA FI
+022155          OD; EXIT
+022157   RBUS
+022162
+022162
+022162   %=============================================
+022162   %      ( C )   E S C 5 O N
+022162   %
+022162   % USER LEVEL - SUBROUTINE TO ESCON IN SINTRAN III
+022162   %
+022162   % ENTRY: X=TERMINAL DATAFIELD
+022162   %        A=FLAGB
+022162   %        CALLED WITH INTERRUPT OFF
+022162   %
+022162   % EXIT:  EXIT FROM ESCON. A=FLAGB IN TERMINAL DATAFIELD
+022162   %
+022162   % EXIT +1 : CONTINUE IN ESCON
+022162   %
+022162   %
+022162   SUBR ESC5ON
+022162   INTEGER CXREG,CCFLAGB
+022164   ESC5ON: A=:CCFLAGB:=X.RTRES=:D+"BRESLINK"                  % D: RESERVING PGM; A:THE RESERVATION QUEUE HEADER IN RT DESC
+022170          X=:CXREG                                            % SAVE X
+022171          DO WHILE A.RESLINK<<"S500S" OR A>>="S500E"          % SEARCH RESARVATION QUEUE UNTIL N500 PROCESS FOUND
+022201             IF A=D THEN X:=CXREG; EXITA FI
+022205          OD
+022206          T:=5MBBANK; X:=A.MESSBUFF; *AAX 5MSFL; LDATX
+022213          IF A BIT 5IBRK THEN CCFLAGB; X:=CXREG; EXIT FI      % HAS ESCAPE/BREAK BEEN TYPED?
+022220          "ESC500"; *IRW MLEVB DP                             % START IN ESC500 ON MONITOR LEVEL
+022222          CXREG; *IRW MLEVB DB                                % B-REG ON MONITOR LEVEL IS INPUT DATAFIELD
+022224          MLEV; *MST PID
+022226          X:=CXREG; CCFLAGB BONE 5ESCON; EXIT                 % SET ESCAPE ON BEFORE EXIT
+022232   RBUS
+022237
+022237
+022237   SUBR FESC1
+022237   RBUS
+022237
+022237   %==========================================================================
+022237   %      ( C )       5 B A B O R T
+022237   %
+022237   % SUBROUTINE CALLED FROM THE ABORT-BATCH AND ABORT-JOB COMMANDS
+022237   % FOR START CLEANING-UP (LOG-OFF), ND-500 PROC.
+022237   % CALLED ON SPIT; CONTINUES ON 5PIT IF ND-500.
+022237   %
+022237   SUBR 5BABORT,M5BABORT
+022237   5BABORT:  RTREF+"BRESLINK"
+022241          DO WHILE A.RESLINK<<"S500S" OR A>>="S500E"
+022251             IF A=RTREF THEN EXIT FI
+022255          OD; A=:D
+022257          "N5PIT+ADPIT+ALEVB+ERNG2"
+022260          A=:RTREF.ACTPRI; *TRR PCR                 % SWITCH TO 5PIT
+022263          T:=5MBBANK; X:=D.MESSBUFF                % X=ND-500 MESSAGE ADDR
+022266          A:=L; *AAX LRET; STATX                    % ADDR TO RETURN TO AFTER CLEANING-UP
+022271          A:=B; *AAX 5BRG-LRET; STATX               % SAVE B, FOR RESTORING WHEN RETURNING AFTER CLEANING-UP
+022274          *AAX XADPR-5BRG; LDXTX                    % X=PROCESS DESCRIPTION
+022276          A:=1                                      % INDICATE ABORT-JOB/ABORT-BATCH
+022277          GO FESC1                                  % CONTINUE IN FROMESC ON 5PIT
+022300
+022300   % MONITOR LEVEL
+022300   % ALEVL.XREG IS RETURN ADDR
+022300   M5BABORT: "NSPIT+ADPIT+ALEVB+ERNG2"=:RTREF.ACTPRI; *TRR PCR
+022304           *IRR ALEVB DX; IRW ALEVB DP
+022306           GO MONEN
+022307   RBUS
+022320
+022320
+022320   %===============================================================================
+022320   %       ( C )    C A L L R O U T
+022320   %
+022320   % Routine to call a routine on another pit
+022320   %
+022320   % Entry:     T=routine number (index into routine vector)
+022320   %
+022320   % On entry DPIT must be alternative pit.
+022320   % The D- and T-register are destroyed.
+022320   % On calling the routine the D-register holds the original return address
+022320   %
+022320   SUBR CALLROUT,R5PIT,RRPIT,RMPIT
+022320   INTEGER TREG,AREG,XREG,CLVL
+022324   CALLROUT: A=:D; *TRA STS; IOF; BLDA 170 DA       % Read status register and set interupt on/off in K-bit
+022330         T=:TREG:=D=:AREG; X=:XREG                  % Store current registers
+022334         A SH -5/\170=:CLVL; *TRA PGC               % Read PCR on current level
+022340         A/\74000=:D                                % T=normal pit when called
+022342         TREG*2; GOVECTOR(A)                        % Get normal pit depending on routine to call
+022346         IF A><D THEN                               % Current normal pit different than wanted?
+022350            A=:T:="ADPIT+ERNG2"\/CLVL; T\/A         % Set new normal pit
+022354            CLVL-ALEVB:=:T
+022357            IF T=0 THEN A=:RTREF.ACTPRI FI; *TRR PCR
+022364            A:=D SH -13/\17; RETVECTOR(A)           % Get return point depending on normal pit when called
+022371            L=:D:=A                                 % D=original return address; L=retrun address within CALLROUT
+022373         FI
+022373         TREG*2+1; T:=GOVECTOR(A)                   % Get address of routine to call
+022400         AREG; X:=XREG                              % Restore A- and X-register
+022402         IF K THEN                                  % Turn interrupt on if call in ion
+022404            *ION
+022405         FI; T=:P                                   % Call routine
+022406
+022406   R5PIT: P+1; D+1; T:="N5PIT"; GO RRCOM
+022412   RMPIT: P+1; D+1; T:="NMPIT"; GO RRCOM
+022416   RRPIT: P+1; D+1; T:="NRPIT"
+022421   RRCOM: D=:L:=A                                   % Restore original return address in L-reg
+022423          *TRA STS; IOF; BLDA 170 DA                % Read status register and set interupt on/off in K-bit
+022426          A SH -5/\170\/"ADPIT+ERNG2"; T\/A         % Set PCR back to original
+022432          A/\170-ALEVB:=:T
+022435          IF T=0 THEN X=:T; A=:RTREF.ACTPRI; X:=T FI
+022443          *TRR PCR
+022444          IF K THEN                                 % Turn interrupt on before leaving?
+022446             *ION                                   % yes
+022447          FI; A:=D; EXIT                            % Return
+022451   RBUS
+022464
+022464   SUBR 5IORESTART
+022464   RBUS
+022464   %===============================================================================
+022464   %       ( C )    T E R 5 0 0          Routine to terminate (stop) nd-500
+022464   %       ( C )    I A C T 5 0 0        Activate the nd-500.
+022464   %       ( C )    A C T R D Y          Activate the nd-500.
+022464   %       ( C )    R S T A R T A L L    Routine to restart all sintran iii programs with
+022464   %                                     messages in the N500 execution queue with an error message
+022464   %       ( C )    C L E A N            5MTRANS routine to clean up on process termination
+022464   %       ( C )    M S I N I T          Routine moved to mpit to initialize nd-500 data structures
+022464   %       ( C )    I B M O V E          Monitor function
+022464   %                                     Calls ribmove on rpit to move bytes from terminal input buffer to nd-500 buffer
+022464   %                                     If max no of bytes is reached the the nd-500 process is restarted.
+022464   %                                     Goes to MONEN if the input buffer is empty.
+022464   %       ( C )    5 E R A C T I V A T E    Reactivate a ND-500 process.
+022464   %       ( C )    5 P R A C T I V A T E    Reactivate a ND-500 process.
+022464   %
+022464   % Entry:     B=cpu datafield
+022464   %            TER500:
+022464   %            X=-1 then no actual message
+022464   %            X><-1 then x=actual message
+022464   %
+022464   %            RSTARTALL,5ERACTIVATE
+022464   %            A=error code
+022464   %
+022464   %            IBMOVE:
+022464   %            X=terminal datafield  (resident part)
+022464   %               IN5MSG=nd-500 msg waiting in dvinst or dvio monitor call
+022464   %
+022464   %            5ERACTIVATE,5PRACTIVATE
+022464   %            X=process description
+022464   %              interrupt must be off!
+022464   %
+022464   % Exit:      TER500:
+022464   %            error, nd-500 not terminated
+022464   %            IACT500,RSTARTALL:
+022464   %            ok
+022464   %
+022464   % Exit+1:
+022464   %            TER500:
+022464   %            ok, nd-500 stopped
+022464   %
+022464   @ICR;
+022464   SUBR KICK500,TER500,IACT500,ACTRDY,RSTARTALL,IBMOVE,CLEAN,MSINIT,
+022464        5ERACTIVATE,5PRACTIVATE,5XGBUFF,5GBUFF,5CONOMD;
+022464   @CR;
+022464   KICK500:
+022464   *NNJ00=*
+022464               P+1; EXIT                           % Direct exit if "old" 500
+022466               T:=0KICK500;     GO CALLROUT        % Send Octobus kick to 500
+022470   TER500:     IF 5CPUSTOPPED><0 THEN EXITA FI     % Cpu already stopped?
+022473               T:=0TER500;      GO CALLROUT
+022475   IACT500:    T:=0ACT500;      GO CALLROUT        % Common activate for ND500/ND5000
+022477   ACTRDY:
+022477   *NNJ01=*
+022477               P+1; EXIT                           % Direct exit if "old" 500
+022501               T:=0ACTRDY;      GO CALLROUT        % Process ready; activate ND5000 (exit is patched in if ND500)
+022503   RSTARTALL:  T:=0RSTARTALL;   GO CALLROUT
+022505   IBMOVE:     X=:B; RTRES=:D; CALL FSEMA          % Check if prog. still has reserved an nd-500 proc
+022511               GO 5IORESTART                       % No 500-proc reserved, continue in iorestart
+022512               T:=0IBMOVE;      GO CALLROUT
+022514   CLEAN:      T:=0CLEAN;       GO CALLROUT
+022516   MSINIT:     T:=0MSINIT;      GO CALLROUT
+022520   5ERACTIVATE:T:=05ERACTIVATE; GO CALLROUT
+022522   5PRACTIVATE:T:=05PRACTIVATE; GO CALLROUT
+022524   5XGBUFF:    T:=05XGBUFF;     GO CALLROUT
+022526   5GBUFF:     T:=05GBUFF;      GO CALLROUT
+022530   5CONOMD:    T:=05CONOMD;     GO CALLROUT
+022532   RBUS
+022535
+022535
+022535   %============================================================================
+022535   %      ( C )    5 M C S T      X 5 M C S T
+022535   %
+022535   % Subroutine to stop N500 (Micro stop)
+022535   %
+022535   SUBR 5MCST,X5MCST
+022535   X5MCST: T:=HDEV
+022536   5MCST: T+UNLC5; *IOXT                   % UNLOCK
+022540          A:=40; T+"LCON5-UNLC5"; *IOXT    % DISABLE TAG-IN DECODING
+022543          A:=2;  T+"RETG5-LCON5"; *IOXT
+022546          EXIT
+022547   RBUS
+022547
+022547
+022547
+022547   %============================================================================
+022547   %        ( C )   I T O 5 0 0 X Q
+022547   %
+022547   % Insert message in the N500-Execution queue
+022547   %
+022547   % Called from other levels than driver in IOF.
+022547   % The N100/N500 general semaphore must be locked.
+022547   %
+022547   % ENTRY:     X=Message to insert in queue
+022547   %
+022547   SUBR ITO500XQ
+022547   INTEGER CMESS                % Current message address
+022550   INTEGER POINTER LREG
+022551
+022551   ITO500XQ:
+022551          T:=5MBBANK; *AAX 5MSFL; LDATX
+022554          A=:D BONE 5IEXQUEUE; *STATX; AAX -5MSFL      % Mark proc. is in ex-queue
+022560          IF D BIT 5IEXQUEUE THEN EXIT FI
+022563          A:=L=:"LREG"; X=:CMESS
+022566          *AAX 5PRIO; LDATX
+022570          A=:L; T:=5MBBANK; X:=MAILINK
+022573          DO
+022573             *LINK@3 LDDTX
+022574          WHILE D><-1                               % Append at end of queue
+022577   *NNC01,   CNVBYADR
+022602             IF D=CMESS THEN CALL ERRFATAL FI
+022606             T:=A; X:=:D
+022610             *AAX 5PRIO; LDATX; AAX -5PRIO           % A=X.5PRIORITY
+022613             IF A<L THEN                             % Insert before this element
+022615                X:=D; GO ITO51
+022617             FI
+022617          OD
+022620   ITO51: T:=5MBBANK; *LINK@3 LDDTX                  % previous.LINK
+022622          X=:L:=CMESS; *LINK@3 STDTX                 % into current.LINK
+022625          IF D><-1 THEN
+022630   *NNC02,   CNVBYADR
+022633             T:=A; X=:A:=D; *AAX PLINK; STATX
+022640          FI
+022640          T:=5MBBANK; X:=CMESS; A:=L
+022643          *AAX PLINK; STATX; AAX -PLINK
+022646          A:=T; D:=X
+022650   *NNC03,CNVWADR
+022653          X:=L; *LINK@3 STDTX                        % current into previous.LINK
+022655          MIN LEXQUEUE; 0/\0
+022657          X:=CMESS; GO LREG
+022661   RBUS
+022664
+022664
+022664
+022664   %============================================================================
+022664   %      ( C )     I F M 5 0 0 X Q     F R 5 T M Q U
+022664   %
+022664   % Ifm500xq:
+022664   % Remove message from ND-500 Time queue
+022664   %
+022664   % Fr5tmqu:
+022664   % Remove message from the N500 Execution/Time queue
+022664   %
+022664   % Called from lower levels than the driver in IOF.
+022664   % The N100/N500 general semaphore must be locked.
+022664   %
+022664   % Entry:     X=message to remove
+022664   %            B=N500 Cpu-datafield
+022664   %
+022664   SUBR IFM500XQ,FR5TMQ
+022664   INTEGER CMESS
+022665
+022665   IFM500XQ:
+022665          T:=5MBBANK; *AAX 5MSFL; LDATX
+022670          A=:D BZERO 5IEXQUEU; *STATX; AAX -5MSFL       % Mark process not longer in ex-queue
+022674          IF D NBIT 5IEXQUEUE THEN EXIT FI
+022677          IF LEXQUEUE-1<0 THEN A:=0 FI; A=:LEXQUEUE
+022704          GO FELLS
+022705   FR5TMQ:
+022705          T:=5MBBANK; *AAX 5MSFL; LDATX
+022710          A=:D BZERO 5ITMQUEUE; *STATX; AAX -5MSFL
+022714          IF D NBIT 5ITMQUEUE THEN EXIT FI
+022717   FELLS: T:=5MBBANK; X=:CMESS
+022721          *LINK@3 LDDTX; AAX PLINK; LDXTX; LINK@3 STDTX
+022725          IF D><-1 THEN
+022730   *NNC04,   CNVBYADR
+022733             T:=A; X=:A:=D; *AAX PLINK; STATX
+022740          FI
+022740          X:=CMESS; EXIT
+022742   RBUS
+022744
+022744   %==========================================================================
+022744   %        ( C )      L O W A C T 5 0 0
+022744   %
+022744   % ROUTINE TO ACTIVATE N500 FROM LOWER LEVELS THEN THE DRIVER LEVEL
+022744   %
+022744   % THE ROUTINE MUST BE CALLED WITH INTERRUPT OFF.
+022744   %
+022744   % LOWACT500:
+022744   % Entry:   B=ND500 cpu datafield
+022744   %
+022744   SUBR LOWACT500,XLOWACT500
+022744   LOWACT500:
+022744   *NNJ03=*
+022744          EXIT                           % Direct exit if nd5000
+022745   XLOWACT500:
+022745          A:=B; *IRW LV12B DB
+022747          "5STDRIV"; *IRW LV12B DP
+022751          LV12; *MST PID; EXIT
+022754   RBUS
+022756
+022756
+022756   %===========================================================================
+022756   %       ( C )    S E T I O W A I T
+022756   %
+022756   % SETS THE CALLING PROGRAM IN I/O WAIT
+022756   %
+022756   % ENTRY:     X=ADDRESS OF CURRENT PROCESS DESCRIPTION
+022756   %
+022756   SUBR SETIOWAIT
+022756   SETIOWAIT: *IOF
+022757          IF X.PSTAT NBIT F5BUFF THEN
+022762             A BONE 5REWA=:X.PSTAT                  % MARK THAT PROC WILL WAIT FOR RESTART BY ND-500 DRIVER
+022764             RTREF.STATUS BONE 5WAIT=:X.STATUS      % SET PROGR IN I/O-WAIT
+022770             "RWAIT"; *IRW MLEVB DP                 % RESTART NEXT PROGR IN EX-QUEUE
+022772             MLEV; *MST PIE; MST PID
+022775          FI; *ION
+022776          EXIT
+022777   RBUS
+023001
+023001
+023001   %===================================================================
+023001   %       ( C )   M O N I C O   -   E M O N I C O   -  O K M O N I C O
+023001   %               M C C O
+023001   %
+023001   % SUBROUTINES TO RESTART A ND-500 PROCESS AFTER A MONITOR CALL
+023001   %
+023001   % ENTRY:
+023001   %      X-REG: MESSAGE ADDRESS
+023001   %      AD-REG: FUNCTION VALUE
+023001   %      T-REG: K FLIP-FLOP
+023001   %
+023001   SUBR MONICO,EMONICO,OKMONICO,MCCO
+023001   INTEGER KKFLIP
+023002   EMONICO:  A=:D:=0; T:=1; GO MONICO
+023006   OKMONICO: T:=0; A:=0; D:=0
+023011   MONICO:   T=:KKFLIP:=5MBBANK; *AAX FUNCV; STDTX      % SAVE FUNCTION VALUE
+023015             A:=KKFLIP; *AAX KFLIP-FUNCV; STATX         % SET ERROR FLAG ON/OFF
+023020             *AAX NUMPA-KFLIP; STZTX
+023022             3MONCO; *AAX -NUMPA; STATX XMICF           % RESTART AFTER MONITOR CALL
+023025   MCCO:     T:=5MBBANK; 140300; *AAX H500A; STATX; AAX -H500A
+023032             L=:D; MSGN500; CALL WN5STATUS; L:=D
+023036             T:=5MBBANK; X=:D; *AAX XADPR; LDXTX
+023042             X.PSTAT/\5CLRUNSTATUS+5ACTIVE=:X.PSTAT    % SET PROC. ACTIVE
+023046             X:=D; EXIT
+023050   RBUS
+023055
+023055
+023055   %===========================================================================
+023055   %      ( C )      F S Y S I N T E R F A C E   -   T S 3 C O M P R O C
+023055   %
+023055   % FSYSINTERFACE:
+023055   % ROUTINE TO CALL ROUTINES IN THE FILESYSTEM  FROM ND-500 SYSTEM MONITOR
+023055   %
+023055   % TS3COMPROC:
+023055   % ROUTINE TO CALL ROUTINES IN THE SINTRAN III COMMAND SEGMENT.
+023055   %
+023055   % ENTRY:     X=LOGICA ADDR OF ND-500 MESSAGE
+023055   %            THE REGISTER VALUES, (INPUT PARAMETERS TO THE FILE SYSTEM ROUTINES),
+023055   %            ARE IN THE ND-500 MESSAGE
+023055   %
+023055   % EXIT:      EXIT FROM THE FILESYSTEM ROUTINE
+023055   %            T,A,D,X REGISTERS HAVE THE VALUE RETURNED FROM THE FILESYSTEM ROUTINE
+023055   %
+023055   % EXIT+1:    EXIT+1 FROM THE FILESYSTEM ROUTINE
+023055   %            T,A,D,X REGISTERS HAVE THE VALUE RETURNED FROM THE FILESYSTEM ROUTINE
+023055   %
+023055   SUBR FSYSINTERFACE,TS3COMPROC
+023055
+023055   INTEGER POINTER OFLDX:=OFLCK
+023056
+023056   TS3COMPROC: T:=5OPSEG; A:=L=:5LREG; GO IFSYINIT            % SEGMENT 5OPCOM FOR S3. COMMAND SEGM
+023062   FSYSINTERFACE: T:=0                                        % NO SEGMENT FOR FILESYSTEM
+023063          A:=L=:5LREG; OFLDX; CALL XLOCK                      % LOCK STACK FOR RT-PROGR
+023067   IFSYINIT: X=:B; T=:SEG5
+023071          IF T=0 THEN
+023073             "NFPIT+ADPIT+ALEVB+ERNG2"
+023074          ELSE
+023075             CALL M1MEXY; T=:SEG5                             % SWITCH SEGM TO S3.OPCOM SEGM, AND SAVE OLD
+023077             "NSPIT+ADPIT+ALEVB+ERNG2"
+023100          FI; A=:CURPROG.ACTPRI; *TRR PCR                     % SET NEW NPIT.
+023103          "STACK"=:CSTCK                                      % RESET CURRENT STACK POINTER
+023105          TAD:=5TADRG; X:=5XRG; 0=:5ERRFLAG; CALL FSYSENTRY   % CALL ROUTINE
+023111          MIN 5ERRFLAG                                        % MARK NOT SKIP RETURN FROM FILSYS/OPCOM ROUTINE
+023112          TAD=:5TADRG; X=:5XRG                                % SAVE RETURN PARAMETERS
+023114          IF T:=SEG5><0 THEN CALL M1MEXY FI                   % GET IN ND-500 DATA SEGMENT IF TS3COMPROC
+023120          "N5PIT+ADPIT+ALEVB+ERNG2"=:CURPROG.ACTPRI; *TRR PCR % RESET NPIT TO 5PIT
+023124          IF XADPROC.PSTAT NBIT OFLDUNLOCK THEN OFLDX; CALL XUNLOCK FI % UNLOCK STACK
+023132          5LREG=:L; IF 5ERRFLAG=0 THEN L+1 FI                 % SET UP RETURN ADDR, SKIP RETURN OR NOT
+023137          TAD:=5TADRG; A=:5AREG; X:=5XRG; DBASE=:B; A:=5AREG  % GET REG.VALUES FROM FILSYS/S3 OPCOM ROUTINE
+023145          EXIT
+023146   RBUS
+023162
+023162
+023162   %=============================================
+023162   %      ( C )     X 5 D C N
+023162   %
+023162   %      ROUTINE FOR DISCONNECT FROM XMSG.
+023162   %      ON LEVEL 1. WILL ACTIVATE DRIVER LEVEL ROUTINE.
+023162   %   ENTRY:
+023162   %      A=PROCESS DESCRIPTION
+023162   %   EXIT:
+023162   %      ION
+023162
+023162   SUBR X5DCN
+023162   INTEGER AREG,LREG
+023164   X5DCN: *IOF
+023165          A=:AREG:=L=:LREG
+023170          T:=5MBBANK
+023171          X:=AREG.MESSBUFF
+023173          *AAX XTBLK; LDATX           % XT-BLOCK
+023175          IF A >< 0 THEN              % DO WE HAVE ANY ?
+023176                *STZTX; AAX -XTBLK    % YES, GET RID OF IT
+023200                *IRW LV12B DL
+023201                CALL GCPUDF; CALL ERRFATAL
+023203                *IRW LV12B DB
+023204                "P12DCN"; *IRW LV12B DP
+023206                LV12; *MST PID
+023210          FI; A:=AREG
+023211          LREG=:L
+023213          *ION
+023214          EXIT
+023215   RBUS
+023222
+023222
+023222   %========================================================================
+023222   %      ( C )      5 C S E T D V
+023222   %
+023222   % SUBROUTINE TO CALL SETDV ON A SPLITTED-DATAFIELD DEVICE
+023222   % CALLED FROM 5PIT
+023222   %
+023222   % ENTRY:     T=FUNCTION CODE WHEN CALLING SETDV
+023222   %            A=ADDR OF SETDV ROUTINE
+023222   %            X=RESIDENT DATAFIELD
+023222   %            INTERRUPT IS OFF
+023222   %
+023222   SUBR 5CSETDV
+023222   INTEGER POINTER LREG
+023223   5CSETDV: A:=:L=:"LREG"
+023225          X=:D; "NRPIT+ADPIT+ALEVB+ERNG2"=:RTREF.ACTPRI; *TRR PCR  % SWITCH TO RPIT
+023232          A:=T; X:=D; L:=:P               % A="FUNCTION CODE"; X=RESIDENT DF
+023235          X=:D; "N5PIT+ADPIT+ALEVB+ERNG2"; *TRR PCR    % RESET TO 5PIT
+023240          A=:RTREF.ACTPRI
+023242          X:=D; GO LREG
+023244   RBUS
+023247
+023247
+023247   %=============================================================
+023247   %      ( C )    L 3 S T D V
+023247   %
+023247   % MONITOR FUNCTION ROUTINE TO START TERMINAL OUTPUT DRIVER
+023247   % ACTIVATED FROM STTDRIV ON MPIT
+023247   % ENTRY: X=TERMINAL DATAFIELD
+023247   %
+023247   SUBR L3STDV
+023247   L3STDV: *IOF
+023250           AD:=X.DTDFPHPAGE                          % A=BANK NO. OF TERM DF; D=PHYS.PAGE OF TERM DF.
+023251           A:=:D/\1777+"WND41*2000"=:B:=142000       % B=LOG.ADDR OF TERM.OUTPUT DF.
+023256           T:=0; X:="WND41+WND41+174000"; *STDTX     % SET UP TERM. WINDOW
+023261           "NRPIT+ADPIT+MLEVB+ERNG2"; *TRR PCR       % SWITCH TO RPIT
+023263           CALL STDEV                                % START TERM.OUTPUT DRIVER
+023264           "NMPIT+ADPIT+MLEVB+ERNG2"; *TRR PCR       % RESET TO MPIT
+023266           T:=0; X:="WND41+WND41+174000"; *STZTX     % CLEAR TERM.WINDOW ENTRY IN PIT
+023271           GO MONEN
+023272   RBUS
+023300
+023300   %=====================================================================
+023300   %     ( C )    S P I T M Q
+023300   %
+023300   % START PROCESS CURRENTLY IN TIME QUEUE
+023300   %
+023300   % ENTRY:     X=MESSAGE TO RESTART
+023300   %            A=RESTART REASON
+023300   %
+023300   SUBR SPITMQ
+023300   INTEGER POINTER SPIRET
+023301   SPITMQ: T:=L=:"SPIRET"
+023303           A=:D; IF A><-1 THEN A:=0 FI
+023310           T:=5MBBANK; *AAX 5ADP3; STDTX
+023313           A:=4; *AAX NUMPA-5ADP3; STATX
+023316           A:=0=:D; *AAX FUNCV-NUMPA; STDTX
+023322           *AAX KFLIP-FUNCV; STZTX; AAX -KFLIP
+023325           3MONCO; *MICFU@3 STATX
+023327           CALL MCCO; GO SPIRET
+023331   RBUS
+023333
+023333
+023333   %===========================================================================
+023333   %      ( C )   N W 5 S T   -   P N W 5 S T
+023333   %
+023333   %      NO WAIT ND-500 START.
+023333   %      CALLED ON BREAK WHEN TERMINAL OR INTERNAL DEVICE IS IN NO WAIT MODUS
+023333   %      MUST BE CALLED IN IOF.
+023333   %
+023333   % ENTRY WHEN PNW5ST: B=ADDR OF "BIG" TERM.DF
+023333   % ENTRY WHEN NW5ST:  B=ADDR OF RESIDENT DF.
+023333   %
+023333   % EXIT:      ND-500 PROC RESTARTED
+023333   %
+023333   % EXIT+1:    ND-500 PROC NOT RESTARTED
+023333   %
+023333   SUBR XNW5ST,NW5ST,PNW5ST,INW5ST
+023333
+023333   INTEGER NWFLAG,NWBSAVE,NWPROC,NWSTATUS
+023337   INTEGER POINTER NW5RET
+023340
+023340   XNW5ST: A:=L=:"NW5RET"; X:=RTRES; A:=1; GO 0NW5ST
+023345   PNW5ST: X:=TDRADDR.RTRES; GO INW5ST
+023350   NW5ST:  X:=RTRES
+023351   INW5ST: A:=L=:"NW5RET"; A:=0
+023354   0NW5ST: IF X=0 THEN EXITA FI; A=:NWFLAG
+023360          IF X.WLINK=0 AND X.TLINK=0 AND X.STATUS NBIT 5RWAIT THEN EXITA FI
+023370          D:=X; CALL FSEMA; GO NWRET; X=:NWPROC     % RESERVED ANY ND-500 PROC?
+023374          A:=X.PSTAT; T:=5MBBANK; X:=X.MESSBUFF
+023377          IF A NBIT T5BUF GO NIQUEUE
+023401          CALL RN5STATUS
+023402          IF A=I5TMQU OR A=STOPPED THEN             % PROC WAITING FOR RESPONSE FROM ND500?
+023410             A=:NWSTATUS
+023411             CALL GCPUDF; CALL ERRFATAL
+023413             A:=:B=:NWBSAVE                         % B=ND-500 CPU DF.
+023415             IF NWSTATUS=I5TMQU THEN                % PROCESS IN TIME QUEUE
+023421                CALL FR5TMQU; A:=1; CALL SPITMQU
+023424   *NNT01=*
+023424                CALL TER500; 0/\0
+023426                CALL SLOCK; 0/\0
+023430                CALL ITO500XQ                       % ACTIVATE PROCESS
+023431                CALL SUNLOCK
+023432             ELSE                                   % PROCESS HAS BEEN STOPPED
+023433                CALL OKMONICO                       % RESTART PROC AFTER MONCALL
+023434             FI
+023434             CALL IACT500
+023435   *NNJ04=*
+023435             GO W5ST
+023436             *TRA STS
+023437             IF A SH -5/\170><LV12B THEN CALL LOWACT500 FI
+023445   W5ST:     NWBSAVE=:B
+023447          ELSE
+023450   NIQUEUE:  IF NWFLAG=0 THEN
+023452                CALL SLOCK; 0/\0
+023454                T:=5MBBANK; *AAX 5MSFL; LDATX
+023457                A BONE 55REP; *STATX                % SET REPEAT
+023461                CALL SUNLOCK
+023462             FI
+023462             MIN "NW5RET"
+023463          FI
+023463          NWPROC.PSTAT BONE 55BRKPRIOR=:X.PSTAT     % SET BREAK PRIORITY
+023467          IF X:=X.RTRES><0 THEN X.STATUS BONE 5BRKF=:X.STATUS FI
+023474          GO NW5RET
+023475
+023475   NWRET: MIN "NW5RET"; GO NW5RET
+023477   RBUS
+023517
+023517
+023517   %=========================================================================
+023517   %       ( C )     5 R E T U E C O M
+023517   %
+023517   % ROUTINE TO CHANGE PIT'S BEFORE RETURNING AFTER MON UECOM (317)
+023517   % CALLED IN IOF FROM FROMESC
+023517   %
+023517   SUBR 5RETUECOM
+023517   5RETUECOM:
+023517          "ADPIT+NSPIT+ALEVB+ERNG2"=:RTREF.ACTPRI; *TRR PCR
+023523          *ION
+023524          IF GP3SW><0 THEN                   % ESCAPE WHILE IN FILESYSTEM
+023526             GP3RSEGM=:RTREF.RSEGM; *IOF     % SETUP REENTRANT SEGMENT
+023532             "STUPR"; *IRW MLEVB DP
+023534             MLEV; *MST PID; ION
+023537             0=:GP3SW
+023540          FI; X:=UEXREG
+023541          TAD:=UECMRET
+023542          D=:P                               % CONTINUE AFTER UECOM
+023543   RBUS
+023552
+023552
+023552   %==============================================================================
+023552   %      ( C )      5 O C T O S W I T C H
+023552   %
+023552   %    Subroutine to call octobus routines on Mpit, called  from 5pit.
+023552   %    Required data is found in  physical memory  and in  stack window
+023552   %    on Dpit  according to B-reg and  the dispfield defined file ACCPSYMB-SYSMON
+023552   %
+023552   %    Entry    : None
+023552   %    Exit+1   : Error
+023552   %    Exit     : OK
+023552   %
+023552   SUBR 5OCTOSWITCH
+023552
+023552   5OCTOSWITCH: A:=L=:"2LREGOCTO"; *IOF
+023555          "NMPIT+ADPIT+ALEVB+ERNG2"=:RTREF.ACTPRI   % cannot tolerate an interrupt between this statement and the next
+023560          *TRR PCR; ION                             % Switch to Mpit, same alt. pit
+023562          2PREGOCTO=:L;TAD:=2TADOCTOREG;X:=2XREGOCTO% Retrieve registers
+023566          L:=:P; GO ERR; MIN "2LREGOCTO"            % Jump to Mpit routine; return; skip return
+023571   ERR:   TAD=:2TADOCTOREG; X=:2XREGOCTO; *IOF      % Preserve registers
+023574          "N5PIT+ADPIT+ALEVB+ERNG2"=:RTREF.ACTPRI   % cannot tolerate an interrupt between this statement and the next
+023577          *TRR PCR; ION                             % Reset to 5pit
+023601          GO 2LREGOCTO
+023602   RBUS
+023605
+023605
+023605   %==============================================================================
+023605   %    ( C )        G C P U D F
+023605   %
+023605   %    Subroutine to get cpu datafield of cpu on which the process is running
+023605   %
+023605   %    Entry    : X=address of message within bank
+023605   %    Exit     : Error, illegal Cpu no in message
+023605   %    Exit+1   : A=cpu datafield
+023605   %
+023605   %    Registers destroyed: T
+023605   %
+023605   SUBR GCPUDF
+023605   GCPUDF: T:=5MBBANK; *AAX 5CPUN; LDATX; AAX -5CPUN
+023611           IF A/\377-1>=0 THEN
+023614              A*5CPUDFSZ+"S5CPUDF"
+023616              IF A<<="E5CPUDF" THEN EXITA FI
+023622           FI
+023622           EXIT
+023623   RBUS
+023630
+023630
+023630   %==============================================================================
+023630   %    ( C )        G E T C 5 P R O C
+023630   %
+023630   %    Subroutine to get current executing process number
+023630   %
+023630   %    Entry    : B=cpu datafield
+023630   %    Exit     : A=current executing process
+023630   %
+023630   %    Registers destroyed: T,D
+023630   %
+023630   SUBR GETC5PROC
+023630   GETC5PROC: T:=5MBBANK; X=:D:=MAILINK; *AAX X5PRO
+023634           *BSET BCM 120 DX; LDATX                      % Fool the cache
+023636           *BSET BCM 120 DX; LDATX
+023640           X:=D; EXIT
+023642   RBUS
+023643
+023643
+023643   %==============================================================================
+023643   %    ( C )        W N 5 S T A T U S
+023643   %                 R N 5 S T A T U S
+023643   %
+023643   %    Subroutine to get/set status word in Nd-500 message
+023643   %
+023643   %    Entry    : X=address of message within bank
+023643   %               If WN5STATUS:
+023643   %               A=value to set
+023643   %    Exit     : If RN5STATUS:
+023643   %               A=value
+023643   %
+023643   %    Registers destroyed: T,D
+023643   %
+023643   SUBR RN5STATUS,WN5STATUS
+023643   RN5STATUS: T:=5MBBANK
+023644           *BSET BCM 120 DX; N5STA@3 LDATX              % Fool the cache
+023646           *BSET BCM 120 DX; N5STA@3 LDATX
+023650           EXIT
+023651
+023651   WN5STATUS: T:=5MBBANK; *N5STA@3 STATX
+023653           EXIT
+023654   RBUS
+023655
+023655
+023655   %===============================================================================
+023655   %       ( C )    S L O C K          S U N L O C K
+023655   %
+023655   % Routines to lock/unlock N500 execution queue/interrupt semaphore
+023655   %
+023655   % Entry:     None
+023655   %
+023655   % Exit:      If SUNLOCK: ok
+023655   %            If SLOCK:   error
+023655   %
+023655   % Exit+1:    ok, semaphore locked
+023655   %
+023655   SUBR SLOCK,SUNLOCK
+023655   INTEGER TREG,AREG,DREG,XREG,BREG
+023662   TRIPLE  TADREG=TREG
+023662   INTEGER POINTER LREG
+023663   INTEGER 1COUNT,2COUNT
+023665   INTEGER TSET(0);  *140123     % Logical test-and-set instr. for not Rask cpu
+023666   INTEGER TSETP(0); *140516     % Physical test-and-set instr. for Rask cpu
+023667
+023667   SLOCK:
+023667   *NNJ05=*
+023667          P+1; EXITA                                     % Direct exit+1 if "old" 500
+023671          TAD=:TADREG; X=:XREG; A:=L=:"LREG"
+023675          1HWINF; *RASK@3 BLDA DA                        % K-bit set if Rask-cpu
+023677          IF K THEN
+023701             "N500DF".X500DF+"X5SEMA"=:X; T:=5MBBANK     % yes, use physical test-and-set
+023706             TSETP=:D
+023710          ELSE                                           % no, use logical test-and-set
+023711             "N500DF".X500DF=:D; 5MBBANK; AD SHZ 6
+023716             A=:D:=142000
+023720             X:="WNDN5+WNDN5+174000"; T:=0; *STDTX
+023723             "N500DF".X500DF+"X5SEMA"/\1777+"WNDN5*2000"=:T
+023731             TSET=:D
+023733          FI
+023733          *EXR SD                                        % Reserve semaphore
+023734          IF A=0 GO SOKRET                               % Lock reserved ok?
+023735          T=:L:=5MBBANK; X=:A:="N500DF".X500DF
+023742          *AAX X5RES; LDXTX
+023744          IF X+1=0 GO SOKRET                             % Lock already reserved by N100?
+023746          T:=L; X:=A
+023750          -2=:1COUNT
+023752          FOR 1COUNT DO
+023752             % Wait for lock.....
+023752             %   Total wait time: appox.  100 millisec. per loop
+023752             %   Wait time per Test-and-set: appox. 100 microsec.
+023752             %   Loop counter is set on the assumption that
+023752             %   Rask/Delilhia has twice the performance to CX-CPU.
+023752             %
+023752             IF K THEN -3720 ELSE -1750 FI
+023757             A=:L
+023760             DO WHILE L<0
+023762                *EXR SD
+023763                IF A=0 GO SOKRET
+023764                IF K THEN A:=-130 ELSE A:=-54 FI
+023771                DO WHILE A<0; A+1; OD
+023774                L+1
+023775             OD
+023776          OD
+024000          % Failed to reserve the lock
+024000          % ...Lock timeout...
+024000          N5LTIMOUT=:AREG; GO SRET
+024003
+024003          % Set N100 as current reserving CPU (N100=-1)
+024003   SOKRET:T:=5MBBANK; X:="N500DF".X500DF
+024006          A:=-1; *AAX X5RES; STATX
+024011          MIN "LREG"
+024012   SRET:  IF K NBIT THEN
+024014             X:="WNDN5+WNDN5+174000"; T:=0; *STZTX
+024017          FI
+024017          TAD:=TADREG; X:=XREG; GO LREG
+024022
+024022   SUNLOCK:
+024022   *NNJ06=*
+024022          P+1; EXIT                                         % Direct exit if "old" 500
+024024          TAD=:TADREG; X=:XREG
+024026          "N500DF".X500DF+"X5SEMA"=:X; T:=5MBBANK
+024033          *AAX X5RES; LDATX
+024035          IF A+1=0 THEN                                     % Reserved by N100?
+024037             *STZTX; AAX -X5RES; STZTX                      %   Yes, release lock
+024042          FI
+024042          TAD:=TADREG; X:=XREG; EXIT
+024045   RBUS
+024060
+024060
+024060   %===============================================================================
+024060   %       ( C )    F 5 D B H S
+024060   %
+024060   % SUBROUTINE TO CHECK IF A PROGRAM HAS ANY 500-FILE-TRANSFER-BUFFER-HEADERS
+024060   %
+024060   % ENTRY: A=RT-DESCRIPTION ADDRESS
+024060   %        MUST BE CALLED IN IOF!
+024060   % EXIT:  NO 500-FILE-TRANSFER-BUFFER-HEADER RESERVED
+024060   % EXIT+1: A=ADDR OF 500-FILE-TRANSFER-BUFFER-HEADER
+024060   %
+024060   SUBR F5DBHS
+024060   TRIPLE  TADREG
+024063   INTEGER XREG
+024064   F5DBHS: TAD=:TADREG; X=:XREG
+024066           X:="BRESLINK"+A
+024070           DO WHILE X:=X.RESLINK><A
+024073              IF X>>5DVBSTART THEN
+024076                 TAD:=TADREG; A:=X; X:=XREG
+024101                 EXITA
+024102              FI
+024102           OD
+024103           TAD:=TADREG; X:=XREG
+024105           EXIT
+024106   RBUS
+024110
+024110
+024110   *"-8N500
+"024110   *       EXIT AD1
+024111   *"-8N500
+"024111
+024111   @DEV 1

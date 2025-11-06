@@ -1,0 +1,616 @@
+111651   @DEV (S-S-L)MP-P2-PERF-DATA:NPL
+111651
+
+111651   *"8MPRF
+"111651   % Revision log:
+111651   %
+111651   % 871020: eny: Removed label NPRST from descriptor table
+111651   % 871029: eny: Removed primitive #33,#34.
+111651   % 871122: btt: Removed primitive #35.
+111651   % 871125: btt: Several changes concerning prim. 2 and multi-CPU.
+111651   %
+111651   %
+111651   %
+111651
+111651   INTEGER S13INDEX                   % Index in jump-table on level 13
+111652   INTEGER MLVINDEX                   % Index in jump-table on level 2
+111653   INTEGER MPITBANK,MPITADDR
+111655   DOUBLE  DMPITADDR=MPITBANK         % Phys addr of start of mpit segment
+111655
+111655   INTEGER ARRAY PRIMACTIVES(MXACTPRIMS) % Primitive numbers of current active primitives
+111665   INTEGER ARRAY XBUSARRAY(40)        % Addr of double words on mpit to
+111725                                      % Add the value of dbuphysaddr into.
+111725   DOUBLE  ARRAY DXRARRAY(0)
+111725   INTEGER ARRAY XRARRAY(40)          % Addr of option specific routines for
+111765                                      % Initializing option dependent buffers
+111765
+111765
+111765   INTEGER ARRAY PARBUFF(MXTPBLENGTH)          % Copy of caller's parameter block
+112765
+112765   % Array of level 13 and level 2 sampling routines for each primitives
+112765   % 2 locations for each primitive.
+112765   % Primitive number is index in the table.
+112765   @ICR;
+112765   DOUBLE  ARRAY SAMPADDRS:=(
+112765           0,0,MRP01,MMP01,MRP02,MMP02,0,MMP03,0,MMP04,  % prim.: 1,2,3,4
+112777           0,0,0,0,0,0,0,0,0,0,
+113011           0,0,0,0,0,0,0,0,0,0,
+113023           0,0,0,0,0,0,0,0,0,0,
+113035           0,0,0,0,0,0,0,0,0,0,
+113047           0,0,0,0,0,0,0,0,0,0,
+113061           0,0,0,0,0,0,0,0,0,0,
+113073           0,0,0,0,0,0,0,0,0,0,
+113105           0,0,0,0,0,0,0,0,0,0,
+113117           0,0,0,0,0,0,0,0,0,0,
+113131           0,0,0,0,0,0,0,0,0,0,
+113143           0,0,0,0,0,0,0,0,0,0,
+113155           0,0,0,0,0,0,0,0,0,MMP64,                      % prim.: 64
+113167           0,MMP65,MRP66,0,0,0,0,0,0,0,                  % prim.: 65,66
+113201           0,0,0,0,0,0,0,0,0,0,
+113213           0,0,0,0,0,0,0,0,0,0,
+113225           0,0);
+113227
+113227   % Array of primitive descriptor for each primitive.
+113227   % The primitive number is index in the table.
+113227
+113227   INTEGER ARRAY APRDESCR:=(
+113227           0,OPD01,OPD02,OPD03,OPD04,0,0,0,0,0,
+113241           0,0,0,0,0,0,0,0,0,0,
+113253           0,0,0,0,0,0,0,0,0,0,
+113265           0,0,OPD32,0,0,0,OPD36,OPD37,0,0,
+113277           0,0,0,0,0,0,0,0,0,0,
+113311           0,0,0,0,0,0,0,0,0,0,
+113323           0,0,0,0,OPD64,OPD65,OPD66,OPD67,0,0,
+113335           0,0,0,0,0,0,0,OPD77,0,0,
+113347           0,0,0,0,0,0,0,0,0,0,
+113361           0);
+113362
+113362
+113362   %-----------------------------------------------------------------------------
+113362   % Option descriptor for primitive # 1, nd-100  cpu utilisation.
+113362   %
+113362   DATA   (-1,
+113363           71, 100000+3, BAR1C, 0);            % Optional buffer descriptor
+113367   INTEGER ARRAY OPD01:=(
+113367           7,                                  % Max number of options
+113370           72,                                 % Data block size
+113371           DPR01,                              % Address of datablock
+113372           100000, LTCP1, 0, 0,     0,         % Total nd-100 cpu
+113377           10000,  LSCP1, 0, 0,     0,         % Nd-100 cpu usage split on user mode,
+113404                                               % Mon.call mode and system mode
+113404           1000,   LLCP1, 0, 0,     0,         % Cpu usage split on interrupt levels
+113411           100,    LRCP1, 0, P01R1, 0,         % Cpu usage by a specific program
+113416           200,    ARCP1, 1, 0,     P01X1,     % Cpu usage split over all programs
+113423           10,     1RCP1, 0, P01R1, 0,         % Cpu usage by a specific program split
+113430                                               % Over user mode, mon.call mode and system overhead
+113430           1,      MMP01, 0, 0,     0,         % Nd-110 execution queue length
+113435           0);
+113436
+113436   %-----------------------------------------------------------------------------
+113436   % Option descriptor for primitive # 2, nd-500 cpu utilisation
+113436   %
+113436   DATA   (-1,
+113437           56, 40000+2, BAR5C, 0);             % Optional buffer descriptor
+113443   INTEGER ARRAY OPD02:=(
+113443           6,                                  % Max number of options
+113444           57,                                 % Data block size
+113445           DPR02,                              % Address of datablock
+113446           100000, LTCP5, 0, CH5OK, 0,         % Total nd-500 cpu utilisation
+113453           10000,  CP5MO, 0, CH5OK, 0,         % Nd-500 cpu usage split over user mode
+113460                                               % And swapper mode
+113460           100,    APCP5, 0, P02R2, 0,         % Nd-500 cpu utilisation by a specific process
+113465           200,    ALLC5, 1, P02R3, P02X1,     % Nd-500 cpu utilisation split over
+113472                                               % All processes
+113472           10,     XC5MO, 0, P02R2, 0,         % Nd-500 cpu utilisation by a specific process
+113477                                               % Split over user mode and swapper mode
+113477           1,      MMP02, 0, CH5OK, 0,         % Nd-500 execution length
+113504           0);
+113505
+113505   %-----------------------------------------------------------------------------
+113505   % Option descriptor for primitive # 3, usage of logical units.
+113505   %
+113505   DATA   (-1,
+113506           143, 100000+41, BLUAD, 0);          % Optional buffer descriptor
+113512   INTEGER ARRAY OPD03:=(
+113512           4,                                  % Max number of options.
+113513           144,                                % Data block size.
+113514           DPR03,                              % Address of data block.
+113515           100000, TUTLG, 0, P03RF,     0,     % Total usage of logical units.
+113522           100,    UTLGX, 0, P03R1,     0,     % Usage of logical units by a specific rt-program.
+113527           200,    AUTLG, 1, P03RF, P03X1,     % Usage of logical units split over all rt-programs.
+113534           1,      LUWQU, 0, P03RF,     0,     % Waiting queue lengths of the logical units.
+113541           0);
+113542
+113542   %-----------------------------------------------------------------------------
+113542   % Option descriptor for primitive # 4, usage of nd-500 swapper.
+113542   %
+113542   DATA   (-1,
+113543           7, 40000+2, B5SWA, 0);              % Optional buffer descriptor
+113547   INTEGER ARRAY OPD04:=(
+113547           3,                                  % Max number of options.
+113550           10,                                 % Data block size.
+113551           DPR04,                              % Address of data block.
+113552           100000, T5SWP, 0, CH5OK,     0,     % Total usage of nd-500 swapper
+113557           100,    X5SWP, 0, P04R2,     0,     % Usage of nd-500 swapper by a specific process
+113564           200,    A5SWP, 1, CH5OK, P04X1,     % Total usage of nd-500 swapper
+113571                                               % Split over all processes
+113571           0);
+113572
+113572   %-----------------------------------------------------------------------------
+113572   % Option descriptor for primitive #32, disk access log.
+113572   %
+113572   DATA   (-1,
+113573           123, 0, BDLBU, 0);                  % Optional buffer descriptor
+113577   INTEGER ARRAY OPD32:=(
+113577           4,                                  % Max number of options
+113600           124,                                % Data block size
+113601           DPR32,                              % Address of data block
+113602           100000, TDALO, 0, P32R1, 0,         % Count all accesses
+113607           10000,  TYDAL, 0, P32RF, 0,         % Accesses split on type
+113614           1000,   RWDAL, 0, P32RF, 0,         % Accesses split on read/write
+113621           100,    XDLOG, 1, P32R4, P32X1,     %
+113626           DIALO, 0);                          % Labels to usoption/nusoption code.
+113630
+113630   %-----------------------------------------------------------------------------
+113630   % Option descriptor for primitive #36, nd-100 monitor call log.
+113630   %
+113630   DATA   (-1,
+113631           3, 1000, BMLB1, 0,                  % Optional buffer descriptor
+113635           4,    0, BXML1, 0);                 % Optional buffer descriptor
+113641   INTEGER ARRAY OPD36:=(
+113641           2,                                  % Max number of options
+113642           5,                                  % Data block size
+113643           DPR36,                              % Address of datablock
+113644           100000, PMLAL, 2, P36R1, 0,         % Total mon.call count/total mon.call count for specified program
+113651           10000,  PMLXA, 1, P36R2, P36X2,     % 8 mon.calls split over all rt-programs, or
+113656                                               % All mon.calls split over 8 rt-programs
+113656           PML10,0);                           % Labels to usoption/nusoption code.
+113660
+113660   %-----------------------------------------------------------------------------
+113660   % Option descriptor for primitive #37, nd-500 monitor call log.
+113660   %
+113660   DATA   (-1,
+113661           3, 1250, BMLB5, 0,                  % Optional buffer descriptor.
+113665           4,    0, BXML5, 0);                    % Optional buffer descriptor.
+113671   INTEGER ARRAY OPD37:=(
+113671           2,                                  % Max number of options
+113672           5,                                  % Data block size
+113673           DPR37,                              % Address of datablock
+113674           100000, 5MLAL, 2, P37R1, 0,         % Total mon.call count/total mon.call count for specified process
+113701           10000,  5MLXA, 1, P37R2, P37X2,     % 8 mon.calls split over all nd-500 processes.
+113706                                               % All mon.calls split over 8 nd-500 processes.
+113706           PML50,0);                           % Labels to usoption/nusoption code.
+113710
+113710   %-----------------------------------------------------------------------------
+113710   % Option descriptor for primitive #64, count pages in memory for nd-100 segments
+113710   %
+113710   DATA   (-1);
+113711   INTEGER ARRAY OPD64:=(
+113711           1,                                  % Max number of options
+113712           33,                                 % Data block size
+113713           DPR64,                              % Address of datablock
+113714           0,      NOOP,  0, P64R1, 0,         %
+113721           0);
+113722
+113722   %-----------------------------------------------------------------------------
+113722   % Option descriptor for primitive #65, count pages in memory for nd-500 segments
+113722   %
+113722   DATA   (-1);
+113723   INTEGER ARRAY OPD65:=(
+113723           1,                                  % Max number of options
+113724           33,                                 % Data block size
+113725           DPR65,                              % Address of datablock
+113726           0,      NOOP,  0, P65R1, 0,         %
+113733           0);
+113734
+113734   %-----------------------------------------------------------------------------
+113734   % Option descriptor for primitive #66, nd-100 program counter histogram.
+113734   %
+113734   DATA   (-1);
+113735   INTEGER ARRAY OPD66:=(
+113735           1,                                  % Max number of options
+113736           205,                                % Data block size
+113737           DPR66,                              % Address of datablock
+113740           0,      NOOP,  0, P66R1, 0,         %
+113745           0);
+113746
+113746   %-----------------------------------------------------------------------------
+113746   % Option descriptor for primitive #67, nd-500 program counter histogram.
+113746   %
+113746   DATA   (-1);
+113747   INTEGER ARRAY OPD67:=(
+113747           1,                                  % Max number of options
+113750           205,                                % Data block size
+113751           DPR67,                              % Address of datablock
+113752           0,      NOOP,  0, P67R1, 0,         %
+113757           P67L1,P67L2,0);                     % Labels to usoption/nusoption code
+113762
+113762   %==============================================================================
+113762   %-----------------------------------------------------------------------------
+113762   % Option descriptor for primitive #77, nd-500 TRACE
+113762   %
+113762   DATA   (-1,
+113763           7, 20070, BTRAC, 0)                  % Optional buffer descriptor.
+113766   INTEGER ARRAY OPD77:=(
+113766           11,                                 % Max number of options
+113770           11,                                 % Data block size
+113771           DPR77,                              % Address of datablock
+113772           100,  TRDEC, 1, P77R1, 0,           % decomess
+113777           200,  TRN5C, 1, P77R2, 0,           % n500c
+114004           400,  TRACS, 1, P77R3, 0,           % 5actswapper
+114011           1000, TRT5X, 1, P77R4, 0,           % ito500xq
+114016           2000, TRF5X, 1, P77R5, 0,           % ifm500xq
+114023           4000, TTER5, 1, P77R6, 0,           % xter500
+114030           10000,TRAC5, 1, P77R7, 0,           % xact500
+114035           20000,TRMCC, 1, P7710, 0,           % mcco
+114042           40000,TRSWP, 1, P7720, 0,           % swpdecoder
+114047           0);                                 % No main primitive routine
+114050   @CR;
+114050
+114050   %=============================================================================
+114050   % Data for primitive #1            block size=
+114050   %
+114050   INTEGER DPR01:=(1,0,0)             % Parblock header
+114053   INTEGER 1D1CP,2D1CP                % Total ND-100 CPU utilisation
+114055   INTEGER 1U1CP,2U1CP                % ND-100 CPU usage in user mode (user programs)
+114057   INTEGER 1M1CP,2M1CP                % ND-100 CPU usage in monitor call mode
+114061   INTEGER 1S1CP,2S1CP                % ND-100 CPU usage in system mode (system overhead)
+114063   INTEGER 1CPAR(40)                  % ND-100 CPU usage split on each interrupt level
+114123   INTEGER 1R1CP,2R1CP                % ND-100 CPU usage while a spesific program is current
+114125   INTEGER 1RU1C,2RU1C                % ND-100 CPU usage in user mode while a
+114127                                      % spesific program is current
+114127   INTEGER 1RM1C,2RM1C                % ND-100 CPU usage in monitor call mode while
+114131                                      % a spesific program is current
+114131   INTEGER 1RS1C,2RS1C                % ND-100 CPU usage in system mode while a
+114133                                      % spesific program is current
+114133   DOUBLE  IEXQL                      % Number of programs in execution queue waiting for I/O
+114135   DOUBLE  REXQL                      % Number of programs in execution queue waiting for CPU
+114137   DOUBLE  SEXQL                      % Number of programs in execution queue waiting for swapper
+114141   DATA    (0)
+114142   INTEGER ACRTP                      % RT-descr of the "spesific" program.
+114143   INTEGER BAR1CPU,SAR1CPU            % Physical addr of data for ND-100 CPU usage
+114145   DOUBLE  DBAR1CPU=BAR1CPU
+114145
+114145
+114145   %===========================================================================
+114145   % Data for primitive #2
+114145   %
+114145   INTEGER ARRAY DPR02:=(2,0,0)       % Parblock header
+114150   DOUBLE ARRAY D5CP(4)               % Total nd-500(0) cpu utilisation
+114160   DOUBLE ARRAY CP5S(4)               % Nd-500(0) cpu utilisation in swapper mode
+114170   DOUBLE ARRAY CP5U(4)               % Nd-500(0) cpu utilisation in swapper mode
+114200   DOUBLE ARRAY XCP5(4)               % Nd-500(0) cpu usage of a spesific process
+114210   INTEGER 1XPRS,2XPRS                % Nd-500(0) swapper usage by a spesific process
+114212   INTEGER 1XPRU,2XPRU                % Nd-500(0) cpu usage by a spesific process
+114214   DOUBLE  LE5XQ                      % Number of ready processes in nd-500 execution queue
+114216   DOUBLE  LW5XQ                      % Number of waiting processes in nd-500 execution queue, not waiting for swappeR.
+114220   DOUBLE  LS5XQ                      % Number of processes waiting for swapper in nd-500 executin queue.
+114222   DATA    (0)
+114223   INTEGER BAR5CPU,SAR5CPU            % Phys addr of data of nd-500 cpu usage
+114225   DOUBLE  DBAR5CPU=BAR5CPU
+114225   INTEGER LXCPU                      % Specified CPU number
+114226   INTEGER Y5PROC                     % Spesified process number
+114227   @ICR
+114227   INTEGER ARRAY LUADD:=(
+114227           ADD1I,ADD1O,ADD2I,ADD2O,ADD3I,ADD3O,ADD4I,ADD4O,
+114237           ADD5I,ADD5O,ADD6I,ADD6O,ADD7I,ADD7O,ADD8I,ADD8O);
+114247   @CR;
+114247   INTEGER ADD1I,ADD1O
+114251   INTEGER ADD2I,ADD2O
+114253   INTEGER ADD3I,ADD3O
+114255   INTEGER ADD4I,ADD4O
+114257   INTEGER ADD5I,ADD5O
+114261   INTEGER ADD6I,ADD6O
+114263   INTEGER ADD7I,ADD7O
+114265   INTEGER ADD8I,ADD8O
+114267
+114267
+114267   %-------------------------------------------------------------------------
+114267   % Data block for primitive #3
+114267   INTEGER ARRAY DPR03:=(3,0,0)       % Data block header
+114272   INTEGER 1TL1I,2TL1I                % Total usage of log.unit 1 input
+114274   INTEGER 1TL1O,2TL1O(35)            % Total usage of log.unit 1 output
+114332                                      % Total usage of the max. 7 other units to log.
+114332
+114332   INTEGER 1XL1I,2XL1I                % Usage of log.unit 1 input by specific program
+114334   INTEGER 1XL1O,2XL1O(35)            % Usage of log.unit 1 output by specific program
+114372                                      % Usage of the max. 7 other log.units by specific program
+114372
+114372   DOUBLE ARRAY ADDLW(0)
+114372   INTEGER 1WQ1I,2WQ1I                % Wating queue length of log.unit 1 input
+114374   INTEGER 1WQ1O,2WQ1O(35)            % Wating queue length of log.unit 1 output
+114432                                      % Waiting queue length of max. 7 other log.units
+114432
+114432   DATA    (0)
+114433   INTEGER ARRAY ADDU1(10)            % Disk drive numbers
+114443   INTEGER XLRTP                      % Specific program to log
+114444   INTEGER BLUADDR,SLUADDR            % Phys addr of data for usage of the actual logical units,
+114446                                      % split over all programs.
+114446   DOUBLE  DBLUADDR=BLUADDR
+114446
+114446
+114446   %============================================================================
+114446   % Data block for primitive # 4
+114446   %
+114446   INTEGER ARRAY DPR04:=(4,0,0)       % Data block header
+114451   INTEGER 1D5SW,2D5SW                % Total usage of nd-500 swapper
+114453   INTEGER 1X5SW,2X5SW                % Usage of nd-500 swapper by a specific process
+114455   DATA    (0)
+114456   INTEGER B5SWAPP,S5SWAPP            % Phys addr of data for usage of nd-500 swapper
+114460                                      % split over all processes.
+114460   DOUBLE  DB5SWAPP=B5SWAPP
+114460   INTEGER XSWOWNER                   % Mailbox addr of specific process to log
+114461
+114461
+114461
+114461
+114461   %============================================================================
+114461   % Data block for primitive #32
+114461   %
+114461   INTEGER ARRAY DPR32:=(40,0,0)
+114464   INTEGER 1TDA1,2TDA1                % Total disc accesses
+114466   INTEGER 11FA1,21FA1                % Total nd-100 file i/o accsesses
+114470   INTEGER 11SA1,21SA1                % Total nd-100 swapp accesses
+114472   INTEGER 15FA1,25FA1                % Total nd-500 file i/o accesses
+114474   INTEGER 15SA1,25SA1                % Total nd-500 swapp accesses
+114476   INTEGER 1FSA1,2FSA1                % Total nd-500 "file-as-segment" accesses
+114500   DOUBLE  DFSA1=1FSA1
+114500   INTEGER 1TRA1,2TRA1                % Total read accesses
+114502   INTEGER 1WRA1,2TWA1                % Total write accesses
+114504   INTEGER 1XRA1,2XRA1                % 1. number of nd-100 file i/o read accesses
+114506                                      %    by a specific rt-program.
+114506                                      % 2. number of nd-500 file i/o read accesses
+114506                                      %    by a specific nd-500 process.
+114506                                      % 3. number of nd-100 swapper read accesses
+114506                                      %    on a specific nd-100 segment.
+114506                                      % 4. number of nd-500 swapper read accesses
+114506                                      %    on a specific nd-500 segment.
+114506                                      % 5. number of nd-500 "file-as-segment" read accesses
+114506                                      %    on a specific nd-500 segment.
+114506   INTEGER 1XWA1,2XWA1                % Same as 1xra1/2xra1 but write accesses.
+114510
+114510   INTEGER 1TDA2,2TDA2                % Total disc accesses
+114512   INTEGER 11FA2,21FA2                % Total nd-100 file i/o accsesses
+114514   INTEGER 11SA2,21SA2                % Total nd-100 swapp accesses
+114516   INTEGER 15FA2,25FA2                % Total nd-500 file i/o accesses
+114520   INTEGER 15SA2,25SA2                % Total nd-500 swapp accesses
+114522   INTEGER 1FSA2,2FSA2                % Total nd-500 "file-as-segment" accesses
+114524   DOUBLE  DFSA2=1FSA2
+114524   INTEGER 1TRA2,2TRA2                % Total read accesses
+114526   INTEGER 1WRA2,2TWA2                % Total write accesses
+114530   INTEGER 1XRA2,2XRA2                % 1. number of nd-100 file i/o read accesses
+114532                                      %    by a specific rt-program.
+114532                                      % 2. number of nd-500 file i/o read accesses
+114532                                      %    by a specific nd-500 process.
+114532                                      % 3. number of nd-100 swapper read accesses
+114532                                      %    on a specific nd-100 segment
+114532                                      % 4. number of nd-500 swapper read accesses
+114532                                      %    on a specific nd-500 segment.
+114532                                      % 5. number of nd-500 "file-as-segment" read accesses
+114532                                      %    on a specific nd-500 segment.
+114532   INTEGER 1XWA2,2XWA2                % Same as 1xra2/2xra2 but write accesses.
+114534
+114534   INTEGER 1TDA3,2TDA3                % Total disc accesses
+114536   INTEGER 11FA3,21FA3                % Total nd-100 file i/o accsesses
+114540   INTEGER 11SA3,21SA3                % Total nd-100 swapp accesses
+114542   INTEGER 15FA3,25FA3                % Total nd-500 file i/o accesses
+114544   INTEGER 15SA3,25SA3                % Total nd-500 swapp accesses
+114546   INTEGER 1FSA3,2FSA3                % Total nd-500 "file-as-segment" accesses
+114550   DOUBLE  DFSA3=1FSA3
+114550   INTEGER 1TRA3,2TRA3                % Total read accesses
+114552   INTEGER 1WRA3,2TWA3                % Total write accesses
+114554   INTEGER 1XRA3,2XRA3                % 1. number of nd-100 file i/o read accesses
+114556                                      %    by a specific rt-program.
+114556                                      % 2. number of nd-500 file i/o read accesses
+114556                                      %    by a specific nd-500 process.
+114556                                      % 3. number of nd-100 swapper read accesses
+114556                                      %    on a specific nd-100 segment.
+114556                                      % 4. number of nd-500 swapper read accesses
+114556                                      %    on a specific nd-500 segment.
+114556                                      % 5. number of nd-500 "file-as-segment" read accesses
+114556                                      %    on a specific nd-500 segment.
+114556   INTEGER 1XWA3,2XWA3                % Same as 1xra3/2xra3 but write accesses.
+114560
+114560   INTEGER 1TDA4,2TDA4                % Total disc accesses
+114562   INTEGER 11FA4,21FA4                % Total nd-100 file i/o accsesses
+114564   INTEGER 11SA4,21SA4                % Total nd-100 swapp accesses
+114566   INTEGER 15FA4,25FA4                % Total nd-500 file i/o accesses
+114570   INTEGER 15SA4,25SA4                % Total nd-500 swapp accesses
+114572   INTEGER 1FSA4,2FSA4                % Total nd-500 "file-as-segment" accesses
+114574   DOUBLE  DFSA4=1FSA4
+114574   INTEGER 1TRA4,2TRA4                % Total read accesses
+114576   INTEGER 1WRA4,2TWA4                % Total write accesses
+114600   INTEGER 1XRA4,2XRA4                % 1. number of nd-100 file i/o read accesses
+114602                                      %    by a specific rt-program.
+114602                                      % 2. number of nd-500 file i/o read accesses
+114602                                      %    by a specific nd-500 process.
+114602                                      % 3. number of nd-100 swapper read accesses
+114602                                      %    on a specific nd-100 segment.
+114602                                      % 4. number of nd-500 swapper read accesses
+114602                                      %    on a specific nd-500 segment.
+114602                                      % 5. number of nd-500 "file-as-segment" read accesses
+114602                                      %    on a specific nd-500 segment.
+114602   INTEGER 1XWA4,2XWA4                % Same as 1xra4/2xra4 but write accesses.
+114604   DATA    (0)
+114605   INTEGER CABFUNC
+114606   INTEGER CDRIV
+114607   INTEGER CCDAD
+114610   INTEGER CCTAC
+114611   INTEGER XDLFLAG
+114612   INTEGER C5SEG
+114613   INTEGER 5NPAR
+114614
+114614   INTEGER DLUN1,DDRI1                % Datafelt addr and drive number for 1st. disk drive to log.
+114616   INTEGER DLUN2,DDRI2                % Datafelt addr and drive number for 2nd. disk drive to log.
+114620   INTEGER DLUN3,DDRI3                % Datafelt addr and drive number for 3rd. disk drive to log.
+114622   INTEGER DLUN4,DDRI4                % Datafelt addr and drive number for 4th. disk drive to log.
+114624   DOUBLE  XFDA1,XLDA1                % Disk address area to log on disc drive 1.
+114630   DOUBLE  XFDA2,XLDA2                % Disk address area to log on disc drive 2.
+114634   DOUBLE  XFDA3,XLDA3                % Disk address area to log on disc drive 3.
+114640   DOUBLE  XFDA4,XLDA4                % Disk address area to log on disc drive 4.
+114644
+114644   INTEGER ARRAY DILGU:=(DLUN1,DLUN2,DLUN3,DLUN4)
+114650   INTEGER ARRAY CDADR:=(1TDA1,1TDA2,1TDA3,1TDA4)
+114654
+114654   INTEGER XDLXD                      % Specific nd-100 program/nd-500 process.
+114655   INTEGER XDLYD                      % Specific nd-100 segment/nd-500 segment.
+114656   INTEGER BDLBUADDR,SDLBUADDR        % Physical addr of "extra data buffer"
+114660   DOUBLE  DBDLBUADDR=BDLBUADDR
+114660   INTEGER BASEG,SASEG
+114662   DOUBLE  DDBASEG=BASEG
+114662
+114662
+114662   %----------------------------------------------------------------------------
+114662   % Data block primitive #36
+114662   %
+114662   INTEGER ARRAY DPR36:=(44,0,0)
+114665   DATA    (0,0)
+114667   INTEGER BMLB1,SMLB1                % Phys addr of optional buffer 1
+114671   DOUBLE  D1BMLB=BMLB1
+114671   INTEGER BXML1,SXML1                % Phys addr of optional buffer 2
+114673   DOUBLE  D1BXML=BXML1
+114673   INTEGER MLXRT
+114674   INTEGER X1MLP,X2MLP,X3MLP,X4MLP    % Specific rt-program/mon.call
+114700   INTEGER X5MLP,X6MLP,X7MLP,X8MLP
+114704   DOUBLE  DX1MLP=X1MLP,DX3MLP=X3MLP
+114704   DOUBLE  DX5MLP=X5MLP,DX7MLP=X7MLP
+114704   INTEGER MLOFLAG
+114705
+114705
+114705   %----------------------------------------------------------------------------
+114705   % Data block primitive #37
+114705   %
+114705   INTEGER ARRAY DPR37:=(45,0,0,0,0)
+114712   INTEGER BMLB5,SMLB5                % Phys addr of optional buffer 1
+114714   DOUBLE  D5BMLB=BMLB5
+114714   INTEGER BXML5,SXML5                % Phys addr of optional buffer 2
+114716   DOUBLE  D5BXML=BXML5
+114716   INTEGER MLXPROC
+114717   INTEGER Y1MLP,Y2MLP,Y3MLP,Y4MLP    % Specific nd-500 process/mon.call
+114723   INTEGER Y5MLP,Y6MLP,Y7MLP,Y8MLP
+114727   DOUBLE  DY1MLP=Y1MLP,DY3MLP=Y3MLP
+114727   DOUBLE  DY5MLP=Y5MLP,DY7MLP=Y7MLP
+114727   INTEGER ML5FLAG
+114730
+114730
+114730
+114730
+114730   %----------------------------------------------------------------------------
+114730   % Data block primitive #64
+114730   %
+114730   INTEGER ARRAY DPR64:=(100,0,0)
+114733   INTEGER ARRAY DA1SG(30)            % Pages-in-memory counter for 8 segments
+114763   INTEGER ARRAY F1SGS(10)            % Max 8 segment specifier
+114773   DATA    (-1)
+114774
+114774
+114774   %----------------------------------------------------------------------------
+114774   % Data block primitive #65
+114774   %
+114774   INTEGER ARRAY DPR65:=(101,0,0)
+114777   INTEGER ARRAY DA5SG(30)            % Pages-in-memory counter for 8 segments
+115027   INTEGER ARRAY F5SGS(20)            % Max 8 segment specifier
+115047   DATA    (-1)
+115050
+115050
+115050
+115050
+115050   %----------------------------------------------------------------------------
+115050   % Data block primitive #66
+115050   %
+115050   INTEGER ARRAY DPR66:=(102,0,0)
+115053   INTEGER ARRAY 1DAPC(200)           % Histogram data for 64 interval
+115253   INTEGER 1OUT1,1OUT2                % Outside address area
+115255   INTEGER 1FPRG(100)                 % First addr in area to log.
+115355   INTEGER PC1SG                      % Specific segment number to log
+115356   INTEGER PCRTP                      % Specific rt-program to log
+115357   INTEGER PCLEV                      % Interrupt level to log
+115360   INTEGER 1PCIN                      % Interval size when fixed interval size
+115361   INTEGER 1PCFLAG                    % Routine switch (option dependant)
+115362
+115362
+115362
+115362
+115362   %----------------------------------------------------------------------------
+115362   % Data block primitive #67
+115362   %
+115362   INTEGER ARRAY DPR67:=(103,0,0)
+115365   INTEGER ARRAY 5DAPC(200)           % Histogram data for 64 interval
+115565   INTEGER 5OUT1,5OUT2                % Outside address area
+115567   INTEGER 5FHPR,5LHPR(201)           % Lower addr in area to log
+115771   DOUBLE  D5FHPR=5FHPR
+115771   INTEGER 5MPHF
+115772   INTEGER 5MHPROC                    % Process description
+115773   INTEGER PC5PROC                    % Specific nd-500 process to log
+115774   INTEGER 5PCIN                      % Interval size when fixed interval size
+115775   INTEGER 5PCFLAG                    % Routine switch (option dependant)
+115776   DOUBLE  DCADR                      % Actual P-reg of process
+116000
+116000   %----------------------------------------------------------------------------
+116000   % Data block primitive #77
+116000   %
+116000   INTEGER ARRAY DPR77:=(115,0,0)
+116003   INTEGER 5TNOPAG                    % number of pages in buffer
+116004   INTEGER 5TPT1,5TPT2
+116006   DOUBLE  5TPOINTER=5TPT1            % current pointer in buffer
+116006   INTEGER 5OKPT                      % first OK pointer in buffer
+116007   INTEGER BTRAC,STRAC                % Phys addr of optional buffer 1
+116011   DOUBLE  DTRAC=BTRAC
+116011
+116011   INTEGER PROFLAG                    % which processes to trace
+116012   INTEGER TRCSIZE                    % size of current messbuff to be logged
+116013   INTEGER TRCOPT                     % curr suboption to be logged
+116014   INTEGER TRXREG                     % current message to be logged
+116015   INTEGER TRINIT                     % =-1 : pointers need to be updated
+116016                                      % = 1 : OK
+116016   INTEGER DEPFFLAG                   % decomess pf trap
+116017   INTEGER DETRFLAG                   % decomess trap-pf
+116020   INTEGER DEMCFLAG                   % decomess mcall
+116021   INTEGER DECOSIZE                   % size of messbuff to be logged from decomess
+116022   INTEGER DECOPT                     % suboption 100
+116023
+116023   INTEGER N5SIZE                     % size of messbuff to be logged from n500c
+116024   INTEGER N5COPT                     % suboption 200
+116025
+116025   INTEGER ACTSSIZE                   % size of messbuff to be logged from actsw
+116026   INTEGER ACTSCOPT                   % suboptionn 400
+116027
+116027   INTEGER T5XQSIZE                   % size of messbuff to be logged from ITO500XQ
+116030   INTEGER T5XQCOPT                   % suboption 1000
+116031
+116031   INTEGER F5XQSIZE                   % size of messbuff to be logged from IFM500XQ
+116032   INTEGER F5XQCOPT                   % suboption 2000
+116033
+116033   INTEGER ACTSIZE                    % size of messbuff to be logged from ACT500
+116034   INTEGER ACT5COPT                   % suboption 4000
+116035
+116035   INTEGER TER5SIZE                   % size of messbuff to be logged from TER500
+116036   INTEGER TER5COPT                   % suboption 10000
+116037
+116037   INTEGER MCCOSIZE                   % size of messbuff to be logged from MCCO
+116040   INTEGER MCCOCOPT                   % suboption 20000
+116041
+116041   INTEGER SWPDSIZE                   % size of messbuff to be logged from SWPDECODER
+116042   INTEGER SWPDCOPT                   % suboption 40000
+116043
+116043
+116043   INTEGER 5TPAGNO                    % physical page of buffer
+116044   INTEGER 5TEN1,5TEN2                %
+116046   DOUBLE  5TDEN=5TEN1                % last address of buffer (+1)
+116046   INTEGER 5TBANK                     % trace buffer bank number
+116047   INTEGER 5TADDRESS                  % address within bank
+116050   DOUBLE  5TDADDRESS=5TBANK
+116050   INTEGER 5TSTATUS                   % trace buffer status
+116051           SYMBOL 5RWRAP=17
+116051   INTEGER ARRAY SPACE:=(50,120,160,210)
+116055   INTEGER ARRAY 5TTRA:=(40,40,150,200)
+116061   INTEGER ARRAY 5XSTA:=(0,0,0,30)
+116065
+116065   INTEGER Y1TRP,Y2TRP,Y3TRP,Y4TRP
+116071   INTEGER Y5TRP,Y6TRP,Y7TRP,Y8TRP
+116075   DOUBLE  DY1TRP=Y1TRP,DY3TRP=Y3TRP
+116075   DOUBLE  DY5TRP=Y5TRP,DY7TRP=Y7TRP
+116075
+116075   *"
+"116075
+116075   @DEV 1

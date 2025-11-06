@@ -1,0 +1,645 @@
+053706   @DEV (S-S-L)IP-P2-DISK-START:NPL
+053706   % IP-P2-DISK-START
+053706   %==============================================================================
+053706   %            C T R D I S K   B U S Y E   M D R I V   P F E I L
+053706   %            C O O P T   D R F E I L
+053706   %
+053706   % LEVEL 11 ROUTINE TO PERFORM DRUM/DISK TRANSFERS
+053706   % ACTIVATED BY MTRANS, WITH B=DATAFIELD, X=ABSTR PAR.LIST
+053706
+053706
+053706   SUBR CTRDISK,BUSYE,MDRIV,PFEIL,COOPT,DRFEIL
+053706
+053706   DISP 0; DOUBLE POINTER DP1=P1; PSID
+053706   DISP 0; DOUBLE DITARG=CTRG,DIDXRG=CDRG; PSID
+053706   INTEGER  CBLDA(0); *BLDA 00 DT
+053707   INTEGER CUN=?
+053707
+053707   INTEGER 9XER=?, 9XDV=?, 9XUN=?, 9XTA=?, 9XST=?, 9XFU=?
+053707   DOUBLE 9XMA=?, 9XDA=?
+053707
+053707   CTRDISK:
+053707          A:=L=:"CTRLR"
+053711   *"8MPRF
+"053711          CALL DIALO                               % Mon Performance sampling
+053712   *"
+"053712          X=:PARDF
+053713          X.RTRES=:STPRW                            % SET PROG OWNING THIS ACCESS
+053715          T:=X.ABFUN; AD:=X.MEMAD=:MEMAD
+053720          IF A=0 AND D=0 THEN CALL ERRFATAL FI      % MEMORY ADDR ZERO IS ILLEGAL
+053724          A/\3; A SH 14+T=:CTRG
+053730          A SHZ -6/\7 SH 3\/CBLDA
+053734          T:=M2UNTYP; *EXR SA
+053736          IF K THEN
+053740              CTRG BONE 16=:CTRG; 0=:CARG            % IF PHOENIX DISC
+053744          ELSE
+053745              CTRG/\7000 SHZ -11=:CARG
+053751          FI
+053751          IF CTRG/\77 >=60 AND A <=66 THEN   % CONVERT TO 0-4 FUNCK
+053761               IF A = T THEN CTRG/\177701=:CTRG
+053766               ELSE          CTRG/\177703=:CTRG FI
+053772               X.ABPA2=:CADRG                                 % DOUBLE DISK ADDRESS
+053774          ELSE IF A =43 OR A =44 THEN
+054003               X.ABPA2=:CADRG                                 % DOUBLE DISK ADDRESS
+054005          ELSE
+054006               X.ABP21=:CDRG                                  % SINGLE DISK ADDRESS
+054010          FI FI
+054010          X.ABP31=:CXRG                                       % NO OF SECTORS
+054012   % ----------------------------- END OF PARAMETER FETCHING
+054012          CTRG=:TRGINI
+054014          IF A/\77=36 THEN                                    % READ ELEMENT IN "DISC-LAYOUT-TABLE"
+054020             0=:HSTAT; AD:=PARDF.MEMAD; *EXAM                       % T=FORMAT NUMBER
+054024             IF 40>T AND DISPE(T)><0 THEN                     % 37 IS MAX FORMAT NUMBER
+054032                T:=PARDF.MEMA1; X:=X.MEMA2; B=:L:=A; "DILEZ"=:D
+054041                DO WHILE D><0                                 % COPY "DISC LAYOUT TABLE" ELEMENT TO "DMA-BUFFER"
+054043                   S0; *STATX
+054045                   X+1; D-1; B+1
+054050                OD; B:=L
+054052             FI; GO FAR FIN; *)FILL
+054066          FI
+054066          IF A=42 AND "TRNSF"><"BDISK" GO FAR FIN   % READ FORMAT NOT LEGAL IN DRIVER
+054075                                                    % BUT GIVE NO ERROR MESSAGE
+054075          IF TMR><0 THEN CALL ID11 FI      % DISP 12 ; 0=:TMRFLG
+054100   *"8DILG
+"054100          IF "DFDIL".DILGFLAG BIT DILCOUNT THEN
+054104             IF A BIT DAC1CONTROLLER AND B><X.DLALOGDV GO L1       % DO'NT COUNT THIS CONTROLLER
+054111             IF A BIT DAC1UNIT AND CTRG SHZ -6/\7><X.DLAUNIT GO L1 % DO'NT COUNT THIS UNIT
+054121             *MIN 2XNDA,X; SKP; MIN 1XNDA,X; JMP * 1          % COUNT DISC ACCESSES
+054125             IF CTRG/\77=1 THEN                               % COUNT WRITE ACCESSES
+054132                *MIN 2XNWD,X; SKP; MIN 1XNWD,X; JMP *+1
+054136             FI
+054136          FI; GO L1; *)FILL
+054145   L1:    IF X.DILGFLAG BIT DILSTART AND A BIT DILBOK THEN    % DISC LOG STARTED?
+054152             A=:D; X:="DIDLOG"
+054154             DO WHILE X.S0><-1                                % FIND LOGICAL UNIT
+054160                IF A=B GO LGFOUND
+054162                X+2
+054163             OD; GO NOTLOG
+054165   INTEGER CLUN
+054166   LGFOUND:  X.S1=:CLUN; X:="DFDIL"                           % LOGICAL UNIT OF DISC
+054171             IF A:=D/\37=0 GO DOLOG                           % LOG EVERY ACCESS
+054174             IF D BIT DIL1CONTROLLER THEN                     % LOG ONLY ONE CONTROLLER?
+054176                IF X.DLLOGDV><CLUN GO NOTLOG                  % YES, IS IT THIS CONTROLLER?
+054202             FI
+054202             IF D BIT DIL1UNIT THEN                           % LOG ONLY ONE UNIT?
+054204                IF CTRG SHZ -6/\7><X.DLDRIVE GO NOTLOG        % YES, IS IT THIS UNIT?
+054212             FI
+054212             IF D BIT DILWACCESS THEN                         % LOG ONLY WRITE ACCESSES?
+054214                IF CTRG/\77><1 GO NOTLOG
+054221             FI
+054221             IF D BIT DILRACCESS THEN                         % LOG ONLY READ ACCESSES?
+054223                IF CTRG/\77><0 GO NOTLOG
+054226             FI
+054226             IF D BIT DILLIMIT THEN                           % LIMITED AREA TO LOG?
+054230                AD:=CADRG; A=:L; D=:T; AD:=X.DILFADDR         % YES, TEST DISC ADDRESS
+054234                IF L<<A GO NOTLOG; IF L=A AND T<<D GO NOTLOG
+054242                AD:=X.DILGLADDR
+054243                IF L>>A GO NOTLOG; IF L=A AND T>>D GO NOTLOG
+054251             FI
+054251   DOLOG:    T:="DFDIL".DILBANK; A:=X.DILGFLAG=:L:=X.DILBPNT  % SET UP DISC LOG RECORD
+054256             IF L BIT DILSMALL THEN
+054260                A+4=:X.DILBPNT; A-4
+054263             ELSE
+054264                A+10=:X.DILBPNT; A-10
+054267             FI; X:=A
+054270             AD:=DITARG; *STDTX
+054272             IF L BIT DILSMALL THEN
+054274                CLUN=:D; A:=CDRG; *STDTX 20
+054300             ELSE
+054301                AD:=DIDXRG; *STDTX 20
+054303                X=:L; AD:=PARDF.MEMAD;X:=L; *STDTX 40
+054310                STPRW=:D:=CLUN; *STDTX 60                     % RT PROG AND UNIT
+054314             FI; CALL WRDILOG; GO NOTLOG; *)FILL              % WRITE DISC LOG BUFFER
+054324          FI
+054324   *"
+"054324   NOTLOG: 0=:HSTAT
+054325          IF DIFTCOUNT=0 THEN 1=:DIFTCOUNT FI                 % ONE RESTART BY TIMRT IS MAX
+054331   *"8DILG
+"054331          IF "TRNSF"="BDISK" THEN 0=:SPACO=:CORCU=:SRTRY=:SWTRY FI
+054341   *"
+"054341   LOOP:                                                      % FOR TRANSF AND COMPARE
+054341                TACNS=:TACOU
+054343                FOR TACOU DO                                  % FOR EACH ERROR
+054343                   AD:=PARDF.MEMAD=:CMADR
+054346   CREST:          CTADRG=:TADRG; X:=CXRG=:XRG
+054352                   DO                                         % FOR EACH PHYSICAL TRANSFER
+054352                      TTMR=:TMR; A:=ARG
+054355
+054355                      CALL TRNSF; GO ERROR; GO BUSY; GO FINISH
+054361
+054361   BUSYE:             TAD=:TADRG; X=:XRG; CALL ID11           % WAIT FOR INTERRUPT
+054364                      IF TMR=0 THEN                           % TIMEOUT
+054366   *"8DILG
+"054366                         D:=B; X:=DEDFADDR:=:B
+054371                         IF X.CTRG SHZ -6/\7<4 THEN           % A=DISC UNIT NUMBER
+054377                            IF T:=X.CTRG BIT "0" THEN         % WRITE ACCESS
+054402                               MIN DIEWTMOUT(A); 0/\0         % INCREMENT WRITE-ACCESS TIMEOUT COUNTER
+054405                            ELSE
+054406                               MIN DIERTMOUT(A); 0/\0         % INCREMENT READ-ACCESS TIMEOUT COUNTER
+054411                            FI
+054411                         FI; D=:B
+054412   *"
+"054412                         IF DIFTCOUNT=0 GO FAR ERTMOUT
+054415                         -1=:HSTAT
+054417                      FI
+054417
+054417   MDRIV:             TADRG; X:=XRG
+054421                   OD
+054422   % ERROR EXIT
+054422   PFEIL:
+054422                   SRETF BONE CLDV=: SRETF                    % CLEAR DEVICE HAS BEEN USED
+054425                   IF X NBIT 16 AND DIFTCOUNT><0 THEN         % NOT ON CYLINDER
+054431                      A-1=:DIFTCOUNT;
+054433                      IF STREN = 1 THEN CALL STSERR FI
+054440                      CALL ID11; GO CREST     % TIMRT REACTIVATE DRIVER
+054442                   FI
+054442   DRFEIL:         X BONE 4=:HSTAT; T=:9XFU; AERRB\/X=:AERRB; MIN ERCNT; 0/\0
+054452   *"RVERR
+"054452                   IF CTRG SHZ -6/\7-4<0 THEN                 % SAVE ERROR INFO FOR EACH UNIT
+054457                      A+4=:X=:CUN:=DEDFADDR=:D:=HSTAT; B:=:D
+054466                      A=:DIUEXRG(X); T=:DIUETRG(X)
+054470                      T:=D.HSTAT
+054472                      IF X.CTRG BIT "0" THEN                  % WRITE FUNCTION
+054475                         MIN DIEWCOUNT(CUN); 0/\0
+054500                         DIEWOR(X)\/T=:DIEWOR(X)
+054503                      ELSE
+054504                         MIN DIERCOUNT(CUN); 0/\0
+054507                         DIEROR(X)\/T=:DIEROR(X)
+054512                      FI; CALL UPDIERR; B:=D; X:=HSTAT
+054515                   FI
+054515   *"
+"054515                   IF SERRB/\X><0 GO FIN  %SERIOUS
+054520                   IF X BIT 12 THEN TRGINI=:CTRG FI
+054524                OD; GO FIN; *)FILL
+054535   *"8DILG
+"054535   INTEGER CUN
+054536   *"
+"054536
+054536   COOPT:       X=:HSTAT
+054537   *"8DILG
+"054537                IF CTRG SHZ -6/\7<4 THEN
+054545                   A=:X:=DEDFADDR=:D; B:=:D; CALL UPDIERR; B:=D
+054553                FI
+054553   *"
+"054553                IF COMFL=0 GO FIN
+054555                IF TRG/\7=3 GO FIN                  % COMPARE HAS BEEN EXECUTED
+054562                IF "TRNSF"="BDISK" GO FIN           % NO COMPARE ON ECC DISKS
+054566                IF CTRG/\77>1 GO FIN                % COMPARE FOR FUNCTION 0 AND 1
+054573                177770/\TRG\/3=:CTRG                % SET COMPARE
+054577          GO FAR LOOP; *)FILL
+054606
+054606   INTEGER 9XER:=1663        % Error code
+054607   INTEGER 9XDV              % Device no.
+054610   INTEGER 9XUN              % Unit
+054611   DOUBLE 9XMA               % Memory address
+054613   DOUBLE 9XDA               % Disk address
+054615   INTEGER 9XTA              % Number of words
+054616   INTEGER 9XST              % HW status   (+ inclusive OR of errors)
+054617   INTEGER 9XFU              % Driver error bits (T)
+054620
+054620   FIN:   0=:DIFTCOUNT;
+054621          IF CTRG/\77=42 THEN                                 % READ FORMAT
+054626             CTRG SHZ -6/\7=:X                                % X=UNIT NUMBER
+054632             X:=HTABL(X); T:=X.DISPN; AD:=PARDF.MEMAD; *DEPO  % RETURN FORMAT NUMBER IN FIRST LOCATION OF "DMA-BUFFER"
+054637   *"-8DIMI
+"054637          FI
+054637
+054637          0=:TMR
+054640          IF HSTAT BIT 4 THEN
+054643             IF 77/\TRG>=42 AND <=44 GO FINE                  % NO ERROR MESSAGE
+054653             IF A/\7=3 AND "TRNSF"="BDISK" GO FINE            % NO ERROR MESSAGE WHEN COMPARE ON ECC
+054663                1663=:9XER
+054665                A:=B; CALL PHLOG; A=:9XDV                     % DEVICE NUMBER
+054670                TRG SHZ -6/\7=:9XUN                           % DEVICE UNIT
+054674                PARDF.MEMAD=:9XMA; CADRG=:9XDA; CXRG=:9XTA    % PARAMETERS
+054703                HSTAT=:9XST; X:=STPRW                         % HARDWARE STATUS WORD
+054706                *1BANK
+054707                CALL 9FLEX(9XER,12)                           % REPORT ERROR
+054712                *2BANK
+054713          FI
+054713   FINE:  0=:STPRW
+054714          GO CTRLR                                           % E X I T
+054715   *)FILL
+054723
+054723   ERTMOUT: HDEV; T:=TRG SH 7 SHZ -15; CALL 9ERR(#26)         % DEVICE TIMEOUT
+054731            HSTAT BONE 4=:HSTAT; GO FINE
+054735
+054735   *"8DILG
+"054735   INTEGER XSPACO,XCORCU,XSRTRY,XSWTRY
+054741   UPDIERR: B:=:D
+054742            IF "BDISK"="TRNSF" THEN
+054746                A:=SPACO=:XSPACO:=CORCU=:XCORCU:=SRTRY=:XSRTRY:=SWTRY=:XSWTRY
+054756                B:=:D
+054757                DIERRTRY(X)+XSRTRY=:DIERRTRY(X)
+054762                DIEWRTRY(X)+XSWTRY=:DIEWRTRY(X)
+054765                DIECORCU(X)+XCORCU=:DIECORCU(X)
+054770                DIESPACO(X)+XSPACO=:DIESPACO(X)
+054773            ELSE
+054774                B:=:D
+054775            FI; EXIT
+054776   *"
+"054776   RBUS
+055000
+055000
+055000   SUBR STDIS
+055000   %---------------------------------------------------------
+055000   %   LEV 11 ROUTINE, ACTIVATED FROM MONITOR LEVEL
+055000   %  ON SINGLE THREAD DMA DEVICES
+055000   %---------------------------------------------------------
+055000   STDIS: CALL CTRDISK
+055001          1=:ISTATE; CALL RTACT               % RETURN TO MLEV
+055004          CALL ID11;  A+1; GO ERR22
+055007   RBUS
+055013
+055013   SUBR PRABP
+055013   %--------------------------------------------------------------
+055013   % PREPARE ABSTR PARAMETERS TO DISK.
+055013   % ENTRY: X= QUE ELEMENT
+055013   %--------------------------------------------------------------
+055013   PRABP:  IF X.ABFUN /\ 77 >=60 AND A <= 66 THEN  % DOUBLE WORD DISC ADDR
+055023              X.TYPCO BONE SSEEK =:X.TYPCO
+055026           ELSE IF A >= 0 AND A <= 3    THEN       % MAKE DOUBLE WORD DISC ADDR
+055033              X.TYPCO BONE SSEEK =:X.TYPCO
+055036              A:=X.ABP21; A=:D:=0; AD:=X.ABPA2
+055042              X.ABFUN+60=:X.ABFUN
+055045           ELSE
+055046           FI FI  A:=X.ABP31=:X.ABP32     % LENGTH IN BOTH
+055050           IF A = 0 THEN  X.TYPCO BZERO SSEEK =:X.TYPCO FI
+055054           EXIT
+055055   RBUS
+055056   SUBR DSORT
+055056   %--------------------------------------------------------------
+055056   % ENTRY:X= UNIT DF.
+055056   %       B= QUE  DF.
+055056   %--------------------------------------------------------------
+055056   INTEGER SAVX, PREVQ, LASTQ
+055061   INTEGER POINTER HOME
+055062
+055062   DSORT: A:=L=:"HOME"; X=:SAVX
+055065          T:="SCLINK-NLINK"+X=:PREVQ           % BEFORE FIRST ELEMENT
+055070          IF X.PLHAD=0 THEN A:=T FI; A=:LASTQ  % BEFORE FIRST ELEMENT IN OTHER DIRECTION
+055074          IF TYPCO BIT SSEEK THEN
+055077             X.CHADD; T:="ABPA2"+B; CALL COMPD % COMPARE WITH CURRENT HEAD ADDRESS
+055103             T:=X.MOVME
+055104             IF A SHZ -17 XOR T BIT 0 THEN
+055110                *BSET BCM 00 DT                % CHANGE DIRECTION
+055111                IF X.SCLINK><0 THEN
+055113                   LASTQ=:PREVQ; 0=:LASTQ      % START FROM MIDPOINT
+055116                ELSE
+055117                   T=:X.MOVME                  % INITIALIZE DIRECTION
+055120                FI
+055120             FI
+055120             X:=PREVQ; *BLDA 00 DT             % DIRECTION TO K
+055122             DO
+055122                IF X=LASTQ THEN
+055125                   *BSET BCM SSK               % CHANGE DIRECTION
+055126                FI
+055126                WHILE X:=X.NLINK><0
+055130                IF X.TYPCO BIT SSEEK THEN
+055133                   IF K THEN                   % INCREASING ADDRESSES
+055135                      ABPA2; T:=ABP32; D+T; A:=A+C
+055141                      T:="ABPA2"+X
+055143                   ELSE                        % DECREASING ADDRESSES
+055144                      X.ABPA2; T:=X.ABP32; D+T; A:=A+C
+055150                      T:="ABPA2"+B
+055152                   FI
+055152                   CALL COMPD
+055153                   IF A>0 THEN X=:PREVQ FI     % AFTER CURRENT
+055156                ELSE
+055157                   X=:PREVQ                    % AFTER CURRENT
+055160                FI
+055160             OD
+055161          ELSE
+055162             IF X.PLELE><0 THEN A=:PREVQ FI         % AFTER LAST ELEMENT
+055165          FI
+055165          PREVQ.NLINK=:NLINK; A:=B=:X.NLINK         % INSERT AFTER PREVIOUS
+055172          IF X=LASTQ THEN A=:SAVX.PLHAD FI
+055177          X:=SAVX; IF 0=NLINK THEN A=:X.PLELE FI
+055204          GO HOME
+055205   *)FILL
+055210
+055210   % COMPARE TWO UNSIGNED DOUBLES
+055210
+055210   INTEGER SAVX2
+055211   COMPD: X=:SAVX2
+055212          IF A>>T.S0 GO GT; IF A<<T GO LT      % CHECK FIRST WORD
+055220          IF D>>X.S1 GO GT; IF D<<T GO LT      % CHECK SECOND WORD
+055225          "0";  T:=SAVX2:=:X; EXIT
+055231   GT:    "1";  T:=SAVX2:=:X; EXIT
+055235   LT:    "-1"; T:=SAVX2:=:X; EXIT
+055241   RBUS
+055241
+055241   SUBR STSERR
+055241    %-----------------------------------------------------------------
+055241    % SEEK ERROR  ROUTINE                                    ( M )
+055241    % B= CONTR DF.
+055241    %-----------------------------------------------------------------
+055241   INTEGER IBLDA(0);*BLDA DT
+055242   INTEGER IBSTC(0);*BSTC DT
+055243   INTEGER 9XER:=1665, 9XDV, 9XUN
+055246           A:=X.SUNIT SHZ 3 \/IBLDA              % BUILD LOAD K INSTUCTION
+055251           INTEGER POINTER SAVL
+055252    STSERR:A:=L=:"SAVL"
+055254           MIN STIMC; A/\A
+055256           IF NSEEK-PESEEK >> 6 THEN           % NSEEK = SEEK COUNTER
+055263             0=:ESEEK                          % PESEEL= NSEEK WHEN LAST ERROR
+055264           FI                                  % ESEEK = ERROR COUNTER
+055264           NSEEK=:PESEEK                       %
+055266           IF ESEEK+1=:ESEEK > STMOU THEN      % TOO MANY TIME OUT,
+055274             X:=PUND0
+055275             DO WHILE X >< 0                   % TRY TO FIND THE UNIT
+055276                IF X.SLINK >< 0 THEN
+055300                  A:=X.SUNIT SHZ 3 \/IBLDA     % BUILD LOAD K INSTUCTION
+055303                  T:=SUNIH ;*EXR SA            % LOAD  K
+055305                  IF K GO NUN                  % SEEK ALLREADY INHIBITED
+055307                  A:=X.SUNIT SHZ 3 \/IBSTC;*EXR SA %BUILD STORE C0MP.
+055313                  T=:SUNIH;                    % DISABLE SEEK ON THIS UNIT
+055314                  A:=B; CALL PHLOG; A=:9XDV
+055317                  T:=X.SUNIT=:9XUN
+055321                  *1BANK
+055322                  X:=0; CALL 9FLEX(9XER,3)
+055326                  *2BANK
+055327                  X:=0
+055330                ELSE
+055331   NUN:           X:=X.ULINK
+055332                FI
+055332             OD
+055333           FI
+055333           GO SAVL
+055334   RBUS
+055336
+055336   SUBR STSURR
+055336    %-----------------------------------------------------------------------
+055336    %  TRY TO FIND SEEK ERROR UNIT                               ( I )
+055336    %  B= CONTR. DF
+055336    %-----------------------------------------------------------------------
+055336           INTEGER POINTER SAVL
+055337    STSURR:A:=L=:"SAVL"
+055341           CALL STSERR
+055342           IF  PSTRA >< 0 THEN CALL ERRFATAL; FI
+055345           X:=PUND0
+055346           DO WHILE X >< 0                     % SCAN ALL UNITS
+055347              IF X.SLINK >< 0 GO SAVL
+055352              X:=X.ULINK
+055353           OD
+055354           CALL ERRFATAL
+055355   RBUS
+055357
+055357   SUBR TOSECT
+055357    %-----------------------------------------------------------------------
+055357    %  CONVERT PHYS ADDR TO SCETOR, CYL AND SURF.                ( I )
+055357    %  ENTRY:  AD= LOG SECT ADDR,  B= DISK DF, X= UNIT DF
+055357    %  EXIT :   A= SECTOR / SURFACE
+055357    %           D= CYLINDER
+055357    %-----------------------------------------------------------------------
+055357   INTEGER SEC,CYL,XREG
+055362   DOUBLE SECC=SEC
+055362   TOSECT: AD=:SECC; A:=X.SUNIT; X=:XREG:=B
+055366           *AAX HTABL; RADD DX SA; LDX ,X % SET UP DISK LAYOUT ELEMENT ADDRESS
+055371           AD:=SECC
+055372           T:=X.SECSY; *RDIV ST           % COMPUTE CYLINDER
+055374           A=:CYL:=0
+055376           T:=X.SECTR; *RDIV ST           % COMPUTE SURFACE/ SECT
+055400           A SHZ 10:=:D;
+055402           IF A-2 < 0 THEN A+X.SECTR;FI     %
+055405           A\/D=:SEC
+055407           AD:=SECC; X:=XREG
+055411           EXIT
+055412    RBUS
+055412
+055412
+055412   SUBR BSEEK,WSEEK
+055412    %-------------------------------------------------------------------
+055412    % L E V E L  1 1    ROUTINES TO START SEEK FOR SORTING ABSTR     ( I )
+055412    % B= CONTR DATAFIELD, X=UNIT DF
+055412    %-------------------------------------------------------------------
+055412    @ICR;
+055412           SYMBOL RSC=2,         % REED SEEK COND
+055412                  LBA=3,         % LOAD BLOCK ADDR
+055412                  RSR=4,         % READ STATUS REG
+055412                  LCO=5;         % LOAD CONTR WORD
+055412
+055412    @CR;
+055412
+055412    % BSEEK
+055412    %-------------------------------------------------------------------
+055412    % BNSEEK: INITIATE SEEK
+055412    % B= DISK DF, X= UNIT DF
+055412    %-------------------------------------------------------------------
+055412   INTEGER IBLDA(0);*BLDA DT
+055413   BSEEK:  T:=X; A:=X.SLINK.TYPCO; X:=T
+055417           IF A NBIT SSEEK THEN EXIT; FI
+055422           IF "TRNSF"><"BDISK" THEN EXIT; FI     % NOT PARALELL SEEK
+055427           A:=X.SUNIT SHZ 3 \/IBLDA              % BUILD LOAD K INSTUCTION
+055432           T:=M2UNTYP;*EXR SA;BSKP ZRO SSK;EXIT  % NOT SEEK ON CARTRIDGE DISC
+055436           T:=SUNIH  ;*EXR SA;BSKP ZRO SSK;EXIT  % THIS UNIT IS INHIBITED FORM SEEK
+055442           T:=HDEV+LCO
+055444           A:=X.SUNIT SHZ 7;    *IOXT       % UNIT SELECT AND RESET CWR
+055447           AD:=X.CHADD                      % PHYS ADDR
+055450           T+"LBA-LCO";         *IOXT
+055452           A:=X.SUNIT SHZ 7 BONE 17         % UNIT SELECT AND SET CWR
+055455           T+"LCO-LBA";         *IOXT
+055457           A:=D;    T+"LBA-LCO";*IOXT       % BLOCK ADDRESS II
+055462
+055462           A:=X.SUNIT SHZ 7=:LUNI           % UNIT SELECT AND RESET CWR
+055465           A \/ 020004; T+"LCO-LBA"         % INITIATE SEEK
+055467           *IOXT
+055470           EXITA
+055471   *)FILL
+055473    % WSEEK
+055473    %-------------------------------------------------------------------
+055473    % WAIT ON SEEK ROUTINE FOR SMD CONTROLLER
+055473    %-------------------------------------------------------------------
+055473           INTEGER LOOP
+055474    WSEEK: A:=L=:"CTRLR"
+055476           -101=:LOOP
+055500    L1:    MIN LOOP; GO L2; GO CTRLR        % ERROR
+055503    L2:    T:=HDEV+RSR; *IOXT               % READ STATUS
+055506           IF A BIT 17 THEN                 % MUST RESET CWR
+055510             T+"LCO-RSR"; A:=LUNI; *IOXT
+055513             GO L1
+055514           FI
+055514           IF A  BIT 4 GO CTRLR      % ERROR
+055516           IF A NBIT 3 GO L1         % NOT FINISHED
+055520           TTMR=:TMR
+055522           T+"LCO-RSR";A:=LUNI       % UNIT SELECT ON A VALID UNIT
+055524           A \/ 030005; *IOXT        % ENABLE INT, SEEK COMPL. SEARCH
+055526           CALL ID11                 % WAIT ON SEEK INTERUPT
+055527
+055527           T:=HDEV+RSC;       *IOXT                  % READ SEEK CONDITION
+055532
+055532           IF T:=TMR = 0 GO CTRLR
+055535
+055535           IF      A BIT 0 THEN X:=0                 % WITCH UNIT ?
+055540           ELSE IF A BIT 1 THEN X:=1
+055544           ELSE IF A BIT 2 THEN X:=2
+055550           ELSE IF A BIT 3 THEN X:=3
+055554           ELSE
+055555              MIN SUNGL; A/\A;  GO L1
+055560           FI FI FI FI
+055560           MIN NSEEK; A/\A
+055562           IF X:=PUNDF(X)=0 THEN GO CTRLR; FI   % X= UNIT DF
+055566           MIN "CTRLR";A/\A
+055570           GO CTRLR
+055571   RBUS
+055573
+055573
+055573    SUBR  SSCUR,UPCUR
+055573    %----------------------------------------------------------------------
+055573    % MOVE FROM SCLINK QUE TO SLINK POINTER                ( I )
+055573    % B= DISK DF, X= UNIT DF
+055573    %     UPCUR: UPDATE POINTERS IF SLINK IS UPDATED OUTSIDE
+055573    %----------------------------------------------------------------------
+055573    % LOCAL SUBROUTINE TO DECREMENT NO IN QUE
+055573   DECN:   SNOIQ-1=:SNOIQ                      % COUNTER FOR NO. IN QUE
+055576           X.SUNOP-1=:X.SUNOP                  % COUNTER FOR NO. IN UNIT QUE
+055601           EXIT
+055602
+055602           INTEGER SAQH
+055603           INTEGER POINTER SAVL
+055604    SSCUR: X=:SAQH; A:=L=:"SAVL"
+055607           CALL DECN
+055610           IF X.SLINK >< 0 THEN                % ONLY ONE CAN BE STARTED
+055612              CALL ERRFATAL; FI
+055613           *AAX SCLIN
+055614           CALL GETOUT                         % LINK QUE ELEM
+055615           *AAX SLINK-SCLIN
+055616           CALL PUTIN; *AAX -SLINK             % TO STARTED
+055620           IF X.PLELE >< T THEN                % LAST ELEMENT LIKED IN ?
+055623             IF X.PLHAD=T THEN                 % NEW DIRECTION ?
+055626                0=:X.PLHAD                     % NO MORE IN THIS DIRECTION
+055627             ELSE
+055630             IF A=0 THEN
+055631                X.PLELE=:X.PLHAD               % NEW DIRECTION
+055633                MIN X.MOVME; A/\A
+055635             FI FI
+055635           ELSE                                % LAST ACC
+055636             0=:X.PLHAD=:X.PLELE
+055640           FI
+055640   L1:     X=:T; IF X.SLINK.TYPCO  BIT SSEEK THEN
+055645             AD:=X.ABPA2; T=:X                % LOG. SECT. ADDRESS
+055647             CALL TOSECT; AD=:X.CHADD         % PHYS ADDRESS
+055651           ELSE
+055652             T=:X
+055653           FI
+055653           GO SAVL
+055654   UPCUR:  X=:SAQH; A:=L=:"SAVL"
+055657           CALL DECN
+055660           GO L1
+055661   RBUS
+055665
+055665
+055665   SUBR STRDISK
+055665    INTEGER CODF              % CONTROLLER DF
+055666    INTEGER QUDF              % QUE ELEM  DF
+055667    INTEGER UNDF              % UNIT DF
+055670    %-------------------------------------------------------------------
+055670    % LEVEL 11 DODMA ROUTINE FOR SMD AND ST506                     ( I )
+055670    %  ENTRY:  B= CONTR DATAFIELD  X= QUE DF  T= TYPE
+055670    %-------------------------------------------------------------------
+055670    STRDISK:A:=B=:CODF; X=:QUDF; A:=L=:X.NFUNC
+055675           T=:X.TYPCO
+055676   % ----------------------------- PREPARE PARAMETERS
+055676           CALL PRABP                                  % PREPARE PARAMETERS
+055677           A:=X.ABFUN /\ 300 SHZ -6=:LUNI              % UNIT SELECT
+055703           IF X:=PUNDF(A)=0 THEN
+055707             X:=PUND0; IF X=0 THEN CALL ERRFATAL FI
+055713           FI X=:UNDF                                 % X= UNIT DF. (B= CONT DF.)
+055714   % --------------------------- WHAT TO DO
+055714           MIN SNOIQ; 0/\0; MIN X.SUNOP; 0/\0         % COUNT ELEMENT
+055720           IF  SNOIQ >  SNMIQ  THEN A=:  SNMIQ  FI
+055725           IF X.SUNOP> X.SUMAX THEN A=: X.SUMAX FI
+055732           IF X.SCLINK >< 0 THEN                      % QUE NOT EMPTY
+055734             QUDF=:B; CALL DSORT; GO WT11
+055740           ELSE IF PSTRA >< 0 OR X.SLINK >< 0 THEN    % CONTROLLER OR UNIT BUSY
+055745             QUDF=:X.SCLINK=:X.PLHAD=:X.PLELE; GO WT11
+055752           FI FI
+055752   % -------------------------- READY TO START SEEK
+055752           T:=QUDF=:X.SLINK; CALL UPCUR
+055755           CALL BSEEK; GO STRA;
+055757   WSEE:   CALL WSEEK  CALL STSURR
+055761   STRA:   X=:PSTRA                              % TRANSF. STARTED POINTER
+055762           IF X:=X.SLINK=0 THEN CALL ERRFATAL FI
+055766           IF X.RTRES >< 0 THEN                  % PROGRAM OWNING THIS ACC ?
+055770              0=:TMR; CALL CTRDISK               % DO DISK TRANSFER
+055772           ELSE 0=:HSTAT
+055774           FI
+055774           X:=PSTRA=:D
+055776           0=:PSTRA
+055777           IF X:=X.SLINK = 0 THEN CALL ERRFATAL FI
+056003           HSTAT=:X.SSSTAT=:X.XSTAT
+056006           IF A BIT 4 THEN                    % SAVE TREG FROM DRIVER IF ERROR
+056010              TRG SHZ -6; X=:L:=7/\A
+056015              T:=DEDFADDR:=:B
+056017              DIUETRG(X)=:L.DMTRG; T=:B       % FETCH FROM DISK LOG
+056023           FI
+056023           X:=D; *AAX SLINK
+056025           CALL GETOUT; *IOF                       % T= QUE DF.
+056027           X:=T; CALL TO11Q; *ION                  % Q U E D F TIL LV11 QUE
+056032   % --------------------------------- MORE TO DO ?
+056032           X:=PUND0                                % (B=CONT DF.)
+056033           DO WHILE X >< 0                         % MORE IN QUE(S) ?
+056034             IF X.SCLINK >< 0 AND X.SLINK = 0 THEN
+056040                CALL SSCUR; CALL  BSEEK; GO STRA   % START SEEK FOR A NEW ACC.
+056043             ELSE IF X.SLINK >< 0 AND SRETF BIT CLDV THEN
+056051                CALL  BSEEK; GO STRA               % RESTART OLD SEEK
+056053             FI FI; X:=X.ULINK
+056054           OD
+056055           0=:SRETF                                 % SET CONTROLLER FREE
+056056           X:=PUND0 ; DO WHILE X >< 0
+056060             IF X.SLINK >< 0 GO WSEE                % SEEK STARTED ?
+056062             X:=X.ULINK
+056063           OD
+056064           CALL ID11;  A+1; GO ERR22                 % FALSE INTERUPT
+056067    RBUS
+056106
+056106   SUBR SSTDI
+056106   %---------------------------------------------------------
+056106   %  LEV 11 ROUTINE, ACTIVATED FROM MONITOR LEVEL
+056106   %  ON MULTI THREAD DMA DEVICES
+056106   %  B= CONTR DF. X= QUE DF.
+056106   %---------------------------------------------------------
+056106   SSTDI: CALL DODMA
+056107          T:=X; X:=B; *AAX DIREE
+056112          CALL PUTIN; CALL RTACT
+056114          GO WT11
+056115   RBUS
+056120
+056120   %===========================================================================
+056120   % ROUTINES ACTIVATED ON SMD AND ST506 DEVICES
+056120   %----------------------------------------------------------------------------
+056120   % STREN=0; ACTIVATED ONLY FROM MLEV.
+056120   %
+056120   %  LEV11              STDIS  : CALL CTRDISK;"MFUNC"=>RETRANS; CALL ID11 GO ERR22
+056120   %                     CTRDISK: L=:"CTRLR"
+056120   %
+056120   %  MLEV         "MTRANS"=> MTRNS                  RETRANS:
+056120   %         MTRNS: L=:"TRLREG"
+056120   %               "SDRIV" => STDIS
+056120   %
+056120   %----------------------------------------------------------------------------
+056120   % STREN=1; ACTIVATED FROM  MLEV.
+056120   %
+056120   %  LEV11              SSTDI  : CALL "DODMA"=>STRDISK; "MFUNC"=>STRETRANS;GO WT11
+056120   %                     STRDISK: L=:"NFUNC"; CALL  CTRDISK
+056120   %                     CTRDISK: =L=:"CTRLR"
+056120   %
+056120   %  MLEV         "MTRANS"=> STRNS                   STRETRANS: "TRLREG"
+056120   %         STRNS: L=:"TRLREG"                                    EXIT
+056120   %               "SDRIV" => SSTDI
+056120   %
+056120   %----------------------------------------------------------------------------
+056120   % STREN=1; ACTIVATED FROM  LEV12
+056120   %
+056120   %  LEV12        "M5TRANS"=>DRTRA
+056120   %         DRTRA: L="TRLREG"                        DL12T:     "TRLREG"
+056120   %                "DL11T"=:NFUNC                                EXITA
+056120   %                EXIT
+056120   %
+056120   %  LEV11              DL11T  : CALL "DODMA"=>STRDISK; "DL12T"=>NFUNC; GO WT11
+056120   %                     STRDISK: L=:"NFUNC"; CALL  CTRDISK
+056120   %                     CTRDISK: =L=:"CTRLR"
+056120   %
+056120   %----------------------------------------------------------------------------
+056120
+056120   @DEV 1

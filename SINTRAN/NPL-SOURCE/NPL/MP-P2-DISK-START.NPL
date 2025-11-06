@@ -1,0 +1,433 @@
+072706   @DEV (S-S-L)MP-P2-DISK-START:NPL
+072706   *"8STRD
+"072706    SUBR GETFREE,GETSWFREE,PUTFREE
+072706    INTEGER SAVB,SAVX
+072710    INTEGER POINTER LREG
+072711    % GETFREE:
+072711    %-------------------------------------------------------------------
+072711    % ROUTINE TO GET A QUE DF FROM FREE POOL                         ( M )
+072711    % X= PROGRAM, B= QUE POOL DF
+072711    % USE X-REG
+072711    % EXIT  : ERROR, NO MORE QUE ELEMENTS
+072711    % EXITA : T= QUE ELEM ADDRESS
+072711    %-------------------------------------------------------------------
+072711    GETSWFREE:
+072711           A:=L=:"LREG"
+072713           IF QPFNO=0 GO LREG
+072716           X:=B; *AAX QPFSW
+072720           GO LSW
+072721    GETFREE:
+072721           A:=L=:"LREG"
+072723           IF QPFNO  = 0  THEN                      % NO MORE FREE QUE ELEMENTS
+072725              X=:SAVX; X:="DUMMY"; CALL BRESERVE
+072730              X:=SAVX; GO LREG
+072732           FI
+072732           QPFNO-1=:QPFNO                           % UPPDATE FREE QUE ELEMENTS
+072735           X:=B; *AAX QPFRH
+072737    LSW:   CALL GETOUT                              % GET QUE ELEMENT
+072740           IF T.RTRES >< 0 THEN CALL ERRFATAL; FI
+072744           0=:X.TYPRING               % DUE TO DOUBLE USE
+072745           "LREG"=:L; EXITA
+072750    % PUTFREE
+072750    %-------------------------------------------------------------------
+072750    % ROUTINE TO PUT A QUE DF IN FREE POOL, DF MUST BRE RELEASED     ( M )
+072750    % ENTRY:  T= QUE ELEMENT ADDRESS
+072750    %         B= QUE POOL DF
+072750    %  USE TAD,X-REG
+072750    %-------------------------------------------------------------------
+072750    PUTFREE:
+072750           A:=L=:"LREG"
+072752           IF SAQEL= T THEN     % SWAPPER ELEMENT
+072755             X:=B; *AAX QPFSW
+072757           ELSE
+072760             IF RTRES >< 0 THEN CALL ERRFATAL FI
+072763             X:=B; *AAX QPFRH
+072765             MIN QPFNO; A /\ A
+072767           FI
+072767           CALL PUTIN
+072770           GO LREG
+072771   RBUS
+072776
+072776   SUBR STRNS
+072776   %-------------------------------------------------------------------
+072776   %  MONITOR LEVEL ROUTINE TO GET A DISC-ACC-QUE ELEMENT AND     ( M )
+072776   %    START DRIVER LEVEL
+072776   %    A= PAR LIST, B=CONTR. DATAFIELD
+072776   %    T= PIT NO FOR PARAMETER (T=0 => USE RTREF.ACTPRI)
+072776   %    L= RET ADDRESS OR 0 (0 => STARTED FROM ABSTR, RETURN TO STUPR)
+072776   %
+072776   %-------------------------------------------------------------------
+072776   INTEGER TREG,AREG,LREG,BREG,QDF,PROW
+073004
+073004   *"8STRD -8DIMI
+"073004
+073004   STRNS:  A=:AREG; A:=B=:BREG
+073007           T=:TREG:=L=:LREG; *IOF
+073013           IF T=0 THEN
+073015              X:=RTREF=:PROW; "QP100"=:B
+073021              CALL GETFREE; GO FULL
+073023           ELSE
+073024             X:=RTRES=:PROW; "QP100"=:B
+073030             CALL GETSWFREE; CALL ERRFATAL
+073032           FI; *ION
+073033           T=:B=:QDF; X:=PROW; CALL BRESERVE         % RESERVE QUE ELEMENT
+073037           IF A<0 THEN CALL ERRFATAL FI
+073041           T:=LREG=:"TRLREG"                         % RETURN ADDRESS ON MLEV
+073043           0=:TYPCO; AREG
+073045           IF T=0 THEN CALL GAPFU ELSE CALL GAPFD FI
+073052   % ---------------------------------- START LEV 11
+073052           *IOF
+073053           BREG;       *IRW LV11B DB                 % CONTROLLER
+073055           A."STDRIV"; *IRW LV11B DP
+073060           QDF;        *IRW LV11B DX                 % PARAMETERS
+073062           LV11;       *MST PID
+073064           X:=RTRES; CALL WDATA
+073066           X.STATUS BONE 5NOABORT=:X.STATUS; *ION    % SET DELAYED ABORT
+073072           IF X=RTREF GO RWAIT; GO MONEN
+073076   FULL:   *ION
+073077           GO WT
+073100    RBUS
+073115
+073115    SUBR STRETRANS
+073115    %-------------------------------------------------------------------
+073115    % MONITOR LEVEL ROUTINE, ACTIVATED AFTER DRIVER IS FINISHED     ( M )
+073115    %
+073115    % X= CONTR. DF
+073115    %-------------------------------------------------------------------
+073115    % CACHE IS NOT CLEARED ON FUNC  1 & 61  (DMA OUTPUT)
+073115    %                               66      (DMA INPUT TO CACHE INHIBITED AREA)
+073115    %---------------------------------------------------------------------------
+073115    INTEGER PROW,CDF,SSTA
+073120    INTEGER POINTER TRLR
+073121    STRETRANS:
+073121           X=:B=:CDF                                % B= CONTR. DF
+073123           DO
+073123              X:=B; * AAX DIREE
+073125           WHILE X.S0 >< -1                         % MORE IN QUE ?
+073131              *IOF
+073132              CALL GETOUT; T=:B; *ION               % B= QUE ELEMENT
+073135              IF X:=RTRES=:PROW><0 THEN
+073140                 0=:TYPRING                         % DUE TO DOUBLE USE (BREGQ)
+073141                 CALL RDATA; CALL BRELEASE          % RELEASE QUE ELEM
+073143              FI
+073143              "TRLREG"=:"TRLR"; SSSTAT=:SSTA
+073147              IF ABFUN/\77><1 AND ><61 AND ><66 THEN
+073162                 *TRR CCLR  % CLEAR CACHE
+073163              ELSE
+073164   *CCM02,       TRR CCLR   % CLEAR CACHE ON NOT RASK
+073165              FI
+073165              T:=B; "QP100"=:B      % T= QUE ELEM
+073170              IF SAQEL = T OR "TRLR" = 0 THEN       % SWAPPING OR ABSTRANS
+073175                *IOF
+073176                CALL PUTFREE;      *ION             % TOO FREE POOL
+073200              FI
+073200              X:=T; CDF=:B                          % X= QUE ELEM, B= CONTR DF
+073203              IF "TRLR"=0 THEN                      % FROM ABSTR
+073205                 IF PROW><0 THEN                    % PROG ABORTED ?
+073207                    IF SSTA BIT 4 THEN A BONE 17 ELSE A BZERO 17 FI
+073215                    IF X:=PROW=CURPROG THEN
+073221                       *IRW ALEVB DA
+073222                    ELSE
+073223                       X:=X.RTDLGADDR
+073224                       T:=0; *AAX DAREG; STATX
+073227                    FI
+073227                 FI
+073227              ELSE                                  % FROM CALL MTRANS
+073230                 CALL RTACT                         % MORE IN QUE ?
+073231                 A:=SSTA; GO TRLR                   % B= CONTR DF, RETURN
+073233              FI
+073233           OD
+073234           GO STUPR
+073235   RBUS
+073246   *"
+"073246
+073246   % =========================================================================
+073246   %                         B D M T R                               (M)
+073246   %       MTRANS ROUTINE FOR ABSTRANS CALLS TO DOMINO DEVICES
+073246   %       MONITOR LEVEL
+073246   %       ENTRY: A-REG: POINTER TO PARAMETER LIST
+073246   %              B-REG: POOL DATAFIELD
+073246   %              T-REG: PIT NO FOR PARAMETER (T=0 => USE RTREF.ACTPRI)
+073246   %              L-REG: RET ADDRESS OR 0 (0 => STARTED FROM ABSTR, RETURN TO STUPR)
+073246
+073246   SUBR BDMTR
+073246    INTEGER TREG,AREG,LREG,BREG,QDF,PROW
+073254   BDMTR:  A=:AREG; A:=B=:BREG
+073257           T=:TREG:=L=:LREG; *IOF
+073263           IF T=0 THEN
+073265              X:=RTREF=:PROW; "QP100"=:B
+073271              CALL GETFREE; GO FULL
+073273           ELSE
+073274               CALL ERRFATAL                         % SWAPPING ILLEGAL
+073275           FI; *ION
+073276           T=:B=:QDF; X:=PROW; CALL BRESERVE         % RESERVE QUE ELEMENT
+073302           IF A<0 THEN CALL ERRFATAL FI
+073304           T:=LREG=:"TRLREG"                         % RETURN ADDRESS ON MLEV
+073306           0=:TYPCO; AREG
+073310           IF T=0 THEN CALL GAPFU ELSE CALL GAPFD FI
+073315   % ---------------------------------- START LEV 12
+073315           *IOF
+073316           BREG=:B;    *IRW LV12B DB                 % CONTROLLER
+073321           QDF;        *IRW LV12B DX                 % PARAMETERS
+073323           "STDRIV";   *IRW LV12B DP
+073325           LV12;       *MST PID
+073327           QDF=:B; X:=RTRES; CALL WDATA
+073333           X.STATUS BONE 5NOABORT=:X.STATUS; *ION    % SET DELAYED ABORT
+073337           IF X=RTREF GO RWAIT; GO MONEN
+073343   FULL:   *ION
+073344           GO WT
+073345   RBUS
+073361
+073361   SUBR BDMFU
+073361   %-------------------------------------------------------------------
+073361   % MONITOR LEVEL ROUTINE, ACTIVATED AFTER DRIVER IS FINISHED     ( M )
+073361   %
+073361   % X= CONTR. DF
+073361   %-------------------------------------------------------------------
+073361   % CACHE IS NOT CLEARED ON FUNC  1 & 61  (DMA OUTPUT)
+073361   %                               66      (DMA INPUT TO CACHE INHIBITED AREA)
+073361   %---------------------------------------------------------------------------
+073361    INTEGER PROW,CDF,SSTA
+073364    INTEGER POINTER TRLR
+073365   BDMFU:
+073365           X=:B=:CDF                                % B= CONTR. DF
+073367           DO
+073367              X:=B; * AAX DIBRE
+073371           WHILE X.S0 >< -1                         % MORE IN QUE ?
+073375              *IOF
+073376              CALL GETOUT; T=:B;  *ION              % B= QUE ELEMENT
+073401              IF X:=RTRES=:PROW><0 THEN
+073404                 0=:TYPRING                         % DUE TO DOUBLE USE (BREGQ)
+073405                 CALL RDATA; CALL BRELEASE          % RELEASE QUE ELEM
+073407              FI
+073407              "TRLREG"=:"TRLR"; SSSTAT=:SSTA
+073413              IF ABFUN/\77><1 AND ><61 AND ><66 THEN
+073426                 *TRR CCLR  % CLEAR CACHE
+073427              ELSE
+073430   *CCM14,       TRR CCLR   % CLEAR CACHE ON NOT RASK
+073431              FI
+073431              T:=B; "QP100"=:B; *IOF                % T= QUE ELEM
+073435              CALL PUTFREE;     *ION                % TOO FREE POOL
+073437              X:=T; CDF=:B                          % X= QUE ELEM, B= CONTR DF
+073442              IF "TRLR"=0 THEN                      % FROM ABSTR
+073444                 IF PROW><0 THEN                    % PROG ABORTED ?
+073446                    A:=SSTA
+073447                    IF X:=PROW=CURPROG THEN
+073453                        *IRW ALEVB DA
+073454                    ELSE
+073455                       X:=X.RTDLGADDR
+073456                       T:=0; *AAX DAREG; STATX
+073461                    FI
+073461                 FI
+073461              ELSE                                  % FROM CALL MTRANS
+073462                 CALL ERRFATAL
+073463              FI
+073463           OD
+073464           GO STUPR
+073465   RBUS
+073476
+073476   %============================================================================
+073476   %                M B U I L D                                          (M)
+073476   % BUILD A READ/WRITE AREA MESSAGE
+073476   % MUST BE CALLED WITH INTERRUPT OFF
+073476   % ENTRY:       B-REG: QUEUE DATAFIELD
+073476   %              X-REG: POOL DATAFIELD
+073476   % RETURN:      A-REG: ERROR CODE (ILLEGAL MEMORY ADDRESS)
+073476   % SKIP RETURN: X-REG: DOMINO DATAFIELD
+073476   SUBR MBUILD
+073476   INTEGER SAVX
+073477   INTEGER POINTER SAVL
+073500   MBUILD: A:=L=:"SAVL"; X=:SAVX
+073503           AD:=MEMAD; CALL DCNVA; GO ERET
+073506           X:="DOMDF"; AD=:X.DMYAD          % CONVERT TO DOMINO MEMORY ADDRESS
+073510           AD:=ABPA2=:X.DSTBL                     % MEDIA ADDRESS
+073512           A:=ABP31; A=:D; A:=0; AD=:X.DNRPG      % NUMBER OF PAGES
+073516           A:=-1=:D; AD=:X.DSSTS                  % -1 INTO STATUS
+073521           0=:X.DSQC1=:X.DSQC2                    % 0 INTO SEQUENCE COUNTER
+073523           T:=SAVX; T=:X.DSCA1; B:=:T             % SAVE ADDRESS OF POOL DF
+073526           DIPOO=:X.DXPOO; OPAIX=:X.OPAIN         % POOL AND AREA INDEX
+073532           T=:B; T=:X.DSOW2                       % OWNER OF MESSAGE
+073534           1=:X.DSOW1; MIN "SAVL"                 % MARK ABSTRANS MESSAGE
+073537           GO SAVL
+073540   ERET:   A:=-3; GO SAVL
+073542   RBUS
+073544
+073544   % =========================================================================
+073544   %                     D C N V A                                      (M)
+073544   %       CONVERT FROM ND100 TO DOMINO ADDRESS
+073544   %       MUST BE CALLED WITH INTERRUPT OFF
+073544   %       ENTRY:         AD-REG: ND-100 ADDRESS
+073544   %       RETURN:        ILLEGAL MEMORY ADDRESS
+073544   %       SKIP RETURN:   AD-REG: DOMINO MEMORY ADDRESS WITH BIT 31 SET
+073544   %
+073544   SUBR DCNVA
+073544   INTEGER 5BIA1:=-1         % ND-100 ADDRESS OF ND-500'S FIRST PAGE
+073545   INTEGER 5BIA2:=-1
+073546   DOUBLE  5BIAS=5BIA1
+073546   DOUBLE  1ADDR             % INPUT PARAMETER
+073550   DCNVA:  AD=:1ADDR         % IS MODIFIED IN FIRST CALL TO THIS ROUTINE
+073551           X:="N500D"; A:=X.ADRZERO=:D:=0
+073555           AD SHZ 12; AD=:5BIAS; A:=124012; *STA DCNVA
+073561           AD:=1ADDR
+073562           A:=:D; A-5BIA2; A:=:D; A:=A+C-1-5BIA1 % SUBTRACT BIAS
+073570           IF A BIT 17 THEN
+073572              EXIT           % OUTSIDE MULTIPORT MEMORY
+073573           FI
+073573           AD SHZ 1          % MAKE BYTE ADDRESS
+073574           A BONE 17         % SET BIT 31
+073575           EXITA
+073576   RBUS
+073600
+073600
+073600   SUBR SSBDI
+073600   %---------------------------------------------------------
+073600   %  LEV 12 ROUTINE, ACTIVATED FROM MONITOR LEVEL
+073600   %  ON MULTI THREAD DMA DEVICES
+073600   %  B= CONTR DF. X= QUE DF.
+073600   %---------------------------------------------------------
+073600   SSBDI: CALL DODMA
+073601          T:=X; X:=B; *AAX DIBRE
+073604          CALL PUTIN; CALL RTACT
+073606          GO WT12
+073607   RBUS
+073612
+073612   SUBR BDTRANS,BD12T
+073612    %-----------------------------------------------------------------------
+073612    % LEVEL 12 ROUTINE TO START A BDIO TRANSFER
+073612    %
+073612    % ENTRY: B= DISK DF, X= QUE  DF
+073612    %
+073612    % EXIT :  BUSY (DO'NT TOUCH "DRIVER" IN DISK DF)
+073612    % EXITA:  FINISH   SSSTAT IN QUE DF IS VALID
+073612    %
+073612    %-----------------------------------------------------------------------
+073612   BDTRANS:
+073612           A:=L=:X."TRLREG"
+073614           "BD12T"=:X.NFUNC; *IOF
+073617           CALL ST12L;       *ION
+073621           A:=X."TRLREG"=:L; EXIT        % BUSY RETURN
+073624   % ENTRY ON LEV 12, B= DISK DF, X= QUE DF
+073624   BD12T:  T:=5; CALL DODMA
+073626           A:=X."TRLREG"=:L; EXITA       % FINISH RETURN
+073631   RBUS
+073633
+073633
+073633   SUBR STRBDIO,REBDIO
+073633   %---------------------------------------------------------
+073633   %  LEV 12 DODMA ROUTINE FOR BDIO
+073633   %
+073633   %  ENTRY:  B= POOL DATAFIELD  X= QUE DF  T= TYPE
+073633   %---------------------------------------------------------
+073633    INTEGER PDF               % POOL  DF
+073634    INTEGER QUDF              % QUE ELEM  DF
+073635
+073635   ERET:   A=:SSECN                               % SAVE NUCLEUS ERROR CODE
+073636           X:=PDF; A=:X.DSTSD
+073640           IF X.RSFLA=1 AND X.TMR=0 THEN          % POOL DF RESERVED AND NOT PUT INTO TIMER QUEUE
+073646              X.TTMR=:X.TMR; "BDTMU"=:X."TMSUB"   % LET TIMRT TRY RECONNECT
+073652           FI
+073652           X.PLDNO=:PDVNO; A:=1661=:SINEC
+073656           X:=RTRES; CALL 9FLEX(SINEC,4)
+073662           A:=-2                                  % NUCLEUS ERROR
+073663   RETU:   A=:QUDF.HSTAT; PDF=:B
+073667           X.NFUNC=:L; EXIT                       % IMMEDIATE RETURN
+073672
+073672   STRBDIO:
+073672           A:=B=:PDF; X=:QUDF; A:=L=:X.NFUNC
+073677           T=:X.TYPCO
+073700           X:=:B                               % B= QUE DF, X= POOL DF
+073701           IF ABFUN=24 THEN A:=X.DSTSD; GO RETU; FI
+073707           IF A=42 THEN                        % READ CAPACITY
+073712              AD:=MEMAD; A=:T; D=:X; A:=42; *STATX
+073717              X=:L; AD:=PDF.ARESZ; L=:X; *STDTX 10
+073724   OKRET:     A:=0; GO RETU
+073726           FI
+073726           IF A=60 OR A=61 OR A=63 OR A=66 THEN    % READ/WRITE/COMPARE
+073742              *IOF                             % IOF BEFORE GLOBAL DATAFIELD IS USED
+073743              X:=PDF; CALL MBUILD; GO RETU     % BUILD MESSAGE
+073746              IF ABFUN=61 THEN                 % WRITE
+073752                 A:=167; T:=70                 % BDIO FUNCTION, MESSAGE SIZE
+073754              ELSE
+073755                 IF A=63 THEN
+073760                    A:=213; T:=70              % COMPARE
+073762                 ELSE
+073763                    A:=166; T:=74              % READ
+073765                 FI
+073765              FI
+073765              A=:X.DSCMD;
+073766           ELSE
+073767              A:=-1; GO RETU                   % ILLEGAL FUNCTION
+073771           FI
+073771           X=:D                                % B=QUEUE DF, X=DOMINO DF
+073772           X:="CLUSTER"; *1BANK; LDA ,X; AAA 14
+073776           X:="BBASE"; AD=:X.OWN; *2BANK       % SET OWNER
+074001           T=:D; T:=DMSID; A:="DSVER+DOMDF"; X:=0; CALL NKWRI
+074006           IF A><0 GO ERET
+074007           A:=PDF.DRPRT=:D; X:="DOMDF";
+074013           A:=X.DLPRT; X:=DMSID; CALL NKSEN; *ION
+074017           IF A><0 GO ERET
+074020           "DOMDF"=:B; "REBDIO"=:NFUNC
+074024           CALL WT12; GO REBDIO; *)FILL
+074046   % MESSAGE(S) ARRIVED
+074046   REBDIO: X=:B
+074047           DO
+074047              *IOF
+074050              X:="CLUSTER"; 0 BZERO "0"; *LDA ,X; AAA 14
+074054              B=:D; X:="BBASE"; AD=:X.OWN      % SET OWNER
+074057              0 BONE "0";
+074060              T:=DLPRT; CALL NKREC
+074062           WHILE X><0
+074063              A=:SSECN                      % SAVE NUCLEUS STATUS
+074064              X=:T; X:=0; 76=:D; A:="DSVER"+B
+074072              CALL NKREA; *ION
+074074              IF A=0 THEN
+074075                X:=DSOW2                    % GET QUEUE DF OF WAITING PROCESS
+074076                AD:=DSSTS
+074077                IF A=0 AND D=0 THEN
+074102                   AD:=DSQCN; T:=-1; X:=DSCA1
+074105                   IF A=T AND D=T THEN      % TRANSFER OK BUT CHANGED TO MIRROR POOL
+074111                      AD:=DXPOO             % X=ADDRESS OF POOL DATAFIELD
+074112                      IF A=X.DIPO1 AND D=X.DIPO2 THEN
+074120                         IF X.RSFLA=1 AND X.TMR=0 THEN  % NOT PUT INTO TIMER
+074126                            X.TTMR=:X.TMR
+074130                            "BDTMV"=:X."TMSUB"          % LET TIMRT TRY RECONNECT
+074132                   FI;FI;FI
+074132                   A:=0
+074133                   0=:X.DSTSD; X:=DSOW2
+074135                   A=:X.HSTAT               % EVERYTHING IS OK
+074136                ELSE
+074137                   T:=-1; X:=DSCA1
+074141                   IF A=T AND D=T AND SSECN><0 THEN     % MESSAGE REJECTED
+074147                      A=:X.DSTSD
+074150                      X.PLDNO=:PDVNO; 1661=:SINEC
+074154                      X:=DSOW2; X:=X.RTRES
+074156                      CALL 9FLEX(SINEC,4);
+074161                      A:=-2
+074162                   ELSE
+074163                      A:=D=:X.DSTSD=:SSECN     % SAVE STATUS
+074166                      IF A><104031 AND A><104651 AND A><104622 THEN
+074177                         X.PLDNO=:PDVNO; A:=1662=:SINEC
+074203                         IF X.RSFLA=1 AND X.TMR=0 THEN  % NOT PUT INTO TIMER
+074211                            X.TTMR=:X.TMR
+074213                            "BDTMU"=:X."TMSUB"          % LET TIMRT TRY RECONNECT
+074215                         FI
+074215                         X:=DSOW2; X:=X.RTRES  % GET RT-ADDRESS OF CALLER
+074217                         CALL 9FLEX(SINEC,4)   % WRITE ERROR MESSAGE TO INTERNAL DEVICE
+074222                         A:=-4
+074223                      ELSE
+074224                         A:=-5                 % BLANK CHECK OR READ ONLY
+074225                   FI;FI
+074225                   X:=DSOW2
+074226                   A=:X.HSTAT                  % BDIO ERROR
+074227                FI
+074227                "DOMDF"; A:=:X
+074231                X:=X.DSCA1=:B;   *IOF
+074234                X:=A; CALL TO12Q;*ION       % Q U E D F TIL LV12 QUE
+074237                "DOMDF"=:B;
+074241              FI
+074241           OD
+074242           GO WT12
+074243   RBUS
+074266
+074266
+074266   @DEV 1

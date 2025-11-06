@@ -1,0 +1,348 @@
+027075   @DEV (S-S-L)XC-P2-2:NPL
+027075   %=====================================================================
+027075   %
+027075   %       S E T 1 0 W I N D O W   LEVEL 10 WINDOW
+027075   %       S E T 1 2 W I N D O W   LEVEL 12 WINDOW
+027075   %       R E S 1 0 W I N D O W   LEVEL 10 WINDOW
+027075   %       R E S 1 2 W I N D O W   LEVEL 12 WINDOW
+027075   %
+027075   %       SETUP OF TERMINAL WINDOWS.
+027075   %       ENTRY : B - RESIDENT DATAFIELD.
+027075   %       EXIT  : B - BIG DATAFIELD AND PAGE TABLE IS SET UP.
+027075   %       ALL REGISTERS ARE DESTROYED
+027075   %
+027075   SUBR SET10WINDOW,SET12WINDOW,RES10WINDOW,RES12WINDOW
+027075
+027075   SYMBOL W10=WND10*2+174000
+027075   SYMBOL W12=WND12*2+174000
+027075
+027075   DOUBLE SV10:=(0,0),SV12:=(0,0)
+027101   INTEGER 10FL:=0,12FL:=0
+027103
+027103   SET10WINDOW:
+027103           IF 10FL=0 THEN
+027105              1=:10FL; X:=W10; T:=0; *LDDTX; STD SV10         % GET OLD ENTRY AND SAVE IT
+027113           FI
+027113           AD:=DTDFPHPAGE; A:=:D/\1777+"WND10*2000"=:B        % SET B-REG
+027120           A:=142000; X:=W10; T:=0; *STDTX                    % SET UP WINDOW
+027124           EXIT
+027125   SET12WINDOW:
+027125           IF 12FL=0 THEN
+027127              1=:12FL; X:=W12; T:=0; *LDDTX; STD SV12         % GET OLD ENTRY AND SAVE IT
+027135           FI
+027135           AD:=DTDFPHPAGE; A:=:D/\1777+"WND12*2000"=:B        % SET B-REG
+027142           A:=142000; X:=W12; T:=0; *STDTX                    % SET UP WINDOW
+027146           EXIT
+027147   RES10WINDOW:
+027147           IF 10FL=0 THEN EXIT FI
+027152           0=:10FL; AD:=SV10; X:=W10; T:=0; *STDTX            % RESTORE OLD ENTRY
+027157           EXIT
+027160   RES12WINDOW:
+027160           IF 12FL=0 THEN EXIT FI
+027163           0=:12FL; AD:=SV12; X:=W12; T:=0; *STDTX            % RESTORE OLD ENTRY
+027170           EXIT
+027171
+027171   RBUS
+027177
+027177   %=============================================================================
+027177   %      S E T B F W I D N O W    SET UP WINDOW IN PIT.
+027177   %                               THE WNDBF WINDOW IS USDED.
+027177   %      ENTRY:  B - RESIDENT DATAFIELD
+027177   %
+027177   %      EXIT:   B - "BIG" DATAFIELD
+027177   %              ALL REGISTERS DESTROYED
+027177   %              K DESTROYED
+027177   SUBR SETBFWINDOW
+027177   INTEGER WNDADDR:=WNDBF*2+174000
+027200   SETBFWINDOW:
+027200          *BLDA 170                                  % K:=IONI (READ ION INDICATOR)
+027201          *IOF
+027202          AD:=DTDFPHPAGF; A:=:D/\1777+"WNDBF*2000"=:B  % B IS DF. IN BUF.WINDOW
+027207          A:=142000; X:=WNDADDR; T:=0; *STDTX          % SET PIT ENTRY
+027213          *BSKP ZRO SSK                                % SET ION IF SET ON ENTRY
+027214          *ION
+027215          EXIT
+027216   RBUS
+027221
+027221   %==============================================================================
+027221   % 7.5        M O N T H   M N T H 1         ( M )
+027221
+027221   % SUBROUTINE TO DETERMINE DAYS IN A MONTH (NEGATIVE)
+027221   % A=MONTH, D=YEAR, RETURN WITH RESULT IN T
+027221
+027221   SUBR MONTH,MNTH1
+027221   DOUBLE POINTER D9CL5:=9CLO5
+027222   MONTH: AD:=D9CL5
+027223   MNTH1: IF A-14<=0 THEN A+14 FI
+027227          IF A-2=0 THEN   %FEBRUARY
+027231                T:=-35
+027232                IF 3/\D=0 THEN T-1 FI
+027236                EXIT
+027237          FI
+027237          IF A-6<0 THEN ;*BSET BCM 0 DA
+027242          FI
+027242          T:=-37; IF A NBIT 0 THEN T-1 FI
+027246          EXIT
+027247   RBUS
+027247
+027247   %==============================================================================
+027247   % 7.4        K A L D R   K A L N X   S T R T   ( M )
+027247
+027247
+027247   %SUBROUTINE TO UPDATE CALENDAR, CALLED FOR EACH CLOCK INTERRUPT
+027247   % -KALDR- CALLED FROM ICLK
+027247   % -KALNX- CALLED FROM CLADJ WITH A=TIME AND X=UNIT
+027247
+027247   SUBR KALDR,KALNX
+027247   SYMBOL 5DAY=4,5MONTH
+027247   INTEGER ARRAY 9CLOC=9CLO0,X9CLOC=9CLO1
+027247   INTEGER POINTER LREG
+027250   KALNX: T:=L=:"LREG"
+027252          X:=D1-1; A:=D0        % MOVED FROM CLADJ
+027255          A+9CLOC(X)=:9CLOC(X); GO KALN
+027260   KALDR: A:=L=:"LREG"
+027262   LOOP:  IF ATIM2-MTIM2<=0 GO LREG    %RETURN POINT FOR KALDR
+027266          AD:=MTIME; D+1; A:=A+C; AD=:MTIME
+027272          X:=0; MIN 9CLOC(X)          %BASIC UNITS
+027274   KALN:  DO
+027274                IF 9CLOC(X)+STRT(X)<0 GO LOOP
+027277   LOOPC:       MIN X9CLOC(X)
+027300                A+STRT(X); IF >=0 GO LOOPC
+027302                A-STRT(X)=:9CLOC(X)
+027304                IF X=5MONTH THEN MIN 9CLOC(X); GO LOOP FI
+027311                IF X=5DAY THEN MIN 9CLOC(X); CALL MONTH; T=:MND FI
+027317                X+1
+027320          OD
+027321   RBUS
+027331
+027331   *"8MPRF
+"027331   %
+027331   % Mon Performance sampling routines for disks must reside in common
+027331   % or excom.
+027331   %
+027331   % Data area for sampling is on MPIT - which is compiled/assembled later
+027331   %
+027331   INTEGER CABFUNC=?
+027331   INTEGER CDRIV=?
+027331   INTEGER CCDAD=?
+027331   INTEGER CCTAC=?
+027331   INTEGER XDLFLAG=?
+027331   INTEGER C5SEG=?
+027331   INTEGER 5NPAR=?
+027331
+027331   INTEGER ARRAY DILGU=?
+027331   INTEGER ARRAY CDADR=?
+027331
+027331   INTEGER XDLXD=?                 % Specific nd-100 program/nd-500 process.
+027331   INTEGER XDLYD=?                 % Specific nd-100 segment/nd-500 segment.
+027331   INTEGER BDLBUADDR=?
+027331   INTEGER SDLBUADDR=?             % Physical addr of "extra data buffer"
+027331   DOUBLE  DBDLBUADDR=?
+027331   INTEGER BASEG=?
+027331   INTEGER SASEG=?
+027331   DOUBLE  DDBASEG=?
+027331
+027331
+027331   %
+027331   %=========================================================================
+027331   % Primitive #32
+027331   %
+027331   %                         D I A L O
+027331   %
+027331   % Called from routine CTRDISK on level 11
+027331   % Called from SCSI magnetic and optical disk routines on level 11.
+027331   %
+027331   % Entry: B = Disk datafield
+027331   %        X = Disk queue element
+027331   %
+027331   SUBR DIALO,TDALO,TDALX,TYDAL,RWDAL,XDLOG
+027331   INTEGER TREG,AREG,DREG,XREG=?
+027334   TRIPLE  TADREG=TREG
+027334   INTEGER POINTER LREG
+027335   INTEGER CNDX
+027336   INTEGER 1LLIM,2LLIM
+027340   DOUBLE  CLLIM=1LLIM
+027340   INTEGER 1ULIM,2ULIM
+027342   DOUBLE  CULIM=1ULIM
+027342   INTEGER PCRSAVE
+027343
+027343   SYMBOL MPNORM=50000              % Mask for MPIT as normal
+027343   SYMBOL CLNPIT=103777             % Mask to clear normal pit
+027343
+027343   % Local subroutine to check legal reserving rtprog
+027343   % Entry: none
+027343   % Exit : X=xreg
+027343   %
+027343   % Called in ?BANK mode; returns in 2BANK mode
+027343   %
+027343   CHRTRES: *2BANK
+027344           IF RTSTART>>XREG.RTRES OR RTEND<<=T THEN CALL ERRFATAL FI
+027355           EXIT
+027356
+027356
+027356   DIALO:  0/\0; EXIT
+027360           TAD=:TADREG
+027361           IF ACTMPERFORM=0 THEN                             % Logging activated?
+027363              AREG; EXIT                                    % No, return
+027365           FI
+027365           X=:XREG; A:=L=:"LREG"
+027370           LV11B; *TRA PGC
+027372           A=:PCRSAVE
+027373           A /\ CLNPIT \/ MPNORM; *TRR PCR                  % MPIT as normal
+027376           X.ABFUNC
+027377           *1BANK
+027400           A=:CABFUNC
+027401           A SH -6/\7=:CDRIV=:L                                % Current disk drive number
+027405           0=:CNDX
+027406           % Check if this disk drive should be logged
+027406           FOR CNDX DO WHILE X:=CNDX<4
+027412              X:=DILGU(X); AD:=X.DS0
+027414              IF A=B AND D=L GO FOUND
+027420           OD
+027422   OUT:    *2BANK
+027423           PCRSAVE; *TRR PCR                                   % Back to IPIT
+027425           TAD:=TADREG; X:=XREG; GO LREG                       % Return
+027430   *)FILL
+027442   INTEGER XREG
+027443
+027443   FOUND:  NODTY=:CCTAC
+027445           IF 77/\CABFUNC>=67 OR A>1 AND A<60 GO OUT           % Check for read & write functions
+027460           *2BANK
+027461
+027461           % Log all disk accesses
+027461   TDALO:  0/\0; GO TYDAL
+027463   TDALX:  0/\0; GO ADALG
+027465           *1BANK
+027466           CNDX SH 2+"XFDA1"=:X                               % Log accesses within a limited disk area
+027472           AD:=X.DS0=:CLLIM; AD:=X.DS2=:CULIM
+027476           CABFUNC; X:=XREG
+027500           *2BANK
+027501           IF A/\77>=2 THEN
+027505              AD:=X.ABPA2                                      % Func>=60, double disk addr
+027506           ELSE
+027507              X.ABP21=:D; A:=0                                 % Func<2, single word disk addr
+027512           FI
+027512           IF A<<1LLIM OR A=T AND D<<2LLIM GO FAR OUT          % Test current disk addr against specific disk area
+027522           IF A>>1ULIM OR A=T AND D>>2ULIM GO FAR OUT
+027532   ADALG:  *1BANK
+027533           X:=CDADR(CNDX)=:CCDAD
+027536           MIN X.2TDAC; P+1; MIN X.1TDAC; 0/\0                 % Count total number of accesses
+027542           *2BANK
+027543           GO TYDAL
+027544   *)FILL
+027554
+027554   TYDAL:  0/\0; GO RWDAL
+027556           *1BANK
+027557           CCTAC; X:=XREG; CALL FDTYP; A=:CCTAC; X:=CCDAD
+027564           IF CCTAC=ACC1F THEN                                % Branch according to routine switch
+027570              MIN X.2FIL1; P+1; MIN X.1FIL1; 0/\0
+027574           ELSE IF A=ACC5F THEN
+027600              MIN X.2FIL5; P+1; MIN X.1FIL5; 0/\0
+027604           ELSE IF A=ACC1S THEN
+027610              MIN X.2SWP1; P+1; MIN X.1SWP1; 0/\0
+027614           ELSE IF A=ACC5S THEN
+027620              MIN X.2SWP5; P+1; MIN X.1SWP5; 0/\0
+027624           ELSE IF A=ACCFS THEN
+027630              MIN X.2FISG; P+1; MIN X.1FISG; 0/\0
+027634           FI FI FI FI FI
+027634           *2BANK
+027635
+027635   RWDAL:  P+1; GO XDLOG
+027637           *1BANK
+027640           X:=CCDAD
+027641           IF CABFUNC NBIT "0" THEN
+027644              MIN X.2RRAC; P+1; MIN X.1RRAC; 0/\0              % Count all read accesses
+027650           ELSE
+027651              MIN X.2TWAC; P+1; MIN X.1TWAC; 0/\0              % Count all write accesses
+027655           FI
+027655           *2BANK
+027656           GO XDLOG
+027657   *)FILL
+027665
+027665   XDLOG:  0/\0; GO FAR OUT
+027667           *1BANK
+027670           IF XDLFL>5 GO FAR YLO
+027674           IF A=1 THEN
+027677              IF CCTAC=ACC1F THEN
+027703   1MBOK:        CALL FAR CHRTRES; *1BANK
+027705                 IF XDLXD=0 OR A=T THEN                        % Test rt-program
+027711   RWF:             *1BANK
+027712                    X:=CCDAD
+027713                    IF CABFUNC NBIT 0 THEN
+027716                       MIN X.2XRAC; P+1; MIN X.1XRAC; 0/\0     % Read
+027722                    ELSE
+027723                       MIN X.2XWAC; P+1; MIN X.1XWAC; 0/\0     % Write
+027727                    FI
+027727                 FI
+027727              FI
+027727           ELSE IF A=2 THEN
+027733              IF CCTAC=ACC1S THEN
+027737                 T:=BASEG; X:=SASEG; *LDATX
+027742                 IF A=XDLYD OR T=0 GO 1MBOK                    % Test for nd-100 segment
+027747              FI
+027747           ELSE IF A=3 THEN
+027753              IF CCTAC=ACC5F THEN
+027757                 CALL FAR CHRTRES
+027760                 IF X:=XDLXD=0 OR X.RTRES=T GO RWF    %???     % Test nd-500 process no.
+027765              FI
+027765           ELSE IF A=4 THEN
+027771              IF CCTAC=ACC5S THEN
+027775   5FELS:        IF C5SEG=0 OR A=XDLYD THEN                    % Test for nd-500 segment no.
+030002                    *2BANK
+030003                    T:=5MBBANK; X:="N500DF".X500DF; *AAX X5SWO; LDDTX
+030010   *NNC54,          CNVBYADR
+030013                    *1BANK
+030014                    IF XDLXD=0 OR A=D GO RWF
+030020                 FI
+030020              FI
+030020           ELSE IF A=5 THEN
+030024              IF CCTAC=ACCFS GO 5FELS
+030030              IF A=ACC5S AND 5NPAR=7 THEN                      % Modified swapper?
+030037                 A:=-1=:D; AD=:CCDAD.D1XRAC; AD=:X.D1XWAC      % No, mark swapper not patched.
+030044              FI
+030044           FI FI FI FI FI
+030044           GO FAR OUT; *)FILL
+030065
+030065   YLO:    IF A=6 THEN
+030070              IF CCTAC=ACC1F THEN
+030074   YRWF:         CALL FAR CHRTRES
+030075                 A:=T-RTSTART=:D; A:=0; T:=5RTSIZE; *RDIV ST
+030103                 A*5
+030104   XYRWF:        *1BANK
+030105                 T:=BDLBUADDR; X:=SDLBUADDR+A
+030110                 IF CABFUNC NBIT 0 THEN
+030113                    *LDDTX 20
+030114                    D+1; A:=A+C; *STDTX 20
+030117                 ELSE
+030120                    *LDDTX 40
+030121                    D+1; A:=A+C; *STDTX 40
+030124                 FI
+030124              FI
+030124           ELSE IF A=7 THEN
+030130              IF CCTAC=ACC1S GO YRWF
+030134           ELSE IF A=10 THEN
+030140              IF CCTAC=ACC5F THEN
+030144                 CALL FAR CHRTRES
+030145                 D:=T; CALL FSEMA; GO FAR OUT
+030150                 X:=X.MESSBUFF
+030151   55FEL:        *2BANK
+030152                 T:=5MBBANK; *SENDE@3 LDATX
+030154                 A*4-1                                         % TO LDDTX 20/STDTX 20
+030156                 GO XYRWF
+030157                 *)FILL
+030172              FI
+030172           ELSE IF A=11 THEN
+030176              IF CCTAC=ACC5S GO 55FEL
+030202           ELSE IF A=12 THEN
+030206              IF CCTAC=ACCFS GO 55FELL
+030212              IF A=ACC5S AND 5NPAR=7 THEN
+030221                 A:=-1=:D
+030223                 T:=BDLBUADDR; X:=SDLBUADDR; *STDTX 20; STDTX 40
+030227              FI
+030227           FI FI FI FI FI
+030227           GO FAR OUT
+030230   RBUS
+030235   *"
+"030235
+030235
+030235   @DEV 1

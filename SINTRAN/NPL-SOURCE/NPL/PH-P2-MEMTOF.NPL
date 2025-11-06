@@ -1,0 +1,719 @@
+026000   @DEV (S-S-L)PH-P2-MEMTOF:NPL
+026000   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+026000   %%                                                           %%
+026000   %%     M E M T O F   -   MEMORY DUMP TO SEVERAL FLOPPIES     %%
+026000   %%                                                           %%
+026000   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+026000
+026000   * MTPG=*-1@-12@12+2000
+026000   * PGNO=*@-12
+026000   INTEGER ARRAY MDUMP(2000)    % USED TO COPY THE PAGE TABLE ENTRIES
+030000
+030000   %--- GLOBAL VARIABLES -------------------------------------
+030000
+030000   INTEGER ARRAY REGSV(200)     % REGISTERBLOCK SAVE-AREA
+030200   INTEGER ARRAY INTSM(20)      % SAVE AREA OF INTERNAL REGISTERS
+030220   INTEGER ARRAY PGSSV(20)      % SAVE AREA OF PAGING STATUS REGISTERS
+030240   INTEGER MTFSTA               % FLOPPY STATUS
+030241   INTEGER LMEMORY:=0           % NO OF PAGES TO TRANSFER (MEMORY SIZE)
+030242   INTEGER LVERSION:=5          %% VERSION IDENTIFICATION THAT IS   %%
+030243   INTEGER LREVISION:=0         %% TO BE MATCHED WITH INVESTIGATOR  %%
+030244   INTEGER FFORM:=177777        % FLOPPY FORMAT
+030245   INTEGER SHPAGE:=PGNO         % PAGE USED TO COPY PAGE TABLE ENTRIES
+030246   INTEGER ARRAY CHAMP(10)      % FIELD CONTAINING EXISTING
+030256                                % MEMORY LOCATION : I   START
+030256                                %        LOCATION : I+1 END
+030256
+030256   INTEGER LMSG1:=  '$-- MEMTOF-100 Sintran VSX/L--$'
+030276   INTEGER LMSG2:=  '$ Insert a new F O R M A T T E D   diskette and'
+030326   INTEGER LMSG3:=  '$ type one character to continue...'
+030350   INTEGER LMSG4:=  '$ Page dumped : '
+030361   INTEGER FIDU:=  '$$--Dump finished --$'
+030374
+030374   INTEGER BUSDV:= '$$ Device busy!$'
+030405   INTEGER FLER1:= '$$ Error; status 1 = '
+030420
+030420   INTEGER  CMD:=1
+030421   INTEGER         NSECT                  % NO OF SECTORS PR BLOCK
+030422   INTEGER         MNBLK                  % NO OF BLOCKS
+030423   INTEGER         NOOK                   % BLOCK COUNTER
+030424   INTEGER         DSKAD   := 0           % DISC ADDRESS
+030425   INTEGER         0PCOUNT                % PAGE COUNTER
+030426   INTEGER         MPAGS   := 0           % NO OF PAGES AVAILABLE ON THE DISKETTE
+030427   INTEGER         PGCOP   := 0           % NO OF PAGES COPIED TO THE DISKETTE(S)
+030430   INTEGER         STOP                   % LOOP UPPER VALUE
+030431   @ICR;
+030431                                          % FORMAT 0-17 NB OF PAGES
+030431   INTEGER ARRAY PAGTAB:=( 232, 220, 175,   0,
+030435                           464, 440, 372,   0,
+030441                           440, 372,   0, 464,
+030445                          1101, 764,   0,1150);
+030451                                           % NO OF SECT. PR. PAGE(FORMAT 0-17)
+030451   INTEGER ARRAY SECTAB:=(0004,0010,0020,0000,
+030455                          0004,0010,0020,0000,
+030461                          0004,0010,0000,0002,
+030465                          0004,0010,0000,0002);
+030471   @CR;
+030471
+030471   SUBR MEMTOF,MEMTR,WFLOP,XFLOP
+030471
+030471   INTEGER         INCOUNT                     % COUNTER IN CHAMP
+030472   INTEGER POINTER LDRIVER=?                   % FLOPPY DRIVER START ADDRESS
+030472   INTEGER POINTER LTRNSF=?                     % MEMORY TO FLOPPY TRANSFER ROUTINE
+030472   INTEGER         LCURAD                      % CURRENT ADDRESS
+030473   INTEGER         FSADR                       % START ADDRESS OF REGISTER SAVE
+030474   INTEGER         LVNO                        % LEVEL
+030475   INTEGER         LEVEL
+030476   INTEGER ARRAY LSRBI(0) ; *SRB 0
+030477   INTEGER ARRAY LTRAA(0) ; *TRA 0
+030500
+030500   %--- ND-100 INSTRUCTIONS ----------------------------------
+030500   %
+030500   SYMBOL MSEX=     150406               % SET EXTENDED ADDRESS MODE
+030500   SYMBOL MREX=     150407               % SET NORMAL ADDRESS MODE
+030500   SYMBOL MPGC=     000014               % PAGING CONTROL REGISTER READ (TRA PGC)
+030500
+030500   MEMTOF:*TRA STS                             % Read status
+030501          *MSEX                                % SET EXTENDED
+030502          A:=7 ; *TRR PCR                      % RING 3 TO PCR
+030504
+030504          "REGSV"=:FSADR
+030506          0=:LEVEL
+030507          FOR LEVEL TO 17 DO
+030513            LEVEL SHZ 3=:LVNO+FSADR=:LCURAD:=LSRBI(0)
+030522            X:=LCURAD; T:=LVNO; A\/T; *EXR SA   % SAVE REG. BLOCK
+030526          OD
+030532          LTRAA(0)=:D
+030535          FOR X:=0 TO 17 DO
+030541            A:=X SHZ 3; *IRW 30 DA; TRA MPGC    % READ PGC (LEVEL IN A-REG)
+030545            A=:PGSSV(X)
+030546            T:=D\/X; *EXR ST                   % READ INT.REG. (NO IN X-REG)
+030551            A=:INTSM(X)
+030552          OD
+030554
+030554   MEMTR: "LMSG1"; CALL 3UTXT; *IOX 1562        % READ FLOPPY STATUS
+030557          A=:MTFSTA
+030560          CALL 0CHMEM
+030561          0=:INCOUNT
+030562
+030562       FOR INCOUNT STEP 2 TO 10 DO
+030566          CHAMP(INCOUNT) =: PGCOP
+030571          IF A =- 1 GO FAR FINI
+030574          X + 1 =: X
+030576          CHAMP(X)  =: LMEMORY
+030600
+030600          0 =: MPAGS
+030601   NEXTF: PGCOP+MPAGS=:PGCOP                   % Next floppy
+030604          IF LMEMORY=PGCOP GO ENDDO
+030610          CALL ASKCH                           % Ask for floppy diskette
+030611          *IOX 1562                            % Read floppy status
+030612          A =: MTFSTA
+030613          IF MTFSTA<0 THEN                     % DMA FLOPPY
+030615            0=:A=:D; X:=1; T:="42"
+030621            CALL FDRI2; GO FAR MWERR; GO FAR MBUS   % READ FORMAT
+030624            A=:X SHZ 10 +1=:CMD                     % FORMAT/WRITE COMMAND
+030630            T:="FDRI2"; "DMA"
+030632          ELSE                                 % PIO FLOPPY
+030633            X:=0; T:="FDRI1"; "PIO"
+030636          FI
+030636          A=:"LTRNSF"; T=:"LDRIVER"; X=:FFORM
+030641          T:=PAGTAB(X)=:MPAGS                  % NO OF PAGES IN DISK
+030643          IF LMEMORY-PGCOP<T THEN A=:MPAGS FI  % PAGES TO TRANSFER
+030650          MPAGS*SECTAB(X) =: NSECT             % NO OF SECTORS
+030653
+030653          0=:DSKAD                             % FLOPPY DISK ADDRESS
+030654          PGCOP=:NOOK=:MNBLK                   % PAGE ADDRESS IN MEMORY
+030657          GO LTRNSF
+030660   ENDDO:
+030660     OD
+030664   *WAIT 76                                    % SHOULD NEVER BE HERE
+030665   *)FILL
+030722
+030722
+030722   % ---------- DMA FLOPPY TRANSFER --------------
+030722   %
+030722   %
+030722   DMA:   IF MTFSTA BIT 16 THEN
+030725             CALL WFLOP                        % NEW DMA FLOPPY
+030726          ELSE
+030727             IF FFORM=17 THEN                  % OLD DMA FLOPPY
+030733                 CALL XFLOP                    % DOUBLESIDE/DOUBLEDENSITY
+030734                ELSE
+030735                 CALL WFLOP                    % SINGLESIDE/SINGLEDENSITY
+030736             FI
+030736          FI
+030736          IF PGCOP = 0 THEN                    % IF FIRST DISKETTE THEN
+030740                                               % COPY PAGE TABLE ENTRIES
+030740
+030740            SECTAB(FFORM)=:NSECT
+030743            T:=SHPAGE ; A:=76 ; CALL COPYP     % TRANSFER VIA PAGE 0
+030746            SHPAGE =: MNBLK =: NOOK
+030751            NSECT*76=:DSKAD
+030754            CALL WFLOP
+030755
+030755            SECTAB(FFORM)=:NSECT
+030760            T:=SHPAGE ; A:=77 ; CALL COPYP     % TRANSFER VIA PAGE 0
+030763            SHPAGE =: MNBLK =: NOOK
+030766            NSECT*77=:DSKAD
+030771            CALL WFLOP
+030772
+030772          FI
+030772          GO FAR NEXTF
+030773
+030773
+030773   % ---------- PIO FLOPPY TRANSFER --------------------
+030773   %
+030773   %
+030773   PIO:
+030773          4 =: NSECT                           % SECTOR PER PAGE
+030775          PGCOP=:0PCOUNT+MPAGS-1=:STOP         % TRANSFER PAGE BY PAGE
+031002          FOR 0PCOUNT TO STOP DO               % IN PHYSICAL MEMORY
+031006             T:=SHPAGE ; CALL COPYP
+031010             SHPAGE =:NOOK=: MNBLK ; CALL WFLOP
+031014          OD
+031020          GO FAR NEXTF
+031021
+031021
+031021   INTEGER POINTER LDRIVER                     % FLOPPY DRIVER START ADDRESS
+031022   INTEGER POINTER LTRNSF                      % MEMORY TO FLOPPY TRANSFER ROUTINE
+031023
+031023
+031023   % ---------- W R I T E  TO  F L O P P Y ---------------
+031023   %
+031023   %       Routine   WFLOP
+031023
+031023   INTEGER         3LREG  , NUM
+031025   INTEGER POINTER LLRET=3LREG
+031025   INTEGER LXREG=3LREG                         % USE ONLY WHEN ERROR EXIT
+031025
+031025   WFLOP: A:=L=:"LLRET"
+031027          FOR NOOK TO MNBLK DO
+031033            A:=DSKAD=:D                        % A:=DISC ADDRESS=:D
+031035            X:=NSECT                           % X:=NO OF SECTOR
+031036            A+X=:DSKAD                         % DISK ADDRESS FOR NEXT TRANSFERT
+031040            A:=NOOK                            % A:=MEMORY PAGE ADDRESS
+031041            T:=CMD                             % T:=WRITE COMMAND
+031042            CALL LDRIVER; GO MWERR; GO MBUS % P+1:ERROR; P+2:BUSY; P+3:OK
+031045          OD
+031051          GO LLRET
+031052
+031052   XFLOP: A:=L=:"LLRET"
+031054          NSECT SHZ -2 =: NSECT
+031057          0=:NUM
+031060          FOR NUM TO 3 DO
+031064            A:=DSKAD=:D
+031066            X := NSECT
+031067            A+X=:DSKAD                         % DISK ADDRESS FOR NEXT TRANSFERT
+031071            A:=NOOK                            % A:=MEMORY PAGE ADDRESS
+031072            T:=CMD                             % T:=WRITE COMMAND
+031073            CALL LDRIVER; GO MWERR; GO MBUS % P+1:ERROR; P+2:BUSY; P+3:OK
+031076            NOOK+232=:NOOK
+031101          OD
+031105          GO LLRET
+031106   *)FILL
+031136
+031136   MWERR: X=:LXREG; "FLER1"; CALL 3UTXT          % ERROR MESSAGE
+031141          A:=LXREG; CALL FOCTU; GO DEXI
+031144
+031144   MBUS:   "BUSDV"; CALL 3UTXT; GO MEMTR         % DEVICE BUSY
+031147
+031147   FINI:  "LMSG4" ; CALL 3UTXT
+031151           LMEMORY ; CALL FOCTU
+031153          "FIDU"                                % OK EXIT
+031154
+031154   ERREX: CALL 3UTXT
+031155   DEXI:  *WAIT 0; JMP * -1                     % FINISHED DUMP
+031157   RBUS
+031167
+031167
+031167   % -------------------------------------
+031167   %  SUBROUTINE TO ASK FOR CHARACTER
+031167   % -------------------------------------
+031167
+031167   SUBR ASKCH
+031167   INTEGER POINTER LLINK
+031170   ASKCH: T:=L=:"LLINK"
+031172          "LMSG2"; CALL 3UTXT
+031174          "LMSG3"; CALL 3UTXT
+031176           CALL 0CLDEV                % CLEAR INPUT CHANNEL
+031177           CALL 7INBT                 % GET CHARACTER
+031200          GO LLINK
+031201   RBUS
+031206
+031206   % -------------------------------------
+031206   % SUBROUTINE TO CLEAR INPUT CHANNEL
+031206   %
+031206   % -------------------------------------
+031206   SUBR 0CLDEV
+031206   0CLDEV:
+031206   @MAC
+
+)9SCLC
+031206          IOX 302           % READ STATUS
+031207          BSKP ONE 30 DA
+031210          JMP *+3
+031211          IOX 300           % CLEAR INPUT
+031212          JMP *-4           % REPEAT
+031213          SAA 20            % CLEAR DEVICE BIT
+031214          IOX 303
+031215          EXIT
+031216  )9RCLC
+)9SLPL
+031216   RBUS
+031216
+031216   % -------------------------------------
+031216   %  SUBROUTINE TO FIND MEMORY CONFIG.
+031216   %  AND INITIALIZE MEMORY.
+031216   % -------------------------------------
+031216
+031216   SUBR 0CHMEM
+031216   INTEGER LCOUNT                               % LOOP COUNTER
+031217   INTEGER FIRSTMOR                             % FIRST TIME MOR
+031220   INTEGER PNT                                  % COUNTER IN FIELD CHAMP
+031221   SYMBOL MEXAM=    150416                      % MEMORY EXAMINE
+031221
+031221   0CHMEM:
+031221         FOR X:=0 TO 10 DO
+031225           -1 =: CHAMP(X)
+031227         OD
+031231         "1000";  *TRR IIE                      % ENABLE MEMORY OUT OF RANGE
+031233         100=:LCOUNT                            % STARTING AT BANK 1
+031235
+031235          0 =: CHAMP(0)
+031237          1 =: PNT ; 1 =: FIRSTMOR
+031243
+031243          FOR LCOUNT TO 37777 DO
+031247            A =: D
+031250            *LDT (2000  ; RMPY SD DT
+031252            *MEXAM       ; TRA IIC
+031254            IF A-11=0 THEN                      % MEMORY OUT OF RANGE
+031256                 IF FIRSTMOR=1 THEN             % SAVE THE LAST PAGE WHEN WE
+031262                    LCOUNT-1 =: CHAMP(PNT)      % DIDNOT HAVE MOR FOR
+031266                    X+1 =:  PNT                 % INCREMENT PNT
+031270                    0 =: FIRSTMOR
+031271                 FI
+031271              ELSE                              % NOT MEMORY OUT OF RANGE
+031272                 IF FIRSTMOR=0 THEN             % SAVE START OF MEMORY AFTER A HOLE
+031274                    LCOUNT =: CHAMP(PNT)        % IN MEMORY
+031277                    X+1=: PNT                   % INCREMENT PNT
+031301                    1 =: FIRSTMOR
+031303                 FI
+031303
+031303
+031303            FI
+031303            IF PNT=7 THEN GO FINI ; FI           % END OF FIELD CHAMP
+031310
+031310          OD
+031314
+031314   FINI:  LCOUNT-1=:LMEMORY ; EXIT
+031320   RBUS
+031325
+031325   % -------------------------------------
+031325   %  SUBROUTINE TO COPY ONE PAGE (FROM
+031325   %  ENTRY : A CONTAINED PAGE NO TO COPY FROM
+031325   %          T CONTAINED PAGE NO TO COPY TO
+031325   % -------------------------------------
+031325
+031325   SUBR COPYP
+031325     SYMBOL MEXAM=    150416               % MEMORY EXAMINE
+031325   COPYP: 0=:D; AD SH -6; *RDCR DD
+031330          T SH 12 =:B                      % CONVER PAGE TO ADDRESS
+031332          FOR X:=0 TO 1777 DO
+031336            *RINC DD; MEXAM; STT ,B ,X
+031341          OD
+031343          EXIT         % EXIT
+031344   RBUS
+031345
+031345   % -------------------------------------
+031345   %  SUBROUTINE TO PRINT A TEXT STRING
+031345   %  ENTRY:
+031345   %  A-REG  = ADDRESS OF TEXT STRING
+031345   % -------------------------------------
+031345
+031345   SUBR 3UTXT
+031345   INTEGER SVL
+031346   INTEGER POINTER PSVL=SVL
+031346   3UTXT: A=:D:=L=:SVL; X:=0
+031352          DO
+031352                T:=D; *LBYT; AAX 1
+031355                IF A=##' THEN GO PSVL; FI
+031361                IF A=##$ THEN
+031364                  T:=1; A:=15; CALL 7OUTB; A:=12 % $= CR & LF
+031370                FI; T:=1; CALL 7OUTB
+031372          OD
+031373          GO PSVL         % RETURN
+031374   RBUS
+031375
+031375   % -------------------------------------
+031375   %  OCTAL OUTPUT (A-REGISTER)
+031375   % -------------------------------------
+031375
+031375   SUBR FOCTU
+031375   INTEGER WORD, SVL
+031377   INTEGER POINTER PSVL=SVL
+031377   FOCTU: A SHR -17 =:WORD; A:=L=:SVL;
+031403          A:=WORD; A/\1; X:=-6; GO OCT1
+031407          FOR X DO
+031407            A:=WORD SHR 3=:WORD; A/\7
+031413   OCT1:    A+##0; T:=1; CALL 7OUTB
+031416          OD;
+031417          GO PSVL               % RETURN
+031420
+031420   RBUS
+031423
+031423   % -------------------------------------
+031423   %  ROUTINE INPUT AND OUTPUT A BYTE
+031423   % -------------------------------------
+031423
+031423   SUBR 7INBT,7OUTB
+031423   7INBT:
+031423   @MAC
+
+)9SCLC
+031423         IOX 302; BSKP ONE 30 DA; JMP *+3
+031426         LDA (44004; IOX 303             % CHECK PARITY, 7 BIT CH.,
+031430         IOX 302; BSKP ONE 30 DA; JMP *-2
+031433         IOX 300; BSET ZRO 70 DA; STA ASAV
+031436         LDA (44004; IOX 303; JMP * +2
+031441
+031441  7OUTB, STA ASAV; IOX 306; BSKP ONE 30 DA; JMP *-2
+031445         LDA ASAV; IOX 305; EXIT
+031450  ASAV,  0
+031451  )KILL ASAV
+031451  )9RCLC
+)9SLPL
+031452   RBUS
+031452
+031452   @MAC
+
+031452  )9RLPL
+031452
+031452  % =====================================
+031452  %      F D R I 2
+031452  % -------------------------------------
+031452  %  FLOPPY DISC DMA DRIVER
+031452  % -------------------------------------
+031452  %
+031452  %  CALLING SEQUENCE:
+031452  %
+031452  %     ON ENTRY:    A-REG: MEMORY BUFFER ADDRESS (PAGES IN MEMORY)
+031452  %                  D-REG: FIRST SECTOR OF TRANSFER
+031452  %                  X-REG: NUMBER OF SECTORS TO TRANSFER
+031452  %                  T-REG: COMMAND WORD (1=WRITE DATA)
+031452  %     ON RETURN:
+031452  %            NON    SKIP: ERROR
+031452  %                             X-REG = STATUS WORD 1 .OR. HSTAT
+031452  %
+031452  %            SINGLE SKIP: BUSY
+031452  %                             ALL REGISTER UNCHANGED
+031452  %
+031452  %            DOUBLE SKIP: FINISHED
+031452  %                             A-REG = STATUS WORD 2 OF STATUS BLOCK
+031452  %                                     IF THE COMMAND WAS "READ FORMAT" THEN
+031452  %                                     BIT 3 SET MEANS DUAL DENSITY
+031452
+031452
+031452  FDRI2, STF   3TREG                     %% SAVE T-, A- AND D-REGISTERS
+031453         IOX   1562                      %% READ HARDWARE STATUS
+031454         STA   3HSTA                     %% SAVE IN HSTAT
+031455         BSKP  ZRO 20 DA                 %% SKIP IF NOT BUSY
+031456         JMP   FBUSY                     %% BUSY, JUMP TO BUSY EXIT
+031457
+031457  %--- INITIALIZE "COMMAND FIELD" ELEMENTS ------------------
+031457
+031457         STT   3COMF+0                  %% COMMAND
+031460         STZ   3COMF+4                  %% WORD COUNT-HIGH (BIT 15= WC/SC FLAG)
+031461         STX   3COMF+5                  %% WORD COUNT-LOW/SECTOR COUNT
+031462         LDA   (2000; SWAP SA DD         %% NO OF WORDS PR PAGE (=2000)
+031464         STA   3COMF+1                  %% DISC ADDRESS
+031465         LDA   3AREG;  RMPY SA DD        %% MEMORY WORD ADDRESS IN AD-REG.
+031467         STD   3COMF+2                  %% A = MEM.ADDR. (MOST SIGN. 8 BITS)
+031470  %            3COMF+3                  %% D = MEM.ADDR. (LEAST SIGN. 16 BITS)
+031470  %%
+031470         SAA   0
+031471         IOX   1565                      %% LOAD COMMAND FIELD ADDR.(MOST SIGN.)
+031472
+031472         COPY  SP DA
+031473         AAA   3COMF-*                   %% LOAD COMMAND FIELD ADDR.(LEAST SIGN.)
+031474         IOX   1567
+031475
+031475         LDA   (1400                     %% CTRL.WORD: EXECUTE COMMAND/STEP RATE
+031476         IOX   1563                      %% LOAD CONTROL WORD
+031477
+031477  LOOP,  IOX   1562                      %% READ HARDWARE STATUS
+031500         BSKP  ONE 30 DA                 %% SKIP IF READY FOR TRANSFER
+031501         JMP   LOOP                      %% NOT READY, TRY AGAIN
+031502
+031502         STA   3HSTA                     %% SAVE STATUS IN HSTAT
+031503         BSKP  ZRO 40 DA                 %% SKIP IF NO ERRORS
+031504         JMP   FLERR                     %% YES, WE HAD ERRORS
+031505         LDX   3HSTA                     %% RETURN THE STATUS IN X-REG
+031506         LDF   3TREG                      %% RESTORE T- AND D-REG
+031507         LDA   3COMF+7                  %% STATUS WORD 2
+031510         COPY  SL DL AD1
+031511         EXIT  AD1                       %% DOUBLE SKIP RETURN, FINISHED EXIT
+031512
+031512  FBUSY, LDA   3AREG
+031513         EXIT  AD1                       %% SINGLE SKIP RETURN, BUSY EXIT
+031514
+031514  FLERR, IOX 1560                        %% LDX   3COMF+6  %% STATUS WORD 1
+031515         COPY SA DX                      %%  RORA  SA DX    %% .OR. HSTAT
+031516         LDF   3TREG
+031517         EXIT                            %% NON SKIP RETURN, ERROR EXIT
+031520
+031520  3TREG,  0
+031521  3AREG,  0
+031522  3DREG,  0
+031523  3HSTA, 0
+031524  3COMF,0;0;0;0;0;0;0;0;0;0;0;0         %% FIELD IS 12 (DEC) LOCATIONS LONG
+031540
+031540  )FILL
+031542  )PCL FDRI2
+031542  )9RCLC
+)9SLPL
+031542
+031542   % =====================================
+031542   %      F D R I 1
+031542   % -------------------------------------
+031542   %  FDRI1:
+031542   %  PIO FLOPPY DISC DRIVER.
+031542   %  ROUTINE TO WRITE A NUMBER OF 256
+031542   %  WORDS BLOCKS ON FLOPPY-DISK-1,
+031542   %  UNIT 0 STARTING IN SPECIFIED
+031542   %  ADDRESS.
+031542   %
+031542   %  ENTRY:    D = DISK ADDRESS
+031542   %                (RANGE 0-1150B)
+031542   %            A = MEMORY ADDRESS (IN PAGES!!)
+031542   %            X = NO OF SECTORS TO
+031542   %                TRANSFER (256 WORDS)
+031542   %
+031542   %  RETURN:   RETURN IF ERROR
+031542   %            (REGISTERS RESET EXEPT X=STATUS)
+031542   %            SKIP-RETURN IF BUSY
+031542   %            SKIP-SKIP-RETURN IF OK
+031542   %            (STATUS IN X-REGISTER)
+031542   %
+031542   % -------------------------------------
+031542
+031542   SUBR FDRI1
+031542   FDRI1:
+031542          SYMBOL 3DEVN = 1560
+031542          SYMBOL 3RDAT  = 3DEVN+0
+031542          SYMBOL 3WDAT  = 3DEVN+1
+031542          SYMBOL 3RSR1  = 3DEVN+2
+031542          SYMBOL 3WCWD  = 3DEVN+3
+031542          SYMBOL 3RSR2  = 3DEVN+4
+031542          SYMBOL 3WDAD  = 3DEVN+5
+031542          SYMBOL 3WSCT  = 3DEVN+7
+031542
+031542          SYMBOL 3BUSY  = 20
+031542
+031542   @MAC
+
+)9SCLC
+031542
+031542  %--- SAVE REGISTERS/INITIAL VALUES ------------------------
+031542
+031542         STF   9TREG
+031543         COPY SL DT
+031544         STT 9LREG
+031545         STX 9XREG
+031546         MPY   (2000
+031547         STA 3MADR             % NO OF WORRDS PR PAGE
+031550
+031550  RSR01, IOX   3RSR1
+031551         BSKP  ZRO 3BUSY DA     % CONTROLLER BUSY?
+031552         JMP   FBUSY
+031553
+031553  NTRNS, SAA   60
+031554  WCWD3, IOX   3WCWD            % CLEAR DEVICE
+031555         LDA   (140001
+031556  WDAD1, IOX   3WDAD            % SELECT DRIVE & FORMAT
+031557         STZ   *               % DELAY
+031560         STZ   *
+031561  RSR06, IOX   3RSR1
+031562         STA   3STA1
+031563         BSKP  ZRO 40 DA
+031564         JMP   ERR
+031565         STZ   SETIB           % INITIALIZE SECTOR COUNT (ADDRESS IN BUFFER)
+031566         LDA   3CALB
+031567         JAF   UTBUF           % START TRANSFER IF CALIBRATED
+031570
+031570  %--- CALIBRATE ----------
+031570
+031570  CALFL, STZ   NYTR
+031571         LDA   (40000
+031572  WCWD4, IOX   3WCWD            % RECALIBRATE COMMAND
+031573  RSR07, IOX   3RSR1
+031574         BSKP  ZRO 3BUSY DA
+031575         JMP   *-2
+031576
+031576  %--- CHECK RECALIBRATE ----
+031576
+031576  RSR03, IOX   3RSR1
+031577         STA   3STA1
+031600         AND   FMSK
+031601         AAA   -200
+031602         JAF   ERR
+031603         SAA   -1
+031604         STA   3CALB           % DRIVE IS RECALIBRATED
+031605
+031605  %--- READ ID TRANSFER -------
+031605
+031605
+031605  IDTRN, LDA   (4040
+031606  WCWD6, IOX   3WCWD            % READ ID COMMAND/CLEAR BUFFER
+031607  RSR11, IOX   3RSR1
+031610         BSKP  ZRO 3BUSY DA
+031611         JMP   *-2
+031612
+031612  %--- CHECK READ ID ----------
+031612
+031612
+031612  RSR02, IOX   3RSR1
+031613         STA   3STA1           % SAVE STATUS
+031614         AND   FMSK
+031615         AAA   -100            % SUBTRACT RIGHT STATUS
+031616         JAF   ERR
+031617
+031617  %--- CHECK NEW TRACK ADDRESS --
+031617
+031617  ADCHK, SAA   40
+031620  WCWD1, IOX   3WCWD            % CLEAR BUFFER
+031621  RDAT1, IOX   3RDAT            % READ TRACK ID BYTES
+031622         SHA   ROT 10
+031623         SUB   NYTR
+031624         JAZ   *+3             % NEW TRACK OK
+031625         STZ   3CALB           % SET RECALIBRATE FLAG
+031626         JMP   ERR
+031627         LDA   NYTR
+031630         STA   GAMTR
+031631         JMP   UTBUF
+031632
+031632  FBUSY, LDF   9TREG           % BUSY EXIT !
+031633         LDX   9XREG
+031634         EXIT  AD1
+031635
+031635  FFINI, LDX   3STA1           % FINISH
+031636         LDA   9LREG
+031637         COPY  AD1 SA DL
+031640         LDF   9TREG
+031641         EXIT  AD1
+031642
+031642  ERR,   IOX   3RSR2            % ERROR
+031643         ORA   3STA1
+031644         COPY  SA DX
+031645         LDF   9TREG
+031646         JMP I 9LREG
+031647  )FILL
+031653
+031653  9TREG, 0
+031654  9AREG, 0
+031655  9DREG, 0
+031656  9XREG, 0
+031657  9LREG, 0
+031660  3STA1, 0
+031661  3STA2, 0
+031662  SETIB, 0                     % NO. OF SECTORS IN BUFFER
+031663  NBLTT, 0                     % NO. OF BLOCKS LEFT TO TRANSFER
+031664  3MADR, 0                     % CURRENT MEMORY ADDRESS
+031665  FMSK,  360
+031666  MSECT,  0                     % SECTOR
+031667  3CALB, 0                     % CALIBRATION FLAG
+031670  NYTR, 0                     % NEW TRACK
+031671  GAMTR, 0                     % OLD TRACK
+031672
+031672
+031672  UTBUF, SAA   40              % FILL THE INTERFACE
+031673  WCW11, IOX   3WCWD
+031674         LDA   3MADR
+031675         COPY  SA DX
+031676         ADD   (2000
+031677         COPY  SA DT
+031700  IWDAT, LDA   ,X              % FETCH DATA IN MEMORY
+031701         IOX   3WDAT
+031702         AAX   1
+031703         SKP   DX EQL ST
+031704         JMP   IWDAT
+031705         SAA   -4
+031706         STA   NBLTT           % SET NO. OF BLOCKS LEFT TO TRANSFER
+031707                               % WITHOUT FILLING THE INTERFACE BUFFER
+031707
+031707  %--- CHECK NO. OF BLOCKS LEFT TO TRANSFER --
+031707
+031707  CHLFT, LDX   9XREG           % NO OF 256 WORDS BLOCKS TO TRANSFER
+031710         LDA   SETIB           % SECTOR NUMBER ADDRESS IN BUFFER
+031711         SKP   DA GEQ SX       % TRANSFER IF MAX<CURRENT SECTOR
+031712         JMP   FTRNS
+031713         JMP   FFINI           % FINISHED ?
+031714
+031714  %--- PREPARE READ/WRITE TRANSFER ---------
+031714
+031714  FTRNS, LDA   9DREG
+031715         AND   (7777
+031716         ADD   SETIB
+031717         COPY  SA DD
+031720         SAA   0
+031721         SAT   10
+031722         RDIV  ST              %  A: TRACK  (SA/SR ->A=QUOTIENT, D=REMAINDER)
+031723         COPY  SD DT AD1       %  T: SECTOR (D+1=T)
+031724         STT   MSECT
+031725         STA   NYTR
+031726         SUB   GAMTR
+031727         JAZ   RWTRN           % ON TRACK?
+031730
+031730  %--- NO,  WRONG TRACK ! -----------------
+031730
+031730         JAP   *3              % NO. A: DIFFERENCE  (15=0 -> "OUT", 15=1 -> "IN")
+031731         COPY  SA DA CM2
+031732         JMP   *2
+031733         BSET  ONE 70 DA       % SEEK "IN" (NYTR > GAMTR)
+031734         SHA   ZIN 10
+031735  WDAD2, IOX   3WDAD            % LOAD DIFFERENCE
+031736         LDA   (20000
+031737  WCWD5, IOX   3WCWD            % SEEK COMMAND
+031740  RSR10, IOX   3RSR1
+031741         BSKP  ZRO 3BUSY DA
+031742         JMP   *-2
+031743
+031743  %--- CHECK SEEK ---------------
+031743
+031743  RSR04, IOX   3RSR1
+031744         STA   3STA1
+031745         AND   FMSK
+031746         AAA   -200
+031747         JAF   ERR
+031750         JMP   IDTRN
+031751
+031751  %--- TRANSFER CONTENT TO DISK (TRACK=NYTR, SECTOR=MSECT) --
+031751
+031751  RWTRN, LDA   MSECT
+031752         SHA   ZIN 10
+031753  WSCT1, IOX   3WSCT            % LOAD SECTOR
+031754  WTRSF, LDA   (1000           % WRITE CODE
+031755  WCWD7, IOX   3WCWD            % WRITE TRANSFER COMMAND
+031756         LDA   3MADR
+031757         ADD   (400
+031760         STA   3MADR           % INCREMENT MEMORY ADDRESS
+031761  RSR12, IOX   3RSR1
+031762         BSKP  ZRO 3BUSY DA
+031763         JMP   *-2
+031764         MIN   SETIB           % INCREMENT BUFFER SECTOR ADDRESS (NEVER ZERO)
+031765         MIN   NBLTT           % DECREMENT NO OF SECTORS IN BUFFER
+031766         JMP   CHLFT
+031767         JMP   UTBUF
+031770
+031770  )FILL
+031775  )PCL FDRI1
+031775
+031775  EMTOF=*-1
+031775  )9RCLC
+)9SLPL
+031775
+031775   RBUS
+031775   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+031775   %%     END OF MEMORY TO FLOPPY DUMP PROGRAM      %%
+031775   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+031775
+031775   @DEV 1

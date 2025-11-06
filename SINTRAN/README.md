@@ -26,6 +26,7 @@ SINTRAN III was a sophisticated real-time operating system providing:
 | [Devices/](Devices/) | Hardware device documentation (HDLC, SCSI) | 95+ files |
 | [Emulator/](Emulator/) | C# emulator implementation guides | 5 files |
 | [ND500/](ND500/) | ND-500 processor documentation | TBD |
+| [NPL-SOURCE/](NPL-SOURCE/) | **SINTRAN III NPL source code & symbols** | **45 NPL + 7 symbol files** |
 | [OS/](OS/) | Core operating system architecture (00-19) | 31 files |
 | [TAD/](TAD/) | TAD protocol analysis | 7 files |
 
@@ -62,6 +63,59 @@ SINTRAN III was a sophisticated real-time operating system providing:
 **SCSI disk controllers:**
 - [Devices/SCSI/SCSI-Master-Index.md](Devices/SCSI/SCSI-Master-Index.md)
 - [Devices/SCSI/SCSI-C#-Implementation-Guide.md](Devices/SCSI/SCSI-C%23-Implementation-Guide.md)
+
+---
+
+## SINTRAN III Source Code
+
+### NPL Source Code and Symbols
+
+**Location:** [NPL-SOURCE/](NPL-SOURCE/)
+
+This folder contains **actual SINTRAN III operating system source code** written in NPL (Norsk Data Programming Language), extracted from the s3vs-4.symb build job output.
+
+#### What's Included
+
+**NPL Source Files (45 files):**
+- Kernel/Monitor code (MON60)
+- SCSI disk drivers (IP-P2-SCSI-*.NPL)
+- HDLC communication drivers (MP-P2-HDLC-DRIV.NPL)
+- ND-500 interface code (CC-P2-N500.NPL, MP-P2-N500.NPL)
+- Disk I/O subsystem (IP-P2-DISK-*.NPL, MP-P2-DISK-*.NPL)
+- Segment administration (IP-P2-SEGADM.NPL)
+- HASP protocol implementation (MP-P2-HASP-ETC.NPL)
+- Terminal and communication handling (TP-P2-*.NPL)
+
+**Symbol Tables (7 files, SINTRAN L07):**
+- **FILSYS-SYMBOLS.SYMB.TXT** (61 KB) - File system symbols
+- **N500-SYMBOLS.SYMB.TXT** (122 KB) - ND-500 interface symbols
+- **XMSG-SYMBOL-LIST.SYMB.TXT** (30 KB) - XMSG message system symbols
+- **SYMBOL-1-LIST.SYMB.TXT** (102 KB) - Primary kernel symbols
+- **SYMBOL-2-LIST.SYMB.TXT** (69 KB) - Secondary kernel symbols
+- **RTLO-SYMBOLS.SYMB.TXT** (56 KB) - Runtime library symbols
+- **LIBRARY-MARKS.SYMB.TXT** (14 KB) - Library entry points
+
+#### Why This is Important
+
+1. **Authentic Implementation** - See how SINTRAN III was actually implemented
+2. **Emulator Verification** - Validate emulator behavior against real OS code
+3. **Symbol Tables** - Map memory addresses to symbolic names for debugging
+4. **File System Insight** - While we lack file system source, symbols provide structure information
+5. **Complete Device Drivers** - Full SCSI and HDLC driver implementations
+
+#### Using Source Code with Documentation
+
+The NPL source code should be read alongside the OS documentation:
+
+| Source Files | Corresponding Documentation |
+|--------------|---------------------------|
+| IP-P2-SCSI-*.NPL | [Devices/SCSI/](Devices/SCSI/) + [OS/15-DISK-IO-SUBSYSTEM.md](OS/15-DISK-IO-SUBSYSTEM.md) |
+| MP-P2-HDLC-DRIV.NPL | [Devices/HDLC/](Devices/HDLC/) |
+| CC-P2-N500.NPL, MP-P2-N500.NPL | [ND500/](ND500/) + [OS/06-MULTIPORT-MEMORY-AND-ND500-COMMUNICATION.md](OS/06-MULTIPORT-MEMORY-AND-ND500-COMMUNICATION.md) |
+| IP-P2-SEGADM.NPL | [OS/16-PAGE-FAULT-HANDLER.md](OS/16-PAGE-FAULT-HANDLER.md) |
+| 5P-P2-MON60.NPL | [OS/14-MONITOR-KERNEL-MONCALLS.md](OS/14-MONITOR-KERNEL-MONCALLS.md) |
+
+**Full details:** [NPL-SOURCE/README.md](NPL-SOURCE/README.md)
 
 ---
 
@@ -168,12 +222,14 @@ Located in [Emulator/](Emulator/) folder:
 
 | Category | Files | Size |
 |----------|-------|------|
+| **NPL Source Code** | **45** | **~3.9MB** |
+| **Symbol Tables (L07)** | **7** | **~450KB** |
 | OS Architecture (00-19) | 31 | ~518KB |
 | HDLC Documentation | 30+ | ~350KB |
 | SCSI Documentation | 10+ | ~125KB |
 | Emulator Guides | 5 | ~115KB |
 | TAD Protocol | 7 | ~75KB |
-| **Total** | **95+** | **~1.2MB** |
+| **Total** | **140+** | **~5.6MB** |
 
 ---
 
@@ -199,14 +255,17 @@ Located in [Emulator/](Emulator/) folder:
 
 ### By Task
 
+**Reading SINTRAN III Source Code:**
+→ Start in [NPL-SOURCE/](NPL-SOURCE/) folder - actual kernel implementation
+
 **Building an Emulator:**
-→ Start in [Emulator/](Emulator/) folder
+→ Start in [Emulator/](Emulator/) folder, then cross-reference [NPL-SOURCE/](NPL-SOURCE/)
 
 **Understanding Devices:**
-→ See [Devices/](Devices/) folder
+→ See [Devices/](Devices/) folder, then check corresponding NPL files
 
 **OS Internals:**
-→ See [OS/](OS/) folder, chapters 00-19
+→ See [OS/](OS/) folder, chapters 00-19, verified against [NPL-SOURCE/](NPL-SOURCE/)
 
 **Protocol Analysis:**
 → See [TAD/](TAD/) folder

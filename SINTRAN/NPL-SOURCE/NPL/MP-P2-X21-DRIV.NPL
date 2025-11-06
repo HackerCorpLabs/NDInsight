@@ -1,0 +1,1211 @@
+105411   @DEV (S-S-L)MP-P2-X21-DRIV:NPL
+105411   *"8C1X2+8C2X2+8C3X2+8C4X2
+"105411   %
+
+105411   %=============================================
+105411   % 40.20
+105411   %      X 2 1 2 S    X 2 1 3 S    X 2 S N D
+105411   %      X 2 S S S
+105411
+105411   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+105411   %
+105411   %      X 2 1  DRIVER FOR HANDLING X21 DCB'S
+105411   %
+105411   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+105411
+105411
+105411   %PURPOSE:    CONNECT AND DISCONNECT TO A X 21 NETWORK
+105411
+105411   %ENTER:      B-REG DATAFIELDPOINTER
+105411   %            MESSAGE:      COMMAND
+105411   %                          FACILITY
+105411   %                          STATUS
+105411   %                          SELECTIONS SIGNALS
+105411   %                          DTE/DCE PROVIDED INFORMATION
+105411
+105411
+105411   %EXIT:       MESSAGE SENT BACK TO USER WITH APPROPRIATE STATUS INFORMATION.
+105411
+105411
+105411   %HDLC REGISTER CONTENT DEFINITION
+105411   %
+105411   %
+105411   % SYMBOL CPCR = 100                                % IOX + 1
+105411   % SYMBOL CSAR = 377% IOX + 3
+105411   % SYMBOL CCL  = 347                                %IOX + 4  7BITS BYTE+PARITY
+105411   % SYMBOL CTCW =   1% IOX + 7
+105411   % SYMBOL CWTTC= 104% IOX + 13
+105411   % SYMBOL CRTTC= 104% IOX + 11
+105411   %
+105411   %
+105411
+105411   %
+105411   %
+105411   %      X21 LOGGING ROUTINES
+105411   %**************************
+105411
+105411
+105411          SYMBOL X22SIZ = 20
+105411          SYMBOL X2LMA = X22SIZ-1
+105411          SYMBOL DCEMS = X22SIZ*10+4
+105411
+105411          INTEGER ARRAY X2A00(X22SIZ)
+105431          INTEGER ARRAY X2A02(X22SIZ)
+105451          INTEGER ARRAY X2A05(X22SIZ)
+105471          INTEGER ARRAY X2A10(X22SIZ)
+105511          INTEGER ARRAY X2A11(X22SIZ)
+105531          INTEGER ARRAY X2A12(X22SIZ)
+105551          INTEGER ARRAY X2AST(X22SIZ)
+105571          INTEGER ARRAY X2ATL(X22SIZ)
+105611
+105611          INTEGER ARRAY X2PATC(100)
+105711          INTEGER X2PAFR
+105712
+105712
+105712   %
+105712   %
+105712   %      LOGG IN ARRAYS
+105712
+105712   SUBR STORE
+105712          INTEGER X2LL:=0
+105713          INTEGER X2LL1:=-1
+105714          INTEGER X2LL2:=0
+105715          INTEGER X2LL4:=0
+105716          INTEGER X2LL5:=0
+105717   STORE: X:=X2LL; *1BANK;
+105721          T:=X2A00(X); *2BANK
+105723          IF X2D00 >< T                GO XUP21
+105726          *1BANK;
+105727          T:=X2A02(X); *2BANK
+105731          IF X2D02 >< T  AND >< "0"    GO XUP21
+105737          *1BANK;
+105740          T:=X2A05(X); *2BANK
+105742          IF X2D05 >< T                GO XUP21
+105745          *1BANK;
+105746          T:=X2A10(X); *2BANK
+105750          IF X2D10 >< T                GO XUP21
+105753          *1BANK;
+105754          T:=X2A11(X); *2BANK
+105756          IF X2D11 >< T                GO XUP21
+105761          *1BANK;
+105762          T:=X2A12(X); *2BANK
+105764          IF X2D12 >< T                GO XUP21
+105767          *1BANK;
+105770          T:=X2AST(X); *2BANK
+105772          IF X2DST >< T                GO XUP21
+105775          MIN X2LL4; P+0; X:=X2DMP
+106000          EXIT
+106001   XUP21: MIN X2LL1; P+0
+106003          X2LL1 /\ X2LMA=:X2LL=:X
+106007          X2D00; *1BANK
+106011          A=:X2A00(X); *2BANK
+106013          X2D02; *1BANK
+106015          A=:X2A02(X); *2BANK
+106017          0=:X2D02; X2D05; *1BANK
+106022          A=:X2A05(X); *2BANK
+106024          X2D10; *1BANK
+106026          A=:X2A10(X); *2BANK
+106030          X2D11; *1BANK
+106032          A=:X2A11(X); *2BANK
+106034          X2D12; *1BANK
+106036          A=:X2A12(X); *2BANK
+106040          X2DST; *1BANK
+106042          A=:X2AST(X); *2BANK
+106044          X2LL-1=:X2LL5
+106047          IF X2LL5 < 0 THEN "X22SIZ-1"=:X2LL5 FI; *1BANK
+106054          X2LL4=:X2ATL(X2LL5); 0=:X2LL4; *2BANK
+106061          X:=X2DMP; EXIT
+106063   RBUS
+106074
+106074
+
+106074   %****************************
+106074   %
+106074   %      SOME USEFUL ROUTINES
+106074   %
+106074   %****************************
+106074
+106074
+106074   %      SERVICE ROUTINE FOR UPATINNG IDENT TABLES
+106074   %************************************************
+106074
+106074
+106074   %      EXCHANGE "X2OLD" IN IDENTTABLE WITH "X2NEW"
+106074   %      "X2OLD" MAY ALSO BE FOUND IN EXTENDED IDENTTABLE
+106074   %      ENTRY X212S - LEVEL 12(D)
+106074   %      ENTRY X213S - LEVEL 13(D)
+106074
+106074   %      INPUT PARAMS:
+106074
+106074   INTEGER X2NEW:=0                                 % ADDR TO BE INSERTED
+106075   INTEGER X2OLD:=0                                 % ADDR TO BE REMOVED
+106076   DOUBLE  X2DNEW=X2NEW                             % TO STORE NEW AND OLD
+106076
+106076   %      SCRATCH LOCATIONS
+106076
+106076   SUBR X212S,X213S
+106076   INTEGER X2TA1:=0                                 % ADDR TO TABLE
+106077   INTEGER X2TA2:=0                                 % ADDR TO EXTENDED TABLE
+106100   INTEGER X2SSP:=0                                 % WORKING
+106101
+106101   DISP 0; INTEGER XNUL1; INTEGER EN; PSID
+106101
+106101   X212S: IDNTS(2)=:X2TA1+"MAX12"=:X2SSP; EXTDS(2)=:X2TA2; GO X2HER
+106112   X213S: IDNTS(3)=:X2TA1+"MAX13"=:X2SSP; EXTDS(3)=:X2TA2
+106122
+106122   X2HER: FOR X:=X2TA1 STEP 1 TO X2SSP DO
+106126             *1BANK; LDA ,X
+106130             T:=X2OLD
+106131             IF A=T THEN
+106133                X2NEW; *STA ,X; 2BANK
+106136                EXIT
+106137             FI
+106137             *2BANK
+106140          OD
+106142
+106142   %      LOOK IN EXTENDED TABLE
+106142
+106142          DO X:=X2TA2; X+1; *1BANK;  LDA ,X
+106146          WHILE A><-1
+106151             X:=X2TA2; X+1; * LDA ,X
+106154             T:=X2OLD
+106155             IF A=T THEN
+106157                X2NEW; *STA ,X; 2BANK
+106162                EXIT
+106163             FI
+106163             MIN X2TA2; P+0
+106165          OD
+106166          *2BANK
+106167          A:=X2FNI; CALL X21UT                      % ENTRY NOT FOUND
+106171   RBUS
+106200
+106200   %
+106200   %      SEND ONE CHARACTER
+106200   %      THE ROUTINE WILL GENERATE ODD PARITY
+106200   %
+106200   %      INPUT: A-REG IS CHARACTER TO BE TRANSMITTED
+106200   %
+106200   %      OUTPUT: STATUS IN X2D12 IN DATAFIELD
+106200   %
+106200   %**************************************************
+106200
+106200   SUBR X2SND
+106200   X2SND: T:=L=:X2DLS;
+106202          CALL X21PG; A=:X2D05
+106204          T:=X2DHD+XWTDR; *EXR ST
+106207          105
+106210          T+"XWTTC-XWTDR"
+106211          *EXR ST
+106212          CALL X21LV; T:=X2DHD+XRTTS; *EXR ST
+106216          A=:X2D12; CALL STORE; A:=X2DLS=:P
+106222
+106222
+106222   %      ROUTINE FOR PARITY GENERATION ( ODD PARITY)
+106222   %**************************************************
+106222
+106222   X21PG: *BSET ONE 70 DA
+106223          *BSKP ZRO 60 DA; BSET BCM 70 DA
+106225          *BSKP ZRO 50 DA; BSET BCM 70 DA
+106227          *BSKP ZRO 40 DA; BSET BCM 70 DA
+106231          *BSKP ZRO 30 DA; BSET BCM 70 DA
+106233          *BSKP ZRO 20 DA; BSET BCM 70 DA
+106235          *BSKP ZRO 10 DA; BSET BCM 70 DA
+106237          *BSKP ZRO  0 DA; BSET BCM 70 DA
+106241          EXIT
+106242   RBUS
+106245
+106245   %
+106245   %      ROUTINE FOR STARTING TRANSMITTER PART OF INTERFACE
+106245   %      AND SENDING "SYN,SYN"
+106245   %
+106245   %*********************************************************
+106245
+106245   SUBR X2SSS
+106245   X2SSS: A:=L=:X2DLS
+106247          1=:X2DPC
+106251          FOR X2DPC STEP 1 TO 4 DO                  % SEND 4 SYNC
+106255             1; T:=X2DHD+XWTCR; *EXR ST
+106261   L1:       105; T:=X2DHD+XWTTC; *EXR ST
+106265             CALL X21LV
+106266             T:=X2DHD+XRTTS; *EXR ST
+106271             A=:X2D13
+106272             IF A NBIT 0 THEN GO L1 FI
+106275          OD
+106301          0=:A; T:=X2DHD+XWTCR; *EXR ST
+106305          A:=X2DLS=:P
+106307   RBUS
+106310
+106310
+106310
+
+106310   % ======================================================
+106310   % 40.21
+106310   %      X 2 1 E R    X 2 S T A     X 2 S B Y    X 2 R B Y
+106310   %      X 2 R A C    X 2 1 U T
+106310   %========================================================
+106310
+106310   %*******************************
+106310   %
+106310   %      MESSAGE HANDLING
+106310   %
+106310   %*******************************
+106310
+106310   SUBR X21ER,X2STA,X32ST,X2SBY,X2RBY,X2RAC,X21UT
+106310
+106310   %
+106310   %
+106310   %      MESSAGE RECEPTION
+106310   X32ST:
+106310   X2STA: IF X2DST=10 THEN                          % ARE YOU IN READY STATE?
+106314             CALL XTSTC; GO NOMES                   % YES, ANY MESSAGE?
+106316                CALL X2114                          % CONTROLLED NOT READY
+106317                0=:X2DST=:X2DPIN
+106321                X:=X2DMP;       *1BANK
+106323                X2FNC=:X.X2MST; *2BANK;
+106326                CALL O3CHA                          % RETURN MESSAGE
+106327                0=:X2DMP; 1=:X2DDF
+106332          FI
+106332   NOMES: CALL D3CHA; CALL X21LV; 0=:X2DER; CALL X2RBY      % GET NEW MESSAGE
+106336          IF A >= 10 THEN CALL X21C FI              % DECODE COMMAND
+106342          IF A >= 6 THEN
+106345             *1BANK
+106346             X2FSM=:X.CRET; *2BANK                  % TOO SMALL MESSAGE
+106351          FI
+106351          CALL O3CHA; 0=:X2DMP; GO X2STA            % RETURN MINI MESSAGE
+106354
+106354
+106354   %
+106354   %
+106354   %      MESSAGE SENDING       (RETURN IT TO SENDER)
+106354
+106354   X21ER: X:=X2DMP;   *1BANK
+106356          A=:X.X2MST; *2BANK
+106360          A=:X2DER; CALL STORE;  CALL X2116
+106363          CALL X2121; CALL X211; CALL X2114
+106366          X:=X2DMP; GO X21UU                        % LEAVE AT STATE 24
+106370
+106370   X21UT: X:=X2DMP;   *1BANK
+106372          A=:X.X2MST; *2BANK                        % SET STATUS
+106374          CALL STORE
+106375   X21UU: CALL X2RBY; A+X2DBC=:T; CALL X2SBY
+106401          CALL O3CHA; 0=:X2DMP; 1=:X2DDF
+106405          GO FAR X2STA
+106406
+106406   %
+106406   %
+106406   %      SOME USEFUL MESSAGE MAINTENANCE ROUTINES
+106406
+106406
+106406   %      STORE BYTECOUNT IN MESSAGE
+106406
+106406   X2SBY: *1BANK
+106407          T=:X.BBYTC; *2BANK; EXIT
+106412
+106412   %
+106412   %      READ ACTUAL BYTECOUNT
+106412
+106412   X2RAC: *1BANK
+106413          A:=X.BBYTC; *2BANK; EXIT
+106416
+106416   %
+106416   %      READ MAX BYTECOUNT
+106416
+106416   X2RBY: *1BANK
+106417          A:=X.BMBYTE; *2BANK; EXIT
+106422
+106422   %
+106422   %      ANY MESSAGES FOR ME?
+106422
+106422   XTSTC: IF IQUEU><0 THEN  EXITA FI
+106425          EXIT
+106426   RBUS
+106444
+
+106444   %============================
+106444   % 40.22
+106444   %      X 2 1 C
+106444   %
+106444   %============================
+106444
+106444
+106444   %******************************
+106444   %
+106444   %      THE X21 COMMANDS
+106444   %
+106444   %******************************
+106444
+106444
+106444   SUBR X21C,X21RE,X21LG,X21CL,X21CN,X21CH,X21DC,X21AA,X21RD,X21BR
+106444
+106444   %      S T A T U S
+106444   %      ***********
+106444
+106444   X21AA: IF X2DCN = 0 THEN X21SA; GO LLL FI        % NOT CONNECTED
+106450          IF X2DST = 14 THEN X21SB ELSE X21SC FI    % DATA-PHASE OR CONNECTED
+106457   LLL:   T:=X2DBC+2=:X2DBC
+106462          IF T:=X2DBC<0 THEN                        % ENOUGH MESSAGE SPACE ?
+106465             X:=X2DMP;   *1BANK                     % YES
+106467             A=:X.X2MSL; *2BANK
+106471             A:=0
+106472          ELSE
+106473             A:=X2FSM                               % NO
+106474          FI
+106474          CALL X21UT
+106475
+106475   %      C A L L
+106475   %      *******
+106475
+106475   X21CA: IF X2DCN=0 THEN X2FFF; CALL X21UT FI      % MUST CONNECT FIRST
+106501          IF X2DST=14 OR X2DCC = 2 THEN A:=X2FIS; CALL X21UT FI  % ILLEGAL COMMAND IN DATA PHASE
+106513          X:=X2DMP; *1BANK
+106515          X.X2MFA;  *2BANK
+106517          IF A NBIT X21C3 THEN                      % DIRECT CALL ?
+106521             CALL X2RAC; A=:D; X:=0                 % NO, LOOK FOR "+"
+106524             DO WHILE A><"X21PL"                    % ANY "+" IN SELECTION SIGNAL ?
+106527                T:=X2DMP+X2M3; *1BANK; LBYT; 2BANK
+106534                X+1
+106535                IF X>D OR X>25 THEN A:=X2FNP; CALL X21UT FI % NO, ERROR
+106544             OD
+106545          FI
+106545          CALL X211
+106546          IF T><0 THEN T=:A; CALL X21ER FI
+106552          CALL X212                                 % STATE 2 - 6
+106553          0 =: X2DPS                                % CLEAR CP-SIGNAL (STATUS FROM X217)
+106554   LOOP:  CALL X2GET; A=:A
+106556             IF X2D10 BIT 6 THEN 0=:TMR; CALL X2112 FI  % DCE READY FOR DATA
+106563             IF T = 0  GO LOOP                          % WAIT FOR DATA
+106565             IF X2D00="X21SY" OR ="X21PL" OR ="177" OR ="X21NL" THEN
+106602                GO LOOP                             % "X21NL" MUST BE ACCEPTED IN ORDER TO WAIT FOR
+106603             FI                                     % DCE CLEAR REQUEST AFTER CP-SIGNAL
+106603             T:=X21T3 =: TMR                        % CP/DCE-INFO RECEIVED. SET T3
+106605             IF A="X21ST" OR ="X21SL" OR = ##- THEN % TEST ON "*", "/" AND ("-" FOR GERMANY)
+106616                CALL X2110                          % ENTER STATE 10
+106617                IF T><0 THEN T=:A; CALL X21ER FI
+106623             ELSE
+106624                IF A <##0 OR >##9 THEN GO LOOP FI   % CHECK FOR ASCII '0' TO '9'
+106633                CALL X217                           % CALL PROGRESS SIGNALS
+106634                IF X2FCP = T THEN                   % T-REG NOT DESTROYED
+106637                   X2FCP =: X2DPS; GO LOOP          % SAVE X2FCP IN X2DPS. CP IN DF NOW
+106642                FI                                  % CONTAINS INFO:SERIOUS CP RECEIVED.
+106642                IF T><0 THEN T=:A; CALL X21ER FI
+106646             FI
+106646          GO LOOP
+106647   *)FILL
+106660
+106660   %      R E A D Y
+106660   %      *********
+106660
+106660   X21RE: IF X2DCN=0 THEN X2FFF; CALL X21UT FI      % MUST CONNECT FIRST
+106664          IF X2DST=14 OR X2DCC = 2 THEN A:=X2FIS; CALL X21UT FI  % ILLEGAL COMMAND IN DATAPHASE
+106676          CALL X211
+106677          IF T><0 THEN T=:A; CALL X21ER FI
+106703          CALL X218                                 % EXECUTE STATE 8 - 9
+106704          DO CALL X2GET; A=:A                       %
+106706          WHILE X2D10 NBIT 6
+106711             IF T=1 AND X2D00="X21ST" THEN CALL X2110       % CALLING LINE IDENTIFICATION
+106721               IF T><0 THEN 0=:TMR; T=:A; CALL X21ER FI  % TOO SMALL MESSAGE
+106726             FI
+106726          OD
+106727          0=:TMR
+106730          CALL X2112                                % READY FOR DATA
+106731
+106731
+106731   %      C L E A R  R E Q U E S T
+106731   %      ************************
+106731
+106731   X21CL: IF X2DCN=0 THEN X2FFF; CALL X21UT; FI     % MUST CONNECT FIRST
+106735          IF X2DBR >< 0 THEN                        % BREAK REQUESTED
+106737             X:=X2DBR;   *1BANK
+106741             X2FBR=:X.X2MST                         % SET STATUS
+106743             4=:X.BBYTC; *2BANK                     % SET BYTECOUNT
+106746             0=:X2DBR;                              % CLEAR BREAKMSG POINTER
+106747             CALL O3CHA                             % SEND IT TO USER
+106750          FI
+106750          CALL X2116; CALL X2121
+106752          IF X2DCC=1 THEN                           % EXPECTING CHARGING INFO ?
+106756             CALL X21GC                             % GET CHARGING
+106757          FI
+106757          CALL X21SH; CALL X2SSS; CALL X2114
+106762          X21LO=:X2DUI.HXDOK=:X2DUO.HXDOK           % LOCK USER DRIVER
+106767          A:=0; CALL X21UT
+106771   *)FILL
+107007
+107007   %      C O N N E C T  T O  X 2 1
+107007   %      *************************
+107007   *)FILL
+107007
+107007   X21CN: IF X2DCN><0 THEN X2FAC; CALL X21UT FI     % ALLREADY CONNECTED
+107013          CALL X2RAC
+107014          IF A<16 THEN A:=X2FSM; CALL X21UT FI      % TOO SMALL MESSAGE
+107021          X:=X2DMP;   *1BANK
+107023          A:=X.X2MSL; *2BANK
+107025          CALL LOGPH; A=:X2DUI                      % GET USER INPUT DATAFIELD ADR
+107027          IF A=0 THEN A:=X2FIL; CALL X21UT FI
+107032          X:=X2DMP;   *1BANK
+107034          A:=X.X2MSS; *2BANK
+107036          CALL LOGPH; A:=D=:X2DUO                   % GET USER OUTPUT DATAFIELD ADR
+107041          IF A=0 THEN A:=X2FIL; CALL X21UT FI
+107044          X:=X2DMP;   *1BANK
+107046          A:=X.X2MS2; *2BANK
+107050          IF A=0 THEN A:=CURPR FI
+107052          IF A><X2DUO.RTRES  THEN
+107056             X2FNR; CALL X21UT                      % NOT RESERVED BY YOU
+107060          FI
+107060          IF A><X2DUI.RTRES THEN
+107064             X2FNR; CALL X21UT                      % NOT RESERVED BY YOU
+107066          FI
+107066
+107066   %      GET NEW DATAFIELD IF HASP-DMA IS USED
+107066
+107066          IF X2DUO.TYPRING BIT 5HDMA THEN
+107072            A:=X.CLOGDV; CALL LOGPH A=:X2DUO        % NB SHOULD HAVE BEEN OUTPUT
+107075            A:=X2DUI.CLOGDV; CALL LOGPH; A=:X2DUI
+107101          FI
+107101
+107101
+107101   %      GET HARDWARE DEVICE NUMBER (HDEV)
+107101
+107101          A:=X2DUO.HDEV=:HDEV
+107104          IF A><X2DUI.HDEV THEN X2FNM=:A; CALL X21UT FI  % NOT MATCHING HDEV
+107113
+107113   %      REROUTE INTERRUPTS TO X21 DRIVER
+107113
+107113          X2DUO=:D; B=:A; *1BANK
+107117          AD=:X2DNEW; *2BANK
+107121          CALL X212S                                % UPDATE LEVEL 12
+107122          X2DUI=:D; B=:A; *1BANK
+107126          AD=:X2DNEW; *2BANK
+107130          CALL X213S                                % UPDATE LEVEL 13
+107131          1=:X2DCN; A:=0; CALL X21UT
+107135   *)FILL
+107144
+107144   %      R E D I R E C T
+107144   %      ***************
+107144
+107144   X21RD: A:=X2FIC; CALL X21UT
+107146
+107146   %      D I S C O N N E C T  F R O M  X 2 1
+107146   %      ***********************************
+107146
+107146   X21DC: IF X2DCN=0 THEN A:=X2FFF; CALL X21UT; FI  % NOTHING CONNECTED
+107152          IF X2DST=14 THEN A:=X2FIS; CALL X21UT; FI % YOU ARE IN DATA PHASE !
+107160          D:=B; X2DUO; *1BANK
+107163          AD=:X2DNEW; *2BANK
+107165          CALL X212S                                % REROUTE LEVEL 12
+107166          X2DUI; *1BANK
+107170          A=:X2NEW; *2BANK
+107172          CALL X213S                                % REROUTE LEVEL 13
+107173          A:=0=:X2DCN; CALL X21UT                   % OK, RETURN
+107176
+107176
+107176   %      G E T  C H A R G I N G  I N F O R M A T I O N
+107176   %      *********************************************
+107176
+107176   X21CH: IF X2DCC >< 3 THEN X2FAB; CALL X21UT FI   % NO CHARGING RECEIVED
+107204          IF X2DBC>-10 THEN X2FSM; CALL X21UT FI    % TOO SMALL MESSAGE
+107212          0=:X2DPC
+107213          DO WHILE X2DPC < 14
+107217             T:=X2DCI; X:=X2DPC; *1BANK; LBYT; 2BANK
+107224             T:=X2DMP+X2M3; *1BANK; SBYT; 2BANK
+107231             MIN X2DPC; P+0
+107233             MIN X2DBC; P+0
+107235             IF A = "X21PL" THEN GO ASD FI
+107241          OD
+107242   ASD:   0=:X2DCC; A:=0; CALL X21UT
+107245
+107245   %      R E T U R N    W H E N    C O N N E C T I O N    B R O K E N
+107245   %      ************************************************************
+107245
+107245   X21BR: IF X2DST >< 14 THEN X2FBR; CALL X21UT FI  % NOT IN DATAPHASE
+107253          X =: X2DBR; 1=:X2DDF
+107256          GO FAR X2STA
+107257   %*****************************
+107257   %
+107257   %     X 2 1 COMMAND DECODER
+107257   %
+107257   %*****************************
+107257
+107257   X21C:  X=:X2DMP; A-; A+10=:X2DBC; *1BANK
+107264          A:=X.X2MFU-; *2BANK                       % POSITIVE FUNCTIONS
+107267          IF A < 1 OR > X21PM THEN
+107275             A:=X2FIC; CALL X21UT                   % ILLEGAL COMMAND
+107277          FI
+107277          0=:X2DDF                                   % EXPECTING NO CHARGING INFO
+107300          GOSW X21C,FAR X21CA,X21RE,X21CL,X21CH,X21CN,X21DC,X21RD,FAR X21AA,X21BR
+107313   RBUS
+107332
+
+107332   %==========================================
+107332   % 40.23
+107332   %      X 2 1 L V    X 2 1 I N    X 2 1 G C
+107332   %
+107332   %==========================================
+107332
+107332   %***************************************
+107332   %
+107332   %      INTERRUPT HANDLING ROUTINES
+107332   %
+107332   %***************************************
+107332
+107332   SUBR X21LV,X21IN,X321I
+107332
+107332   %      LEAVE X21, WAITING FOR INTERRUPT
+107332
+107332          INTEGER SAVEB
+107333   %      INTEGER CPOF(0); *POF
+107333   X21LV: A:=L=:X2DL3; *TRA STS
+107336          IF A BIT 10 THEN GO FAR WT13 ELSE GO FAR WT12 FI
+107342   %
+107342   %
+107342   %      LEVEL 12 AND 13 INTERRUPT HANDLING
+107342
+107342   X321I:
+107342   X21IN: *TRA STS                                  % WHICH LEVEL ?
+107343          IF A BIT 10 THEN
+107345
+107345   %      LEVEL 13
+107345   %      ********
+107345
+107345          T:=X2DHD+XRRTS; *EXR ST                   % GET STATUS
+107350          A=:X2D10
+107351          IF A BIT DCE19 THEN                       % DCE CLEAR INDICATION ?
+107353           IF X2DDF >= 0 THEN                       % NOT ENTRY HERE TWICE
+107355            A BONE 17 =: X2DDF
+107357            IF X2DST >< 20 THEN                     % DON'T CARE IF WAITING FOR DCE TO GET READY *H*
+107363              CALL X2120; 1=:WAKEF                  % LOCK KICK FROM MONCALL PART
+107366              X21LO=:X2DUI.HXDOK=:X2DUO.HXDOK       % LOCK USER DRIVER
+107373              X21T6=:TMR; CALL X2121
+107376              IF X2DCC = 1 THEN CALL X21GC FI       % GET CHARGING IF REQUESTED
+107403              CALL X21SH; CALL X2SSS; CALL X2114    % NB X2SSS BRINGS US FROM LEVEL 13 TO LEVEL 12
+107406              0=:WAKEF                              % UNLOCK KICK FROM MONCALL
+107407              IF X2DBR >< 0 THEN                    % BREAK REQUESTED ?
+107411                 X:=X2DBR;     *1BANK               % YES
+107413                 X2FBR=:X.X2MST                     % SET STATUS
+107415                 4=:X.BBYTC;   *2BANK
+107420                 0=:X2DBR; CALL O3CHA               % SEND BREAK MESSAGE FOR USER
+107422              FI
+107422              IF X2DDF NBIT 0 THEN                  % X21 MODUS ?
+107425                IF X2DPS = X2FCP THEN
+107431                   0=: X2DPI                        % SET STATUS IN DCB TO CP RECEIVED.
+107432                   0=: X2DPS
+107433                   CALL X21UT
+107434                ELSE                                % YES
+107435                   X:=X2DMP;
+107436                   A:=X2DST+30; *1BANK
+107441                   A=:X.X2MST                       % STATUS TO DCB
+107442                   6=:X.BBYTC; *2BANK
+107445                   CALL O3CHA                       % SEND IT BACK TO USER
+107446                   0=:X2DST=:X2DPI=:X2DMP
+107451                   1=:X2DDF; GO FAR X2STA           % NOT X21 MODUS ANY MORE
+107454                FI
+107454              FI
+107454              X2DDF BONE 16; A BZERO 17=: X2DDF     %
+107460             FI
+107460           FI
+107460          FI
+107460
+107460   %      ACTIVATE X21 DRIVER ?
+107460
+107460          IF X2DDF NBIT 0 OR A BIT 17 THEN          % X21 ACTIONS ?
+107465            IF X2DPIN = 0 THEN GO X21LV FI          % NOT PINNED, SKIP IT
+107470            A:=X2D10; 0=:X2DPIN; T:=X2DL3=:P        % GO TO X21 ROUTINE
+107474          FI
+107474
+107474   %      ACTIVATE DATA DRIVER
+107474
+107474          IF X2DDF BIT 16 THEN                      % CONNECTION BROKEN ?
+107477            A:=B=:SAVEB
+107501            A:=X2DUI=:B; T:="DRIVER"+3; A:=HX21M
+107506            *IOF; IRW LV13B DA
+107510            CALL STL13                              % FIRST START DRIVER, THEN RETURN
+107511            A=:B:=SAVEB:=:B; * ION                  % RESTORE BREG FOR X.21
+107515            GO FAR X2STA
+107516          ELSE
+107517            A:=X2D10                                %
+107520            T:=X2DUI=:B; T:="DRIVER"+3; T=:P         % GO TO USER DRIVER
+107525          FI
+107525          FI
+107525
+107525   %      LEVEL 12
+107525   %      ********
+107525
+107525          IF X2DDF > 0 THEN                         % DATA PHASE ?
+107530             A:=X2DUO=:B; GO DRIVER                    % YES, GO TO USER DRIVER
+107533          FI
+107533          A:=X2DL3=:P                               % LEVEL = 12
+107535
+107535   RBUS
+107553
+107553   SUBR X21GC
+107553
+107553   %      ROUTINE FOR RECEIVING CHARGING INFORMATION
+107553   %      ******************************************
+107553
+107553   X21GC: A:=L=:X2DSL
+107555          2=:X2DCC                                  % WAITING FOR CHARGING
+107557             CALL X211; X21T7=:TMR; CALL X218       % YES, GET READY FOR IT
+107563             0=:X2DPC=:WAKEF
+107565   KAST:     CALL X2GET; *JMP *-1
+107567                IF X2D00 = "X21BL" OR A = "X21SY" THEN
+107576                  GO KAST
+107577                FI
+107577                0=:TMR
+107600                X:=X2DPC; T:=X2DCI; *1BANK; SBYT; 2BANK   % STORE CHARGING INFO.
+107605                MIN X2DPC; P+0                            % IN DATAFIELD
+107607                IF X2D00 >< "X21PL" AND X2DPC < 14 THEN
+107617                  GO KAST
+107620                FI
+107620             3=:X2DCC; CALL X2116; CALL X2121       % TERMINATE CHARGING CALL
+107624             CALL X211
+107625          A:=X2DSL=:P                               % EXIT
+107627   RBUS
+107634
+
+107634   %============================
+107634   % 40.24
+107634   %      X 2 1 T O    X 2 G E T
+107634   %
+107634   %============================
+107634   %**********************
+107634   %
+107634   %      TIMOUT HANDLING
+107634   %
+107634   ***********************
+107635
+107635   %      NON RESIDENT PART
+107635
+107635   SUBR X21TO,X321T
+107635   X321T:
+107635   X21TO: IF X2DPIN = 0 THEN GO FAR WT13 FI         % NOT PINNED, SKIP IT
+107640          0=:X2DPIN
+107641          IF X2DCC = 2 THEN
+107645             0=:X2DCC; CALL X2114; GO FAR WT13      % WAITING FOR CHARGININFO ?
+107650          FI
+107650
+107650          IF X2DST = -1 THEN
+107654             CALL X2114; X2F01; CALL X21UT
+107657          FI
+107657
+107657          IF X2DST = 3 THEN                         % STATE 1, STATE 14
+107663             CALL X21SH; CALL X2SSS
+107665             CALL X2114; A:=33; CALL X21UT
+107670          FI
+107670
+107670          IF X2DST = 7  OR = 12 THEN                % T3 IS EXPIRED IN STATE 7 OR STATE 10
+107677             A+30; CALL X21UT
+107701          FI
+107701
+107701          IF X2DST = 20 OR = 24 OR = 25 THEN        % T5 OR T6 EXPIRED FROM STATE 16/20
+107713             X2DST =:X2DRL                          % SAVE STATUS IN THE LOCATION X2DRL
+107715             CALL X2118; CALL X211; CALL X2114      % TIMEOUT FROM X211 IF NETW. NOT OK
+107720             IF X2DDF NBIT 0 THEN                   % X21 MODUS?
+107723                0=:WAKEF                            % UNLOCK KICK FROM MONCALL
+107724                X2DRL+30;                           % X2DRL IS USED TO SAVE X2DST
+107726                CALL X21UT
+107727             ELSE
+107730                IF X2DBR >< 0 THEN
+107732                   X:=X2DBR;   *1BANK
+107734                   X2FBR=:X.X2MST
+107736                   4=:X.BBYTC; *2BANK
+107741                   0=:X2DBR ; CALL O3CHA
+107743                FI
+107743                X21LO=:X2DUI.HXDOK=:X2DUO.HXDOK
+107750                0=:WAKEF; 60000; T:=X2DUI=:B;       % 60000 MEANS CONNECTION BROKEN BY X21
+107754                T:="DRIVER"+3; T=:P                 % ACTIVATE DRIVER
+107757             FI
+107757          FI
+107757          IF X2DER >< 0 THEN CALL X21SH; CALL X2SSS; X2F01; CALL X21UT; FI    % ERROR IN ERROR SEQUENCE
+107765          X2DST+30; CALL X21ER
+107770   RBUS
+110002   %*****************************************************************************
+110002   %
+110002   %      WAIT FOR ANY INPUT REACTION
+110002   %      THE INPUT CHARACTER IS STORED IN X2D00 IN DATAFIELD
+110002   %      STATUS IS SAVED IN X2D10
+110002   %
+110002   %      RETURN: SKIP IF INPUT DATA ELSE NOSKIP
+110002   %
+110002   %*****************************************************************************
+110002
+110002   SUBR X2GET
+110002   X2GET: A:=L=:X2DLS; -2=:X2D0C                    % SAVE RETURN ADDRES
+110006          X2D11; T:=X2DHD+XWRTC; *EXR ST            % ENABLE RECEIVER, C = ON
+110012          1=:X2DPI; CALL X21LV                      % PINNED FOR INPUT (SEE X21TO)
+110015          A=:X2D10                                  % SAVE IT
+110016          IF A BIT 1 THEN                           % STATUS AVAILABLE
+110020                T:=X2DHD+XRRSR; *EXR ST             % GET STATUS
+110023                A=:X2D02
+110024          FI
+110024          IF X2D10 BIT 0 THEN                       % ANY DATA AVAILABLE
+110027             T:=X2DHD+XRRDR; *EXR ST                % GET DATA
+110032             A BZERO "7" =:X2D00; X2DLS+1=:X2DLS    % SKIP RETURN IF DATA
+110037             T:=1                                   % T = 1  I.E DATA
+110040          ELSE
+110041             T:=0                                   % T = 0 I.E NO DATA
+110042          FI
+110042   OUT:   A:=X2DLS=:P                               % NO DATA, NO SKIP
+110044   RBUS
+110045
+110045
+110045
+
+110045   %==================================
+110045   % 40.25      R E A D Y    X 2 1 S H    X 2 1 1 4
+110045
+110045   %***************************************************************
+110045   %
+110045   %      R E A D Y                                 % ** STATE 1 **
+110045   %      T = 1  C = OFF
+110045   %
+110045   %      EXIT: T = 0     OK
+110045   %            T ><0     ERROR CODE IN T
+110045   %
+110045   %***************************************************************
+110045
+110045   SUBR X211
+110045   X211:  A:=L=:X2DSR; 1=:X2DST                     % SAVE RETURN ADDR
+110051          CALL X21SH                                % DEFINE SYN = HIGH, ENABLING
+110052                                                    % INTERFACE TO DETECT R = HIGH
+110052          100=:A; T:=X2DHD+XWTTC; *EXR ST           % T = 1
+110057          -3=:X2D0C; -1=:X2DST                      % **** POSSIBLE -7 HERE *****
+110063   X21L:  005; T:=X2DHD+XWRTC; *EXR ST              % C = OFF, IS R = 1 ?
+110067          X21TA=:TMR; 1=:X2DPI; CALL X21LV          % WAIT FOR R = 1
+110074          A=:X2D10                                  % SAVE STATUS
+110075          IF A/\ "101" >< "001" THEN                % IS I OFF ?
+110101                T:=X2F01;  GO OUT                   % NO, REPORT ERROR
+110103          FI                                        % YES,  I = OFF
+110103          T:=X2DHD+XRRDR; *EXR ST                   % GET R
+110106          A=:X2D00
+110107          IF A >< "377" THEN                        % IS R = HIGH ?
+110112                T:=X2F01; GO OUT                    % NO, NETWORK NOT READY
+110114          FI                                        % I DO NOT LIKE STATE 8 NOW
+110114          MIN X2D0C; GO X21L                        % MUST DETECT 3 SUCH CHAR, THUS
+110116                                                    % MAKE SURE T = 1 IN 24 BIT
+110116          0=:TMR                                    % INTERVALLS
+110117          0=:A; T:=X2DHD+XWRTC; *EXR ST             % DISABLE RECEIVER
+110123          40; *EXR ST
+110125          147; T:=X2DHD+XWPCR; *EXR ST              % 8 BITS CHAR,STRIP SYNC
+110131                                                    % NO PARITY CONTROL
+110131          X21SY; T:=X2DHD+XWSAR; *EXR ST            % REDEFINE SYNC CHARACTER
+110135          100; T:=X2DHD+XWTTC; *EXR ST              % T = 1
+110141          CALL STORE; T:=0
+110143   OUT:   A:=X2DSR=:P                               % EXIT
+110145   RBUS
+110152
+110152   %      SET READY (1,OFF) DONT CARE ABOUT DCE
+110152
+110152   SUBR X2118
+110152
+110152   X2118: A:=L=:X2DSR; T:=22=:X2DST; CALL STORE
+110157          CALL X21SH; 100; T:=X2DHD+XWTTC; *EXR ST
+110164          A:=0; T+"XWRTC-XWTTC"; *EXR ST
+110167          A:=X2DSR=:P
+110171
+110171   RBUS
+110173
+110173   %      STATE 14 CONTROLLED NOT READY
+110173
+110173   SUBR X2114
+110173   X2114: A:=0; T:=X2DHD+XWRTC; *EXR ST
+110177          A:=40; *EXR ST
+110201          A:=0; *EXR ST
+110203          A:=107; T+"XWPCR-XWRTC"; *EXR ST
+110206          A:=252; T+"XWSAR-XWPCR"; *EXR ST
+110211          A:=0; T+"XWCHL-XWSAR"; *EXR ST
+110214          A:=104; T+"XWTTC-XWCHL"; *EXR ST
+110217          A:=1; T+"XWTCR-XWTTC"; *EXR ST
+110222          EXIT
+110223   RBUS
+110224   %
+110224   %
+110224   %      ENABLE INTERFACE TO SEE R = HIGH
+110224
+110224   SUBR   X21SH
+110224   X21SH: A:=0; T:=X2DHD+XWRTC; *EXR ST             % DEVICE CLEAR
+110230          A:=40; *EXR ST                            % SET MAINTENANCE MODUS
+110232          *AAT 6; EXR ST                            % CLEAR DMA ALSO *H*
+110234          A:=0; T:=X2DHD+XWRTC; *EXR ST             % DEVICE CLEAR, OUT OF MAINT.MOD
+110240          A:=107; T:=X2DHD+XWPCR; *EXR ST           % BCP MODUS, NO VCR CONTROL
+110244                                                    % STRIP ONLY TWO SYN
+110244          377; T:=X2DHD+XWSAR; *EXR ST              % SPECIFY SYNC CHAR
+110250          A:=0; T:=X2DHD+XWCHL; *EXR ST             % CHARACTER LENGTH = 8 BITS
+110254          EXIT
+110255   RBUS
+110256
+
+110256   %===========================================================
+110256   % 40.26      X 2 1 1 9    X 2 1 2 0    X 2 1 2 1    X 2 1 1 6
+110256
+110256   %*************************************************
+110256   %
+110256   %      DTE/DCE CLEARING STATES  (16,17,19,20,21)
+110256   %
+110256   %*************************************************
+110256
+110256   SUBR X2119,X2120,X2121,X2116
+110256
+110256
+110256
+110256
+110256   %      DCE CLEAR INDICATION                     ** STATE 19 **
+110256   %      D = 0  I = OFF
+110256
+110256   X2119: A:=L=:X2DSR; 23=:X2DST; CALL STORE
+110263          A:=X2DSR=:P
+110265
+110265
+110265
+110265   %      CLEAR (DTE UNCONTROLLED)                 ** STATE 20 **
+110265   %      T = 0  C = OFF
+110265
+110265   X2120: A:=L=:X2DSR; 24=:X2DST; CALL STORE
+110272          CALL X21SH                                % SYN = HIGH TO DETECT STATE 21
+110273          140; T:=X2DHD+XWTTC; *EXR ST              % T = 0
+110277          7=:X2D11; T+"XWRTC-XWTTC"; *EXR ST        % C = OFF
+110303          A:=X2DSR=:P                               % EXIT
+110305
+110305
+110305   %      DCE READY (DTE UNCONTROLLED)             ** STATE 21 **
+110305
+110305   X2121: A:=L=:X2DSR
+110307          DO CALL X2GET; A=:A                       %
+110311          WHILE T=0 OR X2D00><"X21EN" OR X2D10 BIT "6" OR X2DDF NBIT 17
+110325                                                    % WAIT FOR R = 1, C = OFF,ST 21
+110325          OD
+110326          25=:X2DST; CALL STORE
+110331          0=:TMR
+110332          A:=X2DSR=:P                               % EXIT
+110334
+110334
+110334   %      DTE CLEAR REQUEST
+110334   %      T = 0  C = OFF
+110334
+110334   X2116: A:=L=:X2DSR; 20=:X2DST; CALL STORE        % RETURN ADDR
+110341          CALL X21SH                                % SYN = HIGH,
+110342          140; T:=X2DHD+XWTTC; *EXR ST              % T = 0
+110346          207=:X2D11; X21T5=:TMR                    % C = OFF, TIMING UNTIL ST. 21
+110352          A:=X2DSR=:P                               % EXIT
+110354   RBUS
+110360
+110360
+110360
+110360
+
+110360   %====================
+110360   % 40.27      X 2 1 2
+110360
+110360   %************************************************************
+110360   %
+110360   %      DTE CALL REQUEST ROUTINES  (STATE 2,3,4,5)
+110360   %
+110360   %************************************************************
+110360
+110360   SUBR X212
+110360   %
+110360   %      DTE CALL REQUEST                         ** STATE 2 **
+110360   %      T = 0  C = ON
+110360
+110360   %
+110360   X212:  A:=L=:X2DSR; 2=:X2DST; CALL STORE
+110365          X21T1=:TMR; 307=:X2D11                    % C = ON
+110371          140; T:=X2DHD+XWTTC; *EXR ST              % T = 0
+110375
+110375   %      PROCEED TO SELECT ( WAIT FOR "+" )
+110375
+110375          3=:X2DST
+110377          DO
+110377             CALL X2GET; *JMP *-1                   % WAIT FOR DATA
+110401          WHILE X2D00><"X21PL"  OD                  % WAIT FOR "+"
+110406          0=:TMR                                    % RECEIVED "+"
+110407
+110407
+110407   %      SEND SELECTOR SIGNALS                    ** STATE 4 **
+110407   %      T = IA5  C = ON
+110407
+110407          300; T:=X2DHD+XWRTC; *EXR ST              % MUST SEE DCE CLEAR REQUEST
+110413          X21TB=:TMR; 4=:X2DST; CALL STORE
+110420          X:=X2DMP;   *1BANK
+110422          A:=X.X2MFA; *2BANK
+110424          IF A NBIT X21C3 THEN                      % SKIP ALL THIS IF DIRECT CALL
+110426          CALL X2SSS                                % SEND "SYN,SYN"
+110427          X:=X2DMP;   *1BANK
+110431          A:=X.X2MFA; *2BANK
+110433          IF A /\ 7 >< 0 THEN                       % ANY PREFIX ?
+110435             IF A BIT X21C1 THEN                    % CHARGING REQUEST ?
+110437                ##6; CALL X2SND                     % YES, PREFIX = "61"
+110441                ##1; CALL X2SND
+110443             FI
+110443             X:=X2DMP;   *1BANK
+110445             A:=X.X2MFA; *2BANK
+110447             IF A BIT X21C2 THEN                    % CALLED LINE ID ?
+110451                IF A BIT X21C1 THEN
+110453                   ##,; CALL X2SND
+110455                FI
+110455                ##6; CALL X2SND                     % YES, SEND ",62"
+110457                ##2; CALL X2SND
+110461             FI
+110461   %         X:=X2DMP;   *1BANK
+110461   %         A:=X.X2MFA; *2BANK
+110461   %         IF A BIT X21C4 THEN                    % THE USER MAY DO THIS
+110461   %            IF A /\ 3 >< 0 THEN                 % EXPLISIT BY PREFIXING
+110461   %               ##,; CALL X2SND                  % WITH "."
+110461   %            FI
+110461   %            ##.; CALL X2SND
+110461   %         FI
+110461             ##-; CALL X2SND                        % TERMINATION OF PREFIX
+110463          FI
+110463          0=:X2DPC
+110464             DO                                     % NO, SEND SELECTION SIGNALS
+110464                X:=X2DPC; T:=X2DMP+X2M3; *1BANK; LBYT; 2BANK
+110472                CALL X2SND
+110473                MIN X2DPC
+110474             WHILE X2D05><"X21PP" OD                % LAST CHAR IS "+"
+110501   %      FI
+110501          FI
+110501          0=:TMR
+110502          X:=X2DMP
+110503          300=:A; T:=X2DHD+XWRTC; *EXR ST             % GET RID OF OVERRUN SITUATION
+110510          T:=X2DHD+XRRDR; *EXR ST
+110513          A=:X2D00
+110514          T:=X2DHD+XRRTS; *EXR ST
+110517          A:=X2D10; T:=X2DHD+XRRSR; *EXR ST
+110523          A=:X2D02; CALL STORE
+110525
+110525
+110525   %      DTE WAITING                              ** STATE 5 **
+110525   %      T = 1  C = ON
+110525
+110525          5=:X2DST; 0=:A; T:=X2DHD+XWTTC; *EXR ST   % T = 1
+110533          X21T2=:TMR; A:=X2DSR=:P                   % EXIT
+110537   RBUS
+110547
+
+110547
+110547   %==========================================================
+110547   % 40.28      X 2 1 7    X 2 1 1 0    X 2 1 1 2    X 2 1 R T
+110547   %******************************************
+110547   %
+110547   %      INFORMATION FROM DCE
+110547   %
+110547   %*******************************************
+110547
+110547   %
+110547   %
+110547   %     CALL PROGRESS SIGNALS                     ** STATE 7 **
+110547   %      T-REG AT EXIT:
+110547   %      T = CODE GROUP NO
+110547   %      T < 0 MEANS  T = ERRORCODE-
+110547
+110547   SUBR X217
+110547   X217:  T:=7=:X2DST; A:=L=:X2DSR; CALL STORE      % ENTERING STATE 7
+110554          0=:X2DPC=:X2DPS
+110556          DO WHILE X2D00><"X21PL"
+110562             IF T:=X2DBC<0 THEN
+110565                X:=X2DPC
+110566                T:=X2DMP+X2M2; *1BANK; SBYT; 2BANK  % SAVE BYTE IN MESSAGE
+110573             ELSE
+110574                T:=X2FSM; GO OUT                    % MESSAGE TOO SMALL
+110576             FI
+110576             MIN X2DPC; P+0
+110600             MIN X2DBC; P+0
+110602             IF X2D00><"X21PL" OR ><"X21KO" THEN
+110611                X2DPS*12=:T; X2D00-60\/T=:X2DPS     % CONVERT FROM ASCII
+110620             FI
+110620             IF X2D00="X21KO" AND X2DPS<=24 THEN    % IMPORTENT CP SIGNAL?
+110630                0=:X2DPS=:X2DPC                     % NO, FOREGET IT
+110632             FI
+110632             CALL X2GET; *JMP *-1                   % GET NEXT CHARACTER
+110634          OD
+110635          IF X2DPS>=24 THEN T:=X2FCP; GO OUT FI     % SERIOUS CP  STOPP
+110643          IF X2DPC > 2 THEN T:=X2FEC; GO OUT FI     % EXTENDED CP SIGNAL
+110651          T:=0
+110652   OUT:   X:=X2DMP; A:=X2DSR=:P
+110655   RBUS
+110660
+110660
+110660   %      TAKE ACTION ACCORDING TO CALL PROGRESS SIGNAL
+110660
+110660
+110660   %
+110660   %
+110660   %      CALLED/CALLING LINE IDENTIFICATION        ** STATE 10
+110660   %      OR DCE PROVIDED INFORMATION
+110660
+110660   SUBR X2110
+110660   X2110: T:=12=:X2DST:=L=:X2DSR; CALL STORE        % ENTERING STATE 10
+110665          X:=0=:X2DPC
+110667             DO WHILE X2D00><"X21PL"
+110673                X:=X2DPC
+110674                T:=X2DMP+X2M3; *1BANK; SBYT; 2BANK  % STORE IN MESSAGE
+110701                MIN X2DBC; P+0                      % MESSAGE LENGTH INCREMENTED
+110703                MIN X2DPC; P+0
+110705                IF X2DBC = 0 THEN T:=X2FSM; GO OUT FI % NO MORE SPACE IN MESSAGE
+110711                CALL X2GET; *JMP *-1
+110713             OD
+110714             X:=X2DPC; T:=X2DMP+X2M3; A:="X21PL"; *1BANK; SBYT; 2BANK
+110723             MIN X2DBC; P+0                         % MESSAGE LENGTH INCREMENTED
+110725             T:=0
+110726   OUT:   A:=X2DSR=:P                               % EXIT
+110730   RBUS
+110732
+110732
+110732
+
+110732   %***********************************
+110732   %
+110732   %      READY FOR DATA, AND LEAVE X21
+110732   %
+110732   %************************************
+110732
+110732   SUBR X2112,X21RT
+110732
+110732   %
+110732   %
+110732   %      READY FOR DATA
+110732
+110732   X2112: 0=:TMR; 14=:X2DST                         % POSSIBLE DELAY HERE ?????
+110735
+110735              %
+110735              % Initialize the HDLC to BOP by using  the parameters
+110735              % residing in the HDLC datafield X2DUI and X2DUO.
+110735              %
+110735
+110735              % CLEAR INTERFACE
+110735   X2IHD:     *JMP * 2; ASBEF                           % JMP I * 1 (TO ASBEF) TO
+110737                                                        % AVOID INITIALIZATION OF
+110737                                                        % HDLC FROM X.21 DRIVER
+110737              A:=X2DUI.TYPRING
+110741              IF  A BIT 5IOBT THEN
+110743                   GO FAR ASBEF
+110744              FI
+110744              10 =: X.PCREG        % CRC SELECTION AND
+110746                                   % IDLE MODE=1 (TRANSMIT FLAGS DURING UNDERRUN)
+110746              A:=100; T:=X2DHD+XWRTC; *EXR ST           % DEVICE CLEAR, KEEP C ON
+110752              A:=140; *EXR ST                           % SET MAINTENANCE MODUS, CLEAR PULSE
+110754              T:=X2DHD+XWDCR; *EXR ST                   % CLEAR DMA ALSO
+110757
+110757              X:=-30; T:=X2DHD+XRDCR; *EXR ST           % WAIT FOR DMA TO BE READY
+110763              *JPC TODMA; JAF *-2                       % LEAVE ON TIMEOUT
+110765
+110765              A:=100; T:=X2DHD+XWRTC; *EXR ST           % DEVICE CLEAR, OUT OF MAINT.MOD
+110771
+110771              % INITIATE INTERFACE
+110771              A:=X2DUI.XINITA+DPITPHYS                  % ADD DPITPHYS TO GET PHYS. ADDR.
+110774              T:=X2DHD+XWDMA; *IOF;     EXR ST          % USE THE SAVE LOCATIONS IN HDLC-DF
+111000              401;    T+"XWDCR-XWDMA"; *EXR ST          % FOR DMA INITIALIZE.
+111003              X:=-30; T+"XRDCR-XWDCR"; *EXR ST          % READ STATUS ( TO BE 0)
+111006              *JPC TODMA; JAF *-2
+111010              *ION  %%; TRR 10                              % CLEAR CACHE
+111011              A:=2000; X:=X2DUI+A; X.CHECK              % FORCE CACHE MISS
+111015              IF X2DUI.CHECK><INTCH THEN GO TODMA FI    % ERROR, DO NOT USE DMA NOW.
+111023              T:= X2DHD+WTCR
+111025              A:=5; *EXR ST
+111027              A:=0; X:=X2DUI
+111031              A=: X.PCREG
+111032
+111032              A:=134;  T:=X2DHD+XWTTC;  *EXR ST         % ENABLE DMA & XMIT, RQTS ON
+111036
+111036              % START RECEIVER
+111036              X2DUI.MAINT;      T:=X2DHD+XWRTC; *EXR ST % CLEAR OLD GARBAGE
+111043              X.LIINT+DPITPHYS; T:=X2DHD+XWDMA; *EXR ST % OLD LISTPTR IS USED !!
+111050              A:=1001; T+"XWDCR-XWDMA";         *EXR ST % START RECEIVER (BANK 1)
+111053              X:=-30;  T+"XRDCR-XWDCR";         *EXR ST % READ STATUS
+111056              *JPC TODMA; JAF *-2
+111060              GO ASBEF
+111061   *)FILL
+111066   TODMA:     *ION
+111067              X:=X2DUI                                  % HDLC INPUT
+111070              0=:X.HINIF=:X.OQUEU=:X.IQUEU=:X.WAKEF     % CLEAR EVERYTHING
+111074              1=:X.INTSTA
+111076              X:=X2DUO                                  % HDLC OUTPUT
+111077              0=:X.HINIF=:X.OQUEU=:X.IQUEU=:X.WAKEF     % CLEAR EVERYTHING
+111103              0=:X.ACTSW;   1=:X.INTSTA
+111106                                                     % GIVE NO RESPONCE TO USER
+111106                                                     % ERROR WILL OCCUR WHEN ACCESSING
+111106                                                     % ACCESSING THE QUEUES.
+111106   ASBEF:                                            % As before.
+111106
+111106          304; T:=X2DHD+XWRTC; *EXR ST              % TAKE CARE OF MODEM STATUS
+111112          CALL STORE
+111113
+111113   %
+111113   %
+111113   %      LEAVE X21
+111113
+111113   X21RT: X:=X2DMPM;  *1BANK
+111115          A:=X.X2MFA; *2BANK
+111117          IF A BIT X21C1 THEN 1=:X2DCC FI           % MARK IF CHARGING REQUEST
+111123          IF X2DCC = 2 THEN 0=:X2DCC FI             % WILL NOT SAVE OLD CHARGING
+111130          X21OP=:X2DUI.HXDOK=:X2DUO.HXDOK           % OPEN LOCK IN USER DRIVER
+111135          X2FOK; CALL X21UT
+111137
+111137   RBUS
+111142
+111142
+
+111142   %============================================
+111142   % 40.29      X 2 1 8         X 2 1 9
+111142
+111142   %*******************************
+111142   %
+111142   %      CALLED DTE
+111142   %
+111142   %*******************************
+111142
+111142   SUBR X218,X219
+111142   %      INCOMMING CALL                            ** STATE 8 **
+111142
+111142   X218:  10=:X2DST; A:=L=:X2DSR; CALL STORE
+111147          CALL XTSTC; GO NOMES; CALL X2STA          % ANY NEW MESSAGES ON MY WAY IN HERE ?
+111152   NOMES: 0=:WAKEF                                  % WAKE ME IF ANY MESSAGES
+111153          7=:X2D11                                  % C= OFF
+111155          DO WHILE X2D00><"X21BL"                   % WAIT FOR BELL
+111161             CALL X2GET; *JMP *-1
+111163          OD
+111164
+111164
+111164   %
+111164   %      CALL ACCEPTED
+111164   %      T = 1, C = ON, R = BEL, I = OFF
+111164   %
+111164   X219:  1=:WAKEF; 307=:X2D11; 11=:X2DST           % C = ON, ENABLE RECEIVER
+111172          X21T4=:TMR; CALL STORE
+111175          X2DSR=:P
+111177   RBUS
+111204
+111204   %===============================================================================
+111204   %
+111204   %      SOME INTERFACE ROUTINES
+111204   %
+111204   SUBR O3CHA,D3CHA
+111204   INTEGER SAVL,SAVL2
+111206   O3CHA: A:=L=:SAVL; X=:D; A:=0; AD SHZ 6; T:="PITEX" SHZ -12
+111215          A-T+MPTPHPAGE
+111217          AD SHZ -6; D=:X
+111221          CALL OCHAIN
+111222          A:=SAVL=:P
+111224   D3CHA: A:=L=:SAVL2
+111226          CALL DICHAIN; GO NSKIP
+111230          MIN SAVL2; P+0
+111232          X=:D; A:=0; AD SHZ 6; T:="PITEX" SHZ -12
+111237          A-MPTPHPAGE+T; AD SHZ -6; D=:X
+111243   NSKIP: A:=SAVL2=:P
+111245   RBUS
+111251
+111251
+111251   *"
+"111251
+111251   *"8C1X2
+"111251   INTEGER ARRAY X2S01(200)
+111451   INTEGER ARRAY X2E01(0)
+111451   *"
+"111451   *"8C2X2
+"111451   INTEGER ARRAY X2S02(200)
+111651   INTEGER ARRAY X2E02(0)
+111651   *"
+"111651   *"8C3X2
+"111651   *"8C4X2
+"111651   *"8C5X2
+"111651   *"8C6X2
+"111651
+111651   @DEV 1

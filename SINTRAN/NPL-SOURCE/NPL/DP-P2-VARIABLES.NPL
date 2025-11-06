@@ -1,0 +1,228 @@
+010773   @DEV (S-S-L)DP-P2-VARIABLES:NPL
+010773
+
+010773   %-----------------------------------------------------------------------------
+010773   % SERVER PARAMETER ARRAY
+010773   %-----------------------------------------------------------------------------
+010773   @ICR;
+010773   INTEGER ARRAY SERVARRAY:=(XSERV,    0,XSERV,    0,XSERV,MTSPA,DPFLG,    0,
+011003                                 0,    0,    0,    0,    0,    0,    0,    0);
+011013   @CR;
+011013   %=============================================================================
+011013   % NUCLEUS MTAD DATAFIELD
+011013   %=============================================================================
+011013   *MTNSP; *-1/ "MTNSP; MTNSP=10       % NUMBER OF NUCLEUS MTAD CLIENTS
+"011013   INTEGER ARRAY MTNKDF(7)             % STANDARD DATAFIELD PART (USED AS NUCLEUS OWNER ID)
+011022   *MTNKD/0;0;0;2;0;0;MTNUC            % MFUNC POINTS TO DRIVER ROUTINE
+011022   INTEGER       MTNKPORT              % OWN NUCLEUS PORT
+011023   **<*+MTNSP; )ZERO
+011023   DOUBLE ARRAY MTSRE(0)               % NUCL. SEND REF. AND LAMU PAGE FOR EACH CLIENT
+011023   **+MTNSP+MTNSP/
+011043   INTEGER ARRAY MTSPA:=(MTNKDF,MTNKPO,MTCHK,MTSRE) % PARAMETER LIST FOR MTSERV
+011047
+011047   *"8BACS
+"011047   % =============================================================================
+011047   %       ( D )    D A T A    F O R    9 B P T M O U T
+011047   %
+011047   @DEC
+011047   DATA(10000,1000,100,10,1); INTEGER ARRAY BCONST(0)
+011054   @OCT
+011054   INTEGER B1COUNT,BCINDX,B5TU1,B5TU2,BCD1TI,BCD2TI
+011062   DOUBLE BD5TUSE=B5TU1,BCDTINT=BCD1TI
+011062   INTEGER BVALUE,BXVALUE,BCBYTP,CCBPTERM,CBPRFLG,CBBPROC,CTTMCOUNT,CBPLOGDV
+011072   DOUBLE DCCBPTERM=CCBPTERM
+011072   *"
+"011072
+011072   % =============================================================================
+011072   %       ( D )    D A T A    F O R    M O N    P E R F O R M A N C E
+011072   %
+011072   INTEGER ACTMPERFORM                 % ><0 when measurement is running
+011073   *"8MPRF
+"011073   INTEGER MPERFREQUENCY               % Sample rate
+011074   INTEGER M13FREQUENCY                % Counter on level 13
+011075   INTEGER M2FREQUENCY                 % Counter on level 2, monitor level
+011076   INTEGER BUFREQUIREMENTS             % Buffer required for paramter block
+011077   INTEGER XBUFREQUIREMENTS            % Additional buffers for spesific option codes
+011100   INTEGER MBUFINDEX:=-1               % "allocate-area" index of paramter-blocks buffer
+011101   INTEGER BUFPAGE                     % First phys. page of of paramter-blocks buffer
+011102   INTEGER MBUFXINDEX:=-1              % "allocate-area" index of extra parameter block buffer
+011103   INTEGER XBUFPAGE                    % First phys. page of extra parameter block buffer
+011104   INTEGER XBUBANK                     % Memory bank of extra parameter block buffer
+011105   INTEGER NPRIACTIVE                  % Number of active primitives
+011106   DOUBLE  DBUPHYSADDR                 % Physical memory addr of start of "xbuffer"
+011110   INTEGER MPHMESS                     % Physical addr of nd-500 histogram mail box within
+011111                                       % Memory bank 5mbbank.
+011111   INTEGER M344BSTATE                  % Saved bstate for background progr. using mon perf.
+011112   INTEGER M344FLAGB                   % Saved flagb for background progr. using mon perf.
+011113   INTEGER ARRAY DFMPE:=(0,0,DFMPE,0)
+011117   * *+40/
+011157
+011157   *"8N500
+"011157
+011157   % =============================================================================
+011157   %       ( D )    D A T A    F O R    5 M T R A N S
+011157   %
+011157   *"8N500 8MTRA
+"011157   INTEGER XC5CP                       % Address of 500 CPU datafield
+011160   INTEGER CMSGA                       % Address of current 500 message
+011161   INTEGER DDFAD                       % Address of disk datafield
+011162   INTEGER NWAIT                       % Nowait mode
+011163   INTEGER 5MFNC                       % 5MTRANS function
+011164   INTEGER DISID                       % Disk ID
+011165   INTEGER CUREL                       % Current queue element
+011166   DOUBLE  NWFUN=NWAIT
+011166
+011166   INTEGER READY                       % Head of ready queue elements
+011167   DOUBLE  5MWQU                       % Message queue waiting for disk access queue elements
+011171   INTEGER 5DSKC                       % Disk type code: SMD,SCSI-100=0 / DOMINO=1
+011172
+011172   INTEGER CNBANK                      % Bank no for table of files opend for direct transfer
+011173   INTEGER CNSTART                     % Start address within bank
+011174   INTEGER CNEND                       % End of table of file opened for direct transfer
+011175
+011175   *"8N500
+"011175
+011175   %===============================================================================
+011175   %       ( D )    R O U T I N E    V E C T O R
+011175   %  Used by the routine CALLROUT to call a routine on aonother pit
+011175   @ICR;
+011175   INTEGER ARRAY GOVECTOR:=(
+011175            NMPIT,XKICK500,
+011177            NMPIT,XTER500,
+011201            NMPIT,XACT500,
+011203            NMPIT,XACTRDY,
+011205            NMPIT,XRSTARTALL,
+011207            NRPIT,XIBMOVE,
+011211            NRPIT,XCLEAN,
+011213            NRPIT,XMSINIT,
+011215            NRPIT,X5ERACTIVATE,
+011217            NRPIT,X5PRACTIVATE,
+011221            NRPIT,X5XGBUFF,
+011223            NRPIT,X5GBUFF,
+011225            NRPIT,XX5CONOMD);
+011227
+011227   INTEGER ARRAY RETVECTOR:=(0,0,0,0,0,R5PIT,0,0,RRPIT,0,RMPIT,0,0,0,0,0);
+011247   @CR;
+011247
+011247   %===============================================================================
+011247   %       ( D )    N E W   S Y S T E M   V A R I A B L E S
+011247   %
+011247
+011247   INTEGER N5CPU                      % Number of CPUs alive
+011250   INTEGER NSAMSON                    % Number of Samson CPUs
+011251   INTEGER 5FPFUDMA                   % First page of fast udma capability tables
+011252   INTEGER 5FPACCPBUF                 % First page of accp buffers
+011253   INTEGER 5FPHWBUF                   % First page of transmission buffers
+011254   INTEGER 5SWPROC                    % Swapper process number
+011255   INTEGER 5SSEGSIZE                  % Size of Swapper's Segment Table Entry
+011256   INTEGER BMMSIZE                    % Size of Swapper's Memory Map Element in bytes
+011257   INTEGER DUMMESS                    % Address of dummy msg
+011260   INTEGER N5MESSAGE                  % Current message handled on driver level
+011261   DOUBLE  IMBDTDFPHPAGE              % Used by RIBMOVE
+011263   INTEGER IBMLREG                    % Return address
+011264
+011264   INTEGER ARRAY 5SWESTATUS(12)       % ABSTR parameters when last error occured
+011276   INTEGER ARRAY 5SWEMESSAGE(55MESSIZE)% Saved message of process being served when
+011476                                      % 5SWAP gets error return from ABSTR
+011476
+011476   % FILE-TRANSFER:
+011476   INTEGER 5FP5FTRANS                 % Phys page addr of dev.buf headers
+011477   INTEGER 5NP5FTRANS                 % No. of pages for dev.buf headers
+011500   INTEGER 5DVBSTART:=162000          % Log.addr of start of dev.buf headers
+011501   INTEGER 5DVBEND:=163777-DBLEN
+011502   INTEGER 5DVBWAIT(0); *0;0;*-2;2    % Wait-for-dev-buf-header lock
+011506   INTEGER 5DVBFREE                   % Dev-buf-header free liste
+011507
+011507   %============================================================================
+011507   %       ( D )    X S E M S
+011507   %
+011507   % POINTER TO ND-500 LOCKS
+011507   @ICR;
+011507   INTEGER ARRAY XSEMS:=(5NAMSEM,CSSEM,PLSSEM,FIXSEM,CSSEM,PLSSEM,SYDSEG,SWORKA,WEMSEM,WEMSEM,
+011521                         CPU51,CPU52,CPU53,CPU54,CPU55,CPU56,CPU57,CPU58);
+011531   @CR;
+011531
+011531   % NEW ND-500 SEMAPHORES
+011531   INTEGER WEMSE:=(0,0,WEMSE,2)  % GENERAL LOCK
+011535
+011535   %==============================================================================
+011535   %     ( D )
+011535   % Datafield used in connection with reveiving octobus error messeages
+011535   DATA          (5OMBR,5OMBR)
+011537   INTEGER LMDF:=(0,0,LMDF,0,0,0)
+011545
+011545   % Field to hold octobus error message
+011545   INTEGER ARRAY LMFIELD(40)
+011605
+011605   %============================================================================
+011605   %       ( D )    Addtional datafields for each nd5000 cpu
+011605   %
+011605   *"8CP51
+"011605   INTEGER CPU51:=(0,0,CPU51,2,0,0,0)
+011614   *"8CP52
+"011614   INTEGER CPU52:=(0,0,CPU52,2,0,0,0)
+011623   *"8CP53
+"011623   INTEGER CPU53:=(0,0,CPU53,2,0,0,0)
+011632   *"8CP54
+"011632   INTEGER CPU54:=(0,0,CPU54,2,0,0,0)
+011641   *"8CP55
+"011641
+011641   % Patch tables:  (each table has 5 free elements for patching)
+011641   %
+011641
+011641   @ICR;
+011641   INTEGER ARRAY NNTAB:=(
+011641   %           mudom        -mudom
+011641   %     pit  instr  table instr  table
+011641          MPIT,124001,MNATAB,124001,MNJTAB,
+011646          MPIT,124002,MNTTAB,124003,MNCTAB,
+011653          RPIT,124002,RNTTAB,124003,RNCTAB,
+011660          5PIT,124002,5NTTAB,124003,5NCTAB);
+011665
+011665   INTEGER ENNTAB(0);
+011665
+011665   % - Common & Mpit: branch table
+011665   INTEGER ARRAY MNATAB:=(-1);
+011666
+011666   % - Common & Mpit: branch table
+011666   INTEGER ARRAY MNJTAB:=(
+011666          NNJ00,NNJ01,NNJ02,NNJ03,NNJ04,NNJ05,NNJ06,NNJ07,NNJ08,NNJ09,NNJ10,
+011701          NNJ11,NNJ12,NNJ13,NNJ14,
+011705          0,0,0,0,0,-1);
+011713
+011713   % - Common & Mpit: terminate-500 table
+011713   INTEGER ARRAY MNTTAB:=(
+011713          NNT01,NNT02,NNT03,NNT04,NNT05,NNT06,NNT07,NNT08,NNT09,NNT10,
+011725          NNT11,NNT12,NNT13,NNT14,NNT15,NNT16,NNT17,
+011734          NNT50,NNT51,NNT52,                            % Perf moncall
+011737          0,0,0,0,0,-1);
+011745
+011745   % - Rpit: terminate-500 table
+011745   INTEGER ARRAY RNTTAB:=(
+011745          NNT30,NNT31,NNT32,NNT33,NNT34,NNT35,NNT36,NNT37,
+011755          0,0,0,0,0,-1);
+011763
+011763   % - 5pit: terminate-500 table
+011763   INTEGER ARRAY 5NTTAB:=(
+011763          NNT40,NNT41,
+011765          0,0,0,0,0,-1);
+011773
+011773   % - Common & Mpit: convert-address table
+011773   INTEGER ARRAY MNCTAB:=(
+011773          NNC01,NNC02,NNC03,NNC04,NNC05,NNC06,NNC07,NNC08,NNC09,NNC10,
+012005          NNC11,NNC12,NNC13,NNC14,NNC15,NNC16,NNC17,NNC18,NNC19,NNC20,
+012017          NNC21,NNC22,NNC23,NNC24,NNC25,NNC26,NNC27,
+012026          NNC50,NNC51,NNC52,NNC53,NNC54,NNC55,          % Perf moncall
+012034          0,0,0,0,0,-1);
+012042
+012042   % - Rpit: convert-address table
+012042   INTEGER ARRAY RNCTAB:=(
+012042          NNC30,NNC31,NNC32,NNC33,NNC34,NNC35,NNC36,NNC37,NNC38,NNC39,
+012054          0,0,0,0,0,-1);
+012062
+012062   % - 5pit: convert-address table
+012062   INTEGER 5NCTAB:=(
+012062          NNC40,
+012063          0,0,0,0,0,-1);
+012071   @CR;
+012071   @DEV 1

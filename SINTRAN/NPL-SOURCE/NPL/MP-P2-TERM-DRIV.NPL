@@ -1,0 +1,3300 @@
+054630   @DEV (S-S-L)MP-P2-TERM-DRIV:NPL
+054630
+
+054630   %==============================================================================
+054630   %      M P - P 2 - T E R M - D R I V
+054630   %==============================================================================
+054630   %
+054630   %      PREDECLARATIONS
+054630   %
+054630   SUBR WDX, M8RET, TERWD
+054630   RBUS
+054630   %==============================================================================
+054630   % 37.2       S T T I N   T Y E N T
+054630   %
+054630   % TERMINAL INPUT DRIVER, LEVEL 12
+054630   %
+054630   % THE X-REGISTER MUST POINT TO THE OUTPUT DATAFIELD IN ALL THE
+054630   % ROUTINES CALLED BY THIS DRIVER
+054630   %
+054630   SUBR STTIN,TYENT,BFYICOMDRIVER
+054630   SYMBOL 5PIP=17
+054630   STTIN:  TTMR=:TMR
+054632   RETURN: CALL ID12                                % WAIT FOR INTERRUPT
+054633   TYENT: ISTATE=:IISTATE; CALL SET12WINDOW
+054636          IF BRKMODE=12 GO BFYICOMDRIVER
+054642          IF DFOPP><0 THEN X:=1777; X/\A; A:=B/\176000+X FI
+054651          A=:12DFOPP; A.BITFLAG BZERO 5CLOU=:X.BITFLAG
+054656   NXCHR: X:=12DFOPP
+054657          CALL TIAPD; GO RETURN                     % READ CHARACTER
+054661          IF T:="ROUSPEC"><0 THEN
+054664             D:=0; CALL ROUSPEC; GO NXCHR; GO OKCHAR
+054670          FI; A=:LAST                               % SAVE IN DATAFIELD
+054671          CALL XONREAD; GO NXCHR
+054673   OKCHAR: BRECHOFL/\177770=:BRECHOFL               % CLEAR BREAK/ECHO FLAG
+054676          A := LAST/\377; CALL XONCHECK             % TEST FOR XON/XOFF OUT.
+054701          IF DFLAG BIT 5CAPITAL THEN                % CONVERT LOWER CASE TO UPPER CASE
+054704             LAST/\177=:T
+054707             IF 140<T AND 176>T AND CESCP SHZ -10/\177><T AND CESCP/\177><T THEN
+054726                LAST BZERO 5=:LAST                  % CONVERT ALL EXEPT
+054731             FI                                     % RUBOUT  AND DISCONNECT
+054731          FI
+054731          IF X><0 AND X.SCREEN><0 THEN              % TWO WAY DEVICE WITH CR-DELAY
+054734                IF <0 THEN -1=:X.TMR FI
+054737                1=:X.SCREEN
+054741                IF LAST=0 THEN                      % IGNORE TAPE-FEED?
+054743                  IF FLAGB NBIT 5LCHAR GO NXCHR
+054746                  IF CESCP SHZ-10><0 GO NXCHR
+054751                FI
+054751          FI
+054751          IF T:=DFLAG NBIT 5SPEC AND T NBIT 5CTRLO THEN
+054756             CALL ESCAPE; GO NXCHR; X:=12DFOPP
+054761          FI
+054761          IF DFLAG NBIT 5CTRLO THEN
+054764             IF LAST/\177=17 THEN
+054771                DFLAG BONE 5CTRLO=:DFLAG
+054774             FI
+054774          ELSE
+054775             DFLAG BZERO 5CTRLO=:DFLAG
+055000          FI
+055000          IF CFREE=0 THEN
+055002             TINFO BONE 5BFUL=:TINFO; GO BFULL      % BUFFER IS FULL, RESTART USER
+055006          FI
+055006          GO L1; *)FILL
+055025   L1:   *IOF
+055026          IF DFLAG BIT 5ECHO THEN
+055031               LAST/\377
+055033               CALL TECHO                 %TEST FOR ECHO
+055034               CALL TBREAK                %TEST FOR BREAK
+055035               X:=12DFOPP
+055036          ELSE
+055037               IF IISTATE=-1 THEN; *ION   % NOWAIT MODE
+055044                  LAST/\377; CALL CXRBPUT; GO BFULL
+055050               FI
+055050          FI
+055050         *ION
+055051          IF BRECHOFL BIT 5ECHO THEN CALL ECHSUBR FI             % ECHO CHAR?
+055055          IF BRECHOFL<0 THEN 7=:LAST; CALL ECHSUBR; GO RETU FI   % IGNORE CHAR?
+055063
+055063   ADDCH: LAST/\377; CALL CXRBPUT                   % PUT CHARACTER IN BUFFER
+055066
+055066          IF CFREE<20 AND BRECHOFL NBIT 5BREAK GO BFULL % FULL BUFFER
+055075          IF BRECHOFL BIT 5BREAK THEN               % BREAK ACCORDING TO STRATEGY
+055100             DFLAG BZERO 5ECHO                      % ECHO OFF IN DRIVER
+055102             IF X:=FYLLE=HENTE THEN
+055106                A BONE 5ALEC                        % WHOLE BUFFER IS ECHOED BY DRIVER
+055107             ELSE
+055110                A BZERO 5ALEC                       % PART OF BUFFER MUST BE ECHOED BY IOTRANS
+055111             FI; A=:DFLAG; X=:RSISTE                % RSISTE IS FIRST CHARACTER NOT ECHOED
+055113          ELSE
+055114             IF DFLAG BIT 5XOFF GO BFULL            % MAKE SHURE THAT BUFFER IS EMPTIED WHEN XOFF
+055117             GO RETU
+055120          FI
+055120
+055120   BFULL: CALL TSTBACK                              % RESTART PROGRAM
+055121   *"8N500
+"055121          IF X:=IN5MSG >< 0 THEN
+055123                T:=5MBBANK; *AAX MLFLA; LDATX
+055126                IF A=0 THEN
+055127                   A:=1; *STATX
+055131                   "IBMOVE"; CALL CXRTACT
+055133                FI
+055133          ELSE
+055134   BYP1:        IF IISTATE=-1 OR A=-2 THEN; *IOF
+055144                   CALL PNW5ST; GO XRETU; *ION
+055147                FI
+055147                "IORESTART"; CALL CXRTACT
+055151          FI
+055151   *"
+"055151   *"-8N500
+"055151
+055151   RETU:  IF "ROUSPEC"><0 THEN
+055153             D:=1; X:=12DFOPP; CALL ROUSPEC; GO FAR OKCHAR
+055157          FI
+055157          GO FAR NXCHR
+055160   XRETU: *ION
+055161          GO RETU
+055162   *)FILL
+055201   %
+055201   %%  ECHO:
+055201   INTEGER  LREG
+055202   ECHSUBR: *IOF
+055203          A:=L=: LREG
+055205          IF X.CFREE=0 THEN
+055207             *ION
+055210             GO FAR NXCHR
+055211          FI
+055211          IF X.MINBHOLD BIT 5BLOC THEN    % OUTPUT BUFFER LOCKED
+055214             DFLAG BZERO 5ECHO=:DFLAG; BRECHOFL BZERO 5BREAK=:BRECHOFL
+055222             -1=:RSISTE; *ION
+055225             GO FAR ADDCH
+055226          FI
+055226          LAST/\377; X:=:B
+055231          IF T:=BITFLAG BIT 5EMPT AND T:=X.DFLAG NBIT 5OXON THEN
+055237             IF T:=X.TINFO BIT 5ENABLE THEN CALL PRCHA; GO ECRET FI
+055244             CALL ECAPD
+055245          ELSE
+055246   PIBUF:    CALL CXRBPUT
+055247          FI
+055247   ECRET: X:=:B; LREG =: L
+055252          *ION
+055253          EXIT; *)FILL
+055262
+055262
+055262   ECAPD: A=:D; T:=HDEV+DST; *IOXT                      % READ STATUS
+055266          IF A BIT 3 THEN                               % READY FOR TRANSFER
+055270             D=:A; T-DST+DDW; *IOXT                     % WRITE CHARACTER
+055274             "DACT"; T-DDW+DCONT; *IOXT                 % ACTIVATE
+055300             EXIT
+055301          ELSE                                          % NOT READY
+055302             BITFLAG BZERO 5EMPT=:BITFLAG
+055305             "DACT+DPIN"
+055306             T-DST+DCONT; *IOXT                         % ACTIVATE AND PIN
+055311             D=:A; GO PIBUF                             % ECHO VIA OUTPUT-BUFFER
+055313          FI
+055313          EXIT
+055314   RBUS
+055314
+055314   %=====================================================================
+055314   %            X O F T R
+055314   %      37.20
+055314   %
+055314   % THIS ROUTINE IS AN ALTERNATIVE TO NORMAL XOFF/XON CHECKING AND
+055314   % REQUIRES XOFF/XON TO BE IN SEQUENCE. ANY OTHER COMBINATION WILL
+055314   % BE TREATED AS NORMAL DATA CHARACTERS.
+055314   % THE ROUTINE IS ACTIVATED BY ENTERING IT'S ADDRESS IN THE ROUSPEC
+055314   % LOCATION IN THE TERMINAL INPUT DATAFIELD. THE ROUTINE IS CALLED
+055314   % AT THE START (D=0) AND AT THE END (D=1) OF THE DRIVER.
+055314   % FIRST PART (D=0) PERFORMS THE XOFF/XON CHECKING WILE THE LAST PART
+055314   % (D=1) PERFORMS BRANCHING ACCORDING TO RESULTS FROM FIRST PART.
+055314
+055314   SUBR XOFTR
+055314   SYMBOL IXOFF=3,IDATA=4,OPIN=5
+055314   XOFTR: IF T:=DFLAG BIT 5XDEVICE THEN   % XOFF/XON CHECKING FOR THIS TERMINAL?
+055317             IF D=0 THEN                                      % TEST CHARACTERS
+055321                A=:LAST BZERO 7=:D
+055324                IF T:=BRECHOFL NBIT IXOFF THEN      % X O F F   T E S T
+055327                   IF X.XOFCR=D THEN
+055332                      T BONE IXOFF BZERO IDATA=:BRECHOFL
+055335                      CNTREG BZERO 2=:CNTREG; T:=HDEV+DCONT; *IOXT
+055343                      T:=DFLAG BONE 5OXON=:DFLAG              % STOP OUTPUT
+055346                      0=:X.TMR; L-1
+055350                   FI; A:=LAST; EXITA
+055352                ELSE                                % X O N   T E S T
+055353                   IF D=X.XONCR THEN                          % IGNORE CHARACTERS
+055356                      T:=BRECHOFL BZERO IXOFF BZERO IDATA=:BRECHOFL
+055362                      CNTREG BONE 2=:CNTREG; T:=HDEV+DCONT; *IOXT
+055370                      T:=DFLAG BZERO 5OXON=:DFLAG
+055373                      T:=X.HDEV+DCONT
+055375                      A:=1; *IOXT                             % PIN OUTPUT
+055377                      EXIT
+055400                   ELSE
+055401                      A SHZ 10+X.XOFCR=:LAST                  % DATA CHARACTERS
+055404                      T:=BRECHOFL BONE IDATA BZERO IXOFF=:BRECHOFL
+055410                      EXITA
+055411                   FI
+055411                 FI
+055411             ELSE                                   % R E T U R N   C H E C K
+055412                IF T:=BRECHOFL BIT IDATA THEN
+055415                   T BONE OPIN BZERO IDATA=:BRECHOFL
+055420                   LAST SHZ -10=:LAST
+055423                   EXIT                                       % NEW CHARACTER
+055424                FI
+055424                IF T:=BRECHOFL BIT OPIN THEN
+055427                   T BZERO OPIN=:BRECHOFL
+055431                   CNTREG BONE 2=:CNTREG; T:=HDEV+DCONT; *IOXT
+055437                   DFLAG BZERO 5OXON=:DFLAG
+055442                   T:=X.HDEV+DCONT
+055444                   A:=1; *IOXT                                % PIN OUTPUT
+055446                FI
+055446                EXITA
+055447             FI
+055447          ELSE
+055450             IF D=0 THEN
+055452                A=:LAST; BRECHOFL/\177707=:BRECHOFL
+055456             FI
+055456          FI
+055456          EXITA
+055457   RBUS
+055460
+
+055460
+055460   %============================================================================
+055460   %      TUNING VARIABLES FOR TERMINAL OUTPUT DRIVER
+055460
+055460   INTEGER ARRAY NWR100=?                 % MAX NO OF CHARS. IN CORR. MODE ND-100
+055460   *"8N500
+"055460   INTEGER C5LFIFO=?                      % IF ><0 STATES MAX NO OF CHAR. TO COPY
+055460   INTEGER C5LPLAIN=?                     % IF ><0 STATES MAX NO OF CHAR. TO COPY
+055460   INTEGER ARRAY NWR500=?                 % MAX NO OF CHARS. IN CORR. MODE ND-500
+055460   *"
+"055460   %-----------------------------------------------------------------------------
+055460   %      VARIABLES USED BY TERMINAL OUTPUT DRIVER
+055460
+055460   INTEGER WRCH=?                         % NUMER OF CHARACTERS TO WRITE
+055460   INTEGER EBHO=?                         % NO OF CHARACTERS TRANSFERED
+055460   INTEGER CBHOL=?                        % NUMBER OF BYTES/WORDS TO WRITE
+055460   INTEGER TRMOD=?                        % TERMINAL MODE (0-3)
+055460
+055460   %==============================================================================
+055460   % 37.4       D W R I T E     T W R I T E
+055460   %
+055460   % DRIVER ROUTINE FOR TERMINAL-INTERFACES ON LEVEL 10!
+055460   % THE SAME DRIVER IS USED BOTH FOR OLD AND NEW (FIFO) TERMINALS.
+055460
+055460   % THE X-REGISTER MUST POINT TO THE INPUT DATAFIELD (X=DFOPP)
+055460   % IN ALL THE ROUTINES CALLED BY THE OUTPUT DRIVER
+055460
+055460   SUBR DWRITE,TWRITE,DHIST
+055460
+055460   SYMBOL SUFFS=5               % SUFFICIENT SPACE FOR ECHO
+055460
+055460   *"8LOG
+"055460   %------------------------------------------------------------------------------
+055460   % LOCAL SUBROUTINE TO CHECK IF RT PROG LOG IS ACTIVATED FOR THIS TERMINAL.
+055460   % IF OUTPUT BUFFER IS EMPTY, A DUMMY CHARACTER IS WRITTEN, ELSE TRMOD IS
+055460   % SET TO 4, CAUSING ONLY ONE CHARACTER TO BE WRITTEN PR INTERRUPT.
+055460   %
+055460   INTEGER POINTER RETAD
+055461   *"
+"055461   CHLOG:
+055461   *"8LOG
+"055461          IF LOGFIELD=TDRADDR OR MNLOGFI=T THEN     % RT-PROGRAM LOG ACTIVATED
+055470             A:=L=:"RETAD"
+055472             CALL LOG1                              % DO SAMPLING
+055473             IF BHOLD=0 AND ON5MSG=0 THEN           % NO CHARACTERS ON OUTPUT
+055477                T:=HDEV+DDW; A:="0"; *IOXT          % WRITE ZERO TO CONTINUE INTERRUPTS.
+055503                GO FAR RETU                         % WAIT FOR INTERRUPT
+055504             FI
+055504             4=:TRMOD; K:="0" ; GO RETAD;           % OVERRULE TERM-MODE COMMAND
+055510         FI
+055510   *"
+"055510         EXIT
+055511   *)FILL
+055516
+055516   %-----------------------------------------------------------------------------
+055516   % LOCAL SUBROUTINE TO SET UP WINDOW FOR DATAFIELD AFTER INTERRUPT
+055516   %
+055516   INTEGER POINTER LLRG
+055517   SDFWI: A:=L=:"LLRG"; ISTATE=:OISTATE; CALL SET10WINDOW
+055524          IF DFOPP><0 THEN X:=1777; X/\A; A:=B/\176000+X FI
+055533          A=:X=:10DFOPP; A:=B/\176000+BUFST=:10BUFST; GO LLRG
+055542
+055542   %-----------------------------------------------------------------------------
+055542   % LOCAL SUBROUTINE TO CALL ID10 AND UPDATE DISP DRIVER IN RESIDENT DATAFIELD
+055542   %
+055542   TID10: *ION
+055543         A:=L=:TDRADDR."DRIVER";
+055546         GO ID10
+055547
+055547   %------------------------------------------------------------------------------
+055547   % PROGRAMMED RESTART BY PROGRAM.
+055547   % IF FIFO INTERFACE, THE  DRIVER MUST WAIT FOR INTERRUPT TO ENSURE THAT THE FIFO
+055547   % IS EMPTY. IF NOT FIFO THE DRIVER CAN CONTINUE IF READY FOR TRANSFER IS SET.
+055547   % CARRIER MISSING IS CHECKED IN ANY CASE IF THE INTERFACE IS NOT READY AT THIS
+055547   % POINT.
+055547   %------------------------------------------------------------------------------
+055547
+055547   DWRITE:CALL SDFWI; TTMR=:TMR; BITFLAG BZERO 5EMPT=:BITFLAG; *IOF
+055556          X.BRECHOFL BONE 5PINFL=:X.BRECHOFL; *ION % NO NEED TO BE PINNED
+055562          T:=HDEV+DST; *IOXT                       % READ STATUS
+055565          IF NBIT 3 THEN                           % NOT READY FOR TRANSFER
+055567             IF BIT 13 THEN; *IOF                  % CARRIER MISSING
+055572                X.DFLAG BONE 5LBRK=:X.DFLAG; *ION
+055576             FI
+055576             GO FAR RETU                           % WAIT FOR INTERRUPT
+055577          FI
+055577          IF X.TINFO BIT 5FIFO GO FAR RETU         % ALWAYS WAIT FOR INTERRUPT IF FIFO
+055602          GO CADEL; *)FILL                         % READY, START WRITING
+055613
+055613
+055613   %------------------------------------------------------------------------------
+055613   %      RESTART AFTER INTERRUPT, FIFO IS EMPTY, AT LEAST 64 CHARACTERS
+055613   %      MAY BE WRITTEN TO THE INTERFACE BEFORE READY FOR TRANSFER GOES OFF
+055613   %      THE CHARACTERS ARE FOUND EITHER IN RINGBUFFER OR IN ND-500 BUFFER.
+055613   %------------------------------------------------------------------------------
+055613
+055613   TWRITE:CALL SDFWI
+055614   CADEL: X:=10DFOPP; BITFLAG BZERO 5EMPT=:BITFLAG; *IOF
+055621          X.BRECHOFL BONE 5PINFL=:X.BRECHOFL; *ION  % NO NEED TO BE PINNED
+055625   DHIST: 0/\0; 0/\0                      % ====== D E B U G  O N L Y =====
+055627          CALL OXONCHECK; GO FAR SRONOF             % CHECK IF READER ON/OFF SHOULD BE SENT
+055631          CALL XONWRITE; GO FAR BDINT               % CHECK IF XOFF HAS STOPPED OUTPUT
+055633          *IOF
+055634          T:=X.DFLAG BZERO 5LBRK=:X.DFLAG; *ION     % LINE IS OK UNTIL OTHERWISE FOUND
+055640          A:=X.TINFO
+055641          IF T BIT 17 THEN                          % READER ON/OFF ENAB. FIFO CANT BE USED
+055643             K:="0"
+055644          ELSE
+055645            *BLDA 5FIFO DA                          % K - FIFO TERMINAL
+055646          FI
+055646          IF A BIT 5UMOD THEN T:=-1 ELSE T:=77577 FI% PARITY MASK
+055653          T=:10MASK
+055654   SICH:  X:=BITFLAG BZERO 5EMPT=:BITFLAG:="0"=:EBHO      % DRIVER IS BUSY
+055661          IF A BIT 5CRDLY THEN X BONE 1 FI          % CARRIAGE RETURN DELAY (TINFO)
+055664          IF T:=SCREEN><0 THEN X BONE "0" FI        % STOP ON FULL PAGE ENABLED
+055670          X=:TRMOD                                  % SAVE MODE
+055671          IF A BIT 5ERRMSG GO FAR EWRITE            % ERROR MESSAGE TO ERROR DEVICE
+055673          IF A BIT 5ENABLE GO FAR DTERM             % MASTER DISPLAY SET IN TINFO
+055675          CALL FAR CHLOG                            % CHECK IF RT-PROG LOG
+055676   *"8N500
+"055676        IF BHOLD=0 AND ON5MSG=0 GO FAR BISEM       % OUTPUT BUFFER IS EMPTY
+055703         IF K AND TRMOD=0 THEN                      % FIFO INTERFACE AND NO CHECK
+055707            IF X:=ON5MSG><0 AND BHOLD=0 THEN GO WR500 ELSE GO WR100 FI
+055715         ELSE                                       % OLD INTERFACE
+055716            IF X:=ON5MSG><0 THEN
+055720               CALL M5TORB; IF BHOLD=0 GO FAR BISEM
+055724            FI; GO WO100
+055725         FI
+055725   *"-8N500
+"055725
+
+055725   %------------------------------------------------------------------------------
+055725   %      OUTPUT FROM RINGBUFFER.
+055725   %      PREPARE NUMBER OF CHARACTERS TO WRITE AND SELECT OPTIMAL
+055725   %      OUTPUT ROUTINE ACCORDING TO TERMINAL MODE.
+055725   %------------------------------------------------------------------------------
+055725
+055725   WR100: 100=:WRCH; *IOF                           % FIFO TERMINAL
+055730          IF BHOLD>WRCH THEN A:=T FI; *ION          % FIND NUMBER OF CHARS. TO WRITE
+055736          A=:EBHO -=:CBHOL
+055741          GO W0100
+055742
+055742   WO100: 1=:WRCH=:EBHO -=:CBHOL                    % OLD INTERFACE OR TRMOD >< 0
+055747          TRMOD GOSW SB100,FAR W1100,FAR W2100,FAR W3100,SB100
+055756
+055756   *"8N500
+"055756   %------------------------------------------------------------------------------
+055756   %      OUTPUT FROM ND-500 BUFFER.
+055756   %      PREPARE NUMBER OF CHARACTERS TO WRITE AND SELECT OPTIMAL
+055756   %      OUTPUT ROUTINE ACCORDING TO TERMINAL MODE.
+055756   %------------------------------------------------------------------------------
+055756
+055756   WR500: 100=:WRCH
+055760          T:=5MBBANK; *AAX NOBYT; LDATX                   % NUMBER OF BYTES IN BUFFER
+055763          IF A=0 GO FAR B5ISEM                            % BUFFER IS EMPTY
+055765          IF A>WRCH THEN A-T=:EBHO; T=:A FI; *BLDA 0 DA   % K IF NOT ENDING ON WORD
+055774          A SHZ -1 -=:CBHOL                               % NUMBER OF WORDS (NEG)
+055777          T:=5MBBANK; *AAX HBUFA-NOBYT; LDATX
+056002          *AAX 5HENT-HBUFA; LDXTX; COPY SA DT             % T & X  BUFFER ADDRESS
+056005          GO FAR W0500
+056006
+056006   *"
+"056006
+056006   *)FILL
+056034
+
+056034   %-------------------------------------------------------------------------------
+056034   % FAST OUTPUT FROM RINGBUFFER, NO CHECKS ON DATA
+056034   % ROUTINE IS OPTIMISED ON IOX, TWO MORE INSTRUCTIONS REQUIRED IF IOXT. (64*2)
+056034   %-------------------------------------------------------------------------------
+056034
+056034   W0100: X:=MAX=:L:=HENTE; T:=10BUFST              % X = HENTE,  L = MAX, T = BUFST
+056040          IF HDEV+DDW NBIT 17 THEN
+056044             A+164000=:D                            % T = BUFFST, D = IOX DDW
+056046   N01F:     *LBYT; AND I (10MAS; EXR SD            % GET FROM BUFFER AND WRITE
+056051             X+1; IF X=L THEN X:="0" FI             % INCREMENT HENTE
+056055             MIN CBHOL; GO N01F                     % COUNT CHARACTERS
+056057             GO FAR BMOUT                           % FIFO IS FULL, CHECK BUFFER
+056060          FI
+056060          A=:D                                      % T = BUFFST, D = HDEV+DDW
+056061   N01S:  *LBYT; AND I (10MAS; SWAP ST DD; IOXT; SWAP ST DD % GET FROM BUFFER AND WRITE
+056066          X+1; IF X=L THEN X:="0" FI                % INCREMENT HENTE
+056072          MIN CBHOL; GO N01S                        % COUNT CHARACTERS
+056074          GO FAR BMOUT                              % FIFO IS FULL, CHECK BUFFER
+056075
+056075   SB100: *IOF
+056076          TAD:=FFMAX; A-1; D=:X+1                   % SINGLE BYTE OUTPUT
+056102          IF D=T THEN D:="0" FI; AD=:DBHOLD         % UPDATE BUFFER POINTERS
+056106          MIN CFREE; T:=10BUFST; *LBYT; ION         % GET CHARACTER
+056112          T:=HDEV+DDW; A/\10MASK;*IOXT              % WRITE CHARACTER
+056116          GO FAR BOKOU                              % LEAVE LEVEL
+056117
+056117   *"8N500
+"056117   %------------------------------------------------------------------------------
+056117   % FAST OUTPUT FROM ND-500 BUFFER, NO CHECKS ON DATA.
+056117   % ROUTINE IS OPTIMISED ON IOX, TWO MORE INSTRUCTIONS REQUIRED IF IOXT (64*2)
+056117   %------------------------------------------------------------------------------
+056117
+056117   W0500: IF HDEV+DDW NBIT 17 THEN                  % IOX OR IOXT REQUIRED
+056123             A+164000=:L; IF CBHOL=0 GO N05FB       % L = IOX WRITE CHARACTER
+056127   N05F:     *LDATX                                 % FETCH TWO BYTES
+056130             A/\10MASK                              % PARITY CHECK
+056131             A SHR 10; *EXR SL                      % WRITE LEFT  BYTE
+056133             A SH -10; *EXR SL                      % WRITE RIGTH BYTE
+056135             X+1; MIN CBHOL; GO N05F                % COUNT WORDS
+056140             IF K THEN
+056142   N05FB:       *LDATX; SHA SHR 10; EXR SL          % WRITE LAST BYTE
+056145                GO 5FINI                            % BUFFER IS EMPTY
+056146             FI
+056146             EBHO; CALL 5CMOR; GO FAR RETU; GO 5FINI % CHECK IF MORE TO WRITE
+056152          FI
+056152          A=:L; IF CBHOL=0 GO N05SB
+056155   N05S:  *LDATX
+056156          A/\10MASK
+056157          A SHR 10; T:=:L; *IOXT
+056162          A SH -10; *IOXT
+056164          T:=:L; X+1; MIN CBHOL; GO N05S
+056170          IF K THEN
+056172   N05SB:    *LDATX; SHA SHR 10; COPY SL DT; IOXT
+056176             GO 5FINI
+056177          FI
+056177          EBHO; CALL 5CMOR; GO FAR RETU             % CHECK IF MORE TO WRITE
+056202   5FINI: X:=ON5MSG; 0=:ON5MSG; *IOF
+056205          CALL PT5RST; *ION
+056207          GO FAR RETU
+056210   *"
+"056210   *)FILL
+056222
+
+056222   %------------------------------------------------------------------------------
+056222   % LOCAL SUBROUTINE TO GET CHARACTER FROM BUFFER
+056222   %
+056222   COLCH: *IOF
+056223          TAD:=FFMAX; IF A=0 THEN EXIT FI                % BUFFER EMPTY
+056226          A-1; D=:X+1; IF D=T THEN D:="0" FI; AD=:DBHOLD % UPDATE BUFFER POINTERS
+056235          MIN CFREE; T:=10BUFST; *LBYT; ION; EXIT AD1    % GET CHARACTER FROM BUFFER
+056242   *)FILL
+056243
+056243   %-----------------------------------------------------------------------------
+056243   % OUTPUT FROM RINGBUFFER WITH STOP ON FULL PAGE
+056243   %-----------------------------------------------------------------------------
+056243
+056243   W1100: IF SCREEN<0 GO FAR BCOUT
+056246   N11:   IF SCREEN>24 THEN
+056252             -1=:SCREEN; 7; T:=HDEV+DDW; *IOXT      % FULL PAGE PRINT BELL
+056260              GO FAR BCOUT
+056261          FI
+056261          CALL COLCH; GO FAR BREMP                  % GET CHARACTER FROM BUFFER
+056263          IF =12 THEN MIN SCREEN FI                 % COUNT LINES
+056267          IF =14 THEN T+24=:SCREEN FI               % NEW PAGE
+056274          T:=HDEV+DDW; A/\10MASK; *IOXT             % WRITE CHARACTER
+056300          MIN CBHOL; GO N11; GO FAR BOKOU           % CONTINUE UNTIL EMPTY OR STOP
+056303   *)FILL
+056310
+056310
+056310   %-----------------------------------------------------------------------------
+056310   % OUTPUT FROM RINGBUFFER WITH CARRIAGE RETURN DELAY
+056310   %-----------------------------------------------------------------------------
+056310
+056310   W2100:
+056310   N21:   CALL FAR COLCH; GO FAR BREMP              % GET CHARACTER FROM BUFFER
+056312          T:=HDEV+DDW; A/\10MASK; *IOXT             % WRITE CHARACTER
+056316          IF A BZERO 7=15 GO FAR CDELAY             % CR CAUSES DELAY
+056322          MIN CBHOL; GO N21; GO FAR BOKOU           % OUTPUT BUFFER IS EMPTY
+056325
+056325   %-----------------------------------------------------------------------------
+056325   % OUTPUT FROM RINGBUFFER WITH BOTH STOP ON FULL PAGE AND CR. DELAY
+056325   %-----------------------------------------------------------------------------
+056325
+056325   W3100: IF SCREEN<0 GO FAR BCOUT
+056330   N31:   IF SCREEN>24 THEN
+056334             -1=:SCREEN; 7; T:=HDEV+DDW; *IOXT      % FULL PAGE PRINT BELL
+056342              GO FAR BCOUT
+056343          FI
+056343          CALL FAR COLCH; GO FAR BREMP              % GET CHARACTER FROM BUFFER
+056345          IF =12 THEN MIN SCREEN FI                 % COUNT LINES
+056351          IF =14 THEN T+24=:SCREEN FI               % NEW PAGE
+056356          T:=HDEV+DDW; A/\10MASK; *IOXT             % WRITE CHARACTER
+056362          IF A BZERO 7=15 GO FAR CDELAY             % CR CAUSES DELAY
+056366          MIN CBHOL; GO N31; GO FAR BOKOU           % CONTINUE UNTIL EMPTY OR STOP
+056371
+056371   *)FILL
+056400
+056400   %------------------------------------------------------------------------------
+056400   % LOCAL SUBROUTINE TO RESTART USER IF INPUT IS WAITING FOR ECHO
+056400   % CAN SWITCH INTERUPT ON
+056400
+056400   INTEGER SAVB; INTEGER POINTER LREG
+056402
+056402   RSINP: A:=L=:"LREG"
+056404          IF X:=10DFOPP><0 THEN
+056406             IF X.BRECHOFL BIT 5WECH THEN
+056411                A BZERO 5WECH=:X.BRECHOFL; X:=:B=:SAVB
+056415   *"8N500
+"056415               IF X:=IN5MSG><0 THEN
+056417                   *IOF
+056420                   T:=5MBBANK; *AAX MLFLA; LDATX
+056423                   IF A = 0 THEN               % IBMOVE NOT ALLREADY ACTIVE
+056424                       A:=1; *STATX            % MARK IBMOVE ACTIVE
+056426                       "IBMOVE"
+056427                   ELSE                        % IBMOVE ALLREADY ACTIVE
+056430                       GO OUT
+056431                   FI
+056431                   *ION
+056432                ELSE
+056433                   CALL TSTBACK; "IORESTART"
+056435                FI
+056435   *"-8N500
+"056435               CALL CXRTACT
+056436   OUT:
+056436               SAVB=:B
+056440             FI
+056440          FI
+056440          GO LREG; *)FILL
+056447
+056447   %------------------------------------------------------------------------------
+056447   % LOCAL SUBROUTINE TO RESTART USER IF MINBHOLD IS REACHED IN OUTPUT BUFFER
+056447
+056447   RSOUT:  IF OISTAT=0 THEN EXITA FI                    % CALLED WHEN NOT EMPTY
+056452           X:=BHOLD; T:=MINBHOLD BZERO 5BLOC BZERO 5NOWT
+056456           IF X<=T GO FELLS; EXIT
+056461   RSEOU:  IF OISTAT=0 THEN EXITA FI                    % CALLED WHEN EMPTY BUFFER
+056464   FELLS:  IF A<0 THEN
+056465              IF MINBHOLD NBIT 5NOWT THEN EXITA FI
+056471              A BZERO 5NOWT=:MINBHOLD
+056473           FI
+056473           A:=L=:"LREG"; "IORESTART"; CALL CXRTACT
+056477           GO LREG; *)FILL
+056503
+056503   %------------------------------------------------------------------------------
+056503   %      RETURN FROM LEVEL 10
+056503
+056503   BCOUT: CALL RSOUT; GO BDINT
+056505          IF CFREE>=SUFFS THEN CALL RSINP FI
+056512          GO BDINT
+056513   BMOUT: X=:HENTE; *IOF                            % UPDATE HENTE
+056515          BHOLD-EBHO=:BHOLD; X:=MAX-A=:CFREE; *ION  % UPDATE BHOLD AND CFREE
+056524   BOKOU: CALL RSOUT; GO RETU                       % IS OUTPUT WAITING FOR BUFFER
+056526          IF CFREE>=SUFFS THEN CALL RSINP FI        % IS INPUT WAITING FOR ECHO
+056533          GO RETU                                   % ENABLE INTERRUPT
+056534
+056534   BREMP: BITFLAG BONE 5EMPT=:BITFLAG; 0=:TMR
+056540          CALL RSEOU; GO RETU; CALL RSINP
+056543   RETU:  T:=HDEV+DCONT; "DPIN"; *IOXT              % ENABLE INTERRUPT
+056547          CALL FAR TID10; GO FAR TWRITE             % WAIT FOR INTERRUPT
+056551
+056551   CDELAY: MIN CBHOL; 0/\0
+056553   DELAY: CALL RSOUT; GO DRETU                      % IS OUTPUT WAITING FOR BUFFER
+056555          IF CFREE>=SUFFS THEN CALL RSINP FI        % IS INPUT WAITING FOR ECHO
+056562
+056562   DRETU: T:=HDEV+DCONT; "DPIN"; *IOXT              % ENABLE INTERRUPT
+056566          CALL FAR TID10; CALL FAR SDFWI            % WAIT FOR INTERRUPT
+056570          IF 10DFOPP.TINFO BIT 5FIFO THEN           % FIFO INTERFACE
+056574             A:=0; T:=HDEV+DDW
+056577             FOR X:=-5 DO
+056600                *IOXT                               % WRITE 5 DUMMY CHARACTERS
+056601             OD
+056602          ELSE                                      % PLAIN INTERFACE
+056603             TYPRING BONE 10 BONE 6=:TYPRING        % 5 DUMMY CHARS. COUNTED IN BIT 6-8
+056607   CLOOP:    IF TYPRING SHZ-6/\7>0 THEN
+056614                A-1 SH 6=:T:=TYPRING/\177077\/T=:TYPRING
+056623                A:=0; T:=HDEV+DDW; *IOXT
+056627                T-DDW+DCONT; "DPIN"; *IOXT
+056633                CALL FAR TID10; CALL FAR SDFWI; GO CLOOP
+056636             FI
+056636          FI
+056636          GO FAR CADEL
+056637
+056637   *"8N500
+"056637   B5ISEM: X:=ON5MSG; 0=:ON5MSG; *IOF
+056642          CALL PT5RST; *ION
+056644   *"
+"056644   BISEM: BITFLAG BONE 5EMPT=:BITFLAG
+056647          CALL FAR RSEOU; 0/\0
+056651          IF 10DFOPP.BSTATE=5BPASSIVE THEN
+056656             IF X.TINFO BIT 5VSPEED THEN
+056661                A BONE 5SPNFOUND=:X.TINFO
+056663                X.TYPRING BONE 10=:X.TYPRING
+056666                -2=:X.TMR
+056670          FI; FI
+056670
+056670   BDINT: X:=10DFOPP; *IOF
+056672          IF X.DFLAG BIT 5XON OR BIT 5XOFF GO RETU
+056677          X.BRECHOFL BZERO 5PINFL=:X.BRECHOFL      % NEED TO BE PINNED
+056702          0=:TMR; T:=HDEV+DCONT; "0"; *IOXT        % DISABLE INTERUPT
+056707          CALL FAR TID10; GO FAR TWRITE
+056711
+056711   SRONOF:T:=HDEV+DDW; *IOXT                       % WRITE READER ON/OFF
+056714          GO RETU
+056715   *)FILL
+056730
+
+056730   %-----------------------------------------------------------------------------
+056730   % DISPLAY MODI, THE CHARACTERS ARE WRITTEN TO ALL TERMINALS PRESENT
+056730   % IN THE DISPLAY LINK FROM THE MASTER TERMINAL.
+056730   %-----------------------------------------------------------------------------
+056730
+056730   DTERM: CALL FAR CHLOG
+056731   *"8N500
+"056731          IF BHOLD=0 AND ON5MSG=0 GO FAR BISEM
+056736          IF X:=ON5MSG><0 THEN
+056740             CALL M5TORB; IF BHOLD=0 GO FAR BISEM
+056744          FI
+056744   *"-8N500
+"056744          IF TRMOD BIT "0" THEN                     % STOP ON FULL PAGE USED
+056747             IF SCREEN<0 GO FAR BCOUT
+056752             IF SCREEN>24 THEN; *IOF
+056757                -1=:SCREEN; 7; CALL PRCHA; *ION     % FULL PAGE PRINT BELL
+056764                 GO FAR BCOUT
+056765             FI
+056765          FI
+056765          CALL FAR COLCH; GO FAR BREMP              % GET CHARACTER FROM BUFFER
+056767          IF T:=TRMOD BIT "0" THEN
+056772             IF =12 THEN MIN SCREEN FI              % COUNT LINES
+056776             IF =14 THEN T+24=:SCREEN FI            % NEW PAGE
+057003          FI; *IOF
+057004          CALL PRCHA; *ION                          % WRITE CHARACTER
+057006          IF T:=TRMOD BIT 1 THEN                    % CR DELAY USED
+057011             IF A BZERO 7=15 GO FAR CDELAY          % CR CAUSES DELAY
+057015          FI
+057015          GO FAR BOKOU                              % WAIT FOR INTERRUPT
+057016   *)FILL
+057030
+057030   %----------------------------------------------------------------------
+057030   %   ERROR MESSAGE TO ERROR DEVICE, THE MESSAGE IS FOUND IN EBUWRITE
+057030   %----------------------------------------------------------------------
+057030   DISP 0; DOUBLE EBUHF=EBUHENTE; PSID   % HENTE AND FYLLE IN ERROR BUFFER
+057030
+057030   EWRITE: IF X:=EBUWRITE><0 THEN
+057032              AD:=X.EBUHF
+057033              IF A><D THEN                        % SOMETHING IN BUFFER
+057035                 X=:T:=A; *LBYT                   % COLLECT BYTE
+057040                 X+1:=:T; T=:X.EBUHENTE           % UPDATE HENTE
+057043                 T:=HDEV+DDW; *IOXT               % WRITE CHARACTER
+057046                 GO FAR RETU                      % LEAVE LEVEL 10
+057047              FI
+057047              X.EBULINK=:EBUWRITE                 % WHOLE BUFFER PRINTED
+057051              T:=EBUFREE=:X.EBULINK; X=:EBUFREE   % PUT IN FREE LIST
+057054              IF A><0 GO CHRET                    % MORE IN PRINT LINK?
+057055           FI; *IOF
+057056           10DFOPP.TINFO BZERO 5ERRMSG=:X.TINFO; *ION
+057063   CHRET:  IF OISTATE><0 THEN
+057065              "IORESTART"; CALL CXRTACT           % RESTART PROGRAM
+057067           FI
+057067           GO FAR RETU
+057070   RBUS
+057077
+057077   %------------------------------------------------------------------------------
+057077   % SUBROUTINE TO WRITE CHARACTERS TO ALL TERMINALS LINKED TO A MASTER
+057077   % TERMINAL.
+057077   % THE ROUTINE MUST BE CALLED IN IOF, AS IT IS CALLED BOTH FROM
+057077   % LEVEL 10 AND 12.
+057077
+057077   SUBR PRCHA
+057077   INTEGER CHAR,XREG; INTEGER POINTER LREG
+057102   PRCHA: T:=HDEV+DDW; *IOXT                       % WRITE CHARACTER ON MASTER
+057105          A=:CHAR:=L=:"LREG"; X=:XREG:=TDRADDR
+057112          DO; T:="PDISPLAY"; CALL XGTDFADDR
+057114          WHILE A><-1
+057117              A=:X; T:="HDEV"; CALL XGTDFADDR; A=:T
+057123              T+DDW; A:=CHAR; *IOXT
+057126          OD
+057127          X:=XREG; CHAR; GO LREG
+057132   RBUS
+057135
+057135   *"8N500
+"057135   %------------------------------------------------------------------------------
+057135   % SUBROUTINE TO UPDATE CHARACTERS LEFT IN ND-500 BUFFER
+057135   % IF MORE CHARACTERS TO PRINT EXIT ELSE EXITA
+057135   % IF RINGBUFFER CAN HOLD REST OF CHARACTERS THEY ARE COPIED AND
+057135   % ND-500 IS RESTARTED.
+057135   %
+057135   SUBR 5CMOR
+057135   INTEGER POINTER LREG; INTEGER EBHO5
+057137   5CMOR: IF A><0 THEN
+057140             A=:EBHO5
+057141             IF C5LFIFO=0 THEN
+057143                CFREE=:NOCHAR
+057145             ELSE
+057146                IF T:=CFREE<A THEN T=:NOCHAR ELSE A=:NOCHAR FI
+057154             FI
+057154             X=:A:=ON5MSG; T:=5MBBANK; *AAX 5HENT; STATX
+057161             EBHO5; *AAX NOBYT-5HENT; STATX
+057164             IF T:=NOCHAR<0 THEN EXIT FI; *IOF
+057171             IF A<T AND T:=BHOLD=0 THEN
+057176                T:=L+1=:"LREG"
+057200                T:=CFREE-A=:CFREE; T:=BHOLD+A=:BHOLD; *BLDA 0 DA
+057207                A=:FYLLE SHZ -1=:L; 0=:HENTE
+057213                T:=5MBBANK; *AAX HBUFA-NOBYT; LDATX
+057216                *AAX 5HENT-HBUFA; LDXTX; COPY SX DD
+057221                T:=10BUFST; X:=0
+057223                IF L=0 GO M5ONEB; *MOVPA
+057226                IF K THEN
+057230   M5ONEB:         A:=:T; D:=:X; A=:D; *LDATX
+057234                   A SHZ -10; D=:T; X:=0; *SBYT
+057240                FI; *ION
+057241                GO LREG
+057242             FI; *ION
+057243             EXIT
+057244          FI
+057244          EXITA
+057245   RBUS
+057250
+057250   %-------------------------------------------------------------------------
+057250   %      M 5 T O R B
+057250   %
+057250   % ROUTINE TO MOVE CHARACTERS FROM 500 BUFFER TO RINGBUFFER
+057250   % ENTRY:   B - OUTPUT DATAFIELD
+057250   %          X - ON5MSG
+057250   SUBR M5TORB
+057250   INTEGER NOC1,NOC2,FYLST
+057253   INTEGER POINTER LREG=?
+057253   M5TORB: A:=L=:"LREG"; *IOF
+057256          IF C5LPLAIN=0 THEN
+057260             CFREE=:NOCHAR
+057262          ELSE                                                % RESTRICTED COPY
+057263             IF T:=CFREE>A THEN A=:NOCHAR ELSE T=:NOCHAR FI
+057271          FI
+057271          T:=5MBBANK; *AAX NOBYT; LDATX
+057274          IF A><0 THEN
+057275             IF T:=BHOLD=0 OR T:=FYLLE=:FYLST NBIT 0 AND A<NOCHAR THEN
+057307                IF T:=BHOLD=0 THEN 0=:FYLST=:FYLLE=:HENTE FI
+057315                T:=NOCHAR BZERO "0"
+057317                IF A>T THEN A-T=:CNOCHAR; T=:A; ELSE 0=:CNOCHAR FI
+057326                T:=CFREE-A=:CFREE; T:=BHOLD+A=:BHOLD; *BLDA 0 DA
+057335                A=:D
+057336                IF FYLLE+D>MAX THEN
+057343                   A-T=:FYLLE=:NOC2; D-A=:A; A=:NOC1
+057351                ELSE
+057352                   T:=:D=:NOC1; 0=:NOC2
+057355                   IF A=D THEN 0=:FYLLE ELSE A=:FYLLE FI
+057362                FI; GO L1
+057363   INTEGER POINTER LREG; *)FILL
+057366   L1:          *ION
+057367                NOC1 SHZ -1=:L
+057372                T:=5MBBANK; *AAX HBUFA-NOBYT; LDATX
+057375                *AAX 5HENT-HBUFA; LDXTX; COPY SX DD
+057400                T:=FYLST SHZ -1; X:=10BUFST+T=:T:=0
+057406                IF L=0 GO M5ONEB; *MOVPA
+057411                IF T=:L:=NOC2><0 THEN
+057415                   T SHZ -1=:L; T:=10BUFST; X:=0
+057421                   IF L=0 GO M5ONEB; *MOVPA
+057424                ELSE
+057425                   L=:T
+057426                FI
+057426                IF K THEN
+057430   M5ONEB:         A:=:T; D:=:X; A=:D; *LDATX
+057434                   A SHZ -10; D=:T; X:=0; *SBYT
+057440                   GO M5FINI
+057441                FI
+057441                IF CNOCHAR=0 GO M5FINI
+057443                X:=ON5MSG; T:=5MBBANK; D=:A; *AAX 5HENT; STATX
+057450                CNOCHAR; *AAX NOBYT-5HENT; STATX
+057453             FI
+057453             *ION
+057454             GO LREG
+057455          FI
+057455   M5FINI: *IOF
+057456           X:=ON5MSG; 0=:ON5MSG; CALL PT5RST; *ION
+057462          GO LREG
+057463   RBUS
+057466   *"
+"057466
+057466   %==============================================================================
+057466   %       (M)      T F I N P U T
+057466   %
+057466   % TELEFIX TERMINAL INPUT DRIVER, LEVEL 10
+057466   %
+057466   %
+057466   SUBR TFINPUT,TFECHO
+057466
+057466   SYMBOL 5PIP=17
+057466
+057466   %------------------------------------------------------------------------------
+057466   % LOCAL SUBROUTINE TO READ ONE CHARACTER FROM PAIR DATAFIELD RINGBUFFER
+057466   %
+057466   INTEGER POINTER LREG; INTEGER CCHAR,MYDFA
+057471   RDPAIR: A:=L=:"LREG"; X:=PAIRDF:=:B=:MYDFA; *IOF
+057477           CALL SET12WINDOW; IF BHOLD=0 THEN MYDFA=:B; GO RESI FI
+057505           CALL CXRBGET; A=:CCHAR
+057507           T:=BHOLD=:D:=MINBHOLD BZERO 5BLOC; MYDFA=:B
+057515           IF PAIRDF.ISTATE><0 AND D>T THEN X:=:B; CALL XRTACT; X:=:B FI
+057525           MIN "LREG"
+057526   RESI:   CALL RES12WINDOW; *ION
+057530           CCHAR; GO LREG
+057532   *)FILL
+057536
+057536   %------------------------------------------------------------------------------
+057536   %       T F I N P U T
+057536   %
+057536   % THIS DRIVER IS NOT INTERRUPT DRIVEN, RESTART IS DONE BY STDEV FROM
+057536   % OUTPUT PAIR TERMINAL.
+057536
+057536   RETURN: *ION
+057537          TTMR=:TMR; GO WT10; CALL ERRFATAL         % WAIT FOR RESTART
+057543   TFINPUT:
+057543          ISTATE=:OISTATE; CALL SET10WINDOW
+057546          IF DFOPP><0 THEN X:=1777; X/\A; A:=B/\176000+X FI
+057555          A=:10DFOPP; A.BITFLAG BZERO 5CLOU=:X.BITFLAG
+057562          CALL RDPAIR; GO RETURN; A=:LAST           % READ CHARACTER
+057565          BRECHOFL/\177770=:BRECHOFL                % CLEAR BREAK/ECHO FLAG
+057570          IF DFLAG BIT 5CAPITAL THEN                % CONVERT LOWER CASE TO UPPER CASE
+057573             LAST/\177=:T
+057576             IF 140<T AND 176>T AND CESCP SHZ -10/\177><T AND CESCP/\177><T THEN
+057615                LAST BZERO 5=:LAST                  % CONVERT ALL EXEPT
+057620             FI                                     % RUBOUT  AND DISCONNECT
+057620          FI
+057620          IF X:=10DFOPP><0 AND X.SCREEN><0 THEN     % TWO WAY DEVICE WITH CR-DELAY
+057624                IF <0 THEN -1=:X.TMR FI
+057627                1=:X.SCREEN
+057631                IF LAST=0 THEN                      % IGNORE TAPE-FEED?
+057633                  IF FLAGB NBIT 5LCHAR GO RETURN
+057636                  IF CESCP SHZ-10><0 GO RETURN
+057641                FI
+057641          FI
+057641          IF T:=DFLAG NBIT 5SPEC AND T NBIT 5CTRLO THEN
+057646             CALL ESCAPE; GO RETURN; X:=10DFOPP
+057651          FI
+057651          IF DFLAG NBIT 5CTRLO THEN
+057654             IF LAST/\177=17 THEN; *IOF
+057662                DFLAG BONE 5CTRLO=:DFLAG; *ION
+057666             FI
+057666          ELSE; *IOF
+057670             DFLAG BZERO 5CTRLO=:DFLAG; *ION
+057674          FI
+057674          IF CFREE=0 THEN; *IOF
+057677             TINFO BONE 5BFUL=:TINFO; GO BFULL      % BUFFER IS FULL, RESTART USER
+057703          FI
+057703          GO L1; *)FILL
+057716   L1:    *IOF
+057717          IF DFLAG BIT 5ECHO THEN
+057722               LAST/\377
+057724               CALL TECHO                 %TEST FOR ECHO
+057725               CALL TBREAK                %TEST FOR BREAK
+057726               X:=10DFOPP
+057727          ELSE
+057730               IF OISTATE=-1 THEN         % NOWAIT MODE
+057734                  LAST/\377; CALL CXRBPUT; GO BFULL
+057740               FI
+057740          FI
+057740          IF BRECHOFL<0 THEN 7=:LAST; GO IGNCH FI   % IGNORE CHAR?
+057745
+057745   ADDCH: LAST/\377; CALL CXRBPUT                   % PUT CHARACTER IN BUFFER
+057750   IGNCH:
+057750          IF BHOLD>=MAX-10 AND BRECHOFL NBIT 5BREAK GO BFULL % FULL BUFFER
+057760          IF BRECHOFL BIT 5BREAK THEN               % BREAK ACCORDING TO STRATEGY
+057763             DFLAG BZERO 5ECHO                      % ECHO OFF IN DRIVER
+057765             IF X:=FYLLE=HENTE THEN
+057771                A BONE 5ALEC                        % WHOLE BUFFER IS ECHOED BY DRIVER
+057772             ELSE
+057773                A BZERO 5ALEC                       % PART OF BUFFER MUST BE ECHOED BY IOTRANS
+057774             FI; A=:DFLAG; X=:RSISTE                % RSISTE IS FIRST CHARACTER NOT ECHOED
+057776          ELSE
+057777             GO RETU
+060000          FI
+060000
+060000   BFULL: CALL TSTBACK                              % RESTART PROGRAM
+060001   *"8N500
+"060001          IF X:=IN5MSG >< 0 THEN
+060003                T:=5MBBANK; *AAX MLFLA; LDATX
+060006                IF A=0 THEN
+060007                   A:=1; *STATX
+060011                   "IBMOVE"; CALL CXXRTACT
+060013                FI
+060013          ELSE
+060014   BYP1:        IF OISTATE=-1 OR A=-2 THEN
+060023                   CALL PNW5ST; GO RETU
+060025                FI
+060025                "IORESTART"; CALL CXXRTACT
+060027          FI
+060027   *"
+"060027   *"-8N500
+"060027
+060027   RETU:  IF BRECHOFL<0 OR A BIT 5ECHO THEN             % SOMETHING TO ECHO
+060033             X:=10DFOPP:=:B=:10DFOPP                    % CHANGE TO OUTPUT DF
+060036             X.LAST; CALL CXRBPUT; GO TFECHO            % GO TO OUTPUT DRIVER
+060041          FI
+060041          GO FAR RETURN
+060042   RBUS
+060060
+
+060060   %==============================================================================
+060060   %       (M)      T F W R I T E    T F E C H O
+060060   %
+060060   % OUTPUT-DRIVER ROUTINE FOR TELEFIX TERMINALS ON LEVEL 10!
+060060
+060060   SUBR TFWRITE,TFECHO
+060060
+060060   SYMBOL SUFFS=5               % SUFFICIENT SPACE FOR ECHO
+060060
+060060   %-----------------------------------------------------------------------------
+060060   % LOCAL SUBROUTINE TO SET UP WINDOW FOR DATAFIELD AFTER RESTART
+060060   %
+060060   INTEGER POINTER LLRG
+060061   SDFWI: A:=L=:"LLRG"; ISTATE=:OISTATE; CALL SET10WINDOW
+060066          IF DFOPP><0 THEN X:=1777; X/\A; A:=B/\176000+X FI
+060075          A=:X=:10DFOPP; GO LLRG
+060100
+060100   %----------------------------------------------------------------------------
+060100   % LOCAL SUBROUTINE TO CHECK IF CFREE IN PAIR DATAFIELD RINGBUFFER IS
+060100   % GREATER OR EQUAL THE NUMBER GIVEN IN A-REG.
+060100   %
+060100   INTEGER WANTCF; INTEGER POINTER LREG=?
+060101   CHPAIRFREE:
+060101           A=:WANTCF:=L=:"LREG"
+060104           IF PAIRDF.RTRES=0 THEN EXIT FI                     % NOT RESERVED
+060110           T:="CFREE"; CALL XGTDFADDR
+060112           IF A>=WANTCF THEN MIN "LREG" FI; X=:D              % ENOUCH SPACE IN BUFFER?
+060117           IF X.ISTATE>0 OR T:=X.RTRES.STATUS BIT 5RWAIT THEN % RESTART NEEDED?
+060126              D=:X; X:=:B; CALL RTACT; X:=:B                  % RESTART PROGRAM
+060132           ELSE
+060133              IF A<0 THEN T BONE 5REP=:X.STATUS FI % SET 5REP TO AVOID "TIMING HOLE"
+060136           FI
+060136           GO LREG
+060137
+060137   %------------------------------------------------------------------------------
+060137   % LOCAL SUBROUTINE TO PRINT ONE CHARACTER IN PAIR DATAFIELD RINGBUFFER
+060137   %
+060137   INTEGER POINTER LREG; INTEGER CCHAR,MYDFA
+060142   PRPAIR: A=:CCHAR:=L=:"LREG"; X:=PAIRDF:=:B=:MYDFA; *IOF
+060151           CALL SET12WINDOW; CCHAR; CALL CXRBPUT; CALL RES12WINDOW; *ION
+060156           X:=MYDFA=:B; GO LREG
+060161
+060161   %------------------------------------------------------------------------------
+060161   % LOCAL SUBROUTINE TO PRINT 5 DUMMY CHARS. IN PAIR DATAFIELD RINGBUFFER
+060161   %
+060161   PR5PAIR:
+060161           A:=L=:"LREG"; X:=PAIRDF:=:B=:MYDFA; *IOF
+060167           CALL SET12WINDOW; A:=0
+060171           FOR X:=-5 DO CALL CXRBPUT; OD; CALL RES12WINDOW; *ION
+060176           X:=MYDFA=:B; GO LREG
+060201
+060201   %------------------------------------------------------------------------------
+060201   % LOCAL SUBROUTINE TO GET CHARACTER FROM OWN BUFFER
+060201   %
+060201   COLCH: *IOF
+060202          TAD:=FFMAX; IF A=0 THEN EXIT FI                % BUFFER EMPTY
+060205          A-1; D=:X+1; IF D=T THEN D:="0" FI; AD=:DBHOLD % UPDATE BUFFER POINTERS
+060214          MIN CFREE; T:=10BUFST; *LBYT; ION; EXIT AD1    % GET CHARACTER FROM BUFFER
+060221
+060221   *)FILL
+060235
+060235   %------------------------------------------------------------------------------
+060235   %      T F W R I T E    T F E C H O
+060235   %
+060235   % THIS DRIVER IS NOT INTERRUPT DRIVEN. THE DRIVER MOVES CHARACTERS FROM
+060235   % THE OUTPUT BUFFER TO INPUT BUFFER OF THE TERMINAL POINTED TO IN
+060235   % PAIRDF.
+060235   % RESTART WILL TAKE PLACE BY:
+060235   %        OWN  TERMINAL: STDEV AND TIMEOUT ON OUTPUT
+060235   %        PAIR TERMINAL: STDEV ON INPUT IF WANTST><0
+060235   %------------------------------------------------------------------------------
+060235
+060235   TFWRITE:                                         % START-ADDRESS
+060235          CALL SDFWI                                % SET WINDOW
+060236   TFECHO:                                          % ENTRY FROM INP.DR. WHEN ECHO
+060236          A:=B/\176000+BUFST=:10BUFST               % FIND BUFFER START
+060242          0=:TMR
+060243          A:=10DFOPP.TINFO; X:=0                    % GET TINFO AND ZERO MODE
+060246          IF A BIT 5CRDLY THEN X BONE 1 FI          % CARRIAGE RETURN DELAY (TINFO)
+060251          IF T:=SCREEN><0 THEN X BONE "0" FI        % STOP ON FULL PAGE ENABLED
+060255          X=:TRMOD                                  % SAVE MODE
+060256   *"8N500
+"060256          IF BHOLD=0 AND ON5MSG=0 GO FAR RETU
+060263          IF X:=ON5MSG><0 THEN
+060265             CALL M5TORB; IF BHOLD=0 GO FAR RETU
+060271          FI
+060271   *"-8N500
+"060271          IF TRMOD BIT 1 THEN 6 ELSE 1 FI           % CR DELAY 6 CHAR ELSE 1 FREE
+060277          CALL CHPAIRFREE; GO FAR RETU              % CHECK IF FREE CHARS
+060301          IF TRMOD BIT "0" THEN                     % STOP ON FULL PAGE USED
+060304             IF SCREEN<0 GO FAR RETU                % NOT RESTARTED FROM FULL PAGE
+060307             IF SCREEN>24 THEN
+060313                -1=:SCREEN; 207; CALL PRPAIR        % FULL PAGE PRINT BELL
+060317                 GO FAR RETU
+060320             FI
+060320          FI
+060320          CALL FAR COLCH; GO FAR RETU               % GET CHARACTER FROM BUFFER
+060322          IF T:=TRMOD BIT "0" THEN
+060325             IF =12 THEN MIN SCREEN FI              % COUNT LINES
+060331             IF =14 THEN T+24=:SCREEN FI            % NEW PAGE
+060336          FI
+060336          CALL PRPAIR                               % WRITE CHARACTER
+060337          IF T:=TRMOD BIT 1 THEN                    % CR DELAY USED
+060342             IF A BZERO 7=15 GO FAR CDELAY          % CR CAUSES DELAY
+060346          FI
+060346          GO BMODIFY                                % FINISHED
+060347
+060347   %------------------------------------------------------------------------------
+060347   % LOCAL SUBROUTINE TO RESTART USER IF INPUT IS WAITING FOR ECHO
+060347
+060347   INTEGER SAVB; INTEGER POINTER LRE1
+060351
+060351   RSINP: A:=L=:"LRE1"
+060353          IF X:=10DFOPP><0 THEN
+060355             IF X.BRECHOFL BIT 5WECH THEN
+060360                A BZERO 5WECH=:X.BRECHOFL; X:=:B=:SAVB
+060364   *"8N500
+"060364               IF X:=IN5MSG><0 THEN
+060366                   *IOF
+060367                   T:=5MBBANK; *AAX MLFLA; LDATX
+060372                   IF A = 0 THEN               % IBMOVE NOT ALREADY ACTIVE
+060373                       A:=1; *STATX            % MARK IBMOVE ACTIVE
+060375                       "IBMOVE"
+060376                   ELSE                        % IBMOVE ALLREADY ACTIVE
+060377                       GO OUT
+060400                   FI
+060400                   *ION
+060401                ELSE
+060402                   CALL TSTBACK; "IORESTART"
+060404                FI
+060404   *"-8N500
+"060404   OUT:
+060404               CALL CXRTACT
+060405               SAVB=:B
+060407             FI
+060407          FI
+060407          GO LRE1; *)FILL
+060426
+060426   %------------------------------------------------------------------------------
+060426   % LOCAL SUBROUTINE TO RESTART USER IF MINBHOLD IS REACHED IN OUTPUT BUFFER
+060426
+060426   RSOUT:  IF OISTAT=0 THEN EXITA FI
+060431           X:=BHOLD; T:=MINBHOLD BZERO 5BLOC BZERO 5NOWT
+060435           IF X>T THEN EXIT FI
+060440           IF A<0 THEN
+060441              IF MINBHOLD NBIT 5NOWT THEN EXITA FI
+060445              A BZERO 5NOWT=:MINBHOLD
+060447           FI
+060447           A:=L=:"LRE1"; "IORESTART"; CALL CXRTACT
+060453           GO LRE1; *)FILL
+060457
+060457   %------------------------------------------------------------------------------
+060457   %      RETURN FROM LEVEL 10
+060457
+060457   BMODIFY:
+060457          CALL RSOUT; GO BMODO
+060461          IF CFREE>=SUFFS THEN CALL RSINP FI
+060466   BMODO: TTMR=:TMR
+060470   RETU:  *ION                                      % IN CASE OF ECHO
+060471          GO WT10; CALL ERRFATAL                    % LEAVE LEVEL 10
+060473
+060473   CDELAY:
+060473          CALL RSOUT; GO DRETU                      % IS OUTPUT WAITING FOR BUFFER
+060475          IF CFREE>=SUFFS THEN CALL RSINP FI        % IS INPUT WAITING FOR ECHO
+060502   DRETU: CALL FAR PR5PAIR; GO RETU                 % PRINT 5 DUMMY CHARACTERS
+060504   RBUS
+060507
+060507
+060507   %==============================================================================
+060507   % 37.5       I O A P D   O O A P D
+060507   %
+060507   % SUBROUTINES TO READ AND WRITE A CHARACTER USING IOXT!!!!!!!
+060507
+060507   SUBR IOAPD,OOAPD,XOOAPD
+060507   INTEGER ERRCODE,IOXNO
+060511   IOAPD: T:=HDEV+DST; *IOXT
+060514          A =: D                                    % STATUS
+060515          T+"DDR-DST"; *IOXT                        % BYTE IN A
+060517          IF D BIT 13 THEN                          % CARRIER MISSING??
+060521                IF TYPRING BIT 5TERM THEN; *IOF     % TERMINAL
+060525                   DFLAG BONE 5LBRK=:DFLAG;
+060530                   -2=:TMR                          % START TIME-OUT IN 2 SEC.
+060532                FI
+060532                L =: D                              % SAVE RETUR-ADRESS
+060533                CALL CLBUF ; L := D                 % CLEAR BUFFER
+060535                EXIT
+060536          ELSE
+060537             T:=DFLAG BZERO 5LBRK=:DFLAG            % LINE IS OK
+060542          FI
+060542          IF D BIT 4 THEN
+060544             T:=TINFO
+060545             IF D BIT 5 THEN T BONE 5FRER ELSE T BONE 5PAER FI; T=:TINFO
+060553             IF A=0 THEN
+060554                IF CESCP/\377><LAST GO SIMESC
+060561             FI
+060561             CNTREG; T:=HDEV+DCONT; *IOXT
+060565             TTMR=:TMR; EXIT
+060570          FI
+060570   SIMESC: A=:D; CNTREG; T:=HDEV+DCONT; *IOXT
+060575          D=:A; EXITA
+060577
+060577   OOAPD: A=:D                                      % SAVE CHAR IN D
+060600          T:=HDEV+DST; *IOXT
+060603          IF BIT 3 THEN                             % READY!!!
+060605             D=:A
+060606   XOOAPD:   T:=HDEV+DDW; *IOXT                     % WRITE CHAR TO INTERFACE
+060611          FI
+060611   OUTRA: "DACT+DPIN"; T:=HDEV+"DCONT"; *IOXT       % RE-ACTIVATE.
+060615          EXIT
+060616
+060616   RBUS
+060620
+060620
+060620   %====================================================================
+060620   %            F S P E E D
+060620   %
+060620   % DESCRIPTION: ROUTINE TO FIND SPEED WHEN LOGGIN IN ON A TERMINAL.
+060620   %              (DESTROYS A, D AND X).
+060620   % ENTRY: A = ESCAPE CHARACTER
+060620   % EXIT:  SKIP RETURN - SPEED FOUND.
+060620   %        RETURN  - SPEED NOT FOUND.
+060620   %
+060620   SUBR FSPEED
+060620   DISP 0
+060620   INTEGER CCSPEE                                         % CURRENT TSPEED
+060620   INTEGER CTABLE                                         % CURRENT TABLE TO SEARCH IN.
+060620   INTEGER NSPEED                                         % NEXT SPEED IF NOT FOUND.
+060620   INTEGER VESCAPE=CTABLE                                 % ESCAPE CHARACTER.
+060620   PSID                                                   %
+060620   @ICR                                                   %
+060620   INTEGER ARRAY ETABLE := ( 210, TAB1, 273,              % ENTRY TABLE.
+060623                             273, TAB2, 356,              %
+060626                             356, TAB3, 210,              %
+060631                             -1);                         %
+060632                                                          %
+060632   INTEGER ARRAY TAB1   := ( 210, 33,                     % 9600 BAUD
+060634                             231, 36,                     % 4800
+060636                             167, 170,                    % 2400
+060640                             252, 160,                    % 1800
+060642                             252, 140,                    % 1800
+060644                            -1);
+060645
+060645   INTEGER ARRAY TAB2   := ( 273, 33,                     % 1200 BAUD
+060647                             146, 36,                     %  600
+060651                             335, 170,                    %  300
+060653                             125, 140,                    %  200
+060655                            -1);
+060656
+060656   INTEGER ARRAY TAB3   := ( 356, 33,                     % 150    BAUD
+060660                             104, 73,                     % 134.5
+060662                             104, 63,                     % 134.5
+060664                             377, 167,                    % 110
+060666                             377, 147,                    % 110
+060670                              63, 36,                     %  75
+060672                              42, 174,                    %  50
+060674                             -1);
+060675   @CR;
+060675   INTEGER XREG, CCHAR, TABPART
+060700   FSPEED:                                                %
+060700          A BZERO 7 =: CCHAR; X=:XREG                     % SAVE RECEIVED CHARACTER.
+060703          IF TINFO NBIT 5VSPEED OR TSPEED=-1 THEN EXIT FI % VARIABLE SPEED NOT ALLOWED.
+060713          A=:D                                            % D= TSPEED IN DATAFIELD.
+060714          K:="0"                                          % SET FLAG "CORRECT SPEED NOT FOUND".
+060715          *1BANK                                          %
+060716          X:="ETABLE"                                     %
+060717          DO WHILE X.CCSPEE><D AND A><-1                  % WHILE NOT CORRECT TABLE PART.
+060725              X+3                                         %
+060726          OD                                              %
+060727          IF A><-1 THEN                                   % SPEED FOUND.
+060732              X=:TABPART                                  % SAVE ENTRY.
+060733              X.CTABLE=:X                                 % X= START OF TAB1/TAB2/TAB3.
+060735              DO WHILE X.VESCAPE><CCHAR AND X.CCSPEE><-1  % SEARCH FOR ESCAPE CHARACTER.
+060745                  X+2                                     %
+060746              OD                                          %
+060747              IF A><-1 THEN                               % IF ESCAPE CHARACTER FOUND THEN
+060752                  A:=X.CCSPEE                             % GET SPEED AND
+060753                  K:="1"                                  % SET FLAG "CORRECT SPEED FOUND".
+060754              ELSE                                        %
+060755                  A:=TABPART.NSPEED                       % TRY NEXT SPEED.
+060757              FI                                          %
+060757          ELSE                                            %
+060760              A:="ETABLE".CCSPEE                          % GET INITIAL TSPEED.
+060762          FI                                              %
+060762          *2BANK                                          %
+060763          A=:TSPEED; T:=HDEV+DSPEED; *IOXT                % WRITE TO SPEED SELECTION REGISTER.
+060767          X:=XREG
+060770          IF K THEN                                       % IF SPEED FOUND THEN
+060772              TYPRING/\176077=:TYPRING
+060775              -36=:TTMR                                   % LOGGIN WITHIN 30 SEC
+060777              TINFO BZERO 5SPNFOUND =: TINFO              % RESET BIT "SPEED NOT FOUND".
+061002              A:=33; EXITA                                % RETURN WITH ESCAPE CHARACTER.
+061004          ELSE                                            %
+061005              IF TYPRING NBIT 7 AND NBIT 10 THEN
+061012                 A BONE 6=:TYPRING                        % FIRST TRY
+061014              FI
+061014              -2=:TMR                                     % TIMOUT IN 2 SECONDS.
+061016              EXIT                                        %
+061017          FI                                              %
+061017   RBUS                                                   %
+061021
+061021
+061021   %====================================================================
+061021   %            T I A P D
+061021   %
+061021   % ROUTINE TO READ A CHARACTER FROM TERMINAL USING IOXT!
+061021   SUBR TIAPD
+061021   TIAPD: T:=HDEV+DST; *IOXT                        % READ STATUS
+061024          A=:D; IF A NBIT 3 THEN TTMR; GO PINRE FI  % NOT READY
+061031          T+"DDR-DST"; *IOXT                        % READ CHARACTER
+061033          IF D BIT 13 THEN                          % CARRIER MISSING?
+061035             DFLAG BONE 5LBRK=:DFLAG                % MARK LINE ERROR
+061040             -2; GO PINRE                           % START TIMEOUT IN 2 SECONDS
+061042          FI
+061042          IF T:=TINFO BIT 5SPNFOUND AND T:=X.BITFLAG BIT 5EMPT GO FSPEED  % WRONG SPEED.
+061050          IF D BIT 4 THEN
+061052             IF D BIT 5 THEN T BONE 5FRER ELSE T BONE 5PAER FI
+061057             T=:TINFO
+061060             TTMR; GO PINRE                               % PARITY ERROR
+061062          FI
+061062          T:=DFLAG BZERO 5LBRK=:DFLAG               % LINE IS OK
+061065          EXITA
+061066   PINRE: A=:TMR:=CNTREG; T:=HDEV+DCONT; *IOXT      % ENABLE INTERRUPT
+061073          EXIT
+061074   RBUS
+061075
+061075
+
+061075   %==============================================================================
+061075   % 40.5       X O N C H E C K   X O F F C H E C K   O X O N C H E C K
+061075   %
+061075   % SUBROUTINE TO TELETYPE DRIVERS TO CONTROL
+061075   % XON/XOFF SENDING TO TELETYPE INTERFACES
+061075   % XOFF IS GIVEN WHEN ONLY 17 FREE CHAR-ENTRIES IN BUFFER
+061075   % XON IS GIVEN WHEN HALF THE BUFFER IS FREE AND "XOFF" HAS
+061075   % PREVIOUSLY BEEN GIVEN
+061075   % LEVEL 12
+061075   %
+061075   SUBR XONCHECK,OXONCHECK
+061075   INTEGER POINTER LREGL
+061076   XONCHECK: IF X=0 THEN EXIT FI
+061101          IF CFREE>=20 THEN EXIT FI
+061106          IF DFLAG NBIT 5RDEVICE THEN
+061111             CNTREG BZERO 7=:CNTREG; EXIT          % RESET PIN 19 (V.24)
+061115          FI
+061115          A BONE 5XOFF BONE 6XOFF=:DFLAG
+061120          IF BRECHOFL NBIT 5PINFL THEN
+061123             T:=X.HDEV+DCONT; A:=1; *IOXT          % PIN TO START OUTPUT DRIVER
+061127          FI
+061127          EXIT
+061130
+061130   % OUTPUT LEVEL, (LEVEL 10)
+061130   OXONCHECK:
+061130          IF X=0 OR T:=X.DFLAG NBIT 5RDEVICE THEN EXITA FI
+061135          IF T:=X.DFLAG BIT 5XON THEN X.XONCR; T BZERO 5XON=:X.DFLAG; EXIT FI
+061144          IF T BIT 5XOFF THEN X.XOFCR; T BZERO 5XOFF=:X.DFLAG; EXIT FI
+061152          EXITA
+061153
+061153   RBUS
+061153
+061153
+
+061153   %==============================================================================
+061153   % 40.6       X O N R E A D
+061153   %
+061153   %
+061153   %      SUBROUTINE TO INPUT DRIVERS
+061153   %      TO CHECK FOR RECIEVED XON/XOFF FROM LEGAL DEVICE
+061153   %      LEVEL 12.
+061153   %
+061153   %      EXIT  => IGNORE THIS CHAR.
+061153   %      EXITA => CHAR. OK AS INPUT.
+061153   %
+061153   %
+061153   %
+061153   SUBR XONREAD
+061153   XONREAD: A/\177=:D                              % SAVE CHAR FOR TESTS & RETUR.
+061155          IF DFLAG NBIT 5XDEVICE THEN EXITA FI     % NOT ALLOWED
+061161          IF D=X.XONCR THEN                        % XON RECIEVED.
+061164             A BZERO 5OXON =: DFLAG                % FLAG XOFF-STATE
+061166             IF A NBIT 5RDEVICE THEN
+061170                CNTREG BONE 2=:CNTREG
+061173                T:=HDEV+DCONT; *IOXT               % UNLOCK FIFO
+061176             FI
+061176             IF BRECHOFL NBIT 5PINFL THEN
+061201                T:=X.HDEV+DCONT; A:=1; *IOXT       % PIN TO START OUTPUT DRIVER
+061205             FI
+061205             EXIT
+061206          FI
+061206          IF D=X.XOFCR THEN
+061211             A BONE 5OXON=:DFLAG                   % XOFF; FLAG.
+061213             IF A NBIT 5RDEVICE THEN
+061215                CNTREG BZERO 2=:CNTREG
+061220                T:=HDEV+DCONT; *IOXT               % LOCK FIFO
+061223             FI
+061223             EXIT
+061224          FI
+061224          EXITA
+061225   RBUS
+061226
+061226   %==============================================================================
+061226   % 40.7       X O N W R I T E
+061226   %
+061226   %      ROUTINE TO CHECK FOR XOFF-STATE
+061226   %      OUTPUT LEVEL (LEVEL 10)
+061226   %
+061226   %      EXIT  => XOFF STATE / DON'T SEND ANYTHING.
+061226   %      EXITA => XON STATE / SEND
+061226   %
+061226   %            CALLED IN IOF
+061226   %            =============
+061226   %
+061226
+061226   SUBR XONWRITE
+061226
+061226   XONWRITE:
+061226          IF X=0 OR X.DFLAG NBIT 5XDEVICE THEN EXITA FI
+061233          IF A NBIT 5OXON THEN EXITA FI
+061236          EXIT
+061237
+061237   RBUS
+061237
+
+061237   %==============================================================================
+061237   %       N O T S   D R I V E R S
+061237   %
+061237   INTEGER TRMOD=?
+061237   SUBR MNLCP,MNCBE,MNRES,MNIND,MNOUD,MNWSC,MNCCP,MNHCP
+061237   RBUS
+061237   %==============================================================================
+061237   %       (M)      M N M A I N   M N N X T
+061237   %
+061237   % MBNIU MAIN DRIVER, LEVEL 10
+061237   %
+061237   % THIS DRIVER IS NOT USED BY STDEV
+061237   % MNMAIN: ENTRY AFTER INTERRUPT
+061237   % MNNXT:  ENTRY FOR PROCESSING NEXT EVENT
+061237   %
+061237   % ENTRY:  B POINTS TO CONTROLLER DATAFIELD FOR THIS STATION
+061237   %
+061237   SUBR MNMAIN,MNNXT
+061237
+061237   %==============================================================================
+061237   % GEVENT
+061237   % LOCAL SUBROUTINE TO GET AN EVENT FROM MBNIU
+061237   %
+061237   % B POINTS TO CONTROLLER DATAFIELD
+061237   %
+061237   INTEGER HEAD,CCC3
+061241   DOUBLE  EVENT
+061243   GEVENT: T:=MNCBNK; X:="MNCONT+MNEQR"; *LDDTX         % GET EQ READ AND WRITE PTRS.
+061246           IF A=D THEN EXIT FI                          % NO MORE EVENTS
+061251           IF D BONE 10-A BZERO 10 > X:=340 THEN MIN CCC3; FI
+061260           A=:HEAD SHZ 1+"MNCONT+MNEQB"=:X; *LDDTX      % GET EVENT
+061265           AD=:EVENT; X:="MNCONT+MNEQR"
+061267           A:=HEAD+1 /\ 377; *STATX                     % INCR. HEAD POINTER
+061273           AD:=EVENT; EXITA                             % RETURN WITH EVENT IN A/D
+061275
+061275   %==============================================================================
+061275   %       M N M A I N
+061275   %
+061275   INTEGER ICODE,CCC1,CCC2,CCC4,CCC5
+061302   RETURN: T:=HDEV+10; *IOXT                            % READ INTERRUPT POINTER
+061305           MNCNTREG; T:=HDEV+5; *IOXT                   % ENABLE FOR INTERRUPT
+061311           MIN CCC2                                     % COUNT ENABLES
+061312           0=:MNACT; GO WT10                            % WAIT FOR RESTART
+061314   MNMAIN: T:=HDEV+4; *IOXT                             % READ STATUS
+061317           IF A BIT 4 THEN                              % MULTIBUS TIMEOUT
+061321              MIN CCC5; *JMP *3; MIN CCC4; RAND
+061325           FI
+061325           MIN CCC1                                     % COUNT DRIVER STARTS
+061326           MIN MNACT;T:=MNCBNK;X:="MNCONT+MNHST";*LDDTX % INDICATE DRIVER ACTIVE AND GET HOST AND NIU STATE
+061332           IF A=MNRST OR D=T GO MNRES                   % FORCED RESET ?
+061337   FORTS:  CALL GEVENT; GO RETURN                       % GET EVENT, RETURN IF NONE
+061341           A /\ 7 GOSW MNOUD,MNIND,MNLCP,MNCBE,MNCCP,MNHCP,ERRFATAL,MNWSC
+061353   MNNXT:  GO FORTS                                     % THIS LOCATION CAN BE PATCHED TO 124001
+061354           T:=HDEV+5; 2; *IOXT                          % ENABLE OTHER LEVEL 10 RESOURCES BEFORE NEXT EVENT
+061360           0=:MNACT; GO WT10                            % WAIT FOR INTERRUPT
+061362   RBUS
+061403
+
+061403   %==============================================================================
+061403   %       (M)      M N I N D   M N I N T
+061403   %
+061403   % MBNIU INPUT DRIVER, LEVEL 10
+061403   %
+061403   % MNIND: CALLED FROM MBMAIN
+061403   %        RETURNS TO MBMAIN
+061403   % MNINS: CALLED FROM STDEV (BY TIMER WHEN EVENT WAS NOT FINISHED)
+061403   %        RETURN BY LEAVING LEVEL
+061403
+061403   SUBR MNIND,MNINS
+061403
+061403   %------------------------------------------------------------------------------
+061403   % RCHAR
+061403   % LOCAL SUBROUTINE TO READ ONE CHARACTER FROM MBNIU INPUT BUFFER.
+061403   %
+061403   INTEGER MAXGET
+061404   RCHAR:  T:=10DFOPP.MNWBNK; IF X:=MNGET >= A:=MAXGET GO NXBUF % CHECK IF THIS BUFFER IS EMPTY
+061412   FORTS:  *LDATX                                       % READ CHAR.
+061413           X+1=:MNGET; EXITA                            % INCR. GET POINTER AND EXIT
+061416   NXBUF:  X:=MNCURB+MNBST; "0"; *STATX                 % RELEASE BUFFER
+061422           X:=MNCURB+MNBLI;*LDDTX;SHD ZIN 10;RADD SD DA % NEXT BUFFER IN LINK
+061427           A+MNWAD=:MNCURB+MNBST=:X; *LDATX             % GET BUF. STATE
+061434           X:=MNCURB+MNDAT=:MNGET                       % RESET GET POINTER
+061437           IF A=0 THEN EXIT FI                          % EXIT IF EMPTY
+061441           X=:D:=MNCURB+MNNOB; *LDATX                   % GET NUMBER OF BYTES PRESENT
+061445           IF A=0 GO NXBUF                              % EMPTY BUFFER
+061446           A+D=:MAXGET; X:=D; GO FORTS                  % CONTINUE
+061452   *)FILL
+061453
+061453   %------------------------------------------------------------------------------
+061453   %       M N I N D   M N I N S
+061453
+061453   INTEGER POINTER RETU
+061454
+061454   MNIND:  MNIDF(D):=:B=:10SVB;"DRETU"=:"RETU";GO FELLS % ENTRY FROM MNMAIN
+061463   MNINS:  MIN MNACT; "SRETU"=:"RETU"                   % ENTRY FROM STDEV, INDICATE DRIVER ACTIVE
+061466   FELLS:  ISTATE=:OISTATE; CALL SET10WINDOW
+061471           1777/\DFOPP=:X:=B/\176000; X+A=:10DFOPP      % SET UP OPPOSITE
+061500           X.BITFLAG BZERO 5CLOU=:X.BITFLAG             % RESET CLEAR OUTPUT FLAG
+061503           0=:TMR; MNTMFL BZERO 5MNDL=:MNTMFL           % DO NOT DISCONNECT BECAUSE OF LOGOUT
+061507           T:=X.MNWBNK; X:=MNCURB+MNBST; *LDATX         % GET STATE OF CURRENT BUF.
+061513           IF A=0 GO RETU                               % NOTHING IN MBNIU BUFFER
+061515           X:=MNCURB+MNNOB; *LDATX                      % GET NO OF BYTES IN BUFFER
+061520           A+MNCURB+MNDAT=:MAXGET                       % COMPUTE MAX. GET ADDR. IN BUFFER
+061523   NXTCH:  IF CFREE=0 THEN
+061525              MNTMFL BONE 5MNRS=:MNTMFL                 % IF BUFFER FULL THE DRIVER SHOULD
+061530              -1=:TMR; GO RETU                          % BE RESTARTED BY TIMER.
+061533           FI
+061533           CALL RCHAR; GO RETU; A=:LAST                 % READ CHARACTER
+061536           BRECHOFL/\177770=:BRECHOFL                   % CLEAR BREAK/ECHO FLAG
+061541           IF DFLAG BIT 5CAPITAL THEN                   % CONVERT LOWER CASE TO UPPER CASE
+061544              LAST/\177=:T
+061547              IF 140<T AND 176>T AND CESCP SHZ -10/\177><T AND CESCP/\177><T THEN
+061566                 LAST BZERO 5=:LAST                     % CONVERT ALL EXEPT
+061571              FI                                        % RUBOUT  AND DISCONNECT
+061571           FI
+061571           IF 10DFOPP.SCREEN><0 THEN                    % TWO WAY DEVICE WITH CR-DELAY
+061574              IF <0 THEN -1=:X.TMR FI
+061577              1=:X.SCREEN
+061601              IF LAST=0 THEN                            % IGNORE TAPE-FEED?
+061603                 IF FLAGB NBIT 5LCHAR GO NXTCH
+061606                 IF CESCP SHZ-10><0 GO NXTCH
+061611              FI
+061611           FI
+061611           IF T:=DFLAG NBIT 5SPEC AND T NBIT 5CTRLO THEN
+061616              CALL ESCAPE; GO NXTCH; X:=10DFOPP
+061621           FI
+061621           IF DFLAG NBIT 5CTRLO THEN
+061624              IF LAST/\177=17 THEN
+061631                 DFLAG BONE 5CTRLO=:DFLAG
+061634              FI
+061634           ELSE
+061635              DFLAG BZERO 5CTRLO=:DFLAG
+061640           FI
+061640           IF CFREE=0 THEN
+061642              TINFO BONE 5BFUL=:TINFO; GO BFULL         % BUFFER IS FULL, RESTART USER
+061646           FI
+061646           GO BYP1
+061647   *)FILL
+061663   BYP1:   IF DFLAG BIT 5ECHO THEN
+061666              LAST/\377
+061670              *IOF
+061671              CALL TECHO                                %TEST FOR ECHO
+061672              CALL TBREAK                               %TEST FOR BREAK
+061673              *ION
+061674           ELSE
+061675              IF OISTATE=-1 THEN         % NOWAIT MODE
+061701                 LAST/\377; CALL CXRBPUT; GO BFULL
+061705              FI
+061705           FI
+061705           IF BRECHOFL<0 THEN 7=:LAST; GO IGNCH FI      % IGNORE CHAR?
+061712
+061712   ADDCH:  LAST/\377; CALL CXRBPUT                      % PUT CHARACTER IN BUFFER
+061715   IGNCH:
+061715           IF BHOLD>=MAX-10 AND BRECHOFL NBIT 5BREAK GO BFULL % FULL BUFFER
+061725           IF BRECHOFL BIT 5BREAK THEN                  % BREAK ACCORDING TO STRATEGY
+061730              DFLAG BZERO 5ECHO                         % ECHO OFF IN DRIVER
+061732              IF X:=FYLLE=HENTE THEN
+061736                 A BONE 5ALEC                           % WHOLE BUFFER IS ECHOED BY DRIVER
+061737              ELSE
+061740                 A BZERO 5ALEC                          % PART OF BUFFER MUST BE ECHOED BY IOTRANS
+061741              FI; A=:DFLAG; X=:RSISTE                   % RSISTE IS FIRST CHARACTER NOT ECHOED
+061743           ELSE
+061744              GO ECHTST; *)FILL
+061752           FI
+061752
+061752   BFULL:  CALL TSTBACK                                 % RESTART PROGRAM
+061753   *"8N500
+"061753           IF X:=IN5MSG >< 0 THEN
+061755              T:=5MBBANK; *AAX MLFLA; LDATX
+061760              IF A=0 THEN
+061761                 A:=1; *STATX
+061763                 "IBMOVE"; CALL CXRTACT
+061765              FI
+061765           ELSE
+061766              IF OISTATE=-1 OR A=-2 THEN
+061775                 *IOF
+061776                 CALL PNW5ST; GO FAR NION; *ION
+062001              FI
+062001              "IORESTART"; CALL CXRTACT
+062003           FI
+062003   *"
+"062003   *"-8N500
+"062003
+062003   ECHTST: IF BRECHOFL<0 OR A BIT 5ECHO THEN            % SOMETHING TO ECHO
+062007              IF 10DFOPP.MINBHOLD BIT 5BLOC THEN        % OUTP. BUFFER LOCKED
+062013                 DFLAG BZERO 5ECHO=:DFLAG
+062016                 BRECHOFL BZERO 5BREAK=:BRECHOFL
+062021                 -1=:RSISTE; GO FAR NXTCH
+062024              FI
+062024              X:=:B=:10DFOPP
+062026              IF BHOLD=0 THEN
+062030                 CALL MNOUE; GO MNFULL                  % WRITE DIRECT IN MBNIU BUFFER
+062032              ELSE
+062033   MNFULL:       IF CFREE >< 0 THEN
+062035                    10DFOPP.LAST; CALL CXRBPUT          % INSERT IN RING BUFFER
+062040                 FI
+062040              FI
+062040              X:=10DFOPP:=:B=:10DFOPP
+062043           FI
+062043   NION:   *ION
+062044           GO FAR NXTCH
+062045
+062045   DRETU:  A:=10SVB=:B; GO MNNXT
+062050   SRETU:  0=:MNACT; GO WT10
+062052   RBUS
+062072
+
+062072   %==============================================================================
+062072   %       (M)      M N O U E   M N O U S   M N O U D
+062072   %
+062072   % OUTPUT-DRIVER ROUTINE FOR MBNIU ON LEVEL 10!
+062072   %
+062072   % MNOUE: CALLED BY INPUT DRIVER TO GIVE ECHO DIRECT IN MBNIU OUTPUT BUFFER
+062072   %        RETURNS TO L-REG
+062072   % MNOUS: CALLED BY STDEV
+062072   %        RETURNS BY GIVING UP PRIORITY
+062072   % MNOUD: CALLED BY MNMAIN
+062072   %        RETURNS TO MNMAIN
+062072   %
+062072   SUBR MNOUE,MNOUS,MNOUD
+062072
+062072   SYMBOL  SUFFS=5               % SUFFICIENT SPACE FOR ECHO
+062072
+062072   %-----------------------------------------------------------------------------
+062072   % SDFWI
+062072   % LOCAL SUBROUTINE TO SET UP WINDOW FOR DATAFIELD AND FIND BUFFER START
+062072   %
+062072   INTEGER POINTER LLRG
+062073   SDFWI:  A:=L=:"LLRG"; ISTATE=:OISTATE; CALL SET10WINDOW   % SET UP WINDOW
+062100           1777/\DFOPP=:X:=B/\176000; X+A=:10DFOPP           % SET UP OPPOSITE
+062107           A+BUFST=:10BUFST; GO LLRG                         % FIND BUFFER START
+062112
+062112   %----------------------------------------------------------------------------
+062112   % CHFREE
+062112   % LOCAL SUBROUTINE TO FIND SPACE AVAILABLE IN MBNIU OUTP. BUFFER
+062112   %
+062112   INTEGER LOOPS,MNMSIZ:=160                            % MNMSIZ CAN BE USED TO TUNE SYSTEM
+062114   CHFREE: T:=MNWBNK; X:=10DFOPP.MNWAD+"MNMSC"; *LDATX  % GET MAX SEND COUNT
+062121           IF A>X:=MNMSIZ THEN A:=X FI                  % IN CASE OF SYNC. MODEMS
+062125           A=:MNBSIZ; 0=:MNNBT; 0=:MNFREE; -10=:LOOPS
+062132           10DFOPP.MNWAD+MNBST=:X; 200=:D
+062140           DO
+062140              X+D; *LDATX                               % GET BUFFER STATE
+062142              IF A=0 THEN MIN MNFREE FI                 % INCR. NO. OF FREE BUFFERS
+062144              MIN LOOPS                                 % SKIP OD WHEN ZERO
+062145           OD
+062146           MNFREE*MNBSIZ=:MNFREE   % COMPUTE NO. OF FREE CHARS
+062151           EXIT
+062152
+062152   %----------------------------------------------------------------------------
+062152   % MNDIS
+062152   % LOCAL SUBROUTINE TO DISCONNECT AN NIU IF BUFFER IS EMPTY
+062152   %
+062152   MNDIS:  IF BHOLD><0 THEN EXIT FI                         % RINGBUFFER NOT EMPTY
+062155           IF 10*MNBSIZ>MNFREE THEN EXIT FI                 % MBNIU BUFFER NOT EMPTY
+062163           10DFOPP.MNTMFL BONE 5MNRQ=:X.MNTMFL              % INDICATE REQUEST OUTSTANDING
+062167           T:=MNWBNK; X:=10DFOPP.MNWAD+MNREQ; MNHAN; *STATX % REQUEST HANGUP
+062175           EXIT
+062176
+062176   %------------------------------------------------------------------------------
+062176   % SBU
+062176   % LOCAL SUBROUTINE TO SEND MBNIU OUTPUT BUFFER
+062176   % DESTROYES T,X,D REGISTERS.
+062176   %
+062176   INTEGER SVA
+062177   SBU:    IF X:=MNNBT=0 THEN EXIT FI                       % NO NEED TO SEND EMPTY BUFFER
+062203           A=:SVA:=X; T:=MNWBNK; X:=MNCURB+MNNOB; *STATX    % UPDATE NUMBER OF BYTES
+062211           X+"MNTCB-MNNOB"; A:=0; *STATX                    % SET TRANSP. CONTR. BITS TO ZERO
+062214           X+"MNDTY-MNTCB"; *STATX                          % SET DATA TYPE TO ZERO
+062216           X+"MNBST-MNDTY"; A:=1; *STATX                    % SEND BUFFER
+062221           X+"MNBLI-MNBST"; *LDDTX                          % FIND NEXT BUFFER
+062223           D SHZ 10; A+D+10DFOPP.MNWAD=:MNCURB+MNDAT=:MNFILL
+062232           0=:MNNBT; A:=SVA; EXIT
+062235   *)FILL
+062247
+062247   %------------------------------------------------------------------------------
+062247   % PRTCHAR
+062247   % LOCAL SUBROUTINE TO WRITE ONE CHARACTER IN MBNIU OUTPUT BUFFER.
+062247   % DESTROYES T,X REGISTERS.
+062247   % EXIT IF NO SPACE IN BUFFER, OTHERVISE EXITA
+062247   %
+062247   INTEGER CCHAR
+062250   PRTCHAR:T:=MNWBNK; X:=MNFILL; A/\10MASK; *STATX      % WRITE CHARACTER IN BUFFER
+062254           MIN MNFILL
+062255           IF X:=MNNBT+1=:MNNBT = MNBSIZ GO SBU         % BUFFER FULL
+062263           EXIT
+062264   *)FILL
+062267
+062267   %------------------------------------------------------------------------------
+062267   % COLCH
+062267   % LOCAL SUBROUTINE TO GET CHARACTER FROM OWN BUFFER
+062267   %
+062267   COLCH:  TAD:=FFMAX; IF A=0 THEN EXIT FI              % BUFFER EMPTY
+062272           A-1;D=:X+1; IF D=T THEN D:="0" FI;AD=:DBHOLD % UPDATE BUFFER POINTERS
+062301           MIN CFREE; T:=10BUFST; *LBYT; EXIT AD1       % GET CHARACTER FROM BUFFER
+062305   *)FILL
+062306
+062306   %-----------------------------------------------------------------------------
+062306   % MSLOW
+062306   % LOCAL SUBROUTINE TO COPY FROM OWN BUFFER TO MBNIU BUFFER WHEN TERMOD IS SET.
+062306   %
+062306   INTEGER POINTER LREG
+062307   INTEGER SVXX
+062310   MSLOW:  A:=L=:"LREG"
+062312           DO
+062312              IF TRMOD BIT 1 THEN 6 ELSE 1 FI              % CR DELAY 6 CHAR ELSE 1 FREE
+062320              IF A > MNFREE GO LREG                        % ENOUGH SPACE IN MBNIU ?
+062323              IF TRMOD BIT "0" THEN                        % STOP ON FULL PAGE USED
+062326                 IF SCREEN<0 THEN                          % NOT RESTARTED FROM FULL PAGE
+062330                    BITFLAG BONE 5EMPT=:BITFLAG; GO LREG
+062334                 FI
+062334                 IF A>24 THEN
+062337                    -1=:SCREEN; 7; CALL PRTCHAR; GO LREG   % FULL PAGE PRINT BELL
+062344                 FI
+062344              FI
+062344              CALL FAR COLCH; GO LREG                      % GET CHARACTER FROM BUFFER
+062346              IF T:=TRMOD BIT "0" THEN
+062351                 IF =12 THEN MIN SCREEN FI                 % COUNT LINES
+062355                 IF =14 THEN T+24=:SCREEN FI               % NEW PAGE
+062362              FI
+062362              CALL PRTCHAR; X:=MNFREE-1=:MNFREE            % WRITE CHARACTER
+062366              IF T:=TRMOD BIT 1 THEN                       % CR DELAY USED
+062371                 IF A BZERO 7=15 THEN                      % CR CAUSES DELAY
+062375                    X:=-5; A:=0
+062377                    FOR X DO
+062377                       X=:SVXX; CALL PRTCHAR; X:=SVXX
+062402                    OD
+062403                 FI
+062403              FI
+062403           OD
+062404   *)FILL
+062407
+062407   %----------------------------------------------------------------------
+062407   % MEWRIT
+062407   % LOCAL SUBROUTINE TO WRITE ERROR MESSAGE TO MBNIU BUFFER
+062407   %
+062407   DISP 0; DOUBLE EBUHF=EBUHENTE; PSID               % HENTE AND FYLLE IN ERROR BUFFER
+062407
+062407   MEWRIT: A:=L=:"LREG"
+062411           IF 10DFOPP.FLAGB BIT 5LSTA AND X:=EBUWRITE><0 GO FRLI
+062420           DO WHILE X:=EBUWRITE><0
+062422              DO WHILE X.EBUHENTE><X.EBUFYLLE
+062426                 X=:T:=A; *LBYT                      % COLLECT BYTE
+062431                 X:=T; MIN X.EBUHENTE                % UPDATE HENTE
+062433                 CALL FAR PRTCHAR; MNFREE-1=:MNFREE  % WRITE CHARACTER
+062437                 IF A=0 GO EOUT                      % MBNIU BUFFER FULL
+062440                 X:=EBUWRITE
+062441              OD
+062442   FRLI:      X.EBULINK=:EBUWRITE                    % WHOLE BUFFER PRINTED
+062444              T:=EBUFREE=:X.EBULINK; X=:EBUFREE      % PUT IN FREE LIST
+062447           OD
+062450           10DFOPP.TINFO BZERO 5ERRMSG=:X.TINFO
+062454   EOUT:   GO LREG
+062455   *)FILL
+062462   %-----------------------------------------------------------------------------
+062462   % MFAST
+062462   % LOCAL SUBROUTINE TO COPY FROM OWN BUFFER TO MBNIU BUFFER WHEN TERMOD IS 0.
+062462   %
+062462   INTEGER COUNT,CC1,CC2
+062465   INTEGER POINTER LRE2
+062466   MFAST:  A:=L=:"LRE2"
+062470           DO
+062470              TAD:=FFMAX; T=:CC2                        % MAX=:CC2
+062472              IF A>X:=MNBSIZ THEN A:=X FI               % NO. OF BYTES TO MOVE IN THIS SESSION
+062476              A=:MNNBT; A-=:COUNT:=10BUFST=:L           % L=BUFFER START, D=HENTE
+062503              T:=MNWBNK; X:=MNFILL
+062505              DO
+062505                 T:=:L; X:=:D; *LBYT                    % GET CHARACTER
+062510                 T:=:L; X:=:D; A/\10MASK; *STATX        % WRITE CHARACTER
+062514                 *RINC DX; RINC DD
+062516                 IF CC2=D THEN D:=0 FI                  % END OF RING BUFFER ?
+062522                 MIN COUNT                              % SKIP OD WHEN ZERO
+062523              OD
+062524              A=:T:=BHOLD-MNNBT; AD=:DBHOLD; T-A=:CFREE % UPDATE RING BUFFER POINTERS
+062532              CALL FAR SBU                              % SEND BUFFER
+062533              T:=MNWBNK; X:=MNCURB+MNBST; *LDATX        % GET STATE OF NEXT BUFFER
+062537              IF A><0 OR BHOLD=0 GO LRE2                % FINISHED ?
+062543           OD
+062544   *)FILL
+062551   %-----------------------------------------------------------------------------
+062551   % MF500
+062551   % LOCAL SUBROUTINE TO COPY FROM 500 BUFFER TO MBNIU BUFFER WHEN TERMOD IS 0.
+062551   %
+062551   INTEGER N5BYT,CC3,CC4,SVD,SVL
+062556   INTEGER POINTER LRE3
+062557   MF500:  A:=L=:"LRE3"
+062561           T:=5MBBANK; ON5MSG+"NOBYT"=:X; *LDATX; STA N5BYT      % NO. OF BYTES IN BUFFER
+062567           IF A=0 GO B5EMPT                                      % EMPTY BUFFER
+062570           "HBUFA-NOBYT"; X+A; *LDATX; AAX 5HENT-HBUFA; LDXTX    % BUFFER START AND READ POINTERS
+062575           A=:L; X=:D
+062577           IF MNFREE>=N5BYT THEN A:=T FI                         % MAX NO. TO MOVE
+062604           A=:CC3; T-A=:N5BYT:=A                                 % N5BYT = CHARS. LEFT AFTER MOVE
+062610           DO WHILE CC3>< 0
+062612              IF MNBSIZ>=CC3 THEN A:=T FI; T-A=:CC3; A=:MNNBT    % NO OF CHARS TO MOVE IN THIS SESSION
+062622              T:=MNWBNK; A+1 SHZ -1-=:CC4; X:=MNFILL
+062630              DO
+062630                 T:=:L; X:=:D; *LDATX                            % GET 2 BYTES
+062633                 T:=:L; X:=:D; A/\10MASK SHR 10; *STATX          % STORE LEFT BYTE
+062640                 *RINC DX; SHA SHR 10; STATX; RINC DX; RINC DD   % STORE RIGHT BYTE
+062645                 MIN CC4                                         % SKIP OD WHEN ZERO !!!!!
+062646              OD
+062647              A:=L=:SVL:=D=:SVD; CALL FAR SBU; SVD=:D; SVL=:L    % SEND BUFFER
+062660           OD
+062661           X:=D; N5BYT; CALL 5CMOR; GO LRE3                      % CHECK IF ND500 BUFFER EMPTY.
+062665   B5EMPT: X:=ON5MSG; 0=:ON5MSG; *IOF; JPL I (PT5RS; ION         % RESTART 500
+062672           GO LRE3
+062673   *)FILL
+062705   %-----------------------------------------------------------------------------
+062705   % MIGNO
+062705   % LOCAL SUBROUTINE TO EMPTY OWN BUFFER WHEN FORCED RESET OR CONNECTION BROKEN
+062705   %
+062705   MIGNO:  TAD:=FFMAX; T=:CFREE; A:=D=:FYLLE; 0=:BHOLD  % EMPTY BUFFER
+062712           MINBHOLD BZERO 5BLOC=:MINBHOLD
+062715           EXIT
+062716   *)FILL
+062716   %------------------------------------------------------------------------------
+062716   %      M N O U E   M N O U S   M N O U D
+062716
+062716   INTEGER POINTER RETU
+062717   INTEGER SVX
+062720
+062720   MNOUE:  A:=L=:"RETU"; CALL FAR CHFREE                % ENTRY FROM INP. DRIVER
+062723           IF A>0 THEN
+062725              BITFLAG BZERO 5EMPT=:BITFLAG              % INDICATE DRIVER BUSY
+062730              10DFOPP.LAST; CALL FAR PRTCHAR            % PRINT CHAR. AND
+062733              CALL FAR SBU; MIN "RETU"                  % SEND BUFFER
+062735           FI
+062735           GO RETU
+062736   MNOUS:  MIN MNACT; "SRETU"=:"RETU"; CALL FAR SDFWI   % ENTRY FROM STDEV, INDICATE DRIVER ACTIVE
+062742           IF X.FLAGB BIT 5LSTA THEN 1600=:MNFREE; GO FELLS; FI
+062750           CALL FAR CHFREE; IF A=0 GO RETU              % EXIT IF NO FREE SPACE
+062753           GO FELLS
+062754   MNOUD:  MNODF(D):=:B=:10SVB; "DRETU"=:"RETU"         % ENTRY FROM MBMAIN
+062762           CALL FAR SDFWI; CALL FAR CHFREE; IF A=0 GO RETU
+062766   FELLS:  BITFLAG BONE 5EMPT=:BITFLAG
+062771           IF 10DFOPP.MNTMFL BIT 5MNDI THEN             % DISCONNECT WANTED ?
+062775              CALL FAR MNDIS
+062776           FI
+062776           A:=10DFOPP.TINFO; X:=0                       % GET TINFO AND ZERO MODE
+063001           IF A BIT 5UMOD THEN T:=-1 ELSE T:=77577 FI   % BUILD MASK
+063006           T=:10MASK
+063007           IF A BIT 5CRDLY THEN X BONE 1 FI             % CARRIAGE RETURN DELAY (TINFO)
+063012           IF T:=SCREEN><0 THEN X BONE "0" FI           % STOP ON FULL PAGE ENABLED
+063016           X=:TRMOD                                     % SAVE MODE
+063017           IF A BIT 5ERRMSG THEN                        % ERROR MESSAGE TO ERROR DEVICE
+063021              CALL FAR MEWRIT; CALL FAR SBU
+063023              IF MNFREE=0 GO RETU
+063026           FI
+063026   *"8N500
+"063026           IF BHOLD=0 AND ON5MSG=0 GO RETU
+063033   *"-8N500
+"063033           IF 10DFOPP.FLAGB BIT 5LSTA THEN              % LINE DEAD ?
+063037              CALL MIGNO                                % CLEAR OUTPUT BUFFER
+063040           ELSE
+063041              BITFLAG BZERO 5EMPT=:BITFLAG              % DRIVER WILL BE RESTARTED BY INTERRUPT OR TIMER
+063044              TTMR=:TMR
+063046   *"8N500
+"063046              IF TRMOD=0 THEN                           % NOT CR DELAY OR STOP ON FULL PAGE ?
+063050                 IF ON5MSG><0 AND BHOLD=0 THEN
+063054                    CALL FAR MF500
+063055                 ELSE
+063056                    CALL FAR MFAST
+063057                 FI
+063057              ELSE
+063060                 IF X:=ON5MSG><0 THEN CALL M5TORB FI
+063063                 CALL FAR MSLOW; CALL FAR SBU           % MOVE WITH CHECK FOR CR DELAY OR STOP ON FULL PAGE
+063065              FI
+063065   *"-8N500
+"063065           FI
+063065           GO RETU                                      % SEND LAST BUFFER BEFORE RETURN
+063066   *)FILL
+063112   %------------------------------------------------------------------------------
+063112   % RSINP
+063112   % LOCAL SUBROUTINE TO RESTART USER IF INPUT IS WAITING FOR ECHO
+063112   %
+063112   INTEGER SAVB; INTEGER POINTER LRE1
+063114
+063114   RSINP:  A:=L=:"LRE1"
+063116           IF 10DFOPP.BRECHOFL BIT 5WECH THEN
+063122              A BZERO 5WECH=:X.BRECHOFL; X:=:B=:SAVB
+063126   *"8N500
+"063126              IF X:=IN5MSG><0 THEN
+063130                 *IOF
+063131                 T:=5MBBANK; *AAX MLFLA; LDATX
+063134                 IF A = 0 THEN                          % IBMOVE NOT ALREADY ACTIVE
+063135                    A:=1; *STATX                        % MARK IBMOVE ACTIVE
+063137                    "IBMOVE"
+063140                 ELSE                                   % IBMOVE ALLREADY ACTIVE
+063141                    GO OUT
+063142                 FI
+063142                 *ION
+063143              ELSE
+063144                 CALL TSTBACK; "IORESTART"
+063146              FI
+063146   *"-8N500
+"063146   OUT:       CALL CXRTACT
+063147              SAVB=:B
+063151           FI
+063151           GO LRE1
+063152   *)FILL
+063160
+063160   %------------------------------------------------------------------------------
+063160   % RSOUT
+063160   % LOCAL SUBROUTINE TO RESTART USER IF MINBHOLD IS REACHED IN OUTPUT BUFFER
+063160   %
+063160   RSOUT:  IF OISTAT=0 THEN EXITA FI
+063163           X:=BHOLD; T:=MINBHOLD BZERO 5BLOC BZERO 5NOWT
+063167           IF X>T THEN EXIT FI
+063172           IF A<0 THEN
+063173              IF MINBHOLD NBIT 5NOWT THEN EXITA FI
+063177              A BZERO 5NOWT=:MINBHOLD
+063201           FI
+063201           A:=L=:"LRE1"; "IORESTART"; CALL CXRTACT
+063205           GO LRE1; *)FILL
+063211
+063211   %------------------------------------------------------------------------------
+063211   %      RETURN
+063211
+063211   SRETU: CALL RSOUT; *JMP *1                           % CALLED BY STDEV
+063213          0=:MNACT; GO WT10                             % LEAVE LEVEL 10
+063215   DRETU: CALL RSOUT; GO BYP1                           % CALLED BY MNMAIN
+063217          IF CFREE>=SUFFS THEN CALL RSINP FI
+063224   BYP1:  A:=10SVB=:B; GO MNNXT                         % LEAVE OUTPUT DRIVER
+063227
+063227   RBUS
+063233   %
+
+063233   %==============================================================================
+063233   %       (M)      M N L C P
+063233   %
+063233   % MBNIU LISTEN COMPLETED, LEVEL 10
+063233   %
+063233   %
+063233   SUBR MNLCP
+063233   MNLCP:  MNIDF(D):=:B=:10SVB; CALL SET10WINDOW
+063240           1777/\DFOPP=:X:=B/\176000;X+A=:10DFOPP       % SET UP OPPOSITE
+063247           X:=TDRADDR; T:=9CXTI+X
+063252           IF X.RTRES=0 AND T.RTRES=0 THEN              % DF NOT RESERVED
+063257              MNTMFL BZERO 5MNRQ BZERO 5MNDL=:MNTMFL    % RESET REQUEST OUTSTANDING
+063263              CALL CLBUF                                % CLEAR INPUT BUFFER
+063264              IF MNCDF.MNCFL NBIT 5MNTT THEN            % SHOULD TERM TYPE BE RESET ?
+063270                 0=:CTTYP
+063271              FI
+063271              T:=TINFO
+063272              IF A BIT 5MN8I THEN T BONE 58BIT ELSE T BZERO 58BIT FI
+063277              T=:TINFO                                  % 8 BITS MODUS OR NOT
+063300              10DFOPP.MINBHOLD BZERO 5BLOC=:X.MINBHOLD  % RESET OUTP. BUFFER LOCK
+063304              FLAGB BZERO 5LSTA=:FLAGB                  % RESET LINE DEAD
+063307              MNWAD+MNIBU=:MNCURB+MNDAT=:MNGET          % DATA TRANSFER START IN FIRST BUFFER
+063314              MNWAD+MNOBU=:10DFOPP.MNCURB+MNDAT=:X.MNFILL
+063322           ELSE
+063323              MNTMFL BONE 5MNLR=:MNTMFL; -2=:TMR        % TIMER SHOULD FIND OUT WHEN DF IS FREE
+063330              T:=10DFOPP.MNWBNK; X:=MNWAD+MNREQ; 22; *STATX     % REQUEST 'HANGUP'
+063336           FI
+063336           10SVB=:B; GO MNNXT
+063341   RBUS
+063352
+063352   %==============================================================================
+063352   %       (M)      M N C C P
+063352   %
+063352   % MBNIU OUTGOING CALL COMPLETED, LEVEL 10
+063352   %
+063352   %
+063352   SUBR MNCCP
+063352   INTEGER CC1
+063353   MNCCP:  MNIDF(D):=:B=:10SVB; CALL SET10WINDOW
+063360           1777/\DFOPP=:X:=B/\176000;X+A=:10DFOPP       % SET UP OPPOSITE
+063367           T:=X.MNWBNK; X:=MNWAD+"MNRSP"; *LDATX        % GET RESPONSE
+063373           A=:CC1; X:=TDRADDR; T:=9CXTI+X
+063377           IF X.RTRES><0 AND T.RTRES><0 THEN            % DF RESERVED
+063404              MNTMFL BZERO 5MNRQ=:MNTMFL                % RESET REQUEST OUTSTANDING
+063407              IF CC1=0 THEN                             % OK RESPONSE
+063411                 T:=TINFO
+063412                 IF MNCDF.MNCFL BIT 5MN8O THEN
+063416                    T BONE 58BIT
+063417                 ELSE
+063420                    T BZERO 58BIT
+063421                 FI
+063421                 T=:TINFO                               % 8 BITS MODUS OR NOT
+063422                 FLAGB BZERO 5LSTA=:FLAGB               % RESET LINE DEAD
+063425                 MNWAD+MNIBU=:MNCURB+MNDAT=:MNGET       % DATA TRANSFER START IN FIRST BUFFER
+063432                 MNWAD+MNOBU=:10DFOPP.MNCURB+MNDAT=:X.MNFILL
+063440              ELSE
+063441                 MNTMFL BONE 5MNER=:MNTMFL              % INDICATE ERROR RESPONSE
+063444              FI
+063444           ELSE
+063445              MNTMFL BZERO 5MNRQ=:MNTMFL                % RESET REQUEST OUTSTANDING
+063450           FI
+063450           10SVB=:B; GO MNNXT
+063453   RBUS
+063463
+063463   %==============================================================================
+063463   %       (M)      M N H C P
+063463   %
+063463   % MBNIU HANGUP COMPLETED, LEVEL 10
+063463   %
+063463   %
+063463   SUBR MNHCP
+063463   MNHCP:  MNIDF(D):=:B=:10SVB; CALL SET10WINDOW
+063470           1777/\DFOPP=:X:=B/\176000;X+A=:10DFOPP       % SET UP OPPOSITE
+063477           MNTMFL BZERO 5MNRQ BZERO 5MNDI=:MNTMFL       % RESET REQUEST OUTSTANDING
+063503           FLAGB BONE 5LSTA=:FLAGB                      % SET TERMINAL LINE DEAD
+063506           -1=:10DFOPP.TMR
+063511           10SVB=:B; GO MNNXT
+063514   RBUS
+063522
+063522   %==============================================================================
+063522   %       (M)      M N C B E
+063522   %
+063522   % MBNIU CONNECTION BROKEN EVENT, LEVEL 10
+063522   %
+063522   %
+063522   SUBR MNCBE
+063522   INTEGER COUNT
+063523   MNCBE:  MNIDF(D):=:B=:10SVB; CALL SET10WINDOW
+063530           1777/\DFOPP=:X:=B/\176000;X+A=:10DFOPP          % SET UP OPPOSITE
+063537           FLAGB BONE 5LSTA=:FLAGB;                        % SET LINE DEAD
+063542           IF MNTMFL BIT 5MNOU THEN                        % RESERVED FOR OUTGOING ?
+063545              -1=:10DFOPP.TMR                              % TIMER SHOULD HANDLE THIS
+063550           ELSE
+063551              X:=TDRADDR; T:=9CXTI+X
+063554              IF X.RTRES=0 AND T.RTRES=0 THEN              % DATAFIELD FREE ?
+063561                 MNTMFL BONE 5MNRQ=:MNTMFL
+063564                 MNCDF.MNLNG-=:COUNT; X."MNNAP"=:D
+063572                 T:=10DFOPP.MNWBNK; X:=MNWAD+MNNAS; L:=0   % X POINTS TO NAME STRING
+063577                 FOR COUNT DO                              % COPY NAME STRING
+063577                    T:=:D; X:=:L; *LBYT                    % GET BYTE
+063602                    T:=:D; X:=:L; *STATX                   % STORE BYTE
+063605                    X+1;L+1
+063607                 OD
+063611                 X:=MNWAD+MNNAL; A:=L; *STATX              % NAME LENGTH
+063615                 T:=10DFOPP.MNWBNK; X:=MNWAD+MNREQ; MNLIS; *STATX  % REQUEST FOR 'LISTEN'
+063623              ELSE
+063624                 MNTMFL BONE 5MNLG BONE 5MNLR=:MNTMFL      % TIMER SHOULD START LOGOUT AND REQUEST 'LISTEN' WHEN DF IS FREE
+063630                 -1=:TMR=:10DFOPP.TMR                      % ACTIVATE TIMER
+063634           FI;FI
+063634           10SVB=:B; GO MNNXT
+063637   RBUS
+063645
+063645   %==============================================================================
+063645   %       (M)      M N R E S
+063645   %
+063645   % MBNIU RESTART ROUTINE, LEVEL 10
+063645   %
+063645   %
+063645   SUBR MNRES
+063645   INTEGER SVB,COUNT
+063647   MNRES:  T:=MNCBNK; X:="MNCONT+MNHST"; MNRST; *STATX     % SET HOST STATE TO 'RESTART'
+063653           0=:COUNT; A:=B=:SVB
+063656           FOR COUNT TO 37 DO
+063662              IF MNIDF(A)><0 THEN
+063665                 A=:B; CALL SET10WINDOW
+063667                 1777/\DFOPP=:X:=B/\176000;X+A                % SET UP OPPOSITE
+063675                 FLAGB BONE 5LSTA=:FLAGB                      % INDICATE LINE DEAD
+063700                 "0" BONE 5MNLG=:MNTMFL; -1=:TMR=:X.TMR       % TIMER SHOULD START LOGOUT
+063706                 SVB=:B
+063710              FI
+063710           OD
+063714           -2=:TMR; 0=:MNACT; GO WT10                      % ACTIVATE TIMER ROUTINE AND LEAVE LEVEL.
+063720   RBUS
+063726
+063726   %==============================================================================
+063726   %       (M)      M N W S C
+063726   %
+063726   % MBNIU ROUTINE ACTIVATED AT WINDOW STATE CHANGE, LEVEL 10
+063726   %
+063726   %
+063726   SUBR MNWSC
+063726   INTEGER COUNT,CC1
+063730   MNWSC:  MNIDF(D):=:B=:10SVB; X=:CC1; CALL SET10WINDOW
+063736           1777/\DFOPP=:X:=B/\176000;X+A=:10DFOPP         % SET UP OPPOSITE
+063745           IF CC1<2 GO NEXT                               % CI WINDOW
+063751           IF CC1-2<MNCDF.MNOUT THEN                      % RESERVED FOR OUTGOING ?
+063757              MNTMFL BONE 5MNOU=:MNTMFL                   % INDICATE RESERVED FOR OUTGOING
+063762              T:=10DFOPP.MNWBNK; X:=MNWAD+MNERE;73;*STATX % ENABLE EVENTS
+063770           ELSE
+063771              T:=10DFOPP.MNWBNK; X:=MNWAD+MNERE;57;*STATX % ENABLE EVENTS
+063777              X:=TDRADDR; T:=9CXTI+X
+064002              IF X.RTRES=0 AND T.RTRES=0 THEN             % DATAFIELD FREE ?
+064007                 MNTMFL BONE 5MNRQ=:MNTMFL                % INDICATE REQUEST OUTSTANDING
+064012                 MNCDF.MNLNG-=:COUNT; X."MNNAP"=:D; L:=0
+064021                 T:=10DFOPP.MNWBNK; X:=MNWAD+MNNAS        % X POINTS TO NAME STRING
+064025                 FOR COUNT DO                             % COPY NAME STRING
+064025                    T:=:D; X:=:L; *LBYT                   % GET BYTE
+064030                    T:=:D; X:=:L; *STATX                  % STORE BYTE
+064033                    X+1;L+1
+064035                 OD
+064037                 X:=MNWAD+MNNAL; A:=L; *STATX             % NAME LENGTH
+064043                 X:=MNWAD+MNREQ; MNLIS; *STATX            % SET REQUEST TO 'LISTEN'
+064047              ELSE
+064050                 MNTMFL BONE 5MNLR=:MNTMFL; -2=:TMR       % TIMER SHOULD REQUEST 'LISTEN' WHEN DF IS FREE
+064055                 -1=:10DFOPP.TMR                          % IN CASE BG-PROG IS WAITING FOR OUTPUT
+064060              FI
+064060           FI
+064060   NEXT:   10SVB=:B; GO MNNXT
+064063   RBUS
+064071
+064071   %=============================================================================
+064071   %       M T A D
+064071   %=============================================================================
+064071   %       (M)      M T R S D F
+064071   % ROUTINE TO RELEASE MTAD DATAFIELD
+064071   % ENTRY: X=INPUD DF
+064071   % EXIT:  T,A,D DESTROYED
+064071   %
+064071   SUBR MTRSDF
+064071   MTRSDF: X.MTFLAG BONE 5MTSF BONE 5MTLG BZERO 5MTRC=:X.MTFLAG
+064076           -2=:X.TMR; 0=:X.MTRTP; X.FLAGB BONE 5LSTA=:X.FLAGB
+064104           X=:D; A:=X+X.XOPPDF=:X; 0=:X.MTMBPH=:X.MTMBLG
+064112           X.BITFLAG BONE 5EMPT=:X.BITFLAG; -1=:X.TMR; X:=D; EXIT
+064121   RBUS
+064121
+064121   %=============================================================================
+064121   %       (M)      M T D F I N I
+064121   % ROUTINE TO INITIALIZE MTAD DF
+064121   % ENTRY: X=POINTER TO DF
+064121   %        A=MAILBOX PHYSICAL PAGE NO
+064121   %        D=MAILBOX ADDRESS WITHIN BANK
+064121   %        T=DF TYPE
+064121   %        SHOULD BE CALLED WITH IOF !!
+064121   %
+064121   % EXIT:  T,A,D DESTROYED
+064121   %
+064121   SUBR MTDFINI
+064121   MTDFINI:T=:X.MTDFTYP; A=:T:=X+X.XOPPDF:=:X:=:D
+064127           T=:X.MTMBPH; A=:X.MTMBLG; *AAA MBFLG
+064132           X:=A; T SH -6; *LDATX
+064135           T:=D.MTFLAG BZERO 5MTFR
+064140           IF A BIT 5REMC THEN T BONE 5MTRC FI; T=:X.MTFLAG
+064144           IF A BIT 58BIO THEN "0" BONE 58BIT ELSE "0" FI
+064152           A=:X.TINFO; 0=:X.CTTYP; X.FLAGB BZERO 5LSTA=:X.FLAGB
+064157           0=:X.BHOLD=:X.HENTE=:X.FYLLE; X.MAX=:X.CFREE
+064164           A:=X+X.XOPPDF; T:=X.MTDFTYP=:A.MTDFTYP
+064171           0=:X.BHOLD=:X.HENTE=:X.FYLLE; X.MAX=:X.CFREE
+064176           X:=D; EXIT
+064200   RBUS
+064200
+064200   %=============================================================================
+064200   %       (M)      M T M B I N I
+064200   % ROUTINE TO INITIALIZE MTAD MAILBOX
+064200   % ENTRY: X=INPUT DF
+064200   % EXIT:  T,A,D DESTROYED
+064200   %
+064200   SUBR MTMBINI
+064200   INTEGER SVT,SVX,SVB,SVL
+064204   MTMBINI:A:=X=:D+X.XOPPDF=:X; A:=X.TDRADDR
+064211           T:=X.MTMBPH SH -6; X:=X.MTMBLG
+064214                       *AAX MBODF;       STATX
+064216           A-"9CXTI";  *AAX MBIDF-MBODF; STATX
+064221           A:=MTIBSTA; *AAX MBIBU-MBIDF; STATX
+064224                       *AAX MBINR-MBIBU; STZTX
+064226                       *AAX MBINW-MBINR; STZTX
+064230           A:=MTIMAX;  *AAX MBINM-MBINW; STATX
+064233           A:=MTOBSTA; *AAX MBOBU-MBINM; STATX
+064236                       *AAX MBOUR-MBOBU; STZTX
+064240                       *AAX MBOUW-MBOUR; STZTX
+064242           A:=MTOMAX;  *AAX MBOUM-MBOUW; STATX
+064245           *AAX MBSID-MBOUM; STZTX; STZTX 10; STZTX 20; STZTX 30; STZTX 40
+064253           *IOF
+064254           T=:SVT; X=:SVX; A:=L=:SVL:=B=:SVB
+064262           D.TDRADDR=:B; CALL 9GTLOGDV; D:=0                  % GET LOG. DEV. NO.
+064267           A:=SVL=:L:=SVB:=:B:=:D; T:=SVT; X:=SVX; *ION
+064277           *AAX MBTNO-MBSID; STATX
+064301           X:=D; EXIT
+064303   RBUS
+064310
+064310   %=============================================================================
+064310   %       (M)      M T R S M B
+064310   % ROUTINE TO RESET MTAD MAILBOX
+064310   % ENTRY: INPUT DF
+064310   % EXIT:  T,A,D DESTROYED
+064310   %
+064310   SUBR MTRSMB
+064310   MTRSMB: A:=X=:D+X.XOPPDF=:X; T:=X.MTMBPH SH -6; X:=X.MTMBLG
+064317           *AAX MBIDF; STZTX; STZTX 10
+064322           *AAX MBSID-MBIDF; STZTX; STZTX 10; STZTX 20; STZTX 30; STZTX 40
+064330           X:=D; EXIT
+064332   RBUS
+064332
+064332   %==============================================================================
+064332   %       (M)      M T S T A R T
+064332   %
+064332   % MONITOR CALL TO ACTIVATE MTAD DRIVER/ALLOCATE DATAFIELD.
+064332   %
+064332   % ENTRY: A = LOGICAL ADDRESS MAILBOX
+064332
+064332   SUBR MTSTART
+064332
+064332   %-----------------------------------------------------------------------------
+064332   % MTGIDF,MTGODF
+064332   % LOCAL SUBROUTINES TO GET DF ADDRESSES FROM MAILBOX
+064332   % EXIT:  NO LEGAL DF ADDRESS
+064332   % EXITA: X = DF ADDRESS
+064332   %        ALL REGISTERS DESTROYED
+064332   %
+064332   INTEGER POINTER LREG0
+064333   INTEGER CCDFAD
+064334   MTGIDF: A:=L=:"LREG0"; T:=MBBNK; X:=MBADR; *AAX MBIDF;LDATX% GET ADDRESS
+064342           X:=BMTDFLI; A=:CCDFAD
+064344           DO WHILE X><-1
+064347              IF X=CCDFAD THEN X+9CXTI; GO TMB FI
+064354              T:="MTDFLI"; CALL XGTDFADDR; X:=A               % NEXT DF IN LINK
+064357           OD
+064360           GO LREG0
+064361   MTGODF: A:=L=:"LREG0"; T:=MBBNK; X:=MBADR; *AAX MBODF;LDATX% GET ADDRESS
+064367           X:=BMTDFLI; A=:CCDFAD
+064371           DO WHILE X><-1
+064374              IF X+9CXTI=CCDFAD GO TMB
+064400              T:="MTDFLI"; X-9CXTI; CALL XGTDFADDR; X:=A      % NEXT DF IN LINK
+064404           OD
+064405           GO LREG0
+064406   TMB:    T:="MTMBPH"; CALL XGTDFADDR                        % GET MB ADDRESS FROM DF
+064410           IF A=MBPNO THEN X:=CCDFAD; MIN "LREG0" FI
+064415           GO LREG0
+064416   *)FILL
+064425
+064425   %-----------------------------------------------------------------------------
+064425   % MTGPHAD
+064425   % LOCAL SUBROUTINE TO GET PHYSICAL PAGE NO FROM LOG. ADDRESS
+064425   % A = LOGICAL ADDRESS OF MAILBOX
+064425   %
+064425   MTGPHAD:*IRR ALEVB 0; AND (1; COPY SA DD; IRR ALEVB DA     % GET 1/2 BANK MODUS AND LOG. ADDR
+064431           D SHZ 6; A SHZ -12+D SHZ 1+174201=:X; T:=0; *LDATX % GET PH. PAGE NO FROM PIT
+064441           A=:MBPNO; T:=A SHZ -6; A /\ 77 SHZ 12=:X           % BANK AND ADDR. WITIN BANK IN T,X
+064447           *IRR ALEVB DA; AND (1400; RADD SA DX               % DISPLACEMENT WITHIN PAGE
+064452           EXIT
+064453   *)FILL
+064460   MTSTART:*IRR ALEVB DA                                      % GET MAILBOX ADDRESS
+064461           A SHZ -12 BONE 6=:T; *IRR ALEVB                    % T=LAMU PAGE (100-177)
+064465           IF A BIT 0 THEN T+100 FI                           % 2-BANK MODUS ?
+064470           T=:D=:MBLAD; A:=CURPROG; CALL CHLAM; GO FAR ERRLAM % ADDRESS IN LAMU AREA ?
+064475           CALL FAR MTGPHAD; T=:MBBNK; X=:MBADR               % GET PHYSICAL ADDRESS
+064500           *AAX MBREQ; LDATX                                  % GET REQUEST
+064502           IF A><0 THEN                                       % REQUEST ?
+064503              IF A=5MTCN THEN                                 % CONNECT REQUEST
+064506                 CALL FAR MTGIDF; *SKP; JMP OKREQ             % REQUEST IS OK IF ALREADY CONNECTED
+064511                 X:=BMTDFLI
+064512                 DO WHILE X><-1                               % SEARCH FOR FREE DATAFIELD
+064515                    *IOF
+064516                    T:="MTFLAG"; CALL XGTDFADDR
+064520                    IF A BIT 5MTFR THEN                       % DF FREE ?
+064522                       CALL MTSW0; CURPROG=:X.MTRTP           % SET DF WINDOW
+064525                       MBLAD=:X.MTMID; A:=MBADR=:D:=MBPNO; T:=0
+064533                       CALL FAR MTDFINI; *ION
+064535                       CALL FAR MTMBINI
+064536                       CALL MTRW0                             % RESET WINDOW
+064537                       GO OKREQ
+064540                    ELSE
+064541                       *ION
+064542                       T:="MTDFLI"; CALL XGTDFADDR; X:=A      % NEXT DF IN LINK
+064545                    FI
+064545                 OD
+064546                 9MTNF; GO EREQ                               % NO FREE DATAFIELD
+064550              FI
+064550              IF A=5MTDC THEN                                 % DISCONNECT REQUEST
+064553                 CALL FAR MTGIDF; GO OKREQ                    % REQUEST IS OK IF NO DF CONNECTED
+064555                 CALL MTSW0                                   % SET DF WINDOW
+064556                 CALL MTRSDF; CALL MTRSMB
+064560                 CALL MTRW0                                   % RESET WINDOW
+064561                 GO OKREQ
+064562              FI
+064562   OKREQ:     "0"
+064563   EREQ:      T:=MBBNK; A=:D:=0; X:=MBADR; *AAX MBREQ; STDTX  % UPDATE REQUEST,RESPONSE
+064571              *IRR ALEVB DP; RINC DA; IRW ALEVB DP            % SKIP RETURN
+064574              GO MONEN
+064575           FI
+064575           T:=MBBNK; X:=MBADR; *AAX MBINP; LDDTX              % INPUT POINTERS
+064601           IF A><D THEN
+064603              CALL FAR MTGIDF; GO ERRDF
+064605              X=:B; CALL MTIND
+064607           FI
+064607           CALL FAR MTGODF; GO ERRDF
+064611           *IRR ALEVB DP; RINC DA; IRW ALEVB DP               % SKIP RETURN
+064614           X=:B; CALL MTOUD                                   % ALWAYS START OUTPUT DRIVER
+064616           GO MONEN
+064617   ERRLAM: "276"; *IRW ALEVB DA                               % LAMU NOT CONNECTED
+064621           GO MONEN
+064622   ERRDF:  "316"; *IRW ALEVB DA                               % TERMINAL LINE IS NOT CONNECTED
+064624           GO MONEN
+064625   RBUS
+064656
+064656   %==============================================================================
+064656   %       (M)      M T I N D   M T I N S
+064656   %
+064656   % MTAD INPUT DRIVER, LEVEL 2
+064656   %
+064656   % MTIND: CALLED WHEN INTERRUPT
+064656   % MTINS: CALLED FROM STDEV (BY TIMER WHEN EVENT WAS NOT FINISHED)
+064656
+064656   SUBR MTIND,MTINS
+064656
+064656   INTEGER POINTER RETAD
+064657
+064657   RETURN: GO RETAD
+064660   MTIND:  A:=L=:"RETAD"; ISTATE=:2ISTATE; CALL MTSDFWI       % INTERRUPT ENTRY
+064665           CALL MTSMBWI; GO FELLS
+064667   MTINS:  X=:B; "MONEN"=:"RETAD"                             % ENTRY FROM STDEV
+064672           ISTATE=:2ISTATE; CALL MTSDFWI; CALL MTSMBWI
+064676   FELLS:  IF FLAGB BIT 5LSTA THEN GO FAR RETU FI
+064702           2DFOPP.BITFLAG BZERO 5CLOU=:X.BITFLAG              % RESET CLEAR OUTPUT FLAG
+064706   NXTCH:  IF CFREE=0 THEN
+064710              MTFLAG BONE 5MTRS=:MTFLAG                       % IF BUFFER FULL THE DRIVER SHOULD
+064713              -1=:TMR; GO FAR RETU                            % BE RESTARTED BY TIMER.
+064716           FI
+064716           *TYPSW A,B,JPL I (MTG,JMP I (RSTTE,JMP MTBYP
+064722
+064725
+064730
+064733
+064736
+064737           A=:LAST; BRECHOFL/\177770=:BRECHOFL                % CLEAR BREAK/ECHO FLAG
+064743           IF DFLAG BIT 5CAPITAL THEN                         % CONVERT LOWER CASE TO UPPER CASE
+064746              LAST/\177=:T
+064751              IF 140<T AND 176>T AND CESCP SHZ -10/\177><T AND CESCP/\177><T THEN
+064770                 LAST BZERO 5=:LAST                           % CONVERT ALL EXEPT
+064773              FI                                              % RUBOUT  AND DISCONNECT
+064773           FI
+064773           IF 2DFOPP.SCREEN><0 THEN                           % TWO WAY DEVICE WITH CR-DELAY
+064776              IF <0 THEN -1=:X.TMR FI
+065001              1=:X.SCREEN
+065003              IF LAST=0 THEN                                  % IGNORE TAPE-FEED?
+065005                 IF FLAGB NBIT 5LCHAR GO NXTCH
+065010                 IF CESCP SHZ-10><0 GO NXTCH
+065013              FI
+065013           FI
+065013           IF T:=DFLAG NBIT 5SPEC AND T NBIT 5CTRLO THEN
+065020              CALL ESCAPE; GO NXTCH; X:=2DFOPP
+065023           FI
+065023           IF DFLAG NBIT 5CTRLO THEN
+065026              IF LAST/\177=17 THEN
+065033                 DFLAG BONE 5CTRLO=:DFLAG
+065036              FI
+065036           ELSE
+065037              DFLAG BZERO 5CTRLO=:DFLAG
+065042           FI
+065042           GO BYP1
+065043   *)FILL
+065062   BYP1:   IF DFLAG BIT 5ECHO THEN
+065065              LAST/\377; *IOF
+065070              CALL TECHO; CALL TBREAK; *ION                   % TEST FOR ECHO/BREAK
+065073           ELSE
+065074              IF 2ISTATE=-1 THEN                              % NOWAIT MODE
+065100                 LAST/\377; CALL CXRBPUT; GO BFULL
+065104              FI
+065104           FI
+065104           IF BRECHOFL<0 THEN 7=:LAST; GO IGNCH FI            % IGNORE CHAR?
+065111
+065111   ADDCH:  LAST/\377; CALL CXRBPUT                            % PUT CHARACTER IN BUFFER
+065114   IGNCH:
+065114           IF BHOLD>=MAX-10 AND BRECHOFL NBIT 5BREAK GO BFULL % FULL BUFFER
+065124           IF BRECHOFL BIT 5BREAK THEN                        % BREAK ACCORDING TO STRATEGY
+065127              DFLAG BZERO 5ECHO                               % ECHO OFF IN DRIVER
+065131              IF X:=FYLLE=HENTE THEN
+065135                 A BONE 5ALEC                                 % WHOLE BUFFER IS ECHOED BY DRIVER
+065136              ELSE
+065137                 A BZERO 5ALEC                                % PART OF BUFFER MUST BE ECHOED BY IOTRANS
+065140              FI; A=:DFLAG; X=:RSISTE                         % RSISTE IS FIRST CHARACTER NOT ECHOED
+065142           ELSE
+065143              GO ECHTST; *)FILL
+065151           FI
+065151
+065151   BFULL:  IF MTIRFL=0 THEN                                   % NOT ALREADY RESTARTED
+065153              CALL TSTBACK; 1=:MTIRFL                         % RESTART PROGRAM
+065156           FI
+065156
+065156   ECHTST: IF BRECHOFL<0 OR A BIT 5ECHO THEN                  % SOMETHING TO ECHO
+065162              IF 2DFOPP.MINBHOLD BIT 5BLOC THEN               % OUTP. BUFFER LOCKED
+065166                 DFLAG BZERO 5ECHO=:DFLAG
+065171                 BRECHOFL BZERO 5BREAK=:BRECHOFL
+065174                 -1=:RSISTE; GO FAR NXTCH
+065177              FI
+065177              X:=:B=:2DFOPP
+065201              IF BHOLD=0 THEN
+065203                 X.LAST
+065204                 *TYPSW T,B,JPL I (MTP,JMP MTFUL,JMP MTBYP
+065210
+065213
+065216
+065221
+065224
+065225                 X:=2DFOPP
+065226                 *TYPSW T,B,JPL I (MTA,JMP MTBYP,JMP MTBYP
+065232
+065235
+065240
+065243
+065246
+065247              ELSE
+065250   MTFULL:       IF CFREE >< 0 THEN
+065252                    2DFOPP.LAST; CALL CXRBPUT                 % INSERT IN RING BUFFER
+065255                 FI
+065255              FI
+065255              X:=2DFOPP:=:B=:2DFOPP
+065260           FI
+065260           GO FAR NXTCH
+065261   *)FILL
+065300   RETU:   IF MTIRFL=0 GO CLWI                                % NO RESTART
+065302           0=:MTIRFL
+065303   *"8N500
+"065303           IF X:=IN5MSG >< 0 THEN
+065305              T:=5MBBANK; *AAX MLFLA; LDATX
+065310              IF A=0 THEN
+065311                 A:=1; *STATX
+065313                 "IBMOVE"; CALL CXRTACT
+065315              FI
+065315           ELSE
+065316              IF 2ISTATE=-1 OR A=-2 THEN
+065325                 *IOF
+065326                 CALL PNW5ST; GO CLWI; *ION
+065331              FI
+065331              "IORESTART"; CALL CXRTACT
+065333           FI
+065333   *"
+"065333   *"-8N500
+"065333   CLWI:   *ION
+065334           CALL MTCLWI; GO FAR RETURN
+065336   *)FILL
+065347   INTEGER SVB
+065350   RSTTEST:IF MTMBWI.MBFLG BIT 5CLRS THEN                     % CLIENT WANTS KICK ?
+065354              X:=2DFOPP:=:B=:SVB
+065357              *TYPSW A,B,JPL I (MTA,JMP MTBYP,JMP MTBYP
+065363
+065366
+065371
+065374
+065377
+065400              SVB=:B
+065402           FI; GO RETU
+065403   RBUS
+065412
+
+065412   %==============================================================================
+065412   %       (M)      M T O U S   M T O U D
+065412   %
+065412   % OUTPUT-DRIVER ROUTINE FOR MTAD ON LEVEL 2!
+065412   %
+065412   % MTOUS: CALLED BY STDEV
+065412   % MTOUD: CALLED WHEN INTERRUPT
+065412   %
+065412   SUBR MTOUS,MTOUD
+065412
+065412   SYMBOL  SUFFS=5               % SUFFICIENT SPACE FOR ECHO
+065412
+065412   %------------------------------------------------------------------------------
+065412   % MTCHF
+065412   % LOCAL SUBROUTINE TO FIND AVAILABLE SPACE IN MTAD OUTPUT BUFFER
+065412   %
+065412   MTCHF:  IF 2DFOPP.FLAGB BIT 5LSTA THEN MAX; EXIT FI        % LINE DEAD ?
+065420           AD:=MTMBWI.MBOUP; IF A-D-1 < 0 THEN A+X.MBOUM FI   % A=READ,D=WRITE
+065426           A=:MTFREE; EXIT
+065430
+065430   %------------------------------------------------------------------------------
+065430   % COLCH
+065430   % LOCAL SUBROUTINE TO GET CHARACTER FROM OWN BUFFER
+065430   %
+065430   COLCH:  TAD:=FFMAX; IF A=0 THEN EXIT FI                    % BUFFER EMPTY
+065433           A-1;D=:X+1; IF D=T THEN D:="0" FI;AD=:DBHOLD       % UPDATE BUFFER POINTERS
+065442           MIN CFREE; T:=2BUFST; *LBYT; EXIT AD1              % GET CHARACTER FROM BUFFER
+065446   *)FILL
+065452
+065452   %-----------------------------------------------------------------------------
+065452   % MSLOW
+065452   % LOCAL SUBROUTINE TO COPY FROM OWN BUFFER TO MTAD BUFFER WHEN TERMOD IS SET.
+065452   %
+065452   INTEGER POINTER LREG
+065453   INTEGER SVXX
+065454   MSLOW:  A:=L=:"LREG"
+065456           DO
+065456              IF 2TRMOD BIT 1 THEN 6 ELSE 1 FI                % CR DELAY 6 CHAR ELSE 1 FREE
+065464              IF A > MTFREE GO LREG                           % ENOUGH SPACE IN MBNIU ?
+065467              IF 2TRMOD BIT "0" THEN                          % STOP ON FULL PAGE USED
+065472                 IF SCREEN<0 GO LREG                          % NOT RESTARTED FROM FULL PAGE
+065475                 IF SCREEN>24 THEN
+065501                    -1=:SCREEN; 7                             % FULL PAGE, PRINT BELL
+065504                    *TYPSW T,B,JPL I (MTP,JMP MTBYP,JMP MTBYP
+065510
+065513
+065516
+065521
+065524
+065525                    GO LREG
+065526                 FI
+065526              FI
+065526              CALL FAR COLCH; GO LREG                         % GET CHARACTER FROM BUFFER
+065530              IF T:=2TRMOD BIT "0" THEN
+065533                 IF =12 THEN MIN SCREEN FI                    % COUNT LINES
+065537                 IF =14 THEN T+24=:SCREEN FI                  % NEW PAGE
+065544              FI
+065544              *TYPSW T,B,JPL I (MTP,JMP MTBYP,JMP MTBYP
+065550
+065553
+065556
+065561
+065564
+065565              X:=MTFREE-1=:MTFREE                             % WRITE CHARACTER
+065570              IF T:=2TRMOD BIT 1 THEN                         % CR DELAY USED
+065573                 IF A BZERO 7=15 THEN                         % CR CAUSES DELAY
+065577                    -5=:SVXX; A:=0
+065602                    FOR SVXX DO
+065602                       *TYPSW T,B,JPL I (MTP,JMP MTBYP,JMP MTBYP
+065606
+065611
+065614
+065617
+065622
+065623                    OD
+065625                 FI
+065625              FI
+065625           OD
+065626   *)FILL
+065636   %----------------------------------------------------------------------
+065636   % MEWRIT
+065636   % LOCAL SUBROUTINE TO WRITE ERROR MESSAGE TO MAILBOX
+065636   %
+065636   DISP 0; DOUBLE EBUHF=EBUHENTE; PSID               % HENTE AND FYLLE IN ERROR BUFFER
+065636   INTEGER POINTER  LRE3
+065637
+065637   MEWRIT: A:=L=:"LRE3"
+065641           IF 2DFOPP.FLAGB BIT 5LSTA AND X:=EBUWRITE><0 GO FRLI
+065650           DO WHILE X:=EBUWRITE><0
+065652              DO WHILE X.EBUHENTE><X.EBUFYLLE
+065656                 X=:T:=A; *LBYT                      % COLLECT BYTE
+065661                 X:=T; MIN X.EBUHENTE                % UPDATE HENTE
+065663                 *TYPSW T,B,JPL I (MTP,JMP EOUT,JMP MTBYP
+065667
+065672
+065675
+065700
+065703
+065704                 MTFREE-1=:MTFREE
+065707                 IF A=0 GO EOUT                      % MAILBOX FULL
+065710                 X:=EBUWRITE
+065711              OD
+065712   FRLI:      X.EBULINK=:EBUWRITE                    % WHOLE BUFFER PRINTED
+065714              T:=EBUFREE=:X.EBULINK; X=:EBUFREE      % PUT IN FREE LIST
+065717           OD
+065720           10DFOPP.TINFO BZERO 5ERRMSG=:X.TINFO
+065724   EOUT:   GO LRE3
+065725   *)FILL
+065737
+065737   %-----------------------------------------------------------------------------
+065737   % MFAST
+065737   % LOCAL SUBROUTINE TO COPY FROM OWN BUFFER TO MTAD BUFFER WHEN TERMOD IS 0.
+065737   %
+065737   INTEGER COUNT,CC1,CC2,CC3
+065743   INTEGER POINTER LRE2
+065744   MFAST:  A:=L=:"LRE2"
+065746           TAD:=FFMAX; T=:CC2                        % MAX=:CC2
+065750           IF A>X:=MTFREE THEN A:=X FI               % NO. OF BYTES TO MOVE IN THIS SESSION
+065754           A=:CC3-=:COUNT:=2BUFST=:L                 % L=BUFFER START, D=HENTE
+065761           MTMBWI.MBOUM=:CC1; T:=X.MBOBU+X; X:=X.MBOUW
+065767           DO
+065767              T:=:L; X:=:D; *LBYT                    % GET CHARACTER
+065772              T:=:L; X:=:D; A/\MTMASK; *SBYT         % WRITE CHARACTER
+065776              *RINC DX; RINC DD
+066000              IF CC2=D THEN D:=0 FI                  % END OF RING BUFFER ?
+066004              IF CC1=X THEN X:=0 FI                  % END OF MAILBOX BUFFER
+066010              MIN COUNT                              % SKIP OD WHEN ZERO
+066011           OD
+066012           BHOLD-CC3; AD=:DBHOLD; T:=CC2-A=:CFREE    % UPDATE RING BUFFER POINTERS
+066020           MTMBWI.MBOUW+CC3; IF A>=X.MBOUM THEN A-T FI
+066027           A=:X.MBOUW                                % UPDATE MAILBOX POINTER
+066030           GO LRE2
+066031   *)FILL
+066035   %-----------------------------------------------------------------------------
+066035   % MIGNO
+066035   % LOCAL SUBROUTINE TO EMPTY OWN BUFFER WHEN LINE DEAD
+066035   %
+066035   MIGNO:  MAX=:CFREE; 0=:BHOLD=:HENTE=:FYLLE                 % EMPTY BUFFER
+066042           EXIT
+066043   *)FILL
+066043   %------------------------------------------------------------------------------
+066043   %      M T O U S   M T O U D
+066043
+066043   INTEGER POINTER RETU,LLRG
+066045   INTEGER SVX
+066046
+066046   RRET:   GO LLRG
+066047   MTOUS:  X=:B; "SRETU"=:"RETU"; ISTATE=:2ISTATE; CALL MTSDFWI
+066055           X:=B; CALL MTSMBWI; GO FELLS
+066060   MTOUD:  A:=L=:"LLRG":="DRETU"=:"RETU"; ISTATE=:2ISTATE; CALL MTSDFWI
+066067           X:=B; CALL MTSMBWI
+066071   FELLS:  CALL FAR MTCHF; IF A=0 GO RETU
+066074           BITFLAG BONE 5EMPT=:BITFLAG; A:=2DFOPP.TINFO; X:=0 % GET TINFO AND ZERO MODE
+066102           IF A BIT 58BIT AND A NBIT 5UMOD THEN
+066106              T:=177=:MTMASK
+066110           ELSE
+066111              T:=377=:MTMASK
+066113           FI
+066113           IF A BIT 5CRDLY THEN X BONE 1 FI                   % CARRIAGE RETURN DELAY (TINFO)
+066116           IF T:=SCREEN><0 THEN X BONE "0" FI                 % STOP ON FULL PAGE ENABLED
+066122           X=:2TRMOD                                          % SAVE MODE
+066123           IF A BIT 5ERRMSG THEN                              % ERROR MESSAGE TO ERROR DEVICE
+066125              CALL FAR MEWRIT; GO MTCACT
+066127           FI
+066127   *"8N500
+"066127           IF BHOLD=0 AND ON5MSG=0 GO RETU
+066134   *"-8N500
+"066134           IF 2DFOPP.FLAGB BIT 5LSTA THEN                     % LINE DEAD ?
+066140              CALL MIGNO                                      % CLEAR OUTPUT BUFFER
+066141           ELSE
+066142              BITFLAG BZERO 5EMPT=:BITFLAG                    % DRIVER WILL BE RESTARTED BY INTERRUPT OR TIMER
+066145   *"8N500
+"066145              IF X:=ON5MSG><0 AND BHOLD=0 THEN
+066151                 IF MTMBWI.MBFLG BIT 5PCHK THEN
+066155                    CALL MTMMO; GO RETU; GO MTCACT            % CLIENT IS ABLE TO CHECK PARITY
+066160                 ELSE
+066161                    CALL MT5MO                                % MOVE TO RING BUFFER
+066162                 FI
+066162              FI
+066162   *"
+"066162              IF 2TRMOD=0 THEN                                % NOT CR DELAY OR STOP ON FULL PAGE ?
+066164                 CALL FAR MFAST
+066165              ELSE
+066166                 CALL FAR MSLOW                               % MOVE WITH CHECK FOR CR DELAY OR STOP ON FULL PAGE
+066167              FI
+066167   MTCACT:    X:=2DFOPP
+066170              *TYPSW A,B,JPL I (MTA,JMP MTBYP,JMP MTBYP
+066174
+066177
+066202
+066205
+066210
+066211           FI
+066211           GO RETU                                            % SEND LAST BUFFER BEFORE RETURN
+066212   *)FILL
+066237   %------------------------------------------------------------------------------
+066237   % RSINP
+066237   % LOCAL SUBROUTINE TO RESTART USER IF INPUT IS WAITING FOR ECHO
+066237   %
+066237   INTEGER SAVB; INTEGER POINTER LRE1
+066241
+066241   RSINP:  A:=L=:"LRE1"
+066243           IF 2DFOPP.BRECHOFL BIT 5WECH THEN
+066247              A BZERO 5WECH=:X.BRECHOFL; X:=:B=:SAVB
+066253   *"8N500
+"066253              IF X:=IN5MSG><0 THEN
+066255                 *IOF
+066256                 T:=5MBBANK; *AAX MLFLA; LDATX
+066261                 IF A = 0 THEN                                % IBMOVE NOT ALREADY ACTIVE
+066262                    A:=1; *STATX                              % MARK IBMOVE ACTIVE
+066264                    "IBMOVE"; CALL CXRTACT
+066266                 ELSE                                         % IBMOVE ALLREADY ACTIVE
+066267                    GO OUT
+066270                 FI
+066270                 *ION
+066271              ELSE
+066272                 CALL TSTBACK; "IORESTART"; CALL CXRTACT
+066275              FI
+066275   *"-8N500
+"066275   OUT:       SAVB=:B
+066277           FI
+066277           GO LRE1
+066300   *)FILL
+066306
+066306   %------------------------------------------------------------------------------
+066306   % RSOUT
+066306   % LOCAL SUBROUTINE TO RESTART USER IF MINBHOLD IS REACHED IN OUTPUT BUFFER
+066306   %
+066306   RSOUT:  IF 2ISTAT=0 THEN EXITA FI
+066311           X:=BHOLD; T:=MINBHOLD BZERO 5BLOC BZERO 5NOWT
+066315           IF X>T THEN EXIT FI
+066320           IF A<0 THEN
+066321              IF MINBHOLD NBIT 5NOWT THEN EXITA FI
+066325              A BZERO 5NOWT=:MINBHOLD
+066327           FI
+066327           "IORESTART"; GO CXRTACT
+066331   *)FILL
+066334
+066334   %------------------------------------------------------------------------------
+066334   %      RETURN
+066334
+066334   SRETU: CALL RSOUT; 0/\0; CALL MTCLWI; GO MONEN             % CALLED BY STDEV
+066340   DRETU: CALL RSOUT; GO BYP1                                 % CALLED BY INTERRUPT
+066342          IF CFREE>=SUFFS THEN CALL RSINP FI
+066347   BYP1:  CALL MTCLWI; GO FAR RRET
+066351   RBUS
+066354
+066354   %=============================================================================
+066354   %       (M)      M T S D F W I
+066354   %
+066354   % ROUTINE TO SET UP WINDOW FOR DATAFIELD FOR MTAD TERMINALS
+066354   % (LEVEL 2)
+066354   %
+066354   % ENTRY: B=RES. DF
+066354   % EXIT:  B=DATAFIELD
+066354   %        X=OPPOSITE
+066354   %        T,A,D DESTROYED.
+066354   %
+066354   SUBR MTSDFWI
+066354   INTEGER POINTER LREG
+066355   MTSDFWI:A:=L=:"LREG"; CALL SETBFWINDOW; DFOPP/\1777=:X     % SET DF WINDOW
+066363           A:=B/\176000; X+A=:2DFOPP; A+BUFST=:2BUFST;        % OPPOSITE AND BUFSTART
+066371           GO LREG
+066372   RBUS
+066377
+066377   %=============================================================================
+066377   %       (M)      M T S M B W I
+066377   %
+066377   % ROUTINE TO SET UP WINDOW FOR MAILBOX FOR MTAD TERMINALS
+066377   % (LEVEL 2)
+066377   %
+066377   % ENTRY: X=OUTPUT DF
+066377   % EXIT:  X=MAILBOX WINDOW
+066377   %        ALL REGISTERS DESTROYED.
+066377   %
+066377   SUBR MTSMBWI
+066377   INTEGER SVX
+066400   MTSMBWI:X.MTMBPH=:D; T:=0; X=:SVX:="WND41*2+174000"; 142000; *STDTX
+066407           SVX.MTMBLG/\1777+"WND41*2000"=:X=:MTMBWI; EXIT
+066416   RBUS
+066422
+066422   %=============================================================================
+066422   %       (M)      M T C L W I
+066422   %
+066422   % ROUTINE TO CLEAR WINDOW FOR DATAFIELD AND MAILBOX FOR MTAD TERMINALS
+066422   % (LEVEL 2)
+066422   %
+066422   % EXIT:  X,A,T DESTROYED
+066422   %
+066422   SUBR MTCLWI
+066422   MTCLWI: T:=0; X:="WNDBF*2+174000"; A:=0; *STATX            % DF WINDOW
+066426           X:="WND41*2+174000"; *STATX                        % MAILBOX WINDOW
+066430           EXIT
+066431   RBUS
+066433
+066433   %=============================================================================
+066433   %       (M)      M T S W X   M T R W X
+066433   %
+066433   % ROUTINES TO SET UP AND CLEAR SPECIAL DF WINDOW FOR MTAD
+066433   %
+066433   % MTSW0,MTRW0: LEVEL 2
+066433   % MTSW3,MTRW3: LEVEL 12
+066433   % MTSW6,MTRW6: LEVEL 2
+066433   %
+066433   % ENTRY: X=RESIDENT INPUT DF
+066433   % EXIT:  X=WINDOW INPUT DF
+066433   %        ALL REGISTERS DESTROYED.
+066433   %
+066433   SUBR MTSW0,MTRW0
+066433   INTEGER SVX; DOUBLE PTENTRY
+066436   MTSW0:  X=:SVX; T:=0; X:="MTW00*2+174000"; *LDDTX
+066442           AD=:PTENTRY; SVX.TDFPHPAGE=:D:=142000
+066447           X:="MTW00*2+174000"; *STDTX
+066451           SVX.TDFLGADDR/\1777+"MTW00*2000"=:X; EXIT
+066457   MTRW0:  X=:SVX; T:=0; X:="MTW00*2+174000"; PTENTRY; *STDTX
+066464           X:=SVX; EXIT
+066466   RBUS
+066472   SUBR MTSW3,MTRW3
+066472   INTEGER SVX; DOUBLE PTENTRY
+066475   MTSW3:  X=:SVX; T:=0; X:="MTW03*2+174000"; *LDDTX
+066501           AD=:PTENTRY; SVX.TDFPHPAGE=:D:=142000
+066506           X:="MTW03*2+174000"; *STDTX
+066510           SVX.TDFLGADDR/\1777+"MTW03*2000"=:X; EXIT
+066516   MTRW3:  X=:SVX; T:=0; X:="MTW03*2+174000"; PTENTRY; *STDTX
+066523           X:=SVX; EXIT
+066525   RBUS
+066531   SUBR MTSW6,MTRW6
+066531   INTEGER SVX; DOUBLE PTENTRY
+066534   MTSW6:  X=:SVX; T:=0; X:="MTW06*2+174000"; *LDDTX
+066540           AD=:PTENTRY; SVX.TDFPHPAGE=:D:=142000
+066545           X:="MTW06*2+174000"; *STDTX
+066547           SVX.TDFLGADDR/\1777+"MTW06*2000"=:X; EXIT
+066555   MTRW6:  X=:SVX; T:=0; X:="MTW06*2+174000"; PTENTRY; *STDTX
+066562           X:=SVX; EXIT
+066564   RBUS
+066570
+066570   %==============================================================================
+066570   %       (M)      M T P x x
+066570   %
+066570   % MAILBOX WRITE ROUTINES FOR MTAD TERMINALS LEVEL 2.
+066570   % MTP00:
+066570   %
+066570   % ENTRY: X = MAILBOX WINDOW
+066570   %        B = TERMINAL OUTPUT DF
+066570   %        A = CHARACTER TO BE WRITTEN
+066570   % EXIT:  T,A,D DESTROYED
+066570   %
+066570   SUBR MTP00,MTP03,MTP06,MTP11,MTP14
+066570   MTP00:  X:=MTMBWI; X=:D:=X.MBOUW; IF X>>=MTOMAX THEN X:=0 FI
+066577           T:=MTOBSTA+D; A/\MTMASK; *SBYT                        % STORE BYTE
+066603           IF D:=:X+1=MTOMAX THEN 0=:X.MBOUW ELSE MIN X.MBOUW FI
+066613           EXITA
+066614   MTP03:  *JMP I *1; MTP00
+066616   MTP06:  *JMP I *1; MTP00
+066620   MTP11:  *JMP I *1; MTP00
+066622   MTP14:  *JMP I *1; MTP00
+066624   RBUS
+066630
+066630   %==============================================================================
+066630   %       (M)      M T G x x
+066630   %
+066630   % MAILBOX READ ROUTINES FOR MTAD TERMINALS LEVEL 2.
+066630   % MTG00:
+066630   %
+066630   % ENTRY: X = MAILBOX WINDOW
+066630   %        B = TERMINAL INPUT DF
+066630   % EXIT:  BUFFER EMPTY
+066630   %        A,D DESTROYED
+066630   % EXITA: A = CHARACTER READ
+066630   %        T,D DESTROYED
+066630   %
+066630   SUBR MTG00,MTG03,MTG06,MTG11,MTG14
+066630   MTG00:  X:=MTMBWI; AD:=X.MBINP; IF A=D THEN EXIT FI
+066635           IF A>>=MTIMAX THEN A:=0 FI                         % ERROR IN POINTER
+066641           T:=MTIBSTA+X; X=:D:=A; *LBYT                       % READ BYTE
+066646           IF D:=:X+1=MTIMAX THEN 0=:X.MBINR ELSE MIN X.MBINR FI
+066656           EXITA
+066657   MTG03:  *JMP I *1; MTG00
+066661   MTG06:  *JMP I *1; MTG00
+066663   MTG11:  *JMP I *1; MTG00
+066665   MTG14:  *JMP I *1; MTG00
+066667   RBUS
+066672
+066672   %==============================================================================
+066672   %       (M)      M T 5 M O
+066672   %
+066672   % ROUTINE TO MOVE FROM 500 MESSAGE TO EMPTY RING BUFFER, LEVEL 2.
+066672   % MT5MO:
+066672   %
+066672   % ENTRY: B = TERMINAL OUTPUT DF
+066672   % EXIT:  A,D,X DESTROYED
+066672   %
+066672   SUBR MT5MO
+066672   INTEGER POINTER LREG
+066673   MT5MO:  A:=L=:"LREG";
+066675           T:=5MBBANK; X:=ON5MSG; *AAX NOBYT; LDATX           % NUMBER OF BYTES IN BUFFER
+066701           IF A>=MAX THEN
+066704              T=:BHOLD; 0=:CFREE=:HENTE=:FYLLE; A-T
+066711              IF A=0 THEN K:=1 ELSE K:="0" FI
+066715           ELSE
+066716              A=:BHOLD=:FYLLE; T:=MAX-A=:CFREE; 0=:HENTE; A:=0; K:=1
+066726           FI;
+066726           T:=5MBBANK; *STATX                                 % UPDATE NOBYT
+066730           BHOLD+1 SHZ -1=:L; *AAX 5HENT-NOBYT; LDATX         % BANK NO. OF DATA BUFFER
+066736           A=:D; *AAX HBUFA-5HENT; LDATX                      % BUFFER POINTER
+066741           T:=2BUFST; *MOVPA                                  % MOVE DATA
+066743           A:=D; T:=5MBBANK; X:=ON5MSG; *AAX 5HENT; STATX     % UPDATE 5HENT
+066750           IF K THEN
+066752              X:=ON5MSG; 0=:ON5MSG; *IOF; JPL I (PT5RS; ION   % RESTART 500
+066757           FI
+066757           GO LREG
+066760   RBUS
+066763
+066763   %==============================================================================
+066763   %       (M)      M T M M O
+066763   %
+066763   % ROUTINE TO MOVE FROM 500 MESSAGE TO MAILBOX WITH NO PARITY CHECK, LEVEL 2.
+066763   % MTMMO:
+066763   %
+066763   % ENTRY: B = TERMINAL OUTPUT DF
+066763   % EXIT:  NOTHING MOVED
+066763   % EXITA: SOMETHING MOVED
+066763   %
+066763   SUBR MTMMO
+066763   INTEGER POINTER LREG
+066764   INTEGER ANT
+066765   DOUBLE  SADR
+066767   MTMMO:  A:=L=:"LREG"; MTMBWI.MBOUP
+066773           IF A><D THEN EXIT FI                               % WAIT FOR CLIENT TO EMPTY MAILBOX
+066776           IF MTMASK=177 THEN 1=:X.MBPFL ELSE 0=:X.MBPFL FI   % MARK IF CLIENT SHOULD CLEAR PARITY
+067006           A:=0; D:=0; AD=:X.MBOUP                            % RESET POINTERS TO ZERO
+067011           T:=5MBBANK; X:=ON5MSG; *AAX 5HENT; LDATX
+067015           A=:D; *AAX HBUFA-5HENT; LDATX
+067020           AD=:SADR; *AAX NOBYT-HBUFA; LDATX
+067023           A=:D; MTMBWI.MBOUM-1; IF A<D THEN D=:A FI          % CAN NOT MOVE MORE THAN MBOUM-1
+067032           A=:ANT+1 SHZ -1=:L; T:=X.MBOBU+X; AD:=SADR; *MOVPA % MOVE WORDS
+067042           A:=D; T:=5MBBANK; X:=ON5MSG; *AAX 5HENT; STATX     % D CONTAINS NEW 5HENT AFTER MOVE
+067047           *AAX NOBYT-5HENT; LDATX
+067051           A-ANT; *STATX                                      % UPDATE NOBYT
+067053           A=:L; ANT=:MTMBWI.MBOUW
+067057           IF L=0 THEN
+067061              X:=ON5MSG; 0=:ON5MSG; *IOF
+067064              CALL PT5RST; *ION
+067066           FI
+067066           MIN LREG; GO LREG
+067070   RBUS
+067074
+067074   %==============================================================================
+067074   %       (M)      M T A x x
+067074   %
+067074   % ROUTINES TO ACTIVATE CLIENT FOR MTAD TERMINALS LEVEL 2.
+067074   % MTA00:
+067074   %
+067074   % ENTRY: X = TERMINAL INPUT
+067074   % EXIT:  A,D,X DESTROYED
+067074   %
+067074   SUBR MTA00
+067074   MTA00:  X:=X.MTRTP; GO RTENTRY                             % ACTIVATE RT-PROGRAM
+067076   RBUS
+067077   SUBR MTA03
+067077   INTEGER SVB
+067100   INTEGER POINTER LREG
+067101   MTA03:
+067101   *"8N500
+"067101           A:=L=:"LREG"; X:=X.MTRTP; *IOF; JPL I (NW5ST+1
+067106           0/\0; *ION
+067110           GO LREG
+067111   *"-8N500
+"067111   RBUS
+067112   SUBR MTA06
+067112   INTEGER SVB,SVX
+067114   INTEGER POINTER SVL
+067115   MTA06:  A:="MTNKDF":=:B=:SVB:=L=:"SVL"; X=:SVX
+067123           *IOF; SOWN
+067133           SVX.MTRTP=:D; A:=MTNKPORT; X:=0; CALL NKSEND; *ION % SEND NUCLEUS KICK
+067142           SVB=:B; GO SVL
+067145   RBUS
+067151   SUBR MTA14
+067151   MTA14:  *JMP I *1; MTA00
+067153   RBUS
+067153
+067153   %==============================================================================
+067153   %       (M)      M T C x x
+067153   %
+067153   % ROUTINES TO CHECK IF MAILBOX IS OK FOR  MTAD TERMINALS LEVEL 2.
+067153   % MTC00:
+067153   %
+067153   % ENTRY: X = TERMINAL INPUT DF
+067153   % EXIT:  A,D,X DESTROYED
+067153   %
+067153   SUBR MTC00,MTC03,MTC06,MTC11,MTC14
+067153   INTEGER SVX
+067154   INTEGER POINTER LREG
+067155   MTC00:  A:=L=:"LREG":=X.MTRTP; T:=X.MTMID=:D; X=:SVX:=X.TDRADDR
+067164           CALL CHLAM; GO ERR00; X:=SVX; MIN "LREG"; GO LREG
+067171   ERR00:  X:=SVX; GO LREG
+067173   MTC03:  *JMP I *1; MTC00
+067175   MTC06:  *JMP I *1; MTC00
+067177   MTC11:  EXITA
+067200   MTC14:  *JMP I *1; MTC00
+067202   RBUS
+067203
+067203   *"8N500
+"067203   %=====================================================================
+067203   %       (M)      M T 5 0 0
+067203   %
+067203   % MTAD MONITOR CALL ENTRY FROM ND 500, CALLED FROM 500 DRIVER, LEV. 12
+067203   %
+067203   % ENTRY:
+067203
+067203   INTEGER N500D=?
+067203
+067203   SUBR MT500,NXTMSG
+067203   INTEGER CCBNK=?,CCADR=?
+067203   %---------------------------------------------------------------------
+067203   % MTG5MB
+067203   % LOCAL SUBROUTINE TO GET PHYSICAL ADDRESS OF MAILBOX
+067203   % EXITA: T=BANK NO. OF MAILBOX
+067203   %        X=DISP. WITHIN BANK
+067203   SYMBOL MTPAR=101
+067203   MTG5MB: X:=N5MESSAGE; T:=5MBBANK; *AAX MTPAR; LDATX        % PAGE NO IN MULTIPORT
+067207           D:=0; A+"N500D".ADRZERO; AD SHZ -6
+067213           A=:T; D=:X; EXITA
+067216
+067216   %-----------------------------------------------------------------------------
+067216   % MTGIDF,MTGODF
+067216   % LOCAL SUBROUTINES TO GET DF ADDRESSES FROM MAILBOX
+067216   % EXIT:  NO LEGAL DF ADDRESS
+067216   % EXITA: X = DF ADDRESS
+067216   %        ALL REGISTERS DESTROYED
+067216   %
+067216   INTEGER POINTER LREG0
+067217   INTEGER CCDFAD
+067220   MTGIDF: A:=L=:"LREG0"; T:=CCBNK; X:=CCADR; *AAX MBIDF;LDATX% GET ADDRESS
+067226           X:=BMTDFLI; A=:CCDFAD
+067230           DO WHILE X><-1
+067233              IF X=CCDFAD THEN X+9CXTI; GO TMT FI
+067240              T:="MTDFLI"; CALL XGTDFADDR; X:=A               % NEXT DF IN LINK
+067243           OD
+067244           GO LREG0
+067245   MTGODF: A:=L=:"LREG0"; T:=CCBNK; X:=CCADR; *AAX MBODF;LDATX% GET ADDRESS
+067253           X:=BMTDFLI; A=:CCDFAD
+067255           DO WHILE X><-1
+067260              IF X+9CXTI=CCDFAD GO TMT
+067264              T:="MTDFLI"; X-9CXTI; CALL XGTDFADDR; X:=A      % NEXT DF IN LINK
+067270           OD
+067271           GO LREG0
+067272   TMT:    T:="MTMBPH"; CALL XGTDFADDR; A=:T                  % GET MB ADDRESS FROM DF
+067275           IF CCBNK+CCADR SHR 6=T THEN X:=CCDFAD; MIN "LREG0" FI
+067304           GO LREG0
+067305   *)FILL
+067314
+067314   INTEGER CCBNK,CCADR
+067316   MT500:  CALL MTG5MB; GO ILLPA                              % GET MAILBOX ADDR
+067320           T=:CCBNK; X=:CCADR; *AAX MBREQ; LDATX              % GET REQUEST
+067324           IF A><0 THEN
+067325              IF A=5MTCN THEN
+067330                 CALL MTGIDF; *SKP; JMP OKREQ                 % REQUEST IS OK IF ALREADY CONNECTED
+067333                 X:=BMTDFLI
+067334                 DO WHILE X><-1                               % SEARCH FOR FREE DATAFIELD
+067337                    *IOF
+067340                    T:="MTFLAG"; CALL XGTDFADDR
+067342                    IF A BIT 5MTFR THEN                       % DF FREE ?
+067344                       CALL MTSW3; X=:D                       % SET DF WINDOW
+067346                       X:=N5MESSAGE; T:=5MBBANK; *AAX XADPR; LDXTX
+067352                       X.RTRES=:D.MTRTP
+067355                       A:=CCADR=:D+CCBNK SHR 6; T:=3
+067362                       CALL MTDFINI; *ION
+067364                       CALL MTMBINI
+067365                       CALL MTRW3                             % RESET WINDOW
+067366                       GO OKREQ
+067367                    ELSE
+067370                       *ION
+067371                       T:="MTDFLI"; CALL XGTDFADDR; X:=A      % NEXT DF IN LINK
+067374                    FI
+067374                 OD
+067375                 9MTNF; GO EREQ                               % NO FREE DATAFIELD
+067377              FI
+067377              IF A=5MTDC THEN                                 % DISCONNECT REQUEST
+067402                 CALL FAR MTGIDF; GO OKREQ                    % REQUEST IS OK IF NO DF CONNECTED
+067404                 CALL MTSW3; *IOF                             % SET DF WINDOW
+067406                 CALL MTRSDF; *ION
+067410                 CALL MTRSMB
+067411                 CALL MTRW3                                   % RESET WINDOW
+067412                 GO OKREQ
+067413              FI
+067413   OKREQ:     "0"
+067414   EREQ:      T:=CCBNK; A=:D:=0; X:=CCADR; *AAX MBREQ; STDTX  % UPDATE REQUEST,RESPONSE
+067422              GO OKRET
+067423           FI
+067423           CALL FAR MTGODF; GO ERRDF
+067425           IF X.MLINK=0 THEN
+067427              "MT5START"=:X.MFUNC; X:=:B; CALL RTACT; X:=:B   % START DRIVERS
+067434           FI
+067434   OKRET:  X:=N5MESSAGE; CALL OKMONICO; CALL ACTRDY; GO NXTMSG
+067440   ILLPA:  "174"; GO ERET
+067442   ERRDF:  "316"
+067443   ERET:   AD SH -20; X:=N5MESSAGE; CALL EMONICO; CALL ACTRDY
+067447           GO NXTMSG
+067450   RBUS
+067475
+067475   %=============================================================================
+067475   %       (M)      M T 5 S T A R T
+067475   %
+067475   % MONITOR ROUTINE TO START MTAD DRIVERS, LEV. 2.
+067475   %
+067475   % ENTRY: X=RESIDENT OUTPUT DF
+067475   SUBR MT5START
+067475   INTEGER SVDF
+067476   MT5START:T:=X.TDFPHPAGE SHZ -6; X=:SVDF:=X.TDFLGADDR
+067502           *AAX MTMBP; LDATX; AAX MTMBL-MTMBP; LDXTX
+067506           T:=A SHZ -6; *AAX MBINP; LDDTX                     % INPUT POINTERS
+067512           IF A>< D THEN
+067514              SVDF-"9CXTI"=:B; CALL MTIND
+067520           FI
+067520           SVDF=:B; CALL MTOUD
+067523           GO MONEN
+067524   RBUS
+067527   *"
+"067527   %=====================================================================
+067527   %       (M)      M T N U C L
+067527   %
+067527   % MTAD MONITOR ROUTINE, ACTIVATED BY NUCLEUS, LEV. 2
+067527   %
+067527   % ENTRY:
+067527
+067527   SUBR MTNUCL
+067527   INTEGER CCBNK=?,CCADR=?
+067527   %---------------------------------------------------------------------
+067527   % MTGNMB
+067527   % LOCAL SUBROUTINE TO GET PHYSICAL ADDRESS OF MAILBOX
+067527   % EXIT:  NO MESSAGE OR NUCLEUS ERROR
+067527   % EXITA: T=BANK NO. OF MAILBOX
+067527   %        X=DISP. WITHIN BANK
+067527   %        A=SERVER NR.
+067527   INTEGER CSNR
+067530   MTGNMB: 0=:CSNR
+067531           FOR CSNR TO 3 DO
+067535              A SH 1+"MTSRE"=:X; X.S1                   % GET PHYS. PAGE FOR LAMU
+067541              IF A=0 THEN EXIT FI                       % NO MORE SERVERS
+067543              D:=0; AD SH -6; A=:T:=D+"MTEQR"=:X; *LDDTX% GET EVENT QUEUE POINTERS FOR THIS SERVER
+067552              IF A><D THEN
+067554                 A=:D+1/\777; *STATX                    % UPDATE READ POINTER
+067560                 X+D; A:="MTEQR"; X-A; *LDATX           % GET "EVENT"
+067564                 A:=:X/\176000; X+A; T:=T+C; A:=CSNR    % ADDRESS OF MAILBOX IN T,X
+067571                 EXITA
+067572              FI
+067572           OD; EXIT
+067577   *)FILL
+067603   %-----------------------------------------------------------------------------
+067603   % MTGIDF,MTGODF
+067603   % LOCAL SUBROUTINES TO GET DF ADDRESSES FROM MAILBOX
+067603   % EXIT:  NO LEGAL DF ADDRESS
+067603   % EXITA: X = DF ADDRESS
+067603   %        ALL REGISTERS DESTROYED
+067603   %
+067603   MTGIDF: T:=CCBNK; X:=CCADR; *AAX MBIDF;LDATX               % GET ADDRESS
+067607           IF A><0 THEN X:=A; EXITA ELSE EXIT FI
+067614   MTGODF: T:=CCBNK; X:=CCADR; *AAX MBODF;LDATX               % GET ADDRESS
+067620           IF A><0 THEN X:=A; EXITA ELSE EXIT FI
+067625   *)FILL
+067625
+067625   INTEGER CCBNK,CCADR,CCSNR
+067630   MTNUCL: "MTNKDF"=:B; CALL FAR MTGNMB; GO MONEN             % GET MAILBOX ADDR
+067634           A=:CCSNR; T=:CCBNK; X=:CCADR; *AAX MBREQ; LDATX    % GET REQUEST
+067641           IF A><0 THEN
+067642              IF A=5MTCN THEN
+067645                 CALL MTGIDF; *SKP; JMP OKREQ                 % REQUEST IS OK IF ALREADY CONNECTED
+067650                 X:=BMTDFLI
+067651                 DO WHILE X><-1                               % SEARCH FOR FREE DATAFIELD
+067654                    *IOF
+067655                    T:="MTFLAG"; CALL XGTDFADDR
+067657                    IF A BIT 5MTFR THEN                       % DF FREE ?
+067661                       CALL MTSW6                             % SET DF WINDOW
+067662                       X=:D; CCSNR SH 1+"MTSRE"=:X; X.S0=:D.MTRTP % SAVE SEND REF. FOR "KICK"
+067672                       A:=CCADR=:D+CCBNK SHR 6; T:=6
+067677                       CALL MTDFINI; *ION
+067701                       CALL MTMBINI
+067702                       CALL MTRW6                             % RESET WINDOW
+067703                       GO OKREQ
+067704                    ELSE
+067705                       *ION
+067706                       T:="MTDFLI"; CALL XGTDFADDR; X:=A      % NEXT DF IN LINK
+067711                    FI
+067711                 OD
+067712                 9MTNF; GO EREQ                               % NO FREE DATAFIELD
+067714              FI
+067714              IF A=5MTDC THEN                                 % DISCONNECT REQUEST
+067717                 CALL FAR MTGIDF; GO OKREQ                    % REQUEST IS OK IF NO DF CONNECTED
+067721                 CALL MTSW6; *IOF                             % SET DF WINDOW
+067723                 CALL MTRSMB; CALL MTRSDF; *ION
+067726                 CALL MTRW6                                   % RESET WINDOW
+067727                 GO OKREQ
+067730              FI
+067730   OKREQ:     "0"
+067731   EREQ:      T:=CCBNK; A=:D:=0; X:=CCADR; *AAX MBREQ; STDTX  % UPDATE REQUEST,RESPONSE
+067737              GO MTNUCL
+067740           FI
+067740           *AAX MBINP-MBREQ; LDDTX                            % INPUT POINTERS
+067742           IF A><D THEN
+067744              CALL FAR MTGIDF; GO MTNUCL
+067746              X=:B; CALL MTIND
+067750           FI
+067750           CALL FAR MTGODF; GO MTNUCL
+067752           X=:B; CALL MTOUD                                   % ALWAYS START OUTPUT DRIVER
+067754           GO MTNUCL
+067755   RBUS
+070000
+070000   %=============================================================================
+070000   %       (M)      B F I C O M D R I V E R
+070000   %
+070000   % FAST INPUT DRIVER USED IN KOMBINATION WITH MON 373
+070000   % (LEVEL 12)
+070000   %
+070000   % ENTRY: B=RESIDENT INPUT DF
+070000   %
+070000   SUBR BFYICOMDRIVER
+070000
+070000   RETU:   *JMP I (TYENT-1
+070001   BFYICOMDRIVER:
+070001           ISTATE=:IISTATE; CALL SET12WINDOW
+070004   LOOP:   CALL TIAPD; GO RETU
+070006           A=:LAST
+070007           IF CFREE=0 GO LOOP
+070011           IF TDRADDR.RTRES=0 GO LOOP
+070014           LAST; CALL CXRBPUT
+070016           IF LAST=BRKCHAR THEN
+070022              MIN NBREAKS; GO BFULL
+070024           ELSE
+070025              IF BHOLD>>MAX-36 GO BFULL
+070032           FI; GO LOOP
+070033
+070033   BFULL:  CALL TSTBACK
+070034           "IORESTART"; CALL CXRTACT
+070036           GO LOOP
+070037   RBUS
+070047
+070047   %===========================================================================
+070047   %       P I O M M T A D
+070047   %
+070047   % Routine to simulate Mon Mtad for Pioc-Mtad
+070047   % (Monitor level)
+070047   %
+070047   % Entry:         AD=Phys.addr of Mtad mailbox
+070047   %                B= Pioc Mtad queue.
+070047   %
+070047   SUBR PIOMMTAD
+070047
+070047   %--------------------------------------------------------------------
+070047   % Local subroutine to get Datafield addr from mailbox.
+070047   % Entry:         None
+070047   % Exit:          No Df found.
+070047   % Exit+1:        X=Df addr (resident part)
+070047   %
+070047   INTEGER CCDFAD=?
+070047
+070047   MTGIDF: T:=MBBNK; X:=MBADR; *AAX MBIDF; LDXTX        % Get DF addr from mailbox
+070053           X=:CCDFAD
+070054           IF X=0 THEN EXIT FI
+070057           EXITA
+070060
+070060   MTGODF: T:=MBBNK; X:=MBADR; *AAX MBODF; LDXTX        % Get DF addr from mailbox
+070064           X=:CCDFAD
+070065           IF X=0 THEN EXIT FI                          % Input
+070070           EXITA
+070071   *)FILL
+070073
+070073   INTEGER POINTER LREG
+070074   INTEGER BREG,XREG,CCDFAD
+070077
+070077   PIOMMTAD:
+070077           T:=L=:"LREG"
+070101           X=:XREG:=B=:BREG
+070104           T:=A; X:=D; AD SHZ -12; A:=D=:MBPNO                % Phys.page of mailbox
+070111           T=:MBBNK; X=:MBADR
+070113           *AAX MBREQ; LDATX                                  % GET REQUEST
+070115           IF A><0 THEN                                       % REQUEST ?
+070116              IF A=5MTCN THEN                                 % CONNECT REQUEST
+070121                 CALL MTGIDF; *SKP; JMP OKREQ                 % REQUEST IS OK IF ALREADY CONNECTED
+070124                 -1=:CCDFAD
+070126                 X:=BMTDFLI
+070127                 DO WHILE X><-1                               % SEARCH FOR FREE DATAFIELD
+070132                    *IOF
+070133                    T:="MTFLAG"; CALL XGTDFADDR
+070135                    IF A BIT 5MTFR THEN                       % DF FREE ?
+070137                       X=:CCDFAD
+070140                       CALL MTSW0                             % SET DF WINDOW
+070141                       A:=B=:X.MTRTP
+070143                       A:=MBADR=:D:=MBPNO; T:=11              % MTAD TYPE = 11
+070147                       CALL MTDFINI
+070150                       *ION
+070151                       CALL MTMBINI
+070152                       CALL MTRW0                             % RESET WINDOW
+070153                       GO OKREQ
+070154                    ELSE
+070155                       *ION
+070156                       T:="MTDFLI"; CALL XGTDFADDR; X:=A      % NEXT DF IN LINK
+070161                    FI
+070161                 OD
+070162                 9MTNF; GO EREQ                               % NO FREE DATAFIELD
+070164              FI
+070164              IF A=5MTDC THEN                                 % DISCONNECT REQUEST
+070167                 CALL MTGIDF; GO NODF                         % REQUEST IS OK IF NO DF CONNECTED
+070171                 CALL MTSW0                                   % SET DF WINDOW
+070172                 CALL MTRSMB; CALL MTRSDF
+070174                 CALL MTRW0                                   % RESET WINDOW
+070175                 GO OKREQ
+070176   NODF:         -1=:CCDFAD
+070200              FI
+070200   OKREQ:     "0"
+070201   EREQ:      T:=MBBNK; A=:D:=0; X:=MBADR; *AAX MBREQ; STDTX  % UPDATE REQUEST,RESPONSE
+070207
+070207   RETU:      BREG=:B; X:=CCDFAD; A:=MBADR=:D:=MBBNK
+070215              CALL MTKPIOC                                    % KICK PIOC
+070216   RETU1:     X:=BREG=:B:=XREG
+070221              GO LREG
+070222           FI
+070222           T:=MBBNK; X:=MBADR; *AAX MBINP; LDDTX              % INPUT POINTERS
+070226           IF A><D THEN
+070230              CALL FAR MTGIDF; GO ERRDF
+070232              X=:B; CALL MTIND
+070234           FI
+070234           CALL FAR MTGODF; GO ERRDF
+070236           X=:B; CALL MTOUD                                   % ALWAYS START OUTPUT DRIVER
+070240           GO RETU1
+070241
+070241   ERRDF: -1=:CCDFAD
+070243          "316"; GO EREQ                                     % TERMINAL LINE IS NOT CONNECTED
+070245   RBUS
+070270
+070270
+070270   %============================================================================
+070270   %       M T D M F U N C
+070270   %
+070270   % Monitor level routine to take requestes from the Pioc kick liste,
+070270   % and call the Mon Mtad simulation routine.
+070270   %
+070270   SUBR MTDMFUNC
+070270   MTDMFUNC: X=:B
+070271           T:=MBPRWPN; X:=PIORPNT
+070273           DO
+070273              *LDDTX                                    % A=ReadPnt; D=WritePnt
+070274           WHILE A><D                                   % Anything in buffer?
+070276              A=:L; AD:=KICKLIST; D+L; A:=A+C           % Yes, compute addr of element
+070302              T:=A; X:=D; *LDATX                        % X=Addr of mailbox relative to Kicklist
+070305              A SHZ -1=:X
+070307              AD:=KICKLIST; D+X; A:=A+C                 % AD=Phys Nd-100 addr of mailbox
+070312              CALL PIOMMTAD                             % Perform moncall
+070313              T:=MBPRWPN; X:=PIORPNT; *LDATX
+070316              A+1/\777; *STATX                          % Update read pointer
+070321           OD; GO MONEN
+070323   RBUS
+070326
+070326   %============================================================================
+070326   %       M T A 1 1
+070326   %
+070326   % Routine to activate client for Mtad type 11.
+070326   % Executed on Mlevl
+070326   %
+070326   % Entry:         X=Terminal input Df.
+070326   %                B=Terminal output Df.
+070326   %
+070326   SUBR MTA11
+070326   INTEGER SAVB
+070327   INTEGER POINTER SAVL
+070330   MTA11:   A:=L=:"SAVL"
+070332           AD:=DMTMBPH; A SHZ -6               % AD=Phys addr of mailbox
+070334           T:=X.MTRTP:=:B=:SAVB                % B=addr of Pioc Queue
+070337           X:=X.TDRADDR                        % X=Addr or resident datafield
+070340           CALL MTKPIOC
+070341           SAVB=:B
+070343           GO SAVL
+070344   RBUS
+070345
+070345   %============================================================================
+070345   %       M T K P I O C
+070345   %
+070345   % Subroutine to send a Kick to a Pioc.
+070345   %
+070345   % Entry:         AD=Phys.addr of mailbox
+070345   %                B= Addr of Pioc-Mtad queue
+070345   %                X= Addr of Mtad input datafield (resident part)
+070345   %                   (-1 means no Mtad datafield)
+070345   %
+070345   SUBR MTKPIOC
+070345
+070345   INTEGER CPIOQUEUE         % Addr of Pioc-Mtad queue
+070346   INTEGER CCDFAD            % Addr of Mtad Df
+070347   DOUBLE  CEVENT            % Current Pioc event
+070351   INTEGER CPIOID            % Current Pioc procecc ID
+070352   DOUBLE  TOPIBUFFR(0)      % Phys.addr of mailbox
+070352   INTEGER 1TOPIBUFF,2TOPIBUFF
+070354   % Pioc Superkick definitions (see Pisuper for more details)
+070354   SYMBOL SUKOF=1012         % fixed addr in Piocos
+070354   SYMBOL HSKPA=52525        % Pattern in Piocos
+070354   SYMBOL LSKPA=125252       % Pattern in Piocos
+070354   SYMBOL PATRN=0
+070354   SYMBOL RTNOP=2
+070354   SYMBOL RLOCK=0
+070354   SYMBOL RHSIZ=4
+070354
+070354   MTKPIOC:X=:CCDFAD:=B=:CPIOQUE
+070357           T:=A; X:=D; *AAX MBPID; LDATX                % Get Pioc Proc ID
+070363           A=:CPIOID; *AAX MBEVE-MBPID; LDDTX           % Get Pioc Event
+070366           AD=:CEVENT
+070367           *IOF
+070370           PIODF=:B
+070372           IF PISTT><3 GO ERR                           % Is Pioc alive?
+070376           T:=PIOCA; X:=SUKOF; *PATRN@3 LDDTX           % Yes, get "magic" pattern from Piocos
+070401           IF A><HSKPA OR D><LSKPA GO ERR               % Is pattern ok?
+070407           T:=PIOCA; *RNTOP@3 LDDTX                     % Yes, get addr of Kick-to-Pioc buffer
+070411           AD SHZ -1; A+PIOCA; AD=:TOPIBUFF             % Nd-100 phys.addr of Kick-to-Pioc buffer
+070414           T:=A; X:=D; *RLOCK@3 LDATX
+070417           IF A><0 GO RETU                              % Buffer is locked
+070420           *LDATX 20                                    % Get write pointer
+070421           A SH 2+RHSIZ; X+A; T:=T+C; *LDATX            % Get element flag
+070426           IF A=0 GO NFREE                              % Element free?
+070427           CPIOID; *STATX 10                            % Yes, store PiocProcID
+070431           CEVENT; *STDTX 20                            % Piocos event
+070433           *STZTX                                       % Mark element is in use
+070434           T:=1TOPIBUFF; X:=2TOPIBUFF; *LDATX 20
+070437           A+1/\7; *STATX 20                            % Update write pointer
+070442   NFREE:  T:=HDEV+3; A:=5; *IOXT                       % Kick Pioc
+070446   RETU:   X:=CPIOQUEUE=:B:=CCDFAD
+070451           *ION
+070452           EXIT
+070453
+070453   % Pioc is not running
+070453   % Mark this status in the Data field, and then the Timer program
+070453   % will take the necessary action.
+070453   %
+070453   INTEGER  LREG
+070454   ERR:    IF X:=CCDFAD><-1 THEN
+070460              A:=L=:LREG
+070462              T:="FLAGB"; CALL XGTDFADDR
+070464              A BONE 5LSTA; T:="FLAGB"; CALL XSTDFADDR
+070467              T:="MTFLAG"; CALL XGTDFADDR
+070471              A BONE 5MTSF BONE 5MTLG
+070473              T:="MTFLAG"; CALL XSTDFADDR
+070475              T:="TMR"; A:=-1; CALL XSTDFADDR
+070500              X+9CXTI; A:=-1; T:="TMR"; CALL XSTDFADDR
+070504              LREG=:L
+070506           FI; GO RETU
+070507   RBUS
+070520
+070520   @DEV 1

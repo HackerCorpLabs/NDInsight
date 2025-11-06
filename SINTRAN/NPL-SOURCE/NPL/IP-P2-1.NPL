@@ -1,0 +1,2739 @@
+044000   @DEV (S-S-L)IP-P2-1:NPL
+044000   *"8DMVC+8NLP1+8NLP2+8NLP3+8NLP4
+"044000   %==============================================================================
+044000   % 39.5       C T R V E   B U S Y V   F I N I V   C V C A L L   (MPIT)
+044000   %
+044000   %
+044000   % ROUTINE ON LEVEL 11 FOR VERSATEC TRANSFER
+044000   %
+044000
+044000   SUBR CTRVE,BUSYV,FINIV,FEILV,CVCALL
+044000
+044000
+044000   CTRVE:
+044000          T:=X.ABFUN;AD:=X.MEMAD; TAD=:CTADRG; AD=:MEMAD=:CMADR
+044005          X.ABP31=:CXRG                        % END OF PARAMETER FETCHING
+044007          0=:CERRCODE=:HSTAT=:BUSFL
+044012          IF CTRG=24 THEN SHSTAT(0)=:HSTAT; GO FIN FI  %READ LAST STATUS
+044022          TTMR=:TMR
+044024   CVCALL: TAD:=CTADRG; X:=CXRG
+044026          CALL TRNSF; GO ERROR; GO BUSY; GO FINISH
+044032   FINIV: X=:HSTAT=:SHSTAT(0)
+044035   FIN:   IF RTRES><0 THEN CALL RTACT FI
+044040          0=:TMR; CALL ID11;A+1; GO ERR22
+044044   FEILV:  A=:CERRCODE; X=:SHSTAT(0); X BONE 4=:HSTAT; GO FIN
+044052   BUSYV: CALL ID11;GO CVCALL
+044054
+044054   RBUS
+044060
+044060
+044060   *"8DLP1+8DLP2+8DVE1+8DVE2
+"044060   %==============================================================================
+044060   % 39.7       T L P R I N T   C L P 1 0    (MPIT)
+044060   %
+044060   %
+044060   % ROUTINE ON LEVEL 11 TO START DATA TRANSFER TO THE DEVICE ON MONITOR LEVEL
+044060   %
+044060   SUBR TLPRINT
+044060
+044060
+044060   TLPRINT:
+044060          T:=X.ABFUN; AD:=X.MEMAD
+044062          T=:TRG; AD=:MEMAD; A:=D=:XCBUFST
+044066          X.ABP21=:DRG; X.ABP31=:XRG
+044072          0=:HSTAT
+044073          IF TRG=1 THEN
+044077                IF XRG=0 GO CRTACT                 % NO WORDS TO TRANSFER
+044101                A SH 1=:XCBHOLD; 0=:XCHENTE
+044104   FELS:        "LP5MF"-"MFUNC"+B=:B
+044110   CRTACT:      CALL RTACT; CALL ID11;A+1; GO ERR22
+044114          FI
+044114          IF A=30 OR A=31 OR A=32 THEN
+044125                IF VEFLG><0 THEN
+044127                   T=:VEMOD; 0=:XCBHOLD; GO FELS
+044132                FI
+044132          FI; 201
+044133   FINER:  A=:CERRCODE; 20=:HSTAT; GO CRTACT
+044137   RBUS
+044145
+044145   *"8MT1+8MT2+8MT3+8MT4
+"044145   %==============================================================================
+044145   %      ( I )  C T R M A G T   M B U S Y   M F I N I   M F E I L
+044145   %             C T R 2 M A G T   X F I N   X M B U S Y
+044145   %
+044145   %
+044145   % LEVEL 11 ROUTINE TO PERFORM MAG.TAPE TRANSFER
+044145   %
+044145   % ACTIVATED BY MTRANS WITH B=DTATFIELD, X=ABST PAR.LIST
+044145   % PAR0: FUNCTION CODE (SEE DRIVER)
+044145   % PAR1: CORE ADDRESS
+044145   % PAR2: UNIT NUMBER
+044145   % PAR3: NUMBER OF WORDS IF READ/WRITE
+044145
+044145   SUBR CTRMAGT,CTR2MAGT,MBUSY,MFINI,MFEIL,MFIN,XFIN,XMBUSY,RTMAG,TAPBY,TRFIN
+044145
+044145
+044145   @DEC
+044145   SYMBOL DS1600=1600,D6250=6250,DS800=800
+044145   @OCT
+044145
+044145   %=====================================================================
+044145   %      ( I )    R E T V A L U E
+044145   % LOCAL SUBROUTINE TO STORE RETURN.INFO IN THE CALLER'S LAST PARAMETER.
+044145   %
+044145   % ENTRY: A=VALUE TO RETURN
+044145   %
+044145   TRIPLE CTAD
+044150   RETVALUE: TAD=:CTAD; T:=A; AD:=ABAD3; *DEPO
+044154             TAD:=CTAD; EXIT
+044156
+044156   %==================================================================
+044156   %      ( I )   C S T W O R D
+044156   % LOCAL SUBROUTINE TO STORE A WORD IN THE CALLER'S DATA-BUFFER.
+044156   %
+044156   % ENTRY: T=VALUE TO STORE
+044156   %        AD=PHYS.ADDR OF BUFFER
+044156   %
+044156   CSTWORD: *DEPO
+044157            D+1; A:=A+C; EXIT
+044162   *)FILL
+044162
+044162   % SUBROUTINE TO PERFORM READ/WRITE OPERATION
+044162
+044162   MTRWOPER: A:=L=:"MTLRG"
+044164            IF CTRG/\77 BIT 0 THEN                              % WRITE
+044170                  CTRG/\177700+20=:T; AD:=CADRG; X:=1
+044176                  CALL MAGTRANS                                 % READ STATUS
+044177                  IF MWRING/\X=MWSTAT THEN A:=175; GO MTLRG FI  % WRITE PROTECT VIOL
+044206                  IF MLOAD/\X><0 AND "TRNSF"="HMAGT" THEN       % NOT ON TMAGT/SMAGT
+044215
+044215   % LOAD POINT, WRITE ERASE GAP BEFORE OPERATION
+044215
+044215                     CTRG/\177700+14=:T; AD:=CADRG; X:=1
+044223                     CALL MAGTRANS; IF X BIT 4 GO FAR MTERET
+044226                  FI
+044226                  CMWCNT=:MACOU
+044230            ELSE
+044231                  IF A=4 OR A=64 THEN               % READ BACKWARDS
+044237                     IF X:=CXRG><0 THEN X-1 FI
+044242                     AD:=MEMAD; D+X; A:=A+C; AD=:MEMAD=:CMADR
+044247                  FI; -1=:MACOU
+044251            FI; GO EFI1; *)FILL
+044257   EFI1:    FOR MACOU DO                            % NUMBER OF TIMES TO WRITE ERASE GAP IN WRITE OPERATION
+044257               CTACNS=:TACOU                        % NUMBER OF RETRIES
+044261               FOR TACOU DO
+044261                  IF X:="TRNSF"="SMAGT" THEN
+044265                     CXRG \/ DWONO =: X                 %%% 24 BIT WORD-COUNT
+044270                  ELSE
+044271                     X := CXRG                          %%% 16 BIT WORD-COUNT
+044272                  FI
+044272                  CALL GOMAGTRANS
+044273                  IF X NBIT 4 GO MTOKRET
+044275
+044275   % READ OR WRITE ERROR. BACKSPACE AND TRY AGAIN
+044275   % ADVANSE ONE RECORD IF READ BACKWARDS
+044275
+044275                  IF CTRG/\77=4 OR A=64 THEN T:=16 ELSE T:=15 FI
+044310                  CTRG/\177700; T+A; AD:=CADRG; X:=1
+044315                  CALL MAGTRANS; IF X BIT 4 GO MTERET
+044320               OD
+044322
+044322   % REPEATED ERROR. WRITE ERASE AND TRY AGAIN IF WRITE FUNCTION:
+044322
+044322               IF CTRG BIT 0 THEN
+044325                  CTRG/\177700+14=:T; AD:=CADRG; X:=1
+044333                  CALL MAGTRANS; IF X BIT 4 GO MTERET
+044336               FI
+044336            OD
+044340            IF X:="TRNSF"="SMAGT" THEN
+044344               CXRG \/ DWONO =: X                 %%% 24 BIT WORD-COUNT
+044347            ELSE
+044350               X := CXRG                          %%% 16 BIT WORD-COUNT
+044351            FI
+044351            CALL GOMAGTRANS            % LAST TRY
+044352            IF X NBIT 4 GO MTOKRET; GO OVER; *)FILL
+044362    OVER:  IF "TRNSF"="TMAGT" AND CTRG NBIT 0 AND X BIT 16 THEN
+044373                  CTACNS=:TACOU
+044375                  FOR TACOU DO
+044375                     CTRG/\177700+15=:T; AD:=CADRG; X:=1
+044403                     CALL MAGTRANS; IF X BIT 4 GO MTERET
+044406                     CTRG/\177700=:T
+044411                     IF CTRG/\37=0 THEN T+23 ELSE T+24 FI
+044417                     AD:=CADRG; X:=CXRG
+044421                     CALL MAGTRANS; IF X NBIT 4 GO MTOKRET
+044424                  OD; GO MTOKRET
+044427            FI; GO MTERET
+044430   MTERET: A:=0; GO MTLRG
+044432   MTOKRET: MIN "MTLRG"; GO MTLRG
+044434   *)FILL
+044440
+044440
+044440   CTRMAGT:
+044440   *"8MT1+8MT2+8MT3+8MT4 8DTMT
+"044440   % B=DATAFIELD; X=PARAMETER LISTE
+044440   CTR2MAGT: X:=:B
+044441            AD:=MEMAD=:X.MEMAD=:X.CMADR             % 24-BIT MEMORY ADRESS
+044444            A SH 14+ABFUN=:X.CTRG                   % FUNCTION CODE
+044447            ABP31=:X.CXRG                           % WORD-COUNT
+044451            ABP21=:X.CDRG                           %
+044453            ABAD3=:X.ABAD3                          % PHYS.ADDR OF PARAMETER NO. 3
+044455            X.CTRG/\700 SHZ -6 \/ X.CDRG=:X.CDRG    % UNIT IN CDRG AND/OR
+044462            X.CDRG SH 6\/X.CTRG=:X.CTRG             % BITS 8-6 IN CTRG
+044466            IF X."TRNSF" = "SMAGT" THEN             % STC-DRIVES?
+044472               0 =: X.DWONO                         % ZERO MOST SIGN. PART OF WORD-COUNT
+044473               B=:D:=X
+044475               A:=XUNIT (CDRG) =: XNOWUNIT          % GET INBT/OUTBT DATAFIELD
+044500               X:=B; B:=D
+044502               IF X.DIAMO><0 AND X.DIAOWNER><X.RTRES THEN
+044510                  X=:D
+044511                  IF A.WLINK><0 OR X.TLINK><0 THEN
+044516                     B:=D; A:=204; GO FAR FINER; *)FILL  % CONTROLLER USED FOR "DIAGNOSTIC-MODE"
+044525                  FI; 0=:D.DIAMO=:X.DIAOWNER
+044530               FI
+044530            FI
+044530            IF X.CTRG/\77=6 OR A=50 OR A=51 OR A>=60 AND A<=66 THEN % 24-BITS WORD-COUNT?
+044551               IF X."TRNSF"><"SMAGT" THEN A:=201; B:=X; GO FAR MBF5ERR FI  % ONLY FOR STC.
+044560               ABPA3=:X.ABPA3                    % DOUBLE WORD-COUNT
+044562               A=:X.NMTRECS                      % NUMBER OF RECORDS IN FUNCTION 50 & 51
+044563               IF X.CTRG/\77 =50 OR A=51 THEN
+044573                   0=: X.DWONO
+044574               ELSE
+044575                   X.NMTRECS=: X.DWONO           % MOST SIGN. WORD-COUNT
+044577               FI
+044577               A := D =: X.CXRG                  % LOWER HALF TO CXREG
+044601            FI
+044601            X=:B                                    % B=DATAFIELD
+044602            0=:CERRCODE=:HSTAT                      % INITIATE
+044604
+044604            IF X:=CDRG>MAXUNIT THEN                 % X=MT UNIT NUMBER
+044610               A:=173; GO FAR MBF5ERR; *)FILL       % ILLEGAL UNIT
+044616            FI
+044616            IF CTRG/\77=23 THEN                     % SELECT PARITY AND DENSITY
+044623               IF "TRNSF" = "SMAGT" THEN
+044627                  IF CXRG = DS1600 THEN "0"         % TRANSFORM '1600' OR '6250' OR '800'
+044634                  ELSE IF = D6250 THEN 1
+044641                  ELSE IF = DS800 THEN 2 FI FI FI
+044646                  A =: CXRG                         % STORE
+044647               FI
+044647               IF CXRG<0 OR A>6 THEN
+044654                  A:=174; GO FAR FINER              % ILLEGAL PAR.
+044656               FI; CXRG=:ADNSTY(X); GO FAR FIN      % DENSITY SELECTION
+044661            FI
+044661
+044661            IF A=25 THEN                            % READ TAPE STATUS
+044664               IF CXRG<4 THEN
+044670                  -1=:HSTAT                         % BUFFER TOO SMALL!!
+044672                  A:=0; CALL FAR RETVALUE           % 0=:MRETURN
+044674                  GO FAR FIN
+044675               FI
+044675               AD:=MEMAD
+044676               T:=RHSTAT(X); 0=:RHSTAT(X); CALL FAR CSTWORD
+044701               T:=RERRCOUNT(X); 0=:RERRCOUNT(X); CALL FAR CSTWORD
+044704               T:=WHSTAT(X); 0=:WHSTAT(X); CALL FAR CSTWORD
+044707               T:=WERRCOUNT(X); 0=:WERRCOUNT(X); CALL FAR CSTWORD
+044712               A:=4; CALL FAR RETVALUE              % 4=:MRETURN
+044714               GO FAR FIN; *)FILL
+044726            FI
+044726
+044726            IF A=24 THEN               % READ LAST STATUS
+044731               SHSTAT(X)=:HSTAT; GO FAR FIN
+044734            FI
+044734
+044734            IF A=36 THEN                            % READ EXTENDED STATUS
+044737               IF "TRNSF"="SMAGT" THEN
+044743                  AD:=MEMAD
+044744                  FOR X := 0 TO 14 DO
+044750                     T := FCST (X); CALL FAR CSTWORD
+044752                  OD; A:=15
+044755               ELSE
+044756                  201=:CERRCODE; 20=:HSTAT; A:=0    % ILLEGAL FUNCTION CODE
+044763               FI; CALL FAR RETVALUE; GO FAR FIN
+044765            FI
+044765
+044765            IF A = 42 THEN                          % READ FORMAT/DENSITY CODE.
+044770               ADNSTY(X); CALL FAR RETVALUE; GO FAR FIN
+044773            FI
+044773
+044773            IF A = 46 THEN
+044776               IF "TRNSF"="HMAGT" THEN
+045002                  "0"                               % PERTEC INTERFACE
+045003               ELSE
+045004                  "1"                               % STC-INTERFACE
+045005               FI
+045005               CALL FAR RETVALUE; GO FAR FIN
+045007            FI
+045007
+045007            IF A=6 THEN                             % SET RETRY AND ERASE GAP COUNTERS
+045012                NMTRECS=:CTACNS=:TACNS
+045015                CXRG=:   CMWCNT=:MWCNT
+045020                GO FAR FIN
+045021            FI
+045021            ADNSTY(X)=:CDRG
+045023
+045023            IF TMR><0 THEN CALL ID11; FI              % WAIT FOR INTERRUPT OR TIME-OUT.
+045026
+045026            IF CTRG/\77=20 THEN                       % READ STATUS
+045033               CTADRG; X:=1; CALL MAGTRANS; GO FAR FIN; *)FILL
+045050            FI
+045050            IF A>=10 AND A<26 GO FAR NOTRW
+045056            IF A >= 33 AND A < 40 GO FAR NOTRW        % STC-CONTROLLER.
+045064
+045064   % READ OR WRITE
+045064
+045064          IF A=50 THEN                              % READ MULTIPLE RECORDS
+045067             IF CMWCNT=0 THEN MWCNT=:CMWCNT FI
+045073             IF CTACNS=0 THEN TACNS=:CTACNS FI
+045077             0=:MRECCOUNTER
+045100             DO WHILE MRECCOUNTER><NMTRECS
+045104                IF CMWCNT=0 THEN -1=:CMWCNT FI
+045110                IF CTACNS=0 THEN -1=:CTACNS FI
+045114                CALL FAR MTRWOPER
+045115                GO F50ERR
+045116                CMADR; A:=:D-MEMA2; *RDCR ADC DD
+045122                A:=:D-MEMA1
+045124                IF A><0 GO XER50                              % TOO LONG RECORD
+045125                IF X:=MRECCOUNTER=0 THEN
+045130                   A:=D=:CMTRECSIZE
+045132                ELSE
+045133                   IF CMTRECSIZE><D GO XER50                  % DIFFERENT RECORD SIZE
+045136                FI; MIN MRECCOUNTER; 0/\0
+045140                CMADR=: MEMAD
+045142             OD
+045143             GO FIN50
+045144          FI
+045144
+045144          IF A=51 THEN                              % WRITE MULTIPLE RECORDS
+045147             IF CMWCNT=0 THEN MWCNT=:CMWCNT FI
+045153             IF CTACNS=0 THEN TACNS=:CTACNS FI
+045157             0=:MRECCOUNTER
+045160             DO WHILE MRECCOUNTER><NMTRECS
+045164                IF CMWCNT=0 THEN -1=:CMWCNT FI
+045170                IF CTACNS=0 THEN -1=:CTACNS FI
+045174                CALL FAR MTRWOPER
+045175                GO F51ERR
+045176                MIN MRECCOUNTER; 0/\0
+045200                CMADR=: MEMAD
+045202             OD
+045203             GO FIN
+045204          FI
+045204
+045204   % OTHER READ/WRITE FUNCTIONS
+045204
+045204          TACNS=:CTACNS; MWCNT=:CMWCNT
+045210          CALL FAR MTRWOPER; GO EEFIN; GO FINX
+045213   *)FILL
+045215
+045215   XER50:  CTRG SHZ -6/\7=:X; -1=:HSTAT=:SHSTAT(X)  % HSTAT=-1 MEANS READING RECORDS OF DIFFERNET SIZES
+045224           GO FIN50
+045225   F50ERR:
+045225           IF HSTAT BIT 11 OR A BIT 14 THEN         % EOT OR OVERFLOW ON READ
+045232               MIN MRECCOUNTER; 0/\0                % INCREASE RECORDCOUNTER
+045234               CMADR; A:=:D-MEMA2; *RDCR ADC DD     % CMADR-MEMAD
+045240               A:=:D-MEMA1
+045242               IF A><0 GO XER50                     % TOO LONG RECORD
+045243               A:=D=:CMTRECSIZE
+045245               CMADR=:MEMAD
+045247           FI
+045247
+045247   FIN50:  A:=CMTRECSIZE=:D:=MRECCOUNTER
+045252           T:=ABA31; X:=ABA32; *STDTX               % NUMBER OF RECORDS AND RECORDSIZE
+045255           GO FIN
+045256
+045256   F51ERR: A=:T
+045257           IF HSTAT BIT 11 THEN
+045262               MIN MRECCOUNTER;0/\0
+045264               CMADR=: MEMAD
+045266           FI
+045266           MRECCOUNTER; CALL FAR RETVALUE           % UPDATE NUMBER OF RECORDS WRITTEN WITHOUT ERRORS
+045270           A:=T
+045271   EEFIN: IF A=0 GO FIN
+045272          GO FINER
+045273
+045273   FINX:    A=:X:=CTRG/\77:=:X
+045277            IF X<60 OR X>63 THEN                  % IF NOT DOUBLE WORD-COUNT
+045305              IF X=4 THEN
+045310                IF MEMA2-CMAD2>>CXRG THEN CXRG FI
+045316              ELSE
+045317                IF A-MEMA2>>CXRG THEN A:=T FI
+045324              FI; IF X=26 THEN A SH 1 FI      % NUMBER OF BYTES
+045330              CALL FAR RETVALUE
+045331           ELSE
+045332              IF X=64 THEN
+045335                 MEMAD; A:=:D-CMAD2; *RDCR ADC DD
+045341                 A:=:D-CMAD1
+045343              ELSE
+045344                 CMADR; A:=:D-MEMA2; *RDCR ADC DD
+045350                 A:=:D-MEMA1
+045352              FI; IF X=62 THEN AD SH 1 FI               % NUMBER OF BYTES
+045356              T:=ABA31; X:=ABA32; *STDTX                 % RETURN NUMBER OF BYTES (DOUBLE WORD)
+045361           FI; GO FIN; *)FILL
+045365    MFIN:
+045365    FIN:
+045365   *"8MT1+8MT2+8MT3+8MT4 8DTMT
+"045365            0=:TMR; IF RTRES><0 THEN CALL RTACT; FI
+045371            CALL ID11; *JMP *-1
+045373   MBF5ERR: A=:CERRCODE
+045374          IF CTRG/\77=50 OR A=51 THEN A:=0; CALL FAR RETVALUE FI
+045406          GO XFIN
+045407   FINER: A=:CERRCODE
+045410   XFIN:  HSTAT BONE 4=:HSTAT    % SET OR-OF-ERRORS
+045413          GO FIN
+045414
+045414
+045414   *)FILL
+045421
+045421   % ANOTHER FUNCTION THAN READ OR WRITE
+045421
+045421    NOTRW: IF A=12 THEN
+045424
+045424   % WRITE EOF. ERASE FIRST IF LOAD POINT
+045424
+045424               CTRG/\177700+20=:T; AD:=CADRG; X:=1
+045432               CALL MAGTRANS
+045433               IF MWRING/\X=MWSTAT THEN A:=175; GO FINER; FI
+045442               IF MLOAD/\X><0 AND "TRNSF"="HMAGT" THEN
+045451                  CTRG/\177700+14=:T; AD:=CADRG; X:=1
+045457                  CALL MAGTRANS; IF X BIT 4 GO FIN
+045462            FI FI
+045462   % PERFORM OPERATION:
+045462
+045462            CTADRG; X:=1; CALL MAGTRANS; IF X BIT 4 GO FIN
+045467
+045467   % BACSPACE EOF-MARK IF TANDBERG TAPE AND REVERSE TO EOF OPERATION:
+045467
+045467            IF "TRNSF"="TMAGT" AND CTRG/\77=11 THEN
+045500               CTRG/\177700+15=:T; AD:=CADRG; X:=1
+045506               CALL MAGTRANS
+045507            FI
+045507            GO FIN
+045510   *)FILL
+045515   % TRANSFER SUBROUTINE:
+045515
+045515    GOMAGTRANS: IF CTRG/\77>=50 AND <=66 THEN
+045525                   IF A=50 OR A=51 THEN
+045533                            A-50
+045534                   ELSE IF A=60 OR A=61 OR A=64 THEN
+045546                            A-60
+045547                   ELSE IF A=62 OR A=63 THEN
+045556                            A-34
+045557                   ELSE IF A=66 THEN A:=0           % READ TO CACHE INHIBITED AREA
+045564                   FI FI FI FI
+045564                   A=:T; CTRG/\177700; T\/A
+045570                   AD:=CADRG
+045571                ELSE CTADRG
+045573                FI
+045573    MAGTRANS: TAD=:TADRG; X=:XRG
+045575            X:=L=:"CLRG"; X:=XRG
+045600            DO
+045600                  TTMR=:TMR
+045602                  CALL TRNSF; GO ERROR; GO BUSY; GO FINISH
+045606    MBUSY:        TAD=:TADRG; X=:XRG
+045610                  TRG/\700 SHZ -6 +"SHSTAT"+B=:X; HSTAT=:X.S0  % SAVE LAST STATUS
+045620                  IF "TRNSF" = "SMAGT" THEN
+045624                     CALL MFRESAVE
+045625                  FI
+045625   *"8MT1+8MT2+8MT3+8MT4 8DTMT
+"045625                  CALL ID11
+045626    XMBUSY:       TADRG; X:=XRG
+045630            OD
+045631    MFINI: 0=:TMR; A=:D
+045633            X BZERO 4=:HSTAT
+045635            TRG/\700 SHZ -6=:X; HSTAT=:SHSTAT(X)=:X           % SAVE STAT.
+045644            A:=D; GO CLRG; *)FILL
+045655
+045655   % ERROR IN MAG.TAPE OPERATION
+045655
+045655   INTEGER AAREG =?
+045655   MFEIL:  0=:TMR; X BONE 4=:HSTAT; A=:AAREG
+045661            TRG/\700 SHZ -6=:X; HSTAT=:SHSTAT(X)=:X           % SAVE STAT.
+045670            MIN ERCNT; 0/\0; T:=AERRB\/X=:AERRB
+045675            IF CTRG/\77=0 OR A=2 OR A = 26 OR A=50 OR A=60 OR A=62 THEN
+045717                  IF HSTAT/\BADTAPE><0 THEN
+045722                     CTRG SHZ -6/\7=:X
+045726                     HSTAT\/RHSTAT(X)=:RHSTAT(X); MIN RERRCOUNT(X); 0/\0
+045733                  FI
+045733            ELSE IF A=1 OR A=3 OR A = 27 OR A=51 OR A = 61 OR A = 63 THEN
+045756                  IF HSTAT/\BADTAPE><0 THEN
+045761                     CTRG SHZ -6/\7=:X
+045765                     HSTAT\/WHSTAT(X)=:WHSTAT(X); MIN WERRCOUNT(X); 0/\0
+045772                  FI
+045772                 FI
+045772            FI
+045772            GO CONT1
+045773   *)FILL
+045776   INTEGER AAREG
+045777
+045777   CONT1:   X:=HSTAT
+046000            IF TRG/\77<10 OR A>22 THEN
+046010                  IF SERRB/\X><0 THEN
+046013                    IF HSTAT BIT 11 AND A/\BADTAPE><0 GO RETR   % EOT&BAD DATABLOCK
+046020                    IF X BIT 13 THEN                            % DMA-ERROR
+046022                      IF X BIT 7 OR X BIT 11 GO RETR            % DMA-ERROR & EOT/EOF
+046026                    FI
+046026                    GO CFINX
+046027                  FI
+046027                  IF BADTAPE/\X=0 GO CFINX                      % WARNING!!
+046032                  GO RETR                                       % NOT SERIOUS ERROR
+046033            ELSE
+046034                  IF SERRB/\X><0 OR TRG/\77=22 THEN GO CFINX FI
+046045            FI
+046045   RETR:  X:=HSTAT
+046046          IF CTRG/\77>=60 AND A<=63 THEN
+046056             0/\0; 0/\0                             % PATCH FOR GECO
+046060          FI; AAREG; GO CLRG
+046062    CFINX:IF CTRG/\77 = 50 OR A=51 THEN        % ERROR IN MULT.RECORDS
+046072                GO MTLRG                       % RETURN TO CALLING LOOP
+046073          ELSE
+046074                AAREG; GO FAR FINX             % ERRORS IN OTHER FUNCTIONS
+046076          FI
+046076    RBUS
+046100
+046100   *"99SM1+99SM2+99SM3+99SM4
+"046100   %======================================================================
+046100   %      ( I )     M F R E S A V E
+046100   %
+046100   % SUBROUTINE TO RESTART USER WITH ASYNC. TIMEOUT IF REWIND-BUSY!!!
+046100   % ENTRY: B=DATAFIELD
+046100   %
+046100   SUBR MFRESAVE
+046100
+046100   INTEGER XSAVE, LSAVE
+046102   MFRESAVE:
+046102          IF RTRES = 0 THEN EXIT FI                 % NOT RT-USER!!!
+046105          X =: XSAVE := XNOWUNIT
+046107          A := L =: LSAVE
+046111          IF XRG >< 0 THEN                       % REWINDING!!
+046113             * IOF                               % PROTECT!!!
+046114             0 =: TMR                            % DON'T USE DMA-TIMEOUT!
+046115             X.TTMR =: X.TMR
+046117             "SMTBREL"=:MFUNC; CALL XRTACT
+046122             * ION                               % UNPROTECT!!!
+046123          FI
+046123          X := XSAVE; A := LSAVE =: P           % RETURN TO CALEE
+046126   RBUS
+046130
+046130   *"8MT1+8MT2+8MT3+8MT4 8DTMT
+"046130   %==============================================================================
+046130   % 39.6       T F D I S K   F D I B U S   F D I F I N   F D I F E I L
+046130   %            B U F D I S C   F I N F D I S C
+046130   %
+046130   %
+046130   % ROUTINE TO SET UP CALL TO THE FLOPPY DISC DRIVER
+046130   % LEVEL 11
+046130   %
+046130   % ENTRY: B=ADDRESS OF THE DATAFIELD
+046130   %        X=ADDRESS OF THE PARAMETER LIST
+046130   %
+046130   %
+046130   % PARAMETERS:
+046130   %
+046130   %      PAR-0(BIT 0-5)= FUNCTION CODE
+046130   %
+046130   %             0 - READ
+046130   %             1 - WRITE
+046130   %             2 - TEST PARITY (READ CRC)
+046130   %             3 - DUMMY
+046130   %             7 - ERASE TAPE
+046130   %            10 - ADVANCE TO EOF
+046130   %            11 - REVERCE TO EOF
+046130   %            12 - WRITE EOF
+046130   %            13 - REWIND TO BOT
+046130   %            14 - ADVANCE ONE RECORD
+046130   %            15 - REVERCE ONE RECORD
+046130   %            21 - CLEAR-DEVICE
+046130   %            20 - READ STATUS
+046130   %            24 - READ LAST STATUS
+046130   %            36 - READ EXTENDED STATUS
+046130   %            41 - FORMAT FLOPPY
+046130   %            42 - READ FORMAT
+046130   %            43 - READ DELETED RECORD
+046130   %            44 - WRITE DELETED RECORD
+046130   %            46 - READ-CURRENT-ADDRESS
+046130   %            47 - WRITE-NEW-ADDRESS
+046130   %            54 - COPY-FLOPPY
+046130   %            55 - FORMAT-TRACK
+046130   %            56 - CHECK-CARTRIDGE (READ AND TEST CRC)
+046130   %            57 - TEST CARTRIDGE CAPASITY (WRITE)
+046130   %            70 - RETENSION CARTRIDGE
+046130   %            71 - PERFORM TEST
+046130   %            72 - ILLEGAL COMMAND
+046130   %            73 - CLEAR
+046130   %            74 - CONTINIOUS READ
+046130   %            75 - CONTINIOUS WRITE
+046130   %
+046130   %       BIT 6-7: UNIT NUMBER  (0,1,2,3)
+046130   %
+046130   %       BIT 12: STREAMER CASSET
+046130   %
+046130   %       PAR-1 (24-BIT MEMORY ADDRESS)
+046130   %
+046130   %       PAR-2 (DISK ADDRESS (LOGIC SECTOR ADDRESS))
+046130   %
+046130   %       PAR-3 AMOUNT TO TRANSFER (LOGICAL BLOCKS)) IF READ/WRITE
+046130   %             ELSE PAR-3=FORMAT NO. IF FUNCTION IS SELECT FORMAT
+046130   %
+046130   %  THE FUNCTION FLAGS ARE:
+046130   %
+046130   %      BITS 0 TO 10   = TIMEOUT IN SECONDS
+046130   %                          777=MAX (SFTIM(100))
+046130
+046130   % SYMBOL  3FLOP = 11 % LEGAL ON FLOPPY
+046130   % SYMBOL  3STRE = 12 % LEGAL ON STREAMER
+046130   % SYMBOL  3FLTI = 13 % SHORT FLOPPY TIMEOUT (SFTIM (101)).
+046130   % SYMBOL  3FRES = 14 % LEGAL ONLY FROM RT-PROGS ON RING 2
+046130   % SYMBOL  3DOUA = 15 % DOUBLE ADDRESS; BITS 0-5 GIVES NEW FUNCTION TO USE
+046130   % SYMBOL  3DOUB = 16 % DOUBLE AMOUNT; BITS 0-5 GIVES NEW FUNCTION TO USE
+046130   % SYMBOL  3ILLF = 17 % ILLEGAL FUNCTION
+046130
+046130   @ICR
+046130
+046130   INTEGER ARRAY SFTIM := (
+046130    7170,   7170,  23056,   1001,     -1,     -1,     -1,   2777,
+046140    3700,   1700,   3020,   7200,     -1,   1001,   1001,     -1,
+046150    3001,  33073,     -1,     -1,   3001,     -1,     -1,     -1,
+046160      -1,     -1,     -1,     -1,     -1,     -1,   3010,     -1,
+046170    1010,   1170,   1010,   1010,   1010,     -1,   1001,   1001,
+046200      -1,     -1,     -1,     -1,  11400,   1100,   3777,   2777,
+046210   21000,  21001,  23003,  21003,  42074,  42075,  21000,     -1,
+046220    2777,  12777,   2001,   2777,  12200,  12200,     -1,     -1,
+046230    1400,       % MAX TIMEOUT
+046231      10);      % SHORT FLOPPY TIMEOUT  (CHANGED FROM 4 TO 10)
+046232
+046232   @CR;
+046232
+046232   INTEGER SFFUN                % FLAGS AND TIMOUT COUNTER
+046233
+046233   SUBR TFDISK,FDIBUS,FDIFIN,FDIFEIL,BUFDISC,FINFDISC,FLV1STFL
+046233
+046233   % LOCAL SUBROUTINE TO CHANGE FUNCTION CODE WHEN THIS IS REQUIRED
+046233   % ENTRY WITH D=DATAFIELD; EXIT WITH X=DATAFIELD
+046233   CHFFUNC: X:=77; X/\T; X:=:D; X.CTRG/\177700\/D=:X.CTRG     % NEW FUNCTION
+046242            X:=:D
+046243            *1BANK
+046244            SFTIM(X)=:SFFUN
+046246            *2BANK
+046247            X:=D
+046250            EXIT
+046251
+046251   TFDISK: X:=:B
+046252          0=:X.HSTAT=:X.CERRCODE
+046254          T:=ABFUN; AD:=MEMAD=:X.MEMAD; T=:X.CTRG
+046260          X=:D:=77; X/\T
+046263          *1BANK
+046264          T:=SFTIM(X)=:SFFUN                        % FLAGS ACCORDING TO FUNCTION
+046266          *2BANK
+046267          IF T<0 GO FAR D201ER                      % ILLEGAL FUNCTION
+046271          IF T BIT 3FRESTRICTED THEN                % FUNCTION ONLY ALLOWED FROM RT-PROGS ON RING 2-3
+046273             IF D.RTRES=0 GO FAR D201ER             % FLOPPY NOT RESERVED
+046277             IF A.STATUS BIT 5BACKGR OR X.ACTPRI/\3<2 GO FAR D201ER  % ONLY LEGAL FOR RT-PROGS ON RING 2
+046310          FI
+046310          IF T BIT 3DOUA THEN                       % DOUBLE FLOPPY DISC ADDRESS
+046312             CALL CHFFUNC                           % USE ANOTHER FUNCTION
+046313             T:=ABP31; AD:=ABPA2  % PICKYLPAR
+046315             IF A><0 THEN X=:B; GO FAR 100ER FI     % OUTSIDE DEVICE LIMITS
+046320             A:=D=:X.CDRG                           % FLOPPY DISC ADDRESS
+046322          ELSE IF T BIT 3DOUB THEN                  % DOUBLE WORDCOUNT
+046325             CALL CHFFUNC                           % USE ANOTHER FUNCTION
+046326             T:=ABP21; AD:=ABPA3  % PICKXLPAR
+046330             %% A=:X.DWONO                          % NOT USED NOW
+046330             A:=D=:X.CXRG                           % WORDCOUNT
+046332          ELSE
+046333             X:=D; T:=ABP31; A:=ABP21 % PICKLPAR
+046336             A=:X.CDRG    % :=D=:X."FRETURN"
+046337          FI; FI; T=:X.CXRG
+046340          B:=X; GO L1; *)FILL                       % B=ADDR OF DATAFIELD
+046350
+046350   L1:    IF CTRG/\700 SHZ -6>MAXUNIT GO FAR 173ER  % ILLEGAL UNIT NUMBER
+046356          A=:CFLUN
+046357
+046357          *1BANK
+046360          T:=SFFUN
+046361          *2BANK
+046362          IF CTRG NBIT 14 AND T BIT 3FLTI THEN      % NOT STREAMER AND SHORT TIMOUT
+046367             *1BANK
+046370             SFTIM(101)
+046372             *2BANK
+046373          ELSE
+046374             *1BANK
+046375             IF SFFUN/\777=777 THEN SFTIM(100) FI
+046404             *2BANK
+046405          FI; A-=:TTMR                              % TIMEOUT IN SECONDS
+046407          IF "TRNSF"="BFDIS" THEN -1 ELSE -3 FI
+046416          A=:TACNS                                  % RETRY COUNTER
+046417          X:=CFLUN                                  % X=FLOPPY UNIT NUMBER
+046420          IF CTRG/\77 =24 OR A=20 THEN
+046430             SHSTAT(X)=:HSTAT; GO FAR FIN           % READ STATUS/LAST STATUS
+046433          FI
+046433
+046433          IF CTRG BIT 14 GO FAR RWOPER              % STREAMER TAPE
+046436
+046436          IF A/\77<2 OR A=43 OR A=44 GO FAR RWOPER  % READ & WRITE
+046450
+046450          IF A=13 OR A=15 OR A=16 OR A=47 THEN      % POSITION THE DISC
+046464                IF CTRG/\77=13 THEN A:=0 ELSE       % REWIND
+046473                   IF A=15 THEN NFDIADR(X)-1 ELSE   % BACKSPACE ONE RECORD
+046501                      IF A=47 THEN CXRG ELSE        % SET CURRENT DISC ADDR
+046506                         NFDIADR(X)+1               % ADVANCE ONE RECORD
+046510                      FI
+046510                   FI
+046510                FI; T:=A; X:=FDIFORM(X)             % T=NEW FLOPPY DISC ADDR; X=FLOPPY FORMAT NUMBER
+046512                X:=LFADDR(X)                        % X=LAST ADDRESS FOR THIS FORMAT
+046513                IF CTRG/\77-16=0 THEN X+1 FI        % ADVANCE ONE RECORD
+046520                IF T>>=X GO 100ER                   % OUTSIDE DEVICE LIMITS
+046522                T=:NFDIADR(CFLUN); GO FIN; *)FILL   % SET NEXT DISC ADDRESS
+046536          FI
+046536          IF A=40 THEN                              % SELECT FORMAT
+046541                IF X:=CXRG>>17 OR LFADDR(X)<0 THEN 174; GO FINER FI    % ILLEGAL FORMAT
+046551                CXRG=:FDIFORM(CFLUN); GO FIN
+046555          FI
+046555          IF A=41 THEN                              % FORMAT FLOPPY
+046560                FDIFORM(X) SH 10+CTRG=:CTRG
+046564                1=:CXRG; 0=:CDRG; TAD:=CTADRG; X:=CXRG; CALL CFDISK
+046572                IF HSTAT BIT 4 THEN 223; GO FINER FI
+046577                GO FIN
+046600          FI; GO OVER; *)FILL
+046603
+046603   RFIN:  T:=ABA31; X:=ABA32; * STATX
+046606   FINFDISC:
+046606   FIN:   0=:TMR; IF RTRES><0 THEN CALL RTACT FI
+046612          CALL ID11; A+1; GO ERR22
+046615
+046615   173ER:  A:=173; GO FINER
+046617   D201ER: D=:B; A:=201; GO FINER
+046622   D100ER: D=:B
+046623   100ER:  A:=100                                    % OUTSIDE DEVICE LIMITS
+046624   FINER:  A=:CERRCODE
+046625   EFINER: HSTAT BONE 4=:HSTAT; GO FIN
+046631
+046631   OVER:  IF A=42 THEN                              % READ FORMAT
+046634                FDIFORM(X) SH 10+CTRG=:CTRG
+046640                NFDIADR(X)=:CDRG; 1=:CXRG
+046644                TAD:=CTADRG; X:=CXRG; CALL CFDISK
+046647                IF HSTAT BIT 4 GO EFINER
+046652                IF "TRNSF"="BFDIS" THEN A:=D ELSE A:=DRG FI
+046661                A/\17=:FDIFORM(CFLUN); GO RFIN
+046665          FI
+046665          IF A=12 THEN                              % WRITE EOF
+046670                FDIFORM(X) SH 10+CTRG/\177700+5=:CTRG % FUNC=5 =WRITE DELETED RECORD
+046676                1=:CXRG; A:=B=:CARG
+046702                NFDIADR(X)=:CDRG+1=:NFDIADR(X)
+046706                X:=FDIFORM(X); T:=LFADDR(X)         % T=LAST ADDRESS FOR THIS FORMAT
+046710                IF CDRG>>T GO 100ER                 % OUTSIDE DEVICE LIMIT
+046713                TAD:=CTADRG; X:=CXRG; CALL CFDISK; GO FIN
+046717          FI
+046717          IF A=46 THEN                              % READ CURRENT DISC ADDR.
+046722                A:=NFDIADR(X); GO RFIN
+046724          FI
+046724          IF A=54 THEN                              % COPY FLOPPY DISKETTE
+046727                CXRG/\3 SHZ 14                      % DESTINATION UNIT
+046732                A\/CTRG=:CTRG                       % TO BITS 14-15 IN FUNC.
+046734                GO FAR RWOPER
+046735          FI
+046735          IF A=10 THEN A:=1 ELSE                    % ADVANCE TO EOF
+046742             IF A=11 THEN A:=-1 ELSE                % REVERSE TO EOF
+046747                IF A=3 GO FIN                       % COMPARE
+046752                GO RWOPER; *)FILL                   % ILLEGAL FUNCTION??
+046765             FI
+046765          FI; A=:FDIMOD
+046766          FDIFORM(X) SH 10+CTRG/\177700+2=:CTRG
+046774          1=:CXRG; NFDIADR(X)=:CDRG
+047000          IF FDIMOD<0 THEN CDRG-1=:CDRG FI
+047005          DO                                        % UNTIL EOF IS FOUND OR UNTIL ERROR
+047005                X:=FDIFORM(CFLUN); T:=LFADDR(X)     % T=LAST ADDRESS FOR THIS FORMAT
+047010                IF CDRG>>T GO FAR 100ER             % OUTSIDE DEVICE LIMITS
+047013                X:=CXRG; TAD:=CTADRG; CALL CFDISK
+047016                IF HSTAT BIT 4 GO FAR FIN
+047021                IF A BIT 5 THEN                     % DELETED RECORD
+047023                      IF FDIMOD>0 THEN A+CDRG=:CDRG FI
+047030                      GO OUT
+047031                FI; CDRG+FDIMOD=:CDRG
+047034          OD
+047035   OUT:   CDRG=:NFDIADR(CFLUN)
+047040          HSTAT BZERO 4=:HSTAT; GO FAR FIN
+047044   *)FILL
+047050
+047050   % READ AND WRITE FUNCTIONS
+047050
+047050   RWOPER:IF CTRG NBIT 14 THEN                      % IF NOT STREAMER
+047053             FDIFORM(X) SH 10+CTRG=:CTRG
+047057             X:=FDIFORM(X); T:=LFADDR(X)            % T=LAST ADDRESS FOR THIS FORMAT
+047061             IF CDRG+CXRG>>T GO FAR 100ER           % OUTSIDE DEVICE LIMIT
+047065          FI; TACNS=:TACOUNT
+047067          FOR TACOUNT DO
+047067             AD:=MEMAD=:CMADR; X:=CXRG; TAD:=CTADRG; CALL CFDISK
+047074             IF CTRG/\77=43 THEN                 % DELETED RECORD
+047101                IF HSTAT NBIT 5 THEN 231; GO FAR FINER FI  % ERROR, NOT DELETED RECORD
+047106             ELSE
+047107                IF HSTAT BIT 5 THEN 3; GO FAR FINER FI     % ERROR: END-OF-FILE
+047114             FI; IF HSTAT NBIT 4 GO FAR FIN
+047117          OD; GO FAR FIN
+047122
+047122   CFDISK: TAD=:TADRG; X=:XRG; A:=L=:"CFLRG"
+047126   FLV1STFL: TTMR=:TMR          % RESTARTED HERE FROM RT-PROG WHEN I/O FLOPPY (OLD FLOPPY)
+047130          DO
+047130                X:=XRG; TAD:=TADRG
+047132                CALL TRNSF; GO ERROR; GO BUSY; GO FINISH
+047136   FDIBUS:      CALL ID11                                     % RETURN HERE WHEN BUSY
+047137          OD
+047140
+047140   % SAVED FOR EACH ERROR RETURN FROM DRIVER
+047140   INTEGER LEHSTAT                        % HSTAT WHEN LAST ERROR RETURN FROM DRIVER
+047141   INTEGER LETREG                         % T-REG WHEN LAST ERROR RETURN FROM DRIVER
+047142   INTEGER LEAREG                         % A-REG WHEN LAST ERROR RETURN FROM DRIVER
+047143   INTEGER LEDREG                         % D-REG WHEN LAST ERROR RETURN FROM DRIVER
+047144   INTEGER ECTRG,ECARG,ECDRG,ECXRG        % CALLING PROGRAMS REGISTERS WHEN ERROR OCCURES
+047150   TRIPLE LETAD=LETREG,FECTREG=ECTRG
+047150
+047150   BUFDISC: X BONE 6; GO FDIFEIL                              % TIMEOUT
+047152
+047152   FDIFEIL: X BONE 4=:HSTAT=:LEHSTAT                % RETURN HERE WHEN ERROR
+047155          TAD=:LETAD:=CTADR=:FECTREG; CXRG=:ECXRG
+047162          HSTAT=:SHSTAT(CFLUN)
+047165          A\/AERRB=:AERRB; MIN ERCNT; 0/\0
+047171          GO CFLRG
+047172
+047172   FDIFIN: X=:HSTAT                                 % RETURN HERE WHEN FINISHED
+047173          A:=X=:SHSTAT(CFLUN)
+047176          GO CFLRG
+047177
+047177   RBUS
+047207
+047207
+047207
+047207   *"8DBUG
+"047207   *"8UDMA+8VICO
+"047207   SUBR ND852
+047207   @MAC
+
+)9SCLC
+047207  %
+047207  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+047207  %%  DRIVER FOR ND852 UNIVERSAL DMA INTERFACE
+047207  %%
+047207  %%
+047207  %%  DRIVER TO BE CALLED WITH:
+047207  %%
+047207  %%  T = FUNCTION CODE,   PARAMETER (D AND X  REG)      INN    /  OUT
+047207  %%       0  : DMA INPUT I.E. READ FROM INTERFACE  *   LENGTH     ACTUAL LENGTH
+047207  %%       1  : DMA OUTPUT I.E. WRITE TO INTERFACE  *   LENGTH          -
+047207  %%       2  : SAME AS 0 BUT IMMEDIATE RETURN      *   LENGTH
+047207  %%       3  : SAME AS 1 BUT IMMEDIATE RETURN      *   LENGTH          -
+047207  %%       7  : TEST MODE                                 -        HARDW. STATUS
+047207  %%       20 : ND852 STATUS READ                         -        HARDW. STATUS
+047207  %%       21 : DEVICE CLEAR                              -             -
+047207  %%       24 : LAST STATUS FROM DATAFIELD                -        HARDW. STATUS
+047207  %%            (HANDLED BY TRANSFER ROUTINE)
+047207  %%       54 PIO INPUT  WITHOUT INTERUPT          **   USCO PIOD
+047207  %%       55 PIO OUTPUT WITHOUT INTERUPT          **   USCO PIOD
+047207  %%       56 : PIO INPUT                          **   USCO PIOD
+047207  %%       57 : PIO OUTPUT                         **   USCO PIOD
+047207  %%       62 : WAIT ON INTERUPT/DMA FINISH             1/0        HARDW. STATUS
+047207  %%       // : ENA/DISA-BLE RTENTRY ON INTERUPT        2/3        HARDW. STATUS
+047207  %%       64 : ENABLE ATTENTION INTERRUPT
+047207  %%       65 : DISABLE ATTENTION INTERRUPT
+047207  %%       70 : USER CONTROL LINES ARE WRITTEN INTO THE  Us.st.lin
+047207  %%            CONTROL REGISTER BITS 8 - 15 WITH
+047207  %%            BITS 0 - 7 ALL ZERO
+047207  %%
+047207  %%
+047207  %%       MEMORY ADDRESS IN MEMAD AND MEMAD + 1
+047207  %%    *  LENGTH IS DOUBLE WORD IN D AND X-REG
+047207  %%   **  PARAMETER IN D AND X-REG   DATA FOR PIO OUTPUT IN X-REG.
+047207  %%       DATA FROM PIO INPUT IN INDAT (AERRB).
+047207  %%       USER CONTROLL LINES TO BE WRITTEN TO CONTROLL WORD IN D-REG.
+047207  %%
+047207  %%       IN STATUS REGISTER (HSTAT)
+047207  %%       I------------------------------------I
+047207  %%       I ....  9  8  7  6  5  4  3  2  1  0 I
+047207  %%       I-----------I------------------------I
+047207  %%       I SET BY    I BIT 0-7 FROM HARDWARE STATUS REG.
+047207  %%       I SOFTW.    I BIT 4 : ERROR/ABORT INDICATOR SET BY HARDW. AND SOFTW.
+047207  %%
+047207  %%       BIT 8 IS THE ATTENTION  INTERRUPT INDICATOR
+047207  %%       BIT 9 IS THE TIMEOUT INDICATOR
+047207  %%
+047207  %%       IN RETURN PARAMETER WHEN FUNCK >< 0
+047207  %%       I------------------------------------------------------------I
+047207  %%       I .... 17 16 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0 I
+047207  %%       I-----------I------------------------------------------------I
+047207  %%       I LEFT BYTE I   BIT 0-15 FROM HARDWARE STATUS REGISTER
+047207  %%       I FROM HSTATI
+047207  %%
+047207  %%       BIT 16 IS THE ATTENTION  INTERRUPT INDICATOR
+047207  %%       BIT 17 IS THE TIMEOUT INDICATOR
+047207  %%
+047207  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+047207  %%       DEFINITIONS FOR IOX INSTRUCTIONS
+047207  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+047207  % REMAR=0      % READ PRESENT MEMORY ADDRESS REGISTER
+047207  % LOMAR=1      % LOAD MEMORY ADDRESS REGISTER
+047207  DRDAT=2     % READ DATA INPUT REGISTER
+047207  DLDAT=3     % LOAD DATA OUTPUT REGISTER
+047207  RSTAT=4     % READ STATUS REGISTERS
+047207  LCONT=5     % LOAD CONTROL WRITE REGISTER
+047207  LWCNT=7     % LOAD WORD COUNTER REGISTER
+047207  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+047207  %%
+047207  %%       MAIN DRIVER
+047207  %%
+047207  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+047207  % MACRO TO EXECUTE IOX-INSTR DATA IN A-REG
+047207  )MCDEF UIOX  $FUNIX
+
+        LDT   HDEV ,B
+        AAT  $FUNIX
+
+        IOXT
+
+]
+047207  %
+047207  %   MAIN DRIVER
+047207  ND852,  1BANK
+047210          STF I (9TREG          % SAVE T A & D REG
+047211          STX I (9XREG          % SAVE X
+047212          COPY  SL DA
+047213          STA I (9LREG
+047214          2BANK
+047215          UIOX  RSTAT
+
+047215
+047215          LDT   HDEV ,B
+047216          AAT   RSTAT
+047216
+047217          IOXT
+047220
+047220
+047220          STA   USTAT ,B       % SAVE IN DATA FIELD
+047221          JAP   *+2            % ATTENTION INT NOT OCCURED
+047222          STA   ATINT ,B       % SET ATTENTION INT OCCURED
+047223          AND   (377           % MASK OFF USER STATUS BITS
+047224          STA   HSTAT ,B       % SAVE IN DATA FIELD
+047225  SWTST,  LDA   SOFTA,B        % SOFTWARE ACTIVATED ?
+047226          JAF   FUNCTEST       % YES TEST FUNCTION
+047227          LDA   BUSFL ,B       % DMA OR PIO INTERRUPT ?
+047230          JAF   *+2            % JMP IF YES
+047231          JMP I (USTRT         % NO TEST FOR RTENTRY
+047232          AAA   -1
+047233          JAF   NOTDMA
+047234          LDA   HSTAT ,B       % PICK UP STATUS
+047235          BSKP  ONE 20 DA      % DMA INTERRUPT ?
+047236          JMP I (DMACT         % JMP IF YES
+047237  NOTDMA, AAA   -1             % PIO INPUT INTERRUPT ?
+047240          JAF  *+2
+047241          JMP I (PIOININT      % JMP IF YES
+047242          AAA   -1             % PIO OUTPUT INTERRUPT ?
+047243          JAF  *+2
+047244          JMP I (PIOOUTINT     % JMP IF YES
+047245          AAA   -1
+047246          JAF  *+2
+047247          JMP I (WODINT        % WAIT ON INTERUPT INTERUPT
+047250          JMP I (USTRT
+047251  %
+047251  %       DMA NOT ACTIVE, TEST FUNCTION FROM USER
+047251  %
+047251  FUNCTEST, STZ  SOFTA ,B      % CLEAR SOFTA
+047252          1BANK
+047253          LDA I (9TREG         % FUNCTION
+047254          2BANK
+047255          BSKP  ZRO 170 DA
+047256          JMP I (ERRFU         % ILLEGAL FUNC
+047257          JAF   *+2
+047260          JMP I (DMAI          % FUNC = 0 DMA INPUT
+047261          AAA   -1
+047262          JAF   *+2
+047263          JMP I (DMAUT         % FUNC = 1 DMA OUTPUT
+047264          AAA   -1
+047265          JAF   *+2
+047266          JMP I (XDMAI         % FUNC = 3 DMA INPUT AND NO WAIT
+047267          AAA   -1
+047270          JAF   *+2
+047271          JMP I (XDMAU         % FUNC = 4 DMA OUTPUT AND NO WAIT
+047272          AAA   -4
+047273          JAF   *+2
+047274          JMP I (UTEST         % FUNC = 7 TEST MODE
+047275          AAA   -11
+047276          JAF   *+2
+047277          JMP I (FINI          % FUNC = 20 INTERFACE STATUS READ
+047300          AAA   -1
+047301          JAF   *+2
+047302          JMP I (DCLEA         % FUNC = 21 CLEAR DEVICE
+047303          AAA   -33
+047304          JAF   *+2
+047305          JMP I (PIONI         % FUNC = 54 PIO INPUT  WITHOUT INTERUPT
+047306          AAA   -1
+047307          JAF   *+2
+047310          JMP I (PIONO         % FUNC = 55 PIO OUTPUT WITHOUT INTERUPT
+047311          AAA   -1
+047312          JAF   *+2
+047313          JMP I (PIOIN         % FUNC = 56 PIO INPUT
+047314          AAA   -1
+047315          JAF   *+2
+047316          JMP I (PIOUT         % FUNC = 57 PIO OUTPUT
+047317          AAA   -3
+047320          JAF * +2
+047321          JMP I (WODMA         % FUNC = 62 WAIT ON INTERUPT
+047322          AAA   -2
+047323          JAF *+2
+047324          JMP I (ENABA         % FUNC = 64 SET ENABLE ATTENTION INTERRUPT
+047325          AAA   -1
+047326          JAF *+2
+047327          JMP I (DISAA
+047330          AAA   -3
+047331          JAF *+2
+047332          JMP I (USERC
+047333          JMP I (ERRFU          % WRONG FUNCTION
+047334  )FILL
+047365
+047365
+047365  %---------------------------------------------------------------
+047365  %       FUNC 0 & 2 DMA INPUT
+047365  %
+047365  XDMAI,  SAA   -1
+047366          STA   NOWFL ,B       % SET NO WAIT
+047367          JMP *+2
+047370  DMAI,   STZ   NOWFL ,B
+047371          SAT   7              % DMA INPUT CONTROL
+047372          JMP   DMACO
+047373  %
+047373  %       FUNC 1 & 3 DMA OUTPUT
+047373  %
+047373  XDMAU,  SAA   -1
+047374          STA   NOWFL ,B       % SET NO WAIT
+047375          JMP *+2
+047376  DMAUT,  STZ   NOWFL ,B
+047377          LDT   (207           % DMA OUTPUT CONTR
+047400  DMACO,  STZ   NOWL  ,B
+047401          STZ   NOWH  ,B       % ZERO NO OF WORD TRANSF
+047402          COPY  ST DD          % SAVE CONTROL IN DREG
+047403          LDA   HSTAT ,B       % PICK UP STATUS  %------- NEW TEST
+047404          BSKP ONE 20 DA       % DMA ACTIVE ?
+047405          JMP   DMAOK          % JUMP IF NO
+047406          BSET ONE 40 DA       % SET ERROR INDICATOR
+047407          STA   HSTAT ,B
+047410          JMP I (FINI          % ACTIVATE USER
+047411  DMAOK,  LDA   MEMA1 ,B       % UPPER 16 BITS OF MEMORY ADDRESS
+047412          UIOX  LOMAR           % WRITE CORE ADDR REG UPPER PART
+
+047412
+047412          LDT   HDEV ,B
+047413          AAT   LOMAR
+047413
+047414          IOXT
+047415
+047415
+047415          LDA   MEMA2,B        % LOWER 16 BITS OF MEMORY ADDRESS
+047416          UIOX  LOMAR
+
+047416
+047416          LDT   HDEV ,B
+047417          AAT   LOMAR
+047417
+047420          IOXT
+047421
+047421
+047421          LDA   9DREG
+047422          UIOX  LWCNT          % WRITE WORDCOUNTER UPPER BITS
+
+047422
+047422          LDT   HDEV ,B
+047423          AAT   LWCNT
+047423
+047424          IOXT
+047425
+047425
+047425          LDA   9XREG
+047426          UIOX  LWCNT
+
+047426
+047426          LDT   HDEV ,B
+047427          AAT   LWCNT
+047427
+047430          IOXT
+047431
+047431
+047431          COPY  SD DA          % SET I/O CONTR AND INTERRUPT ENABLE
+047432          ORA   ATTNI ,B       % ENABLE ATTENTION INTERRUPT ?
+047433          ORA   UCLIN ,B
+047434          UIOX  LCONT          % START DMA TRANSFER
+
+047434
+047434          LDT   HDEV ,B
+047435          AAT   LCONT
+047435
+047436          IOXT
+047437
+047437
+047437          SAA   1              % SET DMA ACTIVE
+047440          STA   BUSFL ,B
+047441          LDA   NOWFL ,B       % NO WAIT MODE ?
+047442          JAP   *+2
+047443          JMP I (FINA          % YES FINISH DO NOT DESTROY ATINT
+047444          JMP I (UDBEX         % NO WAIT ON INTERUPT
+047445  %---------------------------------------------------------------
+047445  %       DMA ACTIVE  DRIVER STARTED BY AN EXTERNAL INTERRUPT.
+047445  DMACT,  JPL I (NOWTR         % CALCULATE NO OF WORD TRANSFERED
+047446          LDA   NOWFL ,B       % NO WAIT MODE ?
+047447          JAZ   *+2
+047450          JMP I (UDBEX         % YES BUSYEX
+047451          JMP I (FINI
+047452  %---------------------------------------------------------------
+047452  %  FUNC = 7    TEST MODE
+047452  UTEST,  SAA   10
+047453          ORA   UCLIN ,B
+047454          UIOX  LCONT
+
+047454
+047454          LDT   HDEV ,B
+047455          AAT   LCONT
+047455
+047456          IOXT
+047457
+047457
+047457          JMP I (FINI
+047460  %---------------------------------------------------------------
+047460  %       FUNC 21 CLEAR  852
+047460  DCLEA,  JPL   DCLW
+047461          STZ   UCLIN,B
+047462          STZ   ATTNI,B
+047463          STZ   NOWFL,B         % CLEAR NO WAIT FLAG
+047464          LDX   DFOPP,B
+047465          STZ   ISTAT,X         % CLEAR RTENTRY ON INTERUPT
+047466          JMP I (FINI           % EXIT
+047467
+047467  % MASK OF ILLEGAL USER CONTROLL LINES IN 9DREG
+047467  UCMA,   LDA   9DREG           % DREG= USER CONTROLL LINES FOR PIO INN/OUTPUT
+047470          AND   (177400         % MASK OF ILLEGAL BIT
+047471          STA   9DREG
+047472          EXIT
+047473  % CLERA DEVICE AND WRITE ZERO IN THE WORD COUNTER
+047473  DCLW,    SAA   20
+047474           UIOX  LCONT
+
+047474
+047474          LDT   HDEV ,B
+047475          AAT   LCONT
+047475
+047476          IOXT
+047477
+047477
+047477           SAA   0              % ZERO WORD COUNTERR
+047500           UIOX  LWCNT
+
+047500
+047500          LDT   HDEV ,B
+047501          AAT   LWCNT
+047501
+047502          IOXT
+047503
+047503
+047503           IOXT
+047504           EXIT
+047505
+047505  %---------------------------------------------------------------
+047505  %       FUNC 54 PIO INPUT WITHOUT INTERUPT
+047505  PIONI,  JPL   DCLW           % CLERA DEVICE AND WRITE ZERO IN THE WORD COUNTER
+047506          JPL   UCMA           % MASK OF ILLEGAL USER CONTROLL LINES IN 9DREG
+047507          SAA   104            % BIT 2 = ACRIVATE TRANSFER, BIT 6 = PIO MODE
+047510          ORA   UCLIN ,B       % PERMANENT USER CONTROLL LINES
+047511          ORA   ATTNI ,B       % ATTENTION INT ENABLE ?
+047512          ORA   9DREG          % USER CONTROLL LINE(S) FOR HANDSHAKE ETC.
+047513          UIOX  LCONT
+
+047513
+047513          LDT   HDEV ,B
+047514          AAT   LCONT
+047514
+047515          IOXT
+047516
+047516
+047516          UIOX  DRDAT
+
+047516
+047516          LDT   HDEV ,B
+047517          AAT   DRDAT
+047517
+047520          IOXT
+047521
+047521
+047521          STA   INDAT ,B       % SAVE PIO DATA
+047522          JMP   I (FINWA       % GET STATUS AND RETURN TO USER
+047523  %---------------------------------------------------------------
+047523  %       FUNC 55 PIO OUTPUT WITHOUT INTERUPT
+047523  PIONO,  JPL   DCLW           % CLERA DEVICE AND WRITE ZERO IN THE WORD COUNTER
+047524          JPL   UCMA           % MASK OF ILLEGAL USER CONTROLL LINES IN 9DREG
+047525          LDA   (300           % BIT 6 = PIO MODE, BIT 7 = OUTPUT
+047526          ORA   UCLIN ,B       % PERMANENT USER CONTROLL LINES
+047527          ORA   ATTNI ,B       % ATTENTION INT ENABLE ?
+047530          UIOX  LCONT          %
+
+047530
+047530          LDT   HDEV ,B
+047531          AAT   LCONT
+047531
+047532          IOXT
+047533
+047533
+047533          LDA   9XREG          % GET PIO DATA
+047534          UIOX  DLDAT
+
+047534
+047534          LDT   HDEV ,B
+047535          AAT   DLDAT
+047535
+047536          IOXT
+047537
+047537
+047537          LDA   (304           % BIT 2 = ACTIVATE TRANSFER
+047540          ORA   UCLIN ,B       % PERMANENT USER CONTROLL LINES
+047541          ORA   ATTNI ,B       % ATTENTION INT ENABLE ?
+047542          ORA   9DREG          % USER CONTROLL LINE(S) FOR HANDSHAKE ETC.
+047543          UIOX  LCONT
+
+047543
+047543          LDT   HDEV ,B
+047544          AAT   LCONT
+047544
+047545          IOXT
+047546
+047546
+047546          JMP   FINWA          % GET STATUS AND RETURN TO USER
+047547
+047547  %---------------------------------------------------------------
+047547  %       FUNC 56 PIO INPUT
+047547  PIOIN,  JPL   DCLW           % CLERA DEVICE AND WRITE ZERO IN THE WORD COUNTER
+047550          JPL   UCMA           % MASK OF ILLEGAL USER CONTROLL LINES IN 9DREG
+047551          SAA   100            % BIT 6 = PIO MODE
+047552          ORA   ATTNI ,B       % ATTENTION INT ENABLE ?
+047553          ORA   UCLIN ,B
+047554          UIOX  LCONT          % SET PIO MODE
+
+047554
+047554          LDT   HDEV ,B
+047555          AAT   LCONT
+047555
+047556          IOXT
+047557
+047557
+047557          SAA   105            % BIT 0 = ENA. INT. ON RFT, BIT 2 = ACTIVATE TRANSF.
+047560          ORA   ATTNI ,B       % ATTENTION INT ENABLE ?
+047561          ORA   UCLIN ,B
+047562          ORA   9DREG          % USER CONTROLL LINE(S) FOR HANDSHAKE ETC.
+047563          UIOX  LCONT
+
+047563
+047563          LDT   HDEV ,B
+047564          AAT   LCONT
+047564
+047565          IOXT
+047566
+047566
+047566          SAA   2
+047567          STA   BUSFL ,B       % SET PIO INPUT ACTIVE
+047570          JMP   UDBEX          % WAIT FOR INTERRUPT
+047571  )FILL
+047602  %---------------------------------------------------------------
+047602  %   PIO INPUT INTERRUPT
+047602  PIOININT,UIOX DRDAT          % READ INTERFACE DATA REGISTER
+
+047602
+047602          LDT   HDEV ,B
+047603          AAT  DRDAT
+047603
+047604          IOXT
+047605
+047605
+047605          STA   INDAT ,B
+047606          JMP   FINI
+047607  9LREG,  0
+047610  9TREG,  0
+047611  9AREG,  0
+047612  9DREG,  0
+047613  9XREG,  0
+047614  %
+047614  %---------------------------------------------------------------
+047614  %       FUNCTION 57 PIO OUTPUT
+047614  PIOUT,  JPL   DCLW           % CLERA DEVICE AND WRITE ZERO IN THE WORD COUNTER
+047615          JPL   UCMA           % MASK OF ILLEGAL USER CONTROLL LINES IN 9DREG
+047616          LDA   (300           % BIT 6 = PIO MODE, BIT 7 = OUTPUT
+047617          ORA   ATTNI ,B       % ENABLE ATTENTION INTERRUPT ?
+047620          ORA   UCLIN ,B
+047621          UIOX  LCONT          % INIT PIO OUTPUT MODE
+
+047621
+047621          LDT   HDEV ,B
+047622          AAT   LCONT
+047622
+047623          IOXT
+047624
+047624
+047624          LDA   9XREG          % PICK UP PIO OUTPUT DATA
+047625          UIOX  DLDAT
+
+047625
+047625          LDT   HDEV ,B
+047626          AAT   DLDAT
+047626
+047627          IOXT
+047630
+047630
+047630          LDA   (305           % BIT 0 = ENA. INT. ON RFT, BIT 2 = ACTIVATE TRANSF.
+047631          ORA   ATTNI ,B       % ENABLE ATTENTION INTERRUPT ?
+047632          ORA   UCLIN ,B
+047633          ORA   9DREG          % USER CONTROLL LINE(S) FOR HANDSHAKE ETC.
+047634          UIOX  LCONT          % ENABLE PIO OUT
+
+047634
+047634          LDT   HDEV ,B
+047635          AAT   LCONT
+047635
+047636          IOXT
+047637
+047637
+047637          SAA   3
+047640          STA   BUSFL ,B       % SET PIO OUTPUT ACTIVE
+047641          JMP   UDBEX          % WAIT FOR INTERRUPT
+047642  %---------------------------------------------------------------
+047642  %   PIO OUTPUT INTERRUPT
+047642  PIOOUTINT,
+047643          JMP   FINI
+047644  %---------------------------------------------------------------
+047644  %       FUNC= 62 WAIT ON INTERUPT    ENA/DISA-BLE RTENTRY ON INTERUPT
+047644  WODMA,  LDA   9XREG
+047645          AAA -2               % ENABLE RTENTRY ON INTERUPT
+047646          JAZ   ENNW
+047647          AAA -1
+047650          JAZ  DINW            % DISABLE RTENTRY ON INTERUPT
+047651  %---------------------------- WAIT ON INTERUPT
+047651          LDA   ATINT ,B       % ATTENTION INTERUPT HAS OCCURED
+047652          JAF   WFINI
+047653          LDA   HSTAT ,B       % PICK UP STATUS
+047654          BSKP  ZRO 20 DA      % DMA ACTIVE ?
+047655          JMP   WBUSY          % YES JUST EXIT
+047656          LDA   9XREG          % WAIT ONLY FOR DMA FINISH ?
+047657          JAZ   WFINI          %  YES FINISH
+047660          LDA   ATTNI ,B       % IF ATTENTION INTERUPT ENABLET THEN
+047661          JAF   WBUSY          %       OK    AND BUSY   EXIT
+047662  WFINI,  JMP   FINI           % ELSE  ERROR AND FINISH EXIT; FI
+047663  WBUSY,  SAA   4              % SET WAIT ON INTERUPT
+047664          STA   BUSFL ,B       %
+047665          JMP   UDBEX          % WAIT ON INTERUPT
+047666  %------------------ ENA/DISA-BLE RTENTRY ON INTERUPT
+047666  ENNW,   SAA -1
+047667          JMP *+2
+047670  DINW,   SAA 0
+047671          LDX ,B DFOPP
+047672          STA ,X ISTAT
+047673          JMP   FINI
+047674
+047674  %---------------------------------------------------------------
+047674  %       WAIT ON INTERUPT INTERUPT
+047674  WODINT, LDA   HSTAT ,B
+047675          BSKP  ONE 20 DA      %   IF DMA NOT ACTIVE THEN
+047676          JMP   FINI           %     ACTIVATE USER
+047677          SAA   1              %   ELSE
+047700          STA   BUSFL ,B       %     SET DMA ACTIVE IN BUSFL
+047701          JMP   FINW           %     ACTIVATE USER WITHOUT DESTROING BUSFL
+047702                               %   FI
+047702  %---------------------------------------------------------------
+047702  %       FUNC = 64 SET ATTENTION INTERRUPT ENABLE
+047702  ENABA,  SAA   40             % BIT 5 IN CONTROLL WRITE REGISTER
+047703          STA   ATTNI ,B       % SET ATTENTION INTERRUPT ENABLE
+047704          ORA   UCLIN ,B       % AND USER CONTROLL LINES
+047705          UIOX  LCONT          % WRITE CONTROL REGISTER
+
+047705
+047705          LDT   HDEV ,B
+047706          AAT   LCONT
+047706
+047707          IOXT
+047710
+047710
+047710          JMP   FINI
+047711  %
+047711  %---------------------------------------------------------------
+047711  %       FUNC = 65 RESET ATTENTION INTERRUPT ENABLE
+047711  DISAA,  STZ   ATTNI ,B       % RESET ATTENTION INTERRUPT ENABLE
+047712          STZ   ATINT ,B       % RESET ATTENTION INTERRUPT OCCURED
+047713          JMP   FINI
+047714  %
+047714  %---------------------------------------------------------------
+047714  %       FUNC = 70 WRITE USER CONTROL LINES
+047714  USERC,  LDA   9XREG          % PICK UP CODE FROM USER
+047715          AND   (177400        % GET RID OF ILLEGAL BITS
+047716          STA   UCLIN ,B       % STORE USER CODE
+047717          ORA   ATTNI ,B       % ENABLE ATTENTION INTERRUPT ?
+047720          UIOX  LCONT          % WRITE CONTROL REGISTER
+
+047720
+047720          LDT   HDEV ,B
+047721          AAT   LCONT
+047721
+047722          IOXT
+047723
+047723
+047723          JMP   FINWA          % READ STATUS AND RETURN TO USER
+047724
+047724  %---------------------------------------------------------------
+047724  %       BUSY EXIT
+047724  UDBEX,  LDA   9LREG
+047725          COPY  SA DL
+047726          LDF   9TREG          % UNSAVE REGISTERS
+047727          LDX   9XREG
+047730          EXIT  AD1            % BUSY EXIT
+047731
+047731  %---------------------------------------------------------------
+047731  % ENTRY FROM  FUNCTIONS WITHOUT INTERUPT
+047731  FINWA,  UIOX  RSTAT          % GET AND SAVE STATUS BEFORE RETURNING TO USER
+
+047731
+047731          LDT   HDEV ,B
+047732          AAT   RSTAT
+047732
+047733          IOXT
+047734
+047734
+047734          STA   USTAT ,B
+047735          AND   (377
+047736          STA   HSTAT ,B
+047737          JMP   FINW
+047740  %---------------------------------------------------------------
+047740  %      FINISH  EXIT          % NORMAL ENTRY
+047740  FINI,   STZ   BUSFL ,B
+047741  FINW,   LDX   HSTAT ,B       % ENTRY FROM  WODINT
+047742          LDA   ATINT ,B
+047743          JAZ   FINA
+047744          BSET  ONE 100 DX     % SET ATTENTION INTERRUPT OCCURED
+047745          STX   HSTAT ,B
+047746          STZ   ATINT ,B       % CLEAR ATTENTION INT OCCURED FLAG
+047747  FINA,   LDA   9LREG          % ENTRY FROM DMA AND NO WAIT
+047750          COPY  SA DL
+047751          RINC  DL             % INCREMENT RETURN ADDR TO FINISHED EXIT
+047752          LDA   9AREG
+047753          EXIT  AD1
+047754  )FILL
+047760  %---------------------------------------------------------------
+047760  %       TEST IF INTERRUPT SHOULD START RTENTRY
+047760  USTRT,  LDX   DFOPP ,B       % OUTPUT DF. USED TO START A MONITOR LEVEL FUNCTION
+047761          LDA   RTRES ,X
+047762          JAZ   UDBEX
+047763          LDA   ISTAT ,X
+047764          JAZ   UDBEX
+047765          COPY SB DD
+047766          COPY SX DB
+047767          JPL I (RTACT
+047770          COPY SD DB
+047771          JMP   UDBEX        % BUSY EXIT
+047772
+047772  %---------------------------------------------------------------
+047772  % CALCULATE NO OF WORD TRANSFERED
+047772  NOWTR,  UIOX  REMAR
+
+047772
+047772          LDT   HDEV ,B
+047773          AAT   REMAR
+047773
+047774          IOXT
+047775
+047775
+047775          COPY  SA DD
+047776          UIOX  REMAR
+
+047776
+047776          LDT   HDEV ,B
+047777          AAT   REMAR
+047777
+050000          IOXT
+050001
+050001
+050001          AND   (377            % AD HOLD MEMORY ADDRESS REGISTER
+050002          LDT   MEMA1 ,B
+050003          LDX   MEMA2 ,B
+050004          COPY  CM2 SX DX
+050005          COPY  CM1 ADC ST DT
+050006          RADD SX DD
+050007          RADD  ST DA ADC
+050010          STD   NOWH  ,B
+050011          EXIT
+050012  %---------------------------------------------------------------
+050012  %       WRONG FUNCTION CODE FROM USER
+050012  ERRFU,  SAA   -1             % WRONG FUNCTION CODE
+050013          STA   HSTAT ,B       % SET HW STATUS TO -1
+050014          JMP   FINI
+050015  %
+050015  %       END OF DRIVER
+050015  )FILL
+050017  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+050017  %%
+050017  %%       LEVEL 11 ROUTINE TO PERFORM TRANSFER
+050017  %%       ON  852 UNIVERSAL DMA INTERFACE INCLUDING
+050017  %%       PIO TRANSFERS.
+050017  %%
+050017  %%  PARAMETER LIST TRANSFERD BY A-REG TO ABSTRANS
+050017  %%
+050017  %%  INTEGER POINTER FUNCP          % FUNCTION
+050017  %%  DOUBLE  POINTER MEMOP          % MEMORY ADDRESS
+050017  %%  INTEGER POINTER BLOCP          % NOT USED
+050017  %%  DOUBLE  POINTER DATP           % PARAMETER INN/OUT
+050017  %%
+050017  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+050017
+050017  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+050017  %%       ACTIVATED FROM STDRIV
+050017  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+050017  USDRV,  LDF ,X ABFUN
+050020
+050020          STT ,B CTRG          % FUNCTION CODE
+050021          STD ,B MEMA1         % MEMORY ADDRES
+050022
+050022
+050022          LDD  ,X ABPA3        %   24 BIT WORD COUNTER
+050023          STD  ,B CDRG         %   CDRG= UPPER BITS, CXRG= LOWER BITS
+050024                               %   PIO DATA IN CXRG, PIO UCLIN MASK IN CDRG
+050024                               %   END OF PARAMETER FETCHING
+050024
+050024          LDA   ,B CTRG        % PICK UP FUNCTION
+050025          AAA   -24
+050026          JAZ   UFIN           % JUST EXIT STATUS IS ALREADY IN HSTAT ,B
+050027          LDA   ,B TTMR        % SET TIMEOUT TIME
+050030          STA   ,B TMR
+050031  ULOOP,  LDF   CTRG ,B        % PICK UP PARAMETERS
+050032          LDX   CXRG ,B
+050033          MIN   SOFTA ,B       % SET SOFTWARE ACTIVATED
+050034          COPY  SA DA          % JGA SOFTA=0 TRANSFER DONE (DUMMY)
+050035          JPL I TRNSF ,B       % CALL DRIVER
+050036          JMP I ERROR ,B       % ERROR EXIT
+050037          JMP I BUSY ,B        % BUSY EXIT
+050040          JMP I FINIS ,B       % TRANSFER COMPLETE EXIT
+050041
+050041  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+050041  %%       ACTIVATED FROM DRIVER
+050041  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+050041  UDDRV,  SAA   -1             % JGA INSERTED TO TELL ROUTINE
+050042          STA   SOFTA ,B       % THAT CALL WAS NOT SOFTWARE INITIATED.
+050043          JMP   ULOOP          % CALL TRANSFER AGAIN.
+050044  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+050044  %%       BUSY / ERROR
+050044  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+050044  UBUSY,  STF   CTRG ,B        % SAVE PARAMETERS
+050045          STX   CXRG ,B
+050046          JPL I (WT11          % WAIT FOR INTERRUPT.
+050047  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+050047  %%       FINISH
+050047  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+050047  UFIN,   LDA   RTRES ,B       % ACTIVATE USER ?
+050050          JAZ   NOONE          % JMP IF NOONE TO ACTIVATE
+050051          LDA   CTRG  ,B       % PICK UP FUNCTION
+050052          JAF   NO0            % IF FUNC = 0 THEN RETURN NO OF WORD TRANSF.
+050053          LDD   NOWH  ,B
+050054          JMP   DAPAR
+050055  NO0,    AAA   -54            %
+050056          JAZ   *+3
+050057          AAA   -2
+050060          JAF   NOPO           % IF FUNC =54 OR =56 THEN RETURN PIO DATA
+050061          LDA   INDAT ,B       %
+050062          SAD ZIN SHR 20       % A=:D; A:="0"
+050063          JMP   DAPAR          %
+050064  NOPO,   LDA   USTAT ,B       %  ELSE RETURN USER STATUS
+050065          COPY  SA DD
+050066          LDA   HSTAT ,B       % HSTAT HAVE TIMEOUT, ATTINT ETC.
+050067          SHA ZIN SHR 10       %
+050070  DAPAR,  LDT   ,B ABA31
+050071          LDX   ,B ABA32
+050072          STDTX                % RETURN PARAMETER
+050073          JPL I (RTACT         % ACTIVATE USER
+050074  NOONE,  STZ   ,B TMR         % CLEAR TIMEOUT TIME
+050075          JPL I (WT11          % GO AND WAIT FOR INTERRUPTS
+050076  )FILL
+050100  %%
+050100  %%      END OF LEVEL 11 TRANSFER ROUTINE
+050100  %%
+050100  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+050100  %%
+050100  %%     ROUTINE ON LEVEL 11 TO HANDLE TIMEOUT
+050100  %%
+050100  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+050100
+050100  UD11T,  UIOX  RSTAT          % READ STATUS
+
+050100
+050100          LDT   HDEV ,B
+050101          AAT   RSTAT
+050101
+050102          IOXT
+050103
+050103
+050103          STA   USTAT ,B
+050104          JAN   AYES           % ATTENTION INT ?
+050105          LDX   ATINT ,B       % PREVIOUS ATTENTION INT ?
+050106          JXZ   ANOT
+050107  AYES,   BSET  ONE 100 DA     % SET ATTENTION INT OCCURED
+050110          JMP   *+2
+050111  ANOT,   BSET  ZRO 100 DA
+050112          AND   (777
+050113          BSET  ONE 40 DA      % SET ERROR INDICATOR
+050114          BSET  ONE 110 DA     % SET TIME OUT INDICATOR
+050115          STA   HSTAT ,B       % SAVE IN DATAFIELD
+050116          STZ   ATINT ,B       % RESET ATTENTION INTERRUPT INDICATOR
+050117          LDA   NOWFL,B        % PICK UP STATUS
+050120          JAN   UFIN           % NO WAIT MODE, DO NOT STOP DMA
+050121          LDA   BUSFL ,B       % PICK UP BUSY INDICATOR
+050122          STZ   BUSFL ,B       % CLEAR BUSY INDICATOR
+050123          AAA   -4             % IF WAIT ON INTERUPT THEN
+050124          JAZ   UFIN           %   DO NOT CLEAR DEVICE; FI
+050125          SAA   20             % BIT 4 = DEVICE CLEAR
+050126          ORA   ATTNI ,B       % ENABLE ATTENTION INTERRUPT ?
+050127          STZ   UCLIN ,B       % USER CONTROLL LINES
+050130          UIOX  LCONT
+
+050130
+050130          LDT   HDEV ,B
+050131          AAT   LCONT
+050131
+050132          IOXT
+050133
+050133
+050133          JMP I FINIS ,B       % CONTINUE AS WHEN TERMINATING DRIVER
+050134
+050134  )FILL
+050135  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+050135  %% INPUT DATA FIELD LAYOUT
+050135  %%  DISP.  SYMBOL  CONTENS
+050135  %%  -45 - -40                     % NOT USED
+050135  %%  -37    MRETURN                % NOT USED
+050135  %%  -35    BUSFL                  % 0= IDLE, 1=DMA , 2=PIO IN ,3=PIO OUT
+050135  %%                                % 4= WAIT ON INTERUPT
+050135  %%  -34    NOWFL                  % -1 = NO WAIT (FUNC 2 AND 3)
+050135  %%  -30    NOWH                   % NO OF WORD TRANSFERD UPPER BITS
+050135  %%  -27    NOWL                   % NO OF WORD TRANSFERD LOWER BITS
+050135  %%  -26    CTRG                   % FUNCTION CODE
+050135  %%  -25    CARG                   %
+050135  %%  -24    CDRG                   % WORDCOUNT UPPER BIT
+050135  %%  -23    CXRG                   % WORDCOUNT LOWER BIT OR PIO OUTPUT DATA
+050135  %%  -22    ATTNI                  % =40 ATTENTION INTERUPT IS ENABLED
+050135  %%  -21    EXTIO                  % NOT USED
+050135  %%  -20    USTAT                  % UNMASKED STATUS REG.
+050135  %%  -17    INDAT                  % PIO INPUT DATA
+050135  %%  -16    UCLIN                  % USER CONTROLL LINES
+050135  %%  -15    ATTINT                 % >< 0 IF ATTENTION INTERUPT HAS OCCURED
+050135  %%                                % BUT NOT RECIVED BY USER
+050135  %%  -14    SOFTA                  %
+050135  %%  -12    TRNSF/ND852            % DRIVER
+050135  %%  -11    BUYSY/UBUSY            % BUSY EXIT FROM DRIVER
+050135  %%  -10    FINISH/UFIN            % FINISHED EXIT FROM DRIVER
+050135  %%  - 7    ERROR/UBUSY            % ERROR EXIT TREATED AS BUSY EXIT
+050135  %%  - 6    TMSUB/UDTMO            % TIMEOUT SUBROUTINE
+050135  %%  - 5    TMR                    % TIMEOUT COUNTER
+050135  %%  - 4    TTMR/177771            % CA 6-7 SEC TIMEOUT
+050135  %%  - 3    HDEV                   % IOX DEVICE ADDRESS
+050135  %%  - 2    STDRIV/USDRV           % START ADDRESS LEVEL 11
+050135  %%  - 1    DRIVER/UDDRV           % DRIVER
+050135  %%    2    BWLIN                  % BWLINK
+050135  %%    3    TYPRI                  % TYPRING
+050135  %%    4    ISTATE                 % NOT USED
+050135  %%    6    MFUNC/RETRA            % RETRANS AS FOR MAG TAPE
+050135  %%   11    MTRAN/MTRNS            % MTRNS AS FOR MAG TAPE
+050135  %%   14    MEMA1                  % MEMORY ADDRESS UPPER BIT
+050135  %%   15    MEMA2                  % MEMORY ADDRESS LOWER BIT
+050135  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+050135  )KILL DRDAT DLDAT RSTAT LCONT LWCNT UIOX SWTST OTDMA CTEST
+050135  )KILL XDMAI DMAI XDMAU DMAUT DMACO DMAOK DMACT UTEST DCLEA PIONI
+050135  )KILL PIONO PIOIN ININT 9LREG 9TREG 9AREG 9DREG 9XREG PIOUT UTINT
+050135  )KILL WODMA WFINI WBUSY ODINT ENABA DISAA USERC USYEX FINI NOAT FINWA
+050135  )KILL NOWLR NOWTR ERRFU ULOOP NO0 NOPO DAPAR NOONE UDBEX
+050135  )KILL AYES ANOT PFIN FINW DCLW UCMA ENNW DINW USTRT FINA
+050135  )9RCLC
+)9SLPL
+050135   RBUS
+050135   *"
+"050135
+
+050135   *"8GPI0+8GPI1+8GPI2+8GPI3+8GPI4+8GPI5+8GPI6+8GPI7 8XMSG
+"050135   SUBR GPIBT,GPIBH,GPBUS,GPFIN,GPERR,GPITR
+050135   %====================================================================
+050135   %                                                                   =
+050135   % EXTENDED TRANSFER ROUTINE FOR GENERAL PURPOUSE INTERFACE BUS      =
+050135   %                                                                   =
+050135   %====================================================================
+050135   % FUNCTION CODES:
+050135   %
+050135   %                     00 : DMA INPUT
+050135   %                     01 : DMA OUTPUT
+050135   %                     02 : READ STATUS
+050135   %                     03 : CLEAR DEVICE
+050135   %                     04 : READ PIO
+050135   %                     05 : WRITE PIO
+050135   %                     06 : ENABLE SRQ INTERRUPT
+050135   %                     07 : DISABLE ALL INTERRUPTS
+050135   %                     10 : SERIAL POLL
+050135   %                     11 : PARALLELL POLL
+050135   %                     12 : READ SYSTEM DEVICE LIST
+050135   %                     13 : READ USER DEVICE LIST
+050135   %                     14 : SEND CONTROL STRING WITHOUT DEVICE LIST
+050135   %                     15 : SEND COMMAND BYTE WITH DEVICE LIST
+050135   %                     16 : RUN MICROPROGRAM CONTROLLER TEST
+050135   %                     17 : LOG OFF
+050135   %                     20 : LOG ON AS PRIVILEGED
+050135   %                     21 : LOG ON AS UNPRIVILEGED
+050135   %                     22 : WAIT FOR SRQ INTERRUPT (CODE NEVER SEEN BY TRANFER ROUTINE)
+050135   %                     23 : CHECK FOR SRQ INTERRUPT (CODE NEVER SEEN BY TRANFER ROUTINE)
+050135   %                     24 : SET SINGLE USER MODE
+050135   %                     25 : RESET SINGLE USER MODE
+050135   %                     26 : WHO IS ON
+050135   %====================================================================
+050135
+050135
+050135   %  GLOBAL DISP VARIABLES ARE DECLARED AS NEGATIVE
+050135   DISP 12
+050135     INTEGER GPIBNO               % CONTROLLER NO (ASCII)
+050135     INTEGER GPACT                % ACTIV FLAG
+050135   PSID
+050135   DISP 25
+050135     INTEGER GPXTB                % XT-BLOCK ADDRESS
+050135     INTEGER SXTBL                % SRQ-TASK XT-BLOCK ADDRESS
+050135     INTEGER CPORT                % COMMAND-PORTNUMBER
+050135     INTEGER SQTXA                % SRQ-TASK XT-BLOCK ADDRESS
+050135     INTEGER DPORT                % DMA-PORTNUMBER
+050135     INTEGER DMESA                % DMA MESSAGE ADDRESS
+050135     DOUBLE  DBUFA                % DMA BUFFER ADDRESS
+050135     INTEGER MVERS                % MICROPROGRAM VERSION AND REV. LEVEL
+050135     INTEGER SUSFL                % SINGLE USER FLAG
+050135     INTEGER DEVFL                % DEVICE FLAG
+050135     INTEGER USCONT               % NUBER OF USERS PRESENTLY LOGGED ON
+050135     INTEGER CGPIM                % CURRENT MESSAGE ADDRESS
+050135     INTEGER CURMTY               % CURRENT MESSAGE TYPE
+050135     DOUBLE  CURM                 % CURRENT MAGIC NUMBER
+050135     INTEGER ERADD                % LAST ERROR ADDRESS
+050135     INTEGER XERCO                % X-MESSAGE ERRORCODE
+050135     INTEGER SRQFL                % SRQ PROCESSING FLAG
+050135     INTEGER POINTER MRETA        % RETURN ADDRESS AFTER MONITOR CALL
+050135     INTEGER POINTER SRETA        % RETURN ADDRESS AFTER MONITOR CALL
+050135     INTEGER POINTER GRETA        % RETURN ADDRESS AFTER TIMEOUT ROUTINE
+050135     INTEGER 9TREG                % SAVED TREG WHEN CALLING ID11/WT11
+050135     INTEGER 9AREG                % SAVED AREG WHEN CALLING ID11/WT11
+050135     INTEGER 9DREG                % SAVED DREG WHEN CALLING ID11/WT11
+050135     INTEGER 9XREG                % SAVED XREG WHEN CALLING ID11/WT11
+050135     INTEGER DINPT                % INPUT DATA TRANSFER
+050135     INTEGER PIODP                % PIO DATA POINTER
+050135     INTEGER PIOWC                % PIO WORD COUNTER
+050135     INTEGER FIRST                % FIRST WORD TO BE RECEIVED FLAG
+050135     INTEGER POINTER SRSTR        % START LOCATION FOR SRQ ROUTINE
+050135     INTEGER ARRAY UMESS(20)      % USER MESSAGE TABLE
+050135     DOUBLE  ARRAY MNARR(20)      % MAGIC NUMBER ARRAY
+050135      INTEGER CURFU               % CURENT FUNCTION CODE
+050135      INTEGER CGPUS               % CURENT USER NO.
+050135      INTEGER ARRAY GPISA(10)     % INSTRUMENT NO. ARRAY
+050135      DOUBLE  CURAD               % CURENT DATA ADDRESS
+050135      INTEGER CURBC               % NUMBER OF BYTES TO BE TRANSFERED
+050135      DOUBLE  ARRAY UENV(20)      % USER TERMNO / RT ADDRESS TABLE
+050135      DOUBLE  DINSO=CURM          % PHYS. MEMORY ADDRESS FOR RETURN DATA ARRAY
+050135      INTEGER GABSF=USCONT        % FLAG SET IF DRIVER USED BY ABSTR
+050135      INTEGER PUSER=ISTAT         % PRIV. USER (DIR INDEX)
+050135   PSID
+050135
+050135   SYMBOL MUSER=1
+050135   SYMBOL MINNO=2
+050135   SYMBOL MADDR=12
+050135   SYMBOL MNOBY=14
+050135   SYMBOL GPDTA=15
+050135
+050135
+050135   % INSTRUCTION DEFINITIONS
+050135
+050135   SYMBOL GPLON=101             % LOG ON USER
+050135   SYMBOL GPLOF=105             % LOG OFF USER
+050135
+050135   %========================================================================
+050135   %==   SUBROUTINE TO EXECUTE XMSG MONITOR-CALL FOR TRANSFER ROUTINE    ===
+050135   %========================================================================
+050135
+050135   EGXMS: A=:9AREG;A:="SRSTR"=:"DRIVER";A:=GPXTB:=:L=:"MRETA"
+050143          IF XFWRI=T OR XFREA=T THEN
+050151            A:=9AREG+DPITPHYS                                    % CONV. TO PHYS ADDR.
+050153          ELSE
+050154            A:=9AREG
+050155          FI; *MON 2XMSG;JMP I (WT11
+050157          IF T<0 THEN
+050161              IF T+23=0 THEN T:=XMTRE=:CURMTY;T:=17=:CURFU;GO FAR LGOF FI
+050171              T-23;CALL XERR
+050173          FI
+050173          GO MRETA
+050174
+050174   %========================================================================
+050174   %======  SUBROUTINE TO EXECUTE XMSG MONITOR-CALL FOR SRQ ROUTINE  =======
+050174   %========================================================================
+050174   SCALL: A=:9AREG;A:="SRSTR"=:"DRIVER";A:=SXTBL:=:L=:"SRETA":=9AREG
+050203          *MON 2XMSG;JMP I (WT11
+050205          IF T<0 THEN
+050207               IF T+23=0 GO FAR ENSIN
+050212               T-23;CALL XERR
+050214          FI
+050214          GO SRETA
+050215
+050215   *)FILL
+050221
+050221   %========================================================================
+050221   %====           SUBROUTINE TO REMOVE USER FROM TABLES              ======
+050221   %========================================================================
+050221    TRIPLE  GTREG                          % SAVELOCATION FOR TAD REG
+050224    INTEGER GXREG                          % SAVELOCATION FOR X REG
+050225
+050225   TREMO: TAD=:GTREG;X=:GXREG                                           % SAVE REGISTERS
+050227          X:=CGPUS;0=:UMESS(X)                                          % CLEAR MESSAGE TABLE ENTRY
+050231          A:=X SHZ 1 =:X;A:=0=:D;AD=:UENV(X)                            % CLEAR USER/TERMINAL ENTRY
+050237          A:=USCONT -1 =:USCONT                                         % UPDATE USER COUNT
+050242          TAD:=GTREG;X:=GXREG;EXIT
+050245
+050245   %========================================================================
+050245   %====    SUBROUTINE TO WAIT FOR INERRUPT AND CHECK FOR TIMEOUT     ======
+050245   %========================================================================
+050245
+050245   GTSUB: T=:9TREG;T:=GPRUN; IF T =0 THEN T:=-1 ELSE T:=TTMR FI
+050254          T=:TMR                                                        % START TIMER
+050255          T:=L=:"GRETA";A=:9AREG;A:=D=:9DREG;X=:9XREG;CALL ID11         % SAVE REGISTERS AND GIVE UP LEVEL
+050264          A:=TMR;IF A=0 THEN                                            % CHECK IF TIMEOUT
+050266           0=:GPBFL;0=:GPACT;0=:DINPT
+050271           T:=GPRUN; IF T =0 THEN T:=-1 ELSE T:=TTMR FI
+050277           T=:TMR;T:=3
+050301   RSATO:  CALL TRNSF;CALL GPFER;GO WAIT3;GO TORET                      % CLEAR CONTROLLER
+050305   WAIT3:  T=:9TREG;CALL ID11
+050307           A:=TMR;IF A=0 THEN 0=:GPBFL;T:=105;CALL GPFER FI             % IF TIMEOUT AFTER DEV. CLEAR ABORT GPIB SYSTEM
+050314           T:=9TREG;0=:TMR;GO RSATO
+050317   TORET:  T:=-1=:9TREG
+050321          FI
+050321   GTRET: 0=:TMR;T:=9TREG;A:=9DREG=:D;A:=9AREG;X:=9XREG;GO GRETA
+050330
+050330   *)FILL
+050332   %========================================================================
+050332   %======= ROUTINE TO STOP GPIB SYSTEM ====================================
+050332   %========================================================================
+050332
+050332   GPIBH: 0=:GPRUN;GO STCON
+050334
+050334   %========================================================================
+050334   %===     ROUTINE FOR NONFATAL GPIB SYSTEM ERRORS     ====================
+050334   %========================================================================
+050334
+050334   NFERR: X:=L;A:=CURFU;CALL 9ERR(#93);L:=X;EXIT
+050342
+050342
+050342   %========================================================================
+050342   %====    ROUTINES FOR FATAL GPIB SYSTEM ERRORS       ====================
+050342   %========================================================================
+050342
+050342   XRERR: T-1;A:=400;T+A;GO GPFER                                       % XROUT ERROR
+050346   XSERR: T:=A                                                          % XMSG SUBROUTINE ERROR
+050347   XERR:  T-,;A:=300;T+A                                                % XMSG ERROR
+050352   GPFER: A:=L-1=:ERADD;A:=GPRUN                                        % GPIB ERROR
+050356          IF A = 0 THEN T=:GPRUN;GO STCON FI
+050361          A:=GPIBNO;AD SHZ -10;A -60 SHZ 3;A:=:D
+050366          A SHZ -10; A -60;A+D;CALL 9ERR(#92)
+050373          IF T= 344  GO RSXTB                                           % XMSG NOT RUNNING
+050376          IF CGPIM=0 GO STCON
+050400          T=:CURFU;A:=32=:D;A:=B+"CURFU";X:=0;T:=XFWRI;CALL FAR EGXMS   % STORE STATUS IN MESSAGE
+050410          T:=XFSND BONE XFSEC;X:=CPORT;AD:=CURM;CALL FAR EGXMS          % RETURN MESSAGE
+050415   STCON: -3=:TMR                                                       % START TIMER
+050417          T:=XFDCT;A:=GPXTB=:L;*MON 2XMSG;JPL I (ID11                   % DISCONNECT FROM XMSG SYSTEM
+050424          T:=XFDCT;A:=SXTBL=:L
+050427          IF A+1=0 THEN GO RSXTB FI;*MON 2XMSG;  JMP *+1                % IF SRQ PORT OPENED, DISCONNECT FROM XMSG SYSTEM
+050434   RSXTB: 0=:GPXTB=:SXTBL=:GPRUN;GO WT11
+050440
+050440   *)FILL
+050451   %===========================================================================
+050451   %==================== I N I T   G P I B   C O N T R O L L E R ==============
+050451   %===========================================================================
+050451   INTEGER SVERS:=102             % MICROPROGRAM VERSION THAT WILL WORK WITH THIS SOFTWARE
+050452
+050452   GPIBT: A:=GPXTB;IF A><0 GO WT11                                      % IF GPIB ALLREADY STARTED GO WT11
+050455          0=:CGPIM=:CGPUS=:SUSFL=:GPRUN=:USCONT                         % RESET CURRENT MESSAGE POINTER, USERNO & SINGLE USER FLAG
+050462          "SRENT"=:"SRSTR"                                              % INITIATE POINTER TO SRQ INTERUPT ROUTINE
+050464          T:=3;CALL TRNSF;CALL FAR GPFER;GO WAIT1;GO RMTST              % CLEAR GPIB CONTROLLER
+050471   WAIT1: CALL FAR GTSUB;IF T+1=0 THEN T:=105;CALL FAR GPFER FI         % WAIT FOR STATUS
+050477          GO GPIBT
+050500   RMTST: T:=16;CALL TRNSF;CALL FAR GPFER;GO WAIT2;GO ILOF              % RUN MICROPROGRAM TEST
+050505   WAIT2: CALL FAR GTSUB;IF T+1=0 THEN T:=105;CALL FAR GPFER FI         % WAIT FOR STATUS
+050513          GO RMTST
+050514   ILOF:  T=:MVERS;T SHZ -10=:A;A-SVERS
+050520          IF A><0 THEN
+050521             A:=-1=:SXTBL;A:=T;A SHZ 10 \/ SVERS =:MVERS;GO INXM        % IF WRONG MICROPROGRAM SET SXTBL TO -1
+050530          FI
+050530          A:="GPMSL"+DPITPHYS=:D; A:=DPITBANK; AD=:CURAD
+050535          A:=GPLOF SHZ 10=:GPMSL;A:=1=:CURBC
+050542   ILOF1: T:=14;CALL TRNSF;CALL FAR GPFER;GO WT22;GO INXM
+050547   WT22:  CALL FAR GTSUB;IF T+1=0 THEN T:=105;CALL FAR GPFER FI
+050555          GO ILOF1
+050556
+050556   *)FILL
+050564
+050564   %========================================================================
+050564   %=============== S E T  U P  X M S G   C O M U N C A T I O N ============
+050564   %========================================================================
+050564
+050564   INXM:  L:=0;T:=XFOPN;*MON 2XMSG;JPL I (WT11                          % OPEN COMMAND PORT
+050570          IF T<0 THEN CALL FAR XERR FI                                  % CHECK IF ERROR RETURN
+050573          A=:CPORT;A:=L=:GPXTB                                          % SAVE PORT NO. AND XTBLK ADDRESS
+050576          T:=XFDBK;A:=DPITBANK; *MON 2XMSG;JPL I (WT11                  % SET BANK TO DPIT
+050602          T:=XFOPN;CALL FAR EGXMS;A=:DPORT                              % OPEN DMA  PORT
+050605          T:=XFGET;A:=GPDZI;A+6;CALL FAR EGXMS                          % GET DMA BUFFER
+050611          A=:DMESA=:X CALL DRXMSG(XDINF);CALL FAR XSERR                 % GET DMA BUFFER ADDRESS
+050616          AD=:DBUFA                                                     % SAVE DMA BUFFER ADDRESS
+050617          X:=2;A:=GPIBNO;A=:GPPNA(X)                                    % WRITE GPIBNO. IN NAME
+050622          A:=14=:D;A:="GPXRM";X:=0;T:=XFWRI;CALL FAR EGXMS              % WRITE TO MESSAGE
+050630          T:=XFSND BONE XFROU;X:=CPORT;CALL FAR EGXMS                   % NAME PORT
+050634          T:=XFRCV BONE XFWTF;A:=CPORT;CALL FAR EGXMS                   % REC. RESPONS FROM XROUT
+050640          AD:=DBUFA;*EXAM                                               % READ XROUT STATUS
+050642          IF T><0 THEN  CALL FAR XRERR FI                               % IF T><0 FATAL ERROR
+050645          A:=SXTBL;IF A+1=0 GO MVERR                                    % IF MICROPROGRAM VERSION ERROR DONT OPEN SRQ PORT
+050650          L:=0;T:=XFOPN;*MON 2XMSG;JPL I (WT11                          % OPEN SRQ CPORT
+050654          IF T<0 THEN CALL FAR XERR FI                                  % CHECK IF ERROR RETURN
+050657          A=:SQTXA;A:=L=:SXTBL                                          % SAVE PORT NO. AND XTBLK ADDRESS
+050662          T:=XFGET;A:=6;CALL FAR SCALL                                  % GET SRQ MESSAGE
+050665   MVERR: FOR X:=0 TO 17 DO
+050671             0=:UMESS(X)                                                % ZERO USERTABLE ENTRY
+050672          OD
+050674          A:=0=:D
+050676          FOR X:=0 STEP 2 TO 36 DO
+050702             AD=:UENV(X)
+050703          OD
+050705          0=:SRQFL
+050706          -1=:GPRUN
+050710          GO GGPIC
+050711
+050711   *)FILL
+050722
+050722   %========================================================================
+050722   %=============== W A I T   F O R   C O M M A N D ===========================
+050722   %========================================================================
+050722
+050722
+050722   GGPIC:  T:=SXTBL;IF T+1=0 GO RGPIC                                   % IF MICROPROGRAM VERSION ERROR DONT ENABLE SRQ
+050726          T:=6;CALL TRNSF;CALL FAR GPFER;CALL FAR GPFER                 % ENABLE SRQ INTERRUPT IF SRQFL >< 0
+050732   RGPIC:  0=:CGPIM;T:=XFRCV BONE XFWTF;A:=CPORT;CALL FAR EGXMS         % WAIT FOR COMMAND
+050737          T=:CURMTY;A:=D=:CGPIM                                         % SAVE CURRENT MESSAGE ADDRESS AND TYPE
+050742          A:=SRQFL;IF A><0 THEN CALL WT11 FI                            % CHECK IF SRQINTERRUPT IS BEING PROCESSED
+050745
+050745   %========================================================================
+050745   %=============== G E T    C O M M A N D ====================================
+050745   %========================================================================
+050745
+050745   PRCOM: T:=7;CALL TRNSF;CALL FAR GPFER;CALL FAR GPFER                 % DISABLE SRQ INTERRUPT IF SRQFL >< 0
+050751          A:=CGPIM;
+050752          T:=XFMST;CALL FAR EGXMS                                       % GET MESSAGE STATUS
+050754          AD=:CURM                                                      % SAVE MAGIC NUMBER
+050755          A:=32=:D;A:=B+"CURFU";X:=0;T:=XFREA;CALL FAR EGXMS            % GET PARAMETER BLOCK INTO DATAFIELD
+050764          X:=CGPIM;CALL DRXMSG(XDINF);CALL FAR XSERR                    % GET BUFFER ADDRESS
+050770          X:=GPDTA;*RADD SX DD;COPY SA DA ADC;STD CURAD,B               % SAVE BUFFER ADDRESS
+050774          0=:DINPT;A:=CURMTY
+050776
+050776   %===========================================================================
+050776   %=============== D E C O D E   C O M M A N D ===============================
+050776   %===========================================================================
+050776
+050776
+050776          IF A=XMTRE THEN 17=:CURFU;GO FAR LGOF FI                      % IF RETURNED MESSAGE GO LGOF
+051004          IF A=XMROU GO FAR LOGON                                       % IF ROUTED MESSAGE GO LOGON
+051007          T:=SXTBL;IF T+1 = 0 THEN                                      % CHECK IF MICROPROGRAM VERSION ERROR
+051013          T:=110;GO FAR ERET FI                                        % RETURN ERROR CODE
+051015          A:=CURFU;IF A=3 GO FAR CLDEV                                  % CHECK IF CLEAR DEVICE
+051021          IF A<=1 GO FAR DMAT                                           % CHECK IF DMA TRANSFER
+051024          IF A=16 GO FAR MICTE                                          % CHECK IF RUN MICRO TEST
+051027          IF A=17 GO FAR LGOF                                           % CHECK IF LOGOFF
+051032          IF A=24 GO FAR SSUSE                                          % CHECK IF SET SINGLE USER
+051035          IF A=25 GO FAR RSUSE                                          % CHECK IF RESET SINGLE USER
+051040          IF A=26 GO FAR RETUR                                          % CHECK IF WHO-IS-ON COMMAND
+051043          IF A=27 GO FAR GPTRA                                          % CHECK IF TRANSF BETWEEN DEVICES
+051046          T:=CURFU;GO GDRIV
+051050
+051050   *)FILL
+051070
+051070   %========================================================================
+051070   %=============== C A L L   D R I V E R =====================================
+051070   %========================================================================
+051070
+051070   GDRIV: CALL TRNSF;GO ERROR;GO BUSY;GO FINISH                         % CALL DRIVER
+051074   GPBUS: CALL FAR GTSUB
+051075          IF T+1=0 THEN T:=105;0=:CURBC;GO ERET FI
+051103          T:=9TREG;GO GDRIV
+051105   GPFIN: A:=CURFU;IF A-11=0 THEN  T=:GPISA(0) FI
+051112          T:=0
+051113
+051113
+051113   %========================================================================
+051113   %=============== R E T U R N   S T A T U S   T O   U S E R =================
+051113   %========================================================================
+051113
+051113   RETUR: A:=CURFU;IF A-17=0 GO GGPIC                                   % IF LOGOF WAIT FOR NEXT COMMAND
+051116          IF A-1=0 OR A-1=0 THEN                                        % IF LOGON STORE MESSAGEADDRESS IN USERTABLE
+051122             X:=CGPUS;A:=CGPIM=:UMESS(X)
+051125          FI
+051125          A:=CURFU;X:=DINPT;IF A=0 AND X BIT 17 THEN                    % CHECK IF DMA INPUT AND BYTCONT > GPUZI
+051132             T:=XFSCM;A:=DPORT=:D;A:=DMESA;CALL FAR EGXMS               % SET DMA BUFFER AS CURRENT MESSAGE
+051137             T:=XFWHD;A:=CURBC=:D;A:=0;X:=0;CALL FAR EGXMS              % WRITE STATUS IN DMABUFFER
+051145             X:=DMESA;A:=-1;CALL DRXMSG(XDSBP);CALL FAR XSERR           % SET MESSAGE SIZE TO ZERO
+051152             X:=DMESA;A:=CURBC+6;CALL DRXMSG(XDSBP);CALL FAR XSERR      % SET CORRECT SIZE OF BUFFER
+051160             T:=XFSND BONE XFSEC;X:=DPORT;AD:=CURM;CALL FAR EGXMS       % SEND DMA BUFFER TO USER
+051165             T:=XFRCV BONE XFWTF;A:=DPORT;CALL FAR EGXMS                % WAIT FOR DMA BUFFER
+051171             A:=T;IF A=XMTRE THEN 17=:CURFU;GO FAR LGOF FI              % IF RETURNED MESSAGE GO LGOF
+051200             T:=XFSCM;A:=CPORT=:D;A:=CGPIM;CALL FAR EGXMS               % SET USERS MESSAGE AS CURRENT MESSAGE
+051205             0=:DINPT;T:=0
+051207          FI
+051207
+051207   %========================================================================
+051207   %============= R E T U R N   S T A T U S   T O   U S E R  ===============
+051207   %========================================================================
+051207
+051207
+051207   ERET:  A:=CURFU;IF A-17=0 THEN                                       % IF LOGOF WRITE ERROR MESS AND WAIT FOR NEXT COMMAND
+051212             CALL FAR NFERR;GO FAR GGPIC                                % WRITE ERROR MESSAGE
+051214          FI
+051214          A:=CURFU;X:=32; IF A-26=0 THEN                                % IF WHO IS ON COMMAND, ALSO SEND TERMNO. ARRAY
+051220          X:=100=:CURBC;X:=132
+051223          FI
+051223          T=:CURFU;D:=X;A:=B+"CURFU";X:=0;T:=XFWRI;CALL FAR EGXMS       % WRITE STATUS IN MESSAGE
+051232          T:=DINPT;IF T><0 THEN
+051235             X:=CGPIM;A:=-1;CALL DRXMSG(XDSBP);CALL FAR XSERR           % SET MESSAGE SIZE TO ZERO
+051242             X:=CGPIM;A:=CURBC+32;CALL DRXMSG(XDSBP);CALL FAR XSERR     % SET CORRECT SIZE OF BUFFER
+051250          FI
+051250          T:=XFSND BONE XFSEC;X:=CPORT;AD:=CURM;CALL FAR EGXMS          % RETURN MESSAGE
+051255          GO FAR GGPIC
+051256
+051256   *)FILL
+051266
+051266   %===========================================================================
+051266   %=============== R U N   M I C R O P R O G R M    T E S T ==================
+051266   %===========================================================================
+051266
+051266   MICTE: A:=CGPUS;IF A><0 THEN T:=102;GO ERET FI                      % CHECK IF PRIVILIDGED
+051272          A:=USCONT;IF A > 1 THEN T:=112;GO ERET FI
+051300          T:=CURFU;GO FAR GDRIV
+051302
+051302   %========================================================================
+051302   %====== T R A N S F E R   D A T A   B E T W E E N   D E V I C E S =======
+051302   %========================================================================
+051302
+051302   GPTRA: AD:=DBUFA;D:=:A;A+3;*COPY SD DD ADC;SWAP SA DD;STD CURAD,B    % STORE DMA BUFFER ADDRESS IN DATAFIELD
+051310          T:=0;GO FAR GDRIV
+051312
+051312   %========================================================================
+051312   %=============== C L E A R   C O N T R O L L E R ========================
+051312   %========================================================================
+051312
+051312   CLDEV: A:=CGPUS;IF A><0 THEN T:=102;GO ERET FI                      % CHECK IF PRIVILIDGED
+051316          T:=CURFU;GO FAR GDRIV
+051320
+051320   %========================================================================
+051320   %=============== S E T   S I N G L E   U S E R   M O D E ================
+051320   %========================================================================
+051320
+051320   SSUSE: A:=USCONT; IF A>1 THEN T:=112;GO ERET FI;                    % CHECK IF OTHER USERS IS ON
+051326          T:=1=:SUSFL:=0; GO FAR RETUR
+051332
+051332   %========================================================================
+051332   %=============== R E S E T   S I N G L E   U S E R   M O D E ============
+051332   %========================================================================
+051332
+051332   RSUSE: 0=:SUSFL=:T; GO FAR RETUR
+051335
+051335   %========================================================================
+051335   %=============== D M A   T R A N S F E R ================================
+051335   %========================================================================
+051335
+051335   DMAT:  A:=CURBC;T:=GPUZI;IF A<=T THEN T:=CURFU;GO FAR GDRIV FI       % CHECK IF BYTECOUNT > GPUZI
+051343          A:=CURBC;T:=GPDZI;IF A>T THEN T:=107;GO ERET FI              % CHECK IF BYTECOUNT > GPDZI
+051351          AD:=DBUFA;D:=:A;A+3;*COPY SD DD ADC;SWAP SA DD;STD CURAD,B    % STORE DMA BUFFER ADDRESS IN DATAFIELD
+051357          A:=CURFU;IF A=1 GO UTDMA                                      % CHECK IF OUTPUT
+051363          A:=DINPT BONE 17 =:DINPT;T:=CURFU;GO FAR GDRIV                % SET BIT 15 IN DINPT TO FLAG DMA IN AND BYTCONT > GPUZI
+051370   UTDMA: T:=XFSCM;A:=DPORT=:D;A:=DMESA;CALL FAR EGXMS                  % SET DMA BUFFER AS CURRENT MESSAGE
+051375          T:=XFSND BONE XFSEC;AD:=CURM;X:=DPORT;CALL FAR EGXMS          % SEND DMA BUFFER TO USER
+051402          T:=XFRCV BONE XFWTF;A:=DPORT;CALL FAR EGXMS                   % WAIT FOR DMA BUFFER
+051406          A:=T;IF A=XMTRE THEN 17=:CURFU;GO FAR LGOF FI                 % IF RETURNED MESSAGE GO LGOF
+051415          T:=XFSCM;A:=CPORT=:D;A:=CGPIM;CALL FAR EGXMS                  % SET COMMAND BUFFER AS CURRENT MESSAGE
+051422          T:=CURFU;GO FAR GDRIV
+051424
+051424
+051424   *)FILL
+051430
+051430   %========================================================================
+051430   %========== E R R O R   R E T U R N   F R O M   D R I V E R =============
+051430   %========================================================================
+051430
+051430   GPERR: 0=:TMR
+051431          A:=CURMTY;IF A-XMROU = 0 THEN
+051434             CALL FAR TREMO                                             % IF ERROR ON LOG ON, CLEAR TABLES
+051435          FI
+051435          GO FAR ERET
+051436   %========================================================================
+051436   %========== L O G   O N   N E W   U S E R ===============================
+051436   %========================================================================
+051436
+051436   LOGON: T:=SXTBL;IF T+1=0 THEN
+051442          T:=110;GO FAR ERET                                           % IF MICROPROGRAM VERSION ERROR RETURN ERRCODE
+051444          FI
+051444          A:=CURFU SHZ -10
+051446          IF A=20 GO PRIUS
+051451          IF A><21 THEN T:=100;GO FAR ERET FI
+051456          FOR X:=1 TO 17 DO
+051462          A:=UMESS(X);IF A=0 GO UFOUN OD
+051466   NOUSP: T:=103;GO FAR ERET                                           % NO USER SPACE
+051470
+051470   PRIUS: IF UMESS(0) >< 0 THEN T:=104;GO FAR ERET FI
+051475          IF  PUSER >< -1 AND A >< GPISA(5) THEN                      % OK FOR ALL OR PRIV. USER ?
+051505            A:=GPISA(4)-RTSTA=:D:=0; T:=5RTSI; * RDIV ST              % NO, TEST FOR RT PROG
+051514            IF  GPISA(4) >> RTEND OR A << RTSTA OR D >< 0 THEN
+051526              T:=102;GO FAR ERET                                      % NOT LEGAL RT PROG
+051530            FI
+051530          FI
+051530   UFOUN: A:=SUSFL;IF A><0 THEN
+051532             A:=USCONT; IF A><0 THEN
+051534               T:=111;GO FAR ERET
+051536             FI
+051536          FI
+051536          A:=CGPIM;T:=XFREL;CALL FAR EGXMS                              % RELEASE USER MESSAGE
+051541          A:=GPUZI+32;T:=XFGET BONE XFWTF;CALL FAR EGXMS                % GET NEW USER MESSAGE WITH CORRECT SIZE
+051546          A=:CGPIM=:UMESS(X)                                            % STORE MESSAGE IDENT IN USER ARRAY
+051550          D:=A;A:=CPORT;A:=:D;T:=XFSCM;CALL FAR EGXMS                   % SET CURRENT MESSAGE
+051555          X=:CGPUS
+051556          T:=CGPUS SHZ 1;GPISA(4)=:D;GPISA(5);AD=:UENV(T)               % STORE TERMINAL NO. / RT DESC. ADDRESS
+051567          A:=GPDZI=:GPISA(0);A:=GPUZI=:GPISA(1)                         % STORE USERNO. AND BUFFER SIZES IN MESSAGE
+051575          A:=MVERS=:GPISA(2);A:=DEVFL=:GPISA(3)                         % STORE MICROPROGRAM VERSION AND DEVICEFLAG IN MESSAGE
+051603          A:=PUSER=:GPISA(4)                                            % STORE PRIV USER
+051606          A:=CGPUS SHZ 1=:X;AD:=CURM=:MNARR(X)                          % STORE USERS MAGIC NUMBER
+051613          A:=USCONT +1 =:USCONT
+051616          A:=GPLON SHZ 10;A=:GPSCR;A:="GPSCR"+DPITPHYS=:D;A:=DPITBANK
+051625          AD=:CURAD;A:=1=:CURBC;T:=14;GO FAR GDRIV
+051632   *)FILL
+051641   %========================================================================
+051641   %========== L O G   O F F   U S E R =====================================
+051641   %========================================================================
+051641
+051641   LGOF:  A:=CGPIM=:D;FOR X:=0 TO 17 DO
+051647          A:=UMESS(X);IF A=D GO ULOF OD
+051654          A:=D;T:=XFREL;CALL FAR EGXMS;GO FAR GGPIC
+051660   ULOF:  X=:CGPUS;CALL FAR TREMO;T:=XFREL;CALL FAR EGXMS
+051664          A:=GPLOF SHZ 10;A=:GPSCR;A:="GPSCR"+DPITPHYS=:D;A:=DPITBANK;AD=:CURAD
+051674          A:=1=:CURBC;T:=14;GO FAR GDRIV
+051700   *)FILL
+051705   %========================================================================
+051705   %========== S R Q / D E V   I N T E R R U P T   E N T R Y ===============
+051705   %========================================================================
+051705
+051705   SRGET: T:=XFGET;A:=6;CALL FAR SCALL                                                % GET NEW MESSAGE
+051710   SRENT: 0=:CGPUS=:CGPIM
+051712   SRCDR: T:=10=:CURFU=:SRQFL
+051715          CALL TRNSF;GO SRERR;GO WAIT4;GO PSREC
+051721   WAIT4: CALL FAR GTSUB;IF T+1=0 THEN T:=105;GO SRERR FI
+051727          GO SRCDR
+051730   PSREC: T=:CURFU;IF T+1=0 GO ENSIN                                    % CHECK IF NON EKSPECTED SRQ-INTERRRUPT
+051734          A:=CURFU;AD SHZ -6;A SHZ 1;A BONE "0";A BONE 11;AD SHZ 6      % UNPAC POLLSTATUS AND SET BIT 6 AND 17
+051742          X:=A;A:=GPIBNO;AD SHZ -10;A -60 SHZ 3;A:=:D
+051750          A SHZ -10; A -60;D+A;A:=X
+051754          T:=XFWHD;X:=0;CALL FAR SCALL
+051757          A:=CURFU SHZ -14;A SHZ 1=:X;AD:=MNARR(X)                      % GET USERS MAGIC NUMBER
+051764          X:=SQTXA;T:=XFSND;CALL FAR SCALL                              % SEND MESSAGE TO USER
+051767          T:=XFGET;A:=6;CALL FAR SCALL;T:="SRENT"=:"SRSTR"                                                % GET NEW MESSAGE
+051774   ENSIN: 0=:SRQFL;T:=CGPIM;IF T><0 GO FAR PRCOM                        % CHECK IF NEW COMMAND IS RECEIVED
+052000          T:=6;CALL TRNSF;CALL FAR GPFER;CALL FAR GPFER;CALL ID11
+052005          GO SRSTR
+052006   SXERR: T-,;A:=300;T+A;A:="SRGET"=:"SRSTR"                            % XMSG ERROR
+052013   SRERR: CALL FAR NFERR;GO ENSIN                                                     % WRITE ERRORMESSAGE
+052015
+052015   *)FILL
+052026   %============================ GPIBD ===========================================
+052026   %
+052026   %       DRIVER FOR GPIB BUS CONTROLLER
+052026   %       CALLING SEQUENCE :
+052026   %                          JPL I (DGPIB
+052026   %                          JMP ERROR    % ERROR RETURN
+052026   %                          JMP BUSY     % BUSY RETURN
+052026   %                          JMP FINISH   % OPERATION FINISHED
+052026   %
+052026   %==============================================================================
+052026   % PARAMETERS:
+052026   %             T-REGISTER  : FUNCTION CODE
+052026   %             B-REGISTER  : DATA FIELD
+052026   %             X-REGISTER  : NO. OF BYTES ( FUNC 14)
+052026   % RETURN :
+052026   %             T-REGISTER  : STATUS
+052026   %=============================================================================
+052026   % FUNCTION CODES:
+052026   %                     00 : DMA INPUT
+052026   %                     01 : DMA OUTPUT
+052026   %                     02 : READ STATUS
+052026   %                     03 : CLEAR DEVICE
+052026   %                     04 : READ PIO
+052026   %                     05 : WRITE PIO
+052026   %                     06 : ENABLE SRQ INTERRUPT
+052026   %                     07 : DISABLE ALL INTERRUPTS
+052026   %                     10 : SERIAL POLL
+052026   %                     11 : PARALLELL POLL
+052026   %                     12 : READ SYSTEM DEVICE LIST
+052026   %                     13 : READ USER DEVICE LIST
+052026   %                     14 : SEND CONTROL STRING WITHOUT DEVICE LIST
+052026   %                     15 : SEND COMMAND BYTE WITH DEVICE LIST
+052026   %                     16 : RUN MICROPROGRAM CONTROLLER TEST
+052026   %=========================================================================
+052026
+052026   % REGISTER DEFINITION:
+052026
+052026   % RDMEM=0
+052026   SYMBOL LOMEM=1
+052026   SYMBOL DRDAT= 2
+052026   SYMBOL DLDAT= 3
+052026   SYMBOL RSTA=4
+052026   SYMBOL LCON=5
+052026   SYMBOL LWORC=7
+052026
+052026   %=========================================================================
+052026
+052026   % GPIB CONTROLLER FUNCTION CODES
+052026
+052026   SYMBOL DMAUT=142
+052026   SYMBOL EXSP= 102
+052026   SYMBOL PIOUT=144
+052026   SYMBOL PIOIN=145
+052026   SYMBOL LSYSD=106
+052026   SYMBOL LUSDV=104
+052026   SYMBOL MTCOD=167
+052026
+052026   @MAC
+
+)9SCLC
+052026  %==========================================================================
+052026
+052026  GPIBD, STF   TSAV
+052027         STX   XSAV
+052030         COPY  SL DX
+052031         STX    LSAV
+052032         COPY  ST DA
+052033         AAA   -3
+052034         JAZ   CLRDV           % CHECK IF FUNCTION=CLEAR DEVICE
+052035         LDT   HDEV,B
+052036         AAT   RSTA
+052037         IOXT
+052040         STA   SSTAT
+052041         LDA   TSAV
+052042         AAA   -2              % CHECK IF FUNCION = READ STATUS
+052043         JAZ   FINEX
+052044         LDA   SSTAT
+052045         BSKP  ZRO 40 DA
+052046         JMP   ERREX
+052047  %      BSKP  ONE 20 DA
+052047         JMP   I (IFRDY
+052050
+052050         % BUSY EXIT
+052050
+052050  UDBEX, SAA   1
+052051         STA   GPBFL,B
+052052         LDA   LSAV
+052053         COPY  SA DL
+052054         LDF   TSAV
+052055         LDX   XSAV
+052056         EXIT  AD1
+052057
+052057         % CLEAR DEVICE WITHOUT TEST
+052057
+052057  CLRDV, LDA   GPBFL,B
+052060         JAF   RRES
+052061         LDT   HDEV,B
+052062         AAT   LCON
+052063         SAA   20
+052064         IOXT
+052065         SAA   3
+052066         IOXT
+052067         JMP   UDBEX
+052070  RRES,  LDT   HDEV,B
+052071         AAT   DRDAT
+052072         IOXT
+052073         COPY  SA DT
+052074         SUB   STMAS
+052075         JAF   CEREX
+052076
+052076         % OPERATION FINISHED
+052076
+052076  FINEX, LDA   LSAV
+052077         COPY  SA DL
+052100         LDD   ASAV
+052101         LDT   SSTAT
+052102         STZ   GPBFL,B
+052103         STZ   GPACT,B
+052104         COPY  SL DL AD1
+052105         EXIT  AD1
+052106
+052106         % ILLEGAL FUNCTION CODE OR
+052106         % CORE ADDRESS REGISTER ERROR
+052106
+052106  ILFUC, SAT   100
+052107         JMP   *+2
+052110  CAERR, SAT   101
+052111         LDA   LSAV
+052112         COPY  SA DL
+052113         STZ   GPBFL,B
+052114         STZ   GPACT,B
+052115         EXIT
+052116
+052116  )FILL
+052117         % ERROR EXIT
+052117
+052117  ERREX, LDT   HDEV,B
+052120         AAT   DRDAT
+052121         IOXT
+052122         AND   STMAS        % REMOVE USER NO.
+052123         COPY  SA DT
+052124  CEREX, LDA   LSAV
+052125         COPY  SA DL
+052126         LDD   ASAV
+052127         LDX   XSAV
+052130         STZ   GPBFL,B
+052131         STZ   GPACT,B
+052132         STZ   DINPT,B
+052133         EXIT
+052134
+052134  )FILL
+052134
+052134         % INTERFACE READY
+052134
+052134  IFRDY, LDA   TSAV
+052135         COPY  SA DT
+052136         AAA   -17
+052137         JAP   ILFUC
+052140         RADD  ST DP
+052141         JMP      DMA             % OPERATION IS DMA INPUT
+052142         JMP      DMA             % OPERATION IS DMA OUTPUT
+052143         JMP   I (FINEX           % OPERATION IS READ STATUS
+052144         JMP   I (CLRDV           % OPERATION IS CLEAR DEVICE (THIS BRANCH SHOULD NEVER BE USED)
+052145         JMP   I (RPIO            % OPERATION IS READ PIO
+052146         JMP   I (WPIO            % OPERATION IS WRITE PIO
+052147         JMP   I (SRQEN           % OPERATION IS ENABLE SRQ INTERRUPT
+052150         JMP   I (DISIN           % OPERATION IS DISABLE ALL INTERRUPTS
+052151         JMP   I (POLL            % OPERATION IS SERIAL POLL
+052152         JMP   I (POLL            % OPERATION IS PARALLEL POLL
+052153         JMP   I (RDEVL           % OPERATION IS READ SYSTEM DEVICE LIST
+052154         JMP   I (RDEVL           % OPERATION IS READ USER DEVICE LIST
+052155         JMP   I (WCOMD           % OPERATION IS SEND CONTROL STRING (WITHOUT DEVICE LIST)
+052156         JMP   I (WCOTD           % OPERATION IS SEND CONTROL STRING (WITH DEVICE LIST)
+052157         JMP   I (MTST            % OPERATION IS RUN MICROPROGRAN TEST
+052160
+052160  )FILL
+052173  TSAV,  0
+052174  ASAV,  0
+052175  DSAV,  0
+052176  BSAV,  0
+052177  XSAV,  0
+052200  LSAV,  0
+052201  SSTAT, 0
+052202  STMAS, 377
+052203  PADDR, 0;0
+052205
+052205
+052205         % DMA OPERATION
+052205
+052205  DMA,   LDA   GPBFL,B
+052206         JAZ   INDMA
+052207         LDA   GPACT,B
+052210         JAZ   DMACT
+052211         LDT   HDEV,B
+052212         IOXT
+052213         LDT   SSTAT
+052214         LDX   DSAV
+052215         RSUB  SX DA
+052216         SHA   ZIN 1
+052217         BSKP  ZRO 130 DT
+052220         RDCR  DA
+052221         STA   CURBC,B
+052222         LDA   TSAV
+052223         SKP   IF DA UEQ 0
+052224         TRR   CCLR         % CLEAR CACHE
+052225         JMP   I (FINEX
+052226
+052226         % ENABLE SRQ INTERRUPT
+052226
+052226  SRQEN, SAA   0
+052227         BSET  ONE 60 DA
+052230         LDT   HDEV,B
+052231         AAT   LCON
+052232         IOXT
+052233         JMP   I (FINEX
+052234
+052234         % DISABLE INTERRUPTS
+052234
+052234  DISIN, SAA   0
+052235         LDT   HDEV,B
+052236         AAT   LCON
+052237         IOXT
+052240         JMP   I (FINEX
+052241
+052241         % ACTIVATE DMA TRANSFER
+052241
+052241  DMACT, LDD   CURAD,B
+052242         LDT   HDEV,B
+052243         AAT   LOMEM
+052244         IOXT
+052245         COPY  SD DA
+052246         IOXT
+052247         LDA   CURBC,B
+052250         SHA   ZIN SHR 1
+052251         BSKP  ZRO SSM
+052252         AAA   1
+052253         LDT   HDEV,B
+052254         AAT   LWORC
+052255         IOXT
+052256         SAA   7
+052257         LDT   TSAV
+052260         BSKP  ONE 00 DT
+052261         BSET  ONE 130 DA
+052262         LDT   HDEV,B
+052263         AAT   LCON
+052264         IOXT
+052265  ACTEX, SAA   1
+052266         STA   GPACT,B
+052267         JMP   I (UDBEX
+052270
+052270         % INIT DMA TRANSFER
+052270
+052270  INDMA, JPL   I (SUSER
+052271         SAA   DMAUT
+052272         LDX   TSAV
+052273         BSKP  ONE 00 DX
+052274         AAA   -1
+052275         IOXT
+052276         LDA   DINPT,B
+052277         BSET  ONE 00 DA
+052300         BSKP  ONE 00 DX
+052301         STA   DINPT,B
+052302         JPL   I (SNOBY
+052303         JPL   I (SINST
+052304         JMP   I (ENINT
+052305
+052305         % PROGRAMMED I/O WRITE
+052305
+052305  WPIO,  LDA   GPBFL,B
+052306         SKP   IF DA EQL 0
+052307         JMP   I (FINEX
+052310         JPL   I (SUSER
+052311         SAA   PIOUT
+052312         IOXT
+052313         JPL   I (SNOBY
+052314         JPL   I (SINST
+052315         JPL   WGPID
+052316         JMP   I (ENINT
+052317
+052317         % WRITE DATA
+052317
+052317  WGPID, LDD   CURAD,B
+052320         STD   PADDR
+052321         LDX   CURBC,B
+052322  WNXTW, LDD   PADDR
+052323         EXAM
+052324         RINC  DD
+052325         COPY  SA DA ADC
+052326         STD   PADDR
+052327         RCLR  DA
+052330         COPY  ST DD
+052331         SAD   ZIN 10
+052332         LDT   HDEV,B
+052333         AAT   DLDAT
+052334         IOXT
+052335         RDCR  DX
+052336         JXZ   NODAT
+052337         RCLR  DA
+052340         SAD   ZIN 10
+052341         IOXT
+052342         RDCR  DX
+052343         SKP   IF DX EQL 0
+052344         JMP   WNXTW
+052345  NODAT, EXIT
+052346
+052346  )FILL
+052354
+052354         % PROGRAMMED I/O READ
+052354
+052354  RPIO,  LDA   GPBFL,B
+052355         JAZ   RPINI
+052356         LDA   FIRST,B
+052357         JAZ   RGPDA
+052360
+052360         % READ BYTECOUNT FROM INTERFACE AND INIT WORCOUNT AND DATAPOINTER
+052360
+052360  RBCON, LDT   HDEV,B
+052361         AAT   DRDAT
+052362         IOXT
+052363         STA   CURBC,B
+052364         LDT   GPUZI,B
+052365         SKP   IF DT MLST SA
+052366         JMP   BCOK
+052367         SAT   106
+052370         JMP   I (CEREX
+052371  BCOK,  SHA   ZIN SHR 1
+052372         BSKP  ZRO SSM
+052373         AAA   1
+052374         STA   PIOWC,B
+052375         SKP   IF DA UEQ 0
+052376         JMP   I (FINEX
+052377         STZ   FIRST,B
+052400         STZ   PIODP,B
+052401         SAA   1
+052402         STA   DINPT,B
+052403         SAA   3
+052404         LDT   HDEV,B
+052405         AAT   LCON
+052406         IOXT
+052407         JMP   I (UDBEX
+052410
+052410         % INIT PIO TRANSFER
+052410
+052410  RPINI, JPL   SUSER
+052411         SAA   PIOIN
+052412         STA   FIRST,B
+052413         IOXT
+052414         JPL   SNOBY
+052415         JPL   SINST
+052416         JMP   ENINT
+052417
+052417
+052417  SUSER, LDA   CGPUS,B
+052420         LDT   HDEV,B
+052421         AAT   DLDAT
+052422         IOXT
+052423         EXIT
+052424
+052424
+052424  SNOBY, LDA   CURBC,B
+052425         IOXT
+052426         SHA   ZIN SHR 10
+052427         IOXT
+052430         EXIT
+052431
+052431  ICONT, 0
+052432
+052432  SINST, SAX   0
+052433         SAA   -10
+052434         STA   ICONT
+052435  NXINS, LDA   GPISA,B,X
+052436         SAD   ZIN SHR 10
+052437         IOXT
+052440         BSKP  ZRO 70 DA
+052441         JMP   LINS
+052442         SAD   ZIN 10
+052443         IOXT
+052444         BSKP  ZRO 70 DA
+052445         JMP   LINS2
+052446         AAX   1
+052447         MIN   ICONT
+052450         JMP   NXINS
+052451         JMP   IERR
+052452  LINS,  BSKP  ONE 60 DA
+052453         JMP   IFI
+052454         SAD   ZIN 10
+052455         IOXT
+052456         JMP   IFI
+052457  LINS2, BSKP ONE 60 DA
+052460         JMP   IFI
+052461         AAX   1
+052462         LDA   GPISA,B,X
+052463         SAD   ZIN SHR 10
+052464         IOXT
+052465  IFI,   EXIT
+052466  IERR,  SAA   70
+052467         BSET  ONE 70 DA
+052470         IOXT
+052471         EXIT
+052472
+052472
+052472  ENINT, SAA   3
+052473         BSET  ONE 100 DA
+052474         LDT   HDEV,B
+052475         AAT   LCON
+052476         IOXT
+052477         JMP   I (UDBEX
+052500
+052500  )FILL
+052503
+052503         % READ DATA
+052503
+052503  RGPDA,  LDT   HDEV,B
+052504         AAT   DRDAT
+052505         IOXT
+052506         COPY  SA DT
+052507         LDD   CURAD,B
+052510         LDX   PIODP,B
+052511         RADD  SX DD
+052512         COPY  SA DA ADC
+052513         DEPO
+052514         AAX   1
+052515         STX   PIODP,B
+052516         LDA   PIOWC,B
+052517         AAA   -1
+052520         STA   PIOWC,B
+052521         JAZ   FINI
+052522         SAA   3
+052523         LDT   HDEV,B
+052524         AAT   LCON
+052525         IOXT
+052526         JMP   I (UDBEX
+052527  FINI,  JMP   I (FINEX
+052530
+052530  )FILL
+052532
+052532         % SEND COMMAND BYTES WITHOUT DEVICELIST
+052532
+052532  WCOMD, LDA   GPBFL,B
+052533         SKP   IF DA EQL 0
+052534         JMP   I (FINEX
+052535         JPL   SUSER
+052536         JPL   I (WGPID
+052537         JMP   WINT
+052540
+052540         % SEND COMMAND WITH DEVICELIST
+052540
+052540  WCOTD, LDA   GPBFL,B
+052541         SKP   IF DA EQL 0
+052542         JMP   I (FINEX
+052543         JPL   SUSER
+052544         LDD   CURAD,B
+052545         COPY  ST DX
+052546         EXAM
+052547         COPY  ST DA
+052550         COPY  SX DT
+052551         IOXT
+052552         JPL   SINST
+052553  WINT,  SAA   2
+052554         BSET  ONE 100 DA
+052555         LDT   HDEV,B
+052556         AAT   LCON
+052557         IOXT
+052560         JMP   I (UDBEX
+052561
+052561
+052561
+052561         % READ POLLSTATUS
+052561
+052561  POLL,  LDA   GPBFL,B
+052562         JAZ   POINI
+052563         LDT   HDEV,B
+052564         AAT   DRDAT
+052565         IOXT
+052566         1BANK; STA I (SSTAT; 2BANK
+052571         JMP   I (FINEX
+052572
+052572         % INIT SERIAL OR PARALLEL POLL
+052572
+052572  POINI, JPL   I (SUSER
+052573         SAA   EXSP
+052574         1BANK; LDT I (TSAV; 2BANK
+052577         BSKP  ZRO 00 DT
+052600         AAA   1
+052601         LDT   HDEV,B
+052602         AAT   DLDAT
+052603         IOXT
+052604         SAA   3
+052605         LDT   HDEV,B
+052606         AAT   LCON
+052607         IOXT
+052610         JMP   I (UDBEX
+052611
+052611         % READ SYS/USER DEVICELIST
+052611
+052611  RDEVL, LDA   GPBFL,B
+052612         JAZ   RDINI
+052613         LDA   FIRST,B
+052614         JAF   BCON
+052615         JMP   I (RGPDA
+052616  BCON,  JMP   I (RBCON
+052617  RDINI, LDA   CGPUS,B
+052620         LDT   HDEV,B
+052621         AAT   DLDAT
+052622         IOXT
+052623         SAA   LSYSD
+052624         1BANK; LDX I (TSAV; 2BANK
+052627         BSKP  ZRO 00 DX
+052630         SAA   LUSDV
+052631         IOXT
+052632         SAA   3
+052633         STA   FIRST,B
+052634         LDT   HDEV,B
+052635         AAT   LCON
+052636         IOXT
+052637         JMP   I (UDBEX
+052640
+052640  MTST,  LDA   GPBFL,B
+052641         JAF   RDCDE
+052642         LDT   HDEV,B
+052643         AAT   DLDAT
+052644         SAA   MTCOD
+052645         IOXT
+052646         AAT   -DLDAT+LCON
+052647         SAA   3
+052650         IOXT
+052651         JMP   I (UDBEX
+052652  RDCDE, LDT   HDEV,B
+052653         AAT   DRDAT
+052654         IOXT
+052655         1BANK; STA I (SSTAT; 2BANK
+052660         SHA   ZIN 10
+052661         SKP   IF DA EQL 0
+052662         JMP   I (FINEX
+052663         JMP   I (ERREX
+052664  )FILL
+052675
+052675
+052675  )PCL GPIBD
+052675  % )KILL RDMEM LOMEM DRDAT DLDAT RSTA LCON LWORC DMAUT EXSP PIOUT
+052675  %)KILL LOMEM DRDAT DLDAT RSTA LCON LWORC DMAUT EXSP PIOUT
+052675  %)KILL PIOIN LSYSD LUSDV MTCOD UDBEX CLRDV RRES FINEX ILFUC CAERR
+052675  %)KILL ERREX CEREX IFRDY DMA SRQEN DISIN DMACT ACTEX INDMA WPIO
+052675  %)KILL WGPID WNXTW NODAT RPIO RBCON BCOK RPINI SUSER SNOBY SINST
+052675  %)KILL NXINS LINS LINS2 IFI IERR ENINT RGPDA FINI WCOMD WCOTD WINT
+052675  %)KILL POLL POINI RDEVL BCON RDINI MTST RDCDE TSAV ASAV DSAV BSAV
+052675  %)KILL XSAV LSAV SSTAT ICONT STMAS PADDR
+052675  )9RCLC
+)9SLPL
+052675
+052675   %========================================================================
+052675   %===============  ROUTINE TO PERFORM TRANSFER TO GPIB DRIVER  ==============
+052675   %===============  ACKTIVATED FROM ABSTRANS                    ==============
+052675   % PARAMETER LIST:   PAR, IFUNC (abfun) % DUMMY
+052675   %                        DMEM  (MEMAD) % PHYS. MEMORY ADDRESS  FOR DMA
+052675   %                        DINSI (ABPA2) % PHYS. MEMORY ADDRESS TO DATA ARRAY
+052675   %                        DINSO (ABPA3) % PHYS. MEMORY ADDRESS FOR RETURN DATA ARRAY
+052675   %========================================================================
+052675   INTEGER LOOP
+052676   GPITR: IF GPRUN = -1 GO GPAE1                     % XMSG DRIVER RUNNING
+052702          1=:GABSF                                   % SET ABSTR FLAG
+052704
+052704          T:=X.ABP21; X:=X.ABP22; "CURFU"=:D
+052710          -15=:LOOP; FOR LOOP DO
+052712            *LDATX; SWAP SD DX; STA ,B,X; SWAP SD DX % MOVE DATA ARRY TO DATAFIELD
+052716            X+1;D+1
+052720          OD
+052722          AD:=MEMAD=:CURAD                           % GET DMEM
+052724
+052724          IF CURFU = 6 OR = 7 OR = 10 OR > 22 GO GPAE1
+052741   GPATR: T:=CURFU; X:=CURBC; 0=:HSTAT; AD:=CURAD
+052745          CALL TRNSF; GO GPAER; GO GPABY; 0=:CURFU; GO GPAFI;
+052752   GPAER: T=:CURFU; GO GPAFI
+052754
+052754   GPABY: TTMR=:TMR; CALL ID11; A:=TMR; 0=:TMR
+052761          IF A >< 0 GO GPATR                      % RESTART DRIVER IF NOT TIME OUT
+052762          0=:GPACT=:GPBFL; 105=:CURFU             % SET RETURN STATUS TO TIMEOUT
+052766   GPAS:  T:=3; CALL TRNSF;                       % CLEAR CONTROLLER
+052770          GO GPAFI; GO GPAT; GO GPAFI             % SHOULD NEVER ERROR RETURN HERE
+052773   GPAT:  TTMR=:TMR; CALL ID11; A:=TMR; 0=:TMR
+053000          IF A >< 0 GO GPAS                       % CALL DRIVER AGAIN TO GET STATUS
+053001
+053001   GPAFI: IF RTRES >< 0 THEN
+053003            AD:=ABPA3; A=:T;D=:X; "CURFU"=:D           % GET ADDRESS TO DATA ARRAY
+053010            -15=:LOOP; FOR LOOP DO                     % RETURN DATA ARRAY
+053012              *SWAP SD DX; LDA ,B,X; SWAP SD DX; STATX;
+053016              X+1; D+1;
+053020            OD
+053022            GO L1
+053023          ELSE
+053024            GO L2
+053025          FI
+053025   GPAE1: -1=:HSTAT
+053027   L1:    0=:GABSF;  CALL RTACT
+053031   L2:    CALL ID11; GO GPATR
+053033   RBUS
+053036   *"
+"053036   *"8F16+8DM01+8DM02+8DM03+8DM04+8DM05+8DM06+8DM07+8DM08+8DM09+8DM10
+"053036
+053036   @DEV 1

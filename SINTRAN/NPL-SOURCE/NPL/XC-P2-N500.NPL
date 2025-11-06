@@ -1,0 +1,95 @@
+030235   @DEV (S-S-L)XC-P2-N500:NPL
+030235
+030235   %============================================================================
+030235   %        ( M )     5 M O N I C O    5 E M O N I C O
+030235   %
+030235   % Entry: X= message address
+030235   %        A= function value
+030235   %        T= clear cache mask  (if 5MONICO)
+030235   %        D= write back mask
+030235   %
+030235   SUBR 5MONICO,5EMONICO
+030235   INTEGER KKFLIP,CLCACHE,WBMASK
+030240
+030240   5EMONICO:T:=D=:WBMASK; 0=:CLCACHE; T:=1; GO MOICO
+030245   5MONICO: T=:CLCACHE; T:=D=:WBMASK; T:=0
+030251   MOICO:   T=:KKFLIP:=5MBBANK; A=:D; A:=0; *AAX FUNCV; STDTX    % Set function value
+030257            A:=KKFLIP; *AAX KFLIP-FUNCV; STATX                   % Set error flag on/off
+030262            A:=WBMASK; *AAX NUMPA-KFLIP;  STATX                  % Set parameter write back mask
+030265            3MONCO; *AAX -NUMPA; STATX XMICF                     % Restart after monitor call
+030270            CLCACHE\/140300; *AAX H500A; STATX; AAX -H500A       % Set clear cache status
+030275            L=:D; MSGN500; CALL WN5STATUS
+030300            D=:L:=X; *AAX XADPR; LDXTX
+030304            X.PSTAT/\5CLRUNSTATUS+5ACTIVE=:X.PSTAT               % Set process active
+030310            D=:X; EXIT
+030312   RBUS
+030316
+030316
+030316   %===============================================================================
+030316   %      ( C )    C L E 5 S T A T U S
+030316   %
+030316   % Routine to clear Status register
+030316   %
+030316   % When called from other levels than the driver level then
+030316   % CLESTATUS must be called with interrupt off.
+030316   %
+030316   % ENTRY:     A=Mask to clear status with:
+030316   %              177377 Clear latched "power has been off" Status (bit 5POWOF=10)
+030316   %              177177 Also clear "power fault executed by Microprog" (5PFAIL=7)
+030316   %
+030316   % EXIT:      A=ND-500 Status after clearing
+030316   %              BIT  5PAGF=4 (000020) = Inclusive "or" of errors
+030316   %              BIT 5DMAER=6 (000100) = Communication error
+030316   %              BIT 5PFAIL=7 (000200) = Power fault executed by Microprog
+030316   %              BIT 5POWOF=8 (000400) = Latched power fault
+030316   %              BIT 5CLOST=9 (001000) = Microclock stopped
+030316   %
+030316   SUBR CLE5STATUS
+030316   INTEGER POINTER LREG
+030317   CLE5STATUS:
+030317          A=:D; T:=HDEV+RSTA5; *IOXT
+030323          IF A BIT 5POWOF OR A BIT 5PFAIL THEN
+030327             IF A BIT 5PFAIL OR C5STAT BIT BHPFAIL THEN
+030334                A:=L=:"LREG"
+030336                CALL TER500; GO CLABORT
+030340                10;   T:=HDEV+LCON5;  *IOXT
+030344                      T+"RSTA5-LCON5"; *IOXT
+030346                A/\D; T+"LSTA5-RSTA5"; *IOXT
+030351                "0";  T+"LCON5-LSTA5"; *IOXT
+030354   CLABORT:     "LREG"=:L; T:=HDEV+RSTA5; *IOXT
+030361             ELSE
+030362                A BONE 5POWOF BZERO 5PFAIL
+030364             FI
+030364          FI; EXIT
+030365   RBUS
+030366
+030366   %============================================================================
+030366   %        ( C )   I T O F I F O Q
+030366   %
+030366   % Insert message in the N5000-FIFO-queue
+030366   %
+030366   % Called from other levels than driver in IOF.
+030366   % The N100/N500 general semaphore must be locked.
+030366   %
+030366   % ENTRY:     X=Message to insert in queue
+030366   %
+030366   SUBR ITOFIFOQ
+030366   INTEGER XREG
+030367   INTEGER POINTER LREG
+030370
+030370   ITOFIFOQ:
+030370   *NNJ02=*
+030370         P+1; EXIT                           % Direct exit if "old" 500
+030372         A:=L=:"LREG"; X=:XREG
+030375         T:=5MBBANK; X:="N500DF".X500DF; *AAX X5MXF; LDATX
+030402         A=:L; *AAX X5FYL-X5MXF; LDATX
+030405         IF A=:D+1>=L THEN A:=0 FI; *STATX
+030413         D SH 1=:L; *AAX X5FIF-X5FYL; LDDTX
+030417         *CNVBYADR
+030422         X:=D+L; T:=A+C; XREG=:D; A:=5MBBANK
+030430         *CNVWADR
+030433         *STDTX
+030434         X:=XREG; GO LREG
+030436   RBUS
+030441
+030441   @DEV 1

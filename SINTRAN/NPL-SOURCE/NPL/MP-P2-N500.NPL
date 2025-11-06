@@ -1,0 +1,3807 @@
+132147   @DEV (S-S-L)MP-P2-N500:NPL
+132147   *"8N500
+"132147   %==========================================================================
+132147   %
+132147   %       C X - M P I T - N 5 0 0
+132147   %
+132147   %==========================================================================
+132147   %--------------------------------------------------------------------------
+132147   %      ( C )    5 R R T W T    5 X A C T R T   5 S W A C T R T
+132147   %
+132147   % ROUTINE TO REMOVE MESSAGE FROM EXECUTION QUEUE
+132147   % AND RESTART ND-500 SHADOW PROGRAM IN ND-100.
+132147   %
+132147   % WHEN CALLED FROM OTHER LEVELS THAN THE DRIVER LEVEL
+132147   % THESE ROUTINES MUST BE CALLED WITH INTERRUPT OFF.
+132147   %
+132147   % ENTRY:     X=ACTUAL MESSAGE
+132147   %
+132147   % EXIT:      T,A,D REGISTERS DESTROYED
+132147   %
+132147   SUBR 5RRTWT,5XACTRT,5SWACTRT
+132147   INTEGER POINTER LREG,LRG
+132151   INTEGER CMESS
+132152   5RRTWT: A:=L=:"LREG"=:"LRG"
+132155          T:=5MBBANK; *AAX 5MSFL; LDATX; AAX -5MSFL
+132161          IF A BIT 5SYSRES THEN
+132163             *SENDE@3 LDDTX
+132164             IF A=D THEN EPFINSWAP; CALL XRSTARTALL; GO LRG FI
+132171          FI
+132171          CALL SLOCK; 0/\0
+132173          CALL IFM500XQ                                 % REMOVE MESSAGE FROM EX-QUEUE
+132174          CALL SUNLOCK
+132175   ACTRT: IF X><-1 THEN
+132200             T:=5MBBANK; *SENDE@3 LDATX
+132202             IF A+1=0 GO LREG                           % HISTOGRAM/WATCHDOG MESSAGE
+132205             X=:CMESS; *AAX XADPR; LDXTX                % X=PROCESS DESCRIPTION
+132210   ACT5SWAP: X.PSTAT BONE F5BUFF BZERO T5BUFF=:X.PSTAT  % MARK THAT PROCESS IS RESTARTED BY THE DRIVER
+132214             X:=:B
+132215             *TRA STS
+132216             IF A NBIT 17 THEN CALL XRTACT ELSE CALL RTACT FI  % INTERRUPT OFF OR ON?
+132223             X:=:B:=CMESS
+132225          FI; GO LREG
+132226
+132226   5XACTRT:  A:=L=:"LREG"; GO ACTRT                      % MESSAGE OF PROCESS TO RESTART, NOT IN EX-QUEUE
+132231   5SWACTRT: A:=L=:"LREG"; X:="S500S"; GO ACT5SWAP       % START 5SWAP
+132235
+132235   RBUS
+132246
+132246   %============================================================================
+132246   %      ( M )    E S C 5 0 0   -    S Y S A B O R T
+132246   %
+132246   % ENTRY: X=ADDR OF INPUT DATAFIELD
+132246   % MONITOR LEVEL
+132246   %
+132246   SUBR ESC500,SYSABORT
+132246   INTEGER POINTER HASSWAP:=CLFIE+1                     % CLFIE.RTRES (SWAPPING PROGRAM)
+132247   INTEGER POINTER ESCLL
+132250   ESC500: A:=L=:"ESCLL"
+132252          T:="DBPROG"; X:=B; CALL XGTDFADDR             % GET BACKGROUND PROGRAM
+132255          A=:D; CALL FSEMA; GO ESCLL                    % FIND PROCESS DESCRIPTION
+132260          *IOF                                          % X=PROCESS DESCRIPTION
+132261          CALL SLOCK; 0/\0
+132263          T:=5MBBANK; X:=X.MESSBUFF; *AAX 5MSFL; LDATX
+132267          A BONE 52ESCSET; *STATX
+132271          IF A BIT 5IBRK THEN                           % ALREADY IN ESCAPE OR CLEAN-UP SEQUENCE
+132273             CALL SUNLOCK; GO MONEN
+132275          FI
+132275          A BONE 5IBRK; *STATX
+132277          CALL SUNLOCK
+132300          "IORESTART"=:MFUNC; *ION
+132303          X:=RTRES; CALL S5ESCF
+132305          IF X:=RTRES><0 THEN
+132307             IF X.TLINK><0 THEN CALL FTIMQU FI
+132312             IF X=CURPROG THEN
+132315                "FROMESC"; *IRW ALEVB DP                % FORCE PROGR TO START IN FROMESC
+132317                "N5PIT+ADPIT+ALEVB+ERNG2"
+132320                A=:X.ACTPRI; *TRR PCR                   % FROMESC IS ON 5PIT
+132322             ELSE                                       % NOT CURRENTLY ACTIVE PROGRAM
+132323   SYSABORT:    CALL MRLCLFIE; CALL FRWQU; CALL TOEXQU
+132326                IF HASSWAP >< X THEN                    % IF PROGRAM IS NOT SWAPPING THEN
+132331                    X.STATUS BZERO 5WAIT=:X.STATUS          % RESET I/O-WAIT STATE
+132334                FI
+132334                "N5PIT+ADPIT+ALEVB+ERNG2"=:X.ACTPRI     % SET NEW PCR, NPT=5PIT, APT=DPIT
+132336                X:=X.RTDLGADDR                          % REGISTER BLOCK PART OF RT-DESCRIPTION
+132337                T:=0                                    % BANK NO OF SAME
+132340                "FROMESC"                               % START HERE ON APPLICATION LEVEL
+132341                *DPREG@3 STATX                          % ADDR OF FROMESC INTO P OF PROGRAM
+132342                1=:MTOR                                 % MAKE SURE MONEN SEARCHES EXECUTION QUEUE
+132344             FI
+132344          FI; GO MONEN
+132345   RBUS
+132366
+132366
+132366   %==========================================================================
+132366   %            R L 5 P D E S C   -   1 R L 5 P D E S C
+132366   %
+132366   % RELEASE THE ND-500 PROCESS DESCRIPTION AFTER THE ND-500 PROCESS HAS BEEN
+132366   % TERMINATED. THIS IS CALLED WHEN AN ERROR IS DETECTED BY SINTRAN III MONITOR
+132366   % (IN MON.CALL ETC...)
+132366   %
+132366   % EXECUTED ON MONITOR LEVEL
+132366   %
+132366   % ENTRY: T=MONITOR LEVEL ROUTINE TO EXECUTE AFTER THE PROCESS IS TERMINATED.
+132366   %        X=RT-DESCRIPTION ADDR. (WHEN RL5PDESC)
+132366   %
+132366   % RETURN: TO STUPR IF THE PROGRAM HAS RESERVED AN ND-500 PROC. ELSE EXIT
+132366   %
+132366   SUBR RL5PDESC,1RL5PDESC
+132366   INTEGER POINTER RL5RL
+132367   INTEGER MLVPADDR
+132370   1RL5PDESC: X:=RTREF
+132371   RL5PDESC: A:=L=:"RL5RL"; T=:MLVPADDR
+132374          X=:D; CALL FSEMA; GO RL5OUT               % ANY ND-500 PROCS. RESERVED?
+132377          X:=D; CALL MRLCLFIE                       % YES, REMOVE PROGRAM FROM ND-100 SWAPPING QUEUE
+132401          CALL FRWQU; CALL TOEXQU                   % SET PROGR IN EX-QUEUE
+132403          X.STATUS BZERO 5WAIT=:X.STATUS            % RESET I/O-WAIT BIT
+132406          IF A BIT 5BACKR THEN
+132410             AD:=X.DSEGM                            % BACKGR: ORIGNIAL SEGMENTS
+132411          ELSE
+132412             A:=0; D:=0                             % RT-PROG.: NO SEGMENT INCASE OF "OUTSIDE SEGM. BOUDS" ETC
+132414          FI; AD=:X.DACTSEG
+132415          "N5PIT+ADPIT+ALEVB+ERNG2"=:X.ACTPRI
+132417          X=:D
+132420          "ERABORT"; X:=X.RTDLGADDR; T:=0
+132423          *DPREG@3 STATX                            % UPDATE PROGR'S P-REG  ( IN CASE NOT CURPROG)
+132424          MLVPADDR; *DBREG@3 STATX                  % UPDATE PROGR'S B-REG
+132426          IF X:=D=CURPROG THEN                      % IS THE ACTUAL PROGRAM CURRENT-RUNNING PROGR?
+132432             "N5PIT+ADPIT+ALEVB+ERNG2"
+132433             *TRR PCR                               % YES, SET PCR FOR PROGR
+132434             "ERABORT"; *IRW ALEVB DP               % FORCE START IN ERABORT LEV 1
+132436             MLVPADDR;  *IRW ALEVB DB
+132440          FI; GO STUPR
+132441   RL5OUT: X:=D; GO RL5RL
+132443   RBUS
+132454
+132454
+132454   %===========================================================================
+132454   %        ( M )      R T B A K   -   A P L R S T A R T
+132454   %
+132454   % MONITOR LEVEL ROUTINE TO REMOVE ND-100 PROGRAM FROM I/O-WAIT
+132454   %
+132454   % ENTRY:     X=PROCESS DESCRIPTION
+132454   %
+132454   SUBR RTBAK,APLRSTART,5FRTBAK
+132454   INTEGER ROUTSWITCH
+132455   INTEGER 15PHYB,25PHYB; DOUBLE C5PHYB=15PHYB
+132457   INTEGER CMAILB
+132460   5FRTBAK: 1=:ROUTSWITCH
+132462          "RTBAK"=:X.MFUNC
+132464          GO L1
+132465   RTBAK: 0=:ROUTSWITCH
+132466   L1:    X=:B
+132467          IF X:=RTRES><0 THEN
+132471             IF X.WLINK = 0 THEN
+132473                CALL FTIMQU; CALL TOEXQ; GO INRTBAK
+132476             FI
+132476             *IOF                              % PROTECT PSTAT
+132477             IF PSTAT BIT 5REWA THEN
+132502                A BZERO 5REWA=:PSTAT
+132504   INRTBAK:     X.STATUS BZERO 5WAIT=:X.STATUS
+132507                IF ROUTSWITCH><0 THEN
+132511                   % Reserve 500-file-transfer-buffer-header
+132511                   IF X:=5DVBFREE><0 THEN
+132513   NYTRY:             X.RESLINK=:5DVBFREE; 0=:X.RESLINK
+132516                      X.MESSBUFF=:CMAILB; A:=RTRES
+132521                      X=:B:=A; CALL BRESERVE
+132524                      IF A<0 THEN CALL ERRFATAL FI
+132526                      T:=5MBBANK; X:=CMAILB; *AAX 5PHYB; LDDTX
+132532                      AD SHZ -1=:C5PHYB
+132534                      A:="N500DF".ADRZERO=:D:=0; AD SH 12
+132541                      A:=:D+25PHYB:=D; A:=A+C+15PHYB
+132546                      AD=:DBPAG
+132547                   ELSE
+132550                      X:=5DVBSTART
+132551                      DO WHILE X<<5DVBEND
+132554                         IF X.RTRES=0 THEN
+132556                            5DVBFREE=:X.RESLINK; X=:5DVBFREE
+132561                         FI; X+DBLEN
+132562                      OD
+132563                      IF X:=5DVBFREE><0 GO NYTRY
+132566                      X:=RTRES
+132567                      5DVBWAIT=:B
+132571                      CALL FREXQU; CALL TOWQU
+132573                   FI
+132573                FI
+132573             FI; 1=:MTOR
+132575          FI; GO MONEN
+132576
+132576   %
+132576   % MONITOR LEVEL ROUTINE TO ACTIVATE ND-100 APPLICATION
+132576   % WAITING FOR SIBAS IN ND-500
+132576   %
+132576   APLRSTART: 0=:ROUTSWITCH
+132577              X=:B; IF X:=RTRES><0 GO INRTBAK
+132603              GO MONEN
+132604   RBUS
+132623
+132623
+132623   %=============================================================================
+132623   %        ( M )       5 0 0 H I S T
+132623   %
+132623   % L e v e l   2   routine called each basic time unit
+132623   %
+132623   % Called from ICLCK
+132623   % Called in iof and return in iof, but have ion sequences inside
+132623   % the routine.
+132623   % All registers are destroyed.
+132623   %
+132623   SUBR 500HIST
+132623
+132623   SYMBOL LIDLE=2               % Process is idle
+132623   SYMBOL LSWPWAIT=4            % Process is waiting for swapper
+132623   SYMBOL LSWPPING=6            % Process is using swapper
+132623   SYMBOL LINMCALL=10           % Process is executing mon.call
+132623   SYMBOL LACTIVE=12            % Process is active
+132623   SYMBOL LCPU=14               % Process is waiting for nd-500 cpu (in ex-queue)
+132623
+132623   INTEGER POINTER LREG
+132624
+132624   500HIST:
+132624          IF 5MSINIT NBIT 5INBUF THEN EXIT FI
+132630          IF "N500DF".SYSINITFLAG BIT B5STOP THEN EXIT FI
+132635          A:=L=:"LREG"
+132637          A:=0; X:="S5CPUDF"
+132641          DO WHILE X<<="E5CPUDF"; A\/X.C5STAT; X+5CPUDFSIZE; OD
+132647          IF A/\C5PFMASK><0 THEN EXIT FI            % Anything concerning powerfail ?
+132652          AD:=ATIME=:"N500DF".5ATIME                % Copy atime to nd-500 system datafield
+132655          DO
+132655             "N500DF"=:B
+132657             X:=X500DF; T:=5MBBANK; *AAX X5BTI; LDDTX
+132663          WHILE D><-1                               % Search time queue and start procs.
+132666   *NNC05,   CNVBYADR
+132671             T:=A; X:=D; *AAX D5TIM; LDDTX; AAX -D5TIM
+132676             A=:L:=5ATM2-D:=5ATM1; *RADD ADC CM1 SL DA
+132703          WHILE A>=0                                % Until no more procs to start
+132704             CALL SLOCK; 0/\0
+132706             CALL GCPUDF; CALL ERRFATAL; A=:B
+132711   *NNT02=*
+132711             CALL XTER500; 0/\0                      % No, stop it
+132713             CALL FR5TMQU
+132714             A:=0; CALL SPITMQ
+132716             CALL ITO500XQ                          % Restart process after mon 5tmout
+132717             CALL SUNLOCK
+132720             CALL XACTRDY
+132721             CPUAVAILABLE BONE LV2ACT=:CPUAVAILABLE
+132724          OD
+132725          "S5CPUDF"=:B
+132727          DO WHILE B<<="E5CPUDF"
+132732             IF CPUAVAILABLE BIT LV2ACT THEN
+132735                A BZERO LV2ACT=:CPUAVAILABLE
+132737                CALL LOWACT500
+132740                *ION; IOF
+132742             FI
+132742             B+5CPUDFSZ
+132743          OD
+132744          *ION; IOF
+132746          GO FAR 500H2; *)FILL
+132772
+132772   5HIRET: CALL P67L2                               % Performance logging
+132773           GO LREG                                   % Return to ICLCK
+132774
+132774
+132774   % Local subroutine to test if nd-500 active
+132774   500HA: IF B<<"S5CPUDF" OR B>>"E5CPUDF" THEN EXIT FI
+133003          IF CPUAVAILABLE/\5CPUTYPE><SAMSON THEN    % DMA interface?
+133010             T:=HDEV+RSTA5; *IOXT
+133013             IF A NBIT 5ILOCK OR A BIT 5POWOF THEN EXIT FI
+133020          FI
+133020          EXITA
+133021
+133021
+133021   500H2: A:="S5CPUDF"=:B
+133023          DO WHILE B <<= "E5CPUDF"
+133026             IF CPUAVAILABLE BIT 5ALIVE AND MAILINK><-1 THEN  % Nd-500 cpu present?
+133035                CALL 500HA; GO 500H3                % Yes, running ?
+133037                CALL GETC5PROC                      % Get current active process
+133040                IF A >= 5SWPROC THEN                % Any active process in this nd-500?
+133043                   A-5SWPROC*5PRDSIZE+"S500S"       % Yes
+133046                   X:=A.MESSBUFF; T:=5MBBANK
+133051                   *AAX 500TU; LDDTX                % Increment nd-500 cpu time used
+133053                   D+1; A:=A+C; *STDTX              % For current active process
+133056                FI
+133056   500H3:       IF 5HIFLAG=3 THEN                   % Process-logg-all
+133062   %               IF B = "S5CPUDF" THEN
+133062                      MIN "5HIDATA".S5; P+1; MIN X.S4; 0/\0    % Increment number of samples
+133067                      X:=SWMSG; CALL RN5STATUS                 % A:=swmsg.n5status
+133071                      IF A><PSWWAIT THEN                       % Swapper active?
+133074                         MIN "5HIDATA".S1; P+1; MIN X.S0; 0/\0 % Yes, increment swapper-active counter
+133101   %                  FI
+133101                   FI
+133101                   CALL GETC5PROC
+133102                   IF A>=5SWPROC THEN               % Any active process in this nd-500?
+133105                      A SH 1+"5HIDATA"+6=:X         % Yes
+133111                      MIN X.S1; P+1; MIN X.S0; 0/\0 % Inrement "current active" counter for this proc.
+133115                   FI
+133115                FI
+133115             FI; B+5CPUDFSZ
+133116          OD
+133117          IF 5HRTP=0 OR 5HIFLAG=0 GO FAR 5HIRET     % Histogram/proc-log-one defined and started?
+133124          IF 5HIFLAG=1 THEN                         % Histogram
+133130             X:=HIMESS; CALL RN5STATUS
+133132             IF A<<=ANSWER THEN                     % Should histogram message be restarted?
+133135                T:=5MBBANK; *AAX WANTP; LDATX       % May be
+133140                A-5SWPROC*5PRDSIZE+"S500S"=:X       % Calculate addr of process description
+133144                IF X.PSTAT/\5RUNSTATUS=5ACTIVE THEN % Is process to do histogram on active?
+133151                   X:=HIMESS; CALL GCPUDF; CALL ERRFATAL
+133154                   A=:B; CALL 500HA; GO FAR 5HIRET  % ND-500 running ?
+133157                   A:=MSGN500; X:=HIMESS; CALL WN5STATUS  % Yes
+133162                   CALL XACTRDY
+133163                   CALL LOWACT500
+133164                FI
+133164             FI; GO FAR 5HIRET; *)FILL
+133212          FI
+133212          IF A=2 THEN                               % Process-logg-one
+133215             5LOGPROC-5SWPROC*5PRDSIZE+"S500S"
+133221             X:=A.MESSBUFF; CALL GCPUDF; GO 500H4
+133225             A=:B; CALL FAR 500HA; GO FAR 5HIRET    % ND-500 running ?
+133230             MIN "5HIDATA".S1; P+1; MIN X.S0; 0/\0  % Incremnt total number of samples counter
+133235             CALL GETC5PROC
+133236             IF A=5LOGPROC THEN                     % Is process to be logged active?
+133241                LACTIVE;                              % Yes
+133242             ELSE
+133243                5LOGPROC-5SWPROC*5PRDSIZE+"S500S"
+133247                IF A.RTRES=0 OR X.PSTAT/\5RUNSTATUS>< 5ACTIVE AND A><5INMCALL THEN
+133262   500H4:          LIDLE                            % Process is idle
+133263                ELSE
+133264                   X:=X.MESSBUFF; CALL RN5STATUS
+133266                   IF A=SWPWAIT THEN
+133271                      LSWPWAIT                      % Waiting for swapper
+133272                   ELSE
+133273                      IF A=SWPPING THEN
+133276                         LSWPPING                   % Using the swapper
+133277                      ELSE
+133300                         T:=5MBBANK; *AAX XADPR; LDATX
+133303                         IF A.PSTAT/\5RUNSTATUS=5ACTIVE THEN
+133311                            LCPU                    % Waiting for nd-500 cpu (in exqueue)
+133312                         ELSE
+133313                            IF A=5INMCALL THEN
+133316                               LINMCALL             % Monitor call processing
+133317                            ELSE LIDLE              % Rest counts as idle
+133321             FI FI FI FI FI FI
+133321             X:="5HIDATA"+A
+133323             MIN X.S1; P+1; MIN X.S0; 0/\0          % Increment counter according to process status
+133327          FI; GO FAR 5HIRET
+133330   RBUS
+133344
+133344
+133344   %=============================================================================
+133344   %        ( M )     N 5 0 0 C
+133344   %=============================================================================
+133344   %
+133344   % L e v e l   2   (monitor level) routine to execute commands to nd-500
+133344   %
+133344   % Entry:     X=process description
+133344   %
+133344   % Returns to MONEN/STUPR
+133344   %
+133344   SUBR N500C
+133344   INTEGER CCN5ST
+133345   N500C: X:=X.MESSBUFF=:5MMESSAGE                           % SAVE CURRENT MESSAGE ADDR
+133347          CALL GCPUDF; CALL ERRFATAL; A=:B
+133352          IF CPUAVAILABLE NBIT 5ALIVE GO FAR EN5TIMOUT
+133355          CALL RN5STATUS
+133356          A=:CCN5ST                                           % MESSAGE STATUS
+133357          IF A/\160000><0 THEN                                % SOMETHING ABOUT POWER FAIL
+133361             IF A BIT POWDET THEN                             % POWER FAIL DETECTED?
+133363                *IOF                                          % YES, GIVE ALL ACTIVE
+133364                C5STAT BONE BHPFAIL=:C5STAT                   % PROCESSES THE MESSAGE:
+133367                CCN5ST/\17777; CALL WN5STATUS                 % "POWER DOWN"
+133372                CALL SLOCK; 0/\0; CALL ITO500XQ; CALL SUNLOCK
+133376                KPOWDOWN; CALL XRSTARTALL
+133400             ELSE
+133401                IF A BIT POWUP AND C5STAT NBIT BHPFAIL GO FAR RESENT % RESTART PROC. WIRH "POWER UP" MESSAGE
+133406                CALL SLOCK; 0/\0; CALL ITO500XQ; CALL SUNLOCK
+133412                TTMR=:TMR
+133414             FI; GO MONEN
+133415          FI
+133415          IF CCN5ST><MSGN500 AND A><WAITING GO FAR TOQUEUE
+133424          T:=5MBBANK; *MICFU@3 LDATX
+133426          A=:D; X:=SWMSG; *AAX 5MSFL; LDATX; AAX -5MSFL
+133433          IF A BIT 5IEXQUEUE AND D=3SWMESS THEN
+133440             IF FERROR=N5STOPPED GO FAR XEILSTAT
+133444             CALL GCPUDF; CALL ERRFATAL
+133446             IF A.FERROR><0 GO FAR XEILSTAT
+133452          ELSE
+133453             IF FERROR><0 GO FAR XEILSTAT                      % ND-500 FATAL ERROR
+133456          FI
+133456          T:=5MBBANK; X:=5MMESSAGE; *MICFU@3 LDATX
+133461          IF A>>5MFMAX GO FAR MILLFU                           % ILLEGAL ND-500 MICRO.PROGRAM COMMAND (FUNCTION)
+133464          GO N5XXC
+133465   *)FILL
+133512   @ICR
+133512   N5XXC: A GOSW                                               % GO TO ROUTINE ACCORDING TO MIC.FUNC.
+133512             STUPR,       RMICVE,    FAR MILLFU,  FAR MILLFU,  % 00-03
+133517             FAR MILLFU,  SWMESS,    EXAMD,       DEPMD,       % 04-07
+133523             RMEMD,       WMEMD,     CACHE,       RAMED,       % 10-13
+133527             WAMED,       FAR RNEWCO,EXARG,       DEPRG,       % 14-17
+133533             REREG,       WRREG,     FAR P0START, FAR STAOPP,  % 20-23
+133537             FAR MONCO,   FAR MTRACO,FAR WMONCO,  FAR 5RLBH,   % 24-27
+133543             MPHSREAD,    MPHSWRITE, EXAMP,       DEPMP,       % 30-33
+133547             RMEMP,       WMEMP,     FAR FQUEUE,  RAMEP,       % 34-37
+133553             WAMEP,       RLIMI,     PRTRAP,      WLIMI,       % 40-43
+133557             FAR MILLFU,  MPCLR,     FAR MILLFU,  FAR MILLFU,  % 44-47
+133563             FAR MILLFU,  FAR MILLFU,FAR NKREL,   FAR MILLFU,  % 50-53
+133567             FAR MILLFU,  FAR MILLFU,FAR MILLFU,  FAR MILLFU,  % 54-57
+133573             CLRPROC,     FAR MILLFU,FAR MILLFU,  FAR MILLFU,  % 60-63
+133577             FAR MILLFU,  FAR MILLFU,FAR MILLFU,  FAR MILLFU,  % 64-67
+133603             TRC70,       TRC71,     TRC72,       TRC73,       % 70-73
+133607             TRC74,       TRC75,     SCACHEMODE,  RSCRREG;     % 74-77
+133613   @CR;
+133613   *)FILL
+133626
+133626
+133626   RMICVE:;  WAMED:;  RAMED:;  EXARG:;  DEPRG:;  REREG:;  RLIMI:
+133626   WLIMI:;   WRREG:;  EXAMP:;  DEPMP:;  RMEMP:;  WMEMP:;  PRTRAP:
+133626   WAMEP:;   RAMEP:;  EXAMD:;  DEPMD:;  RMEMD:;  WMEMD:;  CACHE:
+133626   MPHSREAD:; MPHSWRITE:; CLRPROC:; MPCLR:
+133626   TRC70:;   TRC71:;  TRC72:;  TRC73:;  TRC74:;  TRC75:; SCACHEMODE:; RSCRREG:
+133626
+133626          IF TMR << TTMR THEN A:=T FI
+133633          A=:TMR                                              % SET TIMER
+133634          GO FAR TOQUEUE                                      % INSET MESSAGE IN EX-QUEUE
+133635
+133635
+133635   % MESSAGE TO SWAPPER
+133635   INTEGER CCKFLIP=?
+133635   INTEGER CC5CPUDF=?
+133635   SWMESS:
+133635          IF 5INITFLAG BIT BRESPLACE GO FAR EEIRESPL          % Illegal when in resident-place
+133640          T:=5MBBANK; *SWFUN@3 LDATX                          % A:=X.SWFUNC
+133642          IF A=MSWSTART THEN                                  % Start swapper
+133645             SWPPING; CALL WN5STATUS                           % Set process in "using Swapper" state
+133647             A:=5MBBANK; D:=X
+133651   *NNC06,   CNVWADR                                           % Convert multi-port adress
+133654             X:=SWMSG; T:=5MBBANK; *AAX HSWPI; STDTX; AAX -HSWPI        % MMESSAGE=:SWMSG.SWPINFO
+133661             3START; *MICFU@3 STATX
+133663             5SWPROC; *SENDE@3 STATX; 5RECE@3 STATX
+133666             SWACTIVE; *AAX SWPFU; STATX
+133671             A:=300; *AAX 5PRIO-SWPFU; STATX                  % Set priority = 300
+133674             CPUNO; *AAX 5CPUN-5PRIO; STATX
+133677             X:=5MMESSAGE; *AAX 5MSFL; LDATX; 5SCPU@3 BLDA DA
+133703             X:=SWMSG; *AAX 5MSFL; LDATX; 5CPUB@3 BSTA DA; STATX
+133710             X:=SWMSG; MSGN500; CALL WN5STATUS
+133713             *AAX XADPR; LDXTX
+133715             X.PSTAT BZERO SLICE=:X.PSTAT                     % Swapper is not timesliced
+133720             A:=B
+133721             IF X:="5SWAP"=CURPROG THEN
+133725                *IRW ALEVB DB
+133726             ELSE
+133727                T:=0; X:=X.RTDLGADDR; *DBREG@3 STATX
+133732             FI
+133732             *IOF
+133733             X:=SWMSG
+133734             CALL SLOCK; GO FAR N500ERR
+133736   *NNT03=*
+133736             CALL XTER500; GO FAR N500ERR                      % Stop nd-500
+133740             CALL ITO500XQ; CALL SUNLOCK                      % Insert swapper-mess. in ex-queue
+133742   SWME1:    CALL XACTRDY
+133743             CALL LOWACT500; LTTMR=:TMR                       % Reactivate nd-500
+133746             *ION
+133747             X:=5MMESSAGE; ANSWER; GO FAR XEILSTAT            % Restart proc. that started the swapper
+133752             *)FILL
+133775          FI
+133775          IF A=MSWSWAIT THEN                                  % Restart Swapper and wait (after allocate page..)
+134000             X:=SWMSG; T:=5MBBANK; *AAX HSWPI; LDDTX          % A:=SWMSG.SWPINFO
+134004             IF D><-1 THEN
+134007   *NNC07,      CNVBYADR
+134012             FI
+134012             IF D><X:=5MMESSAGE GO FAR EIL5STAT
+134015             *IOF
+134016             T:=5MBBANK; *AAX SKFLI; LDATX; AAX -SKFLI
+134022             IF A=:CCKFLIP=0 THEN                             % NO ERRORS
+134024                L:=0; *AAX PRET2; LDATX
+134027                IF A><0 THEN                                  % RETURN VALUE IN 2ND PAR.
+134030                   L BONE 1; *AAX RETP2-PRET2; LDDTX
+134033                   X:=SWMSG; *AAX RETP2; STDTX
+134036                FI; X:=5MMESSAGE; *AAX PRET4; LDATX
+134041                IF A><0 THEN                                  % RETURN VALUE IN 4TH PAR
+134042                   L BONE 3; *AAX RETP4-PRET4; LDDTX
+134045                   X:=SWMSG; *AAX RETP4; STDTX
+134050                FI; X:=5MMESSAGE; *AAX PRET5; LDATX
+134053                IF A><0 THEN                                  % RETURN VALUE IN 5TH PAR
+134054                   L BONE 4; *AAX RETP5-PRET5; LDDTX
+134057                   X:=SWMSG; *AAX RETP5; STDTX
+134062                FI; X:=5MMESSAGE; *AAX PRET6; LDATX
+134065               IF A><0 THEN                                   % RETURN VALUE IN 6TH PAR
+134066                   L BONE 5; *AAX RETP6-PRET6; LDDTX
+134071                   X:=SWMSG; *AAX RETP6; STDTX
+134074                FI; X:=SWMSG; A:=L; *AAX NUMPA; STATX
+134100             FI
+134100             X:=5MMESSAGE; *AAX OLDMI; LDATX; AAX -OLDMI; MICFU@3 STATX
+134105             CALL SLOCK; GO FAR N500ERR
+134107             SWPPING; CALL WN5STATUS
+134111   *NNT04=*
+134111             CALL XTER500; GO FAR N500ERR
+134113             CALL ITO500XQ; CALL SUNLOCK
+134115             X:=SWMSG; CALL GCPUDF; CALL ERRFATAL; A=:CC5CPUDF
+134121             IF A><B THEN CALL LOWACT500; TTMR=:TMR FI
+134126             CC5CPUDF=:B
+134130             X:=5MMESSAGE; T:=5MBBANK; *AAX SWRST; LDATX
+134134             X:=SWMSG; A=:D:=0; *AAX FUNCV; STDTX
+134141             CCKFLIP; *AAX KFLIP-FUNCV; STATX; AAX -KFLIP
+134145             3MONCO; *MICFU@3 STATX
+134147             CALL MCCO
+134150             CALL XACTRDY                                    % Reactivate nd-500 with "swapper message"
+134151             CALL LOWACT500
+134152             GO MONEN
+134153          FI
+134153          *IOF
+134154          CALL 5ACTSWAPPER
+134155          GO TRACO
+134156
+134156   INTEGER CCKFLIP
+134157   INTEGER CC5CPUDF
+134160   *)FILL
+134202
+134202   WMONCO:
+134202   MONCO:   X=:L; T:=5MBBANK; *AAX XADPR; LDXTX
+134206            IF X.PSTAT BIT 5LTSLPRI AND A BIT SLICE THEN
+134213               X:=X.MESSBUFF; *AAX 5PRIO; LDDTX               % A=5PRIO; D=HTSLLOWPRI
+134216               IF A<D THEN
+134220                  A+1; *STATX                                 % INCREMENT 5PRIOR
+134222               FI
+134222            FI; X:=L
+134223   STAOPP:
+134223   MTRACO:
+134223   TRACO:
+134223            LTTMR=:TMR
+134225   TOQUEUE: *IOF
+134226            CALL SLOCK; GO N500ERR
+134230   *NNT05=*
+134230            CALL XTER500; GO N500ERR
+134232            CALL ITO500XQ; CALL SUNLOCK
+134234            CALL XACTRDY                                     % Reactivate nd-500 with "swapper message"
+134235            CALL LOWACT500
+134236            GO MONEN
+134237   *)FILL
+134247
+134247   N500ERR: *IOF
+134250          CALL WN5STATUS; CALL XRSTARTALL
+134252          X:=5MMESSAGE; T:=5MBBANK; *AAX XADPR; LDXTX
+134256          X.PSTAT BZERO T5BUFF BONE F5BUFF=:X.PSTAT  % MARK MESSAGE FROM ND-500
+134262          GO MONEN
+134263
+134263   EN5TIMOUT: N5TIMOUT; GO XEILSTAT
+134265   EEIRESPL: EIRESPL; GO XEILSTAT                   % ERROR IN RESIDENT-PLACE
+134267   MILLFU:   ILMICFUNC; GO XEILSTAT                 % ILLEGAL MICROPROGRAM FUNCTION
+134271   EIL5STAT: ILN5STATUS                             % ILLEGAL N500 ANSWER
+134272   XEILSTAT: X:=5MMESSAGE; CALL WN5STATUS
+134274
+134274   % RESTART ND-100 PROCESS
+134274   RESENT: *IOF
+134275           IF X><-1 THEN                            % X=MESSAGE ADDR
+134300              T:=5MBBANK; *SENDE@3 LDATX
+134302              IF A<<=MX5PROCS THEN
+134305                 T:=5MBBANK; *AAX XADPR; LDXTX      % X=PROCESS DESCRIPTION
+134310                 X.PSTAT BZERO T5BUFF BONE F5BUFF=:X.PSTAT  % MARK MESSAGE FROM ND-500
+134314              FI
+134314           FI
+134314           GO MONEN
+134315   *)FILL
+134327
+134327   % DELAYED ABORT-HANDLING FOR NUCLEUS
+134327   NKREL:  CALL 5NUREL; GO MONEN
+134331
+134331
+134331   % RESTART CURRENT PROCESS WHICH IS NOW LOADING MIC.PROGR AFTER POWER UP,
+134331   % AND FIND ANOTHER PROCESS TO LOAD THE MIC.PROGR.
+134331   % X=MESSAGE OF PROCESS TO RESTART (RESTART IN ND-100)
+134331   RNEWCO: *IOF
+134332          CALL SLOCK; 0/\0
+134334          CALL GETC5PROC; A=:D
+134336          T:=5MBBANK; *SENDE@3 LDATX
+134340          IF A=D OR MIFLAG NBIT MUDOM THEN
+134345             CALL XTER500; 0/\0
+134347          FI
+134347          CALL IFM500XQ
+134350          CALL SUNLOCK
+134351          X:=MAILINK
+134352          DO
+134352             T:=5MBBANK; *LINK@3 LDDTX              % Skip dummy msg
+134354          WHILE D><-1
+134357   *NNC08,   CNVBYADR
+134362             IF X:=D><DUMMESS THEN
+134366                A=:T; X=:5MMESSAGE; *SENDE@3 LDDTX
+134371                A:=:D; A-5SWPROC*5PRDSIZE+"S500S"=:X
+134376                IF D><-1 AND D>>5SWPROC AND X.PSTAT BIT 5REWA THEN
+134407                   X:=5MMESSAGE
+134410                   CALL SLOCK; 0/\0; CALL IFM500XQ; CALL SUNLOCK
+134414                   GO STUPR
+134415                FI
+134415                X:=5MMESSAGE
+134416             FI
+134416          OD
+134417          GO STUPR
+134420   *)FILL
+134437
+134437   % REMOVE THE SWAPPER FROM THE EX-QUEUE
+134437   INTEGER CCMESS
+134440   FQUEUE: *IOF
+134441          CALL SLOCK; 0/\0
+134443          X=:CCMESS:=SWMSG; T:=5MBBANK; *AAX 5MSFL; LDATX; AAX -5MSFL
+134451          IF A BIT 5IEXQUEUE THEN
+134453             CALL GCPUDF; CALL ERRFATAL; A=:B
+134456             CALL GETC5PROC; A=:D
+134460             T:=5MBBANK; *SENDE@3 LDATX
+134462             IF A=D OR MIFLAG NBIT MUDOM THEN
+134467                CALL XTER500; 0/\0
+134471             FI
+134471             CALL IFM500XQ
+134472          FI
+134472          ANSWER; X:=CCMESS; CALL WN5STATUS
+134475          CALL SUNLOCK
+134476          *ION
+134477          GO FAR RESENT
+134500
+134500   % MESSAGE TO START PROCESS-0
+134500   P0START:
+134500          CALL SLOCK; 0/\0
+134502          X:=WATCHDOG; CALL ITO500XQ
+134504          T:=5MBBANK; *MICFU@3 STATX
+134506          MSGN500; CALL WN5STATUS
+134510          CALL SUNLOCK
+134511          CALL XACTRDY       % Reactivate nd-500 with "swapper message"
+134512          CALL LOWACT500
+134513          IF TMR << TTMR THEN A:=T FI; A=:TMR
+134521          X:=5MMESSAGE; GO FAR RESENT
+134523   *)FILL
+134542
+134542   % RELEASE 500-FILE-TRANSFER-BUFFER-HEADER BEFORE
+134542   % CONTINUE AFTER MONCALL
+134542   INTEGER XREG,BREG
+134544   5RLBH:  X=:XREG
+134545           *IOF
+134546           RTREF; CALL F5DBHS; CALL ERRFATAL
+134551           A:=:B=:BREG; X:=RTREF; CALL BRELEASE         % RELEASE DEV.BUF HEADER
+134555           IF 5DVBWAIT.BWLINK><X THEN                   % ANYONE WAITING FOR BUFFER HEADER?
+134561              X=:B; A.WLINK=:BWLINK; 0=:X.WLINK         % YES, REMOVE PROC FROM WAITING QUEUE
+134566              CALL BRESERVE; CALL TOEXQU                % RESERVE DEV.BUF HEADER FOR FIRST IN WAITING QUEUE
+134570              1=:MTOR
+134572           FI; X:=BREG=:B:=XREG
+134575           GO FAR MONCO                                 % GOTO RESTART-AFTER-MONCALL
+134576   RBUS
+134607
+134607
+
+134607   SUBR ITRAPDECODER
+134607   RBUS
+134607
+134607   %==============================================================================
+134607   %        ( M )     N 5 0 0   -   P 1 2 D C N   -   5 S T D R I V
+134607   %==============================================================================
+134607   %
+134607   % L e v e l  1 2  -  ND5000 communication driver kernel
+134607   %
+134607   SUBR 5STDRIV,N500,XN500,NXTMSG,CALLID12
+134607   INTEGER CC5CPU
+134610
+134610   5STDRIV:
+134610          IF CPUAVAILABLE NBIT 5ALIVE GO CALLID12
+134613   N500:
+134613          DO
+134613             IF C5STAT/\C5PFMASK >< 0  GO CALLID12
+134617   *CCM03,   TRR CCLR
+134620   *NNJ07=*
+134620             GO XN500                                         % Continue in XN500 if nd5000
+134621             A:=B=:CC5CPU
+134623             177377; CALL CLE5STATUS                          % READ STATUS AND MASK IT
+134625             IF A/\720><0 THEN
+134627                IF A BIT 5PFAIL THEN                          % POWER FAIL?
+134631                   C5STAT BONE BHPFAIL BZERO BCSLPFAIL=:C5STAT% YES,
+134635                   TTMR=:TMR; KPOWDOWN                        % RESTART ALL PROCS WITH "POWER DOWN"
+134640                ELSE IF A BIT 5DMAERR THEN N5DMAERR           % DMA ERROR
+134644                ELSE N5IERR                                   % ND-500 COMMUNICATION ERROR
+134646                FI; FI
+134646                GO N500ERR
+134647             FI
+134647             X:=MAILINK                                       % SCANN EX-QUEUE FROM "MAR"
+134650             DO
+134650             WHILE X><-1
+134653                T:=5MBBANK; *LINK@3 LDDTX
+134655             WHILE D><-1
+134660                X:=D=:N5MESSAGE                               % MESSAGE IS ALWAYS CURRENTLY HANDLED MESS.
+134662                IF X><DUMMESS THEN
+134665                   CALL CHN5STATUS; GO N500ERR
+134667                FI
+134667   NXTMSG:
+134667   *NNJ08=*
+134667                GO XN500                                      % Continue in XN500 if nd5000
+134670                X:=N5MESSAGE
+134671             OD
+134672             CC5CPU=:B; CALL XACT500
+134675   CALLID12: CALL WT12
+134676          OD
+134677
+134677   N500ERR:
+134677          CALL XRSTARTALL; GO CALLID12              % RESTART ALL PROCS.
+134701   *)FILL
+134723
+134723   XN500:
+134723          DO
+134723             DO
+134723                X:="N500DF".X500DF; T:=5MBBANK; *AAX X5MXF; LDATX
+134730                A=:L; *AAX X5HEN-X5MXF; LDDTX
+134733             WHILE A><D                             % WHILE HENTE><FYLLE
+134735                IF A=:D+1>=L THEN                   % FIFO FILLED?
+134741                   A:=0                             % YES, START FROM ZERO
+134742                FI; *STATX                          % STORE NEXT HENTE
+134743                D SH 1=:L; *AAX X5FIF-X5HEN; LDDTX  % HENTE*FIFO ELEMENT SIZE+FIFO START
+134747                *CNVBYADR
+134752                X:=D+L; T:=A+C; *LDDTX
+134756                *CNVBYADR
+134761                X:=D=:N5MESSAGE
+134763                T:=5MBBANK; *AAX 5MSFL; LDATX; AAX -5MSFL
+134767                IF A BIT 5IEXQUEUE THEN
+134771                   CALL CHN5STATUS; GO N500ERR
+134773                FI
+134773             OD
+134774             GO CALLID12
+134775          OD
+134776   RBUS
+135004
+135004
+135004   %=============================================
+135004   %      C H N 5 S T A T U S
+135004   %
+135004   % DRIVER LEVEL
+135004   % Entry:   X=Message address
+135004   %
+135004   SUBR CHN5STATUS
+135004   INTEGER POINTER LREG
+135005   CHN5STATUS: T:=L=:"LREG"
+135007          CALL GCPUDF; CALL ERRFATAL; A=:B
+135012          CALL RN5STATUS
+135013          IF A=ANSWER THEN                 % ANSWER FROM ND-500
+135016             IF X=HIMESS THEN
+135021                CALL HISTSAMPLE            % HISTOGRAM MESSAGE
+135022             ELSE
+135023                CALL P67L1                 % PERFORMANCE LOGGING
+135024                IF X=WATCHDOG THEN       % TIMER MESSAGE
+135027                   CALL SLOCK; GO LREG
+135031                   CALL IFM500XQ
+135032                   CALL SUNLOCK
+135033                   0=:TMRXQ; LTTMR=:TMR
+135036                ELSE
+135037                   CALL DECOMESS              % DECODE ANSWER FROM ND-500
+135040                FI
+135040             FI
+135040          ELSE IF A=5ERANSWER THEN
+135044             CALL DECOERRMESS              % DECODE ERROR-ANSWER FROM ND-500
+135045          ELSE IF A>>100 THEN
+135051             CALL 5RRTWT                   % RESTART ND-100 PROCESS
+135052          ELSE IF A=MSGN500 OR A=WAITING THEN
+135061   *NNT06=*
+135061             CALL XTER500; GO LREG
+135063   *CCM04,   TRR CCLR
+135064          FI FI FI FI
+135064          MIN "LREG"; GO LREG
+135066   RBUS
+135103
+135103
+135103   %=============================================
+135103   %      H I S T S A M P L E
+135103   %
+135103   % DRIVER LEVEL
+135103   % X=HIMESS
+135103   %
+135103   SUBR HISTSAMPLE
+135103   INTEGER CAAT
+135104   HISTSAMPLE:
+135104          T:=5MBBANK; *AAX WANTP-1; LDDTX                     % D=PROCESS TO DO HISTOGRAM ON
+135107          *AAX ACPRO-WANTP+1; LDATX                           % A=ACTUAL RUNNING PROCESS
+135111          IF A=D THEN
+135113             *AAX -ACPRO                                      % UPDATE HISTOGRAM
+135114   %         MFREE; CALL WN5STATUS                             % MARK HISTOGRAM MESSAGE FREE
+135114             5HISTART; A=:CAAT; D=:L; *AAX N500A; LDDTX
+135121             D-L; A:=A+C-1-CAAT
+135125             IF A<0 GO OUTSIDE                                % IS P-REG WITHIN "TARGET" AREA?
+135126             T:=5HINTERVAL; Z:="0"; *RDIV ST
+135131             IF A < 5HICHANNELS AND Z NBIT THEN
+135136                A SH 1=:X; 5HIDATA(X); D+1; A:=A+C
+135143                AD=:5HIDATA(X)                                % UPDATE IN INTERVAL
+135144             ELSE
+135145   OUTSIDE:     5HIOUTSIDE; D+1; A:=A+C; AD=:5HIOUTSIDE       % UPDATE OUTSIDE TARGET AREA
+135151             FI
+135151          FI; GO NXTMSG                         % HANDLE NEXT MESSAGE IN EX-QUEUE
+135152   RBUS
+135161
+135161
+135161   %============================================================================
+135161   %      D E C O M E S S
+135161   %
+135161   % DECODE "ANSWER-MESSAGE" FROM N500
+135161   % THE ACTUAL MESSAGE IS FOUND IN MESSAGE
+135161   %
+135161   % DRIVER LEVEL
+135161   %
+135161   % ENTRY:   X=ACTUAL MESSAGE (=MESSAGE)
+135161   %          B=N500 CPU-DATAFIELD
+135161   %
+135161   % RETURNS TO NXTMSG IN DRIVER KERNEL N500.
+135161   %
+135161   SUBR DECOMESS
+135161   DECOMESS:
+135161          T:=5MBBANK; *AAX SPFLA; LDATX; AAX -SPFLA
+135165          IF A><0 THEN A=:P FI                                 % GOTO ROUTINE ADDR FOUND IN SPFLAG
+135167          *MICFU@3 LDATX                                       % MIC.FUNC
+135170          IF A=3MONCO OR A=3TRACO OR A=3START OR A=3WMONCO THEN
+135204             T:=5MBBANK; *AAX STOPR; LDATX; AAX -STOPR
+135210             IF A=MOCALL THEN CALL MCHANDLE                    % STOP-REASON IS MON.CALL
+135214             ELSE IF A=5FMOCALL THEN CALL MCHANDLE             % STOP-REASON IS FILE-TRANSFER MONCALL
+135221             ELSE IF A=TRAPCODE THEN CALL TRAPDECODER          % STOP-REASON IS TRAP
+135226             ELSE CALL 5RRTWT                                  % RESTART ND-100 PROCESS
+135230             FI FI FI
+135230          ELSE
+135231             CALL 5RRTWT                                       % RESTART ND-100 PROCSESS
+135232          FI
+135232          GO NXTMSG                                            % HANDLE NEXT MESS. IN EX-QUEUE
+135233   RBUS
+135240
+135240
+135240   %==============================================================================
+135240   %      D E C O E R R M E S S
+135240   %
+135240   % DECODE "ERROR-ANSWER" MESSAGES FROM N500
+135240   % THE ACTUAL MESSAGE IS FOUND IN MESSAGE
+135240   %
+135240   % DRIVER LEVEL
+135240   %
+135240   % ENTRY:     X=ACTUAL MESSAGE
+135240   %            B=N500 CPU-DATAFIELD
+135240   %
+135240   % RETURNS TO NXTMSG IN DRIVER KERNEL N500.
+135240   %
+135240   SUBR DECOERRMESS
+135240   DECOERRMESS:
+135240          T:=5MBBANK; *AAX TRAPN-1; LDDTX           % D=TRAPNO
+135243          *AAX 1-TRAPN; MICFU@3 LDATX               % A=MICFUNC
+135245          IF D=46 AND A=3MONCO OR =3RMED OR =3WMEP
+135257          OR =3RMEP OR =3WMONCO OR =3PHSREAD OR =3PHSWRITE % LEGAL MICFUNCS FOR
+135273          OR =3WMED OR =3TRACO OR =3START GO ITRAPDECODER  % PAGE-FAULT
+135306          CALL 5RRTWT                                      % RESTART ND-100 PROC.
+135307          GO NXTMSG                                        % HANDLE NEXT MESS. IN EX-QUEUE
+135310   RBUS
+135314
+135314
+135314   %==========================================================================
+135314   %      T R A P D E C O D E R
+135314   %
+135314   % DECODE "TRAP-MESSAGES" FROM N500
+135314   %
+135314   % DRIVER LEVEL
+135314   %
+135314   % ENTRY:     X="TRAPPED" MESSAGE
+135314   %            B=N500 CPU-DATAFIELD
+135314   %
+135314   % RETURNS TO NXTMSG IN THE DRIVER KERNEL N500.
+135314   %
+135314   SUBR TRAPDECODER,ITRAPDECODER
+135314   INTEGER ARRAY TRPELIST(0)
+135314   INTEGER TRPETRAP,TRPEPROC,TRPERTREF,TRPECPU          % PARAMETERS FOR "TRAP IN PROCESS"
+135320
+135320   TRAPDECODER:
+135320          T:=5MBBANK; *AAX TRAPN-1; LDDTX; AAX 1-TRAPN  % D=TRAPNO
+135324          IF D>53 THEN
+135327             ILTRAP; CALL WN5STATUS                     % UNKNOWN TRAP
+135331             CALL 5RRTWT                                % RESTART ND-100 PROCESS
+135332          ELSE IF D = 46 THEN                           % PAGE FAULT
+135336   ITRAPDECODER: IF X>< SWMSG THEN
+135341                   X=:L
+135342                   IF 5INITFLAG BIT BRESPLACE
+135343                   OR "N500DF".SYSINITFLAG NBIT BSWSTARTED THEN
+135351                      X:=L; CALL 5RRTWT; GO NXTMSG      % RESTART ND-100 PROC. AND HANDLE NEXT IN EX-QUEUE
+135354                   FI
+135354                   T:=5MBBANK; X:=L; *5RECE@3 LDATX     % RECEIVER
+135357                   IF A-5SWPROC=0 GO ITRPERR            % PAGE FAULT IN SWAPPER? BACKGROUND MONITOR HANDLES THAT
+135361                   MSWPFAULT SHZ 10+D
+135364                   *AAX TRAPN; STATX; AAX -TRAPN
+135367                   CALL 5ACTSWAPPER                     % ACTIVATE THE SWAPPER
+135370                ELSE
+135371                   EPFINSWAP; CALL XRSTARTALL            % FATAL ERROR, PAGE FAULT IN SWAPPER
+135373                FI
+135373          ELSE
+135374   ITRPERR:
+135374   *"8N500 8FTS5
+"135374             A:=ETRIPRC+D
+135376   ITRP2ERR: A=:TRPETRAP; T:=5MBBANK; *AAX 5CPUN; LDATX % ERROR MSG (TRAPCODE,PROCESS#,RTREF,CPU#)
+135402             A/\377=:TRPECPU; *AAX -5CPUN; SENDE@3 LDATX
+135406             A=:TRPEPROC; X=:D; *AAX XADPR; LDXTX
+135412             IF X><0 THEN X:=X.RTRES FI; X=:TRPERTREF; *1BANK
+135416             X:=D; CALL 9FLER(TRPELIST,4); *2BANK
+135423   *"8N500
+"135423             CALL 5RRTWT                                % RESTART ND-100 PROC. WITH TRAP MESSAGE
+135424          FI;FI; GO NXTMSG                             % HANDLE NEXT MESSAGE IN EX-QUEUE
+135425   RBUS
+135443
+135443
+135443   %============================================================================
+135443   %      S W P D E C O D E R
+135443   %
+135443   %      Message demanding swapp is marked "swapwait" in status
+135443   %      The swapper is activated with page-fault info in the message
+135443   %      and the swapped process is marked "swapping"
+135443   %
+135443   %  Nd-500 driver level (level 12)
+135443   %
+135443   % Entry:     X=swapper message
+135443   %            B=nd-500 cpu-datafield
+135443   %
+135443   % Returns to nd-500 driver kernel n500.
+135443   %
+135443   SUBR SWPDECODER,5RDTRANSFER
+135443   SWPDECODER:
+135443          T:=5MBBANK; *AAX SWPFU; LDATX                       % Swap-function
+135446          IF A >> SWFMAX GO FAR ESWPFATAL                     %
+135451   @ICR
+135451          A GOSW
+135451             FAR ESWPFATAL, LNEWSWAP,      FAR LSWPAGE, FAR LPRSUSPEND,
+135456             FAR LALLOPAGE, FAR LDATREADY, FAR LCLTSB;
+135461   @CR;
+135461
+135461   *)FILL
+135470
+135470   % Start message currently being served by the swapper, if any,
+135470   % and find next process requesting the swapper.
+135470   % The processes requesting the swapper, are handled according
+135470   % to the nd-500 priority of the processes.
+135470   %
+135470   INTEGER CSWPM=?
+135470   INTEGER SSTAT=?
+135470   INTEGER BREG=?
+135470
+135470   LNEWSWAP:
+135470          T:=5MBBANK; X:=SWMSG; *AAX HSWPI; LDDTX             % AD:=X.SWPINFO
+135474          IF D><0 THEN                                        % Any proc. currently served?
+135476   *NNC09,   CNVBYADR
+135501             X:=D=:CSWPM
+135503             CALL SLOCK; 0/\0
+135505             T:=5MBBANK; *AAX 5MSFL; LDATX                    % Yes, escape while using swapper?
+135510             A BZERO 5IBRK; *S5IBR@3 BLDA DA                  % K:=S5IBRK
+135512             *5IBRK@3 BSTA DA                                 % K=:5IBRK
+135513             A BZERO S5IBRK
+135514             IF A BIT 52ESCSET AND A NBIT 5IBRK THEN
+135520                A BZERO 52ESCSET BONE 5IBRK; *STATX; AAX -5MSFL
+135524                CALL SUNLOCK
+135525                CALL RN5STATUS
+135526                IF A=SWPPING THEN ESCSTOP FI                  % Escape typed while using Swapper
+135532                GO SWPD1; *)FILL
+135542             FI
+135542             *STATX
+135543             CALL SUNLOCK
+135544             X:=SWMSG; *AAX SWPST; LDATX                      % A:=SWMSG.SWPSTAT
+135547             A=:D
+135550             IF A><0 THEN                                     % Error-answer from swapper?
+135551                *AAX HSWPI-SWPST; STZTX                       % 0=:X.SWPINFO
+135553                *AAX SWPIN-HSWPI; STZTX                       % 0=:X.SWPINFO
+135555                X:=CSWPM; *AAX SPFLA; LDATX
+135560                IF A><0 THEN                                  % A:=SWMSG.SWPINFO.SPFLAG
+135561                   *STZTX                                     % 0=:X.SPFLAG
+135562                   D=:A                                       % Swpstat, error code
+135563                   X:=CSWPM; CALL EMONICO                     % Restart proc. with error code after mon.call
+135565                   CALL XACTRDY
+135566                ELSE
+135567                   D=:A                                       % Swpstat, error code
+135570   SWPD1:          X:=CSWPM; GO FAR SWPD2
+135572                FI
+135572             ELSE                                             % Ok answer from the swapper
+135573                X:=CSWPM; CALL RN5STATUS                      % A:=SWMSG.SWPINFO.N5STATUS
+135575                IF A/\17777=SWPPING THEN                      % Power bits might be set
+135601                   T:=5MBBANK; *MICFU@3 LDATX                 % D:=SWMSG.SWPINFO.MICFUNC
+135603                   A=:D
+135604                   IF 3SWMESS=D THEN                          % Message to swapper?
+135607                      *SWFUN@3 LDATX
+135610                      IF A=MSCRS OR =MSCRENEWVERS THEN
+135616                         T:=5MBBANK; X:=SWMSG; *AAX RETP4+1; LDATX
+135622                         X:=CSWPM; *AAX 10; STATX; AAX -10
+135626                      FI
+135626                      CALL RN5STATUS; A/\160000\/ANSWER       % Take care of power fail flags
+135631                      GO FAR SWPD2                            % Yes, restart nd-100 proc
+135632                   ELSE                                       % Restart nd-500 proc.
+135633                      IF 3START=D THEN
+135636                         3TRACO; *MICFU@3 STATX               % 3TRACO=:X.MICFUNC
+135640                      ELSE
+135641                         IF 3WMONCO=D THEN                    % Writeback buffer restart?
+135644                            *AAX SM26N; LDATX
+135646                            *AAX 26NRB-SM26N; STATX
+135650                            *AAX SM26A-26NRB; LDDTX
+135652                            *AAX 26ADD-SM26A; STDTX
+135654                         FI
+135654                      FI
+135654                      X:=CSWPM; CALL RN5STATUS
+135656                      A/\160000\/MSGN500             % Keep pow. fail flags
+135660                      CALL WN5STATUS                 % MSGN500=:X.N5STATUS
+135661                      CALL XACTRDY
+135662                      CALL GCPUDF; CALL ERRFATAL
+135664                      IF A><B THEN
+135666                         A:=:B=:BREG
+135670   *NNA01=*
+135670                         CALL XACT500
+135671                         BREG=:B
+135673                      FI
+135673                   FI
+135673                FI
+135673             FI
+135673          FI
+135673          GO SWPD3
+135674
+135674   INTEGER BREG
+135675   INTEGER CSWPM
+135676   INTEGER SSTAT
+135677   *)FILL
+135716   INTEGER NHENT
+135717
+135717   SWPD2: A=:SSTAT
+135720          CALL GCPUDF; CALL ERRFATAL; A:=:B=:BREG
+135724   *NNT07=*
+135724          CALL XTER500; GO FAR N500ERR
+135726          SSTAT; CALL WN5STATUS                                % Restart nd-100 proc with error code
+135730          CALL 5RRTWT
+135731          IF B><BREG THEN
+135734   *NNA02=*
+135734             CALL XACT500
+135735          FI
+135735          BREG=:B
+135737   SWPD3:
+135737   *NNJ09=*
+135737          GO SWPD4
+135740          X:=SWMSG; CALL IFM500XQ
+135742          T:=5MBBANK; *AAX PLINK; LDATX; AAX -PLINK
+135746          A=:N5MESSAGE
+135747   SWPD4: PSWWAIT; X:=SWMSG; CALL WN5STATUS                    % Mark swapper free
+135752          % Search from Swap-queue fifo buffer for processes
+135752          % waiting for service by the Swapper
+135752          DO
+135752             CALL SLOCK; GO FAR N500ERR
+135754             T:=5MBBANK; X:="N500DF".X500DF; *AAX X5MXF; LDATX
+135761             A=:L; *AAX X5SWH-X5MXF; LDDTX                  % Get Swap-fifo Hente-/Fylle-pointer
+135764          WHILE A><D                                        % More messages in Swap-fifo?
+135766             IF A=:D+1>=L THEN A:=0 FI; A=:NHENT
+135774             D SH 1=:L; *AAX X5SWB-X5SWH; LDDTX
+136000   *NNC10,   CNVBYADR
+136003             X:=D+L; T:=A+C; *LDDTX                       % Next process to be served
+136007   *NNC11,   CNVBYADR
+136012             X:=D; CALL SUNLOCK
+136014             CALL RN5STATUS
+136015             IF A/\160000><0 GO EMPTY                   % Do not serve if pf
+136017             T:=5MBBANK; X:="N500DF".X500DF; *AAX X5SWH
+136023             NHENT; *STATX                              % Update Swap-fifo Hente-pointer
+136025             X:=D; CALL RN5STATUS
+136027             IF A=SWPWAIT THEN
+136032                X:=D; CALL GCPUDF; CALL ERRFATAL; A:=:B=:BREG
+136037                CALL 5ACTSWAPPER
+136040                IF BREG><B THEN
+136043   *NNA03=*
+136043                   CALL XACT500
+136044                FI
+136044                BREG=:B; GO NXTMSG
+136047             FI
+136047          OD
+136050   EMPTY: A:=0=:D; T:=5MBBANK
+136053          X:="N500DF".X500DF; *AAX X5SWO; STDTX
+136057          X:=SWMSG; *AAX HSWPI; STZTX
+136062          *AAX SWPIN-HSWPI; STZTX
+136064          CALL SUNLOCK
+136065          GO NXTMSG
+136066   *)FILL
+136111
+136111
+136111   INTEGER CC5CPUDF
+136112   LSWPAGE:                                                   % Disk I/O
+136112          X:=SWMSG; PSW1WAIT; CALL WN5STATUS
+136115          11=:L; SWMSG+"SWPINFO"=:D; 5MBBANK; T:="XSDUNIT"; *MOVPA   % Move parameters from swmsg to par.array for 5swap
+136125          A:=XSDUNIT; CALL LOGPH; A=:X
+136130
+136130          IF A>>="9BBHD" AND A<<"9EEHD" THEN
+136136             % Hard disc with disc optimization
+136136             IF XABSFUNC/\77=60 THEN XABSFUNC+6=:XABSFUNC FI  % Use func=66 instead of 60
+136146             XABSFUNC SHZ -6/\7+"HTABL"
+136152             X:=:B; X=:CC5CPUDF
+136154             X:=B+A:=X.S0                                     % X=addr of disk-layout table
+136157             IF X.S10=20 THEN                                 % Is it phoenix disc?
+136163                A:=XABLO/\7 SHZ 11\/XABSFUNC=:XABSFUNC        % Yes, set subunit bits in function
+136170                0=:XABLO                                      % Use only 16 bits disc-addr
+136171             FI
+136171
+136171             IF B >> "9FSTR" AND B << "9ESTR" AND STREN=0 GO OLWA  % Disc sorting/parallel seek
+136201
+136201             T:="QP100".QP5SW                              % 500 SWAPPER ELEMENT
+136203             -1=:X.QP5SW; X:=T                % "LINK OUT"
+136206             IF X = 0 OR X.RTRES >< 0 THEN CALL ERRFATAL FI
+136212             "5SWAP"=:X.RTRES; 0=:X.NLINK     % " RESERVE QUE"
+136215             *LDF I (XABSF; STF ABFUN,X
+136217             *LDD I (XABLO; STD ABPA2,X
+136221             *LDA I (XABLN; STA ABP31,X
+136223             CALL M5TRANS; GO BUSR
+136225             0=:X.RTRES; -1=:X.NLINK          % "RELEASE QUE"
+136230             T:=X; T=:"QP100".QP5SW; X:=T     % "LINK INN"
+136234             GO 5RDTRANSFER
+136235   BUSR:     CC5CPUDF=:B; GO NXTMSG           % TRANSFER IS STARTED
+136240
+136240   OLWA:     CC5CPUDF=:B
+136242          FI
+136242          X:=SWMSG; CALL 5SWACTRT; GO NXTMSG                  % Activate 5swap
+136245
+136245   5RDTRANSFER:                                               % Return after disc-transfer
+136245           IF "N500DF".SYSINITFLAG BIT B5STOP GO WT12
+136251           X:=SWMSG; CALL GCPUDF; GO WT12; B=:X:=A            % B=cpu.df; Xx=disc.acc.queue element
+136256           IF X.SSSTAT NBIT 4 THEN
+136261              X:=SWMSG; CALL OKMONICO                         % Transfer ok
+136263           ELSE
+136264              X:=SWMSG; A:=1055; CALL EMONICO                 % Error in transfer (swderr=1055)
+136267           FI
+136267           CALL XACT500
+136270           GO CALLID12
+136271
+136271   LPRSUSPEND: GO FAR ESWPFATAL                               % Suspend proc. not implemented
+136272   *)FILL
+136331
+136331   % Copy swapper-message to requesting proc's message and
+136331   % Restart nd-100 process with this info.
+136331   DOUBLE SWDD1,SWDD2,SWDD3                                   % Saved part of swapper's message
+136337   DOUBLE CCN100ADDR
+136341   INTEGER CSWINF=?
+136341   LDATREADY:
+136341          X:=SWMSG; T:=5MBBANK; *AAX HSWPI; LDDTX
+136345          IF D=0 GO FAR ESWPFATAL
+136347   *NNC12,CNVBYADR
+136352          X:=D; CALL RN5STATUS
+136354          IF A><SWPPING GO SSWPFREE                 % Process requesting swapper is not waiting for the swapper
+136357          X=:L:=SWMSG; T:=5MBBANK; *AAX N500A; LDDTX
+136364          *STD SWDD1; LDDTX 20; STD SWDD2           % Save part of swmsg
+136367          *LDDTX 40; STD SWDD3
+136371          X:=L; *AAX ABUFA; LDDTX
+136374   *NNC13,CNVWADR
+136377          AD=:CCN100ADDR
+136400          X:=SWMSG; T:=5MBBANK; *AAX 42; LDDTX      % 42=padr2; addr of par #2
+136404          *AAX N500A-42; STDTX                      % Prepare data-memory read message
+136406          AD:=CCN100ADDR; *AAX N100A-N500A; STDTX
+136411          A:=400; *AAX NRBYT-N100A; STATX
+136414          *AAX 5DITN-NRBYT; STZTX
+136416          "INLDATREADY"; *AAX SPFLA-5DITN; STATX; AAX -SPFLA
+136422          3RMED; *MICFU@3 STATX
+136424          MSGN500; CALL WN5STATUS
+136426          CALL XACTRDY
+136427          GO NXTMSG
+136430
+136430   INTEGER CSWINF
+136431   INLDATREADY:                                     % Return here after data-mem read
+136431          T:=5MBBANK; *AAX SPFLA; STZTX             % Clear spflag
+136434          X:="N500DF".X500DF; *AAX X5SWO; LDDTX
+136440   *NNC14,CNVBYADR
+136443          X:=D=:CSWINF; CALL RN5STATUS
+136446          IF A=SWPPING THEN                         % Process still waiting for swapper
+136451             X:=SWMSG; CALL RN5STATUS            % Restart process
+136453             X:=CSWINF; CALL WN5STATUS
+136455             IF MIFLAG BIT MUDOM THEN
+136460                CALL 5RRTWT
+136461             FI
+136461          FI; X:=SWMSG; T:=5MBBANK; *AAX N500A      % Rebuild swmsg message
+136464          *LDD SWDD1; STDTX; LDD SWDD2; STDTX 20
+136470          *LDD SWDD3; STDTX 40
+136472   SSWPFREE:
+136472          X:=SWMSG; CALL OKMONICO
+136474          CALL XACTRDY
+136475          GO NXTMSG
+136476   *)FILL
+136513
+136513   % Allocate a new page to a file.
+136513   INTEGER SWCPU=?
+136513   LALLOPAGE:
+136513          X:=SWMSG; PSW1WAIT; CALL WN5STATUS                  % PSWWAIT=:X.N5STATUS
+136516          T:=5MBBANK; *AAX HSWPI; LDDTX
+136521          IF D=0 GO ESWPFATAL
+136523   *NNC15,CNVBYADR
+136526          T:=5MBBANK; X:=D=:CSWINF; *MICFU@3 LDATX
+136532          *AAX OLDMI; STATX; AAX -OLDMI                       % Save micfunc
+136535          X:="STOPREASON"; T:=CSWINF+X
+136540          A:=120=:L:=SWMSG+X=:D:=5MBBANK; X:=A; *MOVPP        % Copy swapper message to actual message
+136550   SUSP2: X:=CSWINF; 5IALLOPAGE; CALL WN5STATUS               % Allocate page=:swmsg.swpinfo.n5status
+136553          CALL GCPUDF; CALL ERRFATAL; A:=:B=:SWCPU
+136557   *NNT08=*
+136557          CALL XTER500; GO N500ERR
+136561          CALL 5RRTWT
+136562          IF SWCPU><B THEN
+136565   *NNA04=*
+136565             CALL XACT500
+136566          FI
+136566          SWCPU=:B; GO NXTMSG
+136571
+136571   % Fatal error from the swapper, restart all active-procs. with
+136571   % an error code.
+136571   ESWPFATAL:  X:=SWMSG; SWPFATAL
+136573   N500ERR:    CALL XRSTARTALL; GO CALLID12
+136575   *)FILL
+136613
+136613   % Clear TSB for multi ND500 cpu system
+136613   INTEGER SWCPU,SWPCLRMASK
+136615   LCLTSB:
+136615          CALL CHACTIVEQ; GO EOD
+136617          IF A=1 GO EOD
+136622   *NNJ10=*
+136622          GO LMPCLR                                   % Continue in LMPCLR if nd5000
+136623          A:="S5CPUDF":=:B=:SWCPU
+136626          DO WHILE B<<="E5CPUDF"
+136631             IF B><SWCPU AND CPUAVAILABLE BIT 5ALIVE
+136635             AND C5STAT NBIT BHPFAIL AND SPREF=0 THEN
+136644                X:=WATCHDOG
+136645                CALL XTER500; 0/\0
+136647                3RMICV; T:=5MBBANK; *MICFU@3 STATX
+136652                MSGN500; CALL WN5STATUS
+136654                CALL ITO500XQ; X=:TMRXQ; LTTMR=:TMR
+136660                CALL XACT500
+136661             FI
+136661             B+5CPUDFSZ
+136662          OD
+136663          SWCPU=:B; GO EOD
+136666
+136666   % Clear-function; ND5000 only
+136666   %
+136666   LMPCLR:
+136666          T:=5MBBANK; X:=SWMSG; *AAX 5DP2; LDATX
+136672          A=:SWPCLRMASK
+136673          CALL SLOCK; 0/\0
+136675          A:="S5CPUDF":=:B=:SWCPU
+136700          DO WHILE B<<="E5CPUDF"
+136703             IF B><SWCPU AND CPUAVAILABLE BIT 5ALIVE
+136707             AND C5STAT NBIT BHPFAIL AND SPREF=0 THEN
+136716                T:=5MBBANK; X:=MAILINK; *AAX X5CPU; LDATX; AAX -X5CPU
+136723                IF A=MPACTIVE THEN
+136726                   SWPCLRMASK; T:=5MBBANK; *AAX X5CLR; STATX
+136732                   CLRKICK; CALL XKICK500
+136734                FI
+136734             FI
+136734             B+5CPUDFSZ
+136735          OD
+136736          CALL SUNLOCK
+136737          SWCPU=:B
+136741   EOD:   X:=SWMSG; CALL OKMONICO
+136743          CALL XACTRDY
+136744          GO NXTMSG
+136745   RBUS
+136764
+136764
+136764
+136764   @ICR;
+136764   SUBR N5FUD,STAPROC,NSTOPROC,SWITPROC,NINSTR,NOUTSTR,
+136764        GERRC,5SIBMO,SPRIO,SWMC,DVIO,A5XMSG,B5XMSG,M5TMOUT,5MTRANS;
+136764   RBUS
+136764   @CR;
+136764
+136764   %=============================================================================
+136764   %      M C H A N D E L
+136764   %
+136764   % DECODING MONITOR CALL MESSAGES FROM N500
+136764   %
+136764   % CALLED FROM : DECOMESS
+136764   %
+136764   % DRIVER LEVEL
+136764   %
+136764   % ENTRY:     X=ACTUAL MESSAGE (=MESSAGE)
+136764   %            T=STOP-REASON
+136764   %            B=ND-500 CPU DATAFIELD
+136764   %            THE ACTUAL PROCESS IS FOUND IN PROCAD
+136764   %
+136764   % RETURNS TO NXTMSG IN ND-500 DRIVER KERNEL N500.
+136764   %
+136764   SUBR MCHANDEL,NORMMC,M516,M517,M520,M521,M522,M523
+136764
+136764   SYMBOL L12MIN=               500       % FIRST MON CALL THAT REQUIRES SPECIAL
+136764                                          % TREATMENT ON LEVEL 12
+136764   SYMBOL L12MAX=               523       % LAST
+136764   SYMBOL CERN=                 376       % SPECIAL MON.CALL TO EXECUTE ND-100 INSTRUCTIONS
+136764   SYMBOL N5SWAP=               377       % MON.CALL USED BY THE SWAPPER.
+136764   INTEGER CSTOPREASON,CURX,CNT
+136767   INTEGER 5CMNO=?
+136767
+136767   NORMMC:
+136767           IF CSTOPREASON=5FMOCALL THEN
+136773              X=:D
+136774              "5FRTBAK"=:PROCAD.MFUNC
+136777              X:=D
+137000           FI
+137000           CALL 5RRTWT; GO NXTMSG
+137002   *)FILL
+137006
+137006   MCHANDEL: T=:CSTOPREASON
+137007          IF 5MLOPROC><0 THEN                                 % MONITOR CALL LOGING?
+137011             T:=5MBBANK; *LDATX X5SND
+137013             IF A=5MLOPROC OR A:=-1=T THEN                    % LOG FOR THIS PROC OR FOR ALL?
+137021                T:=5MBBANK; *AAX MCNO; LDATX                  % YES, LOG
+137024                IF A<<1000 THEN                               % MON.CALL NUMBER 777B IS THE HIGEST MON.CALL TO LOG
+137027                   A SH 1; T:="N500DF".5BUBANK
+137032                   X:=X.5BUSTART+A; *LDDTX                    % INCREMENT  -
+137035                   D+1; A:=A+C; *STDTX                        % MONITOR CALL COUNT
+137040                   X:=N5MESSAGE
+137041                FI
+137041             FI
+137041          FI
+137041          CALL PML50                                          % PERFORMANCE LOGGING
+137042          T:=5MBBANK; *AAX XADPR; LDATX
+137045          A=:PROCAD                                           % PROCESS DESCR. OF CURRENT PROC.
+137046          *AAX MCNO-XADPR; LDATX; AAX SMCNO-MCNO; STATX       % SAVE MON.CALL NUMBER IN SMCNO
+137052          IF A=2TUSED THEN                                    % MON TIME-USED?
+137055             CALL MBSUSPROC
+137056             T:=5MBBANK; X:=N5MESSAGE; *AAX 500TU; LDDTX      % AD=ND-500 CPU-TIME USED (500TUSED)
+137062             T:=0; X:=N5MESSAGE; CALL MONICO                  % RESTART ND-500 PROC
+137065             CALL XACTRDY
+137066             GO NXTMSG; *)FILL                                % HANDLE NEXT PROC. IN ND-500 EX-QUEUE
+137102          FI
+137102          IF A=2CLOCK THEN
+137105             CALL MBSUSPROC
+137106             -7=:CNT; N5MESSAGE+"ABUFADR"=:X; T:=5MBBANK; *LDDTX  % MON 60 BUFFER
+137115             A=:T; A:=D=:CURX
+137120             FOR CNT DO
+137120                ACL7(CNT); X:=CURX; *SWAP SA DD CLD; STDTX
+137125                MIN CURX; MIN CURX
+137127             OD
+137131             X:=N5MESSAGE; T:=5MBBANK
+137133             IF MIFLAG BIT WSMC THEN                          % MP WRITE BACK ?
+137136                *AAX PDR1; LDDTX; AAX 26ADD-PDR1; STDTX       % Logical address (destination)
+137142                *AAX SM26A-26ADD; STDTX                       % Save logical address (destination)
+137144                A:=34; *AAX 26NRB-SM26A; STATX
+137147                *AAX SM26N-26NRB; STATX                       % No of bytes to move
+137151                A:=0=:D; *AAX FUNCV-SM26N; STDTX              % Set Ok monitor call
+137155                *AAX KFLIP-FUNCV; STZTX
+137157                *AAX NUMPA-KFLIP; STZTX; AAX -NUMPA
+137162                3WMONCO; *MICFU@3 STATX
+137164                CALL MCCO
+137165             ELSE
+137166                *AAX PDR1; LDDTX; AAX N500A-PDR1; STDTX
+137172                A:=34; *AAX NRBYT-N500A; STATX
+137175                *AAX 5DITN-NRBYT; STZTX; AAX -5DITN
+137200                *AAX ABUFA; LDDTX; AAX N100A-ABUFA; STDTX
+137204                "INCLCK"; *AAX SPFLA-N100A; STATX; AAX -SPFLA
+137210                3WMED; *STATX XMICF
+137212                MSGN500; CALL WN5STATUS
+137214                CALL XACTRDY
+137215                GO NXTMSG
+137216   INCLCK:      T:=5MBBANK; *AAX SPFLA; STZTX; AAX -SPFLA
+137222                CALL OKMONICO
+137223             FI
+137223             CALL XACTRDY
+137224             GO NXTMSG; *)FILL
+137240          FI
+137240          X:=N5MESSAGE
+137241          IF A=N5SWAP THEN                                    % SPEC. MONITOR CALL FROM SWAPPER
+137244             IF X=SWMSG THEN
+137247                CALL SWPDECODER                               % DECODE FUNCTION FROM SWAPPER
+137250             ELSE
+137251                IF 5DBFLAG><0 THEN
+137253                    E5DEBUG; CALL XRSTARTALL
+137255                    GO NXTMSG
+137256                FI
+137256                A:=25; CALL WN5STATUS                          % YOU ARE NOT AUTHORIZE TO DO THIS
+137260                CALL 5RRTWT                                    % WILL BE CONVERTED TO ILL. MON CALL
+137261             FI; GO NXTMSG
+137262          FI
+137262          IF A=CERN THEN                                       % VERY SPECIAL MONITOR CALL FOR CERN
+137265             IF T:=CERNENABLE >< 0 THEN                        % THIS MONITOR CALL LEGAL?
+137270                40=:L                                          % LENGTH OF CODE TO BE MOVED
+137272                X+100=:D; A:=5MBBANK                           % SOURCE ADDRESS (MONITOR CALL PARAMETERS)
+137275                T:="CERNCODE"                                  % DESTINATION ADDRESS
+137276                *MOVPN                                         % MOVE PARAMETERS TO CODE AREA (ALTERNATIVE TO NORMAL)
+137277                CALL CERNCODE                                  % EXECUTE PARAMETERS!
+137300                X:=N5MESSAGE                                   % WILL HOPEFULLY CONTINUE HERE
+137301                CALL MONICO                                    % CERN IS RESPONSIBLE FOR A, D, AND T
+137302                CALL XACTRDY
+137303                GO NXTMSG
+137304             FI
+137304          FI
+137304          A=:T
+137305          PROCAD.PSTAT/\5CLRUNSTATUS+5INMCALL=:X.PSTAT         % MARK PROC. IN MON.CALL.
+137312          A:=T; X:=N5MESSAGE
+137314   *"8N500 8F5UD
+"137314          IF A=333  AND 5FUDMA><0 THEN
+137321             CALL MBSUSPROC
+137322             CALL N5FUD; GO NORMMC; GO NXTMSG                % MON UDMA, MAY BE FAST CALL
+137325          FI
+137325   *"8N500
+"137325   *N5MPA, JMP *2; JMP * 1                                    % FOR PATCHING
+137327          IF A = 347 GO 5SERVER                               % NUCLEUS MON CALL
+137332          IF A >= L12MIN AND A <= L12MAX THEN                 % SPECIAL HANDLING ON LEVEL 12?
+137340             A=:5CMNO; CALL MBSUSPROC
+137342   @ICR
+137342             5CMNO-L12MIN GOSW
+137342                STAPROC,    NSTOPROC,   SWITPROC,   NINSTR,
+137351                NOUTSTR,    GERRC,      5SIBMO,     SPRIO,
+137355                SWMC,       DVIO,       A5XMSG,     B5XMSG,
+137361                M5TMOUT,    5MTRANS,    M516,       M517,
+137365                M520,       M521,       M522,       M523;
+137371   @CR;
+137371          FI
+137371          GO NORMMC         % MONITOR CALL SHOULD BE HANDLED BY THE SYSTEM MONITOR.
+137372   *)FILL
+137451
+137451   % ENTRIES FOR PATCHING IN ADDRS TO NEW "DRIVER-LEVEL" MONITOR CALLS
+137451   M516:    GO NORMMC; 0/\0
+137453   M517:    GO NORMMC; 0/\0
+137455   M520:    GO NORMMC; 0/\0
+137457   M521:    GO NORMMC; 0/\0
+137461   M522:    GO NORMMC; 0/\0
+137463   M523:    GO NORMMC; 0/\0
+137465
+137465   INTEGER 5CMNO
+137466   INTEGER CERNCODE(40)                                 % EXECUTED IN CERN MONITOR CALL!
+137526   RBUS
+137527
+137527
+137527
+137527
+137527   %
+137527   %      SPECIAL TREATMENT OF MONITOR CALLS ON LEVEL 12
+137527   %
+137527
+137527   %=============================================================================
+137527   %       N 5 F U D      U D F U N C      C O A F     R I O W A
+137527   %
+137527   % ACTIVATED WHEN MON 333 (UDMA) FROM ND500,   DRIVER LEVEL
+137527   % CALLED FROM MCHANDEL
+137527   % ENTRY:   B= ND-500 CPU DATAFIELD
+137527   %          X= MONITOR CALL MESSAGE IN 5MBBANK
+137527   % RETURN:
+137527   %   EXIT   ERROR, TRY AGAIN ON LEVEL 1
+137527   %   EXIT+1 OK, UDRxx RT-PROG STARTED
+137527   %
+137527   SUBR N5FUD,COAF,UDFUNC,RIOWA
+137527
+137527   *"8N500 8F5UD
+"137527   % FIXED 500 MEMORY DESCRIPTION
+137527   % TX DISP
+137527   %SYMBOL XFFPA=2            % FIRST LOGICAL PAGE
+137527   %SYMBOL XFPHP=4            % ND-100 PHYS ADDR
+137527   SYMBOL FIXCONT=14,FIXABST
+137527
+137527   INTEGER POINTER LREG=?
+137527   INTEGER N5CP=?,N5ME=?,RTPD=?,ALOP=?
+137527   INTEGER N5SE=?,UFU=?,UPIO=?,UNI=?,CCAP=?
+137527   DOUBLE  DBUA=?,IPAR1=?
+137527
+137527
+137527   DISP 7                     % SPECIAL DF. FOR UDRXX RT-PROG
+137527          INTEGER UR5M                          % ADDRESS TO MESSAGE FROM N500 PROC.
+137527          INTEGER POINTER FUNCP                 % FUNCTION
+137527          DOUBLE  POINTER MEMOP                 % MEMORY ADDRESS
+137527          INTEGER POINTER BLOCP                 % NOT USED
+137527          DOUBLE  POINTER NWORP                 % NR OF 16 BITS WORDS
+137527   PSID
+137527   *"8N500
+"137527
+137527   N5FUD:
+137527   *"8N500 8F5UD
+"137527          X=:N5ME;                              % SAVE ADDRESS TO CURRENT MESSAGE AND 500 DATAFIELD
+137530          A:=L=:"LREG"
+137532   %-------------------------- GET PARAMETERS
+137532          T:=5MBBANK; *LDATX X5SND              % GET 500 PROC. NO
+137534          A=:N5SE
+137535          *AAX 5PPA2; LDDTX                     % GET BUFFER ADDRESS
+137537          AD=:DBUA;  *AAX 5AP1-5PPA2; LDDTX     % GET FUNCTION
+137542          IF A >< 0 GO UERR; A:=D=:UFU
+137545          *AAX 5AP2-5AP1; LDDTX                   % GET PIO DATA
+137547          A:=D=:UPIO
+137551          *AAX 5AP3-5AP2; LDDTX                   % GET LOG DEV
+137553          IF A >< 0 GO UERR; A:=D=:UNI
+137556          *AAX 5AP4-5AP3; LDDTX                   % GET IPAR1
+137560          AD=:IPAR1
+137561
+137561          IF UNI < LUDV OR > HUDV GO UERR       % CHECK LOGICAL UNIT
+137570          CALL LOGPH; IF A=0 GO UERR            % NOT EXSIST
+137572          IF A.RTRES >< 0 GO UERR               % INPUT MUST BE FREE (ABSTR FRAM UDRxx)
+137575          IF D=0 GO UERR;
+137577          T:=5MBBANK; X:=N5ME;* AAX XADPR; LDXTX
+137603          IF X.RTRES >< D.RTRES GO UERR         % DEVICE NOT RESERA=:ALOP                 % ABS. NUMBER OF LOGICAL PAGES -1
+140014          T:=3777
+140015          AD:=DBUA; D/\T=:X
+140020          AD:=IPAR1
+140021          IF D/\T+X > 4000 THEN            % IF BUFFER ADDRESS+LENGTH CROSS
+140026              MIN ALOP; 0/\0               % + A PAGE BOUNDARY
+140030          FI
+140030          AD:=DBUA                         % ND-500 BUFFER ADDRESS
+140031          IF D BIT "0" GO UERR             % ODD BYTE ADDRESS?
+140033
+140033          AD SHZ -13;  A=:D                % D = LOGICAL SEG NO
+140035          A:=N5SE-1*MFANT+5DSPS+D=:X
+140043          T:=5FXBNK; *LDATX                % A = CAPABILITY
+140045          A=:CCAP                          % DATA SEGMENT CAPABILITY
+140046          A /\ 1777 =: CPYS                % CURRENT PHYSICAL SEGMENT
+140050          AD:=DBUA SHZ 5;                  % A= PAGE NO
+140052          D SHZ -6                         % D = DIP (ND-100)
+140053          A=:FLP + ALOP =:LLP              % 1. AND LAST LOG PAG
+140056          A:=D=:CDIS                       % ND-100 DISPLACEMENT WITHIN PAGE
+140060
+140060          A:=N5SE-1*"MFSIZE*MFANT"+5FXTBL=:X+"MFSIZE*MFANT"=:MXTA
+140067          DO
+140067             T:=5FXBNK; *LDDTX             % AD = MFDESCR
+140071             IF A BIT FIXABS OR A BIT FIXCONT THEN
+140075             IF D = CPYS THEN
+140100                T:=5FXBNK; *XFFPA@3 LDDTX         % A=FIRST FIXED LOG PAGE, D = LAST
+140102                IF D >= LLP AND A <= FLP THEN     %  FIXED AREA FOUND
+140110                   T-A=:D                         %  FLP-A IS DISP IN 5FXTBL
+140112                   T:=5FXBNK; *XFPHP@3 LDATX      %  ND-100 PHYS PAGE
+140114                   A+D                            %  ADD DISP IN 5FXTBL
+140115                   AD SHZ -20; AD SHZ 12;         %  A:=D; A=0; AD=PAGE ADDR
+140117                   T:=CDIS; D+T; A:=A+C           %  ND 100 PHYS ADDR IN AD
+140122                   EXIT
+140123                FI
+140123             FI;FI
+140123             X:=X+MFSIZE
+140124          WHILE X<< MXTA
+140127          OD
+140130          GO FAR UERR; *)FILL
+140142
+140142   % MONITOR FUNCTION, REMOVING RT-PROG FROM I/O WAIT
+140142   RIOWA: X=:B; IF X:=RTRES=0 GO MONEN
+140146          X.STATUS BZERO 5WAIT=:X.STATUS
+140151          GO STUPR
+140152   *)FILL
+140154   *"8N500 -8F5UD
+"140154   RBUS
+140154
+140154
+140154   %=============================================================================
+140154   %       S T A P R O C     S W I T P R O C
+140154   %
+140154   % Entry: X=current message (=MESSAGE)
+140154   %        B=nd-500 cpu datafield
+140154   %
+140154   SUBR NSTOPROC,STAPROC,SWITPROC
+140154   SYMBOL PRSWITCH=502                                        % PROCESS SWITCH MONITOR CALL
+140154
+140154   % Entry: X=current message (=MESSAGE)
+140154   %        B=nd-500 cpu datafield
+140154   %
+140154   INTEGER CN5STATUS,BREG
+140156
+140156   STAPROC:                                                   % Start process
+140156   SWITPROC:                                                  % Switch process (stop current and restart another one)
+140156          T:=5MBBANK; *AAX NPROC; LDDTX                       % A=proc.no, D=magno
+140161          IF A<=5SWPROC OR A >> MX5PROCS GO ILPROC            % Legal process number?
+140167          A-5SWPROC*5PRDSIZE+"S500S"; X:=A.MESSBUFF
+140174          T:=5MBBANK; *AAX MAGNO; LDATX                       % A=magno
+140177          *AAX XADPR-MAGNO; LDXTX                             % X=process descr.
+140201          IF A><D OR X.RTRES = 0 THEN                         % Illegal magno or process not in use?
+140205   ILPROC:   A:=EILPROC; X:=N5MESSAGE; CALL EMONICO           %
+140210             CALL XACTRDY
+140211             GO NXTMSG
+140212          FI
+140212          % - If process stopped (by stoppr etc.) then restart it
+140212          X.PSTAT=:D; X:=X.MESSBUFF
+140215          CALL RN5STATUS
+140216          IF D BIT T5BUFF AND A=STOPPED OR A=I5TMQ THEN
+140226             A=:D; CALL GCPUDF; CALL ERRFATAL; A:=:B=:BREG
+140233             IF D=STOPPED THEN
+140236                IF BREG><B THEN
+140241   *NNT09=*
+140241                   CALL XTER500; 0/\0
+140243                FI
+140243                CALL OKMONICO
+140244             ELSE                                             % Restart process
+140245                CALL FR5TMQU
+140246                CALL SLOCK; 0/\0
+140250   *NNT10=*
+140250                CALL XTER500; 0/\0
+140252                A:=1; CALL SPITMQ
+140254                CALL ITO500XQ
+140255                CALL SUNLOCK
+140256             FI
+140256             CALL XACTRDY
+140257             IF BREG><B THEN
+140262   *NNA05=*
+140262                CALL XACT500
+140263             FI
+140263             BREG=:B
+140265          ELSE
+140266             CALL SLOCK; 0/\0
+140270             T:=5MBBANK; *AAX 5MSFL; LDATX
+140273             A BONE 55REP; *STATX
+140275             CALL SUNLOCK
+140276          FI
+140276          X:=N5MESSAGE; T:=5MBBANK; *AAX MCNO; LDATX; AAX -MCNO
+140303          IF A><PRSWITCH THEN
+140306             CALL OKMONICO                                    % If mon switch-process then stop current
+140307             CALL XACTRDY
+140310             GO NXTMSG
+140311          FI                                                  % ..else continue in stoppr
+140311
+140311
+140311   NSTOPROC:                                                  % STOP PROCESS
+140311          CALL SLOCK; 0/\0
+140313          T:=5MBBANK; *AAX 5MSFL; LDATX
+140316          IF A BIT 55REP THEN                                 % REP BIT SET?
+140320             A BZERO 55REP; *STATX; AAX -5MSFL                % YES, RESET REP BIT
+140323             CALL SUNLOCK
+140324             CALL OKMONICO                                    % AND RESTART ND-500 PROC.
+140325             CALL XACTRDY
+140326          ELSE
+140327             CALL SUNLOCK
+140330             STOPPED; X:=N5MESSAGE; CALL WN5STATUS             % MARK PROC. IS STOPPED BY MON STOPR
+140333          FI
+140333          GO NXTMSG
+140334   RBUS
+140363
+140363
+140363   %===============================================================================
+140363   %       Monitor call   M 5 T M O U T
+140363   %
+140363   % ENTRY: X=current message (=MESSAGE)
+140363   %        B=nd-500 cpu datafield
+140363   %
+140363   SUBR M5TMOUT
+140363   INTEGER CTM1=?,CTM2=?; DOUBLE CC5ATM=?
+140363   INTEGER CRREASON=?
+140363
+140363   M5TMOUT: CALL SLOCK; 0/\0
+140365            T:=5MBBANK; *AAX 5MSFL; LDATX                     % A=message flag
+140370            IF A BIT 55REP THEN                               % Rep bit set?
+140372                A BZERO 55REP; *STATX                         % Yes, reset rep bit
+140374                CALL SUNLOCK
+140375                A:=-1
+140376   N5TMF:       A=:CRREASON; X:=N5MESSAGE                     % Reason for restarting after mon 5tmout
+140400   *NNT11=*
+140400                CALL XTER500; 0/\0
+140402                A:=CRREASON; CALL SPITMQ
+140404                CALL XACTRDY
+140405                GO NXTMSG
+140406            FI
+140406            CALL SUNLOCK
+140407            X:=N5MESSAGE; T:=5MBBANK; *AAX 5ADP1; LDDTX       % AD=no. of time units
+140413            IF A><0 THEN
+140414   LILP1:      X:=N5MESSAGE; A:=EC174
+140416               CALL EMONICO
+140417               CALL XACTRDY
+140420               GO NXTMSG                                      % Restart nd-500 proc with error code
+140421            FI
+140421            IF D=0 GO N5TMF                                   % Restart with restart reason=0 when zero number of time units
+140423            D=:L; *AAX 5ADP2-5ADP1; LDDTX                     % AD=time unit
+140426            IF A><0 OR D-1>>3 GO LILP1                        % Time unit 1-4 is legal
+140433            A:=D SH 1; 8CLCN(A)
+140437            T:=L; 0=:X=:L
+140442            DO WHILE T><0                                     % Compute time in basic time units
+140444                IF T BIT 0 THEN L+D; X+A+C FI
+140450                T SHZ -1; AD SH 1
+140452            OD; D:=X; A:=L; A+"N500DF".5ATM2; A:=:D; A:=A+C+X.5ATM1
+140462            AD=:CC5ATM                                        % Time when the proc. should be restarted
+140463            X:=N5MESSAGE; T:=5MBBANK; *AAX D5TM1; STDTX; AAX -D5TM1
+140470            CALL SLOCK; 0/\0
+140472            CALL IFM500XQ
+140473            I5TMQU; CALL WN5STATUS
+140475            AD:=CC5ATM; D-; *COPY CM1 ADC SA DA
+140500            AD=:CC5ATM
+140501            X:="N500DF".X500DF; *AAX X5BTI
+140504            DO
+140504               X=:L; T:=5MBBANK; *LINK@3 LDDTX
+140507            WHILE D><-1
+140512   *NNC16,     CNVBYADR
+140515               X:=D; T:=5MBBANK; *AAX D5TIM; LDDTX; AAX -D5TIM
+140522               A:=:D; A+CTM2; A:=:D; A:=A+C+CTM1
+140527            WHILE A<0
+140530            OD; GO INSERT
+140532   *)FILL
+140550   INTEGER CTM1,CTM2; DOUBLE CC5ATM=CTM1
+140552   INTEGER CRREASON
+140553
+140553   INSERT:  X:=L; T:=5MBBANK; *LINK@3 LDDTX
+140556            X:=N5MESSAGE; *LINK@3 STDTX
+140560            IF D><-1 THEN
+140563   *NNC17,     CNVBYADR
+140566               T:=A; X=:A:=D; *AAX PLINK; STATX
+140573            FI
+140573            T:=5MBBANK; X:=N5MESSAGE; *AAX PLINK; LDATX
+140577            A=:N5MESSAGE:=L; *STATX; AAX -PLINK
+140603            A:=T; D:=X
+140605   *NNC18,  CNVWADR
+140610            X:=:L; *LINK@3 STDTX
+140612            T:=5MBBANK; X:=L; *AAX 5MSFL; LDATX
+140616            A BONE 5ITMQUEUE; *STATX
+140620            CALL SUNLOCK
+140621            GO NXTMSG
+140622   RBUS
+140627
+140627   SUBR NINSTR,XNINSTR
+140627   RBUS
+140627   %===============================================================================
+140627   %       D V I O           N O U T S T R
+140627   %
+140627   % ENTRY: X=CURRENT MESSAGE (=MESSAGE)
+140627   %        B=ND-500 CPU DATAFIELD
+140627   %
+140627   SUBR DVIO,NOUTSTR,OSTRS,PT5RST
+140627   DVIO:
+140627   NOUTSTR:
+140627          CALL 5GTDF; GO NORMMC                               % IF TERMINAL GET ADDR OF DATAFIELD
+140631          A:=D; X:=N5MESSAGE; T:=5MBBANK; *AAX TODF; STATX    % TODF=OUTPUT DATAFIELD
+140636          *AAX DNOBY-TODF; LDDTX; AAX -DNOBY
+140641          IF A><0 OR D>>4000 THEN                             % 4000B BYTES IS MAX BECAUSE OF "COM.BUFFER SIZE"
+140645             A:=EC174; CALL EMONICO                           % RESTART ND-500 PROC WITH ERROR CODE
+140647             CALL XACTRDY
+140650             GO NXTMSG
+140651          ELSE IF D=0 THEN                                    % ZERO BYTES?
+140654             CALL OSTRS; GO NXTMSG                            % RESTART PROCESS
+140656          FI; FI
+140656          IF MIFLAG NBIT WSMC THEN                            % IS DATA-BUFFER IN COM-BUFFER? (BY MIC.PROG)
+140661             T:=5MBBANK; 3RMED; *STATX XMICF                  % NO, MIC.FUNC=READ DATA MEMORY
+140664             A:=D; *AAX NRBYT; STATX                          % NUMBER OF BYTES TO READ
+140667             *AAX 5DITN-NRBYT; STZTX
+140671             *AAX OSTRA-5DITN; LDDTX; AAX N500A-OSTRA; STDTX  % ND-500 LOGICAL DATA ADDR
+140675             *AAX ABUFA-N500A; LDDTX; AAX N100A-ABUFA; STDTX  % ND-100 PHYSICAL ADDR
+140701             "STTDRIV"; *AAX SPFLA-N100A; STATX; AAX -SPFLA   % RESTART IN STTDRIV
+140705             MSGN500; CALL WN5STATUS
+140707             CALL XACTRDY
+140710             GO NXTMSG
+140711          FI
+140711          GO STTDRIV
+140712   *)FILL
+140725
+140725
+140725   %      S T T D R I V
+140725   %
+140725   %      START TERMINAL DRIVER.    CALLED WHEN THE LOGICAL DATA READ
+140725   %      IS FINISHED IN DIRECT OUTSTRING TO TERMINAL
+140725   %      ND-500 DRIVER LEVEL
+140725   %
+140725   %      X=ND-500 MESSAGE ADDR
+140725   %
+140725   INTEGER CCMESS
+140726   STTDRIV: X=:CCMESS
+140727          T:=5MBBANK; *AAX TODF; LDATX; COPY SA DB            % B=TERMINAL OUTPUT DATAFIELD
+140733          *AAX LBUFA-TODF; LDATX; AAX 5HENT-LBUFA; STATX      %
+140737          *AAX SPFLA-5HENT; STZTX; AAX -SPFLA                 % 0=:MESSAGE.SPFLAG
+140742          X=:A:=:B; T:="ON5MSG"; CALL XSTDFADDR
+140746          IF X.TYPRING BIT 5BAD THEN
+140751             "L12STDV"
+140752          ELSE
+140753   %         T:="BHOLD"; CALL XGTDFADDR
+140753   %         T:="SBHOLD"; CALL XSTDFADDR
+140753             T:="XNOCHAR"; A:=0; CALL XSTDFADDR
+140756             "L3STDV"
+140757          FI
+140757          X:=:B; A=:MFUNC
+140761          N5IOWAIT; CALL WN5STATUS                            % MARK PROC. IN I/O WAIT
+140763          CALL GCPUDF; CALL ERRFATAL; A=:X                    % X=ND-500 CPU DF.
+140766          CALL RTACT                                          % START TERMINAL OUTPUT DRIVER FROM MONITOR LEVEL
+140767          X=:B; GO NXTMSG                                     % B=ND-500 CPU DF.
+140771   *)FILL
+141004
+141004
+141004   %      O S T R S
+141004   % OUTSTRING RESTART - ND-500 DRIVER LEVEL (LEVEL 12)
+141004   % ENTRY:     X=ND-500 MESSAGE ADDR
+141004   INTEGER POINTER O INCREMENT  -
+137035                   D+1; A:=A+C; *STDTX                        % MONITOR CALL COUNT
+137040                   X:=N5MESSAGE
+137041                FI
+137041             FI
+137041          FI
+137041          CALL PML50                                          % PERFORMANCE LOGGING
+137042          T:=5MBBANK; *AAX XADPR; LDATX
+137045          A=:PROCAD                                           % PROCESS DESCR. OF CURRENT PROC.
+137046          *AAX MCNO-XADPR; LDATX; AAX SMCNO-MCNO; STATX       % SAVE MON.CALL NUMBER IN SMCNO
+137052          IF A=2TUSED THEN                                    % MON TIME-USED?
+137055             CALL MBSUSPROC
+137056             T:=5MBBANK; X:=N5MESSAGE; *AAX 500TU; LDDTX      % AD=ND-500 CPU-TIME USED (500TUSED)
+137062             T:=0; X:=N5MESSAGE; CALL MONICO                  % RESTART ND-500 PROC
+137065             CALL XACTRDY
+137066             GO NXTMSG; *)FILL                                % HANDLE NEXT PROC. IN ND-500 EX-QUEUE
+137102    STLREG
+141005
+141005   OSTRS: A:=L=:"OSTLREG"
+141007          CALL GCPUDF; CALL ERRFATAL; A=:B
+141012          T:=5MBBANK; *AAX SMCNO; LDATX; AAX -SMCNO   % A=monitorcall number
+141016          IF A=511 THEN                               % DVIO
+141021             T:=5MBBANK
+141022             *AAX 11DMA; LDDTX                        % Load max number of bytes and coninue
+141024             *AAX -11DMA                              % In instring
+141025             X=:N5MESSAGE; CALL XNINSTR               % XNINSTR in NINSTR routine (mon DVINST)
+141027          FI
+141027          CALL OKMONICO
+141030          CALL XACT500                                % Restart ND-500(0) proc. after mon DVOUTST
+141031          GO OSTLREG                                  %
+141032   *)FILL
+141042
+141042
+141042   %      L 1 2 S T D V
+141042   % Special stdev routine to start TAD output driver
+141042   %
+141042   L12STDV: *IOF
+141043          A:=X;     *IRW  LV10B DB
+141045          "BDROUT"; *IRW  LV10B DP
+141047          LV10;     * MST  PID
+141051          *ION
+141052          GO MONEN
+141053   *)FILL
+141056
+141056
+141056   %      P T 5 R S T
+141056   %      RESTART ND-500 FROM THE TERMINAL OUTPUT DRIVER  (LEVEL 10)
+141056   %      MUST BE CALLED WITH INTERRUPT OFF
+141056   %
+141056   %      ENTRY:    X = ND-500 PROCESS MESSAGE
+141056   PT5RST: A:=X; *IRW LV12B DX
+141060           "CALLID12"; *IRW LV12B DL
+141062           "OSTRS"; *IRW LV12B DP
+141064           LV12; *MST PID
+141066           EXIT
+141067   RBUS
+141072
+141072
+141072   %============================================================================
+141072   %      N I N S T R
+141072   %      X N I N S T R
+141072   %
+141072   % MONITOR CALL DVIO AND DVINST
+141072   % LEVEL 12.
+141072   %
+141072   % ENTRY: X=CURRENT MESSAGE (=MESSAGE)
+141072   %        B=ND-500 CPU DATAFIELD
+141072   %
+141072   SUBR NINSTR,XNINSTR
+141072   INTEGER CCMESS=?,CWNDMESS=?,BREG=?
+141072
+141072   NINSTR:  T:=5MBBANK; X:=N5MESSAGE
+141074            *AAX DMAXB; LDDTX; AAX -DMAXB        % AD=MAX. BYTECOUNT
+141077   XNINSTR:
+141077          IF A><0 OR D>>4000 THEN                % 4000B BYTES IS THE MAX. DUE TO THE SIZE OF "COMM.BUFFERS"
+141103            X:=N5MESSAGE; A:=EC174
+141105            CALL EMONICO
+141106            CALL XACTRDY
+141107            GO NXTMSG                            % RESTART ND-500 PROC WITH ERROR CODE
+141110          FI
+141110          A:=B=:BREG
+141112          CALL 5GTDF; GO NORMMC                  % NOT TERMINAL OR TAD
+141114          IF A.TYPRING BIT 5BAD THEN
+141120             X:=N5MESSAGE; GO NORMMC
+141122          FI
+141122          X=:B; N5MESSAGE=:CCMESS                % SAVE CURRENT MESSAGE ADDR IN CCMESS
+141125          CALL SET12WINDOW                       % SET UP TERMINAL WINDOW
+141126          IF FLAGB BIT 5LSTA THEN                % HAVE WE LOST OUR TERMINAL?
+141131             X:=CCMESS; 0=:IN5MSG
+141133             CALL GCPUDF; CALL ERRFATAL; A=:B
+141136             A:=316; CALL EMONICO                % TERMINAL LINE IS NOT CONNECTED
+141140             CALL XACTRDY
+141141             GO FAR XCLPITS                      % CLEAR PIT ENTRIES
+141142          FI
+141142          A:=CCMESS/\1777+"WNDN5*2000"=:CWNDMESS % LOGICAL ADDR OF ND-500 MESSAGE
+141146          T:=5MBBANK SH 6; A:=CCMESS SHZ -12
+141152          A+T=:D:=142000
+141155          T:=0; X:="WNDN5+WNDN5+174000"; *STDTX  % SET PITENTRY
+141160          A:=CWNDMESS.5BRST                      % A=BREAK STRATEGY
+141162          IF A=-1 THEN 0=:BRKTAB; GO NOBRK FI    % NO BREAK
+141167          IF A<<11 THEN
+141172             IF A = 7 THEN                       % USER SUPPLIED BREAK STRATEGY
+141175                A:="5BRKTAB"; T:="PBRK7"         % DISPLACEMENT IN MSG AND DF
+141177                CALL FAR MOVTAB                  % COPY BREAK TABLE FROM MESS TO DF
+141200                A:="PBRK7"+B=:BRKTAB             % SET ADDR OF BRKTAB IN INPUT DF.
+141203                GO NOBRK
+141204             FI
+141204             IF A=10 THEN                        % USE PREVIOUS USER SUPPLIED BREAK STRATEGY
+141207                A:="PBRK7"+B=:BRKTAB
+141212                GO NOBRK
+141213             FI
+141213             A:=BRKTB(A)=:BRKTAB                 % USE ONE OF THE SYSTEM INCLUDED BREAK TABLES
+141216             X:=CWNDMESS
+141217          FI; GO NOBRK; *)FILL
+141245
+141245   INTEGER CCMESS,CWNDMESS
+141247   INTEGER BREG
+141250
+141250   NOBRK: A:=X.5ECHS                             % ECHO STRATEGY
+141251          IF A=-1 THEN 0=:ECHOTAB; GO NECHO FI   % NO ECHO
+141256          IF A<<11 THEN
+141261             IF A = 7 THEN                       % USER SUPPLIED ECHO STRATEGY
+141264                A:="5ECHTAB"; T:="PECH7"         % A=DISP IN MESS; T=DISP IN TERM INPUT DF.
+141266                CALL FAR MOVTAB                  % COPY FROM ND-500 MESS TO TERM.INPUT DF.
+141267                A:="PECH7"+B=:ECHOTAB            % SET ADDR OF ECHO TABLE IN TERM.INPUT DF.
+141272                GO NECHO
+141273             FI
+141273             IF A=10 THEN
+141276                A:="PECH7"+B=:ECHOTAB            % USE PREVIOUS USER SUPPLIED ECHO TABLE
+141301                GO NECHO
+141302             FI
+141302             ECHTB(A)=:ECHOTAB                   % USE ONE OF THE 8 SYSTEM INCLUDED ECHO TABLES
+141305             X:=CWNDMESS
+141306          FI; GO NECHO; *)FILL
+141313
+141313   NECHO: X:=CCMESS; N5IOWAIT; CALL WN5STATUS    % MARK PROCESS IS IN I/O-WAIT
+141316          0=:CWNDMESS.5FYLLE                     % CLEAR SOME FLAGS
+141320          0=:X.MLFLAG=:X.SPFLAG
+141322          IF X.SMCNO=511 THEN                    % WHICH MONITOR CALL IS IT
+141326             X.11MXBRK                           % MON DVIO
+141327          ELSE
+141330             X.MAXBYT                            % MON DVINST
+141331          FI; A=:BRKMAX                          % SET MAX. CHAR BEFORE BREAK
+141332          CCMESS=:IN5MSG                         % IN5MSG=ADDR OF ND-500 MESSAGE (USED BY TERM.INPUT DRIVER)
+141334          IF BHOLD><0 THEN                       % ANY CHARACTERS IN TERMINAL INPUT BUFFER?
+141336             1=:X.MLFLAG                         % YES, MARK THAT MONITOR LEVEL IS STARTED.
+141340             "IBMOVE"=:TDRADDR.MFUNC; CALL CXRTACT
+141344          ELSE
+141345             IF TDRADDR.ISTAT = -1 OR = -2 THEN  % IS IT NOWAIT?
+141355                0=:IN5MSG                        % YES, GIVE END-OF-FILE ERROR MESSAGE
+141356                IF CWNDMESS.SMCNO=511 THEN       % WHICH MONITOR CALL IS IT?
+141363                   A:=0=:D; AD=:X.11NOCHRET      % MON DVIO; SET NUMBER OF RETURNED BYTES
+141366                   100000=:X.NUMPAR              % SET MONITOR CALL WRITE-BACK MASKE
+141370                ELSE
+141371                   A:=0=:D; AD=:X.NOCHRET        % MON DVINST; SET NUMBER OF RETURNED BYTES.
+141374                   4=:X.NUMPAR                   % SET MONITOR CALL WRITE-BACK MASKE
+141376                FI
+141376                X:=CCMESS; A:=3; CALL EMONICO    % GIVE END-OF-FILE ERROR RETURN
+141401                CALL XACTRDY
+141402             FI; DFLAG BONE 5ECHO=:DFLAG         % GIVE ECHO CONTROL TO TERMINAL DRIVER
+141405          FI
+141405   CLPITS:
+141405   XCLPIT: T:=0; X:="WNDN5+WNDN5+174000"; *STZTX % CLEAR USED PIT ENTRY (TERM. WINDOW WILL BE RESET IN WT12)
+141410           BREG=:B
+141412           GO NXTMSG
+141413   *)FILL
+141424
+141424   %      M O V T A B
+141424   % MOVE BREAK/ECHO TABLE FROM THE ND-500 MESSAGE TO THE TERMINAL DATAFEIELD
+141424   % LEVEL 12.
+141424   %
+141424   % ENTRY:     X=LOGICAL ADDR OF ND-500 MESSAGE
+141424   %            B=LOGICAL ADDR OF TERMINAL INPUT DATAFIELD
+141424   %            T=DISPLACEMENT IN THE DATAFIELD TO MOVE INTO
+141424   %            A=DISPLACEMENT IN THE ND-500 MESSAGE TO MOVE FROM
+141424   %
+141424   MOVTAB: A+X=:D                                % D=LOGICAL ADDR. IN MESSAGE
+141426          T+B; A:=10:=:L; *MOVAA                 % MOVE FROM MESAGE TO TERM.DF.
+141432          A=:P                                   % EXIT
+141433
+141433   RBUS
+141433
+141433
+141433   %============================================================================
+141433   %      G E R R C
+141433   %      GET ERROR CODE.  USED AFTER A PROGRAMMED TRAP.
+141433   %      DRIVER LEVEL
+141433   %
+141433   % ENTRY: X=CURRENT MESSAGE (=MESSAGE)
+141433   %        B=ND-500 CPU DATAFIELD
+141433   %
+141433   SUBR GERRC
+141433   GERRC: T:=5MBBANK; *5RECE@3 LDATX
+141435          A-5SWPROC+1*REGBSZ+"ERREG"=:T
+141442          "N500DF".CNTXPAGE+X.ADRZERO=:D:=0
+141447          AD SHZ 12; D+T; A:=A+C; X:=D; T:=A; *LDDTX
+141455          *STZTX; AAX 1; STZTX
+141460          X:=N5MESSAGE; T:=5MBBANK; *AAX M505E; STDTX
+141464          A:=1; *AAX NUMPA-M505E; STATX
+141467          A:=0=:D; *AAX FUNCV-NUMPA; STDTX
+141473          *AAX KFLIP-FUNCV; STZTX; AAX -KFLIP
+141476          3MONCO; *MICFU@3 STATX
+141500          CALL MCCO
+141501          CALL XACTRDY
+141502          GO NXTMSG
+141503   RBUS
+141514
+141514
+141514   %============================================================================
+141514   %      5 S I B M O
+141514   %      SPECIAL MONITOR CALL FROM SIBAS SERVER IN ND-500
+141514   %      DRIVER LEVEL
+141514   %
+141514   % ENTRY: X=CURRENT MESSAGE (=MESSAGE)
+141514   %        B=ND-500 CPU DATAFIELD
+141514   %
+141514   SUBR 5SIBMO
+141514   INTEGER CSIBNO,CSIBDF
+141516   5SIBMO: T:=5MBBANK; *AAX SIBNO; LDDTX
+141521          IF A><0 OR D>>MXSIBAS OR T=0 THEN            % ILLEGAL SIBAS NUMBER
+141527            X:=N5MESSAGE; A:=EC174
+141531            CALL EMONICO                               % RESTART ND-500 PROC WITH ERROR CODE
+141532            CALL XACTRDY
+141533            GO NXTMSG
+141534          FI
+141534          X:=D=:CSIBNO:=SIBBDEVS(X)=:D=:CSIBDF
+141541          IF X.RTRES><PROCAD.RTRES THEN                % IS THE ACTUAL SIBAS DF. RESERVED BY ANOTHER?
+141546             X:=N5MESSAGE; 5; CALL EMONICO             % YES, GIVE ERROR RETURN
+141551             CALL XACTRDY
+141552             GO NXTMSG
+141553          FI; 1=:D.SIB500                              % MARK THAT THIS SIBAS IS RUNNING IN ND-500
+141556          X:=SIBAPDEVS(CSIBNO)=:D; 0=:X.SRTCSTAT       % MARK THAT SIBAS IS WAITNG FOR A REQUEST?
+141562          X=:CSIBNO                                    % ADDR OF MON MAPSIB WORKING FIELD
+141563          IF X:=X.RTRES><0 AND X.STATUS BIT 5WAIT THEN % ANY PROGRAMS WAITNG TO BE RESTARTED BY SIBAS?
+141570             D:=:B; CALL RTACT; B:=D                   % YES, RESTART IT
+141573          FI; A:=CSIBDF.TTMR=:X.TMR                    % START TIMER
+141576          X:=N5MESSAGE; T:=5MBBANK; *AAX SIBST; LDDTX; AAX -SIBST
+141603          IF A=0 AND D=0 GO FAR NSTOPROC               % SIBAS SHOULD BE SET IN STOPPED STATUS
+141606          1=:CSIBNO.SRTCSTAT; 0=:CSIBDF.TMR            % MARK SIBAS IS ACTIVE
+141613          X:=N5MESSAGE; CALL OKMONICO                  % REACTIVATE SIBAS
+141615          CALL XACTRDY
+141616          GO NXTMSG
+141617   RBUS
+141633
+141633
+141633   %============================================================================
+141633   %      S P R I O
+141633   %      SET PRIORITY
+141633   %      DRIVER LEVEL.
+141633   % ENTRY: X=CURRENT MESSAGE (=MESSAGE)
+141633   %        B=ND-500 CPU DATAFIELD
+141633   %
+141633   SUBR SPRIO
+141633   SPRIO: T:=5MBBANK; *AAX 5MSFL; LDATX; AAX -5MSFL % A=MESSAGE FLAG
+141637          IF A BIT SPROK THEN                       % SET PRIORITY ALLOWED FOR THIS PROC?
+141641             T:=5MBBANK; *AAX 100; LDDTX; AAX -100  % YES, GET NEW PRIORITY
+141645             IF A><0 THEN EC174R; GO SPERET FI      %
+141650             D=:A
+141651             IF A=0 THEN                            % IF=0 THEN PROC. SHOULD BE TIMESLICED
+141652                *AAX XADPR;  LDXTX                  % X=ADDR OF PROC.DESCR
+141654                X.PSTAT BONE 55BRKPRIOR BONE SLICE=:X.PSTAT % MARK PROCESS IS TIMESLICED
+141660                5BRKPRIOR; X:=N5MESSAGE; *AAX 5PRIO; STATX  % SET NEW PRIORITY
+141664                CALL OKMONICO                       % RESTART PROCESS
+141665             ELSE
+141666                IF A >>= 300 THEN                   % PRIORITY WITHIN LEGAL RANGE?
+141671                   A:=EC174R; GO SPERET             % NO, GIVE ERROR RETURN
+141673                FI
+141673                T:=5MBBANK; *AAX 5PRIO; STATX       % SET NEW PRIORITY
+141676                *AAX XADPR-5PRIO; LDXTX             % X=ADDR OF PROC.DESCR.
+141700                X.PSTAT BZERO SLICE=:X.PSTAT        % MARK PROC. NOT TIMESLICED
+141703                X:=N5MESSAGE
+141704                CALL SLOCK; GO N500ERR
+141706   *NNT12=*
+141706                CALL XTER500; GO FAR N500ERR
+141710                CALL OKMONICO                       % RESTART PROCESS
+141711                CALL IFM500XQ
+141712                T:=5MBBANK; *AAX PLINK; LDATX; AAX -PLINK
+141716                A=:N5MESSAGE
+141717                CALL ITO500XQ                       % REORGANIZE EX-QUEUE ACCORDING TO PRIORITY
+141720                CALL SUNLOCK
+141721                CALL XACTRDY
+141722             FI
+141722          ELSE
+141723             A:=EPRMC                               % SPRIO NOT ALLOWED
+141724   SPERET:   T:=5MBBANK; X:=N5MESSAGE; CALL EMONICO % GIVE ERROR RETURN
+141727             CALL XACTRDY
+141730          FI; GO NXTMSG
+141731   N500ERR: CALL XRSTARTALL; GO CALLID12             % RESTART ALL PROCS.
+141733
+141733   RBUS
+141753
+141753
+141753   %============================================================================
+141753   %      S W M C
+141753   %      MONITOR CALL TO THE SWAPPER
+141753   %      DRIVER LEVEL
+141753   % ENTRY: X=CURRENT MESSAGE (=MESSAGE)
+141753   %        B=ND-500 CPU DATAFIELD
+141753   SUBR SWMC
+141753   SWMC:  MSM510 SHZ 10=:D; T:=5MBBANK; *AAX TRAPN; LDATX
+141761          A/\377+D; *STATX; AAX -TRAPN
+141765          CALL 5ACTSWAPPER; GO NXTMSG
+141767   RBUS
+141773
+141773
+141773   SUBR XMWK; RBUS
+141773   %=============================================================================%
+141773   %                                                                             %
+141773   %      A 5 X M S G        B 5 X M S G                                         %
+141773   %                                                                             %
+141773   %      XMSG interface routines.  Executed on level 12                         %
+141773   %                                                                             %
+141773   %
+141773   SUBR A5XMSG,B5XMSG
+141773
+141773   @ICR; % - Writeback masks for the different xmsg functions
+141773         % - Bit number corresponds to parameter number in xmsg call
+141773   INTEGER ARRAY XMRETMASK:=(
+141773          16, 0, 4, 0,34, 0,20,20, 0,14, 2, 0, 0,74,34, 4,
+142013           0, 0, 0, 0, 0, 0,34, 4, 0, 0, 0, 0, 0, 0, 0, 0,
+142033          34, 0, 0, 0, 0, 0, 0, 4,70,360,14,0, 0, 0, 0,16);
+142053   @CR;
+142053   SYMBOL X5MASK=77             % mask for obtaining xmsg function number
+142053   SYMBOL X5MAX=57              % max xmsg function number
+142053   INTEGER XREG=?
+142053   INTEGER AREG=?
+142053
+142053   A5XMSG:
+142053   B5XMSG:
+142053          X=:B; T:=5MBBANK; *AAX N5XFU; LDATX
+142057          A/\X5MASK=:D                                  % Save xmsg-function in D-reg
+142061          IF A-X5MAXF>0 GO X5EILF                      % Illegal function value?
+142064          *AAX XTBLK-N5XFU; LDATX
+142066          IF A=0 THEN                                   % Any xtblock allocated?
+142067             IF XFDCT=D GO FAR X5LEAVE                  % Ignore call if xmsg-function=disconnect
+142072             X:=B; *AAX HBUFA; LDATX                    % No, get one
+142075             T:=XFDBK; L:=0; *MON 2XMSG                 % Allocate xtblock
+142100             GO FAR X5LEAVE                             % Level 14 part finished
+142101             IF T<0 GO FAR X5ERET                       % Check for error
+142103             L=:A; X:=B; T:=5MBBANK                     % L=xtblock address obtained from xmsg
+142106             *AAX XTBLK; STATX                          % Save it
+142110             T:=XFWDF; "XMWK"; *MON 2XMSG               % Define wakeup routine
+142113             GO FAR X5LEAVE                             % Level 14 finished
+142114          FI
+142114          X:=B; T:=5MBBANK; *AAX N5XFU; LDATX; AAX -N5XFU
+142121   @ICR;
+142121          A/\X5MASK GOSW
+142121          FAR LFDUM, FAR LFDCT, LFGET, LFREL, LFRHD, LFWHD, LFREA, LFWRI,
+142133          LFSCM, LFMST, FAR LFOPN, LFCLS, FAR LFSND, LFRCV, LFPST, LFGST,
+142143          X5EILF, X5EILF, X5EILF, X5EILF, X5EILF, X5EILF, FAR LFM2P, LFP2M,
+142153          X5EILF, X5EILF, X5EILF, X5EILF, X5EILF, X5EILF, LFPRV, LFRTN,
+142163          LFRRH, X5EILF, X5EILF, X5EILF, X5EILF, LFDMM, LFALM, FAR LFFRM,
+142173          LFLMP, FAR LFRRE, LFCPV, LFWRT, X5EILF, X5EILF, X5EILF, FAR LFGSM;
+142203   @CR;
+142203   *)FILL
+142220
+142220   %      Illegal function codes;  not implemented
+142220   %
+142220   %      LFSIN:    % 20 - Initialize for system functions
+142220   %      LFSRL:    % 21 - Service release function (obsolete)
+142220   %      LFABR:    % 22 - Absolute read from pof
+142220   %      LFABW:    % 23 - Absolute write block to pof area (obsolete)
+142220   %      LFMLK:    % 24 - Lock message system (obsolete)
+142220   %      LFMUL:    % 25 - Unlock message system (obsolete)
+142220   %      LFRIN:    % 30 - Routing initialize (obsolete)
+142220   %      LFCRD:    % 31 - Create driver
+142220   %      LFSTD:    % 32 - Start driver
+142220   %      LFDIB:    % 33 - Define indirect buffer
+142220   %      LFRIB:    % 34 - Read from indirect buffer
+142220   %      LFWIB:    % 35 - Write to indirect buffer
+142220   %      LFDUB:    % 41 - Define user buffer area for current message
+142220   %      LFWDF:    % 42 - Define wakeup context (drivers only)
+142220   %      LFDBK:    % 43 - Define bank number (drivers lnly)
+142220   %      LFSMC:    % 44 - Start multi-call
+142220
+142220   X5EILF:   XEILF
+142221   X5ILP:    AD SH -20; T:=1; X:=B; CALL MONICO
+142225             CALL XACTRDY
+142226   XNXTMSG:  X:=B; CALL GCPUDF; CALL ERRFATAL; A=:B; GO NXTMSG
+142233   *)FILL
+142240
+142240   % input:         A:=2nd parameter
+142240   %                D:=3rd parameter
+142240   %                X:=4th parameter
+142240   %
+142240   LFPRV:           % 36 - Request privliges
+142240           *AAX 5MSFL; LDATX; AAX -5MSFL
+142243           IF A NBIT 5XMPRIV GO X5EILF
+142245
+142245   LFGET:           %  2 - Get a message buffer
+142245   LFREL:           %  3 - Release a message buffer
+142245   LFRHD:           %  4 - Read from header of message buffer
+142245   LFWHD:           %  5 - Write to header of current message buffer
+142245   LFSCM:           % 10 - Set current message
+142245   LFMST:           % 11 - Message status
+142245   LFCLS:           % 13 - Close a port
+142245   LFRCV:           % 15 - Receive next message
+142245   LFPST:           % 16 - Port status
+142245   LFGST:           % 17 - General status
+142245   LFP2M:           % 27 - Convert port number to magic number
+142245   LFRTN:           % 37 - Return a message
+142245   LFRRH:           % 40 - Receive and read header
+142245   LFDMM:           % 45 - Dynamic definition of max task space
+142245   LFCPV:           % 52 - Check system and user privileges
+142245          *AAX 5ADP3; LDDTX; AAX 5DP2-5ADP3; LDATX; AAX 5DP4-5DP2; LDXTX
+142253          GO MONXM
+142254
+142254   % input:         D:=2nd parameter
+142254   %                X:=4th parameter
+142254   %                A:=LBUFA
+142254   %
+142254   LFREA:           %  6 - Read from current message buffer      use B5XMSG
+142254   LFWRI:           %  7 - Write to current message buffer       use B5XMSG
+142254   LFWRT:           % 53 - Write and return message
+142254          *AAX 5ADP2; LDDTX
+142256          IF A><0 OR 4000<<D THEN XEITL; GO FAR X5ILP FI
+142264          *AAX N5XFU-5ADP2; LDATX; AAX -N5XFU
+142267          IF A/\X5MASK=7 OR A=53 THEN
+142276             CALL GCPUDF; CALL ERRFATAL; A=:B
+142301             IF MIFLAG NBIT WSMC THEN
+142304                A:=D; T:=5MBBANK; *AAX NRBYT; STATX
+142310                *AAX 5DITN-NRBYT; STZTX
+142312                *AAX X5BUF-5DITN; LDDTX; AAX N500A-X5BUF; STDTX
+142316                *AAX ABUFA-N500A; LDDTX
+142320   *NNC19,      CNVWADR
+142323                T:=5MBBANK; *AAX N100A-ABUFA; STDTX
+142326                "INFWRIT"; *AAX SPFLA-N100A; STATX; AAX -SPFLA
+142332                3RMED; *STATX XMICF
+142334                MSGN500; CALL WN5STATUS
+142336                CALL XACTRDY
+142337                GO NXTMSG
+142340   INFWRIT:     T:=5MBBANK; *AAX SPFLA; STZTX; AAX -SPFLA
+142344             FI; X=:B
+142345          FI
+142345          T:=5MBBANK; *AAX 5ADP2; LDDTX
+142350          *AAX LBUFA-5ADP2; LDATX; AAX 5DP4-LBUFA; LDXTX
+142354          GO MONXM
+142355
+142355   % input:         AD:=2nd parameter
+142355   %                 X:=3rd parameter
+142355   %
+142355   LFSND:           % 14 - Send current message
+142355   LFM2P:           % 26 - Convert magic number to port and system number
+142355          *AAX 5ADP2; LDDTX; AAX 5DP3-5ADP2; LDXTX
+142361          GO MONXM
+142362
+142362   % input:         A:=2nd parameter
+142362   %                X:=3rd parameter
+142362   %
+142362   LFALM:           % 46 - Allocate messages to a task
+142362   LFLMP:           % 50 - List messages and ports
+142362          *AAX 5DP2; LDATX; AAX 5DP3-5DP2; LDXTX
+142366          GO MONXM
+142367
+142367   % input:         X:=2nd parameter
+142367   %                A:=3rd parameter
+142367   %
+142367   LFFRM:           % 47 - Freeing allocated message buffers
+142367          *AAX 5DP3; LDATX; AAX 5DP2-5DP3; LDXTX
+142373          GO MONXM
+142374
+142374   % input:         A:=2nd parameter
+142374   %                D:=3rd parameter
+142374   %                X:=lbufa
+142374   %
+142374   LFRRE:           % 51 - Receive and read message
+142374          *AAX 5ADP3; LDDTX
+142376          IF A><0 OR 4000<<D THEN XEITL; GO FAR X5ILP FI
+142404          *AAX 5DP2-5ADP3; LDATX
+142406          *AAX LBUFA-5DP2; LDXTX
+142410          GO MONXM
+142411
+142411   % input:         none
+142411   %
+142411   LFDUM:           %  0 - Dummy xmsg call
+142411   LFDCT:           %  1 - Disconnect from xmsg
+142411   LFOPN:           % 12 - Open a port
+142411   LFGSM:           % 47 - General status multiple
+142411   MONXM: T:=5MBBANK; X=:XREG:=B; A=:AREG; *AAX XTBLK; LDATX
+142417          A=:L; *AAX N5XFU-XTBLK; LDATX
+142422          A=:T:=AREG; X:=XREG; *MON 2XMSG                      % Starts an xmsg function
+142426          GO X5LEAVE; GO X5RET
+142430
+142430   *)FILL
+142443
+142443
+142443   %-------------------------------------------------------------
+142443   %
+142443   %      Level 14 part of xmsg finished.
+142443   %
+142443
+142443   X5LEAVE: X:=B; T:=5MBBANK; *AAX N5XFU; LDATX
+142447            IF A/\X5MASK-XFDCT=0 THEN                   % Disconnect function?
+142452                 X:=B; *AAX XTBLK; STZTX
+142455                 A:=1; AD SHZ -20; T:=0; X:=B
+142461                 CALL MONICO                            % Return to user imediately
+142462                 CALL XACTRDY
+142463            ELSE                                        % Function was disconnect
+142464                 N5XMWAIT; X:=B; CALL WN5STATUS
+142467            FI; GO FAR XNXTMSG
+142470
+142470   *)FILL
+142476
+142476
+142476   %-------------------------------------------------------------
+142476   %
+142476   %      XMSG function finished and level 12 restarted here
+142476   %
+142476
+142476   INTEGER TREG,AREG,DREG,XREG
+142502   TRIPLE  TADREG=TREG; DOUBLE ADREG=AREG
+142502
+142502   X5RET:
+142502          TAD=:TADREG; X=:XREG
+142504          IF "N500DF".SYSINITFLAG BIT B5STOP GO WT12
+142510          X:=B; CALL RN5STATUS
+142512          IF A><N5XMWAIT THEN                           % Process should be waiting for xmsg kick. yes?
+142515             T:=5MBBANK; *AAX XTBLK; LDATX; STZTX       % No, forget xmsg call and disconnect xmsg port
+142521             IF A><0 THEN
+142522                A=:L; T:=XFDCT; *MON 2XMSG; RAND
+142526             FI
+142526             X:=B; CALL GCPUDF; GO WT12; A=:B; GO CALLID12
+142533          FI
+142533          T:=5MBBANK; *AAX N5XFU; LDATX; AAX -N5XFU
+142537          A/\X5MASK=:L
+142541          IF T:=TREG<0 GO FAR X5ERET
+142544          IF T=0 AND 6=L OR 51=L GO FAR X5ERET
+142554          T=:A:=5MBBANK; AD SH -20; *AAX FUNCV; STDTX
+142561          *AAX KFLIP-FUNCV; STZTX
+142563          AD:=ADREG; X:=XREG:=:B
+142566   @ICR
+142566          L GOSW
+142566          RFDUM, X5FATAL, RFGET, FAR RFREL, RFRHD, FAR RFWHD, RFREA, RFWRI,
+142577          FAR RFSCM, RFMST, RFOPN, FAR RFCLS, FAR RFSND, RFRCV, RFPST, RFGST,
+142607          X5FATAL, X5FATAL, X5FATAL, X5FATAL, X5FATAL, X5FATAL, RFM2P, RFP2M,
+142617          X5FATAL, X5FATAL, X5FATAL, X5FATAL, X5FATAL, X5FATAL, FAR RFPRV, FAR RFRTN,
+142627          RFRRH, X5FATAL, X5FATAL, X5FATAL, X5FATAL, FAR RFDMM, FAR RFALM, RFFRM,
+142637          RFLMP, RFRRE, RFCPV, FAR RFWRT, X5FATAL, X5FATAL, X5FATAL, FAR RFGSM;
+142647   @CR;
+142647   *)FILL
+142672
+142672   %      Fatal error  (illegal function codes)
+142672   %
+142672   X5FATAL:
+142672          CALL ERRFATAL
+142673
+142673   % output:        A=:2nd parameter
+142673   %                D=:3rd parameter  /  AD=:3rd parameter
+142673   %                X=:4th parameter
+142673   %
+142673   RFDUM:; RFOPN:; RFGSM:
+142673          *AAX 5AP2; STZTX; AAX 5DP2-5AP2; STATX; AAX -5DP2
+142700          A:=0
+142701   RFP2M:; RFMST:
+142701          *AAX 5ADP3; STDTX
+142703          A:=0; B=:D; *AAX 5ADP4-5ADP3; STDTX; AAX -5ADP4
+142710          GO FAR X5L1
+142711
+142711   % output:        A=:3rd parameter
+142711   %                D=:4th parameter
+142711   %                X=:5th parameter
+142711   %                T=:6th parameter
+142711   %
+142711   RFRCV:; RFRRH:; RFRHD:; RFPST:; RFM2P:
+142711   RFCPV:; RFGET:; RFGST:; RFFRM:
+142711          *AAX 5AP3; STZTX; AAX 5DP3-5AP3; STATX
+142715          A:=0; *AAX 5ADP4-5DP3; STDTX
+142720          A:=B; AD SH -20; *AAX 5ADP5-5ADP4; STDTX
+142724          *AAX FUNCV-5ADP5; LDDTX
+142726          *AAX 5ADP6-FUNCV; STDTX; AAX -5ADP6
+142731          GO FAR X5L1
+142732
+142732   % output:        A=:4th parameter
+142732   %                D=:5th parameter
+142732   %                X=:6th parameter
+142732   RFWRI:; RFLMP:
+142732          *AAX 5AP4; STZTX; AAX 5DP4-5AP4; STATX
+142736          A:=0; *AAX 5ADP5-5DP4; STDTX
+142741          B=:D; *AAX 5ADP6-5ADP5; STDTX; AAX -5ADP6
+142745          GO X5L1
+142746   *)FILL
+142750
+142750   % output:        D=:5th parameter=:26nrb
+142750   %                x5buf=:26add
+142750   %
+142750   RFREA:
+142750          A:=0; *AAX 5ADP5; STDTX; AAX -5ADP5
+142754          GO INRFRRE
+142755
+142755   % output:        A=:5th parameter
+142755   %                D=:6th parameter
+142755   %                X=:7th parameter=:26nrb
+142755   %                T=:8th parameter
+142755   %                x5buf=:26add
+142755   %
+142755   RFRRE:
+142755          *AAX 5AP5; STZTX; AAX 5DP5-5AP5; STATX
+142761          A:=0; *AAX 5ADP6-5DP5; STDTX
+142764          *AAX FUNCV-5ADP6; LDDTX; AAX 5ADP8-FUNCV; STDTX
+142770          A:=B; AD SH -20; *AAX 5ADP7-5ADP8; STDTX
+142774          *AAX FUNCD-5ADP7; LDATX; AAX -FUNCD
+142777          IF A=4 THEN
+143002             T:=5MBBANK; *AAX 26NRB; STZTX; AAX -26NRB
+143006             GO X5L1
+143007          FI
+143007   INRFRRE:
+143007          CALL GCPUDF; CALL ERRFATAL; A=:B
+143012          T:=5MBBANK; *AAX N5XFU; LDATX; AAX -N5XFU
+143016          A/\X5MASK=:L
+143020          IF MIFLAG BIT WSMC THEN
+143023             A:=D; *AAX 26NRB; STATX; AAX SM26N-26NRB; STATX
+143030             IF 51=L THEN
+143033                *AAX X5BUF+2-SM26N; LDDTX; AAX 26ADD-X5BUF-2
+143036             ELSE
+143037                *AAX X5BUF-SM26N; LDDTX; AAX 26ADD-X5BUF
+143042             FI; *STDTX; AAX SM26A-26ADD; STDTX; AAX -SM26A
+143046          ELSE
+143047             D=:L; *AAX FUNCV; LDDTX; AAX 134-FUNCV; STDTX
+143054             A:=L; *AAX NRBYT-134; STATX
+143057             *AAX 5DITN-NRBYT; STZTX; AAX -5DITN
+143062             IF 51=L THEN
+143065                *AAX X5BUF+2; LDDTX; AAX N500A-X5BUF-2
+143070             ELSE
+143071                *AAX X5BUF; LDDTX; AAX N500A-X5BUF
+143074             FI; *STDTX
+143075             *AAX ABUFA-N500A; LDDTX; AAX N100A-ABUFA; STDTX
+143101             "INFRRE"; *AAX SPFLA-N100A; STATX; AAX -SPFLA
+143105             3WMED; *STATX XMICF
+143107             MSGN500; CALL WN5STATUS
+143111             CALL XACT500
+143112             GO CALLID12
+143113   INFRRE:   T:=5MBBANK; *AAX SPFLA; STZTX
+143116             *AAX 134-SPFLA; LDDTX; AAX FUNCV-134; STDTX
+143122             *AAX KFLIP-FUNCV; STZTX; AAX -KFLIP
+143125          FI; GO X5L1
+143126   *)FILL
+143136
+143136   % output:        none
+143136   %
+143136   RFREL:; RFWHD:; RFSCM:; RFCLS:; RFSND:
+143136   RFPRV:; RFRTN:; RFDMM:; RFALM:; RFWRT:
+143136   X5L1:  X=:B; T:=5MBBANK; *AAX N5XFU; LDATX
+143142          A/\X5MASK=:X=:L
+143145          *1BANK
+143146          XMRETMASK(X)
+143147          *2BANK
+143150          A=:D; X:=B; *AAX NUMPA; LDATX
+143154          IF L=0 AND A-1=0 THEN D:=0; FI       % Dummy function with 1 param.?
+143161          A:=D; *STATX
+143163          *AAX N5XFU-NUMPA; LDATX; AAX -N5XFU
+143166          A/\X5MASK=:D
+143170          CALL GCPUDF; CALL ERRFATAL; A=:B
+143173          IF MIFLAG BIT WSMC AND D=6 OR D=51 THEN 3WMONCO ELSE 3MONCO FI
+143207   XX5RET: T:=5MBBANK; *MICFU@3 STATX
+143211          CALL MCCO
+143212          CALL XACT500
+143213          GO CALLID12
+143214
+143214   X5ERET: 5MBBANK; A:=:T; X:=B
+143217          AD SH -20; *AAX FUNCV; STDTX
+143222          A:=1; *AAX KFLIP-FUNCV; STATX
+143225          *AAX NUMPA-KFLIP; STZTX
+143227          X:=B; CALL GCPUDF; CALL ERRFATAL; A=:B
+143233          3MONCO; GO XX5RET
+143235
+143235   RBUS
+143245
+143245
+143245
+143245   %=============================================================================
+143245   %      (M  )     5 M T R A N S
+143245   %
+143245   % Monitor call executed on driver level
+143245   %
+143245   % Entry:    X= current message
+143245   %           B= nd-500 cpu datafield
+143245   %
+143245   %  Functions:
+143245   %  1.   disk transfer, return immediately with status: OK, request received
+143245   %  2.   disk transfer, wait  until transfer finished,
+143245   %                      then return status: transfer finished
+143245   %  3.   disk transfer, check event, return immediately with status:
+143245   %                      transfer completed/restarted by other/ no event ready
+143245   %  4.   disk transfer, check event, wait until event occurs,
+143245   %                      then returnstatus: transfer completed/restarted by other
+143245   %  5.   check event, nowait return status: no event ready/restarted by other
+143245   %  6.   check event, wait, return status: transfer completed/ restarted by other
+143245   %  7.   start process, return immediately  with status: OK, request received
+143245   %  8.   start process and wait (will be restarted by other process)
+143245   %
+143245   SUBR 5MRDTRANS; RBUS
+143245   SUBR 5MTRANS
+143245   5MTRANS:
+143245   *"8N500 8MTRA
+"143245          X=:CMSGA
+143246          0=:CUREL; A:=B=:XC5CPUDF
+143251          T:=5MBBANK; *AAX 5MNWA; LDDTX; AAX -5MNWA
+143255          AD=:NWFUNC
+143256          IF 5MFNC NBIT 5DTRANS GO FAR CHEVENT
+143261          % Disk transfer,  check device number:
+143261          *AAX 5MLGN; LDATX
+143263          CALL LOGPH; A=:X
+143265          % Must have hard disk with disk optimizition:
+143265          IF X>>="9BBHD" AND X<<"9EEHD" THEN
+143273             IF X>>="9EDFD" THEN A:=1 ELSE A:=0; FI; A=:5DSKC    % Set disk type code
+143302             IF X>>="9FSTR" AND X<<"9ESTR" AND X.STREN=0 GO 3XERR
+143312             GO DIST1
+143313          FI
+143313   3XERR: A:=6; GO FAR XRXX                                      % No disk opti for this device
+143315
+143315   DIST1: X=:DDFADDR                                             % Disc controller datafield
+143316          % Are there any free disk queue elements:
+143316          X:="QP100"
+143317          IF X.5MQCU=0 THEN
+143321             % Wait until free disk queue element is available:
+143321             X:=CMSGA
+143322             CALL SLOCK; 0/\0
+143324   *NNT13=*
+143324             CALL XTER500; 0/\0
+143326             CALL IFM500XQ; CALL SUNLOCK
+143330             T:=5MBBANK; *AAX PLINK; LDATX; AAX -PLINK
+143334             A=:N5MESSAGE
+143335             % Link message into driver level wait queue
+143335             AD:=5MWQU; T:=5MBBANK; *LINK@3 STDTX
+143340             A:=T; D:=X
+143342   *NNC20,   CNVWADR
+143345             AD=:5MWQU
+143346             GO NXTMSG                                          % old: GO 5STDR
+143347          FI
+143347          % Get a disk access queue element:
+143347          X=:B; *AAX QPFRH
+143351          CALL GETOUT; 5MQCU-1=:5MQCU; T=:CUREL=:B
+143357          % Set up parameters in disk access queue element
+143357          X:=CMSGA; T:=5MBBANK; *AAX 5MDIS; LDATX
+143363          A=:DISID
+143364          IF A/\77=0 THEN
+143366             T:=60                             % Read from disk, clear cache
+143367          ELSE
+143370             IF A=1 OR A=7 THEN                % Func 7: write without 'dump dirty'
+143376                T:=61                          % Write to disk, microprog checks on func 7.
+143377             ELSE
+143400                IF A=6 THEN
+143403                   T:=66                       % Read, do not clear cache
+143404                ELSE
+143405                   A:=7; GO FAR XRXX; *)FILL   % Illegal parameter (illegal read/write function code)
+143443                FI
+143443             FI
+143443          FI
+143443          DISID/\300+T=:ABFUN; T:=5MBBANK
+143450          *AAX 5MEMA-5MDIS; LDDTX
+143452          AD=:MEMAD;  *AAX 5DSEC-5MEMA; LDDTX
+143455          AD=:ABPA2;  *AAX 5MNOS-5DSEC; LDDTX
+143460          A=:ABP31;  *AAX 5MREQ-5MNOS; LDATX
+143463          A=:REQID; NWAIT=:5MNOWAIT;
+143466          IF 5MFNC/\6><0 THEN 1=:5MNOWAIT; FI
+143473          CMSGA=:ADMESS
+143475          IF 5DSKC=0 THEN                                        % SMD or SCSI-100
+143477             DISID SHZ -6/\7+"HTABL"; X:=DDFADDR
+143504             X:=X+A:=X.S0
+143506             IF X.S10=20 THEN                                    % Phoenix disk
+143512                ABP21 /\7 SHZ 11+ABFUN=:ABFUN
+143517                0=:ABP21
+143520             FI
+143520             CALL FAR CHDISCADDR
+143521             X.SECWO*ABP31=:D                                    % Number of words to transfer
+143524          ELSE
+143525             CALL FAR CHDISCADDR                                 % Domino disk
+143526             A:=2000*ABP31=:D                                    % No or words pr sector=2000
+143531          FI
+143531          T:=5MBBANK; X:=CMSGA; *LDXTX X5SND
+143534          D=:T; AD:=MEMAD; CALL CHFIX; GO FAR FERR               % Check if area fixed
+143540          % Parameters are now ok, put element into queue:
+143540          A:=X-5SWPROC*5PRDSIZE+"S500S"=:X; X.RTRES=:RTRES
+143547          X:=:B
+143550          DDFADDR=:B; CALL M5TRANS; GO BUSR;   % CALLED WITH: B=CONTR. DF, X=QUEUE DF
+143554          X:=:B; GO 5MRDTRANS
+143556   BUSR:  0=:CUREL
+143557          IF 5MFNC/\6 = 0 THEN
+143562             IF NWAIT><0 THEN 1; GO FAR FIN FI
+143566             X:=CMSGA; 5MWAIT; CALL WN5STATUS
+143571             GO FAR OUT
+143572             *)FILL
+143621          FI
+143621
+143621   CHEVENT: X:=XC5CPUDF=:B:=CMSGA                                % X=current message, B=500 cpu datafield
+143624          IF T:=5MFNC NBIT 5CHEVENT GO FAR SPROCESS              % Check event
+143627          % Search ready queue to see if the request is finished
+143627          X=:B; T:=5MBBANK; *AAX 5MHRE; LDDTX
+143633          IF 5MFNC BIT 0 THEN
+143636             A:=-1=:D; *STDTX
+143641          FI
+143641          X:="READYQ-NLINK"
+143642          DO
+143642             X=:T
+143643          WHILE X:=X.NLINK><0
+143645             % Is the specified request finished
+143645             IF X.ADMESS=B THEN
+143650                IF D+1=0 GO FOUND; D-1                           % Any request
+143654                IF X.REQID=D GO FOUND
+143657             FI
+143657          OD
+143660          % The specified request is not finished
+143660          XC5CPUDF=:B; CALL SLOCK; 0/\0
+143664          T:=5MBBANK; X:=CMSGA; *AAX 5MSFL; LDATX; AAX -5MSFL
+143671          IF A BIT 55REP THEN
+143673             A BZERO 55REP; *AAX 5MSFL; STATX; AAX -5MSFL
+143677             CALL SUNLOCK
+143700             4; GO FAR FIN
+143702          FI
+143702          CALL SUNLOCK
+143703          IF NWAIT><0 THEN
+143705             2; GO FAR FIN
+143707          ELSE
+143710             5MWAIT; CALL WN5STATUS
+143712             GO FAR OUT
+143713          FI
+143713          *)FILL
+143727
+143727   INTEGER CCUREL
+143730   FOUND: % X=found queue element, T=previous element
+143730          X=:D=:CCUREL; A:=T+"NLINK"=:X; CALL GETOUT; CALL PTFREE
+143737          D=:B; 0=:RTRES=:ADMESS=:5MNOWAIT
+143743          T:=5MBBANK; X:=CMSGA; SSSTAT=:D; A:=0; *AAX 5MHIO; STDTX;
+143752          A:=REQID=:D; A:=0; *AAX 5MHRE-5MHIO; STDTX; AAX -5MHRE
+143760          XC5CPUDF=:B; CALL SLOCK; 0/\0
+143764          T:=5MBBANK; *AAX 5MSFL; LDATX
+143767          A=:NWAIT                                               % Temporary storage of 5msfl containing 55rep bit
+143770          A BZERO 55REP; *STATX; AAX -5MSFL                      % Reset repeat bit
+143773          CALL SUNLOCK; CCUREL=:B
+143776          % If read, function 0: set clear cache bit mask:
+143776          IF ABFUN=60 THEN T:=7400 ELSE T:=0; FI
+144005          6=:D;                                                  % Parameter write back mask
+144007          IF SSSTAT BIT 4 THEN
+144012             A:=11; CALL 5EMONICO
+144014          ELSE
+144015             IF NWAIT NBIT 55REP THEN
+144020                A:=3                                             % Transfer completed
+144021             ELSE
+144022                A:=13                                            % Transfer completed and restarted by other
+144023             FI; CALL 5MONICO
+144024          FI
+144024          CALL XACTRDY
+144025          AD:=5MWQU
+144026          IF D><0 THEN                                           % Process waiting for disk access queue element
+144030   *NNC21,   CNVBYADR
+144033             % Restart first process waiting for a free disk datafield
+144033             X:=D; T:=5MBBANK; *LINK@3 LDDTX
+144036             AD=:5MWQU
+144037             CALL SLOCK; 0/\0
+144041             CALL GCPUDF; CALL ERRFATAL; A=:B
+144044   *NNT14=*
+144044             CALL XTER500; 0/\0
+144046             CALL ITO500XQ
+144047             CALL ITOFIFOQ                                        % new code
+144050             CALL SUNLOCK
+144051             TTMR=:TMR
+144053          FI
+144053          GO FAR OUT
+144054          *)FILL
+144101
+144101   SPROCESS:                                                     % Start process
+144101          IF T:=5MFNC NBIT 5STAPRO GO FAR GETMAGNO
+144104          T:=5MBBANK; *AAX  5MPRO; LDDTX
+144107          IF A=0 OR A>>MX5PROCS GO ILPROC
+144113          A-5SWPROC*5PRDSIZE+"S500S"=:X; X:=X.MESSBUFF
+144120          T:=5MBBANK; *AAX MAGNO; LDATX; AAX XADPR-MAGNO; LDXTX
+144125          IF A><D OR X.RTRES=0 THEN
+144131   ILPROC:   % A:=EILPROC=:D; X:=N5MESSAGE; A:=0; *AAX 5MHIO; STDTX; AAX -5MHIO
+144131             A:=5; GO FAR XRXX
+144133          FI
+144133          X=:D
+144134          IF X.PSTAT BIT T5BUFF THEN
+144137             X:=X.MESSBUFF; CALL RN5STATUS
+144141             IF A=STOPPED OR A=I5TMQ THEN                        % new code
+144147                A=:D; CALL GCPUDF; CALL ERRFATAL; A=:B           % new code
+144153                IF D=STOPPED THEN
+144156                   CALL OKMONICO                                 % Start requested process
+144157                ELSE
+144160                                                                 % old: IF A=I5TMQ THEN
+144160                   CALL FR5TMQU
+144161                   CALL SLOCK; 0/\0
+144163   *NNT15=*
+144163                   CALL XTER500; 0/\0
+144165                   A:=1; CALL SPITMQ
+144167                   CALL ITO500Q
+144170                   CALL SUNLOCK
+144171               FI
+144171               CALL XACTRDY                                      % new code
+144172               IF XC5CPUDF><B THEN                              % new code
+144175   *NNA06=*
+144175                  CALL XACT500                                  % new code
+144176               FI                                               % new code
+144176               XC5CPUDF=:B                                      % new code
+144200             FI
+144200          ELSE
+144201             CALL SLOCK; 0/\0
+144203             D=:X; T:=5MBBANK; X:=X.MESSBUFF; *AAX 5MSFL; LDATX
+144210             A BONE 55REP; *STATX
+144212             CALL SUNLOCK
+144213          FI
+144213          IF NWAIT=0 THEN
+144215             CALL SLOCK; 0/\0
+144217             T:=5MBBANK; X:=CMSGA; *AAX 5MSFL; LDATX
+144223             IF A NBIT 55REP THEN
+144225                *AAX -5MSFL
+144226                STOPPED; CALL WN5STATUS
+144230                CALL SUNLOCK
+144231                GO FAR OUT
+144232             FI
+144232             A BZERO 55REP; *STATX
+144234             CALL SUNLOCK
+144235             4
+144236          ELSE
+144237             1
+144240          FI
+144240          GO FAR FIN
+144241   *)FILL
+144273
+144273   INTEGER FCONNO
+144274   GETMAGNO:                                                     % Get magic number
+144274         IF T:=5MFNC BIT 5GMAGNO THEN
+144277              T:=5MBBANK; *AAX 5FILN; LDATX
+144302              A=:FCONNO; *AAX -5FILN; LDATX X5SND
+144305              A=:T; 40*5CNSIZE; A:=:T; *RMPY SA DT;
+144312              A:=D+CNSTART=:X; T+X=:D
+144317              T:=CNBANK
+144320              DO WHILE X<<D
+144322                 *LDATX
+144323                 IF A><0 AND A-FCONNO=0 THEN
+144326                    % Found, return magic number to caller:
+144326                    X=:A; A-CNSTART=:D:=0; T:=5CNSIZE; *RDIV ST
+144334                    A=:D:=0; T:=5MBBANK; X:=CMSGA; *AAX 5MAGN; STDTX; AAX -5MAGN
+144343                    T:=0; 4=:D; A:=1; CALL 5MONICO
+144350                    CALL XACTRDY                                   % new code
+144351                    GO FAR OUT
+144352                 FI
+144352                 X+5CNSIZE
+144353              OD
+144354              A:=16; GO XRXX                                     % File not opened for direct transfer
+144356          FI
+144356          A:=12; GO XRXX                                         % Illegal function code
+144360   FERR:  % Memory area is not fixed:
+144360          A:=10
+144361   XRXX:  X:=CMSGA; D:=0; CALL 5EMONICO
+144364          CALL XACTRDY                                            % new code
+144365          IF T:=CUREL><0 THEN
+144370             CALL PTFREE
+144371          FI
+144371          GO OUT
+144372
+144372   FIN:   X:=XC5CPUDF=:B:=CMSGA
+144375          D:=0; T:=0; CALL 5MONICO
+144400          CALL XACTRDY                                            % new code
+144401   OUT:   XC5CPUDF=:B; GO NXTMSG
+144404   *)FILL
+144422
+144422   %================================================================================
+144422   %      C H D I S K A D D R
+144422   % Subroutine to check if disk address is within file
+144422   %
+144422   % Entry: B-reg: pointer to disk access queue element
+144422   %
+144422   INTEGER POINTER LREG               % Return address
+144423   INTEGER XREG
+144424   INTEGER LSEC1,LSEC2                % Last sector no + 1 in transfer
+144426   DOUBLE LSECT=LSEC1
+144426   CHDISKADDR:
+144426           A:=L=:"LREG"; X=:XREG
+144431           T:=5MBBANK; X:=CMSGA; *AAX 5MAGN; LDATX; AAX -5MAGN
+144436           A=:D; A SHZ -5; *LDXTX X5SND
+144441           IF A><X THEN A:=15; GO FAR XRXX; FI                   % Illegal magic number
+144445           T:=CNBANK; A:=D*5CNSIZE+CNSTART=:X                    % X= open file entry
+144452           *LDATX 10                                             % Access flag
+144453           IF A BIT RACCFLAG THEN                                % Read only
+144455              IF DISID BIT 0 THEN                                % Check read function
+144460                 A:=17; GO FAR XRXX                              % Not write access
+144462           FI;FI
+144462           *LDDTX 20                                             % Disk datafield and unit
+144463           IF A-DDFADDR=0 THEN                                   % Correct disk
+144465              DISID SHZ -6;
+144467              IF A=D THEN                                        % Correct unit
+144471                 *LDDTX 40                                       % Start sector on disk
+144472                 A=:T; D=:L
+144474                 AD:=ABPA2; D-L; A:=A+C-1-T
+144501                 IF A>=0 THEN
+144502                    AD:=ABPA2; T:=ABP31; D+T; A:=A+C
+144506                    AD=:LSECT; T:=CNBANK; *LDDTX 60              % Last sector
+144511                    A:=:D; A-LSEC2; A:=:D; A:=A+C-1-LSEC1
+144517                    IF A>=0 THEN                                 % Transfer within file
+144520                       X:=XREG; GO LREG
+144522                 FI;FI
+144522                 A:=20; GO FAR XRXX
+144524              FI; A:=21; GO FAR XRXX
+144526           FI
+144526           A:=22; GO FAR XRXX
+144530   *"8N500 -8MTRA
+"144530   RBUS
+144540
+144540
+144540   *"8N500 8MTRA
+"144540
+144540
+144540   %============================================================================
+144540   %        ( M )     5 M R D T R A N S
+144540   %
+144540   % Driver level routine activated after transfer is finished
+144540   %
+144540   % Entry:  B= disk access queue element (removed from acc queue)
+144540   %
+144540   %
+144540   SUBR 5MRDTRANS
+144540
+144540   5MRDTRANS:
+144540           IF "N500DF".SYSINITFLAG BIT B5STOP GO WT12
+144544           % First: check if process has terminated:
+144544           IF RTRES=0 THEN
+144546              B=:T; 0=:REQID; CALL PTFREE
+144551              AD:=5MWQU
+144552              IF D><0 THEN
+144554   *NNC22,       CNVBYADR
+144557                 % Restart first process waiting for a free datafield
+144557                 X:=D; T:=5MBBANK; *LINK@3 LDDTX
+144562                 AD=:5MWQU
+144563                 CALL SLOCK; 0/\0
+144565                 CALL GCPUDF; CALL ERRFATAL; A=:B
+144570   *NNT16=*
+144570                 CALL XTER500; 0/\0
+144572                 CALL ITO500XQ
+144573                 CALL ITOFIFOQ                                    % new code
+144574                 CALL SUNLOCK
+144575                 GO N500
+144576              FI
+144576              GO WT12
+144577           FI
+144577           % Is 500 process waiting until transfer is finished?
+144577           IF 5MNOWAIT><0 THEN
+144601              % Has the process later gone into wait
+144601              X:=ADMESS; CALL RN5STATUS
+144603              IF A-5MWAIT=0 THEN
+144605                 *AAX 5MREQ; LDATX
+144607                 IF A=-1 GO 5RMSTART                             % Waiting for any request
+144612                 IF A=REQID GO 5RMSTART                          % Waiting for this request
+144615              FI
+144615              % The process is not waiting for this request
+144615              % Put datafield into ready queue
+144615              X:="READYQ-NLINK"
+144616              DO
+144616                X=:T
+144617              WHILE X:=X.NLINK><0
+144621              OD
+144622              A:=T+"NLINK"=:X; B=:T; CALL PUTIN
+144627              GO WT12
+144630           FI
+144630   5RMSTART: % Process should be restarted
+144630           B=:T; CALL PTFREE
+144632           T:=5MBBANK; X:=ADMESS; SSSTAT=:D; A:=0; *AAX 5MHIO; STDTX
+144641           A:=REQID=:D; 0=:REQID; A:=0;  *AAX 5MHRE-5MHIO; STDTX; AAX -5MHRE
+144650           % If read,function 0: set clear cache bit mask:
+144650           IF ABFUN=60 THEN T:=7400 ELSE T:=0; FI
+144657           6=:D;                                                 % Parameter write back mask
+144661           IF SSSTAT BIT 4 THEN
+144664              A:=11; CALL 5EMONICO
+144666           ELSE
+144667              A:=3; CALL 5MONICO
+144671           FI
+144671           0=:RTRES=:ADMESS=:5MNOWAIT=:SSSTAT
+144675           CALL GCPUDF; CALL ERRFATAL; A=:B
+144700           CALL XACT500                                  % new code
+144701           AD:=5MWQU
+144702           IF D><0 THEN
+144704   *NNC23,    CNVBYADR
+144707              % Restart first process waiting for a free datafield
+144707              X:=D; T:=5MBBANK; *LINK@3 LDDTX
+144712              AD=:5MWQU
+144713              CALL SLOCK; 0/\0
+144715              CALL GCPUDF; CALL ERRFATAL; A=:B
+144720   *NNT17=*
+144720              CALL XTER500; 0/\0
+144722              CALL ITO500XQ
+144723              CALL ITOFIFOQ                              % new code
+144724              CALL SUNLOCK
+144725              GO N500
+144726           FI
+144726           GO WT12                                       % old: go n500
+144727   RBUS
+144755
+144755   *"8N500
+"144755
+144755
+
+144755   %============================================================================
+144755   %      ( M )      5 A C T S W A P P E R
+144755   %
+144755   % Subroutine to activate the n500 swapper process
+144755   %
+144755   % When called from other levels than the driver level
+144755   % then 5ACTSWAPPER must be called in "iof"
+144755   %
+144755   % Entry:     X=message requireing service from swapper
+144755   %
+144755   % exit:      T,A,D regs are destroyed
+144755   %
+144755   SUBR 5ACTSWAPPER
+144755   INTEGER POINTER LREG
+144756   INTEGER MSGTOSW
+144757   DOUBLE  CMSGTOSW
+144761   INTEGER BREG
+144762
+144762   5ACTSWAPPER: A:=L=:"LREG"
+144764          CALL SLOCK; 0/\0
+144766          X=:D=:MSGTOSW; A:=5MBBANK
+144771   *NNC24,CNVWADR
+144774          AD=:CMSGTOSW
+144775          SWPWAIT; CALL WN5STATUS                    % Mark that proc. is waiting for swapper
+144777          X:=SWMSG; CALL RN5STATUS
+145001          IF A=PSWWAIT THEN                          % Swapper free?
+145004             T:=5MBBANK; X:=SWMSG
+145006             AD:=CMSGTOSW; *AAX HSWPI; STDTX
+145011             SWACTIVE; *AAX SWPFU-HSWPI; STATX
+145014             X:="N500DF".X500DF; *AAX X5SWO
+145017             CMSGTOSW; T:=5MBBANK; *STDTX
+145022             X:=MSGTOSW; SWPPING; CALL WN5STATUS    % Mark that process is using the swapper
+145025             T:=5MBBANK; *AAX 5MSFL; LDATX          % Disable escape while using swapper
+145030             *5IBRK@3 BLDA DA                       % K:=PSTAT.5IBRK
+145031             A BONE 5IBRK; *S5IBR@3 BSTA DA; STATX  % K=:PSTAT.S5IBRK
+145034             X:=MSGTOSW
+145035             T:=5MBBANK; *MICFU@3 LDATX; COPY SA DD % D:=X.MICFUNC
+145040             IF 3SWMESS=D THEN                      % Message to swapper?
+145043                *SWFUN@3 LDATX                      % Yes
+145044             ELSE
+145045                *AAX TRAPN; LDATX                   % No, trap (pagefault)
+145047                A=:D/\377; *STATX
+145052                A:=D SHZ -10
+145054             FI
+145054             X:=SWMSG; *AAX SWPST; STATX            % Save reason for activating swapper
+145057             A:=6; *AAX NUMPA-SWPST; STATX          % Par #2 & par #3 will be written into
+145062             A:=0=:D; *AAX FUNCV-NUMPA; STDTX
+145066             *AAX KFLIP-FUNCV; STZTX; AAX -KFLIP
+145071             3MONCO; *MICFU@3 STATX
+145073             CALL MCCO                              % Yes, restart swapper after mon.call
+145074             CALL SUNLOCK
+145075             CALL XACTRDY
+145076   *NNJ11=*
+145076             GO OUT
+145077             CALL XTER500; 0/\0
+145101             CALL ITO500XQ
+145102             T:=5MBBANK; *AAX 5CPUN; LDATX
+145105             A/\177400\/CPUNO; *STATX; AAX -5CPUN
+145111          ELSE
+145112             % - Insert in Swap-wait-fifo
+145112             T:=5MBBANK; X:="N500DF".X500DF; *AAX X5MXF; LDATX
+145117             A=:L; *AAX X5SWF-X5MXF; LDATX
+145122             IF A=:D+1>=L THEN A:=0 FI; *STATX      % Max Swap-wait-fifo Fylle-pointer?
+145130             D SH 1=:L; *AAX X5SWB-X5SWF; LDDTX     % Compute Swap-wait-fifo address
+145134   *NNC25,   CNVBYADR                               %
+145137             X:=D+L; T:=A+C; CMSGTOSW; *STDTX       % Insert new message
+145144             CALL SUNLOCK
+145145          FI
+145145   OUT:   X:=MSGTOSW; GO LREG
+145147   RBUS
+145165
+145165
+145165   %===============================================================================
+145165   %       ( M )    X T E R 5 0 0
+145165   %
+145165   % Routine to terminate (stop) nd-500
+145165   %
+145165   % Entry:     X=-1 then no actual message
+145165   %            X><-1 then x=actual message
+145165   %
+145165   % Exit:      error, nd-500 not terminated
+145165   %
+145165   % Exit+1:    ok, nd-500 stopped
+145165   %
+145165   SUBR XTER500
+145165   INTEGER DREG,XREG,LOOPCOUNTER,LOOP2COUNT
+145171   INTEGER POINTER LREG
+145172   INTEGER 500STATUS=LOOP2COUNT                  % Nd-500 status when entering XTER500
+145172
+145172   XTER500: IF 5CPUSTOPPED><0 THEN EXITA FI      % Already stopped?
+145175          A:=D=:DREG:=L=:"LREG"; X=:XREG
+145202          0=:LOOPCOUNTER
+145203   *NNJ12=*
+145203          GO TER51
+145204          T:=HDEV+RSTA5; *IOXT
+145207          A=:500STATUS
+145210          IF A BIT 5ILOCK THEN                   % Nd-500 running, i/f locked
+145212             T+"TERM5-RSTA5"; *IOXT
+145214             T+"RSTA5-TERM5"
+145215             FOR LOOPCOUNTER DO                  % Wait for nd-500 to unlock i/f
+145215                FOR X:=-20 DO; OD
+145217                *IOXT
+145220                WHILE A BIT 5ILOCK
+145222             OD
+145224          FI
+145224          IF A NBIT 5ILOCK GO OKRET             % Did nd-500 terminate ?
+145226          CALL X5MCST                           % Time out; master clear it
+145227          GO TER52
+145230
+145230   TER51:
+145230          FOR LOOPCOUNTER DO
+145230              IDLEKICK; CALL XKICK500
+145232              CALL GETC5PROC
+145233              IF A=-1 GO OKRET
+145236          OD
+145240
+145240   TER52: ESPTIMOUT
+145241          IF X:=XREG><-1 THEN CALL WN5STATUS FI
+145246          A=:FERROR; GO ERR
+145250
+145250          % Return points
+145250   OKRET: MIN 5CPUSTOPPED; 0/\0; MIN "LREG"
+145253   ERR:   A=:D:=DREG:=:D; X:=XREG; GO LREG
+145260   RBUS
+145265
+145265   %==========================================================================
+145265   %        ( M )     X A C T R D Y
+145265   %
+145265   % Activate nd-500 with this message if any cpu is idle
+145265   % or priority higher than the current running ones
+145265   %
+145265   % Entry:     X=message
+145265   %
+145265   % Exit:      ok
+145265   %
+145265   SUBR XACTRDY
+145265   INTEGER SVX
+145266   INTEGER DREG=?,XREG=?,BREG=?
+145266   INTEGER POINTER LREG=?
+145266   INTEGER C5CPU=?,CC5CPU=?,CC5PRIOR=?,CSWITCH=?
+145266
+145266   XACTRDY:
+145266   *NNJ13=*
+145266           P+1; EXIT                                   % Direct exit if old 500.
+145270           T:=5MBBANK; *N5STA@3 LDATX
+145272           IF A><MSGN500 AND A><WAITING THEN EXIT FI
+145301           A:=L=:"LREG"; A:=D=:DREG; A:=B=:BREG; X=:XREG
+145310           CALL GCPUDF; CALL ERRFATAL; A=:B=:C5CPU
+145314           IF C5STAT BIT BHPFAIL GO FAR OUT            % If in power-fail
+145317           CALL SLOCK; 0/\0
+145321           CPUAVAILABLE; *5EXCL@3 BLDA DA
+145323           T:=5MBBANK; X:=XREG; *MICFU@3 LDATX
+145326           IF K NBIT AND A=3START OR A=3MONCO OR A=3TRACO OR A=3WMONCO OR A=3FITRNSF THEN
+145347              T:=5MBBANK; X:=MAILINK; *AAX X5CCL; LDATX
+145353              A=:D; X:=XREG; *AAX 5CCLR; LDATX
+145357              A-D=:CSWITCH; *AAX 5MSFL-5CCLR; LDATX
+145363              IF A BIT 5CPUBOUND THEN 0=:CSWITCH FI
+145366           ELSE
+145367              0=:CSWITCH
+145370           FI
+145370           T:=5MBBANK; X:=XREG; *AAX 5PRIO; LDATX
+145374           A=:CC5PRIOR; GO ACT50
+145376
+145376   *)FILL
+145403   INTEGER DREG,XREG,BREG
+145406   INTEGER POINTER LREG
+145407   INTEGER C5CPU,CC5CPU,CC5PRIOR,CSWITCH
+145413
+145413   ACT50:  IF CSWITCH><0 THEN
+145415              "S5CPUDF"=:B; 0=:CC5CPU
+145420              DO WHILE B<<="E5CPUDF"
+145423                 IF CPUAVAILABLE BIT 5ALIVE AND C5STAT NBIT BHPFAIL THEN
+145431                    T:=5MBBANK; X:=MAILINK; *AAX X5CPU; LDATX
+145435                    IF A=MPACTIVE THEN
+145440                       CALL GETC5PROC
+145441                       IF A=-1 GO ACT51; IF A<0 GO ACT52
+145445                       A-5SWPROC*55MESSIZE+SWMSG=:X
+145451                       T:=5MBBANK; *AAX 5PRIO; LDATX
+145454                       IF A<CC5PRIOR THEN A=:CC5PRIOR; A:=B=:CC5CPU FI
+145462                    FI
+145462                 FI
+145462                 B+5CPUDFSZ
+145463              OD
+145464              IF CC5CPU><0 THEN A=:B; GO ACT52 FI
+145470              C5CPU=:B; GO ACT51
+145473           ELSE
+145474              CALL GETC5PROC
+145475              IF A=-1 THEN
+145500   ACT51:        T:=5MBBANK; X:=MAILINK; *AAX X5ACT; STZTX
+145504              ELSE
+145505                 IF A<0 GO ACT52
+145506                 A-5SWPROC*55MESSIZE+SWMSG=:X; T:=5MBBANK; *AAX 5PRIO; LDATX
+145515                 IF A<CC5PRIOR THEN
+145520   ACT52:           N100KICK; CALL XKICK500
+145522                 ELSE
+145523                    GO ACT51
+145524                 FI
+145524              FI
+145524           FI
+145524           CALL SUNLOCK; 0=:5CPUSTOPPED
+145526   OUT:    DREG=:D; X:=XREG; BREG=:B; GO LREG
+145534   RBUS
+145545
+145545
+145545   %==========================================================================
+145545   %        ( M )     X A C T 5 0 0
+145545   %
+145545   % Activate the nd-500.
+145545   %
+145545   % Entry:     B=n500 cpu-datafield, X=message
+145545   %
+145545   % Exit:      T,A,D registers are destroyed
+145545   %
+145545   SUBR XACT500
+145545   INTEGER DREG,XREG
+145547   INTEGER POINTER LREG
+145550   INTEGER 500STATUS
+145551
+145551   XACT500:
+145551   *NNJ14=*
+145551           GO XACTRDY                                    % Continue in XACTRDY if nd5000
+145552           A:=D=:DREG; A:=L=:"LREG"; X=:XREG
+145557           T:=5MBBANK; X:=MAILINK; *AAX X5CPU; LDATX
+145563           IF A=MPACTIVE AND C5STAT NBIT BHPFAIL THEN    % If not in power-fail
+145571              T:=HDEV+RSTA5; *IOXT                       % Read interface status
+145574              A=:500STATUS
+145575              IF A NBIT 5CLOST THEN                      % If nd-500 not stopped (clock stopped)
+145577                 IF A BIT 5ILOCK THEN                    % If nd-500 not terminated
+145601                    CALL XTER500; 0/\0
+145603                 FI
+145603                 % Activate ND-500 with the first message waitng for ND-500 CPU.
+145603                 % Status=msgn500 and status=waiting means waiting for ND-500 CPU.
+145603                 X:=MAILINK
+145604                 DO                                      % Search ex-queueu to see
+145604                    T:=5MBBANK; *LINK@3 LDDTX            % Next message
+145606                 WHILE D><-1                             % If any processes is waiting for nd-500 cpu.
+145611                    IF X:=D><DUMMESS THEN
+145615                       CALL RN5STATUS                    % Message.Status
+145616                       IF A=MSGN500 OR A=WAITING GO ACT50% Msgn500 or Waiting?
+145624                    FI
+145624                 OD
+145625                 % No processes waiting for nd-500 cpu.
+145625                 T:=5MBBANK; X:=MAILINK; *LINK2@3 LDXTX
+145630                 IF X><-1 AND 500STATUS NBIT 5ILOCK THEN % Has ND-500 been terminated?
+145636                    % Reactivate it since an interrupt may have been lost
+145636   ACT50:           5MBBANK; T:=HDEV+LMAR5; *IOXT
+145642                    A:=X; *IOXT
+145644                    A:=5; T+"LCON5-LMAR5"; *IOXT
+145647                 ELSE
+145650                    % Enabale for interrupt
+145650                    A:=10; T:=HDEV+LCON5;   *IOXT
+145654                    A:=0;  T+"LSTA5-LCON5"; *IOXT
+145657                    A:=1;  T+"LCON5-LSTA5"; *IOXT
+145662                           T+"SLOC5-LCON5"; *IOXT
+145664                    TTMR=:TMR
+145666                 FI
+145666              FI
+145666           FI
+145666   OUT:    0=:5CPUSTOPPED
+145667           DREG=:D; X:=XREG; GO LREG
+145673   RBUS
+145700
+145700
+145700   %============================================================================
+145700   %      ( M )   X R S T A R T A L L                     (WM-400)
+145700   %
+145700   % Routine to restart all sintran iii programs with
+145700   % Messages in the N500 execution queue with an error message
+145700   %
+145700   % Executed on lvl 12
+145700   %
+145700   % Entry:     A=error status
+145700   %            B=cpu df
+145700   %
+145700   SUBR XRSTARTALL
+145700   INTEGER ERRSTAT=?,DREG=?,BREG=?
+145700   DOUBLE  ADREG=?
+145700   INTEGER POINTER LREG=?
+145700   INTEGER CCCLR=?
+145700
+145700   XRSTARTALL:
+145700          AD=:ADREG; T:=L=:"LREG"; T:=B=:BREG
+145705          IF A NBIT POWDOWN THEN                                  % Power-fail ?
+145707             IF A=:FERROR=N5STOPPED GO RSTA2
+145713             T:=5MBBANK; X:=MAILINK; MPFAIL; *AAX X5CPU; STATX
+145720             CALL CHACTIVEQ; GO FAR RSTA2
+145722          FI
+145722          T:=5MBBANK; X:=MAILINK; *AAX X5CCL; LDATX
+145726          A=:CCCLR
+145727          X:=MAILINK
+145730          DO
+145730             T:=5MBBANK; *LINK@3 LDDTX
+145732          WHILE D><-1                                             % Search the whole ex-queue
+145735   *NNC26,    CNVBYADR
+145740             IF X:=D><DUMMESS THEN
+145744                T:=5MBBANK; *AAX 5CPUN; LDATX; AAX -5CPUN
+145750                IF A/\377=CPUNO THEN
+145754                   IF ERRSTAT NBIT POWDOWN THEN
+145757                      IF X=SWMSG GO FAR RSTA2
+145762                      IF MIFLAG BIT MUDOM THEN
+145765                         T:=5MBBANK; *AAX 5CCLR; LDATX; AAX -5CCLR
+145771                         IF A-CCCLR><0 THEN                       % Can process be moved to another CPU?
+145773                            *AAX 5MSFL; LDATX; AAX -5MSFL
+145776                            IF A BIT 5SYSRES GO RSTA1
+146000                            IF A NBIT 5CPUBOUND THEN CALL XACTRDY; GO RSTA1 FI
+146004                         FI
+146004                      FI
+146004                      CALL RN5STATUS
+146005                      IF A=SWPPING THEN
+146010                         CALL SLOCK; GO RSTA2
+146012                         T:=5MBBANK; *AAX 5MSFL; LDATX
+146015                         A BONE 52ESCSET; *STATX; AAX -5MSFL
+146020                         ERRSTAT; CALL WN5STATUS
+146022                         CALL SUNLOCK; GO RSTA1
+146024                      FI
+146024                   ELSE
+146025                      IF X=SWMSG GO RSTA1
+146030                      CALL RN5STATUS
+146031                      A BONE POWDOWN
+146032                      CALL SLOCK; GO RSTA2
+146034                      CALL XTER500; 0/\0
+146036                      CALL RN5STATUS
+146037                      A BONE POWDOWN
+146040                      GO F5XQ
+146041                   FI
+146041                   CALL SLOCK; GO RSTA2
+146043                   CALL XTER500; 0/\0
+146045                   ERRSTAT; GO F5XQ
+146047
+146047   INTEGER CCCLR
+146050   INTEGER FTRRSTAT:=E5FATAL                                      % Error code for FTXEL error logger
+146051   INTEGER ERRSTAT,DREG,BREG
+146054   DOUBLE  ADREG=ERRSTAT
+146054   INTEGER POINTER LREG
+146055
+146055   F5XQ:           CALL WN5STATUS
+146056                   CALL IFM500XQ                                  % Remove from ex-queue
+146057                   CALL SUNLOCK
+146060                   T:=5MBBANK; *AAX 5MSFL; LDATX; AAX -5MSFL
+146064                   IF A NBIT 5SYSRES THEN
+146066                      CALL 5XACTRT
+146067                   FI
+146067                FI
+146067             FI
+146067   RSTA1: OD
+146070          GO OUT
+146071   *)FILL
+146111
+146111   RSTA2:
+146111          "S5CPUDF"=:B
+146113          DO WHILE B<<="E5CPUDF"
+146116             IF ERRSTAT NBIT POWDOWN THEN                         % Not power-fail ?
+146121                A=:FERROR                                         % Set "global" error-code
+146122                T:=5MBBANK; X:=MAILINK
+146124                MPFAIL; *AAX X5CPU; STATX
+146127             FI
+146127             X:=MAILINK
+146130             DO
+146130                T:=5MBBANK; *LINK@3 LDDTX
+146132             WHILE D><-1                                          % Search the whole ex-queue
+146135   *NNC27,      CNVBYADR
+146140                IF X:=D><DUMMESS THEN
+146144                   T:=5MBBANK; *AAX 5CPUN; LDATX; AAX -5CPUN
+146150                   IF A/\377=CPUNO THEN
+146154                      IF ERRSTAT BIT POWDOWN THEN                 % Power-fail ?
+146157                         IF SWMSG=X GO RSTA3                      % Yes, no restart of 5swap
+146162                         CALL RN5STATUS
+146163                         A BONE POWDOWN
+146164                      FI
+146164                      CALL WN5STATUS                              % Error-code in status of message
+146165                      CALL IFM500XQ                               % Remove from ex-queue
+146166                      T:=5MBBANK; *AAX 5MSFL; LDATX; AAX -5MSFL
+146172                      IF A NBIT 5SYSRES THEN
+146174                         CALL 5XACTRT                             % Restart nd-100 program
+146175                      FI
+146175                   FI
+146175                FI
+146175   RSTA3:    OD
+146176             B+5CPUDFSZ
+146177          OD; GO OUT
+146201
+146201
+146201   OUT:
+146201   *"8N500 8FTS5
+"146201          *1BANK
+146202          IF ERRSTAT BIT POWDOWN THEN                             % Anything with power?
+146205             IF A BIT POWUP THEN EPWUP                            % - N500TMR
+146210             ELSE IF A BIT POWDET THEN EPWDET
+146214             ELSE EPWDOWN FI FI                                   % - N500C
+146216             A=:ERRSTAT; CALL 9FLER(ERRSTAT,1)
+146222          ELSE
+146223             IF A=N5STOPPED THEN
+146226                CALL 9FLER(ERRSTAT,1)
+146231             ELSE
+146232                CALL 9FLER(FTRRSTAT,2)
+146235             FI
+146235          FI
+146235          *2BANK
+146236   *"8N500
+"146236          BREG=:B; ADREG; GO LREG
+146242
+146242   RBUS
+146262
+146262
+146262   %============================================================================
+146262   %      ( M )    C H A C T I V E Q
+146262   %
+146262   % Routine to check number of active CPUs in the system.
+146262   %
+146262   % Entry:  none
+146262   % Exit:   none active cpu
+146262   % Exit+1: one or more active cpu
+146262   %
+146262   SUBR CHACTIVEQ
+146262   INTEGER XREG,CNCPU
+146264
+146264   CHACTIVEQ: X=:XREG; 0=:CNCPU
+146266         X:="S5CPUDF"
+146267         DO WHILE X<<="E5CPUDF"
+146272            IF X.C5STAT NBIT BHPFAIL THEN
+146275               T:=5MBBANK; X=:D:=X.MAILINK; *AAX X5CPU; LDATX
+146302               X:=D; IF A=MPACTIVE THEN MIN CNCPU; 0/\0 FI
+146310            FI
+146310            X+5CPUDFSZ
+146311         OD
+146312         X:=XREG
+146313         IF CNCPU><0 THEN L+1 FI
+146316         EXIT
+146317   RBUS
+146322
+146322
+146322   %============================================================================
+146322   %      ( M )    K I C K 5 0 0
+146322   %
+146322   % Kick the nd-500 via octobus
+146322   % Called in IOF if called from other level than 12
+146322   % Executed on level 12
+146322   % Must be called in iof if called from other levels than the driver level
+146322   %
+146322   SUBR XKICK500
+146322   INTEGER CKICKTYPE,CLVL,CPIE
+146325   INTEGER POINTER LREG
+146326   XKICK500: A=:CKICKTYPE; *TRA STS
+146330          A SH -5/\170=:CLVL
+146333          *IOF
+146334          IF CLVL><LV12B THEN                      % Called from n500 driver level?
+146340             A:=B; *IRW LV12B DB                   % No, switch to n500 driver level
+146342             "WT12"; *IRW LV12B DL
+146344             "LV12KICK";*IRW LV12B DP
+146346             LV12; *MST PID
+146350             *ION; IOF
+146352             CPIE; *MST PIE
+146354             EXIT
+146355          FI
+146355   LV12KICK:                                       % Entry point of "send-octobus-kick" routine on level 12
+146355          *ION
+146356          A:=L=:"LREG"
+146360          T:=5STATION; X:=OCTORING; A:=CKICKTYPE   % Set up kick parameters
+146363          CALL SKICK; GO ERR                       % Call octobus kick routine
+146365   OUT:   IF CLVL><LV12B THEN                      % Called originally on n500 driver level?
+146371             *IOF                                  % No, return to correct level via level 14
+146372             "LV14KICK"; *IRW LV14B DP
+146374             LV14; *MST PID; ION
+146377          FI; GO LREG
+146400
+146400   ERR:   A=:T; CALL 9ERR(#99); GO OUT
+146404
+146404   % Level 14 routine to disable all lower levels than
+146404   % the calling one to ensure a kind of "iof" sequence
+146404   INTEGER CSHSHR(0); *SHD+SHR
+146405   INTEGER CSH(0);    *SHD
+146406   LV14KICK: *TRA PIE
+146407          A=:CPIE:=37777=:D:=CLVL SHZ -3+1
+146415          T:=CSHSHR-A; *EXR ST
+146420          T:=CSH+A;    *EXR ST
+146423          A:=D; *MCL PIE
+146425          GO YWAIT
+146426   RBUS
+146440
+146440
+146440   %===============================================================================
+146440   %      ( M )    X R S 5 C P U
+146440   %
+146440   % Routine to send Octobus "Reset CPU" multibyte message.
+146440   %
+146440   % Entry:        B=CPU df
+146440   % Exit:         Error
+146440   % Exit+1:       Ok
+146440   %
+146440   SUBR XRS5CPU
+146440   INTEGER BREG
+146441   INTEGER POINTER LREG
+146442   XRS5CPU: A:=L=:"LREG":=B=:BREG
+146446          % Build Octobus message
+146446          5STATION=:"LMFIELD".MOCTSTATION                     % Station number
+146451          OMDACCP =:        X.MOCTOMD                         % OMD number
+146453          0       =:        X.MBROADCAST                      % Not broadcast
+146454          1       =:        X.MMSGLENGTH                      % Message length = 1 byte
+146456          CMCPURES SHZ 10=: X.MCOMMAND                        % Send "Reset CPU"
+146461          "LMDF"=:B; T:=5OMDNO; X:=OCTORING
+146465          "LMFIELD+DPITPHYS"=:D; A:=DPITBANK
+146470          CALL MBSEND; 0/\0
+146472          BREG=:B; GO LREG
+146475
+146475   RBUS
+146500
+146500
+146500   %===============================================================================
+146500   %      ( M )    R S 5 C P U
+146500   %
+146500   % Routine to reset all active CPUs.
+146500   % Activated from level 1 (5pit).
+146500   %
+146500   SUBR RS5CPU
+146500   RS5CPU: "S5CPUDF"=:B
+146502          DO WHILE B<<="E5CPUDF"
+146505             IF CPUAVAILABLE BIT 5ALIVE AND MAILINK><-1 THEN
+146514                T:=5MBBANK; X:=MAILINK; *AAX X5CPU; LDATX
+146520                IF A><MPNACTIVE THEN
+146523                   IF CPUAVAILABLE/\5CPUTYPE=SAMSON THEN
+146530                      CALL XRS5CPU
+146531                   ELSE
+146532                      CALL XTER500; 0/\0
+146534                      CALL X5MCST
+146535                   FI
+146535                FI
+146535             FI
+146535             B+5CPUDFSZ
+146536          OD
+146537          GO WT12
+146540   RBUS
+146550
+146550
+146550   %===============================================================================
+146550   %      ( M )    5 O M B R E A D
+146550   %
+146550   % Routine to read Octobus message from  the ACCP
+146550   % Activated if multi-byte message is received on reserved OMD number
+146550   %-------------------------------------------------------------------------------
+146550   % accp:         SEC code:
+146550   %
+146550   % 5000-mp:      SEC code:
+146550   %
+146550   % mf-contoller: SEC code: 14 +
+146550   %     20b = Corrected memory error
+146550   %     30b = Memory timeout
+146550   %     31b = Unknown error
+146550   %     50b = Memory write parity
+146550   %     51b = Memory I/O-error
+146550   %     77b = Fatal error in MF-controller
+146550   %
+146550   % accp:          error record
+146550   %    type taccprec=record
+146550   %        toctoheader: octoheader
+146550   %        byte:        errcode               %
+146550   %        byte:        errtype               %
+146550   %    endrecord
+146550   %    % errcode:
+146550   %    constant  hwfault=200b                 % fatal hw fault
+146550   %    % errtype:
+146550   %    contstant accperr=  1                  % memory error reported from accp
+146550   %
+146550   % mp:            error record
+146550   %    type taccprec=record
+146550   %        toctoheader: octoheader
+146550   %        byte:        errcode
+146550   %        byte:        errtype
+146550   %        integer2:    process_no
+146550   %        integer4:    trapping_p
+146550   %        integer4:    restart_p
+146550   %        integer2:    trap_no
+146550   %        integer4:    mms_sts
+146550   %        integer4:    log_addr
+146550   %        integer4:    phys_addr
+146550   %        integer2:    Phys_seg
+146550   %        integer4:    wr
+146550   %        integer2:    asts
+146550   %        integer2:    badap
+146550   %    endrecord
+146550   %    % errtype:
+146550   %    constant mperr=2                     % error reported from micro-program
+146550   %
+146550   % mf-controller: error record
+146550   %    type tmfrec=record
+146550   %        tocthead: octheader
+146550   %        integer2: etype     % error cycle & type
+146550   %        integer2: emainstat % mf error event
+146550   %        integer2: elog1     % errlog1
+146550   %        integer2: elog2
+146550   %        integer2: elog3
+146550   %        integer2: elog4
+146550   %        integer2: emaster
+146550   %        integer2: eslave
+146550   %        integer2: eaddress
+146550   %        integer2: esyndrom
+146550   %    endrecord
+146550   %
+146550   %    Error record sent to Layer Manager (9FLER):
+146550   %    type terrec=record
+146550   %        integer2: sec_code  % =etype: error cycle & type
+146550   %        integer2: octsource % octobus station # of source (sender)
+146550   %        integer2: omdsource % octobus omd # of source (sender)
+146550   %        integer2: emainstat % mf error event
+146550   %        integer2: elog1     % errlog1
+146550   %        integer2: elog2
+146550   %        integer2: elog3
+146550   %        integer2: elog4
+146550   %        integer2: emaster
+146550   %        integer2: eslave
+146550   %        integer2: eaddress
+146550   %        integer2: esyndrom
+146550   %    endrecord
+146550   %
+146550   %
+146550   SUBR 5OMBREAD,I5OMBR
+146550   % Fatal ErrorMessage indicator
+146550   INTEGER ARRAY MPFATAL:=(1\0,0\1,0\0,0\0,0\1,1\0)
+146556
+146556   INTEGER CSTS=?,CMICP=?
+146556   INTEGER LMREC=?,LMSIZE=?
+146556   5OMBREAD:
+146556   %      DO
+146556             "LMFIELD"=:D; A:=DPITBANK
+146561             X:=OCTORING; T:=5OMDNO; CALL OMBREAD; GO ERR
+146565             IF "LMFIELD".MOCTSTATION>=FN5DEST AND A<=LN5DEST THEN
+146575                X.ETYPE=:D SHZ -10=:CSTS; A:=D/\377=:CMICP
+146604                % ErrorMessage or Ack/Nack from ACCP/Microproram?
+146604                X.MOCTSTATION; CALL FAR GN5CPUDF; GO I5OMBR
+146607                IF CSTS=MFACK OR A=MFNACK THEN
+146616                   % Ack/Nack answer on 'WriteSysPar' message
+146616                   % i.e. I'm present
+146616                   CPUAVAILABLE BONE 5ALIVE=:CPUAVAILABLE
+146621                   GO I5OMBR
+146622                FI
+146622                % ErrorMessage
+146622                IF CSTS/\17<17 THEN
+146627                   % Known ErrorMessage
+146627                   A=:X; T:="MPFATAL"; *1BANK; LBYT; 2BANK
+146634                   IF A><0 THEN
+146635                      CSTS\/N5SECCODE; CALL XRSTARTALL
+146640                   FI
+146640                FI
+146640                CPUNO=:"LMFIELD".MOCTSTATION
+146643                % HW-fault/General trap reported by the microprogram?
+146643                IF CMICP=1 AND CSTS=200 OR A=201 THEN
+146656                   "LMFIELD".S5-5SWPROC*5PRDSIZE+"S500S"
+146663                   A.RTRES=:"LMFIELD".S4                    % Add shadow process id
+146667                   "LMFIELD+2"=:LMREC
+146671                   X.MMSGLENGTH+4=:LMSIZE
+146674                ELSE
+146675                   "LMFIELD+3"=:LMREC
+146677                   "LMFIELD".MMSGLENGTH+2=:LMSIZE
+146703                FI
+146703                CSTS\/N5SECCODE=:CSTS
+146706             ELSE IF A>=FMFDEST AND A<=LMFDEST THEN
+146715                % ErrorMessage or Ack/Nack from MF-controller
+146715                IF X.ETYPE=MFACK GO I5OMBR
+146721                A=:CSTS
+146722                "LMFIELD+2"=:LMREC
+146724                "LMFIELD".MMSGLENGTH+2=:LMSIZE
+146730             ELSE
+146731                GO I5OMBR
+146732                % Octobus error
+146732   ERR:         IF A><101410 THEN
+146735                   A=:CSTS
+146736                   0=:"LMFIELD".MOCTSTATION
+146740                   "LMFIELD+2"=:LMREC
+146742                   2=:LMSIZE
+146744                ELSE
+146745                   GO I5OMBR
+146746                FI
+146746             FI FI
+146746             GO BYPASS
+146747
+146747   INTEGER CSTS,CMICP
+146751   *)FILL
+146772
+146772   BYPASS:   "LMFIELD".MOCTSTATION=:LMREC.EOCTSOURCE
+146776             CSTS=:X.ESECCODE
+147000             LMSIZE+1 SH -1=:LMSIZE          % Convert # of bytes to # of 16-bits words
+147004             CALL 9FLER                      % Parameters to 9FLER follow in the next to locations
+147005   INTEGER      LMREC                        % 1st parameter; address of error information
+147006   INTEGER      LMSIZE                       % 2nd parameter; size of error information
+147007             % Mf-contoller requires ack message
+147007             IF "LMFIELD".EOCTSOURCE>=FMFDEST AND A<=LMFDEST THEN
+147017                A      =:"LMFIELD".MOCTSTATION     % Station number
+147021                MFOMDNO=:        X.MOCTOMD         % OMD number
+147023                0      =:        X.MBROADCAST      % Not broadcast
+147024                1      =:        X.MMSGLENGTH      % Message length = 1 byte
+147026                MFACK SH 10=:    X.MSTS
+147031                X:=OCTORING; T:=5OMDNO
+147033                "LMFIELD"=:D; A:=DPITBANK
+147036                CALL MBSEND; 0/\0
+147040             FI
+147040   I5OMBR:   "LMDF"=:B; CALL ID12
+147043   %      OD
+147043          GO FAR 5OMBREAD
+147044   *)FILL
+147052
+147052   % Local subroutine to get N5000 CPU df from
+147052   % octobus source station number.
+147052   %
+147052   %  Entry:      A=octobus station number
+147052   %  Exit:       Error; Cpu df not found
+147052   %  Exit+1:     Ok; B=cpu df
+147052   %
+147052   GN5CPUDF: A=:D; "S5CPUDF"=:B
+147055         DO WHILE B<<="E5CPUDF"
+147060            IF 5STATION=D THEN EXITA FI
+147064            B+5CPUDFSZ
+147065         OD
+147066         EXIT
+147067   RBUS
+147071
+147071
+147071   %============================================================================
+147071   %      ( M )    C O N 5 O M D
+147071   %
+147071   % Connect octobus OMD
+147071   % To be able to receive multi byte error messages from:
+147071   %    - the MF controller
+147071   %    - the accp
+147071   %    - the 5000 microprogram
+147071   %
+147071   % Activated from level 1 (5pit)
+147071   %
+147071   % Entry:  B=working field
+147071   %
+147071   SUBR CON5OMD
+147071   CON5OMD:
+147071          X:=OCTORING; CALL CONOMD; GO WT12           % Connect Octobus OMD number to additional cpu df.
+147074          A=:5OMDNO
+147075          GO WT12
+147076   RBUS
+147100
+147100
+147100   %============================================================================
+147100   %      ( M )    M F P R E P A R E
+147100   %
+147100   % Sends OMD numer to mf-controller on which N100 can receive messages
+147100   % Activated from level 1 (5pit)
+147100   %
+147100   % Ack/Nack answer is handled by 5OMBREAD
+147100   %
+147100   % Entry:  B=working field
+147100   %         A=destination octobus station number
+147100   %
+147100   SUBR MFPREPARE
+147100   MFPREPARE:
+147100          A       =:"LMFIELD".MOCTSTATION          % Station number
+147102          MFOMDNO =:        X.MOCTOMD              % OMD number
+147104          0       =:        X.MBROADCAST           % Not broadcast
+147105          3       =:        X.MMSGLENGTH           % Message length = 2 bytes
+147107          CMSYSPAR SHZ 10\/N100IDENT=:X.MCOMMAND   % Send OMD numer to mf-controller
+147113          5OMDNO SH 10=:X.MDP1
+147116          X:=OCTORING; T:=5OMDNO
+147120          "LMFIELD+DPITPHYS"=:D; A:=DPITBANK
+147123          CALL MBSEND; GO WT12
+147125          GO I5OMBR
+147126   RBUS
+147133
+147133
+147133   %============================================================================
+147133   %      ( M )    C O N 5 I D E N T
+147133   %
+147133   % Connect octobus Ident
+147133   % (To be able to receive multi byte messages/kicks from the ACCP/Samson)
+147133   % Send 'alive' message to the ACCP to verify that it's present
+147133   % Activated from level 1 (5pit)
+147133   %
+147133   % Ack/Nack answer is handled by 5OMBREAD
+147133   %
+147133   % Entry:  B=CPU datafield
+147133   %         X=working datafield
+147133   %
+147133   SUBR CON5IDENT
+147133   INTEGER CWFIELD
+147134
+147134   CON5IDENT:
+147134          X=:CWFIELD; T:=5STATION
+147136          X:=OCTORING; N100IDENT=:D; LV12B SHZ -3
+147143          CALL ECONID; GO WT12                                % Connect Octobus Ident no.
+147145          % Build Octobus message
+147145          5STATION=:"LMFIELD".MOCTSTATION                     % Station number
+147150          OMDACCP =:        X.MOCTOMD                         % OMD number
+147152          0       =:        X.MBROADCAST                      % Not broadcast
+147153          7       =:        X.MMSGLENGTH                      % Message length = 1 byte
+147155          CMSYSPAR SHZ 10\/N100IDENT=: X.MCOMMAND             % Send system par.
+147161          CWFIELD=:B
+147163          5OMDNO SHZ 10=:   X.S5
+147166          0=:X.S6=:X.S7
+147170          T:=5OMDNO; X:=OCTORING
+147172          "LMFIELD+DPITPHYS"=:D; A:=DPITBANK
+147175          CALL MBSEND; GO WT12
+147177          GO I5OMBR
+147200   RBUS
+147206
+147206
+147206   %============================================================================
+147206   %       M B S U S P R O C
+147206   %
+147206   % SUBROUTINE TO CHECK IF A PROCESS SHOULD BE SUSPENDED
+147206   % BECAUSE THE SYSTEM SPENDS TOO MUCH TIME ON HIGHER INTERRUPT LEVELS
+147206   % CALLED FROM MCHANDLE.
+147206   % IF PROCESS IS SUSPENDED, THEN RETURN TO NXTMSG IN MAIN ND-500 DRIVER
+147206   %
+147206   % ENTRY:    B=ND-500 CPU DATAFIELD
+147206   %           N5MESSAGE=ADDR OF ACTUAL MESSAGE
+147206   %
+147206   SUBR MBSUSPROC
+147206   INTEGER CSUSPTIME:=10        % NUMBER OF TIMESLICE UNITS THE PROCESS WILL BE SUSPENDED
+147207   MBSUSPROC:
+147207          IF ATIM2-SUSPATIME>62 THEN                  % ND-500 TIMESLICER NOT ACTIVE FOR 1 SEC.
+147214             SUSPSTAT; X:=N5MESSAGE; CALL WN5STATUS   % SUSPEND PROCESS
+147217             CSUSPTIME; T:=5MBBANK; *AAX SUSPC; STATX; AAX -SUSPC
+147224             1=:5SUSPFLAG                             % FLAG FOR TIMESLICER
+147226             GO NXTMSG
+147227          FI; EXIT
+147230   RBUS
+147237
+147237
+147237   %============================================================================
+147237   %      G E T   T E R M I N A L    D A T A    F I E L D
+147237   %
+147237   % ENTRY:     X=ND-500 MESSAGE ADDR
+147237   %
+147237   % EXIT:      NOT TERMINAL OR TERMINAL NOT RESERVED BY CALLER.
+147237   %
+147237   % EXIT+1:    A=ADDR OF TERMINAL INPUT DATAFIELD
+147237   %            D=ADDR OF TERMINAL OUTPUT DATAFIELD
+147237   %
+147237   SUBR 5GTDF
+147237   INTEGER POINTER GTDFRET
+147240   5GTDF:  A:=L=:"GTDFRET"
+147242          T:=5MBBANK; *AAX DOUTD; LDDTX             % AD=LOGICAL DEVICE NUMBER
+147245          IF A><0 GO NERET                          % ILL. LOG.DEV (MORE THAN 16 BITS)
+147246          IF 1=D THEN
+147251             *AAX OUTDF-DOUTD; LDXTX
+147253             IF X><0 THEN
+147254                T:="XDFOPP"; CALL XGTDFADDR         % A=INPUT DATAFIELD
+147256                X=:D; MIN "GTDFRET"; GO GTDFRET     % D=OUTPUT DATAFIELD
+147261             FI; X:=N5MESSAGE; T:=5MBBANK
+147263             *AAX XADPR; LDXTX
+147265             IF X:=X.RTRES><0 AND X.STATUS BIT 5BACKGR GO NERET
+147272          FI; A:=D                                  % A=LOGICAL DEVICE NUMBER
+147273          IF A>=100 AND A<=177 GO NERET             % ASSURE IT'S NOT A FILE WHEN CALLING LOGPH ON LEVEL 12
+147301          CALL LOGPH; IF D=0 GO NERET               % NOT OUTPUTDEVICE
+147304          A=:L                                      % L=INPUT DATAFIELD; D=OUTPUT DATAFIELD
+147305          IF D.TYPRING NBIT 5SPLITDF GO NERET       % ERROR IF NOT TERMINAL
+147311          X:=N5MESSAGE; T:=5MBBANK; *AAX XADPR; LDXTX % X=ND-100 PROGR USING ND-500 PROC
+147315          IF X.RTRES><D.RTRES GO NERET              % NOT RESERVED BY ACTUAL PROCESS
+147322          A:="GTDFRET":=:L                          % A=INPUT DATAFIELD; D=OUTPUT DATAFIELD
+147324          EXITA                                     % SKIP RETURN
+147325   NERET: X:=N5MESSAGE; GO GTDFRET
+147327   RBUS
+147334
+147334
+147334   %=============================================================================%
+147334   %      I N S M O N C O
+147334   %
+147334   %      INSMONCO RESTARTS THE ND-500 PROCESS AFTER THE INPUT BYTES
+147334   %      ARE WRITTEN TO THE DATA MEMORY IN THE QUICK INSTRING MONITOR CALL 504.
+147334   %
+147334   SUBR INSMONCO
+147334   INSMONCO: T:=5MBBANK; *AAX SPFLA; STZTX          % CLEAR SPFLAG
+147337          *AAX SMCNO-SPFLA; LDATX                   % MONITOR CALL NUMBER
+147341          IF A-511=0 THEN A:=100000 ELSE A:=4 FI
+147346          *AAX NUMPA-SMCNO; STATX                   % STORE WRITE BACK MASK
+147350          A:=0=:D; *AAX FUNCV-NUMPA; STDTX
+147354          *AAX KFLIP-FUNCV; STZTX; AAX -KFLIP
+147357          3MONCO; *MICFU@3 STATX
+147361          CALL MCCO
+147362          CALL XACTRDY
+147363          GO NXTMSG
+147364   RBUS
+147372
+147372
+147372   %============================================================================
+147372   %       X M W K           N 5 W A K E
+147372   % XMWK:
+147372   % Started from xmsg when a message arrives on a port belonging
+147372   % to nd-500 process.
+147372   %
+147372   % N5WAKE:
+147372   % Started from monitor call handling on 5pit.
+147372   %
+147372   % Entry:     B = nd-500 message
+147372   %
+147372   SUBR XMWK,N5WAKE
+147372   N5WAKE: K:=1; P+1
+147374   XMWK:  K:="0"
+147375          T:=5MBBANK; X:=B; *AAX XADPR; LDXTX
+147401          X=:B
+147402          IF K THEN
+147404             CALL XNW5ST; 0/\0
+147406          ELSE
+147407             CALL NW5ST; P+1; CALL RTACT
+147412          FI
+147412          X:=MESSBUFF; CALL GCPUDF; CALL ERRFATAL; A=:B
+147416          GO CALLID12
+147417   RBUS
+147426
+147426
+147426   %============================================================================
+147426   %      ( M )   P 1 2 D C N
+147426   %
+147426   % - DRIVER LEVEL ROUTINE TO DO THE JOB
+147426   SUBR P12DCN
+147426   P12DCN: T:=XFDCT; * MON 2XMSG
+147430          GO CALLID12; GO CALLID12
+147432   RBUS
+147433
+147433
+147433   %============================================================================
+147433   %       ( M )    S T 0 P S Y S
+147433   %
+147433   % CONTINUATION ON MLEV OF COMMAND : STOP-SYSTEM
+147433   %
+147433   % TERMINATE ALL ND-500S (IF ANY) AND SIMULATE POWER FAILURE
+147433   %
+147433   SUBR ST0PSYS
+147433   ST0PSYS: *IOF
+147434           IF PN500D><0 AND 5MSINIT BIT 5INBUF THEN
+147441             CALL SLOCK; GO BYPASS                        % Lock semaphore
+147443             "S5CPUDF"=:B
+147445             DO WHILE B<<="E5CPUDF"
+147450                IF CPUAVAILABLE BIT 5ALIVE AND A/\5CPUTYPE=SAMSON THEN % CPU present?
+147457                   T:=5MBBANK; X:=MAILINK; *AAX X5CPU; LDATX
+147463                   IF A><0 THEN                           % CPU active?
+147464                      77; *AAX X5CLR-X5CPU; STATX         % Clear data tsb+cache+dump+forget process
+147467                      CLRKICK; CALL XKICK500
+147471                   FI
+147471                FI
+147471                B+5CPUDFSZ
+147472             OD
+147473             "S5CPUDF"=:B
+147475             DO WHILE B<<="E5CPUDF"
+147500                IF CPUAVAILABLE BIT 5ALIVE AND A/\5CPUTYPE=SAMSON THEN % CPU present?
+147507                   T:=5MBBANK; X:=MAILINK; *AAX X5CPU; LDATX
+147513                   IF A-MPACTIVE=0 THEN                           % CPU active?
+147515                      1000-=:L
+147520                      *AAX X5CLR-X5CPU
+147521                      DO
+147521                        *LDATX
+147522                        WHILE A><0 AND L><0                 % Functions executed ?
+147525                        L+1
+147526                      OD
+147527                      IF L=0 THEN CALL ERRFATAL FI
+147532                   FI
+147532                FI
+147532                B+5CPUDFSZ
+147533             OD
+147534             FOR X:=0 TO 10000 DO D+1; A:=A+C; OD         % Delay reset-cpu
+147544   BYPASS:   "RS5CPU"; *IRW LV12B DP                      % Send "reset cpu" to ACCP
+147546             LV12;     *MST PID
+147550             *ION
+147551             FOR X:=0 TO 10000 DO D+1; A:=A+C; OD         % Delay stop-system
+147561             CALL SUNLOCK
+147562           FI
+147562           "PPWFAIL"; *IRW LV14B DP                     % Continue in "power fail" on level 14
+147564           LV14;      *MST PID
+147566           *ION
+147567           GO STUPR
+147570   RBUS
+147610
+147610
+147610   *"-8N500
+"147610
+147610   @DEV 1

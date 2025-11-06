@@ -1,0 +1,1080 @@
+017307   @DEV (S-S-L)CC-P2-COMMON:NPL
+017307   %$--:COMMON                    % FOR SPLITTING AV LISTING.
+017307   *P2CCC/
+017307   %==============================================================================
+017307   %     ( C )     G E T D A T A F I E L D
+017307
+017307   % SUBROUTINE TO GET ADDRESS TO TERMINAL DATAFIELD
+017307   % RETURNED IN X-REG.
+017307   SUBR GETDATAFIELD
+017307
+017307   GETDATAFIELD:
+017307          RTREF-"BAK01"
+017311          IF A<=0 THEN
+017313             IF LGCOLDSTART><0 THEN L=:X; CALL LOGPH; X=:L:=A; EXIT FI
+017322             A:=0
+017323          FI; A=:D:=0; T:=5RTSIZE; *RDIV ST
+017327          IF D><0 THEN CALL ERRFATAL FI
+017332   *"-8BACS
+"017332          X:=XBCKTAB(A)
+017334   *"
+"017334          EXIT
+017335   RBUS
+017343
+017343   %===========================================================================
+017343   %                G B P I U S I N D X
+017343   %
+017343   % SUBROUTINE TO FIND BACKGROUND-PROGRAM-IN-USE INDEX
+017343   %
+017343   % ENTRY:         A=RT-DESCRIPTION ADDRESS
+017343   %
+017343   % EXIT:          NOT BACKGROUND-PROGRAM-IN-USE
+017343   %
+017343   % EXIT+1:        A=BACKGROUND-PROGRAM-IN-USE INDEX
+017343   %
+017343   SUBR GBPIUSINDX
+017343   GBPIUSINDX:
+017343          IF A>>="9FBPR" AND A<<"9LBPR" THEN
+017351   *"8BACS
+"017351             IF A<<"9LTBP" THEN                     % TERMINAL/TAD BACKGROUND PROGRAM
+017354                A-"9FBPR"=:D:=0; T:=5RTSIZE; *RDIV ST
+017361                EXITA
+017362             FI
+017362             A-"2THSS"=:D:=0; T:=5RTSIZE; *RDIV ST
+017367             A+MXTBPROGS; EXITA                     % BATCH BACKGROUND PROGRAM
+017371   *"-8BACS
+"017371          FI; EXIT                                  % NOT BACKGROUND PROGRAM
+017372   RBUS
+017377
+017377
+017377   SUBR 9GTLOGDV
+017377   %============================================================================
+017377   %            C F L O G D V
+017377   %
+017377   % LOCAL SUBROUTINE TO SEARCH FOR A DATAFIELD ADDRESS
+017377   % IN A LOGICAL-DEVICE NUMBER GROUP TABLE
+017377   %
+017377   % ENTRY: B=ADDRESS OF DATAFIELD
+017377   %        X= LOGICAL NUMBER GROUP TO TEST AGAINST
+017377   %
+017377   % EXIT:  D=LOGICAL DEVICE NUMBER
+017377   %
+017377   % EXITA: NO LOGICAL DEVICE NUMBER FOUND
+017377   %
+017377   INTEGER POINTER LREG2
+017400   CFLOGDV: A:=L=:"LREG2":=X SH 6=:D; X:=CNVRT(X)
+017406            T:=LOGDBANK; *LDATX
+017410            A SH 1+X+1=:L                             % L=LAST ENTRY IN LOGICAL DEVICE NUMBER GROUP
+017413            X+1
+017414            DO
+017414                *LDATX
+017415                IF A=B GO LREG2                     % LOGICAL DEVICE NUMBER FOUND
+017417                IF X=L THEN MIN "LREG2"; GO LREG2 FI% END OF TABLE
+017423                D+1; X+2
+017425            OD
+017426
+017426   %===========================================================================
+017426   %            9 G T L O G D V
+017426   %
+017426   % SUBROUTINE TO FIND LOGICAL DEVICE NUMBER OF A TERMINAL/TAD
+017426   %
+017426   % CALLED ON MLEV AND ALEV.
+017426   % ROUTINE MUST BE CALLED WITH MONITOR LEVEL DISABLED (OR IOF),
+017426   % WHEN CALLED FROM LEVEL 1.
+017426   % (THIS ROUTINE IS NOT REENTRANT!!)
+017426   %
+017426   % ENTRY:     B=ADDRESS OF DATAFIELD
+017426   %
+017426   % EXIT:      NO LOGICAL DEVICE NUMBER FOUND
+017426   %
+017426   % EXIT+1:    D=LOGICAL DEVICE NUMBER
+017426   %
+017426   INTEGER POINTER LREG1
+017427   9GTLOGDV: A:=L=:"LREG1"
+017431          X:=0; CALL CFLOGDV; GO FOUND
+017434          X:=10; CALL CFLOGDV; GO FOUND
+017437          X:=12; CALL CFLOGDV; GO FOUND
+017442          X:=14; CALL CFLOGDV; GO FOUND
+017445          X:=15; CALL CFLOGDV; GO FOUND
+017450          X:=20; CALL CFLOGDV; GO FOUND
+017453          X:=27; CALL CFLOGDV; GO FOUND
+017456          X:=30; CALL CFLOGDV; GO FOUND
+017461          X:=31; CALL CFLOGDV; GO FOUND
+017464          GO LREG1
+017465   FOUND: MIN "LREG1"; GO LREG1
+017467   RBUS
+017471
+017471   %=============================================================================
+017471   %       ( C )     F I B C K T A B L E
+017471   %
+017471   % SUBROUTINE TO SEARCH FOR ENTRY IN BACKGROUND TABLE
+017471   %
+017471   % ENTRY:         X=ADDRESS OF DATAFIELD
+017471   %
+017471   % EXIT:          ENTRY NOT FOUND
+017471   %
+017471   % EXIT+1:        ENTRY FOUND IN BACKGROUND TABLE
+017471   %
+017471   SUBR FIBCKTABLE
+017471   FIBCKTABLE:
+017471           IF X=0 THEN EXIT FI                 % 0 IS ILLEGAL
+017474           X=:D:=0
+017476           DO BACKTAB(X) WHILE A><-1
+017502              IF A=D THEN X:=D; EXITA FI       % ENTRY FOUND
+017506              X+1
+017507           OD; X:=D; EXIT                      % ENTRY NOT FOUND
+017512   RBUS
+017513
+017513
+017513   %==============================================================================
+017513   %       ( C )     G B T I N D X
+017513   %
+017513   % SUBROUTINE TO FIND THE INDEX OF A TERMINAL/TAD IN PRVTTABLE.
+017513   %
+017513   % ENTRY:     X=ADDRESS OF DATAFIELD
+017513   %
+017513   % EXIT:      NOT TERMINAL/TAD
+017513   %
+017513   % EXIT+1:    A=INDEX IN PRVTTABLE
+017513   %
+017513   % T,A,D REGISTERS ARE DESTROYED
+017513   %
+017513   SUBR GBTINDX
+017513   INTEGER NTTYS
+017514   GBTINDX:IF "BPTMP"=0 THEN EXIT FI
+017517           IF X.TYPRING NBIT 5BAD AND A NBIT 5TERM THEN EXIT FI  % NOT TERMINAL/TAD
+017525           IF A BIT 5TERM THEN
+017527              A:=X-"DT01R"=:D:=0; T:="5TTSZ"; *RDIV ST
+017535           ELSE
+017536              A:="5TEND"-"5TTST"=:D:=0; T:="5TTSZ"; *RDIV ST
+017544              A=:NTTYS                                           % INDEX OF FIRST TAD
+017545              A:=X-"BD01R"=:D:=0; T:="5BDSZ"; *RDIV ST
+017553              A+NTTYS
+017554           FI; IF D><0 THEN EXIT FI
+017557           EXITA
+017560   RBUS
+017567
+017567   %=============================================================================
+017567   %      ( C )      F P I T S L P R T A B
+017567   %
+017567   % SUBROUTINE TO SEARCH FOR AN ENTRY IN DTSLPRTAB
+017567   % THIS ROUTINE MUS BE CALLED WITH IOF OR MLEV DISABLED IF CALLED
+017567   % FROM ALEVL
+017567   % ALL REGISTERS EXCEPT B ARE DESTROYED.
+017567   %
+017567   % ENTRY:     X=PROGRAM
+017567   %
+017567   % EXIT:      NOT FOUND
+017567   %            X=END OF USED PART OF TABLE
+017567   %
+017567   % EXITA:     FOUND.
+017567   %            X=END OF USED PART OF TABLE
+017567   %            D=ADDR OF ACTUAL ENTRY
+017567   %
+017567   SUBR FPITSLPRTAB
+017567   INTEGER CFOUND
+017570   FPITSLPRTAB:
+017570          -1=:CFOUND
+017572          X=:D:=DTSLPRTAB; T:=GLTMBANK
+017575          DO
+017575             *LDATX
+017576             IF A=D THEN X=:CFOUND FI
+017601             IF A+1=0 THEN
+017603                IF CFOUND><-1 THEN A=:D; L+1 FI
+017611                EXIT
+017612             FI; X+2
+017613          OD
+017614   RBUS
+017616
+017616
+017616   *"BADAD
+"017616   %======================================================================================
+017616   %                T A D   R O U T I N E S
+017616   %======================================================================================
+017616   INTEGER 41ITAD=?,41OTAD=?    % P R E D E C L A R E
+017616
+017616   %===============================================================================
+017616   % (C)   X I S W T A D    X O S W T A D
+017616   %       X I S T A D      X O S T A D
+017616   %       B I S W T A D    B O S W T A D
+017616   %       B I S T A D      B O S T A D
+017616   %
+017616   % ROUTINES TO PREPARE DATAFIELD ACCESS FOR TAD
+017616   % MUST BE CALLED WITH MONITOR LEVEL DISABLED!
+017616   %
+017616   % XISWTAD:  X = RESIDENT INPUT  DATAFIELD
+017616   % XOSWTAD:  X = RESIDENT OUTPUT DATAFIELD
+017616   % XISTAD:   X = INPUT  DATAFIELD WINDOW ADDRESS
+017616   % XOSTAD:   X = OUTPUT DATAFIELD WINDOW ADDRESS
+017616   % RETURN:   X = WINDOW ADDRESS INPUT OR OUTPUT
+017616   %
+017616   % BISWTAD:  B = RESIDENT INPUT  DATAFIELD
+017616   % BOSWTAD:  B = RESIDENT OUTPUT DATAFIELD
+017616   % BISTAD:   B = INPUT  DATAFIELD WINDOW ADDRESS
+017616   % BOSTAD:   B = OUTPUT DATAFIELD WINDOW ADDRESS
+017616   %
+017616   % RETURN:   B = WINDOW ADDRESS INPUT OR OUTPUT
+017616   %
+017616   % COMMON TO ALL, SETS:
+017616   %           GLOBAL VAR: 41ITAD  INPUT-DF.  WINDOW  ADDRESS
+017616   %                       41OTAD  OUTPUT-DF. WINDOW  ADDRESS
+017616   %
+017616   SUBR XISWTAD,XOSWTAD,XISTAD,XOSTAD,BISWTAD,BOSWTAD,BISTAD,BOSTAD
+017616   TRIPLE TADREG; INTEGER POINTER LREG
+017622   XISWTAD: K:=1; GO FELXI
+017624   XISTAD:  K:="0"
+017625   FELXI:  TAD=:TADREG; A:=L=:"LREG"
+017630           IF K THEN CALL XSETBFPAGE FI
+017633           X=:41ITAD; X.DFOPP/\1777=:T:=X/\176000+T=:41OTAD
+017643           TAD:=TADREG; GO LREG
+017645
+017645   XOSWTAD: K:=1; GO FELXO
+017647   XOSTAD:  K:="0"
+017650   FELXO:  TAD=:TADREG; A:=L=:"LREG"
+017653           IF K THEN CALL XSETBFPAGE FI
+017656           X=:41OTAD; X.DFOPP/\1777=:T:=X/\176000+T=:41ITAD
+017666           TAD:=TADREG; GO LREG
+017670
+017670   BISWTAD: K:=1; GO FELBI
+017672   BISTAD:  K:="0"
+017673   FELBI:  TAD=:TADREG; A:=L=:"LREG"; X:=:B
+017677           IF K THEN CALL XSETBFPAGE FI
+017702           X=:41ITAD; X.DFOPP/\1777=:T:=X/\176000+T=:41OTAD
+017712           TAD:=TADREG; X:=:B; GO LREG
+017715
+017715   BOSWTAD: K:=1; GO FELBO
+017717   BOSTAD:  K:="0"
+017720   FELBO:  TAD=:TADREG; A:=L=:"LREG"; X:=:B
+017724           IF K THEN CALL XSETBFPAGE FI
+017727           X=:41OTAD; X.DFOPP/\1777=:T:=X/\176000+T=:41ITAD
+017737           TAD:=TADREG; X:=:B; GO LREG
+017742   RBUS
+017747
+017747   %=========================================================================
+017747   %            C X R E S P    C B E R S P
+017747   %
+017747   % IF TAD, ROUTINE ACTIVATES DRIVER TO SEND ESCAPE-RESPONSE
+017747   % ENTRY: X-REG - RESIDENT INPUT-DATAFIELD (CXRESP)
+017747   %        B-REG - RESIDENT INPUT-DATAFIELD (CBERSP)
+017747   % THE ROUTINE IS CALLED WITH INTERRUPT OFF
+017747   % RETURN EXIT AD1
+017747   SUBR CXRESP,CBERSP
+017747   INTEGER TREG,XREG
+017751   CXRESP: IF X.TYPRING NBIT 5BAD THEN EXITA FI; X=:A; GO FELLS
+017757   CBERSP: IF TYPRING NBIT 5BAD THEN EXITA FI; B=:A
+017764   FELLS:  *IRW LV10B DB              % B = TAD RESIDENT INPUT DATAFIELD
+017765           "BERESP"; *IRW LV10B DT    % T = DRIVER ESCAPE-RESPONSE
+017767           "SLV10";  *IRW LV10B DP    % P = LEVEL ACTIVATING POINT
+017771           LV10; *MST PID
+017773           EXITA
+017774   RBUS
+017777
+017777   %=========================================================================
+017777   % (C)  M A C T D R
+017777   %
+017777   % ROUTINE CALLED FROM MAIL SYSTEM TO ACTIVATE TAD-DRIVER ENTRIES
+017777   % ENTRY: X-REG - OUTPUT DATAFIELD, A-REG - WANTED FUNCTION
+017777   SUBR MACTDR
+017777   MACTDR: *IOF; IRW LV10B DT             % T = FUNCTION TO PERFORM
+020001          "SLV10";  *IRW LV10B DP         % P = LEVEL ACTIVATING POINT
+020003          A:=X; *IRW LV10B DB             % B = TAD OUTPUT DATAFIELD (RES)
+020005          LV10; *MST PID
+020007          *ION; EXIT                      % ALLOW DRIVER TO EXECUTE
+020011   RBUS
+020013
+020013   %======================================================================
+020013   % (C)  S M A T I M R
+020013   %
+020013   % SUBROUTINE TO TWMESS TO START SPECIAL MAIL TIMEOUT
+020013   % X = TAD OUTPUT DATAFIELD
+020013   SUBR SMATIMR
+020013   INTEGER LREG
+020014   SMATIMR: *IOF
+020015          A:=L=:LREG
+020017          T:="TMR"; -3; CALL XSTDFADDR              % TIMEOUT IN 3 SEC.
+020022          T:="KTMSUB"; "MTDTOU"; CALL XSTDFADDR     % SPECIAL MAIL TIMEOUT
+020025          LREG=:L; *ION; EXIT
+020031   RBUS
+020035
+020035   %============================================================================
+020035   % (C)   R C T M O D
+020035   %
+020035   % ROUTINE CALLED FROM TERMODE (SPIT) TO SEND TERMINAL MODE
+020035   % X-REG = INPUT DATAFIELD
+020035   SUBR RCTMOD
+020035   INTEGER POINTER RETAD    % ALWAYS SAME RETURN ADDRESS
+020036   RCTMOD: IF X.PORTNO=0 THEN EXITA FI; A:=L+1=:"RETAD"
+020043           X=:L; "NRPIT+ADPIT+ALEVB+ERNG2"; *IOF
+020046           A=:CURPROG.ACTPRI; *TRR PCR; ION
+020052           MLEV; *MCL PIE
+020054           L=:X; CALL XISTAD; CALL CTMOD; 0/\0
+020060           "NSPIT+ADPIT+ALEVB+ERNG2"; *IOF
+020062           X=:L; A=:CURPROG.ACTPRI; *TRR PCR; ION
+020067           MLEV; *MST PIE
+020071           L=:X; GO RETAD
+020073   RBUS
+020100
+020100   %============================================================================
+020100   % (C)   R C S D A E
+020100   %
+020100   % ROUTINE CALLED FROM DEFESC (SPIT) TO SEND  CHANGED ESCAPE CHARACTER.
+020100   % X-REG = RESIDENT INPUT DATAFIELD
+020100   SUBR RCSDAE
+020100   INTEGER POINTER RETAD    % ALWAYS SAME RETURN ADDRESS
+020101   RCSDAE: A:=L+1=:"RETAD"
+020103           X=:L; "NRPIT+ADPIT+ALEVB+ERNG2"; *IOF
+020106           A=:CURPROG.ACTPRI; *TRR PCR; ION
+020112           MLEV; *MCL PIE
+020114           L=:X; CALL XISWTAD; CALL CSDAE; 0/\0
+020120           "NSPIT+ADPIT+ALEVB+ERNG2"; *IOF
+020122           X=:L; A=:CURPROG.ACTPRI; *TRR PCR; ION
+020127           MLEV; *MST PIE
+020131           L=:X; GO RETAD
+020133   RBUS
+020140
+020140   %============================================================================
+020140   % (C)   R C C E S C
+020140   %
+020140   % ROUTINE CALLED FROM CDESCFU/CEESCFU (SPIT) TO SEND  ENABLE/DISABLE ESCAPE.
+020140   % X-REG = RESIDENT INPUT DATAFIELD
+020140   SUBR RCCESC
+020140   INTEGER POINTER RETAD    % ALWAYS SAME RETURN ADDRESS
+020141   RCCESC: A:=L+1=:"RETAD"
+020143           X=:L; "NRPIT+ADPIT+ALEVB+ERNG2"; *IOF
+020146           A=:CURPROG.ACTPRI; *TRR PCR; ION
+020152           MLEV; *MCL PIE
+020154           L=:X; CALL XISWTAD; CALL CCESC; 0/\0
+020160           "NSPIT+ADPIT+ALEVB+ERNG2"; *IOF
+020162           X=:L; A=:CURPROG.ACTPRI; *TRR PCR; ION
+020167           MLEV; *MST PIE
+020171           L=:X; GO RETAD
+020173   RBUS
+020200
+020200   %============================================================================
+020200   % (C)   R C S T Y P
+020200   %
+020200   % ROUTINE CALLED FROM CSTTYP (SPIT) TO SEND  TERMINAL TYPE.
+020200   % X-REG = RESIDENT INPUT DATAFIELD
+020200   SUBR RCSTYP
+020200   INTEGER POINTER RETAD    % ALWAYS SAME RETURN ADDRESS
+020201   RCSTYP: A:=L+1=:"RETAD"
+020203           X=:L; "NRPIT+ADPIT+ALEVB+ERNG2"; *IOF
+020206           A=:CURPROG.ACTPRI; *TRR PCR; ION
+020212           MLEV; *MCL PIE
+020214           L=:X; CALL XISWTAD; CALL CSTYP; 0/\0
+020220           "NSPIT+ADPIT+ALEVB+ERNG2"; *IOF
+020222           X=:L; A=:CURPROG.ACTPRI; *TRR PCR; ION
+020227           MLEV; *MST PIE
+020231           L=:X; GO RETAD
+020233   RBUS
+020240
+020240   %============================================================================
+020240   % (C)   R B S C P C
+020240   %
+020240   % ROUTINE CALLED FROM UEADM (SPIT) TO SEND  COMPLETION CODE.
+020240   % X-REG = INPUT DATAFIELD
+020240   SUBR RBSCPC
+020240   INTEGER POINTER RETAD    % ALWAYS SAME RETURN ADDRESS
+020241   RBSCPC: A:=L+1=:"RETAD"
+020243           X=:L; "NRPIT+ADPIT+ALEVB+ERNG2"; *IOF
+020246           A=:CURPROG.ACTPRI; *TRR PCR; ION
+020252           L=:X; CALL BSCPC
+020254           "NSPIT+ADPIT+ALEVB+ERNG2"; *IOF
+020256           X=:L; A=:CURPROG.ACTPRI; *TRR PCR; ION
+020263           L=:X; GO RETAD
+020265   RBUS
+020271
+020271
+020271   *"-BADAD
+"020271
+020271   %
+020271
+020271   % ===========================================================================
+020271   % 15.16      F I L U S
+020271   % INTERFACE ROUTINE TO CALL PLANC SUBROUTINES ON FILE USER SEGMENT
+020271   % PARAMETER TRANSFER BY REFERENCE
+020271   %
+020271   % CALL SEQUENCE:
+020271   %      X:=<INDEX TO PLANC ROUTINE>; CALL FILUS; CALL ERROR
+020271   %      SKIP RETURN IF NO ERRORS DETECTED
+020271   % NOTE:
+020271   %      BEFORE CALLING FILUS, REFERENCES TO PARAMETERS MUST BE
+020271   %      PLACED ON THE FILE SYSTEM STACK FROM LOCATION CSTCK+24
+020271   %      CSTCK: FILE SYSTEM CURRENT STACK POINTER
+020271   %
+020271   SUBR FILUS
+020271
+020271          *SDATA
+020271
+020271   % NOTE:      THIS DISP VARIABLES ARE ALSO DEFINED IN THE ROUTINE
+020271   %            TOFENTRY IN RESIDENT (ON FILE SINB-X).
+020271   %            DO NOT CHANGE THIS DISP DEFINITIONS WITHOUT DOING
+020271   %            THE SAME MODIFICATIONS IN TOFENTRY
+020271   %
+020271
+020271   DISP 0
+020271          INTEGER XREG,TREG,AREG,DREG,LREG,BREG
+020271          INTEGER OLDSG,WPROG                           % SAVED ON FILE SYSTEM STACK
+020271          INTEGER RETUR,PREVB,STPTR,STMAX,LEXIT,ERRCO   % PLANC STACK FRAME
+020271   PSID
+020271          *DATA ERRCO
+020271
+020271   INTEGER POINTER TOFENTRY=?         % ENTRY POINT ON FUPIT
+020271
+020271   % FUNCTION CODES WITH BIT SET REQUIRES A BUFFER FROM SPOOL:
+020271   INTEGER ARRAY UFNCO:=(136500,116621,167)
+020274
+020274   FILUS: *FENTR
+020301          A:=X; A SHZ -4:=:X; A/\17 SHZ 3; *BSET ZRO
+020307          T:=UFNCO(X); *BSET ONE; ADD (BSKP ONE DT; EXR SA
+020313          GO NNEED                    % NO NEED FOR BUFFER
+020314          IF SPOOL=0 THEN             % NO BUFFERS FREE
+020316             CSTCK+20=:CSTCK          % TRY TO TAKE BUFFER FROM SEQ. OPENED FILE
+020321             CALL FOFT; GO NXBUF; CALL RBUF
+020324   NXBUF:    CSTCK-20=:CSTCK
+020327          FI
+020327   NNEED: 0=:LEXIT=:ERRCO             % MAKE PLANC STACK FRAME
+020331          "ESTCK"=:STMAX
+020333          CSTCK=:STPTR
+020335          % GET FILE USER DATA SEGMENT
+020335          IF XREG=URTLIOP THEN
+020341             A:=507; CALL XLOCK
+020343             "5RRUS"=:DRFSG
+020345          ELSE
+020346             CALL GETFUDSEG; GO FAR NSGSX
+020350          FI
+020350          A=:T; CALL M1MEXY; T=:OLDSG
+020353          % CHANGE PAGETABLE TO FILE USER PAGE TABLE:
+020353          RTREF.ACTPRI/\NCLEAR+NFUPIT=:X.ACTPRI; *TRR PCR
+020361          % CHECK FILE USER VERSION:
+020361          X:="PITST+1"; *BSET ZRO; LDA ,X; BSET ONE
+020365          IF A<0 GO FAR XNLO                        % TOO OLD VERSION
+020367          IF A/\177400<43000 GO FAR XNLO            % TOO OLD VERSION
+020373          IF DRFSG="5RRUS" THEN                     % RT PROGRAM
+020377             IF X:="RTRFA"=RTREF GO ASBACK          % ALREADY RUNNING
+020403             A:=1730; CALL XLOCK                    % RESERVE RTRFA SEMA
+020405             *IOF
+020406             CALL RTENTRY; *ION                     % START RTRFA IF PASSIVE
+020410             T:=RTREF                               % T-REG MUST BE COPIED CORRECTLY
+020411             X:=X.RTDLGADDR; CALL SVRBLK            % COPY REGISTER BLOCK
+020413             A:="NSTRT"; T:=0; *STATX               % SET P-REG.
+020416             AD:=RTREF.DACTSEG; T:=X.ACTPRI;
+020421             AD=:"RTRFA".DACTSEG; T=:X.ACTPRI
+020424             0=:X.RSEGM
+020425             MLEV; *MCL PIE
+020427             X.STATUS BZERO 5WAIT=:X.STATUS
+020432             RTREF.STATUS BONE 5WAIT=:X.STATUS
+020436             "STUPR"; *IRW MLEVB DP;
+020440             MLEV; *MST PID; MST PIE  % RESTARTED HERE AFTER RTRFA HAVE FINISHED
+020443             GO XRRT; A:=1730; CALL XUNLOCK; MIN LREG; GO OUT
+020450             *)FILL
+020506   XRRT:     A:=1730; CALL XUNLOCK; D=:A; GO ERRT
+020512   NSTRT:    T=:WPROG                               % NEW ENTRY OF RTRFA
+020513             X:=XREG; CALL TOFENTRY; GO EERRT
+020516             T:=0; X:=WPROG.RTDLGADDR
+020521             *LDATX; AAA 1; STATX                   % INCREMENT P-REG.
+020524             GO ENDXX
+020525   EERRT:    X:=WPROG.RTDLGADDR; T:=0; *STATX 40    % ERROR CODE IN D-REG.
+020531   ENDXX:    RTREF.ACTPRI/\NCLEAR+NFPIT=:X.ACTPRI; *TRR PCR; IOF
+020540             WPROG.STATUS BZERO 5WAIT=:X.STATUS     % RESTART WAITING PROCESS
+020544             X:=RTREF; 0=:X.ACT1SEG; 5=:X.ACT2SEG
+020550             X.STATUS BONE 5WAIT =:X.STATUS
+020553             "STUPR"; *IRW MLEVB DP;
+020555             MLEV; *MST PID; MST PIE; ION
+020561             *JMP I (SRRT4                          % BACK TO FILE SYSTEM
+020562          FI
+020562   ASBAC: X:=XREG
+020563          CALL TOFENTRY; GO ERRT                    % X MUST BE SET
+020565          MIN LREG; GO OUT                          % SKIP RETURN IF NO ERRORS
+020567   ERRT:  IF A=-1 THEN
+020572   XNLO:     A:=ER161                               % FILE USER NOT CORRECTLY LOADED
+020573          FI; A=:AREG
+020574   OUT:   % GET BACK FILE SYSTEM SEGMENT(S):
+020574          T:=OLDSG; CALL M1MEXY
+020576          % CHANGE PAGE TABLE TO FILE SYSTEM PIT:
+020576          RTREF.ACTPRI/\NCLEAR+NFPIT=:X.ACTPRI; *TRR PCR
+020604          IF XREG=URTLIOP THEN A:=507; CALL XUNLOCK; FI
+020612   OUT2:  *FLEAV
+020614   NSGSX: A=:AREG; GO OUT2
+020616   INTEGER POINTER TOFENTRY:=PITST
+020617   RBUS
+020632
+020632   %===============================================================================
+020632   %          G E T F U D S E G
+020632   %          GET FILE USER DATA SEGMENT
+020632   %
+020632   %  RETURN:         ERROR: NO SEGMENTS AVAILABLE
+020632   %  SKIP RETURN:    SEGMENT NUMBER STORED IN FUDSG
+020632   %
+020632   SUBR GETFUDSEG
+020632   INTEGER ARRAY POINTER RFRES:=RFSTB      % RFA DATA SEGMENT RESERVE TABLE
+020633   INTEGER POINTER NMSEGS:=NRFSG           % NUMBER OF RFA DATA SEGMENTS
+020634   %
+020634   GETFUDSEG:
+020634          IF BACKGR=0 OR RTREF.ACT2SEG=5ERRSEG THEN
+020643             % RT PROGRAM OR RTOPEN, RTCONNECT, RTCLOSE,LIST-RTOPEN OR RTRES-O-F-E
+020643             A:="5RRUS"         % RT PROGRAM
+020644          ELSE
+020645             IF XDRFSG=0 THEN
+020647                *IOF                                                            %%%%%%%%%%%%%%%%%%%%%
+020650                FOR X:=0 TO NMSEGS-1 DO                                         %%                 %%
+020655                   IF RFRES(X)=0 GO SFNDX; X=:T:=A  % SEGMENT IS FREE TO USE    %%  MUST NOT CROSS %%
+020661                   IF X.WLINK=0 AND X.TLINK=0 AND X.STATUS NBIT 5RWAIT THEN     %%  A PAGE BORDER  %%
+020670                      T=:X; GO SFNDX   % PROGRAM IS PASSIVE, TAKE SEGMENT       %%                 %%
+020672                   FI; T=:X                                                     %%                 %%
+020673                OD; *ION                                                        %%                 %%
+020676                % ALL SEGMENTS ARE RESERVED                                     %%                 %%
+020676                A:=ER188; EXIT                                                  %%                 %%
+020700   SFNDX:       RTREF=:RFRES(X); 0=:INSFG; A:="DSSNM"+X; *ION                   %%%%%%%%%%%%%%%%%%%%%
+020706                A=:XDRFSG
+020707             FI
+020707          FI    % A-REG: RFA DATA SEGMENT NUMBER
+020707          A=:DRFSG; EXITA
+020711   RBUS
+020720
+020720   %===========================================================================
+020720   %            S V R B L K
+020720   %
+020720   % SUBROUTINE TO SAVE THE REGISTER BLOCK
+020720   %
+020720   % ENTRY:     X=ADDRESS WHERE THE REGISTER BLOCK WILL BE SAVED
+020720   %
+020720   SUBR SVRBLK
+020720   SVRBLK: *PIOF; SRB 10; PION
+020723           EXIT
+020724   RBUS
+020724
+020724   *"-8RFAC
+"020724
+020724   %===========================================================================
+020724   %            C H L A M
+020724   %      CHECK IF A LOGICAL PAGE INTERVAL IS WITHIN A LAMU
+020724   %      RETURNS WITH INTERRUPT ON
+020724   %      ENTRY:    T = FIRST LOGICAL PAGE
+020724   %                D = LAST LOGICAL PAGE
+020724   %                A = RT DESCR
+020724   %      EXIT:     NOT WITHIN A CONNECTED LAMU
+020724   %      EXIT+1:   OK.   A = PHYSICAL START PAGE OF BUFFER WITHIN LAMU
+020724
+020724   SUBR CHLAM
+020724
+020724   INTEGER FPAGE, LPAGE         % FIRST & LAST LOGICAL INTERVAL
+020726   INTEGER CACLE                % CURRENT ACTIVE LAMU ELEMENT
+020727   INTEGER SAVX
+020730   INTEGER LC                   % LOOP COUNTER
+020731
+020731   CHLAM:
+020731          *IOF
+020732          X=:SAVX; T=:FPAGE:=D=:LPAGE:=5RTSIZE; A-RTSTART=:D:=0; *RDIV ST
+020743          A*GNLPRT*ALMSZ+LAMACT=:CACLE; 0=:LC
+020750          FOR LC TO GNLPRT-1 DO
+020755                A*ALMSZ+CACLE=:X; T:=LAMBANK; *LDDTX
+020762                IF A >< 0 THEN                 % A= LAM ID, D= LOG PAG
+020763                   IF A > 0 THEN
+020765                     A*LDTSZ+LAMDT
+020767                   ELSE
+020770                     A-*SDTSZ+SYLDT
+020773                   FI A=:X; *LDATX LMNP
+020775                   A+D-1
+020777                   IF T:=LPAGE <<= A AND FPAGE >>= D THEN
+021005                      A-D=:D; T:=LAMBANK; *LDATX LMPP
+021011                      A+D; L+1; GO CHLRE
+021014                   FI
+021014                FI
+021014          OD
+021020   CHLRE: X:=LPAGE=:D:=SAVX; *ION
+021024          EXIT
+021025   RBUS
+021036
+021036   %==============================================================================
+021036   %            C O L A M       C L L A M
+021036   %      COPY AND CLEAR LAMU
+021036   %      ENTRY COLAM:    A = SOURCE RT PROG
+021036   %                      X = DESTINATION RT PROG
+021036   %      CLLAM:          A = RT PROGRAM
+021036
+021036   SUBR COLAM, CLLAM
+021036   INTEGER LREG,SAVA
+021040   COLAM:
+021040          A-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+021045          A*GNLPRT*ALMSZ+LAMACT; A:=:X; A-RTSTART=:D:=0; *RDIV ST
+021055          A*GNLPRT*ALMSZ+LAMACT=:T; A:=GNLPRT:=:L=:LREG; L+L
+021065          X=:D:=LAMBANK=:A; *MOVPP
+021071          LREG=:L
+021073          EXIT
+021074   %
+021074   % MUST BE CALLED WITH MLEV DISABLED
+021074   %
+021074   CLLAM:
+021074          A=:D;       *IOF
+021076          A:="1CLAM"; *IRW SLEVB DP
+021100          A:=SLEV   ; *MST PID; ION
+021103          A:=D-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+021111          A*GNLPRT*ALMSZ+LAMACT=:X; GNLPRT*ALMSZ+X-1=:D:=0; T:=LAMBANK
+021124          DO WHILE X <<= D
+021126                *STATX
+021127                 X+1
+021130          OD
+021131          EXIT
+021132   RBUS
+021140   SUBR LAMDISCONNECT
+021140   %=================================================================
+021140   % DISCONNECT ALL LAMUS FROM THE CALLING PROGRAM
+021140   % CALLED FROM ESCAPE HANDLING ,MON 0  AND BATCH I/O
+021140   %
+021140   *"
+"021140   LAMDISCONNECT:
+021140   *"8ADP
+"021140          IF MAILCON\/RUNLAMU><0 THEN         % RESET CONNECTED LAMUS FOR MON ADP.
+021143              T:=14; *MON 2ADP
+021145          FI
+021145   *"
+"021145          A:="LAMD9"; *MON 2LAMU; MON 2ERMS
+021150   EXIT
+021151   RBUS
+021154   SUBR LAMINHIBIT,LAMENABLE,LAMEENABL
+021154   %===================================================================
+021154   % SUBROUTINE TO SET/RESET LAMU INHIBIT FLAG
+021154   % A= RTPROG
+021154
+021154   LAMINHIBIT:X:=1;GO FELLS
+021156   LAMEENABL: X:=0;K:="0";GO FELL
+021161   LAMENABLE: X:=0
+021162   FELLS:K:="1"
+021163   FELL:
+021163     A-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+021170     A+LAMIH:=:X;     T:=LAMBANK; *STATX     % LAMU INHIBITED FOR THIS PROGRAM
+021174     IF K THEN
+021176       "STUPR"; *IOF; IRW MLEVB DP
+021201       MLEV; *MST PID; MST PIE; ION
+021205     FI
+021205     EXIT
+021206   RBUS
+021212   *"8UDMA+8VICO
+"021212   SUBR CXCFR
+021212   % =========================================================================
+021212   % SUBROUTINE TO CALL XCSGM ON FPIT FOR RT-PROG
+021212   % OFLCK MUST BE LOCKED BEFORE CALLING
+021212   % =========================================================================
+021212   INTEGER SAVA,SAVX,CCPCR
+021215   INTEGER POINTER LREG
+021216   SYMBOL NNPCR=ADPIT+NFPIT+ALEVB+ERNG2
+021216   CXCFR: A=:SAVA:=L=:"LREG";X=:SAVX
+021222          CURPROG.ACTPRI=:CCPCR;
+021225          A:=NNPCR;          *IOF
+021227          A=:CURPROG.ACTPRI; *TRR PCR; ION  % NPIT= FPIT, APIT=DPIT
+021233          X:=SAVX; A:=SAVA; CALL XCSGM; GO L1; MIN "LREG"; 0/\0
+021241   L1:    A=:SAVA; X=:SAVX; A:=CCPCR; *IOF
+021245          A=:CURPROG.ACTPRI; *TRR PCR; ION
+021251          X:=SAVX; A:=SAVA; GO LREG
+021254   RBUS
+021257   *"8NSDB
+"021257   % =========================================================================
+021257   %  C A B L O O K
+021257   %  ROUTINE TO CALL ABLOOK ON SPIT
+021257   %  CALLED FROM DEBUGGER MONITOR CALL ONLY
+021257   %
+021257   % LOCAL VARIABLES IN THIS ROUTINE ARE PROTECTED BY
+021257   % RESERVATION OF DEBUGGER'S DATAFIELD
+021257   % ENTRY: B= BFIELD
+021257   %        X= REENTRANT TABLE
+021257   %        ACT1SEG= COMSEG
+021257   %        ACT2SEG= SYST.SEG
+021257   % EXIT:  B= BFIELD
+021257   %        A= ABLOOK FLAG
+021257   %        T= TABLE ELEMENT ADRESS IF MATCH FOUND
+021257
+021257   SUBR CABLOOK
+021257   INTEGER DBOPCR
+021260   INTEGER POINTER DBLREG,PABLOOK:=ABLOOK
+021262   SYMBOL NNPCR=ADPIT+NSPIT+ALEVB+ERNG2
+021262   CABLOOK:A:=L=:"DBLREG"
+021264           X=:D            % SAVE PARAMETER TO ABLOOK
+021265           A:=CURPROG.ACTPRI=:DBOPCR
+021270           A:=NNPCR
+021271           *IOF
+021272           A=:CURPROG.ACTPRI
+021274           *TRR PCR
+021275           *ION            % NPT=SPIT ; APT=DPIT
+021276           D=:X            % UNSAVE PARAMETER
+021277           CALL PABLOOK    % RETURN PARAMETERS: A AND T
+021300           IF A=0 THEN     % MATCH FOUND
+021301               *1BANK
+021302               T:=T.S2=:D  % START ADDRESS IN D
+021305               T:=X.S1     % SEGMENT NUMBER IN T
+021306               *2BANK
+021307           FI
+021307           A=:L
+021310           A:=DBOPCR
+021311           *IOF
+021312           A=: CURPROG.ACTPRI
+021314           *TRR PCR
+021315           A:=L
+021316           GO DBLREG
+021317   RBUS
+021321   *"
+"021321   *"8DLP1+8DLP2+8DVE1+8DVE2
+"021321   %==============================================================================
+021321   %      ( C )     D M L P C
+021321   %
+021321   % CLEAR-DEVICE  SUBROUTINE FOR LINE-PRINTER AND VERSATEC
+021321   %
+021321   SUBR DMLPC
+021321   DMLPC: *IOF
+021322          T:=HDEV+"DCONT"; 20; *EXR ST
+021326          0=:CXBHOLD=:CXHENTE=:XCBHOLD=:XCHENTE
+021332          IF RTRES><0 THEN L=:D; CALL XRTACT; L:=D; FI
+021337          *ION; EXIT
+021341   RBUS
+021342
+021342   *"8NLP1+8NLP2+8NLP3+8NLP4
+"021342   %=============================================================================
+021342   %       D M C L P R
+021342   %
+021342   % CLEAR-DEVICE SUBROUTINE FOR NEW DMA LINE PRINTER
+021342   %
+021342   SUBR DMCLPR
+021342   DMCLPR: *IOF
+021343           T:=HDEV+5; A:=20; *IOXT                     % CLEAR DEVICE
+021347           IF RTRES><0 THEN L=:D; CALL RTACT; D=:L FI  % RESTART WAITING PROGR
+021354           *ION; EXIT
+021356   RBUS
+021357   *"
+"021357
+021357   *"8XMSG
+"021357
+021357
+021357   %**********************************************************************
+021357   %
+021357   %      X M S G  -  R E S I D E N T    P A R T
+021357   %
+021357   %      LINKAGE BETWEEN THE RESIDENT AND KERNEL(XPIT) CODE
+021357   %      IS VIA SYMBOL-2-LIST.
+021357   %
+021357   %*************************************************************************
+021357
+021357   *XXRPT=177777 % Set flag indicating that XMSG has been generated (8XMSG)
+021357
+021357   %============================================================================
+021357   % 35.38      X R T E N
+021357   %
+021357   %      X R T E N    -   R E S T A R T    R T     F R O M    R T  W A I T
+021357   %
+021357   %============================================================================
+021357   SUBR XRTEN,XXMENT
+021357   % THIS ROUTINE IS CALLED ON LEVEL 5 TO DO AN RTENTRY ON RT-PROG IN A-REG
+021357   INTEGER HOME
+021360   INTEGER SAVA
+021361
+021361   XRTEN: *2BANK
+021362          *IOF
+021363          T:=L=:HOME; X:=0                          % A=RT-DESC ADDRESS
+021366          DO WHILE 0><XRTDS(X); IF A=T GO OUT; X+1; OD % FIND END; CHECK NOT THERE
+021375          A=:XRTDS(X); X+1; 0=:XRTDS(X)               % INSERT IN TABLE
+021400          IF X=1 THEN X:="XDFLD":=:B; CALL XRTACT; X:=:B; FI % PUT IN MONITOR QUEUE
+021407   OUT:   *1BANK
+021410          T:=HOME; *ION
+021412          T=:P                                               % EXIT
+021413
+021413   % MFUNC ROUTINE EXECUTED ON MONITOR LEVEL
+021413   XXMENT: X:=0; T:=0; *IOF                                  % LOCK OUT LEVEL 5
+021416          DO WHILE XRTDS(X)><0; X+1; A=:T; OD                % FIND LAST ELEMENT
+021423          IF T><0                                            % WAS THERE ANY
+021423          THEN X-1; 0=:XRTDS(X); *ION                        % CLEAR HIS ENTRY
+021430               A=:SAVA; T=:X
+021432               IF X.STATUS BIT 5WAIT AND A BIT 5XMSY THEN    % SET IN I/O WAIT BY XMSG
+021437                  A BZERO 5WAIT BZERO 5XMSY=:X.STATUS        % RESET STATUS
+021442                  A:=SAVA
+021443               ELSE
+021444                  A:=SAVA; CALL RTENTRY                      % START HIM,
+021446               FI                                            % AND TRY NEXT ONE
+021446               GO XXMENT
+021447          FI; *ION
+021450          GO STUPR
+021451   RBUS
+021457
+021457   *"8XMSG+8CXHD+8C1X2+8C2X2+8C3X2+8C4X2
+"021457
+021457
+021457   %
+021457   %==============================================================================
+021457   %
+021457   % 35.39   D A T A    C O P Y I N G:   X M S G / P I T 3,  H D L C,  X 2 1
+021457   %
+021457   %==============================================================================
+021457   %
+021457   SUBR Z2PHY,Z2USR
+021457
+021457   % Routines to transfer data between a user V.S. and physical memory. They
+021457   % assume that everything has been set up so that only the 0 bit in the status
+021457   % register needs to be turned on to allow access via the APT to the user data
+021457   % area.
+021457
+021457   % On entry: D contains the byte count and B points to the parameter block:
+021457   DISP 0
+021457         INTEGER ZXUBF          % Buffer address in user's logical space
+021457         INTEGER ZXSBK,ZXSBF    % Physical buffer address (Bank, Displacement)
+021457         DOUBLE ZXSAD=ZXSBK
+021457         INTEGER POINTER ZXHOM  % Scratch location used to save L-register
+021457   PSID
+021457   *APTON=BSET ONE; APTOF=BSET ZRO  % Enable/disable alternative page table
+021457
+021457   Z2PHY: D SHZ -1                                  % Convert to word count
+021460          IF M                                      % Odd byte count?
+021460          THEN X:=ZXUBF+D; *APTON; LDA 0,X; APTOF   % Get via APT
+021467               A/\177400                            % Maskout r.h. byte
+021470          FI; T:=ZXSBK; X:=ZXSBF; A:=:L=:"ZXHOM"    % Get physical addr
+021474          IF M                            % Odd count?
+021474          THEN X+D; *LDATX 0                        % Get last word
+021500               A/\377\/L; *STATX 0                  % Mask in lh byte and store
+021503               X-D
+021504          FI; ZXUBF:=:D; *APTON                     % TX=Destn addr; D=Useraddr
+021507          X:=:T                                     % XT=Destn address
+021510          DO A=:L:=4000:=:L; WHILE A>0              % A=No of words left,L=4000
+021515                *SKP IF DA GRE SL; COPY SA DL       % Skip if more than 4000?
+021517                A-L; * MOVAP;                       % A=No of words left
+021521          OD;
+021522          GO OUT
+021523
+021523   Z2USR: D SHZ -1;                                 % Convert byte count to words
+021524          IF M                                      % Odd byte count?
+021524          THEN X:=ZXSBF+D; T:=ZXSBK; *LDATX 0       % Get last word in physbuff
+021532               A SHZ -10; D SHZ 1=:X; T:=ZXUBF;     % Mask & get user buffer addr
+021536               *APTON; SBYT; APTOF                  % Enable APT & store
+021541               GO Z2USR                             % Try again (even byte count)
+021542          FI;
+021542          D=:X; T:=L=:"ZXHOM":=ZXUBF; ZXSAD; *APTON % AD=Physical, X=count, T=user
+021550          DO X=:L:=4000:=:L; WHILE X>0              % X=No of words left,L=4000
+021555                *SKP IF DX GRE SL; COPY SX DL       % Skip if more than 4000?
+021557                X-L; * MOVPA;                       % X=No of words left
+021561          OD;
+021562   OUT:   * APTOF                                   % Switch off access to APT
+021563          GO ZXHOM
+021564   *)KILL APTON APTOF
+021564   RBUS
+021570
+021570   SUBR ZDALTON
+021570   INTEGER XREG,LREG; REAL TADREG
+021575   % OLDPAGE IN D-REG.
+021575   ZDALTON:
+021575          TAD=:TADREG; X=:XREG
+021577          T:=3600/\D
+021601          CURPROG.ACTPRI/\ACLEAR\/T
+021605   OUT:   A=:X.ACTPRI; *TRR PCR
+021607          TADREG; X:=XREG
+021611          EXIT
+021612   RBUS
+021615
+021615   %============================================================================
+021615   %
+021615   % 35.40  X M S G / H D L C    I N T E R F A C E  : S T A R T    D R I V E R
+021615   %
+021615   %============================================================================
+021615   SUBR ZXS12,ZXS13
+021615   INTEGER POINTER HOME
+021616   ZXS12: A:=L=:"HOME"; *IOF                        % X->DCB, B->HDLC DATAFIELD
+021621          CALL ICHAIN; CALL ACT12; GO UT            % CHAIN TO HDLC AND KICK HIM
+021624
+021624   ZXS13: A:=L=:"HOME"; *IOF                        % X->DCB, B->HDLC DATAFIELD
+021627          CALL ICHAIN; CALL ACT13;                  % CHAIN TO HDLC AND KICK HIM
+021631
+021631   UT:    *ION;
+021632          GO HOME
+021633   RBUS
+021636
+021636   *"-8XMSG
+"021636   *"8CXHD+8C1X2+8C2X2+8C3X2+8C4X2
+"021636   %===============================================================================
+021636   %      A C T 1 2      A C T 1 3
+021636   %      ROUTINES FOR ACTIVATION OF DRIVER PART
+021636   %
+021636   SUBR ACT12,ACT13
+021636   ACT12: IF WAKEF = 1 THEN EXIT FI
+021643          T:="STDRIV"; D:=L; CALL STL12; D=:P                 %*80B*
+021647   %
+021647   %
+021647   ACT13: IF WAKEF = 1 THEN EXIT FI
+021654          T:="STDRIV"; D:=L; CALL STL13; D=:P                 %*80B*
+021660   RBUS
+021662
+021662
+021662
+021662   %      START LEVEL 12/13 AT ADDRESS IN T-REG
+021662   %      B-REG FROM CALLING LEVEL IS COPIED
+021662   %      RETURN TO CALLER WITH IOF
+021662
+021662   SUBR STL12                                       %*80B*
+021662   STL12: "SLV12"; *IOF; IRW LV12B DP               %*80B*
+021665          A:=B; *IRW LV12B DB                       %*80B*
+021667          A:=T; *IRW LV12B DT                       %*80B*
+021671          LV12; *MST PID; ION; IOF; EXIT            %*80E*
+021676   RBUS                                             %*80B*
+021700   SUBR STL13                                       %*80B*
+021700   STL13: "SLV13"; *IOF; IRW LV13B DP               %*80B*
+021703          A:=B; *IRW LV13B DB                       %*80B*
+021705          A:=T; *IRW LV13B DT                       %*80B*
+021707          LV13; *MST PID; ION; IOF; EXIT            %*80B*
+021714   RBUS                                             %*80B*
+021716
+021716
+021716
+021716
+021716   %=======================================================================
+021716   % 39.14     I C H A I N    O C H A I N
+021716   %      HDLC - CHAINING ROUTINES
+021716   %
+021716   %
+021716   %PURPOSE: ENTER OR REMOVE ENTRIES IN THE DRIVER QUEUE
+021716   %
+021716   %METHOD:     THE QUEUES ARE ARRANGED AS FIFOS.
+021716   %            THE LINKING IS ONE WAY ONLY.
+021716   %            0 IN THE LINKWORD IS USED T MARK END OF QUEUE.
+021716   %            THE HEAD OF THE QUEUES IS IN THE APPROPRIATE DATAFIELD.
+021716   %            IQUEU FOR INPUT, AND OQUEU FOR OUTPUT.
+021716
+021716   %            CHANGED FOR I VERSION:
+021716   %            THE QUEUES MAY NOW APPEAR OUTSIDE BANK 0
+021716   %            THE "MASTB" LOCATION IN DATAFIELD HOLDS THE BANK NUMBER
+021716
+021716   %ICHAIN: SET MESSAGE IN INPUT QUEUE (TO DRIVER)
+021716   %OCHAIN: SET MESSAGE IN OUTPUT QUEUE (FROM DRIVER)
+021716   %
+021716   %ENTRY:  B-REG   DATAFIELDPOINTER
+021716   %        X-REG   MESSAGEPOINTER (ICHAIN ONLY)
+021716   %
+021716   %EXIT:   B-REG   DATAFIELDPOINTER
+021716   %        X-REG   MESSAGEPOINTER (OCHAIN ONLY)
+021716   %
+021716   SUBR ICHAIN,OCHAIN
+021716   ICHAIN: IF IQUEU =0 THEN                                   % AM I ALONE ?
+021720             X=:IQUEU; T:=MASTB; * BCHAI@3 STATX              % YES, 0 IN NEXT POINTER
+021723             EXIT
+021724           FI
+021724           GO ICOC                                            % NO, LINK IN AT END OF LIST
+021725   OCHAIN: T:=MASTB; * BBID@3 LDATX
+021727           IF A < 0 THEN                                      % DOES DCB BELONG TO XMSG
+021730              * XCHAI@3 LDATX                                 % YES
+021731              IF A >< 0 THEN
+021732                 * ION; COPY SA DP                            % GOTO ROUTINE SPECIFIED IN DCB
+021734              FI
+021734              EXIT                                            % PART OF CLEARING SEQUENCE EXECUTED
+021735           FI
+021735           IF ISTATE >< 0  THEN L=:D; CALL RTACT; D=:L; FI
+021742           IF OQUEU =0 THEN                                   % AM I ALONE?
+021744             X=:OQUEU; T:=MASTB; * BCHAI@3 STATX              % YES, 0 IN LINK WORD
+021747             EXIT
+021750           FI
+021750   ICOC: X=:D:=A; T:=MASTB
+021753      DO WHILE A >< 0
+021754          A=:X; * BCHAI@3 LDATX
+021756      OD
+021757          A:=D; * BCHAI@3 STATX                     % LINK IN AT END OF LIST
+021761          A=:X:=0; * BCHAI@3 STATX                  % 0 AT END OF LIST
+021764          EXIT
+021765   RBUS
+021766
+021766   %=======================================================================
+021766   % 39.15     D I C H A I N    D O C H A I N
+021766   %
+021766   %DICHAIN: REMOVE OLDEST ENTRY FROM INPUT QUEUE (TO DRIVER)
+021766   %DOCHAIN: REMOVE OLDEST ENTRY FROM OUTPUT QUEUE (FROM DRIVER)
+021766   %TSTCH:   ANY MESSAGE IN DRIVER QUEUE.
+021766   %
+021766   %ENTRY:  B-REG  DATAFIELDPOINTER
+021766   %
+021766   %EXIT:   B-REG  DATAFIELDPOINTER
+021766   %        X-REG  MESSAGEPOINTER
+021766   %
+021766   %        SKIP RETURN - MESSAGE FOUND
+021766   %        NO SKIP     - EMTY QUEUE
+021766   %
+021766   SUBR DICHAIN,DOCHAIN,TSTCH
+021766   TSTCH:   IF IQUEU><0 THEN EXITA FI EXIT
+021772   DICHAIN: IF IQUEU =0 THEN 0=:WAKEF; EXIT FI
+021776            X:=A; T:=MASTB; * BCHAI@3 LDATX
+022001            A =:IQUEU; 1=:WAKEF; EXITA;
+022005   DOCHAIN: IF OQUEU =0 THEN
+022007                IF DDD4 = 0 THEN -1=:ISTATE FI
+022013                EXIT
+022014            FI
+022014            X:=A; T:=MASTB; * BCHAI@3 LDATX
+022017            A=:OQUEU; 0=:ISTATE; EXITA;
+022022   RBUS
+022022   *"
+"022022   %=========================================================================
+022022   %      I N B X 2 1
+022022   %
+022022   % SUBROTINE TO SET UP THE PHYSICAL ADDRESS OF THE "X21-BUFFERS" INTO
+022022   % THE "X21" DATAFIELDS
+022022   %
+022022   % CALLED FROM OLDSTART
+022022   %
+022022   SUBR INBX21
+022022
+022022   INTEGER ARRAY ADRX21(0)
+022022   *"8C1X2
+"022022   *      X21F1;X2S01;X2E01
+022025   *"8C2X2
+"022025   *      X21F2;X2S02;X2E02
+022030   *"8C3X2
+"022030   INTEGER ARRAY EAX21(0)
+022030   *"8C1X2+8C2X2+8C3X2+8C4X2+8C5X2+8C6X2
+"022030   INTEGER CNDX,CADR,16BADR; DOUBLE DCAD=CADR
+022033   DISP 0; TRIPLE FS0; PSID
+022033   *"
+"022033   INBX21:
+022033   *"8C1X2+8C2X2+8C3X2+8C4X2+8C5X2+8C6X2
+"022033          X:="ADRX21"=:CNDX
+022035          DO WHILE CNDX<<"EAX21"
+022041             MPTPHPAGE=:D
+022043             A:=0; AD SHZ 12=:DCAD; *1BANK
+022047             TAD:=CNDX.FS0; *2BANK
+022052             X:=T; A:=:D; A-D-1 SH 1=:X.MAX
+022060             A:=D-"PITST"+16BADR=:X.BUFST
+022064             CADR=:X.MASTB; CNDX+3=:CNDX
+022071          OD
+022072   *"
+"022072          EXIT
+022073   RBUS
+022077
+022077
+022077   *"8MT1+8MT2+8MT3+8MT4
+"022077   %==============================================================================
+022077   %     ( C )       M T C L D
+022077   %
+022077   % ROUTINE TO PERFORM CLEAR-DEVICE ON MAGTAPE, CALLED
+022077   % FROM THE COMMAND @CLEAR-DEVICE
+022077   % EXECUTED ON ALEVL
+022077   %
+022077   SUBR MTCLD
+022077   INTEGER CCPCR
+022100   MTCLD: *IOF
+022101          HDEV+"164000+5"=:T; 20=:HSTAT; *EXR ST
+022107   *"8MT1+8MT2+8MT3+8MT4 8DTMT
+"022107          IF RTRES><0 THEN L=:D; CALL XRTACT; L:=D FI
+022114          *ION; EXIT
+022116   RBUS
+022120
+022120   *"8DMVC
+"022120
+022120
+022120   %==============================================================================
+022120   %      ( C )   V D M A C
+022120   %
+022120   %
+022120   % @CLEAR-DEVICE  ROUTINE FOR VERSATEC (DMA)
+022120   %
+022120
+022120   SUBR VDMAC
+022120
+022120   VDMAC: *IOF
+022121          HDEV+"164000+5"=:T; 20=:HSTAT; *EXR ST
+022127          IF RTRES><0 THEN L=:D; CALL RTACT; L:=D; FI
+022134          *ION; EXIT
+022136   RBUS
+022140
+022140
+022140   *"8CRD+8CRD2
+"022140
+022140
+022140   @DEV 1

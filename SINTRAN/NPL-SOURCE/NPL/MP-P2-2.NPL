@@ -1,0 +1,594 @@
+070520   @DEV (S-S-L)MP-P2-2:NPL
+070520   *"8LPPU
+"070520
+
+070520   %==============================================================================
+070520   % 33.10      L P P U T
+070520   %
+070520   @MAC
+
+)9SCLC
+070520  % LINE PRINTER COVERTING ROUTINES
+070520  PTABL=*
+070520  PTABL<PTABL 27
+070520  )ZERO
+070520  % INSERT INPUT AND OUTPUT VALUES HERE
+070520  %
+070520  160;30
+070522  44;135
+070524  135;134
+070526  43;133
+070530  100;134
+070532  0
+070533  PTABL 20/
+070540  % IOTRANS ROUTINE FOR LINE PRINTER
+070540  % THE CHARACTERS IN PTABL ARE CONVERTED
+070540  LPPUT, COPY  SX DD
+070541         LDX   (PTABL
+070542         BSET ZRO 70 DA
+070543         1BANK
+070544         LDT ,X
+070545         2BANK
+070546         SKP   DT UEQ 0
+070547         JMP   PCON1
+070550         SKP   DT UEQ SA
+070551         JMP   * 3
+070552         AAX   2
+070553         JMP   LPPUT 3
+070554         1BANK
+070555         LDA   1 ,X
+070556         2BANK
+070557  PCON1, SAT   0
+070560         SAX   -10
+070561         BSET  ZRO 70 DA
+070562         SHA   10
+070563         JAP   *+2
+070564         AAT   1
+070565         SHA   ROT 1
+070566         JNC   *-3
+070567         BSKP  ZRO 00 DT
+070570         BSET  ONE 70 DA
+070571         COPY  SD DX
+070572         JMP I (TRTPU
+070573  )FILL
+070575  )9RCLC
+)9SLPL
+070575   *"
+"070575
+070575   %==============================================================================
+070575   % 37.15      M P R I N T           M O C T U T
+070575
+070575   % MONITOR LEVEL SUBROUTINE TO PUT TEXT DIRECTLY INTO TERM.1-BUFFER
+070575   % ENTRY:     A=TEXT POINTER        A=NUMBER
+070575   SUBR MPRINT, MOCTUT
+070575   INTEGER TRTX,LREG,BREG,XREG
+070601
+070601   CSBUWINDOW:
+070601          AD:=DTDFPHPAGE; A:=:D/\1777+"WNDBF*2000":=:B  % B IS NOW BIG DF.
+070606          A:=142000; X:="WNDBF+WNDBF+174000"; T:=0; *STDTX
+070612          EXIT
+070613
+070613   MPRINT: *IOF
+070614          A=:TRTX:=L=:LREG:=B=:BREG:="DT01W"=:B; X=:XREG
+070624   @LIB OLD
+070624          CALL CSBUWINDOW
+070625          X:=0
+070626          DO
+070626              T:=TRTX; *LBYT
+070630          WHILE A><##'
+070633              CALL CXRBPUT; X+1
+070635          OD
+070636   @LIB OLD
+070636   OUT:   -1=:TMR; X:="WNDBF+WNDBF+174000"; T:=0; *STZTX
+070643          X:=LREG=:L:=BREG=:B:=XREG
+070650          *ION; EXIT
+070652
+070652   DOUBLE SVVAD
+070654   MOCTUT: *IOF
+070655          A=:TRTX:=L=:LREG:=B=:BREG:="DT01W"=:B; X=:XREG
+070665   @LIB OLD
+070665          CALL CSBUWINDOW
+070666          X:=0
+070667          IF TRTX >< 0 THEN
+070671              A=:D:=0; AD SHZ 1; K:="0"
+070675              FOR X:=-6 DO
+070676                  IF A >< 0 OR K THEN
+070701                      AD=:SVVAD
+070702                      A+##0; CALL CXRBPUT
+070704                      AD:=SVVAD
+070705                      K:="1"
+070706                  FI
+070706                  A:=0; AD SHZ 3
+070710              OD
+070711          ELSE
+070712              ##0; CALL CXRBPUT
+070714          FI
+070714   @LIB OLD
+070714          GO OUT
+070715   RBUS
+070723
+070723   *"8REA1+8REA2
+"070723   %==============================================================================
+070723   %     (M)    W P U N C H
+070723   %
+070723   % OUTPUT DRIVER FOR PAPER-TAPE-PUNCH ON LEVEL 10!
+070723   %
+070723   SUBR WPUNCH
+070723   WPUNCH:
+070723          0=:TMR                                               % RESET TIMER
+070724          T:=HDEV+DST; *IOXT                                   % READ STATUS
+070727          IF BIT 3 THEN                                        % READY FOR TRANSFER?
+070731             TAD:=FFMAX                                        % T=MAX, A=BHOLD, D=HENTE
+070732             IF A><0 THEN                                      % CHARACTERS IN BUFFER?
+070733                A-1; D=:X+1; IF D=T THEN D:="0" FI; AD=:DBHOLD % UPDATE BUFFER POINTERS
+070742                MIN CFREE; T:=BUFST; *1BANK; LBYT; 2BANK       % GET CHARACTER FROM BUFFER
+070747                T:=HDEV+DDW; *IOXT                             % WRITE CHARACTER
+070752                T+"DCONT-DDW"; "DACT+DPIN"; *IOXT              % ENABLE DEVICE FOR INTERRUPT
+070755                TTMR=:TMR                                      % START TIMER
+070757                IF ISTAT><0 THEN                               % IS USER WAITING?
+070761                   IF BHOLD<MINBHOLD THEN CALL RTACT FI        % MINBHOLD REACHED?
+070766                FI
+070766             FI
+070766          FI
+070766          CALL ID10; GO WPUNCH                                 % WAIT FOR INTERRUPT
+070770   RBUS
+070773   *"
+"070773
+
+070773   %==============================================================================
+070773   %                  C L O C K   I N T E R R U P T
+070773   %
+070773   % 37.8.2     E N T 1 3
+070773   %
+070773   % CLOCK INTERRUPT ENTRY, LEVEL 13
+070773   %     INTEGER HISTFLAG=?
+070773   SUBR ENT13
+070773          DO
+070773   *"8MPRF
+"070773                CALL MSAMP                % Mon Performance sampling
+070774   *"
+"070774                CALL ID13
+070775   ENT13:       "FREQU+60001"; *IOX DCONT RTCLD
+070777                ATIME; D+1; A:=A+C; AD=:ATIME
+071003                *TRA PVL
+071004                IF A/\170=ALEVB OR =BLEVB THEN
+071013                  A:=CURPROG-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+071021                  A*TSLSIZE+GTSLTAB=:X; T:=GLTMBANK; *CPUTI@3 LDDTX
+071026                  D+1; A:=A+C; *CPUTI@3 STDTX
+071031   *"8ACC
+"071031                  IF RTACCFLAG >< 0 THEN CALL NACCOUNT FI
+071034   *"
+"071034                FI
+071034   NEXT:        CALL RTACT
+071035   *"8HIST
+"071035                CALL SHISTI                    % MAY BE HISTOGRAM SAMPLING
+071036   *"
+"071036          OD
+071037   RBUS
+071055
+071055   INTEGER ARRAY PCCS=?
+071055
+071055
+
+071055   %==============================================================================
+071055   %      ( M )     I N T E R N A L     I N T E R R U P T S
+071055   %
+071055   %            E N T 1 4    R E T 1 4   E R R 1 4   E F J O B
+071055   %
+071055   % ENTRY FOR INTERNAL INTERRUPTS, LEVEL 14
+071055   %
+071055   *MGOTA=*
+071055   SUBR ENT14,RET14,ERR14,EFJOB,YWAIT
+071055
+071055   @ICR;
+071055   INTEGER ARRAY GOTAB:=(MFELL,M1,M2,MFELL,MFELL,MFELL,MFELL,MFELL,
+071065                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071075                   MFELL,M21,M22,M23,M24,MFELL,MFELL,MFELL,
+071105                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071115                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071125                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071135                   MFELL,MFELL,MFELL,M63,MFELL,MFELL,MFELL,MFELL,
+071145                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071155                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071165                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071175                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071205                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071215                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071225                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071235                   MFELL,MFELL,MFELL,MONERR,MFELL,MFELL,MFELL,MFELL,
+071245                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071255                   XMSGY,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071265                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071275                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071305                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071315                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071325                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071335                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071345                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071355                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071365                   M310,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071375                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071405                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+071415                   MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MONERR,MFELL,
+071425                   MFELL,MONERR,MONERR,MONERR,MONERR,MONERR,MONERR,MONERR,
+071435                   MONERR,MONERR,MONERR,MONERR,MONERR,MONERR,MONERR,MONERR,
+071445                   MONERR,MONERR,MONERR,M373,MFELL,MFELL,M376,M377);
+071455   @CR;
+071455
+071455   %DISP -200       % USING GLOBAL BASE INSTEAD.
+071455   %       INTEGER PERR,ACTLV,IBITNO,PESERR,PEAERR,SADINSTR
+071455   %       DOUBLE MMAP
+071455   %PSID
+071455
+071455   % SYMBOL 5FATAL    = 15     % STATUS BITS IN N-100 PES-REGISTER
+071455   % SYMBOL 5DMAFAULT = 16
+071455
+071455   DISP -1; INTEGER SN1; PSID
+071455
+071455   % ACTIVATE LEVEL 4 FOR MONITOR CALLS THAT WILL BE HANDLED
+071455   % ON LEVEL 4.
+071455   %
+071455   M1:    "INBT";   GO IOB14
+071457   M2:    "OUTBT";  GO IOB14
+071461   M21:   "M8INB";  GO IOB14
+071463   M22:   "M8OUTB"; GO IOB14
+071465   M23:   "B8INB";  GO IOB14
+071467   M24:   "B8OUT";  GO IOB14
+071471   M63:   "B4INW";  GO IOB14
+071473   M310:  "T8INP";  GO IOB14
+071475   M373:  "BFY4INST"; GO IOB14
+071477   M376:  "5INB";   GO IOB14
+071501   M377:  "5OUTB"
+071502   IOB14: *IRW BLEVB DP               % SET MONCALL ROUTINE ADDR ON BLEVL
+071503          A:=1; *IRW BLEVB            % SET BIT #0 IN STATUS REG. ON BLEVL.
+071505          BLEV; *MST PID
+071507          GO RET14
+071510   *)FILL
+071524
+071524   *"8SWLG
+"071524   %===================================
+071524   %      F P F C O U N T
+071524   %
+071524   FPFCOUNT:                                        % COUNT FAST PAGEFAULTS
+071524          IF CSWLG><0 THEN                          % SWAPPING-LOG STARTED?
+071526             *MIN I (TFPF2; SKP; MIN I (TFPF1; JMP *+1 % YES, COUNT PF.
+071532             IF A-RTREF=0 THEN                      % LOG FOR THIS PROGRAM?
+071534                *MIN I (CFPF2; SKP; MIN I (CFPF1; JMP *+1 % YES, COUNT PF
+071540             FI
+071540          FI; EXIT
+071541   *"
+"071541
+071541   %=============================
+071541   %       C L I M C H E C K
+071541   %
+071541   % LOCAL SUBROUTINE TO CHECK IF PNUMB (FAULTED PAGE), IS WITHIN A SEGMENT
+071541   %
+071541   % ENTRY:         X=SEGMENT ADDR
+071541   % EXIT:          PNUMB IS WITHIN SEGMENT
+071541   % EXITA:         PNUMB IS OUTSIDE SEGMENT (OR NO SEGMENT, I.E. X=0)
+071541   %
+071541   CLIMCHECK:
+071541          IF X=0 THEN EXITA FI                      % NO SEGMENT
+071544          T:=SEGTBANK; *LOGAD@3 LDDTX               % A:=LOGADR, D:=SEGLENGTH
+071546          IF A>PNUMB OR A+D<=T THEN EXITA FI        % OUTSIDE SEGMENT
+071555          EXIT                                      % PNUMB IS WITHIN SEGMENT
+071556   *)FILL
+071566
+071566   INTEGER SVT14
+071567
+071567   %================================
+071567   %      ( M )    I P A G E F A U L T
+071567   %
+071567   % PAGEFAULT
+071567   IPAGFAULT: PNUMB/\1777=:PNUMB                    % PNUMB=LOGICAL PAGE CAUSING PAGEFAULT
+071572          IF A=X:=WNDBF THEN                        % PF IN BUFFER WINDOW?
+071575             IF RTREF.BUFWINDOW =0 THEN CALL ERRFATAL FI % BUFFER WINDOW DEFINED?
+071601             A=:D:=142000                           % READ+WRITE+RING2
+071603             X:="WNDBF+WNDBF+174000"; T:=0; *STDTX  % YES SET PIT ENTRY
+071606   *"8SWLG
+"071606             CALL FPFCOUNT                          % COUNT PAGEFAULT
+071607   *"
+"071607             GO RET14                               % LEAVE LEVEL 14
+071610          FI
+071610          IF A=X:=WND41 THEN                        % PF IN TERMINAL WINDOW
+071613             IF RTREF.TRMWINDOW=0 THEN CALL ERRFATAL FI % TERMINAL WINDOW DEFINED?
+071617             A=:D:=142000                           % READ+WRITE+RING2
+071621             X:="WND41+WND41+174000"; T:=0; *STDTX  % YES, SET PIT ENTRY
+071624   *"8SWLG
+"071624             CALL FPFCOUNT                          % COUNT PAGEFAULT
+071625   *"
+"071625             GO RET14                               % LEAVE LEVEL 14
+071626          FI
+071626
+071626   *"8N500
+"071626          IF A=X:=WNDN5 THEN                       % PF IN ND500 WINDOW
+071631             IF RTREF.N5WINDOW=0 THEN CALL ERRFATAL FI % ND500 WINDOW DEFINED?
+071635             A=:D:=142000                          % READ+WRITE+RIN2
+071637             X:="WNDN5+WNDN5+174000"; T:=0; *STDTX % YES, SET PIT ENTRY
+071642   *"8SWLG 8N500
+"071642             CALL FPFCOUNT                          % COUNT PAGEFAULT
+071643   *"8N500
+"071643             GO RET14                               % LEAVE LEVAL 14
+071644          FI
+071644   *"
+"071644          IF ACTLV=X:=MLEVL THEN CALL ERRFATAL FI             % PF. ON MLEVL ONLY IN WINDOWS
+071651          IF X:=BACKGROUND=0 THEN
+071654             IF ACTLV=X:=BLEVL THEN CALL ERRFATAL FI          % ILLEGAL WITH PF ON LEVEL 4 CAUSED BY RT-PROGRAM
+071661             IF PNUMB>>=X:=ARTFPAGE AND A<<=X:=ARTLPAGE THEN  % PAGE FAULT IN RT-COMMON?
+071670                T=:SVT14
+071671                X:=SEGMC; CALL CLIMCHECK; GO PFINSEGMENT
+071674                X:=SEGMB; CALL CLIMCHECK; GO PFINSEGMENT
+071677                X:=SEGMA; CALL CLIMCHECK; GO PFINSEGMENT
+071702                X:=IRTCPIT; A:=PNUMB SH 1=:T
+071706                X+A; AD:=X.DS0; X:=174000+T; T:=0; *STDTX     % SET UP RT-COMMON IN PIT
+071714   *"8SWLG
+"071714                IF CSWLG><0 THEN                              % SWAP LOG STARTED?
+071716                   *MIN I (TPFR2; SKP; MIN I (TPFR1; JMP *+1  % YES, COUNT PF
+071722                   IF A=RTREF THEN                            % LOG FOR CURRENT PROGRAM?
+071725                      *MIN I (CPFR2; SKP; MIN I (CPFR1; JMP *+1 % YES, COUNT PF
+071731                   FI
+071731                FI
+071731   *"
+"071731                GO RET14                                      % LEAVE LEVEL 14
+071732             FI
+071732          FI; A:=BLEV; *MCL PID                               % DISABLE BLEVL
+071734          A:=T; GO ACTMON                                     % PF WILL BE HANDLED ON MONITOR LEVEL
+071736
+071736   %====================================================
+071736   %      ( M )   M F E L L   -   A C T M O N
+071736   %
+071736   % COMMON ENTRY FOR MONITOR CALLS THAT WILL BE HANDLED
+071736   % ON MONITOR LEVEL (AND APP.LEVEL)
+071736   MFELL: T=:A; *IRW MLEVB DX                                 % X-REG ON MONITOR LEVEL IS MON.CALL NUMBER
+071740          "CALLPROC"                                          % ENTRY POINT ON MONITOR LEVEL
+071741   ACTMON: *IRW MLEVB DP
+071742          MLEV; *MST PID; MST PIE
+071745          GO RET14
+071746
+071746   %=============================================
+071746   %      ( M )   P F I N S E G M E N T
+071746   %
+071746   % PAGEFAULT IS IN SEGMENT AND NOT IN RTCOMMON
+071746   PFINSEGMENT: A:=SVT14; GO ACTMON
+071750
+071750   %====================================
+071750   %      ( M )    A B O R
+071750   %
+071750   % ABORT CURRENT RUNNING PROGRAM
+071750   ABOR:  "PBRTEXT"; GO ACTMON
+071752   *)FILL
+072005
+072005   MONERR: T=:A; CALL 9ERR(#00); GO FAR ABOR        % ILLEGAL MONITOR CALL
+072011
+072011   %=========================================================================
+072011   %      ( M )    E N T 1 4   R E T 1 4
+072011
+072011   ENT14: "B14"=:B; GO BEG14              % INITIAL ENTRY POINT
+072014   RET14:
+072014   YWAIT: T:=1000=:D; *WAIT; COPY SA DA   % IF T-REG IS UNCHANGED AFTER INTERUPT THEN NOT MONCALL
+072020   BEG14: *TRA IIC                        % READ INTERNAL INNTERUPT CODE
+072021          IF T=D GO NOMONCALL             % MONITOR CALL?
+072023          *TRA PGS; TRA STS               % YES, CLEAR PGS IN CASE OF PF ON PREFETCH
+072025   MONCALL:
+072025   *"8MPRF
+"072025          CALL PML10                      % Mon Performance moncall sampling
+072026   *"
+"072026          X:=377; T/\X; T=:14MONNO        % T=MONITOR CALL NUMBER
+072031   *"8DIR
+"072031            IF X:=MCLGFLG><0 THEN                   % MONITOR CALL LOG STARTED?
+072033               IF X:=CMCLG=-1 OR X=RTREF THEN       % COUNT THIS MONITOR CALL
+072042                  A=:L:=14MONNO SH 1+TNMCALL=:X; T:=MCLGBANK
+072050                  *LDDTX; RINC DD; COPY SA ADC DA; STDTX
+072054                  A:=L
+072055               FI; T:=14MONNO
+072056            FI
+072056   *"
+"072056            *1BANK
+072057            X:=GOTAB(T); *2BANK; JMP ,X; )FILL             % MONITOR CALL NUMBER IN T
+072077
+072077   %==============================================================================
+072077   %      ( M )    N O M O N C A L L
+072077   %
+072077   % INTERNAL INTERRUPT MAY BE ANYTHING BUT MONITOR CALL
+072077   NOMONCALL:
+072077          A=:IBITNO; *TRA STS
+072101          *TRA PVL
+072102          A=:D; *EXR SA                             % D=P-REG ON PREVIOUS LEVEL
+072104          A=:PERR:=D SH 11 SHZ -14=:ACTLV           % ACTLV=PREVIOUS LEVEL
+072111          IF IBITNO>>12 THEN CALL ERRFATAL FI       % UNDEFINED INTERNAL INTERRUPT CODE
+072116   @ICR;
+072116          A GOSW IIC00,IIC01,IIC02,FAR IIC03,FAR IIC04,FAR IIC05,FAR IIC06,FAR IIC07,
+072127                 FAR IIC10,FAR IIC11,FAR IIC12
+072131   ;@CR;
+072132
+072132   IIC00: A:=16; T:=0; CALL 9ERR(#22)               % FALSE INTERRUPT
+072136          GO RET14
+072137
+072137   IIC01: CALL ERRFATAL                             % MONITOR CALLS
+072140                                                    % SHOULD BE HANDLED BEFORE THIS POINT
+072140
+072140   IIC02:                                           % PROTECT VIOLATION
+072140          IF ACTLV=ALEVL OR A=LEVL5 THEN
+072147             *TRA PGS
+072150             A=:T/\1777=:PVPAGE SH -6 =:PVPIT
+072155             IF ACTLV-1 = 0 THEN                    % SKIP IF LEVEL 5
+072160                IF T NBIT 17 THEN                     % IS IT FETCH FAULT?
+072162                  *IRR ALEVB DP; AAA -1; IRW ALEVB DP % NO, DECREMENT P-REG TO RESTART INSTRUCTION
+072165                FI
+072165             FI
+072165             IF T BIT 16 THEN                       % PERMIT VIOLATION?
+072167                IF PVPIT=UPITN OR =UPITA THEN       % YES, IN USER PAGE TABLES?
+072176                   IF SEGMC><0 THEN                 % YES, CAN IT BE WRITE IN REENTRANT SEGEMNT'S PAGE?
+072200                      PVPAGE SH 1+174000=:X; T:=0; *LDDTX % YES, GET PIT ENTRY FOR FAULTED PAGE.
+072206                      IF A NBIT 5WPM THEN           % NOT WPM IN PIT ENTRY.
+072210                         T:=SEGTBANK; X:=SEGMC; *SGSTA@3 LDATX
+072213                         IF A BIT 5WPM THEN         % WRITE PERMIT IN SEGMENT?
+072215                            A:=D SH 2=:PVPHYS       % MEM.MAP ADDR OF "FAULTED PAGE"
+072220                            *LOGAD@3 LDDTX          % YES, A=FIRST PAGE, D=SEGLENGTH
+072221                            T:=A
+072222                            IF PVPAGE>=T AND A<D+T THEN % WITHIN SEGMENT LIMITS?
+072230                               IF ACTLV-LEVL5 = 0 THEN  % LEVEL 5
+072233                                   CALL P2XMS
+072234                                   GO FAR TDTLEV
+072235                                   GO RET14
+072236                               FI
+072236                               A:="WREENT"              % YES, HANDLE IT ON MONITOR LEVEL
+072237                               GO FAR ACTMON
+072240                            FI
+072240                         FI
+072240                      FI
+072240                   FI
+072240                FI
+072240             FI;  CALL 9ERR(#31)                    % GIVE ERROR MESSAGE (PERMIT VIOLATION)
+072242             GO FAR ABOR                            % ABORT CURRENT RUNNING PROGRAM
+072243          FI; GO FAR TDTLEV
+072244   *)FILL
+072273
+072273   *IICPF=*
+072273   IIC03:                                           % PAGEFAULT
+072273          IF ACTLV=ALEVL THEN                       % PAGEFAULT ON APPL.LEVEL
+072277             *TRA PGS                               % GET LOGICAL PAGE AND "STATUS" BIT
+072300             IF A=:PNUMB NBIT 17 THEN               % SHOULD FAULTED INSTRUCTION BE RESTARTED?
+072303                *IRR ALEVB DP; AAA -1; IRW ALEVB DP % YES, DECREMENT P-REG
+072306             FI; T:="PPAGEFAULT"; GO FAR IPAGFAULT
+072310           FI
+072310          IF A=BLEVL THEN                           % PAGEFAULT ON LEVEL 4
+072313             *TRA PGS                               % GET LOGICAL PAGE AND "STATUS" BIT
+072314             IF A=:PNUMB NBIT 17 THEN               % SHOULD FAULTED INSTRUCTION BE RESTARTED?
+072317                *IRR BLEVB DP; AAA -1; IRW BLEVB DP % YES, DECREMENT P-REG
+072322             FI; T:="P2PAGE2FAULT"; GO FAR IPAGFAULT
+072324          FI
+072324          IF A=MLEVL THEN
+072327             *TRA PGS                                % PAGEFAULT ON MONITOR LEVEL
+072330             IF A=:PNUMB NBIT 17 THEN
+072333                *IRR MLEVB DP; AAA -1; IRW MLEVB DP
+072336             FI; GO FAR IPAGFAULT
+072337          FI
+072337          IF A=5 THEN CALL P2XMS; GO FAR TDTLEV; GO RET14 FI % PF IN XMSG
+072345          GO FAR TDTLEV                             % MAY BE PAGEFAULT ON ILLEGAL LEVEL
+072346
+072346   IIC04: IF ACTLV=ALEVL THEN                       % ILLEGAL INSTRUCTION
+072352             IBITNO; T:=PERR; CALL 9ERR(#24)        % GIVE ERROR MESSAGE
+072356             GO FAR ABOR                            % TERMINATE CURRENT RUNNING PROGRAM
+072357          FI; GO FAR TDTLEV                         % ILLEGAL INSTRUCTION ON OTHER LEVELS
+072360
+072360   IIC05: IF ACTLV=ALEVL THEN                       %
+072364             *IRR ALEVB 0; BSET ZRO SSZ; IRW ALEVB 0 % RESET Z INDICATOR ON ALEVL (Z IS IN STATUS REG)
+072367             CALL 9ERR(#30)                         % GIVE ERROR MESSAGE
+072371             GO FAR ABOR                            % TERMINATE CURRENT RUNNING PROGRAM
+072372          FI; GO FAR TDTLEV                         % MAY BE Z INDICATOR IS SET ON ILLEGAL LEVEL
+072373   *)FILL
+072404
+072404   IIC06: IF ACTLV=ALEVL THEN                       % PRIVILIGED INSTRUCTION
+072410             RTREF.ACTPRI/\74000 SHZ -4+"NMPIT+LV14B+ERNG2"% SET USERS NORMAL PIT AS ALT. PIT
+072415             X:=PERR; *TRR PCR
+072417             X.SN1=:D                               % D= THE ILL.INSTR.
+072421             "NMPIT+ADPIT+LV14B+ERNG2"; *TRR PCR    % RESET PCR
+072423             IF 177600/\D=161000 THEN T:=177/\D; GO FAR MONCALL FI % IF 161XXX THEN MONCALL
+072433             IBITNO; T:=PERR; CALL 9ERR(#24)        % GIVE ERROR MESSAGE
+072437             GO FAR ABOR                            % TERMINATE CURRENT RUNNING PROGRAM
+072440           FI; GO FAR TDTLEV                        % MAY BE ILL.INSTRUCTION ON ILLEGAL LEVEL
+072441
+072441   IIC07: T:=ACTLV; A:=PERR; CALL 9ERR(#37)         % IOX-EROR
+072445          GO RET14
+072446
+072446   IIC10: *TRA PES                                  % MEMORY ERROR
+072447          A=:PESERR
+072450          IF A NBIT 5FATAL THEN                     % CAN ERROR BE CORRECTED?
+072452             *TRA PEA                               % YES
+072453   NOFATAL:  A=:PEAERR; T:=PESERR
+072455             CALL 9ERR(#44); A:=0; *TRR ECCR
+072461          ELSE
+072462             *TRA PEA                               % NO
+072463   NOCORR:   A=:PEAERR; T:=PESERR; CALL 9ERR(#38)   % NOT CORRECTABLE ERROR
+072467             A:=PEAERR; T:=PESERR; CALL MFXMSG      % FATAL MEMORY ERROR IN XMSG?
+072472             IF PESERR BIT 5DMAFAULT THEN CALL ERRFATAL FI  % DMA-ERROR N-100
+072476             IF ACTLV=ALEVL GO FAR ABOR              % ABORT CURRENT ACTIVE PROGRAM WHEN MEM.ERROR ON APPL.LEVEL
+072502             IF ><0 GO FAR TDTLEV                    % IF MWM.ERROR ON LEVEL 0, CONTINUE
+072504          FI; GO RET14
+072505   *)FILL
+072521
+072521   IIC11:                                           % MEMORY OUT OF RANGE
+072521          *TRA PES
+072522          A=:PESERR=:T; *TRA PEA
+072525          A=:PEAERR; CALL 9ERR(#39)                 % GIVE ERROR MESSAGE
+072530          IF PESERR BIT 5DMAFAULT GO RET14          % DMA-ERROR
+072533          IF ACTLV=ALEVL GO FAR ABOR                % ABORT CURRENT PROGRAM
+072537          GO FAR TDTLEV                             % MAY BE MEMORY OUT OF RANGE ON ILLEGAL LEVEL
+072540
+072540   IIC12: GO PPWFAIL                                % POWER FAIL
+072541
+072541   %=======================
+072541   %      T D T L E V
+072541   %
+072541   % TEST FOR ERROR ON DIRECT TASK LEVEL (6 TO 9)
+072541   INTEGER CBSET(0); *BSET ONE DA
+072542   TDTLEV: IF ACTLV>=6 AND A<12 THEN                % ERROR ON DIRECT TASK LEVEL?
+072551              A SH 3\/CBSET=:T; A:=0                % YES
+072555              *EXR ST; MCL PID; MCL PIE             % DISABLE LEVEL
+072560              T:=IBITNO; ACTLV; CALL 9ERR(#04)      % GIVE ERROR MESSAGE
+072564              *TRA PGS
+072565              GO RET14
+072566           FI; CALL ERRFATAL                        % FATAL INTERNAL ERROR ON ILLEGAL LEVEL
+072567   *)FILL
+072575   %===================================================================
+072575   %      ( M )      E R R 1 4
+072575   ERR14: "B14"=:B; IBITNO; T:=PERR; CALL 9ERR(#40)
+072603          GO RET14
+072604
+072604   *"8BEX1
+"072604   %==============================
+072604   %      ( M )   E F J O B
+072604   %
+072604   %    ENTRY FROM BEX-DRIVER LEVEL 13
+072604   EFJOB: "B14" =: B                      % GET BASE-FIELD
+072606          PEAERR; T := PESERR             % GET PARAMETERS
+072610          IF T BIT 5FATAL GO FAR NOCORR   % TEST FOR FATAL ERROR
+072612          GO FAR NOFATAL
+072613
+072613   *"
+"072613   RBUS
+072620
+072620   *"8N500
+"072620   %=============================================================================
+072620   %      ( M )     C H F I X
+072620   %
+072620   % Subroutine to check if buffer in 500-proc is fixed contigously.
+072620   %
+072620   % Entry:   AD= N100 physical memory address
+072620   %          T = number of n100 words to transfer
+072620   %          X = calling process number
+072620   %
+072620   % Exit:    area not fixed
+072620   %
+072620   % Exit+1:  ok, area fixed
+072620   %
+072620   SUBR CHFIX
+072620   SYMBOL FIXCONT=14,FIXABST
+072620   INTEGER FPHPAG,LPHPAG,MXTA,N5SE
+072624
+072624   CHFIX: AD SHZ 6; A=:FPHPAG; X=:N5SE                           % First physical page
+072627          AD SHZ -6; T-1; D+T; A:=A+C
+072633          AD SHZ 6; A=:LPHPAG                                    % Last physical page
+072635          IF 5FXBNK=0 AND 5FXTBL=0 THEN EXIT; FI                 % No areas fixed
+072642          A:=N5SE-1*"MFSIZE*MFANT"+5FXTBL=:X+"MFSIZE*MFANT"=:MXTA
+072651          DO
+072651             T:=5FXBNK; *LDDTX                                   % AD = MFDESCR
+072653             IF A BIT FIXABS OR A BIT FIXCONT THEN
+072657                T:=5FXBNK; *LDDTX 20                             %  A=first fixed log page, d = last
+072661                D-A                                              %  Length of fixed area in d
+072662                T:=5FXBNK; *LDATX 40                             %  First nd-100 phys page in a
+072664                D+A                                              %  Last nd-100 phys page in d
+072665                IF T:=FPHPAG>=A AND T:=LPHPAG<=D THEN
+072673                   X:=N5SE; EXITA                                %  Within fixed area
+072675                FI
+072675             FI
+072675             X:=X+MFSIZE
+072676          WHILE X<< MXTA
+072701          OD
+072702          EXIT
+072703   RBUS
+072706   *"
+"072706
+072706
+072706   @DEV 1

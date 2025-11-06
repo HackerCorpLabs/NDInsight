@@ -1,0 +1,1785 @@
+032157   @DEV (S-S-L)IP-P2-SEGADM:NPL
+032157   % TAB S8,4
+032157   %
+
+032157   %==============================================================================
+032157   %==============================================================================
+032157   %
+032157   %   3 7 . 0      S E G M E N T    S U P E R V I S I N G
+032157   %
+032157   %           SSSSS    EEEEEEE    GGGGG     AAAAA    DDDDD     M     M
+032157   %          S     S   E         G     G   A     A   D    D    MM   MM
+032157   %          S         E         G         A     A   D     D   M M M M
+032157   %          S         E         G         A     A   D     D   M  M  M
+032157   %           SSSSS    EEEEEE    G  GGGG   AAAAAAA   D     D   M     M
+032157   %                S   E         G     G   A     A   D     D   M     M
+032157   %                S   E         G     G   A     A   D     D   M     M
+032157   %          S     S   E         G     G   A     A   D    D    M     M
+032157   %           SSSSS    EEEEEEE    GGGGG    A     A   DDDDD     M     M
+032157   %
+032157   %==============================================================================
+032157   %==============================================================================
+032157   %
+032157   %      THIS PART OF SEGADM EXECUTES IN RING 3 AND IS RUN ON
+032157   %      PROGRAM LEVEL SLEV. IT IS STARTED FROM MLEV BY SETTING THE
+032157   %      SLEV P-REGISTER AND ENABLING THE LEVEL. RETURN TO MLEV
+032157   %      AND CALLING RING 2 ROUTINES MUST BE DONE IN A SIMILAR WAY!
+032157   %
+032157   %==============================================================================
+032157   %
+032157   %
+032157
+032157   **-1@-12+1@12/
+034000   *SRNG3=*           % START OF RING 3 CODE
+034000   %=============================================================================
+034000   %      G O M L E V                         C A L L M L E V
+034000   %
+034000   %      RETURN TO MONITOR LEVEL.            INTERFACE FOR CALLING ROUTINES
+034000   %      A - ROUTINE ADDRESS.                ON MONITOR LEVEL.
+034000   %                                          FOLLOWING CALL - ROUTINE ADDRESS.
+034000   %                                          CALL CALLMLEV(ROUTINE)
+034000   SUBR GOMLEV, CALLMLEV
+034000   GOMLEV:
+034000          *IRW MLEVB DP               % SET P-REGISTER ON MONITOR LEVEL.
+034001          MLEV; *MST PIE; MST PID     % ENABLE AND START MONITOR LEVEL.
+034004          *WAIT                       % STOP SEGADM LEVEL.
+034005          CALL ERRFATAL
+034006   INTEGER POINTER LREG
+034007   CALLMLEV:
+034007          A:=:L                       % GET RETURN ADDRESS, SAVE A IN L.
+034010          *1BANK                      % ACCESS PROGRAM BANK
+034011          A=:"LREG":=LREG             % SAVE RETURN ADDRESS AND GET DATA FOLLOWING CALL.
+034013          *IRW MLEVB DP               % SET P-REGISTER ON MONITOR LEVEL.
+034014          A:="LREG":=:L               % RESTORE L AND A.
+034016          *2BANK
+034017          *WAIT                       % GO DOWN TO MONITOR LEVEL.
+034020          EXITA                       % SKIP RETURN OVER ADDRESS.
+034021   RBUS
+034022
+
+034022   %=============================================================================
+034022   % 37.1           S E G A D M
+034022   %
+034022   % SUBROUTINE TO CHECK IF SEGMENTS ARE OK, CALLED FROM STUPR
+034022   % RETURN IF SEGMENTS OK, ELSE TO SEGIN
+034022   % ENTRY:     MLEV.X = RTREF
+034022
+034022   SUBR SEGADM
+034022   INTEGER POINTER LREG
+034023   INTEGER BREG
+034024
+034024   SEGADM:*IRR MLEVB DX                   % GET NEW PROGRAM
+034025          IF A=FIXCRT THEN                % IF IT IS THE PROGRAM DOING FIXC
+034030              CALL XCSEGS; GO FAR OUT     % THEN CLEAR PAGE TABLES AND EXIT
+034032          FI
+034032          X:=A                            % X POINTS TO RT DESC OF NEW PROGRAM
+034033          AD:=X.DACTSEG                   % A:=ACT1SEG, D:=ACT2SEG
+034034          IF A           ><0 THEN A*5SEGSIZE+SEGSTART FI; A=:NSEGB    % COMPUTE SEGMENT
+034040          IF A:=D        ><0 THEN A*5SEGSIZE+SEGSTART FI; A=:NSEGA    % TABLE ADDRESSES
+034045          A:=X.RSEGM; IF ><0 THEN A*5SEGSIZE+SEGSTART FI; A=:NSEGC    % AND SET UP NEW SEGMENTS (NSEG A,B,C)
+034052          NSEGA=:B; CALL SEGCHECK; IF A<0 THEN CALL SEGIN FI          % CHECK WHETHER THE SEGMENTS ARE OK
+034057          NSEGB=:B; CALL SEGCHECK; IF A<0 THEN CALL SEGIN FI          % OR IF THEY MUST BE FETCHED BY SEGIN.
+034064          NSEGC=:B; CALL SEGCHECK; IF A<0 THEN CALL SEGIN FI
+034071
+034071          GO SKIP1
+034072          RTREF; CALL GETXSEG                                         % PERFORM SEGCHECK ON SPECIAL SEGMENTS
+034074          A=:B; CALL SEGCHECK; IF A<0 THEN CALL SEGIN FI              % IF IN USE BY THIS PROGRAM.
+034100
+034100   SKIP1:                         % ALL SEGMENTS ARE NOW OK.
+034100          CALL XCSEGS             % CLEAR PAGETABLES (EXCEPT SPIT, FPIT, 5PIT AND FUPIT)
+034101
+034101          NSEGC=:B                % REENTRANT SEGMENT
+034103          IF B >< 0 THEN          % IF PROGRAM HAS ONE THEN
+034105              *LDASG LOGAD            % GET LOGICAL ADDRESS
+034115              IF A SHZ -6=SPIT THEN            % SEGMENT IN SPIT?
+034121                  IF S3SEG><B THEN             % SPIT SEGMENT CHANGED?
+034124                      CALL CLSEG               % YES, CLEAR CURRENT SPIT SEGMENT
+034125                      A:=B=:S3SEG; CALL STRSEG % SETUP NEW SPIT SEGMENT
+034130                  FI
+034130              ELSE                             % NOT IN SPIT:
+034131                  NSEGC; CALL STRSEG           % SETUP REENTRANT SEGMENT
+034133              FI
+034133          FI
+034133          NSEGC=:SEGMC            % NEW REENT. SEGMENT IS NOW CURRENT REENT. SEGMENT
+034135          X:=RTREF
+034136          CALL CLNREENT           % CLEAR NONREENTRANT PAGES WITHIN REENT SEGM.
+034137
+034137          0=:MBSYSEG              % USED FOR MARKING SYSTEM SEGMENT CURRENTLY USED OR NOT
+034140          NSEGA=:B                % SEGMENT #2
+034142          IF B >< 0 THEN          % IF PROGRAM HAS ONE
+034144              *LDASG FLAG
+034154              A=:MBSYSEG              % SAVE THE FLAG (FOR 5SYSEGM)
+034155              *LDASG LOGAD            % GET LOGICAL ADDRESS
+034165              IF A SHZ -6=SPIT THEN           % SEGMENT IN SPIT?
+034171                  IF S3SEG><B THEN            % SPIT SEGMENT CHANGED?
+034174                      CALL CLSEG              % YES, CLEAR CURRENT SPIT SEGMENT
+034175                      A:=B=:S3SEG; CALL STSEG % SETUP NEW SPIT SEGMENT
+034200                  FI
+034200              ELSE                            % NOT IN SPIT:
+034201                  NSEGA; CALL STSEG           % SETUP SEGMENT
+034203              FI
+034203          FI
+034203          NSEGA=:SEGMA            % NEW SEGMENT A IS NOW CURRENT SEGMENT A
+034205          GO L1; *)FILL
+034233
+034233   L1:    NSEGB=:B                % SEGMENT #1
+034235          IF B >< 0 THEN          % IF PROGRAM HAS ONE
+034237              *LDASG FLAG
+034247              A\/MBSYSEG=:MBSYSEG     % "OR" FLAG WITH THE OTHER SEGMENTS' FLAG (FOR 5SYSEGM)
+034251              *LDASG LOGAD            % GET LOGICAL ADDRESS
+034261              IF A SHZ -6=SPIT THEN           % SEGMENT IN SPIT?
+034265                  IF S3SEG><B THEN            % SPIT SEGMENT CHANGED?
+034270                      CALL CLSEG              % YES, CLEAR CURRENT SPIT SEGMENT
+034271                      A:=B=:S3SEG; CALL STSEG % SETUP NEW SPIT SEGMENT
+034274                  FI
+034274              ELSE                            % NOT IN SPIT:
+034275                  NSEGB; CALL STSEG           % SETUP SEGMENT
+034277              FI
+034277          FI
+034277          NSEGB=:SEGMB            % NEW SEGMENT B IS NOW CURRENT SEGMENT B
+034301
+034301          RTREF=:SEGPROG          % SET UP THE PROGRAM CURRENTLY USING SEGMENTS
+034303          IF MBSYSEG NBIT 5SYSEG THEN % IF NEITHER SEGMENT A NOR B WAS A SYSTEM SEGMENT
+034306              CALL SETRT              % THEN ENTER RT'S SYS.SEG
+034307          FI
+034307   *"8LAMU
+"034307          CALL SLAMU              % SET UP LAMUS
+034310   *"
+"034310   OUT:   *WAIT   % RETURN DOWN TO MONITOR LEVEL
+034311          CALL ERRFATAL
+034312
+034312   RBUS
+034326
+
+034326   SUBR XINSPG, XREMPG, YINSPG, YREMPG
+034326   %
+034326   %          ROUTINES TO EMULATE INSPG AND REMPG UNTIL THEY ARE MICROCODED
+034326   %
+034326   INTEGER FIRST, SEGMENT, XPAGENO, CME, SEGNO
+034333   DOUBLE SAVAD=?
+034333
+034333   XINSPG:AD=:SAVAD
+034334          A:=B=:SEGMENT
+034336          T=:XPAGENO
+034337          X=:D=:CME       % D:=CME
+034341          T:=SEGTBANK
+034342          X:=A            % X:=SEGMENT
+034343          *BPAGL@3 LDATX  % A:=SEGMENT.BPAGLINK
+034344          A=:FIRST
+034345          A:=:D           % A:=CME; D:=FIRST
+034346          *BPAGL@3 STATX  % A=:SEGMENT.BPAGLINK
+034347          X:=A            % X:=CME
+034350          A:=:D           % A:=FIRST; D:=CME
+034351          T:=CORMBANK
+034352          *PAGLI@3 STATX   % A=:CME.PAGLI
+034353          IF A >< 0 THEN  % IF NONEMPTY PAGE LIST
+034354              X:=A            % X:=FIRST
+034355              *PREVI@3 LDATX  % A:=FIRST.PREVIOUS
+034356              A=:SEGNO
+034357              A:=:D           % A:=CME; D:=SEGNO
+034360              *PREVI@3 STATX  % A=:FIRST.PREVIOUS
+034361              X:=A            % X:=CME
+034362              A:=D            % A:=SEGNO
+034363          ELSE
+034364              A:=B-SEGSTART=:D:=0
+034370              T:=5SEGSIZE
+034371              *RDIV ST
+034372              A SH 2 + 3=:SEGNO
+034375              T:=CORMBANK
+034376          FI
+034376          *PREVI@3 STATX  % SEGNO=:CME.PREVIOUS
+034377          A:=XPAGENO
+034400          *LOGPA@3 STATX  % A=:CME.LOGPAGE
+034401          T:=A
+034402          AD:=SAVAD
+034403          EXIT
+034404
+034404   INTEGER CNEXT, CPREV
+034406   TRIPLE SAVETAD
+034411   DOUBLE SAVAD=SAVETAD
+034411
+034411   XREMPG:TAD=:SAVETAD
+034412          X=:D
+034413          T:=CORMBANK
+034414          *PAGLI@3 LDATX   % A:=CME.PAGLI
+034415          A=:CNEXT
+034416          *PREVI@3 LDATX  % A:=CME.PREVIOUS
+034417          A=:CPREV
+034420          IF A NBIT 0 THEN% INSIDE PAGE LIST
+034422              X:=A            % X:=CPREV
+034423              A:=CNEXT
+034424              *PAGLI@3 STATX   % A=:CPREV.PAGLI
+034425          ELSE            % FIRST ELEMENT IN LIST
+034426              A SHZ -2 SH 3 + SEGSTART=:X
+034432              T:=SEGTBANK
+034433              A:=CNEXT
+034434              *BPAGL@3 STATX  % A=:SEGMENT.BPAGLINK
+034435              T:=CORMBANK
+034436          FI
+034436          IF A >< 0 THEN  % IF NOT LAST ELEMENT IN LIST
+034437              X:=A            % X:=CNEXT
+034440              A:=CPREV
+034441              *PREVI@3 STATX  % A=:CNEXT.PREVIOUS
+034442          FI
+034442          X:=D            % X:=CME
+034443          *PAGLI@3 STZTX  % 0=:CME.PAGLI
+034444          *PREVI@3 STZTX  % 0=:CME.PREVIOUS
+034445          TAD:=SAVETAD
+034446          EXIT
+034447
+034447   YINSPG:CALL XINSPG     % PROGRAMMED FROM MLEV OR ALEV
+034450          *WAIT           % TO EXECUTE XINSPG
+034451
+034451   YREMPG:CALL XREMPG     % PROGRAMMED FROM MLEV OR ALEV
+034452          *WAIT           % TO EXECUTE XREMPG
+034453          CALL ERRFATAL
+034454   RBUS
+034462
+
+034462   %==============================================================================
+034462   %
+034462   %           I N S E G L I N K   O U T S E G L I N K
+034462   %
+034462   %      INSERTION AND REMOVAL OF SEGMENTS TO/FROM THE SEGMENT LIST.
+034462   %      (THE SEGMENT LIST IS A CIRCULAR DOUBLE LIST.)
+034462   %      X POINTS TO SEGMENT
+034462   SUBR INSEGLINK, OUTSEGLINK
+034462
+034462   INTEGER XRGGG,BRGGG
+034464   TRIPLE TADRRG
+034467   INSEGLINK:TAD=:TADRRG;X=:XRGGG;A:=B=:BRGGG  % SAVE REGISTERS
+034473          T:=SEGTBANK
+034474          A:=BSEGLINK=:B      % BSEGLINK
+034476          *SEGLI@3 STATX      %         =:IN.SEGLINK
+034477          X=:D:=A
+034501          *PRESE@3 LDATX      % BSEGLINK.PRESEG
+034502          X:=D
+034503          *PRESE@3 STATX      %                =:IN.PRESEG
+034504          X:=:A               % IN
+034505          *SEGLI@3 STATX      %   =:BSEGLINK.PRESEG.SEGLINK
+034506          X:=B
+034507          *PRESE@3 STATX      % IN=:BSEGLINK.PRESEG
+034510          A=:BSEGLINK         % IN=:BSEGLINK
+034511          BRGGG=:B;X:=XRGGG;TAD:=TADRRG    % RESTORE REGISTERS
+034515          EXIT
+034516
+034516   OUTSEGLINK:
+034516          TAD=:TADRRG;X=:XRGGG;A:=B=:BRGGG  % SAVE REGISTERS
+034522          X=:D
+034523          T:=SEGTBANK
+034524
+034524                              % OUT.PRESEG=:OUT.SEGLINK.PRESEG
+034524                              % OUT.SEGLINK=:OUT.PRESEG.SEGLINK
+034524          *PRESE@3 LDATX      % A:=OUT.PRESEG
+034525          *SEGLI@3 LDXTX      % X:=OUT.SEGLINK
+034526          *PRESE@3 STATX      % A=:OUT.SEGLINK.PRESEG (OUT.PRESEG=:X.PRESEG)
+034527          A:=:X
+034530          *SEGLI@3 STATX      % A=:OUT.PRESEG.SEGLINK (OUT.SEGLINK=:X.SEGLINK)
+034531          X:=D
+034532          *SEGLI@3 STZTX      % 0=:OUT.SEGLINK
+034533          *PRESE@3 STZTX      % 0=:OUT.PRESEG
+034534          IF X=BSEGLINK THEN  % IF REMOVING THE FIRST SEGMENT THEN
+034537              A=:BSEGLINK         % MAKE THE NEXT THE NEW FIRST
+034540          FI
+034540          BRGGG=:B;X:=XRGGG;TAD:=TADRRG    % RESTORE REGISTERS
+034544          EXIT
+034545   RBUS
+034547
+034547
+
+034547   %==============================================================================
+034547   % 37.2          P A G E F A U L T   P A G E 2 F A U L T   L I M C H E C K
+034547   %
+034547   %--MONITOR ENTRY FROM LEVEL 14 IF PAGE FAULT
+034547   %  LOGICAL PAGE OF PAGE FAULT IS IN PNUMB
+034547   %EXIT TO SEGIN
+034547
+034547   SUBR PAGEFAULT,PAGE2FAULT,LIMCHECK, SP01J
+034547
+034547   INTEGER DEMFLAG=?
+034547   INTEGER SHAINSTR(0); *SHA
+034550   INTEGER CINSTR(0); *BSKP ZRO DT
+034551
+034551   INTEGER SWLGF=?
+034551
+034551   PAGE2FAULT:                            % PAGEFAULT ON INBT/OUTBT LEVEL
+034551   *"8SWLG
+"034551               0=:SWLGF
+034552   *"
+"034552               CALL CALLMLEV(MLBLEVSET)   % SAVE STATUS FOR BLEV AND PREPARE FOR
+034554                                          % RESTARTING IT AFTER PAGE FAULT HANDLING.
+034554               GO PAGF
+034555   PAGEFAULT:                             % PAGEFAULT ON APPLICATION LEVEL
+034555   *"8SWLG
+"034555               1=:SWLGF
+034557   *"
+"034557   PAGF:
+034557          IF PNUMB>=WNDBF AND <=WND41 THEN % PNUMB IN WND41,WND12,WND10,WNDN5,WNDBF
+034566              % PAGE FAULT IN WINDOWS SHOULD BE HANDLED ON LEVEL 14.
+034566              CALL ERRFATAL
+034567          FI
+034567          A SH 1 \/ 174000=:X:=X.S0       % GET PAGE TABLE ENTRY FOR FAULTED PAGE
+034573          IF A><0 THEN CALL ERRFATAL FI   % ENTRY WAS NOT 0
+034575
+034575          IF X:=SEGMC >< 0 THEN
+034577              A:=0 BONE 5DEMAND=:DEMFLAG  % SET DEMAND.
+034602              CALL LIMCHECK
+034603          ELSE
+034604              0=:DEMFLAG                  % SET NOT YET DEMAND.
+034605              A:=-1
+034606          FI
+034606          IF A=0 THEN % PAGE FAULT POSSIBLY WITHIN REENTRANT SEGMENT
+034607              B:=X                % FIND ENTRY IN BITMAP
+034610              *LDASG LOGAD        % LOGICAL START ADDRESS(PIT) OF SEGMENT
+034620              A/\1700=:D          % TO D REGISTER.
+034622              A:=PNUMB/\1777-D    % A:=PNUMB-LOGAD
+034625   SP01J:     GO SP01L
+034626
+034626                                          % BITMAP TEST FOR "NEW" CPU
+034626              T:=0                        % BANK 0
+034627              X:=RTREF.RTDLGADDR+5BITMAP  % BITMAP ADDRESS
+034632              *LBITP                      % PHYSICAL LOAD BIT ( K:=TX(A) )
+034633              IF K GO NOTREENT            % NOT IN REENTRANT SEGMENT
+034635              X:=B   % SEGMC              % YES, IN REENTRANT SEGMENT
+034636              GO SP01FI
+034637                                          % BITMAP TEST FOR STANDARD CPU
+034637   SP01L:     AD SHZ -4; D SHZ -14        % A:=WORD NO. IN BITMAP, D:=BIT NO. IN WORD
+034641              X:=RTREF.RTDLGADDR+5BITMAP  % POINTER TO BITMAP
+034644              X+A                         % POINTER BITMAP WORD OF THIS PAGE
+034645              A:=SHAINSTR                 % "SHIFT" INSTRUCTION
+034646              D+A                         % ADD "SHIFT" INSTR. TO SHIFT COUNT.
+034647              A:=1; *EXR SD               % SET A ONE AT WANTED BIT POSITION IN WORD.
+034651              T:=0                        % BANK 0
+034652              *LDXTX                      % X:=BITMAP WORD
+034653              IF A/\X><0 GO NOTREENT      % MASK OUT WANTED BIT AND TEST, IF SET NOT REENTRANT SEGMENT.
+034655              X:=B  % SEGMC               % YES, IN REENTRANT SEGMENT.
+034656
+034656          ELSE                                    % PAGE FAULT IN SHADOW SEGMENT.
+034657   NOTREENT:  X:=SEGMB; T:=SEGTBANK; *FLAG@3 LDATX
+034662              A\/DEMFLAG=:DEMFLAG                 % INCLUDE 5DEMAND FOR SEGMENT B.
+034664              X:=SEGMA; T:=SEGTBANK; *FLAG@3 LDATX
+034667              A\/DEMFLAG=:DEMFLAG                 % INCLUDE 5DEMAND FOR SEGMENT A.
+034671              CALL LIMCHECK                       % TEST FOR SEGMENT A.
+034672              IF <0 THEN
+034673                  X:=SEGMB
+034674                  CALL LIMCHECK                   % IF NOT A, TEST FOR SEGMENT B.
+034675                  IF <0 THEN CALL SINCHECK        % IF NOT B, TEST FOR SINTRAN.
+034677                      IF <0 THEN                  % IF NOT SINTRAN, THEN
+034700                          T:=PNUMB
+034701                          IF DEMFLAG BIT 5DEMAND THEN "S14ERR"    % OUTSIDE SEGMENT BOUNDS.
+034705                                                 ELSE "S13ERR";FI % PAGE FAULT FOR NON DEMAND.
+034707                          CALL GOMLEV             % GO TO MONITOR LEVEL.
+034710                      FI
+034710                  ELSE
+034711                      IF DEMFLAG NBIT 5DEMAND GO PFNDEM % PAGE FAULT FOR NON DEMAND.
+034714                  FI
+034714              ELSE
+034715                  IF DEMFLAG NBIT 5DEMAND GO PFNDEM % PAGE FAULT FOR NON DEMAND.
+034720          FI  FI
+034720   SP01FI:                    % X POINTS TO PAGE FAULTED SEGMENT
+034720          X=:B                % B POINTS TO PAGE FAULTED SEGMENT
+034721          CALL SEGIN          % GET IN FAULTED PAGE FROM DISK.
+034722
+034722   PFNDEM:"S13ERR"; CALL GOMLEV   % PAGE FAULT FOR NON DEMAND.
+034724
+034724   INTEGER DEMFLAG
+034725   *"8SWLG
+"034725   INTEGER SWLGF
+034726   *"
+"034726   *)FILL
+034751
+034751   LIMCHECK:                              % CHECK WHETHER PNUMB IS WITHIN SEGMENT X OR NOT.
+034751          IF X=0 THEN A:=-1 ; EXIT FI     % NO SEGMENT: NO.
+034755          T:=SEGTBANK
+034756          *LOGAD@3 LDDTX                  % A:=LOGADR, D:=SEGLENGTH
+034757          IF A>PNUMB OR A+D<=T THEN       % IF OUTSIDE SEGMENT
+034765                A:=-1                     % RETURN NO
+034766          ELSE                            % INSIDE SEGMENT
+034767   *"8SWLG
+"034767                IF CSWLGF><0 THEN                             % SWAPPING-LOG?
+034771                   IF T:=SWLGF=0 THEN                         % LEVEL 4
+034774                      *MIN I (TPF42; SKP; MIN I (TPF41; JMP *+1
+035000                      IF A=RTREF THEN                         % LOG FOR A SPESIFIC PROGRAM
+035003                         *MIN I (CPF42; SKP; MIN I (CPF41; JMP *+1
+035007                      FI
+035007                   ELSE
+035010                      *MIN I (TPF12; SKP; MIN I (TPF11; JMP *+1 % LEVEL 1
+035014                      IF A=RTREF THEN                         % LOG FOR A SPESIFIC PROGRAM
+035017                         *MIN I (CPF12; SKP; MIN I (CPF11; JMP *+1
+035023                      FI
+035023                   FI;
+035023                FI
+035023   *"
+"035023              A:=0                        % RETURN WITH A=0 (YES)
+035024          FI
+035024          EXIT
+035025
+035025   SINCHECK:              % CHECK FOR PAGE FAULT IN SINTRAN SEGMENTS.
+035025          L=:B
+035026          X:=FILSEGM; CALL LIMCHECK   % IN FILE SYSTEM
+035030          IF A=0 THEN B=:P FI
+035032   *"8N500
+"035032          X:=5NSEGM; CALL LIMCHECK    % IN ND500 SYSTEM MONITOR
+035034          IF A=0 THEN B=:P FI
+035036   *"8RFAC
+"035036          X:=FUSEGM; CALL LIMCHECK    % IN REMOTE FILE ACCESS
+035040          IF A=0 THEN B=:P FI
+035042   *"
+"035042          X:=SEGSTART; CALL LIMCHECK  % SEGMENT 0 IS RPIT.
+035044          IF A=0 THEN CALL ERRFATAL FI% PF IN RESIDENT IS FATAL ERROR
+035046          A:=-1                       % NOT IN SINTRAN.
+035047          B=:P                        % RETURN
+035050
+035050   RBUS
+035072
+
+035072   %==============================================================================
+035072   % 37.3       C L S E G   S T R S E G   S T S E G   X C L S E G   Y C L S E G
+035072   %            C L P A G E   S T P A G E   S L A M U    C L A M U    C R S E G
+035072   %            G E T W I P   1 C L A M
+035072   %
+035072   %  SUBROUTINES TO UPDATE THE HARDWARE PAGE TABLE
+035072   % ENTRY:     A=SEGM. POINTER
+035072
+035072   @ICR;
+035072   SUBR CLSEG, STRSEG, STSEG, CLPAGE, CLWINDOWS, 1CLAM,
+035072        CLAMU, SLAMU, STPAGE, XCLSEG, GETWIP, CRSEG,
+035072        SP02J, SP03J, SP04J, SP05J, SP10J, SP11J, SP13J, SP14J;
+035072   @CR;
+035072   *"8LAMU
+"035072   DOUBLE ARRAY POINTER PTBG0:=174000     % PIT POINTERS
+035073   INTEGER ARRAY POINTER IPTBG=PTBG0
+035073   INTEGER POINTER LREG       % RETURN ADDRESS.
+035074   INTEGER CL                 % CURRENT LAMU.
+035075   INTEGER CACLE              % FIRST LAMU FOR THIS PROGRAM.
+035076   INTEGER LAPRF:=0           % =0: PREVIOUS PROG HAS CLEARED LAMU PAGES
+035077
+035077   1CLAM: "1RCLA"=:"LREG"; K:=1; GO L1            % STARTED FROM MON LAMU
+035103   SLAMU: K:="0"; GO LAMU                         % SET UP LAMU.
+035105   CLAMU: IF LAPRF=0 THEN EXIT FI; K:=1           % CLEAR LAMU
+035111   LAMU:  A:=L=:"LREG";
+035113   L1:    IF SEGPROG = 0 GO LREG
+035116          A-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST   % RT PROGRAM NUMBER.
+035123          A=:D+LAMIH=:X; T:=LAMBANK; *LDATX       % LAMU INHIBITED FOR THIS PROGRAM ?
+035130          IF A >< 0 AND K NBIT GO LREG
+035133          A:=D*GNLPRT*ALMSZ+LAMACT=:CACLE; 0=:CL
+035141          FOR CL TO GNLPRT-1 DO
+035146                A*ALMSZ+CACLE=:X; T:=LAMBANK; *LDDTX
+035153                IF A >< 0 THEN                    % D=FIRST LOGICAL PAGE NO.
+035154                   IF A > 0 THEN                  % USER LAMU OR SYSTEM-LAMU
+035156                      A*LDTSZ+LAMDT               % ADDRESS IN LAMDT
+035160                   ELSE
+035161                      A- *SDTSZ+SYLDT             % ADDRESS IN SYLDT
+035164                   FI
+035164                   A=:X; *LDATX LMNP              % A:=NUMBER OF PAGES IN THIS LAMU.
+035166                   L:=D+A-1+L                     % COMPUTE LAST PIT ENTRY FOR THIS LAMU.
+035172                   *LDATX LMPP;  LDXTX LMPR       % A:=FIRST PHYS.PAGE OF THIS LAMU.
+035174                   T:=X                           % T:=LAMU PROTECTION.
+035175                   X:=D+X; D:=A; A:=T
+035201                   IF K THEN
+035203                      FOR X STEP 2 TO L DO 0=:IPTBG(X) OD        % CLEAR PIT FOR THIS LAMU.
+035210                      0=:LAPRF                                   % MARK LAMU CLEARED
+035211                   ELSE
+035212                      FOR X STEP 2 TO L DO AD=:PTBG0(X); D+1 OD  % SET UP PIT FOR THIS LAMU.
+035220                      1=:LAPRF                                   % MARK LAMU SET
+035222                   FI
+035222                FI
+035222          OD
+035226          GO LREG
+035227   1RCLA: *WAIT
+035230          CALL ERRFATAL
+035231   *)FILL
+035246   *"
+"035246
+035246   INTEGER PINDEX=?,BRG=?
+035246
+035246   INTEGER POINTER IWDN5:=WNDN5*2+174000  % POINTER TO N500 WINDOW
+035247   INTEGER POINTER IWD41:=WND41*2+174000  % POINTER TO TERMINAL WINDOW
+035250   INTEGER POINTER IWDBF:=WNDBF*2+174000  % POINTER TO DATA-BUFFER WINDOW
+035251
+035251   CLWINDOWS:
+035251          0=:IWD41        % CLEAR TERMINAL WINDOW.
+035252   *"8N500
+"035252          0=:IWDN5        % CLEAR ND500 WINDOW.
+035253   *"
+"035253          EXIT
+035254
+035254   CLSEG:                         % CLEAR SEGMENT FROM PAGE INDEX TABLE
+035254          IF A=0 THEN EXIT FI     % NO SEGMENT: NO CLEAR.
+035256          X=:PINDEX:=B=:BRG:=A    % SAVE X AND B.
+035262          T:=SEGTBANK
+035263          *SGSTA@3 LDATX          % A:=X.SGSTATUS
+035264          IF A BIT 5NCLSEG OR A BIT 5SPTFIXED GO XOUT % THIS SEGMENT SHOULD NOT BE CLEARED OUT NOW.
+035270          *BPAGL@3 LDXTX          % BEGINNING OF PAGE LIST FOR THIS SEGMENT.
+035271   *XLX02, JMP * 2; 0             % FOR LOGGING FACILITY
+035273
+035273   SP02J: GO SP02L
+035274
+035274          A:=0                    % CLEAR REGULAR SEGMENT.
+035275          *KCLEP                  % NEW CPU/RASK CPU
+035276          GO OUT
+035277
+035277   SP02L: *XCLEP                  % OLD CPU
+035313          GO OUT
+035314
+035314   CRSEG:                         % CLEAR REENTRANT SEGMENT FROM PIT.
+035314   SP13J: GO CLSEG                % FOR STD AND CX CPU: USE CLSEG.
+035315          IF A=0 THEN EXIT FI     % NO SEGMENT: NO CLEAR.
+035317          X=:PINDEX:=B=:BRG:=A    % SAVE X AND B.
+035323          T:=SEGTBANK
+035324          *SGSTA@3 LDATX          % A:=X.SGSTATUS
+035325          IF A BIT 5NCLSEG OR A BIT 5SPTFIXED GO OUT % THIS SEGMENT SHOULD NOT BE CLEARED OUT NOW.
+035331          *BPAGL@3 LDXTX          % BEGINNING OF PAGE LIST FOR THIS SEGMENT.
+035332   *XLX03, JMP * 2; 0             % FOR LOGGING FACILITY
+035334
+035334   SP10J: GO SP10L
+035335
+035335          A:=-1                   % CLEAR REENTRANT SEGMENT.
+035336          *KCLEP                  % RASK CPU
+035337   XOUT:  GO OUT
+035340
+035340   SP10L: T:=CORMBANK             % PASS THROUGH PAGE LIST FOR THIS SEGMENT
+035341          DO WHILE X >< 0         % TO THE END.
+035342              *LOGPA@3 LDATX      % A:=LOGICAL PAGE NUMBER
+035343              A SH 1\/174000=:B   % B:=PIT POINTER
+035346              0=:PITPROTECT       % CLEAR PIT ENTRY.
+035347              *PAGLI@3 LDXTX      % NEXT PAGE IN LIST.
+035350          OD
+035351          GO OUT
+035352
+035352
+035352   STRSEG:                        % SET UP REENTRANT SEGMENT.
+035352   SP14J: GO STSEG                % FOR STD AND CX CPU: USE STSEG.
+035353          IF A=0 THEN EXIT FI     % NO SEGMENT: NO SETUP.
+035355          X=:PINDEX:=B=:BRG:=A    % SAVE B AND X.
+035361          T:=SEGTBANK
+035362          *BPAGL@3 LDXTX          % BEGINNING OF PAGE LIST FOR THIS SEGMENT.
+035363   *XLX04, JMP * 2; 0             % FOR LOGGING FACILITY
+035365   SP03J: GO SP03L
+035366
+035366          *KSTRP                  % NEW CPU
+035367          GO OUT
+035370
+035370   SP03L: *XSTRP                  % OLD CPU
+035406          GO OUT
+035407
+035407   INTEGER PINDEX,BRG             % SAVED X AND B
+035411   *)FILL
+035416
+035416   STSEG:                         % SET UP SEGMENT IN PAGE INDEX TABLE.
+035416          IF A=0 THEN EXIT FI     % NO SEGMENT: NO SETUP.
+035420          X=:PINDEX:=B=:BRG:=A    % SAVE X AND B..
+035424          T:=SEGTBANK
+035425          *SGSTA@3 LDATX          % A:=X.SGSTATUS
+035426          IF A BIT 5NCLSEG OR A BIT 5SPTFIXED GO OUT  % SEGMENT FIXED IN PIT.
+035432          *BPAGL@3 LDXTX          % BEGINNING OF PAGE LIST FOR THIS SEGMENT.
+035433   *XLX05, JMP * 2; 0             % FOR LOGGING FACILITY
+035435   SP04J: GO SP04L
+035436
+035436          *KSETP                  % NEW CPU
+035437          GO OUT
+035440
+035440   SP04L: *XSETP                  % OLD CPU
+035455
+035455                                  % EXIT POINT
+035455   OUT:   X:=BRG=:B:=PINDEX       % RESTORE X AND B
+035460          EXIT                    % RETURN
+035461
+035461   CLPAGE:                        % REMOVE PAGE FROM PIT. (X=CORE MAP ELEMENT)
+035461          T:=B=:BRG:=CORMBANK     % SAVE B
+035464          *LOGPA@3 LDATX          % A:=X.LOGPAGE
+035465          A SH 1 \/ 174000=:B     % MAKE PIT POINTER IN B.
+035470          0=:S0                   % CLEAR PIT ENTRY.
+035471          BRG=:B                  % RESTORE B.
+035473          EXIT                    % RETURN
+035474
+035474   INTEGER DDDRG                          % SAVED D
+035475                                          % ENTER PAGE INTO PIT. (X=CORE MAP ELEMENT)
+035475   STPAGE:IF X=0 THEN EXIT FI             % NO PAGE: NO ENTER.
+035500          T:=B=:BRG:=D=:DDDRG:=CORMBANK   % SAVE B AND D
+035505          *LOGPA@3 LDATX                  % A:=X.LOGPAGE
+035506          A SH 1 \/ 174000=:B             % MAKE PIT POINTER IN B.
+035511          *PROTE@3 LDATX                  % GET PROTECT ENTRY FROM CORE MAP.
+035512          D:=X SHZ -2                     % COMPUTE PAGE NUMBER.
+035514          AD=:PITENTRY                    % STORE PIT ENTRY.
+035515          T:=DDDRG=:D:=BRG=:B             % RESTORE D AND B.
+035521          EXIT                            % RETURN
+035522
+035522                                          % CLEAR SEGMENT FROM PIT REGARDLESS OF SEGSTATUS
+035522   XCLSEG:IF A=0 THEN EXIT FI             % NO SEGMENT: NO CLEAR.
+035524          X=:PINDEX:=B=:BRG:=A            % SAVE X AND B.
+035530          T:=SEGTBANK; *BPAGL@3 LDXTX     % BEGINNING OF PAGE LIST FOR THIS SEGMENT.
+035532   SP05J: GO SP05L
+035533          A:=0
+035534          *KCLEP                          % NEW CPU
+035535          GO OUT
+035536   SP05L: *XCLEP                          % OLD CPU
+035552          GO OUT
+035553   *)FILL
+035556   GETWIP:                                % MOVE WIP BITS FOR 5NCLSEG SEGMENTS TO CORE MAP.
+035556                                          % CALLED WITH SEGMENT POINTER IN B.
+035556          X=:PINDEX:=B=:BRG               % SAVE X AND B, X:=SEGMENT.
+035561          T:=SEGTBANK;*BPAGL@3 LDXTX      % X:=SEGMENT.BPAGLINK
+035563   SP11J: GO SP11L
+035564
+035564          A:=1                            % COPY WIP AND PGU FOR REENTRANT SEGMENTS.
+035565          *KCLEP                          % RASK CPU
+035566          GO FAR OUT
+035567
+035567   SP11L: T:=CORMBANK                     % PASS THROUGH THE PAGE LIST FOR THIS SEGMENT
+035570          DO WHILE X><0                   % TO THE END.
+035571              *LOGPA@3 LDATX              % A:=LOGICAL PAGE NO.
+035572              A SH 1 \/ 174000=:B         % B:=PIT POINTER.
+035575              A:=PITPROTECT               % GET PROTECT PART OF PIT ENTRY FOR THIS PAGE.
+035576              *PROTE@3 STATX              % A=:PROTECT.
+035577              *PAGLI@3 LDXTX              % NEXT ENTRY IN PAGE LIST.
+035600          OD
+035601          GO FAR OUT
+035602   RBUS
+035606
+
+035606   %=======================================================================
+035606   %  37.5           S E T R T    C L E R T
+035606   %
+035606   %  ROUTINES FOR SETTING/CLEARING RT'S SYSTEM SEGMENT PIT ENTRIES
+035606
+035606   SUBR CLERT,SETRT
+035606
+035606   INTEGER XREG
+035607   INTEGER ARRAY POINTER CPITADDR:=DPIT*200+174000+SYSST+5ESSZ+SYSST+5ESSZ
+035610   DOUBLE  ARRAY POINTER DCPITADDR=CPITADDR
+035610   INTEGER ENDLOOP
+035611
+035611   CLERT: X=:XREG                     % SAVE X
+035612          SISYSEG-"5ESSZ"-1 SH 1=:ENDLOOP
+035617          FOR X:=0 STEP 2 TO ENDLOOP DO 0=:CPITADDR(X) OD % CLEAR PIT.
+035626          T:=CCFPAGE SH 1             % FIRST RT-COMMON PAGE.
+035630          A:="UPITN*200+174000"=:X    % POINTER TO USERS NORMAL PAGE INDEX TABLE.
+035632          X+T                         % POINTER TO FIRST RT-COMMON PAGE IN PIT.
+035633          A+200=:T                    % LAST RT-COMMON PAGE IN PIT.
+035635          DO WHILE X<<T               % REMOVE RT-COMMON FROM PIT.
+035637              0=:X.S0                 % CLEAR PIT ENTRY
+035640              X+2                     % NEXT RT-COMMON PAGE.
+035641          OD
+035642          GO OUT
+035643
+035643   SETRT: X=:XREG                     % SAVE X
+035644          SISYSEG-"5ESSZ"-1 SH 1=:ENDLOOP
+035651          A:=RTSYSG=:D:=162000        % RTSYSG: RT SYSTEM SEGMENT FIRST PAGE.
+035654          FOR X:=0 STEP 2 TO ENDLOOP DO   % SET UP PIT FOR RT SYSTEM SEGMENT.
+035660              AD=:DCPITADDR(X)        % STORE PIT ENTRY.
+035661              D+1                     % NEXT PHYSICAL PAGE.
+035662          OD
+035664   OUT:   X:=XREG                     % RESTORE X
+035665          EXIT                        % RETURN
+035666   RBUS
+035675
+035675
+
+035675   %==============================================================================
+035675   % 37.6         S E G C H E C K
+035675   %
+035675   % SUBROUTINE TO CHECK IF A SEGMENT IS OK
+035675   % B=ADDR. IN SEGMENT TABLE; RETURN: A=0 IF OK,ELSE -1
+035675   % IF OK THE SEGMENT IS PLACED IN START OF SEGMENT LIST
+035675
+035675   SUBR SEGCHECK
+035675   INTEGER XREG
+035676   INTEGER POINTER LREG
+035677   SEGCHECK:
+035677          IF A:=B=0 THEN EXIT FI              % NO SEGMENT IS OK TOO.
+035702          A:=L=:"LREG"                        % SAVE RETURN ADDRESS
+035704          *LDASG SGSTA                        % A:=B.SGSTATUS
+035714          IF A BIT 5SPTFIXED THEN             % IF SEGMENT IS FIXED IN PIT
+035716              A:=0                            % OK
+035717              GO LREG                         % RETURN
+035720          FI
+035720          A=:D                                % D:=SGSTATUS
+035721          *LDASG FLAG                         % A:=B.FLAG
+035731          IF A BIT 5INHB OR D=0 THEN          % SEGMENT NOT LOADED
+035735              A:=B-SEGSTART SHZ -3=:T         % SEGMENT NUMBER IN T
+035741              "S16ERR"; CALL GOMLEV
+035743          FI
+035743          IF A BIT 5OK THEN
+035745              *LDASG SEGLI                    % A:=B.SEGLINK
+035755              IF A><0 AND B><BSEGLINK THEN    % IF SEGMENT HAS PAGES IN MEMORY AND IS NOT THE FIRST.
+035761                  X:=:B
+035762                  CALL OUTSEGLINK             % REMOVE SEGMENT.
+035763                  CALL INSEGLINK              % INSERT SEGMENT FIRST IN LIST.
+035764                  X:=:B
+035765              FI
+035765              A:=0                            % RETURN OK.
+035766          ELSE
+035767              A:=-1                           % SEGMENT NOT OK
+035770          FI
+035770          GO LREG                             % RETURN
+035771   RBUS
+036000
+
+036000   %==============================================================================
+036000   % 37.7       C L N R E E N T R
+036000   %
+036000   % SUBROUTINE TO RESET NONREENTRANT PAGES IN PAGE INDEX TABLE
+036000   % A=SEGMENT ADDRESS,X=RT-DESCR
+036000   SUBR CLNREENTR, SP06J
+036000
+036000   INTEGER ARRAY POINTER PTBLE,RTDSCR
+036002   INTEGER SVX
+036003
+036003   CLNREENTR:
+036003          IF A=0 GO OUT           % NO SEGMENT: NO CLNREENTR.
+036004   SP06J: GO SP06L
+036005                                  % NEW CPU
+036005          X=:D                    % SAVE X IN D
+036006          X:=X.RTDLGADDR+5BITMAP  % X POINTS TO BITMAP
+036010          T:=0                    % BANK 0
+036011          *CNREK                  % CLEAR NONREENTRANT PAGES ACCORDING TO BITMAP.
+036012          X:=D                    % RESTORE X
+036013          EXIT                    % RETURN
+036014
+036014   SP06L: X=:SVX:=X.RTDLGADDR             % SAVE X
+036016          X=:"RTDSCR"                     % X POINTS TO REGISTER BLOCK AND BITMAP.
+036017          B=:T:=A                         % SAVE B IN T AND SET TO SEGMENT
+036021          *LDASG LOGAD                    % A:=B.LOGADR
+036031          A/\1700 SH 1+174000=:"PTBLE"    % MAKE PIT POINTER FOR THIS SEGMENT.
+036035          5BITMAP=:D; B:=T                % DISPLACEMENT OF BITMAP INTO D, RESTORE B.
+036040          FOR D TO "5BITMAP+7" DO         % TEST ALL BITMAP WORDS.
+036043             "PTBLE"+40=:"PTBLE"          % POINTER TO END OF PIT FOR THIS WORD
+036046             T:=0; X:="RTDSCR"+D; *LDATX  % GET BITMAP WORD
+036052             IF A><0 THEN                 % IF ANY BIT SET IN THIS WORD THEN
+036053                FOR X:=-20 DO             % TEST ALL BITS IN THIS WORD
+036054                   A SHR -1               % MOVE BIT TO THE SIGN POSITION
+036055                   IF A<0 THEN            % IF THIS BIT IS SET THEN
+036056                       X=:T+X             % SAVE X IN T AND DOUBLE
+036060                       0=:PTBLE(X)        % CLEAR PIT FOR THIS PAGE
+036061                       X:=T               % RESTORE X
+036062                   FI                     % ENDIF BIT
+036062                OD                        % ENDDO BITS
+036063             FI                           % ENDIF WORD
+036063          OD                              % ENDDO WORDS
+036065          X:=SVX                          % RESTORE X
+036066   OUT:   EXIT                            % RETURN
+036067   RBUS
+036072
+
+036072   %==============================================================================
+036072   % 37.8         C S E G S   X C S E G S
+036072   %
+036072   % SUBROUTINES TO CLEAR SEGMENTS
+036072   % CSEGS CLEARS IF SEGMENT IS PRESENT (A=SEGMENT POINTER), ALSO SPIT SEGMENTS
+036072   % XCSEGS CLEARS ALWAYS, BUT NEVER SPIT SEGMENTS
+036072
+036072   SUBR CSEGS, XCSEGS, SP12J
+036072   *"8N500
+"036072   INTEGER POINTER IWDN5:=WNDN5*2+174000  % POINTER TO N500 WINDOW
+036073   *"
+"036073   INTEGER POINTER IWD41:=WND41*2+174000  % POINTER TO TERMINAL WINDOW
+036074   INTEGER POINTER IWDBF:=WNDBF*2+174000  % POINTER TO DATA-BUFFER WINDOW
+036075   INTEGER XREG
+036076   INTEGER POINTER LREG
+036077
+036077   XCSEGS:X=:XREG:=L=:"LREG"  % SAVE X AND RETURN ADDRESS.
+036102          0=:IWD41            % CLEAR TERMINAL WINDOW
+036103          0=:IWDBF
+036104   *"8N500
+"036104          0=:IWDN5            % CLEAR ND500 WINDOW
+036105   *"8LAMU
+"036105          CALL CLAMU          % CLEAR LAMUS
+036106   *"
+"036106          X:=SEGMA            % SEGMENT A
+036107          IF X >< 0 THEN      % IF PRESENT
+036110              X:=:B
+036111              *LDASG LOGAD    % A:=SEGMA.LOGADR
+036121              IF A SH -6 >< SPIT THEN % DON'T CLEAR SEGMENTS IN SINTRAN PIT
+036125                  B=:A
+036126                  CALL CLSEG
+036127              FI
+036127              X:=:B
+036130          FI
+036130          X:=SEGMB            % SEGMENT B
+036131          IF X >< 0 THEN      % IF PRESENT
+036132              X:=:B
+036133              *LDASG LOGAD    % A:=SEGMA.LOGADR
+036143              IF A SH -6 >< SPIT THEN % DON'T CLEAR SEGMENTS IN SINTRAN PIT
+036147                  B=:A
+036150                  CALL CLSEG
+036151              FI
+036151              X:=:B
+036152          FI
+036152          X:=SEGMC            % SEGMENT C (REENTRANT SEGMENT)
+036153          IF X >< 0 THEN      % IF PRESENT
+036154              X:=:B
+036155              *LDASG LOGAD    % A:=SEGMA.LOGADR
+036165              IF A SH -6 >< SPIT THEN % DON'T CLEAR SEGMENTS IN SINTRAN PIT
+036171                  B=:A
+036172                  CALL CRSEG
+036173              FI
+036173              X:=:B
+036174          FI
+036174                                  % EXIT POINT
+036174   OUT:   CALL CLERT              % CLEAR PIT ENTRIES FOR RT'S SYSTEM SEGMENT.
+036175
+036175   SP12J: CALL CHREENTPAGES       % ONLY FOR STD AND CX CPU.
+036176          0=:SEGMA=:SEGMB=:SEGMC  % CLEAR CURRENT SEGMENT POINTERS.
+036201          X:=XREG                 % RESTORE X
+036202          GO LREG                 % RETURN
+036203   *)FILL
+036214
+036214   CSEGS: IF A><SEGMA AND ><SEGMB AND ><SEGMC THEN    % IF A IS NONE OF THE CURRENT SEGMENTS.
+036225              IF A><S3SEG THEN        % AND NOT CURRENT SPIT SEGMENT
+036230                  EXIT                % THEN RETURN
+036231              ELSE
+036232                  0=:S3SEG            % CLEAR SPIT SEGMENT
+036233                  T:=L=:"LREG"        % SAVE RETURN ADDRESS
+036235                  CALL CLSEG          % CLEAR SPIT
+036236                  GO LREG             % RETURN
+036237          FI  FI
+036237                                      % A IS ONE OF THE ACTIVE SEGMENTS.
+036237          X=:XREG:=L=:"LREG"          % SAVE X AND RETURN ADDRESS.
+036242          0=:IWD41                    % CLEAR TERMINAL WINDOW
+036243          0=:IWDBF
+036244   *"8N500
+"036244          0=:IWDN5                    % CLEAR ND500 WINDOW
+036245   *"8LAMU
+"036245          CALL CLAMU                  % CLEAR LAMUS
+036246   *"
+"036246          X:=SEGMA                    % SEGMENT A
+036247          IF X >< 0 THEN              % IF PRESENT
+036250              X:=:B
+036251              *LDASG LOGAD            % A:=SEGMA.LOGADR
+036261              IF A SH -6 = SPIT THEN  % RESET POINTER TO SEGMENTS IN SINTRAN PIT
+036265                  0=:S3SEG
+036266              FI
+036266              B=:A; CALL CLSEG; X:=:B % CLEAR SEGMENT
+036271          FI
+036271          X:=SEGMB                    % SEGMENT B
+036272          IF X >< 0 THEN              % IF PRESENT
+036273              X:=:B
+036274              *LDASG LOGAD            % A:=SEGMA.LOGADR
+036304              IF A SH -6 = SPIT THEN  % RESET POINTER TO SEGMENTS IN SINTRAN PIT
+036310                  0=:S3SEG; FI
+036311              B=:A; CALL CLSEG; X:=:B % CLEAR SEGMENT
+036314          FI
+036314          X:=SEGMC                    % SEGMENT C (REENTRANT SEGMENT)
+036315          IF X >< 0 THEN              % IF PRESENT
+036316              X:=:B
+036317              *LDASG LOGAD            % A:=SEGMA.LOGADR
+036327              IF A SH -6 = SPIT THEN  % RESET POINTER TO SEGMENTS IN SINTRAN PIT
+036333                  0=:S3SEG; FI
+036334              B=:A; CALL CRSEG; X:=:B % CLEAR SEGMENT
+036337          FI
+036337          GO OUT                      % GO TO EXIT POINT
+036340
+036340   RBUS
+036350
+
+036350   %=======================================================================
+036350   %
+036350   %   C H R E E N T P A G E S     CHECK FOR MODIFIED REENTRANT PAGES.
+036350   %
+036350   SUBR CHREENTPAGES, VSEVSX
+036350
+036350   INTEGER CSEG, BREG, ERINDICATOR, NXP
+036354   INTEGER POINTER LREG
+036355
+036355   CHREENTPAGES:
+036355           IF SEGMC=0 THEN EXIT FI                 % ONLY IF PROGRAM HAS REENTRANT SEGMENT.
+036360           A=:CSEG=:X                              % X = REENTRANT SEGMENT
+036362           T:=SEGTBANK; *SGSTA@3 LDATX             % A:=X.FLAG
+036364           IF A NBIT 5WPM THEN EXIT FI             % IF NOT WRITE PERMIT THEN RETURN
+036367           A:=L=:"LREG"; A:=B=:BREG                % SAVE L AND B
+036373           0=:ERINDICATOR                          % NO ERRORS YET
+036374           *BPAGL@3 LDXTX                          % X := BPAGLINK
+036375           T:=CORMBANK
+036376           DO WHILE X >< 0                         % DO UNTIL END OF PAGE LIST.
+036377               *PROTE@3 LDATX                      % A:=X.PROTECT
+036400               IF A BIT 5WIP THEN                  % PAGE IS MODIFIED.
+036402                   *PAGLI@3 LDATX                  % GET POINTER TO NEXT PAGE
+036403                   A=:NXP                          % AND SAVE IT.
+036404                   *REMPG                          % REMOVE PAGE FROM REENTRANT SEGMENT.
+036405                   CALL SHADLINK; A=:ERINDICATOR   % LINK PAGE TO SHADOW SEGMENT (SAVE PSBL. ERROR)
+036407                   X:=NXP                          % RESTORE POINTER TO NEXT PAGE.
+036410                   T:=CORMBANK                     % RESTORE T
+036411               ELSE
+036412                   *PAGLI@3 LDXTX                  % GET POINTER TO NEXT PAGE.
+036413               FI
+036413           OD
+036414           BREG=:B
+036416           T:=SEGTBANK; X:=CSEG; *PAGLI@3 LDATX    % A:=CSEG.PAGLINK
+036421           IF A><0 THEN                            % IF SEGMENT IS IN SEGMENT LIST THEN
+036422               *BPAGL@3 LDATX                          % IF REENTRANT SEGMENT BECAME EMPTY
+036423               IF A=0 THEN CALL OUTSEGLINK FI          % THEN REMOVE IT FROM SEGMENT LIST.
+036425           FI
+036425           IF T:=ERINDICATOR >< 0 THEN             % IF NO SHADOW SEGMENT UNDER MODIFIED PAGE
+036430               "S14ERR"; CALL GOMLEV               % THEN REPORT ERROR. (OUTSIDE SEGMENT BOUNDS)
+036432           FI
+036432           GO LREG
+036433   RBUS
+036443
+
+036443   %=======================================================================
+036443   %
+036443   %   S H A D L I N K         LINK PAGE TO SHADOW SEGMENT.
+036443   %
+036443   %
+036443   SUBR SHADLINK
+036443
+036443   INTEGER POINTER LREG
+036444   INTEGER CME,ERPAGE,SHAINSTR(0); *SHA
+036447
+036447   SHADLINK:
+036447           A:=L=:"LREG"
+036451           X=:CME
+036452           SEGMA; CALL INSRPAGE        % TRY TO LINK TO SEGMA.
+036454           IF A=0 THEN                 % IF FAILED THEN
+036455               SEGMB; CALL INSRPAGE    % TRY TO LINK TO SEGMB.
+036457               IF A=0 THEN             % IF FAILED THEN
+036460                   T:=CORMBANK         % LINK TO DUMMY SEGMENT AND REPORT ERROR.
+036461                   *LOGPA@3 LDATX      % GET PAGE NUMBER.
+036462                   A=:ERPAGE           % SAVE ERROR.
+036463                   XSGRT=:B            % DUMMY SEGMENT.
+036465                   *INSPG              % INSERT IN PAGE LIST.
+036466                   *LDASG SGSTA        % COPY PROTECT ENTRY TO RESET WIP BIT
+036476                   *PROTE@3 STATX
+036477                   X:=B; T:=SEGTBANK
+036501                   *SEGLI@3 LDATX      % GET SEGLINK OF DUMMY SEGMENT.
+036502                   IF A=0 THEN         % IF DUMMY SEGMENT NOT IN SEGMENT LIST.
+036503                       CALL INSEGLINK  % INSERT IN SEGMENT LIST
+036504                       *SEGLI@3 LDATX  % AND MOVE TO END OF LIST.
+036505                       A=:BSEGLINK
+036506                   FI
+036506                   A:=ERPAGE
+036507                   GO LREG             % ERROR RETURN WITH PAGE IN A-REG.
+036510           FI  FI
+036510                                       % UPDATE BITMAP.
+036510           T:=SEGTBANK; X:=SEGMC       % REENTRANT SEGMENTS
+036512           *LOGAD@3 LDATX              % A:=LOGADR.
+036513           A/\1700=:D                  % D:=BITMAPS LOGICAL START.
+036515           T:=CORMBANK; X:=CME         % CORE MAP ENTRYS
+036517           *LOGPA@3 LDATX              % A:=LOGPAGE.
+036520           A-D; AD SHZ -4; D SHZ -14   % A:=WORD NO. IN BITMAP; D:=BIT NO. IN WORD.
+036523           X:=SEGPROG.RTDLGADDR+5BITMAP+A  % X POINTS TO BITMAP WORD.
+036527           A:=SHAINSTR                 % "SHIFT" INSTRUCTION.
+036530           D+A                         % ADD "SHIFT" INSTRUCTION TO SHIFT COUNT.
+036531           A:=1; *EXR SD               % SET A "1" AT WANTED POSITION IN WORD.
+036533           A=:D; T:=0; *LDATX          % GET BITMAP WORD.
+036536           A\/D; *STATX                % MASK IN THE NEW PAGE AND STORE.
+036540           MIN "LREG"                  % OK: SKIP RETURN.
+036541           GO LREG
+036542   RBUS
+036556
+
+036556   %====================================================================
+036556   %
+036556   %   I N S R P A G E         INSERT PAGE IN SHADOW SEGMENT IF WITHIN IT.
+036556   %                           A=SEGMENT,  X:=CORE MAP POINTER
+036556   %
+036556   %                           RETURN: A=0  :  NOT WITHIN THIS SEGMENT.
+036556   %                                   A><0 :  OK, PAGE IS LINKED.
+036556   SUBR INSRPAGE
+036556
+036556   INTEGER CME, SHSEG
+036560   INTEGER POINTER LREG
+036561
+036561   INSRPAGE:
+036561           IF A=0 THEN EXIT FI                 % NO SEGMENT: ON INSERT
+036563           T:=SEGTBANK
+036564           X=:CME:=A; *FLAG@3 LDATX            % A:=SEGMENT.FLAG
+036567           IF A NBIT 5DEMAND THEN              % NON-DEMAND SEGMENT:
+036571               X:=CME; A:=0; EXIT              %   CANNOT OVERLAP.
+036574           FI
+036574           A:=L=:"LREG"
+036576           X=:SHSEG                            % SAVE SHADOW SEGMENT
+036577           *LOGAD@3 LDDTX                      % A:=LOGADR; D:=SEGLENGTH
+036600           X:=CME; T:=CORMBANK
+036602           *LOGPA@3 LDXTX                      % X:=CME.LOGICAL PAGE
+036603           IF X>=A AND X<D+A THEN              % IF WITHIN SEGMENT THEN
+036610               T:=X                            % T:=LOGICAL PAGE
+036611               SHSEG=:B                        % B:=SEGMENT POINTER
+036613               X:=CME                          % X:=CORE MAP POINTER
+036614               *INSPG                          % INSERT PAGE INTO SEGMENT.
+036615               X:=:B; T:=SEGTBANK              % B:=COREMAP; X:=SEGMENT
+036617               *SGSTA@3 LDATX                  % A:=SHSEG.SGSTATUS
+036620               A/\777=:D                       % MASK "STATUS"-BITS
+036622               X:=:B                           % X:=COREMAP; B:=SEGMENT
+036623               T:=CORMBANK;  *PROTE@3 LDATX    %       INTO
+036625               A/\177000\/D; *PROTE@3 STATX    %       COREMAP.PROTECT.
+036630               X:=B; T:=SEGTBANK               % X:=SEGMENT
+036632               *SEGLI@3 LDATX                  % A:=SEGMENT.SEGLINK
+036633               IF A=0 THEN CALL INSEGLINK FI   % IF SEGMENT WAS EMPTY THEN
+036635               A:=1                            % OK: PAGE IS LINKED TO SHADOW SEGMENT.
+036636           ELSE
+036637               A:=0                            % NOT WITHIN THIS SEGMENT.
+036640           FI; X:=CME; GO LREG
+036642   RBUS
+036650
+
+036650   %==============================================================================
+036650   %
+036650   %                S E G M E N T   F E T C H I N G
+036650   %
+036650   %==============================================================================
+036650   % 37.10         S E G I N
+036650
+036650   % SUBROUTINE TO GET A NEW SEGMENT INTO CORE
+036650   % B=SEGMENT ELEMENT; NO RETURN
+036650
+036650   SUBR SEGIN
+036650
+036650   INTEGER LSTCALLER  % ADDRESS OF LAST CALL TO SEGIN
+036651   SYMBOL 5READ,5WRITE
+036651
+036651   SEGIN: A:=L=:LSTCALLER
+036653          5CLOAD; X:=RTREF; CALL CALLMLEV(MLRESERVE)
+036657          IF <0 THEN                      %SEG. TRANSFER GOING ON
+036660             IF SWPFLAG><0 THEN
+036662                X.STATUS BONE 5WAIT BONE 5SWWAIT=:X.STATUS    % SET IO-WAIT AND SWAP-WAIT
+036666                RTREF+"BRESLINK"=:X
+036671                DO WHILE X:=X.RESLINK><RTREF
+036675                   IF X.TYPRING/\3=3 THEN     % RELEASE ANY SWAPPING RESOURCES HELD
+036702                       X=:B:=RTREF
+036704                       CALL CALLMLEV(MLBRELEASE)
+036706                       RTREF+"BRESLINK"=:X    % RESTART FROM BEGINNING OF LIST
+036711                   FI
+036711                OD
+036712             FI
+036712             "RWAIT"; CALL GOMLEV ; *)FILL
+036724          FI
+036724                          % SINGLE THREAD FROM HERE.
+036724          A:=B=:SEGREF    % SET SWAPPING SEGMENT.
+036726          X=:SRTREF       % SET SWAPPING PROGRAM.
+036727          NSEGA=:TSEGA    % SET SWAPPING PROGRAMS SEGMENTS.
+036731          NSEGB=:TSEGB
+036733          NSEGC=:TSEGC
+036735          CALL XCSEGS     % CLEAR SEGMENTS FROM PIT.
+036736          *LDASG FLAG     % A:=B.FLAG
+036746          IF A NBIT 5DEMAND THEN      % IF NON DEMAND SEGMENT
+036750              IF XSGRT=B GO FAR INSG1 % SEGMENT #1 IS HANDLED IN A SPECIAL WAY
+036753              DO                      % UNTIL THE SEGMENT HAS GOT ENOUGH PAGES
+036753                  *LDASG SEGLE        % A:=B.SEGLENGTH
+036763                  A-=:NUMBER          % -SEGLENGTH =: NUMBER
+036765                  *LDXSG BPAGL        % BEGINNING OF PAGE LIST.
+036774                  IF X><0 THEN        % IF SEGMENT HAS PAGES IN MEMORY
+036775                      *LDASG LOGAD    % A:=B.LOGADR
+037005                      A=:D
+037006                      *LDACM LOGPA    % A:=X.LOGPAGE
+037014                      D-A=:A
+037016                      A=:NUMBER       % NUMBER OF PAGES MISSING.
+037017                  FI
+037017              WHILE NUMBER><0         % NOT ENOUGH PAGES
+037021                  CALL LRU; X:=:B         % FIND AN LRU SEGMENT AND PAGE.
+037023                  *LDASG FLAG             % LRU.FLAG=:SAVEFLAG BZERO 5OK=:LRU.FLAG
+037033                  A=:SAVEFLAG BZERO 5OK   %
+037035                  *STASG FLAG             %
+037045                  5WRITE; CALL TRNSEG     % WRITE LRU-PAGE TO DISK IF WRITTEN TO.
+037047                  IF A><0 THEN            % IF TRANSFER WAS MADE THEN
+037050                      A:=SAVEFLAG         % SAVEFLAG=:FLAG
+037051                      *STASG FLAG         % RESTORE LRU.FLAG
+037061                      GO FAR END1         % THIS PROGRAM HAS USED ENOUGH SWAPPING RESOURCES FOR
+037062                      *)FILL              % THE TIME BEING, LET ANOTHER PROGRAM RUN.
+037104                  FI
+037104                  X:=:B; CALL LINKOVER    % LINK LRU-PAGE TO PAGE REQUESTING SEGMENT (SEGREF).
+037106                  IF SAVEFLAG BIT 5DEMAND THEN % IF LRU-SEGMENT IS DEMAND SEGMENT.
+037111                      X:=:B                    % THEN RESTORE LRU.FLAG
+037112                      *STASG FLAG
+037122                      X:=:B
+037123                  FI
+037123              OD
+037124              A:=0    % READ ALL NECESSARY PAGES (NUMBER IS UNKNOWN)
+037125          ELSE                    % DEMAND SEGMENT
+037126
+
+037126                                  % DEMAND SEGMENT
+037126              IF A BIT 5OK THEN   % IF SEGMENT IS OK
+037130                  -1=:NUMBER      % GET ONE PAGE
+037132                  PNUMB=:CPNUMB   % PNUMB IS PAGEFAULTED PAGE
+037134                  *LDASG FLAG     % SEGREF.FLAG
+037144                  A BZERO 5OK     %             BZERO 5OK
+037145                  *STASG FLAG     %                      =:SEGREF.FLAG
+037155                  CALL LRU; X:=:B % FIND AN LRU SEGMENT AND PAGE.
+037157                  *LDASG FLAG     % LRU.FLAG
+037167                  A=:SAVEFLAG     %         =:SAVEFLAG
+037170                  A BZERO 5OK     %                    BZERO 5OK
+037171                  *STASG FLAG     %                             =:LRU.FLAG
+037201                  5WRITE; CALL TRNSEG         % WRITE LRU-PAGE TO DISK IF WRITTEN TO.
+037203                  X:=:B; CALL LINKOVER        % LINK LRU-PAGE TO PAGE REQUESTING SEGMENT.
+037205                  IF SAVEFLAG BIT 5DEMAND THEN% IF LRU-SEGMENT IS DEMAND SEGMENT
+037210                      X:=:B                    % THEN RESTORE LRU.FLAG
+037211                      *STASG FLAG
+037221                      X:=:B
+037222                  FI
+037222                  GO L1; *)FILL
+037233   L1:        FI                  % ENDIF A BIT 5OK
+037233              A:=-1               % READ 1 PAGE (DEMAND SEGMENT)
+037234          FI
+037234          A=:NUMBER
+037235          5READ; CALL TRNSEG      % READ NUMBER OR ALL NEEDED PAGES.
+037237
+037237   %SEGMENT OK:
+037237          *LDASG FLAG % FLAG
+037247          A BONE 5OK  %      BONE 5OK
+037250          *STASG FLAG %              =:FLAG
+037260          IF A BIT 5DEMAND THEN                   % IF DEMAND SEGMENT
+037262              *LDASG SGSTA
+037272              IF A BIT 5NCLSEG OR B=S3SEG THEN    % AND (FILSEGM OR 5NSEGM OR FUSEGM OR S3SEGM) THEN
+037277                  *LDXSG BPAGL                    % FIRST PAGE IN PAGE LIST (THE JUST READ PAGE)
+037306                  CALL STPAGE                     % ENTER IT INTO PIT.
+037307          FI; FI
+037307   END1:  X:=SRTREF; 5CLOAD
+037311          CALL CALLMLEV(MLRELEASE)    % RELEASE SWAPPING SEMAPHORE.
+037313          IF X=RTREF THEN             % IF SWAPPING PROGRAM IS RUNNING THEN
+037316              "RW"                    % LET IT CONTINUE.
+037317          ELSE                        % ELSE
+037320              "STUPR"                 % START HIGHEST PRIORITY READY PROGRAM.
+037321          FI
+037321          CALL GOMLEV                 % GO TO MONITOR LEVEL.
+037322   *)FILL
+037336
+037336   % WRITE ALL SWAPPING PAGES WITH WIP-BIT SET, BACK TO DISC.
+037336   % REMOVE ALL SEGMENTS FROM THE SEGMENT LINK, AND LINK ALL SWAPPING PAGES
+037336   % TO THE DUMMY SEGMENT
+037336   %
+037336   INSG1: S3SEG;   CALL XCLSEG    % CLEAR OUT CURRENT SINTRAN SEGMENT.
+037340          0=:S3SEG
+037341          FILSEGM; CALL XCLSEG    % CLEAR OUT FILE SYSTEM.
+037343   *"8N500
+"037343          5NSEGM;  CALL XCLSEG    % CLEAR OUT ND500 MONITOR.
+037345   *"8RFAC
+"037345          FUSEGM;  CALL XCLSEG    % CLEAR OUT REMOTE FILE ACCESS.
+037347   *"
+"037347          DO
+037347             -1=:NUMBER           % ONE PAGE AT A TIME
+037351             CALL LRU; X:=:B      % FIND LRU SEGMENT AND PAGE.
+037353             *LDASG FLAG          % LRU.FLAG
+037363             A=:SAVEFLAG BZERO 5OK %        =:SAVEFLAG BZERO 5OK
+037365             *STASG FLAG          %                             =:LRU.FLAG
+037375             5WRITE; CALL TRNSEG  % WRITE LRU PAGE TO DISK IF WRITTEN TO.
+037377             IF A><0 THEN         % IF TRANSFER WAS MADE THEN
+037400                A:=SAVEFLAG       % SAVEFLAG=:FLAG
+037401                *STASG FLAG       % RESTORE LRU.FLAG
+037411             FI
+037411             X:=:B; CALL LINKOVER % LINK LRU PAGE TO DUMMY SEGMENT.
+037413          OD                      % EXIT FROM THIS LOOP IS MADE IN LRU WHEN
+037414   RBUS                           % NO MORE SWAPPING PAGES CAN BE FOUND.
+037427
+
+037427   %==============================================================================
+037427   % 37.11      L R U
+037427
+037427   %SUBROUTINE TO FIND LEAST RECENTLY USED SEGMENT
+037427   %ENTRY: B=SEGREF
+037427   % RETURN: X=LRU SEGMENT POINTER
+037427
+037427   SUBR LRU
+037427   INTEGER ARRAY TSGN:=(TSEGB,TSEGC,TSEGA,TSEGC,TSEGA,TSEGB,TSEGC,TSEGB)
+037437   INTEGER POINTER LREG=?; INTEGER R01
+037440   LRU:   A:=L=:"LREG"
+037442          *LDASG SGSTA
+037452          IF A BIT 5NCLSEG AND B><BSEGLINK THEN   % IF THE PAGE REQUESTING SEGMENT
+037457              *LDASG SEGLI                        % IS A "SPECIAL" SEGMENT NOT AT THE
+037467              IF A><0 THEN                        % HEAD OF THE SEGMENT LIST, AND HAS
+037470                  X:=:B                           % PAGES IN MEMORY,
+037471                  CALL OUTSEGLINK                 % THEN MOVE IT TO THE HEAD OF THE
+037472                  CALL INSEGLINK                  % SEGMENT LIST TO AVOID TRASHING
+037473                  X:=:B                           % BECAUSE OF THESE SEGMENTS.
+037474          FI  FI
+037474          *LDASG FLAG % A:=B.FLAG
+037504          IF X:=MAXP << 200 AND A BIT 5DEMAND THEN % IF THERE IS A LIMIT TO THE NUMBER
+037512              *LDXSG BPAGL    % X:=B.BPAGLINK      % OF PAGES A SEGMENT MAY HAVE IN MEMORY,
+037521              D:=0                                 % COUNT PAGES IN PAGE LIST.
+037522              DO WHILE X><0                        % IF THE PAGE REQUESTING SEGMENT
+037523                  *LDXCM PAGLI % X:=X.PAGLI        % HAS MORE THAN THE MAXIMUM
+037531                  D+1                              % ALLOWED NUMBER OF PAGES IN MEMORY,
+037532              OD                                   % THEN TAKE PAGES FROM ITSELF.
+037533              IF D>=MAXP THEN B=:X; GO OUT FI
+037540          FI
+037540          B=:D    % SAVE B IN D                   % CHECK WHETHER THE PROGRAM USES
+037541          FOR X:=-3 DO                            % THREE SEGMENTS OR LESS.
+037542              IF TSEGS(X)=0 THEN B:=D; GO NOTF FI % NO, IT USES AT MOST TWO SEGMENTS.
+037546              X:=:A=:B
+037550              *LDXSG SEGLI    % X:=B.SEGLINK
+037557              IF X=0 THEN B:=D; GO NOTF FI        % NO, SEGMENT HAS NO PAGES IN MEMORY.
+037563              A=:X
+037564          OD
+037565          B:=D    % RESTORE B             % YES, SEGMENT HAS THREE SEGMENTS IN MEMORY.
+037566          CALL GETLAST                    % CHECK IF LAST SEGMENT IS USED BY THIS PROGRAM
+037567          IF =0 GO OUT                    % NO, USE THIS AS LRU SEGMENT.
+037570                      % ALL THREE SEGMENTS PRESENT, TAKE ONE OF THE TWO OTHERS.
+037570          FOR X:=-3 DO WHILE TSEGS(X)><B OD   % FIND INDEX OF SEGREF IN TSEGS.
+037575          R01-,=:R01; X+3+X-A                 % COMPUTE INDEX INTO TSGN TO SELECT
+037603          *1BANK                              % ONE OF THE OTHERS.
+037604          X:=TSGN(X)                          % TSGN IS A LOCAL ARRAY AND MUST BE
+037605          *2BANK                              % ACCESSED IN 1 BANK MODE.
+037606          X:=X.S0; GO OUT                     % USE THIS AS LRU SEGMENT.
+037610
+037610   *)FILL
+037622   INTEGER POINTER LREG
+037623   INTEGER LRUS2
+037624
+037624   %      THE PROGRAM HAS AT MOST TWO SEGMENTS IN MEMORY.
+037624   NOTF:  CALL GETLAST; IF =0 GO OUT  % IF LAST SEGMENT IS NOT USED BY THE PROGRAM, USE IT AS LRU.
+037626          CALL GETLAST; X=:LRUS2      % TRY THE NEXT LAST.
+037630          IF <0 THEN CALL GETLAST     % IF ALSO IN USE GET ANOTHER.
+037632              IF <0 THEN              % AT MOST TWO SEGMENTS IN MEMORY.
+037633                  X=:D:=:B=:T; *LDASG FLAG
+037646                  A/\100 SHZ -5               % GET DEMAND STATUS OF THIS SEGMENT.
+037650                  X:=LRUS2=:B; *LDXSG FLAG
+037661                  *BLDA 60 DX; BSTA 0 DA      % GET DEMAND STATUS OF THE OTHER.
+037663                  B:=T; X:=D                  % A IS NOW IN THE RANGE 0 TO 3
+037665                  GOSW ERR,FRSTDEM,OUT,BOTHDEM % DEPENDING ON THE 5DEMAND BITS
+037672   BOTHDEM:       IF X><B GO OUT              % TWO DEMAND SEGMENTS
+037674   FRSTDEM:       X:=LRUS2                    % LRUS2 IS THE FIRST
+037675          FI  FI
+037675   % X=SEGMENT TO BE REMOVED(LRU-SEG):
+037675   OUT:   X=:A; CALL CSEGS                    % CLEAR PAGE TABLES IF SEGMENT IS ACTIVE.
+037677          X:=:B; *LDASG SEGLI                 % IF SEGMENT IS NOT IN THE SEGMENT
+037710          IF A=0 THEN X:=:B; GO NOTF; FI      % LIST, THEN FIND ANOTHER.
+037713          *LDASG SGSTA                        % IF THE LRU SEGMENT IS A "SPECIAL" SEGMENT
+037723          IF A BIT 5NCLSEG AND BIT 5WPM THEN  % AND HAS WRITE PERMIT
+037727              CALL GETWIP                     % THEN MOVE THE WIP BITS TO THE CORE MAP.
+037730          FI
+037730          CALL SEGSORT; CALL RANDOM           % FIND A PAGE TO BE SWAPPED OUT.
+037732          X=:T                                % SAVE SEGREF IN T.
+037733          *LDXSG BPAGL                        % POINTER TO FIRST PAGE OF SEGMENT.
+037742          *LDACM PROTE                        % PROTECT ENTRY FOR THIS PAGE.
+037750          X:=B; B:=T                          % RESTORE X(LRU) AND B(SEGREF).
+037752          IF A BIT 5FIX THEN                  % DO NOT TAKE FIXED PAGES.
+037754              X=:A                            % MOVE LAST SEGMENT TO HEAD OF SEGMENT LIST.
+037755              T:=SEGTBANK; X:=BSEGLINK        % FIRST SEGMENT.
+037757              *PRESE@3 LDXTX                  % FIRST.PREVIOUS = LAST
+037760              X=:BSEGLINK                     % LAST =: FIRST
+037761              X:=A                            % RESTORE X.
+037762              GO FAR NOTF                     % GET ANOTHER SEGMENT.
+037763          FI
+037763          GO LREG                             % EXIT.
+037764   *)FILL
+037776   ERR:   IF SEGREF=XSGRT THEN                % SEGMENT 1, FIXC OR SET5NONDEMAND.
+040002             "CLFIE"=:B; X:=SRTREF            % RELEASE SWAPPING SEMAPHORE.
+040005             CALL CALLMLEV(MLBRELEASE)
+040007             0=:X.ACT1SEG=:X.ACT2SEG          % RESET PROGRAMS SEGMENTS.
+040011             "STUPR"; CALL GOMLEV             % GO STUPR.
+040013          FI
+040013          SRTREF=:RTREF
+040015          A:="S19ERR"                         % ERROR 19.
+040016          CALL GOMLEV                         %          AND GO PRTEXT.
+040017   *)FILL
+040030
+040030   % LOCAL SUBROUTINE TO FIND LAST SEGMENT
+040030   % RETURN: X=LRU-SEG;IF =TSEGA OR TSEGB OR =TSEGC :A<0
+040030   INTEGER LREG2
+040031   GETLAST:B=:D   % SAVE B IN D
+040032          IF BSEGLINK=:B=0 THEN CALL ERRFATAL FI  % EMPTY SEGMENT LIST IS FATAL ERROR
+040036          *LDXSG PRESE    % X:=BSEGLINK.PRESEG    % GET LAST SEGMENT IN LIST
+040045          IF X=TSEGA OR X=TSEGB OR X=TSEGC THEN
+040056   MOVESEG:   IF B><X THEN        % IF NOT FIRST SEGMENT THEN
+040060                  A:=L=:LREG2
+040062                  CALL OUTSEGLINK % MOVE SEGMENT TO HEAD OF LIST
+040063                  CALL INSEGLINK
+040064                  LREG2=:L
+040066              FI
+040066              A:=-1               % SEGMENT IS IN USE BY CURRENT PROGRAM
+040067          ELSE
+040070
+040070              GO SKIP2
+040071              SRTREF; CALL GETXSEG    % CHECK IF WANTED LRU IS SPECIAL SEGMENT
+040073              IF X=A GO MOVESEG       % AND IF IT IS, MOVE IT TO HEAD OF LIST.
+040075
+040075   SKIP2:     A:=0
+040076          FI
+040076          B:=D    % RESTORE B
+040077          EXIT
+040100   RBUS
+040112
+
+040112   %==============================================================================
+040112   %              G E T X S E G
+040112   %
+040112   %      FIND OUT WHETHER OR NOT A PROGRAM USES A SPECIAL SEGMENT.
+040112   %      RETURNS SEGMENT POINTER OR ZERO.
+040112   %      ENTRY: A=RT-PROGRAM.
+040112   %      EXIT:  A=SEGMENT POINTER.
+040112   %
+040112   SUBR GETXSEG
+040112
+040112   INTEGER ARRAY SGPNT:=(0,0,0,FUSEGM,FILSEGM,5NSEGM)
+040120   INTEGER XREG,TREG
+040122
+040122   GETXSEG: T=:TREG               % SAVE T.
+040123          X=:XREG:=A              % SAVE X, X=RT-PROG.
+040125          X.ACTPRI SHR 5 /\ 17    % COMPUTE PIT NO. OF NPT.
+040130          IF A>=3 AND A<=5 THEN   % IF SPECIAL PIT THEN
+040136              *1BANK
+040137              X:=SGPNT(A); *2BANK % GET SEGMENT POINTER ADDRESS.
+040142              A:=X.S0             % GET SEGMENT POINTER.
+040143          ELSE
+040144              A:=0                % NOT SPECIAL PIT.
+040145          FI
+040145          X:=XREG; T:=TREG
+040147          EXIT
+040150   RBUS
+040152
+
+040152   %==============================================================================
+040152   % 37.12         S E G S O R T
+040152   %
+040152   %      SUBROUTINE TO PUT NON-USED PAGES FIRST IN PAGE LINK
+040152   %      B=SORT SEGMENT
+040152   %
+040152   %
+040152   SUBR SEGSORT, SP07J, SP07L % SEGSORT FOR NEW ENHANCED CX CPU
+040152   INTEGER XREG
+040153   INTEGER POINTER LREG
+040154
+040154   SEGSORT:IF B=XSGRT THEN EXIT FI        % DO NOT SORT DUMMY SEGMENT
+040160
+040160   SP07J:  GO SP07L
+040161           *ILDAS FLAG
+040162           IF A NBIT 5DEMAND THEN EXIT FI % DO NOT SORT NON DEMAND SEGMENTS
+040165           X=:XREG:=L=:"LREG"
+040170           *ILDXS BPAGL                   % START OF PAGE LIST
+040171           DO WHILE X >< 0                % PASS BY UNUSED PAGES AT HEAD OF LIST
+040172               *ILDAC PROTE               % GET PROTECT WORD
+040173           WHILE A NBIT 5PGU AND A NBIT 5FIX  % WHILE PAGE IS UNUSED
+040177               *ILDXC PAGLI               % GET NEXT PAGE
+040200           OD
+040201           DO WHILE X >< 0                % PASS THROUGH REST OF LIST
+040202               *ILDAC PAGLI               % GET NEXT PAGE
+040203               A=:D                       % AND SAVE IN D
+040204               *ILDAC PROTE               % GET PROTECT WORD
+040205               IF A NBIT 5PGU AND A NBIT 5FIX THEN % UNUSED PAGE IS FOUND
+040211                   *ILDAC LOGPA           % REMEMBER THE LOGICAL PAGE NUMBER
+040212                   A=:T                   % IN T
+040213                   *IREMP                 % LINK OUT
+040214                   *IINSP                 % INSERT FIRST
+040215               FI
+040215               X:=D                       % RESTORE NEXT PAGE POINTER
+040216           OD
+040217           X:=XREG
+040220           GO LREG                        % RETURN
+040221   RBUS
+040223
+
+040223   SUBR SP07L     % SEGSORT FOR CX CPU WITH ECO ONLY
+040223   INTEGER XREG
+040224   INTEGER POINTER LREG
+040225
+040225   SP07L:  %%% IF B=XSGRT THEN EXIT FI    % DO NOT SORT DUMMY SEGMENT
+040225           *LDASG FLAG
+040235           IF A NBIT 5DEMAND THEN EXIT FI % DO NOT SORT NON DEMAND SEGMENTS
+040240           X=:XREG:=L=:"LREG"
+040243           *LDXSG BPAGL                   % START OF PAGE LIST
+040252           DO WHILE X >< 0                % PASS BY UNUSED PAGES AT HEAD OF LIST
+040253               *LDACM PROTE               % GET PROTECT WORD
+040261           WHILE A NBIT 5PGU              % WHILE PAGE IS UNUSED
+040263               *LDXCM PAGLI               % GET NEXT PAGE
+040271           OD
+040272           DO WHILE X >< 0                % PASS THROUGH REST OF LIST
+040273               *LDACM PAGLI               % GET NEXT PAGE
+040301               A=:D                       % AND SAVE IN D
+040302               *LDACM PROTE               % GET PROTECT WORD
+040310               IF A NBIT 5PGU THEN        % UNUSED PAGE IS FOUND
+040312                   *LDACM LOGPA           % REMEMBER THE LOGICAL PAGE NUMBER
+040320                   A=:T                   % IN T
+040321                   *REMPG                 % LINK OUT
+040322                   *INSPG                 % INSERT FIRST
+040323               FI
+040323               X:=D                       % RESTORE NEXT PAGE POINTER
+040324           OD
+040325           X:=XREG
+040326           GO LREG                        % RETURN
+040327   RBUS
+040333
+
+040333   %==============================================================================
+040333   % 37.13         R A N D O M
+040333
+040333   % SUBROUTINE TO TAKE A RANDOM(PREFERABLY NOT USED) PAGE AND PUT IT FIRST
+040333   % ENTRY:     B=SEGMENT
+040333   SUBR RANDOM, SP08J, SP08L      % RANDOM FOR ENHANCED NEW CX CPU
+040333   INTEGER XREG,XN:=3614,CC:=33031,AA:=12465
+040337   INTEGER POINTER LREG
+040340   RANDOM:
+040340   SP08J: GO SP08L
+040341
+040341          *ILDAS FLAG                 % A:=B.FLAG
+040342          IF A NBIT 5DEMAND THEN      % NO RANDOM ON NON DEMAND SEGMENTS.
+040344              EXIT FI
+040345          X=:XREG:=L=:"LREG"
+040350          *ILDXS BPAGL                % GET BEGINNING OF PAGE LIST.
+040351          D:=0                        % COUNT PAGES IN D.
+040352          DO
+040352          WHILE X >< 0                % DO TILL END OF PAGE LIST
+040353              *ILDAC PROTE            % A:=X.PROTECT
+040354          WHILE A NBIT 5PGU
+040356              D+1                     % COUNT UNUSED PAGES
+040357              *ILDXC PAGLI            % X:=X.PAGLI
+040360          OD
+040361          IF D=0 THEN                 % IF NO UNUSED PAGES THEN
+040363             DO WHILE X >< 0
+040364                D+1                   % COUNT USED PAGES
+040365                *ILDXC PAGLI
+040366             OD
+040367          FI
+040367          D=:T; XN*AA+CC=:XN
+040374          A BZERO 17=:D:=0; *RDIV ST  % COMPUTE WHICH PAGE TO TAKE
+040400          *ILDXS BPAGL                % X:=B.BPAGLINK
+040401          IF D > 1 THEN               % IF THE FIRST WAS NOT SELECTED
+040404              FOR D-+1+1 TO 0 DO
+040411                  *ILDXC PAGLI        % X:=X.PAGLI
+040412              OD
+040414              *ILDAC LOGPA            % A:=X.LOGPAGE
+040415              A=:T
+040416              *IREMP                  % MOVE THE SELECTED PAGE TO THE
+040417              *IINSP                  % BEGINNING OF THE PAGE LIST
+040420          FI
+040420          X:=XREG
+040421          GO LREG                     % RETURN
+040422   RBUS
+040423
+
+040423   SUBR SP08L    % RANDOM FOR CX CPU WITH ECO ONLY
+040423   INTEGER XREG,XN:=3614,CC:=33031,AA:=12465
+040427   INTEGER POINTER LREG
+040430
+040430   SP08L: *LDASG FLAG                 % A:=B.FLAG
+040440          IF A NBIT 5DEMAND THEN      % NO RANDOM ON NON DEMAND SEGMENTS.
+040442              EXIT FI
+040443          X=:XREG:=L=:"LREG"
+040446          *LDXSG BPAGL                % GET BEGINNING OF PAGE LIST.
+040455          D:=0                        % COUNT PAGES IN D.
+040456          DO
+040456          WHILE X >< 0                % DO TILL END OF PAGE LIST
+040457              *LDACM PROTE            % A:=X.PROTECT
+040465          WHILE A NBIT 5PGU
+040467              D+1                     % COUNT UNUSED PAGES
+040470              *LDXCM PAGLI            % X:=X.PAGLI
+040476          OD
+040477          IF D=0 THEN                 % IF NO UNUSED PAGES THEN
+040501             DO WHILE X >< 0
+040502                D+1                   % COUNT USED PAGES
+040503                *LDXCM PAGLI
+040511             OD
+040512          FI
+040512          D=:T; XN*AA+CC=:XN
+040517          A BZERO 17=:D:=0; *RDIV ST  % COMPUTE WHICH PAGE TO TAKE
+040523          *LDXSG BPAGL                % X:=B.BPAGLINK
+040532          IF D > 1 THEN               % IF THE FIRST WAS NOT SELECTED
+040535              FOR D-+1+1 TO 0 DO
+040542                  *LDXCM PAGLI        % X:=X.PAGLI
+040550              OD
+040552              *LDACM LOGPA            % A:=X.LOGPAGE
+040560              A=:T
+040561              *REMPG                  % MOVE THE SELECTED PAGE TO THE
+040562              *INSPG                  % BEGINNING OF THE PAGE LIST
+040563          FI
+040563          X:=XREG
+040564          GO LREG                     % RETURN
+040565   RBUS
+040571
+
+040571   %==============================================================================
+040571   % 37.14      T R N S E G  R W S E G M  X T R N S E G
+040571
+040571   %SUBROUTINE TO READ OR WRITE PAGES OF A SEGMENT; NUMBER=-NEEDED PAGES
+040571   % ENTRY:     A=READ/WRITE FLAG, B=SEGMENT
+040571   %RETURN WITH A=0 IF NO TRANSFER HAS BEEN DONE
+040571
+040571   SUBR TRNSEG,RWSEGM,XTRNSEG,INRWSEGM
+040571
+040571   INTEGER WRITTEN=?,MODUS=?,CNUMBER=?,LMASSNO=?,XREG=?,XREG2=?,BREG=?,CABLPAGE=?
+040571   DOUBLE BLSTX=?
+040571   INTEGER POINTER LREG
+040572
+040572   % ENTRY: D=NUMBER OF PAGES TO TRANSFER
+040572   %        X=CORMAP ELEMENT OF FIRST PAGE TO TRANSFER
+040572   %        A=READ/WRITE FLAG
+040572   %        B=SEGMENT ADDRESS
+040572   %
+040572   XTRNSEG: A=:MODUS:=RTREF=:SRTREF:=D; 0=:WRITTEN; CALL RWSEGM
+040600            "STUPR"; CALL GOMLEV
+040602
+040602
+040602   TRNSEG: A=:MODUS:=L=:"LREG"; X=:XREG
+040606          0=:WRITTEN                  % NO TRANSFER IS MADE YET.
+040607          NUMBER=:CNUMBER             % COPY NUMBER OF PAGES TO LOCAL VARIABLE.
+040611          *LDXSG BPAGL                % (X:=BPAGLINK) GET FIRST CORE MAP ELEMENT
+040620          FOR CNUMBER DO WHILE X><0
+040621             *LDACM PROTE             % A:=X.PROTECT
+040627             IF A=:D/\160000\/MODUS=0 OR MODUS SHR 5WIP/\D><0 THEN
+040637                                      % IF READ TRANSFER AND PAGE NOT IN MEMORY
+040637                                      % OR WRITE TRANSFER AND PAGE IS MODIFIED THEN
+040637                1; CALL RWSEGM        % TRANSFER 1 PAGE.
+040641             FI
+040641             *LDXCM PAGLI             % (X:=X.PAGLI) GET NEXT CORE MAP ELEMENT
+040647          OD
+040651          IF WRITTEN><0 THEN          % IF A TRANSFER HAS BEEN MADE THEN
+040653              X:=SRTREF; LMASSNO      % RELEASE DISK
+040655              CALL CALLMLEV(MLRELEASE)
+040657          FI
+040657          A:=WRITTEN                  % RETURN TRANSFER FLAG IN A
+040660          X:=XREG; GO LREG            % RETURN
+040662   *)FILL
+040674
+
+040674   INTEGER NPGS=?,BMASS=?
+040674   INTEGER POINTER LREG2=?
+040674
+040674   RWSEGM:A=:NPGS                     % SAVE NUMBER OF PAGES TO TRANSFER.
+040675          A:=L=:"LREG2":=B=:BREG      % SAVE RETURN ADDRESS AND B.
+040701          X=:XREG2                    % SAVE X.
+040702          IF WRITTEN=0 THEN           % IF NO TRANSFER HAS YET BEEN MADE.
+040704                                      % THEN RESERVE DISK RESOURCES.
+040704              *LDASG FLAG             % SEGMENT FILE NO. IS IN TOP OF FLAG.
+040714              A SHZ -15               % 3 UPPER BITS.
+040715              MASSUNIT(A) SH 6        % DISK UNIT FOR SEGMENT FILE
+040720              A+MODUS+60=:SWPMTMODUS  %   + MODUS(READ/WRITE)+ 60(TRANSFER) =: SWAP PARAMETER.
+040723              ABLPAGE(X)=:CABLPAGE    % NUMBER OF DISK BLOCKS PER PAGE.
+040725              A*NPGS=:SWPBLPAGE       % NUMBER OF BLOCKS TO TRANSFER =: SWAP PARAMETER.
+040727              X=:T+X                  % SAVE X IN T AND DOUBLE.
+040731              DBLST(X)=:BLSTX         % DISK ADDRESS FOR THIS SEGMENT FILE (DOUBLE WORD).
+040733              X:=T                    % RESTORE X (SEGMENT FILE NO.)
+040734              IF D=0 AND A=0 THEN CALL ERRFATAL FI    % ZERO DISK ADDRESS IS FATAL ERROR.
+040740              GO L1
+040741
+040741   INTEGER WRITTEN,MODUS,CNUMBER,LMASSNO,XREG,XREG2,BREG,CABLPAGE,NPGS,BMASS
+040753   DOUBLE BLSTX
+040755
+040755   % DISC TRANSFER ERROR, ABORT PROGRAM CURRENTLY USING SEGADM.
+040755   %
+040755   ERR:   BMASS=:B                    % RESTORE DF-POINTER.
+040757          "DISKERR"; CALL GOMLEV      % PRINT ERROR MESSAGE AND
+040761                                      % ABORT PROGRAM
+040761   *)FILL
+040772
+040772   INTEGER POINTER LREG2
+040773   L1:        MASSNO(X)=:LMASSNO      % LOGICAL UNIT FOR THE DISK OF THIS SEGMENT FILE.
+040775              CALL CALLMLEV(MLLOGPH)  % GET DATAFIELD ADDRESS
+040777              A=:BMASS=:B             % AND SAVE (BMASS).
+041001              X:=SRTREF               % FOR SWAPPING PROGRAM
+041002              CALL CALLMLEV(MLBRSERVE)% TRY TO RESERVE DISK.
+041004              IF A<0 THEN             % IF THE DISK WAS IN USE THEN
+041005                  IF SWPFLAG><0 THEN  % IF SWAPPING STRATEGY >< 0
+041007                      BMASS=:B        % DISK DATAFIELD
+041011                      A:="LNK1SWAP"   % START "1SWAP".
+041012                      CALL GOMLEV     % ON MONITOR LEVEL.
+041013                  FI
+041013                                      % SWAPPING STRATEGY = 0
+041013                  A:=5CLOAD           % RELEASE SWAPPING SEMAPHORE.
+041014                  CALL CALLMLEV(MLRELEASE)
+041016                  IF X=RTREF THEN "RWAIT" ELSE "STUPR" FI
+041024                  CALL GOMLEV         % RESTART THIS OR ANOTHER PROGRAM.
+041025                  *)FILL
+041037              FI
+041037                                      % DISK IS NOW RESERVED.
+041037              MIN WRITTEN; BREG=:B    % SET TRANSFER FLAG, RESTORE B
+041042          FI
+041042          X:=XREG2; *LDACM LOGPA      % RESTORE X, GET LOGICAL PAGE NUMBER.
+041051          A=:D
+041052          *LDASG LOGAD                % FIRST LOGICAL PAGE OF THIS SEGMENT.
+041062          D-A                         % FIND PAGE NUMBER RELATIVE TO START OF SEGMENT.
+041063          *LDASG MADR                 % MASS STORAGE ADDRESS OF THIS SEGMENT.
+041073          A+D*CABLPAGE=:L             % COMPUTE DISK BLOCK ADDRESS FOR THIS PAGE.
+041076          BLSTX; D+L; A:=A+C
+041101          AD=:SWPMASSADR              % DISK ADDRESS =: SWAP PARAMETER.
+041102          A:=X SHZ -2                 % A:=PHYSICAL PAGE NO. TO TRANSFER TO/FROM.
+041104          D:=0; AD SHZ -6=:SWPCOREADR % PHYSICAL PAGE =: SWAP PARAMETER.
+041107   *"8SWLG
+"041107          IF CSWLG><0 AND MODUS BIT "0" THEN        % COUNT PAGES WRITTEN BACK
+041114             *MIN I (SNWP2; SKP; MIN I (SNWP1; JMP *+1
+041120          FI
+041120   *"
+"041120          A:=BMASS=:B:="SWPPARLIST"   % B:=DATAFIELD, A:=SWAP PARAMETER LIST.
+041123          CALL CALLMLEV(PMTRANS)      % PERFORM DISK TRANSFER.
+041125                                      % RETURNS WITH STATUS IN A-REG.
+041125          IF A BIT 4 GO ERR           % ERROR OCCURED IN TRANSFER.
+041127          X:=BREG=:B:=XREG2           % RESTORE B AND X
+041132          IF MODUS><0 THEN            % IF PAGE WAS WRITTEN TO DISK THEN
+041134              *LDACM PROTE            % RESET WIP BIT
+041142              A BZERO 5WIP
+041143          ELSE                        % ELSE PAGE WAS READ FROM DISK
+041144              *LDASG SGSTA            % GET PROTECT ENTRY FROM SEGMENT ENTRY
+041154          FI
+041154          *STACM PROTE                % STORE PROTECT ENTRY IN CORE MAP ENTRY.
+041162          GO LREG2
+041163   *)FILL
+041174
+041174   RBUS
+041174
+
+041174   %==============================================================================
+041174   % 37.16         L I N K O V E R
+041174
+041174   %SUBROUTINE TO LINK PAGES OVER TO REQUESTING SEGMENT
+041174   % ENTRY: B=REQ.SEGMENT (SEGREF)
+041174   %        X=LRU-SEGM
+041174
+041174   SUBR LINKOVER
+041174   INTEGER CURPAGE=?,CNUMBER=?,LRUSEG=?
+041174   INTEGER POINTER LREG=?
+041174   LINKOVER: A:=L=:"LREG"
+041176          X=:LRUSEG                   % SAVE LRU SEGMENT
+041177          NUMBER=:CNUMBER             % AND LOCAL COPY OF NUMBER OF PAGES TO LINK.
+041201          B=:A                        % CLEAR SEGMENTS IF PAGE REQUESTING
+041202          CALL CSEGS                  % IS ACTIVE.
+041203          *LDASG SGSTA                % A:=B.FLAG
+041213          IF A BIT 5FIX THEN          % FIXED SEGMENTS SHOULD NEVER COME HERE.
+041215              CALL ERRFATAL FI          % FATAL ERROR.
+041216          A:=B-SEGSTART=:D:=0         % VERIFY THAT THIS IS A VALID
+041222          T:=5SEGSIZE; *RDIV ST       % SEGMENT TABLE POINTER.
+041224          IF D><0 THEN CALL ERRFATAL FI % NO, FATAL ERROR.
+041227          LRUSEG=:D                   % D=LRUSEG, B=SEGREF
+041231          GO L1
+041232   INTEGER CURPAGE,CNUMBER,LRUSEG
+041235   INTEGER POINTER LREG
+041236   *)FILL
+041243   L1:    FOR CNUMBER DO              % TRY TO GET CNUMBER NUMBER OF PAGES.
+041243              D:=:B                   % D=SEGREF, B=LRUSEG
+041244              *LDXSG BPAGL            % X:=LRUSEG.BPAGLINK
+041253          IF X=0 GO OUT               % WHILE PAGES LEFT IN LRUSEG.
+041254              *LDACM PROTE            % A:=X.PROTECT
+041262          IF A BIT 5WIP OR BIT 5FIX GO OUT % WHILE THERE ARE NON MODIFIED PAGES TO TAKE.
+041266              X=:CURPAGE              % SET CURRENT PAGE.
+041267              IF A BIT 5NCLSEG THEN   % IF "SPECIAL" SEGMENT THEN
+041271                  CALL CLPAGE         % REMOVE PAGE PROM PIT
+041272              FI
+041272              *REMPG                  % REMOVE PAGE FROM SEGMENT
+041273              B:=:D                   % B=SEGREF, D=LRUSEG
+041274              *LDXSG BPAGL            % X:=SEGREF.BPAGLINK
+041303              IF X=0 THEN             % IF SEGMENT HAS NO PAGES IN CORE
+041305                  *LDASG SEGLI        % A:=SEGREF.SEGLINK
+041315                  IF A=0 THEN         % IF SEGMENT IS NOT IN SEGMENT LIST
+041316                      X:=B
+041317                      CALL INSEGLINK  % LINK IT IN
+041320                      X:=0
+041321                  FI
+041321                  *LDASG LOGAD        % A:=SEGREF.LOGADR
+041331                  A-NUMBER            % COMPUTE PAGE NUMBER FOR NON DEMAND SEGMENTS.
+041332              ELSE
+041333                  *LDACM LOGPA        % A:=X.LOGPAGE
+041341              FI
+041341              A=:T                    % T=PREVIOUS LOGICAL PAGE NUMBER
+041342              X:=CURPAGE              % CURRENT PAGE.
+041343              *LDASG FLAG             % A:=SEGREF.FLAG
+041353              IF A NBIT 5DEMAND THEN  % IF NON DEMAND SEGMENT
+041355                  T-1                 % T=LOGICAL PAGE NUMBER FOR THIS PAGE
+041356              ELSE                    % ELSE DEMAND SEGMENT
+041357                  T:=CPNUMB           % T=PAGE FAULTED PAGE.
+041360              FI
+041360              *INSPG                  % INSERT PAGE INTO SEGREF
+041361              *STZCM PROTE            % CLEAR THE PROTECT ENTRY SO THE PAGE WILL BE READ FROM DISK
+041367          OD
+041371          B:=:D                       % B=LRUSEG, D=SEGREF
+041372   OUT:   *LDASG BPAGL                % A:=LRUSEG.BPAGLINK
+041402          X:=B                        % X=LRUSEG
+041403          IF A=0 THEN                 % IF LRU SEGMENT TURNED EMPTY
+041404              CALL OUTSEGLINK FI      % THEN LINK IT OUT
+041405          B:=D                        % B=SEGREF
+041406          GO LREG                     % RETURN
+041407   RBUS
+041420
+
+041420   %============================================================================
+041420   % 37.21         X O V E R L A P
+041420   %                                  (CALLED BY PROGRAMMING FROM APPL. LEVEL)
+041420   % SUBROUTINE TO SEARCH FOR OVERLAP BETWEEN A REENTRANT SEGMENT AND
+041420   %  A SHADOW SEGMENT AND IF NECESSARY DELETE PAGES FROM THE LATTER.
+041420   %
+041420   % ENTRY:     A=SEGMENT TABLE POINTER, T=REENTRANT SEGMENT
+041420   %
+041420   SUBR XOVERLAP, SP09J, SP09L    % XOVERLAP FOR ENHANCED CX CPU
+041420   INTEGER RSTRT,REND,NXP
+041423
+041423   XOVERLAP: IF A=0 GO OUT                    % NO SHADOW SEGMENT: NO OVERLAP.
+041424   SP09J: GO SP09L
+041425
+041425          A=:B                                % B=SHADSEG.
+041426          *ILDAS SEGLI                        % SEGMENT LINK
+041427          IF A=0 GO OUT                       % IF SEGMENT IS NOT IN SEGMENT LIST: NO OVERLAP.
+041430          B:=:T                               % B=REENTSEG, T=SHADSEG.
+041431          *ILDAS LOGAD                        % R.LOGADR
+041432          A=:RSTRT                            %         =:START OF REENTRANT SEGMENT.
+041433          *ILDAS SEGLE                        % R.SEGLENGTH
+041434          A+RSTRT =:REND                      % + START OF REENTSEG =: END OF REENTRANT SEGMENT.
+041436          B:=:T                               % B=SHADSEG, T=REENTSEG.
+041437          *ILDXS BPAGL                        % SHADOW SEGMENTS PAGE LIST.
+041440          DO WHILE X><0                       % DO FOR ALL PAGES IN SHADOW SEGMENT.
+041441              *ILDAC LOGPA                    % GET LOGICAL PAGE NUMBER
+041442              IF A>=RSTRT  AND A<REND THEN    % IF WITHIN REENTRANT SEGMENT THEN OVERLAP
+041450                  CALL CLPAGE                 % REMOVE PAGE FROM PAGE INDEX TABLES.
+041451                  *ILDAC PAGLI                % GET POINTER TO NEXT PAGE
+041452                  A=:NXP                      % AND SAVE IT.
+041453                  *IREMP                      % REMOVE PAGE FROM SHADOW SEGMENT.
+041454                  T:=XSGRT:=:B                % B=DUMMY SEGMENT(XSGRT), T=SHADSEG.
+041456                  *IINSP                      % INSERT IT IN DUMMY SEGMENT.
+041457                  *ILDAS SGSTA                % COPY PROTECT ENTRY TO RESET 5WIP BIT
+041460                  *ISTAC PROTE
+041461                  *ILDAS SEGLI                % SEGLINK OF DUMMY SEGMENT.
+041462                  IF A=0 THEN                 % IF DUMMY SEGMENT WAS EMPTY
+041463                      B:=:X
+041464                      CALL INSEGLINK          % INSERT IN SEGMENT LIST
+041465                      X:=BSEGLINK:=:B
+041467                      *ILDAS SEGLI            % MOVE TO END OF LIST
+041470                      A=:BSEGLINK
+041471                  FI
+041471                  B:=T                        % B=SHADSEG.
+041472                  X:=NXP                      % RESTORE POINTER TO NEXT PAGE.
+041473              ELSE                            % NO OVERLAP
+041474                  *ILDXC PAGLI                % GET POINTER TO NEXT PAGE
+041475              FI
+041475          OD
+041476          *ILDAS BPAGL                        % SHADOW SEGMENTS PAGE LIST.
+041477          IF A=0 THEN                         % IF IT BECAME EMPTY
+041500              B=:X; CALL OUTSEGLINK FI        % REMOVE IT FROM THE SEGMENT LIST.
+041502   OUT:   *WAIT                               % RETURN TO CALLING LEVEL
+041503          CALL ERRFATAL
+041504   RBUS
+041513
+
+041513   SUBR SP09L   % XOVERLAP FOR CX CPU WITH ECO ONLY
+041513   INTEGER RSTRT ,REND,NXP
+041516
+041516   SP09L: %%% IF A=0 GO OUT
+041516          A=:B                                % B=SHADSEG.
+041517          *LDASG SEGLI                        % SEGMENT LINK
+041527          IF A=0 GO OUT                       % IF SEGMENT IS NOT IN SEGMENT LIST: NO OVERLAP.
+041530          B:=:T                               % B=REENTSEG, T=SHADSEG.
+041531          *LDASG LOGAD                        % R.LOGADR
+041541          A=:RSTRT                            %         =:START OF REENTRANT SEGMENT.
+041542          *LDASG SEGLE                        % R.SEGLENGTH
+041552          A+RSTRT =:REND                      % + START OF REENTSEG =: END OF REENTRANT SEGMENT.
+041554          B:=:T                               % B=SHADSEG, T=REENTSEG.
+041555          *LDXSG BPAGL                        % SHADOW SEGMENTS PAGE LIST.
+041564          DO WHILE X><0                       % DO FOR ALL PAGES IN SHADOW SEGMENT.
+041565              *LDACM LOGPA                    % GET LOGICAL PAGE NUMBER
+041573              IF A>=RSTRT  AND A<REND THEN    % IF WITHIN REENTRANT SEGMENT THEN OVERLAP
+041601                  CALL CLPAGE                 % REMOVE PAGE FROM PAGE INDEX TABLES.
+041602                  *LDACM PAGLI                % GET POINTER TO NEXT PAGE
+041610                  A=:NXP                      % AND SAVE IT.
+041611                  *REMPG                      % REMOVE PAGE FROM SHADOW SEGMENT.
+041612                  T:=XSGRT:=:B                % B=DUMMY SEGMENT(XSGRT), T=SHADSEG.
+041614                  *INSPG                      % INSERT IT IN DUMMY SEGMENT.
+041615                  *LDASG SGSTA                % COPY PROTECT ENTRY TO RESET 5WIP BIT
+041625                  *STACM PROTE
+041633                  *LDASG SEGLI                % SEGLINK OF DUMMY SEGMENT.
+041643                  IF A=0 THEN                 % IF DUMMY SEGMENT WAS EMPTY
+041644                      B:=:X
+041645                      CALL INSEGLINK          % INSERT IN SEGMENT LIST
+041646                      X:=BSEGLINK:=:B
+041650                      *LDASG SEGLI            % MOVE TO END OF LIST
+041660                      A=:BSEGLINK
+041661                  FI
+041661                  B:=T                        % B=SHADSEG.
+041662                  X:=NXP                      % RESTORE POINTER TO NEXT PAGE.
+041663              ELSE                            % NO OVERLAP
+041664                  *LDXCM PAGLI                % GET POINTER TO NEXT PAGE
+041672              FI
+041672          OD
+041673          *LDASG BPAGL                        % SHADOW SEGMENTS PAGE LIST.
+041703          IF A=0 THEN                         % IF IT BECAME EMPTY
+041704              B=:X; CALL OUTSEGLINK FI        % REMOVE IT FROM THE SEGMENT LIST.
+041706   OUT:   *WAIT                               % RETURN TO CALLING LEVEL
+041707          CALL ERRFATAL
+041710   RBUS
+041722
+
+041722   %==================================================

@@ -1,0 +1,1539 @@
+125337   @DEV (S-S-L)MP-P2-PERF-SAMP:NPL
+125337
+
+125337   *"8MPRF 8N500
+"125337   SUBR UTLGX,AUTLG,LUWQU
+125337   RBUS
+125337
+125337   %=========================================================================
+125337   % Mon Performance dummy routine
+125337   %
+125337   SUBR NOOP
+125337   NOOP: EXIT
+125340   RBUS
+125340
+125340
+125340   %=========================================================================
+125340   % Routine to find the disk access type
+125340   %
+125340   % Entry:         X=datafield addr
+125340   %                A=log type
+125340   % Exit :         A=log type
+125340   %
+125340   % Called in 1BANK mode; returns in 1BANK mode
+125340   %
+125340   SUBR FDTYP
+125340   INTEGER POINTER LREG
+125341
+125341   FDTYP:  IF A><NODTY THEN EXIT FI
+125345           *2BANK
+125346           T:=L=:"LREG"
+125350           X:=X.RTRES                                           % if not sort, x=b
+125351           IF X><0 THEN
+125352              IF A:=X="CLFIE".RTRES THEN
+125357                 ACC1S                                           % Nd-100 swapping
+125360              ELSE IF A.ACTPRI SH -13/\17=4 THEN                 % Find type by normal pit.
+125370                 CALL FSEMA; GO IACC1; GO IACC5                  % 500 proc using filesystem ?
+125373   IACC1:        ACC1F                                           % Nd-100 file access
+125374              ELSE IF A=5 THEN
+125400   IACC5:        ACC5F                                        % Nd-500 file access
+125401              ELSE IF A=10 AND X="5SWAP" THEN
+125410                 T:=5MBBANK; X:=SWMSG; *AAX PAR2; LDDTX       % sin-l and swapper  returning flag and segno
+125414                 *1BANK
+125415                 T:=D=:C5SEG
+125417                 IF A=1 THEN                                  % File as segment
+125422                    ACCFS
+125423                 ELSE
+125424                    ACC5S                                     % Nd-500 ord. swapping
+125425                 FI
+125425              ELSE
+125426                 ACCXY                                        % Unclassified access
+125427              FI FI FI FI             % FI KGT
+125427           FI
+125427   FDOUT:  *1BANK
+125430           GO LREG
+125431   RBUS
+125440
+125440
+125440   %=========================================================================
+125440   %       X M B D S    G D U N I     M B D Q U
+125440   %
+125440   SUBR XMBDS, GDUNI, MBDQU
+125440
+125440   DOUBLE  DIDF(0); *9FDFD;9EDFD
+125442   INTEGER CDUN,CNDX
+125444
+125444   % Subroutine to check for disks with disk optimisation
+125444   %
+125444   % Entry:         X=datafield addr
+125444   %                A=index
+125444   % Exit:          disk with optimisation
+125444   % Exit+1:        not disk or disk without optimisation
+125444   %
+125444   % Called in ?BANK mode; returns in ?BANK mode
+125444   %
+125444
+125444   XMBDS:  A=:CNDX; AD:=DIDF
+125446           IF X>>=A AND X<<D THEN
+125452              *2BANK
+125453              IF X<<"9ESTR" AND X.STREN=0 THEN EXITA FI
+125461              CNDX SHZ -1; *1BANK
+125464              D:=X; ADDU1(A)=:CDUN; *2BANK
+125471              X:=D; EXIT
+125473           FI
+125473           EXITA
+125474
+125474   % Subroutine to check for requested disk drive
+125474   %
+125474   % Entry:         A=function code
+125474   % Exit:          not requested disk drive
+125474   % Exit+1:        requested disk drive; function is read
+125474   % Exit+2:        requested disk drive; function is write
+125474   %
+125474   % Called in ?BANK mode; returns in 1BANK mode
+125474   %
+125474   GDUNI:  *1BANK
+125475           IF A=:D SHZ -6/\7=CDUN THEN
+125503              L+1; IF D BIT 0 THEN L+1 FI
+125507           FI
+125507           EXIT
+125510
+125510   % Subroutine to check for any ongoing seek
+125510   % on the requested disk drive
+125510   %
+125510   % Entry:         X=disk datafield
+125510   % Exit:          no ongoing seek
+125510   % Exit+1:        ongoing seek; function is read.
+125510   % Exit+2:        ongoing seek; function is write.
+125510   %
+125510   % Called in ?BANK mode; leaves in 1BANK mode
+125510   %
+125510   MBDQU: *2BANK
+125511           A:=X.PSTRA=:D; *1BANK               % D= UNIT DF. FOR STARTED TRANSFER
+125514           T:=CDUN; X+T; *AAX PUNDF            % X= ADDR IN PUNDF
+125517           *2BANK
+125520           IF X:=X.S0 ><0 AND X >< D AND X:=X.SLINK><0 THEN
+125526              L+1
+125527              IF X.ABFUN BIT 0 THEN L+1 FI
+125533           FI
+125533          *1BANK
+125534          EXIT
+125535   RBUS
+125540
+125540   %MBDQU: *2BANK
+125540   %       IF X.SRSEEK><0 THEN
+125540   %           *1BANK
+125540   %           T:=CDUN; X+T; *AAX PUNDF
+125540   %           *2BANK
+125540   %           IF X:=X.S0><0 AND X:=X.SLINK><0 THEN
+125540   %              L+1
+125540   %              IF X.ABFUN BIT 0 THEN L+1 FI
+125540   %           FI
+125540   %       FI
+125540   %       *1BANK
+125540   %       EXIT
+125540
+125540
+125540   %=========================================================================
+125540   % Subroutine to check if log.dev is a disc, and if so,
+125540   % check if this disc drive should be logged.
+125540   %
+125540   % Entry:    X=datafield addr
+125540   %           A=index
+125540   % Exit:     disk should not be logged
+125540   % Exit+1:   disk "input" should be logged or not disk.
+125540   % Exit+2:   disk "output" should be logged
+125540   %
+125540   % Called in 1BANK mode; returns in 1BANK mode
+125540   %
+125540   SUBR MBDIS
+125540   DOUBLE  DIDF(0); *9FDFD;9EDFD
+125542   INTEGER CNDX
+125543
+125543   MBDIS:  A=:CNDX
+125544           AD:=DIDF
+125545           IF X>>=A AND X<<=D THEN
+125551              X=:D; CNDX SHZ -1
+125554              T:=ADDU1(A)
+125556              *2BANK
+125557              D.CTRG=:D
+125562              *1BANK
+125563              IF A SHZ -6/\7=T THEN
+125567                 L+1; IF D BIT 0 THEN L+1 FI
+125573              FI
+125573           ELSE
+125574              L+1
+125575           FI
+125575           EXIT
+125576   RBUS
+125600
+125600
+125600   %==============================================================================
+125600   % Monitor level routine for mon.call type 36
+125600   %
+125600   SUBR MMPERF
+125600   MMPERF: X:=RTREF; "DFMPE"=:B; CALL BRESERVE
+125604           IF A<0 THEN
+125605              205; *IRW ALEVB DA
+125607           ELSE
+125610              A:=B; CALL SWAPP
+125612           FI; GO MONEN
+125613   RBUS
+125621
+125621
+125621   %==============================================================================
+125621   %      M S A M P
+125621   % Called from routine ENT13 for sampling on level 13
+125621   %
+125621   SUBR MSAMP,XENDX
+125621   INTEGER POINTER LREG
+125622
+125622   MSAMP: IF ACTMPERFORM=0 THEN EXIT FI
+125625          MIN M13FREQUENCY; EXIT
+125627          A:=L=:"LREG"
+125631          MPERFREQUENCY=:M13FREQUENCY
+125633   INTEGER ARRAY S13AR(0)
+125633          *JPL I *1; XENDX
+125635          *JPL I *1; XENDX
+125637          *JPL I *1; XENDX
+125641          *JPL I *1; XENDX
+125643          *JPL I *1; XENDX
+125645          *JPL I *1; XENDX
+125647          *JPL I *1; XENDX
+125651          *JPL I *1; XENDX
+125653   XENDX: "LREG"=:L; EXIT
+125656   RBUS
+125661
+125661
+125661   %==============================================================================
+125661   %      M M S M P
+125661   % Patch in the routine ICLK for sampling on level 2
+125661   %
+125661   SUBR MMSMP,MLEND
+125661   INTEGER POINTER LREG
+125662   MMSMP: IF ACTMPERFORM=0 THEN EXIT FI
+125665          MIN M2FREQUENCY; EXIT
+125667          A:=L=:"LREG"
+125671          MPERFREQUENCY=:M2FREQUENCY
+125673   INTEGER ARRAY SMLAR(0)
+125673          *JPL I *1; MLEND
+125675          *JPL I *1; MLEND
+125677          *JPL I *1; MLEND
+125701          *JPL I *1; MLEND
+125703          *JPL I *1; MLEND
+125705          *JPL I *1; MLEND
+125707          *JPL I *1; MLEND
+125711          *JPL I *1; MLEND
+125713   MLEND: "LREG"=:L; EXIT
+125716   RBUS
+125721
+125721
+125721   %=========================================================================
+125721   % Primitive #1            M R P 0 1
+125721   %
+125721   % Level 13 routine for measuring ND-100 CPU utilisation
+125721   %
+125721   SUBR MRP01,LTCP1,LSCP1,LLCP1,LRCP1,ARCP1,1RCP1
+125721   INTEGER PRVLV=?                    % Previous level
+125721
+125721   MRP01:  *TRA PVL
+125722           A SHZ -3/\17=:PRVLV
+125725
+125725           % Total ND-100 CPU utilisation
+125725   LTCP1:  P+1; GO LSCP1
+125727           IF A=0 GO LLCP1                                       % Level 0 is prvious
+125731           *1BANK
+125732           MIN 2D1CP; P+1; MIN 1D1CP; 0/\0
+125736           *2BANK
+125737
+125737           % Total ND-100 CPU utilisation split on user mode, monitor call mode and
+125737           % system mode
+125737   LSCP1:  P+1; GO LLCP1
+125741           IF A=ALEVL THEN
+125744              CURPROC.ACTPRI SH -7=:D
+125750              IF A/\17>=3 OR A:=D SHZ -4/\17>=3 GO MOMOD
+125762              *1BANK
+125763              MIN 2U1CP; P+1; MIN 1U1CP; 0/\0                    % User mode
+125767           ELSE IF A=BLEVL THEN
+125773   MOMOD:     *1BANK
+125774              MIN 2M1CP; P+1; MIN 1M1CP; 0/\0                    % Monitor call mode
+126000           ELSE
+126001              *1BANK
+126002              MIN 2S1CP; P+1; MIN 1S1CP; 0/\0                    % System mode
+126006           FI FI
+126006           *2BANK
+126007
+126007           % Total ND-100 CPU utilisation split on hardware interrupt levels
+126007   LLCP1:  P+1; GO LRCP1
+126011           PRVLV; X:="1CPAR"+A+A
+126015           *1BANK
+126016           MIN X.S1; P+1; MIN X.S0; 0/\0
+126022           *2BANK
+126023
+126023           % ND-100 CPU usage while a spesific program is active
+126023   LRCP1:  P+1; GO ARCP1
+126025           IF PRVLV=ALEVL OR A=BLEVL THEN
+126034              CURPROC
+126035              *1BANK
+126036              IF A=ACRTPROC THEN
+126041                 MIN 2R1CP; P+1; MIN 1R1CP; 0/\0
+126045              FI
+126045              *2BANK
+126046           FI
+126046
+126046           % Total ND-100 CPU utilisation split over all rt-programs
+126046   ARCP1:  P+1; GO 1RCP1
+126050           IF PRVLV><0 THEN
+126052              IF A><ALEVL AND A><BLEVL GO 1RCP1
+126060              CURPROC-RTSTART=:D; A:=0; T:=5RTSIZE; *RDIV ST
+126066           FI
+126066           *1BANK
+126067           A*3; X:=SAR1C+A; T:=BAR1C; *LDDTX 20
+126074           D+1; A:=A+C; *STDTX 20
+126077           *2BANK
+126100           GO 1RCP1
+126101
+126101   INTEGER PRVLV                      % Previous level
+126102   *)FILL
+126132
+126132           % ND-100 CPU usage while a spesific program is active,
+126132           % split on user mode, monitor call mode and system overhead
+126132   1RCP1:  P+1; EXITA
+126134           *1BANK
+126135           ACRTPROC
+126136           *2BANK
+126137           IF A=CURPROC THEN
+126142              IF PRVLV=ALEVL THEN
+126146                 IF CURPROG.ACTPRI SH 1 SHZ -14>=3 GO RMOMO
+126155                 *1BANK
+126156                 MIN 2RU1C; P+1; MIN 1RU1C; 0/\0
+126162              ELSE IF A=BLEVL THEN
+126166   RMOMO:        *1BANK
+126167                 MIN 2RM1C; P+1; MIN 1RM1C; 0/\0
+126173              ELSE
+126174                 *1BANK
+126175                 MIN 2RS1C; P+1; MIN 1RS1C; 0/\0
+126201              FI FI
+126201              *2BANK
+126202           FI
+126202           EXITA
+126203   RBUS
+126213
+126213
+126213   %=========================================================================
+126213   % Primitive #1            M M P 0 1
+126213   %
+126213   % Monitor level
+126213   % Find length of ND-100 execution queue
+126213   %
+126213   SUBR MMP01
+126213   INTEGER POINTER LREG
+126214   INTEGER NXSWW
+126215
+126215   MMP01:  P+1; EXITA
+126217           A:=L+1=:"LREG"; D:=0; L:=0; 0=:NXSWW
+126224           X:=BEXQU; T:="BEXQU-2"
+126226           DO WHILE X><T
+126230              IF X.STATUS<0 THEN
+126232                 IF A NBIT 5SWWA THEN L+1
+126235                 ELSE MIN NXSWW; 0/\0 FI
+126240              ELSE
+126241                 D+1
+126242              FI
+126242              X:=X.WLINK
+126243           OD
+126244           *1BANK
+126245           D=:T; AD:=REXQL; D+T; A:=A+C; AD=:REXQL
+126252           AD:=IEXQL; D+L; A:=A+C; AD=:IEXQL
+126256           T:=NXSWW; AD:=SEXQL; D+T; A:=A+C; AD=:SEXQL
+126263           *2BANK
+126264           GO LREG
+126265   RBUS
+126272
+126272
+126272   %=========================================================================
+126272   % Primitive # 2           M R P 0 2
+126272   %
+126272   % Level 13
+126272   % Utilisation of ND-500 CPU
+126272   %
+126272   SUBR MRP02,LTCP5,CP5MO,APCP5,ALLC5,XC5MO
+126272   INTEGER CC5PROC=?                  % Current executing nd-500 process
+126272   INTEGER BREG=?
+126272   INTEGER POINTER LREG=?
+126272
+126272   MRP02:  "S5CPUDF"; A:=:B=:BREG; A:=L+1=:"LREG"
+126277   LOOP:   IF B>>"E5CPUDF" GO FAR ALLC5
+126302             IF CPUAVAILABLE NBIT 5ALIVE GO FAR END02              % Nd-500 cpu unavailable?
+126305             CALL GETC5PROC; A=:CC5PROC                            % Current active nd-500 process
+126307             IF A<0 GO FAR END02                                   % If =-1 then nd-500 is passive
+126311             IF CPUAVAILABLE/\5CPUTYPE=SAMSON THEN
+126316                IF MAILINK=-1 GO FAR END02                         % Samson message queue initialized ?
+126322             ELSE
+126323                T:=HDEV+"RSTA5"; *IOXT
+126326                IF A NBIT 5ILOC OR A BIT 5POWOFF GO FAR END02      % Nd-500 locked or power fail?
+126332             FI
+126332
+126332             % Total ND-500 CPU utilisation.
+126332   LTCP5:    P+1; GO CP5MO
+126334             CPUNO-1 SH 1=:X
+126340             *1BANK
+126341             AD:=D5CP(X); D+1; A:=A+C; AD=:D5CP(X)
+126345             *2BANK
+126346
+126346             % ND-500 CPU utilisation
+126346   CP5MO:    P+1; GO APCP5
+126350             CPUNO-1 SH 1 =:X
+126354             IF CC5PROC><5SWPROC THEN
+126360                *1BANK
+126361                AD:=CP5U(X); D+1; A:=A+C; AD=:CP5U(X) % User mode
+126365             ELSE
+126366                *1BANK
+126367                AD:=CP5S(X); D+1; A:=A+C; AD=:CP5S(X) % Swapper mode (ND-500 swapper is active).
+126373             FI
+126373
+126373             % ND-500 CPU usage by a spesific process
+126373   APCP5:    P+1; GO XC5MO
+126375             *1BANK
+126376             IF CC5PROC=Y5PROC THEN
+126402                *2BANK
+126403                A-5SWPROC*5PRDSIZE+"S500S"=:X; X:=X.MESSBUFF
+126410                T:=5MBBANK; *AAX 5CPUN; LDATX
+126413                A-1 SH 1 =:X ;*1BANK
+126417                AD:=XCP5(X); D+1; A:=A+C; AD=:XCP5(X)
+126423             FI
+126423             *2BANK
+126424             GO XC5MO
+126425   *)FILL
+126447   INTEGER CC5PROC                    % Current executing nd-500 process
+126450   INTEGER BREG
+126451   INTEGER POINTER LREG
+126452
+126452             % ND-500 CPU usage split on user mode and swapper mode
+126452             % while a spesific process is active
+126452   XC5MO:    P+1; GO END02
+126454             *1BANK
+126455             X:=Y5PROC
+126456             *2BANK
+126457             IF X>>MX5PROCS GO END02
+126462             IF X=CC5PROC THEN
+126465                *1BANK
+126466                MIN 2XPRU; P+1; MIN 1XPRU; 0/\0
+126472             ELSE
+126473                IF CC5PROC=5SWPROC THEN                          % Swapper active?
+126477                   A:=X-5SWPROC*5PRDSIZE+"S500S"                 % X=Y5PROC
+126503                   A.MESSBUFF=:L
+126506                   T:=5MBBANK; X:="N500DF".X500DF; *AAX X5SWO; LDDTX
+126513   *NNC50,         CNVBYADR
+126516                   IF D=L THEN
+126520                      *1BANK
+126521                      MIN 2XPRS; P+1; MIN 1XPRS; 0/\0
+126525                   FI
+126525                FI
+126525             FI
+126525   END02:    *2BANK
+126526             B+5CPUDFSZ
+126527           GO FAR LOOP
+126530
+126530           % ND-500 CPU usage split over all processes
+126530   ALLC5:  P+1; GO OUT
+126532           *1BANK
+126533           LXCPU ; *2BANK
+126535           A-1*5CPUDFSIZE+"S5CPUDF"=:B
+126541           CALL GETC5PROC
+126542           *1BANK
+126543           IF A>=0 THEN
+126544              A SH 1; X:=SAR5C+A; T:=BAR5C; *LDDTX 10
+126551              D+1; A:=A+C; *STDTX 10
+126554           FI
+126554   OUT:    *2BANK
+126555           BREG=:B ; GO LREG
+126560
+126560   RBUS
+126603
+126603
+126603   %=========================================================================
+126603   % Primitive # 2           M M P 0 2
+126603   %
+126603   % Monitor level.
+126603   % Find length of ND-500 execution queue
+126603   %
+126603   SUBR MMP02
+126603   INTEGER N5SWAP
+126604   INTEGER N5WAIT
+126605   INTEGER N5ACT
+126606   INTEGER POINTER LREG
+126607
+126607   MMP02:  P+1; EXITA
+126611           *IOF
+126612           A:=L+1=:"LREG"
+126614           "S5CPUDF"=:B; 0=:N5WAIT=:N5SWAP=:N5ACT
+126621           DO WHILE B<<="E5CPUDF"
+126624              IF X:=MAILINK><-1 THEN
+126630                 DO
+126630                    T:=5MBBANK; *LINK@3 LDDTX
+126632                 WHILE D><-1
+126635   *NNC51,          CNVBYADR
+126640                    IF X:=D><DUMMESS THEN
+126644                       CALL RN5STATUS                        % Read status
+126645                       IF A=MSGN500 OR A=WAITING THEN        % Active?
+126653                          MIN N5ACT; 0/\0
+126655                       ELSE IF A=SWPWAIT THEN                % Waiting for Swapper?
+126661                          MIN N5SWAP; 0/\0
+126663                       ELSE                                  % All other states
+126664                          MIN N5WAIT; 0/\0
+126666                       FI FI
+126666                     FI
+126666                 OD
+126667                 IF CPUAVAILABLE/\5CPUTYP=SAMSON GO OUT   % Only one exec. q.
+126674              FI
+126674              B+5CPUDF
+126675           OD
+126676   OUT:    *1BANK
+126677           T:=N5ACT;  AD:=LE5XQ; D+T; A:=A+C; AD=:LE5XQ
+126704           T:=N5WAIT; AD:=LW5XQ; D+T; A:=A+C; AD=:LW5XQ
+126711           T:=N5SWAP; AD:=LS5XQ; D+T; A:=A+C; AD=:LS5XQ
+126716           *2BANK; ION
+126720           GO LREG
+126721   RBUS
+126733
+126733
+126733   %=========================================================================
+126733   % Primitive #3            M M P 0 3     T U T L G
+126733   % Monitor level
+126733   % Log utilisation of logical device(s)
+126733   %
+126733   SUBR MMP03,TUTLG
+126733   INTEGER POINTER LREG
+126734   INTEGER CNDX
+126735
+126735   MMP03:  A:=L=:"LREG"
+126737   TUTLG:  P+1; GO UTLGX
+126741           0=:CNDX; "1TL1I"=:B
+126744           DO WHILE X:=CNDX<<20
+126750              *1BANK
+126751              X:=LUADD(X)
+126752              IF X:=X.S0><0 THEN                                 % Datafield defined?
+126754                 CNDX; CALL XMBDS; GO DISK                       % Disk optimisation ?
+126757                 *2BANK
+126760                 IF X.RTRES=0 GO ELOOP                           % Datafield reserved?
+126762                 *1BANK
+126763                 CNDX; CALL MBDIS; GO ELOOP; GO DIIN; GO L1      %
+126770   DISK:         *IOF; 2BANK
+126772   NOTRN:        CALL MBDQU; GO ELOOP; GO DIIN
+126775   L1:           B+2; MIN CNDX
+126777   DIIN:         MIN S1; P+1; MIN S0; 0/\0                   % Yes, increment counter
+127003                 *ION
+127004              FI
+127004   ELOOP:     B+2; MIN CNDX
+127006           OD
+127007           *ION; 2BANK
+127011           "LREG"=:L; GO UTLGX
+127014
+127014   RBUS
+127023
+127023
+127023   %=========================================================================
+127023   % Primitive #3            U T L G X
+127023   % Monitor level
+127023   % Log utilisation of logical device(s), by a spesific program
+127023   %
+127023   SUBR UTLGX
+127023   INTEGER POINTER LREG
+127024   INTEGER CNDX
+127025
+127025   UTLGX:  P+1; GO AUTLG
+127027           A:=L=:"LREG"
+127031           0=:CNDX; "1XL1I"=:B
+127034           DO WHILE X:=CNDX<<20
+127040              *1BANK
+127041              X:=LUADD(X)
+127042              IF X:=X.S0><0 THEN                                 % Log.unit defined?
+127044                 CNDX; CALL XMBDS; GO GDSK; *2BANK               % Disk optimisation ?
+127050                 A:=X.RTRES; *1BANK
+127052                 IF A><XLRTP GO ELOOP                       % In use by specified program?
+127055                 CNDX; CALL MBDIS; GO ELOOP; GO DIIN; GO L1
+127062
+127062   GDSK:         *IOF; 1BANK
+127064                 T:=XLRTP; *2BANK
+127066                 IF X.STPRW><T GO NOTRN                      % Might be SCSI
+127071                 X.CTRG; CALL GDUNI; GO NOTRN; GO DIIN
+127075   L1:           B+2; MIN CNDX; GO DIIN
+127100   NOTRN:        CALL MBDQU; GO ELOOP; GO RTCHK
+127103                 B+2; MIN CNDX
+127105   RTCHK:        *2BANK
+127106                 A:=X.RTRES
+127107                 *1BANK
+127110                 IF A=XLRTP THEN
+127113   DIIN:            MIN S1; P+1; MIN S0; 0/\0              % Yes, incremnet counter
+127117                 FI
+127117              FI
+127117   ELOOP:     *ION
+127120              B+2; MIN CNDX
+127122           OD
+127123           *2BANK
+127124           "LREG"=:L; GO AUTLG
+127127   RBUS
+127137
+127137
+127137   %=========================================================================
+127137   % Primitive #3            A U T L G
+127137   % Monitor level
+127137   % Log utilisation of logical device(s), split over all programs
+127137   %
+127137   SUBR AUTLG
+127137   INTEGER POINTER LREG
+127140   INTEGER CNDX
+127141   INTEGER CCNT
+127142
+127142   AUTLG:  P+1; GO LUWQU
+127144           A:=L=:"LREG"
+127146           0=:CNDX
+127147           DO WHILE X:=CNDX<<20
+127153              *1BANK
+127154              X:=LUADD(X)
+127155              IF X:=X.S0><0 THEN                                 % Log.unit defined?
+127157                 CNDX; CALL XMBDS; GO GDSK; *2BANK              % Disk optimisation ?
+127163                 A:=X.RTRES; *1BANK
+127165                 IF A=0 GO ELOOP                                   % Log.unit reserved?
+127166                 CNDX; CALL MBDIS; GO ELOOP; P+1; MIN CNDX
+127173                 *2BANK
+127174                 X.RTRES; GO L1
+127176
+127176   GDSK:         *IOF; 2BANK
+127200   NOTRN:        CALL MBDQU; GO ELOOP; P+1; MIN CNDX
+127204                 *2BANK
+127205                 X.RTRES
+127206   L1:           A-RTSTART=:D; A:=0; T:=5RTSIZE; *RDIV ST; 1BANK
+127214                 A*41+SLUADDR; X:=CNDX; X+X+A; T:=BLUADDR; *LDDTX 20
+127223                 D+1; A:=A+C; *STDTX 20
+127226              FI
+127226   ELOOP:     *ION
+127227              MIN CNDX
+127230           OD
+127231           *2BANK
+127232           "LREG"=:L; GO LUWQU
+127235   RBUS
+127246
+127246
+127246   %=========================================================================
+127246   % Primitive #3            L U W Q U
+127246   % Monitor level
+127246   % Log utilisation of logical device(s)
+127246   % Sample the length of the waiting queue for the specified log.units
+127246   %
+127246   SUBR LUWQU
+127246   INTEGER POINTER LREG
+127247   INTEGER CNDX
+127250   INTEGER CCNT
+127251
+127251   LUWQU:  P+1; EXITA
+127253           A:=L+1=:"LREG"
+127255           0=:CNDX
+127256           DO WHILE X:=CNDX<<20
+127262              *1BANK
+127263              X:=LUADD(X)
+127264              IF X:=X.S0><0 THEN                                 % Log.unit defined?
+127266                 CNDX; CALL XMBDS; GO GDSK; *2BANK              % Disk optimisation ?
+127272                 X=:D; "BWLINK-WLINK"; X+A; T:=0
+127276                 DO WHILE X:=X.WLINK><D; T+1; OD
+127303                 IF T=0 GO ELOOP; *1BANK
+127306                 GO L1
+127307
+127307   GDSK:         *IOF; 2BANK
+127311                 0=:CCNT
+127312                 CALL MBDQU; GO ELOOP; 0/\0; MIN CCNT; 0/\0; *2BANK
+127320                 DO WHILE X:=X.NLINK><0; MIN CCNT; 0/\0; OD
+127325                 T:=CCNT; *1BANK
+127327   L1:           X:=CNDX; X+X; AD:=ADDLW(X)
+127332                 D+T; A:=A+C; AD=:ADDLW(X)
+127335              FI
+127335   ELOOP:     *ION
+127336              MIN CNDX
+127337           OD
+127340           *2BANK
+127341           GO LREG
+127342   RBUS
+127347
+127347
+127347   %=========================================================================
+127347   % Primitive #4
+127347   %
+127347   SUBR MMP04,T5SWP,X5SWP,A5SWP
+127347   INTEGER CFLG
+127350   INTEGER POINTER LREG,LRG
+127352
+127352   % Local subroutine to check Swapper status
+127352   % Called in 2BANK mode; returns in 2BANK mode
+127352   %
+127352   CH5SW:  IF CFLG=0 THEN
+127354              A:=L=:"LRG"
+127356              X:=SWMSG; CALL RN5STATUS
+127360              T:="LRG"=:L
+127362              IF A><MFREE AND A><PSWWAIT THEN
+127370                 A:=1; L+1                                       % Swapper is in use
+127372              ELSE
+127373                 A:=-1                                           % Swapper not in use
+127374              FI
+127374              A=:CFLG
+127375           ELSE
+127376              IF A>=0 THEN L+1 FI
+127400           FI
+127400           EXIT
+127401
+127401           % Log utilisation of the ND-500 Swapper.
+127401   MMP04:  *IOF
+127402           A:=L=:"LREG"; 0=:CFLG
+127405
+127405           % Total utilisation of the nd-500 swapper
+127405   T5SWP:  P+1; GO X5SWP
+127407           CALL CH5SW; GO ENDL4
+127411           *1BANK
+127412           MIN 2D5SW; P+1; MIN 1D5SW; 0/\0
+127416           *2BANK
+127417
+127417           % Utilisation of nd-500 swapper by a specific process.
+127417   X5SWP:  P+1; GO A5SWP
+127421           CALL CH5SW; GO ENDL4
+127423           T:=5MBBANK; X:="N500DF".X500DF; *AAX X5SWO; LDDTX
+127430   *NNC52, CNVBYADR
+127433           *1BANK
+127434           IF D=XSWOWER THEN
+127437              MIN 2X5SW; P+1; MIN 1X5SW; 0/\0
+127443           FI
+127443           *2BANK
+127444
+127444           % Utilisation of nd-500 swapper split over all processes.
+127444   A5SWP:  P+1; GO ENDL4
+127446           CALL CH5SW; GO ENDL4
+127450           T:=5MBBANK; X:="N500DF".X500DF; *AAX X5SWO; LDDTX
+127455   *NNC53, CNVBYADR
+127460           X:=D; *SENDE@3 LDATX
+127462           *1BANK
+127463           T:=B5SWAP; X:=S5SWAP+A+A; *LDDTX 10
+127470           D+1; A:=A+C; *STDTX 10
+127473           *2BANK
+127474   ENDL4:  "LREG"=:L; *ION
+127477           EXITA
+127500   RBUS
+127516
+127516   %
+127516   % Sampling routines for disks moved to EXCOM (btt - 880428)
+127516   %
+127516
+127516   %===========================================================================
+127516   % Primitive #36               P M L 1 0
+127516   %
+127516   % Patch in the routine ENT14 on level 14
+127516   %
+127516   SUBR PML10,PMLAL,PMLXA
+127516   INTEGER TREG,AREG,DREG
+127521   INTEGER POINTER LREG
+127522   TRIPLE  TADREG=TREG
+127522   INTEGER ARRAY POINTER QQIND=?
+127522
+127522   OUT1:   TAD:=TADREG
+127523           *2BANK
+127524           GO LREG
+127525
+127525   %
+127525   % Local subroutine to search array for match.
+127525   %
+127525   % Entry : D = mon.call/RT-descr.
+127525   % Exit  : no match
+127525   % Exit+1: match ( X = index )
+127525   %
+127525   CSUBR:  FOR X:=0 TO 7 DO
+127531              WHILE QQIND(X) >< -1
+127535              IF A=D THEN EXITA FI
+127540           OD
+127542           EXIT
+127543
+127543
+127543   PML10:  0/\0; EXIT
+127545           IF X:=ACTMPERFORM=0 THEN EXIT FI
+127551           TAD=:TADREG
+127552           A:=L=:"LREG"
+127554
+127554           % Count all monitor calls
+127554   PMLAL:  0/\0; GO PMLXA
+127556           T:=RTREF
+127557           *1BANK
+127560           IF MLXRT=0 OR A=T THEN
+127564              TREG/\377 SH 1
+127567              T:=BMLB1; X:=SMLB1+A; *LDDTX
+127573              D+1; A:=A+C; *STDTX
+127576           FI
+127576           *2BANK
+127577           GO PMLXA
+127600
+127600   *)FILL
+127607   INTEGER ARRAY POINTER QQIND
+127610
+127610
+127610           % Log all monitor calls by 8 specific programs,
+127610           % split on all moncalls
+127610   PMLXA:  0/\0; GO OUT1
+127612           RTREF=:D
+127614           *1BANK
+127615           "DX1MLP"=:"QQIND"
+127617           IF MLOFL=0 THEN
+127621              CALL CSUBR; GO OUT1                    % Logged RT-prog ?
+127623              A:=X*3=:X
+127626              TREG/\377*30+X
+127632              T:=BXML1; X:=SXML1+A; *LDDTX 10
+127636              D+1; A:=A+C; *STDTX 10
+127641           ELSE
+127642              % Log max 8 mon.calls for all RT-programs
+127642              TREG/\377=:D; CALL CSUBR; GO OUT1               % Logged mon. call ?
+127647              A:=X SH 2=:X
+127652              *2BANK
+127653              RTREF-RTSTART=:D; A:=0; T:=5RTSIZE; *RDIV ST
+127661              *1BANK
+127662              A*40+X; T:=BXML1; X:=SXML1+A; *LDDTX 20
+127670              D+1; A:=A+C; *STDTX 20
+127673           FI
+127673           GO FAR OUT1
+127674
+127674   RBUS
+127707
+127707   %===========================================================================
+127707   % Primitive #37                  P M L 5 0
+127707   %
+127707   % ND500: Patch in routine MCHANDLE on level 12
+127707   %
+127707   SUBR PML50,5MLAL,5MLXA
+127707   INTEGER TREG,AREG,DREG
+127712   TRIPLE  TADREG=TREG
+127712   INTEGER POINTER LREG
+127713   INTEGER CINDX=?,XREG=?
+127713   INTEGER ARRAY POINTER QQIND=?
+127713
+127713   OUT1:   "LREG"=:L; TAD:=TADREG; X:=XREG
+127717           *2BANK
+127720           EXIT
+127721
+127721   %
+127721   % Local subroutine to search array for match.
+127721   %
+127721   % Entry : D = mon.call/ND-500 process no.
+127721   % Exit  : no match
+127721   % Exit+1: match ( X = index )
+127721   %
+127721   CSUBR:  FOR X:=0 TO 7 DO
+127725              WHILE QQIND(X) >< -1
+127731              IF A=D THEN EXITA FI
+127734           OD
+127736           EXIT
+127737
+127737
+127737   PML50:  0/\0; EXIT
+127741           IF T:=ACTMPERFORM=0 THEN EXIT FI
+127745           TAD=:TADREG; X=:XREG; A:=L=:"LREG"
+127751
+127751           % Count all monitor calls
+127751   5MLAL:  0/\0; GO 5MLXA
+127753           *1BANK
+127754           MLXPROC=:D
+127756           *2BANK
+127757           IF A><-1 THEN
+127762              T:=5MBBANK; *SENDE@3 LDATX
+127764              IF A><D GO 5MLXA
+127766           FI
+127766           T:=5MBBAK; *AAX MCNO; LDATX
+127771           IF A>>=524 GO OUT1
+127774           *1BANK
+127775           A SH 1; T:=BMLB5; X:=SMLB5+A; *LDDTX
+130002           D+1; A:=A+C; *STDTX
+130005           *2BANK
+130006           GO 5MLXA
+130007   *)FILL
+130016   INTEGER XREG,CINDX
+130020   INTEGER ARRAY POINTER QQIND
+130021
+130021           % Log all nd-500 mon.calls for max 8 processes
+130021           % split on all moncalls
+130021   5MLXA:  0/\0; GO OUT1
+130023           T:=5MBBANK
+130024           *1BANK
+130025           "DY1MLP"=:"QQIND"
+130027           IF ML5FL=0 THEN
+130031              X:=XREG; *SENDE@3 LDATX
+130033              A=:D; CALL CSUBR; GO OUT1                           % Match ?
+130036              A:=X*3=:CINDX
+130041              *2BANK
+130042              T:=5MBBANK; X:=XREG; *AAX MCNO; LDATX
+130046              IF A>>=524 GO OUT1
+130051              *1BANK
+130052              A*30+CINDX; T:=BXML5; X:=SXML5+A; *LDDTX 10
+130060              D+1; A:=A+C; *STDTX 10
+130063           ELSE
+130064              % Log max 8 mon.calls for all ND-500(0) processes
+130064              X:=XREG; *AAX MCNO; LDATX
+130067              A=:D; CALL CSUBR; GO OUT1                          % Match ?
+130072              A:=X*3=:CINDX
+130075              *2BANK
+130076              T:=5MBBANK; X:=XREG; *SENDE@3 LDATX
+130101              *1BANK
+130102              A*30+CINDX; T:=BXML5; X:=SXML5+A; *LDDTX 20
+130110              D+1; A:=A+C; *STDTX 20
+130113           FI
+130113           GO FAR OUT1
+130114
+130114   RBUS
+130125
+130125
+130125   %===========================================================================
+130125   % Primitive #64
+130125   %
+130125   SUBR MMP64
+130125   DISP 0; DOUBLE DD1=S1; PSID
+130125   INTEGER CNDX
+130126
+130126   MMP64:  0=:CNDX
+130127           DO
+130127              *1BANK
+130130              CNDX+"F1SGS"
+130132              X:=A.S0
+130134              *2BANK
+130135           WHILE X><-1
+130140              T:=SEGTBANK; *BPAGL@3 LDXTX
+130142              D:=0; T:=CORMBANK
+130144              DO WHILE X><0
+130145                 D+1; *PAGLI@3 LDXTX
+130147              OD
+130150              IF D><0 THEN
+130152                 CNDX*3+"DA1SG"=:X
+130156                 *1BANK
+130157                 T:=D; AD:=X.DD1; D+T; A:=A+C; AD=:X.DD1
+130164                 *2BANK
+130165              FI
+130165              MIN CNDX
+130166           OD
+130167           EXITA
+130170   RBUS
+130175
+130175   %===========================================================================
+130175   % Primitive #65
+130175   %
+130175   SUBR MMP65
+130175   DISP 0; DOUBLE DD1=S1; PSID
+130175   INTEGER CNDX
+130176
+130176   MMP65:  IF 5MSINIT BIT 5INBUF THEN
+130201              0=:CNDX
+130202              *1BANK
+130203              DO
+130203                 CNDX SH 1 +"F5SGS"=:X
+130207              WHILE X.S0><-1
+130213                 T:=A; X:=X.S1
+130215                 *AAX SSCPI; LDATX
+130217                 IF A><0 THEN
+130220                    A=:T:=CNDX*3+"DA5SG"=:X
+130225                    AD:=X.DD1; D+T; A:=A+C; AD=:X.DD1
+130231                 FI
+130231                 MIN CNDX
+130232              OD
+130233              *2BANK
+130234           FI
+130234           EXITA
+130235   RBUS
+130241
+130241   %===========================================================================
+130241   % Primitive #66
+130241   %
+130241   SUBR MRP66
+130241   INTEGER CLEVL                      % Previous level
+130242   INTEGER CPREG                      % Actual P-reg on previous level
+130243   INTEGER CNDX
+130244
+130244   MRP66:  *TRA PVL
+130245           A=:D; *EXR SA
+130247           A=:CPREG
+130250           A:=D SH -3/\17=:CLEVL
+130254           *1BANK
+130255           IF A=PCLEV THEN
+130260              % Log a specified level, fixed interval length.
+130260              *1BANK
+130261              IF A=2 OR A=3 THEN
+130267                 % Log level 1 for specific rt-program, within specific segment, fixed interval.
+130267                 *2BANK
+130270                 X:=CURPROC
+130271                 *1BANK
+130272                 IF PCRTPROC=0 OR A=X THEN
+130276                    IF T:=PC1SG><0 THEN
+130301                       IF T>0 THEN
+130303                          *2BANK
+130304                          AD:=X.DACTS
+130305                          IF A><T AND D><T AND X.RSEGM><T GO OUT
+130314                       ELSE
+130315                          *2BANK
+130316                          X.ACTPRI SH -13/\17
+130321                          *1BANK
+130322                          IF A><PC1SG BZERO 17 GO OUT
+130326                       FI
+130326                    FI
+130326                 FI
+130326                 IF 1PCFL=2 GO FXFEL; GO VXALV
+130333              ELSE IF 1PCFL=0 OR A=1 THEN
+130341                 IF CPREG<<1FPRG GO OUTSIDE
+130345                 IF 1PCFL=0 THEN
+130347   FXFEL:           CPREG-1FPRG=:D; A:=0; T:=1PCIN; *RDIV ST
+130355                    IF A>>=100 GO OUTSIDE
+130360   FELLS:           A SH 1+"1DAPC"=:X
+130363                    MIN X.S1; P+1; MIN X.S0; 0/\0
+130367                 ELSE
+130370                    % Log a specific level, variable interval length.
+130370   VXALV:           X:="1FPRG"; 0=:D; A:=CPREG=:D
+130374                    DO
+130374                       IF X.S1>>D THEN CNDX; GO FELLS FI
+130401                       WHILE CNDX<100
+130405                       MIN CNDX; X+1
+130407                    OD
+130410   OUTSIDE:         MIN 1OUT2; P+1; MIN 1OUT1; 0/\0
+130414                 FI
+130414              FI FI
+130414           FI
+130414   OUT:    *2BANK
+130415           EXITA
+130416   RBUS
+130431
+130431
+130431   %===========================================================================
+130431   % Primitive #67                  P 6 7 L 1
+130431   %
+130431   % ND500: Called from CHN5STATUS
+130431   %
+130431   SUBR P67L1
+130431   INTEGER CNDX,BREG
+130433
+130433   P67L1:  0/\0; EXIT
+130435           A:=B=:BREG
+130437           T:=MPHMESS
+130440           IF X><T THEN EXIT FI
+130443           IF ACTMPERFORM=0 THEN
+130445   *NNT51=*
+130445              CALL XTER500; 0/\0
+130447              CALL SLOCK; 0/\0
+130451              CALL IFM500XQ                                      % Measurement not active, remove mess from queue
+130452              CALL SUNLOCK
+130453           ELSE
+130454              T:=5MBBANK; *AAX ACPRO; LDATX; AAX -ACPRO          % Is current process the target process?
+130460              *1BANK
+130461              T:=PC5PR
+130462              *2BANK
+130463              IF A><T AND T><0 GO OUT                           % Not target process active
+130467              MFREE; CALL WN5STATUS                              % Message free
+130471              *1BANK
+130472              5LHPR=:L; *AAX N500A; LDDTX
+130476              AD=:DCADR                                          % Current address
+130477              D-L; A:=A+C-1
+130502              IF A<5FHPR GO OUTSIDE
+130505              IF T:=5PCFL=0 THEN
+130510                 T:=5PCIN; Z:="0"; *RDIV ST
+130513                 IF Z GO OUTSIDE
+130515                 IF A>>=100 GO OUTSIDE
+130520   FELLS:        A SH 1+"5DAPC"=:X
+130523                 MIN X.S1; P+1; MIN X.S0; 0/\0
+130527              ELSE
+130530                 0=:CNDX; X:="5FHPR+2"
+130532                 AD:=DCADR; A=:B; D=:L        % B-L IS CURRENT PREG
+130535                 DO
+130535                    AD:=X.DS0
+130536                    IF B<<=A AND L<<D THEN    % INSIDE AREA ?
+130542                       CNDX; GO FELLS
+130544                    FI
+130544                 WHILE CNDX<<100
+130550                    MIN CNDX; X+2
+130552                 OD
+130553   OUTSIDE:      MIN 5OUT2; P+1; MIN 5OUT1; 0/\0
+130557              FI
+130557              *2BANK
+130560           FI
+130560   OUT:    A:=BREG=:B; GO NXTMSG
+130563   RBUS
+130606
+130606
+130606   %============================================================================
+130606   % Sampling control routine for primitive #67     P 6 7 L 2
+130606   %
+130606   % ND500: Called from 500HIST, level 2
+130606   %
+130606   SUBR P67L2
+130606   INTEGER POINTER LREG
+130607
+130607   P67L2:  0/\0; EXIT
+130611           IF ACTMPERFORM=0 THEN EXIT FI
+130614           A:=L=:"LREG"
+130616           X:=MPHMESS; CALL GCPUDF; CALL ERRFATAL; A=:B
+130622   *NNT52=*
+130622           CALL TER500; 0/\0
+130624           T:=5MBBANK; *AAX 5MSFL; LDATX; AAX -5MSFL
+130630           IF A NBIT 5IEXQUEUE THEN
+130632              CALL SLOCK; 0/\0
+130634              CALL ITO500XQ
+130635              CALL SUNLOCK
+130636           FI
+130636           *1BANK
+130637           X:=5MHPR
+130640           *2BANK
+130641           IF X><0 AND X.RTRES=0 THEN GO LREG FI
+130645           X:=MPHMESS; MSGN500; CALL WN5STATUS
+130650           CALL XACTRDY
+130651           CALL LOWACT500
+130652           GO LREG
+130653   RBUS
+130670
+130670   %===========================================================================
+130670   % Primitive #77    T R D E C
+130670   %
+130670   % ND500: TRDEC: Called from routine DECOMESS on level 12
+130670   %        TRN5C: Called from routine N500C on level 2 (monitor level)
+130670   %        TRACS: Called from routine 5ACTSWAPPER
+130670   %        TRT5X: Called from routine ITO500XQ
+130670   %        TRF5X: Called from routine IFM500XQ
+130670   %        TTER5: Called from routine XTER500
+130670   %        TRAC5: Called from routine XACT500
+130670   %        TRMCC: Called from routine MCCO
+130670   %        TRSWP: Called from routine SWPDECODER
+130670   SUBR TRDEC,TRN5C,TRACS,TRT5X,TRF5X,TTER5,TRAC5,TRMCC,TRSWP
+130670   SYMBOL N5SWAP=  377
+130670
+130670
+130670
+130670   % Local subroutine to init buffer pointers if TRINIT=-1
+130670
+130670   BINIT: A:=STRAC; A SHR 12=:D
+130673          *2BANK
+130674          A:=XBUFPAGE; *1BANK
+130676          A+D=:5TPAGNO
+130700          "OPD77".CURBU; A SHR 12=:5TNOPAG   % ???
+130704          A:=5TPAGNO=:D:=0; AD SH 12=:5TDADDRESS
+130711          AD=:5TPOINTER; A:=5TPAGNO+5TNOPAG=:D:=0
+130716          AD SH 12 =:5TDEN; 0=:5OKPT; 1=:TRINIT
+130723          EXIT
+130724
+130724   *)FILL
+130736   INTEGER TREG=?,AREG=?,DREG=?
+130736   TRIPLE  TADREG=?
+130736   INTEGER POINTER LREG=?
+130736   INTEGER XREG=?
+130736
+130736   INTEGER ARRAY POINTER QQIND=?
+130736   %
+130736   % Local subroutine to search array for match.
+130736   %
+130736   % Entry : D = ND-500 process no.
+130736   % Exit  : no match
+130736   % Exit+1: match ( X = index )
+130736   %
+130736   GSUBR:  FOR X:=0 TO 7 DO
+130742              WHILE QQIND(X) >< -1
+130746              IF A=D THEN EXITA FI
+130751           OD
+130753           EXIT
+130754
+130754   OUT1:   "LREG"=:L; TAD:=TADREG; X:=XREG
+130760   OUT:    *2BANK
+130761           EXIT
+130762
+130762           % Log all 500-processes , 8 specified processes or
+130762           % 8 spec RT-programs from DECOMESS
+130762   TRDEC:  0/\0; EXIT
+130764           IF T:=ACTMPERFORM=0 THEN EXIT FI
+130770           TAD=:TADREG; X=:XREG; A:=L=:"LREG"
+130774           *1BANK
+130775           IF TRINIT=-1 THEN
+131001              CALL BINIT
+131002           FI
+131002           DECOSIZE=:TRCSIZE; XREG=:TRXREG
+131006           *2BANK
+131007           T:=5MBBANK; X:=XREG; *AAX STOPR; LDATX; AAX -STOPR
+131014           IF A=TRAPCODE THEN
+131017              *AAX TRAPN-1; LDDTX; AAX 1-TRAPN          % D=TRAP NO
+131022              *1BANK
+131023              IF D=46 THEN                              % PAGE FAULT TRAP
+131026                 IF DEPFFLAG=1 THEN
+131032                    DECOPT=:TRCOPT; CALL FELLE; 0/\0; FI        % LOGG PF TRAP
+131036              ELSE IF DETRFLAG=1 THEN
+131043                    DECOPT\/20=:TRCOPT; CALL FELLE; 0/\0; FI      % LOGG TRAP - PF
+131050              FI
+131050           ELSE IF A=MOCALL THEN
+131054              *AAX MCNO; LDATX; AAX-MCNO
+131057              IF A=N5SWAP THEN GO FAR OUT1; FI
+131063              *1BANK
+131064              IF DEMCFLAG=1 THEN
+131070                 DECOPT\/60=:TRCOPT; CALL FELLE; 0/\0; FI           % LOGG MCALL - 377
+131075           FI;FI
+131075           GO FAR OUT1
+131076   *)FILL
+131116   INTEGER TREG,AREG,DREG
+131121   TRIPLE  TADREG=TREG
+131121   INTEGER POINTER LREG, FLREG
+131123   INTEGER XREG
+131124   INTEGER ARRAY POINTER QQIND
+131125
+131125
+131125   % LOCAL SUBROUTINE
+131125   % TRXREG=current message
+131125   % TRCOPT=current sub option
+131125   % TRSIZE=current size of message to log
+131125
+131125   FELLE:  *1BANK
+131126           A:=L=:"FLREG"
+131130           IF PROFLAG=0 THEN                            % LOG ALL 500 PROCESSES
+131132              X:=TRXREG; T:=TRCOPT; A:=TRCSIZE
+131135              CALL TRLOGG; GO FLREG                     % LOGG ROUTINE
+131137           ELSE IF A=1 THEN                             % LOG 8 SPECIFIED PROCS
+131143              *2BANK
+131144              T:=5MBBANK
+131145              *1BANK
+131146              "DY1TRP"=:"QQIND"
+131150              X:=TRXREG; *SENDE@3 LDATX
+131152              A=:D; CALL FAR GSUBR; GO FLREG
+131155              X:=TRXREG; T:=TRCOPT; A:=TRCSIZE
+131160              CALL TRLOGG; GO FLREG                     % LOGG ROUTINE
+131162           ELSE IF A=2 THEN                             % LOGG 8 SPEC RT-PROGRAMS
+131166              *2BANK
+131167              T:=5MBBANK
+131170              *1BANK
+131171              "DY1TRP"=:"QQIND"
+131173              X:=TRXREG; *AAX XADPR; LDXTX
+131176              A:=X.S1
+131177              A=:D; CALL FAR GSUBR; GO FLREG             % Match ?
+131202              *1BANK
+131203              X:=TRXREG; T:=TRCOPT; A:=TRCSIZE
+131206              CALL TRLOGG; GO FLREG                      % LOGG ROUTINE
+131210           FI; FI; FI
+131210           MIN "FLREG"; GO FLREG
+131212   *)FILL
+131222
+131222           % Log all 500-processes , 8 specified processes or
+131222           % 8 spec RT-programs from N500C
+131222   TRN5C:  0/\0; EXIT
+131224           IF T:=ACTMPERFORM=0 THEN EXIT FI
+131230           TAD=:TADREG; X=:XREG; A:=L=:"LREG"
+131234           *1BANK
+131235           IF TRINIT=-1 THEN
+131241              CALL FAR BINIT
+131242           FI
+131242           N5SIZE=:TRCSIZE; XREG=:TRXREG; N5COPT=:TRCOPT
+131250           *2BANK
+131251           T:=5MBBANK; X:=XREG; *MICFU@3 LDATX
+131254           IF A=3START OR A=3TRACO THEN
+131262              *AAX TRAPN; LDATX; AAX TRAPN              % D=TRAP NO
+131265              *1BANK
+131266              IF A=46 THEN GO FAR OUT1; FI              % PAGE FAULT TRAP
+131272           FI
+131272           CALL FAR FELLE; 0/\0; GO FAR OUT1
+131275
+131275           % Log all 500-processes , 8 specified processes or
+131275           % 8 spec RT-programs from 5ACTSWAPPER
+131275   TRACS:  0/\0; EXIT
+131277           IF T:=ACTMPERFORM=0 THEN EXIT FI
+131303           TAD=:TADREG; X=:XREG; A:=L=:"LREG"
+131307           *1BANK
+131310           IF TRINIT=-1 THEN
+131314              CALL FAR BINIT
+131315           FI
+131315           ACTSIZE=:TRCSIZE; XREG=:TRXREG; ACTSCOPT=:TRCOPT
+131323           *2BANK
+131324
+131324           CALL FAR FELLE; 0/\0; GO FAR OUT1
+131327   *)FILL
+131344
+131344   INTEGER XTREG=?,XAREG=?,XDREG=?
+131344   TRIPLE YTADREG=?
+131344   INTEGER POINTER XLREG=?
+131344   INTEGER XXREG=?
+131344
+131344   XOUT1:  "XLREG"=:L; TAD:=YTADREG; X:=XXREG
+131350   XOUT:   *2BANK
+131351           EXIT
+131352           % Log all 500-processes , 8 specified processes or
+131352           % 8 spec RT-programs from ITO500XQ
+131352   TRT5X:  0/\0; EXIT
+131354           IF T:=ACTMPERFORM=0 THEN EXIT FI
+131360           TAD=:YTADREG; X=:XXREG; A:=L=:"XLREG"
+131364           *1BANK
+131365           IF TRINIT=-1 THEN
+131371              CALL FAR BINIT
+131372           FI
+131372           T5XQSIZE=:TRCSIZE; XXREG=:TRXREG; T5XQCOPT=:TRCOPT
+131400           *2BANK
+131401
+131401           CALL FAR FELLE; 0/\0; GO XOUT1
+131404
+131404           % Log all 500-processes , 8 specified processes or
+131404           % 8 spec RT-programs from IFM500XQ
+131404   TRF5X:  0/\0; EXIT
+131406           IF T:=ACTMPERFORM=0 THEN EXIT FI
+131412           TAD=:YTADREG; X=:XXREG; A:=L=:"XLREG"
+131416           *1BANK
+131417           IF TRINIT=-1 THEN
+131423              CALL FAR BINIT
+131424           FI
+131424           F5XQSIZE=:TRCSIZE; XXREG=:TRXREG; F5XQCOPT=:TRCOPT
+131432           *2BANK
+131433
+131433           CALL FAR FELLE; 0/\0; GO XOUT1
+131436   *)FILL
+131451
+131451   INTEGER XTREG,XAREG,XDREG
+131454   TRIPLE YTADREG=XTREG
+131454   INTEGER POINTER XLREG
+131455   INTEGER XXREG
+131456
+131456
+131456
+131456           % Log all 500-processes , 8 specified processes or
+131456           % 8 spec RT-programs from XTER500
+131456   TTER5:  0/\0; EXIT
+131460           IF T:=ACTMPERFORM=0 THEN EXIT FI
+131464           TAD=:YTADREG; X=:XXREG; A:=L=:"XLREG"
+131470           IF XXREG=-1 THEN GO XOUT1; FI
+131475           *1BANK
+131476           IF TRINIT=-1 THEN
+131502              CALL FAR BINIT
+131503           FI
+131503           TER5SIZE=:TRCSIZE; XXREG=:TRXREG; TER5COPT=:TRCOPT
+131511           *2BANK
+131512
+131512           CALL FAR FELLE; 0/\0; GO XOUT1
+131515
+131515           % Log all 500-processes , 8 specified processes or
+131515           % 8 spec RT-programs from XACT500
+131515   TRAC5:  0/\0; EXIT
+131517           IF T:=ACTMPERFORM=0 THEN EXIT FI
+131523           TAD=:YTADREG; X=:XXREG; A:=L=:"XLREG"
+131527           *1BANK
+131530           IF TRINIT=-1 THEN
+131534              CALL FAR BINIT
+131535           FI
+131535           ACTSIZE=:TRCSIZE; XXREG=:TRXREG; ACT5COPT=:TRCOPT
+131543           *2BANK
+131544
+131544           CALL FAR FELLE; 0/\0; GO FAR XOUT1
+131547
+131547           % Log all 500-processes , 8 specified processes or
+131547           % 8 spec RT-programs from MCCO
+131547   TRMCC:  0/\0; EXIT
+131551           IF T:=ACTMPERFORM=0 THEN EXIT FI
+131555           TAD=:YTADREG; X=:XXREG; A:=L=:"XLREG"
+131561           *1BANK
+131562           IF TRINIT=-1 THEN
+131566              CALL FAR BINIT
+131567           FI
+131567           MCCOSIZE=:TRCSIZE; XXREG=:TRXREG; MCCOCOPT=:TRCOPT
+131575           *2BANK
+131576
+131576           CALL FAR FELLE; 0/\0; GO FAR XOUT1
+131601
+131601           % Log all 500-processes , 8 specified processes or
+131601           % 8 spec RT-programs from SWPDECODER
+131601   TRSWP:  0/\0; EXIT
+131603           IF T:=ACTMPERFORM=0 THEN EXIT FI
+131607           TAD=:YTADREG; X=:XXREG; A:=L=:"XLREG"
+131613           *1BANK
+131614           IF TRINIT=-1 THEN
+131620              CALL FAR BINIT
+131621           FI
+131621           SWPDSIZE=:TRCSIZE; XXREG=:TRXREG; SWPDCOPT=:TRCOPT
+131627           *2BANK
+131630
+131630           CALL FAR FELLE; 0/\0; GO FAR XOUT1
+131633   *)FILL
+131653   RBUS
+131653
+131653   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+131653   % Primitive #77 TRACE ND 500
+131653   %               LOGGING ROUTINE
+131653   %
+131653   SUBR TRLOGG
+131653
+131653   % ===================================================================
+131653   %       Data definitions for trace
+131653   %
+131653   %         Header
+131653
+131653   DISP  0; INTEGER 5RIDENT          ;PSID % Currenet option code
+131653   DISP  1; INTEGER 5RNEXT           ;PSID % Pointer to next record
+131653   DISP  2; INTEGER 5RPR             ;PSID % ND-500 process number
+131653   DISP  3; INTEGER 5RTPROC          ;PSID % RT program address
+131653   DISP  4; DOUBLE  5RATIME          ;PSID % Copy of ATIME when traced
+131653   %ISP  6; INTEGER size                   % Size of buffer (mess buff part + head)
+131653   %ISP  7; INTEGER free                   %
+131653   %ISP 10; INTEGER first free
+131653   %
+
+131653
+131653
+131653
+131653   % ===================================================================
+131653   %   T R L O G G   -   Reserve space in trace buffer
+131653   %                     and initialize header
+131653   %                       NB!  The whole trace buffer must be traced
+131653   %                            within a IOF sequence.
+131653   %
+131653   %       Input:   A - Size    (total)
+131653   %                X - Message buffer address
+131653   %                T - Current option code
+131653   %
+131653   %  Skip Return:  OK   Trace done
+131653   %
+131653   %  Norm Return:  Trace not done
+131653   %
+131653
+131653   SYMBOL XADRPROC=144
+131653   INTEGER SIZ=?                      % Size of current trace rec. data(-head)
+131653   INTEGER IMESS=?                    % Current message buffer address
+131653   INTEGER ITYPE=?                    % Trace record type option code
+131653   INTEGER ICURR=?                    % First free pointer ( in record)
+131653   INTEGER 5TRECORD=?                 % Current record pointer
+131653   INTEGER TSAVL=?
+131653   INTEGER SAVL=?
+131653
+131653
+131653   TRLOGG:
+131653         SPACE(A)=:SIZ
+131656         T=:ITYPE; X=:IMESS; A:=L=:TSAVL
+131662   % -----------------------------------------------
+131662   %     Find area for record        (limited to one bank)
+131662         5TPT2=:D+SIZ=:5TPT2
+131666         IF C OR A >= 5TEN2 THEN
+131673             5TADDRESS=:D+SIZ =: 5TPT2
+131677             5TSTATUS BONE 5RWRAP =: 5TSTATUS   % Wrap around
+131702             A:=5TADDRESS; X:=5TREC; T:=5TBANK
+131705             *STATX 10                          % Prev record.next=start
+131706         FI
+131706         A:=D=:5TRECORD
+131710
+131710   % -----------------------------------------------
+131710   %     Find next old ok buffer pointer
+131710         IF 5TSTATUS NBIT 5RWRAP THEN   % Not wrap around
+131713            5TADDRESS=:5OKPT            % First OK buffer
+131715            GO HEAD
+131716         FI
+131716   NEW:  IF 5OKPT >= 5TPT2 OR 5OKPT = 5TADD AND 5TREC >< 5TADD THEN
+131732            GO HEAD
+131733         FI
+131733         X:=5OKPT; T:=5TBANK; *LDATX 10
+131736         A=:5OKPT; GO NEW
+131740   % -----------------------------------------------
+131740   %     Make HEAD part
+131740
+131740   HEAD: *2BANK
+131741         T:=5MBBANK; X:=IMESS; *SENDE@3 LDATX
+131744         A=:D; *AAX XADRP; LDXTX
+131747         A:=X.S1
+131750         *1BANK
+131751         T:= 5TPT1; X:= 5TRECORD
+131753         *STATX 30                       % rt prog
+131754         A:=D; *STATX 20                 % proc no
+131756         ITYPE; *STATX                   % record id
+131760         5TRECORD+SIZ;  *STATX 10       % next
+131763         AD:=ATIME ; *STDTX 40            % atime
+131765         5TRECORD+6=:ICURR
+131770         A:=SIZ; CALL SAVEMESSAGE; 0/\0
+131773         *1BANK
+131774         T:=TSAVL=:L; EXIT
+131777
+131777
+131777
+131777   % -------------------------------------------
+131777   %       Local data for trace routines
+131777
+131777   INTEGER SIZ                       % Size of current trace rec. data(-head)
+132000   INTEGER IMESS                      % Current message buffer address
+132001   INTEGER ITYPE                      % Trace record type current option code
+132002   INTEGER ICURR                      % First free pointer ( in record)
+132003   INTEGER 5TRECORD                   % Current record pointer
+132004   INTEGER TSAVL                      % L in TRLOGG
+132005   INTEGER SAVL                       % L in SAVEMESAGE
+132006   INTEGER TEMP,TEMP2
+132010           DOUBLE TEMPD=TEMP
+132010   *)FILL
+132023
+132023   % ====================================================
+132023   %     SAVEMESSAGE
+132023   %
+132023   %     INPUT: A - Message buffer part choice
+132023   %
+132023   %                0 : (0:37)
+132023   %                1 : (0:37)+(100:146)
+132023   %                2 : (0:146)
+132023   %                3 : (-30:146)
+132023   %
+132023
+132023
+132023   SAVEMESSAGE:
+132023         IF A>>3 THEN EXIT FI
+132027         A=:TEMP
+132030         IF SPACE(A) > SIZ THEN EXIT FI       % Room?
+132036         IF ICURR-5TRECORD >= 10 THEN EXIT FI
+132044         A:=L=:SAVL
+132046         TEMP; CALL STOR2; GO NOSAVE           % TYPE
+132051   % ------------------------------
+132051   %       First block
+132051
+132051         A:=5TTRA(TEMP)=:L                     % LENGTH
+132054         IMESS-5XSTA(X)=:D; *2BANK
+132060         A:=5MBBANK; *1BANK                    % SOURCE
+132062         X:=5TPT1; T:=5TRECORD+10              % DESTINATION
+132065         *MOVPP
+132066   % ------------------------------
+132066   %       Second ?
+132066         IF TEMP-1 = 0 THEN
+132071             A:=50=:L
+132073             IMESS+100=:D; *2BANK
+132077             A:=5MBBANK; *1BANK
+132101             *MOVPP
+132102         FI
+132102         T=: ICURR
+132103         *MIN SAVL
+132104   NOSAVE:
+132104         T:=SAVL=:L
+132106         EXIT
+132107
+132107   % =================================================
+132107   %     STOR2      Store 16 bits word in trace
+132107   %
+132107   %     INPUT:
+132107   %            A = DATA
+132107   %
+132107   %     RETURN: No trace done
+132107   %
+132107   % SKIPRETURN: OK
+132107
+132107   STOR2:
+132107           A=: TEMP
+132110           T:=5TPT1; X:=5TRECORD; *LDATX 10    % NEXT
+132113           IF X:=ICURR >= A THEN EXIT FI
+132117           TEMP; *STATX
+132121           *MIN ICURR
+132122           EXITA
+132123
+132123
+132123   % =================================================
+132123   %     STOR4      Store 32 bits word in trace
+132123   %
+132123   %     INPUT:
+132123   %            AD = DATA
+132123   %
+132123   %     RETURN: No trace done
+132123   %
+132123   % SKIPRETURN: OK
+132123
+132123   STOR4:
+132123           AD=: TEMPD
+132124           T:=5TPT1; X:=5TRECORD; *LDATX 10    % NEXT
+132127           IF X:=ICURR >= A THEN EXIT FI
+132133           TEMPD; *STDTX
+132135           ICURR+2=:ICURR
+132140           EXITA
+132141   RBUS
+132147
+132147
+132147   *"-8MPRF 8N500
+"132147
+132147   @DEV 1

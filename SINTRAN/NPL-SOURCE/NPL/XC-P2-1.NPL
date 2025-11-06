@@ -1,0 +1,398 @@
+026000   @DEV (S-S-L)XC-P2-1:NPL
+026000   %==============================================================================
+026000   % 11.21        G E T B I T
+026000
+026000   %SUBROUTINE TO GET BIT FROM BITMAP, ADDRESS IN X, CHAR IN A
+026000   %RESULT IN A BIT 17
+026000
+026000   SUBR GETBIT,SSCGETBIT,VSXGETBIT
+026000   INTEGER SHAINSTR(0); *SHA
+026001   VSXGETBIT: IF X>>="WNDBF*2000" THEN
+026004                 A=:T:=B/\176000:=:X/\1777; X+A; A:=T
+026013              FI
+026013   SSCGETBIT:
+026013   GETBIT: A BZERO 7; AD SHZ -4; X+A; SHAINSTR; D SHZ -14+A
+026021          X.S0; *EXR SD
+026023          EXIT
+026024   RBUS
+026027
+026027   %=================================================================
+026027   %37.2A      T E C H O
+026027   %
+026027   %  TEST FOR ECHO:
+026027   %  THIS SUBROUTINE SHOULD BE CALLED WITH INTERRUPTS OFF!!
+026027   %
+026027   SUBR TECHO
+026027   INTEGER CHARN; INTEGER POINTER LREG
+026031   SYMBOL 5PIP=17
+026031   TECHO: A=:CHARN; A:=L=:"LREG"
+026034          IF X:=ECHOTAB><0 THEN
+026036             A:=CHARN
+026037             IF T:=TINFO BIT 58BIT AND A BIT 7 THEN     % 8-BITS MODE
+026044                EXIT                                    % NO ECHO IN UPPER RANGE
+026045             FI
+026045             CALL VSXGETBIT
+026046             IF A<0 THEN                  % NO ECHO
+026047                IF X:=ECHOTAB><"ECH0" AND X><"ECH1" AND X><"ECH2" THEN
+026061                   BRECHOFL BONE 5PIP=:BRECHOFL
+026064                FI
+026064             ELSE                         % ECHO
+026065                IF DFLAG NBIT 5SPEC AND A NBIT 5HDUP THEN
+026072                   BRECHOFL BONE 5ECHO BZERO 5PIP=:BRECHOFL
+026076                FI
+026076             FI
+026076          FI
+026076         CHARN; GO LREG
+026100   RBUS
+026104
+026104   %========================================================================
+026104   % 37.2B       T B R E A K
+026104   %
+026104   %     TEST FOR BREAK:
+026104   %     THIS ROUTINE SHOULD BE CALLED WITH INTERRUPTS OFF!!
+026104   %
+026104   SUBR TBREAK
+026104   INTEGER CHARN; INTEGER POINTER LREG
+026106   SYMBOL 5PIP=17
+026106   TBREAK: A=:CHARN; A:=L=:"LREG"
+026111           IF X:=TINFO BIT 58BIT AND CHARN BIT 7 THEN      % 8-BITS MODUS WITH BIT 7 SET
+026117              IF X NBIT 5UMOD THEN
+026121                 BRECHOFL BONE 5PIP=:BRECHOFL; EXIT        % REJECT CHARACTER
+026125              FI
+026125              IF BRKTAB><0 THEN                            % BIT 7 AND BREAK DEFINED
+026127                 0=:NCBRK
+026130                 BRECHOFL BONE 5BREAK BZERO 5PIP=:BRECHOFL % BREAK ON 8-BITS CHARACTER
+026134                 EXIT
+026135              FI
+026135           FI
+026135           IF DFLAG BIT 5SPEC THEN        %UNCONDITIONAL BREAK, NO ECHO.
+026140              0=:NCBRK
+026141              A BZERO 5SPEC BZERO 5CTRLO=:DFLAG
+026144              BRECHOFL BONE 5BREAK BZERO 5ECHO=:BRECHOFL
+026150           ELSE
+026151              IF X:=BRKTAB><0 THEN
+026153                 IF BRECHOFL>=0 THEN MIN NCBRK; 0/\0; FI
+026157                 IF BRKTAB="BRK1" AND CHARN/\177=17 OR =20 OR =26 OR =30 OR =32 THEN
+026204                    DFLAG BONE 5SPEC =:DFLAG    %BREAK ON NEXT
+026207                 ELSE
+026210                    A:=CHARN; CALL VSXGETBIT
+026212                    IF A<0 THEN                 %BREAK ON CHARACTER
+026213                       0=:NCBRK
+026214                       BRECHOFL BONE 5BREAK BZERO 5PIP=:BRECHOFL
+026220                    ELSE                        %POSSIBLE BREAK ON MAX CHARS.
+026221                       IF BRKMAX><0 AND A<<=NCBRK THEN
+026226                          0=:NCBRK
+026227                          BRECHOFL BONE 5BREAK=:BRECHOFL
+026232                       FI
+026232                    FI
+026232                 FI
+026232              FI
+026232           FI; CHARN; GO LREG
+026234   RBUS
+026237
+026237   %==============================================================================
+026237   %            T E R M I N A L   O U T P U T
+026237   %==============================================================================
+026237   % 11.22      T T P U T   T R T P U T   D M O U T P U T   T T O M R   I O N I O F
+026237   %
+026237
+026237   SUBR TTPUT,TRTPUT,DMOUTPUT,TTOMR,DIOUT,MLTTOMR ,TTWPUT
+026237
+026237   % IOTRANS SUBROUTINE FOR INTERNAL DEVICE 500
+026237   TTWPUT: IF T:=CFREE=0 THEN EXIT FI
+026243           L+1; T:=0 ; GO TDWPUT
+026246
+026246   %IOTRANS SUBROUTINE, CALLED FROM OUTBT
+026246   TTPUT: IF T:=CFREE=0 THEN EXIT FI
+026252          L+1; GO RBPUT
+026254
+026254   % TERMINAL OUTPUT IOTRANS ROUTINE
+026254   TRTPUT: IF T:=CFREE=0 THEN EXIT FI                          % BUFFER FULL
+026260           IF T:=MINBHOLD<0 THEN EXIT FI                       % BUFFER LOCKED
+026264           X:=XOPPDF+B
+026266           IF T:=X.TINFO NBIT 5UMOD OR X:=X.BSTATE=5BCOM THEN
+026275              A BZERO 7                                        % 7-BIT DATA ONLY
+026276           FI; L+1; GO CXRBPUT
+026300
+026300   %STDEV SUBROUTINE, CALLED FROM OUTBT, TO ACTIVATE LEVEL 10
+026300   INTEGER SVT,SVL
+026302   DIOUT: T=:SVT; GO IDIOUT
+026304   TTOMR: T=:SVT; K:="1"; GO ITTOMR
+026307   DMOUTPUT: T=:SVT; K:="0"
+026311          T:=HDEV+DST; *IOXT
+026314          IF NBIT 0 THEN
+026316   % TERMINAL OUTPUT TIME-OUT SUBROUTINE
+026316   ITTOMR:
+026316             IF DFOPP><0 AND X:=TYPRING BIT 5TERM THEN
+026323                IF K AND BITFLAG BIT 5MAIL THEN       % MAIL BEEING PRINTED ON THIS TERMINAL
+026330                   IF CURMAIL=X:="F1205".RTRES THEN   % X-REG DESTROYED !!!
+026335                      GO CLBF
+026336                   ELSE
+026337                      BITFLAG BZERO 5MAIL=:BITFLAG; 5TMR=:TTMR
+026344                      X:=XOPPDF+B
+026346                   FI
+026346                FI
+026346                IF K AND BITFLAG BIT 5CLOU GO CLBF    % CLEAR OUTPUT BUFFER
+026353                X:=XOPPDF+B; IF X.DFLAG NBIT 5LBRK GO L1
+026360                IF CFREE=MAX THEN         % OUTPUT BUFFER EMPTY
+026364                   MINBHOLD BZERO 5BLOC=:MINBHOLD
+026367                FI
+026367                IF X.DBPROG><0 THEN
+026371                   X.DFLAG BZERO 5LBRK=:X.DFLAG; T:=HDEV+DST-4; *IOXT
+026400                   IF A BIT 13 THEN                   % MISSING CARRIER
+026402                      GO CLBF
+026403                   FI
+026403                FI
+026403             FI; GO L1
+026404
+026404   CLBF:     A:=L=:SVL; CALL CLBUFF; "IORESTART"; CALL CXXRTACT; SVL=:L
+026413             MINBHOLD BZERO 5BLOC=:MINBHOLD
+026416   L1:       IF TYPRING BIT 5TERM THEN TDRADDR; GO L2 FI
+026423
+026423   %  DIGITAL I/O TIMEOUT ENTRY POINT  (DR11C)
+026423   IDIOUT:   B=:A
+026424   L2:       *IRW LV10B DB
+026425             "STDRIV"; *IRW LV10B DT
+026427             "SLV10"; *IRW LV10B DP
+026431             LV10; *MST PID
+026433          FI
+026433          T:=SVT; TTMR=:TMR
+026436          EXIT
+026437
+026437   RBUS
+026451
+026451
+026451
+026451
+026451   SUBR ERR22
+026451   %FALSE INTERRUPT, A=IDENT NO.:
+026451     ERR22: T:=A; *TRA STS; 2BANK
+026454          A SH 4 SHZ -14=:X; CALL 9ERR(#22)
+026461     ERRY:  X-12 GOSW WT10,WT11,WT12,WT13
+026467   RBUS
+026474
+026474
+026474   %==============================================================================
+026474   %                C A T E S T   -    C A R T T E
+026474   %
+026474   % CAMAC DRIVER:
+026474
+026474   SUBR CATEST,CARTTE
+026474
+026474          % ENTRY FOR LEVELS 10,11,12
+026474   CATEST:
+026474   *"CAMA
+"026474   CARTTE:
+026474   *"CAMA
+"026474         EXIT
+026475   *"
+"026475   RBUS
+026475
+026475
+026475   %====================================================================
+026475   %              P H L O G
+026475   %
+026475   % PHLOG : FIND DEVICENUMBER FROM DATAFIELD ADDRESS
+026475   %
+026475   %    ENTRY : A = DATAFIELD ADDRESS
+026475   %
+026475   %    EXIT  : A = DEVICE NUMBER (BIT 17 SET WHEN OUTPUT PART)
+026475   %
+026475   SUBR PHLOG
+026475
+026475   INTEGER SAVT, SAVA, SAVD
+026500   TRIPLE SVTAD=SAVT
+026500   INTEGER SAVX, SAVB, U
+026503   INTEGER POINTER HOME
+026504
+026504   PHLOG: A:=:B=:SAVB:=L=:"HOME"
+026510          TAD=:SVTAD; X=:SAVX
+026512          0=:SAVA; 0=:U
+026514          DO
+026514             IF U><1 THEN
+026520                U=:X SHZ 6=:SAVA; X:=CNVRT(X)
+026525                T:=LOGDBANK; *LDATX            % NUMBER OF ENTRIES
+026527                X+1; A SHZ 1+X=:L              % NEXT ENTRY
+026533                DO WHILE X<<L
+026535                   *LDDTX                      % DATAFIELD ADDRESSES
+026536                   IF A=B GO FOUND
+026540                   IF D=B THEN
+026542                      SAVA BONE 17=:SAVA       % OUTPUT PART
+026545                      GO FOUND
+026546                   FI
+026546                   X+2; MIN SAVA               % NEXT ELEMENT
+026550                OD
+026551             FI
+026551             WHILE U+1=:U<=31
+026557          OD
+026560          CALL ERRFATAL                        % NOT FOUND
+026561
+026561   FOUND: SVTAD; X:=SAVB=:B:=SAVX; GO HOME
+026566   RBUS
+026571
+026571
+026571   %=======================================================================
+026571   % DISK HANDLING UTILLITY ROUTINES
+026571
+026571   SUBR GETOUT,PUTIN
+026571   %-------------------------------------------------------------------
+026571   % ROUTINE TO LINK OUT A QUE ELEMENT                              (M/I)
+026571   %  X= QUE HEAD ADDRESS
+026571   % RETURN:T= OUT LINKED  ELEM., X= QUE HEAD
+026571   %-------------------------------------------------------------------
+026571   GETOUT:
+026571           T:=X.S0 ;IF T=0 THEN CALL ERRFATAL; FI
+026575           X:=:T; A:=X.NLINK; 0=:X.NLINK
+026600           X:=:T; A=:X.S0
+026602           EXIT
+026603   %-------------------------------------------------------------------
+026603   % ROUTINE TO LINK IN A QUE ELEMENT                               (M/I)
+026603   % T= QUE ELEMENT, X= QUE HEAD ADDRESS
+026603   % RETURN:T= IN LINKED  ELEM., X= QUE HEAD
+026603   %-------------------------------------------------------------------
+026603   PUTIN:
+026603           A:=X.S0;    X:=:T
+026605           A=:X.NLINK; X:=:T
+026607           T=:X.S0
+026610           EXIT
+026611   RBUS
+026612
+026612   %============================================================================
+026612   %       SUBROUTINE TO RETURN A QUEUE DATAFIELD TO POOL OF FREE DATAFIELDS (M/R)
+026612   %       T-REG: ADDRESS OF DATAFIELD TO BE INSERTED IN FREE LIST
+026612   %       CALLED FROM MPIT AND RPIT
+026612   %
+026612   SUBR PTFREE
+026612   INTEGER POINTER SAVL
+026613   INTEGER SAVB
+026614   PTFREE: X:=L=:"SAVL"; X:=:B=:SAVB:="QP100"=:B; *AAX QPFRH
+026623           CALL PUTIN; MIN 5MQCU; 0/\0
+026626           X:=SAVB=:B; GO SAVL
+026631   RBUS
+026633
+026633
+026633
+026633   SUBR TO10Q,TO11Q,TO12Q
+026633   %--------------------------------------------------------------------
+026633   % TO APPEND Q ELEMENT IN LEVEL 11 QUE
+026633   % ENTRY: X= QUE ELEMENT, B= WILL BE SAVED IN QUE ELEMENT
+026633   % EXIT:  IOF
+026633   %--------------------------------------------------------------------
+026633   INTEGER SVX
+026634   TO10Q: T:="IL10Q-NLINK"; GO TOQ
+026636   TO11Q: T:="IL11Q-NLINK"; GO TOQ
+026640   TO12Q: T:="IL12Q-NLINK";
+026641   TOQ:   *IOF
+026642          IF X.NLINK >< 0 THEN CALL ERRFATAL FI  %
+026645          X=:SVX:=T; T:=-1
+026650          DO WHILE X.NLINK >< T                % TO THE END
+026653             X:=X.NLINK
+026654          OD
+026655          SVX=:X.NLINK=:X
+026660          A:=B=:X.BREGQ; T=:X.NLINK            % MARK END
+026663          EXIT
+026664   RBUS
+026670
+026670   SUBR ST10L
+026670   %--------------------------------------------------------------------
+026670   % TO START LEV 10
+026670   % ENTRY: X= QUE ELEMENT, B= WILL BE SET ON LEV 10
+026670   % EXIT:  IOF
+026670   %--------------------------------------------------------------------
+026670   ST10L:  *IOF; TRA PID
+026672           IF A BIT BLV10 THEN
+026674             GO TO10Q
+026675           ELSE
+026676             IF X.NLINK >< 0 THEN CALL ERRFATAL FI
+026701             A:=B;       *IRW LV10B DB                 % CONTROLLER
+026703             A:=X;       *IRW LV10B DX                 % PARAMETERS
+026705             X.NFUNC;    *IRW LV10B DP
+026707             LV10;       *MST PID
+026711           FI
+026711           EXIT
+026712   RBUS
+026715
+026715   SUBR ST11L
+026715   %--------------------------------------------------------------------
+026715   % TO START LEV 11
+026715   % ENTRY: X= QUE ELEMENT, B= WILL BE SET ON LEV 11
+026715   % EXIT:  IOF
+026715   %--------------------------------------------------------------------
+026715   ST11L:  *IOF; TRA PID
+026717           IF A BIT BLV11 THEN
+026721             GO TO11Q
+026722           ELSE
+026723             IF X.NLINK >< 0 THEN CALL ERRFATAL FI
+026726             A:=B;       *IRW LV11B DB                 % CONTROLLER
+026730             A:=X;       *IRW LV11B DX                 % PARAMETERS
+026732             X.NFUNC;    *IRW LV11B DP
+026734             LV11;       *MST PID
+026736           FI
+026736           EXIT
+026737   RBUS
+026742
+026742   SUBR ST12L
+026742   %--------------------------------------------------------------------
+026742   % TO START LEV 12
+026742   % ENTRY: X= QUE ELEMENT, B= WILL BE SET ON LEV 12
+026742   % EXIT:  IOF
+026742   %--------------------------------------------------------------------
+026742   ST12L:  *IOF; TRA PID
+026744           IF A BIT BLV12 THEN
+026746              GO TO12Q
+026747           ELSE
+026750             IF X.NLINK >< 0 THEN CALL ERRFATAL FI
+026753             A:=B;       *IRW LV12B DB                 % CONTROLLER
+026755             A:=X;       *IRW LV12B DX                 % PARAMETERS
+026757             X.NFUNC;    *IRW LV12B DP
+026761             LV12;       *MST PID
+026763           FI
+026763           EXIT
+026764   RBUS
+026767
+026767   SUBR DRTRANS,DL11T,DL12T
+026767    %-----------------------------------------------------------------------
+026767    % DRIVER LEVEL ROUTINE TO START A DISK TRANSFER
+026767    %
+026767    % ENTRY: B= DISK DF, X= QUE  DF
+026767    %
+026767    % EXIT :  BUSY (DO'NT TOUCH "DRIVER" IN DISK DF)
+026767    % EXITA:  FINISH   SSSTAT IN QUE DF IS VALID
+026767    %
+026767    %-----------------------------------------------------------------------
+026767   DRTRANS:
+026767           A:=L=:X."TRLREG"
+026771   *"8DIMI
+"026771           IF DMFST><-1 THEN
+026775              X:=:B=:DMCDF; "0" BONE 6DL12=:DMSTAT
+027002              "DIMI2"=:"DMRUT"; "DIMRS"=:MFUNC
+027006              0=:MLINK; CALL RTACT
+027010              X:=:B; A:=X."TRLREG"=:P
+027013           FI
+027013   *"
+"027013           "DL11T"=:X.NFUNC; *IOF
+027016           CALL ST11L      ; *ION
+027020           A:=X."TRLREG"=:L; EXIT        % BUSY RETURN
+027023   % ENTRY ON LEV 11, B= DISK DF, X= QUE DF
+027023   DL11T:  T:=5; CALL DODMA
+027025           "DL12T"=:X.NFUNC; *IOF
+027030           CALL ST12L;       *ION
+027032           GO WT11
+027033   % ENTRY ON LEV 12, B= DISK DF, X= QUE DF
+027033   DL12T: A:=X."TRLREG"=:L; EXITA       % FINISH RETURN
+027036   RBUS
+027047
+027047   %==============================================================================
+027047   % 11.27        D D R I V E R
+027047   %DRIVER ON LEVEL 10-13
+027047   SUBR DDRIVER
+027047   DDRIVER: *TRA STS
+027050          A SH 4 SHZ -14; A-12; A SH 1=:X
+027055          CALL RTACT; P+X
+027057          CALL ID10; GO DDRIVER
+027061          CALL ID11; GO DDRIVER
+027063          CALL ID12; GO DDRIVER
+027065          CALL ID13; GO DDRIVER
+027067   RBUS
+027075
+027075   @DEV 1

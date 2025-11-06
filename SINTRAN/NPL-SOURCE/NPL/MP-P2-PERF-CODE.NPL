@@ -1,0 +1,2794 @@
+116075   @DEV (S-S-L)MP-P2-PERF-CODE:NPL
+116075
+
+116075   *"8MPRF 8N500
+"116075   %
+116075   % The following primitives are available to operate upon
+116075   % with the monitor call MON PERFORMANCE
+116075   %
+116075   % Primitive no.  1: Use of the ND-100 CPU.
+116075   % Primitive no.  2: Use of the ND-500 CPU.
+116075   % Primitive no.  3: Use of logical devices in ND-100.
+116075   % Primitive no.  4: Use of ND-500 swapper.
+116075   % %Primitive no.  5: Use of SIBAS-500.                                  -- B-version --
+116075   % %Primitive no.  6: ND-100 CPU utilisation by a set of ND-100 segments -- B-version --
+116075   % %Primitive no.  7: Resources reserved by a specific ND-100 program.   -- B-version --
+116075   %
+116075   % Primitives no. 8-31: not yet defined.
+116075   %
+116075   % Primitive no. 32: Disc access count.
+116075   % Primitive no. 36: Monitor call log in ND-100.
+116075   % Primitive no. 37: Monitor call log in ND-500.
+116075   %
+116075   % Primitives no. 38-63: not yet defined.
+116075   %
+116075   % Primitive no. 64: Number of pages in memory for a specific ND-100 segment.
+116075   % Primitive no. 65: Number of pages in memory for a specific ND-500 segment.
+116075   % Primitive no. 66: ND-100 program counter histogram.
+116075   % Primitive no. 67: ND-500 program counter histogram.
+116075   %
+116075   % Primitives no. 68-80: not yet defined.
+116075   %
+116075   % The monitor call MON PERFO has the following layout:
+116075   %
+116075   %                LDA (PLIST        % A-reg points to parameter liste
+116075   %                MON PERFO
+116075   %                JMP ERROR         % error return; A-reg is errorcode
+116075   %                                  % skip-return when no error.
+116075   %
+116075   % Parameter liste, MON PERFO has 5 parameters
+116075   % PLIST,         MPRFUNCTION
+116075   %                MPRPRIMITIVES
+116075   %                MPRPARBLOCK
+116075   %                MPRSAMPLERATE
+116075   %                MPRSTOPTIME
+116075   % MPRFUNCTION, 1
+116075   % MPRPRIMITIVES=*; *+5/               % 80 bits=80 primitives
+116075   % MPRPARBLOCK=*;   *+xx/              % parameter blocks for active primitives
+116075   % MPRSAMPLERATE, 1                    % valid for MPRFUNCTION=1 else dummy
+116075   % MPRSTOPTIME, 0;0                    % valid for MPRFUNCTION=1 else dummy
+116075   %
+116075   %
+116075   % Parameter descriptions:
+116075   % Function:  16 bits integer
+116075   %            =1: initialize measurement.
+116075   %            =2: read collected data
+116075   %            =3: terminate measurement
+116075   %
+116075   % Primitives:
+116075   %            80 bits bit-array; 1 bit for each primitive.
+116075   %            This bit-array has the same layout as PLANC uses.
+116075   %            A bit set to one means that the primitive with the number
+116075   %            equal to the bit number should be activated.
+116075   %            Max. 8 primitives can be active simultaneously.
+116075   %
+116075   % Parblock:
+116075   %            Array used to spesify parameters for each primitive
+116075   %            when MPRFUNCTION=1.
+116075   %            Array where the collected data is returned
+116075   %            when MPRFUNCTION=2.
+116075   %
+116075   %
+116075   % Parblock descriptions for each primitive:
+116075   %
+116075   %============================================================================
+116075   % Primitive no.  1: Use of the ND-100 CPU.
+116075   %   Function=1: initialize measurement.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of parameter block.
+116075   %      Word  3: option code.
+116075   %      Word  4: rt-program (rt-description address)
+116075   %
+116075   %   Option codes:
+116075   %       100000: total ND-100 CPU utilisation.
+116075   %       10000:  ND-100 CPU utilisation split on user mode,mon.call mode and sys.mode
+116075   %       1000:   ND-100 CPU utilisation split on all hardware interrupt levels.
+116075   %       200:    ND-100 CPU utilisation split on all rt-programs.
+116075   %       100:    ND-100 CPU utilisation by a specific rt-program.
+116075   %       10:     ND-100 CPU utilisation by a specific rt-program, split on user
+116075   %               mode, mon.call mode and system mode.
+116075   %       1:      ND-100 execution queue length.
+116075   %
+116075   %   Function=2: read collected data.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of data-block.
+116075   %      Word  3: addr of next data-block.
+116075   %      Word  4- 5: total ND-100 CPU utilisation.
+116075   %      Word  6- 7: ND-100 CPU utilisation in user mode.
+116075   %      Word 10-11: ND-100 CPU utilisation in monitor call mode.
+116075   %      Word 12-13: ND-100 CPU utilisation in system mode.
+116075   %      Word 14-15: ND-100 CPU used on interrupt level 0.
+116075   %      Word 16-17: ND-100 CPU used on interrupt level 1.
+116075   %      Word 20-21: ND-100 CPU used on interrupt level 2.
+116075   %      Word 22-23: ND-100 CPU used on interrupt level 3.
+116075   %      Word 24-25: ND-100 CPU used on interrupt level 4.
+116075   %      Word 26-27: ND-100 CPU used on interrupt level 5.
+116075   %      Word 30-31: ND-100 CPU used on interrupt level 6.
+116075   %      Word 32-33: ND-100 CPU used on interrupt level 7.
+116075   %      Word 34-35: ND-100 CPU used on interrupt level 8.
+116075   %      Word 36-37: ND-100 CPU used on interrupt level 9.
+116075   %      Word 40-41: ND-100 CPU used on interrupt level 10.
+116075   %      Word 42-43: ND-100 CPU used on interrupt level 11.
+116075   %      Word 44-45: ND-100 CPU used on interrupt level 12.
+116075   %      Word 46-47: ND-100 CPU used on interrupt level 13.
+116075   %      Word 50-51: ND-100 CPU used on interrupt level 14.
+116075   %      Word 52-53: ND-100 CPU used on interrupt level 15.
+116075   %      Word 54-55: ND-100 CPU used while a specific program was active
+116075   %      Word 56-57: ND-100 CPU used in user mode while a specific
+116075   %                  program was active
+116075   %      Word 60-61: ND-100 CPU used in monitor call mode while a specific
+116075   %                  program was active
+116075   %      Word 62-63: ND-100 CPU used in system mode while a specific
+116075   %                  program was active
+116075   %      Word 64-65: Number of programs waiting for ND-100 CPU.
+116075   %      Word 66-67: Number of programs in i/o-wait in the Execution queue
+116075   %      Word 70-71: Number of programs in swap-wait in the Execution queue.
+116075   %      Word 72:    address of array where ND-100 CPU usage, split over
+116075   %                  all rt-program, is returned.
+116075   %                  The first word in this array will contain the nuber of
+116075   %                  elements in the array, (=number of rt-program in the system)
+116075   %                  Each element consist of 3 words, the rt-description address
+116075   %                  and a double word for ND-100 CPU utilisation for this
+116075   %                  rt-program.
+116075   %
+116075   %=============================================================================
+116075   % Primitive no.  2: Use of the ND-500(0) CPU.
+116075   %   Function=1: initialize measurement.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of parameter block.
+116075   %      Word  3: option code.
+116075   %      Word  4: ND-500(0) process number.
+116075   %      Word  5: ND-500(0) CPU number
+116075   %
+116075   %   Option codes:
+116075   %       100000: total ND-500(0) CPU utilisation - all CPU's.
+116075   %       10000:  ND-500(0) CPU util. split on user and swapper mode - all CPU's.
+116075   %       200:    ND-500(0) CPU util. split on all processes - 1 spec. CPU.
+116075   %       100:    ND-500(0) CPU util. by a specific process - all CPU's.
+116075   %       10:     ND-500(0) CPU utilisation by a specific process, split
+116075   %               on user mode and swapper mode.
+116075   %       1:      ND-500(0) execution queue length - acc. for all CPU's, split
+116075   %               on active, waiting for swapper and other waiting states.
+116075   %
+116075   %   Function=2: read collected data.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of data-block.
+116075   %      Word  3: addr of next data-block.
+116075   %      Word  4- 5: total ND-500 cpu utilisation - cpu 1
+116075   %      Word  6- 7: total ND-500 cpu utilisation - cpu 2
+116075   %      Word 10-11: total ND-500 cpu utilisation - cpu 3
+116075   %      Word 12-13: total ND-500 cpu utilisation - cpu 4
+116075
+116075   %      Word 14-15: total ND-500 cpu swapper util. - cpu 1
+116075   %      Word 16-17: total ND-500 cpu swapper util. - cpu 2
+116075   %      Word 20-21: total ND-500 cpu swapper util. - cpu 3
+116075   %      Word 22-23: total ND-500 cpu swapper util. - cpu 4
+116075
+116075   %      Word 24-25: total ND-500 cpu user    util. - cpu 1
+116075   %      Word 26-27: total ND-500 cpu user    util. - cpu 2
+116075   %      Word 30-31: total ND-500 cpu user    util. - cpu 3
+116075   %      Word 32-33: total ND-500 cpu user    util. - cpu 4
+116075
+116075
+116075   %      Word 34-35: ND-500 cpu 1 usage by a specific process
+116075   %      Word 36-37: ND-500 cpu 2 usage by a specific process
+116075   %      Word 40-41: ND-500 cpu 3 usage by a specific process
+116075   %      Word 42-43: ND-500 cpu 4 usage by a specific process
+116075
+116075
+116075   %      Word 44-45: ND-500 all cpu usage by the swapper on behalf of
+116075   %                  the specific process.
+116075   %      Word 46-47: ND-500 all cpu usage by a specific process.
+116075   %      Word 50-51: number of processes, ready for execution, in nd-500 execution queue, all CPU's.
+116075   %      Word 52-53: number of processes, in waiting state, in nd-500 execution queue, all CPU's.
+116075   %      Word 54-55: number of processes, waiting for swapper, in nd-500 execution queue, all CPU's.
+116075   %      Word 56:    not used
+116075   %      Word 57:    address of array where ND-500 CPU usage for one specified cpu, split over
+116075   %                  all processes, is returned.
+116075   %                  The first word in this array will contain the number of
+116075   %                  elements in the array, (=number of processes in the system)
+116075   %                  Each element consist of a double word for ND-500 cpu
+116075   %                  utilisation by the process. The process number is index
+116075   %                  in the array.
+116075   %
+116075   %=============================================================================
+116075   % Primitive no.  3: Use of logical unit/datafields on ND-100.
+116075   %   Function=1: initialize measurement.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of parameter block.
+116075   %      Word  3: option code.
+116075   %      Word  4: 1st. logical unit/datafield to measure.
+116075   %      Word  5: drive number of 1st. log.unit if 1st. unit is disk.
+116075   %      Word  6: 2nd. logical unit/datafield to measure.
+116075   %      Word  7: drive number of 2nd. log.unit if 2nd. unit is disk.
+116075   %      Word 10: 3rd. logical unit/datafield to measure.
+116075   %      Word 11: drive number of 3rd. log.unit if 3rd. unit is disk.
+116075   %      Word 12: 4th. logical unit/datafield to measure.
+116075   %      Word 13: drive number of 4th. log.unit if 4th. unit is disk.
+116075   %      Word 14: 5th. logical unit/datafield to measure.
+116075   %      Word 15: drive number of 5th. log.unit if 5th. unit is disk.
+116075   %      Word 16: 6th. logical unit/datafield to measure.
+116075   %      Word 17: drive number of 6th. log.unit if 6th. unit is disk.
+116075   %      Word 20: 7th. logical unit/datafield to measure.
+116075   %      Word 21: drive number of 7th. log.unit if 7th. unit is disk.
+116075   %      Word 22: 8th. logical unit/datafield to measure.
+116075   %      Word 23: drive number of 8th. log.unit if 8th. unit is disk.
+116075   %      Word 24: spesific rt-program to measure.
+116075   %
+116075   %   Option codes:
+116075   %       100000: total utilisation of the logical device(s).
+116075   %       200:    utilisation of the logical device(s), split on all rt-programs.
+116075   %       100:    utilisation of the logical device(s) by a specific rt-program.
+116075   %       1:      waiting queue length on the logical device(s).
+116075   %       Bit #14 set in option code (=40000B), means that the datafields to measure
+116075   %       is specified with addresses and not by logical unit numbers.
+116075   %
+116075   %   Function=2: read collected data.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of data-block.
+116075   %      Word  3: addr of next data-block.
+116075   %      Word  4- 5: total usage of logical unit/datafield 1 input.
+116075   %      Word  6- 7: total usage of logical unit 1 output.
+116075   %      Word 10-11: total usage of logical unit/datafield 2 input.
+116075   %      Word 12-13: total usage of logical unit 2 output.
+116075   %      Word 14-15: total usage of logical unit/datafield 3 input.
+116075   %      Word 16-17: total usage of logical unit 3 output.
+116075   %      Word 20-21: total usage of logical unit/datafield 4 input.
+116075   %      Word 22-23: total usage of logical unit 4 output.
+116075   %      Word 24-25: total usage of logical unit/datafield 5 input
+116075   %      Word 26-27: total usage of logical unit 5 output
+116075   %      Word 30-31: total usage of logical unit/datafield 6 input.
+116075   %      Word 32-33: total usage of logical unit 6 output.
+116075   %      Word 34-35: total usage of logical unit/datafield 7 input.
+116075   %      Word 36-37: total usage of logical unit 7 output.
+116075   %      Word 40-41: total usage of logical unit/datafield 8 input.
+116075   %      Word 42-43: total usage of logical unit 8 output.
+116075
+116075   %      Word 44-45: usage of logical unit/datafield 1 input, by a specific program
+116075   %      Word 46-47: usage of logical unit 1 output, by a specific program
+116075   %      Word 50-51: usage of logical unit/datafield 2 input, by a specific program
+116075   %      Word 52-53: usage of logical unit 2 output, by a specific program
+116075   %      Word 54-55: usage of logical unit/datafield 3 input, by a specific program
+116075   %      Word 56-57: usage of logical unit 3 output, by a specific program
+116075   %      Word 60-61: usage of logical unit/datafield 4 input, by a specific program.
+116075   %      Word 62-63: usage of logical unit 4 output, by a specific program.
+116075   %      Word 64-65: usage of logical unit/datafield 5 input, by a specific program.
+116075   %      Word 66-67: usage of logical unit 5 output, by a specific program.
+116075   %      Word 70-71: usage of logical unit/datafield 6 input, by a specific program.
+116075   %      Word 72-73: usage of logical unit 6 output, by a specific program.
+116075   %      Word 74-75: usage of logical unit/datafield 7 input, by a specific program.
+116075   %      Word 76-77: usage of logical unit 7 output, by a specific program.
+116075   %      Word 100-101: usage of logical unit/datafield 8 input, by a specific program.
+116075   %      Word 102-103: usage of logical unit 8 output, by a specific program.
+116075   %
+116075   %      Word 104-105: waiting queue length of logical unit/datafield 1 input.
+116075   %      Word 106-107: waiting queue length of logical unit 1 output
+116075   %      Word 110-111: waiting queue length of logical unit/datafield 2 input.
+116075   %      Word 111-113: waiting queue length of logical unit 2 output.
+116075   %      Word 114-115: waiting queue length of logical unit/datafield 3 input.
+116075   %      Word 116-117: waiting queue length of logical unit 3 output.
+116075   %      Word 120-121: waiting queue length of logical unit/datafield 4 input.
+116075   %      Word 122-123: waiting queue length of logical unit 4 output.
+116075   %      Word 124-125: waiting queue length of logical unit/datafield 5 input.
+116075   %      Word 126-127: waiting queue length of logical unit 5 output.
+116075   %      Word 130-131: waiting queue length of logical unit/datafield 6 input.
+116075   %      Word 132-133: waiting queue length of logical unit 6 output
+116075   %      Word 134-135: waiting queue length of logical unit/datafield 7 input.
+116075   %      Word 136-137: waiting queue length of logical unit 7 output.
+116075   %      Word 140-141: waiting queue length of logical unit/datafield 8 input.
+116075   %      Word 142-143: waiting queue length of logical unit 8 output.
+116075
+116075   %      Word 144:   address of buffer where the utilisation of the specified
+116075   %                  logical units, split over all rt-programs, is stored.
+116075   %                  The first location in this buffer, contains the number of
+116075   %                  rt-descriptions (number of elements in the buffer).
+116075   %                  Each entry consist of the following 33 words.
+116075   %                  Word  1:    address of rt-description.
+116075   %                  Word  2- 3: usage of logical unit 1 input, by this program.
+116075   %                  Word  4- 5: usage of logical unit 1 output, by this program
+116075   %                  Word  6- 7: usage of logical unit 2 input, by this program.
+116075   %                  Word 10-11: usage of logical unit 2 output, by this program.
+116075   %                  Word 12-13: usage of logical unit 3 input, by this program.
+116075   %                  Word 14-15: usage of logical unit 3 output, by this program.
+116075   %                  Word 16-17: usage of logical unit 4 input, by this program.
+116075   %                  Word 20-21: usage of logical unit 4 output, by this program.
+116075   %                  Word 22-23: usage of logical unit 5 input, by this program.
+116075   %                  Word 24-25: usage of logical unit 5 output, by this program.
+116075   %                  Word 26-27: usage of logical unit 6 input, by this program.
+116075   %                  Word 30-31: usage of logical unit 6 output, by this program.
+116075   %                  Word 32-33: usage of logical unit 7 input, by this program.
+116075   %                  Word 34-35: usage of logical unit 7 output, by this program.
+116075   %                  Word 36-37: usage of logical unit 8 input, by this program.
+116075   %                  Word 40-41: usage of logical unit 8 output, by this program.
+116075   %
+116075   %=============================================================================
+116075   % Primitive no.  4: Use of ND-500 Swapper.
+116075   %   Function=1: initialize measurement.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of parameter block.
+116075   %      Word  3: option code.
+116075   %      Word  4: nd-500 process number.
+116075   %
+116075   %   Option codes:
+116075   %       100000: total utilisation of ND-500 Swapper.
+116075   %       200:    utilisation of ND-500 Swapper split on all ND-500 processes.
+116075   %       100:    utilisation of ND-500 Swapper by a specific ND-500 process.
+116075   %
+116075   %   Function=2: read collected data.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of data-block.
+116075   %      Word  3: addr of next data-block.
+116075   %      Word  4- 5: Total utilisation of ND-500 Swapper.
+116075   %      Word  6- 7: Utilisation of ND-500 Swapper by a specific process.
+116075   %      Word 10:    address of array where ND-500 Swapper usage, split over
+116075   %                  all processes, is returned.
+116075   %                  The first word in this array will contain the nuber of
+116075   %                  elements in the array, (=number of processes in the system)
+116075   %                  Each element consist of a double word for ND-500 Swapper
+116075   %                  utilisation by the process. The process number is index
+116075   %                  in the array.
+116075   %
+116075   %=============================================================================
+116075   % Primitive no. 32: ND-100 Disk Access log.
+116075   %   Function=1: initialize measurement.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of parameter block.
+116075   %      Word  3: option code.
+116075   %      Word  4: logical device number of 1st. disk drive to log.
+116075   %      Word  5: disk unit number, drive number, of 1st. disk drive to log.
+116075   %      Word  6- 7: lower disk addr of specific disk area, on 1st. disk drive to log.
+116075   %      Word 10-11: upper disk addr of specific disk area, on 1st. disk drive to log.
+116075   %      Word 12-17: same as word 4-11, but for 2nd. disk drive to log
+116075   %      Word 20-25: same as word 4-11, but for 3rd. disk drive to log
+116075   %      Word 26-33: same as word 4-11, but for 4th. disk drive to log
+116075   %      Word 34:    option dependent.
+116075   %                  RT-Description addr, or
+116075   %                  ND-500 process number.
+116075   %      Word 35:    option dependent.
+116075   %                  ND-100 segment number, or
+116075   %                  ND-500 segment number.
+116075   %
+116075   %   Option codes:
+116075   %       100000: total disk accesses.
+116075   %       140000: total disk accesses to a limited disk address area.
+116075   %       10000:  disk accesses split on type. Type is ND-100 file, ND-100 swap,
+116075   %               ND-500 file, ND-500 swap, ND-500 file-as-segment.
+116075   %       1000:   disk accesses split on read and write.
+116075   %       100:    ND-100 file accesses split on read/write for all or a
+116075   %               specific rt-program. Rt-program=0 means all rt-programs
+116075   %       101:    ND-100 swap accesses to a specific or to all segments,
+116075   %               split on read/write for all or a specific rt-program.
+116075   %               Segment number=0 means all segments.
+116075   %               Rt-program=0 means all rt-programs
+116075   %       102:    ND-500 file accesses split on read/write for all or a
+116075   %               specific ND-500 process. ND-500 process=-1 means all processes.
+116075   %       103:    ND-500 swap accesses to a specific segment or to all segments
+116075   %               split on read/write for all or a specific ND-500 process.
+116075   %               Segment number=0 means all segments.
+116075   %               ND-500 process. ND-500 process=-1 means all processes.
+116075   %       104:    ND-500 file-as-segment accesses to a specific segment or to any segment,
+116075   %               split on read/write for all or a specific ND-500 process.
+116075   %               Segment number=0 means any segment.
+116075   %               ND-500 process=-1 means all processes.
+116075   %       110:    ND-100 file accesses, split on read/write, split on all rt-programs.
+116075   %       111:    ND-100 swap accesses, split on read/write, split on all rt-programs.
+116075   %       112:    ND-500 file accesses, split on read/write, split on all ND-500 processes.
+116075   %       113:    ND-500 swap accesses, split on read/write, split on all ND-500 processes.
+116075   %       114:    ND-500 file-as-segment accesses, split on read/write,
+116075   %               split on all ND-500 processes.
+116075   %
+116075   %   Function=2: read collected data.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of data-block.
+116075   %      Word  3: addr of next data-block.
+116075   %      Word  4- 5: total disk accesses on 1st. disk drive to log.
+116075   %      Word  6- 7: total ND-100 file I/O accesses on 1st. disk drive to log.
+116075   %      Word 10-11: total ND-100 swap accesses on 1st. disk drive to log.
+116075   %      Word 12-13: total ND-500 file I/O accesses on 1st. disk drive to log.
+116075   %      Word 14-15: total ND-500 swap accesses on 1st. disk drive to log.
+116075   %      Word 16-17: total ND-500 file-as-segment swap accesses on 1st. disk drive to log.
+116075   %      Word 20-21: total read accesses on 1st. disk drive to log.
+116075   %      Word 22-23: total write accesses on 1st. disk drive to log.
+116075   %      Word 24-25: total read accesses of specific type, on 1st. disk drive to log.
+116075   %      Word 26-27: total write acesses of specific type, on 1st. disk drive to log.
+116075   %      Word 30-53: same as words 4-27, but for 2nd disk drive to log.
+116075   %      Word 54-77: same as words 4-27, but for 3rd disk drive to log.
+116075   %      Word 100-123 same as words 4-27, but for 4th disk drive to log.
+116075   %      Word 124: address of array for option dependent results.
+116075   %            Option code=110: 1st word in array is number of elements in the array,
+116075   %                             equals to the number of rt-descriptions in the system.
+116075   %                             Each entry consist of the following 5 words.
+116075   %                             word 0:   rt-description address.
+116075   %                             word 1-2: number of ND-100 file read accesses by this program.
+116075   %                             word 3-4: number of ND-100 file write accesses by this program.
+116075   %            Option code=111: 1st word in array is number of elements in the array,
+116075   %                             equals to the number of rt-descriptions in the system.
+116075   %                             Each entry consist of the following 5 words.
+116075   %                             word 0:   rt-description address.
+116075   %                             word 1-2: number of ND-100 swap read accesses by this program.
+116075   %                             word 3-4: number of ND-100 swap write accesses by this program.
+116075   %            Option code=112: 1st word in array is number of elements in the array,
+116075   %                             equals to the number of ND-500 processes in the system.
+116075   %                             Each entry consist of 2 double words, 1st double
+116075   %                             word is the number of ND-500 file read accesses by
+116075   %                             this process, and the 2nd double word is the number
+116075   %                             of ND-500 file write accesses by this process number.
+116075   %                             The ND-500 process number is index in the array.
+116075   %            Option code=113: 1st word in array is number of elements in the array,
+116075   %                             equals to the number of ND-500 processes in the system.
+116075   %                             Each entry consist of 2 double words, 1st double
+116075   %                             word is the number of ND-500 swap read accesses by
+116075   %                             this process, and the 2nd double word is the number
+116075   %                             of ND-500 swap write accesses by this process number.
+116075   %                             The ND-500 process number is index in the array.
+116075   %            Option code=114: 1st word in array is number of elements in the array,
+116075   %                             equals to the number of ND-500 processes in the system.
+116075   %                             Each entry consist of 2 double words, 1st double
+116075   %                             word is the number of ND-500 file-as-segment read accesses by
+116075   %                             this process, and the 2nd double word is the number
+116075   %                             of ND-500 file-as-segment write accesses by this process number.
+116075   %                             The ND-500 process number is index in the array.
+116075   %
+116075   %============================================================================
+116075   % Primitive no. 36: ND-100 monitor call log.
+116075   %   Function=1: initialize measurement.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of parameter block.
+116075   %      Word  3: option code.
+116075   %      Word  4: rt-program. (Option code dependent).
+116075   %      Word  5-14: 8 rt-programs to split all monitor calls on, or
+116075   %                  8 monitor call numbers to log split on all rt-programs.
+116075   %
+116075   %   Option codes:
+116075   %       100000: log all monitor calls.
+116075   %       140000: log all monitor calls for a specific rt-program.
+116075   %       10000:  log all monitor calls split on 8 specified rt-programs.
+116075   %       14000:  log 8 specified monitor calls, split on all rt-programs.
+116075   %
+116075   %   Function=2: read collected data.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of data-block.
+116075   %      Word  3: addr of next data-block.
+116075   %      Word  4: addess of option code dependent buffer #1.
+116075   %          This buffer consist of 400b double word elements. Each element is
+116075   %          a monitor call counter. The monitor number is index in the buffer.
+116075   %          (monitor call number range: 0-377b).
+116075   %      Word  5: addess of option code dependent buffer #2.
+116075   %          Option code=10000:
+116075   %                The buffer consist of 400b elements.
+116075   %                Each element consist of 30b words, an element can be divided
+116075   %                into 8 subelements, 1 element for each of the 8 rt-programs
+116075   %                to log monitor calls for. Each subelements consists of the
+116075   %                following 3 words, 1 word specifying the rt-program, and a
+116075   %                double word for the monitor call counter.
+116075   %                The monitor call number is index in the buffer.
+116075   %
+116075   %          Option code=14000:
+116075   %                The buffer consist of the following.
+116075   %                The 1st. word contains the number of elements in the buffer,
+116075   %                equal to the number of rt-descriptions in the system.
+116075   %                Each element consist of 40b words, an element can be divided
+116075   %                into 8 subelemnts, 1 element for each of the 8 monitor call
+116075   %                to log. Each subelemnt consist of the following 4 words,
+116075   %                word 1: rt-program, word 2: monitor call number,
+116075   %                words 3-4: monitor call counter.
+116075   %
+116075   %============================================================================
+116075   % Primitive no. 37: ND-500 monitor call log.
+116075   %   Function=1: initialize measurement.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of parameter block.
+116075   %      Word  3: option code.
+116075   %      Word  4: ND-500 process number. (Option code dependent).
+116075   %      Word  5-14: 8 ND-500 processes to split all monitor calls on, or
+116075   %                  8 monitor call numbers to log split on all Nd-500 processes.
+116075   %
+116075   %   Option codes:
+116075   %       100000: log all monitor calls.
+116075   %       140000: log all monitor calls for a specific ND-500 process.
+116075   %       10000:  log all monitor calls split on 8 specified ND-500 processes.
+116075   %       14000:  log 8 specified monitor calls, split on all ND-500 processes.
+116075   %
+116075   %   Function=2: read collected data.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of data-block.
+116075   %      Word  3: addr of next data-block.
+116075   %      Word  4: address of option code dependent buffer #1.
+116075   %                This buffer consist of 524b double word elements. Each element is
+116075   %                a monitor call counter. The monitor call number is index in the buffer.
+116075   %                (monitor call number range: 0-523b).
+116075   %      Word  5: address of option code dependent buffer #2.
+116075   %               Option code=10000:
+116075   %                The buffer consist of 524b elements.
+116075   %                Each element consist of 30b words, an element can be divided
+116075   %                into 8 subelements, 1 element for each of the 8 ND-500 processes
+116075   %                to log monitor calls for. Each subelements consists of the
+116075   %                following 3 words, 1 word specifying the ND-500 process, and a
+116075   %                double word for the monitor call counter.
+116075   %                The monitor call number is index in the buffer.
+116075   %
+116075   %               Option code=14000:
+116075   %                The buffer consist of the following.
+116075   %                The 1st. word contains the number of elements in the buffer,
+116075   %                equal to the number of ND-500 processes in the system.
+116075   %                Each element consist of 30b words, an element can be divided
+116075   %                into 8 subelemnts, 1 element for each of the 8 monitor call
+116075   %                to log. Each subelemnt consist of the following 3 words,
+116075   %                word 1: ND-500 process number, word 2-3: monitor call counter.
+116075   %                The ND-500 process number is index in the buffer.
+116075   %
+116075   %============================================================================
+116075   % Primitive no. 64: count pages-in-memory for ND-100 segment.
+116075   %   Function=1: initialize measurement.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of parameter block.
+116075   %      Word  3: option code.
+116075   %      Word  4-13: ND-100 segment numbers to count pages in memory for.
+116075   %                  Max. 8 segments can be specified, segment number equals zero,
+116075   %                  means no segmet.
+116075   %
+116075   %   Option codes: No options for this primitive.
+116075   %
+116075   %   Function=2: read collected data.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of data-block.
+116075   %      Word  3: addr of next data-block.
+116075   %      Word  4-33: 8 elements, each element consist of 3 words, 1st. word
+116075   %                  is the segment number, word 2 and 3 is a double word for
+116075   %                  accumulating the number of pages-in-memory for the actual
+116075   %                  segment.
+116075   %
+116075   %============================================================================
+116075   % Primitive no. 65: count pages-in-memory for ND-500 segment.
+116075   %   Function=1: initialize measurement.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of parameter block.
+116075   %      Word  3: option code.
+116075   %      Word  4-13: ND-500 segment numbers to count pages in memory for.
+116075   %                  Max. 8 segments can be specified, segment number equals zero,
+116075   %                  means no segmet.
+116075   %
+116075   %   Option codes: no option codes.
+116075   %
+116075   %   Function=2: read collected data.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of data-block.
+116075   %      Word  3: addr of next data-block.
+116075   %      Word  4-33: 8 elements, each element consist of 3 words, 1st. word
+116075   %                  is the segment number, word 2 and 3 is a double word for
+116075   %                  accumulating the number of pages-in-memory for the actual
+116075   %                  segment.
+116075   %
+116075   %============================================================================
+116075   % Primitive no. 66: ND-100 program counter histogram.
+116075   %   Function=1: initialize measurement.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of parameter block.
+116075   %      Word  3: option code.
+116075   %      Word  4: interval size. (option dependent)
+116075   %      Word  5: ND-100 interrupt level or ND-100 rt-program. (Option dependent).
+116075   %               RT-program=0 means any rt-program.
+116075   %      Word  6: ND-100 segment number. (Option dependent)
+116075   %               Segment number=0 means any segment.
+116075   %      Words 7-107: 1 word specifing the lower address in the address area
+116075   %                   to loig, or 64 address intervals. (option dependent)
+116075   %                   The address intervals must be specified in ascending order,
+116075   %                   word 7 is start of 1st. interval, word 10 is start of 2nd.
+116075   %                   interval......, and word 107 is end-of-64th-interval+1.
+116075   %
+116075   %   Option codes:
+116075   %       100000: program histogram on a specific ND-100 interrupt level.
+116075   %               64 intervals with fixed interval size.
+116075   %       140000: program histogram on a specific ND-100 interrupt level,
+116075   %               64 intervals with variable interval size.
+116075   %       120000: program histogram on level 1, any or specific rt-program,
+116075   %               any or specific segment.
+116075   %               64 intervals with fixed interval size.
+116075   %       110000: program histogram on level 1, any or specific rt-program,
+116075   %               any or specific segment.
+116075   %               64 intervals with variable interval size.
+116075   %
+116075   %   Function=2: read collected data.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of data-block.
+116075   %      Word  3: addr of next data-block.
+116075   %      Word  4-203: 64 double words, each represent the utilisation within each
+116075   %                   address interval.
+116075   %      Word 204-205: utilisation outside address area to log.
+116075   %
+116075   %============================================================================
+116075   % Primitive no. 67: ND-500 program counter histogram.
+116075   %   Function=1: initialize measurement.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of parameter block.
+116075   %      Word  3: option code.
+116075   %      Word  4: interval size. (option dependent)
+116075   %      Word  5: ND-500 process number. (Option dependent).
+116075   %               ND-500 process number=-1 means any process.
+116075   %      Words 6-207: A double word specifing the lower addr in the address area
+116075   %                   to log, or 64 32-bits address intervals. (option dependent)
+116075   %                   The address intervals must be specified in ascending order,
+116075   %                   words 6-7 is start of 1st. interval, words 10-11 is start of 2nd.
+116075   %                   interval......, and words 206-207 is end-of-64th-interval+1.
+116075   %
+116075   %   Option codes:
+116075   %       100000: program histogram for any or a specific ND-500 process.
+116075   %               64 intervals with fixed interval size.
+116075   %       140000: program histogram for any or a specific ND-500 process.
+116075   %               64 intervals with variable interval size.
+116075   %
+116075   %   Function=2: read collected data.
+116075   %      Word  1: primitive number.
+116075   %      Word  2: length of data-block.
+116075   %      Word  3: addr of next data-block.
+116075   %      Word  4-203: 64 double words, each represent the utilisation within each
+116075   %                   address interval.
+116075   %      Word 204-205: utilisation outside address area to log.
+116075   %
+116075
+116075   SUBR FFREAD,FTERMINATE
+116075   RBUS
+116075
+116075   INTEGER ARRAY S13AR=?
+116075   INTEGER ARRAY SMLAR=?
+116075
+116075   SUBR MOPERFORMANCE
+116075
+116075   INTEGER CLLPG,CFPAG,CNPAG,CENDP,C61IN
+116102   INTEGER PM615:=("5",CNPAG,CFPAG,CLLPG,"0","0")
+116110   INTEGER POINTER 61LREG
+116111   TRIPLE TADREG; INTEGER XREGXX
+116115
+116115   % Local subroutine to allocate a contiguous memory area.
+116115   % The memory area must reside inside one memory bank
+116115   %
+116115   % Entry:         A=size of area in words
+116115   % Exit:          error, no area allocated
+116115   % Exit+1:        A=first phys.page in memory area
+116115   %                T=memory area identifier
+116115   %
+116115   GPHBUFF:
+116115           D:=0; AD SHZ -12; IF D><0 THEN A+1 FI; A=:CNPAG       % Number of pages in buffer
+116123           ENDPAGE=:CENDP                                        % Last phys.page is upper limit for buffer
+116125           A:=L=:"61LREG"; A:=AMPIT=:D; CALL DALTON
+116132           -1=:CLLPG
+116134           DO
+116134              CLLPG+1=:CFPAG+77=:CLLPG                           % Try within each memory bank
+116141           WHILE CLLPG<<CENDP
+116145              "PM615"; *MON 61
+116147              GO ENDLOOP; GO BUFOK
+116151   ENDLOOP:
+116151           OD; CALL SINALTPIT
+116153           ENPHBUF; GO 61LREG                                    % No buffer area found
+116155
+116155   % Buffer area found
+116155   BUFOK:  CALL SINALTPIT
+116156           % Clear the buffer area
+116156           TAD=:TADREG; X=:XREGXX
+116160           A=:D:=0; AD SH 12; T:=A; X:=D
+116165           DO WHILE CNPAG><0
+116167              A:=X+2000                                          % A=end of page (+1)
+116171              DO WHILE X><A
+116173                 *STZTX; AAX 1
+116175              OD; CNPAG-1=:CNPAG
+116201           OD; TAD:=TADREG; X:=XREGXX
+116204           MIN "61LREG"; GO 61LREG
+116206   *)FILL
+116216
+116216
+116216   INTEGER PRIMINDEX=?                                           % Current primitive index
+116216   INTEGER SHAINSTR(0); *SHA
+116217   INTEGER PARBLENGTH=?                                          % Sum of parameter block length
+116217   INTEGER INDXX=?
+116217   INTEGER CINDEX=?
+116217
+116217   MOPERFORMANCE: CALL GETMP                                     % Call special get-routine
+116220           MLEV; *MST PIE
+116222           IF BACKGROUND><0 THEN
+116224              "BFIELD".TTIFIELD.BSTATE=:M344BSTATE; 5BCOM=:X.BSTATE
+116232              X.FLAGB=:M344FLAGB
+116234              CALL ESCOFF
+116235           FI
+116235           IF MPRFUNCTION=0 OR A>>3 THEN EILLFUNC; GO FAR ERET FI
+116244           A-1 GOSW FAR FINIT,FAR FFREAD,FAR FTERMINATE
+116251
+116251
+116251   % Function=1: initilize measurement
+116251   FINIT:  CALL DOTERMINATE; GO FAR ERET
+116253           *1BANK
+116254           0=:S13INDEX=:MLVINDEX
+116256           *2BANK
+116257           0=:NPRIACTIVE
+116260           % Find the primitive numbers to activate
+116260           0=:PRIMINDEX
+116261           FOR PRIMINDEX TO MAXPRIMINDEX DO
+116265              PRIMINDEX/\17+SHAINSTR=:T
+116271              PRIMINDEX SHZ -4=:X
+116274              MPRPRIMS(X); *EXR ST
+116276              IF A<0 THEN                                        % Primitive activated?
+116277                 IF X:=NPRIACTIVE>>=MXACTPRIMS THEN
+116303                    EMXACTPRIMS; GO FAR ERET                     % Too many active primitives
+116305                 FI
+116305                 *1BANK
+116306                 PRIMINDEX+1=:PRIMACTIVES(X)                     % Save primitive number to activate
+116311                 X=:L:=A+X; AD:=SAMPADDRS(X)
+116315                 IF A><0 THEN                                    % Clock level sampling routine addr
+116316                    X:=S13INDEX+1; A=:S13AR(X)
+116321                    X+1=:S13INDEX
+116323                 FI
+116323                 IF D><0 THEN                                    % Monitor level sampling routine addr
+116325                    X:=MLVINDEX+1; A:=D=:SMLAR(X)
+116331                    X+1=:MLVINDEX
+116333                 FI
+116333                 *2BANK
+116334                 MIN NPRIACTIVE                                  % Count number of active primitives
+116335              FI
+116335           OD
+116341           IF NPRIACTIVE=0 THEN ENACTPRIMS; GO FAR ERET FI       % No active primitves
+116345
+116345           % Find total length of parameter blocks
+116345           X:=MPRPARBADDR; T:=NPRIACTIVE-1; CALL USALTPIT; 0=:PARBLENGTH
+116352           0=:INDXX
+116353           FOR INDXX TO T DO
+116356              X.PBLENGTH; X+A; A+PARBLENGTH=:PARBLENGTH
+116362           OD
+116366           IF PARBLENGTH>>MXTPBLENGTH THEN
+116372              CALL SINALTPIT; EPBLENGTH; GO FAR ERET             % Sum of par.blocks too large
+116375           FI
+116375
+116375           % Move paramter blocks to PARBBUFF on MPIT
+116375           PARBLENGTH=:L; A:=X-PARBLENGTH=:D; T:="PARBUFF"; *MOVAN
+116404           CALL SINALTPIT
+116405           GO OVFILL; *)FILL
+116436
+116436   INTEGER PRIMINDEX         % Current primitive index
+116437   INTEGER PARBLENGTH        % Sum of parameter block length
+116440   INTEGER INDXX
+116441   INTEGER CINDEX
+116442
+116442   OVFILL:
+116442   %        0=:BUFREQUIREMENTS
+116442           0=:XBUFREQUIREMENTS                  % Clear data-buffer requirements
+116443           *1BANK
+116444           0=:XBUSARRAY(0)                                       % Clear array of phys buffer addrs
+116446           0=:XRARRAY(X)                                         % Clear array of buffer initialisation routines
+116447           *2BANK
+116450           0=:INDXX
+116451           FOR INDXX TO NPRIACTIVE-1 DO
+116456              *1BANK
+116457              PRIMACTIVES(INDXX)=:D
+116462              X:="PARBUFF"
+116463              *2BANK
+116464              0=:CINDEX
+116465              FOR CINDEX TO NPRIACTIVE-1 DO                      % Find correct parameter area in parameter block
+116472                 *1BANK
+116473                 IF X.PBIDENT=D THEN
+116476                    *2BANK                                       % Parameter area found
+116477                    CALL PRIMHANDLE; GO ERET
+116501                    GO EFOR
+116502   %                 *1BANK
+116502   %                 X:=X.PBIDENT:=APRDESCR(X)                    % Mark that this primitive is active
+116502   %                 X.PRBUFSIZE                                  % Data-block size of primitive
+116502   %                 *2BANK
+116502   %                 A+BUFREQUIREMENTS=:BUFREQUIREMENTS           % Sum of data-block sizes of all active primitives
+116502                 ELSE
+116503                    X.PBLENGTH; X+A                              % Check next paramter area
+116505                 FI; *2BANK
+116506              OD; EILPARS; GO ERET; *)FILL                       % All parblocks not found
+116523   EFOR:      *2BANK
+116524           OD; *2BANK
+116531
+116531           IF MPRSAMPLRATE=0 THEN EILSRATE; GO ERET FI
+116535           A-=:MPERFREQUENCY=:M13FREQUENCE=:M2FREQUENCE          % Sampel rates in mil.secs.
+116541   %        A:=BUFREQUIREMENTS; CALL FAR GPHBUFF; GO ERET         % Allocate phys-memory for all active primitive's data-blocks
+116541   %        T=:MBUFINDEX; A=:BUFPAGE                              % Area ident and first phys page of data-blocks
+116541           IF XBUFREQUIREMENTS><0 THEN                           % Any option dependent buffers?
+116543              CALL FAR GPHBUFF; GO ERR1                          % Yes, allocate phys area for this buffers
+116545              T=:MBUFXINDEX                                      % Buffer identifier
+116546              A=:XBUFPAGE=:D:=0; AD SH 12
+116552              AD=:DBUPHYSADDR                                    % Phys addr of start of buffer
+116553              A=:XBUBANK                                         % Memory bank of buffer
+116554              *1BANK
+116555              X:="XBUSARRAY"
+116556              DO WHILE X.S0><0                                   % Add start of buffer to all option-dependent-buffer addrs.
+116560                 X=:L:=A; T:=X.S1                                % T=relative start of buffer within the whole buffer area
+116563                 *2BANK
+116564                 AD:=DBUPHYSADDR; D+T                            % Add buffer start addr
+116566                 *1BANK
+116567                 AD=:X.DS0                                       % Save in buffer pointer
+116570                 X:=L+1
+116571              OD
+116572           FI
+116572           0=:INDXX
+116573           DO
+116573              *1BANK
+116574           WHILE XRARRAY(INDXX)><0                               % Any buffer initialisation routines?
+116577              AD:=DXRARRAY(X)                                    % Yes
+116600              *2BANK
+116601              X:=A; D=:L; L:=:P; GO ERET                         % Call subroutine
+116605              MIN INDXX; MIN INDXX
+116607           OD
+116610           *IOF; 2BANK
+116612           1=:ACTMPERFORM                                        % Measuring starts now
+116614           *ION
+116615
+116615   OKRET:  MIN ZPREG; 0/\0; 0=:ZAREG                             % Skip return when ok
+116620           CALL RSBSTATE
+116621           GO RET
+116622
+116622   ERR1:
+116622   ERET:   A=:ZAREG
+116623   ERR:    CALL DOTERMINATE; 0/\0
+116625           CALL RSBSTATE
+116626           GO MXRET
+116627
+116627   RBUS
+116647
+116647
+116647   %============================================================================
+116647   % Subroutine to handle a parameter block in the init function
+116647   %
+116647   % Entry:  X=address, on mpit, to the actual paramter block
+116647   %         A=primitive number
+116647   % Exit:   error detected in primhandle
+116647   % Exit+1: ok
+116647   %
+116647   SUBR PRIMHANDLE
+116647
+116647   INTEGER PPRADD
+116650
+116650   % Local subroutine to activate a primitive by setting usoption
+116650   % in the actual labels.
+116650   %
+116650   INTEGER CPRIDESCR=?,CPRADDR=?,SAVX=?
+116650   SUSPRIMITIVE:
+116650           CPRIDESCR.MXOPTION*"OPTDESCRSIZE"+"FOPTDESCR"; X+A
+116655           DO WHILE X.S0><0                                      % A=addr of label
+116657              X=:D
+116660   %          IF A>>="PITST+4000" THEN                           % On mpit
+116660   %             A-"PITST"+MPITADDR=:X; T:=MPITBANK
+116660   %             A:=USOPTION; *STATX
+116660   %          ELSE IF A>>="PITST" THEN                           % Ex-Common
+116660   %             A-T=:PPRADD
+116660   %             T:=0; X:="ECOFPAGE"; *LDTAX
+116660   %             A=:X SH -6 =:T
+116660   %             A:=X /\77 SH 12 + PPRADD=:X
+116660   %             USOPTION; *STATX
+116660   %          ELSE
+116660                 A=:X:=USOPTION=:X.S0                            % Common
+116663   %          FI;FI
+116663              X:=D+1
+116664           OD; EXIT
+116666   *)FILL
+116671
+116671   % Local subroutine to activate/passivate an option
+116671   % by storing usoption/nusoption in the actual labels.
+116671   %
+116671   SUSOPTION:
+116671           X:=CPRADDR.OPTRADDR
+116673   %       IF X>>="PITST+4000" THEN                                   % Mpit
+116673   %          A:=:X-"PITST"+MPITADDR:=:X; T:=MPITBANK
+116673   %          *STATX
+116673   %       ELSE IF X>>="PITST" THEN                                  % Ex-Common
+116673   %          A=:D
+116673   %          X-T=:PPRADD
+116673   %          T:=0; X:="ECOFPAGE"; *LDTAX
+116673   %          A=:X SH -6 =:T
+116673   %          A:=X /\77 SH 12 + PPRADD=:X
+116673   %          A:=D; *STATX
+116673   %       ELSE
+116673              A=:X.S0                                            % Common
+116674   %       FI
+116674           EXIT
+116675
+116675   TRIPLE TADREG(0); INTEGER XX,CCPRIMNO,YY
+116700   INTEGER POINTER LREG
+116701
+116701   OKOUT:  X:=SAVX; TAD:=TADREG; MIN "LREG"
+116704           GO LREG
+116705
+116705   ERR:    *2BANK
+116706           GO LREG
+116707   *)FILL
+116707
+116707
+116707   INTEGER CMXOPTION=?,CINDEX=?,CUROPTION=?,CFACT=?
+116707
+116707   PRIMHANDLE: TAD=:TADREG; X=:SAVX
+116711           T:=L=:"LREG"
+116713           IF A=0 OR A>>MAXPRIMINDEX THEN EILPNUMBER; GO ERR FI
+116721           *1BANK
+116722           A:=X.PBOPTION=:CUROPTION                              % Current option code
+116724           X:=APRDESCR(CCPRIMNO)                                  % Addr of primitive's description table
+116726           IF X=0 THEN EPRINIMPEL; GO ERR FI
+116732           X=:CPRIDESCR                                          % Addr of primitive descriptor
+116733           % Clear all option-dependent buffer sizes
+116733           DO WHILE X.COPTBSIZE><-1; 0=:X.COPTBSIZE; X-SIZBOPTSIZE; OD
+116742           0=:CINDEX
+116743           CPRIDESCR.MXOPTION=:CMXOPTION                         % Max number of options for current primitive
+116746           CPRIDESCR.PRBUFSIZE-PRDHEAD=:D                        % Size of primitives's data block
+116752           X:=X.PRIDADDR+PRDHEAD; D+X                            % Addr of primitive's data block
+116755           DO WHILE X><D; 0=:X.S0; X+1; OD                       % Clear primitive's data block
+116762           GO LABEL; *)FILL
+116764
+116764   INTEGER CMXOPTION,CINDEX,CUROPTION,CPRADDR
+116770   INTEGER CFACT,CPRIDESCR,SAVX
+116773
+116773   LABEL:
+116773           DO WHILE CINDEX><CMXOPTION
+116777              CINDEX*"OPTDESCRSIZE"+"FOPTDESCR"+CPRIDESCR=:CPRADDR=:X % Addr of first option descriptor
+117005              IF X.COPTCODE/\CUROPTION=X.COPTCODE THEN
+117012                 IF X.PAROPRADDR><0 THEN                         % Any option dependent paramter cheking routine?
+117014                    *2BANK
+117015                    X:=SAVX; A=:L; L:=:P; GO ERR                 % Call option dependent paramter routine.
+117021                 FI; *1BANK
+117022                 IF CPRADDR.INDXOPTBUF><0 THEN                   % Option-buffer required for this option?
+117025                    A-1*SIZBOPTION; X:=CPRIDESCR-A               % X=addr of option-buffer descriptor
+117031                    IF X.CURBU BIT BNRTP THEN                    % Buffer size dependent of number of rt-descriptors?
+117034                       A/\377=:CFACT; *2BANK
+117037                       A:=RTEND-RTSTART=:D:=0
+117043                       T:=5RTSIZE; *RDIV ST
+117045                       A+1*CFACT
+117047                    ELSE IF A BIT BN5PROCS THEN                  % Buffer size dependent of number of nd-500 processes?
+117052                       *2BANK
+117053                       A/\377=:CFACT; A:=MX5PROCS+2*CFACT
+117060                    ELSE IF A BIT BPR77 THEN
+117063                       A/\ 77 =:CFACT; A SH 12
+117066                    FI; FI; FI; *1BANK
+117067                    A=:X.COPTBSIZE                               % Size of option-buffer
+117070                    IF A><0 THEN
+117071                       X:=X.COPTADRBUF                           % X=addr to store option-buffer addr into
+117072                       *2BANK
+117073                       T:=XBUFREQUIREMENTS                       % Total sum of option-buffers
+117074                       A+XBUFREQUIREMENTS=:XBUFREQUIREMENTS      % Add sum of option-buffer
+117076                       IF C THEN A:=EBUBIG; GO ERR FI            % 1 bank (64k word), is max
+117102                       *1BANK
+117103                       T=:X.S1; 0=:X.S0                          % T=addr of current option-buffer rel. to start of option-buffer
+117105                       X=:T:=0
+117107                       DO WHILE XBUSARRAY(X)><0; X+1; OD
+117113                       T=:XBUSARRAY(X); X+1; 0=:XBUSARRAY(X)     % Insert element in option-buffer addr. table
+117116                    FI
+117116                 FI
+117116                 *1BANK
+117117                 IF CPRADDR.XRADDR><0 THEN                       % Any option dependent buffer initializing routine?
+117122                    A=:D; X:=0
+117124                    DO WHILE XRARRAY(X)><0; X+2; OD
+117130                    A:=SAVX; AD=:DXRARRAY(X); X+2; 0=:XRARRAY(X)
+117134                 FI
+117134                 USOPTION                                        % Activate this option
+117135              ELSE
+117136                 NUSOPTION                                       % Do not use this option
+117137              FI; *1BANK
+117140              CALL FAR SUSOPTION                                 % Modifie code to use/not use option
+117141              MIN CINDEX
+117142           OD; *1BANK
+117144           CALL FAR SUSPRIMITIVE                                 % Activate this primitive
+117145           *2BANK
+117146           GO FAR OKOUT
+117147   RBUS
+117167
+117167   %============================================================================
+117167   %       F T E R M I N A T E   D O T E R M I N A T E
+117167   %
+117167   SUBR FTERMINATE,DOTERMINATE
+117167   INTEGER CINDEX,CFPAGE
+117171   INTEGER PMO61:=("6",CINDEX,CFPAGE,"0","0","0")
+117177
+117177   FTERMINATE: CALL DOTERMINATE; 0/\0
+117201           MIN ZPREG; 0/\0; 0=:ZAREG
+117204           CALL RSBSTATE
+117205           GO MXRET
+117206
+117206   INTEGER POINTER LREG
+117207   DOTERMINATE:
+117207           A:=L=:"LREG"
+117211           0=:ACTMPERFORM
+117212           IF MBUFXINDEX><-1 THEN
+117216              A=:CINDEX; XBUFPAGE=:CFPAGE
+117221              AMPIT=:D; CALL DALTON
+117224              "PMO61"; *MON 61; JMP *+1                          % Release option-buffer area
+117227              CALL SINALTPIT
+117230              -1=:MBUFXINDEX
+117232           FI
+117232           CALL CLALPRIMITIVES; 0/\0
+117234           MIN "LREG"; GO LREG
+117236   RBUS
+117253
+117253
+117253   %=========================================================================
+117253   %       F F R E A D
+117253   %
+117253   % Entry:         none
+117253   %
+117253   SUBR FFREAD
+117253
+117253   INTEGER INDXX,CNWORDS,TOADDR,FROMADDR
+117257   INTEGER COPTDESCR,CADDR,BLTOADDR
+117262   INTEGER CCNWORDS,CCTOADDR
+117264
+117264   FFREAD: IF ACTMPERFORMANCE=0 THEN EMNSTARTED; GO ERR FI       % Measuring not active
+117270           MPRPARBADDR=:TOADDR                                   % Addr in user's program where data should be returned
+117272           0=:INDXX
+117273           FOR INDXX TO NPRIACTIVE-1 DO
+117300              *1BANK
+117301              X:=PRIMACTIVES(INDXX):=APRDESCR(X)=:COPTDESCR      % X=addr of primitive descriptor element
+117305              D:=0
+117306              DO WHILE X.COPTBSIZE><-1; D+A; X-SIZBOPTSIZE; OD   % Calculate size of option-buffers
+117315              *2BANK
+117316              T:=NPRIACTIVE-1
+117320              *1BANK
+117321              IF INDXX><T THEN                                   % Last primitive?
+117324                 COPTDESCR.PRBUFSIZE+D+TOADDR                    % A=addr of extr-buffer in user's program
+117330                 X:=X.PRIDADDR; A=:X.PBNEXT                      % Pointer to data for next primitive
+117332              FI
+117332              COPTDESCR.PRBUFSIZE=:CNWORDS                       % Size of current data-block
+117335              X:=X.PRIDADDR=:FROMADDR                            % Addr of data-block on mpit
+117337              A=:X.PBLENGTH
+117340              *2BANK
+117341              CALL USALTPIT
+117342              CNWORDS=:L; FROMADDR=:D; T:=TOADDR=:BLTOADDR
+117350              *MOVNA                                             % Copy to user's buffer
+117351              T=:TOADDR                                          % Next addr in user's buffer
+117352              CALL SINALTPIT
+117353              COPTDESCR=:CADDR
+117355
+117355              % Copy all option-buffers of a primitive to user's buffer
+117355              DO
+117355                  *1BANK
+117356              WHILE CADDR.COPTBSIZE><-1
+117363                  A=:CNWORDS=:CCNWORDS
+117365                  X=:CADDR:=X.COPTADRBUF; AD:=X.DS0              % Ad=phys addr of buffer
+117370                  T:=CADDR.XPARBDISP                             % Disp in par.block
+117372                  X:=BLTOADDR+T; T:=TOADDR=:CCTOADDR             % Logical addr in user's parblock
+117376                  *2BANK
+117377                  CALL USALTPIT
+117400                  T=:X.S0                                        % Pointer to optional buffer
+117401                  IF T:=CNWORDS=0 THEN 0=:X.S0 FI                % Zero pointer when buffer not used
+117405                  % Move optional-buffer to user's buffer
+117405                  DO WHILE T:=CCNWORDS>>X:=2000
+117411                     T-X=:CCNWORDS:=CCTOADDR; L:=X; *MOVPA
+117416                     T=:CCTOADDR
+117417                  OD
+117420                  T=:L:=CCTOADDR; *MOVPA
+117423                  T=:TOADDR
+117424                  CALL SINALTPIT
+117425                  CADDR-SIZBOPTSIZE=:CADDR
+117430              OD; *2BANK
+117432           OD
+117436           0=:ZAREG; MIN ZPREG; 0/\0
+117441           CALL RSBSTATE
+117442           GO RET
+117443   ERR:    A=:ZAREG
+117444           CALL RSBSTATE
+117445           GO RET
+117446
+117446   RBUS
+117460
+117460
+117460   %=========================================================================
+117460   % Subroutine to passivate all sampling routines
+117460   %
+117460   % Entry:         none
+117460   % Exit:          error
+117460   % Exit+1:        ok
+117460   %
+117460   SUBR CLALPRIMITIVES
+117460
+117460   INTEGER TREG,AREG,DREG,XREG; TRIPLE TADREG=TREG
+117464   INTEGER INDXX,CSAVB,PPRADD
+117467   INTEGER POINTER LREG
+117470
+117470   CLALPRIMITIVES: TAD=:TADREG; X=:XREG; A:=L=:"LREG"
+117474           "5MPIT"*5SEGSIZE+SEGSTART=:X; T:=SEGTBANK; *BPAGL@3 LDATX
+117502           A=:D:=0; AD SH 10
+117505           *1BANK
+117506           AD=:DMPITADDR                                         % Phys addr of start of mpit segment
+117507           0=:INDXX
+117510           % Reset all previous used sampling routines
+117510           FOR INDXX TO MXACTPRIMS-1 DO
+117515              X:=INDXX+X+1; "XENDX"=:S13AR(X); "MLEND"=:SMLAR(X)
+117523           OD
+117527           *2BANK
+117530           IF X:=MPHMESS><0 THEN
+117532              CALL GCPUDF; CALL ERRFATAL; A:=:B=:CSAVB
+117536              *IOF
+117537   *NNT50=*
+117537              CALL TER500; 0/\0                                  % Stop nd-500
+117541              CALL SLOCK; 0/\0
+117543              CALL IFM500XQ                                      % Remove histogram message from nd-500 xq
+117544              CALL SUNLOCK
+117545              CALL LOWACT
+117546              *ION
+117547   %          T:=5MBBANK; *LINK1@3 STZTX; LINK2@3 STZTX
+117547              CSAVB=:B
+117551           FI
+117551           0=:INDXX; *1BANK
+117553           FOR INDXX TO MAXPRIMINDEX+1 DO                        % Nusoption in all primitive's labels
+117560              IF X:=APRDESCR(INDXX)><0 THEN
+117563                 X.MXOPTION*"OPTDESCRSIZE"+"FOPTDESCR"; X+A
+117567                 DO WHILE X.S0><0
+117571                    X=:D
+117572   %                IF A>>="PITST+4000" THEN                          % Mpit
+117572   %                   A-"PITST"+MPITADDR=:X; T:=MPITBANK
+117572   %                   A:=NUSOPTION; *STATX
+117572   %                ELSE IF A>>="PITST" THEN                   % Ex-Common
+117572   %                   A-T=:PPRADD
+117572   %                   T:=0; X:="ECOFPAGE"; *LDATX
+117572   %                   A=:X SH -6 =:T
+117572   %                   A:=X /\ 77 SH 12 +PPRADD=:X
+117572   %                   NUSOPTION; *STATX
+117572   %                ELSE
+117572                      A=:X:=NUSOPTION=:X.S0                      % Common
+117575   %                FI;FI
+117575                    X:=D+1
+117576                 OD
+117577              FI
+117577           OD
+117603           *2BANK
+117604           TAD:=TADREG; X:=XREG
+117606           MIN "LREG"; GO LREG
+117610   RBUS
+117634
+117634
+117634   %===================================================================
+117634   % Subroutine to reset bstate and flagb for background programs
+117634   % before returning from mon.call
+117634   %
+117634   SUBR RSBSTATE
+117634   INTEGER LREG
+117635   RSBSTATE:
+117635           IF BACKGROUND><0 THEN
+117637              A:=L=:LREG
+117641              M344BSTATE=:"BFIELD".TTIFIELD.BSTATE
+117645              IF M344FLAGB BIT 5ESCON THEN
+117650                 X:=X.TDRADDR
+117651                 *IOF
+117652                 T:="FLAGB"; CALL XGTDFADDR
+117654                 A BONE 5ESCON; T:="FLAGB"; CALL XSTDFADDR
+117657                 *ION
+117660              FI; LREG=:L
+117662           FI; EXIT
+117663   RBUS
+117672
+117672
+117672   %===================================================================
+117672   % Paramter checking routine for primitive #1, option code=100 and
+117672   % option code=10.
+117672   %
+117672   % Entry:         X=addr of actual paramter block on mpit
+117672   % Exit:          error
+117672   % Exit+1:        ok
+117672   %
+117672   SUBR P01R1
+117672   INTEGER TREG,AREG,DREG; TRIPLE TADREG=TREG; INTEGER XREG
+117676   INTEGER POINTER LREG
+117677   P01R1:  TAD=:TADREG; X=:XREG; T:=L=:"LREG"
+117703           *1BANK
+117704           A:=X.S3; *2BANK                                       % Rt-descr addr
+117706           CALL CHRTADDR; GO ERR; *1BANK
+117711           A=:ACRTP                                              % Rt-program
+117712           MIN "LREG"
+117713   L1:     TAD:=TADREG; X:=XREG
+117715           GO LREG
+117716   ERR:    EILPARS=:AREG; GO L1
+117721   RBUS
+117723
+117723   %=====================================================================
+117723   % Paramter checking routine for primitive #2, option code=100.
+117723   %
+117723   % Entry:         X=addr of actual paramter block on mpit
+117723   % Exit:          error
+117723   % Exit+1:        ok
+117723   %
+117723   SUBR P02R2
+117723   INTEGER TREG,AREG,DREG; TRIPLE TADREG=TREG
+117726   INTEGER POINTER LREG
+117727   P02R2:  TAD=:TADREG; A:=L=:"LREG"
+117732           *1BANK
+117733           A:=X.S3                                               % Nd-500 process number
+117734           *2BANK
+117735           CALL CH5PROC; GO ERR; *1BANK
+117740           A=:Y5PRO                                              % Save in data-block. (nd-500 proc.number)
+117741           MIN "LREG"
+117742   OUT:    TAD:=TADREG
+117743           GO LREG
+117744   ERR:    A=:AREG; GO OUT                                        % Illegal nd-500 process number
+117746   RBUS
+117750
+117750   %=====================================================================
+117750   % Paramter checking routine for primitive #2, option code=200.
+117750   %
+117750   % Entry:         X=addr of actual paramter block on mpit
+117750   % Exit:          error
+117750   % Exit+1:        ok
+117750   %
+117750   SUBR P02R3
+117750   INTEGER TREG,AREG,DREG; TRIPLE TADREG=TREG
+117753   INTEGER POINTER LREG
+117754   P02R3:  TAD=:TADREG; A:=L=:"LREG"
+117757           *1BANK
+117760           A:=X.S4
+117761           *2BANK
+117762           IF A>4 OR A<1 THEN EILPARS ; GO ERR FI
+117772           CALL CHE5CPU; GO ERR; *1BANK                          % Specified CPU no. OK
+117775           A=:LXCPU
+117776           MIN "LREG"
+117777   OUT:    TAD:=TADREG
+120000           GO LREG
+120001   ERR:    A=:AREG; GO OUT                                        % Illegal nd-500 process number
+120003   RBUS
+120005
+120005   %=============================================================================
+120005   % Common subroutine for all paramter checking routine for primitive #3
+120005   %
+120005   % Entry:         X=addr of paramter block on mpit
+120005   % Exit:          error, A=error code
+120005   % Exit+1:        ok, addr of log.unit's datfields are set up
+120005   %
+120005   SUBR P03RF
+120005   INTEGER TREG,AREG,DREG,XREG; TRIPLE TADREG=TREG
+120011   INTEGER POINTER LREG,XLREG
+120013   INTEGER LUFOUND,CNDX
+120015
+120015   % Local subroutine to check for legal datafield addrs.
+120015   %
+120015   % Entry:         A=log.dev. no or datafield addr.
+120015   % Exit:          error
+120015   % Exit+1:        A=input datafield; d=output datafield
+120015   %
+120015   CSUBR: T:=L=:"XLREG"
+120017           A=:D
+120020           IF A><0 THEN
+120021              IF XREG.PBOPTION BIT 16 THEN                        % Datafield address
+120025                 *2BANK
+120026                 IF D.RTRES><0 THEN                              % Check if addr can be a datafield
+120031                    A-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+120036                    IF D><0 THEN EILPARS; GO XLREG FI
+120042                 ELSE
+120043                    IF X.BWLINK><X THEN EILPARS; GO XLREG FI
+120050                 FI; A:=X; D:=0
+120052                 MIN LUFOUND
+120053              ELSE
+120054                 *2BANK
+120055                 A:=D; CALL LOGPH
+120057                 IF A=0 AND D=0 THEN EILPARS; GO XLREG FI
+120064                 MIN LUFOUND
+120065              FI
+120065           FI; *1BANK
+120066           MIN "XLREG"; GO XLREG
+120070
+120070   P03RF:  TAD=:TADREG; X=:XREG; T:=L=:"LREG"
+120074           0=:LUFOUND=:CNDX
+120076           *1BANK
+120077           DO WHILE CNDX<20                                     % 8 log.units, 2 words for each
+120103              XREG+CNDX=:X; X.S3; CALL CSUBR; GO ERR             % X.s3=log.unit or datafield
+120111              T:="ADD1I"; X:=CNDX+T; AD=:X.DS0                  % Save input and output data field for sampling routines
+120115              IF A>>="9FDFD" AND A<<"9EDFD" THEN                 % Disk
+120123                 XREG+CNDX=:X
+120126                 IF X.S4>>3 THEN EILPARS; GO ERR FI              % Drive number
+120134                 A=:X:=CNDX SHZ -1+"ADDU1":=:X; A=:X.S0         % Save disk drive number for sampling routines
+120142              FI
+120142              CNDX+2=:CNDX
+120145           OD
+120146           IF LUFOUND=0 THEN EILPARS; GO ERR FI                  % No log.units specified
+120152           MIN "LREG"
+120153   L1:     TAD:=TADREG; X:=XREG
+120155           *2BANK
+120156           GO LREG
+120157   ERR:    A=:AREG; GO L1
+120161
+120161   RBUS
+120167
+120167
+120167   %=====================================================================
+120167   % Paramter checking routine for primitive #3, option code=100.
+120167   %
+120167   % Entry:         X=addr of actual paramter block on mpit
+120167   % Exit:          error
+120167   % Exit+1:        ok
+120167   %
+120167   SUBR P03R1
+120167   DISP 23; INTEGER S23; PSID
+120167   INTEGER TREG,AREG,DREG,XREG; TRIPLE TADREG=TREG
+120173   INTEGER POINTER LREG
+120174   P03R1:  TAD=:TADREG; A:=L=:"LREG"; X=:XREG
+120200           CALL P03RF; GO ERR                                    % Check log.units
+120202           *1BANK
+120203           X.S23                                                 % Rt-program
+120204           *2BANK
+120205           CALL CHRTADDR; GO ERR1
+120207           *1BANK
+120210           A=:XLRTP                                              % Rt-program
+120211           *2BANK
+120212           MIN "LREG"
+120213   L1:     TAD:=TADREG; X:=XREG
+120215           GO LREG
+120216   ERR1:   EILPARS
+120217   ERR:    A=:AREG; GO L1                                         % Illegal nd-500 process number
+120221   RBUS
+120224
+120224
+120224   %=====================================================================
+120224   % Paramter checking routine for primitive #4, option code=100.
+120224   %
+120224   % Entry:         X=addr of actual paramter block on mpit
+120224   % Exit:          error
+120224   % Exit+1:        ok
+120224   %
+120224   SUBR P04R2
+120224   TRIPLE TADREG
+120227   P04R2:  TAD=:TADREG
+120230           IF MX5PROC=0 GO ERR                                   % Error if no nd-500 procs
+120232           *1BANK
+120233           T:=X.S3; *2BANK                                       % Nd-500 process number
+120235           IF A<<T OR T=0 GO ERR                                 % Nd-500 proc.no. within legal range?
+120241           A:=T-5SWPROC*5PRDSIZE+"S500S"=:X                      % Proc.descr.
+120246           IF X.MESSBUFF=0 GO ERR                                % Mailbox defined?
+120250           *1BANK
+120251           A=:XSWOWNER                                           % Mailbox addr.
+120252           *2BANK
+120253           TAD:=TADREG
+120254           EXITA
+120255   ERR:    EILPARS; EXIT                                         % Illegal nd-500 process number
+120257   RBUS
+120264
+120264
+120264   %=====================================================================
+120264   % Paramter checking routine for primitive #32, all option codes
+120264   %
+120264   % Entry:         X=addr of actual paramter block on mpit
+120264   % Exit:          error
+120264   % Exit+1:        ok
+120264   %
+120264   SUBR P32RF
+120264   INTEGER TREG,AREG,DREG,XREG; TRIPLE TADREG=TREG
+120270   INTEGER POINTER LREG
+120271   INTEGER INDXX,FOUND
+120273   P32RF:  TAD=:TADREG; A:=L=:"LREG"; X=:XREG
+120277           0=:FOUND=:INDXX
+120301           *1BANK
+120302           X:="DLUN1"; A:=-1=:D:=0
+120306           DO WHILE X<<="DLUN4"; AD=:X.DS0; X+2 OD               % Clear log.units and drive numbers
+120314           DO WHILE INDXX<4                                      % Max 4 disk drives to log
+120320              INDXX*6+3+XREG=:X                                   % X=addr of element in parblock
+120325              IF X.S0><0 THEN                                    % A=log unit
+120327                 *2BANK
+120330                 CALL LOGPH; *1BANK
+120332                 IF A=0 OR A<<"9FDFD" OR A>>="9EDFD" GO ERR      % Not disk
+120341                 A=:D                                            % D=datafield addr
+120342                 IF X.S1>>3 GO ERR                               % Illegal drive number
+120346                 T:=INDXX SH 1; X:="DLUN1"+T
+120352                 A:=:D; AD=:X.DS0                                % Store datafield addr and drive number
+120354                 X=:L:="DLUN1"
+120356                 DO WHILE X<<L
+120360                    IF T:=X.S0=A AND T:=X.S1=D GO ERR            % Same paramter twice
+120366                    X+2
+120367                 OD
+120370                 MIN FOUND
+120371              FI; MIN INDXX
+120372           OD
+120373           IF FOUND=0 GO ERR                                     % No paramters
+120375           MIN "LREG"
+120376   L1:     TAD:=TADREG; X:=XREG
+120400           *2BANK
+120401           GO LREG
+120402   ERR:    EILPARS=:AREG; GO L1
+120405   RBUS
+120413
+120413
+120413   %=====================================================================
+120413   % Paramter checking routine for primitive #32,
+120413   % option code=100000 or option code=140000.
+120413   %
+120413   % Entry:         X=addr of actual paramter block on mpit
+120413   % Exit:          error
+120413   % Exit+1:        ok
+120413   %
+120413   SUBR P32R1
+120413   INTEGER TREG,AREG,DREG,XREG; TRIPLE TADREG=TREG
+120417   INTEGER POINTER LREG
+120420   INTEGER INDXX
+120421   P32R1:  TAD=:TADREG; A:=L=:"LREG"; X=:XREG
+120425           CALL P32RF; GO ERR
+120427           *1BANK
+120430           IF X.PBOPTION/\140000=140000 THEN                     % Log limited disk area(s)
+120435              0=:INDXX
+120436              DO WHILE INDXX<4                                   % Max 4 disk drives to log
+120442                 INDXX SH 1+"DLUN1"
+120445                 IF A.S0><0 THEN                                 % Disk drive defined?
+120450                    INDXX*6+3+XREG=:X                             % X=addr of lower disk limit in parblock
+120455                    AD:=X.DS1; A=:T; D=:L; AD:=X.DS2
+120461                    IF A<<T OR A=T AND D<<L THEN
+120467                       EILPARS; GO ERR                           % Error, lower addr>>upper addr
+120471                    FI; INDXX*4+"XFDA1"=:L                       % L=addr of lower limit in data block
+120475                    AD:=X.DS1; X:=:L; AD=:X.DS0                  % Move disk addr. limits
+120500                    X:=:L
+120501                    AD:=X.DS2; X:=:L; AD=:X.DS1
+120504                 FI; MIN INDXX
+120505              OD; A:=USOPTION
+120507           ELSE
+120510              A:=NUSOPTION
+120511           FI; A=:"TDALX".S0                                     % Use/not use logging of limited disk area
+120513           MIN "LREG"
+120514   L1:     TAD:=TADREG; X:=XREG
+120516           *2BANK
+120517           GO LREG
+120520   ERR:    A=:AREG; GO L1
+120522   RBUS
+120532
+120532
+120532   %=====================================================================
+120532   % Paramter checking routine for primitive #32, option codes 100-117
+120532   %
+120532   % Entry:         X=addr of actual paramter block on mpit
+120532   % Exit:          error
+120532   % Exit+1:        ok
+120532   %
+120532   SUBR P32R4
+120532
+120532   DISP 33; INTEGER S33,S34; PSID
+120532
+120532   INTEGER TREG,AREG,DREG,XREG; TRIPLE TADREG=TREG
+120536   INTEGER POINTER LREG
+120537   INTEGER COPTION
+120540   INTEGER CXPAR=?,CYPAR=?
+120540
+120540   OUT:    MIN "LREG"
+120541   L1:     TAD:=TADREG; X:=XREG
+120543           *2BANK
+120544           GO LREG
+120545
+120545   ERR:    A=:AREG; GO L1
+120547   ERRP:   EILPARS=:AREG; GO L1
+120552
+120552   % Local subroutine to compute the physical address of the variable "breg"
+120552   % in the "rwsegm" routine. (on mpit).
+120552   CRWSEGM:
+120552           A:="MPIT"*200+174000=:X
+120556           A:="RWSEGM"+53; AD SHZ -12; A SH 1; X+A; T:=0; *LDATX 10
+120565           T:=D SHZ -6; A=:D:=0; AD SH 12; D+T
+120573           *1BANK
+120574           AD=:DDBASEG                                           % Phys addr of breg in rwsegm routine
+120575           *2BANK
+120576           EXIT
+120577   *)FILL
+120603
+120603   P32R4:  TAD=:TADREG; A:=L=:"LREG"; X=:XREG
+120607           CALL P32RF; GO ERR
+120611           *1BANK
+120612           X.S33=:CXPAR                                          % Rt-program/nd-500 process.
+120614           X.S34=:CYPAR                                          % Nd-100 segment/nd-500 segment number.
+120616           X.PBOPTION/\117=:COPTION
+120621           0=:"OPD32".CURBU                                      %
+120623           *2BANK
+120624           COPTION-100
+120626   @ICR;
+120626           A GOSW L1FIL,L1SWP,L5FIL,L5SWP,LFSEG,ERRP,ERRP,ERRP,
+120637                  LA1FI,LA1SW,LA5FI,LA5SW,LAFSG,ERRP,ERRP,ERRP;
+120647   @CR;
+120647   *)FILL
+120652
+120652   INTEGER CXPAR,CYPAR
+120654
+120654   L1FIL:  A:=CXPAR                                              % Nd-100 file accesses by specific rt-program
+120655           IF A><0 THEN CALL CHRTADDR; GO ERR FI                 % Check rt-descr addr
+120660           T:=X1FIL
+120661           GO OK
+120662
+120662   L5FIL:  A:=CXPAR                                              % Nd-500 file accesses by specific nd-500 process
+120663           IF A><-1 THEN
+120666              CALL CH5PROC; GO ERR
+120670              A-5SWPROC*"5PRDSIZE"+"S500S"
+120673           ELSE
+120674              A:=0
+120675           FI
+120675           T:=X5FIL
+120676   OK:     *1BANK
+120677           T=:XDLFL                                              % Routine switch for logging routine
+120700           A=:XDLXD                                              % Rt-program/nd-500 process
+120701           GO FAR OUT
+120702
+120702   L1SWP:  A:=CXPAR                                              % Nd-100 swap access by specific segment
+120703           IF A><0 THEN CALL CHRTADDR; GO ERR FI                 % Check rt-descr addr
+120706           *1BANK
+120707           A=:XDLXD                                              % Rt-program
+120710           *2BANK
+120711           IF CYPAR><0 THEN                                      % Segment number
+120713              IF A<<2 OR A>>SGMAX GO ERR
+120721              CALL CRWSEGM
+120722              A:=CXPAR*5SEGSIZE+SEGSTART                         % Addr of segment table element
+120725           FI; T:=X1SWP
+120726           *1BANK
+120727           A=:XDLYD
+120730           T=:XDLFL
+120731           GO FAR OUT
+120732
+120732   L5SWP:  A:=XSW50                                              % Nd-500 swap acces by specific segment
+120733   5FELLS: *1BANK
+120734           A=:XDLFL                                              % Routine switch
+120735           *2BANK
+120736           CALL CH5OK; GO ERR                                    % Nd-500 swap acces by specific segment
+120740           IF CXPAR><-1 THEN                                     % Nd-500 process number
+120744              CALL CH5PROC; GO ERR
+120746              A-5SWPROC*"5PRDSIZE"+"S500S"
+120751              A.MESSBUFFR                                        % Nd-500 mailbox addr
+120753           ELSE
+120754              A:=0
+120755           FI; *1BANK
+120756           A=:XDLXD                                              % Nd-500 mailbox addr
+120757           *2BANK
+120760           IF CYPAR><0 THEN
+120762              IF A>>"N500D".NPHSEG GO FAR ERRP
+120766           FI
+120766           *1BANK
+120767           A=:XDLYD
+120770           GO FAR OUT
+120771
+120771   LFSEG:  A:=XFISG                                              % Nd-500 file-as-segment accesses by specific segment
+120772           GO 5FELLS
+120773
+120773   LA1FI:  A:=Y1FIL                                              % Nd-100 file access split on all rt-programs
+120774   1FELL:  *1BANK
+120775           A=:XDLFL
+120776           *2BANK
+120777           A:=RTEND-RTSTART=:D:=0                                % Nd-100 file access split on all rt-programs
+121003           T:=5RTSIZE; *RDIV ST
+121005           A+1*5
+121007           *1BANK
+121010           A=:"OPD32".CURBU
+121012           GO FAR OUT
+121013
+121013   LA5FI:  A:=Y5FIL                                              % Nd-500 file access split on all nd-500 processes
+121014   55FEL:  *1BANK
+121015           A=:XDLFL
+121016           *2BANK
+121017           CALL CH5OK; GO FAR ERR                                % Nd-500 file access split on all nd-500 processes
+121021           MX5PROC+1*4+1
+121025           *1BANK
+121026           A=:"OPD32".CURBU
+121030           GO FAR OUT
+121031
+121031   LA1SW:  A:=Y1SWP                                              % Nd-100 swap access split on all rt-programs
+121032           GO 1FELL
+121033
+121033   LA5SW:  A:=Y5SWP                                              % Nd-500 swap accesses split on all nd-500 procesdses
+121034           GO 55FEL
+121035
+121035   LAFSG:  A:=YFISG                                              % Nd-500 file-as-segment accesses split on all nd-500 processes
+121036           GO 55FEL
+121037
+121037   RBUS
+121064
+121064
+121064   %=====================================================================
+121064   % Paramter checking routine for primitive #36, option code=100000
+121064   %
+121064   % Entry:         X=addr of actual paramter block on mpit
+121064   % Exit:          error
+121064   % Exit+1:        ok
+121064   %
+121064   SUBR P36R1
+121064
+121064   INTEGER TREG,AREG,DREG,XREG; TRIPLE TADREG=TREG
+121070   INTEGER POINTER LREG
+121071
+121071   P36R1:  TAD=:TADREG; T:=L=:"LREG"
+121074           *1BANK
+121075           IF X.PBOPTION/\140000=140000 THEN                     % Mon.call log for specific program
+121102              X.S3; *2BANK                                       % Rt-program
+121104              CALL CHRTADDR; GO ERR
+121106              *1BANK
+121107              X.S3
+121110           ELSE
+121111              A:=0
+121112           FI
+121112           *1BANK
+121113           A=:MLXRT                                              % Rt-program
+121114           MIN "LREG"
+121115   OUT:    *2BANK
+121116           TAD:=TADREG; X:=XREG
+121120           GO LREG
+121121   ERR:    A:=EILPARS=:AREG; GO OUT
+121124   RBUS
+121127
+121127
+121127   %=====================================================================
+121127   % Paramter checking routine for primitive #36, option code=10000.
+121127   %
+121127   % Entry:         X=addr of actual paramter block on mpit
+121127   % Exit:          error
+121127   % Exit+1:        ok
+121127   %
+121127   SUBR P36R2
+121127
+121127   DISP 0; DOUBLE DD0,DD1,DD2,DD3; PSID
+121127
+121127   INTEGER XINDX,CAVAL,CXVAL
+121132
+121132   % Local subroutine to check if same program/mon.call is defined
+121132   % more than one time in the paramter block.
+121132   %
+121132   CSUBR:  0=:XINDX; A=:CAVAL; X=:CXVAL
+121135           DO WHILE XINDX<10
+121141              "X1MLP"+XINDX
+121143              IF A.S0=CAVAL THEN EXIT FI                         % Error element already exists
+121151              MIN XINDX
+121152           OD; A:=CAVAL; X:=CXVAL
+121155           EXITA
+121156
+121156   MBERR:  IF A=0 THEN EXIT FI
+121160           GO ERR
+121161
+121161   INTEGER CNDX,TREG,AREG,DREG,XREG; TRIPLE TADREG=TREG
+121166   INTEGER POINTER LREG
+121167
+121167   P36R2:  TAD=:TADREG; T:=L=:"LREG"; X=:XREG
+121173           *1BANK
+121174           A:=-1=:D; AD=:"X1MLP".DD0=:X.DD1=:X.DD2=:X.DD3        % Reset buffer
+121203           IF XREG.PBOPTION/\14000=14000 THEN                     % Log 8 mon.calls for all progs
+121211              0=:CNDX
+121212              DO WHILE CNDX<10
+121216                 XREG+CNDX; A.S4                                 % Mon.call number
+121222                 IF A><-1 THEN
+121225                    IF A>> 377 GO ERR
+121230                    CALL CSUBR; CALL MBERR
+121232                 FI
+121232                 T:=A; "X1MLP"+CNDX; T=:A.S0                    % Save mon.call number for sampling routines
+121237                 WHILE T+1><0
+121242                 MIN CNDX
+121243              OD; *2BANK
+121245              A:=RTEND-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+121253              A*40+1; X:=1                                       % Size of optional data buffer
+121256           ELSE
+121257              0=:CNDX                                           % Log all mon.calls for 8 progs
+121260              DO WHILE CNDX<10
+121264                 XREG+CNDX
+121266                 IF A.S4=0 THEN A:=-1 FI                        % A=rt-program
+121272                 IF A><-1 THEN
+121275                    *2BANK
+121276                    CALL CHRTADDR; GO ERR
+121300                    *1BANK
+121301                    X.S4; CALL CSUBR; GO ERR
+121304                 FI; T:=A; "X1MLP"+CNDX; T=:A.S0                % Save rt-program for sampling routines
+121311                 WHILE T+1><0
+121314                 MIN CNDX
+121315              OD; A:=400*30; X:=0                              % Size of optional data buffer
+121321           FI; *1BANK
+121322           X=:MLOFL; A=:"OPD36".CURBU                            % Size of opt. data buffer into opt. data buffer descr.
+121325           MIN "LREG"
+121326   OUT:    *2BANK
+121327           TAD:=TADREG; X:=XREG
+121331           GO LREG
+121332
+121332   ERR:    EILPARS=:AREG; GO OUT
+121335   RBUS
+121350
+121350
+121350   %=====================================================================
+121350   % Paramter checking routine for primitive #37, option code=100000
+121350   %
+121350   % Entry:         X=addr of actual paramter block on mpit
+121350   % Exit:          error
+121350   % Exit+1:        ok
+121350   %
+121350   SUBR P37R1
+121350
+121350   INTEGER TREG,AREG,DREG,XREG; TRIPLE TADREG=TREG
+121354   INTEGER POINTER LREG
+121355
+121355   P37R1:  TAD=:TADREG; T:=L=:"LREG"
+121360           CALL CH5OK; GO ERR
+121362           *1BANK
+121363           IF X.PBOPTION/\140000=140000 THEN                     % Mon.call log for specific nd-500 process
+121370              X.S3; *2BANK                                       % Nd-500 process
+121372              IF A>>MX5PROC GO ERR
+121375           ELSE
+121376              A:=-1
+121377           FI
+121377           *1BANK
+121400           A=:MLXPR                                              % Nd-500 process number
+121401           MIN "LREG"
+121402   OUT:    *2BANK
+121403           TAD:=TADREG; X:=XREG
+121405           GO LREG
+121406   ERR:    A:=EILPARS=:AREG; GO OUT
+121411   RBUS
+121415
+121415
+121415   %=====================================================================
+121415   % Paramter checking routine for primitive #37, option code=10000.
+121415   %
+121415   % Entry:         X=addr of actual paramter block on mpit
+121415   % Exit:          error
+121415   % Exit+1:        ok
+121415   %
+121415   SUBR P37R2
+121415
+121415   DISP 0; DOUBLE DD0,DD1,DD2,DD3; PSID
+121415
+121415   INTEGER CNDX,XINDX,CAVAL,CXVAL
+121421
+121421   % Local subroutine to check if same process number/mon.call number
+121421   % is used more than one time in the paramter block.
+121421   %
+121421   CSUBR:  0=:XINDX; A=:CAVAL; X=:CXVAL
+121424           DO WHILE XINDX<10
+121430              "Y1MLP"+XINDX
+121432              IF A.S0=CAVAL THEN EXIT FI                         % Error element already exists
+121440              MIN XINDX
+121441           OD; A:=CAVAL; X:=CXVAL
+121444           EXITA
+121445
+121445   INTEGER TREG,AREG,DREG,XREG; TRIPLE TADREG=TREG
+121451   INTEGER POINTER LREG
+121452
+121452   MBERR:  IF A=0 THEN EXIT FI
+121454           GO ERR
+121455
+121455   P37R2:  TAD=:TADREG; T:=L=:"LREG"; X=:XREG
+121461           CALL CH5OK; GO ERR
+121463           *1BANK
+121464           A:=-1=:D; AD=:"Y1MLP".DD0=:X.DD1=:X.DD2=:X.DD3
+121473           IF XREG.PBOPTION/\14000=14000 THEN
+121501              0=:CNDX
+121502              DO WHILE CNDX<10
+121506                 XREG+CNDX; A.S4                                 % A.s4=mon.call number
+121512                 IF A><-1 THEN
+121515                    IF A>> 523 GO ERR                               % Within legal range?
+121520                    CALL CSUBR; CALL MBERR
+121522                 FI
+121522                 T:=A; "Y1MLP"+CNDX; T=:A.S0                    % Save mon.call number for sampling routines
+121527                 WHILE T+1><0
+121532                 MIN CNDX
+121533              OD; *2BANK
+121535              A:=MX5PROC+1*30+1; X:=1                              % Size of optional data buffer
+121542           ELSE
+121543              0=:CNDX
+121544              DO WHILE CNDX<10
+121550                 XREG+CNDX; A.S4                                 % A.s4=nd-500 proc.number
+121554                 IF A><-1 THEN
+121557                    *2BANK                                        % Check for legal RT-description
+121560                    CALL CH5PROC; GO ERR
+121562                    *1BANK                                        % and for redundancy
+121563                    CALL CSUBR; GO ERR
+121565                 FI
+121565                 T:=A; "Y1MLP"+CNDX; T=:A.S0                     % Save nd-500 process number for sampling routines
+121572                 WHILE T+1><0                                    % End of buffer?
+121575                 MIN CNDX
+121576              OD; A:=524*30; X:=0                              % Size of optional data buffer
+121602           FI; *1BANK
+121603           X=:ML5FL                                              % Routine switch for sampling routines
+121604           A=:"OPD37".CURBU                                      % Size of opt. data buffer into opt. data buffer descr.
+121606           MIN "LREG"
+121607   OUT:    *2BANK
+121610           TAD:=TADREG; X:=XREG
+121612           GO LREG
+121613
+121613   ERR:    EILPARS=:AREG; GO OUT
+121616   RBUS
+121630
+121630
+121630   %=====================================================================
+121630   % Paramter checking routine for primitive #64 & primitive #65
+121630   %
+121630   % Entry:         X=addr of actual paramter block on mpit
+121630   % Exit:          error
+121630   % Exit+1:        ok
+121630   %
+121630   SUBR P64R1,P65R1
+121630
+121630   INTEGER XINDX=?,CSGNU=?,CVAL=?,CNDX=?,YINDX=?
+121630   INTEGER CSGNU=?,CSGAD=?,ROUTSWITCH=?,BREG=?
+121630   INTEGER 15SEGTAB=?,25SEGTAB=?; DOUBLE D5SEGTAB=?
+121630
+121630   INTEGER CLGPAGE,CLGADDR; DOUBLE DCLGADDR=CLGPAGE
+121632   INTEGER POINTER L2REG
+121633   F5SGTABLE: A:=L=:"L2REG"
+121635           T:=55NSG; CALL M1MEXY
+121637           AX5DP=:D; CALL DALTON
+121642           X:="ABASSW"; X.DS0; CALL ALTOFF; CALL M1MEXY          % Get logical addr of swappers segment table
+121646           A/\3777; AD SHZ 5                                     % A=log page number of swappers segment table
+121650           D SHZ -6                                              % D=displacement within page
+121651           AD=:DCLGADDR
+121652           A:=B=:BREG
+121654           "S5CPUDF"=:B
+121656           IF MIFLAG BIT MUDOM THEN                              % 16 OR 32
+121661              T:=3                                               % BITS PST ?
+121662           ELSE
+121663              T:=1
+121664           FI
+121664           BREG=:B
+121666           A:="N500DF".5PSTPAGE+X.ADRZERO                        % Phys page of nd-500 pst
+121671           A=:D:=0; AD SH 12
+121674           D:=D+T; A:=A+C; *EXAM                                 % Page of index-page for phys.seg #1
+121677           A:=T/\37777+X.ADRZERO=:D:=0
+121704           AD SH 12; A:=:D+CLGPAGE:=:D; A:=A+C; *EXAM            % T=phys page of start of swappers seg.table
+121712           A:=T+X.ADRZERO
+121714           A=:D:=0; AD SH 12; A:=:D+CLGADDR; A:=:D; A:=A+C
+121723           GO L2REG
+121724   *)FILL
+121734
+121734   INTEGER TREG,AREG,DREG; TRIPLE TADREG=TREG
+121737   INTEGER BREG
+121740   INTEGER POINTER LREG
+121741   INTEGER XREG=?
+121741   OKRET:  MIN "LREG"
+121742   OUT:    X:=XREG; TAD:=TADREG
+121744           *2BANK
+121745           GO LREG
+121746   ERR:    EILPARS=:AREG
+121750           GO OUT
+121751
+121751
+121751   P64R1:  TAD=:TADREG
+121752           "F1SGS"=:CSGAD; "DA1SG"=:CSGNU
+121756           0=:ROUTSWITCH
+121757           T:=L=:"LREG"; X=:XREG
+121762           GO FAR FELLS
+121763
+121763
+121763   % Local subroutine to check if same segment number is specified
+121763   % More than once in the parameter block.
+121763   %
+121763   % Entry:         A=segment number.
+121763   % Exit:          error, element already used
+121763   % Eita:          ok.
+121763   %
+121763   CSUBR:  A=:CVAL; 0=:XINDX
+121765           DO WHILE XINDX><CNDX
+121771              XINDX*3+CSGNU=:X
+121775              IF X.S0=CVAL THEN EXIT FI
+122002              MIN XINDX
+122003           OD; A:=CVAL
+122005           EXITA
+122006   *)FILL
+122012
+122012   P65R1:  TAD=:TADREG; A:=L=:"LREG"
+122015           CALL CH5OK; GO ERR
+122017           X=:XREG
+122020           IF "N500DF".SYSINITFLAG NBIT BSWLOAD GO ERR           % Swapper not loaded
+122024           "F5SGS"=:CSGAD; "DA5SG"=:CSGNU
+122030           1=:ROUTSWITCH
+122032           CALL FAR F5SGTABLE
+122033           AD=:D5SEGTAB                                          % Phys addr of nd-500 swapper's seg.table
+122034           GO FELLS
+122035   *)FILL
+122042
+122042   INTEGER XREG
+122043
+122043   % Clear unused entries in paramter-table for the sampling routines
+122043   CLREST: *1BANK
+122044           DO WHILE YINDX><CNDX
+122050              IF ROUTSWITCH=0 THEN
+122052                 YINDX+CSGAD
+122054              ELSE
+122055                 A:=YINDX SH 1+CSGAD
+122060              FI; X:=A; -1=:X.S0
+122063              MIN YINDX
+122064           OD; EXIT
+122066
+122066   INTEGER XINDX,CNDX,CVAL,YINDX
+122072   INTEGER CSGNU,CSGAD,ROUTSWITCH
+122075   INTEGER 15SEGTAB,25SEGTAB; DOUBLE D5SEGTAB=15SEGTAB
+122077
+122077   FELLS:  0=:CNDX=:YINDX
+122101           DO WHILE CNDX<<10
+122105              *1BANK
+122106              XREG+CNDX
+122110              IF A.S3><0 THEN                                    % Segment number
+122113                 CALL FAR CSUBR; GO FAR ERR
+122115                 A=:X:=YINDX*3+CSGNU; A:=:X; A=:X.S0
+122123                 *2BANK
+122124                 IF T:=ROUTSWITCH=0 THEN                         % Nd-100 segment
+122127                    IF A>>SGMAX GO FAR ERR
+122132                    A*5SEGSIZE+SEGSTART
+122134                    *1BANK
+122135                    A=:X:=YINDX+CSGAD; A:=:X; A=:X.S0            % Save addr. of segment table entry
+122142                 ELSE
+122143                    IF A>>"N500DF".NPHSEG GO FAR ERR
+122147                    T:=5SSEG; *RMPY ST DA                      % Nd-500 segment
+122151                    A:=:D+25SEGTAB; A:=:D; A:=A+C+15SEGTAB
+122156                    *1BANK
+122157                    T:=YINDX SH 1; X:=CSGAD+T; AD=:X.DS0         % Save phys.addr of swappers segment table
+122164                 FI; MIN YINDX
+122165              FI; MIN CNDX
+122166           OD; CALL FAR CLREST                                   % Mark unused log.devs
+122170           GO FAR OKRET
+122171   RBUS
+122203
+122203
+122203   %=====================================================================
+122203   % Paramter checking routine for primitive #66, all option codes.
+122203   %
+122203   % Entry:         X=addr of actual paramter block on mpit
+122203   % Exit:          error
+122203   % Exit+1:        ok
+122203   %
+122203   SUBR P66R1
+122203
+122203   INTEGER TREG,AREG,DREG,XREG; TRIPLE TADREG=TREG
+122207   INTEGER COPTION
+122210   INTEGER POINTER LREG
+122211
+122211   P66R1:  TAD=:TADREG; T:=L=:"LREG"; X=:XREG
+122215           *1BANK
+122216           X.PBOPTION=:COPTION
+122220           IF A/\170000=100000 OR A=140000 THEN
+122227              IF X.S4>>17 GO ERR                                 % Illegal interrupt level
+122233              A=:PCLEV
+122234              IF COPTION=100000 THEN
+122240                 X.S3=:1PCIN                                     % Interval size
+122242                 X.S6=:1FPRG                                     % First address in target area
+122244                 A:=0                                            % Routine switch
+122245              ELSE
+122246                 A:=X+6=:D; T:="1FPRG"; A:=101=:L; *MOVNN        % Move interval specs
+122255                 A:=1                                            % Routine switch
+122256              FI
+122256           ELSE IF A=120000 OR A=110000 THEN
+122265              1=:PCLEV                                           % Log level 1
+122267              IF X.S4><0 THEN                                    % Rt-program
+122271                 *2BANK
+122272                 CALL CHRTADDR; GO ERR
+122274                 *1BANK
+122275              FI; A=:PCRTP                                       % Rt-program to log
+122276              IF X.S5><0 THEN                                    % Segment number
+122300                 *2BANK
+122301                 IF A>>SGMAX GO ERR
+122304                 A=:D*5SEGSIZE+SEGSTART=:X; T:=SEGTBANK; *SGSTA@3 LDATX
+122312                 IF A BIT 5NCLSEG THEN
+122314                    *LOGAD@3 LDATX
+122315                    A SHZ -6 BONE 17                             % Test for pit.
+122317                 ELSE
+122320                    A:=D
+122321                 FI; *1BANK
+122322              FI; A=:PC1SG                                       % Segment number or pit. number
+122323              IF COPTION=120000 THEN
+122327                 XREG.S3=:1PCIN                                   % Interval size
+122332                 X.S6=:1FPRG                                     % First address in target area
+122334                 A:=2                                            % Routine switch
+122335              ELSE
+122336                 A:=XREG+6=:D; T:="1FPRG"; A:=101=:L; *MOVNN      % Move interval specs
+122345                 A:=3                                            % Routine switch
+122346              FI
+122346           ELSE GO ERR
+122350           FI; FI
+122350           A=:1PCFL                                              % Routine switch for sampling routines
+122351           MIN "LREG"
+122352   OUT:    TAD:=TADREG; X:=XREG
+122354           *2BANK
+122355           GO LREG
+122356   ERR:    EILPARS=:AREG
+122360           GO OUT
+122361   RBUS
+122401
+122401
+122401   %=====================================================================
+122401   % Paramter checking routine for primitive #67, all option codes.
+122401   %
+122401   % Entry:         X=addr of actual paramter block on mpit
+122401   % Exit:          error
+122401   % Exit+1:        ok
+122401   %
+122401   SUBR P67R1
+122401
+122401   INTEGER TREG,AREG,DREG,XREG; TRIPLE TADREG=TREG
+122405   INTEGER POINTER LREG
+122406
+122406   P67R1:  TAD=:TADREG; T:=L=:"LREG"; X=:XREG
+122412           *1BANK
+122413           X.S4                                                  % Nd-500 process number
+122414           *2BANK
+122415           IF A><-1 THEN
+122420              A=:T; CALL CH5PROC; GO ERR
+122423              A-5SWPROC*5PRDSIZE+"S500S"
+122426           ELSE
+122427              CALL CH5OK; GO ERR
+122431              A:=0=:T
+122433           FI; *1BANK
+122434           T=:PC5PR                                              % Nd-500 process number
+122435           A=:5MHPR                                              % Process description address
+122436           IF X.PBOPTION/\140000=100000 THEN
+122443              X.S3=:5PCIN                                        % Address interval size
+122445              X+5; X.DS0=:D5FHPR                                 % First address in area to log
+122450              A:=0                                               % Routine switch
+122451           ELSE IF A=140000 THEN
+122455              A:=X+5=:D; T:="5FHPR"; A:=202=:L; *MOVNN
+122464              A:=1                                               % Routine switch
+122465           ELSE GO ERR
+122467           FI; FI
+122467           A=:5PCFL
+122470           *2BANK
+122471           X:=MPHMESS; T:=5MBBANK; *1BANK
+122474           PC5PR; *AAX WANTP; STATX
+122477           *AAX 5CPUN-WANTP; LDATX; 2BANK
+122502           CALL CHE5CPU; GO ERR                            % Alive and OK ?
+122504           A=:D; *1BANK
+122506           X:=5MHPR; *2BANK                                % Logged process in same CPU as hist proc.
+122510           IF X><0 THEN
+122511              X:=X.MESSBUFF; D=:A; *AAX 5CPUN; STATX       % Specific process
+122515              *AAX 5MSFL-5CPUN; LDATX
+122517              A BONE 5CPUBOUND; *STATX
+122521           FI
+122521           MIN "LREG"
+122522   OUT:    TAD:=TADREG; X:=XREG
+122524           *2BANK
+122525           GO LREG
+122526   ERR:    EILPARS=:AREG
+122530           GO OUT
+122531   RBUS
+122551
+122551   %=====================================================================
+122551   % PARAMTER CHECKING ROUTINE FOR PRIMITIVE #77, OPTION CODE=100-116
+122551   % PARAMTER CHECKING ROUTINE FOR PRIMITIVE #77, OPTION CODE=200-216
+122551   %
+122551   % ENTRY:         X=ADDR OF ACTUAL PARAMTER BLOCK ON MPIT
+122551   % EXIT:          ERROR
+122551   % EXIT+1:        OK
+122551   %
+122551   SUBR P77R1,P77R2
+122551
+122551   DISP 0; DOUBLE DD0,DD1,DD2,DD3; PSID
+122551
+122551
+122551
+122551   LA5P1:  0=:PROFLAG; GO OUT1                          % Log all 500 proc
+122553
+122553   L85P1:  A:=1; CALL CHTR5P; GO ERR                % Log 8 500 procs
+122556           GO OUT1
+122557
+122557   L8RT1:  A:=2; CALL CHTRRT; GO ERR               % Log 8 RT-programs
+122562           GO OUT1
+122563
+122563   INTEGER TREG=?,AREG=?,DREG=?; TRIPLE TADREG=?
+122563   INTEGER POINTER LREG=?
+122563   INTEGER XREG=?
+122563   INTEGER COPTION=?
+122563
+122563   ERR:    A=:AREG; GO OUT
+122565   ERRP1:  EILPARS=:AREG; GO OUT
+122570   OUT1:   MIN "LREG"
+122571   OUT:    *2BANK
+122572           TAD:=TADREG; X:=XREG
+122574           GO LREG
+122575
+122575   P77R1:  TAD=:TADREG; T:=L=:"LREG"; X=:XREG
+122601           CALL CH5OK; GO ERR
+122603           *1BANK
+122604           A:=-1=:D; A=:TRINIT; 100=:DECOPT
+122611           AD=:"Y1TRP".DD0=:X.DD1=:X.DD2=:X.DD3
+122616           IF XREG.PBOPTION/\60=0 THEN
+122622              1=:DEPFFLAG; FI                                    % PF TRAP
+122624           IF X.PBOPTION/\60=40 THEN
+122631              1=:DEMCFLAG; FI                                    % MCALL - 377
+122633           IF X.PBOPTION/\60=20 THEN
+122640              1=:DETRFLAG; FI                                    % TRAP-PF
+122642           X.PBOPTION/\117=:COPTION                              % OPTION CODE = 100-116
+122645           IF X.PBOPTION/\14=0 THEN
+122650              0=:DECOSIZE                                          % mess buff 0-37
+122651           ELSE IF A=4 THEN
+122655              1=:DECOSIZE                                          % mess buff 0-37 100-146
+122657           ELSE IF A=10 THEN
+122663              2=:DECOSIZE                                          % mess buff 0-146
+122665           ELSE
+122666              3=:DECOSIZE                                          % mess buff -30-146
+122670           FI; FI; FI; *1BANK
+122671           COPTION-100
+122673
+122673   @ICR;
+122673           A GOSW LA5P1,L85P1,L8RT1,ERRP1,LA5P1,
+122701                  L85P1,L8RT1,ERRP1,LA5P1,L85P1,
+122706                  L8RT1,ERRP1,LA5P1,L85P1,L8RT1,
+122713                  ERRP1;
+122714   @CR;
+122714   *)FILL
+122732   INTEGER XREG
+122733   INTEGER TREG,AREG,DREG; TRIPLE TADREG=TREG
+122736   INTEGER POINTER LREG
+122737   INTEGER COPTION
+122740
+122740
+122740   P77R2:  TAD=:TADREG; T:=L=:"LREG"; X=:XREG
+122744           CALL CH5OK; GO FAR ERR
+122746           *1BANK
+122747           A:=-1=:D; A=:TRINIT; 200=:N5COPT
+122754           AD=:"Y1TRP".DD0=:X.DD1=:X.DD2=:X.DD3
+122761           XREG.PBOPTION/\217=:COPTION                           % OPTION CODE = 200-216
+122765           IF X.PBOPTION/\14=0 THEN
+122770              0=:N5SIZE                                          % mess buff 0-37
+122771           ELSE IF A=4 THEN
+122775              1=:N5SIZE                                          % mess buff 0-37 100-146
+122777           ELSE IF A=10 THEN
+123003              2=:N5SIZE                                          % mess buff 0-146
+123005           ELSE
+123006              3=:N5SIZE                                          % mess buff -30-146
+123010           FI; FI; FI; *1BANK
+123011           COPTION-200
+123013   @ICR;
+123013           A GOSW FAR LA5P1,FAR L85P1,FAR L8RT1,FAR ERRP1,
+123020                  FAR LA5P1,FAR L85P1,FAR L8RT1,FAR ERRP1,
+123024                  FAR LA5P1,FAR L85P1,FAR L8RT1,FAR ERRP1,
+123030                  FAR LA5P1,FAR L85P1,FAR L8RT1,FAR ERRP1;
+123034   @CR;
+123034   *)FILL
+123051
+123051
+123051   RBUS
+123051
+123051   %=====================================================================
+123051   % PARAMTER CHECKING ROUTINE FOR PRIMITIVE #77, OPTION CODE=400-416
+123051   % PARAMTER CHECKING ROUTINE FOR PRIMITIVE #77, OPTION CODE=1000-1016
+123051   %
+123051   % ENTRY:         X=ADDR OF ACTUAL PARAMTER BLOCK ON MPIT
+123051   % EXIT:          ERROR
+123051   % EXIT+1:        OK
+123051   %
+123051   SUBR P77R3, P77R4
+123051
+123051   DISP 0; DOUBLE DD0,DD1,DD2,DD3; PSID
+123051
+123051   LA5P1:  0=:PROFLAG; GO OUT1                          % Log all 500 proc
+123053
+123053   L85P1:  A:=1; CALL CHTR5P; GO ERR                    % Log 8 500 procs
+123056           GO OUT1;
+123057
+123057   L8RT1:  A:=2; CALL CHTRRT; GO ERR                    % Log 8 RT-programs
+123062           GO OUT1;
+123063
+123063   INTEGER TREG=?,AREG=?,DREG=?; TRIPLE TADREG=?
+123063   INTEGER POINTER LREG=?
+123063   INTEGER XREG=?
+123063   INTEGER COPTION=?
+123063
+123063   ERR:    A=:AREG; GO OUT
+123065   ERRP1:  EILPARS=:AREG; GO OUT
+123070   OUT1:   MIN "LREG"
+123071   OUT:    *2BANK
+123072           TAD:=TADREG; X:=XREG
+123074           GO LREG
+123075
+123075   P77R3:  TAD=:TADREG; T:=L=:"LREG"; X=:XREG
+123101           CALL CH5OK; GO ERR
+123103           *1BANK
+123104           A:=-1=:D; A=:TRINIT; 400=:ACTSCOPT
+123111           AD=:"Y1TRP".DD0=:X.DD1=:X.DD2=:X.DD3
+123116           XREG.PBOPTION/\417=:COPTION                           % OPTION CODE = 400-416
+123122           IF X.PBOPTION/\14=0 THEN
+123125              0=:ACTSSIZE                                        % mess buff 0-37
+123126           ELSE IF A=4 THEN
+123132              1=:ACTSSIZE                                        % mess buff 0-37 100-146
+123134           ELSE IF A=10 THEN
+123140              2=:ACTSSIZE                                        % mess buff 0-146
+123142           ELSE
+123143              3=:ACTSSIZE                                        % mess buff -30-146
+123145           FI; FI; FI; *1BANK
+123146           COPTION-400
+123150   @ICR;
+123150           A GOSW FAR LA5P1,FAR L85P1,L8RT1,ERRP1,FAR LA5P1,
+123156                  FAR L85P1,FAR L8RT1,ERRP1,
+123161                  FAR LA5P1,FAR L85P1,FAR L8RT1,ERRP1,
+123165                  FAR LA5P1,FAR L85P1,FAR L8RT1,ERRP1;
+123171   @CR;
+123171   *)FILL
+123207   INTEGER XREG
+123210   INTEGER TREG,AREG,DREG; TRIPLE TADREG=TREG
+123213   INTEGER POINTER LREG
+123214   INTEGER COPTION
+123215
+123215   P77R4:  TAD=:TADREG; T:=L=:"LREG"; X=:XREG
+123221           CALL CH5OK; GO ERR
+123223           *1BANK
+123224           A:=-1=:D; A=:TRINIT; 1000=:T5XQCOPT
+123231           AD=:"Y1TRP".DD0=:X.DD1=:X.DD2=:X.DD3
+123236           XREG.PBOPTION/\1017=:COPTION                           % OPTION CODE = 1000-1016
+123242           IF X.PBOPTION/\14=0 THEN
+123245              0=:T5XQSIZE                                        % mess buff 0-37
+123246           ELSE IF A=4 THEN
+123252              1=:T5XQSIZE                                        % mess buff 0-37 100-146
+123254           ELSE IF A=10 THEN
+123260              2=:T5XQSIZE                                        % mess buff 0-146
+123262           ELSE
+123263              3=:T5XQSIZE                                        % mess buff -30-146
+123265           FI; FI; FI; *1BANK
+123266           COPTION-1000
+123270   @ICR;
+123270           A GOSW FAR LA5P1,FAR L85P1,FAR L8RT1,FAR ERRP1,
+123275                  FAR LA5P1,FAR L85P1,FAR L8RT1,FAR ERRP1,
+123301                  FAR LA5P1,FAR L85P1,FAR L8RT1,FAR ERRP1,
+123305                  FAR LA5P1,FAR L85P1,FAR L8RT1,FAR ERRP1;
+123311   @CR;
+123311
+123311   RBUS
+123325
+123325   %=====================================================================
+123325   % PARAMTER CHECKING ROUTINE FOR PRIMITIVE #77, OPTION CODE=2000-2016
+123325   % PARAMTER CHECKING ROUTINE FOR PRIMITIVE #77, OPTION CODE=4000-4016
+123325   %
+123325   % ENTRY:         X=ADDR OF ACTUAL PARAMTER BLOCK ON MPIT
+123325   % EXIT:          ERROR
+123325   % EXIT+1:        OK
+123325   %
+123325   SUBR P77R5, P77R6
+123325
+123325   DISP 0; DOUBLE DD0,DD1,DD2,DD3; PSID
+123325
+123325
+123325   LA5P1:  0=:PROFLAG; GO OUT1                          % Log all 500 proc
+123327
+123327   L85P1:  A:=1; CALL CHTR5P; GO ERR                    % Log 8 500 procs
+123332           GO OUT1
+123333
+123333   L8RT1:  A:=2; CALL CHTRRT; GO ERR                    % Log 8 RT-programs
+123336           GO OUT1
+123337
+123337   INTEGER TREG=?,AREG=?,DREG=?; TRIPLE TADREG=?
+123337   INTEGER POINTER LREG=?
+123337   INTEGER XREG=?
+123337   INTEGER COPTION=?
+123337
+123337   ERR:    A=:AREG; GO OUT
+123341   ERRP1:  EILPARS=:AREG; GO OUT
+123344   OUT1:   MIN "LREG"
+123345   OUT:    *2BANK
+123346           TAD:=TADREG; X:=XREG
+123350           GO LREG
+123351
+123351   P77R5:  TAD=:TADREG; T:=L=:"LREG"; X=:XREG
+123355           CALL CH5OK; GO ERR
+123357           *1BANK
+123360           A:=-1=:D; A=:TRINIT; 2000=:F5XQCOPT
+123365           AD=:"Y1TRP".DD0=:X.DD1=:X.DD2=:X.DD3
+123372           XREG.PBOPTION/\2017=:COPTION                           % OPTION CODE = 2000-2016
+123376           IF X.PBOPTION/\14=0 THEN
+123401              0=:F5XQSIZE                                        % mess buff 0-37
+123402           ELSE IF A=4 THEN
+123406              1=:F5XQSIZE                                        % mess buff 0-37 100-146
+123410           ELSE IF A=10 THEN
+123414              2=:F5XQSIZE                                        % mess buff 0-146
+123416           ELSE
+123417              3=:F5XQSIZE                                        % mess buff -30-146
+123421           FI; FI; FI; *1BANK
+123422           COPTION-2000
+123424   @ICR;
+123424           A GOSW FAR LA5P1,FAR L85P1,L8RT1,ERRP1,FAR LA5P1,
+123432                  FAR L85P1,FAR L8RT1,ERRP1,
+123435                  FAR LA5P1,FAR L85P1,FAR L8RT1,ERRP1,
+123441                  FAR LA5P1,FAR L85P1,FAR L8RT1,ERRP1;
+123445   @CR;
+123445   *)FILL
+123463   INTEGER XREG
+123464   INTEGER TREG,AREG,DREG; TRIPLE TADREG=TREG
+123467   INTEGER POINTER LREG
+123470   INTEGER COPTION
+123471
+123471
+123471   P77R6:  TAD=:TADREG; T:=L=:"LREG"; X=:XREG
+123475           CALL CH5OK; GO ERR
+123477           *1BANK
+123500           A:=-1=:D; A=:TRINIT; 4000=:TER5COPT
+123505           AD=:"Y1TRP".DD0=:X.DD1=:X.DD2=:X.DD3
+123512           XREG.PBOPTION/\4017=:COPTION                           % OPTION CODE = 4000-4016
+123516           IF X.PBOPTION/\14=0 THEN
+123521              0=:TER5SIZE                                        % mess buff 0-37
+123522           ELSE IF A=4 THEN
+123526              1=:TER5SIZE                                        % mess buff 0-37 100-146
+123530           ELSE IF A=10 THEN
+123534              2=:TER5SIZE                                        % mess buff 0-146
+123536           ELSE
+123537              3=:TER5SIZE                                        % mess buff -30-146
+123541           FI; FI; FI; *1BANK
+123542           COPTION-4000
+123544   @ICR;
+123544           A GOSW FAR LA5P1,FAR L85P1,FAR L8RT1,FAR ERRP1,
+123551                  FAR LA5P1,FAR L85P1,FAR L8RT1,FAR ERRP1,
+123555                  FAR LA5P1,FAR L85P1,FAR L8RT1,FAR ERRP1,
+123561                  FAR LA5P1,FAR L85P1,FAR L8RT1,FAR ERRP1;
+123565   @CR;
+123565
+123565   RBUS
+123601
+123601
+123601   %=====================================================================
+123601   % PARAMTER CHECKING ROUTINE FOR PRIMITIVE #77, OPTION CODE=10000-10016
+123601   % PARAMTER CHECKING ROUTINE FOR PRIMITIVE #77, OPTION CODE=20000-20016
+123601   %
+123601   % ENTRY:         X=ADDR OF ACTUAL PARAMTER BLOCK ON MPIT
+123601   % EXIT:          ERROR
+123601   % EXIT+1:        OK
+123601   %
+123601   SUBR P77R7,P7710
+123601
+123601   DISP 0; DOUBLE DD0,DD1,DD2,DD3; PSID
+123601
+123601   LA5P1:  0=:PROFLAG; GO OUT1                          % Log all 500 proc
+123603
+123603   L85P1:  A:=1; CALL CHTR5P; GO ERR                    % Log 8 500 procs
+123606           GO OUT1
+123607
+123607   L8RT1:  A:=2; CALL CHTRRT; GO ERR                    % Log 8 RT-programs
+123612           GO OUT1
+123613
+123613   INTEGER TREG=?,AREG=?,DREG=?; TRIPLE TADREG=?
+123613   INTEGER POINTER LREG=?
+123613   INTEGER XREG=?
+123613   INTEGER COPTION=?
+123613
+123613   ERR:    A=:AREG; GO OUT
+123615   ERRP1:  EILPARS=:AREG; GO OUT
+123620   OUT1:   MIN "LREG"
+123621   OUT:    *2BANK
+123622           TAD:=TADREG; X:=XREG
+123624           GO LREG
+123625
+123625   P77R7:  TAD=:TADREG; T:=L=:"LREG"; X=:XREG
+123631           CALL CH5OK; GO ERR
+123633           *1BANK
+123634           A:=-1=:D; A=:TRINIT; 10000=:ACT5COPT
+123641           AD=:"Y1TRP".DD0=:X.DD1=:X.DD2=:X.DD3
+123646           XREG.PBOPTION/\10017=:COPTION                        % OPTION CODE = 10000-10016
+123652           IF X.PBOPTION/\14=0 THEN
+123655              0=:ACTSIZE                                        % mess buff 0-37
+123656           ELSE IF A=4 THEN
+123662              1=:ACTSIZE                                        % mess buff 0-37 100-146
+123664           ELSE IF A=10 THEN
+123670              2=:ACTSIZE                                        % mess buff 0-146
+123672           ELSE
+123673              3=:ACTSIZE                                        % mess buff -30-146
+123675           FI; FI; FI; *1BANK
+123676           COPTION-10000
+123700   @ICR;
+123700           A GOSW FAR LA5P1,FAR L85P1,L8RT1,ERRP1,FAR LA5P1,
+123706                  FAR L85P1,FAR L8RT1,ERRP1,
+123711                  FAR LA5P1,FAR L85P1,FAR L8RT1,ERRP1,
+123715                  FAR LA5P1,FAR L85P1,FAR L8RT1,ERRP1;
+123721   @CR;
+123721   *)FILL
+123737   INTEGER XREG
+123740   INTEGER TREG,AREG,DREG; TRIPLE TADREG=TREG
+123743   INTEGER POINTER LREG
+123744   INTEGER COPTION
+123745
+123745   P7710:  TAD=:TADREG; T:=L=:"LREG"; X=:XREG
+123751           CALL CH5OK; GO ERR
+123753           *1BANK
+123754           A:=-1=:D; A=:TRINIT; 20000=:MCCOCOPT
+123761           AD=:"Y1TRP".DD0=:X.DD1=:X.DD2=:X.DD3
+123766           XREG.PBOPTION/\107=:COPTION                           % OPTION CODE = 20000-20016
+123772           IF X.PBOPTION/\14=0 THEN
+123775              0=:MCCOSIZE                                        % mess buff 0-37
+123776           ELSE IF A=4 THEN
+124002              1=:MCCOSIZE                                        % mess buff 0-37 100-146
+124004           ELSE IF A=10 THEN
+124010              2=:MCCOSIZE                                        % mess buff 0-146
+124012           ELSE
+124013              3=:MCCOSIZE                                        % mess buff -30-146
+124015           FI; FI; FI; *1BANK
+124016           COPTION-20000
+124020   @ICR;
+124020           A GOSW FAR LA5P1,FAR L85P1,FAR L8RT1,FAR ERRP1,
+124025                  FAR LA5P1,FAR L85P1,FAR L8RT1,FAR ERRP1,
+124031                  FAR LA5P1,FAR L85P1,FAR L8RT1,FAR ERRP1,
+124035                  FAR LA5P1,FAR L85P1,FAR L8RT1,FAR ERRP1;
+124041   @CR;
+124041
+124041   RBUS
+124055
+124055   %=====================================================================
+124055   % PARAMTER CHECKING ROUTINE FOR PRIMITIVE #77, OPTION CODE=40000-40017
+124055   %
+124055   % ENTRY:         X=ADDR OF ACTUAL PARAMTER BLOCK ON MPIT
+124055   % EXIT:          ERROR
+124055   % EXIT+1:        OK
+124055   %
+124055   SUBR P7720
+124055
+124055   DISP 0; DOUBLE DD0,DD1,DD2,DD3; PSID
+124055
+124055   LA5P1:  0=:PROFLAG; GO OUT1                          % Log all 500 proc
+124057
+124057   L85P1:  A:=1; CALL CHTR5P; GO ERR                    % Log 8 500 procs
+124062           GO OUT1
+124063
+124063   L8RT1:  A:=2; CALL CHTRRT; GO ERR                    % Log 8 RT-programs
+124066           GO OUT1
+124067
+124067   INTEGER XREG
+124070   INTEGER TREG,AREG,DREG; TRIPLE TADREG=TREG
+124073   INTEGER POINTER LREG
+124074   INTEGER COPTION
+124075
+124075   ERR:    A=:AREG; GO OUT
+124077   ERRP1:  EILPARS=:AREG; GO OUT
+124102   OUT1:   MIN "LREG"
+124103   OUT:    *2BANK
+124104           TAD:=TADREG; X:=XREG
+124106           GO LREG
+124107
+124107   P7720:  TAD=:TADREG; T:=L=:"LREG"; X=:XREG
+124113           CALL CH5OK; GO ERR
+124115           *1BANK
+124116           A:=-1=:D; A=:TRINIT; 40000=:SWPDCOPT
+124123           AD=:"Y1TRP".DD0=:X.DD1=:X.DD2=:X.DD3
+124130           XREG.PBOPTION/\40017=:COPTION                         % OPTION CODE = 40000-40016
+124134           IF X.PBOPTION/\14=0 THEN
+124137              0=:SWPDSIZE                                        % mess buff 0-37
+124140           ELSE IF A=4 THEN
+124144              1=:SWPDSIZE                                        % mess buff 0-37 100-146
+124146           ELSE IF A=10 THEN
+124152              2=:SWPDSIZE                                        % mess buff 0-146
+124154           ELSE
+124155              3=:SWPDSIZE                                        % mess buff -30-146
+124157           FI; FI; FI; *1BANK
+124160           COPTION-40000
+124162   @ICR;
+124162           A GOSW FAR LA5P1,FAR L85P1,L8RT1,ERRP1,FAR LA5P1,
+124170                  FAR L85P1,FAR L8RT1,ERRP1,
+124173                  FAR LA5P1,FAR L85P1,FAR L8RT1,ERRP1,
+124177                  FAR LA5P1,FAR L85P1,FAR L8RT1,ERRP1;
+124203   @CR;
+124203
+124203   RBUS
+124221   % ==========================================================
+124221   % GENERAL ROUTINE TO CHECK FOR LEGAL PARAMETERS
+124221   % A=PROFLAG; X=PARBLOCKADDR
+124221   %
+124221   SUBR CHTRRT,CHTR5P
+124221
+124221   % LOCAL SUBROUTINE TO CHECK IF SAME PROCESS NUMBER/RT-DESCRIPTION
+124221   % IS USED MORE THAN ONE TIME IN THE PARAMETER BLOCK.
+124221   %
+124221   INTEGER XINDX,CAVAL,CXVAL
+124224   CSUBR:  0=:XINDX; A=:CAVAL; X=:CXVAL
+124227           DO WHILE XINDX<10
+124233              "Y1TRP"+XINDX
+124235              WHILE A.S0 >< -1                                % END OF BUFFER
+124242              IF A=CAVAL THEN EXIT FI                         % ERROR ELEMENT ALREADY EXISTS
+124246              MIN XINDX
+124247           OD; A:=CAVAL; X:=CXVAL
+124252           EXITA
+124253
+124253   INTEGER CNDX,XREG,AREG
+124256   INTEGER POINTER LREG
+124257
+124257   CHTRRT: K:="1"; GO FLLS
+124261   CHTR5P: K:="0"
+124262   FLLS:   T:=L=:LREG; X=:XREG
+124265           A=:PROFLAG
+124266           0=:CNDX                                      % TRACE LOG FOR 8 SPEC PROCESSES
+124267           DO WHILE CNDX < 10
+124273              XREG+CNDX; A.S3                           % A.S3=PROC NO
+124277                 IF A >< -1 THEN                        % A=-1 END OF BUFFER
+124302                   *2BANK
+124303                   IF K THEN
+124305                      CALL CHRTADDR; GO ERR
+124307                   ELSE
+124310                      CALL CH5PROC; GO ERR                 % CHECK FOR LEGAL 500 PROCESS
+124312                   FI
+124312                   *1BANK
+124313                   CALL CSUBR; GO ERR
+124315                 FI
+124315              T:=A; "Y1TRP"+CNDX; T=:A.S0
+124322              WHILE T+1 >< 0
+124325              MIN CNDX
+124326           OD
+124327           MIN "LREG"
+124330   OUT:    *2BANK
+124331           X:=XREG; GO LREG
+124333   ERR:    A=:AREG; GO OUT
+124335
+124335   RBUS
+124341
+124341   %=============================================================================
+124341   % Buffer initialisation routine for primitive #1, option code=300
+124341   %
+124341   % Entry:         none
+124341   % Exit:          error
+124341   % Exit+1:        ok
+124341   %
+124341   SUBR P01X1
+124341   INTEGER TREG,AREG,DREG; TRIPLE TADREG=TREG; INTEGER XREG
+124345   P01X1:  TAD=:TADREG; X=:XREG
+124347           A:=RTEND-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+124355           *1BANK
+124356           A=:T; AD:=DBAR1CPU; A:=:T; X:=D
+124362           *STATX                                                % Number of rt-descrs into buffer
+124363           *2BANK
+124364           A:=RTEND=:D:=RTSTART
+124367           DO WHILE A<<D
+124371              *STATX 10                                          % Store rt-descr addr
+124372              X+3; A+5RTSIZE                                     % 3 locations for each entry
+124374           OD; TAD:=TADREG; X:=XREG
+124377           EXITA
+124400   RBUS
+124403
+124403
+124403   %=============================================================================
+124403   % Buffer initialisation routine for primitive #2, option code=300
+124403   %
+124403   % Entry:         none
+124403   % Exit:          error
+124403   % Exit+1:        ok
+124403   %
+124403   SUBR P02X1
+124403   TRIPLE TADREG; INTEGER XREG
+124407   P02X1:  TAD=:TADREG; X=:XREG
+124411           T:=MX5PROCS+1
+124413           *1BANK
+124414           AD:=DBAR5CPU; A:=:T; X:=D
+124417           *STATX                                                % Number of nd-500 procs in the system into buffer
+124420           *2BANK
+124421           TAD:=TADREG; X:=XREG
+124423           EXITA
+124424   RBUS
+124426
+124426
+124426   %=============================================================================
+124426   % Buffer initialisation routine for primitive #3, option code=300
+124426   %
+124426   % Entry:         none
+124426   % Exit:          error
+124426   % Exit+1:        ok
+124426   %
+124426   SUBR P03X1
+124426   TRIPLE TADREG; INTEGER XREG
+124432   P03X1:  TAD=:TADREG; X=:XREG
+124434           A:=RTEND-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+124442           *1BANK
+124443           A=:T; AD:=DBLUADDR; A:=:T; X:=D
+124447           *STATX                                                % Number of rt-descrs into buffer
+124450           *2BANK
+124451           A:=RTEND=:D:=RTSTART
+124454           DO WHILE A<<D
+124456              *STATX 10                                          % Store rt-descr addr
+124457              X+41; A+5RTSIZE                                    % 41 locations for each entry
+124461           OD; TAD:=TADREG; X:=XREG
+124464           EXITA
+124465   RBUS
+124470
+124470
+124470   %=============================================================================
+124470   % Buffer initialisation routine for primitive #4, option code=300
+124470   %
+124470   % Entry:         none
+124470   % Exit:          error
+124470   % Exit+1:        ok
+124470   %
+124470   SUBR P04X1
+124470   TRIPLE TADREG; INTEGER XREG
+124474   P04X1:  TAD=:TADREG; X=:XREG
+124476           T:=MX5PROCS+1
+124500           *1BANK
+124501           AD:=DB5SWAPP; A:=:T; X:=D
+124504           *STATX                                                % Number of nd-500 procs in the system into buffer
+124505           *2BANK
+124506           TAD:=TADREG; X:=XREG
+124510           EXITA
+124511   RBUS
+124513
+124513
+124513   %=============================================================================
+124513   % Buffer initialisation routine for primitive #32, option codes 100-117
+124513   %
+124513   % Entry:         none
+124513   % Exit:          error
+124513   % Exit+1:        ok
+124513   %
+124513   SUBR P32X1
+124513   INTEGER TREG,AREG,DREG; TRIPLE TADREG=TREG; INTEGER XREG
+124517   P32X1:  TAD=:TADREG; X=:XREG
+124521           *1BANK
+124522           A:=XDLFL                                              % Routine switch
+124523           *2BANK
+124524           A GOSW ERR,OUT,OUT,OUT,OUT,OUT,LA1FI,LA1SW,LA5FI,LA5SW,LAFSG
+124540
+124540   LA1SW:
+124540   LA1FI:  A:=RTEND-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+124546           *1BANK
+124547           A=:T; AD:=DBDLBU; A:=:T; X:=D; *STATX                 % Number of rt-descrs into buffer
+124554           *2BANK
+124555           A:=RTEND=:D:=RTSTART
+124560           DO WHILE A<<D
+124562              *STATX 10                                          % Store rt-descr addr
+124563              X+5; A+5RTSIZE                                     % 5 locations for each entry
+124565           OD; GO OUT
+124567
+124567   LAFSG:
+124567   LA5SW:
+124567   LA5FI:  T:=MX5PROCS+1
+124571           *1BANK
+124572           AD:=DBDLBU; T:=:A; X:=D; *STATX
+124576           GO OUT
+124577
+124577   OUT:    TAD:=TADREG; X:=XREG
+124601           EXITA
+124602
+124602   ERR:    EILPARS=:AREG; TAD=:TADREG; X:=XREG
+124606           EXIT
+124607   RBUS
+124614
+124614
+124614   %=============================================================================
+124614   % Buffer initialisation routine for primitive #36, option code=10000.
+124614   %
+124614   % Entry:         none
+124614   % Exit:          error
+124614   % Exit+1:        ok
+124614   %
+124614   SUBR P36X2
+124614   INTEGER TREG,AREG,DREG,XREG; TRIPLE TADREG=TREG
+124620   INTEGER XINDX,CNDX,YINDX
+124623   INTEGER CSTA,CEND; DOUBLE DCADDR
+124627   P36X2:  TAD=:TADREG; X=:XREG
+124631           *1BANK
+124632           A:=MLOFL                                              % Routine switch
+124633           *2BANK
+124634           IF A=0 THEN                                           % Log mon.calls for max 8 progs
+124635              *1BANK
+124636              0=:CNDX
+124637              DO WHILE CNDX<<400
+124643                 CNDX*30=:X; AD:=D1BXML; D+X; AD=:DCADDR        % Phys addr of buffer element
+124651                 0=:XINDX; 0=:YINDX
+124653                 DO WHILE XINDX<<10
+124657                    "X1MLP"+XINDX
+124661                    IF A.S0><-1 THEN
+124666                       T:=A; YINDX*3=:X; AD:=DCADDR; D+X; *DEPO  % Save rt-descr. addr.
+124675                       MIN YINDX
+124676                    FI; MIN XINDX
+124677                 OD; MIN CNDX
+124701              OD
+124702           ELSE                                                  % Log max. 8 mon.calls split on all rt-programs
+124703              A:=RTEND-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+124711              *1BANK
+124712              T:=A; AD:=D1BXML; *DEPO                            % Number of rt-programs in the system
+124715              *2BANK
+124716              RTEND=:CEND; RTSTA=:CSTA
+124722              *1BANK
+124723              0=:CNDX
+124724              DO WHILE CSTA<<CEND
+124730                 CNDX*40=:X; AD:=D1BXML; D+X+1; AD=:DCADDR      % Phys addr of buffer element
+124736                 0=:XINDX=:YINDX
+124740                 DO WHILE XINDX<<10
+124744                    "X1MLP"+XINDX
+124746                    IF A.S0><-1 THEN
+124753                       T:=A; YINDX*4=:X; AD:=DCADDR; D+X+1; *DEPO% Mon.call number
+124762                       T:=CSTA; D-1; *DEPO                       % Rt-program
+124765                       MIN YINDX
+124766                    FI; MIN XINDX
+124767                 OD; CSTA+5RTSIZE=:CSTA
+124773                 MIN CNDX
+124774              OD
+124775           FI
+124775           *2BANK
+124776           TAD:=TADREG; X:=XREG
+125000           EXITA
+125001   RBUS
+125013
+125013
+125013   %=============================================================================
+125013   % Buffer initialisation routine for primitive #37, option code=10000.
+125013   %
+125013   % Entry:         none
+125013   % Exit:          error
+125013   % Exit+1:        ok
+125013   %
+125013   SUBR P37X2
+125013   INTEGER TREG,AREG,DREG,XREG; TRIPLE TADREG=TREG
+125017   INTEGER XINDX,CNDX,YINDX
+125022   INTEGER CSTA,CEND; DOUBLE DCADDR
+125026   P37X2:  TAD=:TADREG; X=:XREG
+125030           *1BANK
+125031           A:=ML5FL
+125032           *2BANK
+125033           IF A=0 THEN                                           % Log mon.calls for max 8 processes
+125034              *1BANK
+125035              0=:CNDX
+125036              DO WHILE CNDX<<524
+125042                 CNDX*30=:X; AD:=D5BXML; D+X; AD=:DCADDR        % Phys. addr of buffer element
+125050                 0=:XINDX; 0=:YINDX
+125052                 DO WHILE XINDX<<10
+125056                    "Y1MLP"+XINDX
+125060                    IF A.S0><-1 THEN
+125065                       T:=A; YINDX*3=:X; AD:=DCADDR; D+X; *DEPO  % Save process number
+125074                       MIN YINDX
+125075                    FI; MIN XINDX
+125076                 OD; MIN CNDX
+125100              OD
+125101           ELSE                                                  % Log max 8 mon.calls for all nd-500 processes
+125102              T:=MX5PROCS+1
+125104              *1BANK
+125105              AD:=D5BXML; *DEPO                                  % Number of nd-500 processes
+125107              T=:CEND
+125110              0=:CNDX
+125111              DO WHILE CNDX<<=CEND
+125115                 CNDX*30=:X; AD:=D5BXML; D+X+1; AD=:DCADDR      % Phys addr of buffer element
+125123                 0=:XINDX=:YINDX
+125125                 DO WHILE XINDX<<10
+125131                    "Y1MLP"+XINDX
+125133                    IF A.S0><-1 THEN
+125140                       T:=A; YINDX*3=:X; AD:=DCADDR; D+X; *DEPO  % Save mon.call number
+125147                       MIN YINDX
+125150                    FI; MIN XINDX
+125151                 OD
+125152                 MIN CNDX
+125153              OD
+125154           FI
+125154           *2BANK
+125155           TAD:=TADREG; X:=XREG
+125157           EXITA
+125160   RBUS
+125167
+125167
+125167   %============================================================================
+125167   % Subroutine to check if nd-500 is present and initialized
+125167   %
+125167   % Entry:         none
+125167   % Exit:          error, nd-500 not present or not initialized
+125167   % Exit+1:        ok
+125167   %
+125167   SUBR CH5OK
+125167   INTEGER ASAV
+125170   CH5OK:  A=:ASAV
+125171           IF 5MSINIT NBIT 5INBUF OR MX5PROC=0 THEN EILPARS; EXIT FI
+125200           A:=ASAV
+125201           EXITA
+125202   RBUS
+125204
+125204
+125204   %=============================================================================
+125204   % Subroutine to check for legal nd-500 process number
+125204   %
+125204   % Entry:         A=process number
+125204   % Exit:          error, illegal process number or nd-500 not initialized
+125204   % Exit+1:        ok
+125204   %
+125204   SUBR CH5PROC
+125204   INTEGER TREG,AREG,DREG; TRIPLE TADREG=TREG
+125207   INTEGER POINTER LREG
+125210   CH5PROC: TAD=:TADREG; A:=L=:"LREG"
+125213           CALL CH5OK; GO ERR
+125215           IF AREG>>MX5PROC THEN EILPARS; GO ERR FI
+125223           MIN "LREG"
+125224   OUT:    TAD:=TADREG; GO LREG
+125226   ERR:    A=:AREG; GO OUT
+125230   RBUS
+125232   %=============================================================================
+125232   % Subroutine to check for legal nd-500 CPU number
+125232   %
+125232   % Entry:         A=CPU number
+125232   % Exit:          error, illegal CPU number or nd-500 not initialized
+125232   % Exit+1:        ok
+125232   %
+125232   SUBR CHE5CPU
+125232   INTEGER TREG,AREG,DREG,BREG; TRIPLE TADREG=TREG
+125236   INTEGER POINTER LREG
+125237   CHE5CPU: TAD=:TADREG; A:=L=:"LREG"; A:=B=:BREG
+125244            CALL CH5OK; GO ERR
+125246            A:=AREG
+125247            A-1 *5CPUDSIZE+"S5CPUDF"=:B
+125253            IF CPUAVAILABLE=0 THEN A:=2052; GO ERR FI
+125257            IF A NBIT 5ALIVE THEN A:=2061; GO ERR FI
+125263            X:=MAILINK;T:=5MBBANK;*AAX X5CPU ;LDATX
+125267            IF A><MPACTIVE THEN A:=2061; GO ERR FI
+125274            MIN "LREG"
+125275   OUT:     BREG=:B; TAD:=TADREG; GO LREG
+125301   ERR:     A=:AREG; GO OUT
+125303   RBUS
+125311
+125311
+125311   %=============================================================================
+125311   % Subroutine to check for legal rt-description address.
+125311   %
+125311   % Entry:         A=rt-description address.
+125311   % Exit:          error
+125311   % Exit+1:        ok
+125311   %
+125311   SUBR CHRTADDR
+125311   TRIPLE TADREG
+125314   CHRTADDR: TAD=:TADREG
+125315             IF A>>=RTSTART AND A<<RTEND THEN
+125323                A-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+125330                IF D=0 THEN L+1 FI
+125333             FI; TAD:=TADREG; EXIT
+125335   RBUS
+125337   *"
+"125337
+125337   @DEV 1
