@@ -1,5 +1,32 @@
 # ND-500 ENTB (Enter Block) - Complete Implementation Guide
 
+## Table of Contents
+
+- [Quick Reference](#quick-reference)
+- [1. Heap Structure and Memory Layout](#1-heap-structure-and-memory-layout)
+  - [Heap Variables (pointed to by TOS register)](#heap-variables-pointed-to-by-tos-register)
+  - [Free Block Format](#free-block-format)
+- [2. ENTB Algorithm (Step by Step)](#2-entb-algorithm-step-by-step)
+  - [Step 1: Read Heap Variables](#step-1-read-heap-variables)
+  - [Step 2: Validate Log Size](#step-2-validate-log-size)
+  - [Step 3: Search Free Lists for Available Block](#step-3-search-free-lists-for-available-block)
+  - [Step 4: Split Block if Necessary (Buddy System)](#step-4-split-block-if-necessary-buddy-system)
+  - [Step 5: Initialize Stack Frame (Like ENTS)](#step-5-initialize-stack-frame-like-ents)
+  - [Step 6: Update CPU Registers](#step-6-update-cpu-registers)
+- [3. RETB / RETBK - Return and Free Block](#3-retb--retbk---return-and-free-block)
+  - [RETB Algorithm](#retb-algorithm)
+  - [Free Block Algorithm (FREEB)](#free-block-algorithm-freeb)
+- [4. Complete C# Implementation](#4-complete-c-implementation)
+  - [EntbInstruction.cs](#entbinstructioncs)
+  - [RetbInstruction.cs](#retbinstructioncs)
+  - [GetbInstruction.cs](#getbinstructioncs)
+  - [FreebInstruction.cs](#freebinstructioncs)
+- [5. Heap Initialization Example](#5-heap-initialization-example)
+- [6. Test Example](#6-test-example)
+- [7. Key Implementation Notes](#7-key-implementation-notes)
+- [8. Troubleshooting](#8-troubleshooting)
+- [Summary](#summary)
+
 ## Quick Reference
 
 **ENTB** allocates a local data area from the heap using buddy allocation and enters a subroutine.
