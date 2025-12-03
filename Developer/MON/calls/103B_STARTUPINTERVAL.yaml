@@ -3,20 +3,90 @@
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 103B
-name: STARTUPINTERVAL
+name: StartupInterval
 short_names:
 - INTV
-description: Prepares an RT program for periodic execution. The interval between the executions can be
-  specified in hours, minutes, seconds, and basic time units. A basic time unit is 1/50th of a second.
+description: Prepares an RT program for periodic execution. The interval between the executions can be specified in hours, minutes, seconds, and basic time units. A basic time unit is 1/50th of a second.
 notes:
 - The RT program is not started. Use StartRTProgram, @RT, or similar, to start it.
 - StopRTProgram, Disconnect, @ABORT or @DSCNT cancel this monitor call.
-- One execution may be unfinished when it is time for the next execution, in which case the program's
-  restart flag is set. If the delay becomes as long as two intervals, one execution is lost.
+- One execution may be unfinished when it is time for the next execution, in which case the program's restart flag is set. If the delay becomes as long as two intervals, one execution is lost.
 - The interval replaces any earlier specified intervals.
-see_also: []
-parameters: []
-examples: {}
+- AdjustClock and @CLADJ do not affect the interval.
+see_also:
+- ExactInterval
+- '@INTV'
+parameters:
+- name: Address of an RT description. 0 means calling program. GetRtAddress gives RT description addresses.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Number of time units between executions of the program.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: The type of time units. 1 = basic time units, i.e. 1/50th of a second, 2 = seconds, 3 = minutes, 4 = hours.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Standard Error Code. See appendix A.
+  type: UNKNOWN
+  io: O
+  description: ''
+examples:
+  pascal:
+    available: true
+    code: |-
+      RTProgram, Time, Units : INTEGER2;
+      ...
+      StartInterval (RTProgram, Time, Units); [Note routine name.]
+  cobol:
+    available: true
+    code: |-
+      01 RTProgram COMP.
+      01 Time COMP.
+      01 Units COMP.
+      ...
+      MONITOR-CALL "StartupInterval" USING RTProgram, Time, Units.
+  fortran:
+    available: true
+    code: |-
+      INTEGER RTProgram, Time, Units
+      ...
+      Monitor_Call('StartupInterval', RTProgram, Time, Units)
+  planc:
+    available: true
+    code: |-
+      INTEGER : RTProgram, Time, Units
+      ...
+      Monitor_Call('StartupInterval', RTProgram, Time, Units)
+  assembly_500:
+    available: true
+    code: |-
+      RTProgram : W BLOCK 1
+      Time : W BLOCK 1
+      Units : W BLOCK 1
+      StartupInterval : EQU 37B9 + 103B
+      ...
+      CALLG StartupInterval, 3, RTProgram, Time, Units
+    octal_definition: 37B9 + 103B
+  mac:
+    available: true
+    code: |-
+      LDA (PAR      %Load register A with address of parameter list.
+      MON 103       %Monitor call StartupInterval.
+      ...
+      PAR, RTPRO    %Address of RT description.
+      TIME          %Interval between each execution of program.
+      UNIT          %Time units.
+      ...
+      RTPRO, ...
+      UNIT, ...
+      BASE, ...
+
+
+      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
+    mon_number: 103
 compatibility:
   nd100: true
   nd500: true

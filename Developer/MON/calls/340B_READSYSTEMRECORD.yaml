@@ -1,9 +1,9 @@
-# SINTRAN III Monitor Call: READSYSTEMRECORD
+# SINTRAN III Monitor Call: ReadSystemRecord
 # Octal: 340B
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 340B
-name: READSYSTEMRECORD
+name: ReadSystemRecord
 short_names:
 - RSREC
 description: Used to read the system record into a buffer.

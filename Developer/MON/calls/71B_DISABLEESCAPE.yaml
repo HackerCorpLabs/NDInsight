@@ -3,20 +3,79 @@
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 71B
-name: DISABLEESCAPE
+name: DisableEscape
 short_names:
 - DESCF
-description: The ESCAPE key on the terminal normally terminates a program. This is called user break.
-  This monitor call disables the escape function.
+description: The ESCAPE key on the terminal normally terminates a program. This is called user break. This monitor call disables the escape function.
 notes:
 - The escape function is enabled again by EnableEscape.
 - The escape function is enabled when you log out.
-see_also: []
-parameters: []
-examples: {}
+- When escape function is disabled, the escape character is treated as any other character.
+see_also:
+- EnableEscape
+- SetEscapeHandling
+- '@DISABLE-ESCAPE-FUNCTION'
+parameters:
+- name: The terminal's logical device number. This parameter is ignored for background programs. Your own terminal is always selected.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Standard Error Code. See appendix A.
+  type: UNKNOWN
+  io: O
+  description: ''
+examples:
+  pascal:
+    available: true
+    code: |-
+      DeviceNumber : INTEGER2;
+      ...
+      EscapeDisable(DeviceNumber); [Note routine name.]
+      IF ErrCode <> 0 THEN ...
+  cobol:
+    available: true
+    code: |-
+      01 DeviceNumber COMP.
+      01 ErrCode COMP.
+      ...
+      MONITOR-CALL "DisableEscape" USING DeviceNumber.
+      CALL "CbError" USING ErrCode.
+      IF ErrCode NOT = 0 GO ...
+  fortran:
+    available: true
+    code: |-
+      INTEGER DeviceNumber
+      ...
+      Monitor_Call('DisableEscape', DeviceNumber)
+      IF (ErrCode .NE. 0) THEN ...
+  planc:
+    available: true
+    code: |-
+      INTEGER : DeviceNumber
+      ...
+      Monitor_Call('DisableEscape', DeviceNumber)
+  assembly_500:
+    available: true
+    code: |-
+      DeviceNumber : W BLOCK 1
+      DisableEscape : EQU 37B9 + 71B
+      ...
+      CALLG DisableEscape, 1, DeviceNumber
+    octal_definition: 37B9 + 71B
+  mac:
+    available: true
+    code: |-
+      LDT DEVNO      %Logical device number.
+      MON 71         %Monitor call DisableEscape.
+      ...
+      DEVNO, ...
+
+
+      | ND-100 and ND-500 | All users | All programs |
+    mon_number: 71
 compatibility:
-  nd100: false
-  nd500: false
+  nd100: true
+  nd500: true
   user_programs: true
   rt_programs: true
   system_programs: false

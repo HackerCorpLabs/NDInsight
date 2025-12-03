@@ -3,7 +3,7 @@
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 33B
-name: ALTPAGETABLE
+name: AltPageTable
 short_names:
 - ALTON
 description: Switches page table. Each page table allows you to access 128 Kbyte memory. SINTRAN III has

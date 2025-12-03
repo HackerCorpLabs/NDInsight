@@ -3,14 +3,87 @@
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 151B
-name: GETRTADDRESS
+name: GetRTAddress
 short_names:
 - GRTDA
-description: Gets the address of an RT description. You specify the name of the RT program. See the SINTRAN
-  III Real Time Guide (ND-860133) for further information.
-see_also: []
-parameters: []
-examples: {}
+description: Gets the address of an RT description. You specify the name of the RT program. See the SINTRAN III Real Time Guide (ND-860133) for further information.
+notes:
+- In SINTRAN III, version J and older, this monitor call is only available to RT programs.
+see_also:
+- GetRTDescr
+- GetRTName
+- '@LIST-RT-PROGRAM'
+parameters:
+- name: RT-program name. The name must be given in capital letters. It must end with an apostrophe if less than 7 characters long (applies to high-level languages). When using a high-level language together with NPL or MAC, it is advisable to use an RT-program name of not more than 5 characters.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: RT program address. Non-existent RT-program names return -1.
+  type: UNKNOWN
+  io: O
+  description: ''
+- name: Standard Error Code. See appendix A.
+  type: UNKNOWN
+  io: O
+  description: ''
+examples:
+  pascal:
+    available: true
+    code: |-
+      RTProgramName: PACKED ARRAY [0..6] OF CHAR;
+      RTProgram : INTEGER2;
+      ...
+      GetRTAddress (RTProgramName, RTProgram);
+  cobol:
+    available: true
+    code: |-
+      01 RTProgramName PIC X(7).
+      01 RTProgram COMP.
+      ...
+      MONITOR-CALL "GetRTAddress" USING RTProgramName, RTProgram.
+  fortran:
+    available: true
+    code: |-
+      CHARACTER RTProgramName*7
+      INTEGER RTProgram
+      ...
+      Monitor_Call('GetRTAddress', RTProgramName(1:7), RTProgram)
+  planc:
+    available: true
+    code: |-
+      BYTES : RTProgramName(0:6)
+      INTEGER : RTProgram
+      ...
+      Monitor_Call('GetRTAddress', RTProgramName, RTProgram)
+  assembly_500:
+    available: true
+    code: |-
+      RTProgramName : STRINGDATA 'SIB2A'''
+      RTProgram : W BLOCK 1
+      GetRTAddress : EQU 37B9 + 151B
+      ...
+      %Get address of process SIB2A.
+      CALLG GetRTAddress, 1, RTProgramName
+          IF K GO Error
+      ...
+      W1 := RTProgram
+    octal_definition: 37B9 + 151B
+  mac:
+    available: true
+    code: |-
+      LDA (PAR      %Load register A with address of parameter list.
+      MON 151       %Monitor call GetRTAddress.
+      STA RTPRO     %Store address of RT description.
+      ...
+      RTPRO, 0
+      ...
+      PAR, RTNAM    %String containing name of RT program.
+      ...
+      RTNAM, 'SIB2A' %Get address of RT description of SIB2A.
+
+
+      | ND-100 and ND-500 | All users | All programs |
+    mon_number: 151
 compatibility:
   nd100: true
   nd500: true

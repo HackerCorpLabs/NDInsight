@@ -1,20 +1,164 @@
-# Monitor Call: 503B InputString
-# Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source line: 14451
+# SINTRAN III Monitor Call: INPUTSTRING
+# Octal: 503B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 503B
 name: InputString
 short_names:
 - DVINST
-description: 'Reads a string from a device, e.g., a terminal or an opened file. This monitor call provides
-  a fast input to ND-500 programs.
-
-
-  - Only the first four parameters are used for file input.
-
-  - An ASCII table is given in Appendix G.'
-parameters: []
-examples: {}
+description: Reads a string from a device, e.g. a terminal or an opened file. This monitor call provide a fast input to ND-500 programs.
+notes:
+- Only the first four parameters are used for file input.
+- An ASCII table is given in Appendix G.
+see_also:
+- InByte
+- InString
+- OutputString
+parameters:
+- name: Logical device number. See appendix B. Use 1 for your own terminal. The open file number is obtained by opening a file and specifying connection number 0. See the manual ND Linker User Guide and Reference Manual (ND-860289).
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Maximum number of bytes to read before break.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Number of bytes read.
+  type: UNKNOWN
+  io: O
+  description: ''
+- name: Buffer to receive input.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Break setting. See SetBreak. Use 8 for the last user-defined break table.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Echo setting. See SetEcho. Use 8 for the last user-defined break table.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Break table, bit 0:31. Bits set to 1 cause break on the character.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Break table, bit 32:63.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Break table, bit 64:95.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Break table, bit 96:127.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Echo table, bit 0:31. Bits set to 0 cause echo on the character.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Echo table, bit 32:63.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Echo table, bit 64:95.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Echo table, bit 96:127.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Standard Error Code. See appendix A.
+  type: UNKNOWN
+  io: O
+  description: ''
+examples:
+  pascal:
+    available: true
+    code: |-
+      DevNo, MaxNo, NoOfBytesRet, BreakStrat, EchoStrat, BreakT1: LONGINT;
+      BreakT2, BreakT3, BreakT4, EchoT1, EchoT2, EchoT3, EchoT4: LONGINT;
+      Buff : ARRAY [0..8] OF RECORD...END;
+      ...
+      InputString(DevNo, MaxNo, NoOfBytesRet, Buff, BreakStrat, EchoStrat,
+                  BreakT1, BreakT2, BreakT3, BreakT4, EchoT1, EchoT2, EchoT3, EchoT4);
+  cobol:
+    available: true
+    code: |-
+      01 DevNo COMP.
+      01 MaxNo COMP.
+      01 NoOfBytesRet COMP.
+      01 BreakStrat COMP.
+      01 EchoStrat COMP.
+      01 BreakT1 COMP.
+      01 BreakT2 COMP.
+      01 BreakT3 COMP.
+      01 BreakT4 COMP.
+      01 EchoT1 COMP.
+      01 EchoT2 COMP.
+      01 EchoT3 COMP.
+      01 EchoT4 COMP.
+      01 Buff.
+         02 array COMP OCCURS 100 TIMES.
+      ...
+      MONITOR-CALL "InputString" USING DevNo, MaxNo, NoOfBytesRet, Buff,
+                   BreakStrat, EchoStrat, BreakT1, BreakT2, BreakT3,
+                   BreakT4, EchoT1, EchoT2, EchoT3, EchoT4.
+  fortran:
+    available: true
+    code: |-
+      INTEGER DevNo, MaxNo, NoOfBytesRet, BreakStrat, EchoStrat, BreakT1
+      INTEGER BreakT2, BreakT3, BreakT4, EchoT1, EchoT2, EchoT3, EchoT4
+      INTEGER Buff(100)
+      ...
+      Monitor_Call('InputString', DevNo, MaxNo, NoOfBytesRet, Buff(1),
+                   BreakStrat, EchoStrat, BreakT1, BreakT2, BreakT3,
+                   BreakT4, EchoT1, EchoT2, EchoT3, EchoT4)
+  planc:
+    available: true
+    code: |-
+      INTEGER : DevNo, MaxNo, NoOfBytesRet, BreakStrat, EchoStrat, BreakT1
+      INTEGER : BreakT2, BreakT3, BreakT4, EchoT1, EchoT2, EchoT3, EchoT4
+      BYTES : Buff(0:199)
+      ...
+      Monitor_Call('InputString', DevNo, MaxNo, NoOfBytesRet, Buff(1),
+                   BreakStrat, EchoStrat, BreakT1, BreakT2, BreakT3,
+                   BreakT4, EchoT1, EchoT2, EchoT3, EchoT4)
+  assembly_500:
+    available: true
+    code: |-
+      DevNo : W BLOCK 1
+      MaxNo : W BLOCK 1
+      NoOfBytesRet: W BLOCK 1
+      BreakStrat: W BLOCK 1
+      EchoStrat: W BLOCK 1
+      BreakT1 : W BLOCK 1
+      BreakT2: W BLOCK 1
+      BreakT3: W BLOCK 1
+      BreakT4 : W BLOCK 1
+      EchoT1: W BLOCK 1
+      EchoT2: W BLOCK 1
+      EchoT3: W BLOCK 1
+      EchoT4 : W BLOCK 1
+      Buff : BY BLOCK 400B
+      InputString: EQU 37B9 + 503B
+      ...
+      Monitor_Call('InputString', DevNo, MaxNo, NoOfBytesRet, Buff(0), &
+                   BreakStrat, EchoStrat, BreakT1, BreakT2, BreakT3, &
+                   BreakT4, EchoT1, EchoT2, EchoT3, EchoT4)
+      ...
+      CALLG InputString, 14, DevNo, MaxNo, NoOfBytesRet, Buff, &
+            BreakStrat, EchoStrat, BreakT1, BreakT2, &
+            BreakT3, BreakT4, EchoT1, EchoT2, EchoT3, EchoT4
+    octal_definition: 37B9 + 503B
+  mac:
+    available: false
+    code: ''
+    mon_number: null
+    notes: Not available.
 compatibility:
   nd100: true
   nd500: true
@@ -22,8 +166,13 @@ compatibility:
   rt_programs: true
   system_programs: false
 source:
-  document: ND-860228.2 EN
-  page_references: []
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 0
+  line: 14451
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
 extraction:
-  ocr_corrected: true
-  ocr_notes: Extracted from line 14451 - was missing in initial extraction
+  date: '2025-01-06'
+  version: '1.0'
+  validated: false
+  ocr_corrected: false

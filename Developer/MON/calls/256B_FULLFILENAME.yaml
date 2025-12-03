@@ -3,20 +3,106 @@
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 256B
-name: FULLFILENAME
+name: FullFileName
 short_names:
 - DEABF
-description: Returns a complete file name from an abbreviated one. The directory, the user, the file name,
-  the file type, and the version are returned.
+description: Returns a complete file name from an abbreviated one. The directory, the user, the file name, the file type, and the version are returned.
 notes:
 - You must have read access to the file.
 - The abbreviation must be unambiguous.
-see_also: []
-parameters: []
-examples: {}
+- SINTRAN III, version K, allows remote file names. If the abbreviated file name contains a remote specification, the name of the remote system cannot be abbreviated.
+see_also:
+- GetFileName
+parameters:
+- name: Abbreviated File Name. The abbreviated file name. May include a file type.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Full File Name. The complete file name, terminated by an apostrophe (').
+  type: UNKNOWN
+  io: O
+  description: ''
+- name: Default File Type. The default file type (do not include the colon). This parameter is used on ND-100 only and is ignored by the ND-500.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Standard Error Code. See appendix A.
+  type: UNKNOWN
+  io: O
+  description: ''
+examples:
+  pascal:
+    available: true
+    code: |-
+      AbbrevFileName, FileName : PACKED ARRAY [0..63] OF CHAR;
+      FileType : PACKED ARRAY [0..3] OF CHAR;
+      ...
+      FullFileName(AbbrevFileName, FileName, FileType);
+      IF ErrCode <> 0 THEN ...
+  cobol:
+    available: true
+    code: |-
+      01 AbbrevFileName PIC X(64).
+      01 FileName       PIC X(64).
+      01 FileType       PIC X(4).
+      01 ErrCode        COMP.
+      ...
+      MONITOR-CALL "FullFileName" USING AbbrevFileName, FileName, FileType.
+      CALL "CbError" USING ErrCode.
+      IF ErrCode NOT = 0 GO ...
+  fortran:
+    available: true
+    code: |-
+      CHARACTER AbbrevFileName*64, FileName*64, FileType*4
+      ...
+      Monitor_Call('FullFileName', AbbrevFileName(1:64), FileName(1:64),
+      C FileType(1:4))
+      IF (ErrCode .NE. 0) THEN ...
+  planc:
+    available: true
+    code: |-
+      BYTES : AbbrevFileName(0:63), FileName(0:63), FileType(0:3)
+      ...
+      ON ROUTINEERROR DO
+          IF ErrCode > 0 THEN ...
+      ENDON
+      Monitor_Call('FullFileName', AbbrevFileName, FileName, FileType)
+  assembly_500:
+    available: true
+    code: |-
+      AbbrevFileName : STRINGDATA 'EX'''
+      FileName : STRING 64
+      FileType : STRINGDATA 'SYMB''' %Default file type.
+      ErrCode : W BLOCK 1
+      FullFileName : EQU 37B9 + 256B
+      ...
+      CALLG FullFileName, 3, AbbrevFileName, FileName, FileType
+          IF K GO ERROR
+      ...
+      ERROR : W1 := ErrCode              %ErrorCode in W1 register.
+    octal_definition: 37B9 + 256B
+  mac:
+    available: true
+    code: |-
+      LDX (ABBR)      %Address of abbreviated file name string.
+      LDA (FILE)      %Address of string to receive full file name.
+      LDT (TYPE)      %Address of default file type string.
+      MON 256         %Monitor call FullFileName.
+      JMP ERROR       %Error return from monitor call.
+      ...             %Normal return.
+      ERROR, ...      %Error number in register A.
+      ...
+      ABBR, 'EX'      %Find full file name of EX.
+      FILE, 0         %Empty string. (A and X may be identical.)
+      *+76/           %Make space to receive full file name.
+      TYPE, 'SYMB'    %Default file type SYMB.
+
+
+      | ND-100 and ND-500 | All users | All programs |
+    mon_number: 256
 compatibility:
-  nd100: false
-  nd500: false
+  nd100: true
+  nd500: true
   user_programs: true
   rt_programs: true
   system_programs: false

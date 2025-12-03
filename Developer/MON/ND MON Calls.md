@@ -25,13 +25,13 @@
 | [3B](#3b-setecho-echom) | [SetEcho](#3b-setecho-echom) | ECHOM | When you press a key on the terminal, a character is normall... |
 | [4B](#4b-setbreak-brkm) | [SetBreak](#4b-setbreak-brkm) | BRKM | Sets the break characters for a terminal. Normally, a progra... |
 | [5B](#5b-readscratchfile-rdisk) | [ReadScratchFile](#5b-readscratchfile-rdisk) | RDISK | Reads randomly from the scratch file. One block is transferr... |
-| [6B](#6b-writescratchfile-wdisk) | [WRITESCRATCHFILE](#6b-writescratchfile-wdisk) | WDISK | Writes randomly to the scratch file. One block is transferre... |
+| [6B](#6b-writescratchfile-wdisk) | [WriteScratchFile](#6b-writescratchfile-wdisk) | WDISK | Writes randomly to the scratch file. One block is transferre... |
 | [7B](#7b-readblock-rpage) | [ReadBlock](#7b-readblock-rpage) | RPAGE | Reads randomly from a file. You read one block at a time. Th... |
 | [10B](#10b-writeblock-wpage) | [WriteBlock](#10b-writeblock-wpage) | WPAGE | Writes randomly to a file. You write one block at a time. Th... |
 | [11B](#11b-getbasictime-time) | [GetBasicTime](#11b-getbasictime-time) | TIME | **Time**... |
 | [12B](#12b-setcommandbuffer-setcm) | [SetCommandBuffer](#12b-setcommandbuffer-setcm) | SETCM | Transfers a string to the command buffer. The command buffer... |
 | [13B](#13b-clearinbuffer-cibuf) | [ClearInBuffer](#13b-clearinbuffer-cibuf) | CIBUF | Clears a device input buffer. Input from character devices, ... |
-| [14B](#14b-clearoutbuffer-cobuf) | [CLEAROUTBUFFER](#14b-clearoutbuffer-cobuf) | COBUF | Clears a device output buffer. Output to character devices, ... |
+| [14B](#14b-clearoutbuffer-cobuf) | [ClearOutBuffer](#14b-clearoutbuffer-cobuf) | COBUF | Clears a device output buffer. Output to character devices, ... |
 | [16B](#16b-getterminaltype-mgtty) | [GetTerminalType](#16b-getterminaltype-mgtty) | MGTTY | Gets the terminal type. The terminal type tells SINTRAN III ... |
 | [17B](#17b-setterminaltype-mstty) | [SetTerminalType](#17b-setterminaltype-mstty) | MSTTY | Sets the type of a terminal. The terminal type tells SINTRAN... |
 | [21B](#21b-inupto8bytes-m8inb) | [InUpTo8Bytes](#21b-inupto8bytes-m8inb) | M8INB | See also In8Bytes, InByte, InString, In4x2Bytes, and Out8Byt... |
@@ -43,7 +43,7 @@
 | [30B](#30b-getownrtaddress-getrt) | [GetOwnRTAddress](#30b-getownrtaddress-getrt) | GETRT | Gets the address of the calling program's RT description. Ba... |
 | [31B](#31b-ioinstruction-exiox) | [IOInstruction](#31b-ioinstruction-exiox) | EXIOX | Executes an IOX machine instruction. The IOX instruction han... |
 | [32B](#32b-outmessage-msg) | [OutMessage](#32b-outmessage-msg) | MSG | Writes a message to the user's terminal. This is convenient ... |
-| [33B](#33b-altpagetable-alton) | [ALTPAGETABLE](#33b-altpagetable-alton) | ALTON | Switches page table. Each page table allows you to access 12... |
+| [33B](#33b-altpagetable-alton) | [AltPageTable](#33b-altpagetable-alton) | ALTON | Switches page table. Each page table allows you to access 12... |
 | [34B](#34b-normalpagetable-altoff) | [NormalPageTable](#34b-normalpagetable-altoff) | ALTOFF | **ALTOFF** Sets the alternative page table equal to the norm... |
 | [35B](#35b-outnumber-iout) | [OutNumber](#35b-outnumber-iout) | IOUT | Writes a number to the user's terminal. The number can be ou... |
 | [36B](#36b-nowaitswitch-nowt) | [NoWaitSwitch](#36b-nowaitswitch-nowt) | NOWT | Switches No Wait on and off. No Wait is useful for input fro... |
@@ -60,14 +60,14 @@
 | [56B](#56b-setuserparam-paset) | [SetUserParam](#56b-setuserparam-paset) | PASET | Sets information about a background program. Use GetUserPara... |
 | [57B](#57b-getuserparam-pagei) | [GetUserParam](#57b-getuserparam-pagei) | PAGEI | Gets information about why the last program terminated. Ther... |
 | [61B](#61b-memoryallocation-fixcs) | [MemoryAllocation](#61b-memoryallocation-fixcs) | FIXCS | Fixes or unfixes ND-100 segments to be used by the ND-500 Mo... |
-| [62B](#62b-getbytesinfile-rmax) | [GETBYTESINFILE](#62b-getbytesinfile-rmax) | RMAX | Gets the number of bytes in a file. Only the bytes containin... |
+| [62B](#62b-getbytesinfile-rmax) | [GetBytesInFile](#62b-getbytesinfile-rmax) | RMAX | Gets the number of bytes in a file. Only the bytes containin... |
 | [63B](#63b-in4x2bytes-b41nw) | [In4x2Bytes](#63b-in4x2bytes-b41nw) | B41NW | Reads 8 bytes from a word-oriented or character-oriented dev... |
 | [64B](#64b-warningmessage-ermsg) | [WarningMessage](#64b-warningmessage-ermsg) | ERMSG | Outputs a file system error message. Appendix A shows the me... |
 | [65B](#65b-errormessage-qerms) | [ErrorMessage](#65b-errormessage-qerms) | QERMS | Displays a file system error message. Appendix A shows the m... |
 | [66B](#66b-inbufferspace-isize) | [InBufferSpace](#66b-inbufferspace-isize) | ISIZE | Gets the current number of bytes in the input buffer. Termin... |
 | [67B](#67b-outbufferspace-osize) | [OutBufferSpace](#67b-outbufferspace-osize) | OSIZE | Gets the number of free bytes in the output buffer (number o... |
 | [70B](#70b-callcommand-commnd) | [CallCommand](#70b-callcommand-commnd) | COMMND | Executes a SINTRAN III command from a program. The program t... |
-| [71B](#71b-disableescape-descf) | [DISABLEESCAPE](#71b-disableescape-descf) | DESCF | The ESCAPE key on the terminal normally terminates a program... |
+| [71B](#71b-disableescape-descf) | [DisableEscape](#71b-disableescape-descf) | DESCF | The ESCAPE key on the terminal normally terminates a program... |
 | [72B](#72b-enableescape-eescf) | [EnableEscape](#72b-enableescape-eescf) | EESCF | Enables the ESCAPE key on the terminal. The ESCAPE key norma... |
 | [73B](#73b-setmaxbytes-smax) | [SetMaxBytes](#73b-setmaxbytes-smax) | SMAX | Sets the value of the maximum byte pointer in an opened file... |
 | [74B](#74b-setstartbyte-setbt) | [SetStartByte](#74b-setstartbyte-setbt) | SETBT | Sets the next byte to be read or written in an opened mass-s... |
@@ -77,7 +77,7 @@
 | [100B](#100b-startrtprogram-rt) | [StartRTProgram](#100b-startrtprogram-rt) | RT | Starts an RT program. The program is moved to the execution ... |
 | [101B](#101b-delaystart-set) | [DelayStart](#101b-delaystart-set) | SET | Starts an RT program after a specified time. The RT program ... |
 | [102B](#102b-startuptime-abset) | [StartupTime](#102b-startuptime-abset) | ABSET | Starts an RT program at a specified time of the day. The RT ... |
-| [103B](#103b-startupinterval-intv) | [STARTUPINTERVAL](#103b-startupinterval-intv) | INTV | Prepares an RT program for periodic execution. The interval ... |
+| [103B](#103b-startupinterval-intv) | [StartupInterval](#103b-startupinterval-intv) | INTV | Prepares an RT program for periodic execution. The interval ... |
 | [104B](#104b-suspendprogram-hold) | [SuspendProgram](#104b-suspendprogram-hold) | HOLD | Suspends the execution of your program for a given time. The... |
 | [105B](#105b-stoprtprogram-abort) | [StopRTProgram](#105b-stoprtprogram-abort) | ABORT | Stops an RT program. It is removed from the time or executio... |
 | [106B](#106b-startoninterrupt-conct) | [StartOnInterrupt](#106b-startoninterrupt-conct) | CONCT | StartOnInterrupt connects an RT program to interrupts from a... |
@@ -114,7 +114,7 @@
 | [146B](#146b-privinstruction-ipriv) | [PrivInstruction](#146b-privinstruction-ipriv) | IPRIV | Executes a privileged machine instruction on the ND-100. Pri... |
 | [147B](#147b-camacfunction-camac) | [CAMACFunction](#147b-camacfunction-camac) | CAMAC | Operates the CAMAC, i.e. executes the NAF register. CAMAC is... |
 | [150B](#150b-camacglregister-gl) | [CAMACGLRegister](#150b-camacglregister-gl) | GL | Read the CAMAC GL (Graded LAM -"look at me") register or the... |
-| [151B](#151b-getrtaddress-grtda) | [GETRTADDRESS](#151b-getrtaddress-grtda) | GRTDA | Gets the address of an RT description. You specify the name ... |
+| [151B](#151b-getrtaddress-grtda) | [GetRTAddress](#151b-getrtaddress-grtda) | GRTDA | Gets the address of an RT description. You specify the name ... |
 | [152B](#152b-getrtname-grtna) | [GetRTName](#152b-getrtname-grtna) | GRTNA | Gets the name of an RT program. You specify the RT descripti... |
 | [153B](#153b-camacioinstruction-ioxin) | [CAMACIOInstruction](#153b-camacioinstruction-ioxin) | IOXIN | Executes a single IOX instruction for CAMAC. See under CAMAC... |
 | [154B](#154b-assigncamaclam-assig) | [AssignCAMACLAM](#154b-assigncamaclam-assig) | ASSIG | Assigns a graded LAM in the CAMAC identification table to a ... |
@@ -153,7 +153,7 @@
 | [232B](#232b-renamefile-mrnfi) | [RenameFile](#232b-renamefile-mrnfi) | MRNFI | See also @RENAME-FILE.... |
 | [233B](#233b-settemporaryfile-stefi) | [SetTemporaryFile](#233b-settemporaryfile-stefi) | STEFI | Defines a file to store information temporarily. The file ca... |
 | [234B](#234b-setperipheralname-spefi) | [SetPeripheralName](#234b-setperipheralname-spefi) | SPEFI | Defines a peripheral file, e.g. a printer. You connect a fil... |
-| [235B](#235b-scratchopen-scrop) | [SCRATCHOPEN](#235b-scratchopen-scrop) | SCROP | Opens a file as a scratch file. A maximum of 64 pages of the... |
+| [235B](#235b-scratchopen-scrop) | [ScratchOpen](#235b-scratchopen-scrop) | SCROP | Opens a file as a scratch file. A maximum of 64 pages of the... |
 | [236B](#236b-setpermanentopen-sperd) | [SetPermanentOpen](#236b-setpermanentopen-sperd) | SPERD | Sets a file permanently open. The file is not closed by Clos... |
 | [237B](#237b-setfileaccess-sfacc) | [SetFileAccess](#237b-setfileaccess-sfacc) | SFACC | Sets the access protection for a file. You should specify th... |
 | [240B](#240b-appendspooling-apspe) | [AppendSpooling](#240b-appendspooling-apspe) | APSPE | Prints a file. The printer has a queue of files waiting to b... |
@@ -166,11 +166,11 @@
 | [247B](#247b-releasedir-rldir) | [ReleaseDir](#247b-releasedir-rldir) | RLDIR | Releases a directory. The directory must have been reserved ... |
 | [250B](#250b-getdefaultdir-fdfdi) | [GetDefaultDir](#250b-getdefaultdir-fdfdi) | FDFDI | Gets the user’s default directory. The directory index and t... |
 | [251B](#251b-copypage-copag) | [CopyPage](#251b-copypage-copag) | COPAG | Copies file pages between two opened files. One of the files... |
-| [252B](#252b-backupclose-bclos) | [BACKUPCLOSE](#252b-backupclose-bclos) | BCLOS | Closes a file. The version number and the last date accessed... |
+| [252B](#252b-backupclose-bclos) | [BackupClose](#252b-backupclose-bclos) | BCLOS | Closes a file. The version number and the last date accessed... |
 | [253B](#253b-newfileversion-craln) | [NewFileVersion](#253b-newfileversion-craln) | CRALN | Creates new versions of a file. You may create new versions ... |
 | [254B](#254b-geterrordevice-gerdv) | [GetErrorDevice](#254b-geterrordevice-gerdv) | GERDV | Gets the logical device number of the error device. The erro... |
 | [255B](#255b-pioccfunction-piocm) | [PIOCCFunction](#255b-pioccfunction-piocm) | PIOCM | PIOCC (Programmed Input/Output Control Channel) function mon... |
-| [256B](#256b-fullfilename-deabf) | [FULLFILENAME](#256b-fullfilename-deabf) | DEABF | Returns a complete file name from an abbreviated one. The di... |
+| [256B](#256b-fullfilename-deabf) | [FullFileName](#256b-fullfilename-deabf) | DEABF | Returns a complete file name from an abbreviated one. The di... |
 | [257B](#257b-openfileinfo-fopen) | [OpenFileInfo](#257b-openfileinfo-fopen) | FOPEN | Monitor call 257B - OpenFileInfo... |
 | [262B](#262b-getsysteminfo-cpust) | [GetSystemInfo](#262b-getsysteminfo-cpust) | CPUST | Gets various system information. The system number, the CPU ... |
 | [263B](#263b-getdevicetype-gdevt) | [GetDeviceType](#263b-getdevicetype-gdevt) | GDEVT | Gets the device type, e.g. terminal, floppy disk, mass-stora... |
@@ -219,7 +219,7 @@
 | [404B](#404b-fixioarea-iofix) | [FixIOArea](#404b-fixioarea-iofix) | IOFIX | Fixes an address area in a domain in physical memory. The me... |
 | [405B](#405b-switchuserbreak-ustrk) | [SwitchUserBreak](#405b-switchuserbreak-ustrk) | USTRK | Switches user-defined escape handling on and off. The user-d... |
 | [406B](#406b-accessrtcommon-rwrtc) | [AccessRTCommon](#406b-accessrtcommon-rwrtc) | RWRTC | Reads from or writes to RT common from an ND-500 program. RT... |
-| [410B](#410b-fixinmemory-fixmem) | [FIXINMEMORY](#410b-fixinmemory-fixmem) | FIXMEM | Fixes a logical segment of your domain in physical memory. Y... |
+| [410B](#410b-fixinmemory-fixmem) | [FixInMemory](#410b-fixinmemory-fixmem) | FIXMEM | Fixes a logical segment of your domain in physical memory. Y... |
 | [411B](#411b-memoryunfix-unfixm) | [MemoryUnfix](#411b-memoryunfix-unfixm) | UNFIXM | Releases a fixed segment in your domain from physical memory... |
 | [412B](#412b-fileassegment-fscnt) | [FileAsSegment](#412b-fileassegment-fscnt) | FSCNT | Connects a file as a segment to your domain. You can then ac... |
 | [413B](#413b-filenotassegment-fscdnt) | [FileNotAsSegment](#413b-filenotassegment-fscdnt) | FSCDNT | Disconnects a file as a segment in your domain. FileAsSegmen... |
@@ -229,7 +229,7 @@
 | [417B](#417b-maxpagesinmemory-mxpisg) | [MaxPagesInMemory](#417b-maxpagesinmemory-mxpisg) | MXPISG | Sets the maximum number of pages a segment may have in physi... |
 | [420B](#420b-getuserregisters-grblk) | [GetUserRegisters](#420b-getuserregisters-grblk) | GRBLK | SwitchUserBreak allows you to save the registers when you te... |
 | [421B](#421b-getactivesegment-gasgm) | [GetActiveSegment](#421b-getactivesegment-gasgm) | GASGM | Gets the name of the segments in your domain. A 2048 byte bu... |
-| [422B](#422b-getscratchsegment-gswsm) | [GETSCRATCHSEGMENT](#422b-getscratchsegment-gswsm) | GSWSM | Connects an empty data segment to your domain. The monitor c... |
+| [422B](#422b-getscratchsegment-gswsp) | [GetScratchSegment](#422b-getscratchsegment-gswsp) | GSWSP | Connects an empty data segment to the user's domain and reserves space for it on the swap file. The segment is assigned the default name "SCRATCH-SEGMENT:DSEG". |
 | [423B](#423b-copycapability-capcop) | [CopyCapability](#423b-copycapability-capcop) | CAPCOP | Copies a capability for a segment. The segment itself is als... |
 | [424B](#424b-clearcapability-capcle) | [ClearCapability](#424b-clearcapability-capcle) | CAPCLE | Clears a capability. A capability describes each logical seg... |
 | [425B](#425b-setprocessname-sprnam) | [SetProcessName](#425b-setprocessname-sprnam) | SPRNAM | Defines a new name for your process.... |
@@ -241,7 +241,7 @@
 | [436B](#436b-setnd500param-5paset) | [SetND500Param](#436b-setnd500param-5paset) | 5PASET | Sets information about an ND-500 program. Use GetND500Param ... |
 | [437B](#437b-getnd500param-5paget) | [GetND500Param](#437b-getnd500param-5paget) | 5PAGET | Gets information about why the last ND-500 program terminate... |
 | [440B](#440b-attach500segment-atsgm) | [Attach500Segment](#440b-attach500segment-atsgm) | ATSGM | Maps a logical ND-500 data segment onto shared ND-100/ND-500... |
-| [500B](#500b-startprocess-startp) | [STARTPROCESS](#500b-startprocess-startp) | STARTP | Starts a process in the ND-500. You identify the process wit... |
+| [500B](#500b-startprocess-startp) | [StartProcess](#500b-startprocess-startp) | STARTP | Starts a process in the ND-500. You identify the process wit... |
 | [501B](#501b-stopprocess-stoppr) | [StopProcess](#501b-stopprocess-stoppr) | STOPPR | Sets the current process in a wait state. StartProcess resta... |
 | [502B](#502b-switchprocess-switchp) | [SwitchProcess](#502b-switchprocess-switchp) | SWITCHP | Sets the current process in a wait state. Restarts another p... |
 | [503B](#503b-inputstring-dvinst) | [InputString](#503b-inputstring-dvinst) | DVINST | Reads a string from a device, e.g., a terminal or an opened ... |
@@ -258,14 +258,14 @@
 |------|-------|------------|-------------|
 | [AccessRTCommon](#406b-accessrtcommon-rwrtc) | [406B](#406b-accessrtcommon-rwrtc) | RWRTC | Reads from or writes to RT common from an ND-500 program. RT... |
 | [AdjustClock](#112b-adjustclock-cladj) | [112B](#112b-adjustclock-cladj) | CLADJ | Sets the computer's clock (i.e. the current system time) for... |
-| [ALTPAGETABLE](#33b-altpagetable-alton) | [33B](#33b-altpagetable-alton) | ALTON | Switches page table. Each page table allows you to access 12... |
+| [AltPageTable](#33b-altpagetable-alton) | [33B](#33b-altpagetable-alton) | ALTON | Switches page table. Each page table allows you to access 12... |
 | [AppendSpooling](#240b-appendspooling-apspe) | [240B](#240b-appendspooling-apspe) | APSPE | Prints a file. The printer has a queue of files waiting to b... |
 | [AssignCAMACLAM](#154b-assigncamaclam-assig) | [154B](#154b-assigncamaclam-assig) | ASSIG | Assigns a graded LAM in the CAMAC identification table to a ... |
 | [Attach500Segment](#440b-attach500segment-atsgm) | [440B](#440b-attach500segment-atsgm) | ATSGM | Maps a logical ND-500 data segment onto shared ND-100/ND-500... |
 | [AttachSegment](#167b-attachsegment-reent) | [167B](#167b-attachsegment-reent) | REENT | Attaches a reentrant segment to your two current segments. T... |
 | [AwaitFileTransfer](#121b-awaitfiletransfer-waitf) | [121B](#121b-awaitfiletransfer-waitf) | WAITF | Checks that a data transfer to or from a mass-storage file i... |
 | [AwaitTransfer](#431b-awaittransfer-mwaitf) | [431B](#431b-awaittransfer-mwaitf) | MWAITF | Checks that a data transfer to or from a mass-storage file i... |
-| [BACKUPCLOSE](#252b-backupclose-bclos) | [252B](#252b-backupclose-bclos) | BCLOS | Closes a file. The version number and the last date accessed... |
+| [BackupClose](#252b-backupclose-bclos) | [252B](#252b-backupclose-bclos) | BCLOS | Closes a file. The version number and the last date accessed... |
 | [BATCHMODEECHO](#325b-batchmodeecho-mbech) | [325B](#325b-batchmodeecho-mbech) | MBECH | Controls echo of input and output if the program is executed... |
 | [BCNAF1CAMAC](#415b-bcnaf1camac-bcnaf1) | [415B](#415b-bcnaf1camac-bcnaf1) | BCNAF1 | Special CAMAC monitor call for the ND-500. (Same as mon 176 ... |
 | [BCNAFCAMAC](#414b-bcnafcamac-bcnaf) | [414B](#414b-bcnafcamac-bcnaf) | BCNAF | Special CAMAC function on the ND-500. (Same as mon 156 TRACB... |
@@ -277,7 +277,7 @@
 | [CheckMonCall](#312b-checkmoncall-moinf) | [312B](#312b-checkmoncall-moinf) | MOINF | Some monitor calls are optional or only available in later v... |
 | [ClearCapability](#424b-clearcapability-capcle) | [424B](#424b-clearcapability-capcle) | CAPCLE | Clears a capability. A capability describes each logical seg... |
 | [ClearInBuffer](#13b-clearinbuffer-cibuf) | [13B](#13b-clearinbuffer-cibuf) | CIBUF | Clears a device input buffer. Input from character devices, ... |
-| [CLEAROUTBUFFER](#14b-clearoutbuffer-cobuf) | [14B](#14b-clearoutbuffer-cobuf) | COBUF | Clears a device output buffer. Output to character devices, ... |
+| [ClearOutBuffer](#14b-clearoutbuffer-cobuf) | [14B](#14b-clearoutbuffer-cobuf) | COBUF | Clears a device output buffer. Output to character devices, ... |
 | [CloseFile](#43b-closefile-close) | [43B](#43b-closefile-close) | CLOSE | Closes one or more files. Files must be opened before they a... |
 | [CloseSpoolingFile](#40b-closespoolingfile-spclo) | [40B](#40b-closespoolingfile-spclo) | SPCLO | Appends an opened file to a spooling queue. You specify a te... |
 | [CopyCapability](#423b-copycapability-capcop) | [423B](#423b-copycapability-capcop) | CAPCOP | Copies a capability for a segment. The segment itself is als... |
@@ -291,7 +291,7 @@
 | [DeviceControl](#141b-devicecontrol-ioset) | [141B](#141b-devicecontrol-ioset) | IOSET | Sets control information for a character device, e.g. a term... |
 | [DeviceFunction](#144b-devicefunction-magtp) | [144B](#144b-devicefunction-magtp) | MAGTP | Performs various operations on floppy disks, magnetic tapes,... |
 | [DirectOpen](#220b-directopen-dopen) | [220B](#220b-directopen-dopen) | DOPEN | Opens a file. Files must be opened before they can be access... |
-| [DISABLEESCAPE](#71b-disableescape-descf) | [71B](#71b-disableescape-descf) | DESCF | The ESCAPE key on the terminal normally terminates a program... |
+| [DisableEscape](#71b-disableescape-descf) | [71B](#71b-disableescape-descf) | DESCF | The ESCAPE key on the terminal normally terminates a program... |
 | [DISABLELOCAL](#277b-disablelocal-dlofu) | [277B](#277b-disablelocal-dlofu) | DLOFU | You may log in on remote computers through the COSMOS data n... |
 | [DisableRTStart](#137b-disablertstart-rtoff) | [137B](#137b-disablertstart-rtoff) | RTOFF | Disables start of RT programs. No RT program can be started ... |
 | [DisAssemble](#401b-disassemble-diass) | [401B](#401b-disassemble-diass) | DIASS | Disassembles one machine instruction on the ND-500. Output i... |
@@ -314,18 +314,18 @@
 | [FileNotAsSegment](#413b-filenotassegment-fscdnt) | [413B](#413b-filenotassegment-fscdnt) | FSCDNT | Disconnects a file as a segment in your domain. FileAsSegmen... |
 | [FileSystemFunction](#327b-filesystemfunction-fsmty) | [327B](#327b-filesystemfunction-fsmty) | FSMTY | Multifunction monitor call to make sure that an uncontrolled... |
 | [FixContiguous](#160b-fixcontiguous-fixc) | [160B](#160b-fixcontiguous-fixc) | FIXC | Places a segment in physical memory. Its pages will no longe... |
-| [FIXINMEMORY](#410b-fixinmemory-fixmem) | [410B](#410b-fixinmemory-fixmem) | FIXMEM | Fixes a logical segment of your domain in physical memory. Y... |
+| [FixInMemory](#410b-fixinmemory-fixmem) | [410B](#410b-fixinmemory-fixmem) | FIXMEM | Fixes a logical segment of your domain in physical memory. Y... |
 | [FixIOArea](#404b-fixioarea-iofix) | [404B](#404b-fixioarea-iofix) | IOFIX | Fixes an address area in a domain in physical memory. The me... |
 | [FixScattered](#115b-fixscattered-fix) | [115B](#115b-fixscattered-fix) | FIX | Place a segment in physical memory. Its pages will no longer... |
 | [ForceRelease](#125b-forcerelease-prlrs) | [125B](#125b-forcerelease-prlrs) | PRLRS | Releases a device reserved by an RT program other than that ... |
 | [ForceReserve](#124b-forcereserve-prsrv) | [124B](#124b-forcereserve-prsrv) | PRSRV | Reserves a device for an RT program other than that which is... |
 | [ForceTrap](#435b-forcetrap-prt) | [435B](#435b-forcetrap-prt) | PRT | Forces a programmed trap to occur in another ND-500 process.... |
-| [FULLFILENAME](#256b-fullfilename-deabf) | [256B](#256b-fullfilename-deabf) | DEABF | Returns a complete file name from an abbreviated one. The di... |
+| [FullFileName](#256b-fullfilename-deabf) | [256B](#256b-fullfilename-deabf) | DEABF | Returns a complete file name from an abbreviated one. The di... |
 | [GetActiveSegment](#421b-getactivesegment-gasgm) | [421B](#421b-getactivesegment-gasgm) | GASGM | Gets the name of the segments in your domain. A 2048 byte bu... |
 | [GetAddressArea](#222b-getaddressarea-gbsiz) | [222B](#222b-getaddressarea-gbsiz) | GBSIZ | Gets the size of your address area. Your address area may co... |
 | [GetAllFileIndexes](#217b-getallfileindexes-guioi) | [217B](#217b-getallfileindexes-guioi) | GUIOI | Gets the directory index, the user index, and the object ind... |
 | [GetBasicTime](#11b-getbasictime-time) | [11B](#11b-getbasictime-time) | TIME | **Time**... |
-| [GETBYTESINFILE](#62b-getbytesinfile-rmax) | [62B](#62b-getbytesinfile-rmax) | RMAX | Gets the number of bytes in a file. Only the bytes containin... |
+| [GetBytesInFile](#62b-getbytesinfile-rmax) | [62B](#62b-getbytesinfile-rmax) | RMAX | Gets the number of bytes in a file. Only the bytes containin... |
 | [GetCurrentTime](#113b-getcurrenttime-clock) | [113B](#113b-getcurrenttime-clock) | CLOCK | Gets the current system time and date.... |
 | [GetDefaultDir](#250b-getdefaultdir-fdfdi) | [250B](#250b-getdefaultdir-fdfdi) | FDFDI | Gets the user’s default directory. The directory index and t... |
 | [GetDeviceType](#263b-getdevicetype-gdevt) | [263B](#263b-getdevicetype-gdevt) | GDEVT | Gets the device type, e.g. terminal, floppy disk, mass-stora... |
@@ -347,10 +347,10 @@
 | [GetOwnProcessInfo](#427b-getownprocessinfo-gprnme) | [427B](#427b-getownprocessinfo-gprnme) | GPRNME | Gets the name and number of your own process in the ND-500. ... |
 | [GetOwnRTAddress](#30b-getownrtaddress-getrt) | [30B](#30b-getownrtaddress-getrt) | GETRT | Gets the address of the calling program's RT description. Ba... |
 | [GetProcessNo](#426b-getprocessno-gprnam) | [426B](#426b-getprocessno-gprnam) | GPRNAM | Gets the number of a process in the ND-500. You specify the ... |
-| [GETRTADDRESS](#151b-getrtaddress-grtda) | [151B](#151b-getrtaddress-grtda) | GRTDA | Gets the address of an RT description. You specify the name ... |
+| [GetRTAddress](#151b-getrtaddress-grtda) | [151B](#151b-getrtaddress-grtda) | GRTDA | Gets the address of an RT description. You specify the name ... |
 | [GetRTDescr](#27b-getrtdescr-rtdsc) | [27B](#27b-getrtdescr-rtdsc) | RTDSC | Reads an RT description. The RT description contains various... |
 | [GetRTName](#152b-getrtname-grtna) | [152B](#152b-getrtname-grtna) | GRTNA | Gets the name of an RT program. You specify the RT descripti... |
-| [GETSCRATCHSEGMENT](#422b-getscratchsegment-gswsm) | [422B](#422b-getscratchsegment-gswsm) | GSWSM | Connects an empty data segment to your domain. The monitor c... |
+| [GetScratchSegment](#422b-getscratchsegment-gswsp) | [422B](#422b-getscratchsegment-gswsp) | GSWSP | Connects an empty data segment to the user's domain and reserves space for it on the swap file. The segment is assigned the default name "SCRATCH-SEGMENT:DSEG". |
 | [GetSegmentEntry](#53b-getsegmententry-rsegm) | [53B](#53b-getsegmententry-rsegm) | RSEGM | Gets information about a segment in the ND-100. The monitor ... |
 | [GetSegmentNo](#322b-getsegmentno-gsgno) | [322B](#322b-getsegmentno-gsgno) | GSGNO | Gets the number of a segment in the ND-100. You specify the ... |
 | [GetSpoolingEntry](#55b-getspoolingentry-rsqpe) | [55B](#55b-getspoolingentry-rsqpe) | RSQPE | Gets the next spooling queue entry, that is, the next file t... |
@@ -420,7 +420,7 @@
 | [ReserveResource](#122b-reserveresource-resrv) | [122B](#122b-reserveresource-resrv) | RESRV | Reserves a device or file for your program only. You release... |
 | [SaveND500Segment](#416b-savend500segment-wsegn) | [416B](#416b-savend500segment-wsegn) | WSEGN | Writes all modified pages of a segment back to the disk.... |
 | [SaveSegment](#164b-savesegment-wseg) | [164B](#164b-savesegment-wseg) | WSEG | Saves a segment in the ND-100. All pages in physical memory ... |
-| [SCRATCHOPEN](#235b-scratchopen-scrop) | [235B](#235b-scratchopen-scrop) | SCROP | Opens a file as a scratch file. A maximum of 64 pages of the... |
+| [ScratchOpen](#235b-scratchopen-scrop) | [235B](#235b-scratchopen-scrop) | SCROP | Opens a file as a scratch file. A maximum of 64 pages of the... |
 | [SegmentFunction](#341b-segmentfunction-sgmty) | [341B](#341b-segmentfunction-sgmty) | SGMTY | This is a multifunction monitor call used to change the acti... |
 | [SegmentOverlay](#323b-segmentoverlay-splre) | [323B](#323b-segmentoverlay-splre) | SPLRE | Used to build multisegment programs in the ND-100. It is mai... |
 | [SegmentToPageTable](#157b-segmenttopagetable-entsg) | [157B](#157b-segmenttopagetable-entsg) | ENTSG | Enters a routine as a direct task or as a device driver, and... |
@@ -449,9 +449,9 @@
 | [SetTerminalType](#17b-setterminaltype-mstty) | [17B](#17b-setterminaltype-mstty) | MSTTY | Sets the type of a terminal. The terminal type tells SINTRAN... |
 | [SetUserParam](#56b-setuserparam-paset) | [56B](#56b-setuserparam-paset) | PASET | Sets information about a background program. Use GetUserPara... |
 | [StartOnInterrupt](#106b-startoninterrupt-conct) | [106B](#106b-startoninterrupt-conct) | CONCT | StartOnInterrupt connects an RT program to interrupts from a... |
-| [STARTPROCESS](#500b-startprocess-startp) | [500B](#500b-startprocess-startp) | STARTP | Starts a process in the ND-500. You identify the process wit... |
+| [StartProcess](#500b-startprocess-startp) | [500B](#500b-startprocess-startp) | STARTP | Starts a process in the ND-500. You identify the process wit... |
 | [StartRTProgram](#100b-startrtprogram-rt) | [100B](#100b-startrtprogram-rt) | RT | Starts an RT program. The program is moved to the execution ... |
-| [STARTUPINTERVAL](#103b-startupinterval-intv) | [103B](#103b-startupinterval-intv) | INTV | Prepares an RT program for periodic execution. The interval ... |
+| [StartupInterval](#103b-startupinterval-intv) | [103B](#103b-startupinterval-intv) | INTV | Prepares an RT program for periodic execution. The interval ... |
 | [StartupTime](#102b-startuptime-abset) | [102B](#102b-startuptime-abset) | ABSET | Starts an RT program at a specified time of the day. The RT ... |
 | [StopEscapeHandling](#301b-stopescapehandling-dusel) | [301B](#301b-stopescapehandling-dusel) | DUSEL | Disables user-defined escape handling. The ESCAPE key termin... |
 | [StopProcess](#501b-stopprocess-stoppr) | [501B](#501b-stopprocess-stoppr) | STOPPR | Sets the current process in a wait state. StartProcess resta... |
@@ -483,7 +483,7 @@
 | [WriteBlock](#10b-writeblock-wpage) | [10B](#10b-writeblock-wpage) | WPAGE | Writes randomly to a file. You write one block at a time. Th... |
 | [WriteDirEntry](#311b-writedirentry-wdien) | [311B](#311b-writedirentry-wdien) | WDIEN | Changes the information about a directory. The complete cont... |
 | [WriteDiskPage](#271b-writediskpage-wdpag) | [271B](#271b-writediskpage-wdpag) | WDPAG | Writes to one or more pages in a directory. Any page can be ... |
-| [WRITESCRATCHFILE](#6b-writescratchfile-wdisk) | [6B](#6b-writescratchfile-wdisk) | WDISK | Writes randomly to the scratch file. One block is transferre... |
+| [WriteScratchFile](#6b-writescratchfile-wdisk) | [6B](#6b-writescratchfile-wdisk) | WDISK | Writes randomly to the scratch file. One block is transferre... |
 | [WriteToFile](#120b-writetofile-wfile) | [120B](#120b-writetofile-wfile) | WFILE | Writes any number of bytes to a file. The read operation mus... |
 | [XMSGFunction](#200b-xmsgfunction-xmsg) | [200B](#200b-xmsgfunction-xmsg) | XMSG | Performs various data communication functions. All types of ... |
 
@@ -502,14 +502,14 @@
 | **ADRIOO** | [TranslateAddress](#430b-translateaddress-adrioo) | [430B](#430b-translateaddress-adrioo) | The call formats are marked from a-i. All formats give statu... |
 | **AIRDW** | [ReadADChannel](#37b-readadchannel-airdw) | [37B](#37b-readadchannel-airdw) | Reads an analog to digital channel.... |
 | **ALTOFF** | [NormalPageTable](#34b-normalpagetable-altoff) | [34B](#34b-normalpagetable-altoff) | **ALTOFF** Sets the alternative page table equal to the norm... |
-| **ALTON** | [ALTPAGETABLE](#33b-altpagetable-alton) | [33B](#33b-altpagetable-alton) | Switches page table. Each page table allows you to access 12... |
+| **ALTON** | [AltPageTable](#33b-altpagetable-alton) | [33B](#33b-altpagetable-alton) | Switches page table. Each page table allows you to access 12... |
 | **APSPE** | [AppendSpooling](#240b-appendspooling-apspe) | [240B](#240b-appendspooling-apspe) | Prints a file. The printer has a queue of files waiting to b... |
 | **ASSIG** | [AssignCAMACLAM](#154b-assigncamaclam-assig) | [154B](#154b-assigncamaclam-assig) | Assigns a graded LAM in the CAMAC identification table to a ... |
 | **ATSGM** | [Attach500Segment](#440b-attach500segment-atsgm) | [440B](#440b-attach500segment-atsgm) | Maps a logical ND-500 data segment onto shared ND-100/ND-500... |
 | **B41NW** | [In4x2Bytes](#63b-in4x2bytes-b41nw) | [63B](#63b-in4x2bytes-b41nw) | Reads 8 bytes from a word-oriented or character-oriented dev... |
 | **B8INB** | [In8Bytes](#23b-in8bytes-b8inb) | [23B](#23b-in8bytes-b8inb) | Reads 8 bytes from a device. The input is fast, but the moni... |
 | **B8OUT** | [Out8Bytes](#24b-out8bytes-b8out) | [24B](#24b-out8bytes-b8out) | Writes 8 bytes to a character device, e.g. a terminal. All 8... |
-| **BCLOS** | [BACKUPCLOSE](#252b-backupclose-bclos) | [252B](#252b-backupclose-bclos) | Closes a file. The version number and the last date accessed... |
+| **BCLOS** | [BackupClose](#252b-backupclose-bclos) | [252B](#252b-backupclose-bclos) | Closes a file. The version number and the last date accessed... |
 | **BCNAF** | [BCNAFCAMAC](#414b-bcnafcamac-bcnaf) | [414B](#414b-bcnafcamac-bcnaf) | Special CAMAC function on the ND-500. (Same as mon 156 TRACB... |
 | **BCNAF1** | [BCNAF1CAMAC](#415b-bcnaf1camac-bcnaf1) | [415B](#415b-bcnaf1camac-bcnaf1) | Special CAMAC monitor call for the ND-500. (Same as mon 176 ... |
 | **BRKM** | [SetBreak](#4b-setbreak-brkm) | [4B](#4b-setbreak-brkm) | Sets the break characters for a terminal. Normally, a progra... |
@@ -520,7 +520,7 @@
 | **CLADJ** | [AdjustClock](#112b-adjustclock-cladj) | [112B](#112b-adjustclock-cladj) | Sets the computer's clock (i.e. the current system time) for... |
 | **CLOCK** | [GetCurrentTime](#113b-getcurrenttime-clock) | [113B](#113b-getcurrenttime-clock) | Gets the current system time and date.... |
 | **CLOSE** | [CloseFile](#43b-closefile-close) | [43B](#43b-closefile-close) | Closes one or more files. Files must be opened before they a... |
-| **COBUF** | [CLEAROUTBUFFER](#14b-clearoutbuffer-cobuf) | [14B](#14b-clearoutbuffer-cobuf) | Clears a device output buffer. Output to character devices, ... |
+| **COBUF** | [ClearOutBuffer](#14b-clearoutbuffer-cobuf) | [14B](#14b-clearoutbuffer-cobuf) | Clears a device output buffer. Output to character devices, ... |
 | **COMMND** | [CallCommand](#70b-callcommand-commnd) | [70B](#70b-callcommand-commnd) | Executes a SINTRAN III command from a program. The program t... |
 | **CONCT** | [StartOnInterrupt](#106b-startoninterrupt-conct) | [106B](#106b-startoninterrupt-conct) | StartOnInterrupt connects an RT program to interrupts from a... |
 | **COPAG** | [CopyPage](#251b-copypage-copag) | [251B](#251b-copypage-copag) | Copies file pages between two opened files. One of the files... |
@@ -528,9 +528,9 @@
 | **CRALF** | [CreateFile](#221b-createfile-cralf) | [221B](#221b-createfile-cralf) | Creates a file. The file may be indexed, contiguous, or allo... |
 | **CRALN** | [NewFileVersion](#253b-newfileversion-craln) | [253B](#253b-newfileversion-craln) | Creates new versions of a file. You may create new versions ... |
 | **DABST** | [ExactStartup](#127b-exactstartup-dabst) | [127B](#127b-exactstartup-dabst) | Starts an RT program at a specific time. The time is given i... |
-| **DEABF** | [FULLFILENAME](#256b-fullfilename-deabf) | [256B](#256b-fullfilename-deabf) | Returns a complete file name from an abbreviated one. The di... |
+| **DEABF** | [FullFileName](#256b-fullfilename-deabf) | [256B](#256b-fullfilename-deabf) | Returns a complete file name from an abbreviated one. The di... |
 | **DELPG** | [DeletePage](#272b-deletepage-delpg) | [272B](#272b-deletepage-delpg) | Deletes pages from a file. Pages between two page numbers ar... |
-| **DESCF** | [DISABLEESCAPE](#71b-disableescape-descf) | [71B](#71b-disableescape-descf) | The ESCAPE key on the terminal normally terminates a program... |
+| **DESCF** | [DisableEscape](#71b-disableescape-descf) | [71B](#71b-disableescape-descf) | The ESCAPE key on the terminal normally terminates a program... |
 | **DIASS** | [DisAssemble](#401b-disassemble-diass) | [401B](#401b-disassemble-diass) | Disassembles one machine instruction on the ND-500. Output i... |
 | **DINTV** | [ExactInterval](#130b-exactinterval-dintv) | [130B](#130b-exactinterval-dintv) | Prepares an RT program for periodic execution. The interval ... |
 | **DIW** | [GETINREGISTERS](#165b-getinregisters-diw) | [165B](#165b-getinregisters-diw) | Reads the device interface registers.... |
@@ -561,7 +561,7 @@
 | **FIX** | [FixScattered](#115b-fixscattered-fix) | [115B](#115b-fixscattered-fix) | Place a segment in physical memory. Its pages will no longer... |
 | **FIXC** | [FixContiguous](#160b-fixcontiguous-fixc) | [160B](#160b-fixcontiguous-fixc) | Places a segment in physical memory. Its pages will no longe... |
 | **FIXCS** | [MemoryAllocation](#61b-memoryallocation-fixcs) | [61B](#61b-memoryallocation-fixcs) | Fixes or unfixes ND-100 segments to be used by the ND-500 Mo... |
-| **FIXMEM** | [FIXINMEMORY](#410b-fixinmemory-fixmem) | [410B](#410b-fixinmemory-fixmem) | Fixes a logical segment of your domain in physical memory. Y... |
+| **FIXMEM** | [FixInMemory](#410b-fixinmemory-fixmem) | [410B](#410b-fixinmemory-fixmem) | Fixes a logical segment of your domain in physical memory. Y... |
 | **FOBJN** | [GetFileIndexes](#274b-getfileindexes-fobjn) | [274B](#274b-getfileindexes-fobjn) | Gets the directory index, the user index, and the object ind... |
 | **FOPEN** | [OpenFileInfo](#257b-openfileinfo-fopen) | [257B](#257b-openfileinfo-fopen) | Monitor call 257B - OpenFileInfo... |
 | **FSCDNT** | [FileNotAsSegment](#413b-filenotassegment-fscdnt) | [413B](#413b-filenotassegment-fscdnt) | Disconnects a file as a segment in your domain. FileAsSegmen... |
@@ -581,10 +581,10 @@
 | **GPRNME** | [GetOwnProcessInfo](#427b-getownprocessinfo-gprnme) | [427B](#427b-getownprocessinfo-gprnme) | Gets the name and number of your own process in the ND-500. ... |
 | **GRAPH** | [GRAPHICFUNCTION](#155b-graphicfunction-graph) | [155B](#155b-graphicfunction-graph) | Executes various functions on a graphic peripheral, such as ... |
 | **GRBLK** | [GetUserRegisters](#420b-getuserregisters-grblk) | [420B](#420b-getuserregisters-grblk) | SwitchUserBreak allows you to save the registers when you te... |
-| **GRTDA** | [GETRTADDRESS](#151b-getrtaddress-grtda) | [151B](#151b-getrtaddress-grtda) | Gets the address of an RT description. You specify the name ... |
+| **GRTDA** | [GetRTAddress](#151b-getrtaddress-grtda) | [151B](#151b-getrtaddress-grtda) | Gets the address of an RT description. You specify the name ... |
 | **GRTNA** | [GetRTName](#152b-getrtname-grtna) | [152B](#152b-getrtname-grtna) | Gets the name of an RT program. You specify the RT descripti... |
 | **GSGNO** | [GetSegmentNo](#322b-getsegmentno-gsgno) | [322B](#322b-getsegmentno-gsgno) | Gets the number of a segment in the ND-100. You specify the ... |
-| **GSWSM** | [GETSCRATCHSEGMENT](#422b-getscratchsegment-gswsm) | [422B](#422b-getscratchsegment-gswsm) | Connects an empty data segment to your domain. The monitor c... |
+| **GSWSP** | [GetScratchSegment](#422b-getscratchsegment-gswsp) | [422B](#422b-getscratchsegment-gswsp) | Connects an empty data segment to the user's domain and reserves space for it on the swap file. The segment is assigned the default name "SCRATCH-SEGMENT:DSEG". |
 | **GTMOD** | [GetTerminalMode](#306b-getterminalmode-gtmod) | [306B](#306b-getterminalmode-gtmod) | Gets the terminal mode. The terminal mode tells how the term... |
 | **GUIOI** | [GetAllFileIndexes](#217b-getallfileindexes-guioi) | [217B](#217b-getallfileindexes-guioi) | Gets the directory index, the user index, and the object ind... |
 | **GUSNA** | [GetUserName](#214b-getusername-gusna) | [214B](#214b-getusername-gusna) | Gets the name of a user. The user may be on a remote compute... |
@@ -592,7 +592,7 @@
 | **IBRISZ** | [InBufferState](#313b-inbufferstate-ibrisz) | [313B](#313b-inbufferstate-ibrisz) | Gets information about an input buffer. The current number o... |
 | **INBT** | [InByte](#1b-inbyte-inbt) | [1B](#1b-inbyte-inbt) | Reads one byte from a character device, e.g. a terminal or a... |
 | **INSTR** | [INSTRING](#161b-instring-instr) | [161B](#161b-instring-instr) | Reads a string of characters from a peripheral device, e.g. ... |
-| **INTV** | [STARTUPINTERVAL](#103b-startupinterval-intv) | [103B](#103b-startupinterval-intv) | Prepares an RT program for periodic execution. The interval ... |
+| **INTV** | [StartupInterval](#103b-startupinterval-intv) | [103B](#103b-startupinterval-intv) | Prepares an RT program for periodic execution. The interval ... |
 | **IOFIX** | [FixIOArea](#404b-fixioarea-iofix) | [404B](#404b-fixioarea-iofix) | Fixes an address area in a domain in physical memory. The me... |
 | **IOMTY** | [TERMINAL](#336b-terminal-iomty) | [336B](#336b-terminal-iomty) | This I/O multifunction monitor call is used to change the at... |
 | **IOSET** | [DeviceControl](#141b-devicecontrol-ioset) | [141B](#141b-devicecontrol-ioset) | Sets control information for a character device, e.g. a term... |
@@ -649,7 +649,7 @@
 | **RFILE** | [ReadFromFile](#117b-readfromfile-rfile) | [117B](#117b-readfromfile-rfile) | Reads any number of bytes from a file. The read operation mu... |
 | **RFLAG** | [GetInputFlags](#402b-getinputflags-rflag) | [402B](#402b-getinputflags-rflag) | ND-100 and ND-500 programs may communicate through two 32-bi... |
 | **RLDIR** | [ReleaseDir](#247b-releasedir-rldir) | [247B](#247b-releasedir-rldir) | Releases a directory. The directory must have been reserved ... |
-| **RMAX** | [GETBYTESINFILE](#62b-getbytesinfile-rmax) | [62B](#62b-getbytesinfile-rmax) | Gets the number of bytes in a file. Only the bytes containin... |
+| **RMAX** | [GetBytesInFile](#62b-getbytesinfile-rmax) | [62B](#62b-getbytesinfile-rmax) | Gets the number of bytes in a file. Only the bytes containin... |
 | **ROBJE** | [ReadObjectEntry](#41b-readobjectentry-robje) | [41B](#41b-readobjectentry-robje) | Gets information about an opened file. An object entry descr... |
 | **RPAGE** | [ReadBlock](#7b-readblock-rpage) | [7B](#7b-readblock-rpage) | Reads randomly from a file. You read one block at a time. Th... |
 | **RSEGM** | [GetSegmentEntry](#53b-getsegmententry-rsegm) | [53B](#53b-getsegmententry-rsegm) | Gets information about a segment in the ND-100. The monitor ... |
@@ -665,7 +665,7 @@
 | **RUSCN** | [OldUser](#242b-olduser-ruscn) | [242B](#242b-olduser-ruscn) | Switches back to the user name you were logged in under befo... |
 | **RUSER** | [GetUserEntry](#44b-getuserentry-ruser) | [44B](#44b-getuserentry-ruser) | Gets information about a user. The user entry in the directo... |
 | **RWRTC** | [AccessRTCommon](#406b-accessrtcommon-rwrtc) | [406B](#406b-accessrtcommon-rwrtc) | Reads from or writes to RT common from an ND-500 program. RT... |
-| **SCROP** | [SCRATCHOPEN](#235b-scratchopen-scrop) | [235B](#235b-scratchopen-scrop) | Opens a file as a scratch file. A maximum of 64 pages of the... |
+| **SCROP** | [ScratchOpen](#235b-scratchopen-scrop) | [235B](#235b-scratchopen-scrop) | Opens a file as a scratch file. A maximum of 64 pages of the... |
 | **SET** | [DelayStart](#101b-delaystart-set) | [101B](#101b-delaystart-set) | Starts an RT program after a specified time. The RT program ... |
 | **SETBL** | [SetStartBlock](#77b-setstartblock-setbl) | [77B](#77b-setstartblock-setbl) | Sets the next block to be read or written in an opened file.... |
 | **SETBS** | [SetBlockSize](#76b-setblocksize-setbs) | [76B](#76b-setblocksize-setbs) | Sets the block size of an opened file. Monitor calls which r... |
@@ -684,7 +684,7 @@
 | **SREEN** | [ReentrantSegment](#212b-reentrantsegment-sreen) | [212B](#212b-reentrantsegment-sreen) | Connects a reentrant segment to your two current segments. A... |
 | **SRLMO** | [SetRemoteAccess](#316b-setremoteaccess-srlmo) | [316B](#316b-setremoteaccess-srlmo) | Switches remote file access on and off. The COSMOS network a... |
 | **SRUSI** | [DefaultRemoteSystem](#314b-defaultremotesystem-srusi) | [314B](#314b-defaultremotesystem-srusi) | Sets default values for COSMOS remote file access. You can s... |
-| **STARTP** | [STARTPROCESS](#500b-startprocess-startp) | [500B](#500b-startprocess-startp) | Starts a process in the ND-500. You identify the process wit... |
+| **STARTP** | [StartProcess](#500b-startprocess-startp) | [500B](#500b-startprocess-startp) | Starts a process in the ND-500. You identify the process wit... |
 | **STEFI** | [SetTemporaryFile](#233b-settemporaryfile-stefi) | [233B](#233b-settemporaryfile-stefi) | Defines a file to store information temporarily. The file ca... |
 | **STOPPR** | [StopProcess](#501b-stopprocess-stoppr) | [501B](#501b-stopprocess-stoppr) | Sets the current process in a wait state. StartProcess resta... |
 | **STRFI** | [SetTerminalName](#275b-setterminalname-strfi) | [275B](#275b-setterminalname-strfi) | Defines the file name to be used for terminals. This is norm... |
@@ -714,7 +714,7 @@
 | **USTRK** | [SwitchUserBreak](#405b-switchuserbreak-ustrk) | [405B](#405b-switchuserbreak-ustrk) | Switches user-defined escape handling on and off. The user-d... |
 | **WAITF** | [AwaitFileTransfer](#121b-awaitfiletransfer-waitf) | [121B](#121b-awaitfiletransfer-waitf) | Checks that a data transfer to or from a mass-storage file i... |
 | **WDIEN** | [WriteDirEntry](#311b-writedirentry-wdien) | [311B](#311b-writedirentry-wdien) | Changes the information about a directory. The complete cont... |
-| **WDISK** | [WRITESCRATCHFILE](#6b-writescratchfile-wdisk) | [6B](#6b-writescratchfile-wdisk) | Writes randomly to the scratch file. One block is transferre... |
+| **WDISK** | [WriteScratchFile](#6b-writescratchfile-wdisk) | [6B](#6b-writescratchfile-wdisk) | Writes randomly to the scratch file. One block is transferre... |
 | **WDPAG** | [WriteDiskPage](#271b-writediskpage-wdpag) | [271B](#271b-writediskpage-wdpag) | Writes to one or more pages in a directory. Any page can be ... |
 | **WFILE** | [WriteToFile](#120b-writetofile-wfile) | [120B](#120b-writetofile-wfile) | Writes any number of bytes to a file. The read operation mus... |
 | **WFLAG** | [SetOutputFlags](#403b-setoutputflags-wflag) | [403B](#403b-setoutputflags-wflag) | ND-100 and ND-500 programs may communicate through two 32-bi... |
@@ -1388,7 +1388,7 @@ ND-100 | All users | Background programs
 
 ---
 
-### 6B - WRITESCRATCHFILE (WDISK)
+### 6B - WriteScratchFile (WDISK)
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green)
 
@@ -1830,11 +1830,112 @@ DEVNO, ...
 
 ---
 
-### 14B - CLEAROUTBUFFER (COBUF)
+### 14B - ClearOutBuffer (COBUF)
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
 Clears a device output buffer. Output to character devices, e.g. terminals, are temporarily stored in this buffer.
+
+- You can use logical device number 1 for your own terminal in background programs.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Logical device number. See appendix B.` | UNKNOWN | I |  |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O |  |
+
+#### See Also
+
+@CLEAR-DEVICE, [ClearInBuffer](#15b-clearinbuffer-cibuf), and DeviceControl
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+DeviceNumber : INTEGER2;
+...
+ClearOutBuffer (DeviceNumber);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 DeviceNumber COMP.
+01 ErrCode COMP.
+...
+MONITOR-CALL "ClearOutBuffer" USING DeviceNumber.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER DeviceNumber
+...
+Monitor Call ('ClearOutBuffer', DeviceNumber)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : DeviceNumber
+...
+ON ROUTINEERROR DO
+    IF ErrCode <> 0 THEN ...
+ENDON
+Monitor_Call('ClearOutBuffer', DeviceNumber)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+DeviceNumber : W BLOCK 1
+ErrCode : W BLOCK 1
+ClearOutBuffer : EQU 37B9 + 14B
+...
+CALLG ClearOutBuffer, 1, DeviceNumber
+    IF K GO ERROR
+...
+ERROR : W1 := ErrCode              %ErrorCode in W1 register.
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+LDT DEVNO      %Load register T with logical device number.
+MON 14         %Monitor call ClearOutBuffer.
+JMP ERROR      %Error return from monitor call.
+...            %Normal return.
+ERROR, ...     %Error number in register A.
+...
+DEVNO, ...
+
+
+| ND-100 and ND-500 | All users | All programs |
+```
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -3141,7 +3242,7 @@ TEXT, 'THIS IS A TEXT'  %String to be written.
 
 ---
 
-### 33B - ALTPAGETABLE (ALTON)
+### 33B - AltPageTable (ALTON)
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green)
 
@@ -4864,11 +4965,123 @@ Fixes or unfixes ND-100 segments to be used by the ND-500 Monitor. You may also 
 
 ---
 
-### 62B - GETBYTESINFILE (RMAX)
+### 62B - GetBytesInFile (RMAX)
 
-![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
 Gets the number of bytes in a file. Only the bytes containing data are counted.
+
+- The file must be open.
+- The number of bytes are only relevant to sequentially accessed files.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `File number. See OpenFile.` | UNKNOWN | I |  |
+| `Number of bytes in the file.` | UNKNOWN | O |  |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O |  |
+
+#### See Also
+
+[SetMaxBytes](#73b-setmaxbytes-smax), GetBytesInFile, and @FILE-STATISTICS
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+FileNumber : INTEGER2;
+NoOfBytes : LONGINT;
+...
+GetBytesInFile(FileNumber, NoOfBytes);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 FileNumber COMP.
+01 NoOfBytes COMP PIC S9(10).
+01 ErrCode COMP.
+...
+MONITOR-CALL "GetBytesInFile" USING FileNumber, NoOfBytes.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER FileNumber
+INTEGER*4 NoOfBytes
+...
+Monitor Call('GetBytesInFile', FileNumber, NoOfBytes)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER FileNumber
+INTEGER4: NoOfBytes
+...
+ON ROUTINEERROR DO
+    IF ErrCode > 0 THEN ...
+ENDON
+Monitor_Call('GetBytesInFile', FileNumber, NoOfBytes)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+FileNumber: W BLOCK 1
+NoofBytes: W BLOCK 1
+ErrCode: W BLOCK 1
+GetBytesInFile: EQU 37B9 + 62B
+...
+CALLG GetBytesInFile, 2, FileNumber, NoOfBytes
+    IF K GO ERROR
+...
+ERROR: W1 := ErrCode              %ErrorCode in W1 register.
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+LDT FILNO      %File number returned from earlier open.
+MON 62         %Monitor call GetBytesInFile.
+JMP ERROR      %Error return from monitor call.
+STD BYTES      %Normal return, store the number of bytes obtained.
+...
+ERROR,         %Error number in register A.
+...
+FILNO,
+...
+BYTES, O       %A double word
+0              %
+
+
+| ND-100 and ND-500 | All users | All programs |
+```
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -5546,11 +5759,104 @@ CMND, 'CLOSE-FILE 102'  %Execute @CLOSE-FILE 102
 
 ---
 
-### 71B - DISABLEESCAPE (DESCF)
+### 71B - DisableEscape (DESCF)
 
-![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
 The ESCAPE key on the terminal normally terminates a program. This is called user break. This monitor call disables the escape function.
+
+- The escape function is enabled again by EnableEscape.
+- The escape function is enabled when you log out.
+- When escape function is disabled, the escape character is treated as any other character.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `The terminal's logical device number.` | UNKNOWN | I | This parameter is ignored for background programs. Your own terminal is always selected. |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O |  |
+
+#### See Also
+
+[EnableEscape](#72b-enableescape-eescf), [SetEscapeHandling](#300b-setescapehandling-eusel), and @DISABLE-ESCAPE-FUNCTION
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+DeviceNumber : INTEGER2;
+...
+EscapeDisable(DeviceNumber); [Note routine name.]
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 DeviceNumber COMP.
+01 ErrCode COMP.
+...
+MONITOR-CALL "DisableEscape" USING DeviceNumber.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER DeviceNumber
+...
+Monitor_Call('DisableEscape', DeviceNumber)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : DeviceNumber
+...
+Monitor_Call('DisableEscape', DeviceNumber)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+DeviceNumber : W BLOCK 1
+DisableEscape : EQU 37B9 + 71B
+...
+CALLG DisableEscape, 1, DeviceNumber
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+LDT DEVNO      %Logical device number.
+MON 71         %Monitor call DisableEscape.
+...
+DEVNO, ...
+
+
+| ND-100 and ND-500 | All users | All programs |
+```
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -6610,11 +6916,113 @@ ND-100 and ND-500 - User RT and user SYSTEM - RT programs
 
 ---
 
-### 103B - STARTUPINTERVAL (INTV)
+### 103B - StartupInterval (INTV)
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
 Prepares an RT program for periodic execution. The interval between the executions can be specified in hours, minutes, seconds, and basic time units. A basic time unit is 1/50th of a second.
+
+- The RT program is not started. Use StartRTProgram, @RT, or similar, to start it.
+- StopRTProgram, Disconnect, @ABORT or @DSCNT cancel this monitor call.
+- One execution may be unfinished when it is time for the next execution, in which case the program's restart flag is set. If the delay becomes as long as two intervals, one execution is lost.
+- The interval replaces any earlier specified intervals.
+- AdjustClock and @CLADJ do not affect the interval.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Address of an RT description.` | UNKNOWN | I | 0 means calling program. GetRtAddress gives RT description addresses. |
+| `Number of time units between executions of the program.` | UNKNOWN | I |  |
+| `The type of time units.` | UNKNOWN | I | 1 = basic time units, i.e. 1/50th of a second, 2 = seconds, 3 = minutes, 4 = hours. |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O |  |
+
+#### See Also
+
+[ExactInterval](#130b-exactinterval-dintv) and @INTV. ExactInterval allows you to specify intervals between 0 and 4294967647 basic time units.
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+RTProgram, Time, Units : INTEGER2;
+...
+StartInterval (RTProgram, Time, Units); [Note routine name.]
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 RTProgram COMP.
+01 Time COMP.
+01 Units COMP.
+...
+MONITOR-CALL "StartupInterval" USING RTProgram, Time, Units.
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER RTProgram, Time, Units
+...
+Monitor_Call('StartupInterval', RTProgram, Time, Units)
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : RTProgram, Time, Units
+...
+Monitor_Call('StartupInterval', RTProgram, Time, Units)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+RTProgram : W BLOCK 1
+Time : W BLOCK 1
+Units : W BLOCK 1
+StartupInterval : EQU 37B9 + 103B
+...
+CALLG StartupInterval, 3, RTProgram, Time, Units
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+LDA (PAR      %Load register A with address of parameter list.
+MON 103       %Monitor call StartupInterval.
+...
+PAR, RTPRO    %Address of RT description.
+TIME          %Interval between each execution of program.
+UNIT          %Time units.
+...
+RTPRO, ...
+UNIT, ...
+BASE, ...
+
+
+| ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
+```
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -10163,11 +10571,112 @@ Read the CAMAC GL (Graded LAM -"look at me") register or the last CAMAC identifi
 
 ---
 
-### 151B - GETRTADDRESS (GRTDA)
+### 151B - GetRTAddress (GRTDA)
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
 Gets the address of an RT description. You specify the name of the RT program. See the SINTRAN III Real Time Guide (ND-860133) for further information.
+
+- In SINTRAN III, version J and older, this monitor call is only available to RT programs.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `RT-program name.` | UNKNOWN | I | The name must be given in capital letters. It must end with an apostrophe if less than 7 characters long (applies to high-level languages). When using a high-level language together with NPL or MAC, it is advisable to use an RT-program name of not more than 5 characters. |
+| `RT program address.` | UNKNOWN | O | Non-existent RT-program names return -1. |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O |  |
+
+#### See Also
+
+[GetRTDescr](#27b-getrtdescr-rtdsc), [GetRTName](#152b-getrtname-grtna), and @LIST-RT-PROGRAM
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+RTProgramName: PACKED ARRAY [0..6] OF CHAR;
+RTProgram : INTEGER2;
+...
+GetRTAddress (RTProgramName, RTProgram);
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 RTProgramName PIC X(7).
+01 RTProgram COMP.
+...
+MONITOR-CALL "GetRTAddress" USING RTProgramName, RTProgram.
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+CHARACTER RTProgramName*7
+INTEGER RTProgram
+...
+Monitor_Call('GetRTAddress', RTProgramName(1:7), RTProgram)
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+BYTES : RTProgramName(0:6)
+INTEGER : RTProgram
+...
+Monitor_Call('GetRTAddress', RTProgramName, RTProgram)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+RTProgramName : STRINGDATA 'SIB2A'''
+RTProgram : W BLOCK 1
+GetRTAddress : EQU 37B9 + 151B
+...
+%Get address of process SIB2A.
+CALLG GetRTAddress, 1, RTProgramName
+    IF K GO Error
+...
+W1 := RTProgram
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+LDA (PAR      %Load register A with address of parameter list.
+MON 151       %Monitor call GetRTAddress.
+STA RTPRO     %Store address of RT description.
+...
+RTPRO, 0
+...
+PAR, RTNAM    %String containing name of RT program.
+...
+RTNAM, 'SIB2A' %Get address of RT description of SIB2A.
+
+
+| ND-100 and ND-500 | All users | All programs |
+```
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -12903,11 +13412,131 @@ DEVNO, 5              %Device number of line printer no. 1.
 
 ---
 
-### 235B - SCRATCHOPEN (SCROP)
+### 235B - ScratchOpen (SCROP)
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
 Opens a file as a scratch file. A maximum of 64 pages of the file is kept when you close the file. Use SET-CLOSED-FILE-SIZE in the SINTRAN-SERVICE-PROGRAM to change this.
+
+- The scratch file is closed like any other opened file.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `File number.` | UNKNOWN | O | Used by monitor calls for input and output. |
+| `Access code.` | UNKNOWN | I | 0 = Sequential write, 1 = Sequential read, 2 = Random read or write, 3 = Random read only, 4 = Sequential read or write, 5 = Sequential write append, 6 = Random read or write common on contiguous files, 7 = Random read common on contiguous files, 8 = Random read or write on contiguous files. Direct transfer for ReadFromFile, WriteToFile and DeviceFunction in RT programs, 9 = Random read, write append for WriteToFile and ReadFromFile. |
+| `File name.` | UNKNOWN | I | The name of the file to be opened. |
+| `Default file type.` | UNKNOWN | I | Specifies the file type. The colon should not be included. |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O |  |
+
+#### See Also
+
+[OpenFile](#50b-openfile-open), [SetPermanentOpen](#236b-setpermanentopen-sperd), [DirectOpen](#220b-directopen-dopen), [CloseFile](#43b-closefile-close), and @SCRATCH-OPEN
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+FileNo, AccessCode : INTEGER2;
+FileName : PACKED ARRAY [0..63] OF CHAR;
+FileType : PACKED ARRAY [0..3] OF CHAR;
+...
+ScratchOpen (FileNo, AccessCode, FileName, FileType);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 FileNo COMP.
+01 AccessCode COMP.
+01 FileName PIC X(64).
+01 FileType PIC X(4).
+01 ErrCode COMP.
+...
+MONITOR-CALL "ScratchOpen" USING FileNo, AccessCode, FileName, FileType.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER FileNo, AccessCode
+CHARACTER FileName*64, FileType*4
+...
+Monitor_Call('ScratchOpen', FileNo, AccessCode, FileName(1:64), FileType(1:4))
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : FileNo, AccessCode
+BYTES : FileName(0:63), FileType(0:3)
+...
+ON ROUTINEERROR DO
+    IF ErrCode <> 0 THEN ...
+ENDON
+Monitor_Call('ScratchOpen', FileNo, AccessCode, FileName, FileType)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+FileNo : W BLOCK 1
+AccessCode : W BLOCK 1
+FileName : STRINGDATA 'EXAMPLE'''
+FileType : STRINGDATA 'SYMB'''
+ErrCode : W BLOCK 1
+ScratchOpen : EQU 37B9 + 235B
+...
+CALLG ScratchOpen, 4, FileNo, AccessCode, FileName, FileType
+    IF K GO ERROR
+...
+ERROR : W1 := ErrCode              %ErrorCode in W1 register.
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+LDX (FILE      %Address of file name string.
+LDA (TYPE      %Address of default file type string.
+LDT ACODE      %Access code.
+MON 235        %Monitor call ScratchOpen.
+JMP ERROR      %Error return from monitor call.
+STA FILNO      %Normal return, store file number.
+...
+ERROR, ...     %Error number in register A.
+...
+FILNO, 0
+ACODE, ...
+FILE, 'EXAMPLE' %Open EXAMPLE:SYMB as a scratch file.
+TYPE, 'SYMB'
+
+
+| ND-100 and ND-500 | All users | All programs |
+```
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -14183,11 +14812,117 @@ Copies file pages between two opened files. One of the files may be a magnetic t
 
 ---
 
-### 252B - BACKUPCLOSE (BCLOS)
+### 252B - BackupClose (BCLOS)
 
-![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
 Closes a file. The version number and the last date accessed are unchanged. The number of pages in temporary files and spooling files is not affected.
+
+- This monitor call is mainly used by the BACKUP-SYSTEM.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `File number of the opened file. See OpenFile.` | UNKNOWN | I |  |
+| `Modified flag.` | UNKNOWN | I | If 0, the file is not marked as modified. |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O |  |
+
+#### See Also
+
+[CloseFile](#43b-closefile-close)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+FileNumber, Flag : INTEGER2;
+...
+BackupClose(FileNumber, Flag);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 FileNumber COMP.
+01 Flag COMP.
+01 ErrCode COMP.
+...
+MONITOR-CALL "BackupClose" USING FileNumber, Flag.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER FileNumber, Flag
+...
+Monitor_Call ('BackupClose', FileNumber, Flag)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : FileNumber, Flag
+...
+ON ROUTINEERROR DO
+    IF ErrCode <> 0 THEN ...
+ENDON
+Monitor_Call('BackupClose', FileNumber, Flag)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+FileNumber : W BLOCK 1
+Flag : W BLOCK 1
+ErrCode : W BLOCK 1
+BackupClose : EQU 37B9 + 252B
+...
+CALLG BackupClose, 2, FileNumber, Flag
+    IF K GO ERROR
+...
+ERROR : W1 =: ErrCode              %ErrorCode in W1 register.
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+LDT FILNO      %File number returned from earlier open.
+LDA FLAG       %Reset modified flag.
+MON 252        %Monitor call BackupClose.
+JMP ERROR      %Error return from monitor call.
+...            %Normal return.
+ERROR, ...     %Error number in register A.
+...
+FILNO, ...
+FLAG, ...
+
+
+| ND-100 and ND-500 | All users | All programs |
+```
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -14442,11 +15177,127 @@ WARNING: This monitor call is not documented in the ND-860228.2 EN manual.
 
 ---
 
-### 256B - FULLFILENAME (DEABF)
+### 256B - FullFileName (DEABF)
 
-![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
 Returns a complete file name from an abbreviated one. The directory, the user, the file name, the file type, and the version are returned.
+
+- You must have read access to the file.
+- The abbreviation must be unambiguous.
+- SINTRAN III, version K, allows remote file names. If the abbreviated file name contains a remote specification, the name of the remote system cannot be abbreviated.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Abbreviated File Name.` | UNKNOWN | I | The abbreviated file name. May include a file type. |
+| `Full File Name.` | UNKNOWN | O | The complete file name, terminated by an apostrophe ('). |
+| `Default File Type.` | UNKNOWN | I | The default file type (do not include the colon). This parameter is used on ND-100 only and is ignored by the ND-500. |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O |  |
+
+#### See Also
+
+[GetFileName](#273b-getfilename-gfn)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+AbbrevFileName, FileName : PACKED ARRAY [0..63] OF CHAR;
+FileType : PACKED ARRAY [0..3] OF CHAR;
+...
+FullFileName(AbbrevFileName, FileName, FileType);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 AbbrevFileName PIC X(64).
+01 FileName       PIC X(64).
+01 FileType       PIC X(4).
+01 ErrCode        COMP.
+...
+MONITOR-CALL "FullFileName" USING AbbrevFileName, FileName, FileType.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+CHARACTER AbbrevFileName*64, FileName*64, FileType*4
+...
+Monitor_Call('FullFileName', AbbrevFileName(1:64), FileName(1:64),
+C FileType(1:4))
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+BYTES : AbbrevFileName(0:63), FileName(0:63), FileType(0:3)
+...
+ON ROUTINEERROR DO
+    IF ErrCode > 0 THEN ...
+ENDON
+Monitor_Call('FullFileName', AbbrevFileName, FileName, FileType)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+AbbrevFileName : STRINGDATA 'EX'''
+FileName : STRING 64
+FileType : STRINGDATA 'SYMB''' %Default file type.
+ErrCode : W BLOCK 1
+FullFileName : EQU 37B9 + 256B
+...
+CALLG FullFileName, 3, AbbrevFileName, FileName, FileType
+    IF K GO ERROR
+...
+ERROR : W1 := ErrCode              %ErrorCode in W1 register.
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+LDX (ABBR)      %Address of abbreviated file name string.
+LDA (FILE)      %Address of string to receive full file name.
+LDT (TYPE)      %Address of default file type string.
+MON 256         %Monitor call FullFileName.
+JMP ERROR       %Error return from monitor call.
+...             %Normal return.
+ERROR, ...      %Error number in register A.
+...
+ABBR, 'EX'      %Find full file name of EX.
+FILE, 0         %Empty string. (A and X may be identical.)
+*+76/           %Make space to receive full file name.
+TYPE, 'SYMB'    %Default file type SYMB.
+
+
+| ND-100 and ND-500 | All users | All programs |
+```
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -18765,11 +19616,101 @@ Error : W1 = ErrCode  %Error code in the W1 register.
 
 ---
 
-### 410B - FIXINMEMORY (FIXMEM)
+### 410B - FixInMemory (FIXMEM)
 
-![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
-Fixes a logical segment of your domain in physical memory. You can fix the whole or part of the segment. This speeds up access to the segment. It is also useful in segment sharing.
+Fixes a logical segment (either whole or in part) of a user's domain in physical memory. This action is intended to speed up access to the segment and is also useful for segment sharing.
+
+- Only data segments can be fixed.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `FixType.` | UNKNOWN | I | 0 = Fixes pages that are scattered (non-contiguous). 1 = Fixes pages contiguously and returns the starting address. 2 = Fixes pages at a given memory address. |
+| `FirstAddr.` | UNKNOWN | I | The starting address within the user's domain. This should be a 32-bit address, including the segment number. |
+| `Length.` | UNKNOWN | I | The length of the segment to fix, specified in bytes. A value of -1 can be used to fix the remaining part of the segment. |
+| `ND100Addr.` | UNKNOWN | IO | The physical memory address in the ND-100 system. This parameter is used if FixType is 1 or 2. The address provided or returned is the start of a physical page. |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O |  |
+
+#### See Also
+
+[MemoryUnfix](#411b-memoryunfix-unfixm)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+FixType, FirstAddr, Length, ND100Addr : LONGINT;
+...
+FixInMemory (FixType, FirstAddr, Length, ND100Addr);
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 FixType COMP.
+01 FirstAddr COMP.
+01 Length COMP.
+01 ND100Addr COMP.
+...
+MONITOR-CALL "FixInMemory" USING FixType, FirstAddr, Length, ND100Addr.
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER FixType, FirstAddr, Length, ND100Addr
+...
+Monitor_Call('FixInMemory', FixType, FirstAddr, Length, ND100Addr)
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : FixType, FirstAddr, Length, ND100Addr
+...
+Monitor_Call('FixInMemory', FixType, FirstAddr, Length, ND100Addr)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+FixType : W BLOCK 1
+FirstAddr : W BLOCK 1
+Length : W BLOCK 1
+ND100Addr : W BLOCK 1
+FixInMemory : EQU 37B9 + 410B
+...
+CALLG FixInMemory, 4, FixType, FirstAddr, Length, ND100Addr
+    IF K GO Error
+...
+Error, ...
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Not available.
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -19346,11 +20287,105 @@ CALLG GetActiveSegment, 1, Buffer
 
 ---
 
-### 422B - GETSCRATCHSEGMENT (GSWSM)
+### 422B - GetScratchSegment (GSWSP)
 
 ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
-Connects an empty data segment to your domain. The monitor call reserves space on the swap file for it.
+Connects an empty data segment to the user's domain and reserves space for it on the swap file. The segment is assigned the default name "SCRATCH-SEGMENT:DSEG".
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Segment size in bytes.` | UNKNOWN | I | Specifies the desired size of the segment. |
+| `Logical segment number.` | UNKNOWN | I | The segment number to be used. It must be free. Using 0 will cause the system to select the first available free segment. |
+| `Selected logical segment number.` | UNKNOWN | O | This parameter returns the logical segment number that was actually selected, especially if 0 was specified for the input logical segment number. |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O |  |
+
+#### See Also
+
+[ClearCapability](#424b-clearcapability-capcle)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+SizeInBytes, LogSegmentNo, RetLogSegmentNo : LONGINT;
+...
+GetScratchSegment(SizeInBytes, LogSegmentNo, RetLogSegmentNo);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 SizeInBytes COMP.
+01 LogSegmentNo COMP.
+01 RetLogSegmentNo COMP.
+01 ErrCode COMP.
+...
+MONITOR-CALL "GetScratchSegment" USING SizeInBytes, LogSegmentNo, RetLogSegmentNo.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER SizeInBytes, LogSegmentNo, RetLogSegmentNo
+...
+Monitor_Call('GetScratchSegment', SizeInBytes, LogSegmentNo, RetLogSegmentNo)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : SizeInBytes, LogSegmentNo, RetLogSegNo
+...
+ON ROUTINEERROR DO
+    IF ErrCode >< 0 THEN ...
+ENDON
+Monitor_Call('GetScratchSegment', SizeInBytes, LogSegmentNo, RetLogSegNo)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+SizeInBytes : W BLOCK 1
+LogSegmentNo : W BLOCK 1
+RetLogSegmentNo : W BLOCK 1
+ErrCode : W BLOCK 1
+GetScratchSegment : EQU 37B9 + 422B
+...
+CALLG GetScratchSegment, 3, SizeInBytes, LogSegmentNo, RetLogSegmentNo
+    IF K GO ERROR
+...
+ERROR : W1 := ErrCode              %ErrorCode in W1 register.
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Not available.
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -20165,11 +21200,101 @@ Maps a logical ND-500 data segment onto shared ND-100/ND-500(0) physical memory 
 
 ---
 
-### 500B - STARTPROCESS (STARTP)
+### 500B - StartProcess (STARTP)
 
-![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
 Starts a process in the ND-500. You identify the process with the process number.
+
+- The process may be active. The process then restarts as soon as it terminates.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Process number.` | UNKNOWN | I |  |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O |  |
+
+#### See Also
+
+[StopProcess](#501b-stopprocess-stoppr) and [SwitchProcess](#502b-switchprocess-switchp)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+ProcessNumber : LONGINT;
+...
+StartProcess(ProcessNumber);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 ProcessNumber COMP.
+01 ErrCode COMP.
+...
+MONITOR-CALL "StartProcess" USING ProcessNumber.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER ProcessNumber
+...
+Monitor_Call('StartProcess', ProcessNumber)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : ProcessNumber
+...
+ON ROUTINEERROR DO
+    IF ErrCode >< 0 THEN ...
+ENDON
+Monitor_Call('StartProcess', ProcessNumber)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+ProcessNumber : W BLOCK 1
+ErrCode : W BLOCK 1
+StartProcess : EQU 37B9 + 500B
+...
+CALLG StartProcess, 1, ProcessNumber
+    IF K GO ERROR
+...
+ERROR : W1 := ErrCode              %ErrorCode in W1 register.
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Not available.
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -20321,12 +21446,147 @@ CALLG SwitchProcess, 1, ProcessNumber
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
-Reads a string from a device, e.g., a terminal or an opened file. This monitor call provides a fast input to ND-500 programs.
+Reads a string from a device, e.g. a terminal or an opened file. This monitor call provide a fast input to ND-500 programs.
 
 - Only the first four parameters are used for file input.
 - An ASCII table is given in Appendix G.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Logical device number.` | UNKNOWN | I | See appendix B. Use 1 for your own terminal. The open file number is obtained by opening a file and specifying connection number 0. See the manual ND Linker User Guide and Reference Manual (ND-860289). |
+| `Maximum number of bytes to read before break.` | UNKNOWN | I |  |
+| `Number of bytes read.` | UNKNOWN | O |  |
+| `Buffer to receive input.` | UNKNOWN | I |  |
+| `Break setting.` | UNKNOWN | I | See SetBreak. Use 8 for the last user-defined break table. |
+| `Echo setting.` | UNKNOWN | I | See SetEcho. Use 8 for the last user-defined break table. |
+| `Break table, bit 0:31.` | UNKNOWN | I | Bits set to 1 cause break on the character. |
+| `Break table, bit 32:63.` | UNKNOWN | I |  |
+| `Break table, bit 64:95.` | UNKNOWN | I |  |
+| `Break table, bit 96:127.` | UNKNOWN | I |  |
+| `Echo table, bit 0:31.` | UNKNOWN | I | Bits set to 0 cause echo on the character. |
+| `Echo table, bit 32:63.` | UNKNOWN | I |  |
+| `Echo table, bit 64:95.` | UNKNOWN | I |  |
+| `Echo table, bit 96:127.` | UNKNOWN | I |  |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O |  |
+
+#### See Also
+
+[InByte](#1b-inbyte-inbt), InString, and [OutputString](#504b-outputstring-dvouts)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+DevNo, MaxNo, NoOfBytesRet, BreakStrat, EchoStrat, BreakT1: LONGINT;
+BreakT2, BreakT3, BreakT4, EchoT1, EchoT2, EchoT3, EchoT4: LONGINT;
+Buff : ARRAY [0..8] OF RECORD...END;
+...
+InputString(DevNo, MaxNo, NoOfBytesRet, Buff, BreakStrat, EchoStrat,
+            BreakT1, BreakT2, BreakT3, BreakT4, EchoT1, EchoT2, EchoT3, EchoT4);
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 DevNo COMP.
+01 MaxNo COMP.
+01 NoOfBytesRet COMP.
+01 BreakStrat COMP.
+01 EchoStrat COMP.
+01 BreakT1 COMP.
+01 BreakT2 COMP.
+01 BreakT3 COMP.
+01 BreakT4 COMP.
+01 EchoT1 COMP.
+01 EchoT2 COMP.
+01 EchoT3 COMP.
+01 EchoT4 COMP.
+01 Buff.
+   02 array COMP OCCURS 100 TIMES.
+...
+MONITOR-CALL "InputString" USING DevNo, MaxNo, NoOfBytesRet, Buff,
+                 BreakStrat, EchoStrat, BreakT1, BreakT2, BreakT3,
+                 BreakT4, EchoT1, EchoT2, EchoT3, EchoT4.
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER DevNo, MaxNo, NoOfBytesRet, BreakStrat, EchoStrat, BreakT1
+INTEGER BreakT2, BreakT3, BreakT4, EchoT1, EchoT2, EchoT3, EchoT4
+INTEGER Buff(100)
+...
+Monitor_Call('InputString', DevNo, MaxNo, NoOfBytesRet, Buff(1),
+             BreakStrat, EchoStrat, BreakT1, BreakT2, BreakT3,
+             BreakT4, EchoT1, EchoT2, EchoT3, EchoT4)
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : DevNo, MaxNo, NoOfBytesRet, BreakStrat, EchoStrat, BreakT1
+INTEGER : BreakT2, BreakT3, BreakT4, EchoT1, EchoT2, EchoT3, EchoT4
+BYTES : Buff(0:199)
+...
+Monitor_Call('InputString', DevNo, MaxNo, NoOfBytesRet, Buff(1),
+             BreakStrat, EchoStrat, BreakT1, BreakT2, BreakT3,
+             BreakT4, EchoT1, EchoT2, EchoT3, EchoT4)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+DevNo : W BLOCK 1
+MaxNo : W BLOCK 1
+NoOfBytesRet: W BLOCK 1
+BreakStrat: W BLOCK 1
+EchoStrat: W BLOCK 1
+BreakT1 : W BLOCK 1
+BreakT2: W BLOCK 1
+BreakT3: W BLOCK 1
+BreakT4 : W BLOCK 1
+EchoT1: W BLOCK 1
+EchoT2: W BLOCK 1
+EchoT3: W BLOCK 1
+EchoT4 : W BLOCK 1
+Buff : BY BLOCK 400B
+InputString: EQU 37B9 + 503B
+...
+Monitor_Call('InputString', DevNo, MaxNo, NoOfBytesRet, Buff(0), &
+             BreakStrat, EchoStrat, BreakT1, BreakT2, BreakT3, &
+             BreakT4, EchoT1, EchoT2, EchoT3, EchoT4)
+...
+CALLG InputString, 14, DevNo, MaxNo, NoOfBytesRet, Buff, &
+      BreakStrat, EchoStrat, BreakT1, BreakT2, &
+      BreakT3, BreakT4, EchoT1, EchoT2, EchoT3, EchoT4
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Not available.
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 

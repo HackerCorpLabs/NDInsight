@@ -3,7 +3,7 @@
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 6B
-name: WRITESCRATCHFILE
+name: WriteScratchFile
 short_names:
 - WDISK
 description: Writes randomly to the scratch file. One block is transferred. There is one scratch file

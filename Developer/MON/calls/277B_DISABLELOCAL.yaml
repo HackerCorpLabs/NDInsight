@@ -3,7 +3,7 @@
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 277B
-name: DISABLELOCAL
+name: DisableLocal
 short_names:
 - DLOFU
 description: You may log in on remote computers through the COSMOS data network. A key on the terminal
