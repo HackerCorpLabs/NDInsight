@@ -103,7 +103,7 @@
 | [132B](#132b-jumptosegment-mcall) | [JumpToSegment](#132b-jumptosegment-mcall) | MCALL | Calls a routine on another segment in the ND-100. You can di... |
 | [133B](#133b-exitfromsegment-mexit) | [ExitFromSegment](#133b-exitfromsegment-mexit) | MEXIT | Exchanges one or both current segments. Commonly used to ret... |
 | [134B](#134b-exitrtprogram-rtext) | [ExitRTProgram](#134b-exitrtprogram-rtext) | RTEXT | Terminates the calling RT or background program. Releases al... |
-| [135B](#135b-waitforrestart-rtwt) | [WAITFORRESTART](#135b-waitforrestart-rtwt) | RTWT | Sets the RT program in a waiting state. It is restarted by S... |
+| [135B](#135b-waitforrestart-rtwt) | [WaitForRestart](#135b-waitforrestart-rtwt) | RTWT | Sets the RT program in a waiting state. It is restarted by S... |
 | [136B](#136b-enablertstart-rton) | [EnableRTStart](#136b-enablertstart-rton) | RTON | RTON RT programs cannot be started after DisableRTStart has ... |
 | [137B](#137b-disablertstart-rtoff) | [DisableRTStart](#137b-disablertstart-rtoff) | RTOFF | Disables start of RT programs. No RT program can be started ... |
 | [140B](#140b-reservationinfo-whdev) | [ReservationInfo](#140b-reservationinfo-whdev) | WHDEV | Checks that a device is not reserved. If it is reserved, you... |
@@ -118,13 +118,13 @@
 | [152B](#152b-getrtname-grtna) | [GetRTName](#152b-getrtname-grtna) | GRTNA | Gets the name of an RT program. You specify the RT descripti... |
 | [153B](#153b-camacioinstruction-ioxn) | [CAMACIOInstruction](#153b-camacioinstruction-ioxn) | IOXN | Executes a single IOX instruction for CAMAC. See under CAMACFunction (mon 147) for general information. |
 | [154B](#154b-assigncamaclam-assig) | [AssignCAMACLAM](#154b-assigncamaclam-assig) | ASSIG | Assigns a graded LAM in the CAMAC identification table to a ... |
-| [155B](#155b-graphicfunction-graph) | [GRAPHICFUNCTION](#155b-graphicfunction-graph) | GRAPH | Executes various functions on a graphic peripheral, such as ... |
+| [155B](#155b-graphicfunction-graph) | [GraphicFunction](#155b-graphicfunction-graph) | GRAPH | Executes various functions on a graphic peripheral, such as ... |
 | [157B](#157b-segmenttopagetable-entsg) | [SegmentToPageTable](#157b-segmenttopagetable-entsg) | ENTSG | Enters a routine as a direct task or as a device driver, and... |
 | [160B](#160b-fixcontiguous-fixc) | [FixContiguous](#160b-fixcontiguous-fixc) | FIXC | Places a segment in physical memory. Its pages will no longe... |
 | [161B](#161b-instring-instr) | [INSTRING](#161b-instring-instr) | INSTR | Reads a string of characters from a peripheral device, e.g. ... |
 | [162B](#162b-outstring-outst) | [OutString](#162b-outstring-outst) | OUTST | Writes a string of characters to a peripheral file, e.g., a ... |
 | [164B](#164b-savesegment-wseg) | [SaveSegment](#164b-savesegment-wseg) | WSEG | Saves a segment in the ND-100. All pages in physical memory ... |
-| [165B](#165b-getinregisters-diw) | [GETINREGISTERS](#165b-getinregisters-diw) | DIW | Reads the device interface registers.... |
+| [165B](#165b-getinregisters-diw) | [GetInRegisters](#165b-getinregisters-diw) | DIW | Reads the device interface registers.... |
 | [167B](#167b-attachsegment-reent) | [AttachSegment](#167b-attachsegment-reent) | REENT | Attaches a reentrant segment to your two current segments. T... |
 | [170B](#170b-userdef0-us0) | [UserDef0](#170b-userdef0-us0) | US0 | User-defined monitor call. You can implement up to 8 monitor... |
 | [171B](#171b-userdef1-us1) | [UserDef1](#171b-userdef1-us1) | US1 | User-defined monitor call. You can implement up to 8 monitor... |
@@ -148,7 +148,7 @@
 | [221B](#221b-createfile-cralf) | [CreateFile](#221b-createfile-cralf) | CRALF | Creates a file. The file may be indexed, contiguous, or allo... |
 | [222B](#222b-getaddressarea-gbsiz) | [GetAddressArea](#222b-getaddressarea-gbsiz) | GBSIZ | Gets the size of your address area. Your address area may co... |
 | [227B](#227b-setesclocalchars-msdae) | [SetEscLocalChars](#227b-setesclocalchars-msdae) | MSDAE | You can terminate most programs with the ESCAPE key. A LOCAL... |
-| [230B](#230b-getesclocalchars-mgdae) | [GEtEscLocalChars](#230b-getesclocalchars-mgdae) | MGDAE | Gets ESCAPE and LOCAL characters. You can terminate most pro... |
+| [230B](#230b-getesclocalchars-mgdae) | [GetEscLocalChars](#230b-getesclocalchars-mgdae) | MGDAE | Gets ESCAPE and LOCAL characters. You can terminate most pro... |
 | [231B](#231b-expandfile-expfi) | [ExpandFile](#231b-expandfile-expfi) | EXPFI | Expands the file size. You use this monitor call to increase... |
 | [232B](#232b-renamefile-mrnfi) | [RenameFile](#232b-renamefile-mrnfi) | MRNFI | See also @RENAME-FILE.... |
 | [233B](#233b-settemporaryfile-stefi) | [SetTemporaryFile](#233b-settemporaryfile-stefi) | STEFI | Defines a file to store information temporarily. The file ca... |
@@ -200,7 +200,7 @@
 | [322B](#322b-getsegmentno-gsgno) | [GetSegmentNo](#322b-getsegmentno-gsgno) | GSGNO | Gets the number of a segment in the ND-100. You specify the ... |
 | [323B](#323b-segmentoverlay-splre) | [SegmentOverlay](#323b-segmentoverlay-splre) | SPLRE | Used to build multisegment programs in the ND-100. It is mai... |
 | [324B](#324b-octobusfunction-octio) | [OctobusFunction](#324b-octobusfunction-octio) | OCTIO | Performs various functions on an old Octobus (earlier than v... |
-| [325B](#325b-batchmodeecho-mbech) | [BATCHMODEECHO](#325b-batchmodeecho-mbech) | MBECH | Controls echo of input and output if the program is executed... |
+| [325B](#325b-batchmodeecho-mbech) | [BatchModeEcho](#325b-batchmodeecho-mbech) | MBECH | Controls echo of input and output if the program is executed... |
 | [326B](#326b-loginstart-mlogi) | [LogInStart](#326b-loginstart-mlogi) | MLOGI | Allowed in RT programs (ring ≥ 1), and in all programs run b... |
 | [327B](#327b-filesystemfunction-fsmty) | [FileSystemFunction](#327b-filesystemfunction-fsmty) | FSMTY | Multifunction monitor call to make sure that an uncontrolled... |
 | [330B](#330b-terminalstatus-terst) | [TerminalStatus](#330b-terminalstatus-terst) | TERST | Gets information about a terminal. The user logged in, the t... |
@@ -266,7 +266,7 @@
 | [AwaitFileTransfer](#121b-awaitfiletransfer-waitf) | [121B](#121b-awaitfiletransfer-waitf) | WAITF | Checks that a data transfer to or from a mass-storage file i... |
 | [AwaitTransfer](#431b-awaittransfer-mwaitf) | [431B](#431b-awaittransfer-mwaitf) | MWAITF | Checks that a data transfer to or from a mass-storage file i... |
 | [BackupClose](#252b-backupclose-bclos) | [252B](#252b-backupclose-bclos) | BCLOS | Closes a file. The version number and the last date accessed... |
-| [BATCHMODEECHO](#325b-batchmodeecho-mbech) | [325B](#325b-batchmodeecho-mbech) | MBECH | Controls echo of input and output if the program is executed... |
+| [BatchModeEcho](#325b-batchmodeecho-mbech) | [325B](#325b-batchmodeecho-mbech) | MBECH | Controls echo of input and output if the program is executed... |
 | [BCNAF1CAMAC](#415b-bcnaf1camac-bcnaf1) | [415B](#415b-bcnaf1camac-bcnaf1) | BCNAF1 | Special CAMAC monitor call for the ND-500. (Same as mon 176 ... |
 | [BCNAFCAMAC](#414b-bcnafcamac-bcnaf) | [414B](#414b-bcnafcamac-bcnaf) | BCNAF | Special CAMAC function on the ND-500. (Same as mon 156 TRACB... |
 | [CallCommand](#70b-callcommand-commnd) | [70B](#70b-callcommand-commnd) | COMMND | Executes a SINTRAN III command from a program. The program t... |
@@ -335,11 +335,11 @@
 | [GetErrorDevice](#254b-geterrordevice-gerdv) | [254B](#254b-geterrordevice-gerdv) | GERDV | Gets the logical device number of the error device. The erro... |
 | [GetErrorInfo](#207b-geterrorinfo-rerrp) | [207B](#207b-geterrorinfo-rerrp) | RERRP | Gets information about the last real-time error. The monitor... |
 | [GetErrorMessage](#334b-geterrormessage-getxm) | [334B](#334b-geterrormessage-getxm) | GETXM | Gets a SINTRAN III error message text. Appendix A shows the ... |
-| [GEtEscLocalChars](#230b-getesclocalchars-mgdae) | [230B](#230b-getesclocalchars-mgdae) | MGDAE | Gets ESCAPE and LOCAL characters. You can terminate most pro... |
+| [GetEscLocalChars](#230b-getesclocalchars-mgdae) | [230B](#230b-getesclocalchars-mgdae) | MGDAE | Gets ESCAPE and LOCAL characters. You can terminate most pro... |
 | [GetFileIndexes](#274b-getfileindexes-fobjn) | [274B](#274b-getfileindexes-fobjn) | FOBJN | Gets the directory index, the user index, and the object ind... |
 | [GetFileName](#273b-getfilename-mgfil) | [273B](#273b-getfilename-mgfil) | MGFIL | Gets the name of a file. You specify the directory index, th... |
 | [GetInputFlags](#402b-getinputflags-rflag) | [402B](#402b-getinputflags-rflag) | RFLAG | ND-100 and ND-500 programs may communicate through two 32-bi... |
-| [GETINREGISTERS](#165b-getinregisters-diw) | [165B](#165b-getinregisters-diw) | DIW | Reads the device interface registers.... |
+| [GetInRegisters](#165b-getinregisters-diw) | [165B](#165b-getinregisters-diw) | DIW | Reads the device interface registers.... |
 | [GetLastByte](#26b-getlastbyte-lastc) | [26B](#26b-getlastbyte-lastc) | LASTC | Gets the last character typed on a terminal. The monitor cal... |
 | [GetNameEntry](#245b-getnameentry-gnaen) | [245B](#245b-getnameentry-gnaen) | GNAEN | Gets information about devices, e.g. disks and floppy disks.... |
 | [GetND500Param](#437b-getnd500param-5paget) | [437B](#437b-getnd500param-5paget) | 5PAGET | Gets information about why the last ND-500 program terminate... |
@@ -364,7 +364,7 @@
 | [GetUserName](#214b-getusername-gusna) | [214B](#214b-getusername-gusna) | GUSNA | Gets the name of a user. The user may be on a remote compute... |
 | [GetUserParam](#57b-getuserparam-pagei) | [57B](#57b-getuserparam-pagei) | PAGEI | Gets information about why the last program terminated. Ther... |
 | [GetUserRegisters](#420b-getuserregisters-grblk) | [420B](#420b-getuserregisters-grblk) | GRBLK | SwitchUserBreak allows you to save the registers when you te... |
-| [GRAPHICFUNCTION](#155b-graphicfunction-graph) | [155B](#155b-graphicfunction-graph) | GRAPH | Executes various functions on a graphic peripheral, such as ... |
+| [GraphicFunction](#155b-graphicfunction-graph) | [155B](#155b-graphicfunction-graph) | GRAPH | Executes various functions on a graphic peripheral, such as ... |
 | [HDLCfunction](#201b-hdlcfunction-mhdlc) | [201B](#201b-hdlcfunction-mhdlc) | MHDLC | Performs various HDLC functions. A HDLC is a high-level data... |
 | [In4x2Bytes](#63b-in4x2bytes-b41nw) | [63B](#63b-in4x2bytes-b41nw) | B41NW | Reads 8 bytes from a word-oriented or character-oriented dev... |
 | [In8AndFlag](#310b-in8andflag-tbin8) | [310B](#310b-in8andflag-tbin8) | TBIN8 | Reads 8 bytes from a device, e.g., a terminal. The monitor c... |
@@ -478,7 +478,7 @@
 | [UserDef5](#175b-userdef5-us5) | [175B](#175b-userdef5-us5) | US5 | User-defined monitor call. You can implement up to 8 monitor... |
 | [UserDef6](#176b-userdef6-us6) | [176B](#176b-userdef6-us6) | US6 | User-defined monitor call. You can implement up to 8 monitor... |
 | [UserDef7](#177b-userdef7-us7) | [177B](#177b-userdef7-us7) | US7 | User-defined monitor call. You can implement up to 8 monitor... |
-| [WAITFORRESTART](#135b-waitforrestart-rtwt) | [135B](#135b-waitforrestart-rtwt) | RTWT | Sets the RT program in a waiting state. It is restarted by S... |
+| [WaitForRestart](#135b-waitforrestart-rtwt) | [135B](#135b-waitforrestart-rtwt) | RTWT | Sets the RT program in a waiting state. It is restarted by S... |
 | [WarningMessage](#64b-warningmessage-ermsg) | [64B](#64b-warningmessage-ermsg) | ERMSG | Outputs a file system error message. Appendix A shows the me... |
 | [WriteBlock](#10b-writeblock-wpage) | [10B](#10b-writeblock-wpage) | WPAGE | Writes randomly to a file. You write one block at a time. Th... |
 | [WriteDirEntry](#311b-writedirentry-wdien) | [311B](#311b-writedirentry-wdien) | WDIEN | Changes the information about a directory. The complete cont... |
@@ -9946,11 +9946,82 @@ MON     134     %Monitor call ExitRTProgram.
 
 ---
 
-### 135B - WAITFORRESTART (RTWT)
+### 135B - WaitForRestart (RTWT)
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
 Sets the RT program in a waiting state. It is restarted by StartRTProgram or @RT. Execution continues after the monitor call.
+
+#### Notes
+
+- The RT program restarts immediately if its restart flag is set.
+- No reserved devices or files are released.
+
+#### Parameters
+
+This monitor call has no parameters.
+
+#### See Also
+
+- [SuspendProgram](#suspendprogram)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+WaitForRestart;
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+MONITOR-CALL "WaitForRestart".
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+Monitor_Call('WaitForRestart')
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+Monitor_Call('WaitForRestart')
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+WaitForRestart : EQU 37B9 + 135B
+...
+CALLG WaitForRestart, 0
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+MON 135                  %Monitor call WaitForRestart.
+```
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -11322,11 +11393,119 @@ CRATE, ...
 
 ---
 
-### 155B - GRAPHICFUNCTION (GRAPH)
+### 155B - GraphicFunction (GRAPH)
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
 Executes various functions on a graphic peripheral, such as a NORDCOM terminal, a pen plotter, or a Textronix display.
+
+#### Notes
+
+- Some functions require a delay from the calling program. See the specifications for the peripheral in use. SuspendProgram delays a program.
+- The old monitor call PLOT is obsolete.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Ycoor` | INTEGER | I | The Y-coordinate of new line relative to current reference point. |
+| `Xcoor` | INTEGER | I | The X-coordinate of new line relative to current reference point. |
+| `Code` | INTEGER | I | Integer code. |
+| `DeviceNo` | INTEGER | I | Logical device number. |
+| `Func` | INTEGER | I | Function code. 0 means PLOT. 1 means PLOTS, i.e. establish reference point and/or clear a NORDCOM screen. 2 means NEWP, i.e. select pen or screen. |
+| `ReturnValue` | INTEGER | O | Return value. Output parameter for the PLOT function. Not used on the ND-500. |
+
+#### See Also
+
+- [SuspendProgram](#suspendprogram)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+Xcoor, Ycoor, Code, DeviceNo, Func, ReturnValue : INTEGER2;
+...
+GraphicFunction(Xcoor, Ycoor, Code, DeviceNo, Func, ReturnValue);
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 Xcoor COMP.
+01 Ycoor COMP.
+01 Code COMP.
+01 DeviceNo COMP.
+01 Func COMP.
+01 ReturnValue COMP.
+...
+MONITOR-CALL "GraphicFunction" USING Xcoor, Ycoor, Code, DeviceNo, Func, ReturnValue.
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER Xcoor, Ycoor, Code, DeviceNo, Func, ReturnValue
+...
+Monitor_Call('GraphicFunction', Xcoor, Ycoor, Code, DeviceNo, Func, ReturnValue)
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : Xcoor, Ycoor
+INTEGER : Code, DeviceNo, Func, ReturnValue
+...
+Monitor_Call('GraphicFunction', Xcoor, Ycoor, Code, DeviceNo, &
+    Func, ReturnValue)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+Xcoor : W BLOCK 1
+Ycoor : W BLOCK 1
+Code : W BLOCK 1
+DeviceNo : W BLOCK 1
+Func : W BLOCK 1
+GraphicFunction : EQU 37B9 + 155B
+...
+CALLG GraphicFunction, 5, Xcoor, Ycoor, Code, DeviceNo, Func
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+LDA (PAR                 %Load register A with address of parameter list.
+MON 155                  %Monitor call Graphic.
+STA STAT                 %Store return status.
+...
+STAT, 0
+PAR,
+XCOOR                    %X coordinate of endpoint.
+YCOOR                    %Y coordinate of endpoint.
+CODE                     %Integer code.
+DEVNO                    %Logical device number.
+FUNC                     %Function.
+```
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -11933,11 +12112,76 @@ CALLG SaveSegment, 1, SegmentNumber
 
 ---
 
-### 165B - GETINREGISTERS (DIW)
+### 165B - GetInRegisters (DIW)
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
 Reads the device interface registers.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `NoOfReg` | INTEGER | I | Number of registers. |
+| `Buffer` | ARRAY | I | Buffer with logical unit. |
+| `DataBuffer` | ARRAY | I | Data buffer. |
+| `ErrorIndicator` | INTEGER | O | Error indicator. |
+
+#### See Also
+
+- [SetOutRegisters](#setoutregisters)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+NoOfReg : W BLOCK 1
+Buffer : W BLOCK 1024
+DataBuffer : W BLOCK 1024
+ErrorIndicator : W BLOCK 1
+GetInRegisters : EQU 37B9 + 165B
+...
+CALLG GetInRegisters, 4, NoOfReg, Buffer, DataBuffer, ErrorIndicator
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Internal usage.
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -11951,6 +12195,88 @@ Reads the device interface registers.
 
 Attaches a reentrant segment to your two current segments. The address areas of the segments may overlap. Pages in the reentrant segment may be accessed for reading, writing, or fetching instructions. When written to, a page loses its reentrancy. It is stored on one of your current overlapping segments.
 
+#### Notes
+
+- The segment is treated as reentrant only for the RT programs which have attached it.
+- Parts of the reentrant segment may not be outside the address area of your current segments. OUTSIDE SEGMENT BOUNDS is output if these parts are written to.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `SegmentNumber` | INTEGER | I | Segment number of the reentrant segment. See @LIST-REENTRANT. |
+
+#### See Also
+
+- [ReentrantSegment](#reentrantsegment)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+SegmentNumber : INTEGER2;
+...
+AttachSegment(SegmentNumber);
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 SegmentNumber COMP.
+...
+MONITOR-CALL "AttachSegment" USING SegmentNumber.
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER SegmentNumber
+...
+Monitor_Call('AttachSegment', SegmentNumber)
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : SegmentNumber
+...
+Monitor_Call('AttachSegment', SegmentNumber)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+LDA (PAR                 %Load register A with address of parameter list.
+MON 167                  %Monitor call AttachSegment.
+...
+PAR,
+SEGNO                    %Segment number
+SEGNO, ...
+```
+
+</details>
+
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
@@ -11959,17 +12285,68 @@ Attaches a reentrant segment to your two current segments. The address areas of 
 
 ### 170B - UserDef0 (US0)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
 User-defined monitor call. You can implement up to 8 monitor calls yourself. These are named UserDef0, UserDef1,... UserDef7. The short names are US0, US1,...US7. To do this you need good knowledge of SINTRAN III. See the SINTRAN III listing parts one and two.
+
+#### Notes
 
 - Use the DMAC subsystem or the @LOOK-AT command to patch in the MAC instructions of your monitor call. Place the code in physical memory after the SINTRAN III symbol 7ENDC. You ought to do this from a mode file. The monitor call is lost in a warm start.
 - Use the SINTRAN-SERVICE-PROGRAM command DEFINE-USER-MONITOR-CALL to define the entry point of the monitor call.
 - There are other ways of implementing user-defined monitor calls.
 - Some monitor calls are no longer in use. You may use these for user-defined monitor calls.
 - If the subsystems TPS is installed, the user-defined monitor calls 170 to 175 may not be used.
+- Both input and output parameters are user-defined. Transfer parameters in the same way as SuspendProgram, InString, WriteToFile, etc.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### Parameters
+
+Both input and output parameters are user-defined. Transfer parameters in the same way as SuspendProgram, InString, WriteToFile, etc.
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Depends on the monitor call.
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -11977,17 +12354,68 @@ User-defined monitor call. You can implement up to 8 monitor calls yourself. The
 
 ### 171B - UserDef1 (US1)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
 User-defined monitor call. You can implement up to 8 monitor calls yourself. These are named UserDef0, UserDef1,... UserDef7. The short names are US0, US1,...US7. To do this you need good knowledge of SINTRAN III. See the SINTRAN III listing parts one and two.
+
+#### Notes
 
 - Use the DMAC subsystem or the @LOOK-AT command to patch in the MAC instructions of your monitor call. Place the code in physical memory after the SINTRAN III symbol 7ENDC. You ought to do this from a mode file. The monitor call is lost in a warm start.
 - Use the SINTRAN-SERVICE-PROGRAM command DEFINE-USER-MONITOR-CALL to define the entry point of the monitor call.
 - There are other ways of implementing user-defined monitor calls.
 - Some monitor calls are no longer in use. You may use these for user-defined monitor calls.
 - If the subsystems TPS is installed, the user-defined monitor calls 170 to 175 may not be used.
+- Both input and output parameters are user-defined. Transfer parameters in the same way as SuspendProgram, InString, WriteToFile, etc.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### Parameters
+
+Both input and output parameters are user-defined. Transfer parameters in the same way as SuspendProgram, InString, WriteToFile, etc.
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Depends on the monitor call.
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -11995,17 +12423,68 @@ User-defined monitor call. You can implement up to 8 monitor calls yourself. The
 
 ### 172B - UserDef2 (US2)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
 User-defined monitor call. You can implement up to 8 monitor calls yourself. These are named UserDef0, UserDef1,... UserDef7. The short names are US0, US1,...US7. To do this you need good knowledge of SINTRAN III. See the SINTRAN III listing parts one and two.
+
+#### Notes
 
 - Use the DMAC subsystem or the @LOOK-AT command to patch in the MAC instructions of your monitor call. Place the code in physical memory after the SINTRAN III symbol 7ENDC. You ought to do this from a mode file. The monitor call is lost in a warm start.
 - Use the SINTRAN-SERVICE-PROGRAM command DEFINE-USER-MONITOR-CALL to define the entry point of the monitor call.
 - There are other ways of implementing user-defined monitor calls.
 - Some monitor calls are no longer in use. You may use these for user-defined monitor calls.
 - If the subsystems TPS is installed, the user-defined monitor calls 170 to 175 may not be used.
+- Both input and output parameters are user-defined. Transfer parameters in the same way as SuspendProgram, InString, WriteToFile, etc.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### Parameters
+
+Both input and output parameters are user-defined. Transfer parameters in the same way as SuspendProgram, InString, WriteToFile, etc.
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Depends on the monitor call.
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -12013,17 +12492,68 @@ User-defined monitor call. You can implement up to 8 monitor calls yourself. The
 
 ### 173B - UserDef3 (US3)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
 User-defined monitor call. You can implement up to 8 monitor calls yourself. These are named UserDef0, UserDef1,... UserDef7. The short names are US0, US1,...US7. To do this you need good knowledge of SINTRAN III. See the SINTRAN III listing parts one and two.
+
+#### Notes
 
 - Use the DMAC subsystem or the @LOOK-AT command to patch in the MAC instructions of your monitor call. Place the code in physical memory after the SINTRAN III symbol 7ENDC. You ought to do this from a mode file. The monitor call is lost in a warm start.
 - Use the SINTRAN-SERVICE-PROGRAM command DEFINE-USER-MONITOR-CALL to define the entry point of the monitor call.
 - There are other ways of implementing user-defined monitor calls.
 - Some monitor calls are no longer in use. You may use these for user-defined monitor calls.
 - If the subsystems TPS is installed, the user-defined monitor calls 170 to 175 may not be used.
+- Both input and output parameters are user-defined. Transfer parameters in the same way as SuspendProgram, InString, WriteToFile, etc.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### Parameters
+
+Both input and output parameters are user-defined. Transfer parameters in the same way as SuspendProgram, InString, WriteToFile, etc.
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Depends on the monitor call.
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -12031,17 +12561,68 @@ User-defined monitor call. You can implement up to 8 monitor calls yourself. The
 
 ### 174B - UserDef4 (US4)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
 User-defined monitor call. You can implement up to 8 monitor calls yourself. These are named UserDef0, UserDef1,... UserDef7. The short names are US0, US1,...US7. To do this you need good knowledge of SINTRAN III. See the SINTRAN III listing parts one and two.
+
+#### Notes
 
 - Use the DMAC subsystem or the @LOOK-AT command to patch in the MAC instructions of your monitor call. Place the code in physical memory after the SINTRAN III symbol 7ENDC. You ought to do this from a mode file. The monitor call is lost in a warm start.
 - Use the SINTRAN-SERVICE-PROGRAM command DEFINE-USER-MONITOR-CALL to define the entry point of the monitor call.
 - There are other ways of implementing user-defined monitor calls.
 - Some monitor calls are no longer in use. You may use these for user-defined monitor calls.
 - If the subsystems TPS is installed, the user-defined monitor calls 170 to 175 may not be used.
+- Both input and output parameters are user-defined. Transfer parameters in the same way as SuspendProgram, InString, WriteToFile, etc.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### Parameters
+
+Both input and output parameters are user-defined. Transfer parameters in the same way as SuspendProgram, InString, WriteToFile, etc.
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Depends on the monitor call.
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -12049,17 +12630,68 @@ User-defined monitor call. You can implement up to 8 monitor calls yourself. The
 
 ### 175B - UserDef5 (US5)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
 User-defined monitor call. You can implement up to 8 monitor calls yourself. These are named UserDef0, UserDef1,... UserDef7. The short names are US0, US1,...US7. To do this you need good knowledge of SINTRAN III. See the SINTRAN III listing parts one and two.
+
+#### Notes
 
 - Use the DMAC subsystem or the @LOOK-AT command to patch in the MAC instructions of your monitor call. Place the code in physical memory after the SINTRAN III symbol 7ENDC. You ought to do this from a mode file. The monitor call is lost in a warm start.
 - Use the SINTRAN-SERVICE-PROGRAM command DEFINE-USER-MONITOR-CALL to define the entry point of the monitor call.
 - There are other ways of implementing user-defined monitor calls.
 - Some monitor calls are no longer in use. You may use these for user-defined monitor calls.
 - If the subsystems TPS is installed, the user-defined monitor calls 170 to 175 may not be used.
+- Both input and output parameters are user-defined. Transfer parameters in the same way as SuspendProgram, InString, WriteToFile, etc.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### Parameters
+
+Both input and output parameters are user-defined. Transfer parameters in the same way as SuspendProgram, InString, WriteToFile, etc.
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Depends on the monitor call.
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -12067,17 +12699,68 @@ User-defined monitor call. You can implement up to 8 monitor calls yourself. The
 
 ### 176B - UserDef6 (US6)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
 User-defined monitor call. You can implement up to 8 monitor calls yourself. These are named UserDef0, UserDef1,... UserDef7. The short names are US0, US1,...US7. To do this you need good knowledge of SINTRAN III. See the SINTRAN III listing parts one and two.
+
+#### Notes
 
 - Use the DMAC subsystem or the @LOOK-AT command to patch in the MAC instructions of your monitor call. Place the code in physical memory after the SINTRAN III symbol 7ENDC. You ought to do this from a mode file. The monitor call is lost in a warm start.
 - Use the SINTRAN-SERVICE-PROGRAM command DEFINE-USER-MONITOR-CALL to define the entry point of the monitor call.
 - There are other ways of implementing user-defined monitor calls.
 - Some monitor calls are no longer in use. You may use these for user-defined monitor calls.
 - If the subsystems TPS is installed, the user-defined monitor calls 170 to 175 may not be used.
+- Both input and output parameters are user-defined. Transfer parameters in the same way as SuspendProgram, InString, WriteToFile, etc.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### Parameters
+
+Both input and output parameters are user-defined. Transfer parameters in the same way as SuspendProgram, InString, WriteToFile, etc.
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Depends on the monitor call.
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -12085,17 +12768,68 @@ User-defined monitor call. You can implement up to 8 monitor calls yourself. The
 
 ### 177B - UserDef7 (US7)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
 User-defined monitor call. You can implement up to 8 monitor calls yourself. These are named UserDef0, UserDef1,... UserDef7. The short names are US0, US1,...US7. To do this you need good knowledge of SINTRAN III. See the SINTRAN III listing parts one and two.
+
+#### Notes
 
 - Use the DMAC subsystem or the @LOOK-AT command to patch in the MAC instructions of your monitor call. Place the code in physical memory after the SINTRAN III symbol 7ENDC. You ought to do this from a mode file. The monitor call is lost in a warm start.
 - Use the SINTRAN-SERVICE-PROGRAM command DEFINE-USER-MONITOR-CALL to define the entry point of the monitor call.
 - There are other ways of implementing user-defined monitor calls.
 - Some monitor calls are no longer in use. You may use these for user-defined monitor calls.
 - If the subsystems TPS is installed, the user-defined monitor calls 170 to 175 may not be used.
+- Both input and output parameters are user-defined. Transfer parameters in the same way as SuspendProgram, InString, WriteToFile, etc.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### Parameters
+
+Both input and output parameters are user-defined. Transfer parameters in the same way as SuspendProgram, InString, WriteToFile, etc.
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Depends on the monitor call.
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -13578,17 +14312,209 @@ STA SIZE, 0              %Store returned size of background segment.
 
 You can terminate most programs with the ESCAPE key. A LOCAL key has a similar function. It terminates a connection to a remote computer in a network. This monitor call allows you to select other keys for these functions.
 
+#### Notes
+
+- The local function is only used by COSMOS.
+- Appendix F shows the ASCII values of the characters.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `DeviceNo` | INTEGER | I | Logical device number. See appendix B. Only used by RT programs. Your own terminal is always used in background program. |
+| `DisconnectChar` | INTEGER | I | The local character. |
+| `EscapeChar` | INTEGER | I | The escape character. |
+
+#### See Also
+
+- [SetEscapeHandling](#setescapehandling)
+- [GetEscLocalChars](#getesclocalchars)
+- [OnEscLocalChars](#onesclocalchars)
+- [OffEscLocalChars](#offesclocalchars)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+DeviceNo, DisconnectChar, EscapeChar : INTEGER2;
+...
+SetEscLocalChar(DeviceNo, DisconnectChar, EscapeChar);
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 DeviceNo COMP.
+01 DisconChar COMP.
+01 EscapeChar COMP.
+...
+MONITOR-CALL "SetEscLocalChar" USING DeviceNo, DisconChar, EscapeChar.
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER DeviceNo, DisconChar, EscapeChar
+...
+Monitor_Call('SetEscLocalChar', DeviceNo, DisconChar, EscapeChar)
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : DeviceNo, DisconnectChar, EscapeChar
+...
+Monitor_Call('SetEscLocalChar', DeviceNo, DisconnectChar, EscapeChar)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+DeviceNo : W BLOCK 1
+DisconnectChar : W BLOCK 1
+EscapeChar : W BLOCK 1
+SetEscLocalChar : EQU 37B9 + 227B
+...
+CALLG SetEscLocalChar, 3, DeviceNo, DisconnectChar, EscapeChar
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+LDT DEVNO                 %Logical device number.
+LDA CHAR                  %Left byte: disconnect char,
+                          % right byte: escape char.
+MON 227                   %Monitor call SetEscLocalHandling.
+...
+DEVNO, ...
+CHAR, ...
+```
+
+</details>
+
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
 ---
 
-### 230B - GEtEscLocalChars (MGDAE)
+### 230B - GetEscLocalChars (MGDAE)
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
 Gets ESCAPE and LOCAL characters. You can terminate most programs with the ESCAPE key. A LOCAL key has a similar function. It terminates a connection to a remote computer in a COSMOS network. The system supervisor may select other keys for these functions. This monitor call tells you which keys to use.
+
+#### Notes
+
+- The local function is only used by COSMOS.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `DeviceNo` | INTEGER | I | Logical device number. Only used by RT programs. Your own terminal is always used in background program. See appendix B. |
+| `DisconnectChar` | INTEGER | O | The local character. |
+| `EscapeChar` | INTEGER | O | The escape character. |
+
+#### See Also
+
+- [SetEscapeHandling](#setescapehandling)
+- [SetEscLocalChars](#setesclocalchars)
+- [OnEscLocalChars](#onesclocalchars)
+- [OffEscLocalChars](#offesclocalchars)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+DeviceNo, DisconnectChar, EscapeChar : INTEGER2;
+...
+GetEscLocalChar(DeviceNo, DisconnectChar, EscapeChar);
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 DeviceNo COMP.
+01 DisconChar COMP.
+01 EscapeChar COMP.
+...
+MONITOR-CALL "GetEscLocalChar" USING DeviceNo, DisconChar, EscapeChar.
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER DeviceNo, DisconChar, EscapeChar
+...
+Monitor_Call('GetEscLocalChar', DeviceNo, DisconChar, EscapeChar)
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : DeviceNo, DisconnectChar, EscapeChar
+...
+Monitor_Call('GetEscLocalChar', DeviceNo, DisconnectChar, EscapeChar)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+DeviceNo : W BLOCK 1
+DisconnectChar : W BLOCK 1
+EscapeChar : W BLOCK 1
+GetEscLocalChar : EQU 37B9 + 230B
+...
+CALLG GetEscLocalChar, 3, DeviceNo, DisconnectChar, EscapeChar
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+LDT DEVNO                 %Logical device number.
+MON 230                   %Monitor call GetEscLocalChar.
+STA CHAR                  %Store returned characters.
+...
+DEVNO, ...
+CHAR, 0                   %Left byte: discon char. Right byte: escape char.
+```
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -19350,11 +20276,105 @@ STAT, ...
 
 ---
 
-### 325B - BATCHMODEECHO (MBECH)
+### 325B - BatchModeEcho (MBECH)
 
-![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue)
 
 Controls echo of input and output if the program is executed in a batch or mode job. The purpose is to allow the program to communicate with the terminal in mode jobs.
+
+#### Notes
+
+- The state set by this monitor call is reset when the next batch or mode job starts.
+- This monitor call is mainly used by the JEC system.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `ControlBitmask` | INTEGER | I/O | Bit mask to set the echo. Bit 0 set to 1 means no echo in batch and mode executions. Bit 1 set to 1 means output on terminal from mode executions. Bit 2 set to 1 means input from terminal in mode executions. If the parameter is -1, the bit mask from the previous batch or mode job is returned in the A register (ASSEMBLY-500) or via the parameter (high-level languages). |
+
+#### See Also
+
+- [SetEcho](#setecho)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+ControlBitmask : INTEGER2;
+...
+BatchModeEcho(ControlBitmask);
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 ControlBitmask COMP.
+...
+MONITOR-CALL "BatchModeEcho" USING ControlBitmask.
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER ControlBitmask
+...
+Monitor_Call('BatchModeEcho', ControlBitmask)
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : ControlBitmask
+...
+Monitor_Call('BatchModeEcho', ControlBitmask)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+OldMask : W BLOCK 1
+%The lower 16 bit of the Il register holds the
+% control bit mask from the previous BatchModeEcho
+% if ControlBitMask was -1.
+ControlBitmask : W BLOCK 1
+ErrCode : W BLOCK 1
+BatchModeEcho : EQU 37B9 + 325B
+...
+CALLG BatchModeEcho, 1, ControlBitmask
+    IF K GO Error
+W1 := OldMask
+...
+Error, ...
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+LDA CTRL                  %Load register A with control bitmask.
+MON 325                   %Monitor call BatchModeEcho.
+...
+CTRL, ...
+```
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
@@ -21750,9 +22770,89 @@ MaxPagesInMemory : EQU 37B9 + 417B
 
 ### 420B - GetUserRegisters (GRBLK)
 
-![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
 SwitchUserBreak allows you to save the registers when you terminate an ND-500 program with the ESCAPE key. You can get the contents of the registers with GetUserRegisters.
+
+#### Notes
+
+- 39 registers are saved.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Buffer` | ARRAY | I/O | 154 bytes containing the registers in their number sequence. |
+
+#### See Also
+
+- [SwitchUserBreak](#switchuserbreak)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+Buffer : ARRAY [0..4] OF RECORD...END;
+...
+GetUserRegister(Buffer);
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 Buffer.
+02 array COMP OCCURS 77 TIMES.
+...
+MONITOR-CALL "GetUserRegister" USING Buffer.
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER Buffer(77)
+...
+Monitor_Call('GetUserRegister', Buffer(1))
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+BYTES : Buffer(0:153)
+...
+Monitor_Call('GetUserRegister', Buffer(0))
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+Buffer : W BLOCK 50B
+GetUserRegister : EQU 37B9 + 420B
+...
+CALLG GetUserRegister, 1, Buffer
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Not available.
+
+</details>
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
