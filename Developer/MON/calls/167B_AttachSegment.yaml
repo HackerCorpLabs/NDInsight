@@ -6,14 +6,66 @@ octal: 167B
 name: AttachSegment
 short_names:
 - REENT
-description: Attaches a reentrant segment to your two current segments. The address areas of the segments
-  may overlap. Pages in the reentrant segment may be accessed for reading, writing, or fetching instructions.
-  When written to, a page loses its reentrancy. It is stored on one of your current overlapping segments.
+description: Attaches a reentrant segment to your two current segments. The address areas of the segments may overlap. Pages in the reentrant segment may be accessed for reading, writing, or fetching instructions. When written to, a page loses its reentrancy. It is stored on one of your current overlapping segments.
 notes:
 - The segment is treated as reentrant only for the RT programs which have attached it.
-see_also: []
-parameters: []
-examples: {}
+- Parts of the reentrant segment may not be outside the address area of your current segments. OUTSIDE SEGMENT BOUNDS is output if these parts are written to.
+see_also:
+- ReentrantSegment
+parameters:
+- name: SegmentNumber
+  type: INTEGER
+  io: I
+  description: Segment number of the reentrant segment. See @LIST-REENTRANT.
+examples:
+  pascal:
+    available: true
+    code: |-
+      SegmentNumber : INTEGER2;
+      ...
+      AttachSegment(SegmentNumber);
+    mon_number: null
+    notes: ''
+  cobol:
+    available: true
+    code: |-
+      01 SegmentNumber COMP.
+      ...
+      MONITOR-CALL "AttachSegment" USING SegmentNumber.
+    mon_number: null
+    notes: ''
+  fortran:
+    available: true
+    code: |-
+      INTEGER SegmentNumber
+      ...
+      Monitor_Call('AttachSegment', SegmentNumber)
+    mon_number: null
+    notes: ''
+  planc:
+    available: true
+    code: |-
+      INTEGER : SegmentNumber
+      ...
+      Monitor_Call('AttachSegment', SegmentNumber)
+    mon_number: null
+    notes: ''
+  assembly_500:
+    available: false
+    code: ''
+    mon_number: null
+    notes: Not available.
+  mac:
+    available: true
+    code: |-
+      LDA (PAR                 %Load register A with address of parameter list.
+      MON 167                  %Monitor call AttachSegment.
+      ...
+      PAR,
+      SEGNO                    %Segment number
+      SEGNO, ...
+    mon_number: 167
+    notes: ''
 compatibility:
   nd100: true
   nd500: true
@@ -29,5 +81,5 @@ source:
 extraction:
   date: '2025-01-06'
   version: '1.0'
-  validated: false
-  ocr_corrected: false
+  validated: true
+  ocr_corrected: true

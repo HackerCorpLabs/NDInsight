@@ -6,13 +6,51 @@ octal: 135B
 name: WaitForRestart
 short_names:
 - RTWT
-description: Sets the RT program in a waiting state. It is restarted by StartRTProgram or @RT. Execution
-  continues after the monitor call.
+description: Sets the RT program in a waiting state. It is restarted by StartRTProgram or @RT. Execution continues after the monitor call.
 notes:
 - The RT program restarts immediately if its restart flag is set.
-see_also: []
+- No reserved devices or files are released.
+see_also:
+- SuspendProgram
 parameters: []
-examples: {}
+examples:
+  pascal:
+    available: true
+    code: |-
+      WaitForRestart;
+    mon_number: null
+    notes: ''
+  cobol:
+    available: true
+    code: |-
+      MONITOR-CALL "WaitForRestart".
+    mon_number: null
+    notes: ''
+  fortran:
+    available: true
+    code: |-
+      Monitor_Call('WaitForRestart')
+    mon_number: null
+    notes: ''
+  planc:
+    available: true
+    code: |-
+      Monitor_Call('WaitForRestart')
+    mon_number: null
+    notes: ''
+  assembly_500:
+    available: true
+    code: |-
+      WaitForRestart : EQU 37B9 + 135B
+      ...
+      CALLG WaitForRestart, 0
+    octal_definition: 37B9 + 135B
+  mac:
+    available: true
+    code: |-
+      MON 135                  %Monitor call WaitForRestart.
+    mon_number: 135
+    notes: ''
 compatibility:
   nd100: true
   nd500: true
@@ -28,5 +66,5 @@ source:
 extraction:
   date: '2025-01-06'
   version: '1.0'
-  validated: false
-  ocr_corrected: false
+  validated: true
+  ocr_corrected: true
