@@ -6,18 +6,81 @@ octal: 325B
 name: BatchModeEcho
 short_names:
 - MBECH
-description: Controls echo of input and output if the program is executed in a batch or mode job. The
-  purpose is to allow the program to communicate with the terminal in mode jobs.
+description: Controls echo of input and output if the program is executed in a batch or mode job. The purpose is to allow the program to communicate with the terminal in mode jobs.
 notes:
 - The state set by this monitor call is reset when the next batch or mode job starts.
-see_also: []
-parameters: []
-examples: {}
+- This monitor call is mainly used by the JEC system.
+see_also:
+- SetEcho
+parameters:
+- name: ControlBitmask
+  type: INTEGER
+  io: I/O
+  description: 'Bit mask to set the echo. Bit 0 set to 1 means no echo in batch and mode executions. Bit 1 set to 1 means output on terminal from mode executions. Bit 2 set to 1 means input from terminal in mode executions. If the parameter is -1, the bit mask from the previous batch or mode job is returned in the A register (ASSEMBLY-500) or via the parameter (high-level languages).'
+examples:
+  pascal:
+    available: true
+    code: |-
+      ControlBitmask : INTEGER2;
+      ...
+      BatchModeEcho(ControlBitmask);
+    mon_number: null
+    notes: ''
+  cobol:
+    available: true
+    code: |-
+      01 ControlBitmask COMP.
+      ...
+      MONITOR-CALL "BatchModeEcho" USING ControlBitmask.
+    mon_number: null
+    notes: ''
+  fortran:
+    available: true
+    code: |-
+      INTEGER ControlBitmask
+      ...
+      Monitor_Call('BatchModeEcho', ControlBitmask)
+    mon_number: null
+    notes: ''
+  planc:
+    available: true
+    code: |-
+      INTEGER : ControlBitmask
+      ...
+      Monitor_Call('BatchModeEcho', ControlBitmask)
+    mon_number: null
+    notes: ''
+  assembly_500:
+    available: true
+    code: |-
+      OldMask : W BLOCK 1
+      %The lower 16 bit of the Il register holds the
+      % control bit mask from the previous BatchModeEcho
+      % if ControlBitMask was -1.
+      ControlBitmask : W BLOCK 1
+      ErrCode : W BLOCK 1
+      BatchModeEcho : EQU 37B9 + 325B
+      ...
+      CALLG BatchModeEcho, 1, ControlBitmask
+          IF K GO Error
+      W1 := OldMask
+      ...
+      Error, ...
+    octal_definition: 37B9 + 325B
+  mac:
+    available: true
+    code: |-
+      LDA CTRL                  %Load register A with control bitmask.
+      MON 325                   %Monitor call BatchModeEcho.
+      ...
+      CTRL, ...
+    mon_number: 325
+    notes: ''
 compatibility:
-  nd100: false
-  nd500: false
+  nd100: true
+  nd500: true
   user_programs: true
-  rt_programs: true
+  rt_programs: false
   system_programs: false
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
@@ -28,5 +91,5 @@ source:
 extraction:
   date: '2025-01-06'
   version: '1.0'
-  validated: false
-  ocr_corrected: false
+  validated: true
+  ocr_corrected: true
