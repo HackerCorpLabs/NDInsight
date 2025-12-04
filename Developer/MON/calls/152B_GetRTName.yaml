@@ -17,17 +17,14 @@ see_also:
 - '@GET-RT-NAME'
 - and @LIST-RT-Programs
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: RTProgram
+  type: INTEGER
   io: I
   description: The address of the RT description. Use 0 for the calling program.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: Name of the RT program. The name is returned with a terminal apostrophe if less than 7
-    characters long (applies to high-level languages). When using a high-level language together with
-    NPL or MAC, it is advisable to use an RT-program name of not more than 5 characters. (If no name is
-    found, D-reg.=0.)
+- name: RTProgramName
+  type: STRING
+  io: O
+  description: Name of the RT program (7 bytes). Returned with terminal apostrophe if less than 7 characters.
 examples:
   pascal:
     available: true

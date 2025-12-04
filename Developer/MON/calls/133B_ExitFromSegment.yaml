@@ -16,7 +16,11 @@ see_also:
 - JumpToSegment
 - ChangeSegment
 - SegmentFunction
-parameters: []
+parameters:
+- name: SegmentNumber
+  type: INTEGER
+  io: I
+  description: Segment number to return to (8-bit, values 0-255).
 examples:
   pascal:
     available: true

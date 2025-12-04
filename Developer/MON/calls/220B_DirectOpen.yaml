@@ -9,67 +9,22 @@ see_also:
 - OpenFile
 - CloseFile
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: FileNumber
+  type: INTEGER2
+  io: O
+  description: File number returned on success.
+- name: AccessCode
+  type: INTEGER2
   io: I
-  description: File number.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: Access code. The legal values are shown below.
-- name: '0'
-  type: Sequential write.
-  io: I
-  description: ''
-- name: '1'
-  type: Sequential read.
-  io: I
-  description: ''
-- name: '2'
-  type: Random read or write.
-  io: I
-  description: ''
-- name: '3'
-  type: Random read only.
-  io: I
-  description: ''
-- name: '4'
-  type: Sequential read or write.
-  io: I
-  description: ''
-- name: '5'
-  type: Sequential write append.
-  io: I
-  description: ''
-- name: '6'
-  type: Random read or write common on contiguous files.
-  io: I
-  description: ''
-- name: '7'
-  type: Random read common on contiguous files.
-  io: I
-  description: ''
-- name: '8'
-  type: Random read or write on contiguous files. Direct transfer for ReadFromFile, WriteToFile and DeviceFunction
-    in RT programs.
-  io: I
-  description: ''
-- name: '9'
-  type: Random read, write append for WriteToFile.
-  io: I
-  description: ''
-- name: Param13
-  type: UNKNOWN
+  description: 'Access code: 0=Sequential write, 1=Sequential read, 2=Random read/write, 3=Random read only, 4=Sequential read/write, 5=Sequential write append, 6=Random read/write common contiguous, 7=Random read common contiguous, 8=Random read/write contiguous direct transfer, 9=Random read/write append.'
+- name: FileName
+  type: STRING
   io: I
   description: File name.
-- name: Param14
-  type: UNKNOWN
+- name: FileType
+  type: STRING
   io: I
-  description: File type. Do not include the colon. Default is 'SYMB'.
-- name: Param15
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
+  description: File type. Do not include the colon. Default is SYMB.
 examples:
   pascal:
     available: true

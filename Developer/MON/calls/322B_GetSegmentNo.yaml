@@ -7,14 +7,10 @@ description: Gets the number of a segment in the ND-100. You specify the segment
 see_also:
 - GetSegmentEntry
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: SegmentName
+  type: STRING
   io: I
-  description: Segment name.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: Segment number. Nonexistent segment names return a negative value.
+  description: Segment name (6 characters).
 examples:
   pascal:
     available: true

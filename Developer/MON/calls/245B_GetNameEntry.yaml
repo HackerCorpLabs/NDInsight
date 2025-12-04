@@ -13,99 +13,14 @@ description: |-
 see_also:
 - GetDirEntry
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: NameIndex
+  type: INTEGER
   io: I
   description: The name index of the device.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: 'The 28 byte name entry. It contains the following:'
-- name: 0:15
-  type: Device name.
-  io: I
-  description: ''
-- name: '16:19'
-  type: Storage capacity in pages (PAVA1 and PAVA2)
-  io: I
-  description: ''
-- name: '20:21'
-  type: Sector size of the disk.
-  io: I
-  description: ''
-- name: '22:23'
-  type: Various flags.
-  io: I
-  description: ''
-- name: Bit 15
-  type: Cartridge disk.
-  io: I
-  description: ''
-- name: Bit 14
-  type: Not used.
-  io: I
-  description: ''
-- name: Bit 13
-  type: Single user device, e.g. floppy disk or magnetic tape.
-  io: I
-  description: ''
-- name: Bit 12
-  type: Not used.
-  io: I
-  description: ''
-- name: Bit 11
-  type: Magnetic tape station.
-  io: I
-  description: ''
-- name: Bit 10
-  type: EEC disks.
-  io: I
-  description: ''
-- name: Bit 9
-  type: Not used.
-  io: I
-  description: ''
-- name: Bit 8
-  type: Floppy disk.
-  io: I
-  description: ''
-- name: Bit 7
-  type: Phoenix disk.
-  io: I
-  description: ''
-- name: Bit 6
-  type: Little Winchester disk.
-  io: I
-  description: ''
-- name: Bit 5
-  type: SCSI streamer.
-  io: I
-  description: ''
-- name: Bit 4
-  type: SCSI disk.
-  io: I
-  description: ''
-- name: Bit 3
-  type: Read-only WORM disk (optical).
-  io: I
-  description: ''
-- name: Bit 2:0
-  type: Maximum number of subunits on this device (000<sub>2</sub> means 8 subunits, 001<sub>2</sub>-111<sub>2</sub>
-    means maximum number of subunits).
-  io: I
-  description: ''
-- name: '24:25'
-  type: Address of data transfer routine in SINTRAN III.
-  io: I
-  description: ''
-- name: '26:27'
-  type: Logical device number of the disk's semaphore.
-  io: I
-  description: ''
-- name: Param23
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
+- name: NameTableEntry
+  type: ARRAY
+  io: O
+  description: 'A 28 byte buffer receiving name entry: bytes 0-15=device name, 16-19=storage capacity (pages), 20-21=sector size, 22-23=flags (bit15=cartridge, bit13=single user, bit11=tape, bit10=EEC, bit8=floppy, bit7=Phoenix, bit6=Winchester, bit5=SCSI streamer, bit4=SCSI disk, bit3=WORM, bits0-2=max subunits), 24-25=transfer routine address, 26-27=semaphore LDN.'
 examples:
   pascal:
     available: true

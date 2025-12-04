@@ -15,22 +15,18 @@ see_also:
 - ClearInBuffer
 - OutBufferSpace
 parameters:
-- name: Logical device number.
-  type: See appendix B.
+- name: DeviceNumber
+  type: INTEGER
   io: I
-  description: ''
-- name: Number of bytes in the buffer.
-  type: ''
-  io: I
-  description: ''
-- name: Number of bytes before break
-  type: (zero if no break character in the buffer).
-  io: I
-  description: ''
-- name: Standard Error Code.
-  type: See appendix A.
-  io: I
-  description: ''
+  description: Logical device number. See appendix B.
+- name: NoInBuffer
+  type: INTEGER
+  io: O
+  description: Number of bytes currently in the buffer.
+- name: NoUntilBreak
+  type: INTEGER
+  io: O
+  description: Number of bytes until break character (0 if no break in buffer).
 examples:
   pascal:
     available: true

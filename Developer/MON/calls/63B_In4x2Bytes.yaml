@@ -17,22 +17,18 @@ see_also:
 - InByte
 - and Out8Bytes
 parameters:
-- name: Logical device number.
-  type: See appendix B.
+- name: DeviceNumber
+  type: INTEGER2
   io: I
-  description: ''
-- name: Number of bytes read.
-  type: ''
-  io: I
-  description: ''
-- name: The string of bytes read.
-  type: ''
-  io: I
-  description: ''
-- name: Standard Error Code.
-  type: See appendix A.
-  io: I
-  description: ''
+  description: Logical device number. See appendix B.
+- name: DataRead
+  type: BYTES[8]
+  io: O
+  description: The 8 bytes of data read (output).
+- name: NoOfBytes
+  type: INTEGER2
+  io: O
+  description: Number of bytes read (output, returned in W1).
 examples:
   pascal:
     available: true

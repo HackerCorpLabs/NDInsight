@@ -17,27 +17,10 @@ see_also:
 - GetUserParam
 - and SetUserParam
 parameters:
-- name: '1'
-  type: Bit 24:16 contain the user index. Bit 7:0 contains the directory index.
-  io: I
-  description: ''
-- name: '2'
-  type: Logical device number of the terminal.
-  io: I
-  description: ''
-- name: '3'
-  type: Fatal error or the monitor call ErrorMessage returns the error number. If escape was pressed,
-    -1 is returned.
-  io: I
-  description: ''
-- name: '4'
-  type: User defined.
-  io: I
-  description: ''
-- name: '5'
-  type: User defined.
-  io: I
-  description: ''
+- name: Buffer
+  type: ARRAY
+  io: O
+  description: '5-word buffer receiving: [0]=user/dir index, [1]=terminal device, [2]=error code, [3-4]=user defined.'
 examples:
   pascal:
     available: true

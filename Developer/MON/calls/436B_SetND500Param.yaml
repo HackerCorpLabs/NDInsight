@@ -14,27 +14,10 @@ see_also:
 - SetUserParam
 - and GetND500Param
 parameters:
-- name: '1'
-  type: Bit 24:16 contains the user index. Bit 15:0 contains the directory index.
+- name: Buffer
+  type: INTEGER2[5]
   io: I
-  description: ''
-- name: '2'
-  type: Logical device number of the terminal.
-  io: I
-  description: ''
-- name: '3'
-  type: Fatal error or the monitor call ErrorMessage returns the error number. If ESCAPE was pressed,
-    -1 is returned.
-  io: I
-  description: ''
-- name: '4'
-  type: Set by SetND500Param.
-  io: I
-  description: ''
-- name: '5'
-  type: Set by SetND500Param.
-  io: I
-  description: ''
+  description: '5-word buffer: [0]=user/dir index (bits 24:16=user, 15:0=directory), [1]=terminal device number, [2]=error number or -1 if ESCAPE, [3][4]=user parameters.'
 examples:
   pascal:
     available: true

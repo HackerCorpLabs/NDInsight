@@ -12,18 +12,14 @@ see_also:
 - SetTerminalFile
 - '@SET-PERIPHERAL-FILE'
 parameters:
-- name: ➞ File name for the peripheral. See appendix G.
-  type: UNKNOWN
+- name: FileName
+  type: STRING
   io: I
-  description: ''
-- name: ➞ Logical device number. See appendix B.
-  type: UNKNOWN
+  description: File name for the peripheral. See appendix G.
+- name: DeviceNumber
+  type: INTEGER2
   io: I
-  description: ''
-- name: ⬅ Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: I
-  description: ''
+  description: Logical device number. See appendix B.
 examples:
   pascal:
     available: true

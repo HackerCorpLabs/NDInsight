@@ -14,70 +14,30 @@ notes:
 - Use MON 122, ReserveResource, and MON 123, Release Resource for exclusive access to a LDN.
 see_also: []
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: Func
+  type: INTEGER
   io: I
-  description: 'Function code: Use 0 to send DCB to driver and 1 to receive DCB from driver'
-- name: Param2
-  type: UNKNOWN
+  description: 'Function code: 0=send DCB to driver, 1=receive DCB from driver'
+- name: DevNo
+  type: INTEGER
   io: I
-  description: 'Logical device number: There are different logical device numbers for the input and output
-    part. See appendix B.'
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: 'Address of driver control block: The first word in the DCB contains command information.
-    The commands are:'
-- name: Param4
-  type: UNKNOWN
-  io: I
+  description: Logical device number. Different LDNs for input and output part.
+- name: Buffer
+  type: ARRAY
+  io: IO
+  description: Address of driver control block buffer.
+- name: USize
+  type: INTEGER
+  io: IO
   description: Size of the used part of the driver control block in bytes.
-- name: Param5
-  type: UNKNOWN
+- name: MSize
+  type: INTEGER
   io: I
-  description: 'Depends on the function code: maximum size of the driver control block in bytes for the
-    SEND function, wait flag for the RECEIVE function. The program waits for a driver control block if
-    1. Use 0 to make the program continue.'
-- name: Param6
-  type: UNKNOWN
-  io: I
-  description: 'HDLC error code:'
-- name: Param7
-  type: UNKNOWN
-  io: I
-  description: '1: LDN not reserved by calling program.'
-- name: Param8
-  type: UNKNOWN
-  io: I
-  description: '2: Illegal LDN. Not known by SINTRAN.'
-- name: Param9
-  type: UNKNOWN
-  io: I
-  description: '3: No DCB in receiver queue.'
-- name: Param10
-  type: UNKNOWN
-  io: I
-  description: '4: No vacant buffer for DCB.'
-- name: Param11
-  type: UNKNOWN
-  io: I
-  description: '5: Illegal used DCB size (parameter 4).'
-- name: Param12
-  type: UNKNOWN
-  io: I
-  description: '6: Illegal LDN. Not permitted from this monitor call.'
-- name: Param13
-  type: UNKNOWN
-  io: I
-  description: '7: Max. DCB size (parameter 5) is less than used DCB size.'
-- name: Param14
-  type: UNKNOWN
-  io: I
-  description: '10: Illegal function.'
-- name: Param15
-  type: UNKNOWN
-  io: I
-  description: '11: Fatal error. The table is inconsistent.'
+  description: 'For SEND: max DCB size in bytes. For RECEIVE: wait flag (1=wait, 0=continue).'
+- name: Status
+  type: INTEGER
+  io: O
+  description: 'HDLC error code returned in W1: 1=LDN not reserved, 2=illegal LDN, 3=no DCB in queue, 4=no buffer, 5=illegal DCB size, 6=illegal LDN for this call, 7=max size < used size, 10=illegal function, 11=fatal error.'
 examples:
   pascal:
     available: false

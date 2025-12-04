@@ -10,14 +10,10 @@ see_also:
 - EnableRTStart
 - and @RTOFF
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: RTProgram
+  type: INTEGER2
   io: I
   description: Address of the RT description. 0 means calling program.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true

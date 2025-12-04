@@ -17,27 +17,10 @@ see_also:
 - '@DISABLE-TERMINATION-HANDLING'
 - and @SET-USER-PARAMETERS
 parameters:
-- name: '1'
-  type: The last byte contains the user index. The byte in front of it contains the directory index.
-  io: I
-  description: ''
-- name: '2'
-  type: Logical device number of the terminal.
-  io: I
-  description: ''
-- name: '3'
-  type: Fatal error or the monitor call ErrorMessage returns the error number. If escape was pressed,
-    -1 is returned.
-  io: I
-  description: ''
-- name: '4'
-  type: User defined.
-  io: I
-  description: ''
-- name: '5'
-  type: User defined.
-  io: I
-  description: ''
+- name: Buff
+  type: INTEGER2[5]
+  io: O
+  description: 5-word buffer for user parameters. [0]=dir/user index, [1]=terminal LDN, [2]=error number (-1 if escape), [3-4]=user defined.
 examples:
   pascal:
     available: true

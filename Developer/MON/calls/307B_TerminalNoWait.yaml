@@ -16,22 +16,18 @@ see_also:
 - OutByte
 - and NoWaitSwitch
 parameters:
-- name: DevNo
-  type: Logical device number of a character device. See appendix B.
+- name: DeviceNumber
+  type: INTEGER2
   io: I
-  description: ''
+  description: Logical device number of a character device. See appendix B.
 - name: IOFlag
-  type: Input or output flag. Use 0 for input and 1 for output.
+  type: INTEGER2
   io: I
-  description: ''
+  description: Input or output flag. Use 0 for input and 1 for output.
 - name: NoWaitFlag
-  type: No Wait flag. Use 0 to switch No Wait off, and any other number to switch it on.
+  type: INTEGER2
   io: I
-  description: ''
-- name: RetStatus
-  type: Return status.
-  io: I
-  description: ''
+  description: No Wait flag. Use 0 to switch No Wait off, and any other number to switch it on.
 examples:
   pascal:
     available: true

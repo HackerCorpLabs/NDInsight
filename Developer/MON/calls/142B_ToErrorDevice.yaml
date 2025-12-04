@@ -16,12 +16,12 @@ see_also:
 - ErrorMessage
 - and OutMessage
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: ErrorNumber
+  type: INTEGER
   io: I
-  description: Error number. You may use error numbers 50 to 69. This number is output following ERROR.
-- name: Param2
-  type: UNKNOWN
+  description: Error number (50-69). This number is output following ERROR.
+- name: SubErrorNumber
+  type: INTEGER
   io: I
   description: Suberror number.
 examples:

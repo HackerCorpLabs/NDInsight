@@ -17,14 +17,14 @@ see_also:
 - AdjustClock
 - DelayStart
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: RTProgram
+  type: INTEGER
   io: I
   description: Address of the RT description. Use 0 for the calling program.
-- name: Param2
-  type: UNKNOWN
+- name: BasicTimeUnits
+  type: INTEGER
   io: I
-  description: The number of basic time units to stay in the time queue.
+  description: The number of basic time units (1/50th second) to stay in the time queue.
 examples:
   pascal:
     available: true

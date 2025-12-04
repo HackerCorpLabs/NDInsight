@@ -18,11 +18,7 @@ see_also:
 - OnEscLocalFunction
 - DisableEscape
 - and DisableLocal
-parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
+parameters: []
 examples:
   pascal:
     available: true

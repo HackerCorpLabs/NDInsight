@@ -15,14 +15,10 @@ description: |-
 see_also:
 - ReleaseDir
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DirectoryIndex
+  type: INTEGER
   io: I
   description: Directory index. Use @LIST-DIRECTORIES to find the directory index.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true

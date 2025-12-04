@@ -14,14 +14,10 @@ description: 'Switches remote file access on and off. The COSMOS network allows 
 see_also:
 - QSET-LOCAL-MODE or QSET-REMOTE-MODE
 parameters:
-- name: ➞
-  type: Remote mode flag. Use 0 to switch remote mode off. Switch it on with 1.
+- name: Mode
+  type: INTEGER2
   io: I
-  description: ''
-- name: ⬅
-  type: Standard Error Code. See appendix A.
-  io: I
-  description: ''
+  description: Remote mode flag. Use 0 to switch remote mode off. Switch it on with 1.
 examples:
   pascal:
     available: true

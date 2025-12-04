@@ -15,16 +15,14 @@ see_also:
 - StartupTime
 - GetBasicTime
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: TimeUnits
+  type: INTEGER2
   io: I
-  description: Number of time units the clock will be adjusted by. Negative values make the clock halt
-    for the specified time.
-- name: Param2
-  type: UNKNOWN
+  description: Number of time units to adjust the clock by. Negative values make the clock halt for that time.
+- name: UnitType
+  type: INTEGER2
   io: I
-  description: The type of time units. 1 = basic time units, i.e. 1/50th of a second, 2 = seconds, 3 =
-    minutes, 4 = hours.
+  description: Time unit type. 1=basic units (1/50s), 2=seconds, 3=minutes, 4=hours.
 examples:
   pascal:
     available: true

@@ -17,18 +17,14 @@ see_also:
 - WriteToFile
 - and @SET-BLOCK-SIZE
 parameters:
-- name: ⮞
-  type: File number. See OpenFile.
+- name: FileNumber
+  type: INTEGER2
   io: I
-  description: ''
-- name: ⮞
-  type: Block size in bytes. It must be an even number.
+  description: File number. See OpenFile.
+- name: BlockSize
+  type: LONGINT
   io: I
-  description: ''
-- name: ⮜
-  type: Standard Error Code. See appendix A.
-  io: I
-  description: ''
+  description: Block size in bytes. Must be an even number. Factors of 2048 are most efficient.
 examples:
   pascal:
     available: true

@@ -10,27 +10,7 @@ description: Terminates the program and sets an error code. The error code can b
   IF-ERROR-MACRO-STOP and IF-ERROR-FULL-STOP commands in the ND-500 Monitor. See the manual ND Linker
   User Guide and Reference Manual (ND-860289) for details about macros.
 see_also: []
-parameters:
-- name: PASCAL
-  type: ''
-  io: I
-  description: ''
-- name: COBOL
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: MONITOR-CALL "ErrorReturn".
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: FORTRAN
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: Monitor_Call('ErrorReturn')
-  type: UNKNOWN
-  io: I
-  description: ''
+parameters: []
 examples:
   pascal:
     available: true

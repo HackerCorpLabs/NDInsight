@@ -14,14 +14,10 @@ see_also:
 - SetPeripheralName
 - '@SET-TERMINAL-FILE'
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: TerminalName
+  type: STRING
   io: I
-  description: File name.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
+  description: File name for terminals (64 chars), normally 'TERMINAL'.
 examples:
   pascal:
     available: false

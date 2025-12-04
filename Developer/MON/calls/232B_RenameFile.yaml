@@ -6,20 +6,16 @@ description: See also @RENAME-FILE.
 see_also:
 - '@RENAME-FILE'
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: OldFileName
+  type: STRING
   io: I
   description: Old file name.
-- name: Param2
-  type: UNKNOWN
+- name: NewFileName
+  type: STRING
   io: I
   description: New file name with file type, e.g. ADDRESS-LIST:TEXT. Do not use the directory name, the
     user name, or the version number. You may change the file type only. For example, specify :SYMB only.
     Include the colon.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true

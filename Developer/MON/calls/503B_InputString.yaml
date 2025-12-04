@@ -15,66 +15,62 @@ see_also:
 - InString
 - OutputString
 parameters:
-- name: Logical device number. See appendix B. Use 1 for your own terminal. The open file number is obtained by opening a file and specifying connection number 0. See the manual ND Linker User Guide and Reference Manual (ND-860289).
-  type: UNKNOWN
+- name: DevNo
+  type: INTEGER
   io: I
-  description: ''
-- name: Maximum number of bytes to read before break.
-  type: UNKNOWN
+  description: Logical device number. See appendix B. Use 1 for your own terminal.
+- name: MaxNo
+  type: INTEGER
   io: I
-  description: ''
-- name: Number of bytes read.
-  type: UNKNOWN
+  description: Maximum number of bytes to read before break.
+- name: NoOfBytesRet
+  type: INTEGER
   io: O
-  description: ''
-- name: Buffer to receive input.
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: Break setting. See SetBreak. Use 8 for the last user-defined break table.
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: Echo setting. See SetEcho. Use 8 for the last user-defined break table.
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: Break table, bit 0:31. Bits set to 1 cause break on the character.
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: Break table, bit 32:63.
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: Break table, bit 64:95.
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: Break table, bit 96:127.
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: Echo table, bit 0:31. Bits set to 0 cause echo on the character.
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: Echo table, bit 32:63.
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: Echo table, bit 64:95.
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: Echo table, bit 96:127.
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
+  description: Number of bytes read.
+- name: Buff
+  type: STRING
   io: O
-  description: ''
+  description: Buffer to receive input.
+- name: BreakStrat
+  type: INTEGER
+  io: I
+  description: Break setting. See SetBreak. Use 8 for user-defined break table.
+- name: EchoStrat
+  type: INTEGER
+  io: I
+  description: Echo setting. See SetEcho. Use 8 for user-defined echo table.
+- name: BreakT1
+  type: INTEGER
+  io: I
+  description: Break table bits 0:31. Bits set to 1 cause break.
+- name: BreakT2
+  type: INTEGER
+  io: I
+  description: Break table bits 32:63.
+- name: BreakT3
+  type: INTEGER
+  io: I
+  description: Break table bits 64:95.
+- name: BreakT4
+  type: INTEGER
+  io: I
+  description: Break table bits 96:127.
+- name: EchoT1
+  type: INTEGER
+  io: I
+  description: Echo table bits 0:31. Bits set to 0 cause echo.
+- name: EchoT2
+  type: INTEGER
+  io: I
+  description: Echo table bits 32:63.
+- name: EchoT3
+  type: INTEGER
+  io: I
+  description: Echo table bits 64:95.
+- name: EchoT4
+  type: INTEGER
+  io: I
+  description: Echo table bits 96:127.
 examples:
   pascal:
     available: true

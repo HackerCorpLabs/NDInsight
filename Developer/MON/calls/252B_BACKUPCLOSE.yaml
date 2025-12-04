@@ -12,18 +12,14 @@ notes:
 see_also:
 - CloseFile
 parameters:
-- name: File number of the opened file. See OpenFile.
-  type: UNKNOWN
+- name: FileNumber
+  type: INTEGER
   io: I
-  description: ''
-- name: Modified flag. If 0, the file is not marked as modified.
-  type: UNKNOWN
+  description: File number of the opened file. See OpenFile.
+- name: Flag
+  type: INTEGER
   io: I
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: O
-  description: ''
+  description: Modified flag. If 0, the file is not marked as modified.
 examples:
   pascal:
     available: true

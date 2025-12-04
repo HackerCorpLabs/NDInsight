@@ -9,7 +9,11 @@ description: 'Executes a privileged machine instruction on the ND-100. Privilege
   - The instruction uses the register contents of the calling program. The registers may be changed.'
 see_also:
 - IOInstruction
-parameters: []
+parameters:
+- name: Instruction
+  type: INTEGER
+  io: I
+  description: Privileged machine instruction to execute on the ND-100.
 examples:
   pascal:
     available: true

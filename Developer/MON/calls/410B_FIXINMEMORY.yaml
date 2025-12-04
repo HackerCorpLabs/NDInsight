@@ -12,26 +12,22 @@ notes:
 see_also:
 - MemoryUnfix
 parameters:
-- name: FixType. 0 = Fixes pages that are scattered (non-contiguous). 1 = Fixes pages contiguously and returns the starting address. 2 = Fixes pages at a given memory address.
-  type: UNKNOWN
+- name: FixType
+  type: INTEGER
   io: I
-  description: ''
-- name: FirstAddr. The starting address within the user's domain. This should be a 32-bit address, including the segment number.
-  type: UNKNOWN
+  description: '0=scattered (non-contiguous), 1=contiguous (returns address), 2=at given memory address.'
+- name: FirstAddr
+  type: INTEGER
   io: I
-  description: ''
-- name: Length. The length of the segment to fix, specified in bytes. A value of -1 can be used to fix the remaining part of the segment.
-  type: UNKNOWN
+  description: Starting address within user's domain (32-bit, includes segment number).
+- name: Length
+  type: INTEGER
   io: I
-  description: ''
-- name: ND100Addr. The physical memory address in the ND-100 system. This parameter is used if FixType is 1 or 2. The address provided or returned is the start of a physical page.
-  type: UNKNOWN
+  description: Length of segment to fix in bytes. -1 = fix remaining part.
+- name: ND100Addr
+  type: INTEGER
   io: IO
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: O
-  description: ''
+  description: Physical memory address in ND-100 (for FixType 1 or 2). Start of physical page.
 examples:
   pascal:
     available: true

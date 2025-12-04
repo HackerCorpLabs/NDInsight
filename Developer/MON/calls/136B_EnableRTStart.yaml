@@ -12,8 +12,8 @@ see_also:
 - DisableRTStart
 - and @RTON
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: RTProgram
+  type: INTEGER
   io: I
   description: Address of the RT description. 0 means calling program.
 examples:

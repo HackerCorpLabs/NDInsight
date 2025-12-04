@@ -14,14 +14,10 @@ see_also:
 - ClearInBuffer
 - DeviceControl
 parameters:
-- name: Logical device number. See appendix B.
-  type: UNKNOWN
+- name: DeviceNumber
+  type: INTEGER
   io: I
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: O
-  description: ''
+  description: Logical device number. See appendix B. Use 1 for your own terminal.
 examples:
   pascal:
     available: true

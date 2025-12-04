@@ -13,30 +13,14 @@ description: |-
 see_also:
 - GetTrapReason
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: ProcessNumber
+  type: INTEGER
   io: I
   description: Process number to be trapped.
-- name: Param2
-  type: UNKNOWN
+- name: ReasonCode
+  type: INTEGER
   io: I
-  description: Reason code. Bit 31:16 contains the process number and bit 15:0 the magic number.
-- name: Language
-  type: Availability
-  io: I
-  description: ''
-- name: PASCAL
-  type: Not available.
-  io: I
-  description: ''
-- name: COBOL
-  type: Not available.
-  io: I
-  description: ''
-- name: FORTRAN
-  type: Not available.
-  io: I
-  description: ''
+  description: Reason code. Bit 31:16=process number, bit 15:0=magic number.
 examples:
   planc:
     available: false

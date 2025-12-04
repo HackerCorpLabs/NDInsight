@@ -15,14 +15,10 @@ see_also:
 - '@DELETE-USERS-FILES'
 - and CreateFile
 parameters:
-- name: File name
-  type: ''
+- name: FileName
+  type: STRING
   io: I
-  description: ''
-- name: Standard Error Code
-  type: See appendix A.
-  io: I
-  description: ''
+  description: File name to delete. Include version number to delete specific version, otherwise all versions deleted.
 examples:
   pascal:
     available: true

@@ -22,7 +22,31 @@ see_also:
 - DataTransfer
 - ReadFromFile
 - and WriteToFile
-parameters: []
+parameters:
+- name: DeviceNumber
+  type: INTEGER
+  io: I
+  description: Logical device number.
+- name: Func
+  type: INTEGER
+  io: I
+  description: Function code.
+- name: MemAddr
+  type: INTEGER
+  io: I
+  description: Physical memory address.
+- name: BlockAddr
+  type: INTEGER
+  io: I
+  description: Block address on device.
+- name: NoOfBlocks
+  type: INTEGER
+  io: IO
+  description: Number of blocks to transfer.
+- name: ReturnStatus
+  type: INTEGER
+  io: O
+  description: Return status.
 examples:
   pascal:
     available: true

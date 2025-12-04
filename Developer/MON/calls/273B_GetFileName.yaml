@@ -14,35 +14,30 @@ description: |-
 see_also:
 - FullFileName
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DirIndex
+  type: INTEGER
   io: I
   description: Directory index.
-- name: Param2
-  type: UNKNOWN
+- name: UserIndex
+  type: INTEGER
   io: I
   description: User index.
-- name: Param3
-  type: UNKNOWN
+- name: ObjectIndex
+  type: INTEGER
   io: I
   description: Object index.
-- name: Param4
-  type: UNKNOWN
+- name: FileName
+  type: STRING
+  io: O
+  description: File name (64 chars).
+- name: RemoteFlag
+  type: INTEGER
   io: I
-  description: File name.
-- name: Param5
-  type: UNKNOWN
-  io: I
-  description: Remote flag. Use 0 for a file on the local computer. Use 1 for a file on a remote computer.
-    Specify the remote computer in the next parameter.
-- name: Param6
-  type: UNKNOWN
-  io: I
-  description: Remote system identification if remote flag is 1. Not returned by ND-500.
-- name: Param7
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
+  description: 0 for local file, 1 for remote file.
+- name: RemoteSystem
+  type: STRING
+  io: IO
+  description: Remote system identification if remote flag is 1 (64 chars). Not returned by ND-500.
 examples:
   pascal:
     available: true

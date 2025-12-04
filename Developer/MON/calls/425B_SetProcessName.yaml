@@ -13,7 +13,11 @@ description: |-
 see_also:
 - GetProcessNo
 - GetOwnProcessInfo
-parameters: []
+parameters:
+- name: ProcessName
+  type: STRING
+  io: I
+  description: New process name (up to 34 chars, max 16 chars + user name prefix).
 examples:
   pascal:
     available: true

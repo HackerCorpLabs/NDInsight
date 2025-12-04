@@ -16,7 +16,23 @@ description: 'Prints a file. The printer has a queue of files waiting to be outp
 see_also:
 - CloseSpoolingFile
 - '@APPEND-SPOOLING-FILE'
-parameters: []
+parameters:
+- name: FileName
+  type: STRING
+  io: I
+  description: File name to print (64 chars).
+- name: PrinterName
+  type: STRING
+  io: I
+  description: Spooling device name, e.g. 'LINE-PRINTER' (64 chars).
+- name: NoOfCopies
+  type: INTEGER
+  io: I
+  description: Number of copies (bits 0-14). Set bit 15 if UserText is present.
+- name: UserText
+  type: STRING
+  io: I
+  description: Optional message to operator (128 chars). Only used if bit 15 of NoOfCopies is set.
 examples:
   pascal:
     available: true

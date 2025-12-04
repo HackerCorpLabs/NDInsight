@@ -16,26 +16,22 @@ see_also:
 - CloseFile
 - '@SCRATCH-OPEN'
 parameters:
-- name: File number. Used by monitor calls for input and output.
-  type: UNKNOWN
+- name: FileNo
+  type: INTEGER
   io: O
-  description: ''
-- name: Access code. 0 = Sequential write, 1 = Sequential read, 2 = Random read or write, 3 = Random read only, 4 = Sequential read or write, 5 = Sequential write append, 6 = Random read or write common on contiguous files, 7 = Random read common on contiguous files, 8 = Random read or write on contiguous files. Direct transfer for ReadFromFile, WriteToFile and DeviceFunction in RT programs, 9 = Random read, write append for WriteToFile and ReadFromFile.
-  type: UNKNOWN
+  description: File number returned for use with other monitor calls.
+- name: AccessCode
+  type: INTEGER
   io: I
-  description: ''
-- name: File name. The name of the file to be opened.
-  type: UNKNOWN
+  description: 'Access code: 0=seq write, 1=seq read, 2=random R/W, 3=random read, 4=seq R/W, 5=seq write append, 6-9=contiguous file modes.'
+- name: FileName
+  type: STRING
   io: I
-  description: ''
-- name: Default file type. Specifies the file type. The colon should not be included.
-  type: UNKNOWN
+  description: Name of the file to be opened.
+- name: FileType
+  type: STRING
   io: I
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: O
-  description: ''
+  description: Default file type without colon.
 examples:
   pascal:
     available: true

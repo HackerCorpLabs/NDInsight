@@ -17,30 +17,30 @@ see_also:
 - ReadFromFile
 - WriteToFile. TransferData allows you to use any page table
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNo
+  type: INTEGER
   io: I
   description: Logical device number. See appendix B.
-- name: Param2
-  type: UNKNOWN
+- name: Func
+  type: INTEGER
   io: I
   description: Function code. See the tables on the following pages.
-- name: Param3
-  type: UNKNOWN
+- name: MemoryAddr
+  type: INTEGER
   io: I
-  description: Physical memory address.
-- name: Param4
-  type: UNKNOWN
+  description: Physical memory address (32-bit).
+- name: BlockAddr
+  type: INTEGER
   io: I
   description: Block address on the disk. See the tables on the following pages.
-- name: Param5
-  type: UNKNOWN
+- name: NoOfBlocks
+  type: INTEGER
   io: I
   description: Number of blocks to transfer.
-- name: Param6
-  type: UNKNOWN
-  io: I
-  description: Error code. Negative if error. Contains a hardware status.
+- name: Stat
+  type: INTEGER
+  io: O
+  description: Error code returned in W1. Negative if error. Contains a hardware status.
 examples:
   pascal:
     available: true

@@ -13,14 +13,10 @@ see_also:
 - StopProcess
 - SwitchProcess
 parameters:
-- name: Process number.
-  type: UNKNOWN
+- name: ProcessNumber
+  type: INTEGER
   io: I
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: O
-  description: ''
+  description: Process number to start.
 examples:
   pascal:
     available: true

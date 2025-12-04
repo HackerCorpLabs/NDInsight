@@ -22,7 +22,20 @@ see_also:
 - TimeOut
 - WaitForRestart
 - '@HOLD'
-parameters: []
+parameters:
+- name: TimeUnits
+  type: INTEGER
+  io: I
+  description: Number of time units to suspend the program. Should not be zero.
+- name: UnitType
+  type: INTEGER
+  io: I
+  description: |-
+    Type of time units:
+    1 = basic time units (1/50th second)
+    2 = seconds
+    3 = minutes
+    4 = hours
 examples:
   pascal:
     available: true

@@ -14,13 +14,13 @@ see_also:
 - GetOwnProcessInfo
 - SetProcessName
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: ProcessName
+  type: STRING
   io: I
-  description: Process name. You may include a user name, e.g. (P-HANSEN)WP-PROCESS.
-- name: Param2
-  type: UNKNOWN
-  io: I
+  description: Process name. May include a user name, e.g. (P-HANSEN)WP-PROCESS.
+- name: ProcessNumber
+  type: INTEGER
+  io: O
   description: Process number in bit 31:16 and magic number in bit 15:0.
 examples:
   pascal:

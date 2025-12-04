@@ -16,7 +16,11 @@ description: |-
 see_also:
 - '`ExecuteCommand`'
 - '`CallCommand`'
-parameters: []
+parameters:
+- name: Command
+  type: STRING
+  io: I
+  description: String to transfer to the command buffer (up to 32 characters).
 examples:
   pascal:
     available: true

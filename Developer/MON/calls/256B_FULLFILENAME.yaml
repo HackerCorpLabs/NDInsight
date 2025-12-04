@@ -14,22 +14,18 @@ notes:
 see_also:
 - GetFileName
 parameters:
-- name: Abbreviated File Name. The abbreviated file name. May include a file type.
-  type: UNKNOWN
+- name: AbbrevFileName
+  type: STRING
   io: I
-  description: ''
-- name: Full File Name. The complete file name, terminated by an apostrophe (').
-  type: UNKNOWN
+  description: Abbreviated file name string (64 chars). May include a file type.
+- name: FileName
+  type: STRING
   io: O
-  description: ''
-- name: Default File Type. The default file type (do not include the colon). This parameter is used on ND-100 only and is ignored by the ND-500.
-  type: UNKNOWN
+  description: Buffer to receive complete file name, terminated by apostrophe (64 chars).
+- name: FileType
+  type: STRING
   io: I
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: O
-  description: ''
+  description: Default file type string (4 chars). Used on ND-100 only, ignored by ND-500.
 examples:
   pascal:
     available: true

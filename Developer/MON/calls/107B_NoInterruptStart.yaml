@@ -16,8 +16,8 @@ see_also:
 - StartOnInterrupt
 - '@DSCNT'
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: RTProgram
+  type: INTEGER
   io: I
   description: Address of RT description.
 examples:

@@ -15,14 +15,10 @@ see_also:
 - ClearOutBuffer
 - and DeviceControl
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNumber
+  type: INTEGER
   io: I
   description: Logical device number. See appendix B.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true

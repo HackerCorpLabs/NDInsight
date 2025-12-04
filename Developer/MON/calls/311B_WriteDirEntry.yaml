@@ -15,18 +15,14 @@ see_also:
 - GetDirUserIndexes
 - and GetDirEntry
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DirIndex
+  type: INTEGER
   io: I
   description: The directory index. See GetDirUserIndexes.
-- name: Param2
-  type: UNKNOWN
+- name: DirEntry
+  type: ARRAY
   io: I
   description: The 48 byte directory entry. See Appendix C.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See Appendix A.
 examples:
   pascal:
     available: true

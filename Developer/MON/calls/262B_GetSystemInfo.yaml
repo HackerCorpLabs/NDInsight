@@ -10,19 +10,14 @@ description: Gets various system information. The system number, the CPU type, t
   the instruction set, the patch indicator, and the system generation time are returned.
 see_also: []
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: Number
+  type: INTEGER
   io: I
-  description: A number. It should always be 0.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: 'The i2-word (24 byte) array containing system information. Details are given on page *3
-    #SYS-INFO'
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
+  description: A number. Should always be 0.
+- name: Buffer
+  type: ARRAY
+  io: O
+  description: A 24 byte (12 word) buffer receiving system information (CPU type, SINTRAN version, instruction set, etc.).
 examples:
   pascal:
     available: true

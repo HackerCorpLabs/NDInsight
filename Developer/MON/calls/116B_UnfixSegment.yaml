@@ -16,8 +16,8 @@ see_also:
 - FixIOArea
 - and @UNFIX
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: SegmentNumber
+  type: INTEGER
   io: I
   description: Segment number to be released.
 examples:

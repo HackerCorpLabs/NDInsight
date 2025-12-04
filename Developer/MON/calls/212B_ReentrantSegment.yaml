@@ -13,8 +13,8 @@ description: Connects a reentrant segment to your two current segments. All modi
 see_also:
 - AttachSegment
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: SegmentNumber
+  type: INTEGER
   io: I
   description: Segment number to attach.
 examples:

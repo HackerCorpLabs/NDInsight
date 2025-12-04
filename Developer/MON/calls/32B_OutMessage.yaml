@@ -18,7 +18,11 @@ see_also:
 - OutputString
 - OutNumber
 - and OutByte
-parameters: []
+parameters:
+- name: Message
+  type: STRING
+  io: I
+  description: String message to write to user's terminal (max 512 characters).
 examples:
   pascal:
     available: true

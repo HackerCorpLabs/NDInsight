@@ -13,31 +13,7 @@ description: |-
 see_also:
 - ExitFromProgram
 - StopRTProgram
-parameters:
-- name: Pascal
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: ExitRTProgram;
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: COBOL
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: MONITOR-CALL "ExitRTProgram".
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: FORTRAN
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: Monitor_Call('ExitRTProgram')
-  type: UNKNOWN
-  io: I
-  description: ''
+parameters: []
 examples:
   planc:
     available: true

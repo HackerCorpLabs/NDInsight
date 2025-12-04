@@ -15,18 +15,18 @@ see_also:
 - CAMACIOInstruction
 - '@EXECUTE-IOX'
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: RegContents
+  type: INTEGER2
   io: I
   description: Register contents before execution.
-- name: Param2
-  type: UNKNOWN
+- name: DevRegAddr
+  type: INTEGER2
   io: I
   description: Device register address.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: Register contents after execution.
+- name: ContentsAfter
+  type: INTEGER2
+  io: O
+  description: Register contents after execution (output, returned in W1).
 examples:
   pascal:
     available: true

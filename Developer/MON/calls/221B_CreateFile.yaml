@@ -18,22 +18,18 @@ see_also:
 - NewFileVersion
 - and ExpandFile
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: FileName
+  type: STRING
   io: I
   description: File name. Default file type is :DATA.
-- name: Param2
-  type: UNKNOWN
+- name: StartAddress
+  type: INTEGER2
   io: I
   description: Start address in the directory. Use 0 if you want to create a contiguous or indexed file.
-- name: Param3
-  type: UNKNOWN
+- name: NoOfPages
+  type: INTEGER2
   io: I
   description: Length of the file in pages. Use 0 if you want to create an indexed file.
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true

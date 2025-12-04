@@ -16,15 +16,7 @@ see_also:
 - JumpToSegment
 - ExitFromSegment
 - and SegmentFunction
-parameters:
-- name: Pascal
-  type: Cobol
-  io: Fortran
-  description: ''
-- name: Not available.
-  type: Not available.
-  io: Not available.
-  description: ''
+parameters: []
 examples:
   planc:
     available: false

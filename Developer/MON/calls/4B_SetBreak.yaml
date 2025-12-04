@@ -15,52 +15,22 @@ description: |-
 see_also:
 - SetEcho
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNo
+  type: INTEGER
   io: I
-  description: '**Logical device number.** See appendix B. Only used by RT programs. Your own terminal
-    is always selected for background programs.'
-- name: Param2
-  type: UNKNOWN
+  description: Logical device number. Only used by RT programs; background programs use own terminal.
+- name: BreakStrategy
+  type: INTEGER
   io: I
-  description: '**Break strategy.** Negative values gives break on no characters.'
-- name: '0'
-  type: Break on all characters.
+  description: 'Break strategy: <0=none, 0=all, 1=control chars, 2=MAC, 3-6=system, 7=user table, 8=last user, 9=max chars only.'
+- name: Table
+  type: ARRAY
   io: I
-  description: ''
-- name: '1'
-  type: Break on control characters, i.e. ASCII values less than 32 and DEL. This is the default.
+  description: User-defined 128-bit break table (8 words). Only used with strategy 7.
+- name: NoOfChar
+  type: INTEGER
   io: I
-  description: ''
-- name: '2'
-  type: Special break table used by the MAC assembler.
-  io: I
-  description: ''
-- name: 3-6
-  type: System defined break strategy.
-  io: I
-  description: ''
-- name: '7'
-  type: User-defined break table. See the next parameter.
-  io: I
-  description: ''
-- name: '8'
-  type: Last user-defined break table. (Only meaningful with strategy 7.)
-  io: I
-  description: ''
-- name: '9'
-  type: Change the maximum numbers of characters before break only.
-  io: I
-  description: ''
-- name: Param10
-  type: UNKNOWN
-  io: I
-  description: '**User-defined break table, i.e. 128 bits which represent the ASCII characters. Use 1
-    for the characters you want as break characters. See the ASCII table in appendix F.**'
-- name: Param11
-  type: UNKNOWN
-  io: I
-  description: '**Maximum number of characters before break.** Dummy with break strategies 0, 1, 2.'
+  description: Maximum number of characters before break. Dummy for strategies 0, 1, 2.
 examples:
   pascal:
     available: true

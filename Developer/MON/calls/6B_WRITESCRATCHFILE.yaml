@@ -17,18 +17,14 @@ see_also:
 - WriteToFile
 - and ReadScratchFile
 parameters:
-- name: ➔
-  type: Block number to start the writing from.
+- name: BlockNumber
+  type: INTEGER
   io: I
-  description: ''
-- name: ➔
-  type: The data to be transferred.
+  description: Block number to start writing to. First block is 0.
+- name: Buffer
+  type: ARRAY
   io: I
-  description: ''
-- name: ⬅
-  type: Standard Error Code. See appendix A.
-  io: I
-  description: ''
+  description: Buffer address containing data to write (256 words / 512 bytes).
 examples:
   pascal:
     available: true

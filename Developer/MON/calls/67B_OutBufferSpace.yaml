@@ -15,18 +15,14 @@ see_also:
 - ClearOutBuffer
 - InBufferSpace
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNumber
+  type: INTEGER2
   io: I
-  description: Logical device number. See appendix B.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: Number of bytes which can be written before the program must wait.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
+  description: Logical device number. See appendix B. Use 1 for your own terminal.
+- name: NoOfBytes
+  type: INTEGER2
+  io: O
+  description: Number of free bytes in output buffer (output, returned in W1).
 examples:
   pascal:
     available: true

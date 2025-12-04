@@ -14,7 +14,11 @@ see_also:
 - GetErrorMessage
 - ErrorMessage. ErrorMessage writes out the error message
 - terminates the program
-parameters: []
+parameters:
+- name: ErrCode
+  type: INTEGER
+  io: I
+  description: Error code number. Error code 0 is illegal. See appendix A.
 examples:
   pascal:
     available: true

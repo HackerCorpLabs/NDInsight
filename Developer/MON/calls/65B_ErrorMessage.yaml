@@ -14,7 +14,11 @@ description: |-
 see_also:
 - GetErrorMessage
 - WarningMessage. WarningMessage writes out the error message without terminating the program
-parameters: []
+parameters:
+- name: ErrNumber
+  type: INTEGER
+  io: I
+  description: Error number of message to display. Do not input error number 0.
 examples:
   pascal:
     available: true

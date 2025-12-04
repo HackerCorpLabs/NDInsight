@@ -16,18 +16,14 @@ see_also:
 - '@SET-BLOCK-POINTER. The monitor call is identical to SetStartByte with the block number multiplied
   by the block size as parameter'
 parameters:
-- name: File number
-  type: See OpenFile.
+- name: FileNumber
+  type: INTEGER
   io: I
-  description: ''
-- name: Block number
-  type: Next block to be read or written.
+  description: File number. See OpenFile.
+- name: BlockNumber
+  type: INTEGER
   io: I
-  description: ''
-- name: Standard Error Code
-  type: See appendix A.
-  io: I
-  description: ''
+  description: Block number. Next block to be read or written. First block is 0.
 examples:
   pascal:
     available: true

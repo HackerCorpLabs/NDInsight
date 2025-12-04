@@ -14,42 +14,14 @@ description: |-
 see_also:
 - '@TERMINAL-STATUS'
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNumber
+  type: INTEGER
   io: I
-  description: ⟶ Logical device number of a terminal. Use 1 for your own terminal.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: '⟵ Information about the terminal. The 44 bytes are used as follows:'
-- name: 0:15
-  type: Name of user logged in. Terminated by '.' if less than 16 bytes.
-  io: I
-  description: ''
-- name: '16:17'
-  type: Mode. 1 means command. 2 means program running.
-  io: I
-  description: ''
-- name: '18:19'
-  type: State. -1 means no one logged in. 0 means idle batch processor. 1 means active terminal.
-  io: I
-  description: ''
-- name: '20:21'
-  type: CPU time used in minutes.
-  io: I
-  description: ''
-- name: '22:23'
-  type: Time logged in in minutes.
-  io: I
-  description: ''
-- name: '24:43'
-  type: The last command executed. Terminated by an ' (apostrophe).
-  io: I
-  description: ''
-- name: Param9
-  type: UNKNOWN
-  io: I
-  description: ⟵ Standard Error Code. See appendix A.
+  description: Logical device number of a terminal. Use 1 for your own terminal.
+- name: Buffer
+  type: ARRAY
+  io: O
+  description: '44 byte buffer receiving terminal info: bytes 0-15=user name, 16-17=mode (1=command, 2=program), 18-19=state (-1=not logged in, 0=idle batch, 1=active), 20-21=CPU time (min), 22-23=time logged in (min), 24-43=last command.'
 examples:
   pascal:
     available: true

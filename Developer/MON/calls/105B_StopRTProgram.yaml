@@ -12,7 +12,11 @@ description: 'Stops an RT program. It is removed from the time or execution queu
 see_also:
 - ExitRTProgram
 - '@ABORT'
-parameters: []
+parameters:
+- name: RTProgram
+  type: INTEGER
+  io: I
+  description: Address of RT description. 0 means calling program.
 examples:
   pascal:
     available: false

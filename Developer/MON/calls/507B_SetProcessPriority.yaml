@@ -13,7 +13,11 @@ description: |-
   - With SetProcessPriority, you may fix the priority.
 see_also:
 - SetRTPriority
-parameters: []
+parameters:
+- name: NewPriority
+  type: INTEGER
+  io: I
+  description: New priority value (0-255). 0 allows SINTRAN to manage priority dynamically.
 examples:
   pascal:
     available: true

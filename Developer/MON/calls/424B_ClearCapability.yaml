@@ -10,18 +10,14 @@ description: 'Clears a capability. A capability describes each logical segment i
 see_also:
 - CopyCapability
 parameters:
-- name: Logical segment number in your domain.
-  type: Logical segment number in your domain.
+- name: LogicalSegmentNo
+  type: INTEGER2
   io: I
-  description: ''
-- name: Segment type. Use 0 for data segments, and 1 for program segments.
-  type: Segment type. Use 0 for data segments, and 1 for program segments.
+  description: Logical segment number in your domain.
+- name: SegmentType
+  type: INTEGER2
   io: I
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: Standard Error Code. See appendix A.
-  io: I
-  description: ''
+  description: 'Segment type: 0=data segments, 1=program segments.'
 examples:
   pascal:
     available: true

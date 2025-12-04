@@ -13,7 +13,11 @@ notes:
 - Address. Only the segment number in the address is significant.
 see_also:
 - FixInMemory
-parameters: []
+parameters:
+- name: Address
+  type: INTEGER
+  io: I
+  description: Address containing segment number to unfix.
 examples:
   pascal:
     available: true

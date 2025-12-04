@@ -13,10 +13,10 @@ description: |-
 see_also:
 - SetOutputFlags
 parameters:
-- name: ➞
-  type: Flag values as a 32-bit integer.
+- name: Value
+  type: INTEGER
   io: I
-  description: ''
+  description: Flag values as a 32-bit integer.
 examples:
   pascal:
     available: true

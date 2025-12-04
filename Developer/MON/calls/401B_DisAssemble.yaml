@@ -9,16 +9,16 @@ notes:
 - Causes an error return in ND-500 if called from a standard domain started directly from SINTRAN III.
 see_also: []
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: ProgPointer
+  type: INTEGER2
   io: I
   description: Program address.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: The assembly instruction.
-- name: Param3
-  type: UNKNOWN
+- name: ReturnString
+  type: STRING
+  io: O
+  description: The assembly instruction as text.
+- name: MaxNoOfChar
+  type: INTEGER2
   io: I
   description: Maximum number of characters in the assembly instruction.
 examples:

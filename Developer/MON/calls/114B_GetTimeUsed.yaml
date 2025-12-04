@@ -12,10 +12,10 @@ description: 'Gets the time you have used the CPU since you logged in. In batch 
 see_also:
 - '@TIME-USED'
 parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
-  description: The CPU time used.
+- name: TimeUsed
+  type: LONGINT
+  io: O
+  description: CPU time used in basic time units (1/50s). Output returned in W1 register.
 examples:
   pascal:
     available: true

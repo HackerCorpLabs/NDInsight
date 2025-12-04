@@ -23,18 +23,14 @@ see_also:
 - OutNumber
 - and InByte
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNumber
+  type: INTEGER
   io: I
   description: Logical device number. See appendix B. Use 1 for your own terminal.
-- name: Param2
-  type: UNKNOWN
+- name: OutputValue
+  type: INTEGER
   io: I
   description: The byte to write.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true

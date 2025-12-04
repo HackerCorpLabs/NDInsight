@@ -9,23 +9,19 @@ description: 'Writes all modified pages of a segment back to the disk.
 see_also:
 - SaveSegment
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: LogSegmentNo
+  type: INTEGER2
   io: I
   description: Logical segment number in the domain. If 0, the segment number is retrieved from the parameter
     address.
-- name: Param2
-  type: UNKNOWN
+- name: FirstPage
+  type: INTEGER2
   io: I
   description: First logical page in the segment.
-- name: Param3
-  type: UNKNOWN
+- name: LastPage
+  type: INTEGER2
   io: I
   description: Last logical page in the segment.
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true

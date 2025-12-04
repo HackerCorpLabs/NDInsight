@@ -20,47 +20,33 @@ see_also:
 - DirectOpen
 - and @OPEN-FILE
 parameters:
-- name: '0'
-  type: Sequential write.
+- name: FileNo
+  type: INTEGER
+  io: IO
+  description: If 0 on input, returns the ND-500 open file number. Otherwise specifies the file number to use.
+- name: AccessCode
+  type: INTEGER
   io: I
-  description: ''
-- name: '1'
-  type: Sequential read.
+  description: |-
+    Access code specifying type of file access:
+    0 = Sequential write
+    1 = Sequential read
+    2 = Random read or write
+    3 = Random read only
+    4 = Sequential read or write
+    5 = Sequential write append
+    6 = Random read or write common on contiguous files
+    7 = Random read common on contiguous files
+    8 = Random read or write on contiguous files (direct transfer for RT programs)
+    9 = Random read, write append for WriteToFile
+- name: FileName
+  type: STRING
   io: I
-  description: ''
-- name: '2'
-  type: Random read or write.
+  description: File name string (up to 64 characters). If empty, name is read from terminal.
+- name: FileType
+  type: STRING
   io: I
-  description: ''
-- name: '3'
-  type: Random read only.
-  io: I
-  description: ''
-- name: '4'
-  type: Sequential read or write.
-  io: I
-  description: ''
-- name: '5'
-  type: Sequential write append.
-  io: I
-  description: ''
-- name: '6'
-  type: Random read or write common on contiguous files.
-  io: I
-  description: ''
-- name: '7'
-  type: Random read common on contiguous files.
-  io: I
-  description: ''
-- name: '8'
-  type: Random read or write on contiguous files. Direct transfer for ReadFromFile, WriteToFile and DeviceFunction
-    in RT programs.
-  io: I
-  description: ''
-- name: '9'
-  type: Random read, write append for WriteToFile.
-  io: I
-  description: ''
+  description: Default file type string (up to 4 characters), e.g. 'SYMB'.
 examples:
   pascal:
     available: true

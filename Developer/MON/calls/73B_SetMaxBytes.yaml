@@ -15,18 +15,14 @@ see_also:
 - GetBytesInfile
 - SetStartByte
 parameters:
-- name: File number. See OpenFile.
-  type: UNKNOWN
+- name: FileNumber
+  type: INTEGER
   io: I
-  description: ''
-- name: Maximum file size in bytes.
-  type: UNKNOWN
+  description: File number. See OpenFile.
+- name: MaxBytePointer
+  type: INTEGER4
   io: I
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: I
-  description: ''
+  description: Maximum file size in bytes (32-bit value).
 examples:
   pascal:
     available: true

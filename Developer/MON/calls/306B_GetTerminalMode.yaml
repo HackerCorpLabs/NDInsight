@@ -8,86 +8,14 @@ see_also:
 - TerminalMode
 - '@TERMINAL-MODE'
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNumber
+  type: INTEGER2
   io: I
   description: The logical device number of the terminal. See appendix B.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: The terminal mode. The numbers below are used.
-- name: Terminal mode
-  type: Capital letters?
-  io: Delay after return?
-  description: Stop on full page?
-- name: '0'
-  type: 'No'
-  io: 'No'
-  description: 'No'
-- name: '1'
-  type: 'Yes'
-  io: 'No'
-  description: 'No'
-- name: '2'
-  type: 'No'
-  io: 'Yes'
-  description: 'No'
-- name: '3'
-  type: 'Yes'
-  io: 'Yes'
-  description: 'No'
-- name: '4'
-  type: 'No'
-  io: 'No'
-  description: 'Yes'
-- name: '5'
-  type: 'Yes'
-  io: 'No'
-  description: 'Yes'
-- name: '6'
-  type: 'No'
-  io: 'Yes'
-  description: 'Yes'
-- name: '7'
-  type: 'Yes'
-  io: 'Yes'
-  description: 'Yes'
-- name: '8'
-  type: 'No'
-  io: 'No'
-  description: 'No'
-- name: '9'
-  type: 'Yes'
-  io: 'No'
-  description: 'No'
-- name: '10'
-  type: 'No'
-  io: 'Yes'
-  description: 'No'
-- name: '11'
-  type: 'Yes'
-  io: 'Yes'
-  description: 'No'
-- name: '12'
-  type: 'No'
-  io: 'No'
-  description: 'Yes'
-- name: '13'
-  type: 'Yes'
-  io: 'No'
-  description: 'Yes'
-- name: '14'
-  type: 'No'
-  io: 'Yes'
-  description: 'Yes'
-- name: '15'
-  type: 'Yes'
-  io: 'Yes'
-  description: 'Yes'
-- name: Param20
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
+- name: TerminalMode
+  type: INTEGER2
+  io: O
+  description: 'The terminal mode. Bit 0: Capital letters. Bit 1: Delay after return. Bit 2: Stop on full page. Bit 3: (modes 8-15).'
 examples:
   pascal:
     available: true

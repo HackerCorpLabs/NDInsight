@@ -14,8 +14,8 @@ see_also:
 - StartProcess
 - StopProcess
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: ProcessNumber
+  type: INTEGER
   io: I
   description: Process number to start.
 examples:

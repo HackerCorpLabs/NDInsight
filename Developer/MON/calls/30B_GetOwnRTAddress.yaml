@@ -14,10 +14,10 @@ see_also:
 - GetRTName
 - and @LIST-RT-PROGRAMS
 parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
-  description: The RT description address.
+- name: RTDescrAddress
+  type: INTEGER
+  io: O
+  description: The RT description address returned in W1.
 examples:
   pascal:
     available: true

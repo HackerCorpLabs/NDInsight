@@ -14,14 +14,14 @@ description: |-
 see_also:
 - InByte
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNumber
+  type: INTEGER
   io: I
   description: Logical device number of a terminal.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: The last character typed on the terminal.
+- name: LastCharTyped
+  type: INTEGER
+  io: O
+  description: The last character typed on the terminal. Returns -1 on error.
 examples:
   pascal:
     available: true

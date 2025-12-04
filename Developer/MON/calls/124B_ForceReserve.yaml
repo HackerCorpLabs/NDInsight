@@ -17,23 +17,18 @@ see_also:
 - ReserveResource
 - and @PRSRV
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNo
+  type: INTEGER2
   io: I
   description: Logical device number. See appendix B.
-- name: Param2
-  type: UNKNOWN
+- name: IOFlag
+  type: INTEGER2
   io: I
-  description: Input or output flag. Use 0 for the input part and 1 for the output part.
-- name: Param3
-  type: UNKNOWN
+  description: Input/output flag. 0=input part, 1=output part.
+- name: RTProgram
+  type: INTEGER2
   io: I
   description: RT description address of the RT program to reserve the device. Use 0 for your own program.
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: Return status. 0 means OK. A negative value is returned if the device already was reserved.
-    No value is returned from the ND-500.
 examples:
   pascal:
     available: true

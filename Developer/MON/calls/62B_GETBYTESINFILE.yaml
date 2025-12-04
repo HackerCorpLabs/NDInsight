@@ -15,18 +15,14 @@ see_also:
 - GetBytesInFile
 - '@FILE-STATISTICS'
 parameters:
-- name: File number. See OpenFile.
-  type: UNKNOWN
+- name: FileNumber
+  type: INTEGER
   io: I
-  description: ''
-- name: Number of bytes in the file.
-  type: UNKNOWN
+  description: File number. See OpenFile.
+- name: NoOfBytes
+  type: INTEGER4
   io: O
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: O
-  description: ''
+  description: Number of bytes in the file (32-bit value).
 examples:
   pascal:
     available: true

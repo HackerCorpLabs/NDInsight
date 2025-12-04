@@ -11,45 +11,18 @@ description: 'When you press a key on the terminal, a character is normally disp
 see_also:
 - SetBreak
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNumber
+  type: INTEGER2
   io: I
-  description: The terminal's logical device number. See appendix B. Only needed for RT programs. Background
-    programs ignore this parameter. The user's terminal is assumed.
-- name: Param2
-  type: UNKNOWN
+  description: The terminal's logical device number. See appendix B. Only needed for RT programs. Background programs ignore this parameter. The user's terminal is assumed.
+- name: EchoStrategy
+  type: INTEGER2
   io: I
-  description: 'Echo strategy. Less than 0: No echo, e.g. for password fields.'
-- name: Param3
-  type: UNKNOWN
+  description: 'Echo strategy: <0=No echo, 0=Echo all, 1=Echo except control chars, 2=MAC echo, 3-6=System defined, 7=User-defined table.'
+- name: Table
+  type: INTEGER2[8]
   io: I
-  description: '0: Echo on all characters.'
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: '1: Echo on all characters except control characters.'
-- name: Param5
-  type: UNKNOWN
-  io: I
-  description: '2: Special echo used by MAC.'
-- name: Param6
-  type: UNKNOWN
-  io: I
-  description: '3-6: System defined echo.'
-- name: Param7
-  type: UNKNOWN
-  io: I
-  description: '7: User-defined echo. See the next parameter.'
-- name: Param8
-  type: UNKNOWN
-  io: I
-  description: '8: Last user-defined echo table. (Only meaningful with echo strategy 7.)'
-- name: Param9
-  type: UNKNOWN
-  io: I
-  description: User-defined echo table. Ignored if the echo is different from 7. Use 128 bits to represent
-    the ASCII characters. Use 0 for the character that should have echo. For example, if bit number 65
-    is 0, the character A gives echo. See the ASCII table in appendix F.
+  description: User-defined echo table (128 bits for ASCII chars). Only used when EchoStrategy=7. Bit 0 means echo that character.
 examples:
   pascal:
     available: true

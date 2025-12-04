@@ -16,26 +16,22 @@ see_also:
 - OldUser
 - '@ENTER'
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: UserName
+  type: STRING
   io: I
   description: New user name.
-- name: Param2
-  type: UNKNOWN
+- name: UserPassword
+  type: INTEGER2
   io: I
   description: Password. Use the contents of the password location in the user entry.
-- name: Param3
-  type: UNKNOWN
+- name: ProjectPassword
+  type: STRING
   io: I
   description: Project password.
-- name: Param4
-  type: UNKNOWN
-  io: I
+- name: UserType
+  type: INTEGER2
+  io: O
   description: Return status. Public users return 0. User SYSTEM returns 1. User RT returns 2.
-- name: Param5
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true

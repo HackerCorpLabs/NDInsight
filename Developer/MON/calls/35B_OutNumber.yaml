@@ -15,14 +15,14 @@ see_also:
 - OutputString
 - and OutByte
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: Format
+  type: INTEGER2
   io: I
-  description: Octal or decimal output. Use 8 for octal and 10 for decimal.
-- name: Param2
-  type: UNKNOWN
+  description: Output format. 8=octal, 10=decimal, 16=hexadecimal, 2=bitpattern.
+- name: Number
+  type: INTEGER2
   io: I
-  description: The number to be written.
+  description: The number to be written (-32768 to 32767).
 examples:
   pascal:
     available: true

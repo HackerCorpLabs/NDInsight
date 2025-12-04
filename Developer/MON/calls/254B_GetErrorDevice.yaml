@@ -14,13 +14,13 @@ see_also:
 - '@GET-ERROR-DEVICE'
 - '@SET-ERROR-DEVICE'
 parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
+- name: ErrorDevice
+  type: INTEGER
+  io: O
   description: The logical device number of the error device.
-- name: Param2
-  type: UNKNOWN
-  io: I
+- name: RTProgram
+  type: INTEGER
+  io: O
   description: RT description address of reserving RT program. 0 means unreserved.
 examples:
   pascal:

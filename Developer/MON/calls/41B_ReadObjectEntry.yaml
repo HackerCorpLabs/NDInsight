@@ -16,18 +16,14 @@ see_also:
 - GetObjectEntry
 - SetObjectEntry
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: FileNumber
+  type: INTEGER2
   io: I
-  description: ➞ The file number. See Openfile.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: ➞ The 64 byte object entry. See appendix C.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: ➞ Standard Error Code. See appendix A.
+  description: The file number. See OpenFile.
+- name: Buff
+  type: BYTES[64]
+  io: O
+  description: The 64 byte object entry buffer (output). See appendix C.
 examples:
   pascal:
     available: true

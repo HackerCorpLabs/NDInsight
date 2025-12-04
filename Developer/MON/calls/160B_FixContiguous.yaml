@@ -24,20 +24,14 @@ see_also:
 - FixIOArea
 - and @FIXC
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: SegmentNo
+  type: INTEGER2
   io: I
   description: Segment number to be fixed. Set bit 15 to 1 if you want a return status.
-- name: Param2
-  type: UNKNOWN
+- name: PageNumber
+  type: INTEGER2
   io: I
   description: First physical page number to be used.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: Return status if bit 15 of the segment number is set. Dummy on the ND-500. 0 means OK.
-    -1 means space not available. -2 means illegal segment. -4 means attempt to fix demand segment. -5
-    means attempt to fix too many pages. -6 means segment already fixed at another address.
 examples:
   pascal:
     available: true

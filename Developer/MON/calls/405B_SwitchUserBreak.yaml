@@ -7,12 +7,12 @@ description: Switches user-defined escape handling on and off. The user-defined 
 see_also:
 - GetUserRegisters
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: OnOffFlag
+  type: INTEGER2
   io: I
   description: On/off flag. Use 1 for on and 0 for off.
-- name: Param2
-  type: UNKNOWN
+- name: Address
+  type: INTEGER2
   io: I
   description: Program address to start at when you press the ESCAPE key.
 examples:

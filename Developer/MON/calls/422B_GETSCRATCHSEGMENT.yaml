@@ -11,22 +11,18 @@ notes: []
 see_also:
 - ClearCapability
 parameters:
-- name: Segment size in bytes.
-  type: UNKNOWN
+- name: SizeInBytes
+  type: INTEGER
   io: I
-  description: ''
-- name: Logical segment number. The segment number to be used. It must be free. Using 0 will cause the system to select the first available free segment.
-  type: UNKNOWN
+  description: Segment size in bytes.
+- name: LogSegmentNo
+  type: INTEGER
   io: I
-  description: ''
-- name: Selected logical segment number.
-  type: UNKNOWN
+  description: Logical segment number to use. Use 0 for system to select first available free segment.
+- name: RetLogSegmentNo
+  type: INTEGER
   io: O
-  description: This parameter returns the logical segment number that was actually selected, especially if 0 was specified for the input logical segment number.
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: O
-  description: ''
+  description: Returns the logical segment number actually selected.
 examples:
   pascal:
     available: true

@@ -9,56 +9,22 @@ short_names:
 description: Used to read the system record into a buffer.
 see_also: []
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: RecordType
+  type: INTEGER2
   io: I
-  description: 'Record type (A-reg.): 1 = RT-description.'
-- name: Param2
-  type: UNKNOWN
+  description: 'Record type: 1=RT-description, 2=segment entry.'
+- name: AddressOrNumber
+  type: INTEGER2
   io: I
-  description: RT-description address or segment number (T-reg.).
-- name: Param3
-  type: UNKNOWN
+  description: RT-description address or segment number.
+- name: Buffer
+  type: INTEGER2[]
+  io: O
+  description: Buffer to receive system record. Minimum 38 words for RecordType=1, 8 words for RecordType=2.
+- name: Format
+  type: INTEGER2
   io: I
-  description: Buffer address (X-reg.). Address of buffer to receive system record. This buffer must have
-    a minimum length of 38 words if Record Type =1, or 8 words if Record Type =2.
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: 'FØrmat (only for ND-500): 0 = return information on 16-bit integer format'
-- name: Param5
-  type: UNKNOWN
-  io: I
-  description: If parameter 1 =1, then A-register returns the number of devices connected with MON 106,
-    StartOnInterrupt.
-- name: Param6
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
-- name: PASCAL
-  type: ''
-  io: I
-  description: ''
-- name: Not available.
-  type: ''
-  io: I
-  description: ''
-- name: COBOL
-  type: ''
-  io: I
-  description: ''
-- name: Not available.
-  type: ''
-  io: I
-  description: ''
-- name: FORTRAN
-  type: ''
-  io: I
-  description: ''
-- name: Not available.
-  type: ''
-  io: I
-  description: ''
+  description: 'Format (ND-500 only): 0=return information in 16-bit integer format.'
 examples:
   planc:
     available: false

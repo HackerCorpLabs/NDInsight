@@ -13,34 +13,14 @@ see_also:
 - CloseSpoolingFile
 - and @LIST-SPOOLING-QUEUE
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: SpoolDevNumber
+  type: INTEGER
   io: I
-  description: '**Logical device number** of the printer. See appendix B.'
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: '**The 272-byte spooling entry.**'
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: Byte 0:1 Number of printed copies.
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: 2:3 If ASCII apostrophe, the file is printed independently of spooling conditions.
-- name: Param5
-  type: UNKNOWN
-  io: I
-  description: 4:97 File name of spooling file.
-- name: Param6
-  type: UNKNOWN
-  io: I
-  description: 98:255 Message to be output on the error device before printing.
-- name: Param7
-  type: UNKNOWN
-  io: I
-  description: '**Standard Error Code.** See appendix A.'
+  description: Logical device number of the printer.
+- name: Buffer
+  type: ARRAY
+  io: O
+  description: '272-byte spooling entry: [0:1]=copies, [2:3]=apostrophe flag, [4:97]=filename, [98:255]=message.'
 examples:
   pascal:
     available: true

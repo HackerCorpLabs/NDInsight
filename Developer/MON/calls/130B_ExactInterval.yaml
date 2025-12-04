@@ -19,15 +19,14 @@ see_also:
 - '@DINTV. StartupInterval allows you to specify intervals in seconds'
 - minutes or hours
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: RTProgram
+  type: INTEGER
   io: I
-  description: Address of an RT description. 0 means calling program. GetRtAddress gives RT description
-    addresses.
-- name: Param2
-  type: UNKNOWN
+  description: Address of an RT description. 0 means calling program. GetRtAddress gives RT description addresses.
+- name: BasicTimeUnits
+  type: INTEGER
   io: I
-  description: Period between executions in basic time units.
+  description: Period between executions in basic time units (1/50th second).
 examples:
   pascal:
     available: true

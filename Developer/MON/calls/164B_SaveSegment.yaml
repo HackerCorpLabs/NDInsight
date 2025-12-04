@@ -7,8 +7,8 @@ description: Saves a segment in the ND-100. All pages in physical memory which h
 see_also:
 - SaveND500Segment
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: SegmentNumber
+  type: INTEGER2
   io: I
   description: Segment number.
 examples:

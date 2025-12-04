@@ -14,27 +14,22 @@ see_also:
 - AppendSpooling
 - '@DEFINE-SPOOLING-CONDITIONS'
 parameters:
-- name: File Number
-  type: File number given when the file was opened.
+- name: FileNo
+  type: INTEGER2
   io: I
-  description: ''
-- name: Text
-  type: Text to be output on the error device.
+  description: File number given when the file was opened.
+- name: UserText
+  type: STRING
   io: I
-  description: ''
+  description: Text to be output on the error device when printed.
 - name: NoOfCopies
-  type: Number of print copies.
+  type: INTEGER2
   io: I
-  description: ''
+  description: Number of print copies.
 - name: PrintFlag
-  type: Print flag. If 0, the text is only output if required by @DEFINE-SPOOLING-CONDITIONS. If not 0,
-    the file is printed unconditionally. A stop print condition occurs before printing.
+  type: INTEGER2
   io: I
-  description: ''
-- name: ErrCode
-  type: Standard Error Code. See appendix A.
-  io: I
-  description: ''
+  description: Print flag. 0=output text only if required by @DEFINE-SPOOLING-CONDITIONS, non-zero=print unconditionally.
 examples:
   pascal:
     available: true

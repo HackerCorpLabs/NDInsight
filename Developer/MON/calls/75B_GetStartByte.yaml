@@ -15,18 +15,14 @@ see_also:
 - SetStartByte
 - SetStartBlock
 parameters:
-- name: ➞ File number.
-  type: See OpenFile.
+- name: FileNumber
+  type: INTEGER
   io: I
-  description: ''
-- name: ↔ The number of the next byte to access.
-  type: UNKNOWN
-  io: I
-  description: ''
-- name: ← Standard Error Code.
-  type: See appendix A.
-  io: I
-  description: ''
+  description: File number. See OpenFile.
+- name: BytePointer
+  type: INTEGER4
+  io: O
+  description: The number of the next byte to access (32-bit value).
 examples:
   pascal:
     available: true

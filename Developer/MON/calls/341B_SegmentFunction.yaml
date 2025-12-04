@@ -22,82 +22,26 @@ see_also:
 - JumpToSegment
 - ExitFromSegment
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: FunctionCode
+  type: INTEGER2
   io: I
-  description: Function code.
-- name: Param2
-  type: UNKNOWN
+  description: 'Function code: 0=JumpToSegment without PIT change, 1=ExitFromSegment without PIT change, 2=JumpToSegment with PIT change, 3=ExitFromSegment with PIT change, 4=REMSG (remove segment from ENTSEG).'
+- name: StartAddress
+  type: INTEGER2
   io: I
-  description: 0 = JumpToSegment (MCALL) without PIT change
-- name: Param3
-  type: UNKNOWN
+  description: Start/return address.
+- name: NewSegment1
+  type: INTEGER2
   io: I
-  description: 1 = ExitFromSegment (MEXIT) without PIT change
-- name: Param4
-  type: UNKNOWN
+  description: New segment 1 (16-bit value 0-65535).
+- name: NewSegment2
+  type: INTEGER2
   io: I
-  description: 2 = JumpToSegment (MCALL) with PIT change
-- name: Param5
-  type: UNKNOWN
+  description: New segment 2 (16-bit value 0-65535).
+- name: NewPageIndexTables
+  type: INTEGER2
   io: I
-  description: 3 = ExitFromSegment (MEXIT) with PIT change
-- name: Param6
-  type: UNKNOWN
-  io: I
-  description: 4 = REMSG (remove segment entered by ENTSEG)
-- name: Param7
-  type: UNKNOWN
-  io: I
-  description: Start/return address
-- name: Param8
-  type: UNKNOWN
-  io: I
-  description: New segment 1
-- name: Param9
-  type: UNKNOWN
-  io: I
-  description: New segment 2
-- name: Param10
-  type: UNKNOWN
-  io: I
-  description: New page index tables
-- name: Function
-  type: Register
-  io: I
-  description: ''
-- name: Functions 0 and 2
-  type: '(MCALL):'
-  io: I
-  description: ''
-- name: T
-  type: Old segment 1
-  io: I
-  description: ''
-- name: D
-  type: Old segment 2
-  io: I
-  description: ''
-- name: L
-  type: Return address
-  io: I
-  description: ''
-- name: X
-  type: Old PITs if PITs changed (function 2)
-  io: I
-  description: ''
-- name: Functions 1 and 3
-  type: '(MEXIT): No register change'
-  io: I
-  description: ''
-- name: Function 4
-  type: '(REMSG): A  = 0 : ok'
-  io: I
-  description: ''
-- name: Param19
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
+  description: New page index tables.
 examples:
   pascal:
     available: false

@@ -23,7 +23,23 @@ notes:
 - '> 0 are Standard Error Codes (see appendix A).'
 see_also:
 - AwaitTransfer
-parameters: []
+parameters:
+- name: FileNumber
+  type: INTEGER
+  io: I
+  description: File number. See OpenFile.
+- name: ReturnFlag
+  type: INTEGER
+  io: I
+  description: Wait flag. 0=wait until transfer complete. Other values=return immediately with status.
+- name: Status
+  type: INTEGER
+  io: O
+  description: |-
+    State of transfer:
+    0 = transfer finished
+    -1 = transfer not finished
+    > 0 = error code (see appendix A)
 examples:
   pascal:
     available: true

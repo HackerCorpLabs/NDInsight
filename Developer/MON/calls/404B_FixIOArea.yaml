@@ -17,12 +17,12 @@ see_also:
 - FixInMemory
 - and MemoryAllocation
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: FirstAddress
+  type: INTEGER
   io: I
   description: Start address in the domain.
-- name: Param2
-  type: UNKNOWN
+- name: SizeOfArea
+  type: INTEGER
   io: I
   description: Number of bytes to fix.
 examples:

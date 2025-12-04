@@ -13,30 +13,18 @@ see_also:
 - GetUserEntry
 - and GetObjectEntry
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DirectoryIndex
+  type: INTEGER2
   io: I
-  description: The directory index. See GetDirUserIndexes.
-- name: Param2
-  type: UNKNOWN
-  io: I
+  description: The directory index. See GetDirUserIndexes. Set bit 7 if SysId is supplied.
+- name: DirEntry
+  type: INTEGER2[21]
+  io: O
   description: The 42-byte directory entry. See appendix C.
-- name: Param3
-  type: UNKNOWN
-  io: I
+- name: Flag
+  type: INTEGER2
+  io: O
   description: Flag indicating whether or not the disk has spare-track allocation.
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: Remote flag. Use 0 for the local computer and 1 for a remote computer.
-- name: Param5
-  type: UNKNOWN
-  io: I
-  description: Remote system identification if remote flag is 1.
-- name: Param6
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true

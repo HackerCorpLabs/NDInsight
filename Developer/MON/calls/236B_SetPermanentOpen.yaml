@@ -17,14 +17,10 @@ see_also:
 - CloseFile
 - and @SET-PERMANENT-OPEN
 parameters:
-- name: File number
-  type: See OpenFile.
+- name: FileNumber
+  type: INTEGER
   io: I
-  description: ''
-- name: Standard Error
-  type: Code. See appendix A.
-  io: I
-  description: ''
+  description: File number returned from earlier open.
 examples:
   pascal:
     available: true

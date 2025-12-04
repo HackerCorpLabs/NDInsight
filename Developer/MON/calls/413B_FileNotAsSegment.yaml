@@ -12,12 +12,12 @@ description: 'Disconnects a file as a segment in your domain. FileAsSegment allo
 see_also:
 - FileAsSegment
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: FileNumber
+  type: INTEGER2
   io: I
   description: File number. See OpenFile.
-- name: Param2
-  type: UNKNOWN
+- name: LogSegmentNumber
+  type: INTEGER2
   io: I
   description: Segment number (optional parameter).
 examples:

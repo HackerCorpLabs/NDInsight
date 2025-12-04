@@ -15,18 +15,18 @@ see_also:
 - SetND500Priority
 - '@PRIOR'
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: RTProgram
+  type: INTEGER
   io: I
   description: Address of the RT description. You may use 0 for your own program.
-- name: Param2
-  type: UNKNOWN
+- name: PriorityLevel
+  type: INTEGER
   io: I
-  description: Priority.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: The previous priority.
+  description: Priority (0-255).
+- name: OldPriority
+  type: INTEGER
+  io: O
+  description: The previous priority returned in W1.
 examples:
   pascal:
     available: true

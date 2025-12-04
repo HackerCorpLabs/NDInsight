@@ -10,7 +10,27 @@ description: 'Gets the name of a user. The user may be on a remote computer if t
 see_also:
 - GetUserEntry
 - ExecutionInfo
-parameters: []
+parameters:
+- name: UserName
+  type: STRING
+  io: O
+  description: Buffer to receive user name (16 chars).
+- name: DirectoryIndex
+  type: INTEGER
+  io: I
+  description: Directory index.
+- name: UserIndex
+  type: INTEGER
+  io: I
+  description: User index.
+- name: RemoteFlag
+  type: INTEGER
+  io: O
+  description: 0 if local user, 1 if remote user.
+- name: RemoteSystem
+  type: STRING
+  io: O
+  description: Remote system identification string (optional, 64 chars).
 examples:
   pascal:
     available: true

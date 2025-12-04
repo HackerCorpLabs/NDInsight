@@ -14,18 +14,14 @@ see_also:
 - GetProcessNo
 - SetProcessName
 parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
+- name: ProcessName
+  type: STRING
+  io: O
   description: Process name, maximum 34 bytes.
-- name: Param2
-  type: UNKNOWN
-  io: I
+- name: ProcessNumber
+  type: INTEGER
+  io: O
   description: Process number in bit 31:16 and magic number in bit 15:0.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true

@@ -20,18 +20,14 @@ see_also:
 - OutNumber
 - and In8Bytes
 parameters:
-- name: Logical device number
-  type: See appendix B.
+- name: DeviceNumber
+  type: INTEGER
   io: I
-  description: ''
-- name: The string of bytes to be written
-  type: ''
+  description: Logical device number. See appendix B.
+- name: OutData
+  type: STRING
   io: I
-  description: ''
-- name: Standard Error Code
-  type: See appendix A.
-  io: I
-  description: ''
+  description: Buffer containing 8 bytes to write.
 examples:
   pascal:
     available: true

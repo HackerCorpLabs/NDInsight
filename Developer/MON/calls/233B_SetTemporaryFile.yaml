@@ -13,14 +13,10 @@ see_also:
 - CreateFile
 - '@SET-TEMPORARY-FILE'
 parameters:
-- name: → File name.
-  type: ''
+- name: FileName
+  type: STRING
   io: I
-  description: ''
-- name: ← Standard Error Code.
-  type: See appendix A.
-  io: I
-  description: ''
+  description: File name.
 examples:
   pascal:
     available: true

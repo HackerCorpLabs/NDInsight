@@ -14,18 +14,14 @@ see_also:
 - GetRTName
 - '@LIST-RT-PROGRAM'
 parameters:
-- name: RT-program name. The name must be given in capital letters. It must end with an apostrophe if less than 7 characters long (applies to high-level languages). When using a high-level language together with NPL or MAC, it is advisable to use an RT-program name of not more than 5 characters.
-  type: UNKNOWN
+- name: RTProgramName
+  type: STRING
   io: I
-  description: ''
-- name: RT program address. Non-existent RT-program names return -1.
-  type: UNKNOWN
+  description: RT-program name (up to 7 chars, uppercase). End with apostrophe if < 7 chars.
+- name: RTProgram
+  type: INTEGER
   io: O
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: O
-  description: ''
+  description: RT program address. Returns -1 if RT-program doesn't exist.
 examples:
   pascal:
     available: true

@@ -13,11 +13,10 @@ see_also:
 - SetEscapeHandling
 - and @ENABLE-ESCAPE-FUNCTION
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNumber
+  type: INTEGER2
   io: I
-  description: The terminal's logical device number. This parameter is ignored for background programs.
-    Your own terminal is always selected.
+  description: The terminal's logical device number. Ignored for background programs (own terminal selected).
 examples:
   pascal:
     available: true

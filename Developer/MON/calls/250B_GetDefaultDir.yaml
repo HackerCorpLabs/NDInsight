@@ -19,22 +19,18 @@ see_also:
 - GetObjectEntry
 - and GetAllFileIndexes
 parameters:
-- name: ➞
-  type: The user name. A user in a remote system may be identified.
+- name: UserName
+  type: STRING
   io: I
-  description: ''
-- name: ➞
-  type: The directory index.
-  io: I
-  description: ''
-- name: ➞
-  type: The user index in the directory.
-  io: I
-  description: ''
-- name: ➞
-  type: Standard Error Code. See appendix A.
-  io: I
-  description: ''
+  description: User name string (16 chars). May identify remote user.
+- name: DirectoryIndex
+  type: INTEGER
+  io: O
+  description: Directory index.
+- name: UserIndex
+  type: INTEGER
+  io: O
+  description: User index in the directory.
 examples:
   pascal:
     available: true

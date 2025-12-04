@@ -18,23 +18,18 @@ see_also:
 - '@CREATE-NEW-VERSIONS'
 - and @ALLOCATE-NEW-VERSIONS
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: FileName
+  type: STRING
   io: I
-  description: The file name including the version number. The version number defines the total number
-    of versions. It includes the existing versions.
-- name: Param2
-  type: UNKNOWN
+  description: The file name including the version number (up to 64 chars). The version number defines the total number of versions.
+- name: FirstPage
+  type: INTEGER
   io: I
   description: Start address of the first new version. Use 0 for contiguous and indexed files.
-- name: Param3
-  type: UNKNOWN
+- name: NoOfPages
+  type: INTEGER
   io: I
   description: File size in pages. Use 0 for indexed files.
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true

@@ -18,15 +18,14 @@ see_also:
 - StartupTime. StartupTime allows you to specify the time in hours
 - minutes or seconds
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: RTProgram
+  type: INTEGER2
   io: I
-  description: Address of an RT description. 0 means calling program. GetRtAddress gives RT description
-    addresses.
-- name: Param2
-  type: UNKNOWN
+  description: Address of an RT description. 0 means calling program. GetRtAddress gives RT description addresses.
+- name: BasicTimeUnits
+  type: LONGINT
   io: I
-  description: StartupTime in basic time units.
+  description: Startup time in basic time units (1/50th of a second).
 examples:
   pascal:
     available: true

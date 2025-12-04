@@ -9,7 +9,31 @@ description: 'Copies a capability for a segment. The segment itself is also copi
   - The destination segment number must be unused.'
 see_also:
 - ClearCapability
-parameters: []
+parameters:
+- name: SourceSegNo
+  type: INTEGER
+  io: I
+  description: Source segment number.
+- name: SourceType
+  type: INTEGER
+  io: I
+  description: Source segment type.
+- name: DestSegNo
+  type: INTEGER
+  io: I
+  description: Destination segment number.
+- name: DestType
+  type: INTEGER
+  io: I
+  description: Destination segment type.
+- name: AccCode
+  type: INTEGER
+  io: I
+  description: Access code.
+- name: RetSegNo
+  type: INTEGER
+  io: O
+  description: Returned segment number.
 examples:
   pascal:
     available: true

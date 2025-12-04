@@ -9,7 +9,11 @@ notes:
 - The error code may be a file system error or a swapper error.
 - You clear the error code when you read it.
 see_also: []
-parameters: []
+parameters:
+- name: ErrorCode
+  type: INTEGER
+  io: O
+  description: Error code from swapper process.
 examples:
   pascal:
     available: true

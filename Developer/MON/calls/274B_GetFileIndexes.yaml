@@ -16,34 +16,30 @@ see_also:
 - GetObjectEntry
 - and GetDefaultDir
 parameters:
-- name: File name
-  type: Abbreviated file names are less efficient.
+- name: FileName
+  type: STRING
   io: I
-  description: ''
-- name: File type
-  type: Not used on the ND-100. Do not include the colon.
+  description: File name. Abbreviated file names are less efficient.
+- name: FileType
+  type: STRING
   io: I
-  description: ''
-- name: Directory index
-  type: '-'
-  io: I
-  description: ''
-- name: User index
-  type: '-'
-  io: I
-  description: ''
-- name: Object index
-  type: '-'
-  io: I
-  description: ''
-- name: Object index of the next file version
-  type: Equal to object index if no more versions exist.
-  io: I
-  description: ''
-- name: Standard Error Code
-  type: See appendix A.
-  io: I
-  description: ''
+  description: File type. Not used on the ND-100. Do not include the colon.
+- name: DirIndex
+  type: INTEGER2
+  io: O
+  description: Directory index.
+- name: UserIndex
+  type: INTEGER2
+  io: O
+  description: User index.
+- name: ObjectIndex
+  type: INTEGER2
+  io: O
+  description: Object index.
+- name: NextObjectIndex
+  type: INTEGER2
+  io: O
+  description: Object index of the next file version. Equal to object index if no more versions exist.
 examples:
   pascal:
     available: true

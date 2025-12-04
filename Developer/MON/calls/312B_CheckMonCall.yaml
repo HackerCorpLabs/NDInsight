@@ -11,13 +11,13 @@ description: Some monitor calls are optional or only available in later versions
   calls are included or left out when SINTRAN III is generated.
 see_also: []
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: MonCallNumber
+  type: INTEGER
   io: I
   description: Monitor-call number.
-- name: Param2
-  type: UNKNOWN
-  io: I
+- name: MonCallEntry
+  type: INTEGER
+  io: O
   description: Address of the monitor call entry. 0 means not implemented.
 examples:
   pascal:

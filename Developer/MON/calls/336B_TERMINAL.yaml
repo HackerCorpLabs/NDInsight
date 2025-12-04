@@ -14,23 +14,19 @@ see_also:
 - SetBreak
 - SetEcho
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: FunctionCode
+  type: INTEGER2
   io: I
   description: Function code (more details on page 496).
-- name: Param2
-  type: UNKNOWN
+- name: ArrayLength
+  type: INTEGER2
   io: I
   description: Length of function parameter array (must be greater than or equal number of input/output
     parameters specified for function).
-- name: Param3
-  type: UNKNOWN
-  io: I
+- name: ParameterArray
+  type: INTEGER2[]
+  io: IO
   description: Function parameter array. (More details are given on page 496.)
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: false

@@ -22,34 +22,22 @@ see_also:
 - SetObjectEntry
 - and GetAllFileIndexes
 parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
+- name: Buffer
+  type: INTEGER2[32]
+  io: O
   description: The 64 byte object entry.
-- name: Param2
-  type: UNKNOWN
+- name: DirIndex
+  type: INTEGER2
   io: I
   description: The directory index. See GetAllFileIndexes.
-- name: Param3
-  type: UNKNOWN
+- name: UserIndex
+  type: INTEGER2
   io: I
   description: The user index. See GetAllFileIndexes.
-- name: Param4
-  type: UNKNOWN
+- name: ObjectIndex
+  type: INTEGER2
   io: I
   description: The object index. See GetAllFileIndexes.
-- name: Param5
-  type: UNKNOWN
-  io: I
-  description: Remote flag. Use 0 for the local computer and 1 for a remote computer.
-- name: Param6
-  type: UNKNOWN
-  io: I
-  description: Remote system identification if remote flag is 1.
-- name: Param7
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true

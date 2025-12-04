@@ -16,30 +16,26 @@ see_also:
 - DeviceControl
 - '@DEVICE-FUNCTION'
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: FunctionCode
+  type: INTEGER2
   io: I
   description: Function code. See the following pages.
-- name: Param2
-  type: UNKNOWN
-  io: I
+- name: Buffer
+  type: INTEGER2[1024]
+  io: IO
   description: Buffer used for data transfer to and from the device.
-- name: Param3
-  type: UNKNOWN
+- name: DeviceNo
+  type: INTEGER2
   io: I
   description: Logical device number (or open-file number). See appendix B.
-- name: Param4
-  type: UNKNOWN
+- name: DeviceParam1
+  type: INTEGER2
   io: I
   description: First device dependent parameter. See the following pages.
-- name: Param5
-  type: UNKNOWN
+- name: DeviceParam2
+  type: INTEGER2
   io: I
   description: Second device dependent parameter. See the following pages.
-- name: Param6
-  type: UNKNOWN
-  io: I
-  description: Device dependent status code. See the following pages.
 examples:
   pascal:
     available: true

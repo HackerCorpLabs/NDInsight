@@ -13,23 +13,7 @@ description: |-
   - RT programs release all reserved devices.
 see_also:
 - ExitRTProgram
-parameters:
-- name: Language
-  type: Code
-  io: I
-  description: ''
-- name: PASCAL
-  type: StopProgram; [Note routine name.]
-  io: I
-  description: ''
-- name: COBOL
-  type: MONITOR-CALL "ExitFromProgram".
-  io: I
-  description: ''
-- name: FORTRAN
-  type: Monitor_Call('ExitFromProgram')
-  io: I
-  description: ''
+parameters: []
 examples:
   planc:
     available: true

@@ -20,16 +20,14 @@ see_also:
 - ChangeSegment
 - SegmentFunction
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: SubroutineAddr
+  type: INTEGER
   io: I
   description: Address of routine.
-- name: Param2
-  type: UNKNOWN
+- name: NewSegment
+  type: INTEGER
   io: I
-  description: New segments. The most significant byte identifies the first segment. The least significant
-    byte identifies the second segment. Use 377B as segment number if you do not want to change it. The
-    RT description identifies the segments which are current.
+  description: New segments. The most significant byte identifies the first segment. The least significant byte identifies the second segment. Use 377B as segment number if you do not want to change it.
 examples:
   pascal:
     available: true

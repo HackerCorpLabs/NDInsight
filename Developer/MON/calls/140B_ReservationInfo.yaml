@@ -12,19 +12,18 @@ see_also:
 - ReleaseResource
 - and @LIST-DEVICE
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNumber
+  type: INTEGER2
   io: I
   description: Logical device number. See appendix B.
-- name: Param2
-  type: UNKNOWN
+- name: IOFlag
+  type: INTEGER2
   io: I
-  description: Input or output flag. 0 means the input part. 1 means the output part.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: RT description address of reserving RT program. 0 means not reserved. Errors in the parameters
-    return -1.
+  description: Input/output flag. 0=input part, 1=output part.
+- name: ReturnValue
+  type: INTEGER2
+  io: O
+  description: RT description address of reserving RT program (output). 0=not reserved, -1=error.
 examples:
   pascal:
     available: true

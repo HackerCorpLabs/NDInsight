@@ -15,26 +15,22 @@ see_also:
 - '@SET-DEFAULT-REMOTE-SYSTEM'
 - '@RESET-DEFAULT-REMOTE-SYSTEM'
 parameters:
-- name: ➞ Remote system name.
-  type: ''
+- name: SystemName
+  type: STRING
   io: I
-  description: ''
-- name: ➞ User owning the files in the remote system.
-  type: ''
+  description: Remote system name.
+- name: UserName
+  type: STRING
   io: I
-  description: ''
-- name: ➞ The user's password.
-  type: ''
+  description: User owning the files in the remote system.
+- name: Password
+  type: STRING
   io: I
-  description: ''
-- name: ➞ The user's project password.
-  type: ''
+  description: The user's password.
+- name: ProjPassword
+  type: STRING
   io: I
-  description: ''
-- name: ➞ Standard Error Code. See appendix A.
-  type: ''
-  io: I
-  description: ''
+  description: The user's project password.
 examples:
   pascal:
     available: true

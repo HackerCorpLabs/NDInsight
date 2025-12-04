@@ -7,44 +7,18 @@ description: Gets information about a terminal line. You may also enable program
 see_also:
 - TerminalStatus
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: FunctionCode
+  type: INTEGER
   io: I
-  description: '**Function code.** Use 1 to enable program to continue after line errors. 0 disables this
-    function. Use 2 to get terminal line information.'
-- name: Param2
-  type: UNKNOWN
+  description: 'Function code: 0=disable continue after errors, 1=enable continue, 2=get line info.'
+- name: DeviceNo
+  type: INTEGER
   io: I
-  description: '**Logical device number of a terminal.** Use 1 for your own terminal.'
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: '**Terminal line information.** Dummy for function code 0 and 1. The following bits are
-    used:'
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: 'Bit 0: Set if the terminal line does not function.'
-- name: Param5
-  type: UNKNOWN
-  io: I
-  description: '1: Set if logout waits for ExitFromProgram.'
-- name: Param6
-  type: UNKNOWN
-  io: I
-  description: '2: Overflow in input buffer. Some characters are lost.'
-- name: Param7
-  type: UNKNOWN
-  io: I
-  description: '3: Parity error on input.'
-- name: Param8
-  type: UNKNOWN
-  io: I
-  description: '4: Framing error on input.'
-- name: Param9
-  type: UNKNOWN
-  io: I
-  description: '**Standard Error Code.** See appendix A.'
+  description: Logical device number of a terminal. Use 1 for your own terminal.
+- name: ReturnInfo
+  type: INTEGER
+  io: O
+  description: Terminal line information (returned for function code 2).
 examples:
   pascal:
     available: true

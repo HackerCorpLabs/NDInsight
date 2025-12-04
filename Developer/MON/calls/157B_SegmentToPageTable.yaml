@@ -16,56 +16,24 @@ description: 'Enters a routine as a direct task or as a device driver, and "reme
 see_also:
 - '@ENTSEG'
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: SegmentNo
+  type: INTEGER2
   io: I
   description: Segment number where the routine resides.
-- name: Param2
-  type: UNKNOWN
+- name: PageTable
+  type: INTEGER2
   io: I
   description: Page table to use for the segment. In practice, this should be 3. For SINTRAN III VSX,
     version K, the range is 0-17.
-- name: Param3
-  type: UNKNOWN
+- name: InterruptLevel
+  type: INTEGER2
   io: I
   description: The interrupt level where the direct task should run. You must specify one of the free
     levels 6, 7, 10B or 11B. Do not use level 2B on SINTRAN III VSX, version K.
-- name: Param4
-  type: UNKNOWN
+- name: StartAddress
+  type: INTEGER2
   io: I
   description: Start address of the routine (entry point).
-- name: Param5
-  type: UNKNOWN
-  io: I
-  description: 'Error code in A-register = 0 : OK'
-- name: Code
-  type: Explanation
-  io: I
-  description: ''
-- name: '-1'
-  type: attempt to enter too many segments
-  io: I
-  description: ''
-- name: '-2'
-  type: illegal segment number
-  io: I
-  description: ''
-- name: '-3'
-  type: illegal Page Index Table
-  io: I
-  description: ''
-- name: '-4'
-  type: segment is not fixed
-  io: I
-  description: ''
-- name: '-5'
-  type: illegal interrupt level
-  io: I
-  description: ''
-- name: '-6'
-  type: PIT already in use
-  io: I
-  description: ''
 examples:
   pascal:
     available: true

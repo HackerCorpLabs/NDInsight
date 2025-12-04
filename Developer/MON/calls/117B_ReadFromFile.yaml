@@ -24,31 +24,26 @@ see_also:
 - WriteBlock
 - and WriteToFile
 parameters:
-- name: File number
-  type: See Openfile.
+- name: FileNo
+  type: INTEGER2
   io: I
-  description: ''
-- name: Wait flag
-  type: Use 0 to suspend the program until the transfer is completed. Other values make the program continue.
-    You may check that the transfer is completed by AwaitFileTransfer.
+  description: File number. See OpenFile.
+- name: WaitFlag
+  type: INTEGER2
   io: I
-  description: ''
-- name: Transferred data
-  type: ''
+  description: Wait flag. 0=suspend until complete, non-zero=continue (use AwaitFileTransfer to check).
+- name: Buff
+  type: BYTES
+  io: O
+  description: Buffer to receive transferred data (output). Must start on even byte address.
+- name: BlockNo
+  type: INTEGER2
   io: I
-  description: ''
-- name: Block number
-  type: To start the read operation. Use -1 to read the next block.
+  description: Block number to start reading from. Use -1 to read the next block.
+- name: NoOfBytes
+  type: LONGINT
   io: I
-  description: ''
-- name: Number of bytes
-  type: To read.
-  io: I
-  description: ''
-- name: Standard Error Code
-  type: See appendix A.
-  io: I
-  description: ''
+  description: Number of bytes to read.
 examples:
   pascal:
     available: true

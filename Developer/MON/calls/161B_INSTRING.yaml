@@ -21,28 +21,28 @@ see_also:
 - and OutString
 parameters:
 - name: DeviceNo
-  type: Logical device number of a peripheral device. See appendix B.
+  type: INTEGER
   io: I
-  description: ''
+  description: Logical device number of a peripheral device. See appendix B.
 - name: TextRead
-  type: String of characters.
-  io: I
-  description: ''
+  type: STRING
+  io: O
+  description: Buffer to receive the string of characters read.
 - name: NoOfBytes
-  type: Maximum number of characters to be read.
+  type: INTEGER
   io: I
-  description: ''
+  description: Maximum number of characters to read.
 - name: Terminator
-  type: Terminating character. Input stops when this character is read.
+  type: INTEGER
   io: I
-  description: ''
+  description: Terminating character. Input stops when this character is read.
 - name: ReturnStatus
-  type: A 16-bit integer status. Errors in parameters return -1. If bit 15:14 is 0, the maximum number
-    of characters is read. If 1, a termination character is read. 2 means not terminated. This applies
-    only to RT program. 3 means device error. Bit 7:0 contains the error number. If bit 15:14 are 0, 1
-    or 2, the number of characters read is returned in bit 13:0.
-  io: I
-  description: ''
+  type: INTEGER
+  io: O
+  description: |-
+    16-bit status word. -1=parameter error. Bits 15:14 indicate:
+    0=max chars read, 1=terminator read, 2=not terminated (RT only), 3=device error.
+    Bits 13:0 contain count of chars read (if bits 15:14 are 0, 1, or 2).
 examples:
   pascal:
     available: true

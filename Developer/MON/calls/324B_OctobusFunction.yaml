@@ -9,54 +9,18 @@ short_names:
 description: Performs various functions on an old Octobus (earlier than version 3).
 see_also: []
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: FunctionCode
+  type: INTEGER2
   io: I
-  description: '**Function number:**'
-- name: Param2
-  type: UNKNOWN
+  description: 'Function number: 0=kick, 1=wait for kick, 5=read Octobus status, 6=Who am I.'
+- name: DeviceNo
+  type: INTEGER2
   io: I
-  description: 0 means kick.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: 1 means wait for kick.
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: 5 means read Octobus status.
-- name: Param5
-  type: UNKNOWN
-  io: I
-  description: 6 means "Who am I".
-- name: Param6
-  type: UNKNOWN
-  io: I
-  description: '**Logical device number.**'
-- name: Param7
-  type: UNKNOWN
-  io: I
-  description: '**Function dependent parameter.**'
-- name: Param8
-  type: UNKNOWN
-  io: I
-  description: Function 0 returns the destination station.
-- name: Param9
-  type: UNKNOWN
-  io: I
-  description: Function 5 and 6 return a status value.
-- name: Param10
-  type: UNKNOWN
-  io: I
-  description: The last transmit status is returned in bit 31:16.
-- name: Param11
-  type: UNKNOWN
-  io: I
-  description: The hardware status is in bit 15:0.
-- name: Param12
-  type: UNKNOWN
-  io: I
-  description: Function 1 does not use this parameter.
+  description: Logical device number.
+- name: Parameter
+  type: INTEGER2
+  io: IO
+  description: Function dependent parameter. Function 0 returns destination station. Function 5/6 return status value.
 examples:
   pascal:
     available: false

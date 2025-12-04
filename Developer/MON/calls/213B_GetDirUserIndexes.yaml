@@ -11,7 +11,19 @@ see_also:
 - GetDirNameIndexes
 - GetUserIndex
 - and GetAllFileIndexes
-parameters: []
+parameters:
+- name: UserName
+  type: STRING
+  io: I
+  description: Directory and user name string (up to 16 chars), e.g. 'A-HANSEN'.
+- name: DirIndex
+  type: INTEGER
+  io: O
+  description: Directory index.
+- name: UserIndex
+  type: INTEGER
+  io: O
+  description: User index.
 examples:
   pascal:
     available: true

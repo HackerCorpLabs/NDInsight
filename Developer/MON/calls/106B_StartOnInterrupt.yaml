@@ -16,12 +16,12 @@ see_also:
 - NoInterruptStart
 - '@CONCT'
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: RTProgram
+  type: INTEGER2
   io: I
   description: Address of RT description. Use 0 for your own RT description address.
-- name: Param2
-  type: UNKNOWN
+- name: DeviceNumber
+  type: INTEGER2
   io: I
   description: Logical device number. See appendix B.
 examples:

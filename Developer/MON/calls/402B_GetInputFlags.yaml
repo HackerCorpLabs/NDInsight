@@ -12,9 +12,9 @@ see_also:
 - SetOutputFlags
 - ND500Function
 parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
+- name: Value
+  type: INTEGER4
+  io: O
   description: Flag values as a 32-bit integer.
 examples:
   pascal:

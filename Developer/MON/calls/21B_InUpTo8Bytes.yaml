@@ -10,23 +10,18 @@ see_also:
 - In4x2Bytes
 - and Out8Bytes
 parameters:
-- name: Logical device number. See appendix B.
-  type: ''
+- name: DeviceNumber
+  type: INTEGER2
   io: I
-  description: ''
-- name: Number of bytes read. If you use the monitor call on a word-oriented device, it returns the number
-    of words read.
-  type: ''
-  io: I
-  description: ''
-- name: The 8 bytes.
-  type: ''
-  io: I
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: ''
-  io: I
-  description: ''
+  description: Logical device number. See appendix B.
+- name: NoOfBytes
+  type: INTEGER2
+  io: O
+  description: Number of bytes read (output). For word-oriented devices, returns word count.
+- name: InData
+  type: BYTES[8]
+  io: O
+  description: The 8 bytes of input data (output).
 examples:
   pascal:
     available: true

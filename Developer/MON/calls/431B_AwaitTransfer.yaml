@@ -12,18 +12,18 @@ description: 'Checks that a data transfer to or from a mass-storage file is comp
 see_also:
 - AwaitFileTransfer
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: FileNumber
+  type: INTEGER2
   io: I
-  description: File number. See Openfile.
-- name: Param2
-  type: UNKNOWN
+  description: File number. See OpenFile.
+- name: WaitFlag
+  type: INTEGER2
   io: I
   description: Wait flag. If 0, the program waits until the data transfer is completed. Other values return
     a value showing the state of the transfer. ND-500 programs do not wait.
-- name: Param3
-  type: UNKNOWN
-  io: I
+- name: NoOfBytes
+  type: INTEGER2
+  io: O
   description: Number of bytes transferred.
 examples:
   pascal:

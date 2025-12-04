@@ -16,26 +16,26 @@ see_also:
 - GetCurrentTime
 - and GetBasicTime
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: Minute
+  type: INTEGER
   io: I
-  description: Minutes.
-- name: Param2
-  type: UNKNOWN
+  description: Minutes (0-59).
+- name: Hour
+  type: INTEGER
   io: I
-  description: Hours.
-- name: Param3
-  type: UNKNOWN
+  description: Hours (0-23).
+- name: Day
+  type: INTEGER
   io: I
-  description: Days.
-- name: Param4
-  type: UNKNOWN
+  description: Day of month (1-31).
+- name: Month
+  type: INTEGER
   io: I
-  description: Months.
-- name: Param5
-  type: UNKNOWN
+  description: Month (1-12).
+- name: Year
+  type: INTEGER
   io: I
-  description: Years.
+  description: Year.
 examples:
   pascal:
     available: true

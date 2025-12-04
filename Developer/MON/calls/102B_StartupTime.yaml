@@ -18,20 +18,20 @@ see_also:
 - AdjustClock
 - '@ABSET'
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: RTProgram
+  type: INTEGER
   io: I
   description: Address of the RT description. Use 0 for the calling program.
-- name: Param2
-  type: UNKNOWN
+- name: Seconds
+  type: INTEGER
   io: I
   description: Seconds.
-- name: Param3
-  type: UNKNOWN
+- name: Minutes
+  type: INTEGER
   io: I
   description: Minutes.
-- name: Param4
-  type: UNKNOWN
+- name: Hours
+  type: INTEGER
   io: I
   description: Hours.
 examples:

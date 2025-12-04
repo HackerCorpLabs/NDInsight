@@ -14,29 +14,26 @@ see_also:
 - DeviceFunction
 - '@IOSET'
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNo
+  type: INTEGER
   io: I
-  description: Logical device number. See appendix B. You cannot use 1 for your own terminal. Use ExecutionInfo
-    to get its logical device number instead. File numbers are illegal.
-- name: Param2
-  type: UNKNOWN
+  description: Logical device number. See appendix B. You cannot use 1 for your own terminal. Use ExecutionInfo to get its logical device number instead.
+- name: IOFlag
+  type: INTEGER
   io: I
   description: Input or output part of the device. Use 0 for input and 1 for output.
-- name: Param3
-  type: UNKNOWN
+- name: RTProgram
+  type: INTEGER
   io: I
   description: Address of RT description of reserving program. Use 0 for the calling program.
-- name: Param4
-  type: UNKNOWN
+- name: CtrlFlag
+  type: INTEGER
   io: I
-  description: Control flag. Use -2 to empty the TAD output buffer. Use -1 to reset the device. This sets
-    card readers in ASCII mode. 0 sets ASCII mode without resetting the device. 1 sets binary mode. InByte
-    will then return a 12-bit card column image.
-- name: Param5
-  type: UNKNOWN
-  io: I
-  description: Return status. 0 means no errors. An illegal RT description address returns -1.
+  description: Control flag. -2=empty TAD output buffer, -1=reset device (ASCII mode), 0=ASCII mode, 1=binary mode.
+- name: ReturnStatus
+  type: INTEGER
+  io: O
+  description: Return status in W1. 0 means no errors. An illegal RT description address returns -1.
 examples:
   pascal:
     available: true

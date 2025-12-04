@@ -22,10 +22,10 @@ see_also:
 - FixIOArea
 - and @FIXC
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: SegmentNumber
+  type: INTEGER2
   io: I
-  description: Segment number to be fixed in memory.
+  description: Segment number to be fixed in memory. Must be a non-demand segment.
 examples:
   pascal:
     available: true

@@ -23,10 +23,10 @@ notes:
 see_also:
 - NormalPageTable
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: PageTableNumber
+  type: INTEGER
   io: I
-  description: Number of the page table to use.
+  description: Number of the page table to use (0-15 for VSX).
 examples:
   pascal:
     available: true

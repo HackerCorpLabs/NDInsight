@@ -22,31 +22,27 @@ see_also:
 - '@SET-FILE-ACCESS'
 - and @SET-DEFAULT-FILE-ACCESS
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: FileName
+  type: STRING
   io: I
   description: File name. It is most efficient to use unabbreviated file names, e.g. EXAMPLE:TEXT. The
     default file type is :SYMB.
-- name: Param2
-  type: UNKNOWN
+- name: PublicAccess
+  type: STRING
   io: I
   description: Public access. Use N or a combination of R, W, A, C, and D. Public access is typically
     set to R or N.
-- name: Param3
-  type: UNKNOWN
+- name: FriendAccess
+  type: STRING
   io: I
   description: Friend access. Use N or a combination of R, W, A, C, and D. Friend access is typically
     set to RWA or R.
-- name: Param4
-  type: UNKNOWN
+- name: OwnAccess
+  type: STRING
   io: I
   description: Own access. Use N or a combination of R, W, A, C, and D. Own access is typically RWACD,
     though lesser combinations can be used (e.g. RWAC to protect your own files from accidental deletion
     by yourself).
-- name: Param5
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true

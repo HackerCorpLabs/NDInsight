@@ -6,12 +6,12 @@ octal: 22B
 name: OutUpTo8Bytes
 short_names:
 - M8OUT
-description: |-
-  Writes up to 8 characters to a device, e.g. a terminal or an internal device.
-
-  - You can only use this monitor call for terminals, TADs, internal devices, and synchronous modems.
-  - The writing terminates when a character with value 0 is found. The 0 byte is not output.
-  - Appendix F contains an ASCII table.
+description: Writes up to 8 characters to a device, e.g. a terminal or an internal device.
+notes:
+- You can only use this monitor call for terminals, TADs, internal devices, and synchronous modems.
+- The writing terminates when a character with value 0 is found. The 0 byte is not output.
+- Appendix F contains an ASCII table.
+- Standard Error Code is returned via ErrCode variable in high-level languages, or in W1 register for ASSEMBLY-500. The K flag indicates if an error occurred.
 see_also:
 - OutMessage
 - Out8Bytes
@@ -21,19 +21,14 @@ see_also:
 - OutByte
 - and InUpTo8Bytes
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNo
+  type: INTEGER
   io: I
-  description: Logical device number. See appendix B. You can use 1 for your own terminal. File numbers
-    are illegal.
-- name: Param2
-  type: UNKNOWN
+  description: Logical device number. Use 1 for your own terminal. File numbers are illegal.
+- name: OutData
+  type: STRING
   io: I
-  description: The 8 characters to be written.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
+  description: The 8 characters to be written (writing stops at first 0 byte).
 examples:
   pascal:
     available: true

@@ -18,7 +18,11 @@ description: |-
 see_also:
 - ExecuteCommand
 - SetCommandBuffer. ExecuteCommand does not terminate the program if an error occurs
-parameters: []
+parameters:
+- name: Command
+  type: STRING
+  io: I
+  description: SINTRAN III command string to execute (up to 80 characters).
 examples:
   pascal:
     available: true

@@ -16,58 +16,22 @@ notes:
   code as the first parameter. This may change in the future, i.e. separate routines may be added.
 see_also: []
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: Func
+  type: INTEGER
   io: I
-  description: '**Function code.**'
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: 1 means create a LAMU.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: 2 means delete a LAMU.
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: 3 means connect a LAMU to the calling program or another program.
-- name: Param5
-  type: UNKNOWN
-  io: I
-  description: 4 means disconnect a particular LAMU or all LAMUs from the calling program or another program.
-- name: Param6
-  type: UNKNOWN
-  io: I
-  description: 7 means protect LAMU.
-- name: Param7
-  type: UNKNOWN
-  io: I
-  description: 8 means get LAMU information.
-- name: Param8
-  type: UNKNOWN
-  io: I
-  description: 9 means create system-LAMU.
-- name: Param9
-  type: UNKNOWN
-  io: I
-  description: 10 means create temporary system LAMU and connect it to the calling program.
-- name: Param10
-  type: UNKNOWN
-  io: I
-  description: Function-dependent parameter 2. See the following pages.
-- name: Param11
-  type: UNKNOWN
-  io: I
-  description: Function-dependent parameter 3. See the following pages.
-- name: Param12
-  type: UNKNOWN
-  io: I
-  description: Function-dependent parameter 4. See the following pages.
-- name: Param13
-  type: UNKNOWN
-  io: I
-  description: A Standard Error Code is returned in the A register. See appendix A.
+  description: 'Function code: 1=create LAMU, 2=delete, 3=connect, 4=disconnect, 7=protect, 8=get info, 9=create system-LAMU, 10=create temp system LAMU.'
+- name: Para2
+  type: INTEGER
+  io: IO
+  description: Function-dependent parameter 2.
+- name: Para3
+  type: INTEGER
+  io: IO
+  description: Function-dependent parameter 3.
+- name: Para4
+  type: INTEGER
+  io: IO
+  description: Function-dependent parameter 4.
 examples:
   pascal:
     available: true

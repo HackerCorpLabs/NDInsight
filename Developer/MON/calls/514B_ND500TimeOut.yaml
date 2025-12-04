@@ -16,21 +16,18 @@ see_also:
 - SuspendProgram
 - WaitForRestart
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: NoOfTimeUnits
+  type: INTEGER
   io: I
-  description: Number of time units to suspend the program. Use 0 to restart programs immediately. This
-    clears the restart flag.
-- name: Param2
-  type: UNKNOWN
+  description: Number of time units to suspend. Use 0 to restart immediately (clears restart flag).
+- name: TimeUnit
+  type: INTEGER
   io: I
-  description: The type of time units. 1 = basic time units, i.e. 1/50th of a second, 2 = seconds, 3 =
-    minutes, 4 = hours.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: Restart cause. 0 means that the defined time has elapsed. 1 means that an interrupt occurred.
-    -1 means that the RT program was scheduled for repeated execution.
+  description: 'Type of time units: 1=basic (1/50 sec), 2=seconds, 3=minutes, 4=hours.'
+- name: ReturnStatus
+  type: INTEGER
+  io: O
+  description: 'Restart cause: 0=time elapsed, 1=interrupt, -1=scheduled for repeat.'
 examples:
   pascal:
     available: true

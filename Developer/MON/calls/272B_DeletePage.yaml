@@ -9,26 +9,22 @@ description: 'Deletes pages from a file. Pages between two page numbers are remo
 see_also:
 - DeleteFile
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: FileNo
+  type: INTEGER2
   io: I
   description: File number.
-- name: Param2
-  type: UNKNOWN
+- name: FirstPage
+  type: INTEGER2
   io: I
   description: First page to be deleted.
-- name: Param3
-  type: UNKNOWN
+- name: LastPage
+  type: INTEGER2
   io: I
   description: Last page to be deleted. The value -1 means delete to end of the file.
-- name: Param4
-  type: UNKNOWN
-  io: I
+- name: NoOfPages
+  type: INTEGER2
+  io: O
   description: Number of pages deleted.
-- name: Param5
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true

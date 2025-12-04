@@ -17,25 +17,21 @@ description: |-
   - Appendix F contains an ASCII table.
 see_also:
 - In8AndFlag
-- InUpTo88Bytes
+- InUpTo8Bytes
 - In8Bytes
 - InString
 - InputString
 - In4x2Bytes
-- and OutByte
+- OutByte
 parameters:
-- name: ⟶
-  type: Logical device number. See appendix B. Use 1 for your own terminal.
+- name: DeviceNumber
+  type: INTEGER
   io: I
-  description: ''
-- name: ←
-  type: The read byte.
-  io: I
-  description: ''
-- name: ←
-  type: Standard Error Code. See appendix A.
-  io: I
-  description: ''
+  description: Logical device number. Use 1 for your own terminal.
+- name: ReturnValue
+  type: INTEGER
+  io: O
+  description: The read byte.
 examples:
   pascal:
     available: true
@@ -73,31 +69,28 @@ examples:
   assembly_500:
     available: true
     code: |-
-      DeviceNumber: W BLOCK 1
-      ReturnValue: W BLOCK 1
-      ErrCode: W BLOCK 1
-      InByte: EQU 37B9 + 1B
-
+      DeviceNumber : W BLOCK 1
+      ReturnValue  : W BLOCK 1
+      ErrCode      : W BLOCK 1
+      InByte       : EQU 37B9 + 1B
+      
       CALLG InByte, 2, DeviceNumber, ReturnValue
-      IF' K GO ERROR
-
-      ERROR W1.. ErrCode %ErrorCode in W1 register.
+      IF K GO ERROR
+      
+      ERROR: W1 =: ErrCode             %ErrorCode in W1 register.
     octal_definition: 37B9 + 1B
   mac:
     available: true
     code: |-
-      LDT DEVNO %Logical device number.
-      MON 1    %Monitor call InByte.
-      JMP ERROR %Error return from monitor call.
-      STA BYTE  %Normal return, store byte read.
-
-      ERROR.    %Error number in register A.
-
-      DEVNO.
-      BYTE. 0
-
-
-      | ND-100 and ND-500 | All users | All programs |
+      LDT  DEVNO            %Logical device number.
+      MON  1               %Monitor call InByte.
+      JMP  ERROR           %Error return from monitor call.
+      STA  BYTE            %Normal return, store byte read.
+      
+      ERROR, ...           %Error number in register A.
+      
+      DEVNO, ...
+      BYTE,  0
     mon_number: 1
 compatibility:
   nd100: true

@@ -14,18 +14,14 @@ see_also:
 - GetUserName
 - '@DUMP-USER-ENTRY'
 parameters:
-- name: User name
-  type: It may include a directory name, e.g. PACK-ONE:P-HANSEN.
+- name: UserName
+  type: STRING
   io: I
-  description: ''
-- name: User entry
-  type: The 64-byte user entry. See appendix C.
-  io: I
-  description: ''
-- name: Error Code
-  type: Standard Error Code. See appendix A.
-  io: I
-  description: ''
+  description: User name string. May include directory name, e.g. PACK-ONE:P-HANSEN.
+- name: Buff
+  type: ARRAY
+  io: O
+  description: Buffer to receive the 64-byte user entry. See appendix C.
 examples:
   pascal:
     available: true

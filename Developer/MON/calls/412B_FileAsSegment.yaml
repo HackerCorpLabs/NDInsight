@@ -18,29 +18,23 @@ description: 'Connects a file as a segment to your domain. You can then access t
 see_also:
 - FileNotAsSegment which disconnects the file
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: FileNo
+  type: INTEGER2
   io: I
   description: File number. See OpenFile.
-- name: Param2
-  type: UNKNOWN
+- name: LogSegmentNo
+  type: INTEGER2
   io: I
   description: Logical segment number in the domain. The segment number must be free. Use 0 to select
-    the first free segment. The last parameter returns the logical segment number.
-- name: Param3
-  type: UNKNOWN
+    the first free segment.
+- name: AccessType
+  type: INTEGER2
   io: I
-  description: Access type. Use 0 if the file contains initial data. 1 means uninitialized, empty file.
-    2 means primarily sequential access. Use 3 for a combination of 1 and 2. Type 2 reduces the access
-    time if access is sequential.
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: Logical segment number selected if you give 0 in the second parameter.
-- name: Param5
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
+  description: 'Access type: 0=file contains initial data, 1=uninitialized empty file, 2=primarily sequential access, 3=combination of 1 and 2.'
+- name: SegmentNo
+  type: INTEGER2
+  io: O
+  description: Logical segment number selected (returned if LogSegmentNo was 0).
 examples:
   pascal:
     available: true

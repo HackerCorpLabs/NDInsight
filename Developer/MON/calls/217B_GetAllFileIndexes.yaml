@@ -20,36 +20,30 @@ see_also:
 - GetObjectEntry
 - and GetDefaultDir
 parameters:
-- name: File number
-  type: See Openfile.
+- name: FileNo
+  type: INTEGER
   io: I
-  description: ''
-- name: Directory index
-  type: The directory index.
-  io: I
-  description: ''
-- name: User index
-  type: The user index.
-  io: I
-  description: ''
-- name: Object index
-  type: The object index.
-  io: I
-  description: ''
-- name: Remote flag
-  type: Set to 0 if the file is on the local computer. A file on a remote computer returns 1.
-  io: I
-  description: ''
-- name: Remote system identification
-  type: If the remote flag is set to 1. It includes information needed to log in, and is terminated by
-    an apostrophe, e.g. SNURRE(P-HANSEN[&&&&&])'. The password, if present, is coded as a sequence of
-    6 control characters.
-  io: I
-  description: ''
-- name: Standard Error Code
-  type: See appendix A.
-  io: I
-  description: ''
+  description: File number. See OpenFile.
+- name: DirIndex
+  type: INTEGER
+  io: O
+  description: Directory index.
+- name: UserIndex
+  type: INTEGER
+  io: O
+  description: User index.
+- name: ObjectIndex
+  type: INTEGER
+  io: O
+  description: Object index.
+- name: RemoteFlag
+  type: INTEGER
+  io: O
+  description: 0 if file is local, 1 if on remote computer.
+- name: RemoteSystem
+  type: STRING
+  io: O
+  description: Remote system identification string (optional, 64 chars).
 examples:
   pascal:
     available: true

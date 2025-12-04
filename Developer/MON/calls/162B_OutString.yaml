@@ -26,23 +26,15 @@ see_also:
 - OutByte
 - and InString
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNo
+  type: INTEGER2
   io: I
   description: Logical device number. See appendix B. You cannot use 1 for your own terminal. Use ExecutionInfo
     to get its logical device number instead. File numbers are illegal.
-- name: Param2
-  type: UNKNOWN
+- name: TextWrite
+  type: STRING
   io: I
-  description: Character string to be output.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: Number of characters to be output.
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: 'Return status:'
+  description: Character string to be output (max 2048 bytes).
 examples:
   pascal:
     available: true

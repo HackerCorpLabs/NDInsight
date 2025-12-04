@@ -16,18 +16,14 @@ see_also:
 - ErrorMessage. ErrorMessage writes out the error message
 - terminates the program
 parameters:
-- name: ➞ Error number of the message to be printed. Use octal numbers.
-  type: ''
+- name: ErrorNo
+  type: INTEGER
   io: I
-  description: ''
-- name: ➞ Error message text.
-  type: ''
-  io: I
-  description: ''
-- name: ← Standard Error Code. See appendix A.
-  type: ''
-  io: I
-  description: ''
+  description: Error number (octal) of message to retrieve. Do not use 0.
+- name: Buffer
+  type: STRING
+  io: O
+  description: Buffer to receive error message text (128 chars).
 examples:
   pascal:
     available: true

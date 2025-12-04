@@ -10,10 +10,10 @@ notes:
 - Unused segments have the address 0.
 see_also: []
 parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
-  description: A 2048 byte buffer, i.e. 1 page, containing pointers to segment names.
+- name: Buffer
+  type: INTEGER2[1024]
+  io: O
+  description: A 2048 byte buffer (1 page) containing 32 pointers to segment names.
 examples:
   pascal:
     available: true

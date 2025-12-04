@@ -19,24 +19,22 @@ see_also:
 - '@RESERVE-FILE'
 - and @RESERVE-DEVICE-UNIT
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNo
+  type: INTEGER2
   io: I
   description: Logical device number. See appendix B.
-- name: Param2
-  type: UNKNOWN
+- name: IOFlag
+  type: INTEGER2
   io: I
-  description: Input or output flag. Use 0 for the input part and 1 for the output part.
-- name: Param3
-  type: UNKNOWN
+  description: Input/output flag. 0=input part, 1=output part.
+- name: WaitFlag
+  type: INTEGER2
   io: I
-  description: Wait flag. Use 0 to make the program wait if the resource is already reserved. Use 1 to
-    return a status value.
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: Return status. Only used if the wait flag is 1. A negative value is returned if the resource
-    is already reserved.
+  description: Wait flag. 0=wait if reserved, 1=return status value.
+- name: Status
+  type: INTEGER2
+  io: O
+  description: Return status (output). Only used if WaitFlag=1. Negative=already reserved.
 examples:
   pascal:
     available: true

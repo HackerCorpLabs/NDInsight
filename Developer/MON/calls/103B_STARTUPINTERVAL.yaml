@@ -17,22 +17,23 @@ see_also:
 - ExactInterval
 - '@INTV'
 parameters:
-- name: Address of an RT description. 0 means calling program. GetRtAddress gives RT description addresses.
-  type: UNKNOWN
+- name: RTProgram
+  type: INTEGER
   io: I
-  description: ''
-- name: Number of time units between executions of the program.
-  type: UNKNOWN
+  description: Address of RT description. 0 means calling program. GetRtAddress gives RT description addresses.
+- name: Time
+  type: INTEGER
   io: I
-  description: ''
-- name: The type of time units. 1 = basic time units, i.e. 1/50th of a second, 2 = seconds, 3 = minutes, 4 = hours.
-  type: UNKNOWN
+  description: Number of time units between executions of the program.
+- name: Units
+  type: INTEGER
   io: I
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: O
-  description: ''
+  description: |-
+    Type of time units:
+    1 = basic time units (1/50th second)
+    2 = seconds
+    3 = minutes
+    4 = hours
 examples:
   pascal:
     available: true

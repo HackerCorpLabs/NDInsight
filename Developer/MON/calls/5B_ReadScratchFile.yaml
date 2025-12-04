@@ -16,18 +16,14 @@ see_also:
 - ReadBlock
 - ReadFromFile. ReadFromFile is the most efficient monitor call
 parameters:
-- name: Block number
-  type: Block number to start the reading.
+- name: BlockNumber
+  type: INTEGER
   io: I
-  description: ''
-- name: Array
-  type: Array for the transferred data.
-  io: I
-  description: ''
-- name: Standard Error Code
-  type: See appendix A.
-  io: I
-  description: ''
+  description: Block number to start reading from. First block is 0.
+- name: DataDestination
+  type: ARRAY
+  io: O
+  description: Buffer address for the transferred data (256 words / 512 bytes).
 examples:
   pascal:
     available: true

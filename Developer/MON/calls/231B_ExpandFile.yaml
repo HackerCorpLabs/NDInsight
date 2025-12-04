@@ -13,18 +13,14 @@ see_also:
 - CreateFile
 - '@EXPAND-FILE'
 parameters:
-- name: ➙ File name. It may be abbreviated, but this slows down execution.
-  type: UNKNOWN
+- name: FileName
+  type: STRING
   io: I
-  description: ''
-- name: ➙ Number of additional pages.
-  type: UNKNOWN
+  description: File name. It may be abbreviated, but this slows down execution.
+- name: NoOfPages
+  type: INTEGER2
   io: I
-  description: ''
-- name: ➙ Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: I
-  description: ''
+  description: Number of additional pages.
 examples:
   pascal:
     available: true

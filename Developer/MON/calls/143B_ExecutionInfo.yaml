@@ -27,7 +27,28 @@ notes:
   0-7, (the uppermost halfword, bits 16-31, is zero - i.e. all bits are cleared). Not used for RT programs.
 - Standard Error Code. See appendix A.
 see_also: []
-parameters: []
+parameters:
+- name: ExecutionMode
+  type: INTEGER
+  io: O
+  description: |-
+    Execution mode:
+    0 = interactive program
+    1 = batch job
+    2 = mode job
+    3 = RT program
+- name: InputDev
+  type: INTEGER
+  io: O
+  description: Logical device number for command input. Terminal number for interactive, file number for batch/mode.
+- name: OutputDev
+  type: INTEGER
+  io: O
+  description: Logical device number for command output. Terminal number for interactive, file number for batch/mode.
+- name: UserIndex
+  type: INTEGER
+  io: O
+  description: Directory and user index of program's owner. Bits 8-15=directory index, bits 0-7=user index.
 examples:
   pascal:
     available: true

@@ -15,10 +15,10 @@ see_also:
 - AdjustClock
 - and SetClock
 parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
-  description: Internal time in basic time units.
+- name: BasicTime
+  type: LONGINT
+  io: O
+  description: Internal time in basic time units (output). 50 units per second.
 examples:
   pascal:
     available: true

@@ -14,23 +14,18 @@ description: |-
 see_also:
 - FixInMemory
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: SegmentNo
+  type: INTEGER
   io: I
-  description: Logical segment number in your domain. If you specify 0, a segment number is found from
-    the parameter address.
-- name: Param2
-  type: UNKNOWN
+  description: Logical segment number in your domain. Use 0 to derive from parameter address.
+- name: SegType
+  type: INTEGER
   io: I
-  description: Segment type. Use 0 for data segments and 1 for program segments.
-- name: Param3
-  type: UNKNOWN
+  description: 'Segment type: 0=data segments, 1=program segments.'
+- name: NoOfPages
+  type: INTEGER
   io: I
   description: Number of pages.
-- name: Param4
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true

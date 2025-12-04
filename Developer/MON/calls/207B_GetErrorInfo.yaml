@@ -11,39 +11,14 @@ description: Gets information about the last real-time error. The monitor call r
   the RT program was aborted or not.
 see_also: []
 parameters:
-- name: Param1
-  type: UNKNOWN
-  io: I
-  description: A 12 byte error information. It has the meaning below.
-- name: 0:1
-  type: Error number as two ASCII characters. Parity bits are not set. See appendix A and F for error
-    codes together with an ASCII table.
-  io: I
-  description: ''
-- name: '2:3'
-  type: Pointer to the user program address where the error occurred.
-  io: I
-  description: ''
-- name: '4:5'
-  type: Additional error information. See appendix A.
-  io: I
-  description: ''
-- name: '6:7'
-  type: Additional error information. See appendix A.
-  io: I
-  description: ''
-- name: '8:9'
-  type: RT description address of the RT program causing the error.
-  io: I
-  description: ''
-- name: '10:11'
-  type: Flag. 0 if SINTRAN III aborted the RT program.
-  io: I
-  description: ''
-- name: Param8
-  type: UNKNOWN
-  io: I
-  description: Returned status. 0 means OK, 153B means illegal output buffer.
+- name: Buffer
+  type: ARRAY
+  io: O
+  description: 'A 12 byte buffer receiving error information: bytes 0-1=error number (2 ASCII chars), bytes 2-3=program address, bytes 4-7=additional error info, bytes 8-9=RT description address, bytes 10-11=flag (0=aborted).'
+- name: ReturnStatus
+  type: INTEGER
+  io: O
+  description: Returned status in W1. 0 means OK, 153B means illegal output buffer.
 examples:
   pascal:
     available: true

@@ -17,8 +17,8 @@ see_also:
 - DelayStart
 - and @RT
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: RTProgram
+  type: INTEGER
   io: I
   description: Address of RT description. Use 0 for your own RT description address.
 examples:

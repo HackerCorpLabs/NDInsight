@@ -14,19 +14,14 @@ see_also:
 - GetTerminalType
 - '@SET-TERMINAL-TYPE'
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNumber
+  type: INTEGER2
   io: I
-  description: The logical device number of the terminal. You may use 1 for your own terminal in background
-    programs.
-- name: Param2
-  type: UNKNOWN
+  description: The logical device number of the terminal. Use 1 for your own terminal in background programs.
+- name: TerminalType
+  type: INTEGER2
   io: I
-  description: The terminal type.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
+  description: The terminal type. See appendix H for terminal types.
 examples:
   pascal:
     available: true

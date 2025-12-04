@@ -15,19 +15,18 @@ see_also:
 - GetOwnRTAddress
 - '@LIST-RT-DESCRIPTION'
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: RTProgram
+  type: INTEGER
   io: I
   description: RT description address. Use 0 for the calling RT program.
-- name: Param2
-  type: UNKNOWN
-  io: I
-  description: A 52 byte RT description.
-- name: Param3
-  type: UNKNOWN
-  io: I
-  description: Number of devices connected to the RT program through StartOnInterrupt. Wrong RT description
-    addresses return -1.
+- name: RTDescriptor
+  type: ARRAY
+  io: O
+  description: A 52 byte buffer receiving RT description.
+- name: NoOfConnDev
+  type: INTEGER
+  io: O
+  description: Number of devices connected to the RT program through StartOnInterrupt. Returns -1 on invalid RT description address.
 examples:
   pascal:
     available: true

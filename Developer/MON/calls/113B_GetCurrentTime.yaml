@@ -16,34 +16,18 @@ see_also:
 - SetClock
 - and @DATCL
 parameters:
-- name: 0:1
-  type: basic time units
-  io: 0:3 on the ND-500
-  description: ''
-- name: '2:3'
-  type: seconds
-  io: 4:7 on the ND-500
-  description: ''
-- name: '4:5'
-  type: minutes
-  io: 8:11 on the ND-500
-  description: ''
-- name: '6:7'
-  type: hours
-  io: 12:15 on the ND-500
-  description: ''
-- name: '8:9'
-  type: day
-  io: 16:19 on the ND-500
-  description: ''
-- name: '10:11'
-  type: month
-  io: 20:23 on the ND-500
-  description: ''
-- name: '12:13'
-  type: year
-  io: 24:27 on the ND-500
-  description: ''
+- name: TimeBuffer
+  type: ARRAY
+  io: O
+  description: |-
+    Buffer to receive 7 integers containing:
+    [0] = basic time units (1/50th second)
+    [1] = seconds
+    [2] = minutes
+    [3] = hours
+    [4] = day
+    [5] = month
+    [6] = year
 examples:
   pascal:
     available: true

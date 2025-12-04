@@ -20,12 +20,12 @@ see_also:
 - '@RELEASE-FILE'
 - and @RELEASE-DEVICE-UNIT
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: DeviceNumber
+  type: INTEGER
   io: I
   description: Logical device number. See appendix B.
-- name: Param2
-  type: UNKNOWN
+- name: IOFlag
+  type: INTEGER
   io: I
   description: Input or output flag. Use 0 for the input part and 1 for the output part.
 examples:

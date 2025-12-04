@@ -28,32 +28,26 @@ see_also:
 - WriteBlock
 - and ReadFromFile
 parameters:
-- name: Param1
-  type: UNKNOWN
+- name: FileNo
+  type: INTEGER2
   io: I
   description: File number. See OpenFile.
-- name: Param2
-  type: UNKNOWN
+- name: ReturnFlag
+  type: INTEGER2
   io: I
-  description: Wait flag. Use 0 to suspend the program until the transfer is completed. Other values make
-    the program continue. You may check that the transfer is completed by AwaitfileTransfer. Background
-    programs must always wait until data is transferred.
-- name: Param3
-  type: UNKNOWN
+  description: Wait flag. 0=suspend until complete, non-zero=continue (use AwaitFileTransfer to check).
+- name: Buff
+  type: BYTES
   io: I
-  description: Data to be transferred.
-- name: Param4
-  type: UNKNOWN
+  description: Buffer containing data to be transferred.
+- name: BlockNo
+  type: INTEGER2
   io: I
   description: Block number to start writing from. Use -1 to write to the next block.
-- name: Param5
-  type: UNKNOWN
+- name: NoOfBytes
+  type: LONGINT
   io: I
   description: Number of bytes to be written.
-- name: Param6
-  type: UNKNOWN
-  io: I
-  description: Standard Error Code. See appendix A.
 examples:
   pascal:
     available: true

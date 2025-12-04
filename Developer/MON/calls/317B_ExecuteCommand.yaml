@@ -20,7 +20,11 @@ description: 'Executes a SINTRAN III command. Specify the command name and the p
 see_also:
 - CallCommand
 - SetCommandBuffer. CallCommand terminates the program if an error occurs
-parameters: []
+parameters:
+- name: Command
+  type: STRING
+  io: I
+  description: SINTRAN III command string to execute (up to 35 chars).
 examples:
   pascal:
     available: true
