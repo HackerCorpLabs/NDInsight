@@ -1,9 +1,9 @@
-# SINTRAN III Monitor Call: TERMINAL
+# SINTRAN III Monitor Call: Terminal
 # Octal: 336B
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 336B
-name: TERMINAL
+name: Terminal
 short_names:
 - IOMTY
 description: |-

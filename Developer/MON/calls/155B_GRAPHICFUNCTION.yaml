@@ -1,5 +1,5 @@
 octal: 155B
-name: GRAPHICFUNCTION
+name: GraphicFunction
 short_names:
 - GRAPH
 description: Executes various functions on a graphic peripheral, such as a NORDCOM terminal, a pen plotter,

@@ -1,9 +1,9 @@
-# SINTRAN III Monitor Call: TRANSFERDATA
+# SINTRAN III Monitor Call: TransferData
 # Octal: 335B
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 335B
-name: TRANSFERDATA
+name: TransferData
 short_names:
 - EXABS
 description: Transfers data between physical memory and a mass-storage device, e.g. a disk. You may perform

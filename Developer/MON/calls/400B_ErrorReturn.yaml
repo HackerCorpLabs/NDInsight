@@ -6,68 +6,45 @@ octal: 400B
 name: ErrorReturn
 short_names:
 - MACROE
-description: Terminates the program and sets an error code. The error code can be tested by the commands
-  IF-ERROR-MACRO-STOP and IF-ERROR-FULL-STOP commands in the ND-500 Monitor. See the manual ND Linker
-  User Guide and Reference Manual (ND-860289) for details about macros.
+description: Terminates the program and sets an error code. The error code can be tested by the commands IF-ERROR-MACRO-STOP and IF-ERROR-FULL-STOP commands in the ND-500 Monitor. See the manual ND Linker User Guide and Reference Manual (ND-860289) for details about macros.
+notes: []
 see_also: []
 parameters: []
 examples:
   pascal:
     available: true
     code: |-
-      RTProgram, BasicTimeUnits: INTEGER2;
-      ...
-      ExactDelayStart(RTProgram, BasicTimeUnits);
+      ErrorReturn;
   cobol:
     available: true
     code: |-
-      01 RTProgram COMP.
-      01 BasicTimeUnits COMP.
-      ...
-      MONITOR-CALL "ExactDelayStart" USING RTProgram, BasicTimeUnits.
+      MONITOR-CALL "ErrorReturn".
   fortran:
     available: true
     code: |-
-      INTEGER RTProgram, BasicTimeUnits
-      ...
-      Monitor_Call('ExactDelayStart', RTProgram, BasicTimeUnits)
+      Monitor_Call('ErrorReturn')
   planc:
     available: true
     code: |-
-      INTEGER : RTProgram, BasicTimeUnits
-      ...
-      Monitor_Call('ExactDelayStart', RTProgram, BasicTimeUnits)
+      Monitor_Call('ErrorReturn')
   assembly_500:
     available: true
     code: |-
-      RTProgram : W BLOCK 1
-      BasicTimeUnits : W BLOCK 1
-      ExactDelayStart : EQU 37B9 + 126B
+      ErrorReturn : EQU 37B9 + 400B
       ...
-      CALLG ExactDelayStart, 2, RTProgram, BasicTimeUnits
-    octal_definition: ''
+      CALLG ErrorReturn, 0
+    octal_definition: 37B9 + 400B
   mac:
-    available: true
-    code: |-
-      LDA (PAR   %Load register A with address of parameter list.
-      MON 126    %Monitor call ExactDelayStart.
-      ...
-      PAR, RTPRO %Address of RT description.
-      TIME       %Number of basic time units the program
-      ...        % is to stay in the time queue.
-      RTPRO, ...
-      TIME, ...  %A double word.
-      ...        %
-
-
-      | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
-    mon_number: 126
+    available: false
+    code: ''
+    mon_number: null
+    notes: Not available.
 compatibility:
-  nd100: true
+  nd100: false
   nd500: true
-  user_programs: false
+  user_programs: true
   rt_programs: true
-  system_programs: false
+  system_programs: true
 source:
   document: SINTRAN III Monitor Calls (ND-860228.2 EN)
   page: 173
@@ -77,5 +54,5 @@ source:
 extraction:
   date: '2025-01-06'
   version: '1.0'
-  validated: false
+  validated: true
   ocr_corrected: false

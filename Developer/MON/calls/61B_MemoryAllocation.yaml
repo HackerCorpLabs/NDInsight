@@ -1,29 +1,131 @@
-# Monitor Call: 61B MemoryAllocation
-# Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source line: 15438
+# SINTRAN III Monitor Call: MemoryAllocation
+# Octal: 61B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 61B
 name: MemoryAllocation
 short_names:
-- FIXCS
-description: 'Fixes or unfixes ND-100 segments to be used by the ND-500 Monitor. You may also reserve
-  a contiguous area in physical memory. Various other memory functions are reserved for the ND-500 Monitor.
-
-
-  - This monitor call is not normally used by ordinary programs.
-
-  - You may use this monitor call to reserve space for DMA buffers.'
-parameters: []
-examples: {}
+- FIXC5
+description: Fixes or unfixes ND-100 segments to be used by the ND-500 Monitor. You may also reserve a contiguous area in physical memory. Various other memory functions are reserved for the ND-500 Monitor.
+notes:
+- This monitor call is not normally used by ordinary programs.
+- You may use this monitor call to reserve space for DMA buffers.
+see_also:
+- FixScattered
+- FixInMemory
+- FixContiguous
+- UnFixSegment
+parameters:
+- name: Function code.
+  type: UNKNOWN
+  io: I
+  description: Function codes 4, 5 and 6 are the only values allowed. The functions and parameters are described on the third page for this call.
+- name: Parameter 2.
+  type: UNKNOWN
+  io: I/O
+  description: Depends on the function code.
+- name: Parameter 3.
+  type: UNKNOWN
+  io: I/O
+  description: Depends on the function code.
+- name: Parameter 4.
+  type: UNKNOWN
+  io: I/O
+  description: Depends on the function code.
+- name: Parameter 5.
+  type: UNKNOWN
+  io: I/O
+  description: Depends on the function code.
+- name: Parameter 6.
+  type: UNKNOWN
+  io: I/O
+  description: Depends on the function code.
+- name: Standard Error Code. See appendix A.
+  type: UNKNOWN
+  io: O
+  description: Returned via ErrCode variable in high-level languages, or in W1 register for ASSEMBLY-500, or register A for MAC.
+examples:
+  pascal:
+    available: true
+    code: |-
+      FuncCode, Param2, Param3, Param4, Param5, Param6 : INTEGER2;
+      ...
+      MemoryAllocation(FuncCode, Param2, Param3, Param4, Param5, Param6);
+      IF ErrCode <> 0 THEN ...
+  cobol:
+    available: true
+    code: |-
+      01 FuncCode COMP.
+      01 Param2 COMP.
+      01 Param3 COMP.
+      01 Param4 COMP.
+      01 Param5 COMP.
+      01 Param6 COMP.
+      01 ErrCode COMP.
+      ...
+      MONITOR-CALL "MemoryAllocation" USING FuncCode, Param2, Param3, Param4, Param5, Param6.
+      CALL "CbError" USING ErrCode.
+      IF ErrCode NOT = 0 GO ...
+  fortran:
+    available: true
+    code: |-
+      INTEGER FuncCode, Param2, Param3, Param4, Param5, Param6
+      ...
+      Monitor_Call('MemoryAllocation', FuncCode, Param2, Param3,
+      C Param4, Param5, Param6)
+      IF (ErrCode .NE. 0) THEN ...
+  planc:
+    available: true
+    code: |-
+      INTEGER : FuncCode, Param2, Param3, Param4, Param5, Param6
+      ...
+      ON ROUTINEERROR DO
+      IF ErrCode <> 0 THEN ...
+      ENDON
+      Monitor_Call('MemoryAllocation', FuncCode, Param2, Param3, &
+          Param4, Param5, Param6)
+  assembly_500:
+    available: false
+    code: ''
+    mon_number: null
+    notes: Not available.
+  mac:
+    available: true
+    code: |-
+      LDA (PAR                 %Load register A with address of parameter list.
+      MON 61                  %Monitor call MemoryAllocation.
+      JMP ERROR                %Error return from monitor call.
+      ...                      %Normal return.
+      ERROR, ...               %Error number in register A.
+      ...
+      PAR, FUNC                %For the rest of this example, a special case
+      PARA2                    %(function code = 4) is taken, in order to
+      PARA3                    %emphasize that all parameters must be included.
+      PARA4
+      DUMMY                    %All parameters MUST be included, even if they
+      DUMMY                    %are dummy for a particular function code.
+      ...
+      FUNC, 4                  %Function code, in this case 4 (fix a segment contiguously at any address within a specified physical memory area.
+      PARA2, 200               %Segment number.
+      PARA3, 0                 %First legal physical memory page.
+      PARA4, -1                %Last legal physical memory page. The value -1 is the maximum value.
+      DUMMY, 0                 %Dummy value for parameters 5 and 6.
+    mon_number: 61
+    notes: ''
 compatibility:
   nd100: true
-  nd500: true
+  nd500: false
   user_programs: true
   rt_programs: true
-  system_programs: false
+  system_programs: true
 source:
-  document: ND-860228.2 EN
-  page_references: []
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 0
+  line: 15438
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
 extraction:
-  ocr_corrected: true
-  ocr_notes: Extracted from line 15438 - was missing in initial extraction
+  date: '2025-01-06'
+  version: '1.0'
+  validated: true
+  ocr_corrected: false

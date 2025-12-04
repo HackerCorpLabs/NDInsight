@@ -1,32 +1,121 @@
-# Monitor Call: 440B Attach500Segment
-# Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source line: 3331
+# SINTRAN III Monitor Call: Attach500Segment
+# Octal: 440B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 440B
 name: Attach500Segment
 short_names:
-- ATSGM
-description: 'Maps a logical ND-500 data segment onto shared ND-100/ND-500(0) physical memory (multiport
-  memory). Example: ``` @SINTRAN-SERVICE-PROGRAM *CHANGE-TABLE TABLE: MEMORY-AREA-INVISIBLE-FOR-THIS-SYSTEM
-  FUNCTION: INSERT-ELEMENT IMAGE OR SAVE AREA (DEFAULT IS IMAGE)? IMAGE FIRST PAGE (OCT): 10000 LAST PAGE
-  (OCT): 13777 FUNCTION: EXIT *EXIT ```
-
-
-  - The specified physical memory area must be defined in the "Not initialize page" table by use of the
-  *CHANGE-TABLE command in the SINTRAN Service Program (follow this command by a warm start to put the
-  change into effect). Note that you should not use the first pages of the multiport memory (starting
-  at "ND-500 page 0") for this.'
-parameters: []
-examples: {}
+- AT5SGM
+description: Maps a logical ND-500 data segment onto shared ND-100/ND-500(0) physical memory (multiport memory).
+notes:
+- The specified physical memory area must be defined in the "Not initialize page" table by use of the *CHANGE-TABLE command in the SINTRAN Service Program (follow this command by a warm start to put the change into effect). Note that you should not use the first pages of the multiport memory (starting at "ND-500 page 0") for this.
+see_also: []
+parameters:
+- name: Function code.
+  type: UNKNOWN
+  io: I
+  description: '0 = Detach (forget) a previously attached segment. 1 = Attach a segment. If a physical segment does not exist, create it and map the segment on to the physical ND-100 address area. 2 = Map an existing ND-500 logical data segment onto a physical ND-100 address area.'
+- name: Segment number (function code 0).
+  type: UNKNOWN
+  io: I
+  description: Segment number in the range 0-31₁₀.
+- name: ND-500 logical data segment address (function code 1).
+  type: UNKNOWN
+  io: I
+  description: If you specify 0 (zero), the first free segment will be used.
+- name: Length of segment in pages (function code 1).
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: ND-100 physical page address (function code 1).
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Segment name (function code 1).
+  type: STRING
+  io: I
+  description: A maximum of 35₁₀ characters in the name, including an optional user name, and a terminating apostrophe, which must be present. The parameter is a string descriptor.
+- name: Access (function code 1).
+  type: UNKNOWN
+  io: I
+  description: '0 = read only access. 1 = read/write access.'
+- name: Logical segment number (function code 1).
+  type: UNKNOWN
+  io: O
+  description: ''
+- name: Start address of ND-500 logical data segment (function code 2).
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Length of the (entire) segment in pages (function code 2).
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Physical ND-100 page address (function code 2).
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Standard Error Code. See appendix A.
+  type: UNKNOWN
+  io: O
+  description: Returned via ErrCode variable in high-level languages, or in W1 register for ASSEMBLY-500, or register A for MAC.
+examples:
+  pascal:
+    available: false
+    code: ''
+    mon_number: null
+    notes: Not available.
+  cobol:
+    available: false
+    code: ''
+    mon_number: null
+    notes: Not available.
+  fortran:
+    available: false
+    code: ''
+    mon_number: null
+    notes: Not available.
+  planc:
+    available: false
+    code: ''
+    mon_number: null
+    notes: Not available.
+  assembly_500:
+    available: true
+    code: |-
+      FUNCTION : W DATA 1              %function = 1
+      SEGNO : W DATA 1000000000B      %address 0 on segment no. 1
+      LENGTH : W DATA 4               %segment length = 4 pages
+      N1ADDR : W DATA 2000B           %mapped at page address 2000₈
+      SEGNAME : STRINGDATA 'ATTSEG1'  %segment name = ATTSEG1
+      ACCESS : W DATA 1               %read/write access
+      RETSEGNO : W BLOCK 1            %returned segment number
+      ...
+      CALLG 37000000440B, 7, FUNCTION, SEGNO, LENGTH, N1ADDR, SEGNAME, ACCESS, &
+          RETSEGNO                    %Mon 440 with 7 parameters
+          IF K GO ERROR
+      ...
+      ERROR : W1 =: ErrCode           %on error return, W1 = error code
+    octal_definition: 37000000440B
+  mac:
+    available: false
+    code: ''
+    mon_number: null
+    notes: Not available.
 compatibility:
-  nd100: true
+  nd100: false
   nd500: true
   user_programs: true
   rt_programs: true
-  system_programs: false
+  system_programs: true
 source:
-  document: ND-860228.2 EN
-  page_references: []
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 0
+  line: 3331
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
 extraction:
-  ocr_corrected: true
-  ocr_notes: Extracted from line 3331 - was missing in initial extraction
+  date: '2025-01-06'
+  version: '1.0'
+  validated: true
+  ocr_corrected: false

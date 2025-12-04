@@ -1,9 +1,9 @@
-# Monitor Call: 415B BCNAF1CAMAC
+# Monitor Call: 415B Bcnaf1Camac
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
 # Source line: 3877
 
 octal: 415B
-name: BCNAF1CAMAC
+name: Bcnaf1Camac
 short_names:
 - BCNAF1
 description: Special CAMAC monitor call for the ND-500. (Same as mon 176 - user-defined monitor call.)

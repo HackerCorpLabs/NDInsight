@@ -1,31 +1,90 @@
-# Monitor Call: 276B EnableLocal
-# Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source line: 7252
+# SINTRAN III Monitor Call: EnableLocal
+# Octal: 276B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 276B
 name: EnableLocal
 short_names:
 - ELOFU
-description: 'You may log in on remote computers through the COSMOS data network. A key on the terminal
-  returns you to your local computer. This local function can be disabled. You enable it again with EnableLocal.
-
-
-  - You disable the key with DisableLocal.
-
-  - The key is disabled when a program terminates.
-
-  - The COSMOS CONNECT-TO program tells you which key to use as the LOCAL key.'
-parameters: []
-examples: {}
+description: You may log in on remote computers through the COSMOS data network. A key on the terminal returns you to your local computer. This local function can be disabled. You enable it again with EnableLocal.
+notes:
+- You disable the key with DisableLocal.
+- The key is disabled when a program terminates.
+- The COSMOS CONNECT-TO program tells you which key to use as the LOCAL key.
+see_also:
+- DisableLocal
+parameters:
+- name: Program address of local handling.
+  type: UNKNOWN
+  io: I
+  description: ''
+- name: Standard Error Code. See appendix A.
+  type: UNKNOWN
+  io: O
+  description: Returned via ErrCode variable in high-level languages, or in register A for MAC.
+examples:
+  pascal:
+    available: true
+    code: |-
+      LocalEnable;
+      [Note routine name.]
+      IF ErrCode <> 0 THEN ...
+  cobol:
+    available: true
+    code: |-
+      01 ProgramAddress COMP.
+      01 ErrCode COMP.
+      ...
+      MONITOR-CALL "EnableLocal" USING ProgramAddress.
+      CALL "CbError" USING ErrCode.
+      IF ErrCode NOT = 0 GO ...
+  fortran:
+    available: true
+    code: |-
+      INTEGER ProgramAddress
+      ...
+      Monitor_Call('EnableLocal', ProgramAddress)
+      IF (ErrCode .NE. 0) THEN ...
+  planc:
+    available: true
+    code: |-
+      INTEGER : ProgramAddress
+      ...
+      ON ROUTINEERROR DO
+      IF ErrCode <> 0 THEN ...
+      ENDON
+      Monitor_Call('EnableLocal', ProgramAddress)
+  assembly_500:
+    available: false
+    code: ''
+    mon_number: null
+    notes: Not available.
+  mac:
+    available: true
+    code: |-
+      LDA (LOC                 %Load local handling function address into reg. A
+      MON 276                  %Monitor call EnableLocal.
+      JMP ERROR                %Error return from monitor call.
+      ...                      %Normal return.
+      LOC, ...
+      ERROR, ...              %Error number in register A.
+      ...
+    mon_number: 276
+    notes: ''
 compatibility:
   nd100: true
-  nd500: true
+  nd500: false
   user_programs: true
   rt_programs: true
-  system_programs: false
+  system_programs: true
 source:
-  document: ND-860228.2 EN
-  page_references: []
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 0
+  line: 7252
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
 extraction:
-  ocr_corrected: true
-  ocr_notes: Extracted from line 7252 - was missing in initial extraction
+  date: '2025-01-06'
+  version: '1.0'
+  validated: true
+  ocr_corrected: false

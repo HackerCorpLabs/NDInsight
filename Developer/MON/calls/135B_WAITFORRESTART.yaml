@@ -1,9 +1,9 @@
-# SINTRAN III Monitor Call: WAITFORRESTART
+# SINTRAN III Monitor Call: WaitForRestart
 # Octal: 135B
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 135B
-name: WAITFORRESTART
+name: WaitForRestart
 short_names:
 - RTWT
 description: Sets the RT program in a waiting state. It is restarted by StartRTProgram or @RT. Execution

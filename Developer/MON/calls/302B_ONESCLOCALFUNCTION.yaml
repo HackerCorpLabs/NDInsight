@@ -1,9 +1,9 @@
-# SINTRAN III Monitor Call: ONESCLOCALFUNCTION
+# SINTRAN III Monitor Call: OnEscLocalFunction
 # Octal: 302B
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 302B
-name: ONESCLOCALFUNCTION
+name: OnEscLocalFunction
 short_names:
 - ELON
 description: Enables delayed escape and local functions for your terminal. The ESCAPE key then terminates

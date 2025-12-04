@@ -1,24 +1,123 @@
-# Monitor Call: 263B GetDeviceType
-# Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
-# Source line: 9979
+# SINTRAN III Monitor Call: GetDeviceType
+# Octal: 263B
+# Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 263B
 name: GetDeviceType
 short_names:
 - GDEVT
-description: Gets the device type, e.g. terminal, floppy disk, mass-storage file, etc. The monitor call
-  also provides information on how to handle the device.
-parameters: []
-examples: {}
+description: Gets the device type, e.g. terminal, floppy disk, mass-storage file, etc. The monitor call also provides information on how to handle the device.
+notes: []
+see_also: []
+parameters:
+- name: Logical device number.
+  type: UNKNOWN
+  io: I
+  description: Logical device number (1= own terminal). See appendix B.
+- name: Input or output part.
+  type: UNKNOWN
+  io: I
+  description: Use 0 for input and 1 for output.
+- name: Device type.
+  type: UNKNOWN
+  io: O
+  description: 'Device type. The numbers below are returned: 0: Unspecified. 1: Terminal. 2: Terminal access device (TAD). 3: Communication channel. 4: Internal block device. 5: Floppy disk drive. 6: Magnetic tape station. 7: Mass-storage file.'
+- name: Device information.
+  type: UNKNOWN
+  io: O
+  description: 'Device information (returned in the combined A and D registers. The bits have the following meaning: Bit 0: InByte or OutByte allowed. Bit 1: StartOnInterrupt allowed. Bit 2: DeviceControl allowed. Bit 3: Block calls allowed. Bit 4: ClearDevice available. Bit 5: Reservation not needed. Bit 6: COSMOS remote open file. Bit 10g: NOTS (NET/One Terminal Server) terminal. Bit 11g: MTAD device.'
+- name: Standard Error Code. See appendix A.
+  type: UNKNOWN
+  io: O
+  description: Returned via ErrCode variable in high-level languages, or in W1 register for ASSEMBLY-500, or register A for MAC.
+examples:
+  pascal:
+    available: true
+    code: |-
+      DeviceNo, IOFlag, DevType : INTEGER2;
+      DevAttr : LONGINT;
+      ...
+      GetDeviceType (DeviceNo, IOFlag, DevType, DevAttr);
+      IF ErrCode <> 0 THEN ...
+  cobol:
+    available: true
+    code: |-
+      01 DeviceNo COMP.
+      01 IOFlag COMP.
+      01 DevType COMP.
+      01 DevAttr COMP PIC S9(10).
+      01 ErrCode COMP.
+      ...
+      MONITOR-CALL "GetDeviceType" USING DeviceNo, IOFlag, DevType, DevAttr.
+      CALL "CbError" USING ErrCode.
+      IF ErrCode NOT = 0 GO ...
+  fortran:
+    available: true
+    code: |-
+      INTEGER DeviceNo, IOFlag, DevType
+      INTEGER*4 DevAttr
+      ...
+      Monitor_Call('GetDeviceType', DeviceNo, IOFlag, DevType, DevAttr)
+      IF (ErrCode .NE. 0) THEN ...
+  planc:
+    available: true
+    code: |-
+      INTEGER : DeviceNo, IOFlag, DevType
+      INTEGER4 : DevAttr
+      ...
+      ON ROUTINEERROR DO
+      IF ErrCode >< 0 THEN ...
+      ENDON
+      Monitor_Call('GetDeviceType', DeviceNo, IOFlag, DevType, DevAttr)
+  assembly_500:
+    available: true
+    code: |-
+      DeviceNo : W BLOCK 1
+      IOFlag : W BLOCK 1
+      DevType : W BLOCK 1
+      DevAttr : W BLOCK 1
+      ErrCode : W BLOCK 1
+      GetDeviceType : EQU 37B9 + 263B
+      ...
+      CALLG GetDeviceType, 4, DeviceNo, IOFlag, DevType, DevAttr
+          IF K GO ERROR
+      ...
+      ERROR : W1 =: ErrCode    %ErrorCode in W1 register.
+    octal_definition: 37B9 + 263B
+  mac:
+    available: true
+    code: |-
+      LDT DEVNO                 %Logical device number.
+      LDA IOF                   %Input/output flag.
+      MON 263                  %Monitor call GetDeviceType.
+      JMP ERROR                %Error return from monitor call.
+      STT TYPE                 %Normal return, store device type.
+      STD ATBUT                %Store device attributes.
+      ...
+      ERROR, ...               %Error number in register A.
+      ...
+      DEVNO, ...
+      IOF, ...
+      TYPE, 0
+      ATBUT, 0
+      0                        %A double number.
+      0                        %
+    mon_number: 263
+    notes: ''
 compatibility:
   nd100: true
   nd500: true
   user_programs: true
   rt_programs: true
-  system_programs: false
+  system_programs: true
 source:
-  document: ND-860228.2 EN
-  page_references: []
+  document: SINTRAN III Monitor Calls (ND-860228.2 EN)
+  page: 0
+  line: 9979
+  scan_date: '2020'
+  scanned_by: Jonny Oddene for Sintran Data
 extraction:
-  ocr_corrected: true
-  ocr_notes: Extracted from line 9979 - was missing in initial extraction
+  date: '2025-01-06'
+  version: '1.0'
+  validated: true
+  ocr_corrected: false

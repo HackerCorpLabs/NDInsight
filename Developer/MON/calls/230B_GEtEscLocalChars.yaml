@@ -1,9 +1,9 @@
-# SINTRAN III Monitor Call: GEtEscLocalChars
+# SINTRAN III Monitor Call: GetEscLocalChars
 # Octal: 230B
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 230B
-name: GEtEscLocalChars
+name: GetEscLocalChars
 short_names:
 - MGDAE
 description: Gets ESCAPE and LOCAL characters. You can terminate most programs with the ESCAPE key. A

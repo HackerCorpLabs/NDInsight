@@ -1,9 +1,9 @@
-# SINTRAN III Monitor Call: BATCHMODEECHO
+# SINTRAN III Monitor Call: BatchModeEcho
 # Octal: 325B
 # Extracted from: Monitor Calls.md (ND-860228.2 EN)
 
 octal: 325B
-name: BATCHMODEECHO
+name: BatchModeEcho
 short_names:
 - MBECH
 description: Controls echo of input and output if the program is executed in a batch or mode job. The

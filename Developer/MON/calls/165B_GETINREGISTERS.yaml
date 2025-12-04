@@ -1,5 +1,5 @@
 octal: 165B
-name: GETINREGISTERS
+name: GetInRegisters
 short_names:
 - DIW
 description: Reads the device interface registers.

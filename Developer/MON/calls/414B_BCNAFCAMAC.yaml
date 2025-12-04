@@ -1,9 +1,9 @@
-# Monitor Call: 414B BCNAFCAMAC
+# Monitor Call: 414B BcnafCamac
 # Extracted from: ND-860228.2 EN (SINTRAN III Monitor Calls)
 # Source line: 3960
 
 octal: 414B
-name: BCNAFCAMAC
+name: BcnafCamac
 short_names:
 - BCNAF
 description: Special CAMAC function on the ND-500. (Same as mon 156 TRACB.)
