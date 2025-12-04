@@ -13,14 +13,14 @@ see_also:
 - '@ENABLE-TERMINATION-HANDLING'
 - '@DISABLE-TERMINATION-HANDLING'
 parameters:
-- name: On or off flag.
-  type: UNKNOWN
+- name: EnDisFlag
+  type: INTEGER
   io: I
-  description: Use 1 for on and 0 for off.
-- name: Circumstances for termination handling.
-  type: UNKNOWN
+  description: On or off flag. Use 1 for on and 0 for off.
+- name: Flag
+  type: INTEGER
   io: I
-  description: 'Use 1 for termination handling on user break. Use 2 for fatal errors. Specify 0 for both. Always use 0 for RT programs.'
+  description: 'Circumstances for termination handling. Use 1 for termination handling on user break. Use 2 for fatal errors. Specify 0 for both. Always use 0 for RT programs.'
 examples:
   pascal:
     available: true

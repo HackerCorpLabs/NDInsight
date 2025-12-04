@@ -14,14 +14,10 @@ notes:
 see_also:
 - DisableLocal
 parameters:
-- name: Program address of local handling.
-  type: UNKNOWN
+- name: ProgramAddress
+  type: INTEGER
   io: I
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: O
-  description: Returned via ErrCode variable in high-level languages, or in register A for MAC.
+  description: Program address of local handling.
 examples:
   pascal:
     available: true

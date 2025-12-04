@@ -13,22 +13,18 @@ see_also:
 - GetAllFileIndexes
 - GetDirEntry
 parameters:
-- name: Directory name.
+- name: DirName
   type: STRING
   io: I
   description: Directory name string (1-16 characters).
-- name: Directory index.
-  type: UNKNOWN
+- name: DirIndex
+  type: INTEGER
   io: O
   description: ''
-- name: Name index.
-  type: UNKNOWN
+- name: NameIndex
+  type: INTEGER
   io: O
   description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: O
-  description: Returned via ErrCode variable in high-level languages, or in W1 register for ASSEMBLY-500, or register A for MAC.
 examples:
   pascal:
     available: true

@@ -16,22 +16,18 @@ see_also:
 - CAMACIOInstruction
 - CAMACGLRegister
 parameters:
-- name: Logical device number. See appendix B.
-  type: UNKNOWN
+- name: DeviceNumber
+  type: INTEGER
   io: I
-  description: ''
-- name: Graded LAM number. Use 0 for high priority on interrupt level 13.
-  type: UNKNOWN
+  description: Logical device number. See appendix B.
+- name: GradedLAMNumber
+  type: INTEGER
   io: I
-  description: ''
-- name: CAMAC crate number in the range 0:15.
-  type: UNKNOWN
+  description: Graded LAM number. Use 0 for high priority on interrupt level 13.
+- name: CrateNumber
+  type: INTEGER
   io: I
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: O
-  description: Returned via ErrCode variable in high-level languages, or in W1 register for ASSEMBLY-500 (K flag indicates error).
+  description: CAMAC crate number in the range 0:15.
 examples:
   pascal:
     available: true

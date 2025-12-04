@@ -15,42 +15,34 @@ notes:
 - Both files must be local files.
 see_also: []
 parameters:
-- name: File number of source file.
-  type: UNKNOWN
+- name: SourceFile
+  type: INTEGER
   io: I
-  description: In the T register. Use logical device number for magnetic tape and floppy disks.
-- name: File number of destination file.
-  type: UNKNOWN
+  description: File number of source file. In the T register. Use logical device number for magnetic tape and floppy disks.
+- name: DestFile
+  type: INTEGER
   io: I
-  description: In the A register. Use logical device number for magnetic tapes and floppy disks.
-- name: Address of 32-bit word with page address of first page to copy.
-  type: UNKNOWN
+  description: File number of destination file. In the A register. Use logical device number for magnetic tapes and floppy disks.
+- name: FirstPage
+  type: INTEGER
   io: I
-  description: The page address is the same for the source and destination files.
-- name: Address of buffer to receive short magnetic tape record.
-  type: UNKNOWN
+  description: Address of 32-bit word with page address of first page to copy. The page address is the same for the source and destination files.
+- name: DestBuffer
+  type: INTEGER
   io: I
-  description: If source file is magnetic tape. Use -1 if you do not want the short record returned.
-- name: Error number relating to the destination file (normal return).
-  type: UNKNOWN
+  description: Address of buffer to receive short magnetic tape record. If source file is magnetic tape. Use -1 if you do not want the short record returned.
+- name: FirstPageMiss
+  type: INTEGER
   io: O
-  description: In the A register. See appendix A.
-- name: Error number relating to the source file (skip return).
-  type: UNKNOWN
+  description: Page number of the missing page (double skip return). In the A&D register. Unless the source is magnetic tape, a page is missing.
+- name: LastPageMiss
+  type: INTEGER
   io: O
-  description: In the A register. If finished, end-of-file is returned. See appendix A.
-- name: Page number of the missing page (double skip return).
-  type: UNKNOWN
+  description: Last page number missing in a hole (double skip return). A set of contiguous pages can be missing. The T and X register contains the last page number missing in such a hole. This is only returned if the source is a directory.
+- name: NoOfWord
+  type: INTEGER
   io: O
-  description: In the A&D register. Unless the source is magnetic tape, a page is missing.
-- name: Last page number missing in a hole (double skip return).
-  type: UNKNOWN
-  io: O
-  description: A set of contiguous pages can be missing. The T and X register contains the last page number missing in such a hole. This is only returned if the source is a directory.
-- name: Number of 16-bit integers returned (double skip return).
-  type: UNKNOWN
-  io: O
-  description: If a short magnetic tape record is found. Only for magnetic tape as source and the D register different from -1.
+  description: Number of 16-bit integers returned (double skip return). If a short magnetic tape record is found. Only for magnetic tape as source and the D register different from -1.
 examples:
   pascal:
     available: false

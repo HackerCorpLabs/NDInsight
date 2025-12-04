@@ -14,34 +14,34 @@ see_also:
 - SetUserParam
 - '@DUMP-PROGRAM-REENTRANT'
 parameters:
-- name: Logical device number of a terminal.
-  type: UNKNOWN
+- name: TermNo
+  type: INTEGER
   io: I
-  description: ''
-- name: User name.
+  description: Logical device number of a terminal.
+- name: UserName
   type: STRING
   io: I
   description: ''
-- name: Password.
+- name: Password
   type: STRING
   io: I
   description: ''
-- name: Project password.
+- name: ProjPassword
+  type: STRING
+  io: I
+  description: Project password.
+- name: Subsystem
   type: STRING
   io: I
   description: ''
-- name: Subsystem to start.
-  type: STRING
-  io: I
-  description: ''
-- name: The 5 user parameters. See SetUserParam.
+- name: UserParam
   type: ARRAY
   io: I
-  description: Array of 5 elements.
-- name: Return status.
-  type: UNKNOWN
+  description: The 5 user parameters. See SetUserParam. Array of 5 elements.
+- name: Status
+  type: INTEGER
   io: O
-  description: Unsuccessful log in returns -1.
+  description: Return status. Unsuccessful log in returns -1.
 examples:
   pascal:
     available: true

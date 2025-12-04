@@ -14,14 +14,10 @@ see_also:
 - EnableEscape
 - OffEscLocalFunction
 parameters:
-- name: Contents of first location of escape-handler routine.
-  type: UNKNOWN
+- name: EscapeHandler
+  type: INTEGER
   io: I
-  description: See PLANC example.
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: O
-  description: Returned via ErrCode variable in high-level languages, or in register A for MAC.
+  description: Contents of first location of escape-handler routine. See PLANC example.
 examples:
   pascal:
     available: true

@@ -6,16 +6,16 @@ octal: 222B
 name: GetAddressArea
 short_names:
 - GBSIZ
-description: Gets the size of your address area. Your address area may consist of one or two 128 Kbyte areas. This depends on the size of the background segments:
+description: Gets the size of your address area. Your address area may consist of one or two 128 Kbyte areas. This depends on the size of the background segments.
 notes:
 - The size of the background segment is defined when SINTRAN III is generated for your computer.
 see_also:
 - '@CHANGE-BACKGROUND-SEGMENT-SIZE'
 parameters:
-- name: The size of the address area.
-  type: UNKNOWN
+- name: SegmentSize
+  type: INTEGER
   io: O
-  description: '100B means one 128 Kbyte address area. 200B means two 128 Kbyte address areas, one for instructions and one for data.'
+  description: 'The size of the address area. 100B means one 128 Kbyte address area. 200B means two 128 Kbyte address areas, one for instructions and one for data.'
 examples:
   pascal:
     available: true

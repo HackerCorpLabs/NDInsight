@@ -15,18 +15,14 @@ see_also:
 - BCNAF1CAMAC
 - CAMACGLRegister
 parameters:
-- name: DataWord. Input of data if write. Output if read.
-  type: UNKNOWN
+- name: DataWord
+  type: INTEGER
   io: IO
-  description: ''
-- name: IOXCode. Physical device number in the range 2000B-4000B.
-  type: UNKNOWN
+  description: Input of data if write. Output if read.
+- name: IOXCode
+  type: INTEGER
   io: I
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: O
-  description: Returned via ErrCode variable in high-level languages, or in W1 register for ASSEMBLY-500 (K flag indicates error).
+  description: Physical device number in the range 2000B-4000B.
 examples:
   pascal:
     available: true

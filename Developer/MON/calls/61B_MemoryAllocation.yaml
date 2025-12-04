@@ -16,34 +16,30 @@ see_also:
 - FixContiguous
 - UnFixSegment
 parameters:
-- name: Function code.
-  type: UNKNOWN
+- name: FuncCode
+  type: INTEGER
   io: I
-  description: Function codes 4, 5 and 6 are the only values allowed. The functions and parameters are described on the third page for this call.
-- name: Parameter 2.
-  type: UNKNOWN
+  description: Function code. Function codes 4, 5 and 6 are the only values allowed. The functions and parameters are described on the third page for this call.
+- name: Param2
+  type: INTEGER
   io: I/O
-  description: Depends on the function code.
-- name: Parameter 3.
-  type: UNKNOWN
+  description: Parameter 2. Depends on the function code.
+- name: Param3
+  type: INTEGER
   io: I/O
-  description: Depends on the function code.
-- name: Parameter 4.
-  type: UNKNOWN
+  description: Parameter 3. Depends on the function code.
+- name: Param4
+  type: INTEGER
   io: I/O
-  description: Depends on the function code.
-- name: Parameter 5.
-  type: UNKNOWN
+  description: Parameter 4. Depends on the function code.
+- name: Param5
+  type: INTEGER
   io: I/O
-  description: Depends on the function code.
-- name: Parameter 6.
-  type: UNKNOWN
+  description: Parameter 5. Depends on the function code.
+- name: Param6
+  type: INTEGER
   io: I/O
-  description: Depends on the function code.
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: O
-  description: Returned via ErrCode variable in high-level languages, or in W1 register for ASSEMBLY-500, or register A for MAC.
+  description: Parameter 6. Depends on the function code.
 examples:
   pascal:
     available: true

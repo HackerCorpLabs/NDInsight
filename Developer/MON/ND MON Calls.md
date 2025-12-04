@@ -59,7 +59,7 @@
 | [55B](#55b-getspoolingentry-rsqpe) | [GetSpoolingEntry](#55b-getspoolingentry-rsqpe) | RSQPE | Gets the next spooling queue entry, that is, the next file t... |
 | [56B](#56b-setuserparam-paset) | [SetUserParam](#56b-setuserparam-paset) | PASET | Sets information about a background program. Use GetUserPara... |
 | [57B](#57b-getuserparam-pagei) | [GetUserParam](#57b-getuserparam-pagei) | PAGEI | Gets information about why the last program terminated. Ther... |
-| [61B](#61b-memoryallocation-fixcs) | [MemoryAllocation](#61b-memoryallocation-fixcs) | FIXCS | Fixes or unfixes ND-100 segments to be used by the ND-500 Mo... |
+| [61B](#61b-memoryallocation-fixc5) | [MemoryAllocation](#61b-memoryallocation-fixc5) | FIXC5 | Fixes or unfixes ND-100 segments to be used by the ND-500 Mo... |
 | [62B](#62b-getbytesinfile-rmax) | [GetBytesInFile](#62b-getbytesinfile-rmax) | RMAX | Gets the number of bytes in a file. Only the bytes containin... |
 | [63B](#63b-in4x2bytes-b41nw) | [In4x2Bytes](#63b-in4x2bytes-b41nw) | B41NW | Reads 8 bytes from a word-oriented or character-oriented dev... |
 | [64B](#64b-warningmessage-ermsg) | [WarningMessage](#64b-warningmessage-ermsg) | ERMSG | Outputs a file system error message. Appendix A shows the me... |
@@ -116,7 +116,7 @@
 | [150B](#150b-camacglregister-gl) | [CAMACGLRegister](#150b-camacglregister-gl) | GL | Read the CAMAC GL (Graded LAM -"look at me") register or the... |
 | [151B](#151b-getrtaddress-grtda) | [GetRTAddress](#151b-getrtaddress-grtda) | GRTDA | Gets the address of an RT description. You specify the name ... |
 | [152B](#152b-getrtname-grtna) | [GetRTName](#152b-getrtname-grtna) | GRTNA | Gets the name of an RT program. You specify the RT descripti... |
-| [153B](#153b-camacioinstruction-ioxin) | [CAMACIOInstruction](#153b-camacioinstruction-ioxin) | IOXIN | Executes a single IOX instruction for CAMAC. See under CAMAC... |
+| [153B](#153b-camacioinstruction-ioxn) | [CAMACIOInstruction](#153b-camacioinstruction-ioxn) | IOXN | Executes a single IOX instruction for CAMAC. See under CAMACFunction (mon 147) for general information. |
 | [154B](#154b-assigncamaclam-assig) | [AssignCAMACLAM](#154b-assigncamaclam-assig) | ASSIG | Assigns a graded LAM in the CAMAC identification table to a ... |
 | [155B](#155b-graphicfunction-graph) | [GRAPHICFUNCTION](#155b-graphicfunction-graph) | GRAPH | Executes various functions on a graphic peripheral, such as ... |
 | [157B](#157b-segmenttopagetable-entsg) | [SegmentToPageTable](#157b-segmenttopagetable-entsg) | ENTSG | Enters a routine as a direct task or as a device driver, and... |
@@ -136,7 +136,7 @@
 | [177B](#177b-userdef7-us7) | [UserDef7](#177b-userdef7-us7) | US7 | User-defined monitor call. You can implement up to 8 monitor... |
 | [200B](#200b-xmsgfunction-xmsg) | [XMSGFunction](#200b-xmsgfunction-xmsg) | XMSG | Performs various data communication functions. All types of ... |
 | [201B](#201b-hdlcfunction-mhdlc) | [HDLCfunction](#201b-hdlcfunction-mhdlc) | MHDLC | Performs various HDLC functions. A HDLC is a high-level data... |
-| [206B](#206b-terminationhandling-edtmp) | [TerminationHandling](#206b-terminationhandling-edtmp) | EDTMP | Switches termination handling on and off.... |
+| [206B](#206b-terminationhandling-edtrm) | [TerminationHandling](#206b-terminationhandling-edtrm) | EDTRM | Switches termination handling on and off.... |
 | [207B](#207b-geterrorinfo-rerrp) | [GetErrorInfo](#207b-geterrorinfo-rerrp) | RERRP | Gets information about the last real-time error. The monitor... |
 | [212B](#212b-reentrantsegment-sreen) | [ReentrantSegment](#212b-reentrantsegment-sreen) | SREEN | Connects a reentrant segment to your two current segments. A... |
 | [213B](#213b-getdiruserindexes-muidi) | [GetDirUserIndexes](#213b-getdiruserindexes-muidi) | MUIDI | Gets a directory index and a user index. You have to specify... |
@@ -169,7 +169,7 @@
 | [252B](#252b-backupclose-bclos) | [BackupClose](#252b-backupclose-bclos) | BCLOS | Closes a file. The version number and the last date accessed... |
 | [253B](#253b-newfileversion-craln) | [NewFileVersion](#253b-newfileversion-craln) | CRALN | Creates new versions of a file. You may create new versions ... |
 | [254B](#254b-geterrordevice-gerdv) | [GetErrorDevice](#254b-geterrordevice-gerdv) | GERDV | Gets the logical device number of the error device. The erro... |
-| [255B](#255b-pioccfunction-piocm) | [PIOCCFunction](#255b-pioccfunction-piocm) | PIOCM | PIOCC (Programmed Input/Output Control Channel) function mon... |
+| [255B](#255b-piocfunction-piocm) | [PIOCFunction](#255b-piocfunction-piocm) | PIOCM | PIOC is a programmable input and output processor primarily used in data communication to handle networks like X.25 and Ethernet... |
 | [256B](#256b-fullfilename-deabf) | [FullFileName](#256b-fullfilename-deabf) | DEABF | Returns a complete file name from an abbreviated one. The di... |
 | [257B](#257b-openfileinfo-fopen) | [OpenFileInfo](#257b-openfileinfo-fopen) | FOPEN | Monitor call 257B - OpenFileInfo... |
 | [262B](#262b-getsysteminfo-cpust) | [GetSystemInfo](#262b-getsysteminfo-cpust) | CPUST | Gets various system information. The system number, the CPU ... |
@@ -240,7 +240,7 @@
 | [435B](#435b-forcetrap-prt) | [ForceTrap](#435b-forcetrap-prt) | PRT | Forces a programmed trap to occur in another ND-500 process.... |
 | [436B](#436b-setnd500param-5paset) | [SetND500Param](#436b-setnd500param-5paset) | 5PASET | Sets information about an ND-500 program. Use GetND500Param ... |
 | [437B](#437b-getnd500param-5paget) | [GetND500Param](#437b-getnd500param-5paget) | 5PAGET | Gets information about why the last ND-500 program terminate... |
-| [440B](#440b-attach500segment-atsgm) | [Attach500Segment](#440b-attach500segment-atsgm) | ATSGM | Maps a logical ND-500 data segment onto shared ND-100/ND-500... |
+| [440B](#440b-attach500segment-at5sgm) | [Attach500Segment](#440b-attach500segment-at5sgm) | AT5SGM | Maps a logical ND-500 data segment onto shared ND-100/ND-500... |
 | [500B](#500b-startprocess-startp) | [StartProcess](#500b-startprocess-startp) | STARTP | Starts a process in the ND-500. You identify the process wit... |
 | [501B](#501b-stopprocess-stoppr) | [StopProcess](#501b-stopprocess-stoppr) | STOPPR | Sets the current process in a wait state. StartProcess resta... |
 | [502B](#502b-switchprocess-switchp) | [SwitchProcess](#502b-switchprocess-switchp) | SWITCHP | Sets the current process in a wait state. Restarts another p... |
@@ -261,7 +261,7 @@
 | [AltPageTable](#33b-altpagetable-alton) | [33B](#33b-altpagetable-alton) | ALTON | Switches page table. Each page table allows you to access 12... |
 | [AppendSpooling](#240b-appendspooling-apspe) | [240B](#240b-appendspooling-apspe) | APSPE | Prints a file. The printer has a queue of files waiting to b... |
 | [AssignCAMACLAM](#154b-assigncamaclam-assig) | [154B](#154b-assigncamaclam-assig) | ASSIG | Assigns a graded LAM in the CAMAC identification table to a ... |
-| [Attach500Segment](#440b-attach500segment-atsgm) | [440B](#440b-attach500segment-atsgm) | ATSGM | Maps a logical ND-500 data segment onto shared ND-100/ND-500... |
+| [Attach500Segment](#440b-attach500segment-at5sgm) | [440B](#440b-attach500segment-at5sgm) | AT5SGM | Maps a logical ND-500 data segment onto shared ND-100/ND-500... |
 | [AttachSegment](#167b-attachsegment-reent) | [167B](#167b-attachsegment-reent) | REENT | Attaches a reentrant segment to your two current segments. T... |
 | [AwaitFileTransfer](#121b-awaitfiletransfer-waitf) | [121B](#121b-awaitfiletransfer-waitf) | WAITF | Checks that a data transfer to or from a mass-storage file i... |
 | [AwaitTransfer](#431b-awaittransfer-mwaitf) | [431B](#431b-awaittransfer-mwaitf) | MWAITF | Checks that a data transfer to or from a mass-storage file i... |
@@ -272,7 +272,7 @@
 | [CallCommand](#70b-callcommand-commnd) | [70B](#70b-callcommand-commnd) | COMMND | Executes a SINTRAN III command from a program. The program t... |
 | [CAMACFunction](#147b-camacfunction-camac) | [147B](#147b-camacfunction-camac) | CAMAC | Operates the CAMAC, i.e. executes the NAF register. CAMAC is... |
 | [CAMACGLRegister](#150b-camacglregister-gl) | [150B](#150b-camacglregister-gl) | GL | Read the CAMAC GL (Graded LAM -"look at me") register or the... |
-| [CAMACIOInstruction](#153b-camacioinstruction-ioxin) | [153B](#153b-camacioinstruction-ioxin) | IOXIN | Executes a single IOX instruction for CAMAC. See under CAMAC... |
+| [CAMACIOInstruction](#153b-camacioinstruction-ioxn) | [153B](#153b-camacioinstruction-ioxn) | IOXN | Executes a single IOX instruction for CAMAC. See under CAMACFunction (mon 147) for general information. |
 | [ChangeSegment](#337b-changesegment-spchg) | [337B](#337b-changesegment-spchg) | SPCHG | Changes the segment and the page table your program uses. Th... |
 | [CheckMonCall](#312b-checkmoncall-moinf) | [312B](#312b-checkmoncall-moinf) | MOINF | Some monitor calls are optional or only available in later v... |
 | [ClearCapability](#424b-clearcapability-capcle) | [424B](#424b-clearcapability-capcle) | CAPCLE | Clears a capability. A capability describes each logical seg... |
@@ -380,7 +380,7 @@
 | [LAMUFunction](#315b-lamufunction-mlamu) | [315B](#315b-lamufunction-mlamu) | MLAMU | Performs various functions on the LAMU system. A LAMU is a l... |
 | [LogInStart](#326b-loginstart-mlogi) | [326B](#326b-loginstart-mlogi) | MLOGI | Allowed in RT programs (ring ≥ 1), and in all programs run b... |
 | [MaxPagesInMemory](#417b-maxpagesinmemory-mxpisg) | [417B](#417b-maxpagesinmemory-mxpisg) | MXPISG | Sets the maximum number of pages a segment may have in physi... |
-| [MemoryAllocation](#61b-memoryallocation-fixcs) | [61B](#61b-memoryallocation-fixcs) | FIXCS | Fixes or unfixes ND-100 segments to be used by the ND-500 Mo... |
+| [MemoryAllocation](#61b-memoryallocation-fixc5) | [61B](#61b-memoryallocation-fixc5) | FIXC5 | Fixes or unfixes ND-100 segments to be used by the ND-500 Mo... |
 | [MemoryUnfix](#411b-memoryunfix-unfixm) | [411B](#411b-memoryunfix-unfixm) | UNFIXM | Releases a fixed segment in your domain from physical memory... |
 | [ND500TimeOut](#514b-nd500timeout-5tmout) | [514B](#514b-nd500timeout-5tmout) | 5TMOUT | Suspends the execution of an ND-500 program for a given time... |
 | [NewFileVersion](#253b-newfileversion-craln) | [253B](#253b-newfileversion-craln) | CRALN | Creates new versions of a file. You may create new versions ... |
@@ -402,7 +402,7 @@
 | [OutputString](#504b-outputstring-dvouts) | [504B](#504b-outputstring-dvouts) | DVOUTS | Writes a string to a device, e.g. a terminal or an opened fi... |
 | [OutString](#162b-outstring-outst) | [162B](#162b-outstring-outst) | OUTST | Writes a string of characters to a peripheral file, e.g., a ... |
 | [OutUpTo8Bytes](#22b-outupto8bytes-m8out) | [22B](#22b-outupto8bytes-m8out) | M8OUT | Writes up to 8 characters to a device, e.g. a terminal or an... |
-| [PIOCCFunction](#255b-pioccfunction-piocm) | [255B](#255b-pioccfunction-piocm) | PIOCM | PIOCC (Programmed Input/Output Control Channel) function mon... |
+| [PIOCFunction](#255b-piocfunction-piocm) | [255B](#255b-piocfunction-piocm) | PIOCM | PIOC is a programmable input and output processor primarily used in data communication to handle networks like X.25 and Ethernet... |
 | [PrivInstruction](#146b-privinstruction-ipriv) | [146B](#146b-privinstruction-ipriv) | IPRIV | Executes a privileged machine instruction on the ND-100. Pri... |
 | [ReadADChannel](#37b-readadchannel-airdw) | [37B](#37b-readadchannel-airdw) | AIRDW | Reads an analog to digital channel.... |
 | [ReadBlock](#7b-readblock-rpage) | [7B](#7b-readblock-rpage) | RPAGE | Reads randomly from a file. You read one block at a time. Th... |
@@ -464,7 +464,7 @@
 | [TerminalMode](#52b-terminalmode-termo) | [52B](#52b-terminalmode-termo) | TERMO | Selects various terminal functions. You may stop output on f... |
 | [TerminalNoWait](#307b-terminalnowait-tnowai) | [307B](#307b-terminalnowait-tnowai) | TNOWAI | Switches No Wait on and off. No Wait is useful for input fro... |
 | [TerminalStatus](#330b-terminalstatus-terst) | [330B](#330b-terminalstatus-terst) | TERST | Gets information about a terminal. The user logged in, the t... |
-| [TerminationHandling](#206b-terminationhandling-edtmp) | [206B](#206b-terminationhandling-edtmp) | EDTMP | Switches termination handling on and off.... |
+| [TerminationHandling](#206b-terminationhandling-edtrm) | [206B](#206b-terminationhandling-edtrm) | EDTRM | Switches termination handling on and off.... |
 | [TimeOut](#267b-timeout-tmout) | [267B](#267b-timeout-tmout) | TMOUT | Suspends the execution of your program for a given time. The... |
 | [ToErrorDevice](#142b-toerrordevice-ermon) | [142B](#142b-toerrordevice-ermon) | ERMON | Outputs a user-defined, real-time error. The error message i... |
 | [TRANSFERDATA](#335b-transferdata-exabs) | [335B](#335b-transferdata-exabs) | EXABS | Transfers data between physical memory and a mass-storage de... |
@@ -505,7 +505,7 @@
 | **ALTON** | [AltPageTable](#33b-altpagetable-alton) | [33B](#33b-altpagetable-alton) | Switches page table. Each page table allows you to access 12... |
 | **APSPE** | [AppendSpooling](#240b-appendspooling-apspe) | [240B](#240b-appendspooling-apspe) | Prints a file. The printer has a queue of files waiting to b... |
 | **ASSIG** | [AssignCAMACLAM](#154b-assigncamaclam-assig) | [154B](#154b-assigncamaclam-assig) | Assigns a graded LAM in the CAMAC identification table to a ... |
-| **ATSGM** | [Attach500Segment](#440b-attach500segment-atsgm) | [440B](#440b-attach500segment-atsgm) | Maps a logical ND-500 data segment onto shared ND-100/ND-500... |
+| **AT5SGM** | [Attach500Segment](#440b-attach500segment-at5sgm) | [440B](#440b-attach500segment-at5sgm) | Maps a logical ND-500 data segment onto shared ND-100/ND-500... |
 | **B41NW** | [In4x2Bytes](#63b-in4x2bytes-b41nw) | [63B](#63b-in4x2bytes-b41nw) | Reads 8 bytes from a word-oriented or character-oriented dev... |
 | **B8INB** | [In8Bytes](#23b-in8bytes-b8inb) | [23B](#23b-in8bytes-b8inb) | Reads 8 bytes from a device. The input is fast, but the moni... |
 | **B8OUT** | [Out8Bytes](#24b-out8bytes-b8out) | [24B](#24b-out8bytes-b8out) | Writes 8 bytes to a character device, e.g. a terminal. All 8... |
@@ -544,7 +544,7 @@
 | **DVOUTS** | [OutputString](#504b-outputstring-dvouts) | [504B](#504b-outputstring-dvouts) | Writes a string to a device, e.g. a terminal or an opened fi... |
 | **DWOBJ** | [SetObjectEntry](#216b-setobjectentry-dwobj) | [216B](#216b-setobjectentry-dwobj) | Changes the description of a file. An object entry describes... |
 | **ECHOM** | [SetEcho](#3b-setecho-echom) | [3B](#3b-setecho-echom) | When you press a key on the terminal, a character is normall... |
-| **EDTMP** | [TerminationHandling](#206b-terminationhandling-edtmp) | [206B](#206b-terminationhandling-edtmp) | Switches termination handling on and off.... |
+| **EDTRM** | [TerminationHandling](#206b-terminationhandling-edtrm) | [206B](#206b-terminationhandling-edtrm) | Switches termination handling on and off.... |
 | **EESCF** | [EnableEscape](#72b-enableescape-eescf) | [72B](#72b-enableescape-eescf) | Enables the ESCAPE key on the terminal. The ESCAPE key norma... |
 | **ELOFF** | [OffEscLocalFunction](#303b-offesclocalfunction-eloff) | [303B](#303b-offesclocalfunction-eloff) | Delays the escape and local functions for your terminal. The... |
 | **ELOFU** | [EnableLocal](#276b-enablelocal-elofu) | [276B](#276b-enablelocal-elofu) | You may log in on remote computers through the COSMOS data n... |
@@ -560,7 +560,7 @@
 | **FDINA** | [GetDirNameIndex](#243b-getdirnameindex-fdina) | [243B](#243b-getdirnameindex-fdina) | Gets directory index and name index. The name index identifi... |
 | **FIX** | [FixScattered](#115b-fixscattered-fix) | [115B](#115b-fixscattered-fix) | Place a segment in physical memory. Its pages will no longer... |
 | **FIXC** | [FixContiguous](#160b-fixcontiguous-fixc) | [160B](#160b-fixcontiguous-fixc) | Places a segment in physical memory. Its pages will no longe... |
-| **FIXCS** | [MemoryAllocation](#61b-memoryallocation-fixcs) | [61B](#61b-memoryallocation-fixcs) | Fixes or unfixes ND-100 segments to be used by the ND-500 Mo... |
+| **FIXC5** | [MemoryAllocation](#61b-memoryallocation-fixc5) | [61B](#61b-memoryallocation-fixc5) | Fixes or unfixes ND-100 segments to be used by the ND-500 Mo... |
 | **FIXMEM** | [FixInMemory](#410b-fixinmemory-fixmem) | [410B](#410b-fixinmemory-fixmem) | Fixes a logical segment of your domain in physical memory. Y... |
 | **FOBJN** | [GetFileIndexes](#274b-getfileindexes-fobjn) | [274B](#274b-getfileindexes-fobjn) | Gets the directory index, the user index, and the object ind... |
 | **FOPEN** | [OpenFileInfo](#257b-openfileinfo-fopen) | [257B](#257b-openfileinfo-fopen) | Monitor call 257B - OpenFileInfo... |
@@ -597,7 +597,7 @@
 | **IOMTY** | [TERMINAL](#336b-terminal-iomty) | [336B](#336b-terminal-iomty) | This I/O multifunction monitor call is used to change the at... |
 | **IOSET** | [DeviceControl](#141b-devicecontrol-ioset) | [141B](#141b-devicecontrol-ioset) | Sets control information for a character device, e.g. a term... |
 | **IOUT** | [OutNumber](#35b-outnumber-iout) | [35B](#35b-outnumber-iout) | Writes a number to the user's terminal. The number can be ou... |
-| **IOXIN** | [CAMACIOInstruction](#153b-camacioinstruction-ioxin) | [153B](#153b-camacioinstruction-ioxin) | Executes a single IOX instruction for CAMAC. See under CAMAC... |
+| **IOXN** | [CAMACIOInstruction](#153b-camacioinstruction-ioxn) | [153B](#153b-camacioinstruction-ioxn) | Executes a single IOX instruction for CAMAC. See under CAMACFunction (mon 147) for general information. |
 | **IPRIV** | [PrivInstruction](#146b-privinstruction-ipriv) | [146B](#146b-privinstruction-ipriv) | Executes a privileged machine instruction on the ND-100. Pri... |
 | **ISIZE** | [InBufferSpace](#66b-inbufferspace-isize) | [66B](#66b-inbufferspace-isize) | Gets the current number of bytes in the input buffer. Termin... |
 | **LASTC** | [GetLastByte](#26b-getlastbyte-lastc) | [26B](#26b-getlastbyte-lastc) | Gets the last character typed on a terminal. The monitor cal... |
@@ -632,7 +632,7 @@
 | **OUTST** | [OutString](#162b-outstring-outst) | [162B](#162b-outstring-outst) | Writes a string of characters to a peripheral file, e.g., a ... |
 | **PAGEI** | [GetUserParam](#57b-getuserparam-pagei) | [57B](#57b-getuserparam-pagei) | Gets information about why the last program terminated. Ther... |
 | **PASET** | [SetUserParam](#56b-setuserparam-paset) | [56B](#56b-setuserparam-paset) | Sets information about a background program. Use GetUserPara... |
-| **PIOCM** | [PIOCCFunction](#255b-pioccfunction-piocm) | [255B](#255b-pioccfunction-piocm) | PIOCC (Programmed Input/Output Control Channel) function mon... |
+| **PIOCM** | [PIOCFunction](#255b-piocfunction-piocm) | [255B](#255b-piocfunction-piocm) | PIOC is a programmable input and output processor primarily used in data communication to handle networks like X.25 and Ethernet... |
 | **PRIOR** | [SetRTPriority](#110b-setrtpriority-prior) | [110B](#110b-setrtpriority-prior) | Sets the priority of an RT program. RT programs may be given... |
 | **PRLRS** | [ForceRelease](#125b-forcerelease-prlrs) | [125B](#125b-forcerelease-prlrs) | Releases a device reserved by an RT program other than that ... |
 | **PRSRV** | [ForceReserve](#124b-forcereserve-prsrv) | [124B](#124b-forcereserve-prsrv) | Reserves a device for an RT program other than that which is... |
@@ -808,13 +808,13 @@ Reads one byte from a character device, e.g. a terminal or an opened file. If th
 
 | Name | Type | I/O | Description |
 |------|------|-----|-------------|
-| `⟶` | Logical device number. See appendix B. Use 1 for your own terminal. | I |  |
-| `←` | The read byte. | I |  |
-| `←` | Standard Error Code. See appendix A. | I |  |
+| `DeviceNumber` | INTEGER | I | Logical device number. See appendix B. Use 1 for your own terminal. |
+| `ReturnValue` | INTEGER | O | The read byte. |
+| `ErrCode` | INTEGER | O | Standard Error Code. See appendix A. |
 
 #### See Also
 
-[In8AndFlag](#310b-in8andflag-tbin8), InUpTo88Bytes, [In8Bytes](#23b-in8bytes-b8inb), InString, [InputString](#503b-inputstring-dvinst), [In4x2Bytes](#63b-in4x2bytes-b41nw), and OutByte
+[In8AndFlag](#310b-in8andflag-tbin8), [InUpTo8Bytes](#21b-inupto8bytes-m8inb), [In8Bytes](#23b-in8bytes-b8inb), InString, [InputString](#503b-inputstring-dvinst), [In4x2Bytes](#63b-in4x2bytes-b41nw), and [OutByte](#2b-outbyte-outbt)
 
 #### Examples
 
@@ -875,15 +875,15 @@ Monitor_Call('InByte', DeviceNumber, ReturnValue)
 <summary><strong>ASSEMBLY-500</strong></summary>
 
 ```asm
-DeviceNumber: W BLOCK 1
-ReturnValue: W BLOCK 1
-ErrCode: W BLOCK 1
-InByte: EQU 37B9 + 1B
+DeviceNumber : W BLOCK 1
+ReturnValue  : W BLOCK 1
+ErrCode      : W BLOCK 1
+InByte       : EQU 37B9 + 1B
 
 CALLG InByte, 2, DeviceNumber, ReturnValue
-IF' K GO ERROR
+IF K GO ERROR
 
-ERROR W1.. ErrCode %ErrorCode in W1 register.
+ERROR: W1 =: ErrCode             %ErrorCode in W1 register.
 ```
 
 </details>
@@ -892,21 +892,23 @@ ERROR W1.. ErrCode %ErrorCode in W1 register.
 <summary><strong>MAC</strong></summary>
 
 ```mac
-LDT DEVNO %Logical device number.
-MON 1    %Monitor call InByte.
-JMP ERROR %Error return from monitor call.
-STA BYTE  %Normal return, store byte read.
+LDT  DEVNO            %Logical device number.
+MON  1               %Monitor call InByte.
+JMP  ERROR           %Error return from monitor call.
+STA  BYTE            %Normal return, store byte read.
 
-ERROR.    %Error number in register A.
+ERROR, ...           %Error number in register A.
 
-DEVNO.
-BYTE. 0
-
-
-| ND-100 and ND-500 | All users | All programs |
+DEVNO, ...
+BYTE,  0
 ```
 
 </details>
+
+**Compatibility**
+
+| ND-100 and ND-500 | All users | All programs |
+|-------------------|-----------|--------------|
 
 *Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 319*
 
@@ -3330,13 +3332,86 @@ Monitor_Call('AltPageTable', PageTableNumber)
 
 ### 34B - NormalPageTable (ALTOFF)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
-**ALTOFF** Sets the alternative page table equal to the normal page table. All memory addresses are mapped through the normal page table after this monitor call.
+Sets the alternative page table equal to the normal page table. All memory addresses are mapped through the normal page table after this monitor call.
+
+#### Notes
 
 - Use AltPageTable to set an alternative page table.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### See Also
+
+[AltPageTable](#33b-altpagetable-alton) and [@ALTOFF](#altoff)
+
+#### Parameters
+
+This monitor call has no parameters.
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+NormalPageTable;
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 ErrCode COMP.
+...
+MONITOR-CALL "NormalPageTable".
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+Monitor_Call('NormalPageTable')
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+Monitor_Call('NormalPageTable')
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```asm
+MON 34                  %Monitor call NormalPageTable.
+JMP ERROR              %Error return from monitor call.
+...
+ERROR, ...             %Error number in register A.
+```
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -4824,13 +4899,110 @@ BUFF, 0
 
 ### 56B - SetUserParam (PASET)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
 Sets information about a background program. Use GetUserParam to read the 5 parameters when a program is terminated.
 
-- SINTRAN III sets some of the parameter values if you give the command @ENABLE-TERMINATION-HANDLING first.
+#### Notes
 
-*Source: ND-860228.2 EN, Page N/A*
+- SINTRAN III sets some of the parameter values if you give the command @ENABLE-TERMINATION-HANDLING first.
+- The parameters are returned if the user press the ESCAPE key, if the monitor calls ExitFromProgram or ErrorMessage are executed, or if a fatal error occurs. You can set all parameters if no termination handling is enabled.
+
+#### See Also
+
+[TerminationHandling](#206b-terminationhandling-edtrm), [GetUserParam](#57b-getuserparam-pagei), [@DEFINE-TERMINATION-HANDLING](#define-termination-handling), [@DISABLE-TERMINATION-HANDLING](#disable-termination-handling), and [@SET-USER-PARAMETERS](#set-user-parameters)
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `The five user parameters.` | ARRAY | I | This is an array of 16-bit integers on the ND-100. ND-500 uses an array of 32-bit integers. SINTRAN III's termination handling returns the following: Parameter 1: The last byte contains the user index. The byte in front of it contains the directory index. 2: Logical device number of the terminal. 3: Fatal error or the monitor call ErrorMessage returns the error number. If ESCAPE was pressed, -1 is returned. 4: Set by SetUserParam. 5: Set by SetUserParam. |
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+Buff : RECORD...END;
+...
+SetUserParam(Buff);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 Buff.
+02 array COMP OCCURS 5 TIMES.
+01 ErrCode COMP.
+...
+MONITOR-CALL "SetUserParam" USING Buff.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER Buff(5)
+...
+Monitor_Call('SetUserParam', Buff(1))
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER ARRAY : Buff(0:4)
+...
+Monitor_Call('SetUserParam', Buff(0))
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+Buff : H BLOCK 5
+SetUserParam : EQU 37B9 + 56B
+...
+CALLG SetUserParam, 1, Buff
+    IF K GO ERROR
+...
+ERROR : W1 =: ErrCode    %ErrorCode in W1 register.
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```asm
+LDA (PAR                 %Load register A with address of parameter list.
+MON 56                  %Monitor call SetUserParam.
+...
+PAR, BUFF               %Buffer of 5 words for setting user parameters.
+BUFF, index.            %Left byte: directory index, Right byte: user
+...                     %Logical device number, terminal number.
+...                     %-1 if escape, otherwise error number.
+...                     %User defined.
+...                     %User defined.
+```
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -4950,16 +5122,128 @@ ND-100 and ND-500 | All users | Background programs
 
 ---
 
-### 61B - MemoryAllocation (FIXCS)
+### 61B - MemoryAllocation (FIXC5)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
 Fixes or unfixes ND-100 segments to be used by the ND-500 Monitor. You may also reserve a contiguous area in physical memory. Various other memory functions are reserved for the ND-500 Monitor.
+
+#### Notes
 
 - This monitor call is not normally used by ordinary programs.
 - You may use this monitor call to reserve space for DMA buffers.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### See Also
+
+[FixScattered](#115b-fixscattered-fix), [FixInMemory](#410b-fixinmemory-fixmem), [FixContiguous](#160b-fixcontiguous-fixc), and [UnFixSegment](#116b-unfixsegment-unfix)
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Function code.` | UNKNOWN | I | Function codes 4, 5 and 6 are the only values allowed. The functions and parameters are described on the third page for this call. |
+| `Parameter 2.` | UNKNOWN | I/O | Depends on the function code. |
+| `Parameter 3.` | UNKNOWN | I/O | Depends on the function code. |
+| `Parameter 4.` | UNKNOWN | I/O | Depends on the function code. |
+| `Parameter 5.` | UNKNOWN | I/O | Depends on the function code. |
+| `Parameter 6.` | UNKNOWN | I/O | Depends on the function code. |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O | Returned via ErrCode variable in high-level languages, or in W1 register for ASSEMBLY-500, or register A for MAC. |
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+FuncCode, Param2, Param3, Param4, Param5, Param6 : INTEGER2;
+...
+MemoryAllocation(FuncCode, Param2, Param3, Param4, Param5, Param6);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 FuncCode COMP.
+01 Param2 COMP.
+01 Param3 COMP.
+01 Param4 COMP.
+01 Param5 COMP.
+01 Param6 COMP.
+01 ErrCode COMP.
+...
+MONITOR-CALL "MemoryAllocation" USING FuncCode, Param2, Param3, Param4, Param5, Param6.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER FuncCode, Param2, Param3, Param4, Param5, Param6
+...
+Monitor_Call('MemoryAllocation', FuncCode, Param2, Param3,
+C Param4, Param5, Param6)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : FuncCode, Param2, Param3, Param4, Param5, Param6
+...
+ON ROUTINEERROR DO
+IF ErrCode <> 0 THEN ...
+ENDON
+Monitor_Call('MemoryAllocation', FuncCode, Param2, Param3, &
+    Param4, Param5, Param6)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```asm
+LDA (PAR                 %Load register A with address of parameter list.
+MON 61                  %Monitor call MemoryAllocation.
+JMP ERROR               %Error return from monitor call.
+...                      %Normal return.
+ERROR, ...              %Error number in register A.
+...
+PAR, FUNC                %For the rest of this example, a special case
+PARA2                    %(function code = 4) is taken, in order to
+PARA3                    %emphasize that all parameters must be included.
+PARA4
+DUMMY                    %All parameters MUST be included, even if they
+DUMMY                    %are dummy for a particular function code.
+...
+FUNC, 4                  %Function code, in this case 4 (fix a segment contiguously at any address within a specified physical memory area.
+PARA2, 200               %Segment number.
+PARA3, 0                 %First legal physical memory page.
+PARA4, -1                %Last legal physical memory page. The value -1 is the maximum value.
+DUMMY, 0                 %Dummy value for parameters 5 and 6.
+```
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -10802,13 +11086,113 @@ RTNAM, 0
 
 ---
 
-### 153B - CAMACIOInstruction (IOXIN)
+### 153B - CAMACIOInstruction (IOXN)
 
 ![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
-Executes a single IOX instruction for CAMAC. See under CAMACfunction (mon 147) for general information.
+Executes a single IOX instruction for CAMAC. See under CAMACFunction (mon 147) for general information.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `DataWord.` | UNKNOWN | IO | Input of data if write. Output if read. |
+| `IOXCode.` | UNKNOWN | I | Physical device number in the range 2000B-4000B. |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O | Returned via ErrCode variable in high-level languages, or in W1 register for ASSEMBLY-500 (K flag indicates error). |
+
+#### See Also
+
+[CAMACFunction](#147b-camacfunction-camac), [AssignCAMACLAM](#154b-assigncamaclam-assig), [BCNAFCAMAC](#414b-bcnafcamac-bcnaf), [BCNAF1CAMAC](#415b-bcnaf1camac-bcnaf1), and [CAMACGLRegister](#150b-camacglregister-glreg)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+DataWord, IOXCode : INTEGER2;
+...
+CAMACIOInstruction (DataWord, IOXCode);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 DataWord COMP.
+01 IOXCode COMP.
+01 ErrCode COMP.
+...
+MONITOR-CALL "CAMACIOInstruction" USING DataWord, IOXCode.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER DataWord, IOXCode
+...
+Monitor_Call('CAMACIOInstruction', DataWord, IOXCode)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : DataWord, IOXCode
+...
+Monitor_Call('CAMACIOInstruction', DataWord, IOXCode)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+DataWord : W BLOCK 1
+IOXCode : W BLOCK 1
+ErrCode : W BLOCK 1
+CAMACIOInstruction : EQU 37B9 + 153B
+...
+CALLG CAMACIOInstruction, 2, DataWord, IOXCode
+    IF K GO ERROR
+...
+ERROR : W1 =: ErrCode              %ErrorCode in W1 register.
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+LDA DEVNO      %Hardware device number.
+COPY SA DD
+LDA DATA       %Data if write.
+MON 153        %Monitor call CAMACIOInstruction.
+STA DATA       %Store data if read.
+...
+DATA,
+DEVNO,
+
+
+| ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
+```
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 104*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -10822,7 +11206,117 @@ Assigns a graded LAM in the CAMAC identification table to a logical device numbe
 
 - Remove the LAM by specifying logical device number -1.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Logical device number. See appendix B.` | UNKNOWN | I |  |
+| `Graded LAM number.` | UNKNOWN | I | Use 0 for high priority on interrupt level 13. |
+| `CAMAC crate number in the range 0:15.` | UNKNOWN | I |  |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O | Returned via ErrCode variable in high-level languages, or in W1 register for ASSEMBLY-500 (K flag indicates error). |
+
+#### See Also
+
+[CAMACFunction](#147b-camacfunction-camac), [BCNAFCAMAC](#414b-bcnafcamac-bcnaf), [BCNAF1CAMAC](#415b-bcnaf1camac-bcnaf1), [CAMACIOInstruction](#153b-camacioinstruction-ioxn), and [CAMACGLRegister](#150b-camacglregister-glreg)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+DeviceNumber, GradedLAMNumber, CrateNumber : INTEGER2;
+...
+AssignCAMACLAM(DeviceNumber, GradedLAMNumber, CrateNumber);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 DeviceNo COMP.
+01 GradedLAMNumber COMP.
+01 CrateNo COMP.
+01 ErrCode COMP.
+...
+MONITOR-CALL "AssignCAMACLAM" USING DeviceNo, GradedLAMNumber, CrateNo.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER DeviceNo, GradedLAMNumber, CrateNo
+...
+Monitor Call('AssignCAMACLAM', DeviceNo, GradedLAMNumber, CrateNo)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : DeviceNo, GradedLAMNumber, CrateNo
+...
+ON ROUTINEERROR DO
+    IF ErrCode >< 0 THEN ...
+ENDON
+Monitor_Call('AssignCAMACLAM', DeviceNo, GradedLAMNumber, CrateNo)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+DeviceNo : W BLOCK 1
+GradedLAMNumber : W BLOCK 1
+CrateNo : W BLOCK 1
+ErrCode : W BLOCK 1
+AssignCAMACLAM : EQU 37B9 + 154B
+...
+CALLG AssignCAMACLAM, 3, DeviceNo, GradedLAMNumber, CrateNo
+    IF K GO ERROR
+...
+ERROR : W1 =: ErrCode              %ErrorCode in W1 register.
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+LDT GRLAM      %Graded LAM.
+LDA CRATE      %Crate number.
+COPY SA DD
+LDA DEVNO      %Logical device number.
+MON 154        %Monitor call AssignCAMACLAM.
+JAN ERROR      %Error if register A is negative.
+...
+ERROR, ...     %Error number in register A.
+...
+GRLAM, ...
+DEVNO, ...
+CRATE, ...
+
+
+| ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
+```
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 104*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -11713,15 +12207,106 @@ PAR, ...
 
 ---
 
-### 206B - TerminationHandling (EDTMP)
+### 206B - TerminationHandling (EDTRM)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
 Switches termination handling on and off.
 
+#### Notes
+
 - Termination handling for RT programs is either on or off. Background programs may have termination handling on or off for either user break or fatal errors.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### See Also
+
+[@ENABLE-TERMINATION-HANDLING](#enable-termination-handling) and [@DISABLE-TERMINATION-HANDLING](#disable-termination-handling)
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `On or off flag.` | UNKNOWN | I | Use 1 for on and 0 for off. |
+| `Circumstances for termination handling.` | UNKNOWN | I | Use 1 for termination handling on user break. Use 2 for fatal errors. Specify 0 for both. Always use 0 for RT programs. |
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+EnDisFlag, Flag : INTEGER2;
+...
+TerminationHandling (EnDisFlag, Flag);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 EnDisFlag COMP.
+01 Flag COMP.
+01 ErrCode COMP.
+...
+MONITOR-CALL "TerminationHandling" USING EnDisFlag, Flag.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER EnDisFlag, Flag
+...
+Monitor_Call('TerminationHandling', EnDisFlag, Flag)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : EnDisFlag, Flag
+...
+Monitor_Call('TerminationHandling', EnDisFlag, Flag)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+EDFLAG : W BLOCK 1
+FLAG : W BLOCK 1
+...
+LDA PAR, EDFLAG          %Load register A with address of parameter list.
+MON 206                  %Monitor call TerminationHandling.
+PAR, EDFLAG,             %Enable / Disable flag.
+FLAG,                    %Flag indicating user break or fatal error.
+...
+    IF K GO ERROR
+...
+ERROR : W1 =: ErrCode    %Error code in W1 register.
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Not available.
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -12894,13 +13479,94 @@ SIZE, ...           %File size as a double word.
 
 ### 222B - GetAddressArea (GBSIZ)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue)
 
 Gets the size of your address area. Your address area may consist of one or two 128 Kbyte areas. This depends on the size of the background segments:
 
+#### Notes
+
 - The size of the background segment is defined when SINTRAN III is generated for your computer.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### See Also
+
+[@CHANGE-BACKGROUND-SEGMENT-SIZE](#change-background-segment-size)
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `The size of the address area.` | UNKNOWN | O | 100B means one 128 Kbyte address area. 200B means two 128 Kbyte address areas, one for instructions and one for data. |
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+SegmentSize : INTEGER2;
+...
+GetAddressArea (SegmentSize);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 SegmentSize COMP.
+01 ErrCode COMP.
+...
+MONITOR-CALL "GetAddressArea" USING SegmentSize.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER SegmentSize
+...
+Monitor_Call('GetAddressArea', SegmentSize)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : SegmentSize
+...
+Monitor_Call('GetAddressArea', SegmentSize)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```asm
+MON 222                  %Monitor call GetAddressArea.
+STA SIZE, 0              %Store returned size of background segment.
+...
+```
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -14152,11 +14818,120 @@ ERROR, ...    %Error number in register A.
 
 ### 243B - GetDirNameIndex (FDINA)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
 Gets directory index and name index. The name index identifies the device description of the disk. You have to specify the directory name.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### See Also
+
+[GetDirUserIndexes](#213b-getdiruserindexes-muidi), [GetAllFileIndexes](#217b-getallfileindexes-guioi), and [GetDirEntry](#244b-getdirentry-gdien)
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Directory name.` | STRING | I | Directory name string (1-16 characters). |
+| `Directory index.` | UNKNOWN | O |  |
+| `Name index.` | UNKNOWN | O |  |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O | Returned via ErrCode variable in high-level languages, or in W1 register for ASSEMBLY-500, or register A for MAC. |
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+DirName : PACKED ARRAY [0..15] OF CHAR;
+DirIndex, NameIndex : INTEGER2;
+...
+GetDirNameIndex (DirName, DirIndex, NameIndex);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 DirName PIC X(16).
+01 DirIndex COMP.
+01 NameIndex COMP.
+01 ErrCode COMP.
+...
+MONITOR-CALL "GetDirNameIndex" USING DirName, DirIndex, NameIndex.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+CHARACTER DirName*16
+INTEGER DirIndex, NameIndex
+...
+Monitor_Call('GetDirNameIndex', DirName (1:16), DirIndex, NameIndex)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+BYTES : DirName(0:15)
+INTEGER : DirIndex, NameIndex
+...
+ON ROUTINEERROR DO
+IF ErrCode <> 0 THEN ...
+ENDON
+Monitor_Call('GetDirNameIndex', DirName, DirIndex, NameIndex)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+DirName : STRINGDATA 'PACK-TWO'''
+DirIndex : W BLOCK 1
+NameIndex : W BLOCK 1
+ErrCode : W BLOCK 1
+GetDirNameIndex : EQU 37B9 + 243B
+...
+CALLG GetDirNameIndex, 3, DirName, DirIndex, NameIndex
+    IF K GO ERROR
+...
+ERROR : W1 =: ErrCode    %ErrorCode in W1 register.
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```asm
+LDX (DIRNAM              %Address of directory name string.
+MON 243                  %Monitor call GetDirNameIndex.
+JMP ERROR                %Error return from monitor call.
+STT DIRIX                %Normal return, store directory index.
+STA NAMIX                %Store name index.
+...
+ERROR, ...               %Error number in register A.
+...
+DIRNAM, 'PACK-TWO'       %Obtain directory and name index of PACK-TWO.
+DIRIX, 0
+NAMIX, 0
+```
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -15163,15 +15938,88 @@ RTPRO, 0
 
 ---
 
-### 255B - PIOCCFunction (PIOCM)
+### 255B - PIOCFunction (PIOCM)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
-PIOCC (Programmed Input/Output Control Channel) function monitor call.
+PIOC is a programmable input and output processor primarily used in data communication to handle networks like X.25 and Ethernet. It is controlled via a monitor call from SINTRAN III. More details, functions, and examples are provided in the PIOC Software Guide (ND-860161). PIOC is based on an MC 68000 processor. A PLANC compiler is available for PIOC.
 
-WARNING: This monitor call is not documented in the ND-860228.2 EN manual.
+#### Notes
 
-*Source: ND-860228.2 EN, Page N/A*
+- See the PIOC Software Guide (ND-860161) for more details, functions, and examples.
+- Function number (0-7). Stored in the ND-100 T-register.
+  - 0: Reserve the ND-100 side of a slot.
+  - 1: Release the ND-100 side of a slot.
+  - 2: Send information to a PIOC-process.
+  - 3: Read a message from a PIOC-process.
+  - 4: Load segment into PIOC memory.
+  - 5: Unload all segments from PIOC memory.
+  - 6: Start the PIOC.
+  - 7: Stop the PIOC.
+- Status code (octal): 1: Successful execution. 2: No answer from the PIOC ND-100 driver. -10: No privilege. This call may only be used by user SYSTEM, from an RT-program or from ring 2. -11: Function not allowed before the PIOC is started. -24: Illegal function code. -25: The slot is occupied by another process. -26: Illegal slot number. -27: Slot not reserved by you. -30: The mailbox is not empty so it cannot receive information. -31: The mailbox is empty. No message to fetch. -32: Illegal LDN. -33: The PIOC is not initiated. -34: The PIOC memory is not all fixed. 41: Space not available. 42: Illegal segment. 43: Segment not loaded. 44: Attempt to fix demand segment. 45: Attempt to fix too many pages. 46: Segment already fixed at different address.
+
+#### See Also
+
+[XMSGFunction](#200b-xmsgfunction-xmsg) and [HDLCFunction](#hdlcfunction)
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Logical Device number.` | UNKNOWN | I | Specifies which PIOC module to access. |
+| `Slot number (1-8).` | UNKNOWN | I | Refers to the PIOC kick channel. Not applicable for functions 4, 5, 6, or 7. |
+| `Function number (0-7).` | UNKNOWN | I | Further details are on the following page. |
+| `The message itself (2 bytes of information).` | UNKNOWN | I | Used by functions 2 and 3. |
+| `Segment number to be loaded.` | UNKNOWN | I | Applicable for function 4. |
+| `Page number where the loading should start.` | UNKNOWN | I | Applicable for function 4. |
+| `Status code (octal).` | UNKNOWN | O | Further details are on the following page. |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O |  |
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Not available.
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -15436,11 +16284,123 @@ BUFF, 0
 
 ### 263B - GetDeviceType (GDEVT)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
 Gets the device type, e.g. terminal, floppy disk, mass-storage file, etc. The monitor call also provides information on how to handle the device.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Logical device number.` | UNKNOWN | I | Logical device number (1= own terminal). See appendix B. |
+| `Input or output part.` | UNKNOWN | I | Use 0 for input and 1 for output. |
+| `Device type.` | UNKNOWN | O | Device type. The numbers below are returned: 0: Unspecified. 1: Terminal. 2: Terminal access device (TAD). 3: Communication channel. 4: Internal block device. 5: Floppy disk drive. 6: Magnetic tape station. 7: Mass-storage file. |
+| `Device information.` | UNKNOWN | O | Device information (returned in the combined A and D registers. The bits have the following meaning: Bit 0: InByte or OutByte allowed. Bit 1: StartOnInterrupt allowed. Bit 2: DeviceControl allowed. Bit 3: Block calls allowed. Bit 4: ClearDevice available. Bit 5: Reservation not needed. Bit 6: COSMOS remote open file. Bit 10g: NOTS (NET/One Terminal Server) terminal. Bit 11g: MTAD device. |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O | Returned via ErrCode variable in high-level languages, or in W1 register for ASSEMBLY-500, or register A for MAC. |
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+DeviceNo, IOFlag, DevType : INTEGER2;
+DevAttr : LONGINT;
+...
+GetDeviceType (DeviceNo, IOFlag, DevType, DevAttr);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 DeviceNo COMP.
+01 IOFlag COMP.
+01 DevType COMP.
+01 DevAttr COMP PIC S9(10).
+01 ErrCode COMP.
+...
+MONITOR-CALL "GetDeviceType" USING DeviceNo, IOFlag, DevType, DevAttr.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER DeviceNo, IOFlag, DevType
+INTEGER*4 DevAttr
+...
+Monitor_Call('GetDeviceType', DeviceNo, IOFlag, DevType, DevAttr)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : DeviceNo, IOFlag, DevType
+INTEGER4 : DevAttr
+...
+ON ROUTINEERROR DO
+IF ErrCode >< 0 THEN ...
+ENDON
+Monitor_Call('GetDeviceType', DeviceNo, IOFlag, DevType, DevAttr)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+DeviceNo : W BLOCK 1
+IOFlag : W BLOCK 1
+DevType : W BLOCK 1
+DevAttr : W BLOCK 1
+ErrCode : W BLOCK 1
+GetDeviceType : EQU 37B9 + 263B
+...
+CALLG GetDeviceType, 4, DeviceNo, IOFlag, DevType, DevAttr
+    IF K GO ERROR
+...
+ERROR : W1 =: ErrCode    %ErrorCode in W1 register.
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```asm
+LDT DEVNO                 %Logical device number.
+LDA IOF                   %Input/output flag.
+MON 263                  %Monitor call GetDeviceType.
+JMP ERROR                %Error return from monitor call.
+STT TYPE                 %Normal return, store device type.
+STD ATBUT                %Store device attributes.
+...
+ERROR, ...               %Error number in register A.
+...
+DEVNO, ...
+IOF, ...
+TYPE, 0
+ATBUT, 0
+0                        %A double number.
+0                        %
+```
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -16386,15 +17346,103 @@ NAME, 'TERMINAL'                   %Set terminal name to TERMINAL.
 
 ### 276B - EnableLocal (ELOFU)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
 You may log in on remote computers through the COSMOS data network. A key on the terminal returns you to your local computer. This local function can be disabled. You enable it again with EnableLocal.
+
+#### Notes
 
 - You disable the key with DisableLocal.
 - The key is disabled when a program terminates.
 - The COSMOS CONNECT-TO program tells you which key to use as the LOCAL key.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### See Also
+
+[DisableLocal](#277b-disablelocal-dlofu)
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Program address of local handling.` | UNKNOWN | I |  |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O | Returned via ErrCode variable in high-level languages, or in register A for MAC. |
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+LocalEnable;
+[Note routine name.]
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 ProgramAddress COMP.
+01 ErrCode COMP.
+...
+MONITOR-CALL "EnableLocal" USING ProgramAddress.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER ProgramAddress
+...
+Monitor_Call('EnableLocal', ProgramAddress)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : ProgramAddress
+...
+ON ROUTINEERROR DO
+IF ErrCode <> 0 THEN ...
+ENDON
+Monitor_Call('EnableLocal', ProgramAddress)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```asm
+LDA (LOC                 %Load local handling function address into reg. A
+MON 276                  %Monitor call EnableLocal.
+JMP ERROR                %Error return from monitor call.
+...                      %Normal return.
+LOC, ...
+ERROR, ...              %Error number in register A.
+...
+```
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -16469,14 +17517,108 @@ ND-100 | All users | All programs
 
 ### 300B - SetEscapeHandling (EUSEL)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue)
 
 Enables user-defined escape handling. When the ESCAPE key is pressed, execution continues at the specified address in your program.
+
+#### Notes
 
 - Disable the user-defined escape handling with StopEscapeHandling.
 - The normal escape handling is reset when the program aborts.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### See Also
+
+[EnableEscape](#72b-enableescape-eescf) and [OffEscLocalFunction](#303b-offesclocalfunction-eloff)
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Contents of first location of escape-handler routine.` | UNKNOWN | I | See PLANC example. |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O | Returned via ErrCode variable in high-level languages, or in register A for MAC. |
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+EscapeHandler : INTEGER2;
+...
+SetEscapeHandling (EscapeHandler);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 EscapeHandler COMP.
+01 ErrCode COMP.
+...
+MONITOR-CALL "SetEscapeHandling" USING EscapeHandler.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER EscapeHandler
+...
+Monitor_Call('SetEscapeHandling', EscapeHandler)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+TYPE rvv=ROUTINE VOID,VOID
+INTEGER POINTER: ip
+rvv POINTER: rp=ip
+ROUTINE VOID,VOID : EscHandling
+...
+ENDROUTINE
+ON ROUTINEERROR DO
+IF ErrCode <> 0 THEN ...
+ENDON
+...
+Addr EscHandling =:rp
+Monitor_Call('SetEscapeHandling', Ind(ip))
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```asm
+LDA PROG                 %Address of user escape handler routine.
+MON 300                  %Monitor call SetEscapeHandling.
+JMP ERROR                %Error return from monitor call.
+...                      %Normal return.
+ERROR, ...               %Error number in register A.
+PROG, ...
+```
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -18222,20 +19364,134 @@ Controls echo of input and output if the program is executed in a batch or mode 
 
 ### 326B - LogInStart (MLOGI)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
-Allowed in RT programs (ring ≥ 1), and in all programs run by users RT and SYSTEM.
+Logs in a user on a terminal and starts a subsystem.
 
-- Parameter 1: Function code.
-- Parameter 2: LAMU ID (identification) number.
-- Specify the LAMU to get information about.
-- Parameter 3: LAMU information. Three word array containing the following information:
-- Word 1: the first physical page used by the LAMU
-- Word 2: the number of pages in the LAMU
-- Word 3: the LAMU protection information
-- Parameter 4: Dummy.
+#### Notes
 
-*Source: ND-860228.2 EN, Page N/A*
+- The terminal must be free.
+- The subsystem must be reentrant. See [@DUMP-PROGRAM-REENTRANT](#dump-program-reentrant).
+
+#### See Also
+
+[SetUserParam](#56b-setuserparam-paset) and [@DUMP-PROGRAM-REENTRANT](#dump-program-reentrant)
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Logical device number of a terminal.` | UNKNOWN | I |  |
+| `User name.` | STRING | I |  |
+| `Password.` | STRING | I |  |
+| `Project password.` | STRING | I |  |
+| `Subsystem to start.` | STRING | I |  |
+| `The 5 user parameters. See SetUserParam.` | ARRAY | I | Array of 5 elements. |
+| `Return status.` | UNKNOWN | O | Unsuccessful log in returns -1. |
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+TermNo : INTEGER2;
+UserName : PACKED ARRAY [0..63] OF CHAR;
+Password, ProjPassword : PACKED ARRAY [0..15] OF CHAR;
+Subsystem : PACKED ARRAY [0..31] OF CHAR;
+UserParam : RECORD END;
+...
+LogInStart(TermNo, UserName, Password, ProjPassword, Subsystem, UserParam);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 TermNo COMP.
+01 UserName PIC X(64).
+01 Password PIC X(16).
+01 ProjPassword PIC X(16).
+01 Subsystem PIC X(32).
+01 UserParam.
+02 array COMP OCCURS 5 TIMES.
+01 ErrCode COMP.
+...
+MONITOR-CALL "LogInStart" USING TermNo, UserName, Password, ProjPassword, Subsystem, UserParam.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER TermNo
+CHARACTER UserName*64, Password*16, ProjPassword*16, Subsystem*32
+INTEGER UserParam(5)
+...
+Monitor_Call('LogInStart', TermNo, UserName(1:64), Password(1:16), ProjPassword(1:16), Subsystem(1:32), UserParam(1))
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : TermNo
+BYTES : UserName(0:63), Password(0:15), ProjPassword(0:15), Subsystem(0:31)
+INTEGER ARRAY UserParam(0:4)
+...
+ON ROUTINEERROR DO
+IF ErrCode <> 0 THEN ...
+ENDON
+Monitor_Call('LogInStart', TermNo, UserName, Password, ProjPassword, &
+    Subsystem, UserParam(0))
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```asm
+LDA (PAR                 %Load register A with address of parameter list.
+MON 326                 %Monitor call LogInStart.
+JMP ERROR               %Handle error if STAT is negative.
+...
+PAR, TERNO,             %Terminal number
+USER,                   %User name
+PASSW,                  %Password.
+PROJP,                  %Project password.
+SUBSYS,                 %Subsystem
+USRPAR,                 %User parameter.
+STAT,                   %Status returned.
+...
+USER, 'A-HANSEN'        %Login user A-HANSEN.
+PASSW, 'MAY'            %Use MAY as password.
+PROJP, 'CHEESE'         %Use CHEESE as a project password.
+SUBSYS, 'NOTIS-WP'      %Use NOTIS-WP as a subsystem.
+STAT, 0                 %
+ERROR, ...              %Error number in register A.
+```
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -18243,13 +19499,135 @@ Allowed in RT programs (ring ≥ 1), and in all programs run by users RT and SYS
 
 ### 327B - FileSystemFunction (FSMTY)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
 Multifunction monitor call to make sure that an uncontrolled system stop does not leave the file system inconsistent. The file index block of an open file is written back to the disk.
 
-- This monitor call is particularly useful for SIBAS and ISAM applications.
+#### Notes
 
-*Source: ND-860228.2 EN, Page N/A*
+- This monitor call is particularly useful for SIBAS and ISAM applications.
+- Only function 1 is available on ND-100.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Function code.` | INTEGER | I | 1 = write back to disk the index block of an open file. 2 = return the block size of an opened file. 3 = get full file name of an opened file. 4 = get information about a file or device. (More details on page 190.) |
+| `File number.` | INTEGER | I | See OpenFile. |
+| `Parameter 2.` | INTEGER | I/O | Block size if function code 2. Buffer to receive file name if function code 3. If function code 4: TYPRING, status, SINTRAN III open-file number or device number. |
+| `Parameter 3.` | BYTES | I/O | Buffer (64 bytes or 26 words). Used for file name or other data depending on function code. |
+| `Standard Error Code. See appendix A.` | INTEGER | O | Returned via ErrCode variable in high-level languages, or in W1 register for ASSEMBLY-500, or register A for MAC. |
+
+#### See Also
+
+- [OpenFile](#openfile)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+FuncCode, FileNo : INTEGER2;
+...
+FileSystemFunction(FuncCode, FileNo);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 FuncCode COMP.
+01 FileNo COMP.
+01 Param2 COMP.
+01 Param3 X PIC (64).
+01 ErrCode COMP.
+...
+MONITOR-CALL "FileSystemFunction" USING FuncCode, FileNo, Param3, Param2.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER FuncCode, FileNo, Param2
+CHARACTER Param3*64
+...
+Monitor_Call('FileSystemFunction', FuncCode, FileNo, Param3, Param2)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : FuncCode, FileNo, Param2
+BYTES : Param3(0:63)
+...
+ON ROUTINEERROR DO
+  IF ErrCode <> 0 THEN ...
+ENDON
+Monitor_Call('FileSystemFunction', FuncCode, FileNo, Param3, Param2)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+Func1Code : W DATA 1              %Various function codes.
+Func2Code : W DATA 2
+Func3Code : W DATA 3
+FileNo : W BLOCK 1
+BlockSize : W BLOCK 1
+FileName : STRING 200B
+ErrCode : W BLOCK 1
+FileSystemFunction : EQU 37B9 + 327B
+...
+CALLG FileSystemFunction, 2, Func1Code, FileNo
+IF K GO Error
+CALLG FileSystemFunction, 3, Func2Code, FileNo, BlockSize
+IF K GO Error
+CALLG FileSystemFunction, 3, Func3Code, FileNo, FileName
+IF K GO Error
+...
+Error, W1 := ErrCode
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+```mac
+LDT FUNC    %Load register T with the function code.
+LDA FILNO   %Load register A with the file number.
+LDX (BUFF   %Load register X with buffer address.
+MON 327     %Monitor call FileSystemFunction.
+JMP ERROR   %Error return.
+STA PAR2    %Returned parameter 2 if func = 2.
+...
+ERROR, ...
+FUNC, 1     %Only function 1 is available on ND-100.
+FILNO, ...
+BUFF, 0     %Buffer of 26 words.
+*+26/
+PAR2, 0     %Block size.
+```
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -18998,19 +20376,13 @@ This is a multifunction monitor call used to change the active segments of a pro
 
 ### 400B - ErrorReturn (MACROE)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
 Terminates the program and sets an error code. The error code can be tested by the commands IF-ERROR-MACRO-STOP and IF-ERROR-FULL-STOP commands in the ND-500 Monitor. See the manual ND Linker User Guide and Reference Manual (ND-860289) for details about macros.
 
 #### Parameters
 
-| Name | Type | I/O | Description |
-|------|------|-----|-------------|
-| `PASCAL` |  | I |  |
-| `COBOL` | UNKNOWN | I |  |
-| `MONITOR-CALL "ErrorReturn".` | UNKNOWN | I |  |
-| `FORTRAN` | UNKNOWN | I |  |
-| `Monitor_Call('ErrorReturn')` | UNKNOWN | I |  |
+This monitor call has no parameters.
 
 #### Examples
 
@@ -19018,9 +20390,7 @@ Terminates the program and sets an error code. The error code can be tested by t
 <summary><strong>Pascal</strong></summary>
 
 ```pascal
-RTProgram, BasicTimeUnits: INTEGER2;
-...
-ExactDelayStart(RTProgram, BasicTimeUnits);
+ErrorReturn;
 ```
 
 </details>
@@ -19029,10 +20399,7 @@ ExactDelayStart(RTProgram, BasicTimeUnits);
 <summary><strong>COBOL</strong></summary>
 
 ```cobol
-01 RTProgram COMP.
-01 BasicTimeUnits COMP.
-...
-MONITOR-CALL "ExactDelayStart" USING RTProgram, BasicTimeUnits.
+MONITOR-CALL "ErrorReturn".
 ```
 
 </details>
@@ -19041,9 +20408,7 @@ MONITOR-CALL "ExactDelayStart" USING RTProgram, BasicTimeUnits.
 <summary><strong>Fortran</strong></summary>
 
 ```fortran
-INTEGER RTProgram, BasicTimeUnits
-...
-Monitor_Call('ExactDelayStart', RTProgram, BasicTimeUnits)
+Monitor_Call('ErrorReturn')
 ```
 
 </details>
@@ -19060,14 +20425,21 @@ Monitor_Call('ExactDelayStart', RTProgram, BasicTimeUnits)
 </details>
 
 <details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+Monitor_Call('ErrorReturn')
+```
+
+</details>
+
+<details>
 <summary><strong>ASSEMBLY-500</strong></summary>
 
 ```asm
-RTProgram : W BLOCK 1
-BasicTimeUnits : W BLOCK 1
-ExactDelayStart : EQU 37B9 + 126B
+ErrorReturn : EQU 37B9 + 400B
 ...
-CALLG ExactDelayStart, 2, RTProgram, BasicTimeUnits
+CALLG ErrorReturn, 0
 ```
 
 </details>
@@ -19075,19 +20447,13 @@ CALLG ExactDelayStart, 2, RTProgram, BasicTimeUnits
 <details>
 <summary><strong>MAC</strong></summary>
 
-```mac
-LDA (PAR   %Load register A with address of parameter list.
-MON 126    %Monitor call ExactDelayStart.
-...
-PAR, RTPRO %Address of RT description.
-TIME       %Number of basic time units the program
-...        % is to stay in the time queue.
-RTPRO, ...
-TIME, ...  %A double word.
-...        %
+Not available.
 
+</details>
 
-| ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 173*
+
+[↑ Back to Top](#table-of-contents)
 ```
 
 </details>
@@ -19977,11 +21343,103 @@ CALLG FileNotAsSegment, 2, FileNumber, LogSegNumber
 
 ### 414B - BCNAFCAMAC (BCNAF)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
 Special CAMAC function on the ND-500. (Same as mon 156 TRACB.)
 
-*Source: ND-860228.2 EN, Page N/A*
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Function.` | UNKNOWN | I |  |
+| `Address.` | UNKNOWN | I |  |
+| `Data.` | UNKNOWN | I |  |
+| `Status.` | UNKNOWN | O | Returned via Status variable in high-level languages, or in W1 register for ASSEMBLY-500 (K flag indicates error). |
+
+#### See Also
+
+[CAMACFunction](#147b-camacfunction-camac), [AssignCAMACLAM](#154b-assigncamaclam-assig), [BCNAF1CAMAC](#415b-bcnaf1camac-bcnaf1), [CAMACIOInstruction](#153b-camacioinstruction-ioxn), and [CAMACGLRegister](#150b-camacglregister-glreg)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+Func, Address, Data, Status : LONGINT;
+...
+BCNAFCAMAC(Func, Address, Data, Status);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 Func COMP.
+01 Address COMP.
+01 Data COMP.
+01 Status COMP.
+01 ErrCode COMP.
+...
+MONITOR-CALL "BCNAFCAMAC" USING Func, Address, Data, Status.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER Func, Address, Data, Status
+...
+Monitor_Call('BCNAFCAMAC', Func, Address, Data, Status)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : Func, Address, Data, Status
+...
+Monitor_Call('BCNAFCAMAC', Func, Address, Data, Status)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+Func : W BLOCK 1
+Address : W BLOCK 1
+Data : W BLOCK 1
+Status : W BLOCK 1
+BCNAFCAMAC : EQU 37B9 + 414B
+...
+CALLG BCNAFCAMAC, 4, Func, Address, Data, Status
+    IF K GO ERROR
+...
+ERROR : W1 =: Status              %Status in W1 register.
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Not available.
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -19989,11 +21447,103 @@ Special CAMAC function on the ND-500. (Same as mon 156 TRACB.)
 
 ### 415B - BCNAF1CAMAC (BCNAF1)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
 
 Special CAMAC monitor call for the ND-500. (Same as mon 176 - user-defined monitor call.)
 
-*Source: ND-860228.2 EN, Page N/A*
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Function.` | UNKNOWN | I |  |
+| `Address.` | UNKNOWN | I |  |
+| `Data.` | UNKNOWN | I |  |
+| `Status.` | UNKNOWN | O | Returned via Status variable in high-level languages, or in W1 register for ASSEMBLY-500 (K flag indicates error). |
+
+#### See Also
+
+[CAMACFunction](#147b-camacfunction-camac), [AssignCAMACLAM](#154b-assigncamaclam-assig), [BCNAFCAMAC](#414b-bcnafcamac-bcnaf), [CAMACIOInstruction](#153b-camacioinstruction-ioxn), and [CAMACGLRegister](#150b-camacglregister-glreg)
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+Funct, Address, Data, Status : LONGINT;
+...
+BCNAF1CAMAC(Funct, Address, Data, Status);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 Func COMP.
+01 Address COMP.
+01 Data COMP.
+01 Status COMP.
+01 ErrCode COMP.
+...
+MONITOR-CALL "BCNAF1CAMAC" USING Func, Address, Data, Status.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER Func, Address, Data, Status
+...
+Monitor_Call('BCNAF1CAMAC', Func, Address, Data, Status)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : Func, Address, Data, Status
+...
+Monitor_Call('BCNAF1CAMAC', Func, Address, Data, Status)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+Func : W BLOCK 1
+Address : W BLOCK 1
+Data : W BLOCK 1
+Status : W BLOCK 1
+BCNAF1CAMAC : EQU 37B9 + 415B
+...
+CALLG BCNAF1CAMAC, 4, Func, Address, Data, Status
+    IF K GO ERROR
+...
+ERROR : W1 =: Status              %Status in W1 register.
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Not available.
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -20852,13 +22402,99 @@ CALLG GetOwnProcessInfo, 2, ProcessName, ProcessNumber
 
 ---
 
-### 430B - TranslateAddress (ADRIOO)
+### 430B - TranslateAddress (ADR100)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
-The call formats are marked from a-i. All formats give status on return. See appendix A. The return status >=0 means the call terminated correctly. Parameters which do not affect the call format are called "dummy" below. All call formats contain logical unit number (0-3) in function code bits 6-8. Status=EXABS(logical device number, Unit/function code, dummy, dummy, dummy) The hardware status is returned as error code. The device must be reserved. Otherwise a positive error code may not be the correct hardware status. Status=EXABS(logical device number, Unit/function code, dummy, dummy, dummy) Status is Standard Error Code. Status=EXABS(logical device number, Unit/function code, physical memory address, sector address, no of sectors to read) Status=EXABS(logical device number, Unit/function code, physical memory address, sector address, no of sectors to write) Status=EXABS(logical device number, Unit/function code, dummy, dummy, floppy format number) Status=EXABS(logical device number, Unit/function code, dummy, dummy, sector address) Status=EXABS(logical device number, Unit/function code, dummy, dummy, destination unit number) Status=EXABS(logical device number, Unit/function code, dummy, dummy, first sector address of track)
+Translates an ND-500 logical address to an ND-100 physical address. Use this monitor call to set up communication areas between the two CPUs.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### Notes
+
+- Applied only to data addresses, not program addresses.
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `ND-500 array logical address.` | UNKNOWN | I |  |
+| `Physical word address in the ND-100.` | UNKNOWN | O |  |
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+```pascal
+ND500Array, ND100PhysWordAddr : LONGINT;
+...
+TranslateAddress (ND500Array, ND100PhysWordAddr);
+IF ErrCode <> 0 THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+```cobol
+01 ND500Array COMP.
+01 ND100PhysWordAddr COMP.
+01 ErrCode COMP.
+...
+MONITOR-CALL "TranslateAddress" USING ND500Array, ND100PhysWordAddr.
+CALL "CbError" USING ErrCode.
+IF ErrCode NOT = 0 GO ...
+```
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+```fortran
+INTEGER ND500Array, ND100PhysWordAddr
+...
+Monitor_Call('TranslateAddress', ND500Array, ND100PhysWordAddr)
+IF (ErrCode .NE. 0) THEN ...
+```
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+```planc
+INTEGER : ND500Array, ND100PhysWordAddr
+...
+Monitor_Call('TranslateAddress', ND500Array, ND100PhysWordAddr)
+```
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+```asm
+ND500Array : W BLOCK 1
+ND100PhysWordAddr : W BLOCK 1
+TranslateAddress : EQU 37B9 + 430B
+...
+CALLG TranslateAddress, 2, ND500Array, ND100PhysWordAddr
+    IF K GO ERROR
+...
+ERROR : W1 =: ErrCode    %ErrorCode in W1 register.
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Not available.
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 
@@ -21186,15 +22822,108 @@ CALLG GetND500Param, 1, Buffer
 
 ---
 
-### 440B - Attach500Segment (ATSGM)
+### 440B - Attach500Segment (AT5SGM)
 
-![ND-100](https://img.shields.io/badge/ND--100-Yes-green) ![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue)
+![ND-500](https://img.shields.io/badge/ND--500-Yes-green) ![User](https://img.shields.io/badge/User-Yes-blue) ![RT](https://img.shields.io/badge/RT-Yes-blue) ![System](https://img.shields.io/badge/System-Yes-orange)
 
-Maps a logical ND-500 data segment onto shared ND-100/ND-500(0) physical memory (multiport memory). Example: ``` @SINTRAN-SERVICE-PROGRAM *CHANGE-TABLE TABLE: MEMORY-AREA-INVISIBLE-FOR-THIS-SYSTEM FUNCTION: INSERT-ELEMENT IMAGE OR SAVE AREA (DEFAULT IS IMAGE)? IMAGE FIRST PAGE (OCT): 10000 LAST PAGE (OCT): 13777 FUNCTION: EXIT *EXIT ```
+Maps a logical ND-500 data segment onto shared ND-100/ND-500(0) physical memory (multiport memory).
+
+#### Notes
 
 - The specified physical memory area must be defined in the "Not initialize page" table by use of the *CHANGE-TABLE command in the SINTRAN Service Program (follow this command by a warm start to put the change into effect). Note that you should not use the first pages of the multiport memory (starting at "ND-500 page 0") for this.
 
-*Source: ND-860228.2 EN, Page N/A*
+#### Example
+
+```
+@SINTRAN-SERVICE-PROGRAM
+*CHANGE-TABLE
+TABLE: MEMORY-AREA-INVISIBLE-FOR-THIS-SYSTEM
+FUNCTION: INSERT-ELEMENT
+IMAGE OR SAVE AREA (DEFAULT IS IMAGE): IMAGE
+FIRST PAGE (OCT): 10000
+LAST PAGE (OCT): 13777
+FUNCTION: EXIT
+*EXIT
+```
+
+#### Parameters
+
+| Name | Type | I/O | Description |
+|------|------|-----|-------------|
+| `Function code.` | UNKNOWN | I | 0 = Detach (forget) a previously attached segment. 1 = Attach a segment. If a physical segment does not exist, create it and map the segment on to the physical ND-100 address area. 2 = Map an existing ND-500 logical data segment onto a physical ND-100 address area. |
+| `Segment number (function code 0).` | UNKNOWN | I | Segment number in the range 0-31₁₀. |
+| `ND-500 logical data segment address (function code 1).` | UNKNOWN | I | If you specify 0 (zero), the first free segment will be used. |
+| `Length of segment in pages (function code 1).` | UNKNOWN | I |  |
+| `ND-100 physical page address (function code 1).` | UNKNOWN | I |  |
+| `Segment name (function code 1).` | STRING | I | A maximum of 35₁₀ characters in the name, including an optional user name, and a terminating apostrophe, which must be present. The parameter is a string descriptor. |
+| `Access (function code 1).` | UNKNOWN | I | 0 = read only access. 1 = read/write access. |
+| `Logical segment number (function code 1).` | UNKNOWN | O |  |
+| `Start address of ND-500 logical data segment (function code 2).` | UNKNOWN | I |  |
+| `Length of the (entire) segment in pages (function code 2).` | UNKNOWN | I |  |
+| `Physical ND-100 page address (function code 2).` | UNKNOWN | I |  |
+| `Standard Error Code. See appendix A.` | UNKNOWN | O | Returned via ErrCode variable in high-level languages, or in W1 register for ASSEMBLY-500, or register A for MAC. |
+
+#### Examples
+
+<details>
+<summary><strong>Pascal</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>COBOL</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>Fortran</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>PLANC</strong></summary>
+
+Not available.
+
+</details>
+
+<details>
+<summary><strong>ASSEMBLY-500</strong></summary>
+
+**Example with function code 1:**
+
+```asm
+FUNCTION : W DATA 1              %function = 1
+SEGNO : W DATA 1000000000B      %address 0 on segment no. 1
+LENGTH : W DATA 4               %segment length = 4 pages
+N1ADDR : W DATA 2000B           %mapped at page address 2000₈
+SEGNAME : STRINGDATA 'ATTSEG1'  %segment name = ATTSEG1
+ACCESS : W DATA 1               %read/write access
+RETSEGNO : W BLOCK 1            %returned segment number
+...
+CALLG 37000000440B, 7, FUNCTION, SEGNO, LENGTH, N1ADDR, SEGNAME, ACCESS, &
+    RETSEGNO                    %Mon 440 with 7 parameters
+    IF K GO ERROR
+...
+ERROR : W1 =: ErrCode           %on error return, W1 = error code
+```
+
+</details>
+
+<details>
+<summary><strong>MAC</strong></summary>
+
+Not available.
+
+</details>
+
+*Source: SINTRAN III Monitor Calls (ND-860228.2 EN), Page 0*
 
 [↑ Back to Top](#table-of-contents)
 

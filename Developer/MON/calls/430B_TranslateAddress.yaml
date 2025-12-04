@@ -11,14 +11,14 @@ notes:
 - Applied only to data addresses, not program addresses.
 see_also: []
 parameters:
-- name: ND-500 array logical address.
-  type: UNKNOWN
+- name: ND500Array
+  type: INTEGER4
   io: I
-  description: ''
-- name: Physical word address in the ND-100.
-  type: UNKNOWN
+  description: ND-500 array logical address.
+- name: ND100PhysWordAddr
+  type: INTEGER4
   io: O
-  description: ''
+  description: Physical word address in the ND-100.
 examples:
   pascal:
     available: true

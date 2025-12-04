@@ -13,26 +13,22 @@ notes:
 see_also:
 - OpenFile
 parameters:
-- name: Function code.
+- name: FuncCode
   type: INTEGER
   io: I
-  description: '1 = write back to disk the index block of an open file. 2 = return the block size of an opened file. 3 = get full file name of an opened file. 4 = get information about a file or device. (More details on page 190.)'
-- name: File number.
+  description: 'Function code. 1 = write back to disk the index block of an open file. 2 = return the block size of an opened file. 3 = get full file name of an opened file. 4 = get information about a file or device. (More details on page 190.)'
+- name: FileNo
   type: INTEGER
   io: I
-  description: See OpenFile.
-- name: Parameter 2.
+  description: File number. See OpenFile.
+- name: Param2
   type: INTEGER
   io: I/O
-  description: Block size if function code 2. Buffer to receive file name if function code 3. If function code 4: TYPRING, status, SINTRAN III open-file number or device number.
-- name: Parameter 3.
+  description: Parameter 2. Block size if function code 2. Buffer to receive file name if function code 3. If function code 4: TYPRING, status, SINTRAN III open-file number or device number.
+- name: Param3
   type: BYTES
   io: I/O
-  description: Buffer (64 bytes or 26 words). Used for file name or other data depending on function code.
-- name: Standard Error Code. See appendix A.
-  type: INTEGER
-  io: O
-  description: Returned via ErrCode variable in high-level languages, or in W1 register for ASSEMBLY-500, or register A for MAC.
+  description: Parameter 3. Buffer (64 bytes or 26 words). Used for file name or other data depending on function code.
 examples:
   pascal:
     available: true

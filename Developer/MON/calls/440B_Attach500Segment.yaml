@@ -11,54 +11,50 @@ notes:
 - The specified physical memory area must be defined in the "Not initialize page" table by use of the *CHANGE-TABLE command in the SINTRAN Service Program (follow this command by a warm start to put the change into effect). Note that you should not use the first pages of the multiport memory (starting at "ND-500 page 0") for this.
 see_also: []
 parameters:
-- name: Function code.
-  type: UNKNOWN
+- name: Function
+  type: INTEGER
   io: I
-  description: '0 = Detach (forget) a previously attached segment. 1 = Attach a segment. If a physical segment does not exist, create it and map the segment on to the physical ND-100 address area. 2 = Map an existing ND-500 logical data segment onto a physical ND-100 address area.'
-- name: Segment number (function code 0).
-  type: UNKNOWN
+  description: 'Function code. 0 = Detach (forget) a previously attached segment. 1 = Attach a segment. If a physical segment does not exist, create it and map the segment on to the physical ND-100 address area. 2 = Map an existing ND-500 logical data segment onto a physical ND-100 address area.'
+- name: SegNo0
+  type: INTEGER
   io: I
-  description: Segment number in the range 0-31₁₀.
-- name: ND-500 logical data segment address (function code 1).
-  type: UNKNOWN
+  description: Segment number (function code 0). Segment number in the range 0-31₁₀.
+- name: SegNo1
+  type: INTEGER
   io: I
-  description: If you specify 0 (zero), the first free segment will be used.
-- name: Length of segment in pages (function code 1).
-  type: UNKNOWN
+  description: ND-500 logical data segment address (function code 1). If you specify 0 (zero), the first free segment will be used.
+- name: Length1
+  type: INTEGER
   io: I
-  description: ''
-- name: ND-100 physical page address (function code 1).
-  type: UNKNOWN
+  description: Length of segment in pages (function code 1).
+- name: N1Addr1
+  type: INTEGER
   io: I
-  description: ''
-- name: Segment name (function code 1).
+  description: ND-100 physical page address (function code 1).
+- name: SegName
   type: STRING
   io: I
-  description: A maximum of 35₁₀ characters in the name, including an optional user name, and a terminating apostrophe, which must be present. The parameter is a string descriptor.
-- name: Access (function code 1).
-  type: UNKNOWN
+  description: Segment name (function code 1). A maximum of 35₁₀ characters in the name, including an optional user name, and a terminating apostrophe, which must be present. The parameter is a string descriptor.
+- name: Access
+  type: INTEGER
   io: I
-  description: '0 = read only access. 1 = read/write access.'
-- name: Logical segment number (function code 1).
-  type: UNKNOWN
+  description: Access (function code 1). 0 = read only access. 1 = read/write access.
+- name: RetSegNo
+  type: INTEGER
   io: O
-  description: ''
-- name: Start address of ND-500 logical data segment (function code 2).
-  type: UNKNOWN
+  description: Logical segment number (function code 1).
+- name: SegNo2
+  type: INTEGER
   io: I
-  description: ''
-- name: Length of the (entire) segment in pages (function code 2).
-  type: UNKNOWN
+  description: Start address of ND-500 logical data segment (function code 2).
+- name: Length2
+  type: INTEGER
   io: I
-  description: ''
-- name: Physical ND-100 page address (function code 2).
-  type: UNKNOWN
+  description: Length of the (entire) segment in pages (function code 2).
+- name: N1Addr2
+  type: INTEGER
   io: I
-  description: ''
-- name: Standard Error Code. See appendix A.
-  type: UNKNOWN
-  io: O
-  description: Returned via ErrCode variable in high-level languages, or in W1 register for ASSEMBLY-500, or register A for MAC.
+  description: Physical ND-100 page address (function code 2).
 examples:
   pascal:
     available: false
