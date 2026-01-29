@@ -29,6 +29,7 @@ Documentation for the ND-500 processor, a byte-oriented CPU used alongside the N
 | [ND-500-INTERFACE.md](ND-500-INTERFACE.md) | ND-500 interface overview |
 | [ND500-IF-USAGE-DEEP-ANALYSIS.md](ND500-IF-USAGE-DEEP-ANALYSIS.md) | **Complete IOX command reference (PCB 3022), code loading, domain setup, scheduling** |
 | [ND500-SWAPPER-ANALYSIS.md](ND500-SWAPPER-ANALYSIS.md) | **Swapper (5SWAP) - event-driven page swapping** |
+| [ND500-SWAPPER-LOADING-MECHANISM.md](ND500-SWAPPER-LOADING-MECHANISM.md) | **How swapper is loaded - INZ500, MSINIT, 5SWRT RT-program** |
 | [ND500-SCHEDULING-ANALYSIS.md](ND500-SCHEDULING-ANALYSIS.md) | **Process scheduling - execution queue, timeslicer** |
 | [ND500-MONITOR-CALL-MECHANISM.md](ND500-MONITOR-CALL-MECHANISM.md) | **ND-500 to ND-100 monitor calls - inter-processor dispatch** |
 | [ND500-MONITOR-CALL-PARAMETER-PASSING.md](ND500-MONITOR-CALL-PARAMETER-PASSING.md) | **Complete parameter passing, response write-back, extended mon calls (>255)** |
@@ -246,6 +247,7 @@ ND-100 and ND-500 see different channel addresses that map to same physical RAM.
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-01-29 | 1.6 | Added ND500-SWAPPER-LOADING-MECHANISM.md - complete swapper loading analysis, INZ500, MSINIT, 5SWRT |
 | 2026-01-29 | 1.5 | Added ND500-MONITOR-CALL-PARAMETER-PASSING.md - complete parameter passing, response mechanism, extended mon calls |
 | 2026-01-29 | 1.4 | Expanded ND500-IF-USAGE-DEEP-ANALYSIS.md with code loading, domain setup, and process scheduling via interface |
 | 2026-01-29 | 1.3 | Added scheduling analysis, monitor call mechanism, swapper analysis |
