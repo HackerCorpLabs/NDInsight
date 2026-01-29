@@ -35,6 +35,7 @@ Documentation for the ND-500 processor, a byte-oriented CPU used alongside the N
 | [ND500-MONITOR-CALL-PARAMETER-PASSING.md](ND500-MONITOR-CALL-PARAMETER-PASSING.md) | **Complete parameter passing, response write-back, extended mon calls (>255)** |
 | [ND500-BOOT-DETECTION-MECHANISM.md](ND500-BOOT-DETECTION-MECHANISM.md) | Hardware detection mechanism |
 | [ND500-INITIALIZATION-AND-EXECUTION-GUIDE.md](ND500-INITIALIZATION-AND-EXECUTION-GUIDE.md) | Boot and startup sequences |
+| [ND5000-SAMSON-ARCHITECTURE.md](ND5000-SAMSON-ARCHITECTURE.md) | **ND-5000 (SAMSON) vs ND-500 - Octobus, MFB, different I/O handling** |
 | [SINTRAN-DOMAIN-SETUP-DEEP-DIVE.md](SINTRAN-DOMAIN-SETUP-DEEP-DIVE.md) | Domain setup analysis |
 | [WHERE-IS-5MPM-LOCATED.md](WHERE-IS-5MPM-LOCATED.md) | 5MPM memory location analysis |
 
@@ -247,6 +248,7 @@ ND-100 and ND-500 see different channel addresses that map to same physical RAM.
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-01-29 | 1.7 | Added ND5000-SAMSON-ARCHITECTURE.md - ND-5000 vs ND-500 differences, Octobus, MFB, MAILINK |
 | 2026-01-29 | 1.6 | Added ND500-SWAPPER-LOADING-MECHANISM.md - complete swapper loading analysis, INZ500, MSINIT, 5SWRT |
 | 2026-01-29 | 1.5 | Added ND500-MONITOR-CALL-PARAMETER-PASSING.md - complete parameter passing, response mechanism, extended mon calls |
 | 2026-01-29 | 1.4 | Expanded ND500-IF-USAGE-DEEP-ANALYSIS.md with code loading, domain setup, and process scheduling via interface |
