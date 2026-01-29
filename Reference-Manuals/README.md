@@ -37,11 +37,12 @@ This folder contains **25 complete reference manuals** spanning system architect
 | Manual | Document # | Lines | Description |
 |--------|-----------|-------|-------------|
 | **ND-500 Reference Manual** | ND-05.009.4 EN | 16,324 | Complete ND-500 CPU architecture, instruction set, domains, memory management |
+| **ND-500 Addressing Modes** | - | 949 | **NEW** Complete addressing modes reference with binary encoding for disassembly |
 | **SINTRAN III Monitor Calls** | ND-860228-2-EN | 23,478 | Complete system call reference - monitor routines, kernel interface, I/O operations |
 | **SINTRAN Commands Reference** | - | 11,657 | All SINTRAN III commands - batch processing, file management, MODE files |
 | **ND-500 Loader Monitor** | ND-60.136.04A | - | ND-500 program loading and monitor interface |
 
-**Key Topics:** CPU architecture, instruction sets, system calls, command reference, monitor interface
+**Key Topics:** CPU architecture, instruction sets, addressing modes, system calls, command reference, monitor interface
 
 ---
 

@@ -28,8 +28,9 @@ These documents bridge the gap between theoretical OS architecture (in `SINTRAN/
 | [ND500-INTEGRATION-GUIDE.md](ND500-INTEGRATION-GUIDE.md) | 667 | Step-by-step guide to extend NDBusND500IF.cs with complete ND-500 support |
 | [ND500-QUICK-REFERENCE.md](ND500-QUICK-REFERENCE.md) | 344 | Quick lookup reference for ND-500 development |
 | [ND500-MESSAGE-STRUCTURE-VERIFIED.md](ND500-MESSAGE-STRUCTURE-VERIFIED.md) | 236 | Verified ND-500 message buffer structure from NPL source analysis |
+| [ND100Bridge.md](ND100Bridge.md) | 1180 | **NEW** RIOM instruction and ND-100/ND-500 memory bridge architecture |
 
-**Total:** 5 documents, ~4,691 lines
+**Total:** 6 documents, ~5,871 lines
 
 ---
 
@@ -127,6 +128,7 @@ Start with **ND500-INTEGRATION-GUIDE.md** to:
 ### Hardware Details
 - [../OS/MPM5-KEY-FINDINGS.md](../OS/MPM5-KEY-FINDINGS.md) - MPM5 multiport memory hardware
 - [../OS/05-ND500-DMA-KERNEL.md](../OS/05-ND500-DMA-KERNEL.md) - DMA operations
+- [ND100Bridge.md](ND100Bridge.md) - RIOM instruction and memory bridge architecture
 
 ---
 
