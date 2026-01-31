@@ -318,7 +318,7 @@ When SINTRAN "allocates 5MPM", it's NOT allocating ND-100 RAM. Instead:
 
 2. **Records Addresses** in software:
    - `ADRZERO` = Channel address where ND-100 sees MPM5
-   - `5MBBANK` = Bank number for ND-100 paging system
+   - `5MBBANK` = Bank number for ND-100 paging system (5MBBA=004654 octal, verified from SYMBOL-1-LIST.SYMB.TXT)
    - These tell ND-100 software how to ACCESS the MPM5, not WHERE it is physically
 
 3. **Initializes MPM5 Contents**:

@@ -278,13 +278,17 @@ This affects process scheduling - SAMSON appears to have a simpler queue model.
 
 ### Constants
 
-| Symbol | Value | Description |
-|--------|-------|-------------|
-| `SAMSON` | (defined) | CPU type constant for ND-5000 |
-| `RSTA5` | (offset) | Read status register offset |
-| `5ILOCK` | bit 5 | Interface locked (CPU running) |
-| `5POWOF` / `5POWOFF` | bit 8 | Power off |
-| `5ALIVE` | (bit) | CPU is alive/present |
+> **Source:** Verified from SINTRAN L07 symbol files (D:\ND\S\L07\SYMBOL-1-LIST.SYMB.TXT)
+
+| Symbol | NPL (5-char) | Octal Value | Description |
+|--------|:------------:|:-----------:|-------------|
+| `SAMSON` | SAMSO | 000003 | CPU type constant for ND-5000 |
+| `OLD500` | OLD50 | 000001 | CPU type constant for standard ND-500 |
+| `5CPUTYPE` | 5CPUT | 000007 | CPU type field offset |
+| `RSTA5` | RSTA5 | 000002 | Read status register offset |
+| `5ILOCK` | 5ILOC | 000005 | Interface locked - **bit 5** (mask 0x0020) |
+| `5POWOF` | 5POWO | 000010 | Power was off - **bit 8** (mask 0x0100) |
+| `5ALIVE` | 5ALIV | 000015 | CPU is alive - **bit 13** (mask 0x2000) |
 
 ---
 

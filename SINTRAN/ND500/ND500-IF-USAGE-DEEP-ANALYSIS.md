@@ -33,6 +33,9 @@ Complete deep-dive analysis of all IOX commands for the ND-500 interface. All va
 
 ## Status Register (RSTA5) - Complete Bit Map
 
+> **Source Verification:** Bit positions verified from SINTRAN L07 symbol files (D:\ND\S\L07\SYMBOL-1-LIST.SYMB.TXT).
+> NPL truncates symbols to 5 characters. Symbol values are **bit positions** (e.g., 5ILOC=000005 means bit 5).
+
 ### Read via IOX offset +2 (HDEV+RSTA5)
 
 ```

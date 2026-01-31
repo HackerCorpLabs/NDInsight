@@ -381,14 +381,16 @@ flowchart TB
 
 ### 7.2 Key 5MPM Addresses
 
-| Symbol | Purpose |
-|--------|---------|
-| SWMSG | Swapper message buffer (request/response) |
-| N500DF.X500DF | ND-500 system datafield base |
-| X5SWF | Swap-wait-FIFO read pointer |
-| X5SWT | Swap-wait-FIFO write pointer |
-| X5MXF | FIFO maximum size |
-| X5SWB | FIFO base address |
+> **Source:** Values verified from SINTRAN L07 symbol files (D:\ND\S\L07\SYMBOL-2-LIST.SYMB.TXT)
+
+| Symbol | Octal Value | Purpose |
+|--------|:-----------:|---------|
+| SWMSG | 110054 | Swapper message buffer (request/response) |
+| N500DF.X500DF | - | ND-500 system datafield base |
+| X5SWF | - | Swap-wait-FIFO read pointer |
+| X5SWT | - | Swap-wait-FIFO write pointer |
+| X5MXF | - | FIFO maximum size |
+| X5SWB | - | FIFO base address |
 
 ---
 

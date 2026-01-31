@@ -348,15 +348,28 @@ public class ND500Coprocessor
     private bool _powerOn = true;
     private bool _dmaError = false;
 
+    // RSTA5 Status Register bits (verified from SYMBOL-1-LIST.SYMB.TXT)
+    private const ushort BIT_5ILOCK = 0x0020;  // Bit 5: Interface locked
+    private const ushort BIT_5DMAER = 0x0040;  // Bit 6: DMA error
+    private const ushort BIT_5PFAIL = 0x0080;  // Bit 7: Power fail
+    private const ushort BIT_5POWOF = 0x0100;  // Bit 8: Power was off
+    private const ushort BIT_5CLOST = 0x0200;  // Bit 9: Clock stopped
+
     public ushort ReadStatusRegister()
     {
         ushort status = 0;
 
-        if (_powerOn)
-            status |= 0x0008;  // Bit 3: 5ALIVE
+        // Note: 5ALIVE is in CPUAVAILABLE (bit 13), NOT in RSTA5
+        // RSTA5 contains error/status bits only
+
+        if (!_powerOn)
+        {
+            status |= BIT_5PFAIL;  // Bit 7: Power fail
+            status |= BIT_5POWOF;  // Bit 8: Power was off
+        }
 
         if (_dmaError)
-            status |= 0x0040;  // Bit 6: 5DMAER
+            status |= BIT_5DMAER;  // Bit 6: DMA error
 
         // Other status bits...
 
@@ -371,9 +384,10 @@ public class ND500Coprocessor
 
     public void MasterClear()
     {
-        // Reset interface
+        // Reset interface - clear all error bits
         _controlReg = 0;
-        _statusReg = 0x0008;  // Set 5ALIVE bit
+        _statusReg = 0;  // No errors on reset
+        // 5ALIVE would be set in CPUAVAILABLE, not RSTA5
     }
 }
 ```
@@ -791,48 +805,71 @@ At this point:
 ```
 Bit:  15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
       ┌───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┐
-      │   │   │   │   │   │   │ L │ E │ C │ D │ P │ F │ A │   │   │   │
+      │   │   │   │   │   │   │CLO│POW│PFA│DMA│ILK│PAG│FIN│BSY│ - │INT│
       └───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┘
-                                  │   │   │   │   │   │   │
-                                  │   │   │   │   │   │   └─→ Bit 3: 5ALIVE (ND-500 alive)
-                                  │   │   │   │   │   └─────→ Bit 4: 5FAULT (Fault)
-                                  │   │   │   │   └─────────→ Bit 5: 5PFAIL (Power fail)
+                                  │   │   │   │   │   │
+                                  │   │   │   │   │   └─────→ Bit 4: 5PAGF (Page fault/Error OR)
+                                  │   │   │   │   └─────────→ Bit 5: 5ILOCK (Interface locked)
                                   │   │   │   └─────────────→ Bit 6: 5DMAER (DMA error)
-                                  │   │   └─────────────────→ Bit 7: 5CLOST (Clock lost)
-                                  │   └─────────────────────→ Bit 8: 5ERROR (Error)
-                                  └─────────────────────────→ Bit 9: 5ILOCK (Interface lock)
+                                  │   │   └─────────────────→ Bit 7: 5PFAIL (Power fail)
+                                  │   └─────────────────────→ Bit 8: 5POWOF (Power was off)
+                                  └─────────────────────────→ Bit 9: 5CLOST (Microclock stopped)
 ```
 
-**Bit Definitions:**
+> **IMPORTANT:** Bit positions verified from SINTRAN L07 symbol files (D:\ND\S\L07\SYMBOL-1-LIST.SYMB.TXT).
+> NPL truncates symbols to 5 characters. Values shown are **bit positions**.
+> **Note:** 5ALIVE is NOT in RSTA5 - it is in the CPUAVAILABLE word (bit 13).
 
-| Bit | Symbol | Mask (Octal) | Mask (Hex) | Meaning |
-|:---:|--------|:------------:|:----------:|---------|
-| 3 | 5ALIVE | 0010 | 0x0008 | ND-500 is responding (presence indicator) |
-| 4 | 5FAULT | 0020 | 0x0010 | Fault condition |
-| 5 | 5PFAIL | 0040 | 0x0020 | Power failure detected |
-| 6 | 5DMAER | 0100 | 0x0040 | DMA/communication error |
-| 7 | 5CLOST | 0200 | 0x0080 | Microclock stopped/lost |
-| 8 | 5ERROR | 0400 | 0x0100 | General error |
-| 9 | 5ILOCK | 1000 | 0x0200 | Interface locked |
+**Bit Definitions (RSTA5 Status Register):**
+
+| Bit | NPL Symbol | Full Name | Octal Value | Mask (Hex) | Meaning |
+|:---:|:----------:|:----------|:-----------:|:----------:|---------|
+| 0 | - | INTE | - | 0x0001 | Interrupt enabled |
+| 2 | - | BUSY | - | 0x0004 | ND-500 busy |
+| 3 | - | FIN | - | 0x0008 | ND-500 finished |
+| 4 | 5PAGF | 5PAGF | 000004 | 0x0010 | Page fault / Error OR |
+| 5 | 5ILOC | 5ILOCK | 000005 | 0x0020 | Interface locked (CPU active) |
+| 6 | 5DMAE | 5DMAER | 000006 | 0x0040 | DMA/communication error |
+| 7 | 5PFAI | 5PFAIL | 000007 | 0x0080 | Power fault (microprogram) |
+| 8 | 5POWO | 5POWOF | 000010 | 0x0100 | Power has been off |
+| 9 | 5CLOS | 5CLOST | 000011 | 0x0200 | Microclock stopped |
+
+**CPUAVAILABLE Word (separate from RSTA5):**
+
+| Bit | NPL Symbol | Full Name | Octal Value | Mask (Hex) | Meaning |
+|:---:|:----------:|:----------|:-----------:|:----------:|---------|
+| 13 | 5ALIV | 5ALIVE | 000015 | 0x2000 | CPU is alive/present |
+| 15 | 5NOTP | 5NOTPRESENT | 000017 | 0x8000 | CPU not present |
 
 **Detection Logic:**
 
 ```npl
-T:=HDEV+RSTA5; *IOXT             % Read status
-A=:STATUS
+% Check CPUAVAILABLE for 5ALIVE (bit 13)
+IF CPUAVAILABLE BIT 5ALIVE THEN      % Bit 13 set (CPU alive)
+   % Read RSTA5 status register
+   T:=HDEV+RSTA5; *IOXT
+   A=:STATUS
 
-% Check for ND-500 present and healthy:
-IF STATUS BIT 5ALIVE AND         % Bit 3 set (responding)
-   STATUS NBIT 5DMAER AND        % Bit 6 clear (no DMA error)
-   STATUS NBIT 5PFAIL AND        % Bit 5 clear (no power fail)
-   STATUS NBIT 5CLOST THEN       % Bit 7 clear (clock running)
-   % ND-500 is present and healthy
-   ND500PRESENT:=TRUE
+   % Check for ND-500 healthy (no errors in RSTA5):
+   IF STATUS NBIT 5ILOCK AND         % Bit 5 clear (interface not locked by other)
+      STATUS NBIT 5DMAER AND         % Bit 6 clear (no DMA error)
+      STATUS NBIT 5PFAIL AND         % Bit 7 clear (no power fail)
+      STATUS NBIT 5POWOF AND         % Bit 8 clear (power is on)
+      STATUS NBIT 5CLOST THEN        % Bit 9 clear (clock running)
+      % ND-500 is present and healthy
+      ND500PRESENT:=TRUE
+   ELSE
+      % ND-500 has errors
+      ND500PRESENT:=FALSE
+   FI
 ELSE
-   % ND-500 absent or has errors
+   % CPU not alive
    ND500PRESENT:=FALSE
 FI
 ```
+
+> **Note:** 5ALIVE is checked in CPUAVAILABLE word (bit 13), while error conditions
+> are checked in the RSTA5 status register (bits 5-9).
 
 ### 8.3 RCON5 - Control Register Bit Map
 
@@ -984,14 +1021,17 @@ public class ND100Emulator
 
 public class ND500Coprocessor
 {
-    // Status register bits
-    private const ushort BIT_5ALIVE = 0x0008;  // Bit 3
-    private const ushort BIT_5FAULT = 0x0010;  // Bit 4
-    private const ushort BIT_5PFAIL = 0x0020;  // Bit 5
-    private const ushort BIT_5DMAER = 0x0040;  // Bit 6
-    private const ushort BIT_5CLOST = 0x0080;  // Bit 7
-    private const ushort BIT_5ERROR = 0x0100;  // Bit 8
-    private const ushort BIT_5ILOCK = 0x0200;  // Bit 9
+    // RSTA5 Status register bits (verified from SYMBOL-1-LIST.SYMB.TXT)
+    // Note: 5ALIVE is NOT in RSTA5 - it's in CPUAVAILABLE word at bit 13
+    private const ushort BIT_5PAGF  = 0x0010;  // Bit 4: Page fault / Error OR (5PAGF=000004)
+    private const ushort BIT_5ILOCK = 0x0020;  // Bit 5: Interface locked (5ILOC=000005)
+    private const ushort BIT_5DMAER = 0x0040;  // Bit 6: DMA error (5DMAE=000006)
+    private const ushort BIT_5PFAIL = 0x0080;  // Bit 7: Power fail (5PFAI=000007)
+    private const ushort BIT_5POWOF = 0x0100;  // Bit 8: Power was off (5POWO=000010)
+    private const ushort BIT_5CLOST = 0x0200;  // Bit 9: Clock stopped (5CLOS=000011)
+
+    // CPUAVAILABLE word bits (separate from RSTA5)
+    private const ushort BIT_5ALIVE = 0x2000;  // Bit 13: CPU alive (5ALIV=000015)
 
     // Registers
     private ushort _statusRegister;
@@ -1012,26 +1052,37 @@ public class ND500Coprocessor
     public void MasterClear()
     {
         // Reset to power-on state
-        _statusRegister = BIT_5ALIVE;  // Set alive bit
+        // Note: 5ALIVE is in CPUAVAILABLE, not RSTA5
+        // RSTA5 starts with no error bits set
+        _statusRegister = 0;
         _controlRegister = 0;
         _marRegister = 0;
         _tagIn = 0;
         _tagOut = 0;
+        _cpuAvailable = BIT_5ALIVE;  // Set alive bit in CPUAVAILABLE
+    }
+
+    // Separate tracking for CPUAVAILABLE word
+    private ushort _cpuAvailable;
+
+    public ushort ReadCpuAvailable()
+    {
+        return _cpuAvailable;
     }
 
     public ushort ReadStatusRegister()
     {
         ushort status = 0;
 
-        // Set status bits based on state
-        if (_powerOn && _clockRunning)
-            status |= BIT_5ALIVE;
-
+        // RSTA5 error/status bits (5ALIVE is NOT here - it's in CPUAVAILABLE)
         if (!_powerOn)
-            status |= BIT_5PFAIL;
+        {
+            status |= BIT_5PFAIL;   // Bit 7: Power fail
+            status |= BIT_5POWOF;   // Bit 8: Power was off
+        }
 
         if (!_clockRunning)
-            status |= BIT_5CLOST;
+            status |= BIT_5CLOST;   // Bit 9: Clock stopped
 
         // Add other status bits as needed...
 
@@ -1131,14 +1182,16 @@ var emulator = new ND100Emulator(hasND500: true);
 emulator.T = 0x4006;  // Device 100₈, Offset 6 (MCLR5)
 emulator.ExecuteIOXT();
 
-// SINTRAN executes: T:=HDEV+RSTA5; *IOXT
+// SINTRAN checks CPUAVAILABLE for 5ALIVE (bit 13)
+// Then reads RSTA5 for error conditions
 emulator.T = 0x4002;  // Device 100₈, Offset 2 (RSTA5)
 emulator.ExecuteIOXT();
 
-// Expected: A register = 0x0008 (BIT_5ALIVE set)
-Console.WriteLine($"Status: 0x{emulator.A:X4}");  // Should print: Status: 0x0008
+// Expected: RSTA5 = 0x0000 (no errors, healthy)
+// CPUAVAILABLE would have 5ALIVE=0x2000 set (checked separately)
+Console.WriteLine($"RSTA5 Status: 0x{emulator.A:X4}");  // Should print: Status: 0x0000
 
-// SINTRAN checks: IF A BIT 5ALIVE THEN ND500PRESENT:=TRUE
+// SINTRAN checks: IF CPUAVAILABLE BIT 5ALIVE (bit 13) AND RSTA5 has no errors
 ```
 
 **Test Case 3: ND-500 Present but Faulted**
@@ -1153,8 +1206,9 @@ emulator._nd500._powerOn = false;
 emulator.T = 0x4002;
 emulator.ExecuteIOXT();
 
-// Expected: A register = 0x0020 (BIT_5PFAIL set, BIT_5ALIVE clear)
-Console.WriteLine($"Status: 0x{emulator.A:X4}");  // Should print: Status: 0x0020
+// Expected: A register = 0x0180 (BIT_5PFAIL=0x0080 + BIT_5POWOF=0x0100)
+// Note: 5PFAIL is bit 7 (0x0080), 5POWOF is bit 8 (0x0100)
+Console.WriteLine($"Status: 0x{emulator.A:X4}");  // Should print: Status: 0x0180
 
 // SINTRAN checks: IF A BIT 5PFAIL THEN ND500PRESENT:=FALSE
 ```
@@ -1172,15 +1226,24 @@ public class ND500Coprocessor
     {
         ushort status = 0;
 
-        if (_powerOn && _clockRunning)
-            status |= BIT_5ALIVE;
+        // Build RSTA5 status (5ALIVE is NOT here - it's in CPUAVAILABLE)
+        if (!_powerOn)
+        {
+            status |= BIT_5PFAIL;   // Bit 7: 0x0080
+            status |= BIT_5POWOF;   // Bit 8: 0x0100
+        }
+        if (!_clockRunning)
+            status |= BIT_5CLOST;   // Bit 9: 0x0200
 
         if (_debugMode)
         {
             Console.WriteLine($"[ND500] RSTA5: Read Status = 0x{status:X4}");
-            Console.WriteLine($"  5ALIVE  = {((status & BIT_5ALIVE) != 0 ? "SET" : "CLEAR")}");
-            Console.WriteLine($"  5PFAIL  = {((status & BIT_5PFAIL) != 0 ? "SET" : "CLEAR")}");
-            Console.WriteLine($"  5DMAER  = {((status & BIT_5DMAER) != 0 ? "SET" : "CLEAR")}");
+            Console.WriteLine($"  5ILOCK  = {((status & BIT_5ILOCK) != 0 ? "SET" : "CLEAR")} (bit 5)");
+            Console.WriteLine($"  5DMAER  = {((status & BIT_5DMAER) != 0 ? "SET" : "CLEAR")} (bit 6)");
+            Console.WriteLine($"  5PFAIL  = {((status & BIT_5PFAIL) != 0 ? "SET" : "CLEAR")} (bit 7)");
+            Console.WriteLine($"  5POWOF  = {((status & BIT_5POWOF) != 0 ? "SET" : "CLEAR")} (bit 8)");
+            Console.WriteLine($"  5CLOST  = {((status & BIT_5CLOST) != 0 ? "SET" : "CLEAR")} (bit 9)");
+            Console.WriteLine($"[ND500] CPUAVAILABLE: 5ALIVE = {((_cpuAvailable & BIT_5ALIVE) != 0 ? "SET" : "CLEAR")} (bit 13)");
         }
 
         return status;
@@ -1188,13 +1251,16 @@ public class ND500Coprocessor
 }
 ```
 
-**Expected Output:**
+**Expected Output (healthy ND-500):**
 
 ```
-[ND500] RSTA5: Read Status = 0x0008
-  5ALIVE  = SET
-  5PFAIL  = CLEAR
-  5DMAER  = CLEAR
+[ND500] RSTA5: Read Status = 0x0000
+  5ILOCK  = CLEAR (bit 5)
+  5DMAER  = CLEAR (bit 6)
+  5PFAIL  = CLEAR (bit 7)
+  5POWOF  = CLEAR (bit 8)
+  5CLOST  = CLEAR (bit 9)
+[ND500] CPUAVAILABLE: 5ALIVE = SET (bit 13)
 ```
 
 ---
@@ -1214,11 +1280,15 @@ Master Clear (MCLR5)
     ↓
 Read Status (RSTA5) ──Trap──→ ND500PRESENT = FALSE
     ↓ Success
-Check Status Bits:
-  - 5ALIVE set? ──────No──→ ND500PRESENT = FALSE
-  - 5DMAER clear? ────No──→ ND500PRESENT = FALSE
-  - 5PFAIL clear? ────No──→ ND500PRESENT = FALSE
-  - 5CLOST clear? ────No──→ ND500PRESENT = FALSE
+Check CPUAVAILABLE word:
+  - 5ALIVE (bit 13) set? ──No──→ ND500PRESENT = FALSE
+    ↓ Yes
+Check RSTA5 Status Register:
+  - 5ILOCK (bit 5) clear? ───No──→ (Interface busy)
+  - 5DMAER (bit 6) clear? ───No──→ ND500PRESENT = FALSE
+  - 5PFAIL (bit 7) clear? ───No──→ ND500PRESENT = FALSE
+  - 5POWOF (bit 8) clear? ───No──→ ND500PRESENT = FALSE
+  - 5CLOST (bit 9) clear? ───No──→ ND500PRESENT = FALSE
     ↓ All checks pass
 ND500PRESENT = TRUE
     ↓
@@ -1231,6 +1301,8 @@ LOAD5XMSG (Load XMSG kernel)
 ND-500 Ready
 ```
 
+> **Note:** 5ALIVE is in CPUAVAILABLE (bit 13), while error conditions are in RSTA5 (bits 5-9).
+
 ### Key Registers
 
 | Register | Offset | Purpose | Detection Use |
@@ -1240,14 +1312,23 @@ ND-500 Ready
 | MCLR5 | +6 | Master Clear | Initialize before test |
 | LCON5 | +5 | Load Control | Enable interrupts |
 
-### Critical Status Bits
+### Critical Status Bits (RSTA5 Register)
 
-| Bit | Symbol | Must Be | For Detection |
-|:---:|--------|:-------:|---------------|
-| 3 | 5ALIVE | **SET** | **ND-500 responding** |
-| 5 | 5PFAIL | **CLEAR** | **No power failure** |
-| 6 | 5DMAER | **CLEAR** | **No DMA error** |
-| 7 | 5CLOST | **CLEAR** | **Clock running** |
+> **Source:** Verified from SINTRAN L07 symbol files (D:\ND\S\L07\SYMBOL-1-LIST.SYMB.TXT)
+
+| Bit | NPL Symbol | Must Be | For Detection |
+|:---:|:----------:|:-------:|---------------|
+| 5 | 5ILOC | **CLEAR** | **Interface available (not locked)** |
+| 6 | 5DMAE | **CLEAR** | **No DMA error** |
+| 7 | 5PFAI | **CLEAR** | **No power failure** |
+| 8 | 5POWO | **CLEAR** | **Power is on** |
+| 9 | 5CLOS | **CLEAR** | **Clock running** |
+
+### Critical CPUAVAILABLE Bits (Separate from RSTA5)
+
+| Bit | NPL Symbol | Must Be | For Detection |
+|:---:|:----------:|:-------:|---------------|
+| 13 | 5ALIV | **SET** | **ND-500 CPU is alive** |
 
 ---
 

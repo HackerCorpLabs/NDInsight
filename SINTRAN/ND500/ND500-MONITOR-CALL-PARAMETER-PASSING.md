@@ -305,9 +305,9 @@ flowchart TD
 **Critical**: When an ND-500 process executes a monitor call, **the ND-500 CPU stops**. It does NOT continue executing another domain during the wait.
 
 **Evidence**: The STOPREASON field (status register bits 10-14) indicates the CPU has stopped:
-- MOCALL (1) = Monitor call
-- TRAPCODE (2) = Trap (page fault, etc.)
-- 5FMOCALL (3) = File transfer monitor call
+- MOCALL (1) = Monitor call (MOCAL=000001, verified from SYMBOL-1-LIST.SYMB.TXT)
+- TRAPCODE (2) = Trap (page fault, etc.) (TRAPC=000002, verified)
+- 5FMOCALL (3) = File transfer monitor call (5FMOC=000003, verified)
 
 **Source**: MP-P2-N500.NPL lines 808-814
 

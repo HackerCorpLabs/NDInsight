@@ -479,10 +479,12 @@ Line 132: A:=CTSLSTATUS/\177400\/TSLNEXTAB(X)  % Find next element
 
 | Field | Purpose |
 |-------|---------|
-| **MAILINK** | Head of execution queue |
-| **CPUAVAILABLE** | CPU status flags (5ALIVE, LV1ACT, LV2ACT) |
+| **MAILINK** | Head of execution queue (MAILI=000022 verified from SYMBOL-1-LIST.SYMB.TXT) |
+| **CPUAVAILABLE** | CPU status flags (5ALIVE=bit 13, LV1ACT, LV2ACT) |
 | **C5STAT** | CPU status (power fail flags) |
 | **HDEV** | Hardware device address |
+
+> **Note:** 5ALIVE (5ALIV=000015) is bit 13 in CPUAVAILABLE, NOT in RSTA5 status register.
 
 ### 9.2 Message Buffer (in 5MPM)
 

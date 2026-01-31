@@ -26,6 +26,7 @@ Documentation for the ND-500 processor, a byte-oriented CPU used alongside the N
 
 | Document | Purpose |
 |----------|---------|
+| [ND500-ND5000-INTERFACE-COMPREHENSIVE-GUIDE.md](ND500-ND5000-INTERFACE-COMPREHENSIVE-GUIDE.md) | **COMPLETE emulator implementation guide - DMA (PCB 3022) and Octobus (SAMSON) interfaces, C# code** |
 | [ND-500-INTERFACE.md](ND-500-INTERFACE.md) | ND-500 interface overview |
 | [ND500-IF-USAGE-DEEP-ANALYSIS.md](ND500-IF-USAGE-DEEP-ANALYSIS.md) | **Complete IOX command reference (PCB 3022), code loading, domain setup, scheduling** |
 | [ND500-SWAPPER-ANALYSIS.md](ND500-SWAPPER-ANALYSIS.md) | **Swapper (5SWAP) - event-driven page swapping** |
@@ -248,6 +249,7 @@ ND-100 and ND-500 see different channel addresses that map to same physical RAM.
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-01-29 | 1.8 | Added ND500-ND5000-INTERFACE-COMPREHENSIVE-GUIDE.md - Complete emulator implementation guide for both DMA and Octobus interfaces |
 | 2026-01-29 | 1.7 | Added ND5000-SAMSON-ARCHITECTURE.md - ND-5000 vs ND-500 differences, Octobus, MFB, MAILINK |
 | 2026-01-29 | 1.6 | Added ND500-SWAPPER-LOADING-MECHANISM.md - complete swapper loading analysis, INZ500, MSINIT, 5SWRT |
 | 2026-01-29 | 1.5 | Added ND500-MONITOR-CALL-PARAMETER-PASSING.md - complete parameter passing, response mechanism, extended mon calls |

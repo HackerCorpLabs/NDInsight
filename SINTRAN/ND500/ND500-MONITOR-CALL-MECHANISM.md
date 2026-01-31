@@ -212,14 +212,16 @@ flowchart TD
 
 **STOPR field location**: Offset 000011 (octal) = 9 (decimal) in message buffer
 
-**Source**: N500-SYMBOLS.SYMB.TXT
+**Source**: Verified from D:\ND\S\L07\SYMBOL-1-LIST.SYMB.TXT
 
-| Octal | Decimal | Symbol | Full Name | Meaning |
-|-------|---------|--------|-----------|---------|
+| Octal | Decimal | NPL Symbol | Full Name | Meaning |
+|:-----:|:-------:|:----------:|-----------|---------|
 | 000001 | 1 | MOCAL | MOCALL | Normal MON instruction executed |
 | 000002 | 2 | TRAPC | TRAPCODE | Hardware trap occurred (page fault, etc.) |
 | 000003 | 3 | 5FMOC | 5FMOCALL | File transfer monitor call |
 | 000101 | 65 | - | (TPSTRA return) | Return from N500M RUNN function |
+
+> **Verification**: MOCAL=000001, TRAPC=000002, 5FMOC=000003 confirmed from SYMBOL-1-LIST.SYMB.TXT lines 3921, 249, 747.
 
 **Note**: Stop reason values are set by ND-500 microcode when the CPU stops. The value 65 (101 octal) is specifically mentioned in the ND-500 Loader/Monitor manual (ND-60.136.04) as the value set by MON 407B (TPSTRA) when returning from the N500M RUNN function.
 

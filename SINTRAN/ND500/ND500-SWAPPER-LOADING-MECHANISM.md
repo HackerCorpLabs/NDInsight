@@ -113,13 +113,15 @@ MSIN0:
 ```
 
 **Key Variables**:
-| Variable | Purpose |
-|----------|---------|
-| `SWMSG` | Swapper message buffer address in 5MPM |
-| `S500S` | Swapper process descriptor (process #0) |
-| `5SWPROC` | Swapper process number |
-| `5MBBANK` | Memory bank for 5MPM buffers |
-| `55MESSIZE` | Size of each message buffer |
+| Variable | Octal Value | Purpose |
+|----------|:-----------:|---------|
+| `SWMSG` | 110054 | Swapper message buffer address in 5MPM |
+| `S500S` | 115542 | Swapper process descriptor (process #0) |
+| `5SWPROC` | - | Swapper process number |
+| `5MBBANK` | - | Memory bank for 5MPM buffers |
+| `55MESSIZE` | 000200 | Size of each message buffer (128 decimal) |
+
+> **Source:** Values verified from SINTRAN L07 symbol files (D:\ND\S\L07\SYMBOL-1-LIST.SYMB.TXT, SYMBOL-2-LIST.SYMB.TXT)
 
 ---
 
