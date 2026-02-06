@@ -98,11 +98,13 @@ LOCAL MEMORY (ND-100 only):                  MPM5 HARDWARE (Separate Module):
 
 ### 3.1 The Confusion Explained
 
-**Question:** Why is 10000000₈ called "Bank 1" when the ND-100 has 16-bit addressing (64K words)?
+**Question:** How does the ND-100 address more than 64KW with 16-bit registers?
 
 **Answer:** The ND-100 has **TWO address spaces**:
-- **Logical addresses:** 16 bits (what programs see) = 64KW (128KB)
-- **Physical addresses:** 24 bits (A23-A0 address bus) = 16MW (32MB)
+- **Logical addresses:** 16 bits (what programs see) = 64KW (128KB) = 1 bank
+- **Physical addresses:** 24 bits (A23-A0 address bus) = 16MW (32MB) = 256 banks
+
+The 16-bit CPU registers can only address 64KW directly. Physical address bits 16-23 select which 64KW bank is being accessed. The MMU handles this translation.
 
 ### 3.2 Logical vs Physical Addressing
 
@@ -161,32 +163,44 @@ Physical Page (11 bits, 0-2047):
 
 ### 3.4 The "Bank" Notation
 
-**ND-100 has a 24-bit address bus (A23-A0).** Physical addresses are **WORD addresses** (16-bit words).
+**ND-100 Hardware:**
+- 24-bit address bus (A23-A0)
+- 16-bit data width - ALL memory and I/O access is in **WORDS**
+- 16-bit CPU registers
 
-The "banks" refer to **PHYSICAL memory regions**, using the top 3 address bits (A23-A21):
+**Address Structure:**
+```
+24-bit Physical Address:
+┌─────────────────┬──────────────────────────────┐
+│  Bits 23-16     │        Bits 15-0             │
+│  (Bank Select)  │   (Offset within bank)       │
+│    8 bits       │         16 bits              │
+│  = 256 banks    │  = 64KW per bank             │
+└─────────────────┴──────────────────────────────┘
+```
 
-| Octal Address | Decimal Range (Words) | Size (Words) | Size (Bytes) | Bank |
-|---------------|----------------------|--------------|--------------|------|
-| 00000000₈ - 07777777₈ | 0 - 2,097,151 | 2MW | 4MB | Bank 0 |
-| 10000000₈ - 17777777₈ | 2,097,152 - 4,194,303 | 2MW | 4MB | Bank 1 |
-| 20000000₈ - 27777777₈ | 4,194,304 - 6,291,455 | 2MW | 4MB | Bank 2 |
-| 30000000₈ - 37777777₈ | 6,291,456 - 8,388,607 | 2MW | 4MB | Bank 3 |
-| 40000000₈ - 47777777₈ | 8,388,608 - 10,485,759 | 2MW | 4MB | Bank 4 |
-| 50000000₈ - 57777777₈ | 10,485,760 - 12,582,911 | 2MW | 4MB | Bank 5 |
-| 60000000₈ - 67777777₈ | 12,582,912 - 14,680,063 | 2MW | 4MB | Bank 6 |
-| 70000000₈ - 77777777₈ | 14,680,064 - 16,777,215 | 2MW | 4MB | Bank 7 |
+**Bank Definition:**
+- Each bank = **64KW (128KB)** - what a 16-bit register can directly address
+- Bank select = bits 23-16 (8 bits = 256 possible banks)
+- Total address space: 256 banks × 64KW = **16MW (32MB)**
+
+| Octal Address | Decimal Range (Words) | Size | Bank |
+|---------------|----------------------|------|------|
+| 00000000₈ - 00177777₈ | 0 - 65,535 | 64KW (128KB) | Bank 0 |
+| 00200000₈ - 00377777₈ | 65,536 - 131,071 | 64KW (128KB) | Bank 1 |
+| 00400000₈ - 00577777₈ | 131,072 - 196,607 | 64KW (128KB) | Bank 2 |
+| ... | ... | ... | ... |
+| 77600000₈ - 77777777₈ | 16,711,680 - 16,777,215 | 64KW (128KB) | Bank 255 |
 
 **Key Point:** ND-100 uses **word addressing** (16-bit words). All physical addresses are WORD addresses, not byte addresses.
 
 - 1 word = 2 bytes (16 bits)
 - 64KW (64K words) = 128KB (kilobytes)
-- 2MW (2M words) = 4MB (megabytes)
-- 1 page = 1024 words = 1KW (2KB)
-- Total: 8 banks × 2MW = 16MW = 32MB (full 24-bit address space)
+- 1 page (MMU) = 1024 words = 1KW (2KB)
+- 1 bank = 64KW (128KB) = 64 MMU pages
+- Total: 256 banks × 64KW = 16MW = 32MB (full 24-bit address space)
 
-**Bank number = Address bits A23-A21** (top 3 bits of octal address first digit).
-
-**CAUTION:** Some documentation uses different bank definitions. Always verify against specific hardware configuration.
+**CAUTION:** Some documentation groups multiple 64KW banks together for convenience. Always verify against specific hardware configuration.
 
 ### 3.5 How It Works Together
 
@@ -1277,27 +1291,30 @@ Typical Memory Layout:
 
 **ASSUMPTION:** This layout is typical but varies by system configuration.
 
+**Note:** This shows memory REGIONS for documentation purposes. Each hardware bank is 64KW (128KB).
+These regions span multiple hardware banks.
+
 ```
 ND-100 Physical Memory Map (word addresses):
 ┌──────────────────────────────┐ 00000000₈ = 0 words
-│ Bank 0: Local Memory         │
+│ Region 0: Local Memory       │ (hardware banks 0-31)
 │ - Boot code, Kernel          │
 │ - System tables              │
 │ - RT programs                │
-│ Size: up to 4MB (2MW)        │
+│ Size: up to 2MW (4MB)        │
 ├──────────────────────────────┤ 10000000₈ = 2,097,152 words
-│ Bank 1: Local Memory         │
+│ Region 1: Local Memory       │ (hardware banks 32-63)
 │ - User programs              │
 │ - Buffers                    │
-│ Size: up to 4MB (2MW)        │
+│ Size: up to 2MW (4MB)        │
 ├──────────────────────────────┤ 20000000₈ = 4,194,304 words
-│ Bank 2: 5MPM ◄───────────────│ TYPICAL MULTIPORT LOCATION
-│ - Process Descriptors (S500S)│
+│ Region 2: 5MPM ◄─────────────│ TYPICAL MULTIPORT LOCATION
+│ - Process Descriptors (S500S)│ (hardware banks 64-95)
 │ - Message Buffers            │
 │ - ACCP Buffers               │
 │ Size: 128KW-2MW (256KB-4MB)  │
 ├──────────────────────────────┤ 30000000₈ = 6,291,456 words
-│ Bank 3-7: Extended Local     │
+│ Region 3+: Extended Local    │ (hardware banks 96-255)
 │ - Additional programs        │
 │ - Large segments             │
 └──────────────────────────────┘
