@@ -17,7 +17,7 @@ see_also:
 - SetObjectEntry
 parameters:
 - name: FileNumber
-  type: INTEGER2
+  type: WORD
   io: I
   description: The file number. See OpenFile.
 - name: Buff
