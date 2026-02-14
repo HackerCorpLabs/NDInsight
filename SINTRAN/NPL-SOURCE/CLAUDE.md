@@ -117,6 +117,17 @@ SYMBOL N5TIMOUT=   2000     ! ND-500 timeout
 
 ## Symbol Tables (SYMBOLS/ folder)
 
+### Folder Structure
+
+Symbol tables are organized into **three version-specific subfolders**:
+
+```
+SYMBOLS/
+├── K03/    (6 files - SINTRAN III version K, level 03)
+├── L07/    (7 files - SINTRAN III version L, level 07)
+└── M06/    (8 files - SINTRAN III version M, level 06)
+```
+
 ### Format
 
 Symbol files map NPL variables/procedures to octal memory addresses:
@@ -124,35 +135,46 @@ Symbol files map NPL variables/procedures to octal memory addresses:
 SYMBOLNAME=OCTAL_ADDRESS
 ```
 
+### 5-Character Symbol Name Limit
+
+Symbol names are limited to **5 characters maximum** (1980s memory constraint). When cross-referencing NPL source code with symbol tables, use only the **first 5 characters** of the NPL variable name. A few exceptions exist in N500 symbol files (e.g., CNVBYADR, CNVWADR, FP2ENT).
+
 ### Symbol Files Reference
 
-| File | Use Case |
-|------|----------|
-| **FILSYS-SYMBOLS.SYMB.TXT** | File system structures (source code missing) |
-| **N500-SYMBOLS.SYMB.TXT** | ND-500 interface memory layout |
-| **XMSG-SYMBOL-LIST.SYMB.TXT** | XMSG message system (source code missing) |
-| **SYMBOL-1-LIST.SYMB.TXT** | Primary kernel variables/procedures |
-| **SYMBOL-2-LIST.SYMB.TXT** | Secondary kernel symbols |
-| **RTLO-SYMBOLS.SYMB.TXT** | Runtime library entry points |
-| **LIBRARY-MARKS.SYMB.TXT** | Library markers |
+| File | K03 | L07 | M06 | Use Case |
+|------|-----|-----|-----|----------|
+| FILSYS-SYMBOLS.SYMB.TXT | Yes | Yes | Yes | File system structures (source code missing) |
+| LIBRARY-MARKS.SYMB.TXT | Yes | Yes | Yes | Library entry markers |
+| N500-SYMBOLS.SYMB.TXT | Yes | Yes | Yes | ND-500 interface memory layout |
+| N5000-SYMBOLS.SYMB.TXT | - | - | Yes | ND-5000 processor interface (M06 only) |
+| RTLO-SYMBOLS.SYMB.TXT | Yes | Yes | Yes | Runtime library entry points |
+| SYMBOL-1-LIST.SYMB.TXT | Yes | Yes | Yes | Primary kernel variables/procedures |
+| SYMBOL-2-LIST.SYMB.TXT | Yes | Yes | Yes | Secondary kernel symbols |
+| XMSG-SYMBOL-LIST.SYMB.TXT | - | Yes | Yes | XMSG message system (L07+, source code missing) |
 
 ### Finding Symbols
 
-**Search for variable names:**
+**Search for variable names across a version:**
 ```bash
-grep "VARIABLENAME" SYMBOLS/*.TXT
+grep "VARIABLENAME" SYMBOLS/L07/*.TXT
+```
+
+**Search across all versions:**
+```bash
+grep "VARIABLENAME" SYMBOLS/K03/*.TXT SYMBOLS/L07/*.TXT SYMBOLS/M06/*.TXT
 ```
 
 **Find address range:**
 ```bash
-grep "^SYMB.*=04" SYMBOLS/SYMBOL-1-LIST.SYMB.TXT  # Addresses starting with 04 (octal)
+grep "^SYMB.*=04" SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT  # Addresses starting with 04 (octal)
 ```
 
 **Cross-reference with NPL code:**
-1. Find symbol in SYMBOLS/ files
+1. Find symbol in SYMBOLS/{version}/ files (use first 5 chars of NPL variable name)
 2. Note octal address
 3. Search for symbol name in NPL/*.NPL files
 4. Verify usage context
+5. Compare across versions to check if addresses are stable or changed
 
 ---
 
@@ -173,7 +195,7 @@ grep "^SYMB.*=04" SYMBOLS/SYMBOL-1-LIST.SYMB.TXT  # Addresses starting with 04 (
 - Use the mapping table above to find relevant docs
 
 **Step 4: Symbol resolution**
-- Unknown variables → search SYMBOLS/ files
+- Unknown variables → search SYMBOLS/{version}/ files
 - Convert octal addresses to understand memory layout
 - Cross-check with ../OS/19-MEMORY-MAP-REFERENCE.md
 
@@ -225,17 +247,17 @@ grep "^SYMB.*=04" SYMBOLS/SYMBOL-1-LIST.SYMB.TXT  # Addresses starting with 04 (
 
 The following SINTRAN III components do **not** have NPL source code available:
 
-- **File system implementation** (Level 11/23) - Only symbols in FILSYS-SYMBOLS.SYMB.TXT
-- **XMSG message system** - Only symbols in XMSG-SYMBOL-LIST.SYMB.TXT
+- **File system implementation** (Level 11/23) - Only symbols in SYMBOLS/{version}/FILSYS-SYMBOLS.SYMB.TXT
+- **XMSG message system** - Only symbols in SYMBOLS/{version}/XMSG-SYMBOL-LIST.SYMB.TXT (L07+)
 - **Complete terminal handlers** - Partial code only
 - **Network subsystems** (beyond HDLC)
 - **Batch processing**
 - **System utilities/commands**
 
 **When encountering missing source:**
-1. Check if symbols are available in SYMBOLS/ folder
+1. Check if symbols are available in SYMBOLS/{version}/ folders (K03, L07, M06)
 2. Refer to corresponding documentation in ../OS/ or ../Devices/
-3. Use symbols to understand data structure layout
+3. Use symbols to understand data structure layout - compare across versions for stability
 4. Document assumptions clearly when inferring behavior
 
 ---
@@ -311,7 +333,7 @@ Files involved:
 - Octal 000100 = Hex 0x0040 = Decimal 64
 
 **Symbol Table Addresses:**
-- All addresses in SYMBOLS/*.SYMB.TXT are octal
+- All addresses in SYMBOLS/{version}/*.SYMB.TXT are octal
 - Must convert to hex/decimal for C# emulator work
 
 ---
@@ -319,7 +341,7 @@ Files involved:
 ## Historical Context
 
 **SINTRAN Version**: SINTRAN III Version 4 (s3vs-4)
-**SINTRAN Level**: L07 (symbol tables)
+**SINTRAN Levels**: K03, L07, M06 (symbol tables for 3 versions)
 **Build Job**: s3vs-4
 **Target Hardware**: ND-100 (16-bit) + ND-500 (32-bit byte-addressed)
 **Era**: 1980s production operating system
@@ -335,21 +357,22 @@ Files involved:
 | I need to... | Action |
 |--------------|--------|
 | Understand a device driver | Check README.md mapping table → Read ../Devices/ docs → Read NPL source |
-| Find a variable's address | `grep "VARNAME" SYMBOLS/*.TXT` |
+| Find a variable's address | `grep "VARNAME" SYMBOLS/L07/*.TXT` |
 | Understand ND-500 interface | Read ../OS/06-MULTIPORT-MEMORY-AND-ND500-COMMUNICATION.md then CC-P2-N500.NPL |
 | Implement in emulator | Read NPL source → Check ../Emulator/ guides → Verify with symbols |
-| Understand memory layout | ../OS/19-MEMORY-MAP-REFERENCE.md + SYMBOLS/ files |
-| Find missing source info | Check SYMBOLS/ for structure addresses → Refer to ../OS/ documentation |
+| Understand memory layout | ../OS/19-MEMORY-MAP-REFERENCE.md + SYMBOLS/{version}/ files |
+| Find missing source info | Check SYMBOLS/{version}/ for structure addresses → Refer to ../OS/ documentation |
 
 ### File Count Reference
 
 - **NPL Source Files**: 45
-- **Symbol Table Files**: 7
+- **Symbol Table Versions**: 3 (K03, L07, M06)
+- **Symbol Table Files**: 21 (across 3 versions)
 - **Original Build Output**: s3vs-4.symb (3.9 MB)
-- **Total Size**: ~4.4 MB
+- **Total Size**: ~5.2 MB
 
 ---
 
-**Last Updated**: 2025-11-06
+**Last Updated**: 2026-02-08
 **Source**: SINTRAN III s3vs-4 build job
 **Purpose**: Historical preservation, emulator development, documentation verification

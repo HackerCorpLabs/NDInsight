@@ -1,0 +1,917 @@
+{
+  "_metadata": {
+    "title": "SINTRAN III System Segment Definitions",
+    "description": "Complete mapping of system segment numbers to names, address ranges, PIT assignments, and descriptions. Covers SEGFIL 0 (system segments 1-135 octal) and SEGFIL 1 (spooler segments 400+ octal).",
+    "sources": [
+      "ND-860230-8-EN SINTRAN III Release Information N-version, Section 18.3",
+      "ND-860230-7A-EN SINTRAN III Release Information M-Version, Section 17.3",
+      "SINTRAN NPL Source SYMBOL-1-LIST L07 (kernel segment constants)",
+      "Physical memory dump cross-verification"
+    ],
+    "conventions": {
+      "segment_numbers": "Octal (as used by SINTRAN). Decimal equivalent provided for convenience.",
+      "address_ranges": "Octal, format 'start:end' representing logical page addresses",
+      "pit_numbers": "Decimal PIT number. DPIT=7, RPIT=8(dec)/10(oct), SPIT=9(dec)/11(oct), MPIT=10(dec)/12(oct), IPIT=13(dec)/15(oct)",
+      "naming_pattern": "S3xxx = active segment, S3Sxxx = Save copy, S3Ixxx = Image copy"
+    },
+    "segment_entry_format": {
+      "entry_size_words": 8,
+      "entry_size_symbol": "5SEGS=010 (octal)",
+      "fields": {
+        "SEGLI":  {"offset_oct": "000", "description": "Segment link (linked list pointer)"},
+        "PRESE":  {"offset_oct": "001", "description": "Previous segment link"},
+        "LOGAD":  {"offset_oct": "002", "description": "Logical address (first page number)"},
+        "SEGLE":  {"offset_oct": "003", "description": "Segment length in pages"},
+        "MADR":   {"offset_oct": "004", "description": "Mass storage address (disk)"},
+        "FLAG":   {"offset_oct": "005", "description": "Segment status flags"},
+        "SGSTA":  {"offset_oct": "006", "description": "Protection and ring level bits"},
+        "BPAGL":  {"offset_oct": "007", "description": "Begin page link in core map (0=swapped out)"}
+      }
+    },
+    "flag_bits": {
+      "bit_0": {"symbol": "5OK",   "text": "OK",        "description": "Segment is valid"},
+      "bit_1": {"symbol": "5INHB", "text": "INHIBITED", "description": "Segment is inhibited"},
+      "bit_3": {"symbol": "5NORE", "text": "PROTECT",   "description": "Write-protected (no-release)"},
+      "bit_4": {"symbol": "5SREE", "text": "SHARED",    "description": "Shared/reentrant segment"},
+      "bit_5": {"symbol": "5FIXC", "text": "FIXED",     "description": "Fixed in core (never swapped)"},
+      "bit_6": {"symbol": "5DEMA", "text": "DEMAND",    "description": "Demand-loaded segment"}
+    },
+    "sgsta_bits": {
+      "bit_15": {"symbol": "5WPM",  "text": "WPM",     "description": "Write permit"},
+      "bit_14": {"symbol": "5RPM",  "text": "RPM",     "description": "Read permit"},
+      "bit_13": {"symbol": "5FPM",  "text": "FPM",     "description": "Fetch permit"},
+      "bits_10_9": {"text": "RING",  "description": "Ring level: 00=RING0, 01=RING1, 10=RING2, 11=RING3"},
+      "bit_3":  {"text": "KPIT",    "description": "Kernel PIT flag (set on kernel PIT-related segments)"},
+      "bit_0":  {"symbol": "5NCLS", "text": "NOCLEAR", "description": "Pages not cleared on deallocation"}
+    },
+    "created": "2026-02-09",
+    "version": "1.0"
+  },
+
+  "segfil_structure": {
+    "description": "SINTRAN uses multiple segment files (SEGFILs). Each SEGFIL holds up to 256 segments. Global segment number = SEGFIL_number * 256 + local_segment_number.",
+    "segfils": {
+      "0": "System segments (kernel, OS components)",
+      "1": "User/spooler segments (base 256 decimal = 400 octal)",
+      "2": "Library segments",
+      "3": "ND-500 domains",
+      "4": "Special/additional segments"
+    }
+  },
+
+  "system_segments": [
+    {
+      "segment_oct": "001",
+      "segment_dec": 1,
+      "name": null,
+      "npl_symbol": "5BCOM",
+      "description": "Base common code - shared kernel code accessible from all levels. Not listed in SINTRAN release manual segment tables. Has no user-visible SEGFIL name.",
+      "category": "kernel",
+      "notes": "This segment is NOT in the release manual's system segment table (which starts at segment 2). The NPL symbol 5BCOM is an internal constant, not a SINTRAN segment name."
+    },
+    {
+      "segment_oct": "002",
+      "segment_dec": 2,
+      "name": "S3IMAGE",
+      "address_range": "0:175777",
+      "pit": 1,
+      "description": "Image of common code, start/restart",
+      "category": "image"
+    },
+    {
+      "segment_oct": "003",
+      "segment_dec": 3,
+      "name": "S3CP",
+      "address_range": "30000:177777",
+      "pit": 11,
+      "description": "Command processor segment - handles SINTRAN command interpretation",
+      "category": "active"
+    },
+    {
+      "segment_oct": "004",
+      "segment_dec": 4,
+      "name": "S3RTL",
+      "address_range": "30000:123777",
+      "pit": 11,
+      "description": "RT-Loader segment - loads and manages RT programs",
+      "category": "active"
+    },
+    {
+      "segment_oct": "005",
+      "segment_dec": 5,
+      "name": "S3ERRS",
+      "npl_symbol": "5PIT",
+      "address_range": "144000:145777",
+      "pit": 7,
+      "description": "System segment for error program / PIT segment",
+      "category": "kernel"
+    },
+    {
+      "segment_oct": "006",
+      "segment_dec": 6,
+      "name": "S3FS",
+      "npl_symbol": "5FILSEG (via FILSEGM)",
+      "address_range": "26000:177777",
+      "pit": 4,
+      "description": "File system segment - disk I/O and file management code",
+      "category": "active"
+    },
+    {
+      "segment_oct": "007",
+      "segment_dec": 7,
+      "name": "S3DMAC",
+      "address_range": "64000:153777",
+      "pit": 11,
+      "description": "DMAC (Direct Memory Access Controller) segment",
+      "category": "active"
+    },
+    {
+      "segment_oct": "010",
+      "segment_dec": 8,
+      "name": "S3RTFIL",
+      "address_range": "0:177777",
+      "pit": 2,
+      "description": "RTFIL segment - runtime file operations",
+      "category": "active"
+    },
+    {
+      "segment_oct": "011",
+      "segment_dec": 9,
+      "name": "S3ERRL",
+      "address_range": "0:17777",
+      "pit": 1,
+      "description": "Error log segment - stores system error records",
+      "category": "data"
+    },
+    {
+      "segment_oct": "012",
+      "segment_dec": 10,
+      "name": "S3SFS",
+      "address_range": "26000:177777",
+      "pit": 1,
+      "description": "Save of file system segment",
+      "category": "save"
+    },
+    {
+      "segment_oct": "013",
+      "segment_dec": 11,
+      "name": "S3SCP",
+      "address_range": "26000:177777",
+      "pit": 1,
+      "description": "Save of command segment",
+      "category": "save"
+    },
+    {
+      "segment_oct": "014",
+      "segment_dec": 12,
+      "name": "S3ERRP",
+      "address_range": "30000:67777",
+      "pit": 11,
+      "description": "Error program segment - error handling code",
+      "category": "active"
+    },
+    {
+      "segment_oct": "015",
+      "segment_dec": 13,
+      "name": "S3BFLY",
+      "description": "Reserved for Butterfly (not used)",
+      "category": "reserved"
+    },
+    {
+      "segment_oct": "016",
+      "segment_dec": 14,
+      "name": "S3SRPIT",
+      "address_range": "32000:177777",
+      "pit": 1,
+      "description": "Save of RPIT",
+      "category": "save"
+    },
+    {
+      "segment_oct": "017",
+      "segment_dec": 15,
+      "name": "S3SMPIT",
+      "address_range": "32000:177777",
+      "pit": 1,
+      "description": "Save of MPIT",
+      "category": "save"
+    },
+    {
+      "segment_oct": "020",
+      "segment_dec": 16,
+      "name": "S3SDT5",
+      "address_range": "0:175777",
+      "pit": 14,
+      "description": "ND-500/5000 standard domains segment",
+      "category": "nd500"
+    },
+    {
+      "segment_oct": "021",
+      "segment_dec": 17,
+      "name": "S3NM5",
+      "address_range": "0:175777",
+      "pit": 13,
+      "description": "ND-500/5000 name-tables segment",
+      "category": "nd500"
+    },
+    {
+      "segment_oct": "022",
+      "segment_dec": 18,
+      "name": "S3RFAC",
+      "npl_symbol": "5FIUS (via FUSEGM)",
+      "address_range": "26000:171777",
+      "pit": 3,
+      "description": "Remote file access segment (FIU - File Interface Unit)",
+      "category": "active"
+    },
+    {
+      "segment_oct": "023",
+      "segment_dec": 19,
+      "name": "S3DPIT",
+      "npl_symbol": "5DPIT",
+      "address_range": "4000:135777",
+      "pit": 7,
+      "description": "DPIT segment - Data Page Index Table, maps kernel data pages",
+      "category": "kernel"
+    },
+    {
+      "segment_oct": "024",
+      "segment_dec": 20,
+      "name": "S3SGST",
+      "npl_symbol": "5SSGT",
+      "address_range": "0:37777",
+      "pit": 1,
+      "description": "Save of segment table",
+      "category": "save"
+    },
+    {
+      "segment_oct": "025",
+      "segment_dec": 21,
+      "name": "S3IRPIT",
+      "address_range": "32000:177777",
+      "pit": 1,
+      "description": "Image of RPIT",
+      "category": "image"
+    },
+    {
+      "segment_oct": "026",
+      "segment_dec": 22,
+      "name": "S3IMPIT",
+      "address_range": "32000:177777",
+      "pit": 1,
+      "description": "Image of MPIT",
+      "category": "image"
+    },
+    {
+      "segment_oct": "027",
+      "segment_dec": 23,
+      "name": "S3ISGT",
+      "npl_symbol": "5ISGT",
+      "address_range": "0:37777",
+      "pit": 1,
+      "description": "Image of segment table",
+      "category": "image"
+    },
+    {
+      "segment_oct": "030",
+      "segment_dec": 24,
+      "name": "S3SM5",
+      "npl_symbol": "55MOSEG (via 5NSEGM)",
+      "address_range": "40000:177777",
+      "pit": 5,
+      "description": "ND-500/5000 System Monitor segment",
+      "category": "nd500"
+    },
+    {
+      "segment_oct": "031",
+      "segment_dec": 25,
+      "name": "S3SSPD",
+      "address_range": "164000:165777",
+      "pit": 7,
+      "description": "Save of spooling data fields",
+      "category": "save"
+    },
+    {
+      "segment_oct": "035",
+      "segment_dec": 29,
+      "name": "S3MPIT",
+      "npl_symbol": "5MPIT",
+      "address_range": "32000:155777",
+      "pit": 12,
+      "description": "MPIT segment - Monitor Page Index Table, maps monitor-level code",
+      "category": "kernel",
+      "notes": "N-version has two entries for seg 35/36: standard system A vs B&C"
+    },
+    {
+      "segment_oct": "036",
+      "segment_dec": 30,
+      "name": "S3TAD",
+      "address_range": "110000:133777",
+      "pit": 11,
+      "description": "TADADM segment - terminal administration",
+      "category": "active"
+    },
+    {
+      "segment_oct": "037",
+      "segment_dec": 31,
+      "name": "S3RTD",
+      "address_range": "0:177777",
+      "pit": 1,
+      "description": "RT-Loader data segment",
+      "category": "data"
+    },
+    {
+      "segment_oct": "040",
+      "segment_dec": 32,
+      "name": "S3FUDRT",
+      "address_range": "164000:173777",
+      "pit": 7,
+      "description": "File user data segment for RT programs",
+      "category": "data"
+    },
+    {
+      "segment_oct": "041",
+      "segment_dec": 33,
+      "name": "S3IMED",
+      "address_range": "26000:27777",
+      "pit": 1,
+      "description": "Image of edit routines",
+      "category": "image"
+    },
+    {
+      "segment_oct": "042",
+      "segment_dec": 34,
+      "name": "S3ED",
+      "address_range": "26000:27777",
+      "pit": 11,
+      "description": "Edit routines - command line editor code",
+      "category": "active"
+    },
+    {
+      "segment_oct": "043",
+      "segment_dec": 35,
+      "name": "S3PATCH",
+      "address_range": "174000:177777",
+      "pit": 2,
+      "description": "Used for patching purposes - live system patches",
+      "category": "system"
+    },
+    {
+      "segment_oct": "044",
+      "segment_dec": 36,
+      "name": "S3IDPIT",
+      "address_range": "4000:135777",
+      "pit": 1,
+      "description": "Image of DPIT",
+      "category": "image"
+    },
+    {
+      "segment_oct": "045",
+      "segment_dec": 37,
+      "name": "S3ISYS",
+      "address_range": "144000:151777",
+      "pit": 1,
+      "description": "Image of system segment",
+      "category": "image"
+    },
+    {
+      "segment_oct": "046",
+      "segment_dec": 38,
+      "name": "S3S5PIT",
+      "address_range": "26000:37777",
+      "pit": 1,
+      "description": "Save of 5PIT segment",
+      "category": "save"
+    },
+    {
+      "segment_oct": "047",
+      "segment_dec": 39,
+      "name": "S3RPIT",
+      "npl_symbol": "5RPIT",
+      "address_range": "32000:143777",
+      "pit": 10,
+      "description": "RPIT segment - Runtime PIT, maps RT program code pages",
+      "category": "kernel"
+    },
+    {
+      "segment_oct": "050",
+      "segment_dec": 40,
+      "name": "S3IS5PIT",
+      "address_range": "26000:37777",
+      "pit": 1,
+      "description": "Image of 5PIT segment",
+      "category": "image"
+    },
+    {
+      "segment_oct": "051",
+      "segment_dec": 41,
+      "name": "S35PIT",
+      "npl_symbol": "55PIT",
+      "address_range": "26000:37777",
+      "pit": 5,
+      "description": "5PIT segment - secondary PIT for ND-500 related operations",
+      "category": "kernel"
+    },
+    {
+      "segment_oct": "052",
+      "segment_dec": 42,
+      "name": "S3SAVE",
+      "address_range": "0:175777",
+      "pit": 1,
+      "description": "Save of common code and start/restart",
+      "category": "save"
+    },
+    {
+      "segment_oct": "053",
+      "segment_dec": 43,
+      "name": "S3SDPIT",
+      "address_range": "4000:135777",
+      "pit": 1,
+      "description": "Save of DPIT",
+      "category": "save"
+    },
+    {
+      "segment_oct": "054",
+      "segment_dec": 44,
+      "name": "S3SSYS",
+      "address_range": "144000:151777",
+      "pit": 1,
+      "description": "Save of system segment",
+      "category": "save"
+    },
+    {
+      "segment_oct": "055",
+      "segment_dec": 45,
+      "name": "S3SERRP",
+      "address_range": "30000:67777",
+      "pit": 1,
+      "description": "Save of error program",
+      "category": "save"
+    },
+    {
+      "segment_oct": "056",
+      "segment_dec": 46,
+      "name": "S3SRTC",
+      "address_range": "30000:67777",
+      "pit": 1,
+      "description": "Save of RT-Loader code segment",
+      "category": "save"
+    },
+    {
+      "segment_oct": "057",
+      "segment_dec": 47,
+      "name": "S3SRTD",
+      "address_range": "0:25777",
+      "pit": 1,
+      "description": "Save of RT-Loader data segment",
+      "category": "save"
+    },
+    {
+      "segment_oct": "060",
+      "segment_dec": 48,
+      "name": "S3SECOM",
+      "address_range": "26000:31777",
+      "pit": 1,
+      "description": "Save of extended common",
+      "category": "save"
+    },
+    {
+      "segment_oct": "061",
+      "segment_dec": 49,
+      "name": "S3IECOM",
+      "address_range": "26000:31777",
+      "pit": 1,
+      "description": "Image of extended common",
+      "category": "image"
+    },
+    {
+      "segment_oct": "062",
+      "segment_dec": 50,
+      "name": "S3SSM5",
+      "address_range": "40000:177777",
+      "pit": 1,
+      "description": "Save of ND-500/5000 System Monitor",
+      "category": "save"
+    },
+    {
+      "segment_oct": "063",
+      "segment_dec": 51,
+      "name": "S3MEMTF",
+      "address_range": "172000:172000",
+      "description": "MEMTOF segment - memory configuration flag",
+      "category": "system"
+    },
+    {
+      "segment_oct": "064",
+      "segment_dec": 52,
+      "name": "S3ECOM",
+      "npl_symbol": "5ECOM",
+      "address_range": "26000:31777",
+      "pit": 10,
+      "description": "Extended common segment - additional shared kernel code",
+      "category": "kernel"
+    },
+    {
+      "segment_oct": "065",
+      "segment_dec": 53,
+      "name": "S3SIPIT",
+      "address_range": "32000:177777",
+      "pit": 1,
+      "description": "Save of IPIT",
+      "category": "save"
+    },
+    {
+      "segment_oct": "066",
+      "segment_dec": 54,
+      "name": "S3IIPIT",
+      "address_range": "32000:177777",
+      "pit": 1,
+      "description": "Image of IPIT",
+      "category": "image"
+    },
+    {
+      "segment_oct": "067",
+      "segment_dec": 55,
+      "name": "S3IPIT",
+      "npl_symbol": "5IPIT",
+      "address_range": "32000:77777",
+      "pit": 15,
+      "description": "IPIT segment - Interrupt PIT, maps segment admin and mass storage I/O code",
+      "category": "kernel"
+    },
+    {
+      "segment_oct": "070",
+      "segment_dec": 56,
+      "name": "S3SSM",
+      "address_range": "30000:137777",
+      "pit": 1,
+      "description": "Save of service/mail segment",
+      "category": "save"
+    },
+    {
+      "segment_oct": "071",
+      "segment_dec": 57,
+      "name": "S3SM",
+      "address_range": "30000:137777",
+      "pit": 11,
+      "description": "Service/mail segment - inter-process messaging",
+      "category": "active"
+    },
+    {
+      "segment_oct": "072",
+      "segment_dec": 58,
+      "name": "S3SDMWD",
+      "address_range": "2000:11777",
+      "pit": 1,
+      "description": "Save of disk mirroring watchdog segment",
+      "category": "save"
+    },
+    {
+      "segment_oct": "073",
+      "segment_dec": 59,
+      "name": "S3IDMWD",
+      "address_range": "2000:11777",
+      "pit": 1,
+      "description": "Image of disk mirroring watchdog segment",
+      "category": "image"
+    },
+    {
+      "segment_oct": "074",
+      "segment_dec": 60,
+      "name": "S3SXMK",
+      "address_range": "102000:177777",
+      "pit": 1,
+      "description": "Save of XMSG kernel",
+      "category": "save"
+    },
+    {
+      "segment_oct": "075",
+      "segment_dec": 61,
+      "name": "S3SXROU",
+      "address_range": "0:101777",
+      "pit": 1,
+      "description": "Save of XMSG XROUT segment",
+      "category": "save"
+    },
+    {
+      "segment_oct": "076",
+      "segment_dec": 62,
+      "name": "S3XMK",
+      "address_range": "102000:177777",
+      "pit": 2,
+      "description": "XMSG kernel - cross-machine message passing kernel",
+      "category": "active"
+    },
+    {
+      "segment_oct": "077",
+      "segment_dec": 63,
+      "name": "S3XROU",
+      "address_range": "0:101777",
+      "pit": 2,
+      "description": "XMSG XROUT segment - XMSG routing code",
+      "category": "active"
+    },
+    {
+      "segment_oct": "100",
+      "segment_dec": 64,
+      "name": "S3SDNAM",
+      "address_range": "164000:177777",
+      "pit": 1,
+      "description": "Save of device-name table",
+      "category": "save"
+    },
+    {
+      "segment_oct": "101",
+      "segment_dec": 65,
+      "name": null,
+      "npl_symbol": "SDNAM",
+      "address_range": "164000:177777",
+      "pit": 7,
+      "description": "Device-name table - maps device names to device numbers. Listed as 'SDNAM' in release manual but this is not a valid SINTRAN segment name.",
+      "category": "active",
+      "notes": "The release manual lists this as 'SDNAM' but that appears to be the NPL symbol, not the actual SEGFIL name."
+    },
+    {
+      "segment_oct": "102",
+      "segment_dec": 66,
+      "name": "S3SXMFI",
+      "address_range": "0:153777",
+      "pit": 1,
+      "description": "Save of XMSG watchdog (XMFIDO)",
+      "category": "save"
+    },
+    {
+      "segment_oct": "103",
+      "segment_dec": 67,
+      "name": "S3XMFI",
+      "address_range": "0:153777",
+      "pit": 1,
+      "description": "XMSG watchdog (XMFIDO) - monitors XMSG health",
+      "category": "active"
+    },
+    {
+      "segment_oct": "104",
+      "segment_dec": 68,
+      "name": "S3SNKSE",
+      "address_range": "30000:177777",
+      "pit": 11,
+      "description": "Save of NUCLEUS server",
+      "category": "save"
+    },
+    {
+      "segment_oct": "105",
+      "segment_dec": 69,
+      "name": "S3INKSE",
+      "address_range": "30000:177777",
+      "pit": 11,
+      "description": "Image of NUCLEUS server",
+      "category": "image"
+    },
+    {
+      "segment_oct": "106",
+      "segment_dec": 70,
+      "name": "S3SNKNA",
+      "address_range": "0:177777",
+      "pit": 1,
+      "description": "Save of NUCLEUS name server",
+      "category": "save"
+    },
+    {
+      "segment_oct": "107",
+      "segment_dec": 71,
+      "name": "S3INKNA",
+      "address_range": "0:177777",
+      "pit": 1,
+      "description": "Image of NUCLEUS name server",
+      "category": "image"
+    },
+    {
+      "segment_oct": "110",
+      "segment_dec": 72,
+      "name": "S3SU110",
+      "address_range": "0:77777",
+      "pit": 1,
+      "description": "Save of ND-110 Microprogram",
+      "category": "save"
+    },
+    {
+      "segment_oct": "111",
+      "segment_dec": 73,
+      "name": "S3IU110",
+      "address_range": "0:77777",
+      "pit": 1,
+      "description": "Image of ND-110 Microprogram",
+      "category": "image"
+    },
+    {
+      "segment_oct": "112",
+      "segment_dec": 74,
+      "name": "S3SU120",
+      "address_range": "0:77777",
+      "pit": 1,
+      "description": "Save of ND-120 Microprogram",
+      "category": "save"
+    },
+    {
+      "segment_oct": "113",
+      "segment_dec": 75,
+      "name": "S3IU120",
+      "address_range": "0:77777",
+      "pit": 1,
+      "description": "Image of ND-120 Microprogram",
+      "category": "image"
+    },
+    {
+      "segment_oct": "114",
+      "segment_dec": 76,
+      "name": "S3SERWC",
+      "address_range": "0:147777",
+      "pit": 1,
+      "description": "Save of ERS Watchdog program (code)",
+      "category": "save"
+    },
+    {
+      "segment_oct": "115",
+      "segment_dec": 77,
+      "name": "S3IERWC",
+      "address_range": "0:147777",
+      "pit": 1,
+      "description": "Image of ERS Watchdog program (code)",
+      "category": "image"
+    },
+    {
+      "segment_oct": "116",
+      "segment_dec": 78,
+      "name": "S3SERWD",
+      "address_range": "0:157777",
+      "pit": 1,
+      "description": "Save of ERS Watchdog data",
+      "category": "save"
+    },
+    {
+      "segment_oct": "117",
+      "segment_dec": 79,
+      "name": "S3IERWD",
+      "address_range": "0:157777",
+      "pit": 2,
+      "description": "Image of ERS Watchdog data",
+      "category": "image"
+    },
+    {
+      "segment_oct": "120",
+      "segment_dec": 80,
+      "name": "S3SPPRMA",
+      "address_range": "30000:177777",
+      "pit": 11,
+      "description": "Save of Processor Manager server",
+      "category": "save"
+    },
+    {
+      "segment_oct": "121",
+      "segment_dec": 81,
+      "name": "S3IPRMA",
+      "address_range": "30000:177777",
+      "pit": 11,
+      "description": "Image of Processor Manager server",
+      "category": "image"
+    },
+    {
+      "segment_oct": "122",
+      "segment_dec": 82,
+      "name": "S3SPWRS",
+      "address_range": "30000:177777",
+      "pit": 11,
+      "description": "Save of PFTCON server",
+      "category": "save"
+    },
+    {
+      "segment_oct": "123",
+      "segment_dec": 83,
+      "name": "S3IPWRS",
+      "address_range": "30000:177777",
+      "pit": 11,
+      "description": "Image of PFTCON server",
+      "category": "image"
+    },
+    {
+      "segment_oct": "124",
+      "segment_dec": 84,
+      "name": "S3SBOPC",
+      "address_range": "30000:177777",
+      "pit": 11,
+      "description": "Save of BOPCOM Server",
+      "category": "save"
+    },
+    {
+      "segment_oct": "125",
+      "segment_dec": 85,
+      "name": "S3IBOPC",
+      "address_range": "30000:177777",
+      "pit": 11,
+      "description": "Image of BOPCOM Server",
+      "category": "image"
+    },
+    {
+      "segment_oct": "126",
+      "segment_dec": 86,
+      "name": "S3SMTSE",
+      "address_range": "30000:37777",
+      "pit": 11,
+      "description": "Save of MT (magnetic tape) server",
+      "category": "save"
+    },
+    {
+      "segment_oct": "127",
+      "segment_dec": 87,
+      "name": "S3IMTSE",
+      "address_range": "30000:37777",
+      "pit": 11,
+      "description": "Image of MT (magnetic tape) server",
+      "category": "image"
+    },
+    {
+      "segment_oct": "130",
+      "segment_dec": 88,
+      "name": "S3SHDM",
+      "description": "Save of HDLC-DMAC segment",
+      "category": "save"
+    },
+    {
+      "segment_oct": "131",
+      "segment_dec": 89,
+      "name": "S3IHDM",
+      "description": "Image of HDLC-DMAC segment",
+      "category": "image"
+    },
+    {
+      "segment_oct": "132",
+      "segment_dec": 90,
+      "name": "S3SFAC",
+      "description": "Save of remote file access segment",
+      "category": "save"
+    },
+    {
+      "segment_oct": "133",
+      "segment_dec": 91,
+      "name": "S3IFAC",
+      "description": "Image of remote file access segment",
+      "category": "image"
+    },
+    {
+      "segment_oct": "134",
+      "segment_dec": 92,
+      "name": "S3SNKDAT",
+      "description": "Save of NUCLEUS data segment",
+      "category": "save"
+    },
+    {
+      "segment_oct": "135",
+      "segment_dec": 93,
+      "name": "S3INKDAT",
+      "description": "Image of NUCLEUS data segment",
+      "category": "image"
+    }
+  ],
+
+  "spooler_segments": {
+    "description": "Spooler segments are in SEGFIL 1, starting at global segment 400 octal (256 decimal). Used by the spooler RT programs (SPRT1-SPRT16). Actual SEGFIL names are unknown - these segment numbers were identified from the memory dump but their disk file names have not been verified.",
+    "base_segment_oct": "400",
+    "base_segment_dec": 256,
+    "notes": "No verified segment names available for spooler segments. The RT programs SPRT1-SPR16 use these segments (identified via SEGM1/SEGM2 cross-reference) but the actual SEGFIL file names are not known."
+  },
+
+  "segment_categories": {
+    "kernel": "Core OS segments that are always present and mapped into kernel PITs (DPIT, MPIT, RPIT, IPIT, 5PIT)",
+    "active": "Active code/data segments that are swapped in/out as needed",
+    "save": "Save copies on disk - used to restore active segments after crashes or INITIALIZE-SYSTEM-SEGMENT",
+    "image": "Image copies - pristine original from system generation, used as fallback",
+    "data": "Data-only segments (no executable code)",
+    "nd500": "ND-500/5000 coprocessor related segments",
+    "system": "System utility segments",
+    "reserved": "Allocated but not used"
+  },
+
+  "naming_conventions": {
+    "S3xxx":  "Active segment (the one currently in use)",
+    "S3Sxxx": "Save copy (written to disk periodically, restored on crash)",
+    "S3Ixxx": "Image copy (original from SYSGEN, never modified at runtime)",
+    "xPIT":   "Page Index Table segment (DPIT, MPIT, RPIT, IPIT, 5PIT)"
+  },
+
+  "segment_triads": {
+    "description": "Many system components exist as a triad: Active + Save + Image. The Active segment runs in memory, the Save is periodically updated on disk, and the Image is the original from system generation.",
+    "examples": [
+      {"active": "S3DPIT (023)", "save": "S3SDPIT (053)", "image": "S3IDPIT (044)", "component": "DPIT"},
+      {"active": "S3RPIT (047)", "save": "S3SRPIT (016)", "image": "S3IRPIT (025)", "component": "RPIT"},
+      {"active": "S3MPIT (035)", "save": "S3SMPIT (017)", "image": "S3IMPIT (026)", "component": "MPIT"},
+      {"active": "S3IPIT (067)", "save": "S3SIPIT (065)", "image": "S3IIPIT (066)", "component": "IPIT"},
+      {"active": "S3ECOM (064)", "save": "S3SECOM (060)", "image": "S3IECOM (061)", "component": "Extended Common"},
+      {"active": "S3FS (006)",   "save": "S3SFS (012)",   "image": null,            "component": "File System"},
+      {"active": "S3CP (003)",   "save": "S3SCP (013)",   "image": null,            "component": "Command Processor"},
+      {"active": "S3SM (071)",   "save": "S3SSM (070)",   "image": null,            "component": "Service/Mail"},
+      {"active": "S3XMK (076)",  "save": "S3SXMK (074)",  "image": null,            "component": "XMSG Kernel"},
+      {"active": "S3XROU (077)", "save": "S3SXROU (075)", "image": null,            "component": "XMSG Routing"},
+      {"active": "seg 101 (no SEGFIL name)", "save": "S3SDNAM (100)", "image": null, "component": "Device Names"},
+      {"active": "seg 001 (no SEGFIL name)", "save": "S3SAVE (052)", "image": "S3IMAGE (002)", "component": "Base Common"}
+    ]
+  }
+}

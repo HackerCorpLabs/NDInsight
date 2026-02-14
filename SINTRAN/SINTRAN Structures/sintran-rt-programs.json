@@ -1,0 +1,1218 @@
+{
+  "_metadata": {
+    "title": "SINTRAN III RT Program Complete Reference",
+    "description": "Complete mapping of all built-in RT (Real-Time) programs across SINTRAN III versions K03, L07, and M06. Includes slot addresses, start address entry points, runtime display names, queue membership, and grouping classification.",
+    "source": "Verified against NPL symbol tables: SYMBOL-1-LIST.SYMB.TXT, SYMBOL-2-LIST.SYMB.TXT, FILSYS-SYMBOLS.SYMB.TXT for each version",
+    "validated_against": "Live SINTRAN L07 execution and time queue output from emulator",
+    "date": "2026-02-08",
+    "notes": [
+      "All addresses are in OCTAL (base 8) as strings prefixed with '0o' for unambiguous parsing",
+      "RT slot addresses differ between versions but slot ORDER and NAMES are stable",
+      "RTSTA/RTEND are DPIT logical addresses pointing to the RT table start/end",
+      "The actual RT table lives in DPIT-mapped memory, not at the RTSTA address itself",
+      "STADR entry points differ between versions (code is linked at different addresses)",
+      "RWRT4 and RWRT6 do not exist in any version (intentional gaps)",
+      "Background programs (BAKnn) are named at runtime, not by linker symbol"
+    ]
+  },
+
+  "rt_table_config": {
+    "description": "RT table configuration constants. RTSTA and RTEND are addresses of words that CONTAIN pointers to the RT table boundaries. 5RTSI is the size of each RT-Description entry.",
+    "versions": {
+      "K03": {
+        "RTSTA": "0o004020",
+        "RTEND": "0o004323",
+        "5RTSI": "0o000026",
+        "rt_table_base": "0o057360",
+        "rt_table_end_value": "0o073016",
+        "comment": "RT table base at 057360, far from L07/M06 addresses"
+      },
+      "L07": {
+        "RTSTA": "0o004020",
+        "RTEND": "0o004323",
+        "5RTSI": "0o000026",
+        "rt_table_base": "0o012071",
+        "rt_table_end_value": "0o031041",
+        "comment": "348 RT slots total (verified from memory dump)"
+      },
+      "M06": {
+        "RTSTA": "0o004020",
+        "RTEND": "0o004323",
+        "5RTSI": "0o000026",
+        "rt_table_base": "0o012146",
+        "rt_table_end_value": null,
+        "comment": "RT table base at 012146, slightly offset from L07"
+      }
+    }
+  },
+
+  "grouping_methodology": {
+    "description": "How RT programs were classified into groups. This was derived from multiple sources cross-referenced against each other.",
+    "groups": {
+      "system_kernel": {
+        "label": "System RT Programs (Ring 0, kernel)",
+        "criteria": [
+          "Ring 0 or Ring 7 in the TYPRI field (from memory dump)",
+          "No 5BACK (background) flag in STATU word",
+          "Core OS services: idle loop, initialization, error handling, swapping, timing, scheduling",
+          "These are created during SINTRAN boot in PH-P2-RESTART.NPL and never destroyed",
+          "DUMMY (idle), STSIN (init), RTERR (error), 1SWAP/5SWAP (swappers), TIMRT (timer), BPTMP (breakpoint), RTSLI (timeslicer), ACCRT (accounting), TERMP (terminal driver), RTDIL (DIL dispatch), DIMWD (dimension watchdog)"
+        ],
+        "ring_values_seen": [0, 7],
+        "evidence": "Ring value from TYPRI field bits 2-0 in memory dump. 1SWAP uses ring 7 (runs in user-like context for page fault handling). All others ring 0."
+      },
+      "rw_io": {
+        "label": "Read/Write RT Programs (Ring 0, I/O)",
+        "criteria": [
+          "All share the same STADR entry point (0o027237 in L07) - they are identical worker instances",
+          "Named RWRT1-RWRT9 (base set) and RWR10-RWR42 (extended set for additional disk controllers)",
+          "Ring 0 in TYPRI",
+          "Handle disk I/O operations - each instance can service one concurrent disk request",
+          "RTRFA (Record File Access) is in this group but has its own unique entry point (0o027221 in L07)",
+          "The number of RWRT programs determines max concurrent disk I/O operations"
+        ],
+        "ring_values_seen": [0],
+        "evidence": "Shared STADR=027237 (L07) proves identical code instances. RWRT4 and RWRT6 are deliberately absent in all versions."
+      },
+      "spool_terminal": {
+        "label": "Spool RT Programs (Ring 4, terminal handlers)",
+        "criteria": [
+          "Ring 4 in TYPRI field (user-mode I/O ring for SINTRAN)",
+          "All share the same STADR entry point: SPORT (0o167463 in L07, from FILSYS-SYMBOLS)",
+          "Named SPRT1-SPRT9, SPR10-SPR22 (one per logical terminal/spool channel)",
+          "Handle terminal I/O and print spooling",
+          "COSPO (console spool) has its own entry point COSPS but is in this group",
+          "Active terminals have no 5RTOF flag; inactive ones have 5RTOF (inhibited)",
+          "K03 has SPR17-SPR20, M06 has SPR17-SPR22 (more terminal support)"
+        ],
+        "ring_values_seen": [4],
+        "evidence": "Ring 4 from TYPRI. STADR=167463 (SPORT) shared by all SPRT/SPR slots. 5RTOF flag distinguishes active vs inactive terminals."
+      },
+      "user_programs": {
+        "label": "User RT Programs (Ring 5-6)",
+        "criteria": [
+          "Ring 5 or 6 in TYPRI field",
+          "Include networking (XROUT, XTRAC, XMFID, NKSER, NKNAM), error handling (ERSWD), and user-space services",
+          "UDR01-UDR06 are user device driver slots with STADR=URT01-URT06",
+          "TADAD is a TAD (Terminal Access Device) adapter",
+          "These have individual unique STADR values (not shared like RWRT/SPRT)",
+          "ERSWD (Error Switch/Dispatch) runs in ring 6, was confirmed as 'ERS3WD' in live SINTRAN output"
+        ],
+        "ring_values_seen": [5, 6],
+        "evidence": "Ring values 5-6 from TYPRI in memory dump. Individual STADR values confirm unique code per slot."
+      },
+      "background_users": {
+        "label": "Background User Programs (BAKnn/BCHnn)",
+        "criteria": [
+          "5BACK flag (bit 0) set in STATU word",
+          "5TSLI flag (bit 2) set - timesliced execution",
+          "All share STADR=9ENTO (0o042105 in L07) - the background program entry point",
+          "Named BAK01-BAK99 at runtime (user terminal background processes)",
+          "BCH01-BCH10 are batch job slots (last slots in the table)",
+          "5ESCF (escape priority) flag on batch slots",
+          "Active backgrounds have no 5RTOF; inhibited ones have 5RTOF",
+          "One background slot per user terminal - BAKnn where nn matches terminal number"
+        ],
+        "ring_values_seen": [0, 5],
+        "evidence": "5BACK+5TSLI flags in STATU. Shared STADR=042105 (9ENTO). Live SINTRAN shows 'BAK01', 'BAK02' as runtime display names."
+      }
+    }
+  },
+
+  "queue_structures": {
+    "description": "SINTRAN maintains several linked-list queues threading through RT-Description entries",
+    "queues": {
+      "execution_queue": {
+        "head_symbol": "BEXQU",
+        "head_address": "0o004013",
+        "link_field": "WLINK",
+        "link_offset": "0o13",
+        "ordering": "Priority-ordered circular list. Highest priority first. Scheduler picks head.",
+        "typical_members": "All runnable RT programs. Programs in 5WAIT state are waiting for I/O completion.",
+        "validated": "RTRFA -> BAK02 -> BAK01 -> ERS3WD -> DUMMY (confirmed from live SINTRAN)"
+      },
+      "time_queue": {
+        "head_symbol": "BTIMQ",
+        "head_address": "0o004012",
+        "link_field": "TLINK",
+        "link_offset": "0o00",
+        "ordering": "Time-ordered linear list. Earliest deadline first. Terminates with 0 or 177777.",
+        "typical_members": "RT programs with pending timer events (TIMRT, RTSLI, BPTMP)",
+        "validated": "RTSLI -> TIMRT -> BPTMP (confirmed from live SINTRAN)"
+      },
+      "monitor_queue": {
+        "head_symbol": "MQUEU",
+        "head_address": "0o004011",
+        "link_field": "MLINK",
+        "link_offset": "0o05",
+        "ordering": "FIFO. 177777 = empty queue.",
+        "typical_members": "RT programs waiting for monitor call processing"
+      }
+    }
+  },
+
+  "rt_description_layout": {
+    "description": "Each RT-Description entry is 26 octal (22 decimal) words. These offsets are STABLE across all versions.",
+    "entry_size_octal": "0o26",
+    "entry_size_decimal": 22,
+    "fields": {
+      "TLINK":  { "offset_oct": "0o00", "offset_dec": 0,  "description": "Time queue link - pointer to next RT in time queue" },
+      "STATU":  { "offset_oct": "0o01", "offset_dec": 1,  "description": "Status word with flag bits" },
+      "TYPRI":  { "offset_oct": "0o03", "offset_dec": 3,  "description": "Type/priority/ring: bits 15-8=priority, bits 2-0=ring" },
+      "DTIM1":  { "offset_oct": "0o04", "offset_dec": 4,  "description": "Timer high word (DTIME double-word upper)" },
+      "DTIM2":  { "offset_oct": "0o05", "offset_dec": 5,  "description": "Timer low word (DTIME double-word lower)" },
+      "STADR":  { "offset_oct": "0o10", "offset_dec": 8,  "description": "Start address - code entry point for this RT program" },
+      "SEGM1":  { "offset_oct": "0o11", "offset_dec": 9,  "description": "Program segment number (code segment)" },
+      "SEGM2":  { "offset_oct": "0o12", "offset_dec": 10, "description": "Data segment number" },
+      "WLINK":  { "offset_oct": "0o13", "offset_dec": 11, "description": "Wait/execution queue link - pointer to next RT in exec queue" },
+      "ACT1S":  { "offset_oct": "0o14", "offset_dec": 12, "description": "Currently active program segment" },
+      "ACT2S":  { "offset_oct": "0o15", "offset_dec": 13, "description": "Currently active data segment" },
+      "ACTPR":  { "offset_oct": "0o17", "offset_dec": 15, "description": "Active priority and PCR (Paging Control Register)" },
+      "BRESL":  { "offset_oct": "0o20", "offset_dec": 16, "description": "Reservation queue link (device reservations)" },
+      "RSEGM":  { "offset_oct": "0o21", "offset_dec": 17, "description": "Reentrant segment number" },
+      "BUFWI":  { "offset_oct": "0o22", "offset_dec": 18, "description": "Buffer window segment" },
+      "N5WIN":  { "offset_oct": "0o24", "offset_dec": 20, "description": "ND-500 window segment (for dual-CPU systems)" },
+      "RTDLG":  { "offset_oct": "0o25", "offset_dec": 21, "description": "Address of register save block (SEPARATE from RT-Description)" }
+    },
+    "status_bits": {
+      "5BACK":  { "bit": 0,  "description": "Background program flag - this is a user background process" },
+      "5TSLI":  { "bit": 2,  "description": "Timesliced - program gets CPU time in fixed quanta" },
+      "5ESCF":  { "bit": 3,  "description": "Escape priority - can escape to higher priority" },
+      "5BRKF":  { "bit": 4,  "description": "Break flag - program received a break/interrupt" },
+      "5XMSY":  { "bit": 6,  "description": "XMSG synchronization - waiting for inter-process message" },
+      "5RTOF":  { "bit": 9,  "description": "RT program OFF/inhibited - slot exists but program is not active" },
+      "5RWAI":  { "bit": 13, "description": "Resource wait - waiting for a shared resource" },
+      "5WAIT":  { "bit": 15, "description": "I/O wait - waiting for device I/O completion" }
+    }
+  },
+
+  "rt_programs": [
+    {
+      "slot": 0,
+      "symbol": "DUMMY",
+      "runtime_name": "DUMMY",
+      "group": "system_kernel",
+      "description": "Idle loop program. Runs when no other RT program is ready. Always present as the last entry in the circular execution queue. The 'current program' pointer (CURPR) points here when the system is idle. Executes a tight loop waiting for interrupts.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o057360", "stadr": null },
+        "L07": { "slot": "0o012071", "stadr": "0o040441" },
+        "M06": { "slot": "0o012146", "stadr": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": ["execution"],
+      "flags_typical": [],
+      "notes": "STADR not found in symbol tables - may be an inline idle loop"
+    },
+    {
+      "slot": 1,
+      "symbol": "STSIN",
+      "runtime_name": "STSIN",
+      "group": "system_kernel",
+      "description": "System initialization RT program. Started during SINTRAN boot (PH-P2-RESTART.NPL). Performs post-boot initialization including terminal setup, file system mounting, and device configuration. Has 5BACK flag (runs as background-like initialization task). STADR points to START entry point.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o057406", "stadr": "0o007200" },
+        "L07": { "slot": "0o012117", "stadr": "0o006101" },
+        "M06": { "slot": "0o012174", "stadr": "0o006735" }
+      },
+      "stadr_symbol": "START",
+      "queue_membership": [],
+      "flags_typical": ["5BACK"],
+      "notes": "One of the first three RT programs initialized during cold boot"
+    },
+    {
+      "slot": 2,
+      "symbol": "RTERR",
+      "runtime_name": "RTERR",
+      "group": "system_kernel",
+      "description": "RT error handler. Catches and processes runtime errors from other RT programs including illegal instructions, memory protection violations, and arithmetic errors. Has 5BACK flag. STADR points to SRTER (Start RT Error) entry point. SRTER address (030054) is identical across all versions.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o057434", "stadr": "0o030054" },
+        "L07": { "slot": "0o012145", "stadr": "0o030054" },
+        "M06": { "slot": "0o012222", "stadr": "0o030054" }
+      },
+      "stadr_symbol": "SRTER",
+      "queue_membership": [],
+      "flags_typical": ["5BACK"],
+      "notes": "SRTER=030054 is stable across ALL versions - unusual, most STADRs change"
+    },
+    {
+      "slot": 3,
+      "symbol": "1SWAP",
+      "runtime_name": "1SWAP",
+      "group": "system_kernel",
+      "description": "Primary swapper (swap-out). Handles swapping program segments between physical memory and disk when memory is full. Runs at ring 7 (lowest privilege of kernel programs) because it performs disk I/O that may block. STADR points to SSSWP (Start Swap) entry point. One of the first three RT programs initialized during cold boot.",
+      "ring": 7,
+      "addresses": {
+        "K03": { "slot": "0o057462", "stadr": "0o054575" },
+        "L07": { "slot": "0o012173", "stadr": "0o070654" },
+        "M06": { "slot": "0o012250", "stadr": "0o071753" }
+      },
+      "stadr_symbol": "SSSWP",
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "Ring 7 is special - allows the swapper to run in a context that can be interrupted by higher-priority programs"
+    },
+    {
+      "slot": 4,
+      "symbol": "TIMRT",
+      "runtime_name": "TIMRT",
+      "group": "system_kernel",
+      "description": "Timer RT program. Manages real-time clock events and periodic scheduling. Wakes up RT programs whose timer has expired. Lives in the time queue. STADR points to TIMER entry point. Has bit 12 set in STATU (timer-active flag).",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o057510", "stadr": "0o036534" },
+        "L07": { "slot": "0o012221", "stadr": "0o043526" },
+        "M06": { "slot": "0o012276", "stadr": "0o043503" }
+      },
+      "stadr_symbol": "TIMER",
+      "queue_membership": ["time"],
+      "flags_typical": [],
+      "notes": "Always in time queue. Time value = next wake-up tick count."
+    },
+    {
+      "slot": 5,
+      "symbol": "RTDIL",
+      "runtime_name": "RTDIL",
+      "group": "system_kernel",
+      "description": "RT DIL (Device Independent Language) dispatch handler. Manages DIL subsystem calls - the SINTRAN API layer for device-independent I/O used by high-level languages (FORTRAN, COBOL, etc). STADR points to DILRT entry point.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o057536", "stadr": "0o077054" },
+        "L07": { "slot": "0o012247", "stadr": "0o111701" },
+        "M06": { "slot": "0o012324", "stadr": "0o112665" }
+      },
+      "stadr_symbol": "DILRT",
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "DIL = Device Independent Language, SINTRAN's high-level I/O API"
+    },
+    {
+      "slot": 6,
+      "symbol": "DIMWD",
+      "runtime_name": "DIMWD",
+      "group": "system_kernel",
+      "description": "Dimension watchdog program. Monitors segment dimensions and memory allocation. Handles segment table maintenance and memory protection enforcement. Uses segment 073 (octal) as its program segment.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": null, "stadr": null },
+        "L07": { "slot": "0o012275", "stadr": "0o004000" },
+        "M06": { "slot": "0o012352", "stadr": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "STADR=004000 (L07) is the base address of the address space - may be a placeholder. Not found in K03."
+    },
+    {
+      "slot": 7,
+      "symbol": "BPTMP",
+      "runtime_name": "BPTMP",
+      "group": "system_kernel",
+      "description": "Breakpoint/temporary RT program. Handles software breakpoints for the SINTRAN debugger (SEBUG). Manages temporary program suspension and single-step execution. Lives in the time queue. STADR points to 9BPTM entry point.",
+      "ring": 7,
+      "addresses": {
+        "K03": { "slot": "0o057564", "stadr": "0o056364" },
+        "L07": { "slot": "0o012323", "stadr": "0o072424" },
+        "M06": { "slot": "0o012400", "stadr": "0o073510" }
+      },
+      "stadr_symbol": "9BPTM",
+      "queue_membership": ["time"],
+      "flags_typical": [],
+      "notes": "Ring 7 like the swapper. Time queue entry at longest timeout (1527 ticks in dump)."
+    },
+    {
+      "slot": 8,
+      "symbol": "RTSLI",
+      "runtime_name": "RTSLI",
+      "group": "system_kernel",
+      "description": "RT timeslice scheduler. Implements preemptive multitasking by periodically interrupting the running program and checking if a higher-priority or timesliced program should run. Lives in the time queue as the most frequent waker (shortest deadline). STADR points to STSLI entry point.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o057612", "stadr": "0o036025" },
+        "L07": { "slot": "0o012351", "stadr": "0o042107" },
+        "M06": { "slot": "0o012426", "stadr": "0o042047" }
+      },
+      "stadr_symbol": "STSLI",
+      "queue_membership": ["time"],
+      "flags_typical": [],
+      "notes": "Head of time queue (shortest deadline = 978 ticks in dump). Critical for multitasking."
+    },
+    {
+      "slot": 9,
+      "symbol": "ACCRT",
+      "runtime_name": "ACCRT",
+      "group": "system_kernel",
+      "description": "Accounting RT program. Tracks CPU time usage, I/O statistics, and resource consumption per user/program for the SINTRAN accounting system. STADR points to RTACR entry point.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o057640", "stadr": "0o107604" },
+        "L07": { "slot": "0o012377", "stadr": "0o123066" },
+        "M06": { "slot": "0o012454", "stadr": "0o123604" }
+      },
+      "stadr_symbol": "RTACR",
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "Resource usage tracking for billing/auditing"
+    },
+    {
+      "slot": 10,
+      "symbol": "TERMP",
+      "runtime_name": "TERMP",
+      "group": "system_kernel",
+      "description": "Terminal program handler. Core terminal I/O driver that manages character input/output for all physical and virtual terminals. Handles terminal escape sequences, line editing, and character buffering. STADR points to STERM entry point.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o057666", "stadr": "0o035251" },
+        "L07": { "slot": "0o012425", "stadr": "0o041333" },
+        "M06": { "slot": "0o012502", "stadr": "0o041273" }
+      },
+      "stadr_symbol": "STERM",
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "Kernel-level terminal driver, not to be confused with SPRT (user-level spool terminals)"
+    },
+    {
+      "slot": 11,
+      "symbol": "5SWAP",
+      "runtime_name": "5SWAP",
+      "group": "system_kernel",
+      "description": "Secondary swapper (swap-in). Complements 1SWAP by handling the swap-in direction - loading program segments from disk back into physical memory when a swapped-out program needs to run. STADR points to 5SWRT entry point.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o057714", "stadr": "0o035533" },
+        "L07": { "slot": "0o012453", "stadr": "0o126622" },
+        "M06": { "slot": "0o012530", "stadr": "0o127323" }
+      },
+      "stadr_symbol": "5SWRT",
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "Works in tandem with 1SWAP (slot 3). Ring 0 unlike 1SWAP which is ring 7."
+    },
+    {
+      "slot": 12,
+      "symbol": "RWRT1",
+      "runtime_name": "RWRT1",
+      "group": "rw_io",
+      "description": "Read/Write RT program instance #1. One of multiple identical I/O worker programs that handle concurrent disk read/write operations. All RWRT instances share the same STADR entry point. Each instance can service one disk I/O request at a time, so the number of RWRT programs determines maximum disk I/O parallelism.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o057742", "stadr": null },
+        "L07": { "slot": "0o012501", "stadr": "0o027237" },
+        "M06": { "slot": "0o012556", "stadr": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "All RWRT instances share STADR. L07 STADR=027237 not found in symbol tables as a named entry point."
+    },
+    {
+      "slot": 13,
+      "symbol": "RWRT2",
+      "runtime_name": "RWRT2",
+      "group": "rw_io",
+      "description": "Read/Write RT program instance #2. Identical to RWRT1, handles concurrent disk I/O.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o057770", "stadr": null },
+        "L07": { "slot": "0o012527", "stadr": "0o027237" },
+        "M06": { "slot": "0o012604", "stadr": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "Shared STADR with all RWRT programs"
+    },
+    {
+      "slot": 14,
+      "symbol": "RWRT3",
+      "runtime_name": "RWRT3",
+      "group": "rw_io",
+      "description": "Read/Write RT program instance #3. Identical to RWRT1, handles concurrent disk I/O.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o060016", "stadr": null },
+        "L07": { "slot": "0o012555", "stadr": "0o027237" },
+        "M06": { "slot": "0o012632", "stadr": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "RWRT4 does not exist (intentional gap)"
+    },
+    {
+      "slot": 15,
+      "symbol": "RWRT5",
+      "runtime_name": "RWRT5",
+      "group": "rw_io",
+      "description": "Read/Write RT program instance #5. Identical to RWRT1, handles concurrent disk I/O. Note: RWRT4 does not exist.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o060044", "stadr": null },
+        "L07": { "slot": "0o012603", "stadr": "0o027237" },
+        "M06": { "slot": "0o012660", "stadr": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "RWRT4 skipped in all versions"
+    },
+    {
+      "slot": 16,
+      "symbol": "RWRT7",
+      "runtime_name": "RWRT7",
+      "group": "rw_io",
+      "description": "Read/Write RT program instance #7. Identical to RWRT1, handles concurrent disk I/O. Note: RWRT6 does not exist.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o060072", "stadr": null },
+        "L07": { "slot": "0o012631", "stadr": "0o027237" },
+        "M06": { "slot": "0o012706", "stadr": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "RWRT6 skipped in all versions"
+    },
+    {
+      "slot": 17,
+      "symbol": "RWRT8",
+      "runtime_name": "RWRT8",
+      "group": "rw_io",
+      "description": "Read/Write RT program instance #8. Identical to RWRT1, handles concurrent disk I/O.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o060120", "stadr": null },
+        "L07": { "slot": "0o012657", "stadr": "0o027237" },
+        "M06": { "slot": "0o012734", "stadr": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "K03 has FDRT1 (floppy disk RT) between RWRT8 and RWRT9"
+    },
+    {
+      "slot": 18,
+      "symbol": "RWRT9",
+      "runtime_name": "RWRT9",
+      "group": "rw_io",
+      "description": "Read/Write RT program instance #9. Last of the base RWRT series. Identical code to other RWRT instances.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o060174", "stadr": null },
+        "L07": { "slot": "0o012705", "stadr": "0o027237" },
+        "M06": { "slot": "0o012762", "stadr": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "Last of the base RWRT series"
+    },
+    {
+      "slot": 19,
+      "symbol": "RTRFA",
+      "runtime_name": "RTRFA",
+      "group": "rw_io",
+      "description": "Record File Access RT program. Handles record-oriented file I/O (as opposed to block I/O). Supports SINTRAN's record file system for sequential and indexed file access used by COBOL and other business applications. Has its own unique STADR (not shared with RWRT). Frequently seen in execution queue in 5WAIT state.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o060222", "stadr": null },
+        "L07": { "slot": "0o012733", "stadr": "0o027221" },
+        "M06": { "slot": "0o013010", "stadr": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": ["execution"],
+      "flags_typical": ["5WAIT"],
+      "notes": "Validated: head of execution queue in live SINTRAN. Own STADR (not shared with RWRT)."
+    },
+    {
+      "slot": 20,
+      "symbol": "DUMM2",
+      "runtime_name": "DUMM2",
+      "group": "system_kernel",
+      "description": "Second dummy/placeholder RT program. Serves as a separator between the fixed system RT slots and the spool/extended RT slots. STADR=000001 suggests it is a stub that never actually runs.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o060250", "stadr": null },
+        "L07": { "slot": "0o012761", "stadr": "0o000001" },
+        "M06": { "slot": "0o013036", "stadr": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "STADR=1 is a stub/never-run marker"
+    },
+    {
+      "slot": 21,
+      "symbol": "SPRT1",
+      "runtime_name": "SPRT1",
+      "group": "spool_terminal",
+      "description": "Spool terminal handler #1. Manages I/O for logical terminal 1 including print spooling, file transfer, and terminal-specific operations. All SPRT/SPR programs share the same STADR entry point (SPORT in FILSYS-SYMBOLS). Ring 4 provides user-mode isolation from kernel.",
+      "ring": 4,
+      "addresses": {
+        "K03": { "slot": "0o060276", "stadr": "0o156000" },
+        "L07": { "slot": "0o013007", "stadr": "0o167463" },
+        "M06": { "slot": "0o013064", "stadr": null }
+      },
+      "stadr_symbol": "SPORT",
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "SPORT entry point is in FILSYS-SYMBOLS (file system code). Active terminals have no 5RTOF."
+    },
+    {
+      "slot": 22, "symbol": "SPRT2", "runtime_name": "SPRT2", "group": "spool_terminal",
+      "description": "Spool terminal handler #2. Identical code to SPRT1 via shared SPORT entry point.", "ring": 4,
+      "addresses": { "K03": { "slot": "0o060324" }, "L07": { "slot": "0o013035" }, "M06": { "slot": "0o013112" } },
+      "stadr_symbol": "SPORT", "queue_membership": [], "flags_typical": [], "notes": null
+    },
+    {
+      "slot": 23, "symbol": "SPRT3", "runtime_name": "SPRT3", "group": "spool_terminal",
+      "description": "Spool terminal handler #3.", "ring": 4,
+      "addresses": { "K03": { "slot": "0o060352" }, "L07": { "slot": "0o013063" }, "M06": { "slot": "0o013140" } },
+      "stadr_symbol": "SPORT", "queue_membership": [], "flags_typical": [], "notes": null
+    },
+    {
+      "slot": 24, "symbol": "SPRT4", "runtime_name": "SPRT4", "group": "spool_terminal",
+      "description": "Spool terminal handler #4.", "ring": 4,
+      "addresses": { "K03": { "slot": "0o060400" }, "L07": { "slot": "0o013111" }, "M06": { "slot": "0o013166" } },
+      "stadr_symbol": "SPORT", "queue_membership": [], "flags_typical": [], "notes": null
+    },
+    {
+      "slot": 25, "symbol": "SPRT5", "runtime_name": "SPRT5", "group": "spool_terminal",
+      "description": "Spool terminal handler #5.", "ring": 4,
+      "addresses": { "K03": { "slot": "0o060426" }, "L07": { "slot": "0o013137" }, "M06": { "slot": "0o013214" } },
+      "stadr_symbol": "SPORT", "queue_membership": [], "flags_typical": [], "notes": null
+    },
+    {
+      "slot": 26, "symbol": "SPRT6", "runtime_name": "SPRT6", "group": "spool_terminal",
+      "description": "Spool terminal handler #6.", "ring": 4,
+      "addresses": { "K03": { "slot": "0o060454" }, "L07": { "slot": "0o013165" }, "M06": { "slot": "0o013242" } },
+      "stadr_symbol": "SPORT", "queue_membership": [], "flags_typical": [], "notes": null
+    },
+    {
+      "slot": 27, "symbol": "SPRT7", "runtime_name": "SPRT7", "group": "spool_terminal",
+      "description": "Spool terminal handler #7.", "ring": 4,
+      "addresses": { "K03": { "slot": "0o060502" }, "L07": { "slot": "0o013213" }, "M06": { "slot": "0o013270" } },
+      "stadr_symbol": "SPORT", "queue_membership": [], "flags_typical": [], "notes": null
+    },
+    {
+      "slot": 28, "symbol": "SPRT8", "runtime_name": "SPRT8", "group": "spool_terminal",
+      "description": "Spool terminal handler #8. Last of the base SPRT series (1-8 = active terminals in default config).", "ring": 4,
+      "addresses": { "K03": { "slot": "0o060530" }, "L07": { "slot": "0o013241" }, "M06": { "slot": "0o013316" } },
+      "stadr_symbol": "SPORT", "queue_membership": [], "flags_typical": [], "notes": "Terminals 1-8 active by default, 9+ inhibited"
+    },
+    {
+      "slot": 29, "symbol": "SPRT9", "runtime_name": "SPRT9", "group": "spool_terminal",
+      "description": "Spool terminal handler #9. First of the extended spool terminals, typically inhibited (5RTOF) unless configured.", "ring": 4,
+      "addresses": { "K03": { "slot": "0o060556" }, "L07": { "slot": "0o013267" }, "M06": { "slot": "0o013344" } },
+      "stadr_symbol": "SPORT", "queue_membership": [], "flags_typical": ["5RTOF"], "notes": null
+    },
+    {
+      "slot": 30, "symbol": "SPR10", "runtime_name": "SPR10", "group": "spool_terminal",
+      "description": "Spool terminal handler #10.", "ring": 4,
+      "addresses": { "K03": { "slot": "0o060604" }, "L07": { "slot": "0o013315" }, "M06": { "slot": "0o013372" } },
+      "stadr_symbol": "SPORT", "queue_membership": [], "flags_typical": ["5RTOF"], "notes": null
+    },
+    {
+      "slot": 31, "symbol": "SPR11", "runtime_name": "SPR11", "group": "spool_terminal",
+      "description": "Spool terminal handler #11.", "ring": 4,
+      "addresses": { "K03": { "slot": "0o060632" }, "L07": { "slot": "0o013343" }, "M06": { "slot": "0o013420" } },
+      "stadr_symbol": "SPORT", "queue_membership": [], "flags_typical": ["5RTOF"], "notes": null
+    },
+    {
+      "slot": 32, "symbol": "SPR12", "runtime_name": "SPR12", "group": "spool_terminal",
+      "description": "Spool terminal handler #12.", "ring": 4,
+      "addresses": { "K03": { "slot": "0o060660" }, "L07": { "slot": "0o013371" }, "M06": { "slot": "0o013446" } },
+      "stadr_symbol": "SPORT", "queue_membership": [], "flags_typical": ["5RTOF"], "notes": null
+    },
+    {
+      "slot": 33, "symbol": "SPR13", "runtime_name": "SPR13", "group": "spool_terminal",
+      "description": "Spool terminal handler #13.", "ring": 4,
+      "addresses": { "K03": { "slot": "0o060706" }, "L07": { "slot": "0o013417" }, "M06": { "slot": "0o013474" } },
+      "stadr_symbol": "SPORT", "queue_membership": [], "flags_typical": ["5RTOF"], "notes": null
+    },
+    {
+      "slot": 34, "symbol": "SPR14", "runtime_name": "SPR14", "group": "spool_terminal",
+      "description": "Spool terminal handler #14.", "ring": 4,
+      "addresses": { "K03": { "slot": "0o060734" }, "L07": { "slot": "0o013445" }, "M06": { "slot": "0o013522" } },
+      "stadr_symbol": "SPORT", "queue_membership": [], "flags_typical": ["5RTOF"], "notes": null
+    },
+    {
+      "slot": 35, "symbol": "SPR15", "runtime_name": "SPR15", "group": "spool_terminal",
+      "description": "Spool terminal handler #15.", "ring": 4,
+      "addresses": { "K03": { "slot": "0o060762" }, "L07": { "slot": "0o013473" }, "M06": { "slot": "0o013550" } },
+      "stadr_symbol": "SPORT", "queue_membership": [], "flags_typical": ["5RTOF"], "notes": null
+    },
+    {
+      "slot": 36, "symbol": "SPR16", "runtime_name": "SPR16", "group": "spool_terminal",
+      "description": "Spool terminal handler #16. Last spool terminal in L07.", "ring": 4,
+      "addresses": { "K03": { "slot": "0o061010" }, "L07": { "slot": "0o013521" }, "M06": { "slot": "0o013576" } },
+      "stadr_symbol": "SPORT", "queue_membership": [], "flags_typical": ["5RTOF"], "notes": "K03 and M06 have additional SPR17-SPR20/22"
+    },
+    {
+      "slot": 37,
+      "symbol": "COSPO",
+      "runtime_name": "COSPO",
+      "group": "spool_terminal",
+      "description": "Console spool program. Special spool handler for the system console (terminal 0). Unlike other SPRT programs, COSPO has its own unique STADR entry point (COSPS) rather than sharing SPORT. Handles console-specific operations like operator commands and system messages.",
+      "ring": 4,
+      "addresses": {
+        "K03": { "slot": "0o061166", "stadr": "0o056234" },
+        "L07": { "slot": "0o013547", "stadr": "0o054760" },
+        "M06": { "slot": "0o014030", "stadr": "0o055234" }
+      },
+      "stadr_symbol": "COSPS",
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "Own entry point COSPS, not shared SPORT like other spool programs"
+    },
+    {
+      "slot": 38, "symbol": "RWR10", "runtime_name": "RWR10", "group": "rw_io",
+      "description": "Extended Read/Write RT #10. Additional disk I/O worker for systems with more disk controllers. K03 uses WRT10 naming.",
+      "ring": 0,
+      "addresses": { "K03": { "slot": "0o061214" }, "L07": { "slot": "0o013575" }, "M06": { "slot": "0o014056" } },
+      "stadr_symbol": null, "queue_membership": [], "flags_typical": [], "notes": "K03 symbol is WRT10"
+    },
+    {
+      "slot": 39, "symbol": "RWR11", "runtime_name": "RWR11", "group": "rw_io",
+      "description": "Extended Read/Write RT #11.", "ring": 0,
+      "addresses": { "K03": { "slot": "0o061270" }, "L07": { "slot": "0o013623" }, "M06": { "slot": "0o014104" } },
+      "stadr_symbol": null, "queue_membership": [], "flags_typical": [], "notes": "K03 symbol is WRT11"
+    },
+    {
+      "slot": 40, "symbol": "RWR12", "runtime_name": "RWR12", "group": "rw_io",
+      "description": "Extended Read/Write RT #12.", "ring": 0,
+      "addresses": { "K03": { "slot": "0o061316" }, "L07": { "slot": "0o013651" }, "M06": { "slot": "0o014132" } },
+      "stadr_symbol": null, "queue_membership": [], "flags_typical": [], "notes": "K03 symbol is WRT12"
+    },
+    {
+      "slot": 41, "symbol": "RWR13", "runtime_name": "RWR13", "group": "rw_io",
+      "description": "Extended Read/Write RT #13.", "ring": 0,
+      "addresses": { "K03": { "slot": "0o061344" }, "L07": { "slot": "0o013677" }, "M06": { "slot": "0o014160" } },
+      "stadr_symbol": null, "queue_membership": [], "flags_typical": [], "notes": "K03 symbol is WRT13"
+    },
+    {
+      "slot": 42, "symbol": "RWR20", "runtime_name": "RWR20", "group": "rw_io",
+      "description": "Extended Read/Write RT #20. For secondary disk controller.", "ring": 0,
+      "addresses": { "K03": { "slot": "0o061372" }, "L07": { "slot": "0o013725" }, "M06": { "slot": "0o014206" } },
+      "stadr_symbol": null, "queue_membership": [], "flags_typical": [], "notes": "K03 symbol is WRT20. Numbering gap (14->20) suggests different controller."
+    },
+    {
+      "slot": 43, "symbol": "RWR14", "runtime_name": "RWR14", "group": "rw_io",
+      "description": "Extended Read/Write RT #14.", "ring": 0,
+      "addresses": { "K03": { "slot": "0o061420" }, "L07": { "slot": "0o013753" }, "M06": { "slot": "0o014234" } },
+      "stadr_symbol": null, "queue_membership": [], "flags_typical": [], "notes": "K03 symbol is WRT14"
+    },
+    {
+      "slot": 44, "symbol": "RWR21", "runtime_name": "RWR21", "group": "rw_io",
+      "description": "Extended Read/Write RT #21. For secondary disk controller.", "ring": 0,
+      "addresses": { "K03": { "slot": "0o061446" }, "L07": { "slot": "0o014001" }, "M06": { "slot": "0o014262" } },
+      "stadr_symbol": null, "queue_membership": [], "flags_typical": [], "notes": "K03 symbol is WRT21"
+    },
+    {
+      "slot": 45, "symbol": "RWR25", "runtime_name": "RWR25", "group": "rw_io",
+      "description": "Extended Read/Write RT #25. For SCSI or additional controllers.", "ring": 0,
+      "addresses": { "K03": { "slot": "0o061474" }, "L07": { "slot": "0o014027" }, "M06": { "slot": "0o014310" } },
+      "stadr_symbol": null, "queue_membership": [], "flags_typical": [], "notes": "K03 symbol is WRT25"
+    },
+    {
+      "slot": 46, "symbol": "RWR26", "runtime_name": "RWR26", "group": "rw_io",
+      "description": "Extended Read/Write RT #26.", "ring": 0,
+      "addresses": { "K03": { "slot": "0o061522" }, "L07": { "slot": "0o014055" }, "M06": { "slot": "0o014336" } },
+      "stadr_symbol": null, "queue_membership": [], "flags_typical": [], "notes": "K03 symbol is WRT26"
+    },
+    {
+      "slot": 47, "symbol": "RWR41", "runtime_name": "RWR41", "group": "rw_io",
+      "description": "Extended Read/Write RT #41. For SMD or large disk controllers.", "ring": 0,
+      "addresses": { "K03": { "slot": "0o061550" }, "L07": { "slot": "0o014103" }, "M06": { "slot": "0o014364" } },
+      "stadr_symbol": null, "queue_membership": [], "flags_typical": [], "notes": "K03 symbol is WRT41"
+    },
+    {
+      "slot": 48, "symbol": "RWR42", "runtime_name": "RWR42", "group": "rw_io",
+      "description": "Extended Read/Write RT #42. Last extended R/W RT program.", "ring": 0,
+      "addresses": { "K03": { "slot": "0o061576" }, "L07": { "slot": "0o014131" }, "M06": { "slot": "0o014412" } },
+      "stadr_symbol": null, "queue_membership": [], "flags_typical": [], "notes": "K03 symbol is WRT42"
+    },
+    {
+      "slot": 49,
+      "symbol": "TADAD",
+      "runtime_name": "TADAD",
+      "group": "user_programs",
+      "description": "TAD (Terminal Access Device) adapter RT program. Provides terminal access multiplexing for remote terminals connected via modem or network. Bridges physical terminal hardware to SINTRAN's logical terminal system.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o061624" },
+        "L07": { "slot": "0o014157" },
+        "M06": { "slot": "0o014440" }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "L07 STADR=110000 (SG36S/9POFS)"
+    },
+    {
+      "slot": 50,
+      "symbol": "UDR01",
+      "runtime_name": "UDR01",
+      "group": "user_programs",
+      "description": "User Device Driver RT slot #1. Reserved slot for user-installable device drivers loaded at runtime. 9FPUD (First Programmable User Device) also maps to this address. URT01-URT06 are the STADR entry points. Typically 5RTOF (inhibited) unless a user driver is loaded.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o061652" },
+        "L07": { "slot": "0o014205", "stadr": "0o111662" },
+        "M06": { "slot": null }
+      },
+      "stadr_symbol": "URT01",
+      "queue_membership": [],
+      "flags_typical": ["5RTOF"],
+      "notes": "Also known as 9FPUD (First Programmable User Device). K03 also has 9FPUD=061652."
+    },
+    {
+      "slot": 51, "symbol": "UDR02", "runtime_name": "UDR02", "group": "user_programs",
+      "description": "User Device Driver RT slot #2.", "ring": 0,
+      "addresses": { "K03": { "slot": "0o061700" }, "L07": { "slot": "0o014233", "stadr": "0o111664" } },
+      "stadr_symbol": "URT02", "queue_membership": [], "flags_typical": ["5RTOF"], "notes": null
+    },
+    {
+      "slot": 52, "symbol": "UDR03", "runtime_name": "UDR03", "group": "user_programs",
+      "description": "User Device Driver RT slot #3.", "ring": 0,
+      "addresses": { "K03": { "slot": "0o061726" }, "L07": { "slot": "0o014261", "stadr": "0o111666" } },
+      "stadr_symbol": "URT03", "queue_membership": [], "flags_typical": ["5RTOF"], "notes": null
+    },
+    {
+      "slot": 53, "symbol": "UDR04", "runtime_name": "UDR04", "group": "user_programs",
+      "description": "User Device Driver RT slot #4.", "ring": 0,
+      "addresses": { "K03": { "slot": "0o061754" }, "L07": { "slot": "0o014307", "stadr": "0o111670" } },
+      "stadr_symbol": "URT04", "queue_membership": [], "flags_typical": ["5RTOF"], "notes": null
+    },
+    {
+      "slot": 54, "symbol": "UDR05", "runtime_name": "UDR05", "group": "user_programs",
+      "description": "User Device Driver RT slot #5.", "ring": 0,
+      "addresses": { "K03": { "slot": "0o062002" }, "L07": { "slot": "0o014335", "stadr": "0o111672" } },
+      "stadr_symbol": "URT05", "queue_membership": [], "flags_typical": ["5RTOF"], "notes": null
+    },
+    {
+      "slot": 55, "symbol": "UDR06", "runtime_name": "UDR06", "group": "user_programs",
+      "description": "User Device Driver RT slot #6. Last user device driver slot. 9LPUD (Last Programmable User Device) also maps to the next slot boundary.",
+      "ring": 0,
+      "addresses": { "K03": { "slot": "0o062030" }, "L07": { "slot": "0o014363", "stadr": "0o111674" } },
+      "stadr_symbol": "URT06", "queue_membership": [], "flags_typical": ["5RTOF"], "notes": "9LPUD marks end of user device driver range"
+    },
+    {
+      "slot": 56,
+      "symbol": "XROUT",
+      "runtime_name": "XROUT",
+      "group": "user_programs",
+      "description": "XMSG routing RT program. Part of the XMSG inter-process communication subsystem. Routes messages between processes, possibly across network nodes. 9LPUD also maps to this slot address.",
+      "ring": 6,
+      "addresses": {
+        "K03": { "slot": "0o062056" },
+        "L07": { "slot": "0o014411" },
+        "M06": { "slot": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "Segment 077/076 in memory dump. Also known as 9LPUD in K03."
+    },
+    {
+      "slot": 57,
+      "symbol": "XTRAC",
+      "runtime_name": "XTRAC",
+      "group": "user_programs",
+      "description": "XMSG trace RT program. Diagnostic program for tracing XMSG inter-process message flow. Used for debugging distributed applications.",
+      "ring": 6,
+      "addresses": {
+        "K03": { "slot": null },
+        "L07": { "slot": "0o014437" },
+        "M06": { "slot": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "L07+ only"
+    },
+    {
+      "slot": 58,
+      "symbol": "XMFID",
+      "runtime_name": "XMFID",
+      "group": "user_programs",
+      "description": "XMSG File ID handler. Manages file identification across XMSG message boundaries. Part of the distributed file access system.",
+      "ring": 6,
+      "addresses": {
+        "K03": { "slot": null },
+        "L07": { "slot": "0o014465" },
+        "M06": { "slot": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "L07+ only"
+    },
+    {
+      "slot": 59,
+      "symbol": "NKSER",
+      "runtime_name": "NKSER",
+      "group": "user_programs",
+      "description": "Network (NK) serial handler. Manages serial communication for NORDNET or Ethernet networking. Handles network protocol processing.",
+      "ring": 6,
+      "addresses": {
+        "K03": { "slot": null },
+        "L07": { "slot": "0o014513" },
+        "M06": { "slot": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "L07+ only. NK = Norsk Data network layer."
+    },
+    {
+      "slot": 60,
+      "symbol": "NKNAM",
+      "runtime_name": "NKNAM",
+      "group": "user_programs",
+      "description": "Network (NK) name service handler. Resolves network node names to addresses for NORDNET/Ethernet communication.",
+      "ring": 6,
+      "addresses": {
+        "K03": { "slot": null },
+        "L07": { "slot": "0o014541" },
+        "M06": { "slot": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "L07+ only"
+    },
+    {
+      "slot": 61,
+      "symbol": "ERSWD",
+      "runtime_name": "ERS3WD",
+      "group": "user_programs",
+      "description": "Error Switch/Dispatch RT program. Handles user-mode error dispatch for ring 3+ programs. Routes hardware and software exceptions to appropriate error handlers. Symbol is ERSWD but SINTRAN displays it as 'ERS3WD' (the '3' likely indicates ring 3 context). Frequently in execution queue in 5WAIT state.",
+      "ring": 6,
+      "addresses": {
+        "K03": { "slot": null },
+        "L07": { "slot": "0o014567" },
+        "M06": { "slot": "0o014720" }
+      },
+      "stadr_symbol": null,
+      "queue_membership": ["execution"],
+      "flags_typical": ["5WAIT"],
+      "notes": "Validated: linker symbol ERSWD, runtime display name ERS3WD. In exec queue in live SINTRAN."
+    },
+    {
+      "slot": 62,
+      "symbol": "PROMA",
+      "runtime_name": "PROMA",
+      "group": "user_programs",
+      "description": "Program Manager RT program. Manages program loading, linking, and execution lifecycle for user programs.",
+      "ring": 6,
+      "addresses": {
+        "K03": { "slot": null },
+        "L07": { "slot": "0o014615" },
+        "M06": { "slot": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "L07+ only"
+    },
+    {
+      "slot": 63,
+      "symbol": "EVMES",
+      "runtime_name": "EVMES",
+      "group": "user_programs",
+      "description": "Event Message RT program. Handles asynchronous event notification and message delivery between processes.",
+      "ring": 6,
+      "addresses": {
+        "K03": { "slot": null },
+        "L07": { "slot": "0o014643" },
+        "M06": { "slot": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "L07+ only"
+    },
+    {
+      "slot": 64,
+      "symbol": "BOPCO",
+      "runtime_name": "BOPCO",
+      "group": "user_programs",
+      "description": "BOP (Bit-Oriented Protocol) Control RT program. Manages HDLC/BOP communication protocol processing for synchronous serial links.",
+      "ring": 6,
+      "addresses": {
+        "K03": { "slot": null },
+        "L07": { "slot": "0o014671" },
+        "M06": { "slot": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "L07+ only. BOP = Bit-Oriented Protocol (HDLC variant)."
+    },
+    {
+      "slot": 65,
+      "symbol": "MTSER",
+      "runtime_name": "MTSER",
+      "group": "user_programs",
+      "description": "Magnetic Tape Serial handler. Manages sequential access to magnetic tape drives for backup and archival operations.",
+      "ring": 6,
+      "addresses": {
+        "K03": { "slot": null },
+        "L07": { "slot": "0o014717" },
+        "M06": { "slot": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "L07+ only"
+    },
+    {
+      "slot": 66,
+      "symbol": "RTREC",
+      "runtime_name": "RTREC",
+      "group": "user_programs",
+      "description": "RT Recovery program. Handles crash recovery and consistency checking for RT program state after system errors or power failures.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": null },
+        "L07": { "slot": "0o014745", "stadr": "0o075225" },
+        "M06": { "slot": null }
+      },
+      "stadr_symbol": "RECST",
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "L07+ only. STADR=RECST (Recovery Start)."
+    },
+    {
+      "slot": 67,
+      "symbol": "RTBES",
+      "runtime_name": "RTBES",
+      "group": "user_programs",
+      "description": "RT Background Execution System handler. Manages the background execution subsystem for batch and background program scheduling.",
+      "ring": 0,
+      "addresses": {
+        "K03": { "slot": "0o062056" },
+        "L07": { "slot": "0o014773" },
+        "M06": { "slot": null }
+      },
+      "stadr_symbol": null,
+      "queue_membership": [],
+      "flags_typical": [],
+      "notes": "In K03, RTBES=062056 overlaps with 9LPUD - may be same slot with different name"
+    }
+  ],
+
+  "background_programs": {
+    "description": "Background user programs are dynamically named BAKnn (background terminal nn) and BCHnn (batch job nn). They occupy the last portion of the RT table. All share STADR=9ENTO entry point.",
+    "stadr_symbol": "9ENTO",
+    "stadr_addresses": {
+      "K03": "0o035644",
+      "L07": "0o042105",
+      "M06": "0o042253"
+    },
+    "naming_convention": {
+      "BAKnn": "Background process for terminal nn. Named at runtime, not in symbol table. 'nn' is the terminal number (01-99).",
+      "BCHnn": "Batch job slot nn. Last slots in RT table, used for non-interactive batch processing."
+    },
+    "flags_typical": ["5BACK", "5TSLI"],
+    "flags_when_inhibited": ["5BACK", "5TSLI", "5RTOF"],
+    "flags_batch": ["5BACK", "5TSLI", "5ESCF"],
+    "ranges": {
+      "K03": {
+        "9FBPR": "0o066642",
+        "9LBPR": "0o073016",
+        "BAK_count": 99,
+        "BAK_symbols": "BAK01 through BAK99",
+        "BCH_symbols": null
+      },
+      "L07": {
+        "9FBPR": "0o023337",
+        "9LBPR": "0o031041",
+        "first_background_slot": 217,
+        "last_background_slot": 337,
+        "BAK_count": 121,
+        "BAK_symbols": "RT#217 (BAK01/9FBPR) through RT#337",
+        "first_batch_slot": 338,
+        "last_batch_slot": 347,
+        "BCH_count": 10,
+        "BCH_symbols": "RT#338 (BCH01/9LTBP) through RT#347 (BCH10)",
+        "ERTBS": "0o031041",
+        "notes": "9FBPR=first background, 9LBPR=last background/end of RT table"
+      },
+      "M06": {
+        "9FBPR": null,
+        "9LBPR": null,
+        "notes": "UNVERIFIED - M06 symbols not fully extracted for background range"
+      }
+    }
+  },
+
+  "k03_specific": {
+    "description": "K03-specific RT programs not present in L07/M06",
+    "programs": [
+      {
+        "symbol": "FDRT1",
+        "slot_address": "0o060146",
+        "description": "Floppy Disk RT program #1. Dedicated RT handler for floppy disk I/O. K03-specific, replaced by general RWRT programs in later versions.",
+        "notes": "Inserted between RWRT8 and RWRT9 in the slot sequence"
+      },
+      {
+        "symbol": "FDRT2",
+        "slot_address": "0o061242",
+        "description": "Floppy Disk RT program #2. Second floppy disk handler for dual-drive systems.",
+        "notes": "K03 only"
+      },
+      {
+        "symbol": "SPR17",
+        "slot_address": "0o061036",
+        "description": "Spool terminal handler #17. K03 and M06 have additional spool terminals beyond SPR16.",
+        "notes": "K03 has SPR17-SPR20, M06 has SPR17-SPR22"
+      },
+      {
+        "symbol": "SPR18",
+        "slot_address": "0o061064",
+        "description": "Spool terminal handler #18.",
+        "notes": "K03 only"
+      },
+      {
+        "symbol": "SPR19",
+        "slot_address": "0o061112",
+        "description": "Spool terminal handler #19.",
+        "notes": "K03 only"
+      },
+      {
+        "symbol": "SPR20",
+        "slot_address": "0o061140",
+        "description": "Spool terminal handler #20.",
+        "notes": "K03 and M06"
+      }
+    ]
+  },
+
+  "m06_specific": {
+    "description": "M06-specific additions",
+    "programs": [
+      {
+        "symbol": "SPR21",
+        "slot_address": "0o013754",
+        "description": "Spool terminal handler #21. Extended terminal support in M06.",
+        "notes": "M06 only"
+      },
+      {
+        "symbol": "SPR22",
+        "slot_address": "0o014002",
+        "description": "Spool terminal handler #22. Extended terminal support in M06.",
+        "notes": "M06 only"
+      }
+    ]
+  },
+
+  "address_lookup_tables": {
+    "description": "Flat lookup tables for quick address-to-name resolution. Use these for reverse lookup in your web application.",
+    "L07_slot_to_name": {
+      "0o012071": "DUMMY",  "0o012117": "STSIN",  "0o012145": "RTERR",
+      "0o012173": "1SWAP",  "0o012221": "TIMRT",  "0o012247": "RTDIL",
+      "0o012275": "DIMWD",  "0o012323": "BPTMP",  "0o012351": "RTSLI",
+      "0o012377": "ACCRT",  "0o012425": "TERMP",  "0o012453": "5SWAP",
+      "0o012501": "RWRT1",  "0o012527": "RWRT2",  "0o012555": "RWRT3",
+      "0o012603": "RWRT5",  "0o012631": "RWRT7",  "0o012657": "RWRT8",
+      "0o012705": "RWRT9",  "0o012733": "RTRFA",  "0o012761": "DUMM2",
+      "0o013007": "SPRT1",  "0o013035": "SPRT2",  "0o013063": "SPRT3",
+      "0o013111": "SPRT4",  "0o013137": "SPRT5",  "0o013165": "SPRT6",
+      "0o013213": "SPRT7",  "0o013241": "SPRT8",  "0o013267": "SPRT9",
+      "0o013315": "SPR10",  "0o013343": "SPR11",  "0o013371": "SPR12",
+      "0o013417": "SPR13",  "0o013445": "SPR14",  "0o013473": "SPR15",
+      "0o013521": "SPR16",  "0o013547": "COSPO",
+      "0o013575": "RWR10",  "0o013623": "RWR11",  "0o013651": "RWR12",
+      "0o013677": "RWR13",  "0o013725": "RWR20",  "0o013753": "RWR14",
+      "0o014001": "RWR21",  "0o014027": "RWR25",  "0o014055": "RWR26",
+      "0o014103": "RWR41",  "0o014131": "RWR42",
+      "0o014157": "TADAD",
+      "0o014205": "UDR01",  "0o014233": "UDR02",  "0o014261": "UDR03",
+      "0o014307": "UDR04",  "0o014335": "UDR05",  "0o014363": "UDR06",
+      "0o014411": "XROUT",  "0o014437": "XTRAC",  "0o014465": "XMFID",
+      "0o014513": "NKSER",  "0o014541": "NKNAM",  "0o014567": "ERSWD",
+      "0o014615": "PROMA",  "0o014643": "EVMES",  "0o014671": "BOPCO",
+      "0o014717": "MTSER",  "0o014745": "RTREC",  "0o014773": "RTBES"
+    },
+    "L07_stadr_to_name": {
+      "0o006101": "START",   "0o027221": "RTRFA_entry",  "0o027237": "RWRT_shared_entry",
+      "0o030054": "SRTER",   "0o041333": "STERM",        "0o042105": "9ENTO",
+      "0o042107": "STSLI",   "0o043526": "TIMER",        "0o054760": "COSPS",
+      "0o070654": "SSSWP",   "0o072424": "9BPTM",        "0o075225": "RECST",
+      "0o111662": "URT01",   "0o111664": "URT02",        "0o111666": "URT03",
+      "0o111670": "URT04",   "0o111672": "URT05",        "0o111674": "URT06",
+      "0o111701": "DILRT",   "0o123066": "RTACR",        "0o126622": "5SWRT",
+      "0o167463": "SPORT"
+    },
+    "K03_slot_to_name": {
+      "0o057360": "DUMMY",  "0o057406": "STSIN",  "0o057434": "RTERR",
+      "0o057462": "1SWAP",  "0o057510": "TIMRT",  "0o057536": "RTDIL",
+      "0o057564": "BPTMP",  "0o057612": "RTSLI",  "0o057640": "ACCRT",
+      "0o057666": "TERMP",  "0o057714": "5SWAP",
+      "0o057742": "RWRT1",  "0o057770": "RWRT2",  "0o060016": "RWRT3",
+      "0o060044": "RWRT5",  "0o060072": "RWRT7",  "0o060120": "RWRT8",
+      "0o060146": "FDRT1",  "0o060174": "RWRT9",  "0o060222": "RTRFA",
+      "0o060250": "DUMM2",
+      "0o060276": "SPRT1",  "0o060324": "SPRT2",  "0o060352": "SPRT3",
+      "0o060400": "SPRT4",  "0o060426": "SPRT5",  "0o060454": "SPRT6",
+      "0o060502": "SPRT7",  "0o060530": "SPRT8",  "0o060556": "SPRT9",
+      "0o060604": "SPR10",  "0o060632": "SPR11",  "0o060660": "SPR12",
+      "0o060706": "SPR13",  "0o060734": "SPR14",  "0o060762": "SPR15",
+      "0o061010": "SPR16",  "0o061036": "SPR17",  "0o061064": "SPR18",
+      "0o061112": "SPR19",  "0o061140": "SPR20",  "0o061166": "COSPO",
+      "0o061214": "WRT10",  "0o061242": "FDRT2",  "0o061270": "WRT11",
+      "0o061316": "WRT12",  "0o061344": "WRT13",  "0o061372": "WRT20",
+      "0o061420": "WRT14",  "0o061446": "WRT21",  "0o061474": "WRT25",
+      "0o061522": "WRT26",  "0o061550": "WRT41",  "0o061576": "WRT42",
+      "0o061624": "TADAD",
+      "0o061652": "UDR01",  "0o061700": "UDR02",  "0o061726": "UDR03",
+      "0o061754": "UDR04",  "0o062002": "UDR05",  "0o062030": "UDR06",
+      "0o062056": "RTBES"
+    },
+    "M06_slot_to_name": {
+      "0o012146": "DUMMY",  "0o012174": "STSIN",  "0o012222": "RTERR",
+      "0o012250": "1SWAP",  "0o012276": "TIMRT",  "0o012324": "RTDIL",
+      "0o012352": "DIMWD",  "0o012400": "BPTMP",  "0o012426": "RTSLI",
+      "0o012454": "ACCRT",  "0o012502": "TERMP",  "0o012530": "5SWAP",
+      "0o012556": "RWRT1",  "0o012604": "RWRT2",  "0o012632": "RWRT3",
+      "0o012660": "RWRT5",  "0o012706": "RWRT7",  "0o012734": "RWRT8",
+      "0o012762": "RWRT9",  "0o013010": "RTRFA",  "0o013036": "DUMM2",
+      "0o013064": "SPRT1",  "0o013112": "SPRT2",  "0o013140": "SPRT3",
+      "0o013166": "SPRT4",  "0o013214": "SPRT5",  "0o013242": "SPRT6",
+      "0o013270": "SPRT7",  "0o013316": "SPRT8",  "0o013344": "SPRT9",
+      "0o013372": "SPR10",  "0o013420": "SPR11",  "0o013446": "SPR12",
+      "0o013474": "SPR13",  "0o013522": "SPR14",  "0o013550": "SPR15",
+      "0o013576": "SPR16",  "0o013624": "SPR17",  "0o013652": "SPR18",
+      "0o013700": "SPR19",  "0o013726": "SPR20",  "0o013754": "SPR21",
+      "0o014002": "SPR22",  "0o014030": "COSPO",
+      "0o014056": "RWR10",  "0o014104": "RWR11",  "0o014132": "RWR12",
+      "0o014160": "RWR13",  "0o014206": "RWR20",  "0o014234": "RWR14",
+      "0o014262": "RWR21",  "0o014310": "RWR25",  "0o014336": "RWR26",
+      "0o014364": "RWR41",  "0o014412": "RWR42",
+      "0o014720": "ERSWD"
+    }
+  },
+
+  "global_pointers": {
+    "description": "SINTRAN global variables in DPIT logical address space that point to queue heads and table boundaries",
+    "symbols": {
+      "RTREF":  { "address": "0o004007", "description": "Current RT program reference pointer" },
+      "CURPR":  { "address": "0o004010", "description": "Currently running program (RT-Description address)" },
+      "MQUEU":  { "address": "0o004011", "description": "Monitor queue head (177777 = empty)" },
+      "BTIMQ":  { "address": "0o004012", "description": "Time queue head (TLINK chain)" },
+      "BEXQU":  { "address": "0o004013", "description": "Execution queue head (WLINK chain)" },
+      "RTSTA":  { "address": "0o004020", "description": "RT table start (contains pointer to first RT slot)" },
+      "CORMS":  { "address": "0o004021", "description": "Core map start offset" },
+      "SEGTB":  { "address": "0o004320", "description": "Segment table bank number" },
+      "SEGST":  { "address": "0o004321", "description": "Segment table start offset within bank" },
+      "CORMB":  { "address": "0o004322", "description": "Core map bank number" },
+      "RTEND":  { "address": "0o004323", "description": "RT table end (contains pointer to end of RT table)" }
+    },
+    "notes": "These addresses are in DPIT logical space (PIT #7). Physical addresses require DPIT page table translation."
+  }
+}

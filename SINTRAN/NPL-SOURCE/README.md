@@ -10,7 +10,7 @@ This directory contains **SINTRAN III operating system source code** written in 
 
 - **`s3vs-4.symb`** (3.9 MB) - Original SINTRAN generation job output file containing the complete source code listing
 - **`NPL/`** - Directory containing 45 individual NPL source files extracted from the SYMB file
-- **`SYMBOLS/`** - Directory containing SINTRAN L07 symbol tables for reference
+- **`SYMBOLS/`** - Directory containing symbol tables for three SINTRAN III versions (K03, L07, M06)
 
 ### NPL Subfolder Structure
 
@@ -24,28 +24,67 @@ The `NPL/` subfolder contains the split-out source files from `s3vs-4.symb`, org
 - **MP-P2-*.NPL** - Memory and peripheral management (HDLC, ND-500, HASP)
 - **TP-P2-*.NPL** - Terminal and communication handling
 
-### SYMBOLS Subfolder - SINTRAN L07 Symbol Tables
+### SYMBOLS Subfolder - Multi-Version Symbol Tables
 
-The `SYMBOLS/` subfolder contains **symbol tables for SINTRAN L07** - these are reference files mapping variable names, procedure entry points, and constants to their memory addresses in octal. These symbols are critical for:
+The `SYMBOLS/` subfolder contains **symbol tables for three SINTRAN III versions**, organized into version-specific subfolders:
+
+```
+SYMBOLS/
+├── K03/    (6 files - SINTRAN III version K, level 03)
+├── L07/    (7 files - SINTRAN III version L, level 07)
+└── M06/    (8 files - SINTRAN III version M, level 06)
+```
+
+The version naming convention uses a **letter** for the major version (K, L, M) and a **number** for the level within that version (03, 07, 06). These represent successive generations of SINTRAN III.
+
+Symbol tables are reference files mapping variable names, procedure entry points, and constants to their memory addresses in octal. These symbols are critical for:
 
 - **Understanding memory layout** - Where kernel structures reside
 - **Cross-referencing NPL code** - Matching symbols to source code
 - **Emulator development** - Implementing correct memory addressing
 - **Debugging** - Resolving addresses to symbolic names
 
-#### Symbol Files Available
+#### 5-Character Symbol Name Limit
 
-| File | Size | Description |
-|------|------|-------------|
-| **FILSYS-SYMBOLS.SYMB.TXT** | 61 KB | File system symbols (Level 11/23 filesystem) |
-| **N500-SYMBOLS.SYMB.TXT** | 122 KB | ND-500 coprocessor interface symbols |
-| **RTLO-SYMBOLS.SYMB.TXT** | 56 KB | Runtime library symbols |
-| **XMSG-SYMBOL-LIST.SYMB.TXT** | 30 KB | XMSG message system symbols |
-| **SYMBOL-1-LIST.SYMB.TXT** | 102 KB | Primary kernel symbol table |
-| **SYMBOL-2-LIST.SYMB.TXT** | 69 KB | Secondary kernel symbol table |
-| **LIBRARY-MARKS.SYMB.TXT** | 14 KB | Library entry point markers |
+Due to 1980s memory constraints, **symbol names are limited to a maximum of 5 characters**. When cross-referencing NPL source code with symbol tables, only the **first 5 characters** of an NPL variable name should be used to find the matching symbol. A few exceptions exist in N500 symbol files (e.g., CNVBYADR, CNVWADR, FP2ENT).
 
-**Note**: While we don't have the complete file system source code, the **FILSYS-SYMBOLS.SYMB.TXT** file provides crucial reference information about file system data structures and entry points in SINTRAN L07.
+#### Symbol Files Per Version
+
+| File | K03 | L07 | M06 | Category |
+|------|-----|-----|-----|----------|
+| FILSYS-SYMBOLS.SYMB.TXT | 41 KB | 61 KB | 63 KB | File system |
+| LIBRARY-MARKS.SYMB.TXT | 13 KB | 14 KB | 14 KB | Library entry markers |
+| N500-SYMBOLS.SYMB.TXT | 64 KB | 122 KB | 123 KB | ND-500 interface |
+| N5000-SYMBOLS.SYMB.TXT | - | - | 124 KB | ND-5000 processor (M06 only) |
+| RTLO-SYMBOLS.SYMB.TXT | 48 KB | 56 KB | 57 KB | Runtime library |
+| SYMBOL-1-LIST.SYMB.TXT | 76 KB | 102 KB | 105 KB | Primary kernel |
+| SYMBOL-2-LIST.SYMB.TXT | 53 KB | 69 KB | 71 KB | Secondary kernel |
+| XMSG-SYMBOL-LIST.SYMB.TXT | - | 30 KB | 36 KB | XMSG messaging |
+
+#### Version Differences
+
+- **K03**: 6 files, no XMSG support
+- **L07**: 7 files, adds XMSG messaging system
+- **M06**: 8 files, adds N5000-SYMBOLS for the ND-5000 processor (distinct from ND-500)
+
+**Stable across versions**: Structure offsets (queue heads, process fields, device fields, state bits) remain consistent across all three versions.
+
+**Changes between versions**: Code addresses (e.g., ENDOP, CT500, SC100, RTBES) differ between versions due to kernel code growth.
+
+#### Symbol File Categories
+
+| File | Contents |
+|------|----------|
+| **SYMBOL-1-LIST** | Primary kernel - scheduler, system structures, ND-500 integration, error codes, device structures. Dominant prefixes: S (system/scheduler), 5 (ND-500), E (errors), D (device/disk) |
+| **SYMBOL-2-LIST** | Secondary kernel - device terminal pairs (DTxxR/DTxxW), device driver entries, configuration constants. Dominant prefix: D (665 symbols) |
+| **FILSYS-SYMBOLS** | File system structures - status/state, disk, allocation, memory. Dominant prefixes: S (status), D (disk) |
+| **N500-SYMBOLS** | ND-500 coprocessor interface - process management, memory, transport. Dominant prefixes: 5 (ND-500), T (transport/TAD) |
+| **N5000-SYMBOLS** | ND-5000 processor interface (M06 only). Different memory addresses than N500 for shared symbols |
+| **RTLO-SYMBOLS** | Runtime library entry points - PIT (Page Index Table) variants, user utilities. Multiple xPIT patterns |
+| **XMSG-SYMBOL-LIST** | XMSG inter-process messaging system (L07+). Not present in K03 |
+| **LIBRARY-MARKS** | Loadable library entry markers using reversed format (`175777/^NAME`). Fixed address references |
+
+**Note**: While we don't have the complete file system source code, the **FILSYS-SYMBOLS.SYMB.TXT** files provide crucial reference information about file system data structures and entry points across all three SINTRAN versions.
 
 #### Symbol File Format
 
@@ -62,12 +101,15 @@ UNLCQ=034062    ! Unlock queue
 DATA=054400     ! Data segment base
 ```
 
+**Remember**: Only the first 5 characters of a symbol name are significant when cross-referencing with NPL source code.
+
 #### Using Symbol Tables
 
 1. **Find kernel variables** - Search symbol files for variable names mentioned in documentation
 2. **Resolve addresses** - Convert octal addresses to understand memory layout
-3. **Map to source code** - Cross-reference symbols with NPL source files
+3. **Map to source code** - Cross-reference symbols with NPL source files (use first 5 chars only)
 4. **Emulator verification** - Validate emulator memory structures match SINTRAN layout
+5. **Compare versions** - Check how addresses change across K03/L07/M06
 
 ---
 
@@ -167,13 +209,13 @@ This source code should be read alongside the kernel documentation:
 
 | Component | NPL Files | Symbol Tables | Documentation |
 |-----------|-----------|---------------|---------------|
-| **SCSI Subsystem** | IP-P2-SCSI-*.NPL | SYMBOL-1-LIST.SYMB.TXT | [SINTRAN/Devices/SCSI/](../Devices/SCSI/) |
-| **HDLC Driver** | MP-P2-HDLC-DRIV.NPL | SYMBOL-1-LIST.SYMB.TXT | [SINTRAN/Devices/HDLC/](../Devices/HDLC/) |
-| **ND-500 Interface** | CC-P2-N500.NPL, MP-P2-N500.NPL | N500-SYMBOLS.SYMB.TXT | [SINTRAN/ND500/](../ND500/) |
-| **Disk Management** | IP-P2-DISK-*.NPL, MP-P2-DISK-*.NPL | SYMBOL-1-LIST.SYMB.TXT | [SINTRAN/OS/15-DISK-IO-SUBSYSTEM.md](../OS/15-DISK-IO-SUBSYSTEM.md) |
-| **Segment Admin** | IP-P2-SEGADM.NPL | SYMBOL-1-LIST.SYMB.TXT | [SINTRAN/OS/16-PAGE-FAULT-HANDLER.md](../OS/16-PAGE-FAULT-HANDLER.md) |
-| **File System** | *(source not available)* | FILSYS-SYMBOLS.SYMB.TXT | [SINTRAN/OS/](../OS/) |
-| **XMSG System** | *(source not available)* | XMSG-SYMBOL-LIST.SYMB.TXT | [SINTRAN/OS/14-MONITOR-KERNEL-MONCALLS.md](../OS/14-MONITOR-KERNEL-MONCALLS.md) |
+| **SCSI Subsystem** | IP-P2-SCSI-*.NPL | SYMBOLS/{version}/SYMBOL-1-LIST.SYMB.TXT | [SINTRAN/Devices/SCSI/](../Devices/SCSI/) |
+| **HDLC Driver** | MP-P2-HDLC-DRIV.NPL | SYMBOLS/{version}/SYMBOL-1-LIST.SYMB.TXT | [SINTRAN/Devices/HDLC/](../Devices/HDLC/) |
+| **ND-500 Interface** | CC-P2-N500.NPL, MP-P2-N500.NPL | SYMBOLS/{version}/N500-SYMBOLS.SYMB.TXT | [SINTRAN/ND500/](../ND500/) |
+| **Disk Management** | IP-P2-DISK-*.NPL, MP-P2-DISK-*.NPL | SYMBOLS/{version}/SYMBOL-1-LIST.SYMB.TXT | [SINTRAN/OS/15-DISK-IO-SUBSYSTEM.md](../OS/15-DISK-IO-SUBSYSTEM.md) |
+| **Segment Admin** | IP-P2-SEGADM.NPL | SYMBOLS/{version}/SYMBOL-1-LIST.SYMB.TXT | [SINTRAN/OS/16-PAGE-FAULT-HANDLER.md](../OS/16-PAGE-FAULT-HANDLER.md) |
+| **File System** | *(source not available)* | SYMBOLS/{version}/FILSYS-SYMBOLS.SYMB.TXT | [SINTRAN/OS/](../OS/) |
+| **XMSG System** | *(source not available)* | SYMBOLS/{version}/XMSG-SYMBOL-LIST.SYMB.TXT (L07+) | [SINTRAN/OS/14-MONITOR-KERNEL-MONCALLS.md](../OS/14-MONITOR-KERNEL-MONCALLS.md) |
 
 ---
 
@@ -253,14 +295,15 @@ This source code is from a **real SINTRAN III build job** (s3vs-4). It represent
 ## Status
 
 **Source Code Availability**: Partial (kernel components only)
-**File System Code**: Missing (but symbols available in SYMBOLS/FILSYS-SYMBOLS.SYMB.TXT)
+**File System Code**: Missing (but symbols available in SYMBOLS/{version}/FILSYS-SYMBOLS.SYMB.TXT)
 **Total NPL Files**: 45
-**Total Symbol Tables**: 7 files (~450 KB)
-**Total Size**: ~4.4 MB (SYMB file + symbols)
+**Symbol Table Versions**: 3 (K03, L07, M06)
+**Total Symbol Table Files**: 21 files across 3 versions (~1.3 MB)
+**Total Size**: ~5.2 MB (SYMB file + all symbol tables)
 
 ---
 
-**Last Updated**: 2025-11-06
+**Last Updated**: 2026-02-08
 **SINTRAN Version**: SINTRAN III Version 4
-**SINTRAN Level**: L07 (Level 7 - symbol tables)
+**SINTRAN Levels**: K03, L07, M06 (symbol tables for 3 versions)
 **Build Job**: s3vs-4
