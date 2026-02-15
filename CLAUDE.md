@@ -9,8 +9,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **NDInsight** is a comprehensive documentation and analysis repository for **Norsk Data NORD computer systems**, focusing on the **SINTRAN III operating system** (1970s-1980s real-time OS), hardware architecture (NORD-10, ND-100, ND-500 processors), and historical computer preservation through C# emulator implementation.
 
 **Project Type**: Documentation repository with production C# emulator code
-**Primary Language**: Markdown (207 files)
-**Programming**: Python scripts (17), PowerShell scripts (4), C# (1 production file)
+**Primary Language**: Markdown (210+ files)
+**Programming**: Python scripts (13), PowerShell scripts (4), C# (1 production file)
 
 ---
 
@@ -71,12 +71,17 @@ python scripts/extract-headers.py
 ### Repository Structure
 
 1. **Developer/**: Entry point for SINTRAN development (guides for 8 languages)
-2. **Reference-Manuals/**: Authoritative technical manuals (15 complete ND/SINTRAN manuals)
-3. **SINTRAN/OS/**: Kernel subsystem documentation (numbered 00-20)
-4. **SINTRAN/Devices/**: Hardware drivers (HDLC, SCSI, Octobus)
-5. **SINTRAN/Emulator/**: C# emulation implementation
-6. **SINTRAN/ND500/**: ND-500 32-bit coprocessor analysis
-7. **scripts/**: Python/PowerShell documentation maintenance tools
+2. **Operations/**: Operator and user guides (COSMOS network, SINTRAN system administration)
+3. **Reference-Manuals/**: Authoritative technical manuals (25 complete ND/SINTRAN manuals)
+4. **SINTRAN/OS/**: Kernel subsystem documentation (numbered 00-19, 34 files)
+5. **SINTRAN/NPL-SOURCE/**: SINTRAN III source code (45 NPL files + 7 symbol tables)
+6. **SINTRAN/Release-Documentation/**: SINTRAN III release notes (versions J-N, 7 files)
+7. **SINTRAN/SINTRAN Structures/**: System structures and data analysis (6 files)
+8. **SINTRAN/Devices/**: Hardware drivers (HDLC, SCSI, Octobus)
+9. **SINTRAN/Emulator/**: C# emulation implementation
+10. **SINTRAN/ND500/**: ND-500 32-bit coprocessor analysis
+11. **SINTRAN/TAD/**: TAD protocol analysis
+12. **scripts/**: Python/PowerShell documentation maintenance tools (13 scripts)
 
 ### Documentation Patterns
 
@@ -86,7 +91,11 @@ python scripts/extract-headers.py
 
 ### Key Files
 
+- `SINTRAN/NPL-SOURCE/README.md` - SINTRAN III source code index (45 NPL files)
 - `SINTRAN/OS/20-MPM-VS-LOCAL-MEMORY-DETECTION.md` - MPM/MFbus/Octobus hardware configuration
+- `SINTRAN/SINTRAN Structures/SINTRAN-STRUCTURES.md` - Complete kernel data structures reference
+- `SINTRAN/Release-Documentation/SINTRAN-III-Release-History.md` - Version evolution timeline
+- `SINTRAN/XMSG-COMMAND-REFERENCE.md` - XMSG network management utilities
 - `SINTRAN/Emulator/ND500-EMULATION-COMPLETE.cs` - Production C# emulator code
 - `Reference-Manuals/ND-860228-2-EN SINTRAN III Monitor Calls.md` - Monitor calls reference
 - `MERMAID_COLOR_STANDARDS.md` - WCAG 2.1 AA compliant diagram standards
@@ -165,12 +174,18 @@ When documenting memory sizes:
 
 Each major folder has a README.md. Key entry points:
 - `README.md` - Project overview
+- `CLAUDE.md` - This file (AI assistant guidance)
 - `Developer/README.md` - Developer documentation index
-- `SINTRAN/README.md` - SINTRAN III documentation overview
-- `SINTRAN/OS/README.md` - Operating system architecture (00-20)
-- `Reference-Manuals/README.md` - Complete manual index
+- `Reference-Manuals/README.md` - Complete manual index (25 manuals)
+- `SINTRAN/README.md` - SINTRAN III documentation overview (160+ files)
+- `SINTRAN/NPL-SOURCE/README.md` - Source code index (45 NPL files + 7 symbol tables)
+- `SINTRAN/OS/README.md` - Operating system architecture (00-19, 34 files)
+- `SINTRAN/Release-Documentation/` - SINTRAN III release notes (versions J-N)
+- `SINTRAN/SINTRAN Structures/` - System structures and data analysis
+- `Operations/` - COSMOS and SINTRAN operator guides
 
 ---
 
-**Last Updated**: 2026-02-06
+**Last Updated**: 2026-02-15
+**Repository Version**: 1.1
 **Status**: Phase 1 Complete

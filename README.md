@@ -29,16 +29,22 @@ The analysis is made from original SINTRAN III source code, Norsk Data technical
 ```
 NDInsight/
 ├── README.md                    ← You are here
+├── CLAUDE.md                    ← AI assistant guidance
 ├── MERMAID_COLOR_STANDARDS.md   ← Diagram color standards
 ├── Developer/                   ← Developer guides and language references
+├── Operations/                  ← Operator and user guides (COSMOS, SINTRAN)
 ├── Reference-Manuals/           ← Complete NORD/SINTRAN reference manuals
+├── scripts/                     ← Documentation processing scripts (Python, PowerShell)
 └── SINTRAN/                     ← SINTRAN III Operating System
     ├── Devices/                 ← Hardware device documentation
     ├── Emulator/                ← C# emulator implementation guides
     ├── ND500/                   ← ND-500 coprocessor documentation
     ├── NPL-SOURCE/              ← ⭐ SINTRAN III source code & symbols
     ├── OS/                      ← Core OS kernel documentation
-    └── TAD/                     ← TAD protocol analysis
+    ├── Release-Documentation/   ← SINTRAN III release notes (versions J-N)
+    ├── SINTRAN Structures/      ← System structures and data analysis
+    ├── TAD/                     ← TAD protocol analysis
+    └── XMSG-COMMAND-REFERENCE.md ← XMSG network management reference
 ```
 
 ---
@@ -82,6 +88,22 @@ Complete guides for developing software on SINTRAN III systems.
 
 ---
 
+### [Operations/](Operations/) - Operator and User Guides
+
+Operator guides and user manuals for running SINTRAN III and COSMOS systems.
+
+**Contents:**
+- **Cosmos/** - COSMOS network operator guides (8 manuals)
+  - Network Monitor Operators Guide
+  - X.21 and X.25 Operator Guides
+  - TELNET/FTP Client User Guide
+  - COSMOS Programmer Guides
+- **SINTRAN/** - SINTRAN III system operation (operator and tuning guides)
+
+📖 **For system operation and administration**
+
+---
+
 ### [Reference-Manuals/](Reference-Manuals/) - Official Documentation
 
 Authoritative reference manuals for all NORD/SINTRAN components (25 complete manuals, ~2.2MB).
@@ -100,14 +122,16 @@ Authoritative reference manuals for all NORD/SINTRAN components (25 complete man
 
 ### [SINTRAN/](SINTRAN/) - Operating System Documentation
 
-Comprehensive documentation for SINTRAN III operating system (140+ files, ~5.6MB).
+Comprehensive documentation for SINTRAN III operating system (160+ files, ~7.4MB).
 
 #### Key Subdirectories
 
 | Directory | Description | Details |
 |-----------|-------------|---------|
 | **[NPL-SOURCE/](SINTRAN/NPL-SOURCE/)** ⭐ | **SINTRAN III source code** | 45 NPL files + 7 symbol tables (4.4MB) |
-| **[OS/](SINTRAN/OS/)** | Core kernel documentation | 31 files covering chapters 00-19 (518KB) |
+| **[OS/](SINTRAN/OS/)** | Core kernel documentation | 34 files covering chapters 00-19 (550KB) |
+| **[Release-Documentation/](SINTRAN/Release-Documentation/)** | SINTRAN III release notes | 7 files covering versions J-N (1.2MB) |
+| **[SINTRAN Structures/](SINTRAN/SINTRAN%20Structures/)** | System structures analysis | 6 files with kernel data structures (570KB) |
 | **[Devices/](SINTRAN/Devices/)** | Hardware device drivers | HDLC (30+ docs) + SCSI (10+ docs) |
 | **[Emulator/](SINTRAN/Emulator/)** | C# emulator implementation | 5 files with production code |
 | **[ND500/](SINTRAN/ND500/)** | ND-500 coprocessor | Integration and communication |
@@ -138,7 +162,7 @@ Comprehensive documentation for SINTRAN III operating system (140+ files, ~5.6MB
 
 ### [SINTRAN/OS/](SINTRAN/OS/) - Kernel Documentation
 
-Complete kernel documentation extracted from SINTRAN III source code (31 files, 518KB).
+Complete kernel documentation extracted from SINTRAN III source code (34 files, 550KB).
 
 **Chapters 00-19:**
 - 00: Architecture Overview
@@ -198,14 +222,18 @@ C# emulator implementation guides with production code.
 | **NPL Source Code** | **45** | **3.9MB** | ✅ Complete (s3vs-4) |
 | **Symbol Tables (L07)** | **7** | **450KB** | ✅ Complete |
 | **Reference Manuals** | 25 | ~2.2MB | ✅ Complete Collection |
-| **OS Kernel Docs** | 31 | 518KB | ✅ Phase 1 Complete |
+| **OS Kernel Docs** | 34 | 550KB | ✅ Phase 1 Complete |
+| **Release Documentation** | 7 | 1.2MB | ✅ Versions J-N |
+| **SINTRAN Structures** | 6 | 570KB | ✅ Complete |
 | **HDLC Analysis** | 30+ | ~350KB | ✅ Consolidated |
 | **SCSI Analysis** | 10+ | ~125KB | ✅ Complete |
 | **Developer Guides** | 20+ | ~500KB | ✅ Multiple Languages |
+| **Operations Guides** | 10+ | ~600KB | ✅ COSMOS & SINTRAN |
 | **Emulator Code** | 6 | ~100KB | ✅ Production Ready |
 | **ND-500 Docs** | 6+ | ~200KB | ✅ Complete |
 | **TAD Protocol** | 7 | ~150KB | ✅ Complete |
-| **Total** | **187+** | **~8.2MB** | - |
+| **XMSG Reference** | 1 | 40KB | ✅ Complete |
+| **Total** | **210+** | **~10.9MB** | - |
 
 ### Source Code Coverage
 
@@ -288,12 +316,15 @@ Each major folder has its own README for detailed navigation:
 | Folder | README | Contents |
 |--------|--------|----------|
 | **Reference-Manuals/** | [README.md](Reference-Manuals/README.md) | 15 complete NORD/SINTRAN reference manuals |
+| **Operations/** | - | Operator and user guides for COSMOS & SINTRAN |
 | **Developer/** | [README.md](Developer/README.md) | Development guides, quick-starts, language references |
 | **Developer/Languages/** | [README.md](Developer/Languages/README.md) | System & Application language guides |
 | **Developer/Workflow/** | [README.md](Developer/Workflow/README.md) | Compiler commands, linking, tools |
 | **SINTRAN/** | [README.md](SINTRAN/README.md) | SINTRAN III complete documentation overview |
 | **SINTRAN/NPL-SOURCE/** | [README.md](SINTRAN/NPL-SOURCE/README.md) | Source code & symbol tables |
 | **SINTRAN/OS/** | [README.md](SINTRAN/OS/README.md) | Operating system kernel (chapters 00-19) |
+| **SINTRAN/Release-Documentation/** | - | SINTRAN III release information (versions J-N) |
+| **SINTRAN/SINTRAN Structures/** | - | System structures and data analysis |
 | **SINTRAN/Devices/** | [README.md](SINTRAN/Devices/README.md) | Hardware device documentation |
 | **SINTRAN/Devices/HDLC/** | [README.md](SINTRAN/Devices/HDLC/README.md) | HDLC communication controller |
 | **SINTRAN/Devices/SCSI/** | [README.md](SINTRAN/Devices/SCSI/README.md) | SCSI disk controllers |
@@ -388,8 +419,8 @@ This repository is a work in progress. Areas for contribution:
 
 ---
 
-**Last Updated**: 2025-11-06
-**Repository Version**: 1.0
+**Last Updated**: 2026-02-15
+**Repository Version**: 1.1
 **Documentation Status**: Phase 1 Complete ✅
 
 ---
