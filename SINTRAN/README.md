@@ -27,7 +27,9 @@ SINTRAN III was a sophisticated real-time operating system providing:
 | [Emulator/](Emulator/) | C# emulator implementation guides | 5 files |
 | [ND500/](ND500/) | ND-500 processor documentation | TBD |
 | [NPL-SOURCE/](NPL-SOURCE/) | **SINTRAN III NPL source code & symbols** | **45 NPL + 7 symbol files** |
-| [OS/](OS/) | Core operating system architecture (00-19) | 31 files |
+| [OS/](OS/) | Core operating system architecture (00-19) | 34 files |
+| [Release-Documentation/](Release-Documentation/) | SINTRAN III release information (versions J-N) | 7 files |
+| [SINTRAN Structures/](SINTRAN%20Structures/) | System structures and data analysis | 6 files |
 | [TAD/](TAD/) | TAD protocol analysis | 7 files |
 
 ---
@@ -116,6 +118,79 @@ The NPL source code should be read alongside the OS documentation:
 | 5P-P2-MON60.NPL | [OS/14-MONITOR-KERNEL-MONCALLS.md](OS/14-MONITOR-KERNEL-MONCALLS.md) |
 
 **Full details:** [NPL-SOURCE/README.md](NPL-SOURCE/README.md)
+
+---
+
+## SINTRAN III Release Information
+
+### Historical Release Documentation
+
+**Location:** [Release-Documentation/](Release-Documentation/)
+
+This folder contains official SINTRAN III release notes documenting system evolution across major versions:
+
+**Release Documents (7 files):**
+- **ND-60.230.01** - SINTRAN III J-version (January 1985)
+- **ND-60230-5-EN** - SINTRAN III K-version Release Information
+- **ND-860230-6-EN** - SINTRAN III L-version Release Information
+- **ND-860230-7A-EN** - SINTRAN III M-version Release Information
+- **ND-860230-8-EN** - SINTRAN III N-version Release Information
+- **SINTRAN-III-Release-History.md** - Comprehensive version timeline
+- **ndfs-extensions.md** - NDFS file system extensions
+
+#### Why This is Important
+
+1. **Feature Evolution** - Track when features were added/changed across versions
+2. **Bug Fix History** - Understand what issues were resolved in each release
+3. **Compatibility** - Determine version-specific behavior for emulation
+4. **System Requirements** - Hardware/software requirements per version
+5. **Migration Guides** - How to upgrade between versions
+
+---
+
+## SINTRAN System Structures
+
+### Internal Data Structure Analysis
+
+**Location:** [SINTRAN Structures/](SINTRAN%20Structures/)
+
+This folder contains detailed analysis of SINTRAN III internal data structures extracted from symbol tables and source code:
+
+**Structure Files (6 files):**
+- **SINTRAN-STRUCTURES.md** (224 KB) - Master reference for all kernel structures
+- **LOGICAL-DEVICE-NUMBERS.md** (24 KB) - Device number assignments
+- **logical-device-numbers.json** (193 KB) - Machine-readable device mapping
+- **sintran-rt-programs.json** (60 KB) - RT program metadata
+- **sintran-system-segments.json** (28 KB) - System segment definitions
+- **SINTRAN_PCCS_ARRAY_ANALYSIS.md** (21 KB) - PCCS array structure analysis
+
+#### Using Structure Documentation
+
+The structure files provide essential reference for:
+- **Emulator Development** - Correctly implement kernel data structures
+- **Memory Debugging** - Interpret raw memory dumps
+- **Symbol Table Cross-Reference** - Link addresses to data structure fields
+- **Device Driver Analysis** - Understand device number assignments
+
+**Cross-Reference Example:**
+- Read [SINTRAN Structures/SINTRAN-STRUCTURES.md](SINTRAN%20Structures/SINTRAN-STRUCTURES.md) for structure layouts
+- Cross-reference with [NPL-SOURCE/](NPL-SOURCE/) symbol tables for addresses
+- Use [OS/19-MEMORY-MAP-REFERENCE.md](OS/19-MEMORY-MAP-REFERENCE.md) for memory locations
+
+---
+
+## XMSG Network Management
+
+**Top-Level Reference:** [XMSG-COMMAND-REFERENCE.md](XMSG-COMMAND-REFERENCE.md)
+
+Complete reference for the XMSG-COMMAND utility (COSMOS/XMSG network management):
+- Port and task monitoring
+- Network status commands
+- Connection management
+- Debugging and tracing
+- Statistics and utilization
+
+**Cross-Reference:** See also [NPL-SOURCE/XMSG-SYMBOL-LIST.SYMB.TXT](NPL-SOURCE/) for XMSG message system symbols.
 
 ---
 
@@ -224,12 +299,15 @@ Located in [Emulator/](Emulator/) folder:
 |----------|-------|------|
 | **NPL Source Code** | **45** | **~3.9MB** |
 | **Symbol Tables (L07)** | **7** | **~450KB** |
-| OS Architecture (00-19) | 31 | ~518KB |
+| OS Architecture (00-19) | 34 | ~550KB |
+| Release Documentation (J-N) | 7 | ~1.2MB |
+| SINTRAN Structures | 6 | ~570KB |
 | HDLC Documentation | 30+ | ~350KB |
 | SCSI Documentation | 10+ | ~125KB |
 | Emulator Guides | 5 | ~115KB |
 | TAD Protocol | 7 | ~75KB |
-| **Total** | **140+** | **~5.6MB** |
+| XMSG Reference | 1 | ~40KB |
+| **Total** | **160+** | **~7.4MB** |
 
 ---
 
@@ -259,13 +337,22 @@ Located in [Emulator/](Emulator/) folder:
 → Start in [NPL-SOURCE/](NPL-SOURCE/) folder - actual kernel implementation
 
 **Building an Emulator:**
-→ Start in [Emulator/](Emulator/) folder, then cross-reference [NPL-SOURCE/](NPL-SOURCE/)
+→ Start in [Emulator/](Emulator/) folder, then cross-reference [NPL-SOURCE/](NPL-SOURCE/) and [SINTRAN Structures/](SINTRAN%20Structures/)
 
 **Understanding Devices:**
 → See [Devices/](Devices/) folder, then check corresponding NPL files
 
 **OS Internals:**
 → See [OS/](OS/) folder, chapters 00-19, verified against [NPL-SOURCE/](NPL-SOURCE/)
+
+**Version-Specific Features:**
+→ See [Release-Documentation/](Release-Documentation/) for feature evolution across versions J-N
+
+**Data Structure Reference:**
+→ See [SINTRAN Structures/](SINTRAN%20Structures/) for kernel structures, device numbers, and memory layouts
+
+**Network Management:**
+→ See [XMSG-COMMAND-REFERENCE.md](XMSG-COMMAND-REFERENCE.md) for COSMOS/XMSG utilities
 
 **Protocol Analysis:**
 → See [TAD/](TAD/) folder
@@ -312,6 +399,7 @@ When adding documentation:
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-02-14 | 1.1 | Added Release-Documentation, SINTRAN Structures, XMSG reference |
 | 2025-10-17 | 1.0 | Initial comprehensive SINTRAN documentation structure |
 
 ---
