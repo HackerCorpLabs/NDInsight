@@ -23,11 +23,12 @@ Both device drivers have **complete NPL source code** available in [../NPL-SOURC
 
 ## 🗂️ Device Categories
 
-| Folder | Device Type | Files | Size | Status |
-|--------|-------------|-------|------|--------|
+| Folder/File | Device Type | Files | Size | Status |
+|-------------|-------------|-------|------|--------|
 | **[HDLC/](HDLC/)** | Communication | 30+ | ~350KB | ✅ Consolidated |
 | **[SCSI/](SCSI/)** | Storage | 10+ | ~125KB | ✅ Complete |
-| **Total** | - | **40+** | **~475KB** | - |
+| **[LINE-PRINTER-CONFIG-INSPECTION.md](LINE-PRINTER-CONFIG-INSPECTION.md)** | Output (Printer) | 1 | ~15KB | ✅ Complete |
+| **Total** | - | **40+** | **~490KB** | - |
 
 ---
 
@@ -290,6 +291,67 @@ Complete SCSI (Small Computer System Interface) subsystem documentation covering
 1. [SCSI/IP-P2-SCSI-DISK.md](SCSI/IP-P2-SCSI-DISK.md) - Disk driver
 2. [SCSI/IP-P2-SCSI-OPDI.md](SCSI/IP-P2-SCSI-OPDI.md) - Optical driver
 3. [../OS/15-DISK-IO-SUBSYSTEM.md](../OS/15-DISK-IO-SUBSYSTEM.md) - OS integration
+
+---
+
+## 🖨️ Line Printer Configuration
+
+**Location:** [LINE-PRINTER-CONFIG-INSPECTION.md](LINE-PRINTER-CONFIG-INSPECTION.md)
+**Hardware:** CDC 9380 Parallel Line Printer (IOX 0430-0433)
+**Source Code:** [../NPL-SOURCE/NPL/IP-P2-1.NPL](../NPL-SOURCE/NPL/IP-P2-1.NPL) (TLPRINT driver), [../NPL-SOURCE/NPL/PH-P2-OPPSTART.NPL](../NPL-SOURCE/NPL/PH-P2-OPPSTART.NPL) (boot detection)
+**Status:** ✅ **Complete Diagnostic Guide**
+
+### Overview
+
+Complete diagnostic guide for SINTRAN III line printer configuration, covering the boot detection pipeline (CHLPS/XCHLPS), LPTA table structure, LDNT population, and the root cause of "NO SUCH LOGICAL UNIT" errors.
+
+### Key Content
+
+| Section | Purpose |
+|---------|---------|
+| **Root Cause Analysis** | LPSELECTION=0 causes boot to skip printer entirely |
+| **Boot Pipeline** | CHLPS hardware detection and XCHLPS LDNT population |
+| **Symbol Cross-Reference** | Addresses for K03, L07, M06 versions |
+| **Memory Inspection Checklist** | Step-by-step address verification guide |
+| **Fix Instructions** | Patch LPSELECTION from 0 to 2 (Parallel/CDC) |
+| **EXR ST vs IOXT** | Hardware test instruction analysis |
+
+### Printer Types
+
+| Type | LPSELECTION | Boot Test | Driver |
+|------|-------------|-----------|--------|
+| DMA (Fujitsu) | 1 | `*IOXT` | DMPR |
+| Parallel (CDC) | 2 | `*EXR ST` | DMLP |
+| Serial | 3 | `*IOXT` | DLPR |
+
+### Boot Detection Pipeline
+
+```mermaid
+flowchart LR
+    LPSEL["LPTA Table\nLPSELECTION"]
+    CHLPS["CHLPS\nHW Detection"]
+    XCHLPS["XCHLPS\nLDNT Setup"]
+    LDNT["LDNT\nDevice 5"]
+    COPY["COPY FILE\nLINE PRINTER"]
+
+    LPSEL -->|"Type 1 2 3"| CHLPS
+    LPSEL -->|"Type 0"| FAIL
+    CHLPS -->|"HW found"| XCHLPS
+    CHLPS -->|"IOX error"| FAIL
+    XCHLPS -->|"UPDLPLOGNO"| LDNT
+    LDNT --> COPY
+    FAIL["Error 33\nNO SUCH\nLOGICAL UNIT"]
+
+    classDef success fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
+    classDef error fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
+    classDef hw fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    classDef data fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+
+    class LPSEL data
+    class CHLPS,XCHLPS hw
+    class LDNT,COPY success
+    class FAIL error
+```
 
 ---
 
