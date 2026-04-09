@@ -691,11 +691,16 @@ function lapb_proto.dissector(buffer, pinfo, tree)
         local frame_start = offset
         offset = offset + 1
 
-        -- Skip interframe fill (consecutive 0x7E flags are valid HDLC)
+        -- Skip interframe fill (consecutive 0x7E flags are valid HDLC).
+        -- Track content_start: the first non-flag byte, which is where the
+        -- actual frame data begins (addr byte).  Using frame_start+1 here would
+        -- wrongly include fill flags in the payload passed to unstuff/FCS.
         while offset < length and buffer(offset, 1):uint() == 0x7E do
             offset = offset + 1
         end
         if offset >= length then break end
+
+        local content_start = offset  -- first real frame byte (addr)
 
         -- Seek closing 0x7E flag
         while offset < length and buffer(offset, 1):uint() ~= 0x7E do
@@ -713,14 +718,16 @@ function lapb_proto.dissector(buffer, pinfo, tree)
         local frame_tree = root:add(lapb_proto, raw_frame, "LAPB Frame")
         frame_tree:add(pf.frame_raw, raw_frame)
 
-        if frame_len > 2 then
-            local payload   = buffer(frame_start + 1, frame_len - 2)
+        local payload_len = offset - content_start  -- excludes closing 0x7E
+        if payload_len > 0 then
+            local payload   = buffer(content_start, payload_len)
             local unstuffed = unstuff(payload)
             local summary   = dissect_lapb_frame(unstuffed, pinfo, frame_tree)
             if summary then
                 summaries[#summaries + 1] = summary
             end
         end
+
 
         offset = offset + 1
     end
