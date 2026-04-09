@@ -1,97 +1,158 @@
 # TAD Message Format Specifications
 
-## Overview
+**Status:** Authoritative — opcode values verified against SINTRAN III symbol tables
+(K03, L07, M06) and cross-checked with NPL source.
 
-This document provides detailed format specifications for all TAD protocol messages used in SINTRAN III X.25 communication.
+**Parent Document:** `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/TAD/TAD-Protocol-Analysis.md`
 
-**Parent Document:** `TAD-Protocol-Analysis.md`
+**Sources:**
+- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT`
+- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/SYMBOLS/L07/FILSYS-SYMBOLS.SYMB.TXT`
+- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/SYMBOLS/L07/RTLO-SYMBOLS.SYMB.TXT`
+- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/NPL/RP-P2-TAD.NPL` (client / Remote Process)
+- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/NPL/MP-P2-TAD.NPL` (server / Master Process)
 
----
-
-## Message Header Format
-
-All TAD messages follow this basic structure:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Optional Pad  │  Message Type  │  Byte Count  │  Data Field │
-│   (0-1 byte)  │    (1 byte)    │  (1 byte)    │  (0-255 bytes)│
-└─────────────────────────────────────────────────────────────┘
-```
-
-- **Pad byte**: `0x00` inserted if message starts on odd byte boundary
-- **Message Type**: 7-bit ASCII code (e.g., `7BDAT` = "BDAT")
-- **Byte Count**: Number of bytes in data field (not including header)
-- **Data Field**: Variable-length payload
+> Opcode values are stable across SINTRAN versions K03 → L07 → M06 (verified
+> identical in all three symbol-table directories). The `7xxxx` symbols in NPL are
+> **single-byte numeric constants**, not 4-byte ASCII strings.
 
 ---
 
-## Data Messages
+## 1. Generic Message Frame
 
-### 7BDAT - Data Message
+All TAD messages share a 2-byte header followed by a variable data field:
 
-**Purpose:** Transmit user data (terminal input/output)
+| Offset | Size    | Field        | Description                                                              |
+|-------:|--------:|--------------|--------------------------------------------------------------------------|
+|  -1    | 0–1 B   | Pad          | `0x00` inserted **only if** the message would otherwise start on an odd byte boundary within the buffer |
+|  +0    | 1 B     | Message Type | 7-bit opcode (see master table). High-range opcodes 0xFA–0xFE reserved for system/error messages |
+|  +1    | 1 B     | Byte Count   | Number of bytes in the Data field (0–255). Does **not** include type or count itself |
+|  +2    | N B     | Data         | Payload, format depends on message type                                  |
 
-**Format:**
-```
-┌────────┬─────────┬──────────────────────────┐
-│ 7BDAT  │  Count  │  User Data (0-255 bytes) │
-│ (1)    │  (1)    │  (Count bytes)           │
-└────────┴─────────┴──────────────────────────┘
-```
+```mermaid
+flowchart LR
+    A[Pad 0x00<br/>if odd offset]:::blue --> B[Type<br/>1 byte]:::teal
+    B --> C[Count<br/>1 byte]:::teal
+    C --> D[Data<br/>0..255 bytes]:::green
 
-**Code:** `0x42444154` ("BDAT")
-
-**Data Field:**
-- Raw user data bytes
-- No special encoding
-- Can contain any byte values (0x00-0xFF)
-- 7-bit mode: bit 7 cleared unless 8-bit mode enabled
-
-**Source:** Used throughout input/output operations
-
-**Example:**
-```
-Message: "Hello"
-┌───────┬────┬──┬──┬──┬──┬──┐
-│ 7BDAT │ 05 │H │e │l │l │o │
-└───────┴────┴──┴──┴──┴──┴──┘
+    classDef blue fill:#E3F2FD,stroke:#0D47A1,color:#0D47A1,stroke-width:2px
+    classDef teal fill:#E0F7FA,stroke:#00838F,color:#00838F,stroke-width:2px
+    classDef green fill:#E8F5E9,stroke:#2E7D32,color:#2E7D32,stroke-width:2px
 ```
 
-**Break Handling:**
+- **Pad byte**: `0x00` inserted if message would land on odd byte boundary
+- **Message Type**: single 7-bit byte opcode
+- **Byte Count**: payload length only (header excluded)
+- **Data Field**: variable-length payload, possibly empty
+
+**Parser reference:** `RP-P2-TAD.NPL` routine `GETMES` (lines 224–242)
+**Builder reference:** `RP-P2-TAD.NPL` routine `CREMES` (writes the 2-byte header)
+
+---
+
+## 2. Master Opcode Table
+
+All values are **octal** as written in NPL, with decimal/hex equivalents.
+
+| Symbol  | Octal  | Dec | Hex  | Direction | Data Len | Category    | Purpose                              |
+|---------|-------:|----:|-----:|:---------:|---------:|-------------|--------------------------------------|
+| 7BDAT   | 000001 |   1 | 0x01 |   C↔S     | 0–255    | Data        | Terminal data block                  |
+| 7RFI    | 000002 |   2 | 0x02 |   C→S     |    0     | Flow ctrl   | Ready For Input (credit grant)       |
+| 7ECKM   | 000003 |   3 | 0x03 |   C→S     | 1 or 21  | Config      | Echo strategy + optional table       |
+| 7BMMX   | 000004 |   4 | 0x04 |   C→S     | 3 or 23  | Config      | Break strategy + max-break + table   |
+| 7ESCA   | 000010 |   8 | 0x08 |   S→C     |    0     | Control     | Escape character received            |
+| 7DCON   | 000011 |   9 | 0x09 |   S→C     |    0     | Control     | Disconnect indication                |
+| 7TMOD   | 000014 |  12 | 0x0C |   C→S     |    1     | Config      | Terminal mode flags                  |
+| 7TTYP   | 000015 |  13 | 0x0D |   C→S     |    2     | Config      | Terminal type ID                     |
+| 7CESC   | 000016 |  14 | 0x0E |   C→S     |    1     | Config      | Enable / disable escape processing   |
+| 7DESC   | 000017 |  15 | 0x0F |   C→S     |    1     | Config      | Define escape character              |
+| 7SYCN   | 000023 |  19 | 0x13 |   C↔S     |    2     | Control     | System control command               |
+| 7USCN   | 000024 |  20 | 0x14 |   C↔S     |    2     | Control     | User control command                 |
+| 7RESE   | 000026 |  22 | 0x16 |   C→S     |    0     | Control     | Reset connection (request)           |
+| 7RECO   | 000027 |  23 | 0x17 |   S→C     |    0     | Response    | Reset confirm                        |
+| 7DUMM   | 000030 |  24 | 0x18 |   any     |    0     | Filler      | Dummy / empty message (skipped)      |
+| 7OPSV   | 000037 |  31 | 0x1F |   C→S     |    3     | Handshake   | OS version + protocol version        |
+| 7CERS   | 000041 |  33 | 0x21 |   S→C     |    0     | Response    | CESC / escape-control response       |
+| 7ISRQ   | 000042 |  34 | 0x22 |   C→S     |    0     | Query       | Input size request                   |
+| 7ISRS   | 000043 |  35 | 0x23 |   S→C     |    2     | Response    | Input size response                  |
+| 7NOWT   | 000044 |  36 | 0x24 |   C↔S     |    1     | Status      | Nowait status                        |
+| 7TNOW   | 000045 |  37 | 0x25 |   C↔S     |    1     | Status      | Terminate nowait                     |
+| 7NWRE   | 000046 |  38 | 0x26 |   S→C     |    0     | Status      | Nowait restart                       |
+| 7RLOC   | 000047 |  39 | 0x27 |   S→C     |    0     | Control     | Remote/local mode toggle             |
+| 7TREP   | 000052 |  42 | 0x2A |   S→C     |    2     | Status      | Terminal status report               |
+| 7UMOD   | 000053 |  43 | 0x2B |   C→S     |    2     | Config      | UMOD strategy (protocol v4+)         |
+| 78MOD   | 000054 |  44 | 0x2C |   C→S     |    2     | Config      | 8-bit mode set                       |
+| 7CPCO   | 000372 | 250 | 0xFA |   S→C     |    4     | System      | Completion code                      |
+| 7ERRS   | 000373 | 251 | 0xFB |   S→C     |    2     | System      | Error response                       |
+| 7REJE   | 000376 | 254 | 0xFE |   S→C     |    1     | System      | Reject (invalid msg type echoed back)|
+
+C = Client (RP, Remote Process). S = Server (MP, Master Process).
+
+> **Range design note:** Opcodes 0x01–0x54 are normal protocol messages (deliberately
+> kept inside the printable / 7-bit ASCII range so they can survive 7-bit links).
+> Opcodes 0xFA–0xFE are reserved system/error messages — using the high range makes
+> them unambiguous against any user data byte even in 7-bit mode.
+
+---
+
+## 3. Data Messages
+
+### 3.1 7BDAT — Data Block (0x01)
+
+**Purpose:** Transmit user data (terminal input/output).
+
+| Offset | Size | Field | Value / Meaning |
+|-------:|-----:|-------|-----------------|
+|  0     | 1    | Type  | 0x01 (7BDAT) |
+|  1     | 1    | Count | N = 0..255 (data length) |
+|  2     | N    | Data  | Raw terminal bytes |
+
+- **Sender (client out):** `BYTPUT` at `RP-P2-TAD.NPL:363–381` — appends a byte at a time, auto-flushes when buffer fills.
+- **Receiver (server in):** `DATRES` at `MP-P2-TAD.NPL:540`.
+- 7-bit mode: bit 7 cleared. 8-bit mode (after 78MOD): all 8 bits significant.
+
+**Break handling:**
 - Last character in message may be break character
 - `REMBYT=-1` indicates break on last byte
 - Break triggers special processing in receiver
 
+**Example (5 bytes "Hello"):**
+```
+┌──────┬────┬────┬────┬────┬────┬────┐
+│ 0x01 │ 05 │ H  │ e  │ l  │ l  │ o  │
+└──────┴────┴────┴────┴────┴────┴────┘
+```
+
 ---
 
-## Control Messages
+## 4. Control / Configuration Messages
 
-### 7TMOD - Terminal Mode
+### 4.1 7TMOD — Terminal Mode (0x0C)
 
-**Purpose:** Set terminal operating mode flags
+**Purpose:** Set terminal operating mode flags.
 
-**Format:**
-```
-┌────────┬─────────┬──────────┐
-│ 7TMOD  │   01    │  Flags   │
-│ (1)    │  (1)    │  (1)     │
-└────────┴─────────┴──────────┘
-```
+| Offset | Size | Field  | Meaning |
+|-------:|-----:|--------|---------|
+|  0     | 1    | Type   | 0x0C |
+|  1     | 1    | Count  | 1 |
+|  2     | 1    | Flags  | bit-packed terminal mode flags |
 
-**Code:** `0x544D4F44` ("TMOD")
+**Flag bits** (used by `BDTMOD` at `MP-P2-TAD.NPL:155–180`, written into `DFLAG`/`TINFO`/`FLAGB`/`SCREEN`):
 
-**Flags Byte:**
-| Bit | Name | Purpose |
-|-----|------|---------|
-| 0 | Capital letters | Convert input to uppercase |
-| 1 | CR delay | Insert delay after carriage return |
-| 2 | Stop on full page | Pause output when page full |
-| 3 | Logout on carrier loss | Auto-logout when connection lost |
+| Bit | Symbol     | Meaning |
+|----:|------------|---------|
+| 0   | 5CAPITAL   | Force uppercase input |
+| 1   | 5CRDLY     | Insert delay after carriage return |
+| 2   | (screen)   | Stop on full page (sets OTAD.SCREEN) |
+| 3   | 5LBLOG     | Logout on carrier loss |
+| 4   | 5IESC      | Inhibit escape recognition |
+| 5   | 58BIT      | 8-bit data path |
+| 6   | 5UMOD      | UMOD strategy in use |
+| 7   | (reserved) |  |
 
-**Source:** `RP-P2-TAD.NPL:805-818` (`BTMOD`), `MP-P2-TAD.NPL:155-180` (`BDTMOD`)
+**Source:** `RP-P2-TAD.NPL:805–850` (`BTMOD`/`CTMOD`), `MP-P2-TAD.NPL:155–180` (`BDTMOD`).
 
-**Processing (receive):** `MP-P2-TAD.NPL:661-669`
+**Processing (receive)** — `MP-P2-TAD.NPL:661–669`:
 ```npl
 DFLAG BZERO 5CAPITAL
 IF D BIT "0" THEN T BONE 5CAPITAL FI; T=:DFLAG
@@ -103,33 +164,24 @@ T:=FLAGB BZERO 5LBLOG
 IF D BIT 3 THEN T BONE 5LBLOG FI; T=:FLAGB
 ```
 
-**Example:**
+**Example** (capital + CR delay):
 ```
-Set capital letters + CR delay:
-┌───────┬────┬────┐
-│ 7TMOD │ 01 │ 03 │  (bits 0,1 set)
-└───────┴────┴────┘
-```
-
-### 7TTYP - Terminal Type
-
-**Purpose:** Set terminal type code
-
-**Format:**
-```
-┌────────┬─────────┬─────────────────┐
-│ 7TTYP  │   02    │  Terminal Type  │
-│ (1)    │  (1)    │  (2)            │
-└────────┴─────────┴─────────────────┘
+┌──────┬────┬────┐
+│ 0x0C │ 01 │ 03 │
+└──────┴────┴────┘
 ```
 
-**Code:** `0x54545950` ("TTYP")
+---
 
-**Terminal Type:** 16-bit terminal type code
-- Norsk Data standard terminal codes
-- Controls terminal-specific features
+### 4.2 7TTYP — Terminal Type (0x0D)
 
-**Source:** `RP-P2-TAD.NPL:860-872` (`CSTYP`), `MP-P2-TAD.NPL:188-197` (`BDTTYP`)
+| Offset | Size | Field   | Meaning |
+|-------:|-----:|---------|---------|
+|  0     | 1    | Type    | 0x0D |
+|  1     | 1    | Count   | 2 |
+|  2     | 2    | TermID  | 16-bit terminal type identifier (stored as `CTTYP`) |
+
+**Source:** `RP-P2-TAD.NPL:860–872` (`CSTYP`), `MP-P2-TAD.NPL:188–197` (`BDTTYP`).
 
 **Processing (receive):**
 ```npl
@@ -141,31 +193,36 @@ FI
 A=:CTTYP
 ```
 
-**Example:**
+**Example** (type 0x0123):
 ```
-Set terminal type 0x0123:
-┌───────┬────┬─────┬─────┐
-│ 7TTYP │ 02 │ 01  │ 23  │
-└───────┴────┴─────┴─────┘
-```
-
-### 7DESC - Define Escape Character
-
-**Purpose:** Set the escape character for terminal
-
-**Format:**
-```
-┌────────┬─────────┬────────────────┐
-│ 7DESC  │   01    │  Escape Char   │
-│ (1)    │  (1)    │  (1)           │
-└────────┴─────────┴────────────────┘
+┌──────┬────┬────┬────┐
+│ 0x0D │ 02 │ 01 │ 23 │
+└──────┴────┴────┴────┘
 ```
 
-**Code:** `0x44455343` ("DESC")
+---
 
-**Escape Char:** ASCII code of escape character (typically 0x1B)
+### 4.3 7CESC — Enable / Disable Escape (0x0E)
 
-**Source:** `RP-P2-TAD.NPL:930-943` (`CSDAE`), `MP-P2-TAD.NPL:242-249` (`BDDESC`)
+| Offset | Size | Field  | Meaning |
+|-------:|-----:|--------|---------|
+|  0     | 1    | Type   | 0x0E |
+|  1     | 1    | Count  | 1 |
+|  2     | 1    | Enable | 0 = disable escape, ≠0 = enable |
+
+Always paired with a 7CERS response (0x21) from the server.
+
+---
+
+### 4.4 7DESC — Define Escape Character (0x0F)
+
+| Offset | Size | Field   | Meaning |
+|-------:|-----:|---------|---------|
+|  0     | 1    | Type    | 0x0F |
+|  1     | 1    | Count   | 1 |
+|  2     | 1    | EscChar | New escape character (stored in `CESCP`) |
+
+**Source:** `RP-P2-TAD.NPL:930–943` (`CSDAE`), `MP-P2-TAD.NPL:242–249` (`BDDESC`).
 
 **Processing (receive):**
 ```npl
@@ -174,33 +231,24 @@ IF D BIT "0" THEN A/\377 ELSE A SHZ -10 FI; A=:T
 CESCP/\177400+T=:CESCP
 ```
 
-**Example:**
+**Example** (escape = Ctrl-C):
 ```
-Set escape to Ctrl-C (0x03):
-┌───────┬────┬────┐
-│ 7DESC │ 01 │ 03 │
-└───────┴────┴────┘
-```
-
-### 78MOD - 8-Bit Mode
-
-**Purpose:** Enable/disable 8-bit character mode
-
-**Format:**
-```
-┌────────┬─────────┬──────────────┐
-│ 78MOD  │   02    │  UMOD Value  │
-│ (1)    │  (1)    │  (2)         │
-└────────┴─────────┴──────────────┘
+┌──────┬────┬────┐
+│ 0x0F │ 01 │ 03 │
+└──────┴────┴────┘
 ```
 
-**Code:** `0x384D4F44` ("8MOD")
+---
 
-**UMOD Value:**
-- `0x0000`: 7-bit mode (strip bit 7)
-- `0x0001`: 8-bit mode (pass all bits)
+### 4.5 78MOD — 8-bit Mode (0x2C)
 
-**Source:** `MP-P2-TAD.NPL:204-216` (`BD8MOD`)
+| Offset | Size | Field | Meaning |
+|-------:|-----:|-------|---------|
+|  0     | 1    | Type  | 0x2C |
+|  1     | 1    | Count | 2 |
+|  2     | 2    | UMOD  | Mode word; non-zero sets the `58BIT` flag (0x0001 = 8-bit, 0x0000 = 7-bit strip) |
+
+**Source:** `MP-P2-TAD.NPL:204–216` (`BD8MOD`).
 
 **Processing (receive):**
 ```npl
@@ -209,33 +257,44 @@ IF D BIT 17 THEN *LDDTX; AD SH 10 ELSE *LDATX FI
 IF A=1 THEN TINFO BONE 58BIT=:TINFO FI
 ```
 
-**Example:**
+---
+
+### 4.6 7UMOD — UMOD Strategy (0x2B, protocol v4+)
+
+| Offset | Size | Field    | Meaning |
+|-------:|-----:|----------|---------|
+|  0     | 1    | Type     | 0x2B |
+|  1     | 1    | Count    | 2 |
+|  2     | 2    | Strategy | 16-bit UMOD strategy word |
+
+Only legal once both sides have advertised protocol ≥ 4 via 7OPSV.
+
+**Source:** `RP-P2-TAD.NPL:880–896` (`CSUMOD`).
+
+**Processing (send):**
+```npl
+IF X.PORTNO=0 OR X.OSVTPN/\377<4 THEN EXIT FI  % Protocol must be >=4
+7UMOD; T:=2; CALL CREMES
+X:=BREG; A:=X.D4; CALL WORDPUT           % D4 contains UMOD strategy
+CALL SNDBUF
 ```
-Enable 8-bit mode:
-┌───────┬────┬─────┬─────┐
-│ 78MOD │ 02 │ 00  │ 01  │
-└───────┴────┴─────┴─────┘
-```
 
-### 7OPSV - OPSYS Version and TAD Protocol
+---
 
-**Purpose:** Exchange operating system version and TAD protocol number
+### 4.7 7OPSV — OS / Protocol Version (0x1F)
 
-**Format:**
-```
-┌────────┬─────────┬────────────────────────────┐
-│ 7OPSV  │   03    │  OS Ver  │  TAD Protocol   │
-│ (1)    │  (1)    │  (1)     │  (2)            │
-└────────┴─────────┴────────────────────────────┘
-```
+| Offset | Size | Field      | Meaning |
+|-------:|-----:|------------|---------|
+|  0     | 1    | Type       | 0x1F |
+|  1     | 1    | Count      | 3 |
+|  2     | 1    | OS version | SINTRAN version code |
+|  3     | 1    | OS subver  | Sub-version |
+|  4     | 1    | Protocol   | TAD protocol version (gates v4+ features e.g. 7UMOD/78MOD) |
 
-**Code:** `0x4F505356` ("OPSV")
+Stored in `OSVTPN`. **This is the handshake message** — both sides must exchange
+it before optional-feature messages are legal.
 
-**Fields:**
-- **OS Version:** SINTRAN version number
-- **TAD Protocol:** TAD protocol level (3 = full features)
-
-**Source:** `MP-P2-TAD.NPL:223-235` (`BDOPSV`)
+**Source:** `MP-P2-TAD.NPL:223–235` (`BDOPSV`).
 
 **Processing (receive):**
 ```npl
@@ -250,56 +309,37 @@ FI
 A=:OSVTPN
 ```
 
-**Example:**
+**Example** (SINTRAN L=12, protocol 3):
 ```
-SINTRAN L (version 12), Protocol 3:
-┌───────┬────┬────┬─────┬─────┐
-│ 7OPSV │ 03 │ 0C │ 00  │ 03  │
-└───────┴────┴────┴─────┴─────┘
+┌──────┬────┬────┬────┬────┐
+│ 0x1F │ 03 │ 0C │ 00 │ 03 │
+└──────┴────┴────┴────┴────┘
 ```
 
 ---
 
-## Break and Echo Messages
+## 5. Break and Echo Messages
 
-### 7BMMX - Break Message
+### 5.1 7BMMX — Break Strategy / Max Break (0x04)
 
-**Purpose:** Define break character detection strategy
+| Offset | Size | Field      | Meaning |
+|-------:|-----:|------------|---------|
+|  0     | 1    | Type       | 0x04 |
+|  1     | 1    | Count      | 3 (no table) **or** 23 (with 20-byte table) |
+|  2     | 1    | Strategy   | Break strategy code (see below) |
+|  3     | 2    | MaxBreak   | Maximum break level (16-bit) |
+|  5     | 20   | Break tbl  | *(optional)* break-character classification table |
 
-**Format (Simple):**
-```
-┌────────┬─────────┬──────────┬──────────┬──────────┐
-│ 7BMMX  │   03    │ Strategy │  MaxBreak (2 bytes) │
-│ (1)    │  (1)    │  (1)     │  (2)                │
-└────────┴─────────┴──────────┴──────────┴──────────┘
-```
+**Strategy values:**
+- `1–6` — predefined break strategies
+- `7` — custom break table (20 bytes = 8 words of character bitmap, follows in message)
+- `8`, `9` — strategies 8/9 (protocol ≥ 3)
+- `11` — custom break table from user's BRKTAB
 
-**Format (Table):**
-```
-┌────────┬─────────┬──────────┬──────────┬─────────────────────┐
-│ 7BMMX  │   23    │ Strategy │ MaxBreak │  Break Table (20)   │
-│ (1)    │  (1)    │  (1)     │  (2)     │  (20)               │
-└────────┴─────────┴──────────┴──────────┴─────────────────────┘
-```
+**Break table format:** 8 words (20 bytes) where each bit represents a character —
+word 0 bit 0 = char 0x00, word 7 bit 15 = char 0x7F.
 
-**Code:** `0x424D4D58` ("BMMX")
-
-**Strategy Values:**
-- `1-6`: Predefined break strategies
-- `7`: Custom break table (20 bytes = 8 words of character bitmap)
-- `8`: Strategy 8 (if protocol >= 3)
-- `9`: Strategy 9 (if protocol >= 3)
-- `11`: Custom break table from user's BRKTAB
-
-**MaxBreak:** Maximum break level (0-255)
-
-**Break Table Format:** 8 words (20 bytes) where each bit represents a character:
-- Word 0, bit 0 = character 0x00
-- Word 0, bit 15 = character 0x0F
-- Word 7, bit 0 = character 0x70
-- Word 7, bit 15 = character 0x7F
-
-**Source:** `RP-P2-TAD.NPL:766-795` (`BDBREA`)
+**Source:** `RP-P2-TAD.NPL:766–795` (`BDBREA`).
 
 **Processing (send):**
 ```npl
@@ -315,42 +355,20 @@ IF D=7 THEN
 FI
 ```
 
-**Example (Strategy 1):**
-```
-┌───────┬────┬────┬─────┬─────┐
-│ 7BMMX │ 03 │ 01 │ 00  │ 10  │  (Strategy 1, MaxBreak=16)
-└───────┴────┴────┴─────┴─────┘
-```
+---
 
-### 7ECKM - Echo Message
+### 5.2 7ECKM — Echo Strategy (0x03)
 
-**Purpose:** Define character echo strategy
+| Offset | Size | Field        | Meaning |
+|-------:|-----:|--------------|---------|
+|  0     | 1    | Type         | 0x03 |
+|  1     | 1    | Count        | 1 (no table) **or** 21 (with 20-byte table) |
+|  2     | 1    | Strategy     | Echo strategy code (1–6 predefined, 7 = custom) |
+|  3     | 20   | Echo table   | *(optional)* echo-character classification table |
 
-**Format (Simple):**
-```
-┌────────┬─────────┬──────────┐
-│ 7ECKM  │   01    │ Strategy │
-│ (1)    │  (1)    │  (1)     │
-└────────┴─────────┴──────────┘
-```
+**Echo table format:** Same layout as break table (8 words; bit per character).
 
-**Format (Table):**
-```
-┌────────┬─────────┬──────────┬─────────────────────┐
-│ 7ECKM  │   21    │ Strategy │  Echo Table (20)    │
-│ (1)    │  (1)    │  (1)     │  (20)               │
-└────────┴─────────┴──────────┴─────────────────────┘
-```
-
-**Code:** `0x45434B4D` ("ECKM")
-
-**Strategy Values:**
-- `1-6`: Predefined echo strategies
-- `7`: Custom echo table (20 bytes = 8 words of character bitmap)
-
-**Echo Table Format:** Same as break table - 8 words where each bit represents whether to echo that character
-
-**Source:** `RP-P2-TAD.NPL:735-758` (`BDECHO`)
+**Source:** `RP-P2-TAD.NPL:735–758` (`BDECHO`).
 
 **Processing (send):**
 ```npl
@@ -362,69 +380,46 @@ IF D=7 THEN
 FI
 ```
 
-**Example (Strategy 2):**
-```
-┌───────┬────┬────┐
-│ 7ECKM │ 01 │ 02 │
-└───────┴────┴────┘
-```
+---
+
+## 6. Request and Response Messages
+
+### 6.1 7RFI — Ready For Input (0x02)
+
+| Offset | Size | Field | Value |
+|-------:|-----:|-------|-------|
+|  0     | 1    | Type  | 0x02 |
+|  1     | 1    | Count | 0 |
+
+Pure flow-control credit. "I have a fresh input buffer; you may send."
+
+**When sent:**
+- Input buffer empty and user requests input
+- After rejecting a data message
+- In nowait mode when no data available
+
+**Source:** `RP-P2-TAD.NPL:1113–1147` (`SNDRFI`).
+
+> Note: there is also a precomputed packed literal `7RFIL = 040442₈` in
+> `RTLO-SYMBOLS.SYMB.TXT:1185` — this is `(7RFI<<8) | 0x42` used as an immediate
+> operand to write the whole 2-byte header in one word store.
 
 ---
 
-## Request and Response Messages
+### 6.2 7REJE — Reject (0xFE)
 
-### 7RFI - Ready For Input
+| Offset | Size | Field    | Meaning |
+|-------:|-----:|----------|---------|
+|  0     | 1    | Type     | 0xFE |
+|  1     | 1    | Count    | 1 |
+|  2     | 1    | BadType  | The opcode that was rejected |
 
-**Purpose:** Request more input data (buffer empty)
+**When sent:**
+- Inconsistent message (size mismatch)
+- Unexpected control message
+- Message arrived in wrong state
 
-**Format:**
-```
-┌────────┬─────────┐
-│  7RFI  │   00    │
-│  (1)   │  (1)    │
-└────────┴─────────┘
-```
-
-**Code:** `0x52464920` ("RFI ")
-
-**No data field** - just header
-
-**Source:** `RP-P2-TAD.NPL:1115-1147` (`SNDRFI`)
-
-**When Sent:**
-- Input buffer empty and user requests input
-- After rejecting data message
-- In nowait mode when no data available
-
-**Example:**
-```
-┌──────┬────┐
-│ 7RFI │ 00 │
-└──────┴────┘
-```
-
-### 7REJE - Reject Message
-
-**Purpose:** Reject invalid/unexpected message
-
-**Format:**
-```
-┌────────┬─────────┬─────────────────┐
-│ 7REJE  │   01    │  Rejected Type  │
-│ (1)    │  (1)    │  (1)            │
-└────────┴─────────┴─────────────────┘
-```
-
-**Code:** `0x52454A45` ("REJE")
-
-**Rejected Type:** Message type code that was rejected
-
-**Source:** `RP-P2-TAD.NPL:1161-1201` (`SNDREJ`), `MP-P2-TAD.NPL:926-948` (`REJECT`)
-
-**When Sent:**
-- Received inconsistent message (size mismatch)
-- Received unexpected control message
-- Received message for wrong state
+**Source:** `RP-P2-TAD.NPL:1161–1201` (`SNDREJ`), `MP-P2-TAD.NPL:926–948` (`REJECT`).
 
 **Processing (send):**
 ```npl
@@ -436,60 +431,26 @@ FI
 CALL SNDBUF
 ```
 
-**Example:**
-```
-Reject TMOD message:
-┌───────┬────┬──────┐
-│ 7REJE │ 01 │ 7TMOD│
-└───────┴────┴──────┘
-```
+---
 
-### 7ISRQ - ISIZE Request
+### 6.3 7ISRQ / 7ISRS — Input Size Query (0x22 / 0x23)
 
-**Purpose:** Query buffer/input size
+**7ISRQ — Request:**
 
-**Format:**
-```
-┌────────┬─────────┐
-│ 7ISRQ  │   00    │
-│ (1)    │  (1)    │
-└────────┴─────────┘
-```
+| Offset | Size | Field | Value |
+|-------:|-----:|-------|-------|
+|  0     | 1    | Type  | 0x22 |
+|  1     | 1    | Count | 0 |
 
-**Code:** `0x49535251` ("ISRQ")
+**7ISRS — Response:**
 
-**No data field**
+| Offset | Size | Field | Meaning |
+|-------:|-----:|-------|---------|
+|  0     | 1    | Type  | 0x23 |
+|  1     | 1    | Count | 2 |
+|  2     | 2    | Size  | 16-bit size: number of characters available; bit 15 (0x8000) flags break present |
 
-**Source:** `RP-P2-TAD.NPL:991-1000` (`BISIZ/PISIZ`)
-
-**Response:** `7ISRS` message with size
-
-**Example:**
-```
-┌───────┬────┐
-│ 7ISRQ │ 00 │
-└───────┴────┘
-```
-
-### 7ISRS - ISIZE Response
-
-**Purpose:** Report buffer/input size
-
-**Format:**
-```
-┌────────┬─────────┬──────────────┐
-│ 7ISRS  │   02    │  Size (2)    │
-│ (1)    │  (1)    │  (2)         │
-└────────┴─────────┴──────────────┘
-```
-
-**Code:** `0x49535253` ("ISRS")
-
-**Size:** 16-bit size value
-- Number of characters available
-- Bit 15 (0x8000) indicates break character present
-
-**Source:** `MP-P2-TAD.NPL:563-570` (processing)
+**Source:** `RP-P2-TAD.NPL:958–1009` (`BISIZ`/`PISIZ`), `MP-P2-TAD.NPL:563–570` (response handling).
 
 **Processing (receive):**
 ```npl
@@ -502,31 +463,17 @@ IF OTAD.RSPNUM=7ISRS THEN
 FI
 ```
 
-**Example:**
-```
-100 characters available, no break:
-┌───────┬────┬─────┬─────┐
-│ 7ISRS │ 02 │ 00  │ 64  │  (0x0064 = 100)
-└───────┴────┴─────┴─────┘
-```
+---
 
-### 7ERRS - Error Response
+### 6.4 7ERRS — Error Response (0xFB)
 
-**Purpose:** Report error condition
+| Offset | Size | Field   | Meaning |
+|-------:|-----:|---------|---------|
+|  0     | 1    | Type    | 0xFB |
+|  1     | 1    | Count   | 2 |
+|  2     | 2    | ErrCode | 16-bit SINTRAN error code (passed to `MFERSP`) |
 
-**Format:**
-```
-┌────────┬─────────┬─────────────────┐
-│ 7ERRS  │   02    │  Error Code (2) │
-│ (1)    │  (1)    │  (2)            │
-└────────┴─────────┴─────────────────┘
-```
-
-**Code:** `0x45525253` ("ERRS")
-
-**Error Code:** 16-bit SINTRAN error code
-
-**Source:** `MP-P2-TAD.NPL:571-578` (processing)
+**Source:** `MP-P2-TAD.NPL:571–578`.
 
 **Processing (receive):**
 ```npl
@@ -540,35 +487,21 @@ IF OTAD.RSPNUM=7ERRS THEN
 FI
 ```
 
-**Example:**
-```
-Error TER00 (0x0165):
-┌───────┬────┬─────┬─────┐
-│ 7ERRS │ 02 │ 01  │ 65  │
-└───────┴────┴─────┴─────┘
-```
-
 ---
 
-## System Control Messages
+## 7. System Control Messages
 
-### 7SYCN - System Control
+### 7.1 7SYCN — System Control (0x13)
 
-**Purpose:** Send system control command
+| Offset | Size | Field   | Meaning |
+|-------:|-----:|---------|---------|
+|  0     | 1    | Type    | 0x13 |
+|  1     | 1    | Count   | 2 |
+|  2     | 2    | Command | 16-bit system command code |
 
-**Format:**
-```
-┌────────┬─────────┬─────────────────┐
-│ 7SYCN  │   02    │  Control Word   │
-│ (1)    │  (1)    │  (2)            │
-└────────┴─────────┴─────────────────┘
-```
+**Auto-send conditions:** command word = 1, 13 (0x0D = CR), or 17 (0x11 = DC1).
 
-**Code:** `0x5359434E` ("SYCN")
-
-**Control Word:** System-specific control code
-
-**Source:** `RP-P2-TAD.NPL:597-609` (`CTOBAD`)
+**Source:** `RP-P2-TAD.NPL:597–609` (`CTOBAD`).
 
 **Processing (send):**
 ```npl
@@ -580,76 +513,32 @@ IF AREG=23 THEN
 FI
 ```
 
-**Auto-send conditions:**
-- Control word = 1 (always send)
-- Control word = 13 (0x0D - CR)
-- Control word = 17 (0x11 - DC1)
+### 7.2 7USCN — User Control (0x14)
 
-**Example:**
-```
-System control 0x0001:
-┌───────┬────┬─────┬─────┐
-│ 7SYCN │ 02 │ 00  │ 01  │
-└───────┴────┴─────┴─────┘
-```
+| Offset | Size | Field   | Meaning |
+|-------:|-----:|---------|---------|
+|  0     | 1    | Type    | 0x14 |
+|  1     | 1    | Count   | 2 |
+|  2     | 2    | Command | 16-bit user command code |
 
-### 7USCN - User Control
-
-**Purpose:** Send user control command
-
-**Format:**
-```
-┌────────┬─────────┬─────────────────┐
-│ 7USCN  │   02    │  Control Word   │
-│ (1)    │  (1)    │  (2)            │
-└────────┴─────────┴─────────────────┘
-```
-
-**Code:** `0x5553434E` ("USCN")
-
-**Control Word:** User-specific control code
-
-**Source:** `RP-P2-TAD.NPL:597-609` (`CTOBAD`)
-
-**Processing (send):**
+Same builder routine as 7SYCN (`CTOBAD`). Always **sends and waits** for a 7ERRS response:
 ```npl
-IF AREG=23 THEN 7SYCN ELSE 7USCN FI
-T:=2; CALL CREMES
-DREG; CALL WORDPUT
-IF AREG=23 THEN
-   % ... system control handling ...
 ELSE
    7ERRS; CALL SNDWT     % Send and wait for error response
 FI
 ```
 
-**Always waits for response** (`7ERRS` message)
+---
 
-**Example:**
-```
-User control 0x0042:
-┌───────┬────┬─────┬─────┐
-│ 7USCN │ 02 │ 00  │ 42  │
-└───────┴────┴─────┴─────┘
-```
+### 7.3 7CPCO — Completion Code (0xFA)
 
-### 7CPCO - Completion Code
+| Offset | Size | Field | Meaning |
+|-------:|-----:|-------|---------|
+|  0     | 1    | Type  | 0xFA |
+|  1     | 1    | Count | 4 |
+|  2     | 4    | Code  | 32-bit completion code (high word first: CPC1, CPC2) |
 
-**Purpose:** Report operation completion status
-
-**Format:**
-```
-┌────────┬─────────┬────────────────────────────┐
-│ 7CPCO  │   04    │  Completion Code (4 bytes) │
-│ (1)    │  (1)    │  (4)                       │
-└────────┴─────────┴────────────────────────────┘
-```
-
-**Code:** `0x4350434F` ("CPCO")
-
-**Completion Code:** 32-bit completion code (2 words)
-
-**Source:** `RP-P2-TAD.NPL:1065-1076` (`SNDCP`)
+**Source:** `RP-P2-TAD.NPL:1062–1076` (`SNDCP`).
 
 **Processing (send):**
 ```npl
@@ -661,37 +550,20 @@ TDBTPT+4=:TDBTPT; REMSIZ-4=:REMSIZ
 CALL SNDBUF
 ```
 
-**Example:**
-```
-Completion code 0x12345678:
-┌───────┬────┬─────┬─────┬─────┬─────┐
-│ 7CPCO │ 04 │ 12  │ 34  │ 56  │ 78  │
-└───────┴────┴─────┴─────┴─────┴─────┘
-```
-
 ---
 
-## Connection Control Messages
+## 8. Connection Control Messages
 
-### 7RESE - Reset
+### 8.1 7RESE — Reset (0x16)
 
-**Purpose:** Reset TAD connection to initial state
+| Offset | Size | Field | Value |
+|-------:|-----:|-------|-------|
+|  0     | 1    | Type  | 0x16 |
+|  1     | 1    | Count | 0 |
 
-**Format:**
-```
-┌────────┬─────────┐
-│ 7RESE  │   00    │
-│ (1)    │  (1)    │
-└────────┴─────────┘
-```
+Reset connection to initial state. Triggers a `7RECO` (Reset Confirm) response.
 
-**Code:** `0x52455345` ("RESE")
-
-**No data field**
-
-**Source:** `RP-P2-TAD.NPL:558-564` (`CTIBAD`)
-
-**Triggers:** `7RECO` (Reset Confirm) response
+**Source:** `RP-P2-TAD.NPL:558–564` (`CTIBAD`).
 
 **Processing (send):**
 ```npl
@@ -699,30 +571,16 @@ Completion code 0x12345678:
 7RECO; CALL SNDWT     % Send reset and wait for confirm
 ```
 
-**Example:**
-```
-┌───────┬────┐
-│ 7RESE │ 00 │
-└───────┴────┘
-```
+---
 
-### 7RECO - Reset Confirm
+### 8.2 7RECO — Reset Confirm (0x17)
 
-**Purpose:** Acknowledge reset request
+| Offset | Size | Field | Value |
+|-------:|-----:|-------|-------|
+|  0     | 1    | Type  | 0x17 |
+|  1     | 1    | Count | 0 |
 
-**Format:**
-```
-┌────────┬─────────┐
-│ 7RECO  │   00    │
-│ (1)    │  (1)    │
-└────────┴─────────┘
-```
-
-**Code:** `0x5245434F` ("RECO")
-
-**No data field**
-
-**Source:** `MP-P2-TAD.NPL:559-562` (processing)
+**Source:** `MP-P2-TAD.NPL:559–562`.
 
 **Processing (receive):**
 ```npl
@@ -732,30 +590,18 @@ IF X=RESCF THEN                            % RESET-CONF
 FI
 ```
 
-**Example:**
-```
-┌───────┬────┐
-│ 7RECO │ 00 │
-└───────┴────┘
-```
+---
 
-### 7DCON - Disconnect
+### 8.3 7DCON — Disconnect (0x09)
 
-**Purpose:** Request TAD disconnection
+| Offset | Size | Field | Value |
+|-------:|-----:|-------|-------|
+|  0     | 1    | Type  | 0x09 |
+|  1     | 1    | Count | 0 |
 
-**Format:**
-```
-┌────────┬─────────┐
-│ 7DCON  │   00    │
-│ (1)    │  (1)    │
-└────────┴─────────┘
-```
+Triggers `DSTOTA` (forced disconnect with cleanup).
 
-**Code:** `0x44434F4E` ("DCON")
-
-**No data field**
-
-**Source:** `MP-P2-TAD.NPL:626-628` (processing)
+**Source:** `MP-P2-TAD.NPL:626–628`.
 
 **Processing (receive):**
 ```npl
@@ -764,36 +610,20 @@ IF X=BDDIS THEN                            % DISCONNECT-MESSAGE
 FI
 ```
 
-**Triggers:** `DSTOTA` (forced disconnect with cleanup)
-
-**Example:**
-```
-┌───────┬────┐
-│ 7DCON │ 00 │
-└───────┴────┘
-```
-
 ---
 
-## Escape and Local Mode Messages
+## 9. Escape and Local Mode Messages
 
-### 7ESCA - Escape
+### 9.1 7ESCA — Escape (0x08)
 
-**Purpose:** Signal escape character received
+| Offset | Size | Field | Value |
+|-------:|-----:|-------|-------|
+|  0     | 1    | Type  | 0x08 |
+|  1     | 1    | Count | 0 |
 
-**Format:**
-```
-┌────────┬─────────┐
-│ 7ESCA  │   00    │
-│ (1)    │  (1)    │
-└────────┴─────────┘
-```
+Signal that an escape character was received. Triggers an escape response (`7CERS`).
 
-**Code:** `0x45534341` ("ESCA")
-
-**No data field**
-
-**Source:** `MP-P2-TAD.NPL:602-625` (processing)
+**Source:** `MP-P2-TAD.NPL:602–625`.
 
 **Processing (receive):**
 ```npl
@@ -814,49 +644,31 @@ IF X=BDESC OR X=RLOCA THEN
       CALL MXMSG                           % Write escape response
    ELSE                                    % ESCAPE DISABLED
       TAD:=EDRSP; T=:X:=XFWHD
-      CALL MXMSG                           % Write escape disabled response
+      CALL MXMSG
       AD:=OTAD.PARTNER; X:=PORTNO
       T:=XFSND; CALL MXMSG                 % Send response
    FI
 FI
 ```
 
-**Triggers:** Escape response (`7CERS`)
+---
 
-**Example:**
-```
-┌───────┬────┐
-│ 7ESCA │ 00 │
-└───────┴────┘
-```
+### 9.2 7CERS — Escape Response (0x21)
 
-### 7CERS - Escape Response
+| Offset | Size | Field | Value |
+|-------:|-----:|-------|-------|
+|  0     | 1    | Type  | 0x21 |
+|  1     | 1    | Count | 0 |
 
-**Purpose:** Acknowledge escape processing
+**Source:** `MP-P2-TAD.NPL:555–558`, `RP-P2-TAD.NPL:915` (send).
 
-**Format:**
-```
-┌────────┬─────────┐
-│ 7CERS  │   00    │
-│ (1)    │  (1)    │
-└────────┴─────────┘
-```
-
-**Code:** `0x43455253` ("CERS")
-
-**No data field**
-
-**Source:** `MP-P2-TAD.NPL:555-558` (processing), `RP-P2-TAD.NPL:915` (send)
-
-**Processing (receive):**
+**Processing:**
 ```npl
 IF A=CESCR THEN                            % CESC-RESP
    IF OTAD.RSPNUM=7CERS GO RSPRST
    GO TDRINP
 FI
 ```
-
-**Processing (send):**
 ```npl
 IF TDRADDR.RTRES=RTREF THEN
    7CERS; CALL SNDWT                       % SEND AND WAIT FOR RESPONSE
@@ -865,63 +677,31 @@ ELSE
 FI
 ```
 
-**Example:**
-```
-┌───────┬────┐
-│ 7CERS │ 00 │
-└───────┴────┘
-```
+---
 
-### 7RLOC - Remote Local
+### 9.3 7RLOC — Remote/Local (0x27)
 
-**Purpose:** Remote/local mode switch (NORD-NET)
+| Offset | Size | Field | Value |
+|-------:|-----:|-------|-------|
+|  0     | 1    | Type  | 0x27 |
+|  1     | 1    | Count | 0 |
 
-**Format:**
-```
-┌────────┬─────────┐
-│ 7RLOC  │   00    │
-│ (1)    │  (1)    │
-└────────┴─────────┘
-```
-
-**Code:** `0x524C4F43` ("RLOC")
-
-**No data field**
-
-**Source:** Same as `7ESCA` processing
-
-**Purpose:** In NORD-NET, this toggles between:
-- **Remote mode:** Terminal connected to remote system
-- **Local mode:** Terminal connected to local system
-
-**Example:**
-```
-┌───────┬────┐
-│ 7RLOC │ 00 │
-└───────┴────┘
-```
+NORD-NET remote/local mode toggle. Same handler as `7ESCA`. Switches the terminal
+between connection to remote system vs local system.
 
 ---
 
-## Nowait Mode Messages
+## 10. Nowait Mode Messages
 
-### 7NOWT - Nowait Status
+### 10.1 7NOWT — Nowait Status (0x24)
 
-**Purpose:** Report nowait operation status (normal termination)
+| Offset | Size | Field  | Meaning |
+|-------:|-----:|--------|---------|
+|  0     | 1    | Type   | 0x24 |
+|  1     | 1    | Count  | 1 |
+|  2     | 1    | Status | Operation status (0 = success) |
 
-**Format:**
-```
-┌────────┬─────────┬──────────┐
-│ 7NOWT  │   01    │  Status  │
-│ (1)    │  (1)    │  (1)     │
-└────────┴─────────┴──────────┘
-```
-
-**Code:** `0x4E4F5754` ("NOWT")
-
-**Status:** Operation status code (0 = success)
-
-**Source:** `RP-P2-TAD.NPL:1088-1102` (`NOWTSTA`)
+**Source:** `RP-P2-TAD.NPL:1084–1102` (`NOWTSTA`).
 
 **Processing (send):**
 ```npl
@@ -931,57 +711,24 @@ NWS; CALL STORBYT
 CALL SNDBUF
 ```
 
-**Example:**
-```
-Success (status 0):
-┌───────┬────┬────┐
-│ 7NOWT │ 01 │ 00 │
-└───────┴────┴────┘
-```
+### 10.2 7TNOW — Terminate Nowait (0x25)
 
-### 7TNOW - Terminate Nowait
+| Offset | Size | Field  | Meaning |
+|-------:|-----:|--------|---------|
+|  0     | 1    | Type   | 0x25 |
+|  1     | 1    | Count  | 1 |
+|  2     | 1    | Status | Error code (non-zero) |
 
-**Purpose:** Report nowait operation termination (error)
+Same builder as `7NOWT`.
 
-**Format:**
-```
-┌────────┬─────────┬──────────┐
-│ 7TNOW  │   01    │  Status  │
-│ (1)    │  (1)    │  (1)     │
-└────────┴─────────┴──────────┘
-```
+### 10.3 7NWRE — Nowait Restart (0x26)
 
-**Code:** `0x544E4F57` ("TNOW")
+| Offset | Size | Field | Value |
+|-------:|-----:|-------|-------|
+|  0     | 1    | Type  | 0x26 |
+|  1     | 1    | Count | 0 |
 
-**Status:** Error code (non-zero)
-
-**Source:** Same as `7NOWT`
-
-**Example:**
-```
-Error (status 5):
-┌───────┬────┬────┐
-│ 7TNOW │ 01 │ 05 │
-└───────┴────┴────┘
-```
-
-### 7NWRE - Nowait Restart
-
-**Purpose:** Restart nowait operation
-
-**Format:**
-```
-┌────────┬─────────┐
-│ 7NWRE  │   00    │
-│ (1)    │  (1)    │
-└────────┴─────────┘
-```
-
-**Code:** `0x4E575245` ("NWRE")
-
-**No data field**
-
-**Source:** `MP-P2-TAD.NPL:477-481` (processing)
+**Source:** `MP-P2-TAD.NPL:477–481`.
 
 **Processing (receive):**
 ```npl
@@ -992,82 +739,47 @@ IF X=NWREM THEN                            % NOWAIT RESTART
 FI
 ```
 
-**Example:**
-```
-┌───────┬────┐
-│ 7NWRE │ 00 │
-└───────┴────┘
-```
-
 ---
 
-## Special Messages
+## 11. Special / Status Messages
 
-### 7DUMM - Dummy Message
+### 11.1 7DUMM — Dummy (0x18)
 
-**Purpose:** Empty message / padding
+| Offset | Size | Field | Value |
+|-------:|-----:|-------|-------|
+|  0     | 1    | Type  | 0x18 |
+|  1     | 1    | Count | 0 |
 
-**Format:**
-```
-┌────────┬─────────┐
-│ 7DUMM  │   00    │
-│ (1)    │  (1)    │
-└────────┴─────────┘
-```
+Padding/filler so a buffer can be flushed without carrying real data. Server handler
+`BDDUMM` at `MP-P2-TAD.NPL:256–260` simply skips it.
 
-**Code:** `0x44554D4D` ("DUMM")
-
-**No data field**
-
-**Source:** `MP-P2-TAD.NPL:256-260` (`BDDUMM`)
-
-**Usage:**
-- Replace data messages when clearing buffer
-- Initial buffer in `INISND`
-- Padding/alignment
-
-**Processing (receive):**
 ```npl
-IF A=7DUMM THEN
-   CALL BDDUMM
-FI
-
 BDDUMM: T:=REMBYT-; T-1; TDBTPT+T=:TDBTPT; REMSIZ-T=:REMSIZ
         0=:REMBYT
         EXITA
 ```
 
-**Example:**
-```
-┌───────┬────┐
-│ 7DUMM │ 00 │
-└───────┴────┘
-```
+**Usage:** replace data messages when clearing a buffer; initial buffer in `INISND`; alignment.
 
-### 7TREP - TREP Status
+---
 
-**Purpose:** Report transmission error status
+### 11.2 7TREP — Terminal Status Report (0x2A)
 
-**Format:**
-```
-┌────────┬─────────┬───────────────────┐
-│ 7TREP  │   02    │  Status Word (2)  │
-│ (1)    │  (1)    │  (2)              │
-└────────┴─────────┴───────────────────┘
-```
+| Offset | Size | Field  | Meaning |
+|-------:|-----:|--------|---------|
+|  0     | 1    | Type   | 0x2A |
+|  1     | 1    | Count  | 2 |
+|  2     | 2    | Status | TINFO status bits (see below) |
 
-**Code:** `0x54524550` ("TREP")
+**Status bits:**
 
-**Status Word:** Transmission status bits
+| Bit | Symbol  | Meaning            |
+|----:|---------|--------------------|
+|  2  | 5BFUL   | Buffer overrun     |
+|  3  | 5PAER   | Parity error       |
+|  4  | 5FRER   | Framing error      |
 
-**Status Bits:**
-| Bit | Name | Purpose |
-|-----|------|---------|
-| 2 | Buffer overrun | Receiver buffer full |
-| 3 | Parity error | Parity check failed |
-| 4 | Framing error | Frame sync lost |
-
-**Source:** `MP-P2-TAD.NPL:482-495` (processing)
+**Source:** `MP-P2-TAD.NPL:482–495`.
 
 **Processing (receive):**
 ```npl
@@ -1087,121 +799,254 @@ IF X=TREPS THEN                            % TREP STATUS
 FI
 ```
 
-**Example:**
-```
-Parity error (bit 3):
-┌───────┬────┬─────┬─────┐
-│ 7TREP │ 02 │ 00  │ 08  │  (0x0008)
-└───────┴────┴─────┴─────┘
-```
+---
 
-### 7UMOD - UMOD Strategy
+## 12. HDLC / XMSG Encapsulation
 
-**Purpose:** Set user mode strategy
+TAD never touches HDLC framing directly. The layering is:
 
-**Format:**
-```
-┌────────┬─────────┬──────────────────┐
-│ 7UMOD  │   02    │  UMOD Value (2)  │
-│ (1)    │  (1)    │  (2)             │
-└────────┴─────────┴──────────────────┘
-```
+```mermaid
+flowchart TB
+    APP[User process / monitor calls]:::blue
+    TAD[TAD message<br/>type+count+data]:::teal
+    XMSG[XMSG buffer<br/>routing+pool]:::green
+    HDLC[HDLC I-frame<br/>flag+addr+ctl+info+FCS+flag]:::purple
+    LINE[X.25 / sync line]:::orange
 
-**Code:** `0x554D4F44` ("UMOD")
+    APP --> TAD
+    TAD --> XMSG
+    XMSG --> HDLC
+    HDLC --> LINE
 
-**UMOD Value:** User mode configuration (16-bit)
-
-**Source:** `RP-P2-TAD.NPL:883-896` (`CSUMOD`)
-
-**Processing (send):**
-```npl
-IF X.PORTNO=0 OR X.OSVTPN/\377<4 THEN EXIT FI  % Protocol must be >=4
-7UMOD; T:=2; CALL CREMES
-X:=BREG; A:=X.D4; CALL WORDPUT           % D4 contains UMOD strategy
-CALL SNDBUF
+    classDef blue fill:#E3F2FD,stroke:#0D47A1,color:#0D47A1,stroke-width:2px
+    classDef teal fill:#E0F7FA,stroke:#00838F,color:#00838F,stroke-width:2px
+    classDef green fill:#E8F5E9,stroke:#2E7D32,color:#2E7D32,stroke-width:2px
+    classDef purple fill:#F3E5F5,stroke:#7B1FA2,color:#7B1FA2,stroke-width:2px
+    classDef orange fill:#FFF3E0,stroke:#E65100,color:#E65100,stroke-width:2px
 ```
 
-**Requires:** TAD protocol >= 4
+| Layer       | Owner                            | Source file (in `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/NPL/`) |
+|-------------|----------------------------------|-----------------------------------------------------------------------|
+| TAD message | RP-P2-TAD.NPL / MP-P2-TAD.NPL    | This document |
+| XMSG transport | (5P-P2-MON60 etc.)            | Monitor calls XFOPN/XFSND/XFRCV/XFWHD |
+| HDLC framing | MP-P2-HDLC-DRIV.NPL             | Bit stuffing, FCS, addr/ctl bytes |
+| Physical    | Sync line driver                 | — |
 
-**Example:**
-```
-UMOD strategy 0x0042:
-┌───────┬────┬─────┬─────┐
-│ 7UMOD │ 02 │ 00  │ 42  │
-└───────┴────┴─────┴─────┘
+Multiple TAD messages may be packed back-to-back inside one XMSG buffer (hence the
+odd-byte pad rule in §1).
+
+---
+
+## 13. Connection Establishment Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Client (RP)
+    participant S as Server (MP)
+
+    Note over C,S: HDLC link already up, X.25 VC established
+    C->>S: 7OPSV (OS+proto version)
+    S->>C: 7OPSV (OS+proto version)
+    Note over C,S: Both sides now know feature set
+
+    C->>S: 7TTYP (terminal type)
+    C->>S: 7TMOD (mode flags)
+    C->>S: 7DESC (escape char)
+    C->>S: 7CESC (enable escape)
+    S->>C: 7CERS (escape ack)
+
+    opt protocol >= 4
+        C->>S: 78MOD (8-bit mode)
+        C->>S: 7UMOD (UMOD strategy)
+    end
+
+    C->>S: 7ISRQ (query input size)
+    S->>C: 7ISRS (input size = N)
+
+    Note over C,S: Ready for data exchange
+    S->>C: 7RFI (initial credit)
 ```
 
 ---
 
-## Message Priority Levels
+## 14. Steady-State Data Exchange
 
-TAD messages have two priority levels handled differently by the driver:
+```mermaid
+sequenceDiagram
+    autonumber
+    participant T as Terminal (via Client)
+    participant C as Client (RP)
+    participant S as Server (MP)
+    participant U as User process
 
-### Normal Priority Messages
+    T->>C: keystrokes
+    C->>S: 7BDAT (input bytes)
+    S->>U: deliver to read
+    U->>S: write reply
+    S->>C: 7BDAT (output bytes)
+    C->>T: display
 
-**Processed sequentially from buffer:**
-- `7BDAT` - Data
-- `7TMOD` - Terminal mode
-- `7TTYP` - Terminal type
-- `7DESC` - Define escape
-- `78MOD` - 8-bit mode
-- `7OPSV` - OPSYS version
-- `7DUMM` - Dummy
+    Note over C,S: When server input buffer freed:
+    S->>C: 7RFI
 
-**Processing:**
-- Received only if input buffer empty (`BUFFID=0`)
-- Messages queued in receive buffer
-- Processed in order by `GETMES`
+    Note over C,S: Periodic / on-change:
+    S->>C: 7TREP (terminal status)
+```
 
-### High Priority Messages
+---
 
-**Processed immediately:**
-- `7ESCA` / `7RLOC` - Escape / remote-local
-- `7DCON` - Disconnect
-- `7CERS` - Escape response
-- `7RECO` - Reset confirm
-- `7NWRE` - Nowait restart
-- `7ISRS` - ISIZE response
-- `7ERRS` - Error response
-- `7TREP` - TREP status
+## 15. Error / Reset / Disconnect Flow
 
-**Processing:**
-- Received immediately even if input buffer has data
-- Stored in temporary buffer (`TMPBUF`)
-- Processed before returning to normal priority queue
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Client (RP)
+    participant S as Server (MP)
 
-**Source:** `MP-P2-TAD.NPL:445-496`
+    Note over C,S: Client detects bad state
+    C->>S: 7RESE (reset request)
+    Note over S: Drop pending data,<br/>requeue buffers
+    S->>C: 7RECO (reset confirm)
 
+    Note over C,S: Or: server sees bad opcode X
+    C->>S: 7?? (opcode X invalid)
+    S->>C: 7REJE [X] (rejected)
+
+    Note over C,S: Or: server has pending error
+    S->>C: 7ERRS (error code)
+
+    Note over C,S: Disconnect path
+    S->>C: 7DCON
+```
+
+---
+
+## 16. Server-Side Dispatch Map
+
+Source: `MP-P2-TAD.NPL` `BDRINP` (line 439) and dispatch table (line 508–530).
+
+```mermaid
+flowchart TD
+    IN[BDRINP receives buffer]:::blue --> DISP{Type?}:::teal
+
+    DISP -->|7BDAT 0x01| DATRES[DATRES line 540<br/>deliver to user]:::green
+    DISP -->|7TMOD 0x0C| BDTMOD[BDTMOD line 155<br/>update DFLAG/TINFO]:::green
+    DISP -->|7TTYP 0x0D| BDTTYP[BDTTYP line 188<br/>set CTTYP]:::green
+    DISP -->|78MOD 0x2C| BD8MOD[BD8MOD line 204<br/>set 58BIT]:::green
+    DISP -->|7DESC 0x0F| BDDESC[BDDESC line 242<br/>set CESCP]:::green
+    DISP -->|7DUMM 0x18| BDDUMM[BDDUMM line 256<br/>skip]:::green
+    DISP -->|7OPSV 0x1F| BDOPSV[BDOPSV line 223<br/>set OSVTPN]:::green
+    DISP -->|7CERS/7RECO/<br/>7ISRS/7ERRS/7TREP| CHRESO[CHRESO line 554<br/>response handling]:::purple
+    DISP -->|7ESCA/7RLOC/<br/>7DCON| ESCDIS[ESCDIS line 602<br/>escape/disconnect]:::orange
+    DISP -->|unknown| REJECT[REJECT line 926<br/>send 7REJE]:::red
+
+    classDef blue fill:#E3F2FD,stroke:#0D47A1,color:#0D47A1,stroke-width:2px
+    classDef teal fill:#E0F7FA,stroke:#00838F,color:#00838F,stroke-width:2px
+    classDef green fill:#E8F5E9,stroke:#2E7D32,color:#2E7D32,stroke-width:2px
+    classDef purple fill:#F3E5F5,stroke:#7B1FA2,color:#7B1FA2,stroke-width:2px
+    classDef orange fill:#FFF3E0,stroke:#E65100,color:#E65100,stroke-width:2px
+    classDef red fill:#FFEBEE,stroke:#B71C1C,color:#B71C1C,stroke-width:2px
+```
+
+---
+
+## 17. Client-Side Builder Map
+
+Source: `RP-P2-TAD.NPL`. Common pattern: `GETPOOL` → `CREMES` → `BYTPUT`/`WORDPUT` → `SNDBUF`.
+
+| Message | Builder routine        | Line range |
+|---------|------------------------|-----------:|
+| 7BDAT   | BYTPUT                 | 363–381    |
+| 7TMOD   | BTMOD / CTMOD          | 805–850    |
+| 7TTYP   | CSTYP                  | 860–872    |
+| 7UMOD   | CSUMOD                 | 880–896    |
+| 7DESC   | CSDAE                  | 930–943    |
+| 7ISRQ   | BISIZ / PISIZ          | 958–1009   |
+| 7CPCO   | SNDCP                  | 1062–1076  |
+| 7NOWT/7TNOW | NOWTSTA            | 1084–1102  |
+| 7RFI    | SNDRFI                 | 1113–1147  |
+| 7RESE/7RECO | CTIBAD             | 558–559    |
+| 7BMMX   | BDBREA                 | 766–795    |
+| 7ECKM   | BDECHO                 | 735–758    |
+| 7SYCN/7USCN | CTOBAD             | 597–609    |
+
+---
+
+## 18. Message Priority Levels
+
+TAD messages have two priority levels handled differently by the driver.
+
+### Normal Priority
+
+Processed sequentially from the input buffer:
+- `7BDAT` — Data
+- `7TMOD` — Terminal mode
+- `7TTYP` — Terminal type
+- `7DESC` — Define escape
+- `78MOD` — 8-bit mode
+- `7OPSV` — OPSYS version
+- `7DUMM` — Dummy
+
+Received only if input buffer empty (`BUFFID=0`); messages queued in receive buffer; processed in order by `GETMES`.
+
+### High Priority
+
+Processed immediately (out-of-band):
+- `7ESCA` / `7RLOC` — Escape / remote-local
+- `7DCON` — Disconnect
+- `7CERS` — Escape response
+- `7RECO` — Reset confirm
+- `7NWRE` — Nowait restart
+- `7ISRS` — ISIZE response
+- `7ERRS` — Error response
+- `7TREP` — TREP status
+
+Received even if input buffer has data; stored in temporary buffer (`TMPBUF`); processed before returning to normal priority queue.
+
+**Source:** `MP-P2-TAD.NPL:445–496`
 ```npl
 IF XMTHI><T GO FAR NORMP                   % NORMAL PRIORITY
-T:=XFRCV; A:=PORTNO; CALL MXMSG           % RECEIVE HIGH PRIORITY
+T:=XFRCV; A:=PORTNO; CALL MXMSG            % RECEIVE HIGH PRIORITY
 IF T=0 GO BDRWT
 X:=D=:TMPBUF
-T:=XFRHD; A:=TMPBUF; CALL MXMSG           % READ MESSAGE HEADER
-X=:HIGHT                                  % SAVE MESSAGE TYPE
+T:=XFRHD; A:=TMPBUF; CALL MXMSG            % READ MESSAGE HEADER
+X=:HIGHT                                   % SAVE MESSAGE TYPE
 % ... process high priority message ...
 GO TDRINP
 ```
 
+```mermaid
+flowchart LR
+    RX[XMSG receive]:::blue --> PRIO{Priority?}:::teal
+    PRIO -->|High XMTHI| TMP[TMPBUF<br/>immediate dispatch]:::orange
+    PRIO -->|Normal| BUF[Input buffer<br/>queued]:::green
+    TMP --> H[ESCA RLOC DCON CERS RECO<br/>NWRE ISRS ERRS TREP]:::purple
+    BUF --> N[GETMES sequential<br/>BDAT TMOD TTYP DESC<br/>8MOD OPSV DUMM]:::teal
+
+    classDef blue fill:#E3F2FD,stroke:#0D47A1,color:#0D47A1,stroke-width:2px
+    classDef teal fill:#E0F7FA,stroke:#00838F,color:#00838F,stroke-width:2px
+    classDef green fill:#E8F5E9,stroke:#2E7D32,color:#2E7D32,stroke-width:2px
+    classDef purple fill:#F3E5F5,stroke:#7B1FA2,color:#7B1FA2,stroke-width:2px
+    classDef orange fill:#FFF3E0,stroke:#E65100,color:#E65100,stroke-width:2px
+```
+
 ---
 
-## Buffer Management Integration
+## 19. Buffer Management Integration
 
-TAD uses XMSG for buffer management. Key operations:
+TAD uses XMSG for buffer management.
 
-### Buffer Pool Operations
-
-**Initialize Pool:** (`INIBDR` - Line 382)
+### Initialise pool — `INIBDR` (line 382)
 ```npl
 T:=XFALM; FBSIZ; X:=NOBUFF; CALL MXMSG    % Allocate space
 FOR X:=1 TO NOBUFF DO
    T:=XFGET; A:=FBSIZ; CALL MXMSG         % Get buffer
-   % ... add to pool ...
    CALL MPUTPOOL                          % Add to POOLLI chain
 OD
 ```
 
-**Get Buffer from Pool:** (`GETPOOL` - Line 44)
+### Get buffer from pool — `GETPOOL` (line 44)
 ```npl
 POOLLI; IF A=0 AND D=0 GO NOPOL           % Pool empty
 A=:T; D=:X; *LDDTX                        % Get next in chain
@@ -1211,7 +1056,7 @@ A=:BUFFID                                 % Set buffer ID
 41ITAD.FBSIZ-BUDIS=:REMSIZ                % Set remaining size
 ```
 
-**Return Buffer to Pool:** (`PUTPOOL` - Line 20)
+### Return buffer to pool — `PUTPOOL` (line 20)
 ```npl
 A=:T; D=:X; AD:=POOLLI; *STDTX            % Link old POOLLI
 X+2; A:=XREG; *STATX                      % Store buffer ID
@@ -1219,20 +1064,40 @@ AD=:POOLLI                                % Update POOLLI
 0=:BUFFID                                 % Clear buffer ID
 ```
 
-### Buffer State Tracking
+### Buffer states
 
-| State | Condition | Location |
-|-------|-----------|----------|
-| **Free** | In POOLLI chain | Buffer pool |
-| **Input Active** | ITAD.BUFFID != 0 | Input datafield |
-| **Output Active** | OTAD.BUFFID != 0 | Output datafield |
-| **Temporary** | TMPBUF != 0 | High-priority processing |
-| **Mail** | MBFID != 0 | Mail system |
+| State           | Condition           | Location              |
+|-----------------|---------------------|-----------------------|
+| Free            | In POOLLI chain     | Buffer pool           |
+| Input Active    | ITAD.BUFFID != 0    | Input datafield       |
+| Output Active   | OTAD.BUFFID != 0    | Output datafield      |
+| Temporary       | TMPBUF != 0         | High-priority handler |
+| Mail            | MBFID != 0          | Mail system           |
 
 ---
 
-**Document Path:** `Z:\NorskData\Source Code\Sintran L\NPL\TAD-Message-Formats.md`
+## 20. Known Gaps
 
-**Related Documents:**
-- `TAD-Protocol-Analysis.md` - Overall protocol analysis
-- `TAD-Protocol-Flows.md` - Protocol flow diagrams (to be created)
+Areas where the on-the-wire format is still partially inferred:
+
+| #  | Gap | Where to look next |
+|---:|-----|--------------------|
+| 1  | Echo/Break table (20-byte) bit semantics per char class | `BDECHO`/`BDBREA` callees, plus terminal-driver tables |
+| 2  | 7ERRS error code enumeration | Search for `ERRSP` constants in symbol tables |
+| 3  | 7SYCN / 7USCN command codes | Search NPL for `7SYCN`/`7USCN` write sites |
+| 4  | 7CPCO 32-bit code endianness (high word first assumed) | `SNDCP` byte-order in `RP-P2-TAD.NPL:1062` |
+| 5  | UMOD strategy values (v4+) | `CSUMOD` callers |
+| 6  | XMSG header bytes (before TAD payload) | `5P-P2-MON60.NPL` if available |
+| 7  | HDLC addr/ctl byte conventions on the link | `MP-P2-HDLC-DRIV.NPL` |
+
+---
+
+## Related Documents
+
+- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/TAD/TAD-Protocol-Analysis.md` — Overall protocol analysis
+- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/TAD/TAD-HDLC-Encapsulation.md` — HDLC layer detail
+- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/TAD/TAD-Protocol-Flows.md` — Protocol flow diagrams
+- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/TAD/TAD-X25-CUD-Specification.md` — X.25 Call User Data
+- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/TAD/TAD-Evidence-vs-Inference.md` — Verification status
+
+**Document path:** `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/TAD/TAD-Message-Formats.md`

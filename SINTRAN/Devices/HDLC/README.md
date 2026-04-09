@@ -106,6 +106,9 @@
 |----------|-------------|------|
 | [HDLC-ALL.md](HDLC-ALL.md) | **Master reference** - All content aggregated for searching | 23,358 lines |
 | [Quick-Reference-Card.md](Quick-Reference-Card.md) | One-page cheat sheet with critical info | ~150 lines |
+| [01-HDLC-Hardware-Reference.md](01-HDLC-Hardware-Reference.md) | Consolidated hardware reference (root copy) | - |
+| [REORGANIZATION-PROPOSAL.md](REORGANIZATION-PROPOSAL.md) | Documentation reorganization proposal | - |
+| [REORGANIZATION-SUMMARY.md](REORGANIZATION-SUMMARY.md) | Summary of documentation reorganization | - |
 
 ---
 

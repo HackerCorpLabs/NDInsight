@@ -28,6 +28,7 @@ Both device drivers have **complete NPL source code** available in [../NPL-SOURC
 | **[HDLC/](HDLC/)** | Communication | 30+ | ~350KB | ✅ Consolidated |
 | **[SCSI/](SCSI/)** | Storage | 10+ | ~125KB | ✅ Complete |
 | **[LINE-PRINTER-CONFIG-INSPECTION.md](LINE-PRINTER-CONFIG-INSPECTION.md)** | Output (Printer) | 1 | ~15KB | ✅ Complete |
+| **[Octobus/](Octobus/)** | Inter-processor bus | 2 | - | ✅ Reference |
 | **Total** | - | **40+** | **~490KB** | - |
 
 ---
@@ -509,6 +510,21 @@ When adding new device documentation:
 **Total Documentation**: ~475KB across 40+ files
 **Source Code**: Available in [../NPL-SOURCE/](../NPL-SOURCE/)
 **Status**: ✅ Complete with source code
+
+---
+
+---
+
+## 🔌 Octobus Interface
+
+**Location:** [Octobus/](Octobus/)
+**Hardware:** Norsk Data Octobus high-speed serial inter-processor bus
+**Purpose:** ND-100 ↔ ND-500 inter-processor communication (alternative to 5MPM)
+
+| Document | Description |
+|----------|-------------|
+| [Octobus/OCTOBUS-PROTOCOL-REFERENCE.md](Octobus/OCTOBUS-PROTOCOL-REFERENCE.md) | Complete protocol reference: registers, command codes, message structure |
+| [Octobus/octobus_protocol_frame_format_and_introduction.md](Octobus/octobus_protocol_frame_format_and_introduction.md) | Frame format and protocol introduction |
 
 ---
 

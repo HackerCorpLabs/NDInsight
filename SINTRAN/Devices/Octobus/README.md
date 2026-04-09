@@ -7,6 +7,7 @@ This folder contains documentation for the Norsk Data Octobus communication inte
 | File | Description |
 |------|-------------|
 | [OCTOBUS-PROTOCOL-REFERENCE.md](OCTOBUS-PROTOCOL-REFERENCE.md) | Complete protocol reference including register layout, command codes, message structure, and transmission mechanisms |
+| [octobus_protocol_frame_format_and_introduction.md](octobus_protocol_frame_format_and_introduction.md) | Frame format and protocol introduction |
 
 ## Overview
 
