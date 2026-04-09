@@ -919,10 +919,10 @@ STA ,X          % Store to bank 2
 
 1. **ND-60112-01-EN SINTRAN III System Documentation - Appendix A - Data Fields**
    - Published: June 1979
-   - Location: `D:\OCR\ai\ND-60112-01-EN SINTRAN III System Documentation - Appendix A - Data Fields\`
+   - Location: (external OCR archive) SINTRAN III System Documentation - Appendix A - Data Fields\`
 
 2. **SINTRAN L NPL Source Code**
-   - Location: `Z:\NorskData\Source Code\Sintran L\NPL\`
+   - Location: `Source Code\Sintran L\NPL\`
    - Files: See Appendix A
 
 3. **Key Files for Device Driver Setup:**

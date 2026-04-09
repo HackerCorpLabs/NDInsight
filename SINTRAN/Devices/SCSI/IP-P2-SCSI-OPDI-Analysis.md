@@ -3339,7 +3339,7 @@ This driver exemplifies the engineering required to support optical storage in a
 
 ---
 
-**Document generated from:** `Z:\NorskData\Source Code\Sintran L\NPL\IP-P2-SCSI-OPDI.NPL`
+**Document generated from:** `Source Code\Sintran L\NPL\IP-P2-SCSI-OPDI.NPL`
 
 **Analysis date:** 2025-10-13
 

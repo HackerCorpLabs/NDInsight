@@ -15175,7 +15175,7 @@ This is a **real terminal session** showing:
 
 ## Full Path to Document
 
-**Z:\NorskData\Source Code\Sintran L\Analysis\hdlc-analysis\ASCII_Data_Connected_Trace.md**
+**Source Code\Sintran L\Analysis\hdlc-analysis\ASCII_Data_Connected_Trace.md**
 
 
 ---
@@ -15615,7 +15615,7 @@ The communication captured shows:
 
 ## Full Path to Document
 
-**Z:\NorskData\Source Code\Sintran L\Analysis\hdlc-analysis\Complete_Packet_Type_Analysis.md**
+**Source Code\Sintran L\Analysis\hdlc-analysis\Complete_Packet_Type_Analysis.md**
 
 
 ---
@@ -16206,7 +16206,7 @@ ro... (rest encoded/encrypted)
 
 ## Full Path to Document
 
-**Z:\NorskData\Source Code\Sintran L\Analysis\hdlc-analysis\Deep_Frame_Analysis_Connected.md**
+**Source Code\Sintran L\Analysis\hdlc-analysis\Deep_Frame_Analysis_Connected.md**
 
 
 ---
@@ -16513,7 +16513,7 @@ The data being transferred is **binary protocol control information** with:
 
 ## Full Path to Document
 
-**Z:\NorskData\Source Code\Sintran L\Analysis\hdlc-analysis\Raw_Byte_Analysis_No_Assumptions.md**
+**Source Code\Sintran L\Analysis\hdlc-analysis\Raw_Byte_Analysis_No_Assumptions.md**
 
 
 ---
@@ -16798,7 +16798,7 @@ Byte Offset | Hex    Dec   ASCII  | Interpretation
 
 ## Full Path to Document
 
-**Z:\NorskData\Source Code\Sintran L\Analysis\hdlc-analysis\Payload_Data_Analysis.md**
+**Source Code\Sintran L\Analysis\hdlc-analysis\Payload_Data_Analysis.md**
 
 
 ---
@@ -16808,7 +16808,7 @@ Byte Offset | Hex    Dec   ASCII  | Interpretation
 
 ## Trace/Debug Analysis: First_Connect_Analysis.md
 
-# First Connect Trace Analysis: C:\Users\ronny\AppData\Local\trace\SIN-X-TRACE\first-connect-to.txt
+# First Connect Trace Analysis: (local trace file)
 
 ## Executive Summary
 
@@ -17184,7 +17184,7 @@ The SINTRAN system may be using **Permanent Virtual Circuits (PVCs)** configured
 
 ## Full Path to Document
 
-**Z:\NorskData\Source Code\Sintran L\Analysis\hdlc-analysis\First_Connect_Analysis.md**
+**Source Code\Sintran L\Analysis\hdlc-analysis\First_Connect_Analysis.md**
 
 ## Related Documents
 

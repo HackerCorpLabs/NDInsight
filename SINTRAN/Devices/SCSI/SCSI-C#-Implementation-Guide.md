@@ -781,5 +781,5 @@ The current C# implementation executes the entire SCSI transaction synchronously
 ---
 
 **Document Created:** 2025-10-13
-**Based on Analysis of:** `Z:\NorskData\Source Code\Sintran L\NPL\IP-P2-SCSI-DRIV-ANALYSIS.md`
-**Target Implementation:** `E:\Dev\Repos\Ronny\RetroCore\Emulated.HW\ND\CPU\NDBUS\NDBusDiscControllerSCSI.cs`
+**Based on Analysis of:** `Source Code\Sintran L\NPL\IP-P2-SCSI-DRIV-ANALYSIS.md`
+**Target Implementation:** `RetroCore: Emulated.HW\ND\CPU\NDBUS\NDBusDiscControllerSCSI.cs`

@@ -412,7 +412,7 @@ Each ND-500 CPU in a multi-processor system must know its CPU number (0-4) to ca
 
 2. **MPM5 Hardware Capabilities:**
 
-   **Reference:** [ND-10.004.01 MPM 5 Technical Description](E:\Dev\Ronny\NDInsight\Reference-Manuals\ND-10.004.01 MPM 5 Technical Description.md), Section 1.5.9
+   **Reference:** [ND-10.004.01 MPM 5 Technical Description](../../Reference-Manuals/ND-10.004.01 MPM 5 Technical Description.md), Section 1.5.9
 
    The MPM5 module has hardware registers that provide slot position information:
 

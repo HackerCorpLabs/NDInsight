@@ -579,4 +579,4 @@ ro... (rest encoded/encrypted)
 
 ## Full Path to Document
 
-**Z:\NorskData\Source Code\Sintran L\Analysis\hdlc-analysis\Deep_Frame_Analysis_Connected.md**
+**Source Code\Sintran L\Analysis\hdlc-analysis\Deep_Frame_Analysis_Connected.md**

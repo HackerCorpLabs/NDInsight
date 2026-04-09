@@ -381,7 +381,7 @@ flowchart TB
 
 ### 7.2 Key 5MPM Addresses
 
-> **Source:** Values verified from SINTRAN L07 symbol files (D:\ND\S\L07\SYMBOL-2-LIST.SYMB.TXT)
+> **Source:** Values verified from SINTRAN L07 symbol files (../NPL-SOURCE/SYMBOLS/L07/SYMBOL-2-LIST.SYMB.TXT)
 
 | Symbol | Octal Value | Purpose |
 |--------|:-----------:|---------|

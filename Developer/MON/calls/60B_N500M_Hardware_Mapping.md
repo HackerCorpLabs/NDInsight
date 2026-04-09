@@ -520,11 +520,11 @@ T:=HDEV+MCLR5; *IOXT         % Master clear
 
 | Document | Path | Content |
 |----------|------|---------|
-| MON 60 Functions | `E:\Dev\Ronny\NDInsight\Developer\MON\calls\60B_N500M_Functions.md` | All 67 subfunctions |
-| MON 60 YAML | `E:\Dev\Ronny\NDInsight\Developer\MON\calls\60B_N500M.yaml` | Structured data |
-| 3022 Interface | `E:\Dev\Ronny\NDInsight\SINTRAN\ND500\ND500-IF-USAGE-DEEP-ANALYSIS.md` | Hardware details |
-| TAG Mechanism | `E:\Dev\Ronny\NDInsight\SINTRAN\ND500\MP-P2-N500.md` | Original TAG docs |
-| Message Passing | `E:\Dev\Ronny\NDInsight\SINTRAN\OS\08-MESSAGE-PASSING-DETAILED.md` | 5MPM structure |
+| MON 60 Functions | `60B_N500M_Functions.md` | All 67 subfunctions |
+| MON 60 YAML | `60B_N500M.yaml` | Structured data |
+| 3022 Interface | `../../../SINTRAN/ND500/ND500-IF-USAGE-DEEP-ANALYSIS.md` | Hardware details |
+| TAG Mechanism | `../../../SINTRAN/ND500/MP-P2-N500.md` | Original TAG docs |
+| Message Passing | `../../../SINTRAN/OS/08-MESSAGE-PASSING-DETAILED.md` | 5MPM structure |
 
 ---
 

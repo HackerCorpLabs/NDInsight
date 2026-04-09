@@ -1478,16 +1478,16 @@ Use this checklist to verify your C# SCSI driver implementation:
 
 ## Document Information
 
-**Full Path:** `Z:\NorskData\Source Code\Sintran L\NPL\IP-P2-SCSI-DRIV.md`
+**Full Path:** `Source Code\Sintran L\NPL\IP-P2-SCSI-DRIV.md`
 
-**NPL Source File:** `Z:\NorskData\Source Code\Sintran L\NPL\IP-P2-SCSI-DRIV.NPL`
+**NPL Source File:** `Source Code\Sintran L\NPL\IP-P2-SCSI-DRIV.NPL`
 
-**C# Implementation:** `E:\Dev\Repos\Ronny\RetroCore\Emulated.HW\ND\CPU\NDBUS\NDBusDiscControllerSCSI.cs`
+**C# Implementation:** `RetroCore: Emulated.HW\ND\CPU\NDBUS\NDBusDiscControllerSCSI.cs`
 
 **Related Documentation:**
-- `Z:\NorskData\Source Code\Sintran L\NPL\SCSI-controller.md` - Hardware register details
-- `Z:\NorskData\Source Code\Sintran L\NPL\IP-P2-SCSI-DRIV-ANALYSIS.md` - Full driver analysis
-- `Z:\NorskData\Source Code\Sintran L\NPL\IP-P2-SCSI-DISK.md` - Disk subsystem details
+- `Source Code\Sintran L\NPL\SCSI-controller.md` - Hardware register details
+- `Source Code\Sintran L\NPL\IP-P2-SCSI-DRIV-ANALYSIS.md` - Full driver analysis
+- `Source Code\Sintran L\NPL\IP-P2-SCSI-DISK.md` - Disk subsystem details
 
 **Version:** 1.0
 **Date:** 2025-10-13

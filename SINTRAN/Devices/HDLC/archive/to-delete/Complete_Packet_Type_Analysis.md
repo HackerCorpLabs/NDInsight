@@ -291,4 +291,4 @@ The communication captured shows:
 
 ## Full Path to Document
 
-**Z:\NorskData\Source Code\Sintran L\Analysis\hdlc-analysis\Complete_Packet_Type_Analysis.md**
+**Source Code\Sintran L\Analysis\hdlc-analysis\Complete_Packet_Type_Analysis.md**

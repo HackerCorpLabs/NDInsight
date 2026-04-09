@@ -13,15 +13,13 @@ software stacks on top.
 - **[INFERRED]** — name/usage strongly implies the value, no direct code path
 
 **Primary sources:**
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/NPL/MP-P2-HDLC-DRIV.NPL` (HDLC driver, 626 lines)
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT`
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/Devices/HDLC/01-HDLC-Hardware-Reference.md`
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/Devices/HDLC/02-HDLC-Register-Reference.md`
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/Devices/HDLC/04-HDLC-Interrupt-Handlers.md`
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/Devices/HDLC/archive/original-consolidated/03-HDLC-DMA-Operations.md`
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/Devices/HDLC/archive/original-consolidated/05-HDLC-Protocol-Implementation.md`
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/Devices/HDLC/archive/to-delete/Deep_Frame_Analysis_Connected.md` (captured frames)
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/Devices/HDLC/archive/to-delete/Complete_Packet_Type_Analysis.md` (captured frames)
+- `NPL-SOURCE/NPL/MP-P2-HDLC-DRIV.NPL` (HDLC driver, 626 lines)
+- `NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT`
+- `Devices/HDLC/learning/03-Hardware-Overview.md`
+- `Devices/HDLC/reference/Register-Reference.md`
+- `Devices/HDLC/reference/Interrupt-Reference.md`
+- `Devices/HDLC/reference/DMA-Reference.md`
+- `Devices/HDLC/reference/Protocol-Reference.md`
 
 ---
 
@@ -100,13 +98,13 @@ serial bit stream is a real flag.
 | Abort sequence  | Seven or more consecutive `1`s; **TABORT** bit in DMA descriptor forces this (`01-HDLC-Hardware-Reference.md:65`) |
 | Idle pattern    | Continuous flags or marking (1s) [STANDARD]                |
 | Line coding     | NRZI assumed for X.21 sync interface [INFERRED]            |
-| Max line speed  | 2 Mbps (COM5025 limit, `01-HDLC-Hardware-Reference.md:54`) |
+| Max line speed  | 2 Mbps (COM5025 limit)                                     |
 
 ### 3.2 Hardware: COM5025 MPCC  [VERIFIED]
 
 **Chip:** Standard Microsystems Corporation / AMD **COM5025**
 Multi-Protocol Communications Controller.
-- Source: `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/Devices/HDLC/01-HDLC-Hardware-Reference.md:48–55`
+- Source: `Devices/HDLC/learning/03-Hardware-Overview.md`
 - Protocols: HDLC, SDLC, BiSync, Async
 - Automatic flag generation
 - Automatic zero insertion / deletion (bit stuffing)
@@ -116,8 +114,8 @@ Multi-Protocol Communications Controller.
 
 ### 3.3 IOX register map  [VERIFIED]
 
-Source: `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/Devices/HDLC/02-HDLC-Register-Reference.md`
-and the NPL driver at `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/NPL/MP-P2-HDLC-DRIV.NPL`.
+Source: `Devices/HDLC/reference/Register-Reference.md`
+and the NPL driver at `NPL-SOURCE/NPL/MP-P2-HDLC-DRIV.NPL`.
 
 | Offset (from `HDEV`) | Mnemonic | R/W | Purpose                                  |
 |---------------------:|----------|-----|------------------------------------------|
@@ -143,7 +141,7 @@ HOINT: 0=:TMR                                    %RESET TIMER
             A:=EUND
        FI
 ```
-(`/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/NPL/MP-P2-HDLC-DRIV.NPL:104033–104240`)
+(`NPL-SOURCE/NPL/MP-P2-HDLC-DRIV.NPL:104033–104240`)
 
 ### 3.4 Receiver status bit map (RRTS)  [VERIFIED]
 
@@ -334,7 +332,7 @@ packet layer above the HDLC driver.
 | Wire order    | LSB first                                      |
 | Computed by   | COM5025 hardware                               |
 
-Source: `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/Devices/HDLC/01-HDLC-Hardware-Reference.md:78–81`.
+Source: `Devices/HDLC/learning/03-Hardware-Overview.md`.
 The NPL driver never touches the FCS bytes; the chip inserts them on transmit
 and validates them on receive, raising SILFO / a frame error if the CRC fails.
 
@@ -352,7 +350,7 @@ Each frame to be sent or buffer to be filled is described by a 4-word **DCB**
 |  2          | LMEM2      | `LMEM2=000003` | Memory page 2 / start word offset   |
 |  3          | LKEY       | (varies)       | Block status + COM5025 control bits |
 
-(Symbol values from `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT`.)
+(Symbol values from `NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT`.)
 
 NPL build site (from `MP-P2-HDLC-DRIV.NPL`):
 ```npl
@@ -461,7 +459,7 @@ stateDiagram-v2
 
 ### 9.1 Transmit handler — HOINT  [VERIFIED]
 
-Source: `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/NPL/MP-P2-HDLC-DRIV.NPL:104033–104240`
+Source: `NPL-SOURCE/NPL/MP-P2-HDLC-DRIV.NPL:104033–104240`
 (level-12 interrupt vector).
 
 Key logic:
@@ -475,7 +473,7 @@ Key logic:
 
 ### 9.2 Receive handler — HIINT  [VERIFIED]
 
-Source: `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/NPL/MP-P2-HDLC-DRIV.NPL:104436–104527`
+Source: `NPL-SOURCE/NPL/MP-P2-HDLC-DRIV.NPL:104436–104527`
 (level-13 interrupt vector).
 
 ```npl
@@ -525,7 +523,7 @@ is added to the repo, this section can be rebuilt from it.
 ## 11. Symbol Table Extract  [VERIFIED]
 
 All values octal/hex/decimal from
-`/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT`
+`NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT`
 unless noted.
 
 ### 11.1 Driver / DMA constants
@@ -613,11 +611,11 @@ When you see a captured byte stream, work in this order:
 
 ## Related Documents
 
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/XMSG-Protocol-Analysis.md` — XMSG layer that rides on top of these frames
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/TAD/TAD-Message-Formats.md` — TAD terminal protocol carried inside XMSG messages
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/Devices/HDLC/01-HDLC-Hardware-Reference.md` — COM5025 chip details
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/Devices/HDLC/02-HDLC-Register-Reference.md` — Full IOX register reference
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/Devices/HDLC/04-HDLC-Interrupt-Handlers.md` — Annotated interrupt dispatch
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/Devices/HDLC/archive/original-consolidated/03-HDLC-DMA-Operations.md` — DMA descriptor reference
+- `XMSG-Protocol-Analysis.md` — XMSG layer that rides on top of these frames
+- `TAD/TAD-Message-Formats.md` — TAD terminal protocol carried inside XMSG messages
+- `Devices/HDLC/learning/03-Hardware-Overview.md` — COM5025 chip details
+- `Devices/HDLC/reference/Register-Reference.md` — Full IOX register reference
+- `Devices/HDLC/reference/Interrupt-Reference.md` — Annotated interrupt dispatch
+- `Devices/HDLC/reference/DMA-Reference.md` — DMA descriptor reference
 
-**Document path:** `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/HDLC-Frame-Format-Reference.md`
+**Document path:** `HDLC-Frame-Format-Reference.md`

@@ -423,4 +423,4 @@ This is a **real terminal session** showing:
 
 ## Full Path to Document
 
-**Z:\NorskData\Source Code\Sintran L\Analysis\hdlc-analysis\ASCII_Data_Connected_Trace.md**
+**Source Code\Sintran L\Analysis\hdlc-analysis\ASCII_Data_Connected_Trace.md**

@@ -6,7 +6,7 @@
 
 ## 📂 File Location
 
-**Current Location:** `Z:\NorskData\Source Code\Sintran L\NPL\Developer\`
+**Current Location:** `Source Code\Sintran L\NPL\Developer\`
 
 **All 15 documentation files are here.**
 
@@ -95,7 +95,7 @@
 **Purpose:** Operating system internals, device drivers, emulator development
 
 ### KERNEL Directory (This Repository)
-**Location:** `Z:\NorskData\Source Code\Sintran L\NPL\KERNEL\`  
+**Location:** `Source Code\Sintran L\NPL\KERNEL\`  
 **Contents:** Source code analysis tools and scripts  
 **Purpose:** NPL source code analysis utilities
 
@@ -107,7 +107,7 @@ All documentation is organized and ready. Pick your starting point above and beg
 
 ---
 
-**Location:** `Z:\NorskData\Source Code\Sintran L\NPL\Developer\`  
+**Location:** `Source Code\Sintran L\NPL\Developer\`  
 **Status:** ✅ Complete  
 **Last Updated:** October 17, 2025
 

@@ -1146,8 +1146,8 @@ For magnetic disk operations, use **IP-P2-SCSI-DISK.NPL** instead. For common SC
 
 ---
 
-**Document Path:** `Z:\NorskData\Source Code\Sintran L\NPL\IP-P2-SCSI-OPDI.md`
+**Document Path:** `Source Code\Sintran L\NPL\IP-P2-SCSI-OPDI.md`
 
-**Source Analysis:** `Z:\NorskData\Source Code\Sintran L\NPL\IP-P2-SCSI-OPDI-Analysis.md`
+**Source Analysis:** `Source Code\Sintran L\NPL\IP-P2-SCSI-OPDI-Analysis.md`
 
-**Source Code:** `Z:\NorskData\Source Code\Sintran L\NPL\IP-P2-SCSI-OPDI.NPL`
+**Source Code:** `Source Code\Sintran L\NPL\IP-P2-SCSI-OPDI.NPL`

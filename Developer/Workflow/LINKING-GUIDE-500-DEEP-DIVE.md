@@ -2979,31 +2979,31 @@ NLH: LIST-MODULES
 
 **General Linking:**
 - [LINKING-GUIDE.md](LINKING-GUIDE.md) - General ND-100 and ND-500 linking overview
-- Full path: `E:\Dev\Ronny\NDInsight\Developer\Workflow\LINKING-GUIDE.md`
+- Full path: `LINKING-GUIDE.md`
 
 **NORD-500 Assembly:**
 - [NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md](../Languages/System/NORD-500-ASSEMBLER-DEVELOPER-GUIDE.md) - Assembly language introduction
 - [NORD-500-ASSEMBLER-EXPERT-GUIDE.md](../Languages/System/NORD-500-ASSEMBLER-EXPERT-GUIDE.md) - Expert-level assembly (when created)
-- Full path: `E:\Dev\Ronny\NDInsight\Developer\Languages\System\`
+- Full path: `../Languages/System`
 
 **SINTRAN III Kernel:**
 - [04-MMU-CONTEXT-SWITCHING.md](../../SINTRAN/OS/04-MMU-CONTEXT-SWITCHING.md) - MMU and paging details
 - [09-ND500-CODE-LOADING.md](../../SINTRAN/OS/09-ND500-CODE-LOADING.md) - Domain loading internals
 - [08-MESSAGE-PASSING-DETAILED.md](../../SINTRAN/OS/08-MESSAGE-PASSING-DETAILED.md) - ND-100 ↔ ND-500 communication
 - [06-MULTIPORT-MEMORY-AND-ND500-COMMUNICATION.md](../../SINTRAN/OS/06-MULTIPORT-MEMORY-AND-ND500-COMMUNICATION.md) - 5MPM shared memory
-- Full path: `E:\Dev\Ronny\NDInsight\SINTRAN\OS\`
+- Full path: `../../SINTRAN/OS`
 
 **Emulator Implementation:**
 - [ND500-EMULATION-COMPLETE.cs](../../SINTRAN/Emulator/ND500-EMULATION-COMPLETE.cs) - C# emulator code
 - [ND500-INTEGRATION-GUIDE.md](../../SINTRAN/Emulator/ND500-INTEGRATION-GUIDE.md) - Emulator integration
 - [KERNEL-ACCESS-EMULATOR.md](../../SINTRAN/Emulator/KERNEL-ACCESS-EMULATOR.md) - Reading kernel structures
-- Full path: `E:\Dev\Ronny\NDInsight\SINTRAN\Emulator\`
+- Full path: `../../SINTRAN/Emulator`
 
 **Reference Manuals:**
 - [ND-860289-2-EN ND Linker User Guide and Reference Manual.md](../../Reference-Manuals/ND-860289-2-EN ND Linker User Guide and Reference Manual.md) - Complete linker manual
 - [ND-05.009.4 EN ND-500 Reference Manual.md](../../Reference-Manuals/ND-05.009.4 EN ND-500 Reference Manual.md) - ND-500 CPU architecture
 - [ND-60.113.02 EN Assembler Reference Manual.md](../../Reference-Manuals/ND-60.113.02 EN Assembler Reference Manual.md) - Assembler reference
-- Full path: `E:\Dev\Ronny\NDInsight\Reference-Manuals\`
+- Full path: `../../Reference-Manuals`
 
 ### 12.2 External Resources
 
@@ -3021,7 +3021,7 @@ NLH: LIST-MODULES
 
 ### 12.3 Document Information
 
-**File:** `E:\Dev\Ronny\NDInsight\Developer\Workflow\LINKING-GUIDE-500-DEEP-DIVE.md`
+**File:** `LINKING-GUIDE-500-DEEP-DIVE.md`
 
 **Version:** 1.0
 **Date:** October 20, 2025

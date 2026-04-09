@@ -797,11 +797,17 @@ end
 
 lapb_proto:register_heuristic("tcp", lapb_heuristic)
 
--- ── Port binding (commented out — heuristic is active, re-enable if needed) ───
---
--- local tcp_table = DissectorTable.get("tcp.port")
--- tcp_table:add(10362, lapb_proto)
--- tcp_table:add(10364, lapb_proto)
--- tcp_table:add(24182, lapb_proto)
--- tcp_table:add(17230, lapb_proto)
--- tcp_table:add(17237, lapb_proto)
+-- ── Port binding ─────────────────────────────────────────────────────────────
+-- Port binding guarantees the dissector is always called for known ports,
+-- which means pinfo.desegment_len works reliably for TCP reassembly.
+-- The heuristic alone is unreliable: if the very first TCP segment on a stream
+-- starts with a large frame that has no closing 0x7E in that segment, the
+-- heuristic probe returns false and the stream is never claimed.
+-- Keep both: port binding for known ports, heuristic for unknown ports.
+
+local tcp_table = DissectorTable.get("tcp.port")
+tcp_table:add(10362, lapb_proto)
+tcp_table:add(10364, lapb_proto)
+tcp_table:add(24182, lapb_proto)
+tcp_table:add(17230, lapb_proto)
+tcp_table:add(17237, lapb_proto)

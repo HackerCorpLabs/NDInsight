@@ -3,14 +3,14 @@
 **Status:** Authoritative — opcode values verified against SINTRAN III symbol tables
 (K03, L07, M06) and cross-checked with NPL source.
 
-**Parent Document:** `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/TAD/TAD-Protocol-Analysis.md`
+**Parent Document:** `TAD-Protocol-Analysis.md`
 
 **Sources:**
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT`
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/SYMBOLS/L07/FILSYS-SYMBOLS.SYMB.TXT`
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/SYMBOLS/L07/RTLO-SYMBOLS.SYMB.TXT`
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/NPL/RP-P2-TAD.NPL` (client / Remote Process)
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/NPL/MP-P2-TAD.NPL` (server / Master Process)
+- `../NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT`
+- `../NPL-SOURCE/SYMBOLS/L07/FILSYS-SYMBOLS.SYMB.TXT`
+- `../NPL-SOURCE/SYMBOLS/L07/RTLO-SYMBOLS.SYMB.TXT`
+- `../NPL-SOURCE/NPL/RP-P2-TAD.NPL` (client / Remote Process)
+- `../NPL-SOURCE/NPL/MP-P2-TAD.NPL` (server / Master Process)
 
 > Opcode values are stable across SINTRAN versions K03 → L07 → M06 (verified
 > identical in all three symbol-table directories). The `7xxxx` symbols in NPL are
@@ -825,7 +825,7 @@ flowchart TB
     classDef orange fill:#FFF3E0,stroke:#E65100,color:#E65100,stroke-width:2px
 ```
 
-| Layer       | Owner                            | Source file (in `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/NPL/`) |
+| Layer       | Owner                            | Source file (in `../NPL-SOURCE/NPL`) |
 |-------------|----------------------------------|-----------------------------------------------------------------------|
 | TAD message | RP-P2-TAD.NPL / MP-P2-TAD.NPL    | This document |
 | XMSG transport | (5P-P2-MON60 etc.)            | Monitor calls XFOPN/XFSND/XFRCV/XFWHD |
@@ -1094,10 +1094,10 @@ Areas where the on-the-wire format is still partially inferred:
 
 ## Related Documents
 
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/TAD/TAD-Protocol-Analysis.md` — Overall protocol analysis
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/TAD/TAD-HDLC-Encapsulation.md` — HDLC layer detail
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/TAD/TAD-Protocol-Flows.md` — Protocol flow diagrams
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/TAD/TAD-X25-CUD-Specification.md` — X.25 Call User Data
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/TAD/TAD-Evidence-vs-Inference.md` — Verification status
+- `TAD-Protocol-Analysis.md` — Overall protocol analysis
+- `TAD-HDLC-Encapsulation.md` — HDLC layer detail
+- `TAD-Protocol-Flows.md` — Protocol flow diagrams
+- `TAD-X25-CUD-Specification.md` — X.25 Call User Data
+- `TAD-Evidence-vs-Inference.md` — Verification status
 
-**Document path:** `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/TAD/TAD-Message-Formats.md`
+**Document path:** `TAD-Message-Formats.md`

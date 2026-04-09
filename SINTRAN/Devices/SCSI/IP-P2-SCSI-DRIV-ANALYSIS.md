@@ -1831,7 +1831,7 @@ The phase handlers implement the full SCSI protocol, including:
 
 ## File Information
 
-**Full Path:** `Z:\NorskData\Source Code\Sintran L\NPL\IP-P2-SCSI-DRIV.NPL`
+**Full Path:** `Source Code\Sintran L\NPL\IP-P2-SCSI-DRIV.NPL`
 
 **Total Lines:** 921
 

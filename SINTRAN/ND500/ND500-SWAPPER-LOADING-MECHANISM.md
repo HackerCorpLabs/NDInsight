@@ -121,7 +121,7 @@ MSIN0:
 | `5MBBANK` | - | Memory bank for 5MPM buffers |
 | `55MESSIZE` | 000200 | Size of each message buffer (128 decimal) |
 
-> **Source:** Values verified from SINTRAN L07 symbol files (D:\ND\S\L07\SYMBOL-1-LIST.SYMB.TXT, SYMBOL-2-LIST.SYMB.TXT)
+> **Source:** Values verified from SINTRAN L07 symbol files (../NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT, SYMBOL-2-LIST.SYMB.TXT)
 
 ---
 

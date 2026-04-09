@@ -295,4 +295,4 @@ The data being transferred is **binary protocol control information** with:
 
 ## Full Path to Document
 
-**Z:\NorskData\Source Code\Sintran L\Analysis\hdlc-analysis\Raw_Byte_Analysis_No_Assumptions.md**
+**Source Code\Sintran L\Analysis\hdlc-analysis\Raw_Byte_Analysis_No_Assumptions.md**

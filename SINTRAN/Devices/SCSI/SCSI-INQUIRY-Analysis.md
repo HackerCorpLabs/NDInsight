@@ -256,7 +256,7 @@ The **only hard requirement** is implementing the correct **SCSI command set** f
 
 ---
 
-**Document Path:** `Z:\NorskData\Source Code\Sintran L\NPL\SCSI-INQUIRY-Analysis.md`
+**Document Path:** `Source Code\Sintran L\NPL\SCSI-INQUIRY-Analysis.md`
 
 **Analysis Date:** 2025-10-13
 **Analyzer:** Based on SINTRAN III NPL source code analysis

@@ -112,6 +112,10 @@ uncomment those lines and reload the plugin.
 hdlc_lapb
 ```
 
+> **Note:** Use `hdlc_lapb` — not `hdlc`. The dissector registers under the name
+> `hdlc_lapb`. Wireshark's built-in `hdlc` dissector is not active on these TCP
+> streams, so filtering on `hdlc` alone will return no results.
+
 ### Filter by SINTRAN sub-protocol
 
 ```
@@ -215,50 +219,190 @@ LAPB/SINTRAN over TCP
 
 ---
 
+## SINTRAN header
+
+Every LAPB I-frame carries a 13-byte SINTRAN header immediately after the LAPB
+address and control bytes:
+
+```
+Offset  Size  Field            Notes
+──────  ────  ───────────────  ──────────────────────────────────────────────
+  0      1    Marker 1         Always 0x21
+  1      1    Marker 2         0x13 = normal frame, 0x12 = relay frame
+  2      1    Packet Type      Frame type / sequence indicator
+  3      1    Packet Length    Length of remaining info (after this byte)
+  4      2    Dest Node        Big-endian destination SINTRAN node number
+  6      2    Src Node         Big-endian source SINTRAN node number
+  8      2    Flags 1          Broadcast / routing flags
+ 10      2    Flags 2          Version / type flags
+ 12      1    Protocol ID      Sub-protocol carried in the payload (see below)
+```
+
+The 13 bytes are followed by the sub-protocol payload.
+
+**Relay frames (Marker 2 = 0x12):** Node 100 acting as a forwarder inserts an
+extra relay header — the Src/Dest in the outer SINTRAN header are the relay
+nodes, while the actual endpoint nodes appear inside the relay header payload.
+The Info column shows both: `SINTRAN Relay  [103 → 102  PAD]`.
+
+---
+
 ## Sub-protocols decoded
 
 | Proto ID | Name    | Description |
 |----------|---------|-------------|
-| `0xD8`   | D8      | Variant of DC (observed, semantics inferred) |
-| `0xD9`   | D9      | Variant of DC (observed, semantics inferred) |
-| `0xDA`   | PAD     | X.25 PAD virtual circuit forwarding |
-| `0xDB`   | DB      | Terminal data variant |
-| `0xDC`   | DC      | Terminal data with connection sub-header (speed, flags, node/channel) |
-| `0xDD`   | TAD     | Terminal Access and Directory — session setup, routing, data |
+| `0xD8`   | D8      | Variant of DC (observed; semantics inferred from pcap) |
+| `0xD9`   | D9      | Variant of DC (observed; semantics inferred from pcap) |
+| `0xDA`   | PAD     | X.25 PAD virtual circuit data forwarding |
+| `0xDB`   | DB      | Terminal data variant (close to DC) |
+| `0xDC`   | DC      | Terminal data — carries a 17-byte sub-header (speed, flags, local node/channel, remote node/channel) followed by TAD messages |
+| `0xDD`   | TAD     | Terminal Access and Directory — primary session protocol; carries chained TAD messages |
 | `0xDE`   | ROUTING | Network routing — propagation, bootstrap, route-info exchange |
 
-### LAPB frame types
+### DC sub-header (proto 0xDC)
 
-| ctrl bits | Type | Description |
-|-----------|------|-------------|
-| bit 0 = 0 | I    | Information frame — carries SINTRAN data |
-| bits 1:0 = 01 | S | Supervisory — RR / RNR / REJ |
-| bits 1:0 = 11 | U | Unnumbered — SABM / UA / DM / DISC / FRMR / XID |
+DC frames embed a 17-byte connection sub-header before the TAD message chain:
 
-### TAD message types (partial)
+```
+Offset  Size  Field         Notes
+──────  ────  ────────────  ────────────────────────────────────────────────
+  0      1    Control 1     Frame control byte
+  1      1    Speed         Line speed code
+  2      1    Flags         Connection flags
+  3      2    Local Node    Big-endian node number of local endpoint
+  5      2    Local Chan    Big-endian channel number on local node
+  7      2    Remote Node   Big-endian node number of remote endpoint
+  9      2    Remote Chan   Big-endian channel number on remote node
+ 11      6    Extra         Additional connection parameters
+```
 
-| Type | Name | Description |
-|------|------|-------------|
-| 0x00 | DUMM | Dummy / padding |
-| 0x01 | BDAT | Binary data / node identity |
-| 0x02 | RFI  | Route/facility information |
-| 0x03 | TMOD | Terminal mode |
-| 0x04 | TTYP | Terminal type |
-| 0x0B | DCON | Disconnect |
-| 0x10–0x14 | ConnSetup-Step0–4 | Connection handshake steps |
+After the sub-header, the DC payload contains a TAD message chain (same format
+as proto 0xDD).
 
-Any TAD message with `count == 0x21` (33 bytes) carries a full connection/routing
-block: speed, flags, local node/channel, remote node/channel, and session parameters.
+---
 
-### ROUTING commands (partial)
+## LAPB frame types
 
-| Cmd  | Name | Description |
-|------|------|-------------|
-| 0x00–0x04 | TermParam-Step4–0 | Terminal parameter negotiation countdown |
-| 0x05 | Propagate-Request | Push routing table to neighbour |
-| 0x0B | Propagate-Response | ACK of propagation |
-| 0x0C | RouteInfo-Exchange | Route-info query/response (echo-ACK pattern) |
-| 0x0D | Bootstrap-Response | Routing bootstrap reply |
+| ctrl bits     | Type | Description |
+|---------------|------|-------------|
+| bit 0 = 0     | I    | Information frame — carries SINTRAN data |
+| bits 1:0 = 01 | S    | Supervisory — RR / RNR / REJ |
+| bits 1:0 = 11 | U    | Unnumbered — SABM / UA / DM / DISC / FRMR / XID |
+
+**I-frame control byte:** bits 1–3 = N(S) send sequence, bit 4 = P/F,
+bits 5–7 = N(R) receive sequence.
+
+**S-frame subtypes** (bits 2–3):
+
+| Value | Name | Description |
+|-------|------|-------------|
+| 0     | RR   | Receive Ready — acknowledges frames up to N(R) |
+| 1     | RNR  | Receive Not Ready — flow control hold |
+| 2     | REJ  | Reject — retransmit from N(R) |
+
+**U-frame types:**
+
+| ctrl (masked) | Name  | Description |
+|---------------|-------|-------------|
+| 0x2F          | SABM  | Set Asynchronous Balanced Mode — link setup |
+| 0x63          | UA    | Unnumbered Acknowledgement — confirms SABM/DISC |
+| 0x43          | DISC  | Disconnect |
+| 0x0F          | DM    | Disconnected Mode |
+| 0x87          | FRMR  | Frame Reject — protocol error |
+| 0x03          | UI    | Unnumbered Information |
+| 0xAF          | XID   | Exchange ID |
+
+---
+
+## TAD protocol
+
+TAD (Terminal Access and Directory) is the primary application-layer protocol
+for terminal sessions between SINTRAN nodes. It is carried in SINTRAN frames
+with Protocol ID 0xDD, or embedded after the sub-header in DC frames (0xDC).
+
+### TAD message structure
+
+A TAD payload is a chain of back-to-back messages. Each message has a 2-byte
+header:
+
+```
+Offset  Size  Field   Notes
+──────  ────  ──────  ──────────────────────────────────────────────────────
+  -1     0–1  Pad     0x00 inserted only if message would land on an odd
+                      byte boundary — skip silently, not a message type
+   0      1   Type    Opcode (see table below)
+   1      1   Count   Payload byte count (0–255); does not include type/count
+   2      N   Data    Payload; format depends on opcode
+```
+
+The dissector skips 0x00 pad bytes automatically before reading each type byte.
+
+### TAD opcode table
+
+Opcodes verified against SINTRAN III symbol tables K03 / L07 / M06 and NPL source.
+Direction: C = Client (terminal / Remote Process), S = Server (Master Process).
+
+| Hex  | Symbol | Dir | Count | Description |
+|------|--------|-----|-------|-------------|
+| 0x01 | BDAT   | C↔S | 0–255 | Terminal data block. Raw bytes sent to/from the terminal. In 7-bit mode bit 7 is cleared; in 8-bit mode (after 78MOD) all 8 bits are significant. Break on last byte is signalled via REMBYT=-1. |
+| 0x02 | RFI    | C→S | 0     | Ready For Input. Flow-control credit — "I have a fresh input buffer; you may send." Sent when input buffer is empty, after rejecting data, or in nowait mode when no data is available. |
+| 0x03 | ECKM   | C→S | 1 or 21 | Echo strategy. Byte 0 = strategy code (1–6 predefined, 7 = custom). If strategy = 7, followed by a 20-byte (8-word) echo-character bitmap table where each bit represents one character. |
+| 0x04 | BMMX   | C→S | 3 or 23 | Break strategy + max-break. Byte 0 = strategy (1–6, 7=custom, 8–9, 11=user BRKTAB). Bytes 1–2 = 16-bit MaxBreak level. If strategy = 7, followed by a 20-byte break-character bitmap table. |
+| 0x08 | ESCA   | S→C | 0     | Escape character received. Server signals that the configured escape character was seen. Triggers an escape response (CERS). |
+| 0x09 | DCON   | S→C | 0     | Disconnect indication. Server forces disconnect and cleanup (DSTOTA). |
+| 0x0C | TMOD   | C→S | 1     | Terminal mode flags (1 byte). Bit 0=CAPITAL (force uppercase), bit 1=CRDLY (CR delay), bit 2=page-stop, bit 3=LBLOG (logout on carrier loss), bit 4=IESC (inhibit escape), bit 5=8BIT, bit 6=UMOD. |
+| 0x0D | TTYP   | C→S | 2     | Terminal type ID. 2-byte identifier stored in CTTYP. |
+| 0x0E | CESC   | C→S | 1     | Enable/disable escape processing. 0 = disable, non-zero = enable. Always followed by a CERS (0x21) response from the server. |
+| 0x0F | DESC   | C→S | 1     | Define escape character. The byte value becomes the new escape character (stored in CESCP). |
+| 0x13 | SYCN   | C↔S | 2    | System control command. 2-byte command word. Auto-sent for command codes 1, 13 (CR), 17 (DC1). |
+| 0x14 | USCN   | C↔S | 2    | User control command. 2-byte command word. Always sends and waits for a 7ERRS response. |
+| 0x16 | RESE   | C→S | 0     | Reset connection. Resets to initial state; server must respond with RECO. |
+| 0x17 | RECO   | S→C | 0     | Reset confirm. Response to RESE. |
+| 0x18 | DUMM   | any | 0     | Dummy/filler. No content; used for alignment. Ignored by receiver. |
+| 0x1F | OPSV   | C↔S | 3    | OS and TAD protocol version handshake. Byte 0 = SINTRAN OS version, byte 1 = OS sub-version, byte 2 = TAD protocol version. Must be exchanged before optional-feature messages (78MOD, UMOD) are legal. |
+| 0x21 | CERS   | S→C | 0     | Escape-control response. Server acknowledges CESC enable/disable. |
+| 0x22 | ISRQ   | C→S | 0     | Input size request. Client asks how many characters are available in the server's input buffer. |
+| 0x23 | ISRS   | S→C | 2     | Input size response. 2-byte count; bit 15 (0x8000) set if a break is present in the data. |
+| 0x24 | NOWT   | C↔S | 1    | Nowait status. 1-byte status flag. |
+| 0x25 | TNOW   | C↔S | 1    | Terminate nowait. 1-byte flag. |
+| 0x26 | NWRE   | S→C | 0     | Nowait restart. |
+| 0x27 | RLOC   | S→C | 0     | Remote/local mode toggle. |
+| 0x2A | TREP   | S→C | 2     | Terminal status report. 2-byte status word. |
+| 0x2B | UMOD   | C→S | 2     | UMOD strategy word (protocol version ≥ 4 only). Requires both sides to have advertised protocol ≥ 4 via OPSV. |
+| 0x2C | 78MOD  | C→S | 2     | 8-bit mode set. Non-zero enables 8-bit data path (sets 58BIT flag). Zero = revert to 7-bit strip. |
+| 0xFA | CPCO   | S→C | 4     | Completion code. 4-byte (2-word) completion code: CPC1 high, CPC2 low. |
+| 0xFB | ERRS   | S→C | 2     | Error response. 2-byte SINTRAN error code (passed to MFERSP). |
+| 0xFE | REJE   | S→C | 1     | Reject. Echoes back the opcode of the message that was rejected. If the rejected message was BDAT, also sends an RFI to unblock the sender. |
+
+> **Observed in pcap but not in symbol tables:** 0x10, 0x11, 0x12, 0xFD — shown
+> as `?0x10` etc. in the decode tree. Meaning unknown.
+
+---
+
+## ROUTING protocol
+
+ROUTING frames (Protocol ID 0xDE) carry network routing control between SINTRAN
+nodes. They do not contain TAD messages — the payload starts with a 1-byte
+command code.
+
+### ROUTING commands
+
+| Cmd  | Name               | Description |
+|------|--------------------|-------------|
+| 0x00 | TermParam-Step4    | Terminal parameter negotiation — step 4 of 5 (countdown) |
+| 0x01 | TermParam-Step3    | Step 3 |
+| 0x02 | TermParam-Step2    | Step 2 |
+| 0x03 | TermParam-Step1    | Step 1 |
+| 0x04 | TermParam-Step0    | Step 0 — final step; connection setup completes |
+| 0x05 | Propagate-Request  | Push local routing table to a neighbouring node |
+| 0x07 | Bootstrap-Request  | Request routing bootstrap data from neighbour |
+| 0x08 | Sync-Request       | Routing synchronisation request |
+| 0x0B | Propagate-Response | Acknowledgement of a Propagate-Request |
+| 0x0C | RouteInfo-Exchange | Route-info query / response (echo-ACK pattern between neighbours) |
+| 0x0D | Bootstrap-Response | Response to Bootstrap-Request — provides initial routing table |
+| 0x0E | Sync-Response      | Response to Sync-Request |
+| 0x11 | PAD-Resp           | PAD virtual-circuit setup response |
+| 0x12 | PAD-Resp           | PAD virtual-circuit setup response (variant) |
 
 ---
 

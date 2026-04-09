@@ -1270,7 +1270,7 @@ graph TD
 
 This document describes the high-level disk/tape subsystem. For low-level SCSI protocol and hardware interface details, see:
 
-**`Z:\NorskData\Source Code\Sintran L\NPL\IP-P2-SCSI-DRIV-ANALYSIS.md`**
+**`Source Code\Sintran L\NPL\IP-P2-SCSI-DRIV-ANALYSIS.md`**
 
 Key cross-references:
 - **SCSID entry point** (lines 1102-1549): Low-level SCSI command execution
@@ -1309,4 +1309,4 @@ The driver integrates tightly with the SINTRAN operating system, supporting mult
 
 **Document Version:** 1.0
 **Last Updated:** 2025-10-13
-**File Path:** `Z:\NorskData\Source Code\Sintran L\NPL\IP-P2-SCSI-DISK.md`
+**File Path:** `Source Code\Sintran L\NPL\IP-P2-SCSI-DISK.md`

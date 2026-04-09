@@ -2229,7 +2229,7 @@ Mode page format incorrect or required pages missing.
 - **Hardware Interface:** See SCSI-controller.md
 
 **All documents located at:**
-`Z:\NorskData\Source Code\Sintran L\NPL\`
+`Source Code\Sintran L\NPL\`
 
 ---
 
@@ -2252,4 +2252,4 @@ This documentation set provides **complete coverage** of SINTRAN III SCSI implem
 
 ---
 
-**Full Document Path:** `Z:\NorskData\Source Code\Sintran L\NPL\SCSI-Master-Index.md`
+**Full Document Path:** `Source Code\Sintran L\NPL\SCSI-Master-Index.md`

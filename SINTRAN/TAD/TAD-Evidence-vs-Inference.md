@@ -366,6 +366,6 @@ Implement XMSG-level API and let SINTRAN's XMSG layer handle X.25/HDLC.
 
 ---
 
-**Document Path:** `Z:\NorskData\Source Code\Sintran L\NPL\TAD-Evidence-vs-Inference.md`
+**Document Path:** `Source Code\Sintran L\NPL\TAD-Evidence-vs-Inference.md`
 
 **Author's Note:** I apologize for not clearly separating proven facts from reasonable inferences. The TAD protocol itself is real and well-documented from source code. The X.25/CUD layer is where I made educated guesses that should be validated against actual implementation or network captures.

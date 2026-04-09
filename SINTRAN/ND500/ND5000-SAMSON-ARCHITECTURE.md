@@ -278,7 +278,7 @@ This affects process scheduling - SAMSON appears to have a simpler queue model.
 
 ### Constants
 
-> **Source:** Verified from SINTRAN L07 symbol files (D:\ND\S\L07\SYMBOL-1-LIST.SYMB.TXT)
+> **Source:** Verified from SINTRAN L07 symbol files (../NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT)
 
 | Symbol | NPL (5-char) | Octal Value | Description |
 |--------|:------------:|:-----------:|-------------|

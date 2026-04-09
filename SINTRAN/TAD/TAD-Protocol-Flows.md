@@ -902,7 +902,7 @@ flowchart TD
 
 ---
 
-**Document Path:** `Z:\NorskData\Source Code\Sintran L\NPL\TAD-Protocol-Flows.md`
+**Document Path:** `Source Code\Sintran L\NPL\TAD-Protocol-Flows.md`
 
 **Related Documents:**
 - `TAD-Protocol-Analysis.md` - Overall protocol analysis

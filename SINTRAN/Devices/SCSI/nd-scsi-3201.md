@@ -1468,7 +1468,7 @@ This asserts the SCSI bus reset signal. The Z80 may or may not be involved. The 
 
 ## C# Emulator Analysis (NDBusDiscControllerSCSI.cs)
 
-Comparison of the C# emulator at `E:\Dev\Repos\Ronny\RetroCore\Emulated.HW\ND\CPU\NDBUS\NDBusDiscControllerSCSI.cs` against the actual Z80 firmware behavior.
+Comparison of the C# emulator at `RetroCore: Emulated.HW\ND\CPU\NDBUS\NDBusDiscControllerSCSI.cs` against the actual Z80 firmware behavior.
 
 ### Architecture Difference
 

@@ -816,7 +816,7 @@ Bit:  15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
                                   └─────────────────────────→ Bit 9: 5CLOST (Microclock stopped)
 ```
 
-> **IMPORTANT:** Bit positions verified from SINTRAN L07 symbol files (D:\ND\S\L07\SYMBOL-1-LIST.SYMB.TXT).
+> **IMPORTANT:** Bit positions verified from SINTRAN L07 symbol files (../NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT).
 > NPL truncates symbols to 5 characters. Values shown are **bit positions**.
 > **Note:** 5ALIVE is NOT in RSTA5 - it is in the CPUAVAILABLE word (bit 13).
 
@@ -1314,7 +1314,7 @@ ND-500 Ready
 
 ### Critical Status Bits (RSTA5 Register)
 
-> **Source:** Verified from SINTRAN L07 symbol files (D:\ND\S\L07\SYMBOL-1-LIST.SYMB.TXT)
+> **Source:** Verified from SINTRAN L07 symbol files (../NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT)
 
 | Bit | NPL Symbol | Must Be | For Detection |
 |:---:|:----------:|:-------:|---------------|

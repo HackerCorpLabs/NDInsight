@@ -474,17 +474,17 @@ Word 7: bits 0-15   (chars 0x70-0x7F)
 ## Related Documentation
 
 ### XMSG Analysis
-- Location: `Z:\NorskData\Source Code\Sintran L\Analysis\hdlc-analysis\XMSG_Metadata_Buffer_Analysis.md`
+- Location: `Source Code\Sintran L\Analysis\hdlc-analysis\XMSG_Metadata_Buffer_Analysis.md`
 - Purpose: XMSG buffer and port management patterns
 - Relevance: TAD relies heavily on XMSG for all buffer operations
 
 ### HDLC Analysis
-- Location: `Z:\NorskData\Source Code\Sintran L\Analysis\hdlc-analysis\`
+- Location: `Source Code\Sintran L\Analysis\hdlc-analysis\`
 - Purpose: Low-level X.25/HDLC protocol implementation
 - Relevance: TAD sits on top of XMSG which uses HDLC for transport
 
 ### SCSI Analysis
-- Location: `Z:\NorskData\Source Code\Sintran L\NPL\`
+- Location: `Source Code\Sintran L\NPL\`
 - Files: SCSI-*.md
 - Purpose: Similar driver analysis methodology
 - Relevance: Demonstrates SINTRAN driver architecture patterns
@@ -541,7 +541,7 @@ All documentation is complete and ready for emulator development.
 
 ---
 
-**Document Path:** `Z:\NorskData\Source Code\Sintran L\NPL\TAD-Analysis-Summary.md`
+**Document Path:** `Source Code\Sintran L\NPL\TAD-Analysis-Summary.md`
 
 **Complete Documentation Set:**
 1. `TAD-Protocol-Analysis.md` - API and protocol reference

@@ -673,7 +673,7 @@ public void TestParseTadCallRequest()
 
 ---
 
-**Document Path:** `Z:\NorskData\Source Code\Sintran L\NPL\TAD-X25-CUD-Specification.md`
+**Document Path:** `Source Code\Sintran L\NPL\TAD-X25-CUD-Specification.md`
 
 **Related Documents:**
 - `TAD-Protocol-Analysis.md` - TAD protocol specification

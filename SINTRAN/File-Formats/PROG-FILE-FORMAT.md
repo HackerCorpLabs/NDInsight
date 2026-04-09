@@ -1,6 +1,6 @@
 # :PROG File Format Reference
 
-**Full path:** `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/File-Formats/PROG-FILE-FORMAT.md`
+**Full path:** `PROG-FILE-FORMAT.md`
 
 A comprehensive description of the SINTRAN III `:PROG` (program) file format used
 by the Nord Relocating Loader (NRL), the SINTRAN `@DUMP` / `@RECOVER` commands,

@@ -212,7 +212,7 @@ flowchart TD
 
 **STOPR field location**: Offset 000011 (octal) = 9 (decimal) in message buffer
 
-**Source**: Verified from D:\ND\S\L07\SYMBOL-1-LIST.SYMB.TXT
+**Source**: Verified from ../NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT
 
 | Octal | Decimal | NPL Symbol | Full Name | Meaning |
 |:-----:|:-------:|:----------:|-----------|---------|

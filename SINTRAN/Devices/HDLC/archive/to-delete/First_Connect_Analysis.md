@@ -1,4 +1,4 @@
-# First Connect Trace Analysis: C:\Users\ronny\AppData\Local\trace\SIN-X-TRACE\first-connect-to.txt
+# First Connect Trace Analysis: (local trace file)
 
 ## Executive Summary
 
@@ -374,7 +374,7 @@ The SINTRAN system may be using **Permanent Virtual Circuits (PVCs)** configured
 
 ## Full Path to Document
 
-**Z:\NorskData\Source Code\Sintran L\Analysis\hdlc-analysis\First_Connect_Analysis.md**
+**Source Code\Sintran L\Analysis\hdlc-analysis\First_Connect_Analysis.md**
 
 ## Related Documents
 

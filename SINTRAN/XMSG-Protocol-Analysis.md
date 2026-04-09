@@ -10,16 +10,16 @@ over HDLC in COSMOS / NORD-NET.
 - **[INFERRED]** — name/usage strongly suggests purpose, no direct code path read
 
 **Primary sources:**
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/SYMBOLS/L07/XMSG-SYMBOL-LIST.SYMB.TXT`
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT`
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/SYMBOLS/L07/FILSYS-SYMBOLS.SYMB.TXT`
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/NPL/MP-P2-HDLC-DRIV.NPL`
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/NPL/MP-P2-TAD.NPL`
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/NPL/RP-P2-TAD.NPL`
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/XMSG-COMMAND-REFERENCE.md`
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/Devices/HDLC/archive/XMSG_Metadata_Buffer_Analysis.md`
-- `/mnt/e/Dev/Ronny/NDInsight/Operations/Cosmos/ND-60164-3-EN COSMOS Programmer Guide.md`
-- `/mnt/e/Dev/Ronny/NDInsight/Developer/MON/calls/200B_XMSGFunction.yaml`
+- `NPL-SOURCE/SYMBOLS/L07/XMSG-SYMBOL-LIST.SYMB.TXT`
+- `NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT`
+- `NPL-SOURCE/SYMBOLS/L07/FILSYS-SYMBOLS.SYMB.TXT`
+- `NPL-SOURCE/NPL/MP-P2-HDLC-DRIV.NPL`
+- `NPL-SOURCE/NPL/MP-P2-TAD.NPL`
+- `NPL-SOURCE/NPL/RP-P2-TAD.NPL`
+- `XMSG-COMMAND-REFERENCE.md`
+- `Devices/HDLC/archive/XMSG_Metadata_Buffer_Analysis.md`
+- `../Operations/Cosmos/ND-60164-3-EN COSMOS Programmer Guide.md`
+- `../Developer/MON/calls/200B_XMSGFunction.yaml`
 
 > **Status:** What follows is an inventory of what the symbol tables and NPL
 > sources currently make readable. Several areas (field byte-order, multi-buffer
@@ -276,7 +276,7 @@ the XMSG message body (distinct from the XF* function codes which only say
 ### 5.1 Observed routing-update layout  [INFERRED]
 
 From traffic analysis in
-`/mnt/e/Dev/Ronny/NDInsight/SINTRAN/Devices/HDLC/archive/XMSG_Metadata_Buffer_Analysis.md`,
+`Devices/HDLC/archive/XMSG_Metadata_Buffer_Analysis.md`,
 a node-info update transmitted on the routing port has this body shape:
 
 | Offset | Size | Value (example) | Meaning                          |
@@ -548,10 +548,10 @@ sequenceDiagram
 
 ## Related Documents
 
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/TAD/TAD-Message-Formats.md` — TAD terminal protocol layered on top of XMSG
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/XMSG-COMMAND-REFERENCE.md` — XMSG operator commands
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/Devices/HDLC/archive/XMSG_Metadata_Buffer_Analysis.md` — observed routing-message bytes
-- `/mnt/e/Dev/Ronny/NDInsight/Operations/Cosmos/ND-60164-3-EN COSMOS Programmer Guide.md` — application-level XMSG library
-- `/mnt/e/Dev/Ronny/NDInsight/Developer/MON/calls/200B_XMSGFunction.yaml` — monitor call 200B specification
+- `TAD/TAD-Message-Formats.md` — TAD terminal protocol layered on top of XMSG
+- `XMSG-COMMAND-REFERENCE.md` — XMSG operator commands
+- `Devices/HDLC/archive/XMSG_Metadata_Buffer_Analysis.md` — observed routing-message bytes
+- `../Operations/Cosmos/ND-60164-3-EN COSMOS Programmer Guide.md` — application-level XMSG library
+- `../Developer/MON/calls/200B_XMSGFunction.yaml` — monitor call 200B specification
 
-**Document path:** `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/XMSG-Protocol-Analysis.md`
+**Document path:** `XMSG-Protocol-Analysis.md`

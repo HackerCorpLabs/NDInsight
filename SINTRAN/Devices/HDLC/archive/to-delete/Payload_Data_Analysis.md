@@ -273,4 +273,4 @@ Byte Offset | Hex    Dec   ASCII  | Interpretation
 
 ## Full Path to Document
 
-**Z:\NorskData\Source Code\Sintran L\Analysis\hdlc-analysis\Payload_Data_Analysis.md**
+**Source Code\Sintran L\Analysis\hdlc-analysis\Payload_Data_Analysis.md**

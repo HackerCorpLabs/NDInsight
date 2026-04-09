@@ -1110,4 +1110,4 @@ SINTRAN III has comprehensive SCSI support including:
 
 ---
 
-**Document Path:** `Z:\NorskData\Source Code\Sintran L\NPL\SCSI-Commands-Analysis.md`
+**Document Path:** `Source Code\Sintran L\NPL\SCSI-Commands-Analysis.md`

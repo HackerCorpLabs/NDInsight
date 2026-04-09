@@ -369,7 +369,7 @@ Physical Address Space:
 
 ### 7.1 Key Symbols from L07 Symbol Files
 
-From `D:\ND\S\L07\`:
+From ../NPL-SOURCE/SYMBOLS/L07/:
 
 | Symbol | Value (Octal) | Value (Decimal) | Type | Description |
 |--------|---------------|-----------------|------|-------------|
@@ -397,12 +397,12 @@ From `D:\ND\S\L07\`:
 ### 7.3 Symbol File Sources
 
 ```
-D:\ND\S\L07\N500-SYMBOLS.SYMB.TXT:   ADRZE=000060  (offset in N500DF)
-D:\ND\S\L07\N500-SYMBOLS.SYMB.TXT:   5D11=000040   (message parameter offset)
-D:\ND\S\L07\N500-SYMBOLS.SYMB.TXT:   5D12=000041   (message parameter offset)
-D:\ND\S\L07\SYMBOL-1-LIST.SYMB.TXT:  ADRZO=040277  (code label, NOT data)
-D:\ND\S\L07\SYMBOL-2-LIST.SYMB.TXT:  S500S=115542
-D:\ND\S\L07\SYMBOL-2-LIST.SYMB.TXT:  S500E=117552
+../NPL-SOURCE/SYMBOLS/L07/N500-SYMBOLS.SYMB.TXT:   ADRZE=000060  (offset in N500DF)
+../NPL-SOURCE/SYMBOLS/L07/N500-SYMBOLS.SYMB.TXT:   5D11=000040   (message parameter offset)
+../NPL-SOURCE/SYMBOLS/L07/N500-SYMBOLS.SYMB.TXT:   5D12=000041   (message parameter offset)
+../NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT:  ADRZO=040277  (code label, NOT data)
+../NPL-SOURCE/SYMBOLS/L07/SYMBOL-2-LIST.SYMB.TXT:  S500S=115542
+../NPL-SOURCE/SYMBOLS/L07/SYMBOL-2-LIST.SYMB.TXT:  S500E=117552
 ```
 
 ### 7.4 How ADRZERO Gets Its Value (NPL Code Analysis)
@@ -2763,9 +2763,9 @@ This tells SINTRAN: **"ND-500 sees shared memory starting at page ADRZERO"**
 
 ### 13.3 Symbol Files
 
-- `D:\ND\S\L07\N500-SYMBOLS.SYMB.TXT`
-- `D:\ND\S\L07\SYMBOL-1-LIST.SYMB.TXT`
-- `D:\ND\S\L07\SYMBOL-2-LIST.SYMB.TXT`
+- `../NPL-SOURCE/SYMBOLS/L07/N500-SYMBOLS.SYMB.TXT`
+- `../NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT`
+- `../NPL-SOURCE/SYMBOLS/L07/SYMBOL-2-LIST.SYMB.TXT`
 
 ### 13.4 Related Documentation
 

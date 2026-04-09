@@ -1,6 +1,6 @@
 # MP-P2-N500.NPL API Documentation
 
-**File:** Z:\NorskData\Source Code\Sintran L\NPL\MP-P2-N500.NPL
+**File:** Source Code\Sintran L\NPL\MP-P2-N500.NPL
 **Total Lines:** ~3808
 **Total APIs/Subroutines:** 47+
 
@@ -662,4 +662,4 @@
 ---
 
 **Generated:** 2025-10-13
-**Source File Path:** Z:\NorskData\Source Code\Sintran L\NPL\MP-P2-N500.NPL
+**Source File Path:** Source Code\Sintran L\NPL\MP-P2-N500.NPL

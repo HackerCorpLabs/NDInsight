@@ -1,6 +1,6 @@
 # :PROG File Format - Byte-Level Layout
 
-**Full path:** `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/File-Formats/prog-fileformat.md`
+**Full path:** `prog-fileformat.md`
 
 This document describes the on-disk byte-level layout of SINTRAN III `:PROG`
 files (as produced by the Nord Relocating Loader and consumed by `@RECOVER`),
@@ -10,7 +10,7 @@ based on a combination of:
 - Direct reading of NPL sources in this repository.
 - Empirical analysis of four real `:PROG` files from the `xmsg` subsystem.
 - The companion document
-  `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/File-Formats/PROG-FILE-FORMAT.md`,
+  `PROG-FILE-FORMAT.md`,
   which describes the format operationally and lists what the published
   manuals do and do not document.
 
@@ -209,7 +209,7 @@ counts for region sizes, not on the file length.
 ## 4. Worked Examples
 
 All four examples below are taken from the `xmsg` subsystem in
-`/mnt/c/Users/ronny/Downloads/xmsg/`. Header words are shown
+`(external test data)`. Header words are shown
 big-endian; addresses are shown in octal as well as hex because
 ND-100 documentation conventionally uses octal.
 
@@ -363,19 +363,19 @@ Items that this document does **not** establish from primary sources:
 
 ## 7. Sources
 
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/File-Formats/PROG-FILE-FORMAT.md`
+- `PROG-FILE-FORMAT.md`
   (operational reference, lists what the manuals do and do not document)
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/NPL/RP-P2-MONCALLS.NPL`
+- `../NPL-SOURCE/NPL/RP-P2-MONCALLS.NPL`
   lines 1900-2340 (the `BUFFR(7)` declaration, the `MON 117` call that
   reads 7 words from block 0, and the call to `2BDBRECOVER`)
-- `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT`
+- `../NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT`
   line 6192 (`2BDBR=013635`, the truncated symbol pointing at the
   routine that consumes the header)
-- `/mnt/e/Dev/Ronny/NDInsight/Reference-Manuals/ND-60.066.04 ND Relocating Loader.md`
+- `../../Reference-Manuals/ND-60.066.04 ND Relocating Loader.md`
   lines 511-523 (header field semantics) and 1009-1027 (two-bank and
   `*DATA-BANK-COPY` behaviour)
 - Empirical analysis of the four test files in
-  `/mnt/c/Users/ronny/Downloads/xmsg/`:
+  `(external test data)`:
   `xmsg-command-l03.prog`, `xmsg-hdlc-test-l.prog`,
   `xmsg-in-l03.prog`, `xmsg-fido-l03.prog`.
 

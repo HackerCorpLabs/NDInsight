@@ -1020,7 +1020,7 @@ TAD messages traverse 4 protocol layers before reaching the wire:
 
 ---
 
-**Document Path:** `Z:\NorskData\Source Code\Sintran L\NPL\TAD-HDLC-Encapsulation.md`
+**Document Path:** `Source Code\Sintran L\NPL\TAD-HDLC-Encapsulation.md`
 
 **Related Documents:**
 - `TAD-Protocol-Analysis.md` - TAD protocol reference

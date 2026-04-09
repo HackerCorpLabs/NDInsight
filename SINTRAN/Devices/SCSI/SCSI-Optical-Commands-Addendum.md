@@ -672,7 +672,7 @@ FI
 
 ---
 
-**Document Path:** `Z:\NorskData\Source Code\Sintran L\NPL\SCSI-Optical-Commands-Addendum.md`
+**Document Path:** `Source Code\Sintran L\NPL\SCSI-Optical-Commands-Addendum.md`
 
 **Related Documents:**
 - SCSI-Commands-Analysis.md - General SCSI commands

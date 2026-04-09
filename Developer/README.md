@@ -369,7 +369,7 @@ If you can check all boxes, you're ready to develop! 🚀
 
 **Documentation Issues:**
 - Check GitHub repository for updates
-- Cross-reference with official manuals in `D:\OCR\ai\`
+- Cross-reference with official manuals in (external OCR archive)
 - Review [SINTRAN-DEVELOPER-GUIDE.md](SINTRAN-DEVELOPER-GUIDE.md)
 
 **Getting Help:**

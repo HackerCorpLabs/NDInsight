@@ -1531,7 +1531,7 @@ public class Nd500InterfaceFactory
 
 ## Appendix A: Symbol Tables
 
-> **Source**: All symbol values verified from `D:\ND\S\L07\N500-SYMBOLS.SYMB.TXT` and `D:\ND\S\L07\SYMBOL-1-LIST.SYMB.TXT`
+> **Source**: All symbol values verified from `../NPL-SOURCE/SYMBOLS/L07/N500-SYMBOLS.SYMB.TXT` and `../NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT`
 >
 > **Important Note on Symbol Values**: In NPL assembler, symbols are truncated to 5 characters. Symbol values are typically:
 > - **Bit positions** for status bits (used with `BIT`/`NBIT` operators)
@@ -1768,7 +1768,7 @@ All values are offsets from HDEV base address:
 
 ### Symbol Definition Files
 
-**Source Directory**: `D:\ND\S\L07\`
+**Source Directory**: ../NPL-SOURCE/SYMBOLS/L07/
 
 | File | Content | Size |
 |------|---------|------|
@@ -1794,7 +1794,7 @@ All values are offsets from HDEV base address:
 ### Changelog
 
 **v1.1 (2026-01-30)**:
-- Updated Appendix A with verified symbol values from `D:\ND\S\L07\` SINTRAN L distribution
+- Updated Appendix A with verified symbol values from ../NPL-SOURCE/SYMBOLS/L07/ SINTRAN L distribution
 - Added symbol file line references for all values
 - Clarified that symbol values are bit positions (not masks) - masks must be calculated as `1 << BitPosition`
 - Added negative offset symbols for structure fields
@@ -1808,14 +1808,14 @@ All values are offsets from HDEV base address:
 - NEC-01 course documentation
 - ND-05.009.4 EN ND-500 Reference Manual
 - ndwiki.org/wiki/OCTOBUS (Octobus protocol reference)
-- **Symbol definition files**: `D:\ND\S\L07\` (N500-SYMBOLS.SYMB.TXT, SYMBOL-1-LIST.SYMB.TXT, SYMBOL-2-LIST.SYMB.TXT)
+- **Symbol definition files**: ../NPL-SOURCE/SYMBOLS/L07/ (N500-SYMBOLS.SYMB.TXT, SYMBOL-1-LIST.SYMB.TXT, SYMBOL-2-LIST.SYMB.TXT)
 
 ### Verification
 
 All information in this document is verified from:
 1. NPL source code with specific line number references
 2. Official Norsk Data reference manuals
-3. **Symbol definition files from SINTRAN L distribution** (`D:\ND\S\L07\*.TXT`) with specific line references
+3. **Symbol definition files from SINTRAN L distribution** (../NPL-SOURCE/SYMBOLS/L07/*.TXT`) with specific line references
 4. All symbol values verified against actual SINTRAN L07 build symbols
 
 **No speculation is presented as fact.**
