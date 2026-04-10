@@ -1381,6 +1381,400 @@ Plus pull resistors (~16 x 10K, ~$0.50 in arrays), bypass caps (~15 x 0.1uF, ~$0
 
 ---
 
+## Design 4: Direct GPIO with PIO-as-Latch (No External Address/Data Latches)
+
+**Key insight**: The PIO state machine is fast enough to capture BD bus state into its FIFO **within the 50 ns BAPR window** -- so we don't actually need external hardware latches at all. The PIO + FIFO IS the latch.
+
+This is a refinement of Design 1 (Direct GPIO) where dedicated PIO state machines act as the address/data capture hardware. It dramatically reduces chip count while keeping single-cycle BD access.
+
+### Why PIO Can Replace Hardware Latches
+
+#### PIO Latency Analysis
+
+The RP2350 PIO runs at the system clock (up to 150 MHz on RP2350). One PIO cycle = ~6.67 ns.
+
+A PIO program to capture BD on /BAPR LOW:
+
+```pio
+.wrap_target
+    wait 0 pin BAPR_PIN     ; wait until /BAPR goes LOW (1 cycle when triggered)
+    in pins, 24             ; read 24 BD GPIOs into ISR (1 cycle)
+    push                    ; push to RX FIFO (1 cycle, or auto-push)
+    wait 1 pin BAPR_PIN     ; wait for /BAPR HIGH (release for next cycle)
+.wrap
+```
+
+**Timing breakdown**:
+
+| Step | Time | Notes |
+|------|------|-------|
+| Bus /BAPR asserted | 0 ns | CPU drives /BAPR LOW on bus |
+| Level shifter delay (74LVC245) | 3-6 ns | 5V to 3.3V translation |
+| GPIO synchronizer | ~13 ns | 2 PIO cycles for input synchronization |
+| `wait 0 pin` triggers | ~7 ns | 1 PIO cycle to detect |
+| `in pins, 24` | ~7 ns | 1 PIO cycle to read 24 bits |
+| `push` to FIFO | ~7 ns | 1 PIO cycle |
+| **Total time to FIFO** | **~37-40 ns** | **Within 50 ns BAPR window** ✓ |
+
+The critical path: **bus edge -> level shifter -> GPIO sync -> PIO read -> FIFO** completes well within the 50 ns address hold time. The 24 BD lines are captured BEFORE the CPU releases the address.
+
+> **Validation**: This works because the RP2350 input synchronizers and PIO together react in ~3-4 cycles. At 150 MHz that's ~20-27 ns. Well below 50 ns.
+
+#### Why FIFO Acts as Latch
+
+Once the data is in the PIO RX FIFO, it stays there until the CPU reads it. The bus can change, the CPU can be busy doing other things -- the captured 24-bit value is safely held in the FIFO. This is functionally identical to a hardware latch.
+
+The PIO RX FIFO is 4 words deep (or 8 deep when joined). Plenty for buffering multiple bus events.
+
+### Design 4 Hardware
+
+#### Block Diagram
+
+```mermaid
+flowchart LR
+    subgraph BUS["ND-100 Bus"]
+        BD["/BD 0-23"]
+        CTL["/BAPR /BIOXE /BMEM /BDAP /BDRY"]
+    end
+
+    subgraph LS["Level Shifters Only"]
+        T1["3x 74LVC245<br/>BD 0-23<br/>(bidirectional)"]
+        T2["74LVC14<br/>Control signals<br/>(input)"]
+        T3["74LVC07<br/>Wired-OR outputs"]
+    end
+
+    subgraph MCU["RP2350B PIO + FIFO"]
+        SM_ADDR["PIO0 SM0<br/>Address capture<br/>on /BAPR"]
+        SM_IOX["PIO0 SM1<br/>IOX data capture<br/>on /BIOXE"]
+        SM_MEM["PIO0 SM2<br/>Mem data capture<br/>on /BDAP"]
+        SM_DMA["PIO0 SM3<br/>DMA data capture<br/>on /BDRY"]
+        FIFO["RX FIFOs<br/>(decoupled)"]
+    end
+
+    BD <--> T1
+    CTL --> T2
+    T1 --> SM_ADDR
+    T1 --> SM_IOX
+    T1 --> SM_MEM
+    T1 --> SM_DMA
+    T2 --> SM_ADDR
+    T2 --> SM_IOX
+    T2 --> SM_MEM
+    T2 --> SM_DMA
+    SM_ADDR --> FIFO
+    SM_IOX --> FIFO
+    SM_MEM --> FIFO
+    SM_DMA --> FIFO
+
+    style BUS fill:#FFF3E0,stroke:#E65100,color:#E65100
+    style LS fill:#E0F7FA,stroke:#00838F,color:#00838F
+    style MCU fill:#E3F2FD,stroke:#0D47A1,color:#0D47A1
+```
+
+#### Component List (Design 4)
+
+| Chip | Qty | Function | Approx Cost |
+|------|-----|----------|-------------|
+| 74LVC245 | 3 | BD 0-23 bidirectional level shifter (3.3V <-> 5V) | $1.50 |
+| 74LVC14 | 1 | Schmitt-trigger inverter for control signals | $0.30 |
+| 74LVC07 | 1 | Open-drain wired-OR outputs (BREQ, BINT, BDRY out, etc.) | $0.30 |
+| 74LVC125 | 1 | Daisy-chain pass-through bypass | $0.30 |
+| **Total** | **6** | | **~$2.40** |
+
+**Compared to Design 2's 15 chips at ~$8** -- Design 4 uses **9 fewer chips** and costs **~$5.60 less**.
+
+#### Pin Allocation
+
+| GPIO | Signal | Direction | Notes |
+|------|--------|-----------|-------|
+| 0-23 | /BD 0-23 | Bidirectional | 24-bit BD bus, bank LOW |
+| 24 | BD_DIR | Output | 74LVC245 direction control |
+| 25 | /BD_OE | Output | 74LVC245 output enable (gates output to bus) |
+| 26 | /BAPR | Bidirectional | Read from CPU IOX, drive during DMA |
+| 27 | /BIOXE | Input | CPU IOX strobe |
+| 28 | /BINACK | Input | CPU input acknowledge |
+| 29 | /BMEM | Input | Memory cycle indicator |
+| 30 | /BDRY | Bidirectional | Drive when responding, read when memory responds |
+| 31 | /BDAP | Bidirectional | Drive during DMA, read when CPU writes memory |
+| 32 | /BINPUT | Bidirectional | Drive during IOX read response |
+| 33 | /BREQ | Output | DMA request (open-drain) |
+| 34 | /INGRANT | Input | DMA grant input from previous slot |
+| 35 | /OUTGRANT | Output | DMA grant output to next slot |
+| 36 | /INIDENT | Input | Interrupt ident input from previous slot |
+| 37 | /OUTIDENT | Output | Interrupt ident output to next slot |
+| 38 | /BMCL | Input | Bus master clear (reset) |
+| 39 | /BINT 10 | Output | Interrupt level 10 (open-drain) |
+| 40 | /BINT 11 | Output | Interrupt level 11 (open-drain) |
+| 41 | /BINT 12 | Output | Interrupt level 12 (open-drain) |
+| 42 | /OE_DAISY_PASS | Output | Daisy-chain pass-through enable |
+| 43 | SD_SCK | Output | SD card SPI clock |
+| 44 | SD_MOSI | Output | SD card SPI data out |
+| 45 | SD_MISO | Input | SD card SPI data in |
+| 46 | /SD_CS | Output | SD card chip select |
+| 47 | -- | -- | PSRAM CS (if PSRAM enabled, else free) |
+
+**Total pins: 47** (with PSRAM enabled)
+**Spare GPIO: 0** (or 1 with PSRAM disabled)
+
+> **Pin budget is tight**: Design 4 uses essentially all available GPIO. No room for status LEDs unless we drop something. Trade-off: gain simplicity at the cost of GPIO headroom.
+
+#### Adding LEDs to Design 4
+
+To add 2 status LEDs, we can:
+- **Cut PSRAM trace**: Free GP47, gain 1 pin (1 LED, no PSRAM cache)
+- **Multiplex via 74HC595**: Add a shift register clocked from existing SD SPI bus to drive multiple LEDs (no GPIO cost)
+
+The 74HC595 approach is cleanest -- add 1 chip, share SD SPI bus, get 8 LED outputs with no GPIO cost.
+
+### Design 4 vs Design 2 Comparison
+
+| Aspect | Design 2 (Latched) | **Design 4 (PIO-as-Latch)** |
+|--------|--------------------|------------------------------|
+| BD GPIO pins | 8 (shared) + 7 control = 15 | 24 + 2 control = 26 |
+| Total system pins | 35 | 44-47 |
+| External chips for BD | 15 | 6 |
+| BD interface cost | ~$8 | ~$2.40 |
+| 24-bit capture latency | ~80 ns (3-chunk read) | ~37-40 ns (1-cycle PIO read) |
+| Determinism | High (PIO) | High (PIO) |
+| Latch storage | External 74LVC574 | PIO RX FIFO (4-8 entries) |
+| Single-cycle 24-bit access | No (requires 3 PIO cycles) | Yes (1 PIO cycle) |
+| Memory emulation support | Yes (with NOR gate) | Yes (with multiple PIO SMs) |
+| PSRAM compatible | Yes (10 spare pins) | Marginal (0-1 spare pins) |
+| LED support | Easy (10 spare pins) | Need 74HC595 multiplexer |
+| Software complexity | Higher (PIO + chip select) | Lower (just PIO read) |
+| PCB area | Larger (15 chips) | Smaller (6 chips) |
+
+#### Key Trade-offs
+
+**Design 4 wins on**:
+- Chip count (6 vs 15)
+- BD interface cost ($2.40 vs $8)
+- Capture latency (~40 ns vs ~80 ns)
+- Software simplicity
+- PCB compactness
+
+**Design 2 wins on**:
+- Pin headroom (10 spare vs 0-1 spare)
+- LED/expansion flexibility
+- Easier debugging (visible latch values)
+
+### Trigger Signal Mapping (Design 4)
+
+In Design 4, the PIO acts as the latch -- but **trigger signals** still need to reach the PIO state machines so they know **when** to read the BD lines. There are no external data latches; instead, PIO state machines wait on the trigger signals and read BD GPIOs directly.
+
+Each PIO state machine watches one trigger signal and reads 24 BD bits when the trigger asserts:
+
+| PIO SM | Trigger Signal | Trigger Direction | Action | FIFO Tag |
+|--------|---------------|-------------------|--------|----------|
+| **PIO0.SM0** -- ADDR_CAPTURE | /BAPR | Falling edge (asserted LOW) | Read 24 BD bits, push to RX FIFO | "ADDR" event |
+| **PIO0.SM1** -- IOX_DATA | /BIOXE | Falling edge | Read 24 BD bits, push to RX FIFO | "IOX_DATA" event |
+| **PIO0.SM2** -- MEM_DATA | /BDAP | Falling edge | Read 16 BD bits, push to RX FIFO | "MEM_DATA" event |
+| **PIO0.SM3** -- DMA_READ | /BDRY (incoming) | Falling edge during our DMA | Read 16 BD bits, push to RX FIFO | "DMA_DATA" event |
+
+> **Important**: All 4 PIO state machines share the **same input pin set** (BD 0-23). Multiple PIO SMs can read the same GPIO pins simultaneously without conflict because they're all reading, not driving. Each SM has its own wait condition and its own FIFO.
+
+#### Why Separate State Machines per Trigger
+
+A PIO `wait` instruction can only watch **one pin (or a Y register condition)** at a time. We have three different events that can trigger a data read:
+
+- **/BIOXE asserted**: CPU IOX cycle, capture data on the bus
+- **/BDAP asserted**: CPU memory write or our DMA write phase, capture data
+- **/BDRY asserted (incoming)**: Memory responding to our DMA read, capture data
+
+Each event requires a different PIO state machine because each `wait` is single-pin. The RP2350B has 12 PIO state machines (4 per PIO block x 3 blocks), so dedicating 4 to bus capture is fine.
+
+#### PIO Program Examples
+
+**SM0 -- Address Capture**:
+```pio
+.program addr_capture
+.wrap_target
+    wait 0 pin BAPR_PIN     ; wait for /BAPR LOW
+    in pins, 24             ; read 24 BD bits
+    push                    ; push to FIFO (CPU drains)
+    wait 1 pin BAPR_PIN     ; wait for /BAPR HIGH (release)
+.wrap
+```
+
+**SM1 -- IOX Data Capture**:
+```pio
+.program iox_data_capture
+.wrap_target
+    wait 0 pin BIOXE_PIN    ; wait for /BIOXE LOW
+    in pins, 24             ; read 24 BD bits (data driven by CPU on IOX write)
+    push                    ; push to FIFO
+    wait 1 pin BIOXE_PIN    ; wait for /BIOXE HIGH
+.wrap
+```
+
+**SM2 -- Memory Data Capture**:
+```pio
+.program mem_data_capture
+.wrap_target
+    wait 0 pin BDAP_PIN     ; wait for /BDAP LOW
+    in pins, 16             ; read lower 16 BD bits (data is 16-bit on memory cycles)
+    push                    ; push to FIFO
+    wait 1 pin BDAP_PIN     ; wait for /BDAP HIGH
+.wrap
+```
+
+**SM3 -- DMA Read Data Capture**:
+```pio
+.program dma_read_capture
+.wrap_target
+    wait 0 pin BDRY_PIN     ; wait for /BDRY LOW (memory responding)
+    in pins, 16             ; read lower 16 BD bits
+    push                    ; push to FIFO
+    wait 1 pin BDRY_PIN     ; wait for /BDRY HIGH
+.wrap
+```
+
+> **Note on SM3**: This SM should only be ARMED when our card has initiated a DMA read cycle. Otherwise it would trigger on every /BDRY assertion (including ones from CPU IOX cycles). The CPU enables/disables this SM as needed.
+
+#### Trigger Signals as GPIO Inputs
+
+The trigger signals are normal RP2350 GPIO inputs (after level shifting through 74LVC14). They are not connected to any external latch -- the PIO directly senses them and reacts.
+
+| Signal | RP2350 GPIO | Buffer | Used by PIO SM |
+|--------|------------|--------|----------------|
+| /BAPR | GP26 | 74LVC14 | PIO0.SM0 (ADDR_CAPTURE) |
+| /BIOXE | GP27 | 74LVC14 | PIO0.SM1 (IOX_DATA) |
+| /BDAP | GP31 | 74LVC14 | PIO0.SM2 (MEM_DATA) |
+| /BDRY | GP30 | 74LVC14 | PIO0.SM3 (DMA_READ) |
+
+These pins are also readable by software via normal GPIO read for state checks (e.g., the bus protocol handler can check /BIOXE state directly).
+
+#### Event Tagging
+
+Since multiple SMs push to separate FIFOs, the CPU drains each FIFO and knows which kind of event it is by which FIFO it came from. No tag bits needed.
+
+If using a single FIFO (joined), the SM would need to push a tag along with the data:
+
+```pio
+    in pins, 24
+    set y, 1                ; tag = 1 for "address"
+    in y, 8                 ; shift tag into ISR
+    push                    ; push 32-bit value: [tag][data]
+```
+
+But with 4 separate FIFOs, this is unnecessary.
+
+### Output Latch + Output Enable in One Chip
+
+For driving the bus, the ideal chip combines:
+1. **Latch** (D flip-flop or transparent latch) -- holds 8 bits stable
+2. **3-state output** with **output enable** -- chip can be tristated until commanded
+
+Several chip families provide this in a single package:
+
+#### Recommended Output Latch+OE Chips
+
+| Chip | Type | Trigger | OE | Speed | Notes |
+|------|------|---------|----|----|-------|
+| **74LVC574** | Octal D flip-flop | Edge (rising CLK) | /OE pin | 3-7 ns | **Most common, recommended** |
+| **74LVC573** | Octal transparent latch | Level (LE high = transparent) | /OE pin | 3-7 ns | Latches on LE falling edge |
+| **74LVT574** | Octal D flip-flop, low voltage | Edge | /OE pin | 2-5 ns | Faster, higher drive |
+| **74LVT373** | Octal transparent latch, LV | Level | /OE pin | 2-5 ns | Faster than 573 |
+| **74AHC574** | Octal D flip-flop, advanced HC | Edge | /OE pin | 4-8 ns | 5V tolerant |
+| **74LVC16374** | 16-bit D flip-flop | Edge | 2x /OE pins | 3-7 ns | One chip for 16 bits |
+| **74LVC16374A** | 16-bit version (faster) | Edge | 2x /OE pins | 2-5 ns | Saves PCB space |
+
+#### How They Work (74LVC574 Example)
+
+The 74LVC574 has:
+
+| Pin | Function |
+|-----|----------|
+| D0-D7 | 8 data inputs (from MCU) |
+| Q0-Q7 | 8 data outputs (to bus) |
+| CLK | Clock input -- captures D on rising edge |
+| /OE | Output enable -- HIGH = high-Z, LOW = drive Q outputs |
+
+**Sequence to drive 24 bits to the bus**:
+
+```
+Start: All /OE pins HIGH (outputs high-Z, bus released)
+
+1. PIO drives shared 8-bit bus = byte 0
+2. PIO pulses CLK on chip 1 (rising edge captures byte 0)
+3. PIO drives shared 8-bit bus = byte 1
+4. PIO pulses CLK on chip 2 (captures byte 1)
+5. PIO drives shared 8-bit bus = byte 2
+6. PIO pulses CLK on chip 3 (captures byte 2)
+
+Now all three chips hold the desired values, but outputs are still high-Z.
+
+7. PIO drives /OE LOW on all three chips simultaneously
+   (single GPIO connected to all three /OE pins)
+8. All 24 bits appear on the bus instantly (~3-7 ns propagation)
+
+Bus is now driven with the prepared 24-bit value.
+
+When done:
+9. PIO drives /OE HIGH on all three chips
+   Outputs go high-Z within ~3-7 ns
+   Bus is released
+```
+
+**Key feature**: The data is loaded into the latches **before** the bus is driven. The bus only sees the value when /OE is asserted, not during the loading phase. This avoids glitches and bus contention.
+
+#### 74LVC574 Direct to Bus (No Separate Transceiver)
+
+The 74LVC574 is a 3.3V CMOS chip. To drive a 5V bus directly, we need:
+
+| Approach | Chips | Notes |
+|----------|-------|-------|
+| **74LVC574 + 74LVT245 transceiver** | 6 chips | Latch + level shifter, 2-stage |
+| **74LVC574 alone** (if 3.3V output is enough) | 3 chips | Works ONLY if bus accepts 3.3V signals as logic HIGH |
+| **74AHC574** alone | 3 chips | 5V supply with 3.3V tolerant inputs from MCU side |
+| **74LVC16374** | 2 chips | 16-bit version, 3 chips for 24 bits but bigger pads |
+
+**Critical detail**: The ND-100 bus uses 5V TTL. A 3.3V signal **may be interpreted as HIGH** by the receiving 5V logic if the threshold is below 2.0V. **Standard TTL VIH is 2.0V**, so a 3.3V output is well above this and should work. **However**, this is borderline -- some 5V parts have higher VIH or are sensitive to noise.
+
+**Recommendation**: For maximum reliability, use the **2-stage approach**:
+- **74LVC574** as latch (3.3V CMOS, accepts MCU outputs)
+- **74LVT245** as output transceiver (3.3V to 5V, drives the bus with proper levels)
+
+This guarantees correct 5V signaling and provides higher drive strength.
+
+**Alternative single-chip**: **74AHC574** runs from 5V and accepts 3.3V inputs. It provides 5V CMOS output levels directly to the bus. Saves chips but verify the 5V variant supports 3.3V input thresholds.
+
+#### Updated Output Stage for Design 2
+
+| Option | Chips | Complexity | 5V output reliability |
+|--------|-------|------------|----------------------|
+| **74LVC574 + 74LVT245** (2-stage) | 6 chips | Medium | **Best** -- proper 5V levels |
+| 74AHC574 (single stage, 5V supply) | 3 chips | Simple | Good -- verify VIH input compatibility |
+| 74LVC574 alone (3.3V output) | 3 chips | Simple | Marginal -- works but borderline TTL HIGH |
+| 74LVC16374 + level shifter | 2+2 chips | Medium | Best -- 16-bit per chip |
+
+**Recommendation for Design 2**: **74LVC574 + 74LVT245** for guaranteed 5V signaling and higher drive strength. Total 6 chips for the output path (already counted in Design 2 chip list).
+
+#### Why This is Important
+
+The user's question highlights a key design pattern: **load the latches first, then enable the output**. This is called "deferred drive" and provides several benefits:
+
+1. **No glitches**: Bus sees only the final value, not intermediate bytes during loading
+2. **Atomic update**: All 24 bits appear simultaneously when /OE asserts
+3. **Easy timing**: PIO can take its time loading; the bus only sees the result
+4. **Clean release**: /OE deassert tristates the output cleanly
+
+This pattern is essential for any bus interface with multi-byte loading.
+
+### Recommended Architecture: Design 4 (PIO-as-Latch)
+
+The PIO-as-latch approach is **the recommended design** because:
+
+1. **The 50 ns BAPR window is comfortably met** by PIO + FIFO (~40 ns total)
+2. **Massive chip reduction** (6 vs 15) simplifies PCB and BOM
+3. **Lower latency** (~40 ns vs ~80 ns) leaves more margin for other operations
+4. **PSRAM compatible** (47 GPIO total = 0 spare) with multiplexed LEDs via shift register
+5. **Single PIO read** captures all 24 bits atomically -- no race conditions
+
+The pin tightness is solved by adding a small **74HC595 shift register** for status LEDs and any future expansion outputs, shared on the SD card SPI bus.
+
+---
+
 ## RP2040 Alternative Analysis
 
 Can the same controller work with an **RP2040** instead of RP2350B? The RP2040 has **30 GPIO** in a single bank, but **6 are reserved for QSPI flash**, leaving **~24 usable GPIO** in practice.
