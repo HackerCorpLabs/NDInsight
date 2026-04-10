@@ -24,297 +24,259 @@ See [ND-100-BUS-C-CONNECTOR.md](ND-100-BUS-C-CONNECTOR.md) for the complete bus 
 
 ---
 
-## Hardware Module Selection
+## Selected Hardware Module: Olimex RP2350-PICO2-BB48R
 
-Two RP2350B breakout modules have been evaluated. Both expose all 48 GPIO and use the same RP2350B chip.
+The controller card uses the **Olimex RP2350-PICO2-BB48R** as the MCU subsystem. The Olimex board plugs into our PCB via headers; everything else on the card is **surface mount**.
 
-### Option 1: Olimex RP2350-PICO2-BB48R (RECOMMENDED)
-
-**Olimex RP2350-PICO2-BB48R** -- a redesign of the Raspberry Pi Pico 2 with breadboard spacing and integrated SD card.
+### Module Specifications
 
 | Feature | Value |
 |---------|-------|
 | MCU | RP2350B (48 GPIO variant) |
 | Flash | **16 MB QSPI** |
 | PSRAM | **8 MB QSPI** (BB48R variant only) |
-| **SD Card** | **Micro SD card slot ON BOARD** (BB48R variant only) |
-| GPIO exposed | All **48 GPIO** |
+| **SD Card** | **Micro SD card slot ON BOARD** |
+| GPIO exposed | All **48 GPIO** (GP0-GP47) |
 | USB | **USB-C** data and power |
 | Buttons | **BOOT and RESET on board** |
-| Status LED | Included |
+| Status LED | On board, GPIO25 (`User_Led`) |
 | UEXT connector | pUEXT 1.0 mm pitch (debug/expansion) |
 | Qwiic/Stemma | I2C connector |
 | Dimensions | 69 x 18 mm |
-| Pin spacing | 15.24 mm (0.6") -- breadboard friendly |
+| Pin spacing | 15.24 mm (0.6") -- compatible with standard 0.1" headers |
 | Open source hardware | **Yes** -- KiCad files, schematic, manual provided |
-| Documentation | Full user manual, pinout diagram, KiCad project |
+| Power | On-board DCDC 3.3V @ 2A continuous (3A peak) |
+| Order codes | RP2350-PICO2-BB48 (no PSRAM/SD), RP2350-PICO2-BB48R (with PSRAM + SD) |
 
-**Why this is the better choice**:
+### Why BB48R is the Right Choice
 
-1. **SD card on board** -- saves us from designing a card slot. Just use the micro SD already wired.
-2. **BOOT and RESET buttons on board** -- no external buttons needed on our card
-3. **USB-C** -- modern, robust connector
-4. **Status LED** -- already wired, can use for heartbeat
-5. **Open hardware** -- we get full schematic and KiCad files for reference
-6. **Breadboard spacing** -- easier prototyping
-7. **PSRAM included** -- 8 MB just like PGA2350
-8. **Same flash size** -- 16 MB QSPI
+1. **SD card on board** -- no external SD slot needed on our PCB
+2. **BOOT and RESET buttons on board** -- no external buttons needed
+3. **USB-C connector** -- modern, robust, handles firmware updates and virtual serial
+4. **Status LED on board** (GPIO25) -- free heartbeat indicator
+5. **Open source hardware** with full KiCad files and schematic
+6. **PSRAM included** -- 8 MB for floppy/SMD/HDLC buffer caching
+7. **3.3V regulator** at 2A -- ample power for level shifters and our circuitry
 
-### Option 2: Pimoroni PGA2350
+### PCB Integration: Headers + Surface Mount
 
-| Feature | Value |
-|---------|-------|
-| MCU | RP2350B |
-| Flash | 16 MB QSPI |
-| PSRAM | 8 MB (CS on GP47, cuttable) |
-| SD card | None -- needs external |
-| Buttons | None -- needs external |
-| Form factor | Pin Grid Array, very compact |
-| Pin spacing | 2.54 mm |
-| Open source | No |
+The Olimex BB48R is a **through-hole module** with 0.6" (15.24 mm) row spacing. It plugs into our PCB via female pin headers. Everything else on the card is **surface mount** for compactness and reliability.
 
-### Comparison
+| Section | Mount Type |
+|---------|-----------|
+| Olimex BB48R module | Through-hole female headers (the module itself is socketed) |
+| Level shifters (74LVC245, 74LVC14, 74LVC07, 74LVC125) | **SMD** (SOIC-14/16/20 or TSSOP) |
+| Latches (74LVC574, 74LVT245) | **SMD** (SOIC-20/TSSOP) |
+| Pull resistors and bypass caps | **SMD** (0603 or 0402) |
+| LEDs | **SMD** (0805) |
+| C connector (DIN 41612) | Through-hole (PCB-mount male right-angle) |
+| Status LEDs | **SMD** (0805) |
 
-| Aspect | Olimex BB48R | Pimoroni PGA2350 |
-|--------|--------------|-------------------|
-| Chip | RP2350B (same) | RP2350B (same) |
-| Flash | 16 MB | 16 MB |
-| PSRAM | 8 MB | 8 MB |
-| **SD card on board** | **YES** | No |
-| **Buttons on board** | **YES** (BOOT + RESET) | No |
-| **USB connector** | USB-C | depends on carrier |
-| Status LED | Yes | No |
-| Open source hardware | **Yes (KiCad)** | No |
-| Form factor | Breadboard 0.6" | PGA compact |
-| Documentation | **Full schematic + KiCad** | Pin reference only |
-| Dimensions | 69 x 18 mm | smaller PGA |
-| GPIO available | 47 (PSRAM) or 48 (no PSRAM) | 47 (PSRAM) or 48 (no PSRAM) |
-| Price | similar | similar |
+#### Olimex BB48R Connector Footprint
 
-### Pin Savings with Olimex BB48R
+The BB48R has two pin rows (EXT1 and EXT2), each 27 pins long, spaced 15.24 mm apart. On our PCB:
 
-The integrated SD card means we save GPIO pins on our card design:
+| PCB Footprint | Detail |
+|---------------|--------|
+| 2x female pin sockets, 27-pin each | 0.1" pitch, 0.6" row spacing |
+| Or one 54-pin DIP socket | Some assemblers prefer single socket |
+| Module orientation | USB-C connector facing away from C connector |
 
-| Item | PGA2350 (external SD) | Olimex BB48R (built-in SD) |
-|------|----------------------|----------------------------|
-| SD card SPI | 4 GPIO (SCK/MOSI/MISO/CS) | **0 GPIO on our card** (uses module pins) |
-| LOAD/BOOT button | Add external | **0 GPIO** (on module) |
-| RESET button | Add external | **0 GPIO** (on module) |
-| Status LED 1 | 1 GPIO | **0 GPIO** (on module) |
+The female sockets allow the Olimex board to be **removed and replaced** if needed. The Olimex board itself is industrial grade and should not need replacement under normal use.
 
-This frees ~5 pins compared to PGA2350 -- but the SD pins are still on the module's GPIO pool, just routed to the SD slot internally.
-
-> **Wait**: actually the SD card on the BB48R uses some of the 48 GPIO pins to communicate with the SD card. We need to check the pinout diagram to see which pins are reserved for SD. Those pins are NOT free for our use.
-
-### Pin Reservation on Olimex BB48R
-
-The BB48R schematic and pinout show which pins are used internally:
-
-> **TODO**: Verify exact pinout from the official Olimex pinout diagram. The SD card SPI pins (typically 4 GPIO) are reserved on board. Status LED is typically GP25.
->
-> Until the pinout is checked, plan for **47 - 4 (SD) - 1 (LED) = 43 usable GPIO** on the BB48R.
-
-### Recommendation
-
-**Use the Olimex RP2350-PICO2-BB48R** for these reasons:
-
-1. **Lower BOM** -- we don't need external SD slot, USB connector, buttons
-2. **Faster bring-up** -- module is pre-tested, no SD card debug needed
-3. **Open source** -- we have the KiCad files for reference
-4. **Comparable GPIO** -- ~43 usable on BB48R vs ~45 on PGA2350 (pinout pending)
-5. **Full debug support** -- BOOT/RESET buttons + UEXT connector for SWD
-
-The 2-pin difference doesn't change the design fit:
-- Design 4 (Direct GPIO + PIO): Still tight (~43 needed, 43 available -- 0 spare)
-- Design 2 (8-bit Latched): Comfortable (~28 needed, 43 available -- 15 spare) ✓
-- Design 3 (SPI Shift): Very comfortable (~22 needed, 43 available -- 21 spare)
-
-**With Olimex BB48R, Design 2 (8-bit Latched) is the clear recommendation** with 15 spare pins. Or use Design 4 if you accept zero spare pins for the BD bus alone (but with SD already integrated, the previous tightness in Design 4 is mostly resolved).
-
-> **Action required**: Download the Olimex pinout diagram and confirm exact pin reservations for SD card and status LED before locking in the design.
-
----
-
-## Hardware Module Details: Pimoroni PGA2350 (Alternative)
-
-The selected hardware is the **Pimoroni PGA2350** (PIM722) -- a Pin Grid Array (PGA) breakout board for the RP2350B with maximum exposed pins in minimum space.
-
-### PGA2350 Specifications
-
-| Feature | Value |
-|---------|-------|
-| MCU | RP2350B (48 GPIO variant) |
-| Flash | **16 MB QSPI** with XiP support |
-| PSRAM | **8 MB** (CS wired to GP47, **cuttable trace**) |
-| GPIO exposed | 48 (GP0-GP47) |
-| Format | Pin Grid Array, very compact |
-| Brand | Pimoroni |
-| SKU | PIM722 |
-
-### Pin Availability on PGA2350
-
-The 48 GPIO pins on the PGA2350 are GP0-GP47. Several pins have specific reservations:
-
-#### Hard reservations (NOT available as GPIO)
-
-These pins are dedicated to external QSPI flash and **not exposed** as part of the GPIO pool:
-
-| Signal | Function |
-|--------|----------|
-| QSPI_SCLK | Flash clock |
-| QSPI_CS | Flash chip select |
-| QSPI_IO0 | Flash data 0 |
-| QSPI_IO1 | Flash data 1 |
-| QSPI_IO2 | Flash data 2 |
-| QSPI_IO3 | Flash data 3 |
-
-> The QSPI pins are **separate from GPIO0-47**. They do NOT eat into the 48 GPIO budget. The PGA2350 module hides them internally.
-
-#### Soft reservations (board-specific)
-
-| Pin | Reason | Recoverable? |
-|-----|--------|--------------|
-| **GP47** | PSRAM chip select | ✓ Yes -- cut trace to disable PSRAM |
-
-#### Buttons (no GPIO cost)
-
-| Function | Pin | Notes |
-|----------|-----|-------|
-| RESET | RUN (dedicated) | No GPIO consumed -- press to ground |
-| BOOTSEL | QSPI_CS (already reserved) | No GPIO consumed -- press to ground for programming mode |
-
-#### USB (no GPIO cost on PGA2350)
-
-The RP2350B's USB interface uses dedicated internal USB pins on the PGA2350 module. **USB does not consume any GPIO** -- GP24 and GP25 remain available as normal GPIOs.
-
-### Effective GPIO Available
-
-| Configuration | Usable GPIO | Notes |
-|---------------|-------------|-------|
-| **Default (PSRAM enabled)** | **47 (GP0-46)** | Recommended -- 8 MB PSRAM available |
-| PSRAM disabled (cut trace) | **48 (GP0-47)** | Maximum pins, no PSRAM cache |
-
-> **For all configurations**: USB, RESET button, and BOOTSEL button are free -- they use dedicated pins (USB internal, RUN, QSPI_CS) and do not consume any GPIO.
-
-### When to Keep PSRAM
-
-The 8 MB PSRAM is useful for device emulation buffering:
-
-| Use Case | PSRAM Benefit |
-|----------|---------------|
-| **Floppy disk emulation** | Cache full floppy image (~1.4 MB), instant access |
-| **SMD disk emulation** | Sector cache for hot regions, reduces SD card reads |
-| **HDLC streaming** | Large FIFO buffers for high-throughput links |
-| **Terminal emulation** | Negligible (small buffers fit in SRAM) |
-
-### Design Fit Analysis on PGA2350
-
-For development with USB enabled (45 GPIO) and PSRAM enabled, the design fit is:
-
-| Design | Total Pins | Dev (45 GPIO) | Production no USB (47 GPIO) | No PSRAM no USB (48) |
-|--------|-----------|---------------|----------------------------|----------------------|
-| **Design 1 (Direct GPIO)** | 48 | ❌ Exceeds by 3 | ❌ Exceeds by 1 | ⚠ Tight (0 spare) |
-| **Design 2 (8-bit Latched)** | 37 | ✓ 8 spare | ✓ 10 spare | ✓ 11 spare |
-| **Design 3 (SPI Shift)** | 28 | ✓ 17 spare | ✓ 19 spare | ✓ 20 spare |
-
-> **Important**: Design 1 only fits when both PSRAM is disabled AND USB is not used. This eliminates the development convenience and the PSRAM cache benefit.
->
-> Designs 2 and 3 fit comfortably in all configurations.
-
-### PSRAM Worth Keeping?
-
-The 8 MB PSRAM is useful for:
-
-| Use Case | PSRAM Benefit |
-|----------|---------------|
-| **Floppy disk emulation** | Cache full floppy image (~1.4 MB), instant access |
-| **SMD disk emulation** | Sector cache for hot regions, reduces SD card reads |
-| **HDLC streaming** | Large FIFO buffers for high-throughput links |
-| **Terminal emulation** | Negligible (small buffers fit in SRAM) |
-
-### Required System Resources
-
-The controller card always requires:
-
-| Resource | GPIO Used | Pin/Source | Purpose |
-|----------|-----------|------------|---------|
-| **USB** (mandatory) | 0 | Internal RP2350 USB pins | Firmware updates, virtual serial monitoring |
-| **PSRAM** (recommended) | 1 | GP47 (CS) | 8 MB cache for floppy/SMD images |
-| **RESET button** | 0 | RUN pin (dedicated) | Hardware reset, no GPIO used |
-| **BOOTSEL button** | 0 | QSPI_CS (already reserved) | USB mass storage programming mode |
-| **Status LEDs** | 2 | 2x GPIO | Activity, error indication |
-
-#### Buttons -- No GPIO Cost
-
-Both required buttons use dedicated pins, **not GPIOs**:
-
-**RESET button**: Wired RUN -> button -> GND. RUN is a dedicated reset pin with internal pull-up. Pulling it LOW resets the MCU.
+#### Card-Edge Layout (Suggested)
 
 ```
-  RUN ----[switch]---- GND
+  +---------------------------------------+
+  |                                       |
+  |    [ Olimex BB48R module socket ]    |   <- 0.6" header rows
+  |                                       |
+  |                                       |
+  | SMD: latches, transceivers, decoder   |
+  | SMD: 74LVC125 daisy bypass            |
+  | SMD: status LEDs                      |
+  |                                       |
+  | <Power supply: 5V from bus, 3.3V       |
+  |  from BB48R or local LDO>             |
+  |                                       |
+  +============== C connector ============+   <- DIN 41612 male, right-angle
+            (96 pins, 5V ND-100 bus)
 ```
 
-**BOOTSEL button**: Wired QSPI_CS -> button -> GND. QSPI_CS is part of the flash interface (already reserved, not in GPIO pool). Holding BOOTSEL LOW during reset forces USB mass storage bootloader mode for firmware programming.
+The DIN 41612 C connector is at the bottom edge for plugging into the ND-100 backplane. The Olimex module is mounted on the top portion of the card, well away from the bus connector for signal integrity.
+
+### Pin Reservation Analysis (Verified from Manual)
+
+Analysis of the official Olimex BB48R user manual (Sept 2025) confirms these pin reservations:
+
+| GPIO | Function | Source |
+|------|----------|--------|
+| **GPIO8** | PSRAM CS (`QMI_CS1n`) | 8 MB QSPI PSRAM |
+| **GPIO9** | SD card CS (`SPI1_CSn`) | Micro SD slot |
+| **GPIO10** | SD card CLK (`SPI1_SCK` / `SD_CLK`) | Micro SD slot |
+| **GPIO11** | SD card CMD/MOSI (`SPI1_TX` / `SD_CMD`) | Micro SD slot |
+| **GPIO24** | SD card DATA0/MISO (`SPI1_RX` / `SD_DAT0`) | Micro SD slot |
+| **GPIO25** | User LED (`User_Led`) | Status LED on board |
+| **Total reserved** | **6 GPIO** | |
+
+USB, RESET, BOOTSEL, and the QSPI flash all use dedicated pins or QSPI lines outside the GPIO pool, so they consume **zero** user GPIO.
+
+### Available GPIO Blocks
+
+| Block | Pins | Notes |
+|-------|------|-------|
+| GPIO0-7 | 8 pins | Available; shared with pUEXT/Qwiic connectors but those are optional |
+| GPIO8-11 | 0 | **Reserved** for PSRAM and SD card |
+| GPIO12-23 | 12 pins | Free, contiguous |
+| GPIO24-25 | 0 | **Reserved** for SD DAT0 and User LED |
+| GPIO26-31 | 6 pins | Free, contiguous (LOW bank end) |
+| GPIO32-47 | 16 pins | Free, contiguous (HIGH bank, all of it) |
+| **Total available** | **42 GPIO** | |
+
+### Critical Finding: 24-bit Contiguous BD Bus is NOT Possible
+
+The reserved pins (GPIO8-11 for PSRAM/SD, GPIO24 for SD DAT0) **fragment the LOW bank**:
 
 ```
-  QSPI_CS ----[switch]---- GND
+  GPIO0-7  : free (8 pins)
+  GPIO8-11 : RESERVED (4 pins) ← gap
+  GPIO12-23: free (12 pins)
+  GPIO24-25: RESERVED (2 pins) ← gap
+  GPIO26-31: free (6 pins)
+  GPIO32-47: free (16 pins) ← in HIGH bank
 ```
 
-**Programming sequence**:
-1. Hold BOOTSEL
-2. Press RESET (RUN)
-3. Release RESET
-4. Release BOOTSEL
-5. Device appears as USB mass storage drive
+**There is NO 24-pin contiguous block in a single bank**. Possible candidates all fail:
 
-Optional: add 100R series resistor or debounce capacitor (not required).
+| Block | Result |
+|-------|--------|
+| GPIO0-23 | ❌ blocked by GPIO8-11 |
+| GPIO12-35 | ❌ spans LOW (12-31) and HIGH (32-35) banks -- not single-cycle |
+| GPIO16-39 | ❌ spans both banks |
+| GPIO24-47 | ❌ blocked by GPIO24-25 |
 
-#### USB -- No Additional GPIO Cost
+**Conclusion**: **Design 1/4 (Direct GPIO with single-cycle 24-bit BD access) is NOT VIABLE on the BB48R**. The architecture must use a multiplexed BD interface.
 
-The RP2350B's USB interface uses **dedicated internal USB pins** that are not part of the GPIO0-47 pool. USB does **not consume any GPIO** on the PGA2350. This is different from the raw RP2350B chip where USB pins overlap with GP24/GP25 in some package variants.
+### Confirmed Architecture: Design 2 (8-bit Latched)
 
-> **Correction from earlier**: USB on PGA2350 does not eat GP24/GP25. Those remain available as normal GPIO.
+Design 2 only needs **8 contiguous GPIO** for the shared 8-bit MCU<->latch bus, which fits perfectly in **GPIO12-19**.
 
-### Effective GPIO Budget (Corrected)
+### Bonus Features (Free)
 
-| Item | Pins |
-|------|------|
-| Total GP0-GP47 | 48 |
-| Minus PSRAM CS (GP47) | -1 |
-| Minus 2x status LEDs | -2 |
-| **Remaining for bus interface + SD card** | **45** |
+These board features are usable without additional GPIO cost:
 
-### Design Fit (Corrected)
+| Feature | Pin | What we get |
+|---------|-----|-------------|
+| **Micro SD card slot** | GPIO9-11, 24 | Uses SPI1 hardware peripheral. Just call SDK functions. |
+| **8 MB PSRAM** | GPIO8 | Uses QSPI. Can be used as XIP memory or via SDK PSRAM API. |
+| **User LED** | GPIO25 | Heartbeat / status indicator |
+| **BOOT button** | QSPI_CS | Press during reset = USB mass storage mode |
+| **RESET button** | RUN | Hardware reset |
+| **USB-C** | USB_DP/USB_DM (dedicated) | Firmware update + virtual COM port |
+| **UART0 debug** | GPIO0/GPIO1 | Optional serial debug (if not using USB CDC) |
 
-With PSRAM enabled and 2 LEDs (45 GPIO available for bus + SD):
+### Power Supply
 
-| Design | Bus Interface Pins | Common Non-BD | SD SPI | Total | Fits 45? | Spare |
-|--------|-------------------|--------------|--------|-------|----------|-------|
-| Design 1 (Direct GPIO) | 26 | 16 | 4 | 46 | ❌ **No** -- exceeds by 1 | -1 |
-| **Design 2 (8-bit Latched)** | 15 | 16 | 4 | 35 | ✓ Yes | **10 spare** |
-| Design 3 (SPI Shift) | 6 | 16 | 4 | 26 | ✓ Yes | **19 spare** |
+| Rail | Source | Notes |
+|------|--------|-------|
+| VBUS | USB-C | 5V from USB |
+| VDD_SYS | USB or external | 5V (input/output) |
+| +3.3V | On-board DCDC | 2A @ 3.3V (3A peak) -- enough for level shifters |
+| 3V3_EN | Input | Pull to GND to disable 3.3V regulator |
 
-> **Design 1** still does not fit with PSRAM enabled. To use Design 1 you would need to cut the PSRAM trace to free GP47, sacrificing the 8 MB cache.
->
-> **Design 2** fits comfortably with **10 spare pins** -- room for debug UART, additional LEDs, expansion headers.
->
-> **Design 3** has the most headroom (19 spare) at the cost of slower BD access.
+The BB48R provides 3.3V at up to 2A, ample for our level shifters, latches, and LEDs. The +5V for level shifter VCCB side comes from the ND-100 bus connector itself (bus pin 2/31).
 
-### Final Recommendation
+### Complete Pin Allocation
 
-| Setting | Choice | Why |
-|---------|--------|-----|
-| Module | **Pimoroni PGA2350** | RP2350B + 16 MB flash + 8 MB PSRAM |
-| Architecture | **Design 2 (8-bit Latched)** | Best balance of speed, pin count, and capability |
-| PSRAM | **Enabled** | 8 MB cache for floppy/SMD images |
-| USB | **Enabled** (mandatory, no GPIO cost) | Firmware updates + virtual serial monitoring |
-| RESET button | RUN pin (no GPIO) | Hardware reset |
-| BOOTSEL button | QSPI_CS (no GPIO) | Programming mode |
-| Status LEDs | 2x GPIO | Activity + error |
-| **Bus interface pins** | 35 (Design 2 + common + SD) | |
-| **System pins (PSRAM, LEDs)** | 3 | |
-| **Total used** | **38** | |
-| **Spare GPIO** | **10** | For debug UART, expansion, additional LEDs |
+This is the **definitive pin map** for the controller card.
+
+#### EXT1 connector (GPIO0-23)
+
+| GPIO | Pin Use | Direction | Buffer | Notes |
+|------|---------|-----------|--------|-------|
+| GPIO0 | spare (or UART0_TX debug) | -- | -- | Optional debug serial |
+| GPIO1 | spare (or UART0_RX debug) | -- | -- | Optional debug serial |
+| GPIO2 | /BINT 12 drive | Output | 74LVC07 | Open-drain to bus |
+| GPIO3 | /BINT 13 drive | Output | 74LVC07 | Open-drain (HDLC) |
+| GPIO4-7 | spare | -- | -- | -- |
+| **GPIO8** | **PSRAM CS** | -- | -- | **Board reserved** |
+| **GPIO9** | **SD card CS** | -- | -- | **Board reserved** |
+| **GPIO10** | **SD card CLK** | -- | -- | **Board reserved** |
+| **GPIO11** | **SD card CMD** | -- | -- | **Board reserved** |
+| GPIO12-19 | DBUS 0-7 | Bidir | -- | 8-bit shared MCU<->latch bus |
+| GPIO20 | /OE_IN_0 | Output | -- | Read-enable input latch 0 (BD 0-7) |
+| GPIO21 | /OE_IN_1 | Output | -- | Read-enable input latch 1 (BD 8-15) |
+| GPIO22 | /OE_IN_2 | Output | -- | Read-enable input latch 2 (BD 16-23) |
+| GPIO23 | LE_OUT_0 | Output | -- | Latch-enable output latch 0 (BD 0-7) |
+
+#### EXT2 connector (GPIO24-47)
+
+| GPIO | Pin Use | Direction | Buffer | Notes |
+|------|---------|-----------|--------|-------|
+| **GPIO24** | **SD card DAT0** | -- | -- | **Board reserved** |
+| **GPIO25** | **User LED** | Output | -- | **On-board LED -- use as heartbeat** |
+| GPIO26 | LE_OUT_1 | Output | -- | Latch-enable output latch 1 (BD 8-15) |
+| GPIO27 | LE_OUT_2 | Output | -- | Latch-enable output latch 2 (BD 16-23) |
+| GPIO28 | /BD_OE_BUS | Output | -- | Master OE for output 74LVT245 transceivers |
+| GPIO29 | /BAPR_IN | Input | 74LVC14 | Sniff bus address strobe |
+| GPIO30 | /BIOXE_IN | Input | 74LVC14 | Sniff IOX execute |
+| GPIO31 | /BINACK_IN | Input | 74LVC14 | Sniff bus input acknowledge |
+| GPIO32 | /BMEM_IN | Input | 74LVC14 | Sniff memory cycle |
+| GPIO33 | /BMCL_IN | Input | 74LVC14 | Sniff bus master clear (reset) |
+| GPIO34 | /BDRY_IN | Input | 74LVC14 | Sniff bus data ready |
+| GPIO35 | /BINPUT_IN | Input | 74LVC14 | Sniff bus input direction |
+| GPIO36 | /BDAP_IN | Input | 74LVC14 | Sniff bus data present |
+| GPIO37 | /INGRANT_IN | Input | 74LVC14 | DMA grant input from previous slot |
+| GPIO38 | /INIDENT_IN | Input | 74LVC14 | Interrupt ident input from previous slot |
+| GPIO39 | /BAPR_OUT | Output | 74LVC07 | Drive BAPR during DMA cycles |
+| GPIO40 | /BDRY_OUT | Output | 74LVC07 | Drive BDRY when responding |
+| GPIO41 | /BINPUT_OUT | Output | 74LVC07 | Drive BINPUT during IOX read response or DMA write |
+| GPIO42 | /BDAP_OUT | Output | 74LVC07 | Drive BDAP during DMA cycles |
+| GPIO43 | /BREQ_OUT | Output | 74LVC07 | Drive BREQ to request DMA |
+| GPIO44 | /OE_DAISY_GRANT | Output | -- | Controls 74LVC125 grant pass-through |
+| GPIO45 | /OE_DAISY_IDENT | Output | -- | Controls 74LVC125 ident pass-through |
+| GPIO46 | /BINT 10 drive | Output | 74LVC07 | Open-drain interrupt level 10 |
+| GPIO47 | /BINT 11 drive | Output | 74LVC07 | Open-drain interrupt level 11 |
+
+### Pin Count Summary
+
+| Category | Pins | GPIOs |
+|----------|------|-------|
+| BD bus interface (Design 2) | 15 | GPIO12-23, 26-28 |
+| Bus inputs (sniff) | 10 | GPIO29-38 |
+| Bus outputs (drive) | 5 | GPIO39-43 |
+| Daisy chain control | 2 | GPIO44-45 |
+| Interrupt outputs | 4 | GPIO2-3, 46-47 |
+| **Subtotal used** | **36** | |
+| Board reserved | 6 | GPIO8-11, 24-25 |
+| Spare | 6 | GPIO0-1, 4-7 |
+| **Total** | **48** | |
+
+**Used: 36 / Available 42 / Spare 6**
+
+### Spare Pin Uses
+
+The 6 spare GPIOs (GPIO0-1, GPIO4-7) can be used for:
+- **Debug UART** on GPIO0/GPIO1 (UART0_TX/RX) -- if not using USB CDC
+- **Status LEDs** for at-a-glance visibility
+- **External shift register** for additional outputs (74HC595 sharing SPI bus)
+
+### SD Card Software (Built-in)
+
+The BB48R uses SPI1 hardware peripheral for the SD card:
+
+```c
+// SD card uses SPI1 with these pins (set by Olimex):
+//   GPIO9  = CS (SPI1_CSn)
+//   GPIO10 = CLK (SPI1_SCK)
+//   GPIO11 = CMD/MOSI (SPI1_TX)
+//   GPIO24 = DAT0/MISO (SPI1_RX)
+
+// Use the pico-extras SD card library:
+// https://github.com/raspberrypi/pico-extras/tree/master/src/rp2_common/pico_sd_card
+```
+
+The default mode is **SPI mode**. The schematic notes "Option for 1-bit MMC Data was added too" -- so SDIO mode could be enabled if higher throughput is needed in the future.
 
 ---
 
@@ -331,8 +293,8 @@ The **RP2350B** is selected over the smaller RP2350A because of its **48 GPIO pi
 | **DMA controllers** | High-throughput transfers between PIO FIFOs and RAM |
 | **Dual ARM Cortex-M33 cores** | One core for bus protocol, one for device emulation |
 | **520 KB internal SRAM** | Multi-device buffers, FIFOs, ring buffers |
-| **16 MB QSPI flash** (PGA2350) | Firmware + boot ROM images + small disk images |
-| **8 MB PSRAM** (PGA2350) | Floppy image cache, SMD sector cache, HDLC FIFOs |
+| **16 MB QSPI flash** (BB48R) | Firmware + boot ROM images + small disk images |
+| **8 MB PSRAM** (BB48R) | Floppy image cache, SMD sector cache, HDLC FIFOs |
 
 ---
 
@@ -351,25 +313,18 @@ The RP2350B has two GPIO banks with **separate control registers**:
 
 Both RP2040 and RP2350B require **dedicated pins for external QSPI flash** (XIP execute-in-place). These pins are **not usable as GPIO**.
 
-| Resource | RP2040 (raw) | RP2350B (raw) | PGA2350 module |
-|----------|--------------|---------------|----------------|
-| Total GPIO pool | 30 (GPIO0-29) | 48 (GPIO0-47) | 48 (GP0-GP47) |
+| Resource | RP2040 (raw) | RP2350B (raw) | Olimex BB48R module |
+|----------|--------------|---------------|---------------------|
+| Total GPIO pool | 30 (GPIO0-29) | 48 (GPIO0-47) | 48 (GPIO0-GPIO47) |
 | QSPI flash pins | 6 (mandatory, eats GPIO) | ~6 (separate from GPIO) | Internal to module, **not in GPIO pool** |
-| QSPI PSRAM (optional) | Not supported | 6-11 pins if used | Internal to module, **not in GPIO pool** |
-| PSRAM CS | -- | -- | **GP47** (cuttable trace) |
+| QSPI PSRAM (optional) | Not supported | 6-11 pins if used | Internal QSPI, only GPIO8 used as CS |
+| Module-reserved | -- | -- | **GPIO8 (PSRAM), 9-11 (SD), 24 (SD), 25 (LED)** |
 | USB pins | GP24/GP25 | varies | Internal, **not in GPIO pool** |
-| RESET pin | RUN (dedicated) | RUN (dedicated) | RUN (dedicated, no GPIO) |
-| BOOTSEL | -- | QSPI_CS | QSPI_CS (already reserved, no GPIO) |
-| **Practical usable GPIO** | **~24** | **~31-36** | **47 (PSRAM) or 48 (no PSRAM)** |
+| RESET pin | RUN (dedicated) | RUN (dedicated) | RUN, button on board |
+| BOOTSEL | -- | QSPI_CS | QSPI_CS, button on board |
+| **Practical usable GPIO** | **~24** | **~31-36** | **42 (after SD/PSRAM/LED reservations)** |
 
-| PGA2350 Configuration | Available GPIO |
-|-----------------------|----------------|
-| **PSRAM enabled (recommended)** | **47** |
-| PSRAM disabled (cut GP47 trace) | **48** |
-
-> **PGA2350 advantage**: All special pins (QSPI flash, USB, RUN, BOOTSEL) are either internal to the module or use dedicated pins. **None of them eat into the GPIO0-47 pool**. The only GPIO loss is **GP47 for PSRAM CS** (recoverable by cutting a trace).
-
-> **Recommendation**: Use **47 GPIO** (PSRAM enabled). This is sufficient for Design 2 or Design 3, with comfortable spare pins for LEDs and expansion. Design 1 still does not fit (needs 46 just for bus + common signals + SD).
+> **Olimex BB48R**: All special pins (QSPI flash, USB, RUN, BOOTSEL) are either internal to the module or use dedicated pins. The only GPIO costs are 4 pins for SD card (GPIO9-11, 24), 1 pin for PSRAM CS (GPIO8), and 1 pin for User LED (GPIO25) -- total 6 pins. The remaining **42 GPIO** are free for the controller card design.
 
 ### Single-cycle bus access
 
@@ -1441,7 +1396,7 @@ For the memory emulation, internal RAM choices:
 | Storage | Size | Speed | Use Case |
 |---------|------|-------|----------|
 | RP2350 internal SRAM | 520 KB | ~10 ns | Fastest, register-style memory |
-| PSRAM (PGA2350) | 8 MB | ~100-200 ns | Bulk memory, large emulated region |
+| PSRAM (BB48R) | 8 MB | ~100-200 ns | Bulk memory, large emulated region |
 
 For a small ROM emulation (boot loader, ~1 KB), use SRAM for fastest response. For emulating a large memory bank, use PSRAM with the SRAM as a sector cache.
 
@@ -4802,6 +4757,354 @@ The pull resistors automatically achieve safe state during the brief window when
 - Design 3 (SPI Shift): ~16 resistors
 
 > **PCB tip**: Use 4-resistor SMD networks (e.g., 0603 4x10K array) to save board space. A single chip can hold 4 pull-up resistors.
+
+---
+
+## ND-100 CPU Emulation Mode (Same PCB, Software-Configured)
+
+To enable safe development and testing without risking real ND-100 hardware, the **same controller PCB** can be configured to emulate the **ND-100 CPU** instead of (or in addition to) emulating I/O devices. This is critical for:
+
+- Validating bus protocol implementations against a known CPU emulator
+- Testing controller cards without a real ND-100
+- Reproducing timing edge cases on demand
+- Stress-testing multi-card setups
+
+### Goal: One PCB Design, Two Modes
+
+Producing **10+ identical PCBs** from JLCPCB (with PCB + SMD assembly) means we cannot afford two separate designs. The same physical card must be configurable as either:
+
+| Mode | Function |
+|------|----------|
+| **Device mode** (default) | Emulates I/O devices (floppy, SMD, terminal, HDLC). Responds to CPU IOX/IDENT/DMA cycles. |
+| **CPU mode** | Acts as the bus master. Drives BAPR/BIOXE/BMEM/BINACK and responds to BREQ/BINT from device cards. |
+
+### Hardware Requirements for CPU Mode
+
+In CPU mode the card must additionally:
+
+1. **Drive /BAPR** (it already can -- we have BAPR_OUT for DMA)
+2. **Drive /BIOXE** (new -- we don't drive this in device mode)
+3. **Drive /BINACK** (new -- this is normally a CPU output; we sniff it in device mode)
+4. **Drive /BMEM** (new -- BCU output during memory cycles)
+5. **Generate /OUTGRANT** in response to /BREQ (we are the BCU)
+6. **Generate /OUTIDENT** during IDENT PLxx instructions
+7. **Watch /BINT 10-15** as inputs (the device cards drive these)
+
+The key insight: **most of these signals already have GPIO pins assigned** (we sniff them in device mode). In CPU mode we need to **drive** them instead of just reading.
+
+### Pin Strategy: Sniff + Drive Pairs Already Exist
+
+Looking at the pin allocation, we already have separate sniff (input) and drive (output) GPIOs for the bidirectional signals BAPR, BDRY, BINPUT, BDAP. For CPU mode we need to add **drive pins for BIOXE, BINACK, BMEM** (currently only sniffed).
+
+#### Updated Pin Allocation (CPU + Device Mode Compatible)
+
+The 6 spare GPIOs (GPIO0-1, GPIO4-7) can be repurposed for the additional drive signals:
+
+| GPIO | Original | CPU Mode Use |
+|------|----------|--------------|
+| GPIO0 | spare | /BIOXE_OUT drive (CPU mode) |
+| GPIO1 | spare | /BINACK_OUT drive (CPU mode) |
+| GPIO4 | spare | /BMEM_OUT drive (CPU mode) |
+| GPIO5 | spare | MODE_SELECT input (read once at boot) |
+| GPIO6 | spare | Future or status LED |
+| GPIO7 | spare | Future or status LED |
+
+### Mode Selection: Hardware + Software
+
+#### Hardware: MODE_SELECT Jumper
+
+A single GPIO pin (GPIO5) reads a **physical jumper or DIP switch** at power-up to determine the operating mode:
+
+```
+   GPIO5 ----+----[ pull-up to 3.3V (10K) ]
+             |
+          [JUMPER]----GND
+
+   Jumper installed (GPIO5 = LOW) = CPU mode
+   Jumper removed   (GPIO5 = HIGH) = Device mode
+```
+
+The MCU reads GPIO5 once at boot and configures itself accordingly. No further GPIO consumption -- it's a static input.
+
+#### Software: Mode Variable
+
+```c
+typedef enum {
+    MODE_DEVICE = 0,    // Default - emulates I/O devices
+    MODE_CPU    = 1,    // ND-100 CPU emulation (BCU + bus master)
+} controller_mode_t;
+
+controller_mode_t controller_mode;
+
+void mode_init(void) {
+    gpio_init(MODE_SELECT_PIN);
+    gpio_set_dir(MODE_SELECT_PIN, GPIO_IN);
+    gpio_pull_up(MODE_SELECT_PIN);
+    sleep_ms(1);  // settling
+    
+    controller_mode = gpio_get(MODE_SELECT_PIN) ? MODE_DEVICE : MODE_CPU;
+    
+    if (controller_mode == MODE_CPU) {
+        // Initialize CPU emulation: BCU, bus master, refresh oscillator
+        cpu_emulation_init();
+    } else {
+        // Initialize device emulation
+        device_emulation_init();
+    }
+}
+```
+
+### Bus Output Driver Differences
+
+| Signal | Device mode | CPU mode |
+|--------|-------------|----------|
+| /BAPR | Drive only during DMA we initiate | **Drive for every CPU cycle** |
+| /BIOXE | Sniff (CPU drives) | **Drive (we are CPU)** |
+| /BINACK | Sniff (CPU drives) | **Drive in response to BINPUT** |
+| /BMEM | Sniff (BCU drives) | **Drive during memory cycles** |
+| /BDRY | Drive when responding | Sniff (devices drive) |
+| /BINPUT | Drive during IOX read response or DMA write | Sniff (devices drive) |
+| /BDAP | Drive during DMA we initiate | Drive during memory cycles |
+| /BREQ | Drive to request DMA | Sniff (devices drive) |
+| /OUTGRANT | Pass-through | **Generate (we are BCU)** |
+| /OUTIDENT | Pass-through | **Generate during IDENT instructions** |
+| /BINT 10-15 | Drive (we have interrupts) | Sniff (devices drive) |
+
+### Hardware: All Drivers Already Present
+
+The good news: **the existing 74LVC07 open-drain drivers handle both modes**. The same physical pins drive the bus -- just under different software logic. The new pins (GPIO0/1/4 for BIOXE/BINACK/BMEM) need additional 74LVC07 channels.
+
+We need to add **3 more 74LVC07 channels** (or use a second 74LVC07 chip).
+
+| Mode | Active Drive Pins |
+|------|-------------------|
+| Device | BAPR_OUT, BDRY_OUT, BINPUT_OUT, BDAP_OUT, BREQ_OUT, BINT 10/11/12/13 = 9 outputs |
+| CPU | BAPR_OUT, BIOXE_OUT, BINACK_OUT, BMEM_OUT, BDAP_OUT, OUTGRANT, OUTIDENT = 7 outputs |
+
+The total set of drive signals across both modes is ~12, plus interrupts. One **74LVC07** handles 6 channels. We need **2x 74LVC07** to cover all signals.
+
+### Cost of Dual-Mode Support
+
+| Item | Cost |
+|------|------|
+| Additional 74LVC07 chip | $0.30 |
+| MODE_SELECT jumper / pin header | $0.10 |
+| Extra PCB routing for 3 new drive signals | minimal |
+| Firmware: dual-mode support | software effort, no hardware cost |
+| **Total** | **~$0.50** |
+
+This is a tiny additional cost for huge testing flexibility.
+
+### CPU Mode Limitations
+
+The Pi Pico-based "CPU emulation" is **not a cycle-accurate ND-100 emulator**. It can:
+
+- ✓ Drive bus signals correctly to test device cards
+- ✓ Respond to IOX/IDENT/DMA cycles
+- ✓ Run a simple test program (loop reading device registers, etc.)
+- ✓ Simulate refresh oscillator
+- ✓ Handle interrupts and IDENT cycles
+- ✗ Run real SINTRAN OS (no MMU emulation)
+- ✗ Execute actual ND-100 instructions
+- ✗ Be cycle-accurate timing-wise
+
+The CPU mode is a **bus protocol generator**, not a full ND-100 emulator. Sufficient for testing controller cards, validating bus protocols, and integration tests.
+
+### Recommended: Build BOTH Versions
+
+When ordering 10+ PCBs from JLCPCB, build them all identically. Set the MODE_SELECT jumper to:
+- **Most boards = Device mode** (controllers with floppy/SMD/terminal/HDLC emulation)
+- **One or two boards = CPU mode** (test bench drivers)
+
+You can swap the jumper to repurpose any board.
+
+---
+
+## Backplane Design
+
+The Backplane is a separate PCB that holds multiple controller cards plus a CPU card (real ND-100 CPU or our CPU-mode controller). It provides bus routing, power distribution, and physical card mounting.
+
+> **No version numbering**: This is the **Backplane**, not "Backplane V1" or similar. There is one backplane design.
+
+### Reference Design
+
+The retrobrewcomputers ECB Backplane-4 is a good reference for layout principles:
+- https://www.retrobrewcomputers.org/doku.php?id=boards:ecb:backplane-4:start
+
+Key takeaways:
+- Multiple slot positions on a single PCB
+- Star-grounded power distribution
+- Clear silkscreen labeling per slot
+- Power LED + power switch
+- Standard PC PSU connector for power
+
+### Backplane Specifications
+
+| Feature | Value |
+|---------|-------|
+| Slot count | **4-8 slots** (configurable, recommend 4 for first version) |
+| Slot connector | DIN 41612 Type C, 96-pin, female receptacle |
+| Slot spacing | 0.6" (15.24 mm) standard ND-100 backplane spacing |
+| Card form factor | Standard ND-100 card height + custom width |
+| Power input | **Molex 15-24-4745** (Farnell 1391827) -- standard PC PSU 4-pin connector |
+| Power rails | +5V, +12V (and GND) from PC PSU; -12V optional from PC PSU |
+| Power switch | SPST toggle, breaks +5V (and +12V) input |
+| Power LED | Green LED indicating bus power is on |
+
+### Power Connector
+
+**Molex 15-24-4745** (Farnell order code **1391827**) is the standard PC PSU 4-pin Molex connector used for floppy/HDD power. This makes it trivial to power the backplane from any standard PC PSU.
+
+| Pin | Wire Color | Function |
+|-----|-----------|----------|
+| 1 | Yellow | +12V |
+| 2 | Black | GND |
+| 3 | Black | GND |
+| 4 | Red | +5V |
+
+This connector mates with the standard PC floppy/HDD power cable, eliminating the need for a custom PSU.
+
+### Backplane Block Diagram
+
+```mermaid
+flowchart TB
+    subgraph PSU["External PC PSU"]
+        PWR["+5V / +12V / GND<br/>via Molex 15-24-4745"]
+    end
+
+    subgraph BP["Backplane PCB"]
+        SW["SPST Power Switch<br/>(breaks +5V)"]
+        LED["Power LED<br/>(green)"]
+        FUSE["Fuse / polyfuse<br/>(optional protection)"]
+
+        subgraph SLOTS["Card Slots (4-8x DIN 41612)"]
+            S1["Slot 1: CPU card<br/>(real ND-100 or<br/>our CPU mode card)"]
+            S2["Slot 2: Device card<br/>(floppy/SMD/term/HDLC)"]
+            S3["Slot 3: Device card"]
+            S4["Slot 4: Device card<br/>(last in chain)"]
+        end
+
+        BUS["96-pin C bus signals<br/>(routed to all slots)"]
+    end
+
+    PWR --> SW
+    SW --> FUSE
+    FUSE --> BUS
+    SW --> LED
+    BUS --> S1
+    BUS --> S2
+    BUS --> S3
+    BUS --> S4
+
+    style PSU fill:#FFF3E0,stroke:#E65100,color:#E65100
+    style BP fill:#E3F2FD,stroke:#0D47A1,color:#0D47A1
+    style SLOTS fill:#E8F5E9,stroke:#2E7D32,color:#2E7D32
+```
+
+### Slot Layout and Daisy Chain
+
+The DIN 41612 connectors are placed in a row, all signals bussed across all slots. The **daisy-chain signals** (INGRANT/OUTGRANT, INIDENT/OUTIDENT) are routed slot-to-slot rather than as common bus signals:
+
+```
+  +-----+    +-----+    +-----+    +-----+
+  |Slot1|    |Slot2|    |Slot3|    |Slot4|
+  | CPU |--->|Floppy|-->| HDLC|--->| End |
+  |     |    |     |    |     |    |     |
+  +-----+    +-----+    +-----+    +-----+
+   |||||      |||||      |||||      |||||
+   ===== shared bus signals (BD, BAPR, etc.) =====
+```
+
+**Daisy chain wiring** (in PCB):
+- CPU's OUTGRANT → Slot 2's INGRANT
+- Slot 2's OUTGRANT → Slot 3's INGRANT
+- Slot 3's OUTGRANT → Slot 4's INGRANT
+- Slot 4's OUTGRANT → unconnected (last in chain)
+
+Same pattern for OUTIDENT/INIDENT and OUTCONTR/INCONTR.
+
+### Slot Position Coding (PA 0-3)
+
+Per the bus spec, each slot has **Position Address (PA) 0-3** signals that are hard-wired on the backplane. The card reads these to know its physical slot number.
+
+| Slot | PA0 | PA1 | PA2 | PA3 | Binary | Decimal |
+|------|-----|-----|-----|-----|--------|---------|
+| 1 | 0 | 0 | 0 | 0 | 0000 | 0 |
+| 2 | 1 | 0 | 0 | 0 | 0001 | 1 |
+| 3 | 0 | 1 | 0 | 0 | 0010 | 2 |
+| 4 | 1 | 1 | 0 | 0 | 0011 | 3 |
+| ... | ... | ... | ... | ... | ... | ... |
+
+The PA pins are simple GND or pull-up jumpers per slot, encoded according to the slot position.
+
+### Backplane Power Distribution
+
+| Rail | Source | Distribution |
+|------|--------|--------------|
+| +5V | Molex pin 4 (red) | All bus pins 2/31 (every slot) |
+| +12V | Molex pin 1 (yellow) | Bus pin 28 (memory rail) |
+| GND | Molex pins 2/3 (black) | All bus GND pins 1/11/24/32 (every slot) |
+| -12V | Optional Molex (depends on PSU) | Bus pin 27 (analog supply) |
+| +15V | LDO from +12V (or external) | Bus pin 25 (analog +) |
+| -15V | LDO from -12V (or external) | Bus pin 27 (analog -) |
+| 5V Standby | Optional, external | Bus pin 30 |
+
+For simplicity, **+15V/-15V are optional** -- only needed if analog process I/O cards are used. Most digital controller cards don't need them.
+
+### Power Switch and LED
+
+| Component | Notes |
+|-----------|-------|
+| Power switch | SPST toggle, rated 5A @ 12V minimum, panel mount |
+| Power LED | Green 0805 SMD, 1K resistor to +5V (LED on when bus powered) |
+| Optional: per-rail LEDs | Separate LEDs for +5V and +12V rails to verify both present |
+| Optional: polyfuse | 3A polyfuse on +5V rail to protect against short circuits |
+
+### Backplane Components List
+
+| Item | Quantity | Part |
+|------|----------|------|
+| DIN 41612 Type C female receptacle (96-pin) | 4-8 | Standard part, sourced from Farnell/Mouser |
+| Molex 15-24-4745 PC PSU connector | 1 | Farnell **1391827** |
+| SPST toggle switch | 1 | Panel mount, 5A rating |
+| Power LED (green, 0805 SMD) | 1 | Standard |
+| Current limiting resistor (1K) | 1 | 0805 SMD |
+| Polyfuse (3A) | 1 (optional) | 0805 SMD or through-hole |
+| Decoupling caps (10uF + 0.1uF per slot) | 2 per slot | 0805/0603 SMD |
+| Mounting holes | 4 | M3 standoff |
+
+### PCB Notes
+
+- **Power distribution**: Star-grounded, with the Molex connector as the central point
+- **Signal routing**: Bus signals run as parallel traces across the slot array
+- **Decoupling**: 10uF + 0.1uF caps per slot, close to the connectors
+- **Trace impedance**: Not critical at the bus speeds, but keep traces short
+- **Layer count**: 2-4 layers sufficient
+- **Mechanical**: Mounting holes for case, optional rack mount
+- **Dimensions**: depends on slot count -- 4 slots = ~150 mm x 100 mm
+
+### Test Setup with Backplane
+
+```
+   +-----------------+         +-----------------+
+   | Backplane PCB   |         | PC PSU          |
+   |  4 x slots      |<--Molex-| (5V + 12V out)  |
+   |  Power switch   |         +-----------------+
+   |  Power LED      |
+   +-----------------+
+        |    |    |    |
+        |    |    |    +- Slot 4: Controller (Device mode, last)
+        |    |    +- Slot 3: Controller (Device mode)
+        |    +- Slot 2: Controller (Device mode)
+        +- Slot 1: Controller (CPU mode, MODE_SELECT jumper IN)
+                  OR real ND-100 CPU card if available
+```
+
+This setup lets you:
+- Run integration tests without a real ND-100
+- Validate bus protocol on real hardware
+- Develop and debug controller firmware safely
+- Stress test with multiple devices
 
 ---
 
