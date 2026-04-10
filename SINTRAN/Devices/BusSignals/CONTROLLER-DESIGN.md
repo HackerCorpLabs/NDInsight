@@ -4616,7 +4616,34 @@ The BCM43436 WiFi chip alone can draw 300-500 mA during TX bursts on top of the 
 | **Bulk capacitance** | 470 uF tantalum only | **1000 uF aluminum polymer + 470 uF tantalum + 10 uF + 0.1 uF** | Multi-stage decoupling handles low ESR, mid-freq, and high-freq TX bursts |
 | **Trace width** | Standard | **Min 1.5 mm, recommended 2-3 mm** | Carries ~1A peaks without IR drop |
 | **Power path length** | -- | **Keep < 30 mm** from polyfuse to Pi Zero pin | Minimize trace resistance |
-| **Use both 5V pins** | One pin | **Pin 2 AND pin 4** | Two parallel pins reduce contact resistance and trace count |
+| **Use both 5V pins** | One pin | **Pin 2 AND pin 4** (parallel) | Two parallel pins reduce contact resistance and trace impedance |
+
+#### Pi Zero GPIO Header Power Pins
+
+The Raspberry Pi Zero (and Pi Zero W / Zero 2 W) 40-pin GPIO header exposes power pins:
+
+| Pin | Function | Direction | Notes |
+|-----|----------|-----------|-------|
+| **Pin 1** | **3.3V** | **OUTPUT** from Pi Zero's onboard 3.3V regulator (~150 mA available) | **Do not connect to our +3.3V_LOCAL** -- we use BB48R's 3.3V |
+| **Pin 2** | **5V** | **Input or output** -- same net as USB power | **Connect from our +5V via D2 ideal diode** |
+| **Pin 4** | **5V** | **Same as pin 2** (parallel) | **Connect from our +5V via D2** |
+| Pin 6 | GND | -- | Connect to GND plane |
+| Pin 9 | GND | -- | Connect to GND plane |
+| Pin 14 | GND | -- | Connect to GND plane |
+| **Pin 17** | **3.3V** | **OUTPUT** (same net as pin 1) | **Do not connect** |
+| Pin 20 | GND | -- | Connect to GND plane |
+| Pin 25 | GND | -- | Connect to GND plane |
+| Pin 30 | GND | -- | Connect to GND plane |
+| Pin 34 | GND | -- | Connect to GND plane |
+| Pin 39 | GND | -- | Connect to GND plane |
+
+> **Critical**: Pins 1 and 17 are **3.3V outputs** from the Pi Zero's onboard regulator. **Do NOT connect these to our +3.3V_LOCAL rail.** Doing so would back-feed power between two regulators (BB48R DCDC and Pi Zero LDO), causing instability.
+>
+> Our +3.3V_LOCAL comes from the BB48R's 3.3V output (2A capacity). The Pi Zero generates its own 3.3V internally. **Two separate 3.3V rails** -- they share GND but no other connection.
+
+> **Use BOTH 5V pins (pin 2 AND pin 4)**: They are the same +5V net on the Pi Zero, but using both header pins in parallel reduces contact resistance and provides redundancy. The 0.1" header contacts are rated ~1A each, so two parallel = 2A capacity.
+
+> **GND pins**: All 8 GND pins (6, 9, 14, 20, 25, 30, 34, 39) should connect to the GND plane on our PCB. Multiple parallel ground connections reduce ground bounce and EMI.
 
 #### Capacitor Selection for WiFi TX Bursts
 
