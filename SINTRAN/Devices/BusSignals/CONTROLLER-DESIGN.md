@@ -2474,6 +2474,382 @@ flowchart TB
 
 7. **All state machines are independent**: Each PIO SM has its own program and FIFO. Adding new functionality (e.g., new bus cycle type) means adding a new handler, not modifying existing ones.
 
+### LED Indicator Design
+
+LEDs provide at-a-glance visual feedback without needing to attach to USB serial. The goal is **maximum visibility with minimum GPIO consumption**.
+
+#### LED Categories
+
+LEDs are divided into three classes based on how they are driven:
+
+| Class | Driver | GPIO Cost |
+|-------|--------|-----------|
+| **Power indicators** | Direct from power rails | 0 |
+| **Hardware-tapped indicators** | Tap from existing bus signals | 0 |
+| **Software-controlled indicators** | Via 74HC595 shift register on SD SPI bus | 1 |
+
+This scheme adds **15 LEDs while consuming only 1 GPIO pin**.
+
+#### Class 1: Power Indicators (0 GPIO)
+
+Wired directly to the power rails through current-limiting resistors.
+
+| LED | Color | Indicates | Wiring |
+|-----|-------|-----------|--------|
+| PWR_5V | Green | +5V rail present | +5V -> 1K -> LED -> GND |
+| PWR_3V3 | Green | +3.3V rail present | +3.3V -> 470R -> LED -> GND |
+
+**Purpose**: Verify power supply integrity. If PWR_5V is dim or off, the bus connector or LDO has failed.
+
+#### Class 2: Hardware-Tapped Indicators (0 GPIO)
+
+Tapped from existing bus signals after the level shifters. The tap points add no electrical load and are visible only on signal assertion.
+
+| LED | Color | Tap Point | Indicates |
+|-----|-------|-----------|-----------|
+| BINT10 | Amber | 74LVC07 output for /BINT 10 | We are asserting interrupt level 10 |
+| BINT11 | Amber | 74LVC07 output for /BINT 11 | Interrupt level 11 active |
+| BINT12 | Amber | 74LVC07 output for /BINT 12 | Interrupt level 12 active |
+| BINT13 | Amber | 74LVC07 output for /BINT 13 | Interrupt level 13 active (HDLC) |
+| BREQ | Yellow | 74LVC07 output for /BREQ | We are requesting the bus (DMA pending) |
+| BD_DRIVE | Blue | 74LVT245 /OE_BUS | We are driving the BD bus (IOX response or DMA) |
+| BAPR_RX | White | /BAPR after level shifter | Bus address strobe (ANY card driving BAPR) -- visible flicker = bus activity |
+| BMCL | Red | /BMCL after level shifter | Bus master clear active (system reset) |
+
+**Wiring example for active-LOW signal**:
+```
+  /BINT10 (after 74LVC07, active LOW = LED on)
+       |
+       +-- 1K -- LED -- +3.3V
+```
+
+When /BINT10 is HIGH (idle), no current flows, LED off.
+When /BINT10 is LOW (asserted), current flows from +3.3V through LED through resistor to the open-drain output, LED on.
+
+> **Critical**: Use **3.3V**-side signals (after level shifter), not 5V bus signals directly. Keeps current low and avoids loading the bus.
+
+#### Class 3: Software-Controlled Indicators (1 GPIO via 74HC595)
+
+A single **74HC595 8-bit shift register** drives 8 software LEDs. The 74HC595 shares the **SD card SPI bus** (SCK and MOSI) with a dedicated chip select pin.
+
+```
+  RP2350 SPI bus (shared with SD card):
+    SCK   ──┬──> SD card
+            └──> 74HC595 SCK
+    MOSI  ──┬──> SD card MOSI
+            └──> 74HC595 SER
+    /SD_CS  ──> SD card /CS
+    /LED_CS ──> 74HC595 /SS (latch enable)
+
+  74HC595 outputs Q0-Q7 ──> 8x LEDs
+```
+
+| LED | Color | Q-pin | Indicates |
+|-----|-------|-------|-----------|
+| HEARTBEAT | Green | Q0 | 1 Hz blink -- firmware alive |
+| FW_ERROR | Red | Q1 | Firmware fault / assertion failure |
+| FLOPPY_ACT | Blue | Q2 | Floppy emulator active (read/write) |
+| SMD_ACT | Blue | Q3 | SMD disk emulator active |
+| TERM_ACT | Blue | Q4 | Terminal emulator active (data received/sent) |
+| HDLC_ACT | Blue | Q5 | HDLC emulator active |
+| SD_ACT | Yellow | Q6 | SD card read/write in progress |
+| USB_CONN | Cyan | Q7 | USB host connected |
+
+**Update**: The CPU shifts an 8-bit byte to the 74HC595 via SPI (~1 us at 25 MHz). LEDs update once per main loop iteration, more than fast enough for visual feedback.
+
+#### Total LED Count
+
+| Class | Count | GPIO Cost |
+|-------|-------|-----------|
+| Power | 2 | 0 |
+| Hardware-tapped | 8 | 0 |
+| Software-controlled (74HC595) | 8 | 1 |
+| **Total** | **18 LEDs** | **1 GPIO + 1 shift register chip** |
+
+#### LED Layout on PCB
+
+Suggest grouping LEDs visually on the PCB edge or top-side for easy viewing:
+
+```
+  +-------------------------------------------+
+  |                                           |
+  |  PWR  HEARTBEAT  FW_ERR    FLOPPY  SMD    |   <- Top row: status
+  |   *      *         *         *      *     |
+  |                                           |
+  |  TERM  HDLC  SD_ACT  USB_CONN             |   <- Top row continued: devices
+  |   *     *      *        *                 |
+  |                                           |
+  |  BINT10 BINT11 BINT12 BINT13              |   <- Mid row: interrupts
+  |    *      *      *      *                 |
+  |                                           |
+  |  BREQ  BD_DRIVE  BAPR_RX  BMCL            |   <- Mid row: bus activity
+  |   *       *        *        *             |
+  |                                           |
+  |  PWR_5V  PWR_3V3                          |   <- Bottom row: power
+  |    *       *                              |
+  |                                           |
+  +-------------------------------------------+
+```
+
+#### Cost and Component Addition
+
+| Item | Quantity | Cost |
+|------|----------|------|
+| 0805 LEDs (assorted colors) | 18 | ~$1.50 |
+| 1K current-limiting resistors (0805) | 18 | ~$0.20 |
+| 74HC595 shift register (SOIC-16) | 1 | ~$0.30 |
+| **Total LED system** | | **~$2.00** |
+
+#### Software API
+
+Simple LED update function on the CPU side:
+
+```c
+typedef enum {
+    LED_HEARTBEAT  = 0,
+    LED_FW_ERROR   = 1,
+    LED_FLOPPY_ACT = 2,
+    LED_SMD_ACT    = 3,
+    LED_TERM_ACT   = 4,
+    LED_HDLC_ACT   = 5,
+    LED_SD_ACT     = 6,
+    LED_USB_CONN   = 7,
+} led_id_t;
+
+static volatile uint8_t led_state = 0;
+
+void led_set(led_id_t led, bool on) {
+    if (on) led_state |= (1u << led);
+    else    led_state &= ~(1u << led);
+    led_update_hw();  // Shift to 74HC595
+}
+
+void led_update_hw(void) {
+    gpio_put(LED_CS_PIN, 0);            // Latch low
+    spi_write_blocking(SPI0, &led_state, 1);
+    gpio_put(LED_CS_PIN, 1);            // Latch high to update outputs
+}
+```
+
+The `led_update_hw()` is called whenever a state changes, or on a 10-100 Hz timer for periodic updates (heartbeat blink).
+
+#### Heartbeat LED Pattern
+
+The HEARTBEAT LED uses a distinctive pattern to show MCU health:
+
+| Pattern | Meaning |
+|---------|---------|
+| Off | MCU not running |
+| 1 Hz blink | Normal operation |
+| 4 Hz blink | High bus activity |
+| Solid on | Stuck (no main loop iteration) |
+| 0.25 Hz blink | Initialization in progress |
+
+#### Debugging Workflow
+
+With LEDs available:
+
+1. **Power up**: PWR_5V, PWR_3V3 should be solid green
+2. **MCU boot**: HEARTBEAT starts at 0.25 Hz, then 1 Hz when ready
+3. **USB connect**: USB_CONN turns on
+4. **CPU activity on bus**: BAPR_RX flickers
+5. **IOX to our card**: Brief BD_DRIVE flash
+6. **Floppy access**: FLOPPY_ACT blinks while servicing
+7. **Interrupt assertion**: BINT* LED stays on until IDENT serviced
+8. **DMA cycle**: BREQ flashes briefly, then BD_DRIVE during data
+9. **Error**: FW_ERROR turns red, USB serial has details
+
+USB serial gives the **detail** (logs, debug prints, register dumps), while LEDs give the **at-a-glance state**.
+
+---
+
+### IDENT Timing Solutions Without CPLD
+
+The 100 ns IDENT decision window is the tightest constraint. The CPLD approach (Option B in critical analysis) is reliable but adds a programmable chip. Two alternative approaches avoid the CPLD entirely.
+
+#### Solution A: "Last Card on Bus" (V1, Simplest)
+
+**Core idea**: If the controller card is **physically the last card** in the daisy chain, there is no card downstream that needs INIDENT to pass through. The 100 ns window becomes irrelevant because there is nothing to forward to.
+
+**Constraints**:
+- Card MUST occupy the lowest-priority slot (last in the chain)
+- No I/O cards may be installed in slots after ours
+- /OUTIDENT and /OUTGRANT can be left unconnected (or driven HIGH for safety)
+
+**Behavior**:
+
+Since we're the last card:
+- /INIDENT arrives at our card from the previous slot (or directly from CPU if we're slot 1 and only)
+- We have **all the time we need** to decide whether to respond
+- If we have an active interrupt on the queried level, we respond with our ident code
+- If we don't, we simply do nothing -- there's no next card to forward to
+- The CPU sees no /BDRY response and the IDENT instruction returns "no device" (or whatever the CPU does for an unmatched IDENT)
+
+**Software flow**:
+```c
+void handle_ident_last_card(uint32_t addr) {
+    int level = extract_int_level(addr);
+
+    // No timing pressure -- we have microseconds
+    int device = find_device_with_interrupt(level);
+    if (device < 0) {
+        // Not for us -- do nothing, no forwarding needed (we're last)
+        return;
+    }
+
+    // Drive ident code response
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_DRIVE(devices[device].ident_code));
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_SET(BDRY));
+
+    // Reset device interrupt
+    devices[device].int_active = false;
+
+    // Wait for cycle release
+    wait_for_signal(BAPR_PIN, HIGH);
+
+    // Cleanup
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_RELEASE);
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_CLR(BDRY));
+}
+```
+
+**Bonus**: The same simplification applies to **INGRANT/OUTGRANT**. As the last card, we don't need fast pass-through for DMA grants either. Software handles everything.
+
+**Hardware impact**:
+
+| Component | Action |
+|-----------|--------|
+| 74LVC125 daisy-chain bypass | Still install for future, but functionally optional |
+| /OUTIDENT pin | Can be left unconnected or wired to nothing |
+| /OUTGRANT pin | Same |
+| CPLD | **Not needed** |
+
+> **V1 design rule**: The card MUST be physically installed as the last card in the bus chain. Document this in the user manual. PCB silkscreen warning: "Install in highest-numbered slot only".
+
+**Pros**:
+- **Eliminates the 100 ns timing problem entirely**
+- No CPLD, no fast comparator
+- Simpler firmware (no preemption needed)
+- Cheaper BOM
+
+**Cons**:
+- Card cannot be in middle of chain
+- Other cards must be in lower-numbered (higher-priority) slots
+- For a single-card system, this is no constraint at all
+
+**Recommendation**: Use this for V1. It's the simplest viable design.
+
+#### Solution B: SPI-Loaded Comparator (V2, No CPLD)
+
+If V2 needs to support middle-of-chain operation, a discrete-logic comparator can do it without a CPLD.
+
+**Core idea**: Pre-load an "active levels mask" into a hardware register via SPI. When /BAPR asserts, hardware compares the BD level against the mask and blocks the pass-through if there's a match.
+
+**Components**:
+
+| Chip | Function |
+|------|----------|
+| 74HC595 | 8-bit shift register -- holds the "active levels" bitmask, loaded via SPI from MCU |
+| 74LVC151 (or 74HC151) | 8-input multiplexer -- selects one bit from the mask based on BD level |
+| 74LVC02 (or 74HC02) | NOR gate -- combines /BAPR + /BMEM_HIGH + match output to drive block signal |
+| 74LVC125 | Daisy-chain bypass buffer (already in design) |
+
+**Wiring**:
+
+```
+  CPU SPI bus (shared with SD card and LEDs):
+    SCK   --> 74HC595 SCK (clock in active levels mask)
+    MOSI  --> 74HC595 SER (mask data)
+    /CS_LEVELS  --> 74HC595 /SS
+
+  74HC595 outputs Q0-Q3 = active levels (Q0=level 10, Q1=11, Q2=12, Q3=13)
+    Q0-Q3 (and Q4-Q7 unused) --> 74LVC151 inputs D0-D7
+
+  Bus side (level bits from BD lines):
+    /BD 0 --> level shifter --> 74LVC151 select A (S0)
+    /BD 1 --> level shifter --> 74LVC151 select B (S1)
+    /BD 2 --> level shifter --> 74LVC151 select C (S2)
+
+  74LVC151 output Y = "we have an interrupt active on this level"
+
+  Combinational logic (74LVC02 NOR or similar):
+    block_signal = Y AND (/BAPR low) AND (/BMEM high) AND (/INIDENT incoming)
+
+  block_signal --> /OE_IDENT_PASS on 74LVC125
+```
+
+**Encoding note**: The BD level bits encode 10, 11, 12, 13. The lower 2 bits give 10, 11, 00, 01 -- not contiguous. Software must load the 74HC595 mask with the same encoding so the multiplexer selects correctly. The MCU is responsible for writing the right pattern.
+
+Or simpler: use only BD 0-1 (lower 2 bits of level) and a 4-input mux instead of 8-input. The MCU pre-encodes the mask appropriately.
+
+**Timing**:
+
+| Stage | Time |
+|-------|------|
+| Level shifter (74LVC) | 3-5 ns |
+| 74LVC151 mux propagation | 3-7 ns |
+| 74LVC02 gate | 3-5 ns |
+| 74LVC125 buffer disable | 3-5 ns |
+| **Total** | **~12-22 ns** |
+
+Well within the 100 ns window with massive margin.
+
+**Pros**:
+- No CPLD
+- Discrete logic chips, all common 74xx parts
+- Predictable, fully combinational
+- Programmable via SPI (can update mask dynamically)
+
+**Cons**:
+- 3-4 extra chips
+- BD 0-2 must be tapped before the level shifters (or after, if 5V tolerant)
+- More PCB routing
+
+**Cost**: ~$1.50 in chips + passives.
+
+#### Solution C: PIO Fast Path (V2 alternative, no extra chips)
+
+Use one PIO state machine per interrupt level (4 SMs total) to watch /BAPR, read the level, compare, and block the chain in <60 ns.
+
+**Cost**: 4 PIO state machines (we have 12 total, plenty available).
+
+**Pros**:
+- No external hardware
+- Fully software-defined
+- Can be updated firmware-side
+
+**Cons**:
+- Uses 4 PIO state machines just for IDENT
+- Per-SM compare against fixed Y register -- limited flexibility
+- Borderline timing (60 ns of 100 ns budget)
+
+**Recommendation**: Solution A (last card) for V1, Solution B (SPI comparator) for V2 if middle-of-chain needed.
+
+#### Decision Matrix
+
+| Solution | V1 viable? | V2 viable? | Cost | Complexity | Timing margin |
+|----------|-----------|------------|------|------------|---------------|
+| A: Last card simplification | ✓ | ✗ (only last) | $0 | Lowest | Unlimited |
+| B: SPI comparator | ✓ | ✓ | ~$1.50 | Medium | 5-8x |
+| C: PIO fast path | ✓ | ✓ | $0 | Medium | 1.5-2x |
+| D: CPLD (original) | ✓ | ✓ | ~$3-5 | Medium | 10-20x |
+
+**For V1**: Solution A. Simplest, cheapest, fastest to build.
+
+**For V2**: Solution B (discrete logic) or Solution C (PIO) if middle-of-chain is needed. Avoid CPLD unless future flexibility is required.
+
+#### V1 Final Recommendation
+
+Use **Solution A: Last Card on Bus** for the first version. Update the design accordingly:
+
+1. **PCB silkscreen**: "Install in last/highest slot of bus chain"
+2. **/OUTIDENT and /OUTGRANT outputs**: Wire them but they have no functional effect (no card downstream)
+3. **74LVC125 daisy-chain buffer**: Still install (V2 ready), default to pass-through enabled via pull-down
+4. **Firmware**: Implement IDENT handler without time pressure
+5. **No CPLD, no comparator** -- save the chip count and complexity for V1
+
+This makes the design **fully buildable with V1 firmware** while leaving the hardware ready for V2 enhancements.
+
 ### Critical Design Analysis -- Priorities and Timing
 
 This section analyzes the design against the explicit priorities for the controller card and identifies critical issues that need resolution before PCB.
