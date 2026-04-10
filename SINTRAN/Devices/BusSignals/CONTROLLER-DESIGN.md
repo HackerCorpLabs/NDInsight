@@ -40,16 +40,50 @@ The selected hardware is the **Pimoroni PGA2350** (PIM722) -- a Pin Grid Array (
 | Brand | Pimoroni |
 | SKU | PIM722 |
 
-### GP47 PSRAM Trade-off
+### Pin Availability on PGA2350
 
-The PGA2350 routes the PSRAM chip select to **GP47**. This means:
+The 48 GPIO pins on the PGA2350 are GP0-GP47. Several pins have specific reservations:
 
-| Configuration | GPIO Available | Storage |
-|---------------|---------------|---------|
-| **PSRAM enabled** (default) | 47 GPIO (GP0-GP46) | 520 KB SRAM + 16 MB flash + 8 MB PSRAM |
-| **PSRAM disabled** (cut trace on GP47) | 48 GPIO (GP0-GP47) | 520 KB SRAM + 16 MB flash |
+#### Hard reservations (NOT available as GPIO)
 
-The PSRAM CS trace can be cut to free GP47 if needed. The QSPI flash and PSRAM share the same QSPI interface internally on the module, so the QSPI pins are not exposed as GPIO regardless of PSRAM use.
+These pins are dedicated to external QSPI flash and **not exposed** as part of the GPIO pool:
+
+| Signal | Function |
+|--------|----------|
+| QSPI_SCLK | Flash clock |
+| QSPI_CS | Flash chip select |
+| QSPI_IO0 | Flash data 0 |
+| QSPI_IO1 | Flash data 1 |
+| QSPI_IO2 | Flash data 2 |
+| QSPI_IO3 | Flash data 3 |
+
+> The QSPI pins are **separate from GPIO0-47**. They do NOT eat into the 48 GPIO budget. The PGA2350 module hides them internally.
+
+#### Soft reservations (board-specific)
+
+| Pin | Reason | Recoverable? |
+|-----|--------|--------------|
+| **GP47** | PSRAM chip select | ✓ Yes -- cut trace to disable PSRAM |
+
+#### Conditional reservations (depends on usage)
+
+| Pins | Reason | Avoid if... |
+|------|--------|-------------|
+| GP24, GP25 | USB D+/D- (typical routing) | You need USB for programming/debug |
+| GP24, GP25 | SWD debug (depending on routing) | You want stable debugging |
+
+### Effective GPIO Available
+
+| Configuration | Usable GPIO | Notes |
+|---------------|-------------|-------|
+| Default (PSRAM enabled, USB used) | **45 (GP0-46 minus GP24-25)** | Conservative -- includes USB for dev |
+| PSRAM enabled, no USB | **47 (GP0-46)** | Production firmware, no USB needed |
+| PSRAM disabled, USB used | **46 (GP0-47 minus GP24-25)** | Cut PSRAM trace |
+| PSRAM disabled, no USB | **48 (GP0-47)** | Maximum pins, no PSRAM, no USB |
+
+> **For development**: Plan for **45-46 usable GPIO** (USB needed for programming and debug).
+>
+> **For production**: Can recover GP24/25 (~46-47 GPIO) if USB is not required in the final card.
 
 ### When to Keep PSRAM
 
@@ -62,25 +96,39 @@ The 8 MB PSRAM is useful for device emulation buffering:
 | **HDLC streaming** | Large FIFO buffers for high-throughput links |
 | **Terminal emulation** | Negligible (small buffers fit in SRAM) |
 
-### Recommendation: Keep PSRAM (47 GPIO)
+### Design Fit Analysis on PGA2350
 
-For the multi-device controller, **keep PSRAM enabled** and use 47 GPIO. The 8 MB buffer is valuable for floppy and SMD caching. All three candidate designs (1, 2, 3) fit within 47 pins:
+For development with USB enabled (45 GPIO) and PSRAM enabled, the design fit is:
 
-| Design | Total Pins | Fits 47? | Spare |
-|--------|-----------|----------|-------|
-| Design 1 (Direct GPIO) | 48 | ❌ **No** -- exceeds by 1 | -1 |
-| Design 2 (8-bit Latched) | 37 | ✓ Yes | 10 spare |
-| Design 3 (SPI Shift) | 28 | ✓ Yes | 19 spare |
+| Design | Total Pins | Dev (45 GPIO) | Production no USB (47 GPIO) | No PSRAM no USB (48) |
+|--------|-----------|---------------|----------------------------|----------------------|
+| **Design 1 (Direct GPIO)** | 48 | ❌ Exceeds by 3 | ❌ Exceeds by 1 | ⚠ Tight (0 spare) |
+| **Design 2 (8-bit Latched)** | 37 | ✓ 8 spare | ✓ 10 spare | ✓ 11 spare |
+| **Design 3 (SPI Shift)** | 28 | ✓ 17 spare | ✓ 19 spare | ✓ 20 spare |
 
-> **Important**: Design 1 (Direct GPIO) does **NOT fit** with PSRAM enabled (needs 48, only 47 available). To use Design 1, you must **cut the GP47 PSRAM trace** to gain back the pin. This eliminates the PSRAM benefit.
+> **Important**: Design 1 only fits when both PSRAM is disabled AND USB is not used. This eliminates the development convenience and the PSRAM cache benefit.
+>
+> Designs 2 and 3 fit comfortably in all configurations.
 
-### Updated Recommendation by Configuration
+### PSRAM Worth Keeping?
 
-| Configuration | Best Design | Why |
-|---------------|------------|-----|
-| **PSRAM enabled (47 GPIO)** | **Design 2 (8-bit Latched)** | Comfortable 10 pins spare, full PSRAM benefit |
-| PSRAM disabled (48 GPIO) | Design 1 (Direct GPIO) | Maximum speed, but loses PSRAM caching |
-| Pin minimization | Design 3 (SPI Shift) | 19 pins spare, but slow BD access |
+The 8 MB PSRAM is useful for:
+
+| Use Case | PSRAM Benefit |
+|----------|---------------|
+| **Floppy disk emulation** | Cache full floppy image (~1.4 MB), instant access |
+| **SMD disk emulation** | Sector cache for hot regions, reduces SD card reads |
+| **HDLC streaming** | Large FIFO buffers for high-throughput links |
+| **Terminal emulation** | Negligible (small buffers fit in SRAM) |
+
+### Final Recommendation: Design 2 with PSRAM and USB
+
+| Setting | Choice | Why |
+|---------|--------|-----|
+| Architecture | **Design 2 (8-bit Latched)** | Fits all configurations, sufficient throughput |
+| PSRAM | **Enabled** (default) | 8 MB cache valuable for floppy/SMD |
+| USB | **Enabled** | Development needs programming/debug |
+| Effective GPIO | **45** | 37 used by design, **8 spare** for LEDs/expansion |
 
 ---
 
@@ -119,16 +167,25 @@ Both RP2040 and RP2350B require **dedicated pins for external QSPI flash** (XIP 
 
 | Resource | RP2040 (raw) | RP2350B (raw) | PGA2350 module |
 |----------|--------------|---------------|----------------|
-| Total GPIO | 30 (GPIO0-29) | 48 (GPIO0-47) | 48 exposed |
-| QSPI flash pins | 6 (mandatory) | ~6 (mandatory) | Internal to module, **not exposed** |
-| QSPI PSRAM (optional) | Not supported | 6-11 pins if used | Internal to module, **not exposed** |
+| Total GPIO pool | 30 (GPIO0-29) | 48 (GPIO0-47) | 48 (GP0-GP47) |
+| QSPI flash pins | 6 (mandatory, eats GPIO) | ~6 (separate from GPIO) | Internal to module, **not in GPIO pool** |
+| QSPI PSRAM (optional) | Not supported | 6-11 pins if used | Internal to module, **not in GPIO pool** |
 | PSRAM CS | -- | -- | **GP47** (cuttable trace) |
-| **Practical usable GPIO** | **~24** | **~31-36** | **47 (with PSRAM) or 48 (cut trace)** |
-| **24-bit bus contiguous?** | ✓ GPIO0-23 | ✓ GPIO0-23 (LOW bank) | ✓ GPIO0-23 (LOW bank) |
+| USB pins (D+/D-) | GP24/GP25 | GP24/GP25 | GP24/GP25 (avoid if USB used) |
+| **Practical usable GPIO** | **~24** | **~31-36** | **45-48** (see below) |
 
-> **PGA2350 advantage**: Because the QSPI flash and PSRAM share an internal QSPI bus on the module, **all QSPI pins are hidden**. The user only loses 1 pin (GP47) for PSRAM CS, and that's recoverable by cutting a trace.
+| PGA2350 Configuration | Available GPIO |
+|-----------------------|----------------|
+| PSRAM + USB (development default) | **45** |
+| PSRAM, no USB (production) | **47** |
+| No PSRAM, USB | **46** |
+| No PSRAM, no USB (max pins) | **48** |
 
-> **Recommendation for PGA2350**: Keep PSRAM enabled (47 GPIO) -- the 8 MB buffer is valuable for floppy/SMD/HDLC emulation. All three candidate designs except Design 1 fit within 47 pins. Cut the trace only if you need that one extra pin for Design 1.
+> **PGA2350 advantage**: Because the QSPI flash and PSRAM share an internal QSPI bus on the module, **all QSPI pins are hidden inside the module** -- they do NOT eat into the 48 GPIO pool. This is different from raw RP2350B chip designs where you'd lose 6+ pins to QSPI.
+
+> **Effective loss**: Only **GP47** (PSRAM CS, cuttable) and optionally **GP24/GP25** (USB, if used).
+
+> **Recommendation**: Plan for **45 usable GPIO** during development (PSRAM + USB enabled). All designs except Design 1 fit comfortably. Design 1 only fits if you disable PSRAM and skip USB.
 
 ### Single-cycle bus access
 
