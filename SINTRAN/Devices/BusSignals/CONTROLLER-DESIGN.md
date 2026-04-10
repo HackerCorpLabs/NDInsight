@@ -823,6 +823,564 @@ The pass-through chip needs:
 
 ---
 
+## Design 2 Detailed Implementation -- Chip Selection, Read/Write, Memory Emulation
+
+This section details exactly how Design 2 (8-bit Latched BD Interface) works at the chip level, including read/write sequences, bus drive control, timing verification for IOX and DMA, and an extension for emulating RAM on the bus.
+
+### Chip Selection
+
+Design 2 uses three logical groups:
+
+#### Input Latch Group (Capture from Bus)
+
+**Function**: Capture the 24-bit BD bus state instantly when /BAPR asserts, so the MCU can read it later at its leisure.
+
+**Recommended chip**: **74LVC574** -- octal D-type flip-flop with 3-state outputs.
+
+| Feature | Value |
+|---------|-------|
+| Type | Octal positive-edge-triggered D flip-flop |
+| Inputs | 5V tolerant (input pins accept 5V at 3.3V VCC) |
+| Outputs | 3-state, controlled by /OE |
+| Clock | Captures D on rising edge of CLK |
+| Propagation delay | 3-7 ns |
+| Supply | 1.65V - 3.6V |
+
+**Why edge-triggered (574) instead of transparent latch (573)**:
+- 574 captures on a clean edge (rising edge of CLK)
+- 573 is transparent while LE is HIGH -- data tracks input
+- We want to **freeze** the bus state at the moment /BAPR asserts, not track it
+
+**Connection**:
+```
+  Bus side:    /BD 0-7    -> 74LVC574 #1 D inputs (8 lines)
+               /BD 8-15   -> 74LVC574 #2 D inputs
+               /BD 16-23  -> 74LVC574 #3 D inputs
+
+  Clock:       /BAPR -> 74LVC14 inverter -> CLK pin (rising edge = falling edge of /BAPR)
+                                            (all three latches share same CLK)
+
+  MCU side:    /OE_IN_0 controlled by PIO -> 74LVC574 #1 /OE
+               /OE_IN_1 controlled by PIO -> 74LVC574 #2 /OE
+               /OE_IN_2 controlled by PIO -> 74LVC574 #3 /OE
+
+               Q outputs of all three latches connect to shared 8-bit MCU data bus (only one /OE active at a time)
+```
+
+**Total**: 3x 74LVC574 + 1x 74LVC14 (the inverter is shared with other signal conditioning).
+
+#### Output Drive Group (Drive to Bus)
+
+**Function**: Hold a 24-bit value stable, then drive it onto the bus when commanded.
+
+**Two-stage approach** (recommended):
+
+1. **Output latches**: 3x 74LVC574 -- hold the 24-bit value the MCU wants to send
+2. **Output transceivers**: 3x 74LVT245 -- level shift 3.3V to 5V, drive the bus with sufficient strength
+
+| Stage | Chip | Function |
+|-------|------|----------|
+| Latch | 74LVC574 | Holds data, clocked by PIO when MCU writes |
+| Driver | 74LVT245 | 3.3V to 5V level shift, /OE controlled by PIO |
+
+**Connection**:
+```
+  MCU side:    Shared 8-bit bus -> 74LVC574 #4 D inputs
+                                -> 74LVC574 #5 D inputs
+                                -> 74LVC574 #6 D inputs
+
+  Latch CLK:   PIO drives LE_OUT_0 -> 74LVC574 #4 CLK
+               PIO drives LE_OUT_1 -> 74LVC574 #5 CLK
+               PIO drives LE_OUT_2 -> 74LVC574 #6 CLK
+
+  Latch -> Driver:
+               74LVC574 #4 Q outputs -> 74LVT245 #1 A inputs
+               74LVC574 #5 Q outputs -> 74LVT245 #2 A inputs
+               74LVC574 #6 Q outputs -> 74LVT245 #3 A inputs
+
+  Driver -> Bus:
+               74LVT245 #1 B outputs -> /BD 0-7
+               74LVT245 #2 B outputs -> /BD 8-15
+               74LVT245 #3 B outputs -> /BD 16-23
+
+  All three 74LVT245 DIR pins tied HIGH (always A->B = transmit)
+  All three 74LVT245 /OE pins tied to /BD_OE_BUS (PIO control)
+```
+
+**Total**: 3x 74LVC574 (output latches) + 3x 74LVT245 (output drivers) = 6 chips.
+
+#### Alternative: Registered Transceivers (74LVC646)
+
+A more compact option uses **74LVC646** -- octal bus transceiver with built-in registers in BOTH directions and 3-state outputs.
+
+| Feature | 74LVC646 |
+|---------|----------|
+| Type | Bus transceiver with internal D registers |
+| Direction | Bidirectional (DIR pin) |
+| Latches | One in each direction (8-bit each) |
+| 3-state | Independent /OE for each direction |
+
+Three 74LVC646 chips can replace the 3x 74LVC574 input + 3x 74LVC574 output + 3x 74LVT245 = **6 chips become 3 chips**. This saves PCB area and reduces routing complexity.
+
+**Trade-off**: 74LVC646 is less common than 74LVC574 and 74LVT245. Stock and price may favor the discrete approach.
+
+**Recommendation**: Start with discrete 74LVC574 + 74LVT245 for the prototype (easy to source, well documented). Migrate to 74LVC646 for the production board to reduce chip count.
+
+#### Total Chip Count for Design 2 (Discrete)
+
+| Chip | Quantity | Function |
+|------|----------|----------|
+| 74LVC574 | 3 | Input latches (BD bus -> MCU) |
+| 74LVC574 | 3 | Output latches (MCU -> drive stage) |
+| 74LVT245 | 3 | Output drivers (3.3V -> 5V, drive bus) |
+| 74LVC14 | 1 | Schmitt-trigger inverters (/BAPR clock + signal conditioning) |
+| 74LVC07 | 1 | Open-drain wired-OR drivers (BREQ, BINT, etc.) |
+| 74LVC125 | 1 | Daisy-chain pass-through buffer |
+| **Total** | **12** | |
+
+(Plus pull resistors and bypass capacitors)
+
+### Read Sequence (24-bit BD Bus -> MCU)
+
+The read happens in two phases: hardware capture (instant on /BAPR), then MCU reads via 3 chunks.
+
+#### Phase 1: Hardware Capture (0 ns MCU time)
+
+```
+1. /BAPR asserts on bus (CPU drives address)
+2. 74LVC14 inverts /BAPR -> CLK rising edge
+3. All three 74LVC574 input latches capture BD 0-23 simultaneously
+4. Address is now frozen in latches
+5. Bus state can change without affecting captured data
+```
+
+#### Phase 2: MCU Reads via Shared 8-bit Bus
+
+```
+PIO state machine reads (typical timing at 150 MHz PIO clock):
+
+  Cycle 1: Set /OE_IN_0 = LOW       (~7 ns)
+  Cycle 2: Read GPIO 0-7 -> byte0   (~7 ns)
+  Cycle 3: Set /OE_IN_0 = HIGH      (~7 ns)
+  Cycle 4: Set /OE_IN_1 = LOW       (~7 ns)
+  Cycle 5: Read GPIO 0-7 -> byte1   (~7 ns)
+  Cycle 6: Set /OE_IN_1 = HIGH      (~7 ns)
+  Cycle 7: Set /OE_IN_2 = LOW       (~7 ns)
+  Cycle 8: Read GPIO 0-7 -> byte2   (~7 ns)
+  Cycle 9: Set /OE_IN_2 = HIGH      (~7 ns)
+
+  MCU value = (byte2 << 16) | (byte1 << 8) | byte0
+
+  Total: ~63 ns (9 cycles @ 150 MHz)
+  Plus latch /OE propagation delay: ~3-5 ns per chunk
+  Total realistic: ~80-100 ns
+```
+
+The shared bus prevents bus contention because only one input latch has /OE active at a time.
+
+### Write Sequence (MCU -> 24-bit BD Bus)
+
+#### Phase 1: MCU Loads Output Latches
+
+```
+PIO state machine writes:
+
+  Cycle 1: Drive GPIO 0-7 = byte0    (~7 ns)
+  Cycle 2: Pulse LE_OUT_0 (HIGH-LOW) (~14 ns, 2 cycles)
+            -> 74LVC574 #4 captures byte0
+  Cycle 3: Drive GPIO 0-7 = byte1    (~7 ns)
+  Cycle 4: Pulse LE_OUT_1            (~14 ns)
+  Cycle 5: Drive GPIO 0-7 = byte2    (~7 ns)
+  Cycle 6: Pulse LE_OUT_2            (~14 ns)
+
+  Total: ~63 ns to load all three output latches
+  All 24 bits now sit on the 74LVT245 input pins, ready to drive
+```
+
+#### Phase 2: Enable Bus Drivers
+
+```
+  Cycle 7: Set /BD_OE_BUS = LOW      (~7 ns)
+  Cycle 8: Wait for level shifter    (3-5 ns 74LVT245 propagation)
+
+  Bus now shows the 24-bit value
+  Driven by 3x 74LVT245 (each with mA-class drive strength)
+
+  Total time from start of write to valid bus output: ~80 ns
+```
+
+#### Phase 3: Release the Bus
+
+```
+  When data is no longer needed (after /BDRY handshake):
+  Cycle N: Set /BD_OE_BUS = HIGH     (~7 ns)
+
+  74LVT245 outputs go high-Z within ~5 ns
+  Bus is released, other devices may drive
+```
+
+### Bus Drive Enable (/BD_OE_BUS) Control
+
+The /BD_OE_BUS signal is the master enable for our card to drive the BD bus. Critical safety rules:
+
+| Situation | /BD_OE_BUS State |
+|-----------|------------------|
+| Power-up (before MCU boot) | HIGH (pull-up resistor) -- bus drivers OFF |
+| MCU initializing | HIGH (initial GPIO state) -- bus drivers OFF |
+| CPU IOX read cycle, we are not target | HIGH -- not driving |
+| CPU IOX read cycle, we are the target | LOW during data phase only |
+| CPU IOX write cycle | HIGH -- CPU drives, we just listen |
+| DMA we initiated, address phase | LOW (we drive address) |
+| DMA we initiated, data phase write | LOW (we drive data) |
+| DMA we initiated, data phase read | HIGH (memory drives data) |
+| Power-down or fault | HIGH (pull-up brings it back) |
+
+The PIO state machine carefully sequences /BD_OE_BUS based on the current bus cycle phase.
+
+### Timing Verification: IOX
+
+#### IOX Read (CPU reads from us)
+
+```
+Time     Event
+-------- ------------------------------------------------
+   0 ns  CPU asserts /BAPR (address valid on bus)
+   2 ns  Hardware: 74LVC14 inverts /BAPR
+   5 ns  Hardware: 74LVC574 latches capture 24-bit address
+   5 ns  RP2350 PIO sees /BAPR, starts reading address
+  85 ns  PIO has read all 24 bits via 3 chunks
+  85 ns  PIO decodes: is this our register?
+ 100 ns  YES -- prepare data response
+ 100 ns  CPU asserts /BIOXE
+ 105 ns  PIO sees /BIOXE
+ 110 ns  Interface decides: this is read (target reg is input)
+ 110 ns  PIO asserts /BINPUT
+ 130 ns  CPU sees /BINPUT, releases WDA buffer
+ 140 ns  CPU asserts /BINACK
+ 145 ns  PIO sees /BINACK, starts loading output latches
+ 220 ns  PIO has loaded 3 output latches (24 bits)
+ 220 ns  PIO asserts /BD_OE_BUS = LOW (drive bus)
+ 225 ns  Output transceivers driving bus
+ 230 ns  PIO asserts /BDRY
+ 245 ns  CPU strobes data into DBR
+ 250 ns  CPU releases /BIOXE and /BINACK
+ 255 ns  PIO releases /BD_OE_BUS, /BDRY, /BINPUT, BD lines
+ 255 ns  Bus free
+
+TOTAL: ~255 ns from /BAPR to bus release
+BUS LIMIT: 8000 ns (8 us)
+MARGIN: 31x -- comfortable
+```
+
+#### IOX Write (CPU writes to us)
+
+```
+Time     Event
+-------- ------------------------------------------------
+   0 ns  CPU asserts /BAPR + address on BD
+   5 ns  Hardware latches address
+  85 ns  PIO has read address
+  90 ns  PIO decodes: is this our register?
+ 100 ns  CPU asserts /BIOXE + data on BD
+ 105 ns  Hardware: but wait, our latches still hold the ADDRESS
+        We need to either re-latch on /BIOXE, or use a SEPARATE data latch
+
+ ** This requires either: **
+   Option 1: Re-clock the input latches on /BIOXE OR /BAPR (combine via gate)
+   Option 2: Add separate data input latches clocked by /BIOXE
+   Option 3: Use 74LVC646 registered transceivers with two captures
+```
+
+> **Important design consideration**: For IOX write, the same input latches that captured the address must be **re-clocked** to capture the data, OR we need a second set of latches. See "IOX Write Latch Strategy" below.
+
+#### IOX Write Latch Strategy
+
+There are three ways to handle data capture during IOX write:
+
+**Strategy A: Re-clock the same latches on /BIOXE**
+
+Combine /BAPR and /BIOXE via a logic gate (e.g., AND of inverted signals = OR of asserted signals) to clock the same latches:
+
+```
+  CLK_LATCH = NOT(/BAPR) OR NOT(/BIOXE)
+            = /BAPR LOW OR /BIOXE LOW
+
+  74LVC02 NOR gate:
+    /BAPR ----+
+              |--NOR--> CLK_LATCH (inverted output)
+    /BIOXE ---+
+
+  Wait, this needs inverted output. Use 74LVC32 (OR):
+    NOT(/BAPR) -+
+                |--OR--> CLK_LATCH
+    NOT(/BIOXE)-+
+
+  Or use 74LVC02 NOR:
+    /BAPR -+                          ____
+           |--NOR--> CLK_LATCH = /BAPR + /BIOXE  (HIGH when either is LOW)
+    /BIOXE-+
+
+  When either /BAPR or /BIOXE goes LOW, CLK_LATCH goes HIGH
+  Rising edge of CLK_LATCH triggers 74LVC574 capture
+```
+
+The PIO must read the latches **after the address phase but before the data phase** (to grab the address), then again after the data phase (to grab the data).
+
+**Strategy B: Separate data input latches**
+
+Add 2x more 74LVC574 (16-bit data is sufficient for IOX, but we can do 24 bits to match the bus):
+
+| Latch Set | Trigger | Captures |
+|-----------|---------|----------|
+| Address latches (existing 3x 74LVC574) | /BAPR | 24-bit address |
+| Data input latches (new 2x 74LVC574) | /BIOXE | 16-bit data (BD 0-15) |
+
+PIO reads address from address latches, then later reads data from data latches via different chip selects.
+
+**Cost**: +2 chips, +2 GPIO for separate /OE pins.
+
+**Strategy C: Use 74LVC646 with two-step capture**
+
+The 74LVC646 has independent latch enables. Trigger the AB latch on /BAPR (address) then trigger again on /BIOXE (data).
+
+But the 74LVC646 has only ONE latch per direction, so you'd lose the address when capturing data. Unless we use the second direction (BA) for data capture. This is messy.
+
+**Recommendation**: **Strategy B (separate data latches)**. Slightly more chips but cleaner logic and easier debugging.
+
+### Updated Chip Count for Design 2 (with Strategy B for IOX write)
+
+| Chip | Quantity | Function |
+|------|----------|----------|
+| 74LVC574 | 3 | Address input latches (BD 0-23, /BAPR clock) |
+| 74LVC574 | 2 | Data input latches (BD 0-15, /BIOXE clock) |
+| 74LVC574 | 3 | Output latches (MCU -> drive stage) |
+| 74LVT245 | 3 | Output drivers (3.3V -> 5V, drive bus) |
+| 74LVC14 | 1 | Schmitt inverters (/BAPR, /BIOXE clock conditioning) |
+| 74LVC07 | 1 | Open-drain wired-OR drivers |
+| 74LVC125 | 1 | Daisy-chain pass-through buffer |
+| **Total** | **14** | |
+
+### Timing Verification: DMA
+
+For DMA, our card is the bus master. We drive everything.
+
+#### DMA Output (Memory Read) Cycle
+
+```
+Time     Event
+-------- ------------------------------------------------
+   0 ns  PIO asserts /BREQ (we want the bus)
+        (CPU/BCU completes current cycle)
+ 200 ns  BCU asserts /BMEM and /OUTGRANT
+ 205 ns  PIO sees /INGRANT
+ 215 ns  We have grant, prepare to drive bus
+ 215 ns  PIO loads memory address into output latches (~80 ns)
+ 295 ns  PIO asserts /BD_OE_BUS = LOW
+ 300 ns  Address valid on bus
+ 305 ns  PIO asserts /BAPR
+ 310 ns  /BINPUT remains HIGH (= read direction)
+ 360 ns  Address phase done, PIO releases /BD_OE_BUS (or holds for BDAP)
+ 360 ns  PIO asserts /BDAP ("BD free for memory data")
+        (Wait for memory to respond)
+ 500 ns  Memory drives data on BD lines
+ 510 ns  Memory asserts /BDRY
+ 515 ns  Hardware: 74LVC574 input latches capture data on /BAPR... wait
+        NO -- /BAPR is no longer being clocked
+
+        We need ANOTHER capture trigger for the read data
+        Use: /BDRY clocks the input latches for DMA read data
+```
+
+**Important**: For DMA read, we need to capture the data when memory asserts /BDRY. This is similar to the IOX write problem -- we need a second capture trigger.
+
+**Solution**: Combine /BAPR + /BIOXE + /BDRY into the latch clock (any of them can trigger capture). Or use Strategy B with a third trigger source.
+
+#### Updated Strategy B for DMA Read
+
+| Latch Set | Trigger | Captures |
+|-----------|---------|----------|
+| Address latches (3x 74LVC574) | /BAPR | 24-bit address (CPU IOX or our DMA) |
+| Data input latches (2x 74LVC574) | /BIOXE OR /BDRY (gated) | 16-bit data |
+
+Use a 74LVC02 NOR gate to combine /BIOXE and /BDRY:
+```
+  CLK_DATA_LATCH = NOT(/BIOXE) OR NOT(/BDRY)
+                 = HIGH when either is LOW
+                 = capture when CPU writes IOX data OR memory responds with DMA data
+```
+
+This works because:
+- IOX write: CPU asserts /BIOXE -> data latch captures
+- IOX read: we don't need data latch (we're driving)
+- DMA read: memory asserts /BDRY -> data latch captures
+- DMA write: we don't need data latch (we're driving)
+
+So one set of data latches serves both IOX write and DMA read.
+
+#### DMA Cycle Total Time
+
+```
+Time     Event
+-------- ------------------------------------------------
+   0 ns  Assert /BREQ
+ 200 ns  Receive /INGRANT
+ 215 ns  Prepare and load address (~80 ns)
+ 305 ns  Assert /BAPR + /BMEM + drive bus
+ 360 ns  Address phase complete, assert /BDAP
+ 500 ns  Memory drives data
+ 515 ns  Hardware captures data
+ 600 ns  PIO reads data from latches (~80 ns)
+ 610 ns  PIO releases /BD_OE_BUS (if still asserted)
+ 620 ns  /BDRY trailing edge, bus free
+
+TOTAL: ~620 ns per DMA word
+THROUGHPUT: ~1.6 MB/s (one word every 620 ns)
+SUFFICIENT FOR: Floppy, terminal, HDLC, SMD (marginal)
+```
+
+For DMA write, the timing is similar but we drive the data instead of capturing it.
+
+### Memory Emulation Extension
+
+To make the controller card emulate memory (so the CPU sees it as part of the memory system), the card must respond to memory read/write cycles addressed to its memory range.
+
+#### What Changes
+
+1. **Sniff /BMEM** to detect memory cycles vs IOX cycles
+2. **Capture address on /BAPR** (already done)
+3. **Decode**: is the address in our memory range?
+4. **For memory READ**: drive data from our internal RAM/PSRAM to the bus
+5. **For memory WRITE**: capture data from the bus into our internal RAM/PSRAM
+6. **Assert /BDRY** when ready
+
+#### Memory Cycle Detection
+
+The PIO state machine watches /BMEM and /BAPR:
+- /BMEM HIGH + /BAPR HIGH = idle
+- /BAPR LOW with /BMEM HIGH = IOX cycle (existing)
+- /BAPR LOW with /BMEM LOW = memory cycle (new)
+
+#### Memory READ Response
+
+```
+Time     Event
+-------- ------------------------------------------------
+   0 ns  CPU asserts /BAPR + /BMEM, address on BD
+   5 ns  Address latches capture
+  85 ns  PIO has read address
+  90 ns  Decode: is this our memory range? YES
+  90 ns  Look up data in internal SRAM/PSRAM
+        (PSRAM access ~100-200 ns, SRAM ~10 ns)
+ 100 ns  CPU asserts /BDAP ("BD free for our data")
+ 200 ns  PIO has fetched data from PSRAM
+ 200 ns  Load data into output latches (~80 ns for 16-bit)
+ 280 ns  Assert /BD_OE_BUS = LOW
+ 285 ns  Drive 16-bit data on BD 0-15
+ 290 ns  Assert /BDRY
+ 305 ns  CPU reads data
+ 310 ns  CPU releases /BMEM
+ 315 ns  Release everything
+
+TOTAL: ~315 ns per memory read
+WITHIN 8 us: yes, 25x margin
+```
+
+#### Memory WRITE Capture
+
+```
+Time     Event
+-------- ------------------------------------------------
+   0 ns  CPU asserts /BAPR + /BMEM + /BINPUT, address on BD
+   5 ns  Address latches capture
+  85 ns  PIO has read address
+  90 ns  Decode: is this our memory range? YES
+ 100 ns  CPU drives data on BD + asserts /BDAP
+ 105 ns  Data latches capture (clocked by /BDAP via gate)
+ 185 ns  PIO has read data
+ 200 ns  PIO writes data to internal SRAM/PSRAM
+ 250 ns  Assert /BDRY ("data accepted")
+ 270 ns  CPU releases /BMEM
+ 275 ns  Release everything
+
+TOTAL: ~275 ns per memory write
+```
+
+#### Hardware Additions for Memory Emulation
+
+The existing Design 2 hardware supports memory emulation with **one critical addition**: the data input latches must be clocked by /BDAP (not /BIOXE) for memory cycles, OR we add a third trigger:
+
+| Signal | Source | When to Capture |
+|--------|--------|-----------------|
+| /BIOXE | CPU IOX cycle | Capture data for IOX write |
+| /BDRY | Memory response in DMA | Capture data for DMA read |
+| /BDAP | CPU memory write | Capture data for memory write to us |
+
+Combine all three with a 3-input NOR gate (74LVC10) or two 2-input NOR gates:
+```
+  CLK_DATA_LATCH = NOT(/BIOXE) OR NOT(/BDRY) OR NOT(/BDAP)
+                 = capture on any of the three triggers
+```
+
+**Cost**: +1 chip (74LVC02 NOR or 74LVC10 3-input NOR)
+
+#### Memory Emulation Storage
+
+For the memory emulation, internal RAM choices:
+
+| Storage | Size | Speed | Use Case |
+|---------|------|-------|----------|
+| RP2350 internal SRAM | 520 KB | ~10 ns | Fastest, register-style memory |
+| PSRAM (PGA2350) | 8 MB | ~100-200 ns | Bulk memory, large emulated region |
+
+For a small ROM emulation (boot loader, ~1 KB), use SRAM for fastest response. For emulating a large memory bank, use PSRAM with the SRAM as a sector cache.
+
+#### Memory Emulation Timing Risk
+
+Memory cycles on the ND-100 are fast in real hardware (~200-500 ns). Our emulated memory takes ~275-315 ns. This is **within spec but tight** if the rest of the system expects faster memory.
+
+If memory emulation is needed for **performance-critical purposes** (e.g., emulating an extension memory bank used by SINTRAN), test carefully on real hardware. For diagnostic or boot purposes, the timing is fine.
+
+#### Memory Emulation Limitations
+
+- **PSRAM access latency** (~100-200 ns) eats into the bus cycle budget
+- **No cache coherency** with real ND-100 memory -- our emulated memory is a separate region
+- **Address space conflicts** must be avoided (CPU must not access the same physical address from both real memory and our card)
+
+### Summary: Is Design 2 Quick Enough?
+
+| Cycle Type | Time | Bus Limit | Margin |
+|-----------|------|-----------|--------|
+| IOX read | ~255 ns | 8000 ns | 31x |
+| IOX write | ~200 ns | 8000 ns | 40x |
+| IDENT response | ~150 ns | 100 ns window for decision | ✓ if hardware pass-through |
+| DMA word read | ~620 ns | 8000 ns | 13x |
+| DMA word write | ~600 ns | 8000 ns | 13x |
+| Memory emulation read | ~315 ns | 8000 ns | 25x |
+| Memory emulation write | ~275 ns | 8000 ns | 29x |
+
+**All operations fit comfortably** within the 8 us bus cycle limit. The IDENT 100 ns decision window requires hardware default pass-through (74LVC125), which Design 2 already includes.
+
+### Final Component List for Design 2 (Full Memory Emulation)
+
+| Chip | Qty | Function | Approx Cost |
+|------|-----|----------|-------------|
+| 74LVC574 | 3 | Address input latches (24-bit, /BAPR clocked) | $1.50 |
+| 74LVC574 | 2 | Data input latches (16-bit, /BIOXE+/BDRY+/BDAP clocked) | $1.00 |
+| 74LVC574 | 3 | Output latches (24-bit, PIO clocked) | $1.50 |
+| 74LVT245 | 3 | Output drivers (3.3V -> 5V, /BD_OE_BUS controlled) | $2.40 |
+| 74LVC14 | 1 | Schmitt inverters for clock conditioning | $0.30 |
+| 74LVC07 | 1 | Open-drain drivers (/BREQ, /BINT, /BDRY out, /BINPUT out, /BDAP out) | $0.30 |
+| 74LVC02 or 74LVC10 | 1 | NOR gate for data latch clock combining | $0.30 |
+| 74LVC125 | 1 | Daisy-chain pass-through buffer | $0.30 |
+| **Total** | **15** | | **~$7.60** |
+
+Plus pull resistors (~16 x 10K, ~$0.50 in arrays), bypass caps (~15 x 0.1uF, ~$0.50), connectors, PCB.
+
+**BD interface chip count: 15** (modest)
+**Total BD interface cost: ~$8** (plus passives)
+
+---
+
 ## RP2040 Alternative Analysis
 
 Can the same controller work with an **RP2040** instead of RP2350B? The RP2040 has **30 GPIO** in a single bank, but **6 are reserved for QSPI flash**, leaving **~24 usable GPIO** in practice.
