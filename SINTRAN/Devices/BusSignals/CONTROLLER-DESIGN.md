@@ -2663,6 +2663,247 @@ USB serial gives the **detail** (logs, debug prints, register dumps), while LEDs
 
 ---
 
+### IDENT Cycle Reality Check: It's Just a Bus Cycle
+
+Re-reading the ND-100 manual carefully, the 100 ns "be ready" window is a **design target**, not a hard deadline. The IDENT cycle is a normal bus cycle bounded by the **8 us total cycle limit**, and the bus is fully **asynchronous** -- it waits for signals to settle.
+
+What actually matters:
+
+| Constraint | Value | Hard? |
+|------------|-------|-------|
+| Total bus cycle (BAPR to BDRY release) | 8000 ns | **Hard** -- BCU timeout |
+| BAPR address hold | 50 ns | **Hard** -- need hardware latch (PIO is fast enough) |
+| BAPR -> "interface ready to forward or capture" | ~100 ns | **Soft** -- target, not enforced |
+| INIDENT propagation through chain | varies | **Soft** -- limited only by total cycle time |
+
+The 100 ns figure is the manufacturer's expected response time. Bus cycles can take longer if needed -- the BCU only fails on the 8 us timeout.
+
+**Practical implication**: We can do IDENT decision and forwarding in software within **a few hundred ns**, and the system will work. With a typical 5-10 cards in the chain, even 500 ns per card sums to 2.5-5 us -- well under the 8 us budget.
+
+### IDENT State Machine Design (Block-First Approach)
+
+The cleanest design uses **block-first** pass-through control: by default forward, but immediately block when /BAPR asserts so we have time to decide. Software then either:
+- Releases the block (no match, signal continues to OUTIDENT)
+- Keeps the block and drives the response (match)
+
+This eliminates the race condition where INIDENT might arrive before software has decided.
+
+#### Sequence Diagram (BLOCK-FIRST IDENT)
+
+```mermaid
+sequenceDiagram
+    participant CPU as ND-100 CPU
+    participant BUS as NORD-100 Bus
+    participant PIO as PIO State Machines
+    participant SW as Pi Pico Software
+    participant DEV as Emulated Device
+
+    Note over CPU,BUS: IDENT PLxx instruction starts
+    CPU->>BUS: BD 0-5 = level (e.g. 12)
+    CPU->>BUS: /BAPR asserted
+
+    BUS->>PIO: PIO sees /BAPR LOW
+    Note right of PIO: ~14 ns
+    PIO->>PIO: Block pass-through<br/>(/OE_DAISY_PASS = HIGH)
+    PIO->>PIO: Read BD 0-5 (level)
+    PIO->>SW: Push event to FIFO
+
+    Note over SW: ~200-500 ns dispatch
+    SW->>SW: Check active interrupts<br/>vs requested level
+
+    alt Level matches our active interrupt
+        SW->>PIO: Send "drive ident code" command
+        SW->>PIO: Send "assert BDRY" command
+        Note right of PIO: ~50 ns
+        PIO->>BUS: Drive BD 0-23 = ident_code
+        PIO->>BUS: /BDRY asserted
+        BUS->>CPU: CPU strobes BD into A reg
+        CPU->>BUS: /INIDENT released
+        BUS->>PIO: PIO sees /INIDENT HIGH
+        PIO->>BUS: Release BD lines (high-Z)
+        PIO->>BUS: /BDRY released
+        SW->>DEV: Mark interrupt as serviced
+    else No match - forward
+        SW->>PIO: Send "release block" command
+        Note right of PIO: ~30 ns
+        PIO->>PIO: /OE_DAISY_PASS = LOW
+        Note over BUS: INIDENT now propagates<br/>via 74LVC125 to OUTIDENT
+        Note over BUS: Next card processes INIDENT
+        Note over CPU: Eventually some card responds<br/>or CPU times out
+    end
+```
+
+#### PIO State Machine Architecture for IDENT
+
+We use **two PIO state machines** dedicated to IDENT handling, plus the existing BUS_CAPTURE for general address capture:
+
+**SM A: IDENT_BLOCKER** -- detects /BAPR and blocks pass-through immediately
+
+```pio
+.program ident_blocker
+.side_set 1     ; sideset pin = /OE_DAISY_PASS
+
+.wrap_target
+    ; Idle state: pass-through ENABLED (sideset 0 = LOW = OE active)
+    wait 0 pin BAPR_PIN side 1    ; on BAPR LOW: BLOCK immediately (sideset 1 = HIGH = OE disabled)
+    in pins, 6          side 1    ; read BD 0-5 (level)
+    push                side 1    ; push level event to FIFO
+    pull                side 1    ; wait for software command (still blocking)
+    out x, 1            side 1    ; bit 0: 0 = release, 1 = keep blocking
+    jmp x-- keep        side 1
+    nop                 side 0    ; release block (forward enabled)
+    jmp wait_release    side 0
+keep:
+    ; Stay blocked while we're driving the response
+wait_release:
+    wait 1 pin BAPR_PIN side 0    ; wait for BAPR release, restore default
+.wrap
+```
+
+Time from BAPR active to block engaged: **~14-21 ns**. The pass-through is blocked before INIDENT even arrives at our card.
+
+**SM B: IDENT_RESPONDER** -- when armed, drives ident code response on INIDENT
+
+```pio
+.program ident_responder
+.side_set 1     ; sideset pin = /BDRY drive
+
+.wrap_target
+    ; Wait for software to arm us with an ident code
+    pull                side 1    ; pull ident code (24 bits), BDRY released
+    
+    ; OSR now contains the 24-bit ident code
+    
+    ; Set BD pin directions to OUTPUT (24 bits)
+    mov x, osr          side 1    ; save ident code in X
+    mov osr, ~null      side 1    ; load 0xFFFFFFFF
+    out pindirs, 24     side 1    ; pin dirs = output for BD
+    
+    ; Restore ident code and wait for INIDENT
+    mov osr, x          side 1
+    wait 0 pin INIDENT_PIN side 1
+    
+    ; INIDENT active -- drive ident code, assert BDRY
+    out pins, 24        side 0    ; drive BD with ident code, BDRY LOW
+    
+    ; Wait for INIDENT release
+    wait 1 pin INIDENT_PIN side 0
+    
+    ; Release BD lines and BDRY
+    mov osr, null       side 1    ; BDRY released
+    out pindirs, 24     side 1    ; pin dirs back to input
+.wrap
+```
+
+Time from INIDENT to BD driven: **~14-21 ns**.
+
+#### Software Coordination
+
+The software (Core 0 main loop) coordinates the two SMs:
+
+```c
+void handle_ident_event(uint32_t level_event) {
+    // Event came from IDENT_BLOCKER SM (already blocking pass-through)
+    int level = level_event & 0x3F;
+    int device = find_device_with_interrupt(level);
+    
+    if (device < 0) {
+        // No match -- release the block, INIDENT will forward to next card
+        pio_sm_put(pio_ident, SM_IDENT_BLOCKER, 0);  // bit 0 = 0 = release
+        return;
+    }
+    
+    // Match -- arm the responder with our ident code
+    uint32_t ident_code = devices[device].ident_code;
+    pio_sm_put(pio_ident, SM_IDENT_RESPONDER, ident_code);
+    
+    // Tell blocker to KEEP blocking (we're capturing)
+    pio_sm_put(pio_ident, SM_IDENT_BLOCKER, 1);  // bit 0 = 1 = keep blocking
+    
+    // Mark device as serviced
+    devices[device].int_active = false;
+    
+    // The IDENT_RESPONDER SM handles the rest automatically:
+    // - Waits for INIDENT
+    // - Drives BD + BDRY
+    // - Releases on INIDENT release
+}
+```
+
+#### Total Timing Budget
+
+| Step | Time | Cumulative |
+|------|------|-----------|
+| /BAPR asserted on bus | 0 ns | 0 ns |
+| Level shifter (74LVC14) | 5 ns | 5 ns |
+| PIO sync + IDENT_BLOCKER detects, blocks, captures | 21 ns | 26 ns |
+| FIFO -> DMA -> circular buffer -> CPU | 100 ns | 126 ns |
+| CPU dispatch handler | 100 ns | 226 ns |
+| CPU decode level, check active interrupts | 50 ns | 276 ns |
+| CPU push command to PIO (release or arm responder) | 20 ns | 296 ns |
+| **Decision complete** | | **~300 ns** |
+| (CPU asserts INIDENT some time later, e.g., 500 ns after BAPR) | -- | -- |
+| IDENT_RESPONDER detects INIDENT | 21 ns | -- |
+| IDENT_RESPONDER drives BD + BDRY | 14 ns | -- |
+| Total response time after INIDENT: | **~35 ns** | -- |
+
+**Total IDENT cycle time** (BAPR to BDRY assertion): typically **600-800 ns** including the CPU's BAPR-to-INIDENT delay. Well under the 8 us limit (10x margin).
+
+#### What If Software is Slow?
+
+If software takes longer than expected (say 1-2 us), the only consequence is that INIDENT propagation is delayed by that amount. The CPU is patient and waits. The total cycle stays under 8 us with margin.
+
+There is **no hard deadline** for our software response, only the soft 8 us total cycle limit. We have ample headroom.
+
+#### Forwarding Speed Analysis (Cases A and B)
+
+**Case A: No active interrupts**
+
+Software flow:
+1. ADDR event arrives
+2. Check `active_levels_mask == 0` -> true
+3. Send "release block" command to PIO
+4. Done
+
+Time: ~200-300 ns
+
+**Case B: Active interrupts but level mismatch**
+
+Software flow:
+1. ADDR event arrives
+2. Check `(active_levels_mask >> level) & 1` -> false
+3. Send "release block" command to PIO
+4. Done
+
+Time: ~200-300 ns
+
+**In both cases, forwarding takes ~200-300 ns**. With a 5-card chain, total propagation is ~1.5 us. Total IDENT cycle: ~2 us. Well under 8 us.
+
+#### Hardware Required
+
+| Chip | Purpose | Quantity |
+|------|---------|----------|
+| 74LVC14 | Schmitt-trigger inverter for BAPR conditioning | 1 (shared) |
+| 74LVC125 | Daisy-chain pass-through buffer (already in design) | 1 |
+| 74LVC07 | Open-drain BDRY drive (already in design) | 1 (shared) |
+| **No CPLD, no comparator, no extra chips** | | |
+
+The IDENT handling fits entirely within the existing hardware design. Just two PIO state machines and some software.
+
+#### Summary
+
+By recognizing that IDENT is a normal 8 us bus cycle (not a hard 100 ns deadline), we can implement IDENT entirely in PIO + software:
+
+- **No CPLD needed**
+- **No extra hardware comparator needed**
+- **2 PIO state machines** (IDENT_BLOCKER + IDENT_RESPONDER) handle the timing
+- **Block-first** approach eliminates race conditions
+- **Software has 200-500 ns** to decide, well within the cycle budget
+- **Total IDENT cycle**: ~600-800 ns typical, ~2 us with chain propagation
+- **8 us limit**: Comfortable 4-13x margin
+
+This design works for V1 (last card) and V2 (middle of chain) without modification. The block-first PIO approach handles both cases identically.
+
 ### IDENT Timing Solutions Without CPLD
 
 The 100 ns IDENT decision window is the tightest constraint. The CPLD approach (Option B in critical analysis) is reliable but adds a programmable chip. Two alternative approaches avoid the CPLD entirely.
