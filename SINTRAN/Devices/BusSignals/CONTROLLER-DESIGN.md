@@ -4190,6 +4190,211 @@ The pull resistors automatically achieve safe state during the brief window when
 
 ---
 
+## ESP32 Wireless Companion Chip (Optional Populate)
+
+> **PCB design rule**: The ESP32 footprint, traces, and supporting components are **always present on the PCB**, but the ESP32 module itself is **optional to populate at assembly time**. Order PCBs with or without the ESP32 depending on use case. PCBs without ESP32 leave the footprint empty -- nothing else changes.
+
+For network connectivity (WiFi for HDLC over IP, telnet/SSH terminal sessions, MQTT for monitoring, etc.), an **ESP32** can be populated as a companion chip on the controller card. The ESP32 talks to the RP2350B over SPI.
+
+### Why ESP32?
+
+The Olimex BB48R has WiFi capability through the **separate** RP2350-PICO2-W variant, but if we use the BB48R (which lacks WiFi), we need a separate wireless module. ESP32 is the standard choice:
+
+- **WiFi 802.11 b/g/n** -- standard
+- **Bluetooth Classic + BLE** -- bonus, useful for diagnostics
+- **Cheap** -- ESP32-WROOM-32 module is ~$3
+- **Flexible** -- runs Arduino, ESP-IDF, MicroPython
+- **Well documented** -- huge community
+
+### Use Cases
+
+| Use Case | Description |
+|----------|-------------|
+| **HDLC over WiFi** | Bridge ND-100 HDLC frames to/from a remote system over IP. Replace serial HDLC links with WiFi. |
+| **Terminal over Telnet/SSH** | Emulated terminal connects to a Telnet or SSH server. Modern terminal access without physical serial cables. |
+| **Disk image upload** | Upload floppy/SMD images over WiFi to the SD card (via the ESP32 acting as HTTP server). |
+| **Remote monitoring** | MQTT or WebSocket telemetry of card state, bus activity, error logs. |
+| **Remote firmware update** | OTA firmware updates for the controller card. |
+| **Remote control** | Web UI for switching emulated devices, resetting, configuring. |
+
+### Hardware Integration
+
+The ESP32 connects to the RP2350B via **SPI** plus a few control signals. SPI is fast enough for terminal traffic (~9600-115200 baud per session) and even HDLC (~64 Kbit/s).
+
+#### ESP32 Module Selection
+
+| Module | Notes |
+|--------|-------|
+| **ESP32-WROOM-32** | Standard 4MB flash, WiFi+BT, common, ~$3 |
+| **ESP32-WROOM-32E** | Updated revision, recommended |
+| **ESP32-S3-WROOM-1** | Newer, more RAM, better USB |
+| **ESP32-C3** | RISC-V, smaller, single core |
+| **ESP32-S2** | No Bluetooth, USB OTG |
+
+**Recommendation**: **ESP32-WROOM-32E** (4MB flash, WiFi+BT, $3, well supported).
+
+#### Pin Allocation for ESP32 Communication
+
+The ESP32 uses **SPI0** on the RP2350B (separate from SPI1 used by SD card). We need ~5-6 GPIO pins from the spare pool:
+
+| RP2350B GPIO | Function | Direction | Notes |
+|--------------|----------|-----------|-------|
+| GPIO4 | SPI0_SCK (to ESP32) | Output | SPI clock |
+| GPIO5 | SPI0_MOSI (to ESP32) | Output | SPI data out |
+| GPIO6 | SPI0_MISO (from ESP32) | Input | SPI data in |
+| GPIO7 | /ESP32_CS | Output | SPI chip select |
+| GPIO0 | ESP32_REQ_INT | Input | ESP32 interrupts RP2350 (data ready) |
+| GPIO1 | ESP32_RST | Output | ESP32 reset / enable |
+
+**Total: 6 pins** -- fits within the 6 spare GPIOs we have.
+
+> **Tradeoff**: If we add ESP32, we use up most of the spare GPIO pool. The pUEXT/Qwiic connectors share these pins, so they would no longer be available for other expansion. UART debug (originally GPIO0/GPIO1) moves to USB CDC.
+
+#### ESP32 Pin Mapping (on the ESP32 side)
+
+| ESP32 Pin | Function |
+|-----------|----------|
+| GPIO5 | VSPI_SS (CS) -- connect to RP2350 GPIO7 |
+| GPIO18 | VSPI_SCK -- connect to RP2350 GPIO4 |
+| GPIO19 | VSPI_MISO -- connect to RP2350 GPIO6 |
+| GPIO23 | VSPI_MOSI -- connect to RP2350 GPIO5 |
+| GPIO22 | INT output -- connect to RP2350 GPIO0 |
+| EN | Reset input -- connect to RP2350 GPIO1 |
+| GND, 3V3 | Power |
+
+### ESP32 Block Diagram
+
+```mermaid
+flowchart LR
+    subgraph CARD["Controller Card"]
+        RP["RP2350B<br/>(Olimex BB48R)"]
+        ESP["ESP32-WROOM-32E<br/>(SMD module)"]
+        BUS_IF["BD Bus Interface<br/>(Design 2 latches)"]
+    end
+
+    subgraph EXT["External"]
+        ND["ND-100 Bus"]
+        WIFI["WiFi Network"]
+    end
+
+    RP <-->|SPI0| ESP
+    RP <-->|"GPIO INT/RST"| ESP
+    RP -->|GPIO + PIO| BUS_IF
+    BUS_IF <-->|5V bus| ND
+    ESP <-->|2.4 GHz| WIFI
+
+    style CARD fill:#E3F2FD,stroke:#0D47A1,color:#0D47A1
+    style EXT fill:#FFF3E0,stroke:#E65100,color:#E65100
+    style RP fill:#E0F7FA,stroke:#00838F,color:#00838F
+    style ESP fill:#F3E5F5,stroke:#7B1FA2,color:#7B1FA2
+```
+
+### SPI Protocol Between RP2350 and ESP32
+
+A simple **command/response framing** protocol:
+
+```c
+typedef struct {
+    uint8_t cmd;        // Command opcode
+    uint8_t channel;    // Logical channel (terminal session, HDLC link, etc.)
+    uint16_t length;    // Payload length in bytes
+    uint8_t payload[];  // Variable length data
+} esp32_frame_t;
+```
+
+**Commands** (RP2350 -> ESP32):
+
+| Cmd | Name | Payload |
+|-----|------|---------|
+| 0x01 | OPEN_TELNET | host:port string |
+| 0x02 | CLOSE_TELNET | channel ID |
+| 0x10 | TERM_TX | terminal output bytes |
+| 0x20 | HDLC_TX | HDLC frame bytes |
+| 0x30 | HTTP_GET | URL string |
+| 0x40 | MQTT_PUB | topic + payload |
+| 0xF0 | GET_STATUS | -- |
+| 0xF1 | RESET_ESP32 | -- |
+
+**Events** (ESP32 -> RP2350, via INT pin then SPI read):
+
+| Event | Description |
+|-------|-------------|
+| 0x10 | TERM_RX | bytes received from telnet |
+| 0x11 | TERM_CONNECTED | session opened |
+| 0x12 | TERM_DISCONNECTED | session closed |
+| 0x20 | HDLC_RX | HDLC frame received |
+| 0xE0 | WIFI_CONNECTED | -- |
+| 0xE1 | WIFI_DISCONNECTED | -- |
+| 0xE2 | ERROR | error code + message |
+
+The ESP32 raises ESP32_REQ_INT when it has data ready. The RP2350 then issues a SPI read transaction to retrieve it.
+
+### Throughput Analysis
+
+| Protocol | Bandwidth needed | SPI bandwidth | Headroom |
+|----------|------------------|---------------|----------|
+| Terminal session @ 9600 baud | 9.6 Kbit/s | 25 Mbit/s @ 25 MHz SPI | 2600x |
+| HDLC link @ 64 Kbit/s | 64 Kbit/s | 25 Mbit/s | 390x |
+| HTTP file download | varies | 25 Mbit/s | depends |
+
+SPI at 25 MHz gives ~25 Mbit/s effective, **far more than needed** for terminal and HDLC traffic.
+
+### ESP32 Software
+
+The ESP32 runs ESP-IDF or Arduino framework with:
+- **TCP/IP stack** for telnet/SSH/MQTT
+- **WiFi station mode** (connects to existing WiFi network)
+- **SPI slave** to receive commands from RP2350
+- **HTTP server** for disk image upload (optional)
+
+Reference: ESP-IDF SPI slave example: https://github.com/espressif/esp-idf/tree/master/examples/peripherals/spi_slave
+
+### When ESP32 is Not Needed
+
+If you don't need WiFi/network connectivity:
+- **Don't populate the ESP32** on the PCB
+- The 6 GPIOs become free again for other use (debug UART, additional LEDs, expansion)
+- The PCB has space for the ESP32 footprint but it's optional
+
+The ESP32 should be a **populate option** at PCB assembly time -- order with or without ESP32 depending on use case.
+
+### Cost Impact
+
+| Item | Cost |
+|------|------|
+| ESP32-WROOM-32E module | ~$3.00 |
+| Antenna (PCB or external) | included in module |
+| Decoupling caps | $0.10 |
+| Reset pull-up resistor | $0.05 |
+| SPI signal traces | minimal |
+| **Total** | **~$3.15** |
+
+Trivial cost for adding modern wireless connectivity.
+
+### PCB Layout for ESP32
+
+| Item | Notes |
+|------|-------|
+| Module placement | Top side of PCB, antenna away from metal/RF noise |
+| Antenna keep-out | Per ESP32 datasheet -- no copper near the PCB antenna |
+| Decoupling | 10uF + 0.1uF close to ESP32 power pin |
+| Power | 3.3V from BB48R or local LDO (ESP32 can draw ~500mA peak) |
+| Reset | Pull-up to 3.3V, button optional |
+| Programming header | 6-pin breakout for ESP32 USB-UART programming (optional, can be omitted if pre-programmed) |
+
+### Programming the ESP32
+
+The ESP32 has its own flash and is programmed separately from the RP2350. Options:
+
+1. **Pre-program before soldering** -- order modules pre-flashed
+2. **Programming header on PCB** -- add a 6-pin header for USB-UART programmer
+3. **OTA update via WiFi** -- after initial programming, all updates over WiFi
+4. **SPI bootloader** -- RP2350 reflashes ESP32 via SPI (requires custom code)
+
+**Recommendation**: Add a 6-pin programming header for initial flash, use OTA for updates.
+
+---
+
 ## ND-100 CPU Emulation Mode (Same PCB, Software-Configured)
 
 To enable safe development and testing without risking real ND-100 hardware, the **same controller PCB** can be configured to emulate the **ND-100 CPU** instead of (or in addition to) emulating I/O devices. This is critical for:
