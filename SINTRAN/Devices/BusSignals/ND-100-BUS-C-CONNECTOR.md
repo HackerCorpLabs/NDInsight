@@ -1300,25 +1300,24 @@ The IOX/IOXT data path through the CPU uses these internal registers:
 16. Bus cycle complete
 
 ```
-        Address Phase                 Data Phase (Write)
-        |                             |
-  BD 0-23  ====[ ADDRESS ]========xxxx====[ A REGISTER DATA ]========xxxx
-              _____                          _______________
-  BAPR  _____|     |________________________|               |____________
-                                              ___________
-  BIOXE _____|____________________________|__|           |_______________
-                    |                                  ___
-  BDRY  ___________|__________________________________|   |______________
-              |     |                         |        |   |
-              |  ~50ns hold                   |     data   |
-              |                            data on  accepted
-           address                         BD valid  (strobed
-           valid                                    into DBR)
+        Address Phase                   Data Phase (Write)
+        |                               |
+  /BD 0-23  ====[ ADDRESS ]==========xxxx====[ A REGISTER DATA ]==========xxxx
+            _____                            _______________
+  /BAPR ---|     |--------------------------|               |--------------  --> CPU (out)
+                  |                          ___________
+  /BIOXE --------|--------------------------|           |------------------  --> CPU (out)
+                  |                                      ___
+  /BDRY  ---------|-------------------------------------|   |---------------  <-- device (in)
+            |     |                          |          |   |
+            | ~50ns hold                     |       data   |
+            |                             data on   accepted
+         address                          BD valid  (strobed
+         valid                                     into DBR)
 
-  Release sequence: BDRY on -> BIOXE off -> BDRY off -> bus free
-
-  (All signals active LOW - accent low - active state is drawn HIGH here
-   for readability. On the physical bus, asserted = LOW)
+  All signals active LOW: HIGH (---) = idle, LOW (___) = asserted
+  Arrows: --> = CPU (out),  <-- = device (in)
+  Release: /BDRY low -> /BIOXE high -> /BDRY high -> bus free
 ```
 
 ```mermaid
@@ -1380,32 +1379,32 @@ The data cycle also **starts identically**: the CPU places the A register on the
 21. Bus cycle complete
 
 ```
-        Address Phase         Data Phase (Input)
-        |                     |
-  BD 0-23  ==[ ADDRESS ]==xxxx=[A REG]=xx=====[ I/O REG DATA ]========xxxx
-              _____                            _______________
-  BAPR  _____|     |_____________________________________________
-                                  ___________________________________
-  BIOXE __________________________|                                  |____
-                               _______________________________________
-  BINPUT _____________________|                                       |___
-                                  ________________________________
-  BINACK ________________________|                                |_______
-                                                         ___
-  BDRY  ________________________________________________|   |____________
-              |     |         |   |  |                   |   |
-              |  ~50ns hold   |   |  BINACK:             |   |
-              |               | BINPUT:  BD free,     data   |
-           address            | "input   interface   valid  CPU strobes
-           valid              |  xfer"   may drive  (BDRY   into DBR,
-                              |          BD lines    on)    releases
-                           CPU places                       BINACK +
-                           A reg on BD                      BIOXE
-                           (same as output
-                            start)
+        Address Phase           Data Phase (Input)
+        |                       |
+  /BD 0-23  ==[ ADDRESS ]==xxxx=[A REG]=xx=====[ I/O REG DATA ]======xxxx
+            _____                               _______________
+  /BAPR ---|     |----------------------------------------------- --> CPU (out)
+                                ________________________________
+  /BIOXE ------------------------|                              |----  --> CPU (out)
+                             _______________________________________
+  /BINPUT ------------------|                                       |-  <-- device (in)
+                                ________________________________
+  /BINACK ----------------------|                              |-----  --> CPU (out)
+                                                           ___
+  /BDRY  -------------------------------------------------|   |-----  <-- device (in)
+            |     |         |   |  |                       |   |
+            | ~50ns         |   |  /BINACK low:            |   |
+            |               | /BINPUT low:  BD free,    data   |
+         address            | "input xfer"  interface  valid  CPU strobes
+         valid              |               may drive (BDRY   into DBR,
+                            |               BD lines   low)   releases
+                         CPU places                          /BINACK +
+                         A reg on BD                         /BIOXE
+                         (same start as output)
 
-  Controller card holds BINPUT and BD data active until CPU releases
-  BIOXE (and BINACK). Then controller releases BINPUT, BDRY, and BD lines.
+  All signals active LOW: HIGH (---) = idle, LOW (___) = asserted
+  Arrows: --> = CPU (out),  <-- = device (in)
+  Controller holds /BINPUT, /BDRY, and BD data LOW until /BIOXE goes HIGH.
 ```
 
 **IOX Input release sequence (controller card perspective):**
@@ -1516,19 +1515,23 @@ The ident search performed on the bus can be divided into three steps:
 > **Important**: After being served by the IDENT instruction, the interface's interrupt is disabled (step 12). The device driver program must **re-enable** the interrupt on the interface after servicing it, otherwise the device will not generate further interrupts.
 
 ```
-  Step 1: Present level         Step 2+3: Search and return ident code
+  Step 1: Present level           Step 2+3: Search and return ident code
 
-  BD 0-23  ====[ INT LEVEL ]====xxxx====[ IDENT CODE ]========xxxx
-              _____
-  BAPR  _____|     |__________________________________________________
+  /BD 0-23  ====[ INT LEVEL ]======xxxx====[ IDENT CODE ]==========xxxx
+            _____
+  /BAPR ---|     |----------------------------------------------------  --> CPU (out)
                                    _______________
-  INIDENT ________________________|               |___________________
-                                              ___
-  BDRY  ___________________________________|   |____________________
+  /INIDENT ------------------------|               |------------------  --> CPU (out) (via daisy-chain)
+                                                ___
+  /BDRY  ----------------------------------|---|   |------------------  <-- device (in)
                                    |        |   |
                                  search   code  |
                                  starts  valid  done
-                                          (to A register)
+                               (100ns     (to A register)
+                                window)
+
+  All signals active LOW: HIGH (---) = idle, LOW (___) = asserted
+  Arrows: --> = CPU (out),  <-- = device (in)
 ```
 
 ```mermaid
@@ -1634,38 +1637,40 @@ The key signals for all memory reference cycles:
 ```
   Memory READ (CPU or DMA):
 
-  BD 0-23   ====[ MEM ADDRESS ]========xxxx=====[ READ DATA ]======xxxx
-                   _____                          (driven by memory)
-  BAPR    ________|     |_______________________________________________
-                                    ___________________________
-  BMEM    __________________________|                           |_______
-  BINPUT  _________________________________________________________ (inactive = read)
-                                        ___________________
-  BDAP    _____________________________|                   |____________
-                                        "BD free for          ___
-  BDRY    _______________________________________________|===|__________
-                                         memory data"   data  trailing
-                                                       valid  edge =
-                                                              bus free
-
+  /BD 0-23  ====[ MEM ADDRESS ]==========xxxx=====[ READ DATA ]========xxxx
+            _____                                   (driven by memory)
+  /BAPR ---|     |--------------------------------------------------  --> bus master (out)
+                              ___________________________
+  /BMEM ------------------------|                           |-------  --> bus master (out)
+  /BINPUT ------------------------------------------------------- (HIGH = read)
+                                  ___________________
+  /BDAP ---------------------------|                   |------------  --> bus master (out)
+                                  "BD free for             ___
+  /BDRY  --------------------------------------------|===|----------  <-- memory (in)
+                                   memory data"     data  trailing
+                                                   valid  edge =
+                                                          bus free
 
   Memory WRITE (CPU or DMA):
 
-  BD 0-23   ====[ MEM ADDRESS ]========xxxx=====[ WRITE DATA ]=====xxxx
-                   _____                          (driven by bus master)
-  BAPR    ________|     |_______________________________________________
-                                    ___________________________
-  BMEM    __________________________|                           |_______
-                                    ___________________________
-  BINPUT  __________________________|                           |_______
-                                              (active = write)
-                                        ___________________
-  BDAP    _____________________________|                   |____________
-                                        "data valid          ___
-  BDRY    _______________________________________________|===|__________
-                                         from master"   data  trailing
-                                                       accepted edge =
-                                                       by mem  bus free
+  /BD 0-23  ====[ MEM ADDRESS ]==========xxxx=====[ WRITE DATA ]=======xxxx
+            _____                                   (driven by bus master)
+  /BAPR ---|     |--------------------------------------------------  --> bus master (out)
+                              ___________________________
+  /BMEM ------------------------|                           |-------  --> bus master (out)
+                              ___________________________
+  /BINPUT ----------------------|                           |-------  --> bus master (out)
+                                        (LOW = write)
+                                  ___________________
+  /BDAP ---------------------------|                   |------------  --> bus master (out)
+                                  "data valid              ___
+  /BDRY  --------------------------------------------|===|----------  <-- memory (in)
+                                   from master"     data  trailing
+                                                  accepted edge =
+                                                   by mem  bus free
+
+  All signals active LOW: HIGH (---) = idle, LOW (___) = asserted
+  Arrows: --> = bus master (out),  <-- = memory (in)
 ```
 
 ```mermaid
@@ -1755,29 +1760,32 @@ A DMA transfer is divided into two parts:
 ```
   DMA Output (Memory Read) - Controller reads data FROM memory
 
-  BREQ    __|```````````````````````````````````````````|______________
-                    _________________________________________
-  BMEM    _________|                                         |_________
-                        (freezes DMA request status)
-                      ___________________
-  INGRANT ___________|                   |_________________________
-                       (captured by requesting controller)
+                  ___________________________________________
+  /BREQ  --------|                                           |------  <-- DMA ctrl (out)
+            _________________________________________
+  /BMEM  --|                                         |--------------  --> BCU (out)
+                (freezes DMA request status)
+              ___________________
+  /INGRANT --|                   |------------------------------  --> BCU (out) (daisy-chain)
+               (captured by requesting controller)
 
-  BD 0-23  ==========[ MEM ADDRESS ]========xxxx====[ READ DATA ]====xxxx
-                         _____                       (driven by memory)
-  BAPR    ______________|     |________________________________________
-                                                ____________
-  BINPUT  __________________________________________________ (inactive = read)
-                                           __________
-  BDAP    ____________________________________|      |_________________
+  /BD 0-23  ==========[ MEM ADDRESS ]==========xxxx====[ READ DATA ]====xxxx
+            _____                                       (driven by memory)
+  /BAPR ---|     |--------------------------------------------------  --> DMA ctrl (out)
+  /BINPUT --------------------------------------------------------- (HIGH = read)
+                                         __________
+  /BDAP -------------------------------------|      |---------------  --> DMA ctrl (out)
                                              "BD free      ___
-  BDRY    __________________________________________|===|______________
-                                              for     |   |
-                                            memory"  data  |
-                                                    valid  trailing
-                                                   (strobe edge =
-                                                   into    bus
-                                                   buffer) released
+  /BDRY  -----------------------------------------|===|-------------  <-- memory (in)
+                                           for     |   |
+                                         memory"  data  trailing
+                                                  valid  edge =
+                                                (strobe  bus
+                                                 into    released
+                                                buffer)
+
+  All signals active LOW: HIGH (---) = idle, LOW (___) = asserted
+  Arrows: --> = signal source (out),  <-- = signal source (in)
 ```
 
 #### DMA Input - Memory Write Transfer (Controller to Memory)
@@ -1796,29 +1804,33 @@ A DMA transfer is divided into two parts:
 ```
   DMA Input (Memory Write) - Controller writes data TO memory
 
-  BREQ    __|```````````````````````````````````````````|______________
-                    _________________________________________
-  BMEM    _________|                                         |_________
-                        (freezes DMA request status)
-                      ___________________
-  INGRANT ___________|                   |_________________________
-                       (captured by requesting controller)
+                  ___________________________________________
+  /BREQ  --------|                                           |------  <-- DMA ctrl (out)
+            _________________________________________
+  /BMEM  --|                                         |--------------  --> BCU (out)
+                (freezes DMA request status)
+              ___________________
+  /INGRANT --|                   |------------------------------  --> BCU (out, daisy-chain)
+               (captured by requesting controller)
 
-  BD 0-23  ==========[ MEM ADDRESS ]========xxxx====[ WRITE DATA ]===xxxx
-                         _____
-  BAPR    ______________|     |________________________________________
-                                          ___________________________
-  BINPUT  _______________________________|                           |__
-                                          (active = write)
-                                             __________
-  BDAP    ____________________________________|        |_______________
-                                             data       ___
-  BDRY    __________________________________________|===|______________
-                                             valid  |   |
-                                             from  data  trailing
-                                             ctrl  accepted edge =
-                                                   by      bus
-                                                   memory  released
+  /BD 0-23  ==========[ MEM ADDRESS ]==========xxxx====[ WRITE DATA ]===xxxx
+            _____
+  /BAPR ---|     |--------------------------------------------------  --> DMA ctrl (out)
+                                    ___________________________
+  /BINPUT --------------------------|                           |---  --> DMA ctrl (out)
+                                            (LOW = write)
+                                       __________
+  /BDAP ---------------------------------|        |-----------------  --> DMA ctrl (out)
+                                       data          ___
+  /BDRY  -----------------------------------------|===|-------------  <-- memory (in)
+                                       valid     |   |
+                                       from    data  trailing
+                                       ctrl  accepted edge =
+                                              by      bus
+                                              memory  released
+
+  All signals active LOW: HIGH (---) = idle, LOW (___) = asserted
+  Arrows: --> = signal source (out),  <-- = signal source (in)
 ```
 
 #### DMA Signal Summary
@@ -1915,7 +1927,7 @@ All control signals on the NORD-100 bus are **active LOW** (accent low / negated
 - **Asserted/Active** = signal pulled LOW (0.0 - 0.5V) by the driving device
 - **Released/Inactive** = signal floats HIGH (2.4 - 5.0V) via pull-up resistors
 
-The ASCII timing diagrams in this document show signals drawn **HIGH when active** for readability. The Mermaid sequence diagrams use the "/" prefix (e.g., /BAPR, /BDRY) to indicate active-low signals.
+All ASCII timing diagrams in this document show signals with **correct physical polarity**: lines are HIGH (---) when idle/inactive and drop LOW (___) when asserted/active. This matches the actual electrical state on the bus and the ND reference manuals. Signal names use the "/" prefix (e.g., /BAPR, /BDRY) to indicate active-low. Direction arrows show the signal source: `-->` = drives (out), `<--` = drives (in).
 
 **BD 0-23 data lines**: These also use active-low convention. A data bit with logical value "1" is represented as LOW on the bus, and "0" as HIGH. The inverting buffers on the CPU card (74ALS534 input, 74AS648 output) handle the conversion between positive-logic internal data and negative-logic bus data.
 
