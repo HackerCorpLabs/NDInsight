@@ -5740,6 +5740,127 @@ This setup lets you:
 
 ---
 
+## Complete Bill of Materials (BOM)
+
+This is the consolidated BOM for one controller card with the **recommended configuration**: Olimex BB48R socketed, BD bus interface (Design 2), Pi Zero header (optional populate), and all support circuitry.
+
+### Modules (Pre-built Boards)
+
+| Item | Part | Qty | Cost (USD) | Notes |
+|------|------|-----|-----------|-------|
+| MCU module | **Olimex RP2350-PICO2-BB48R** | 1 | ~$15 | Socketed via female pin headers |
+| Wireless companion (optional) | **Raspberry Pi Zero 2 W** | 0-1 | ~$15 | Plugs into 40-pin header |
+
+### Bus Interface ICs (SMD)
+
+| Item | Part | Qty | Cost (USD) | Function |
+|------|------|-----|-----------|----------|
+| Input latches | **74LVC574** (SOIC-20 or TSSOP-20) | 3 | $1.50 | Capture BD 0-23 on /BAPR |
+| Output latches | **74LVC574** | 3 | $1.50 | Hold MCU output before driving |
+| Output drivers | **74LVT245** | 3 | $2.40 | 3.3V to 5V level shift, drive bus |
+| Schmitt input buffer | **74LVC14** (SOIC-14) | 1 | $0.30 | Clean control signal inputs |
+| Open-drain output | **74LVC07** (SOIC-14) | 1 | $0.30 | Drive wired-OR signals (BREQ, BINT, BDRY, BINPUT, BDAP) |
+| Daisy-chain bypass | **74LVC125** (SOIC-14) | 1 | $0.30 | INIDENT/INGRANT pass-through |
+| **Subtotal Bus Interface** | | **12 chips** | **$6.30** | |
+
+### Power Distribution (SMD)
+
+| Item | Part | Qty | Cost (USD) | Function |
+|------|------|-----|-----------|----------|
+| Schottky diode | **SS14** (SMA) | 1 | $0.10 | D1: BB48R VDD_SYS source OR-ing |
+| Ideal diode IC | **LTC4412** or **MAX40200** | 1 | $1.50 | D2: Pi Zero +5V source OR-ing (low Vdrop) |
+| Polyfuse | **MF-MSMF200** (2A, 0805) | 2 | $0.60 | F1 (bus 5V), F2 (Pi Zero 5V) |
+| TVS diode | **SMBJ5.0A** | 1 | $0.20 | TVS clamp on +5V_LOCAL |
+| Bulk cap (Pi Zero) | **1000 uF aluminum polymer** (low ESR) | 1 | $0.80 | WiFi TX burst handling |
+| Bulk cap (Pi Zero) | **470 uF tantalum** | 1 | $0.40 | Boot inrush |
+| Mid cap (Pi Zero) | 10 uF ceramic 1206 X5R | 1 | $0.05 | Mid-frequency decoupling |
+| HF cap (Pi Zero) | 0.1 uF ceramic 0603 X7R | 1 | $0.01 | Switching noise |
+| BB48R input cap | 47 uF ceramic 1210 | 1 | $0.30 | Bus 5V input |
+| BB48R output cap | 10 uF + 0.1 uF ceramic | 2 | $0.06 | 3.3V output decoupling |
+| Per-chip decoupling | 0.1 uF ceramic 0603 | ~15 | $0.30 | One per IC |
+| Bulk decoupling | 10 uF ceramic 0805 | ~5 | $0.30 | Distributed bulk caps |
+| **Subtotal Power** | | | **~$4.62** | |
+
+### Pull Resistors
+
+| Item | Part | Qty | Cost (USD) | Function |
+|------|------|-----|-----------|----------|
+| Pull-up resistor arrays | 10K x 4 SMD network (0603 x4) | 4 | $0.40 | Pull-ups for BD output OE, /BD_OE_BUS, etc. |
+| Pull-down resistor arrays | 10K x 4 SMD network | 2 | $0.20 | Pull-downs for daisy-chain enables |
+| Discrete pull resistors | 10K 0603 SMD | ~10 | $0.10 | Misc. pull-ups/downs |
+| **Subtotal Resistors** | | | **~$0.70** | |
+
+### Connectors
+
+| Item | Part | Qty | Cost (USD) | Function |
+|------|------|-----|-----------|----------|
+| **C connector** | **DIN 41612 Type C, 96-pin male right-angle** | 1 | $5.00 | Bus connection (THT) |
+| BB48R sockets | 2x 27-pin female header (0.1" pitch, 0.6" row spacing) | 2 | $0.80 | BB48R module socketing |
+| Pi Zero header | 2x20 pin male header (0.1" pitch) | 1 | $0.50 | Pi Zero connection |
+| Standoffs (Pi Zero) | M2.5 nylon standoff + screw | 4 | $0.50 | Pi Zero mechanical mount |
+| **Subtotal Connectors** | | | **~$6.80** | |
+
+### LEDs and Misc
+
+| Item | Part | Qty | Cost (USD) | Function |
+|------|------|-----|-----------|----------|
+| Status LEDs | 0805 SMD (assorted colors) | ~10-15 | $1.00 | Power, activity, error indicators |
+| LED current limiters | 1K 0603 SMD | ~10-15 | $0.20 | LED resistors |
+| **Subtotal LEDs** | | | **~$1.20** | |
+
+### PCB
+
+| Item | Part | Qty | Cost (USD) | Notes |
+|------|------|-----|-----------|-------|
+| **PCB** (4-layer, ~100 x 100 mm, ENIG, JLCPCB) | -- | 1 | $5-15 | Quantity 10 reduces unit cost |
+
+### Total Cost per Controller Card
+
+| Configuration | Cost |
+|---------------|------|
+| **Base card** (Olimex BB48R + bus interface + power, no Pi Zero) | **~$33-43** |
+| **Full card** (with Pi Zero 2 W populated) | **~$48-58** |
+| **Quantity 10** (PCB unit cost drops) | **~$30-50 per card** |
+
+### Optional Components (Not in Base BOM)
+
+| Item | When to Add | Cost |
+|------|-------------|------|
+| 74HC595 shift register | If you want to free GPIOs by multiplexing slow signals via SD SPI bus | $0.30 |
+| ATF1502 CPLD or 74LVC02 NOR | V2 hardware IDENT comparator (not needed for V1 "last card" simplification) | $0.30-3.00 |
+| Additional SMD pull resistors | For custom features | <$0.50 |
+| Through-hole headers | For debug probes (SWD, UART) | $0.50 |
+
+### Backplane BOM (Separate Card)
+
+The backplane is a separate PCB. Its BOM is:
+
+| Item | Part | Qty | Cost (USD) | Notes |
+|------|------|-----|-----------|-------|
+| **PCB** (2-layer, ~150 x 100 mm) | -- | 1 | $5-15 | Larger area for slot count |
+| DIN 41612 Type C female receptacles | -- | 4-8 | $5 each | One per slot |
+| Power connector | **Molex 15-24-4745** (Farnell 1391827) | 1 | $1.00 | PC PSU 4-pin Molex |
+| Power switch | SPST toggle, 5A | 1 | $2.00 | Panel mount |
+| Power LED | Green 0805 + 1K resistor | 1 | $0.20 | Bus power indicator |
+| Polyfuse | 3A polyfuse (optional) | 1 | $0.30 | Short circuit protection |
+| Decoupling caps | 10uF + 0.1uF per slot | 8-16 | $0.50 | Per-slot decoupling |
+| **Backplane total** | | | **~$30-50** | (4-slot configuration) |
+
+### Total Project Cost (10 Controllers + 1 Backplane)
+
+| Item | Quantity | Unit Cost | Subtotal |
+|------|----------|-----------|----------|
+| Controller cards (full config) | 10 | $50 | $500 |
+| Pi Zero 2 W modules | 10 (or fewer if mixed) | $15 | $150 |
+| Backplane | 1 | $40 | $40 |
+| PC PSU (used) | 1 | $20 | $20 |
+| Cables and standoffs | 1 set | $20 | $20 |
+| **Total** | | | **~$730** |
+
+This buys you a fully working ND-100 emulator + multi-device controller test setup.
+
+---
+
 ## Open Design Questions
 
 ### Critical (need answers before PCB)
