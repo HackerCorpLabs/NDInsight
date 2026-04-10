@@ -1659,6 +1659,168 @@ If using a single FIFO (joined), the SM would need to push a tag along with the 
 
 But with 4 separate FIFOs, this is unnecessary.
 
+### Unified Single-State-Machine Architecture (Recommended)
+
+A more elegant approach uses **one state machine** that handles BOTH address and data capture, and uses **bit 24 (or bit 31)** to tag whether each FIFO entry is an address or data word. The CPU consumer (or DMA) reads from a single FIFO and dispatches based on the tag bit.
+
+This works because address capture (/BAPR) and data capture (/BIOXE, /BDAP, /BDRY) are **sequential** within a bus cycle:
+
+1. /BAPR asserts first (address phase)
+2. /BIOXE / /BDAP / /BDRY asserts later (data phase)
+
+A single PIO state machine can wait for /BAPR, capture address, then wait for the data trigger, capture data, push both -- all sequentially.
+
+#### Tag Bit Convention
+
+Use **bit 24** (or bit 31 for 32-bit alignment) to distinguish:
+
+| Tag bit | Meaning | Lower bits |
+|---------|---------|-----------|
+| `0` | Address | 24-bit BD address value |
+| `1` | Data | 24-bit BD data value (or 16-bit padded) |
+
+CPU side dispatches:
+```c
+uint32_t fifo_word = pio_sm_get(pio, sm);
+if (fifo_word & (1u << 24)) {
+    handle_data(fifo_word & 0x00FFFFFF);
+} else {
+    handle_address(fifo_word & 0x00FFFFFF);
+}
+```
+
+#### Single-SM PIO Program (Unified Capture)
+
+```pio
+.program bus_capture
+.wrap_target
+
+    ; --- Address phase ---
+    wait 0 pin BAPR_PIN     ; wait for /BAPR LOW
+    in pins, 24             ; read 24 BD bits (address)
+    set y, 0                ; tag = 0 (address)
+    in y, 8                 ; shift tag into ISR -> bit 24-31
+    push                    ; push to FIFO: [00000000][address]
+    wait 1 pin BAPR_PIN     ; wait for /BAPR HIGH
+
+    ; --- Data phase ---
+    ; The next strobe could be /BIOXE, /BDAP, or /BDRY
+    ; We use IRQ-driven dispatch via a helper state machine
+    irq wait 4              ; wait for IRQ4 (raised by helper SM)
+    in pins, 24             ; read 24 BD bits (data)
+    set y, 1                ; tag = 1 (data)
+    in y, 8                 ; shift tag into ISR
+    push                    ; push to FIFO: [00000001][data]
+
+.wrap
+```
+
+#### Helper State Machine for Multi-Trigger Detection
+
+Since PIO `wait` can only watch one pin, we need a helper SM that watches **all three** data trigger signals (/BIOXE, /BDAP, /BDRY) and raises an IRQ to wake the main SM:
+
+```pio
+.program data_trigger
+.wrap_target
+    mov osr, ~null          ; load 0xFFFFFFFF
+    out pins, 1             ; configure pin direction (one-time setup)
+
+    ; Watch /BIOXE
+    jmp pin_low_check
+pin_low_check:
+    in pins, 3              ; read /BIOXE, /BDAP, /BDRY (3 pins, contiguous)
+    mov x, isr              ; save to X
+    jmp x-- not_zero        ; if all 3 pins HIGH (X = 7), no trigger
+    irq set 4               ; one of the pins is LOW, signal main SM
+not_zero:
+.wrap
+```
+
+Or more simply, run **3 helper SMs** in parallel, each watching one signal:
+
+```pio
+.program iox_trigger
+.wrap_target
+    wait 0 pin BIOXE_PIN
+    irq set 4               ; signal main SM
+    wait 1 pin BIOXE_PIN
+.wrap
+
+.program bdap_trigger
+.wrap_target
+    wait 0 pin BDAP_PIN
+    irq set 4               ; same IRQ
+    wait 1 pin BDAP_PIN
+.wrap
+
+.program bdry_trigger
+.wrap_target
+    wait 0 pin BDRY_PIN
+    irq set 4               ; same IRQ
+    wait 1 pin BDRY_PIN
+.wrap
+```
+
+All three trigger SMs raise the same IRQ4. The main capture SM waits for IRQ4 and reads data when any trigger fires.
+
+#### Updated Architecture (Unified Capture with IRQ Dispatch)
+
+| PIO SM | Role | Watches | Raises |
+|--------|------|---------|--------|
+| **PIO0.SM0** -- BUS_CAPTURE | Main capture (address + data, push with tag bit) | /BAPR direct, IRQ4 for data | Pushes to RX FIFO |
+| **PIO0.SM1** -- IOX_TRIGGER | Helper -- detect /BIOXE assertion | /BIOXE | IRQ4 |
+| **PIO0.SM2** -- BDAP_TRIGGER | Helper -- detect /BDAP assertion | /BDAP | IRQ4 |
+| **PIO0.SM3** -- BDRY_TRIGGER | Helper -- detect /BDRY assertion (DMA only) | /BDRY | IRQ4 |
+
+Only **one FIFO** needs to be drained by the CPU, simplifying the consumer logic. The tag bit indicates whether the entry is an address or data event.
+
+#### Why Tag the Data on the PIO Side
+
+Tagging on the PIO side (rather than tracking state in CPU code) has key advantages:
+
+1. **Atomic event ordering**: The FIFO order is the bus cycle order. No race conditions between separate FIFOs.
+2. **Simpler CPU code**: Single dispatch loop, no FIFO arbitration.
+3. **DMA-friendly**: The CPU can configure a hardware DMA to drain the single FIFO into a circular buffer in RAM. The DMA sees a continuous stream of tagged events.
+4. **Lower latency**: No CPU intervention needed to read multiple FIFOs in sequence.
+
+#### DMA-Driven FIFO Drain
+
+Instead of CPU polling, configure a hardware DMA channel to continuously transfer from the PIO RX FIFO to a circular buffer in SRAM/PSRAM:
+
+```
+  PIO0.SM0 RX FIFO --[DMA]--> Circular buffer in RAM
+                                    ^
+                                    |
+                              CPU drains buffer
+                              and dispatches based
+                              on tag bit
+```
+
+The DMA fires automatically whenever the FIFO has data, without any CPU intervention. The CPU processes events from the buffer at its own pace, decoupled from the bus timing.
+
+### Detailed Tag Bit Format
+
+Using bit 24 leaves bits 25-31 for additional metadata:
+
+| Bits | Content | Notes |
+|------|---------|-------|
+| 0-23 | BD bus value | 24-bit address or data |
+| 24 | Tag: 0 = address, 1 = data | Set by PIO SM |
+| 25 | Trigger source bit 0 | (optional) which signal triggered |
+| 26 | Trigger source bit 1 | (optional) |
+| 27-31 | Reserved | Future use |
+
+If we want to know **which trigger** caused the data event (BIOXE vs BDAP vs BDRY), encode 2 bits in positions 25-26:
+
+| Bit 26 | Bit 25 | Trigger |
+|--------|--------|---------|
+| 0 | 0 | /BAPR (address) |
+| 0 | 1 | /BIOXE (IOX data) |
+| 1 | 0 | /BDAP (memory data) |
+| 1 | 1 | /BDRY (DMA data) |
+
+Each helper SM would need to set a different value before raising the IRQ. This costs more PIO instructions but fully identifies the bus cycle type from the FIFO entry alone.
+
 ### Output Latch + Output Enable in One Chip
 
 For driving the bus, the ideal chip combines:
