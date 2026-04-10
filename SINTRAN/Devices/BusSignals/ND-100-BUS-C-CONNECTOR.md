@@ -557,18 +557,25 @@ The BD (Bus Data) lines carry both **address and data** in a time-multiplexed fa
 
 ### Interrupt Lines (BINT 10-13, 15)
 
-| Signal | Pin | Row | Priority |
-|--------|-----|-----|----------|
-| BINT 10 | 15 | A | Lowest |
-| BINT 11 | 15 | C | -- |
-| BINT 12 | 16 | A | -- |
-| BINT 13 | 16 | C | -- |
-| BINT 15 | 17 | C | Highest |
+| Signal | Pin | Row | Priority | Standard Usage (Norsk Data equipment) |
+|--------|-----|-----|----------|---------------------------------------|
+| BINT 10 | 15 | A | Lowest | Output channel of all PIO interfaces |
+| BINT 11 | 15 | C | -- | All DMA controllers |
+| BINT 12 | 16 | A | -- | Input channel of all PIO interfaces |
+| BINT 13 | 16 | C | -- | Real-time clock(s) and PIO devices needing special attention |
+| *(BINT 14)* | -- | -- | -- | *Power failure (internal to CPU, not on external bus)* |
+| BINT 15 | 17 | C | Highest | Not used by ND hardware/software. Available for special purposes needing immediate access |
 
 - **Direction**: Input to CPU (Source: I, Used: C)
 - **Type**: Wired-OR (active low, open-collector from I/O devices)
-- **Note**: BINT 14 is not on the external bus (internal to CPU)
-- Pull-up resistors on CPU card hold lines inactive (HIGH) when no interrupt is asserted
+- **CPU input path**: Via 74F244 with pull-up resistors on CPU card (hold lines HIGH/inactive when no interrupt asserted)
+- These interrupt lines go directly to the **interrupt detect controller (PID register)** in the CPU
+
+**Interrupt level priority** (low to high): 10 < 11 < 12 < 13 < 14 < 15
+
+**Note on BINT 14**: Power failure interrupt. Internal to CPU only -- not available on the external bus. BINT 15 has **higher priority than power failure**, making it suitable for critical real-time applications that must respond even during power-down sequences.
+
+**Note on BINT 15**: Reserved by Norsk Data -- not used by any ND-produced hardware or software. Available for customer/third-party use where immediate access at the highest possible priority is required.
 
 ### Position Address (PA 0-3)
 
@@ -698,12 +705,16 @@ The daisy-chain originates at the CPU's OUTGRANT (driven by 74F00 push-pull) and
 
 The daisy-chain originates at the CPU's OUTIDENT (driven by 74F241 tri-state) and propagates through each card slot in order. The card nearest to the CPU has the highest priority.
 
-**Default behavior**: INIDENT passes through to OUTIDENT. Every controller card **must** connect INIDENT to OUTIDENT by default to maintain the chain for lower-priority cards.
+**Default behavior**: INIDENT passes through to OUTIDENT **with the smallest possible delay**. Every controller card **must** connect INIDENT to OUTIDENT by default to maintain the chain for lower-priority cards. The pass-through delay directly impacts the IDENT response time -- each card in the chain adds its propagation delay before INIDENT reaches the next card.
 
 **Capture behavior**: During an IDENT PLxx cycle, the CPU places the interrupt level number (10, 11, 12, or 13) on the BD bus during the address phase. When INIDENT arrives at the controller card:
-- The card checks if it has an active interrupt on the level currently specified on the BD bus
-- If **yes**: it captures INIDENT (does not pass to OUTIDENT), places its IDENT CODE on the BD lines, and asserts BDRY
-- If **no**: it passes INIDENT through to OUTIDENT for the next card in the chain
+- The card checks if it has an active interrupt ("flag") on the level currently specified on the BD bus
+- If **flag is NOT set**: card passes INIDENT through to OUTIDENT as fast as possible
+- If **flag IS set**: card **captures** INIDENT (does not pass to OUTIDENT), places its IDENT CODE on the BD lines, and asserts BDRY
+
+Although several I/O interfaces may simultaneously have interrupts waiting for service on the same level, only one is handled per IDENT PLxx instruction. The daisy-chain ensures the **nearest card to the CPU** with the matching interrupt flag is always selected first.
+
+> **Note on signal naming**: The ND documentation uses **BINIDENT** for the signal entering a module and **BOUTIDENT** for the signal leaving a module. These correspond to the bus connector signals **INIDENT** (pin A22) and **OUTIDENT** (pin C22).
 
 > **Confirmed from ND documentation**: The response is to BINT10-13, together with address bits 0-5 which specify the BINT number. An interface which issued BINT on the specified level prior to the last leading edge of BAPR shall respond by enabling its IDENT CODE onto the BD bus. Otherwise, INIDENT is passed on to OUTIDENT which is connected to INIDENT of the next lower priority card position (further removed from controlling unit). INIDENT originates in the OUTIDENT from controlling unit.
 
@@ -774,6 +785,29 @@ Both signals are marked **E** (future extensions) in the bus specification. This
 |-------|--------|------|
 | INGRANT | OUTGRANT | Capture if you requested DMA; otherwise pass through |
 | INIDENT | OUTIDENT | Capture if you asserted the identified interrupt; otherwise pass through |
+
+### Device Register Address Decoding (IOX/IOXT)
+
+When the CPU executes an IOX/IOXT instruction, the device register address on the BD lines contains two fields:
+
+| Field | Purpose |
+|-------|---------|
+| Device number | Identifies which I/O device is being addressed |
+| Register number | Selects which register within the device (3 bits = up to 8 registers) |
+
+**Hardware implementation on a controller card:**
+
+1. **Device number PROMs**: The controller's device number is stored in a PROM (Programmable Read Only Memory). The PROM location is selected by a **thumbwheel switch**, making it easy to change the device number without hardware modifications. On multi-peripheral controllers, each peripheral type has its own PROM, thumbwheel, and comparator.
+
+2. **Address comparison**: When BIOXE goes active, the controller compares the device number field from the BD lines against its PROM. Only **one** interface should find "device equal".
+
+3. **Register decoding**: The device that finds "equal" decodes the register number field using a **3-to-8 line decoder**. The active decoder output selects the specific register.
+
+4. **Output register access**: The active decoder output directly **clocks** the BD line content into the selected device output register.
+
+5. **Input register access**: The active decoder output **AND** BINACK together enable the selected device input register onto the BD lines. BINACK confirms the CPU has released the BD lines and the controller may now drive them.
+
+> **Controller design note**: The address comparison and register decode logic is the minimum your controller must implement to participate in IOX/IOXT transfers. The thumbwheel/PROM approach is the standard ND pattern, but a modern controller could use DIP switches, jumpers, or even software-configured address registers.
 
 ### Protecting the CPU
 
@@ -875,6 +909,317 @@ This is consistent with standard TTL negative logic as used throughout the ND-10
 
 ## Bus Cycles
 
+### Bus Requestors and the Bus Control Unit (BCU)
+
+The NORD-100 bus is a **shared common resource** between three types of bus requestors:
+
+| Requestor | Request Signal | Grant Signal | Purpose |
+|-----------|---------------|--------------|---------|
+| **CPU** | BUSRQ (internal) | (internal) | Instruction fetch, operand read/store, indirect address read, I/O access, system control register access |
+| **DMA controllers** | BREQ (external bus) | INGRANT (daisy-chain) | Direct memory access by I/O controllers |
+| **Memory refresh** | RFRQ (internal) | (internal) | Periodic refresh of dynamic memory |
+
+Only **one requestor** can use the bus at a time. The **Bus Control Unit (BCU)**, physically implemented on the CPU module, arbitrates access and decides which requestor gets the next bus cycle.
+
+Each requestor has its own **unique request line** input to the BCU's priority allocation arbiter. The three requestors operate **completely asynchronously** -- requests may arrive at the BCU simultaneously. The BCU's priority arbiter resolves conflicts: based on a priority algorithm and the currently active requests, one requestor is selected for the next bus cycle while other active requests must wait.
+
+```mermaid
+block-beta
+    columns 5
+
+    block:cpumod["NORD-100 CPU MODULE"]:4
+        columns 4
+        space:4
+        busrq["CPU\nBUSRQ"]:1
+        arbiter["NORD-100 BUS\nPRIORITY ALLOCATION\nARBITER"]:2
+        space:1
+        space:4
+        space:1
+        refresh["REFRESH\nOSCILLATOR"]:2
+        space:1
+    end
+
+    block:busside["NORD-100 BUS"]:1
+        columns 1
+        vcc["Vcc + Pull-up"]
+        breq["BREQ\nDMA REQUEST\n(Wired-OR)"]
+    end
+
+    busrq --> arbiter
+    refresh -- "RFRQ" --> arbiter
+    breq --> arbiter
+
+    style cpumod fill:#E3F2FD,stroke:#0D47A1,color:#0D47A1
+    style busside fill:#FFF3E0,stroke:#E65100,color:#E65100
+    style arbiter fill:#E0F7FA,stroke:#00838F,color:#00838F
+    style busrq fill:#E3F2FD,stroke:#0D47A1,color:#0D47A1
+    style refresh fill:#E8F5E9,stroke:#2E7D32,color:#2E7D32
+    style breq fill:#FFF3E0,stroke:#E65100,color:#E65100
+    style vcc fill:#FFF3E0,stroke:#E65100,color:#E65100
+```
+
+*Figure: BCU allocation logic. BUSRQ and RFRQ are internal to the CPU module. BREQ comes from the external bus with a pull-up resistor to Vcc (float high when no DMA controller is requesting).*
+
+#### BCU Priority Allocation Rules
+
+The BCU controls bus access based on these rules:
+
+1. **Non-preemptive**: An already allocated bus cycle is **not interruptible**
+2. **Timeout**: A bus cycle is **aborted** if it exceeds the **8 microsecond** time limit
+3. **Single request**: If the bus is idle and only one request appears: **first come, first served**
+4. **RFRQ vs BREQ**: Both are handled as DMA requests, but **RFRQ has highest priority** (refresh must not be delayed to prevent data loss)
+5. **DMA vs CPU conflict**: If both DMA requests (RFRQ or BREQ) and CPU request (BUSRQ) are present simultaneously, priority is given to **the one that did NOT have the previous cycle** (toggled priority)
+
+The toggled priority rule (rule 5) prevents either the CPU or DMA from starving the other. If the CPU had the last cycle, a competing DMA request wins the next cycle, and vice versa. This ensures fair access even under heavy contention.
+
+#### Bus Request Signal Timing (BUSRQ Example)
+
+The following shows how the CPU bus request signal maps to the bus cycle phases:
+
+```
+  BUSRQ
+  (CPU)     ___       //////[============]___
+               |      |     |            |
+              (1)    (2)   (3)          (4)
+
+  (1) BUSRQ inactive - CPU is not requesting the bus
+  (2) BUSRQ goes active - CPU requests the bus
+      ////// = Waiting for grant (bus is busy with another cycle)
+  (3) Bus granted to CPU
+      [====] = CPU performing its bus cycle (address + data transfer)
+  (4) BUSRQ goes inactive - CPU has finished, releases the bus
+```
+
+The same pattern applies to BREQ from DMA controllers on the external bus: assert to request, wait for grant (INGRANT), perform one transfer, release.
+
+#### Example 1: CPU Requests the Bus First After Previous Allocation is Released
+
+The CPU requests the bus first after the previous allocation is released. Since the bus is idle and the CPU request arrives first: first come, first served.
+
+```
+  Time -->                                              ~15 us
+                                                   |<------------>|
+  RFREQ   ______|=|__________________________________________|=|____
+                320ns                                        320ns
+                (refresh cycle)                    (next refresh)
+
+  BREQ    ________|//////[===]//////[===]//////[===]//////|_________
+                  |<-------- ~6 us (e.g., 10 MB disk) ------->|
+                         550ns      550ns      550ns
+                      (one DMA transfer per grant)
+
+  BUSRQ   ___[===]__________[===]__________[===]___________________
+              |  |          |  |          |  |
+           200-320ns     200-320ns     200-320ns
+           (one CPU     (one CPU      (one CPU
+            bus cycle)   bus cycle)    bus cycle)
+              ^
+              |
+        previous allocation
+             released
+
+  Legend:
+    [===]  = Bus granted, performing transfer
+    //////  = Requesting, waiting for grant
+    __|=|__ = Short pulse (refresh)
+```
+
+**Typical cycle durations:**
+
+| Requestor | Cycle Duration | Notes |
+|-----------|---------------|-------|
+| CPU (BUSRQ) | 200-320 ns | Short discrete cycles. Gap between cycles depends on CPU internal activity (instruction execution) |
+| DMA (BREQ) | 550 ns per transfer | Continuous request over ~6 us for high-speed devices (e.g., 10 MB disk). Each INGRANT yields one word transfer |
+| Refresh (RFRQ) | 320 ns | Periodic every ~15 us. Short address-only cycle |
+
+**How the toggled priority works in practice:**
+
+When both BUSRQ and BREQ are active, the BCU alternates between them. This interleaving means the CPU is never blocked for more than one DMA cycle (~550 ns), and the DMA controller is never blocked for more than one CPU cycle (~320 ns). Refresh (RFRQ) preempts both when its 15 us interval arrives.
+
+#### Example 2: All Requests Appear Simultaneously, CPU Had the Previous Cycle
+
+All three requests (CPU, DMA, refresh) appear at the same time, but the CPU had the previous bus cycle. The toggled priority rule means the CPU does **not** get priority again -- DMA/refresh go first.
+
+Since RFRQ has highest priority among DMA-class requests, refresh goes first (320 ns), then DMA gets its transfer (~650 ns), and the CPU must wait.
+
+```
+  Time -->
+        |
+    all requests
+    appear here
+        |
+        v
+  RFREQ   [=]__________________________________________________
+          320ns
+          (refresh wins -
+           highest priority)
+
+  BREQ    /[========]___________________________________________
+           650ns
+           (DMA next - CPU had
+            previous cycle, so
+            DMA wins toggled priority)
+           |<-- ~1.4 us (37.5-288 MB disk) -->|
+
+  BUSRQ   ////////[===]________________________________________
+                  200-320ns
+                  (CPU last - had
+                   previous cycle,
+                   must wait for
+                   refresh + DMA)
+
+  Legend:
+    [===]   = Bus granted, performing transfer
+    //////  = Requesting, waiting for grant
+```
+
+**Priority resolution order:**
+
+1. **RFRQ wins** -- refresh has highest priority among DMA-class requests (rule 4)
+2. **BREQ next** -- CPU had the previous cycle, so toggled priority gives DMA the next cycle (rule 5)
+3. **BUSRQ last** -- CPU waits for both refresh and DMA to complete before getting the bus
+
+> **Note on disk speed and DMA timing**: The 650 ns DMA transfer duration and ~1.4 us total DMA window shown here is typical of faster disk controllers (37.5-288 MB disks). Slower devices like the 10 MB disk in Example 1 have ~550 ns transfers over ~6 us. The DMA cycle time depends on the disk's data rate.
+
+#### Example 3: CPU and DMA Request Simultaneously, Previous Cycle was DMA (RFRQ)
+
+CPU bus request and DMA request appear simultaneously (DMA cycle steal), but the previous cycle was for DMA (RFRQ). Since the previous cycle was a DMA-class request (refresh), the toggled priority now favours the **CPU**.
+
+```
+  Time -->
+        |
+    CPU + DMA requests
+    appear here
+    (previous cycle
+     was RFRQ)
+        |
+        v
+  RFREQ   [=]__________________________________________________
+          (previous cycle
+           was this refresh)
+
+  BREQ    ////////[===]_________________________________________
+                  550ns
+                  (DMA must wait -
+                   previous cycle was
+                   DMA-class, so CPU
+                   wins toggled priority)
+
+  BUSRQ   [=====]______________________________________________
+          200-320ns
+          (CPU wins - previous
+           cycle was DMA-class,
+           toggled priority
+           favours CPU)
+
+  Legend:
+    [===]   = Bus granted, performing transfer
+    //////  = Requesting, waiting for grant
+```
+
+**Priority resolution:**
+
+1. **BUSRQ wins** -- previous cycle was DMA-class (RFRQ), so toggled priority gives CPU the next cycle (rule 5)
+2. **BREQ next** -- DMA gets the bus after CPU completes its short cycle
+
+> **This is DMA "cycle stealing"**: The DMA controller "steals" bus cycles between CPU operations. The CPU always gets the bus back quickly (200-320 ns), so the impact on CPU performance is minimal. The DMA controller inserts its transfers in the gaps.
+
+#### Bus Cycle Termination and Timeout
+
+The bus is allocated and released on a **one cycle basis** -- one word transfer or one memory refresh cycle. The BCU monitors cycle duration and enforces the 8 microsecond limit.
+
+**Normal termination:**
+
+At the time of allocation, the BCU starts a **timeout timer**. The timer is reset when the accessed device asserts **BDRY** (Bus Data Ready), which is the handshake signal indicating "transfer completed". Once BDRY is received, the bus cycle terminates normally and the bus is released for the next requestor.
+
+**Timeout abort:**
+
+If BDRY is not received within **8 microseconds**, the BCU aborts the bus cycle. This prevents a faulty device from causing a permanent system hang-up. The aborted cycle is reported to the CPU as an **internal interrupt on level 14** (power failure level).
+
+```
+  Normal cycle:
+
+  BCU Timer  [============================]
+  BDRY       __________________________|=|__
+                                       ^ timer reset,
+                                         cycle released
+
+  Timeout abort (faulty device does not respond):
+
+  BCU Timer  [==============================X  (8 us limit)
+  BDRY       ________________________________  (never asserted)
+                                            ^
+                                         BCU aborts cycle,
+                                         raises level 14
+                                         interrupt
+```
+
+> **Controller card design rule**: Your controller **must** assert BDRY within 8 microseconds of being addressed, or the BCU will abort the cycle and generate a level 14 interrupt. If your controller needs time to prepare data, it should still respond within the timeout. If a controller card is removed or fails, the missing BDRY will trigger the timeout on every attempted access to that device.
+
+> **Note on level 14**: The bus timeout triggers the same interrupt level as power failure. This means the CPU's power-fail handler must distinguish between actual power failure and bus timeout conditions.
+
+#### CPU Allocation Request (BUSRQ)
+
+The CPU may request the bus for one of six reasons:
+
+| Reason | Access Type |
+|--------|-------------|
+| Instruction fetch | Memory access |
+| Operand read | Memory access |
+| Indirect address read | Memory access |
+| Operand store | Memory access |
+| Programmed I/O access (IOX/IOXT, IDENT) | I/O system access |
+| System control register access (e.g., ECC register on memory modules) | System control register access |
+
+When any of these operations is in progress, the CPU microprogram activates the internal signal **BUSRQ** (CPU bus request) to the BCU allocation arbiter. In addition to BUSRQ, the microprogram informs the CPU **bus-handshake logic** which type of transfer is to be performed. The handshake logic is then ready to start the transfer as soon as it receives the allocation acknowledge from the BCU.
+
+> **Note**: BUSRQ is an internal CPU signal -- it does not appear on the external bus. The CPU is always physically present on the bus (it hosts the BCU), so it does not need an external request/grant mechanism like DMA controllers do.
+
+#### DMA Allocation Request (BREQ / INGRANT)
+
+A DMA controller requests the bus when it needs more data to output or has a word ready to be written to memory. The request is made via the external **BREQ** signal (wired-OR, active low). The controller must then wait for the BCU to acknowledge the request before any exchange can be performed.
+
+When multiple DMA controllers are present, each controller's request signal is **wired-OR** to a single BREQ line input to the BCU. BREQ may be driven from any slot position in the bus.
+
+To select only **one** DMA controller as the granted bus user at a time, the acknowledge signal is **daisy-chained** in the bus backplane via the INGRANT/OUTGRANT signal pair. The daisy-chain establishes a **sequential priority scheme** -- the controller nearest to the CPU has the highest DMA priority (see DMA Transfer section and DMA Grant Daisy-Chain section for details).
+
+#### Memory Refresh Request (RFRQ / BREF)
+
+Refresh is a periodic operation required by the dynamic MOS memory circuits used in the NORD-100 main memory. By allocating the bus during the refresh period, two problems are solved:
+
+1. **Synchronization**: The refresh cycle is synchronized to other bus activities
+2. **Memory protection**: The memory system is inaccessible during refresh since the bus is allocated (blocked)
+
+The refresh request is initiated every **15 microseconds** by an oscillator on the CPU module, activating the internal signal **RFRQ** (Refresh Request) to the BCU. The external bus signal **BREF** (Bus Refresh) is then asserted. A refresh cycle is an address-only, dataless cycle -- the memory system uses the address to select which row to refresh.
+
+### Bus Cycle Structure
+
+A NORD-100 bus cycle consists of three events:
+
+```
+  |  Allocation  |    Transfer    |  Release  |
+  |              |                |           |
+  |  BCU grants  |  One word      |  Bus      |
+  |  bus access  |  exchanged     |  freed    |
+  |  to one      |  (address +    |  for next |
+  |  requestor   |  data phases)  |  request  |
+  |              |                |           |
+  <------------- One Bus Cycle -------------->
+                                   (max 8 us)
+```
+
+1. **Allocation**: The BCU grants the bus to one of the three requestors
+2. **Transfer**: The granted bus user exchanges one word with the accessed device (I/O interface or memory). This consists of an Address Cycle followed by a Data Cycle. In the case of memory refresh, the transfer is an address-only, dataless refresh cycle
+3. **Release**: The bus cycle terminates (BDRY received) and the bus is freed for the next requestor
+
+> **Important**: The BCU is **not involved** in the data transfer phase. Once the bus is allocated, the data exchange is completely controlled by the granted bus user in handshake with its accessed device. This allows fully asynchronous operation independent of CPU speed and clock frequencies. The BCU only monitors the 8 us timeout.
+
+Only CPU and DMA cycles include actual data exchange. Memory refresh cycles are address-only (dataless). Therefore, when discussing data transfers, the granted bus user is either the CPU or a DMA controller.
+
+Due to the multiplexing of addresses and data on the same physical BD 0-23 lines, the transfer phase is divided into two subcycles: an **Address Cycle** followed by a **Data Cycle**.
+
+### Address Cycle and Data Cycle
+
 Every bus transfer consists of two phases: an **Address Cycle** followed by a **Data Cycle**. The granted bus user (CPU or DMA controller) drives the address phase, and then an asynchronous handshake governs the data exchange.
 
 ### Address Cycle
@@ -926,6 +1271,20 @@ The IOX/IOXT instructions transfer data between the CPU A register and an I/O de
 4. All I/O interfaces latch the device register address from BD lines
 5. CPU holds address for ~50 ns after leading edge of BAPR
 
+#### Internal CPU Data Path
+
+The IOX/IOXT data path through the CPU uses these internal registers:
+
+```
+  Address cycle:  DEV.ADDR --> IDB --> WDA --> BD 0-23 (to bus)
+  Data cycle:     A register --> IDB --> WDA --> BD 0-23 (to bus)
+  Completion:     WDA --> DBR --> A register (echo/confirmation)
+```
+
+- **IDB** = Internal Data Bus (CPU internal)
+- **WDA** = Write Data Address buffer (last stage before bus)
+- **DBR** = Data Bus Register (read-back path from bus)
+
 #### Data Phase (IOX Write - CPU to Device)
 
 6. CPU microprogram moves the **A register** via IDB to WDA
@@ -934,8 +1293,11 @@ The IOX/IOXT instructions transfer data between the CPU A register and an I/O de
 9. All I/O interfaces compare the address from step 4 with their own address
 10. The matching interface strobes the BD line content into its device register
 11. The matching interface asserts **BDRY** to signify "data accepted"
-12. CPU detects BDRY and releases BIOXE and BD lines
-13. Bus cycle complete
+12. CPU handshake logic uses the leading edge of BDRY to strobe BD line content into **DBR** (Data Bus Register)
+13. CPU handshake logic turns off **BIOXE** in response to BDRY
+14. I/O interface detects BIOXE off and turns off **BDRY** -- bus is released
+15. Microprogram moves **DBR** to the **A register** (echo path: since BD lines still held A register data during the write, A register is left **unchanged** after an output transfer)
+16. Bus cycle complete
 
 ```
         Address Phase                 Data Phase (Write)
@@ -950,49 +1312,130 @@ The IOX/IOXT instructions transfer data between the CPU A register and an I/O de
               |     |                         |        |   |
               |  ~50ns hold                   |     data   |
               |                            data on  accepted
-           address                         BD valid
-           valid
+           address                         BD valid  (strobed
+           valid                                    into DBR)
+
+  Release sequence: BDRY on -> BIOXE off -> BDRY off -> bus free
 
   (All signals active LOW - accent low - active state is drawn HIGH here
    for readability. On the physical bus, asserted = LOW)
 ```
 
-#### Data Phase (IOX Read - Device to CPU)
+#### Data Phase (IOX/IOXT Input - Device to CPU)
 
-For read operations (IOXT), the handshake is reversed:
+The address cycle is **identical** for both input and output -- the CPU and its handshake logic do not know the transfer direction. The **I/O interface** determines the direction based on whether the specified register is an input or output register.
 
-1. CPU asserts **BIOXE** with read indication
-2. The matching I/O interface enables its register data onto the BD lines
-3. The interface asserts **BDRY** when data is valid
-4. CPU latches data from BD lines into the A register
-5. CPU releases BIOXE
-6. Interface releases BD lines and BDRY
+The data cycle also **starts identically**: the CPU places the A register on the BD lines and asserts BIOXE, just as for an output transfer. The direction change happens when the addressed interface responds:
+
+6. CPU microprogram moves the **A register** via IDB to WDA (same as output)
+7. Bus handshake logic passes WDA to the BD lines (same as output)
+8. When data is valid on BD lines, CPU asserts **BIOXE** (same as output)
+9. All I/O interfaces compare the address from the address phase with their own
+10. The matching interface determines the specified register is an **input register**
+11. The interface asserts **BINPUT** to signal "this is an input transfer"
+12. CPU handshake logic detects BINPUT and **closes the WDA output buffer** (releases BD lines)
+13. CPU handshake logic asserts **BINACK** (Bus Input Acknowledge) -- telling the interface the BD lines are free
+14. Interface receives BINACK and enables its **input register data** onto the BD lines
+15. When the register data is valid on the BD lines, the interface asserts **BDRY**
+16. CPU handshake logic uses the leading edge of BDRY to strobe BD line content into **DBR**
+17. CPU releases **BINACK** and **BIOXE**
+18. Interface detects BIOXE off (and/or BINACK off), releases **BDRY**, **BINPUT**, and BD lines
+19. Bus is released and free for next cycle
+20. Microprogram moves **DBR** (now containing the I/O input register) to the **A register**
+21. Bus cycle complete
+
+```
+        Address Phase         Data Phase (Input)
+        |                     |
+  BD 0-23  ==[ ADDRESS ]==xxxx=[A REG]=xx=====[ I/O REG DATA ]========xxxx
+              _____                            _______________
+  BAPR  _____|     |_____________________________________________
+                                  ___________________________________
+  BIOXE __________________________|                                  |____
+                               _______________________________________
+  BINPUT _____________________|                                       |___
+                                  ________________________________
+  BINACK ________________________|                                |_______
+                                                         ___
+  BDRY  ________________________________________________|   |____________
+              |     |         |   |  |                   |   |
+              |  ~50ns hold   |   |  BINACK:             |   |
+              |               | BINPUT:  BD free,     data   |
+           address            | "input   interface   valid  CPU strobes
+           valid              |  xfer"   may drive  (BDRY   into DBR,
+                              |          BD lines    on)    releases
+                           CPU places                       BINACK +
+                           A reg on BD                      BIOXE
+                           (same as output
+                            start)
+
+  Controller card holds BINPUT and BD data active until CPU releases
+  BIOXE (and BINACK). Then controller releases BINPUT, BDRY, and BD lines.
+```
+
+**IOX Input release sequence (controller card perspective):**
+
+1. Controller asserts BDRY (data valid on BD lines)
+2. CPU strobes BD data into DBR
+3. CPU releases BINACK and BIOXE
+4. Controller detects BIOXE off -- releases BINPUT, BDRY, and BD lines
+5. Bus is free
+
+> **Confirmed release ordering (from ND-06.016.01)**: The IOX output release sequence is: BDRY leading edge -> BIOXE off -> interface turns BDRY off -> bus released. For IOX input, the document confirms the signal sequence up to BDRY assertion but does not explicitly detail the release ordering of BINACK vs BIOXE. The safe approach for controller design: hold BINPUT, BDRY, and BD data stable until BIOXE goes inactive, then release everything.
+
+> **Note**: This handshake sequence is specific to **IOX/IOXT** (PIO) transfers. DMA transfers use a different handshake with BMEM/BDAP/BDRY and use BINPUT for direction signaling (active = write, inactive = read). DMA does not use BIOXE or BINACK.
+
+> **Key insight**: The CPU microprogram and bus handshake logic are **direction-agnostic** until the I/O interface responds. The CPU always starts by driving the A register onto the BD lines. Only when the interface asserts BINPUT does the CPU know this is an input transfer and switch from driving to receiving. This elegant design means the same microcode and handshake logic handles both directions.
 
 ---
 
 ### IDENT PLxx Execution (Interrupt Identification)
 
-The IDENT PLxx instruction identifies which device raised an interrupt on a specific priority level. This uses the **daisy-chain** priority mechanism.
+The IDENT PLxx instruction identifies which device raised an interrupt on a specific priority level. Since multiple devices share the same interrupt line (e.g., all PIO output channels share BINT 10), the CPU must identify **which** device caused the interrupt before it can read the device's status register.
 
-#### Address Phase
+**Instruction format**: `IDENT PL xx` where xx = 10, 11, 12, or 13
+
+The instruction searches **only** for interrupts on the specified level. For example, `IDENT PL 12` searches only BINT 12; any pending interrupt on level 10 or 11 is ignored and handled later by separate IDENT instructions.
+
+#### Ident Code
+
+Each I/O device controller is assigned a unique interrupt vector called the **ident code**. There is a one-to-one correspondence between a device, its device number, and its ident code. On the physical interface cards, the ident code is typically selectable via a **thumbwheel switch**, allowing identical hardware modules to be configured for different device numbers.
+
+The CPU uses the returned ident code to look up the device's **data field** via an ident code table. The data field contains a pointer to the device's driver program and the IOX device register addresses needed to service the interrupt.
+
+#### The Three-Step Search Mechanism
+
+The ident search performed on the bus can be divided into three steps:
+
+**Step 1 - Present the level (Address Phase):**
 
 1. CPU places the interrupt level number (10, 11, 12, or 13) on the BD lines
 2. CPU asserts **BAPR** (address strobe)
 3. All I/O interfaces latch the specified interrupt level
+4. Each interface that has an interrupt active on the specified level sets an internal "flag"
+5. Interfaces without an interrupt on that level do nothing
 
-#### Data Phase (Identification)
+**Step 2 - Search via daisy-chain (Data Phase):**
 
-4. CPU asserts **INIDENT** (via its OUTIDENT output into the daisy-chain)
-5. INIDENT propagates through card slots in priority order (nearest to CPU = highest priority)
-6. The first card that asserted an interrupt on the specified level **captures** INIDENT:
-   - It does **not** pass INIDENT through to its OUTIDENT
-   - It enables its **identification code** onto the BD lines
-   - It asserts **BDRY** to signal identification complete
-7. If a card did not assert the specified interrupt level, it passes INIDENT through to OUTIDENT (next card in chain)
-8. CPU reads the identification code from the BD lines
-9. Bus cycle complete
+6. CPU asserts **INIDENT** (via its OUTIDENT output into the daisy-chain)
+7. INIDENT propagates through card slots in priority order (nearest to CPU = highest priority)
+8. Each card checks its internal "flag" (set in step 1):
+   - If **flag is NOT set**: card passes INIDENT through to OUTIDENT (next card in chain)
+   - If **flag IS set**: card **captures** INIDENT -- the search stops at this card
+
+**Step 3 - Return ident code:**
+
+9. The capturing interface enables its **ident code** onto the BD lines
+10. The interface asserts **BDRY** to signal identification complete
+11. CPU reads the ident code from the BD lines into the **A register**
+12. The interface **resets its interrupt enable bit** (bit 0 or 1 in the channel's control register)
+13. Bus cycle complete
+
+> **Important**: After being served by the IDENT instruction, the interface's interrupt is disabled (step 12). The device driver program must **re-enable** the interrupt on the interface after servicing it, otherwise the device will not generate further interrupts.
 
 ```
+  Step 1: Present level         Step 2+3: Search and return ident code
+
   BD 0-23  ====[ INT LEVEL ]====xxxx====[ IDENT CODE ]========xxxx
               _____
   BAPR  _____|     |__________________________________________________
@@ -1001,105 +1444,146 @@ The IDENT PLxx instruction identifies which device raised an interrupt on a spec
                                               ___
   BDRY  ___________________________________|   |____________________
                                    |        |   |
-                                 ident    code  |
+                                 search   code  |
                                  starts  valid  done
+                                          (to A register)
 ```
+
+#### Critical Design Rules for Controller Cards
+
+> **WARNING - No empty slots**: There must **never** be empty positions in the bus between the CPU and any I/O device controller. An empty slot has no logic to pass INIDENT through to OUTIDENT, which **permanently blocks** the daisy-chain. All controllers in higher slot numbers than the empty slot will never have their interrupts identified. If a slot must be empty, a **daisy-chain pass-through card** (or jumper) connecting INIDENT to OUTIDENT (and INGRANT to OUTGRANT) must be installed.
+
+> **Priority within a level**: Between interfaces generating interrupts on the same level, the interface **nearest to the CPU** has the highest priority within that level. For slow devices such as terminals this has no practical effect, but for high-throughput devices the slot position matters.
+
+> **Level search order**: The CPU typically executes IDENT instructions in priority order (IDENT PL 13 first, then 12, 11, 10). A pending interrupt on a lower level is not lost -- it remains asserted on the BINT line until served by its own IDENT instruction.
 
 ---
 
 ### DMA Transfer (I/O Controller as Bus Master)
 
-In DMA mode, an I/O controller becomes the bus master and transfers data directly to/from memory without CPU involvement.
+A DMA transfer is divided into two parts:
+1. **Allocation**: Handshake between BCU and the requesting DMA controller (BREQ/BMEM/INGRANT)
+2. **Memory reference cycle**: Handshake between the granted DMA controller and memory. The BCU is **passive** during this part but monitors the 8 us time limit.
 
 #### Bus Request and Grant
 
-1. I/O controller asserts **BREQ** (Bus Request) - wired-OR
-2. CPU completes its current bus cycle
-3. CPU issues **INGRANT** via the daisy-chain (through OUTGRANT)
-4. INGRANT propagates through card slots in priority order
-5. The first card that asserted BREQ **captures** INGRANT:
-   - It does **not** pass INGRANT through to its OUTGRANT
-   - It becomes the bus master for one transfer cycle
+1. DMA controller asserts **BREQ** (Bus Request) - wired-OR
+2. BCU grants the request and issues **BMEM** (Bus Memory reference)
+3. BMEM serves two functions:
+   - Enables the memory system for further operations
+   - **Freezes the DMA request status** on all DMA controllers to ensure a stabilized test condition for the INGRANT/OUTGRANT daisy-chain
+4. The **leading edge of BMEM** is the last chance for a DMA request to be served by the current INGRANT search. A DMA controller that activates its request simultaneously with INGRANT reception will not be served until the next cycle.
+5. INGRANT propagates through the daisy-chain. A DMA controller that receives INGRANT active **and** had its request active at the leading edge of BMEM captures the grant:
+   - It does **not** pass INGRANT through to OUTGRANT
+   - It becomes the bus master for one memory reference cycle
 
 #### Address Phase (DMA Controller drives)
 
-6. DMA controller places **physical memory address** on BD 0-23
+6. Granted DMA controller places **physical memory address** on BD 0-23
 7. DMA controller asserts **BAPR** (address strobe)
 8. Memory latches the address
-
-#### DMA Input - Memory Write Transfer (Controller to Memory)
-
-"DMA Input" from the memory's perspective: the memory **receives** (inputs) data from the I/O controller.
-
-9. DMA controller places data on BD 0-15
-10. DMA controller asserts **BMEM** (memory cycle)
-11. DMA controller asserts **BDAP** (Bus Data Present) - data is valid on BD lines
-12. Memory accepts data and asserts **BDRY** (Bus Data Ready) - "data accepted"
-13. DMA controller detects BDRY, releases BDAP, BMEM, BAPR, and BD lines
-14. DMA controller releases **BREQ**
-15. Single DMA cycle complete - bus returns to CPU
-
-```
-  DMA Input (Memory Write) - Controller writes data TO memory
-
-  BREQ  __|````````````````````````````````````````````|______________
-                  ___________________
-  INGRANT ______|                    |_________________________________
-                    (captured by requesting controller)
-
-  BD 0-23  ========[ MEM ADDRESS ]=======xxxx====[ WRITE DATA ]===xxxx
-                      _____
-  BAPR  _____________|     |___________________________________________
-                                           ______________
-  BMEM  __________________________________|              |_____________
-                                             __________
-  BDAP  ____________________________________|          |_______________
-                                                   ___
-  BDRY  __________________________________________|   |________________
-                                           |       |   |
-                                         mem     data  |
-                                         write  accepted
-                                         cycle    by
-                                         start  memory
-```
+9. DMA controller removes address from BD lines (done **without feedback** from memory)
 
 #### DMA Output - Memory Read Transfer (Memory to Controller)
 
 "DMA Output" from the memory's perspective: the memory **sends** (outputs) data to the I/O controller.
 
-9. DMA controller asserts **BMEM** (memory cycle) - read direction
-10. Memory reads the addressed location and places data on BD 0-15
-11. Memory asserts **BDRY** (Bus Data Ready) - data is valid on BD lines
-12. DMA controller latches data from BD lines
-13. DMA controller releases BMEM, BAPR, and BD lines
-14. DMA controller releases **BREQ**
-15. Single DMA cycle complete - bus returns to CPU
+**Direction signal**: **BINPUT not active** tells the memory system this is a **read** operation.
+
+10. DMA controller asserts **BDAP** (Bus Data Present) -- in a read cycle, this means "BD lines are free for data FROM memory"
+11. Memory reads the addressed location and places data on BD 0-15
+12. Memory asserts **BDRY** (Bus Data Ready) - data is valid on BD lines
+13. DMA controller uses leading edge of BDRY to strobe BD line content into its data buffer
+14. **Leading edge of BDRY**: Terminates the grant mechanism
+15. **Trailing edge of BDRY**: Terminates the bus cycle, bus is released
 
 ```
   DMA Output (Memory Read) - Controller reads data FROM memory
 
-  BREQ  __|````````````````````````````````````````````|______________
-                  ___________________
-  INGRANT ______|                    |_________________________________
-                    (captured by requesting controller)
+  BREQ    __|```````````````````````````````````````````|______________
+                    _________________________________________
+  BMEM    _________|                                         |_________
+                        (freezes DMA request status)
+                      ___________________
+  INGRANT ___________|                   |_________________________
+                       (captured by requesting controller)
 
-  BD 0-23  ========[ MEM ADDRESS ]=======xxxx====[ READ DATA ]====xxxx
-                      _____                       (driven by memory)
-  BAPR  _____________|     |___________________________________________
-                                           ______________
-  BMEM  __________________________________|              |_____________
-                                                   ___
-  BDRY  __________________________________________|   |________________
-                                           |       |   |
-                                         mem     data  |
-                                         read   valid  done
-                                         cycle   from
-                                         start  memory
+  BD 0-23  ==========[ MEM ADDRESS ]========xxxx====[ READ DATA ]====xxxx
+                         _____                       (driven by memory)
+  BAPR    ______________|     |________________________________________
+                                                ____________
+  BINPUT  __________________________________________________ (inactive = read)
+                                           __________
+  BDAP    ____________________________________|      |_________________
+                                             "BD free      ___
+  BDRY    __________________________________________|===|______________
+                                              for     |   |
+                                            memory"  data  |
+                                                    valid  trailing
+                                                   (strobe edge =
+                                                   into    bus
+                                                   buffer) released
 ```
+
+#### DMA Input - Memory Write Transfer (Controller to Memory)
+
+"DMA Input" from the memory's perspective: the memory **receives** (inputs) data from the I/O controller.
+
+**Direction signal**: **BINPUT active** tells the memory system this is a **write** operation.
+
+10. DMA controller places write data on BD 0-15
+11. DMA controller asserts **BDAP** (Bus Data Present) -- data is valid on BD lines
+12. Memory uses BDAP to strobe data into its data buffer
+13. Memory asserts **BDRY** (Bus Data Ready) - "data accepted"
+14. **Leading edge of BDRY**: Terminates the grant mechanism
+15. **Trailing edge of BDRY**: Terminates the bus cycle, bus is released
+
+```
+  DMA Input (Memory Write) - Controller writes data TO memory
+
+  BREQ    __|```````````````````````````````````````````|______________
+                    _________________________________________
+  BMEM    _________|                                         |_________
+                        (freezes DMA request status)
+                      ___________________
+  INGRANT ___________|                   |_________________________
+                       (captured by requesting controller)
+
+  BD 0-23  ==========[ MEM ADDRESS ]========xxxx====[ WRITE DATA ]===xxxx
+                         _____
+  BAPR    ______________|     |________________________________________
+                                          ___________________________
+  BINPUT  _______________________________|                           |__
+                                          (active = write)
+                                             __________
+  BDAP    ____________________________________|        |_______________
+                                             data       ___
+  BDRY    __________________________________________|===|______________
+                                             valid  |   |
+                                             from  data  trailing
+                                             ctrl  accepted edge =
+                                                   by      bus
+                                                   memory  released
+```
+
+#### DMA Signal Summary
+
+| Signal | DMA Read (Output) | DMA Write (Input) |
+|--------|-------------------|-------------------|
+| BINPUT | **Inactive** (= read) | **Active** (= write) |
+| BDAP | "BD lines free for memory data" | "Controller data valid on BD lines" |
+| BDRY leading edge | Terminates grant mechanism | Terminates grant mechanism |
+| BDRY trailing edge | Releases bus | Releases bus |
 
 > **Note**: A DMA controller is only granted **one bus cycle** per BREQ/INGRANT exchange. For block transfers, the controller must re-assert BREQ and wait for a new INGRANT for each word transferred. This ensures the CPU retains bus access between DMA cycles.
 
 > **Note on naming convention**: "DMA Input" and "DMA Output" are named from the **memory's perspective**. DMA Input = data goes INTO memory (write). DMA Output = data comes OUT of memory (read). This can be confusing from the I/O controller's perspective where the directions are reversed.
+
+> **Note on BINPUT dual role**: BINPUT serves different purposes in IOX vs DMA cycles. In IOX, the I/O interface asserts BINPUT to indicate "this is an input register, I need to send data to the CPU". In DMA, the DMA controller uses BINPUT to indicate the **memory write direction** to the memory system. The signal name "Bus Input" reflects the memory's perspective in DMA: data is being "input" to memory.
+
+> **MOR (Memory Out of Range)**: If BDRY is not received during a DMA cycle (memory does not respond), the BCU timeout triggers a **Memory Out of Range** condition. This is reported in the PES (Parity Error Status) register with bit 14 (DMA) set and bit 15 (Fetch) not set, distinguishing it from a CPU memory access timeout.
+
+> **WARNING - Empty slots break INGRANT/OUTGRANT chain**: Same rule as for INIDENT/OUTIDENT -- there must never be empty slot positions between the CPU and any DMA controller. Modules not using the DMA search chain **must strap INGRANT to OUTGRANT** to maintain the daisy-chain.
 
 ---
 
