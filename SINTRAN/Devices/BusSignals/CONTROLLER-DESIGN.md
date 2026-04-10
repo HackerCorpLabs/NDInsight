@@ -4234,22 +4234,126 @@ The Pi Pico W (or Pi Pico 2 W) is the natural choice as a wireless companion bec
 8. **3.3V** -- compatible with our card's 3.3V supply
 9. **Code reuse** -- we can use the same firmware patterns as our main RP2350B
 
-### SPI Routing
+### SPI Routing -- Verified Against Both Chip Pinouts
 
-The Pi Pico W footprint connects to the **same RP2350B SPI0 signals** that the BB48R exposes via its pUEXT connector. We route these signals from the BB48R header pins to the Pi Pico W footprint on our PCB:
+The Pi Pico W footprint connects to the **same RP2350B SPI0 signals** that the BB48R exposes via its pUEXT connector. The signals must land on **valid SPI hardware pins on both sides**.
 
-| Signal | RP2350B Side | Pi Pico W Side | Notes |
-|--------|--------------|----------------|-------|
-| SPI_SCK | GPIO6 (BB48R EXT1 pin 10) | GP18 (Pi Pico W default SPI0 SCK) | Clock master to slave |
-| SPI_MOSI | GPIO7 (BB48R EXT1 pin 11) | GP19 (Pi Pico W default SPI0 TX) | Data master to slave |
-| SPI_MISO | GPIO4 (BB48R EXT1 pin 8) | GP16 (Pi Pico W default SPI0 RX) | Data slave to master |
-| SPI_CS | GPIO5 (BB48R EXT1 pin 9) | GP17 (Pi Pico W default SPI0 CS) | Active LOW chip select |
-| INT | GPIO0 (BB48R EXT1 pin 4) | Any GP (e.g. GP15) | Pi Pico W signals data ready |
-| RST | GPIO1 (BB48R EXT1 pin 5) | RUN pin on Pi Pico W | Reset Pi Pico W from RP2350B |
-| 3.3V | (from BB48R 3.3V rail) | 3V3 pin on Pi Pico W | Power |
+#### Pi Pico W SPI Pin Options
+
+The Pi Pico W (RP2040) has **two SPI peripherals** (SPI0 and SPI1), each with multiple GPIO mapping options:
+
+**SPI0 default mapping** (most common):
+- GP16 = SPI0 RX (MISO)
+- GP17 = SPI0 CSn
+- GP18 = SPI0 SCK
+- GP19 = SPI0 TX (MOSI)
+
+**SPI1 default mapping** (alternative):
+- GP12 = SPI1 RX (MISO)
+- GP13 = SPI1 CSn
+- GP14 = SPI1 SCK
+- GP15 = SPI1 TX (MOSI)
+
+We use **SPI0 (GP16-19)** on the Pi Pico W side because:
+1. It's the standard pinout used in most Pi Pico W examples
+2. GP16-19 are exposed on physical pin positions 21-25 of the Pi Pico W board
+3. Plenty of nearby pins for INT and RST signals
+
+#### Pin Mapping
+
+| Signal | BB48R RP2350B Side | Pi Pico W Side | Notes |
+|--------|--------------------|-----|-------|
+| SPI_SCK | GPIO6 (BB48R SPI0_SCK) | GP18 (Pi Pico W SPI0_SCK) | Clock |
+| SPI_MOSI | GPIO7 (BB48R SPI0_TX/MOSI) | GP19 (Pi Pico W SPI0_TX/MOSI) | Master out, slave in |
+| SPI_MISO | GPIO4 (BB48R SPI0_RX/MISO) | GP16 (Pi Pico W SPI0_RX/MISO) | Master in, slave out |
+| SPI_CS | GPIO5 (BB48R SPI0_CSn) | GP17 (Pi Pico W SPI0_CSn) | Active LOW chip select |
+| **INT_PICO** | GPIO0 (BB48R, output) | GP15 (Pi Pico W, input) | BB48R signals Pi Pico W: "I have data for you" |
+| **INT_BB48R** | GPIO1 (BB48R, input) | GP14 (Pi Pico W, output) | Pi Pico W signals BB48R: "I have data for you" |
+| **RST** | GPIO2 (BB48R, output) | RUN pin on Pi Pico W (input, active LOW) | BB48R can reset Pi Pico W |
+| 3.3V | BB48R 3.3V rail | 3V3 pin on Pi Pico W | Power |
 | GND | GND | GND | Common ground |
 
-The Pi Pico W operates as a **SPI slave** to the RP2350B (which is the SPI master). Both run RP2040/RP2350 hardware so the Pi Pico W can use its own SPI peripheral or PIO state machine for the slave-side handling.
+> **Note**: Using GPIO2 for RST conflicts with our previous /BINT 12 assignment. We need to relocate /BINT 12 if Pi Pico W is populated. See "Pin Conflict Resolution" below.
+
+#### Master/Slave Decision
+
+**The BB48R is the SPI master, the Pi Pico W is the SPI slave.**
+
+Reasoning:
+- The BB48R is the primary controller for the bus emulation; it owns the timing and decides when to communicate
+- The Pi Pico W is a coprocessor handling network traffic asynchronously
+- SPI master is simpler to implement -- the BB48R initiates all SPI transactions
+- The Pi Pico W can use **PIO state machine for SPI slave** mode (more flexible than the hardware peripheral for slave use)
+
+#### Bidirectional Interrupt/Signal Pins
+
+Because the BB48R is the SPI master, the Pi Pico W cannot push data spontaneously over SPI -- it has to wait for the master to ask. Therefore we need a separate **INT_BB48R** signal so the Pi Pico W can tell the BB48R "I have data for you, please initiate a SPI read".
+
+Conversely, the BB48R may want to alert the Pi Pico W out-of-band (e.g., wake from low power, urgent command). For this we use **INT_PICO**.
+
+| Direction | Signal | Drives |
+|-----------|--------|--------|
+| Pi Pico W → BB48R | INT_BB48R | "I have RX data ready" or "WiFi event happened" |
+| BB48R → Pi Pico W | INT_PICO | "Wake up" or "I have a command for you" or "send TX data now" |
+
+Both signals are **active LOW** edge-triggered. Each side configures its INT pin as a GPIO interrupt input.
+
+The protocol flow:
+1. Pi Pico W gets a TCP packet from WiFi
+2. Pi Pico W asserts INT_BB48R LOW
+3. BB48R's interrupt handler sees INT_BB48R, schedules a SPI read transaction
+4. BB48R sends "READ_RX" command + reads N bytes from Pi Pico W via SPI
+5. Pi Pico W de-asserts INT_BB48R after the read completes
+
+For BB48R → Pi Pico W:
+1. BB48R has data to transmit (e.g., terminal output)
+2. BB48R asserts INT_PICO LOW (optional, may not be needed if Pi Pico W is always polling SPI)
+3. Or just initiate SPI write directly (Pi Pico W detects CS active and processes)
+
+In practice, **INT_PICO may not be needed** if the Pi Pico W is designed to always be ready to receive SPI commands (which is typical for a slave). INT_BB48R is required because the Pi Pico W cannot initiate SPI traffic.
+
+#### Pin Conflict Resolution
+
+Adding the Pi Pico W requires:
+- GPIO0-7 (8 pins): SPI0 (4) + INT_BB48R (1) + RST (1) -- only 6 pins needed
+- We had GPIO2 = /BINT 12 and GPIO3 = /BINT 13
+
+**Option A**: Move /BINT 12 and /BINT 13 to spare HIGH bank pins.
+- /BINT 12: GPIO46 (was /BINT 10) -- need to shuffle
+- This gets complicated
+
+**Option B**: Add a 74HC595 shift register driven by SPI for /BINT 10/11/12/13. Saves GPIOs but adds 1 chip.
+
+**Option C**: Keep /BINT 12 on GPIO2, /BINT 13 on GPIO3. Use GPIO0-1 for INT_BB48R and INT_PICO. Use GPIO4-7 for SPI0. RST signal moves to a different pin.
+
+Let me redo the assignment more carefully:
+
+| BB48R GPIO | Function | When Pi Pico W populated |
+|------------|----------|--------------------------|
+| GPIO0 | INT_BB48R input (from Pi Pico W) | New use |
+| GPIO1 | INT_PICO output (to Pi Pico W) | New use |
+| GPIO2 | /BINT 12 drive (74LVC07) | **Unchanged** -- still drives BINT 12 to bus |
+| GPIO3 | /BINT 13 drive (74LVC07) | **Unchanged** -- still drives BINT 13 to bus |
+| GPIO4 | SPI0 MISO | Hardware SPI0 |
+| GPIO5 | SPI0 CSn | Hardware SPI0 |
+| GPIO6 | SPI0 SCK | Hardware SPI0 |
+| GPIO7 | SPI0 MOSI | Hardware SPI0 |
+
+**RST for Pi Pico W**: Tie to a small pull-up resistor + BB48R's /BMCL signal (so resetting the bus also resets the Pi Pico W). Or leave Pi Pico W's RUN pin floating (it has internal pull-up) and only reset via USB. **Recommended**: connect Pi Pico W RUN to /BMCL or a dedicated GPIO from the HIGH bank if available.
+
+**Updated allocation** (no conflict with /BINT 12/13):
+
+| BB48R GPIO | Function | Notes |
+|------------|----------|-------|
+| GPIO0 | INT_BB48R (input from Pi Pico W) | Pi Pico W signals "I have data" |
+| GPIO1 | INT_PICO (output to Pi Pico W) | BB48R signals "wake/command" |
+| GPIO2 | /BINT 12 drive | Unchanged |
+| GPIO3 | /BINT 13 drive | Unchanged |
+| GPIO4-7 | SPI0 (MISO, CS, SCK, MOSI) | Hardware peripheral |
+
+**Total: 6 GPIOs for Pi Pico W**, no conflict with interrupt outputs.
+
+The Pi Pico W RUN pin connects to /BMCL (so the bus master clear also resets the Pi Pico W).
 
 ### Pi Pico W Footprint on PCB
 
