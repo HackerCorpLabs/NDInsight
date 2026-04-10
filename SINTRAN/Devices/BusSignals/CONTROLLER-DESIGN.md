@@ -4497,9 +4497,21 @@ Both ports can supply 5V to the Pi Zero. **The Pi Zero accepts power from any of
 2. **Micro USB OTG** (when connected to a host PC for development)
 3. **GPIO header pins 2 or 4** (+5V) -- our backplane power path
 
-When **multiple sources** are connected simultaneously (e.g., bus power on header + USB OTG to a development PC), the Pi Zero's onboard schematic shows the PWR IN and OTG inputs both connect to the same +5V net via Schottky diodes (or just direct connection on older Pi Zeros).
+**CONFIRMED FROM RASPBERRY PI FORUMS**: The micro USB power inputs and GPIO header pins 2/4 (5V) are **directly in parallel on the Pi Zero PCB** -- no protection diodes, no polyfuse, no isolation. This is true for all Pi Zero variants including Pi Zero 2 W.
 
-> **Important**: The Pi Zero W and Pi Zero 2 W use slightly different schematics. Both have ESD protection and bulk capacitance, but the OR-ing between USB power inputs and GPIO header power varies by model.
+> Source: [Raspberry Pi Forums - Sanity check: Powering a Zero 2 W through GPIO](https://forums.raspberrypi.com/viewtopic.php?t=327195)
+>
+> Quote (Burngate, experienced forum contributor):
+> *"The USB 5v and gnd pins are in parallel with the ones on the header, so as long as the same supply is used for both Pis, no damage will occur. (Different supplies with slightly different voltages could mean large currents flowing between them, which could damage the supplies and the Pis)"*
+
+**Implications**:
+
+1. **Pi Zero has NO power input protection** -- no Schottky diode, no polyfuse on the +5V input
+2. The micro USB PWR IN, USB OTG, and GPIO header pins 2/4 all share the **same +5V net**
+3. **If two different power sources are connected** (e.g., bus 5V via our PCB + USB cable to PC), current flows between them
+4. This can **damage the bus PSU, the PC's USB port, and the Pi Zero itself**
+
+**Therefore**: We MUST add an isolation diode (D2) on our PCB to prevent back-feeding between bus power and any Pi Zero USB power input.
 
 #### Power Scenario Matrix
 
