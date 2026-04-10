@@ -254,12 +254,34 @@ This is the **definitive pin map** for the controller card.
 
 **Used: 36 / Available 42 / Spare 6**
 
-### Spare Pin Uses
+### "Spare" Pin Uses (Not Truly Free)
 
-The 6 spare GPIOs (GPIO0-1, GPIO4-7) can be used for:
-- **Debug UART** on GPIO0/GPIO1 (UART0_TX/RX) -- if not using USB CDC
-- **Status LEDs** for at-a-glance visibility
-- **External shift register** for additional outputs (74HC595 sharing SPI bus)
+The 6 GPIO0-1, GPIO2-3, GPIO4-7 marked as "spare" are technically available but have BB48R hardware functions assigned:
+
+| GPIO | BB48R Function | Notes |
+|------|----------------|-------|
+| GPIO0 | UART0_TX (pUEXT pin 4) | Free if UART0 not used |
+| GPIO1 | UART0_RX (pUEXT pin 5) | Free if UART0 not used |
+| GPIO2 | I2C1_SDA (pUEXT/Qwiic) | **2.2K pull-up to 3.3V always present** |
+| GPIO3 | I2C1_SCL (pUEXT/Qwiic) | **2.2K pull-up to 3.3V always present** |
+| GPIO4 | SPI0_RX/MISO (pUEXT pin 8) | Hardware SPI0 peripheral |
+| GPIO5 | SPI0_CSn (pUEXT pin 9) | Hardware SPI0 peripheral |
+| GPIO6 | SPI0_SCK (pUEXT pin 10) | Hardware SPI0 peripheral |
+| GPIO7 | SPI0_TX/MOSI (pUEXT pin 11) | Hardware SPI0 peripheral |
+
+These pins are exposed via the **pUEXT and Qwiic connectors on the BB48R module itself**. The connectors do not consume pins -- they just expose them for breadboard use.
+
+**Available uses for these pins on our card**:
+
+| Use Case | Pins Used | What we lose |
+|----------|-----------|--------------|
+| **ESP32 wireless companion** (SPI0 + INT/RST) | GPIO0-1, 4-7 (6 pins) | UART0 debug, pUEXT, ESP32 takes SPI0 |
+| **Debug UART** | GPIO0-1 (2 pins) | -- (use USB CDC instead) |
+| **I2C sensors / external chips** | GPIO2-3 (2 pins) | -- (Qwiic connector becomes a feature) |
+| **Status LEDs** | any | -- |
+| **GPIO2/3 as outputs** | GPIO2-3 | These pins always have 2.2K pull-ups |
+
+When **ESP32 is populated**, all 6 pins are consumed for SPI/INT/RST. When **ESP32 is NOT populated**, all 6 pins are free for any combination of debug UART, I2C sensors, status LEDs, etc.
 
 ### SD Card Software (Built-in)
 
@@ -4235,32 +4257,65 @@ The ESP32 connects to the RP2350B via **SPI** plus a few control signals. SPI is
 
 #### Pin Allocation for ESP32 Communication
 
-The ESP32 uses **SPI0** on the RP2350B (separate from SPI1 used by SD card). We need ~5-6 GPIO pins from the spare pool:
+The ESP32 uses the BB48R's **hardware SPI0 peripheral** (separate from SPI1 used by SD card). The SPI0 pins are fixed by the BB48R hardware to GPIO4-7. We need 6 GPIO pins total:
 
-| RP2350B GPIO | Function | Direction | Notes |
-|--------------|----------|-----------|-------|
-| GPIO4 | SPI0_SCK (to ESP32) | Output | SPI clock |
-| GPIO5 | SPI0_MOSI (to ESP32) | Output | SPI data out |
-| GPIO6 | SPI0_MISO (from ESP32) | Input | SPI data in |
-| GPIO7 | /ESP32_CS | Output | SPI chip select |
-| GPIO0 | ESP32_REQ_INT | Input | ESP32 interrupts RP2350 (data ready) |
-| GPIO1 | ESP32_RST | Output | ESP32 reset / enable |
+| RP2350B GPIO | Function | Direction | BB48R Function | Notes |
+|--------------|----------|-----------|----------------|-------|
+| **GPIO4** | SPI0_RX (MISO from ESP32) | Input | SPI0_RX(MISO) | Hardware SPI0 |
+| **GPIO5** | SPI0_CSn (CS to ESP32) | Output | SPI0_CSn(CS#) | Hardware SPI0 (or use software CS on different pin) |
+| **GPIO6** | SPI0_SCK (clock to ESP32) | Output | SPI0_SCK(SCK) | Hardware SPI0 |
+| **GPIO7** | SPI0_TX (MOSI to ESP32) | Output | SPI0_TX(MOSI) | Hardware SPI0 |
+| GPIO0 | ESP32_INT (data ready) | Input | UART0_TX | Reassigned from UART0 |
+| GPIO1 | ESP32_RST (reset/enable) | Output | UART0_RX | Reassigned from UART0 |
 
-**Total: 6 pins** -- fits within the 6 spare GPIOs we have.
+**Total: 6 pins** for ESP32 -- uses the entire BB48R SPI0 + UART0 pin block.
 
-> **Tradeoff**: If we add ESP32, we use up most of the spare GPIO pool. The pUEXT/Qwiic connectors share these pins, so they would no longer be available for other expansion. UART debug (originally GPIO0/GPIO1) moves to USB CDC.
+#### Conflicts with BB48R Onboard Connectors
 
-#### ESP32 Pin Mapping (on the ESP32 side)
+When the ESP32 is populated and these pins are used for ESP32 communication, the following BB48R features become unusable:
 
-| ESP32 Pin | Function |
-|-----------|----------|
-| GPIO5 | VSPI_SS (CS) -- connect to RP2350 GPIO7 |
-| GPIO18 | VSPI_SCK -- connect to RP2350 GPIO4 |
-| GPIO19 | VSPI_MISO -- connect to RP2350 GPIO6 |
-| GPIO23 | VSPI_MOSI -- connect to RP2350 GPIO5 |
-| GPIO22 | INT output -- connect to RP2350 GPIO0 |
-| EN | Reset input -- connect to RP2350 GPIO1 |
-| GND, 3V3 | Power |
+| BB48R Feature | Conflict | Status when ESP32 populated |
+|---------------|----------|----------------------------|
+| **pUEXT connector** | Uses GPIO0-7 | **Unusable** -- don't connect anything to pUEXT |
+| **Qwiic/Stemma I2C connector** | Uses GPIO2 (SDA), GPIO3 (SCL) | **Unusable** -- I2C bus is occupied |
+| **UART0 debug serial** | GPIO0/GPIO1 | **Unusable** -- use USB CDC for debug instead |
+| **2.2K pull-ups on GPIO2/GPIO3** | Always present (R17, R18 on BB48R) | **Affects GPIO2/GPIO3** -- these still have 2.2K pull-ups even if used as plain GPIO |
+
+#### GPIO2 and GPIO3 -- Special Note
+
+GPIO2 and GPIO3 have **2.2K pull-up resistors** to 3.3V on the BB48R (R17, R18 -- for the I2C bus). These pull-ups are **always present** even if we don't use I2C or Qwiic.
+
+Implications:
+- These pins are **always pulled HIGH** when not driven
+- Can still be used as **push-pull outputs** (GPIO drives strong, the 2.2K pull-up is overridden)
+- Can be used as **inputs** but they will read HIGH if floating
+- **Adds ~1.5 mA** when driven LOW (3.3V / 2.2K)
+- **Avoid using as open-drain outputs** if logic LOW current matters
+
+For our design, GPIO2 and GPIO3 are best used for **digital outputs** where pulling HIGH by default is desirable (e.g., active-low chip selects, status LEDs, reset signals).
+
+When ESP32 is populated, GPIO2/GPIO3 can be:
+- **Additional ESP32 control signals** (extra interrupt, mode select, status)
+- **Status LEDs** (active LOW)
+- **Spare for future use**
+
+> **Tradeoff**: Adding ESP32 consumes GPIO0-7 and disables the BB48R's pUEXT/Qwiic/UART0 connectors. UART debug must go through USB CDC (which we use anyway).
+
+#### ESP32 Pin Mapping (on the ESP32 side, SPI Slave Mode)
+
+The ESP32 acts as an **SPI slave** (HSPI peripheral). Default HSPI pins on ESP32-WROOM-32:
+
+| ESP32 Pin | Function | Connects to RP2350 |
+|-----------|----------|-------------------|
+| GPIO15 | HSPI CS (input) | GPIO5 (SPI0_CSn output) |
+| GPIO14 | HSPI SCK (input) | GPIO6 (SPI0_SCK output) |
+| GPIO12 | HSPI MISO (output) | GPIO4 (SPI0_RX input) |
+| GPIO13 | HSPI MOSI (input) | GPIO7 (SPI0_TX output) |
+| GPIO22 | INT output (data ready) | GPIO0 (input) |
+| EN | Reset input (active LOW) | GPIO1 (output) |
+| GND, 3V3 | Power | GND, 3.3V from BB48R |
+
+**Direction**: RP2350 is the SPI **master**, ESP32 is the SPI **slave**. RP2350 initiates all SPI transactions. ESP32 raises GPIO22 (INT) when it has data ready, prompting RP2350 to perform a read transaction.
 
 ### ESP32 Block Diagram
 
