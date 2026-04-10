@@ -190,73 +190,201 @@ The BB48R provides 3.3V at up to 2A, ample for our level shifters, latches, and 
 
 This is the **definitive pin map** for the controller card.
 
-> **CRITICAL DESIGN RULE**: The 8-bit DBUS (GPIO12-19) and its associated latch control signals (GPIO20-23, 26-28) **must all be in the LOW bank (GPIO0-31)**. PIO state machines and direct register access can only read/write 8 contiguous pins from a single GPIO bank in one cycle. The DBUS pins (GPIO12-19) are entirely within the LOW bank, satisfying this requirement.
+> **CRITICAL DESIGN RULE**: The PIO must read both the 8-bit DBUS (from latches) AND the 4 trigger control signals in a **single PIO IN instruction**. This requires both groups to be **contiguous in the same GPIO bank**. We allocate **GPIO12-23** as one contiguous block: GPIO12-19 = DBUS, GPIO20-23 = trigger signals.
 >
-> Crossing the LOW/HIGH bank boundary (e.g., putting DBUS on GPIO28-35 which spans GPIO31->GPIO32) would force two separate read/write operations and break the timing analysis.
+> A single `IN PINS, 12` reads all 12 pins in one PIO cycle (~7 ns at 150 MHz). The result is a 12-bit value: lower 8 bits = DBUS data, upper 4 bits = trigger signals (BAPR/BIOXE/BDAP/BDRY).
+>
+> Crossing the LOW/HIGH bank boundary (e.g., putting DBUS on GPIO28-35 which spans GPIO31->GPIO32) would force two separate operations and break the timing.
 
-#### EXT1 connector (GPIO0-23)
+#### Trigger Signal Strategy
+
+The 4 most critical input control signals are the **trigger signals** -- they tell the PIO when something is happening on the bus:
+
+| Signal | When Active | What Happens |
+|--------|-------------|--------------|
+| /BAPR | CPU asserts address strobe | Address phase started, level/address on BD lines |
+| /BIOXE | CPU asserts IOX execute | IOX cycle data phase, data on BD lines |
+| /BDAP | Bus master asserts data present | Memory cycle data phase, data on BD lines |
+| /BDRY | Memory or device asserts data ready | Data response, data on BD lines |
+
+The PIO uses an **external OR gate** to combine these 4 signals into a single trigger that the PIO `wait` instruction can monitor. When ANY trigger is active, the PIO reads the full 12-bit window.
+
+**Other input control signals** are not time-critical -- the C code reads them directly via `gpio_get()` when needed:
+
+| Signal | Why C reads directly |
+|--------|----------------------|
+| /BINACK | Read during IOX response handshake |
+| /BMEM | Read during cycle classification |
+| /BMCL | Read during reset handling |
+| /BINPUT | Read during cycle classification |
+| /INGRANT | Read during DMA grant handshake |
+| /INIDENT | Read during IDENT cycle |
+
+#### EXT1 connector (GPIO0-23) - LOW bank, time-critical PIO group
 
 | GPIO | Pin Use | Direction | Buffer | Notes |
 |------|---------|-----------|--------|-------|
-| GPIO0 | spare (or UART0_TX debug) | -- | -- | Optional debug serial |
-| GPIO1 | spare (or UART0_RX debug) | -- | -- | Optional debug serial |
+| GPIO0 | INT_BB48R (from Pi Pico W) | Input | -- | Pi Pico W signals "I have data" (when populated) |
+| GPIO1 | INT_PICO (to Pi Pico W) | Output | -- | BB48R signals "wake/command" (when populated) |
 | GPIO2 | /BINT 12 drive | Output | 74LVC07 | Open-drain to bus |
 | GPIO3 | /BINT 13 drive | Output | 74LVC07 | Open-drain (HDLC) |
-| GPIO4-7 | spare | -- | -- | -- |
+| GPIO4 | SPI0_RX (MISO from Pi Pico W) | Input | -- | Hardware SPI0 |
+| GPIO5 | SPI0_CSn (CS to Pi Pico W) | Output | -- | Hardware SPI0 |
+| GPIO6 | SPI0_SCK (clock to Pi Pico W) | Output | -- | Hardware SPI0 |
+| GPIO7 | SPI0_TX (MOSI to Pi Pico W) | Output | -- | Hardware SPI0 |
 | **GPIO8** | **PSRAM CS** | -- | -- | **Board reserved** |
 | **GPIO9** | **SD card CS** | -- | -- | **Board reserved** |
 | **GPIO10** | **SD card CLK** | -- | -- | **Board reserved** |
 | **GPIO11** | **SD card CMD** | -- | -- | **Board reserved** |
-| GPIO12-19 | DBUS 0-7 | Bidir | -- | 8-bit shared MCU<->latch bus |
-| GPIO20 | /OE_IN_0 | Output | -- | Read-enable input latch 0 (BD 0-7) |
-| GPIO21 | /OE_IN_1 | Output | -- | Read-enable input latch 1 (BD 8-15) |
-| GPIO22 | /OE_IN_2 | Output | -- | Read-enable input latch 2 (BD 16-23) |
-| GPIO23 | LE_OUT_0 | Output | -- | Latch-enable output latch 0 (BD 0-7) |
+| **GPIO12** | **DBUS 0** | Bidir | -- | **PIO read group: bit 0** |
+| **GPIO13** | **DBUS 1** | Bidir | -- | **PIO read group: bit 1** |
+| **GPIO14** | **DBUS 2** | Bidir | -- | **PIO read group: bit 2** |
+| **GPIO15** | **DBUS 3** | Bidir | -- | **PIO read group: bit 3** |
+| **GPIO16** | **DBUS 4** | Bidir | -- | **PIO read group: bit 4** |
+| **GPIO17** | **DBUS 5** | Bidir | -- | **PIO read group: bit 5** |
+| **GPIO18** | **DBUS 6** | Bidir | -- | **PIO read group: bit 6** |
+| **GPIO19** | **DBUS 7** | Bidir | -- | **PIO read group: bit 7** |
+| **GPIO20** | **/BAPR_IN** (sniff) | Input | 74LVC14 | **PIO read group: bit 8** -- trigger |
+| **GPIO21** | **/BIOXE_IN** (sniff) | Input | 74LVC14 | **PIO read group: bit 9** -- trigger |
+| **GPIO22** | **/BDAP_IN** (sniff) | Input | 74LVC14 | **PIO read group: bit 10** -- trigger |
+| **GPIO23** | **/BDRY_IN** (sniff) | Input | 74LVC14 | **PIO read group: bit 11** -- trigger |
 
-#### EXT2 connector (GPIO24-47)
+> **GPIO12-23 form one contiguous block of 12 pins** that the PIO reads in a single `IN PINS, 12` instruction.
+
+#### EXT2 connector (GPIO24-47) - LOW bank end + HIGH bank
 
 | GPIO | Pin Use | Direction | Buffer | Notes |
 |------|---------|-----------|--------|-------|
 | **GPIO24** | **SD card DAT0** | -- | -- | **Board reserved** |
-| **GPIO25** | **User LED** | Output | -- | **On-board LED -- use as heartbeat** |
-| GPIO26 | LE_OUT_1 | Output | -- | Latch-enable output latch 1 (BD 8-15) |
-| GPIO27 | LE_OUT_2 | Output | -- | Latch-enable output latch 2 (BD 16-23) |
-| GPIO28 | /BD_OE_BUS | Output | -- | Master OE for output 74LVT245 transceivers |
-| GPIO29 | /BAPR_IN | Input | 74LVC14 | Sniff bus address strobe |
-| GPIO30 | /BIOXE_IN | Input | 74LVC14 | Sniff IOX execute |
-| GPIO31 | /BINACK_IN | Input | 74LVC14 | Sniff bus input acknowledge |
-| GPIO32 | /BMEM_IN | Input | 74LVC14 | Sniff memory cycle |
-| GPIO33 | /BMCL_IN | Input | 74LVC14 | Sniff bus master clear (reset) |
-| GPIO34 | /BDRY_IN | Input | 74LVC14 | Sniff bus data ready |
-| GPIO35 | /BINPUT_IN | Input | 74LVC14 | Sniff bus input direction |
-| GPIO36 | /BDAP_IN | Input | 74LVC14 | Sniff bus data present |
-| GPIO37 | /INGRANT_IN | Input | 74LVC14 | DMA grant input from previous slot |
-| GPIO38 | /INIDENT_IN | Input | 74LVC14 | Interrupt ident input from previous slot |
-| GPIO39 | /BAPR_OUT | Output | 74LVC07 | Drive BAPR during DMA cycles |
-| GPIO40 | /BDRY_OUT | Output | 74LVC07 | Drive BDRY when responding |
-| GPIO41 | /BINPUT_OUT | Output | 74LVC07 | Drive BINPUT during IOX read response or DMA write |
-| GPIO42 | /BDAP_OUT | Output | 74LVC07 | Drive BDAP during DMA cycles |
-| GPIO43 | /BREQ_OUT | Output | 74LVC07 | Drive BREQ to request DMA |
-| GPIO44 | /OE_DAISY_GRANT | Output | -- | Controls 74LVC125 grant pass-through |
-| GPIO45 | /OE_DAISY_IDENT | Output | -- | Controls 74LVC125 ident pass-through |
-| GPIO46 | /BINT 10 drive | Output | 74LVC07 | Open-drain interrupt level 10 |
-| GPIO47 | /BINT 11 drive | Output | 74LVC07 | Open-drain interrupt level 11 |
+| **GPIO25** | **User LED** | Output | -- | **On-board LED -- heartbeat** |
+| GPIO26 | /OE_IN_0 | Output | -- | Read-enable input latch 0 (BD 0-7) |
+| GPIO27 | /OE_IN_1 | Output | -- | Read-enable input latch 1 (BD 8-15) |
+| GPIO28 | /OE_IN_2 | Output | -- | Read-enable input latch 2 (BD 16-23) |
+| GPIO29 | LE_OUT_0 | Output | -- | Latch-enable output latch 0 (BD 0-7) |
+| GPIO30 | LE_OUT_1 | Output | -- | Latch-enable output latch 1 (BD 8-15) |
+| GPIO31 | LE_OUT_2 | Output | -- | Latch-enable output latch 2 (BD 16-23) |
+| GPIO32 | /BD_OE_BUS | Output | -- | Master OE for output 74LVT245 transceivers |
+| GPIO33 | TRIGGER_OR | Input | 74LVC02 NOR | Combined OR of BAPR/BIOXE/BDAP/BDRY |
+| GPIO34 | /BMEM_IN (sniff) | Input | 74LVC14 | Read directly via gpio_get() |
+| GPIO35 | /BINACK_IN (sniff) | Input | 74LVC14 | Read directly |
+| GPIO36 | /BMCL_IN (sniff) | Input | 74LVC14 | Read directly |
+| GPIO37 | /BINPUT_IN (sniff) | Input | 74LVC14 | Read directly |
+| GPIO38 | /INGRANT_IN | Input | 74LVC14 | Read directly |
+| GPIO39 | /INIDENT_IN | Input | 74LVC14 | Read directly |
+| GPIO40 | /BAPR_OUT | Output | 74LVC07 | Drive BAPR during DMA cycles |
+| GPIO41 | /BDRY_OUT | Output | 74LVC07 | Drive BDRY when responding |
+| GPIO42 | /BINPUT_OUT | Output | 74LVC07 | Drive BINPUT during IOX read response or DMA write |
+| GPIO43 | /BDAP_OUT | Output | 74LVC07 | Drive BDAP during DMA cycles |
+| GPIO44 | /BREQ_OUT | Output | 74LVC07 | Drive BREQ to request DMA |
+| GPIO45 | /OE_DAISY_GRANT | Output | -- | Controls 74LVC125 grant pass-through |
+| GPIO46 | /OE_DAISY_IDENT | Output | -- | Controls 74LVC125 ident pass-through |
+| GPIO47 | /BINT 10 + /BINT 11 | -- | -- | See note below |
+
+> **Pin shortage**: We need 2 more pins for /BINT 10 and /BINT 11 drive outputs. Options:
+> - Move /BINT 10 to GPIO0 (replacing INT_BB48R when Pi Pico W not populated)
+> - Use a 74HC595 shift register on the SD SPI bus for all /BINT outputs (saves 4 pins, costs 1 chip + 1 GPIO for CS)
+> - Move /BMCL or /INGRANT/INIDENT sniffs to a 74HC165 input shift register
+>
+> **Recommendation**: Use a 74HC595 for /BINT 10/11/12/13 outputs (4 outputs from 1 shift register), share SD SPI bus, only need 1 extra GPIO for chip select. This frees GPIO2/3 and GPIO47 for other uses.
 
 ### Pin Count Summary
 
 | Category | Pins | GPIOs |
 |----------|------|-------|
-| BD bus interface (Design 2) | 15 | GPIO12-23, 26-28 |
-| Bus inputs (sniff) | 10 | GPIO29-38 |
-| Bus outputs (drive) | 5 | GPIO39-43 |
-| Daisy chain control | 2 | GPIO44-45 |
-| Interrupt outputs | 4 | GPIO2-3, 46-47 |
-| **Subtotal used** | **36** | |
-| Board reserved | 6 | GPIO8-11, 24-25 |
-| Spare | 6 | GPIO0-1, 4-7 |
+| **PIO read group (8 DBUS + 4 trigger)** | **12** | **GPIO12-23 (contiguous!)** |
+| Latch control outputs (3 OE + 3 LE) | 6 | GPIO26-31 |
+| /BD_OE_BUS master enable | 1 | GPIO32 |
+| TRIGGER_OR (combined trigger from 74LVC02) | 1 | GPIO33 |
+| Other input sniffs (BMEM, BINACK, BMCL, BINPUT, INGRANT, INIDENT) | 6 | GPIO34-39 |
+| Bus output drives (BAPR, BDRY, BINPUT, BDAP, BREQ) | 5 | GPIO40-44 |
+| Daisy chain control | 2 | GPIO45-46 |
+| Interrupt outputs (or use 74HC595 instead) | 1+ | GPIO47 + ... |
+| Pi Pico W SPI + INTs (when populated) | 6 | GPIO0-1, 4-7 |
+| /BINT 12 + /BINT 13 | 2 | GPIO2-3 |
+| **Subtotal used** | **42** | |
+| Board reserved (PSRAM, SD, LED) | 6 | GPIO8-11, 24-25 |
 | **Total** | **48** | |
 
-**Used: 36 / Available 42 / Spare 6**
+> **Note**: The pin layout has been reorganized to put the 8 DBUS bits (GPIO12-19) **adjacent** to the 4 trigger control signals (GPIO20-23), creating a single contiguous 12-bit block for atomic PIO reads.
+
+### PIO Capture in One Read
+
+With the new layout, the PIO capture state machine reads all 12 bits in a single instruction:
+
+```pio
+.program bus_capture
+.wrap_target
+    wait 0 pin TRIGGER_OR_PIN  ; wait for combined trigger LOW (any of 4 active)
+    in pins, 12                ; read 12 bits: GPIO12-23
+                               ;   bits 0-7  = DBUS (data from latches)
+                               ;   bit 8     = /BAPR (0 = active = address phase)
+                               ;   bit 9     = /BIOXE
+                               ;   bit 10    = /BDAP
+                               ;   bit 11    = /BDRY
+    push                       ; push 12-bit word to RX FIFO
+    wait 1 pin TRIGGER_OR_PIN  ; wait for combined trigger to release
+.wrap
+```
+
+The PIO base pin is configured to GPIO12. The `IN PINS, 12` reads pins GPIO12-23 in one cycle (~7 ns at 150 MHz).
+
+#### TRIGGER_OR Logic (External 74LVC02 NOR Gate)
+
+The 4 trigger signals (active LOW) are combined via a NOR gate so the PIO can wait on a single pin:
+
+```
+  /BAPR_IN ─┐
+  /BIOXE_IN─┤
+  /BDAP_IN ─┤── 4-input NOR ──> TRIGGER_OR (HIGH when any input is LOW)
+  /BDRY_IN ─┘
+```
+
+A 4-input NOR can be built from:
+- **74LVC02** (quad 2-input NOR): use 3 NORs to combine 4 inputs (cascade)
+- **74LVC4002** (dual 4-input NOR): one chip, 2 spare gates
+- Or use a discrete logic / CPLD if available
+
+Output: TRIGGER_OR is LOW when ALL 4 trigger signals are HIGH (idle), and HIGH when ANY trigger goes LOW (active).
+
+Wait -- we need TRIGGER_OR to be LOW when triggered (to match the PIO `wait 0 pin` instruction). Let me reconsider:
+- Triggers are active LOW: /BAPR LOW means active
+- We want TRIGGER_OR LOW when ANY trigger is active (LOW)
+- That's an AND of HIGH-when-inactive: TRIGGER_OR = (BAPR HIGH) AND (BIOXE HIGH) AND (BDAP HIGH) AND (BDRY HIGH) = NOR of LOW-when-active
+- Equivalently, TRIGGER_OR = NOT (BAPR_LOW OR BIOXE_LOW OR BDAP_LOW OR BDRY_LOW)
+- TRIGGER_OR LOW when any trigger is active: use a **NAND** gate (in active-low logic)
+
+Use **74LVC30** 8-input NAND or 74LVC20 4-input NAND. Or 74LVC02 cascade.
+
+The PIO then waits for `wait 0 pin TRIGGER_OR_PIN` -- triggers when TRIGGER_OR goes LOW.
+
+**Decoding in C code**:
+
+```c
+void process_bus_event(uint16_t event) {
+    uint8_t dbus = event & 0xFF;        // bits 0-7: DBUS data
+    bool bapr_active  = !(event & 0x100); // bit 8: /BAPR (inverted because active LOW)
+    bool bioxe_active = !(event & 0x200); // bit 9: /BIOXE
+    bool bdap_active  = !(event & 0x400); // bit 10: /BDAP
+    bool bdry_active  = !(event & 0x800); // bit 11: /BDRY
+
+    if (bapr_active) {
+        // Address phase -- dbus contains the address byte
+        // Continue reading other bytes of address from latches via OE_IN_1/2
+        handle_address_phase(dbus);
+    } else if (bioxe_active) {
+        // IOX data phase
+        handle_iox_data(dbus);
+    } else if (bdap_active) {
+        // Memory data phase
+        handle_memory_data(dbus);
+    } else if (bdry_active) {
+        // DMA read response
+        handle_dma_data(dbus);
+    }
+}
+```
+
+> **Note on the 8-bit DBUS**: When PIO captures, it reads only 8 bits of the 24-bit BD bus -- the byte currently selected by /OE_IN_0/1/2. The PIO program should sequence through reading all 3 bytes of the latches before processing.
 
 ### "Spare" Pin Uses (Not Truly Free)
 
