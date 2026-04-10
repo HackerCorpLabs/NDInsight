@@ -190,6 +190,10 @@ The BB48R provides 3.3V at up to 2A, ample for our level shifters, latches, and 
 
 This is the **definitive pin map** for the controller card.
 
+> **CRITICAL DESIGN RULE**: The 8-bit DBUS (GPIO12-19) and its associated latch control signals (GPIO20-23, 26-28) **must all be in the LOW bank (GPIO0-31)**. PIO state machines and direct register access can only read/write 8 contiguous pins from a single GPIO bank in one cycle. The DBUS pins (GPIO12-19) are entirely within the LOW bank, satisfying this requirement.
+>
+> Crossing the LOW/HIGH bank boundary (e.g., putting DBUS on GPIO28-35 which spans GPIO31->GPIO32) would force two separate read/write operations and break the timing analysis.
+
 #### EXT1 connector (GPIO0-23)
 
 | GPIO | Pin Use | Direction | Buffer | Notes |
@@ -4212,241 +4216,140 @@ The pull resistors automatically achieve safe state during the brief window when
 
 ---
 
-## ESP32 Wireless Companion Chip (Optional Populate)
+## Wireless Companion: Pi Pico W Footprint on PCB
 
-> **PCB design rule**: The ESP32 footprint, traces, and supporting components are **always present on the PCB**, but the ESP32 module itself is **optional to populate at assembly time**. Order PCBs with or without the ESP32 depending on use case. PCBs without ESP32 leave the footprint empty -- nothing else changes.
+For network connectivity (WiFi for HDLC over IP, telnet/SSH terminal sessions, MQTT for monitoring, etc.), the controller PCB includes a **Pi Pico W footprint** (compatible with Pi Pico W, Pi Pico 2 W, and similar 21-pin headers). The Pi Pico W is **optional to populate** -- the footprint is on the PCB but the module is only soldered/socketed when wireless is needed.
 
-For network connectivity (WiFi for HDLC over IP, telnet/SSH terminal sessions, MQTT for monitoring, etc.), an **ESP32** can be populated as a companion chip on the controller card. The ESP32 talks to the RP2350B over SPI.
+### Why Pi Pico W?
 
-### Why ESP32?
+The Pi Pico W (or Pi Pico 2 W) is the natural choice as a wireless companion because:
 
-The Olimex BB48R has WiFi capability through the **separate** RP2350-PICO2-W variant, but if we use the BB48R (which lacks WiFi), we need a separate wireless module. ESP32 is the standard choice:
+1. **Same family as our main MCU** (RP2040 or RP2350) -- shared SDK, same C toolchain, same PIO programming model
+2. **WiFi + Bluetooth** built in via Infineon CYW43 wireless chip
+3. **USB-C / micro-USB on board** -- programmable independently from our card
+4. **Cheap** -- ~$6 for Pi Pico W, ~$8 for Pi Pico 2 W
+5. **Well documented** -- official RP SDK, large community
+6. **Small** -- 21 mm x 51 mm, easy to fit on our PCB
+7. **Standard 0.1" headers** -- can be socketed or soldered directly
+8. **3.3V** -- compatible with our card's 3.3V supply
+9. **Code reuse** -- we can use the same firmware patterns as our main RP2350B
 
-- **WiFi 802.11 b/g/n** -- standard
-- **Bluetooth Classic + BLE** -- bonus, useful for diagnostics
-- **Cheap** -- ESP32-WROOM-32 module is ~$3
-- **Flexible** -- runs Arduino, ESP-IDF, MicroPython
-- **Well documented** -- huge community
+### SPI Routing
 
-### Use Cases
+The Pi Pico W footprint connects to the **same RP2350B SPI0 signals** that the BB48R exposes via its pUEXT connector. We route these signals from the BB48R header pins to the Pi Pico W footprint on our PCB:
 
-| Use Case | Description |
-|----------|-------------|
-| **HDLC over WiFi** | Bridge ND-100 HDLC frames to/from a remote system over IP. Replace serial HDLC links with WiFi. |
-| **Terminal over Telnet/SSH** | Emulated terminal connects to a Telnet or SSH server. Modern terminal access without physical serial cables. |
-| **Disk image upload** | Upload floppy/SMD images over WiFi to the SD card (via the ESP32 acting as HTTP server). |
-| **Remote monitoring** | MQTT or WebSocket telemetry of card state, bus activity, error logs. |
-| **Remote firmware update** | OTA firmware updates for the controller card. |
-| **Remote control** | Web UI for switching emulated devices, resetting, configuring. |
+| Signal | RP2350B Side | Pi Pico W Side | Notes |
+|--------|--------------|----------------|-------|
+| SPI_SCK | GPIO6 (BB48R EXT1 pin 10) | GP18 (Pi Pico W default SPI0 SCK) | Clock master to slave |
+| SPI_MOSI | GPIO7 (BB48R EXT1 pin 11) | GP19 (Pi Pico W default SPI0 TX) | Data master to slave |
+| SPI_MISO | GPIO4 (BB48R EXT1 pin 8) | GP16 (Pi Pico W default SPI0 RX) | Data slave to master |
+| SPI_CS | GPIO5 (BB48R EXT1 pin 9) | GP17 (Pi Pico W default SPI0 CS) | Active LOW chip select |
+| INT | GPIO0 (BB48R EXT1 pin 4) | Any GP (e.g. GP15) | Pi Pico W signals data ready |
+| RST | GPIO1 (BB48R EXT1 pin 5) | RUN pin on Pi Pico W | Reset Pi Pico W from RP2350B |
+| 3.3V | (from BB48R 3.3V rail) | 3V3 pin on Pi Pico W | Power |
+| GND | GND | GND | Common ground |
 
-### Hardware Integration
+The Pi Pico W operates as a **SPI slave** to the RP2350B (which is the SPI master). Both run RP2040/RP2350 hardware so the Pi Pico W can use its own SPI peripheral or PIO state machine for the slave-side handling.
 
-The ESP32 connects to the RP2350B via **SPI** plus a few control signals. SPI is fast enough for terminal traffic (~9600-115200 baud per session) and even HDLC (~64 Kbit/s).
+### Pi Pico W Footprint on PCB
 
-#### ESP32 Module Selection
+A standard Pi Pico W has **21+21 = 42 pin pads** (3 of which are debug pins) plus 4 corner mounting holes. The PCB footprint:
 
-| Module | Notes |
-|--------|-------|
-| **ESP32-WROOM-32** | Standard 4MB flash, WiFi+BT, common, ~$3 |
-| **ESP32-WROOM-32E** | Updated revision, recommended |
-| **ESP32-S3-WROOM-1** | Newer, more RAM, better USB |
-| **ESP32-C3** | RISC-V, smaller, single core |
-| **ESP32-S2** | No Bluetooth, USB OTG |
+| Item | Specification |
+|------|--------------|
+| Footprint type | Pi Pico W standard (21 pin pads each side, 0.1" pitch, 17 mm row spacing) |
+| Mounting | 2x 20-pin female sockets OR direct solder pads |
+| Pi Pico W variant | Pi Pico W (RP2040) or Pi Pico 2 W (RP2350) -- same footprint |
+| Orientation | USB connector facing the edge of the controller card for easy access |
+| Antenna keep-out | No copper directly under the Pi Pico W antenna area (right edge of the module) |
+| Power | 3.3V from BB48R 3.3V rail (NOT VBUS -- Pi Pico W is powered from our card) |
 
-**Recommendation**: **ESP32-WROOM-32E** (4MB flash, WiFi+BT, $3, well supported).
+The Pi Pico W has its own **USB-C connector** for independent programming -- you don't need to disconnect anything to flash new firmware. Just plug a USB cable into the Pi Pico W and use the Raspberry Pi C SDK or MicroPython.
 
-#### Pin Allocation for ESP32 Communication
+### When Pi Pico W is Not Populated
 
-The ESP32 uses the BB48R's **hardware SPI0 peripheral** (separate from SPI1 used by SD card). The SPI0 pins are fixed by the BB48R hardware to GPIO4-7. We need 6 GPIO pins total:
+If you don't need wireless connectivity:
+- **Don't solder/socket the Pi Pico W**
+- The 6 GPIO0-7 pins remain available for other uses (debug, status LEDs, I2C sensors)
+- The footprint is empty -- just unused PCB area
+- No electrical impact -- nothing connected, no current draw
 
-| RP2350B GPIO | Function | Direction | BB48R Function | Notes |
-|--------------|----------|-----------|----------------|-------|
-| **GPIO4** | SPI0_RX (MISO from ESP32) | Input | SPI0_RX(MISO) | Hardware SPI0 |
-| **GPIO5** | SPI0_CSn (CS to ESP32) | Output | SPI0_CSn(CS#) | Hardware SPI0 (or use software CS on different pin) |
-| **GPIO6** | SPI0_SCK (clock to ESP32) | Output | SPI0_SCK(SCK) | Hardware SPI0 |
-| **GPIO7** | SPI0_TX (MOSI to ESP32) | Output | SPI0_TX(MOSI) | Hardware SPI0 |
-| GPIO0 | ESP32_INT (data ready) | Input | UART0_TX | Reassigned from UART0 |
-| GPIO1 | ESP32_RST (reset/enable) | Output | UART0_RX | Reassigned from UART0 |
+Adding the Pi Pico W later is as simple as soldering it onto the existing footprint or plugging it into the female sockets if installed.
 
-**Total: 6 pins** for ESP32 -- uses the entire BB48R SPI0 + UART0 pin block.
+### Conflicts with BB48R Onboard Connectors
 
-#### Conflicts with BB48R Onboard Connectors
+When the Pi Pico W is populated, GPIO0-7 are owned by the Pi Pico W SPI link. The following BB48R features become unusable:
 
-When the ESP32 is populated and these pins are used for ESP32 communication, the following BB48R features become unusable:
+| BB48R Feature | Status when Pi Pico W populated |
+|---------------|---------------------------------|
+| pUEXT connector on BB48R | **Unusable** -- shared signals routed to Pi Pico W instead |
+| Qwiic connector on BB48R | **Unusable** -- shared signals (GPIO2/3) |
+| UART0 debug serial | **Unusable** -- use USB CDC for debug |
 
-| BB48R Feature | Conflict | Status when ESP32 populated |
-|---------------|----------|----------------------------|
-| **pUEXT connector** | Uses GPIO0-7 | **Unusable** -- don't connect anything to pUEXT |
-| **Qwiic/Stemma I2C connector** | Uses GPIO2 (SDA), GPIO3 (SCL) | **Unusable** -- I2C bus is occupied |
-| **UART0 debug serial** | GPIO0/GPIO1 | **Unusable** -- use USB CDC for debug instead |
-| **2.2K pull-ups on GPIO2/GPIO3** | Always present (R17, R18 on BB48R) | **Affects GPIO2/GPIO3** -- these still have 2.2K pull-ups even if used as plain GPIO |
+**Note on UART0 debug**: We use **USB CDC virtual serial port** on the BB48R's USB-C for all debug output. UART0 is not needed for debug, so reassigning GPIO0/GPIO1 for INT/RST has no impact.
 
-#### GPIO2 and GPIO3 -- Special Note
+### Pi Pico W Software
 
-GPIO2 and GPIO3 have **2.2K pull-up resistors** to 3.3V on the BB48R (R17, R18 -- for the I2C bus). These pull-ups are **always present** even if we don't use I2C or Qwiic.
+The Pi Pico W runs:
+- **Raspberry Pi C SDK** (same as our main RP2350B) -- shared code patterns
+- **lwIP TCP/IP stack** for telnet/HTTP/MQTT (built into pico-extras)
+- **CYW43 driver** for WiFi (built into pico-extras)
+- **SPI slave** implementation (custom -- use PIO for full control)
 
-Implications:
-- These pins are **always pulled HIGH** when not driven
-- Can still be used as **push-pull outputs** (GPIO drives strong, the 2.2K pull-up is overridden)
-- Can be used as **inputs** but they will read HIGH if floating
-- **Adds ~1.5 mA** when driven LOW (3.3V / 2.2K)
-- **Avoid using as open-drain outputs** if logic LOW current matters
+The Pi Pico W firmware is a **separate binary** from the RP2350B firmware. Both can be developed in the same C SDK with shared utilities.
 
-For our design, GPIO2 and GPIO3 are best used for **digital outputs** where pulling HIGH by default is desirable (e.g., active-low chip selects, status LEDs, reset signals).
-
-When ESP32 is populated, GPIO2/GPIO3 can be:
-- **Additional ESP32 control signals** (extra interrupt, mode select, status)
-- **Status LEDs** (active LOW)
-- **Spare for future use**
-
-> **Tradeoff**: Adding ESP32 consumes GPIO0-7 and disables the BB48R's pUEXT/Qwiic/UART0 connectors. UART debug must go through USB CDC (which we use anyway).
-
-#### ESP32 Pin Mapping (on the ESP32 side, SPI Slave Mode)
-
-The ESP32 acts as an **SPI slave** (HSPI peripheral). Default HSPI pins on ESP32-WROOM-32:
-
-| ESP32 Pin | Function | Connects to RP2350 |
-|-----------|----------|-------------------|
-| GPIO15 | HSPI CS (input) | GPIO5 (SPI0_CSn output) |
-| GPIO14 | HSPI SCK (input) | GPIO6 (SPI0_SCK output) |
-| GPIO12 | HSPI MISO (output) | GPIO4 (SPI0_RX input) |
-| GPIO13 | HSPI MOSI (input) | GPIO7 (SPI0_TX output) |
-| GPIO22 | INT output (data ready) | GPIO0 (input) |
-| EN | Reset input (active LOW) | GPIO1 (output) |
-| GND, 3V3 | Power | GND, 3.3V from BB48R |
-
-**Direction**: RP2350 is the SPI **master**, ESP32 is the SPI **slave**. RP2350 initiates all SPI transactions. ESP32 raises GPIO22 (INT) when it has data ready, prompting RP2350 to perform a read transaction.
-
-### ESP32 Block Diagram
-
-```mermaid
-flowchart LR
-    subgraph CARD["Controller Card"]
-        RP["RP2350B<br/>(Olimex BB48R)"]
-        ESP["ESP32-WROOM-32E<br/>(SMD module)"]
-        BUS_IF["BD Bus Interface<br/>(Design 2 latches)"]
-    end
-
-    subgraph EXT["External"]
-        ND["ND-100 Bus"]
-        WIFI["WiFi Network"]
-    end
-
-    RP <-->|SPI0| ESP
-    RP <-->|"GPIO INT/RST"| ESP
-    RP -->|GPIO + PIO| BUS_IF
-    BUS_IF <-->|5V bus| ND
-    ESP <-->|2.4 GHz| WIFI
-
-    style CARD fill:#E3F2FD,stroke:#0D47A1,color:#0D47A1
-    style EXT fill:#FFF3E0,stroke:#E65100,color:#E65100
-    style RP fill:#E0F7FA,stroke:#00838F,color:#00838F
-    style ESP fill:#F3E5F5,stroke:#7B1FA2,color:#7B1FA2
-```
-
-### SPI Protocol Between RP2350 and ESP32
-
-A simple **command/response framing** protocol:
-
-```c
-typedef struct {
-    uint8_t cmd;        // Command opcode
-    uint8_t channel;    // Logical channel (terminal session, HDLC link, etc.)
-    uint16_t length;    // Payload length in bytes
-    uint8_t payload[];  // Variable length data
-} esp32_frame_t;
-```
-
-**Commands** (RP2350 -> ESP32):
-
-| Cmd | Name | Payload |
-|-----|------|---------|
-| 0x01 | OPEN_TELNET | host:port string |
-| 0x02 | CLOSE_TELNET | channel ID |
-| 0x10 | TERM_TX | terminal output bytes |
-| 0x20 | HDLC_TX | HDLC frame bytes |
-| 0x30 | HTTP_GET | URL string |
-| 0x40 | MQTT_PUB | topic + payload |
-| 0xF0 | GET_STATUS | -- |
-| 0xF1 | RESET_ESP32 | -- |
-
-**Events** (ESP32 -> RP2350, via INT pin then SPI read):
-
-| Event | Description |
-|-------|-------------|
-| 0x10 | TERM_RX | bytes received from telnet |
-| 0x11 | TERM_CONNECTED | session opened |
-| 0x12 | TERM_DISCONNECTED | session closed |
-| 0x20 | HDLC_RX | HDLC frame received |
-| 0xE0 | WIFI_CONNECTED | -- |
-| 0xE1 | WIFI_DISCONNECTED | -- |
-| 0xE2 | ERROR | error code + message |
-
-The ESP32 raises ESP32_REQ_INT when it has data ready. The RP2350 then issues a SPI read transaction to retrieve it.
-
-### Throughput Analysis
-
-| Protocol | Bandwidth needed | SPI bandwidth | Headroom |
-|----------|------------------|---------------|----------|
-| Terminal session @ 9600 baud | 9.6 Kbit/s | 25 Mbit/s @ 25 MHz SPI | 2600x |
-| HDLC link @ 64 Kbit/s | 64 Kbit/s | 25 Mbit/s | 390x |
-| HTTP file download | varies | 25 Mbit/s | depends |
-
-SPI at 25 MHz gives ~25 Mbit/s effective, **far more than needed** for terminal and HDLC traffic.
-
-### ESP32 Software
-
-The ESP32 runs ESP-IDF or Arduino framework with:
-- **TCP/IP stack** for telnet/SSH/MQTT
-- **WiFi station mode** (connects to existing WiFi network)
-- **SPI slave** to receive commands from RP2350
-- **HTTP server** for disk image upload (optional)
-
-Reference: ESP-IDF SPI slave example: https://github.com/espressif/esp-idf/tree/master/examples/peripherals/spi_slave
-
-### When ESP32 is Not Needed
-
-If you don't need WiFi/network connectivity:
-- **Don't populate the ESP32** on the PCB
-- The 6 GPIOs become free again for other use (debug UART, additional LEDs, expansion)
-- The PCB has space for the ESP32 footprint but it's optional
-
-The ESP32 should be a **populate option** at PCB assembly time -- order with or without ESP32 depending on use case.
-
-### Cost Impact
+### Cost
 
 | Item | Cost |
 |------|------|
-| ESP32-WROOM-32E module | ~$3.00 |
-| Antenna (PCB or external) | included in module |
-| Decoupling caps | $0.10 |
-| Reset pull-up resistor | $0.05 |
-| SPI signal traces | minimal |
-| **Total** | **~$3.15** |
+| Pi Pico W (RP2040 with WiFi) | ~$6 |
+| Pi Pico 2 W (RP2350 with WiFi) | ~$8 |
+| 2x 20-pin female sockets (optional, for socketing) | ~$0.50 |
+| 470 uF tantalum cap near Pi Pico W power pin | $0.30 |
+| **Total controller card additions** | **~$0.30 (footprint only) or ~$8.30 (with Pi Pico 2 W populated)** |
 
-Trivial cost for adding modern wireless connectivity.
+### Pi Pico W Footprint Layout
 
-### PCB Layout for ESP32
+```
+  +-----------------------------------------+
+  |  Olimex BB48R (socketed)               |
+  |  ND-100 bus interface (SMD)             |
+  |                                         |
+  |    +---------------------------+        |
+  |    | Pi Pico W footprint       |        |
+  |    | (21 pads each side,       |        |
+  |    |  17 mm row spacing)       |        |
+  |    | USB connector to edge     |        |
+  |    |     [USB] ->              |        |
+  |    +---------------------------+        |
+  |                                         |
+  |  Status LEDs                            |
+  +============== C connector (DIN41612) ===+
+```
 
-| Item | Notes |
-|------|-------|
-| Module placement | Top side of PCB, antenna away from metal/RF noise |
-| Antenna keep-out | Per ESP32 datasheet -- no copper near the PCB antenna |
-| Decoupling | 10uF + 0.1uF close to ESP32 power pin |
-| Power | 3.3V from BB48R or local LDO (ESP32 can draw ~500mA peak) |
-| Reset | Pull-up to 3.3V, button optional |
-| Programming header | 6-pin breakout for ESP32 USB-UART programming (optional, can be omitted if pre-programmed) |
+The Pi Pico W footprint is positioned with the USB connector facing the **edge of the controller card** so you can plug a USB cable in without removing the card from the backplane.
 
-### Programming the ESP32
+### Software
 
-The ESP32 has its own flash and is programmed separately from the RP2350. Options:
+The Pi Pico W runs a separate firmware binary providing:
+- **WiFi station mode** (connects to existing WiFi network)
+- **lwIP TCP/IP stack** for telnet/SSH/HTTP/MQTT
+- **SPI slave** to receive commands from the BB48R RP2350B
+- **HTTP server** for disk image upload (optional)
 
-1. **Pre-program before soldering** -- order modules pre-flashed
-2. **Programming header on PCB** -- add a 6-pin header for USB-UART programmer
-3. **OTA update via WiFi** -- after initial programming, all updates over WiFi
-4. **SPI bootloader** -- RP2350 reflashes ESP32 via SPI (requires custom code)
+Reference: Raspberry Pi Pico W Pico SDK examples for WiFi: https://github.com/raspberrypi/pico-examples/tree/master/pico_w
 
-**Recommendation**: Add a 6-pin programming header for initial flash, use OTA for updates.
+### Programming the Pi Pico W
+
+The Pi Pico W has its own USB connector and is programmed independently from the BB48R:
+
+1. Hold the **BOOTSEL** button on the Pi Pico W
+2. Plug a USB cable into the Pi Pico W's USB port (not the BB48R's USB)
+3. Pi Pico W appears as USB mass storage
+4. Drag-and-drop the .uf2 firmware file
+5. Pi Pico W reboots and runs the new firmware
+
+You can leave the BB48R running while the Pi Pico W is being reprogrammed -- the SPI link is just dormant during the update.
 
 ---
 
