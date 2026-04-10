@@ -301,118 +301,290 @@ The PIO uses an **external OR gate** to combine these 4 signals into a single tr
 
 > **Note**: The pin layout puts the 8 DBUS bits (GPIO12-19) **adjacent** to the 4 trigger control signals (GPIO20-23), creating a single contiguous 12-bit block for atomic PIO reads. No external NOR gate or trigger combining logic needed -- PIO does the trigger detection internally via mask compare.
 
-### PIO Capture: Sample-on-Change with Mask Compare
+### PIO Capture: Three State Machines (Signal + Address + Data)
 
-**No external NOR gate needed.** The PIO reads all 12 pins (8 DBUS + 4 triggers) as a single bitmask in one instruction. It then compares the current sample against the previous sample and pushes to FIFO **only when something changes**.
+The capture logic is split into **three PIO state machines** with clear separation of responsibilities. Address and data are read by separate SMs so each can have its own **DMA channel** and target buffer:
 
-This is the same technique used by `piorom.c` in the [one-rom](https://github.com/piersfinlayson/one-rom/blob/main/sdrr/src/piodma/piorom.c) project: PIO does parallel pin sampling and uses mask + compare in PIO scratch registers, no glue logic required.
+| State Machine | Purpose | Width | Triggered By |
+|---------------|---------|-------|--------------|
+| **SM_SIGNAL** | Watch trigger control signals, dispatch | 4 bits | Continuous polling |
+| **SM_ADDR** | Read 24-bit address from 3x latches | 24 bits | IRQ from SM_SIGNAL when /BAPR active |
+| **SM_DATA** | Read 16-bit data from 2x latches | 16 bits | IRQ from SM_SIGNAL when /BIOXE/BDAP/BDRY active |
 
-#### How It Works
+The three state machines communicate via **PIO IRQs**:
+- SM_SIGNAL detects which trigger fired
+- Raises IRQ4 for address phase (BAPR active)
+- Raises IRQ5 for data phase (BIOXE/BDAP/BDRY active)
+- SM_ADDR waits for IRQ4
+- SM_DATA waits for IRQ5
 
-1. **PIO continuously samples** all 12 pins (GPIO12-23) at PIO clock speed (~150 MHz, 7 ns per iteration)
-2. PIO uses scratch register **Y** to hold the previous sample
-3. PIO uses scratch register **X** for the current sample
-4. `jmp x != y` compares current vs previous in one cycle
-5. If different (any pin changed), push to FIFO and update Y
-6. If same, loop back to next sample
+This way, address and data events go to **separate FIFOs**, and the CPU can use **separate DMA channels** to move them into separate circular buffers in PSRAM.
 
-This generates FIFO events **only when bus state actually changes** -- during idle, nothing is pushed.
+#### Architecture
 
-#### PIO Program
+```
+                                +----------------+
+  /BAPR_IN  (GPIO20) --+        | SM_SIGNAL      |
+  /BIOXE_IN (GPIO21) --+------> | sample-on-     |
+  /BDAP_IN  (GPIO22) --+        | change, decide |
+  /BDRY_IN  (GPIO23) --+        | which IRQ      |
+                                +---+--------+---+
+                                    |        |
+                            IRQ4    |        |    IRQ5
+                       (BAPR active)|        |(BIOXE/BDAP/BDRY active)
+                                    v        v
+                          +---------+--+  +--+---------+
+  GPIO12-19 (DBUS) <----+ | SM_ADDR    |  | SM_DATA    | -+--> Data FIFO  (16-bit)
+                        +-| read 3     |  | read 2     |  |    via DMA channel 2
+  /OE_IN_0 (GPIO26) <---+ | latches    |  | latches    |  |    --> data buffer
+  /OE_IN_1 (GPIO27) <---+ | -> 24 bits |  | -> 16 bits |  |
+  /OE_IN_2 (GPIO28) <---+ +------+-----+  +-----+------+  +--> Address FIFO (24-bit)
+                                 |              |              via DMA channel 1
+                                 v              v              --> address buffer
+                          Address FIFO    Data FIFO
+```
+
+#### How SM_SIGNAL Decides Which IRQ
+
+SM_SIGNAL examines the trigger pattern when a change is detected:
+- **/BAPR active** (bit 0 LOW) → raise IRQ4 (address phase)
+- **/BIOXE, /BDAP, or /BDRY active** (bits 1-3 LOW) → raise IRQ5 (data phase)
+- **All inactive** → no IRQ (just bus state release, optional push)
+
+Note: /BAPR is always asserted first in any cycle (it's the address strobe). The data phase triggers (BIOXE/BDAP/BDRY) come later. So the typical sequence is:
+1. /BAPR LOW → IRQ4 → SM_ADDR reads 24-bit address
+2. /BIOXE (or /BDAP, /BDRY) LOW → IRQ5 → SM_DATA reads 16-bit data
+3. Cycle releases
+
+#### SM_SIGNAL: Trigger Detection with Dispatch
 
 ```pio
-.program bus_sample
-; Reads 12 pins (GPIO12-23) and pushes to FIFO only on change.
-; Pin layout (base = GPIO12):
-;   bits 0-7  = DBUS 0-7 (current latch byte selected by /OE_IN)
-;   bit 8     = /BAPR  (active LOW)
-;   bit 9     = /BIOXE (active LOW)
-;   bit 10    = /BDAP  (active LOW)
-;   bit 11    = /BDRY  (active LOW)
+.program sm_signal
+; Reads 4 trigger pins (GPIO20-23) and dispatches to ADDR or DATA SM.
+; Pin base = GPIO20.
 ;
-; Y register holds the previous 12-bit sample.
-; X register holds the current 12-bit sample.
+; Y register holds previous trigger state.
+; X register holds current trigger state.
 
 .wrap_target
-    mov isr, null         ; clear ISR shift counter
-    in pins, 12           ; sample 12 pins into ISR (one cycle)
-    mov x, isr            ; X = current sample (one cycle)
-    jmp x != y changed    ; if X != Y, something changed (one cycle)
-    jmp .wrap_target      ; same as before, keep sampling
-changed:
-    mov y, x              ; update Y = new state (one cycle)
-    push                  ; push current sample to RX FIFO (one cycle)
+    mov isr, null          ; clear ISR
+    in pins, 4             ; sample 4 trigger pins (1 cycle)
+    mov x, isr             ; X = current state (1 cycle)
+    jmp x != y new_state   ; compare with Y (1 cycle)
+    jmp .wrap_target       ; same, keep sampling
+new_state:
+    mov y, x               ; remember new state (1 cycle)
+    push                   ; push trigger state to signal FIFO (1 cycle)
+    
+    ; Decide which IRQ to raise based on which trigger is active.
+    ; Trigger pins are active LOW. We need to check bit 0 (BAPR).
+    ; Use OUT to shift bit 0 into the lowest bit of OSR/scratch.
+    
+    mov osr, x             ; copy X to OSR
+    out null, 1            ; discard, but check via JMP-on-OSR? No.
+    
+    ; Simpler: use a separate jmp test
+    ; Actually, since /BAPR is always first, we can use a different approach:
+    ; Just raise IRQ4 always, let CPU dispatch
+    ;
+    ; OR raise both IRQ4 and IRQ5, both target SMs check the trigger bits
+    
+    irq set 4              ; address phase signal (cleared by SM_ADDR)
+    irq set 5              ; data phase signal   (cleared by SM_DATA)
 .wrap
 ```
 
-**Loop time when nothing changes**: 4 cycles = ~28 ns at 150 MHz
-**Loop time when something changes**: 6 cycles = ~42 ns
+**Note**: PIO mov+jmp branching on bit values is awkward. The simpler approach is to **raise both IRQs** when any trigger changes, and let SM_ADDR and SM_DATA each verify their condition. This is more PIO-friendly.
 
-#### Y Register Initialization
+Alternative cleaner design: SM_SIGNAL only watches /BAPR and the OR-of-other-3-via-PIO-comparison. But this gets complex.
 
-The CPU pre-loads Y with an impossible "initial" value via the TX FIFO:
+**Simplest correct design**: SM_SIGNAL raises BOTH IRQs on any trigger change. SM_ADDR reads the latches whenever IRQ4 fires (which is always after BAPR captures). SM_DATA reads when IRQ5 fires (which is when /BIOXE/BDAP/BDRY captures). The CPU uses the signal FIFO to know which read is valid (e.g., ignore SM_ADDR output if BAPR was not active, or use separate DMA channels and let CPU correlate).
 
-```c
-// From CPU side, before starting the SM:
-pio_sm_put_blocking(pio0, sm_capture, 0xFFFFFFFF);
+OR: have SM_SIGNAL only raise IRQ4 when bit 0 (BAPR) goes LOW, and only raise IRQ5 when bits 1-3 (data triggers) go LOW. This requires two separate checks in PIO, which is doable.
 
-// PIO program initializes Y from OSR:
-//   pull          ; OSR = 0xFFFFFFFF
-//   mov y, osr    ; Y = 0xFFFFFFFF
-// Then enters .wrap_target loop
+```pio
+.program sm_signal_v2
+; More precise dispatch using two separate checks.
+
+.wrap_target
+    mov isr, null
+    in pins, 4
+    mov x, isr
+    jmp x != y new_state
+    jmp .wrap_target
+new_state:
+    mov y, x               ; remember new state
+    push                   ; push trigger state
+    
+    ; Check if /BAPR (bit 0) is now LOW
+    mov osr, x             ; OSR = X
+    out null, 0            ; (no shift, prepare)
+    out x, 1               ; X = bit 0 of OSR (= /BAPR state)
+    jmp !x bapr_active     ; if X == 0 (BAPR LOW = active), raise ADDR IRQ
+    jmp check_data
+bapr_active:
+    irq set 4              ; signal ADDR SM
+check_data:
+    ; X has been clobbered. Reload from Y (which still has the new state).
+    mov x, y
+    mov osr, x
+    out null, 1            ; shift past bit 0
+    out x, 3               ; X = bits 1-3 (BIOXE/BDAP/BDRY)
+    jmp x != 0b111 data_active
+    jmp .wrap_target
+data_active:
+    irq set 5              ; signal DATA SM
+.wrap
 ```
 
-The first sample will be different from Y (since Y = 0xFFFFFFFF and the sample is 12 bits), so the first read always pushes -- giving the CPU the initial bus state.
+This is more complex but more precise. Each iteration:
+- 4 cycles for the basic sample-compare
+- +6 cycles when triggered (push + check BAPR + check data)
+- Total ~10 cycles (~70 ns) per trigger event
 
-#### CPU Decoding
+#### SM_ADDR: 24-bit Address Reader
 
-The CPU drains the FIFO via DMA into a circular buffer in PSRAM. Each 32-bit word contains the 12-bit sample. The CPU dispatches based on which trigger bits are active:
+**Purpose**: Wait for IRQ4 from SM_SIGNAL. Read all 3 bytes from the input latches and push the 24-bit address.
+
+```pio
+.program sm_addr
+; Reads 24-bit address from 3x 74LVC574 latches.
+; Pin base for IN = GPIO12 (DBUS 0).
+; Sideset = 3 pins on GPIO26-28 (/OE_IN_0/1/2).
+;
+; Sideset values (active LOW chip selects):
+;   0b111 = all latches deasserted
+;   0b110 = OE_IN_0 LOW = latch 0 (BD 0-7)
+;   0b101 = OE_IN_1 LOW = latch 1 (BD 8-15)
+;   0b011 = OE_IN_2 LOW = latch 2 (BD 16-23)
+
+.side_set 3
+
+.wrap_target
+    irq wait 4     side 0b111   ; wait for IRQ4, deassert all (cleared on wait)
+    
+    ; Read latch 0 (BD 0-7)
+    nop            side 0b110   ; assert /OE_IN_0 (settling time)
+    in pins, 8     side 0b110   ; read 8 bits into ISR
+    
+    ; Read latch 1 (BD 8-15)
+    nop            side 0b101   ; switch to /OE_IN_1
+    in pins, 8     side 0b101   ; read next 8 bits
+    
+    ; Read latch 2 (BD 16-23)
+    nop            side 0b011   ; switch to /OE_IN_2
+    in pins, 8     side 0b011   ; read final 8 bits
+    
+    push           side 0b111   ; push 24-bit address, deassert all
+.wrap
+```
+
+**Time per address read**: 8 cycles (~56 ns) including IRQ wait + 3 latch reads + push.
+
+#### SM_DATA: 16-bit Data Reader
+
+**Purpose**: Wait for IRQ5 from SM_SIGNAL. Read 2 bytes from the input latches (BD 0-15 only -- data is 16-bit on the ND-100 bus). Push the 16-bit data.
+
+```pio
+.program sm_data
+; Reads 16-bit data from 2x 74LVC574 latches (bytes 0 and 1).
+; Pin base for IN = GPIO12 (DBUS 0).
+; Sideset = 3 pins on GPIO26-28.
+
+.side_set 3
+
+.wrap_target
+    irq wait 5     side 0b111   ; wait for IRQ5, deassert all
+    
+    ; Read latch 0 (BD 0-7)
+    nop            side 0b110
+    in pins, 8     side 0b110
+    
+    ; Read latch 1 (BD 8-15)
+    nop            side 0b101
+    in pins, 8     side 0b101
+    
+    push           side 0b111   ; push 16-bit data, deassert all
+.wrap
+```
+
+**Time per data read**: 6 cycles (~42 ns) -- one less latch read than SM_ADDR.
+
+> **Note**: ND-100 data is 16-bit, but we have 3 latches. SM_DATA only reads latches 0 and 1 (BD 0-15). Latch 2 (BD 16-23) is only read by SM_ADDR for the 24-bit memory address.
+
+#### DMA Channels
+
+| FIFO | DMA Channel | Target Buffer | Width | Purpose |
+|------|-------------|---------------|-------|---------|
+| Signal FIFO | DMA0 | signal_events[] | 4 bits | Trigger states |
+| Address FIFO | DMA1 | address_events[] | 24 bits | Latched addresses |
+| Data FIFO | DMA2 | data_events[] | 16 bits | Latched data words |
+
+Each DMA channel runs continuously, draining its FIFO into a circular buffer in PSRAM. The CPU iterates through the buffers and correlates events by sequence/timestamp.
+
+#### CPU Side -- Three Buffers
 
 ```c
-void process_bus_event(uint32_t event) {
-    uint8_t  dbus      = event & 0xFF;
-    bool     bapr_act  = !(event & 0x100);   // bit 8 LOW = BAPR active
-    bool     bioxe_act = !(event & 0x200);
-    bool     bdap_act  = !(event & 0x400);
-    bool     bdry_act  = !(event & 0x800);
-    
-    // The Adafruit/piorom-style mask + compare:
-    //   triggers_mask = 0xF00
-    //   triggers_idle = 0xF00 (all HIGH = no trigger)
-    //   if ((event & triggers_mask) != triggers_idle) { trigger active }
-    
-    if (bapr_act)       handle_address_phase(dbus);
-    else if (bioxe_act) handle_iox_data(dbus);
-    else if (bdap_act)  handle_memory_data(dbus);
-    else if (bdry_act)  handle_dma_response(dbus);
-    else {
-        // No trigger active -- this is an "idle data change" event
-        // (e.g., bus released between cycles)
-        // Often safe to ignore
+// Circular buffers (in PSRAM, sized for ~1ms of bus activity)
+volatile uint32_t signal_events[1024];
+volatile uint32_t address_events[1024];
+volatile uint32_t data_events[1024];
+
+void process_bus_events(void) {
+    // Drain all 3 buffers in order
+    while (signal_buffer_has_data()) {
+        uint32_t signals = signal_pop();
+        bool bapr_act  = !(signals & 0x1);
+        bool bioxe_act = !(signals & 0x2);
+        bool bdap_act  = !(signals & 0x4);
+        bool bdry_act  = !(signals & 0x8);
+        
+        if (bapr_act) {
+            // Address phase -- read corresponding entry from address buffer
+            uint32_t addr = address_pop() & 0x00FFFFFF;
+            handle_address_phase(addr);
+        }
+        if (bioxe_act || bdap_act || bdry_act) {
+            // Data phase -- read corresponding entry from data buffer
+            uint16_t data = data_pop() & 0xFFFF;
+            
+            if (bioxe_act)      handle_iox_data(data);
+            else if (bdap_act)  handle_memory_data(data);
+            else if (bdry_act)  handle_dma_response(data);
+        }
     }
 }
 ```
 
+The signal FIFO is the **synchronization source** -- it tells the CPU what kind of event is in the address and data FIFOs. The CPU uses the signal events as the dispatcher.
+
+#### Why Three SMs Instead of Two?
+
+| Benefit | Why |
+|---------|-----|
+| **Address and data on separate DMA channels** | Each goes to its own buffer in PSRAM |
+| **24-bit vs 16-bit assembly happens in PIO** | CPU receives clean values, no byte assembly |
+| **Separate timing** | Address read (8 cycles) vs data read (6 cycles) optimized for each |
+| **Parallelism** | SM_ADDR and SM_DATA can run in parallel if needed |
+| **Cleaner C code** | Separate handlers for address vs data, no mode flag |
+| **Easier debugging** | Each FIFO/buffer is one purpose -- easy to inspect |
+
+#### Latch Timing
+
+The 74LVC574 propagation delay (output enable to data valid) is **3-7 ns**. The PIO instruction time is ~7 ns at 150 MHz. The `nop side X` instruction between asserting the chip select and reading provides one cycle of settling time -- enough margin in most cases.
+
+If the data is unstable (high-speed bus, long traces), add more `nop` instructions to extend settling time.
+
 #### Bandwidth Analysis
 
-The sample-on-change approach generates events only when bus state changes. Typical activity:
+| Bus state | Signal/Address/Data events | Combined bandwidth |
+|-----------|----------------------------|-------------------|
+| Idle | 0 | 0 |
+| Single IOX cycle | ~3 sig + 1 addr + 1 data | ~16 bytes |
+| DMA cycle | ~5 sig + 1 addr + 1 data | ~24 bytes |
+| Burst DMA continuous | ~1M signal evts/s, ~500K addr/s, ~500K data/s | ~12 MB/s combined |
 
-| Bus state | Event rate | FIFO bandwidth |
-|-----------|------------|----------------|
-| Idle (no cycle) | 0 events/s | 0 |
-| Steady IOX cycle (200-300 ns) | ~5-10 events per cycle | ~5-10 events |
-| DMA cycle (500-700 ns) | ~10 events per cycle | ~10 events |
-| Burst DMA (continuous) | up to ~1 M events/s | ~4 MB/s |
-
-Even in worst case burst DMA, the FIFO bandwidth is well under the DMA controller's capability (~25 MB/s for FIFO-to-RAM).
-
-#### No External Glue Logic
-
-The TRIGGER_OR signal and 74LVC02 NOR gate from the previous design are **not needed**. The PIO handles the "any trigger active" detection internally via the `jmp x != y` compare. This:
-- **Saves 1 chip** on the BOM
-- **Saves 1 GPIO** (TRIGGER_OR_PIN)
-- **Eliminates the inverter logic complication**
-- **Same speed** as a hardware-OR approach (PIO is fast enough)
+Even worst case is well within PSRAM DMA capability.
 
 **Decoding in C code**:
 
