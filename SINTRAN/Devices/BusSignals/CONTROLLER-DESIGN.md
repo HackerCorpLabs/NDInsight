@@ -4486,20 +4486,227 @@ This means we **CANNOT** directly tie bus 5V to VDD_SYS while USB-C may be plugg
 
 **Recommended**: **SS14** in SMA package -- standard, cheap, fits the SMD theme of the rest of the design.
 
-### Pi Zero Power
+### Pi Zero Power (Including WiFi TX Bursts)
 
-The Pi Zero is fed from +5V_LOCAL via a separate 1A polyfuse (F2) for short-circuit protection:
+The Pi Zero has **two micro USB ports**:
+- **PWR IN** (left, labeled "PWR") -- power input only, no data
+- **USB OTG** (middle, labeled "USB") -- USB On-The-Go for data + power
+
+Both ports can supply 5V to the Pi Zero. **The Pi Zero accepts power from any of these sources**:
+1. **Micro USB PWR IN** (for standalone use with a USB power supply)
+2. **Micro USB OTG** (when connected to a host PC for development)
+3. **GPIO header pins 2 or 4** (+5V) -- our backplane power path
+
+When **multiple sources** are connected simultaneously (e.g., bus power on header + USB OTG to a development PC), the Pi Zero's onboard schematic shows the PWR IN and OTG inputs both connect to the same +5V net via Schottky diodes (or just direct connection on older Pi Zeros).
+
+> **Important**: The Pi Zero W and Pi Zero 2 W use slightly different schematics. Both have ESD protection and bulk capacitance, but the OR-ing between USB power inputs and GPIO header power varies by model.
+
+#### Power Scenario Matrix
+
+| Pi Zero PWR IN | Pi Zero USB OTG | GPIO Header +5V (from our PCB) | Result |
+|----------------|------------------|--------------------------------|--------|
+| Connected to PSU | -- | -- | Pi Zero powered from PWR IN |
+| -- | Connected to PC | -- | Pi Zero powered from OTG |
+| -- | -- | **Bus 5V via our PCB** | **Pi Zero powered from header** (our normal mode) |
+| -- | Connected to PC | Bus 5V | Both sources connected -- generally works (Pi Zero internal OR-ing), but may back-feed from PC USB to bus if no protection |
+| Connected to PSU | Connected to PC | Bus 5V | All three sources -- must ensure no conflicts |
+
+> **The risk**: If we feed bus 5V to the Pi Zero header pin 2 while a USB host (PC) is also connected to the Pi Zero OTG port, the Pi Zero internal +5V rail is at ~5V from both sources. **Current can flow back through the GPIO header into our +5V_LOCAL rail and from there back to the bus**. Depending on the bus PSU's tolerance for source current, this can cause issues.
+
+#### Solution: Schottky Diode on Pi Zero +5V Feed
+
+Add a Schottky diode **D2** between +5V_LOCAL and the Pi Zero header +5V pins:
 
 ```
-   +5V_LOCAL ── F2 (1A polyfuse) ── Pi Zero header pin 2 or 4 (+5V)
+   +5V_LOCAL ── F2 (2A polyfuse) ── D2 (Schottky, e.g., SS24) ── Pi Zero header pin 2 + pin 4
 ```
 
-Pi Zero current draw:
-- **Pi Zero (no wireless)**: ~150 mA
-- **Pi Zero W**: ~250 mA average
-- **Pi Zero 2 W**: ~350 mA average, ~500 mA peak (during boot or high CPU load)
+**D2 behavior**:
 
-The 1A polyfuse handles peaks comfortably.
+| State | Pi Zero Power Source | D2 |
+|-------|---------------------|-----|
+| Bus only | Bus → F2 → D2 → Pi Zero @ 4.7V (after Vf drop) | Forward |
+| Pi Zero PWR IN connected | PWR IN → Pi Zero internal 5V (5V) | Reverse-blocked at 4.7V vs 5V |
+| Pi Zero OTG connected | USB host → Pi Zero internal 5V (5V) | Reverse-blocked |
+| Bus + PWR IN both | Pi Zero from PWR IN (5V wins), bus blocked by D2 | Reverse |
+| All three connected | Highest of (PWR IN, OTG) wins, bus blocked | Reverse |
+
+**D2 prevents back-feeding** from the Pi Zero's USB power into our +5V_LOCAL rail.
+
+> **D2 selection**: SS24 (2A, 40V, SMA) -- needs to handle the same ~1A peaks as the polyfuse. SS14 (1A) might be marginal during WiFi TX bursts. **Use SS24 for the Pi Zero feed**.
+
+#### Voltage Drop Concern
+
+Adding D2 introduces another ~0.4V drop. With both F2 polyfuse and D2 diode in series:
+- Bus +5V (~4.95V from typical PSU)
+- After F1 polyfuse: ~4.90V
+- After F2 polyfuse: ~4.85V
+- After D2 Schottky (SS24, ~0.35V Vf at 1A): **~4.50V at Pi Zero header**
+
+The Pi Zero specifies +5V minimum 4.75V. **4.50V is below spec.**
+
+**Options to fix**:
+
+1. **Use ideal diode IC** instead of Schottky -- e.g., **LTC4412** or **MAX40200** -- voltage drop ~10-50 mV
+   - LTC4412: ideal diode controller + P-MOSFET, very low drop (~30 mV at 1A), ~$2-3
+   - MAX40200: 1A ideal diode in single chip, ~$1
+
+2. **Use a P-MOSFET load switch** with reverse current protection -- ~$1-2
+
+3. **Skip the diode** -- accept that the Pi Zero may back-feed power if USB is connected. The +5V_LOCAL rail is shared with the BB48R VDD_SYS through D1. If the Pi Zero feeds 5V back into +5V_LOCAL, D1 prevents backflow to BB48R VDD_SYS (already protected), and the bus PSU can absorb the small back-fed current.
+
+4. **Tell the user**: "Don't connect the Pi Zero's USB ports while the card is in the bus". Simple but error-prone.
+
+**Recommendation**: **Use an ideal diode IC** (LTC4412 or MAX40200) for D2. The ~$1-2 cost is worth it to:
+- Maintain proper 5V at the Pi Zero (4.85V instead of 4.50V)
+- Prevent back-feeding
+- Allow safe simultaneous use of bus power and Pi Zero USB (e.g., for headless monitoring while developing)
+
+#### Updated Power Path
+
+```
+   Bus +5V ── F1 (2A polyfuse) ── +5V_LOCAL ──┬── D1 (SS14) ───────── BB48R VDD_SYS
+                                               │
+                                               └── F2 (2A polyfuse) ── D2 (LTC4412 ideal diode) ── Pi Zero header pin 2/4
+                                                                       │
+                                                                       └── 1000 uF + 470 uF + 10 uF + 0.1 uF caps
+   
+   Pi Zero PWR IN  ─────┐
+                        ├── (internal Pi Zero +5V net)
+   Pi Zero USB OTG ─────┘
+```
+
+The ideal diode D2 prevents back-feeding from Pi Zero USB inputs to our PCB. The Pi Zero's onboard ESD/bulk caps handle the local decoupling.
+
+The Pi Zero 2 W can draw **significant current spikes** during WiFi transmission. The power design must handle these without:
+- Polyfuse tripping
+- Voltage droop causing brownout/reset
+- IR drop on PCB traces
+
+#### Pi Zero 2 W Power Profile
+
+| State | Current |
+|-------|---------|
+| Idle (no WiFi traffic) | ~80-150 mA |
+| Linux running, light load | ~250 mA |
+| **Boot inrush** | ~500 mA (~1 second) |
+| WiFi RX active | ~350-450 mA |
+| **WiFi TX active (sustained)** | ~500-700 mA |
+| **WiFi TX bursts (peak)** | **~700-1000 mA** (microsecond spikes) |
+| Heavy CPU + WiFi TX worst case | **up to ~1.2 A peak** |
+
+The BCM43436 WiFi chip alone can draw 300-500 mA during TX bursts on top of the Cortex-A53 base load.
+
+#### Updated Power Path (WiFi-Capable)
+
+```
+   +5V_LOCAL ── F2 (2A polyfuse) ── wide trace ── Pi Zero header pin 2 + pin 4
+                                       │
+                                       ├── 1000 uF aluminum polymer (low ESR)
+                                       ├── 470 uF tantalum (handles boot inrush)
+                                       ├── 10 uF ceramic
+                                       └── 0.1 uF ceramic (high freq)
+```
+
+**Changes from original**:
+
+| Item | Original | Updated | Why |
+|------|----------|---------|-----|
+| **Polyfuse F2** | 1A | **2A** | 2A polyfuse trips at ~4A and holds 2A continuously, gives margin for ~1A WiFi TX peaks |
+| **Bulk capacitance** | 470 uF tantalum only | **1000 uF aluminum polymer + 470 uF tantalum + 10 uF + 0.1 uF** | Multi-stage decoupling handles low ESR, mid-freq, and high-freq TX bursts |
+| **Trace width** | Standard | **Min 1.5 mm, recommended 2-3 mm** | Carries ~1A peaks without IR drop |
+| **Power path length** | -- | **Keep < 30 mm** from polyfuse to Pi Zero pin | Minimize trace resistance |
+| **Use both 5V pins** | One pin | **Pin 2 AND pin 4** | Two parallel pins reduce contact resistance and trace count |
+
+#### Capacitor Selection for WiFi TX Bursts
+
+**Multi-stage decoupling** is essential for WiFi modules:
+
+| Cap | Value | Type | Purpose |
+|-----|-------|------|---------|
+| Bulk | **1000 uF** | Aluminum polymer (low ESR ~10 mOhm) | Handles ms-scale TX current bursts |
+| Bulk | **470 uF** | Tantalum (ESR ~50 mOhm) | Handles boot inrush + slow load steps |
+| Mid | **10 uF** | Ceramic X5R/X7R 1206 | Handles us-scale spikes |
+| HF | **0.1 uF** | Ceramic X7R 0603 | Handles ns-scale switching noise |
+
+Place all caps as close as possible to the Pi Zero +5V pin (within ~10 mm).
+
+**Alternative all-ceramic option** (no electrolytics, smaller, longer life):
+- 4x 100 uF ceramic 1210 (X5R) in parallel = 400 uF total
+- Plus 10 uF + 0.1 uF
+- Slightly lower bulk capacity but much better ESR and longevity
+
+#### Trace Width Calculation
+
+For ~1A peak current at 5V on 1 oz copper:
+- **0.5 mm trace** = ~1.5 A capacity, ~150 mOhm/m, **drops ~50 mV at 1A over 30mm** -- acceptable
+- **1 mm trace** = ~3 A capacity, ~75 mOhm/m, **drops ~25 mV at 1A over 30mm** -- good
+- **2 mm trace** = ~5 A capacity, ~37 mOhm/m, **drops ~12 mV at 1A over 30mm** -- excellent
+
+**Recommendation**: **2 mm trace width** for the +5V path from polyfuse to Pi Zero. Use a **wide pour** (3+ mm) if PCB area allows.
+
+Use **multiple vias** if changing layers (each via has ~10 mOhm resistance and ~1A capacity).
+
+#### Polyfuse Behavior
+
+Polyfuses don't trip instantly -- they're thermal devices. A 2A polyfuse:
+- Holds 2A indefinitely
+- Trips at ~4A continuous
+- Allows brief peaks above the trip current (microseconds to milliseconds)
+- Once tripped, stays tripped until cooled (~30 sec to minutes)
+
+**For WiFi TX bursts** (~1A peaks lasting microseconds), a 2A polyfuse won't trip even though the peak briefly exceeds the hold current.
+
+**Sustained heavy traffic** (continuous ~700 mA) is well below the 2A hold current.
+
+**Catastrophic short** (>4A) trips the polyfuse, protecting the bus.
+
+> **Recommended polyfuse**: 2A, 6V, 0805 SMD (e.g., **MF-MSMF200/6** or **MF-NSMF200**)
+
+#### Bus +5V Capacity
+
+The ND-100 bus has +5V on pins A2, A31, B2, B31, C2, C31 (6 pins total). DIN 41612 contacts are rated 2-3 A per pin, so the bus can supply 12-18 A combined. A Pi Zero drawing 1A is trivial -- the bus handles it easily.
+
+The backplane PSU (PC ATX PSU) typically provides 5-20 A on the +5V rail, more than enough for multiple Pi Zeros across multiple controller cards.
+
+#### Voltage Droop Analysis
+
+| Component | Voltage Drop at 1A peak |
+|-----------|------------------------|
+| Bus connector resistance | ~10 mV (multiple parallel pins) |
+| Polyfuse F1 (in series) | ~50 mV (typical R when cold) |
+| Polyfuse F2 (in series) | ~100 mV (smaller, ~50-100 mOhm) |
+| 30 mm of 2 mm trace | ~12 mV |
+| **Total drop** | **~170 mV** |
+
+5V bus → ~4.83V at Pi Zero pin during 1A peak. The Pi Zero accepts +5V ±10% (4.5V minimum), so 4.83V is well within spec.
+
+**Bulk caps absorb the actual transient** -- the trace and polyfuse drops are quasi-static, not instantaneous. The 1000 uF cap supplies the burst, then recharges from the +5V rail at lower current.
+
+#### Brownout Protection
+
+If the bus +5V briefly droops (e.g., another card on the same backplane has a power glitch), the bulk caps on our card supply the Pi Zero for several milliseconds. The Pi Zero won't reset unless +5V drops below ~4V for > 50 ms.
+
+For extra safety, add a **TVS diode** (e.g., **SMBJ5.0A**) on the +5V_LOCAL rail to clamp any voltage spikes.
+
+#### Updated Power Components (WiFi-Capable)
+
+| Item | Quantity | Cost |
+|------|----------|------|
+| **D1: SS14 Schottky diode** | 1 | $0.10 |
+| **F1: 2A polyfuse** (bus 5V protection) | 1 | $0.30 |
+| **F2: 2A polyfuse** (Pi Zero protection) | 1 | $0.30 |
+| **C_PiZero_bulk_low_ESR**: 1000 uF aluminum polymer | 1 | $0.80 |
+| **C_PiZero_bulk_tantalum**: 470 uF tantalum | 1 | $0.40 |
+| C_PiZero_mid: 10 uF ceramic 1206 | 1 | $0.05 |
+| C_PiZero_hf: 0.1 uF ceramic 0603 | 1 | $0.01 |
+| **TVS5.0A**: TVS diode (5V clamp) | 1 | $0.20 |
+| 0.1 uF decoupling caps (other chips) | ~15 | $0.30 |
+| 10 uF bulk caps (other) | ~5 | $0.30 |
+| 47 uF bus input cap | 1 | $0.20 |
+| **Total power components** | | **~$3.00** |
+
+About $1.30 more than the original budget but handles WiFi TX properly.
 
 ### 3.3V for Level Shifters and Logic
 
