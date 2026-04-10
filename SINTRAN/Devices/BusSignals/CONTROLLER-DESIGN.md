@@ -121,14 +121,60 @@ The 8 MB PSRAM is useful for:
 | **HDLC streaming** | Large FIFO buffers for high-throughput links |
 | **Terminal emulation** | Negligible (small buffers fit in SRAM) |
 
-### Final Recommendation: Design 2 with PSRAM and USB
+### Required System Resources
+
+The controller card always requires:
+
+| Resource | GPIO Used | Purpose |
+|----------|-----------|---------|
+| **USB** (mandatory) | GP24/GP25 (D+/D-) | Firmware updates, virtual serial port for monitoring |
+| **PSRAM** (recommended) | GP47 (CS) | 8 MB cache for floppy/SMD images |
+| **LOAD button** | 1 GPIO | Trigger firmware update mode / device reload |
+| **RESET button** | RUN pin | Hardware reset (uses dedicated RUN pin, not GPIO) |
+| **Status LEDs** | 2-4 GPIO | Activity, error, debug indication |
+
+The RESET button uses the dedicated RUN pin, not a GPIO. The LOAD button needs 1 GPIO with internal pull-up.
+
+### Effective GPIO Budget (Final)
+
+| Item | Pins |
+|------|------|
+| Total GP0-GP47 | 48 |
+| Minus PSRAM CS (GP47) | -1 |
+| Minus USB D+/D- (GP24, GP25) | -2 |
+| Minus LOAD button | -1 |
+| Minus 2x status LEDs | -2 |
+| **Remaining for bus interface + SD card** | **42** |
+
+### Final Recommendation: Design 2 with PSRAM, USB, LOAD button, LEDs
 
 | Setting | Choice | Why |
 |---------|--------|-----|
 | Architecture | **Design 2 (8-bit Latched)** | Fits all configurations, sufficient throughput |
-| PSRAM | **Enabled** (default) | 8 MB cache valuable for floppy/SMD |
-| USB | **Enabled** | Development needs programming/debug |
-| Effective GPIO | **45** | 37 used by design, **8 spare** for LEDs/expansion |
+| PSRAM | **Enabled** | 8 MB cache valuable for floppy/SMD |
+| USB | **Enabled** (mandatory) | Firmware updates + virtual serial monitoring |
+| LOAD button | Yes (1 GPIO) | Firmware reload, device select |
+| Status LEDs | 2-4 (GPIO) | Activity, error indication |
+| **Bus interface pins** | 37 (Design 2) | |
+| **System pins (USB, PSRAM, buttons, LEDs)** | 6 | |
+| **Total used** | **43** | |
+| **Spare GPIO** | **5** | For expansion, debug header, etc. |
+
+### Design Fit with Mandatory USB and Recommended PSRAM
+
+With USB always enabled, PSRAM enabled, LOAD button, and 2 LEDs (45 effective GPIO for bus + SD):
+
+| Design | Bus Interface Pins | Total System | Fits 45? | Spare |
+|--------|-------------------|--------------|----------|-------|
+| Design 1 (Direct GPIO) | 26 + 16 + 4 = 46 | 52 | ❌ **No** -- exceeds by 7 | -7 |
+| **Design 2 (8-bit Latched)** | 15 + 16 + 4 = 35 | 41 | ✓ Yes | **4 spare** |
+| Design 3 (SPI Shift) | 6 + 16 + 4 = 26 | 32 | ✓ Yes | **13 spare** |
+
+> **Design 1 is no longer viable** with mandatory USB. The pin count cannot fit even with PSRAM disabled (still ~50 pins needed vs 46 available).
+>
+> **Design 2** remains the recommended choice with 4 spare pins for LEDs, buttons, and debug.
+>
+> **Design 3** is a viable alternative if more spare pins are needed for additional features, accepting the slower BD access time.
 
 ---
 
