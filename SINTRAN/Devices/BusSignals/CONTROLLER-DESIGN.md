@@ -4426,6 +4426,187 @@ The 8 us bus cycle limit and toggled CPU/DMA priority means DMA gets approximate
 
 ---
 
+## Top-Level Schematic Block Diagram
+
+This is the visual overview of the complete controller card showing all major subsystems and how they connect.
+
+```mermaid
+flowchart TB
+    subgraph BUS["ND-100 Bus (DIN 41612 C connector, 5V TTL)"]
+        BD["BD 0-23<br/>(24-bit multiplexed)"]
+        CTRL["Bus control<br/>BAPR BIOXE BMEM<br/>BDAP BDRY BINPUT<br/>BINACK BMCL"]
+        DMA_S["DMA chain<br/>BREQ INGRANT<br/>OUTGRANT"]
+        IDENT_S["IDENT chain<br/>INIDENT<br/>OUTIDENT"]
+        INT["Interrupts<br/>BINT 10/11/12/13"]
+        BUS_PWR["Bus +5V<br/>(pins 2/31)"]
+        BUS_GND["GND<br/>(pins 1/11/24/32)"]
+    end
+
+    subgraph LATCHES["BD Bus Interface (SMD)"]
+        IN_LATCH["3x 74LVC574<br/>Input latches<br/>clocked by /BAPR"]
+        OUT_LATCH["3x 74LVC574<br/>Output latches<br/>+ 3x 74LVT245<br/>Output drivers"]
+        DAISY["74LVC125<br/>IDENT/GRANT<br/>pass-through"]
+    end
+
+    subgraph BUFFERS["Signal Buffers (SMD)"]
+        IN_BUF["74LVC14<br/>Schmitt input<br/>buffers (sniffs)"]
+        OUT_BUF["74LVC07<br/>Open-drain<br/>output drivers"]
+    end
+
+    subgraph BB48R["Olimex RP2350-PICO2-BB48R (socketed)"]
+        RP["RP2350B<br/>Dual M33<br/>+ 12 PIO SMs<br/>+ DMA"]
+        SRAM["520 KB SRAM"]
+        FLASH["16 MB QSPI Flash"]
+        PSRAM["8 MB PSRAM<br/>(GPIO8 CS)"]
+        SD["MicroSD card<br/>(GPIO9-11, 24)"]
+        USBC["USB-C<br/>(programming +<br/>virtual COM)"]
+        BTN["BOOT + RESET<br/>buttons"]
+    end
+
+    subgraph PIZERO["Raspberry Pi Zero 2 W (header, optional)"]
+        PIZ_CPU["Quad Cortex-A53<br/>1 GHz + 512 MB RAM"]
+        PIZ_WIFI["WiFi + BT<br/>BCM43436"]
+        PIZ_SD["microSD<br/>(Linux + apps)"]
+        PIZ_USB["USB OTG +<br/>USB PWR IN"]
+    end
+
+    subgraph POWER["Power Distribution"]
+        F1["F1: 2A polyfuse"]
+        F2["F2: 2A polyfuse"]
+        D1["D1: SS14 Schottky<br/>(BB48R OR-ing)"]
+        D2["D2: LTC4412<br/>ideal diode<br/>(Pi Zero OR-ing)"]
+        BULK["Bulk caps<br/>1000uF + 470uF<br/>+ 10uF + 0.1uF"]
+        TVS["TVS5.0A clamp"]
+    end
+
+    BUS_PWR -- "+5V" --> F1
+    F1 -- "+5V_LOCAL" --> D1
+    F1 --> F2
+    D1 -- "VDD_SYS<br/>(when no USB)" --> BB48R
+    USBC -- "5V<br/>(when connected)" --> BB48R
+    F2 --> D2
+    D2 -- "+5V to Pi Zero<br/>header pin 2/4" --> PIZERO
+    BULK --> PIZERO
+    TVS --> PIZERO
+    BB48R -- "3.3V output<br/>(2A from DCDC)" --> BUFFERS
+    BB48R -- "3.3V" --> LATCHES
+    
+    BD <--> IN_LATCH
+    BD <--> OUT_LATCH
+    CTRL --> IN_BUF
+    CTRL <-- OUT_BUF
+    INT <-- OUT_BUF
+    DMA_S <-- OUT_BUF
+    DMA_S <--> DAISY
+    IDENT_S <--> DAISY
+    
+    IN_LATCH -- "8-bit shared<br/>DBUS GPIO12-19" --> RP
+    OUT_LATCH -- "8-bit shared<br/>DBUS GPIO12-19" --> RP
+    RP -- "/OE_IN_0/1/2<br/>LE_OUT_0/1/2" --> IN_LATCH
+    RP -- "/BD_OE_BUS" --> OUT_LATCH
+    IN_BUF -- "GPIO20-23<br/>+ GPIO33-38" --> RP
+    OUT_BUF <-- "GPIO39-47" --- RP
+    DAISY <-- "GPIO46-47" --- RP
+    
+    RP <-- "SPI0 + INT<br/>GPIO0-1, 4-7" --> PIZERO
+
+    BUS_GND -.-> POWER
+    BUS_GND -.-> BB48R
+    BUS_GND -.-> PIZERO
+    BUS_GND -.-> LATCHES
+    BUS_GND -.-> BUFFERS
+
+    style BUS fill:#FFF3E0,stroke:#E65100,color:#E65100
+    style BB48R fill:#E3F2FD,stroke:#0D47A1,color:#0D47A1
+    style PIZERO fill:#F3E5F5,stroke:#7B1FA2,color:#7B1FA2
+    style LATCHES fill:#E0F7FA,stroke:#00838F,color:#00838F
+    style BUFFERS fill:#E0F7FA,stroke:#00838F,color:#00838F
+    style POWER fill:#E8F5E9,stroke:#2E7D32,color:#2E7D32
+```
+
+### Block Description
+
+| Block | Components | Purpose |
+|-------|-----------|---------|
+| **ND-100 Bus** | DIN 41612 C connector (96-pin, male right-angle on PCB) | Physical connection to backplane |
+| **BD Bus Interface (SMD)** | 3x 74LVC574 input latches, 3x 74LVC574 output latches, 3x 74LVT245 drivers, 74LVC125 daisy-chain bypass | 24-bit BD bus level shifting and latching (Design 2) |
+| **Signal Buffers (SMD)** | 74LVC14 Schmitt inverters (input), 74LVC07 open-drain (output) | 5V to 3.3V level shifting for control signals |
+| **Olimex BB48R (socketed)** | RP2350B + 16MB flash + 8MB PSRAM + microSD slot + USB-C + buttons | Main MCU subsystem -- bus protocol, device emulation, firmware |
+| **Pi Zero 2 W (header, optional)** | Quad Cortex-A53 + WiFi + Linux + microSD | Wireless companion -- nd100x emulator host, terminal server, HDLC bridge |
+| **Power Distribution (SMD)** | F1/F2 polyfuses, D1 SS14, D2 LTC4412 ideal diode, bulk caps, TVS clamp | Source OR-ing, fault protection, decoupling |
+
+### Physical Layout (Card Top View)
+
+```
+  +================================================+
+  |                                                |
+  |  +========================+    +-----------+   |
+  |  |  Olimex BB48R          |    | F1 D1 F2  |   |
+  |  |  (socketed, removable) |    | D2 caps   |   |
+  |  |                        |    | TVS       |   |
+  |  |  USB-C, BOOT/RESET     |    | (Power    |   |
+  |  |  facing edge           |    |  zone)    |   |
+  |  +========================+    +-----------+   |
+  |                                                |
+  |  +-----------+  +-----------+  +-----------+   |
+  |  | 3x 74LVC574|  | 3x 74LVC574|  | 3x 74LVT245|   |
+  |  | input      |  | output     |  | drivers    |   |
+  |  | latches    |  | latches    |  |            |   |
+  |  +-----------+  +-----------+  +-----------+   |
+  |                                                |
+  |  74LVC14  74LVC07  74LVC125                    |
+  |  buffers  open-dr  daisy bypass                |
+  |                                                |
+  |  Status LEDs (multiple, around perimeter)      |
+  |                                                |
+  |       +============================+           |
+  |       |  Pi Zero 40-pin header     |           |
+  |       |  (2x20, M2.5 standoffs)   |           |
+  |       |  Pi Zero stacks here      |           |
+  |       +============================+           |
+  |                                                |
+  +============== C connector (DIN41612) ==========+
+        bus pins facing the backplane edge
+```
+
+### Subsystem Power and Ground
+
+| Subsystem | Power Source | Approx Current |
+|-----------|--------------|----------------|
+| BB48R (RP2350B + flash + PSRAM) | Bus 5V via D1, OR USB-C | ~150 mA @ 3.3V (internal) |
+| BB48R 3.3V output → level shifters | BB48R DCDC | ~50-200 mA |
+| Level shifters and latches | BB48R 3.3V | (see above) |
+| Pi Zero 2 W (when populated) | Bus 5V via F2 + D2 | 250-700 mA, peaks ~1A |
+| Status LEDs | BB48R 3.3V or 5V via resistors | ~10-20 mA total |
+| **Total bus 5V draw (Pi Zero populated, WiFi active)** | -- | **~1.0-1.3 A** |
+| Total bus 5V draw (no Pi Zero) | -- | ~200 mA |
+
+The bus +5V (multiple pins, ~2-3A per pin) handles this easily.
+
+### Signal Flow Summary
+
+```
+   ND-100 CPU on bus
+          ↓
+   BD/CTL/INT signals (5V active LOW)
+          ↓
+   Level shifters (74LVC family)
+          ↓
+   Latches capture on /BAPR
+          ↓
+   PIO state machines (8-bit reads)
+          ↓
+   DMA → central registers in PSRAM
+          ↓
+   Core 0 bus protocol handler
+          ↓
+   Core 1 device emulation (floppy, SMD, terminal, HDLC)
+          ↓
+   (optional) SPI to Pi Zero for network/full emulator
+```
+
+---
+
 ## Power Distribution Design
 
 The controller card needs to power **three things**:
