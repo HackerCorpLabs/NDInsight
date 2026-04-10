@@ -2663,6 +2663,202 @@ USB serial gives the **detail** (logs, debug prints, register dumps), while LEDs
 
 ---
 
+### Software Architecture: Central Registers with DMA
+
+The recommended firmware architecture is:
+
+1. **PIO state machines**: Pure capture only -- no decision logic. Simply read bus state on triggers and push to FIFO.
+2. **DMA**: Always running, continuously transfers FIFO entries to **central registers** in SRAM.
+3. **Central registers**: Two volatile globals updated by DMA: `bus_address_latest` and `bus_data_latest`.
+4. **C code**: Polls (or is woken by IRQ) when central registers update. Makes all decisions. Controls outputs via PIO output SMs and direct GPIOs.
+
+This architecture is simple, robust, and gives the C code full control over the bus protocol without trying to encode complex logic in PIO.
+
+#### Central Register Layout
+
+```c
+// Updated by DMA from PIO RX FIFO
+volatile uint32_t bus_address_latest;   // Latest captured address (from /BAPR)
+volatile uint32_t bus_data_latest;      // Latest captured data (from /BIOXE/BDAP/BDRY)
+volatile uint32_t bus_event_seq;        // Increments on each new event (for change detection)
+
+// Driven by software, controls output stage
+volatile bool boutident_enable;         // Controls 74LVC125 daisy-chain pass-through
+volatile bool boutgrant_enable;         // Controls 74LVC125 grant pass-through
+volatile uint32_t bd_output_value;      // Latest value driven on BD bus (when active)
+volatile bool bd_output_enable;         // Controls /BD_OE_BUS
+```
+
+#### DMA Configuration
+
+A single DMA channel continuously drains the BUS_CAPTURE PIO RX FIFO into a circular buffer or directly into the central registers.
+
+```c
+// DMA channel setup (RP2350 SDK style)
+dma_channel_config c = dma_channel_get_default_config(dma_chan);
+channel_config_set_read_increment(&c, false);    // Always read from FIFO
+channel_config_set_write_increment(&c, false);   // Always write to same address
+channel_config_set_dreq(&c, pio_get_dreq(pio0, sm_capture, false));
+channel_config_set_transfer_data_size(&c, DMA_SIZE_32);
+
+dma_channel_configure(
+    dma_chan, &c,
+    &bus_address_latest,                          // dest = central register
+    &pio0->rxf[sm_capture],                       // src = PIO RX FIFO
+    UINT32_MAX,                                   // transfer count = infinite
+    true                                          // start immediately
+);
+```
+
+The DMA continuously transfers each FIFO push into `bus_address_latest`. Whenever PIO captures, the central register updates within ~30 ns.
+
+For separating address vs data updates, use two DMA channels with two FIFOs (or use the tag bit in the captured word and let software dispatch).
+
+#### IDENT Handling with Central Registers
+
+Now the IDENT flow becomes very clean:
+
+```c
+void main_loop_ident_handler(void) {
+    static uint32_t last_seq = 0;
+    
+    while (1) {
+        // Check if a new bus event occurred
+        if (bus_event_seq == last_seq) continue;
+        last_seq = bus_event_seq;
+        
+        // Read latest bus address (always up to date via DMA)
+        uint32_t addr = bus_address_latest;
+        
+        // Decode bus cycle type from current GPIO state
+        bool bmem_active = !gpio_get(BMEM_PIN);
+        bool inident_active = !gpio_get(INIDENT_PIN);
+        
+        if (!bmem_active && !inident_active) {
+            // Normal IOX cycle (handle elsewhere)
+            handle_iox_cycle(addr);
+        } else if (bmem_active) {
+            // Memory cycle (handle elsewhere)
+            handle_memory_cycle(addr);
+        } else if (inident_active || is_ident_cycle(addr)) {
+            // IDENT cycle
+            handle_ident_central(addr);
+        }
+    }
+}
+
+void handle_ident_central(uint32_t addr) {
+    int level = extract_int_level(addr);
+    int device = find_device_with_interrupt(level);
+    
+    if (device < 0) {
+        // === Case A/B: Not for us, forward ===
+        // Enable 74LVC125 buffer to forward BINIDENT -> BOUTIDENT
+        gpio_put(OE_DAISY_PASS_PIN, 0);     // /OE LOW = buffer enabled = forward
+        boutident_enable = true;
+        
+        // The 74LVC125 buffer now mirrors BINIDENT to BOUTIDENT
+        // Next card will see INIDENT and process it
+        // We don't need to do anything else
+        return;
+    }
+    
+    // === Match: We respond ===
+    // Disable forwarding (block BINIDENT from reaching BOUTIDENT)
+    gpio_put(OE_DAISY_PASS_PIN, 1);     // /OE HIGH = buffer disabled = blocked
+    boutident_enable = false;
+    
+    // Drive ident code on BD bus
+    uint32_t ident_code = devices[device].ident_code;
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_DRIVE_CMD(ident_code));
+    bd_output_value = ident_code;
+    bd_output_enable = true;
+    
+    // Assert BDRY
+    gpio_put(BDRY_DRIVE_PIN, 0);         // 74LVC07 input LOW = BDRY pulled LOW on bus
+    
+    // Wait for CPU to release BINIDENT (poll the input pin)
+    while (gpio_get(INIDENT_PIN) == 0) {
+        // BINIDENT still LOW (active)
+        tight_loop_contents();
+    }
+    
+    // BINIDENT released -- release BD bus and BDRY
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_RELEASE_CMD);
+    bd_output_enable = false;
+    gpio_put(BDRY_DRIVE_PIN, 1);         // 74LVC07 input HIGH = BDRY released
+    
+    // Restore default forwarding state
+    gpio_put(OE_DAISY_PASS_PIN, 0);     // Re-enable pass-through for next cycle
+    boutident_enable = true;
+    
+    // Mark device as serviced
+    devices[device].int_active = false;
+    update_active_levels_mask();
+}
+```
+
+#### Key Architecture Points
+
+1. **PIO does ONE thing**: capture bus state on triggers and push to FIFO
+2. **DMA does ONE thing**: continuously copy FIFO to central registers
+3. **C code does decisions**: reads central registers, decides, drives outputs
+4. **Direct GPIO for fast control**: Some signals (like /OE_DAISY_PASS, /BDRY drive) are controlled directly by GPIO writes from C code, not via PIO commands. This is faster than queuing PIO commands.
+
+#### Timing Analysis (Central Register Architecture)
+
+| Step | Time | Cumulative |
+|------|------|-----------|
+| /BAPR asserted on bus | 0 ns | 0 ns |
+| Level shifter (74LVC14) | 5 ns | 5 ns |
+| PIO sync + capture | 21 ns | 26 ns |
+| DMA transfer FIFO -> central register | 30 ns | 56 ns |
+| C code polls and detects update | 50-200 ns | 106-256 ns |
+| C decodes cycle type and level | 50 ns | 156-306 ns |
+| **Forwarding case (no match)**: | | |
+| C writes /OE_DAISY_PASS = LOW | 20 ns | 176-326 ns |
+| 74LVC125 buffer enables, INIDENT propagates | 5 ns | 181-331 ns |
+| **Forwarding total** | **~200-330 ns** | -- |
+| **Capture case (match)**: | | |
+| C writes BD output value via PIO | 50 ns | 206-356 ns |
+| C asserts /BDRY drive | 20 ns | 226-376 ns |
+| Bus sees response | 5 ns | 231-381 ns |
+| **Capture total** | **~230-380 ns** | -- |
+
+Both forwarding and capture complete in **under 400 ns**, well within the 8 us bus cycle limit.
+
+#### Why This Architecture is Better
+
+| Aspect | PIO-managed (previous design) | Central register + C (this design) |
+|--------|-------------------------------|------------------------------------|
+| PIO complexity | High (multiple SMs, sideset, IRQs) | Low (capture only) |
+| C code complexity | Medium (commands to PIO) | Low (direct decisions) |
+| Decision flexibility | Limited (PIO can only do simple ops) | Unlimited (full C code logic) |
+| Multi-device support | Hard (PIO can't easily look up tables) | Easy (C code does lookups) |
+| Debugging | Harder (PIO state hidden) | Easier (visible C variables) |
+| Modification | Requires PIO reflash | Just edit C code |
+| Total response time | ~50-100 ns (PIO direct) | ~200-400 ns (C dispatch) |
+| Within 8 us budget? | Yes (huge margin) | Yes (huge margin) |
+
+The C-driven architecture is much cleaner and the timing margin is more than sufficient.
+
+#### Direct GPIO vs PIO Output for Control Signals
+
+For very fast control signals, **direct GPIO writes** from C code are sometimes faster than queuing PIO commands:
+
+| Signal | Method | Latency |
+|--------|--------|---------|
+| /OE_DAISY_PASS (forward enable) | Direct GPIO | ~5 ns |
+| /BDRY drive (open-drain) | Direct GPIO | ~5 ns |
+| /BREQ drive | Direct GPIO | ~5 ns |
+| /BINT 10/11/12 | Direct GPIO | ~5 ns |
+| BD bus 24-bit drive | PIO output SM | ~50 ns |
+| Coordinated multi-signal (BAPR + BMEM + BINPUT for DMA) | PIO output SM | ~50 ns |
+
+Direct GPIO is fine for single-signal updates. PIO output SMs are needed when you need atomic multi-signal updates or to drive 24 bits at once.
+
+---
+
 ### IDENT Cycle Reality Check: It's Just a Bus Cycle
 
 Re-reading the ND-100 manual carefully, the 100 ns "be ready" window is a **design target**, not a hard deadline. The IDENT cycle is a normal bus cycle bounded by the **8 us total cycle limit**, and the bus is fully **asynchronous** -- it waits for signals to settle.
