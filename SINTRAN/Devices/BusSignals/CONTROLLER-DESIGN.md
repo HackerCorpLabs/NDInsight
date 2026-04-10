@@ -264,28 +264,23 @@ The PIO uses an **external OR gate** to combine these 4 signals into a single tr
 | GPIO30 | LE_OUT_1 | Output | -- | Latch-enable output latch 1 (BD 8-15) |
 | GPIO31 | LE_OUT_2 | Output | -- | Latch-enable output latch 2 (BD 16-23) |
 | GPIO32 | /BD_OE_BUS | Output | -- | Master OE for output 74LVT245 transceivers |
-| GPIO33 | TRIGGER_OR | Input | 74LVC02 NOR | Combined OR of BAPR/BIOXE/BDAP/BDRY |
-| GPIO34 | /BMEM_IN (sniff) | Input | 74LVC14 | Read directly via gpio_get() |
-| GPIO35 | /BINACK_IN (sniff) | Input | 74LVC14 | Read directly |
-| GPIO36 | /BMCL_IN (sniff) | Input | 74LVC14 | Read directly |
-| GPIO37 | /BINPUT_IN (sniff) | Input | 74LVC14 | Read directly |
-| GPIO38 | /INGRANT_IN | Input | 74LVC14 | Read directly |
-| GPIO39 | /INIDENT_IN | Input | 74LVC14 | Read directly |
-| GPIO40 | /BAPR_OUT | Output | 74LVC07 | Drive BAPR during DMA cycles |
-| GPIO41 | /BDRY_OUT | Output | 74LVC07 | Drive BDRY when responding |
-| GPIO42 | /BINPUT_OUT | Output | 74LVC07 | Drive BINPUT during IOX read response or DMA write |
-| GPIO43 | /BDAP_OUT | Output | 74LVC07 | Drive BDAP during DMA cycles |
-| GPIO44 | /BREQ_OUT | Output | 74LVC07 | Drive BREQ to request DMA |
-| GPIO45 | /OE_DAISY_GRANT | Output | -- | Controls 74LVC125 grant pass-through |
-| GPIO46 | /OE_DAISY_IDENT | Output | -- | Controls 74LVC125 ident pass-through |
-| GPIO47 | /BINT 10 + /BINT 11 | -- | -- | See note below |
+| GPIO33 | /BMEM_IN (sniff) | Input | 74LVC14 | Read directly via gpio_get() |
+| GPIO34 | /BINACK_IN (sniff) | Input | 74LVC14 | Read directly |
+| GPIO35 | /BMCL_IN (sniff) | Input | 74LVC14 | Read directly |
+| GPIO36 | /BINPUT_IN (sniff) | Input | 74LVC14 | Read directly |
+| GPIO37 | /INGRANT_IN | Input | 74LVC14 | Read directly |
+| GPIO38 | /INIDENT_IN | Input | 74LVC14 | Read directly |
+| GPIO39 | /BINT 10 drive | Output | 74LVC07 | Open-drain interrupt level 10 (freed by removing TRIGGER_OR) |
+| GPIO40 | /BINT 11 drive | Output | 74LVC07 | Open-drain interrupt level 11 |
+| GPIO41 | /BAPR_OUT | Output | 74LVC07 | Drive BAPR during DMA cycles |
+| GPIO42 | /BDRY_OUT | Output | 74LVC07 | Drive BDRY when responding |
+| GPIO43 | /BINPUT_OUT | Output | 74LVC07 | Drive BINPUT during IOX read response or DMA write |
+| GPIO44 | /BDAP_OUT | Output | 74LVC07 | Drive BDAP during DMA cycles |
+| GPIO45 | /BREQ_OUT | Output | 74LVC07 | Drive BREQ to request DMA |
+| GPIO46 | /OE_DAISY_GRANT | Output | -- | Controls 74LVC125 grant pass-through |
+| GPIO47 | /OE_DAISY_IDENT | Output | -- | Controls 74LVC125 ident pass-through |
 
-> **Pin shortage**: We need 2 more pins for /BINT 10 and /BINT 11 drive outputs. Options:
-> - Move /BINT 10 to GPIO0 (replacing INT_BB48R when Pi Pico W not populated)
-> - Use a 74HC595 shift register on the SD SPI bus for all /BINT outputs (saves 4 pins, costs 1 chip + 1 GPIO for CS)
-> - Move /BMCL or /INGRANT/INIDENT sniffs to a 74HC165 input shift register
->
-> **Recommendation**: Use a 74HC595 for /BINT 10/11/12/13 outputs (4 outputs from 1 shift register), share SD SPI bus, only need 1 extra GPIO for chip select. This frees GPIO2/3 and GPIO47 for other uses.
+> **Pin allocation now fits**: Removing the TRIGGER_OR pin (no longer needed because PIO does the trigger detection internally) freed GPIO33, which let us shift the layout and accommodate /BINT 10 (GPIO39) and /BINT 11 (GPIO40). All pins fit without needing a 74HC595 shift register.
 
 ### Pin Count Summary
 
@@ -294,68 +289,130 @@ The PIO uses an **external OR gate** to combine these 4 signals into a single tr
 | **PIO read group (8 DBUS + 4 trigger)** | **12** | **GPIO12-23 (contiguous!)** |
 | Latch control outputs (3 OE + 3 LE) | 6 | GPIO26-31 |
 | /BD_OE_BUS master enable | 1 | GPIO32 |
-| TRIGGER_OR (combined trigger from 74LVC02) | 1 | GPIO33 |
-| Other input sniffs (BMEM, BINACK, BMCL, BINPUT, INGRANT, INIDENT) | 6 | GPIO34-39 |
-| Bus output drives (BAPR, BDRY, BINPUT, BDAP, BREQ) | 5 | GPIO40-44 |
-| Daisy chain control | 2 | GPIO45-46 |
-| Interrupt outputs (or use 74HC595 instead) | 1+ | GPIO47 + ... |
+| Other input sniffs (BMEM, BINACK, BMCL, BINPUT, INGRANT, INIDENT) | 6 | GPIO33-38 |
+| /BINT 10 + /BINT 11 drive | 2 | GPIO39-40 |
+| Bus output drives (BAPR, BDRY, BINPUT, BDAP, BREQ) | 5 | GPIO41-45 |
+| Daisy chain control | 2 | GPIO46-47 |
 | Pi Pico W SPI + INTs (when populated) | 6 | GPIO0-1, 4-7 |
 | /BINT 12 + /BINT 13 | 2 | GPIO2-3 |
 | **Subtotal used** | **42** | |
 | Board reserved (PSRAM, SD, LED) | 6 | GPIO8-11, 24-25 |
 | **Total** | **48** | |
 
-> **Note**: The pin layout has been reorganized to put the 8 DBUS bits (GPIO12-19) **adjacent** to the 4 trigger control signals (GPIO20-23), creating a single contiguous 12-bit block for atomic PIO reads.
+> **Note**: The pin layout puts the 8 DBUS bits (GPIO12-19) **adjacent** to the 4 trigger control signals (GPIO20-23), creating a single contiguous 12-bit block for atomic PIO reads. No external NOR gate or trigger combining logic needed -- PIO does the trigger detection internally via mask compare.
 
-### PIO Capture in One Read
+### PIO Capture: Sample-on-Change with Mask Compare
 
-With the new layout, the PIO capture state machine reads all 12 bits in a single instruction:
+**No external NOR gate needed.** The PIO reads all 12 pins (8 DBUS + 4 triggers) as a single bitmask in one instruction. It then compares the current sample against the previous sample and pushes to FIFO **only when something changes**.
+
+This is the same technique used by `piorom.c` in the [one-rom](https://github.com/piersfinlayson/one-rom/blob/main/sdrr/src/piodma/piorom.c) project: PIO does parallel pin sampling and uses mask + compare in PIO scratch registers, no glue logic required.
+
+#### How It Works
+
+1. **PIO continuously samples** all 12 pins (GPIO12-23) at PIO clock speed (~150 MHz, 7 ns per iteration)
+2. PIO uses scratch register **Y** to hold the previous sample
+3. PIO uses scratch register **X** for the current sample
+4. `jmp x != y` compares current vs previous in one cycle
+5. If different (any pin changed), push to FIFO and update Y
+6. If same, loop back to next sample
+
+This generates FIFO events **only when bus state actually changes** -- during idle, nothing is pushed.
+
+#### PIO Program
 
 ```pio
-.program bus_capture
+.program bus_sample
+; Reads 12 pins (GPIO12-23) and pushes to FIFO only on change.
+; Pin layout (base = GPIO12):
+;   bits 0-7  = DBUS 0-7 (current latch byte selected by /OE_IN)
+;   bit 8     = /BAPR  (active LOW)
+;   bit 9     = /BIOXE (active LOW)
+;   bit 10    = /BDAP  (active LOW)
+;   bit 11    = /BDRY  (active LOW)
+;
+; Y register holds the previous 12-bit sample.
+; X register holds the current 12-bit sample.
+
 .wrap_target
-    wait 0 pin TRIGGER_OR_PIN  ; wait for combined trigger LOW (any of 4 active)
-    in pins, 12                ; read 12 bits: GPIO12-23
-                               ;   bits 0-7  = DBUS (data from latches)
-                               ;   bit 8     = /BAPR (0 = active = address phase)
-                               ;   bit 9     = /BIOXE
-                               ;   bit 10    = /BDAP
-                               ;   bit 11    = /BDRY
-    push                       ; push 12-bit word to RX FIFO
-    wait 1 pin TRIGGER_OR_PIN  ; wait for combined trigger to release
+    mov isr, null         ; clear ISR shift counter
+    in pins, 12           ; sample 12 pins into ISR (one cycle)
+    mov x, isr            ; X = current sample (one cycle)
+    jmp x != y changed    ; if X != Y, something changed (one cycle)
+    jmp .wrap_target      ; same as before, keep sampling
+changed:
+    mov y, x              ; update Y = new state (one cycle)
+    push                  ; push current sample to RX FIFO (one cycle)
 .wrap
 ```
 
-The PIO base pin is configured to GPIO12. The `IN PINS, 12` reads pins GPIO12-23 in one cycle (~7 ns at 150 MHz).
+**Loop time when nothing changes**: 4 cycles = ~28 ns at 150 MHz
+**Loop time when something changes**: 6 cycles = ~42 ns
 
-#### TRIGGER_OR Logic (External 74LVC02 NOR Gate)
+#### Y Register Initialization
 
-The 4 trigger signals (active LOW) are combined via a NOR gate so the PIO can wait on a single pin:
+The CPU pre-loads Y with an impossible "initial" value via the TX FIFO:
 
+```c
+// From CPU side, before starting the SM:
+pio_sm_put_blocking(pio0, sm_capture, 0xFFFFFFFF);
+
+// PIO program initializes Y from OSR:
+//   pull          ; OSR = 0xFFFFFFFF
+//   mov y, osr    ; Y = 0xFFFFFFFF
+// Then enters .wrap_target loop
 ```
-  /BAPR_IN ─┐
-  /BIOXE_IN─┤
-  /BDAP_IN ─┤── 4-input NOR ──> TRIGGER_OR (HIGH when any input is LOW)
-  /BDRY_IN ─┘
+
+The first sample will be different from Y (since Y = 0xFFFFFFFF and the sample is 12 bits), so the first read always pushes -- giving the CPU the initial bus state.
+
+#### CPU Decoding
+
+The CPU drains the FIFO via DMA into a circular buffer in PSRAM. Each 32-bit word contains the 12-bit sample. The CPU dispatches based on which trigger bits are active:
+
+```c
+void process_bus_event(uint32_t event) {
+    uint8_t  dbus      = event & 0xFF;
+    bool     bapr_act  = !(event & 0x100);   // bit 8 LOW = BAPR active
+    bool     bioxe_act = !(event & 0x200);
+    bool     bdap_act  = !(event & 0x400);
+    bool     bdry_act  = !(event & 0x800);
+    
+    // The Adafruit/piorom-style mask + compare:
+    //   triggers_mask = 0xF00
+    //   triggers_idle = 0xF00 (all HIGH = no trigger)
+    //   if ((event & triggers_mask) != triggers_idle) { trigger active }
+    
+    if (bapr_act)       handle_address_phase(dbus);
+    else if (bioxe_act) handle_iox_data(dbus);
+    else if (bdap_act)  handle_memory_data(dbus);
+    else if (bdry_act)  handle_dma_response(dbus);
+    else {
+        // No trigger active -- this is an "idle data change" event
+        // (e.g., bus released between cycles)
+        // Often safe to ignore
+    }
+}
 ```
 
-A 4-input NOR can be built from:
-- **74LVC02** (quad 2-input NOR): use 3 NORs to combine 4 inputs (cascade)
-- **74LVC4002** (dual 4-input NOR): one chip, 2 spare gates
-- Or use a discrete logic / CPLD if available
+#### Bandwidth Analysis
 
-Output: TRIGGER_OR is LOW when ALL 4 trigger signals are HIGH (idle), and HIGH when ANY trigger goes LOW (active).
+The sample-on-change approach generates events only when bus state changes. Typical activity:
 
-Wait -- we need TRIGGER_OR to be LOW when triggered (to match the PIO `wait 0 pin` instruction). Let me reconsider:
-- Triggers are active LOW: /BAPR LOW means active
-- We want TRIGGER_OR LOW when ANY trigger is active (LOW)
-- That's an AND of HIGH-when-inactive: TRIGGER_OR = (BAPR HIGH) AND (BIOXE HIGH) AND (BDAP HIGH) AND (BDRY HIGH) = NOR of LOW-when-active
-- Equivalently, TRIGGER_OR = NOT (BAPR_LOW OR BIOXE_LOW OR BDAP_LOW OR BDRY_LOW)
-- TRIGGER_OR LOW when any trigger is active: use a **NAND** gate (in active-low logic)
+| Bus state | Event rate | FIFO bandwidth |
+|-----------|------------|----------------|
+| Idle (no cycle) | 0 events/s | 0 |
+| Steady IOX cycle (200-300 ns) | ~5-10 events per cycle | ~5-10 events |
+| DMA cycle (500-700 ns) | ~10 events per cycle | ~10 events |
+| Burst DMA (continuous) | up to ~1 M events/s | ~4 MB/s |
 
-Use **74LVC30** 8-input NAND or 74LVC20 4-input NAND. Or 74LVC02 cascade.
+Even in worst case burst DMA, the FIFO bandwidth is well under the DMA controller's capability (~25 MB/s for FIFO-to-RAM).
 
-The PIO then waits for `wait 0 pin TRIGGER_OR_PIN` -- triggers when TRIGGER_OR goes LOW.
+#### No External Glue Logic
+
+The TRIGGER_OR signal and 74LVC02 NOR gate from the previous design are **not needed**. The PIO handles the "any trigger active" detection internally via the `jmp x != y` compare. This:
+- **Saves 1 chip** on the BOM
+- **Saves 1 GPIO** (TRIGGER_OR_PIN)
+- **Eliminates the inverter logic complication**
+- **Same speed** as a hardware-OR approach (PIO is fast enough)
 
 **Decoding in C code**:
 
