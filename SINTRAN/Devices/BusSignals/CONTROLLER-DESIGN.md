@@ -51,6 +51,22 @@ The RP2350B has two GPIO banks with **separate control registers**:
 
 **Critical rule**: The 24-bit bus **must** be in a single bank to allow single-cycle parallel read/write. Splitting across banks would require two separate writes with timing skew -- unacceptable for bus protocol timing.
 
+### External Flash and PSRAM Pin Reservations
+
+Both RP2040 and RP2350B require **dedicated pins for external QSPI flash** (XIP execute-in-place). These pins are **not usable as GPIO**.
+
+| Resource | RP2040 | RP2350B |
+|----------|--------|---------|
+| Total GPIO | 30 (GPIO0-29) | 48 (GPIO0-47) |
+| QSPI flash pins | 6 (mandatory) | ~6 (mandatory) |
+| QSPI/Octal PSRAM (optional) | Not supported natively | 6-11 pins if used |
+| **Practical usable GPIO** | **~24** | **~31-36** |
+| **24-bit bus contiguous?** | ✓ GPIO0-23 (single bank) | ✓ GPIO0-23 (LOW bank) |
+
+> **Critical**: Plan flash/PSRAM pin usage **before** PCB layout. The 24-bit bus must remain contiguous in one bank. If PSRAM overlaps the LOW bank, the bus can't fit there.
+
+> **Recommendation**: Use **internal RAM only** + **external SD card** for storage. Avoid PSRAM unless absolutely needed -- it costs precious GPIO pins and fragments the bank layout. The RP2350B's 520 KB internal SRAM is sufficient for multi-device emulation buffers.
+
 ### Single-cycle bus access
 
 ```c
@@ -71,136 +87,659 @@ gpio_hw->oe_clr = BUS_MASK;   // BD lines as inputs
 
 ---
 
-## BD 0-23 Bus Interface - Architecture Trade-off Analysis
+## Three Candidate Designs for the BD 0-23 Interface
 
-The 24-bit BD bus is the largest pin consumer. Three architectures are possible with different pin/timing trade-offs.
+The BD 0-23 bus is the dominant pin consumer. Three fundamentally different architectures are possible. Each is fully fleshed out below with pin allocation, components, timing analysis, and cost. A comparison matrix follows.
 
-### Critical insight: hardware latches handle the 50 ns BAPR window
+### Common to All Three Designs
 
-The 50 ns address hold time after /BAPR is the tightest timing constraint. **No software approach can read the bus within 50 ns.** All three architectures use **external latches clocked directly by /BAPR** so the address is captured by hardware at the moment BAPR asserts. The MCU then reads the latched value at its leisure (within the 8 us total bus cycle limit).
+**Hardware-latched address capture**: All three designs use external latches clocked by /BAPR so the address is captured the instant /BAPR asserts. This solves the 50 ns BAPR address hold window in hardware regardless of how the MCU accesses the latches afterward. The MCU then reads the captured value within the 8 us total cycle limit.
 
-### Architecture A: Direct GPIO (24 pins)
+**Non-BD signals are handled identically** in all three designs (see "Common Non-BD Signal Layout" below). Only the BD 0-23 path differs.
 
-24 RP2350 GPIO pins map directly to BD 0-23 via 3x 74LVC245 transceivers.
-
-| Aspect | Value |
-|--------|-------|
-| GPIO pins | 24 |
-| Read time (24 bits) | ~5 ns (single cycle SIO read) |
-| Write time (24 bits) | ~5 ns (single cycle SIO write) |
-| External chips | 3x 74LVC245 |
-
-**Pros**: Fastest possible. **Cons**: Burns the entire LOW bank.
-
-### Architecture B: 8-bit chunked bus with chip selects (PIO-driven) -- RECOMMENDED
-
-8-bit shared bus with 3 chip selects for input latches and 3 strobes for output latches. Read/write 24 bits in 3 chunks via PIO state machine.
-
-| Aspect | Value |
-|--------|-------|
-| GPIO pins | 8 (data) + 3 (input CS) + 1 (strobe) = **12 pins** |
-| Read time (24 bits) | 3 PIO cycles per byte x 3 bytes = ~90-180 ns |
-| Write time (24 bits) | Same: ~90-180 ns |
-| External chips | 3x 74HC574 input + 3x 74HC574 output |
-
-**Pros**: Pin savings, deterministic via PIO, fast enough for all cycles.
-**Cons**: More external components, PIO program complexity.
-
-### Architecture C: SPI shift registers (74HC165 / 74HC595)
-
-3x chained 74LVC165 (input) + 3x chained 74LVC595 (output) accessed via hardware SPI peripheral.
-
-| Aspect | Value |
-|--------|-------|
-| GPIO pins | SCK + MOSI + MISO + LOAD + STROBE + OE = **6 pins** |
-| Read time (24 bits) | 24 SPI clocks @ 30 MHz = ~800 ns + overhead = **~1 us** |
-| Write time (24 bits) | Same: **~1 us** |
-| External chips | 3x 74LVC165 + 3x 74LVC595 |
-
-**Pros**: Smallest pin footprint. **Cons**: Slowest, **insufficient throughput for SMD/HDLC DMA**.
-
-### Bus Cycle Timing Budget per Architecture
-
-| Cycle Type | Direct GPIO (A) | PIO 8-bit (B) | SPI (C) | Bus limit |
-|-----------|----------------|---------------|---------|-----------|
-| IOX response | ~150-300 ns | ~440-590 ns | ~2150-2300 ns | 8000 ns |
-| IDENT decision (100 ns window) | ~35 ns ✓ | ~60-80 ns ✓ | ~110 ns ⚠ | 100 ns |
-| DMA word cycle | ~280-730 ns | ~570-1020 ns | ~2270-2720 ns | 8000 ns |
-| DMA throughput | ~2 MB/s | ~1.25 MB/s | ~400 KB/s | -- |
-| Sufficient for SMD? | ✓ | ✓ marginal | ✗ | -- |
-
-> **For SPI architecture (C)**: Use **hardware default pass-through** for INIDENT (74LVC245 with DIR fixed). PIO intercepts only when capture is needed -- this bypasses the 100 ns decision window entirely.
-
-### Recommendation: Architecture B (PIO 8-bit chunked)
-
-Best balance of pin count, speed, and capability. Sufficient throughput for all target devices (floppy, SMD, terminal, HDLC).
+**Special IDENT/GRANT pass-through chip**: All three designs include a dedicated 74LVC125 quad 3-state buffer for hardware default pass-through of INIDENT->OUTIDENT and INGRANT->OUTGRANT (see dedicated section below).
 
 ---
 
-## Pin Allocation
+## Design 1: Direct GPIO BD Interface
 
-The pin allocation below is based on **Architecture B** (PIO 8-bit chunked BD bus) with all signals you specified.
+24 RP2350 GPIOs map directly to /BD 0-23 via 3x 74LVC245 octal bus transceivers.
 
-### Pin Budget Summary
+### Block Diagram
 
-| Group | Pins | Detail |
-|-------|------|--------|
-| BD bus (8-bit + control) | 12 | 8 data + 3 CS + 1 clock/strobe |
-| Bus phase signals | 4 | BAPR, BDRY, BINPUT, BINACK |
-| Memory type signals | 2 | BIOXE, BMEM |
-| DMA signals | 4 | BREQ, INGRANT, OUTGRANT, BDAP |
-| Interrupt outputs | 3 | BINT 10, 11, 12 (not 13 by user spec) |
-| IDENT daisy-chain | 2 | OUTIDENT, INIDENT |
-| SD card SPI | 4 | SCK, MOSI, MISO, CS |
-| **Total minimum** | **31** | |
-| Spare (debug, LEDs, future) | 17 | GPIO available |
-| **RP2350B total** | **48** | |
+```mermaid
+flowchart LR
+    subgraph BUS["ND-100 Bus"]
+        BD["/BD 0-23 (24 lines)"]
+    end
 
-### LOW bank (GPIO0-31) - Critical timing
+    subgraph LS["Level Shifters"]
+        T1["74LVC245 #1<br/>BD 0-7"]
+        T2["74LVC245 #2<br/>BD 8-15"]
+        T3["74LVC245 #3<br/>BD 16-23"]
+    end
 
-| GPIO | Signal | Direction | Notes |
-|------|--------|-----------|-------|
-| 0-23 | /BD 0-23 | Bidirectional | 24-bit multiplexed address/data bus |
-| 24 | /BAPR | Input | Address strobe (sniff) |
-| 25 | /BIOXE | Input | I/O execute strobe (from CPU) |
-| 26 | /BINACK | Input | Bus input acknowledge (from CPU) |
-| 27 | /BMEM | Input | Memory cycle indicator |
-| 28 | /BDAP | Bidirectional | Data present (sniff during CPU cycles, drive during DMA) |
-| 29 | /BDRY | Bidirectional | Data ready (drive when responding, sniff during DMA reads) |
-| 30 | /BINPUT | Bidirectional | Direction signal (drive during IOX read, also DMA) |
-| 31 | BUS_DIR_OE | Output | Direction control for 74LVC245 transceivers |
+    subgraph MCU["RP2350B"]
+        GPIO["GPIO 0-23<br/>(24 pins)"]
+        DIR["DIR control<br/>(1 pin)"]
+        OE["OE control<br/>(1 pin)"]
+    end
 
-### HIGH bank (GPIO32-47) - Slower signals and peripherals
+    BD <--> T1
+    BD <--> T2
+    BD <--> T3
+    T1 <--> GPIO
+    T2 <--> GPIO
+    T3 <--> GPIO
+    DIR --> T1
+    DIR --> T2
+    DIR --> T3
+    OE --> T1
+    OE --> T2
+    OE --> T3
 
-| GPIO | Signal | Direction | Notes |
-|------|--------|-----------|-------|
-| 32 | /BREQ | Output | DMA bus request (open-drain) |
-| 33 | /INGRANT | Input | DMA grant input (from previous slot) |
-| 34 | /OUTGRANT | Output | DMA grant output (to next slot) |
-| 35 | /INIDENT | Input | Interrupt ident input (from previous slot) |
-| 36 | /OUTIDENT | Output | Interrupt ident output (to next slot) |
-| 37 | /BMCL | Input | Bus master clear (reset) |
-| 38 | INT_LATCH_CS | Output | Chip select for interrupt latch (see below) |
-| 39 | INT_LATCH_CLK | Output | Clock for interrupt latch |
-| 40 | INT_LATCH_DATA | Output | Data to interrupt latch |
-| 41-47 | Reserved | -- | SD card or future use |
+    style BUS fill:#FFF3E0,stroke:#E65100,color:#E65100
+    style LS fill:#E0F7FA,stroke:#00838F,color:#00838F
+    style MCU fill:#E3F2FD,stroke:#0D47A1,color:#0D47A1
+```
 
-**TODO**: Decide whether direct GPIO pins for /BINT 10/11/12/13/15 fit within the budget, or whether to use a latch (74HC595) clocked from the high bank.
+### Pin Allocation
 
-### Pin budget analysis
+| GPIO | Signal | Direction | Function |
+|------|--------|-----------|----------|
+| 0-7 | /BD 0-7 | Bidirectional | BD lines via 74LVC245 #1 |
+| 8-15 | /BD 8-15 | Bidirectional | BD lines via 74LVC245 #2 |
+| 16-23 | /BD 16-23 | Bidirectional | BD lines via 74LVC245 #3 |
+| 24 | BD_DIR | Output | Direction control (all three transceivers) |
+| 25 | /BD_OE | Output | Output enable (all three transceivers) |
 
-| Category | Pins | Notes |
-|----------|------|-------|
-| 24-bit BD bus | 24 | LOW bank |
-| Bus control signals (BAPR, BIOXE, BINACK, BMEM, BDAP, BDRY, BINPUT) | 7 | LOW bank |
-| Direction control | 1 | LOW bank |
-| **LOW bank total** | **32** | **Full** |
-| BREQ + grant chain | 3 | HIGH bank |
-| Ident chain | 2 | HIGH bank |
-| BMCL | 1 | HIGH bank |
-| Interrupt control (latched) | 3 | HIGH bank (SPI to 74HC595) |
-| **Subtotal HIGH bank** | **9** | |
-| Remaining for SD card / debug | 7 | GPIO41-47 |
+**BD pins used: 26**
+
+### Component List
+
+| IC | Qty | Function | Approx Cost |
+|----|-----|----------|-------------|
+| 74LVC245 | 3 | Octal bus transceiver, 3.3V/5V level shift | $1.50 |
+| Bypass caps (0.1uF) | 3 | One per IC | $0.10 |
+| **Subtotal BD path** | | | **$1.60** |
+
+### Timing Analysis
+
+| Operation | Time | Notes |
+|-----------|------|-------|
+| 24-bit read | ~5 ns | Single SIO register read |
+| 24-bit write | ~5 ns | Single SIO register write |
+| Direction switch | ~5 ns | Single OE/DIR write |
+| Level shifter delay | 3-6 ns | 74LVC245 propagation |
+| **Total round-trip read** | **~15 ns** | GPIO + level shifter + GPIO read |
+| **Total round-trip write** | **~15 ns** | GPIO write + level shifter |
+
+### Bus Cycle Performance
+
+| Cycle | Time | Margin (8 us) |
+|-------|------|---------------|
+| IOX response | ~100-200 ns | 40x |
+| IDENT decision | ~25 ns | 4x within 100 ns window |
+| DMA word cycle | ~250-500 ns | 16x |
+| DMA throughput | **~3 MB/s** | Sufficient for SMD |
+
+### Pros
+
+- **Fastest possible** -- single-cycle 24-bit access
+- **Simplest software** -- direct GPIO read/write, no PIO needed for BD bus
+- **Minimum external chips** -- only 3 transceivers for BD path
+- **Lowest BIST complexity** -- everything visible to debugger
+- **Best timing margin** for IDENT and DMA throughput
+
+### Cons
+
+- **Highest pin count** for BD bus (26 pins)
+- **Burns nearly all of LOW bank** (26/32 = 81%)
+- Leaves only 6 LOW bank pins for time-critical control signals
+- Other bus signals must move to HIGH bank, which has separate registers and slower combined operations
+- **Total system pin count** may exceed 48 GPIO budget when combined with all other signals
+
+---
+
+## Design 2: 8-bit Latched BD Interface (PIO-driven)
+
+A shared 8-bit data bus connects to 6 octal latches: 3 for capturing input from the bus, 3 for driving output to the bus. Chip selects choose which latch the MCU is currently accessing. The MCU reads or writes the 24-bit BD value as **3 sequential 8-bit operations** controlled by a PIO state machine.
+
+### Block Diagram
+
+```mermaid
+flowchart LR
+    subgraph BUS["ND-100 Bus"]
+        BD["/BD 0-23 (24 lines)"]
+    end
+
+    subgraph IN["Input Latches (BAPR clocked)"]
+        L1["74LVC573 #1<br/>BD 0-7"]
+        L2["74LVC573 #2<br/>BD 8-15"]
+        L3["74LVC573 #3<br/>BD 16-23"]
+    end
+
+    subgraph OUT["Output Drivers"]
+        D1["74LVC245 #1<br/>BD 0-7"]
+        D2["74LVC245 #2<br/>BD 8-15"]
+        D3["74LVC245 #3<br/>BD 16-23"]
+    end
+
+    subgraph MCU["RP2350B"]
+        D8["Shared 8-bit bus<br/>GPIO 0-7"]
+        CS["3x /OE_IN<br/>3x LATCH_OUT"]
+        OE["/BD_OE_BUS"]
+    end
+
+    BD --> L1
+    BD --> L2
+    BD --> L3
+    BD <-- D1
+    BD <-- D2
+    BD <-- D3
+
+    L1 --> D8
+    L2 --> D8
+    L3 --> D8
+    D8 --> D1
+    D8 --> D2
+    D8 --> D3
+
+    CS --> L1
+    CS --> L2
+    CS --> L3
+    CS --> D1
+    CS --> D2
+    CS --> D3
+    OE --> D1
+    OE --> D2
+    OE --> D3
+
+    BAPR["/BAPR (clock)"] --> L1
+    BAPR --> L2
+    BAPR --> L3
+
+    style BUS fill:#FFF3E0,stroke:#E65100,color:#E65100
+    style IN fill:#E0F7FA,stroke:#00838F,color:#00838F
+    style OUT fill:#E0F7FA,stroke:#00838F,color:#00838F
+    style MCU fill:#E3F2FD,stroke:#0D47A1,color:#0D47A1
+```
+
+### Pin Allocation
+
+| GPIO | Signal | Direction | Function |
+|------|--------|-----------|----------|
+| 0-7 | DBUS 0-7 | Bidirectional | Shared 8-bit MCU<->latch bus |
+| 8 | /OE_IN_0 | Output | Read input latch 0 (BD 0-7) |
+| 9 | /OE_IN_1 | Output | Read input latch 1 (BD 8-15) |
+| 10 | /OE_IN_2 | Output | Read input latch 2 (BD 16-23) |
+| 11 | LE_OUT_0 | Output | Latch output 0 (BD 0-7) |
+| 12 | LE_OUT_1 | Output | Latch output 1 (BD 8-15) |
+| 13 | LE_OUT_2 | Output | Latch output 2 (BD 16-23) |
+| 14 | /BD_OE_BUS | Output | Enable our card to drive the bus |
+
+**BD pins used: 15**
+
+### Component List
+
+| IC | Qty | Function | Approx Cost |
+|----|-----|----------|-------------|
+| 74LVC573 | 3 | Octal D-latch, captures BD on /BAPR | $1.50 |
+| 74LVC245 | 3 | Octal bus driver, output to bus | $1.50 |
+| 74LVT138 | 1 | 3-to-8 decoder (optional, for CS generation) | $0.40 |
+| Bypass caps (0.1uF) | 6 | One per IC | $0.20 |
+| **Subtotal BD path** | | | **$3.60** |
+
+### PIO State Machine Operation
+
+```
+Read 24 bits from bus (after /BAPR latched data):
+  PIO SM:
+    Set /OE_IN_0 = 0     (1 cycle)
+    Read DBUS 0-7        (1 cycle)
+    Set /OE_IN_0 = 1     (1 cycle)
+    Set /OE_IN_1 = 0     (1 cycle)
+    Read DBUS 0-7        (1 cycle)
+    Set /OE_IN_1 = 1     (1 cycle)
+    Set /OE_IN_2 = 0     (1 cycle)
+    Read DBUS 0-7        (1 cycle)
+    Set /OE_IN_2 = 1     (1 cycle)
+  Total: ~9 PIO cycles @ 150 MHz = ~60 ns
+
+Write 24 bits to bus:
+  PIO SM:
+    Drive DBUS = byte0   (1 cycle)
+    Pulse LE_OUT_0       (1 cycle)
+    Drive DBUS = byte1   (1 cycle)
+    Pulse LE_OUT_1       (1 cycle)
+    Drive DBUS = byte2   (1 cycle)
+    Pulse LE_OUT_2       (1 cycle)
+    Set /BD_OE_BUS = 0   (1 cycle, enable bus drive)
+  Total: ~7 PIO cycles @ 150 MHz = ~50 ns + level shifter delay
+```
+
+### Timing Analysis
+
+| Operation | Time | Notes |
+|-----------|------|-------|
+| 24-bit read (3 chunks) | ~60 ns | PIO @ 150 MHz |
+| 24-bit write (3 chunks) | ~50 ns | PIO @ 150 MHz |
+| Latch propagation | 3-5 ns | 74LVC573 |
+| Level shifter delay | 3-6 ns | 74LVC245 |
+| **Total round-trip read** | **~70-80 ns** | Including latch + read chunks |
+| **Total round-trip write** | **~60-70 ns** | Including write chunks + latch |
+
+### Bus Cycle Performance
+
+| Cycle | Time | Margin (8 us) |
+|-------|------|---------------|
+| IOX response | ~200-400 ns | 20x |
+| IDENT decision | ~70-90 ns | within 100 ns window ✓ |
+| DMA word cycle | ~400-700 ns | 11x |
+| DMA throughput | **~1.5-2 MB/s** | Sufficient for all devices including SMD |
+
+### Pros
+
+- **Moderate pin count** -- 15 pins for BD interface (vs 26 for Design 1)
+- **Frees ~10 LOW bank pins** for other time-critical signals
+- **Good throughput** -- meets all device requirements
+- **Deterministic** via PIO state machine
+- **Hardware latch** decouples MCU from BAPR timing
+
+### Cons
+
+- **More external components** -- 6 latch/driver chips + optional decoder
+- **PIO program complexity** higher than Design 1
+- **Three sequential operations** per 24-bit access (vs single op in Design 1)
+- IDENT decision time is tighter (~70-90 ns vs 100 ns window)
+
+---
+
+## Design 3: SPI Shift Register BD Interface
+
+3x 74LVC165 chained as 24-bit parallel-in serial-out (input) and 3x 74LVC595 chained as 24-bit serial-in parallel-out (output). The MCU accesses both via the hardware SPI peripheral with DMA.
+
+### Block Diagram
+
+```mermaid
+flowchart LR
+    subgraph BUS["ND-100 Bus"]
+        BD["/BD 0-23 (24 lines)"]
+    end
+
+    subgraph IN["Input Shift Registers"]
+        S1["74LVC165 #1<br/>BD 0-7"]
+        S2["74LVC165 #2<br/>BD 8-15"]
+        S3["74LVC165 #3<br/>BD 16-23"]
+    end
+
+    subgraph OUT["Output Shift Registers"]
+        SO1["74LVC595 #1<br/>BD 0-7"]
+        SO2["74LVC595 #2<br/>BD 8-15"]
+        SO3["74LVC595 #3<br/>BD 16-23"]
+    end
+
+    subgraph DRV["Output Drivers"]
+        D["74LVC245<br/>OE-controlled"]
+    end
+
+    subgraph MCU["RP2350B SPI"]
+        SCK["SCK"]
+        MISO["MISO"]
+        MOSI["MOSI"]
+        LD["/PL load"]
+        STR["LATCH strobe"]
+        OE["/BD_OE_BUS"]
+    end
+
+    BD --> S1 --> S2 --> S3
+    S3 --> MISO
+
+    MOSI --> SO1 --> SO2 --> SO3
+    SO3 --> D
+    D --> BD
+
+    SCK --> S1
+    SCK --> S2
+    SCK --> S3
+    SCK --> SO1
+    SCK --> SO2
+    SCK --> SO3
+
+    LD --> S1
+    LD --> S2
+    LD --> S3
+    STR --> SO1
+    STR --> SO2
+    STR --> SO3
+    OE --> D
+
+    BAPR["/BAPR"] -.->|trigger PL| LD
+
+    style BUS fill:#FFF3E0,stroke:#E65100,color:#E65100
+    style IN fill:#E0F7FA,stroke:#00838F,color:#00838F
+    style OUT fill:#E0F7FA,stroke:#00838F,color:#00838F
+    style DRV fill:#E0F7FA,stroke:#00838F,color:#00838F
+    style MCU fill:#E3F2FD,stroke:#0D47A1,color:#0D47A1
+```
+
+### Pin Allocation
+
+| GPIO | Signal | Direction | Function |
+|------|--------|-----------|----------|
+| 0 | SPI0_SCK | Output | SPI clock to all shift registers |
+| 1 | SPI0_MOSI | Output | SPI data to 74LVC595 chain |
+| 2 | SPI0_MISO | Input | SPI data from 74LVC165 chain |
+| 3 | /PL_LOAD | Output | Parallel load trigger for 74LVC165 (clocked by /BAPR via gate) |
+| 4 | LATCH_OUT | Output | Latch enable for 74LVC595 outputs |
+| 5 | /BD_OE_BUS | Output | Enable our card to drive the bus |
+
+**BD pins used: 6**
+
+### Component List
+
+| IC | Qty | Function | Approx Cost |
+|----|-----|----------|-------------|
+| 74LVC165 | 3 | Parallel-in serial-out shift register | $1.20 |
+| 74LVC595 | 3 | Serial-in parallel-out shift register | $1.20 |
+| 74LVC245 | 1 | Output driver to bus, OE controlled | $0.50 |
+| 74LVC14 | 1 | Schmitt trigger for /BAPR conditioning | $0.30 |
+| Bypass caps (0.1uF) | 8 | One per IC | $0.25 |
+| **Subtotal BD path** | | | **$3.45** |
+
+### Timing Analysis
+
+| Operation | Time | Notes |
+|-----------|------|-------|
+| 24-bit read (SPI @ 30 MHz) | ~800 ns | 24 SPI clocks + setup |
+| 24-bit write (SPI @ 30 MHz) | ~800 ns | 24 SPI clocks + setup |
+| SPI transaction overhead | ~100-200 ns | DMA setup, completion |
+| **Total round-trip read** | **~1000 ns (~1 us)** | Worst case |
+| **Total round-trip write** | **~1000 ns (~1 us)** | Worst case |
+
+> **Note**: 74HC165/595 max clock is ~25 MHz at 5V, slower at 3.3V. Use **74LVC165/595** (CMOS) or **74LVC4-bit shift registers** for higher speeds. RP2350 SPI peripheral can run faster but is limited by the shift register max clock.
+
+### Bus Cycle Performance
+
+| Cycle | Time | Margin (8 us) |
+|-------|------|---------------|
+| IOX response | ~2.0-2.5 us | 3-4x |
+| IDENT decision | ~110 ns ⚠ | **Marginal**, requires hardware default pass-through |
+| DMA word cycle | ~2.3-2.8 us | 3x |
+| DMA throughput | **~350-400 KB/s** | Sufficient for floppy, terminal, HDLC. **Marginal for SMD.** |
+
+### Pros
+
+- **Lowest pin count** -- 6 pins for entire BD interface
+- **Massive pin savings** -- ~20 LOW bank pins free for other uses
+- **Uses hardware SPI peripheral** with DMA -- frees PIO for other tasks
+- **Standard, well-known components** (74HC165/595)
+- **Compact PCB** -- shift registers are small
+
+### Cons
+
+- **Slowest by far** -- ~1 us per BD access vs 5-80 ns for Designs 1 and 2
+- **Insufficient throughput for SMD disk emulation** at full speed
+- **Marginal for IDENT 100 ns window** -- absolutely requires hardware pass-through
+- **HC family max ~25 MHz** -- need LVC variants for higher speed
+- More chips than Design 1 (8 vs 3)
+- SPI peripheral conflict if SD card also uses SPI (need separate SPI bus)
+
+---
+
+## Common Non-BD Signal Layout (All Three Designs)
+
+The non-BD signals use the same layout in all three designs:
+
+| Signal | RP2350 GPIO | Direction | Buffer IC |
+|--------|-------------|-----------|-----------|
+| /BAPR | 1 pin | In | 74LVC14 (Schmitt) |
+| /BIOXE | 1 pin | In | 74LVC14 |
+| /BINACK | 1 pin | In | 74LVC14 |
+| /BMEM | 1 pin | In | 74LVC14 |
+| /BMCL | 1 pin | In | 74LVC14 |
+| /BDRY | 1 pin | Bidir | 74LVC07 (open-drain) + 74LVC14 (read-back) |
+| /BINPUT | 1 pin | Bidir | 74LVC07 + 74LVC14 |
+| /BDAP | 1 pin | Bidir | 74LVC07 + 74LVC14 |
+| /BREQ | 1 pin | Out | 74LVC07 (open-drain) |
+| /INGRANT | 1 pin | In | (via daisy-chain chip) |
+| /OUTGRANT | 1 pin | Out | (via daisy-chain chip) |
+| /INIDENT | 1 pin | In | (via daisy-chain chip) |
+| /OUTIDENT | 1 pin | Out | (via daisy-chain chip) |
+| /BINT 10 | 1 pin | Out | 74LVC07 |
+| /BINT 11 | 1 pin | Out | 74LVC07 |
+| /BINT 12 | 1 pin | Out | 74LVC07 |
+
+**Common non-BD pins: 16**
+
+For the bidirectional signals (/BDRY, /BINPUT, /BDAP), one approach uses **two GPIO pins** (1 to drive open-drain output, 1 to read state). The simpler approach uses **1 GPIO** in open-drain mode (RP2350 GPIO supports this) plus a separate input buffer reading the same line.
+
+---
+
+## IDENT/GRANT Daisy-Chain Pass-Through Chip (All Designs)
+
+The 100 ns IDENT decision window and the need for fast daisy-chain propagation make a **hardware default pass-through** essential. A single 74LVC125 quad 3-state buffer handles both daisy chains:
+
+### Operation
+
+```
+Default (idle): PIO drives /OE_PASS = LOW
+  Buffer enabled
+  /INIDENT  --> [LVC125 ch.1] --> /OUTIDENT  (3-5 ns delay)
+  /INGRANT  --> [LVC125 ch.2] --> /OUTGRANT  (3-5 ns delay)
+
+Capture (we want this interrupt or DMA cycle): PIO drives /OE_PASS = HIGH
+  Buffer high-Z
+  /OUTIDENT and /OUTGRANT float HIGH (next slot sees idle)
+  Our card drives BD lines + /BDRY for IDENT response
+  Or starts DMA cycle for GRANT capture
+```
+
+### IC Selection
+
+| IC | Function | Notes |
+|----|----------|-------|
+| **74LVC125** | Quad 3-state buffer with independent enables | Recommended -- 3-5 ns delay, simple |
+| 74LVC126 | Same with active-high enables | Alternative |
+| ATF22V10 PAL | Programmable | Overkill but allows custom logic |
+| ATF1502 CPLD | Programmable | If complex pass-through logic needed |
+
+The 74LVC125 is the simplest and fastest option. Two channels handle each daisy-chain pair (in + out), leaving 0 spare. If you need spare buffer channels for other use, a 74LVC126 offers 4 channels.
+
+### Pin Cost
+
+The pass-through chip needs:
+- 1 GPIO for /OE_IDENT_PASS (controls IDENT chain)
+- 1 GPIO for /OE_GRANT_PASS (controls GRANT chain)
+- Or combine both onto 1 GPIO if they're always controlled together
+
+**Pin cost: 1-2 GPIO** (already counted in non-BD signal table above for INGRANT/OUTGRANT and INIDENT/OUTIDENT)
+
+---
+
+## Comparison Matrix
+
+| Aspect | Design 1: Direct GPIO | Design 2: 8-bit Latched | Design 3: SPI Shift |
+|--------|----------------------|-------------------------|---------------------|
+| **BD pins (RP2350)** | 26 | 15 | 6 |
+| **BD external chips** | 3 | 6 (+1 optional) | 7 |
+| **24-bit read time** | ~5 ns | ~60-80 ns | ~1000 ns |
+| **24-bit write time** | ~5 ns | ~50-70 ns | ~1000 ns |
+| **IOX response** | ~150 ns | ~300 ns | ~2200 ns |
+| **IDENT decision** | ~25 ns ✓ | ~70-90 ns ✓ | ~110 ns ⚠ |
+| **DMA word cycle** | ~280 ns | ~500 ns | ~2500 ns |
+| **DMA throughput** | ~3 MB/s | ~1.5-2 MB/s | ~400 KB/s |
+| **Sufficient for SMD?** | ✓ Yes | ✓ Yes | ⚠ Marginal |
+| **Sufficient for HDLC?** | ✓ Yes | ✓ Yes | ✓ Yes |
+| **Sufficient for floppy/term?** | ✓ Yes | ✓ Yes | ✓ Yes |
+| **Software complexity** | Low | Medium (PIO) | Low (SPI HW) |
+| **PIO state machines used** | 0 | 1-2 | 0 |
+| **External components (BD)** | 3 + caps | 7 + caps | 8 + caps |
+| **Approx BD chip cost** | $1.60 | $3.60 | $3.45 |
+| **PCB area for BD path** | Small | Medium | Medium |
+| **Total system pins (BD + 16 common)** | 42 | 31 | 22 |
+| **Spare pins (RP2350B 48 total)** | 6 | 17 | 26 |
+| **Risk of pin shortage** | High | Low | Very low |
+
+---
+
+## Recommendation
+
+| Use case | Recommended Design |
+|----------|-------------------|
+| **Multi-device controller** (floppy + SMD + terminal + HDLC) | **Design 2 (8-bit latched)** |
+| **Single SMD/HDLC controller** with maximum speed | Design 1 (Direct GPIO) |
+| **Simple PIO devices only** (terminal, floppy) | Design 3 (SPI) |
+| **Pin count is the dominant constraint** | Design 3 (SPI) |
+| **Maximum simplicity, money no object** | Design 1 (Direct GPIO) |
+
+**Primary recommendation: Design 2 (8-bit latched)** for the multi-device controller goal. It provides:
+
+- Sufficient throughput for all four target devices
+- Pin headroom for additional devices and debug
+- Reasonable component count
+- PIO-driven deterministic timing
+- Hardware-latched address capture
+
+**Fallback: Design 1 (Direct GPIO)** if pin budget allows after counting all non-BD signals. Worth verifying pin count fits within 48 GPIO with all bus signals + SD card + interrupts.
+
+**Avoid Design 3** unless SMD emulation is dropped. The DMA throughput limit is the binding constraint.
+
+---
+
+## Pin Budget Verification (All Three Designs)
+
+| Group | Pins | Design 1 | Design 2 | Design 3 |
+|-------|------|----------|----------|----------|
+| BD bus | varies | 26 | 15 | 6 |
+| /BAPR, /BIOXE, /BINACK, /BMEM, /BMCL (input) | 5 | 5 | 5 | 5 |
+| /BDRY, /BINPUT, /BDAP (bidir, 1 pin each open-drain) | 3 | 3 | 3 | 3 |
+| /BREQ (output) | 1 | 1 | 1 | 1 |
+| /INGRANT, /OUTGRANT, /INIDENT, /OUTIDENT | 4 | 4 | 4 | 4 |
+| /BINT 10/11/12 | 3 | 3 | 3 | 3 |
+| Daisy-chain pass-through enables | 1-2 | 2 | 2 | 2 |
+| SD card (SPI) | 4 | 4 | 4 | 4 |
+| **Total minimum** | | **48** | **37** | **28** |
+| **Spare on RP2350B (48 total)** | | **0** | **11** | **20** |
+
+> **Design 1 uses every single GPIO** with no margin for debug, status LEDs, or expansion. This is risky.
+>
+> **Design 2 leaves 11 spare** -- comfortable for debug UART, LEDs, additional features.
+>
+> **Design 3 leaves 20 spare** -- but pays the cost in bus throughput.
+
+---
+
+## RP2040 Alternative Analysis
+
+Can the same controller work with an **RP2040** instead of RP2350B? The RP2040 has **30 GPIO** in a single bank, but **6 are reserved for QSPI flash**, leaving **~24 usable GPIO** in practice.
+
+### RP2040 Pin Reality
+
+| Resource | Count | Notes |
+|----------|-------|-------|
+| Total GPIO | 30 (GPIO0-29) | |
+| QSPI flash (mandatory) | 6 (typically GPIO0-5 area) | Not usable as GPIO |
+| USB pins | 2 (GPIO24-25) | Lost if USB used |
+| **Practical usable GPIO** | **~22-24** | Depending on board variant |
+
+This is **far below** the ~30+ pins needed for any of the three designs as-is. The RP2040 can only host the controller with **significant external hardware** to multiplex the bus signals.
+
+### RP2040 Design Options
+
+#### Option R1: Direct GPIO -- NOT FEASIBLE
+
+A 24-bit BD bus alone consumes the entire usable GPIO budget, leaving zero pins for control signals. Not possible.
+
+#### Option R2: 8-bit Latched (Design 2 adapted) -- TIGHT
+
+| Group | Pins | Notes |
+|-------|------|-------|
+| 8-bit shared bus | 8 | DBUS 0-7 |
+| Input/output latch CS (3+3) | 6 | Or use 74LVT138 decoder to save pins |
+| /BD_OE_BUS | 1 | Output enable |
+| Bus phase signals (5 in + 3 bidir) | 8 | Same as Design 2 |
+| /BREQ + daisy chain (4) | 4 | INGRANT/OUTGRANT/INIDENT/OUTIDENT |
+| /BINT 10/11/12 | 3 | |
+| Daisy-chain pass enable | 1 | Combined |
+| SD card SPI | 4 | |
+| **Total** | **35** | |
+
+**Result**: 35 pins needed, 24 available. **11 pins short.**
+
+To make this fit, we'd need to:
+- Use a **74LVT138** 3-to-8 decoder to generate 6 chip selects from 3 GPIO pins (saves 3 pins)
+- Use a **74HC595** shift register for /BINT outputs and daisy-chain enables (saves 2-3 pins)
+- Multiplex /BREQ and other slow signals via the same shift register (saves 2-3 pins)
+
+After aggressive multiplexing: **~26 pins**, still 2 short.
+
+#### Option R3: SPI Shift Registers (Design 3 adapted) -- FEASIBLE
+
+The SPI design uses only 6 pins for BD interface, which fits comfortably:
+
+| Group | Pins | Notes |
+|-------|------|-------|
+| SPI BD interface | 6 | SCK, MOSI, MISO, /PL, LATCH, /OE |
+| Bus phase signals (5 in + 3 bidir) | 8 | |
+| /BREQ + daisy chain | 4 | |
+| /BINT 10/11/12 | 3 | |
+| Daisy-chain pass enable | 1 | |
+| SD card SPI | 4 | (separate SPI bus) |
+| **Total** | **26** | |
+
+**Result**: 26 pins needed, 24 available. **2 pins short.**
+
+To make this fit:
+- Use a **74HC595** shift register for /BINT 10/11/12 + daisy-chain enables (saves 2-3 pins, costs 3 SPI shared with SD)
+- Share SPI bus between SD card and BD shift registers (chip select differentiates)
+
+After multiplexing: **~22-23 pins**. Fits.
+
+#### Option R4: Hybrid with External CPLD/MCU helper
+
+Use a small **ATF1502 CPLD** or **STM32G0** as a "bus front-end" companion chip:
+
+```
+  ND-100 Bus <--> [CPLD/STM32 Bus Helper] <--SPI/Parallel--> RP2040
+                       |
+                  Handles all bus
+                  protocol timing
+                  and presents
+                  high-level interface
+```
+
+The companion chip handles all time-critical bus protocol, presenting a simple SPI or parallel interface to the RP2040. The RP2040 only handles device emulation logic.
+
+**Pros**: Minimum RP2040 pin usage (~10 pins), best bus timing
+**Cons**: Most complex (two firmware codebases), higher BOM cost
+
+### RP2040 Recommendation
+
+**Don't use RP2040 unless absolutely necessary.** The pin budget forces aggressive multiplexing or a companion chip, increasing complexity and reducing performance. The RP2350B is the right choice for this design.
+
+If RP2040 must be used:
+- **Use Option R3 (SPI shift registers)** with shift register for interrupts
+- Accept the ~1 us BD access time
+- Accept the SMD throughput limitation
+- Consider Option R4 (CPLD helper) for high-performance variants
+
+### RP2040 vs RP2350B Comparison
+
+| Aspect | RP2040 | RP2350B |
+|--------|--------|---------|
+| GPIO total | 30 | 48 |
+| GPIO usable (after QSPI) | ~24 | ~36-42 |
+| Banks | 1 | 2 (LOW + HIGH) |
+| PIO state machines | 8 | 12 |
+| SRAM | 264 KB | 520 KB |
+| External PSRAM support | No (PIO only) | Yes (QSPI/Octal) |
+| 5V tolerant inputs | Yes | Yes |
+| Cores | 2x Cortex-M0+ @ 133 MHz | 2x Cortex-M33 @ 150 MHz |
+| Approx chip cost | ~$1.00 | ~$1.20 |
+| **Suitable for this design** | **Marginal (with helper chips)** | **Yes (recommended)** |
+
+The cost difference is negligible -- ~$0.20 -- and the RP2350B provides significantly more headroom.
 
 ---
 
