@@ -65,25 +65,25 @@ These pins are dedicated to external QSPI flash and **not exposed** as part of t
 |-----|--------|--------------|
 | **GP47** | PSRAM chip select | ✓ Yes -- cut trace to disable PSRAM |
 
-#### Conditional reservations (depends on usage)
+#### Buttons (no GPIO cost)
 
-| Pins | Reason | Avoid if... |
-|------|--------|-------------|
-| GP24, GP25 | USB D+/D- (typical routing) | You need USB for programming/debug |
-| GP24, GP25 | SWD debug (depending on routing) | You want stable debugging |
+| Function | Pin | Notes |
+|----------|-----|-------|
+| RESET | RUN (dedicated) | No GPIO consumed -- press to ground |
+| BOOTSEL | QSPI_CS (already reserved) | No GPIO consumed -- press to ground for programming mode |
+
+#### USB (no GPIO cost on PGA2350)
+
+The RP2350B's USB interface uses dedicated internal USB pins on the PGA2350 module. **USB does not consume any GPIO** -- GP24 and GP25 remain available as normal GPIOs.
 
 ### Effective GPIO Available
 
 | Configuration | Usable GPIO | Notes |
 |---------------|-------------|-------|
-| Default (PSRAM enabled, USB used) | **45 (GP0-46 minus GP24-25)** | Conservative -- includes USB for dev |
-| PSRAM enabled, no USB | **47 (GP0-46)** | Production firmware, no USB needed |
-| PSRAM disabled, USB used | **46 (GP0-47 minus GP24-25)** | Cut PSRAM trace |
-| PSRAM disabled, no USB | **48 (GP0-47)** | Maximum pins, no PSRAM, no USB |
+| **Default (PSRAM enabled)** | **47 (GP0-46)** | Recommended -- 8 MB PSRAM available |
+| PSRAM disabled (cut trace) | **48 (GP0-47)** | Maximum pins, no PSRAM cache |
 
-> **For development**: Plan for **45-46 usable GPIO** (USB needed for programming and debug).
->
-> **For production**: Can recover GP24/25 (~46-47 GPIO) if USB is not required in the final card.
+> **For all configurations**: USB, RESET button, and BOOTSEL button are free -- they use dedicated pins (USB internal, RUN, QSPI_CS) and do not consume any GPIO.
 
 ### When to Keep PSRAM
 
@@ -125,56 +125,85 @@ The 8 MB PSRAM is useful for:
 
 The controller card always requires:
 
-| Resource | GPIO Used | Purpose |
-|----------|-----------|---------|
-| **USB** (mandatory) | GP24/GP25 (D+/D-) | Firmware updates, virtual serial port for monitoring |
-| **PSRAM** (recommended) | GP47 (CS) | 8 MB cache for floppy/SMD images |
-| **LOAD button** | 1 GPIO | Trigger firmware update mode / device reload |
-| **RESET button** | RUN pin | Hardware reset (uses dedicated RUN pin, not GPIO) |
-| **Status LEDs** | 2-4 GPIO | Activity, error, debug indication |
+| Resource | GPIO Used | Pin/Source | Purpose |
+|----------|-----------|------------|---------|
+| **USB** (mandatory) | 0 | Internal RP2350 USB pins | Firmware updates, virtual serial monitoring |
+| **PSRAM** (recommended) | 1 | GP47 (CS) | 8 MB cache for floppy/SMD images |
+| **RESET button** | 0 | RUN pin (dedicated) | Hardware reset, no GPIO used |
+| **BOOTSEL button** | 0 | QSPI_CS (already reserved) | USB mass storage programming mode |
+| **Status LEDs** | 2 | 2x GPIO | Activity, error indication |
 
-The RESET button uses the dedicated RUN pin, not a GPIO. The LOAD button needs 1 GPIO with internal pull-up.
+#### Buttons -- No GPIO Cost
 
-### Effective GPIO Budget (Final)
+Both required buttons use dedicated pins, **not GPIOs**:
+
+**RESET button**: Wired RUN -> button -> GND. RUN is a dedicated reset pin with internal pull-up. Pulling it LOW resets the MCU.
+
+```
+  RUN ----[switch]---- GND
+```
+
+**BOOTSEL button**: Wired QSPI_CS -> button -> GND. QSPI_CS is part of the flash interface (already reserved, not in GPIO pool). Holding BOOTSEL LOW during reset forces USB mass storage bootloader mode for firmware programming.
+
+```
+  QSPI_CS ----[switch]---- GND
+```
+
+**Programming sequence**:
+1. Hold BOOTSEL
+2. Press RESET (RUN)
+3. Release RESET
+4. Release BOOTSEL
+5. Device appears as USB mass storage drive
+
+Optional: add 100R series resistor or debounce capacitor (not required).
+
+#### USB -- No Additional GPIO Cost
+
+The RP2350B's USB interface uses **dedicated internal USB pins** that are not part of the GPIO0-47 pool. USB does **not consume any GPIO** on the PGA2350. This is different from the raw RP2350B chip where USB pins overlap with GP24/GP25 in some package variants.
+
+> **Correction from earlier**: USB on PGA2350 does not eat GP24/GP25. Those remain available as normal GPIO.
+
+### Effective GPIO Budget (Corrected)
 
 | Item | Pins |
 |------|------|
 | Total GP0-GP47 | 48 |
 | Minus PSRAM CS (GP47) | -1 |
-| Minus USB D+/D- (GP24, GP25) | -2 |
-| Minus LOAD button | -1 |
 | Minus 2x status LEDs | -2 |
-| **Remaining for bus interface + SD card** | **42** |
+| **Remaining for bus interface + SD card** | **45** |
 
-### Final Recommendation: Design 2 with PSRAM, USB, LOAD button, LEDs
+### Design Fit (Corrected)
+
+With PSRAM enabled and 2 LEDs (45 GPIO available for bus + SD):
+
+| Design | Bus Interface Pins | Common Non-BD | SD SPI | Total | Fits 45? | Spare |
+|--------|-------------------|--------------|--------|-------|----------|-------|
+| Design 1 (Direct GPIO) | 26 | 16 | 4 | 46 | ❌ **No** -- exceeds by 1 | -1 |
+| **Design 2 (8-bit Latched)** | 15 | 16 | 4 | 35 | ✓ Yes | **10 spare** |
+| Design 3 (SPI Shift) | 6 | 16 | 4 | 26 | ✓ Yes | **19 spare** |
+
+> **Design 1** still does not fit with PSRAM enabled. To use Design 1 you would need to cut the PSRAM trace to free GP47, sacrificing the 8 MB cache.
+>
+> **Design 2** fits comfortably with **10 spare pins** -- room for debug UART, additional LEDs, expansion headers.
+>
+> **Design 3** has the most headroom (19 spare) at the cost of slower BD access.
+
+### Final Recommendation
 
 | Setting | Choice | Why |
 |---------|--------|-----|
-| Architecture | **Design 2 (8-bit Latched)** | Fits all configurations, sufficient throughput |
-| PSRAM | **Enabled** | 8 MB cache valuable for floppy/SMD |
-| USB | **Enabled** (mandatory) | Firmware updates + virtual serial monitoring |
-| LOAD button | Yes (1 GPIO) | Firmware reload, device select |
-| Status LEDs | 2-4 (GPIO) | Activity, error indication |
-| **Bus interface pins** | 37 (Design 2) | |
-| **System pins (USB, PSRAM, buttons, LEDs)** | 6 | |
-| **Total used** | **43** | |
-| **Spare GPIO** | **5** | For expansion, debug header, etc. |
-
-### Design Fit with Mandatory USB and Recommended PSRAM
-
-With USB always enabled, PSRAM enabled, LOAD button, and 2 LEDs (45 effective GPIO for bus + SD):
-
-| Design | Bus Interface Pins | Total System | Fits 45? | Spare |
-|--------|-------------------|--------------|----------|-------|
-| Design 1 (Direct GPIO) | 26 + 16 + 4 = 46 | 52 | ❌ **No** -- exceeds by 7 | -7 |
-| **Design 2 (8-bit Latched)** | 15 + 16 + 4 = 35 | 41 | ✓ Yes | **4 spare** |
-| Design 3 (SPI Shift) | 6 + 16 + 4 = 26 | 32 | ✓ Yes | **13 spare** |
-
-> **Design 1 is no longer viable** with mandatory USB. The pin count cannot fit even with PSRAM disabled (still ~50 pins needed vs 46 available).
->
-> **Design 2** remains the recommended choice with 4 spare pins for LEDs, buttons, and debug.
->
-> **Design 3** is a viable alternative if more spare pins are needed for additional features, accepting the slower BD access time.
+| Module | **Pimoroni PGA2350** | RP2350B + 16 MB flash + 8 MB PSRAM |
+| Architecture | **Design 2 (8-bit Latched)** | Best balance of speed, pin count, and capability |
+| PSRAM | **Enabled** | 8 MB cache for floppy/SMD images |
+| USB | **Enabled** (mandatory, no GPIO cost) | Firmware updates + virtual serial monitoring |
+| RESET button | RUN pin (no GPIO) | Hardware reset |
+| BOOTSEL button | QSPI_CS (no GPIO) | Programming mode |
+| Status LEDs | 2x GPIO | Activity + error |
+| **Bus interface pins** | 35 (Design 2 + common + SD) | |
+| **System pins (PSRAM, LEDs)** | 3 | |
+| **Total used** | **38** | |
+| **Spare GPIO** | **10** | For debug UART, expansion, additional LEDs |
 
 ---
 
@@ -217,21 +246,19 @@ Both RP2040 and RP2350B require **dedicated pins for external QSPI flash** (XIP 
 | QSPI flash pins | 6 (mandatory, eats GPIO) | ~6 (separate from GPIO) | Internal to module, **not in GPIO pool** |
 | QSPI PSRAM (optional) | Not supported | 6-11 pins if used | Internal to module, **not in GPIO pool** |
 | PSRAM CS | -- | -- | **GP47** (cuttable trace) |
-| USB pins (D+/D-) | GP24/GP25 | GP24/GP25 | GP24/GP25 (avoid if USB used) |
-| **Practical usable GPIO** | **~24** | **~31-36** | **45-48** (see below) |
+| USB pins | GP24/GP25 | varies | Internal, **not in GPIO pool** |
+| RESET pin | RUN (dedicated) | RUN (dedicated) | RUN (dedicated, no GPIO) |
+| BOOTSEL | -- | QSPI_CS | QSPI_CS (already reserved, no GPIO) |
+| **Practical usable GPIO** | **~24** | **~31-36** | **47 (PSRAM) or 48 (no PSRAM)** |
 
 | PGA2350 Configuration | Available GPIO |
 |-----------------------|----------------|
-| PSRAM + USB (development default) | **45** |
-| PSRAM, no USB (production) | **47** |
-| No PSRAM, USB | **46** |
-| No PSRAM, no USB (max pins) | **48** |
+| **PSRAM enabled (recommended)** | **47** |
+| PSRAM disabled (cut GP47 trace) | **48** |
 
-> **PGA2350 advantage**: Because the QSPI flash and PSRAM share an internal QSPI bus on the module, **all QSPI pins are hidden inside the module** -- they do NOT eat into the 48 GPIO pool. This is different from raw RP2350B chip designs where you'd lose 6+ pins to QSPI.
+> **PGA2350 advantage**: All special pins (QSPI flash, USB, RUN, BOOTSEL) are either internal to the module or use dedicated pins. **None of them eat into the GPIO0-47 pool**. The only GPIO loss is **GP47 for PSRAM CS** (recoverable by cutting a trace).
 
-> **Effective loss**: Only **GP47** (PSRAM CS, cuttable) and optionally **GP24/GP25** (USB, if used).
-
-> **Recommendation**: Plan for **45 usable GPIO** during development (PSRAM + USB enabled). All designs except Design 1 fit comfortably. Design 1 only fits if you disable PSRAM and skip USB.
+> **Recommendation**: Use **47 GPIO** (PSRAM enabled). This is sufficient for Design 2 or Design 3, with comfortable spare pins for LEDs and expansion. Design 1 still does not fit (needs 46 just for bus + common signals + SD).
 
 ### Single-cycle bus access
 
