@@ -4426,16 +4426,160 @@ The 8 us bus cycle limit and toggled CPU/DMA priority means DMA gets approximate
 
 ---
 
-## Power and Reset
+## Power Distribution Design
+
+The controller card needs to power **three things**:
+
+1. **Olimex BB48R** (RP2350B + flash + PSRAM + SD)
+2. **Raspberry Pi Zero** (when populated -- ~250-500 mA)
+3. **Level shifters and discrete logic** (small consumption, ~50-200 mA at 3.3V)
+
+Power comes from the **ND-100 bus +5V rail** (bus pins A2/A31, B2/B31, C2/C31). The bus has GND on pins A1/A11/A24/A32, B1/B11/B24/B32, C1/C11/C24/C32.
+
+### Power Architecture
+
+```
+ND-100 Bus
+   +5V (pin 2/31)  ──┬── F1 (1A polyfuse) ── +5V_LOCAL ──┬── D1 (Schottky) ── BB48R VDD_SYS (EXT2 pin 2)
+                    │                                    │
+                    │                                    ├── F2 (1A polyfuse) ── Pi Zero +5V (header pin 2/4)
+                    │                                    │
+                    │                                    └── (used by anything else needing 5V)
+   GND (pin 1/...) ─┴────────────────────────────── GND plane
+
+BB48R USB-C ─────── Internal USB power ─── BB48R VDD_SYS (internally OR'd with our D1)
+
+BB48R EXT1 pin 1 (3.3V output, 2A) ──── +3.3V_LOCAL ──── all level shifters, latches, glue logic
+                                                          (74LVC245, 74LVC14, 74LVC07,
+                                                           74LVC125, 74LVC574, 74LVT245)
+```
+
+### Power Source OR-ing (Critical)
+
+The Olimex manual warns: ⚠ **"If you want to use VDD_SYS as input to feed power from external 5V to this line, make sure board is not connected to USB!"**
+
+This means we **CANNOT** directly tie bus 5V to VDD_SYS while USB-C may be plugged in (during programming, debug, or virtual COM port use). Two power sources fighting causes unpredictable damage.
+
+**Solution: Schottky diode OR-ing.** A Schottky diode between bus +5V and VDD_SYS prevents backflow:
+
+```
+   +5V_LOCAL  ──>|──  BB48R VDD_SYS
+            (D1 = 1N5817 or SS14, anode on bus side, cathode on VDD_SYS)
+```
+
+**How it works**:
+
+| State | USB Connected | Bus Powered | D1 State | BB48R Power Source |
+|-------|---------------|-------------|----------|---------------------|
+| Bus only | No | Yes (5V) | Forward (Vd ~0.3V) | Bus → D1 → VDD_SYS @ 4.7V |
+| USB only | Yes (5V) | No | Reverse (blocked) | USB → BB48R internal → VDD_SYS @ 5V |
+| Both connected | Yes (5V) | Yes (5V) | Reverse (USB wins) | USB → BB48R internal → VDD_SYS @ 5V (D1 blocks 4.7V from bus) |
+| Card removed | No | No | -- | BB48R off |
+
+**Why USB wins when both connected**: USB provides 5V directly. Bus 5V passes through D1 with ~0.3V drop = 4.7V on the anode side (post-diode). USB side is 5V > 4.7V, so D1 is reverse-biased and blocks. The BB48R uses USB power.
+
+**Diode selection**:
+- **1N5817** (axial through-hole) -- 1A, 20V, ~0.32V Vf at 1A, ~$0.20
+- **SS14** (SMD SMA package) -- 1A, 40V, ~0.4V Vf at 1A, ~$0.10
+- **MBR0520LT1G** (SMD SOD-123) -- 0.5A, 20V, ~0.385V Vf, ~$0.10
+- **SS24** (SMD SMA) -- 2A version of SS14 if higher current needed
+
+**Recommended**: **SS14** in SMA package -- standard, cheap, fits the SMD theme of the rest of the design.
+
+### Pi Zero Power
+
+The Pi Zero is fed from +5V_LOCAL via a separate 1A polyfuse (F2) for short-circuit protection:
+
+```
+   +5V_LOCAL ── F2 (1A polyfuse) ── Pi Zero header pin 2 or 4 (+5V)
+```
+
+Pi Zero current draw:
+- **Pi Zero (no wireless)**: ~150 mA
+- **Pi Zero W**: ~250 mA average
+- **Pi Zero 2 W**: ~350 mA average, ~500 mA peak (during boot or high CPU load)
+
+The 1A polyfuse handles peaks comfortably.
+
+### 3.3V for Level Shifters and Logic
+
+We do **NOT** need a separate 3.3V LDO. The BB48R generates 3.3V at up to 2A from its internal DCDC and exposes it on EXT1 pin 1. Our level shifters and discrete logic chips (74LVC family) draw together ~50-200 mA at 3.3V -- well within the BB48R's 2A budget.
+
+**3.3V wiring**:
+```
+   BB48R EXT1 pin 1 (3.3V output) ──── +3.3V_LOCAL plane on PCB
+                                       ├── all 74LVC245 VCC
+                                       ├── all 74LVC574 VCC
+                                       ├── 74LVC14 VCC
+                                       ├── 74LVC07 VCC
+                                       ├── 74LVC125 VCC
+                                       ├── 74LVT245 VCC
+                                       └── decoupling caps (0.1uF per chip + 10uF bulk)
+```
+
+**3.3V budget estimate**:
+
+| Consumer | Typical | Max |
+|----------|---------|-----|
+| 6x 74LVC chips (latches, transceivers) | ~30 mA | ~60 mA |
+| 3x 74LVT245 output drivers | ~30 mA | ~75 mA |
+| Pull-up resistor networks | ~5 mA | ~10 mA |
+| Status LEDs (a few mA each) | ~10 mA | ~20 mA |
+| BB48R itself (internal) | ~80 mA | ~150 mA |
+| **Total** | **~155 mA** | **~315 mA** |
+
+Well within the BB48R's 2A 3.3V output capability.
+
+### Ground Plane
+
+A continuous **GND plane** under all chips provides low-impedance return paths. Connect to bus GND on pins A1, A11, A24, A32, B1, B11, B24, B32, C1, C11, C24, C32 (multiple parallel connections reduce inductance).
+
+Pi Zero GND header pins 6, 9, 14, 20, 25, 30, 34, 39 all tie to the same GND plane.
+
+### Decoupling Capacitors
+
+| Location | Cap |
+|----------|-----|
+| Each 74LVC/74LVT chip VCC pin | 0.1 uF (0603 SMD) |
+| Bulk decoupling near chips | 10 uF (0805 SMD) |
+| Pi Zero +5V near header | 470 uF tantalum (handles boot inrush) |
+| BB48R 3.3V output | 10 uF + 0.1 uF |
+| Bus +5V input | 47 uF + 0.1 uF |
+
+### Power Components Summary
+
+| Item | Quantity | Cost |
+|------|----------|------|
+| **D1: Schottky diode** (SS14 SMA) | 1 | $0.10 |
+| **F1: 1A polyfuse** (bus 5V protection) | 1 | $0.20 |
+| **F2: 1A polyfuse** (Pi Zero protection) | 1 | $0.20 |
+| 0.1 uF decoupling caps (one per chip) | ~15 | $0.30 |
+| 10 uF bulk caps | ~5 | $0.30 |
+| 47 uF bus input cap | 1 | $0.20 |
+| 470 uF tantalum (Pi Zero) | 1 | $0.40 |
+| **Total power components** | | **~$1.70** |
+
+### Power Distribution Verification
+
+| Scenario | BB48R Power | Pi Zero Power | Logic Power | Status |
+|----------|-------------|---------------|-------------|--------|
+| Bus only, no Pi Zero | Bus → D1 → VDD_SYS (4.7V) | -- | BB48R 3.3V | ✓ |
+| Bus only, Pi Zero populated | Bus → D1 → VDD_SYS (4.7V) | Bus → F2 → +5V (5V) | BB48R 3.3V | ✓ |
+| USB only (no bus -- bench test) | USB → VBUS → VDD_SYS (5V) | None (bus 5V missing) | BB48R 3.3V | ⚠ Pi Zero off (expected) |
+| Both USB and bus, no Pi Zero | USB wins (D1 reverse) → 5V | -- | BB48R 3.3V | ✓ |
+| Both USB and bus, Pi Zero populated | USB wins → BB48R 5V | Bus → F2 → 5V (independent) | BB48R 3.3V | ✓ |
+
+The Pi Zero is powered from the bus only -- it does NOT have a USB-C connection and depends entirely on bus power.
+
+### Reset Signal
 
 | Signal | Source | Notes |
 |--------|--------|-------|
-| +5V | Bus pin 2/31 | For level shifter VCCB side |
-| +3.3V | LDO from +5V | RP2350 supply |
-| GND | Bus pin 1/11/24/32 | Common ground |
-| /BMCL | Bus pin B20 | Reset input -- use to trigger RP2350 reset |
+| /BMCL | Bus pin B20 | Reset input -- use to trigger BB48R reset |
 
-The /BMCL signal is the bus master clear. The controller must reset all device emulation state when /BMCL is asserted.
+The /BMCL signal is the bus master clear. The controller must reset all device emulation state when /BMCL is asserted. The BB48R reads /BMCL via GPIO35.
+
+The Pi Zero is **not directly affected** by /BMCL -- it's a Linux system that doesn't reset on bus events. The BB48R can optionally signal the Pi Zero via INT_FROM_BB48R or via a dedicated reset line if needed.
 
 ---
 
@@ -4573,244 +4717,251 @@ The pull resistors automatically achieve safe state during the brief window when
 
 ---
 
-## Wireless Companion: Pi Pico W Footprint on PCB
+## Companion Computer: Raspberry Pi Zero Connector
 
-For network connectivity (WiFi for HDLC over IP, telnet/SSH terminal sessions, MQTT for monitoring, etc.), the controller PCB includes a **Pi Pico W footprint** (compatible with Pi Pico W, Pi Pico 2 W, and similar 21-pin headers). The Pi Pico W is **optional to populate** -- the footprint is on the PCB but the module is only soldered/socketed when wireless is needed.
+For network connectivity, full ND-100 emulation, or any other heavy lifting, the controller PCB includes a **Raspberry Pi Zero header** (40-pin GPIO connector). A Pi Zero (or Pi Zero 2 W) plugs in via standoffs and a 2x20 ribbon cable or direct stacking.
 
-### Why Pi Pico W?
+### Why Raspberry Pi Zero?
 
-The Pi Pico W (or Pi Pico 2 W) is the natural choice as a wireless companion because:
+The Pi Zero is dramatically more capable than a Pi Pico W:
 
-1. **Same family as our main MCU** (RP2040 or RP2350) -- shared SDK, same C toolchain, same PIO programming model
-2. **WiFi + Bluetooth** built in via Infineon CYW43 wireless chip
-3. **USB-C / micro-USB on board** -- programmable independently from our card
-4. **Cheap** -- ~$6 for Pi Pico W, ~$8 for Pi Pico 2 W
-5. **Well documented** -- official RP SDK, large community
-6. **Small** -- 21 mm x 51 mm, easy to fit on our PCB
-7. **Standard 0.1" headers** -- can be socketed or soldered directly
-8. **3.3V** -- compatible with our card's 3.3V supply
-9. **Code reuse** -- we can use the same firmware patterns as our main RP2350B
+| Aspect | Pi Pico W | **Pi Zero 2 W** |
+|--------|-----------|-----------------|
+| CPU | RP2040 dual M0+ @ 133 MHz | **Quad Cortex-A53 @ 1 GHz** |
+| RAM | 264 KB | **512 MB** |
+| Storage | 2 MB flash | **microSD (any size)** |
+| OS | bare metal / RTOS | **Full Linux (Raspberry Pi OS)** |
+| WiFi | 802.11n via CYW43 | **802.11n via BCM43436** |
+| Bluetooth | yes | **yes (4.2 BLE)** |
+| USB | USB-C device | **micro USB (host + device)** |
+| Network stack | lwIP | **Full Linux TCP/IP** (telnet, SSH, samba, NFS, etc.) |
+| Cost | ~$6-8 | **~$15** |
+| Power draw | ~80 mA | **~250 mA average, ~500 mA peak** |
+| Form factor | 21x51 mm | **65x30 mm** |
 
-### SPI Routing -- Verified Against Both Chip Pinouts
+The Pi Zero can:
 
-The Pi Pico W footprint connects to the **same RP2350B SPI0 signals** that the BB48R exposes via its pUEXT connector. The signals must land on **valid SPI hardware pins on both sides**.
+1. **Run a full ND-100 emulator** (`nd100x`) directly, communicating with our card via SPI to drive the bus signals -- effectively making the controller card a "bus extension cable" for the emulator
+2. **Telnet/SSH server** for terminal sessions -- modern terminal access without physical serial cables
+3. **HDLC over IP bridge** -- connect ND-100 HDLC frames to remote systems over WiFi/Ethernet
+4. **NFS/Samba file server** for disk images on its microSD card
+5. **HTTP server** for web-based control and monitoring
+6. **MQTT publisher** for telemetry
+7. **Programming/firmware update host** for the BB48R
 
-#### Pi Pico W SPI Pin Options
+### Connector Choice: 40-pin Pi Zero Header
 
-The Pi Pico W (RP2040) has **two SPI peripherals** (SPI0 and SPI1), each with multiple GPIO mapping options:
+The Pi Zero exposes its GPIO via a standard **40-pin 0.1" header** (2x20). Our PCB has the matching connector to accept the Pi Zero either:
 
-**SPI0 default mapping** (most common):
-- GP16 = SPI0 RX (MISO)
-- GP17 = SPI0 CSn
-- GP18 = SPI0 SCK
-- GP19 = SPI0 TX (MOSI)
+1. **Directly stacked** on top of the controller card (with standoffs)
+2. **Connected via ribbon cable** (40-pin IDC) for flexible placement
 
-**SPI1 default mapping** (alternative):
-- GP12 = SPI1 RX (MISO)
-- GP13 = SPI1 CSn
-- GP14 = SPI1 SCK
-- GP15 = SPI1 TX (MOSI)
+The 40-pin header provides:
+- **Power** (5V from VBUS or 3.3V from regulator)
+- **GND** (multiple)
+- **SPI0** (GPIO7-11 on Pi Zero -- CS0, MISO, MOSI, SCLK)
+- **SPI1** (GPIO16-21 on Pi Zero -- second SPI)
+- **I2C** (GPIO2-3)
+- **UART** (GPIO14-15)
+- **Plenty of GPIO** for INT/RST signals
 
-We use **SPI0 (GP16-19)** on the Pi Pico W side because:
-1. It's the standard pinout used in most Pi Pico W examples
-2. GP16-19 are exposed on physical pin positions 21-25 of the Pi Pico W board
-3. Plenty of nearby pins for INT and RST signals
+### Power Considerations
 
-#### Pin Mapping
+The Pi Zero draws **~250 mA average, ~500 mA peak**. This is significant:
+- **Cannot power from BB48R 3.3V regulator** (limited to 2A but we need 3.3V for level shifters too)
+- **Power Pi Zero from the +5V bus rail** via the 40-pin header pin 2 or 4
+- The +5V rail comes from the ND-100 backplane (which is fed by a PC PSU on our backplane design) -- has plenty of current
 
-| Signal | BB48R RP2350B Side | Pi Pico W Side | Notes |
-|--------|--------------------|-----|-------|
-| SPI_SCK | GPIO6 (BB48R SPI0_SCK) | GP18 (Pi Pico W SPI0_SCK) | Clock |
-| SPI_MOSI | GPIO7 (BB48R SPI0_TX/MOSI) | GP19 (Pi Pico W SPI0_TX/MOSI) | Master out, slave in |
-| SPI_MISO | GPIO4 (BB48R SPI0_RX/MISO) | GP16 (Pi Pico W SPI0_RX/MISO) | Master in, slave out |
-| SPI_CS | GPIO5 (BB48R SPI0_CSn) | GP17 (Pi Pico W SPI0_CSn) | Active LOW chip select |
-| **INT_PICO** | GPIO0 (BB48R, output) | GP15 (Pi Pico W, input) | BB48R signals Pi Pico W: "I have data for you" |
-| **INT_BB48R** | GPIO1 (BB48R, input) | GP14 (Pi Pico W, output) | Pi Pico W signals BB48R: "I have data for you" |
-| **RST** | GPIO2 (BB48R, output) | RUN pin on Pi Pico W (input, active LOW) | BB48R can reset Pi Pico W |
-| 3.3V | BB48R 3.3V rail | 3V3 pin on Pi Pico W | Power |
-| GND | GND | GND | Common ground |
+**5V power path**:
+```
+  Backplane PSU --> Bus +5V --> Controller card --> 40-pin header pin 2/4 --> Pi Zero
+```
 
-> **Note**: Using GPIO2 for RST conflicts with our previous /BINT 12 assignment. We need to relocate /BINT 12 if Pi Pico W is populated. See "Pin Conflict Resolution" below.
+A polyfuse (1A) on the +5V to Pi Zero protects against shorts.
 
-#### Master/Slave Decision
+### SPI Connection (BB48R ↔ Pi Zero)
 
-**The BB48R is the SPI master, the Pi Pico W is the SPI slave.**
+**Pi Zero is the SPI master, BB48R is the SPI slave.**
 
-Reasoning:
-- The BB48R is the primary controller for the bus emulation; it owns the timing and decides when to communicate
-- The Pi Pico W is a coprocessor handling network traffic asynchronously
-- SPI master is simpler to implement -- the BB48R initiates all SPI transactions
-- The Pi Pico W can use **PIO state machine for SPI slave** mode (more flexible than the hardware peripheral for slave use)
+Reasoning: The Raspberry Pi Zero hardware SPI controllers are master-only. To use SPI between Pi Zero and BB48R, the Pi Zero must be the master. The BB48R RP2350 has plenty of PIO state machines and can easily implement SPI slave mode in PIO.
 
-#### Bidirectional Interrupt/Signal Pins
+The Pi Zero uses its hardware SPI0 peripheral as master, giving it efficient DMA-driven SPI from Linux user space (`/dev/spidev0.0`).
 
-Because the BB48R is the SPI master, the Pi Pico W cannot push data spontaneously over SPI -- it has to wait for the master to ask. Therefore we need a separate **INT_BB48R** signal so the Pi Pico W can tell the BB48R "I have data for you, please initiate a SPI read".
+Pin mapping (verified against official Raspberry Pi Zero pinout):
 
-Conversely, the BB48R may want to alert the Pi Pico W out-of-band (e.g., wake from low power, urgent command). For this we use **INT_PICO**.
+### Master/Slave is Software-Configurable
 
-| Direction | Signal | Drives |
-|-----------|--------|--------|
-| Pi Pico W → BB48R | INT_BB48R | "I have RX data ready" or "WiFi event happened" |
-| BB48R → Pi Pico W | INT_PICO | "Wake up" or "I have a command for you" or "send TX data now" |
+**SPI wiring is STRAIGHT (not crossover) regardless of which chip is master.** MOSI/MISO refer to function ("Master Out, Slave In"), not direction -- so the same physical wires work whether the BB48R or the Pi Zero is the master. **Only firmware configuration changes** when swapping master/slave roles.
 
-Both signals are **active LOW** edge-triggered. Each side configures its INT pin as a GPIO interrupt input.
+> **Initial choice: Pi Zero is the master.** Reasoning:
+> - Pi Zero hardware SPI is mature and master-mode is the standard Linux usage (`/dev/spidev0.0`)
+> - Pi Zero runs Linux user-space apps directly with the SPI peripheral
+> - BB48R RP2350 PIO is well-suited for SPI slave (lots of PIO examples)
+>
+> **Future option: BB48R can be the master instead.** If we later want the BB48R to drive transactions (e.g., the BB48R initiates all communication), we just:
+> - Reconfigure BB48R's GPIO4-7 as **hardware SPI0 master**
+> - Reconfigure Pi Zero to use **bit-banging or PIO-style SPI slave** in software (or use one of the SPI slave projects on GitHub)
+> - **No PCB changes needed** -- the wiring is identical
 
-The protocol flow:
-1. Pi Pico W gets a TCP packet from WiFi
-2. Pi Pico W asserts INT_BB48R LOW
-3. BB48R's interrupt handler sees INT_BB48R, schedules a SPI read transaction
-4. BB48R sends "READ_RX" command + reads N bytes from Pi Pico W via SPI
-5. Pi Pico W de-asserts INT_BB48R after the read completes
+#### Pin Direction Table (with both modes)
 
-For BB48R → Pi Pico W:
-1. BB48R has data to transmit (e.g., terminal output)
-2. BB48R asserts INT_PICO LOW (optional, may not be needed if Pi Pico W is always polling SPI)
-3. Or just initiate SPI write directly (Pi Pico W detects CS active and processes)
+| Signal | Pi Zero Master Mode | BB48R Master Mode |
+|--------|---------------------|-------------------|
+| MOSI | Pi Zero GPIO10 = output, BB48R GPIO7 = input | BB48R GPIO7 = output, Pi Zero GPIO10 = input |
+| MISO | Pi Zero GPIO9 = input, BB48R GPIO4 = output | BB48R GPIO4 = input, Pi Zero GPIO9 = output |
+| SCLK | Pi Zero GPIO11 = output, BB48R GPIO6 = input | BB48R GPIO6 = output, Pi Zero GPIO11 = input |
+| CE/CS | Pi Zero GPIO8 = output, BB48R GPIO5 = input | BB48R GPIO5 = output, Pi Zero GPIO8 = input |
 
-In practice, **INT_PICO may not be needed** if the Pi Pico W is designed to always be ready to receive SPI commands (which is typical for a slave). INT_BB48R is required because the Pi Pico W cannot initiate SPI traffic.
+> **Important**: SPI peripherals/PIO state machines automatically handle pin direction based on master/slave configuration. The PCB wiring is identical for both modes -- it's a software decision.
 
-#### Pin Conflict Resolution
+> **BB48R as SPI slave via PIO**: The BB48R RP2350's hardware SPI0 peripheral is master-only in standard usage. To act as an SPI slave, the BB48R uses a **PIO state machine** programmed for slave-side SPI. PIO doesn't care about the "SPI0_TX" / "SPI0_RX" pin labels -- we configure GPIO7 as the data-in pin and GPIO4 as the data-out pin. The Raspberry Pi Pico SDK includes example PIO SPI slave code.
 
-Adding the Pi Pico W requires:
-- GPIO0-7 (8 pins): SPI0 (4) + INT_BB48R (1) + RST (1) -- only 6 pins needed
-- We had GPIO2 = /BINT 12 and GPIO3 = /BINT 13
+#### Full Pin Mapping Table
 
-**Option A**: Move /BINT 12 and /BINT 13 to spare HIGH bank pins.
-- /BINT 12: GPIO46 (was /BINT 10) -- need to shuffle
-- This gets complicated
+| Signal | Pi Zero Pin | Pi Zero GPIO | BB48R GPIO | Direction |
+|--------|-------------|--------------|------------|-----------|
+| SPI_MOSI | Pi Zero pin **19** | **GPIO10** (SPI0_MOSI) | GPIO7 | Master → Slave |
+| SPI_MISO | Pi Zero pin **21** | **GPIO9** (SPI0_MISO) | GPIO4 | Slave → Master |
+| SPI_SCLK | Pi Zero pin **23** | **GPIO11** (SPI0_SCLK) | GPIO6 | Master → Slave |
+| SPI_CE0 | Pi Zero pin **24** | **GPIO8** (SPI0_CE0) | GPIO5 | Master → Slave |
+| (SPI_CE1 unused) | Pi Zero pin 26 | GPIO7 (SPI0_CE1) | -- | Reserved for future second slave |
+| **INT_FROM_BB48R** | Pi Zero pin 11 | GPIO17 (input on Pi Zero) | GPIO0 (output on BB48R) | BB48R → Pi Zero "I have data" |
+| **INT_FROM_ZERO** | Pi Zero pin 13 | GPIO27 (output on Pi Zero) | GPIO1 (input on BB48R) | Pi Zero → BB48R "I have data" (optional) |
+| **RST_BB48R** (optional) | Pi Zero pin 15 | GPIO22 (output on Pi Zero) | RUN pin or reset circuit | Pi Zero can hardware-reset BB48R |
+| 5V | Pi Zero pin **2** or **4** | -- | -- | Power to Pi Zero from +5V_LOCAL rail |
+| GND | Pi Zero pins **6, 9, 14, 20, 25, 30, 34, 39** | -- | -- | Common ground |
 
-**Option B**: Add a 74HC595 shift register driven by SPI for /BINT 10/11/12/13. Saves GPIOs but adds 1 chip.
+> **Verified against official Raspberry Pi Zero W / Zero 2 W pinout**:
+> - MOSI: GPIO10 (header pin 19)
+> - MISO: GPIO9 (header pin 21)
+> - SCLK: GPIO11 (header pin 23)
+> - CE0: GPIO8 (header pin 24)
+> - CE1: GPIO7 (header pin 26)
 
-**Option C**: Keep /BINT 12 on GPIO2, /BINT 13 on GPIO3. Use GPIO0-1 for INT_BB48R and INT_PICO. Use GPIO4-7 for SPI0. RST signal moves to a different pin.
+### Bidirectional INT Signals
 
-Let me redo the assignment more carefully:
+Same logic as before:
+- **INT_BB48R**: BB48R signals Pi Zero "I have data ready, please initiate a SPI read"
+- **INT_PICO_ZERO**: Pi Zero signals BB48R "I have data ready" (less common -- Pi Zero is master and can poll)
 
-| BB48R GPIO | Function | When Pi Pico W populated |
-|------------|----------|--------------------------|
-| GPIO0 | INT_BB48R input (from Pi Pico W) | New use |
-| GPIO1 | INT_PICO output (to Pi Pico W) | New use |
-| GPIO2 | /BINT 12 drive (74LVC07) | **Unchanged** -- still drives BINT 12 to bus |
-| GPIO3 | /BINT 13 drive (74LVC07) | **Unchanged** -- still drives BINT 13 to bus |
-| GPIO4 | SPI0 MISO | Hardware SPI0 |
-| GPIO5 | SPI0 CSn | Hardware SPI0 |
-| GPIO6 | SPI0 SCK | Hardware SPI0 |
-| GPIO7 | SPI0 MOSI | Hardware SPI0 |
+In practice with Pi Zero as master:
+- Pi Zero polls or interrupts on INT_BB48R for incoming data from BB48R
+- Pi Zero just initiates SPI writes whenever it has data to send
 
-**RST for Pi Pico W**: Tie to a small pull-up resistor + BB48R's /BMCL signal (so resetting the bus also resets the Pi Pico W). Or leave Pi Pico W's RUN pin floating (it has internal pull-up) and only reset via USB. **Recommended**: connect Pi Pico W RUN to /BMCL or a dedicated GPIO from the HIGH bank if available.
+### Pin Conflict Resolution (Same as Pi Pico W)
 
-**Updated allocation** (no conflict with /BINT 12/13):
+| BB48R GPIO | Function | When Pi Zero populated |
+|------------|----------|------------------------|
+| GPIO0 | INT_BB48R (output to Pi Zero) | Pi Zero polls or interrupts on this |
+| GPIO1 | INT_PICO_ZERO (input from Pi Zero) | Optional |
+| GPIO2 | /BINT 12 drive | **Unchanged** |
+| GPIO3 | /BINT 13 drive | **Unchanged** |
+| GPIO4 | SPI0 MISO | Slave data out |
+| GPIO5 | SPI0 CSn | Slave CS in |
+| GPIO6 | SPI0 SCK | Slave clock in |
+| GPIO7 | SPI0 MOSI | Slave data in |
 
-| BB48R GPIO | Function | Notes |
-|------------|----------|-------|
-| GPIO0 | INT_BB48R (input from Pi Pico W) | Pi Pico W signals "I have data" |
-| GPIO1 | INT_PICO (output to Pi Pico W) | BB48R signals "wake/command" |
-| GPIO2 | /BINT 12 drive | Unchanged |
-| GPIO3 | /BINT 13 drive | Unchanged |
-| GPIO4-7 | SPI0 (MISO, CS, SCK, MOSI) | Hardware peripheral |
-
-**Total: 6 GPIOs for Pi Pico W**, no conflict with interrupt outputs.
-
-The Pi Pico W RUN pin connects to /BMCL (so the bus master clear also resets the Pi Pico W).
-
-### Pi Pico W Footprint on PCB
-
-A standard Pi Pico W has **21+21 = 42 pin pads** (3 of which are debug pins) plus 4 corner mounting holes. The PCB footprint:
+### Pi Zero Header on PCB
 
 | Item | Specification |
 |------|--------------|
-| Footprint type | Pi Pico W standard (21 pin pads each side, 0.1" pitch, 17 mm row spacing) |
-| Mounting | 2x 20-pin female sockets OR direct solder pads |
-| Pi Pico W variant | Pi Pico W (RP2040) or Pi Pico 2 W (RP2350) -- same footprint |
-| Orientation | USB connector facing the edge of the controller card for easy access |
-| Antenna keep-out | No copper directly under the Pi Pico W antenna area (right edge of the module) |
-| Power | 3.3V from BB48R 3.3V rail (NOT VBUS -- Pi Pico W is powered from our card) |
+| Connector | 2x20 pin 0.1" header (male, on our PCB) |
+| Mating | Pi Zero plugs into the header via female header on Pi Zero side |
+| Mounting | 4x M2.5 standoffs at the corners (Pi Zero standard) |
+| Pi Zero variant | Pi Zero (no wireless), Pi Zero W (WiFi), Pi Zero 2 W (quad-core + WiFi) -- all same footprint |
+| Orientation | Pi Zero stacked on top of controller card, USB and HDMI ports facing outward |
+| Power | +5V from bus (not BB48R 3.3V) |
+| Polyfuse | 1A polyfuse on the 5V to Pi Zero |
 
-The Pi Pico W has its own **USB-C connector** for independent programming -- you don't need to disconnect anything to flash new firmware. Just plug a USB cable into the Pi Pico W and use the Raspberry Pi C SDK or MicroPython.
+### Pi Zero Footprint Layout
 
-### When Pi Pico W is Not Populated
+```
+  +-----------------------------------------+
+  |  Olimex BB48R (socketed)               |
+  |                                         |
+  |  ND-100 bus interface (SMD latches,     |
+  |  level shifters, transceivers)          |
+  |                                         |
+  |       +============================+    |
+  |       |  Pi Zero 40-pin header     |    |
+  |       |  (2x20 male)               |    |
+  |       |  Pi Zero stacks on top    |    |
+  |       |  via standoffs            |    |
+  |       +============================+    |
+  |       o M2.5 mounting holes (4x)        |
+  |                                         |
+  +============== C connector (DIN41612) ===+
+```
 
-If you don't need wireless connectivity:
-- **Don't solder/socket the Pi Pico W**
-- The 6 GPIO0-7 pins remain available for other uses (debug, status LEDs, I2C sensors)
-- The footprint is empty -- just unused PCB area
-- No electrical impact -- nothing connected, no current draw
+The Pi Zero stacks on top via 4 M2.5 standoffs, leaving its USB, HDMI, and microSD ports accessible.
 
-Adding the Pi Pico W later is as simple as soldering it onto the existing footprint or plugging it into the female sockets if installed.
+### When Pi Zero is Not Populated
 
-### Conflicts with BB48R Onboard Connectors
+- The 40-pin header is still on the PCB (cheap, ~$0.50)
+- Just don't connect a Pi Zero
+- The 6 BB48R GPIOs (GPIO0-1, 4-7) are free for other uses
+- No power draw from the +5V rail
 
-When the Pi Pico W is populated, GPIO0-7 are owned by the Pi Pico W SPI link. The following BB48R features become unusable:
+### Pi Zero Software
 
-| BB48R Feature | Status when Pi Pico W populated |
-|---------------|---------------------------------|
-| pUEXT connector on BB48R | **Unusable** -- shared signals routed to Pi Pico W instead |
-| Qwiic connector on BB48R | **Unusable** -- shared signals (GPIO2/3) |
-| UART0 debug serial | **Unusable** -- use USB CDC for debug |
+The Pi Zero runs **Raspberry Pi OS Lite** (headless Debian) with:
 
-**Note on UART0 debug**: We use **USB CDC virtual serial port** on the BB48R's USB-C for all debug output. UART0 is not needed for debug, so reassigning GPIO0/GPIO1 for INT/RST has no impact.
+#### As Network Bridge
+- **Telnet server** (xinetd) for terminal sessions
+- **SSH server** for secure terminal access
+- **WiFi or Ethernet** (Pi Zero W has WiFi, all variants have USB Ethernet via OTG)
+- **Custom Python/C app** that translates network traffic to/from BB48R via SPI
 
-### Pi Pico W Software
+#### As Full ND-100 Emulator
+- **`nd100x` emulator** (already developed in this project) runs on the Pi Zero
+- The emulator's bus interface uses SPI to drive the BB48R, which in turn drives the physical bus
+- The Pi Zero IS the ND-100 CPU, the BB48R is just a physical bus translator
+- Perfect for testing: real ND-100 software runs on the Pi Zero, real ND-100 cards see real bus signals
 
-The Pi Pico W runs:
-- **Raspberry Pi C SDK** (same as our main RP2350B) -- shared code patterns
-- **lwIP TCP/IP stack** for telnet/HTTP/MQTT (built into pico-extras)
-- **CYW43 driver** for WiFi (built into pico-extras)
-- **SPI slave** implementation (custom -- use PIO for full control)
-
-The Pi Pico W firmware is a **separate binary** from the RP2350B firmware. Both can be developed in the same C SDK with shared utilities.
+#### As HDLC Bridge
+- **HDLC over IP** translation
+- Custom daemon that takes HDLC frames from BB48R via SPI and forwards over TCP
+- Replaces physical HDLC modems with WiFi connections
 
 ### Cost
 
 | Item | Cost |
 |------|------|
-| Pi Pico W (RP2040 with WiFi) | ~$6 |
-| Pi Pico 2 W (RP2350 with WiFi) | ~$8 |
-| 2x 20-pin female sockets (optional, for socketing) | ~$0.50 |
-| 470 uF tantalum cap near Pi Pico W power pin | $0.30 |
-| **Total controller card additions** | **~$0.30 (footprint only) or ~$8.30 (with Pi Pico 2 W populated)** |
+| 2x20 pin header (male) | ~$0.50 |
+| 4x M2.5 mounting holes (PCB feature) | $0 |
+| 1A polyfuse on +5V | $0.20 |
+| Decoupling caps near header | $0.10 |
+| **Total controller card additions** | **~$0.80** |
 
-### Pi Pico W Footprint Layout
+The Pi Zero itself is purchased separately:
+- Pi Zero (no wireless) ~$5
+- Pi Zero W ~$15
+- **Pi Zero 2 W (recommended) ~$15** -- quad-core Cortex-A53, plenty for nd100x emulator
 
-```
-  +-----------------------------------------+
-  |  Olimex BB48R (socketed)               |
-  |  ND-100 bus interface (SMD)             |
-  |                                         |
-  |    +---------------------------+        |
-  |    | Pi Pico W footprint       |        |
-  |    | (21 pads each side,       |        |
-  |    |  17 mm row spacing)       |        |
-  |    | USB connector to edge     |        |
-  |    |     [USB] ->              |        |
-  |    +---------------------------+        |
-  |                                         |
-  |  Status LEDs                            |
-  +============== C connector (DIN41612) ===+
-```
+### Programming the Pi Zero
 
-The Pi Pico W footprint is positioned with the USB connector facing the **edge of the controller card** so you can plug a USB cable in without removing the card from the backplane.
+The Pi Zero is programmed exactly like any Raspberry Pi:
+1. Flash Raspberry Pi OS Lite to a microSD card
+2. Configure WiFi via wpa_supplicant.conf
+3. Insert microSD into Pi Zero
+4. Power on (via the 5V from our PCB)
+5. SSH into the Pi Zero over WiFi
+6. Install your software
 
-### Software
+No JTAG or special programming needed -- just SD card and Linux.
 
-The Pi Pico W runs a separate firmware binary providing:
-- **WiFi station mode** (connects to existing WiFi network)
-- **lwIP TCP/IP stack** for telnet/SSH/HTTP/MQTT
-- **SPI slave** to receive commands from the BB48R RP2350B
-- **HTTP server** for disk image upload (optional)
+### Why This Is Better Than Pi Pico W
 
-Reference: Raspberry Pi Pico W Pico SDK examples for WiFi: https://github.com/raspberrypi/pico-examples/tree/master/pico_w
+| Capability | Pi Pico W | Pi Zero 2 W |
+|------------|-----------|-------------|
+| Run nd100x emulator | ❌ Too small | ✓ Easy |
+| Full Linux | ❌ | ✓ |
+| WiFi + telnet/SSH | ✓ (limited) | ✓ (full) |
+| Disk image storage | 2 MB flash | microSD (any size) |
+| Code reuse with main MCU | ✓ Same family | ❌ Different arch (but easier dev) |
+| Cost | ~$6-8 | ~$15 |
 
-### Programming the Pi Pico W
-
-The Pi Pico W has its own USB connector and is programmed independently from the BB48R:
-
-1. Hold the **BOOTSEL** button on the Pi Pico W
-2. Plug a USB cable into the Pi Pico W's USB port (not the BB48R's USB)
-3. Pi Pico W appears as USB mass storage
-4. Drag-and-drop the .uf2 firmware file
-5. Pi Pico W reboots and runs the new firmware
-
-You can leave the BB48R running while the Pi Pico W is being reprogrammed -- the SPI link is just dormant during the update.
+For our use case (full ND-100 emulator + network bridge), the **Pi Zero 2 W is the right choice**. The extra $7 buys an enormous capability boost.
 
 ---
 
