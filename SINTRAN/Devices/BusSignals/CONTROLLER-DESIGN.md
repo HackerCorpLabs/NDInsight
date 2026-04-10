@@ -1136,6 +1136,140 @@ The /BMCL signal is the bus master clear. The controller must reset all device e
 
 ---
 
+## Power-Up Safe State and Default Pull Resistors
+
+When the controller card is powered up, the RP2350 takes ~50-200 ms to boot, configure GPIOs, and start the firmware. During this window:
+
+- All RP2350 GPIOs are **inputs (high-Z)** by default
+- The card **must not** drive the bus (would corrupt CPU operation)
+- The IDENT and GRANT daisy chains **must keep working** (otherwise lower-priority cards lose interrupts and DMA grants)
+- All wired-OR outputs **must stay released** (not pulled LOW)
+
+This is achieved by carefully placing **pull-up and pull-down resistors** on the buffer chip enable pins and MCU GPIO lines. The pull resistors ensure the correct default state at power-up before the MCU takes control.
+
+### Pull Resistor Strategy by Signal Type
+
+#### Daisy-chain pass-through (74LVC125 /OE pins)
+
+The pass-through must be **enabled by default** so the IDENT and GRANT chains work the moment power is applied -- before the MCU boots. The 74LVC125 has active-LOW enable.
+
+| Pin | Pull | Default State |
+|-----|------|---------------|
+| /OE_IDENT_PASS (74LVC125 ch.1+2 /OE) | **Pull-DOWN to GND** (10K) | Enabled at power-up: INIDENT passes to OUTIDENT |
+| /OE_GRANT_PASS (74LVC125 ch.3+4 /OE) | **Pull-DOWN to GND** (10K) | Enabled at power-up: INGRANT passes to OUTGRANT |
+
+After boot, the MCU drives these pins HIGH only when it wants to capture (block pass-through) for an active IDENT response or DMA cycle. The pull-down keeps them LOW when MCU GPIO floats during reset.
+
+#### BD bus output drivers (74LVC245 /OE in output mode)
+
+The card **must not** drive the bus at power-up. The 74LVC245 has active-LOW output enable.
+
+| Pin | Pull | Default State |
+|-----|------|---------------|
+| /BD_OE_BUS (74LVC245 /OE for output) | **Pull-UP to 3.3V** (10K) | Disabled at power-up: BD lines high-Z (safe) |
+
+After boot and address decode, the MCU drives this LOW only during the data phase when responding to an IOX cycle directed at us, or during DMA when we're the bus master.
+
+#### Output latch strobes (Design 2: LE_OUT_0/1/2)
+
+The output latches must **not latch garbage data** at power-up. 74LVC573 latch enable is active-HIGH.
+
+| Pin | Pull | Default State |
+|-----|------|---------------|
+| LE_OUT_0/1/2 (latch enable) | **Pull-DOWN to GND** (10K) | LOW at power-up: latches hold no/old data |
+
+#### Input latch read enables (Design 2: /OE_IN_0/1/2)
+
+The input latches' /OE controls when they drive the shared 8-bit DBUS. Must default to **not driving** to avoid contention.
+
+| Pin | Pull | Default State |
+|-----|------|---------------|
+| /OE_IN_0/1/2 | **Pull-UP to 3.3V** (10K) | HIGH at power-up: latches are high-Z |
+
+#### Wired-OR open-drain outputs (74LVC07 inputs from MCU)
+
+For signals like /BREQ, /BINT 10/11/12, /BDRY drive, /BINPUT drive, /BDAP drive, the 74LVC07 input must be HIGH to keep its open-drain output OFF (bus line released).
+
+| MCU GPIO | Pull | Default State |
+|----------|------|---------------|
+| /BREQ drive | **Pull-UP to 3.3V** (10K) | HIGH = 74LVC07 OFF = bus line released |
+| /BINT 10 drive | **Pull-UP to 3.3V** (10K) | Same -- no spurious interrupt |
+| /BINT 11 drive | **Pull-UP to 3.3V** (10K) | Same |
+| /BINT 12 drive | **Pull-UP to 3.3V** (10K) | Same |
+| /BDRY drive | **Pull-UP to 3.3V** (10K) | Same -- not asserting BDRY |
+| /BINPUT drive | **Pull-UP to 3.3V** (10K) | Same |
+| /BDAP drive | **Pull-UP to 3.3V** (10K) | Same |
+
+#### SPI shift register strobes (Design 3)
+
+| Pin | Pull | Default State |
+|-----|------|---------------|
+| /PL_LOAD (74LVC165) | **Pull-UP to 3.3V** (10K) | HIGH = no parallel load |
+| LATCH_OUT (74LVC595) | **Pull-DOWN to GND** (10K) | LOW = no output update |
+| SPI_SCK | **Pull-DOWN to GND** (10K) | LOW = clock idle |
+| /BD_OE_BUS | **Pull-UP to 3.3V** (10K) | Same as Design 1/2 |
+
+#### SD card SPI
+
+| Pin | Pull | Default State |
+|-----|------|---------------|
+| /SD_CS | **Pull-UP to 3.3V** (10K) | HIGH = SD card not selected |
+
+### Master Bus Drive Enable (Optional Safety Feature)
+
+A single **BUS_DRIVE_OK** signal can gate ALL bus output drivers. This adds belt-and-suspenders safety:
+
+```
+  Pull-down to GND (default LOW = drivers disabled)
+  RP2350 GPIO drives HIGH after firmware completes initialization
+  /BMCL (active LOW) AND'd in to force LOW during bus reset
+
+  BUS_DRIVE_OK = (RP2350_READY) AND (not /BMCL_active)
+```
+
+This signal feeds the /OE pins of:
+- 74LVC245 BD output drivers
+- 74LVC07 wired-OR drivers (via series gate or AND logic)
+
+When `BUS_DRIVE_OK` is LOW, all card outputs are isolated from the bus.
+
+> **Implementation note**: The simplest version is just a pull-down on a single GPIO that enables all output stages. The MCU drives it HIGH only after firmware boot is complete and address decoding is configured. /BMCL can be wire-OR'd via diode to force the line LOW during bus reset.
+
+### Reset Behavior
+
+When /BMCL is asserted on the bus:
+
+1. The RP2350 should detect /BMCL via a GPIO interrupt
+2. Firmware should:
+   - Disable all bus drivers (drive BUS_DRIVE_OK LOW or rely on pull-up on /BD_OE_BUS)
+   - Release all wired-OR outputs (set GPIO floating, pull-up handles HIGH state)
+   - Reset all device emulation state machines
+   - Re-enable bus drivers when /BMCL releases
+
+The pull resistors automatically achieve safe state during the brief window when GPIOs may be reconfigured. **The pull resistor design means even a hardware fault that crashes the MCU still leaves the card in a safe state** -- the bus pull-ups and our pull-resistor defaults bring everything back to released.
+
+### Pull Resistor Summary Table
+
+| Signal Group | Pull Type | Value | Quantity | Total |
+|--------------|-----------|-------|----------|-------|
+| Daisy-chain enables | Pull-down | 10K | 2 | 2 |
+| BD output enable | Pull-up | 10K | 1 | 1 |
+| Output latch strobes (D2) | Pull-down | 10K | 3 | 3 |
+| Input latch /OE (D2) | Pull-up | 10K | 3 | 3 |
+| Wired-OR drivers | Pull-up | 10K | 7 | 7 |
+| SPI strobes (D3 only) | Mixed | 10K | 4 | 4 |
+| SD card /CS | Pull-up | 10K | 1 | 1 |
+| BUS_DRIVE_OK (master) | Pull-down | 10K | 1 | 1 |
+
+**Total pull resistors per design**:
+- Design 1 (Direct GPIO): ~12 resistors
+- Design 2 (8-bit Latched): ~18 resistors
+- Design 3 (SPI Shift): ~16 resistors
+
+> **PCB tip**: Use 4-resistor SMD networks (e.g., 0603 4x10K array) to save board space. A single chip can hold 4 pull-up resistors.
+
+---
+
 ## Open Design Questions
 
 ### Critical (need answers before PCB)
