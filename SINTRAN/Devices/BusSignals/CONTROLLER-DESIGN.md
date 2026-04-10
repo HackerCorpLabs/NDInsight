@@ -1923,6 +1923,953 @@ The user's question highlights a key design pattern: **load the latches first, t
 
 This pattern is essential for any bus interface with multi-byte loading.
 
+### State Machine Architecture (Complete)
+
+The full design uses **PIO state machines** for low-level bus operations and **CPU-side state machines** (running on Cortex-M33 cores) for high-level bus cycle protocol logic.
+
+#### PIO State Machines (Hardware Layer)
+
+**PIO0 -- Input/Capture (already designed above)**:
+
+| SM | Role | Input |
+|----|------|-------|
+| PIO0.SM0 | BUS_CAPTURE -- main capture | /BAPR + IRQ4 |
+| PIO0.SM1 | IOX_TRIGGER helper | /BIOXE -> IRQ4 |
+| PIO0.SM2 | BDAP_TRIGGER helper | /BDAP -> IRQ4 |
+| PIO0.SM3 | BDRY_TRIGGER helper | /BDRY -> IRQ4 |
+
+Output: single tagged-event RX FIFO (drained by DMA into circular buffer in PSRAM).
+
+**PIO1 -- Output/Drive**:
+
+| SM | Role | Output |
+|----|------|--------|
+| PIO1.SM0 | BD_DRIVE -- drives 24 BD lines | BD 0-23 + /BD_OE |
+| PIO1.SM1 | CTRL_DRIVE -- drives bus control signals | /BAPR, /BDRY, /BDAP, /BINPUT, /BMEM, /BREQ |
+| PIO1.SM2 | INT_DRIVE -- drives interrupt lines | /BINT 10, /BINT 11, /BINT 12 |
+| PIO1.SM3 | DAISY_CTRL -- controls daisy-chain bypass | /OE_DAISY_PASS |
+
+Each output SM has its own TX FIFO. The CPU pushes commands to the appropriate FIFO.
+
+#### BD_DRIVE State Machine (PIO1.SM0)
+
+This SM is **always running**, waiting for commands from its TX FIFO. Each command tells it to drive specific data or release the bus.
+
+**Command word format** (32 bits):
+
+| Bits | Field | Meaning |
+|------|-------|---------|
+| 0-23 | DATA | 24-bit value to drive on BD |
+| 24 | DRIVE | 1 = drive bus, 0 = release (high-Z) |
+| 25-31 | Reserved | Future use |
+
+**Behavior**:
+1. Pull 32-bit command from TX FIFO (blocks if empty)
+2. If DRIVE bit set:
+   a. Set BD pindirs to OUTPUT (24 bits)
+   b. Write DATA to BD pins
+   c. Assert /BD_OE LOW (via 74LVT245 OE)
+3. If DRIVE bit clear:
+   a. De-assert /BD_OE HIGH (74LVT245 outputs go high-Z)
+   b. Set BD pindirs to INPUT
+4. Loop back to wait for next command
+
+The CPU pushes "drive 0x123456" then later pushes "release" (drive bit = 0). The bus is held in the driven state between commands.
+
+**Pseudocode** (PIO assembly conceptual):
+```
+loop:
+    pull                ; wait for command
+    out x, 1            ; extract DRIVE bit
+    jmp !x release
+    out pins, 24        ; write DATA to BD
+    set sideset, 0      ; /BD_OE LOW
+    jmp loop
+release:
+    set sideset, 1      ; /BD_OE HIGH
+    set pindirs, 0      ; BD as input
+    jmp loop
+```
+
+#### CTRL_DRIVE State Machine (PIO1.SM1)
+
+Drives bus control signals individually via bitmask commands.
+
+**Command word format** (32 bits):
+
+| Bits | Field | Meaning |
+|------|-------|---------|
+| 0-7 | SET_MASK | Signals to assert (1 = drive LOW) |
+| 8-15 | CLR_MASK | Signals to release (1 = let go HIGH) |
+| 16-23 | Reserved | |
+
+**Signal bit assignments** (within SET_MASK and CLR_MASK):
+
+| Bit | Signal |
+|-----|--------|
+| 0 | /BAPR |
+| 1 | /BMEM |
+| 2 | /BDAP |
+| 3 | /BDRY |
+| 4 | /BINPUT |
+| 5 | /BREQ |
+| 6 | /BINACK (if we ever drive it -- normally CPU output) |
+| 7 | Reserved |
+
+**Behavior**:
+1. Pull command word
+2. For each bit in SET_MASK: drive corresponding signal LOW (assert)
+3. For each bit in CLR_MASK: release corresponding signal (let pull-up bring HIGH)
+4. Loop
+
+This allows atomic multi-signal updates: e.g., assert /BAPR + /BMEM + /BINPUT in one command.
+
+#### INT_DRIVE State Machine (PIO1.SM2)
+
+Drives interrupt outputs based on level mask.
+
+**Command word format**:
+
+| Bits | Field | Meaning |
+|------|-------|---------|
+| 0 | /BINT 10 enable | 1 = assert (LOW), 0 = release |
+| 1 | /BINT 11 enable | |
+| 2 | /BINT 12 enable | |
+| 3 | /BINT 13 enable | (if used in future) |
+| 4-31 | Reserved | |
+
+**Behavior**: Pull command, write 4 bits to INT pins, loop.
+
+This allows the CPU to atomically assert/release multiple interrupt levels.
+
+#### DAISY_CTRL State Machine (PIO1.SM3)
+
+Controls the daisy-chain pass-through buffer (74LVC125 /OE).
+
+**Command word format**:
+
+| Bits | Meaning |
+|------|---------|
+| 0 | /OE_IDENT_PASS (1 = block pass-through, 0 = pass through) |
+| 1 | /OE_GRANT_PASS (1 = block, 0 = pass through) |
+
+When the controller wants to **capture** an INIDENT or INGRANT (because it has an interrupt or DMA request active), it pushes a command to block the pass-through. After the cycle, it pushes a command to re-enable pass-through.
+
+---
+
+### CPU-Side Bus Cycle Handlers
+
+The CPU runs **state machines** that consume events from the RX FIFO (filled by PIO0) and dispatch commands to the PIO1 output state machines.
+
+These are software state machines, typically implemented as a main loop on **Core 0** (bus protocol handler), with **Core 1** running device emulation logic (floppy, SMD, terminal, HDLC).
+
+#### Bus Cycle Identification
+
+When an ADDR event arrives in the FIFO, the bus protocol handler reads the current state of /BMEM and /BINPUT (via direct GPIO read) to determine the cycle type:
+
+| /BMEM | /BINPUT (at ADDR time) | Cycle Type |
+|-------|------------------------|------------|
+| HIGH (inactive) | -- | IOX cycle (CPU programmed I/O) |
+| LOW (active) | HIGH (read) | Memory READ cycle (CPU reading memory) |
+| LOW (active) | LOW (write) | Memory WRITE cycle (CPU writing memory) |
+
+For IDENT cycles, the handler also checks /INIDENT state (which is the trigger).
+
+#### Handler 1: IOX Read (CPU reads from us)
+
+**Purpose**: CPU executes IOXT instruction reading from one of our device registers.
+
+**State diagram**:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> AddrReceived: ADDR event<br/>(/BMEM HIGH = IOX)
+    AddrReceived --> NotOurAddr: address not ours
+    NotOurAddr --> Idle
+    AddrReceived --> WaitBIOXE: address matches
+    WaitBIOXE --> AssertBINPUT: /BIOXE detected
+    AssertBINPUT --> WaitBINACK: send drive /BINPUT
+    WaitBINACK --> DriveBD: /BINACK detected
+    DriveBD --> AssertBDRY: send drive BD=data
+    AssertBDRY --> WaitRelease: send drive /BDRY
+    WaitRelease --> ReleaseAll: /BIOXE released
+    ReleaseAll --> Idle: send release BD, /BINPUT, /BDRY
+```
+
+**Pseudocode** (CPU-side):
+```c
+void handle_iox_read(uint32_t addr) {
+    if (!is_our_register(addr)) return;
+    
+    // Wait for /BIOXE assertion (event from FIFO or GPIO poll)
+    wait_for_signal(BIOXE_PIN, LOW);
+    
+    // Assert /BINPUT (signal "this is a read")
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_SET(BINPUT));
+    
+    // Wait for /BINACK from CPU
+    wait_for_signal(BINACK_PIN, LOW);
+    
+    // Drive data on BD
+    uint32_t data = read_emulated_register(addr);
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_DRIVE(data));
+    
+    // Assert /BDRY
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_SET(BDRY));
+    
+    // Wait for CPU to release /BIOXE
+    wait_for_signal(BIOXE_PIN, HIGH);
+    
+    // Release everything
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_RELEASE);
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_CLR(BINPUT | BDRY));
+}
+```
+
+#### Handler 2: IOX Write (CPU writes to us)
+
+**Purpose**: CPU executes IOX instruction writing to one of our device registers.
+
+**State diagram**:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> AddrReceived: ADDR event
+    AddrReceived --> WaitData: address matches
+    WaitData --> ProcessWrite: DATA event<br/>(captured on /BIOXE)
+    ProcessWrite --> AssertBDRY: store data in emulated register
+    AssertBDRY --> WaitRelease: send drive /BDRY
+    WaitRelease --> ReleaseAll: /BIOXE released
+    ReleaseAll --> Idle: send release /BDRY
+```
+
+**Pseudocode**:
+```c
+void handle_iox_write(uint32_t addr) {
+    if (!is_our_register(addr)) return;
+    
+    // Wait for DATA event (PIO captures BD on /BIOXE)
+    uint32_t data = wait_data_event();
+    
+    // Store the write
+    write_emulated_register(addr, data);
+    
+    // Assert /BDRY ("data accepted")
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_SET(BDRY));
+    
+    // Wait for CPU to release /BIOXE
+    wait_for_signal(BIOXE_PIN, HIGH);
+    
+    // Release /BDRY
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_CLR(BDRY));
+}
+```
+
+#### Handler 3: IDENT (interrupt identification)
+
+**Purpose**: CPU executes IDENT PLxx instruction. Card responds with ident code if it has interrupt active on the specified level.
+
+**State diagram**:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> AddrReceived: ADDR event<br/>(IDENT cycle = /INIDENT triggered)
+    AddrReceived --> CheckInterrupts: extract level from address
+    CheckInterrupts --> NotForUs: no active interrupt on this level
+    NotForUs --> Idle
+    CheckInterrupts --> CaptureChain: have active interrupt
+    CaptureChain --> DriveIdent: block daisy-chain pass-through
+    DriveIdent --> AssertBDRY: send drive BD=ident_code
+    AssertBDRY --> ResetInterrupt: send drive /BDRY
+    ResetInterrupt --> WaitRelease: clear interrupt enable bit
+    WaitRelease --> Cleanup: cycle complete
+    Cleanup --> Idle: re-enable pass-through, release BD/BDRY
+```
+
+**Pseudocode**:
+```c
+void handle_ident(uint32_t addr) {
+    int level = extract_int_level(addr);
+    int device = find_device_with_interrupt(level);
+    if (device < 0) {
+        // Pass-through happens automatically via 74LVC125 hardware default
+        return;
+    }
+    
+    // Block hardware pass-through
+    pio_sm_put(pio1, SM_DAISY_CTRL, DAISY_BLOCK_IDENT);
+    
+    // Drive ident code on BD
+    uint32_t ident_code = devices[device].ident_code;
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_DRIVE(ident_code));
+    
+    // Assert /BDRY
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_SET(BDRY));
+    
+    // Reset device interrupt enable bit (per ND-100 spec)
+    devices[device].int_enable = 0;
+    
+    // Wait for cycle release
+    wait_for_signal(BAPR_PIN, HIGH);
+    
+    // Cleanup: release everything
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_RELEASE);
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_CLR(BDRY));
+    pio_sm_put(pio1, SM_DAISY_CTRL, DAISY_PASS_IDENT);
+}
+```
+
+#### Handler 4: Memory Read from CPU (CPU reads our emulated memory)
+
+**Purpose**: CPU does a memory read at an address in our emulated memory range.
+
+**Pseudocode**:
+```c
+void handle_mem_read_from_cpu(uint32_t addr) {
+    if (!is_our_memory_range(addr)) return;
+    
+    // Look up data in emulated memory (SRAM or PSRAM)
+    uint16_t data = emulated_memory[addr];
+    
+    // Wait for CPU to assert /BDAP (signaling "BD free for memory data")
+    wait_for_signal(BDAP_PIN, LOW);
+    
+    // Drive data on BD 0-15
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_DRIVE(data));
+    
+    // Assert /BDRY (data valid)
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_SET(BDRY));
+    
+    // Wait for cycle release
+    wait_for_signal(BMEM_PIN, HIGH);
+    
+    // Release
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_RELEASE);
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_CLR(BDRY));
+}
+```
+
+#### Handler 5: Memory Write from CPU (CPU writes to our emulated memory)
+
+**Purpose**: CPU does a memory write at an address in our emulated memory range.
+
+**Pseudocode**:
+```c
+void handle_mem_write_from_cpu(uint32_t addr) {
+    if (!is_our_memory_range(addr)) return;
+    
+    // Wait for DATA event (captured by PIO on /BDAP)
+    uint16_t data = wait_data_event();
+    
+    // Store in emulated memory
+    emulated_memory[addr] = data;
+    
+    // Assert /BDRY ("data accepted")
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_SET(BDRY));
+    
+    // Wait for cycle release
+    wait_for_signal(BMEM_PIN, HIGH);
+    
+    // Release /BDRY
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_CLR(BDRY));
+}
+```
+
+#### Handler 6: DMA Read from Real Memory (we initiate, read from CPU memory or another card)
+
+**Purpose**: Our card needs to read data from real memory at a specific address.
+
+**Pseudocode**:
+```c
+uint16_t dma_read(uint32_t mem_addr) {
+    // Step 1: Request the bus
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_SET(BREQ));
+    
+    // Step 2: Wait for /INGRANT (with our /BREQ active at /BMEM leading edge)
+    wait_for_signal(INGRANT_PIN, LOW);
+    pio_sm_put(pio1, SM_DAISY_CTRL, DAISY_BLOCK_GRANT);
+    
+    // Step 3: Drive memory address on BD
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_DRIVE(mem_addr));
+    
+    // Step 4: Assert /BAPR (address strobe)
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_SET(BAPR));
+    delay_ns(60);
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_CLR(BAPR));
+    
+    // Step 5: /BINPUT remains HIGH (= read direction)
+    
+    // Step 6: Release BD lines (memory will drive)
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_RELEASE);
+    
+    // Step 7: Assert /BDAP ("BD free for memory data")
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_SET(BDAP));
+    
+    // Step 8: Wait for memory's /BDRY response (DMA_DATA event from PIO)
+    uint16_t data = wait_dma_read_event();
+    
+    // Step 9: Release everything
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_CLR(BDAP | BREQ));
+    pio_sm_put(pio1, SM_DAISY_CTRL, DAISY_PASS_GRANT);
+    
+    return data;
+}
+```
+
+#### Handler 7: DMA Write to Real Memory (we initiate, write to CPU memory or another card)
+
+**Purpose**: Our card writes data to real memory at a specific address.
+
+**Pseudocode**:
+```c
+void dma_write(uint32_t mem_addr, uint16_t data) {
+    // Step 1: Request the bus
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_SET(BREQ));
+    
+    // Step 2: Wait for /INGRANT
+    wait_for_signal(INGRANT_PIN, LOW);
+    pio_sm_put(pio1, SM_DAISY_CTRL, DAISY_BLOCK_GRANT);
+    
+    // Step 3: Drive memory address + assert /BAPR + /BMEM + /BINPUT (write)
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_DRIVE(mem_addr));
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_SET(BAPR | BMEM | BINPUT));
+    delay_ns(60);
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_CLR(BAPR));
+    
+    // Step 4: Drive data on BD
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_DRIVE(data));
+    
+    // Step 5: Assert /BDAP (data valid)
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_SET(BDAP));
+    
+    // Step 6: Wait for memory's /BDRY response
+    wait_for_signal(BDRY_PIN, LOW);
+    
+    // Step 7: Release everything
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_RELEASE);
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_CLR(BAPR | BMEM | BINPUT | BDAP | BREQ));
+    pio_sm_put(pio1, SM_DAISY_CTRL, DAISY_PASS_GRANT);
+}
+```
+
+### Top-Level Bus Protocol Handler (Main Loop)
+
+The bus protocol handler runs on Core 0 in a tight loop, dispatching events from the RX FIFO:
+
+```c
+void bus_protocol_main_loop(void) {
+    while (1) {
+        // Read next event from FIFO (blocks until event arrives)
+        uint32_t event = read_event_fifo();
+        
+        bool is_data = (event >> 24) & 1;
+        uint32_t value = event & 0x00FFFFFF;
+        
+        if (!is_data) {
+            // Address event -- dispatch based on cycle type
+            uint32_t addr = value;
+            
+            // Read current state of cycle-type signals
+            bool bmem = !gpio_get(BMEM_PIN);    // active LOW
+            bool binput = !gpio_get(BINPUT_PIN);
+            bool inident = !gpio_get(INIDENT_PIN);
+            
+            if (inident) {
+                handle_ident(addr);
+            } else if (bmem && !binput) {
+                handle_mem_read_from_cpu(addr);
+            } else if (bmem && binput) {
+                handle_mem_write_from_cpu(addr);
+            } else {
+                // IOX cycle -- determine read or write later
+                // (interface decides direction based on register type)
+                handle_iox_cycle(addr);
+            }
+        } else {
+            // Stale data event without preceding address?
+            // Or DMA read response from our own DMA cycle?
+            // Handled by DMA initiator code via wait_dma_read_event()
+        }
+    }
+}
+```
+
+Core 1 runs the device emulation state machines (floppy, SMD, terminal, HDLC) which interact with the bus handler via shared memory and inter-core FIFOs.
+
+### Architecture Summary Diagram
+
+```mermaid
+flowchart TB
+    subgraph BUS["ND-100 Bus"]
+        direction LR
+        BD["/BD 0-23"]
+        CTL["/BAPR /BIOXE /BMEM /BDAP /BDRY /BINPUT"]
+        INT["/BINT 10 11 12"]
+        DMA["/BREQ /INGRANT /OUTGRANT /INIDENT /OUTIDENT"]
+    end
+
+    subgraph LS["Level Shifters (3.3V <-> 5V)"]
+        TS["3x 74LVC245 (BD)<br/>74LVC14 (in)<br/>74LVC07 (out)<br/>74LVC125 (daisy)"]
+    end
+
+    subgraph PIO0["PIO0 - Capture"]
+        SM00["SM0: BUS_CAPTURE<br/>(addr + data)"]
+        SM01["SM1: IOX_TRIGGER"]
+        SM02["SM2: BDAP_TRIGGER"]
+        SM03["SM3: BDRY_TRIGGER"]
+    end
+
+    subgraph PIO1["PIO1 - Drive"]
+        SM10["SM0: BD_DRIVE"]
+        SM11["SM1: CTRL_DRIVE"]
+        SM12["SM2: INT_DRIVE"]
+        SM13["SM3: DAISY_CTRL"]
+    end
+
+    subgraph CPU["RP2350 Cores"]
+        C0["Core 0:<br/>Bus Protocol Handler<br/>(IOX/IDENT/MEM/DMA)"]
+        C1["Core 1:<br/>Device Emulation<br/>(floppy/SMD/term/HDLC)"]
+        BUFFER["Circular event buffer<br/>(SRAM/PSRAM)"]
+        DEVS["Emulated device state<br/>+ memory regions"]
+    end
+
+    BUS <--> LS
+    LS <--> PIO0
+    LS <--> PIO1
+    SM00 -- "DMA" --> BUFFER
+    SM01 -- "IRQ4" --> SM00
+    SM02 -- "IRQ4" --> SM00
+    SM03 -- "IRQ4" --> SM00
+    BUFFER --> C0
+    C0 -- "TX FIFO" --> SM10
+    C0 -- "TX FIFO" --> SM11
+    C0 -- "TX FIFO" --> SM12
+    C0 -- "TX FIFO" --> SM13
+    C0 <--> C1
+    C1 <--> DEVS
+
+    style BUS fill:#FFF3E0,stroke:#E65100,color:#E65100
+    style LS fill:#E0F7FA,stroke:#00838F,color:#00838F
+    style PIO0 fill:#E8F5E9,stroke:#2E7D32,color:#2E7D32
+    style PIO1 fill:#F3E5F5,stroke:#7B1FA2,color:#7B1FA2
+    style CPU fill:#E3F2FD,stroke:#0D47A1,color:#0D47A1
+```
+
+### Why This Architecture Works
+
+1. **Hardware (PIO) handles deterministic timing**: All time-critical bus capture and drive happens in PIO state machines with cycle-accurate timing.
+
+2. **Software (CPU) handles protocol logic**: The CPU has plenty of time (microseconds) to make decisions and dispatch commands. No tight loops on individual GPIO pins.
+
+3. **FIFOs decouple hardware from software**: PIO captures bus events into a FIFO. CPU drains it at its own pace. No race conditions.
+
+4. **DMA decouples FIFO from CPU**: Hardware DMA continuously moves FIFO data into a circular buffer in PSRAM. CPU never directly polls the FIFO.
+
+5. **Single-FIFO design simplifies dispatch**: Tagged events in one FIFO maintain bus cycle ordering and avoid multi-FIFO arbitration complexity.
+
+6. **Two cores divide work cleanly**: Core 0 handles bus protocol, Core 1 handles device emulation. Inter-core communication via shared memory.
+
+7. **All state machines are independent**: Each PIO SM has its own program and FIFO. Adding new functionality (e.g., new bus cycle type) means adding a new handler, not modifying existing ones.
+
+### Critical Design Analysis -- Priorities and Timing
+
+This section analyzes the design against the explicit priorities for the controller card and identifies critical issues that need resolution before PCB.
+
+#### Priority 1: IOX Read/Write + Interrupt Signaling + IDENT Response
+
+**Sub-goal 1a: IOX Read/Write -- VIABLE** ✓
+
+The CPU-side handlers (Handler 1 IOX Read, Handler 2 IOX Write) are correct. Total time:
+- IOX Read: ~255 ns from BAPR to bus release
+- IOX Write: ~200 ns
+- Bus limit: 8000 ns
+- Margin: 30x+
+
+The path is: PIO captures address (~40 ns) -> CPU dispatches handler (~200-500 ns of software) -> PIO drives response. Well within budget.
+
+**Sub-goal 1b: Interrupt assertion -- VIABLE** ✓
+
+Driving /BINT 10/11/12 LOW via INT_DRIVE PIO state machine is straightforward. The CPU asserts the interrupt line whenever an emulated device needs attention. This is asynchronous and not time-critical.
+
+**Sub-goal 1c: IDENT response -- ⚠ CRITICAL TIMING ISSUE**
+
+The 100 ns IDENT decision window is the **tightest constraint** in the entire design. Let me critically analyze if our software-based response can meet it.
+
+**The problem**:
+
+When the CPU executes IDENT PLxx, the bus protocol is:
+1. CPU drives interrupt level on BD lines
+2. CPU asserts /BAPR
+3. CPU asserts /INIDENT (after a brief delay)
+4. **Within 100 ns**, every card in the daisy chain must either:
+   - **Capture** /INIDENT (block pass-through to OUTIDENT) and prepare to respond
+   - **Pass through** /INIDENT to OUTIDENT for the next card
+
+**Path analysis (current design)**:
+
+```
+0 ns    /BAPR asserted on bus
+~5 ns   Level shifter propagation
+~12 ns  PIO sync delay
+~20 ns  PIO0.SM0 ADDR_CAPTURE reads BD into FIFO
+~25 ns  Event written to FIFO
+~25 ns  DMA sees FIFO has data, copies to PSRAM circular buffer
+~50 ns  Core 0 polling sees new event in buffer
+~100 ns Core 0 dispatches IDENT handler
+~150 ns Core 0 reads interrupt active mask, compares with level
+~200 ns Core 0 decides: capture or pass
+~250 ns Core 0 sends DAISY_BLOCK command to PIO1
+~270 ns PIO1 receives command, asserts /OE_DAISY_PASS HIGH
+~280 ns 74LVC125 buffer goes high-Z, OUTIDENT released
+```
+
+**This is ~280 ns total** -- nearly 3x the 100 ns budget.
+
+**The hardware default pass-through (74LVC125 with pull-down on /OE) means /INIDENT is ALREADY passing to OUTIDENT before our CPU has even decided.** By the time our CPU reacts, the next card has already received INIDENT and may have responded.
+
+**This is a critical flaw in the current design.**
+
+**Solution Options**:
+
+##### Option A: Pre-armed Hardware Block
+
+When the CPU detects that one of our emulated devices has an interrupt active, it **pre-blocks** the daisy-chain pass-through immediately. The 74LVC125 /OE goes HIGH, breaking the chain. Then when IDENT arrives, we capture it (we're already blocking).
+
+**Drawback**: While our interrupt is active, we **block all downstream cards** from getting their interrupts identified. This violates the daisy-chain priority scheme -- our card effectively becomes the highest priority for ALL levels we have active, blocking other devices.
+
+**Mitigation**: Only block for the level we have active. Use 4 separate /OE control bits, one per level (10, 11, 12, 13). But then we need 4 daisy-chain bypass channels (4 x 74LVC125 = 1 chip with 4 channels).
+
+Actually no -- the daisy chain is one signal /INIDENT, not per-level. The level is on the BD lines during the IDENT cycle. We can't do per-level blocking with separate buffers because there's only one INIDENT signal.
+
+**Better mitigation**: Hardware comparator (next option).
+
+##### Option B: Hardware Comparator (RECOMMENDED)
+
+Add a small comparator chip that:
+1. Reads the interrupt level from BD 0-3 (or 0-5)
+2. Compares against a CPU-controlled "active levels" register
+3. If match AND /BAPR asserted AND /INIDENT asserted -> block pass-through
+4. If no match -> allow pass-through
+
+This is **combinational logic** -- no software involved. Response time: ~5-10 ns.
+
+**Required hardware**:
+
+| Chip | Function |
+|------|----------|
+| 74LVC373 | Latch the BD lines on /BAPR (4-bit level) |
+| 74LVC85 (or 74LVC688) | 4-bit magnitude comparator OR equality comparator |
+| 74HC595 (or GPIO directly) | CPU-controlled "active levels" register (4 bits) |
+| 74LVC02 NOR gate | Combine signals: /BAPR_LATCHED AND match AND /INIDENT |
+
+OR a simpler approach: use a small **CPLD (ATF1502 or Lattice MachXO2)** to implement all this logic in one chip. The CPLD can be programmed with the comparator + latch + glue logic.
+
+**CPLD approach is cleanest**: 1 chip, ~5 ns response, fully programmable.
+
+##### Option C: PIO Fast Path (Marginal)
+
+Dedicate a PIO state machine to do nothing but watch /BAPR + /INIDENT and immediately compare BD level against a pre-loaded mask. PIO can do this in ~50-70 ns.
+
+Pseudocode:
+```pio
+.program ident_fast
+.wrap_target
+    wait 0 pin BAPR_PIN     ; ~14 ns sync
+    in pins, 4              ; read BD 0-3 (level), 7 ns
+    mov x, isr              ; ~7 ns
+    jmp x!=y skip           ; compare with Y (preloaded mask), 7 ns
+    set pins, 1             ; assert OE_BLOCK, 7 ns -- TOTAL ~42 ns
+skip:
+.wrap
+```
+
+**Total: ~42 ns** -- fits within 100 ns window with margin.
+
+But: PIO can only compare against a single Y register value. We can't easily implement a "match any of these levels" check. If we have interrupts on multiple levels, this gets complex.
+
+**Workaround**: Use one PIO SM per level (4 SMs for levels 10/11/12/13). Each SM watches for its specific level and blocks the chain if matched. This works but uses 4 PIO state machines just for IDENT.
+
+##### RECOMMENDED SOLUTION
+
+**Option B (Hardware Comparator via small CPLD)** is the cleanest and most reliable solution. The CPLD:
+- Has guaranteed timing (~5 ns)
+- Doesn't consume PIO state machines
+- Doesn't require CPU intervention
+- Automatically handles multi-level interrupt cases
+- Programmable for future enhancements
+
+**CPLD configuration**:
+- Inputs: BD 0-5 (interrupt level), /BAPR, /INIDENT, /BMEM (to distinguish IDENT from MEM cycle), 4-bit "active levels" register from MCU
+- Outputs: /OE_DAISY_PASS (drives 74LVC125), IDENT_HIT_FLAG (notifies MCU)
+- Logic: when /BAPR asserts AND /BMEM is HIGH (= IDENT cycle, not memory) AND BD level matches one of active levels -> block pass-through and raise IDENT_HIT_FLAG
+
+The MCU updates the "active levels" register whenever it asserts/clears an interrupt. The CPLD handles the rest.
+
+**Cost**: 1 CPLD chip (~$3-5), some passives. Saves PIO state machines, eliminates timing risk.
+
+#### Priority 2: Controller-Initiated DMA Read/Write -- VIABLE ✓
+
+The DMA handlers (Handler 6 dma_read, Handler 7 dma_write) are designed correctly. Critical analysis:
+
+**Timing**:
+- BREQ assertion -> INGRANT: ~200 ns (depends on BCU and other DMA traffic)
+- Drive address + BAPR: ~80 ns
+- Wait for memory response (BDRY): ~200-500 ns (memory dependent)
+- Capture data (read) or write completion: ~80 ns
+- Release: ~30 ns
+- **Total per word: ~600-900 ns**
+- **Throughput: ~1.1-1.7 MB/s**
+
+**Sufficient for**:
+- Floppy (~50 KB/s) ✓ massive margin
+- HDLC (~64-512 Kbit/s) ✓ ample margin
+- Slow HDD (~500 KB/s) ✓ adequate margin
+- Fast SMD (~3 MB/s sustained) ⚠ marginal -- may need optimization
+
+**Optimizations for SMD**:
+- Burst mode: queue multiple DMA cycles back-to-back
+- Pipeline: start next BREQ while processing current word
+- DMA controller in RP2350 can pipeline FIFO transfers
+
+**Verdict**: Priority 2 is achievable. SMD might need software pipelining but the hardware path is correct.
+
+#### Priority 3 (Low): Memory Emulation -- DEFERRED ✗
+
+The current design includes memory emulation (Handler 4, Handler 5) but this is **low priority**. Critical analysis suggests this should be **deferred or removed**:
+
+**Issues**:
+
+1. **Address space conflict risk**: Our emulated memory must not overlap real memory. The user must ensure SINTRAN configuration excludes our region. Wrong configuration = system crash.
+
+2. **PSRAM latency**: ~100-200 ns to fetch from PSRAM eats into the bus cycle budget. Internal SRAM is fast but limited to 520 KB.
+
+3. **Coherency**: Our memory is separate from real memory. No cache coherency.
+
+4. **Test difficulty**: Hard to validate without affecting real memory regions.
+
+5. **Use case unclear**: What memory would we emulate? Boot ROM? Extension memory bank? The user has not specified.
+
+**Recommendation**: **Remove memory emulation from initial design**. Keep the bus signals available (we already capture /BMEM and /BDAP) so it can be added in firmware later if needed. The hardware doesn't change. Just don't write the handler.
+
+This simplifies the firmware and reduces risk for Priority 1 and 2 work.
+
+#### Priority 4 (CRITICAL): Bus Phase Tracking and Multi-Device Coordination
+
+The user explicitly requires that the controller can emulate **multiple devices simultaneously** (e.g., a floppy AND a terminal AND HDLC on one card). The bus interface is shared -- only one device can drive the bus at a time.
+
+**The risk**: Two device emulators try to drive the bus at the same time. Result: bus contention, possibly damaging the CPU 74F241 outputs or our 74LVT245 drivers.
+
+**Mitigation**: Explicit phase tracking with mutual exclusion.
+
+##### Bus Phase State Machine
+
+Core 0 maintains a single global variable `bus_phase` that tracks the current phase of the bus interface. All device emulators must check this variable and queue their requests if the bus is busy.
+
+**Phase enumeration**:
+
+```c
+typedef enum {
+    PHASE_IDLE = 0,             // No bus activity, ready for next event
+
+    // CPU-initiated cycles (we are passive responder)
+    PHASE_IOX_ADDR_RECEIVED,    // CPU asserted BAPR for IOX, decoded address
+    PHASE_IOX_READ_RESPOND,     // We are driving BD + BINPUT for IOX read
+    PHASE_IOX_WRITE_CAPTURE,    // Waiting for IOX write data (BIOXE)
+    PHASE_IDENT_RESPOND,        // Driving ident code on BD + BDRY
+    PHASE_MEM_READ_RESPOND,     // Driving memory data (memory emulation)
+    PHASE_MEM_WRITE_CAPTURE,    // Capturing memory write data
+
+    // Controller-initiated cycles (we are bus master)
+    PHASE_DMA_REQUEST,          // BREQ asserted, waiting for INGRANT
+    PHASE_DMA_ADDR,             // Driving address on BD
+    PHASE_DMA_READ_WAIT,        // Waiting for memory response
+    PHASE_DMA_WRITE_DRIVE,      // Driving data to memory
+} bus_phase_t;
+
+volatile bus_phase_t bus_phase = PHASE_IDLE;
+```
+
+##### Device Emulator Coordination
+
+Each emulated device runs its own state machine on Core 1. When a device wants to do a bus operation (e.g., DMA transfer), it submits a request to a **bus operation queue**:
+
+```c
+typedef struct {
+    uint8_t op_type;        // OP_DMA_READ, OP_DMA_WRITE, OP_INT_ASSERT, etc.
+    uint8_t device_id;      // Which emulated device
+    uint32_t address;       // Memory address (for DMA)
+    uint16_t data;          // Data (for DMA write)
+    uint16_t* result;       // Where to store result (for DMA read)
+    sem_t* completion_sem;  // Signal when done
+} bus_op_request_t;
+
+queue_t bus_op_queue;       // FIFO queue between cores
+```
+
+Core 0 processes requests one at a time:
+
+```c
+void core0_main_loop(void) {
+    while (1) {
+        // Priority 1: Handle any pending CPU-initiated cycles
+        if (event_fifo_has_data()) {
+            handle_cpu_cycle();
+            continue;
+        }
+
+        // Priority 2: Handle controller-initiated requests from Core 1
+        if (bus_phase == PHASE_IDLE && queue_has_request(&bus_op_queue)) {
+            bus_op_request_t req;
+            queue_pop(&bus_op_queue, &req);
+            handle_controller_op(&req);
+        }
+    }
+}
+```
+
+##### Mutual Exclusion Rules
+
+1. **Only Core 0 manipulates `bus_phase`** -- single writer, no locks needed
+2. **Only Core 0 sends commands to PIO1 output state machines** -- no contention
+3. **Core 1 NEVER touches the bus directly** -- only submits requests via queue
+4. **CPU-initiated cycles (priority 1) preempt controller requests (priority 2)** -- if a CPU IOX cycle starts while we have a queued DMA, the IOX cycle runs first
+
+##### CPU vs Controller Conflict Resolution
+
+**Scenario**: We are about to start a DMA cycle (PHASE_DMA_REQUEST) when the CPU starts an IOX cycle to one of our registers.
+
+**Resolution**:
+- The BCU handles bus arbitration. Even if we asserted BREQ, the CPU might get the bus first if it had priority.
+- We will receive an ADDR event (CPU's IOX) before INGRANT is granted.
+- Our handler must process the IOX cycle, complete it, then resume waiting for INGRANT.
+- The bus phase should track this:
+
+```c
+void handle_event() {
+    bus_phase_t saved_phase = bus_phase;
+    if (saved_phase == PHASE_DMA_REQUEST) {
+        // We were waiting for INGRANT, but CPU is doing IOX to us
+        // Process IOX first, then resume DMA wait
+        bus_phase = PHASE_IOX_ADDR_RECEIVED;
+        handle_iox_cycle();
+        bus_phase = PHASE_DMA_REQUEST;
+    } else {
+        bus_phase = PHASE_IOX_ADDR_RECEIVED;
+        handle_iox_cycle();
+        bus_phase = PHASE_IDLE;
+    }
+}
+```
+
+**Important**: The BREQ assertion remains active across the IOX cycle. After the IOX completes, we continue waiting for INGRANT.
+
+##### Multi-Device Example: Floppy DMA + Terminal IOX
+
+Scenario: Emulated floppy is doing a 256-word DMA transfer, emulated terminal needs to respond to a status read IOX from the CPU.
+
+```
+Time     Event                              bus_phase
+-------- ---------------------------------- ----------------
+   0 ns  Floppy queues DMA request          PHASE_IDLE
+  10 ns  Core 0 picks up request            PHASE_DMA_REQUEST
+  20 ns  PIO asserts /BREQ                  PHASE_DMA_REQUEST
+        (waiting for INGRANT)
+ 100 ns  CPU asserts /BAPR for IOX read     PHASE_DMA_REQUEST
+ 140 ns  Core 0 receives ADDR event         PHASE_DMA_REQUEST
+        Decodes: terminal status register    
+ 145 ns  Save state, switch to IOX handling  PHASE_IOX_READ_RESPOND
+ 150 ns  /BIOXE asserted by CPU              PHASE_IOX_READ_RESPOND
+ 160 ns  Send drive /BINPUT                  PHASE_IOX_READ_RESPOND
+ 200 ns  /BINACK asserted by CPU             PHASE_IOX_READ_RESPOND
+ 210 ns  Send drive BD = terminal status     PHASE_IOX_READ_RESPOND
+ 220 ns  Send drive /BDRY                    PHASE_IOX_READ_RESPOND
+ 250 ns  CPU strobes data, releases /BIOXE   PHASE_IOX_READ_RESPOND
+ 260 ns  Release BD, /BINPUT, /BDRY          PHASE_DMA_REQUEST
+        (resume DMA wait)                    
+ 300 ns  /INGRANT arrives                   PHASE_DMA_ADDR
+ 310 ns  Drive memory address                PHASE_DMA_ADDR
+ ...     (continue DMA cycle)
+```
+
+The /BREQ remains asserted throughout the IOX interruption -- the BCU sees it and continues the grant process.
+
+##### Critical Rule: PIO State Machine Locking
+
+Only **one** PIO output state machine can be driving the BD bus at a time. The bus phase variable enforces this by serializing all bus drive operations through Core 0's main loop.
+
+If a device emulator on Core 1 wants to drive the bus directly (bypassing the queue), **this must be forbidden**. Code review and runtime assertions should catch any attempt.
+
+##### Multi-Device Interrupt Coordination
+
+Each emulated device has its own `interrupt_active` flag and `interrupt_level`. When a device asserts an interrupt:
+
+```c
+void emulated_device_assert_interrupt(int device_id, int level) {
+    devices[device_id].int_active = true;
+    devices[device_id].int_level = level;
+
+    // Update active levels mask
+    int mask = 0;
+    for (int i = 0; i < NUM_DEVICES; i++) {
+        if (devices[i].int_active) {
+            mask |= (1 << devices[i].int_level);
+        }
+    }
+    update_active_levels_register(mask);  // Send to CPLD or PIO
+
+    // Drive the BINT line via INT_DRIVE PIO SM
+    pio_sm_put(pio1, SM_INT_DRIVE, mask);
+}
+```
+
+When the CPU does IDENT and we respond, the device's interrupt is reset:
+
+```c
+void handle_ident(int level) {
+    // Find which device has interrupt on this level (round-robin if multiple)
+    int device = find_device_with_interrupt(level);
+    if (device < 0) return;
+
+    // Drive ident code
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_DRIVE(devices[device].ident_code));
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_SET(BDRY));
+
+    // Reset device interrupt
+    devices[device].int_active = false;
+    update_active_levels_mask();
+}
+```
+
+This handles the case where multiple emulated devices share the same interrupt level (e.g., two terminals on level 12). Round-robin or fixed-priority arbitration determines which one responds first.
+
+### Critical Issues Summary
+
+| Issue | Severity | Solution |
+|-------|----------|----------|
+| **IDENT 100 ns timing** | **CRITICAL** | Add CPLD comparator (Option B) for hardware-level ident decision |
+| Bus phase race conditions | High | Single bus_phase variable on Core 0, mutual exclusion |
+| Multi-device contention | High | Bus operation queue, single drive path through Core 0 |
+| Memory emulation complexity | Medium | Defer to phase 2, remove from initial design |
+| DMA SMD throughput | Medium | Software pipelining, may be acceptable as-is |
+| Bus contention damage risk | Critical | All output drivers default disabled (pull resistors), single PIO drive path |
+
+### Updated Architecture Recommendation
+
+**For initial board (Phase 1)**:
+1. **Add a CPLD** (ATF1502 or similar small, programmable logic) for IDENT fast-path comparator. This is the only way to reliably meet the 100 ns IDENT window.
+2. **Implement Priority 1 (IOX + interrupts + IDENT)** with CPLD-assisted IDENT
+3. **Implement Priority 2 (controller DMA)** with software pipelining for SMD throughput
+4. **Defer memory emulation** -- hardware supports it, firmware doesn't implement initially
+5. **Implement bus phase tracking** with operation queue for multi-device coordination
+
+**For Phase 2 (after validation)**:
+- Add memory emulation if needed
+- Optimize DMA pipelining for higher throughput
+- Add additional device emulations
+
 ### Recommended Architecture: Design 4 (PIO-as-Latch)
 
 The PIO-as-latch approach is **the recommended design** because:
