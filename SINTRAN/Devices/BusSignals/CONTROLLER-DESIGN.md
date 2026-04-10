@@ -24,7 +24,118 @@ See [ND-100-BUS-C-CONNECTOR.md](ND-100-BUS-C-CONNECTOR.md) for the complete bus 
 
 ---
 
-## Hardware Module: Pimoroni PGA2350
+## Hardware Module Selection
+
+Two RP2350B breakout modules have been evaluated. Both expose all 48 GPIO and use the same RP2350B chip.
+
+### Option 1: Olimex RP2350-PICO2-BB48R (RECOMMENDED)
+
+**Olimex RP2350-PICO2-BB48R** -- a redesign of the Raspberry Pi Pico 2 with breadboard spacing and integrated SD card.
+
+| Feature | Value |
+|---------|-------|
+| MCU | RP2350B (48 GPIO variant) |
+| Flash | **16 MB QSPI** |
+| PSRAM | **8 MB QSPI** (BB48R variant only) |
+| **SD Card** | **Micro SD card slot ON BOARD** (BB48R variant only) |
+| GPIO exposed | All **48 GPIO** |
+| USB | **USB-C** data and power |
+| Buttons | **BOOT and RESET on board** |
+| Status LED | Included |
+| UEXT connector | pUEXT 1.0 mm pitch (debug/expansion) |
+| Qwiic/Stemma | I2C connector |
+| Dimensions | 69 x 18 mm |
+| Pin spacing | 15.24 mm (0.6") -- breadboard friendly |
+| Open source hardware | **Yes** -- KiCad files, schematic, manual provided |
+| Documentation | Full user manual, pinout diagram, KiCad project |
+
+**Why this is the better choice**:
+
+1. **SD card on board** -- saves us from designing a card slot. Just use the micro SD already wired.
+2. **BOOT and RESET buttons on board** -- no external buttons needed on our card
+3. **USB-C** -- modern, robust connector
+4. **Status LED** -- already wired, can use for heartbeat
+5. **Open hardware** -- we get full schematic and KiCad files for reference
+6. **Breadboard spacing** -- easier prototyping
+7. **PSRAM included** -- 8 MB just like PGA2350
+8. **Same flash size** -- 16 MB QSPI
+
+### Option 2: Pimoroni PGA2350
+
+| Feature | Value |
+|---------|-------|
+| MCU | RP2350B |
+| Flash | 16 MB QSPI |
+| PSRAM | 8 MB (CS on GP47, cuttable) |
+| SD card | None -- needs external |
+| Buttons | None -- needs external |
+| Form factor | Pin Grid Array, very compact |
+| Pin spacing | 2.54 mm |
+| Open source | No |
+
+### Comparison
+
+| Aspect | Olimex BB48R | Pimoroni PGA2350 |
+|--------|--------------|-------------------|
+| Chip | RP2350B (same) | RP2350B (same) |
+| Flash | 16 MB | 16 MB |
+| PSRAM | 8 MB | 8 MB |
+| **SD card on board** | **YES** | No |
+| **Buttons on board** | **YES** (BOOT + RESET) | No |
+| **USB connector** | USB-C | depends on carrier |
+| Status LED | Yes | No |
+| Open source hardware | **Yes (KiCad)** | No |
+| Form factor | Breadboard 0.6" | PGA compact |
+| Documentation | **Full schematic + KiCad** | Pin reference only |
+| Dimensions | 69 x 18 mm | smaller PGA |
+| GPIO available | 47 (PSRAM) or 48 (no PSRAM) | 47 (PSRAM) or 48 (no PSRAM) |
+| Price | similar | similar |
+
+### Pin Savings with Olimex BB48R
+
+The integrated SD card means we save GPIO pins on our card design:
+
+| Item | PGA2350 (external SD) | Olimex BB48R (built-in SD) |
+|------|----------------------|----------------------------|
+| SD card SPI | 4 GPIO (SCK/MOSI/MISO/CS) | **0 GPIO on our card** (uses module pins) |
+| LOAD/BOOT button | Add external | **0 GPIO** (on module) |
+| RESET button | Add external | **0 GPIO** (on module) |
+| Status LED 1 | 1 GPIO | **0 GPIO** (on module) |
+
+This frees ~5 pins compared to PGA2350 -- but the SD pins are still on the module's GPIO pool, just routed to the SD slot internally.
+
+> **Wait**: actually the SD card on the BB48R uses some of the 48 GPIO pins to communicate with the SD card. We need to check the pinout diagram to see which pins are reserved for SD. Those pins are NOT free for our use.
+
+### Pin Reservation on Olimex BB48R
+
+The BB48R schematic and pinout show which pins are used internally:
+
+> **TODO**: Verify exact pinout from the official Olimex pinout diagram. The SD card SPI pins (typically 4 GPIO) are reserved on board. Status LED is typically GP25.
+>
+> Until the pinout is checked, plan for **47 - 4 (SD) - 1 (LED) = 43 usable GPIO** on the BB48R.
+
+### Recommendation
+
+**Use the Olimex RP2350-PICO2-BB48R** for these reasons:
+
+1. **Lower BOM** -- we don't need external SD slot, USB connector, buttons
+2. **Faster bring-up** -- module is pre-tested, no SD card debug needed
+3. **Open source** -- we have the KiCad files for reference
+4. **Comparable GPIO** -- ~43 usable on BB48R vs ~45 on PGA2350 (pinout pending)
+5. **Full debug support** -- BOOT/RESET buttons + UEXT connector for SWD
+
+The 2-pin difference doesn't change the design fit:
+- Design 4 (Direct GPIO + PIO): Still tight (~43 needed, 43 available -- 0 spare)
+- Design 2 (8-bit Latched): Comfortable (~28 needed, 43 available -- 15 spare) ✓
+- Design 3 (SPI Shift): Very comfortable (~22 needed, 43 available -- 21 spare)
+
+**With Olimex BB48R, Design 2 (8-bit Latched) is the clear recommendation** with 15 spare pins. Or use Design 4 if you accept zero spare pins for the BD bus alone (but with SD already integrated, the previous tightness in Design 4 is mostly resolved).
+
+> **Action required**: Download the Olimex pinout diagram and confirm exact pin reservations for SD card and status LED before locking in the design.
+
+---
+
+## Hardware Module Details: Pimoroni PGA2350 (Alternative)
 
 The selected hardware is the **Pimoroni PGA2350** (PIM722) -- a Pin Grid Array (PGA) breakout board for the RP2350B with maximum exposed pins in minimum space.
 
@@ -1922,6 +2033,363 @@ The user's question highlights a key design pattern: **load the latches first, t
 4. **Clean release**: /OE deassert tristates the output cleanly
 
 This pattern is essential for any bus interface with multi-byte loading.
+
+### Central Bus Drive API -- Single Source of Truth
+
+**Critical safety section.** All BD bus driving and bus control signal manipulation MUST go through this centralized API. Direct GPIO writes or PIO commands for these signals are **forbidden** in handler code.
+
+This rule prevents bus contention which can damage the CPU and our 74LVT245 drivers. By having a single code path for bus driving, we can audit and verify the rule in one place.
+
+#### The Single Rule
+
+**We can drive BD 0-23 ONLY in these five states. In any other state, BD MUST be high-Z (/BD_OE_BUS HIGH).**
+
+| # | State | Start condition | End condition | What we drive |
+|---|-------|----------------|---------------|---------------|
+| **1** | `BD_DRIVE_IOX_READ` | CPU asserts `/BINACK` (after we asserted `/BINPUT` in response to `/BIOXE`) | CPU releases `/BIOXE` | Read register data |
+| **2** | `BD_DRIVE_IDENT` | `/INIDENT` active AND our active interrupt mask matches level on BD 0-5 | CPU releases `/INIDENT` | Ident code |
+| **3** | `BD_DRIVE_MEM_READ_RESPONSE` | CPU asserts `/BDAP` during memory read cycle to our memory range | CPU releases `/BMEM` | Memory read data |
+| **4** | `BD_DRIVE_DMA_ADDRESS` | We captured `/INGRANT` after asserting `/BREQ` | ~50 ns after we assert `/BAPR` | Memory address |
+| **5** | `BD_DRIVE_DMA_WRITE_DATA` | DMA write cycle, address phase complete, `/BINPUT` LOW | Memory asserts `/BDRY` | Write data |
+
+**We NEVER drive BD when**:
+- `/BAPR` is asserted by the CPU (CPU is driving the address)
+- `/BIOXE` is active during a write to us (CPU drives the write data)
+- `/BDAP` is active during a CPU memory read (memory drives the data)
+- IDENT cycle but our level doesn't match
+- DMA read data phase (memory drives, not us)
+- We have not been explicitly granted by one of the 5 conditions
+- **Power-up, reset, or any unknown state** (default = high-Z)
+
+#### Central Module Layout
+
+```
+controller_bus.h          // Public API for handlers
+controller_bus.c          // Implementation, state machine, PIO commands
+
+bus_handlers.c            // IOX, IDENT, memory, DMA handlers (USE the API)
+device_emulators.c        // Floppy, SMD, terminal, HDLC (USE the API)
+
+(handlers NEVER touch GPIO or PIO directly for bus signals)
+```
+
+#### Public API (controller_bus.h)
+
+```c
+#ifndef CONTROLLER_BUS_H
+#define CONTROLLER_BUS_H
+
+#include <stdint.h>
+#include <stdbool.h>
+
+// === BD Bus Drive State (single source of truth) ===
+
+typedef enum {
+    BD_DRIVE_NONE = 0,              // Default - high-Z, NOT driving
+    BD_DRIVE_IOX_READ,              // State 1
+    BD_DRIVE_IDENT,                 // State 2
+    BD_DRIVE_MEM_READ_RESPONSE,     // State 3
+    BD_DRIVE_DMA_ADDRESS,           // State 4
+    BD_DRIVE_DMA_WRITE_DATA,        // State 5
+} bd_drive_state_t;
+
+// === Central Registers (DMA-updated, read-only for handlers) ===
+
+extern volatile uint32_t bus_address_latest;   // Last captured address from /BAPR
+extern volatile uint32_t bus_data_latest;      // Last captured data from /BIOXE/BDAP/BDRY
+extern volatile uint32_t bus_event_seq;        // Increments on each new event
+
+// === BD Bus Drive Control (the ONLY way to drive BD) ===
+
+// Acquire the BD bus and drive a 24-bit value.
+// Returns true if acquired successfully, false if already held.
+// Asserts /BD_OE_BUS LOW after the data is valid on the GPIOs.
+bool bd_drive_begin(bd_drive_state_t reason, uint32_t value);
+
+// Update the BD value while holding the bus.
+// Must be called between bd_drive_begin and bd_drive_end.
+void bd_drive_update(uint32_t value);
+
+// Release the BD bus.
+// De-asserts /BD_OE_BUS HIGH (high-Z) and clears state.
+void bd_drive_end(void);
+
+// Query current state (for debugging/asserts)
+bd_drive_state_t bd_drive_get_state(void);
+
+// === Control Signal API (centralized open-drain assertions) ===
+
+// Bus Data Ready (we drive when responding to IOX/IDENT/MEM-read or DMA-write completion)
+void bus_assert_bdry(void);
+void bus_release_bdry(void);
+
+// Bus Input (we assert during IOX read response or DMA write)
+void bus_assert_binput(void);
+void bus_release_binput(void);
+
+// Bus Data Present (we assert during DMA cycles)
+void bus_assert_bdap(void);
+void bus_release_bdap(void);
+
+// Bus Memory cycle (we assert during DMA cycles when accessing memory)
+void bus_assert_bmem(void);
+void bus_release_bmem(void);
+
+// Bus Address Present (we pulse during DMA cycles)
+void bus_pulse_bapr(void);              // Asserts ~50ns then releases
+
+// Bus Request (we assert to request DMA grant)
+void bus_assert_breq(void);
+void bus_release_breq(void);
+
+// === Daisy-Chain Pass-Through Control ===
+
+void daisy_ident_passthrough_enable(void);    // Allow INIDENT -> OUTIDENT
+void daisy_ident_passthrough_block(void);     // Block forwarding (we're capturing)
+void daisy_grant_passthrough_enable(void);
+void daisy_grant_passthrough_block(void);
+
+// === Interrupt Output Control ===
+
+void int_assert(int level);                   // 10, 11, 12, or 13
+void int_release(int level);
+uint8_t int_get_active_mask(void);            // Returns bits set for active levels
+
+// === Bus Phase Tracking ===
+
+typedef enum {
+    PHASE_IDLE = 0,
+    PHASE_IOX_READ_RESPOND,
+    PHASE_IOX_WRITE_CAPTURE,
+    PHASE_IDENT_RESPOND,
+    PHASE_MEM_READ_RESPOND,
+    PHASE_MEM_WRITE_CAPTURE,
+    PHASE_DMA_REQUEST,
+    PHASE_DMA_ADDR,
+    PHASE_DMA_READ_WAIT,
+    PHASE_DMA_WRITE_DRIVE,
+} bus_phase_t;
+
+extern volatile bus_phase_t bus_phase;
+
+#endif // CONTROLLER_BUS_H
+```
+
+#### Implementation Sketch (controller_bus.c)
+
+```c
+#include "controller_bus.h"
+#include "hardware/gpio.h"
+#include "hardware/pio.h"
+#include <assert.h>
+
+// State variables
+volatile bd_drive_state_t bd_drive_state = BD_DRIVE_NONE;
+volatile bus_phase_t bus_phase = PHASE_IDLE;
+volatile uint32_t bus_address_latest = 0;
+volatile uint32_t bus_data_latest = 0;
+volatile uint32_t bus_event_seq = 0;
+
+// Internal interrupt mask
+static uint8_t int_active_mask = 0;
+
+// === BD Drive Implementation ===
+
+bool bd_drive_begin(bd_drive_state_t reason, uint32_t value) {
+    // Enforce: only one driver at a time
+    if (bd_drive_state != BD_DRIVE_NONE) {
+        // Already driving -- this is a bug, log it
+        log_error("bd_drive_begin called while state = %d", bd_drive_state);
+        return false;
+    }
+    
+    // Enforce: reason must be valid
+    assert(reason != BD_DRIVE_NONE);
+    
+    // Set state
+    bd_drive_state = reason;
+    
+    // Drive value via PIO output SM
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_DRIVE_CMD(value));
+    
+    // /BD_OE_BUS asserted LOW by PIO state machine on the same command
+    return true;
+}
+
+void bd_drive_update(uint32_t value) {
+    assert(bd_drive_state != BD_DRIVE_NONE);
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_UPDATE_CMD(value));
+}
+
+void bd_drive_end(void) {
+    if (bd_drive_state == BD_DRIVE_NONE) {
+        // Not driving -- nothing to do
+        return;
+    }
+    
+    // Release BD bus
+    pio_sm_put(pio1, SM_BD_DRIVE, BD_RELEASE_CMD);
+    
+    // Clear state
+    bd_drive_state = BD_DRIVE_NONE;
+}
+
+bd_drive_state_t bd_drive_get_state(void) {
+    return bd_drive_state;
+}
+
+// === Control Signal Implementation ===
+
+void bus_assert_bdry(void)    { gpio_put(BDRY_DRIVE_PIN, 0); }    // Open-drain LOW
+void bus_release_bdry(void)   { gpio_put(BDRY_DRIVE_PIN, 1); }    // Released HIGH
+
+void bus_assert_binput(void)  { gpio_put(BINPUT_DRIVE_PIN, 0); }
+void bus_release_binput(void) { gpio_put(BINPUT_DRIVE_PIN, 1); }
+
+void bus_assert_bdap(void)    { gpio_put(BDAP_DRIVE_PIN, 0); }
+void bus_release_bdap(void)   { gpio_put(BDAP_DRIVE_PIN, 1); }
+
+void bus_assert_bmem(void)    { gpio_put(BMEM_DRIVE_PIN, 0); }
+void bus_release_bmem(void)   { gpio_put(BMEM_DRIVE_PIN, 1); }
+
+void bus_assert_breq(void)    { gpio_put(BREQ_DRIVE_PIN, 0); }
+void bus_release_breq(void)   { gpio_put(BREQ_DRIVE_PIN, 1); }
+
+void bus_pulse_bapr(void) {
+    // Atomic pulse via PIO output SM (50 ns hold guaranteed)
+    pio_sm_put(pio1, SM_CTRL_DRIVE, CTRL_PULSE_BAPR);
+}
+
+// === Daisy-Chain Implementation ===
+
+void daisy_ident_passthrough_enable(void)  { gpio_put(OE_DAISY_IDENT_PIN, 0); }
+void daisy_ident_passthrough_block(void)   { gpio_put(OE_DAISY_IDENT_PIN, 1); }
+
+void daisy_grant_passthrough_enable(void)  { gpio_put(OE_DAISY_GRANT_PIN, 0); }
+void daisy_grant_passthrough_block(void)   { gpio_put(OE_DAISY_GRANT_PIN, 1); }
+
+// === Interrupt Output Implementation ===
+
+void int_assert(int level) {
+    assert(level >= 10 && level <= 13);
+    int_active_mask |= (1 << (level - 10));
+    update_int_outputs();
+}
+
+void int_release(int level) {
+    assert(level >= 10 && level <= 13);
+    int_active_mask &= ~(1 << (level - 10));
+    update_int_outputs();
+}
+
+uint8_t int_get_active_mask(void) {
+    return int_active_mask;
+}
+
+static void update_int_outputs(void) {
+    // Drive 4 GPIOs (BINT 10/11/12/13) via 74LVC07 open-drain
+    // Set LOW = assert, HIGH = release
+    gpio_put(BINT10_DRIVE_PIN, !(int_active_mask & 0x01));
+    gpio_put(BINT11_DRIVE_PIN, !(int_active_mask & 0x02));
+    gpio_put(BINT12_DRIVE_PIN, !(int_active_mask & 0x04));
+    gpio_put(BINT13_DRIVE_PIN, !(int_active_mask & 0x08));
+}
+```
+
+#### Handler Code MUST Use the API
+
+Every bus cycle handler must use `controller_bus.h` and never touch GPIOs/PIO directly for bus signals.
+
+**WRONG** (bypasses the central API):
+```c
+void bad_iox_read_handler(uint32_t addr, uint32_t data) {
+    // DON'T DO THIS -- bypasses safety checks
+    gpio_put(BD_OE_BUS_PIN, 0);
+    pio_sm_put(pio1, SM_BD_DRIVE, data);
+    gpio_put(BDRY_DRIVE_PIN, 0);
+    // ...
+}
+```
+
+**RIGHT** (uses the API):
+```c
+void handle_iox_read(uint32_t addr) {
+    int reg = decode_register(addr);
+    if (reg < 0) return;  // Not for us
+    
+    uint32_t data = read_register(reg);
+    
+    // Wait for /BIOXE
+    while (gpio_get(BIOXE_PIN)) tight_loop_contents();
+    
+    // Assert BINPUT (we are responding to a read)
+    bus_assert_binput();
+    
+    // Wait for BINACK
+    while (gpio_get(BINACK_PIN)) tight_loop_contents();
+    
+    // Now we can drive BD (state 1: BD_DRIVE_IOX_READ)
+    if (!bd_drive_begin(BD_DRIVE_IOX_READ, data)) {
+        log_error("bd_drive busy during IOX read");
+        return;
+    }
+    
+    // Assert BDRY
+    bus_assert_bdry();
+    
+    // Wait for CPU to release /BIOXE
+    while (!gpio_get(BIOXE_PIN)) tight_loop_contents();
+    
+    // Release everything via API
+    bd_drive_end();
+    bus_release_bdry();
+    bus_release_binput();
+}
+```
+
+#### Why This Matters
+
+| Risk | Without API | With API |
+|------|-------------|----------|
+| Bus contention damaging CPU | High -- handlers can fight | Eliminated -- single drive state machine |
+| Forgetting to release BD | Easy -- state lost | Caught by `bd_drive_get_state()` audit |
+| Mixed up direction | Easy -- wrong PIO command | Single function with explicit reason |
+| Multi-device contention | High -- floppy and SMD can race | Mediated through shared state |
+| Power-up state | Undefined | API initializes to BD_DRIVE_NONE |
+| Debugging | Hard -- spread across files | Easy -- single state variable |
+
+#### Audit Checklist
+
+Before merging any handler code:
+- [ ] Does the handler call `bd_drive_begin()` with correct `reason` for the cycle type?
+- [ ] Does the handler call `bd_drive_end()` exactly once for every `bd_drive_begin()`?
+- [ ] Does the handler use `bus_assert_*` / `bus_release_*` for control signals (no direct GPIO)?
+- [ ] Does the handler check `bd_drive_state == BD_DRIVE_NONE` before claiming the bus?
+- [ ] Are all error paths (return early) accompanied by cleanup?
+
+Add a runtime watchdog: if `bd_drive_state != BD_DRIVE_NONE` for more than 5 us, force release and log an error.
+
+```c
+void bus_drive_watchdog(void) {
+    static uint64_t drive_start_us = 0;
+    
+    if (bd_drive_state != BD_DRIVE_NONE) {
+        if (drive_start_us == 0) {
+            drive_start_us = time_us_64();
+        } else if (time_us_64() - drive_start_us > 5) {
+            log_error("BD drive watchdog: state %d held > 5us, forcing release", bd_drive_state);
+            bd_drive_end();
+            drive_start_us = 0;
+        }
+    } else {
+        drive_start_us = 0;
+    }
+}
+```
+
+This runs from a 1 us timer interrupt or in the main loop.
+
+---
 
 ### State Machine Architecture (Complete)
 
