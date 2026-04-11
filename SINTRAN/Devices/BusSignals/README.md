@@ -13,6 +13,24 @@ Documentation of the physical bus signals for the ND-100/ND-110/ND-120 shared ba
   - 5V to 3.3V level shifting analysis and timing budgets
   - Controller card design guidelines
 
+- [CONTROLLER-DESIGN.md](CONTROLLER-DESIGN.md) - Multi-device controller card design (Olimex RP2350-PICO2-BB48R)
+  - Architecture, pin allocation, PIO state machines, power, backplane design
+  - All design reasoning and trade-offs
+  - Device emulation roadmap (floppy, SMD, terminal, HDLC)
+
+- [SCHEMATIC-CAPTURE.md](SCHEMATIC-CAPTURE.md) - Single-page schematic capture quick reference
+  - Reference designator allocation (U1-U11, J1-J6, etc.)
+  - Net naming convention (`_BUS` / `_3V3` / `_IN` / `_OUT`)
+  - Per-IC pin connection tables for every chip
+  - Olimex BB48R EXT1/EXT2 header pin map
+  - DIN 41612 96-pin connector net assignments
+  - 2-layer PCB stackup and JLCPCB order spec
+  - Verified LCSC part numbers
+  - KiCad library setup commands
+  - Suggested schematic capture order
+
+- [Olimex-rp2350/](Olimex-rp2350/) - Olimex RP2350-PICO2-BB48R datasheets and pinout reference
+
 ## Source Data
 
 Signal data extracted from: `ND-120 Commands.xlsx` (sheets: C-BUS, C-PLUG (ND-BUS), Signal Names)

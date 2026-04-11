@@ -22,6 +22,8 @@ The card must support all four ND-100 bus cycle types from the bus signal refere
 
 See [ND-100-BUS-C-CONNECTOR.md](ND-100-BUS-C-CONNECTOR.md) for the complete bus signal reference and cycle protocols.
 
+> **Drawing the schematic?** Jump straight to **[SCHEMATIC-CAPTURE.md](SCHEMATIC-CAPTURE.md)** -- it has every IC pin, every connector pin, every reference designator, every net name, and verified LCSC part numbers in one single-page reference. This document (CONTROLLER-DESIGN.md) explains the **why**; SCHEMATIC-CAPTURE.md is the practical bill-of-pins.
+
 ---
 
 ## Selected Hardware Module: Olimex RP2350-PICO2-BB48R
@@ -632,17 +634,15 @@ The 6 GPIO0-1, GPIO2-3, GPIO4-7 marked as "spare" are technically available but 
 
 These pins are exposed via the **pUEXT and Qwiic connectors on the BB48R module itself**. The connectors do not consume pins -- they just expose them for breadboard use.
 
-**Available uses for these pins on our card**:
+**How these pins are used in the locked-in design**:
 
-| Use Case | Pins Used | What we lose |
-|----------|-----------|--------------|
-| **ESP32 wireless companion** (SPI0 + INT/RST) | GPIO0-1, 4-7 (6 pins) | UART0 debug, pUEXT, ESP32 takes SPI0 |
-| **Debug UART** | GPIO0-1 (2 pins) | -- (use USB CDC instead) |
-| **I2C sensors / external chips** | GPIO2-3 (2 pins) | -- (Qwiic connector becomes a feature) |
-| **Status LEDs** | any | -- |
-| **GPIO2/3 as outputs** | GPIO2-3 | These pins always have 2.2K pull-ups |
+| Pins | Locked-in use | Notes |
+|------|---------------|-------|
+| GPIO0, 1 | **Pi Zero handshake INT pair** (`INT_BB48R`, `INT_FROM_ZERO`) | Optional Pi Zero only -- if no Pi Zero is fitted these are spare |
+| GPIO2, 3 | **/BINT 12, /BINT 13 drive** (74LVC07 open-drain) | Always populated. The 2.2 kΩ I2C pull-ups on these pins help the open-drain bus drive |
+| GPIO4, 5, 6, 7 | **SPI0 to Pi Zero** (MISO, CS, SCK, MOSI -- straight wiring) | Optional Pi Zero only. If no Pi Zero, these are spare |
 
-When **ESP32 is populated**, all 6 pins are consumed for SPI/INT/RST. When **ESP32 is NOT populated**, all 6 pins are free for any combination of debug UART, I2C sensors, status LEDs, etc.
+When **Pi Zero is not populated**, GPIO0-1 and GPIO4-7 (6 pins) are spare. The pUEXT/Qwiic connectors on the module remain physically accessible -- you can plug a sensor or debug board straight onto the BB48R while it sits in the controller card socket.
 
 ### SD Card Software (Built-in)
 
@@ -709,23 +709,31 @@ Both RP2040 and RP2350B require **dedicated pins for external QSPI flash** (XIP 
 
 > **Olimex BB48R**: All special pins (QSPI flash, USB, RUN, BOOTSEL) are either internal to the module or use dedicated pins. The only GPIO costs are 4 pins for SD card (GPIO9-11, 24), 1 pin for PSRAM CS (GPIO8), and 1 pin for User LED (GPIO25) -- total 6 pins. The remaining **42 GPIO** are free for the controller card design.
 
-### Single-cycle bus access
+### Single-bank atomic GPIO access (used by the PIO read path)
+
+The 8-bit DBUS lives on **GPIO12-19** -- a single contiguous byte inside the LOW bank. The PIO state machine reads and drives it via `IN PINS, 8` / `OUT PINS, 8` instructions, so the C code never touches the DBUS directly. For housekeeping operations (initial direction setup, sanity checks) the MCU can still hit the GPIO mask register directly:
 
 ```c
-#define BUS_MASK 0x00FFFFFF  // GPIO0-23
+#define DBUS_MASK     (0xFFu << 12)        // GPIO12-19, the 8-bit shared MCU<->latch bus
+#define LATCH_OE_MASK (0x07u << 26)        // GPIO26-28: /OE_IN_0/1/2 (read input latches)
+#define LATCH_LE_MASK (0x07u << 29)        // GPIO29-31: LE_OUT_0/1/2 (write output latches)
 
-// Single-cycle 24-bit write
-gpio_hw->out = (gpio_hw->out & ~BUS_MASK) | (value & BUS_MASK);
+// Set DBUS as outputs (when driving the latches)
+gpio_hw->oe_set = DBUS_MASK;
 
-// Single-cycle 24-bit read
-uint32_t value = gpio_hw->in & BUS_MASK;
+// Set DBUS as inputs (when reading from the latches)
+gpio_hw->oe_clr = DBUS_MASK;
 
-// Atomic direction switching
-gpio_hw->oe_set = BUS_MASK;   // BD lines as outputs
-gpio_hw->oe_clr = BUS_MASK;   // BD lines as inputs
+// Drive a byte on DBUS (PIO normally does this, not C)
+gpio_hw->out = (gpio_hw->out & ~DBUS_MASK) | ((value & 0xFFu) << 12);
+
+// Read the current DBUS state
+uint32_t byte = (gpio_hw->in & DBUS_MASK) >> 12;
 ```
 
-> **Never use SDK functions** like `gpio_put()` in the hot path -- too slow and non-deterministic for bus-level timing.
+> **Never use SDK functions** like `gpio_put()` in the hot path -- too slow and non-deterministic for bus-level timing. Always go through the PIO state machine for bus cycles, and use the raw `gpio_hw->out` / `gpio_hw->in` registers for any C-level housekeeping.
+
+> **Note**: There is no single 24-bit GPIO read/write in this architecture. The full 24-bit BD value is moved as **3 sequential 8-bit operations** through the latches (see "BD 0-23 Bus Interface Architecture"). This is the trade-off for not consuming 24 contiguous LOW-bank GPIO -- which would be impossible anyway because GPIO8-11 are reserved by the BB48R.
 
 ---
 
@@ -756,7 +764,7 @@ flowchart LR
     end
 
     subgraph MCU["RP2350B"]
-        D8["Shared 8-bit bus<br/>GPIO 0-7"]
+        D8["Shared 8-bit bus<br/>GPIO 12-19"]
         CS["3x /OE_IN<br/>3x LATCH_OUT"]
         OE["/BD_OE_BUS"]
     end
@@ -797,18 +805,22 @@ flowchart LR
 
 ### Pin Allocation
 
+DBUS sits on GPIO12-19 (not GPIO0-7) so the on-module SPI0/I2C/UART pins (GPIO0-7) stay free for the optional Pi Zero header. GPIO8-11 are blocked by the BB48R itself (PSRAM CS, SD CS/CLK/CMD), and GPIO24-25 by the on-module SD_DAT0 / User_LED.
+
 | GPIO | Signal | Direction | Function |
 |------|--------|-----------|----------|
-| 0-7 | DBUS 0-7 | Bidirectional | Shared 8-bit MCU<->latch bus |
-| 8 | /OE_IN_0 | Output | Read input latch 0 (BD 0-7) |
-| 9 | /OE_IN_1 | Output | Read input latch 1 (BD 8-15) |
-| 10 | /OE_IN_2 | Output | Read input latch 2 (BD 16-23) |
-| 11 | LE_OUT_0 | Output | Latch output 0 (BD 0-7) |
-| 12 | LE_OUT_1 | Output | Latch output 1 (BD 8-15) |
-| 13 | LE_OUT_2 | Output | Latch output 2 (BD 16-23) |
-| 14 | /BD_OE_BUS | Output | Enable our card to drive the bus |
+| 12-19 | DBUS 0-7 | Bidirectional | Shared 8-bit MCU↔latch bus (single-bank, single-cycle) |
+| 26 | /OE_IN_0 | Output | Read input latch 0 (BD 0-7) |
+| 27 | /OE_IN_1 | Output | Read input latch 1 (BD 8-15) |
+| 28 | /OE_IN_2 | Output | Read input latch 2 (BD 16-23) |
+| 29 | LE_OUT_0 | Output | Latch output 0 (BD 0-7) |
+| 30 | LE_OUT_1 | Output | Latch output 1 (BD 8-15) |
+| 31 | LE_OUT_2 | Output | Latch output 2 (BD 16-23) |
+| 32 | /BD_OE_BUS | Output | Enable our card to drive the bus (gates all 3 output drivers) |
 
-**BD pins used: 15**
+**BD pins used: 15** (8 data + 6 latch control + 1 master OE)
+
+> All 15 BD pins are LOW-bank-friendly except `/BD_OE_BUS` on GPIO32. The 8 DBUS lines (GPIO12-19) and the 6 latch-control lines (GPIO26-31) are all in the LOW bank, so the PIO state machine can drive them with a single `out pins` / `in pins` instruction. `/BD_OE_BUS` lives in the HIGH bank because it does not need to switch in lockstep with the data — it changes once at the start of a drive cycle and again at the end.
 
 ### Component List
 
@@ -1093,15 +1105,15 @@ The read happens in two phases: hardware capture (instant on /BAPR), then MCU re
 ```
 PIO state machine reads (typical timing at 150 MHz PIO clock):
 
-  Cycle 1: Set /OE_IN_0 = LOW       (~7 ns)
-  Cycle 2: Read GPIO 0-7 -> byte0   (~7 ns)
-  Cycle 3: Set /OE_IN_0 = HIGH      (~7 ns)
-  Cycle 4: Set /OE_IN_1 = LOW       (~7 ns)
-  Cycle 5: Read GPIO 0-7 -> byte1   (~7 ns)
-  Cycle 6: Set /OE_IN_1 = HIGH      (~7 ns)
-  Cycle 7: Set /OE_IN_2 = LOW       (~7 ns)
-  Cycle 8: Read GPIO 0-7 -> byte2   (~7 ns)
-  Cycle 9: Set /OE_IN_2 = HIGH      (~7 ns)
+  Cycle 1: Set /OE_IN_0 = LOW         (~7 ns)
+  Cycle 2: Read GPIO 12-19 -> byte0   (~7 ns)
+  Cycle 3: Set /OE_IN_0 = HIGH        (~7 ns)
+  Cycle 4: Set /OE_IN_1 = LOW         (~7 ns)
+  Cycle 5: Read GPIO 12-19 -> byte1   (~7 ns)
+  Cycle 6: Set /OE_IN_1 = HIGH        (~7 ns)
+  Cycle 7: Set /OE_IN_2 = LOW         (~7 ns)
+  Cycle 8: Read GPIO 12-19 -> byte2   (~7 ns)
+  Cycle 9: Set /OE_IN_2 = HIGH        (~7 ns)
 
   MCU value = (byte2 << 16) | (byte1 << 8) | byte0
 
@@ -1119,12 +1131,12 @@ The shared bus prevents bus contention because only one input latch has /OE acti
 ```
 PIO state machine writes:
 
-  Cycle 1: Drive GPIO 0-7 = byte0    (~7 ns)
+  Cycle 1: Drive GPIO 12-19 = byte0  (~7 ns)
   Cycle 2: Pulse LE_OUT_0 (HIGH-LOW) (~14 ns, 2 cycles)
             -> 74LVC574 #4 captures byte0
-  Cycle 3: Drive GPIO 0-7 = byte1    (~7 ns)
+  Cycle 3: Drive GPIO 12-19 = byte1  (~7 ns)
   Cycle 4: Pulse LE_OUT_1            (~14 ns)
-  Cycle 5: Drive GPIO 0-7 = byte2    (~7 ns)
+  Cycle 5: Drive GPIO 12-19 = byte2  (~7 ns)
   Cycle 6: Pulse LE_OUT_2            (~14 ns)
 
   Total: ~63 ns to load all three output latches
@@ -4158,7 +4170,7 @@ The 50 ns BAPR address hold window is the tight constraint, but with hardware la
 - Output enable (/OE) controlled by RP2350 PIO state machine
 
 ```
-  /BD 0-7  ──> [74LVC573 #1] ──> 8-bit shared bus ──> RP2350 GPIO 0-7
+  /BD 0-7  ──> [74LVC573 #1] ──> 8-bit shared bus ──> RP2350 GPIO 12-19
   /BD 8-15 ──> [74LVC573 #2] ──>     ↑
   /BD 16-23 ─> [74LVC573 #3] ──>     ↑
                     ↑
@@ -4178,9 +4190,9 @@ The 50 ns BAPR address hold window is the tight constraint, but with hardware la
 - Output enable controlled by PIO
 
 ```
-  RP2350 GPIO 0-7 ──> [74LVT245 #1] ──> /BD 0-7
-                ──> [74LVT245 #2] ──> /BD 8-15
-                ──> [74LVT245 #3] ──> /BD 16-23
+  RP2350 GPIO 12-19 ──> [74LVT245 #1] ──> /BD 0-7
+                    ──> [74LVT245 #2] ──> /BD 8-15
+                    ──> [74LVT245 #3] ──> /BD 16-23
 
   PIO STROBE_0/1/2 controls when each chip drives the bus
   /OE_BUS controls when our card is allowed to drive at all
@@ -4282,65 +4294,44 @@ This keeps bus handling deterministic while device emulation runs in CPU tasks.
 
 ## SD Card Support
 
-The card needs SD card storage for floppy/disk image files. Two options exist.
+The Olimex BB48R already has a **microSD slot wired to the RP2350B** on its bottom side (BB48R variant only -- the BB48 plain variant does not populate the slot). Our controller card does not need to add an SD card slot at all -- we just use the on-board one.
 
-### Option A: SPI mode (recommended baseline)
+### Wiring (already provided by the BB48R module)
 
-| Pin | Signal | RP2350 GPIO |
-|-----|--------|-------------|
-| CLK | SCK | GPIO41 |
-| CMD | MOSI | GPIO42 |
-| DAT0 | MISO | GPIO43 |
-| DAT3 | CS | GPIO44 |
+| Pin | Signal | RP2350 GPIO | BB48R label |
+|-----|--------|-------------|-------------|
+| CLK | SD_CLK | **GPIO10** | SPI1_SCK |
+| CMD | SD_CMD | **GPIO11** | SPI1_TX |
+| DAT0 | SD_DAT0 | **GPIO24** | SPI1_RX |
+| CD/DAT3 | SD_CS | **GPIO9** | SPI1_CSn |
 
-**Performance**: 12-25 MHz clock, ~1-3 MB/s real throughput
-**Pins used**: 4
-**Complexity**: Low (uses RP2350 hardware SPI + DMA)
+> **Default mode is SPI**, using the RP2350 hardware **SPI1** peripheral. The Olimex schematic has 10 kΩ pull-ups on SPI1_CSn, SD_CMD, SD_CLK, and SD_DAT0 already populated. 1-bit MMC mode is also wired but you would have to drop the SPI peripheral and bit-bang/PIO it -- not worth the effort.
 
-**Pros**:
-- Stable, well-supported
-- Easy DMA integration
-- Standard SDK drivers work
+### Driver
 
-**Cons**:
-- Limited throughput (sufficient for floppy and terminal, marginal for SMD)
+Use the **pico-extras** SD card library which is already SPI1-aware on this pin layout:
 
-### Option B: SDIO 4-bit mode (high performance)
+```
+  https://github.com/raspberrypi/pico-extras/tree/master/src/rp2_common/pico_sd_card
+  https://github.com/raspberrypi/pico-extras/blob/master/src/common/pico_sd_card/include/pico/sd_card.h
+```
 
-| Pin | Signal | RP2350 GPIO |
-|-----|--------|-------------|
-| CLK | Clock | GPIO41 |
-| CMD | Command | GPIO42 |
-| DAT0 | Data 0 | GPIO43 |
-| DAT1 | Data 1 | GPIO44 |
-| DAT2 | Data 2 | GPIO45 |
-| DAT3 | Data 3 | GPIO46 |
+Performance with SPI1 + DMA at 25 MHz: ~1-3 MB/s real throughput. This is enough for **floppy emulation** (250 KB/s sustained), **terminal disk images** (negligible), and **HDLC frame buffering** (low-rate). It is **marginal for SMD** at sustained full throughput but adequate for typical access patterns.
 
-**Performance**: 25-50 MHz clock, 10-25 MB/s with DMA
-**Pins used**: 6 (+ optional card detect)
-**Complexity**: High (custom PIO implementation -- RP2350 has no SDIO peripheral)
+### If we ever need higher throughput
 
-**Pros**:
-- Order of magnitude faster than SPI
-- Required for sustained SMD disk emulation
-- Suitable for HDLC streaming
+The BB48R only routes 4 SD pins (CLK/CMD/DAT0/CS), not the full 4-bit SDIO bus. We **cannot** switch to 4-bit SDIO on this module without adding external pin routing -- the DAT1/DAT2/DAT3 signals are not exposed. Options if SPI throughput becomes a bottleneck:
 
-**Cons**:
-- Must implement SDIO protocol in PIO (CMD framing, CRC, start/stop bits)
-- Uses 2 more PIO state machines
-
-### Recommendation
-
-**Phase 1**: Start with **SPI mode** for bring-up. Get bus protocol working, validate IOX/IDENT/DMA cycles.
-
-**Phase 2**: Migrate to **SDIO 4-bit** if performance demands it for SMD or HDLC emulation.
+1. **Move the disk image to PSRAM** -- 8 MB on-board, much faster than SPI SD. Useful for floppy images that fit entirely in PSRAM.
+2. **Stream from the Pi Zero over SPI0** -- the Pi Zero has full SDIO and a microSD slot of its own. Bulk data can come over SPI0 from the Pi Zero file system at much higher rates.
+3. **Move to a different RP2350 module** that exposes all 4 SDIO data lines.
 
 ### Electrical notes
 
-- SD cards are **3.3V only** -- direct connection to RP2350, no level shifter needed
-- Pull-ups on CMD and DAT lines (10K to 3.3V)
-- Keep SD signals on the **HIGH bank** to isolate from time-critical bus signals
-- Use **dedicated SPI peripheral** -- do NOT share with anything else
+- SD card is **3.3 V only** -- direct connection to RP2350, no level shifter needed (already wired on the BB48R)
+- Pull-ups already populated on the BB48R schematic (R19, R20, R21, R22, R23 = 10 kΩ to 3.3 V)
+- SD card signals are **isolated from the bus interface** (different pins, different bank halves)
+- **No additional components needed** on the controller card for SD support
 
 ---
 
@@ -4348,53 +4339,36 @@ The card needs SD card storage for floppy/disk image files. Two options exist.
 
 ### Interrupt assertion (controller -> CPU)
 
-The controller must drive **/BINT 10**, **/BINT 11**, **/BINT 12**, and **/BINT 13** based on which emulated device needs attention. These are **wired-OR** lines with pull-ups on the CPU card -- the controller drives them LOW via open-drain.
+The controller must drive **/BINT 10**, **/BINT 11**, **/BINT 12**, and **/BINT 13** based on which emulated device needs attention. These are **wired-OR** lines with pull-ups on the bus -- the controller drives them LOW via 74LVC07 open-drain buffers and releases (lets the pull-up float HIGH) to deassert.
 
-### Pin budget option A: Direct GPIO
+### Pin Allocation (locked in)
 
-If the GPIO budget allows, drive each /BINT line directly from RP2350 GPIO via 74LVC07 open-drain buffer:
+Each /BINT level gets its own dedicated GPIO. There is no shift-register or latch option in the V1 design -- direct drive is simplest, fastest, and the GPIO budget allows it. The chosen GPIOs straddle both banks:
 
-| Signal | GPIO | Buffer |
-|--------|------|--------|
-| /BINT 10 | GPIO38 | 74LVC07 |
-| /BINT 11 | GPIO39 | 74LVC07 |
-| /BINT 12 | GPIO40 | 74LVC07 |
-| /BINT 13 | GPIO41 | 74LVC07 |
+| Signal | GPIO | Bank | Buffer |
+|--------|------|------|--------|
+| /BINT 10 | GPIO39 | HIGH | 74LVC07 (1 of 6) |
+| /BINT 11 | GPIO40 | HIGH | 74LVC07 (1 of 6) |
+| /BINT 12 | GPIO2 | LOW | 74LVC07 (1 of 6) |
+| /BINT 13 | GPIO3 | LOW | 74LVC07 (1 of 6) |
 
-**Cost**: 4 GPIO pins from HIGH bank, 4 buffer gates.
+**Cost**: 4 GPIO pins, 4 channels of one shared 74LVC07 (the same chip drives /BAPR_OUT, /BDRY_OUT, /BINPUT_OUT, /BDAP_OUT, /BREQ_OUT for the bidirectional control signals -- one 74LVC07 has 6 channels, so we use one full chip plus partial of a second).
 
-### Pin budget option B: 74HC595 shift register (latched)
-
-If GPIO budget is tight, use a **74HC595** 8-bit serial-in/parallel-out shift register clocked from 3 GPIO pins:
-
-```
-  RP2350 -> 74HC595 -> 74LVC07 (open-drain) -> /BINT 10/11/12/13
-            (8 outputs available)
-```
-
-| GPIO | Signal |
-|------|--------|
-| GPIO38 | INT_LATCH_DATA (shift register data) |
-| GPIO39 | INT_LATCH_CLK (shift clock) |
-| GPIO40 | INT_LATCH_CS (latch enable) |
-
-**Cost**: 3 GPIO pins, 1 74HC595, 4 74LVC07 channels. Frees 1 GPIO pin and gives room for 4 more spare interrupt outputs.
-
-**Trade-off**: A serial shift takes ~1 us per update -- acceptable for interrupt assertion since interrupts don't change at sub-microsecond rates.
+GPIO2/GPIO3 are also the I2C1_SDA/SCL pins on the BB48R with 2.2 kΩ pull-ups to 3.3 V always present on the module. That is fine for our open-drain interrupt drive -- the pull-up just helps the input side of the 74LVC07.
 
 ### IDENT PLxx response
 
 When /INIDENT arrives via the daisy-chain, the controller must:
 
 1. Check if any of its emulated devices has an interrupt active on the level currently presented on BD 0-5
-2. If **yes**: capture INIDENT, place ident code on BD 0-23, assert /BDRY
-3. If **no**: pass INIDENT through to OUTIDENT with minimal delay
+2. If **yes**: capture INIDENT (do NOT pass through), place ident code on BD 0-23, assert /BDRY
+3. If **no**: pass INIDENT through to /OUTIDENT with minimal delay
 
 The "minimal delay" requirement makes a **hardware default-pass-through** essential. Software-driven pass-through via PIO would add ~10-20 ns delay per slot, which accumulates across the chain.
 
-**Suggested approach**: Use a 74LVC245 with default direction set so INIDENT flows through to OUTIDENT, and PIO actively breaks the chain only when capture is required.
+**Implemented approach**: A **74LVC125 quad 3-state buffer** sits between /INIDENT and /OUTIDENT (and a second channel between /INGRANT and /OUTGRANT). Default state has the buffer **enabled**, propagating /INIDENT → /OUTIDENT in ~3-5 ns -- well inside the 100 ns IDENT window. When the controller wants to capture the IDENT, it asserts /OE_DAISY_IDENT (GPIO47) which puts the buffer in high-Z, breaking the chain. /OUTIDENT then floats HIGH so the next slot sees the chain idle, and our card drives BD 0-23 + /BDRY for the IDENT response.
 
-> **TODO**: Validate this approach against actual hardware behavior. The exact timing and capture mechanism needs testing.
+See the **IDENT/GRANT Daisy-Chain Pass-Through Chip** section earlier in this document for the full implementation details.
 
 ---
 
@@ -4504,8 +4478,8 @@ flowchart TB
     OUT_LATCH -- "8-bit shared<br/>DBUS GPIO12-19" --> RP
     RP -- "/OE_IN_0/1/2<br/>LE_OUT_0/1/2" --> IN_LATCH
     RP -- "/BD_OE_BUS" --> OUT_LATCH
-    IN_BUF -- "GPIO20-23<br/>+ GPIO33-38" --> RP
-    OUT_BUF <-- "GPIO39-47" --- RP
+    IN_BUF -- "GPIO20-23 (PIO)<br/>+ GPIO33-38 (sniff)" --> RP
+    OUT_BUF <-- "GPIO2-3 (BINT12/13)<br/>+ GPIO39-45 (BINT10/11+drives)" --- RP
     DAISY <-- "GPIO46-47" --- RP
     
     RP <-- "SPI0 + INT<br/>GPIO0-1, 4-7" --> PIZERO
@@ -5575,13 +5549,16 @@ Key takeaways:
 | Feature | Value |
 |---------|-------|
 | Slot count | **4-8 slots** (configurable, recommend 4 for first version) |
-| Slot connector | DIN 41612 Type C, 96-pin, female receptacle |
+| Slot connector | **DIN 41612 Type C, 96-pin (3 rows × 32 pins, rows A/B/C), female receptacle, vertical through-hole, 2.54 mm (0.1") pitch** |
+| Connector mounting | Vertical THT -- the connector body sits perpendicular to the backplane PCB so cards plug in from above |
 | Slot spacing | 0.6" (15.24 mm) standard ND-100 backplane spacing |
 | Card form factor | Standard ND-100 card height + custom width |
 | Power input | **Molex 15-24-4745** (Farnell 1391827) -- standard PC PSU 4-pin connector |
 | Power rails | +5V, +12V (and GND) from PC PSU; -12V optional from PC PSU |
 | Power switch | SPST toggle, breaks +5V (and +12V) input |
 | Power LED | Green LED indicating bus power is on |
+
+> **Connector clarification**: The receptacle is the **3 rows × 32 pins = 96-pin DIN 41612 Type C female socket, vertical through-hole, 2.54 mm pitch**. The mating part on the controller card is the corresponding male connector. JLCPCB does not stock DIN 41612 in their assembly library, so these are sourced separately (Farnell, Mouser, RS) and **hand-soldered** during board bring-up.
 
 ### Power Connector
 
@@ -5633,27 +5610,151 @@ flowchart TB
     style SLOTS fill:#E8F5E9,stroke:#2E7D32,color:#2E7D32
 ```
 
-### Slot Layout and Daisy Chain
+### Signal Routing Categories
 
-The DIN 41612 connectors are placed in a row, all signals bussed across all slots. The **daisy-chain signals** (INGRANT/OUTGRANT, INIDENT/OUTIDENT) are routed slot-to-slot rather than as common bus signals:
+The 96 pins on the C connector fall into **four** routing categories on the backplane. Mixing them up will silently break the bus, so this is the most important section in the backplane design.
+
+| Category | How it is routed | Signals |
+|----------|------------------|---------|
+| **A. Shared bus** (parallel) | Single net per signal, bussed across **all** slot positions | BD 0-23, BAPR, BMEM, BIOXE, BINPUT, BINACK, BDAP, BDRY, BMCL, BREF, BREQ, BPERR, BINT 10-13, +5 V, +12 V, GND |
+| **B. Daisy chain** (slot-to-slot) | OUTPUT of slot N → INPUT of slot N+1. **No shared net.** Last slot's output is unconnected. | INGRANT/OUTGRANT, INIDENT/OUTIDENT, INCONTR/OUTCONTR |
+| **C. Slot-unique hard-wired** | Per-slot fixed wiring to GND or +3.3 V/+5 V. Different on every slot. | PA 0, PA 1, PA 2, PA 3 (Position Address) |
+| **D. CPU-crate-only** (optional) | Bussed across slots **only if** you have a control panel; otherwise pulled to safe levels | LOAD, RESTART, RUN, CONTINUE, STOP |
+
+Each category gets its own subsection below.
+
+### Category A -- Shared Bus Signals
+
+The bulk of the C connector is shared bus -- one net per signal, every slot connector pin tied to it. These are the data lines, address strobes, IO control, interrupts, refresh, and power rails. Just bus them across.
+
+| Group | Signals | Notes |
+|-------|---------|-------|
+| Data/address lines | BD 0-23 | All 24 lines, tri-state, bussed parallel |
+| Bus cycle control | BAPR, BMEM, BIOXE, BINPUT, BINACK, BDAP, BDRY, BMCL | All wired-OR or active drive |
+| Refresh + DMA | BREF, BREQ | BREF is CPU-out shared, BREQ is wired-OR DMA request |
+| Interrupts | BINT 10, BINT 11, BINT 12, BINT 13 | Wired-OR, shared across all slots |
+| Memory error | BPERR | Memory cards drive, CPU listens |
+| Power rails | +5 V, +12 V (and -12 V if PSU has it), GND | Distributed every slot |
+
+**Bus pull-ups** for the wired-OR signals (BAPR, BREQ, BINT 10-13, BDRY, BINPUT, BMCL) live on the **backplane** in this design (rather than relying on the CPU card). A 4.7 kΩ resistor to +5 V on each wired-OR signal makes the bus well-behaved even before the CPU card is plugged in. Place these in a single resistor array near the CPU slot.
+
+### Category B -- Daisy-Chain Signals
+
+There are **three** daisy-chain pairs on the C connector. Each one originates at the CPU slot and walks through every slot in physical order. **Each pair is a sequence of point-to-point links, NOT a shared net.**
+
+| Pair | Input pin (A row) | Output pin (C row) | Purpose |
+|------|-------------------|--------------------|---------|
+| **INGRANT / OUTGRANT** | A23 | C23 | DMA bus-grant priority chain |
+| **INIDENT / OUTIDENT** | A22 | C22 | Interrupt-IDENT priority chain |
+| **INCONTR / OUTCONTR** | A21 | C21 | Bus-control priority chain (reserved for future, route it anyway so future cards work) |
+
+**Routing rule** -- this is what the user explicitly called out:
 
 ```
-  +-----+    +-----+    +-----+    +-----+
-  |Slot1|    |Slot2|    |Slot3|    |Slot4|
-  | CPU |--->|Floppy|-->| HDLC|--->| End |
-  |     |    |     |    |     |    |     |
-  +-----+    +-----+    +-----+    +-----+
-   |||||      |||||      |||||      |||||
-   ===== shared bus signals (BD, BAPR, etc.) =====
+                    Slot 1 (CPU)        Slot 2              Slot 3              Slot 4 (last)
+                   ┌────────────┐     ┌────────────┐      ┌────────────┐      ┌────────────┐
+  (chain head) ─── │ OUTGRANT   │ ──> │ INGRANT    │      │ INGRANT    │      │ INGRANT    │
+   from CPU's      │            │     │ OUTGRANT   │ ──>  │ OUTGRANT   │ ──>  │ OUTGRANT   │ ──> n/c (chain end)
+   internal logic  └────────────┘     └────────────┘      └────────────┘      └────────────┘
 ```
 
-**Daisy chain wiring** (in PCB):
-- CPU's OUTGRANT → Slot 2's INGRANT
-- Slot 2's OUTGRANT → Slot 3's INGRANT
-- Slot 3's OUTGRANT → Slot 4's INGRANT
-- Slot 4's OUTGRANT → unconnected (last in chain)
+Same pattern, **independently**, for INIDENT/OUTIDENT and INCONTR/OUTCONTR.
 
-Same pattern for OUTIDENT/INIDENT and OUTCONTR/INCONTR.
+**Concrete net naming** (for the schematic):
+
+```
+  GRANT_S1_OUT = CPU.OUTGRANT  ───>  Slot2.INGRANT
+  GRANT_S2_OUT = Slot2.OUTGRANT ──>  Slot3.INGRANT
+  GRANT_S3_OUT = Slot3.OUTGRANT ──>  Slot4.INGRANT
+  GRANT_S4_OUT = Slot4.OUTGRANT ──>  (no connect)
+
+  IDENT_S1_OUT = CPU.OUTIDENT  ───>  Slot2.INIDENT
+  IDENT_S2_OUT = Slot2.OUTIDENT ──>  Slot3.INIDENT
+  IDENT_S3_OUT = Slot3.OUTIDENT ──>  Slot4.INIDENT
+  IDENT_S4_OUT = Slot4.OUTIDENT ──>  (no connect)
+
+  CONTR_S1_OUT = CPU.OUTCONTR  ───>  Slot2.INCONTR
+  CONTR_S2_OUT = Slot2.OUTCONTR ──>  Slot3.INCONTR
+  CONTR_S3_OUT = Slot3.OUTCONTR ──>  Slot4.INCONTR
+  CONTR_S4_OUT = Slot4.OUTCONTR ──>  (no connect)
+```
+
+For an **N-slot backplane**, this is **3 × N nets** (or 3 × (N-1) point-to-point links plus 3 dangling chain ends). Do not be tempted to short these together "just in case" -- the OUTGRANT driver on the original 3202D is **74F00 push-pull** and will fight any other driver. Wiring two OUTGRANTs to the same net will damage chips.
+
+The **CPU slot is always the chain head** by convention. By construction, **slot N has higher priority than slot N+1** for all three chains. Plan slot ordering accordingly: put performance-critical or latency-sensitive controllers (HDLC, SMD) close to the CPU slot.
+
+### Category C -- Slot-Unique Hard-Wired Pins (PA 0-3)
+
+The Position Address pins are inputs to every controller card and tell the card which physical slot it lives in. They are **not connected** to a shared bus net; instead, the backplane PCB has **per-slot fixed wiring** to GND or +3.3 V/+5 V (level matches the card's input buffer).
+
+| Signal | Pin | Encodes |
+|--------|-----|---------|
+| **PA 0** | C13 | bit 0 |
+| **PA 1** | A13 | bit 1 |
+| **PA 2** | C14 | bit 2 |
+| **PA 3** | A14 | bit 3 |
+
+A 4-bit code allows **up to 16 distinct slot addresses**, plenty for any homebrew backplane.
+
+**Encoding scheme** (active LOW = 0, pull-up = 1):
+
+| Slot | PA3 | PA2 | PA1 | PA0 | Hex |
+|------|-----|-----|-----|-----|-----|
+| 1 (CPU) | 1 | 1 | 1 | 1 | F |
+| 2 | 1 | 1 | 1 | 0 | E |
+| 3 | 1 | 1 | 0 | 1 | D |
+| 4 | 1 | 1 | 0 | 0 | C |
+| 5 | 1 | 0 | 1 | 1 | B |
+| ... | ... | ... | ... | ... | ... |
+| 16 | 0 | 0 | 0 | 0 | 0 |
+
+> Note: the exact encoding (Gray code, binary, hex) is not pinned down by the bus spec -- I/O cards typically use these bits as a *tag* and the OS configures the device-number-to-slot mapping. The simplest scheme is **straight binary**, with slot 0 = CPU.
+
+On the PCB, each slot connector's PA0-3 pins go to **per-slot 0-ohm jumper pads** that select GND or +5 V. To change the slot address, depopulate the wrong jumper and populate the right one. No DIP switch, no rework -- just one resistor pad per bit.
+
+### Category D -- CPU-Crate-Only Signals (LOAD/RESTART/RUN/CONTINUE/STOP)
+
+These are control-panel signals on Row B pins 12-16. They are wired-OR shared bus signals, but only meaningful if you have a physical control panel or a diagnostic device.
+
+| Signal | Pin | Notes |
+|--------|-----|-------|
+| LOAD | B12 | Activate load microprogram (STOP mode only) |
+| RESTART | B13 | Start at address 20₈ (STOP mode only) |
+| RUN | B14 | CPU is currently running (CPU output) |
+| CONTINUE | B15 | Resume from STOP |
+| STOP | B16 | Force STOP mode |
+
+Backplane handling:
+
+- **If you have no control panel**: leave these as a **2x5 pin header** at one edge of the backplane. Pull LOAD/RESTART/CONTINUE/STOP to +5 V via 10 kΩ (inactive). Bring RUN out as an output. The header is for plugging in a panel later.
+- **If you have a control panel**: route the panel ribbon cable to that header.
+- **For our CPU-mode controller card**: the BB48R can drive these signals via firmware (it lives in the CPU slot). The header is still a useful debug interface.
+
+### Slot Layout (visual)
+
+```
+  +─── DIN 41612 socket per slot (vertical THT, 96-pin) ───+
+  │                                                       │
+  │  Slot 1     Slot 2     Slot 3     Slot 4              │
+  │  (CPU)      (Floppy)   (HDLC)     (last/SMD)          │
+  │  ┌───┐      ┌───┐      ┌───┐      ┌───┐               │
+  │  │   │ ───> │   │ ───> │   │ ───> │   │ ───> n/c      │  GRANT chain
+  │  │   │ ───> │   │ ───> │   │ ───> │   │ ───> n/c      │  IDENT chain
+  │  │   │ ───> │   │ ───> │   │ ───> │   │ ───> n/c      │  CONTR chain
+  │  │   │      │   │      │   │      │   │               │
+  │  └───┘      └───┘      └───┘      └───┘               │
+  │   ====     ====        ====       ====                │
+  │   |||| Shared bus signals (BD 0-23, BAPR, ...) ||||   │
+  │   ====     ====        ====       ====                │
+  │  PA=F      PA=E       PA=D       PA=C                 │  (slot-unique)
+  │                                                       │
+  │  +5V/+12V/GND distribution (every slot)               │
+  │                                                       │
+  +─── Control Panel header (LOAD/RESTART/RUN/...)  ──────+
+  +─── Molex 15-24-4745 PSU connector  ───────────────────+
+```
+
+> **Slot ordering matters**: higher priority cards go closer to the CPU slot (left in the diagram). Once the slot order is fixed in the PCB it is hard to change because the IDENT/GRANT chains are physically wired between specific connector positions.
 
 ### Slot Position Coding (PA 0-3)
 
@@ -5711,7 +5812,7 @@ For simplicity, **+15V/-15V are optional** -- only needed if analog process I/O 
 - **Signal routing**: Bus signals run as parallel traces across the slot array
 - **Decoupling**: 10uF + 0.1uF caps per slot, close to the connectors
 - **Trace impedance**: Not critical at the bus speeds, but keep traces short
-- **Layer count**: 2-4 layers sufficient
+- **Layer count**: **2-layer is sufficient** for the backplane (no high-speed signals; everything is at the ND-100 bus rate of ~8 MHz). Top = signals, bottom = ground pour + power distribution.
 - **Mechanical**: Mounting holes for case, optional rack mount
 - **Dimensions**: depends on slot count -- 4 slots = ~150 mm x 100 mm
 
@@ -5812,7 +5913,7 @@ This is the consolidated BOM for one controller card with the **recommended conf
 
 | Item | Part | Qty | Cost (USD) | Notes |
 |------|------|-----|-----------|-------|
-| **PCB** (4-layer, ~100 x 100 mm, ENIG, JLCPCB) | -- | 1 | $5-15 | Quantity 10 reduces unit cost |
+| **PCB** (2-layer, ~100 x 100 mm, HASL, JLCPCB) | -- | 1 | $2-5 | 2-layer is fine -- highest signal rate on our PCB is 8 MHz bus. Quantity 10 drops unit cost further. |
 
 ### Total Cost per Controller Card
 
@@ -5861,77 +5962,348 @@ This buys you a fully working ND-100 emulator + multi-device controller test set
 
 ---
 
+## JLCPCB Parts and KiCad Integration
+
+For PCB manufacturing and assembly via **JLCPCB**, we need to use parts from JLCPCB's parts library. JLCPCB sources from **LCSC** (their parts catalog at lcsc.com) and offers two categories:
+
+| Type | Cost | Notes |
+|------|------|-------|
+| **Basic parts** | No setup fee | ~700 most-common parts (resistors, caps, transistors, common ICs). Always available. |
+| **Extended parts** | **$3 setup fee per design + part cost** | Larger catalog (~50K parts). One-time fee per BOM, applies even if you use 1 of them. |
+
+### Workflow
+
+1. **Browse parts** at https://jlcpcb.com/parts/componentSearch -- search by name, MPN, or LCSC number
+2. **Note LCSC part numbers** (format: `Cnnnnnn`) for each component
+3. **Convert LCSC parts to KiCad libraries** using `easyeda2kicad` or `JLC2KiCadLib`
+4. **Use the KiCad-JLCPCB-Tools plugin** to manage BOM and Component Placement List (CPL)
+5. **Generate BOM and CPL** files for JLCPCB assembly upload
+6. **Submit gerbers + BOM + CPL** to JLCPCB for PCB + assembly
+
+### Recommended KiCad Tools
+
+| Tool | Purpose | Source |
+|------|---------|--------|
+| **easyeda2kicad** | Convert LCSC parts to KiCad symbols/footprints/3D models | [PyPI](https://pypi.org/project/easyeda2kicad/) -- `pip install easyeda2kicad` |
+| **JLC2KiCadLib** | Same purpose, alternative tool | [PyPI](https://pypi.org/project/JLC2KiCadLib/) |
+| **Pre-built JLCPCB KiCad Library** | Ready-to-use library of basic parts | [GitHub: CDFER/JLCPCB-Kicad-Library](https://github.com/CDFER/JLCPCB-Kicad-Library) |
+| **KiCad-JLCPCB-Tools** | KiCad plugin for BOM/CPL generation and JLCPCB workflow | KiCad PCM (Plugin and Content Manager) |
+
+#### Using easyeda2kicad
+
+```bash
+# Install
+pip install easyeda2kicad
+
+# Download a single component (symbol + footprint + 3D)
+easyeda2kicad --full --lcsc_id=C6097    # 74LVC574 example
+easyeda2kicad --full --lcsc_id=C2480    # SS14 Schottky example
+
+# Or just symbol/footprint/3D individually
+easyeda2kicad --symbol --footprint --3d --lcsc_id=C6097
+```
+
+This generates:
+- `easyeda2kicad.kicad_sym` -- KiCad 7+ symbol library
+- `easyeda2kicad.pretty/` -- footprint library folder
+- `easyeda2kicad.3dshapes/` -- 3D models (.STEP and .WRL)
+
+> ⚠ **Always verify** the converted symbols/footprints against datasheets before committing to PCB. Tool conversions are not always perfect, especially for unusual packages.
+
+### LCSC Part Numbers for Our BOM
+
+**Note**: LCSC stock and prices change. Always verify each part on jlcpcb.com/parts/componentSearch before finalizing the BOM. The numbers below are common variants and starting points -- substitutes may be needed.
+
+#### Bus Interface ICs
+
+| Part | Recommended LCSC | Package | Type | Notes |
+|------|-----------------|---------|------|-------|
+| **74LVC574** (input/output latch) | **C6097** (Nexperia) | SOIC-20 | Extended | ~$1.20 each. Multiple manufacturers available. |
+| **74LVT245** (output driver) | **C82393** (Nexperia 74LVT245A) | SOIC-20 | Extended | Alternative: 74LVC8T245 (C32431) |
+| **74LVC14** (Schmitt input) | **C5181** (Nexperia 74LVC14A) | SOIC-14 | Extended | |
+| **74LVC07** (open-drain output) | search "74LVC07" | SOIC-14 | Extended | Sometimes harder to find -- alt: 74HC07 (C7501) |
+| **74LVC125** (3-state buffer) | **C6087** (Nexperia 74LVC125A) | SOIC-14 | Extended | |
+
+#### Power Distribution
+
+| Part | LCSC | Package | Type | Notes |
+|------|------|---------|------|-------|
+| **SS14** (Schottky D1) | **C2480** | SMA (DO-214AC) | **Basic** | Very common, no extended fee |
+| **LTC4412** (ideal diode D2) | search "LTC4412" | SOT-23-6 or MSOP-8 | Extended | Linear Tech / ADI part |
+| **MAX40200** (alternative D2) | search "MAX40200" | SOT-23-6 | Extended | Maxim/ADI part |
+| **MF-MSMF200** (2A polyfuse F1, F2) | search "polyfuse 2A" | 1812 SMD | Extended | Bourns or Littelfuse |
+| **SMBJ5.0A** (TVS clamp) | **C8466** | SMB | Extended | |
+| **1000 uF aluminum polymer** | search by value | various | Extended | Panasonic SP-Cap or similar |
+| **470 uF tantalum** | search by value | Case D or E | Extended | -- |
+| **47 uF / 10 uF / 0.1 uF ceramic caps** | various | 0603/0805/1206 | **Basic** | Standard JLCPCB basic library |
+
+#### Resistors
+
+| Part | LCSC | Package | Type |
+|------|------|---------|------|
+| **10K resistor 0603** | **C25804** | 0603 | **Basic** |
+| **1K resistor 0603** | **C21190** | 0603 | **Basic** |
+| **10K x 4 resistor network** | search "10K array 4x" | 0804 / 0612 | Extended |
+
+Most resistors are JLCPCB basic parts -- no extra fee.
+
+#### LEDs
+
+| Part | LCSC | Package | Type |
+|------|------|---------|------|
+| **Green LED 0805** | **C84256** | 0805 | **Basic** |
+| **Red LED 0805** | **C84257** | 0805 | **Basic** |
+| **Yellow LED 0805** | **C72038** | 0805 | **Basic** |
+| **Blue LED 0805** | **C72041** | 0805 | **Basic** |
+
+LEDs are commonly basic parts.
+
+#### Connectors (Often NOT in JLCPCB Library)
+
+JLCPCB's parts library is mainly SMD components. **Through-hole connectors** like the DIN 41612 and 0.1" headers are usually NOT in the JLCPCB library. You need to:
+- **Hand-solder** these after JLCPCB returns the PCB
+- **Or source separately** and assemble yourself
+- **Or specify "PCBA with through-hole assembly"** (extra cost) if JLCPCB offers it for your design
+
+| Part | Source | Notes |
+|------|--------|-------|
+| **DIN 41612 Type C 96-pin male right-angle** | Mouser, Farnell, Digi-Key | Search "DIN 41612 male right angle 96 pin C". Try Harting or ept brand. |
+| **2x 27-pin female header (BB48R sockets)** | Pollin, Farnell, Mouser, Adafruit | Standard 0.1" 0.6" row spacing |
+| **2x20 pin male header (Pi Zero)** | Farnell, Mouser, Digi-Key | Standard 40-pin 2x20 0.1" header |
+
+> **JLCPCB hand-assembly note**: For 10-card runs, hand-soldering 3-4 through-hole connectors per card is feasible (~5 minutes per card). For larger runs, consider JLCPCB's PCBA service which now supports some through-hole parts.
+
+### KiCad-JLCPCB-Tools Plugin
+
+This KiCad plugin streamlines the JLCPCB assembly workflow:
+
+| Feature | Benefit |
+|---------|---------|
+| Per-component LCSC field | Add LCSC numbers directly in KiCad symbol properties |
+| BOM generation | Generates JLCPCB-compatible BOM CSV |
+| CPL generation | Generates Component Placement List with rotation correction |
+| Part stock checking | Real-time stock status from JLCPCB |
+| Rotation database | Built-in database of rotation corrections for common parts (JLCPCB uses different orientation conventions than KiCad) |
+
+**Install**: KiCad → Tools → Plugin and Content Manager → search "JLCPCB"
+
+**Usage**: Right-click any component → JLCPCB Tools → Set LCSC Part. The plugin saves the LCSC number in the symbol's `LCSC` custom field. When generating production files, it creates `bom.csv` and `cpl.csv` automatically.
+
+### Per-Design Workflow
+
+1. **Start KiCad project**, add the standard libraries
+2. **Run easyeda2kicad** for each LCSC part you'll use:
+   ```bash
+   for lcsc in C6097 C82393 C5181 C2480 C25804 C84256; do
+       easyeda2kicad --full --lcsc_id=$lcsc
+   done
+   ```
+3. **Add the generated libraries** to KiCad project (Preferences → Manage Symbol/Footprint Libraries)
+4. **Place components** in schematic, using the converted symbols
+5. **Set LCSC numbers** in each symbol's properties (or use KiCad-JLCPCB-Tools plugin to automate)
+6. **Run DRC** to verify the PCB
+7. **Generate gerbers** + drill files (KiCad → File → Plot)
+8. **Generate BOM and CPL** via KiCad-JLCPCB-Tools plugin
+9. **Upload to JLCPCB** at jlcpcb.com → Order Now → upload zip + BOM + CPL
+10. **Verify** the JLCPCB part placement preview before confirming order
+
+### Cost Considerations for Extended Parts
+
+JLCPCB charges a **$3 setup fee per BOM** that contains extended parts. Most of our specialty parts (74LVC family, ideal diode IC, polyfuse) are extended parts. So:
+
+- **One-time $3 extra** per design submission (not per part)
+- This is per **order**, so 10 boards in one order share the $3 fee
+- The design becomes economical at quantity 5+
+
+**Typical assembly cost for 10 controller cards** (estimated):
+- PCB cost (2-layer, ~100 x 100 mm, HASL): **~$5-10 for 10** (JLCPCB 2-layer is dramatically cheaper than 4-layer)
+- SMD assembly (10 boards, ~30 components each): ~$50-80
+- Components (extended): ~$5 setup + ~$50 = ~$55
+- Components (basic): ~$10
+- **Total**: ~$140-185 for 10 fully-assembled cards (without modules)
+
+Plus: 10x Olimex BB48R (~$150) + optional Pi Zero 2 W (~$150) = ~$440-485 total.
+
+### Verification Before Ordering
+
+Before submitting to JLCPCB, verify:
+- [ ] Every component in the BOM has an LCSC number
+- [ ] Stock check shows >0 for all extended parts at the order time
+- [ ] CPL placements are correct (use the JLCPCB preview)
+- [ ] Pin 1 markers and rotation match the parts (rotation corrections applied via plugin)
+- [ ] Through-hole connectors are NOT in the BOM (assemble manually after delivery)
+- [ ] Polarized parts (diodes, electrolytic caps, LEDs) have correct orientation
+- [ ] No DRC errors in KiCad
+
+---
+
 ## Open Design Questions
 
-### Critical (need answers before PCB)
+Most of the V1 critical questions have been resolved (see "Resolved decisions" below). What remains is mostly validation work that has to wait until we have a real PCB on a real bus.
 
-1. **Direct interrupt pins vs latch**: Which approach for /BINT 10-13? Direct uses 4 pins, latch uses 3 + IC.
-2. **INIDENT pass-through hardware**: Pure software (PIO), or hardware default with software intercept?
-3. **74LVC245 vs 74LVC07 vs TXS0108E**: Need final decision per signal type. The bus signal reference document recommends 74LVC245 for time-critical paths.
-4. **SD card mode**: SPI for bring-up or jump straight to SDIO?
+### Resolved decisions (V1 locked in)
 
-### Nice to have
+| Question | Decision | Where it lives in this doc |
+|----------|----------|----------------------------|
+| MCU module | Olimex RP2350-PICO2-BB48R | "Selected Hardware Module" section |
+| BD bus interface architecture | Design 2: 8-bit shared MCU↔latch bus, PIO-driven | "BD 0-23 Bus Interface Architecture" |
+| Trigger detection | PIO sample-on-change with mask compare (no external NOR) | "PIO Architecture" |
+| /BINT 10-13 drive | 4 direct GPIO pins via 74LVC07, no shift register | Pin Allocation Summary (GPIO2, 3, 39, 40) |
+| IDENT/GRANT pass-through | 74LVC125 quad 3-state buffer, hardware default pass + PIO override | "IDENT/GRANT Daisy-Chain Pass-Through Chip" |
+| Level shifters | 74LVC574 (input latches), 74LVT245 (output drivers), 74LVC14 (input sniff buffers), 74LVC07 (open-drain outputs) | "Design 2 Detailed Implementation" |
+| SD card | Use the on-board BB48R microSD slot via SPI1 (already wired GPIO9-11/24) | "SD Card Support" |
+| Companion computer | Optional Raspberry Pi Zero on a 40-pin header, Pi Zero is SPI master | "Companion Computer: Raspberry Pi Zero Connector" |
+| Power | Dual-source (USB-C OR backplane 5 V) Schottky-OR'd, separate ideal-diode for Pi Zero | "Power Distribution Design" |
+| CPU emulation mode | Same PCB, jumper-selected at boot | "ND-100 CPU Emulation Mode" |
+| Backplane | Separate PCB, PC PSU power, 4 slots V1 | "Backplane Design" |
 
-5. **Card detect signal**: Useful for SD card hot-swap.
-6. **Status LEDs**: Activity indication per emulated device.
-7. **Debug UART**: For console output during development.
-8. **JTAG/SWD header**: For RP2350 debugging.
+### Still open -- needs hardware validation
 
-### Validation required
+These cannot be answered from datasheets alone. They need a real PCB on a real ND-100 backplane:
 
-9. **Daisy-chain pass-through delay**: Measure actual delay to validate it stays within the 100 ns IDENT window.
-10. **Bus loading**: How many of these cards can a real ND-100 backplane support?
-11. **Pull-up resistors**: Are CPU card pull-ups sufficient, or do we need additional bus termination?
+1. **Daisy-chain pass-through delay** -- measure actual `/INIDENT` → `/OUTIDENT` propagation through the 74LVC125. Datasheet says 3-5 ns; we need to confirm we stay well under the 100 ns IDENT window even with two cards in series.
+2. **Bus loading** -- how many of these cards can hang off a real ND-100 backplane before signal integrity degrades? Need to measure rise/fall times on /BAPR with 1, 2, 4, 8 cards installed.
+3. **Pull-up resistors** -- are the CPU card's existing bus pull-ups sufficient, or do we need additional bus termination on the backplane? This depends on bus length and card count.
+4. **DMA throughput at full SMD rate** -- we calculate ~1.5-2 MB/s on the BD path, which should be plenty. Need to confirm with a real SMD-class transfer (256 KB sustained).
+5. **Pi Zero peak current during WiFi TX** -- 500 mA peak is the spec, but the 1A polyfuse and bulk caps need to be verified on a scope under real WiFi load.
+6. **Schottky OR-ing forward drop** -- SS14 has Vf ≈ 0.45 V at 1 A. With both USB and bus 5V present, the higher rail wins. Confirm both rails stay above 4.75 V at the Olimex VBUS pin under full Pi Zero + level-shifter load.
+7. **PIO trigger latency end-to-end** -- from /BAPR falling edge on the bus to PIO IRQ in the MCU. Calculated ~70-90 ns; needs real measurement.
+
+### Nice to have (not blocking)
+
+8. **Card detect signal** -- the BB48R microSD slot has a card-detect line; expose it to the application as a status flag.
+9. **Per-device status LEDs** -- one LED per emulated device on the front edge of the card. Driven via 74HC595 to keep GPIO cost at 3 pins. Already designed in the LED Indicator section.
+10. **Console UART** -- USB CDC is the primary debug channel; UART0 on GPIO0/1 is taken by the Pi Zero handshake. Live with USB CDC.
+11. **JTAG/SWD header** -- BB48R already exposes SWDIO/SWCLK on the SWD1 connector at the top of the module. No additional header needed on the controller card.
 
 ---
 
 ## Pin Allocation Summary
 
-```
-LOW BANK (GPIO0-31) - Time-critical bus interface:
-  GPIO0-23   -> /BD 0-23 (via 3x 74LVC245)
-  GPIO24     -> /BAPR (input via 74LVC245)
-  GPIO25     -> /BIOXE (input)
-  GPIO26     -> /BINACK (input)
-  GPIO27     -> /BMEM (input)
-  GPIO28     -> /BDAP (bidirectional)
-  GPIO29     -> /BDRY (bidirectional)
-  GPIO30     -> /BINPUT (bidirectional)
-  GPIO31     -> BUS_DIR_OE (controls 74LVC245 direction)
+> **This is the locked-in pin map for the Olimex RP2350-PICO2-BB48R.** Six GPIO are reserved by the module itself (GPIO8 PSRAM, GPIO9-11 SD, GPIO24 SD, GPIO25 LED). The remaining 42 GPIO are allocated below. Detailed reasoning is in the "Pin Layout for Latched Architecture" and "BD 0-23 Bus Interface Architecture" sections earlier in this document — this section is the single-page reference.
 
-HIGH BANK (GPIO32-47) - Slower signals + peripherals:
-  GPIO32     -> /BREQ (output via 74LVC07)
-  GPIO33     -> /INGRANT (input)
-  GPIO34     -> /OUTGRANT (output)
-  GPIO35     -> /INIDENT (input)
-  GPIO36     -> /OUTIDENT (output)
-  GPIO37     -> /BMCL (input, reset)
-  GPIO38-40  -> Interrupt latch control (3 pins for 74HC595)
-                OR
-  GPIO38-41  -> Direct /BINT 10/11/12/13 (4 pins)
-  GPIO41-46  -> SD card (SPI: 4 pins, SDIO: 6 pins)
-  GPIO47     -> Status LED / debug
 ```
+BB48R MODULE-RESERVED (do not touch):
+  GPIO8      -> PSRAM CS (QMI_CS1n) ............... 8 MB QSPI PSRAM
+  GPIO9      -> SD card CS (SPI1_CSn) ............. on-board microSD
+  GPIO10     -> SD card CLK (SPI1_SCK / SD_CLK) ... on-board microSD
+  GPIO11     -> SD card CMD (SPI1_TX / SD_CMD) .... on-board microSD
+  GPIO24     -> SD card DAT0 (SPI1_RX / SD_DAT0) .. on-board microSD
+  GPIO25     -> User LED (User_Led) ............... on-board green LED
+
+LOW BANK (GPIO0-31) -- Time-critical bus interface:
+
+  Pi Zero companion (optional, populated if Pi Zero is fitted):
+  GPIO0      -> INT_BB48R         (output to Pi Zero, "I have data")
+  GPIO1      -> INT_FROM_ZERO     (input from Pi Zero, optional)
+
+  Bus interrupts (always populated):
+  GPIO2      -> /BINT 12 drive    (74LVC07 open-drain)
+  GPIO3      -> /BINT 13 drive    (74LVC07 open-drain)
+
+  SPI0 to Pi Zero (optional, also pUEXT-compatible):
+  GPIO4      -> SPI0_RX  / MISO   (Pi Zero SPI master mode)
+  GPIO5      -> SPI0_CSn / CS     (Pi Zero SPI master mode)
+  GPIO6      -> SPI0_SCK          (Pi Zero SPI master mode)
+  GPIO7      -> SPI0_TX  / MOSI   (Pi Zero SPI master mode)
+
+  PIO read group -- single contiguous 12-bit block (atomic IN PINS, 12):
+  GPIO12-19  -> DBUS 0-7          (shared 8-bit MCU<->latch bus)
+  GPIO20     -> /BAPR_IN  (sniff) (PIO trigger bit 8)
+  GPIO21     -> /BIOXE_IN (sniff) (PIO trigger bit 9)
+  GPIO22     -> /BDAP_IN  (sniff) (PIO trigger bit 10)
+  GPIO23     -> /BDRY_IN  (sniff) (PIO trigger bit 11)
+
+  Latch control (LOW bank end -- close to PIO read group):
+  GPIO26     -> /OE_IN_0          (read-enable input latch 0, BD 0-7)
+  GPIO27     -> /OE_IN_1          (read-enable input latch 1, BD 8-15)
+  GPIO28     -> /OE_IN_2          (read-enable input latch 2, BD 16-23)
+  GPIO29     -> LE_OUT_0          (latch-enable output latch 0, BD 0-7)
+  GPIO30     -> LE_OUT_1          (latch-enable output latch 1, BD 8-15)
+  GPIO31     -> LE_OUT_2          (latch-enable output latch 2, BD 16-23)
+
+HIGH BANK (GPIO32-47) -- Slower signals, no PIO timing constraint:
+
+  Bus drive enable:
+  GPIO32     -> /BD_OE_BUS        (master OE for 3x 74LVT245 output drivers)
+
+  Other input sniffs (read directly via gpio_get(), no PIO):
+  GPIO33     -> /BMEM_IN          (74LVC14 buffered)
+  GPIO34     -> /BINACK_IN        (74LVC14 buffered)
+  GPIO35     -> /BMCL_IN          (74LVC14 buffered, master clear)
+  GPIO36     -> /BINPUT_IN        (74LVC14 buffered)
+  GPIO37     -> /INGRANT_IN       (daisy chain in)
+  GPIO38     -> /INIDENT_IN       (daisy chain in)
+
+  Bus interrupts (high pair):
+  GPIO39     -> /BINT 10 drive    (74LVC07 open-drain)
+  GPIO40     -> /BINT 11 drive    (74LVC07 open-drain)
+
+  Bus output drives (74LVC07 open-drain, except where noted):
+  GPIO41     -> /BAPR_OUT         (drive BAPR during DMA cycles)
+  GPIO42     -> /BDRY_OUT         (drive BDRY when responding)
+  GPIO43     -> /BINPUT_OUT       (drive BINPUT during IOX read / DMA write)
+  GPIO44     -> /BDAP_OUT         (drive BDAP during DMA cycles)
+  GPIO45     -> /BREQ_OUT         (drive BREQ to request DMA)
+
+  Daisy-chain pass-through control (74LVC125 OE):
+  GPIO46     -> /OE_DAISY_GRANT   (controls grant pass-through)
+  GPIO47     -> /OE_DAISY_IDENT   (controls ident pass-through)
+```
+
+### Pin Budget Check
+
+| Group | Pins | GPIOs |
+|-------|------|-------|
+| Module reserved | 6 | 8, 9, 10, 11, 24, 25 |
+| Pi Zero INT pair | 2 | 0, 1 |
+| Bus interrupts (4 levels) | 4 | 2, 3, 39, 40 |
+| Pi Zero SPI0 | 4 | 4, 5, 6, 7 |
+| **PIO read group (8 DBUS + 4 trigger)** | **12** | **12-23 (contiguous)** |
+| Latch control (3 OE + 3 LE) | 6 | 26-31 |
+| /BD_OE_BUS master enable | 1 | 32 |
+| Other input sniffs | 6 | 33-38 |
+| Bus output drives | 5 | 41-45 |
+| Daisy chain control | 2 | 46-47 |
+| **Total used** | **48** | **all 48 GPIO** |
+
+> **Every GPIO is allocated.** No spares. If a future requirement needs another pin, the candidates to free up are: GPIO0/1 (Pi Zero INT — collapse to a single bidirectional handshake), or one of the "other input sniffs" (e.g. fold /BINACK and /BMEM into a single PIO read group at the cost of one more PIO state machine). Anything beyond that requires moving to a different RP2350 module or adding an I/O expander.
+
+### Bank-by-bank Justification
+
+| Why this pin lives where it lives | |
+|---|---|
+| **GPIO12-23 contiguous** | The 8 DBUS lines + 4 trigger sniffs **must** be one contiguous block in the LOW bank so a single PIO `IN PINS, 12` instruction can sample them atomically with mask-compare. This is the entire reason DBUS is on GPIO12-19 instead of GPIO0-7 -- moving it gets it adjacent to the trigger group. |
+| **Latch control GPIO26-31** | LE/OE pulses must be deterministic (PIO sideset or PIO `out pins`). LOW bank is required for PIO sideset to share a state machine with the DBUS read instruction. GPIO26-31 is the next contiguous block after the read group with no module reservations in the way. |
+| **/BD_OE_BUS on GPIO32** | Master output enable does not pulse per byte -- it goes LOW once at the start of a drive cycle and HIGH once at the end. HIGH bank (GPIO32) is fine; no PIO timing constraint. |
+| **Bus output drives in HIGH bank** | /BAPR_OUT, /BDRY_OUT, /BINPUT_OUT, /BDAP_OUT, /BREQ_OUT all change at human-perceptible bus-cycle granularity (hundreds of ns minimum). HIGH bank GPIO via standard SDK calls is fast enough -- no PIO needed. |
+| **Daisy chain GPIO46-47** | /OE_DAISY_GRANT and /OE_DAISY_IDENT switch state at most a few times per IDENT/DMA cycle. HIGH bank is fine. |
 
 ---
 
 ## References
 
 - [ND-100-BUS-C-CONNECTOR.md](ND-100-BUS-C-CONNECTOR.md) - Complete bus signal reference
-- ND-06.016.01 NORD-100 Input/Output System reference manual
-- RP2350 datasheet
-- 74LVC245, 74LVC07, 74HC595 datasheets
+- [../../../Reference-Manuals/ND-06.016.01_NORD-100_Input_Output_System.md](../../../Reference-Manuals/ND-06.016.01_NORD-100_Input_Output_System.md) - NORD-100 I/O System reference manual
+- [Olimex-rp2350/RP2350-PICO2-BB48-user-manual.pdf](Olimex-rp2350/RP2350-PICO2-BB48-user-manual.pdf) - Olimex BB48R user manual
+- [Olimex-rp2350/RP-008373-DS-2-rp2350-datasheet.pdf](Olimex-rp2350/RP-008373-DS-2-rp2350-datasheet.pdf) - RP2350 datasheet
+- 74LVC574, 74LVT245, 74LVC07, 74LVC14, 74LVC125 datasheets
 
 ---
 
 ## Next Steps
 
-1. Review and finalize pin allocation
-2. Decide direct interrupt vs latch approach
-3. Schematic capture (KiCad)
-4. Breadboard prototype with one device emulation (terminal first - simplest)
-5. Validate IOX/IDENT cycles on real ND-100 hardware
-6. Add DMA support
-7. Add second device (floppy)
-8. Optimize PIO state machine code
-9. Migrate to SDIO if SPI throughput is insufficient
+Architecture is locked in. Remaining work:
+
+1. **KiCad schematic capture** -- translate this document into a real schematic. Use the LCSC parts from the JLCPCB section. Apply Schottky OR-ing for power, 1A polyfuse on Pi Zero 5 V, decoupling caps per IC.
+2. **PCB layout** -- **2-layer board**, HASL, ~100 × 100 mm, JLCPCB. Top layer = signals + components. Bottom layer = ground pour with star ground at the regulator + a few crossover traces + power distribution. Place latches/drivers near the DIN 41612 connector to keep BD stub lengths short (<50 mm). Place the BB48R EXT1 header close to the input latches so DBUS 0-7 routing stays under 30 mm. Pi Zero header on the opposite edge from the DIN connector.
+3. **First firmware skeleton** -- pico-sdk project with the three PIO state machines (SM_SIGNAL, SM_ADDR, SM_DATA), the Central Bus Drive API, and a stub IOX/IDENT responder. No device emulation yet.
+4. **Bench bring-up** -- power up alone (no backplane), verify 3.3 V rail, USB CDC console, GPIO sanity. Then plug into a single-slot test backplane with no real CPU and prove the level shifters and latches work end-to-end.
+5. **Backplane design + manufacture** -- 4-slot backplane PCB, PC PSU power, debug access for the logic analyzer. Ordered separately from JLCPCB.
+6. **First real bus cycle** -- plug into a real ND-100 CPU on the backplane, prove we can respond to a single IOX read with a known constant. This is the first "alive" milestone.
+7. **Terminal device emulation** -- simplest device class. Implements IOX read/write only, no DMA, no IDENT initially.
+8. **IDENT/interrupt support** -- add /BINT drive + IDENT response for the terminal device.
+9. **Floppy device emulation** -- next-simplest. Adds DMA but small transfer sizes.
+10. **DMA throughput tuning** -- benchmark word/sec on the BD path, tune PIO program if needed.
+11. **HDLC and SMD device emulation** -- the high-bandwidth devices. Validate at full SMD throughput.
+12. **CPU mode firmware** -- prove the same PCB can act as the bus master (ND-100 CPU emulator side).
