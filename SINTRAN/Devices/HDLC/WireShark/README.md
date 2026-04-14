@@ -219,6 +219,36 @@ LAPB/SINTRAN over TCP
 
 ---
 
+## Frame structure overview
+
+How a SINTRAN application message is wrapped on the wire from top to bottom:
+
+```mermaid
+flowchart TD
+    A[TCP segment]:::tcp --> B[HDLC frame<br/>0x7E flags + byte stuffing]:::hdlc
+    B --> C[LAPB frame<br/>addr + ctrl + info + FCS]:::lapb
+    C --> D[SINTRAN header<br/>13 bytes: 0x21 marker + dest/src CPU + protocol id]:::snt
+    D --> E[Sub-protocol payload]:::sub
+    E --> F1[DC / TAD / PAD / DB<br/>20-byte header + trailer]:::dc
+    E --> F2[ROUTING<br/>1-byte command + data]:::rout
+    F1 --> G1[XMSG Service dispatch<br/>by 4-byte service id]:::dispatch
+    G1 --> H1[LI ROUTING records]:::svc
+    G1 --> H2[LI SYSTEM-TAD TLV]:::svc
+    G1 --> H3[TAD message chain]:::svc
+
+    classDef tcp fill:#E3F2FD,stroke:#0D47A1,color:#0D47A1,stroke-width:2px
+    classDef hdlc fill:#FFF3E0,stroke:#E65100,color:#E65100,stroke-width:2px
+    classDef lapb fill:#FCE4EC,stroke:#880E4F,color:#880E4F,stroke-width:2px
+    classDef snt fill:#E8F5E9,stroke:#1B5E20,color:#1B5E20,stroke-width:2px
+    classDef sub fill:#F3E5F5,stroke:#4A148C,color:#4A148C,stroke-width:2px
+    classDef dc fill:#FFFDE7,stroke:#F57F17,color:#F57F17,stroke-width:2px
+    classDef rout fill:#E0F7FA,stroke:#006064,color:#006064,stroke-width:2px
+    classDef dispatch fill:#EDE7F6,stroke:#311B92,color:#311B92,stroke-width:2px
+    classDef svc fill:#E1F5FE,stroke:#01579B,color:#01579B,stroke-width:2px
+```
+
+---
+
 ## SINTRAN header
 
 Every LAPB I-frame carries a 13-byte SINTRAN header immediately after the LAPB
@@ -245,6 +275,21 @@ extra relay header — the Src/Dest in the outer SINTRAN header are the relay
 nodes, while the actual endpoint nodes appear inside the relay header payload.
 The Info column shows both: `SINTRAN Relay  [103 → 102  PAD]`.
 
+```mermaid
+sequenceDiagram
+    autonumber
+    participant N103 as Node 103
+    participant N100 as Node 100<br/>(relay)
+    participant N102 as Node 102
+    Note over N103,N102: 103 has no direct link to 102, uses 100 as relay
+
+    N103->>N100: PAD frame, marker2=0x13<br/>SINTRAN src=103 dst=102
+    Note right of N100: N100 sees itself is not the dest,<br/>flips marker2 to 0x12 (relay)<br/>and forwards
+    N100->>N102: PAD frame, marker2=0x12<br/>SINTRAN src=103 dst=102<br/>(payload byte-for-byte identical, counter preserved)
+    N102-->>N100: response, marker2=0x13
+    N100-->>N103: response, marker2=0x12
+```
+
 ---
 
 ## Sub-protocols decoded
@@ -259,24 +304,227 @@ The Info column shows both: `SINTRAN Relay  [103 → 102  PAD]`.
 | `0xDD`   | TAD     | Terminal Access and Directory — primary session protocol; carries chained TAD messages |
 | `0xDE`   | ROUTING | Network routing — propagation, bootstrap, route-info exchange |
 
-### DC sub-header (proto 0xDC)
+### XMSG wire format (DC / TAD / PAD payload)
 
-DC frames embed a 17-byte connection sub-header before the TAD message chain:
+DC, TAD and PAD frames all carry the same XMSG (X-MeSsaGe) protocol — a
+SINTRAN-native message-passing system documented in the L07 NPL symbol tables
+and the COSMOS Programmer Guide. The wire format is a **repacked subset of the
+17-word in-kernel XM5 header**: only the application-relevant fields
+(XMDSY/XMDPT/XMSSY/XMSPT/XMCSM/XMLEN + user data) are serialised onto HDLC.
+Kernel-only fields (XMDAB/XMDAW for memory bank/offset, XMTIM/XMTPT timestamps,
+XMALL/XMSIZ allocation flags) are dropped before transmission.
+
+**Authoritative references in the repo:**
+- `E:\Dev\Ronny\NDInsight\SINTRAN\XMSG-Protocol-Analysis.md` — main structural analysis
+- `E:\Dev\Ronny\NDInsight\SINTRAN\XMSG-COMMAND-REFERENCE.md` — function codes and status codes
+- `E:\Dev\Ronny\NDInsight\SINTRAN\NPL-SOURCE\SYMBOLS\L07\XMSG-SYMBOL-LIST.SYMB.TXT` — symbol offsets
+- `E:\Dev\Ronny\NDInsight\Operations\Cosmos\ND-60164-3-EN COSMOS Programmer Guide.md` — §1.2.3 Port, §1.2.4 Message Buffer
+
+**SINTRAN addressing model (verified from COSMOS Programmer Guide §1.2.3):**
+
+A SINTRAN host has a CPU id (the node number 100, 102, 103…) and runs service
+tasks like XROUT, TADAD, XMFIDO, BAK01. Each task owns one or more **ports** —
+task-owned message endpoints, locally identified by a small port number. A
+remote reference uses a 32-bit "magic number" combining port + system + a random
+component (so stale references can't be reused). Ports are listable via
+`X-C:list-ports` on a SINTRAN console.
+
+A message is sent across the network by:
+
+1. `XFGET` — allocate buffer
+2. `XFWHD` — fill XMDSY/XMDPT/XMSSY/XMSPT in the header
+3. `XFWRI` — copy user data
+4. `XFSND` — hand to the HDLC driver
+5. (receiving side) `XFRCV` → `XFRHD` → `XFREA` → `XFREL`
+
+```mermaid
+flowchart LR
+    A[Counter<br/>1B]:::ctr --> B[Marker<br/>21 00<br/>2B]:::mark
+    B --> C[Flags<br/>1B]:::flags
+    C --> D[Role<br/>1B]:::role
+    D --> E[XMDSY<br/>XMDPT<br/>4B]:::addr
+    E --> F[XMSSY<br/>XMSPT<br/>4B]:::addr
+    F --> G[XMCSM<br/>4B]:::svc
+    G --> H[Pad<br/>1B]:::pad
+    H --> I[XMLEN<br/>1B]:::tlen
+    I --> J[User Data<br/>N bytes]:::trail
+
+    classDef ctr fill:#FFEBEE,stroke:#B71C1C,color:#B71C1C,stroke-width:2px
+    classDef mark fill:#E8EAF6,stroke:#1A237E,color:#1A237E,stroke-width:2px
+    classDef flags fill:#FFF9C4,stroke:#F57F17,color:#F57F17,stroke-width:2px
+    classDef role fill:#F3E5F5,stroke:#4A148C,color:#4A148C,stroke-width:2px
+    classDef addr fill:#E0F2F1,stroke:#004D40,color:#004D40,stroke-width:2px
+    classDef svc fill:#FFF8E1,stroke:#FF6F00,color:#FF6F00,stroke-width:2px
+    classDef pad fill:#ECEFF1,stroke:#37474F,color:#37474F,stroke-width:2px
+    classDef tlen fill:#E1F5FE,stroke:#01579B,color:#01579B,stroke-width:2px
+    classDef trail fill:#E8F5E9,stroke:#1B5E20,color:#1B5E20,stroke-width:2px
+```
 
 ```
-Offset  Size  Field         Notes
-──────  ────  ────────────  ────────────────────────────────────────────────
-  0      1    Control 1     Frame control byte
-  1      1    Speed         Line speed code
-  2      1    Flags         Connection flags
-  3      2    Local Node    Big-endian node number of local endpoint
-  5      2    Local Chan    Big-endian channel number on local node
-  7      2    Remote Node   Big-endian node number of remote endpoint
-  9      2    Remote Chan   Big-endian channel number on remote node
- 11      6    Extra         Additional connection parameters
+Offset  Size  XM5 sym  Field                 Status     Notes
+──────  ────  ───────  ────────────────────  ─────────  ───────────────────────
+  0      1    —        Counter               verified   Per-direction sequence
+  1      1    —        Marker                verified   Always 0x21
+  2      1    —        Marker                verified   Always 0x00
+  3      1    —        Frame Flags           verified   NOT constant — 0x86 and 0x96 observed
+  4      1    —        Role                  verified   Asker/responder hint
+  5      2    XMDSY    Destination system    doc-cross  CPU id (BE)
+  7      2    XMDPT    Destination port      doc-cross  Port on dest CPU (BE)
+  9      2    XMSSY    Source system         doc-cross  CPU id (BE) — see note
+ 11      2    XMSPT    Source port           doc-cross  Port on src CPU (BE)
+ 13      4    XMCSM*   Control / function    inferred   Distinguishes commands
+ 17      1    —        Pad                   verified   Always 0x00
+ 18      1    XMLEN*   User data length      doc-cross  Low byte of length
+ 19      N    —        User data             verified   Format depends on XMCSM
 ```
 
-After the sub-header, the DC payload contains a TAD message chain (same format
+**Frame Flags byte (offset 3):** Previously assumed to be a constant marker
+(`0x86`), but observed values include `0x86` and `0x96` in different frames
+within the same capture. Bit 4 is the difference (`0x86 = 1000_0110`,
+`0x96 = 1001_0110`). The meaning of individual bits is not yet known — could
+encode frame priority, data class, or session state.
+
+`*` XMCSM in the kernel header is one word (2 bytes). The 4 bytes at wire
+offset 13 may be (XMCSM word + 16-bit function/op code), or may be a 32-bit
+combined service identifier. Stable values per command across all captures.
+XMLEN in the kernel header is also a full word; only the low byte appears at
+wire offset 18 in observed traffic (lengths up to 206 bytes seen).
+
+**Response anomaly (verified across all LI ROUTING captures):**
+
+For LI ROUTING **requests**, all four address fields decode correctly:
+`XMDSY=102, XMDPT=0, XMSSY=100, XMSPT=722` for a request from node 100 to
+node 102. But for **responses**, the responder fills XMSSY/XMSPT with the
+*originator's* address rather than its own:
+
+```
+Request  100→102:  XMDSY=102 XMDPT=0    XMSSY=100 XMSPT=722
+Response 102→100:  XMDSY=100 XMDPT=722  XMSSY=100 XMSPT=722  ← src = originator!
+```
+
+This appears to be a **stateless-RPC convention**: the LI ROUTING responder
+doesn't allocate its own port, so it echoes the asker's `(sys, port)` into
+both halves as a transaction-id. The XMSG documentation references `XFRTN`
+("swap src/dst to reply") as a kernel call — LI ROUTING responders may be
+skipping it for stateless replies. Whether this is universal across all XMSG
+services or specific to stateless RPCs like LI ROUTING is not yet known.
+
+**Role byte (offset 4):** verified across 11 pcaps:
+
+| Value  | Meaning                          |
+|--------|----------------------------------|
+| `0x60` | Responder for LI ROUTING         |
+| `0x40` | Responder for LI SYSTEM-TAD      |
+| `0xC4` | Asker for LI ROUTING             |
+| `0xE4` | Asker for LI SYSTEM-TAD          |
+| `0x84` | Asker (legacy variant)           |
+| `0x94` | Asker (connection setup)         |
+| `0x54` | Asker (connection setup variant) |
+| `0x00` | Generic data frame (no role)     |
+
+The low nibble is the verified part: `4` = asker, `0` = responder. The high
+nibble varies with command class (still partially inferred).
+
+**XMSG Service ID (offset 13-16):** Identifies the destination service / port
+on the receiving host. Currently observed values:
+
+| Hex          | Service                        |
+|--------------|--------------------------------|
+| `0100014B`   | LI ROUTING request (XROUT)     |
+| `01000100`   | LI ROUTING response (XROUT)    |
+| `04000041`   | LI SYSTEM-TAD (TADAD)          |
+
+For LI ROUTING the first three bytes (`01 00 01`) are stable, only the last
+byte distinguishes request (`0x4B`) from response (`0x00`). The exact field
+split (24-bit service + 8-bit function, or two 16-bit ports) is still inferred.
+
+---
+
+### LI ROUTING command (verified)
+
+`LI ROUTING,TREE` walks the routing table on a remote node. The wire-level
+semantics is **"return the first routing entry where target_node ≥ N"**, so
+the client walks by querying `f1=1`, then `f1=result+1`, and so on until the
+server returns the all-zero end-of-table marker.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Client (node 100)
+    participant S as Server (node 103)
+    Note over C,S: LI ROUTING,TREE walk
+
+    C->>S: ASK f1=1   (start at lowest node)
+    S-->>C: RSP f1=100 f2=DIRECT f3=1 f4=LAN
+    C->>S: ASK f1=101 (walk past 100)
+    S-->>C: RSP f1=102 f2=REMOTE f3=100 f4=WAN
+    C->>S: ASK f1=103
+    S-->>C: RSP f1=103 f2=SELF f3=103 f4=0
+    C->>S: ASK f1=104
+    S-->>C: RSP f1=110 f2=REMOTE f3=1111 f4=0  (unreachable)
+    C->>S: ASK f1=111
+    S-->>C: RSP f1=0 f2=0 f3=0 f4=0  (end of table)
+    Note over C,S: walk complete
+```
+
+The repeated re-queries we observe in pcaps are because **each step of the
+11-step ROUTING handshake retransmits the same query**; only the final result
+after step 0 is used by the client.
+
+**The trailer is a sequence of XM routing-control messages.** The "field id"
+byte at position 0 of each 4-byte record is **not arbitrary** — it matches a
+verified symbol from `XMSG-SYMBOL-LIST.SYMB.TXT`:
+
+| Symbol  | Value | Doc meaning              | Used as in LI ROUTING |
+|---------|------:|--------------------------|------------------------|
+| XMTNO   |   1   | Node info / topology     | Target node id |
+| XMROU   |   2   | Routing-table entry      | Route-type bitfield (DIRECT/REMOTE/SELF) |
+| XMTHI   |   3   | Hop / path-cost update   | Next-hop node id |
+| XMTRE   |   4   | Spanning-tree record     | Reachability bitfield (LAN/WAN) |
+| XMKIK   |   5   | Keep-alive heartbeat     | (not yet observed in captures) |
+| XMTPS   |   6   | Time / clock sync        | (not yet observed in captures) |
+
+**Request trailer** (4 bytes, 1 record): a single XMTNO record naming the node
+to look up.
+
+**Response trailer** (16 bytes, 4 records): one XMTNO + one XMROU + one XMTHI
++ one XMTRE describing the routing-table entry.
+
+**Each record is 4 bytes:** `[xm_type][0x02][0x00][value_low]`. The middle two
+bytes are a length prefix (`0x0002` = 2-byte value follows), and the value is
+read as a 16-bit big-endian word from bytes 2–3 of the record.
+
+**XMROU bitfield** (route type — verified):
+
+| Bit  | Symbol | Meaning |
+|------|--------|---------|
+| 0x01 | DIRECT | Local link, immediate neighbour |
+| 0x02 | REMOTE | Route uses a next-hop |
+| 0x04 | SELF   | This entry describes the queried node itself |
+
+**XMTRE bitfield** (spanning-tree reachability — verified):
+
+| Bit  | Symbol | Meaning |
+|------|--------|---------|
+| 0x01 | LAN    | Directly reachable on a local network |
+| 0x02 | WAN    | Reachable via a working remote route |
+
+`0x00` = neither bit set → unreachable or self entry.
+
+**Verified against text output of `X-C:LI-ROUT` on a known topology with 11
+routing entries** — every wire-level value decoded matches the textual route
+description.
+
+### DC sub-header (legacy notes — superseded by the table above)
+
+Earlier interpretation of the DC payload as `Speed / Flags / Local Node / etc.`
+has been superseded by the verified layout. The "speed" and "flags" bytes are
+in fact the 0x86 marker and the role byte respectively. The Lua dissector now
+decodes the verified fields and dispatches on the XMSG Service ID.
+
+After the trailer-length byte, the DC payload contains either LI ROUTING records
+(if the service ID matches), TLV-encoded service data (LI SYSTEM-TAD style),
+or a TAD message chain (same format
 as proto 0xDD).
 
 ---
@@ -450,3 +698,157 @@ tcp_table:add(10362, lapb_proto)
 ```
 
 Reload with Ctrl+Shift+L.
+
+---
+
+## Open questions
+
+Honest list of what is still unverified or unknown after reverse-engineering 11
+captures. Items are grouped by tier — higher tiers are more important and/or
+more solvable.
+
+### Tier 1 — Likely solvable with one or two more captures
+
+1. **The `0x54` role + `0x00060000` XMCSM outlier (pkt 1613 in
+   `new-conn-to-102-from-100.pcapng`)** — a single frame from node 102 with a
+   different source port (`342`) and a unique XMCSM value. Looks like a
+   kernel-side notification interjecting into a TAD session. Need another
+   long-running session capture to see if it recurs.
+
+2. **The early-setup XMCSM `0x00080000`** — only seen twice, at the start of a
+   TAD session. Almost certainly a connection-establishment control word. Need
+   captures of multiple back-to-back session setups to confirm.
+
+3. **XMKIK (keep-alive) and XMTPS (time-sync) on the wire** — verified to exist
+   in the L07 symbol table, never observed in any pcap so far. The doc mentions
+   periodic broadcasts every ~130 ms. A capture with ≥30 seconds of idle time on
+   a multi-node link should reveal them.
+
+### Tier 2 — The 11-step ROUTING handshake countdown
+
+4. **Per-step semantics of ROUTING opcodes 0x00–0x0A** — labelled positionally
+   as "step N of countdown" but the actual purpose of each step is unverified.
+   The doc gives the names (PropReq/BootReq/SyncReq/TermPar0–4) but not the
+   payload structure or intent of each step. Would need NPL source for the
+   routing state machine — not present in the repo.
+
+5. **Mystery opcodes `0x06`, `0x09`, `0x0A`** — assumed to be steps 6/9/10 of
+   the same countdown. Probably correct but unverified.
+
+### Tier 3 — XMSG details flagged as gaps in the doc itself
+
+These are the open questions listed in §11 of `XMSG-Protocol-Analysis.md`. None
+have been resolved by the captured pcaps.
+
+6. **XFSND wire serialisation** — whether the in-kernel 17-word XM5 header is
+   repacked or written word-for-word onto HDLC. Captured frames show a 19-byte
+   header (clearly repacked), but the exact rule for which fields get dropped
+   is undocumented. NPL source for `XFSND` not in repo.
+
+7. **XMCSM full structure** — empirically split as `(high16 = control,
+   low16 = op/function)`, but the symbol table only says "control / session-mgmt".
+   The actual bit layout is unknown.
+
+8. **XMSCR checksum algorithm** — symbol verified to exist, no algorithm
+   documented. I have not been able to identify an XMSCR field in any captured
+   frame. Either it's been dropped from the wire format, or it's hiding in one
+   of the bytes I think is something else.
+
+9. **The XMPRT/XMSEQ/XMBLN union** — three different uses for the same kernel
+   word (priority / sequence / block number). Don't know which interpretation
+   is on the wire or how the receiver disambiguates.
+
+10. **Multi-buffer chaining via XMCSM bits** — doc mentions it; haven't observed
+    or recognised any chained-multi-buffer frames in captures.
+
+### Tier 4 — DC sub-protocol family
+
+11. **What distinguishes `0xD8` / `0xD9` / `0xDB` / `0xDC` / `0xDD` / `0xDA`** —
+    they all carry the same XMSG payload format on the wire. Probable
+    interpretation: each protocol id selects a different reliability/queueing
+    class (priority queue, control vs data, urgent vs normal). No direct
+    evidence for which is which. Symbol table doesn't enumerate them.
+
+12. **Relay frame mechanism (mark2 = `0x12`)** — observed node 100 forwarding
+    frames byte-for-byte with the marker flipped. Don't know precisely how a
+    node decides "relay" vs "consume" — almost certainly just `XMDSY != self`,
+    but unverified.
+
+### Tier 5 — XMSG services not yet captured
+
+13. **XMFIDO (file-transfer subsystem)** — listed in the port table on every
+    node, never observed on the wire. Trigger with a `COPY` or file transfer
+    command between nodes.
+
+14. **Mail subsystem framing** — mentioned in doc, never captured.
+
+15. **BAK01 (backup task)** — listed in the port table, never captured.
+
+### Tier 6 — Inferred but unverified field interpretations
+
+16. **`XMDPT = 0` semantics** — currently inferred to mean "broadcast control
+    port: route by XMCSM". Per the COSMOS Programmer Guide, port `0x00000000`
+    is the broadcast control port, but whether the receiving XMSG kernel really
+    routes `XMDPT=0` messages by XMCSM (rather than by literal port lookup) is
+    only inferred. Also note: XROUT is at port 1 on every node we've seen — but
+    LI ROUTING requests use `XMDPT=0`, not `XMDPT=1`. Either XROUT subscribes
+    to the broadcast port too, or our offset interpretation is wrong.
+
+17. **Per-node service availability is real** (NEW — verified by comparing
+    `X-C:list-ports` on different nodes):
+
+    | Service  | Node 100 | Node 103 |
+    |----------|:--------:|:--------:|
+    | XROUT    |    ✓     |    ✓     |
+    | TADAD    |    ✓     |    ✗     |
+    | XMFIDO   |    ✓     |    ✓     |
+    | BAK01    |    ✓     |    ✓     |
+
+    Node 103 doesn't run TADAD, which is why LI SYSTEM-TAD captures register
+    services with node 100 (the actual TAD-server host). Differences between
+    captures of "the same" command on different nodes are partly explained by
+    which tasks are actually running.
+
+18. **The LI ROUTING response anomaly** — XROUT exists on every node, so when
+    100 asks 103 about routing, XROUT-on-103 should reply *from its own port 1*.
+    But the wire shows the responder filling XMSSY/XMSPT with the originator's
+    address, not its own. Three possibilities:
+    - XROUT-style services use a stateless reply convention (no port allocation)
+    - The wire layout in responses is different from requests for that 8-byte
+      block (some responses use it as a transaction-id field)
+    - My byte-offset interpretation in responses is still wrong
+    - **Test:** capture a deliberate request to a non-existent service to see
+      what XMSSY/XMSPT look like in an error response from the XMSG kernel itself
+
+19. **The frame-flags byte at offset 3** — previously assumed to always be
+    `0x86`, now observed as both `0x86` and `0x96` in the same capture
+    (`new-conn-to-102-from-100.pcapng`). Bit 4 differs: `0x86 = 1000_0110`,
+    `0x96 = 1001_0110`. Could encode priority, data class, or session state.
+    Not decoded in any documentation source. Labelled "Frame Flags" in the
+    dissector.
+
+20. **Bytes 7-8 / 11-12 = XMDPT / XMSPT** — verified for requests via direct
+    decoding (`XMSPT=722` makes sense as a session port). The response anomaly
+    means I can't fully cross-check both halves in a single direction. If the
+    "stateless RPC" hypothesis is wrong, my XMDPT/XMSPT identification could be
+    wrong as well.
+
+---
+
+## What the dissector currently decodes correctly
+
+For context — this is the verified, high-confidence working set:
+
+- LAPB framing (flags, byte-stuffing, CRC-16-CCITT, FCS check)
+- LAPB I/S/U frame types and N(S)/N(R) sequence numbers
+- 13-byte SINTRAN header (markers, dest/src CPU id, protocol id)
+- Relay frame detection (mark2 = `0x12`)
+- TAD message chain (BDAT, TMOD, TTYP, ECKM, BMMX, OPSV, ERRS, REJE, etc. — opcodes verified against L07/M06 symbol tables)
+- TAD alignment-pad (`0x00`) handling
+- DC/TAD/PAD payload header up to and including XMDSY/XMDPT/XMSSY/XMSPT/XMCSM/XMLEN
+- LI ROUTING records as XMTNO/XMROU/XMTHI/XMTRE messages
+- XMROU and XMTRE bitfield decoding (DIRECT/REMOTE/SELF, LAN/WAN)
+- LI ROUTING tree-walk semantics ("first entry where target ≥ N")
+- Tracking the per-direction counter byte at offset 0
+- TCP segment reassembly via `desegment_len = DESEGMENT_ONE_MORE_SEGMENT`
+- Heuristic dissector + port binding fallback for stream attachment

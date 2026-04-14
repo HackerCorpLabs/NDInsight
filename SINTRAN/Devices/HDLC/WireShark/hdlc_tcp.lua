@@ -113,6 +113,95 @@ local vs_routing_cmd = {
     [0x1E] = "ConnStep-ACK(0x14)",
 }
 
+-- DC/TAD/PAD role byte (offset 4 of payload)
+-- Verified across 10 pcaps: low nibble 0x4 = asker (request), 0x0 = responder (reply).
+-- High nibble varies with command class (still partially inferred).
+local vs_dc_role = {
+    [0x00] = "Data (no role)",
+    [0x40] = "Responder (LI SYSTEM-TAD)",
+    [0x54] = "Asker variant",
+    [0x60] = "Responder (LI ROUTING)",
+    [0x84] = "Asker (legacy)",
+    [0x94] = "Asker (connection setup)",
+    [0xC4] = "Asker (LI ROUTING)",
+    [0xE4] = "Asker (LI SYSTEM-TAD)",
+}
+
+-- DC/TAD/PAD XMSG port identifier (4 bytes at offset 13-16 of payload).
+--
+-- SINTRAN addressing model (per user clarification):
+--   • Each host has a CPU id (the node number 100/102/103 in the SINTRAN header)
+--   • Each host has its own port space (like TCP ports on an IP host)
+--   • Service tasks (XROUT, TADAD, XMFIDO, BAK01) listen on host-local ports
+--     visible in X-C:list-ports
+--
+-- The 4-byte XMSG field almost certainly encodes a port pair or port+function
+-- pair, but the exact split is not yet verified. Observed values:
+--
+--   0x0100014B  LI ROUTING request   — bytes 01 00 01 4B
+--   0x01000100  LI ROUTING response  — bytes 01 00 01 00  (only last byte differs)
+--   0x04000041  LI SYSTEM-TAD        — bytes 04 00 00 41  (different service)
+--
+-- For LI ROUTING the first 3 bytes are stable (01 00 01); only the trailing
+-- byte distinguishes request (0x4B) from response (0x00). So the layout might
+-- be (24-bit service/port id) + (8-bit function code), or two 16-bit ports.
+-- Either way the values are stable enough to dispatch on.
+local vs_dc_cmd = {
+    -- XROUT services (stateless RPC — responses echo originator address in src)
+    [0x0100014B] = "LI ROUTING request   (XROUT)",
+    [0x01000100] = "LI ROUTING response  (XROUT)",
+    [0x04000041] = "LI SYSTEM-TAD        (TADAD)",
+    -- TAD terminal session (stateful — responses fill src correctly)
+    [0x01080000] = "TAD session data     (in-session)",
+    [0x00080000] = "TAD session control  (setup phase)",
+    [0x00060000] = "TAD session ctrl-msg (rare/observed once)",
+}
+
+-- XM routing-control message types — VERIFIED from L07 XMSG-SYMBOL-LIST.SYMB.TXT.
+-- These symbol values appear as the "field ID" byte at offset 0 of each 4-byte
+-- record in LI ROUTING request/response payloads. A response is a sequence of
+-- four XM routing messages (XMTNO + XMROU + XMTHI + XMTRE) describing one
+-- routing-table entry. A request is a single XMTNO message naming the node
+-- whose entry the client wants.
+local vs_xm_msg_type = {
+    [1] = "XMTNO (node info / topology)",
+    [2] = "XMROU (routing-table entry)",
+    [3] = "XMTHI (hop / path-cost)",
+    [4] = "XMTRE (spanning-tree record)",
+    [5] = "XMKIK (keep-alive heartbeat)",
+    [6] = "XMTPS (time/clock sync)",
+}
+
+-- XMROU value interpreted as route-type bitfield (verified against text output
+-- of LI ROUTING,TREE on a known topology with 11 routing entries):
+--   bit 0 (0x01) = DIRECT  (local link, immediate neighbour)
+--   bit 1 (0x02) = REMOTE  (route uses a next-hop)
+--   bit 2 (0x04) = SELF    (this entry describes the queried node itself)
+local XMROU_BITS = {
+    {0x01, "DIRECT"},
+    {0x02, "REMOTE"},
+    {0x04, "SELF"},
+}
+
+-- XMTRE value interpreted as spanning-tree / reachability bitfield:
+--   bit 0 (0x01) = LAN  (directly reachable on a local network)
+--   bit 1 (0x02) = WAN  (reachable via a working remote route)
+-- 0x00 = neither bit set → unreachable, or self entry.
+local XMTRE_BITS = {
+    {0x01, "LAN"},
+    {0x02, "WAN"},
+}
+
+-- Build a "FOO+BAR" label for a bitfield value, or "" if no bits match.
+local function bitfield_label(value, bits)
+    local parts = {}
+    for _, b in ipairs(bits) do
+        if (value & b[1]) ~= 0 then parts[#parts + 1] = b[2] end
+    end
+    if #parts == 0 then return "" end
+    return table.concat(parts, "+")
+end
+
 -- ── ProtoFields ───────────────────────────────────────────────────────────────
 
 local pf = {}
@@ -177,6 +266,32 @@ pf.dc_rem_node   = ProtoField.uint16("dc.rem_node",    "Remote Node",      base.
 pf.dc_rem_chan   = ProtoField.uint16("dc.rem_chan",     "Remote Channel",   base.HEX)
 pf.dc_ctr2       = ProtoField.uint8 ("dc.ctr2",        "Counter 2",        base.HEX)
 
+-- XMSG (XM5) on-wire fields — names and meanings cross-referenced with
+-- XMSG-Protocol-Analysis.md and the L07 XMSG-SYMBOL-LIST symbol table.
+-- The wire format is a repacked subset of the 17-word in-kernel XM5 header:
+-- only the application-relevant fields (XMDSY/XMDPT/XMSSY/XMSPT/XMCSM/XMLEN
+-- + user data) are serialised; kernel-only fields (XMDAB/XMDAW/XMTIM/XMTPT/
+-- XMALL/XMSIZ etc.) are dropped before transmission.
+pf.dc_flags86    = ProtoField.uint8 ("xmsg.flags86", "Frame Flags",        base.HEX)
+pf.dc_role       = ProtoField.uint8 ("xmsg.role",   "Role",                 base.HEX, vs_dc_role)
+pf.dc_cmd        = ProtoField.uint32("xmsg.xmcsm",  "XMCSM (control/op)",   base.HEX, vs_dc_cmd)
+pf.dc_pad        = ProtoField.uint8 ("xmsg.pad",    "Pad",                  base.HEX)
+pf.dc_tlen       = ProtoField.uint8 ("xmsg.xmlen",  "XMLEN (user data len)",base.DEC)
+pf.dc_trailer    = ProtoField.bytes ("xmsg.userdata","User Data")
+pf.xmsg_dsy      = ProtoField.uint16("xmsg.xmdsy",  "XMDSY (dest system)",  base.DEC)
+pf.xmsg_dpt      = ProtoField.uint16("xmsg.xmdpt",  "XMDPT (dest port)",    base.DEC)
+pf.xmsg_ssy      = ProtoField.uint16("xmsg.xmssy",  "XMSSY (src system)",   base.DEC)
+pf.xmsg_spt      = ProtoField.uint16("xmsg.xmspt",  "XMSPT (src port)",     base.DEC)
+
+-- XM routing-control records (4 bytes each: type + length + value)
+-- Type byte values match XMSG-SYMBOL-LIST: XMTNO=1, XMROU=2, XMTHI=3, XMTRE=4
+pf.xm_msg_type   = ProtoField.uint8 ("xm.msg_type",    "XM Message Type",  base.DEC, vs_xm_msg_type)
+pf.xm_value_raw  = ProtoField.uint16("xm.value",       "Value (raw)",      base.HEX)
+pf.xm_xmtno      = ProtoField.uint16("xm.xmtno",       "XMTNO Node ID",    base.DEC)
+pf.xm_xmrou      = ProtoField.uint16("xm.xmrou",       "XMROU Route Type", base.HEX)
+pf.xm_xmthi      = ProtoField.uint16("xm.xmthi",       "XMTHI Next Hop",   base.DEC)
+pf.xm_xmtre      = ProtoField.uint16("xm.xmtre",       "XMTRE Reachability", base.HEX)
+
 lapb_proto.fields = {
     pf.frame_raw, pf.addr, pf.ctrl,
     pf.ns, pf.pf_bit, pf.nr, pf.stype,
@@ -192,6 +307,10 @@ lapb_proto.fields = {
     pf.pad_data,
     pf.dc_ctr1, pf.dc_sub_type, pf.dc_speed, pf.dc_flags,
     pf.dc_loc_node, pf.dc_loc_chan, pf.dc_rem_node, pf.dc_rem_chan, pf.dc_ctr2,
+    pf.dc_flags86, pf.dc_role, pf.dc_cmd, pf.dc_pad, pf.dc_tlen, pf.dc_trailer,
+    pf.xmsg_dsy, pf.xmsg_dpt, pf.xmsg_ssy, pf.xmsg_spt,
+    pf.xm_msg_type, pf.xm_value_raw,
+    pf.xm_xmtno, pf.xm_xmrou, pf.xm_xmthi, pf.xm_xmtre,
 }
 
 -- ── CRC-16-CCITT (polynomial 0x1021, init 0xFFFF, non-reflected) ─────────────
@@ -320,11 +439,34 @@ local function dissect_tad(tvb, pinfo, tree, off)
         t:add(pf.tad_type,  tvb(pos,     1))
         t:add(pf.tad_count, tvb(pos + 1, 1))
 
+        -- Direction hints per opcode (C=client/terminal, S=server/host)
+        local dir = ""
+        if     mtype == 0x02 or mtype == 0x03 or mtype == 0x04
+            or mtype == 0x0C or mtype == 0x0D or mtype == 0x0E
+            or mtype == 0x0F or mtype == 0x16 or mtype == 0x22
+            or mtype == 0x2B or mtype == 0x2C then
+            dir = " C->S"
+        elseif mtype == 0x08 or mtype == 0x09 or mtype == 0x17
+            or mtype == 0x21 or mtype == 0x23 or mtype == 0x26
+            or mtype == 0x27 or mtype == 0x2A or mtype == 0xFA
+            or mtype == 0xFB or mtype == 0xFE then
+            dir = " S->C"
+        end
+        t:append_text(dir)
+
         if avail > 0 then
             local d = pos + 2
             -- ── Per-type structured decoding ──────────────────────────────
-            if mtype == 0x01 then                        -- BDAT: raw terminal data
-                t:add(pf.tad_text, tvb(d, avail))
+            -- All opcodes verified against SINTRAN K03/L07/M06 symbol tables
+            -- and TAD-Message-Formats.md (NPL source cross-check).
+
+            if mtype == 0x01 then                        -- BDAT: terminal data
+                local ti = t:add(pf.tad_text, tvb(d, avail))
+                -- Show printable ASCII preview in the tree label
+                local preview = tvb(d, math.min(avail, 40)):string()
+                local safe = preview:gsub("[%c]", ".")
+                ti:append_text(string.format('  "%s"%s',
+                    safe, avail > 40 and "..." or ""))
 
             elseif mtype == 0x03 and avail >= 1 then     -- ECKM: echo strategy
                 local st = tvb(d, 1):uint()
@@ -347,7 +489,18 @@ local function dissect_tad(tvb, pinfo, tree, off)
                     t:add(pf.tad_data, tvb(d + 3, 20)):append_text("  [break table 20B]")
                 end
 
-            elseif mtype == 0x0C and avail >= 1 then     -- TMOD: mode flags byte
+            elseif mtype == 0x0E and avail >= 1 then     -- CESC: enable/disable escape
+                local en = tvb(d, 1):uint()
+                t:add(pf.tad_data, tvb(d, 1)):append_text(
+                    en ~= 0 and "  [escape ENABLED]" or "  [escape DISABLED]")
+
+            elseif mtype == 0x0F and avail >= 1 then     -- DESC: define escape char
+                local ch = tvb(d, 1):uint()
+                t:add(pf.tad_data, tvb(d, 1)):append_text(
+                    string.format("  [escape char = 0x%02X%s]", ch,
+                        ch < 0x20 and string.format(" (Ctrl-%c)", ch + 0x40) or ""))
+
+            elseif mtype == 0x0C and avail >= 1 then     -- TMOD: terminal mode flags
                 local fl = tvb(d, 1):uint()
                 local fi = t:add(pf.tad_tmod_flags, tvb(d, 1))
                 fi:append_text(string.format("  [%s%s%s%s%s%s%s]",
@@ -373,12 +526,20 @@ local function dissect_tad(tvb, pinfo, tree, off)
             elseif (mtype == 0x13 or mtype == 0x14) and avail >= 2 then  -- SYCN/USCN
                 t:add(pf.tad_cmd_word, tvb(d, 2))
 
-            elseif mtype == 0x23 and avail >= 2 then     -- ISRS: input size
+            elseif mtype == 0x23 and avail >= 2 then     -- ISRS: input size response
                 local sz = tvb(d, 2):uint()
                 local si = t:add(pf.tad_isrs_size, tvb(d, 2))
-                if (sz & 0x8000) ~= 0 then
-                    si:append_text("  [break present]")
-                end
+                local brk = (sz & 0x8000) ~= 0
+                si:append_text(string.format("  [%d chars%s]",
+                    sz & 0x7FFF, brk and ", BREAK present" or ""))
+
+            elseif mtype == 0x24 and avail >= 1 then     -- NOWT: nowait status
+                t:add(pf.tad_data, tvb(d, 1)):append_text(
+                    string.format("  [nowait flag = 0x%02X]", tvb(d, 1):uint()))
+
+            elseif mtype == 0x25 and avail >= 1 then     -- TNOW: terminate nowait
+                t:add(pf.tad_data, tvb(d, 1)):append_text(
+                    string.format("  [terminate flag = 0x%02X]", tvb(d, 1):uint()))
 
             elseif mtype == 0x2A and avail >= 2 then     -- TREP: terminal status
                 local st = tvb(d, 2):uint()
@@ -388,7 +549,21 @@ local function dissect_tad(tvb, pinfo, tree, off)
                     (st & 0x08) ~= 0 and "PAER " or "",
                     (st & 0x10) ~= 0 and "FRER " or ""))
 
-            elseif mtype == 0xFB and avail >= 2 then     -- ERRS: error code
+            elseif mtype == 0x2B and avail >= 2 then     -- UMOD: UMOD strategy (v4+)
+                t:add(pf.tad_cmd_word, tvb(d, 2)):append_text("  [UMOD strategy]")
+
+            elseif mtype == 0x2C and avail >= 2 then     -- 78MOD: 8-bit mode set
+                local val = tvb(d, 2):uint()
+                t:add(pf.tad_cmd_word, tvb(d, 2)):append_text(
+                    val ~= 0 and "  [8-bit mode ON]" or "  [7-bit strip]")
+
+            elseif mtype == 0xFA and avail >= 4 then     -- CPCO: completion code
+                local hi = tvb(d, 2):uint()
+                local lo = tvb(d + 2, 2):uint()
+                t:add(pf.tad_data, tvb(d, 4)):append_text(
+                    string.format("  [CPC1=0x%04X CPC2=0x%04X]", hi, lo))
+
+            elseif mtype == 0xFB and avail >= 2 then     -- ERRS: SINTRAN error code
                 t:add(pf.tad_errcode, tvb(d, 2))
 
             elseif mtype == 0xFE and avail >= 1 then     -- REJE: rejected opcode
@@ -399,6 +574,20 @@ local function dissect_tad(tvb, pinfo, tree, off)
 
             else
                 t:add(pf.tad_data, tvb(d, avail))
+            end
+
+        -- Zero-count messages: show purpose in tree label even without data
+        else
+            if     mtype == 0x02 then t:append_text("  (flow-control credit)")
+            elseif mtype == 0x08 then t:append_text("  (escape char received)")
+            elseif mtype == 0x09 then t:append_text("  (disconnect)")
+            elseif mtype == 0x16 then t:append_text("  (reset request)")
+            elseif mtype == 0x17 then t:append_text("  (reset confirm)")
+            elseif mtype == 0x18 then t:append_text("  (dummy / filler)")
+            elseif mtype == 0x21 then t:append_text("  (escape-control ACK)")
+            elseif mtype == 0x22 then t:append_text("  (input size request)")
+            elseif mtype == 0x26 then t:append_text("  (nowait restart)")
+            elseif mtype == 0x27 then t:append_text("  (remote/local toggle)")
             end
         end
 
@@ -427,6 +616,91 @@ local function dissect_routing(tvb, pinfo, tree, off)
     end
 
     pinfo.cols.info:append(string.format(" ROUTING:%s", cname))
+end
+
+-- ── XM routing-control records decoder ───────────────────────────────────────
+-- Each record is 4 bytes: [xm_type] [0x02] [0x00] [value_low]
+--   • xm_type is one of XMTNO/XMROU/XMTHI/XMTRE (verified XMSG symbols)
+--   • 0x02 0x00 is a 16-bit length prefix (always 2 — value is 2 bytes)
+--   • The value is read as a 16-bit big-endian word from bytes 2-3
+--     (so node 1111 = 0x0457 spans both)
+--
+-- LI ROUTING request:  1 record  (XMTNO = node id to look up)
+-- LI ROUTING response: 4 records (XMTNO + XMROU + XMTHI + XMTRE describing
+--                                  one routing-table entry)
+--
+-- Field semantics verified against text output of LI ROUTING,TREE on a known
+-- topology with 11 routing entries.
+
+local function dissect_li_routing_trailer(tvb, pinfo, tree, off, tlen, is_response)
+    if tlen < 4 then return end
+    if tlen % 4 ~= 0 then return end
+
+    local n_records = tlen / 4
+    local label = is_response and "LI ROUTING Response" or "LI ROUTING Request"
+    local t = tree:add(lapb_proto, tvb(off, tlen),
+                  string.format("%s  [%d XM record%s]",
+                      label, n_records, n_records == 1 and "" or "s"))
+
+    local xmtno, xmrou, xmthi, xmtre = nil, nil, nil, nil
+
+    for i = 0, n_records - 1 do
+        local rec_off = off + i * 4
+        local xm_type = tvb(rec_off,     1):uint()
+        local value16 = tvb(rec_off + 2, 2):uint()
+        local type_nm = vs_xm_msg_type[xm_type] or string.format("XM?(0x%02X)", xm_type)
+
+        local rt = t:add(lapb_proto, tvb(rec_off, 4),
+                       string.format("%s = %d (0x%04X)", type_nm, value16, value16))
+        rt:add(pf.xm_msg_type,  tvb(rec_off,     1))
+        rt:add(pf.xm_value_raw, tvb(rec_off + 2, 2))
+
+        if xm_type == 1 then         -- XMTNO: node id
+            rt:add(pf.xm_xmtno, tvb(rec_off + 2, 2))
+            xmtno = value16
+        elseif xm_type == 2 then     -- XMROU: route-type bitfield
+            local ri = rt:add(pf.xm_xmrou, tvb(rec_off + 2, 2))
+            local lbl = bitfield_label(value16, XMROU_BITS)
+            if lbl ~= "" then ri:append_text("  [" .. lbl .. "]") end
+            xmrou = value16
+        elseif xm_type == 3 then     -- XMTHI: next-hop / path-cost
+            rt:add(pf.xm_xmthi, tvb(rec_off + 2, 2))
+            xmthi = value16
+        elseif xm_type == 4 then     -- XMTRE: spanning-tree reachability bitfield
+            local si = rt:add(pf.xm_xmtre, tvb(rec_off + 2, 2))
+            local lbl = bitfield_label(value16, XMTRE_BITS)
+            if lbl ~= "" then
+                si:append_text("  [" .. lbl .. "]")
+            else
+                si:append_text("  [unreachable]")
+            end
+            xmtre = value16
+        end
+    end
+
+    -- Build a one-line summary for the tree label and Info column
+    if is_response and n_records == 4 then
+        local target  = xmtno or 0
+        local rtype   = xmrou or 0
+        local nexthop = xmthi or 0
+        local status  = xmtre or 0
+        local summary
+        if target == 0 and rtype == 0 then
+            summary = "end-of-table"
+        elseif (rtype & 0x04) ~= 0 then
+            summary = string.format("node %d (self)", target)
+        elseif (rtype & 0x01) ~= 0 then
+            summary = string.format("node %d direct (XMTRE=%s)", target,
+                bitfield_label(status, XMTRE_BITS))
+        else
+            summary = string.format("node %d via %d (%s)", target, nexthop,
+                status == 0 and "UNREACHABLE" or bitfield_label(status, XMTRE_BITS))
+        end
+        t:append_text("  — " .. summary)
+        pinfo.cols.info:append("  LI-ROUT: " .. summary)
+    elseif n_records == 1 then
+        pinfo.cols.info:append(string.format("  LI-ROUT? XMTNO=%d", xmtno or 0))
+    end
 end
 
 -- ── DC/DB dissector (proto=0xDC and 0xDB, terminal data forwarding) ──────────
@@ -460,29 +734,91 @@ local function dissect_dc(tvb, pinfo, tree, off, proto_label)
     local ctr1 = tvb(off, 1):uint()
     tree:add(pf.dc_ctr1, tvb(off, 1))
 
+    -- XMSG wire layout — cross-referenced with verified XM5 symbol table.
+    -- (Offsets are absolute within the SINTRAN payload, after the 13-byte
+    -- SINTRAN header. The local "off" is at the counter byte.)
+    --   +0   counter           per-direction sequence (decrements)
+    --   +1   marker 0x21
+    --   +2   marker 0x00
+    --   +3   marker 0x86
+    --   +4   role byte         asker/responder + service hint
+    --   +5-6  XMDSY            destination CPU id (BE)
+    --   +7-8  XMDPT            destination port (BE)
+    --   +9-10 XMSSY            source CPU id (BE)  — see note below
+    --   +11-12 XMSPT           source port (BE)    — see note below
+    --   +13-16 XMCSM           control / function code (4 bytes)
+    --   +17  pad 0x00
+    --   +18  XMLEN             user data length (low byte; high byte assumed 0)
+    --   +19+ user data         format depends on XMCSM (LI ROUTING records,
+    --                          LI SYSTEM-TAD TLV, or TAD message chain)
+    --
+    -- Response anomaly observed in LI ROUTING captures: the responder fills
+    -- XMSSY/XMSPT with the *originator's* address (the asker's), not its own.
+    -- This looks like a stateless-RPC convention where the responder doesn't
+    -- allocate a port and instead echoes the asker's identity as a transaction
+    -- id. The doc references XFRTN as a "swap src/dst" kernel call — LI ROUTING
+    -- responders may be skipping it for stateless replies.
+
+    -- Note: 'off' points at the counter byte (XMSG offset 0 within DC payload).
+    -- Layout: counter(+0) marker(+1,+2) flags(+3) role(+4) XMDSY(+5) XMDPT(+7)
+    --         XMSSY(+9) XMSPT(+11) XMCSM(+13) pad(+17) XMLEN(+18) data(+19)
+    local role     = tvb(off + 4,  1):uint()
+    local dsy      = tvb(off + 5,  2):uint()
+    local dpt      = tvb(off + 7,  2):uint()
+    local ssy      = tvb(off + 9,  2):uint()
+    local spt      = tvb(off + 11, 2):uint()
+    local cmd_word = tvb(off + 13, 4):uint()
+    local tlen     = tvb(off + 18, 1):uint()
+
+    local cmd_name = vs_dc_cmd[cmd_word] or string.format("0x%08X", cmd_word)
+    local role_nm  = vs_dc_role[role] or string.format("0x%02X", role)
+
     local sub = tree:add(lapb_proto, tvb(off + 1, DC_SUBHDR),
-                    string.format("%s Connection  [loc=%d/0x%04X  rem=%d/0x%04X]",
-                        proto_label,
-                        tvb(off + 5, 2):uint(), tvb(off + 7, 2):uint(),
-                        tvb(off + 9, 2):uint(), tvb(off + 11, 2):uint()))
-    sub:add(pf.dc_sub_type, tvb(off + 1,  1))
-    sub:add(pf.dc_speed,    tvb(off + 3,  1))
-    sub:add(pf.dc_flags,    tvb(off + 4,  1))
-    sub:add(pf.dc_loc_node, tvb(off + 5,  2))
-    sub:add(pf.dc_loc_chan, tvb(off + 7,  2))
-    sub:add(pf.dc_rem_node, tvb(off + 9,  2))
-    sub:add(pf.dc_rem_chan, tvb(off + 11, 2))
+                    string.format("%s  [%s, %s, %d:%d → %d:%d]",
+                        proto_label, cmd_name, role_nm, ssy, spt, dsy, dpt))
+    sub:add(pf.dc_sub_type,  tvb(off + 1,  1))  -- 0x21
+    sub:add(pf.dc_flags86,   tvb(off + 3,  1))  -- flags byte (0x86, 0x96, etc.)
+    sub:add(pf.dc_role,      tvb(off + 4,  1))
+    sub:add(pf.xmsg_dsy,     tvb(off + 5,  2))
+    sub:add(pf.xmsg_dpt,     tvb(off + 7,  2))
+    local ssy_item = sub:add(pf.xmsg_ssy, tvb(off + 9,  2))
+    local spt_item = sub:add(pf.xmsg_spt, tvb(off + 11, 2))
+    sub:add(pf.dc_cmd,       tvb(off + 13, 4))
+    sub:add(pf.dc_pad,       tvb(off + 17, 1))
 
-    local ctr2_off = off + 1 + DC_SUBHDR
-    local ctr2 = tvb(ctr2_off, 1):uint()
-    tree:add(pf.dc_ctr2, tvb(ctr2_off, 1))
-
-    local msg_off = ctr2_off + 1
-    if msg_off < tvb:len() then
-        dissect_tad(tvb, pinfo, tree, msg_off)
+    -- Stateless-RPC response anomaly detection: in LI ROUTING responses (and
+    -- possibly other XROUT-style services), the responder fills XMSSY/XMSPT
+    -- with the originator's address rather than its own. Flag it explicitly so
+    -- the anomaly stays visible on every capture going forward — and so any
+    -- frame where the anomaly does NOT happen stands out as worth investigating.
+    if dsy == ssy and dpt == spt and dsy ~= 0 then
+        ssy_item:append_text("  [== XMDSY: stateless-RPC response anomaly]")
+        spt_item:append_text("  [== XMDPT: stateless-RPC response anomaly]")
+        ssy_item:add_expert_info(PI_PROTOCOL, PI_NOTE,
+            "XMSSY/XMSPT echo originator address (stateless-RPC convention)")
     end
 
-    pinfo.cols.info:append(string.format(" %s[ctr1=0x%02X ctr2=0x%02X]", proto_label, ctr1, ctr2))
+    tree:add(pf.dc_tlen, tvb(off + 18, 1))
+
+    local trailer_off = off + 19
+    if tlen > 0 and trailer_off + tlen <= tvb:len() then
+        -- Dispatch on command identifier
+        if cmd_word == 0x0100014B then
+            -- LI ROUTING request: 1 XMTNO record
+            dissect_li_routing_trailer(tvb, pinfo, tree, trailer_off, tlen, false)
+        elseif cmd_word == 0x01000100 then
+            -- LI ROUTING response: XMTNO + XMROU + XMTHI + XMTRE
+            dissect_li_routing_trailer(tvb, pinfo, tree, trailer_off, tlen, true)
+        else
+            -- Unknown command — show raw trailer, then try TAD chain.
+            -- Label both branches so it's obvious which decode path was taken.
+            local raw = tree:add(pf.dc_trailer, tvb(trailer_off, tlen))
+            raw:append_text("  [unknown XMCSM, trying TAD chain fallback]")
+            dissect_tad(tvb, pinfo, tree, trailer_off)
+        end
+    end
+
+    pinfo.cols.info:append(string.format(" %s[%s ctr=0x%02X]", proto_label, cmd_name, ctr1))
 end
 
 -- ── PAD dissector ─────────────────────────────────────────────────────────────
