@@ -852,3 +852,78 @@ For context — this is the verified, high-confidence working set:
 - Tracking the per-direction counter byte at offset 0
 - TCP segment reassembly via `desegment_len = DESEGMENT_ONE_MORE_SEGMENT`
 - Heuristic dissector + port binding fallback for stream attachment
+
+---
+
+## TODO / next steps
+
+Prioritised plan for continuing the analysis and dissector improvements.
+
+### Immediate — verify current dissector
+
+- [ ] Reload Wireshark (Ctrl+Shift+L), open `new-conn-to-102-from-100.pcapng`
+- [ ] Confirm BDAT login banner (Frame 395) shows inline ASCII text in decode tree
+- [ ] Confirm XMSG fields (XMDSY/XMDPT/XMSSY/XMSPT) decode with correct node/port values
+- [ ] Confirm TAD messages show C->S / S->C direction hints
+- [ ] Open `li-route-d103-tree-x.pcapng`, confirm LI ROUTING records show XMTNO/XMROU/XMTHI/XMTRE with semantic labels
+- [ ] Open `li-routing-100-proxy-102.pcapng`, confirm the stateless-RPC anomaly expert info appears on response frames
+
+### Short-term — new captures needed
+
+- [ ] **XMKIK/XMTPS keep-alive capture** — let the emulator run idle for 30+ seconds on a multi-node link. The doc says ~130 ms periodic broadcasts. Should reveal the last two XM message types (5=XMKIK, 6=XMTPS) and may clarify the flags byte at offset 3.
+- [ ] **Connection setup/teardown capture** — `connect-to` a node, do nothing, then disconnect cleanly. Captures pure handshake without terminal data noise. Best for mapping the 11-step ROUTING countdown.
+- [ ] **Cold connect** — connect to a node never reached before to force full route discovery and see the complete ROUTING opcode sequence (0x00–0x0A plus the unknown 0x13–0x1E range).
+
+### Medium-term — analysis of existing captures
+
+- [ ] **Decode `conn-to-102-from103-via100.pcapng`** — 102 ROUTING frames covering the full handshake. Map each step's purpose and payload structure.
+- [ ] **Scan all 11 pcaps for every distinct value of the flags byte at offset 3** — if it correlates with frame type or session state, add a decoder.
+- [ ] **Cross-reference all observed XMCSM values** against COSMOS Programmer Guide appendices to identify documented function codes.
+- [ ] **Investigate the `0x54` role / `0x00060000` XMCSM outlier** (pkt 1613 in `new-conn-to-102-from-100.pcapng`) — capture more long sessions to see if it recurs.
+
+### Longer-term — protocol coverage gaps
+
+- [ ] Decode the DC sub-protocol family (0xD8/0xD9/0xDB vs 0xDC/0xDD/0xDA) — determine what distinguishes them (priority? data class?)
+- [ ] Capture and decode XMFIDO file-transfer traffic
+- [ ] Investigate XMSCR checksum — does it appear on the wire at all?
+- [ ] Map XMCSM bit-level structure beyond the empirical `(high16 control, low16 op)` split
+- [ ] Investigate relay frame routing logic (mark2=0x12) — how does a node decide to relay vs consume?
+
+---
+
+## Continuation prompt
+
+Use this prompt to resume work on the dissector in a new session:
+
+```
+I am working on a Wireshark Lua dissector for SINTRAN III HDLC/LAPB/XMSG
+protocol. The dissector and documentation are at:
+
+  E:\Dev\Ronny\NDInsight\SINTRAN\Devices\HDLC\WireShark\
+
+Read these files first:
+  - E:\Dev\Ronny\NDInsight\SINTRAN\Devices\HDLC\WireShark\README.md
+  - E:\Dev\Ronny\NDInsight\SINTRAN\Devices\HDLC\WireShark\hdlc_tcp.lua
+  - C:\Program Files\Wireshark\plugins\hdlc_tcp.lua  (the live installed copy)
+
+The README contains a TODO section at the end with prioritised next steps,
+and an Open Questions section with 20 numbered items grouped into 6 tiers.
+
+Key reference documents for the XMSG protocol:
+  - E:\Dev\Ronny\NDInsight\SINTRAN\XMSG-Protocol-Analysis.md
+  - E:\Dev\Ronny\NDInsight\SINTRAN\XMSG-COMMAND-REFERENCE.md
+  - E:\Dev\Ronny\NDInsight\SINTRAN\NPL-SOURCE\SYMBOLS\L07\XMSG-SYMBOL-LIST.SYMB.TXT
+  - E:\Dev\Ronny\NDInsight\Operations\Cosmos\ND-60164-3-EN COSMOS Programmer Guide.md
+
+TAD message format reference:
+  - E:\Dev\Ronny\NDInsight\SINTRAN\TAD\TAD-Message-Formats.md
+
+Packet captures for testing:
+  - E:\Dev\Ronny\X25Emulator\pcap\  (11 pcapng files)
+
+Continue from the TODO list. Read the README first to understand what has been
+verified vs inferred, then pick up the next unchecked item. After any code
+changes, always sync the Lua script to BOTH:
+  - C:\Program Files\Wireshark\plugins\hdlc_tcp.lua  (Wireshark reads from here)
+  - E:\Dev\Ronny\NDInsight\SINTRAN\Devices\HDLC\WireShark\hdlc_tcp.lua  (repo copy)
+```
