@@ -932,7 +932,7 @@ EXIT
 |------|-------|--------|---------|
 | **NPL** | `.NPL` | `.MAC` | `@NPL source:NPL` |
 | **CC-100** | `.C` | `.BRF` | `@CC-100 source:C` |
-| **PLANC** | `.PLANC` | `.BRF` | `@PLANC-100-C` |
+| **PLANC** | `:SYMB`/`:PLNC` | `.BRF` | `@PLANC-100` |
 
 ### Assembly Phase
 

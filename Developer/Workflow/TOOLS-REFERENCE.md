@@ -213,20 +213,28 @@ Code: 130w Data: 107w
 
 ---
 
-### PLANC-100-C - PLANC Compiler
+### PLANC-100 - PLANC Compiler
 
-**Command:** `@PLANC-100-C`
+**Command:** `@PLANC-100`
 
-**Purpose:** Compile PLANC programs (Pascal-like language)
+**Purpose:** Compile PLANC programs (module-based structured language)
 
 **Manual:** ND-60.117.5 EN PLANC Reference Manual  
-**Input:** `.PLANC` files  
+**Input:** `:SYMB` or `:PLNC` files (compiler looks for `:SYMB` first, then `:PLNC`)  
 **Output:** `.BRF` files
 
 **Interactive Mode:**
 ```bash
-@PLANC-100-C
-COMPILE filename:PLANC
+@PLANC-100
+COMPILE filename
+EXIT
+```
+
+**Direct executable (using $PROG-FILE):**
+```bash
+@PLANC-100
+PROG-FILE "filename"
+COMPILE filename
 EXIT
 ```
 
@@ -234,24 +242,34 @@ EXIT
 
 ---
 
-### FTN - FORTRAN Compiler
+### FORT - ND FORTRAN (ANSI 77) Compiler
 
-**Command:** `@FTN`
+**Command:** `@FORT` (or `@FORTRAN-100`)
 
-**Purpose:** Compile FORTRAN programs
+**Purpose:** Compile ND FORTRAN ANSI 77 programs (compiler 203053F02)
 
-**Input:** `.FTN` or `.FOR` files  
-**Output:** `.BRF` files
+**Manual:** ND-60.145.7A EN ND FORTRAN Reference Manual  
+**Input:** `:SYMB` or `:FORT` files  
+**Output:** `:BRF` files
 
 **Usage:**
-```bash
-@FTN
-*INPUT source:FTN
-*COMPILE
-*EXIT
+```
+@FORT
+SEP OFF
+COMP source,,"object"
+EXIT
 ```
 
-**See:** [QUICK-START-EXAMPLES.md](QUICK-START-EXAMPLES.md) Section 5
+**Link with BRF-LINKER** (not NRL):
+```
+@BRF-LINKER
+PROG-FILE "progname"
+LOAD object
+LOAD FORT-1B
+EXIT
+```
+
+**See:** [FORTRAN-DEVELOPER-GUIDE.md](../Languages/Application/FORTRAN-DEVELOPER-GUIDE.md)
 
 ---
 
@@ -644,8 +662,8 @@ EXIT
 | **NPL** | `@NPL file:NPL` | `.NPL` | `.MAC` |
 | **MAC** | `@MAC file:MAC` | `.MAC` | `.BRF` |
 | **CC-100** | `@CC-100 file:C` | `.C` | `.BRF` |
-| **PLANC** | `@PLANC-100-C` | `.PLANC` | `.BRF` |
-| **FTN** | `@FTN` | `.FTN` | `.BRF` |
+| **PLANC** | `@PLANC-100` | `:SYMB`/`:PLNC` | `.BRF` |
+| **FORT** | `@FORT` | `:SYMB`/`:FORT` | `.BRF` |
 
 #### Linkers
 | Tool | Command | Input | Output |
@@ -687,8 +705,8 @@ EXIT
 | NPL | **@NPL** | System language |
 | Assembly | **@MAC** | Low-level control |
 | C | **@CC-100** | Portable code |
-| PLANC | **@PLANC-100-C** | Pascal-like |
-| FORTRAN | **@FTN** | Scientific computing |
+| PLANC | **@PLANC-100** | Module-based structured |
+| FORTRAN | **@FORT** | Scientific computing |
 
 ### "How do I debug?"
 
@@ -759,7 +777,7 @@ EXIT
 | `.NPL` | NPL source | **PED**, **@NPL** |
 | `.MAC` | Assembly source | **PED**, **@MAC** |
 | `.C` | C source | **PED**, **@CC-100** |
-| `.PLANC` | PLANC source | **PED**, **@PLANC-100-C** |
+| `:SYMB`/`:PLNC` | PLANC source | **PED**, **@PLANC-100** |
 | `.BRF` | Object file | **BRF-EDITOR**, **@NRL** |
 | `.PROG` | Executable | Run with `@filename` |
 | `.BPUN` | Binary program | **DUMP-REENTRANT** or run |

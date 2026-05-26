@@ -147,28 +147,86 @@ HELLO FROM C!
 
 ### 4.1 Hello World (PLANC)
 
-**File:** `HELLO-PLANC:PLANC`
+**File:** `HELLO:PLNC` (must have CRLF line endings and even parity)
+
+Source files use type `:PLNC` or `:SYMB`. The compiler looks for `:SYMB` first, then `:PLNC`.
 
 ```planc
-PROGRAM HELLO;
+MODULE hello
+    INTEGER ARRAY : stack(0:100)
+    BYTES : msg := 'HELLO FROM PLANC!'
 
-BEGIN
-    WRITE('HELLO FROM PLANC!');
-    WRITELN;
-END.
+    PROGRAM : main
+        INISTACK stack
+        OUTPUT (1,'AL17',msg)
+        OUTPUT (1,'AL1','$')
+    ENDROUTINE
+ENDMODULE
 ```
+
+**PLANC syntax notes:**
+- `MODULE`/`ENDMODULE` structure -- NOT Pascal's PROGRAM/BEGIN/END
+- Entry point: `PROGRAM : name` inside the module
+- `INISTACK` must be called first to initialize the runtime stack
+- `OUTPUT(device, format, variable)` writes to terminal (device 1)
+- `'AL17'` = Alphanumeric, Left-justified, 17 characters
+- `'$'` outputs a CR+LF (newline)
+- `BYTES : name := 'string'` declares byte array with implicit length from initializer
 
 ### 4.2 Build and Run
 
+**Method 1: Interactive build (verified on ND-100, PLANC Version E)**
+
 ```bash
-@PLANC-100-C                 # Start PLANC compiler
-COMPILE HELLO-PLANC:PLANC
+@PLANC
+PROG-FILE "HELLO"
+COMPILE HELLO:PLNC,"HELLO:LIST","HELLO"
 EXIT
-@NRL                         # Start linker
-*PROG-FILE "HELLO-PLANC"
-*LOAD HELLO-PLANC
-*EXIT
-@HELLO-PLANC                 # Run program
+@HELLO
+```
+
+The `COMPILE` command takes three parameters:
+1. `HELLO:PLNC` -- source file (exists, no quotes needed)
+2. `"HELLO:LIST"` -- listing output (created, needs quotes)
+3. `"HELLO"` -- object file (created, needs quotes, produces :BRF)
+
+`PROG-FILE "HELLO"` tells the compiler to also create `HELLO:PROG` directly.
+On `EXIT`, the PLANC runtime is linked automatically.
+
+This produces three files:
+- `HELLO:PROG` -- executable (run with `@HELLO`)
+- `HELLO:BRF` -- binary relocatable file
+- `HELLO:LIST` -- compiler listing with line numbers
+
+**Method 2: Automated build (MODE file)**
+
+**File:** `DO-BUILD:MODE`
+
+```mode
+@DELETE-FILE HELLO:PROG
+@DELETE-FILE HELLO:LIST
+@DELETE-FILE HELLO:BRF
+@PLANC
+PROG-FILE "HELLO"
+COMPILE HELLO:PLNC,"HELLO:LIST","HELLO"
+EXIT
+@HELLO
+```
+
+Run with: `@MODE DO-BUILD:MODE,,`
+
+**Method 3: Separate compile and link**
+
+```bash
+@PLANC
+COMPILE HELLO:PLNC,"HELLO:LIST","HELLO"
+EXIT
+@NRL
+PROG-FILE "HELLO"
+LOAD HELLO
+LOAD PLANC-1BANK
+EXIT
+@HELLO
 ```
 
 **Expected output:**
@@ -182,31 +240,66 @@ HELLO FROM PLANC!
 
 ### 5.1 Hello World (FORTRAN)
 
-**File:** `HELLO-FTN:FTN`
+**File:** `HELLO:SYMB` (must have CRLF line endings and even parity)
+
+Source files use `:SYMB` extension (default) or `:FORT`.
 
 ```fortran
-C     Simple Hello World in FORTRAN
-      
       PROGRAM HELLO
-      WRITE(6,100)
-  100 FORMAT(' HELLO FROM FORTRAN!')
-      STOP
+      WRITE(1, 10)
+   10 FORMAT(1X, 'HELLO FROM FORTRAN!')
       END
 ```
 
+**FORTRAN syntax notes:**
+- Fixed-form: column 1 = `C` for comment, columns 1-5 = label, column 6 = continuation, 7-72 = code
+- Unit 1 = user's terminal on ND-100 (NOT unit 6)
+- `1X` = one blank for carriage control (advance one line)
+- `END` terminates the program unit
+
 ### 5.2 Build and Run
 
+**Verified on ND-100, compiler 203053F02.**
+
 ```bash
-@FTN                         # Start FORTRAN compiler
-HELLO-FTN:FTN
+@FORT
+SEP OFF
+COMP HELLO,,"HELLO"
 EXIT
-@NRL                         # Start linker
-*PROG-FILE "HELLO-FTN"
-*LOAD HELLO-FTN
-*LOAD FTNLIB                 # FORTRAN runtime library
-*EXIT
-@HELLO-FTN                   # Run program
+@BRF-LINKER
+PROG-FILE "HELLO"
+LOAD HELLO
+LOAD FORT-1B
+EXIT
+@HELLO
 ```
+
+- `@FORT` -- ANSI 77 FORTRAN compiler (203053F02)
+- `SEP OFF` -- 1-bank mode (SEPARATE-DATA OFF)
+- `COMP source,,"object"` -- source unquoted (exists), object quoted (created)
+- `@BRF-LINKER` -- the ND BRF linker (not NRL)
+- `LOAD FORT-1B` -- FORTRAN 1-bank runtime (must be loaded last)
+
+**Automated build (MODE file):**
+
+File: `DO-BUILD:MODE`
+
+```mode
+@DELETE-FILE HELLO:PROG
+@DELETE-FILE HELLO:BRF
+@FORT
+SEP OFF
+COMP HELLO,,"HELLO"
+EXIT
+@BRF-LINKER
+PROG-FILE "HELLO"
+LOAD HELLO
+LOAD FORT-1B
+EXIT
+@HELLO
+```
+
+Run with: `@MODE DO-BUILD:MODE,,`
 
 **Expected output:**
 ```
@@ -322,8 +415,8 @@ HELLO FROM BASIC!
 | **NPL** | `:NPL` | `@NPL` | `:MAC` → `:BRF` | Yes | No |
 | **MAC** | `:MAC` | `@MAC` | `:BRF` | Yes | No |
 | **C** | `:C` | `@CC-100` | `:BRF` | Yes | Yes (CC-2BANK) |
-| **PLANC** | `:PLANC` | `@PLANC-100-C` | `:BRF` | Yes | Maybe |
-| **FORTRAN** | `:FTN` | `@FTN` | `:BRF` | Yes | Yes (FTNLIB) |
+| **PLANC** | `:SYMB` or `:PLNC` | `@PLANC-100` | `:BRF` | Yes (or use `$PROG-FILE`) | Yes (PLANC-1BANK or PLANC-2BANK) |
+| **FORTRAN** | `:SYMB` or `:FORT` | `@FORT` | `:BRF` | Yes (BRF-LINKER) | Yes (FORT-1B or FORT-2B) |
 | **PASCAL** | `:PAS` | `@PASCAL` | `:BRF` | Yes | Yes (PASCALLIB) |
 | **COBOL** | `:COB` | `@COBOL` | `:BRF` | Yes | Yes (COBOLLIB) |
 | **BASIC** | `:BAS` | `@BASIC` | Interpreted | No | Built-in |

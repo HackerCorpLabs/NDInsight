@@ -1,0 +1,40 @@
+@cc ================================================
+@cc BUILD-PLANC-2BANK - PLANC 2-Bank Build for ND-100
+@cc ================================================
+@cc
+@cc Usage: @MODE BUILD-PLANC-2BANK <program-name>,,
+@cc
+@cc Source file: <program-name>:PLNC  (must exist)
+@cc Output file: <program-name>:PROG  (created)
+@cc Object file: <program-name>:BRF   (created)
+@cc Listing:     <program-name>:LIST  (created)
+@cc
+@cc 2-bank mode: separate code and data areas
+@cc Required for programs exceeding 64KW
+@cc Automatically loads PLANC-2BANK runtime
+@cc
+@cc Quoting rules:
+@cc   No quotes  = file must already exist (reading)
+@cc   "quotes"   = create file if it does not exist
+@cc
+@cc For 1-bank builds use: @MODE BUILD-PLANC
+@cc ================================================
+
+@cc Cleaning old artifacts...
+@DELETE-FILE %1:PROG
+@DELETE-FILE %1:LIST
+@DELETE-FILE %1:BRF
+
+@cc Compiling %1 (2-bank mode) ...
+
+@PLANC
+SEPARATE-DATA ON
+PROG-FILE "%1"
+COMPILE %1:PLNC,"%1:LIST","%1"
+EXIT
+
+@cc ================================================
+@cc Build complete: %1:PROG (2-bank)
+@cc Listing in:    %1:LIST
+@cc Run with:      @%1
+@cc ================================================
