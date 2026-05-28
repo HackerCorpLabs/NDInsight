@@ -214,21 +214,31 @@ each receive:
    memory*; reusing one DCB for both directions without draining makes the
    transmitter die after ~3 frames. **Keep TX and RX DCBs in separate memory
    where you can** (the DMA engine writes back to both).
-4. **Pace the requests.** A request frame that arrives while the ND is mid
-   drain-and-re-arm (RX not yet armed) is dropped. ~120 ms between
-   request/response turns is enough on `nd100x`.
+4. **Pace the requests** (or double-buffer RX). A request frame that arrives
+   while the ND is mid drain-and-re-arm — RX not yet armed — is dropped: it is
+   buffered in the emulator's TCP ring but discarded at the DMA receiver
+   because no empty RX DCB is loaded (`rxDCB == NULL`). The pacing floor is
+   only **~2 ms** (0 ms drops the follow-up); ~10 ms is a safe margin and
+   fetches the page in ~0.1 s. To remove pacing entirely, **keep two or more
+   empty RX DCBs armed** so a fresh buffer always catches the next frame while
+   the previous one is being processed — the DMA DCB list supports this and
+   SINTRAN's `XMSG-HDLC-TEST` arms four.
 
 The 4-word transmit DMA descriptor this builds on — `LKEY` = `FSERM`
 (`002003₈`, "block to be transmitted"), `LBYTC` = byte count, then the data
 address — is disassembled in the
 [XSSDATA transmit deep-dive](../deep-dives/Deep-Dive-XSSDATA.md).
 
-> **`MON 117` notes for on-demand reads.** Reads start at a block boundary;
-> block size defaults to 512 bytes; `BlockNo = -1` reads the next block. The
-> byte count is in **bytes** (octal `166` = 118, `1000` = 512) and is read
-> low-word-first. `MON 76 SetBlockSize` (param-list form) returned error
-> `133₈` for every size we tried, so to read sub-512-byte chunks we read the
-> 512-byte block and sub-chunk it in memory rather than shrinking the block.
+> **`MON 117` / `MON 76` notes for on-demand reads.** `MON 117` reads start at
+> a block boundary; the block size defaults to 512 bytes; `BlockNo = -1` reads
+> the next block; the byte count is in **bytes**, low-word-first (octal `166` =
+> 118, `1000` = 512). To read sub-512-byte chunks, set the block size with
+> **`MON 76 SetBlockSize`** — its ND-100 MAC form is **register-based, not a
+> parameter list**: `LDT` file number, `LDA` block size **in words**, `MON 76`,
+> skip-on-success (a `JMP` after it is the error path). Passing a parameter-list
+> address instead returns error `133₈`. With the block size set to one chunk
+> (e.g. 59 words = 118 bytes) each `MON 117` reads exactly one contiguous chunk,
+> so the server needs only a single ~60-word chunk buffer — no page cache.
 
 ---
 

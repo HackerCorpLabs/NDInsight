@@ -92,12 +92,15 @@ the full page, byte-exact), is:
    the buffer for receive. The DMA writes completion status back into the DCB;
    without the drain the transmitter dies after ~3 frames (a TX/RX write-back
    clash on a shared DCB — keep TX and RX DCB memory separate where you can).
-3. **Pace the requests.** A request frame sent *immediately* after a response
-   is dropped (the ND is mid drain-and-re-arm, RX not yet armed). The host
-   waits ~120 ms between chunk-requests.
-4. **Read on demand.** Open the file once (`MON 50`), and per request
-   `MON 117`-read one disk block into a single block buffer — no full-file
-   cache. The host sizes each request to the response chunk and reassembles.
+3. **Pace the requests (or double-buffer RX).** A request frame sent
+   *immediately* after a response is dropped (the ND is mid drain-and-re-arm,
+   RX not yet armed). The pacing floor is only ~2 ms; ~10 ms is a safe margin.
+   To drop pacing entirely, keep two or more RX DCBs armed so a fresh buffer
+   always catches the next frame.
+4. **Read on demand.** Open the file once (`MON 50`), set the block size to one
+   chunk (`MON 76`, register form: `T`=file, `A`=size in words), and per
+   request `MON 117`-read the next chunk into a single ~60-word buffer — no
+   full-file cache. The host sizes each request to the chunk and reassembles.
 
 The full recipe, the transmit DCB format it relies on, and the gotchas are in
 [HDLC Buffer-Pool and Emulator Usage](../../SINTRAN/Devices/HDLC/implementation/Buffer-Pool-and-Emulator-Usage.md#restarting-transmit-after-the-tx-list-drains-incl-after-a-receive).
@@ -105,12 +108,12 @@ The full recipe, the transmit DCB format it relies on, and the gotchas are in
 | Model | Status | RAM footprint | Notes |
 |-------|--------|---------------|-------|
 | Broadcast (cache all, stream) | ✅ verified | all files resident | simplest; transmitter never stops, wire always busy |
-| Request/response (read on demand) | ✅ verified | **one disk block (~512 B) at a time** | scales past RAM; ND program ~4× smaller (no cache); needs the TX-drain + request pacing above |
+| Request/response (read on demand) | ✅ verified | **one ~118 B chunk at a time** | scales past RAM; ND program ~6× smaller (no cache); needs the TX-drain + light request pacing above |
 
 On a 2 MB ND-110 the request/response model matters for *scale* — you can't
-cache an unbounded site. The on-demand server holds only one 512-byte disk
-block regardless of total site size, and its ND-side program is roughly a
-quarter the size of the cache-everything build.
+cache an unbounded site. The on-demand server holds only one disk chunk
+regardless of total site size, and its ND-side program is roughly a
+sixth the size of the cache-everything build.
 
 ## Lessons worth carrying forward
 
@@ -133,8 +136,12 @@ quarter the size of the cache-everything build.
 - **Drain each send with an `FRCV` on the output LDN** — lets the DMA finish
   writing status back into the DCB before you reuse it; without it the
   transmitter stalls after a few frames.
-- **Pace request/response** — the ND needs a beat (~120 ms) between requests to
-  drain TX and re-arm RX; a too-fast follow-up request frame is dropped.
+- **Pace request/response lightly, or double-buffer RX** — the ND needs a beat
+  (~2 ms floor, ~10 ms safe) between requests to drain TX and re-arm RX; a
+  too-fast follow-up is dropped. Keeping 2+ RX DCBs armed removes the need.
+- **`MON 76 SetBlockSize` is register-based** (`T`=file, `A`=size in *words*),
+  not a parameter list — passing a list address returns error `133₈`. Set the
+  block size to one chunk and each `MON 117` reads exactly one chunk.
 
 ---
 
