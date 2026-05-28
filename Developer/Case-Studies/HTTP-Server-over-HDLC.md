@@ -65,34 +65,52 @@ Three layers:
   of the bytes the ND produced (one HTML page, another page, the GIF), setting
   the right content type.
 
-## Key design decision: broadcast vs request/response
+## Two working designs: broadcast and request/response
 
-The natural design is request/response: the ND receives the HTTP request,
-reads the requested file, and replies. In our first attempt the reply didn't
-reach the wire — after the receive, a plain send transmitted nothing. The
-cause is a **missing transmitter restart**: a transmitter that has gone idle
-must be explicitly restarted (reload DCB + retrigger) before it sends again;
-TX and RX are independent modules. This restart path is **verified to work
-in the emulator** — SINTRAN's own `XMSG-HDLC-TEST` echo mode does
-receive-then-transmit between two relay-connected nd100x instances (5/5
-frames echoed, 0 errors). So request/response is achievable; our broadcast
-server simply never stops the transmitter, while a request/response server
-must do the restart after each receive. See
+Both designs are implemented and verified on `nd100x`.
+
+**Broadcast** (the first to ship): the ND continuously transmits all of its
+cached files; the host bridge captures one full cycle and serves URLs from
+that capture. The transmitter never goes idle, so it sidesteps the
+restart-after-receive problem entirely — at the cost of caching every file in
+RAM and keeping the wire always busy.
+
+**Request/response** (now working, and the design that scales past RAM): the
+ND receives an HTTP request, reads the requested data **from disk on demand**,
+and replies. Our first attempt stalled — after the receive, a plain send
+transmitted nothing — because the transmitter had gone idle and a bare `FSND`
+did not restart it. The working recipe, verified end-to-end (a browser fetches
+the full page, byte-exact), is:
+
+1. **Transmit the buffer that just received.** After a real DMA receive the
+   only DCB the driver will transmit is the one whose receive just completed.
+   Overwrite its payload with your response bytes but **keep the RX-set
+   `USize`** (the receive wrote the byte count into the shared size cell) — the
+   driver validates the transmit length against that count, so the response
+   frame can be at most as large as the request frame.
+2. **Drain the transmit with an `FRCV` on the *output* LDN** before re-arming
+   the buffer for receive. The DMA writes completion status back into the DCB;
+   without the drain the transmitter dies after ~3 frames (a TX/RX write-back
+   clash on a shared DCB — keep TX and RX DCB memory separate where you can).
+3. **Pace the requests.** A request frame sent *immediately* after a response
+   is dropped (the ND is mid drain-and-re-arm, RX not yet armed). The host
+   waits ~120 ms between chunk-requests.
+4. **Read on demand.** Open the file once (`MON 50`), and per request
+   `MON 117`-read one disk block into a single block buffer — no full-file
+   cache. The host sizes each request to the response chunk and reassembles.
+
+The full recipe, the transmit DCB format it relies on, and the gotchas are in
 [HDLC Buffer-Pool and Emulator Usage](../../SINTRAN/Devices/HDLC/implementation/Buffer-Pool-and-Emulator-Usage.md#restarting-transmit-after-the-tx-list-drains-incl-after-a-receive).
-
-So the shipping design is **broadcast**: the ND continuously transmits all of
-its cached files (the transmitter never goes idle, so no restart is needed);
-the host bridge captures one full cycle and serves URLs from that capture.
-Trade-offs:
 
 | Model | Status | RAM footprint | Notes |
 |-------|--------|---------------|-------|
-| Broadcast (cache all, stream) | ✅ shipping | all files resident | simplest; transmitter never stops, wire always busy |
-| Request/response (read on demand) | achievable — needs per-receive TX restart (verified via XMSG-HDLC-TEST) | one file at a time | the goal; scales past RAM |
+| Broadcast (cache all, stream) | ✅ verified | all files resident | simplest; transmitter never stops, wire always busy |
+| Request/response (read on demand) | ✅ verified | **one disk block (~512 B) at a time** | scales past RAM; ND program ~4× smaller (no cache); needs the TX-drain + request pacing above |
 
-On a 2 MB ND-110 the request/response model also matters for *scale* (you
-can't cache an unbounded site), so it remains the target design — implemented
-with a proper transmitter restart after each receive.
+On a 2 MB ND-110 the request/response model matters for *scale* — you can't
+cache an unbounded site. The on-demand server holds only one 512-byte disk
+block regardless of total site size, and its ND-side program is roughly a
+quarter the size of the cache-everything build.
 
 ## Lessons worth carrying forward
 
@@ -109,6 +127,14 @@ with a proper transmitter restart after each receive.
 - **A host bridge is a legitimate architecture** — pushing the HTTP/routing
   complexity to the host keeps the ND-side MAC program small and within the
   device's real constraints.
+- **After a receive, transmit the buffer that received** — a fresh standalone
+  TX DCB won't start the transmitter post-receive; the just-completed RX DCB
+  will. Refill its payload, keep the RX-set size. (Buffer doc, RX→TX section.)
+- **Drain each send with an `FRCV` on the output LDN** — lets the DMA finish
+  writing status back into the DCB before you reuse it; without it the
+  transmitter stalls after a few frames.
+- **Pace request/response** — the ND needs a beat (~120 ms) between requests to
+  drain TX and re-arm RX; a too-fast follow-up request frame is dropped.
 
 ---
 
@@ -121,7 +147,10 @@ with a proper transmitter restart after each receive.
 
 ---
 
-*Built and verified on SINTRAN III VSX/500 L under nd100x. Transmit-after-
-receive is a transmitter-restart requirement (reload + retrigger an idled
-TX), verified working in the emulator via XMSG-HDLC-TEST echo mode between
-two relay-connected instances — not an emulator limitation.*
+*Built and verified on SINTRAN III VSX/500 L under nd100x. Both the broadcast
+and the on-demand request/response servers were run end-to-end: a browser
+fetched the page byte-exact. Transmit-after-receive is a transmitter-restart
+requirement, not an emulator limitation — first confirmed via SINTRAN's own
+XMSG-HDLC-TEST echo mode between two relay-connected instances, then
+implemented in our server by transmitting the just-received DCB and draining
+each send with an output-side `FRCV`.*

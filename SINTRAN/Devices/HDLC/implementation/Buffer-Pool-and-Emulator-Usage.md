@@ -189,11 +189,46 @@ each frame and transmitted it back, and the **send end** (`SEND 5`) reported
 
 A naive request/response server of ours *did* stall on the RX→TX turn — but
 the cause was on our side: after the receive we issued a bare send **without
-the explicit transmitter restart** (reload DCB + retrigger) that `ECHO-MODE`
-performs. A broadcast design never stops the transmitter and so avoids the
-issue; **a request/response design must restart the transmitter after each
-receive**, exactly as XMSG-HDLC-TEST's echo mode does (and which the
-emulator handles correctly).
+the explicit transmitter restart** that `ECHO-MODE` performs. A broadcast
+design never stops the transmitter and so avoids the issue.
+
+#### The verified request/response recipe
+
+**[VERIFIED-nd100x]** A request/response server *does* work; a browser fetched
+a full page byte-exact over it. The recipe that restarts the transmitter after
+each receive:
+
+1. **Transmit the DCB whose receive just completed.** After a real DMA receive
+   the driver will *only* start the transmitter for the just-received DCB — a
+   fresh standalone TX DCB produces no transmit at all. Overwrite that DCB's
+   payload (from word 4, preserving the address/control word) with your
+   response bytes.
+2. **Keep the RX-set transmit size.** `FRCV` writes the received byte count
+   into the shared `USize` cell; reuse it unchanged on the `FSND`. The driver
+   validates the transmit length against that count — forcing a larger `USize`
+   produces *no* `TX_START`. **Consequence:** one response frame can be at most
+   the size of the request frame, so the host sizes each request to the chunk
+   it wants and reassembles a larger page from several request/response turns.
+3. **Drain the transmit with an `FRCV` on the *output* LDN** before re-arming
+   the DCB for receive. The DMA writes send/receive status back *into the DCB
+   memory*; reusing one DCB for both directions without draining makes the
+   transmitter die after ~3 frames. **Keep TX and RX DCBs in separate memory
+   where you can** (the DMA engine writes back to both).
+4. **Pace the requests.** A request frame that arrives while the ND is mid
+   drain-and-re-arm (RX not yet armed) is dropped. ~120 ms between
+   request/response turns is enough on `nd100x`.
+
+The 4-word transmit DMA descriptor this builds on — `LKEY` = `FSERM`
+(`002003₈`, "block to be transmitted"), `LBYTC` = byte count, then the data
+address — is disassembled in the
+[XSSDATA transmit deep-dive](../deep-dives/Deep-Dive-XSSDATA.md).
+
+> **`MON 117` notes for on-demand reads.** Reads start at a block boundary;
+> block size defaults to 512 bytes; `BlockNo = -1` reads the next block. The
+> byte count is in **bytes** (octal `166` = 118, `1000` = 512) and is read
+> low-word-first. `MON 76 SetBlockSize` (param-list form) returned error
+> `133₈` for every size we tried, so to read sub-512-byte chunks we read the
+> 512-byte block and sub-chunk it in memory rather than shrinking the block.
 
 ---
 
