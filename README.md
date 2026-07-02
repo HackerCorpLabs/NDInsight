@@ -44,7 +44,7 @@ NDInsight/
     ├── Release-Documentation/   ← SINTRAN III release notes (versions J-N)
     ├── SINTRAN Structures/      ← System structures and data analysis
     ├── TAD/                     ← TAD protocol analysis
-    └── XMSG-COMMAND-REFERENCE.md ← XMSG network management reference
+    └── XMSG/                    ← XMSG message system: DOC/ (protocol, API, commands), SRC/ (C# library), constants
 ```
 
 ---

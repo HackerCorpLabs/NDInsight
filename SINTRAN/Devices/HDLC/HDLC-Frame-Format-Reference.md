@@ -1,9 +1,11 @@
 # HDLC Frame Format Reference (SINTRAN III on ND-100)
 
-**Scope:** Wire-level decoding reference for the HDLC frames used by SINTRAN III on
-Norsk Data ND-100 systems. Covers the bit-stuffed flag layer, the LAPB address /
-control / FCS framing, and the X.25 packet layer that the COSMOS network
-software stacks on top.
+**Scope:** Wire-level decoding reference for the HDLC **hardware / framing** layer
+used by SINTRAN III on Norsk Data ND-100 systems — the bit-stuffed flag layer, the
+LAPB address / control / FCS framing, and the COM5025 controller / DMA / DCB
+handling. The content *inside* the I-frame information field (the SINTRAN header
+and the XMSG protocol above it) is documented separately in
+[XMSG-PROTOCOL.md](../../XMSG/DOC/XMSG-PROTOCOL.md); this file does not duplicate it.
 
 **Evidence policy:** every section is tagged
 - **[VERIFIED]** — directly read from NPL source / symbol tables / hardware docs
@@ -208,16 +210,24 @@ The control byte distinguishes the three frame classes by its low bits.
 ```
  7 6 5 4 3 2 1 0
 +-+-+-+-+-+-+-+-+
-|N(S)  |P|N(R)|0|
+|N(R)  |P|N(S)|0|
 +-+-+-+-+-+-+-+-+
-   bits 7-5   N(S) — sender's send sequence (mod 8)
+   bits 7-5   N(R) — sender's expected receive sequence (mod 8)
    bit 4      P/F  — Poll/Final
-   bits 3-1   N(R) — sender's expected receive sequence (mod 8)
+   bits 3-1   N(S) — sender's send sequence (mod 8)
    bit 0      0    — I-frame discriminator
 ```
 
-**Modulo:** confirmed **modulo-8** (3-bit counters) by the X.25 GFI byte
-`0x21` observed in capture (`Complete_Packet_Type_Analysis.md:77–80`).
+**Modulo:** confirmed **modulo-8** (3-bit counters). [VERIFIED against captured
+I-frames: reading N(S) from bits 1-3 gives a strictly sequential send counter
+(e.g. control `0x66,0xA8,0xAA,0xEC,0x0E` → N(S)=3,4,5,6,7); the reversed reading
+does not.]
+
+> **Correction (2026-07).** Earlier revisions of this file placed N(S) in bits
+> 5-7 and N(R) in bits 1-3 — that was backwards. Standard LAPB and the captured
+> traffic both put **N(S) in bits 1-3, N(R) in bits 5-7**. The `0x21` byte once
+> read here as an "X.25 GFI" is in fact SINTRAN header Marker 1 (see Section 6 and
+> [XMSG-PROTOCOL.md](../../XMSG/DOC/XMSG-PROTOCOL.md)).
 
 ### 5.2 S-frame control byte
 
@@ -235,9 +245,10 @@ The control byte distinguishes the three frame classes by its low bits.
 | REJ   |    10    |   0x09   | Reject (go-back-N)      |
 | SREJ  |    11    |   0x0D   | Selective Reject        |
 
-> **Status:** S-frames are part of the protocol but **not seen in current
-> SINTRAN captures**. Flow control is handled at the buffer level via the
-> EMTY bit (`0x0800`) in RRTS.
+> **Status:** RR supervisory frames **are** present in the captured traffic
+> (periodic keepalives that carry the 2-byte sending node number; see
+> [XMSG-PROTOCOL.md](../../XMSG/DOC/XMSG-PROTOCOL.md) Section 3). RNR / REJ / SREJ have not been
+> observed. Buffer-level flow control still uses the EMTY bit (`0x0800`) in RRTS.
 
 ### 5.3 U-frame control byte  [STANDARD]
 
@@ -263,60 +274,31 @@ All values above are from the LAPB standard. None of these U-frame opcodes are
 defined as named symbols in the L07 / M06 symbol tables, and the assembly that
 writes them into transmit buffers is not visible in `MP-P2-HDLC-DRIV.NPL`.
 
-### 5.4 I-frame decoding rule  [STANDARD]
+### 5.4 I-frame decoding rule  [VERIFIED]
 
-`N(S) = (ctl >> 5) & 7`, `N(R) = (ctl >> 1) & 7`, `P/F = (ctl >> 4) & 1`.
+`N(S) = (ctl >> 1) & 7`, `N(R) = (ctl >> 5) & 7`, `P/F = (ctl >> 4) & 1`.
 
 ---
 
-## 6. Information Field — X.25 Packet Layer  [STANDARD]
+## 6. Information Field — SINTRAN Header  [VERIFIED]
 
-Inside an I-frame, the Information field is an X.25 PLP packet.
+Inside an I-frame, the Information field is **not** a generic X.25 PLP packet — it
+is the **13-byte SINTRAN header** (Marker `0x21`, Marker 2 `0x13` normal / `0x12`
+relay, packet type, packet subtype, dest / src node, Flags 1, Flags 2, protocol
+id), followed by the sub-protocol payload (ROUTING / TAD / DC / DB / PAD and the
+XMSG sub-header).
 
-### 6.1 PLP header (first 3 bytes)
+The full layout, the packet-subtype meanings (including the `0x03` ACK and `0x0E`
+data frames), the XMSG sub-header, and every sub-protocol are documented in
+[XMSG-PROTOCOL.md](../../XMSG/DOC/XMSG-PROTOCOL.md) — this hardware reference does not duplicate
+them.
 
-```
- byte 0   byte 1   byte 2 ...
-+--------+--------+----------+
-|  GFI   |  LCN   |  type    |
-+--------+--------+----------+
-```
-
-**Byte 0 — GFI (General Format Identifier):**
-```
- 7 6 5 4 3 2 1 0
-+-+-+-+-+-+-+-+-+
-|Q|D|S S|LCG    |
-+-+-+-+-+-+-+-+-+
-   bit 7    Q  — qualified data
-   bit 6    D  — delivery confirmation
-   bits 5-4 SS — sequence modulo: 01=mod8, 10=mod128
-   bits 3-0 LCG — Logical Channel Group
-```
-
-**Byte 1 — LCN:** Logical Channel Number within the group. Combined with LCG it
-forms the Virtual Circuit identifier. Range 0–255.
-
-**Byte 2 — Packet type:**
-
-| Hex  | Type           |
-|-----:|----------------|
-| 0x00 | DATA           |
-| 0x0B | CALL REQUEST   |
-| 0x0F | CALL ACCEPTED  |
-| 0x13 | CLEAR REQUEST  |
-| 0x17 | CLEAR CONFIRM  |
-| 0x1B | RESET REQUEST  |
-| 0x1F | RESET CONFIRM  |
-| 0x23 | INTERRUPT      |
-| 0xFB | RESTART REQ    |
-
-(Subset; full list in any X.25 reference.)
-
-The actual GFI/LCN/type values used by SINTRAN COSMOS are **not documented**
-in any source we have. To extract them, look for I-frame builders that fill the
-information field — these will live in whichever NPL file implements the X.25
-packet layer above the HDLC driver.
+> **Historical note (X.25 lineage).** The first two header bytes `0x21 0x13`
+> resemble an X.25 Packet-Layer GFI (`0x21`) + LCN, and earlier revisions of this
+> file decoded the information field as an X.25 PLP packet (GFI / LCN / packet-
+> type). FCS-valid captured traffic shows ND treats them as **fixed SINTRAN marker
+> bytes**, so the X.25 reading is a lineage observation, not the actual framing.
+> Decode the information field with XMSG-PROTOCOL.md.
 
 ---
 
@@ -584,9 +566,10 @@ When you see a captured byte stream, work in this order:
 5. The second byte is the **Control**:
    - low bit `0` → I-frame: `N(S) = (ctl>>5) & 7`, `N(R) = (ctl>>1) & 7`, `P/F = (ctl>>4) & 1`
    - low two bits `01` → S-frame: type from bits 5–4 (RR/RNR/REJ/SREJ), `N(R) = (ctl>>5) & 7`
-   - low two bits `11` → U-frame: match against the table in §5.3
-6. For an I-frame, byte 3 is **GFI**, byte 4 is **LCN**, byte 5 is the X.25
-   **packet type** — then the user payload (XMSG / TAD message) starts.
+   - low two bits `11` → U-frame: match against the table in Section 5.3
+6. For an I-frame, the information field is the 13-byte **SINTRAN header**
+   (Marker `0x21 0x13`, packet subtype, dest / src node, protocol id) followed by
+   the sub-protocol payload — decode it with [XMSG-PROTOCOL.md](../../XMSG/DOC/XMSG-PROTOCOL.md).
 7. The frame is valid only if the chip's RRTS reported neither
    `SILFO (0x8000)` nor a CRC error.
 
@@ -611,8 +594,8 @@ When you see a captured byte stream, work in this order:
 
 ## Related Documents
 
-- `XMSG-Protocol-Analysis.md` — XMSG layer that rides on top of these frames
-- `TAD/TAD-Message-Formats.md` — TAD terminal protocol carried inside XMSG messages
+- [XMSG-PROTOCOL.md](../../XMSG/DOC/XMSG-PROTOCOL.md) — the XMSG protocol and sub-protocols carried in the I-frame information field (the layer above these frames)
+- [TAD/TAD-Message-Formats.md](../../TAD/TAD-Message-Formats.md) — TAD terminal protocol carried inside XMSG messages
 - `Devices/HDLC/learning/03-Hardware-Overview.md` — COM5025 chip details
 - `Devices/HDLC/reference/Register-Reference.md` — Full IOX register reference
 - `Devices/HDLC/reference/Interrupt-Reference.md` — Annotated interrupt dispatch

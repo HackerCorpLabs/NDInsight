@@ -179,16 +179,22 @@ The structure files provide essential reference for:
 
 ---
 
-## XMSG Network Management
+## XMSG (message system, protocol, API and code)
 
-**Top-Level Reference:** [XMSG-COMMAND-REFERENCE.md](XMSG-COMMAND-REFERENCE.md)
+All XMSG material now lives in one hub: **[XMSG/](XMSG/)** — start at
+[XMSG/README.md](XMSG/README.md).
 
-Complete reference for the XMSG-COMMAND utility (COSMOS/XMSG network management):
-- Port and task monitoring
-- Network status commands
-- Connection management
-- Debugging and tracing
-- Statistics and utilization
+| Area | Location |
+|------|----------|
+| Wire-format reference (HDLC / SINTRAN header / sub-protocols) | [XMSG/DOC/XMSG-PROTOCOL.md](XMSG/DOC/XMSG-PROTOCOL.md) |
+| Programming / API reference (MON 200B, XROUT letter, constants) | [XMSG/DOC/XMSG-API.md](XMSG/DOC/XMSG-API.md) |
+| Operator utility (XMSG-COMMAND) | [XMSG/DOC/XMSG-COMMAND-REFERENCE.md](XMSG/DOC/XMSG-COMMAND-REFERENCE.md) |
+| Official ND constants + machine-readable JSON | [XMSG/XMSG-PL-VALUES-M.INCL](XMSG/XMSG-PL-VALUES-M.INCL), [XMSG/xmsg-constants.json](XMSG/xmsg-constants.json) |
+| C# protocol library + tests | [XMSG/SRC/](XMSG/SRC/) (see [XMSG/SRC/README.md](XMSG/SRC/README.md)) |
+| Superseded / historical notes | [XMSG/OLD/](XMSG/OLD/) |
+
+The HDLC hardware/framing layer beneath XMSG is documented separately in
+[HDLC-Frame-Format-Reference.md](Devices/HDLC/HDLC-Frame-Format-Reference.md).
 
 **Cross-Reference:** See also [NPL-SOURCE/XMSG-SYMBOL-LIST.SYMB.TXT](NPL-SOURCE/) for XMSG message system symbols.
 
@@ -352,7 +358,8 @@ Located in [Emulator/](Emulator/) folder:
 → See [SINTRAN Structures/](SINTRAN%20Structures/) for kernel structures, device numbers, and memory layouts
 
 **Network Management:**
-→ See [XMSG-COMMAND-REFERENCE.md](XMSG-COMMAND-REFERENCE.md) for COSMOS/XMSG utilities
+→ See [XMSG/](XMSG/) for the full XMSG hub (protocol, API, C# library), and
+[XMSG/DOC/XMSG-COMMAND-REFERENCE.md](XMSG/DOC/XMSG-COMMAND-REFERENCE.md) for the COSMOS/XMSG operator utility
 
 **Protocol Analysis:**
 → See [TAD/](TAD/) folder

@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Xmsg.Protocol.Tests/Xmsg.Protocol.Tests.csproj" />
+  <Project Path="Xmsg.Protocol/Xmsg.Protocol.csproj" />
+  <Project Path="Xmsg.Hdlc/Xmsg.Hdlc.csproj" />
+  <Project Path="Xmsg.Diagnostics/Xmsg.Diagnostics.csproj" />
+</Solution>

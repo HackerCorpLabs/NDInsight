@@ -95,7 +95,7 @@ python scripts/extract-headers.py
 - `SINTRAN/OS/20-MPM-VS-LOCAL-MEMORY-DETECTION.md` - MPM/MFbus/Octobus hardware configuration
 - `SINTRAN/SINTRAN Structures/SINTRAN-STRUCTURES.md` - Complete kernel data structures reference
 - `SINTRAN/Release-Documentation/SINTRAN-III-Release-History.md` - Version evolution timeline
-- `SINTRAN/XMSG-COMMAND-REFERENCE.md` - XMSG network management utilities
+- `SINTRAN/XMSG/` - XMSG message system hub: `DOC/` (wire protocol, MON 200B API, operator commands), `SRC/` (C# protocol library + tests), official constants + `xmsg-constants.json`
 - `SINTRAN/Emulator/ND500-EMULATION-COMPLETE.cs` - Production C# emulator code
 - `Reference-Manuals/ND-860228-2-EN SINTRAN III Monitor Calls.md` - Monitor calls reference
 - `MERMAID_COLOR_STANDARDS.md` - WCAG 2.1 AA compliant diagram standards

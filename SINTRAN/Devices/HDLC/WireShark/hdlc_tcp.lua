@@ -41,6 +41,21 @@ local vs_proto = {
     [0xDE] = "ROUTING",
 }
 
+-- SINTRAN header offset-3 "Packet Subtype" (message-kind) values.
+-- VERIFIED against all 13 X25Emulator pcaps (1947 FCS-valid frames): only these
+-- four values ever occur, and they are INDEPENDENT of frame length (subtype 0x0E
+-- appears on frames from 34 to 292 bytes) — so offset 3 is a message kind, NOT a
+-- length. (The old README label "Packet Length" was wrong; corrected here.)
+--   0x03 short ACK / flow-control (2nd most common frame, 602 occurrences)
+--   0x0E data message (601)
+--   0x13 reachability reply, 0x19 reachability request (both carry Flags1=0xFFFF)
+local vs_subtype = {
+    [0x03] = "ACK / flow-control",
+    [0x0E] = "Data message",
+    [0x13] = "Reachability reply",
+    [0x19] = "Reachability request",
+}
+
 -- Opcode values verified against SINTRAN III symbol tables K03/L07/M06
 -- Source: TAD-Message-Formats.md (NPL source + symbol cross-check)
 local vs_tad_type = {
@@ -157,39 +172,56 @@ local vs_dc_cmd = {
     [0x00060000] = "TAD session ctrl-msg (rare/observed once)",
 }
 
--- XM routing-control message types — VERIFIED from L07 XMSG-SYMBOL-LIST.SYMB.TXT.
--- These symbol values appear as the "field ID" byte at offset 0 of each 4-byte
--- record in LI ROUTING request/response payloads. A response is a sequence of
--- four XM routing messages (XMTNO + XMROU + XMTHI + XMTRE) describing one
--- routing-table entry. A request is a single XMTNO message naming the node
--- whose entry the client wants.
-local vs_xm_msg_type = {
-    [1] = "XMTNO (node info / topology)",
-    [2] = "XMROU (routing-table entry)",
-    [3] = "XMTHI (hop / path-cost)",
-    [4] = "XMTRE (spanning-tree record)",
-    [5] = "XMKIK (keep-alive heartbeat)",
-    [6] = "XMTPS (time/clock sync)",
+-- LI ROUTING trailer records = the reply of XROUT service XSGSY ("get routing
+-- info for system N"), in the ND standard-message parameter-block format:
+-- each 4-byte record is [param-number][length=2][value-hi][value-lo].
+--
+-- CORRECTION (2026-07): earlier revisions labelled these records
+-- XMTNO/XMROU/XMTHI/XMTRE and decoded params 2 and 4 as bitfields. That was a
+-- MISATTRIBUTION. XMTNO..XMTRE are actually the XFRCV *message-type* return
+-- codes (1=Normal, 2=Routed, 3=High-priority, 4=Return message) and have nothing
+-- to do with these routing records — they merely share the values 1..4. The
+-- records are XSGSY reply parameters #1..#4, and parameter 2 (connection type) is
+-- a 0..4 ENUM, not a bitfield. Source: COSMOS Programmer Guide ND-60.164 (XSGSY)
+-- and XMSG-API.md section 4.3 / XMSG-PROTOCOL.md.
+local vs_xsgsy_param = {
+    [1] = "System number (first >= requested; 0 = none)",
+    [2] = "Connection type",
+    [3] = "Extra info (link idx / system / subaddr)",
+    [4] = "Network info (hops + WANs)",
 }
 
--- XMROU value interpreted as route-type bitfield (verified against text output
--- of LI ROUTING,TREE on a known topology with 11 routing entries):
---   bit 0 (0x01) = DIRECT  (local link, immediate neighbour)
---   bit 1 (0x02) = REMOTE  (route uses a next-hop)
---   bit 2 (0x04) = SELF    (this entry describes the queried node itself)
-local XMROU_BITS = {
-    {0x01, "DIRECT"},
-    {0x02, "REMOTE"},
-    {0x04, "SELF"},
+-- XSGSY reply parameter 2 — connection-type ENUM (verified: not a bitfield).
+local vs_conn_type = {
+    [0] = "Unavailable",
+    [1] = "Neighbour",
+    [2] = "Via (relay)",
+    [3] = "Via network server",
+    [4] = "Local",
 }
 
--- XMTRE value interpreted as spanning-tree / reachability bitfield:
---   bit 0 (0x01) = LAN  (directly reachable on a local network)
---   bit 1 (0x02) = WAN  (reachable via a working remote route)
--- 0x00 = neither bit set → unreachable, or self entry.
-local XMTRE_BITS = {
-    {0x01, "LAN"},
-    {0x02, "WAN"},
+-- XROUT service codes (XS*), values from the official version-M XMSG constant
+-- file (SINTRAN/XMSG/xmsg-constants.json / XMSG-PL-VALUES-M.INCL). On the wire
+-- the LOW byte of the 4-byte XMCSM field carries the XROUT service code on a
+-- REQUEST; on a REPLY XROUT overwrites that byte with the return status (0 = OK,
+-- else an XR* error). See XMSG-API.md section 4 (standard message format) and 6.4.
+local vs_xs_service = {
+    [64] = "XSNUL (null)",              [81] = "XSNSP (new service point)",
+    [65] = "XSLET (send letter)",       [82] = "XSGIN (get name info)",
+    [66] = "XSNAM (name port)",         [83] = "XSDLO (define local system)",
+    [67] = "XSCNM (clear name)",        [84] = "XSLEK (send letter + kick)",
+    [68] = "XSGNM (get name by magic)", [85] = "XSNET (start/stop netserver)",
+    [69] = "XSGNI (get name)",          [86] = "XSSCI (set crash info)",
+    [71] = "XSGMG (magic from name)",   [87] = "XSGAT (get attribute)",
+    [73] = "XSDRN (define remote name)",[88] = "XSDAT (define attribute)",
+    [74] = "XSDSY (define routing)",    [89] = "XSNSI (netserver info)",
+    [75] = "XSGSY (get routing info)",  [90] = "XSLIN (link info)",
+    [76] = "XSLKI (start link)",        [91] = "XSPIN (named-port info)",
+    [77] = "XSTIN (init tracing)",      [92] = "XSLSY (system info)",
+    [78] = "XSTCL (close tracing)",     [93] = "XSGSU (system utilization)",
+    [79] = "XSTDC (tracing conditions)",[94] = "XSCRM (routing manager)",
+    [80] = "XSCRS (create service)",    [95] = "XSGLI (link-table info)",
+                                        [96] = "XSGSG (sysgen variables)",
 }
 
 -- Build a "FOO+BAR" label for a bitfield value, or "" if no bits match.
@@ -223,7 +255,9 @@ pf.node_id    = ProtoField.uint16("lapb.node_id",   "Node ID",           base.DE
 pf.snt_mark1  = ProtoField.uint8 ("sintran.mark1",  "Marker 1",          base.HEX)
 pf.snt_mark2  = ProtoField.uint8 ("sintran.mark2",  "Marker 2",          base.HEX)
 pf.snt_pkt    = ProtoField.uint8 ("sintran.pkt",    "Packet Type",       base.HEX)
-pf.snt_len    = ProtoField.uint8 ("sintran.len",    "Packet Subtype",    base.DEC)
+-- Abbrev kept as "sintran.len" for backward compatibility with existing filters,
+-- but the field is a message-kind subtype (see vs_subtype), not a length.
+pf.snt_len    = ProtoField.uint8 ("sintran.len",    "Packet Subtype",    base.HEX, vs_subtype)
 pf.snt_dest   = ProtoField.uint16("sintran.dest",   "Dest Node",         base.DEC)
 pf.snt_src    = ProtoField.uint16("sintran.src",    "Src Node",          base.DEC)
 pf.snt_flags1 = ProtoField.uint16("sintran.flags1", "Flags/Broadcast",   base.HEX)
@@ -267,7 +301,7 @@ pf.dc_rem_chan   = ProtoField.uint16("dc.rem_chan",     "Remote Channel",   base
 pf.dc_ctr2       = ProtoField.uint8 ("dc.ctr2",        "Counter 2",        base.HEX)
 
 -- XMSG (XM5) on-wire fields — names and meanings cross-referenced with
--- XMSG-Protocol-Analysis.md and the L07 XMSG-SYMBOL-LIST symbol table.
+-- XMSG-PROTOCOL.md and the L07 XMSG-SYMBOL-LIST symbol table.
 -- The wire format is a repacked subset of the 17-word in-kernel XM5 header:
 -- only the application-relevant fields (XMDSY/XMDPT/XMSSY/XMSPT/XMCSM/XMLEN
 -- + user data) are serialised; kernel-only fields (XMDAB/XMDAW/XMTIM/XMTPT/
@@ -283,14 +317,13 @@ pf.xmsg_dpt      = ProtoField.uint16("xmsg.xmdpt",  "XMDPT (dest port)",    base
 pf.xmsg_ssy      = ProtoField.uint16("xmsg.xmssy",  "XMSSY (src system)",   base.DEC)
 pf.xmsg_spt      = ProtoField.uint16("xmsg.xmspt",  "XMSPT (src port)",     base.DEC)
 
--- XM routing-control records (4 bytes each: type + length + value)
--- Type byte values match XMSG-SYMBOL-LIST: XMTNO=1, XMROU=2, XMTHI=3, XMTRE=4
-pf.xm_msg_type   = ProtoField.uint8 ("xm.msg_type",    "XM Message Type",  base.DEC, vs_xm_msg_type)
+-- XSGSY routing-reply parameter blocks (4 bytes each: param-number + length + value)
+pf.xm_msg_type   = ProtoField.uint8 ("xm.param",       "XSGSY Parameter",  base.DEC, vs_xsgsy_param)
 pf.xm_value_raw  = ProtoField.uint16("xm.value",       "Value (raw)",      base.HEX)
-pf.xm_xmtno      = ProtoField.uint16("xm.xmtno",       "XMTNO Node ID",    base.DEC)
-pf.xm_xmrou      = ProtoField.uint16("xm.xmrou",       "XMROU Route Type", base.HEX)
-pf.xm_xmthi      = ProtoField.uint16("xm.xmthi",       "XMTHI Next Hop",   base.DEC)
-pf.xm_xmtre      = ProtoField.uint16("xm.xmtre",       "XMTRE Reachability", base.HEX)
+pf.xm_xmtno      = ProtoField.uint16("xm.sysno",       "System Number",    base.DEC)
+pf.xm_xmrou      = ProtoField.uint16("xm.conntype",    "Connection Type",  base.DEC, vs_conn_type)
+pf.xm_xmthi      = ProtoField.uint16("xm.extrainfo",   "Extra Info",       base.DEC)
+pf.xm_xmtre      = ProtoField.uint16("xm.netinfo",     "Network Info (hops+WANs)", base.HEX)
 
 lapb_proto.fields = {
     pf.frame_raw, pf.addr, pf.ctrl,
@@ -618,88 +651,86 @@ local function dissect_routing(tvb, pinfo, tree, off)
     pinfo.cols.info:append(string.format(" ROUTING:%s", cname))
 end
 
--- ── XM routing-control records decoder ───────────────────────────────────────
--- Each record is 4 bytes: [xm_type] [0x02] [0x00] [value_low]
---   • xm_type is one of XMTNO/XMROU/XMTHI/XMTRE (verified XMSG symbols)
---   • 0x02 0x00 is a 16-bit length prefix (always 2 — value is 2 bytes)
---   • The value is read as a 16-bit big-endian word from bytes 2-3
---     (so node 1111 = 0x0457 spans both)
+-- ── XSGSY routing-reply parameter decoder ────────────────────────────────────
+-- The LI ROUTING trailer is the reply to XROUT service XSGSY ("get routing info
+-- for system N"), formatted as ND standard-message parameter blocks. Each block
+-- is 4 bytes: [param-number] [length=2] [value-hi] [value-lo] (16-bit BE value).
 --
--- LI ROUTING request:  1 record  (XMTNO = node id to look up)
--- LI ROUTING response: 4 records (XMTNO + XMROU + XMTHI + XMTRE describing
---                                  one routing-table entry)
---
--- Field semantics verified against text output of LI ROUTING,TREE on a known
--- topology with 11 routing entries.
+-- Request  = 1 parameter  (param 1 = the system number being queried).
+-- Response = 4 parameters (COSMOS Programmer Guide ND-60.164, XSGSY):
+--   #1 system number (first >= requested; 0 = none)
+--   #2 connection type ENUM: 0=Unavailable 1=Neighbour 2=Via 3=Via-netserver 4=Local
+--   #3 extra info (link index / relay system / subaddress — depends on #2)
+--   #4 network info: value <= 0377B -> hop count in the low byte;
+--                    value >= 0400B -> #WANs in the high byte, #hops in low byte.
+-- (Previously mislabelled XMTNO/XMROU/XMTHI/XMTRE with bitfield decodes — those
+-- symbols are XFRCV message-type codes, unrelated; corrected 2026-07.)
 
 local function dissect_li_routing_trailer(tvb, pinfo, tree, off, tlen, is_response)
     if tlen < 4 then return end
     if tlen % 4 ~= 0 then return end
 
     local n_records = tlen / 4
-    local label = is_response and "LI ROUTING Response" or "LI ROUTING Request"
+    local label = is_response and "LI ROUTING Response (XSGSY)" or "LI ROUTING Request (XSGSY)"
     local t = tree:add(lapb_proto, tvb(off, tlen),
-                  string.format("%s  [%d XM record%s]",
+                  string.format("%s  [%d parameter%s]",
                       label, n_records, n_records == 1 and "" or "s"))
 
-    local xmtno, xmrou, xmthi, xmtre = nil, nil, nil, nil
+    local p_sysno, p_conn, p_extra, p_net = nil, nil, nil, nil
 
     for i = 0, n_records - 1 do
         local rec_off = off + i * 4
-        local xm_type = tvb(rec_off,     1):uint()
+        local pnum    = tvb(rec_off,     1):uint()
         local value16 = tvb(rec_off + 2, 2):uint()
-        local type_nm = vs_xm_msg_type[xm_type] or string.format("XM?(0x%02X)", xm_type)
+        local pnm     = vs_xsgsy_param[pnum] or string.format("param?(0x%02X)", pnum)
 
         local rt = t:add(lapb_proto, tvb(rec_off, 4),
-                       string.format("%s = %d (0x%04X)", type_nm, value16, value16))
+                       string.format("%s = %d (0x%04X)", pnm, value16, value16))
         rt:add(pf.xm_msg_type,  tvb(rec_off,     1))
         rt:add(pf.xm_value_raw, tvb(rec_off + 2, 2))
 
-        if xm_type == 1 then         -- XMTNO: node id
+        if pnum == 1 then            -- system number
             rt:add(pf.xm_xmtno, tvb(rec_off + 2, 2))
-            xmtno = value16
-        elseif xm_type == 2 then     -- XMROU: route-type bitfield
+            p_sysno = value16
+        elseif pnum == 2 then        -- connection type (enum)
             local ri = rt:add(pf.xm_xmrou, tvb(rec_off + 2, 2))
-            local lbl = bitfield_label(value16, XMROU_BITS)
-            if lbl ~= "" then ri:append_text("  [" .. lbl .. "]") end
-            xmrou = value16
-        elseif xm_type == 3 then     -- XMTHI: next-hop / path-cost
+            local nm = vs_conn_type[value16]
+            if nm then ri:append_text("  [" .. nm .. "]") end
+            p_conn = value16
+        elseif pnum == 3 then        -- extra info
             rt:add(pf.xm_xmthi, tvb(rec_off + 2, 2))
-            xmthi = value16
-        elseif xm_type == 4 then     -- XMTRE: spanning-tree reachability bitfield
+            p_extra = value16
+        elseif pnum == 4 then        -- network info: hops (low byte) + WANs (high byte)
             local si = rt:add(pf.xm_xmtre, tvb(rec_off + 2, 2))
-            local lbl = bitfield_label(value16, XMTRE_BITS)
-            if lbl ~= "" then
-                si:append_text("  [" .. lbl .. "]")
-            else
-                si:append_text("  [unreachable]")
-            end
-            xmtre = value16
+            local hops = value16 & 0xFF
+            local wans = (value16 >> 8) & 0xFF
+            si:append_text(string.format("  [%d hop%s%s]", hops,
+                hops == 1 and "" or "s",
+                wans > 0 and string.format(", %d WAN%s", wans, wans == 1 and "" or "s") or ""))
+            p_net = value16
         end
     end
 
     -- Build a one-line summary for the tree label and Info column
     if is_response and n_records == 4 then
-        local target  = xmtno or 0
-        local rtype   = xmrou or 0
-        local nexthop = xmthi or 0
-        local status  = xmtre or 0
+        local sysno = p_sysno or 0
+        local conn  = p_conn or 0
+        local net   = p_net or 0
         local summary
-        if target == 0 and rtype == 0 then
+        if sysno == 0 and conn == 0 then
             summary = "end-of-table"
-        elseif (rtype & 0x04) ~= 0 then
-            summary = string.format("node %d (self)", target)
-        elseif (rtype & 0x01) ~= 0 then
-            summary = string.format("node %d direct (XMTRE=%s)", target,
-                bitfield_label(status, XMTRE_BITS))
         else
-            summary = string.format("node %d via %d (%s)", target, nexthop,
-                status == 0 and "UNREACHABLE" or bitfield_label(status, XMTRE_BITS))
+            local hops = net & 0xFF
+            local wans = (net >> 8) & 0xFF
+            summary = string.format("system %d: %s, %d hop%s%s", sysno,
+                vs_conn_type[conn] or string.format("conn?%d", conn),
+                hops, hops == 1 and "" or "s",
+                wans > 0 and string.format(" +%d WAN", wans) or "")
         end
         t:append_text("  — " .. summary)
         pinfo.cols.info:append("  LI-ROUT: " .. summary)
     elseif n_records == 1 then
-        pinfo.cols.info:append(string.format("  LI-ROUT? XMTNO=%d", xmtno or 0))
+        pinfo.cols.info:append(string.format("  LI-ROUT? sysno=%d", p_sysno or 0))
     end
 end
 
@@ -783,7 +814,17 @@ local function dissect_dc(tvb, pinfo, tree, off, proto_label)
     sub:add(pf.xmsg_dpt,     tvb(off + 7,  2))
     local ssy_item = sub:add(pf.xmsg_ssy, tvb(off + 9,  2))
     local spt_item = sub:add(pf.xmsg_spt, tvb(off + 11, 2))
-    sub:add(pf.dc_cmd,       tvb(off + 13, 4))
+    -- Annotate the XMCSM low byte with its XROUT service code (XS*). On a request
+    -- this byte is the service; on a reply XROUT overwrites it with the status
+    -- (0 = OK). See XMSG-API.md section 4 / 6.4.
+    local cmd_item  = sub:add(pf.dc_cmd, tvb(off + 13, 4))
+    local svc_byte  = cmd_word & 0xFF
+    local svc_name  = vs_xs_service[svc_byte]
+    if svc_name then
+        cmd_item:append_text(string.format("  [service byte 0x%02X = %s]", svc_byte, svc_name))
+    elseif svc_byte == 0 then
+        cmd_item:append_text("  [service byte 0x00 = reply / status OK]")
+    end
     sub:add(pf.dc_pad,       tvb(off + 17, 1))
 
     -- Stateless-RPC response anomaly detection: in LI ROUTING responses (and
@@ -852,8 +893,10 @@ local function dissect_sintran_info(tvb, pinfo, frame_tree)
         return nil
     end
 
+    local subtype  = tvb(3, 1):uint()
     local dest     = tvb(4, 2):uint()
     local src      = tvb(6, 2):uint()
+    local flags1   = tvb(8, 2):uint()
     local proto_id = tvb(12, 1):uint()
     local proto_nm = vs_proto[proto_id] or string.format("0x%02X", proto_id)
     local label    = mark2 == 0x12 and "SINTRAN Relay" or "SINTRAN"
@@ -864,17 +907,51 @@ local function dissect_sintran_info(tvb, pinfo, frame_tree)
     hdr:add(pf.snt_mark1,  tvb(0,  1))
     hdr:add(pf.snt_mark2,  tvb(1,  1))
     hdr:add(pf.snt_pkt,    tvb(2,  1))
-    hdr:add(pf.snt_len,    tvb(3,  1))
+    local sub_item = hdr:add(pf.snt_len,    tvb(3,  1))
     hdr:add(pf.snt_dest,   tvb(4,  2))   -- big-endian: 0x0066 = node 102
     hdr:add(pf.snt_src,    tvb(6,  2))   -- big-endian: 0x0064 = node 100
-    hdr:add(pf.snt_flags1, tvb(8,  2))
+    local f1_item  = hdr:add(pf.snt_flags1, tvb(8,  2))
     hdr:add(pf.snt_flags2, tvb(10, 2))
     hdr:add(pf.snt_proto,  tvb(12, 1))
 
-    -- Sub-protocol dispatch (also handle single-byte control frames with len >= SINTRAN_HDR)
+    -- ── Subtype semantics (VERIFIED against the X25Emulator pcaps) ────────────
+    -- Subtype 0x03 is the short ACK / flow-control frame: it is sent in the
+    -- OPPOSITE direction to a data (0x0E) frame, and its Flags1 word ECHOES that
+    -- data frame's datagram-sequence number. Measured echo rate ≈ 82–91% on the
+    -- direct 100↔102 captures, with the residual "misses" being off-by-one
+    -- pipelining (two data frames in flight) — i.e. effectively 1:1. The
+    -- same-direction correlation is ~0%, ruling out a same-side companion.
+    -- The single payload byte after the header is the acking side's own
+    -- per-direction counter (decrements), decoded per sub-protocol below.
+    if subtype == 0x03 then
+        sub_item:append_text("  [ACK / flow-control]")
+        f1_item:append_text(string.format("  [acknowledged datagram seq = %d]", flags1))
+        hdr:append_text(string.format("  ACK seq=%d", flags1))
+        f1_item:add_expert_info(PI_SEQUENCE, PI_NOTE,
+            "Short ACK: Flags1 echoes the acknowledged data frame's datagram sequence")
+    elseif subtype == 0x0E then
+        -- Data frame: Flags1 is this message's own datagram-sequence number.
+        f1_item:append_text(string.format("  [datagram seq = %d]", flags1))
+    elseif (subtype == 0x19 or subtype == 0x13) and flags1 == 0xFFFF then
+        -- Reachability handshake carries the broadcast marker in Flags1.
+        f1_item:append_text("  [broadcast marker]")
+    end
+
+    -- Sub-protocol dispatch.
+    -- VERIFIED across all 13 captures: every data (subtype 0x0E) frame carries the
+    -- SAME XMSG sub-header (counter, 0x21 0x00 marker, flags, role, XMDSY/XMDPT/
+    -- XMSSY/XMSPT, XMCSM, pad, XMLEN) regardless of Protocol ID — 100% of frames
+    -- for D8/D9/DA/DB/DC/DD/DE. The Protocol ID is a CHANNEL TAG, not a different
+    -- frame layout, so TAD (0xDD) and PAD (0xDA) go through the common sub-header
+    -- parser (dissect_dc) just like DC/DB. dissect_dc decodes the trailer (LI
+    -- ROUTING params for known XMCSM, else a TAD message chain / raw).
+    --
+    -- (Earlier this routed 0xDD -> dissect_tad, which mis-read the "counter + 0x21
+    -- 0x00" sub-header prefix as a fake "TAD Block-33", and 0xDA -> dissect_pad,
+    -- which dumped the sub-header as raw. Both are corrected here.)
     if len >= SINTRAN_HDR then
         if proto_id == 0xDD then
-            dissect_tad(tvb, pinfo, frame_tree, SINTRAN_HDR)
+            dissect_dc(tvb, pinfo, frame_tree, SINTRAN_HDR, "TAD")
         elseif proto_id == 0xDC then
             dissect_dc(tvb, pinfo, frame_tree, SINTRAN_HDR, "DC")
         elseif proto_id == 0xDE then
@@ -882,7 +959,7 @@ local function dissect_sintran_info(tvb, pinfo, frame_tree)
         elseif proto_id == 0xDB then
             dissect_dc(tvb, pinfo, frame_tree, SINTRAN_HDR, "DB")
         elseif proto_id == 0xDA then
-            dissect_pad(tvb, pinfo, frame_tree, SINTRAN_HDR)
+            dissect_dc(tvb, pinfo, frame_tree, SINTRAN_HDR, "PAD")
         elseif proto_id == 0xD9 then
             dissect_dc(tvb, pinfo, frame_tree, SINTRAN_HDR, "D9")
         elseif proto_id == 0xD8 then
