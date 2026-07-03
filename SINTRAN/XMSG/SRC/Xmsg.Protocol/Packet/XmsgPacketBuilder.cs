@@ -82,7 +82,7 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// </summary>
         /// <param name="fields">
         /// The envelope fields. <see cref="XmsgDataFields.ProtocolId"/> is ignored and overwritten
-        /// with <see cref="XmsgEnvelope.DeriveChannel"/> of the Flags1 / Counter / XMCSM.
+        /// with <see cref="XmsgEnvelope.DeriveChannel(ushort, byte, uint)"/> of the Flags1 / Counter / XMCSM.
         /// </param>
         /// <returns>The built session-data packet on the derived channel.</returns>
         public static XmsgPacket CreateSessionData(XmsgDataFields fields)

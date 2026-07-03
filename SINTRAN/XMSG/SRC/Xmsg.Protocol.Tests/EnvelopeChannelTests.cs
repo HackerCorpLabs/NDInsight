@@ -34,6 +34,43 @@ namespace NDInsight.Sintran.Xmsg.Tests
         }
 
         /// <summary>
+        /// The seed is learned from any received frame: seed = (Counter + Flags1 + (Flags2 &amp; 0xFF)).
+        /// </summary>
+        [Fact]
+        public void LearnSeed_RecoversTheLinkSeed()
+        {
+            // Live 100 connect (100<->102): Flags1 0x0000, Counter 0x14, Flags2 0x0400 -> seed 0x14.
+            Assert.Equal(0x14, XmsgEnvelope.LearnSeed(0x0000, 0x14, 0x0400));
+            // Captured conn-to-d102 DUMM (frame 54): Flags1 0x0131, Counter 0xDB, Flags2 0x0108 -> 0x14.
+            Assert.Equal(0x14, XmsgEnvelope.LearnSeed(0x0131, 0xDB, 0x0108));
+            // 100<->103 connect: Counter 0x13, Flags1 0x0000 -> seed 0x13.
+            Assert.Equal(0x13, XmsgEnvelope.LearnSeed(0x0000, 0x13, 0x0400));
+        }
+
+        /// <summary>
+        /// The full seed model (Counter + channel) for the predicted live node-102 bring-up
+        /// (100&lt;-&gt;102 seed 0x14), and for captured frames spanning epochs 0/1/2. Each row:
+        /// Flags1, Flags2, XMCSM, expected Counter, expected channel.
+        /// </summary>
+        [Theory]
+        // Predicted live bring-up (seed 0x14) — the analysis result table:
+        [InlineData(0x14, 0x0000, 0x0400, 0x04000041u, 0x14, (byte)SintranProtocolId.Pad)]  // accept  -> DA
+        [InlineData(0x14, 0x0001, 0x0400, 0x04000000u, 0x13, (byte)SintranProtocolId.Pad)]  // port-assign -> DA
+        [InlineData(0x14, 0x0002, 0x0108, 0x01080000u, 0x0A, (byte)SintranProtocolId.Tad)]  // DUMM    -> DD
+        [InlineData(0x14, 0x0003, 0x0008, 0x00080000u, 0x09, (byte)SintranProtocolId.Routing)] // ctrl 0x20 -> DE
+        [InlineData(0x14, 0x0004, 0x0108, 0x01080000u, 0x08, (byte)SintranProtocolId.Tad)]  // RESE    -> DD
+        [InlineData(0x14, 0x0005, 0x0108, 0x01080000u, 0x07, (byte)SintranProtocolId.Tad)]  // MOTD    -> DD
+        // Captured frames (seed 0x14) at higher epochs:
+        [InlineData(0x14, 0x0131, 0x0108, 0x01080000u, 0xDB, (byte)SintranProtocolId.Db)]   // frame 54 DUMM  epoch 2 -> DB
+        [InlineData(0x14, 0x00FA, 0x0108, 0x01080000u, 0x12, (byte)SintranProtocolId.Dc)]   // frame 6  (100) epoch 1 -> DC
+        [InlineData(0x14, 0x012F, 0x0400, 0x04000041u, 0xE5, (byte)SintranProtocolId.D8)]   // frame 51 accept epoch 2 -> D8
+        public void SeedModel_ComputesCounterAndChannel(int seed, int flags1, int flags2, uint xmcsm, int expectedCounter, byte expectedChannel)
+        {
+            Assert.Equal((byte)expectedCounter, XmsgEnvelope.ComputeCounter((byte)seed, (ushort)flags1, (ushort)flags2));
+            Assert.Equal((SintranProtocolId)expectedChannel, XmsgEnvelope.DeriveChannel((byte)seed, (ushort)flags1, (ushort)flags2, xmcsm));
+        }
+
+        /// <summary>
         /// Base is Flags1 + Counter, and within one stream Flags1↑ / Counter↓ keep it constant.
         /// </summary>
         [Fact]

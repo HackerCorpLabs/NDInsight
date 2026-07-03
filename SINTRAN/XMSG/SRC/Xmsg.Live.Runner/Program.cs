@@ -111,13 +111,12 @@ internal static class Program
         layer.RoutingTable = new InMemoryRoutingTable(entries);
         NDInsight.Sintran.Xmsg.Live.Tad.TadTerminalResponder tad =
             new NDInsight.Sintran.Xmsg.Live.Tad.TadTerminalResponder(node, () => DateTime.Now);
-        // Terminal bring-up (DUMM/MOTD) DISABLED. The connect handshake (accept + port-assign, echoed)
-        // is stable and 100 ACKs it. The MOTD is BLOCKED on a genuine unknown: terminal-data must ride
-        // channel DB (Base 0x02xx), but 100 forces our datagram sequence LOW (it XENSE-rejects a high
-        // accept) and a byte counter cannot lift a low Flags1 to Base 0x02xx. Sending on DC/DD instead
-        // crashes 100 (XXPER). Resolving this needs the XMSG channel-allocation rule (kernel source) or
-        // a capture of a FRESH-sequence responder, not blind live probing. See XMSG-TRANSPORT-SEAM-PLAN.md.
-        tad.SendTerminalBringup = false;
+        // Terminal bring-up ENABLED — now driven by the VERIFIED seed model (analysis 2026-07-03,
+        // 601/601 frames). A fresh responder at epoch 0 sends terminal data on 0xDD (NOT DB), with
+        // Counter = (seed - 8 - Flags1); the seed (0x14 for 100<->102) is LEARNED from 100's connect.
+        // The earlier DC/DD crashes were a wrong Counter (fixed-Base), not a wrong channel. ISOLATION:
+        // OnSessionSetup emits ONLY the DUMM first; extend to the full burst once 100 ACKs it.
+        tad.SendTerminalBringup = true;
         layer.TadResponder = tad;
         layer.AcknowledgeTadFrames = true;
 

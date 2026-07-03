@@ -1,22 +1,29 @@
 namespace NDInsight.Sintran.Xmsg.Packet
 {
     /// <summary>
-    /// The universal XMSG envelope identity (XMSG-PROTOCOL.md section 18.5): the sub-protocol
-    /// channel (Protocol ID) is not independently allocated — it is DERIVED from the datagram
-    /// sequence, the per-direction counter, and the XMCSM service word. This class computes that
-    /// derivation, so the responder builds session-data frames on the correct channel instead of
-    /// replaying a canned one (a canned channel from another session has the wrong Base and crashes
-    /// the peer's XMSG with XXPER).
+    /// The complete XMSG envelope arithmetic. Per link (node pair) there is one constant byte — the
+    /// <b>seed</b> — and per direction one variable — <b>Flags 1</b> (the datagram sequence, +1 per
+    /// data frame, starting at 0x0000). Everything else (the sub-header Counter and the sub-protocol
+    /// Channel / Protocol ID) is derived arithmetically.
     /// </summary>
     /// <remarks>
-    /// <para><b>Identity.</b> <c>Base = Flags1 + Counter</c> (16-bit), and
-    /// <c>Channel = 0xDE - (XMCSM &gt;&gt; 24) - (Base &gt;&gt; 8)</c>.</para>
-    /// <para><b>Verified</b> against the <c>conn-to-d102-from-100</c> responder frames — e.g. the
-    /// connect-accept (Base 0x0214, XMCSM 0x04000041 → D8), the DUMM session frame (Base 0x020C,
-    /// XMCSM 0x01080000 → DB), the 0x20 control frame (Base 0x020C, XMCSM 0x00080000 → DC), and the
-    /// MOTD frame (Base 0x020C, XMCSM 0x01080000 → DB) — and against our own live-accepted accept
-    /// (Base 0x0014, XMCSM 0x04000041 → DA). Within one stream Flags1 increments while Counter
-    /// decrements in lockstep, holding Base (and therefore the channel) constant.</para>
+    /// <para><b>The rule (VERIFIED against all 601 captured Data frames + 602 ACKs, zero exceptions —
+    /// see <c>SINTRAN/XMSG/DOC/XMSG-CHANNEL-SEQUENCE-ANALYSIS-2026-07-03.md</c>):</b></para>
+    /// <code>
+    /// baseLow = (seed - (Flags2 &amp; 0xFF)) &amp; 0xFF        // Flags2 == XMCSM &gt;&gt; 16, always
+    /// Counter = (baseLow - Flags1) &amp; 0xFF
+    /// epoch   = (Flags1 - baseLow + 0xFF) &gt;&gt; 8          // cumulative counter-wrap count; 0 when fresh
+    /// Channel = 0xDE - (XMCSM &gt;&gt; 24) - epoch
+    /// Base    = Flags1 + Counter = baseLow + 0x100*epoch  // the old "envelope Base", now derived
+    /// </code>
+    /// <para><b>Fresh-responder consequence:</b> at epoch 0 a terminal-data frame (XMCSM 0x01080000)
+    /// derives to channel <b>0xDD</b>, not DB. DB only appears at epoch 2 (a node with a high running
+    /// sequence, e.g. the conn-to-d102 capture). The same XROUT letter class rides DD (epoch 0),
+    /// DC (epoch 1) and DB (epoch 2) purely by epoch. This is why the fresh live node's terminal data
+    /// belongs on DD with <c>Counter = (seed - 8 - Flags1) &amp; 0xFF</c>.</para>
+    /// <para><b>Seed:</b> learn it from any received Data frame via <see cref="LearnSeed"/> rather than
+    /// hardcoding. Observed seeds: 100↔102 = 0x14, 100↔103 = 0x13, 102↔103 = 0x11 (direct) / 0x12
+    /// (relayed). What the seed byte encodes is UNKNOWN; learn-from-peer sidesteps it.</para>
     /// </remarks>
     public static class XmsgEnvelope
     {
@@ -26,10 +33,78 @@ namespace NDInsight.Sintran.Xmsg.Packet
         public const byte ChannelAnchor = 0xDE;
 
         /// <summary>
-        /// Computes the envelope base <c>Flags1 + Counter</c> (16-bit, wrapping).
+        /// Learns the per-link seed byte from a received frame:
+        /// <c>seed = (Counter + Flags1 + (Flags2 &amp; 0xFF)) &amp; 0xFF</c>.
         /// </summary>
-        /// <param name="flags1">The datagram sequence (SINTRAN header offsets 8-9).</param>
-        /// <param name="counter">The per-direction sub-header counter (offset 0).</param>
+        /// <param name="flags1">The frame's Flags 1 (datagram sequence).</param>
+        /// <param name="counter">The frame's sub-header Counter.</param>
+        /// <param name="flags2">The frame's Flags 2 (equals XMCSM &gt;&gt; 16).</param>
+        /// <returns>The link seed byte.</returns>
+        public static byte LearnSeed(ushort flags1, byte counter, ushort flags2)
+        {
+            return (byte)(counter + flags1 + (flags2 & 0xFF));
+        }
+
+        /// <summary>
+        /// The per-class base low byte: <c>(seed - (Flags2 &amp; 0xFF)) &amp; 0xFF</c>. Control frames
+        /// (Flags2 low 0x00) use <c>seed</c>; terminal-data frames (Flags2 low 0x08) use <c>seed - 8</c>.
+        /// </summary>
+        /// <param name="seed">The link seed.</param>
+        /// <param name="flags2">The frame's Flags 2.</param>
+        /// <returns>The base low byte.</returns>
+        public static byte BaseLow(byte seed, ushort flags2)
+        {
+            return (byte)(seed - (flags2 & 0xFF));
+        }
+
+        /// <summary>
+        /// Computes the sub-header Counter: <c>(baseLow - Flags1) &amp; 0xFF</c>.
+        /// </summary>
+        /// <param name="seed">The link seed.</param>
+        /// <param name="flags1">The datagram sequence for this frame.</param>
+        /// <param name="flags2">The frame's Flags 2.</param>
+        /// <returns>The sub-header Counter byte.</returns>
+        public static byte ComputeCounter(byte seed, ushort flags1, ushort flags2)
+        {
+            return (byte)(BaseLow(seed, flags2) - flags1);
+        }
+
+        /// <summary>
+        /// Computes the epoch (cumulative counter-wrap count) for a frame:
+        /// <c>(Flags1 - baseLow + 0xFF) &gt;&gt; 8</c>. Zero while Flags1 ≤ baseLow (a fresh direction).
+        /// </summary>
+        /// <param name="seed">The link seed.</param>
+        /// <param name="flags1">The datagram sequence for this frame.</param>
+        /// <param name="flags2">The frame's Flags 2.</param>
+        /// <returns>The epoch (0, 1, 2, …).</returns>
+        public static int ComputeEpoch(byte seed, ushort flags1, ushort flags2)
+        {
+            // int arithmetic; the +0xFF keeps small (Flags1 - baseLow) negatives at epoch 0.
+            return (flags1 - BaseLow(seed, flags2) + 0xFF) >> 8;
+        }
+
+        /// <summary>
+        /// Derives the sub-protocol channel from the full seed model:
+        /// <c>Channel = 0xDE - (XMCSM &gt;&gt; 24) - epoch</c>.
+        /// </summary>
+        /// <param name="seed">The link seed.</param>
+        /// <param name="flags1">The datagram sequence for this frame.</param>
+        /// <param name="flags2">The frame's Flags 2.</param>
+        /// <param name="controlService">The XMCSM control/service word.</param>
+        /// <returns>The derived Protocol ID.</returns>
+        public static SintranProtocolId DeriveChannel(byte seed, ushort flags1, ushort flags2, uint controlService)
+        {
+            int epoch = ComputeEpoch(seed, flags1, flags2);
+            byte channel = (byte)(ChannelAnchor - (byte)(controlService >> 24) - epoch);
+            return (SintranProtocolId)channel;
+        }
+
+        /// <summary>
+        /// Computes the envelope base <c>Flags1 + Counter</c> (16-bit, wrapping) — the legacy view,
+        /// equal to <c>baseLow + 0x100*epoch</c>.
+        /// </summary>
+        /// <param name="flags1">The datagram sequence.</param>
+        /// <param name="counter">The sub-header counter.</param>
         /// <returns>The 16-bit base.</returns>
         public static ushort ComputeBase(ushort flags1, byte counter)
         {
@@ -37,18 +112,18 @@ namespace NDInsight.Sintran.Xmsg.Packet
         }
 
         /// <summary>
-        /// Derives the sub-protocol channel (Protocol ID) from the envelope model.
+        /// Legacy channel derivation from an already-known Counter:
+        /// <c>Channel = 0xDE - (XMCSM &gt;&gt; 24) - (Base &gt;&gt; 8)</c>, where <c>Base = Flags1 + Counter</c>.
+        /// Equivalent to the seed model when the Counter is the model-correct one (Base&gt;&gt;8 == epoch).
         /// </summary>
         /// <param name="flags1">The datagram sequence.</param>
         /// <param name="counter">The per-direction counter.</param>
-        /// <param name="controlService">The XMCSM control/service word (its top byte selects the class).</param>
+        /// <param name="controlService">The XMCSM control/service word.</param>
         /// <returns>The derived Protocol ID.</returns>
         public static SintranProtocolId DeriveChannel(ushort flags1, byte counter, uint controlService)
         {
             ushort baseValue = ComputeBase(flags1, counter);
-            byte xmcsmHigh = (byte)(controlService >> 24);
-            byte baseHigh = (byte)(baseValue >> 8);
-            byte channel = (byte)(ChannelAnchor - xmcsmHigh - baseHigh);
+            byte channel = (byte)(ChannelAnchor - (byte)(controlService >> 24) - (byte)(baseValue >> 8));
             return (SintranProtocolId)channel;
         }
     }

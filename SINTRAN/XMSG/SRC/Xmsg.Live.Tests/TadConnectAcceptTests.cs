@@ -110,22 +110,21 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         }
 
         [Fact]
-        public void SessionBringup_BuildsDummOnDerivedDbChannel()
+        public void SessionBringup_BuildsDummOnDerivedDdChannel()
         {
-            // NOTE: the DUMM bring-up is DISABLED in production (see the runner) — it is BLOCKED live
-            // because 100 forces our sequence low while terminal-data needs DB (high Base). This test
-            // only verifies the BUILDER still derives DB correctly from the responder's seed value, so
-            // the mechanism is ready if the sequence question is ever resolved.
+            // The DUMM is now computed by the VERIFIED seed model (XmsgEnvelope). A fresh responder at
+            // epoch 0 sends terminal data on 0xDD (NOT DB — DB was an epoch-2 artifact). This connect's
+            // seed = Counter(0x13) + Flags1(0x0000) + (Flags2&0xFF=0x00) = 0x13.
             byte[] connectBytes = Convert.FromHexString(
                 "2113000E0067006400000400DA13210086E400670000006402F7040000410010FF072A54414441444D00FE0444313033");
             TadTerminalResponder responder = new TadTerminalResponder(103, () => new DateTime(2026, 7, 2));
             responder.SendTerminalBringup = true;
-            responder.OnConnect(XmsgFrame.Parse(connectBytes));
+            responder.OnConnect(XmsgFrame.Parse(connectBytes));   // accept: our Flags1 0x0000
 
             byte[] setupBytes = Convert.FromHexString(
                 "2113000E0067006400010400DA122100868400670156006402F704000000000906001B001C0100FF00");
             System.Collections.Generic.IReadOnlyList<XmsgFrame> frames =
-                responder.OnSessionSetup(XmsgFrame.Parse(setupBytes));
+                responder.OnSessionSetup(XmsgFrame.Parse(setupBytes));   // port-assign: 0x0001; DUMM: 0x0002
 
             // port-assign + exactly one bring-up frame (the DUMM).
             Assert.Equal(2, frames.Count);
@@ -133,16 +132,15 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             byte[] dumm = frames[1].ToArray();
             _output.WriteLine("dumm: " + Convert.ToHexString(dumm));
 
-            // The accept/port-assign echo (they do not advance the responder's own sequence), so the
-            // DUMM carries the seed f1 0x012F; data Base 0x020C -> counter 0xDD -> derived channel DB
-            // (0xDE-1-2). Built via TadOp.Dumm through the TAD API.
+            // DUMM: Flags1 0x0002 (our own sequence), Flags2 0x0108 -> baseLow = seed(0x13)-8 = 0x0B ->
+            // Counter = 0x0B - 0x0002 = 0x09; epoch 0 -> channel 0xDE-1-0 = DD. Built via TadOp.Dumm.
             byte[] expected = Convert.FromHexString(
-                "2113000E00640067" + "012F" + "0108" + "DB" + "DD" + "2100" + "92" + "00"
+                "2113000E00640067" + "0002" + "0108" + "DD" + "09" + "2100" + "92" + "00"
                 + "0064" + "02F7" + "0067" + "0211" + "01080000" + "00" + "02" + "1800");
             Assert.Equal(expected, dumm);
 
             // Sanity on the derived channel byte (offset 12) and the preserved TAD trailer.
-            Assert.Equal((byte)SintranProtocolId.Db, dumm[12]);    // DB
+            Assert.Equal((byte)SintranProtocolId.Tad, dumm[12]);    // DD
             Assert.EndsWith("1800", Convert.ToHexString(dumm));
             Assert.Equal(dumm.Length - 32, dumm[31]);         // XMLEN (offset 31) == trailer length
         }
