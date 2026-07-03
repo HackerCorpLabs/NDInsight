@@ -55,6 +55,10 @@ namespace NDInsight.Sintran.Xmsg.Tests
             Assert.NotEmpty(files);
 
             StringBuilder report = new StringBuilder();
+            // Pretty-JSON of the first few decoded frames, so the JSON encoding can
+            // be eyeballed (written to pcap-decode-sample.json next to the report).
+            StringBuilder jsonSamples = new StringBuilder();
+            int jsonSampleCount = 0;
             report.Append("XMSG pcap decode report\n");
             report.Append("Source: ").Append(pcapDir).Append('\n');
             report.Append("Generated: ").Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")).Append('\n');
@@ -114,16 +118,23 @@ namespace NDInsight.Sintran.Xmsg.Tests
 
                     roundTripOk++;
 
-                    // Record the first few frames per file in the human-readable report.
-                    if (sintran <= 8)
+                    // Dump EVERY frame's JSON to the sample file (no cap).
+                    if (jsonSampleCount > 0)
                     {
-                        report.Append("--- frame ").Append(sintran)
-                              .Append("  N(S)=").Append(frame.SendSequence)
-                              .Append(" N(R)=").Append(frame.ReceiveSequence)
-                              .Append("  ").Append(frame.Key.ToString()).Append('\n');
-                        report.Append(XmsgDump.ToText(decoded));
-                        report.Append('\n');
+                        jsonSamples.Append(",\n");
                     }
+                    jsonSamples.Append(json);
+                    jsonSampleCount++;
+
+                    // Record EVERY frame per file in the human-readable report, including the
+                    // raw hex so control frames (e.g. subtype-0x07 routing frames) are greppable.
+                    report.Append("--- frame ").Append(sintran)
+                          .Append("  N(S)=").Append(frame.SendSequence)
+                          .Append(" N(R)=").Append(frame.ReceiveSequence)
+                          .Append("  ").Append(frame.Key.ToString()).Append('\n');
+                    report.Append(XmsgDump.ToText(decoded));
+                    report.Append("raw=").Append(Convert.ToHexString(original)).Append('\n');
+                    report.Append('\n');
                 }
 
                 report.Append("summary: FCS-valid=").Append(fcsValid)
@@ -150,6 +161,11 @@ namespace NDInsight.Sintran.Xmsg.Tests
             {
                 File.WriteAllText(reportPath, report.ToString());
                 _output.WriteLine("Report written to: " + reportPath);
+
+                string samplePath = Path.Combine(
+                    Path.GetDirectoryName(reportPath)!, "pcap-decode-sample.json");
+                File.WriteAllText(samplePath, "[\n" + jsonSamples.ToString() + "\n]\n");
+                _output.WriteLine("JSON sample written to: " + samplePath);
             }
 
             _output.WriteLine(

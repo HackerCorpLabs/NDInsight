@@ -218,13 +218,58 @@ ever occur across all 1947 frames:
 | `0x0E` | **Data message** (Section 5) | own datagram seq | `0x0400 / 0x0108 / 0x0008` | 34–292 B | 601 |
 | `0x13` | **Reachability reply** (Section 5.1) | `0xFFFF` broadcast | `0x0001` | 14 B | 4 |
 | `0x19` | **Reachability request** (Section 5.1) | `0xFFFF` broadcast | `0x0001` | 14 B | 8 |
+| `0x07` | **Network error / reject notification** (Section 4.1.1) | datagram seq of the rejected message | **negative XE\* error code** | 14 B | 0 in corpus; live only |
 
-> [CAPTURE-SPECIFIC] The peer's send-message capture reports a fifth subtype
-> `0x07` for the delivery ACK with a `0xFFED` status word. **No subtype-`0x07`
-> frame, and no `FF ED` byte pair, occurs anywhere in this corpus** (0 of 6379
-> raw frames). In this corpus the ACK role is filled by subtype `0x03`
-> (Section 6). Treat `0x07`/`0xFFED` as belonging to a different traffic class
-> until confirmed.
+> **Subtype `0x07` — resolved [VERIFIED live against retrocore; NOT in capture corpus].**
+> Earlier this was tagged `[CAPTURE-SPECIFIC]` from the peer's send-message spec
+> (subtype `0x07` + `0xFFED` status). It occurs in **0 of 1215** decoded SINTRAN
+> I-frames from real hardware (only `0x03/0x0E/0x13/0x19` appear there), but the
+> **retrocore HDLC emulator emits it live** as a routing-layer error notification.
+> The `0xFFED` "status word" sits in the Flags 2 position and is a **negative
+> XMSG network-layer error code** from the official include `XMSG-VALUES-M.SYMB`:
+>
+> | Flags 2 | Value | Symbol | Meaning (`XMSG-VALUES-M.SYMB`) |
+> |---------|------:|--------|--------------------------------|
+> | `0xFFED` | -19 | `XEIMA` | **Invalid magic number** (line 142) |
+> | `0xFFDE` | -34 | `XENSE` | **Network sequencing error** (line 157) |
+>
+> So `0x07` is the frame a node sends to report that a received message failed
+> network-layer validation. See Section 4.1.1.
+
+#### 4.1.1 Subtype `0x07` network-error frame  [VERIFIED live]
+
+Observed live when machine 100 drove `list-systems` toward our node 103: 100
+answered several of our replies with 14-byte `0x07` frames on the ROUTING channel
+(`0xDE`), e.g.
+
+```
+21 13 00 07  00 67 00 64  00 00  FF ED  DE 2C
+│    │  │    │     │       │      │      │  └ trailing routing counter
+│    │  │    │     │       │      │      └ Protocol ID 0xDE (ROUTING)
+│    │  │    │     │       │      └ Flags 2 = 0xFFED = XEIMA "Invalid magic number"
+│    │  │    │     │       └ Flags 1 = datagram seq of the message being rejected
+│    │  │    │     └ source 100
+│    │  │    └ dest 103
+│    │  └ subtype 0x07 (network error / reject)
+│    └ Marker 2 0x13
+└ Marker 1 0x21
+```
+
+Operational meaning: **our node's reply carried an invalid/absent magic number**,
+so XMSG on 100 rejected it (`XEIMA`) and the `list-systems` transaction stalled.
+An XMSG **magic number** encodes a `(system, port)` endpoint identity — see the
+services `XFP2M` "port to magic number", `XFM2P` "magic to system+port",
+`XSGMG` "get magic number from name", `XSCMG` "check magic number"
+(`XMSG-VALUES-M.SYMB` lines 38-39, 181, 230). A responder that allocates or
+echoes a valid magic-number-derived port avoids this rejection.
+
+> **Open item — subtype byte has no symbol.** The packet-subtype enum
+> (`0x03/0x0E/0x13/0x19/0x07`) is a **network-layer** packet type. That layer's
+> NPL source is **absent** from this repository (`NPL-SOURCE/CLAUDE.md`: XMSG
+> kernel source missing, only symbol offsets survive), so no symbol *names* the
+> value `0x07` itself. What is named is the error *payload* (`XEIMA`, `XENSE`).
+> The exact wire location and derivation of the magic number our node must
+> present is likewise not yet captured — flagged for a future reference capture.
 
 ### 4.2 Flags 1 / Flags 2  [VERIFIED]
 
@@ -236,12 +281,33 @@ appears to encode a per-sub-protocol class rather than a raw length.
 symbol `XMSEQ`): it increments per data message on a direction, is `0xFFFF` on
 broadcast/reachability frames, and is **echoed verbatim by the ACK** (Section 6).
 
-### 4.3 Protocol ID (offset 12)  [VERIFIED]
+### 4.3 Protocol ID (offset 12)  [VERIFIED — derived channel; see Section 18.5]
 
-A stable sub-protocol selector — **not** a counter. (The peer spec's "offset
-12–13 decrements as a 16-bit counter" was a decode-boundary misread: offset 12 is
-this fixed ID, and the decrementing value is payload byte 0, the sub-protocol's
-own per-direction counter.)
+Within any single class-stream this byte reads as a **stable sub-protocol
+selector** (`0xDE` ROUTING, `0xDD` TAD, …) and the table below is the practical
+selector list. But it is **not an independent constant**: it is the high byte of
+the envelope quantity
+
+```
+channel = 0xDE − (XMCSM class) − (base >> 8)        base = Flags1 + Counter
+```
+
+(Section 18.5, VERIFIED 209/209 data frames). It holds steady while a stream's
+`base` stays inside a 256-count window and **borrows down** (`0xDE→0xDD→0xDC…`)
+each time that stream's counter wraps.
+
+> **Credit — the peer/friend spec saw this first.** `OLD/xmsg-hdlc-protocol.md`
+> (§4.4, §14 "Uncertain") OBSERVED exactly this behaviour in generic Send-Message
+> traffic — offsets 12–13 decrementing as one 16-bit value
+> (`de04 → de03 → … → de00 → ddff`, the high byte borrowing `de→dd`) — and
+> honestly flagged it *"needs a second capture to settle whether the two traffic
+> classes differ or the field is a counter throughout."* **The connect-to captures
+> are that second capture, and they settle it in the friend's favour:** the field
+> is the derived channel above, universally — the same for ROUTING, TAD, list-route,
+> list-systems and connect-to. It only *looks* fixed in short same-class routing
+> exchanges because `base>>8` does not move there; a connect-to session makes it
+> visible because one session spans three XMCSM classes (`D8`/`DB`/`DC`). The
+> earlier "decode-boundary misread" note was wrong and is retracted.
 
 | Protocol ID | Name | Description | Section |
 |-------------|------|-------------|---------|
@@ -543,10 +609,73 @@ is the XROUT service code** (`0x4B` = 75 = `XSGSY` "get routing info"; `0x41` = 
 = `XSLET` "send a letter"); see the `XS*` catalog in
 [XMSG-API.md](XMSG-API.md) section 6.4.
 
+> **Request vs reply is a service-byte replacement, not a flag toggle** [VERIFIED
+> against source]. The XROUT value/include file states (`XMSG-VALUES-M.SYMB`
+> header comments): the service byte has **bit 6 set ⇒ service request**, and the
+> return message carries the status/error byte with **bit 6 reset**. So request
+> `…014B` (low byte `0x4B` = `XSGSY`, bit 6 set) becomes reply `…0100` (low byte
+> `0x00` = `XRSOK`, bit 6 reset "OK — not an error"); the upper three bytes
+> `01 00 01` are unchanged. `XSNUL = 64 = 0x40` is the lowest service, confirming
+> bit 6 (`0x40`) as the request base. XROUT status/error codes run `XRSOK = 0` …
+> `XRIRR = 54`, all returned with bit 6 reset.
+
 > **Stateless-RPC response anomaly** [INFERRED]: in LI ROUTING responses the
 > responder fills `XMSSY/XMSPT` with the **originator's** address, not its own —
 > i.e. it echoes the asker's identity as a transaction id rather than allocating a
 > port. The dissector flags this on every such frame.
+
+#### 9.1.1 Live `list-route` transaction  [VERIFIED live against retrocore]
+
+Verified on the retrocore HDLC emulator: a C# node identifying as system 103
+answered a `list-route` driven from machine 100, and 100 reported real access to
+103. What the operator's `list-route` command actually does on the wire:
+
+**Two datagrams per queried system — not one.** For the queried system 103,
+machine 100 sends two independent XSGSY request datagrams, distinguished by
+`Flags1` (the datagram sequence) and by the sub-header `counter`:
+
+| Purpose | Header `Flags1` | Sub-header `counter` | Drives operator output |
+|---------|-----------------|----------------------|------------------------|
+| Route-table lookup | `0x0000` | `0x13` | the `L:` (local table) and `T:` (tables) rows |
+| Actual-path / liveness probe | `0x0001` | `0x12` | the `A:` (actual path) row — "is the system really reachable" |
+
+Both datagrams carry the *identical* XSGSY payload (`XMCSM 0x0100014B`, one
+parameter = the system number `0x0067` = 103); only the transport `Flags1` and
+`counter` differ. If the second (liveness) datagram is not answered correctly,
+100's `list-route` still prints the `L:`/`T:` routes from the table lookup but
+reports **"no access to system NNN"** with `A:*->` for the actual path.
+
+**The reply must carry the request's transport counters** [VERIFIED behaviour]:
+a working XSGSY reply carries
+- the same `Flags1` (datagram sequence) as the request,
+- the same sub-header `counter` byte as the request, and
+- the same Protocol ID channel (here `0xDD` — not the `0xDC` default).
+
+So request `f1=0000/ctr=0x13` → reply `f1=0000/ctr=0x13`, and request
+`f1=0001/ctr=0x12` → reply `f1=0001/ctr=0x12`.
+
+> **Echo confirmed [VERIFIED against capture].** The `start-li-li-1err.pcapng`
+> capture (102 ↔ 100, XSGSY over the `0xDC` channel) settles it. Its request
+> carried `Flags1 = 0x0065`, `counter = 0xAF`; the matching reply carried the
+> **same** `Flags1 = 0x0065` and `counter = 0xAF`. A second pair matched at
+> `0x0066` / `0xAE`. Because these are arbitrary mid-stream values — not a
+> fresh-link `0x13` — an independent per-direction counter could not coincide;
+> the reply is genuinely **echoing** the request's `Flags1` and `counter`. (This
+> is the same field that the ACK echoes, Section 6; the request stream's own
+> `counter` still decrements as `Flags1` increments, Section 4.2, but the reply
+> copies whatever the request presented.)
+
+> **Failure mode observed.** Replying with a *fixed* `counter` (e.g. always
+> `0x13`) answers the route-table datagram (whose counter happens to be `0x13`)
+> but gives the liveness datagram the wrong counter. Machine 100 rejects the
+> mismatched reply, retransmits the `f1=0001` request several times, then times
+> out — producing "no access to system 103". Echoing the request counter
+> resolves it: 100 then reports the system as reachable.
+
+Reference implementation: `SINTRAN/XMSG/SRC/Xmsg.Live/XmsgNode.cs` (the XSGSY
+branch of `HandleFrame` passes the request's `counter`, `Flags1` and
+`ProtocolId` straight through to `ListRoutingServer.Handle`), exercised live by
+`SINTRAN/XMSG/SRC/Xmsg.Live.Runner`.
 
 ### 9.2 TAD trailer (`0xDD`)  [VERIFIED]
 
@@ -656,7 +785,7 @@ the old dissector README:
 | SINTRAN offset 3 | "Packet Length" (README) | Packet **Subtype** (message kind) | Subtype `0x0E` spans 34–292 B; three subtypes share 14 B |
 | Delivery ACK | subtype `0x07`, status `0xFFED` | subtype **`0x03`**, `Flags2 = 0x0001` (this corpus) | 0 `0x07` frames, 0 `FF ED` bytes in 6379 raw frames |
 | `XMDPT` encoding | `port ≪ 7` | encoding unconfirmed (`≪ 7` refuted) | `XMDPT & 0x7F` non-zero on most frames |
-| Offset 12–13 | one decrementing 16-bit counter | offset 12 = fixed Protocol ID; counter is payload byte 0 | 7 distinct stable proto IDs observed |
+| Offset 12–13 | friend: one decrementing 16-bit counter (`de04→ddff`) · earlier note here: fixed Protocol ID | **Reconciled — both are facets of ONE derived value:** offset 12 = channel `0xDE − (XMCSM class) − (base>>8)`; stable per class-stream (reads as a fixed ID in short routing exchanges) but borrows down exactly as the friend observed when `base` wraps. Sections 4.3 / 18.5 | connect-to spans 3 classes `D8`/`DB`/`DC` in one session; VERIFIED 209/209. The friend's counter reading was correct; the "fixed ID" reading is the same model with `base>>8` static |
 | Subtypes ↔ `5SRPI/5DPIT/5SSPD` | numeric lead to segment-5 symbols | rejected | those are kernel memory-segment IDs (`5DPIT=023` is the DPIT data segment), not packet types |
 | Subtype `0x03` | undocumented | the ACK / flow-control frame | correlation analysis (Section 6) |
 
@@ -664,10 +793,14 @@ the old dissector README:
 
 ## 14. Open questions
 
-1. Does real `XFSND` user-data traffic use subtype `0x07` (not `0x03`) for the
-   ACK, or was `0x07` a mis-read? One frame from the peer's capture settles it.
-2. Is `0xFFED` a genuine status word (`XEIMA`?) or a different field? Absent here.
-3. The true encoding of the logical port into `XMDPT` (`≪ 7` is refuted).
+1. ~~Does real traffic use subtype `0x07` for the ACK?~~ **RESOLVED** (Section 4.1.1):
+   subtype `0x07` is a network-layer error/reject frame, observed live from retrocore.
+2. ~~Is `0xFFED` a genuine status word?~~ **RESOLVED**: `0xFFED` = −19 = `XEIMA`
+   "Invalid magic number" (Section 4.1.1); `0xFFDE` = −34 = `XENSE`.
+3. ~~`≪ 7` is refuted.~~ **RESOLVED / CORRECTED**: `XMDPT = (logical_port ≪ 7) | low7`
+   IS correct — the earlier refutation tested `& 0x7F == 0` and missed the low-7 "random
+   part" of the magic number. Confirmed by masks `5PMSK=0xFF80` / `5PMS1=0x7F` and the
+   COSMOS Guide. See Section 18 (U4) and 9.1.1.
 4. Exact byte serialisation of the XM5 header on the wire (word-for-word vs
    repacked) — needs the `XFSND` code path in `MP-P2-HDLC-DRIV.NPL`.
 5. Routing-message body serialiser (`XMTNO/XMROU/XMTHI/XMTRE`) — likely in an
@@ -727,7 +860,226 @@ To exchange messages with a SINTRAN III system over HDLC, an implementation must
 
 ---
 
+## 18. Unknown — needs more research  [TAD connect-to session fields]
+
+This chapter records, **precisely**, the fields whose *value derivation* we have not yet
+established, discovered while building a live TAD terminal responder (a node that answers
+`connect-to d103`). For each: the exact byte position, the message TYPES it appears in, the
+KNOWN values (with meaning) and the UNKNOWN-but-OBSERVED values. Companion working notes:
+[TAD-CONNECT-FIELD-ANALYSIS.md](TAD-CONNECT-FIELD-ANALYSIS.md).
+
+### 18.0 What IS solved (context)
+
+VERIFIED across all connect-to captures: the **responder mirrors the sender** — every
+responder data frame copies the incoming frame's **Flags1** (header offset 8-9), **Protocol ID**
+(header offset 12) and **Counter** (sub-header offset 0). Role is `0x40` in the XROUT/setup
+phase and `0x00` in the data phase. Connect-accept params are the constant `01 02 0000 02 02
+000A`. The magic-number port encoding is `(logical_port << 7) | low7` (masks `5PMSK=0xFF80` /
+`5PMS1=0x7F`, from `XMSG-SYMBOL-LIST.SYMB.TXT`), and the low7 is the manual's "random part"
+(COSMOS Guide ND-60.164 section 1.2.3). The crash cause was originating session frames with
+invented channels/counters instead of mirroring; the flow-blocker is that our node stopped
+sending the `0x03` delivery ACKs, so 100 retransmits instead of driving the session (it drives
+a full 58-frame session with a *real* 102 — `new-conn-to-102-from-100.pcapng`).
+
+### 18.1 Unknown fields — where exactly they live and in which messages
+
+| # | Field | Message PART (byte offset) | Message TYPES it appears in | KNOWN values (meaning) | UNKNOWN but OBSERVED |
+|---|-------|----------------------------|-----------------------------|------------------------|----------------------|
+| U1 | **Frame-flags** | XMSG sub-header **offset 3** (absolute byte 16 of a data frame) | ALL data frames (subtype `0x0E`): connect-accept, port-assign, and every session data frame, both directions | bit7 (`0x80`) always set; bit1 (`0x02`) always set; `0x86` is the common value | `0x82, 0x92, 0x96` — the varying bits are **bit4 (`0x10`)** and **bit2 (`0x04`)**; meaning unknown. NOT a pure echo of the sender (asker `0x82`→responder `0x86` at Flags1=0x0007) |
+| U2 | **Role — high nibble** | XMSG sub-header **offset 4** (absolute byte 17) | ALL data frames (`0x0E`) | low nibble `4`=asker, `0`=responder (VERIFIED) | high nibble: asker `0xC4/0xE4/0x84/0x94`, responder `0x40/0x00`. What the high nibble (`C/E/8/9` vs `4/0`) encodes is unknown |
+| U3 | **Protocol ID / channel — which one a SESSION uses** | SINTRAN header **offset 12** | data frames (`0x0E`) of a connect-to session | labels: `0xDE`=ROUTING, `0xDD`=TAD, `0xDC`=DC, `0xDB`=DB, `0xDA`=PAD; responder ECHOES the sender's channel (VERIFIED) | which of `0xD8,0xD9,0xDB,0xDC,0xDD` the *session* runs on varies per session (DA-connect → session on DD/DE/DC; D9-connect → DB/DC). How the **sender** picks the channel is unknown |
+| U4 | **Session-port low-7 ("random part")** | in **XMDPT/XMSPT** (sub-header offsets 7-8 / 11-12; abs. bytes 20-21 / 24-25) AND in the port-assign TAD `0x07` message data (`07 05 00 00 sys portHi portLo`) | port-assign frame (XMCSM `0x04000000`) and every session frame | `port = (logical<<7) \| low7`; logical port is the high 9 bits; low7 is the magic "random part" | the low7 the responder assigns: `0x13 / 0x42 / 0x41` — same asker (100) gave `0x42` then `0x41` in two sessions. Whether it is truly free/random or **derived from the sender** (the open hypothesis) is unknown |
+| U5 | **Port-assign `0x0B` option — 2nd data byte** | trailer of the port-assign frame, TAD message `0B 02 03 XX` | ONLY the port-assign frame (XMCSM `0x04000000`, in the setup phase) | opcode `0x0B`, length 2, first data byte `0x03` | 2nd data byte `XX` = `0x00 / 0x04 / 0x02` across the three captures; meaning unknown (does not obviously track asker system or port) |
+| U6 | **Port-assign `0x15` option data** | trailer of the port-assign frame, TAD message `15 02 01 08` | ONLY the port-assign frame | opcode `0x15`, length 2 | data `01 08` (constant in captures) — note `0x0108` is also the terminal-data XMCSM high half (`0x01080000`) and a Flags2 data-class value; whether `0x15` carries that class / a buffer size / a mode is unknown |
+| U7 | **Counter — absolute base value** | XMSG sub-header **offset 0** (absolute byte 13) | ALL data frames (`0x0E`) | responder echoes the sender's counter (VERIFIED); the sender decrements per frame; two regimes vs Flags1: setup `ctr = 0x11 − f1`, session `ctr = 0x09 − f1` (an 8-lower base at the session boundary) | where the per-session base values (`0x11`, `0x09`) come from is unknown (non-blocking for the responder, which echoes) |
+
+### 18.2 Message-type map (where each byte sits)
+
+```
+SINTRAN header (13 B, all frames):
+  off 0-1  Markers 21 13(/12)
+  off 3    Subtype  03=ACK 0E=data 13/19=reach 07=net-error
+  off 4-7  Dest node / Src node        (swapped in a reply)
+  off 8-9  Flags1  = datagram sequence   <-- responder ECHOES sender
+  off 10-11 Flags2 = frame class
+  off 12   Protocol ID = channel        <-- responder ECHOES sender   [U3]
+
+XMSG sub-header (only on data 0x0E frames, starts at off 13):
+  off 13   Counter                       <-- responder ECHOES sender   [U7]
+  off 14-15 Marker 21 00
+  off 16   Frame-flags                                                 [U1]
+  off 17   Role (low nibble 4/0)                                       [U2]
+  off 18-25 XMDSY/XMDPT/XMSSY/XMSPT       (ports carry the low-7)       [U4]
+  off 26-29 XMCSM (04000041 connect / 04000000 setup / 01080000 term)
+  off 30-31 pad / XMLEN
+  off 32+  trailer: TAD chain            (port-assign carries [U5][U6])
+```
+
+> These are the ONLY unknowns blocking a byte-faithful TAD terminal responder. Everything else
+> in a connect-to frame is reproduced from the captures.
+
+### 18.3 Cross-reference against ND-100 include files, SINTRAN NPL and HDLC/TAD code
+
+Result of an exhaustive search of `XMSG-VALUES-M.SYMB`, `XMSG-PL-VALUES-M.INCL`, the
+`SYMBOLS/{K03,L07,M06}/XMSG-SYMBOL-LIST.SYMB.TXT` tables, all 45 `NPL-SOURCE/NPL/*.NPL` files,
+`TadOpcodes.cs`, `TAD-Message-Formats.md`, the Wireshark dissector, and the COSMOS Programmer
+Guide ND-60.164.3.
+
+**Threshold fact (why most are unresolved):** the XMSG **network-layer serialiser** — the
+`XFSND` code path that packs the wire sub-header (expected in an `XC-P2-*.NPL` / `5P-P2-MON60.NPL`
+`XFP2M/XFM2P` body) — is **absent** from this repository (`NPL-SOURCE/CLAUDE.md`: XMSG "source
+code missing"). Only a `NAME=OCTAL` symbol table (offsets/addresses, no semantics) and the
+application-level COSMOS guide survive. So the wire-bit meanings cannot be traced to kernel logic
+here.
+
+| # | Field | Finding | Source |
+|---|-------|---------|--------|
+| U1 | Frame-flags bits `0x10`/`0x04` | **NOT IN AVAILABLE SOURCE.** No `XMFL*/XMBIT/XMPRI/XMURG/XMSEC/XMFLG` symbol exists. Dissector stores it as raw hex with no bit decode. The MON 200B option-word bits (`XFSEC=9`, `XFHIP=13`, `XFROU=10`, `XFBNC=12`) are call-time **T-register** bits, NOT this wire byte — no provable mapping. | `XMSG-VALUES-M.SYMB:70-94`; `hdlc_tcp.lua:309`; `XmsgSubHeader.cs:50` |
+| U2 | Role high nibble | **Bits NOT defined**, but the high nibble encodes the **service/command class** (INFERRED labels): `0xC4`=asker LI-ROUTING, `0xE4`=asker SYSTEM-TAD, `0x94`=asker connection-setup, `0x84`=asker legacy, `0x40`=responder SYSTEM-TAD, `0x60`=responder LI-ROUTING, `0x00`=data (no role). | `hdlc_tcp.lua:131-143`; `XMSG-PROTOCOL.md:352-365` |
+| U3 | Session channel selection | **NOT FOUND.** No symbol names the seven channel bytes `0xD8..0xDE`; no per-session allocation rule. The responder echoing the sender's channel is explained at API level by **`XFRTN`** (see below). | symbol-table grep (octal 330-336) — no match |
+| U4 | Session-port low-7 | **Layout VERIFIED, derivation NOT FOUND.** New confirmation: `5PSHZ=000007` (shift count = **7**), `5PMS1=000177` (`0x7F` low-7 mask), `5PMSK=177600` (`0xFF80`) — the official `(logical<<7)\|low7` split. Whether the low-7 is sender-derived or a free "random part" is unresolved; the magic number is documented as `{port+system+random}`, and `XFP2M`/`XSGMG` exist as constants but their minting code is absent. | `XMSG-SYMBOL-LIST.SYMB.TXT:1261-1263`; `XMSG-API.md:182` |
+| U5 | Port-assign `0x0B` 2nd byte | **NOT FOUND.** `0x0B` is not a documented TAD opcode; data `03 XX`, `XX = 00/04/02` per session, no symbol, meaning unknown. | `TAD-MISSING.md:41` |
+| U6 | Port-assign `0x15` data `01 08` | **INFERRED:** `0x15` is not a documented TAD opcode; its `01 08` mirrors the terminal-data XMCSM class word `0x01080000` — appears to advertise the frame-class the session's data frames will use; unverified. | `TAD-MISSING.md:42`; `hdlc_tcp.lua:170` |
+| U7 | Counter base (`0x11`/`0x09`) | **NOT FOUND.** Candidate offset symbols exist without semantics (`XMSEQ=000154`, `XNSEQ=000102`, `XSSSQ=000004`, `XSRSQ=000006`); no source defines a decrementing wire counter or its base. | `XMSG-SYMBOL-LIST.SYMB.TXT` |
+
+**Key positive finding — the mirror behaviour has a documented API origin.** `XFRTN` (`=31`,
+"Write word 0 and return message"; COSMOS Guide ND-60.164.3 section 3.2.12) *"returns the message
+buffer to the port from which it was last sent … equal to XFSND, except the D register carries two
+bytes of data."* This is the application-level primitive behind the wire-level "responder reuses
+the sender's envelope (Flags1 + Protocol ID + Counter)" that we verified empirically — SINTRAN
+replies by *returning the received message*, which naturally re-uses its transport fields.
+(`XMSG-VALUES-M.SYMB:47`.) Related: `XFBNC=12` bounce, `XEBNC=-15` "return of a bounce message".
+
+**Also newly VERIFIED:** TAD opcode `0x1F` = **OPSV** (OS version + TAD protocol version; 3 bytes:
+OS ver / OS subver / protocol ver; stored in `OSVTPN`) — the one documented opcode in the
+port-assign chain (`TAD-Message-Formats.md:284-317`). `0x07`, `0x0B`, `0x15`, `0xFF` are
+**undocumented** connection-setup opcodes (not in the TAD table or `TadOpcodes.cs`).
+
+**Conclusion:** U1, U3, U5, U7 are `[NOT IN AVAILABLE SOURCE]`; U2 and U6 have inferred (not
+bit-verified) meaning; U4's *layout* is verified (`5PSHZ`/`5PMS1`/`5PMSK`) but its low-7
+*derivation* is open. Closing U1/U3/U4/U5/U7 requires the XMSG kernel NPL serialiser
+(`XFSND`/`XFP2M`), which is not in this repository.
+
+### 18.4 Derivation findings — empirical (pcap) + include-file alignment  [MAJOR PROGRESS]
+
+A second pass correlating 601 data frames against the `XMSG-VALUES-M.SYMB` option-word bits
+resolved most of the table:
+
+**U2 — Role byte = the HIGH BYTE (bits 8-15) of the XMSG send-option word. [SOLVED]** Every one
+of the 8 observed role values decodes exactly as an option combination (bit n of the role byte =
+option-word bit 8+n):
+
+| role bit | option (`XMSG-VALUES-M.SYMB`) | role bit | option |
+|----------|------------------------------|----------|--------|
+| bit0 | `XFTCM`=8 | bit4 | `XFBNC`=12 (bounce) |
+| bit1 | `XFSEC`=9 (secure) | bit5 | `XFHIP`=13 (high-priority) |
+| **bit2** | **`XFROU`=10 (route to XROUT)** | bit6 | `XFWAK`=14 (wake on status) |
+| bit3 | `XFFWD`=11 (forward) | bit7 | `XFWTF`=15 (wait for transfer) |
+
+So `0x00`=responder/none, `0x40`=XFWAK, `0x60`=XFWAK+XFHIP, `0x84`=XFWTF+XFROU (asker),
+`0x94`=XFWTF+XFBNC+XFROU, `0xC4`=XFWTF+XFWAK+XFROU, `0xE4`=XFWTF+XFWAK+XFHIP+XFROU. **The
+asker(`4`)/responder(`0`) low nibble IS the `XFROU` bit** (the asker routes a letter to a remote
+port; the local responder does not). The high nibble is the sender's chosen send-options, so it
+is NOT a fixed function of XMCSM — it varies with message purpose (e.g. data vs a bounce-set
+control frame).
+
+**U1 — Frame-flags = a phase/class status byte, near-deterministic from (XMCSM, direction).
+[MOSTLY SOLVED]** bit7 (`0x80`) = `XFSYS` (system-mode call, always set); bit1 (`0x02`) always
+set; **bit4 (`0x10`) = "terminal data-transfer phase active"** (set ⟺ XMCSM `0x01080000` once the
+connection has passed the `TMOD` setup — 238/242 frames); **bit2 (`0x04`) = "carries a
+normal-data letter"** (set for the data / LI-routing / SYSTEM-TAD payload classes, clear for the
+bare control classes `0x00060000`/`0x00080000` and the responder connect-reset trio). Residual
+ambiguity: 3 keys / 601 frames.
+
+**U4 — Session port is responder-LOCAL, not sender-derived. [EXPLAINED — hypothesis refuted]**
+`port = (freeSlot << 7) | incarnation`, where `freeSlot` is the next free slot in the
+*responder's* own port table and `incarnation` is a local reuse counter. Decisive: sessions S2
+and S3 have identical asker(100)/responder(102)/target(D102) yet different low-7 (`0x42` vs
+`0x41`) — so the low-7 CANNOT be a function of any sender-visible field. **Our node correctly
+mints its own `(slot<<7)|incarnation` — it must NOT try to derive it from 100's port/system;
+that was never the crash cause.** The `0x0B 03 XX` byte (`XX = 00/04/02`) is likewise
+responder-local state (only 3 data points; a link-index or per-session counter — undetermined).
+
+**ACK channel [OBSERVED]:** a real responder ACKs the connect (subtype `0x03`) on the **`DD`
+(TAD)** channel, not the connect's `DA` channel. A naive echo-channel `0x03` ACK (on `DA`)
+crashes 100 (XXPER) — the ACK channel is a separate value, not the data channel.
+
+### 18.5 UNIFIED ENVELOPE MODEL — closed form  [VERIFIED 209/209 data frames]
+
+The channel (U3) and the counter (U7) are two faces of ONE per-stream quantity. Define, per frame:
+
+```
+base = Flags1 + Counter                       (16-bit; Flags1 = hdr off 8-9, Counter = sub-hdr off 0)
+```
+
+A connect-to session multiplexes several **class-streams** (connect, TAD-data, TAD-control,
+routing), each with its own `(Flags1, Counter)` pair. On a stream, `Flags1` increments +1 per
+frame and `Counter` is an 8-bit down-counter (−1 per frame, wraps `0x00→0xFF`), so `base` is
+constant on a stream between wraps and jumps +0x100 at each wrap. Then:
+
+```
+Counter  = base0 − Flags1                      (per stream; base0 fixed at stream start)
+Channel  = 0xDE − (XMCSM >> 24) − (base >> 8)   (VERIFIED exact, 209/209 frames)
+```
+
+- **Class anchor** `C0 = 0xDE − (XMCSM>>24)`:  connect `0x04…`→`0xDA`;  TAD-data `0x01…`→`0xDD`;
+  control `0x00…`→`0xDE`. The channel is `C0 − (number of counter wraps on that stream)`, which
+  is why it appears to "walk" `DE→DD→DC…` and `DA→D9→D8` and why the responder can blindly echo
+  it.
+- **base0** of the connect stream = `connect_Flags1 + connect_Counter` — **a value we READ from
+  100's connect frame**. The TAD-data stream starts at `base0 − 8` (the `−8` is a fixed constant
+  across all sessions, ≈ the LAPB `N(S)` window modulus 8). The only non-derivable quantity is the
+  absolute connect base0 (leftover per-connection XMSG sequence state; correlates with the asker
+  node: 103→`0x11`, 100→`0x114`) — but we do not need to originate it: **we read it from 100 and
+  mirror it.**
+
+**Why this closes the problem.** Because a correct responder frame ECHOES the sender's Flags1 and
+Counter, it automatically gets the correct `base`, hence the correct Channel and Counter — no
+allocation, no guessing. Every crash so far was from **replaying a different session's channels**
+(a canned DD/DE stream) whose `base` did not match 100's live stream, instead of mirroring 100's
+live envelope. It also pins the ACK: the connect's `0x03` ACK rides the **TAD-data anchor
+`0xDD`**, not the connect channel `0xDA`.
+
+**Complete build recipe for the responder (all derivable now):**
+1. Role byte = XMSG option-word high byte (18.4): responder data frames `0x00`, wake `0x40`; the
+   XFROU bit (`0x04`) marks asker-vs-responder.
+2. Frame-flags = `0x82` base | bit4 (`0x10`) if terminal-data-phase | bit2 (`0x04`) if a
+   normal-data letter (18.4).
+3. For every frame 100 sends, reply by **mirroring its Flags1 + Protocol ID + Counter** (which
+   yields the correct `base`/channel automatically) and filling our own payload.
+4. ACK 100's data frames with subtype `0x03` on the **`0xDD`** TAD-data anchor (NOT the connect
+   channel), Flags2 `0x0001`, echoing the acked Flags1.
+5. Session port = our own `(freeSlot<<7)|incarnation` (18.4) — do not derive from 100.
+
+The remaining genuinely-open items are cosmetic/non-blocking: U5/U6 the two responder-local
+option bytes in the port-assign (`0x0B 03 XX`, `0x15 01 08`), and the absolute connect base0
+(read from 100, never originated).
+
+---
+
+### 18.6 Reconciliation with the peer/friend spec  [`OLD/xmsg-hdlc-protocol.md`]
+
+The peer/friend document `OLD/xmsg-hdlc-protocol.md` is the FCS-verified foundation this
+reference builds on: HDLC framing, LAPB (including the balanced two-SABM handshake, §3.4), the
+13-byte SINTRAN header, the XMSG sub-header (`XMDSY/XMDPT/XMSSY/XMSPT/XMCSM/XMLEN`), the
+`port << 7` wire encoding, the magic-number model, and the `XFRTN` "return message" reply
+pattern that underlies our echo/mirror responder. It also, to its credit, flagged the two things
+this document now resolves rather than getting them wrong:
+
+| Friend's doc | What it said | What our pcap work settled |
+|---|---|---|
+| §4.4 / §14 "Uncertain" | offsets 12–13 act as a 16-bit counter (`de04 → ddff`, high byte borrows `de→dd`); *"needs a second capture to settle whether the two traffic classes differ or the field is a counter throughout"* | **Settled in the friend's favour.** It is the derived channel `0xDE − (XMCSM class) − (base>>8)`, **universal** across ROUTING / TAD / list-route / list-systems / connect-to (Section 18.5, 209/209). Not two traffic classes — one model; the "fixed Protocol ID" appearance is just the same model with `base>>8` unchanged. |
+| §9 / §13 / §14 "Uncertain" | delivery ack = subtype **`0x07`**, Flags2 = `0xFFED`; and honestly noted *"XEIMA (−19) in a successful delivery ack is not fully explained"* | **The `0x07`/`0xFFED` frame is not the ack — it is the network-error/reject frame** (Section 4.1.1; `0xFFED` = `XEIMA` −19 = invalid magic number). The genuine secure-delivery ACK is subtype **`0x03`**, Flags2 = **`0x0001`** (Section 6), confirmed live: node 100 ACKs our frames on exactly that. The odd status the friend saw is explained — it was an error frame, not an ack. |
+
+Everything else in the friend's spec we independently re-confirmed on the wire. The universal
+transport envelope (Section 18.5) is the natural next layer on top of that foundation — it turns
+the friend's "counter-ish Protocol ID" observation into a closed form and makes the whole
+transport (channel, counter, ACK) derivable for any XMSG service, not just connect-to.
+
+---
+
 **Document path:** `SINTRAN/XMSG-PROTOCOL.md`
-**Supersedes:** `xmsg-hdlc-protocol.md`, `xmsg-hdlc-protocol-VALIDATION.md`,
-`XMSG-Protocol-Analysis.md`, and the format sections of the Wireshark README
-(all archived).
+**Builds on and credits:** `OLD/xmsg-hdlc-protocol.md` (the peer/friend FCS-verified spec —
+foundation for framing, LAPB, header, sub-header, addressing, and the two observations
+reconciled in Section 18.6). **Also consolidates:** `xmsg-hdlc-protocol-VALIDATION.md`,
+`XMSG-Protocol-Analysis.md`, and the format sections of the Wireshark README (archived).

@@ -3,4 +3,6 @@
   <Project Path="Xmsg.Protocol/Xmsg.Protocol.csproj" />
   <Project Path="Xmsg.Hdlc/Xmsg.Hdlc.csproj" />
   <Project Path="Xmsg.Diagnostics/Xmsg.Diagnostics.csproj" />
+  <Project Path="Xmsg.Live/Xmsg.Live.csproj" />
+  <Project Path="Xmsg.Live.Tests/Xmsg.Live.Tests.csproj" />
 </Solution>

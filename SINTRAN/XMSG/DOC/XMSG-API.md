@@ -199,6 +199,18 @@ layout byte-for-byte.
   frames over some non-HDLC network in place of the HDLC/Megalink link layer.
 - **System numbering** (`XSDLO`): ND-100 = serial number; ND-500 = serial +
   5000; ND-10 = serial + 9000; satellites = serial + 10000 (decimal).
+- **Remote name** (`XSDRN`, operator command `DEF-REMOTE`) = a **name → system
+  number** alias, and it is **many-to-one**: e.g. `DEF-REMOTE,,D102 102` maps
+  `D102` → 102, and you may also define `main` → 102. `connect-to <name>` resolves
+  the name to a system number via this remote-name table, then connects to that
+  system's TAD service. Confirmed from the capture set-up (`DEF-REMOTE,,D100 100` /
+  `D102 102` / `D103 103`): the captured connect-to letters name their target by
+  remote name (the bytes `44 31 30 32` = `"D102"` appear in the connect-to letter
+  body, addressed to the `TADADM` service).
+- **Terminal type** (TAD opcode `TTYP` `0x0D`) = a 16-bit terminal-type id the
+  client declares during connect-to; the host uses it to choose screen/echo/escape
+  behaviour. It does not affect framing (captured value `0x0000`), but a general
+  TAD server's *responses* may vary by type — see the TAD gap notes.
 - **XMSG Time Unit (XTU)** = 0.1 s.
 
 ### 5.1 Inter-system link states (XSLKI)

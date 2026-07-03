@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Xmsg.Live.Runner</AssemblyName>
+    <RootNamespace>NDInsight.Sintran.Xmsg.Live.Runner</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Xmsg.Protocol\Xmsg.Protocol.csproj" />
+    <ProjectReference Include="..\Xmsg.Hdlc\Xmsg.Hdlc.csproj" />
+    <ProjectReference Include="..\Xmsg.Live\Xmsg.Live.csproj" />
+    <ProjectReference Include="..\Xmsg.Diagnostics\Xmsg.Diagnostics.csproj" />
+  </ItemGroup>
+
+</Project>
