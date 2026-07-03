@@ -13,7 +13,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
 {
     /// <summary>
     /// Phase 3 gate for the link seam: an incoming SINTRAN information field round-trips through
-    /// <see cref="LapbLinkAdapter"/> — it surfaces UP as <see cref="ILink.PayloadReceived"/>, and a
+    /// <see cref="LapbLayerAdapter"/> — it surfaces UP as <see cref="ILink.PayloadReceived"/>, and a
     /// <see cref="ILink.SendSintranFrame"/> in response goes DOWN and appears on the wire as a LAPB
     /// I-frame carrying those exact bytes — all over an in-memory duplex, deterministically.
     /// </summary>
@@ -33,19 +33,24 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             inbound.AddRange(HdlcEncoder.Encode(iframeBody));                               // peer I-frame
 
             InMemoryDuplex duplex = new InMemoryDuplex(inbound.ToArray());
-            LapbLink link = new LapbLink(ownNode: 102);
-            LapbLinkAdapter adapter = new LapbLinkAdapter("hdlc:test", duplex, link);
+            LapbLayer link = new LapbLayer(ownNode: 102);
+            LapbLayerAdapter adapter = new LapbLayerAdapter("hdlc:test", duplex, link);
 
             List<byte[]> received = new List<byte[]>();
             List<LinkStatus> statuses = new List<LinkStatus>();
-            adapter.PayloadReceived += delegate (string linkId, ReadOnlyMemory<byte> payload, int length)
+            adapter.PayloadReceived += delegate (ILink link, byte[] payload, int length)
             {
-                Assert.Equal("hdlc:test", linkId);            // sender/link-id first
-                received.Add(payload.Slice(0, length).ToArray());
+                Assert.Equal("hdlc:test", link.Name);         // sender-first: the ILink instance
+                byte[] copy = new byte[length];               // contract: copy within the callback if retained
+                Array.Copy(payload, 0, copy, 0, length);
+                received.Add(copy);
                 // Respond DOWN: echo the payload back as a SINTRAN frame (the codec/layer's job later).
-                adapter.SendSintranFrame(payload.Span.Slice(0, length));
+                adapter.SendSintranFrame(payload, length);
             };
-            adapter.StatusChanged += delegate (string linkId, LinkStatus status) { statuses.Add(status); };
+            adapter.StatusChanged += delegate (ILink link, LinkStatus oldStatus, LinkStatus newStatus, string reason)
+            {
+                statuses.Add(newStatus);
+            };
 
             adapter.Initiate();
             await adapter.RunAsync(CancellationToken.None, keepaliveInterval: null);
@@ -54,8 +59,8 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             Assert.Single(received);
             Assert.Equal(SintranInfo, received[0]);
 
-            // Status went Up when the link connected.
-            Assert.Contains(LinkStatus.Up, statuses);
+            // Status went Active when the LAPB link connected.
+            Assert.Contains(LinkStatus.Active, statuses);
 
             // DOWN: among the frames written to the wire there is a data I-frame whose info field is
             // exactly the echoed SINTRAN bytes — proof the seam carried the reply out to the wire.
@@ -67,14 +72,14 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         [Fact]
         public void XmsgBoundLink_RejectsX25Send()
         {
-            LapbLink link = new LapbLink(ownNode: 102);
-            LapbLinkAdapter adapter = new LapbLinkAdapter(
+            LapbLayer link = new LapbLayer(ownNode: 102);
+            LapbLayerAdapter adapter = new LapbLayerAdapter(
                 "hdlc:test", new InMemoryDuplex(Array.Empty<byte>()), link, LinkBinding.Xmsg);
 
             Assert.Equal(LinkBinding.Xmsg, adapter.Binding);
-            // The HDLC transport is common, but this link is bound to XMSG: X.25 send must throw.
-            Assert.Throws<InvalidOperationException>(
-                () => adapter.SendX25Packet(new byte[] { 0x10, 0x00, 0x0D }));
+            // The HDLC transport is common, but this link is bound to XMSG: an X.25 send is refused
+            // with a logged false (contract change — no longer a throw).
+            Assert.False(adapter.SendX25Packet(new byte[] { 0x10, 0x00, 0x0D }, 3));
         }
 
         /// <summary>Builds a LAPB data I-frame body: addr 0x09, control from N(S)/N(R), then info.</summary>

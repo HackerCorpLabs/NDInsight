@@ -2,7 +2,7 @@
 // LAPB link, answers reachability / list-route, and (with a TAD responder) accepts connect-to.
 //
 // Two composition paths:
-//   * SEAM (default): TcpBridgeTransport -> LapbLinkAdapter(ILink) -> ProtocolDetector ->
+//   * SEAM (default): TcpBridgeTransport -> LapbLayerAdapter(ILink) -> ProtocolDetector ->
 //     XmsgCodec -> XmsgLayer. This is the restructured stack (XMSG-TRANSPORT-SEAM-PLAN.md).
 //   * LEGACY (first arg == "legacy"): the original LiveNode + XmsgNode wiring, kept until the
 //     seam path is proven live against machine 100 (Phase 5 gate).
@@ -137,7 +137,7 @@ internal static class Program
     }
 
     /// <summary>
-    /// The restructured seam composition: TcpBridgeTransport -> LapbLinkAdapter(ILink) ->
+    /// The restructured seam composition: TcpBridgeTransport -> LapbLayerAdapter(ILink) ->
     /// BoundProtocolDetector -> XmsgCodec -> XmsgLayer. Routing/TAD services are configured on the
     /// layer; the link is bound to XMSG, and the detector (a per-link-binding stub) confirms it.
     /// </summary>
@@ -146,8 +146,8 @@ internal static class Program
     {
         string linkId = $"hdlc:{host}:{port}";
 
-        LapbLink link = new LapbLink(node);
-        LapbLinkAdapter adapter = new LapbLinkAdapter(linkId, transport, link, LinkBinding.Xmsg);
+        LapbLayer link = new LapbLayer(node);
+        LapbLayerAdapter adapter = new LapbLayerAdapter(linkId, transport, link, LinkBinding.Xmsg);
 
         // The per-link-binding "detector" (seam stub): this link carries XMSG, decided by config
         // (the ND machine's installed SW), NOT by sniffing bytes. See XMSG-TRANSPORT-SEAM-PLAN.md §5.
@@ -186,10 +186,10 @@ internal static class Program
 
         // UP wiring: a delivered link payload is classified, then (for XMSG) parsed by the codec,
         // which raises PacketReceived to the layer. An X.25-bound link would route elsewhere here.
-        adapter.PayloadReceived += delegate (string id, ReadOnlyMemory<byte> payload, int length)
+        adapter.PayloadReceived += delegate (ILink deliveringLink, byte[] payload, int length)
         {
-            ReadOnlySpan<byte> span = payload.Span.Slice(0, length);
-            LinkBinding binding = detector.Classify(id, span);
+            ReadOnlySpan<byte> span = payload.AsSpan(0, length);
+            LinkBinding binding = detector.Classify(deliveringLink.Name, span);
             if (binding == LinkBinding.Xmsg)
             {
                 codec.ProcessBytes(span);
@@ -248,9 +248,9 @@ internal static class Program
         {
             Console.WriteLine($"[session] opened by system {clientSystem} port 0x{clientPort:X4}");
         };
-        adapter.StatusChanged += delegate (string id, LinkStatus status)
+        adapter.StatusChanged += delegate (ILink changedLink, LinkStatus oldStatus, LinkStatus newStatus, string reason)
         {
-            Console.WriteLine($"[link] {id} status -> {status}");
+            Console.WriteLine($"[link] {changedLink.Name} status {oldStatus} -> {newStatus} ({reason})");
         };
 
         // Diagnostic: log every raw LAPB frame 100 sends us (SABM/UA/RR/I). Detects and COLLAPSES a
@@ -310,7 +310,7 @@ internal static class Program
     /// </summary>
     private static async Task RunLegacyAsync(TcpBridgeTransport transport, ushort node, CancellationToken token)
     {
-        LapbLink link = new LapbLink(node);
+        LapbLayer link = new LapbLayer(node);
         XmsgNode xnode = new XmsgNode(node, 0x00);
         xnode.AcknowledgeData = false;
 

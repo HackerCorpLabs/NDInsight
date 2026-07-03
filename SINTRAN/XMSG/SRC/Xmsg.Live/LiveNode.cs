@@ -8,7 +8,7 @@ using NDInsight.Sintran.Xmsg.Hdlc;
 namespace NDInsight.Sintran.Xmsg.Live
 {
     /// <summary>
-    /// Composes a transport, HDLC framing, a <see cref="LapbLink"/> and an
+    /// Composes a transport, HDLC framing, a <see cref="LapbLayer"/> and an
     /// <see cref="XmsgNode"/> into a receive-&gt;decode-&gt;respond-&gt;encode-&gt;send loop.
     /// </summary>
     /// <remarks>
@@ -31,7 +31,7 @@ namespace NDInsight.Sintran.Xmsg.Live
         private const byte Flag = 0x7E;
 
         private readonly IByteDuplex _transport;
-        private readonly LapbLink _link;
+        private readonly LapbLayer _link;
         private readonly XmsgNode _node;
 
         private readonly List<byte> _frameAccumulator;
@@ -60,7 +60,7 @@ namespace NDInsight.Sintran.Xmsg.Live
         /// <exception cref="ArgumentNullException">
         /// Thrown when any argument is null.
         /// </exception>
-        public LiveNode(IByteDuplex transport, LapbLink link, XmsgNode node)
+        public LiveNode(IByteDuplex transport, LapbLayer link, XmsgNode node)
         {
             if (transport == null)
             {

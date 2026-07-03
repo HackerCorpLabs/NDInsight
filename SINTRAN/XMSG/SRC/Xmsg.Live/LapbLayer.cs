@@ -22,7 +22,7 @@ namespace NDInsight.Sintran.Xmsg.Live
     /// no loss occurs in the corpus — so they are configurable and default to conservative
     /// values.
     /// </remarks>
-    public sealed class LapbLink
+    public sealed class LapbLayer
     {
         /// <summary>
         /// LAPB address used on link-establishment frames (SABM, UA).
@@ -56,7 +56,7 @@ namespace NDInsight.Sintran.Xmsg.Live
         private readonly long _retransmitTicks;
         private readonly int _maxRetries;
 
-        private LapbLinkState _state;
+        private LapbLayerState _state;
         private int _sendVariable;      // V(S)
         private int _receiveVariable;   // V(R)
 
@@ -106,12 +106,12 @@ namespace NDInsight.Sintran.Xmsg.Live
         /// <param name="maxRetries">
         /// The maximum number of retransmissions before the link gives up. INFERRED default.
         /// </param>
-        public LapbLink(ushort ownNode, long retransmitTicks = 30, int maxRetries = 3)
+        public LapbLayer(ushort ownNode, long retransmitTicks = 30, int maxRetries = 3)
         {
             _ownNode = ownNode;
             _retransmitTicks = retransmitTicks;
             _maxRetries = maxRetries;
-            _state = LapbLinkState.Disconnected;
+            _state = LapbLayerState.Disconnected;
         }
 
         /// <summary>
@@ -125,7 +125,7 @@ namespace NDInsight.Sintran.Xmsg.Live
         /// <summary>
         /// Gets the current link state.
         /// </summary>
-        public LapbLinkState State
+        public LapbLayerState State
         {
             get { return _state; }
         }
@@ -162,7 +162,7 @@ namespace NDInsight.Sintran.Xmsg.Live
             // peer's SABM arrives) to fire once. This initiator SABM does NOT consume that budget —
             // the peer may miss this one, and the reflexive send is what guarantees it learns us.
             _ownSabmSent = false;
-            _state = LapbLinkState.SabmSent;
+            _state = LapbLayerState.SabmSent;
 
             byte[] body = BuildUnnumbered(AddressLinkSetup, ControlSabm);
             _lastUnackedBody = body;
@@ -212,11 +212,11 @@ namespace NDInsight.Sintran.Xmsg.Live
         /// The current injected tick count, used to arm the retransmit timer.
         /// </param>
         /// <exception cref="InvalidOperationException">
-        /// Thrown when the link is not <see cref="LapbLinkState.Connected"/>.
+        /// Thrown when the link is not <see cref="LapbLayerState.Connected"/>.
         /// </exception>
         public void SendInformation(ReadOnlySpan<byte> info, long currentTicks)
         {
-            if (_state != LapbLinkState.Connected)
+            if (_state != LapbLayerState.Connected)
             {
                 throw new InvalidOperationException("Cannot send information before the link is connected.");
             }
@@ -264,7 +264,7 @@ namespace NDInsight.Sintran.Xmsg.Live
             {
                 // INFERRED: give up and drop back to Disconnected after exhausting retries.
                 _lastUnackedBody = null;
-                _state = LapbLinkState.Disconnected;
+                _state = LapbLayerState.Disconnected;
                 return false;
             }
 
@@ -284,7 +284,7 @@ namespace NDInsight.Sintran.Xmsg.Live
         /// </remarks>
         public void SendKeepalive()
         {
-            if (_state == LapbLinkState.Connected)
+            if (_state == LapbLayerState.Connected)
             {
                 EmitReadyRr();
             }
@@ -315,7 +315,7 @@ namespace NDInsight.Sintran.Xmsg.Live
                 _receiveVariable = 0;
                 _sendVariable = 0;
                 _synced = false;
-                _state = LapbLinkState.Connected;
+                _state = LapbLayerState.Connected;
                 _lastUnackedBody = null;
 
                 // VERIFIED (raw captures device-online-100-102-103.pcapng and
@@ -356,9 +356,9 @@ namespace NDInsight.Sintran.Xmsg.Live
             else if (frame.Control == ControlUa)
             {
                 // Our SABM was accepted; the link is up with V(S) = V(R) = 0.
-                if (_state == LapbLinkState.SabmSent)
+                if (_state == LapbLayerState.SabmSent)
                 {
-                    _state = LapbLinkState.Connected;
+                    _state = LapbLayerState.Connected;
                     _lastUnackedBody = null;
                     EmitReadyRr();   // see note above
                 }

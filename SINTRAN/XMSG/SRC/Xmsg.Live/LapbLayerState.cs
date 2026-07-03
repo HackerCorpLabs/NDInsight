@@ -3,7 +3,7 @@ namespace NDInsight.Sintran.Xmsg.Live
     /// <summary>
     /// The connection state of a modulo-8 LAPB ABM link.
     /// </summary>
-    public enum LapbLinkState
+    public enum LapbLayerState
     {
         /// <summary>
         /// No link established; no sequence state is valid.

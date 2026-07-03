@@ -12,7 +12,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
     /// Layer 2 proof: the driven LAPB link answers SABM with UA and evolves V(S)/V(R)
     /// exactly as the captured link does.
     /// </summary>
-    public sealed class LapbLinkTests
+    public sealed class LapbLayerTests
     {
         /// <summary>
         /// Connect() must emit a SABM carrying this node's number and move to SabmSent,
@@ -21,20 +21,20 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         [Fact]
         public void Connect_EmitsSabm_ThenUaConnects()
         {
-            LapbLink link = new LapbLink(ownNode: 100);
+            LapbLayer link = new LapbLayer(ownNode: 100);
             List<byte[]> sent = new List<byte[]>();
             link.OnTransmit += delegate (byte[] body) { sent.Add(body); };
 
             link.Connect(currentTicks: 0);
 
-            Assert.Equal(LapbLinkState.SabmSent, link.State);
+            Assert.Equal(LapbLayerState.SabmSent, link.State);
             Assert.Single(sent);
             // SABM: addr 0x01, ctrl 0x3F, info = node 100 (00 64).
             Assert.Equal(new byte[] { 0x01, 0x3F, 0x00, 0x64 }, sent[0]);
 
             // Peer's UA (addr 01 ctrl 73 info 00 64) completes the link.
             link.OnFrameReceived(MakeFrame(0x01, 0x73, new byte[] { 0x00, 0x64 }));
-            Assert.Equal(LapbLinkState.Connected, link.State);
+            Assert.Equal(LapbLayerState.Connected, link.State);
             Assert.Equal(0, link.SendVariable);
             Assert.Equal(0, link.ReceiveVariable);
         }
@@ -46,7 +46,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         [Fact]
         public void ReplayCapturedLink_AnswersSabm_AndAdvancesReceiveVariable()
         {
-            LapbLink link = new LapbLink(ownNode: 102);
+            LapbLayer link = new LapbLayer(ownNode: 102);
             List<byte[]> sent = new List<byte[]>();
             List<byte[]> delivered = new List<byte[]>();
             link.OnTransmit += delegate (byte[] body) { sent.Add(body); };
@@ -55,7 +55,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             // 1) Peer initiates: SABM addr 01 ctrl 3F info 00 64 (node 100).
             link.OnFrameReceived(MakeFrame(0x01, 0x3F, new byte[] { 0x00, 0x64 }));
 
-            Assert.Equal(LapbLinkState.Connected, link.State);
+            Assert.Equal(LapbLayerState.Connected, link.State);
             Assert.Equal(0, link.SendVariable);
             Assert.Equal(0, link.ReceiveVariable);
             // The ND data link is a SYMMETRIC balanced link: both stations issue their OWN SABM.
@@ -104,7 +104,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         [Fact]
         public void RepeatedSabm_DuringEstablishment_EmitsOwnSabmOnce_NoFlood()
         {
-            LapbLink link = new LapbLink(ownNode: 102);
+            LapbLayer link = new LapbLayer(ownNode: 102);
             List<byte[]> sent = new List<byte[]>();
             link.OnTransmit += delegate (byte[] body) { sent.Add(body); };
 
@@ -135,7 +135,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         [Fact]
         public void SabmAfterSync_IsTreatedAsResync_ReissuesOwnSabm()
         {
-            LapbLink link = new LapbLink(ownNode: 102);
+            LapbLayer link = new LapbLayer(ownNode: 102);
             List<byte[]> sent = new List<byte[]>();
             link.OnTransmit += delegate (byte[] body) { sent.Add(body); };
 
@@ -165,7 +165,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         [Fact]
         public void OutOfOrderInformation_NotDelivered_ButAcked()
         {
-            LapbLink link = new LapbLink(ownNode: 102);
+            LapbLayer link = new LapbLayer(ownNode: 102);
             List<byte[]> delivered = new List<byte[]>();
             link.OnInformation += delegate (ReadOnlyMemory<byte> info) { delivered.Add(info.ToArray()); };
 

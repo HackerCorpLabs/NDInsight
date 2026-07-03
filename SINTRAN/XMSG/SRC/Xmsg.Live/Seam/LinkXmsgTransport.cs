@@ -31,7 +31,12 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         /// <inheritdoc />
         public void Send(ReadOnlySpan<byte> bytes)
         {
-            _link.SendSintranFrame(bytes);
+            // ILink sends take byte[] + length; materialise the span into an array for the call. This
+            // is the L3->L2 send seam (one outbound frame per call), NOT a hot receive path, so the
+            // per-frame allocation is acceptable. The bool result is advisory here; the codec above
+            // has no retransmit path of its own (that lives in LAPB).
+            byte[] buffer = bytes.ToArray();
+            _link.SendSintranFrame(buffer, buffer.Length);
         }
     }
 }

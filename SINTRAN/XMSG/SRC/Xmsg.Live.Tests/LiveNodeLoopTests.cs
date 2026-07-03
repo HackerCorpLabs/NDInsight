@@ -34,7 +34,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             byte[] inbound = Concat(sabm, reqFrame);
 
             InMemoryDuplex duplex = new InMemoryDuplex(inbound);
-            LapbLink link = new LapbLink(ownNode: 102);
+            LapbLayer link = new LapbLayer(ownNode: 102);
             XmsgNode node = new XmsgNode(nodeNumber: 102, ackCounter: 0x2D);
             LiveNode live = new LiveNode(duplex, link, node);
 
@@ -66,7 +66,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             byte[] inbound = Concat(sabm, dataFrame);
 
             InMemoryDuplex duplex = new InMemoryDuplex(inbound);
-            LapbLink link = new LapbLink(ownNode: 102);
+            LapbLayer link = new LapbLayer(ownNode: 102);
             XmsgNode node = new XmsgNode(nodeNumber: 102, ackCounter: 0x2D);
             LiveNode live = new LiveNode(duplex, link, node);
 
@@ -95,7 +95,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         private static byte[] BuildIFrameBody(byte control, byte[] info)
         {
             byte[] body = new byte[2 + info.Length];
-            body[0] = LapbLink.AddressData;   // 0x09
+            body[0] = LapbLayer.AddressData;   // 0x09
             body[1] = control;
             Array.Copy(info, 0, body, 2, info.Length);
             return body;

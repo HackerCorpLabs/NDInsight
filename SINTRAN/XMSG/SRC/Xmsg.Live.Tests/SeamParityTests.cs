@@ -15,7 +15,7 @@ using Xunit;
 namespace NDInsight.Sintran.Xmsg.Live.Tests
 {
     /// <summary>
-    /// Phase 5 offline parity gate: the restructured seam composition (LapbLinkAdapter + XmsgCodec +
+    /// Phase 5 offline parity gate: the restructured seam composition (LapbLayerAdapter + XmsgCodec +
     /// XmsgLayer) must produce byte-for-byte the SAME wire output as the proven legacy composition
     /// (LiveNode + XmsgNode) when driven with the identical inbound HDLC stream — a scripted
     /// connect-to handshake (peer SABM, connect request, session-setup). Byte-identical output here
@@ -47,7 +47,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         private static async Task<byte[]> RunLegacy(byte[] inbound)
         {
             InMemoryDuplex duplex = new InMemoryDuplex(inbound);
-            LapbLink link = new LapbLink(ownNode: 103);
+            LapbLayer link = new LapbLayer(ownNode: 103);
             XmsgNode node = new XmsgNode(103, 0x00);
             ConfigureNode(node);
 
@@ -57,20 +57,20 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             return duplex.GetWrittenBytes();
         }
 
-        /// <summary>Runs the seam LapbLinkAdapter + XmsgCodec + XmsgLayer path over the inbound stream; returns the wire bytes it writes.</summary>
+        /// <summary>Runs the seam LapbLayerAdapter + XmsgCodec + XmsgLayer path over the inbound stream; returns the wire bytes it writes.</summary>
         private static async Task<byte[]> RunSeam(byte[] inbound)
         {
             InMemoryDuplex duplex = new InMemoryDuplex(inbound);
-            LapbLink link = new LapbLink(ownNode: 103);
-            LapbLinkAdapter adapter = new LapbLinkAdapter("hdlc:test", duplex, link, LinkBinding.Xmsg);
+            LapbLayer link = new LapbLayer(ownNode: 103);
+            LapbLayerAdapter adapter = new LapbLayerAdapter("hdlc:test", duplex, link, LinkBinding.Xmsg);
             LinkXmsgTransport codecTransport = new LinkXmsgTransport(adapter);
             XmsgCodec codec = new XmsgCodec("hdlc:test", codecTransport);
             XmsgLayer layer = new XmsgLayer(codec, 103, 0x00);
             ConfigureLayer(layer);
 
-            adapter.PayloadReceived += delegate (string id, ReadOnlyMemory<byte> payload, int length)
+            adapter.PayloadReceived += delegate (ILink link, byte[] payload, int length)
             {
-                codec.ProcessBytes(payload.Span.Slice(0, length));
+                codec.ProcessBytes(payload.AsSpan(0, length));
             };
 
             adapter.Initiate();

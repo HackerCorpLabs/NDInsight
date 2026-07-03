@@ -23,7 +23,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
     /// through a <see cref="TadFrameContext"/> so the machine never fabricates them.
     /// <para><b>Determinism</b></para>
     /// The session holds no wall-clock. Any timing (RFI credit, retransmit) belongs to the
-    /// injected-clock <see cref="LapbLink"/> beneath it; this layer is purely event-driven.
+    /// injected-clock <see cref="LapbLayer"/> beneath it; this layer is purely event-driven.
     /// <para><b>Honesty about the server</b></para>
     /// Only one scenario is captured, so a genuinely general correct server is impossible from
     /// this evidence. For faithful server behaviour on the captured input, use

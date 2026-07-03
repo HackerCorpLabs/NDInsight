@@ -9,7 +9,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
 {
     /// <summary>
     /// An <see cref="ILink"/> over the proven HDLC/LAPB stack: wraps an <see cref="IByteDuplex"/>
-    /// transport and a <see cref="LapbLink"/>, runs the receive→deframe→FCS→LAPB pump, delivers each
+    /// transport and a <see cref="LapbLayer"/>, runs the receive→deframe→FCS→LAPB pump, delivers each
     /// in-order information field UP as <see cref="PayloadReceived"/>, and turns
     /// <see cref="SendSintranFrame"/> into a LAPB I-frame DOWN. Bound to XMSG.
     /// </summary>
@@ -23,18 +23,25 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
     /// </para>
     /// <para>
     /// The HDLC/LAPB transport is common to X.25 and XMSG; this instance is <em>bound</em> to
-    /// <see cref="LinkBinding.Xmsg"/>, so <see cref="SendX25Packet"/> throws. An X.25 machine would
-    /// bind the same adapter to <see cref="LinkBinding.X25"/>. The binding is config, not detection.
+    /// <see cref="LinkBinding.Xmsg"/>, so <see cref="SendX25Packet"/> returns false (logged, never
+    /// thrown). An X.25 machine would bind the same adapter to <see cref="LinkBinding.X25"/>. The
+    /// binding is config, not detection.
+    /// </para>
+    /// <para>
+    /// <b>Buffer ownership:</b> the <see cref="PayloadReceived"/> payload MAY be a buffer the adapter
+    /// reuses; a consumer that retains the bytes beyond the callback MUST copy them within the
+    /// callback. (Today the underlying frame array is fresh per receive, so no copy is strictly
+    /// required — but consumers must not rely on that.)
     /// </para>
     /// </remarks>
-    public sealed class LapbLinkAdapter : ILink
+    public sealed class LapbLayerAdapter : ILink
     {
         /// <summary>The HDLC flag / frame-delimiter byte.</summary>
         private const byte Flag = 0x7E;
 
         private readonly string _linkId;
         private readonly IByteDuplex _transport;
-        private readonly LapbLink _link;
+        private readonly LapbLayer _link;
         private readonly LinkBinding _binding;
 
         private readonly List<byte> _frameAccumulator;
@@ -42,14 +49,18 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
 
         private long _ticks;
         private LinkStatus _status;
+        // True once Stop()/Dispose() has been called. Used to stop the pump's residual LAPB state from
+        // resurrecting the link to Active/Starting. We CANNOT use the status enum for this, because the
+        // INITIAL status is also Stopped (before Start) — and from there the link legitimately advances.
+        private bool _stopRequested;
         private CancellationTokenSource? _cts;
         private Task? _pump;
 
         /// <inheritdoc />
-        public event ILink.LinkPayloadReceived? PayloadReceived;
+        public event LinkPayloadReceived? PayloadReceived;
 
         /// <inheritdoc />
-        public event ILink.LinkStatusChanged? StatusChanged;
+        public event LinkStatusChanged? StatusChanged;
 
         /// <summary>
         /// Diagnostic up-event: every FCS-valid LAPB frame received from the wire (raw body,
@@ -71,7 +82,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         /// <param name="link">The LAPB link state machine.</param>
         /// <param name="binding">The L3 protocol this link carries; defaults to XMSG.</param>
         /// <exception cref="ArgumentNullException">Thrown when any reference argument is null.</exception>
-        public LapbLinkAdapter(string linkId, IByteDuplex transport, LapbLink link, LinkBinding binding = LinkBinding.Xmsg)
+        public LapbLayerAdapter(string linkId, IByteDuplex transport, LapbLayer link, LinkBinding binding = LinkBinding.Xmsg)
         {
             _linkId = linkId ?? throw new ArgumentNullException(nameof(linkId));
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
@@ -80,19 +91,29 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
 
             _frameAccumulator = new List<byte>(512);
             _pendingWrites = new Queue<byte[]>();
-            _status = LinkStatus.Down;
+            _status = LinkStatus.Stopped;
 
             _link.OnTransmit += EnqueueTransmit;
             _link.OnInformation += DeliverPayload;
         }
 
         /// <inheritdoc />
-        public string LinkId
+        public string Name
         {
             get { return _linkId; }
         }
 
         /// <inheritdoc />
+        public LinkStatus Status
+        {
+            get { return _status; }
+        }
+
+        /// <summary>
+        /// Gets the L3 protocol this link is bound to carry. This is adapter-internal configuration
+        /// (NOT part of <see cref="ILink"/>): it gates <see cref="SendSintranFrame"/> /
+        /// <see cref="SendX25Packet"/>, but nothing above the seam reads it.
+        /// </summary>
         public LinkBinding Binding
         {
             get { return _binding; }
@@ -108,19 +129,39 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         }
 
         /// <inheritdoc />
-        public void Start()
+        public bool Start()
         {
             // Live start: initiate LAPB establishment, then pump forever with an RR keepalive so the
             // peer keeps the link in RUN. Deterministic tests use Initiate()+RunAsync directly.
             _cts = new CancellationTokenSource();
+            SetStatus(LinkStatus.Starting, "start requested");
             Initiate();
             _pump = RunAsync(_cts.Token, TimeSpan.FromSeconds(1));
+            return true;
         }
 
         /// <inheritdoc />
         public void Stop()
         {
+            // Idempotent: a second Stop (or a Stop after Dispose) is a no-op.
+            if (_status == LinkStatus.Stopped || _status == LinkStatus.Stopping)
+            {
+                return;
+            }
+
+            _stopRequested = true;
+            SetStatus(LinkStatus.Stopping, "stop requested");
             _cts?.Cancel();
+            SetStatus(LinkStatus.Stopped, "stopped");
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            // Dispose implies Stop. We only CANCEL the pump (cooperative) and never await it here, so
+            // Dispose can never hang on the receive pump. The token source is then released.
+            Stop();
+            _cts?.Dispose();
         }
 
         /// <summary>
@@ -216,26 +257,41 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         }
 
         /// <inheritdoc />
-        public void SendSintranFrame(ReadOnlySpan<byte> infoField)
+        public bool SendSintranFrame(byte[] frame, int length)
         {
+            // Contract: wrong binding or a not-Active link is a logged false, NEVER a throw.
             if (_binding != LinkBinding.Xmsg)
             {
-                throw new InvalidOperationException(
-                    "This link is bound to X.25; use SendX25Packet.");
+                Console.WriteLine($"[link] {_linkId} SendSintranFrame refused: link is bound to X.25");
+                return false;
+            }
+
+            if (_status != LinkStatus.Active)
+            {
+                Console.WriteLine($"[link] {_linkId} SendSintranFrame refused: link not Active (status {_status})");
+                return false;
+            }
+
+            if (frame == null || length < 0 || length > frame.Length)
+            {
+                Console.WriteLine($"[link] {_linkId} SendSintranFrame refused: invalid buffer/length");
+                return false;
             }
 
             _ticks++;
-            // Emits the I-frame via LapbLink.OnTransmit -> EnqueueTransmit; the pump flushes it.
-            _link.SendInformation(infoField, _ticks);
+            // Emits the I-frame via LapbLayer.OnTransmit -> EnqueueTransmit; the pump flushes it.
+            _link.SendInformation(frame.AsSpan(0, length), _ticks);
+            return true;
         }
 
         /// <inheritdoc />
-        public void SendX25Packet(ReadOnlySpan<byte> packet)
+        public bool SendX25Packet(byte[] packet, int length)
         {
             // Bound to XMSG: an X.25 packet cannot be sent on this link. A link on an ND machine
-            // running X.25 software would bind LinkBinding.X25 and implement this instead.
-            throw new InvalidOperationException(
-                "This link is bound to XMSG; use SendSintranFrame.");
+            // running X.25 software would bind LinkBinding.X25 and implement this instead. Per the
+            // contract this is a logged false, not a throw.
+            Console.WriteLine($"[link] {_linkId} SendX25Packet refused: link is bound to XMSG");
+            return false;
         }
 
         /// <summary>
@@ -288,6 +344,12 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
 
                 LapbFrame frame = new LapbFrame(default, frameBytes);
                 _link.OnFrameReceived(frame);
+
+                // Refresh coarse status right after each frame so a SABM/UA that brings the LAPB link
+                // to Connected flips us to Active BEFORE the very next frame (the peer's first I-frame)
+                // delivers its payload — a send issued from that PayloadReceived callback then sees an
+                // Active link. Waiting until the end of the read chunk would race that.
+                RaiseStatusIfChanged();
             }
         }
 
@@ -296,7 +358,19 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         /// </summary>
         private void DeliverPayload(ReadOnlyMemory<byte> info)
         {
-            PayloadReceived?.Invoke(_linkId, info, info.Length);
+            // The ILink contract hands the payload up as byte[] + length. The frame's info field is
+            // already backed by its own array, so surface that array directly (zero-copy) when it is a
+            // whole-array segment; only copy on the unusual sliced case. Consumers copy if they retain.
+            if (System.Runtime.InteropServices.MemoryMarshal.TryGetArray(info, out ArraySegment<byte> seg)
+                && seg.Array != null && seg.Offset == 0 && seg.Array.Length == seg.Count)
+            {
+                PayloadReceived?.Invoke(this, seg.Array, seg.Count);
+            }
+            else
+            {
+                byte[] copy = info.ToArray();
+                PayloadReceived?.Invoke(this, copy, copy.Length);
+            }
         }
 
         /// <summary>
@@ -321,15 +395,38 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
 
         /// <summary>
         /// Maps the LAPB state to the coarse <see cref="LinkStatus"/> and raises StatusChanged on a
-        /// transition (Down↔Up), so the layer above learns the pipe became usable / unusable.
+        /// transition, so the layer above learns the pipe became usable / unusable. LAPB
+        /// <c>Connected</c> maps to <see cref="LinkStatus.Active"/>; anything else while the pump runs
+        /// is <see cref="LinkStatus.Starting"/> (establishing or re-establishing).
         /// </summary>
         private void RaiseStatusIfChanged()
         {
-            LinkStatus mapped = _link.State == LapbLinkState.Connected ? LinkStatus.Up : LinkStatus.Down;
-            if (mapped != _status)
+            // Once Stop()/Dispose() has been requested, a residual LAPB state left in the pump must not
+            // resurrect the link to Active/Starting. (We check the flag, not the status enum, because
+            // the initial pre-Start status is also Stopped — and from there we DO advance.)
+            if (_stopRequested)
             {
-                _status = mapped;
-                StatusChanged?.Invoke(_linkId, mapped);
+                return;
+            }
+
+            bool connected = _link.State == LapbLayerState.Connected;
+            LinkStatus mapped = connected ? LinkStatus.Active : LinkStatus.Starting;
+            SetStatus(mapped, connected ? "LAPB connected" : "LAPB establishing");
+        }
+
+        /// <summary>
+        /// Sets the coarse status and raises <see cref="StatusChanged"/> only on an actual transition,
+        /// carrying the previous status, the new status, and a reason (sender-first: this link).
+        /// </summary>
+        /// <param name="next">The new status.</param>
+        /// <param name="reason">A short human-readable reason for the transition (for logs).</param>
+        private void SetStatus(LinkStatus next, string reason)
+        {
+            if (next != _status)
+            {
+                LinkStatus previous = _status;
+                _status = next;
+                StatusChanged?.Invoke(this, previous, next, reason);
             }
         }
     }
