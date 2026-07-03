@@ -204,6 +204,28 @@ Dest/Src are the relay nodes; the endpoints sit inside the payload. In relayed
 captures the *same* logical frame appears on two links with the per-link counter
 re-stamped by +1.
 
+> **Relay is transparent at the destination link — [VERIFIED from
+> `conn-to-102-from103-via100.pcapng`].** When node 103 connects to node 102
+> *through* relay node 100, the frames arriving on the **102-facing link** are
+> **normal `0x13` frames**, and their SINTRAN header carries the **logical
+> originator** as the source: `Dest 102 (0x0066) / Src 103 (0x0067)` — *not*
+> `0x12` relay frames with 100 in the header. The physical relay node 100 appears
+> **only at the LAPB layer** (its node number `0x0064` in the SABM/UA/RR info
+> field of section 3.3); it never appears in the SINTRAN header or the XMSG
+> sub-header endpoints on this segment. Concretely, two node identities coexist
+> per link:
+>
+> | Layer | Field | Whose node number | 103-via-100 shows |
+> |-------|-------|-------------------|-------------------|
+> | LAPB (section 3.3) | SABM/UA/RR info | **physical neighbour** | `100` (`0x0064`) |
+> | SINTRAN header (offsets 4/6) | Dest / Src node | **logical endpoints** | `102` / `103` |
+> | XMSG sub-header | `XMDSY:XMDPT` / `XMSSY:XMSPT` | **logical endpoints:port** | `102:0` / `103:581` |
+>
+> **Implication for a responder:** address replies to the frame's *logical*
+> source (`Header.SrcNode` / `XMSSY`), which may be 103 even though every byte
+> physically travels the 100↔102 link. Do **not** assume the SINTRAN-header
+> source equals the LAPB peer.
+
 ### 4.1 Packet Subtype (offset 3)  [VERIFIED]
 
 **This byte is a message-kind code, not a length.** (The old dissector README
