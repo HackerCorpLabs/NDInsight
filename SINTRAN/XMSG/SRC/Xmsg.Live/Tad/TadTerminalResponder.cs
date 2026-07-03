@@ -41,6 +41,11 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
         private readonly TadTerminalMenu _menu;
         private readonly Func<DateTime> _clock;
 
+        // Persists our outgoing datagram sequence per remote node across process restarts, so it
+        // stays in step with 100's persistent expected-from-us (XSRSQ). Default = non-persisting
+        // (starts every remote at 0x0000); the live runner injects a file-backed store.
+        private readonly IResponderSequenceStore _sequenceStore;
+
         // Our dynamically-allocated session port (logical port << 7 | random low-7). Assigned on
         // connect. INFERRED starting value; only the (logical<<7)|random LAYOUT is VERIFIED.
         private ushort _sessionWirePort;
@@ -72,11 +77,18 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
         /// </summary>
         /// <param name="nodeNumber">This node's number (for example 103).</param>
         /// <param name="clock">Supplies the current time for the MOTD and the Time/Date commands.</param>
-        public TadTerminalResponder(ushort nodeNumber, Func<DateTime> clock)
+        /// <param name="sequenceStore">
+        /// Persists our outgoing datagram sequence per remote node across restarts. When null, a
+        /// non-persisting store is used (every remote starts at 0x0000) — correct for tests and for
+        /// a first-ever contact, but a live node against a long-running peer should pass a
+        /// <see cref="FileResponderSequenceStore"/> so it does not fall behind the peer's XSRSQ.
+        /// </param>
+        public TadTerminalResponder(ushort nodeNumber, Func<DateTime> clock, IResponderSequenceStore? sequenceStore = null)
         {
             _nodeNumber = nodeNumber;
             _menu = new TadTerminalMenu();
             _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+            _sequenceStore = sequenceStore ?? new NullResponderSequenceStore();
         }
 
         /// <summary>
@@ -149,13 +161,14 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
             // terminal data rides 0xDD (NOT DB: DB was an epoch-2 artifact of a high running sequence).
             _seed = XmsgEnvelope.LearnSeed(
                 request.Header.Flags1, request.SubHeader.Counter, request.Header.Flags2);
-            // OPEN QUESTION (do NOT guess): what value should our outgoing datagram sequence START at?
-            // 0x0000 gave ONE confirmed live success (CONNECTION ESTABLISHED, when 100's connect was
-            // Flags1 0x0001). A later run FAILED with the same 0x0000 when 100's connect was Flags1
-            // 0x0005 (100's per-node-pair sequence had advanced across our process restart). We do NOT
-            // know the rule that ties our start to 100's expectation. Kept at 0x0000 (the confirmed
-            // value) pending an answer — see XMSG-SEQUENCE-RESTART-QUESTION.md. NO assumption made.
-            _respFlags1 = 0x0000;
+            // Start our outgoing datagram sequence where our previous frames to THIS node left off.
+            // 100 keeps a persistent per-node-pair expected-from-us (XSRSQ) = the count of Data frames
+            // we have sent it; it does NOT reset when we restart. Resetting to 0x0000 makes our frames
+            // behind-sequence (silently dropped) — the Run B failure. The store persists our next
+            // Flags1 per remote node across restarts, so we continue in step. A first-ever contact
+            // (no stored value) correctly starts at 0x0000. See
+            // XMSG-SEQUENCE-RESTART-ANSWER-2026-07-03.md option (a).
+            _respFlags1 = _sequenceStore.LoadNextFlags1(_clientSystem);
 
             // The captured 102 responder handshake is, in order:
             //   1. connect-accept  (proto D8, role 40, XMCSM 04000041, param trailer)
@@ -379,8 +392,10 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
             SintranProtocolId channel = XmsgEnvelope.DeriveChannel(_seed, f1, frameClass, controlService);
 
             // One continuous sequence for ALL our frames (accept, port-assign, data) -> 100 sees them
-            // in order (out-of-order = XENSE).
+            // in order (out-of-order = XENSE). Persist it per remote node so a restart continues in
+            // step with 100's expected-from-us (only Data frames advance it; secure ACKs do not).
             _respFlags1 = (ushort)(f1 + 1);
+            _sequenceStore.SaveNextFlags1(_clientSystem, _respFlags1);
 
             TadFrameContext ctx = new TadFrameContext
             {

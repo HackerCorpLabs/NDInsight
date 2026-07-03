@@ -109,8 +109,14 @@ internal static class Program
             new RoutingTableEntry(node, XroutConnectionType.Local, node, 0, 0),
         };
         layer.RoutingTable = new InMemoryRoutingTable(entries);
+        // Persist our outgoing datagram sequence per remote node across restarts (a state file next
+        // to the runner), so we continue in step with 100's persistent expected-from-us instead of
+        // resetting to 0x0000 and being silently dropped. See XMSG-SEQUENCE-RESTART-ANSWER doc.
+        string statePath = System.IO.Path.Combine(AppContext.BaseDirectory, "xmsg-sequence.state");
+        FileResponderSequenceStore sequenceStore = new FileResponderSequenceStore(statePath);
+        Console.WriteLine($"[runner] datagram-sequence state file: {statePath}");
         NDInsight.Sintran.Xmsg.Live.Tad.TadTerminalResponder tad =
-            new NDInsight.Sintran.Xmsg.Live.Tad.TadTerminalResponder(node, () => DateTime.Now);
+            new NDInsight.Sintran.Xmsg.Live.Tad.TadTerminalResponder(node, () => DateTime.Now, sequenceStore);
         // Terminal bring-up ENABLED — now driven by the VERIFIED seed model (analysis 2026-07-03,
         // 601/601 frames). A fresh responder at epoch 0 sends terminal data on 0xDD (NOT DB), with
         // Counter = (seed - 8 - Flags1); the seed (0x14 for 100<->102) is LEARNED from 100's connect.
