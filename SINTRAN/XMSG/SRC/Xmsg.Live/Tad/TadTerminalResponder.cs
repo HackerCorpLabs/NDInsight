@@ -452,7 +452,10 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
             string input = ExtractBdatText(frame);
 
             TadMenuResult result = _menu.Handle(input, _clock());
-            outgoing.Add(BuildTerminalText(frame, result.Output));
+            // Append RFI (ready-for-input) UNLESS this reply disconnects. RFI is the flow-control
+            // credit that tells 100 it may send the next line; without it 100 sits idle after our
+            // reply (VERIFIED from the capture: every input-expecting prompt ends with RFI).
+            outgoing.Add(BuildTerminalText(frame, result.Output, readyForInput: !result.Disconnect));
 
             if (result.Disconnect)
             {
@@ -494,7 +497,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
         /// the session port. Long text is truncated to a single 255-byte BDAT for now (the menu
         /// text is well under that; chunking is a later refinement). [INFERRED envelope; iterate.]
         /// </summary>
-        private XmsgFrame BuildTerminalText(XmsgFrame request, string text)
+        private XmsgFrame BuildTerminalText(XmsgFrame request, string text, bool readyForInput)
         {
             byte[] ascii = Encoding.ASCII.GetBytes(text);
             if (ascii.Length > 255)
@@ -506,6 +509,13 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
 
             TadChain chain = new TadChain();
             chain.Add(TadOp.Bdat, ascii);
+            if (readyForInput)
+            {
+                // RFI (ready-for-input): the flow-control credit that lets 100 send the next line.
+                // The MOTD carried one, which is why the first ENTER worked; each reply must renew it.
+                chain.Add(TadOp.Rfi, null);
+            }
+
             byte[] payload = chain.ToBytes();
 
             // Route terminal text through the SAME seed model as every other frame we originate:
