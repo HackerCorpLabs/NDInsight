@@ -2,11 +2,10 @@ using System;
 
 using NDInsight.Sintran.Xmsg;
 using NDInsight.Sintran.Xmsg.Node;
-using NDInsight.Sintran.Xmsg.Live;
 
 using Xunit;
 
-namespace NDInsight.Sintran.Xmsg.Live.Tests
+namespace NDInsight.Sintran.Xmsg.Node.Tests
 {
     /// <summary>
     /// Layer 3 proof: the node answers a captured reachability request with the exact

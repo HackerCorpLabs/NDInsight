@@ -7,7 +7,7 @@ using NDInsight.Sintran.Xmsg.ListRouting;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace NDInsight.Sintran.Xmsg.Live.Tests
+namespace NDInsight.Sintran.Xmsg.Node.Tests
 {
     /// <summary>
     /// Diagnostic: dumps the XSGSY reply the node produces for the exact list-route request

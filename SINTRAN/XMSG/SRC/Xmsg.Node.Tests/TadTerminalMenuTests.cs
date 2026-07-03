@@ -1,12 +1,11 @@
 using System;
 
-using NDInsight.Sintran.Xmsg.Live;
 using NDInsight.Sintran.Xmsg.Node;
 using NDInsight.Sintran.Xmsg.SubProtocol;
 
 using Xunit;
 
-namespace NDInsight.Sintran.Xmsg.Live.Tests
+namespace NDInsight.Sintran.Xmsg.Node.Tests
 {
     /// <summary>
     /// Verifies the pure terminal menu logic (message-of-the-day, prompt, and the

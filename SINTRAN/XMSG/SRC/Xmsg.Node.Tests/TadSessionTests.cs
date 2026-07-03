@@ -5,7 +5,7 @@ using NDInsight.Sintran.Xmsg.Node.Tad;
 
 using Xunit;
 
-namespace NDInsight.Sintran.Xmsg.Live.Tests
+namespace NDInsight.Sintran.Xmsg.Node.Tests
 {
     /// <summary>
     /// Byte-identical builder proofs for the TAD session state machine. Each expected value is

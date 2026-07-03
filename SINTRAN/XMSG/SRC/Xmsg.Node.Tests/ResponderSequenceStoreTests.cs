@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 
 using NDInsight.Sintran.Xmsg;
-using NDInsight.Sintran.Xmsg.Live;
 using NDInsight.Sintran.Xmsg.Node;
 using NDInsight.Sintran.Xmsg.Node.Tad;
 
 using Xunit;
 
-namespace NDInsight.Sintran.Xmsg.Live.Tests
+namespace NDInsight.Sintran.Xmsg.Node.Tests
 {
     /// <summary>
     /// Verifies that our outgoing datagram sequence persists per remote node across restarts, so a

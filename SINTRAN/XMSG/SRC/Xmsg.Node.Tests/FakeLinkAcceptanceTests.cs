@@ -4,13 +4,12 @@ using System.Collections.Generic;
 using NDInsight.Sintran.Xmsg;
 using NDInsight.Sintran.Xmsg.Codec;
 using NDInsight.Sintran.Xmsg.ListRouting;
-using NDInsight.Sintran.Xmsg.Live;
 using NDInsight.Sintran.Xmsg.Node.Seam;
 using NDInsight.Sintran.Xmsg.Node.Tad;
 
 using Xunit;
 
-namespace NDInsight.Sintran.Xmsg.Live.Tests
+namespace NDInsight.Sintran.Xmsg.Node.Tests
 {
     /// <summary>
     /// THE PORT ACCEPTANCE TEST (seam plan section 7). A hand-written fake <see cref="ILink"/> — with
@@ -18,10 +17,15 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
     /// (<see cref="XmsgCodec"/> + <see cref="XmsgLayer"/> + the TAD responder) in BOTH directions:
     /// a payload pushed UP produces a decoded SINTRAN frame back DOWN. Because the entire upper stack
     /// depends only on <see cref="ILink"/> (plus <c>Xmsg.Protocol</c>) and never touches
-    /// <c>Xmsg.Hdlc</c> or <see cref="LapbLayer"/>, this test IS the proof that porting into
+    /// <c>Xmsg.Hdlc</c> or <c>LapbLayer</c>, this test IS the proof that porting into
     /// X25Emulator is "swap the link adapter" — bind these same upper layers to X25Emulator's ILink
     /// implementation and nothing above the seam changes.
     /// </summary>
+    /// <remarks>
+    /// This test lives in <c>Xmsg.Node.Tests</c>, which references only Xmsg.Protocol + Xmsg.Node —
+    /// NOT Xmsg.Live or Xmsg.Hdlc. So "no link/framing dependency" is compiler-enforced here: if the
+    /// upper stack ever grew a Live/HDLC dependency, this project would fail to compile.
+    /// </remarks>
     public sealed class FakeLinkAcceptanceTests
     {
         // The exact captured connect request 100 -> 103 (proto DA) — same bytes the parity test uses.

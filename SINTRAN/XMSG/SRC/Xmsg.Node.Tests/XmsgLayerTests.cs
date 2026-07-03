@@ -11,7 +11,7 @@ using NDInsight.Sintran.Xmsg.Packet;
 
 using Xunit;
 
-namespace NDInsight.Sintran.Xmsg.Live.Tests
+namespace NDInsight.Sintran.Xmsg.Node.Tests
 {
     /// <summary>
     /// Phase 4 gate for <see cref="XmsgLayer"/>: driven with captured incoming packets through the

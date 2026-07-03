@@ -7,7 +7,7 @@ using NDInsight.Sintran.Xmsg.Node.Tad;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace NDInsight.Sintran.Xmsg.Live.Tests
+namespace NDInsight.Sintran.Xmsg.Node.Tests
 {
     /// <summary>
     /// Verifies the TAD connect-accept our responder builds for the exact live connect request
