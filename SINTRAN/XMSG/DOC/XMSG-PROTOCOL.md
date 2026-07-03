@@ -32,6 +32,9 @@ relayed 103↔102 via 100; 6379 raw de-framed frames, of which **1947 passed FCS
 and form the statistics cited below.
 
 **Related documents (kept separate by scope):**
+- [LAPB-REQUIREMENTS.md](LAPB-REQUIREMENTS.md) — the **normative acceptance spec**
+  for the LAPB layer (MUST/SHOULD requirements, validator checklist, conformance
+  scenarios) — see §3.7.
 - [XMSG-API.md](XMSG-API.md) — the **programming / API** side: MON 200B calling
   convention, option bits, the XROUT letter/standard-message format, and the
   complete `XF*`/`XS*`/`XE*`/`XR*` constant catalogs (machine-readable copy in
@@ -138,7 +141,10 @@ After de-framing: `address(1) | control(1) | information(0..n)`.
 Decoders: `N(S) = (control >> 1) & 7`, `N(R) = (control >> 5) & 7`,
 `P/F = (control >> 4) & 1`.
 
-| Unnumbered frame | Control | Confidence |
+Fixed control-byte reference (note: RR/REJ are supervisory frames, not
+unnumbered — kept in one table for lookup convenience):
+
+| Frame | Control | Confidence |
 |------------------|---------|------------|
 | SABM | `0x3F` (base `0x2F`\|P) | [VERIFIED] |
 | UA | `0x73` (base `0x63`\|P) | [VERIFIED] |
@@ -173,7 +179,100 @@ Balanced link; either side may initiate:
 - I-frames and RRs carry `N(R) = V(R)`, acknowledging peer frames up to `N(R)−1`
   (an I-frame doubles as a link-level ack). Note this LAPB `N(R)` acknowledgment
   is **distinct** from the XMSG datagram-level ACK in Section 6.
-- A duplicate/out-of-order I-frame is answered with an RR carrying current `N(R)`.
+- A **duplicate** I-frame (`N(S)` behind `V(R)`) is answered with an RR carrying the
+  current `N(R)`; an **out-of-sequence** I-frame (a gap) is answered with **REJ**
+  carrying `N(R) = V(R)`, requesting go-back-N retransmission from that number
+  (REJ is present in the corpus — control table above).
+- **Receiving REJ ⇒ retransmit ALL unacknowledged I-frames from its `N(R)`**
+  immediately. Receiving RNR ⇒ ack up to `N(R)−1` but stop sending new I-frames
+  until an RR arrives. Every S-frame handler MUST decode the subtype
+  (`control & 0x0F`: RR `0x01`, RNR `0x05`, REJ `0x09`) — the three are
+  indistinguishable by `control & 0x03` alone, and REJ's low nibble happens to
+  equal the ND data address byte `0x09`, a proven log/parse trap.
+- A sender needs a **T1 retransmission timer + N2 retry limit** on the oldest
+  unacknowledged I-frame, and a retransmit queue covering the whole window (not
+  just the last frame): responses here routinely put 2–4 I-frames in flight.
+- An S-frame with **P=1 must be answered with an F=1 supervisory** [INFERRED —
+  standard LAPB; ND corpus usage of P/F not established, §3.6].
+
+### 3.6 ND deviations from standard LAPB — the 16-bit node (CPU) number  [VERIFIED]
+
+The ND point-to-point link is **not textbook ITU-T LAPB**. A generic LAPB state
+machine for these links must be **initialized with the local 16-bit node (CPU)
+number** and apply the deviations below; everything not listed here follows the
+standard (mod-8 sequencing, cumulative `N(R)` ack, REJ = go-back-N retransmit,
+RNR = peer busy, T1/N2 timer recovery, window k ≤ 7).
+
+**Deviation table (vs ITU-T X.25 LAPB):**
+
+| Aspect | ITU-T LAPB | ND machines (this corpus) | Confidence |
+|--------|-----------|---------------------------|------------|
+| Address byte | `0x03`/`0x01` DTE/DCE with command/response semantics | **`0x01` = link setup (SABM/UA), `0x09` = data transfer (RR/REJ/I)** — role-of-frame, not station identity | [VERIFIED] |
+| U/S frame info field | none (U and S frames carry no information field) | **SABM, UA and RR carry a 2-byte info field = the sender's node (CPU) number**, big-endian | [VERIFIED] |
+| Link setup | one side initiates | **balanced: BOTH stations send SABM and answer the peer's SABM with UA** (§3.4) | [VERIFIED] |
+| Idle behaviour | none required | **periodic RR keepalive carrying the node number** | [VERIFIED] |
+| P/F bit usage | command/response poll-final discipline | parsed on the wire but its ND usage is **not established from the corpus** — implement the standard F=1 answer to P=1 until a capture contradicts it | [INFERRED] |
+
+**The 16-bit node (CPU) number.** The info-field value is simply the machine's
+decimal node number serialised as a big-endian 16-bit word — the same identity
+space as the SINTRAN-header Dest/Src node fields (§4), e.g. node 104 would be
+`0x0068`. Values observed in the corpus:
+
+| Node (decimal) | Wire bytes | Machine |
+|---------------:|-----------|---------|
+| 100 | `00 64` | ND host, machine 100 |
+| 102 | `00 66` | responder node (our C# node / real 102) |
+| 103 | `00 67` | third node (relay captures) |
+
+Frames verified to carry it: **SABM, UA, RR** (every occurrence in all 13
+captures). Not yet observed carrying it: REJ, DISC, DM, FRMR (absent or too rare
+in the corpus) — [UNKNOWN]; a safe implementation stamps all locally-originated
+U/S link-management frames the same way and tolerates either on receive.
+I-frames do NOT carry it — their information field is the SINTRAN payload, and
+node identity there lives in the SINTRAN header.
+
+**Physical vs logical identity — do not conflate.** The LAPB info-field node
+number identifies the **physical neighbour** on this link; the SINTRAN header
+carries the **logical endpoints**. On a relayed path (103 via 100 to 102, §4)
+the LAPB frames on the 102 link say `00 64` (100, the neighbour) while the
+SINTRAN header says src 103. The LAPB layer must therefore never feed its node
+number upward as a routing source, and the XMSG layer must never expect the
+LAPB peer id to equal `Header.SrcNode`.
+
+**Initialization contract for a generic LAPB state machine:**
+
+1. Construct with `localNodeNumber` (16-bit). The state machine owns L2 identity;
+   nothing above it supplies per-frame node ids.
+2. On every SABM / UA / RR (and other U/S link-management frames) it emits,
+   append the 2-byte big-endian `localNodeNumber` as the info field.
+3. On receiving SABM/UA/RR, record the 2-byte info field as `peerNodeNumber`
+   (the physical neighbour); expose it read-only to the layer above for
+   diagnostics, not for routing.
+4. Handle the balanced handshake: answer an incoming SABM with UA (info =
+   `localNodeNumber`) and still send its own SABM; the link is up when both
+   directions have completed SABM→UA. `V(S)=V(A)=V(R)=0` on every SABM/UA
+   establishment — no sequence adoption.
+5. I-frames: address `0x09`, no node id, payload passed through opaquely
+   (the SINTRAN/XMSG layers of §4+ know nothing of L2 and vice versa).
+
+### 3.7 Normative LAPB requirements & validation  [pointer]
+
+The complete, self-contained requirement set for this layer — everything in
+§2/§3 condensed to MUST/SHOULD statements, plus the pieces that live only
+there — is **[LAPB-REQUIREMENTS.md](LAPB-REQUIREMENTS.md)**. Treat that
+document as the **normative acceptance spec** for any LAPB implementation on
+these links; this chapter is the descriptive reference behind it. Items in the
+requirements doc that are intentionally NOT duplicated here:
+
+- **T1/N2 in the live event loop** (a timer that only ticks in tests fails the
+  requirement — a confirmed live deadlock cause), and the full timer lifecycle
+  (start/restart/stop rules).
+- The **exactly-one-state-machine-per-link layering rule** (LAPB module must be
+  free of XMSG types; XMSG's Flags1/secure-ACK reliability is independent).
+- The **12-question validator checklist** (for reviewing an implementation) and
+  the **8 minimal conformance scenarios** (unit-testable, including the
+  REJ-retransmits-first-of-two regression and the stuffed-FCS round-trip
+  vector).
 
 ---
 
@@ -303,6 +402,20 @@ appears to encode a per-sub-protocol class rather than a raw length.
 symbol `XMSEQ`): it increments per data message on a direction, is `0xFFFF` on
 broadcast/reachability frames, and is **echoed verbatim by the ACK** (Section 6).
 
+**Persistence and out-of-sequence behaviour [VERIFIED live]:**
+- The receiver's expected-next-Flags1 (kernel `XSRSQ`, one per remote system per
+  direction) **persists across the sender's process/link restarts** — it resets
+  only when the receiver's own XMSG restarts. A restarted implementation must
+  therefore **persist its outgoing Flags1 per remote node and continue it**, not
+  restart at `0x0000`. There is no formula tying one direction's Flags1 to the
+  other's; any observed equality is coincidence of symmetric traffic.
+- A frame whose Flags1 is **behind** the expected value is **silently dropped**
+  (no ACK, no error frame — the only symptom is the missing `0x03`).
+- A frame whose Flags1 is **ahead** draws a *recoverable* subtype-`0x07`
+  **`XENSE`** reject (Section 4.1.1) that echoes the offending Flags1. This
+  asymmetry makes a deliberate ahead-jump a safe resync probe after a restart
+  when persisted state is lost.
+
 ### 4.3 Protocol ID (offset 12)  [VERIFIED — derived channel; see Section 18.5]
 
 Within any single class-stream this byte reads as a **stable sub-protocol
@@ -392,6 +505,15 @@ The reply swaps Dest/Src Node; `Flags 1 = 0xFFFF` (broadcast marker),
 `Flags 2 = 0x0001`, Protocol ID `0xDE` (ROUTING), followed by the per-direction
 counter byte.
 
+**Restart-signal semantics [VERIFIED live]:** a received ReachabilityRequest is
+more than a liveness probe — it is the sender's **XMSG-restart announcement**.
+After it, the sender's datagram sequences for this pair are zeroed, and the
+receiver must reset its stored expected/outgoing Flags1 for that node to
+`0x0000` (§4.2). In every capture, `Flags1 = 0x0000` data streams begin only
+immediately after a reachability exchange on that link. A bare LAPB/HDLC link
+restart (SABM) does **not** carry this meaning and does not reset datagram
+sequences — the two layers restart independently.
+
 ### 5.2 Role byte (sub-header offset 4)  [VERIFIED low nibble; INFERRED high nibble]
 
 Low nibble `4` = asker, `0` = responder. High-nibble class is partially inferred:
@@ -406,6 +528,12 @@ Low nibble `4` = asker, `0` = responder. High-nibble class is partially inferred
 | `0x84` | Asker (legacy) |
 | `0x54` | Asker variant |
 | `0x00` | Generic data frame (no role) |
+
+> **This table is superseded by Section 18.4 (U2), which SOLVED the byte:** the
+> role byte is the high byte of the XMSG send-option word — bit0=`XFTCM`,
+> bit1=`XFSEC`, **bit2=`XFROU`** (the asker/responder "low nibble 4/0"),
+> bit3=`XFFWD`, bit4=`XFBNC`, bit5=`XFHIP`, bit6=`XFWAK`, bit7=`XFWTF`. The
+> labels above remain as observed combinations.
 
 ### 5.3 Peer data-message example  [CAPTURE-SPECIFIC — peer's send-message capture]
 
@@ -451,6 +579,21 @@ subtype-`0x03` frame** (14 bytes: 13-byte header + 1 payload byte), sent in the
 
 **A `0x03` byte cannot be decoded in isolation** — its meaning is fixed by the
 data frame it answers (`Flags 1` identifies which datagram).
+
+**Closed form for building an ACK [VERIFIED 602/602 ACKs + live]** — with the
+per-link `seed` of Section 18.5 and the acked data frame's `Flags1`:
+
+```
+channel  = 0xDE − epoch(acked stream)                 ; epoch per §18.5, from the ACKED frame's Flags1
+trailing = ((seed + 0x0A) − ackedFlags1) & 0xFF       ; the single payload byte
+Flags1   = ackedFlags1 (echo) ; Flags2 = 0x0001
+```
+
+Examples: capture ack `DD/0x26` for connect `Flags1 0x00F8` at epoch 1
+(seed `0x14`: `0x1E − 0xF8 = 0x26`); live ack `DD/0x09` for connect `0x0015`.
+The epoch-0 special case reads as "connect-channel + 4, trailing seed+0x0A
+decrementing" — same formula. This confirms the payload byte is derived state,
+not a free counter.
 
 > [CAPTURE-SPECIFIC] The peer's send-message capture describes the same ACK
 > mechanism (Flags 1 echoes the datagram sequence; a per-direction counter in the
@@ -705,7 +848,11 @@ After the common XMSG sub-header, a TAD frame's trailer is a chain of
 `[opcode][count][data…]` messages. The full opcode table (BDAT, RFI, ECKM, OPSV,
 ISRS, CPCO, …, ~30 opcodes, verified against the K03/L07/M06 symbol tables) is
 documented in [TAD/TAD-Message-Formats.md](../../TAD/TAD-Message-Formats.md) and
-implemented in the dissector; this document does not duplicate it.
+implemented in the dissector; this document does not duplicate it. **The complete
+LOGIN handshake state machine** (SYCN `0002→0003→0006→000A` ladder, ECKM echo
+control around PASSWORD, CESC, the wrong-password silent reset, and logout to
+SYCN `000B` + DCON — extracted from three captured logins) is documented in the
+same TAD formats file.
 
 > **Correction.** `0xDD` frames were previously decoded as a bare TAD chain
 > starting at the SINTRAN header, which mis-read the sub-header's `counter + 21 00`
@@ -735,7 +882,10 @@ Any genuinely opaque PAD virtual-circuit payload is retained verbatim.
 
 The wire sub-header (Section 5) is a serialised subset of the in-kernel **XM5**
 header. Full symbol set (from `XMSG-SYMBOL-LIST.SYMB.TXT`); values are word
-indices within the control block, not necessarily wire byte offsets:
+indices within the control block, not wire byte offsets — **but the wire
+sub-header's field ORDER is exactly the XM-block order** `XMDSY (136) → XMDPT
+(137) → XMSSY (140) → XMSPT (141) → XMCSM (142) → … → XMLEN (147)`: the wire
+sub-header is a serialised slice of this block with kernel-only fields dropped.
 
 | Symbol | Octal | Field |
 |--------|------:|-------|
@@ -839,6 +989,7 @@ the old dissector README:
 | FCS polynomial / init / good residue | `0x1021` (reflected `0x8408`) / `0xFFFF` / `0xF0B8` |
 | LAPB address — link setup / data | `0x01` / `0x09` |
 | SABM / UA / RR | `0x3F` / `0x73` / `0x01\|(N(R)<<5)` |
+| LAPB U/S info field = sender node (CPU) number, 16-bit BE | `0x0064`=100, `0x0066`=102, `0x0067`=103 (§3.6) |
 | SINTRAN Marker 1 / Marker 2 (normal / relay) | `0x21` / `0x13` / `0x12` |
 | Packet Subtype — ACK / data / reach-reply / reach-request | `0x03` / `0x0E` / `0x13` / `0x19` |
 | Flags 2 — short/control / data | `0x0001` / `0x0400,0x0108,0x0008` |
@@ -866,8 +1017,13 @@ repository (`pcap/` directory).
 To exchange messages with a SINTRAN III system over HDLC, an implementation must:
 
 1. Frame / de-frame the byte stream (Section 2), validating FCS on receive.
-2. Establish the LAPB link (Section 3.4) and maintain `V(S)`/`V(R)`; send periodic
-   RR keepalives carrying the node number.
+2. Establish the LAPB link (Section 3.4) and run a **full LAPB state machine**
+   (§3.5/§3.6): `V(S)`/`V(A)`/`V(R)` with a retransmit queue over the whole
+   window (k ≤ 7), S-subtype decode (`control & 0x0F`), REJ ⇒ go-back-N,
+   RNR ⇒ hold, T1 timer + N2 retries, P=1 ⇒ F=1 answer, reset-to-0 on SABM/UA
+   (no sequence adoption); send periodic RR keepalives carrying the node number,
+   initialized from the 16-bit node (CPU) number (§3.6). Acceptance spec +
+   validator checklist: [LAPB-REQUIREMENTS.md](LAPB-REQUIREMENTS.md) (§3.7).
 3. Answer reachability requests (subtype `0x19`) with replies (`0x13`) so the peer
    considers it accessible (Section 5.1).
 4. Decode incoming data messages (subtype `0x0E`, Section 5).
@@ -892,16 +1048,27 @@ KNOWN values (with meaning) and the UNKNOWN-but-OBSERVED values. Companion worki
 
 ### 18.0 What IS solved (context)
 
-VERIFIED across all connect-to captures: the **responder mirrors the sender** — every
+> ⚠️ **SUPERSEDED — do not implement from this paragraph.** The "responder mirrors the
+> sender" model below was an early reading and is **WRONG for Flags1/Counter/Channel**: the
+> responder runs its **own** Flags1 sequence and derives Counter/Channel from its own state
+> (Section 18.5). Echoing the sender's Flags1 works only while both directions happen to be
+> equal (fresh symmetric links) and is a live crash cause at higher sequences. Kept for
+> history; every transport-field statement here yields to 18.5.
+
+~~VERIFIED across all connect-to captures: the **responder mirrors the sender** — every
 responder data frame copies the incoming frame's **Flags1** (header offset 8-9), **Protocol ID**
-(header offset 12) and **Counter** (sub-header offset 0). Role is `0x40` in the XROUT/setup
-phase and `0x00` in the data phase. Connect-accept params are the constant `01 02 0000 02 02
-000A`. The magic-number port encoding is `(logical_port << 7) | low7` (masks `5PMSK=0xFF80` /
+(header offset 12) and **Counter** (sub-header offset 0).~~ (Superseded — the apparent mirror
+was epoch-0 coincidence; see 18.5. The XSGSY *reply* echo of §9.1.1 is a different, real
+mechanism: replies to a REQUEST echo that request's transport fields via `XFRTN`; frames a
+responder ORIGINATES do not.) Still valid: role is `0x40` in the XROUT/setup phase and `0x00`
+in the data phase. Connect-accept params are the constant `01 02 0000 02 02 000A` (§18.7).
+The magic-number port encoding is `(logical_port << 7) | low7` (masks `5PMSK=0xFF80` /
 `5PMS1=0x7F`, from `XMSG-SYMBOL-LIST.SYMB.TXT`), and the low7 is the manual's "random part"
-(COSMOS Guide ND-60.164 section 1.2.3). The crash cause was originating session frames with
-invented channels/counters instead of mirroring; the flow-blocker is that our node stopped
-sending the `0x03` delivery ACKs, so 100 retransmits instead of driving the session (it drives
-a full 58-frame session with a *real* 102 — `new-conn-to-102-from-100.pcapng`).
+(COSMOS Guide ND-60.164 section 1.2.3). ~~The crash cause was originating session frames with
+invented channels/counters instead of mirroring~~ (corrected diagnosis in 18.5: the crashes
+were an inconsistent Counter/epoch, and later an echoed Flags1); the flow-blocker was that our
+node stopped sending the `0x03` delivery ACKs, so 100 retransmits instead of driving the
+session (it drives a full 58-frame session with a *real* 102 — `new-conn-to-102-from-100.pcapng`).
 
 ### 18.1 Unknown fields — where exactly they live and in which messages
 
@@ -909,11 +1076,11 @@ a full 58-frame session with a *real* 102 — `new-conn-to-102-from-100.pcapng`)
 |---|-------|----------------------------|-----------------------------|------------------------|----------------------|
 | U1 | **Frame-flags** | XMSG sub-header **offset 3** (absolute byte 16 of a data frame) | ALL data frames (subtype `0x0E`): connect-accept, port-assign, and every session data frame, both directions | bit7 (`0x80`) always set; bit1 (`0x02`) always set; `0x86` is the common value | `0x82, 0x92, 0x96` — the varying bits are **bit4 (`0x10`)** and **bit2 (`0x04`)**; meaning unknown. NOT a pure echo of the sender (asker `0x82`→responder `0x86` at Flags1=0x0007) |
 | U2 | **Role — high nibble** | XMSG sub-header **offset 4** (absolute byte 17) | ALL data frames (`0x0E`) | low nibble `4`=asker, `0`=responder (VERIFIED) | high nibble: asker `0xC4/0xE4/0x84/0x94`, responder `0x40/0x00`. What the high nibble (`C/E/8/9` vs `4/0`) encodes is unknown |
-| U3 | **Protocol ID / channel — which one a SESSION uses** | SINTRAN header **offset 12** | data frames (`0x0E`) of a connect-to session | labels: `0xDE`=ROUTING, `0xDD`=TAD, `0xDC`=DC, `0xDB`=DB, `0xDA`=PAD; responder ECHOES the sender's channel (VERIFIED) | which of `0xD8,0xD9,0xDB,0xDC,0xDD` the *session* runs on varies per session (DA-connect → session on DD/DE/DC; D9-connect → DB/DC). How the **sender** picks the channel is unknown |
+| U3 | **Protocol ID / channel — which one a SESSION uses** | SINTRAN header **offset 12** | data frames (`0x0E`) of a connect-to session | **RESOLVED → 18.5**: the channel is DERIVED per frame, `0xDE − (XMCSM>>24) − epoch`, from the SENDER'S OWN sequence state — never echoed, never allocated | ~~responder echoes the sender's channel~~ (superseded — epoch-0 coincidence) |
 | U4 | **Session-port low-7 ("random part")** | in **XMDPT/XMSPT** (sub-header offsets 7-8 / 11-12; abs. bytes 20-21 / 24-25) AND in the port-assign TAD `0x07` message data (`07 05 00 00 sys portHi portLo`) | port-assign frame (XMCSM `0x04000000`) and every session frame | `port = (logical<<7) \| low7`; logical port is the high 9 bits; low7 is the magic "random part" | the low7 the responder assigns: `0x13 / 0x42 / 0x41` — same asker (100) gave `0x42` then `0x41` in two sessions. Whether it is truly free/random or **derived from the sender** (the open hypothesis) is unknown |
 | U5 | **Port-assign `0x0B` option — 2nd data byte** | trailer of the port-assign frame, TAD message `0B 02 03 XX` | ONLY the port-assign frame (XMCSM `0x04000000`, in the setup phase) | opcode `0x0B`, length 2, first data byte `0x03` | 2nd data byte `XX` = `0x00 / 0x04 / 0x02` across the three captures; meaning unknown (does not obviously track asker system or port) |
 | U6 | **Port-assign `0x15` option data** | trailer of the port-assign frame, TAD message `15 02 01 08` | ONLY the port-assign frame | opcode `0x15`, length 2 | data `01 08` (constant in captures) — note `0x0108` is also the terminal-data XMCSM high half (`0x01080000`) and a Flags2 data-class value; whether `0x15` carries that class / a buffer size / a mode is unknown |
-| U7 | **Counter — absolute base value** | XMSG sub-header **offset 0** (absolute byte 13) | ALL data frames (`0x0E`) | responder echoes the sender's counter (VERIFIED); the sender decrements per frame; two regimes vs Flags1: setup `ctr = 0x11 − f1`, session `ctr = 0x09 − f1` (an 8-lower base at the session boundary) | where the per-session base values (`0x11`, `0x09`) come from is unknown (non-blocking for the responder, which echoes) |
+| U7 | **Counter — absolute base value** | XMSG sub-header **offset 0** (absolute byte 13) | ALL data frames (`0x0E`) | **RESOLVED → 18.5**: `Counter = (seed − (Flags2&0xFF) − Flags1) & 0xFF`. The "mystery bases" ARE the seed model: `0x11` = the 102↔103 link seed (setup class, Flags2 low `0x00`), `0x09` = seed − 8 (terminal class, Flags2 low `0x08`) | ~~responder echoes the sender's counter~~ (superseded); only the seed BYTE's meaning remains unknown (learn it from the peer) |
 
 ### 18.2 Message-type map (where each byte sits)
 
@@ -922,12 +1089,12 @@ SINTRAN header (13 B, all frames):
   off 0-1  Markers 21 13(/12)
   off 3    Subtype  03=ACK 0E=data 13/19=reach 07=net-error
   off 4-7  Dest node / Src node        (swapped in a reply)
-  off 8-9  Flags1  = datagram sequence   <-- responder ECHOES sender
-  off 10-11 Flags2 = frame class
-  off 12   Protocol ID = channel        <-- responder ECHOES sender   [U3]
+  off 8-9  Flags1  = datagram sequence   <-- sender's OWN sequence (18.5; echo model superseded)
+  off 10-11 Flags2 = frame class (== XMCSM >> 16)
+  off 12   Protocol ID = channel        <-- DERIVED from own state (18.5)   [U3 resolved]
 
 XMSG sub-header (only on data 0x0E frames, starts at off 13):
-  off 13   Counter                       <-- responder ECHOES sender   [U7]
+  off 13   Counter                       <-- DERIVED: (seed - F2low - Flags1) & 0xFF (18.5)   [U7 resolved]
   off 14-15 Marker 21 00
   off 16   Frame-flags                                                 [U1]
   off 17   Role (low nibble 4/0)                                       [U2]
@@ -1071,6 +1238,18 @@ put an inconsistent Counter/epoch on an otherwise correct DD/DC frame → the fa
 first and yields the *recoverable* `XENSE` (`0xFFDE`, −34); a frame that passes it but carries an
 inconsistent Counter/epoch hits the fatal path.
 
+> **Crash-code radix caveat.** The console suffix `B` means octal: `24B` = 20 decimal =
+> **`XXPER`** (`XMSG-VALUES-M.SYMB:349`; the file is in decimal). Do not confuse it with
+> `XXRO2 = 24` *decimal* ("XROUT fatal error", line 353), which would print as `30B`. A later
+> live crash with byte-perfect envelope fields (only Flags1 deviating — an echo instead of the
+> own persisted counter) produced the same `24B` — an echoed/discontinuous Flags1 is on the same
+> fatal path (INFERRED mechanism; VERIFIED association).
+
+> **Seed stability caveat.** The 102↔103 pair showing `0x11` and `0x12` is the DIRECT vs
+> RELAYED leg of the same sessions (relay re-stamps Counter +1) — it is NOT evidence that the
+> seed changes per session. Seed `0x14` for 100↔102 held across five captures and all live
+> runs. "Seed renegotiated at link restart" is NOT established; learn-from-peer makes it moot.
+
 **Complete responder build recipe (all derived; VERIFIED live):**
 1. Learn `seed` from 100's connect frame: `(Counter + Flags1 + (Flags2 & 0xFF)) & 0xFF`.
 2. Run our own `Flags1` from `0x0000`, +1 per frame we originate (accept, port-assign, and every
@@ -1116,6 +1295,41 @@ Everything else in the friend's spec we independently re-confirmed on the wire. 
 transport envelope (Section 18.5) is the natural next layer on top of that foundation — it turns
 the friend's "counter-ish Protocol ID" observation into a closed form and makes the whole
 transport (channel, counter, ACK) derivable for any XMSG service, not just connect-to.
+
+---
+
+### 18.7 Connect-accept and port-assign anatomy  [VERIFIED across all 9 captured accepts]
+
+Field rules for the two responder setup frames, established by byte-diffing every accept in
+the corpus (via100 f104, conn-to-d102 f51/f53, new-conn f60/f62, li-syst-tad f10–f16,
+start-li-li f106, li-rout-102-tree f4 — epochs 0, 1 and 2, responders 100 and 102):
+
+**Connect-accept (`XMCSM 0x04000041`, role `0x40`, frameFlags `0x86`, XMLEN 8):**
+- **Payload is the CONSTANT `01 02 00 00 02 02 00 0A` — byte-identical in every captured
+  accept**, across links, epochs, sessions and responders. It carries NO per-session data.
+  (Decoder reading: serial `0x01`, status `0x02` = success, params `0x0000`, then constant
+  `0202 000A` — the trailing pair's meaning is INFERRED-only.)
+- `srcPort` (XMSPT) is **always `0x0156` (342)** — the responder-side XROUT/TADADM well-known
+  port, in all nine accepts.
+- `dstPort` (XMDPT) = **echo of the incoming connect's srcPort** (varies per connect).
+- Envelope (Flags1/Counter/Channel) = the responder's OWN state per 18.5 — an epoch-1 accept
+  correctly rides `D9` (real example: new-conn f60, `Flags1 0x0046 / ctr 0xCE / D9`).
+
+**Port-assign (`XMCSM 0x04000000`, role `0x40`, XMLEN 24):**
+- Trailer messages: `07 05 00 00 <sysHi sysLo> <portHi portLo>` — **the assigned session/data
+  port** (captures: `0x04C2`/`0x0341`/`0x0313`, exactly the port later used as the data-channel
+  endpoint); `1F 03 4C 00 00` (OPSV, constant); `0B 02 03 XX` (`XX` = `00/04/02`,
+  responder-local, meaning UNKNOWN — U5); `15 02 01 08` (constant; likely advertises the
+  `0x0108` data class — U6, INFERRED).
+- The assigned port is the responder's own `(freeSlot << 7) | incarnation` (18.4/U4) — any
+  well-formed value the responder answers on is accepted (VERIFIED live with `0x0211`).
+- The real responder sequence is always: secure-ACK the connect → **accept** → (ACK
+  session-setup) → **port-assign** → **DUMM on the data class**. Omitting the port-assign
+  leaves the asker's CONNECT-TO half-open in its perform-connect step.
+
+Implication: an accept can be built from constants + the connect frame alone; ALL per-session
+information travels in the port-assign. Any live accept that deviates from a captured accept
+in anything but the envelope Flags1/Counter/Channel is a bug.
 
 ---
 

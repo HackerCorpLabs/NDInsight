@@ -4,7 +4,7 @@ Analysis of every `connect-to` capture (decoded to fields) to separate the field
 values we can reproduce from the ones whose derivation is still unknown. Goal: a live node
 that answers `connect-to d103` with a terminal, without crashing 100's XMSG.
 
-Captures analysed (all under `E:\Dev\Ronny\X25Emulator\pcap`, decoded in
+Captures analysed (all under `pcap/` in the X25Emulator repo, decoded in
 `SINTRAN/XMSG/SRC/pcap-decode-report.txt`):
 
 - `conn-to-102-from103-via100.pcapng` — 103 connects to 102 (connect channel **DA**), 102 responds. 102 frames each way.

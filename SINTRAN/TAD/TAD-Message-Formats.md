@@ -1084,11 +1084,91 @@ Areas where the on-the-wire format is still partially inferred:
 |---:|-----|--------------------|
 | 1  | Echo/Break table (20-byte) bit semantics per char class | `BDECHO`/`BDBREA` callees, plus terminal-driver tables |
 | 2  | 7ERRS error code enumeration | Search for `ERRSP` constants in symbol tables |
-| 3  | 7SYCN / 7USCN command codes | Search NPL for `7SYCN`/`7USCN` write sites |
+| 3  | 7SYCN / 7USCN command codes | **Largely resolved from captures** — SYCN values `0002/0003/0006/000A/000B/000C` mapped in §21 (login handshake); 7USCN still open |
 | 4  | 7CPCO 32-bit code endianness (high word first assumed) | `SNDCP` byte-order in `RP-P2-TAD.NPL:1062` |
 | 5  | UMOD strategy values (v4+) | `CSUMOD` callers |
 | 6  | XMSG header bytes (before TAD payload) | `5P-P2-MON60.NPL` if available |
 | 7  | HDLC addr/ctl byte conventions on the link | `MP-P2-HDLC-DRIV.NPL` |
+
+---
+
+## 21. Login Handshake  [VERIFIED from three captured logins]
+
+Reconstructed from the FCS-verified captures decoded in
+`SINTRAN/XMSG/SRC/pcap-decode-report.txt` (NDInsight repo): a complete login in
+`conn-to-102-from103-via100.pcapng` and `conn-to-d102-from-100.pcapng`, and a
+**failed-password + retry** in `new-conn-to-102-from-100.pcapng`. The
+already-logged-in error paths come from `test1.pcapng`.
+
+**Direction rule (VERIFIED, every capture):** `7SYCN`, `7ECKM`, `7CESC`, `7RFI`
+and `7BMMX` are sent ONLY by the **host** (the SINTRAN side running the login).
+The client sends only `7BDAT` keystroke lines (ASCII with the high/parity bit
+set, e.g. `F3 F9 F3 8D` = "sys"+CR), `7CERS`, `7DUMM` keepalives, the
+`7TMOD/7TTYP/7DESC/7OPSV` + `7ESCA` + `7RECO` setup, and the final `7DCON`.
+
+**SYCN state values (16-bit payload):**
+
+| SYCN | State |
+|------|-------|
+| `0002` | waiting for username (after banner / after failed password) |
+| `0003` | username accepted |
+| `0006` | password accepted ("OK") |
+| `000A` | **LOGGED IN** — re-asserted after every completed command |
+| `000B` | logged out (with "--EXIT--") |
+| `000C` | error-text wrapper (e.g. "AMBIGUOUS COMMAND"), followed by `000A` + prompt |
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Client (terminal side)
+    participant H as Host (SINTRAN login side)
+
+    Note over C,H: session setup done (TMOD/TTYP/DESC/OPSV, ESCA, RECO x2 -> RESE x2)
+    H->>C: 7BMMX 010000 + 7ECKM 01 + 7BDAT(banner) + 7SYCN 0002 + 7BDAT("\r\nENTER ") + 7RFI
+    C->>H: 7BDAT(username + CR)
+    H->>C: 7BDAT(0D0A) + 7SYCN 0003 + 7CESC 00
+    C->>H: 7CERS
+    H->>C: 7BDAT("PASSWORD: ") + 7ECKM FF + 7RFI
+    Note over C,H: echo OFF for password entry
+    C->>H: 7BDAT(password + CR)
+    alt password WRONG
+        H->>C: 7BDAT(0D0A) + 7ECKM 01 + 7SYCN 0002 + 7BDAT("\r\nENTER ") + 7RFI
+        Note over C,H: silent reset to username - no error text, no OK
+    else password CORRECT
+        H->>C: 7BDAT(0D0A) + 7ECKM 01 + 7BDAT("OK") + 7SYCN 0006 + 7CESC 01
+        C->>H: 7CERS
+        H->>C: 7BDAT(0D0A) + 7SYCN 000A + 7BDAT(52 40) + 7RFI
+        Note over C,H: LOGGED IN - prompt bytes 52 40 verbatim
+    end
+    loop steady state
+        C->>H: 7BDAT(command line) / 7DUMM keepalives
+        H->>C: 7BDAT output chunks (255 B) ... 7SYCN 000A + 7BDAT(52 40) + 7RFI
+    end
+    C->>H: 7BDAT("log" + CR)
+    H->>C: 7BDAT(time/date line) + 7CESC 00
+    H->>C: 7BMMX 000000 + 7ECKM 00 + 7CESC 00
+    H->>C: 7BDAT("\r\n--EXIT--\r\n") + 7SYCN 000B
+    H->>C: 7CESC 01
+    C->>H: 7DCON
+```
+
+**Host implementation rule:** after the password line send exactly
+`7BDAT(0D0A)` + `7ECKM 01` + `7BDAT("OK")` + `7SYCN 0006` + `7CESC 01`, then
+`7BDAT(0D0A)` + `7SYCN 000A` + `7BDAT(52 40)` + `7RFI`; re-assert
+`7SYCN 000A` + `52 40` + `7RFI` after every completed command. `7RFI` is the
+ready-for-input credit and terminates EVERY host frame that expects client
+input (ENTER prompt, PASSWORD, every command prompt) — without it the client
+side sits idle after one line.
+
+**UNKNOWNs (explicit):** the meaning of prompt bytes `52 40` ("R@" — mirror
+verbatim); the exact `7CERS` trigger (correlates with every `7CESC`
+transition); host opcode `0xFD` (on the `0x00060000` XMSG class) after login;
+`7CPCO` payload `0004418B` on "TERMINAL ACCESS DENIED"; `7BMMX` payload
+semantics (`010000` with echo-on at session start, `000000` at teardown);
+the bad-USERNAME path (unseen — every capture used an accepted username);
+and whether `SYCN 000A` alone cancels SINTRAN's 1-minute not-logged-in
+disconnect or the full `0002→0003→0006→000A` ladder is required (no capture
+shows the timeout itself).
 
 ---
 
