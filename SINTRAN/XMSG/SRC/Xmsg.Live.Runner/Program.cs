@@ -111,10 +111,13 @@ internal static class Program
         layer.RoutingTable = new InMemoryRoutingTable(entries);
         NDInsight.Sintran.Xmsg.Live.Tad.TadTerminalResponder tad =
             new NDInsight.Sintran.Xmsg.Live.Tad.TadTerminalResponder(node, () => DateTime.Now);
-        // PROBE: after port-assign, emit the first bring-up frame (DUMM) on the DERIVED channel so
-        // 100 stops beeping and either ACKs it (Base accepted -> extend the burst) or XXPERs (adjust
-        // the seed Base in TadTerminalResponder.OnSessionSetup). One frame at a time by design.
-        tad.SendTerminalBringup = true;
+        // Terminal bring-up (DUMM/MOTD) DISABLED. The connect handshake (accept + port-assign, echoed)
+        // is stable and 100 ACKs it. The MOTD is BLOCKED on a genuine unknown: terminal-data must ride
+        // channel DB (Base 0x02xx), but 100 forces our datagram sequence LOW (it XENSE-rejects a high
+        // accept) and a byte counter cannot lift a low Flags1 to Base 0x02xx. Sending on DC/DD instead
+        // crashes 100 (XXPER). Resolving this needs the XMSG channel-allocation rule (kernel source) or
+        // a capture of a FRESH-sequence responder, not blind live probing. See XMSG-TRANSPORT-SEAM-PLAN.md.
+        tad.SendTerminalBringup = false;
         layer.TadResponder = tad;
         layer.AcknowledgeTadFrames = true;
 

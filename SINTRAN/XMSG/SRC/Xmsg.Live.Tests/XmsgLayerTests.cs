@@ -83,9 +83,9 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             Assert.Equal(
                 Convert.FromHexString("211300030064006700000001DE1D"),
                 transport.Sent[0]);
-            // Accept = first frame of the responder's own sequence: f1 0x012F, Base 0x0214 -> D8.
+            // Accept ECHOES the connect: channel DA, f1 0x0000, counter 0x13 (the form 100 accepts).
             byte[] expectedAccept = Convert.FromHexString(
-                "2113000E00640067" + "012F" + "0400" + "D8" + "E5" + "2100" + "86" + "40"
+                "2113000E00640067" + "0000" + "0400" + "DA" + "13" + "2100" + "86" + "40"
                 + "0064" + "02F7" + "0067" + "0156" + "04000041" + "00" + "08"
                 + "01020000" + "0202000A");
             Assert.Equal(expectedAccept, transport.Sent[1]);
@@ -111,9 +111,9 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
 
             // Response order: secure ACK, then the port-assignment frame.
             Assert.Equal(2, transport.Sent.Count);
-            // Port-assign continues the sequence: f1 0x0130, Base 0x0214 -> D8.
+            // Port-assign ECHOES the setup: channel DA, f1 0x0001, counter 0x12.
             byte[] expectedAssign = Convert.FromHexString(
-                "2113000E00640067" + "0130" + "0400" + "D8" + "E4" + "2100" + "86" + "40"
+                "2113000E00640067" + "0001" + "0400" + "DA" + "12" + "2100" + "86" + "40"
                 + "0064" + "02F7" + "0067" + "0156" + "04000000" + "00" + "18"
                 + "00" + "0705" + "00006702" + "11" + "1F03" + "4C0000"
                 + "00" + "0B02" + "0300" + "1502" + "0108" + "FF00");

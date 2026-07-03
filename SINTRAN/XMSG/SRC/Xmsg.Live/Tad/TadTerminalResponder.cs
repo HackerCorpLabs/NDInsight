@@ -215,17 +215,27 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
                 0xFF, 0x00,
             };
 
-            // Port-assign is a CONTROL frame on our own sequence: Base 0x0214 -> derived channel D8
-            // (VERIFIED: conn-to-d102 port-assign frame 53). Continues the sequence from the accept.
-            outgoing.Add(BuildResponderFrame(
-                request,
-                baseValue: ControlBase,
-                frameClass: 0x0400,
-                controlService: SessionSetupControlService,
-                frameFlags: 0x86,
-                role: 0x40,
-                sourcePort: TadAdminWirePort,
-                payload: trailer));
+            // Port-assign ECHOES the session-setup's Flags1 / channel / counter — the known-good form
+            // (100 ACKs it and the session proceeds). Same reason as the accept: 100 requires our
+            // frames in-sequence with what it sent, not a fresh high sequence (that was XENSE-rejected).
+            TadFrameContext ctx = new TadFrameContext
+            {
+                DestinationNode = request.Header.SourceNode,
+                SourceNode = _nodeNumber,
+                DatagramSequence = request.Header.Flags1,           // echo
+                FrameClass = 0x0400,
+                ProtocolId = request.Header.ProtocolId,             // echo the channel
+                Counter = request.SubHeader!.Counter,               // echo
+                FrameFlags = 0x86,
+                Role = 0x40,
+                DestinationSystem = _clientSystem,
+                DestinationPort = request.SubHeader.SourcePort,
+                SourceSystem = _nodeNumber,
+                SourcePort = TadAdminWirePort,
+                ControlService = SessionSetupControlService,
+            };
+
+            outgoing.Add(AssembleDataFrame(ctx, trailer));
 
             // POST-PORT-ASSIGN BRING-UP (derived-channel path).
             // 100 waits for our session-data burst before it drives TMOD/TTYP -> MOTD (that is the
@@ -375,21 +385,29 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
             // yet decoded; copied verbatim from the captured accept. [VERIFIED bytes; semantics TBD]
             byte[] trailer = new byte[] { 0x01, 0x02, 0x00, 0x00, 0x02, 0x02, 0x00, 0x0A };
 
-            // The accept is the FIRST frame of our own continuous sequence: a CONTROL frame with
-            // Base 0x0214 -> derived channel D8 (VERIFIED conn-to-d102 accept frame 51). We no longer
-            // echo 100's low Flags1/channel: echoing worked for the accept alone, but boxed the later
-            // terminal-data frames into a low Base whose derived channel (DC/DD) 100 fatally rejects.
-            // Starting our sequence high here makes accept/port-assign/data one in-order stream that
-            // puts the data frames on DB. VERIFIED: 100 accepts a high-sequence D8 accept.
-            return BuildResponderFrame(
-                request,
-                baseValue: ControlBase,
-                frameClass: 0x0400,
-                controlService: SystemTadControlService,
-                frameFlags: 0x86,
-                role: 0x40,
-                sourcePort: TadAdminWirePort,
-                payload: trailer);
+            // The accept ECHOES the connect's Flags1 / channel / counter. LIVE-VERIFIED: this is the
+            // form 100 accepts (it ACKs the accept and the session proceeds). The high-own-sequence
+            // alternative was REFUTED live — 100 rejected a D8/0x012F accept with a subtype-0x07
+            // network error, Flags2 0xFFDE = XENSE (-34, sequence error): 100 requires our accept to
+            // be in-sequence with the connect, i.e. echo its low Flags1, not start a fresh high one.
+            TadFrameContext ctx = new TadFrameContext
+            {
+                DestinationNode = request.Header.SourceNode,        // back to 100
+                SourceNode = _nodeNumber,                           // from us
+                DatagramSequence = request.Header.Flags1,           // echo (VERIFIED accepted)
+                FrameClass = 0x0400,
+                ProtocolId = request.Header.ProtocolId,             // echo the connect channel
+                Counter = request.SubHeader!.Counter,               // echo
+                FrameFlags = 0x86,
+                Role = 0x40,
+                DestinationSystem = _clientSystem,
+                DestinationPort = request.SubHeader.SourcePort,
+                SourceSystem = _nodeNumber,
+                SourcePort = TadAdminWirePort,
+                ControlService = SystemTadControlService,
+            };
+
+            return AssembleDataFrame(ctx, trailer);
         }
 
         /// <summary>

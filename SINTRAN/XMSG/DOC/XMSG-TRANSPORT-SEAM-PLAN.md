@@ -77,6 +77,31 @@ Base `0x020C` → channel **DB**; flags1 increments `0x012F → 0x0130 → 0x013
 the DUMM at `0x0131` is both **in-order** and **on DB**. We no longer echo 100's low sequence for the
 accept (that worked for the accept alone but boxed the data frames into the fatal low Base).
 
+**The high-sequence accept was REFUTED (the plan above does not work).** A fourth probe made the
+whole responder run one high sequence (accept `0x012F` on D8). Machine 100 rejected the **accept
+itself** with subtype `0x07`, Flags2 `0xFFDE` = XENSE − 34: **100 requires our datagram sequence to
+be in-sequence with the connect it sent (low, echoed), not a fresh high one.** This closes the loop
+into a genuine contradiction for a fresh-sequence node:
+
+- 100 forces our sequence **low** (echo the connect's `0x0000…`; a high start → XENSE), **and**
+- terminal-data must ride **DB**, which needs `Base≫8 = 2` i.e. `Base ≈ 0x02xx` i.e. a **high**
+  Flags1 — and a byte-sized counter cannot lift a low Flags1 to `0x02xx`.
+
+Both cannot hold at once. In the captures this was never a problem because those machines had
+**high** datagram sequences from prior traffic (102 was at `0x0131`), so their low-XMCSM terminal
+frames landed on DB naturally. Our C# node starts **fresh** (sequence `~0x0000`), and 100 will not
+let it jump. The envelope channel formula *fits* the captures but does **not** predict what 100
+accepts from a fresh-sequence responder — the data-phase channel depends on the absolute sequence,
+which we cannot set freely.
+
+**Status: MOTD blocked; connect handshake stable.** The bring-up (`SendTerminalBringup`) is disabled;
+the runner sends only the echoed accept + port-assign, which 100 ACKs with no crash (it then beeps,
+waiting for a terminal we cannot yet form). Resolving the MOTD needs one of: (a) the XMSG channel/
+sequence-allocation rule from the kernel source (not in this repo), or (b) a capture of a **fresh**
+responder session (sequence starting near zero) to see what channel 100 actually expects then.
+Blind live probing is a dead end here — every wrong data-phase channel (DC/DD) is a fatal XXPER that
+kills 100's XMSG and forces a manual restart.
+
 **Two error kinds and what they mean operationally:**
 - **XENSE** (subtype `0x07`, Flags2 `0xFFDE`) — a *recoverable* reject; 100's XMSG stays up. Means
   the frame was well-formed but its datagram sequence was out of order. Cheap to iterate.

@@ -23,7 +23,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         }
 
         [Fact]
-        public void ConnectAccept_UsesOwnSequenceOnDerivedD8Channel()
+        public void ConnectAccept_EchoesConnectSequenceAndChannel()
         {
             // The exact live connect request 100 -> 103 (proto DA, f1=0x0000, counter=0x13).
             byte[] reqBytes = Convert.FromHexString(
@@ -37,11 +37,11 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             byte[] accept = frames[0].ToArray();
             _output.WriteLine("accept: " + Convert.ToHexString(accept));
 
-            // The accept is the FIRST frame of our own continuous sequence (start 0x012F), a control
-            // frame with Base 0x0214 -> counter 0xE5 -> derived channel D8 (0xDE-4-2). Addressing is
-            // unchanged (from TADADM 0x0156 to 100's port 0x02F7); params 01020000 0202000A.
+            // The accept ECHOES the connect's channel (DA), Flags1 (0x0000) and counter (0x13) — the
+            // form 100 accepts. A high own-sequence D8 accept was REFUTED live (100 replied XENSE).
+            // Addressing: from our TADADM 0x0156 to 100's port 0x02F7; params 01020000 0202000A.
             byte[] expected = Convert.FromHexString(
-                "2113000E00640067" + "012F" + "0400" + "D8" + "E5" + "2100" + "86" + "40"
+                "2113000E00640067" + "0000" + "0400" + "DA" + "13" + "2100" + "86" + "40"
                 + "0064" + "02F7" + "0067" + "0156" + "04000041" + "00" + "08"
                 + "01020000" + "0202000A");
 
@@ -81,7 +81,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         }
 
         [Fact]
-        public void PortAssign_ContinuesSequenceOnDerivedD8Channel()
+        public void PortAssign_EchoesSessionSetupAndAssignsOurPort()
         {
             // Establish the session first (accept), then feed the session-setup 100 sends next.
             byte[] connectBytes = Convert.FromHexString(
@@ -98,11 +98,10 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             byte[] assign = responder.OnSessionSetup(setup)[0].ToArray();
             _output.WriteLine("port-assign: " + Convert.ToHexString(assign));
 
-            // Port-assign CONTINUES our sequence: f1 0x0130 (accept was 0x012F), control Base 0x0214 ->
-            // counter 0xE4 -> derived channel D8. Addressing unchanged (from TADADM 0x0156 to 100's
-            // port 0x02F7); trailer assigns our system 0x67 and session port 0x0211.
+            // Port-assign ECHOES the setup: channel DA, f1 0x0001, counter 0x12. From TADADM 0x0156
+            // to 100's port 0x02F7; trailer assigns our system 0x67 and session port 0x0211.
             byte[] expected = Convert.FromHexString(
-                "2113000E00640067" + "0130" + "0400" + "D8" + "E4" + "2100" + "86" + "40"
+                "2113000E00640067" + "0001" + "0400" + "DA" + "12" + "2100" + "86" + "40"
                 + "0064" + "02F7" + "0067" + "0156" + "04000000" + "00" + "18"
                 + "00" + "0705" + "00006702" + "11" + "1F03" + "4C0000"
                 + "00" + "0B02" + "0300" + "1502" + "0108" + "FF00");
@@ -111,14 +110,15 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         }
 
         [Fact]
-        public void SessionBringup_EmitsDummOnDerivedChannel()
+        public void SessionBringup_BuildsDummOnDerivedDbChannel()
         {
+            // NOTE: the DUMM bring-up is DISABLED in production (see the runner) — it is BLOCKED live
+            // because 100 forces our sequence low while terminal-data needs DB (high Base). This test
+            // only verifies the BUILDER still derives DB correctly from the responder's seed value, so
+            // the mechanism is ready if the sequence question is ever resolved.
             byte[] connectBytes = Convert.FromHexString(
                 "2113000E0067006400000400DA13210086E400670000006402F7040000410010FF072A54414441444D00FE0444313033");
             TadTerminalResponder responder = new TadTerminalResponder(103, () => new DateTime(2026, 7, 2));
-            // Enable the post-port-assign bring-up. It now COMPUTES the session-data channel from the
-            // envelope model (VERIFIED), instead of replaying a canned session's channels (which had
-            // the wrong Base and crashed 100 with XXPER). Isolation: only the first frame (DUMM).
             responder.SendTerminalBringup = true;
             responder.OnConnect(XmsgFrame.Parse(connectBytes));
 
@@ -133,11 +133,11 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             byte[] dumm = frames[1].ToArray();
             _output.WriteLine("dumm: " + Convert.ToHexString(dumm));
 
-            // The DUMM CONTINUES the one responder sequence (accept 0x012F, port-assign 0x0130 ->
-            // DUMM 0x0131) so it is in-order, and its data Base 0x020C -> counter 0xDB -> derived
-            // channel DB (0xDE-1-2) — the only well-formed terminal-data channel. Built via TadOp.Dumm.
+            // The accept/port-assign echo (they do not advance the responder's own sequence), so the
+            // DUMM carries the seed f1 0x012F; data Base 0x020C -> counter 0xDD -> derived channel DB
+            // (0xDE-1-2). Built via TadOp.Dumm through the TAD API.
             byte[] expected = Convert.FromHexString(
-                "2113000E00640067" + "0131" + "0108" + "DB" + "DB" + "2100" + "92" + "00"
+                "2113000E00640067" + "012F" + "0108" + "DB" + "DD" + "2100" + "92" + "00"
                 + "0064" + "02F7" + "0067" + "0211" + "01080000" + "00" + "02" + "1800");
             Assert.Equal(expected, dumm);
 
