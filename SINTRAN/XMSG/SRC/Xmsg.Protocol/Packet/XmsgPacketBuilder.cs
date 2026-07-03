@@ -74,6 +74,26 @@ namespace NDInsight.Sintran.Xmsg.Packet
         }
 
         /// <summary>
+        /// Builds a session-data (subtype <c>0x0E</c>) packet whose channel is DERIVED from the
+        /// envelope model rather than supplied — the correct way to emit responder session frames
+        /// (MOTD, prompts, terminal control) so their Protocol ID is consistent with their
+        /// Flags1 / Counter / XMCSM. Replaying a canned channel from another session instead has the
+        /// wrong Base and crashes the peer's XMSG (XXPER); this computes it.
+        /// </summary>
+        /// <param name="fields">
+        /// The envelope fields. <see cref="XmsgDataFields.ProtocolId"/> is ignored and overwritten
+        /// with <see cref="XmsgEnvelope.DeriveChannel"/> of the Flags1 / Counter / XMCSM.
+        /// </param>
+        /// <returns>The built session-data packet on the derived channel.</returns>
+        public static XmsgPacket CreateSessionData(XmsgDataFields fields)
+        {
+            // Derive the channel from the universal envelope identity (VERIFIED against the
+            // conn-to-d102 responder frames); override whatever ProtocolId the caller left set.
+            fields.ProtocolId = XmsgEnvelope.DeriveChannel(fields.Flags1, fields.Counter, fields.ControlService);
+            return CreateData(fields);
+        }
+
+        /// <summary>
         /// Builds a secure-delivery ACK (subtype <c>0x03</c>) for a received data frame.
         /// </summary>
         /// <param name="destinationNode">The node the ACK is sent to (the data frame's source).</param>

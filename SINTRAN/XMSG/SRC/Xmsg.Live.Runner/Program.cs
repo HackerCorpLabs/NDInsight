@@ -169,7 +169,11 @@ internal static class Program
 
         adapter.Initiate();
         Console.WriteLine("[runner] SABM sent; pumping seam link (LAPB + codec + XmsgLayer)...");
-        await adapter.RunAsync(token, TimeSpan.FromSeconds(1));
+        // NO periodic keepalive — matches the VALIDATED legacy runner: after SABM a healthy link
+        // stays RUN silently (no 4-byte frames until hangup); we send RR only reactively when 100
+        // sends an I-frame (the LAPB link emits the RR itself on receive). Passing a keepalive here
+        // floods the link with one RR per idle second, which the proven path never did.
+        await adapter.RunAsync(token, keepaliveInterval: null);
     }
 
     /// <summary>
@@ -205,6 +209,7 @@ internal static class Program
         LiveNode live = new LiveNode(transport, link, xnode);
         link.Connect(0);
         Console.WriteLine("[runner] SABM sent; pumping legacy link...");
-        await live.RunAsync(token, TimeSpan.FromSeconds(1));
+        // No periodic keepalive (matches the original validated runner) — reactive RR only.
+        await live.RunAsync(token);
     }
 }
