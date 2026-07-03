@@ -6,7 +6,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
 {
     /// <summary>
     /// Adapts an <see cref="ILink"/> into the codec's downward <see cref="IXmsgTransport"/> sink:
-    /// each <see cref="IXmsgTransport.Send"/> becomes one <see cref="ILink.SendSintranFrame"/>.
+    /// each <see cref="IXmsgTransport.Send"/> becomes one <see cref="ILink.SendData"/>.
     /// </summary>
     /// <remarks>
     /// This is the single wire between the pure protocol seam (which knows only
@@ -31,12 +31,10 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         /// <inheritdoc />
         public void Send(ReadOnlySpan<byte> bytes)
         {
-            // ILink sends take byte[] + length; materialise the span into an array for the call. This
-            // is the L3->L2 send seam (one outbound frame per call), NOT a hot receive path, so the
-            // per-frame allocation is acceptable. The bool result is advisory here; the codec above
+            // ILink.SendData takes the span directly and copies it into the LAPB body it enqueues, so
+            // this seam allocates nothing per frame. The bool result is advisory here; the codec above
             // has no retransmit path of its own (that lives in LAPB).
-            byte[] buffer = bytes.ToArray();
-            _link.SendSintranFrame(buffer, buffer.Length);
+            _link.SendData(bytes);
         }
     }
 }

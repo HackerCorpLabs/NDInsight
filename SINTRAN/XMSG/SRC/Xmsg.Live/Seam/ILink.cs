@@ -20,50 +20,39 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
     }
 
     /// <summary>
-    /// The L3 protocol a link is configured to carry.
-    /// </summary>
-    /// <remarks>
-    /// This is <b>adapter-internal</b> configuration — it is NOT part of <see cref="ILink"/> and no
-    /// code above the seam reads it (binding enforcement is entirely the adapter's business). The
-    /// consuming emulator has the same concept under a different name (ProtocolMode); the naming is
-    /// reconciled at port time and does not touch upper layers.
-    /// </remarks>
-    public enum LinkBinding
-    {
-        /// <summary>The link carries SINTRAN/XMSG L3 frames.</summary>
-        Xmsg,
-        /// <summary>The link carries X.25 L3 packets.</summary>
-        X25
-    }
-
-    /// <summary>
-    /// Raised when one complete L3 payload (a LAPB I-frame information field)
-    /// is delivered up from a link. The link does not interpret the payload.
+    /// Handler for an opaque payload delivered up from a link (a LAPB I-frame information field).
+    /// The link does not classify the payload.
     /// </summary>
     /// <param name="link">The link that received the payload (sender-first).</param>
-    /// <param name="payload">Buffer holding the payload bytes.</param>
+    /// <param name="payload">
+    /// The opaque payload bytes. The buffer may be reused by the link after the handler returns;
+    /// handlers that retain the payload MUST copy it inside the callback.
+    /// </param>
     /// <param name="length">Number of valid bytes in <paramref name="payload"/>.</param>
     public delegate void LinkPayloadReceived(ILink link, byte[] payload, int length);
 
     /// <summary>
-    /// Raised when a link's operational status changes. Both the previous and the new status are
+    /// Handler for a link operational status transition. Both the previous and the new status are
     /// carried (plus a short human-readable reason) so no information is lost — consumers that only
     /// care about the new value ignore the rest.
     /// </summary>
     /// <param name="link">The link whose status changed (sender-first).</param>
-    /// <param name="oldStatus">The status the link was in before this transition.</param>
-    /// <param name="newStatus">The status the link is in after this transition.</param>
+    /// <param name="oldStatus">The status before the transition.</param>
+    /// <param name="newStatus">The status after the transition.</param>
     /// <param name="reason">A short human-readable reason for the transition (for logs).</param>
     public delegate void LinkStatusChanged(ILink link, LinkStatus oldStatus, LinkStatus newStatus, string reason);
 
     /// <summary>
-    /// The bottom seam of the stack: an established data link that delivers L3
-    /// payloads up as events and accepts L3 frames down as method calls. Nothing
-    /// above this interface knows about HDLC framing, byte-stuffing, FCS, or LAPB.
+    /// The bottom seam of the stack: an established data link that delivers opaque L3 payloads up as
+    /// events and accepts opaque L3 payloads down as method calls. Nothing above this interface knows
+    /// about HDLC framing, byte-stuffing, FCS, or LAPB; the link knows nothing about which L3 protocol
+    /// it carries.
     /// </summary>
     /// <remarks>
-    /// This is a strict subset of the consuming emulator's link interface; code
-    /// above the seam must depend only on the members declared here.
+    /// These type names are deliberately identical to the consuming emulator's link interface so the
+    /// port is a using-directive swap; code above the seam must depend only on the members declared
+    /// here. Protocol classification (X.25 vs XMSG) is NOT the link's job — it lives above the link in
+    /// the composition root (see <see cref="IProtocolDetector"/>).
     /// </remarks>
     public interface ILink : IDisposable
     {
@@ -83,31 +72,25 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         void Stop();
 
         /// <summary>
-        /// Sends one SINTRAN/XMSG L3 information field as a LAPB I-frame.
+        /// Sends one opaque L3 payload (an information field) as a LAPB I-frame.
         /// </summary>
-        /// <param name="frame">Buffer holding the information-field bytes.</param>
-        /// <param name="length">Number of valid bytes in <paramref name="frame"/>.</param>
+        /// <param name="payload">The payload bytes to send.</param>
         /// <returns>
-        /// True when queued for transmission; false when the link is not Active
-        /// or is bound to X.25 (logged, never thrown).
+        /// True when queued for transmission; false when the link is not Active or the send window is
+        /// full (logged, never thrown).
         /// </returns>
-        bool SendSintranFrame(byte[] frame, int length);
-
-        /// <summary>
-        /// Sends one X.25 L3 packet as a LAPB I-frame.
-        /// </summary>
-        /// <param name="packet">Buffer holding the packet bytes.</param>
-        /// <param name="length">Number of valid bytes in <paramref name="packet"/>.</param>
-        /// <returns>
-        /// True when queued for transmission; false when the link is not Active
-        /// or is bound to XMSG (logged, never thrown).
-        /// </returns>
-        bool SendX25Packet(byte[] packet, int length);
+        /// <remarks>
+        /// The parameter is a <see cref="ReadOnlySpan{T}"/> deliberately: the compiler forbids storing
+        /// the span, which FORCES the implementation to copy the bytes into its own storage before
+        /// returning. The caller's buffer is therefore free for reuse (pooled/reused buffers, zero
+        /// per-send allocation) as soon as this call returns.
+        /// </remarks>
+        bool SendData(ReadOnlySpan<byte> payload);
 
         /// <summary>Occurs when a complete L3 payload is delivered up.</summary>
         event LinkPayloadReceived PayloadReceived;
 
-        /// <summary>Occurs when the link status changes.</summary>
+        /// <summary>Occurs when the link status changes (actual transitions only).</summary>
         event LinkStatusChanged StatusChanged;
     }
 }

@@ -147,7 +147,7 @@ internal static class Program
         string linkId = $"hdlc:{host}:{port}";
 
         LapbLayer link = new LapbLayer(node);
-        LapbLayerAdapter adapter = new LapbLayerAdapter(linkId, transport, link, LinkBinding.Xmsg);
+        LapbLayerAdapter adapter = new LapbLayerAdapter(linkId, transport, link);
 
         // The per-link-binding "detector" (seam stub): this link carries XMSG, decided by config
         // (the ND machine's installed SW), NOT by sniffing bytes. See XMSG-TRANSPORT-SEAM-PLAN.md §5.

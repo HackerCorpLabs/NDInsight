@@ -62,7 +62,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         {
             InMemoryDuplex duplex = new InMemoryDuplex(inbound);
             LapbLayer link = new LapbLayer(ownNode: 103);
-            LapbLayerAdapter adapter = new LapbLayerAdapter("hdlc:test", duplex, link, LinkBinding.Xmsg);
+            LapbLayerAdapter adapter = new LapbLayerAdapter("hdlc:test", duplex, link);
             LinkXmsgTransport codecTransport = new LinkXmsgTransport(adapter);
             XmsgCodec codec = new XmsgCodec("hdlc:test", codecTransport);
             XmsgLayer layer = new XmsgLayer(codec, 103, 0x00);

@@ -44,8 +44,8 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
                 byte[] copy = new byte[length];               // contract: copy within the callback if retained
                 Array.Copy(payload, 0, copy, 0, length);
                 received.Add(copy);
-                // Respond DOWN: echo the payload back as a SINTRAN frame (the codec/layer's job later).
-                adapter.SendSintranFrame(payload, length);
+                // Respond DOWN: echo the payload back as an opaque L3 frame (the codec/layer's job later).
+                adapter.SendData(payload.AsSpan(0, length));
             };
             adapter.StatusChanged += delegate (ILink link, LinkStatus oldStatus, LinkStatus newStatus, string reason)
             {
@@ -70,16 +70,16 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         }
 
         [Fact]
-        public void XmsgBoundLink_RejectsX25Send()
+        public void NotActiveLink_RefusesSendWithFalse()
         {
+            // Contract: SendData on a not-yet-started (not Active) link returns a logged false, never
+            // throws. The single opaque send replaced the old per-protocol sends and their binding gate.
             LapbLayer link = new LapbLayer(ownNode: 102);
             LapbLayerAdapter adapter = new LapbLayerAdapter(
-                "hdlc:test", new InMemoryDuplex(Array.Empty<byte>()), link, LinkBinding.Xmsg);
+                "hdlc:test", new InMemoryDuplex(Array.Empty<byte>()), link);
 
-            Assert.Equal(LinkBinding.Xmsg, adapter.Binding);
-            // The HDLC transport is common, but this link is bound to XMSG: an X.25 send is refused
-            // with a logged false (contract change — no longer a throw).
-            Assert.False(adapter.SendX25Packet(new byte[] { 0x10, 0x00, 0x0D }, 3));
+            Assert.Equal(LinkStatus.Stopped, adapter.Status);
+            Assert.False(adapter.SendData(new byte[] { 0x21, 0x13 }));
         }
 
         /// <summary>Builds a LAPB data I-frame body: addr 0x09, control from N(S)/N(R), then info.</summary>

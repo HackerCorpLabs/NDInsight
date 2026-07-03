@@ -11,7 +11,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
     /// An <see cref="ILink"/> over the proven HDLC/LAPB stack: wraps an <see cref="IByteDuplex"/>
     /// transport and a <see cref="LapbLayer"/>, runs the receive→deframe→FCS→LAPB pump, delivers each
     /// in-order information field UP as <see cref="PayloadReceived"/>, and turns
-    /// <see cref="SendSintranFrame"/> into a LAPB I-frame DOWN. Bound to XMSG.
+    /// <see cref="SendData"/> into a LAPB I-frame DOWN.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -22,10 +22,9 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
     /// <see cref="LiveNode"/> path stays intact until the new path proves live parity (Phase 5).
     /// </para>
     /// <para>
-    /// The HDLC/LAPB transport is common to X.25 and XMSG; this instance is <em>bound</em> to
-    /// <see cref="LinkBinding.Xmsg"/>, so <see cref="SendX25Packet"/> returns false (logged, never
-    /// thrown). An X.25 machine would bind the same adapter to <see cref="LinkBinding.X25"/>. The
-    /// binding is config, not detection.
+    /// The HDLC/LAPB transport is common to X.25 and XMSG; this adapter carries the payload opaquely
+    /// via <see cref="SendData"/> and never classifies it. Which L3 protocol a link carries is the
+    /// composition root's concern (see <c>IProtocolDetector</c>), not the link's.
     /// </para>
     /// <para>
     /// <b>Buffer ownership:</b> the <see cref="PayloadReceived"/> payload MAY be a buffer the adapter
@@ -42,7 +41,6 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         private readonly string _linkId;
         private readonly IByteDuplex _transport;
         private readonly LapbLayer _link;
-        private readonly LinkBinding _binding;
 
         private readonly List<byte> _frameAccumulator;
         private readonly Queue<byte[]> _pendingWrites;
@@ -80,14 +78,12 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         /// <param name="linkId">The link identity stamped on every up-event.</param>
         /// <param name="transport">The raw-byte transport (TCP bridge or in-memory).</param>
         /// <param name="link">The LAPB link state machine.</param>
-        /// <param name="binding">The L3 protocol this link carries; defaults to XMSG.</param>
         /// <exception cref="ArgumentNullException">Thrown when any reference argument is null.</exception>
-        public LapbLayerAdapter(string linkId, IByteDuplex transport, LapbLayer link, LinkBinding binding = LinkBinding.Xmsg)
+        public LapbLayerAdapter(string linkId, IByteDuplex transport, LapbLayer link)
         {
             _linkId = linkId ?? throw new ArgumentNullException(nameof(linkId));
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
             _link = link ?? throw new ArgumentNullException(nameof(link));
-            _binding = binding;
 
             _frameAccumulator = new List<byte>(512);
             _pendingWrites = new Queue<byte[]>();
@@ -107,16 +103,6 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         public LinkStatus Status
         {
             get { return _status; }
-        }
-
-        /// <summary>
-        /// Gets the L3 protocol this link is bound to carry. This is adapter-internal configuration
-        /// (NOT part of <see cref="ILink"/>): it gates <see cref="SendSintranFrame"/> /
-        /// <see cref="SendX25Packet"/>, but nothing above the seam reads it.
-        /// </summary>
-        public LinkBinding Binding
-        {
-            get { return _binding; }
         }
 
         /// <summary>
@@ -257,41 +243,27 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         }
 
         /// <inheritdoc />
-        public bool SendSintranFrame(byte[] frame, int length)
+        public bool SendData(ReadOnlySpan<byte> payload)
         {
-            // Contract: wrong binding or a not-Active link is a logged false, NEVER a throw.
-            if (_binding != LinkBinding.Xmsg)
-            {
-                Console.WriteLine($"[link] {_linkId} SendSintranFrame refused: link is bound to X.25");
-                return false;
-            }
-
+            // Contract: a not-Active link (or an empty payload) is a logged false, NEVER a throw.
             if (_status != LinkStatus.Active)
             {
-                Console.WriteLine($"[link] {_linkId} SendSintranFrame refused: link not Active (status {_status})");
+                Console.WriteLine($"[link] {_linkId} SendData refused: link not Active (status {_status})");
                 return false;
             }
 
-            if (frame == null || length < 0 || length > frame.Length)
+            if (payload.Length == 0)
             {
-                Console.WriteLine($"[link] {_linkId} SendSintranFrame refused: invalid buffer/length");
+                Console.WriteLine($"[link] {_linkId} SendData refused: empty payload");
                 return false;
             }
 
             _ticks++;
             // Emits the I-frame via LapbLayer.OnTransmit -> EnqueueTransmit; the pump flushes it.
-            _link.SendInformation(frame.AsSpan(0, length), _ticks);
+            // SendInformation cannot retain the span (compiler-enforced) and copies the bytes into the
+            // LAPB body it enqueues, so the caller's buffer is free the moment this returns.
+            _link.SendInformation(payload, _ticks);
             return true;
-        }
-
-        /// <inheritdoc />
-        public bool SendX25Packet(byte[] packet, int length)
-        {
-            // Bound to XMSG: an X.25 packet cannot be sent on this link. A link on an ND machine
-            // running X.25 software would bind LinkBinding.X25 and implement this instead. Per the
-            // contract this is a logged false, not a throw.
-            Console.WriteLine($"[link] {_linkId} SendX25Packet refused: link is bound to XMSG");
-            return false;
         }
 
         /// <summary>

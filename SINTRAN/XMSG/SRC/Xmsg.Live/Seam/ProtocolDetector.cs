@@ -3,6 +3,20 @@ using System;
 namespace NDInsight.Sintran.Xmsg.Live.Seam
 {
     /// <summary>
+    /// The L3 protocol a payload is classified as. This is a classification concept that lives ABOVE
+    /// the link (the composition root's routing vocabulary) — it is deliberately NOT part of
+    /// <see cref="ILink"/>. The link carries opaque payloads and never knows which protocol it moves;
+    /// deciding X.25 vs XMSG is <see cref="IProtocolDetector"/>'s job here, not the link's.
+    /// </summary>
+    public enum LinkBinding
+    {
+        /// <summary>The payload is a SINTRAN/XMSG L3 frame.</summary>
+        Xmsg,
+        /// <summary>The payload is an X.25 L3 packet.</summary>
+        X25
+    }
+
+    /// <summary>
     /// Classifies which L3 protocol a link's payload belongs to (X.25 vs XMSG). Present only as a
     /// <b>seam</b> for now: the real mechanism is per-link binding, so the shipped implementation
     /// simply returns the link's configured binding without inspecting bytes.

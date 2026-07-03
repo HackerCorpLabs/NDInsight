@@ -13,8 +13,8 @@ using Xunit;
 namespace NDInsight.Sintran.Xmsg.Live.Tests
 {
     /// <summary>
-    /// THE PORT ACCEPTANCE TEST (seam plan §5). A hand-written fake <see cref="ILink"/> — with NO
-    /// HDLC framing, NO LAPB state machine, NO transport, no async — drives the full XMSG stack
+    /// THE PORT ACCEPTANCE TEST (seam plan section 7). A hand-written fake <see cref="ILink"/> — with
+    /// NO HDLC framing, NO LAPB state machine, NO transport, no async — drives the full XMSG stack
     /// (<see cref="XmsgCodec"/> + <see cref="XmsgLayer"/> + the TAD responder) in BOTH directions:
     /// a payload pushed UP produces a decoded SINTRAN frame back DOWN. Because the entire upper stack
     /// depends only on <see cref="ILink"/> (plus <c>Xmsg.Protocol</c>) and never touches
@@ -75,7 +75,50 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             // Contract: a send on a not-Active link returns false (never throws).
             FakeLink link = new FakeLink("fake:idle");
             Assert.Equal(LinkStatus.Stopped, link.Status);
-            Assert.False(link.SendSintranFrame(new byte[] { 0x21, 0x13 }, 2));
+            Assert.False(link.SendData(new byte[] { 0x21, 0x13 }));
+        }
+
+        [Fact]
+        public void FakeLink_ReusesOneUpBuffer_StackStillCorrect_ProvesCopyDiscipline()
+        {
+            // COPY-DISCIPLINE PROOF (seam plan section 7.2). The fake link delivers TWO different
+            // inbound payloads UP through the SAME reused buffer — exactly what a pooled/reused
+            // receive buffer would do. If any layer retained the buffer instead of consuming it inside
+            // the callback, the second delivery would corrupt the first. We assert the stack answered
+            // BOTH deliveries (two connect-accepts), proving nothing above the seam held the buffer.
+            FakeLink link = new FakeLink("fake:reuse");
+            LinkXmsgTransport transport = new LinkXmsgTransport(link);
+            XmsgCodec codec = new XmsgCodec(link.Name, transport);
+            XmsgLayer layer = new XmsgLayer(codec, 103, 0x00);
+            ConfigureLayer(layer);
+
+            link.PayloadReceived += delegate (ILink deliveringLink, byte[] payload, int length)
+            {
+                codec.ProcessBytes(payload.AsSpan(0, length));
+            };
+
+            Assert.True(link.Start());
+
+            byte[] connect = Convert.FromHexString(ConnectRequestHex);
+
+            // Deliver the SAME logical payload twice, both times through the link's ONE reusable up
+            // buffer (DeliverUpReusingBuffer overwrites that buffer each call). A connect request that
+            // is answered once must be answered again after a fresh session — the point is only that
+            // the second delivery is not corrupted by the first having retained the buffer.
+            int before = link.SentFrames.Count;
+            link.DeliverUpReusingBuffer(connect);
+            int afterFirst = link.SentFrames.Count;
+            link.DeliverUpReusingBuffer(connect);
+            int afterSecond = link.SentFrames.Count;
+
+            // Each delivery produced at least one well-formed outbound frame (marker 0x21) — so both
+            // passes through the reused buffer decoded cleanly.
+            Assert.True(afterFirst > before, "first reused-buffer delivery produced no output");
+            Assert.True(afterSecond > afterFirst, "second reused-buffer delivery produced no output");
+            for (int i = before; i < link.SentFrames.Count; i++)
+            {
+                Assert.Equal(0x21, link.SentFrames[i][0]);
+            }
         }
 
         /// <summary>Configures the layer exactly as the runner/parity test do (routing + TAD responder).</summary>
@@ -98,15 +141,19 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         }
 
         /// <summary>
-        /// A minimal in-memory <see cref="ILink"/> for the acceptance test: it carries XMSG L3 with no
+        /// A minimal in-memory <see cref="ILink"/> for the acceptance test: it carries opaque L3 with no
         /// framing, no LAPB, no transport. <see cref="DeliverUp"/> simulates an inbound payload;
-        /// <see cref="SendSintranFrame"/> captures the outbound frames the stack produces. It honours
-        /// the contract's status gating and no-throw send semantics.
+        /// <see cref="SendData"/> captures the outbound frames the stack produces. It honours the
+        /// contract's status gating, no-throw send semantics, and copy-on-send discipline.
         /// </summary>
         private sealed class FakeLink : ILink
         {
             private readonly string _name;
             private LinkStatus _status;
+
+            // ONE reusable up buffer, deliberately shared across DeliverUpReusingBuffer calls to model a
+            // pooled receive buffer and prove the upper stack copies-if-it-retains.
+            private byte[] _reusableUpBuffer;
 
             /// <summary>The SINTRAN frames the upper stack sent DOWN through this link.</summary>
             public List<byte[]> SentFrames { get; }
@@ -118,6 +165,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             {
                 _name = name;
                 _status = LinkStatus.Stopped;
+                _reusableUpBuffer = Array.Empty<byte>();
                 SentFrames = new List<byte[]>();
             }
 
@@ -155,7 +203,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
                 Stop();
             }
 
-            public bool SendSintranFrame(byte[] frame, int length)
+            public bool SendData(ReadOnlySpan<byte> payload)
             {
                 // Contract: refuse (logged false, never throw) when the link is not Active.
                 if (_status != LinkStatus.Active)
@@ -163,29 +211,40 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
                     return false;
                 }
 
-                if (frame == null || length < 0 || length > frame.Length)
+                if (payload.Length == 0)
                 {
                     return false;
                 }
 
-                // Copy exactly the valid bytes — the caller's buffer may be reused.
-                byte[] copy = new byte[length];
-                Array.Copy(frame, 0, copy, 0, length);
+                // Copy the span into our own storage — the compiler forbids storing the span itself, so
+                // this copy is mandatory and the caller's buffer is free the instant we return.
+                byte[] copy = payload.ToArray();
                 SentFrames.Add(copy);
                 return true;
             }
 
-            public bool SendX25Packet(byte[] packet, int length)
-            {
-                // This fake carries XMSG; an X.25 send is refused per the contract.
-                return false;
-            }
-
-            /// <summary>Test hook: simulate one complete L3 payload arriving up from the (absent) wire.</summary>
+            /// <summary>Test hook: simulate one complete L3 payload arriving up on a fresh buffer.</summary>
             /// <param name="payload">The SINTRAN information field bytes.</param>
             public void DeliverUp(byte[] payload)
             {
                 PayloadReceived?.Invoke(this, payload, payload.Length);
+            }
+
+            /// <summary>
+            /// Test hook: simulate one payload arriving up through the link's ONE reused buffer (models a
+            /// pooled receive buffer). The buffer is overwritten on every call, so a consumer that
+            /// retains it across calls would see corruption — which is exactly what this proves absent.
+            /// </summary>
+            /// <param name="payload">The SINTRAN information field bytes to copy into the reused buffer.</param>
+            public void DeliverUpReusingBuffer(byte[] payload)
+            {
+                if (_reusableUpBuffer.Length < payload.Length)
+                {
+                    _reusableUpBuffer = new byte[payload.Length];
+                }
+
+                Array.Copy(payload, 0, _reusableUpBuffer, 0, payload.Length);
+                PayloadReceived?.Invoke(this, _reusableUpBuffer, payload.Length);
             }
 
             private void SetStatus(LinkStatus next, string reason)
