@@ -100,6 +100,20 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
         }
 
         /// <summary>
+        /// Resets our persisted outgoing datagram sequence for a remote node back to 0x0000. Called
+        /// when that node signals an XMSG (re)start — a <b>ReachabilityRequest</b> — which zeroes its
+        /// per-node-pair expected-from-us. LIVE-VERIFIED signal: after an XMSG restart 100 sends a
+        /// ReachabilityRequest and its subsequent connect arrives at Flags1 0x0000; a bare HDLC link
+        /// restart does NOT send one and 100 continues its sequence. Resetting here keeps our sequence
+        /// in step across 100's restarts without any manual state-file surgery.
+        /// </summary>
+        /// <param name="remoteNode">The node that (re)started, e.g. 100.</param>
+        public void ResetSequence(ushort remoteNode)
+        {
+            _sequenceStore.SaveNextFlags1(remoteNode, 0x0000);
+        }
+
+        /// <summary>
         /// Gets the per-session secure-ACK channel (Protocol-ID) that every subtype-<c>0x03</c>
         /// delivery ACK for this session must ride: <em>connect-channel + 4</em>. Learned from the
         /// connect frame in <see cref="OnConnect"/>; before a connect it is the TAD default

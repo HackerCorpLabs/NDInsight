@@ -369,6 +369,12 @@ namespace NDInsight.Sintran.Xmsg.Live
             switch (incoming.Header.Subtype)
             {
                 case SintranPacketSubtype.ReachabilityRequest:
+                    // A ReachabilityRequest is the peer's XMSG (re)start signal: its per-node-pair
+                    // expected-from-us has just zeroed. Reset our persisted outgoing sequence for that
+                    // node so our next session starts at 0x0000 in step with it (LIVE-VERIFIED: after
+                    // an XMSG restart 100 sends this, then connects at Flags1 0x0000). No-op for a bare
+                    // link restart, where 100 continues its sequence and sends no reachability.
+                    TadResponder?.ResetSequence(incoming.Header.SourceNode);
                     return BuildReachabilityReply(incoming);
 
                 case SintranPacketSubtype.Data:

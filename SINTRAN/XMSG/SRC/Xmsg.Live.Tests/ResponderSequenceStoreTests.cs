@@ -81,6 +81,23 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         }
 
         [Fact]
+        public void ReachabilityRequest_ResetsSequenceForThatNode()
+        {
+            // 100's XMSG restart is signalled by a ReachabilityRequest; it zeroes 100's expected-from-
+            // us. A stale stored value must be reset to 0x0000 so our next session is in step.
+            MemoryStore store = new MemoryStore();
+            store.SaveNextFlags1(100, 0x0002);   // stale value from a prior (dropped) run
+
+            XmsgNode node = new XmsgNode(102, 0x00);
+            node.TadResponder = new TadTerminalResponder(102, () => new DateTime(2026, 7, 2), store);
+
+            // ReachabilityRequest 100 -> 102 (subtype 0x19, source node 0x0064 = 100).
+            node.HandleFrames(XmsgFrame.Parse(Convert.FromHexString("2113001900660064FFFF0001DE08")));
+
+            Assert.Equal(0x0000, store.LoadNextFlags1(100));
+        }
+
+        [Fact]
         public void Responder_FirstContact_StartsAtZero()
         {
             // No stored value -> a fresh contact starts at 0x0000 (matches a fresh peer).
