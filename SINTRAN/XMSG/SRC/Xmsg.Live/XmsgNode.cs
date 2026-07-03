@@ -374,6 +374,25 @@ namespace NDInsight.Sintran.Xmsg.Live
 
             switch (incoming.Header.Subtype)
             {
+                case SintranPacketSubtype.Ack:
+                    // 100's delivery ACK confirms it received our frame (its Flags1 echoes ours).
+                    // Persist ackedFlags1 + 1 as our next sequence, so a restart continues exactly
+                    // where 100 expects — never ahead of what it actually received.
+                    TadResponder?.ConfirmDelivered(incoming.Header.SourceNode, incoming.Header.Flags1);
+                    return null;
+
+                case (SintranPacketSubtype)0x07:
+                    // Network error. A XENSE (Flags2 0xFFDE) reject of our accept means our sequence
+                    // was AHEAD of 100's expected-from-us (drift). Step the accept DOWN and re-send;
+                    // one step per XENSE converges on 100's exact value with no restart. Only while
+                    // the accept is still un-confirmed (before the session-setup).
+                    if (TadResponder != null && TadResponder.CanResyncAccept)
+                    {
+                        return TadResponder.ResyncAcceptDown();
+                    }
+
+                    return null;
+
                 case SintranPacketSubtype.ReachabilityRequest:
                     // A ReachabilityRequest is the peer's XMSG (re)start signal: its per-node-pair
                     // expected-from-us has just zeroed. Reset our persisted outgoing sequence for that

@@ -76,7 +76,10 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             // The accept must carry Flags1 0x0007 (continuing our sequence), NOT 0x0000. Flags1 is at
             // header offset 8-9.
             Assert.Equal(0x0007, (accept[8] << 8) | accept[9]);
-            // And the store advanced to 0x0008 for the next frame.
+            // The store does NOT advance on send (that over-counted un-received frames and drifted).
+            Assert.Equal(0x0007, store.LoadNextFlags1(100));
+            // It advances only when 100 confirms delivery: an ACK echoing Flags1 0x0007 -> next 0x0008.
+            responder.ConfirmDelivered(100, 0x0007);
             Assert.Equal(0x0008, store.LoadNextFlags1(100));
         }
 

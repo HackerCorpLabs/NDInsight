@@ -134,6 +134,32 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
         }
 
         /// <summary>
+        /// Records that 100 ACKed one of our frames (its subtype-0x03 ACK echoes the Flags1 it
+        /// received), so the persisted next-sequence is <c>ackedFlags1 + 1</c>. Persisting on ACK —
+        /// rather than on send — guarantees the saved value never runs ahead of what 100 actually
+        /// received; the previous drift (saving on send, over-counting an un-received reply) is what
+        /// made a later connect XENSE-reject our accept.
+        /// </summary>
+        /// <param name="remoteNode">The node that ACKed (source of the 0x03 frame), e.g. 100.</param>
+        /// <param name="ackedFlags1">The Flags1 the ACK echoes (the frame 100 confirmed receiving).</param>
+        public void ConfirmDelivered(ushort remoteNode, ushort ackedFlags1)
+        {
+            // 0xFFFF is the reachability broadcast marker, never a real data sequence — ignore it.
+            if (ackedFlags1 == 0xFFFF)
+            {
+                return;
+            }
+
+            ushort next = (ushort)(ackedFlags1 + 1);
+            // ACKs arrive in order (LAPB); advance only forward so a stray/duplicate ACK never rewinds.
+            ushort current = _sequenceStore.LoadNextFlags1(remoteNode);
+            if (next > current)
+            {
+                _sequenceStore.SaveNextFlags1(remoteNode, next);
+            }
+        }
+
+        /// <summary>
         /// Resets our persisted outgoing datagram sequence for a remote node back to 0x0000. Called
         /// when that node signals an XMSG (re)start — a <b>ReachabilityRequest</b> — which zeroes its
         /// per-node-pair expected-from-us. LIVE-VERIFIED signal: after an XMSG restart 100 sends a
@@ -145,6 +171,37 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
         public void ResetSequence(ushort remoteNode)
         {
             _sequenceStore.SaveNextFlags1(remoteNode, 0x0000);
+        }
+
+        /// <summary>
+        /// True while we have sent the accept but not yet seen the session-setup — i.e. we can still
+        /// resync the accept's sequence in response to a XENSE reject.
+        /// </summary>
+        public bool CanResyncAccept
+        {
+            get { return _connected && !_sessionSetupSeen && _connectFrame != null; }
+        }
+
+        /// <summary>
+        /// Recovers from a XENSE reject of our accept (our Flags1 was AHEAD of 100's expected-from-us):
+        /// steps the accept's sequence DOWN by one, corrects the persisted value, and rebuilds the
+        /// accept so it can be re-sent. Stepping down one per XENSE converges on 100's exact expected
+        /// value (at which point 100 answers with the session-setup instead of another XENSE) with no
+        /// manual restart or file surgery. This is the learn-from-100 recovery for a drifted sequence.
+        /// </summary>
+        /// <returns>The rebuilt accept at the next-lower sequence, or null when not resyncable.</returns>
+        public XmsgFrame? ResyncAcceptDown()
+        {
+            if (!CanResyncAccept)
+            {
+                return null;
+            }
+
+            _acceptFlags1 = (ushort)(_acceptFlags1 - 1);
+            _respFlags1 = _acceptFlags1;
+            // Correct the stored value too, so a later restart uses the recovered base.
+            _sequenceStore.SaveNextFlags1(_clientSystem, _acceptFlags1);
+            return BuildConnectAccept(_connectFrame!);
         }
 
         /// <summary>
@@ -218,6 +275,12 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
             // XMSG-SEQUENCE-RESTART-ANSWER-2026-07-03.md option (a).
             _respFlags1 = _sequenceStore.LoadNextFlags1(_clientSystem);
 
+            // Retain the connect and the accept's sequence so a XENSE (accept ahead of 100's expected)
+            // can be recovered by stepping the accept down (ResyncAcceptDown), no restart needed.
+            _connectFrame = request;
+            _acceptFlags1 = _respFlags1;
+            _sessionSetupSeen = false;
+
             // The captured 102 responder handshake is, in order:
             //   1. connect-accept  (proto D8, role 40, XMCSM 04000041, param trailer)
             //   2. port-assign     (proto D8, role 40, XMCSM 04000000, TAD 0x07 = our session
@@ -267,6 +330,9 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
         public IReadOnlyList<XmsgFrame> OnSessionSetup(XmsgFrame request)
         {
             List<XmsgFrame> outgoing = new List<XmsgFrame>();
+
+            // 100 sent the session-setup, so our accept was accepted: stop any accept resync.
+            _sessionSetupSeen = true;
 
             // Captured 102 trailer (24 bytes):
             //   00 | 07 05 [00 00 66 03 13] | 1F 03 4C 00 00 | 00 | 0B 02 03 00 | 15 02 01 08 | FF 00
@@ -336,6 +402,15 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
         /// sequence, which is what 100 validates for in-order delivery (out-of-order = XENSE).
         /// </summary>
         private ushort _respFlags1;
+
+        /// <summary>The connect frame, retained so the accept can be rebuilt during a XENSE resync.</summary>
+        private XmsgFrame? _connectFrame;
+
+        /// <summary>The Flags1 our accept currently uses; stepped down on each XENSE resync.</summary>
+        private ushort _acceptFlags1;
+
+        /// <summary>True once 100 sent the session-setup (accept confirmed) — resync stops here.</summary>
+        private bool _sessionSetupSeen;
 
         /// <summary>True once we have sent the MOTD, so we do not re-send it on repeated setup frames.</summary>
         private bool _motdSent;
@@ -439,11 +514,11 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
             byte ctr = XmsgEnvelope.ComputeCounter(_seed, f1, frameClass);
             SintranProtocolId channel = XmsgEnvelope.DeriveChannel(_seed, f1, frameClass, controlService);
 
-            // One continuous sequence for ALL our frames (accept, port-assign, data) -> 100 sees them
-            // in order (out-of-order = XENSE). Persist it per remote node so a restart continues in
-            // step with 100's expected-from-us (only Data frames advance it; secure ACKs do not).
+            // Advance our in-memory sequence for the NEXT frame this session. We do NOT persist here:
+            // persisting on SEND over-counts frames 100 never received (e.g. a reply whose LAPB frame
+            // was not acked), so the saved value drifts AHEAD of 100's expected-from-us and the next
+            // connect is XENSE-rejected. Persistence is driven by 100's ACKs instead (ConfirmDelivered).
             _respFlags1 = (ushort)(f1 + 1);
-            _sequenceStore.SaveNextFlags1(_clientSystem, _respFlags1);
 
             TadFrameContext ctx = new TadFrameContext
             {

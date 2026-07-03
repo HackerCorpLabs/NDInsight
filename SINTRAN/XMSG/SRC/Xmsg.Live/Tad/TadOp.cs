@@ -47,9 +47,23 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
         public const byte Ttyp = 0x0D;
 
         /// <summary>
+        /// CESC — command-escape / session control state (<c>0x0E</c>). Carries a 1-byte state that
+        /// steps 0x00 (auth-prompt) → 0x01 (auth-complete) during the login handshake.
+        /// </summary>
+        public const byte Cesc = 0x0E;
+
+        /// <summary>
         /// DESC — define escape character (<c>0x0F</c>).
         /// </summary>
         public const byte Desc = 0x0F;
+
+        /// <summary>
+        /// SYCN — session sync / login-state word (<c>0x13</c>). The 16-bit value steps
+        /// 0x0002 (connected/ENTER) → 0x0003 (password prompt) → 0x0006 (password OK) → 0x000A
+        /// (logged in). VERIFIED from conn-to-d102 frames 62/64/68/70; reaching 0x000A is what marks
+        /// the TAD "logged in" so SINTRAN stops applying the 1-minute "not logged in" idle drop.
+        /// </summary>
+        public const byte Sycn = 0x13;
 
         /// <summary>
         /// RESE — reset connection request (<c>0x16</c>).
