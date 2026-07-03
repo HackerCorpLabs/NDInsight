@@ -1,0 +1,183 @@
+using System;
+
+namespace NDInsight.Sintran.Xmsg.Packet
+{
+    /// <summary>
+    /// Builds outgoing <see cref="XmsgPacket"/>s from the envelope model. The single point where
+    /// the seam turns intent (a data frame, an ACK, a reachability reply, a network-error reject)
+    /// into wire bytes, reusing the verified <see cref="XmsgFrame"/> serialisation underneath.
+    /// </summary>
+    /// <remarks>
+    /// Every <c>Create*</c> here reproduces bytes that are VERIFIED against captures / live tests:
+    /// <see cref="CreateData"/> reproduces the conn-to-d102 connect-accept and port-assign frames
+    /// byte-for-byte; <see cref="CreateAck"/> reproduces the subtype-<c>0x03</c> secure ACK that
+    /// machine 100 accepts (channel = connect-channel + 4, decrementing trailing counter);
+    /// <see cref="CreateReachabilityReply"/> the subtype-<c>0x13</c> reply; and
+    /// <see cref="CreateNetworkError"/> the subtype-<c>0x07</c> reject whose Flags2 is a negative
+    /// XE* code. No stateful sequencing lives here — the layer owns that and passes final values in.
+    /// </remarks>
+    public static class XmsgPacketBuilder
+    {
+        /// <summary>Flags 2 value carried by a secure ACK (subtype 0x03). VERIFIED constant.</summary>
+        public const ushort AckFlags2 = 0x0001;
+
+        /// <summary>Flags 1 broadcast marker carried by reachability frames. VERIFIED constant.</summary>
+        public const ushort ReachabilityFlags1 = 0xFFFF;
+
+        /// <summary>Flags 2 value carried by reachability frames. VERIFIED constant.</summary>
+        public const ushort ReachabilityFlags2 = 0x0001;
+
+        /// <summary>
+        /// Builds a data (subtype <c>0x0E</c>) packet from a full envelope field set.
+        /// </summary>
+        /// <param name="fields">The header + sub-header + payload fields.</param>
+        /// <returns>The built data packet.</returns>
+        /// <remarks>
+        /// This is the exact assembly the captured responder frames use: fixed markers, packet type
+        /// <c>0x00</c>, subtype Data; the sub-header's constant <c>0x21 0x00</c> marker is written by
+        /// <see cref="XmsgSubHeader.Serialize"/>; XMLEN (offset 18) is the payload length low byte.
+        /// The frame is built from scratch (no retained RawBytes) so it serialises from the model.
+        /// </remarks>
+        public static XmsgPacket CreateData(XmsgDataFields fields)
+        {
+            byte[] payload = fields.Payload != null ? fields.Payload : Array.Empty<byte>();
+
+            XmsgFrame frame = new XmsgFrame();
+            frame.Header.Marker1 = SintranHeader.Marker1Value;
+            frame.Header.Marker2 = SintranHeader.Marker2Normal;
+            frame.Header.PacketType = 0x00;
+            frame.Header.Subtype = SintranPacketSubtype.Data;
+            frame.Header.DestinationNode = fields.DestinationNode;
+            frame.Header.SourceNode = fields.SourceNode;
+            frame.Header.Flags1 = fields.Flags1;
+            frame.Header.Flags2 = fields.Flags2;
+            frame.Header.ProtocolId = fields.ProtocolId;
+
+            XmsgSubHeader sub = new XmsgSubHeader();
+            sub.Counter = fields.Counter;
+            sub.FrameFlags = fields.FrameFlags;
+            sub.Role = fields.Role;
+            sub.DestinationSystem = fields.DestinationSystem;
+            sub.DestinationPort = fields.DestinationPort;
+            sub.SourceSystem = fields.SourceSystem;
+            sub.SourcePort = fields.SourcePort;
+            sub.ControlService = fields.ControlService;
+            sub.Pad = 0x00;
+            // XMLEN is the low byte of the user-data (payload) length (XMSG-PROTOCOL.md section 5).
+            sub.UserDataLength = (byte)payload.Length;
+
+            frame.SubHeader = sub;
+            frame.TrailingBytes = payload;
+            // Ensure serialisation is driven by the model, not any stray retained bytes.
+            frame.ClearRawBytes();
+            return new XmsgPacket(frame);
+        }
+
+        /// <summary>
+        /// Builds a secure-delivery ACK (subtype <c>0x03</c>) for a received data frame.
+        /// </summary>
+        /// <param name="destinationNode">The node the ACK is sent to (the data frame's source).</param>
+        /// <param name="sourceNode">The replying node (the data frame's destination).</param>
+        /// <param name="datagramSequence">
+        /// The Flags 1 (datagram sequence) to echo from the acknowledged data frame.
+        /// </param>
+        /// <param name="ackChannel">
+        /// The Protocol-ID the ACK rides. For a TAD session this is the per-session constant
+        /// <em>connect-channel + 4</em> (VERIFIED D9-&gt;DD, DA-&gt;DE); echoing the data channel is
+        /// the malformed +0 ACK that crashed machine 100 (XXPER).
+        /// </param>
+        /// <param name="trailingCounter">
+        /// The single trailing byte: the receiver's decrementing per-direction counter (seeded at
+        /// connect-counter + 0x0A). Sending <c>0x00</c> is a malformed ACK that crashed 100.
+        /// </param>
+        /// <returns>The 14-byte ACK packet.</returns>
+        public static XmsgPacket CreateAck(
+            ushort destinationNode,
+            ushort sourceNode,
+            ushort datagramSequence,
+            SintranProtocolId ackChannel,
+            byte trailingCounter)
+        {
+            XmsgFrame ack = new XmsgFrame();
+            ack.Header.Marker1 = SintranHeader.Marker1Value;
+            ack.Header.Marker2 = SintranHeader.Marker2Normal;
+            ack.Header.PacketType = 0x00;
+            ack.Header.Subtype = SintranPacketSubtype.Ack;             // 0x03
+            ack.Header.DestinationNode = destinationNode;
+            ack.Header.SourceNode = sourceNode;
+            ack.Header.Flags1 = datagramSequence;                     // echo the datagram sequence
+            ack.Header.Flags2 = AckFlags2;                            // 0x0001
+            ack.Header.ProtocolId = ackChannel;                      // connect-channel + 4 for TAD
+            ack.TrailingBytes = new byte[] { trailingCounter };
+            return new XmsgPacket(ack);
+        }
+
+        /// <summary>
+        /// Builds a reachability reply (subtype <c>0x13</c>) answering a reachability request.
+        /// </summary>
+        /// <param name="destinationNode">The requester the reply is sent to.</param>
+        /// <param name="sourceNode">The replying node.</param>
+        /// <param name="protocolId">The channel to reply on (echo the request's Protocol ID).</param>
+        /// <param name="trailingCommand">
+        /// The trailing reply command byte (the request counter + 6; VERIFIED across both captured
+        /// request/reply pairs: 102 request 0x08 -&gt; reply 0x0E, 103 request 0x07 -&gt; reply 0x0D).
+        /// </param>
+        /// <returns>The reachability-reply packet.</returns>
+        public static XmsgPacket CreateReachabilityReply(
+            ushort destinationNode,
+            ushort sourceNode,
+            SintranProtocolId protocolId,
+            byte trailingCommand)
+        {
+            XmsgFrame reply = new XmsgFrame();
+            reply.Header.Marker1 = SintranHeader.Marker1Value;
+            reply.Header.Marker2 = SintranHeader.Marker2Normal;
+            reply.Header.PacketType = 0x00;
+            reply.Header.Subtype = SintranPacketSubtype.ReachabilityReply;   // 0x13
+            reply.Header.DestinationNode = destinationNode;                  // swap direction
+            reply.Header.SourceNode = sourceNode;
+            reply.Header.Flags1 = ReachabilityFlags1;                        // 0xFFFF broadcast marker
+            reply.Header.Flags2 = ReachabilityFlags2;                        // 0x0001
+            reply.Header.ProtocolId = protocolId;                            // echo the request channel
+            reply.TrailingBytes = new byte[] { trailingCommand };
+            return new XmsgPacket(reply);
+        }
+
+        /// <summary>
+        /// Builds a network-error / reject packet (subtype <c>0x07</c>).
+        /// </summary>
+        /// <param name="destinationNode">The node the reject is sent to.</param>
+        /// <param name="sourceNode">The rejecting node.</param>
+        /// <param name="datagramSequence">The Flags 1 (datagram sequence) to echo from the offending frame.</param>
+        /// <param name="errorCode">
+        /// The Flags 2 word: a NEGATIVE XE* code (e.g. XEIMA -19 = <c>0xFFED</c> invalid magic,
+        /// XENSE -34 = <c>0xFFDE</c> sequence error). Pass the raw 16-bit two's-complement value.
+        /// </param>
+        /// <param name="protocolId">The channel to send the reject on.</param>
+        /// <param name="trailingByte">The single trailing reject byte.</param>
+        /// <returns>The network-error packet.</returns>
+        public static XmsgPacket CreateNetworkError(
+            ushort destinationNode,
+            ushort sourceNode,
+            ushort datagramSequence,
+            ushort errorCode,
+            SintranProtocolId protocolId,
+            byte trailingByte)
+        {
+            XmsgFrame err = new XmsgFrame();
+            err.Header.Marker1 = SintranHeader.Marker1Value;
+            err.Header.Marker2 = SintranHeader.Marker2Normal;
+            err.Header.PacketType = 0x00;
+            // NetworkError (0x07) is not one of the four core SintranPacketSubtype values; cast the
+            // raw byte so the header serialises the correct subtype without widening that enum.
+            err.Header.Subtype = (SintranPacketSubtype)(byte)XmsgPacketType.NetworkError;
+            err.Header.DestinationNode = destinationNode;
+            err.Header.SourceNode = sourceNode;
+            err.Header.Flags1 = datagramSequence;
+            err.Header.Flags2 = errorCode;                          // negative XE* code
+            err.Header.ProtocolId = protocolId;
+            err.TrailingBytes = new byte[] { trailingByte };
+            return new XmsgPacket(err);
+        }
+    }
+}

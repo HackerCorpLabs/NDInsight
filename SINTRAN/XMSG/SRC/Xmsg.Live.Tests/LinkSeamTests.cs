@@ -1,0 +1,137 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+
+using NDInsight.Sintran.Xmsg.Hdlc;
+using NDInsight.Sintran.Xmsg.Live;
+using NDInsight.Sintran.Xmsg.Live.Seam;
+
+using Xunit;
+
+namespace NDInsight.Sintran.Xmsg.Live.Tests
+{
+    /// <summary>
+    /// Phase 3 gate for the link seam: an incoming SINTRAN information field round-trips through
+    /// <see cref="LapbLinkAdapter"/> — it surfaces UP as <see cref="ILink.PayloadReceived"/>, and a
+    /// <see cref="ILink.SendSintranFrame"/> in response goes DOWN and appears on the wire as a LAPB
+    /// I-frame carrying those exact bytes — all over an in-memory duplex, deterministically.
+    /// </summary>
+    public sealed class LinkSeamTests
+    {
+        // A SINTRAN reachability request used as the round-tripped payload (14 bytes, marker 0x21).
+        private static readonly byte[] SintranInfo =
+            Convert.FromHexString("2113001900660064FFFF0001DE08");
+
+        [Fact]
+        public async Task Payload_RoundTripsUpThenDownThroughAdapter()
+        {
+            // Inbound wire: the peer (node 100) SABM, then its first I-frame carrying SintranInfo.
+            List<byte> inbound = new List<byte>();
+            inbound.AddRange(HdlcEncoder.Encode(new byte[] { 0x01, 0x3F, 0x00, 0x64 }));   // peer SABM
+            byte[] iframeBody = BuildIFrameBody(sendSeq: 0, receiveSeq: 0, SintranInfo);
+            inbound.AddRange(HdlcEncoder.Encode(iframeBody));                               // peer I-frame
+
+            InMemoryDuplex duplex = new InMemoryDuplex(inbound.ToArray());
+            LapbLink link = new LapbLink(ownNode: 102);
+            LapbLinkAdapter adapter = new LapbLinkAdapter("hdlc:test", duplex, link);
+
+            List<byte[]> received = new List<byte[]>();
+            List<LinkStatus> statuses = new List<LinkStatus>();
+            adapter.PayloadReceived += delegate (string linkId, ReadOnlyMemory<byte> payload, int length)
+            {
+                Assert.Equal("hdlc:test", linkId);            // sender/link-id first
+                received.Add(payload.Slice(0, length).ToArray());
+                // Respond DOWN: echo the payload back as a SINTRAN frame (the codec/layer's job later).
+                adapter.SendSintranFrame(payload.Span.Slice(0, length));
+            };
+            adapter.StatusChanged += delegate (string linkId, LinkStatus status) { statuses.Add(status); };
+
+            adapter.Initiate();
+            await adapter.RunAsync(CancellationToken.None, keepaliveInterval: null);
+
+            // UP: the exact SINTRAN information field was delivered.
+            Assert.Single(received);
+            Assert.Equal(SintranInfo, received[0]);
+
+            // Status went Up when the link connected.
+            Assert.Contains(LinkStatus.Up, statuses);
+
+            // DOWN: among the frames written to the wire there is a data I-frame whose info field is
+            // exactly the echoed SINTRAN bytes — proof the seam carried the reply out to the wire.
+            byte[] written = duplex.GetWrittenBytes();
+            Assert.True(ContainsIFrameWithInfo(written, SintranInfo),
+                "expected an outbound LAPB I-frame carrying the echoed SINTRAN payload");
+        }
+
+        [Fact]
+        public void XmsgBoundLink_RejectsX25Send()
+        {
+            LapbLink link = new LapbLink(ownNode: 102);
+            LapbLinkAdapter adapter = new LapbLinkAdapter(
+                "hdlc:test", new InMemoryDuplex(Array.Empty<byte>()), link, LinkBinding.Xmsg);
+
+            Assert.Equal(LinkBinding.Xmsg, adapter.Binding);
+            // The HDLC transport is common, but this link is bound to XMSG: X.25 send must throw.
+            Assert.Throws<InvalidOperationException>(
+                () => adapter.SendX25Packet(new byte[] { 0x10, 0x00, 0x0D }));
+        }
+
+        /// <summary>Builds a LAPB data I-frame body: addr 0x09, control from N(S)/N(R), then info.</summary>
+        private static byte[] BuildIFrameBody(int sendSeq, int receiveSeq, byte[] info)
+        {
+            byte control = (byte)((receiveSeq << 5) | (sendSeq << 1));   // bit0 = 0 -> I-frame
+            byte[] body = new byte[2 + info.Length];
+            body[0] = 0x09;             // data address
+            body[1] = control;
+            Array.Copy(info, 0, body, 2, info.Length);
+            return body;
+        }
+
+        /// <summary>
+        /// Deframes an HDLC byte stream and returns true when any FCS-valid data I-frame carries an
+        /// info field equal to <paramref name="expectedInfo"/>.
+        /// </summary>
+        private static bool ContainsIFrameWithInfo(byte[] wire, byte[] expectedInfo)
+        {
+            IReadOnlyList<byte[]> frames = HdlcDeframer.SplitFrames(wire);
+            for (int i = 0; i < frames.Count; i++)
+            {
+                byte[] frameBytes = frames[i];
+                if (!Fcs16.IsValid(frameBytes))
+                {
+                    continue;
+                }
+
+                LapbFrame frame = new LapbFrame(default, frameBytes);
+                if (frame.Kind != LapbFrameKind.Information)
+                {
+                    continue;
+                }
+
+                ReadOnlySpan<byte> info = frame.Info.Span;
+                if (info.Length != expectedInfo.Length)
+                {
+                    continue;
+                }
+
+                bool equal = true;
+                for (int j = 0; j < info.Length; j++)
+                {
+                    if (info[j] != expectedInfo[j])
+                    {
+                        equal = false;
+                        break;
+                    }
+                }
+
+                if (equal)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+}
