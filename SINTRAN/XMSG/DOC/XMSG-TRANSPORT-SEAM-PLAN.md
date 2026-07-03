@@ -19,10 +19,19 @@ minimal refactor. This plan is the contract; each phase has a byte-exact test ga
 | 2 — Codec seam | **Done** | 4 tests: bytes-in raise `PacketReceived` (link-id first); `SendPacket` writes exact bytes; round-trip identical. |
 | 3 — Link seam | **Done** | 2 tests: payload round-trips Layer↔wire through `LapbLinkAdapter` over in-memory duplex; XMSG-bound link rejects `SendX25Packet`. |
 | 4 — XmsgLayer | **Done** | 4 tests: driven through the codec, the layer emits byte-exact reachability / TAD ACK+accept / port-assign, matches the proven node's XSGSY reply, and raises `SessionOpened`. |
-| 5 — Compose + parity | **Offline done; live pending** | Offline: `SeamParityTests` proves the seam composition writes byte-identical wire output to the legacy `LiveNode`+`XmsgNode` path for the scripted connect handshake. **Live:** `connect-to d102` against machine 100 — run by the user; `XmsgNode` stays until confirmed. |
-| 6 — TAD terminal bring-up | **Pending** | Depends on the Phase 5 live confirmation; reproduce the responder MOTD/prompt frames with derived channels. |
+| 5 — Compose + parity | **Done (offline + live)** | Offline: `SeamParityTests` proves the seam composition writes byte-identical wire output to the legacy path. **Live CONFIRMED against machine 100:** `connect-to d102` accept + port-assign both delivery-ACKed (DE 1A / DE 19), correct derived channels/counters, no crash, no SABM flood. (Runner uses NO periodic keepalive — a 1s keepalive floods RR; the per-RX `RR nr=N` is correct LAPB.) |
+| 6 — TAD terminal bring-up | **Mechanism done; live bring-up pending** | Channel model cracked (below) + `CreateSessionData` gated to reproduce captured DUMM/MOTD byte-exact. Remaining: emit the post-port-assign burst (DUMM/ctrl-0x20/RESE) live — 100 waits for it before driving TMOD/TTYP → MOTD. One live unknown: absolute starting Base for our data stream (probe frame-by-frame). |
 
-Test totals after Phase 5: **45 Xmsg.Protocol.Tests + 42 Xmsg.Live.Tests = 87** (was 65).
+Test totals after Phase 6 mechanism: **54 Xmsg.Protocol.Tests + 42 Xmsg.Live.Tests = 96** (was 65).
+
+### Envelope channel model (VERIFIED — resolves the old per-session channel-allocator unknown)
+
+The sub-protocol channel (Protocol ID) is **derived, not allocated**:
+`Base = Flags1 + Counter` (16-bit); `Channel = 0xDE − (XMCSM≫24) − (Base≫8)`. Within a stream
+Flags1 counts up while Counter counts down, holding Base (and the channel) constant. Verified
+against every captured `102→100` responder frame and our own live-accepted accept. Implemented as
+`XmsgEnvelope.DeriveChannel` / `XmsgPacketBuilder.CreateSessionData`. This is why replaying a canned
+session's channels crashed 100 (wrong Base → XXPER) and computing them does not.
 
 **Deviation (recorded):** `XmsgLayer` is placed in **`Xmsg.Live`**, not `Xmsg.Protocol` as the
 table in Section 3 proposed. Reason: the TAD session service (`TadTerminalResponder`, its menu and
