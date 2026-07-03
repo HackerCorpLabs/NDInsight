@@ -149,14 +149,13 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
             // terminal data rides 0xDD (NOT DB: DB was an epoch-2 artifact of a high running sequence).
             _seed = XmsgEnvelope.LearnSeed(
                 request.Header.Flags1, request.SubHeader.Counter, request.Header.Flags2);
-            // Start our outgoing datagram sequence at 100's CONNECT position, not a hardcoded 0x0000.
-            // 100's per-node-pair sequence PERSISTS across our process restarts (its connect Flags1
-            // was 0x0001 on the first session but 0x0005 on the next), so a fixed 0x0000 falls out of
-            // step and 100 ignores our accept. Seeding from the connect makes our sequence track
-            // 100's; the seed model then yields Counter = seed - Flags1 = the connect's own counter
-            // for the accept (i.e. it mirrors the connect), which is the form the pre-seed-model runs
-            // used successfully. LIVE-VERIFIED necessity: connect 0x0005 with a 0x0000 start = no session.
-            _respFlags1 = request.Header.Flags1;
+            // OPEN QUESTION (do NOT guess): what value should our outgoing datagram sequence START at?
+            // 0x0000 gave ONE confirmed live success (CONNECTION ESTABLISHED, when 100's connect was
+            // Flags1 0x0001). A later run FAILED with the same 0x0000 when 100's connect was Flags1
+            // 0x0005 (100's per-node-pair sequence had advanced across our process restart). We do NOT
+            // know the rule that ties our start to 100's expectation. Kept at 0x0000 (the confirmed
+            // value) pending an answer — see XMSG-SEQUENCE-RESTART-QUESTION.md. NO assumption made.
+            _respFlags1 = 0x0000;
 
             // The captured 102 responder handshake is, in order:
             //   1. connect-accept  (proto D8, role 40, XMCSM 04000041, param trailer)
