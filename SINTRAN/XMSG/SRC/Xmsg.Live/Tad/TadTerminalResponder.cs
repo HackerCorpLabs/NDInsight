@@ -505,31 +505,22 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
             }
 
             TadChain chain = new TadChain();
-            chain.Add(BdatOpcode, ascii);
-            byte[] trailer = chain.ToBytes();
+            chain.Add(TadOp.Bdat, ascii);
+            byte[] payload = chain.ToBytes();
 
-            TadFrameContext ctx = new TadFrameContext
-            {
-                DestinationNode = request.Header.SourceNode,
-                SourceNode = _nodeNumber,
-                // NOTE: terminal-text sequencing is not yet finalised — the captured session frames
-                // use the SESSION port's own advancing f1 / decrementing counter (not echo). This
-                // path is not reached until the negotiation completes; for now echo the triggering
-                // frame so it compiles and is a sane placeholder. [TO REVISIT once negotiation works.]
-                DatagramSequence = request.Header.Flags1,
-                FrameClass = 0x0108,                                // VERIFIED: DC/TAD data class word
-                ProtocolId = SintranProtocolId.Db,                  // VERIFIED: server terminal text used 0xDB
-                Counter = request.SubHeader!.Counter,
-                FrameFlags = 0x86,
-                Role = 0x00,                                        // VERIFIED: server data-phase role 0x00
-                DestinationSystem = request.SubHeader!.SourceSystem,
-                DestinationPort = _clientPort,
-                SourceSystem = _nodeNumber,
-                SourcePort = _sessionWirePort,                      // our session port
-                ControlService = 0x01080000u,                      // VERIFIED: DC/TAD terminal data
-            };
-
-            return AssembleDataFrame(ctx, trailer);
+            // Route terminal text through the SAME seed model as every other frame we originate:
+            // CONTINUE our own Flags1 (not echo the incoming BDAT's), and derive Counter and channel.
+            // The old echo scheme here reused 100's Flags1 (e.g. the MOTD's 0x0006), producing a
+            // DUPLICATE datagram that crashed 100's XMSG (XXPER) on the first keystroke. This is not a
+            // new format — it is the identical BuildResponderFrame path that got the MOTD accepted.
+            return BuildResponderFrame(
+                request,
+                frameClass: 0x0108,
+                controlService: TerminalDataControlService,
+                frameFlags: 0x96,
+                role: 0x00,
+                sourcePort: _sessionWirePort,
+                payload: payload);
         }
 
         /// <summary>
