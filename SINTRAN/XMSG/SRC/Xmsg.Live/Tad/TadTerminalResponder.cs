@@ -100,6 +100,40 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
         }
 
         /// <summary>
+        /// Returns true when a frame carries a DCON (disconnect indication, TAD opcode 0x09) — 100's
+        /// graceful teardown, e.g. its 1-minute "TAD not logged in" idle timeout.
+        /// </summary>
+        /// <param name="frame">The incoming data frame.</param>
+        /// <returns>True when this frame disconnects the session.</returns>
+        public bool IsDisconnect(XmsgFrame frame)
+        {
+            if (!_connected || frame == null || frame.Tad == null)
+            {
+                return false;
+            }
+
+            IReadOnlyList<TadMessage> messages = frame.Tad.Messages;
+            for (int i = 0; i < messages.Count; i++)
+            {
+                if (messages[i].Opcode == TadOp.Dcon)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Closes the current session (on a received DCON), so the next connect starts cleanly.
+        /// </summary>
+        public void CloseSession()
+        {
+            _connected = false;
+            _motdSent = false;
+        }
+
+        /// <summary>
         /// Resets our persisted outgoing datagram sequence for a remote node back to 0x0000. Called
         /// when that node signals an XMSG (re)start — a <b>ReachabilityRequest</b> — which zeroes its
         /// per-node-pair expected-from-us. LIVE-VERIFIED signal: after an XMSG restart 100 sends a

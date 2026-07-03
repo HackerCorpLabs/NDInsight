@@ -33,11 +33,16 @@ internal static class Program
         string host = args.Length > argOffset ? args[argOffset] : "127.0.0.1";
         int port = args.Length > argOffset + 1 ? int.Parse(args[argOffset + 1]) : 10364;
         ushort node = (ushort)(args.Length > argOffset + 2 ? int.Parse(args[argOffset + 2]) : 103);
-        int seconds = args.Length > argOffset + 3 ? int.Parse(args[argOffset + 3]) : 120;
+        // Session duration in seconds. 0 (or negative) = run until the process is stopped (Ctrl-C),
+        // so an interactive terminal session is not cut off by a timeout. Default 3600 (1 hour).
+        int seconds = args.Length > argOffset + 3 ? int.Parse(args[argOffset + 3]) : 3600;
 
-        Console.WriteLine($"[runner] path={(legacy ? "legacy" : "seam")} connecting to {host}:{port} as node {node} for {seconds}s");
+        Console.WriteLine($"[runner] path={(legacy ? "legacy" : "seam")} connecting to {host}:{port} as node {node} for {(seconds > 0 ? seconds + "s" : "unlimited (Ctrl-C to stop)")}");
 
-        using CancellationTokenSource cts = new CancellationTokenSource(TimeSpan.FromSeconds(seconds));
+        // seconds <= 0 -> no timeout (run until the process is stopped); otherwise cancel after the window.
+        using CancellationTokenSource cts = seconds > 0
+            ? new CancellationTokenSource(TimeSpan.FromSeconds(seconds))
+            : new CancellationTokenSource();
 
         TcpBridgeTransport transport;
         try

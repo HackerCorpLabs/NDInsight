@@ -287,7 +287,13 @@ namespace NDInsight.Sintran.Xmsg.Live
                     // Session data frames arrive on various channels (DC/DD/DE) but every ACK
                     // rides the one session-constant channel (connect+4), so pass it explicitly.
                     result.Add(_receiver.ReceiveDataFrame(incoming, TadResponder.AckChannel));
-                    if (HasBdat(incoming))
+                    if (TadResponder.IsDisconnect(incoming))
+                    {
+                        // 100's graceful teardown (DCON) — e.g. its 1-minute "TAD not logged in" idle
+                        // timeout. ACK it (above) and close our session so the next connect is clean.
+                        TadResponder.CloseSession();
+                    }
+                    else if (HasBdat(incoming))
                     {
                         IReadOnlyList<XmsgFrame> replies = TadResponder.OnTerminalInput(incoming, out bool _);
                         for (int i = 0; i < replies.Count; i++)
