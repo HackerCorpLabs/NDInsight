@@ -295,6 +295,16 @@ namespace NDInsight.Sintran.Xmsg.Live
                             result.Add(replies[i]);
                         }
                     }
+                    else if (TadResponder.IsTerminalSetup(incoming))
+                    {
+                        // 100's TMOD/TTYP negotiation (arrives after our DUMM). Answer with the burst
+                        // that produces the login screen: control 0x20, RESE, RESE, then the MOTD.
+                        IReadOnlyList<XmsgFrame> bringup = TadResponder.OnTerminalSetup(incoming);
+                        for (int i = 0; i < bringup.Count; i++)
+                        {
+                            result.Add(bringup[i]);
+                        }
+                    }
 
                     return result;
                 }

@@ -1004,56 +1004,75 @@ responder-local state (only 3 data points; a link-index or per-session counter �
 (TAD)** channel, not the connect's `DA` channel. A naive echo-channel `0x03` ACK (on `DA`)
 crashes 100 (XXPER) — the ACK channel is a separate value, not the data channel.
 
-### 18.5 UNIFIED ENVELOPE MODEL — closed form  [VERIFIED 209/209 data frames]
+### 18.5 UNIFIED ENVELOPE MODEL — the seed formula  [VERIFIED 601/601 data frames + 602 ACKs]
 
-The channel (U3) and the counter (U7) are two faces of ONE per-stream quantity. Define, per frame:
+> **This section supersedes the earlier "mirror the connect base" closed form.** The complete
+> rule was solved analytically over *all* 13 captures and confirmed **live end-to-end against
+> machine 100** (a fresh C# responder drives 100 to `CONNECTION ESTABLISHED` and the login). Full
+> derivation: `SINTRAN/XMSG/DOC/XMSG-CHANNEL-SEQUENCE-ANALYSIS-2026-07-03.md`. Implementation:
+> `SINTRAN/XMSG/SRC/Xmsg.Protocol/Packet/XmsgEnvelope.cs`.
+
+Per link (node pair) there is **one constant byte, the `seed`**. Per direction there is **one
+variable, `Flags1`** (the datagram sequence, +1 per data frame, starting at `0x0000`). Everything
+else — the sub-header `Counter` and the Protocol-ID `Channel` — is arithmetic:
 
 ```
-base = Flags1 + Counter                       (16-bit; Flags1 = hdr off 8-9, Counter = sub-hdr off 0)
+seed    = per-link constant                     ; LEARN it: (Counter + Flags1 + (Flags2 & 0xFF)) & 0xFF
+baseLow = (seed - (Flags2 & 0xFF)) & 0xFF        ; Flags2 == XMCSM >> 16, ALWAYS (601/601)
+Counter = (baseLow - Flags1) & 0xFF
+epoch   = (Flags1 - baseLow + 0xFF) >> 8          ; cumulative counter-wrap count; 0 when fresh
+Channel = 0xDE - (XMCSM >> 24) - epoch
+Base    = Flags1 + Counter = baseLow + 0x100*epoch ; the old "envelope Base", now derived
 ```
 
-A connect-to session multiplexes several **class-streams** (connect, TAD-data, TAD-control,
-routing), each with its own `(Flags1, Counter)` pair. On a stream, `Flags1` increments +1 per
-frame and `Counter` is an 8-bit down-counter (−1 per frame, wraps `0x00→0xFF`), so `base` is
-constant on a stream between wraps and jumps +0x100 at each wrap. Then:
+- **`Flags1` is ONE sequence per direction per node-pair**, shared across all ports/streams/classes
+  (a node running two links keeps a separate `Flags1` per remote — kernel `XSSSQ`/`XSRSQ`, one pair
+  per remote-system block). It starts at `0x0000` after the reachability exchange (`Flags1=0xFFFF`).
+- **The Channel is DERIVED, never allocated** — there is no channel-pool symbol anywhere in the XMSG
+  symbol tables. `0xDE − (XMCSM>>24)` is the class anchor (connect `0x04…`→`0xDA`, TAD-data
+  `0x01…`→`0xDD`, control `0x00…`→`0xDE`); the epoch subtracts the number of counter wraps so far.
+- **Observed seeds:** 100↔102 = `0x14`, 100↔103 = `0x13`, 102↔103 = `0x11` (direct) / `0x12`
+  (relayed leg = seed+1). What the seed byte *encodes* is still UNKNOWN; **learn it from the peer**.
 
-```
-Counter  = base0 − Flags1                      (per stream; base0 fixed at stream start)
-Channel  = 0xDE − (XMCSM >> 24) − (base >> 8)   (VERIFIED exact, 209/209 frames)
-```
+**The fresh-responder consequence (this is the fix).** A freshly-started responder has `Flags1`
+near `0x0000`, i.e. **epoch 0**, so its terminal-data frames (`XMCSM 0x01080000`) ride **`0xDD`** —
+**NOT `0xDB`**. `0xDB` only appears at **epoch 2** (a node with a high running sequence, e.g. the
+`conn-to-d102` capture where both machines were long-running). The same XROUT letter class rides
+`DD` (epoch 0), `DC` (epoch 1) and `DB` (epoch 2) purely by epoch — "DB one way / DC the other" was
+an epoch artifact, not a rule. A responder does **not** mirror 100's sequence; it runs its **own**
+`Flags1` from `0x0000` and computes Counter/Channel from the learned seed.
 
-- **Class anchor** `C0 = 0xDE − (XMCSM>>24)`:  connect `0x04…`→`0xDA`;  TAD-data `0x01…`→`0xDD`;
-  control `0x00…`→`0xDE`. The channel is `C0 − (number of counter wraps on that stream)`, which
-  is why it appears to "walk" `DE→DD→DC…` and `DA→D9→D8` and why the responder can blindly echo
-  it.
-- **base0** of the connect stream = `connect_Flags1 + connect_Counter` — **a value we READ from
-  100's connect frame**. The TAD-data stream starts at `base0 − 8` (the `−8` is a fixed constant
-  across all sessions, ≈ the LAPB `N(S)` window modulus 8). The only non-derivable quantity is the
-  absolute connect base0 (leftover per-connection XMSG sequence state; correlates with the asker
-  node: 103→`0x11`, 100→`0x114`) — but we do not need to originate it: **we read it from 100 and
-  mirror it.**
+**Why the earlier live crashes happened (corrected diagnosis):** they were a **wrong Counter**, not
+a wrong channel. Computing Counter from a fixed `Base` (`0x020C`) instead of `seed − (Flags2&0xFF)`
+put an inconsistent Counter/epoch on an otherwise correct DD/DC frame → the fatal `XXPER` (`24B`,
+"protocol error in communications system", XMSG's own `ZCRAS`). The Flags1 continuity check runs
+first and yields the *recoverable* `XENSE` (`0xFFDE`, −34); a frame that passes it but carries an
+inconsistent Counter/epoch hits the fatal path.
 
-**Why this closes the problem.** Because a correct responder frame ECHOES the sender's Flags1 and
-Counter, it automatically gets the correct `base`, hence the correct Channel and Counter — no
-allocation, no guessing. Every crash so far was from **replaying a different session's channels**
-(a canned DD/DE stream) whose `base` did not match 100's live stream, instead of mirroring 100's
-live envelope. It also pins the ACK: the connect's `0x03` ACK rides the **TAD-data anchor
-`0xDD`**, not the connect channel `0xDA`.
+**Complete responder build recipe (all derived; VERIFIED live):**
+1. Learn `seed` from 100's connect frame: `(Counter + Flags1 + (Flags2 & 0xFF)) & 0xFF`.
+2. Run our own `Flags1` from `0x0000`, +1 per frame we originate (accept, port-assign, and every
+   terminal-data frame share it — one sequence).
+3. For each frame set `Counter = (seed − (Flags2 & 0xFF) − Flags1) & 0xFF` and
+   `Channel = 0xDE − (XMCSM>>24) − epoch`. At epoch 0: accept/port-assign → `DA`; DUMM/RESE/MOTD
+   → `DD`; the `0x20` control → `DE`.
+4. ACK 100's data frames with subtype `0x03` on the connect-channel + 4 (`DA`→`DE`), Flags2
+   `0x0001`, trailing = `seed + 0x0A` decrementing (the already-verified secure-ACK rule).
+5. Session port = our own `(freeSlot<<7)|incarnation` — do not derive from 100.
 
-**Complete build recipe for the responder (all derivable now):**
-1. Role byte = XMSG option-word high byte (18.4): responder data frames `0x00`, wake `0x40`; the
-   XFROU bit (`0x04`) marks asker-vs-responder.
-2. Frame-flags = `0x82` base | bit4 (`0x10`) if terminal-data-phase | bit2 (`0x04`) if a
-   normal-data letter (18.4).
-3. For every frame 100 sends, reply by **mirroring its Flags1 + Protocol ID + Counter** (which
-   yields the correct `base`/channel automatically) and filling our own payload.
-4. ACK 100's data frames with subtype `0x03` on the **`0xDD`** TAD-data anchor (NOT the connect
-   channel), Flags2 `0x0001`, echoing the acked Flags1.
-5. Session port = our own `(freeSlot<<7)|incarnation` (18.4) — do not derive from 100.
+**VERIFIED bring-up (100↔102, seed `0x14`), confirmed live:**
 
-The remaining genuinely-open items are cosmetic/non-blocking: U5/U6 the two responder-local
-option bytes in the port-assign (`0x0B 03 XX`, `0x15 01 08`), and the absolute connect base0
-(read from 100, never originated).
+| Frame | Flags1 | Flags2 | XMCSM | Counter | Channel |
+|---|---|---|---|---|---|
+| accept | `0x0000` | `0x0400` | `0x04000041` | `0x14` | `DA` |
+| port-assign | `0x0001` | `0x0400` | `0x04000000` | `0x13` | `DA` |
+| DUMM | `0x0002` | `0x0108` | `0x01080000` | `0x0A` | `DD` |
+| control `0x20` | `0x0003` | `0x0008` | `0x00080000` | `0x09` | `DE` |
+| RESE ×2 | `0x0004`/`0x0005` | `0x0108` | `0x01080000` | `0x08`/`0x07` | `DD` |
+| MOTD | `0x0006` | `0x0108` | `0x01080000` | `0x06` | `DD` |
+
+Remaining non-blocking unknowns: the meaning of the seed byte, and the sub-header frame-flags/role
+bytes (`0x92`/`0x96`/`0x00` — copied from the capture per frame type; not yet reduced to a formula).
 
 ---
 

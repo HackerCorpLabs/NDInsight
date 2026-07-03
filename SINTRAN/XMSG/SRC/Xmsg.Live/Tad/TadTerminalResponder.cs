@@ -138,6 +138,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
             // which this satisfies (4<<7 | 0x11 = 0x0211). [INFERRED value; VERIFIED layout.]
             _sessionWirePort = (ushort)((4 << 7) | 0x11);
             _connected = true;
+            _motdSent = false;
 
             // LEARN the per-link seed from 100's connect frame: seed = (Counter + Flags1 + (Flags2 &
             // 0xFF)) & 0xFF (100<->102 = 0x14). Every frame we originate is then fully determined by
@@ -268,6 +269,78 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
         /// sequence, which is what 100 validates for in-order delivery (out-of-order = XENSE).
         /// </summary>
         private ushort _respFlags1;
+
+        /// <summary>True once we have sent the MOTD, so we do not re-send it on repeated setup frames.</summary>
+        private bool _motdSent;
+
+        /// <summary>
+        /// The MOTD frame's TAD payload, VERIFIED from conn-to-d102 frame 62: BMMX / ECKM / a BDAT
+        /// banner (date, "SINTRAN III - VSX/500", "--- RETROCORE EMULATED ID:102 ---") / SYCN / a BDAT
+        /// "ENTER " prompt / RFI. Copied verbatim (the "ID:102" already matches our node number).
+        /// </summary>
+        private static readonly byte[] MotdPayload = Convert.FromHexString(
+            "0004030100000003010101600D0A2032322E32372E32322020202020203820415052494C202020313939380D0A"
+            + "2053494E5452414E20494949202D205653582F353030204C0D0A2D2D2D20524554524F434F524520454D554C4154"
+            + "4544204C2049443A313032202D2D2D0D0A1302000201080D0A454E544552200200");
+
+        /// <summary>
+        /// Returns true when the frame is 100's terminal-setup (it carries a TMOD message), i.e. the
+        /// negotiation 100 sends after our DUMM. Answering it with the MOTD burst is the last step.
+        /// </summary>
+        /// <param name="frame">The incoming data frame.</param>
+        /// <returns>True when this is the terminal-setup that should trigger the MOTD.</returns>
+        public bool IsTerminalSetup(XmsgFrame frame)
+        {
+            if (!_connected || _motdSent || frame == null || frame.Tad == null)
+            {
+                return false;
+            }
+
+            IReadOnlyList<TadMessage> messages = frame.Tad.Messages;
+            for (int i = 0; i < messages.Count; i++)
+            {
+                if (messages[i].Opcode == TadOp.Tmod)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Answers 100's terminal-setup with the responder burst that produces the login screen, each
+        /// frame CONTINUING our one datagram sequence (so the channels/counters are the seed-model
+        /// values): control <c>0x20</c>, RESE, RESE, then the MOTD. VERIFIED shapes from conn-to-d102
+        /// frames 57/58/60/62.
+        /// </summary>
+        /// <param name="request">The terminal-setup (TMOD) frame; its source is 100's session endpoint.</param>
+        /// <returns>The burst frames, in transmit order.</returns>
+        public IReadOnlyList<XmsgFrame> OnTerminalSetup(XmsgFrame request)
+        {
+            List<XmsgFrame> outgoing = new List<XmsgFrame>();
+
+            // control 0x20 (XMCSM 0x00080000): TAD opcode 0x20, empty. Seed model -> channel DE at epoch 0.
+            outgoing.Add(BuildResponderFrame(
+                request, frameClass: 0x0008, controlService: 0x00080000u, frameFlags: 0x86, role: 0x00,
+                sourcePort: _sessionWirePort, payload: new TadChain().Add(0x20, null).ToBytes()));
+
+            // RESE, RESE (XMCSM 0x01080000): TAD RESE, empty. Channel DD at epoch 0.
+            outgoing.Add(BuildResponderFrame(
+                request, frameClass: 0x0108, controlService: TerminalDataControlService, frameFlags: 0x96, role: 0x00,
+                sourcePort: _sessionWirePort, payload: new TadChain().Add(TadOp.Rese, null).ToBytes()));
+            outgoing.Add(BuildResponderFrame(
+                request, frameClass: 0x0108, controlService: TerminalDataControlService, frameFlags: 0x92, role: 0x00,
+                sourcePort: _sessionWirePort, payload: new TadChain().Add(TadOp.Rese, null).ToBytes()));
+
+            // MOTD (XMCSM 0x01080000): the banner + ENTER prompt chain. Channel DD at epoch 0.
+            outgoing.Add(BuildResponderFrame(
+                request, frameClass: 0x0108, controlService: TerminalDataControlService, frameFlags: 0x96, role: 0x00,
+                sourcePort: _sessionWirePort, payload: MotdPayload));
+
+            _motdSent = true;
+            return outgoing;
+        }
 
         /// <summary>
         /// Builds one frame we originate for the session using the VERIFIED envelope seed model
