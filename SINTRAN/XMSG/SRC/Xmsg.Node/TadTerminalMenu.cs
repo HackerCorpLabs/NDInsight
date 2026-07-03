@@ -1,7 +1,7 @@
 using System;
 using System.Text;
 
-namespace NDInsight.Sintran.Xmsg.Live
+namespace NDInsight.Sintran.Xmsg.Node
 {
     /// <summary>
     /// The application logic of the simulated remote machine's terminal: a message-of-the-day

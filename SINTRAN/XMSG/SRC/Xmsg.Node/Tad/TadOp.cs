@@ -1,4 +1,4 @@
-namespace NDInsight.Sintran.Xmsg.Live.Tad
+namespace NDInsight.Sintran.Xmsg.Node.Tad
 {
     /// <summary>
     /// The TAD opcode byte constants used by the session state machine.

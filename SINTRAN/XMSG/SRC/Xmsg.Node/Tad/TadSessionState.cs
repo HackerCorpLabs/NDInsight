@@ -1,4 +1,4 @@
-namespace NDInsight.Sintran.Xmsg.Live.Tad
+namespace NDInsight.Sintran.Xmsg.Node.Tad
 {
     /// <summary>
     /// The phases of a TAD (Terminal Access and Directory) connect-to session as

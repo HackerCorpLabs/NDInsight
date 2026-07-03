@@ -1,4 +1,4 @@
-namespace NDInsight.Sintran.Xmsg.Live
+namespace NDInsight.Sintran.Xmsg.Node
 {
     /// <summary>
     /// Persists our outgoing datagram sequence (<c>Flags1</c>) per remote node, so it survives our

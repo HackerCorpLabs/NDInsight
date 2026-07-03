@@ -5,7 +5,7 @@ using System.Text;
 using NDInsight.Sintran.Xmsg.Packet;
 using NDInsight.Sintran.Xmsg.SubProtocol;
 
-namespace NDInsight.Sintran.Xmsg.Live.Tad
+namespace NDInsight.Sintran.Xmsg.Node.Tad
 {
     /// <summary>
     /// The remote-machine simulation: answers an incoming <c>connect-to</c> (SYSTEM-TAD) session

@@ -3,11 +3,11 @@ using System.Collections.Generic;
 
 using NDInsight.Sintran.Xmsg.Codec;
 using NDInsight.Sintran.Xmsg.ListRouting;
-using NDInsight.Sintran.Xmsg.Live.Tad;
+using NDInsight.Sintran.Xmsg.Node.Tad;
 using NDInsight.Sintran.Xmsg.Packet;
 using NDInsight.Sintran.Xmsg.SubProtocol;
 
-namespace NDInsight.Sintran.Xmsg.Live.Seam
+namespace NDInsight.Sintran.Xmsg.Node.Seam
 {
     /// <summary>
     /// The XMSG L3 layer: sits above the codec seam, dispatches each received packet to the right

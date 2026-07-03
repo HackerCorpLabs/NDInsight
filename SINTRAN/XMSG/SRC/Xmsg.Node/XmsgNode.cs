@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 
 using NDInsight.Sintran.Xmsg.ListRouting;
-using NDInsight.Sintran.Xmsg.Live.Tad;
+using NDInsight.Sintran.Xmsg.Node.Tad;
 
-namespace NDInsight.Sintran.Xmsg.Live
+namespace NDInsight.Sintran.Xmsg.Node
 {
     /// <summary>
     /// The XMSG application-layer runtime for one node: it answers reachability requests,

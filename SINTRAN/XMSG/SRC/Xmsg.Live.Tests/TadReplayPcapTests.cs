@@ -4,7 +4,7 @@ using System.IO;
 
 using NDInsight.Sintran.Xmsg;
 using NDInsight.Sintran.Xmsg.Hdlc;
-using NDInsight.Sintran.Xmsg.Live.Tad;
+using NDInsight.Sintran.Xmsg.Node.Tad;
 
 using Xunit;
 using Xunit.Abstractions;

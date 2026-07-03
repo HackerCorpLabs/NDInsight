@@ -2,7 +2,7 @@ using System;
 
 using NDInsight.Sintran.Xmsg.Codec;
 
-namespace NDInsight.Sintran.Xmsg.Live.Seam
+namespace NDInsight.Sintran.Xmsg.Node.Seam
 {
     /// <summary>
     /// Adapts an <see cref="ILink"/> into the codec's downward <see cref="IXmsgTransport"/> sink:

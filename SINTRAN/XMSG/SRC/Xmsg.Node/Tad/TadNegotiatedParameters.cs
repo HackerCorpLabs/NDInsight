@@ -1,6 +1,6 @@
 using System;
 
-namespace NDInsight.Sintran.Xmsg.Live.Tad
+namespace NDInsight.Sintran.Xmsg.Node.Tad
 {
     /// <summary>
     /// The terminal-session parameters a <see cref="TadSession"/> captures as it observes

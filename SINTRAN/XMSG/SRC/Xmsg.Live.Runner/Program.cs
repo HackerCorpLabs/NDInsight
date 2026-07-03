@@ -18,8 +18,10 @@ using System.Threading.Tasks;
 using NDInsight.Sintran.Xmsg;
 using NDInsight.Sintran.Xmsg.Codec;
 using NDInsight.Sintran.Xmsg.ListRouting;
-using NDInsight.Sintran.Xmsg.Live;
-using NDInsight.Sintran.Xmsg.Live.Seam;
+using NDInsight.Sintran.Xmsg.Live;          // LapbLayer, TcpBridgeTransport, LiveNode (replaceable half)
+using NDInsight.Sintran.Xmsg.Live.Seam;     // LapbLayerAdapter (the concrete ILink over HDLC/LAPB)
+using NDInsight.Sintran.Xmsg.Node;          // XmsgNode, FileResponderSequenceStore (portable half)
+using NDInsight.Sintran.Xmsg.Node.Seam;     // ILink, XmsgLayer, LinkXmsgTransport, BoundProtocolDetector
 using NDInsight.Sintran.Xmsg.Packet;
 
 // Wraps a TextWriter so every emitted line begins with a full wall-clock timestamp
@@ -173,8 +175,8 @@ internal static class Program
         string statePath = System.IO.Path.Combine(AppContext.BaseDirectory, "xmsg-sequence.state");
         FileResponderSequenceStore sequenceStore = new FileResponderSequenceStore(statePath);
         Console.WriteLine($"[runner] datagram-sequence state file: {statePath}");
-        NDInsight.Sintran.Xmsg.Live.Tad.TadTerminalResponder tad =
-            new NDInsight.Sintran.Xmsg.Live.Tad.TadTerminalResponder(node, () => DateTime.Now, sequenceStore);
+        NDInsight.Sintran.Xmsg.Node.Tad.TadTerminalResponder tad =
+            new NDInsight.Sintran.Xmsg.Node.Tad.TadTerminalResponder(node, () => DateTime.Now, sequenceStore);
         // Terminal bring-up ENABLED — now driven by the VERIFIED seed model (analysis 2026-07-03,
         // 601/601 frames). A fresh responder at epoch 0 sends terminal data on 0xDD (NOT DB), with
         // Counter = (seed - 8 - Flags1); the seed (0x14 for 100<->102) is LEARNED from 100's connect.
@@ -321,7 +323,7 @@ internal static class Program
             new RoutingTableEntry(node, XroutConnectionType.Local, node, 0, 0),
         };
         xnode.RoutingTable = new InMemoryRoutingTable(entries);
-        xnode.TadResponder = new NDInsight.Sintran.Xmsg.Live.Tad.TadTerminalResponder(node, () => DateTime.Now);
+        xnode.TadResponder = new NDInsight.Sintran.Xmsg.Node.Tad.TadTerminalResponder(node, () => DateTime.Now);
         xnode.AcknowledgeTadFrames = true;
 
         link.OnTransmit += body =>

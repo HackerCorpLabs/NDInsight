@@ -5,8 +5,8 @@ using NDInsight.Sintran.Xmsg;
 using NDInsight.Sintran.Xmsg.Codec;
 using NDInsight.Sintran.Xmsg.ListRouting;
 using NDInsight.Sintran.Xmsg.Live;
-using NDInsight.Sintran.Xmsg.Live.Seam;
-using NDInsight.Sintran.Xmsg.Live.Tad;
+using NDInsight.Sintran.Xmsg.Node.Seam;
+using NDInsight.Sintran.Xmsg.Node.Tad;
 
 using Xunit;
 

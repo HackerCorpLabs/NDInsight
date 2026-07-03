@@ -1,6 +1,7 @@
 using System;
 
 using NDInsight.Sintran.Xmsg.Live;
+using NDInsight.Sintran.Xmsg.Node;
 using NDInsight.Sintran.Xmsg.SubProtocol;
 
 using Xunit;

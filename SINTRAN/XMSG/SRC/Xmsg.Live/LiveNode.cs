@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using NDInsight.Sintran.Xmsg.Hdlc;
+using NDInsight.Sintran.Xmsg.Node;   // XmsgNode (legacy path) now lives in the portable Xmsg.Node half
 
 namespace NDInsight.Sintran.Xmsg.Live
 {

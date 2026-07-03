@@ -4,7 +4,7 @@ using System.Text;
 
 using NDInsight.Sintran.Xmsg.SubProtocol;
 
-namespace NDInsight.Sintran.Xmsg.Live.Tad
+namespace NDInsight.Sintran.Xmsg.Node.Tad
 {
     /// <summary>
     /// An event-driven TAD connect-to session state machine built on top of the decoded
@@ -23,7 +23,9 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
     /// through a <see cref="TadFrameContext"/> so the machine never fabricates them.
     /// <para><b>Determinism</b></para>
     /// The session holds no wall-clock. Any timing (RFI credit, retransmit) belongs to the
-    /// injected-clock <see cref="LapbLayer"/> beneath it; this layer is purely event-driven.
+    /// injected-clock <c>LapbLayer</c> beneath it; this layer is purely event-driven.
+    /// (Plain-text, not a cref: <c>LapbLayer</c> lives in the replaceable Xmsg.Live half, which
+    /// this portable Xmsg.Node type does not reference.)
     /// <para><b>Honesty about the server</b></para>
     /// Only one scenario is captured, so a genuinely general correct server is impossible from
     /// this evidence. For faithful server behaviour on the captured input, use
@@ -137,7 +139,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
         /// </summary>
         /// <param name="frame">
         /// A decoded frame (typically produced by <see cref="XmsgFrame.Parse(ReadOnlySpan{byte})"/>,
-        /// exactly as the <see cref="LiveNode"/> receive loop produces them). Non-data frames
+        /// exactly as the <c>LiveNode</c> receive loop produces them). Non-data frames
         /// and frames without TAD/letter content are ignored.
         /// </param>
         /// <exception cref="ArgumentNullException">

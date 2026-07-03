@@ -1,4 +1,4 @@
-namespace NDInsight.Sintran.Xmsg.Live.Tad
+namespace NDInsight.Sintran.Xmsg.Node.Tad
 {
     /// <summary>
     /// The per-frame envelope values a <see cref="TadSession"/> builder needs to assemble a

@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using NDInsight.Sintran.Xmsg;
+using NDInsight.Sintran.Xmsg.Node;
 using NDInsight.Sintran.Xmsg.Hdlc;
 using NDInsight.Sintran.Xmsg.Live;
 

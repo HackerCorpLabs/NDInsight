@@ -12,6 +12,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Xmsg.Node is the portable upper half; Xmsg.Live (the replaceable link half) references it,
+         never the other way round. This is the porting seam direction. -->
+    <ProjectReference Include="..\Xmsg.Node\Xmsg.Node.csproj" />
     <ProjectReference Include="..\Xmsg.Protocol\Xmsg.Protocol.csproj" />
     <ProjectReference Include="..\Xmsg.Hdlc\Xmsg.Hdlc.csproj" />
   </ItemGroup>

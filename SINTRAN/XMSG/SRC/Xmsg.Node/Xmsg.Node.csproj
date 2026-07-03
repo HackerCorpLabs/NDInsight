@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Xmsg.Node: the PORTABLE half of the node stack. Everything here compiles against ONLY
+    Xmsg.Protocol plus the seam contract (ILink). It is the code the X25Emulator port takes
+    verbatim; the consumer writes one ILink adapter on its side and nothing here changes.
+
+    HARD RULE: the only ProjectReference allowed is Xmsg.Protocol. Anything here that needs
+    Xmsg.Hdlc or a Xmsg.Live type is a seam leak to be fixed, NOT a reference to be added.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <RootNamespace>NDInsight.Sintran.Xmsg.Node</RootNamespace>
+    <AssemblyName>NDInsight.Sintran.Xmsg.Node</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Xmsg.Protocol\Xmsg.Protocol.csproj" />
+  </ItemGroup>
+
+</Project>

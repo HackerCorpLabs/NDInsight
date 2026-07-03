@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 
-namespace NDInsight.Sintran.Xmsg.Live
+namespace NDInsight.Sintran.Xmsg.Node
 {
     /// <summary>
     /// A file-backed <see cref="IResponderSequenceStore"/>: persists the next outgoing

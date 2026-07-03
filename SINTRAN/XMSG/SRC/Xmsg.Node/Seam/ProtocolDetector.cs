@@ -1,6 +1,6 @@
 using System;
 
-namespace NDInsight.Sintran.Xmsg.Live.Seam
+namespace NDInsight.Sintran.Xmsg.Node.Seam
 {
     /// <summary>
     /// The L3 protocol a payload is classified as. This is a classification concept that lives ABOVE

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace NDInsight.Sintran.Xmsg.Live.Tad
+namespace NDInsight.Sintran.Xmsg.Node.Tad
 {
     /// <summary>
     /// A deliberately honest TAD server: it produces the VERIFIED secure delivery ACK for any

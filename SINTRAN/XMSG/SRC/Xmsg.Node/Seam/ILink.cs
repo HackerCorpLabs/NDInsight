@@ -1,6 +1,6 @@
 using System;
 
-namespace NDInsight.Sintran.Xmsg.Live.Seam
+namespace NDInsight.Sintran.Xmsg.Node.Seam
 {
     /// <summary>
     /// Operational status of a link.

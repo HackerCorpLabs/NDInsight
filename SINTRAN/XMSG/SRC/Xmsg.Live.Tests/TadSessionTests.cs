@@ -1,7 +1,7 @@
 using System;
 
 using NDInsight.Sintran.Xmsg;
-using NDInsight.Sintran.Xmsg.Live.Tad;
+using NDInsight.Sintran.Xmsg.Node.Tad;
 
 using Xunit;
 

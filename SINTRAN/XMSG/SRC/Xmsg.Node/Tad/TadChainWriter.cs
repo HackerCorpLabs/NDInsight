@@ -1,6 +1,6 @@
 using System;
 
-namespace NDInsight.Sintran.Xmsg.Live.Tad
+namespace NDInsight.Sintran.Xmsg.Node.Tad
 {
     /// <summary>
     /// Send-side builder for a TAD message chain: the encode inverse of

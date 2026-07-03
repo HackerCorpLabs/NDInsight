@@ -1,4 +1,4 @@
-namespace NDInsight.Sintran.Xmsg.Live.Tad
+namespace NDInsight.Sintran.Xmsg.Node.Tad
 {
     /// <summary>
     /// The outcome of feeding one client frame to a <see cref="TadReplayServer"/>.

@@ -5,7 +5,8 @@ using System.Threading.Tasks;
 
 using NDInsight.Sintran.Xmsg.Hdlc;
 using NDInsight.Sintran.Xmsg.Live;
-using NDInsight.Sintran.Xmsg.Live.Seam;
+using NDInsight.Sintran.Xmsg.Live.Seam;   // LapbLayerAdapter (concrete ILink over HDLC/LAPB, staying half)
+using NDInsight.Sintran.Xmsg.Node.Seam;
 
 using Xunit;
 

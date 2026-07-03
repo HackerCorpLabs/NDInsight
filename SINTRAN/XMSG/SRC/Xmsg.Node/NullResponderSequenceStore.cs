@@ -1,4 +1,4 @@
-namespace NDInsight.Sintran.Xmsg.Live
+namespace NDInsight.Sintran.Xmsg.Node
 {
     /// <summary>
     /// A non-persisting sequence store: every remote node starts at <c>Flags1 = 0x0000</c> and
