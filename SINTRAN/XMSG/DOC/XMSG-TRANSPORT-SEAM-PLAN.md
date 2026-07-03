@@ -45,15 +45,46 @@ the validated legacy runner. A run of identical `RR nr=0` was that keepalive bug
 
 **Phase 6 live-probe procedure (DUMM-first).** After the port-assign, 100 beeps waiting for our
 session-data burst before it drives `TMOD/TTYP` → MOTD. `TadTerminalResponder` (behind
-`SendTerminalBringup`, enabled in the runner's seam path) now emits **one** frame — the DUMM — on the
-channel *computed* by the envelope model, seeded to the Base a real 100 accepted in the capture
-(`_dataFlags1 = 0x0131`, `_dataCounter = 0xDB` → Base `0x020C` → channel DB). Read 100's reaction:
+`SendTerminalBringup`, enabled in the runner's seam path) emits the DUMM as the next frame of the
+responder's own sequence. Read 100's reaction (see the live findings below for the two error kinds).
 
-- a delivery-ACK (no crash) ⇒ the derived channel/Base is accepted → extend the burst
-  (ctrl `0x20`, RESE, RESE, then MOTD after 100's `TMOD/TTYP`), one frame at a time;
-- `XXPER` / SYSTEM MALFUNCTION ⇒ the absolute Base is wrong → adjust the single seed pair
-  (`_dataFlags1` / `_dataCounter`) in `TadTerminalResponder.OnSessionSetup`. The channel math itself
-  is proven, so only the seed is in question.
+### Phase 6 live findings (VERIFIED against machine 100)
+
+Three live probes of the first terminal-data (DUMM) frame pinned down two independent, hard
+constraints — each probe broke exactly one and 100 named it:
+
+| Probe | DUMM flags1 | Derived channel | 100's reaction |
+|-------|-------------|-----------------|----------------|
+| capture-absolute | `0x0131` (a *jump*) | **DB** | clean **XENSE** — frame well-formed, only the sequence rejected (recoverable) |
+| continuous, low Base | `0x000C` | **DD** | **XXPER** fatal crash |
+| continuous, counter=0xFF | `0x000C` | **DC** | **XXPER** fatal crash |
+
+1. **Only DB is a well-formed terminal-data channel.** DC and DD both crash 100 fatally (XXPER 24B
+   @ physical 134265B — the same signature the old canned replay produced). DD is the TAD *control*
+   channel; DC is 100's own send channel; a terminal-data frame (`XMCSM 0x01080000`) belongs on
+   **DB**. Crucially, the DB probe did **not** crash — it returned a clean, recoverable network error
+   (subtype `0x07`, Flags2 `0xFFDE` = XENSE −34, sequence error). So DB is correct and the *only*
+   thing wrong with the DB probe was the sequence.
+2. **flags1 must be continuous** with our own prior frames. A jump → XENSE.
+
+These two constraints are *coupled* through the envelope identity (`Channel = 0xDE − (XMCSM≫24) −
+(Base≫8)`, `Base = Flags1 + Counter`): reaching DB needs `Base≫8 = 2`, i.e. `Base ≈ 0x02xx`, i.e. a
+**high** flags1 — but a jump from a low echoed sequence is what triggers XENSE. The resolution is
+that the **whole responder runs one continuous high sequence**: the accept, port-assign, and every
+terminal-data frame advance a single datagram sequence seeded at `0x012F` (the conn-to-d102
+responder's own start). Control frames use Base `0x0214` → channel **D8**; terminal-data frames use
+Base `0x020C` → channel **DB**; flags1 increments `0x012F → 0x0130 → 0x0131 …` across all of them, so
+the DUMM at `0x0131` is both **in-order** and **on DB**. We no longer echo 100's low sequence for the
+accept (that worked for the accept alone but boxed the data frames into the fatal low Base).
+
+**Two error kinds and what they mean operationally:**
+- **XENSE** (subtype `0x07`, Flags2 `0xFFDE`) — a *recoverable* reject; 100's XMSG stays up. Means
+  the frame was well-formed but its datagram sequence was out of order. Cheap to iterate.
+- **XXPER** (`XMSG error 24B @ 134265B`) — a *fatal* internal error; 100's XMSG **dies** ("XMSG not
+  running", XMFIDO aborts) and must be **restarted on the ND** before any further test. A wrong
+  channel (DC/DD for terminal-data) causes this. A dead XMSG shows on our side as an endless
+  bare-link `SABM/UA/RR nr=0` storm (`[rx-raw]` SABM with no data frames) — that is the link layer
+  with no XMSG behind it, **not** a bug in our node.
 
 **Deviation (recorded):** `XmsgLayer` is placed in **`Xmsg.Live`**, not `Xmsg.Protocol` as the
 table in Section 3 proposed. Reason: the TAD session service (`TadTerminalResponder`, its menu and

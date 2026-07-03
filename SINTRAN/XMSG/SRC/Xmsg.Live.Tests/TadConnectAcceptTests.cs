@@ -23,7 +23,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         }
 
         [Fact]
-        public void ConnectAccept_EchoesProtoFlags1AndCounter()
+        public void ConnectAccept_UsesOwnSequenceOnDerivedD8Channel()
         {
             // The exact live connect request 100 -> 103 (proto DA, f1=0x0000, counter=0x13).
             byte[] reqBytes = Convert.FromHexString(
@@ -37,10 +37,11 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             byte[] accept = frames[0].ToArray();
             _output.WriteLine("accept: " + Convert.ToHexString(accept));
 
-            // Expected accept: echo proto DA / f1 0x0000 / counter 0x13, role 0x40, swap addressing,
-            // reply from our TADADM port 0x0156 to 100's port 0x02F7, params 01020000 0202000A.
+            // The accept is the FIRST frame of our own continuous sequence (start 0x012F), a control
+            // frame with Base 0x0214 -> counter 0xE5 -> derived channel D8 (0xDE-4-2). Addressing is
+            // unchanged (from TADADM 0x0156 to 100's port 0x02F7); params 01020000 0202000A.
             byte[] expected = Convert.FromHexString(
-                "2113000E00640067000004" + "00DA" + "13" + "2100" + "86" + "40"
+                "2113000E00640067" + "012F" + "0400" + "D8" + "E5" + "2100" + "86" + "40"
                 + "0064" + "02F7" + "0067" + "0156" + "04000041" + "00" + "08"
                 + "01020000" + "0202000A");
 
@@ -80,7 +81,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         }
 
         [Fact]
-        public void PortAssign_EchoesSessionSetupAndAssignsOurPort()
+        public void PortAssign_ContinuesSequenceOnDerivedD8Channel()
         {
             // Establish the session first (accept), then feed the session-setup 100 sends next.
             byte[] connectBytes = Convert.FromHexString(
@@ -97,10 +98,11 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             byte[] assign = responder.OnSessionSetup(setup)[0].ToArray();
             _output.WriteLine("port-assign: " + Convert.ToHexString(assign));
 
-            // Echo proto DA / f1 0x0001 / counter 0x12, role 0x40, from TADADM 0x0156 to 100's port
-            // 0x02F7; trailer assigns our system 0x67 and session port 0x0211.
+            // Port-assign CONTINUES our sequence: f1 0x0130 (accept was 0x012F), control Base 0x0214 ->
+            // counter 0xE4 -> derived channel D8. Addressing unchanged (from TADADM 0x0156 to 100's
+            // port 0x02F7); trailer assigns our system 0x67 and session port 0x0211.
             byte[] expected = Convert.FromHexString(
-                "2113000E00640067000104" + "00DA" + "12" + "2100" + "86" + "40"
+                "2113000E00640067" + "0130" + "0400" + "D8" + "E4" + "2100" + "86" + "40"
                 + "0064" + "02F7" + "0067" + "0156" + "04000000" + "00" + "18"
                 + "00" + "0705" + "00006702" + "11" + "1F03" + "4C0000"
                 + "00" + "0B02" + "0300" + "1502" + "0108" + "FF00");
@@ -131,15 +133,16 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             byte[] dumm = frames[1].ToArray();
             _output.WriteLine("dumm: " + Convert.ToHexString(dumm));
 
-            // DUMM built on the DERIVED channel: Flags1 0x0131 + Counter 0xDB = Base 0x020C,
-            // XMCSM 0x01080000 -> channel 0xDE-1-2 = DB. Addressed to 100 from our session port 0x0211.
+            // The DUMM CONTINUES the one responder sequence (accept 0x012F, port-assign 0x0130 ->
+            // DUMM 0x0131) so it is in-order, and its data Base 0x020C -> counter 0xDB -> derived
+            // channel DB (0xDE-1-2) — the only well-formed terminal-data channel. Built via TadOp.Dumm.
             byte[] expected = Convert.FromHexString(
                 "2113000E00640067" + "0131" + "0108" + "DB" + "DB" + "2100" + "92" + "00"
                 + "0064" + "02F7" + "0067" + "0211" + "01080000" + "00" + "02" + "1800");
             Assert.Equal(expected, dumm);
 
             // Sanity on the derived channel byte (offset 12) and the preserved TAD trailer.
-            Assert.Equal((byte)SintranProtocolId.Db, dumm[12]);
+            Assert.Equal((byte)SintranProtocolId.Db, dumm[12]);    // DB
             Assert.EndsWith("1800", Convert.ToHexString(dumm));
             Assert.Equal(dumm.Length - 32, dumm[31]);         // XMLEN (offset 31) == trailer length
         }

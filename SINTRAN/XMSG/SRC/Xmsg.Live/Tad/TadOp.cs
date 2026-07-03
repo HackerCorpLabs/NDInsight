@@ -62,6 +62,11 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
         public const byte Reco = 0x17;
 
         /// <summary>
+        /// DUMM — dummy / no-op keep-the-stream-moving message (<c>0x18</c>).
+        /// </summary>
+        public const byte Dumm = 0x18;
+
+        /// <summary>
         /// OPSV — OS / protocol version handshake (<c>0x1F</c>).
         /// </summary>
         public const byte Opsv = 0x1F;

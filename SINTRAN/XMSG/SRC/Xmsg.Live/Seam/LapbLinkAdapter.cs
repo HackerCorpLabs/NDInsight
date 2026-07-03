@@ -52,6 +52,18 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         public event ILink.LinkStatusChanged? StatusChanged;
 
         /// <summary>
+        /// Diagnostic up-event: every FCS-valid LAPB frame received from the wire (raw body,
+        /// before the LAPB state machine processes it). Lets the runner log SABM/UA/RR/I traffic
+        /// from the peer — including a bare-link SABM storm when the peer's XMSG has died.
+        /// </summary>
+        /// <param name="linkId">The link the frame arrived on (sender-first).</param>
+        /// <param name="frameBytes">The unstuffed, FCS-valid LAPB frame (addr, control, info, FCS).</param>
+        public delegate void LinkRawFrameReceived(string linkId, byte[] frameBytes);
+
+        /// <summary>Occurs for every FCS-valid LAPB frame received (diagnostic).</summary>
+        public event LinkRawFrameReceived? RawFrameReceived;
+
+        /// <summary>
         /// Initialises the adapter over a transport and LAPB link.
         /// </summary>
         /// <param name="linkId">The link identity stamped on every up-event.</param>
@@ -269,6 +281,10 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
                 {
                     continue;
                 }
+
+                // Diagnostic: surface every FCS-valid received frame (SABM/UA/RR/I) before the LAPB
+                // state machine consumes it, so the runner can see the peer's raw traffic.
+                RawFrameReceived?.Invoke(_linkId, frameBytes);
 
                 LapbFrame frame = new LapbFrame(default, frameBytes);
                 _link.OnFrameReceived(frame);

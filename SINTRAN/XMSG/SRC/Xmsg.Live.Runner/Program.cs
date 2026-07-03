@@ -173,6 +173,18 @@ internal static class Program
             Console.WriteLine($"[link] {id} status -> {status}");
         };
 
+        // Diagnostic: log every raw LAPB frame 100 sends us (SABM/UA/RR/I). Makes a bare-link SABM
+        // storm (peer XMSG crashed) visible, and shows the control bytes behind each [RX] data frame.
+        adapter.RawFrameReceived += delegate (string id, byte[] body)
+        {
+            byte ctrl = body.Length > 1 ? body[1] : (byte)0;
+            string kind;
+            if ((ctrl & 1) == 0) kind = $"I ns={(ctrl >> 1) & 7} nr={(ctrl >> 5) & 7}";
+            else if ((ctrl & 3) == 1) kind = $"RR nr={(ctrl >> 5) & 7}";
+            else kind = ctrl switch { 0x3F => "SABM", 0x73 => "UA", _ => $"U 0x{ctrl:X2}" };
+            Console.WriteLine($"[rx-raw] a=0x{(body.Length > 0 ? body[0] : 0):X2} {kind} [{Convert.ToHexString(body)}]");
+        };
+
         adapter.Initiate();
         Console.WriteLine("[runner] SABM sent; pumping seam link (LAPB + codec + XmsgLayer)...");
         // NO periodic keepalive — matches the VALIDATED legacy runner: after SABM a healthy link

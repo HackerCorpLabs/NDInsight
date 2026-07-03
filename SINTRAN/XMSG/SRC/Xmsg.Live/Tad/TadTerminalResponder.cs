@@ -139,6 +139,15 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
             _sessionWirePort = (ushort)((4 << 7) | 0x11);
             _connected = true;
 
+            // Seed the responder's OWN outgoing datagram sequence. Every frame we originate for this
+            // session (accept, port-assign, and all terminal-data) shares this ONE monotonically
+            // increasing sequence — which is what 100 validates (an out-of-order value -> XENSE). We
+            // do NOT echo 100's low sequence: echoing boxes the terminal-data frames into a low Base,
+            // whose derived channel (DC/DD) 100 fatally rejects (XXPER). Starting high (0x012F, the
+            // conn-to-d102 responder's own start) makes the terminal-data frames land on Base 0x020C
+            // -> channel DB, the only well-formed terminal-data channel, WITH a continuous sequence.
+            _respFlags1 = ResponderSeqStart;
+
             // The captured 102 responder handshake is, in order:
             //   1. connect-accept  (proto D8, role 40, XMCSM 04000041, param trailer)
             //   2. port-assign     (proto D8, role 40, XMCSM 04000000, TAD 0x07 = our session
@@ -206,24 +215,17 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
                 0xFF, 0x00,
             };
 
-            TadFrameContext ctx = new TadFrameContext
-            {
-                DestinationNode = request.Header.SourceNode,
-                SourceNode = _nodeNumber,
-                DatagramSequence = request.Header.Flags1,           // echo (VERIFIED pattern)
-                FrameClass = 0x0400,
-                ProtocolId = request.Header.ProtocolId,             // echo the channel (DA)
-                Counter = request.SubHeader!.Counter,               // echo
-                FrameFlags = 0x86,
-                Role = 0x40,
-                DestinationSystem = request.SubHeader.SourceSystem,
-                DestinationPort = request.SubHeader.SourcePort,
-                SourceSystem = _nodeNumber,
-                SourcePort = TadAdminWirePort,
-                ControlService = SessionSetupControlService,
-            };
-
-            outgoing.Add(AssembleDataFrame(ctx, trailer));
+            // Port-assign is a CONTROL frame on our own sequence: Base 0x0214 -> derived channel D8
+            // (VERIFIED: conn-to-d102 port-assign frame 53). Continues the sequence from the accept.
+            outgoing.Add(BuildResponderFrame(
+                request,
+                baseValue: ControlBase,
+                frameClass: 0x0400,
+                controlService: SessionSetupControlService,
+                frameFlags: 0x86,
+                role: 0x40,
+                sourcePort: TadAdminWirePort,
+                payload: trailer));
 
             // POST-PORT-ASSIGN BRING-UP (derived-channel path).
             // 100 waits for our session-data burst before it drives TMOD/TTYP -> MOTD (that is the
@@ -233,77 +235,101 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
             // conn-to-d102 DUMM/MOTD frames byte-for-byte). See XmsgEnvelope / CreateSessionData.
             if (SendTerminalBringup)
             {
-                // Initialise our 102->100 session-data stream to the Base a REAL 100 accepted in the
-                // conn-to-d102 capture: flags1 0x0131 + counter 0xDB = Base 0x020C -> derived channel
-                // DB. Within the stream flags1++ / counter-- holds Base (and the channel) constant.
-                // [LIVE PROBE: if 100 rejects this absolute Base, this pair is the knob to adjust.]
-                _dataFlags1 = 0x0131;
-                _dataCounter = 0xDB;
-
-                // ISOLATION: emit ONLY the first bring-up frame (DUMM) so 100's response — a delivery
-                // ACK (accepted) versus XXPER (rejected) — tells us whether the derived channel/Base
-                // is right BEFORE we send the rest of the burst (ctrl 0x20, RESE, RESE, then MOTD).
-                outgoing.Add(BuildSessionData(
+                // First terminal-data frame (DUMM): a DATA frame on our own sequence, Base 0x020C ->
+                // derived channel DB (VERIFIED: conn-to-d102 DUMM frame 54). Because it CONTINUES the
+                // one responder sequence (accept 0x012F, port-assign 0x0130, DUMM 0x0131), it is both
+                // in-order AND on DB — the only well-formed terminal-data channel. Built via the TAD
+                // API, not magic bytes. ISOLATION: emit only the DUMM; 100's response tells us whether
+                // to send the rest of the burst (ctrl 0x20, RESE, RESE, then MOTD).
+                byte[] dumm = new TadChain().Add(TadOp.Dumm, null).ToBytes();
+                outgoing.Add(BuildResponderFrame(
                     request,
-                    controlService: 0x01080000u,
+                    baseValue: DataBase,
+                    frameClass: 0x0108,
+                    controlService: TerminalDataControlService,
                     frameFlags: 0x92,
                     role: 0x00,
-                    tadPayload: new byte[] { 0x18, 0x00 }));   // TAD DUMM (0x18) count=0
+                    sourcePort: _sessionWirePort,
+                    payload: dumm));
             }
 
             return outgoing;
         }
 
-        // Our 102->100 session-data stream sequence: flags1 increments and counter decrements per
-        // frame so that Base = flags1 + counter stays constant (the envelope model). Seeded when the
-        // bring-up starts (see OnSessionSetup).
-        private ushort _dataFlags1;
-        private byte _dataCounter;
+        /// <summary>XMCSM control/service word for a TAD terminal-data frame. VERIFIED from captures.</summary>
+        private const uint TerminalDataControlService = 0x01080000u;
 
         /// <summary>
-        /// Builds one 102-&gt;100 session-data frame on the channel DERIVED from the envelope model
-        /// (<see cref="XmsgEnvelope.DeriveChannel"/> of the current stream Flags1/Counter and the
-        /// XMCSM), addressed to 100's session endpoint, then advances the stream (Flags1++, Counter--
-        /// keeping Base constant). This is the responder counterpart of
-        /// <see cref="XmsgPacketBuilder.CreateSessionData"/>, kept here so the frame flows through the
-        /// existing <see cref="AssembleDataFrame"/> path.
+        /// The responder's own outgoing datagram sequence to 100, seeded at connect (see
+        /// <see cref="OnConnect"/>). Every frame we originate — accept, port-assign, terminal-data —
+        /// advances this ONE sequence, which is what 100 validates for in-order delivery.
         /// </summary>
-        /// <param name="request">The session-setup frame (source addressing = 100's endpoint).</param>
-        /// <param name="controlService">The XMCSM control/service word (selects the class byte).</param>
-        /// <param name="frameFlags">The sub-header frame-flags byte for this frame type.</param>
-        /// <param name="role">The sub-header role byte (0x00 for server data-phase frames).</param>
-        /// <param name="tadPayload">The TAD chain payload bytes.</param>
-        /// <returns>The assembled session-data frame.</returns>
-        private XmsgFrame BuildSessionData(XmsgFrame request, uint controlService, byte frameFlags, byte role, byte[] tadPayload)
-        {
-            ushort f1 = _dataFlags1;
-            byte ctr = _dataCounter;
+        private ushort _respFlags1;
 
-            // VERIFIED envelope identity: Base = f1 + ctr; channel = 0xDE - (XMCSM>>24) - (Base>>8).
+        /// <summary>The responder sequence start. The conn-to-d102 responder's own start value.</summary>
+        private const ushort ResponderSeqStart = 0x012F;
+
+        /// <summary>Envelope Base for our CONTROL frames (accept, port-assign) -&gt; derived channel D8.</summary>
+        private const ushort ControlBase = 0x0214;
+
+        /// <summary>Envelope Base for our terminal-DATA frames -&gt; derived channel DB.</summary>
+        private const ushort DataBase = 0x020C;
+
+        /// <summary>
+        /// Builds one frame we originate for the session, on the channel DERIVED from the envelope
+        /// model for the given <paramref name="baseValue"/> (<see cref="XmsgEnvelope.DeriveChannel"/>),
+        /// carrying the next value of our single outgoing datagram sequence, then advances that
+        /// sequence. The per-frame counter is set from the Base (<c>counter = baseValue - flags1</c>)
+        /// so that a control frame lands on D8 (Base 0x0214) and a terminal-data frame on DB
+        /// (Base 0x020C) while the sequence (Flags1) stays continuous across all of them.
+        /// </summary>
+        /// <param name="request">The triggering frame (source addressing = 100's endpoint).</param>
+        /// <param name="baseValue">The envelope Base that fixes the derived channel for this frame.</param>
+        /// <param name="frameClass">The Flags 2 frame-class word (0x0400 control, 0x0108 data).</param>
+        /// <param name="controlService">The XMCSM control/service word.</param>
+        /// <param name="frameFlags">The sub-header frame-flags byte for this frame type.</param>
+        /// <param name="role">The sub-header role byte (0x40 setup, 0x00 data-phase).</param>
+        /// <param name="sourcePort">Our source port (TADADM for control, session port for data).</param>
+        /// <param name="payload">The trailer payload bytes (param blocks or TAD chain).</param>
+        /// <returns>The assembled frame on the derived channel.</returns>
+        private XmsgFrame BuildResponderFrame(
+            XmsgFrame request,
+            ushort baseValue,
+            ushort frameClass,
+            uint controlService,
+            byte frameFlags,
+            byte role,
+            ushort sourcePort,
+            byte[] payload)
+        {
+            ushort f1 = _respFlags1;
+            // counter = Base - Flags1, so Base (and thus the derived channel) is what we intend even
+            // as Flags1 advances monotonically across every responder frame.
+            byte ctr = (byte)(baseValue - f1);
             SintranProtocolId channel = XmsgEnvelope.DeriveChannel(f1, ctr, controlService);
+
+            // One continuous sequence for ALL our frames (accept, port-assign, data) -> 100 sees them
+            // in order (out-of-order = XENSE).
+            _respFlags1 = (ushort)(f1 + 1);
 
             TadFrameContext ctx = new TadFrameContext
             {
                 DestinationNode = request.Header.SourceNode,        // 100
-                SourceNode = _nodeNumber,                           // 102
+                SourceNode = _nodeNumber,                           // us
                 DatagramSequence = f1,
-                FrameClass = 0x0108,                                // VERIFIED data-frame class word
+                FrameClass = frameClass,
                 ProtocolId = channel,                              // DERIVED, not canned
                 Counter = ctr,
                 FrameFlags = frameFlags,
                 Role = role,
                 DestinationSystem = _clientSystem,                   // 100 (learned at connect)
-                DestinationPort = request.SubHeader!.SourcePort,     // 100's session-setup port
-                SourceSystem = _nodeNumber,                          // 102
-                SourcePort = _sessionWirePort,                       // our assigned session port
+                DestinationPort = request.SubHeader!.SourcePort,     // 100's port on the triggering frame
+                SourceSystem = _nodeNumber,
+                SourcePort = sourcePort,
                 ControlService = controlService,
             };
 
-            // Advance the stream, holding Base constant (flags1++ / counter--).
-            _dataFlags1 = (ushort)(f1 + 1);
-            _dataCounter = (byte)(ctr - 1);
-
-            return AssembleDataFrame(ctx, tadPayload);
+            return AssembleDataFrame(ctx, payload);
         }
 
         /// <summary>
@@ -349,28 +375,21 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
             // yet decoded; copied verbatim from the captured accept. [VERIFIED bytes; semantics TBD]
             byte[] trailer = new byte[] { 0x01, 0x02, 0x00, 0x00, 0x02, 0x02, 0x00, 0x0A };
 
-            TadFrameContext ctx = new TadFrameContext
-            {
-                DestinationNode = request.Header.SourceNode,        // back to 100
-                SourceNode = _nodeNumber,                           // from us (103)
-                // VERIFIED from conn-to-102-from103-via100 (the DA connect that matches our role):
-                // the accept ECHOES the request's proto, Flags1 and counter (the stateless-reply
-                // pattern, exactly like the list-route reply) — it does NOT use an independent
-                // sequence. Request f1=0x0004/ctr=0x0D/proto DA -> accept f1=0x0004/ctr=0x0D/DA.
-                DatagramSequence = request.Header.Flags1,
-                FrameClass = 0x0400,                                // VERIFIED: setup-frame class word
-                ProtocolId = request.Header.ProtocolId,             // VERIFIED: echo the request channel (DA)
-                Counter = request.SubHeader!.Counter,               // VERIFIED echo
-                FrameFlags = 0x86,                                  // VERIFIED common value
-                Role = 0x40,                                        // VERIFIED responder role
-                DestinationSystem = request.SubHeader.SourceSystem, // 100
-                DestinationPort = request.SubHeader.SourcePort,     // 100's port (so it correlates)
-                SourceSystem = _nodeNumber,                         // 103
-                SourcePort = TadAdminWirePort,                      // our TADADM port 2 (0x0156)
-                ControlService = SystemTadControlService,
-            };
-
-            return AssembleDataFrame(ctx, trailer);
+            // The accept is the FIRST frame of our own continuous sequence: a CONTROL frame with
+            // Base 0x0214 -> derived channel D8 (VERIFIED conn-to-d102 accept frame 51). We no longer
+            // echo 100's low Flags1/channel: echoing worked for the accept alone, but boxed the later
+            // terminal-data frames into a low Base whose derived channel (DC/DD) 100 fatally rejects.
+            // Starting our sequence high here makes accept/port-assign/data one in-order stream that
+            // puts the data frames on DB. VERIFIED: 100 accepts a high-sequence D8 accept.
+            return BuildResponderFrame(
+                request,
+                baseValue: ControlBase,
+                frameClass: 0x0400,
+                controlService: SystemTadControlService,
+                frameFlags: 0x86,
+                role: 0x40,
+                sourcePort: TadAdminWirePort,
+                payload: trailer);
         }
 
         /// <summary>
