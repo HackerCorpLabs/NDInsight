@@ -61,6 +61,7 @@ namespace NDInsight.Sintran.Xmsg.Live
         private int _receiveVariable;   // V(R)
 
         private byte[]? _lastUnackedBody;   // last I/SABM body, for retransmit
+        private int _lastBehindNr = -1;     // last RR N(R) seen behind V(S), to detect a stuck peer
         private long _lastSendTicks;
         private int _retries;
         private bool _synced;               // have we adopted the peer's sequence yet?
@@ -385,12 +386,28 @@ namespace NDInsight.Sintran.Xmsg.Live
         /// </param>
         private void HandleSupervisory(LapbFrame frame)
         {
-            // RR acknowledges our outstanding I-frame(s) up to N(R)-1. Once acknowledged we
-            // clear the retransmit slot. We do not distinguish RNR/REJ here beyond RR
-            // because the corpus only exercises RR keepalives (VERIFIED section 3.5).
+            // RR acknowledges our outstanding I-frame(s) up to N(R)-1.
             if (frame.ReceiveSequence == _sendVariable)
             {
+                // 100 has acknowledged everything up to V(S): clear the retransmit slot and reset
+                // the stuck-detector.
                 _lastUnackedBody = null;
+                _lastBehindNr = -1;
+            }
+            else if (_lastUnackedBody != null)
+            {
+                // 100's N(R) is BEHIND our V(S): it has not received our last I-frame. A single
+                // behind-RR can just be a transient lag that will catch up, so we retransmit only
+                // when 100 REPEATS the same behind-N(R) — i.e. it is genuinely STUCK waiting for that
+                // frame. Without this, terminal replies (echo/menu) deadlock: 100 keeps sending
+                // `RR nr=<our reply's N(S)>`, we never resend, and both sides wait forever. VERIFIED
+                // symptom. A duplicate is harmless (LAPB discards it).
+                if (frame.ReceiveSequence == _lastBehindNr)
+                {
+                    OnTransmit?.Invoke(_lastUnackedBody);
+                }
+
+                _lastBehindNr = frame.ReceiveSequence;
             }
         }
 

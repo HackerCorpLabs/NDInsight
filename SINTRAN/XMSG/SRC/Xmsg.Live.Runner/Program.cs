@@ -22,10 +22,55 @@ using NDInsight.Sintran.Xmsg.Live;
 using NDInsight.Sintran.Xmsg.Live.Seam;
 using NDInsight.Sintran.Xmsg.Packet;
 
+// Wraps a TextWriter so every emitted line is prefixed with a wall-clock timestamp
+// (HH:mm:ss.fff). Lets the frame log show the exact send/receive ordering — essential for
+// diagnosing LAPB N(S)/N(R) / retransmit timing.
+internal sealed class TimestampWriter : System.IO.TextWriter
+{
+    private readonly System.IO.TextWriter _inner;
+    private bool _atLineStart = true;
+
+    public TimestampWriter(System.IO.TextWriter inner) { _inner = inner; }
+
+    public override System.Text.Encoding Encoding { get { return _inner.Encoding; } }
+
+    public override void Write(char value)
+    {
+        if (_atLineStart)
+        {
+            _inner.Write(DateTime.Now.ToString("HH:mm:ss.fff"));
+            _inner.Write(' ');
+            _atLineStart = false;
+        }
+
+        _inner.Write(value);
+        if (value == '\n')
+        {
+            _atLineStart = true;
+        }
+    }
+
+    public override void Write(string? value)
+    {
+        if (value == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < value.Length; i++)
+        {
+            Write(value[i]);
+        }
+    }
+}
+
 internal static class Program
 {
     private static async Task<int> Main(string[] args)
     {
+        // Timestamp every console line so the frame log shows exact ordering (LAPB timing).
+        Console.SetOut(new TimestampWriter(Console.Out));
+
         // Optional leading "legacy" keyword selects the old LiveNode + XmsgNode path.
         bool legacy = args.Length > 0 && string.Equals(args[0], "legacy", StringComparison.OrdinalIgnoreCase);
         int argOffset = legacy ? 1 : 0;

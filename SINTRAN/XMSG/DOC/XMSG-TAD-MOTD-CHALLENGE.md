@@ -121,7 +121,7 @@ sequence value, which a fresh node cannot set the way a long-running ND can.
 | Peer/friend spec (FCS-verified) | `SINTRAN/XMSG/OLD/xmsg-hdlc-protocol.md` | independent decode, XE codes, port<<7 |
 | **Decode report** | `SINTRAN/XMSG/SRC/pcap-decode-report.txt` | every captured frame decoded (line refs below) |
 | The seam plan + live findings | `SINTRAN/XMSG/DOC/XMSG-TRANSPORT-SEAM-PLAN.md` | phase history, "Phase 6 live findings" |
-| pcap files | `E:\Dev\Ronny\X25Emulator\pcap\*.pcapng` | raw captures |
+| pcap files | `pcap/*.pcapng` (in the X25Emulator repo) | raw captures |
 | TAD message formats | `SINTRAN/XMSG/TAD/` and `SubProtocol/TadOpcodes.cs` | TAD opcode table |
 
 **Key capture:** `conn-to-d102-from-100.pcapng` — a real `connect-to d102` where **100 is the

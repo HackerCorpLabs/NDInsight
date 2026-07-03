@@ -1,7 +1,7 @@
 # XMSG transport seam — implementation plan
 
 Restructures the working XMSG live node into the **events-up / interfaces-down** seam
-pattern from `E:\Dev\Ronny\X25Emulator\docs\COSMOS_XMSG_SEAM_ARCHITECTURE.md`, so the
+pattern from `docs/COSMOS_XMSG_SEAM_ARCHITECTURE.md` (in the X25Emulator repo), so the
 code later drops into `X25Emulator` (as the SINTRAN/XMSG sibling of the X.25 stack) with
 minimal refactor. This plan is the contract; each phase has a byte-exact test gate.
 
