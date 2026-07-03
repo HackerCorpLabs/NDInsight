@@ -22,13 +22,20 @@ using NDInsight.Sintran.Xmsg.Live;
 using NDInsight.Sintran.Xmsg.Live.Seam;
 using NDInsight.Sintran.Xmsg.Packet;
 
-// Wraps a TextWriter so every emitted line is prefixed with a wall-clock timestamp
-// (HH:mm:ss.fff). Lets the frame log show the exact send/receive ordering — essential for
-// diagnosing LAPB N(S)/N(R) / retransmit timing.
+// Wraps a TextWriter so every emitted line begins with a full wall-clock timestamp
+// (yyyy-MM-dd HH:mm:ss.fff) FOLLOWED BY " | " — the pipe is an explicit, machine-parseable
+// delimiter so an LLM (or a script) can split "timestamp | message" on the first " | " with
+// zero ambiguity. The date+seconds+ms let the frame log show exact send/receive ordering,
+// essential for diagnosing LAPB N(S)/N(R) / retransmit timing.
 internal sealed class TimestampWriter : System.IO.TextWriter
 {
     private readonly System.IO.TextWriter _inner;
     private bool _atLineStart = true;
+
+    // The delimiter that separates the timestamp from the message. First occurrence per line
+    // marks where the date ends — split on " | " (with the surrounding spaces) to be safe even
+    // if a message body itself contains a bare '|'.
+    private const string Delimiter = " | ";
 
     public TimestampWriter(System.IO.TextWriter inner) { _inner = inner; }
 
@@ -38,8 +45,9 @@ internal sealed class TimestampWriter : System.IO.TextWriter
     {
         if (_atLineStart)
         {
-            _inner.Write(DateTime.Now.ToString("HH:mm:ss.fff"));
-            _inner.Write(' ');
+            // Full date + time down to milliseconds, then the explicit delimiter.
+            _inner.Write(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+            _inner.Write(Delimiter);
             _atLineStart = false;
         }
 
