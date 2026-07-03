@@ -130,16 +130,30 @@ internal static class Program
             }
         };
 
+        // SABM-storm suppression. A peer whose XMSG has crashed re-SABMs forever (bare link, no XMSG
+        // behind it). Collapse that churn — the peer SABMs and our UA/RR answers — into ONE warning
+        // instead of hundreds of identical lines. Shared by the TX and rx-raw handlers below.
+        bool stormActive = false;
+        int peerSabmStreak = 0;
+
         // Diagnostics: log every LAPB body we transmit (link.OnTransmit is multicast, so this fires
         // alongside the adapter's own encode-and-queue handler).
         link.OnTransmit += body =>
         {
             byte ctrl = body.Length > 1 ? body[1] : (byte)0;
+            bool isData = (ctrl & 1) == 0;
+            // During a peer SABM storm our UA/RR answers are pure churn — suppress them; data frames
+            // (I-frames) are always logged.
+            if (stormActive && !isData)
+            {
+                return;
+            }
+
             string kind;
-            if ((ctrl & 1) == 0) kind = $"I ns={(ctrl >> 1) & 7} nr={(ctrl >> 5) & 7}";
+            if (isData) kind = $"I ns={(ctrl >> 1) & 7} nr={(ctrl >> 5) & 7}";
             else if ((ctrl & 3) == 1) kind = $"RR nr={(ctrl >> 5) & 7}";
             else kind = ctrl switch { 0x3F => "SABM", 0x73 => "UA", _ => $"U 0x{ctrl:X2}" };
-            string extra = (ctrl & 1) == 0 ? $" body={Convert.ToHexString(body)}" : string.Empty;
+            string extra = isData ? $" body={Convert.ToHexString(body)}" : string.Empty;
             Console.WriteLine($"[TX] a=0x{(body.Length > 0 ? body[0] : 0):X2} {kind} state={link.State}{extra}");
         };
 
@@ -173,11 +187,42 @@ internal static class Program
             Console.WriteLine($"[link] {id} status -> {status}");
         };
 
-        // Diagnostic: log every raw LAPB frame 100 sends us (SABM/UA/RR/I). Makes a bare-link SABM
-        // storm (peer XMSG crashed) visible, and shows the control bytes behind each [RX] data frame.
+        // Diagnostic: log every raw LAPB frame 100 sends us (SABM/UA/RR/I). Detects and COLLAPSES a
+        // bare-link SABM storm (peer XMSG crashed) into a single actionable warning.
         adapter.RawFrameReceived += delegate (string id, byte[] body)
         {
             byte ctrl = body.Length > 1 ? body[1] : (byte)0;
+
+            if (ctrl == 0x3F)   // SABM from the peer
+            {
+                peerSabmStreak++;
+                if (peerSabmStreak == 3)
+                {
+                    // Three back-to-back SABMs with no data = the peer's XMSG is not taking the link
+                    // to the data phase. Say so plainly and stop echoing the churn.
+                    stormActive = true;
+                    Console.WriteLine(
+                        "[!] Peer is re-sending SABM with no XMSG data. Machine 100's XMSG is almost " +
+                        "certainly DOWN (crashed / not started). Restart XMSG on 100, then reconnect. " +
+                        "Suppressing link-establishment churn until real traffic resumes...");
+                }
+
+                if (stormActive)
+                {
+                    return;   // suppress the repeated SABM lines
+                }
+            }
+            else
+            {
+                if (stormActive)
+                {
+                    Console.WriteLine($"[!] SABM storm ended after {peerSabmStreak} SABMs; traffic resuming.");
+                    stormActive = false;
+                }
+
+                peerSabmStreak = 0;
+            }
+
             string kind;
             if ((ctrl & 1) == 0) kind = $"I ns={(ctrl >> 1) & 7} nr={(ctrl >> 5) & 7}";
             else if ((ctrl & 3) == 1) kind = $"RR nr={(ctrl >> 5) & 7}";
