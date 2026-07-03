@@ -33,6 +33,28 @@ against every captured `102→100` responder frame and our own live-accepted acc
 `XmsgEnvelope.DeriveChannel` / `XmsgPacketBuilder.CreateSessionData`. This is why replaying a canned
 session's channels crashed 100 (wrong Base → XXPER) and computing them does not.
 
+### Live operational notes
+
+**The `[TX] RR nr=N` frames are LAPB, not a keepalive and not a bug.** LAPB requires exactly one
+Receiver-Ready acknowledgment per *received* I-frame. During a connect-to, machine 100 sends us four
+I-frames (its connect, its delivery-ACK of our accept, the session-setup, its delivery-ACK of our
+port-assign), so V(R) climbs 1→2→3→4 and each step emits one RR. Suppressing them would make 100
+treat the frame as lost and retransmit. This is distinct from the RR *keepalive* (an idle-timer RR
+once per second) — the runner sends **no** keepalive on the seam path (reactive RR only), matching
+the validated legacy runner. A run of identical `RR nr=0` was that keepalive bug and is fixed.
+
+**Phase 6 live-probe procedure (DUMM-first).** After the port-assign, 100 beeps waiting for our
+session-data burst before it drives `TMOD/TTYP` → MOTD. `TadTerminalResponder` (behind
+`SendTerminalBringup`, enabled in the runner's seam path) now emits **one** frame — the DUMM — on the
+channel *computed* by the envelope model, seeded to the Base a real 100 accepted in the capture
+(`_dataFlags1 = 0x0131`, `_dataCounter = 0xDB` → Base `0x020C` → channel DB). Read 100's reaction:
+
+- a delivery-ACK (no crash) ⇒ the derived channel/Base is accepted → extend the burst
+  (ctrl `0x20`, RESE, RESE, then MOTD after 100's `TMOD/TTYP`), one frame at a time;
+- `XXPER` / SYSTEM MALFUNCTION ⇒ the absolute Base is wrong → adjust the single seed pair
+  (`_dataFlags1` / `_dataCounter`) in `TadTerminalResponder.OnSessionSetup`. The channel math itself
+  is proven, so only the seed is in question.
+
 **Deviation (recorded):** `XmsgLayer` is placed in **`Xmsg.Live`**, not `Xmsg.Protocol` as the
 table in Section 3 proposed. Reason: the TAD session service (`TadTerminalResponder`, its menu and
 frame context) and the byte-verified multi-frame orchestration (`XmsgNode.HandleFrames`) live in

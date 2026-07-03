@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
+using NDInsight.Sintran.Xmsg.Packet;
 using NDInsight.Sintran.Xmsg.SubProtocol;
 
 namespace NDInsight.Sintran.Xmsg.Live.Tad
@@ -224,80 +225,85 @@ namespace NDInsight.Sintran.Xmsg.Live.Tad
 
             outgoing.Add(AssembleDataFrame(ctx, trailer));
 
-            // NOTE: the terminal-data bring-up (DUMM/RESE/MOTD from the session port) is DISABLED.
-            // Replaying the captured session frames crashes 100's XMSG (XXPER) because the session
-            // uses per-session-allocated protocol channels (DB/DC vs DD/DE) and counters that are
-            // NOT recoverable from the one-directional captures — they are assigned by XMSG's
-            // channel allocator (kernel source not in this repo). Sending accept + port-assign only
-            // is the stable state (100 reports "Unable to communicate with this TAD" and stays up).
-            // See SessionBringupFrames / ReplaySessionFrame below for the replay path, kept for when
-            // a bidirectional live capture of the exact session is available. [Blocked: see docs.]
+            // POST-PORT-ASSIGN BRING-UP (derived-channel path).
+            // 100 waits for our session-data burst before it drives TMOD/TTYP -> MOTD (that is the
+            // beep). The OLD approach replayed a canned session's channels/counters, which have the
+            // wrong Base for THIS session and crash 100's XMSG (XXPER). We now COMPUTE the channel
+            // from the universal envelope model instead (VERIFIED: it reproduces the captured
+            // conn-to-d102 DUMM/MOTD frames byte-for-byte). See XmsgEnvelope / CreateSessionData.
             if (SendTerminalBringup)
             {
-                for (int i = 0; i < SessionBringupFrames.Length; i++)
-                {
-                    outgoing.Add(ReplaySessionFrame(SessionBringupFrames[i]));
-                }
+                // Initialise our 102->100 session-data stream to the Base a REAL 100 accepted in the
+                // conn-to-d102 capture: flags1 0x0131 + counter 0xDB = Base 0x020C -> derived channel
+                // DB. Within the stream flags1++ / counter-- holds Base (and the channel) constant.
+                // [LIVE PROBE: if 100 rejects this absolute Base, this pair is the knob to adjust.]
+                _dataFlags1 = 0x0131;
+                _dataCounter = 0xDB;
+
+                // ISOLATION: emit ONLY the first bring-up frame (DUMM) so 100's response — a delivery
+                // ACK (accepted) versus XXPER (rejected) — tells us whether the derived channel/Base
+                // is right BEFORE we send the rest of the burst (ctrl 0x20, RESE, RESE, then MOTD).
+                outgoing.Add(BuildSessionData(
+                    request,
+                    controlService: 0x01080000u,
+                    frameFlags: 0x92,
+                    role: 0x00,
+                    tadPayload: new byte[] { 0x18, 0x00 }));   // TAD DUMM (0x18) count=0
             }
 
             return outgoing;
         }
 
-        // The captured 102->103 session bring-up frames (conn-to-102-from103-via100), in order:
-        // DUMM, 0x20, RESE, RESE, then the combined terminal-setup + MOTD frame. Replayed with our
-        // addressing substituted. [VERIFIED capture bytes.]
-        private static readonly string[] SessionBringupFrames =
-        {
-            "2113000E0067006600060108DD032100920000670245006603130108000000021800",
-            "2113000E0067006600070008DE022100860000670245006603130008000000022000",
-            "2113000E0067006600080108DD012100960000670245006603130108000000021600",
-            "2113000E0067006600090108DD002100920000670245006603130108000000021600",
-            "2113000E00670066000A0108DCFF21009600006702450066031301080000007C0004030100000003010101600D0A2030312E30302E30332020202020203920415052494C202020313939380D0A2053494E5452414E20494949202D205653582F353030204C0D0A2D2D2D20524554524F434F524520454D554C41544544204C2049443A313032202D2D2D0D0A1302000201080D0A454E544552200200",
-        };
+        // Our 102->100 session-data stream sequence: flags1 increments and counter decrements per
+        // frame so that Base = flags1 + counter stays constant (the envelope model). Seeded when the
+        // bring-up starts (see OnSessionSetup).
+        private ushort _dataFlags1;
+        private byte _dataCounter;
 
         /// <summary>
-        /// Re-addresses a captured 102-&gt;103 session frame to our 103-&gt;100 session by patching
-        /// the addressing bytes IN PLACE and keeping every other byte (counter, frame-flags, role,
-        /// protocol channel, XMCSM and the entire TAD trailer/terminal text) exactly as captured.
+        /// Builds one 102-&gt;100 session-data frame on the channel DERIVED from the envelope model
+        /// (<see cref="XmsgEnvelope.DeriveChannel"/> of the current stream Flags1/Counter and the
+        /// XMCSM), addressed to 100's session endpoint, then advances the stream (Flags1++, Counter--
+        /// keeping Base constant). This is the responder counterpart of
+        /// <see cref="XmsgPacketBuilder.CreateSessionData"/>, kept here so the frame flows through the
+        /// existing <see cref="AssembleDataFrame"/> path.
         /// </summary>
-        /// <remarks>
-        /// IMPORTANT: this must NOT go through decode + re-encode. Re-serialising a frame whose
-        /// XMCSM is <c>0x01080000</c> routes the trailer through the XROUT-body path, which drops
-        /// the TAD chain and produces a frame whose XMLEN no longer matches its (missing) trailer —
-        /// a malformed frame that crashes 100's XMSG (XXPER). Byte-patching preserves the trailer,
-        /// and parsing the patched bytes keeps them as the authoritative RawBytes so
-        /// <see cref="XmsgFrame.ToArray"/> reproduces them verbatim.
-        /// </remarks>
-        private XmsgFrame ReplaySessionFrame(string capturedHex)
+        /// <param name="request">The session-setup frame (source addressing = 100's endpoint).</param>
+        /// <param name="controlService">The XMCSM control/service word (selects the class byte).</param>
+        /// <param name="frameFlags">The sub-header frame-flags byte for this frame type.</param>
+        /// <param name="role">The sub-header role byte (0x00 for server data-phase frames).</param>
+        /// <param name="tadPayload">The TAD chain payload bytes.</param>
+        /// <returns>The assembled session-data frame.</returns>
+        private XmsgFrame BuildSessionData(XmsgFrame request, uint controlService, byte frameFlags, byte role, byte[] tadPayload)
         {
-            byte[] b = Convert.FromHexString(capturedHex);
+            ushort f1 = _dataFlags1;
+            byte ctr = _dataCounter;
 
-            // Captured session Flags1 began at 0x0006 (after the asker's 0x0004 connect / 0x0005
-            // setup); ours began at 0x0000 / 0x0001, so our session frames run from 0x0002 =>
-            // subtract 4 from the captured value.
-            ushort captureFlags1 = (ushort)((b[8] << 8) | b[9]);
-            ushort ourFlags1 = (ushort)(captureFlags1 - 4);
+            // VERIFIED envelope identity: Base = f1 + ctr; channel = 0xDE - (XMCSM>>24) - (Base>>8).
+            SintranProtocolId channel = XmsgEnvelope.DeriveChannel(f1, ctr, controlService);
 
-            // Fixed field offsets (SINTRAN header 0-12, XMSG sub-header from 13):
-            //  4-5 dst node | 6-7 src node | 8-9 Flags1 | 18-19 XMDSY | 20-21 XMDPT
-            //  22-23 XMSSY | 24-25 XMSPT.
-            WriteU16(b, 4, _clientSystem);        // dst node   = 100
-            WriteU16(b, 6, _nodeNumber);          // src node   = 103
-            WriteU16(b, 8, ourFlags1);            // Flags1
-            WriteU16(b, 18, _clientSystem);       // XMDSY      = 100
-            WriteU16(b, 20, _clientPort);         // XMDPT      = 100's port
-            WriteU16(b, 22, _nodeNumber);         // XMSSY      = 103
-            WriteU16(b, 24, _sessionWirePort);    // XMSPT      = our session port
+            TadFrameContext ctx = new TadFrameContext
+            {
+                DestinationNode = request.Header.SourceNode,        // 100
+                SourceNode = _nodeNumber,                           // 102
+                DatagramSequence = f1,
+                FrameClass = 0x0108,                                // VERIFIED data-frame class word
+                ProtocolId = channel,                              // DERIVED, not canned
+                Counter = ctr,
+                FrameFlags = frameFlags,
+                Role = role,
+                DestinationSystem = _clientSystem,                   // 100 (learned at connect)
+                DestinationPort = request.SubHeader!.SourcePort,     // 100's session-setup port
+                SourceSystem = _nodeNumber,                          // 102
+                SourcePort = _sessionWirePort,                       // our assigned session port
+                ControlService = controlService,
+            };
 
-            // Parse keeps the patched bytes as RawBytes, so ToArray reproduces them exactly.
-            return XmsgFrame.Parse(b);
-        }
+            // Advance the stream, holding Base constant (flags1++ / counter--).
+            _dataFlags1 = (ushort)(f1 + 1);
+            _dataCounter = (byte)(ctr - 1);
 
-        /// <summary>Writes a 16-bit big-endian value into a buffer at the given offset.</summary>
-        private static void WriteU16(byte[] buffer, int offset, ushort value)
-        {
-            buffer[offset] = (byte)(value >> 8);
-            buffer[offset + 1] = (byte)(value & 0xFF);
+            return AssembleDataFrame(ctx, tadPayload);
         }
 
         /// <summary>

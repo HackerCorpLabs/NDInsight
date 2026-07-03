@@ -109,7 +109,13 @@ internal static class Program
             new RoutingTableEntry(node, XroutConnectionType.Local, node, 0, 0),
         };
         layer.RoutingTable = new InMemoryRoutingTable(entries);
-        layer.TadResponder = new NDInsight.Sintran.Xmsg.Live.Tad.TadTerminalResponder(node, () => DateTime.Now);
+        NDInsight.Sintran.Xmsg.Live.Tad.TadTerminalResponder tad =
+            new NDInsight.Sintran.Xmsg.Live.Tad.TadTerminalResponder(node, () => DateTime.Now);
+        // PROBE: after port-assign, emit the first bring-up frame (DUMM) on the DERIVED channel so
+        // 100 stops beeping and either ACKs it (Base accepted -> extend the burst) or XXPERs (adjust
+        // the seed Base in TadTerminalResponder.OnSessionSetup). One frame at a time by design.
+        tad.SendTerminalBringup = true;
+        layer.TadResponder = tad;
         layer.AcknowledgeTadFrames = true;
 
         // UP wiring: a delivered link payload is classified, then (for XMSG) parsed by the codec,
