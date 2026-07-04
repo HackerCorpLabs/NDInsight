@@ -266,14 +266,17 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             // terminal data rides 0xDD (NOT DB: DB was an epoch-2 artifact of a high running sequence).
             _seed = XmsgEnvelope.LearnSeed(
                 request.Header.Flags1, request.SubHeader.Counter, request.Header.Flags2);
-            // Start our outgoing datagram sequence where our previous frames to THIS node left off.
-            // 100 keeps a persistent per-node-pair expected-from-us (XSRSQ) = the count of Data frames
-            // we have sent it; it does NOT reset when we restart. Resetting to 0x0000 makes our frames
-            // behind-sequence (silently dropped) — the Run B failure. The store persists our next
-            // Flags1 per remote node across restarts, so we continue in step. A first-ever contact
-            // (no stored value) correctly starts at 0x0000. See
-            // XMSG-SEQUENCE-RESTART-ANSWER-2026-07-03.md option (a).
-            _respFlags1 = _sequenceStore.LoadNextFlags1(_clientSystem);
+            // Start our OWN outgoing datagram sequence at 0x0000 for THIS connect, and count up +1 per
+            // frame we originate (accept, port-assign, and every terminal-data frame share it — one
+            // sequence). This is the VERIFIED-LIVE rule (XMSG-PROTOCOL.md §18.5, §18.7): a responder
+            // does NOT mirror 100's sequence and does NOT resume a persisted value; a fresh direction
+            // is epoch 0, so the accept rides 0xDA (NOT the epoch-1 0xD9). The earlier persist-and-
+            // resume scheme was based on the SUPERSEDED "behind-sequence drop" diagnosis; §18.5 corrects
+            // it (the failures were a wrong Counter, not a stale Flags1). Resuming a climbed value put
+            // the accept at epoch 1 (0xD9) which crashed 100's XMSG with the fatal 24B (XXPER) — a
+            // discontinuity in our stream. The GOD-LLM epoch-1/epoch-2 capture analysis confirms: only
+            // the 0x03 secure-ACK follows the asker's epoch; every data frame uses our OWN Flags1.
+            _respFlags1 = 0x0000;
 
             // Retain the connect and the accept's sequence so a XENSE (accept ahead of 100's expected)
             // can be recovered by stepping the accept down (ResyncAcceptDown), no restart needed.

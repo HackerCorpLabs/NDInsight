@@ -11,9 +11,10 @@ using Xunit;
 namespace NDInsight.Sintran.Xmsg.Node.Tests
 {
     /// <summary>
-    /// Verifies that our outgoing datagram sequence persists per remote node across restarts, so a
-    /// restarted responder continues in step with 100's persistent expected-from-us (XSRSQ) instead
-    /// of resetting to 0x0000 and being silently dropped (the Run B failure).
+    /// Verifies the <see cref="FileResponderSequenceStore"/> load/save round-trip and the ND-100
+    /// sequence rule (XMSG-PROTOCOL.md §18.5): a responder runs its OWN Flags1 from 0x0000 per connect
+    /// and does NOT resume a persisted value — resuming a climbed value put the accept at epoch 1 and
+    /// crashed 100's XMSG (fatal 24B).
     /// </summary>
     public sealed class ResponderSequenceStoreTests
     {
@@ -62,25 +63,22 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         [Fact]
-        public void Responder_ContinuesFromStoredSequence()
+        public void Responder_StartsAtZero_IgnoringStoredSequence()
         {
-            // 100 expects our next frame at 0x0007 (we sent 7 before, across a prior run).
+            // Even with a climbed stored value, the accept MUST start at Flags1 0x0000 (§18.5): the
+            // responder runs its OWN fresh sequence per connect and never resumes a persisted value.
+            // Resuming a high value (e.g. 0x0019) put the accept at epoch 1 (channel 0xD9) and crashed
+            // 100's XMSG with the fatal 24B (XXPER) — a discontinuity in our stream.
             MemoryStore store = new MemoryStore();
-            store.SaveNextFlags1(100, 0x0007);   // 100 = 0x0064, the connect's source SYSTEM
+            store.SaveNextFlags1(100, 0x0019);   // a climbed value from prior sessions
 
             TadTerminalResponder responder = new TadTerminalResponder(103, () => new DateTime(2026, 7, 2), store);
             System.Collections.Generic.IReadOnlyList<XmsgFrame> frames =
                 responder.OnConnect(XmsgFrame.Parse(Convert.FromHexString(ConnectHex)));
 
             byte[] accept = frames[0].ToArray();
-            // The accept must carry Flags1 0x0007 (continuing our sequence), NOT 0x0000. Flags1 is at
-            // header offset 8-9.
-            Assert.Equal(0x0007, (accept[8] << 8) | accept[9]);
-            // The store does NOT advance on send (that over-counted un-received frames and drifted).
-            Assert.Equal(0x0007, store.LoadNextFlags1(100));
-            // It advances only when 100 confirms delivery: an ACK echoing Flags1 0x0007 -> next 0x0008.
-            responder.ConfirmDelivered(100, 0x0007);
-            Assert.Equal(0x0008, store.LoadNextFlags1(100));
+            // Flags1 (header offset 8-9) is 0x0000, so the accept rides epoch 0 (channel 0xDA), never 0xD9.
+            Assert.Equal(0x0000, (accept[8] << 8) | accept[9]);
         }
 
         [Fact]
