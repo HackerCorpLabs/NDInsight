@@ -109,6 +109,38 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         }
 
         /// <summary>
+        /// The exact logged bodies of the live username-response burst (ns=5 routing ack, ns=6
+        /// username-accepted, ns=7 password prompt). 100 accepted ns=5 and ns=7 but sent REJ nr=6,
+        /// so it treated ns=6 as not-received. This proves whether our ENCODER produced a valid HDLC
+        /// frame for ns=6 (good FCS, clean stuffing) - if it round-trips, the corruption is NOT in the
+        /// encoder and 100's rejection is at a higher level or in the transmit path.
+        /// </summary>
+        [Fact]
+        public void LiveUsernameBurst_AllThreeFrames_AreValidHdlc()
+        {
+            string[] bodiesHex =
+            {
+                "09CA211300030064006600050001DE19",                                                                    // ns=5 routing ack (accepted)
+                "09CC2113000E0064006600070108DD0521009600006402AA0066021101080000000B01020D0A130200030E0100",          // ns=6 username-accepted (REJ'd)
+                "09CE2113000E0064006600080108DD0421009600006402AA00660211010800000012010A50415353574F52443A20000301FF0200", // ns=7 password prompt (accepted)
+            };
+
+            for (int i = 0; i < bodiesHex.Length; i++)
+            {
+                byte[] body = Convert.FromHexString(bodiesHex[i]);
+                byte[] wire = HdlcEncoder.Encode(body);
+
+                IReadOnlyList<byte[]> frames = HdlcDeframer.SplitFrames(wire);
+                Assert.Single(frames);
+                Assert.True(Fcs16.IsValid(frames[0]), $"frame index {i} produced an INVALID FCS");
+
+                byte[] recovered = new byte[body.Length];
+                Array.Copy(frames[0], recovered, body.Length);
+                Assert.Equal(body, recovered);
+            }
+        }
+
+        /// <summary>
         /// Searches a byte array for a contiguous subsequence.
         /// </summary>
         /// <param name="haystack">
