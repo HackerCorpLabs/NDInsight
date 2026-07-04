@@ -105,6 +105,11 @@ internal static class Program
         // the file receive the same timestamped stream.
         Console.SetOut(new TimestampWriter(sink));
 
+        // Startup banner: version + build time, and the full folders the config and log live in. This
+        // lands in the log file too (it is printed after logging is wired), so a captured log records
+        // exactly which build produced it and where its inputs/outputs are.
+        PrintStartupBanner(resolvedConfigPath, fileWriter);
+
         // Leading "client" keyword runs the CONNECT-TO CLIENT (asker) instead of the responder:
         //   Xmsg.Live.Runner client [host] [port] [ownNode] [targetName] [hostNode]
         // It brings up LAPB, sends a connect-to letter naming <targetName>, drives the TAD asker
@@ -211,6 +216,40 @@ internal static class Program
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Prints the startup banner: the runner version and build time, plus the full folders (and paths)
+    /// of the config file and the log file.
+    /// </summary>
+    /// <param name="configPath">
+    /// The resolved topology config file path (its folder is reported).
+    /// </param>
+    /// <param name="fileWriter">
+    /// The active log writer, or <c>null</c> when file logging is off (then the log folder is reported as off).
+    /// </param>
+    private static void PrintStartupBanner(string configPath, RotatingFileWriter? fileWriter)
+    {
+        System.Reflection.Assembly asm = System.Reflection.Assembly.GetExecutingAssembly();
+        Version? version = asm.GetName().Version;
+
+        // Build time = the assembly file's last-write time; empty Location (single-file publish) -> unknown.
+        string location = asm.Location;
+        string built = !string.IsNullOrEmpty(location) && System.IO.File.Exists(location)
+            ? System.IO.File.GetLastWriteTime(location).ToString("yyyy-MM-dd HH:mm:ss")
+            : "unknown";
+
+        string configFolder = System.IO.Path.GetDirectoryName(configPath) ?? configPath;
+        string logFolder = fileWriter != null
+            ? (System.IO.Path.GetDirectoryName(fileWriter.FilePath) ?? fileWriter.FilePath)
+            : "(file logging off)";
+        string logFile = fileWriter != null ? fileWriter.FilePath : "(file logging off)";
+
+        Console.WriteLine($"[runner] Xmsg.Live.Runner v{version} built {built}");
+        Console.WriteLine($"[runner] config folder: {configFolder}");
+        Console.WriteLine($"[runner] config file:   {configPath}");
+        Console.WriteLine($"[runner] log folder:    {logFolder}");
+        Console.WriteLine($"[runner] log file:      {logFile}");
     }
 
     /// <summary>

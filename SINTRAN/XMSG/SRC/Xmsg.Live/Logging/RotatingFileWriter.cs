@@ -71,6 +71,14 @@ namespace NDInsight.Sintran.Xmsg.Live.Logging
         }
 
         /// <summary>
+        /// Gets the full path of the live log file.
+        /// </summary>
+        public string FilePath
+        {
+            get { return _path; }
+        }
+
+        /// <summary>
         /// Writes a single character, flushing and rotating when a newline crosses the size limit.
         /// </summary>
         /// <param name="value">

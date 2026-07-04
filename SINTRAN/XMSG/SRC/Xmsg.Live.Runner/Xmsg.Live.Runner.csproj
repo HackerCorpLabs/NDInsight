@@ -7,6 +7,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>Xmsg.Live.Runner</AssemblyName>
     <RootNamespace>NDInsight.Sintran.Xmsg.Live.Runner</RootNamespace>
+    <Version>1.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
