@@ -379,9 +379,14 @@ namespace NDInsight.Sintran.Xmsg.Live
 
             if (_t3Running && currentTicks >= _t3Deadline && _state == LapbLayerState.Connected)
             {
-                // Idle keepalive (spec 5.2): poll the peer, reset the retry counter, await the response.
+                // Idle keepalive (spec 5.2): poll the peer with a single RR(P=1), reset the retry
+                // counter, and await the response on T1. STOP T3 here: without this its deadline stays
+                // in the past and the keepalive re-fires on EVERY tick (the once-per-second RR flood).
+                // T3 re-arms when the peer answers (AcknowledgeThrough restarts it); if the peer never
+                // answers, T1/N2 escalate to re-establishment - not a per-tick RR storm.
                 EmitSupervisory(RrNibble, pollFinal: true);
                 _retry = 0;
+                StopT3();
                 StartT1(currentTicks);
                 acted = true;
             }

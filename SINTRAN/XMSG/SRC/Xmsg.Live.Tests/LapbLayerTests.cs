@@ -405,6 +405,44 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         }
 
         /// <summary>
+        /// The T3 idle keepalive fires at most ONCE per T3 period and re-arms only when the peer answers -
+        /// it must NOT re-fire on every tick (that was the once-per-second RR flood). Regression guard for
+        /// the "why is an RR sent every second" bug.
+        /// </summary>
+        [Fact]
+        public void T3Keepalive_FiresOncePerPeriod_NotEveryTick()
+        {
+            List<byte[]> sent = new List<byte[]>();
+            // Short T3 (100) so the keepalive is due quickly; long T1 (3000) so it does not interfere.
+            LapbLayer link = NewConnected(102, sent, null, new LapbOptions(t1: 3000, t3: 100));
+            sent.Clear();
+
+            // Below the T3 deadline: the link is silent.
+            Assert.False(link.Tick(50));
+            Assert.Empty(sent);
+
+            // At the T3 deadline: exactly ONE RR(P=1) keepalive carrying our node number.
+            Assert.True(link.Tick(100));
+            Assert.Equal(new byte[] { 0x09, 0x11, Node102Hi, Node102Lo }, Assert.Single(sent));   // RR P=1 N(R)=0
+            sent.Clear();
+
+            // Every later tick in the same idle window emits NOTHING - the flood is gone (before the fix
+            // each of these ticks re-fired the keepalive because T3's deadline stayed in the past).
+            link.Tick(150);
+            link.Tick(199);
+            link.Tick(250);
+            Assert.Empty(sent);
+
+            // The peer answers the poll -> T3 re-arms from that moment; the next keepalive is one T3 later.
+            DeliverAt(link, 300, 0x09, 0x01, Node100Hi, Node100Lo);   // peer RR N(R)=0
+            sent.Clear();
+            link.Tick(399);
+            Assert.Empty(sent);                                        // 399 < 300 + 100
+            Assert.True(link.Tick(400));                               // 400 >= 300 + 100 -> next keepalive
+            Assert.Equal(new byte[] { 0x09, 0x11, Node102Hi, Node102Lo }, Assert.Single(sent));
+        }
+
+        /// <summary>
         /// Returns the most recently emitted I-frame body (control bit 0 clear) from a capture list.
         /// </summary>
         /// <param name="sent">
