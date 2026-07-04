@@ -6,6 +6,8 @@ using NDInsight.Sintran.Xmsg.Live;
 
 using Xunit;
 
+using static NDInsight.Sintran.Xmsg.Live.Tests.LapbTestKit;
+
 namespace NDInsight.Sintran.Xmsg.Live.Tests
 {
     /// <summary>
@@ -18,12 +20,6 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
     /// </summary>
     public sealed class LapbLayerTests
     {
-        // Node numbers as 16-bit big-endian info fields (spec 2.3.1).
-        private const byte Node100Hi = 0x00;
-        private const byte Node100Lo = 0x64;
-        private const byte Node102Hi = 0x00;
-        private const byte Node102Lo = 0x66;
-
         /// <summary>
         /// Connect emits a SABM (P=1) carrying our node number and enters SABM_SENT (spec 3.1).
         /// </summary>
@@ -368,82 +364,6 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             // Each stamps its OWN node number on its RR acks.
             Assert.Equal(new byte[] { 0x09, 0x41, Node102Hi, Node102Lo }, sentA[sentA.Count - 1]);   // node 102
             Assert.Equal(new byte[] { 0x09, 0x21, 0x00, 0x67 }, sentB[sentB.Count - 1]);             // node 103
-        }
-
-        /// <summary>
-        /// Builds a link with the given node number that captures transmitted frames.
-        /// </summary>
-        /// <param name="ownNode">
-        /// This node's number.
-        /// </param>
-        /// <param name="sent">
-        /// The list receiving every transmitted LAPB body.
-        /// </param>
-        /// <param name="options">
-        /// Optional timer/window configuration; defaults to the spec defaults.
-        /// </param>
-        /// <returns>
-        /// A new, disconnected <see cref="LapbLayer"/>.
-        /// </returns>
-        private static LapbLayer NewLink(ushort ownNode, List<byte[]> sent, LapbOptions? options = null)
-        {
-            LapbLayer link = new LapbLayer(ownNode, options);
-            link.OnTransmit += delegate (byte[] body) { sent.Add(body); };
-            return link;
-        }
-
-        /// <summary>
-        /// Builds a link already CONNECTED as the passive answerer to a peer (node 100) SABM.
-        /// </summary>
-        /// <param name="ownNode">
-        /// This node's number.
-        /// </param>
-        /// <param name="sent">
-        /// The list receiving every transmitted LAPB body.
-        /// </param>
-        /// <param name="got">
-        /// An optional list receiving every delivered information field.
-        /// </param>
-        /// <param name="options">
-        /// Optional timer/window configuration; defaults to the spec defaults.
-        /// </param>
-        /// <returns>
-        /// A connected <see cref="LapbLayer"/> with V(S) = V(R) = V(A) = 0 and neighbour id 100.
-        /// </returns>
-        private static LapbLayer NewConnected(ushort ownNode, List<byte[]> sent, List<byte[]>? got, LapbOptions? options = null)
-        {
-            LapbLayer link = NewLink(ownNode, sent, options);
-            if (got != null)
-            {
-                link.OnInformation += delegate (ReadOnlyMemory<byte> info) { got.Add(info.ToArray()); };
-            }
-
-            Deliver(link, 0x01, 0x3F, Node100Hi, Node100Lo);   // peer (node 100) SABM -> Connected
-            return link;
-        }
-
-        /// <summary>
-        /// Delivers a frame built from an address, control byte and info bytes at tick 0.
-        /// </summary>
-        /// <param name="link">
-        /// The link under test.
-        /// </param>
-        /// <param name="address">
-        /// The LAPB address byte.
-        /// </param>
-        /// <param name="control">
-        /// The LAPB control byte.
-        /// </param>
-        /// <param name="info">
-        /// The information field bytes.
-        /// </param>
-        private static void Deliver(LapbLayer link, byte address, byte control, params byte[] info)
-        {
-            byte[] frameBytes = new byte[2 + info.Length + 2];
-            frameBytes[0] = address;
-            frameBytes[1] = control;
-            Array.Copy(info, 0, frameBytes, 2, info.Length);
-            link.OnFrameReceived(new LapbFrame(default, frameBytes), currentTicks: 0);
         }
     }
 }
