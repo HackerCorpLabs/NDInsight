@@ -65,24 +65,25 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         [Fact]
-        public void Responder_ContinuesFromStoredSequence()
+        public void Responder_StartsAtZero_IgnoringStoredSequence()
         {
-            // The accept CONTINUES our persisted per-link outgoing Flags1 - it is NEVER reset per connect
-            // (GOD-LLM answer, capture-VERIFIED; XMSG-PROTOCOL.md section 18.8). Hard-resetting to 0x0000
-            // against a CLIMBED peer lands BEHIND its expected-from-us (XSRSQ) and the accept is silently
-            // dropped (LAPB RR but no datagram ACK, no session-setup) - the live stall on 2026-07-04. A
-            // correctly-continued value is safe at any epoch; the historical fatal-24B crash was an ECHO
-            // of the asker's Flags1 (a wrong value), not a continued own value.
+            // The accept starts at Flags1 0x0000 (epoch 0 -> DA), regardless of any climbed stored value.
+            // REVERTED from continue-from-store: continuing the persisted value crashed 100 with the fatal
+            // 24B (XXPER) LIVE 2026-07-04 when the stored value (0x0015) coincided with 100's own connect
+            // Flags1 - the symmetric-history trap - making our accept F1 equal the connect F1 at epoch 1
+            // (D9), the exact echo the 24B punishes. 0x0000 never coincides with a climbed connect. The
+            // clean climbed-reconnect rule that avoids BOTH the stall (behind) and the crash (echo) is
+            // still open - see the XMSG-CLIMBED-RECONNECT GOD-LLM question.
             MemoryStore store = new MemoryStore();
-            store.SaveNextFlags1(100, 0x0004);   // continued value from prior sessions on this link
+            store.SaveNextFlags1(100, 0x0015);   // a climbed value that would collide with 100's connect
 
             TadTerminalResponder responder = new TadTerminalResponder(103, () => new DateTime(2026, 7, 2), store);
             System.Collections.Generic.IReadOnlyList<XmsgFrame> frames =
                 responder.OnConnect(XmsgFrame.Parse(Convert.FromHexString(ConnectHex)));
 
             byte[] accept = frames[0].ToArray();
-            // The accept's Flags1 (header offset 8-9) equals the stored value, NOT 0x0000.
-            Assert.Equal(0x0004, (accept[8] << 8) | accept[9]);
+            // Flags1 (header offset 8-9) is 0x0000 - epoch 0, channel DA, never the crashing D9 echo.
+            Assert.Equal(0x0000, (accept[8] << 8) | accept[9]);
         }
 
         [Fact]

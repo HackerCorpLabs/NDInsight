@@ -284,22 +284,18 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             // terminal data rides 0xDD (NOT DB: DB was an epoch-2 artifact of a high running sequence).
             _seed = XmsgEnvelope.LearnSeed(
                 request.Header.Flags1, request.SubHeader.Counter, request.Header.Flags2);
-            // CONTINUE our per-remote-node outgoing Flags1 from the persisted store - NEVER reset per
-            // connect (GOD-LLM, capture-VERIFIED; XMSG-PROTOCOL.md section 18.8 warning box). The
-            // outgoing sequence is ONE counter per remote node, continued across sessions, DCON
-            // teardowns, LAPB re-SABMs and process restarts; it resets ONLY on first contact or a
-            // ReachabilityRequest from 100 (its XMSG restarted - handled by ResetSequence). 100's
-            // expected-from-us (XSRSQ) is a pure continuation of our direction = our last ACKed Flags1 +
-            // 1, which is exactly what the store tracks (it advances on 100's 0x03 ACKs in
-            // ConfirmDelivered, never on send). Hard-resetting to 0x0000 here made every reconnect
-            // against a CLIMBED 100 land BEHIND its XSRSQ, so the accept was silently dropped (LAPB RR
-            // but no datagram ACK, no session-setup) - the live stall on 2026-07-04. A correctly
-            // CONTINUED value is safe at ANY epoch (real epoch-1 accepts on D9 are accepted); the earlier
-            // fatal-24B crash was an ECHO of the asker's Flags1 (a wrong value), NOT a continued own
-            // value. If the store and 100 ever disagree the accept self-heals: silence => we are behind
-            // => jump ahead to force a recoverable XENSE then step down (ResyncAcceptDown).
-            _respFlags1 = _sequenceStore.LoadNextFlags1(_clientSystem);
-            Log?.Invoke($"[responder] connect from node {_clientSystem}: continuing outgoing Flags1 at 0x{_respFlags1:X4} (persisted; no per-connect reset)");
+            // Start our OWN outgoing Flags1 at 0x0000 for THIS connect (epoch 0 -> accept on DA).
+            // REVERTED from continue-from-store: the GOD-LLM "continue the persisted per-link counter"
+            // rule crashed 100 with the fatal 24B (XXPER) LIVE on 2026-07-04. The persisted value (0x0015)
+            // coincided with 100's own connect Flags1 (0x0015, on D9) - the symmetric-history trap - so
+            // our accept F1 EQUALLED the connect F1 at epoch 1 (D9), which is exactly the echo the 24B
+            // punishes. Resetting to 0x0000 keeps the accept at epoch 0 (DA) and never coincides with a
+            // climbed connect. Trade-off (UNRESOLVED, see XMSG-CLIMBED-RECONNECT-* GOD-LLM questions):
+            // against a CLIMBED 100 this lands BEHIND its expected-from-us and the accept is silently
+            // dropped (a recoverable STALL) - but a stall is far better than a 24B crash that kills 100's
+            // XMSG. The clean climbed-reconnect rule is still open.
+            _respFlags1 = 0x0000;
+            Log?.Invoke($"[responder] connect from node {_clientSystem}: outgoing Flags1 = 0x0000 (epoch-0 accept on DA; continue-from-store crashed 100 with 24B, reverted)");
 
             // Retain the connect and the accept's sequence so a XENSE (accept ahead of 100's expected)
             // can be recovered by stepping the accept down (ResyncAcceptDown), no restart needed.
