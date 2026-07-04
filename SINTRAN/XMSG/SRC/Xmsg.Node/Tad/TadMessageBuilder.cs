@@ -145,6 +145,79 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         }
 
         /// <summary>
+        /// Appends a TMOD (terminal-mode) message carrying a 1-byte flags value.
+        /// </summary>
+        /// <param name="flags">
+        /// The terminal-mode flag bits.
+        /// </param>
+        /// <returns>
+        /// This builder, for chaining.
+        /// </returns>
+        public TadMessageBuilder Tmod(byte flags)
+        {
+            Span<byte> data = stackalloc byte[1];
+            data[0] = flags;
+            return Append(TadOp.Tmod, data);
+        }
+
+        /// <summary>
+        /// Appends a TTYP (terminal-type) message carrying a 16-bit type id (big-endian).
+        /// </summary>
+        /// <param name="terminalType">
+        /// The terminal-type identifier.
+        /// </param>
+        /// <returns>
+        /// This builder, for chaining.
+        /// </returns>
+        public TadMessageBuilder Ttyp(ushort terminalType)
+        {
+            Span<byte> data = stackalloc byte[2];
+            data[0] = (byte)(terminalType >> 8);
+            data[1] = (byte)terminalType;
+            return Append(TadOp.Ttyp, data);
+        }
+
+        /// <summary>
+        /// Appends a DESC (define-escape-character) message carrying the escape byte.
+        /// </summary>
+        /// <param name="escapeCharacter">
+        /// The escape character.
+        /// </param>
+        /// <returns>
+        /// This builder, for chaining.
+        /// </returns>
+        public TadMessageBuilder Desc(byte escapeCharacter)
+        {
+            Span<byte> data = stackalloc byte[1];
+            data[0] = escapeCharacter;
+            return Append(TadOp.Desc, data);
+        }
+
+        /// <summary>
+        /// Appends an OPSV (OS / protocol version) handshake message.
+        /// </summary>
+        /// <param name="osVersion">
+        /// The SINTRAN OS version code.
+        /// </param>
+        /// <param name="osSubVersion">
+        /// The OS sub-version.
+        /// </param>
+        /// <param name="protocolVersion">
+        /// The TAD protocol version (gates v4+ features).
+        /// </param>
+        /// <returns>
+        /// This builder, for chaining.
+        /// </returns>
+        public TadMessageBuilder Opsv(byte osVersion, byte osSubVersion, byte protocolVersion)
+        {
+            Span<byte> data = stackalloc byte[3];
+            data[0] = osVersion;
+            data[1] = osSubVersion;
+            data[2] = protocolVersion;
+            return Append(TadOp.Opsv, data);
+        }
+
+        /// <summary>
         /// Appends a DUMM (dummy / filler) message.
         /// </summary>
         /// <returns>
