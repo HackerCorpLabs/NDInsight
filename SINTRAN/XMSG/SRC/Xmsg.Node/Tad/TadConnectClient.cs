@@ -134,9 +134,13 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         public XmsgFrame BuildConnect(string remoteName)
         {
             byte[] letter = TadSession.BuildDirectoryLetterBody(remoteName);
-            // role low nibble 4 = asker; frame-class 0x0400 (control), XMCSM XSLET.
-            return Assemble(frameClass: 0x0400, controlService: XroutSetupControlService,
-                frameFlags: 0x86, role: 0xE4, sourcePort: _clientPort, destinationPort: 0x0000, payload: letter);
+            // Connect letter: XMCSM XSLET (frame-class 0x0400 is its high half); role 0xE4 =
+            // WaitForTransfer|WakeOnStatus|HighPriority|RoutedLetter; frame-flags Setup 0x86.
+            return Assemble(controlService: XroutSetupControlService,
+                frameFlags: (byte)XmsgFrameFlags.Setup,
+                role: (byte)(XmsgSendOptions.WaitForTransfer | XmsgSendOptions.WakeOnStatus
+                    | XmsgSendOptions.HighPriority | XmsgSendOptions.RoutedLetter),
+                sourcePort: _clientPort, destinationPort: 0x0000, payload: letter);
         }
 
         /// <summary>
@@ -153,8 +157,11 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                 .Raw(0x1C, new byte[] { 0x00 })
                 .Raw(0xFF, ReadOnlySpan<byte>.Empty)
                 .Build();
-            return Assemble(frameClass: 0x0400, controlService: SessionSetupControlService,
-                frameFlags: 0x86, role: 0x84, sourcePort: _clientPort, destinationPort: 0x0156, payload: tad);
+            // Asker data role 0x84 = WaitForTransfer|RoutedLetter; frame-flags Setup 0x86.
+            return Assemble(controlService: SessionSetupControlService,
+                frameFlags: (byte)XmsgFrameFlags.Setup,
+                role: (byte)(XmsgSendOptions.WaitForTransfer | XmsgSendOptions.RoutedLetter),
+                sourcePort: _clientPort, destinationPort: 0x0156, payload: tad);
         }
 
         /// <summary>
@@ -173,8 +180,11 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                 .Desc(0x1B)
                 .Opsv(0x4C, 0x01, 0x04)
                 .Build();
-            return Assemble(frameClass: 0x0108, controlService: TerminalDataControlService,
-                frameFlags: 0x86, role: 0x84, sourcePort: _clientPort, destinationPort: _serverSessionPort, payload: tad);
+            // Asker data role 0x84 = WaitForTransfer|RoutedLetter; frame-flags Setup 0x86.
+            return Assemble(controlService: TerminalDataControlService,
+                frameFlags: (byte)XmsgFrameFlags.Setup,
+                role: (byte)(XmsgSendOptions.WaitForTransfer | XmsgSendOptions.RoutedLetter),
+                sourcePort: _clientPort, destinationPort: _serverSessionPort, payload: tad);
         }
 
         /// <summary>
@@ -190,8 +200,11 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         public XmsgFrame BuildInput(string text)
         {
             byte[] tad = new TadMessageBuilder().BdatText(text).Build();
-            return Assemble(frameClass: 0x0108, controlService: TerminalDataControlService,
-                frameFlags: 0x96, role: 0x84, sourcePort: _clientPort, destinationPort: _serverSessionPort, payload: tad);
+            // Asker data role 0x84 = WaitForTransfer|RoutedLetter; frame-flags DataA 0x96.
+            return Assemble(controlService: TerminalDataControlService,
+                frameFlags: (byte)XmsgFrameFlags.DataA,
+                role: (byte)(XmsgSendOptions.WaitForTransfer | XmsgSendOptions.RoutedLetter),
+                sourcePort: _clientPort, destinationPort: _serverSessionPort, payload: tad);
         }
 
         /// <summary>
@@ -200,7 +213,8 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <returns>The ESCA frame.</returns>
         public XmsgFrame BuildEsca()
         {
-            return BuildControl(TadOp.Esca, frameClass: 0x0008, controlService: (uint)XmcsmService.BareTadControl, role: 0x94);
+            return BuildControl(TadOp.Esca, controlService: (uint)XmcsmService.BareTadControl,
+                role: (byte)(XmsgSendOptions.WaitForTransfer | XmsgSendOptions.Bounce | XmsgSendOptions.RoutedLetter));
         }
 
         /// <summary>
@@ -209,7 +223,8 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <returns>The RECO frame.</returns>
         public XmsgFrame BuildReco()
         {
-            return BuildControl(TadOp.Reco, frameClass: 0x0108, controlService: TerminalDataControlService, role: 0x94);
+            return BuildControl(TadOp.Reco, controlService: TerminalDataControlService,
+                role: (byte)(XmsgSendOptions.WaitForTransfer | XmsgSendOptions.Bounce | XmsgSendOptions.RoutedLetter));
         }
 
         /// <summary>
@@ -219,7 +234,8 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <returns>The CERS frame.</returns>
         public XmsgFrame BuildCers()
         {
-            return BuildControl(TadOp.Cers, frameClass: 0x0108, controlService: TerminalDataControlService, role: 0x94);
+            return BuildControl(TadOp.Cers, controlService: TerminalDataControlService,
+                role: (byte)(XmsgSendOptions.WaitForTransfer | XmsgSendOptions.Bounce | XmsgSendOptions.RoutedLetter));
         }
 
         /// <summary>
@@ -228,7 +244,8 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <returns>The DUMM frame.</returns>
         public XmsgFrame BuildDumm()
         {
-            return BuildControl(TadOp.Dumm, frameClass: 0x0108, controlService: TerminalDataControlService, role: 0x94);
+            return BuildControl(TadOp.Dumm, controlService: TerminalDataControlService,
+                role: (byte)(XmsgSendOptions.WaitForTransfer | XmsgSendOptions.Bounce | XmsgSendOptions.RoutedLetter));
         }
 
         /// <summary>
@@ -238,21 +255,28 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <returns>The DCON frame.</returns>
         public XmsgFrame BuildDcon()
         {
-            return BuildControl(TadOp.Dcon, frameClass: 0x0008, controlService: (uint)XmcsmService.BareTadControl, role: 0x94);
+            return BuildControl(TadOp.Dcon, controlService: (uint)XmcsmService.BareTadControl,
+                role: (byte)(XmsgSendOptions.WaitForTransfer | XmsgSendOptions.Bounce | XmsgSendOptions.RoutedLetter));
         }
 
         /// <summary>
         /// Builds a single-message control frame (one empty TAD message).
         /// </summary>
         /// <param name="opcode">The TAD opcode.</param>
-        /// <param name="frameClass">The Flags2 frame-class word.</param>
-        /// <param name="controlService">The XMCSM control/service word.</param>
+        /// <param name="controlService">The XMCSM control/service word (its high half is the frame-class).</param>
         /// <param name="role">The sub-header role byte.</param>
         /// <returns>The assembled control frame.</returns>
-        private XmsgFrame BuildControl(byte opcode, ushort frameClass, uint controlService, byte role)
+        private XmsgFrame BuildControl(byte opcode, uint controlService, byte role)
         {
             byte[] tad = new TadMessageBuilder().Raw(opcode, ReadOnlySpan<byte>.Empty).Build();
-            return Assemble(frameClass, controlService, frameFlags: 0x96, role,
+            // Frame-flags per frame class (GOD LLM correction, spec 22.6): the bare-TAD control class
+            // (ESCA, DCON) rides ControlBare 0x82; the terminal-data control class (RECO, CERS, DUMM)
+            // rides DataA 0x96. The old code emitted 0x96 for ESCA/DCON too, which did NOT byte-match
+            // the captures - fixed here.
+            byte frameFlags = controlService == (uint)XmcsmService.BareTadControl
+                ? (byte)XmsgFrameFlags.ControlBare
+                : (byte)XmsgFrameFlags.DataA;
+            return Assemble(controlService, frameFlags, role,
                 sourcePort: _clientPort, destinationPort: _serverSessionPort, payload: tad);
         }
 
@@ -280,11 +304,8 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <summary>
         /// Assembles one client frame with the shared seed-model envelope, then advances Flags1.
         /// </summary>
-        /// <param name="frameClass">
-        /// The Flags2 frame-class word (also the XMCSM top half).
-        /// </param>
         /// <param name="controlService">
-        /// The XMCSM control/service word.
+        /// The XMCSM control/service word (its high half is the derived frame-class).
         /// </param>
         /// <param name="frameFlags">
         /// The sub-header frame-flags byte.
@@ -305,9 +326,14 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// The assembled frame.
         /// </returns>
         private XmsgFrame Assemble(
-            ushort frameClass, uint controlService, byte frameFlags, byte role,
+            uint controlService, byte frameFlags, byte role,
             ushort sourcePort, ushort destinationPort, byte[] payload)
         {
+            // On data frames the SINTRAN Flags2 frame-class IS the top 16 bits of the XMCSM word
+            // (VERIFIED empirically, 601/601 data frames). Derive it here so it is never a separate
+            // hand-entered value. See XMSG-PROTOCOL.md section 18.4.
+            ushort frameClass = (ushort)(controlService >> 16);
+
             ushort f1 = _flags1;
             byte counter = XmsgEnvelope.ComputeCounter(_seed, f1, frameClass);
             SintranProtocolId channel = XmsgEnvelope.DeriveChannel(_seed, f1, frameClass, controlService);

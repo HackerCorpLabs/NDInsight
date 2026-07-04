@@ -226,8 +226,11 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             return frame != null
                 && frame.SubHeader != null
                 && frame.SubHeader.ControlService == SystemTadControlService
-                // role low-nibble 4 = asker (the connecting side). VERIFIED nibble convention.
-                && (frame.SubHeader.Role & 0x0F) == 0x04;
+                // The connect letter is a routed XROUT letter (XFROU set). The old "(role & 0x0F) == 4 =
+                // asker" reading was wrong (bit 0x04 is XFROU "routed", not "asker" - the host's own 0xFD
+                // notify rides role 0x54 which also sets it); the XsletLetter XMCSM above is what actually
+                // identifies the connect. See XMSG-PROTOCOL.md section 18.4 / XmsgSendOptions.
+                && (frame.SubHeader.Role & (byte)XmsgSendOptions.RoutedLetter) != 0;
         }
 
         /// <summary>
@@ -363,10 +366,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             // gives Counter = seed - 0x0001 and channel DA. Same bytes the echo scheme produced.
             outgoing.Add(BuildResponderFrame(
                 request,
-                frameClass: 0x0400,
                 controlService: SessionSetupControlService,
-                frameFlags: 0x86,
-                role: 0x40,
+                frameFlags: (byte)XmsgFrameFlags.Setup,
+                role: (byte)XmsgSendOptions.WakeOnStatus,
                 sourcePort: TadAdminWirePort,
                 payload: trailer));
 
@@ -384,10 +386,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                 byte[] dumm = new TadMessageBuilder().Dumm().Build();
                 outgoing.Add(BuildResponderFrame(
                     request,
-                    frameClass: 0x0108,
                     controlService: TerminalDataControlService,
-                    frameFlags: 0x92,
-                    role: 0x00,
+                    frameFlags: (byte)XmsgFrameFlags.DataB,
+                    role: (byte)XmsgSendOptions.None,
                     sourcePort: _sessionWirePort,
                     payload: dumm));
             }
@@ -498,20 +499,20 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
 
             // control 0x20 (XMCSM 0x00080000): TAD opcode 0x20, empty. Seed model -> channel DE at epoch 0.
             outgoing.Add(BuildResponderFrame(
-                request, frameClass: 0x0008, controlService: (uint)XmcsmService.BareTadControl, frameFlags: 0x86, role: 0x00,
+                request, controlService: (uint)XmcsmService.BareTadControl, frameFlags: (byte)XmsgFrameFlags.Setup, role: (byte)XmsgSendOptions.None,
                 sourcePort: _sessionWirePort, payload: new TadMessageBuilder().Raw(0x20, ReadOnlySpan<byte>.Empty).Build()));
 
             // RESE, RESE (XMCSM 0x01080000): TAD RESE, empty. Channel DD at epoch 0.
             outgoing.Add(BuildResponderFrame(
-                request, frameClass: 0x0108, controlService: TerminalDataControlService, frameFlags: 0x96, role: 0x00,
+                request, controlService: TerminalDataControlService, frameFlags: (byte)XmsgFrameFlags.DataA, role: (byte)XmsgSendOptions.None,
                 sourcePort: _sessionWirePort, payload: new TadMessageBuilder().Rese().Build()));
             outgoing.Add(BuildResponderFrame(
-                request, frameClass: 0x0108, controlService: TerminalDataControlService, frameFlags: 0x92, role: 0x00,
+                request, controlService: TerminalDataControlService, frameFlags: (byte)XmsgFrameFlags.DataB, role: (byte)XmsgSendOptions.None,
                 sourcePort: _sessionWirePort, payload: new TadMessageBuilder().Rese().Build()));
 
             // MOTD (XMCSM 0x01080000): the banner + ENTER prompt chain. Channel DD at epoch 0.
             outgoing.Add(BuildResponderFrame(
-                request, frameClass: 0x0108, controlService: TerminalDataControlService, frameFlags: 0x96, role: 0x00,
+                request, controlService: TerminalDataControlService, frameFlags: (byte)XmsgFrameFlags.DataA, role: (byte)XmsgSendOptions.None,
                 sourcePort: _sessionWirePort, payload: MotdPayload));
 
             _motdSent = true;
@@ -526,8 +527,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// (Flags2 0x0400) land on DA at epoch 0; terminal-data frames (Flags2 0x0108) on DD at epoch 0.
         /// </summary>
         /// <param name="request">The triggering frame (source addressing = 100's endpoint).</param>
-        /// <param name="frameClass">The Flags 2 frame-class word (0x0400 control, 0x0108 data) — also the XMCSM top half.</param>
-        /// <param name="controlService">The XMCSM control/service word.</param>
+        /// <param name="controlService">The XMCSM control/service word (its high half is the derived frame-class).</param>
         /// <param name="frameFlags">The sub-header frame-flags byte for this frame type.</param>
         /// <param name="role">The sub-header role byte (0x40 setup, 0x00 data-phase).</param>
         /// <param name="sourcePort">Our source port (TADADM for control, session port for data).</param>
@@ -535,13 +535,17 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <returns>The assembled frame on the derived channel with the computed counter.</returns>
         private XmsgFrame BuildResponderFrame(
             XmsgFrame request,
-            ushort frameClass,
             uint controlService,
             byte frameFlags,
             byte role,
             ushort sourcePort,
             byte[] payload)
         {
+            // On data frames the SINTRAN Flags2 frame-class IS the top 16 bits of the XMCSM word
+            // (VERIFIED empirically, 601/601 data frames). Derive it here so it is never a separate
+            // hand-entered value that could disagree. See XMSG-PROTOCOL.md section 18.4.
+            ushort frameClass = (ushort)(controlService >> 16);
+
             ushort f1 = _respFlags1;
             // Counter and channel from the verified seed model — NOT a fixed Base (that fixed-Base
             // Counter was the cause of the XXPER crashes on the terminal-data frames).
@@ -702,10 +706,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             // seed; the model just makes accept, port-assign and terminal-data one coherent sequence.
             return BuildResponderFrame(
                 request,
-                frameClass: 0x0400,
                 controlService: SystemTadControlService,
-                frameFlags: 0x86,
-                role: 0x40,
+                frameFlags: (byte)XmsgFrameFlags.Setup,
+                role: (byte)XmsgSendOptions.WakeOnStatus,
                 sourcePort: TadAdminWirePort,
                 payload: trailer);
         }
@@ -727,10 +730,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         {
             return BuildResponderFrame(
                 request,
-                frameClass: 0x0108,
                 controlService: TerminalDataControlService,
-                frameFlags: 0x96,
-                role: 0x00,
+                frameFlags: (byte)XmsgFrameFlags.DataA,
+                role: (byte)XmsgSendOptions.None,
                 sourcePort: _sessionWirePort,
                 payload: tadChain);
         }
@@ -753,10 +755,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             byte[] tad = new TadMessageBuilder().Raw(0xFD, ReadOnlySpan<byte>.Empty).Build();
             return BuildResponderFrame(
                 request,
-                frameClass: 0x0006,
                 controlService: (uint)XmcsmService.SessionNotify,
-                frameFlags: 0x82,
-                role: 0x54,
+                frameFlags: (byte)XmsgFrameFlags.ControlBare,
+                role: (byte)(XmsgSendOptions.WakeOnStatus | XmsgSendOptions.Bounce | XmsgSendOptions.RoutedLetter),
                 sourcePort: TadAdminWirePort,
                 payload: tad);
         }
@@ -790,10 +791,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             // new format — it is the identical BuildResponderFrame path that got the MOTD accepted.
             return BuildResponderFrame(
                 request,
-                frameClass: 0x0108,
                 controlService: TerminalDataControlService,
-                frameFlags: 0x96,
-                role: 0x00,
+                frameFlags: (byte)XmsgFrameFlags.DataA,
+                role: (byte)XmsgSendOptions.None,
                 sourcePort: _sessionWirePort,
                 payload: payload);
         }
