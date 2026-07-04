@@ -320,6 +320,15 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                 _buffer.Add(0x00);
             }
 
+            // Intrinsic 0x00 prefix (spec 2.1 / 22.3): ECKM (0x03), BMMX (0x04) and the capture-only
+            // port-assign opcodes 0x07 / 0x0B are ALWAYS preceded by an extra 0x00 on the wire (a
+            // 16-bit opcode or a flag byte — UNKNOWN which). Modelling it as an intrinsic prefix, plus
+            // the even-offset alignment above, reproduces the captured MOTD byte-for-byte.
+            if (opcode == TadOp.Eckm || opcode == TadOp.Bmmx || opcode == 0x07 || opcode == 0x0B)
+            {
+                _buffer.Add(0x00);
+            }
+
             _buffer.Add(opcode);
             _buffer.Add((byte)data.Length);
             for (int i = 0; i < data.Length; i++)

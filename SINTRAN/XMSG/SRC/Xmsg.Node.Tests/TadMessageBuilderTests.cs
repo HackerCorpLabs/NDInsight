@@ -90,8 +90,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         public void ControlMessages_EncodeFields()
         {
             Assert.Equal(new byte[] { 0x0E, 0x01, 0x00 }, new TadMessageBuilder().Cesc(0x00).Build());
-            Assert.Equal(new byte[] { 0x03, 0x01, 0xFF }, new TadMessageBuilder().Eckm(0xFF).Build());
-            Assert.Equal(new byte[] { 0x04, 0x03, 0x01, 0x00, 0x00 }, new TadMessageBuilder().Bmmx(0x01, 0x0000).Build());
+            // ECKM and BMMX carry the intrinsic 0x00 prefix on the wire (spec 2.1 / 22.3).
+            Assert.Equal(new byte[] { 0x00, 0x03, 0x01, 0xFF }, new TadMessageBuilder().Eckm(0xFF).Build());
+            Assert.Equal(new byte[] { 0x00, 0x04, 0x03, 0x01, 0x00, 0x00 }, new TadMessageBuilder().Bmmx(0x01, 0x0000).Build());
             Assert.Equal(new byte[] { 0x02, 0x00 }, new TadMessageBuilder().Rfi().Build());
             Assert.Equal(new byte[] { 0x18, 0x00 }, new TadMessageBuilder().Dumm().Build());
         }
@@ -124,6 +125,34 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         {
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 new TadMessageBuilder().Bdat(new byte[256]));
+        }
+
+        /// <summary>
+        /// The typed API rebuilds the real captured MOTD banner byte-for-byte — proving the intrinsic
+        /// 0x00-prefix (ECKM/BMMX) plus the even-offset alignment model reproduces the wire exactly.
+        /// </summary>
+        [Fact]
+        public void MotdBanner_RebuiltByApi_MatchesCapturedBytes()
+        {
+            byte[] motd = Convert.FromHexString(
+                "0004030100000003010101600D0A2032322E32372E32322020202020203820415052494C202020313939380D0A"
+                + "2053494E5452414E20494949202D205653582F353030204C0D0A2D2D2D20524554524F434F524520454D554C4154"
+                + "4544204C2049443A313032202D2D2D0D0A1302000201080D0A454E544552200200");
+
+            // The 96-byte banner text sits between the ECKM message and the SYCN (offsets 12..107).
+            byte[] banner = new byte[96];
+            Array.Copy(motd, 12, banner, 0, 96);
+
+            byte[] rebuilt = new TadMessageBuilder()
+                .Bmmx(0x01, 0x0000)                 // 00 04 03 01 0000
+                .Eckm(0x01)                         // 00 03 01 01
+                .Bdat(banner)                       // 01 60 <96 banner bytes>
+                .Sycn(SycnState.WaitingForUsername) // 13 02 0002
+                .BdatText("\r\nENTER ")             // 01 08 0D0A "ENTER "
+                .Rfi()                              // 02 00
+                .Build();
+
+            Assert.Equal(motd, rebuilt);
         }
 
         /// <summary>

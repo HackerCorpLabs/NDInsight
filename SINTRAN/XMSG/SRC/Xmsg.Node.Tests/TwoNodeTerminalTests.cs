@@ -60,6 +60,52 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
+        /// The reactive asker driver (TadAskerSession) drives the connect-to handshake against the
+        /// responder to the greeting: connect → accept → session-setup → port-assign → DUMM →
+        /// terminal-setup → RESE/RECO → banner. The asker renders the MOTD "ENTER " prompt, proving the
+        /// standalone client's state machine end to end in-memory.
+        /// </summary>
+        [Fact]
+        public void AskerDriver_DrivesHandshake_ToBanner()
+        {
+            PipeTransport serverToClient = new PipeTransport();
+            PipeTransport clientToServer = new PipeTransport();
+
+            XmsgCodec serverCodec = new XmsgCodec("server", serverToClient);
+            XmsgLayer serverLayer = new XmsgLayer(serverCodec, 102, 0x00);
+            TadTerminalResponder responder = new TadTerminalResponder(102, FixedClock);
+            responder.SendTerminalBringup = true;   // send the priming DUMM so the asker proceeds
+            serverLayer.TadResponder = responder;
+            serverLayer.AcknowledgeTadFrames = true;
+
+            XmsgCodec clientCodec = new XmsgCodec("client", clientToServer);
+            TadAskerSession asker = new TadAskerSession(100, 102, 0x0283, seed: 0x14, "D102");
+            StringBuilder banner = new StringBuilder();
+            asker.TerminalText += text => banner.Append(text);
+
+            void SendAll(System.Collections.Generic.IReadOnlyList<XmsgFrame> frames)
+            {
+                for (int i = 0; i < frames.Count; i++)
+                {
+                    clientCodec.SendPacket(new XmsgPacket(frames[i]));
+                }
+            }
+
+            clientCodec.PacketReceived += delegate (string id, XmsgPacketInfo packet)
+            {
+                SendAll(asker.OnReceive(packet.Frame));
+            };
+
+            clientToServer.Target = bytes => serverCodec.ProcessBytes(bytes);
+            serverToClient.Target = bytes => clientCodec.ProcessBytes(bytes);
+
+            SendAll(asker.Start());
+
+            // The banner burst ends with BDAT("\r\nENTER ") — the asker rendered it.
+            Assert.Contains("ENTER", banner.ToString());
+        }
+
+        /// <summary>
         /// Wires a client node and a server node through a synchronous in-memory XMSG pipe: each side's
         /// outbound bytes are fed straight into the other's codec.
         /// </summary>

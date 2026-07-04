@@ -81,6 +81,15 @@ internal static class Program
         // Timestamp every console line so the frame log shows exact ordering (LAPB timing).
         Console.SetOut(new TimestampWriter(Console.Out));
 
+        // Leading "client" keyword runs the CONNECT-TO CLIENT (asker) instead of the responder:
+        //   Xmsg.Live.Runner client [host] [port] [ownNode] [targetName] [hostNode]
+        // It brings up LAPB, sends a connect-to letter naming <targetName>, drives the TAD asker
+        // state machine, renders the host's terminal output and sends what you type on stdin.
+        if (args.Length > 0 && string.Equals(args[0], "client", StringComparison.OrdinalIgnoreCase))
+        {
+            return await RunClientModeAsync(args);
+        }
+
         // Optional leading "legacy" keyword selects the old LiveNode + XmsgNode path.
         bool legacy = args.Length > 0 && string.Equals(args[0], "legacy", StringComparison.OrdinalIgnoreCase);
         int argOffset = legacy ? 1 : 0;
@@ -136,6 +145,140 @@ internal static class Program
 
         Console.WriteLine("[runner] done.");
         return 0;
+    }
+
+    /// <summary>
+    /// Parses the client-mode arguments, connects the bridge, and runs the connect-to asker.
+    /// </summary>
+    /// <param name="args">
+    /// The full argument vector (args[0] == "client").
+    /// </param>
+    /// <returns>
+    /// The process exit code.
+    /// </returns>
+    private static async Task<int> RunClientModeAsync(string[] args)
+    {
+        string host = args.Length > 1 ? args[1] : "127.0.0.1";
+        int port = args.Length > 2 ? int.Parse(args[2]) : 10362;
+        ushort ownNode = (ushort)(args.Length > 3 ? int.Parse(args[3]) : 102);
+        string targetName = args.Length > 4 ? args[4] : "D100";
+        ushort hostNode = (ushort)(args.Length > 5 ? int.Parse(args[5]) : 100);
+
+        Console.WriteLine($"[client] connecting bridge {host}:{port} as node {ownNode}; will connect-to '{targetName}' on host node {hostNode}");
+
+        using CancellationTokenSource cts = new CancellationTokenSource();
+        TcpBridgeTransport transport;
+        try
+        {
+            transport = await TcpBridgeTransport.ConnectAsync(host, port, cts.Token);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[client] connect failed: {ex.Message}");
+            return 1;
+        }
+
+        try
+        {
+            await RunClientAsync(transport, host, port, ownNode, hostNode, targetName, cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine("[client] stopped.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[client] error: {ex.Message}");
+        }
+        finally
+        {
+            transport.Dispose();
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Runs the connect-to CLIENT (asker): TcpBridgeTransport -> LapbLayerAdapter -> XmsgCodec ->
+    /// TadAskerSession. Sends the connect letter when the link comes up, drives the TAD handshake,
+    /// renders host terminal text, and forwards stdin lines as keystroke frames.
+    /// </summary>
+    /// <param name="transport">The connected bridge transport.</param>
+    /// <param name="host">The bridge host (for the link id).</param>
+    /// <param name="port">The bridge port (for the link id).</param>
+    /// <param name="ownNode">This client's node number.</param>
+    /// <param name="hostNode">The host node we connect to.</param>
+    /// <param name="targetName">The remote name carried in the connect letter.</param>
+    /// <param name="token">A token that stops the session.</param>
+    /// <returns>A task that completes when the pump stops.</returns>
+    private static async Task RunClientAsync(
+        TcpBridgeTransport transport, string host, int port, ushort ownNode, ushort hostNode, string targetName, CancellationToken token)
+    {
+        string linkId = $"hdlc:{host}:{port}";
+
+        LapbLayer link = new LapbLayer(ownNode);
+        LapbLayerAdapter adapter = new LapbLayerAdapter(linkId, transport, link);
+        LinkXmsgTransport codecTransport = new LinkXmsgTransport(adapter);
+        XmsgCodec codec = new XmsgCodec(linkId, codecTransport);
+
+        // The asker: shared seed 0x14 (100<->102), our chosen client port.
+        NDInsight.Sintran.Xmsg.Node.Tad.TadAskerSession asker =
+            new NDInsight.Sintran.Xmsg.Node.Tad.TadAskerSession(ownNode, hostNode, clientPort: 0x0283, seed: 0x14, targetName);
+        asker.Log += line => Console.WriteLine(line);
+        asker.TerminalText += text => Console.Write(text);   // render host output inline
+
+        // Send a batch of frames down through the codec.
+        void SendAll(System.Collections.Generic.IReadOnlyList<XmsgFrame> frames)
+        {
+            for (int i = 0; i < frames.Count; i++)
+            {
+                codec.SendPacket(new XmsgPacket(frames[i]));
+            }
+        }
+
+        // Host frame -> asker reacts -> send its response frames.
+        codec.PacketReceived += delegate (string id, XmsgPacketInfo packet)
+        {
+            SendAll(asker.OnReceive(packet.Frame));
+        };
+
+        // Deliver link payloads up into the codec.
+        adapter.PayloadReceived += delegate (ILink deliveringLink, byte[] payload, int length)
+        {
+            codec.ProcessBytes(payload.AsSpan(0, length));
+        };
+
+        // Fire the connect letter the first time the LAPB link becomes Active.
+        bool connectSent = false;
+        adapter.StatusChanged += delegate (ILink changedLink, LinkStatus oldStatus, LinkStatus newStatus, string reason)
+        {
+            Console.WriteLine($"[link] {changedLink.Name} {oldStatus} -> {newStatus} ({reason})");
+            if (newStatus == LinkStatus.Active && !connectSent)
+            {
+                connectSent = true;
+                SendAll(asker.Start());
+            }
+        };
+
+        // Read stdin lines and send them as keystroke frames (best-effort; RFI gating is not enforced).
+        Task inputTask = Task.Run(() =>
+        {
+            while (!token.IsCancellationRequested)
+            {
+                string? line = Console.ReadLine();
+                if (line == null)
+                {
+                    break;
+                }
+
+                SendAll(asker.SendLine(line));
+            }
+        }, token);
+
+        Console.WriteLine("[client] bringing up LAPB; type a line + Enter once the prompt appears.");
+        adapter.Start();
+        await adapter.Completion!;
+        _ = inputTask;
     }
 
     /// <summary>

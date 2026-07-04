@@ -32,9 +32,19 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         public const byte Bmmx = 0x04;
 
         /// <summary>
+        /// ESCA — escape received (<c>0x08</c>). Asker-sent; the host answers with opcode <c>0x20</c>.
+        /// </summary>
+        public const byte Esca = 0x08;
+
+        /// <summary>
         /// DCON — disconnect indication (<c>0x09</c>).
         /// </summary>
         public const byte Dcon = 0x09;
+
+        /// <summary>
+        /// CERS — escape / CESC response (<c>0x21</c>). Asker-sent after each host burst / CESC change.
+        /// </summary>
+        public const byte Cers = 0x21;
 
         /// <summary>
         /// TMOD — terminal mode flags (<c>0x0C</c>).
