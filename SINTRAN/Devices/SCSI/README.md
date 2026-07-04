@@ -110,7 +110,7 @@ SCSIDevice              // Base device class
 
 | Document | Description |
 |----------|-------------|
-| [ND-11.021.1 EN-Floppy and Streamer Controller 3106 3112-Gandalf-OCR_combined.md](ND-11.021.1%20EN-Floppy%20and%20Streamer%20Controller%203106%203112-Gandalf-OCR_combined.md) | Floppy and streamer controller hardware reference (OCR) |
+| [ND-11.021.1 EN-Floppy and Streamer Controller 3106 3112.md](ND-11.021.1%20EN-Floppy%20and%20Streamer%20Controller%203106%203112.md) | Floppy and streamer controller hardware reference (OCR) |
 | [nd-scsi-3201.md](nd-scsi-3201.md) | SCSI 3201 controller reference |
 
 ---

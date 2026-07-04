@@ -99,6 +99,9 @@ Scientific and numerical computing language.
 **Reference Manuals:**
 - `../../../Reference-Manuals/ND-60.145.7A EN ND FORTRAN Reference Manual.md`
 - `../../../Reference-Manuals/ND-60.011.04 NORD Standard FORTRAN Reference Manual.md`
+- `../../../Reference-Manuals/ND-10191A Fortran for ND-100-NORD-10.md`
+- `../../../Reference-Manuals/ND-10190D FORTRAN FOR ND-500.md`
+- `../../../Reference-Manuals/ND-10033K FORTRAN 32 BITS FLOATING FORMAT.md`
 
 ---
 
@@ -147,6 +150,32 @@ Interactive, easy-to-learn programming language.
 **Reference Manuals:**
 - `../../../Reference-Manuals/ND-60.071.01D NORD-10 BASIC Compiler Reference Manual.md`
 - `../../../Reference-Manuals/ND-60.040.02 NORD BASIC Reference Manual.md`
+
+---
+
+### [SIBAS-DEVELOPER-GUIDE.md](SIBAS-DEVELOPER-GUIDE.md)
+**SIBAS (Norsk Data database system)**
+
+CODASYL / DBTG-style (network model) database, accessed from a host language.
+
+**Key Features:**
+- Realm / schema data organisation
+- DML (Data Manipulation Language)
+- Host-language access (COBOL, FORTRAN)
+- SIBAS I and SIBAS II generations
+- Operator / administration tooling
+
+**Use Cases:**
+- Structured business data storage
+- Multi-record network databases
+- COBOL / FORTRAN applications needing a DBMS
+- Legacy SIBAS database maintenance
+
+**Reference Manuals:**
+- `../../../Reference-Manuals/ND-60.127.5 EN THE DATABASE SYSTEM SIBAS II ND User Manual.md`
+- `../../../Reference-Manuals/ND-30.009.3 EN SIBAS II Operator Manual.md`
+- `../../../Reference-Manuals/210166F SIBAS II for ND-100.md`
+- `../../../Reference-Manuals/ND-60.057.03 The Data Base System SIBAS I Users Manual Appendix A.md`
 
 ---
 
@@ -308,7 +337,7 @@ Each developer guide includes:
 
 ---
 
-**Last Updated**: October 18, 2025  
-**Languages**: 6 (C, PLANC, PASCAL, FORTRAN, COBOL, BASIC)  
-**Documentation Status**: ✅ Complete guides available
+**Last Updated**: 2026-07-04  
+**Languages**: 6 (C, PLANC, PASCAL, FORTRAN, COBOL, BASIC) + SIBAS database system  
+**Documentation Status**: ✅ Complete guides available (SIBAS = reference index)
 

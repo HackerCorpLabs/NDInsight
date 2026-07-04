@@ -106,13 +106,19 @@ The ANSI 77 compiler (`@FORT`) supports `SEPARATE-DATA`, `COMP`, `PROG-FILE`, `$
 
 ---
 
-## Reference Manual
+## Reference Manuals
 
-**Complete FORTRAN language documentation:**
+**Complete FORTRAN language and runtime documentation** (all under [Reference-Manuals/](../../../Reference-Manuals/)):
 
-**Location:** [Reference-Manuals/ND-60.145.7A EN ND FORTRAN Reference Manual.md](../../../Reference-Manuals/ND-60.145.7A%20EN%20ND%20FORTRAN%20Reference%20Manual.md)
+| Manual | Document # | Covers |
+|--------|-----------|--------|
+| [ND FORTRAN Reference Manual](../../../Reference-Manuals/ND-60.145.7A%20EN%20ND%20FORTRAN%20Reference%20Manual.md) | ND-60.145.7A EN | ANSI 77 language reference (Sept 1986, Version 7A) - primary manual |
+| [NORD Standard FORTRAN Reference Manual](../../../Reference-Manuals/ND-60.011.04%20NORD%20Standard%20FORTRAN%20Reference%20Manual.md) | ND-60.011.04 | Original NORD Standard FORTRAN (FORTRAN IV, 1974) |
+| [Fortran for ND-100 / NORD-10](../../../Reference-Manuals/ND-10191A%20Fortran%20for%20ND-100-NORD-10.md) | ND-10191A | ND-100 / NORD-10 FORTRAN compiler product note |
+| [FORTRAN for ND-500](../../../Reference-Manuals/ND-10190D%20FORTRAN%20FOR%20ND-500.md) | ND-10190D | FORTRAN targeting the ND-500 processor |
+| [FORTRAN 32 Bits Floating Format](../../../Reference-Manuals/ND-10033K%20FORTRAN%2032%20BITS%20FLOATING%20FORMAT.md) | ND-10033K | 32-bit floating-point format used by FORTRAN |
 
-**Manual:** ND-60.145.7A EN ND FORTRAN Reference Manual (September 1986, Version 7A)
+**Primary manual:** ND-60.145.7A EN ND FORTRAN Reference Manual (September 1986, Version 7A)
 
 ---
 
@@ -132,7 +138,7 @@ The ANSI 77 compiler (`@FORT`) supports `SEPARATE-DATA`, `COMP`, `PROG-FILE`, `$
 - **[LINKING-GUIDE.md](../../Workflow/LINKING-GUIDE.md)** - Linking FORTRAN programs
 - **[SINTRAN-DEVELOPER-GUIDE.md](../../SINTRAN-DEVELOPER-GUIDE.md)** - Master guide
 - **[SCRIPT-GUIDE.md](../../Workflow/SCRIPT-GUIDE.md)** - MODE file automation
-- **Reference Manual:** [ND-60.145.7A EN ND FORTRAN Reference Manual](../../../Reference-Manuals/ND-60.145.7A%20EN%20ND%20FORTRAN%20Reference%20Manual.md)
+- **Reference Manuals:** see the [Reference Manuals](#reference-manuals) table above (ND-60.145.7A, ND-60.011.04, ND-10191A, ND-10190D, ND-10033K)
 
 ---
 

@@ -6,7 +6,7 @@
 
 ## 📖 Overview
 
-This folder contains **25 complete reference manuals** spanning system architecture, programming languages, assemblers, editors, compilers, and development tools. These manuals serve as the primary source documentation for all NORD/SINTRAN development work.
+This folder contains **46 complete reference manuals** spanning system architecture, the SINTRAN III operating system, database systems, programming languages, assemblers, editors, compilers, and development tools. These manuals serve as the primary source documentation for all NORD/SINTRAN development work.
 
 ### Purpose
 
@@ -20,13 +20,15 @@ This folder contains **25 complete reference manuals** spanning system architect
 | Category | Manuals | Total Size |
 |----------|---------|------------|
 | **System & Architecture** | 4 | ~1.2MB |
+| **SINTRAN III System & OS** | 14 | ~2.6MB |
+| **Database Systems (SIBAS)** | 4 | ~700KB |
 | **Hardware** | 1 | 85KB |
-| **Programming Languages** | 10 | ~400KB |
+| **Programming Languages** | 13 | ~450KB |
 | **Assemblers** | 3 | ~200KB |
 | **Compilers & Linkers** | 2 | ~150KB |
 | **Editors** | 4 | ~100KB |
 | **System Tools** | 1 | ~50KB |
-| **Total** | **25** | **~2.2MB** |
+| **Total** | **46** | **~5.5MB** |
 
 ---
 
@@ -55,6 +57,54 @@ This folder contains **25 complete reference manuals** spanning system architect
 **Key Topics:** 5MPM architecture, memory mapping, ND-100/ND-500 shared memory, hardware interface
 
 **Related:** See [SINTRAN/OS/06-MULTIPORT-MEMORY-AND-ND500-COMMUNICATION.md](../SINTRAN/OS/06-MULTIPORT-MEMORY-AND-ND500-COMMUNICATION.md)
+
+---
+
+### SINTRAN III System & OS Manuals
+
+The core SINTRAN III operating-system manual set. (The **SINTRAN III Monitor Calls** and
+**SINTRAN Commands Reference** are listed above under System & CPU Architecture.)
+
+| Manual | Document # | Lines | Description |
+|--------|-----------|-------|-------------|
+| **SINTRAN III Reference Manual** | ND-60.128.5 EN | 21,694 | Master SINTRAN III reference - commands, subsystems, system behaviour |
+| **SINTRAN III Real Time Guide** | ND-60.133.02A | 14,445 | Real-time programming under SINTRAN III |
+| **SINTRAN III Users Guide** | ND-60.050.06 | 11,589 | General user guide to SINTRAN III |
+| **SINTRAN III Timesharing / Batch Guide** | ND-60.132.03 | 6,616 | Timesharing and batch processing guide |
+| **SINTRAN III Communication Guide** | ND-60.134.2 EN | 5,740 | Communications / networking under SINTRAN III |
+| **SINTRAN III System Documentation, Appendix A - Data Fields** | ND-60.112.01 | 4,455 | System data-field definitions (system documentation appendix) |
+| **SINTRAN III - Real Time Loader** | ND-60.051.8 EN | 3,430 | Real Time Loader (RT loader) manual |
+| **SINTRAN III Introduction** | ND-60.125.04 | 3,245 | Introduction / getting started with SINTRAN III |
+| **SINTRAN III Utilities Manual** | ND-60.151.3 EN | 2,257 | SINTRAN III utility programs manual |
+| **SINTRAN III Real Time Loader - System Documentation** | ND-60.072.02 | 1,620 | RT loader internal / system documentation |
+| **SINTRAN Utility Programs** | ND-10022S | 1,158 | SINTRAN utility programs package (version S) |
+| **SINTRAN III Accounting System** | ND-10315B | 584 | Accounting system for SINTRAN III |
+| **SINTRAN III Quick Reference Card** | ND-60.174.Q01 | 537 | Quick reference card |
+| **SINTRAN III Configuration Program** | 211024C | 205 | System configuration program note |
+
+**Key Topics:** SINTRAN III commands, real-time programming, RT loader, timesharing/batch, communications, accounting, utilities, system data fields
+
+**Related:**
+- [SINTRAN/OS/README.md](../SINTRAN/OS/README.md) - Operating system internals
+- [SINTRAN/SINTRAN Structures/SINTRAN-STRUCTURES.md](../SINTRAN/SINTRAN%20Structures/SINTRAN-STRUCTURES.md) - Kernel data structures
+
+---
+
+### Database Systems (SIBAS)
+
+SIBAS - the Norsk Data CODASYL / DBTG-style (network model) database system, accessed
+from a host language (COBOL, FORTRAN).
+
+| Manual | Document # | Lines | Description |
+|--------|-----------|-------|-------------|
+| **THE DATABASE SYSTEM SIBAS II - ND User Manual** | ND-60.127.5 EN | 13,080 | Primary SIBAS II user manual - schema, realms, DML, host-language access (replaces ND-60.057) |
+| **SIBAS II Operator Manual** | ND-30.009.3 EN | 3,548 | SIBAS II database administration / operator procedures |
+| **SIBAS II for ND-100** | 210166F | 1,196 | SIBAS II product documentation for the ND-100 |
+| **The Data Base System SIBAS I - Users Manual, Appendix A** | ND-60.057.03 | 1,063 | SIBAS I users manual (Appendix A) - earlier generation |
+
+**Key Topics:** CODASYL/DBTG network database, realms, schema, DML, host-language (COBOL/FORTRAN) access, operator administration
+
+**Related:** [Developer/Languages/Application/SIBAS-DEVELOPER-GUIDE.md](../Developer/Languages/Application/SIBAS-DEVELOPER-GUIDE.md)
 
 ---
 
@@ -130,9 +180,12 @@ This folder contains **25 complete reference manuals** spanning system architect
 | Manual | Document # | Lines | Description |
 |--------|-----------|-------|-------------|
 | **NORD Standard FORTRAN Reference** | ND-60.011.04 | - | NORD Standard FORTRAN (1974) - FORTRAN IV, scientific computing |
-| **ND FORTRAN Reference Manual** | ND-60.145.7A EN | - | ND FORTRAN (later version) - Extended FORTRAN, optimization |
+| **ND FORTRAN Reference Manual** | ND-60.145.7A EN | 25,000+ | ND FORTRAN (ANSI 77, Version 7A 1986) - Extended FORTRAN, optimization |
+| **Fortran for ND-100 / NORD-10** | ND-10191A | 135 | ND-100 / NORD-10 FORTRAN compiler product note |
+| **FORTRAN for ND-500** | ND-10190D | 280 | FORTRAN targeting the ND-500 processor |
+| **FORTRAN 32 Bits Floating Format** | ND-10033K | 377 | 32-bit floating-point format used by FORTRAN |
 
-**Key Topics:** FORTRAN language, scientific computing, numerical analysis
+**Key Topics:** FORTRAN language, scientific computing, numerical analysis, floating-point format, ND-100/ND-500 targets
 
 #### BASIC
 
@@ -193,8 +246,9 @@ This folder contains **25 complete reference manuals** spanning system architect
 | **PLANC** | ND-60.117.5, ND-10309A | PLANC-DEVELOPER-GUIDE.md | 🚧 Placeholder |
 | **PASCAL** | ND-60.124.05 | PASCAL-DEVELOPER-GUIDE.md | 🚧 Placeholder |
 | **COBOL** | ND-60.144.3 | COBOL-DEVELOPER-GUIDE.md | 🚧 Placeholder |
-| **FORTRAN** | ND-60.011.04, ND-60.145.7A | FORTRAN-DEVELOPER-GUIDE.md | 🚧 Placeholder |
+| **FORTRAN** | ND-60.011.04, ND-60.145.7A, ND-10191A, ND-10190D, ND-10033K | FORTRAN-DEVELOPER-GUIDE.md | 🚧 Placeholder |
 | **BASIC** | ND-60.040.02, ND-60.071.01D | BASIC-DEVELOPER-GUIDE.md | 🚧 Placeholder |
+| **SIBAS** (database) | ND-60.127.5, ND-30.009.3, 210166F, ND-60.057.03 | SIBAS-DEVELOPER-GUIDE.md | 🚧 Reference index |
 
 ### Development Tools → [Developer/Workflow/](../Developer/Workflow/)
 
@@ -293,9 +347,10 @@ All manuals are high-quality OCR-scanned versions from original NORD/SINTRAN doc
 ### Version Notes
 
 - **Multiple SINTRAN Monitor Calls versions** - Both standard and web versions available
-- **Two FORTRAN manuals** - ND-60.011.04 (1974 standard) and ND-60.145.7A (extended version)
+- **Five FORTRAN manuals** - ND-60.011.04 (1974 standard), ND-60.145.7A (ANSI 77 extended), plus product/format notes ND-10191A (ND-100/NORD-10), ND-10190D (ND-500), ND-10033K (32-bit floating format)
 - **Two BASIC manuals** - ND-60.040.02 (interactive) and ND-60.071.01D (compiled)
 - **Two PED manuals** - English (ND-60.121.4) and Norwegian (ND-60.148.01)
+- **Two SIBAS generations** - SIBAS I (ND-60.057.03) superseded by SIBAS II (ND-60.127.5, which replaces ND-60.057)
 
 ---
 
@@ -305,12 +360,14 @@ All manuals are high-quality OCR-scanned versions from original NORD/SINTRAN doc
 
 | Category | Manuals | Total Lines | Average Lines/Manual |
 |----------|---------|-------------|---------------------|
-| Languages | 10 | ~30,000+ | ~3,000 |
+| Languages | 13 | ~55,000+ | ~4,200 |
+| SINTRAN III System & OS | 14 | ~77,500+ | ~5,500 |
+| Database (SIBAS) | 4 | ~18,900+ | ~4,700 |
 | System/Architecture | 4 | ~52,000+ | ~13,000 |
 | Assemblers | 3 | ~10,000+ | ~3,300 |
 | Editors | 4 | ~5,000+ | ~1,250 |
 | Tools | 4 | ~8,000+ | ~2,000 |
-| **Total** | **25** | **~105,000+** | **~4,200** |
+| **Total** | **46** | **~202,000+** | **~4,400** |
 
 ### By Era
 
@@ -349,6 +406,27 @@ All manuals are high-quality OCR-scanned versions from original NORD/SINTRAN doc
 | ND-60.214.01 | CC-100/500 C-Compiler | Compiler | - |
 | ND-860228-2 | SINTRAN III Monitor Calls | System | 23,478 |
 | ND-860289-2 | ND Linker User Guide | Tools | - |
+| ND-10033K | FORTRAN 32 Bits Floating Format | Language | 377 |
+| ND-10190D | FORTRAN for ND-500 | Language | 280 |
+| ND-10191A | Fortran for ND-100 / NORD-10 | Language | 135 |
+| ND-60.050.06 | SINTRAN III Users Guide | SINTRAN III | 11,589 |
+| ND-60.051.8 | SINTRAN III - Real Time Loader | SINTRAN III | 3,430 |
+| ND-60.072.02 | SINTRAN III RT Loader - System Doc | SINTRAN III | 1,620 |
+| ND-60.112.01 | SINTRAN III System Doc, Appendix A - Data Fields | SINTRAN III | 4,455 |
+| ND-60.125.04 | SINTRAN III Introduction | SINTRAN III | 3,245 |
+| ND-60.128.5 | SINTRAN III Reference Manual | SINTRAN III | 21,694 |
+| ND-60.132.03 | SINTRAN III Timesharing / Batch Guide | SINTRAN III | 6,616 |
+| ND-60.133.02A | SINTRAN III Real Time Guide | SINTRAN III | 14,445 |
+| ND-60.134.2 | SINTRAN III Communication Guide | SINTRAN III | 5,740 |
+| ND-60.151.3 | SINTRAN III Utilities Manual | SINTRAN III | 2,257 |
+| ND-60.174.Q01 | SINTRAN III Quick Reference Card | SINTRAN III | 537 |
+| ND-10022S | SINTRAN Utility Programs | SINTRAN III | 1,158 |
+| ND-10315B | SINTRAN III Accounting System | SINTRAN III | 584 |
+| 211024C | SINTRAN III Configuration Program | SINTRAN III | 205 |
+| ND-60.127.5 | SIBAS II - ND User Manual | Database | 13,080 |
+| ND-30.009.3 | SIBAS II Operator Manual | Database | 3,548 |
+| 210166F | SIBAS II for ND-100 | Database | 1,196 |
+| ND-60.057.03 | SIBAS I Users Manual, Appendix A | Database | 1,063 |
 
 ---
 
@@ -384,9 +462,9 @@ When adding new reference manuals:
 
 ---
 
-**Last Updated**: 2025-11-06
-**Total Manuals**: 25
-**Total Documentation Lines**: ~105,000+
+**Last Updated**: 2026-07-04
+**Total Manuals**: 46
+**Total Documentation Lines**: ~202,000+
 **Status**: ✅ Complete Collection
 
 ---
