@@ -43,19 +43,21 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <param name="clientNode">This client's node number (the asker).</param>
         /// <param name="serverNode">The host's node number.</param>
         /// <param name="clientPort">The client's session-source port.</param>
-        /// <param name="seed">The shared link seed (100↔102 = 0x14).</param>
+        /// <param name="seed">The shared link seed (100↔102 = 0x14, 100↔103 = 0x13).</param>
         /// <param name="targetName">The remote name to connect to (for example "D100").</param>
-        public TadAskerSession(ushort clientNode, ushort serverNode, ushort clientPort, byte seed, string targetName)
+        /// <param name="sequenceStore">
+        /// Persists the client's outgoing datagram sequence per host node across restarts (null = a
+        /// non-persisting store starting at 0).
+        /// </param>
+        public TadAskerSession(ushort clientNode, ushort serverNode, ushort clientPort, byte seed, string targetName, IResponderSequenceStore? sequenceStore = null)
         {
-            _client = new TadConnectClient(clientNode, serverNode, clientPort, seed);
+            _client = new TadConnectClient(clientNode, serverNode, clientPort, seed, sequenceStore);
             _targetName = targetName ?? throw new ArgumentNullException(nameof(targetName));
 
-            // Session ACK parameters mirror the responder: channel = connect-channel + 4, counter seed
-            // = connect-counter + 0x0A (the CONNECT rides Flags1 0, Flags2 0x0400, XMCSM 0x04000041).
-            byte connectCounter = XmsgEnvelope.ComputeCounter(seed, 0x0000, 0x0400);
-            SintranProtocolId connectChannel = XmsgEnvelope.DeriveChannel(seed, 0x0000, 0x0400, 0x04000041u);
-            _ackChannel = (SintranProtocolId)(byte)((byte)connectChannel + 4);
-            _ackReceiver = new SecureDatagramReceiver((byte)(connectCounter + 0x0A));
+            // The client fixes the per-session ACK parameters (channel = connect-channel + 4, counter =
+            // connect-counter + 0x0A) from the resumed connect Flags1; seed the receiver identically.
+            _ackChannel = _client.AckChannel;
+            _ackReceiver = new SecureDatagramReceiver(_client.InitialAckCounter);
         }
 
         /// <summary>
@@ -82,9 +84,11 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                 return outgoing;
             }
 
-            // A host ACK of one of our frames needs no reply.
+            // A host ACK of one of our frames needs no reply, but its echoed Flags1 advances our
+            // persisted sequence so a restart resumes in step with the host's expected-from-us.
             if (frame.Header.Subtype == SintranPacketSubtype.Ack)
             {
+                _client.ConfirmDelivered(frame.Header.Flags1);
                 return outgoing;
             }
 

@@ -1,5 +1,6 @@
 using System;
 
+using NDInsight.Sintran.Xmsg.Node;
 using NDInsight.Sintran.Xmsg.Packet;
 
 namespace NDInsight.Sintran.Xmsg.Node.Tad
@@ -32,6 +33,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         private readonly ushort _serverNode;
         private readonly ushort _clientPort;
         private readonly byte _seed;
+        private readonly IResponderSequenceStore _sequenceStore;
 
         private ushort _flags1;
         private ushort _serverSessionPort;
@@ -49,18 +51,67 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// The client's session-source port (its allocated TAD port on the wire).
         /// </param>
         /// <param name="seed">
-        /// The shared link seed (100↔102 = <c>0x14</c>); the responder learns the same value from the
-        /// connect frame this client builds.
+        /// The shared link seed (100↔102 = <c>0x14</c>, 100↔103 = <c>0x13</c>); the host learns the
+        /// same value from the connect frame this client builds.
         /// </param>
-        public TadConnectClient(ushort clientNode, ushort serverNode, ushort clientPort, byte seed)
+        /// <param name="sequenceStore">
+        /// Persists our outgoing datagram sequence (Flags1) per host node across restarts, so we resume
+        /// in step with the host's persistent expected-from-us instead of resetting to 0 (which the host
+        /// silently drops as behind-sequence). When null, a non-persisting store starts every host at 0.
+        /// </param>
+        public TadConnectClient(ushort clientNode, ushort serverNode, ushort clientPort, byte seed, IResponderSequenceStore? sequenceStore = null)
         {
             _clientNode = clientNode;
             _serverNode = serverNode;
             _clientPort = clientPort;
             _seed = seed;
-            _flags1 = 0;
-            // Default until learned from the port-assign; the responder does not validate the dest port.
+            _sequenceStore = sequenceStore ?? new NullResponderSequenceStore();
+            // Resume our sequence where our previous frames to this host left off.
+            _flags1 = _sequenceStore.LoadNextFlags1(serverNode);
+            // Default until learned from the host's first terminal frame; the host does not validate
+            // the dest port.
             _serverSessionPort = 0x0211;
+
+            // The session ACK parameters are fixed by the connect frame (Flags1 = the resumed value,
+            // Flags2 0x0400, XMCSM 0x04000041): channel = connect-channel + 4, counter = connect-counter
+            // + 0x0A. Computed here so the asker seeds its receiver identically to the proven responder.
+            byte connectCounter = XmsgEnvelope.ComputeCounter(seed, _flags1, 0x0400);
+            SintranProtocolId connectChannel = XmsgEnvelope.DeriveChannel(seed, _flags1, 0x0400, XroutSetupControlService);
+            AckChannel = (SintranProtocolId)(byte)((byte)connectChannel + 4);
+            InitialAckCounter = (byte)(connectCounter + 0x0A);
+        }
+
+        /// <summary>
+        /// Gets the per-session ACK channel (connect-channel + 4) the asker acks host frames on.
+        /// </summary>
+        public SintranProtocolId AckChannel { get; }
+
+        /// <summary>
+        /// Gets the initial per-direction ACK counter (connect-counter + 0x0A) for the session.
+        /// </summary>
+        public byte InitialAckCounter { get; }
+
+        /// <summary>
+        /// Records that the host ACKed one of our frames (its 0x03 ACK echoes the Flags1 it received),
+        /// persisting the next sequence as <c>ackedFlags1 + 1</c> so a restart resumes in step.
+        /// </summary>
+        /// <param name="ackedFlags1">
+        /// The Flags1 the host's ACK echoes (the frame it confirmed receiving).
+        /// </param>
+        public void ConfirmDelivered(ushort ackedFlags1)
+        {
+            // 0xFFFF is the reachability broadcast marker, never a real data sequence.
+            if (ackedFlags1 == 0xFFFF)
+            {
+                return;
+            }
+
+            ushort next = (ushort)(ackedFlags1 + 1);
+            ushort current = _sequenceStore.LoadNextFlags1(_serverNode);
+            if (next > current)
+            {
+                _sequenceStore.SaveNextFlags1(_serverNode, next);
+            }
         }
 
         /// <summary>

@@ -163,8 +163,10 @@ internal static class Program
         ushort ownNode = (ushort)(args.Length > 3 ? int.Parse(args[3]) : 102);
         string targetName = args.Length > 4 ? args[4] : "D100";
         ushort hostNode = (ushort)(args.Length > 5 ? int.Parse(args[5]) : 100);
+        // Link seed (hex). Default from the observed node pairs: 100<->102 = 0x14, 100<->103 = 0x13.
+        byte seed = args.Length > 6 ? Convert.ToByte(args[6], 16) : (ownNode == 103 ? (byte)0x13 : (byte)0x14);
 
-        Console.WriteLine($"[client] connecting bridge {host}:{port} as node {ownNode}; will connect-to '{targetName}' on host node {hostNode}");
+        Console.WriteLine($"[client] connecting bridge {host}:{port} as node {ownNode}; connect-to '{targetName}' on host node {hostNode}; seed 0x{seed:X2}");
 
         using CancellationTokenSource cts = new CancellationTokenSource();
         TcpBridgeTransport transport;
@@ -180,7 +182,7 @@ internal static class Program
 
         try
         {
-            await RunClientAsync(transport, host, port, ownNode, hostNode, targetName, cts.Token);
+            await RunClientAsync(transport, host, port, ownNode, hostNode, targetName, seed, cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -212,7 +214,7 @@ internal static class Program
     /// <param name="token">A token that stops the session.</param>
     /// <returns>A task that completes when the pump stops.</returns>
     private static async Task RunClientAsync(
-        TcpBridgeTransport transport, string host, int port, ushort ownNode, ushort hostNode, string targetName, CancellationToken token)
+        TcpBridgeTransport transport, string host, int port, ushort ownNode, ushort hostNode, string targetName, byte seed, CancellationToken token)
     {
         string linkId = $"hdlc:{host}:{port}";
 
@@ -221,9 +223,15 @@ internal static class Program
         LinkXmsgTransport codecTransport = new LinkXmsgTransport(adapter);
         XmsgCodec codec = new XmsgCodec(linkId, codecTransport);
 
-        // The asker: shared seed 0x14 (100<->102), our chosen client port.
+        // Persist the client's outgoing datagram sequence per host node so a restart resumes in step
+        // with the host's expected-from-us (a fresh Flags1=0 is silently dropped as behind-sequence).
+        string statePath = System.IO.Path.Combine(AppContext.BaseDirectory, "xmsg-client-sequence.state");
+        FileResponderSequenceStore sequenceStore = new FileResponderSequenceStore(statePath);
+        Console.WriteLine($"[client] datagram-sequence state file: {statePath}");
+
+        // The asker: the shared link seed and our chosen client port, resuming its sequence from the store.
         NDInsight.Sintran.Xmsg.Node.Tad.TadAskerSession asker =
-            new NDInsight.Sintran.Xmsg.Node.Tad.TadAskerSession(ownNode, hostNode, clientPort: 0x0283, seed: 0x14, targetName);
+            new NDInsight.Sintran.Xmsg.Node.Tad.TadAskerSession(ownNode, hostNode, clientPort: 0x0283, seed, targetName, sequenceStore);
         asker.Log += line => Console.WriteLine(line);
         asker.TerminalText += text => Console.Write(text);   // render host output inline
 
