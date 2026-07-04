@@ -60,6 +60,50 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
+        /// Typing "4" (Disconnect) makes the server emit the 0xFD session-state notification (class
+        /// 0x00060000) that triggers the asker's DCON — instead of leaving 100 to sit until its
+        /// 1-minute idle timer fires (spec 22.7).
+        /// </summary>
+        [Fact]
+        public void ClientTypesDisconnect_ServerSendsFdNotification()
+        {
+            PipeTransport serverToClient = new PipeTransport();
+            PipeTransport clientToServer = new PipeTransport();
+
+            XmsgCodec serverCodec = new XmsgCodec("server", serverToClient);
+            XmsgLayer serverLayer = new XmsgLayer(serverCodec, 102, 0x00);
+            serverLayer.TadResponder = new TadTerminalResponder(102, FixedClock);
+            serverLayer.AcknowledgeTadFrames = true;
+
+            XmsgCodec clientCodec = new XmsgCodec("client", clientToServer);
+            TadConnectClient client = new TadConnectClient(100, 102, 0x0283, seed: 0x14);
+            bool sawFd = false;
+            clientCodec.PacketReceived += delegate (string id, XmsgPacketInfo packet)
+            {
+                // The 0xFD notification rides the 0x00060000 control class and carries TAD opcode 0xFD.
+                if (packet.Frame.SubHeader != null && packet.Frame.SubHeader.ControlService == 0x00060000u)
+                {
+                    IReadOnlyList<TadMessage> messages = packet.Frame.Tad?.Messages ?? new List<TadMessage>();
+                    for (int i = 0; i < messages.Count; i++)
+                    {
+                        if (messages[i].Opcode == 0xFD)
+                        {
+                            sawFd = true;
+                        }
+                    }
+                }
+            };
+
+            clientToServer.Target = bytes => serverCodec.ProcessBytes(bytes);
+            serverToClient.Target = bytes => clientCodec.ProcessBytes(bytes);
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("4")));
+
+            Assert.True(sawFd, "server should send the 0xFD teardown notification for the Disconnect command");
+        }
+
+        /// <summary>
         /// The reactive asker driver (TadAskerSession) drives the connect-to handshake against the
         /// responder to the greeting: connect → accept → session-setup → port-assign → DUMM →
         /// terminal-setup → RESE/RECO → banner. The asker renders the MOTD "ENTER " prompt, proving the

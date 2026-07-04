@@ -571,8 +571,13 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
 
             if (result.Disconnect)
             {
+                // Trigger 100's clean teardown: after the "DISCONNECTING" text, send the 0xFD
+                // session-state notification (class 0x0006 from the system port 342). Per spec 22.7,
+                // that makes the asker send DCON, which we then acknowledge and close on — instead of
+                // leaving 100 to sit until its 1-minute idle timer fires and DCONs by itself. Keep the
+                // session OPEN here so 100's DCON is still processed (IsDisconnect -> CloseSession).
+                outgoing.Add(BuildFdNotification(frame));
                 disconnect = true;
-                _connected = false;
             }
 
             return outgoing;
@@ -602,6 +607,32 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                 role: 0x40,
                 sourcePort: TadAdminWirePort,
                 payload: trailer);
+        }
+
+        /// <summary>
+        /// Builds the <c>0xFD</c> session-state notification that tells the asker to disconnect (spec
+        /// 22.7): TAD opcode <c>0xFD</c>, the <c>0x00060000</c> control class, sent from the system
+        /// port 342. The asker answers it with a DCON.
+        /// </summary>
+        /// <param name="request">
+        /// The triggering frame (its source addressing is 100's endpoint).
+        /// </param>
+        /// <returns>
+        /// The 0xFD notification frame.
+        /// </returns>
+        private XmsgFrame BuildFdNotification(XmsgFrame request)
+        {
+            // TAD 0xFD, empty. Class 0x0006 (XMCSM 0x00060000) -> channel 0xDE at epoch 0; role 0x54,
+            // frameFlags 0x82 (observed values for the 0xFD frame, spec 22.6); from the TADADM port 342.
+            byte[] tad = new TadMessageBuilder().Raw(0xFD, ReadOnlySpan<byte>.Empty).Build();
+            return BuildResponderFrame(
+                request,
+                frameClass: 0x0006,
+                controlService: 0x00060000u,
+                frameFlags: 0x82,
+                role: 0x54,
+                sourcePort: TadAdminWirePort,
+                payload: tad);
         }
 
         /// <summary>
