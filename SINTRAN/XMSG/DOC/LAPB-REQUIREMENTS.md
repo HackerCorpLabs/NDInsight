@@ -34,6 +34,19 @@ where the corpus is silent.
 - A1. [ND] Address byte encodes frame ROLE, not station: `0x01` = link management
   (SABM/UA), `0x09` = data transfer (I/RR/RNR/REJ). There is no command/response
   addressing.
+- A1b. [ND] **Address bit `0x80` = odd-info-length marker.** An I-frame whose
+  information field has an ODD byte count MUST carry address `0x89`; even-length
+  I-frames carry `0x09`. VERIFIED across all captures (230+ data frames, zero true
+  counterexamples; the apparent ones are byte-stuffing artifacts in the dumps and
+  non-XMSG noise in test1). S/U frames always have 2-byte (even) info, so `0x81`/`0x89`
+  never occur on them. **A real ND machine silently DISCARDS an odd-length I-frame sent
+  with `0x09`** (before LAPB sequence processing — V(R) does not advance; the next
+  frame then draws REJ), and the discard is deterministic on retransmission — this was
+  the root cause of two live stalls. RX side: accept both values, route on
+  `address & 0x7F`, and MAY validate the parity bit against the actual length.
+  Mechanism [INFERRED]: the ND-100 word-oriented DMA needs to know whether the final
+  16-bit word of the info field carries one or two valid bytes; a wrong flag off-by-ones
+  the length/FCS reconstruction. ITU-T LAPB has no such bit — pure ND extension.
 - A2. Control byte (modulo-8): I-frame `bit0=0`, `ctrl = N(R)<<5 | P<<4 | N(S)<<1`;
   S-frame `bits1..0=01`, `ctrl = N(R)<<5 | PF<<4 | type<<2 | 01` with RR=0 RNR=1 REJ=2
   (i.e. low nibble RR `0x1`, RNR `0x5`, REJ `0x9`); U-frames: SABM `0x3F`, UA `0x73`,

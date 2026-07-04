@@ -128,7 +128,18 @@ After de-framing: `address(1) | control(1) | information(0..n)`.
 | Address | Used on |
 |---------|---------|
 | `0x01` | link-establishment frames (SABM, UA) |
-| `0x09` | data-transfer frames (RR, I-frames) |
+| `0x09` | data-transfer frames (RR, I-frames) with EVEN info-field length |
+| `0x89` | I-frames with **ODD info-field length** (see below) |
+
+> **Address bit `0x80` = odd-info-length marker [VERIFIED, all captures, 230+ data
+> frames, 0 counterexamples].** `0x89` appears on exactly the I-frames whose info field
+> (SINTRAN header + sub-header + trailer) has an odd byte count, in BOTH directions and
+> for every subtype; even-length I-frames and all S-frames (2-byte info) ride `0x09`.
+> A real ND machine **silently discards** an odd-length I-frame sent with `0x09` —
+> before sequence processing, so V(R) freezes and the following frame draws REJ;
+> retransmission fails identically. Root cause of two live stalls (the "help menu" REJ
+> deadlock and the login PASSWORD stall). Mechanism [INFERRED]: word-oriented ND DMA
+> needs the final-word half-full flag. Not standard LAPB — ND extension (§3.6).
 
 ### 3.2 Control byte (modulo-8)
 
@@ -208,6 +219,7 @@ RNR = peer busy, T1/N2 timer recovery, window k ≤ 7).
 | Aspect | ITU-T LAPB | ND machines (this corpus) | Confidence |
 |--------|-----------|---------------------------|------------|
 | Address byte | `0x03`/`0x01` DTE/DCE with command/response semantics | **`0x01` = link setup (SABM/UA), `0x09` = data transfer (RR/REJ/I)** — role-of-frame, not station identity | [VERIFIED] |
+| Address bit `0x80` | does not exist (no length signalling in the address) | **set on I-frames with ODD info-field length (`0x89`); receiver DISCARDS odd frames sent as `0x09`** — sender MUST set it, receiver MUST accept both and route on `addr & 0x7F` (§3.1) | [VERIFIED rule; INFERRED mechanism] |
 | U/S frame info field | none (U and S frames carry no information field) | **SABM, UA and RR carry a 2-byte info field = the sender's node (CPU) number**, big-endian | [VERIFIED] |
 | Link setup | one side initiates | **balanced: BOTH stations send SABM and answer the peer's SABM with UA** (§3.4) | [VERIFIED] |
 | Idle behaviour | none required | **periodic RR keepalive carrying the node number** | [VERIFIED] |
@@ -1166,11 +1178,17 @@ option-word bit 8+n):
 | bit3 | `XFFWD`=11 (forward) | bit7 | `XFWTF`=15 (wait for transfer) |
 
 So `0x00`=responder/none, `0x40`=XFWAK, `0x60`=XFWAK+XFHIP, `0x84`=XFWTF+XFROU (asker),
-`0x94`=XFWTF+XFBNC+XFROU, `0xC4`=XFWTF+XFWAK+XFROU, `0xE4`=XFWTF+XFWAK+XFHIP+XFROU. **The
+`0x94`=XFWTF+XFBNC+XFROU, `0xC4`=XFWTF+XFWAK+XFROU, `0xE4`=XFWTF+XFWAK+XFHIP+XFROU,
+**`0x54`=XFWAK+XFBNC+XFROU** (the host's 0x0006-class `0xFD` session notification). **The
 asker(`4`)/responder(`0`) low nibble IS the `XFROU` bit** (the asker routes a letter to a remote
 port; the local responder does not). The high nibble is the sender's chosen send-options, so it
 is NOT a fixed function of XMCSM — it varies with message purpose (e.g. data vs a bounce-set
 control frame).
+
+> ⚠️ **Do NOT use `(role & 0x0F) == 4` as an "is asker" test.** Bit `0x04` means "routed via
+> XROUT" (`XFROU`), which usually correlates with the asker — but the HOST's `0xFD`
+> notification carries role `0x54` (XFROU set) and breaks the heuristic. Determine
+> asker/responder from the session phase and ports, never from the role byte.
 
 **U1 — Frame-flags = a phase/class status byte, near-deterministic from (XMCSM, direction).
 [MOSTLY SOLVED]** bit7 (`0x80`) = `XFSYS` (system-mode call, always set); bit1 (`0x02`) always
@@ -1330,6 +1348,75 @@ start-li-li f106, li-rout-102-tree f4 — epochs 0, 1 and 2, responders 100 and 
 Implication: an accept can be built from constants + the connect frame alone; ALL per-session
 information travels in the port-assign. Any live accept that deviates from a captured accept
 in anything but the envelope Flags1/Counter/Channel is a bug.
+
+> ⚠️ **The two directions may sit on DIFFERENT epochs — never derive your channel, Counter
+> or Flags1 from the peer's frame.** Proof: `conn-to-d102` has the asker's connect on **D9**
+> (epoch 1, F1 `0x00F8`) and the responder's accept on **D8** (epoch 2, F1 `0x012F`). The
+> `new-conn` session, where both sides happened to be at F1 `0x0046`, is a coincidence of
+> symmetric traffic history — the trap that makes mirroring look correct. Only the
+> subtype-`0x03` ACK tracks the peer's epoch (because it is about THEIR stream, §6); every
+> data frame you originate is stamped from YOUR OWN persisted Flags1. See the worked
+> scenarios in §18.8.
+
+### 18.8 Worked scenarios (seed `0x14`, the 100↔102 link)
+
+Concrete end-to-end examples of the §18.5 arithmetic. Each row gives the exact bytes a
+correct implementation produces. `baseLow`: connect class (`0x0400`) → `0x14`; terminal
+class (`0x0108`) → `0x0C`; control (`0x0008`) → `0x0C`; ack base = `0x1E`.
+
+**S1 — Both sides fresh (cold start, the `device-online` pattern):**
+100's connect arrives `DA / F1 0x0000 / ctr 0x14`. Our replies:
+
+| Frame | Our F1 | Counter | Channel |
+|---|---|---|---|
+| secure ACK of connect | echo `0x0000` | trailing `0x1E` | `DE` (0xDE − 0) |
+| accept | `0x0000` | `0x14` | `DA` |
+| port-assign | `0x0001` | `0x13` | `DA` |
+| DUMM | `0x0002` | `0x0A` | `DD` |
+
+**S2 — Fresh-ish responder, long-running asker (the common live case):**
+100's connect arrives at epoch 1: `D9 / F1 0x0019 / ctr 0xFB`. Our persisted own
+next-F1 is, say, `0x0004` (from prior sessions). Correct output — note the accept rides
+**DA while the connect rode D9**; this asymmetry is CORRECT:
+
+| Frame | Our F1 | Counter | Channel |
+|---|---|---|---|
+| secure ACK of connect | echo `0x0019` | trailing `0x05` (0x1E−0x19) | `DD` (0xDE − asker epoch 1) |
+| accept | `0x0004` | `0x10` | **`DA`** (OUR epoch 0) |
+| port-assign | `0x0005` | `0x0F` | `DA` |
+| DUMM | `0x0006` | `0x06` | `DD` |
+
+**S3 — The mirror trap (what the crash looked like — do NOT do this):**
+Same connect as S2. A responder that copies the asker's F1 emits accept
+`D9 / F1 0x0019 / ctr 0xFB`. The arithmetic is self-consistent, but `0x0019` is the
+ASKER's stream position, not ours — 100's expected-from-us (`XSRSQ`) sees a
+discontinuity → live result: `XMSG fatal error 24B`. The `new-conn` capture (both sides
+at `0x0046`) shows why this bug survives testing on symmetric links.
+
+**S4 — Independent epochs, capture-proven (`conn-to-d102`):**
+asker connect `D9 / 0x00F8 / 0x1C` (epoch 1) ↔ responder accept `D8 / 0x012F / 0xE5`
+(epoch 2); responder terminal data `DB / 0x0131 / 0xDB` while the asker's terminal data
+ran `DC / 0x00FA / 0x12` (epoch 1). Two directions, two epochs, one session.
+
+**S5 — Crossing the wrap boundary (our own sequence):**
+connect-class frames as our F1 passes baseLow `0x14`:
+
+| Our F1 | Counter | epoch | Channel |
+|---|---|---|---|
+| `0x0013` | `0x01` | 0 | `DA` |
+| `0x0014` | `0x00` | 0 | `DA` |
+| `0x0015` | `0xFF` | 1 | **`D9`** |
+
+Real machines emit exactly this pattern at every captured wrap (via100 f12→f14,
+conn-to-d102 f42→f44, li-route-d103-tree f1→f3). A `0xFF` Counter is legitimate.
+
+**S6 — Restart resync (no persisted state):**
+We restart with F1 = `0x0000` but 100's `XSRSQ` expects `0x0007`.
+(1) accept at `0x0000` → **silence** (behind = silent drop) →
+(2) re-send accept jumped ahead, e.g. F1 `0x0100` (`ctr 0x14`, `D9`) → **XENSE 0x07**
+(recoverable, echoes our F1) →
+(3) derive/decode expected, resume at `0x0007` → accept `DA / ctr 0x0D` → ACKed.
+Behind = silence, ahead = XENSE; only the exact expected value is accepted.
 
 ---
 

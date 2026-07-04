@@ -1,20 +1,32 @@
 # TAD Message Format Specifications
 
 **Status:** Authoritative — opcode values verified against SINTRAN III symbol tables
-(K03, L07, M06) and cross-checked with NPL source.
+(K03, L07, M06) and cross-checked with NPL source. **This is the single TAD document**:
+it contains both the NPL-source opcode catalog (§1–§20) AND the capture-verified
+specification of a complete TAD-over-XMSG `connect-to` session — login handshake in
+**§21**, full session wire spec (setup, ACK discipline, steady state, teardown) in
+**§22**.
 
 **Parent Document:** `TAD-Protocol-Analysis.md`
 
-**Sources:**
-- `../NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT`
-- `../NPL-SOURCE/SYMBOLS/L07/FILSYS-SYMBOLS.SYMB.TXT`
-- `../NPL-SOURCE/SYMBOLS/L07/RTLO-SYMBOLS.SYMB.TXT`
-- `../NPL-SOURCE/NPL/RP-P2-TAD.NPL` (client / Remote Process)
-- `../NPL-SOURCE/NPL/MP-P2-TAD.NPL` (server / Master Process)
+**Sources (two independent evidence classes):**
+- NPL source + symbol tables (§1–§20):
+  - `../NPL-SOURCE/SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT`
+  - `../NPL-SOURCE/SYMBOLS/L07/FILSYS-SYMBOLS.SYMB.TXT`
+  - `../NPL-SOURCE/SYMBOLS/L07/RTLO-SYMBOLS.SYMB.TXT`
+  - `../NPL-SOURCE/NPL/RP-P2-TAD.NPL` (client / Remote Process)
+  - `../NPL-SOURCE/NPL/MP-P2-TAD.NPL` (server / Master Process)
+- FCS-verified packet captures of real XMSG-over-HDLC sessions (§21–§22), decoded in
+  `../XMSG/SRC/pcap-decode-report.txt` (three complete `connect-to` sessions incl. a
+  failed-password retry).
 
 > Opcode values are stable across SINTRAN versions K03 → L07 → M06 (verified
 > identical in all three symbol-table directories). The `7xxxx` symbols in NPL are
 > **single-byte numeric constants**, not 4-byte ASCII strings.
+>
+> **Where the two evidence classes disagree, the captures win for on-wire behaviour**
+> (the NPL view describes the RP/MP process split, which does not map 1:1 onto the
+> asker/host wire roles — see the direction-column caveat in §2).
 
 ---
 
@@ -88,10 +100,43 @@ All values are **octal** as written in NPL, with decimal/hex equivalents.
 
 C = Client (RP, Remote Process). S = Server (MP, Master Process).
 
+> **Direction-column caveat [IMPORTANT].** The C/S column reflects which NPL source
+> file contains the builder/handler (RP vs MP). On the captured XMSG wire the roles are
+> **asker** (the machine whose user typed `connect-to`) and **host** (the machine
+> serving the login), and several opcodes flow the OPPOSITE way from a naive C/S
+> reading: in every captured session **RFI, ECKM, BMMX, SYCN, CESC are sent only by the
+> HOST**, while TMOD/TTYP/DESC/OPSV/ESCA/RECO/CERS/DCON come from the ASKER. Use the
+> capture-verified per-opcode directions in §22.2 for wire behaviour; the C/S column
+> remains as NPL provenance.
+
 > **Range design note:** Opcodes 0x01–0x54 are normal protocol messages (deliberately
 > kept inside the printable / 7-bit ASCII range so they can survive 7-bit links).
 > Opcodes 0xFA–0xFE are reserved system/error messages — using the high range makes
 > them unambiguous against any user data byte even in 7-bit mode.
+
+### 2.1 Additional opcodes observed ONLY in captures (not in the NPL tables)
+
+Seen in the three decoded `connect-to` sessions (§22); names/semantics UNKNOWN unless
+noted:
+
+| Hex | Dir (wire) | Data | Where seen | Best reading |
+|----:|:----------:|-----:|------------|--------------|
+| `0x06` | asker→host | 0 | session-setup chain | [UNKNOWN] |
+| `0x07` | host→asker | 5 | port-assign: `00 00 <node> <port16>` | **assigned terminal port** [VERIFIED effect] |
+| `0x0B` | host→asker | 2 | port-assign: `03 XX`, XX=`00/02/04` per session | [UNKNOWN — device index?] |
+| `0x15` | host→asker | 2 | port-assign: `01 08` | advertises the `0x0108` terminal class [INFERRED] |
+| `0x1B` | asker→host | 0 | session-setup chain | [UNKNOWN] |
+| `0x1C` | asker→host | 1 (`00`) | session-setup chain | [UNKNOWN] |
+| `0x20` | host→asker | 0 | once per session, 0x0008 class | host's answer to 7ESCA [VERIFIED pairing] |
+| `0xFD` | host→asker | 0 | 0x0006 class, from system port 342 | session-state notification; at session end triggers the asker's DCON [INFERRED] |
+| `0xFF` | both | 0 | setup chains | chain terminator |
+
+Encoding anomaly [UNKNOWN]: opcodes `0x03` (7ECKM), `0x04` (7BMMX), `0x07` and `0x0B`
+are ALWAYS preceded by an extra `0x00` byte on the wire (all captures); no other opcode
+ever is. Either these are 16-bit opcodes or a flag byte precedes them. Note this is
+byte-for-byte consistent with the §1 pad rule ONLY if those opcodes happen to always
+land on odd offsets — not yet disproven. Encoders MUST reproduce the prefix; decoders
+MUST tolerate it.
 
 ---
 
@@ -1169,6 +1214,444 @@ the bad-USERNAME path (unseen — every capture used an accepted username);
 and whether `SYCN 000A` alone cancels SINTRAN's 1-minute not-logged-in
 disconnect or the full `0002→0003→0006→000A` ladder is required (no capture
 shows the timeout itself).
+
+---
+
+## 22. The captured XMSG connect-to session — wire specification
+
+**What this section is:** the complete, capture-verified specification of a `connect-to`
+terminal session over XMSG — everything above the transport envelope: ports, message
+classes, payload bytes, ordering, ACK discipline, steady state and teardown. HDLC/LAPB:
+`../XMSG/DOC/LAPB-REQUIREMENTS.md`. The envelope (Flags1/Counter/channel/seed/epoch):
+`../XMSG/DOC/XMSG-PROTOCOL.md` §18.5 — not repeated here; its **§18.8 worked scenarios**
+show the exact channel/Counter bytes for the common cases (fresh vs long-running peers,
+independent epochs per direction, the mirror trap that crashes a real machine, wrap
+boundary, restart resync) — read those before implementing either role's envelope
+stamping.
+
+**Evidence (clean-room):** three fully decoded real sessions in
+`../XMSG/SRC/pcap-decode-report.txt` — `conn-to-d102-from-100.pcapng` (lines 2012–2929),
+`new-conn-to-102-from-100.pcapng` (8143–9233, includes a failed-password retry),
+`conn-to-102-from103-via100.pcapng` (7–2011, includes the relayed leg). Line refs below
+are into that report. Tags: [VERIFIED] = byte-for-byte in the captures (usually all
+three sessions); [INFERRED]; [UNKNOWN].
+
+Terminology: **asker** = the machine whose user typed `connect-to`; **host** = the
+machine serving the session.
+
+### 22.1 Endpoints and ports  [VERIFIED]
+
+| Port | Owner | Value | Role |
+|---|---|---|---|
+| Port `0` | host | `0x0000` | XROUT well-known port — the connect letter's destination |
+| System port | host | **always `0x0156` (342)** | source of the host's XROUT letters (accept, port-assign) and the `0xFD` notification |
+| Asker port | asker | one per session (683/648/581 observed) | the asker's single port for the ENTIRE session |
+| Terminal port | host | assigned in port-assign (1218/833/787 observed) | endpoint of all terminal-phase host traffic |
+
+Port encoding `(logicalSlot << 7) | low7`; the host mints its terminal port from its OWN
+free slot — not derived from the asker [VERIFIED]; any well-formed value the host
+answers on is accepted (live-verified with `0x0211`).
+
+### 22.2 Message classes  [VERIFIED]
+
+`Flags2 == XMCSM >> 16` identifies the class; four classes carry a TAD session:
+
+| Class | XMCSM | Carries | Wire direction of content |
+|---|---|---|---|
+| `0x0400` | `0x04000041` / `0x04000000` | XROUT letters: connect, accept / session-setup, port-assign | both (system/asker ports) |
+| `0x0108` | `0x01080000` | ALL terminal data: TMOD chain, RESE/RECO, DUMM, CERS, banner, keystrokes, output, SYCN/ECKM/BMMX/RFI bursts | both (terminal/asker ports) |
+| `0x0008` | `0x00080000` | out-of-band control: 7ESCA (asker), `0x20` (host), 7DCON (asker) | both |
+| `0x0006` | `0x00060000` | the `0xFD` notification | host system port only |
+
+Capture-verified per-opcode wire directions: HOST-only: 7RFI, 7ECKM, 7BMMX, 7SYCN,
+7CESC, 7RESE, `0x20`, `0x07`, `0x0B`, `0x15`, `0xFD`. ASKER-only: 7TMOD, 7TTYP, 7DESC,
+7ESCA, 7RECO, 7CERS, 7DCON, `0x06`, `0x1B`, `0x1C`. Both: 7BDAT, 7DUMM, 7OPSV.
+
+### 22.3 Chain rules  [VERIFIED]
+
+- Trailers are chains of `[opcode][count][data…]` (§1), processed in order; odd-length
+  messages are followed by a `0x00` pad (live-critical: an odd BDAT without the pad
+  before RFI hangs the real terminal); `FF 00` terminates setup-phase chains.
+- **XMLEN is effectively 16-bit**: the sub-header "pad" byte (offset 17) is the HIGH
+  byte of the user-data length. Proof: 255-byte output chunks carry pad=`01`,
+  XMLEN=`01` → 0x0101 = 257 = 2-byte BDAT header + 255 data.
+- The `0x00`-prefix anomaly on ECKM/BMMX/`0x07`/`0x0B` — see §2.1.
+
+### 22.4 Session lifecycle — the verified sequence (identical in all 3 sessions)
+
+```
+ 1. asker  CONNECT letter        0x0400/0x04000041  askerPort -> 0        ->ack
+ 2. host   ACCEPT letter         0x0400/0x04000041  342 -> askerPort      ->ack
+ 3. asker  SESSION-SETUP         0x0400/0x04000000  askerPort -> 342      ->ack
+ 4. host   PORT-ASSIGN           0x0400/0x04000000  342 -> askerPort      ->ack
+ 5. host   DUMM (channel prime)  0x0108             termPort -> askerPort ->ack
+ 6. asker  TMOD+TTYP+DESC+OPSV   0x0108             askerPort -> termPort ->ack
+ 7. asker  ESCA                  0x0008                                   ->ack
+ 8. host   0x20 (answers ESCA)   0x0008                                   ->ack
+ 9. host   RESE #1               0x0108                                   ->ack
+10. asker  RECO #1               0x0108                                   ->ack
+11. host   RESE #2               0x0108                                   ->ack
+12. asker  RECO #2               0x0108                                   ->ack
+13. host   BANNER burst          0x0108  BMMX+ECKM+BDAT+SYCN 0002+BDAT("ENTER ")+RFI
+    ... login (SYCN ladder, §21), steady state (22.6), teardown (22.7)
+```
+
+Strict pairings [VERIFIED]: asker 7ESCA ↔ host `0x20`; asker 7RECO×2 ↔ host 7RESE×2.
+The host's DUMM (step 5) is the FIRST frame on the fresh terminal port, sent
+immediately after the port-assign without waiting for its ACK.
+
+**Frame contents [VERIFIED, byte-identical across sessions unless noted]:**
+
+- **CONNECT letter** (XMLEN 16, role `0xE4`):
+  `FF 07 2A 54414441444D 00 FE 04 44313032` = `FF`(serial) `07`(len)
+  `*TADADM` `00` `FE 04` `"D102"`. Only the `Dnnn` target name would vary.
+  (`2A` = literal `*` or type code: [UNKNOWN — never varies].)
+- **ACCEPT letter** (XMLEN 8, role `0x40`): `01 02 0000 0202 000A` — byte-identical in
+  EVERY captured accept, all epochs, both real responders; carries no per-session data
+  (tail `0202 000A` [UNKNOWN]). Buildable from constants + the connect's source port.
+- **SESSION-SETUP** (XMLEN 9, role `0x84`): `06 00 1B 00 1C 01 00 FF 00` — constant;
+  opcode meanings [UNKNOWN].
+- **PORT-ASSIGN** (XMLEN 24, role `0x40`), the only setup frame with per-session data:
+  `00 07 05 0000 <node><port16>` (assigned terminal port) · `1F 03 4C0000` (OPSV reply)
+  · `00 0B 02 03 <XX>` (XX=`04/02/00` [UNKNOWN]) · `15 02 0108` · `FF 00`.
+- **Terminal setup chain** (asker, one frame):
+  `0C 01 08 | 0D 02 0000 | 0F 01 1B | 1F 03 4C0104` (TMOD=8, TTYP=0, DESC=ESC,
+  OPSV=`4C 01 04`; host's OPSV answer is `4C 00 00` inside the port-assign).
+  ESCA/`0x20`/RESE/RECO/DUMM are all `<op> 00`.
+
+### 22.5 ACK discipline  [VERIFIED — exhaustive count, all 3 sessions]
+
+- **Every subtype-`0x0E` data frame, both directions, all four classes, receives exactly
+  one subtype-`0x03` ACK** echoing its Flags1 — including the connect letter, DCON and
+  the final `0xFD`. No unacked data frame exists in any capture.
+- **ACK-before-response is the norm**; unsolicited traffic may run two data frames deep
+  before the pending ACK arrives (host DUMM after port-assign, output chunk pairs,
+  asker DUMM pairs).
+- ACK construction: `../XMSG/DOC/XMSG-PROTOCOL.md` §6. A host that stops acking stalls
+  the session [VERIFIED live].
+
+### 22.6 Steady state
+
+- **Keystrokes (asker→host):** one 7BDAT per completed line; 7-bit ASCII with **even
+  parity in bit 7** (NOT a fixed +0x80 — `li-fi,,,` = `6C 69 2D 66 69 AC AC AC 8D`
+  mixes clean and parity bytes). CR = `8D`, LF never sent. Hosts MUST strip bit 7.
+  Editing bytes arrive raw ([UNKNOWN handling — a lone `81` seen mid-word]).
+- **Host output:** clean 7-bit ASCII, CRLF; framing verbs per §21 (ECKM/SYCN/CESC/BMMX).
+- **RFI rule [live-critical]:** every host burst that expects input MUST end with
+  `02 00` — banner/ENTER, PASSWORD:, every prompt, the last chunk of every output.
+- **Output chunking:** long output streams as 7BDAT chunks of **255 data bytes**
+  (`01 FF …`, 16-bit XMLEN 0x0101); only the FINAL chunk carries the burst trailer
+  `BDAT + [pad] + SYCN 000A + BDAT(52 40) + RFI`; the host streams up to two chunks
+  ahead of the ACKs.
+- **Idle:** the ASKER keeps the session alive — 7DUMM (0x0108) typically in
+  back-to-back pairs per idle tick, plus one 7CERS after each consumed host burst (and
+  after each host CESC transition). The host sends no keepalives after its priming
+  DUMM. Wall-clock cadence [UNKNOWN — no timestamps in the report].
+- **Role / frameFlags conventions** (observed values; semantics via
+  `../XMSG/DOC/XMSG-PROTOCOL.md` §18.4): roles — connect `0xE4`, host system-port
+  letters `0x40`, asker BDAT `0x84`, asker controls `0x94`, host terminal frames
+  `0x00`, `0xFD` frames `0x54` (= XFWAK+XFBNC+XFROU — see the §18.4 warning: bit 0x04
+  is XFROU "routed", NOT an asker marker). frameFlags — `0x86` on setup/first-use
+  frames AND on the host's `0x20` (so NOT "0x82 on all control classes"); `0x82` on the
+  asker's ESCA/DCON and the `0xFD` notify; `0x92`/`0x96` alternating on terminal data
+  [rule UNKNOWN — mirror per frame type; observed per-frame values in the §22.4
+  transcript sources].
+
+### 22.7 Teardown  [VERIFIED]
+
+User types `log`+CR → host: BDAT(time/date) + CESC 00 → BMMX 000000 + ECKM 00 +
+CESC 00 → BDAT("--EXIT--") + SYCN 000B → CESC 01 → **`0xFD`** (0x0006 class, from
+port 342) → asker acks and sends **7DCON** (`09 00`, 0x0008 class, role `0x94`) → host
+acks. Nothing follows — no teardown letter on the 0x0400 class. (`0xFD` also appeared
+once mid-session in via100 [UNKNOWN purpose there].)
+
+### 22.8 Full-session sequence diagram
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant A as Asker (terminal, e.g. 100)
+    participant H as Host (server, e.g. 102)
+
+    A->>H: CONNECT letter *TADADM/"D102" (0x0400, ->port 0)
+    H-->>A: ack
+    H->>A: ACCEPT 01 02 0000 0202 000A (342->)
+    A-->>H: ack
+    A->>H: SESSION-SETUP 06/1B/1C(00)/FF (->342)
+    H-->>A: ack
+    H->>A: PORT-ASSIGN (terminal port, OPSV 4C0000, 0B/15 options)
+    H->>A: DUMM (0x0108, termPort->) — channel priming
+    A-->>H: ack, ack
+    A->>H: TMOD 08 + TTYP 0000 + DESC 1B + OPSV 4C0104
+    A->>H: ESCA (0x0008)
+    H-->>A: ack, ack
+    H->>A: 0x20 (0x0008) — answers ESCA
+    H->>A: RESE
+    A->>H: RECO
+    H->>A: RESE
+    A->>H: RECO
+    H->>A: BANNER: BMMX 010000 + ECKM 01 + BDAT + SYCN 0002 + BDAT("ENTER ") + RFI
+    Note over A,H: login ladder to SYCN 000A — see section 21
+    loop steady state
+        A->>H: BDAT(line, even-parity, CR=8D) / DUMM pairs / CERS
+        H->>A: BDAT chunks (255B) ... SYCN 000A + "R@" + RFI on last chunk
+    end
+    A->>H: BDAT("log"+CR)
+    H->>A: date+CESC 00 / BMMX 000000+ECKM 00+CESC 00 / "--EXIT--"+SYCN 000B / CESC 01
+    H->>A: 0xFD (0x0006, from 342)
+    A-->>H: ack
+    A->>H: DCON (0x0008)
+    H-->>A: ack
+    Note over A,H: every data frame above also gets its 0x03 ack (mostly elided)
+```
+
+### 22.9 Per-role state machines and message obligations
+
+The two sides have disjoint vocabularies and clearly detectable states. The state
+machines below are **DETECTED from the three captures** (every transition observed at
+least once; the wrong-password branch observed once) — [INFERRED] as machines, since no
+NPL source for the host login flow survives; all message bytes inside them are
+[VERIFIED].
+
+**Message obligations by role:**
+
+| | HOST (TAD server) | ASKER (connect-to client) |
+|---|---|---|
+| Sends | ACCEPT, PORT-ASSIGN, DUMM (prime), `0x20`, 7RESE, banner/login bursts (7BMMX/7ECKM/7SYCN/7CESC/7BDAT/7RFI), output chunks, teardown ladder, `0xFD` | CONNECT, SESSION-SETUP, 7TMOD/7TTYP/7DESC/7OPSV chain, 7ESCA, 7RECO, 7BDAT keystroke lines, 7CERS, 7DUMM keepalives, 7DCON |
+| Receives (must handle) | everything in the asker column | everything in the host column |
+| ACK duty | acks EVERY asker data frame | acks EVERY host data frame |
+| Flow control | grants input with 7RFI at burst end | may type only after 7RFI |
+| Keepalive | none (after the priming DUMM) | 7DUMM pairs when idle, 7CERS after each consumed burst / CESC change |
+
+**HOST state machine:**
+
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE
+    IDLE --> CONNECTED : CONNECT letter received\n/ ack + send ACCEPT
+    CONNECTED --> PORT_ASSIGNED : SESSION-SETUP received\n/ ack + send PORT-ASSIGN + DUMM (prime terminal port)
+    PORT_ASSIGNED --> TERM_SETUP : TMOD chain received / ack\n(on ESCA: reply 0x20)\nsend RESE #1
+    TERM_SETUP --> TERM_SETUP : RECO #1 received / send RESE #2
+    TERM_SETUP --> WAIT_USERNAME : RECO #2 received\n/ send BANNER burst ending SYCN 0002 + "ENTER " + RFI
+    WAIT_USERNAME --> WAIT_PASSWORD : BDAT username line\n/ CRLF + SYCN 0003 + CESC 00,\nthen "PASSWORD- " + ECKM FF + RFI
+    WAIT_PASSWORD --> LOGGED_IN : BDAT password OK\n/ CRLF + ECKM 01 + "OK" + SYCN 0006 + CESC 01,\nthen CRLF + SYCN 000A + prompt 52 40 + RFI
+    WAIT_PASSWORD --> WAIT_USERNAME : BDAT password WRONG\n/ CRLF + ECKM 01 + SYCN 0002 + "ENTER " + RFI\n(silent reset)
+    LOGGED_IN --> LOGGED_IN : BDAT command line\n/ output chunks (255B), last chunk ends\nSYCN 000A + prompt + RFI\n(errors wrapped SYCN 000C)
+    LOGGED_IN --> LOGGING_OUT : BDAT "log" line\n/ date + CESC 00; BMMX 000000 + ECKM 00 + CESC 00;\n"--EXIT--" + SYCN 000B; CESC 01
+    LOGGING_OUT --> WAIT_DCON : / send 0xFD (0x0006 class, from port 342)
+    WAIT_DCON --> [*] : DCON received / ack
+    note right of IDLE
+        In EVERY state - ack each incoming
+        data frame; DUMM and CERS are no-ops.
+        SINTRAN policy - a session not reaching
+        LOGGED_IN within ~1 min is DCONed.
+    end note
+```
+
+**ASKER state machine:**
+
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE
+    IDLE --> WAIT_ACCEPT : user types connect-to Dnnn\n/ send CONNECT letter to host port 0
+    WAIT_ACCEPT --> WAIT_PORT : ACCEPT received\n/ ack + send SESSION-SETUP to port 342
+    WAIT_PORT --> WAIT_RESET : PORT-ASSIGN received (record terminal port);\nhost DUMM arrives\n/ ack + send TMOD+TTYP+DESC+OPSV chain, then ESCA
+    WAIT_RESET --> WAIT_RESET : RESE received / send RECO\n(0x20 received / ack only)
+    WAIT_RESET --> IN_SESSION : BANNER burst received\n/ render; RFI grants typing
+    IN_SESSION --> IN_SESSION : user line complete / send BDAT\n(7-bit + even parity, CR=8D);\nhost bursts / render, send CERS;\nidle / DUMM pairs
+    IN_SESSION --> WAIT_FD : SYCN 000B ("--EXIT--") seen\n/ keep acking teardown ladder
+    WAIT_FD --> [*] : 0xFD received / ack + send DCON,\nawait its ack
+    note right of IN_SESSION
+        Typing is gated by RFI. Echo is
+        host-controlled (ECKM) - the asker
+        renders its own keystrokes only
+        while echo is ON.
+    end note
+```
+
+Boundary notes: the asker may only type after an RFI [VERIFIED live-critical]; the host
+must never expect a keepalive from itself — silence from the asker beyond the DUMM
+cadence just means idle. Neither side originates data on a port it doesn't own.
+
+### 22.10 Existing implementation vs this spec
+
+The C# responder (`../XMSG/SRC/Xmsg.Node/TadTerminalResponder.cs`) implements the setup
+path, seed-model envelope, secure ACKs, the MOTD burst and a demo command loop. Its
+divergences from this spec (audit 2026-07-04 — its defect list):
+
+1. **No login**: stops at `SYCN 0002`; never advances the §21 ladder, so SINTRAN's
+   1-minute "TAD not logged in" DCON always ends the session.
+2. **No output chunking** (one ≤255-byte BDAT max).
+3. **MOTD is a verbatim capture blob** (ID:102 / 8 APRIL 1998); a generated-banner path
+   exists but is dead code.
+4. **Isolation stubs** from crash debugging: connect handling sends only the accept;
+   bring-up only the DUMM; the §22.4 sequence runs from a separate TMOD-gated handler.
+5. **Fixed session port `0x0211`** (works live; no slot/incarnation model).
+6. **Stale comments** still describe the removed Flags1-echo scheme (the code correctly
+   uses the own-sequence seed model).
+7. Port-assign `0x0B` byte hardcoded `00`; ignores session-setup/TMOD parameter contents
+   (harmless per current knowledge — they never vary).
+8. Two rules it got RIGHT, now normative here: the RFI credit rule and the odd-length
+   alignment pad (§22.3/22.6).
+
+### 22.11 Open questions  [UNKNOWN — collected]
+
+1. The `0x00`-prefix on ECKM/BMMX/`0x07`/`0x0B` (§2.1) — 16-bit opcodes, flag byte, or
+   the §1 odd-offset pad?
+2. Opcode semantics: `0x20`, `0xFD` (incl. its one mid-session occurrence),
+   `0x06`/`0x1B`/`0x1C`, `0x0B`'s varying byte, `0x15`, accept tail `0202 000A`,
+   prompt bytes `52 40`.
+3. frameFlags `0x92`/`0x96` alternation rule.
+4. Whether `SYCN 000A` alone cancels the 1-minute timeout, or the full ladder is needed.
+5. Keepalive cadence in wall time (needs a timed capture).
+6. Bad-username path; escape (7ESCA/CESC) handling mid-session (never captured).
+
+### 22.12 Echo control and line discipline  [VERIFIED values; NPL strategy table §5.2]
+
+Echo is **host-controlled, client-executed** [INFERRED — from two verified facts: (a)
+no captured host BDAT ever contains the typed characters except as part of command
+OUTPUT, yet the user demonstrably saw "sys" while typing; (b) the NPL echo machinery is
+strategy-table based (7ECKM strategies 1–7 + optional 20-byte character table, §5.2,
+`RP-P2-TAD.NPL:735–758` `BDECHO`), i.e. designed for the terminal side to apply per
+character — remote per-char echo would contradict the line-mode BDAT framing]. The host
+never echoes typed characters over the wire; the ASKER echoes locally, and 7ECKM tells
+it whether/how.
+
+| Wire bytes | Meaning | When the host sends it |
+|---|---|---|
+| `00 03 01 01` (ECKM strategy `0x01`) | **echo ON** — asker echoes keystrokes locally | banner burst (session start); after "OK" on correct password; after a WRONG password (with the SYCN 0002 reset) |
+| `00 03 01 FF` (ECKM `0xFF`) | **echo OFF** — asker displays nothing while typing | immediately after the "PASSWORD: " BDAT, before the RFI — this is how no-echo password entry works |
+| `00 03 01 00` (ECKM `0x00`) | echo off / discipline teardown | logout ladder, together with `BMMX 000000` and `CESC 00` |
+
+(Remember the `00`-prefix anomaly, §2.1: ECKM and BMMX are always preceded by `0x00` on
+the wire.) Captured sessions use only strategies `01`/`FF`/`00`; the NPL catalog (§5.2)
+defines strategies 1–7 incl. a 20-byte custom echo table — never seen on these links.
+
+The rest of the line discipline:
+
+- **Line mode, not char mode:** the asker sends ONE 7BDAT per completed line (CR=`8D`),
+  never per keystroke. The host never sees partial lines (except raw edit bytes inside
+  the line buffer, e.g. the lone `81` — §22.6).
+- **RFI gates typing:** the asker may send the next line only after the host's 7RFI.
+  Password entry is therefore exactly: host sends `"PASSWORD: "` BDAT + `ECKM FF` +
+  `RFI`; asker locally suppresses echo, collects the line, sends it as one BDAT; host
+  answers with `ECKM 01` in its verdict burst (OK or silent reset) so echo resumes.
+- **CESC transitions** (`0x0E 01 00|01`) bracket login/logout phase changes — escape
+  disabled during login, re-enabled after [INFERRED reading; wire values VERIFIED; CESC
+  enable/disable semantics from NPL §4.3, `MP-P2-TAD.NPL` `5IESC` flag §4.1]. The asker
+  answers each with 7CERS [VERIFIED pattern; NPL: 7CERS is the CESC/escape response,
+  §9.2, `MP-P2-TAD.NPL:555–558`].
+- **BMMX** `010000` opens / `000000` closes the session's break discipline [INFERRED
+  semantics; wire values VERIFIED and constant; NPL format: break strategy + max-break,
+  §5.1, `RP-P2-TAD.NPL:766–795` — the captured 3-byte payload matches the "no table"
+  form, strategy `01`/`00` + MaxBreak `0000`].
+- Output rendering: host output is clean 7-bit ASCII with CRLF; the asker prints it
+  verbatim [VERIFIED — every captured host BDAT].
+- **RFI = input-buffer credit** [VERIFIED behaviour; NPL semantics §6.1,
+  `RP-P2-TAD.NPL:1113–1147` `SNDRFI`: "I have a fresh input buffer; you may send" —
+  exactly the captured gating].
+
+### 22.13 Build recipe — connect-to CLIENT (asker)
+
+Prerequisites (all specified elsewhere, all mandatory): LAPB link up
+(`../XMSG/DOC/LAPB-REQUIREMENTS.md`), reachability exchange done, envelope stamping per
+`../XMSG/DOC/XMSG-PROTOCOL.md` §18.5 (own persisted Flags1, learned seed), and the ACK
+duty of §22.5 (ack every host data frame; treat "no ack for my frame" as
+behind-sequence, see XMSG-PROTOCOL §4.2).
+
+**Opening message** — the client STARTS the session by sending the CONNECT letter to
+the host's port 0: class `0x0400`, XMCSM `0x04000041`, role `0xE4`, frameFlags `0x86`,
+srcPort = your chosen client port, trailer
+`FF 07 2A 54414441444D 00 FE 04 <"Dnnn">` (§22.4). Then respond by table:
+
+| You receive | You do |
+|---|---|
+| ACCEPT (`04000041`, role 0x40, from port 342) | ack; send SESSION-SETUP `06 00 1B 00 1C 01 00 FF 00` (class 0x0400, XMCSM `0x04000000`, role 0x84) to port **342** |
+| PORT-ASSIGN (`04000000`) | ack; extract the terminal port from the `0x07` message — ALL later traffic goes there |
+| host DUMM (0x0108, from terminal port) | ack only; then send the terminal-setup chain `0C 01 08 0D 02 0000 0F 01 1B 1F 03 4C0104` (0x0108, role 0x84) and ESCA `08 00` (0x0008, role 0x94) |
+| `0x20` (0x0008) | ack only [VERIFIED pairing: it answers your ESCA — §22.4; opcode semantics UNKNOWN, §2.1] |
+| RESE `16 00` | ack; send RECO `17 00` (0x0108, role 0x94) — happens twice [VERIFIED; NPL: 7RESE is answered by 7RECO, §8.1, `RP-P2-TAD.NPL:558–564` "send reset and wait for confirm"] |
+| BANNER burst (BMMX+ECKM 01+BDAT+SYCN 0002+"ENTER "+RFI) | ack; render banner; enable local echo (§22.12); user may type — the RFI is the permission [VERIFIED, §22.12] |
+| any host burst ending RFI | render BDATs, obey ECKM/CESC (§22.12), send 7CERS once [VERIFIED pattern; trigger rule INFERRED — correlates with consumed bursts and CESC changes, §22.6], allow next input line |
+| host output chunks without RFI | render, ack — do NOT type yet [VERIFIED: mid-listing chunks carry no RFI] |
+| SYCN 000B ("--EXIT--" ladder) | keep acking the ladder [VERIFIED; SYCN wire format §7.1; the state VALUES are capture-only, §21 — not in NPL] |
+| `0xFD` (0x0006 class, from 342) | ack; send **DCON** `09 00` (0x0008, role 0x94); await its ack; session over [VERIFIED sequence in 2 of 3 captures; the 0xFD→DCON causality is INFERRED — §22.7] |
+
+Continuous duties: encode typed lines as 7BDAT with **even-parity 7-bit ASCII, CR=8D,
+no LF** [VERIFIED — §22.6 byte proof]; send DUMM pairs when idle [VERIFIED order,
+cadence UNKNOWN]; never send data before the first RFI [VERIFIED: no captured asker
+BDAT precedes an RFI grant].
+
+### 22.14 Build recipe — TAD SERVER (host)
+
+Same prerequisites. The server is PASSIVE until a connect letter arrives at port 0.
+Respond by table (each "send" implies acking the trigger frame FIRST — §22.5):
+
+| You receive | You do |
+|---|---|
+| CONNECT letter (`04000041`, role 0xE4, to port 0) | ack; send ACCEPT `01 02 0000 0202 000A` (role 0x40, **from port 342**, dstPort = the connect's srcPort) |
+| SESSION-SETUP (`04000000`, to port 342) | ack; mint your terminal port `(slot<<7)\|low7` [layout VERIFIED via symbols `5PSHZ=7`/`5PMS1=0x7F`/`5PMSK=0xFF80`, `XMSG-SYMBOL-LIST.SYMB.TXT:1261–1263`; responder-local allocation VERIFIED, see `../XMSG/DOC/XMSG-PROTOCOL.md` §18.4 U4]; send PORT-ASSIGN (§22.4 trailer, from 342); immediately send DUMM `18 00` (0x0108, role 0x00, **from the terminal port**) — do not wait for the port-assign's ack [VERIFIED order, all 3 sessions] |
+| TMOD chain (0x0108, to terminal port) | ack; store TMOD/TTYP/DESC/OPSV (contents never varied in captures) |
+| ESCA (0x0008) | ack; send `0x20` `20 00` (0x0008, role 0x00); send RESE #1 `16 00` (0x0108) |
+| RECO #1 | ack; send RESE #2 |
+| RECO #2 | ack; send the BANNER burst: `[00]BMMX 010000` + `[00]ECKM 01` + BDAT(banner text) + `SYCN 0002` + BDAT(`\r\nENTER `) + RFI — one frame, 0x0108, from the terminal port. **You are now in WAIT_USERNAME** |
+| BDAT line in WAIT_USERNAME | ack; strip parity bit; send `BDAT 0D0A` + `SYCN 0003` + `CESC 00`, then `BDAT "PASSWORD: "` + `[00]ECKM FF` + RFI → WAIT_PASSWORD (echo now OFF at the client, §22.12) |
+| BDAT line in WAIT_PASSWORD, **correct** | ack; send `BDAT 0D0A` + `[00]ECKM 01` + `BDAT "OK"` + `SYCN 0006` + `CESC 01`, then `BDAT 0D0A` + `SYCN 000A` + `BDAT 52 40` + RFI → LOGGED_IN |
+| BDAT line in WAIT_PASSWORD, **wrong** | ack; send `BDAT 0D0A` + `[00]ECKM 01` + `SYCN 0002` + `BDAT "\r\nENTER "` + RFI → back to WAIT_USERNAME (silent — no error text) |
+| BDAT command line in LOGGED_IN | ack; execute; stream output as 255-byte BDAT chunks (16-bit XMLEN, §22.3); FINAL chunk carries `SYCN 000A` + `BDAT 52 40` + RFI. Errors: `SYCN 000C` + BDAT(text) + `SYCN 000A` + prompt + RFI |
+| BDAT "log" line | ack; send the teardown ladder (§22.7: date+CESC 00 / BMMX 000000+ECKM 00+CESC 00 / "--EXIT--"+SYCN 000B / CESC 01), then `0xFD` `FD 00` (0x0006, role 0x54, **from port 342**) |
+| DCON | ack; close the session [VERIFIED: nothing follows the DCON ack in any capture; NPL: DCON triggers `DSTOTA` forced disconnect + cleanup, §8.3, `MP-P2-TAD.NPL:626–628`]. Freeing/reusing the terminal port afterwards is an [ASSUMPTION — no capture shows port reuse; the low7 "incarnation" component varying per session suggests reuse-with-new-incarnation] |
+| DUMM / CERS (any state) | ack; no other action [VERIFIED; NPL: `BDDUMM` "simply skips it", §11.1, `MP-P2-TAD.NPL:256–260`] |
+
+Mandatory invariants:
+- End EVERY input-expecting burst with RFI (§22.6/§22.12 — omitting it deadlocks the
+  client [VERIFIED live]).
+- Pad odd-length BDATs before the next message (§22.3 [VERIFIED live]; NPL pad rule §1,
+  `GETMES`/`CREMES`).
+- Login timeout: a session that has not reached `SYCN 000A` is disconnected after
+  ~1 minute [VERIFIED live — SINTRAN 100's console prints "TAD not logged in" and it
+  DCONs; the exact timer value and which SYCN state stops it are UNKNOWN, §22.11 item 4;
+  not found in the COSMOS guides or NPL in this tree]. A compatible server SHOULD do the
+  same (recommendation, not a wire requirement).
+- Never originate traffic from a port you didn't announce — 342 or the assigned
+  terminal port [VERIFIED: no other source port appears in any captured host frame;
+  342's identity as the TADADM/XROUT service port is INFERRED from it receiving the
+  session-setup after the `*TADADM` letter].
+
+### 22.15 Worked scenario — login with echo control and the logged-in signal
+
+The complete username/password exchange, frame by frame, with the exact TAD chain bytes
+and what each side does. All bytes [VERIFIED] from the three captured logins (report
+lines cited); envelope (Flags1/Counter/channel) elided — see `XMSG-PROTOCOL.md` §18.8.
+Every data frame below is also acked (§22.5, elided). `[00]` = the §2.1 prefix byte.
+
+| # | Dir | TAD chain (wire bytes) | Client's local behaviour | Server state |
+|---|-----|------------------------|--------------------------|--------------|
+| 1 | H→C | `[00]04 03 010000` `[00]03 01 01` `01 60 <banner>` `13 02 0002` `01 08 0D0A454E54455220` `02 00` (BMMX + **ECKM 01** + BDAT banner + **SYCN 0002** + BDAT "\r\nENTER " + RFI) | render banner; **local echo ON**; RFI ⇒ user may type | WAIT_USERNAME |
+| 2 | C→H | `01 04 F3F9F38D` (BDAT "sys"+CR, even-parity) | user sees "sys" as typed (local echo) | — |
+| 3 | H→C | `01 02 0D0A` `13 02 0003` `0E 01 00` (BDAT CRLF + **SYCN 0003** + CESC 00) | print CRLF; answer `21 00` (CERS) | username accepted |
+| 4 | H→C | `01 0A 50415353574F52443A20` `[00]03 01 FF` `02 00` (BDAT "PASSWORD: " + **ECKM FF** + RFI) | print prompt; **local echo OFF** — password typed blind; RFI ⇒ may type | WAIT_PASSWORD |
+| 5 | C→H | `01 01 8D` (BDAT — empty password, just CR) or `01 06 F0E1F3F3F38D` ("passs"+CR, the captured WRONG attempt) | nothing displayed while typing | — |
+| 6a | H→C | **correct:** `01 02 0D0A` `[00]03 01 01` `01 02 4F4B` `13 02 0006` `0E 01 01` (CRLF + **ECKM 01** + BDAT "OK" + **SYCN 0006** + CESC 01) | print "OK"; **echo back ON**; answer CERS | password accepted |
+| 6b | H→C | **wrong:** `01 02 0D0A` `[00]03 01 01` `13 02 0002` `01 08 0D0A454E54455220` `02 00` (CRLF + **ECKM 01** + **SYCN 0002** + "ENTER " + RFI) — L8857 | echo back ON; back to username prompt — NO error text | reset to WAIT_USERNAME |
+| 7 | H→C | `01 02 0D0A` `13 02 000A` `01 02 5240` `02 00` (CRLF + **SYCN 000A** + BDAT `52 40` + RFI) | print the `@` prompt; **this is the "logged in" signal** | **LOGGED_IN** |
+| 8 | H→C | after EVERY completed command: last output chunk ends `… 13 02 000A 01 02 5240 02 00` | prompt re-drawn; may type | LOGGED_IN re-asserted |
+
+Key facts the scenario demonstrates:
+- **The logged-in notification is `SYCN 000A`** (frame 7) — there is no other "you are
+  on" message; the client can treat *last SYCN seen == 000A* as "at the @ prompt".
+  Logout later signals `SYCN 000B` with the `--EXIT--` text (§22.7).
+- **No-echo password entry is `ECKM FF`** (frame 4), sent BY the server, executed BY the
+  client's local echo (§22.12) — password characters never cross the wire until the
+  completed line's single BDAT. Echo is always restored with `ECKM 01` in the verdict
+  burst, on BOTH branches (6a/6b).
+- The wrong-password branch is **silent** — no error text, no intermediate SYCN; just
+  the reset to `0002` [VERIFIED once, new-conn L8845–8857].
+- Every input-expecting host frame (1, 4, 6b, 7, 8) ends with RFI; frames 3 and 6a do
+  NOT carry RFI because the server continues talking (4 and 7 follow immediately).
+
+Byte sources: conn-to-d102 L2568–2661, new-conn L8783–8937 (incl. the 6b branch),
+via100 L1097–1186.
 
 ---
 
