@@ -263,10 +263,11 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
                 }
                 else if (!cancellationToken.IsCancellationRequested)
                 {
-                    // Idle tick: advance the timers (T1 retransmit/poll, T3 keepalive) and send the
-                    // proven per-interval RR keepalive so the ND peer keeps the link in RUN.
+                    // Idle tick: advance the LAPB timers ONLY. Tick() itself retransmits on T1 and emits
+                    // the conformant RR keepalive poll when T3 expires, so we must NOT also send an
+                    // unconditional RR here — that flooded the link with one RR per idle second. The tick
+                    // interval is just the timer resolution; the keepalive cadence is the T3 period.
                     _link.Tick(CurrentMillis);
-                    _link.SendKeepalive();
                 }
 
                 await FlushPendingAsync(cancellationToken);

@@ -677,19 +677,33 @@ internal static class Program
             }
 
             string kind;
-            if ((ctrl & 1) == 0) kind = $"I ns={(ctrl >> 1) & 7} nr={(ctrl >> 5) & 7}";
-            else if ((ctrl & 3) == 1) kind = $"RR nr={(ctrl >> 5) & 7}";
-            else kind = ctrl switch { 0x3F => "SABM", 0x73 => "UA", _ => $"U 0x{ctrl:X2}" };
+            if ((ctrl & 1) == 0)
+            {
+                kind = $"I ns={(ctrl >> 1) & 7} nr={(ctrl >> 5) & 7}";
+            }
+            else if ((ctrl & 3) == 1)
+            {
+                // S-frame: the supervisory subtype is bits 2-3 (0=RR, 1=RNR, 2=REJ). Do NOT label every
+                // S-frame "RR" — that hid 100's REJ (ctrl 0xC9) as an "RR" in the raw log.
+                string s = ((ctrl >> 2) & 3) switch { 0 => "RR", 1 => "RNR", 2 => "REJ", _ => "S?" };
+                kind = $"{s} nr={(ctrl >> 5) & 7}";
+            }
+            else
+            {
+                kind = ctrl switch { 0x3F => "SABM", 0x73 => "UA", 0x53 => "DISC", 0x1F => "DM", 0x87 => "FRMR", _ => $"U 0x{ctrl:X2}" };
+            }
             Console.WriteLine($"[rx-raw] a=0x{(body.Length > 0 ? body[0] : 0):X2} {kind} [{Convert.ToHexString(body)}]");
         };
 
         adapter.Initiate();
         Console.WriteLine("[runner] SABM sent; pumping seam link (LAPB + codec + XmsgLayer)...");
-        // NO periodic keepalive — matches the VALIDATED legacy runner: after SABM a healthy link
-        // stays RUN silently (no 4-byte frames until hangup); we send RR only reactively when 100
-        // sends an I-frame (the LAPB link emits the RR itself on receive). Passing a keepalive here
-        // floods the link with one RR per idle second, which the proven path never did.
-        await adapter.RunAsync(token, keepaliveInterval: null);
+        // Tick the LAPB timers every second so T1 retransmission and the N2 retry limit actually run.
+        // With the old keepaliveInterval: null the timers never ticked, so a lost/REJ'd I-frame was
+        // retransmitted only ONCE (event-driven, on the REJ) and then never retried — if that copy also
+        // missed, 100's V(R) stuck and its TAD layer timed out (the login-prompt "beep"). The idle branch
+        // now only TICKS; it no longer floods the link with an RR every second — idle keepalive is the
+        // conformant T3 poll emitted from inside Tick, so a healthy link is still near-silent.
+        await adapter.RunAsync(token, keepaliveInterval: TimeSpan.FromSeconds(1));
     }
 
     /// <summary>
@@ -755,9 +769,21 @@ internal static class Program
         {
             byte ctrl = body.Length > 1 ? body[1] : (byte)0;
             string kind;
-            if ((ctrl & 1) == 0) kind = $"I ns={(ctrl >> 1) & 7} nr={(ctrl >> 5) & 7}";
-            else if ((ctrl & 3) == 1) kind = $"RR nr={(ctrl >> 5) & 7}";
-            else kind = ctrl switch { 0x3F => "SABM", 0x73 => "UA", _ => $"U 0x{ctrl:X2}" };
+            if ((ctrl & 1) == 0)
+            {
+                kind = $"I ns={(ctrl >> 1) & 7} nr={(ctrl >> 5) & 7}";
+            }
+            else if ((ctrl & 3) == 1)
+            {
+                // S-frame: the supervisory subtype is bits 2-3 (0=RR, 1=RNR, 2=REJ). Do NOT label every
+                // S-frame "RR" — that hid 100's REJ (ctrl 0xC9) as an "RR" in the raw log.
+                string s = ((ctrl >> 2) & 3) switch { 0 => "RR", 1 => "RNR", 2 => "REJ", _ => "S?" };
+                kind = $"{s} nr={(ctrl >> 5) & 7}";
+            }
+            else
+            {
+                kind = ctrl switch { 0x3F => "SABM", 0x73 => "UA", 0x53 => "DISC", 0x1F => "DM", 0x87 => "FRMR", _ => $"U 0x{ctrl:X2}" };
+            }
             string extra = (ctrl & 1) == 0 ? $" body={Convert.ToHexString(body)}" : string.Empty;
             Console.WriteLine($"[TX] a=0x{(body.Length > 0 ? body[0] : 0):X2} {kind} state={link.State}{extra}");
         };
