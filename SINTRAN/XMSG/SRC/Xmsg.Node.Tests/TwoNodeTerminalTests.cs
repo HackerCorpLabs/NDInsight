@@ -129,20 +129,45 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
-        /// Typing "4" (Disconnect) makes the server emit the 0xFD session-state notification (class
-        /// 0x00060000) that triggers the asker's DCON — instead of leaving 100 to sit until its
-        /// 1-minute idle timer fires (spec 22.7).
+        /// Typing "4" (Disconnect) makes the server emit the FULL host teardown ladder, not just the
+        /// 0xFD: the capture-VERIFIED sequence is BDAT(farewell)+CESC 00, BMMX/ECKM/CESC 00,
+        /// BDAT("--EXIT--")+SYCN 000B, CESC 01, then the 0xFD (class 0x00060000). A bare BDAT + 0xFD is
+        /// NOT enough - 100 ACKs both and the session survives - so this asserts the SYCN 000B (LoggedOut)
+        /// logout signal AND the 0xFD are both present (spec 22.8 warning box / TAD-Message-Formats.md).
         /// </summary>
         [Fact]
-        public void ClientTypesDisconnect_ServerSendsFdNotification()
+        public void ClientTypesDisconnect_ServerSendsFullTeardownLadder()
         {
             bool sawFd = false;
+            bool sawLogoutSycn = false;
             TerminalCapture terminal = new TerminalCapture();
             TadConnectClient client = BuildPairedNodes(terminal, out XmsgCodec clientCodec, frame =>
             {
-                if (frame.SubHeader != null && frame.SubHeader.ControlService == 0x00060000u)
+                if (frame.SubHeader == null)
+                {
+                    return;
+                }
+
+                // Frame 5: the 0xFD session-state notification rides the 0x00060000 class.
+                if (frame.SubHeader.ControlService == 0x00060000u)
                 {
                     sawFd = true;
+                }
+
+                // Frame 3: a terminal-data frame (0x01080000) carrying SYCN 000B (LoggedOut) - the logout
+                // signal that actually makes 100 send DCON. The decoded chain is on frame.Tad.
+                if (frame.SubHeader.ControlService == 0x01080000u && frame.Tad != null)
+                {
+                    IReadOnlyList<TadMessage> messages = frame.Tad.Messages;
+                    for (int i = 0; i < messages.Count; i++)
+                    {
+                        TadMessage message = messages[i];
+                        if (message.Opcode == 0x13 && message.Data.Length == 2
+                            && message.Data[0] == 0x00 && message.Data[1] == 0x0B)
+                        {
+                            sawLogoutSycn = true;
+                        }
+                    }
                 }
             });
 
@@ -150,7 +175,8 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             LogIn(client, clientCodec);
             clientCodec.SendPacket(new XmsgPacket(client.BuildInput("4")));
 
-            Assert.True(sawFd, "server should send the 0xFD teardown notification for the Disconnect command");
+            Assert.True(sawLogoutSycn, "Disconnect must send the SYCN 000B (LoggedOut) logout signal");
+            Assert.True(sawFd, "Disconnect must send the 0xFD session-state notification");
         }
 
         /// <summary>

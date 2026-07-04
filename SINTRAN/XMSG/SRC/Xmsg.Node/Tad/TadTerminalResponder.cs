@@ -669,9 +669,27 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                     TadMenuResult result = _menu.Handle(line, _clock());
                     if (result.Disconnect)
                     {
-                        // Choice 4 (Disconnect): send the text, then the 0xFD so 100 tears down at once
-                        // (spec 22.7). Keep the session open so 100's DCON is processed.
-                        outgoing.Add(BuildTerminalText(frame, result.Output, readyForInput: false));
+                        // Choice 4 (Disconnect): send the FULL host teardown ladder (GOD-LLM answer,
+                        // capture-VERIFIED across all 3 captures; TAD-Message-Formats.md warning box
+                        // before 22.8). A bare BDAT + 0xFD is NOT enough - 100 ACKs both and the session
+                        // survives (that was the "disconnecting doesn't really happen" bug). Only the
+                        // complete five-frame ladder, each a separate datagram, makes 100's connect-to
+                        // send DCON:
+                        //   1. BDAT(farewell) + CESC 00           (class 0x0108)
+                        //   2. BMMX 000000 + ECKM 00 + CESC 00    (class 0x0108) line-discipline restore
+                        //   3. BDAT("\r\n--EXIT--\r\n") + SYCN 000B (class 0x0108) the LoggedOut signal
+                        //   4. CESC 01                            (class 0x0108)
+                        //   5. 0xFD                               (class 0x0006) the session notification
+                        // SYCN 000B (logout) is the INFERRED trigger, mirroring SYCN 000A for login;
+                        // the corpus never omits a step, so we send all five to stay capture-faithful.
+                        outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
+                            .BdatText(result.Output).Cesc(CescState.EscapeDisabled).Build()));
+                        outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
+                            .Bmmx(0x00, 0x0000).Eckm(EchoStrategy.Teardown).Cesc(CescState.EscapeDisabled).Build()));
+                        outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
+                            .BdatText("\r\n--EXIT--\r\n").Sycn(SycnState.LoggedOut).Build()));
+                        outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
+                            .Cesc(CescState.EscapeEnabled).Build()));
                         outgoing.Add(BuildFdNotification(frame));
                         disconnect = true;
                     }

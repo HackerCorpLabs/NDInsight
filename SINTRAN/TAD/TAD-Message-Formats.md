@@ -1365,6 +1365,14 @@ port 342) → asker acks and sends **7DCON** (`09 00`, 0x0008 class, role `0x94`
 acks. Nothing follows — no teardown letter on the 0x0400 class. (`0xFD` also appeared
 once mid-session in via100 [UNKNOWN purpose there].)
 
+> **Partial teardown ladders do NOT trigger the client's DCON [VERIFIED live,
+> 2026-07-04].** A host that sends only `BDAT(farewell)` + `0xFD` (skipping the
+> `CESC 00` / `BMMX 000000 + ECKM 00 + CESC 00` / `SYCN 000B` / `CESC 01` steps) gets
+> both frames ACKed, but the client keeps the session alive (DUMM keepalives) and never
+> sends DCON. Which single element is the trigger is UNKNOWN (no capture or live run
+> isolates one; `SYCN 000B` as the logout state-signal is the INFERRED candidate,
+> mirroring `SYCN 000A` for login) — send the complete five-frame ladder of §22.7.
+
 ### 22.8 Full-session sequence diagram
 
 ```mermaid
