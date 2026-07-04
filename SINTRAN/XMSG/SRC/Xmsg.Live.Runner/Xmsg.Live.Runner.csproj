@@ -16,4 +16,12 @@
     <ProjectReference Include="..\Xmsg.Diagnostics\Xmsg.Diagnostics.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The checked-in topology is the source of truth; copy it next to the exe so the default
+         run (with no config override) finds it right beside the executable. -->
+    <None Include="topology.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

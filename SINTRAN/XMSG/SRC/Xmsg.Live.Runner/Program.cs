@@ -19,6 +19,8 @@ using NDInsight.Sintran.Xmsg;
 using NDInsight.Sintran.Xmsg.Codec;
 using NDInsight.Sintran.Xmsg.ListRouting;
 using NDInsight.Sintran.Xmsg.Live;          // LapbLayer, TcpBridgeTransport, LiveNode (replaceable half)
+using NDInsight.Sintran.Xmsg.Live.Logging;  // RotatingFileWriter, TeeTextWriter, LogLevel
+using NDInsight.Sintran.Xmsg.Live.Runner;   // TopologyConfig / TopologyNode / LogConfig (this project)
 using NDInsight.Sintran.Xmsg.Live.Seam;     // LapbLayerAdapter (the concrete ILink over HDLC/LAPB)
 using NDInsight.Sintran.Xmsg.Node;          // XmsgNode, FileResponderSequenceStore (portable half)
 using NDInsight.Sintran.Xmsg.Node.Seam;     // ILink, XmsgLayer, LinkXmsgTransport, BoundProtocolDetector
@@ -78,28 +80,60 @@ internal static class Program
 {
     private static async Task<int> Main(string[] args)
     {
-        // Timestamp every console line so the frame log shows exact ordering (LAPB timing).
-        Console.SetOut(new TimestampWriter(Console.Out));
+        // Pull the named options (--config, --self) out of the vector before positional parsing so the
+        // existing "[legacy] host port node seconds" positions are unchanged.
+        List<string> argList = new List<string>(args);
+        string? configPath = TakeOption(argList, "--config");
+        string? selfArg = TakeOption(argList, "--self");
+
+        // Resolve and load the topology: --config wins, else the topology.json shipped next to the exe.
+        System.IO.TextWriter realConsole = Console.Out;
+        string resolvedConfigPath = configPath
+            ?? System.IO.Path.Combine(AppContext.BaseDirectory, "topology.json");
+        TopologyConfig? topology = TryLoadTopology(resolvedConfigPath, realConsole);
+
+        // Set up logging: the console, optionally tee'd to a rotating file, all timestamped. The file is
+        // rotated once here (fresh empty log per run) and again by size while running.
+        System.IO.TextWriter sink = realConsole;
+        RotatingFileWriter? fileWriter = TryCreateLogWriter(topology, realConsole);
+        if (fileWriter != null)
+        {
+            sink = new TeeTextWriter(realConsole, fileWriter);
+        }
+
+        // Timestamp every line so the frame log shows exact ordering (LAPB timing). Both the console and
+        // the file receive the same timestamped stream.
+        Console.SetOut(new TimestampWriter(sink));
 
         // Leading "client" keyword runs the CONNECT-TO CLIENT (asker) instead of the responder:
         //   Xmsg.Live.Runner client [host] [port] [ownNode] [targetName] [hostNode]
         // It brings up LAPB, sends a connect-to letter naming <targetName>, drives the TAD asker
         // state machine, renders the host's terminal output and sends what you type on stdin.
-        if (args.Length > 0 && string.Equals(args[0], "client", StringComparison.OrdinalIgnoreCase))
+        if (argList.Count > 0 && string.Equals(argList[0], "client", StringComparison.OrdinalIgnoreCase))
         {
-            return await RunClientModeAsync(args);
+            return await RunClientModeAsync(argList, topology);
         }
 
         // Optional leading "legacy" keyword selects the old LiveNode + XmsgNode path.
-        bool legacy = args.Length > 0 && string.Equals(args[0], "legacy", StringComparison.OrdinalIgnoreCase);
+        bool legacy = argList.Count > 0 && string.Equals(argList[0], "legacy", StringComparison.OrdinalIgnoreCase);
         int argOffset = legacy ? 1 : 0;
 
-        string host = args.Length > argOffset ? args[argOffset] : "127.0.0.1";
-        int port = args.Length > argOffset + 1 ? int.Parse(args[argOffset + 1]) : 10364;
-        ushort node = (ushort)(args.Length > argOffset + 2 ? int.Parse(args[argOffset + 2]) : 103);
+        // Effective self node: --self (id or alias) > positional node arg > topology.self > 103.
+        ushort node = ResolveSelf(topology, selfArg, argList, argOffset);
+
+        // Endpoint: positional host/port override the neighbour's TCP endpoint from the topology.
+        TopologyEndpoint? endpoint = topology?.PrimaryEndpoint();
+        string host = argList.Count > argOffset ? argList[argOffset] : (endpoint?.Host ?? "127.0.0.1");
+        int port = argList.Count > argOffset + 1 ? int.Parse(argList[argOffset + 1]) : (endpoint?.Port ?? 10364);
         // Session duration in seconds. 0 (or negative) = run until the process is stopped (Ctrl-C),
         // so an interactive terminal session is not cut off by a timeout. Default 3600 (1 hour).
-        int seconds = args.Length > argOffset + 3 ? int.Parse(args[argOffset + 3]) : 3600;
+        int seconds = argList.Count > argOffset + 3 ? int.Parse(argList[argOffset + 3]) : 3600;
+
+        // The routing table comes from the topology (self-consistent for whichever node we run as); the
+        // built-in fallback keeps the old behaviour when no topology file is present.
+        List<RoutingTableEntry> routingEntries = topology != null
+            ? topology.BuildRoutingEntries(node)
+            : BuildRoutingEntries(node);
 
         Console.WriteLine($"[runner] path={(legacy ? "legacy" : "seam")} connecting to {host}:{port} as node {node} for {(seconds > 0 ? seconds + "s" : "unlimited (Ctrl-C to stop)")}");
 
@@ -123,11 +157,11 @@ internal static class Program
         {
             if (legacy)
             {
-                await RunLegacyAsync(transport, node, cts.Token);
+                await RunLegacyAsync(transport, node, routingEntries, cts.Token);
             }
             else
             {
-                await RunSeamAsync(transport, host, port, node, cts.Token);
+                await RunSeamAsync(transport, host, port, node, routingEntries, cts.Token);
             }
         }
         catch (OperationCanceledException)
@@ -148,23 +182,189 @@ internal static class Program
     }
 
     /// <summary>
+    /// Removes a named <c>--option value</c> pair from the argument list and returns its value.
+    /// </summary>
+    /// <param name="args">
+    /// The mutable argument list; the option name and its value are removed in place when found.
+    /// </param>
+    /// <param name="name">
+    /// The option name to look for (for example <c>--config</c>), matched case-insensitively.
+    /// </param>
+    /// <returns>
+    /// The value following the option, or <c>null</c> when the option is absent.
+    /// </returns>
+    private static string? TakeOption(List<string> args, string name)
+    {
+        for (int i = 0; i < args.Count; i++)
+        {
+            if (string.Equals(args[i], name, StringComparison.OrdinalIgnoreCase))
+            {
+                string? value = (i + 1 < args.Count) ? args[i + 1] : null;
+                args.RemoveAt(i);              // remove the option name
+                if (value != null)
+                {
+                    args.RemoveAt(i);          // remove the value that followed it
+                }
+
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Loads the topology file when present, returning <c>null</c> (with a console note) on any problem so
+    /// the runner falls back to built-in defaults rather than failing to start.
+    /// </summary>
+    /// <param name="path">
+    /// The resolved topology file path.
+    /// </param>
+    /// <param name="console">
+    /// The console writer used for the load note (logging is not set up yet at this point).
+    /// </param>
+    /// <returns>
+    /// The parsed topology, or <c>null</c> when the file is missing or invalid.
+    /// </returns>
+    private static TopologyConfig? TryLoadTopology(string path, System.IO.TextWriter console)
+    {
+        try
+        {
+            if (!System.IO.File.Exists(path))
+            {
+                console.WriteLine($"[runner] no topology file at {path}; using built-in defaults.");
+                return null;
+            }
+
+            TopologyConfig config = TopologyConfig.Load(path);
+            console.WriteLine($"[runner] topology loaded: self={config.Self}, {config.Nodes.Count} node(s), file={path}");
+            return config;
+        }
+        catch (Exception ex)
+        {
+            console.WriteLine($"[runner] topology load failed ({ex.Message}); using built-in defaults.");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Creates the rotating log-file writer from the topology's log section, or <c>null</c> when logging is
+    /// disabled or the file cannot be opened.
+    /// </summary>
+    /// <param name="topology">
+    /// The loaded topology (may be <c>null</c>, in which case the default log config is used).
+    /// </param>
+    /// <param name="console">
+    /// The console writer used to report a log-open failure.
+    /// </param>
+    /// <returns>
+    /// A rotating writer, or <c>null</c> when file logging is off.
+    /// </returns>
+    private static RotatingFileWriter? TryCreateLogWriter(TopologyConfig? topology, System.IO.TextWriter console)
+    {
+        LogConfig log = topology?.Log ?? new LogConfig();
+        if (!log.Enabled || log.LevelKind() == LogLevel.Off)
+        {
+            return null;
+        }
+
+        try
+        {
+            // A relative file name lands next to the executable; an absolute path is honoured as-is.
+            string path = System.IO.Path.IsPathRooted(log.File)
+                ? log.File
+                : System.IO.Path.Combine(AppContext.BaseDirectory, log.File);
+            RotatingFileWriter writer = new RotatingFileWriter(path, log.MaxBytes, log.Keep);
+            console.WriteLine($"[runner] logging to {path} (level {log.LevelKind()}, max {log.MaxSizeMb} MB, keep {log.Keep}).");
+            return writer;
+        }
+        catch (Exception ex)
+        {
+            console.WriteLine($"[runner] file logging disabled ({ex.Message}).");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Resolves the effective self node: <c>--self</c> (id or alias) wins, then the positional node arg,
+    /// then the topology's <c>self</c>, then the historical default of 103.
+    /// </summary>
+    /// <param name="topology">
+    /// The loaded topology, used to resolve a <c>--self</c> alias and to supply the default self.
+    /// </param>
+    /// <param name="selfArg">
+    /// The raw <c>--self</c> value (id or alias), or <c>null</c> when not given.
+    /// </param>
+    /// <param name="argList">
+    /// The positional argument list (after option extraction).
+    /// </param>
+    /// <param name="argOffset">
+    /// The index offset for the positional args (1 when the "legacy" keyword is present, else 0).
+    /// </param>
+    /// <returns>
+    /// The node id the runner should present on the wire.
+    /// </returns>
+    /// <exception cref="FormatException">
+    /// Thrown when <paramref name="selfArg"/> is neither a known alias/id nor a parseable number.
+    /// </exception>
+    private static ushort ResolveSelf(TopologyConfig? topology, string? selfArg, List<string> argList, int argOffset)
+    {
+        if (!string.IsNullOrWhiteSpace(selfArg))
+        {
+            TopologyNode? found = topology?.Find(selfArg);
+            if (found != null)
+            {
+                return found.Id;
+            }
+
+            if (ushort.TryParse(selfArg, out ushort selfId))
+            {
+                return selfId;
+            }
+
+            throw new FormatException($"--self '{selfArg}' is not a known node id or alias.");
+        }
+
+        if (argList.Count > argOffset + 2)
+        {
+            return (ushort)int.Parse(argList[argOffset + 2]);
+        }
+
+        if (topology != null)
+        {
+            return topology.Self;
+        }
+
+        return 103;
+    }
+
+    /// <summary>
     /// Parses the client-mode arguments, connects the bridge, and runs the connect-to asker.
     /// </summary>
     /// <param name="args">
-    /// The full argument vector (args[0] == "client").
+    /// The argument list (args[0] == "client"), after option extraction.
+    /// </param>
+    /// <param name="topology">
+    /// The loaded topology (may be <c>null</c>), used to default the host/port and node numbers.
     /// </param>
     /// <returns>
     /// The process exit code.
     /// </returns>
-    private static async Task<int> RunClientModeAsync(string[] args)
+    private static async Task<int> RunClientModeAsync(List<string> args, TopologyConfig? topology)
     {
-        string host = args.Length > 1 ? args[1] : "127.0.0.1";
-        int port = args.Length > 2 ? int.Parse(args[2]) : 10362;
-        ushort ownNode = (ushort)(args.Length > 3 ? int.Parse(args[3]) : 102);
-        string targetName = args.Length > 4 ? args[4] : "D100";
-        ushort hostNode = (ushort)(args.Length > 5 ? int.Parse(args[5]) : 100);
+        // Topology-derived defaults: dial the neighbour's bridge, present our own self node, connect to
+        // the neighbour host node. Positional args still override every one of these.
+        TopologyEndpoint? endpoint = topology?.PrimaryEndpoint();
+        ushort defaultOwn = topology?.Self ?? 102;
+        ushort defaultHostNode = topology?.NeighbourId() ?? 100;
+
+        string host = args.Count > 1 ? args[1] : (endpoint?.Host ?? "127.0.0.1");
+        int port = args.Count > 2 ? int.Parse(args[2]) : (endpoint?.Port ?? 10362);
+        ushort ownNode = (ushort)(args.Count > 3 ? int.Parse(args[3]) : defaultOwn);
+        string targetName = args.Count > 4 ? args[4] : "D100";
+        ushort hostNode = (ushort)(args.Count > 5 ? int.Parse(args[5]) : defaultHostNode);
         // Link seed (hex). Default from the observed node pairs: 100<->102 = 0x14, 100<->103 = 0x13.
-        byte seed = args.Length > 6 ? Convert.ToByte(args[6], 16) : (ownNode == 103 ? (byte)0x13 : (byte)0x14);
+        byte seed = args.Count > 6 ? Convert.ToByte(args[6], 16) : (ownNode == 103 ? (byte)0x13 : (byte)0x14);
 
         Console.WriteLine($"[client] connecting bridge {host}:{port} as node {ownNode}; connect-to '{targetName}' on host node {hostNode}; seed 0x{seed:X2}");
 
@@ -295,7 +495,8 @@ internal static class Program
     /// layer; the link is bound to XMSG, and the detector (a per-link-binding stub) confirms it.
     /// </summary>
     private static async Task RunSeamAsync(
-        TcpBridgeTransport transport, string host, int port, ushort node, CancellationToken token)
+        TcpBridgeTransport transport, string host, int port, ushort node,
+        IReadOnlyList<RoutingTableEntry> routingEntries, CancellationToken token)
     {
         string linkId = $"hdlc:{host}:{port}";
 
@@ -313,13 +514,7 @@ internal static class Program
 
         // Same service configuration as the proven legacy node.
         layer.AcknowledgeData = false;
-        List<RoutingTableEntry> entries = new List<RoutingTableEntry>
-        {
-            new RoutingTableEntry(100, XroutConnectionType.Neighbour, 1, 1, 0),
-            new RoutingTableEntry(102, XroutConnectionType.Via, 100, 2, 0),
-            new RoutingTableEntry(node, XroutConnectionType.Local, node, 0, 0),
-        };
-        layer.RoutingTable = new InMemoryRoutingTable(entries);
+        layer.RoutingTable = new InMemoryRoutingTable(routingEntries);
         // Persist our outgoing datagram sequence per remote node across restarts (a state file next
         // to the runner), so we continue in step with 100's persistent expected-from-us instead of
         // resetting to 0x0000 and being silently dropped. See XMSG-SEQUENCE-RESTART-ANSWER doc.
@@ -459,21 +654,61 @@ internal static class Program
     }
 
     /// <summary>
+    /// Builds this runner's XSGSY routing table relative to the node number we are impersonating.
+    /// </summary>
+    /// <param name="node">
+    /// The system number this runner presents on the wire (the runner's <c>ownNode</c> argument).
+    /// </param>
+    /// <returns>
+    /// The routing-table entries, self-consistent for whichever node we run as.
+    /// </returns>
+    /// <remarks>
+    /// The table MUST be built relative to <paramref name="node"/>, otherwise the XSGSY server hands
+    /// node 100 a route that loops back through itself. Concretely, the old fixed table always carried
+    /// a "102 reachable Via 100" entry. When the runner is started AS node 102 that entry shadows the
+    /// correct "102 is Local (this is me)" self-entry — <see cref="InMemoryRoutingTable.TryLookup"/>
+    /// returns the first <c>System &gt;= query</c>, which is the Via-100 entry — so 100's <c>li-rout</c>
+    /// reports <c>*-&gt;102-&gt;100-&gt;102...  *Loop suspected*</c> and connect-to routing breaks.
+    /// Rules:
+    ///  - Our own <paramref name="node"/> is ALWAYS Local (0 hops); never advertise a route to ourselves via anyone.
+    ///  - 100 is the direct HDLC link peer (Neighbour), unless we ourselves are 100.
+    ///  - 102 is the TAD responder reached through 100 (Via, 2 hops), unless we ourselves are 102.
+    /// </remarks>
+    private static List<RoutingTableEntry> BuildRoutingEntries(ushort node)
+    {
+        List<RoutingTableEntry> entries = new List<RoutingTableEntry>(3);
+
+        // Self is always directly local — this is the entry that keeps 100 from routing to us via 100.
+        entries.Add(new RoutingTableEntry(node, XroutConnectionType.Local, node, 0, 0));
+
+        // 100 is the machine on the other end of the HDLC bridge: a direct neighbour (1 hop).
+        if (node != 100)
+        {
+            entries.Add(new RoutingTableEntry(100, XroutConnectionType.Neighbour, 1, 1, 0));
+        }
+
+        // 102 (the TAD terminal server) is reached through 100 — but only when WE are not 102 ourselves,
+        // otherwise we would advertise a Via-100 loop back to our own node number.
+        if (node != 102)
+        {
+            entries.Add(new RoutingTableEntry(102, XroutConnectionType.Via, 100, 2, 0));
+        }
+
+        return entries;
+    }
+
+    /// <summary>
     /// The original LiveNode + XmsgNode composition, retained until the seam path is validated live.
     /// </summary>
-    private static async Task RunLegacyAsync(TcpBridgeTransport transport, ushort node, CancellationToken token)
+    private static async Task RunLegacyAsync(
+        TcpBridgeTransport transport, ushort node,
+        IReadOnlyList<RoutingTableEntry> routingEntries, CancellationToken token)
     {
         LapbLayer link = new LapbLayer(node);
         XmsgNode xnode = new XmsgNode(node, 0x00);
         xnode.AcknowledgeData = false;
 
-        List<RoutingTableEntry> entries = new List<RoutingTableEntry>
-        {
-            new RoutingTableEntry(100, XroutConnectionType.Neighbour, 1, 1, 0),
-            new RoutingTableEntry(102, XroutConnectionType.Via, 100, 2, 0),
-            new RoutingTableEntry(node, XroutConnectionType.Local, node, 0, 0),
-        };
-        xnode.RoutingTable = new InMemoryRoutingTable(entries);
+        xnode.RoutingTable = new InMemoryRoutingTable(routingEntries);
         xnode.TadResponder = new NDInsight.Sintran.Xmsg.Node.Tad.TadTerminalResponder(node, () => DateTime.Now);
         xnode.AcknowledgeTadFrames = true;
 
