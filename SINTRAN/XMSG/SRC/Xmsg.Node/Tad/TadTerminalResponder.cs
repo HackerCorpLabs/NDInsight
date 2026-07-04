@@ -373,7 +373,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                 // First terminal-data frame (DUMM): Flags1 0x0002 (continues the sequence), Flags2
                 // 0x0108 -> Counter 0x0A, channel DD. Built via the TAD API. ISOLATION: emit only the
                 // DUMM; 100's response tells us whether to send the rest (ctrl 0x20, RESE, RESE, MOTD).
-                byte[] dumm = new TadChain().Add(TadOp.Dumm, null).ToBytes();
+                byte[] dumm = new TadMessageBuilder().Dumm().Build();
                 outgoing.Add(BuildResponderFrame(
                     request,
                     frameClass: 0x0108,
@@ -465,15 +465,15 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             // control 0x20 (XMCSM 0x00080000): TAD opcode 0x20, empty. Seed model -> channel DE at epoch 0.
             outgoing.Add(BuildResponderFrame(
                 request, frameClass: 0x0008, controlService: 0x00080000u, frameFlags: 0x86, role: 0x00,
-                sourcePort: _sessionWirePort, payload: new TadChain().Add(0x20, null).ToBytes()));
+                sourcePort: _sessionWirePort, payload: new TadMessageBuilder().Raw(0x20, ReadOnlySpan<byte>.Empty).Build()));
 
             // RESE, RESE (XMCSM 0x01080000): TAD RESE, empty. Channel DD at epoch 0.
             outgoing.Add(BuildResponderFrame(
                 request, frameClass: 0x0108, controlService: TerminalDataControlService, frameFlags: 0x96, role: 0x00,
-                sourcePort: _sessionWirePort, payload: new TadChain().Add(TadOp.Rese, null).ToBytes()));
+                sourcePort: _sessionWirePort, payload: new TadMessageBuilder().Rese().Build()));
             outgoing.Add(BuildResponderFrame(
                 request, frameClass: 0x0108, controlService: TerminalDataControlService, frameFlags: 0x92, role: 0x00,
-                sourcePort: _sessionWirePort, payload: new TadChain().Add(TadOp.Rese, null).ToBytes()));
+                sourcePort: _sessionWirePort, payload: new TadMessageBuilder().Rese().Build()));
 
             // MOTD (XMCSM 0x01080000): the banner + ENTER prompt chain. Channel DD at epoch 0.
             outgoing.Add(BuildResponderFrame(
@@ -608,24 +608,20 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// </summary>
         private XmsgFrame BuildTerminalText(XmsgFrame request, string text, bool readyForInput)
         {
-            byte[] ascii = Encoding.ASCII.GetBytes(text);
-            if (ascii.Length > 255)
-            {
-                byte[] clamped = new byte[255];
-                Array.Copy(ascii, clamped, 255);
-                ascii = clamped;
-            }
-
-            TadChain chain = new TadChain();
-            chain.Add(TadOp.Bdat, ascii);
+            // Build via the typed API so the chain is WORD-ALIGNED: an odd-length BDAT is followed by
+            // a 0x00 pad so the RFI starts on an even offset. Without that pad, odd-length replies (the
+            // menu, the Echo reply) put the RFI on an odd byte, 100's word-oriented reader mis-parsed
+            // it, the input credit was lost, and the terminal hung. Even-length replies happened to
+            // work because their RFI was already word-aligned.
+            TadMessageBuilder builder = new TadMessageBuilder().BdatText(text);
             if (readyForInput)
             {
                 // RFI (ready-for-input): the flow-control credit that lets 100 send the next line.
                 // The MOTD carried one, which is why the first ENTER worked; each reply must renew it.
-                chain.Add(TadOp.Rfi, null);
+                builder.Rfi();
             }
 
-            byte[] payload = chain.ToBytes();
+            byte[] payload = builder.Build();
 
             // Route terminal text through the SAME seed model as every other frame we originate:
             // CONTINUE our own Flags1 (not echo the incoming BDAT's), and derive Counter and channel.
