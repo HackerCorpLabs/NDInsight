@@ -73,6 +73,43 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         }
 
         /// <summary>
+        /// Builds a link already CONNECTED as the initiator: it sends SABM and the peer answers UA.
+        /// </summary>
+        /// <param name="ownNode">
+        /// This node's number.
+        /// </param>
+        /// <param name="peerHi">
+        /// The high byte of the peer's node number, carried in the peer's UA.
+        /// </param>
+        /// <param name="peerLo">
+        /// The low byte of the peer's node number.
+        /// </param>
+        /// <param name="sent">
+        /// The list receiving every transmitted LAPB body.
+        /// </param>
+        /// <param name="got">
+        /// An optional list receiving every delivered information field.
+        /// </param>
+        /// <param name="options">
+        /// Optional timer/window configuration; defaults to the spec defaults.
+        /// </param>
+        /// <returns>
+        /// A connected <see cref="LapbLayer"/> with V(S) = V(R) = V(A) = 0.
+        /// </returns>
+        public static LapbLayer NewConnectedInitiator(ushort ownNode, byte peerHi, byte peerLo, List<byte[]> sent, List<byte[]>? got, LapbOptions? options = null)
+        {
+            LapbLayer link = NewLink(ownNode, sent, options);
+            if (got != null)
+            {
+                link.OnInformation += delegate (ReadOnlyMemory<byte> info) { got.Add(info.ToArray()); };
+            }
+
+            link.Connect(currentTicks: 0);               // our SABM
+            Deliver(link, 0x01, 0x73, peerHi, peerLo);   // peer UA -> Connected
+            return link;
+        }
+
+        /// <summary>
         /// Delivers a frame built from an address, control byte and info bytes at tick 0.
         /// </summary>
         /// <param name="link">

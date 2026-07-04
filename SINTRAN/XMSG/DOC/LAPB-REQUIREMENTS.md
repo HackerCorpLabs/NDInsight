@@ -1,5 +1,13 @@
 # LAPB requirements — ND point-to-point link (compact validation spec)
 
+> **Authoritative source.** The single normative LAPB Layer-2 spec now lives at WSL
+> `/home/ronny/repos/os/x25emu/docs/lapb-nd-spec.md` (the X25Emulator repo); where this compact
+> note and that spec disagree, the spec wins. The C# `LapbLayer`
+> (`SINTRAN/XMSG/SRC/Xmsg.Live/LapbLayer.cs`) has been rebuilt to conform to it — see
+> `LAPB-CONFORMANCE.md` in this folder for the section 8.1 checklist mapped to code and tests, and
+> the byte vectors S1-S8 in `SINTRAN/XMSG/SRC/Xmsg.Live.Tests/LapbConformanceVectorsTests.cs`.
+> This note is retained as a quick companion checklist.
+
 Self-contained requirements for the LAPB/HDLC layer used between Norsk Data SINTRAN III
 machines (and our C# node) over an `nd100x --hdlc` byte stream. Written so a reviewer
 (human or LLM) can validate an implementation against it WITHOUT other documents.
