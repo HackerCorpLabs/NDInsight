@@ -25,9 +25,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
     /// </remarks>
     public sealed class TadConnectClient
     {
-        private const uint XroutSetupControlService = 0x04000041u;   // XSLET directory letter
-        private const uint SessionSetupControlService = 0x04000000u; // 06/1B/1C/FF negotiation chain
-        private const uint TerminalDataControlService = 0x01080000u; // DC/TAD terminal data
+        private const uint XroutSetupControlService = (uint)XmcsmService.XsletLetter;   // XSLET directory letter
+        private const uint SessionSetupControlService = (uint)XmcsmService.SessionSetup; // 06/1B/1C/FF negotiation chain
+        private const uint TerminalDataControlService = (uint)XmcsmService.TerminalData; // DC/TAD terminal data
 
         private readonly ushort _clientNode;
         private readonly ushort _serverNode;
@@ -200,7 +200,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <returns>The ESCA frame.</returns>
         public XmsgFrame BuildEsca()
         {
-            return BuildControl(TadOp.Esca, frameClass: 0x0008, controlService: 0x00080000u, role: 0x94);
+            return BuildControl(TadOp.Esca, frameClass: 0x0008, controlService: (uint)XmcsmService.BareTadControl, role: 0x94);
         }
 
         /// <summary>
@@ -238,7 +238,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <returns>The DCON frame.</returns>
         public XmsgFrame BuildDcon()
         {
-            return BuildControl(TadOp.Dcon, frameClass: 0x0008, controlService: 0x00080000u, role: 0x94);
+            return BuildControl(TadOp.Dcon, frameClass: 0x0008, controlService: (uint)XmcsmService.BareTadControl, role: 0x94);
         }
 
         /// <summary>

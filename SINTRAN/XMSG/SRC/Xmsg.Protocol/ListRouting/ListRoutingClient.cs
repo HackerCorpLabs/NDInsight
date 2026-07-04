@@ -20,14 +20,14 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
         /// </summary>
         /// <remarks>
         /// VERIFIED (XMSG-PROTOCOL.md section 9.1): the low byte <c>0x4B</c> (75) is the
-        /// XROUT service code for <c>XSGSY</c> "get routing info".
+        /// XROUT service code for <c>XSGSY</c> "get routing info". Value from <see cref="XmcsmService.XsgsyRequest"/>.
         /// </remarks>
-        public const uint XmcsmXsgsyRequest = 0x0100014Bu;
+        public const uint XmcsmXsgsyRequest = (uint)XmcsmService.XsgsyRequest;
 
         /// <summary>
         /// XMCSM control/service word identifying an XSGSY reply.
         /// </summary>
-        public const uint XmcsmXsgsyReply = 0x01000100u;
+        public const uint XmcsmXsgsyReply = (uint)XmcsmService.XsgsyReply;
 
         // OBSERVED-from-capture default framing bytes for a freshly built request.
         // These are NOT documented requirements; they are the values seen on the wire

@@ -44,7 +44,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// XMCSM <c>0x04000041</c> whose low byte <c>0x41</c> = XSLET (XMSG-PROTOCOL.md 9,
         /// TAD-Message-Formats.md). The high bytes <c>0x040000</c> are carried verbatim.
         /// </remarks>
-        public const uint XroutSetupControlService = 0x04000041u;
+        public const uint XroutSetupControlService = (uint)XmcsmService.XsletLetter;
 
         // OBSERVED (single capture): the fixed prefix of the XSLET letter body that precedes
         // the target remote name. Bytes: serial 0xFF, service 0x07, then 0x2A and the ASCII

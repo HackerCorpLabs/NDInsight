@@ -5,11 +5,21 @@ namespace NDInsight.Sintran.Xmsg
     /// it is not a length.
     /// </summary>
     /// <remarks>
-    /// Values from XMSG-PROTOCOL.md section 4.1. Only these four subtypes occur
-    /// across the 1947-frame verified corpus.
+    /// Values from XMSG-PROTOCOL.md section 4.1. These subtypes occur across the 1947-frame
+    /// verified corpus, plus the network-error subtype seen on live rejects.
     /// </remarks>
     public enum SintranPacketSubtype : byte
     {
+        /// <summary>
+        /// Network error / reject frame (<c>0x07</c>).
+        /// </summary>
+        /// <remarks>
+        /// Carries a negative XE* error code in Flags2 (for example XEIMA -19 invalid magic, XENSE -34
+        /// sequence error). Observed live when a node rejects a datagram; not part of the four core
+        /// corpus subtypes but a real on-wire value.
+        /// </remarks>
+        NetworkError = 0x07,
+
         /// <summary>
         /// Delivery acknowledgment / flow-control frame.
         /// </summary>

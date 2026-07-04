@@ -381,7 +381,7 @@ namespace NDInsight.Sintran.Xmsg.Node
                     TadResponder?.ConfirmDelivered(incoming.Header.SourceNode, incoming.Header.Flags1);
                     return null;
 
-                case (SintranPacketSubtype)0x07:
+                case SintranPacketSubtype.NetworkError:
                     // Network error. A XENSE (Flags2 0xFFDE) reject of our accept means our sequence
                     // was AHEAD of 100's expected-from-us (drift). Step the accept DOWN and re-send;
                     // one step per XENSE converges on 100's exact value with no restart. Only while

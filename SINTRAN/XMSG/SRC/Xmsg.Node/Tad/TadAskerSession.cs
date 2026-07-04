@@ -104,22 +104,22 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             RenderBdat(frame);
 
             uint controlService = frame.SubHeader.ControlService;
-            if (controlService == 0x04000041u)
+            if (controlService == (uint)XmcsmService.XsletLetter)
             {
                 // ACCEPT (from host system port) -> send the session-setup to port 342.
                 Log?.Invoke("[asker] accept received -> session-setup");
                 outgoing.Add(_client.BuildSessionSetup());
             }
-            else if (controlService == 0x04000000u)
+            else if (controlService == (uint)XmcsmService.SessionSetup)
             {
                 // PORT-ASSIGN -> the terminal port is learned from the host's first 0x0108 frame (its DUMM).
                 Log?.Invoke("[asker] port-assign received -> awaiting terminal DUMM");
             }
-            else if (controlService == 0x01080000u)
+            else if (controlService == (uint)XmcsmService.TerminalData)
             {
                 DriveTerminalPhase(frame, outgoing);
             }
-            else if (controlService == 0x00060000u)
+            else if (controlService == (uint)XmcsmService.SessionNotify)
             {
                 // 0xFD session-state notification -> end the session with DCON.
                 Log?.Invoke("[asker] 0xFD received -> DCON");

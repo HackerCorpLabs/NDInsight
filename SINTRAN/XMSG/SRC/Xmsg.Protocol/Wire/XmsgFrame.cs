@@ -173,9 +173,9 @@ namespace NDInsight.Sintran.Xmsg
         private static void DecodeDataTrailer(XmsgFrame result, ReadOnlySpan<byte> trailer)
         {
             uint xmcsm = result.SubHeader != null ? result.SubHeader.ControlService : 0u;
-            bool isLetter = xmcsm == 0x0100014Bu
-                || xmcsm == 0x01000100u
-                || (xmcsm & 0xFFu) == 0x41u;
+            bool isLetter = xmcsm == (uint)XmcsmService.XsgsyRequest
+                || xmcsm == (uint)XmcsmService.XsgsyReply
+                || (xmcsm & 0xFFu) == XmcsmMask.XsletServiceLowByte;
 
             if (isLetter && trailer.Length >= XroutMessage.HeaderSize)
             {

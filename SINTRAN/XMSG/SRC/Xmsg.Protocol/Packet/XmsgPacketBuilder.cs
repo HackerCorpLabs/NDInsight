@@ -188,9 +188,8 @@ namespace NDInsight.Sintran.Xmsg.Packet
             err.Header.Marker1 = SintranHeader.Marker1Value;
             err.Header.Marker2 = SintranHeader.Marker2Normal;
             err.Header.PacketType = 0x00;
-            // NetworkError (0x07) is not one of the four core SintranPacketSubtype values; cast the
-            // raw byte so the header serialises the correct subtype without widening that enum.
-            err.Header.Subtype = (SintranPacketSubtype)(byte)XmsgPacketType.NetworkError;
+            // The network-error subtype (0x07) is now a named member of SintranPacketSubtype.
+            err.Header.Subtype = SintranPacketSubtype.NetworkError;
             err.Header.DestinationNode = destinationNode;
             err.Header.SourceNode = sourceNode;
             err.Header.Flags1 = datagramSequence;

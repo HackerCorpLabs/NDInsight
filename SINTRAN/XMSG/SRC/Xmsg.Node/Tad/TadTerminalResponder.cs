@@ -28,7 +28,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
     {
         // The XMSG SYSTEM-TAD / directory-service control word (XSLET letter to TADADM),
         // VERIFIED as the connect dispatch value in every conn-to capture.
-        private const uint SystemTadControlService = 0x04000041u;
+        private const uint SystemTadControlService = (uint)XmcsmService.XsletLetter;
 
         // The TADADM well-known service port. VERIFIED: logical port 2 with the fixed low-7
         // component 0x56 -> wire value 0x0156 (342), seen on systems 100/102/103 alike.
@@ -307,7 +307,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
 
         /// The XMSG control word 100 uses for the session-setup / port-negotiation frames
         /// (the TAD 06/1B/1C/FF chain and our port-assign reply). VERIFIED from captures.
-        private const uint SessionSetupControlService = 0x04000000u;
+        private const uint SessionSetupControlService = (uint)XmcsmService.SessionSetup;
 
         /// <summary>
         /// Returns true when the frame is the session-setup that follows an accepted connect
@@ -396,7 +396,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         }
 
         /// <summary>XMCSM control/service word for a TAD terminal-data frame. VERIFIED from captures.</summary>
-        private const uint TerminalDataControlService = 0x01080000u;
+        private const uint TerminalDataControlService = (uint)XmcsmService.TerminalData;
 
         /// <summary>
         /// The per-link seed byte, learned from 100's connect frame (see <see cref="OnConnect"/>).
@@ -498,7 +498,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
 
             // control 0x20 (XMCSM 0x00080000): TAD opcode 0x20, empty. Seed model -> channel DE at epoch 0.
             outgoing.Add(BuildResponderFrame(
-                request, frameClass: 0x0008, controlService: 0x00080000u, frameFlags: 0x86, role: 0x00,
+                request, frameClass: 0x0008, controlService: (uint)XmcsmService.BareTadControl, frameFlags: 0x86, role: 0x00,
                 sourcePort: _sessionWirePort, payload: new TadMessageBuilder().Raw(0x20, ReadOnlySpan<byte>.Empty).Build()));
 
             // RESE, RESE (XMCSM 0x01080000): TAD RESE, empty. Channel DD at epoch 0.
@@ -754,7 +754,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             return BuildResponderFrame(
                 request,
                 frameClass: 0x0006,
-                controlService: 0x00060000u,
+                controlService: (uint)XmcsmService.SessionNotify,
                 frameFlags: 0x82,
                 role: 0x54,
                 sourcePort: TadAdminWirePort,
