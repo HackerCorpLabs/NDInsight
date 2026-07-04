@@ -568,6 +568,10 @@ internal static class Program
         // The earlier DC/DD crashes were a wrong Counter (fixed-Base), not a wrong channel. ISOLATION:
         // OnSessionSetup emits ONLY the DUMM first; extend to the full burst once 100 ACKs it.
         tad.SendTerminalBringup = true;
+        // Surface the per-link outgoing-Flags1 lifecycle: the continued value on each connect and,
+        // loudly, the ReachabilityRequest reset (peer XMSG restart) - so a later reconnect issue is
+        // easy to trace in the log.
+        tad.Log = line => Console.WriteLine(line);
         layer.TadResponder = tad;
         layer.AcknowledgeTadFrames = true;
 

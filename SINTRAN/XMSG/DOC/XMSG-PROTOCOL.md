@@ -1379,6 +1379,16 @@ class (`0x0108`) → `0x0C`; control (`0x0008`) → `0x0C`; ack base = `0x1E`.
 next-F1 is, say, `0x0004` (from prior sessions). Correct output — note the accept rides
 **DA while the connect rode D9**; this asymmetry is CORRECT:
 
+> **No per-connect reset — ever.** The outgoing Flags1 is ONE per-remote-node counter
+> continued across sessions, DCON teardowns, LAPB re-SABMs and process restarts. It
+> resets ONLY on first contact or on a ReachabilityRequest from the peer (its XMSG
+> restarted). Hard-setting it to `0x0000` in the connect handler makes every reconnect
+> against a climbed peer land BEHIND its expected value → the accept is silently
+> dropped (no datagram ACK, no session-setup) — VERIFIED live 2026-07-04. A correctly
+> CONTINUED value is safe at any epoch: real epoch-1 accepts on `D9` were accepted
+> (new-conn f60 L8678, start-li-li f106 L10239). The historical fatal-24B accept was an
+> ECHO of the asker's Flags1 (wrong value), not a continued own value.
+
 | Frame | Our F1 | Counter | Channel |
 |---|---|---|---|
 | secure ACK of connect | echo `0x0019` | trailing `0x05` (0x1E−0x19) | `DD` (0xDE − asker epoch 1) |

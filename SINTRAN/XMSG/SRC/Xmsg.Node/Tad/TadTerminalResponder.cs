@@ -72,6 +72,13 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         public bool SendTerminalBringup { get; set; }
 
         /// <summary>
+        /// Optional sink for one-line diagnostic messages (the live runner points this at the console).
+        /// Used to make the per-link outgoing-Flags1 lifecycle loudly visible: the value continued on a
+        /// connect, and - critically - when a peer ReachabilityRequest resets the store to 0x0000.
+        /// </summary>
+        public Action<string>? Log { get; set; }
+
+        /// <summary>
         /// Initialises the responder for a given node with a clock (injected for deterministic
         /// tests; the live runner passes <c>() =&gt; DateTime.Now</c>).
         /// </summary>
@@ -171,6 +178,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         public void ResetSequence(ushort remoteNode)
         {
             _sequenceStore.SaveNextFlags1(remoteNode, 0x0000);
+            // Loud, greppable marker so a later reconnect issue is easy to trace: this is the ONLY
+            // event (besides first-ever contact) that zeroes our per-link outgoing sequence.
+            Log?.Invoke($"[responder] ReachabilityRequest from node {remoteNode}: peer XMSG RESTARTED -> outgoing Flags1 store RESET to 0x0000");
         }
 
         /// <summary>
@@ -274,17 +284,22 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             // terminal data rides 0xDD (NOT DB: DB was an epoch-2 artifact of a high running sequence).
             _seed = XmsgEnvelope.LearnSeed(
                 request.Header.Flags1, request.SubHeader.Counter, request.Header.Flags2);
-            // Start our OWN outgoing datagram sequence at 0x0000 for THIS connect, and count up +1 per
-            // frame we originate (accept, port-assign, and every terminal-data frame share it — one
-            // sequence). This is the VERIFIED-LIVE rule (XMSG-PROTOCOL.md §18.5, §18.7): a responder
-            // does NOT mirror 100's sequence and does NOT resume a persisted value; a fresh direction
-            // is epoch 0, so the accept rides 0xDA (NOT the epoch-1 0xD9). The earlier persist-and-
-            // resume scheme was based on the SUPERSEDED "behind-sequence drop" diagnosis; §18.5 corrects
-            // it (the failures were a wrong Counter, not a stale Flags1). Resuming a climbed value put
-            // the accept at epoch 1 (0xD9) which crashed 100's XMSG with the fatal 24B (XXPER) — a
-            // discontinuity in our stream. The GOD-LLM epoch-1/epoch-2 capture analysis confirms: only
-            // the 0x03 secure-ACK follows the asker's epoch; every data frame uses our OWN Flags1.
-            _respFlags1 = 0x0000;
+            // CONTINUE our per-remote-node outgoing Flags1 from the persisted store - NEVER reset per
+            // connect (GOD-LLM, capture-VERIFIED; XMSG-PROTOCOL.md section 18.8 warning box). The
+            // outgoing sequence is ONE counter per remote node, continued across sessions, DCON
+            // teardowns, LAPB re-SABMs and process restarts; it resets ONLY on first contact or a
+            // ReachabilityRequest from 100 (its XMSG restarted - handled by ResetSequence). 100's
+            // expected-from-us (XSRSQ) is a pure continuation of our direction = our last ACKed Flags1 +
+            // 1, which is exactly what the store tracks (it advances on 100's 0x03 ACKs in
+            // ConfirmDelivered, never on send). Hard-resetting to 0x0000 here made every reconnect
+            // against a CLIMBED 100 land BEHIND its XSRSQ, so the accept was silently dropped (LAPB RR
+            // but no datagram ACK, no session-setup) - the live stall on 2026-07-04. A correctly
+            // CONTINUED value is safe at ANY epoch (real epoch-1 accepts on D9 are accepted); the earlier
+            // fatal-24B crash was an ECHO of the asker's Flags1 (a wrong value), NOT a continued own
+            // value. If the store and 100 ever disagree the accept self-heals: silence => we are behind
+            // => jump ahead to force a recoverable XENSE then step down (ResyncAcceptDown).
+            _respFlags1 = _sequenceStore.LoadNextFlags1(_clientSystem);
+            Log?.Invoke($"[responder] connect from node {_clientSystem}: continuing outgoing Flags1 at 0x{_respFlags1:X4} (persisted; no per-connect reset)");
 
             // Retain the connect and the accept's sequence so a XENSE (accept ahead of 100's expected)
             // can be recovered by stepping the accept down (ResyncAcceptDown), no restart needed.
