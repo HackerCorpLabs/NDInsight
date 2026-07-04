@@ -46,7 +46,12 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         private readonly List<byte> _frameAccumulator;
         private readonly Queue<byte[]> _pendingWrites;
 
-        private long _ticks;
+        // Monotonic millisecond clock feeding the LAPB timers (T1/T3/N2). The LAPB layer never reads a
+        // wall clock itself (deterministic by design); this adapter, in the replaceable live half,
+        // injects real elapsed milliseconds so the spec timers fire on real time. Stopwatch is
+        // monotonic and immune to wall-clock adjustments. Frame bytes never depend on this value
+        // (only timer deadlines do), so the in-memory parity tests stay deterministic.
+        private readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
         private LinkStatus _status;
         // True once Stop()/Dispose() has been called. Used to stop the pump's residual LAPB state from
         // resurrecting the link to Active/Starting. We CANNOT use the status enum for this, because the
@@ -54,6 +59,14 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         private bool _stopRequested;
         private CancellationTokenSource? _cts;
         private Task? _pump;
+
+        /// <summary>
+        /// Gets the current monotonic clock value in milliseconds, injected into the LAPB timers.
+        /// </summary>
+        private long CurrentMillis
+        {
+            get { return _clock.ElapsedMilliseconds; }
+        }
 
         /// <inheritdoc />
         public event LinkPayloadReceived? PayloadReceived;
@@ -156,7 +169,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         /// </summary>
         public void Initiate()
         {
-            _link.Connect(_ticks);
+            _link.Connect(CurrentMillis);
         }
 
         /// <summary>
@@ -225,13 +238,14 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
                         FeedByte(buffer[i]);
                     }
 
-                    _ticks++;
-                    _link.Tick(_ticks);
+                    // Drive the LAPB timers from the real monotonic clock after processing inbound data.
+                    _link.Tick(CurrentMillis);
                 }
                 else if (!cancellationToken.IsCancellationRequested)
                 {
-                    _ticks++;
-                    _link.Tick(_ticks);
+                    // Idle tick: advance the timers (T1 retransmit/poll, T3 keepalive) and send the
+                    // proven per-interval RR keepalive so the ND peer keeps the link in RUN.
+                    _link.Tick(CurrentMillis);
                     _link.SendKeepalive();
                 }
 
@@ -259,11 +273,10 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
                 return false;
             }
 
-            _ticks++;
             // Emits the I-frame via LapbLayer.OnTransmit -> EnqueueTransmit; the pump flushes it.
             // SendInformation cannot retain the span (compiler-enforced) and copies the bytes into the
             // LAPB body it enqueues, so the caller's buffer is free the moment this returns.
-            _link.SendInformation(payload, _ticks);
+            _link.SendInformation(payload, CurrentMillis);
             return true;
         }
 
@@ -316,7 +329,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
                 RawFrameReceived?.Invoke(_linkId, frameBytes);
 
                 LapbFrame frame = new LapbFrame(default, frameBytes);
-                _link.OnFrameReceived(frame, _ticks);
+                _link.OnFrameReceived(frame, CurrentMillis);
 
                 // Refresh coarse status right after each frame so a SABM/UA that brings the LAPB link
                 // to Connected flips us to Active BEFORE the very next frame (the peer's first I-frame)
