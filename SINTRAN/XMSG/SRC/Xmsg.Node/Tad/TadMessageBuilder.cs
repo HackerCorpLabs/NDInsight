@@ -91,10 +91,24 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         }
 
         /// <summary>
-        /// Appends a CESC (command-escape / echo-control state) message carrying a 1-byte state.
+        /// Appends a CESC (escape-control) message carrying the given state.
         /// </summary>
         /// <param name="state">
-        /// The escape-control state (<c>0x00</c> auth-prompt, <c>0x01</c> auth-complete).
+        /// The escape-control state.
+        /// </param>
+        /// <returns>
+        /// This builder, for chaining.
+        /// </returns>
+        public TadMessageBuilder Cesc(CescState state)
+        {
+            return Cesc((byte)state);
+        }
+
+        /// <summary>
+        /// Appends a CESC (escape-control) message carrying a raw 1-byte state (escape hatch).
+        /// </summary>
+        /// <param name="state">
+        /// The raw escape-control state byte.
         /// </param>
         /// <returns>
         /// This builder, for chaining.
@@ -107,10 +121,24 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         }
 
         /// <summary>
-        /// Appends an ECKM (echo-strategy) message carrying a 1-byte strategy code.
+        /// Appends an ECKM (echo-strategy) message carrying the given strategy.
         /// </summary>
         /// <param name="strategy">
-        /// The echo strategy (for example <c>0x01</c> echo on, <c>0xFF</c> echo off for a password).
+        /// The echo strategy (local echo on, no-echo for a password, or teardown).
+        /// </param>
+        /// <returns>
+        /// This builder, for chaining.
+        /// </returns>
+        public TadMessageBuilder Eckm(EchoStrategy strategy)
+        {
+            return Eckm((byte)strategy);
+        }
+
+        /// <summary>
+        /// Appends an ECKM (echo-strategy) message carrying a raw 1-byte strategy code (escape hatch).
+        /// </summary>
+        /// <param name="strategy">
+        /// The raw echo-strategy byte.
         /// </param>
         /// <returns>
         /// This builder, for chaining.

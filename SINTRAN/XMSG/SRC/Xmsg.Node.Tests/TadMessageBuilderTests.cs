@@ -89,9 +89,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         [Fact]
         public void ControlMessages_EncodeFields()
         {
-            Assert.Equal(new byte[] { 0x0E, 0x01, 0x00 }, new TadMessageBuilder().Cesc(0x00).Build());
+            Assert.Equal(new byte[] { 0x0E, 0x01, 0x00 }, new TadMessageBuilder().Cesc(CescState.EscapeDisabled).Build());
             // ECKM and BMMX carry the intrinsic 0x00 prefix on the wire (spec 2.1 / 22.3).
-            Assert.Equal(new byte[] { 0x00, 0x03, 0x01, 0xFF }, new TadMessageBuilder().Eckm(0xFF).Build());
+            Assert.Equal(new byte[] { 0x00, 0x03, 0x01, 0xFF }, new TadMessageBuilder().Eckm(EchoStrategy.NoEcho).Build());
             Assert.Equal(new byte[] { 0x00, 0x04, 0x03, 0x01, 0x00, 0x00 }, new TadMessageBuilder().Bmmx(0x01, 0x0000).Build());
             Assert.Equal(new byte[] { 0x02, 0x00 }, new TadMessageBuilder().Rfi().Build());
             Assert.Equal(new byte[] { 0x18, 0x00 }, new TadMessageBuilder().Dumm().Build());

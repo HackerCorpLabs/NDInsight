@@ -591,6 +591,17 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                 return outgoing;
             }
 
+            // Only a frame carrying a BDAT is a typed line. The client also sends control frames that
+            // are NOT input and must not drive the login/menu state machine: a 7CERS (opcode 0x21)
+            // answers each of our CESC transitions (spec 22.15 frames 3/6a), and 7DUMM keepalives
+            // arrive when idle. Treating a CERS as a line would, in WAIT_PASSWORD, become an empty
+            // (wrong) password and break the login. Ignore any frame with no BDAT (the layer still
+            // ACKs it).
+            if (!HasBdat(frame))
+            {
+                return outgoing;
+            }
+
             // Extract the typed line (BDAT), high bit stripped, surrounding whitespace/CR trimmed.
             string line = ExtractBdatText(frame).Trim();
 
@@ -603,9 +614,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                     // logged-in state is asserted here.
                     _pendingUsername = line;
                     outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
-                        .BdatText("\r\n").Sycn(SycnState.UsernameAccepted).Cesc(0x00).Build()));
+                        .BdatText("\r\n").Sycn(SycnState.UsernameAccepted).Cesc(CescState.EscapeDisabled).Build()));
                     outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
-                        .BdatText("PASSWORD: ").Eckm(0xFF).Rfi().Build()));
+                        .BdatText("PASSWORD: ").Eckm(EchoStrategy.NoEcho).Rfi().Build()));
                     _loginPhase = LoginPhase.Password;
                     break;
 
@@ -621,8 +632,8 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                         _loginFaults = 0;
                         _loginPhase = LoginPhase.LoggedIn;
                         outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
-                            .BdatText("\r\n").Eckm(0x01).BdatText("OK")
-                            .Sycn(SycnState.PasswordAccepted).Cesc(0x01).Build()));
+                            .BdatText("\r\n").Eckm(EchoStrategy.LocalEcho).BdatText("OK")
+                            .Sycn(SycnState.PasswordAccepted).Cesc(CescState.EscapeEnabled).Build()));
                         outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
                             .BdatText("\r\n").Sycn(SycnState.LoggedIn).BdatText("# ").Rfi().Build()));
                     }
@@ -643,7 +654,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                         _loginFaults++;
                         _loginPhase = LoginPhase.Username;
                         outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
-                            .BdatText("\r\nInvalid user/password").Eckm(0x01)
+                            .BdatText("\r\nInvalid user/password").Eckm(EchoStrategy.LocalEcho)
                             .Sycn(SycnState.WaitingForUsername).BdatText("\r\nENTER ").Rfi().Build()));
                     }
 
@@ -785,6 +796,35 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                 role: 0x00,
                 sourcePort: _sessionWirePort,
                 payload: payload);
+        }
+
+        /// <summary>
+        /// Returns true when the frame's TAD chain carries at least one BDAT (terminal-data) message —
+        /// i.e. it is a typed line rather than a bare control frame (CERS / DUMM).
+        /// </summary>
+        /// <param name="frame">
+        /// The incoming frame.
+        /// </param>
+        /// <returns>
+        /// True when a BDAT message is present.
+        /// </returns>
+        private static bool HasBdat(XmsgFrame frame)
+        {
+            if (frame.Tad == null)
+            {
+                return false;
+            }
+
+            IReadOnlyList<TadMessage> messages = frame.Tad.Messages;
+            for (int i = 0; i < messages.Count; i++)
+            {
+                if (messages[i].Opcode == BdatOpcode)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

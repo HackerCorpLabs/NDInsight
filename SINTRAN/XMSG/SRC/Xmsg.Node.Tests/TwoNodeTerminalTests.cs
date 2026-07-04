@@ -82,6 +82,25 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
+        /// A 7CERS control frame arriving mid-login (as the real client sends answering each CESC) is
+        /// NOT treated as a password line — the login still completes (spec 22.15 frames 3/6a).
+        /// </summary>
+        [Fact]
+        public void CersMidLogin_IsIgnored_LoginStillCompletes()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildPairedNodes(terminal, out XmsgCodec clientCodec);
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // username
+            clientCodec.SendPacket(new XmsgPacket(client.BuildCers()));            // answers our CESC — not input
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // password
+
+            // If the CERS had been mis-read as the password, login would have failed; it did not.
+            Assert.Contains("OK", terminal.Text);
+        }
+
+        /// <summary>
         /// Sends the SYSTEM username then the SYSTEM password to reach the logged-in command loop.
         /// </summary>
         /// <param name="client">The connect-to client.</param>
