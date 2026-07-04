@@ -1,74 +1,107 @@
 using System;
+using System.Collections.Generic;
 
 using NDInsight.Sintran.Xmsg.Hdlc;
 
 namespace NDInsight.Sintran.Xmsg.Live
 {
     /// <summary>
-    /// A driven, modulo-8 LAPB ABM link state machine. Establishes the balanced link
-    /// (SABM/UA), maintains <c>V(S)</c>/<c>V(R)</c>, delivers received information fields,
-    /// and emits the LAPB frame bodies to transmit (for <see cref="HdlcEncoder"/>).
+    /// A driven, modulo-8 LAPB Asynchronous Balanced Mode link state machine conforming to the
+    /// authoritative ND LAPB spec (sections 3-7): balanced bring-up, a full transmit window with
+    /// go-back-N, cumulative acknowledgement, RNR flow control, FRMR error reporting, and the
+    /// T1/T3/N2 timers.
     /// </summary>
     /// <remarks>
     /// <para><b>Time model</b></para>
-    /// Time is injected as an opaque tick count through <see cref="Tick(long)"/> — the link
-    /// never reads a wall clock, so replay and unit tests are fully deterministic.
-    /// <para><b>Provenance</b></para>
-    /// The control-field encodings (SABM <c>0x3F</c>, UA <c>0x73</c>, RR
-    /// <c>0x01 | (N(R) &lt;&lt; 5)</c>, I-frame <c>(N(R) &lt;&lt; 5) | (N(S) &lt;&lt; 1)</c>),
-    /// the link-setup address <c>0x01</c> / data address <c>0x09</c>, and the node number
-    /// carried as the info field of link-management frames are VERIFIED (XMSG-PROTOCOL.md
-    /// section 3, captured traffic). The retransmit timeout and retry budget are INFERRED —
-    /// no loss occurs in the corpus — so they are configurable and default to conservative
-    /// values.
+    /// Time is injected as an opaque monotonic value through the clocked methods
+    /// (<see cref="Connect(long)"/>, <see cref="OnFrameReceived(LapbFrame, long)"/>,
+    /// <see cref="SendInformation(ReadOnlySpan{byte}, long)"/>, <see cref="Tick(long)"/>). The link
+    /// never reads a wall clock, so replay and unit tests are fully deterministic. The timer
+    /// durations in <see cref="LapbOptions"/> are expressed in this same unit.
+    /// <para><b>Payload independence (spec 1.1)</b></para>
+    /// The information field is opaque: this layer never parses it and holds no X.25/XMSG type. It
+    /// delivers received I-frame payloads through <see cref="OnInformation"/> and accepts payloads to
+    /// send through <see cref="SendInformation(ReadOnlySpan{byte}, long)"/>.
+    /// <para><b>No sequence adoption (spec 3.2)</b></para>
+    /// On every SABM (our SABM acknowledged by UA, or any SABM received including mid-session), the
+    /// sequence variables are hard-zeroed and the retransmit queue is cleared. The link NEVER
+    /// initialises V(R)/V(S) from a peer frame's N(S)/N(R).
     /// </remarks>
     public sealed class LapbLayer
     {
         /// <summary>
-        /// LAPB address used on link-establishment frames (SABM, UA).
+        /// LAPB address for link-management frames: SABM, UA, DISC, DM, FRMR (spec 2.1).
         /// </summary>
         public const byte AddressLinkSetup = 0x01;
 
         /// <summary>
-        /// LAPB address used on data-transfer frames (RR, I-frames).
+        /// LAPB address for data-transfer frames: I, RR, RNR, REJ (spec 2.1).
         /// </summary>
         public const byte AddressData = 0x09;
 
         /// <summary>
-        /// SABM control byte (base <c>0x2F</c> with the poll bit set).
+        /// Maximum information-field length; a longer received I-field is FRMR reason Y (spec 2.3.2).
         /// </summary>
-        public const byte ControlSabm = 0x3F;
+        public const int MaxInformationLength = 312;
 
-        /// <summary>
-        /// UA control byte (base <c>0x63</c> with the final bit set).
-        /// </summary>
-        public const byte ControlUa = 0x73;
+        // Unnumbered control base patterns (P/F bit 0x10 cleared), spec 2.2.3.
+        private const byte SabmBase = 0x2F;
+        private const byte DiscBase = 0x43;
+        private const byte UaBase = 0x63;
+        private const byte DmBase = 0x0F;
+        private const byte FrmrBase = 0x87;
 
-        /// <summary>
-        /// RR base control byte; the receive sequence is OR-ed in as <c>N(R) &lt;&lt; 5</c>.
-        /// </summary>
-        public const byte ControlRrBase = 0x01;
+        // Supervisory low-nibble subtypes, spec 2.2.2.
+        private const byte RrNibble = 0x01;
+        private const byte RnrNibble = 0x05;
+        private const byte RejNibble = 0x09;
+
+        // The poll/final bit shared by all frame families (spec 2.2).
+        private const byte PollFinalBit = 0x10;
+
+        // FRMR reason bits (spec 2.3.3), OR-combined into the diagnostic's third byte.
+        private const byte FrmrReasonW = 0x01;   // control field invalid / not implemented
+        private const byte FrmrReasonY = 0x04;   // I-field length exceeded the maximum
+        private const byte FrmrReasonZ = 0x08;   // N(R) invalid (outside [V(A), V(S)])
 
         private readonly ushort _ownNode;
-
-        // INFERRED: retransmit timing / retry budget are not proven by any capture (no loss
-        // is present in the 13-capture corpus). Configurable via the constructor.
-        private readonly long _retransmitTicks;
-        private readonly int _maxRetries;
+        private readonly LapbOptions _options;
 
         private LapbLayerState _state;
-        private int _sendVariable;      // V(S)
-        private int _receiveVariable;   // V(R)
 
-        private byte[]? _lastUnackedBody;   // last I/SABM body, for retransmit
-        private int _lastBehindNr = -1;     // last RR N(R) seen behind V(S), to detect a stuck peer
-        private long _lastSendTicks;
-        private int _retries;
-        private bool _synced;               // have we adopted the peer's sequence yet?
-        private bool _ownSabmSent;          // have we already issued OUR SABM this establishment?
+        // Sequence variables, modulo 8 (spec 4.1).
+        private int _sendVariable;      // V(S): next I-frame to send
+        private int _receiveVariable;   // V(R): next in-sequence I-frame expected
+        private int _acknowledgeVariable; // V(A): oldest unacknowledged I-frame
+
+        // Transmit window (spec 4.2): the payload sent (or queued to be sent) with each N(S), indexed
+        // by sequence number. A slot is "outstanding" while its index is in [V(A), V(S)). Storing the
+        // payload (not the framed body) lets a retransmission carry the CURRENT N(R) as its ack.
+        private readonly byte[]?[] _txInfo = new byte[]?[8];
+
+        // Payloads accepted from the upper layer that do not yet fit the window (spec 4.2).
+        private readonly Queue<byte[]> _pending = new Queue<byte[]>();
+
+        // Flow-control / reject flags within CONNECTED (spec 6.1).
+        private bool _peerBusy;         // set by RNR, cleared by RR/REJ
+        private bool _rejectCondition;  // one REJ per detected gap (spec 4.5)
+
+        // The physical neighbour id learned from the peer's SABM/UA/RR info (spec 3.3), read-only and
+        // NEVER a routing key. -1 until learned.
+        private int _peerNode = -1;
+
+        // Timers and retry counter (spec 5). Deadlines are in the injected-clock unit.
+        private bool _t1Running;
+        private long _t1Deadline;
+        private bool _t3Running;
+        private long _t3Deadline;
+        private int _retry;
+
+        // The last FRMR diagnostic sent, retained so FRMR_SENT can resend it (spec 5.1 / 6.3).
+        private byte[]? _lastFrmrInfo;
 
         /// <summary>
-        /// Raised when the link needs to transmit a LAPB frame body (to be HDLC-encoded).
+        /// Represents the method that transmits a LAPB frame body for HDLC encoding.
         /// </summary>
         /// <param name="lapbBody">
         /// The unstuffed LAPB body (address, control and information, without FCS).
@@ -76,10 +109,10 @@ namespace NDInsight.Sintran.Xmsg.Live
         public delegate void LapbTransmit(byte[] lapbBody);
 
         /// <summary>
-        /// Raised when an information frame delivers its information field in order.
+        /// Represents the method that receives an in-order information field.
         /// </summary>
         /// <param name="info">
-        /// The information field of the received I-frame (the SINTRAN frame bytes).
+        /// The information field of the received I-frame (opaque upper-layer payload).
         /// </param>
         public delegate void InformationReceived(ReadOnlyMemory<byte> info);
 
@@ -97,20 +130,15 @@ namespace NDInsight.Sintran.Xmsg.Live
         /// Initialises a new link for a given node number.
         /// </summary>
         /// <param name="ownNode">
-        /// This node's number, carried as the info field of link-management frames.
+        /// This node's number, stamped as the info field of link-management and supervisory frames.
         /// </param>
-        /// <param name="retransmitTicks">
-        /// The number of injected ticks after which an unacknowledged SABM/I-frame is
-        /// retransmitted. INFERRED default.
+        /// <param name="options">
+        /// The timer and window configuration; defaults to <see cref="LapbOptions.Default"/>.
         /// </param>
-        /// <param name="maxRetries">
-        /// The maximum number of retransmissions before the link gives up. INFERRED default.
-        /// </param>
-        public LapbLayer(ushort ownNode, long retransmitTicks = 30, int maxRetries = 3)
+        public LapbLayer(ushort ownNode, LapbOptions? options = null)
         {
             _ownNode = ownNode;
-            _retransmitTicks = retransmitTicks;
-            _maxRetries = maxRetries;
+            _options = options ?? LapbOptions.Default;
             _state = LapbLayerState.Disconnected;
         }
 
@@ -123,6 +151,18 @@ namespace NDInsight.Sintran.Xmsg.Live
         }
 
         /// <summary>
+        /// Gets the physical neighbour id learned from the peer, or -1 if not yet learned.
+        /// </summary>
+        /// <remarks>
+        /// Read-only and NEVER used as a routing key (spec 3.3): on relayed traffic the logical
+        /// source differs from the LAPB neighbour.
+        /// </remarks>
+        public int PeerNode
+        {
+            get { return _peerNode; }
+        }
+
+        /// <summary>
         /// Gets the current link state.
         /// </summary>
         public LapbLayerState State
@@ -131,7 +171,7 @@ namespace NDInsight.Sintran.Xmsg.Live
         }
 
         /// <summary>
-        /// Gets the send sequence variable <c>V(S)</c> (modulo 8).
+        /// Gets the send sequence variable V(S) (modulo 8).
         /// </summary>
         public int SendVariable
         {
@@ -139,7 +179,7 @@ namespace NDInsight.Sintran.Xmsg.Live
         }
 
         /// <summary>
-        /// Gets the receive sequence variable <c>V(R)</c> (modulo 8).
+        /// Gets the receive sequence variable V(R) (modulo 8).
         /// </summary>
         public int ReceiveVariable
         {
@@ -147,27 +187,73 @@ namespace NDInsight.Sintran.Xmsg.Live
         }
 
         /// <summary>
-        /// Initiates the link by transmitting a SABM carrying this node's number.
+        /// Gets the acknowledge sequence variable V(A) (modulo 8): the oldest unacknowledged I-frame.
+        /// </summary>
+        public int AcknowledgeVariable
+        {
+            get { return _acknowledgeVariable; }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the peer has signalled busy (RNR); new I-frames are held.
+        /// </summary>
+        public bool PeerBusy
+        {
+            get { return _peerBusy; }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether a reject condition is set (one REJ sent per gap).
+        /// </summary>
+        public bool RejectCondition
+        {
+            get { return _rejectCondition; }
+        }
+
+        /// <summary>
+        /// Gets the number of unacknowledged I-frames currently outstanding, <c>(V(S) - V(A)) mod 8</c>.
+        /// </summary>
+        public int Outstanding
+        {
+            get { return (_sendVariable - _acknowledgeVariable) & 0x07; }
+        }
+
+        /// <summary>
+        /// Initiates the link by transmitting our SABM (P=1) carrying this node's number.
         /// </summary>
         /// <param name="currentTicks">
-        /// The current injected tick count, used to arm the retransmit timer.
+        /// The current injected clock value, used to arm the T1 timer.
         /// </param>
+        /// <remarks>
+        /// Balanced bring-up (spec 3.1): each station sends its own SABM on start; the peer's SABM is
+        /// answered with UA in <see cref="OnFrameReceived(LapbFrame, long)"/>.
+        /// </remarks>
         public void Connect(long currentTicks)
         {
-            _sendVariable = 0;
-            _receiveVariable = 0;
-            _retries = 0;
-            _synced = false;
-            // Fresh establishment episode: allow the reflexive establishment SABM (sent when the
-            // peer's SABM arrives) to fire once. This initiator SABM does NOT consume that budget —
-            // the peer may miss this one, and the reflexive send is what guarantees it learns us.
-            _ownSabmSent = false;
+            Reset();
+            _retry = 0;
             _state = LapbLayerState.SabmSent;
+            SendUnnumbered(SabmBase, includeNode: true, pollFinal: true);
+            StartT1(currentTicks);
+        }
 
-            byte[] body = BuildUnnumbered(AddressLinkSetup, ControlSabm);
-            _lastUnackedBody = body;
-            _lastSendTicks = currentTicks;
-            OnTransmit?.Invoke(body);
+        /// <summary>
+        /// Requests an orderly disconnect by transmitting DISC (P=1).
+        /// </summary>
+        /// <param name="currentTicks">
+        /// The current injected clock value, used to arm the T1 timer.
+        /// </param>
+        public void Disconnect(long currentTicks)
+        {
+            if (_state == LapbLayerState.Disconnected || _state == LapbLayerState.DiscSent)
+            {
+                return;
+            }
+
+            _retry = 0;
+            _state = LapbLayerState.DiscSent;
+            SendUnnumbered(DiscBase, includeNode: true, pollFinal: true);
+            StartT1(currentTicks);
         }
 
         /// <summary>
@@ -176,44 +262,69 @@ namespace NDInsight.Sintran.Xmsg.Live
         /// <param name="frame">
         /// The received frame, already de-framed and FCS-checked.
         /// </param>
+        /// <param name="currentTicks">
+        /// The current injected clock value; frame arrival (re)starts or stops the timers.
+        /// </param>
         /// <exception cref="ArgumentNullException">
         /// Thrown when <paramref name="frame"/> is null.
         /// </exception>
-        public void OnFrameReceived(LapbFrame frame)
+        public void OnFrameReceived(LapbFrame frame, long currentTicks)
         {
             if (frame == null)
             {
                 throw new ArgumentNullException(nameof(frame));
             }
 
-            switch (frame.Kind)
+            if (frame.Kind == LapbFrameKind.Unnumbered)
             {
-                case LapbFrameKind.Unnumbered:
-                    HandleUnnumbered(frame);
-                    break;
+                HandleUnnumbered(frame, currentTicks);
+                return;
+            }
 
-                case LapbFrameKind.Supervisory:
-                    HandleSupervisory(frame);
-                    break;
+            // I- and S-frames are only processed in CONNECTED (spec 6.3). In DISCONNECTED they draw a
+            // DM; in SABM_SENT / DISC_SENT they are ignored; in FRMR_SENT they trigger a FRMR resend.
+            switch (_state)
+            {
+                case LapbLayerState.Disconnected:
+                    SendUnnumbered(DmBase, includeNode: true, pollFinal: frame.PollFinal);
+                    return;
 
-                case LapbFrameKind.Information:
-                    HandleInformation(frame);
-                    break;
+                case LapbLayerState.SabmSent:
+                case LapbLayerState.DiscSent:
+                    return;
+
+                case LapbLayerState.FrmrSent:
+                    ResendFrmr(currentTicks);
+                    return;
+            }
+
+            if (frame.Kind == LapbFrameKind.Information)
+            {
+                HandleInformation(frame, currentTicks);
+            }
+            else
+            {
+                HandleSupervisory(frame, currentTicks);
             }
         }
 
         /// <summary>
-        /// Transmits an information field as an I-frame, then advances <c>V(S)</c>.
+        /// Queues an information field for transmission and sends it within the window.
         /// </summary>
         /// <param name="info">
-        /// The information field to send (the SINTRAN frame bytes).
+        /// The information field to send (opaque upper-layer payload).
         /// </param>
         /// <param name="currentTicks">
-        /// The current injected tick count, used to arm the retransmit timer.
+        /// The current injected clock value, used to arm the T1 timer.
         /// </param>
         /// <exception cref="InvalidOperationException">
         /// Thrown when the link is not <see cref="LapbLayerState.Connected"/>.
         /// </exception>
+        /// <remarks>
+        /// The payload is copied into the link's own storage before returning, so the caller's buffer
+        /// (which may be pooled or reused) is free once the call returns. If the window is full or the
+        /// peer is busy the frame waits in the pending queue and is sent as the window opens (spec 4.2).
+        /// </remarks>
         public void SendInformation(ReadOnlySpan<byte> info, long currentTicks)
         {
             if (_state != LapbLayerState.Connected)
@@ -221,279 +332,668 @@ namespace NDInsight.Sintran.Xmsg.Live
                 throw new InvalidOperationException("Cannot send information before the link is connected.");
             }
 
-            // I-frame control: N(R) in the high three bits, N(S) in bits 3..1, bit0 = 0,
-            // P/F = 0. VERIFIED encoding (XMSG-PROTOCOL.md section 3.2).
-            byte control = (byte)((_receiveVariable << 5) | (_sendVariable << 1));
-            byte[] body = BuildFrame(AddressData, control, info);
-
-            _lastUnackedBody = body;
-            _lastSendTicks = currentTicks;
-            _retries = 0;
-
-            _sendVariable = (_sendVariable + 1) & 0x07;   // advance V(S) mod 8
-            OnTransmit?.Invoke(body);
+            _pending.Enqueue(info.ToArray());
+            TransmitPending(currentTicks);
         }
 
         /// <summary>
-        /// Advances the injected clock and retransmits an unacknowledged frame on timeout.
+        /// Advances the injected clock, driving the T1 (retransmission/poll) and T3 (keepalive) timers.
         /// </summary>
         /// <param name="currentTicks">
-        /// The current injected tick count.
+        /// The current injected clock value.
         /// </param>
         /// <returns>
-        /// <c>true</c> when a retransmission was emitted on this tick; otherwise <c>false</c>.
+        /// <c>true</c> when a timer fired and emitted a frame or a state change; otherwise <c>false</c>.
         /// </returns>
-        /// <remarks>
-        /// INFERRED behaviour: the corpus contains no loss, so the timeout value, the retry
-        /// budget, and "retransmit the last unacknowledged body" policy are reasoned choices,
-        /// not proven from capture.
-        /// </remarks>
         public bool Tick(long currentTicks)
         {
-            if (_lastUnackedBody == null)
+            bool acted = false;
+
+            if (_t1Running && currentTicks >= _t1Deadline)
             {
-                return false;
+                acted = OnT1Expiry(currentTicks);
+                if (acted && _state == LapbLayerState.Disconnected)
+                {
+                    return true;
+                }
             }
 
-            if (currentTicks - _lastSendTicks < _retransmitTicks)
+            if (_t3Running && currentTicks >= _t3Deadline && _state == LapbLayerState.Connected)
             {
-                return false;
+                // Idle keepalive (spec 5.2): poll the peer, reset the retry counter, await the response.
+                EmitSupervisory(RrNibble, pollFinal: true);
+                _retry = 0;
+                StartT1(currentTicks);
+                acted = true;
             }
 
-            if (_retries >= _maxRetries)
-            {
-                // INFERRED: give up and drop back to Disconnected after exhausting retries.
-                _lastUnackedBody = null;
-                _state = LapbLayerState.Disconnected;
-                return false;
-            }
-
-            _retries++;
-            _lastSendTicks = currentTicks;
-            OnTransmit?.Invoke(_lastUnackedBody);
-            return true;
+            return acted;
         }
 
         /// <summary>
-        /// Emits a periodic Receiver-Ready keepalive when the link is connected.
+        /// Emits a Receiver-Ready keepalive when the link is connected (legacy idle-driver hook).
         /// </summary>
         /// <remarks>
-        /// INFERRED (observed live): the peer times the link back to CALL if it stops
-        /// receiving RRs, so a connected node must send RR keepalives at roughly the
-        /// peer's poll interval. Call this on an idle timer.
+        /// Retained for the current adapter loop. The conformant keepalive is the T3 timer in
+        /// <see cref="Tick(long)"/>; this sends an RR carrying the current V(R) so an idle peer keeps
+        /// the link in RUN.
         /// </remarks>
         public void SendKeepalive()
         {
             if (_state == LapbLayerState.Connected)
             {
-                EmitReadyRr();
+                EmitSupervisory(RrNibble, pollFinal: false);
             }
         }
 
         /// <summary>
-        /// Handles a received unnumbered frame (SABM or UA).
+        /// Handles a received unnumbered frame (SABM / UA / DISC / DM / FRMR).
         /// </summary>
         /// <param name="frame">
         /// The received unnumbered frame.
         /// </param>
-        private void HandleUnnumbered(LapbFrame frame)
+        /// <param name="currentTicks">
+        /// The current injected clock value.
+        /// </param>
+        private void HandleUnnumbered(LapbFrame frame, long currentTicks)
         {
-            if (frame.Control == ControlSabm)
+            switch (frame.UnnumberedKind)
             {
-                // GENUINE RESTART DETECTION: a SABM arriving AFTER we are synced (I-frames were
-                // flowing) is a real re-establishment — per the ND behaviour, the peer restarts
-                // the sync when its HDLC controller is reset. We must honour it and re-sync (reset
-                // V(S)/V(R) and re-issue our own SABM), NOT ignore it. Re-arm _ownSabmSent so the
-                // establishment path below sends our SABM again for this fresh episode.
-                if (_synced)
-                {
-                    _ownSabmSent = false;
-                }
-
-                // ESTABLISHMENT (fresh OR restart): reset sequence state and answer with a UA
-                // carrying our node number. VERIFIED (section 3.4).
-                _receiveVariable = 0;
-                _sendVariable = 0;
-                _synced = false;
-                _state = LapbLayerState.Connected;
-                _lastUnackedBody = null;
-
-                // VERIFIED (raw captures device-online-100-102-103.pcapng and
-                // start-li-li-1err.pcapng): the ND XMSG data link is a SYMMETRIC balanced
-                // link where BOTH stations issue their own SABM. A node that is passively
-                // waiting keeps re-sending SABM (~once per second) until it RECEIVES a SABM
-                // from the far end; the very instant the answerer transmits its own SABM the
-                // initiator stops retransmitting and the two sides exchange UAs. Concretely,
-                // in device-online the answerer (port 17230) transmits, in order:
-                //   013f0066  (SABM, info = its own node 0x0066)
-                //   01730066  (UA,   info = its own node 0x0066)
-                //   09010066  (RR,   N(R)=0)
-                // and node 100 (which had sent 29 SABMs) settles immediately.
-                //
-                // Our previous behaviour answered a received SABM with UA ONLY and never sent
-                // our own SABM, so the far end never received the frame that stops its SABM
-                // churn. Emit our own SABM (matching the observed on-wire order SABM -> UA -> RR)
-                // to establish our direction of the balanced link — but only ONCE per
-                // establishment (_ownSabmSent): the answerer in the captures sends exactly one
-                // SABM, and re-emitting it per received SABM is what created the restart loop.
-                if (!_ownSabmSent)
-                {
-                    byte[] ownSabm = BuildUnnumbered(AddressLinkSetup, ControlSabm);
-                    OnTransmit?.Invoke(ownSabm);
-                    _ownSabmSent = true;
-                }
-
-                byte[] ua = BuildUnnumbered(AddressLinkSetup, ControlUa);
-                OnTransmit?.Invoke(ua);
-
-                // VERIFIED (observed live against the retrocore bridge, the raw captures
-                // above, and the XSLKI link states CALL->CONN->RUN): the peer only advances to
-                // RUN once it RECEIVES an RR from us. Emit a Receiver-Ready now so the link
-                // actually reaches the data phase; without it the peer stalls at CONN and
-                // never sends reachability.
-                EmitReadyRr();
-            }
-            else if (frame.Control == ControlUa)
-            {
-                // Our SABM was accepted; the link is up with V(S) = V(R) = 0.
-                if (_state == LapbLayerState.SabmSent)
-                {
+                case LapbUnnumberedKind.Sabm:
+                    // rx SABM in ANY state (spec 6.3): answer UA (F=1) with our node, HARD-RESET the
+                    // sequence state and queue (spec 3.2, NO adoption), and enter CONNECTED. A SABM
+                    // received mid-session is a legitimate reset, NOT an error (the highest-risk ND
+                    // deviation): stay connected.
+                    CaptureNode(frame.Info);
+                    SendUnnumbered(UaBase, includeNode: true, pollFinal: true);
+                    Reset();
                     _state = LapbLayerState.Connected;
-                    _lastUnackedBody = null;
-                    EmitReadyRr();   // see note above
-                }
+                    StartT3(currentTicks);
+                    StopT1();
+                    // Push the peer to the RUN phase: it advances only once it receives an RR from us
+                    // (spec 3.4 idle keepalive; live-necessary against the ND kernel).
+                    EmitSupervisory(RrNibble, pollFinal: false);
+                    break;
+
+                case LapbUnnumberedKind.Ua:
+                    CaptureNode(frame.Info);   // UA carries the peer's node number (spec 2.3.1)
+                    if (_state == LapbLayerState.SabmSent)
+                    {
+                        // Our SABM was accepted: reset and go CONNECTED (spec 3.2).
+                        Reset();
+                        _state = LapbLayerState.Connected;
+                        StartT3(currentTicks);
+                        StopT1();
+                        EmitSupervisory(RrNibble, pollFinal: false);
+                    }
+                    else if (_state == LapbLayerState.DiscSent)
+                    {
+                        _state = LapbLayerState.Disconnected;
+                        StopAllTimers();
+                    }
+
+                    break;
+
+                case LapbUnnumberedKind.Disc:
+                    CaptureNode(frame.Info);   // DISC may carry the peer's node number (spec 2.3.1)
+                    if (_state == LapbLayerState.Connected || _state == LapbLayerState.FrmrSent)
+                    {
+                        SendUnnumbered(UaBase, includeNode: true, pollFinal: frame.PollFinal);
+                        _state = LapbLayerState.Disconnected;
+                        StopAllTimers();
+                    }
+                    else
+                    {
+                        SendUnnumbered(DmBase, includeNode: true, pollFinal: frame.PollFinal);
+                    }
+
+                    break;
+
+                case LapbUnnumberedKind.Dm:
+                    CaptureNode(frame.Info);   // DM may carry the peer's node number (spec 2.3.1)
+                    // A DM tears the link down whether it answers our SABM (fail) or arrives while
+                    // connected (spec 6.3).
+                    if (_state == LapbLayerState.SabmSent || _state == LapbLayerState.Connected)
+                    {
+                        _state = LapbLayerState.Disconnected;
+                        StopAllTimers();
+                    }
+
+                    break;
+
+                case LapbUnnumberedKind.Frmr:
+                    // The peer rejected one of our frames: re-establish by sending a fresh SABM.
+                    if (_state == LapbLayerState.Connected)
+                    {
+                        Reset();
+                        SendUnnumbered(SabmBase, includeNode: true, pollFinal: true);
+                        _retry = 0;
+                        _state = LapbLayerState.SabmSent;
+                        StartT1(currentTicks);
+                    }
+
+                    break;
             }
-
-            // INFERRED: DISC/DM/FRMR are not seen in the corpus; ignored here.
         }
 
         /// <summary>
-        /// Emits a Receiver-Ready (RR) supervisory frame carrying the current
-        /// <c>V(R)</c>, on the data address. Used to advance the peer to the RUN
-        /// state after link establishment and to keep the link alive.
-        /// </summary>
-        private void EmitReadyRr()
-        {
-            byte control = (byte)(ControlRrBase | (_receiveVariable << 5));
-            OnTransmit?.Invoke(BuildUnnumbered(AddressData, control));
-        }
-
-        /// <summary>
-        /// Handles a received supervisory frame (RR / RNR / REJ).
+        /// Handles a received supervisory frame (RR / RNR / REJ) while connected.
         /// </summary>
         /// <param name="frame">
         /// The received supervisory frame.
         /// </param>
-        private void HandleSupervisory(LapbFrame frame)
+        /// <param name="currentTicks">
+        /// The current injected clock value.
+        /// </param>
+        private void HandleSupervisory(LapbFrame frame, long currentTicks)
         {
-            // RR acknowledges our outstanding I-frame(s) up to N(R)-1.
-            if (frame.ReceiveSequence == _sendVariable)
-            {
-                // 100 has acknowledged everything up to V(S): clear the retransmit slot and reset
-                // the stuck-detector.
-                _lastUnackedBody = null;
-                _lastBehindNr = -1;
-            }
-            else if (_lastUnackedBody != null)
-            {
-                // 100's N(R) is BEHIND our V(S): it has not received our last I-frame. A single
-                // behind-RR can just be a transient lag that will catch up, so we retransmit only
-                // when 100 REPEATS the same behind-N(R) — i.e. it is genuinely STUCK waiting for that
-                // frame. Without this, terminal replies (echo/menu) deadlock: 100 keeps sending
-                // `RR nr=<our reply's N(S)>`, we never resend, and both sides wait forever. VERIFIED
-                // symptom. A duplicate is harmless (LAPB discards it).
-                if (frame.ReceiveSequence == _lastBehindNr)
-                {
-                    OnTransmit?.Invoke(_lastUnackedBody);
-                }
+            CaptureNode(frame.Info);
 
-                _lastBehindNr = frame.ReceiveSequence;
+            if (!AcknowledgeThrough(frame.ReceiveSequence, frame.Control, currentTicks))
+            {
+                return;   // invalid N(R): FRMR(Z) sent, now FRMR_SENT
+            }
+
+            switch (frame.SupervisoryKind)
+            {
+                case LapbSupervisoryKind.ReceiveReady:
+                    _peerBusy = false;
+                    break;
+
+                case LapbSupervisoryKind.ReceiveNotReady:
+                    _peerBusy = true;
+                    break;
+
+                case LapbSupervisoryKind.Reject:
+                    _peerBusy = false;
+                    GoBackN(frame.ReceiveSequence, currentTicks);
+                    break;
+
+                default:
+                    // An unknown S-subtype is an unimplemented control field: FRMR reason W (spec 2.3.3).
+                    SendFrmr(frame.Control, FrmrReasonW, frame.PollFinal, currentTicks);
+                    return;
+            }
+
+            if (frame.PollFinal)
+            {
+                // P=1 MUST be answered with F=1 carrying the current N(R) (spec 4.8).
+                EmitSupervisory(RrNibble, pollFinal: true);
+            }
+
+            if (!_peerBusy)
+            {
+                TransmitPending(currentTicks);
             }
         }
 
         /// <summary>
-        /// Handles a received information frame: delivers in-order info and acknowledges.
+        /// Handles a received information frame: delivers in-order info, or rejects a gap once.
         /// </summary>
         /// <param name="frame">
         /// The received information frame.
         /// </param>
-        private void HandleInformation(LapbFrame frame)
+        /// <param name="currentTicks">
+        /// The current injected clock value.
+        /// </param>
+        private void HandleInformation(LapbFrame frame, long currentTicks)
         {
-            if (!_synced)
+            if (!AcknowledgeThrough(frame.ReceiveSequence, frame.Control, currentTicks))
             {
-                // INFERRED (observed live): the kernel keeps its V(S)/V(R) across our TCP
-                // reconnect, so a fresh SABM does not reset its sequence. Adopt the peer's
-                // sequence from the first I-frame — its N(S) becomes our expected V(R), and
-                // its N(R) (what it expects from us) becomes our V(S) — so replies are accepted.
-                _receiveVariable = frame.SendSequence;
-                _sendVariable = frame.ReceiveSequence;
-                _synced = true;
+                return;   // invalid piggybacked N(R): FRMR(Z) sent
             }
 
-            if (frame.SendSequence == _receiveVariable)
+            if (frame.Info.Length > MaxInformationLength)
             {
-                // In-order: deliver and advance V(R) mod 8 (VERIFIED section 3.5).
+                // Over-long I-field: FRMR reason Y (spec 2.3.2 / 2.3.3).
+                SendFrmr(frame.Control, FrmrReasonY, frame.PollFinal, currentTicks);
+                return;
+            }
+
+            int ns = frame.SendSequence;
+            if (ns == _receiveVariable)
+            {
+                // In-sequence: deliver, advance V(R), clear any reject condition, acknowledge (4.4).
                 _receiveVariable = (_receiveVariable + 1) & 0x07;
+                _rejectCondition = false;
                 OnInformation?.Invoke(frame.Info);
+                EmitSupervisory(RrNibble, pollFinal: frame.PollFinal);
+            }
+            else if (IsDuplicate(ns))
+            {
+                // Already-accepted frame retransmitted: discard, re-acknowledge current V(R) (4.5).
+                EmitSupervisory(RrNibble, pollFinal: frame.PollFinal);
+            }
+            else
+            {
+                // Gap: send exactly one REJ and latch the reject condition (4.5), avoiding a REJ storm.
+                if (!_rejectCondition)
+                {
+                    EmitSupervisory(RejNibble, pollFinal: frame.PollFinal);
+                    _rejectCondition = true;
+                }
             }
 
-            // An RR carrying the current V(R) acknowledges the peer and, for a duplicate/
-            // out-of-order frame, requests the expected one (VERIFIED section 3.5).
-            byte control = (byte)(ControlRrBase | (_receiveVariable << 5));
-            byte[] rr = BuildUnnumbered(AddressData, control);
-            OnTransmit?.Invoke(rr);
+            if (!_peerBusy)
+            {
+                TransmitPending(currentTicks);
+            }
         }
 
         /// <summary>
-        /// Builds a link-management frame body whose info field is this node's number.
+        /// Applies a cumulative acknowledgement up to (but not including) N(R), validating its range.
         /// </summary>
-        /// <param name="address">
-        /// The LAPB address byte.
+        /// <param name="receiveSequence">
+        /// The N(R) carried by the received frame.
         /// </param>
-        /// <param name="control">
-        /// The LAPB control byte.
+        /// <param name="rejectedControl">
+        /// The control byte of the received frame, echoed into a FRMR diagnostic on an invalid N(R).
+        /// </param>
+        /// <param name="currentTicks">
+        /// The current injected clock value, used to restart or stop the timers.
         /// </param>
         /// <returns>
-        /// The four-byte body: address, control, node-number high byte, node-number low byte.
+        /// <c>true</c> when N(R) was valid and applied; <c>false</c> when it was out of range and a
+        /// FRMR (reason Z) was sent instead.
         /// </returns>
-        private byte[] BuildUnnumbered(byte address, byte control)
+        private bool AcknowledgeThrough(int receiveSequence, byte rejectedControl, long currentTicks)
         {
-            // VERIFIED (section 3.3): SABM/UA/RR carry the sending node number as a 2-byte
-            // big-endian info field (00 64 = node 100).
+            // N(R) must lie in [V(A), V(S)]: (N(R) - V(A)) mod 8 must not exceed the outstanding count
+            // (spec 4.3). Anything beyond that acknowledges a frame we never sent.
+            int outstanding = (_sendVariable - _acknowledgeVariable) & 0x07;
+            if (((receiveSequence - _acknowledgeVariable) & 0x07) > outstanding)
+            {
+                SendFrmr(rejectedControl, FrmrReasonZ, pollFinal: false, currentTicks);
+                return false;
+            }
+
+            // Release every acknowledged frame's buffer and advance V(A).
+            while (_acknowledgeVariable != receiveSequence)
+            {
+                _txInfo[_acknowledgeVariable] = null;
+                _acknowledgeVariable = (_acknowledgeVariable + 1) & 0x07;
+            }
+
+            if (_acknowledgeVariable == _sendVariable)
+            {
+                // Everything acknowledged: stop the retransmission timer, start the idle keepalive.
+                StopT1();
+                StartT3(currentTicks);
+            }
+            else
+            {
+                RestartT1(currentTicks);
+            }
+
+            _retry = 0;
+            return true;
+        }
+
+        /// <summary>
+        /// Retransmits all outstanding I-frames from N(R) onward in response to a REJ (go-back-N).
+        /// </summary>
+        /// <param name="receiveSequence">
+        /// The N(R) the peer rejected from; V(S) is rewound here and the frames replayed in order.
+        /// </param>
+        /// <param name="currentTicks">
+        /// The current injected clock value, used to arm the T1 timer.
+        /// </param>
+        private void GoBackN(int receiveSequence, long currentTicks)
+        {
+            // AcknowledgeThrough has already advanced V(A) to N(R); the outstanding frames are
+            // N(R)..(V(S)-1). Rewind V(S) to N(R) and resend them, each carrying the current V(R) as
+            // its acknowledgement (spec 4.6).
+            int resendUpTo = _sendVariable;
+            _sendVariable = receiveSequence;
+            while (_sendVariable != resendUpTo)
+            {
+                byte[]? payload = _txInfo[_sendVariable];
+                if (payload != null)
+                {
+                    EmitInformation(_sendVariable, payload);
+                }
+
+                _sendVariable = (_sendVariable + 1) & 0x07;
+            }
+
+            StartT1(currentTicks);
+        }
+
+        /// <summary>
+        /// Sends as many pending I-frames as the window and peer-busy state allow.
+        /// </summary>
+        /// <param name="currentTicks">
+        /// The current injected clock value, used to arm the T1 timer on the first send.
+        /// </param>
+        private void TransmitPending(long currentTicks)
+        {
+            // Send while connected, the peer is not busy, the window has room, and work is queued (4.2).
+            while (_state == LapbLayerState.Connected
+                && !_peerBusy
+                && ((_sendVariable - _acknowledgeVariable) & 0x07) < _options.WindowSize
+                && _pending.Count > 0)
+            {
+                byte[] payload = _pending.Dequeue();
+                _txInfo[_sendVariable] = payload;
+                EmitInformation(_sendVariable, payload);
+                _sendVariable = (_sendVariable + 1) & 0x07;
+
+                // An I-frame is now outstanding: stop the idle keepalive and start T1 if it was idle
+                // (spec 5.1: "start T1 when an I-frame is sent and the queue was previously empty").
+                StopT3();
+                if (!_t1Running)
+                {
+                    StartT1(currentTicks);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Records the peer's node number (physical neighbour id) from a link/supervisory info field.
+        /// </summary>
+        /// <param name="info">
+        /// The frame's information field; the first two bytes are the big-endian node number if present.
+        /// </param>
+        private void CaptureNode(ReadOnlyMemory<byte> info)
+        {
+            // Spec 2.3.1 / 3.3: SABM/UA/RR carry the sender's node number big-endian. Store it read-only
+            // as the neighbour id; it is NEVER a routing key.
+            ReadOnlySpan<byte> span = info.Span;
+            if (span.Length >= 2)
+            {
+                _peerNode = (span[0] << 8) | span[1];
+            }
+        }
+
+        /// <summary>
+        /// Determines whether an out-of-sequence N(S) is a retransmitted duplicate rather than a gap.
+        /// </summary>
+        /// <param name="sendSequence">
+        /// The received frame's N(S), known to differ from V(R).
+        /// </param>
+        /// <returns>
+        /// <c>true</c> when N(S) is behind V(R) (already accepted); <c>false</c> when it is ahead (a gap).
+        /// </returns>
+        private bool IsDuplicate(int sendSequence)
+        {
+            // A gap is the peer running ahead of V(R) by 1..(k-1); at or beyond k round the modulo-8
+            // circle the frame is already behind V(R), i.e. a retransmitted duplicate (spec 4.5). With
+            // the maximum window k=7 this makes the common "one behind" retransmit (ahead == 7) a
+            // duplicate that draws an RR, never a spurious REJ.
+            int ahead = (sendSequence - _receiveVariable) & 0x07;
+            return ahead >= _options.WindowSize;
+        }
+
+        /// <summary>
+        /// Handles a T1 expiry: retry, or re-establish/fail on exceeding N2 (spec 5.1).
+        /// </summary>
+        /// <param name="currentTicks">
+        /// The current injected clock value, used to restart T1.
+        /// </param>
+        /// <returns>
+        /// <c>true</c> when the expiry produced a frame or a state change.
+        /// </returns>
+        private bool OnT1Expiry(long currentTicks)
+        {
+            _retry++;
+            if (_retry > _options.N2)
+            {
+                // Link failure (spec 5.1 step 1): from CONNECTED or SABM_SENT, auto re-establish with a
+                // fresh SABM; otherwise drop to DISCONNECTED.
+                StopT3();
+                if (_state == LapbLayerState.Connected || _state == LapbLayerState.SabmSent)
+                {
+                    Reset();
+                    SendUnnumbered(SabmBase, includeNode: true, pollFinal: true);
+                    _retry = 0;
+                    _state = LapbLayerState.SabmSent;
+                    StartT1(currentTicks);
+                }
+                else
+                {
+                    _state = LapbLayerState.Disconnected;
+                    StopT1();
+                }
+
+                return true;
+            }
+
+            switch (_state)
+            {
+                case LapbLayerState.Connected:
+                    // Poll-first recovery (spec 5.1): RR with P=1; the peer's N(R)/REJ drives go-back-N.
+                    EmitSupervisory(RrNibble, pollFinal: true);
+                    RestartT1(currentTicks);
+                    return true;
+
+                case LapbLayerState.SabmSent:
+                    SendUnnumbered(SabmBase, includeNode: true, pollFinal: true);
+                    RestartT1(currentTicks);
+                    return true;
+
+                case LapbLayerState.DiscSent:
+                    SendUnnumbered(DiscBase, includeNode: true, pollFinal: true);
+                    RestartT1(currentTicks);
+                    return true;
+
+                case LapbLayerState.FrmrSent:
+                    ResendFrmr(currentTicks);
+                    return true;
+
+                default:
+                    StopT1();
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Builds and sends a FRMR carrying the 3-byte diagnostic, then enters FRMR_SENT.
+        /// </summary>
+        /// <param name="rejectedControl">
+        /// The control byte of the frame that caused the reject.
+        /// </param>
+        /// <param name="reasonBits">
+        /// The OR-combined FRMR reason bits (W / Y / Z).
+        /// </param>
+        /// <param name="pollFinal">
+        /// Whether to set the final bit on the FRMR.
+        /// </param>
+        /// <param name="currentTicks">
+        /// The current injected clock value, used to arm the T1 timer.
+        /// </param>
+        private void SendFrmr(byte rejectedControl, byte reasonBits, bool pollFinal, long currentTicks)
+        {
+            // Diagnostic (spec 2.3.3): rejected control; V(S)/V(R) with bit4 = 0; reason nibble.
+            byte sequences = (byte)(((_sendVariable << 1) & 0x0E) | ((_receiveVariable << 5) & 0xE0));
+            byte[] info = new byte[] { rejectedControl, sequences, reasonBits };
+            _lastFrmrInfo = info;
+
+            byte control = (byte)(FrmrBase | (pollFinal ? PollFinalBit : 0));
+            byte[] body = new byte[2 + info.Length];
+            body[0] = AddressLinkSetup;
+            body[1] = control;
+            body[2] = info[0];
+            body[3] = info[1];
+            body[4] = info[2];
+            OnTransmit?.Invoke(body);
+
+            _state = LapbLayerState.FrmrSent;
+            StartT1(currentTicks);
+        }
+
+        /// <summary>
+        /// Resends the last FRMR diagnostic (F=1) while in FRMR_SENT and restarts T1.
+        /// </summary>
+        /// <param name="currentTicks">
+        /// The current injected clock value, used to restart T1.
+        /// </param>
+        private void ResendFrmr(long currentTicks)
+        {
+            if (_lastFrmrInfo == null)
+            {
+                return;
+            }
+
+            byte[] body = new byte[2 + _lastFrmrInfo.Length];
+            body[0] = AddressLinkSetup;
+            body[1] = (byte)(FrmrBase | PollFinalBit);
+            body[2] = _lastFrmrInfo[0];
+            body[3] = _lastFrmrInfo[1];
+            body[4] = _lastFrmrInfo[2];
+            OnTransmit?.Invoke(body);
+            RestartT1(currentTicks);
+        }
+
+        /// <summary>
+        /// Emits an information frame carrying the given sequence number, the current V(R), and payload.
+        /// </summary>
+        /// <param name="sendSequence">
+        /// The N(S) to stamp (bits 1..3 of the control byte).
+        /// </param>
+        /// <param name="payload">
+        /// The information field bytes.
+        /// </param>
+        private void EmitInformation(int sendSequence, byte[] payload)
+        {
+            // I-frame control (spec 2.2.1): N(R) in bits 5..7, P=0, N(S) in bits 1..3, bit 0 = 0.
+            byte control = (byte)((_receiveVariable << 5) | (sendSequence << 1));
+            byte[] body = new byte[2 + payload.Length];
+            body[0] = AddressData;
+            body[1] = control;
+            Array.Copy(payload, 0, body, 2, payload.Length);
+            OnTransmit?.Invoke(body);
+        }
+
+        /// <summary>
+        /// Emits a supervisory frame (RR / RNR / REJ) carrying the current V(R) and our node number.
+        /// </summary>
+        /// <param name="subtypeNibble">
+        /// The subtype low nibble: RR <c>0x1</c>, RNR <c>0x5</c>, REJ <c>0x9</c>.
+        /// </param>
+        /// <param name="pollFinal">
+        /// Whether to set the poll/final bit.
+        /// </param>
+        private void EmitSupervisory(byte subtypeNibble, bool pollFinal)
+        {
+            // S-frame control (spec 2.2.2): N(R) in bits 5..7, P/F, then the subtype low nibble.
+            byte control = (byte)((_receiveVariable << 5) | (pollFinal ? PollFinalBit : 0) | subtypeNibble);
             byte[] body = new byte[4];
-            body[0] = address;
+            body[0] = AddressData;
             body[1] = control;
             body[2] = (byte)((_ownNode >> 8) & 0xFF);
             body[3] = (byte)(_ownNode & 0xFF);
-            return body;
+            OnTransmit?.Invoke(body);
         }
 
         /// <summary>
-        /// Builds a frame body from an address, control byte and an information field.
+        /// Emits an unnumbered frame (SABM / UA / DISC / DM), optionally stamping our node number.
         /// </summary>
-        /// <param name="address">
-        /// The LAPB address byte.
+        /// <param name="controlBase">
+        /// The unnumbered control base pattern (P/F bit cleared).
         /// </param>
-        /// <param name="control">
-        /// The LAPB control byte.
+        /// <param name="includeNode">
+        /// Whether to append our 2-byte node number as the info field (spec 2.3.1).
         /// </param>
-        /// <param name="info">
-        /// The information field bytes.
+        /// <param name="pollFinal">
+        /// Whether to set the poll/final bit.
         /// </param>
-        /// <returns>
-        /// The frame body: address, control, then the information field.
-        /// </returns>
-        private static byte[] BuildFrame(byte address, byte control, ReadOnlySpan<byte> info)
+        private void SendUnnumbered(byte controlBase, bool includeNode, bool pollFinal)
         {
-            byte[] body = new byte[2 + info.Length];
-            body[0] = address;
-            body[1] = control;
-            for (int i = 0; i < info.Length; i++)
+            byte control = (byte)(controlBase | (pollFinal ? PollFinalBit : 0));
+            if (includeNode)
             {
-                body[2 + i] = info[i];
+                byte[] body = new byte[4];
+                body[0] = AddressLinkSetup;
+                body[1] = control;
+                body[2] = (byte)((_ownNode >> 8) & 0xFF);
+                body[3] = (byte)(_ownNode & 0xFF);
+                OnTransmit?.Invoke(body);
+            }
+            else
+            {
+                byte[] body = new byte[2];
+                body[0] = AddressLinkSetup;
+                body[1] = control;
+                OnTransmit?.Invoke(body);
+            }
+        }
+
+        /// <summary>
+        /// Hard-resets the sequence variables, retransmit queue and flow flags (spec 3.2).
+        /// </summary>
+        private void Reset()
+        {
+            _sendVariable = 0;
+            _receiveVariable = 0;
+            _acknowledgeVariable = 0;
+            for (int i = 0; i < _txInfo.Length; i++)
+            {
+                _txInfo[i] = null;
             }
 
-            return body;
+            _pending.Clear();
+            _peerBusy = false;
+            _rejectCondition = false;
+        }
+
+        /// <summary>
+        /// Starts the T1 retransmission / poll timer from the given clock value.
+        /// </summary>
+        /// <param name="currentTicks">
+        /// The current injected clock value.
+        /// </param>
+        private void StartT1(long currentTicks)
+        {
+            _t1Running = true;
+            _t1Deadline = currentTicks + _options.T1;
+        }
+
+        /// <summary>
+        /// Restarts the T1 timer (equivalent to a fresh start) from the given clock value.
+        /// </summary>
+        /// <param name="currentTicks">
+        /// The current injected clock value.
+        /// </param>
+        private void RestartT1(long currentTicks)
+        {
+            StartT1(currentTicks);
+        }
+
+        /// <summary>
+        /// Stops the T1 timer.
+        /// </summary>
+        private void StopT1()
+        {
+            _t1Running = false;
+        }
+
+        /// <summary>
+        /// Starts the T3 idle keepalive timer from the given clock value.
+        /// </summary>
+        /// <param name="currentTicks">
+        /// The current injected clock value.
+        /// </param>
+        private void StartT3(long currentTicks)
+        {
+            _t3Running = true;
+            _t3Deadline = currentTicks + _options.T3;
+        }
+
+        /// <summary>
+        /// Stops the T3 timer.
+        /// </summary>
+        private void StopT3()
+        {
+            _t3Running = false;
+        }
+
+        /// <summary>
+        /// Stops both timers (used on disconnect).
+        /// </summary>
+        private void StopAllTimers()
+        {
+            _t1Running = false;
+            _t3Running = false;
         }
     }
 }

@@ -234,7 +234,7 @@ namespace NDInsight.Sintran.Xmsg.Live
 
                 OnRawFrameReceived?.Invoke(frameBytes);
                 LapbFrame frame = new LapbFrame(default, frameBytes);
-                _link.OnFrameReceived(frame);
+                _link.OnFrameReceived(frame, _ticks);
             }
         }
 

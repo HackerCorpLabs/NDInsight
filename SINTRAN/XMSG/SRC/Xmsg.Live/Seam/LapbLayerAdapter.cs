@@ -316,7 +316,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
                 RawFrameReceived?.Invoke(_linkId, frameBytes);
 
                 LapbFrame frame = new LapbFrame(default, frameBytes);
-                _link.OnFrameReceived(frame);
+                _link.OnFrameReceived(frame, _ticks);
 
                 // Refresh coarse status right after each frame so a SABM/UA that brings the LAPB link
                 // to Connected flips us to Active BEFORE the very next frame (the peer's first I-frame)
