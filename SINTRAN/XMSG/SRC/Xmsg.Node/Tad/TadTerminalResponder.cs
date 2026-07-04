@@ -256,6 +256,11 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             _sessionWirePort = (ushort)((4 << 7) | 0x11);
             _connected = true;
             _motdSent = false;
+            // A fresh session starts at the username prompt (the banner ends with SYCN 0002 + "ENTER ").
+            // We only assert the logged-in state (SYCN 000A) after a valid SYSTEM/SYSTEM login.
+            _loginPhase = LoginPhase.Username;
+            _loginFaults = 0;
+            _pendingUsername = string.Empty;
 
             // LEARN the per-link seed from 100's connect frame: seed = (Counter + Flags1 + (Flags2 &
             // 0xFF)) & 0xFF (100<->102 = 0x14). Every frame we originate is then fully determined by
@@ -415,6 +420,32 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <summary>True once 100 sent the session-setup (accept confirmed) — resync stops here.</summary>
         private bool _sessionSetupSeen;
 
+        /// <summary>
+        /// The login phases the terminal walks before the command loop is reachable.
+        /// </summary>
+        private enum LoginPhase
+        {
+            /// <summary>Awaiting the username line (the banner's "ENTER " prompt, SYCN 0002).</summary>
+            Username,
+
+            /// <summary>Awaiting the password line (no-echo, ECKM FF).</summary>
+            Password,
+
+            /// <summary>A valid SYSTEM/SYSTEM login completed (SYCN 000A asserted).</summary>
+            LoggedIn,
+        }
+
+        // The expected credentials (case-insensitive). Both username and password are "SYSTEM".
+        private const string ExpectedUser = "SYSTEM";
+        private const string ExpectedPassword = "SYSTEM";
+
+        // The maximum wrong-credential attempts before "BYE HACKER!" and disconnect.
+        private const int MaxLoginFaults = 3;
+
+        private LoginPhase _loginPhase;
+        private int _loginFaults;
+        private string _pendingUsername = string.Empty;
+
         /// <summary>True once we have sent the MOTD, so we do not re-send it on repeated setup frames.</summary>
         private bool _motdSent;
 
@@ -560,24 +591,83 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                 return outgoing;
             }
 
-            // Extract the typed text from any BDAT messages in the incoming TAD chain.
-            string input = ExtractBdatText(frame);
+            // Extract the typed line (BDAT), high bit stripped, surrounding whitespace/CR trimmed.
+            string line = ExtractBdatText(frame).Trim();
 
-            TadMenuResult result = _menu.Handle(input, _clock());
-            // Append RFI (ready-for-input) UNLESS this reply disconnects. RFI is the flow-control
-            // credit that tells 100 it may send the next line; without it 100 sits idle after our
-            // reply (VERIFIED from the capture: every input-expecting prompt ends with RFI).
-            outgoing.Add(BuildTerminalText(frame, result.Output, readyForInput: !result.Disconnect));
-
-            if (result.Disconnect)
+            switch (_loginPhase)
             {
-                // Trigger 100's clean teardown: after the "DISCONNECTING" text, send the 0xFD
-                // session-state notification (class 0x0006 from the system port 342). Per spec 22.7,
-                // that makes the asker send DCON, which we then acknowledge and close on — instead of
-                // leaving 100 to sit until its 1-minute idle timer fires and DCONs by itself. Keep the
-                // session OPEN here so 100's DCON is still processed (IsDisconnect -> CloseSession).
-                outgoing.Add(BuildFdNotification(frame));
-                disconnect = true;
+                case LoginPhase.Username:
+                    // Remember the username and ALWAYS ask for the password next, with echo OFF
+                    // (ECKM FF) so the password is not shown while typed. We never reveal whether the
+                    // username was valid — the verdict comes only after the password (spec 21). No
+                    // logged-in state is asserted here.
+                    _pendingUsername = line;
+                    outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
+                        .BdatText("\r\n").Sycn(SycnState.UsernameAccepted).Cesc(0x00).Build()));
+                    outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
+                        .BdatText("PASSWORD: ").Eckm(0xFF).Rfi().Build()));
+                    _loginPhase = LoginPhase.Password;
+                    break;
+
+                case LoginPhase.Password:
+                    bool valid =
+                        string.Equals(_pendingUsername, ExpectedUser, StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(line, ExpectedPassword, StringComparison.OrdinalIgnoreCase);
+                    if (valid)
+                    {
+                        // ONLY NOW, after a valid SYSTEM/SYSTEM login: restore echo, confirm "OK", and
+                        // assert the logged-in state (SYCN 000A) with the command prompt. SYCN 000A is
+                        // what cancels 100's 1-minute "not logged in" idle disconnect.
+                        _loginFaults = 0;
+                        _loginPhase = LoginPhase.LoggedIn;
+                        outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
+                            .BdatText("\r\n").Eckm(0x01).BdatText("OK")
+                            .Sycn(SycnState.PasswordAccepted).Cesc(0x01).Build()));
+                        outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
+                            .BdatText("\r\n").Sycn(SycnState.LoggedIn).BdatText("# ").Rfi().Build()));
+                    }
+                    else if (_loginFaults + 1 >= MaxLoginFaults)
+                    {
+                        // Third strike: taunt and tear the session down (0xFD -> asker DCON). Never a
+                        // logged-in state.
+                        _loginFaults++;
+                        outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
+                            .BdatText("\r\nBYE HACKER!\r\n").Sycn(SycnState.LoggedOut).Build()));
+                        outgoing.Add(BuildFdNotification(frame));
+                        disconnect = true;
+                    }
+                    else
+                    {
+                        // Wrong credentials: restore echo, report the failure, and go back to the
+                        // username prompt (SYCN 0002 = waiting for username). No logged-in state.
+                        _loginFaults++;
+                        _loginPhase = LoginPhase.Username;
+                        outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
+                            .BdatText("\r\nInvalid user/password").Eckm(0x01)
+                            .Sycn(SycnState.WaitingForUsername).BdatText("\r\nENTER ").Rfi().Build()));
+                    }
+
+                    break;
+
+                default:
+                    // Logged-in command loop: run the menu.
+                    TadMenuResult result = _menu.Handle(line, _clock());
+                    if (result.Disconnect)
+                    {
+                        // Choice 4 (Disconnect): send the text, then the 0xFD so 100 tears down at once
+                        // (spec 22.7). Keep the session open so 100's DCON is processed.
+                        outgoing.Add(BuildTerminalText(frame, result.Output, readyForInput: false));
+                        outgoing.Add(BuildFdNotification(frame));
+                        disconnect = true;
+                    }
+                    else
+                    {
+                        // Re-assert the logged-in state after every command (spec 21) and grant input.
+                        outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
+                            .BdatText(result.Output).Sycn(SycnState.LoggedIn).Rfi().Build()));
+                    }
+
+                    break;
             }
 
             return outgoing;
@@ -607,6 +697,31 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                 role: 0x40,
                 sourcePort: TadAdminWirePort,
                 payload: trailer);
+        }
+
+        /// <summary>
+        /// Wraps a pre-built TAD chain in a terminal-data frame (class <c>0x0108</c>, XMCSM
+        /// <c>0x01080000</c>) on the session port — the carrier for the login / prompt bursts.
+        /// </summary>
+        /// <param name="request">
+        /// The triggering frame (its source is 100's session endpoint).
+        /// </param>
+        /// <param name="tadChain">
+        /// The TAD chain to carry (built with <see cref="TadMessageBuilder"/>).
+        /// </param>
+        /// <returns>
+        /// The terminal-data frame.
+        /// </returns>
+        private XmsgFrame BuildTerminalChain(XmsgFrame request, byte[] tadChain)
+        {
+            return BuildResponderFrame(
+                request,
+                frameClass: 0x0108,
+                controlService: TerminalDataControlService,
+                frameFlags: 0x96,
+                role: 0x00,
+                sourcePort: _sessionWirePort,
+                payload: tadChain);
         }
 
         /// <summary>

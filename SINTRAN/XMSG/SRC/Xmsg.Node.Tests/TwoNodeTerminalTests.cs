@@ -33,14 +33,63 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             TerminalCapture terminal = new TerminalCapture();
             TadConnectClient client = BuildPairedNodes(terminal, out XmsgCodec clientCodec);
 
-            // Drive: connect-to D102, then type "help".
+            // Drive: connect-to D102, log in as SYSTEM/SYSTEM, then type "help".
             clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            LogIn(client, clientCodec);
             clientCodec.SendPacket(new XmsgPacket(client.BuildInput("help")));
 
             string screen = terminal.Text;
+            Assert.Contains("PASSWORD", screen);   // the login prompted for a password
             Assert.Contains("Time", screen);
             Assert.Contains("Echo", screen);
             Assert.Contains("Disconnect", screen);
+        }
+
+        /// <summary>
+        /// A valid SYSTEM/SYSTEM login is accepted ("OK"); wrong credentials are rejected and re-prompt;
+        /// after three failed attempts the session is torn down with "BYE HACKER!" and the 0xFD.
+        /// </summary>
+        [Fact]
+        public void Login_ValidAccepts_WrongRejects_ThreeFaultsDisconnect()
+        {
+            // Valid login.
+            TerminalCapture okScreen = new TerminalCapture();
+            TadConnectClient okClient = BuildPairedNodes(okScreen, out XmsgCodec okCodec);
+            okCodec.SendPacket(new XmsgPacket(okClient.BuildConnect("D102")));
+            LogIn(okClient, okCodec);
+            Assert.Contains("OK", okScreen.Text);
+
+            // Three wrong password attempts -> "BYE HACKER!" + 0xFD teardown.
+            TerminalCapture badScreen = new TerminalCapture();
+            bool sawFd = false;
+            TadConnectClient badClient = BuildPairedNodes(badScreen, out XmsgCodec badCodec, frame =>
+            {
+                if (frame.SubHeader != null && frame.SubHeader.ControlService == 0x00060000u)
+                {
+                    sawFd = true;
+                }
+            });
+            badCodec.SendPacket(new XmsgPacket(badClient.BuildConnect("D102")));
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                badCodec.SendPacket(new XmsgPacket(badClient.BuildInput("SYSTEM")));   // username
+                badCodec.SendPacket(new XmsgPacket(badClient.BuildInput("nope")));     // wrong password
+            }
+
+            Assert.Contains("Invalid user/password", badScreen.Text);
+            Assert.Contains("BYE HACKER!", badScreen.Text);
+            Assert.True(sawFd, "the third fault should tear the session down with 0xFD");
+        }
+
+        /// <summary>
+        /// Sends the SYSTEM username then the SYSTEM password to reach the logged-in command loop.
+        /// </summary>
+        /// <param name="client">The connect-to client.</param>
+        /// <param name="codec">The client codec.</param>
+        private static void LogIn(TadConnectClient client, XmsgCodec codec)
+        {
+            codec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // username
+            codec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // password -> logged in
         }
 
         /// <summary>
@@ -54,6 +103,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             TadConnectClient client = BuildPairedNodes(terminal, out XmsgCodec clientCodec);
 
             clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            LogIn(client, clientCodec);
             clientCodec.SendPacket(new XmsgPacket(client.BuildInput("3")));
 
             Assert.Contains("IPSUM LORUM", terminal.Text);
@@ -67,37 +117,18 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         [Fact]
         public void ClientTypesDisconnect_ServerSendsFdNotification()
         {
-            PipeTransport serverToClient = new PipeTransport();
-            PipeTransport clientToServer = new PipeTransport();
-
-            XmsgCodec serverCodec = new XmsgCodec("server", serverToClient);
-            XmsgLayer serverLayer = new XmsgLayer(serverCodec, 102, 0x00);
-            serverLayer.TadResponder = new TadTerminalResponder(102, FixedClock);
-            serverLayer.AcknowledgeTadFrames = true;
-
-            XmsgCodec clientCodec = new XmsgCodec("client", clientToServer);
-            TadConnectClient client = new TadConnectClient(100, 102, 0x0283, seed: 0x14);
             bool sawFd = false;
-            clientCodec.PacketReceived += delegate (string id, XmsgPacketInfo packet)
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildPairedNodes(terminal, out XmsgCodec clientCodec, frame =>
             {
-                // The 0xFD notification rides the 0x00060000 control class and carries TAD opcode 0xFD.
-                if (packet.Frame.SubHeader != null && packet.Frame.SubHeader.ControlService == 0x00060000u)
+                if (frame.SubHeader != null && frame.SubHeader.ControlService == 0x00060000u)
                 {
-                    IReadOnlyList<TadMessage> messages = packet.Frame.Tad?.Messages ?? new List<TadMessage>();
-                    for (int i = 0; i < messages.Count; i++)
-                    {
-                        if (messages[i].Opcode == 0xFD)
-                        {
-                            sawFd = true;
-                        }
-                    }
+                    sawFd = true;
                 }
-            };
-
-            clientToServer.Target = bytes => serverCodec.ProcessBytes(bytes);
-            serverToClient.Target = bytes => clientCodec.ProcessBytes(bytes);
+            });
 
             clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            LogIn(client, clientCodec);
             clientCodec.SendPacket(new XmsgPacket(client.BuildInput("4")));
 
             Assert.True(sawFd, "server should send the 0xFD teardown notification for the Disconnect command");
@@ -159,10 +190,14 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// <param name="clientCodec">
         /// Receives the client-side codec the caller sends packets through.
         /// </param>
+        /// <param name="onServerFrame">
+        /// An optional observer invoked for every frame the server sends back (for asserting non-text
+        /// frames such as the 0xFD notification).
+        /// </param>
         /// <returns>
         /// The connect-to client bound to the server.
         /// </returns>
-        private static TadConnectClient BuildPairedNodes(TerminalCapture terminal, out XmsgCodec clientCodec)
+        private static TadConnectClient BuildPairedNodes(TerminalCapture terminal, out XmsgCodec clientCodec, Action<XmsgFrame>? onServerFrame = null)
         {
             PipeTransport serverToClient = new PipeTransport();
             PipeTransport clientToServer = new PipeTransport();
@@ -181,6 +216,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             {
                 client.NoteServerFrame(packet.Frame);
                 terminal.Append(packet.Frame);
+                onServerFrame?.Invoke(packet.Frame);
             };
 
             // Close the loop: client bytes -> server codec, server bytes -> client codec.
