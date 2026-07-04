@@ -36,7 +36,9 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
     /// </remarks>
     public sealed class LapbLayerAdapter : ILink
     {
-        /// <summary>The HDLC flag / frame-delimiter byte.</summary>
+        /// <summary>
+        /// The HDLC flag / frame-delimiter byte.
+        /// </summary>
         private const byte Flag = 0x7E;
 
         private readonly string _linkId;
@@ -79,20 +81,34 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         /// before the LAPB state machine processes it). Lets the runner log SABM/UA/RR/I traffic
         /// from the peer — including a bare-link SABM storm when the peer's XMSG has died.
         /// </summary>
-        /// <param name="linkId">The link the frame arrived on (sender-first).</param>
-        /// <param name="frameBytes">The unstuffed, FCS-valid LAPB frame (addr, control, info, FCS).</param>
+        /// <param name="linkId">
+        /// The link the frame arrived on (sender-first).
+        /// </param>
+        /// <param name="frameBytes">
+        /// The unstuffed, FCS-valid LAPB frame (addr, control, info, FCS).
+        /// </param>
         public delegate void LinkRawFrameReceived(string linkId, byte[] frameBytes);
 
-        /// <summary>Occurs for every FCS-valid LAPB frame received (diagnostic).</summary>
+        /// <summary>
+        /// Occurs for every FCS-valid LAPB frame received (diagnostic).
+        /// </summary>
         public event LinkRawFrameReceived? RawFrameReceived;
 
         /// <summary>
         /// Initialises the adapter over a transport and LAPB link.
         /// </summary>
-        /// <param name="linkId">The link identity stamped on every up-event.</param>
-        /// <param name="transport">The raw-byte transport (TCP bridge or in-memory).</param>
-        /// <param name="link">The LAPB link state machine.</param>
-        /// <exception cref="ArgumentNullException">Thrown when any reference argument is null.</exception>
+        /// <param name="linkId">
+        /// The link identity stamped on every up-event.
+        /// </param>
+        /// <param name="transport">
+        /// The raw-byte transport (TCP bridge or in-memory).
+        /// </param>
+        /// <param name="link">
+        /// The LAPB link state machine.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when any reference argument is null.
+        /// </exception>
         public LapbLayerAdapter(string linkId, IByteDuplex transport, LapbLayer link)
         {
             _linkId = linkId ?? throw new ArgumentNullException(nameof(linkId));
@@ -177,12 +193,16 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         /// deterministic test can drive it over an <see cref="InMemoryDuplex"/> without a background
         /// task; <see cref="Start"/> uses it live with a keepalive interval.
         /// </summary>
-        /// <param name="cancellationToken">A token that stops the pump.</param>
+        /// <param name="cancellationToken">
+        /// A token that stops the pump.
+        /// </param>
         /// <param name="keepaliveInterval">
         /// When non-null, the idle interval after which an RR keepalive + retransmit tick fires
         /// (required live); when null the pump simply blocks on reads (in-memory tests).
         /// </param>
-        /// <returns>A task that completes when the pump stops.</returns>
+        /// <returns>
+        /// A task that completes when the pump stops.
+        /// </returns>
         public async Task RunAsync(CancellationToken cancellationToken, TimeSpan? keepaliveInterval = null)
         {
             byte[] buffer = new byte[512];
@@ -404,8 +424,12 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         /// Sets the coarse status and raises <see cref="StatusChanged"/> only on an actual transition,
         /// carrying the previous status, the new status, and a reason (sender-first: this link).
         /// </summary>
-        /// <param name="next">The new status.</param>
-        /// <param name="reason">A short human-readable reason for the transition (for logs).</param>
+        /// <param name="next">
+        /// The new status.
+        /// </param>
+        /// <param name="reason">
+        /// A short human-readable reason for the transition (for logs).
+        /// </param>
         private void SetStatus(LinkStatus next, string reason)
         {
             if (next != _status)
