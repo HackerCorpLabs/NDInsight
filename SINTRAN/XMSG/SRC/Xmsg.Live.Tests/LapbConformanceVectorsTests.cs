@@ -65,15 +65,15 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
 
             link.SendInformation(new byte[] { 0xD0 }, currentTicks: 0);
             link.SendInformation(new byte[] { 0xD1 }, currentTicks: 0);
-            Assert.Equal(new byte[] { 0x09, 0x00, 0xD0 }, sent[0]);   // TX I N(S)=0 N(R)=0
-            Assert.Equal(new byte[] { 0x09, 0x02, 0xD1 }, sent[1]);   // TX I N(S)=1 N(R)=0
+            Assert.Equal(new byte[] { 0x89, 0x00, 0xD0 }, sent[0]);   // TX I N(S)=0 N(R)=0
+            Assert.Equal(new byte[] { 0x89, 0x02, 0xD1 }, sent[1]);   // TX I N(S)=1 N(R)=0
             sent.Clear();
 
             Deliver(link, 0x09, 0x09, P102Hi, P102Lo);               // RX REJ N(R)=0
 
             Assert.Equal(2, sent.Count);
-            Assert.Equal(new byte[] { 0x09, 0x00, 0xD0 }, sent[0]);   // resent N(S)=0
-            Assert.Equal(new byte[] { 0x09, 0x02, 0xD1 }, sent[1]);   // resent N(S)=1
+            Assert.Equal(new byte[] { 0x89, 0x00, 0xD0 }, sent[0]);   // resent N(S)=0
+            Assert.Equal(new byte[] { 0x89, 0x02, 0xD1 }, sent[1]);   // resent N(S)=1
         }
 
         /// <summary>
@@ -87,7 +87,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             sent.Clear();
 
             link.SendInformation(new byte[] { 0xC0 }, currentTicks: 0);   // TX I N(S)=0
-            Assert.Equal(new byte[] { 0x09, 0x00, 0xC0 }, sent[0]);
+            Assert.Equal(new byte[] { 0x89, 0x00, 0xC0 }, sent[0]);   // 1-byte info = odd -> address 0x89
 
             Deliver(link, 0x09, 0x25, P102Hi, P102Lo);   // RX RNR N(R)=1
             Assert.True(link.PeerBusy);

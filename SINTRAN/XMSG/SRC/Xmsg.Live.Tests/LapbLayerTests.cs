@@ -183,7 +183,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             Assert.Equal(0, link.AcknowledgeVariable);
             Assert.Equal(1, link.Outstanding);
             Assert.Single(sent);
-            Assert.Equal(new byte[] { 0x09, 0x00, 0x21, 0x13, 0xCC }, sent[0]);   // I N(S)=0 N(R)=0 + payload
+            Assert.Equal(new byte[] { 0x89, 0x00, 0x21, 0x13, 0xCC }, sent[0]);   // I N(S)=0 N(R)=0 + payload (3-byte info = odd -> address 0x89)
             sent.Clear();
 
             Deliver(link, 0x09, 0x21, Node100Hi, Node100Lo);   // RR N(R)=1 from peer
@@ -205,8 +205,8 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             link.SendInformation(new byte[] { 0xD0 }, currentTicks: 0);   // I N(S)=0
             link.SendInformation(new byte[] { 0xD1 }, currentTicks: 0);   // I N(S)=1
             Assert.Equal(2, link.Outstanding);
-            byte[] i0 = new byte[] { 0x09, 0x00, 0xD0 };
-            byte[] i1 = new byte[] { 0x09, 0x02, 0xD1 };
+            byte[] i0 = new byte[] { 0x89, 0x00, 0xD0 };   // 1-byte info = odd -> address 0x89
+            byte[] i1 = new byte[] { 0x89, 0x02, 0xD1 };
             Assert.Equal(i0, sent[0]);
             Assert.Equal(i1, sent[1]);
             sent.Clear();
@@ -244,7 +244,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             Deliver(link, 0x09, 0x21, Node100Hi, Node100Lo);   // RR N(R)=1 clears busy
             Assert.False(link.PeerBusy);
             Assert.Single(sent);
-            Assert.Equal(new byte[] { 0x09, 0x02, 0xE1 }, sent[0]);   // held I N(S)=1 now sent
+            Assert.Equal(new byte[] { 0x89, 0x02, 0xE1 }, sent[0]);   // held I N(S)=1 now sent (1-byte info = odd -> 0x89)
         }
 
         /// <summary>
@@ -267,7 +267,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             Deliver(link, 0x09, 0x21, Node100Hi, Node100Lo);   // RR N(R)=1 frees a slot
 
             Assert.Equal(3, sent.Count);
-            Assert.Equal(new byte[] { 0x09, 0x04, 0xA2 }, sent[2]);   // N(S)=2 now sent
+            Assert.Equal(new byte[] { 0x89, 0x04, 0xA2 }, sent[2]);   // N(S)=2 now sent (1-byte info = odd -> 0x89)
             Assert.Equal(3, link.SendVariable);
         }
 
@@ -364,6 +364,66 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             // Each stamps its OWN node number on its RR acks.
             Assert.Equal(new byte[] { 0x09, 0x41, Node102Hi, Node102Lo }, sentA[sentA.Count - 1]);   // node 102
             Assert.Equal(new byte[] { 0x09, 0x21, 0x00, 0x67 }, sentB[sentB.Count - 1]);             // node 103
+        }
+
+        /// <summary>
+        /// The ND odd-info-length address marker (capture-VERIFIED): an I-frame whose information field
+        /// has an ODD byte count carries LAPB address <c>0x89</c>; an even-length info field carries
+        /// <c>0x09</c>. Bit <c>0x80</c> is NOT the ITU-T command/response bit. 100 silently discards an
+        /// I-frame whose address parity disagrees with its length, which was the login username-accepted
+        /// stall (43-byte info) and the Problem-A odd-length hangs (help 129 B, echo-"3" 55 B). RR/RNR/REJ
+        /// carry the 2-byte node number (even), so they stay <c>0x09</c>.
+        /// </summary>
+        [Fact]
+        public void InformationAddress_SetsOddLengthMarkerBit()
+        {
+            List<byte[]> sent = new List<byte[]>();
+            LapbLayer link = NewConnected(102, sent, null);
+            sent.Clear();
+
+            // Even info (2 bytes) -> 0x09; the emitted I-frame is [addr, control, ...info].
+            link.SendInformation(new byte[] { 0xAA, 0xBB }, currentTicks: 0);
+            byte[] even = LastIFrame(sent);
+            Assert.Equal(0x09, even[0]);
+
+            sent.Clear();
+
+            // Odd info (3 bytes) -> 0x89.
+            link.SendInformation(new byte[] { 0xAA, 0xBB, 0xCC }, currentTicks: 0);
+            byte[] odd = LastIFrame(sent);
+            Assert.Equal(0x89, odd[0]);
+
+            // Supervisory (RR ack, 2-byte node info = even) stays 0x09 - no odd marker on S-frames.
+            for (int i = 0; i < sent.Count; i++)
+            {
+                if ((sent[i][1] & 0x01) == 0x01)   // S/U frame (control bit 0 set)
+                {
+                    Assert.Equal(0x09, sent[i][0] & 0x7F);
+                    Assert.Equal(0x00, sent[i][0] & 0x80);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns the most recently emitted I-frame body (control bit 0 clear) from a capture list.
+        /// </summary>
+        /// <param name="sent">
+        /// The captured transmit bodies.
+        /// </param>
+        /// <returns>
+        /// The last I-frame body.
+        /// </returns>
+        private static byte[] LastIFrame(List<byte[]> sent)
+        {
+            for (int i = sent.Count - 1; i >= 0; i--)
+            {
+                if ((sent[i][1] & 0x01) == 0x00)
+                {
+                    return sent[i];
+                }
+            }
+
+            throw new InvalidOperationException("no I-frame was emitted");
         }
     }
 }

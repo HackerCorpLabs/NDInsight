@@ -35,9 +35,28 @@ namespace NDInsight.Sintran.Xmsg.Live
         public const byte AddressLinkSetup = 0x01;
 
         /// <summary>
-        /// LAPB address for data-transfer frames: I, RR, RNR, REJ (spec 2.1).
+        /// Base LAPB address for data-transfer frames: I, RR, RNR, REJ (spec 2.1).
         /// </summary>
+        /// <remarks>
+        /// ND extension (capture-VERIFIED across 230+ data I-frames / 378 RRs, both directions):
+        /// address bit <see cref="AddressOddLengthBit"/> (<c>0x80</c>) is an ODD-INFO-LENGTH marker -
+        /// the address is <c>0x89</c> when the frame's information field has an odd byte count and
+        /// <c>0x09</c> when it is even. It is NOT the ITU-T command/response bit (standard LAPB has no
+        /// length signalling in the address). S/U frames always carry the 2-byte node number (even), so
+        /// they are always <c>0x09</c> / <c>0x01</c>. INFERRED mechanism: the ND-100 HDLC DMA moves
+        /// 16-bit words, so the receiver needs to know whether the final word of the info field holds
+        /// one or two valid bytes; a wrong flag off-by-ones the reconstructed length, the FCS check
+        /// lands on the wrong bytes, and 100 silently discards the frame as a line error (V(R) frozen).
+        /// That silent discard was the login username-accepted stall and the Problem-A odd-length hangs.
+        /// See XMSG-PROTOCOL.md section 3.1 / 3.6 and LAPB-REQUIREMENTS.md A1b.
+        /// </remarks>
         public const byte AddressData = 0x09;
+
+        /// <summary>
+        /// The ND odd-info-length marker bit OR-ed into the data-transfer address when the information
+        /// field byte count is odd (<c>0x09</c> becomes <c>0x89</c>). See <see cref="AddressData"/>.
+        /// </summary>
+        public const byte AddressOddLengthBit = 0x80;
 
         /// <summary>
         /// Maximum information-field length; a longer received I-field is FRMR reason Y (spec 2.3.2).
@@ -858,7 +877,10 @@ namespace NDInsight.Sintran.Xmsg.Live
             // I-frame control (spec 2.2.1): N(R) in bits 5..7, P=0, N(S) in bits 1..3, bit 0 = 0.
             byte control = (byte)((_receiveVariable << 5) | (sendSequence << 1));
             byte[] body = new byte[2 + payload.Length];
-            body[0] = AddressData;
+            // ND odd-info-length address marker (capture-VERIFIED): 0x89 for an odd-length info field,
+            // 0x09 for even. 100 silently discards an I-frame whose address parity disagrees with its
+            // length (word-DMA off-by-one), so this MUST be set per frame - see AddressData.
+            body[0] = (byte)(AddressData | (((payload.Length & 1) != 0) ? AddressOddLengthBit : 0));
             body[1] = control;
             Array.Copy(payload, 0, body, 2, payload.Length);
             OnTransmit?.Invoke(body);
