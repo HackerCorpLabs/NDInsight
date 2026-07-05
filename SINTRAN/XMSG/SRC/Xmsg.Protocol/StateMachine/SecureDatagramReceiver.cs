@@ -17,6 +17,14 @@ namespace NDInsight.Sintran.Xmsg
     {
         private byte _counter;
 
+        // How many times the decrementing ACK counter has wrapped past 0x00 since the last seed.
+        // The ACK channel steps DOWN by this count (DE -> DD -> DC ...), exactly mirroring the data
+        // envelope's epoch step. CAPTURE-VERIFIED (multiple-connect-100-to102 session 2): the ACK on
+        // Flags1 0x001F carried counter 0xFF on channel 0xDD, not 0xDE - i.e. the channel stepped the
+        // instant the counter wrapped. Emitting the wrapped ACK on the un-stepped channel is the
+        // malformed ACK that 24B/XXPER-crashed 100 at a long-session teardown.
+        private int _wraps;
+
         /// <summary>
         /// Raised when a data frame is delivered to the local application.
         /// </summary>
@@ -59,6 +67,9 @@ namespace NDInsight.Sintran.Xmsg
         public void SeedCounter(byte value)
         {
             _counter = value;
+            // A fresh session re-bases the ACK channel to connect+4 (epoch 0), so the wrap count
+            // MUST reset too - otherwise a prior session's wraps would wrongly step this one's channel.
+            _wraps = 0;
         }
 
         /// <summary>
@@ -124,12 +135,22 @@ namespace NDInsight.Sintran.Xmsg
             ack.Header.Flags1 = dataHeader.Flags1;                // echo the datagram sequence
             ack.Header.Flags2 = 0x0001;
             // ACK channel: the caller-supplied session ACK channel (connect+4 for TAD) when
-            // given; otherwise echo the data frame's own channel (reachability/list-route).
-            ack.Header.ProtocolId = ackChannel ?? dataHeader.ProtocolId;
+            // given; otherwise echo the data frame's own channel (reachability/list-route). The base
+            // is then stepped DOWN by the ACK-counter wrap count (DE -> DD -> DC ...) so a long
+            // session's wrapped ACKs ride the correct channel - see the _wraps field comment.
+            byte baseChannel = (byte)(ackChannel ?? dataHeader.ProtocolId);
+            ack.Header.ProtocolId = (SintranProtocolId)(byte)(baseChannel - _wraps);
             ack.TrailingBytes = new byte[] { _counter };
 
             // The per-direction counter decrements per ACK (section 6, VALIDATED as a smooth
-            // decrementing sequence across all captures).
+            // decrementing sequence across all captures). When it passes 0x00 -> 0xFF the channel has
+            // wrapped: bump _wraps so the NEXT ACK (counter 0xFF) rides the stepped-down channel,
+            // matching the capture (counter 0x00 still on DE, counter 0xFF already on DD).
+            if (_counter == 0x00)
+            {
+                _wraps++;
+            }
+
             _counter = (byte)(_counter - 1);
             return ack;
         }

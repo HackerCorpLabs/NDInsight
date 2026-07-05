@@ -130,5 +130,70 @@ namespace NDInsight.Sintran.Xmsg.Tests
             Assert.Equal(0x2D, ack.TrailingBytes[0]);
             Assert.Equal(0x2C, receiver.Counter);
         }
+
+        [Fact]
+        public void Receiver_AckChannel_StepsDownWhenCounterWraps()
+        {
+            // CAPTURE-VERIFIED (multiple-connect-100-to102 session 2): the session ACK channel is
+            // connect+4 (here 0xDE) but steps DOWN by one each time the decrementing ACK counter wraps
+            // past 0x00 - counter 0x00 is still on 0xDE, counter 0xFF is already on 0xDD. Emitting the
+            // wrapped ACK on the un-stepped 0xDE is what 24B/XXPER-crashed 100 at a long-session
+            // teardown; this test locks the step in.
+            XmsgFrame data = new XmsgFrameBuilder()
+                .Between(102, 100)
+                .WithDatagramSequence(0x1F)
+                .WithProtocol(SintranProtocolId.Dc)
+                .WithEndpoints(102, 0x0211, 100, 0x02E3)
+                .WithControlService(0x01080000)
+                .WithBody(new XroutMessageBuilder().WithSerial(1).WithService(XroutService.XSNUL).Build())
+                .Build();
+
+            // Seed low so the counter reaches 0x00 after three ACKs, then wraps.
+            SecureDatagramReceiver receiver = new SecureDatagramReceiver(initialCounter: 0x02);
+
+            // counter 0x02, 0x01, 0x00 - all still on the base channel 0xDE.
+            for (int i = 0; i < 3; i++)
+            {
+                XmsgFrame ack = receiver.ReceiveDataFrame(data, SintranProtocolId.Routing);
+                Assert.Equal(SintranProtocolId.Routing, ack.Header.ProtocolId);   // 0xDE
+            }
+
+            // The counter has now wrapped 0x00 -> 0xFF: this and the next ACK ride 0xDD (0xDE - 1).
+            XmsgFrame wrapped = receiver.ReceiveDataFrame(data, SintranProtocolId.Routing);
+            Assert.Equal(0xFF, wrapped.TrailingBytes[0]);
+            Assert.Equal(SintranProtocolId.Tad, wrapped.Header.ProtocolId);       // 0xDD
+
+            XmsgFrame afterWrap = receiver.ReceiveDataFrame(data, SintranProtocolId.Routing);
+            Assert.Equal(0xFE, afterWrap.TrailingBytes[0]);
+            Assert.Equal(SintranProtocolId.Tad, afterWrap.Header.ProtocolId);     // 0xDD
+        }
+
+        [Fact]
+        public void Receiver_SeedCounter_ResetsWrapStep()
+        {
+            // A new session re-seeds the counter (connect+0x0A) and MUST reset the wrap step, so a
+            // prior session's wraps never carry over and mis-step this session's ACK channel.
+            XmsgFrame data = new XmsgFrameBuilder()
+                .Between(102, 100)
+                .WithDatagramSequence(0x05)
+                .WithProtocol(SintranProtocolId.Dc)
+                .WithEndpoints(102, 0x0211, 100, 0x02E3)
+                .WithControlService(0x01080000)
+                .WithBody(new XroutMessageBuilder().WithSerial(1).WithService(XroutService.XSNUL).Build())
+                .Build();
+
+            SecureDatagramReceiver receiver = new SecureDatagramReceiver(initialCounter: 0x00);
+
+            // First ACK (counter 0x00) is on 0xDE and wraps; the second would be 0xDD.
+            receiver.ReceiveDataFrame(data, SintranProtocolId.Routing);
+            XmsgFrame wrapped = receiver.ReceiveDataFrame(data, SintranProtocolId.Routing);
+            Assert.Equal(SintranProtocolId.Tad, wrapped.Header.ProtocolId);       // 0xDD after wrap
+
+            // Re-seed: the next ACK must be back on the base 0xDE, wrap step cleared.
+            receiver.SeedCounter(0x0E);
+            XmsgFrame fresh = receiver.ReceiveDataFrame(data, SintranProtocolId.Routing);
+            Assert.Equal(0x0E, fresh.TrailingBytes[0]);
+            Assert.Equal(SintranProtocolId.Routing, fresh.Header.ProtocolId);     // 0xDE again
+        }
     }
 }
