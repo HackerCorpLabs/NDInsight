@@ -148,13 +148,18 @@ namespace NDInsight.Sintran.Xmsg.Node
 
             if (command == "4")
             {
-                // Disconnect: emit a goodbye line and signal teardown. No prompt follows.
-                // The capture-faithful variant: full ladder + 0xFD, then WAIT for the client's DCON
-                // (SINTRAN's connect-to holds the line for its "not logged in" idle timeout, default
-                // 1 minute — ND-30.025 SET-TIMEOUT-VALUES — unless the user presses the local
-                // character; ND-60.163).
+                // Disconnect: the full ladder (line-discipline restore + SYCN 000B logout + 0xFD) THEN a
+                // host-initiated DCON. LIVE-VERIFIED 2026-07-05 against real 100: the host DCON makes
+                // 100 print "-- DISCONNECTED BY TAD --" IMMEDIATELY - no 1-minute idle wait.
+                //
+                // The 5/6/7 experiments settled the shape: menu 6 (DCON only, no ladder, no 0xFD) also
+                // disconnected instantly, so the ladder and 0xFD are OPTIONAL; menu 5 (role 0x00) and 7
+                // (role 0x94) both worked, so the DCON role byte is IRRELEVANT. We keep the full ladder
+                // here for a clean terminal line-discipline restore, and add the host DCON for the
+                // instant teardown - the best of both. (The old Ladder-only variant relied on the
+                // client's idle timer; ND-30.025 SET-TIMEOUT-VALUES / ND-60.163 local character.)
                 sb.Append(Crlf).Append("--- DISCONNECTING ---").Append(Crlf);
-                return new TadMenuResult(sb.ToString(), TadDisconnectMode.Ladder);
+                return new TadMenuResult(sb.ToString(), TadDisconnectMode.LadderThenDcon);
             }
 
             if (command == "5")

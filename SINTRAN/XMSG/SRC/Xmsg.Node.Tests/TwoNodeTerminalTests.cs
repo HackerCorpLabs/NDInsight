@@ -152,17 +152,19 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
-        /// Typing "4" (Disconnect) makes the server emit the FULL host teardown ladder, not just the
-        /// 0xFD: the capture-VERIFIED sequence is BDAT(farewell)+CESC 00, BMMX/ECKM/CESC 00,
-        /// BDAT("--EXIT--")+SYCN 000B, CESC 01, then the 0xFD (class 0x00060000). A bare BDAT + 0xFD is
-        /// NOT enough - 100 ACKs both and the session survives - so this asserts the SYCN 000B (LoggedOut)
-        /// logout signal AND the 0xFD are both present (spec 22.8 warning box / TAD-Message-Formats.md).
+        /// Typing "4" (Disconnect) makes the server emit the FULL host teardown ladder AND a
+        /// host-initiated DCON: BDAT(farewell)+CESC 00, BMMX/ECKM/CESC 00, BDAT("--EXIT--")+SYCN 000B,
+        /// CESC 01, the 0xFD (class 0x00060000), then TAD 0x09 (DCON). The DCON is the LIVE-VERIFIED
+        /// (2026-07-05 vs real 100) instant-disconnect trigger - 100 prints "-- DISCONNECTED BY TAD --"
+        /// immediately instead of waiting on its 1-minute idle timer. This asserts the SYCN 000B logout,
+        /// the 0xFD, and the host DCON are all present.
         /// </summary>
         [Fact]
         public void ClientTypesDisconnect_ServerSendsFullTeardownLadder()
         {
             bool sawFd = false;
             bool sawLogoutSycn = false;
+            bool sawHostDcon = false;
             TerminalCapture terminal = new TerminalCapture();
             TadConnectClient client = BuildPairedNodes(terminal, out XmsgCodec clientCodec, frame =>
             {
@@ -175,6 +177,19 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
                 if (frame.SubHeader.ControlService == 0x00060000u)
                 {
                     sawFd = true;
+                }
+
+                // The host-initiated DCON (TAD opcode 0x09) - the instant-disconnect trigger.
+                if (frame.Tad != null)
+                {
+                    IReadOnlyList<TadMessage> dconMsgs = frame.Tad.Messages;
+                    for (int i = 0; i < dconMsgs.Count; i++)
+                    {
+                        if (dconMsgs[i].Opcode == 0x09)
+                        {
+                            sawHostDcon = true;
+                        }
+                    }
                 }
 
                 // Frame 3: a terminal-data frame (0x01080000) carrying SYCN 000B (LoggedOut) - the logout
@@ -200,6 +215,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
             Assert.True(sawLogoutSycn, "Disconnect must send the SYCN 000B (LoggedOut) logout signal");
             Assert.True(sawFd, "Disconnect must send the 0xFD session-state notification");
+            Assert.True(sawHostDcon, "Disconnect must send the host-initiated DCON (the instant-disconnect trigger)");
         }
 
         /// <summary>
