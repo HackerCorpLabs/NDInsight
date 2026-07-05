@@ -129,6 +129,29 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
+        /// A command whose reply exceeds one 255-byte BDAT is split across several terminal-data frames
+        /// and delivered in full, rather than throwing. Regression for the live runner crash
+        /// "A single TAD message carries at most 255 data bytes" that killed the session on a long reply.
+        /// </summary>
+        [Fact]
+        public void LongReply_IsChunkedAcrossFrames_NotThrown()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildPairedNodes(terminal, out XmsgCodec clientCodec);
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            LogIn(client, clientCodec);
+
+            // 250 chars of input (under the client's own single-BDAT limit) echo back as
+            // "unknown command: " + 250 = 267 bytes > 255, forcing the responder to split the reply.
+            string longLine = new string('X', 250);
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput(longLine)));
+
+            // No throw, and the entire echoed line arrives reassembled at the terminal.
+            Assert.Contains("unknown command: " + longLine, terminal.Text);
+        }
+
+        /// <summary>
         /// Typing "4" (Disconnect) makes the server emit the FULL host teardown ladder, not just the
         /// 0xFD: the capture-VERIFIED sequence is BDAT(farewell)+CESC 00, BMMX/ECKM/CESC 00,
         /// BDAT("--EXIT--")+SYCN 000B, CESC 01, then the 0xFD (class 0x00060000). A bare BDAT + 0xFD is

@@ -683,43 +683,166 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                 default:
                     // Logged-in command loop: run the menu.
                     TadMenuResult result = _menu.Handle(line, _clock());
-                    if (result.Disconnect)
+                    switch (result.Mode)
                     {
-                        // Choice 4 (Disconnect): send the FULL host teardown ladder (GOD-LLM answer,
-                        // capture-VERIFIED across all 3 captures; TAD-Message-Formats.md warning box
-                        // before 22.8). A bare BDAT + 0xFD is NOT enough - 100 ACKs both and the session
-                        // survives (that was the "disconnecting doesn't really happen" bug). Only the
-                        // complete five-frame ladder, each a separate datagram, makes 100's connect-to
-                        // send DCON:
-                        //   1. BDAT(farewell) + CESC 00           (class 0x0108)
-                        //   2. BMMX 000000 + ECKM 00 + CESC 00    (class 0x0108) line-discipline restore
-                        //   3. BDAT("\r\n--EXIT--\r\n") + SYCN 000B (class 0x0108) the LoggedOut signal
-                        //   4. CESC 01                            (class 0x0108)
-                        //   5. 0xFD                               (class 0x0006) the session notification
-                        // SYCN 000B (logout) is the INFERRED trigger, mirroring SYCN 000A for login;
-                        // the corpus never omits a step, so we send all five to stay capture-faithful.
-                        outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
-                            .BdatText(result.Output).Cesc(CescState.EscapeDisabled).Build()));
-                        outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
-                            .Bmmx(0x00, 0x0000).Eckm(EchoStrategy.Teardown).Cesc(CescState.EscapeDisabled).Build()));
-                        outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
-                            .BdatText("\r\n--EXIT--\r\n").Sycn(SycnState.LoggedOut).Build()));
-                        outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
-                            .Cesc(CescState.EscapeEnabled).Build()));
-                        outgoing.Add(BuildFdNotification(frame));
-                        disconnect = true;
-                    }
-                    else
-                    {
-                        // Re-assert the logged-in state after every command (spec 21) and grant input.
-                        outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
-                            .BdatText(result.Output).Sycn(SycnState.LoggedIn).Rfi().Build()));
+                        case TadDisconnectMode.Ladder:
+                            // Choice 4 (Disconnect): send the FULL host teardown ladder (GOD-LLM answer,
+                            // capture-VERIFIED across all 3 captures; TAD-Message-Formats.md warning box
+                            // before 22.8). A bare BDAT + 0xFD is NOT enough - 100 ACKs both and the session
+                            // survives (that was the "disconnecting doesn't really happen" bug). Only the
+                            // complete five-frame ladder, each a separate datagram, makes 100's connect-to
+                            // send DCON:
+                            //   1. BDAT(farewell) + CESC 00           (class 0x0108)
+                            //   2. BMMX 000000 + ECKM 00 + CESC 00    (class 0x0108) line-discipline restore
+                            //   3. BDAT("\r\n--EXIT--\r\n") + SYCN 000B (class 0x0108) the LoggedOut signal
+                            //   4. CESC 01                            (class 0x0108)
+                            //   5. 0xFD                               (class 0x0006) the session notification
+                            // SYCN 000B (logout) is the INFERRED trigger, mirroring SYCN 000A for login;
+                            // the corpus never omits a step, so we send all five to stay capture-faithful.
+                            // The client's DCON then arrives when ITS "not logged in" idle timer fires
+                            // (~1 minute, measured logout+64..69s in the reboot capture) — or immediately
+                            // if the user presses the local character (ND-60.163).
+                            AppendTeardownLadder(frame, outgoing, result.Output);
+                            disconnect = true;
+                            break;
+
+                        case TadDisconnectMode.LadderThenDcon:
+                            // Choice 5 EXPERIMENT: the full ladder, then a HOST-initiated DCON with the
+                            // host data-phase role (0x00). Untested on the wire — no capture shows a
+                            // host->client DCON — but the NPL master table marks 7DCON S->C "Disconnect
+                            // indication" (MP-P2-TAD BDDIS -> DSTOTA), so the client machinery exists.
+                            // Success = the client prints "-- DISCONNECTED --" immediately instead of
+                            // arming its 1-minute idle timer. CAPTURE THE RUN either way.
+                            AppendTeardownLadder(frame, outgoing, result.Output);
+                            outgoing.Add(BuildDconIndication(frame, askerStyleRole: false));
+                            disconnect = true;
+                            break;
+
+                        case TadDisconnectMode.DconOnly:
+                            // Choice 6 EXPERIMENT: DCON alone (after the farewell text) — no ladder, no
+                            // 0xFD. Tests whether the DCON indication is sufficient by itself.
+                            outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
+                                .BdatText(result.Output).Build()));
+                            outgoing.Add(BuildDconIndication(frame, askerStyleRole: false));
+                            disconnect = true;
+                            break;
+
+                        case TadDisconnectMode.LadderThenDconAskerRole:
+                            // Choice 7 EXPERIMENT: as choice 5 but the DCON carries the asker-style role
+                            // 0x94 (WaitForTransfer|Bounce|RoutedLetter — the value every CAPTURED client
+                            // DCON uses). If 5 fails and 7 works (or vice versa) the role byte is the
+                            // discriminator.
+                            AppendTeardownLadder(frame, outgoing, result.Output);
+                            outgoing.Add(BuildDconIndication(frame, askerStyleRole: true));
+                            disconnect = true;
+                            break;
+
+                        default:
+                            // Re-assert the logged-in state after every command (spec 21) and grant input.
+                            // Long output (e.g. the full menu / "help") can exceed a single BDAT's 255-byte
+                            // count, so split it across frames rather than throwing. See EmitMenuReply.
+                            EmitMenuReply(frame, outgoing, result.Output);
+                            break;
                     }
 
                     break;
             }
 
             return outgoing;
+        }
+
+        /// <summary>
+        /// Emits a logged-in command reply, splitting output longer than one BDAT (255-byte count)
+        /// across several terminal-data frames so long text (for example the full menu / "help")
+        /// never overflows the single-byte length and throws.
+        /// </summary>
+        /// <remarks>
+        /// Every chunk CONTINUES the datagram sequence; only the FINAL frame re-asserts the logged-in
+        /// state and grants input (SYCN 000A + RFI), matching the proven single-BDAT reply shape - the
+        /// intermediate frames carry output only, so input credit is issued once, after all output.
+        /// An empty reply still emits one frame (empty BDAT + SYCN + RFI) so input is always granted.
+        /// </remarks>
+        /// <param name="frame">
+        /// The triggering input frame (its source is 100's session endpoint).
+        /// </param>
+        /// <param name="outgoing">
+        /// The response list to append the reply frames to.
+        /// </param>
+        /// <param name="text">
+        /// The full command output text.
+        /// </param>
+        private void EmitMenuReply(XmsgFrame frame, List<XmsgFrame> outgoing, string text)
+        {
+            // Chunk well under the 255-byte BDAT limit and on an even boundary, so no inter-message
+            // word-alignment pad is needed inside a chunk; 240 also leaves room for the trailing
+            // SYCN/RFI on the final frame.
+            const int ChunkSize = 240;
+            string body = text ?? string.Empty;
+
+            int offset = 0;
+            // All but the final chunk are bare output frames (no SYCN, no RFI).
+            while (body.Length - offset > ChunkSize)
+            {
+                string piece = body.Substring(offset, ChunkSize);
+                outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder().BdatText(piece).Build()));
+                offset += ChunkSize;
+            }
+
+            // The final chunk (possibly the only one, possibly empty) carries the state + input credit.
+            string tail = body.Substring(offset);
+            outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
+                .BdatText(tail).Sycn(SycnState.LoggedIn).Rfi().Build()));
+        }
+
+        /// <summary>
+        /// Appends the capture-faithful five-frame host teardown ladder (spec 22.7): farewell +
+        /// CESC 00; BMMX/ECKM/CESC line-discipline restore; "--EXIT--" + SYCN 000B (LoggedOut);
+        /// CESC 01; then the 0xFD session notification. Shared by menu choices 4, 5 and 7.
+        /// </summary>
+        /// <param name="frame">The triggering input frame (addressing source).</param>
+        /// <param name="outgoing">The response list to append to.</param>
+        /// <param name="farewellText">The goodbye text for the first ladder frame.</param>
+        private void AppendTeardownLadder(XmsgFrame frame, List<XmsgFrame> outgoing, string farewellText)
+        {
+            outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
+                .BdatText(farewellText).Cesc(CescState.EscapeDisabled).Build()));
+            outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
+                .Bmmx(0x00, 0x0000).Eckm(EchoStrategy.Teardown).Cesc(CescState.EscapeDisabled).Build()));
+            outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
+                .BdatText("\r\n--EXIT--\r\n").Sycn(SycnState.LoggedOut).Build()));
+            outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
+                .Cesc(CescState.EscapeEnabled).Build()));
+            outgoing.Add(BuildFdNotification(frame));
+        }
+
+        /// <summary>
+        /// Builds a HOST-initiated DCON indication (TAD <c>0x09</c>, class <c>0x00080000</c>, from
+        /// the session/terminal port). EXPERIMENT — never captured host-to-client; the NPL master
+        /// table marks 7DCON as a Server-to-Client "Disconnect indication" handled by DSTOTA
+        /// (forced disconnect), so the client-side machinery exists. Every CAPTURED (client) DCON
+        /// rides class 0x0008 with frameFlags 0x82; we mirror that shape.
+        /// </summary>
+        /// <param name="request">The triggering frame (addressing source).</param>
+        /// <param name="askerStyleRole">
+        /// False = host data-phase role <c>0x00</c> (consistent with our other terminal-port
+        /// frames); true = the asker-style role <c>0x94</c> that every captured client DCON
+        /// carries (choice 7's variant).
+        /// </param>
+        /// <returns>The DCON frame.</returns>
+        private XmsgFrame BuildDconIndication(XmsgFrame request, bool askerStyleRole)
+        {
+            byte role = askerStyleRole
+                ? (byte)(XmsgSendOptions.WaitForTransfer | XmsgSendOptions.Bounce | XmsgSendOptions.RoutedLetter)
+                : (byte)XmsgSendOptions.None;
+
+            byte[] tad = new TadMessageBuilder().Raw(TadOp.Dcon, ReadOnlySpan<byte>.Empty).Build();
+            return BuildResponderFrame(
+                request,
+                controlService: (uint)XmcsmService.BareTadControl,
+                frameFlags: (byte)XmsgFrameFlags.ControlBare,
+                role: role,
+                sourcePort: _sessionWirePort,
+                payload: tad);
         }
 
         /// <summary>
