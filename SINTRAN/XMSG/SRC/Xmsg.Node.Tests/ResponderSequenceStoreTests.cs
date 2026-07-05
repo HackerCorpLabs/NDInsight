@@ -39,6 +39,11 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         private const string ConnectHex =
             "2113000E0067006400000400DA13210086E400670000006402F7040000410010FF072A54414441444D00FE0444313033";
 
+        // The EXACT bytes of 100's session-2 reconnect connect from the multiple-connect capture:
+        // 100 -> 102, Flags1 0x0016, class 0x0400, channel D9 (epoch 1), counter 0xFE, XMCSM 0x04000041.
+        private const string D9ReconnectConnectHex =
+            "2113000E0066006400160400D9FE210086E40066000000640290040000410010FF072A54414441444D00FE0444313032";
+
         [Fact]
         public void FileStore_PersistsAcrossInstances()
         {
@@ -122,6 +127,21 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             byte[] accept = frames[0].ToArray();
             // Continued, NOT reset: the accept carries the stored 0x0013.
             Assert.Equal(0x0013, (accept[8] << 8) | accept[9]);
+        }
+
+        [Fact]
+        public void Responder_AckChannel_IsDeAnchor_ForEpoch1D9Reconnect()
+        {
+            // CAPTURE-CORRECTED (multiple-connect session 2): a reconnect whose connect rides D9 (epoch 1)
+            // still ACKs on the 0xDE anchor, NOT D9+4=DD. The old connect+4 rule produced a DD ACK during
+            // the handshake that crashed 100 at PERF_CONNCT. Feeding 100's actual session-2 connect bytes
+            // (D9) must leave the responder ACKing on DE.
+            MemoryStore store = new MemoryStore();
+            TadTerminalResponder responder = new TadTerminalResponder(102, () => new DateTime(2026, 7, 2), store);
+
+            responder.OnConnect(XmsgFrame.Parse(Convert.FromHexString(D9ReconnectConnectHex)));
+
+            Assert.Equal((SintranProtocolId)0xDE, responder.AckChannel);
         }
 
         [Fact]

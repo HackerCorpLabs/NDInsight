@@ -54,12 +54,13 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         private ushort _clientSystem;
         private ushort _clientPort;
 
-        // The per-session secure-ACK channel = connect-channel + 4. VERIFIED from both connect
-        // captures (asker side): a D9-rooted session ACKs on DD, a DA-rooted session ACKs on DE,
-        // and the ACK channel stays constant for the whole session (even when the acknowledged
-        // data frame was on DC). Learned on connect; default Tad (0xDD) until then. The old code
-        // echoed the data channel (+0), which is the malformed ACK that crashed 100 (XXPER).
-        private SintranProtocolId _ackChannel = SintranProtocolId.Tad;
+        // The per-session secure-ACK channel BASE: the 0xDE channel anchor. CAPTURE-CORRECTED
+        // (multiple-connect session 2): the ACK base is DE regardless of the connect epoch/channel;
+        // it steps DOWN (DE->DD->DC) only as the ACK counter wraps (SecureDatagramReceiver._wraps).
+        // The earlier "connect-channel + 4" rule only coincided with DE because every prior capture
+        // connected on DA (epoch 0); a D9 (epoch-1) reconnect ACKed on DE too, not DD - and our DD
+        // ACK crashed 100 at PERF_CONNCT. Set on connect; DE is also the sane default.
+        private SintranProtocolId _ackChannel = (SintranProtocolId)XmsgEnvelope.ChannelAnchor;
 
         private bool _connected;
 
@@ -257,10 +258,14 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             _clientSystem = request.SubHeader!.SourceSystem;
             _clientPort = request.SubHeader.SourcePort;
 
-            // Learn the per-session secure-ACK channel = connect-channel + 4 (VERIFIED across both
-            // connect captures: D9->DD, DA->DE). Every 0x03 ACK we send for this session rides this
-            // constant channel, NOT the channel the acknowledged data arrived on.
-            _ackChannel = (SintranProtocolId)(byte)((byte)request.Header.ProtocolId + 4);
+            // The secure-ACK channel base is the 0xDE channel ANCHOR - NOT connect-channel + 4.
+            // CAPTURE-CORRECTED (multiple-connect session 2): the reconnect's connect rode D9 (epoch 1)
+            // yet BOTH sides' handshake ACKs rode DE (frames 126/131/140/146: DE 07/06/04/02), not
+            // D9+4=DD. The old "+4" only ever equalled DE because every earlier capture connected on DA
+            // (epoch 0, DA+4=DE); a D9 reconnect exposed it as wrong, and our DD ACK crashed 100 at
+            // PERF_CONNCT. The channel then steps DOWN from DE only as the ACK COUNTER wraps
+            // (SecureDatagramReceiver._wraps): DE -> DD -> DC, decoupled from the connect epoch.
+            _ackChannel = (SintranProtocolId)XmsgEnvelope.ChannelAnchor;
 
             // Allocate our session port: logical port 4 with a fixed low-7 for now. The random
             // part is deliberately FIXED (not random) so the wire bytes are reproducible while we
