@@ -6,7 +6,7 @@
 
 ## 📖 Overview
 
-This folder contains **46 complete reference manuals** spanning system architecture, the SINTRAN III operating system, database systems, programming languages, assemblers, editors, compilers, and development tools. These manuals serve as the primary source documentation for all NORD/SINTRAN development work.
+This folder contains **52 complete reference manuals** spanning system architecture, ND-100/ND-110 hardware, the SINTRAN III operating system, database systems, programming languages, assemblers, editors, compilers, and development tools. These manuals serve as the primary source documentation for all NORD/SINTRAN development work.
 
 ### Purpose
 
@@ -20,6 +20,7 @@ This folder contains **46 complete reference manuals** spanning system architect
 | Category | Manuals | Total Size |
 |----------|---------|------------|
 | **System & Architecture** | 4 | ~1.2MB |
+| **ND-100 / ND-110 Hardware & Architecture** | 6 | ~2.1MB |
 | **SINTRAN III System & OS** | 14 | ~2.6MB |
 | **Database Systems (SIBAS)** | 4 | ~700KB |
 | **Hardware** | 1 | 85KB |
@@ -28,7 +29,7 @@ This folder contains **46 complete reference manuals** spanning system architect
 | **Compilers & Linkers** | 2 | ~150KB |
 | **Editors** | 4 | ~100KB |
 | **System Tools** | 1 | ~50KB |
-| **Total** | **46** | **~5.5MB** |
+| **Total** | **52** | **~7.6MB** |
 
 ---
 
@@ -57,6 +58,29 @@ This folder contains **46 complete reference manuals** spanning system architect
 **Key Topics:** 5MPM architecture, memory mapping, ND-100/ND-500 shared memory, hardware interface
 
 **Related:** See [SINTRAN/OS/06-MULTIPORT-MEMORY-AND-ND500-COMMUNICATION.md](../SINTRAN/OS/06-MULTIPORT-MEMORY-AND-ND500-COMMUNICATION.md)
+
+---
+
+### ND-100 / ND-110 Hardware & Architecture
+
+The ND-100 and ND-110 processor hardware manual set - CPU architecture, functional
+descriptions, the I/O system, the big multiport memory, and the ND-110 instruction set.
+Primary source material for emulator development and low-level hardware work.
+
+| Manual | Document # | Lines | Description |
+|--------|-----------|-------|-------------|
+| **ND-100 Functional Description** | ND-06.015.02 | 9,020 | Complete ND-100 hardware functional description - CPU, buses, memory, control logic |
+| **ND-110 Functional Description** | ND-06.026-1 EN | 6,375 | Complete ND-110 hardware functional description - CPU, buses, memory, control logic |
+| **ND-100 Reference Manual** | ND-06.014.2A EN | 6,231 | ND-100 hardware reference - registers, timing, hardware interface |
+| **NORD-100 Input/Output System** | ND-06.016.01 | 5,713 | NORD-100 I/O system - device interfaces, IOX, DMA, interrupt system |
+| **ND-110 Instruction Set** | ND-06.029.1 EN | 5,512 | Complete ND-110 instruction set - opcodes, addressing, encoding |
+| **BIG MULTIPORT MEMORY SYSTEM** | ND-06.007.01 | 3,072 | Big multiport memory hardware - shared memory, port arbitration |
+
+**Key Topics:** ND-100/ND-110 CPU architecture, hardware functional description, instruction set encoding, I/O system, interrupts, DMA, multiport memory
+
+**Related:**
+- [SINTRAN/OS/README.md](../SINTRAN/OS/README.md) - Operating system internals
+- [SINTRAN/Emulator/](../SINTRAN/Emulator/) - C# emulator implementation
 
 ---
 
@@ -362,12 +386,13 @@ All manuals are high-quality OCR-scanned versions from original NORD/SINTRAN doc
 |----------|---------|-------------|---------------------|
 | Languages | 13 | ~55,000+ | ~4,200 |
 | SINTRAN III System & OS | 14 | ~77,500+ | ~5,500 |
+| ND-100 / ND-110 Hardware | 6 | ~35,900+ | ~6,000 |
 | Database (SIBAS) | 4 | ~18,900+ | ~4,700 |
 | System/Architecture | 4 | ~52,000+ | ~13,000 |
 | Assemblers | 3 | ~10,000+ | ~3,300 |
 | Editors | 4 | ~5,000+ | ~1,250 |
 | Tools | 4 | ~8,000+ | ~2,000 |
-| **Total** | **46** | **~202,000+** | **~4,400** |
+| **Total** | **52** | **~238,000+** | **~4,600** |
 
 ### By Era
 
@@ -384,6 +409,12 @@ All manuals are high-quality OCR-scanned versions from original NORD/SINTRAN doc
 | Doc Number | Title | Category | Lines |
 |------------|-------|----------|-------|
 | ND-05.009.4 | ND-500 Reference Manual | System/CPU | 16,324 |
+| ND-06.007.01 | BIG MULTIPORT MEMORY SYSTEM | ND-100/110 HW | 3,072 |
+| ND-06.014.2A | ND-100 Reference Manual | ND-100/110 HW | 6,231 |
+| ND-06.015.02 | ND-100 Functional Description | ND-100/110 HW | 9,020 |
+| ND-06.016.01 | NORD-100 Input/Output System | ND-100/110 HW | 5,713 |
+| ND-06.026-1 | ND-110 Functional Description | ND-100/110 HW | 6,375 |
+| ND-06.029.1 | ND-110 Instruction Set | ND-100/110 HW | 5,512 |
 | ND-10.004.01 | MPM 5 Technical Description | Hardware | - |
 | ND-10309A | PLANC FOR ND-100 | Language | 163 |
 | ND-60.009.02 | MACM Assembler | Assembler | - |
@@ -462,9 +493,9 @@ When adding new reference manuals:
 
 ---
 
-**Last Updated**: 2026-07-04
-**Total Manuals**: 46
-**Total Documentation Lines**: ~202,000+
+**Last Updated**: 2026-07-05
+**Total Manuals**: 52
+**Total Documentation Lines**: ~238,000+
 **Status**: ✅ Complete Collection
 
 ---
