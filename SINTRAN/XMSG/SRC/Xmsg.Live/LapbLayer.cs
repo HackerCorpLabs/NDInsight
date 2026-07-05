@@ -379,15 +379,17 @@ namespace NDInsight.Sintran.Xmsg.Live
 
             if (_t3Running && currentTicks >= _t3Deadline && _state == LapbLayerState.Connected)
             {
-                // Idle keepalive (spec 5.2): poll the peer with a single RR(P=1), reset the retry
-                // counter, and await the response on T1. STOP T3 here: without this its deadline stays
-                // in the past and the keepalive re-fires on EVERY tick (the once-per-second RR flood).
-                // T3 re-arms when the peer answers (AcknowledgeThrough restarts it); if the peer never
-                // answers, T1/N2 escalate to re-establishment - not a per-tick RR storm.
+                // Idle keepalive (spec 5.2): send ONE RR(P=1) poll and STOP T3. Do NOT start T1 here.
+                // Starting T1 turned an idle poll that the peer IGNORES into a 3-second RR re-poll cascade
+                // that then hit N2 and needlessly RE-ESTABLISHED an alive idle link (the RR flood + SABM
+                // churn observed live). T3 re-arms only when the peer actually answers (AcknowledgeThrough
+                // restarts it), so an ignored poll simply leaves the link silent - matching the proven
+                // legacy behaviour. T1 remains armed for retransmitting outstanding I-frames (real data);
+                // that path (SendInformation/TransmitPending) is untouched, so the login-retransmit fix
+                // still holds.
                 EmitSupervisory(RrNibble, pollFinal: true);
                 _retry = 0;
                 StopT3();
-                StartT1(currentTicks);
                 acted = true;
             }
 

@@ -293,15 +293,18 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
 
             // WRAP-BOUNDARY GUARD (the one shape the corpus never shows and that DID 24B-crash 100 live):
             // a connect/accept LETTER (class 0x0400) whose Counter is 0xFF - i.e. F1 = seed+1 - occurs
-            // ZERO times in 601 captured frames. The 0x0015 crash was exactly this (seed 0x14 -> Counter
-            // 0xFF on D9). If our continued value lands there, do NOT emit that untested shape: fall back
-            // to 0x0000. That STALLS (recoverable, cleared by a peer restart which resets the store), which
-            // is vastly better than a 24B. The zero-stall path is the capture-proven class-0x0100 burn of
-            // that sequence number (GOD-LLM step 2) - a follow-up; this fallback is the zero-crash-risk
-            // minimum.
-            if (XmsgEnvelope.ComputeCounter(_seed, _respFlags1, 0x0400) == 0xFF)
+            // ZERO times in 601 captured frames. The connect HANDSHAKE emits TWO class-0x0400 letters: the
+            // accept at F1 = V and the port-assign at F1 = V+1. BOTH must avoid the boundary - the first
+            // 24B crash was the accept at 0x0015, the second was the port-assign at 0x0015 (V=0x0014, so
+            // the accept was fine but V+1 hit it). If EITHER lands on the Counter-0xFF boundary, fall back
+            // to 0x0000 (a recoverable stall, cleared by a peer restart that resets the store) rather than
+            // emit the untested crashing shape. The zero-stall fix is the capture-proven class-0x0100 burn
+            // of that sequence number (GOD-LLM step 2) - a follow-up; this is the zero-crash-risk minimum.
+            bool acceptOnBoundary = XmsgEnvelope.ComputeCounter(_seed, _respFlags1, 0x0400) == 0xFF;
+            bool portAssignOnBoundary = XmsgEnvelope.ComputeCounter(_seed, (ushort)(_respFlags1 + 1), 0x0400) == 0xFF;
+            if (acceptOnBoundary || portAssignOnBoundary)
             {
-                Log?.Invoke($"[responder] connect from node {_clientSystem}: continued Flags1 0x{_respFlags1:X4} hits the Counter-0xFF wrap boundary (untested connect/accept letter shape that 24B-crashed 100) -> falling back to 0x0000 (recoverable stall, NOT a crash)");
+                Log?.Invoke($"[responder] connect from node {_clientSystem}: continued Flags1 0x{_respFlags1:X4} would put a class-0x0400 letter (accept or port-assign) on the Counter-0xFF boundary that 24B-crashed 100 -> falling back to 0x0000 (recoverable stall, NOT a crash)");
                 _respFlags1 = 0x0000;
             }
             else

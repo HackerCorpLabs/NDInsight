@@ -103,6 +103,27 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         [Fact]
+        public void Responder_PortAssignWouldHitBoundary_FallsBackToZero()
+        {
+            // The connect handshake emits TWO class-0x0400 letters: the accept at V and the port-assign at
+            // V+1. When V is safe but V+1 is the Counter-0xFF boundary, we STILL must fall back - the second
+            // live 24B was exactly this: V=0x0014 (accept fine), V+1=0x0015 port-assign on the boundary.
+            // For ConnectHex (seed 0x13) the boundary is F1 0x14, so a store of 0x0013 makes the accept
+            // (0x13, safe) but the port-assign (0x14) hit it.
+            MemoryStore store = new MemoryStore();
+            store.SaveNextFlags1(100, 0x0013);   // accept 0x13 is safe, but port-assign 0x14 = boundary
+
+            TadTerminalResponder responder = new TadTerminalResponder(103, () => new DateTime(2026, 7, 2), store);
+            System.Collections.Generic.IReadOnlyList<XmsgFrame> frames =
+                responder.OnConnect(XmsgFrame.Parse(Convert.FromHexString(ConnectHex)));
+
+            byte[] accept = frames[0].ToArray();
+            // The V+1 boundary forces the whole handshake back to 0x0000, so the port-assign can never land
+            // on the crashing shape.
+            Assert.Equal(0x0000, (accept[8] << 8) | accept[9]);
+        }
+
+        [Fact]
         public void ReachabilityRequest_ResetsSequenceForThatNode()
         {
             // 100's XMSG restart is signalled by a ReachabilityRequest; it zeroes 100's expected-from-
