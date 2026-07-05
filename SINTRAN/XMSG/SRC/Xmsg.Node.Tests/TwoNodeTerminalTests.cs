@@ -152,6 +152,32 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
+        /// The "stat" command reports the session metadata - including the terminal parameters captured
+        /// from the client's TMOD/TTYP/DESC negotiation (mode 0x08, type 0x0000, escape 0x1B).
+        /// </summary>
+        [Fact]
+        public void ClientTypesStat_ServerShowsNegotiatedTerminalMetadata()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildPairedNodes(terminal, out XmsgCodec clientCodec);
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            // Send the terminal-setup chain so the server captures TMOD/TTYP/DESC/OPSV (the live client
+            // always sends this; the login-only path in other tests skips it).
+            clientCodec.SendPacket(new XmsgPacket(client.BuildTerminalSetup()));
+            LogIn(client, clientCodec);
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("stat")));
+
+            string screen = terminal.Text;
+            Assert.Contains("TAD SESSION STATUS", screen);
+            // Captured from the client's negotiation chain (TadConnectClient sends TMOD 0x08 / TTYP
+            // 0x0000 / DESC 0x1B), and shown in decimal.
+            Assert.Contains("Terminal type: 0", screen);
+            Assert.Contains("Terminal mode: 8", screen);
+            Assert.Contains("Escape char  : 27", screen);
+        }
+
+        /// <summary>
         /// Typing "4" (Disconnect) makes the server emit the FULL host teardown ladder AND a
         /// host-initiated DCON: BDAT(farewell)+CESC 00, BMMX/ECKM/CESC 00, BDAT("--EXIT--")+SYCN 000B,
         /// CESC 01, the 0xFD (class 0x00060000), then TAD 0x09 (DCON). The DCON is the LIVE-VERIFIED

@@ -77,10 +77,8 @@ namespace NDInsight.Sintran.Xmsg.Node
             // The responder now chunks any reply longer than one 255-byte BDAT across frames
             // (TadTerminalResponder.EmitMenuReply), so the menu is no longer length-constrained;
             // it is still kept readable rather than verbose.
-            sb.Append("  4. Disconnect (ladder; ~1min timer)").Append(Crlf);
-            sb.Append("  5. Disc NOW  [EXP: +host DCON]").Append(Crlf);
-            sb.Append("  6. Disc hard [EXP: DCON only]").Append(Crlf);
-            sb.Append("  7. Disc alt  [EXP: DCON role 94]").Append(Crlf);
+            sb.Append("  4. Disconnect (immediate)").Append(Crlf);
+            sb.Append("  stat - session / terminal info").Append(Crlf);
             sb.Append("  (type 'help' to show this menu)").Append(Crlf);
             return sb.ToString();
         }
@@ -149,46 +147,19 @@ namespace NDInsight.Sintran.Xmsg.Node
             if (command == "4")
             {
                 // Disconnect: the full ladder (line-discipline restore + SYCN 000B logout + 0xFD) THEN a
-                // host-initiated DCON. LIVE-VERIFIED 2026-07-05 against real 100: the host DCON makes
-                // 100 print "-- DISCONNECTED BY TAD --" IMMEDIATELY - no 1-minute idle wait.
+                // host-initiated DCON. LIVE-VERIFIED 2026-07-05 against real 100: the host DCON makes 100
+                // print "-- DISCONNECTED BY TAD --" IMMEDIATELY - no 1-minute idle wait. The 5/6/7
+                // experiments settled the shape: the ladder and 0xFD are OPTIONAL (DCON alone works) and
+                // the DCON role byte is IRRELEVANT; we keep the full ladder for a clean terminal
+                // line-discipline restore plus the host DCON for the instant teardown.
                 //
-                // The 5/6/7 experiments settled the shape: menu 6 (DCON only, no ladder, no 0xFD) also
-                // disconnected instantly, so the ladder and 0xFD are OPTIONAL; menu 5 (role 0x00) and 7
-                // (role 0x94) both worked, so the DCON role byte is IRRELEVANT. We keep the full ladder
-                // here for a clean terminal line-discipline restore, and add the host DCON for the
-                // instant teardown - the best of both. (The old Ladder-only variant relied on the
-                // client's idle timer; ND-30.025 SET-TIMEOUT-VALUES / ND-60.163 local character.)
+                // TO HONOR THE CLIENT IDLE TIMEOUT INSTEAD (leave the line held for ~1 minute after
+                // logout, the capture-faithful behaviour): return TadDisconnectMode.Ladder here instead
+                // of LadderThenDcon - that sends the ladder + 0xFD WITHOUT the host DCON, so 100 keeps
+                // the TAD until its "not logged in" timer fires (ND-30.025 SET-TIMEOUT-VALUES; the user
+                // can also disconnect at once with the local character, ND-60.163).
                 sb.Append(Crlf).Append("--- DISCONNECTING ---").Append(Crlf);
                 return new TadMenuResult(sb.ToString(), TadDisconnectMode.LadderThenDcon);
-            }
-
-            if (command == "5")
-            {
-                // EXPERIMENT "disconnect now": full ladder + 0xFD, then a HOST-initiated DCON.
-                // Never captured host->client, but the NPL master table marks 7DCON S->C
-                // "Disconnect indication" (MP-P2-TAD BDDIS -> DSTOTA forced disconnect), so the
-                // client-side machinery exists. Goal: skip the client's 1-minute idle hold.
-                sb.Append(Crlf).Append("--- DISCONNECTING NOW (ladder + host DCON) ---").Append(Crlf);
-                return new TadMenuResult(sb.ToString(), TadDisconnectMode.LadderThenDcon);
-            }
-
-            if (command == "6")
-            {
-                // EXPERIMENT "hard disconnect": host DCON alone, no teardown ladder, no 0xFD.
-                // Tests whether the DCON indication is sufficient by itself.
-                sb.Append(Crlf).Append("--- DISCONNECTING HARD (DCON only) ---").Append(Crlf);
-                return new TadMenuResult(sb.ToString(), TadDisconnectMode.DconOnly);
-            }
-
-            if (command == "7")
-            {
-                // EXPERIMENT variant of 5: same ladder + 0xFD + DCON, but the DCON carries the
-                // ASKER-style role byte (0x94 = WaitForTransfer|Bounce|RoutedLetter — the value every
-                // CAPTURED client DCON uses) instead of the host data-phase role 0x00. Distinguishes
-                // "role byte matters" from "DCON direction matters" if 5 fails and 7 works (or vice
-                // versa).
-                sb.Append(Crlf).Append("--- DISCONNECTING ALT (asker-style DCON) ---").Append(Crlf);
-                return new TadMenuResult(sb.ToString(), TadDisconnectMode.LadderThenDconAskerRole);
             }
 
             if (string.Equals(command, "help", StringComparison.OrdinalIgnoreCase))
@@ -227,11 +198,13 @@ namespace NDInsight.Sintran.Xmsg.Node
     }
 
     /// <summary>
-    /// How a menu choice wants the session torn down. The variants exist to TEST, against a real
-    /// SINTRAN client, which frames make it disconnect immediately instead of holding the line for
-    /// its 1-minute "not logged in" idle timeout (ND-30.025 SET-TIMEOUT-VALUES; ND-60.163: the
-    /// timer is the fallback for users who forget the local character).
+    /// How a menu choice wants the session torn down.
     /// </summary>
+    /// <remarks>
+    /// The 5/6/7 experiments (now removed) established the shape live: a host-initiated DCON forces
+    /// an immediate client disconnect, and the ladder / 0xFD / DCON-role are all optional. Two modes
+    /// remain - the instant teardown (default, menu 4) and the idle-timer teardown (kept as an option).
+    /// </remarks>
     public enum TadDisconnectMode
     {
         /// <summary>No disconnect — the session continues.</summary>
@@ -239,27 +212,18 @@ namespace NDInsight.Sintran.Xmsg.Node
 
         /// <summary>
         /// The capture-faithful teardown: the five-frame ladder ending in the <c>0xFD</c>
-        /// notification, then wait for the client's DCON (menu choice 4).
+        /// notification, WITHOUT a host DCON, so the client holds the line for its ~1-minute
+        /// "not logged in" idle timer. Select this to honor the idle timeout instead of the
+        /// instant disconnect (see the choice-4 comment).
         /// </summary>
         Ladder,
 
         /// <summary>
-        /// EXPERIMENT (choice 5): the full ladder + <c>0xFD</c>, then a HOST-initiated DCON
-        /// (host data-phase role <c>0x00</c>). Untested on the wire; NPL marks 7DCON as a
-        /// server-to-client disconnect indication.
+        /// The default disconnect (menu 4): the full ladder + <c>0xFD</c>, then a host-initiated
+        /// DCON (host data-phase role <c>0x00</c>) that makes the client disconnect IMMEDIATELY.
+        /// LIVE-VERIFIED against real 100 (2026-07-05).
         /// </summary>
         LadderThenDcon,
-
-        /// <summary>
-        /// EXPERIMENT (choice 6): a host-initiated DCON alone — no ladder, no <c>0xFD</c>.
-        /// </summary>
-        DconOnly,
-
-        /// <summary>
-        /// EXPERIMENT (choice 7): as <see cref="LadderThenDcon"/> but the DCON carries the
-        /// asker-style role byte <c>0x94</c> that every CAPTURED client DCON uses.
-        /// </summary>
-        LadderThenDconAskerRole,
     }
 
     /// <summary>

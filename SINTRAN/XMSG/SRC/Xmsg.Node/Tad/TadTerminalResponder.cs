@@ -54,6 +54,17 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         private ushort _clientSystem;
         private ushort _clientPort;
 
+        // Session/connect metadata captured for the "stat" command (a diagnostic the operator can type).
+        // The connect-letter strings are parsed from the connect trailer; the terminal parameters come
+        // from 100's TMOD/TTYP/DESC/OPSV negotiation chain (captured in OnTerminalSetup).
+        private bool _negotiationSeen;
+        private ushort _terminalType;                        // TTYP (0x0D)
+        private byte _terminalMode;                          // TMOD (0x0C)
+        private byte _escapeChar;                            // DESC (0x0F)
+        private byte[] _osVersion = Array.Empty<byte>();     // OPSV (0x1F)
+        private string _connectService = string.Empty;       // "*TADADM" from the connect letter
+        private string _connectTargetName = string.Empty;    // "D102" from the connect letter
+
         // The per-session secure-ACK channel BASE: the 0xDE channel anchor. CAPTURE-CORRECTED
         // (multiple-connect session 2): the ACK base is DE regardless of the connect epoch/channel;
         // it steps DOWN (DE->DD->DC) only as the ACK counter wraps (SecureDatagramReceiver._wraps).
@@ -257,6 +268,11 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             // Learn the client endpoint from the request's SOURCE fields.
             _clientSystem = request.SubHeader!.SourceSystem;
             _clientPort = request.SubHeader.SourcePort;
+
+            // Capture the connect-letter strings (service "*TADADM" and target name e.g. "D102") for
+            // the "stat" command; reset the terminal negotiation (a new session re-negotiates it).
+            ExtractConnectStrings(request);
+            _negotiationSeen = false;
 
             // The secure-ACK channel base is the 0xDE channel ANCHOR - NOT connect-channel + 4.
             // CAPTURE-CORRECTED (multiple-connect session 2): the reconnect's connect rode D9 (epoch 1)
@@ -518,6 +534,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         {
             List<XmsgFrame> outgoing = new List<XmsgFrame>();
 
+            // Capture 100's terminal parameters (TMOD/TTYP/DESC/OPSV) for the "stat" command.
+            CaptureNegotiation(request);
+
             // control 0x20 (XMCSM 0x00080000): TAD opcode 0x20, empty. Seed model -> channel DE at epoch 0.
             outgoing.Add(BuildResponderFrame(
                 request, controlService: (uint)XmcsmService.BareTadControl, frameFlags: (byte)XmsgFrameFlags.Setup, role: (byte)XmsgSendOptions.None,
@@ -686,59 +705,39 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                     break;
 
                 default:
-                    // Logged-in command loop: run the menu.
+                    // Logged-in command loop. Intercept "stat" here - only the responder holds the
+                    // captured session/negotiation metadata; the pure menu cannot. Everything else
+                    // is dispatched to the menu.
+                    if (string.Equals(line, "stat", StringComparison.OrdinalIgnoreCase))
+                    {
+                        EmitMenuReply(frame, outgoing, BuildStatReport());
+                        break;
+                    }
+
                     TadMenuResult result = _menu.Handle(line, _clock());
                     switch (result.Mode)
                     {
                         case TadDisconnectMode.Ladder:
-                            // Choice 4 (Disconnect): send the FULL host teardown ladder (GOD-LLM answer,
-                            // capture-VERIFIED across all 3 captures; TAD-Message-Formats.md warning box
-                            // before 22.8). A bare BDAT + 0xFD is NOT enough - 100 ACKs both and the session
-                            // survives (that was the "disconnecting doesn't really happen" bug). Only the
-                            // complete five-frame ladder, each a separate datagram, makes 100's connect-to
-                            // send DCON:
+                            // The idle-timer teardown (opt-in): the FULL five-frame ladder + 0xFD, WITHOUT
+                            // a host DCON, so 100 holds the TAD until its "not logged in" idle timer fires
+                            // (~1 minute) - the capture-faithful behaviour. The ladder is:
                             //   1. BDAT(farewell) + CESC 00           (class 0x0108)
                             //   2. BMMX 000000 + ECKM 00 + CESC 00    (class 0x0108) line-discipline restore
                             //   3. BDAT("\r\n--EXIT--\r\n") + SYCN 000B (class 0x0108) the LoggedOut signal
                             //   4. CESC 01                            (class 0x0108)
                             //   5. 0xFD                               (class 0x0006) the session notification
-                            // SYCN 000B (logout) is the INFERRED trigger, mirroring SYCN 000A for login;
-                            // the corpus never omits a step, so we send all five to stay capture-faithful.
-                            // The client's DCON then arrives when ITS "not logged in" idle timer fires
-                            // (~1 minute, measured logout+64..69s in the reboot capture) — or immediately
-                            // if the user presses the local character (ND-60.163).
                             AppendTeardownLadder(frame, outgoing, result.Output);
                             disconnect = true;
                             break;
 
                         case TadDisconnectMode.LadderThenDcon:
-                            // Choice 5 EXPERIMENT: the full ladder, then a HOST-initiated DCON with the
-                            // host data-phase role (0x00). Untested on the wire — no capture shows a
-                            // host->client DCON — but the NPL master table marks 7DCON S->C "Disconnect
-                            // indication" (MP-P2-TAD BDDIS -> DSTOTA), so the client machinery exists.
-                            // Success = the client prints "-- DISCONNECTED --" immediately instead of
-                            // arming its 1-minute idle timer. CAPTURE THE RUN either way.
+                            // The DEFAULT disconnect (menu 4): the full ladder + 0xFD, then a host-initiated
+                            // DCON (host data-phase role 0x00). LIVE-VERIFIED 2026-07-05 vs real 100: 100
+                            // prints "-- DISCONNECTED BY TAD --" IMMEDIATELY, no idle wait. (Live 5/6/7 runs
+                            // proved the DCON alone suffices and its role byte is irrelevant; we keep the
+                            // ladder for a clean line-discipline restore.)
                             AppendTeardownLadder(frame, outgoing, result.Output);
-                            outgoing.Add(BuildDconIndication(frame, askerStyleRole: false));
-                            disconnect = true;
-                            break;
-
-                        case TadDisconnectMode.DconOnly:
-                            // Choice 6 EXPERIMENT: DCON alone (after the farewell text) — no ladder, no
-                            // 0xFD. Tests whether the DCON indication is sufficient by itself.
-                            outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
-                                .BdatText(result.Output).Build()));
-                            outgoing.Add(BuildDconIndication(frame, askerStyleRole: false));
-                            disconnect = true;
-                            break;
-
-                        case TadDisconnectMode.LadderThenDconAskerRole:
-                            // Choice 7 EXPERIMENT: as choice 5 but the DCON carries the asker-style role
-                            // 0x94 (WaitForTransfer|Bounce|RoutedLetter — the value every CAPTURED client
-                            // DCON uses). If 5 fails and 7 works (or vice versa) the role byte is the
-                            // discriminator.
-                            AppendTeardownLadder(frame, outgoing, result.Output);
-                            outgoing.Add(BuildDconIndication(frame, askerStyleRole: true));
+                            outgoing.Add(BuildDconIndication(frame));
                             disconnect = true;
                             break;
 
@@ -800,6 +799,191 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         }
 
         /// <summary>
+        /// Parses the connect letter's trailer for the two ASCII strings it carries - the service name
+        /// (for example <c>*TADADM</c>) and the target system name (for example <c>D102</c>) - for the
+        /// "stat" command.
+        /// </summary>
+        /// <param name="request">
+        /// The connect-request frame.
+        /// </param>
+        private void ExtractConnectStrings(XmsgFrame request)
+        {
+            _connectService = string.Empty;
+            _connectTargetName = string.Empty;
+
+            byte[] trailer = request.TrailingBytes;
+            if (trailer == null)
+            {
+                return;
+            }
+
+            // Collect maximal printable-ASCII runs (length >= 2). The connect letter contains exactly
+            // two: the "*"-prefixed service and the target system name. The +1 flushes the final run.
+            StringBuilder run = new StringBuilder();
+            for (int i = 0; i <= trailer.Length; i++)
+            {
+                byte b = i < trailer.Length ? trailer[i] : (byte)0x00;
+                if (b >= 0x20 && b <= 0x7E)
+                {
+                    run.Append((char)b);
+                    continue;
+                }
+
+                if (run.Length >= 2)
+                {
+                    string s = run.ToString();
+                    if (s[0] == '*' && _connectService.Length == 0)
+                    {
+                        _connectService = s;
+                    }
+                    else if (_connectTargetName.Length == 0)
+                    {
+                        _connectTargetName = s;
+                    }
+                }
+
+                run.Clear();
+            }
+        }
+
+        /// <summary>
+        /// Captures 100's terminal parameters from the negotiation chain (TMOD / TTYP / DESC / OPSV) so
+        /// the "stat" command can display them.
+        /// </summary>
+        /// <param name="request">
+        /// The terminal-setup frame carrying the negotiation chain.
+        /// </param>
+        private void CaptureNegotiation(XmsgFrame request)
+        {
+            if (request.Tad == null)
+            {
+                return;
+            }
+
+            IReadOnlyList<TadMessage> messages = request.Tad.Messages;
+            for (int i = 0; i < messages.Count; i++)
+            {
+                TadMessage m = messages[i];
+                byte[] d = m.Data;
+                switch (m.Opcode)
+                {
+                    case 0x0C:                                   // TMOD - terminal mode
+                        if (d.Length >= 1)
+                        {
+                            _terminalMode = d[0];
+                        }
+
+                        break;
+                    case 0x0D:                                   // TTYP - terminal type (2-byte)
+                        if (d.Length >= 2)
+                        {
+                            _terminalType = (ushort)((d[0] << 8) | d[1]);
+                        }
+
+                        break;
+                    case 0x0F:                                   // DESC - escape character
+                        if (d.Length >= 1)
+                        {
+                            _escapeChar = d[0];
+                        }
+
+                        break;
+                    case 0x1F:                                   // OPSV - host OS version
+                        _osVersion = (byte[])d.Clone();
+                        break;
+                }
+            }
+
+            _negotiationSeen = true;
+        }
+
+        /// <summary>
+        /// Builds the "stat" report: the connect-letter metadata and the negotiated terminal
+        /// parameters, each with a short explanation so the operator can read it without the spec.
+        /// </summary>
+        /// <returns>
+        /// The multi-line report text.
+        /// </returns>
+        private string BuildStatReport()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("\r\n--- TAD SESSION STATUS ---\r\n\r\n");
+
+            sb.Append("Connect letter (XMCSM 04000041):\r\n");
+            sb.Append("  From node    : ").Append(_clientSystem)
+              .Append("  ->  this node ").Append(_nodeNumber)
+              .Append(" (D").Append(_nodeNumber).Append(")\r\n");
+            sb.Append("  Service      : ")
+              .Append(_connectService.Length != 0 ? _connectService : "(none)").Append("\r\n");
+            sb.Append("  Target name  : ")
+              .Append(_connectTargetName.Length != 0 ? _connectTargetName : "(none)").Append("\r\n");
+            sb.Append("  Client port  : 0x").Append(_clientPort.ToString("X4"))
+              .Append("  (logical ").Append(_clientPort >> 7)
+              .Append(", incarnation ").Append(_clientPort & 0x7F).Append(")\r\n");
+            sb.Append("  Link seed    : 0x").Append(_seed.ToString("X2"))
+              .Append("  (per-link envelope constant)\r\n\r\n");
+
+            if (_negotiationSeen)
+            {
+                sb.Append("Terminal negotiation (sent by your connect-to):\r\n");
+                sb.Append("  Terminal type: ").Append(_terminalType)
+                  .Append("  (octal ").Append(Convert.ToString(_terminalType, 8))
+                  .Append(", hex 0x").Append(_terminalType.ToString("X4")).Append(")   [TTYP]\r\n");
+                sb.Append("  Terminal mode: ").Append(_terminalMode)
+                  .Append("  (0x").Append(_terminalMode.ToString("X2")).Append(")   [TMOD]\r\n");
+                sb.Append("  Escape char  : ").Append(_escapeChar)
+                  .Append("  (octal ").Append(Convert.ToString(_escapeChar, 8))
+                  .Append(_escapeChar == 0x1B ? ", ESC" : string.Empty).Append(")   [DESC]\r\n");
+                sb.Append("  Host OS ver  : ").Append(FormatHexBytes(_osVersion)).Append("   [OPSV]\r\n");
+            }
+            else
+            {
+                sb.Append("Terminal negotiation: not yet received.\r\n");
+            }
+
+            sb.Append("\r\nWhat these mean:\r\n");
+            sb.Append("  TTYP - terminal type number your machine advertises (shown in decimal).\r\n");
+            sb.Append("  TMOD - terminal mode / line-discipline flags.\r\n");
+            sb.Append("  DESC - the escape (local) character code.\r\n");
+            sb.Append("  OPSV - the operating-system version of the calling machine.\r\n");
+            sb.Append("  Your login NAME is not sent as metadata - it travels as ordinary\r\n");
+            sb.Append("  keystrokes; the connect itself is machine-level (node ")
+              .Append(_clientSystem).Append(").\r\n");
+
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Formats a byte array as space-separated two-digit hex (for the OPSV OS-version display).
+        /// </summary>
+        /// <param name="bytes">
+        /// The bytes to format.
+        /// </param>
+        /// <returns>
+        /// The hex string, or <c>(none)</c> when empty.
+        /// </returns>
+        private static string FormatHexBytes(byte[] bytes)
+        {
+            if (bytes == null || bytes.Length == 0)
+            {
+                return "(none)";
+            }
+
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                if (i != 0)
+                {
+                    sb.Append(' ');
+                }
+
+                sb.Append(bytes[i].ToString("X2"));
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>
         /// Appends the capture-faithful five-frame host teardown ladder (spec 22.7): farewell +
         /// CESC 00; BMMX/ECKM/CESC line-discipline restore; "--EXIT--" + SYCN 000B (LoggedOut);
         /// CESC 01; then the 0xFD session notification. Shared by menu choices 4, 5 and 7.
@@ -821,31 +1005,26 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         }
 
         /// <summary>
-        /// Builds a HOST-initiated DCON indication (TAD <c>0x09</c>, class <c>0x00080000</c>, from
-        /// the session/terminal port). EXPERIMENT — never captured host-to-client; the NPL master
-        /// table marks 7DCON as a Server-to-Client "Disconnect indication" handled by DSTOTA
-        /// (forced disconnect), so the client-side machinery exists. Every CAPTURED (client) DCON
-        /// rides class 0x0008 with frameFlags 0x82; we mirror that shape.
+        /// Builds a HOST-initiated DCON indication (TAD <c>0x09</c>, class <c>0x00080000</c>, from the
+        /// session/terminal port) - the LIVE-VERIFIED instant-disconnect trigger.
         /// </summary>
+        /// <remarks>
+        /// LIVE-VERIFIED 2026-07-05 vs real 100: a host DCON makes the client print
+        /// "-- DISCONNECTED BY TAD --" immediately, with no idle wait. The 5/6/7 experiments proved the
+        /// role byte is irrelevant (host data-phase role <c>0x00</c> and the asker-style <c>0x94</c> both
+        /// worked), so we use the host-natural role <c>0x00</c>. The DCON rides class 0x0008 with
+        /// frameFlags 0x82, mirroring every captured (client) DCON.
+        /// </remarks>
         /// <param name="request">The triggering frame (addressing source).</param>
-        /// <param name="askerStyleRole">
-        /// False = host data-phase role <c>0x00</c> (consistent with our other terminal-port
-        /// frames); true = the asker-style role <c>0x94</c> that every captured client DCON
-        /// carries (choice 7's variant).
-        /// </param>
         /// <returns>The DCON frame.</returns>
-        private XmsgFrame BuildDconIndication(XmsgFrame request, bool askerStyleRole)
+        private XmsgFrame BuildDconIndication(XmsgFrame request)
         {
-            byte role = askerStyleRole
-                ? (byte)(XmsgSendOptions.WaitForTransfer | XmsgSendOptions.Bounce | XmsgSendOptions.RoutedLetter)
-                : (byte)XmsgSendOptions.None;
-
             byte[] tad = new TadMessageBuilder().Raw(TadOp.Dcon, ReadOnlySpan<byte>.Empty).Build();
             return BuildResponderFrame(
                 request,
                 controlService: (uint)XmcsmService.BareTadControl,
                 frameFlags: (byte)XmsgFrameFlags.ControlBare,
-                role: role,
+                role: (byte)XmsgSendOptions.None,
                 sourcePort: _sessionWirePort,
                 payload: tad);
         }
