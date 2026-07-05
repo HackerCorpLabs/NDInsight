@@ -239,7 +239,15 @@ namespace NDInsight.Sintran.Xmsg.Node
                     // crashed 100 (XXPER).
                     if (incoming.SubHeader != null)
                     {
-                        _receiver.SeedCounter((byte)(incoming.SubHeader.Counter + 0x0A));
+                        // The TAD-session ACK is the capture-verified STATELESS closed form: Counter and
+                        // channel are a pure function of the acknowledged Flags1, via the envelope
+                        // arithmetic with ACK seed = link-seed + 0x0B. One continuous sequence across
+                        // every connect - never re-seeded per connect (the old connect-Counter+0x0A
+                        // re-seed reset the channel to DE where the real 102 rode DD past the ACK baseLow,
+                        // crashing 100 at PERF_CONNCT on the third connect). Learn the link seed here.
+                        byte linkSeed = Packet.XmsgEnvelope.LearnSeed(
+                            incoming.Header.Flags1, incoming.SubHeader.Counter, incoming.Header.Flags2);
+                        _receiver.UseSessionAckModel(linkSeed);
                     }
 
                     // Secure-ACK the connect (subtype 0x03, echoes Flags1) on the session ACK

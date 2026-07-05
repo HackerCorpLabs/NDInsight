@@ -1,5 +1,7 @@
 using System;
 
+using NDInsight.Sintran.Xmsg.Packet;
+
 namespace NDInsight.Sintran.Xmsg
 {
     /// <summary>
@@ -8,22 +10,42 @@ namespace NDInsight.Sintran.Xmsg
     /// the data frame's Flags 1 (datagram sequence).
     /// </summary>
     /// <remarks>
-    /// The ACK is sent in the opposite direction to the data frame it acknowledges,
-    /// with Flags 2 = <c>0x0001</c> and a single trailing byte that is the receiver's
-    /// own per-direction counter (which decrements per ACK). See XMSG-PROTOCOL.md
-    /// section 6.
+    /// <para>
+    /// There are two ACK models. The LEGACY model (reachability / list-route) echoes the data
+    /// frame's own channel and carries a simple per-direction counter that decrements per ACK.
+    /// </para>
+    /// <para>
+    /// The TAD-SESSION model (enabled by <see cref="UseSessionAckModel"/>) is the capture-verified
+    /// closed form: the ACK Counter and channel are a STATELESS pure function of the acknowledged
+    /// datagram's Flags 1, computed via the envelope arithmetic (<see cref="XmsgEnvelope"/>) with an
+    /// ACK seed of <c>link-seed + 0x0B</c>. It is one continuous sequence across every connect (never
+    /// re-seeded per connect), stepping DE -&gt; DD -&gt; DC as Flags 1 climbs past the ACK baseLow.
+    /// See XMSG-PROTOCOL.md section 6.
+    /// </para>
     /// </remarks>
     public sealed class SecureDatagramReceiver
     {
+        // LEGACY (reachability / list-route) per-direction counter: decrements per ACK, echoes the
+        // data channel. Untouched by the TAD-session model below.
         private byte _counter;
 
-        // How many times the decrementing ACK counter has wrapped past 0x00 since the last seed.
-        // The ACK channel steps DOWN by this count (DE -> DD -> DC ...), exactly mirroring the data
-        // envelope's epoch step. CAPTURE-VERIFIED (multiple-connect-100-to102 session 2): the ACK on
-        // Flags1 0x001F carried counter 0xFF on channel 0xDD, not 0xDE - i.e. the channel stepped the
-        // instant the counter wrapped. Emitting the wrapped ACK on the un-stepped channel is the
-        // malformed ACK that 24B/XXPER-crashed 100 at a long-session teardown.
-        private int _wraps;
+        // TAD-session closed-form ACK model. When _sessionAckModel is set, the ACK Counter and channel
+        // are derived per-frame from the acknowledged Flags 1 and this ACK seed (link-seed + 0x0B) via
+        // the envelope arithmetic - a SINGLE continuous, STATELESS sequence across every connect.
+        // CAPTURE-VERIFIED against 904/904 subtype-0x03 frames (multiple-connect + the whole corpus,
+        // GOD-LLM sweep): ctr = ComputeCounter(seed, F1, F2) and channel = DeriveChannel(...) reproduce
+        // every ACK, including the DE->DD wrap and the reboot reset. The earlier per-connect re-seed
+        // reset the channel to DE where the real 102 rode DD (F1 past the baseLow), and 100 PERF_CONNCT/
+        // 24B-crashed on the third connect.
+        private byte _sessionAckSeed;
+        private bool _sessionAckModel;
+
+        // The ACK datagram class (Flags 2) and its XMCSM. We always emit class 0x0001: the corpus proves
+        // the 0x0002 "batch" variant is situational (the real 102 does not apply it consistently), and a
+        // sum-checking receiver cannot distinguish which class we chose (trail + F1 + F2low == seed for
+        // both). XMCSM 0x00010000 -> (XMCSM >> 24) == 0x00, so the channel is 0xDE - epoch.
+        private const ushort AckFlags2 = 0x0001;
+        private const uint AckControlService = 0x00010000;
 
         /// <summary>
         /// Raised when a data frame is delivered to the local application.
@@ -42,7 +64,8 @@ namespace NDInsight.Sintran.Xmsg
         /// Initialises a new receiver.
         /// </summary>
         /// <param name="initialCounter">
-        /// The starting value of the per-direction counter placed in each ACK.
+        /// The starting value of the legacy per-direction counter placed in each reachability /
+        /// list-route ACK.
         /// </param>
         public SecureDatagramReceiver(byte initialCounter)
         {
@@ -50,7 +73,8 @@ namespace NDInsight.Sintran.Xmsg
         }
 
         /// <summary>
-        /// Gets the current per-direction counter value (the byte placed in the next ACK).
+        /// Gets the current legacy per-direction counter value (the byte placed in the next
+        /// reachability / list-route ACK).
         /// </summary>
         public byte Counter
         {
@@ -58,18 +82,36 @@ namespace NDInsight.Sintran.Xmsg
         }
 
         /// <summary>
-        /// Re-seeds the per-direction ACK counter. A TAD session calls this when the connect
-        /// arrives, with <c>connect-counter + 0x0A</c>, so the first ACK trailing byte matches the
-        /// captured value and the subsequent decrement reproduces the captured sequence (see the
-        /// remarks on <see cref="ReceiveDataFrame"/> for the capture provenance).
+        /// Re-seeds the LEGACY per-direction ACK counter (reachability / list-route path only).
         /// </summary>
-        /// <param name="value">The value the next ACK will carry as its trailing byte.</param>
+        /// <remarks>
+        /// The TAD-session path does NOT use this - it uses the stateless closed form via
+        /// <see cref="UseSessionAckModel"/>. This remains for the reachability / list-route ACKs.
+        /// </remarks>
+        /// <param name="value">The value the next legacy ACK will carry as its trailing byte.</param>
         public void SeedCounter(byte value)
         {
             _counter = value;
-            // A fresh session re-bases the ACK channel to connect+4 (epoch 0), so the wrap count
-            // MUST reset too - otherwise a prior session's wraps would wrongly step this one's channel.
-            _wraps = 0;
+        }
+
+        /// <summary>
+        /// Switches this receiver to the capture-verified TAD-session ACK model: the ACK Counter and
+        /// channel become a stateless pure function of the acknowledged datagram's Flags 1, via the
+        /// envelope arithmetic with an ACK seed of <paramref name="linkSeed"/> + <c>0x0B</c>.
+        /// </summary>
+        /// <remarks>
+        /// One continuous sequence across every connect - NEVER re-seeded per connect (the F1-space,
+        /// and therefore the ACK, resets only on a peer reachability restart, exactly like the data
+        /// sequences). Calling this repeatedly with the same learned seed is idempotent because the
+        /// model holds no per-ACK state.
+        /// </remarks>
+        /// <param name="linkSeed">
+        /// The learned per-link seed (for example 0x14 for 100 to 102); the ACK seed is this + 0x0B.
+        /// </param>
+        public void UseSessionAckModel(byte linkSeed)
+        {
+            _sessionAckSeed = (byte)(linkSeed + 0x0B);
+            _sessionAckModel = true;
         }
 
         /// <summary>
@@ -79,32 +121,15 @@ namespace NDInsight.Sintran.Xmsg
         /// The received data frame (subtype <see cref="SintranPacketSubtype.Data"/>).
         /// </param>
         /// <param name="ackChannel">
-        /// Optional Protocol-ID (header offset 12) to place the ACK on. When <c>null</c> (the
-        /// default) the ACK echoes the data frame's own Protocol-ID — correct for the simple
-        /// reachability/list-route paths. For a TAD <c>connect-to</c> session the ACK does NOT
-        /// ride the data channel: it rides a per-session constant channel equal to
-        /// <em>connect-channel + 4</em>. This is VERIFIED from both connect captures (all one
-        /// directional / asker side): a <c>D9</c>-rooted session ACKs on <c>DD</c>
-        /// (<c>new-conn-to-102-from-100.pcapng</c>), a <c>DA</c>-rooted session ACKs on <c>DE</c>
-        /// (<c>conn-to-102-from103-via100.pcapng</c>), and the ACK channel stays constant even
-        /// when the acknowledged data frame itself was on <c>DC</c>. Echoing the data channel
-        /// (the old +0 behaviour) is the malformed ACK that crashed 100 (XXPER).
+        /// The session ACK routing signal. When non-null AND the TAD-session model is enabled
+        /// (<see cref="UseSessionAckModel"/>), the ACK uses the stateless closed form (its channel is
+        /// DERIVED, so the value passed here is only the "this is a session frame" marker). When null
+        /// (reachability / list-route) the legacy model runs: the ACK echoes the data frame's own
+        /// channel and carries the decrementing <see cref="Counter"/>.
         /// </param>
         /// <returns>
         /// The subtype-<c>0x03</c> ACK frame echoing the data frame's Flags 1.
         /// </returns>
-        /// <remarks>
-        /// The trailing byte is this receiver's own per-direction counter, which DECREMENTS by 1
-        /// per ACK. VALIDATED across all captures: the ACK trailing byte runs as a smooth
-        /// decrementing counter (e.g. 0x17, 0x16, 0x15 …), it is NOT a per-frame function of the
-        /// acknowledged counter. What IS tied to the data is the SEED: the first ACK trailing =
-        /// first-acknowledged-counter + <c>0x0A</c> (8 of 13 captures where first-DATA and
-        /// first-ACK pair cleanly, including both connect captures: 0x0D-&gt;0x17, 0xCE-&gt;0xD8).
-        /// So a TAD session must <see cref="SeedCounter"/> the receiver to
-        /// <c>connect-counter + 0x0A</c> before the first ACK; the decrement then reproduces the
-        /// captured sequence. Sending <c>0x00</c> (the un-seeded default) is a malformed ACK that
-        /// crashed 100 (XXPER).
-        /// </remarks>
         /// <exception cref="ArgumentNullException">
         /// Thrown when <paramref name="dataFrame"/> or its header is null.
         /// </exception>
@@ -133,24 +158,25 @@ namespace NDInsight.Sintran.Xmsg
             ack.Header.DestinationNode = dataHeader.SourceNode;   // reply to the sender
             ack.Header.SourceNode = dataHeader.DestinationNode;
             ack.Header.Flags1 = dataHeader.Flags1;                // echo the datagram sequence
-            ack.Header.Flags2 = 0x0001;
-            // ACK channel: the caller-supplied session ACK channel (connect+4 for TAD) when
-            // given; otherwise echo the data frame's own channel (reachability/list-route). The base
-            // is then stepped DOWN by the ACK-counter wrap count (DE -> DD -> DC ...) so a long
-            // session's wrapped ACKs ride the correct channel - see the _wraps field comment.
-            byte baseChannel = (byte)(ackChannel ?? dataHeader.ProtocolId);
-            ack.Header.ProtocolId = (SintranProtocolId)(byte)(baseChannel - _wraps);
-            ack.TrailingBytes = new byte[] { _counter };
+            ack.Header.Flags2 = AckFlags2;
 
-            // The per-direction counter decrements per ACK (section 6, VALIDATED as a smooth
-            // decrementing sequence across all captures). When it passes 0x00 -> 0xFF the channel has
-            // wrapped: bump _wraps so the NEXT ACK (counter 0xFF) rides the stepped-down channel,
-            // matching the capture (counter 0x00 still on DE, counter 0xFF already on DD).
-            if (_counter == 0x00)
+            if (_sessionAckModel && ackChannel != null)
             {
-                _wraps++;
+                // TAD-session closed form: Counter and channel are a stateless function of the echoed
+                // Flags 1. No counter is mutated - the sequence lives entirely in Flags 1 space.
+                ushort echoed = dataHeader.Flags1;
+                ack.Header.ProtocolId =
+                    XmsgEnvelope.DeriveChannel(_sessionAckSeed, echoed, AckFlags2, AckControlService);
+                ack.TrailingBytes = new byte[]
+                {
+                    XmsgEnvelope.ComputeCounter(_sessionAckSeed, echoed, AckFlags2),
+                };
+                return ack;
             }
 
+            // LEGACY (reachability / list-route): echo the data channel, carry the decrementing counter.
+            ack.Header.ProtocolId = ackChannel ?? dataHeader.ProtocolId;
+            ack.TrailingBytes = new byte[] { _counter };
             _counter = (byte)(_counter - 1);
             return ack;
         }
