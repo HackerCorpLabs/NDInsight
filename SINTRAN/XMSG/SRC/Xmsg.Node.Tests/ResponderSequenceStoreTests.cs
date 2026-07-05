@@ -84,43 +84,44 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         [Fact]
-        public void Responder_WrapBoundary_FallsBackToZero()
+        public void Responder_ContinuesAcrossWrapBoundary_NoResetNoGuard()
         {
-            // The one shape the corpus never shows and that 24B-crashed 100 live: a connect/accept LETTER
-            // (class 0x0400) with Counter 0xFF, i.e. F1 = seed+1. For ConnectHex (seed 0x13) that is F1
-            // 0x14. When our continued value lands there we MUST NOT emit it - fall back to 0x0000 (a
-            // recoverable stall), never the crashing shape.
+            // S7 capture answer (multiple-connect-100-to102-and-then-reboot): the responder's counter is a
+            // single free-running per-direction value that CONTINUES across connects and is NEVER reset per
+            // connect nor guarded away from the Counter-0xFF boundary. Real 102 continued its session-2
+            // letters at 0x0016/0x0017 straight past the boundary at 0x0015. So when the store holds the
+            // boundary value itself, the accept MUST carry it unchanged - the earlier fall-back-to-0x0000
+            // was the wrong fix (it produced the reset-to-0 stall). For ConnectHex (seed 0x13) the boundary
+            // is F1 0x14.
             MemoryStore store = new MemoryStore();
-            store.SaveNextFlags1(100, 0x0014);   // seed 0x13 + 1 -> Counter 0xFF wrap boundary
+            store.SaveNextFlags1(100, 0x0014);
 
             TadTerminalResponder responder = new TadTerminalResponder(103, () => new DateTime(2026, 7, 2), store);
             System.Collections.Generic.IReadOnlyList<XmsgFrame> frames =
                 responder.OnConnect(XmsgFrame.Parse(Convert.FromHexString(ConnectHex)));
 
             byte[] accept = frames[0].ToArray();
-            // Guarded: the accept is 0x0000, never the F1 0x0014 / Counter 0xFF letter that crashed 100.
-            Assert.Equal(0x0000, (accept[8] << 8) | accept[9]);
+            // Continued, NOT reset: the accept carries the stored 0x0014.
+            Assert.Equal(0x0014, (accept[8] << 8) | accept[9]);
         }
 
         [Fact]
-        public void Responder_PortAssignWouldHitBoundary_FallsBackToZero()
+        public void Responder_ContinuesWhenPortAssignWouldHitBoundary_NoReset()
         {
             // The connect handshake emits TWO class-0x0400 letters: the accept at V and the port-assign at
-            // V+1. When V is safe but V+1 is the Counter-0xFF boundary, we STILL must fall back - the second
-            // live 24B was exactly this: V=0x0014 (accept fine), V+1=0x0015 port-assign on the boundary.
-            // For ConnectHex (seed 0x13) the boundary is F1 0x14, so a store of 0x0013 makes the accept
-            // (0x13, safe) but the port-assign (0x14) hit it.
+            // V+1. Under continuation NEITHER is special-cased: a store of 0x0013 (accept 0x13, port-assign
+            // 0x14 = the boundary for seed 0x13) still emits the accept at its continued 0x0013. The port
+            // assign at the boundary is legal (continuation) and, per the S7 capture, never the crash shape.
             MemoryStore store = new MemoryStore();
-            store.SaveNextFlags1(100, 0x0013);   // accept 0x13 is safe, but port-assign 0x14 = boundary
+            store.SaveNextFlags1(100, 0x0013);
 
             TadTerminalResponder responder = new TadTerminalResponder(103, () => new DateTime(2026, 7, 2), store);
             System.Collections.Generic.IReadOnlyList<XmsgFrame> frames =
                 responder.OnConnect(XmsgFrame.Parse(Convert.FromHexString(ConnectHex)));
 
             byte[] accept = frames[0].ToArray();
-            // The V+1 boundary forces the whole handshake back to 0x0000, so the port-assign can never land
-            // on the crashing shape.
-            Assert.Equal(0x0000, (accept[8] << 8) | accept[9]);
+            // Continued, NOT reset: the accept carries the stored 0x0013.
+            Assert.Equal(0x0013, (accept[8] << 8) | accept[9]);
         }
 
         [Fact]
