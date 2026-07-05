@@ -284,18 +284,30 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             // terminal data rides 0xDD (NOT DB: DB was an epoch-2 artifact of a high running sequence).
             _seed = XmsgEnvelope.LearnSeed(
                 request.Header.Flags1, request.SubHeader.Counter, request.Header.Flags2);
-            // Start our OWN outgoing Flags1 at 0x0000 for THIS connect (epoch 0 -> accept on DA).
-            // REVERTED from continue-from-store: the GOD-LLM "continue the persisted per-link counter"
-            // rule crashed 100 with the fatal 24B (XXPER) LIVE on 2026-07-04. The persisted value (0x0015)
-            // coincided with 100's own connect Flags1 (0x0015, on D9) - the symmetric-history trap - so
-            // our accept F1 EQUALLED the connect F1 at epoch 1 (D9), which is exactly the echo the 24B
-            // punishes. Resetting to 0x0000 keeps the accept at epoch 0 (DA) and never coincides with a
-            // climbed connect. Trade-off (UNRESOLVED, see XMSG-CLIMBED-RECONNECT-* GOD-LLM questions):
-            // against a CLIMBED 100 this lands BEHIND its expected-from-us and the accept is silently
-            // dropped (a recoverable STALL) - but a stall is far better than a 24B crash that kills 100's
-            // XMSG. The clean climbed-reconnect rule is still open.
-            _respFlags1 = 0x0000;
-            Log?.Invoke($"[responder] connect from node {_clientSystem}: outgoing Flags1 = 0x0000 (epoch-0 accept on DA; continue-from-store crashed 100 with 24B, reverted)");
+            // CONTINUE our per-remote-node outgoing Flags1 from the persisted store (the store advances on
+            // 100's 0x03 ACKs = 100's expected-from-us / XSRSQ). GOD-LLM S6a MEASUREMENT: continuation is
+            // right and its values are capture-legal at any epoch/channel - "echo (accept F1 == connect
+            // F1) crashes" was DISPROVEN (it happens in 6 captures, all accepted). The counters are fully
+            // independent (deltas +/-0x35 exist); the connect neither carries nor resets XSRSQ.
+            _respFlags1 = _sequenceStore.LoadNextFlags1(_clientSystem);
+
+            // WRAP-BOUNDARY GUARD (the one shape the corpus never shows and that DID 24B-crash 100 live):
+            // a connect/accept LETTER (class 0x0400) whose Counter is 0xFF - i.e. F1 = seed+1 - occurs
+            // ZERO times in 601 captured frames. The 0x0015 crash was exactly this (seed 0x14 -> Counter
+            // 0xFF on D9). If our continued value lands there, do NOT emit that untested shape: fall back
+            // to 0x0000. That STALLS (recoverable, cleared by a peer restart which resets the store), which
+            // is vastly better than a 24B. The zero-stall path is the capture-proven class-0x0100 burn of
+            // that sequence number (GOD-LLM step 2) - a follow-up; this fallback is the zero-crash-risk
+            // minimum.
+            if (XmsgEnvelope.ComputeCounter(_seed, _respFlags1, 0x0400) == 0xFF)
+            {
+                Log?.Invoke($"[responder] connect from node {_clientSystem}: continued Flags1 0x{_respFlags1:X4} hits the Counter-0xFF wrap boundary (untested connect/accept letter shape that 24B-crashed 100) -> falling back to 0x0000 (recoverable stall, NOT a crash)");
+                _respFlags1 = 0x0000;
+            }
+            else
+            {
+                Log?.Invoke($"[responder] connect from node {_clientSystem}: continuing outgoing Flags1 at 0x{_respFlags1:X4} (persisted; no per-connect reset)");
+            }
 
             // Retain the connect and the accept's sequence so a XENSE (accept ahead of 100's expected)
             // can be recovered by stepping the accept down (ResyncAcceptDown), no restart needed.

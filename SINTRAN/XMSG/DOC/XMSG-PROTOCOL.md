@@ -1386,8 +1386,13 @@ next-F1 is, say, `0x0004` (from prior sessions). Correct output — note the acc
 > against a climbed peer land BEHIND its expected value → the accept is silently
 > dropped (no datagram ACK, no session-setup) — VERIFIED live 2026-07-04. A correctly
 > CONTINUED value is safe at any epoch: real epoch-1 accepts on `D9` were accepted
-> (new-conn f60 L8678, start-li-li f106 L10239). The historical fatal-24B accept was an
-> ECHO of the asker's Flags1 (wrong value), not a continued own value.
+> (new-conn f60 L8686, test1 f106 L10247). **Accept F1 EQUAL to the connect F1 is also
+> harmless** — measured across the corpus (§18.8 S6a): five captured accepts equal their
+> connect's F1, including new-conn's `0x0046 == 0x0046` on D9/epoch 1. The 2026-07-04
+> fatal-24B accept (F1 0x0015, ctr 0xFF, D9) therefore remains UNEXPLAINED — its only
+> corpus-unprecedented features were the wrap-boundary Counter (`0xFF` on a 0x0400
+> letter: zero occurrences in 601 frames) and an outstanding un-ACKed DCON from the
+> prior session. Do not attribute it to echo or to continuation.
 
 | Frame | Our F1 | Counter | Channel |
 |---|---|---|---|
@@ -1396,12 +1401,18 @@ next-F1 is, say, `0x0004` (from prior sessions). Correct output — note the acc
 | port-assign | `0x0005` | `0x0F` | `DA` |
 | DUMM | `0x0006` | `0x06` | `DD` |
 
-**S3 — The mirror trap (what the crash looked like — do NOT do this):**
+**S3 — The mirror trap (do NOT copy the asker's F1 — corrected 2026-07-05):**
 Same connect as S2. A responder that copies the asker's F1 emits accept
 `D9 / F1 0x0019 / ctr 0xFB`. The arithmetic is self-consistent, but `0x0019` is the
-ASKER's stream position, not ours — 100's expected-from-us (`XSRSQ`) sees a
-discontinuity → live result: `XMSG fatal error 24B`. The `new-conn` capture (both sides
-at `0x0046`) shows why this bug survives testing on symmetric links.
+ASKER's stream position, not ours — whenever the two counters differ, the copied value
+is ahead or behind 100's expected-from-us (`XSRSQ`) and the accept draws XENSE or
+silence. Mirroring-as-policy is therefore wrong. **BUT (measured, §18.8 S6a): the copied
+VALUE being equal to the connect F1 is NOT itself harmful** — five captured accepts
+equal their connect F1 (incl. `0x0046 == 0x0046` at epoch 1/D9) and were accepted; when
+histories are symmetric, the correct continuation and the mirror coincide. The
+2026-07-04 fatal-24B on an F1-equal accept has an UNRESOLVED cause (wrap-boundary
+`ctr 0xFF` letter and/or stale un-ACKed DCON — see S2 box); it is NOT evidence against
+continuation and NOT explained by equality.
 
 **S4 — Independent epochs, capture-proven (`conn-to-d102`):**
 asker connect `D9 / 0x00F8 / 0x1C` (epoch 1) ↔ responder accept `D8 / 0x012F / 0xE5`
@@ -1419,6 +1430,27 @@ connect-class frames as our F1 passes baseLow `0x14`:
 
 Real machines emit exactly this pattern at every captured wrap (via100 f12→f14,
 conn-to-d102 f42→f44, li-route-d103-tree f1→f3). A `0xFF` Counter is legitimate.
+
+**S6a — Measured connect-F1 vs accept-F1, whole corpus (2026-07-05, all 601 data
+frames parsed; script over the raw= lines of the decode report):**
+
+| Capture | Connect F1 / chan (line) | Accept F1 / chan / ctr (line) | Relation |
+|---|---|---|---|
+| via100 (m13 leg) | `0x0004` DA (L15) | `0x0004` DA `0x0D` (L996) | **EQUAL** |
+| li-rout-102-tree | `0x0004` DA (L3287) | `0x0004` DA `0x0F` (L3313) | **EQUAL** |
+| li-syst-tad (103→100 #1) | `0x000B` DA (L7780) | `0x000B` DA `0x08` (L7860) | **EQUAL** |
+| li-syst-tad (103→100 #2) | `0x000C` DA (L7816) | `0x000C` DA `0x07` (L7896) | **EQUAL** |
+| li-syst-tad (103→102 ×2) | `0x0002`/`0x0003` DA | `0x0002`/`0x0003` DA | **EQUAL** |
+| **new-conn** | `0x0046` **D9** (L8152) | `0x0046` **D9** `0xCE` (L8686) | **EQUAL — epoch 1** |
+| conn-to-d102 | `0x00F8` D9 (L2021) | `0x012F` D8 `0xE5` (L2472) | +0x37, accept HIGHER epoch |
+| test1 | `0x011E` D8 (L11320) | `0x00E9` D9 `0x2B` (L10247) | −0x35, accept LOWER epoch |
+
+Conclusions [VERIFIED]: (1) the two counters are independent — deltas of +55, −53, ±1
+and 0 exist; no function maps connect F1 to accept F1. (2) **Equality is common and
+harmless** (symmetric histories), including at epoch 1 on D9. (3) The accept may sit on
+a lower OR higher epoch than the connect. (4) **Zero `0x0400`-class frames with
+Counter `0xFF` exist anywhere in the corpus** — a wrap-boundary connect or accept
+letter is unprecedented on the wire; the corpus cannot say whether it is legal.
 
 **S6 — Restart resync (no persisted state):**
 We restart with F1 = `0x0000` but 100's `XSRSQ` expects `0x0007`.

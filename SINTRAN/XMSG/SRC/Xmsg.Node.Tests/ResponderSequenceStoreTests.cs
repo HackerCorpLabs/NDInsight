@@ -65,24 +65,40 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         [Fact]
-        public void Responder_StartsAtZero_IgnoringStoredSequence()
+        public void Responder_ContinuesFromStoredSequence()
         {
-            // The accept starts at Flags1 0x0000 (epoch 0 -> DA), regardless of any climbed stored value.
-            // REVERTED from continue-from-store: continuing the persisted value crashed 100 with the fatal
-            // 24B (XXPER) LIVE 2026-07-04 when the stored value (0x0015) coincided with 100's own connect
-            // Flags1 - the symmetric-history trap - making our accept F1 equal the connect F1 at epoch 1
-            // (D9), the exact echo the 24B punishes. 0x0000 never coincides with a climbed connect. The
-            // clean climbed-reconnect rule that avoids BOTH the stall (behind) and the crash (echo) is
-            // still open - see the XMSG-CLIMBED-RECONNECT GOD-LLM question.
+            // The accept CONTINUES our persisted per-link outgoing Flags1 (GOD-LLM S6a MEASUREMENT:
+            // continuation is right; its values are capture-legal at any epoch/channel; "echo crashes" was
+            // disproven). ConnectHex is a 100<->103 connect (seed 0x13), so the wrap boundary is F1 0x14;
+            // 0x0004 is a normal non-boundary value and must be used verbatim.
             MemoryStore store = new MemoryStore();
-            store.SaveNextFlags1(100, 0x0015);   // a climbed value that would collide with 100's connect
+            store.SaveNextFlags1(100, 0x0004);   // continued value from prior sessions on this link
 
             TadTerminalResponder responder = new TadTerminalResponder(103, () => new DateTime(2026, 7, 2), store);
             System.Collections.Generic.IReadOnlyList<XmsgFrame> frames =
                 responder.OnConnect(XmsgFrame.Parse(Convert.FromHexString(ConnectHex)));
 
             byte[] accept = frames[0].ToArray();
-            // Flags1 (header offset 8-9) is 0x0000 - epoch 0, channel DA, never the crashing D9 echo.
+            // The accept's Flags1 (header offset 8-9) equals the stored value, NOT 0x0000.
+            Assert.Equal(0x0004, (accept[8] << 8) | accept[9]);
+        }
+
+        [Fact]
+        public void Responder_WrapBoundary_FallsBackToZero()
+        {
+            // The one shape the corpus never shows and that 24B-crashed 100 live: a connect/accept LETTER
+            // (class 0x0400) with Counter 0xFF, i.e. F1 = seed+1. For ConnectHex (seed 0x13) that is F1
+            // 0x14. When our continued value lands there we MUST NOT emit it - fall back to 0x0000 (a
+            // recoverable stall), never the crashing shape.
+            MemoryStore store = new MemoryStore();
+            store.SaveNextFlags1(100, 0x0014);   // seed 0x13 + 1 -> Counter 0xFF wrap boundary
+
+            TadTerminalResponder responder = new TadTerminalResponder(103, () => new DateTime(2026, 7, 2), store);
+            System.Collections.Generic.IReadOnlyList<XmsgFrame> frames =
+                responder.OnConnect(XmsgFrame.Parse(Convert.FromHexString(ConnectHex)));
+
+            byte[] accept = frames[0].ToArray();
+            // Guarded: the accept is 0x0000, never the F1 0x0014 / Counter 0xFF letter that crashed 100.
             Assert.Equal(0x0000, (accept[8] << 8) | accept[9]);
         }
 
