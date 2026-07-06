@@ -493,14 +493,15 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
-        /// The first batch of a long reply respects the flow-control window: at most two output
-        /// datagrams are sent before any ACK, and each is a bare 255-byte continuation (no RFI). The final
-        /// RFI-bearing frame is WITHHELD until the outstanding continuations are acked. This is the fix for
-        /// the crash where all chunks (incl. the RFI terminator) were blasted at once and 100 discarded the
-        /// continuation (TAD-Message-Formats.md 22.6 handshake).
+        /// The "stat" reply is a SINGLE terminal frame (kept under one 255-byte buffer) that shows the tty
+        /// and ends with the "# " prompt. Single-frame output is the reliably-displayed path: a multi-chunk
+        /// (255-sentinel) reply is delivered and ACKed correctly by 100 but 100 only displays the FINAL
+        /// chunk, dropping the first continuation (and with it the top of the report) from the screen. So
+        /// stat stays under one buffer; the flow-control windowing is retained for a future confirmed
+        /// long-output path. Labels use parentheses / plain text, never square brackets.
         /// </summary>
         [Fact]
-        public void ServerHost_LongReply_FirstBatchIsWindowedWithNoFinal()
+        public void ServerHost_Stat_IsSingleFrameShowingTty()
         {
             TerminalCapture terminal = new TerminalCapture();
             TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
@@ -511,82 +512,18 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             terminal.Clear();                                                     // isolate the stat reply
             clientCodec.SendPacket(new XmsgPacket(client.BuildInput("stat")));
 
-            IReadOnlyList<TadFrameShape> first = terminal.TadFrames;
-            Assert.InRange(first.Count, 1, 2);                        // window caps the unacked burst at 2
-            for (int i = 0; i < first.Count; i++)
-            {
-                Assert.Equal(255, first[i].BdatBytes);               // every first-batch frame is a full continuation
-                Assert.False(first[i].HasRfi, "the RFI-bearing final frame must NOT be in the unacked first batch");
-            }
-        }
-
-        /// <summary>
-        /// The full rich "stat" report streams to completion under the flow-control handshake: as each
-        /// continuation is ACKed the next chunk is released, and the final short frame (with SYCN + prompt
-        /// BDAT + RFI) arrives only after all continuations are acked. The assembled text is the whole
-        /// report and ends with the "# " prompt; labels use parentheses, never square brackets.
-        /// </summary>
-        [Fact]
-        public void ServerHost_LongReply_StreamsFullReportUnderHandshake()
-        {
-            TerminalCapture terminal = new TerminalCapture();
-            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec, out XmsgServerHost host);
-
-            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
-            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // username
-            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // password
-            terminal.Clear();                                                     // isolate the stat reply
-            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("stat")));
-
-            // Drive the handshake: ACK each captured frame (as 100 would), draining the next chunk, until
-            // the final RFI-bearing frame arrives. Guard the loop so a stuck window fails instead of hangs.
-            int processed = 0;
-            bool sawFinal = false;
-            int maxOutstanding = 0;
-            int guard = 0;
-            while (!sawFinal && guard++ < 200)
-            {
-                IReadOnlyList<TadFrameShape> frames = terminal.TadFrames;
-                if (processed >= frames.Count)
-                {
-                    break;   // window stuck with no final -> assertion below fails
-                }
-
-                // Track the largest unacked burst seen (must never exceed the window of 2).
-                int unacked = frames.Count - processed;
-                if (unacked > maxOutstanding)
-                {
-                    maxOutstanding = unacked;
-                }
-
-                while (processed < frames.Count)
-                {
-                    TadFrameShape f = frames[processed++];
-                    if (f.HasRfi)
-                    {
-                        sawFinal = true;
-                    }
-
-                    host.ConfirmDelivered(100, f.Flags1);            // 100 ACKs -> release the window
-                    IReadOnlyList<XmsgFrame> released = host.DrainPending();
-                    for (int k = 0; k < released.Count; k++)
-                    {
-                        // Route the next chunk through the client codec so it is parsed (a built frame has
-                        // no .Tad until it round-trips the wire) and captured by the terminal.
-                        clientCodec.ProcessBytes(released[k].ToArray());
-                    }
-                }
-            }
-
-            Assert.True(sawFinal, "the final RFI-bearing frame never streamed - the window stalled");
-            Assert.True(maxOutstanding <= 2, $"window exceeded 2 (saw {maxOutstanding} unacked output frames)");
+            // Exactly one terminal frame, short (< 255) and carrying the RFI - so 100 displays it whole.
+            IReadOnlyList<TadFrameShape> frames = terminal.TadFrames;
+            Assert.Single(frames);
+            Assert.True(frames[0].BdatBytes < 255, $"stat reply is {frames[0].BdatBytes} bytes; must fit one buffer");
+            Assert.True(frames[0].HasRfi, "the stat reply must carry the RFI");
 
             string screen = terminal.Text;
-            Assert.Contains("TAD SESSION STATUS", screen);   // the whole report assembled
-            Assert.Contains("Client port", screen);
-            Assert.EndsWith("# ", screen);                   // prompt returned on the final frame
-            Assert.DoesNotContain("[", screen);              // no 0x5B - renders as AE on the ND terminal
-            Assert.DoesNotContain("]", screen);              // no 0x5D - renders as AA
+            Assert.Contains("SESSION STATUS", screen);
+            Assert.Contains("TAD number  : tty", screen);   // the tty IS shown
+            Assert.EndsWith("# ", screen);
+            Assert.DoesNotContain("[", screen);             // 0x5B renders as AE on the ND terminal
+            Assert.DoesNotContain("]", screen);             // 0x5D renders as AA
         }
 
         /// <summary>
