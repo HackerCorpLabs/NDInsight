@@ -123,6 +123,16 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
         }
 
         /// <summary>
+        /// Gets or sets the framework server host that dispatches server traffic to the registered
+        /// <see cref="Services.IXmsgServer"/>s (the replacement for <see cref="TadResponder"/>).
+        /// </summary>
+        public Services.XmsgServerHost? ServerHost
+        {
+            get { return _node.ServerHost; }
+            set { _node.ServerHost = value; }
+        }
+
+        /// <summary>
         /// Defines (or re-points) a remote-node name alias (the DEF-REMOTE / XSDRN model).
         /// </summary>
         /// <param name="name">The alias, matched case-insensitively.</param>

@@ -19,7 +19,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
     /// is parsed for its target name and routed to the matching server via <see cref="Handle"/>; session
     /// data (which arrives at a session port the accept advertised, never port 0) is routed to the server
     /// that <see cref="OwnsPort"/>s it. The server never parses ports or builds envelopes - it uses the
-    /// <see cref="IXmsgTransport"/> handed to it, which fills in Flags 1, Counter and channel.
+    /// <see cref="IXmsgServerTransport"/> handed to it, which fills in Flags 1, Counter and channel.
     /// </remarks>
     public interface IXmsgServer
     {
@@ -65,7 +65,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         /// <returns>
         /// The frames to transmit in response, in order (possibly empty).
         /// </returns>
-        IReadOnlyList<XmsgFrame> Handle(XmsgFrame incoming, IXmsgTransport transport);
+        IReadOnlyList<XmsgFrame> Handle(XmsgFrame incoming, IXmsgServerTransport transport);
 
         /// <summary>
         /// Returns true when the given wire port is a session port this server currently owns, so the
@@ -90,6 +90,6 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         /// <returns>
         /// The queued frames to transmit, in order (empty when nothing is pending).
         /// </returns>
-        IReadOnlyList<XmsgFrame> DrainPending(IXmsgTransport transport);
+        IReadOnlyList<XmsgFrame> DrainPending(IXmsgServerTransport transport);
     }
 }

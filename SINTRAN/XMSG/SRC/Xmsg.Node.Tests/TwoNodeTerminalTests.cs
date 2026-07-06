@@ -4,8 +4,10 @@ using System.Text;
 
 using NDInsight.Sintran.Xmsg.Codec;
 using NDInsight.Sintran.Xmsg.Node.Seam;
+using NDInsight.Sintran.Xmsg.Node.Services;
 using NDInsight.Sintran.Xmsg.Node.Tad;
 using NDInsight.Sintran.Xmsg.Packet;
+using NDInsight.Sintran.Xmsg.Servers.Tad;
 using NDInsight.Sintran.Xmsg.SubProtocol;
 
 using Xunit;
@@ -334,6 +336,69 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             serverToClient.Target = bytes => capturedClientCodec.ProcessBytes(bytes);
 
             return client;
+        }
+
+        /// <summary>
+        /// Wires the client node against a server node running the NEW framework path: an
+        /// <see cref="XmsgServerHost"/> with a registered <see cref="TadServer"/> (*TADADM), instead of
+        /// the legacy <see cref="TadTerminalResponder"/>.
+        /// </summary>
+        /// <param name="terminal">
+        /// Collects the BDAT terminal text the server sends back.
+        /// </param>
+        /// <param name="clientCodec">
+        /// Receives the client-side codec.
+        /// </param>
+        /// <returns>
+        /// The connect-to client bound to the server.
+        /// </returns>
+        private static TadConnectClient BuildViaServerHost(TerminalCapture terminal, out XmsgCodec clientCodec)
+        {
+            PipeTransport serverToClient = new PipeTransport();
+            PipeTransport clientToServer = new PipeTransport();
+
+            XmsgCodec serverCodec = new XmsgCodec("server", serverToClient);
+            XmsgLayer serverLayer = new XmsgLayer(serverCodec, 102, 0x00);
+            XmsgServerHost host = new XmsgServerHost(102);
+            host.Register(new TadServer(FixedClock));
+            serverLayer.ServerHost = host;
+
+            clientCodec = new XmsgCodec("client", clientToServer);
+            TadConnectClient client = new TadConnectClient(100, 102, 0x0283, seed: 0x14);
+            XmsgCodec capturedClientCodec = clientCodec;
+            clientCodec.PacketReceived += delegate (string linkId, XmsgPacketInfo packet)
+            {
+                client.NoteServerFrame(packet.Frame);
+                terminal.Append(packet.Frame);
+            };
+
+            clientToServer.Target = bytes => serverCodec.ProcessBytes(bytes);
+            serverToClient.Target = bytes => capturedClientCodec.ProcessBytes(bytes);
+
+            return client;
+        }
+
+        /// <summary>
+        /// The framework path (XmsgServerHost + TadServer, the *TADADM server) reproduces the connect-to
+        /// session end to end: connect, log in SYSTEM/SYSTEM, then the "help" menu - the Phase 1 gate that
+        /// the port preserved behavior. Same scenario as ClientConnectsAndTypesHelp, new server dispatch.
+        /// </summary>
+        [Fact]
+        public void ServerHost_ClientConnectsAndTypesHelp_ReturnsMenu()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // username
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // password
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("help")));
+
+            string screen = terminal.Text;
+            Assert.Contains("PASSWORD", screen);   // login prompted for a password
+            Assert.Contains("OK", screen);         // login accepted
+            Assert.Contains("Time", screen);       // the menu rendered
+            Assert.Contains("Disconnect", screen);
         }
 
         /// <summary>

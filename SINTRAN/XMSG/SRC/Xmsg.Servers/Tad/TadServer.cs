@@ -12,7 +12,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
     /// <summary>
     /// The TAD terminal server - the named XROUT server <c>*TADADM</c> that answers <c>connect-to</c>.
     /// It plugs into the node as an <see cref="IXmsgServer"/>, manages one tty session per concurrent
-    /// connect, and builds every reply through the node's <see cref="IXmsgTransport"/> so it owns no
+    /// connect, and builds every reply through the node's <see cref="IXmsgServerTransport"/> so it owns no
     /// envelope/sequencing state.
     /// </summary>
     /// <remarks>
@@ -164,7 +164,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <returns>
         /// The reply frames, in order.
         /// </returns>
-        public IReadOnlyList<XmsgFrame> Handle(XmsgFrame incoming, IXmsgTransport transport)
+        public IReadOnlyList<XmsgFrame> Handle(XmsgFrame incoming, IXmsgServerTransport transport)
         {
             if (incoming == null || incoming.SubHeader == null)
             {
@@ -235,7 +235,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <returns>
         /// An empty list.
         /// </returns>
-        public IReadOnlyList<XmsgFrame> DrainPending(IXmsgTransport transport)
+        public IReadOnlyList<XmsgFrame> DrainPending(IXmsgServerTransport transport)
         {
             return Array.Empty<XmsgFrame>();
         }
@@ -246,7 +246,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="request">The connect letter.</param>
         /// <param name="transport">The node transport.</param>
         /// <returns>The accept frame (or empty when at capacity).</returns>
-        private IReadOnlyList<XmsgFrame> OnConnect(XmsgFrame request, IXmsgTransport transport)
+        private IReadOnlyList<XmsgFrame> OnConnect(XmsgFrame request, IXmsgServerTransport transport)
         {
             if (_sessions.Count >= MaxSessions)
             {
@@ -284,7 +284,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="request">The session-setup frame.</param>
         /// <param name="transport">The node transport.</param>
         /// <returns>The port-assignment frame.</returns>
-        private IReadOnlyList<XmsgFrame> OnSessionSetup(TadServerSession session, XmsgFrame request, IXmsgTransport transport)
+        private IReadOnlyList<XmsgFrame> OnSessionSetup(TadServerSession session, XmsgFrame request, IXmsgServerTransport transport)
         {
             session.SessionSetupSeen = true;
 
@@ -320,7 +320,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="request">The terminal-setup frame.</param>
         /// <param name="transport">The node transport.</param>
         /// <returns>The burst frames.</returns>
-        private IReadOnlyList<XmsgFrame> OnTerminalSetup(TadServerSession session, XmsgFrame request, IXmsgTransport transport)
+        private IReadOnlyList<XmsgFrame> OnTerminalSetup(TadServerSession session, XmsgFrame request, IXmsgServerTransport transport)
         {
             CaptureNegotiation(request, session);
 
@@ -352,7 +352,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="frame">The input frame.</param>
         /// <param name="transport">The node transport.</param>
         /// <returns>The reply frames.</returns>
-        private IReadOnlyList<XmsgFrame> OnTerminalInput(TadServerSession session, XmsgFrame frame, IXmsgTransport transport)
+        private IReadOnlyList<XmsgFrame> OnTerminalInput(TadServerSession session, XmsgFrame frame, IXmsgServerTransport transport)
         {
             List<XmsgFrame> outgoing = new List<XmsgFrame>();
             string line = ExtractBdatText(frame).Trim();
@@ -383,7 +383,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="transport">The node transport.</param>
         /// <param name="outgoing">The reply list.</param>
         /// <param name="line">The typed username.</param>
-        private void HandleUsername(TadServerSession session, IXmsgTransport transport, List<XmsgFrame> outgoing, string line)
+        private void HandleUsername(TadServerSession session, IXmsgServerTransport transport, List<XmsgFrame> outgoing, string line)
         {
             session.PendingUsername = line;
 
@@ -409,7 +409,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="transport">The node transport.</param>
         /// <param name="outgoing">The reply list.</param>
         /// <param name="line">The typed password.</param>
-        private void HandlePassword(TadServerSession session, IXmsgTransport transport, List<XmsgFrame> outgoing, string line)
+        private void HandlePassword(TadServerSession session, IXmsgServerTransport transport, List<XmsgFrame> outgoing, string line)
         {
             bool valid = _users.TryGet(session.PendingUsername, out TadUser user)
                 && string.Equals(line, user.Password, StringComparison.OrdinalIgnoreCase);
@@ -445,7 +445,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="transport">The node transport.</param>
         /// <param name="outgoing">The reply list.</param>
         /// <param name="user">The account that logged in.</param>
-        private void LogIn(TadServerSession session, IXmsgTransport transport, List<XmsgFrame> outgoing, TadUser user)
+        private void LogIn(TadServerSession session, IXmsgServerTransport transport, List<XmsgFrame> outgoing, TadUser user)
         {
             session.LoginFaults = 0;
             session.Phase = TadServerLoginPhase.LoggedIn;
@@ -465,7 +465,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="transport">The node transport.</param>
         /// <param name="outgoing">The reply list.</param>
         /// <param name="line">The typed command.</param>
-        private void HandleCommand(TadServerSession session, IXmsgTransport transport, List<XmsgFrame> outgoing, string line)
+        private void HandleCommand(TadServerSession session, IXmsgServerTransport transport, List<XmsgFrame> outgoing, string line)
         {
             if (string.Equals(line, "stat", StringComparison.OrdinalIgnoreCase))
             {
@@ -499,7 +499,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="transport">The node transport.</param>
         /// <param name="outgoing">The reply list.</param>
         /// <param name="farewell">The farewell text for the first ladder frame.</param>
-        private void AppendTeardownLadder(TadServerSession session, IXmsgTransport transport, List<XmsgFrame> outgoing, string farewell)
+        private void AppendTeardownLadder(TadServerSession session, IXmsgServerTransport transport, List<XmsgFrame> outgoing, string farewell)
         {
             outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA, new TadMessageBuilder()
                 .BdatText(farewell).Cesc(CescState.EscapeDisabled).Build()));
@@ -520,7 +520,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="transport">The node transport.</param>
         /// <param name="outgoing">The reply list.</param>
         /// <param name="text">The full reply text.</param>
-        private void EmitMenuReply(TadServerSession session, IXmsgTransport transport, List<XmsgFrame> outgoing, string text)
+        private void EmitMenuReply(TadServerSession session, IXmsgServerTransport transport, List<XmsgFrame> outgoing, string text)
         {
             string body = text ?? string.Empty;
             int offset = 0;
@@ -543,7 +543,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="session">The session.</param>
         /// <param name="transport">The node transport.</param>
         /// <returns>The 0xFD frame.</returns>
-        private XmsgFrame BuildFdNotification(TadServerSession session, IXmsgTransport transport)
+        private XmsgFrame BuildFdNotification(TadServerSession session, IXmsgServerTransport transport)
         {
             byte[] tad = new TadMessageBuilder().Raw(0xFD, ReadOnlySpan<byte>.Empty).Build();
             return transport.BuildDatagram(
@@ -560,7 +560,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="session">The session.</param>
         /// <param name="transport">The node transport.</param>
         /// <returns>The DCON frame.</returns>
-        private XmsgFrame BuildDconIndication(TadServerSession session, IXmsgTransport transport)
+        private XmsgFrame BuildDconIndication(TadServerSession session, IXmsgServerTransport transport)
         {
             byte[] tad = new TadMessageBuilder().Raw(DconOpcode, ReadOnlySpan<byte>.Empty).Build();
             return BuildSession(session, transport, BareTadControlService,
@@ -575,7 +575,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="frameFlags">The sub-header frame-flags byte.</param>
         /// <param name="tadChain">The TAD chain payload.</param>
         /// <returns>The terminal-data frame.</returns>
-        private XmsgFrame BuildTerminal(TadServerSession session, IXmsgTransport transport, byte frameFlags, byte[] tadChain)
+        private XmsgFrame BuildTerminal(TadServerSession session, IXmsgServerTransport transport, byte frameFlags, byte[] tadChain)
         {
             return BuildSession(session, transport, TerminalDataControlService,
                 frameFlags, (byte)XmsgSendOptions.None, tadChain);
@@ -591,7 +591,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="role">The sub-header role byte.</param>
         /// <param name="payload">The trailer payload.</param>
         /// <returns>The assembled frame.</returns>
-        private XmsgFrame BuildSession(TadServerSession session, IXmsgTransport transport, uint controlService, byte frameFlags, byte role, byte[] payload)
+        private XmsgFrame BuildSession(TadServerSession session, IXmsgServerTransport transport, uint controlService, byte frameFlags, byte role, byte[] payload)
         {
             return transport.BuildDatagram(
                 session.RemoteNode, session.ClientSystem, session.ClientPort,
@@ -626,7 +626,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="session">The session.</param>
         /// <param name="transport">The node transport (for this node's number).</param>
         /// <returns>The report text.</returns>
-        private string BuildStatReport(TadServerSession session, IXmsgTransport transport)
+        private string BuildStatReport(TadServerSession session, IXmsgServerTransport transport)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("\r\n--- TAD SESSION STATUS ---\r\n\r\n");
@@ -671,16 +671,14 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="session">The session to populate.</param>
         private static void ExtractConnectStrings(XmsgFrame request, TadServerSession session)
         {
-            byte[]? trailer = request.TrailingBytes;
-            if (trailer == null)
-            {
-                return;
-            }
-
+            // Scan the FULL serialized frame (byte-identical whether the letter is in TrailingBytes or
+            // Body): the first '*'-run is the service (*TADADM), and the run right after it is the target
+            // name (D102). Capturing the target only AFTER the service avoids spurious header runs.
+            byte[] bytes = request.ToArray();
             StringBuilder run = new StringBuilder();
-            for (int i = 0; i <= trailer.Length; i++)
+            for (int i = 0; i <= bytes.Length; i++)
             {
-                byte b = i < trailer.Length ? trailer[i] : (byte)0x00;
+                byte b = i < bytes.Length ? bytes[i] : (byte)0x00;
                 if (b >= 0x20 && b <= 0x7E)
                 {
                     run.Append((char)b);
@@ -694,7 +692,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                     {
                         session.ConnectService = s;
                     }
-                    else if (session.ConnectTargetName.Length == 0)
+                    else if (session.ConnectService.Length != 0 && session.ConnectTargetName.Length == 0)
                     {
                         session.ConnectTargetName = s;
                     }

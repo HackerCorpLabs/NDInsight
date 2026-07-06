@@ -7,7 +7,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
 {
     /// <summary>
     /// The node-side host that routes XMSG server traffic to registered <see cref="IXmsgServer"/>s and
-    /// gives them the low-level <see cref="IXmsgTransport"/> to reply with. It owns the per-remote-node
+    /// gives them the low-level <see cref="IXmsgServerTransport"/> to reply with. It owns the per-remote-node
     /// links (seed + continuous Flags 1), allocates session ports and numbers, and performs the XROUT
     /// port-0 dispatch on the XMCSM low byte.
     /// </summary>
@@ -22,7 +22,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
     /// server that <see cref="IXmsgServer.OwnsPort"/>s it (the server's well-known reply-from port for the
     /// session-setup, then the session port the accept advertised for terminal data).
     /// </remarks>
-    public sealed class XmsgServerHost : IXmsgTransport
+    public sealed class XmsgServerHost : IXmsgServerTransport
     {
         private readonly ushort _nodeNumber;
         private readonly IResponderSequenceStore _store;
@@ -398,16 +398,16 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         /// </returns>
         private static string ExtractLetterName(XmsgFrame incoming)
         {
-            byte[]? trailer = incoming.TrailingBytes;
-            if (trailer == null)
-            {
-                return string.Empty;
-            }
-
+            // The target name (for example *TADADM) is an ASCII run in the letter body. A parsed XSLET
+            // letter decodes into Body (whose ToArray does not round-trip the name) while a freshly-built
+            // one carries it in TrailingBytes - so scan the FULL serialized frame, which is byte-identical
+            // for both and always contains the letter. The header/sub-header carry no leading-'*' run, so
+            // the first '*'-prefixed run is the server name.
+            byte[] bytes = incoming.ToArray();
             System.Text.StringBuilder run = new System.Text.StringBuilder();
-            for (int i = 0; i <= trailer.Length; i++)
+            for (int i = 0; i <= bytes.Length; i++)
             {
-                byte b = i < trailer.Length ? trailer[i] : (byte)0x00;
+                byte b = i < bytes.Length ? bytes[i] : (byte)0x00;
                 if (b >= 0x20 && b <= 0x7E)
                 {
                     run.Append((char)b);
