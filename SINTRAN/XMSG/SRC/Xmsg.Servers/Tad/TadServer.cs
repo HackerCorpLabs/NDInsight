@@ -280,16 +280,18 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             {
                 TadServerSession session = _sessionList[i];
 
-                // If no command burst is in progress but a tell / wall message is queued for this session,
-                // begin an asynchronous inject burst: the queued text, then a redrawn "# " prompt. It streams
-                // under the same flow-control handshake as a command reply.
+                // Advance any command-reply burst first (this may complete it and clear OutputActive)...
+                if (session.OutputActive)
+                {
+                    DrainSessionOutput(session, transport, outgoing);
+                }
+
+                // ...then, if the session is now idle and a tell / wall message is queued, begin the
+                // asynchronous inject burst (the queued text + a redrawn "# " prompt) AND send its first
+                // batch in this same drain, so an inject lands on the next 7DUMM rather than lagging a cycle.
                 if (!session.OutputActive && session.IsLoggedIn && session.HasPendingOutput)
                 {
                     StartOutputBurst(session, session.TakePendingOutput() + TerminalPrompt);
-                }
-
-                if (session.OutputActive)
-                {
                     DrainSessionOutput(session, transport, outgoing);
                 }
             }
@@ -342,8 +344,10 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 CloseSession(stale);
             }
 
+            // The wire port keeps incrementing (a fresh port per session is normal); the TAD number
+            // (ttyN) is the LOWEST free 1..MaxSessions so a freed tty is reused, not left climbing.
             ushort sessionPort = transport.AllocateSessionPort();
-            int tadNumber = transport.AllocateSessionNumber();
+            int tadNumber = AllocateTadNumber();
 
             TadServerSession session = new TadServerSession(
                 request.Header.SourceNode, clientSystem, clientPort, sessionPort, tadNumber);
@@ -597,10 +601,12 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             if (session.LoginFaults + 1 >= MaxLoginFaults)
             {
                 // Third strike: taunt and tear the session down (0xFD -> asker DCON).
+                // Instant disconnect, same path as menu "4": the teardown ladder + the host DCON (0x09),
+                // NOT the bare 0xFD notification (which leaves 100's 1-minute idle timer running).
                 session.LoginFaults++;
-                outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA, new TadMessageBuilder()
-                    .BdatText("\r\nBYE HACKER!\r\n").Sycn(SycnState.LoggedOut).Build()));
-                outgoing.Add(BuildFdNotification(session, transport));
+                AppendTeardownLadder(session, transport, outgoing, "\r\nBYE HACKER!\r\n");
+                outgoing.Add(BuildDconIndication(session, transport));
+                CloseSession(session);   // free the session after the forced teardown
                 return;
             }
 
@@ -683,11 +689,13 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             {
                 case TadDisconnectMode.Ladder:
                     AppendTeardownLadder(session, transport, outgoing, result.Output);
+                    CloseSession(session);   // free the session (who / TAD-number reuse) - we initiated the teardown
                     break;
 
                 case TadDisconnectMode.LadderThenDcon:
                     AppendTeardownLadder(session, transport, outgoing, result.Output);
                     outgoing.Add(BuildDconIndication(session, transport));
+                    CloseSession(session);   // free the session; the teardown frames are already queued above
                     break;
 
                 default:
@@ -1002,6 +1010,8 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                     XmsgFrame frame = BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA, builder.Build());
                     TrackOutput(session, frame);
                     session.OutputFinalSent = true;
+                    session.OutputActive = false;   // burst complete the moment the terminator is sent, so a
+                                                    // queued tell/wall inject can start on the very next drain
                     outgoing.Add(frame);
                     return;
                 }
@@ -1115,6 +1125,35 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             _sessionByPort.Remove(session.SessionWirePort);
             _sessionList.Remove(session);
             SessionClosed?.Invoke(session.TadNumber, session.ClientSystem);
+        }
+
+        /// <summary>
+        /// Allocates the lowest free TAD (tty) number in <c>1..MaxSessions</c>, so a freed tty is reused.
+        /// </summary>
+        /// <returns>
+        /// The lowest tty number not currently held by a live session.
+        /// </returns>
+        private int AllocateTadNumber()
+        {
+            for (int n = 1; n <= MaxSessions; n++)
+            {
+                bool used = false;
+                for (int i = 0; i < _sessionList.Count; i++)
+                {
+                    if (_sessionList[i].TadNumber == n)
+                    {
+                        used = true;
+                        break;
+                    }
+                }
+
+                if (!used)
+                {
+                    return n;
+                }
+            }
+
+            return MaxSessions + 1;   // unreachable: OnConnect refuses at capacity before allocating
         }
 
         /// <summary>

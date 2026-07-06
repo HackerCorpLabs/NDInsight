@@ -444,6 +444,32 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
+        /// Disconnecting (menu "4") frees the session - it leaves the session table - and the freed TAD
+        /// number is reused by the next connect (lowest-free), instead of the counter climbing forever.
+        /// </summary>
+        [Fact]
+        public void ServerHost_Disconnect_FreesSessionAndReusesTadNumber()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient c1 = BuildViaServerHost(terminal, null, out XmsgCodec clientCodec, out _, out TadServer server);
+
+            clientCodec.SendPacket(new XmsgPacket(c1.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(c1.BuildInput("SYSTEM")));
+            clientCodec.SendPacket(new XmsgPacket(c1.BuildInput("SYSTEM")));
+            Assert.Equal(1, server.SessionCount);
+
+            clientCodec.SendPacket(new XmsgPacket(c1.BuildInput("4")));   // disconnect (immediate)
+            Assert.Equal(0, server.SessionCount);                        // session freed, not lingering
+
+            int reusedTad = -1;
+            server.SessionOpened += (tadNumber, clientSystem) => reusedTad = tadNumber;
+            TadConnectClient c2 = new TadConnectClient(100, 102, 0x02C6, seed: 0x14);
+            clientCodec.SendPacket(new XmsgPacket(c2.BuildConnect("D102")));
+            Assert.Equal(1, server.SessionCount);
+            Assert.Equal(1, reusedTad);   // the freed tty1 is reused, not tty2
+        }
+
+        /// <summary>
         /// "who" lists the logged-in sessions and marks the caller with a "===>" arrow.
         /// </summary>
         [Fact]
