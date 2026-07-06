@@ -62,16 +62,15 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         private const uint BareTadControlService = (uint)XmcsmService.BareTadControl;       // 0x00080000
         private const uint SessionNotifyControlService = (uint)XmcsmService.SessionNotify;  // 0x00060000
 
-        // Max bytes per terminal-data BDAT element. LIVE-MEASURED against machine 100 (xmsg-runner.log
-        // 2026-07-06 12:13): a 137-byte BDAT ("help", XMLEN 146, one frame) is accepted, but a 240-byte
-        // BDAT ("stat" first frame, XMLEN 242) crashes 100 with "Illegal element length" (RFIRUT:1) even
-        // once secure-ACKs flow. So 100 caps a single terminal-data element somewhere in (137, 240].
-        // Stay at 128 - under the proven-good 137, on an even boundary. This is EVIDENCE-BASED, not a
-        // guess; the exact cap and whether multi-frame terminal output has extra rules is a GOD-LLM
-        // question (see DOC/XMSG-TAD-OUTPUT-LENGTH-QUESTION-2026-07-06.md). NOTE: a separate fix in
-        // XmsgNode (secure-ACK the session data) was ALSO required - without it 100 desynced its
-        // magic-number window regardless of chunk size.
-        private const int MenuReplyChunk = 128;
+        // TAD full-buffer SENTINEL size (TAD-Message-Formats.md section 22.6, 33/33 captures + NPL
+        // corroboration). There is NO max element length. A non-final terminal-output BDAT MUST be
+        // EXACTLY 255 data bytes (count 0xFF = "buffer full, more follows"), sent BARE (no RFI) as its
+        // own datagram. 100 reads output elements until it gets one SHORTER than 255 - that short element
+        // is the terminator and MUST carry the RFI. A short non-final frame with no RFI is structurally
+        // impossible and is exactly what crashed 100 with "Illegal element length" (RFIRUT). This is why
+        // chunking at 128/240 failed identically: both are short non-final frames with no RFI. Total
+        // reply length is unbounded when chunked at 255.
+        private const int FullBufferChunk = 255;
 
         // The MOTD frame's TAD message STRUCTURE is VERIFIED from conn-to-d102 frame 62: BMMX(01,0000) /
         // ECKM(01) / a BDAT banner / SYCN(0002 WaitUser) / a BDAT "ENTER " prompt / RFI. The banner text
@@ -276,6 +275,15 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
 
             ushort clientSystem = request.SubHeader!.SourceSystem;
             ushort clientPort = request.SubHeader.SourcePort;
+
+            // A re-connect (same asker system+port) must tear down the old session, not leak its wire
+            // port. GOD-LLM answer: minting a fresh terminal port per session is normal, but the old one
+            // must be released or 100 keeps addressing a stale port and its magic-number creation fails.
+            if (_sessions.TryGetValue(SessionKey(clientSystem, clientPort), out TadServerSession? stale))
+            {
+                CloseSession(stale);
+            }
+
             ushort sessionPort = transport.AllocateSessionPort();
             int tadNumber = transport.AllocateSessionNumber();
 
@@ -621,14 +629,22 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         {
             string body = text ?? string.Empty;
             int offset = 0;
-            while (body.Length - offset > MenuReplyChunk)
+
+            // Emit BARE 255-byte continuations (count 0xFF, no RFI) while at LEAST a full chunk remains.
+            // The ">=" (not ">") is deliberate: a trailing exactly-255 must go out as a bare continuation
+            // so the final terminator is ALWAYS shorter than 255. For output that is an exact multiple of
+            // 255 this leaves an EMPTY final element - still a valid "< 255" terminator, and it carries the
+            // SYCN + RFI (the exact-multiple edge case from TAD-Message-Formats.md section 22.6).
+            while (body.Length - offset >= FullBufferChunk)
             {
-                string piece = body.Substring(offset, MenuReplyChunk);
+                string piece = body.Substring(offset, FullBufferChunk);
                 outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA,
                     new TadMessageBuilder().BdatText(piece).Build()));
-                offset += MenuReplyChunk;
+                offset += FullBufferChunk;
             }
 
+            // Final terminator: the short remainder (< 255, possibly empty) + SYCN 000A + RFI. The builder
+            // inserts the word-align 0x00 pad after an odd-length BDAT before the SYCN.
             string tail = body.Substring(offset);
             outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA, new TadMessageBuilder()
                 .BdatText(tail).Sycn(SycnState.LoggedIn).Rfi().Build()));
@@ -725,28 +741,42 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <returns>The report text.</returns>
         private string BuildStatReport(TadServerSession session, IXmsgServerTransport transport)
         {
-            // COMPACT single-frame report ending with the "# " prompt. LIVE-CRITICAL: the previous
-            // multi-line report (~460 bytes) crashed 100 with "Illegal element length" (RFIRUT) - 100
-            // accumulates a terminal reply's BDAT data until the RFI and rejects the element once the
-            // TOTAL exceeds its input-element buffer (a ~137-byte "help" reply is accepted). CHUNKING DID
-            // NOT HELP because the accumulated total is unchanged. So this report is kept short enough to
-            // ride a single safe frame exactly like the Time/help replies (proven to work), and it ends
-            // with "\r\n# " so the prompt returns without the user pressing Enter. Rendering the FULL rich
-            // report needs the real host's long-output pagination rule - open GOD-LLM question in
-            // DOC/XMSG-TAD-OUTPUT-LENGTH-QUESTION-2026-07-06.md.
-            StringBuilder sb = new StringBuilder(128);
-            sb.Append("\r\n-- STAT --\r\n");
-            sb.Append("tty").Append(session.TadNumber)
-              .Append("  node ").Append(session.ClientSystem).Append("->").Append(transport.NodeNumber)
-              .Append("  ").Append(session.ConnectService.Length != 0 ? session.ConnectService : "*TADADM")
-              .Append(' ').Append(session.ConnectTargetName.Length != 0 ? session.ConnectTargetName : "-")
-              .Append("\r\n");
-            sb.Append("port 0x").Append(session.ClientPort.ToString("X4"));
+            // Full rich report. Long output is now legal: EmitMenuReply streams it as 255-byte bare
+            // continuations plus a short final frame with the RFI (the TAD full-buffer sentinel rule -
+            // TAD-Message-Formats.md section 22.6). Ends with "\r\n# " so the prompt returns without an
+            // Enter. NOTE: labels use parentheses, NOT square brackets - 0x5B/0x5D render as the Norwegian
+            // letters AE/AA on the ND terminal charset (the "[TTYP]" -> "AETTYPAA" the user saw).
+            StringBuilder sb = new StringBuilder(512);
+            sb.Append("\r\n--- TAD SESSION STATUS ---\r\n\r\n");
+            sb.Append("Connect letter (XMCSM 04000041):\r\n");
+            sb.Append("  From node    : ").Append(session.ClientSystem)
+              .Append("  ->  this node ").Append(transport.NodeNumber)
+              .Append(" (D").Append(transport.NodeNumber).Append(")\r\n");
+            sb.Append("  TAD number   : tty").Append(session.TadNumber).Append("\r\n");
+            sb.Append("  Service      : ")
+              .Append(session.ConnectService.Length != 0 ? session.ConnectService : "(none)").Append("\r\n");
+            sb.Append("  Target name  : ")
+              .Append(session.ConnectTargetName.Length != 0 ? session.ConnectTargetName : "(none)").Append("\r\n");
+            sb.Append("  Client port  : 0x").Append(session.ClientPort.ToString("X4"))
+              .Append("  (logical ").Append(session.ClientPort >> 7)
+              .Append(", incarnation ").Append(session.ClientPort & 0x7F).Append(")\r\n\r\n");
+
             if (session.NegotiationSeen)
             {
-                sb.Append("  TTYP ").Append(session.TerminalType)
-                  .Append(" TMOD 0x").Append(session.TerminalMode.ToString("X2"))
-                  .Append(" ESC ").Append(session.EscapeChar);
+                sb.Append("Terminal negotiation (sent by your connect-to):\r\n");
+                sb.Append("  Terminal type: ").Append(session.TerminalType)
+                  .Append("  (octal ").Append(Convert.ToString(session.TerminalType, 8))
+                  .Append(", hex 0x").Append(session.TerminalType.ToString("X4")).Append(")   (TTYP)\r\n");
+                sb.Append("  Terminal mode: ").Append(session.TerminalMode)
+                  .Append("  (0x").Append(session.TerminalMode.ToString("X2")).Append(")   (TMOD)\r\n");
+                sb.Append("  Escape char  : ").Append(session.EscapeChar)
+                  .Append("  (octal ").Append(Convert.ToString(session.EscapeChar, 8))
+                  .Append(session.EscapeChar == 0x1B ? ", ESC" : string.Empty).Append(")   (DESC)\r\n");
+                sb.Append("  Host OS ver  : ").Append(FormatHexBytes(session.OsVersion)).Append("   (OPSV)\r\n");
+            }
+            else
+            {
+                sb.Append("Terminal negotiation: not yet received.\r\n");
             }
 
             sb.Append("\r\n# ");

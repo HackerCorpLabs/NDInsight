@@ -436,13 +436,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
-        /// The "stat" reply is a compact single-frame response that ends with the "# " prompt, exactly
-        /// like the Time/help replies. Regression guard for the crash where the long multi-line stat
-        /// (~460 bytes) accumulated past 100's terminal element buffer ("Illegal element length") and left
-        /// no prompt (the user had to press Enter). Keeps stat short enough to ride one safe frame.
+        /// The full rich "stat" report renders and ends with the "# " prompt (so the prompt returns
+        /// without an Enter). Long output is now legal via the 255-byte sentinel chunking. Labels use
+        /// parentheses, never square brackets (0x5B/0x5D render as Norwegian letters on the ND terminal).
         /// </summary>
         [Fact]
-        public void ServerHost_Stat_IsCompactAndEndsWithPrompt()
+        public void ServerHost_Stat_RendersRichReportAndEndsWithPrompt()
         {
             TerminalCapture terminal = new TerminalCapture();
             TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
@@ -454,11 +453,45 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             clientCodec.SendPacket(new XmsgPacket(client.BuildInput("stat")));
 
             string screen = terminal.Text;
-            Assert.Contains("STAT", screen);          // the report rendered
-            Assert.Contains("tty", screen);           // session line present
-            Assert.EndsWith("# ", screen);            // prompt returns without needing an Enter
-            // Compact: the whole stat reply must fit one safe terminal frame (well under the ~137-byte cap).
-            Assert.True(screen.Length <= 128, $"stat reply is {screen.Length} bytes; must stay single-frame");
+            Assert.Contains("TAD SESSION STATUS", screen);   // the rich report rendered
+            Assert.Contains("Client port", screen);
+            Assert.EndsWith("# ", screen);                   // prompt returns without needing an Enter
+            Assert.DoesNotContain("[", screen);              // no 0x5B - renders as AE on the ND terminal
+            Assert.DoesNotContain("]", screen);              // no 0x5D - renders as AA
+        }
+
+        /// <summary>
+        /// A terminal reply longer than one buffer is streamed as the TAD full-buffer sentinel: every
+        /// non-final frame is a BARE 255-byte BDAT (no RFI), and the final frame is a short (&lt; 255) BDAT
+        /// that carries the RFI. This is the verified rule (TAD-Message-Formats.md section 22.6) that the
+        /// earlier 128/240-byte chunking violated - a short non-final frame with no RFI is what crashed 100.
+        /// </summary>
+        [Fact]
+        public void ServerHost_LongReply_Uses255ByteSentinelChunking()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // username
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // password
+            terminal.Clear();                                                     // isolate the stat reply
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("stat")));
+
+            IReadOnlyList<TadFrameShape> frames = terminal.TadFrames;
+            Assert.True(frames.Count >= 2, "the stat reply (> 255 bytes) must span a continuation plus a final frame");
+
+            // Every non-final frame: a bare 255-byte continuation with NO RFI.
+            for (int i = 0; i < frames.Count - 1; i++)
+            {
+                Assert.Equal(255, frames[i].BdatBytes);
+                Assert.False(frames[i].HasRfi, "a 255-byte continuation must not carry an RFI");
+            }
+
+            // The final frame: a short (< 255) terminator that carries the RFI.
+            TadFrameShape last = frames[frames.Count - 1];
+            Assert.True(last.BdatBytes < 255, "the final frame must be shorter than 255 bytes");
+            Assert.True(last.HasRfi, "the final frame must carry the RFI");
         }
 
         /// <summary>
@@ -512,6 +545,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         {
             private readonly StringBuilder _text = new StringBuilder();
             private readonly List<SintranPacketSubtype> _subtypes = new List<SintranPacketSubtype>();
+            private readonly List<TadFrameShape> _tadFrames = new List<TadFrameShape>();
 
             /// <summary>Gets the accumulated terminal text.</summary>
             public string Text
@@ -532,12 +566,22 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             }
 
             /// <summary>
-            /// Clears the accumulated text and subtypes (to isolate a later exchange in a test).
+            /// Gets the shape (first BDAT byte-count and whether an RFI is present) of every terminal-data
+            /// frame that carried a BDAT, in arrival order. Used to assert the 255-byte sentinel chunking.
+            /// </summary>
+            public IReadOnlyList<TadFrameShape> TadFrames
+            {
+                get { return _tadFrames; }
+            }
+
+            /// <summary>
+            /// Clears the accumulated text, subtypes and frame shapes (to isolate a later exchange).
             /// </summary>
             public void Clear()
             {
                 _text.Clear();
                 _subtypes.Clear();
+                _tadFrames.Clear();
             }
 
             /// <summary>
@@ -559,19 +603,63 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
                 }
 
                 IReadOnlyList<TadMessage> messages = frame.Tad.Messages;
+                int firstBdatBytes = -1;
+                bool hasRfi = false;
                 for (int i = 0; i < messages.Count; i++)
                 {
-                    if (messages[i].Opcode != 0x01)
+                    if (messages[i].Opcode == 0x02)   // RFI
+                    {
+                        hasRfi = true;
+                    }
+
+                    if (messages[i].Opcode != 0x01)   // BDAT
                     {
                         continue;
                     }
 
                     byte[] data = messages[i].Data;
+                    if (firstBdatBytes < 0)
+                    {
+                        firstBdatBytes = data.Length;
+                    }
+
                     for (int j = 0; j < data.Length; j++)
                     {
                         _text.Append((char)(data[j] & 0x7F));
                     }
                 }
+
+                if (firstBdatBytes >= 0)
+                {
+                    _tadFrames.Add(new TadFrameShape(firstBdatBytes, hasRfi));
+                }
+            }
+        }
+
+        /// <summary>
+        /// The shape of one terminal-data frame: its first BDAT's data length and whether it carries an RFI.
+        /// </summary>
+        private readonly struct TadFrameShape
+        {
+            /// <summary>The number of data bytes in the frame's first BDAT element.</summary>
+            public readonly int BdatBytes;
+
+            /// <summary>Whether the frame contains an RFI (ready-for-input) message.</summary>
+            public readonly bool HasRfi;
+
+            /// <summary>
+            /// Initialises the frame shape.
+            /// </summary>
+            /// <param name="bdatBytes">
+            /// The first BDAT's data length.
+            /// </param>
+            /// <param name="hasRfi">
+            /// Whether an RFI is present.
+            /// </param>
+            public TadFrameShape(int bdatBytes, bool hasRfi)
+            {
+                BdatBytes = bdatBytes;
+                HasRfi = hasRfi;
             }
         }
     }
