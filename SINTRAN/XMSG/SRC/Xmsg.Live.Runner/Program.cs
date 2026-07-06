@@ -22,6 +22,7 @@ using NDInsight.Sintran.Xmsg.Live;          // LapbLayer, TcpBridgeTransport, Li
 using NDInsight.Sintran.Xmsg.Live.Logging;  // RotatingFileWriter, TeeTextWriter, LogLevel
 using NDInsight.Sintran.Xmsg.Live.Runner;   // TopologyConfig / TopologyNode / LogConfig (this project)
 using NDInsight.Sintran.Xmsg.Live.Seam;     // LapbLayerAdapter (the concrete ILink over HDLC/LAPB)
+using NDInsight.Sintran.Xmsg.Servers.Tad;   // TadServer, TadUser, TadUserDirectory
 using NDInsight.Sintran.Xmsg.Node;          // XmsgNode, FileResponderSequenceStore (portable half)
 using NDInsight.Sintran.Xmsg.Node.Seam;     // ILink, XmsgLayer, LinkXmsgTransport, BoundProtocolDetector
 using NDInsight.Sintran.Xmsg.Packet;
@@ -166,7 +167,7 @@ internal static class Program
             }
             else
             {
-                await RunSeamAsync(transport, host, port, node, routingEntries, topology?.Motd, cts.Token);
+                await RunSeamAsync(transport, host, port, node, routingEntries, topology?.Motd, BuildTadUsers(topology), cts.Token);
             }
         }
         catch (OperationCanceledException)
@@ -284,6 +285,42 @@ internal static class Program
             console.WriteLine($"[runner] topology load failed ({ex.Message}); using built-in defaults.");
             return null;
         }
+    }
+
+    /// <summary>
+    /// Builds the TAD login directory from the topology's <c>tadUsers</c> section.
+    /// </summary>
+    /// <remarks>
+    /// A user whose password is empty or missing is passwordless (login skips the password prompt). When
+    /// the section is absent or empty the directory falls back to a single <c>SYSTEM</c>/<c>SYSTEM</c>
+    /// account so the server always has a login. Entries with a blank username are skipped.
+    /// </remarks>
+    /// <param name="topology">
+    /// The loaded topology (may be <c>null</c>).
+    /// </param>
+    /// <returns>
+    /// The TAD user directory.
+    /// </returns>
+    private static TadUserDirectory BuildTadUsers(TopologyConfig? topology)
+    {
+        if (topology == null || topology.TadUsers == null || topology.TadUsers.Count == 0)
+        {
+            return new TadUserDirectory();   // default SYSTEM/SYSTEM
+        }
+
+        List<TadUser> users = new List<TadUser>(topology.TadUsers.Count);
+        for (int i = 0; i < topology.TadUsers.Count; i++)
+        {
+            TadUserConfig config = topology.TadUsers[i];
+            if (string.IsNullOrWhiteSpace(config.Username))
+            {
+                continue;
+            }
+
+            users.Add(new TadUser(config.Username.Trim(), config.Password));
+        }
+
+        return users.Count != 0 ? new TadUserDirectory(users) : new TadUserDirectory();
     }
 
     /// <summary>
@@ -535,7 +572,7 @@ internal static class Program
     /// </summary>
     private static async Task RunSeamAsync(
         TcpBridgeTransport transport, string host, int port, ushort node,
-        IReadOnlyList<RoutingTableEntry> routingEntries, string? motdLine, CancellationToken token)
+        IReadOnlyList<RoutingTableEntry> routingEntries, string? motdLine, TadUserDirectory users, CancellationToken token)
     {
         string linkId = $"hdlc:{host}:{port}";
 
@@ -575,7 +612,8 @@ internal static class Program
         // The MOTD banner middle line comes from the topology file when set; otherwise the server uses its
         // built-in "Emulated TAD server version vN.N.N". The host-id line is generated from our own node.
         NDInsight.Sintran.Xmsg.Servers.Tad.TadServer tadServer =
-            new NDInsight.Sintran.Xmsg.Servers.Tad.TadServer(() => DateTime.Now, users: null, motdLine: motdLine);
+            new NDInsight.Sintran.Xmsg.Servers.Tad.TadServer(() => DateTime.Now, users: users, motdLine: motdLine);
+        Console.WriteLine($"[tad] {users.Count} login account(s) loaded");
         tadServer.SessionOpened += (tadNumber, clientSystem) =>
             Console.WriteLine($"[tad] session opened: tty{tadNumber} from node {clientSystem}");
         tadServer.SessionClosed += (tadNumber, clientSystem) =>

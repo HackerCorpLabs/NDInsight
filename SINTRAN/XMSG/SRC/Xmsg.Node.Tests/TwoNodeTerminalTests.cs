@@ -352,12 +352,61 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// <returns>
         /// The connect-to client bound to the server.
         /// </returns>
+        /// <summary>
+        /// A passwordless account (empty password) logs straight in after the username - the server never
+        /// prompts for a password. Verifies the config-driven accounts path (a "ronny"/no-password user).
+        /// </summary>
+        [Fact]
+        public void ServerHost_PasswordlessAccount_LogsInWithoutPasswordPrompt()
+        {
+            TadUserDirectory users = new TadUserDirectory(new List<TadUser> { new TadUser("ronny", string.Empty) });
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildViaServerHost(terminal, users, out XmsgCodec clientCodec, out _, out _);
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("ronny")));   // username only - no password
+
+            string screen = terminal.Text;
+            Assert.Contains("OK", screen);                 // logged in
+            Assert.EndsWith("# ", screen);                 // straight to the command prompt
+            Assert.DoesNotContain("PASSWORD", screen);     // the password prompt was skipped
+        }
+
+        /// <summary>
+        /// Two connect-to requests from different client ports open two independent sessions, each with its
+        /// own ttyN, up to the capacity. Guards the multi-session manager (unique ports / session numbers).
+        /// </summary>
+        [Fact]
+        public void ServerHost_TwoConnects_OpenTwoIndependentSessions()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client1 = BuildViaServerHost(terminal, null, out XmsgCodec clientCodec, out _, out TadServer server);
+
+            List<int> openedTtys = new List<int>();
+            server.SessionOpened += (tadNumber, clientSystem) => openedTtys.Add(tadNumber);
+
+            // Two connects with DISTINCT client ports -> two distinct sessions.
+            TadConnectClient client2 = new TadConnectClient(100, 102, 0x02C6, seed: 0x14);
+            clientCodec.SendPacket(new XmsgPacket(client1.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client2.BuildConnect("D102")));
+
+            Assert.Equal(2, server.SessionCount);
+            Assert.Equal(2, openedTtys.Count);
+            Assert.NotEqual(openedTtys[0], openedTtys[1]);   // distinct ttyN per session
+        }
+
         private static TadConnectClient BuildViaServerHost(TerminalCapture terminal, out XmsgCodec clientCodec)
         {
-            return BuildViaServerHost(terminal, out clientCodec, out _);
+            return BuildViaServerHost(terminal, null, out clientCodec, out _, out _);
         }
 
         private static TadConnectClient BuildViaServerHost(TerminalCapture terminal, out XmsgCodec clientCodec, out XmsgServerHost serverHost)
+        {
+            return BuildViaServerHost(terminal, null, out clientCodec, out serverHost, out _);
+        }
+
+        private static TadConnectClient BuildViaServerHost(
+            TerminalCapture terminal, TadUserDirectory? users, out XmsgCodec clientCodec, out XmsgServerHost serverHost, out TadServer tadServer)
         {
             PipeTransport serverToClient = new PipeTransport();
             PipeTransport clientToServer = new PipeTransport();
@@ -371,9 +420,11 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             serverLayer.AcknowledgeData = false;
             serverLayer.AcknowledgeTadFrames = true;
             XmsgServerHost host = new XmsgServerHost(102);
-            host.Register(new TadServer(FixedClock));
+            TadServer server = new TadServer(FixedClock, users);
+            host.Register(server);
             serverLayer.ServerHost = host;
             serverHost = host;
+            tadServer = server;
 
             clientCodec = new XmsgCodec("client", clientToServer);
             TadConnectClient client = new TadConnectClient(100, 102, 0x0283, seed: 0x14);

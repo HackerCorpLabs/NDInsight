@@ -126,6 +126,26 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
     }
 
     /// <summary>
+    /// One TAD login account from the topology config: a username and an optional password.
+    /// </summary>
+    /// <remarks>
+    /// An empty or missing password means the account is passwordless - login skips the password prompt
+    /// after the username (for example <c>ronny</c> with no password). Usernames are case-insensitive.
+    /// </remarks>
+    internal sealed class TadUserConfig
+    {
+        /// <summary>
+        /// Gets or sets the login name.
+        /// </summary>
+        public string Username { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the password; empty or null means a passwordless account.
+        /// </summary>
+        public string? Password { get; set; }
+    }
+
+    /// <summary>
     /// The runner's log configuration: whether to write a file log, at what level, where, and how it is
     /// rotated (Linux-syslog numbering).
     /// </summary>
@@ -220,6 +240,12 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         /// the <c>--- HOST ID:nnn ---</c> line are always generated - only this middle line is configurable.
         /// </remarks>
         public string? Motd { get; set; }
+
+        /// <summary>
+        /// Gets or sets the TAD login accounts. When null or empty the TAD server falls back to a single
+        /// <c>SYSTEM</c>/<c>SYSTEM</c> account.
+        /// </summary>
+        public List<TadUserConfig> TadUsers { get; set; } = new List<TadUserConfig>();
 
         /// <summary>
         /// Gets or sets the log configuration.
