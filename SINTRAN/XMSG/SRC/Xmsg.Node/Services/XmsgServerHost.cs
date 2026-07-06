@@ -24,12 +24,6 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
     /// </remarks>
     public sealed class XmsgServerHost : IXmsgTransport
     {
-        // XMCSM low-byte "service" codes (XMSG-PROTOCOL.md section 9.1).
-        private const byte XsletServiceByte = 0x41;   // send a letter (connect / list-systems)
-
-        // The connect letter (and every server request) is addressed to XROUT's well-known port 0.
-        private const ushort XroutRequestPort = 0x0000;
-
         private readonly ushort _nodeNumber;
         private readonly IResponderSequenceStore _store;
         private readonly List<IXmsgServer> _servers;
@@ -39,6 +33,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         // the incarnation for each further session, so ports are unique across servers and sessions.
         private ushort _nextSessionPort;
         private int _nextSessionNumber;
+
+        // XMCSM low-byte "service" code (XMSG-PROTOCOL.md section 9.1): send a letter (connect / list-systems).
+        private const byte XsletServiceByte = 0x41;
+
+        // The connect letter (and every server request) is addressed to XROUT's well-known port 0.
+        private const ushort XroutRequestPort = 0x0000;
 
         /// <summary>
         /// Initialises the host for a node.
