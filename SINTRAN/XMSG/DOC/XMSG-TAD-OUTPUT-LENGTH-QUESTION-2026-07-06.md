@@ -64,8 +64,42 @@ So: a 137-byte terminal-data BDAT element is accepted; a 240-byte one is rejecte
 4. Is there any word-alignment / even-length requirement on a terminal-data BDAT element that
    is a continuation (not the last in the reply)?
 
+## UPDATE 2026-07-06 (second and third live runs) - chunk size is NOT the cause
+
+Chunking the reply into 128-byte BDAT frames did NOT help - `stat` still crashed with the same
+"Illegal element length". Decisive findings from the runs:
+
+- A 137-byte `help` reply (single frame) is accepted. `stat` (~460 bytes) crashes REGARDLESS of
+  whether it is sent as one 460-byte element or as four <=128-byte frames. So the limit is on the
+  TOTAL terminal-data bytes 100 accumulates for one reply BEFORE the RFI, not on any single BDAT
+  element or frame. 100 buffers all BDAT data until the RFI, then RFIRUT rejects the accumulated
+  element once it exceeds ~137..255 bytes.
+- The crash cascades: when `stat` crashes 100's XMSG, 100's connect-to program AUTO-RECONNECTS
+  (a fresh XSLET letter, Flags1=0x0000). Our server opens a NEW session with a NEW wire port each
+  time (0x0211 -> 0x0212 -> 0x0213) and leaks the old one, so 100 ends up addressing a stale port
+  and its magic-number creation fails ("Illegal port address..."). The user sees one continuous
+  terminal (login, commands, then a burst of bare "#" prompts) until it finally disconnects.
+- We send ZERO secure ACKs the whole session, yet login/Time/Date/Echo/help all work - so a
+  responder secure-ACK is apparently NOT required for terminal traffic.
+
+Interim workaround shipped: `stat` was made a COMPACT single-frame reply (<=128 bytes) ending in
+"\r\n# ", exactly like the Time/help replies - so it no longer crashes and the prompt returns
+without an Enter. The rich multi-line report is on hold pending the pagination answer.
+
+## The real question now
+
+How does the genuine SINTRAN TAD host stream terminal OUTPUT longer than one element (say a
+500-byte `LIST-... ` or directory listing) to an asker without tripping RFIRUT? Options we need
+disambiguated:
+ - Send N separate replies, each a complete BDAT chain ending in its own RFI (i.e. flush per
+   block)? If so, does each block re-assert SYCN, and is there a max block size?
+ - Or one datagram whose BDAT data is <= some fixed max (what value?), and the client scrolls?
+ - Is there a TAD "more"/pagination or a flush opcode we are missing?
+ - Separately: on a re-connect (fresh XSLET, same asker system+port), should the host REUSE the
+   existing session's wire port and reset its Flags1, or allocate a new port? What closes the old
+   session so 100 stops polling the stale port?
+
 ## What we will do with the answer
 
-Set the chunk size to the real cap and, if required, change the framing (per-frame RFI, or
-chain-within-one-frame) so long command output (`stat`, `who`, `list route`, `help`) streams
-to 100 without tripping RFIRUT.
+Restore the full rich `stat` (and future `who` / `list route`) output using the correct
+long-output mechanism, and make re-connect reuse/reset the session cleanly.

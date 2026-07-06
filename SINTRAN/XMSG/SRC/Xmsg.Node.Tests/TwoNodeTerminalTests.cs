@@ -436,6 +436,32 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
+        /// The "stat" reply is a compact single-frame response that ends with the "# " prompt, exactly
+        /// like the Time/help replies. Regression guard for the crash where the long multi-line stat
+        /// (~460 bytes) accumulated past 100's terminal element buffer ("Illegal element length") and left
+        /// no prompt (the user had to press Enter). Keeps stat short enough to ride one safe frame.
+        /// </summary>
+        [Fact]
+        public void ServerHost_Stat_IsCompactAndEndsWithPrompt()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // username
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // password
+            terminal.Clear();                                                     // isolate the stat reply
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("stat")));
+
+            string screen = terminal.Text;
+            Assert.Contains("STAT", screen);          // the report rendered
+            Assert.Contains("tty", screen);           // session line present
+            Assert.EndsWith("# ", screen);            // prompt returns without needing an Enter
+            // Compact: the whole stat reply must fit one safe terminal frame (well under the ~137-byte cap).
+            Assert.True(screen.Length <= 128, $"stat reply is {screen.Length} bytes; must stay single-frame");
+        }
+
+        /// <summary>
         /// The MOTD banner is generated per host: a dynamic date/time line (from the injected clock), the
         /// configurable MOTD line (default = the assembly version banner), and a "--- HOST ID:nnn ---" line
         /// built from this node's number. Guards the replacement of the old hardcoded 1998/RETROCORE banner.
@@ -503,6 +529,15 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             public IReadOnlyList<SintranPacketSubtype> Subtypes
             {
                 get { return _subtypes; }
+            }
+
+            /// <summary>
+            /// Clears the accumulated text and subtypes (to isolate a later exchange in a test).
+            /// </summary>
+            public void Clear()
+            {
+                _text.Clear();
+                _subtypes.Clear();
             }
 
             /// <summary>

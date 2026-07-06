@@ -725,39 +725,31 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <returns>The report text.</returns>
         private string BuildStatReport(TadServerSession session, IXmsgServerTransport transport)
         {
-            StringBuilder sb = new StringBuilder();
-            sb.Append("\r\n--- TAD SESSION STATUS ---\r\n\r\n");
-            sb.Append("Connect letter (XMCSM 04000041):\r\n");
-            sb.Append("  From node    : ").Append(session.ClientSystem)
-              .Append("  ->  this node ").Append(transport.NodeNumber)
-              .Append(" (D").Append(transport.NodeNumber).Append(")\r\n");
-            sb.Append("  TAD number   : tty").Append(session.TadNumber).Append("\r\n");
-            sb.Append("  Service      : ")
-              .Append(session.ConnectService.Length != 0 ? session.ConnectService : "(none)").Append("\r\n");
-            sb.Append("  Target name  : ")
-              .Append(session.ConnectTargetName.Length != 0 ? session.ConnectTargetName : "(none)").Append("\r\n");
-            sb.Append("  Client port  : 0x").Append(session.ClientPort.ToString("X4"))
-              .Append("  (logical ").Append(session.ClientPort >> 7)
-              .Append(", incarnation ").Append(session.ClientPort & 0x7F).Append(")\r\n\r\n");
-
+            // COMPACT single-frame report ending with the "# " prompt. LIVE-CRITICAL: the previous
+            // multi-line report (~460 bytes) crashed 100 with "Illegal element length" (RFIRUT) - 100
+            // accumulates a terminal reply's BDAT data until the RFI and rejects the element once the
+            // TOTAL exceeds its input-element buffer (a ~137-byte "help" reply is accepted). CHUNKING DID
+            // NOT HELP because the accumulated total is unchanged. So this report is kept short enough to
+            // ride a single safe frame exactly like the Time/help replies (proven to work), and it ends
+            // with "\r\n# " so the prompt returns without the user pressing Enter. Rendering the FULL rich
+            // report needs the real host's long-output pagination rule - open GOD-LLM question in
+            // DOC/XMSG-TAD-OUTPUT-LENGTH-QUESTION-2026-07-06.md.
+            StringBuilder sb = new StringBuilder(128);
+            sb.Append("\r\n-- STAT --\r\n");
+            sb.Append("tty").Append(session.TadNumber)
+              .Append("  node ").Append(session.ClientSystem).Append("->").Append(transport.NodeNumber)
+              .Append("  ").Append(session.ConnectService.Length != 0 ? session.ConnectService : "*TADADM")
+              .Append(' ').Append(session.ConnectTargetName.Length != 0 ? session.ConnectTargetName : "-")
+              .Append("\r\n");
+            sb.Append("port 0x").Append(session.ClientPort.ToString("X4"));
             if (session.NegotiationSeen)
             {
-                sb.Append("Terminal negotiation (sent by your connect-to):\r\n");
-                sb.Append("  Terminal type: ").Append(session.TerminalType)
-                  .Append("  (octal ").Append(Convert.ToString(session.TerminalType, 8))
-                  .Append(", hex 0x").Append(session.TerminalType.ToString("X4")).Append(")   [TTYP]\r\n");
-                sb.Append("  Terminal mode: ").Append(session.TerminalMode)
-                  .Append("  (0x").Append(session.TerminalMode.ToString("X2")).Append(")   [TMOD]\r\n");
-                sb.Append("  Escape char  : ").Append(session.EscapeChar)
-                  .Append("  (octal ").Append(Convert.ToString(session.EscapeChar, 8))
-                  .Append(session.EscapeChar == 0x1B ? ", ESC" : string.Empty).Append(")   [DESC]\r\n");
-                sb.Append("  Host OS ver  : ").Append(FormatHexBytes(session.OsVersion)).Append("   [OPSV]\r\n");
-            }
-            else
-            {
-                sb.Append("Terminal negotiation: not yet received.\r\n");
+                sb.Append("  TTYP ").Append(session.TerminalType)
+                  .Append(" TMOD 0x").Append(session.TerminalMode.ToString("X2"))
+                  .Append(" ESC ").Append(session.EscapeChar);
             }
 
+            sb.Append("\r\n# ");
             return sb.ToString();
         }
 
