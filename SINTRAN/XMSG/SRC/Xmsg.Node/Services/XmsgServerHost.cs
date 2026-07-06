@@ -180,6 +180,13 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
             {
                 _store.SaveNextFlags1(remoteNode, next);
             }
+
+            // Let a server that is streaming a windowed multi-chunk reply release its flow-control window
+            // for the acked output frame. Harmless for servers that do no windowed output.
+            for (int i = 0; i < _servers.Count; i++)
+            {
+                _servers[i].NotifyAck(remoteNode, ackedFlags1);
+            }
         }
 
         /// <summary>

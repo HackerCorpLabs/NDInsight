@@ -354,6 +354,11 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// </returns>
         private static TadConnectClient BuildViaServerHost(TerminalCapture terminal, out XmsgCodec clientCodec)
         {
+            return BuildViaServerHost(terminal, out clientCodec, out _);
+        }
+
+        private static TadConnectClient BuildViaServerHost(TerminalCapture terminal, out XmsgCodec clientCodec, out XmsgServerHost serverHost)
+        {
             PipeTransport serverToClient = new PipeTransport();
             PipeTransport clientToServer = new PipeTransport();
 
@@ -368,6 +373,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             XmsgServerHost host = new XmsgServerHost(102);
             host.Register(new TadServer(FixedClock));
             serverLayer.ServerHost = host;
+            serverHost = host;
 
             clientCodec = new XmsgCodec("client", clientToServer);
             TadConnectClient client = new TadConnectClient(100, 102, 0x0283, seed: 0x14);
@@ -436,12 +442,14 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
-        /// The full rich "stat" report renders and ends with the "# " prompt (so the prompt returns
-        /// without an Enter). Long output is now legal via the 255-byte sentinel chunking. Labels use
-        /// parentheses, never square brackets (0x5B/0x5D render as Norwegian letters on the ND terminal).
+        /// The first batch of a long reply respects the flow-control window: at most two output
+        /// datagrams are sent before any ACK, and each is a bare 255-byte continuation (no RFI). The final
+        /// RFI-bearing frame is WITHHELD until the outstanding continuations are acked. This is the fix for
+        /// the crash where all chunks (incl. the RFI terminator) were blasted at once and 100 discarded the
+        /// continuation (TAD-Message-Formats.md 22.6 handshake).
         /// </summary>
         [Fact]
-        public void ServerHost_Stat_RendersRichReportAndEndsWithPrompt()
+        public void ServerHost_LongReply_FirstBatchIsWindowedWithNoFinal()
         {
             TerminalCapture terminal = new TerminalCapture();
             TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
@@ -452,25 +460,26 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             terminal.Clear();                                                     // isolate the stat reply
             clientCodec.SendPacket(new XmsgPacket(client.BuildInput("stat")));
 
-            string screen = terminal.Text;
-            Assert.Contains("TAD SESSION STATUS", screen);   // the rich report rendered
-            Assert.Contains("Client port", screen);
-            Assert.EndsWith("# ", screen);                   // prompt returns without needing an Enter
-            Assert.DoesNotContain("[", screen);              // no 0x5B - renders as AE on the ND terminal
-            Assert.DoesNotContain("]", screen);              // no 0x5D - renders as AA
+            IReadOnlyList<TadFrameShape> first = terminal.TadFrames;
+            Assert.InRange(first.Count, 1, 2);                        // window caps the unacked burst at 2
+            for (int i = 0; i < first.Count; i++)
+            {
+                Assert.Equal(255, first[i].BdatBytes);               // every first-batch frame is a full continuation
+                Assert.False(first[i].HasRfi, "the RFI-bearing final frame must NOT be in the unacked first batch");
+            }
         }
 
         /// <summary>
-        /// The "stat" reply is a SINGLE terminal frame (its content is kept under one 255-byte buffer)
-        /// whose BDAT is short (&lt; 255) and carries the RFI. This is the proven-working single-chunk path
-        /// (like Time/help). Multi-chunk (255-sentinel) output is byte-correct per the doc but 100 does not
-        /// assemble a 2-chunk burst live (open GOD-LLM question), so stat stays single-frame for now.
+        /// The full rich "stat" report streams to completion under the flow-control handshake: as each
+        /// continuation is ACKed the next chunk is released, and the final short frame (with SYCN + prompt
+        /// BDAT + RFI) arrives only after all continuations are acked. The assembled text is the whole
+        /// report and ends with the "# " prompt; labels use parentheses, never square brackets.
         /// </summary>
         [Fact]
-        public void ServerHost_Stat_IsSingleFrameWithRfi()
+        public void ServerHost_LongReply_StreamsFullReportUnderHandshake()
         {
             TerminalCapture terminal = new TerminalCapture();
-            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec, out XmsgServerHost host);
 
             clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
             clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // username
@@ -478,10 +487,55 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             terminal.Clear();                                                     // isolate the stat reply
             clientCodec.SendPacket(new XmsgPacket(client.BuildInput("stat")));
 
-            IReadOnlyList<TadFrameShape> frames = terminal.TadFrames;
-            Assert.Single(frames);                                    // one terminal frame, no continuation
-            Assert.True(frames[0].BdatBytes < 255, "the stat reply must fit one buffer (< 255 bytes)");
-            Assert.True(frames[0].HasRfi, "the stat reply must carry the RFI");
+            // Drive the handshake: ACK each captured frame (as 100 would), draining the next chunk, until
+            // the final RFI-bearing frame arrives. Guard the loop so a stuck window fails instead of hangs.
+            int processed = 0;
+            bool sawFinal = false;
+            int maxOutstanding = 0;
+            int guard = 0;
+            while (!sawFinal && guard++ < 200)
+            {
+                IReadOnlyList<TadFrameShape> frames = terminal.TadFrames;
+                if (processed >= frames.Count)
+                {
+                    break;   // window stuck with no final -> assertion below fails
+                }
+
+                // Track the largest unacked burst seen (must never exceed the window of 2).
+                int unacked = frames.Count - processed;
+                if (unacked > maxOutstanding)
+                {
+                    maxOutstanding = unacked;
+                }
+
+                while (processed < frames.Count)
+                {
+                    TadFrameShape f = frames[processed++];
+                    if (f.HasRfi)
+                    {
+                        sawFinal = true;
+                    }
+
+                    host.ConfirmDelivered(100, f.Flags1);            // 100 ACKs -> release the window
+                    IReadOnlyList<XmsgFrame> released = host.DrainPending();
+                    for (int k = 0; k < released.Count; k++)
+                    {
+                        // Route the next chunk through the client codec so it is parsed (a built frame has
+                        // no .Tad until it round-trips the wire) and captured by the terminal.
+                        clientCodec.ProcessBytes(released[k].ToArray());
+                    }
+                }
+            }
+
+            Assert.True(sawFinal, "the final RFI-bearing frame never streamed - the window stalled");
+            Assert.True(maxOutstanding <= 2, $"window exceeded 2 (saw {maxOutstanding} unacked output frames)");
+
+            string screen = terminal.Text;
+            Assert.Contains("TAD SESSION STATUS", screen);   // the whole report assembled
+            Assert.Contains("Client port", screen);
+            Assert.EndsWith("# ", screen);                   // prompt returned on the final frame
+            Assert.DoesNotContain("[", screen);              // no 0x5B - renders as AE on the ND terminal
+            Assert.DoesNotContain("]", screen);              // no 0x5D - renders as AA
         }
 
         /// <summary>
@@ -621,13 +675,15 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
                 if (firstBdatBytes >= 0)
                 {
-                    _tadFrames.Add(new TadFrameShape(firstBdatBytes, hasRfi));
+                    ushort flags1 = frame?.Header != null ? frame.Header.Flags1 : (ushort)0;
+                    _tadFrames.Add(new TadFrameShape(firstBdatBytes, hasRfi, flags1));
                 }
             }
         }
 
         /// <summary>
-        /// The shape of one terminal-data frame: its first BDAT's data length and whether it carries an RFI.
+        /// The shape of one terminal-data frame: its first BDAT's data length, whether it carries an RFI,
+        /// and its Flags 1 (so a test can ACK it to advance the flow-control window).
         /// </summary>
         private readonly struct TadFrameShape
         {
@@ -636,6 +692,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
             /// <summary>Whether the frame contains an RFI (ready-for-input) message.</summary>
             public readonly bool HasRfi;
+
+            /// <summary>The frame's Flags 1 (the value a matching ACK echoes).</summary>
+            public readonly ushort Flags1;
 
             /// <summary>
             /// Initialises the frame shape.
@@ -646,10 +705,14 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             /// <param name="hasRfi">
             /// Whether an RFI is present.
             /// </param>
-            public TadFrameShape(int bdatBytes, bool hasRfi)
+            /// <param name="flags1">
+            /// The frame's Flags 1.
+            /// </param>
+            public TadFrameShape(int bdatBytes, bool hasRfi, ushort flags1)
             {
                 BdatBytes = bdatBytes;
                 HasRfi = hasRfi;
+                Flags1 = flags1;
             }
         }
     }

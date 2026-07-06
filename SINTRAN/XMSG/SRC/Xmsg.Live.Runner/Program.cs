@@ -553,6 +553,12 @@ internal static class Program
 
         // Same service configuration as the proven legacy node.
         layer.AcknowledgeData = false;
+        // Secure-ACK (subtype 0x03) each incoming session data frame. REQUIRED for the multi-chunk
+        // terminal-output handshake (TAD-Message-Formats.md 22.6): the host streams <=2 output BDATs then
+        // waits for 100's ACKs, and MUST secure-ACK the 7DUMM/data frames 100 sends between output pairs.
+        // Without this the framework dispatch never built an ACK (the gate was off), so long output never
+        // completed the handshake and 100 discarded the continuation chunk.
+        layer.AcknowledgeTadFrames = true;
         layer.RoutingTable = new InMemoryRoutingTable(routingEntries);
         // Persist our outgoing datagram sequence per remote node across restarts (a state file next
         // to the runner), so we continue in step with 100's persistent expected-from-us instead of

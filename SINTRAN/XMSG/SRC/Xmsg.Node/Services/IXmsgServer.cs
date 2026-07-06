@@ -91,5 +91,21 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         /// The queued frames to transmit, in order (empty when nothing is pending).
         /// </returns>
         IReadOnlyList<XmsgFrame> DrainPending(IXmsgServerTransport transport);
+
+        /// <summary>
+        /// Notifies the server that a remote node ACKed (subtype <c>0x03</c>) one of our frames, so a
+        /// server streaming a multi-chunk reply can release its flow-control window and send the next chunk.
+        /// </summary>
+        /// <remarks>
+        /// Called by the host for every incoming ACK. A server that does no windowed output ignores it.
+        /// After this the host drains via <see cref="DrainPending"/>, so the released chunk is transmitted.
+        /// </remarks>
+        /// <param name="remoteNode">
+        /// The node that ACKed.
+        /// </param>
+        /// <param name="ackedFlags1">
+        /// The Flags 1 the ACK echoes (identifies the acknowledged frame).
+        /// </param>
+        void NotifyAck(ushort remoteNode, ushort ackedFlags1);
     }
 }

@@ -30,6 +30,12 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         private readonly TadTerminalMenu _menu;
         private readonly Dictionary<uint, TadServerSession> _sessions;
         private readonly Dictionary<ushort, TadServerSession> _sessionByPort;
+        // A parallel list of the live sessions, so DrainPending can iterate with an index for-loop (no
+        // foreach over the dictionary). Kept in sync with _sessions in OnConnect / CloseSession.
+        private readonly List<TadServerSession> _sessionList;
+        // Maps (remoteNode << 16 | Flags1) of a sent-but-unacked OUTPUT chunk to its owning session, so an
+        // incoming ACK (which carries only the node + Flags1) can advance that session's output window.
+        private readonly Dictionary<uint, TadServerSession> _outputAckIndex;
         // The configurable middle banner line (replaces the stock "SINTRAN III - VSX/500"). Null/empty
         // falls back to the built-in version banner. The date line and the HOST-id line are generated.
         private readonly string _motdLine;
@@ -75,6 +81,11 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         // chunking at 128/240 failed identically: both are short non-final frames with no RFI. Total
         // reply length is unbounded when chunked at 255.
         private const int FullBufferChunk = 255;
+
+        // Flow-control window: at most this many OUTPUT datagrams may be unacked at once during a burst
+        // (TAD-Message-Formats.md 22.6). The host streams up to 2 chunks, then waits for 100's ACKs before
+        // sending more; the final (RFI-bearing) chunk is sent only once all prior continuations are acked.
+        private const int OutputWindow = 2;
 
         // The MOTD frame's TAD message STRUCTURE is VERIFIED from conn-to-d102 frame 62: BMMX(01,0000) /
         // ECKM(01) / a BDAT banner / SYCN(0002 WaitUser) / a BDAT "ENTER " prompt / RFI. The banner text
@@ -126,6 +137,8 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             _menu = new TadTerminalMenu();
             _sessions = new Dictionary<uint, TadServerSession>();
             _sessionByPort = new Dictionary<ushort, TadServerSession>();
+            _sessionList = new List<TadServerSession>();
+            _outputAckIndex = new Dictionary<uint, TadServerSession>();
             string line = string.IsNullOrWhiteSpace(motdLine)
                 ? "Emulated TAD server version " + ServerVersion()
                 : motdLine.Trim();
@@ -248,19 +261,51 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         }
 
         /// <summary>
-        /// Drains queued asynchronous output. Phase 1 emits command replies directly from
-        /// <see cref="Handle"/>, so there is nothing async yet; the tty inject / wall path (Phase 3)
-        /// will drain the per-session output queues here.
+        /// Sends the next window-permitted output chunk(s) for every session with a burst in progress.
         /// </summary>
+        /// <remarks>
+        /// The node calls this after processing each incoming frame (an ACK that opened the window, or a
+        /// 7DUMM), so a multi-chunk terminal reply streams out as 100 acknowledges the outstanding chunks.
+        /// </remarks>
         /// <param name="transport">
         /// The node transport.
         /// </param>
         /// <returns>
-        /// An empty list.
+        /// The output frames now permitted by each session's flow-control window (empty when none).
         /// </returns>
         public IReadOnlyList<XmsgFrame> DrainPending(IXmsgServerTransport transport)
         {
-            return Array.Empty<XmsgFrame>();
+            List<XmsgFrame> outgoing = new List<XmsgFrame>();
+            for (int i = 0; i < _sessionList.Count; i++)
+            {
+                TadServerSession session = _sessionList[i];
+                if (session.OutputActive)
+                {
+                    DrainSessionOutput(session, transport, outgoing);
+                }
+            }
+
+            return outgoing;
+        }
+
+        /// <summary>
+        /// Notifies the server that a remote node ACKed one of our frames, so the owning session can
+        /// release its flow-control window if the ACK was for an outstanding output chunk.
+        /// </summary>
+        /// <param name="remoteNode">
+        /// The node that ACKed.
+        /// </param>
+        /// <param name="ackedFlags1">
+        /// The Flags 1 the ACK echoes.
+        /// </param>
+        public void NotifyAck(ushort remoteNode, ushort ackedFlags1)
+        {
+            uint key = OutputAckKey(remoteNode, ackedFlags1);
+            if (_outputAckIndex.TryGetValue(key, out TadServerSession? session))
+            {
+                _outputAckIndex.Remove(key);
+                session.ConfirmOutputAck(ackedFlags1);
+            }
         }
 
         /// <summary>
@@ -297,6 +342,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
 
             _sessions[SessionKey(clientSystem, clientPort)] = session;
             _sessionByPort[sessionPort] = session;
+            _sessionList.Add(session);
             SessionOpened?.Invoke(tadNumber, clientSystem);
 
             // The connect-accept: XMCSM 0x04000041, frame-flags Setup, role WakeOnStatus, from the TADADM
@@ -622,24 +668,25 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         }
 
         /// <summary>
-        /// Emits a logged-in reply, splitting output longer than one BDAT across frames; only the final
-        /// frame re-asserts the logged-in state and grants input (SYCN 000A + RFI).
+        /// Begins a logged-in reply as a windowed output burst and sends the first batch of frames.
         /// </summary>
+        /// <remarks>
+        /// Output is streamed under the TAD flow-control handshake (22.6): bare 255-byte continuations
+        /// then a short final frame carrying SYCN 000A + prompt BDAT + RFI, with at most
+        /// <see cref="OutputWindow"/> datagrams unacked at once. The remaining chunks are sent by
+        /// <see cref="DrainSessionOutput"/> as 100 ACKs the outstanding ones.
+        /// </remarks>
         /// <param name="session">The session.</param>
         /// <param name="transport">The node transport.</param>
-        /// <param name="outgoing">The reply list.</param>
-        /// <param name="text">The full reply text.</param>
+        /// <param name="outgoing">The reply list (receives the first windowed batch).</param>
+        /// <param name="text">The full reply text (with its trailing prompt).</param>
         private void EmitMenuReply(TadServerSession session, IXmsgServerTransport transport, List<XmsgFrame> outgoing, string text)
         {
             string body = text ?? string.Empty;
 
             // Separate the trailing "# " prompt from the content. The VERIFIED burst trailer
-            // (TAD-Message-Formats.md 22.6 line 1420 / 22.8) is:
-            //   BDAT(content remainder) + [pad if odd] + SYCN 000A + BDAT(prompt) + RFI
-            // i.e. the prompt is its OWN BDAT AFTER the SYCN, not part of the content BDAT. Our earlier
-            // build put the prompt inside the content BDAT before the SYCN and emitted no prompt BDAT -
-            // a trailer 100 did not accept as a burst terminator (it never sent 7CERS and re-sent the
-            // command). This split reproduces the doc's byte-exact final frame.
+            // (TAD-Message-Formats.md 22.6 line 1420 / 22.8) is BDAT(content remainder) + [pad] + SYCN 000A
+            // + BDAT(prompt) + RFI - the prompt is its OWN BDAT AFTER the SYCN, not part of the content BDAT.
             string prompt = TerminalPrompt;
             if (body.EndsWith(prompt, StringComparison.Ordinal))
             {
@@ -650,31 +697,99 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 prompt = string.Empty;
             }
 
-            // Emit BARE 255-byte continuations (count 0xFF, no RFI) while at LEAST a full chunk remains.
-            // The ">=" (not ">") is deliberate: a trailing exactly-255 must go out as a bare continuation
-            // so the final terminator is ALWAYS shorter than 255. For output that is an exact multiple of
-            // 255 this leaves an EMPTY final element - still a valid "< 255" terminator, and it carries the
-            // SYCN + prompt + RFI (the exact-multiple edge case from TAD-Message-Formats.md section 22.6).
-            int offset = 0;
-            while (body.Length - offset >= FullBufferChunk)
+            session.BeginOutput(body, prompt);
+            DrainSessionOutput(session, transport, outgoing);
+        }
+
+        /// <summary>
+        /// Sends as many of a session's pending output chunks as the flow-control window allows.
+        /// </summary>
+        /// <remarks>
+        /// Emits bare 255-byte continuations (count 0xFF, no RFI) while fewer than
+        /// <see cref="OutputWindow"/> output datagrams are unacked. The final (short, &lt; 255) frame - which
+        /// carries SYCN 000A + the prompt BDAT + RFI - is sent only once ALL prior continuations are acked
+        /// (outstanding count 0), reproducing "the final RFI-chunk is sent only after the preceding
+        /// continuation is ACKed". Each sent frame's Flags 1 is recorded so an ACK can release the window.
+        /// </remarks>
+        /// <param name="session">The session whose output to drain.</param>
+        /// <param name="transport">The node transport.</param>
+        /// <param name="outgoing">The list that receives the frames to send.</param>
+        private void DrainSessionOutput(TadServerSession session, IXmsgServerTransport transport, List<XmsgFrame> outgoing)
+        {
+            if (!session.OutputActive)
             {
-                string piece = body.Substring(offset, FullBufferChunk);
-                outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA,
-                    new TadMessageBuilder().BdatText(piece).Build()));
-                offset += FullBufferChunk;
+                return;
             }
 
-            // Final terminator: BDAT(short remainder) + [pad] + SYCN 000A + BDAT(prompt) + RFI. The
-            // builder inserts the word-align 0x00 pad after an odd-length BDAT before the SYCN.
-            string tail = body.Substring(offset);
-            TadMessageBuilder final = new TadMessageBuilder().BdatText(tail).Sycn(SycnState.LoggedIn);
-            if (prompt.Length != 0)
+            while (true)
             {
-                final.BdatText(prompt);
-            }
+                bool nextIsFinal = session.OutputContent.Length - session.OutputOffset < FullBufferChunk;
 
-            final.Rfi();
-            outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA, final.Build()));
+                if (nextIsFinal)
+                {
+                    if (session.OutputFinalSent)
+                    {
+                        session.OutputActive = false;   // burst complete
+                        return;
+                    }
+
+                    // The final terminator waits until every continuation is acked (window drained to 0).
+                    if (session.OutstandingOutputCount > 0)
+                    {
+                        return;
+                    }
+
+                    string tail = session.OutputContent.Substring(session.OutputOffset);
+                    TadMessageBuilder builder = new TadMessageBuilder().BdatText(tail).Sycn(SycnState.LoggedIn);
+                    if (session.OutputPrompt.Length != 0)
+                    {
+                        builder.BdatText(session.OutputPrompt);
+                    }
+
+                    builder.Rfi();
+                    XmsgFrame frame = BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA, builder.Build());
+                    TrackOutput(session, frame);
+                    session.OutputFinalSent = true;
+                    outgoing.Add(frame);
+                    return;
+                }
+
+                // Continuation: bare 255-byte BDAT, but only while the window has room.
+                if (session.OutstandingOutputCount >= OutputWindow)
+                {
+                    return;
+                }
+
+                string piece = session.OutputContent.Substring(session.OutputOffset, FullBufferChunk);
+                XmsgFrame chunk = BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA,
+                    new TadMessageBuilder().BdatText(piece).Build());
+                TrackOutput(session, chunk);
+                session.OutputOffset += FullBufferChunk;
+                outgoing.Add(chunk);
+            }
+        }
+
+        /// <summary>
+        /// Records a sent output frame as outstanding (by its Flags 1) so an ACK can release the window.
+        /// </summary>
+        /// <param name="session">The owning session.</param>
+        /// <param name="frame">The sent output frame.</param>
+        private void TrackOutput(TadServerSession session, XmsgFrame frame)
+        {
+            ushort flags1 = frame.Header.Flags1;
+            session.MarkOutputSent(flags1);
+            _outputAckIndex[OutputAckKey(session.RemoteNode, flags1)] = session;
+        }
+
+        /// <summary>
+        /// Composes the <see cref="_outputAckIndex"/> key from a remote node and a Flags 1.
+        /// </summary>
+        /// <param name="remoteNode">The remote node.</param>
+        /// <param name="flags1">The frame's Flags 1.</param>
+        /// <returns>The composite key.</returns>
+        private static uint OutputAckKey(ushort remoteNode, ushort flags1)
+        {
+            return ((uint)remoteNode << 16) | flags1;
         }
 
         /// <summary>
@@ -746,6 +861,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         {
             _sessions.Remove(SessionKey(session.ClientSystem, session.ClientPort));
             _sessionByPort.Remove(session.SessionWirePort);
+            _sessionList.Remove(session);
             SessionClosed?.Invoke(session.TadNumber, session.ClientSystem);
         }
 
@@ -768,37 +884,42 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <returns>The report text.</returns>
         private string BuildStatReport(TadServerSession session, IXmsgServerTransport transport)
         {
-            // COMPACT report that fits a SINGLE terminal frame (< 255 bytes). INTERIM: our multi-chunk
-            // (255-byte sentinel) output is byte-correct per TAD-Message-Formats.md 22.6 and 100 secure-ACKs
-            // every chunk, yet 100 will not ASSEMBLE a 2-chunk burst - it displays only the final chunk, sends
-            // no 7CERS, and re-sends the command, looping to the RFIRUT crash. Single-chunk output is the
-            // proven-working path (Time/help/MOTD), so stat stays under one buffer until the multi-chunk
-            // assembly rule is confirmed (GOD-LLM question, DOC/XMSG-TAD-OUTPUT-LENGTH-QUESTION-2026-07-06.md).
-            // Labels use parentheses, NOT square brackets - 0x5B/0x5D render as Norwegian AE/AA on the ND
-            // terminal. Ends with "\r\n# " (EmitMenuReply re-emits the prompt as its own BDAT after the SYCN).
-            StringBuilder sb = new StringBuilder(256);
-            sb.Append("\r\n--- TAD SESSION STATUS (tty").Append(session.TadNumber).Append(") ---\r\n");
-            sb.Append("  From node   : ").Append(session.ClientSystem)
-              .Append(" -> ").Append(transport.NodeNumber)
+            // Full rich report (~460 bytes). Streamed via the 255-byte sentinel + flow-control handshake
+            // (EmitMenuReply / DrainSessionOutput, TAD-Message-Formats.md 22.6): bare 255-byte continuations
+            // paced <=2 unacked, then a short final frame with SYCN 000A + prompt BDAT + RFI. Labels use
+            // parentheses, NOT square brackets - 0x5B/0x5D render as Norwegian AE/AA on the ND terminal.
+            // Ends with "\r\n# " (EmitMenuReply re-emits the prompt as its own BDAT after the SYCN).
+            StringBuilder sb = new StringBuilder(512);
+            sb.Append("\r\n--- TAD SESSION STATUS ---\r\n\r\n");
+            sb.Append("Connect letter (XMCSM 04000041):\r\n");
+            sb.Append("  From node    : ").Append(session.ClientSystem)
+              .Append("  ->  this node ").Append(transport.NodeNumber)
               .Append(" (D").Append(transport.NodeNumber).Append(")\r\n");
-            sb.Append("  Service     : ")
-              .Append(session.ConnectService.Length != 0 ? session.ConnectService : "(none)")
-              .Append("   Target: ")
+            sb.Append("  TAD number   : tty").Append(session.TadNumber).Append("\r\n");
+            sb.Append("  Service      : ")
+              .Append(session.ConnectService.Length != 0 ? session.ConnectService : "(none)").Append("\r\n");
+            sb.Append("  Target name  : ")
               .Append(session.ConnectTargetName.Length != 0 ? session.ConnectTargetName : "(none)").Append("\r\n");
-            sb.Append("  Client port : 0x").Append(session.ClientPort.ToString("X4"))
-              .Append(" (logical ").Append(session.ClientPort >> 7)
-              .Append(", incarnation ").Append(session.ClientPort & 0x7F).Append(")\r\n");
+            sb.Append("  Client port  : 0x").Append(session.ClientPort.ToString("X4"))
+              .Append("  (logical ").Append(session.ClientPort >> 7)
+              .Append(", incarnation ").Append(session.ClientPort & 0x7F).Append(")\r\n\r\n");
 
             if (session.NegotiationSeen)
             {
-                sb.Append("  Terminal    : TTYP 0x").Append(session.TerminalType.ToString("X4"))
-                  .Append("  TMOD 0x").Append(session.TerminalMode.ToString("X2"))
-                  .Append("  DESC ").Append(session.EscapeChar)
-                  .Append("  OPSV ").Append(FormatHexBytes(session.OsVersion)).Append("\r\n");
+                sb.Append("Terminal negotiation (sent by your connect-to):\r\n");
+                sb.Append("  Terminal type: ").Append(session.TerminalType)
+                  .Append("  (octal ").Append(Convert.ToString(session.TerminalType, 8))
+                  .Append(", hex 0x").Append(session.TerminalType.ToString("X4")).Append(")   (TTYP)\r\n");
+                sb.Append("  Terminal mode: ").Append(session.TerminalMode)
+                  .Append("  (0x").Append(session.TerminalMode.ToString("X2")).Append(")   (TMOD)\r\n");
+                sb.Append("  Escape char  : ").Append(session.EscapeChar)
+                  .Append("  (octal ").Append(Convert.ToString(session.EscapeChar, 8))
+                  .Append(session.EscapeChar == 0x1B ? ", ESC" : string.Empty).Append(")   (DESC)\r\n");
+                sb.Append("  Host OS ver  : ").Append(FormatHexBytes(session.OsVersion)).Append("   (OPSV)\r\n");
             }
             else
             {
-                sb.Append("  Terminal    : (not yet negotiated)\r\n");
+                sb.Append("Terminal negotiation: not yet received.\r\n");
             }
 
             sb.Append("\r\n# ");

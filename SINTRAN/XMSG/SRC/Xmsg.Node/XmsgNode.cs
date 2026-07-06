@@ -271,6 +271,15 @@ namespace NDInsight.Sintran.Xmsg.Node
                     served.Add(serverFrames[i]);
                 }
 
+                // Drain any window-permitted output chunks. A command reply begins its burst in Route
+                // above; a 7DUMM from 100 between chunks lets the next chunk out here (the flow-control
+                // handshake, TAD-Message-Formats.md 22.6).
+                IReadOnlyList<XmsgFrame> drained = ServerHost.DrainPending();
+                for (int i = 0; i < drained.Count; i++)
+                {
+                    served.Add(drained[i]);
+                }
+
                 return served;
             }
 
@@ -391,6 +400,18 @@ namespace NDInsight.Sintran.Xmsg.Node
                 result.Add(single);
             }
 
+            // If that was an ACK, ConfirmDelivered just released a server's output flow-control window;
+            // drain the newly-permitted chunk(s) so a multi-chunk terminal reply keeps streaming
+            // (TAD-Message-Formats.md 22.6 handshake).
+            if (ServerHost != null && incoming.Header.Subtype == SintranPacketSubtype.Ack)
+            {
+                IReadOnlyList<XmsgFrame> drained = ServerHost.DrainPending();
+                for (int i = 0; i < drained.Count; i++)
+                {
+                    result.Add(drained[i]);
+                }
+            }
+
             return result;
         }
 
@@ -444,7 +465,9 @@ namespace NDInsight.Sintran.Xmsg.Node
                 case SintranPacketSubtype.Ack:
                     // 100's delivery ACK confirms it received our frame (its Flags1 echoes ours).
                     // Persist ackedFlags1 + 1 as our next sequence, so a restart continues exactly
-                    // where 100 expects — never ahead of what it actually received.
+                    // where 100 expects — never ahead of what it actually received. ConfirmDelivered also
+                    // releases a server's output flow-control window; the OUTER HandleFrames drains the
+                    // newly-permitted chunk(s) after this returns (see the Ack-drain block there).
                     TadResponder?.ConfirmDelivered(incoming.Header.SourceNode, incoming.Header.Flags1);
                     ServerHost?.ConfirmDelivered(incoming.Header.SourceNode, incoming.Header.Flags1);
                     return null;

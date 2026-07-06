@@ -172,5 +172,78 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             _pendingOutput.Clear();
             return sb.ToString();
         }
+
+        // --- windowed terminal-output streaming (TAD 22.6 flow-control handshake) ----------------
+        // A reply is streamed as bare 255-byte continuations then a short final frame carrying SYCN +
+        // prompt + RFI, but only <= 2 output datagrams may be unacked at once, and 100 secure-ACKs each.
+        // The session holds the remaining content, the prompt, and the Flags 1 of the sent-but-unacked
+        // output frames so an incoming ACK (ConfirmOutputAck) can advance the window.
+
+        private readonly HashSet<ushort> _outstandingOutput = new HashSet<ushort>();
+
+        /// <summary>Gets the content still to stream (without the trailing prompt).</summary>
+        public string OutputContent { get; private set; } = string.Empty;
+
+        /// <summary>Gets the prompt emitted as its own BDAT in the final frame (for example "# ").</summary>
+        public string OutputPrompt { get; private set; } = string.Empty;
+
+        /// <summary>Gets or sets the offset into <see cref="OutputContent"/> already sent.</summary>
+        public int OutputOffset { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether the final (terminator) frame has been sent.</summary>
+        public bool OutputFinalSent { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether an output burst is in progress.</summary>
+        public bool OutputActive { get; set; }
+
+        /// <summary>Gets the number of sent-but-unacked output datagrams (the flow-control window use).</summary>
+        public int OutstandingOutputCount
+        {
+            get { return _outstandingOutput.Count; }
+        }
+
+        /// <summary>
+        /// Begins a windowed output burst: the content (prompt already split off) to stream and the
+        /// prompt to emit as its own BDAT in the final frame.
+        /// </summary>
+        /// <param name="content">
+        /// The reply content without the trailing prompt.
+        /// </param>
+        /// <param name="prompt">
+        /// The prompt (for example "# "), or empty for none.
+        /// </param>
+        public void BeginOutput(string content, string prompt)
+        {
+            OutputContent = content ?? string.Empty;
+            OutputPrompt = prompt ?? string.Empty;
+            OutputOffset = 0;
+            OutputFinalSent = false;
+            OutputActive = true;
+        }
+
+        /// <summary>
+        /// Records that an output datagram with the given Flags 1 was sent and is awaiting its ACK.
+        /// </summary>
+        /// <param name="flags1">
+        /// The Flags 1 the sent output frame carries.
+        /// </param>
+        public void MarkOutputSent(ushort flags1)
+        {
+            _outstandingOutput.Add(flags1);
+        }
+
+        /// <summary>
+        /// Clears an outstanding output datagram when its ACK arrives.
+        /// </summary>
+        /// <param name="flags1">
+        /// The Flags 1 the ACK echoes.
+        /// </param>
+        /// <returns>
+        /// True when the Flags 1 matched one of this session's outstanding output frames.
+        /// </returns>
+        public bool ConfirmOutputAck(ushort flags1)
+        {
+            return _outstandingOutput.Remove(flags1);
+        }
     }
 }
