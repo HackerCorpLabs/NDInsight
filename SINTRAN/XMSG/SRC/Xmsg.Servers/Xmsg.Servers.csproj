@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Xmsg.Servers: the HIGH-LEVEL, swappable server layer - the named XROUT programs (*TADADM now,
+    *XM-FIDO later) plus their subsystems (the TAD tty subsystem, accounts, commands). It depends
+    only on the boundary contracts in Xmsg.Node.Services (IXmsgServer / IXmsgTransport) and never
+    touches the XMSG envelope/sequencing. This is the layer expected to be refactored hard later,
+    so it is deliberately isolated from the transport code.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <RootNamespace>NDInsight.Sintran.Xmsg.Servers</RootNamespace>
+    <AssemblyName>NDInsight.Sintran.Xmsg.Servers</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Xmsg.Node\Xmsg.Node.csproj" />
+  </ItemGroup>
+
+</Project>
