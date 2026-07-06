@@ -638,6 +638,16 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 return;
             }
 
+            // "3" / "echo": a DIAGNOSTIC that deliberately renders as three 255-sentinel frames, each with
+            // a distinct "ECHO FRAME n OF 3" marker + a repeated digit, so a live run shows exactly which
+            // frame(s) 100 renders (and which the multi-chunk flow-control handshake is dropping).
+            if (string.Equals(line, "3", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(line, "echo", StringComparison.OrdinalIgnoreCase))
+            {
+                EmitMenuReply(session, transport, outgoing, BuildEchoDiagnostic());
+                return;
+            }
+
             TadMenuResult result = _menu.Handle(line, _clock());
             switch (result.Mode)
             {
@@ -930,6 +940,47 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
 
             sb.Append("\r\n# ");
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Builds a three-frame diagnostic reply (~590 bytes) that the 255-sentinel chunker splits into two
+        /// full continuations plus a short final frame. Each frame starts with a distinct
+        /// <c>===== ECHO FRAME n OF 3 =====</c> marker and is filled with the digit n, so a live run makes
+        /// it obvious which frame(s) 100 renders and which the flow-control handshake is dropping.
+        /// </summary>
+        /// <returns>
+        /// The diagnostic reply text (ending with the prompt).
+        /// </returns>
+        private static string BuildEchoDiagnostic()
+        {
+            StringBuilder sb = new StringBuilder(640);
+            AppendEchoFrame(sb, 1, '1');   // exactly 255 bytes -> continuation chunk 1
+            AppendEchoFrame(sb, 2, '2');   // exactly 255 bytes -> continuation chunk 2
+            // Frame 3 is the short final chunk (< 255) - the RFI terminator rides here.
+            sb.Append("\r\n===== ECHO FRAME 3 OF 3 =====\r\n");
+            sb.Append('3', 32);
+            sb.Append("\r\n===== END OF 3-FRAME ECHO =====\r\n# ");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Appends exactly 255 bytes: a <c>===== ECHO FRAME n OF 3 =====</c> marker line then the digit
+        /// <paramref name="fill"/> repeated to fill the buffer, so the 255-sentinel split lands the next
+        /// marker at a chunk boundary.
+        /// </summary>
+        /// <param name="sb">The builder to append to.</param>
+        /// <param name="frameNo">The frame number shown in the marker.</param>
+        /// <param name="fill">The digit used to fill the frame body.</param>
+        private static void AppendEchoFrame(StringBuilder sb, int frameNo, char fill)
+        {
+            int start = sb.Length;
+            sb.Append("\r\n===== ECHO FRAME ").Append(frameNo).Append(" OF 3 =====\r\n");
+            while (sb.Length - start < FullBufferChunk)
+            {
+                sb.Append(fill);
+            }
+
+            sb.Length = start + FullBufferChunk;   // trim to exactly 255 for a clean continuation chunk
         }
 
         /// <summary>

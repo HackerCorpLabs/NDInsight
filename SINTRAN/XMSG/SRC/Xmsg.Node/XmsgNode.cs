@@ -400,18 +400,11 @@ namespace NDInsight.Sintran.Xmsg.Node
                 result.Add(single);
             }
 
-            // If that was an ACK, ConfirmDelivered just released a server's output flow-control window;
-            // drain the newly-permitted chunk(s) so a multi-chunk terminal reply keeps streaming
-            // (TAD-Message-Formats.md 22.6 handshake).
-            if (ServerHost != null && incoming.Header.Subtype == SintranPacketSubtype.Ack)
-            {
-                IReadOnlyList<XmsgFrame> drained = ServerHost.DrainPending();
-                for (int i = 0; i < drained.Count; i++)
-                {
-                    result.Add(drained[i]);
-                }
-            }
-
+            // NOTE: we deliberately DO NOT drain the next output chunk here on the ACK. ConfirmDelivered
+            // (in HandleFrame) only RELEASES the flow-control window. The next chunk is sent when 100 sends
+            // its 7DUMM and we secure-ACK it (the dispatch path above) - that is the "commit"/flush half of
+            // the handshake (TAD-Message-Formats.md 22.6). Draining on the ACK sent the terminator BEFORE
+            // 100's DUMM committed the preceding continuation, so 100 dropped the continuation from display.
             return result;
         }
 

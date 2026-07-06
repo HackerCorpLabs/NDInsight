@@ -527,6 +527,38 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
+        /// The "3" / echo diagnostic renders as three 255-sentinel frames. On the command, only the first
+        /// batch goes out - exactly two bare 255-byte continuations (no RFI); the final (frame 3, with the
+        /// RFI) is WITHHELD until the flow-control handshake advances (100 ACKs and its 7DUMM is ACKed). The
+        /// distinct "ECHO FRAME n OF 3" markers let a live run show which frames 100 actually displays.
+        /// </summary>
+        [Fact]
+        public void ServerHost_EchoDiagnostic_FirstBatchIsTwoContinuations()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // username
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // password
+            terminal.Clear();                                                     // isolate the echo reply
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("3")));
+
+            IReadOnlyList<TadFrameShape> first = terminal.TadFrames;
+            Assert.Equal(2, first.Count);                    // window caps the unacked first batch at 2
+            Assert.Equal(255, first[0].BdatBytes);           // both are full 255-byte continuations
+            Assert.Equal(255, first[1].BdatBytes);
+            Assert.False(first[0].HasRfi, "continuation must not carry an RFI");
+            Assert.False(first[1].HasRfi, "the RFI terminator (frame 3) must be withheld from the first batch");
+
+            // Frame 1 and frame 2 markers rode the first batch; frame 3 has not been sent yet.
+            string screen = terminal.Text;
+            Assert.Contains("ECHO FRAME 1 OF 3", screen);
+            Assert.Contains("ECHO FRAME 2 OF 3", screen);
+            Assert.DoesNotContain("ECHO FRAME 3 OF 3", screen);
+        }
+
+        /// <summary>
         /// The MOTD banner is generated per host: a dynamic date/time line (from the injected clock), the
         /// configurable MOTD line (default = the assembly version banner), and a "--- HOST ID:nnn ---" line
         /// built from this node's number. Guards the replacement of the old hardcoded 1998/RETROCORE banner.
