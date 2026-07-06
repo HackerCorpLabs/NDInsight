@@ -768,42 +768,37 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <returns>The report text.</returns>
         private string BuildStatReport(TadServerSession session, IXmsgServerTransport transport)
         {
-            // Full rich report. Long output is now legal: EmitMenuReply streams it as 255-byte bare
-            // continuations plus a short final frame with the RFI (the TAD full-buffer sentinel rule -
-            // TAD-Message-Formats.md section 22.6). Ends with "\r\n# " so the prompt returns without an
-            // Enter. NOTE: labels use parentheses, NOT square brackets - 0x5B/0x5D render as the Norwegian
-            // letters AE/AA on the ND terminal charset (the "[TTYP]" -> "AETTYPAA" the user saw).
-            StringBuilder sb = new StringBuilder(512);
-            sb.Append("\r\n--- TAD SESSION STATUS ---\r\n\r\n");
-            sb.Append("Connect letter (XMCSM 04000041):\r\n");
-            sb.Append("  From node    : ").Append(session.ClientSystem)
-              .Append("  ->  this node ").Append(transport.NodeNumber)
+            // COMPACT report that fits a SINGLE terminal frame (< 255 bytes). INTERIM: our multi-chunk
+            // (255-byte sentinel) output is byte-correct per TAD-Message-Formats.md 22.6 and 100 secure-ACKs
+            // every chunk, yet 100 will not ASSEMBLE a 2-chunk burst - it displays only the final chunk, sends
+            // no 7CERS, and re-sends the command, looping to the RFIRUT crash. Single-chunk output is the
+            // proven-working path (Time/help/MOTD), so stat stays under one buffer until the multi-chunk
+            // assembly rule is confirmed (GOD-LLM question, DOC/XMSG-TAD-OUTPUT-LENGTH-QUESTION-2026-07-06.md).
+            // Labels use parentheses, NOT square brackets - 0x5B/0x5D render as Norwegian AE/AA on the ND
+            // terminal. Ends with "\r\n# " (EmitMenuReply re-emits the prompt as its own BDAT after the SYCN).
+            StringBuilder sb = new StringBuilder(256);
+            sb.Append("\r\n--- TAD SESSION STATUS (tty").Append(session.TadNumber).Append(") ---\r\n");
+            sb.Append("  From node   : ").Append(session.ClientSystem)
+              .Append(" -> ").Append(transport.NodeNumber)
               .Append(" (D").Append(transport.NodeNumber).Append(")\r\n");
-            sb.Append("  TAD number   : tty").Append(session.TadNumber).Append("\r\n");
-            sb.Append("  Service      : ")
-              .Append(session.ConnectService.Length != 0 ? session.ConnectService : "(none)").Append("\r\n");
-            sb.Append("  Target name  : ")
+            sb.Append("  Service     : ")
+              .Append(session.ConnectService.Length != 0 ? session.ConnectService : "(none)")
+              .Append("   Target: ")
               .Append(session.ConnectTargetName.Length != 0 ? session.ConnectTargetName : "(none)").Append("\r\n");
-            sb.Append("  Client port  : 0x").Append(session.ClientPort.ToString("X4"))
-              .Append("  (logical ").Append(session.ClientPort >> 7)
-              .Append(", incarnation ").Append(session.ClientPort & 0x7F).Append(")\r\n\r\n");
+            sb.Append("  Client port : 0x").Append(session.ClientPort.ToString("X4"))
+              .Append(" (logical ").Append(session.ClientPort >> 7)
+              .Append(", incarnation ").Append(session.ClientPort & 0x7F).Append(")\r\n");
 
             if (session.NegotiationSeen)
             {
-                sb.Append("Terminal negotiation (sent by your connect-to):\r\n");
-                sb.Append("  Terminal type: ").Append(session.TerminalType)
-                  .Append("  (octal ").Append(Convert.ToString(session.TerminalType, 8))
-                  .Append(", hex 0x").Append(session.TerminalType.ToString("X4")).Append(")   (TTYP)\r\n");
-                sb.Append("  Terminal mode: ").Append(session.TerminalMode)
-                  .Append("  (0x").Append(session.TerminalMode.ToString("X2")).Append(")   (TMOD)\r\n");
-                sb.Append("  Escape char  : ").Append(session.EscapeChar)
-                  .Append("  (octal ").Append(Convert.ToString(session.EscapeChar, 8))
-                  .Append(session.EscapeChar == 0x1B ? ", ESC" : string.Empty).Append(")   (DESC)\r\n");
-                sb.Append("  Host OS ver  : ").Append(FormatHexBytes(session.OsVersion)).Append("   (OPSV)\r\n");
+                sb.Append("  Terminal    : TTYP 0x").Append(session.TerminalType.ToString("X4"))
+                  .Append("  TMOD 0x").Append(session.TerminalMode.ToString("X2"))
+                  .Append("  DESC ").Append(session.EscapeChar)
+                  .Append("  OPSV ").Append(FormatHexBytes(session.OsVersion)).Append("\r\n");
             }
             else
             {
-                sb.Append("Terminal negotiation: not yet received.\r\n");
+                sb.Append("  Terminal    : (not yet negotiated)\r\n");
             }
 
             sb.Append("\r\n# ");

@@ -461,13 +461,13 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
-        /// A terminal reply longer than one buffer is streamed as the TAD full-buffer sentinel: every
-        /// non-final frame is a BARE 255-byte BDAT (no RFI), and the final frame is a short (&lt; 255) BDAT
-        /// that carries the RFI. This is the verified rule (TAD-Message-Formats.md section 22.6) that the
-        /// earlier 128/240-byte chunking violated - a short non-final frame with no RFI is what crashed 100.
+        /// The "stat" reply is a SINGLE terminal frame (its content is kept under one 255-byte buffer)
+        /// whose BDAT is short (&lt; 255) and carries the RFI. This is the proven-working single-chunk path
+        /// (like Time/help). Multi-chunk (255-sentinel) output is byte-correct per the doc but 100 does not
+        /// assemble a 2-chunk burst live (open GOD-LLM question), so stat stays single-frame for now.
         /// </summary>
         [Fact]
-        public void ServerHost_LongReply_Uses255ByteSentinelChunking()
+        public void ServerHost_Stat_IsSingleFrameWithRfi()
         {
             TerminalCapture terminal = new TerminalCapture();
             TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
@@ -479,19 +479,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             clientCodec.SendPacket(new XmsgPacket(client.BuildInput("stat")));
 
             IReadOnlyList<TadFrameShape> frames = terminal.TadFrames;
-            Assert.True(frames.Count >= 2, "the stat reply (> 255 bytes) must span a continuation plus a final frame");
-
-            // Every non-final frame: a bare 255-byte continuation with NO RFI.
-            for (int i = 0; i < frames.Count - 1; i++)
-            {
-                Assert.Equal(255, frames[i].BdatBytes);
-                Assert.False(frames[i].HasRfi, "a 255-byte continuation must not carry an RFI");
-            }
-
-            // The final frame: a short (< 255) terminator that carries the RFI.
-            TadFrameShape last = frames[frames.Count - 1];
-            Assert.True(last.BdatBytes < 255, "the final frame must be shorter than 255 bytes");
-            Assert.True(last.HasRfi, "the final frame must carry the RFI");
+            Assert.Single(frames);                                    // one terminal frame, no continuation
+            Assert.True(frames[0].BdatBytes < 255, "the stat reply must fit one buffer (< 255 bytes)");
+            Assert.True(frames[0].HasRfi, "the stat reply must carry the RFI");
         }
 
         /// <summary>

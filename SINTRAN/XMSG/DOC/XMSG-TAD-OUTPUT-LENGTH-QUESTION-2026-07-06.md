@@ -99,6 +99,57 @@ disambiguated:
    existing session's wire port and reset its Flags1, or allocate a new port? What closes the old
    session so 100 stops polling the stale port?
 
+## UPDATE 2 (2026-07-06 16:42) - the 255-sentinel is implemented byte-correctly, but 100 still will not ASSEMBLE a 2-chunk burst
+
+We implemented the rule exactly per section 22.6 (255-byte bare continuations; final < 255 with
+`BDAT(remainder) + SYCN 000A + BDAT(prompt) + RFI`). The frames on the wire are now byte-correct
+AND 100 secure-ACKs every one - yet `stat` still fails identically: only the FINAL chunk displays,
+100 sends no 7CERS, and it re-sends the `stat` command every ~1 s, looping to the RFIRUT crash.
+
+The two `stat` frames as actually sent (from xmsg-runner.log, verified):
+
+Chunk 1 (continuation), LAPB addr `0x89` (odd), frameFlags `0x96`, role `0x00`:
+```
+89 44  2113 00 0E  0064 0066  0011 0108 DC FB  2100 96 00  0064 02C6 0066 0212
+01080000  0101  01 FF  0D0A 2D2D2D 205441442053455353494F4E20535441545553 ... 5465726D696E616C206E65676F
+        (XMLEN 0x0101 = 257 = BDAT 01 FF + 255 data; bare, no RFI; channel DC, counter FB)
+```
+Chunk 2 (final), LAPB addr `0x09` (even), frameFlags `0x96`, role `0x00`:
+```
+09 46  2113 00 0E  0064 0066  0012 0108 DC FA  2100 96 00  0064 02C6 0066 0212
+01080000  00DE  01 D2  74696174696F6E ... 4F505356290D0A0D0A  1302 000A  01 02 2320  02 00
+        (XMLEN 0x00DE = 222 = BDAT(210) + SYCN 000A + BDAT("# ") + RFI; channel DC, counter FA)
+```
+
+Facts that rule out our earlier suspects:
+- BOTH chunks are on the SAME channel `DC` (epoch 1) - the epoch-crossing idea is dead.
+- Ports are consistent all session (100 = 0x02C6, us = 0x0212); no stale-port issue here.
+- 100 SECURE-ACKs both chunks (subtype 0x03, Flags1 0x0011 and 0x0012) - it received them.
+- The final trailer is now the doc form `... SYCN 000A + BDAT(prompt) + RFI`.
+- Chunk 1 is a full 255 (count 0xFF); chunk 2 is 210 (< 255) with the RFI. Neither is a
+  short-non-final-without-RFI.
+- Both frames go out back-to-back with nothing interleaved between them.
+
+Yet 100 displays only chunk 2 ("tiation..." - the word "nego|tiation" is split at the 255
+boundary and the first half never appears) and re-sends `stat`.
+
+### The precise question
+
+Why does 100 (the asker's connect-to program) not assemble a 2-chunk host output burst that
+matches 22.6 byte-for-byte? Candidates we could NOT resolve from the corpus/doc:
+1. Must the terminal-data frameFlags ALTERNATE `0x96`/`0x92` across a multi-chunk burst? Both of
+   ours are `0x96` (doc 22.6 says "0x92/0x96 alternating [rule UNKNOWN]").
+2. Must the host WAIT for 100's ACK (or a 7CERS/7POLL) of chunk 1 before sending chunk 2, rather
+   than streaming both back-to-back? (Doc says "up to two chunks ahead of the ACKs" - is 2 the
+   cause, or is there a per-chunk handshake?)
+3. Does a count-0xFF continuation need a specific role/marker beyond the 255 bytes (e.g. a
+   different role than 0x00, or a 7SYCN/flag) so 100 buffers rather than displays-and-discards it?
+4. Is there a real captured multi-chunk HOST->ASKER burst (the "33/33 continuation chunks" / the
+   ~2 KB file listing) whose exact bytes we can diff against these two frames?
+
+Until this is answered we keep `stat` to a single < 255 chunk (the proven-working path). We need
+the multi-chunk assembly rule before restoring long `stat` / `who` / `list route` output.
+
 ## What we will do with the answer
 
 Restore the full rich `stat` (and future `who` / `list route`) output using the correct
