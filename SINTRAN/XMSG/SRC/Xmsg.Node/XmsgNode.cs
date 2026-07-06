@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 
 using NDInsight.Sintran.Xmsg.ListRouting;
+using NDInsight.Sintran.Xmsg.Node.Services;
 using NDInsight.Sintran.Xmsg.Node.Tad;
+using NDInsight.Sintran.Xmsg.Packet;
 
 namespace NDInsight.Sintran.Xmsg.Node
 {
@@ -55,6 +57,15 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// subsequent terminal-data (BDAT) frames drive its menu.
         /// </summary>
         public TadTerminalResponder? TadResponder { get; set; }
+
+        /// <summary>
+        /// Optional framework server host. When set, incoming server traffic (XSLET connect letters and
+        /// session data) is dispatched to the registered <see cref="IXmsgServer"/>s (the TAD server now,
+        /// XM-FIDO later) instead of the legacy <see cref="TadResponder"/>, and each such frame is
+        /// secure-ACKed via the closed-form model. Reachability, list-route and ACK/XENSE stay in the
+        /// node. This is the replacement path for <see cref="TadResponder"/>.
+        /// </summary>
+        public XmsgServerHost? ServerHost { get; set; }
 
         /// <summary>
         /// When true, secure-ACK (subtype <c>0x03</c>, echoing Flags1) each TAD connect and
@@ -196,6 +207,19 @@ namespace NDInsight.Sintran.Xmsg.Node
         }
 
         /// <summary>
+        /// Drains queued asynchronous output from all registered servers (for example TAD tty inject /
+        /// wall text) into frames to transmit. The live runner calls this each pump cycle so injected
+        /// text flushes to the remote clients.
+        /// </summary>
+        /// <returns>
+        /// The queued frames, in order (empty when nothing is pending or no server host is set).
+        /// </returns>
+        public IReadOnlyList<XmsgFrame> DrainServers()
+        {
+            return ServerHost != null ? ServerHost.DrainPending() : Array.Empty<XmsgFrame>();
+        }
+
+        /// <summary>
         /// Processes a received frame and returns ALL frames to send in response (zero or more).
         /// This is the multi-frame entry point the live node uses: a TAD connect needs several
         /// frames (secure ACK + connect-accept + greeting), which the single-frame
@@ -213,6 +237,33 @@ namespace NDInsight.Sintran.Xmsg.Node
             if (incoming.Header == null)
             {
                 throw new ArgumentNullException(nameof(incoming), "Frame header is null.");
+            }
+
+            // FRAMEWORK SERVER DISPATCH (the replacement for the TadResponder path below): route server
+            // traffic - XSLET connect letters and session data - to the registered servers, secure-ACKing
+            // each via the closed-form model seeded from the link seed. Reachability, list-route (XSGSY)
+            // and ACK/XENSE fall through to the node's own handling.
+            if (ServerHost != null
+                && incoming.Header.Subtype == SintranPacketSubtype.Data
+                && incoming.SubHeader != null
+                && incoming.SubHeader.ControlService != ListRoutingServer.XmcsmXsgsyRequest)
+            {
+                List<XmsgFrame> served = new List<XmsgFrame>();
+                if (AcknowledgeData)
+                {
+                    byte seed = XmsgEnvelope.LearnSeed(
+                        incoming.Header.Flags1, incoming.SubHeader.Counter, incoming.Header.Flags2);
+                    _receiver.UseSessionAckModel(seed);
+                    served.Add(_receiver.ReceiveDataFrame(incoming, (SintranProtocolId)XmsgEnvelope.ChannelAnchor));
+                }
+
+                IReadOnlyList<XmsgFrame> serverFrames = ServerHost.Route(incoming);
+                for (int i = 0; i < serverFrames.Count; i++)
+                {
+                    served.Add(serverFrames[i]);
+                }
+
+                return served;
             }
 
             List<XmsgFrame> result = new List<XmsgFrame>();
@@ -387,6 +438,7 @@ namespace NDInsight.Sintran.Xmsg.Node
                     // Persist ackedFlags1 + 1 as our next sequence, so a restart continues exactly
                     // where 100 expects — never ahead of what it actually received.
                     TadResponder?.ConfirmDelivered(incoming.Header.SourceNode, incoming.Header.Flags1);
+                    ServerHost?.ConfirmDelivered(incoming.Header.SourceNode, incoming.Header.Flags1);
                     return null;
 
                 case SintranPacketSubtype.NetworkError:
@@ -408,6 +460,7 @@ namespace NDInsight.Sintran.Xmsg.Node
                     // an XMSG restart 100 sends this, then connects at Flags1 0x0000). No-op for a bare
                     // link restart, where 100 continues its sequence and sends no reachability.
                     TadResponder?.ResetSequence(incoming.Header.SourceNode);
+                    ServerHost?.ResetSequence(incoming.Header.SourceNode);
                     return BuildReachabilityReply(incoming);
 
                 case SintranPacketSubtype.Data:
