@@ -587,11 +587,15 @@ internal static class Program
             }
         };
 
-        // SABM-storm suppression. A peer whose XMSG has crashed re-SABMs forever (bare link, no XMSG
-        // behind it). Collapse that churn — the peer SABMs and our UA/RR answers — into ONE warning
-        // instead of hundreds of identical lines. Shared by the TX and rx-raw handlers below.
+        // SABM-storm suppression. A short burst of peer SABMs during link establishment is NORMAL (the
+        // balanced SABM/UA handshake) - it is NOT "machine down". We collapse the repeated SABM churn
+        // (and our UA/RR echoes) quietly, and ONLY escalate to a "peer XMSG is down" warning if the
+        // SABMs PERSIST with no data phase for several seconds (a crashed peer re-SABMs forever).
         bool stormActive = false;
+        bool peerDownWarned = false;
         int peerSabmStreak = 0;
+        DateTime sabmStreakStart = default;
+        TimeSpan sabmDownThreshold = TimeSpan.FromSeconds(5);
 
         // Diagnostics: log every LAPB body we transmit (link.OnTransmit is multicast, so this fires
         // alongside the adapter's own encode-and-queue handler).
@@ -653,15 +657,28 @@ internal static class Program
             if (ctrl == 0x3F)   // SABM from the peer
             {
                 peerSabmStreak++;
-                if (peerSabmStreak == 3)
+                if (peerSabmStreak == 1)
                 {
-                    // Three back-to-back SABMs with no data = the peer's XMSG is not taking the link
-                    // to the data phase. Say so plainly and stop echoing the churn.
+                    sabmStreakStart = DateTime.UtcNow;
+                }
+
+                // Collapse the repeated SABM churn after a few. This is NORMAL link-establishment
+                // handshaking - do NOT claim the peer is down for it.
+                if (peerSabmStreak >= 3 && !stormActive)
+                {
                     stormActive = true;
+                    Console.WriteLine("[link] collapsing repeated peer SABMs (link establishing)...");
+                }
+
+                // Only if the SABMs PERSIST with no data phase for several seconds is the peer's XMSG
+                // actually down (a crashed peer re-SABMs a bare link forever). Say so once, accurately.
+                if (stormActive && !peerDownWarned
+                    && DateTime.UtcNow - sabmStreakStart > sabmDownThreshold)
+                {
+                    peerDownWarned = true;
                     Console.WriteLine(
-                        "[!] Peer is re-sending SABM with no XMSG data. Machine 100's XMSG is almost " +
-                        "certainly DOWN (crashed / not started). Restart XMSG on 100, then reconnect. " +
-                        "Suppressing link-establishment churn until real traffic resumes...");
+                        "[!] Peer has re-sent SABM for over 5s with no XMSG data - machine 100's XMSG is " +
+                        "likely DOWN (crashed / not started). Restart XMSG on 100, then reconnect.");
                 }
 
                 if (stormActive)
@@ -673,8 +690,15 @@ internal static class Program
             {
                 if (stormActive)
                 {
-                    Console.WriteLine($"[!] SABM storm ended after {peerSabmStreak} SABMs; traffic resuming.");
+                    // Only note "resumed" if we had actually warned the peer was down; a normal
+                    // establishment burst resolves silently.
+                    if (peerDownWarned)
+                    {
+                        Console.WriteLine("[link] peer traffic resumed.");
+                    }
+
                     stormActive = false;
+                    peerDownWarned = false;
                 }
 
                 peerSabmStreak = 0;

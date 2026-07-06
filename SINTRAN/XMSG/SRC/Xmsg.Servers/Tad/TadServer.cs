@@ -57,13 +57,16 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         private const uint BareTadControlService = (uint)XmcsmService.BareTadControl;       // 0x00080000
         private const uint SessionNotifyControlService = (uint)XmcsmService.SessionNotify;  // 0x00060000
 
-        // Chunk terminal replies well under the single-BDAT 255-byte limit, on an even boundary.
-        // NOTE: the "stat Illegal element length" crash was NOT a chunk-size problem - it was the
-        // framework dispatch path failing to secure-ACK 100's frames (XmsgNode gated the ACK on the
-        // wrong flag), so 100 retransmitted, desynced its magic-number window, and crashed on the first
-        // multi-frame reply. Fixed in XmsgNode. If a real element-length cap ever surfaces once ACKs
-        // flow, lower this with evidence rather than guesswork.
-        private const int MenuReplyChunk = 240;
+        // Max bytes per terminal-data BDAT element. LIVE-MEASURED against machine 100 (xmsg-runner.log
+        // 2026-07-06 12:13): a 137-byte BDAT ("help", XMLEN 146, one frame) is accepted, but a 240-byte
+        // BDAT ("stat" first frame, XMLEN 242) crashes 100 with "Illegal element length" (RFIRUT:1) even
+        // once secure-ACKs flow. So 100 caps a single terminal-data element somewhere in (137, 240].
+        // Stay at 128 - under the proven-good 137, on an even boundary. This is EVIDENCE-BASED, not a
+        // guess; the exact cap and whether multi-frame terminal output has extra rules is a GOD-LLM
+        // question (see DOC/XMSG-TAD-OUTPUT-LENGTH-QUESTION-2026-07-06.md). NOTE: a separate fix in
+        // XmsgNode (secure-ACK the session data) was ALSO required - without it 100 desynced its
+        // magic-number window regardless of chunk size.
+        private const int MenuReplyChunk = 128;
 
         // The MOTD frame's TAD payload, VERIFIED from conn-to-d102 frame 62: BMMX / ECKM / a BDAT banner
         // (date, "SINTRAN III - VSX/500", "--- RETROCORE EMULATED ID:102 ---") / SYCN / a BDAT "ENTER "
