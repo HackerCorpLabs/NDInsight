@@ -359,6 +359,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
             XmsgCodec serverCodec = new XmsgCodec("server", serverToClient);
             XmsgLayer serverLayer = new XmsgLayer(serverCodec, 102, 0x00);
+            // Match the live runner's flags EXACTLY: AcknowledgeData=false (the legacy generic path is
+            // off) and AcknowledgeTadFrames=true (session data is secure-ACKed). This reproduces the live
+            // condition so the ServerHost_SessionData_IsSecureAcked regression actually bites - the old
+            // buggy gate (if AcknowledgeData) would emit NO ACK here, exactly as it did against 100.
+            serverLayer.AcknowledgeData = false;
+            serverLayer.AcknowledgeTadFrames = true;
             XmsgServerHost host = new XmsgServerHost(102);
             host.Register(new TadServer(FixedClock));
             serverLayer.ServerHost = host;
@@ -402,6 +408,34 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
+        /// The framework dispatch path MUST secure-ACK (subtype <c>0x03</c>) each session data frame it
+        /// receives. Regression guard for the XmsgNode flag bug: the dispatch block gated its ACK on
+        /// AcknowledgeData (false in the runner) instead of AcknowledgeTadFrames, so the live 100 got no
+        /// ACKs, retransmitted, and crashed with XEIMA (invalid magic) on the first multi-frame reply.
+        /// </summary>
+        [Fact]
+        public void ServerHost_SessionData_IsSecureAcked()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+
+            // A connect plus one keystroke line: each inbound data frame must draw a subtype-0x03 ACK.
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));
+
+            int ackCount = 0;
+            for (int i = 0; i < terminal.Subtypes.Count; i++)
+            {
+                if (terminal.Subtypes[i] == SintranPacketSubtype.Ack)
+                {
+                    ackCount++;
+                }
+            }
+
+            Assert.True(ackCount > 0, "framework path emitted no secure ACK (subtype 0x03) for session data");
+        }
+
+        /// <summary>
         /// A one-directional in-memory transport: forwards each frame's bytes to a target codec.
         /// </summary>
         private sealed class PipeTransport : IXmsgTransport
@@ -427,11 +461,24 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         private sealed class TerminalCapture
         {
             private readonly StringBuilder _text = new StringBuilder();
+            private readonly List<SintranPacketSubtype> _subtypes = new List<SintranPacketSubtype>();
 
             /// <summary>Gets the accumulated terminal text.</summary>
             public string Text
             {
                 get { return _text.ToString(); }
+            }
+
+            /// <summary>
+            /// Gets the SINTRAN subtype of every frame the server sent, in arrival order.
+            /// </summary>
+            /// <remarks>
+            /// Used to assert the framework path secure-ACKs session traffic (a subtype
+            /// <see cref="SintranPacketSubtype.Ack"/> frame must appear).
+            /// </remarks>
+            public IReadOnlyList<SintranPacketSubtype> Subtypes
+            {
+                get { return _subtypes; }
             }
 
             /// <summary>
@@ -442,6 +489,11 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             /// </param>
             public void Append(XmsgFrame frame)
             {
+                if (frame?.Header != null)
+                {
+                    _subtypes.Add(frame.Header.Subtype);
+                }
+
                 if (frame?.Tad == null)
                 {
                     return;

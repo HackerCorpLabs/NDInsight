@@ -249,7 +249,15 @@ namespace NDInsight.Sintran.Xmsg.Node
                 && incoming.SubHeader.ControlService != ListRoutingServer.XmcsmXsgsyRequest)
             {
                 List<XmsgFrame> served = new List<XmsgFrame>();
-                if (AcknowledgeData)
+                // Gate the secure-ACK on AcknowledgeTadFrames (the session-data ACK flag), NOT
+                // AcknowledgeData. AcknowledgeData governs the LEGACY generic-data path below and is
+                // deliberately false in the runner (it would double-ACK). The old TadResponder path
+                // this block replaced ACKed every session frame via AcknowledgeTadFrames - dropping
+                // that here left 100 un-ACKed, so it retransmitted its connect/terminal frames and
+                // eventually desynced its magic-number window, crashing with XEIMA on a multi-frame
+                // reply (the "stat Illegal element length / illegal port magic" crash). Same closed-form
+                // stateless ACK the old path used: seed from the link seed, ride the 0xDE anchor channel.
+                if (AcknowledgeTadFrames)
                 {
                     byte seed = XmsgEnvelope.LearnSeed(
                         incoming.Header.Flags1, incoming.SubHeader.Counter, incoming.Header.Flags2);
