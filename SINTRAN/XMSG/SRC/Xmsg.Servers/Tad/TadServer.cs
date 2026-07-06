@@ -279,6 +279,15 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             for (int i = 0; i < _sessionList.Count; i++)
             {
                 TadServerSession session = _sessionList[i];
+
+                // If no command burst is in progress but a tell / wall message is queued for this session,
+                // begin an asynchronous inject burst: the queued text, then a redrawn "# " prompt. It streams
+                // under the same flow-control handshake as a command reply.
+                if (!session.OutputActive && session.IsLoggedIn && session.HasPendingOutput)
+                {
+                    StartOutputBurst(session, session.TakePendingOutput() + TerminalPrompt);
+                }
+
                 if (session.OutputActive)
                 {
                     DrainSessionOutput(session, transport, outgoing);
@@ -648,6 +657,27 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 return;
             }
 
+            // tty subsystem commands: who (list sessions), tell N text (message one user), wall text
+            // (broadcast). tell / wall queue the message into the target session(s) - it is pushed to those
+            // terminals asynchronously by DrainPending, NOT returned to the caller.
+            if (string.Equals(line, "who", StringComparison.OrdinalIgnoreCase))
+            {
+                EmitMenuReply(session, transport, outgoing, BuildWhoReport(session));
+                return;
+            }
+
+            if (StartsWithCommand(line, "tell"))
+            {
+                HandleTell(session, transport, outgoing, line.Substring(4).Trim());
+                return;
+            }
+
+            if (StartsWithCommand(line, "wall"))
+            {
+                HandleWall(session, transport, outgoing, line.Substring(4).Trim());
+                return;
+            }
+
             TadMenuResult result = _menu.Handle(line, _clock());
             switch (result.Mode)
             {
@@ -664,6 +694,193 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                     EmitMenuReply(session, transport, outgoing, result.Output);
                     break;
             }
+        }
+
+        /// <summary>
+        /// Queues a message to the session on the given TAD (tty) number; it is pushed to that terminal
+        /// asynchronously by <see cref="DrainPending"/>. Public so another server / subsystem can inject.
+        /// </summary>
+        /// <param name="tadNumber">
+        /// The target session's TAD number.
+        /// </param>
+        /// <param name="text">
+        /// The message text to display.
+        /// </param>
+        /// <returns>
+        /// 1 when a logged-in session with that TAD number received the message; 0 when none matched.
+        /// </returns>
+        public int InjectToTad(int tadNumber, string text)
+        {
+            for (int i = 0; i < _sessionList.Count; i++)
+            {
+                TadServerSession session = _sessionList[i];
+                if (session.TadNumber == tadNumber && session.IsLoggedIn)
+                {
+                    session.Enqueue(text);
+                    return 1;
+                }
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// Queues a message to every logged-in session of the given user (case-insensitive).
+        /// </summary>
+        /// <param name="username">
+        /// The target username.
+        /// </param>
+        /// <param name="text">
+        /// The message text to display.
+        /// </param>
+        /// <returns>
+        /// The number of sessions that received the message.
+        /// </returns>
+        public int InjectToUser(string username, string text)
+        {
+            int count = 0;
+            for (int i = 0; i < _sessionList.Count; i++)
+            {
+                TadServerSession session = _sessionList[i];
+                if (session.IsLoggedIn && string.Equals(session.Username, username, StringComparison.OrdinalIgnoreCase))
+                {
+                    session.Enqueue(text);
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// Queues a message to every logged-in session (a wall broadcast, sender included).
+        /// </summary>
+        /// <param name="text">
+        /// The message text to display.
+        /// </param>
+        /// <returns>
+        /// The number of sessions that received the message.
+        /// </returns>
+        public int Broadcast(string text)
+        {
+            int count = 0;
+            for (int i = 0; i < _sessionList.Count; i++)
+            {
+                if (_sessionList[i].IsLoggedIn)
+                {
+                    _sessionList[i].Enqueue(text);
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// Builds the "who" listing: every logged-in session with its tty and user, the caller marked
+        /// with a <c>===&gt;</c> arrow (SINTRAN style). Kept under one 255-byte buffer.
+        /// </summary>
+        /// <param name="caller">The session that ran "who".</param>
+        /// <returns>The listing text (ending with the prompt).</returns>
+        private string BuildWhoReport(TadServerSession caller)
+        {
+            StringBuilder sb = new StringBuilder(256);
+            sb.Append("\r\n  TAD   User\r\n");
+            for (int i = 0; i < _sessionList.Count; i++)
+            {
+                TadServerSession session = _sessionList[i];
+                if (!session.IsLoggedIn)
+                {
+                    continue;
+                }
+
+                sb.Append(session == caller ? "===> " : "     ");
+                sb.Append("tty").Append(session.TadNumber)
+                  .Append("  ").Append(session.Username.Length != 0 ? session.Username : "(anon)")
+                  .Append("\r\n");
+            }
+
+            sb.Append("# ");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Handles "tell &lt;ttyN|user&gt; &lt;text&gt;": injects the message into the target session(s) and
+        /// confirms to the caller.
+        /// </summary>
+        /// <param name="caller">The session that ran "tell".</param>
+        /// <param name="transport">The node transport.</param>
+        /// <param name="outgoing">The caller's reply list.</param>
+        /// <param name="args">The command arguments after "tell ".</param>
+        private void HandleTell(TadServerSession caller, IXmsgServerTransport transport, List<XmsgFrame> outgoing, string args)
+        {
+            int space = args.IndexOf(' ');
+            if (space <= 0)
+            {
+                EmitMenuReply(caller, transport, outgoing, "\r\nusage: tell <ttyN|user> <text>\r\n# ");
+                return;
+            }
+
+            string target = args.Substring(0, space);
+            string text = args.Substring(space + 1).Trim();
+            string message = FormatInterUserMessage(caller, text);
+
+            // A "ttyN" or bare-number target addresses a TAD number; anything else is a username.
+            string numeric = target.StartsWith("tty", StringComparison.OrdinalIgnoreCase) ? target.Substring(3) : target;
+            int delivered = int.TryParse(numeric, out int tad)
+                ? InjectToTad(tad, message)
+                : InjectToUser(target, message);
+
+            string reply = delivered > 0
+                ? "\r\nsent to " + delivered + " session(s)\r\n# "
+                : "\r\nno such user/tty: " + target + "\r\n# ";
+            EmitMenuReply(caller, transport, outgoing, reply);
+        }
+
+        /// <summary>
+        /// Handles "wall &lt;text&gt;": broadcasts the message to every logged-in session (sender included)
+        /// and confirms to the caller.
+        /// </summary>
+        /// <param name="caller">The session that ran "wall".</param>
+        /// <param name="transport">The node transport.</param>
+        /// <param name="outgoing">The caller's reply list.</param>
+        /// <param name="text">The broadcast text after "wall ".</param>
+        private void HandleWall(TadServerSession caller, IXmsgServerTransport transport, List<XmsgFrame> outgoing, string text)
+        {
+            if (text.Length == 0)
+            {
+                EmitMenuReply(caller, transport, outgoing, "\r\nusage: wall <text>\r\n# ");
+                return;
+            }
+
+            int delivered = Broadcast(FormatInterUserMessage(caller, text));
+            EmitMenuReply(caller, transport, outgoing, "\r\nbroadcast to " + delivered + " session(s)\r\n# ");
+        }
+
+        /// <summary>
+        /// Formats a Unix-style inter-user message: <c>Message from &lt;user&gt; at TAD &lt;n&gt;: &lt;text&gt;</c>.
+        /// </summary>
+        /// <param name="caller">The sending session.</param>
+        /// <param name="text">The message body.</param>
+        /// <returns>The formatted message (leading and trailing CRLF).</returns>
+        private static string FormatInterUserMessage(TadServerSession caller, string text)
+        {
+            return "\r\nMessage from " + (caller.Username.Length != 0 ? caller.Username : "?")
+                + " at TAD " + caller.TadNumber + ": " + text + "\r\n";
+        }
+
+        /// <summary>
+        /// Returns true when a command line is the given command word, alone or followed by arguments
+        /// (case-insensitive), for example "tell" or "tell 2 hi".
+        /// </summary>
+        /// <param name="line">The command line.</param>
+        /// <param name="command">The command word to match.</param>
+        /// <returns>True on a match.</returns>
+        private static bool StartsWithCommand(string line, string command)
+        {
+            return line.Length >= command.Length
+                && string.Compare(line, 0, command, 0, command.Length, StringComparison.OrdinalIgnoreCase) == 0
+                && (line.Length == command.Length || line[command.Length] == ' ');
         }
 
         /// <summary>
@@ -702,6 +919,22 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="text">The full reply text (with its trailing prompt).</param>
         private void EmitMenuReply(TadServerSession session, IXmsgServerTransport transport, List<XmsgFrame> outgoing, string text)
         {
+            StartOutputBurst(session, text);
+            DrainSessionOutput(session, transport, outgoing);
+        }
+
+        /// <summary>
+        /// Begins a windowed output burst for a session: splits the trailing "# " prompt off the content
+        /// so the burst trailer is the verified BDAT(content) + SYCN 000A + BDAT(prompt) + RFI.
+        /// </summary>
+        /// <remarks>
+        /// Shared by command replies (<see cref="EmitMenuReply"/>) and asynchronous tty injects
+        /// (tell / wall), so both stream under the same flow-control handshake.
+        /// </remarks>
+        /// <param name="session">The session whose output burst to begin.</param>
+        /// <param name="text">The full reply text (with its trailing "# " prompt).</param>
+        private static void StartOutputBurst(TadServerSession session, string text)
+        {
             string body = text ?? string.Empty;
 
             // Separate the trailing "# " prompt from the content. The VERIFIED burst trailer
@@ -718,7 +951,6 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             }
 
             session.BeginOutput(body, prompt);
-            DrainSessionOutput(session, transport, outgoing);
         }
 
         /// <summary>

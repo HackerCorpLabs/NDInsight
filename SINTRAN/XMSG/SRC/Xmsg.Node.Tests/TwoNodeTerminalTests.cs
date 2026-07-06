@@ -395,6 +395,75 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             Assert.NotEqual(openedTtys[0], openedTtys[1]);   // distinct ttyN per session
         }
 
+        /// <summary>
+        /// The inject API queues a message to sessions matched by TAD number, by username (case-insensitive)
+        /// or to all (broadcast), returning how many logged-in sessions received it. Foundation of tell/wall.
+        /// </summary>
+        [Fact]
+        public void ServerHost_InjectApi_QueuesToMatchingLoggedInSessions()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildViaServerHost(terminal, null, out XmsgCodec clientCodec, out _, out TadServer server);
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // username
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // password -> logged in
+
+            Assert.Equal(1, server.Broadcast("x"));              // the one logged-in session
+            Assert.Equal(1, server.InjectToTad(1, "x"));         // tty1 exists
+            Assert.Equal(0, server.InjectToTad(99, "x"));        // no such tty
+            Assert.Equal(1, server.InjectToUser("system", "x")); // case-insensitive match on SYSTEM
+            Assert.Equal(0, server.InjectToUser("nobody", "x"));
+        }
+
+        /// <summary>
+        /// An injected message is pushed to the target terminal asynchronously by DrainPending (as would
+        /// happen on the next 7DUMM from 100), not returned to whoever sent it.
+        /// </summary>
+        [Fact]
+        public void ServerHost_InjectedMessage_IsPushedToTheTerminal()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildViaServerHost(terminal, null, out XmsgCodec clientCodec, out XmsgServerHost host, out TadServer server);
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));
+            terminal.Clear();
+
+            server.InjectToTad(1, "\r\nMessage from ronny at TAD 9: ping\r\n");
+
+            // The async push happens on the next DrainPending (a DUMM in the live loop); route it to the client.
+            IReadOnlyList<XmsgFrame> pushed = host.DrainPending();
+            for (int i = 0; i < pushed.Count; i++)
+            {
+                clientCodec.ProcessBytes(pushed[i].ToArray());
+            }
+
+            Assert.Contains("Message from ronny at TAD 9: ping", terminal.Text);
+        }
+
+        /// <summary>
+        /// "who" lists the logged-in sessions and marks the caller with a "===>" arrow.
+        /// </summary>
+        [Fact]
+        public void ServerHost_Who_ListsSessionsAndMarksCaller()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));
+            terminal.Clear();
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("who")));
+
+            string screen = terminal.Text;
+            Assert.Contains("===> tty1", screen);   // the caller, arrow-marked
+            Assert.Contains("SYSTEM", screen);       // the logged-in user
+            Assert.EndsWith("# ", screen);
+        }
+
         private static TadConnectClient BuildViaServerHost(TerminalCapture terminal, out XmsgCodec clientCodec)
         {
             return BuildViaServerHost(terminal, null, out clientCodec, out _, out _);
