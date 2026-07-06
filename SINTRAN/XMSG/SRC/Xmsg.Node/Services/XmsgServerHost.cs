@@ -158,6 +158,25 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         }
 
         /// <summary>
+        /// Describes every registered server (name, ports, sessions, free slots) for the
+        /// <c>list servers</c> command - the COSMOS <c>list-servers</c> shape.
+        /// </summary>
+        /// <returns>
+        /// One <see cref="XmsgServerInfo"/> per registered server.
+        /// </returns>
+        public IReadOnlyList<XmsgServerInfo> DescribeServers()
+        {
+            List<XmsgServerInfo> list = new List<XmsgServerInfo>(_servers.Count);
+            for (int i = 0; i < _servers.Count; i++)
+            {
+                IXmsgServer server = _servers[i];
+                list.Add(new XmsgServerInfo(server.Name, server.LogicalPort, server.WirePort, server.SessionCount, server.SessionCapacity));
+            }
+
+            return list;
+        }
+
+        /// <summary>
         /// Records that a remote node ACKed one of our frames, advancing the persisted next-sequence for
         /// that link to <c>ackedFlags1 + 1</c> (never past what was actually received).
         /// </summary>

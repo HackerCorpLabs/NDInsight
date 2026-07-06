@@ -490,6 +490,62 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             Assert.EndsWith("# ", screen);
         }
 
+        /// <summary>
+        /// "help" lists the command registry - the numbered menu plus stat / who / tell / wall / list / help.
+        /// (The reply spans several 255-byte frames; the harness captures the first windowed batch, which
+        /// holds the header and most commands.)
+        /// </summary>
+        [Fact]
+        public void ServerHost_Help_ListsTheCommandRegistry()
+        {
+            string screen = RunLoggedInCommand("help");
+            Assert.Contains("COMMANDS", screen);
+            Assert.Contains("stat", screen);
+            Assert.Contains("who", screen);
+            Assert.Contains("wall", screen);
+        }
+
+        /// <summary>
+        /// "list service" lists the known XROUT services (XSLET, XSGSY, ...) from the code table.
+        /// </summary>
+        [Fact]
+        public void ServerHost_ListService_ListsXroutServices()
+        {
+            string screen = RunLoggedInCommand("list service");
+            Assert.Contains("SERVICES", screen);
+            Assert.Contains("XSLET", screen);
+        }
+
+        /// <summary>
+        /// "list servers" lists the registered servers - here the fallback *TADADM entry (no directory wired).
+        /// </summary>
+        [Fact]
+        public void ServerHost_ListServers_ListsTadAdmin()
+        {
+            string screen = RunLoggedInCommand("list servers");
+            Assert.Contains("SERVERS", screen);
+            Assert.Contains("*TADADM", screen);
+        }
+
+        /// <summary>
+        /// Logs a session in (SYSTEM/SYSTEM), clears the capture, runs one command, and returns the captured
+        /// terminal text (the first windowed batch for a multi-frame reply).
+        /// </summary>
+        /// <param name="command">The command to run.</param>
+        /// <returns>The terminal text captured for the command.</returns>
+        private static string RunLoggedInCommand(string command)
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));
+            terminal.Clear();
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput(command)));
+            return terminal.Text;
+        }
+
         private static TadConnectClient BuildViaServerHost(TerminalCapture terminal, out XmsgCodec clientCodec)
         {
             return BuildViaServerHost(terminal, null, out clientCodec, out _, out _);
@@ -555,8 +611,8 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             string screen = terminal.Text;
             Assert.Contains("PASSWORD", screen);   // login prompted for a password
             Assert.Contains("OK", screen);         // login accepted
-            Assert.Contains("Time", screen);       // the menu rendered
-            Assert.Contains("Disconnect", screen);
+            Assert.Contains("COMMANDS", screen);   // the help command registry rendered
+            Assert.Contains("stat", screen);
         }
 
         /// <summary>

@@ -96,6 +96,24 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         // 01 02 0000 (param 1 = 0) and 02 02 000A (param 2 = 0x000A).
         private static readonly byte[] AcceptTrailer = { 0x01, 0x02, 0x00, 0x00, 0x02, 0x02, 0x00, 0x0A };
 
+        // The command registry: the single source of truth the "help" command lists. Numbered aliases
+        // (1..4) dispatch through the terminal menu; the rest are handled directly in HandleCommand.
+        private static readonly CommandDoc[] CommandRegistry =
+        {
+            new CommandDoc("1 / time", "show the current time"),
+            new CommandDoc("2 / date", "show the current date"),
+            new CommandDoc("3 / echo", "3-frame echo diagnostic"),
+            new CommandDoc("4", "disconnect (immediate)"),
+            new CommandDoc("stat", "session / terminal info"),
+            new CommandDoc("who", "list logged-in users"),
+            new CommandDoc("tell <ttyN|user> <text>", "message one user"),
+            new CommandDoc("wall <text>", "broadcast to all users"),
+            new CommandDoc("list servers", "registered XROUT servers"),
+            new CommandDoc("list service", "known XROUT services"),
+            new CommandDoc("list route", "routing table"),
+            new CommandDoc("help", "show this command list"),
+        };
+
         /// <summary>
         /// Notifies a listener that a TAD session opened or closed (for observability and swap-out).
         /// </summary>
@@ -108,6 +126,24 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         public delegate void SessionLifecycle(int tadNumber, ushort clientSystem);
 
         /// <summary>
+        /// Supplies the registered-server snapshot for the <c>list servers</c> command (the host wires this
+        /// to its <c>XmsgServerHost.DescribeServers</c>).
+        /// </summary>
+        /// <returns>
+        /// The registered servers, or an empty list.
+        /// </returns>
+        public delegate IReadOnlyList<XmsgServerInfo> ServerDirectoryQuery();
+
+        /// <summary>
+        /// Supplies the routing-table text for the <c>list route</c> command (the host wires this to its
+        /// topology / routing table).
+        /// </summary>
+        /// <returns>
+        /// The route report lines (without a trailing prompt).
+        /// </returns>
+        public delegate string RouteReportQuery();
+
+        /// <summary>
         /// Occurs when a new TAD session is opened.
         /// </summary>
         public event SessionLifecycle? SessionOpened;
@@ -116,6 +152,18 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// Occurs when a TAD session is closed.
         /// </summary>
         public event SessionLifecycle? SessionClosed;
+
+        /// <summary>
+        /// Gets or sets the callback that lists registered servers for <c>list servers</c>; when null the
+        /// command reports only this server.
+        /// </summary>
+        public ServerDirectoryQuery? ServerDirectory { get; set; }
+
+        /// <summary>
+        /// Gets or sets the callback that supplies the route table for <c>list route</c>; when null the
+        /// command reports that routing is unavailable.
+        /// </summary>
+        public RouteReportQuery? RouteReport { get; set; }
 
         /// <summary>
         /// Initialises the TAD server.
@@ -684,6 +732,19 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 return;
             }
 
+            // Introspection: help (the command registry) and list servers / list service / list route.
+            if (string.Equals(line, "help", StringComparison.OrdinalIgnoreCase))
+            {
+                EmitMenuReply(session, transport, outgoing, BuildHelpReport());
+                return;
+            }
+
+            if (StartsWithCommand(line, "list"))
+            {
+                EmitMenuReply(session, transport, outgoing, BuildListReport(line.Substring(4).Trim()));
+                return;
+            }
+
             TadMenuResult result = _menu.Handle(line, _clock());
             switch (result.Mode)
             {
@@ -889,6 +950,102 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             return line.Length >= command.Length
                 && string.Compare(line, 0, command, 0, command.Length, StringComparison.OrdinalIgnoreCase) == 0
                 && (line.Length == command.Length || line[command.Length] == ' ');
+        }
+
+        /// <summary>
+        /// Builds the "help" listing from the command registry: every command with a one-line description.
+        /// </summary>
+        /// <returns>The help text (ending with the prompt).</returns>
+        private static string BuildHelpReport()
+        {
+            StringBuilder sb = new StringBuilder(512);
+            sb.Append("\r\n----- COMMANDS -----\r\n");
+            for (int i = 0; i < CommandRegistry.Length; i++)
+            {
+                sb.Append("  ").Append(CommandRegistry[i].Name.PadRight(22))
+                  .Append(CommandRegistry[i].Description).Append("\r\n");
+            }
+
+            sb.Append("# ");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Builds a "list servers | service | route" report for the given sub-command.
+        /// </summary>
+        /// <param name="sub">The sub-command text after "list ".</param>
+        /// <returns>The report text (ending with the prompt).</returns>
+        private string BuildListReport(string sub)
+        {
+            if (StartsWithCommand(sub, "servers") || string.Equals(sub, "server", StringComparison.OrdinalIgnoreCase))
+            {
+                return BuildServerList();
+            }
+
+            if (StartsWithCommand(sub, "service") || string.Equals(sub, "services", StringComparison.OrdinalIgnoreCase))
+            {
+                return BuildServiceList();
+            }
+
+            if (StartsWithCommand(sub, "route") || string.Equals(sub, "routes", StringComparison.OrdinalIgnoreCase))
+            {
+                string report = RouteReport != null ? RouteReport() : "(routing unavailable)";
+                return "\r\n----- ROUTE -----\r\n" + report + "\r\n# ";
+            }
+
+            return "\r\nusage: list servers | list service | list route\r\n# ";
+        }
+
+        /// <summary>
+        /// Builds the "list servers" report (COSMOS list-servers shape: name, port, sessions, free SPs).
+        /// </summary>
+        /// <returns>The report text (ending with the prompt).</returns>
+        private string BuildServerList()
+        {
+            IReadOnlyList<XmsgServerInfo> servers = ServerDirectory != null
+                ? ServerDirectory()
+                : new XmsgServerInfo[] { new XmsgServerInfo(ServerName, ServerLogicalPort, TadAdminWirePort, SessionCount, SessionCapacity) };
+
+            StringBuilder sb = new StringBuilder(320);
+            sb.Append("\r\n----- SERVERS -----\r\n");
+            sb.Append("  Name        Port  Sess  Free\r\n");
+            for (int i = 0; i < servers.Count; i++)
+            {
+                XmsgServerInfo info = servers[i];
+                sb.Append("  ").Append(info.Name.PadRight(12))
+                  .Append(info.LogicalPort.ToString(CultureInfo.InvariantCulture).PadRight(6))
+                  .Append(info.SessionCount.ToString(CultureInfo.InvariantCulture).PadRight(6))
+                  .Append(info.FreeSlots.ToString(CultureInfo.InvariantCulture)).Append("\r\n");
+            }
+
+            sb.Append("# ");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Builds the "list service" report from the known XROUT services (mnemonic, code, description).
+        /// </summary>
+        /// <returns>The report text (ending with the prompt).</returns>
+        private static string BuildServiceList()
+        {
+            IReadOnlyList<XmsgServiceInfo> services = XmsgKnownServices.All();
+            StringBuilder sb = new StringBuilder(640);
+            sb.Append("\r\n----- SERVICES -----\r\n");
+            for (int i = 0; i < services.Count; i++)
+            {
+                XmsgServiceInfo svc = services[i];
+                sb.Append("  ").Append(svc.Mnemonic.PadRight(8))
+                  .Append("0x").Append(svc.ServiceByte.ToString("X2"));
+                if (svc.Description.Length != 0)
+                {
+                    sb.Append("  ").Append(svc.Description);
+                }
+
+                sb.Append("\r\n");
+            }
+
+            sb.Append("# ");
+            return sb.ToString();
         }
 
         /// <summary>
@@ -1430,6 +1587,30 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         private static uint SessionKey(ushort clientSystem, ushort clientPort)
         {
             return ((uint)clientSystem << 16) | clientPort;
+        }
+
+        /// <summary>
+        /// One entry in the command registry: a command's name (with argument shape) and a one-line
+        /// description, listed by the <c>help</c> command.
+        /// </summary>
+        private readonly struct CommandDoc
+        {
+            /// <summary>The command name / usage shown in help.</summary>
+            public readonly string Name;
+
+            /// <summary>The one-line description.</summary>
+            public readonly string Description;
+
+            /// <summary>
+            /// Initialises a command-registry entry.
+            /// </summary>
+            /// <param name="name">The command name / usage.</param>
+            /// <param name="description">The one-line description.</param>
+            public CommandDoc(string name, string description)
+            {
+                Name = name;
+                Description = description;
+            }
         }
     }
 }

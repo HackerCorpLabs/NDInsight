@@ -618,6 +618,10 @@ internal static class Program
             Console.WriteLine($"[tad] session opened: tty{tadNumber} from node {clientSystem}");
         tadServer.SessionClosed += (tadNumber, clientSystem) =>
             Console.WriteLine($"[tad] session closed: tty{tadNumber} from node {clientSystem}");
+        // Wire the introspection commands: "list servers" reads the host's registered servers; "list route"
+        // formats the routing table this node advertises.
+        tadServer.ServerDirectory = serverHost.DescribeServers;
+        tadServer.RouteReport = () => FormatRouteReport(routingEntries);
         serverHost.Register(tadServer);
         layer.ServerHost = serverHost;
 
@@ -801,6 +805,31 @@ internal static class Program
     ///  - 100 is the direct HDLC link peer (Neighbour), unless we ourselves are 100.
     ///  - 102 is the TAD responder reached through 100 (Via, 2 hops), unless we ourselves are 102.
     /// </remarks>
+    /// <summary>
+    /// Formats the routing table for the TAD "list route" command: one line per system with its
+    /// connection type and hop count.
+    /// </summary>
+    /// <param name="entries">
+    /// The routing-table entries this node advertises.
+    /// </param>
+    /// <returns>
+    /// The route report text (one line per entry).
+    /// </returns>
+    private static string FormatRouteReport(IReadOnlyList<RoutingTableEntry> entries)
+    {
+        System.Text.StringBuilder sb = new System.Text.StringBuilder(256);
+        sb.Append("  System  Route       Hops\r\n");
+        for (int i = 0; i < entries.Count; i++)
+        {
+            RoutingTableEntry entry = entries[i];
+            sb.Append("  ").Append(entry.System.ToString().PadRight(8))
+              .Append(entry.ConnectionType.ToString().PadRight(12))
+              .Append(entry.Hops).Append("\r\n");
+        }
+
+        return sb.ToString();
+    }
+
     private static List<RoutingTableEntry> BuildRoutingEntries(ushort node)
     {
         List<RoutingTableEntry> entries = new List<RoutingTableEntry>(3);
