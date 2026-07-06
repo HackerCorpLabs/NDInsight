@@ -57,8 +57,12 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         private const uint BareTadControlService = (uint)XmcsmService.BareTadControl;       // 0x00080000
         private const uint SessionNotifyControlService = (uint)XmcsmService.SessionNotify;  // 0x00060000
 
-        // Chunk terminal replies well under the single-BDAT 255-byte limit, on an even boundary.
-        private const int MenuReplyChunk = 240;
+        // Chunk terminal replies into MOTD-sized frames. LIVE-MEASURED: a ~137-byte "help" reply (one
+        // frame) is accepted, but a 240/224-byte "stat" chunk crashed 100 with "Illegal element length"
+        // (RFIRUT) - 100's terminal read buffer rejects an over-long terminal-data element. The real d102
+        // banner is ~124 bytes/frame, so we stay at 120 (well under the proven-good 137) on an even
+        // boundary. [Exact cap UNVERIFIED - a capture of real long output would pin it.]
+        private const int MenuReplyChunk = 120;
 
         // The MOTD frame's TAD payload, VERIFIED from conn-to-d102 frame 62: BMMX / ECKM / a BDAT banner
         // (date, "SINTRAN III - VSX/500", "--- RETROCORE EMULATED ID:102 ---") / SYCN / a BDAT "ENTER "
