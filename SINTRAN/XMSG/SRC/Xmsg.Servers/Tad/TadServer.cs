@@ -309,6 +309,13 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 session.RemoteNode, session.ClientSystem, session.ClientPort,
                 TadAdminWirePort, SessionSetupControlService,
                 (byte)XmsgFrameFlags.Setup, (byte)XmsgSendOptions.WakeOnStatus, trailer));
+
+            // Post-port-assign bring-up: the priming DUMM (terminal-data class 0x0108) so 100 drives its
+            // TMOD/TTYP negotiation, which we then answer with the MOTD burst (OnTerminalSetup). This was
+            // the SendTerminalBringup=true behaviour the live runner used.
+            outgoing.Add(BuildSession(session, transport, TerminalDataControlService,
+                (byte)XmsgFrameFlags.DataB, (byte)XmsgSendOptions.None,
+                new TadMessageBuilder().Dumm().Build()));
             return outgoing;
         }
 

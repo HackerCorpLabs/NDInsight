@@ -560,20 +560,20 @@ internal static class Program
         string statePath = System.IO.Path.Combine(AppContext.BaseDirectory, "xmsg-sequence.state");
         FileResponderSequenceStore sequenceStore = new FileResponderSequenceStore(statePath);
         Console.WriteLine($"[runner] datagram-sequence state file: {statePath}");
-        NDInsight.Sintran.Xmsg.Node.Tad.TadTerminalResponder tad =
-            new NDInsight.Sintran.Xmsg.Node.Tad.TadTerminalResponder(node, () => DateTime.Now, sequenceStore);
-        // Terminal bring-up ENABLED — now driven by the VERIFIED seed model (analysis 2026-07-03,
-        // 601/601 frames). A fresh responder at epoch 0 sends terminal data on 0xDD (NOT DB), with
-        // Counter = (seed - 8 - Flags1); the seed (0x14 for 100<->102) is LEARNED from 100's connect.
-        // The earlier DC/DD crashes were a wrong Counter (fixed-Base), not a wrong channel. ISOLATION:
-        // OnSessionSetup emits ONLY the DUMM first; extend to the full burst once 100 ACKs it.
-        tad.SendTerminalBringup = true;
-        // Surface the per-link outgoing-Flags1 lifecycle: the continued value on each connect and,
-        // loudly, the ReachabilityRequest reset (peer XMSG restart) - so a later reconnect issue is
-        // easy to trace in the log.
-        tad.Log = line => Console.WriteLine(line);
-        layer.TadResponder = tad;
-        layer.AcknowledgeTadFrames = true;
+        // FRAMEWORK PATH (Phase 1): an XmsgServerHost owns the per-link sequencing (seed + continuous
+        // Flags1, from the persistent store) and dispatches server traffic to the registered servers;
+        // the *TADADM TAD server answers connect-to. This replaces the single-session TadTerminalResponder
+        // - the node secure-ACKs each server frame via the closed-form model.
+        NDInsight.Sintran.Xmsg.Node.Services.XmsgServerHost serverHost =
+            new NDInsight.Sintran.Xmsg.Node.Services.XmsgServerHost(node, sequenceStore);
+        NDInsight.Sintran.Xmsg.Servers.Tad.TadServer tadServer =
+            new NDInsight.Sintran.Xmsg.Servers.Tad.TadServer(() => DateTime.Now);
+        tadServer.SessionOpened += (tadNumber, clientSystem) =>
+            Console.WriteLine($"[tad] session opened: tty{tadNumber} from node {clientSystem}");
+        tadServer.SessionClosed += (tadNumber, clientSystem) =>
+            Console.WriteLine($"[tad] session closed: tty{tadNumber} from node {clientSystem}");
+        serverHost.Register(tadServer);
+        layer.ServerHost = serverHost;
 
         // UP wiring: a delivered link payload is classified, then (for XMSG) parsed by the codec,
         // which raises PacketReceived to the layer. An X.25-bound link would route elsewhere here.
