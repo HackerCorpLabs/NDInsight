@@ -47,6 +47,10 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         // The maximum wrong-credential attempts before the session is torn down.
         private const int MaxLoginFaults = 3;
 
+        // The logged-in command prompt. Emitted as its OWN BDAT after the SYCN in the burst trailer
+        // (TAD-Message-Formats.md 22.6), not folded into the content BDAT.
+        private const string TerminalPrompt = "# ";
+
         // TAD opcode bytes we test for on the RX side.
         private const byte BdatOpcode = 0x01;
         private const byte DconOpcode = 0x09;
@@ -628,13 +632,30 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         private void EmitMenuReply(TadServerSession session, IXmsgServerTransport transport, List<XmsgFrame> outgoing, string text)
         {
             string body = text ?? string.Empty;
-            int offset = 0;
+
+            // Separate the trailing "# " prompt from the content. The VERIFIED burst trailer
+            // (TAD-Message-Formats.md 22.6 line 1420 / 22.8) is:
+            //   BDAT(content remainder) + [pad if odd] + SYCN 000A + BDAT(prompt) + RFI
+            // i.e. the prompt is its OWN BDAT AFTER the SYCN, not part of the content BDAT. Our earlier
+            // build put the prompt inside the content BDAT before the SYCN and emitted no prompt BDAT -
+            // a trailer 100 did not accept as a burst terminator (it never sent 7CERS and re-sent the
+            // command). This split reproduces the doc's byte-exact final frame.
+            string prompt = TerminalPrompt;
+            if (body.EndsWith(prompt, StringComparison.Ordinal))
+            {
+                body = body.Substring(0, body.Length - prompt.Length);
+            }
+            else
+            {
+                prompt = string.Empty;
+            }
 
             // Emit BARE 255-byte continuations (count 0xFF, no RFI) while at LEAST a full chunk remains.
             // The ">=" (not ">") is deliberate: a trailing exactly-255 must go out as a bare continuation
             // so the final terminator is ALWAYS shorter than 255. For output that is an exact multiple of
             // 255 this leaves an EMPTY final element - still a valid "< 255" terminator, and it carries the
-            // SYCN + RFI (the exact-multiple edge case from TAD-Message-Formats.md section 22.6).
+            // SYCN + prompt + RFI (the exact-multiple edge case from TAD-Message-Formats.md section 22.6).
+            int offset = 0;
             while (body.Length - offset >= FullBufferChunk)
             {
                 string piece = body.Substring(offset, FullBufferChunk);
@@ -643,11 +664,17 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 offset += FullBufferChunk;
             }
 
-            // Final terminator: the short remainder (< 255, possibly empty) + SYCN 000A + RFI. The builder
-            // inserts the word-align 0x00 pad after an odd-length BDAT before the SYCN.
+            // Final terminator: BDAT(short remainder) + [pad] + SYCN 000A + BDAT(prompt) + RFI. The
+            // builder inserts the word-align 0x00 pad after an odd-length BDAT before the SYCN.
             string tail = body.Substring(offset);
-            outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA, new TadMessageBuilder()
-                .BdatText(tail).Sycn(SycnState.LoggedIn).Rfi().Build()));
+            TadMessageBuilder final = new TadMessageBuilder().BdatText(tail).Sycn(SycnState.LoggedIn);
+            if (prompt.Length != 0)
+            {
+                final.BdatText(prompt);
+            }
+
+            final.Rfi();
+            outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA, final.Build()));
         }
 
         /// <summary>
