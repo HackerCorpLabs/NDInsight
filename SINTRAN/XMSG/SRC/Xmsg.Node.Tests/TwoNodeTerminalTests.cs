@@ -605,7 +605,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             clientCodec.SendPacket(new XmsgPacket(client.BuildTerminalSetup()));
 
             string screen = terminal.Text;
-            Assert.Contains("--- HOST ID:102 ---", screen);                 // host id from the node number
+            Assert.Contains("--- HOST ID:102 TAD:1 ---", screen);           // host id + this session's tty number
             Assert.Contains("Emulated TAD server version v", screen);       // default MOTD line (assembly version)
             Assert.Contains("JULY", screen);                               // dynamic date, FixedClock = 2026-07-02
             Assert.Contains("2026", screen);

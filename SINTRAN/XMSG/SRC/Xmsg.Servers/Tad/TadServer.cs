@@ -423,9 +423,10 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 (byte)XmsgFrameFlags.DataB, (byte)XmsgSendOptions.None,
                 new TadMessageBuilder().Rese().Build()));
 
-            // MOTD (XMCSM 0x01080000): the banner + ENTER prompt chain, banner generated for this host.
+            // MOTD (XMCSM 0x01080000): the banner + ENTER prompt chain, banner generated for this host
+            // and this session's tty number.
             outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA,
-                BuildMotdPayload(transport.NodeNumber)));
+                BuildMotdPayload(transport.NodeNumber, session.TadNumber)));
 
             session.MotdSent = true;
             return outgoing;
@@ -435,22 +436,25 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// Builds the MOTD login banner payload for this host.
         /// </summary>
         /// <param name="nodeNumber">
-        /// This host's node (CPU) id, shown in the <c>--- HOST ID:nnn ---</c> line.
+        /// This host's node (CPU) id, shown in the <c>--- HOST ID:nnn TAD:n ---</c> line.
+        /// </param>
+        /// <param name="tadNumber">
+        /// This session's TAD (tty) number, shown in the host-id line.
         /// </param>
         /// <returns>
         /// The TAD message chain: BMMX / ECKM / banner BDAT / SYCN / "ENTER " BDAT / RFI.
         /// </returns>
         /// <remarks>
         /// The chain structure and its intrinsic pads are the capture-verified MOTD; only the three banner
-        /// lines are generated (dynamic date/time, the configurable MOTD line, and the host id).
+        /// lines are generated (dynamic date/time, the configurable MOTD line, and the host id / tty).
         /// </remarks>
-        private byte[] BuildMotdPayload(ushort nodeNumber)
+        private byte[] BuildMotdPayload(ushort nodeNumber, int tadNumber)
         {
             // Raw 0x01 strategy bytes are the captured MOTD values (BMMX 04 03 01 00 00, ECKM 00 03 01 01).
             return new TadMessageBuilder()
                 .Bmmx(0x01, 0x0000)
                 .Eckm(0x01)
-                .BdatText(BuildBanner(nodeNumber))
+                .BdatText(BuildBanner(nodeNumber, tadNumber))
                 .Sycn(SycnState.WaitingForUsername)
                 .BdatText("\r\nENTER ")
                 .Rfi()
@@ -458,15 +462,19 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         }
 
         /// <summary>
-        /// Builds the three-line banner text: the SINTRAN-style date/time, the MOTD line, and the host id.
+        /// Builds the three-line banner text: the SINTRAN-style date/time, the MOTD line, and the
+        /// host-id / tty line.
         /// </summary>
         /// <param name="nodeNumber">
         /// This host's node (CPU) id.
         /// </param>
+        /// <param name="tadNumber">
+        /// This session's TAD (tty) number.
+        /// </param>
         /// <returns>
         /// The banner string (leading and trailing CRLF, matching the captured layout).
         /// </returns>
-        private string BuildBanner(ushort nodeNumber)
+        private string BuildBanner(ushort nodeNumber, int tadNumber)
         {
             DateTime now = _clock();
             string month = now.ToString("MMMM", CultureInfo.InvariantCulture).ToUpperInvariant();
@@ -478,12 +486,14 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             string dateLine = " " + time + "     " + day + " " + month + "   "
                 + now.Year.ToString(CultureInfo.InvariantCulture);
 
-            // Banner = CRLF + date + CRLF + " " + MOTD + CRLF + "--- HOST ID:nnn ---" + CRLF. Same layout as
-            // the captured banner (date / "SINTRAN III - VSX/500" / "--- ... ID:102 ---"), text now generated.
+            // Banner = CRLF + date + CRLF + " " + MOTD + CRLF + "--- HOST ID:nnn TAD:n ---" + CRLF. Same
+            // layout as the captured banner (date / "SINTRAN III - VSX/500" / "--- ... ID:102 ---"), text now
+            // generated; the tty number lets the user see which TAD line this session was assigned.
             StringBuilder banner = new StringBuilder(96);
             banner.Append("\r\n").Append(dateLine);
             banner.Append("\r\n ").Append(_motdLine);
-            banner.Append("\r\n--- HOST ID:").Append(nodeNumber.ToString(CultureInfo.InvariantCulture)).Append(" ---");
+            banner.Append("\r\n--- HOST ID:").Append(nodeNumber.ToString(CultureInfo.InvariantCulture))
+                  .Append(" TAD:").Append(tadNumber.ToString(CultureInfo.InvariantCulture)).Append(" ---");
             banner.Append("\r\n");
             return banner.ToString();
         }
