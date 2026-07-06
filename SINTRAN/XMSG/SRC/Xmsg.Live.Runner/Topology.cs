@@ -211,6 +211,17 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         public List<TopologyNode> Nodes { get; set; } = new List<TopologyNode>();
 
         /// <summary>
+        /// Gets or sets the MOTD banner line shown on the TAD login greeting (the line that replaces the
+        /// stock <c>SINTRAN III - VSX/500</c>); optional.
+        /// </summary>
+        /// <remarks>
+        /// When null or empty the TAD server falls back to its built-in
+        /// <c>Emulated TAD server version vN.N.N</c> banner (the assembly version). The date/time line and
+        /// the <c>--- HOST ID:nnn ---</c> line are always generated - only this middle line is configurable.
+        /// </remarks>
+        public string? Motd { get; set; }
+
+        /// <summary>
         /// Gets or sets the log configuration.
         /// </summary>
         public LogConfig Log { get; set; } = new LogConfig();

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Reflection;
 using System.Text;
 
 using NDInsight.Sintran.Xmsg.Node;
@@ -28,6 +30,9 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         private readonly TadTerminalMenu _menu;
         private readonly Dictionary<uint, TadServerSession> _sessions;
         private readonly Dictionary<ushort, TadServerSession> _sessionByPort;
+        // The configurable middle banner line (replaces the stock "SINTRAN III - VSX/500"). Null/empty
+        // falls back to the built-in version banner. The date line and the HOST-id line are generated.
+        private readonly string _motdLine;
 
         // The *TADADM registered name and its well-known logical port (COSMOS list-servers shows Port 2).
         private const string ServerName = "*TADADM";
@@ -68,13 +73,10 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         // magic-number window regardless of chunk size.
         private const int MenuReplyChunk = 128;
 
-        // The MOTD frame's TAD payload, VERIFIED from conn-to-d102 frame 62: BMMX / ECKM / a BDAT banner
-        // (date, "SINTRAN III - VSX/500", "--- RETROCORE EMULATED ID:102 ---") / SYCN / a BDAT "ENTER "
-        // prompt / RFI. Copied verbatim.
-        private static readonly byte[] MotdPayload = Convert.FromHexString(
-            "0004030100000003010101600D0A2032322E32372E32322020202020203820415052494C202020313939380D0A"
-            + "2053494E5452414E20494949202D205653582F353030204C0D0A2D2D2D20524554524F434F524520454D554C4154"
-            + "4544204C2049443A313032202D2D2D0D0A1302000201080D0A454E544552200200");
+        // The MOTD frame's TAD message STRUCTURE is VERIFIED from conn-to-d102 frame 62: BMMX(01,0000) /
+        // ECKM(01) / a BDAT banner / SYCN(0002 WaitUser) / a BDAT "ENTER " prompt / RFI. The banner text
+        // itself is now generated per-session (dynamic date, configurable MOTD line, HOST id) by
+        // BuildMotdPayload; the surrounding chain and its pads are reproduced byte-for-byte by the builder.
 
         // The connect-accept parameter trailer, VERIFIED from the 102 capture: two parameter blocks
         // 01 02 0000 (param 1 = 0) and 02 02 000A (param 2 = 0x000A).
@@ -110,13 +112,23 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <param name="users">
         /// The login accounts. When null, the default <c>SYSTEM</c>/<c>SYSTEM</c> directory is used.
         /// </param>
-        public TadServer(Func<DateTime> clock, TadUserDirectory? users = null)
+        /// <param name="motdLine">
+        /// The middle banner line of the login greeting. When null or blank, the built-in
+        /// <c>Emulated TAD server version vN.N.N</c> banner (the assembly version) is used.
+        /// </param>
+        public TadServer(Func<DateTime> clock, TadUserDirectory? users = null, string? motdLine = null)
         {
             _clock = clock ?? throw new ArgumentNullException(nameof(clock));
             _users = users ?? new TadUserDirectory();
             _menu = new TadTerminalMenu();
             _sessions = new Dictionary<uint, TadServerSession>();
             _sessionByPort = new Dictionary<ushort, TadServerSession>();
+            string line = string.IsNullOrWhiteSpace(motdLine)
+                ? "Emulated TAD server version " + ServerVersion()
+                : motdLine.Trim();
+            // Keep the banner well under the terminal element-length cap (see MenuReplyChunk): the date and
+            // host-id lines add ~55 bytes, so cap the configurable line at 64 to stay inside one safe frame.
+            _motdLine = line.Length > 64 ? line.Substring(0, 64) : line;
         }
 
         /// <summary>
@@ -353,11 +365,81 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 (byte)XmsgFrameFlags.DataB, (byte)XmsgSendOptions.None,
                 new TadMessageBuilder().Rese().Build()));
 
-            // MOTD (XMCSM 0x01080000): the banner + ENTER prompt chain.
-            outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA, MotdPayload));
+            // MOTD (XMCSM 0x01080000): the banner + ENTER prompt chain, banner generated for this host.
+            outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA,
+                BuildMotdPayload(transport.NodeNumber)));
 
             session.MotdSent = true;
             return outgoing;
+        }
+
+        /// <summary>
+        /// Builds the MOTD login banner payload for this host.
+        /// </summary>
+        /// <param name="nodeNumber">
+        /// This host's node (CPU) id, shown in the <c>--- HOST ID:nnn ---</c> line.
+        /// </param>
+        /// <returns>
+        /// The TAD message chain: BMMX / ECKM / banner BDAT / SYCN / "ENTER " BDAT / RFI.
+        /// </returns>
+        /// <remarks>
+        /// The chain structure and its intrinsic pads are the capture-verified MOTD; only the three banner
+        /// lines are generated (dynamic date/time, the configurable MOTD line, and the host id).
+        /// </remarks>
+        private byte[] BuildMotdPayload(ushort nodeNumber)
+        {
+            // Raw 0x01 strategy bytes are the captured MOTD values (BMMX 04 03 01 00 00, ECKM 00 03 01 01).
+            return new TadMessageBuilder()
+                .Bmmx(0x01, 0x0000)
+                .Eckm(0x01)
+                .BdatText(BuildBanner(nodeNumber))
+                .Sycn(SycnState.WaitingForUsername)
+                .BdatText("\r\nENTER ")
+                .Rfi()
+                .Build();
+        }
+
+        /// <summary>
+        /// Builds the three-line banner text: the SINTRAN-style date/time, the MOTD line, and the host id.
+        /// </summary>
+        /// <param name="nodeNumber">
+        /// This host's node (CPU) id.
+        /// </param>
+        /// <returns>
+        /// The banner string (leading and trailing CRLF, matching the captured layout).
+        /// </returns>
+        private string BuildBanner(ushort nodeNumber)
+        {
+            DateTime now = _clock();
+            string month = now.ToString("MMMM", CultureInfo.InvariantCulture).ToUpperInvariant();
+            string time = now.ToString("HH.mm.ss", CultureInfo.InvariantCulture);
+            string day = now.Day.ToString(CultureInfo.InvariantCulture).PadLeft(2);
+
+            // Reproduce the observed SINTRAN date layout with current values:
+            //   " HH.MM.SS     {day,2} MONTH   YYYY"  (5 spaces + right-aligned day = 6 before a 1-digit day).
+            string dateLine = " " + time + "     " + day + " " + month + "   "
+                + now.Year.ToString(CultureInfo.InvariantCulture);
+
+            // Banner = CRLF + date + CRLF + " " + MOTD + CRLF + "--- HOST ID:nnn ---" + CRLF. Same layout as
+            // the captured banner (date / "SINTRAN III - VSX/500" / "--- ... ID:102 ---"), text now generated.
+            StringBuilder banner = new StringBuilder(96);
+            banner.Append("\r\n").Append(dateLine);
+            banner.Append("\r\n ").Append(_motdLine);
+            banner.Append("\r\n--- HOST ID:").Append(nodeNumber.ToString(CultureInfo.InvariantCulture)).Append(" ---");
+            banner.Append("\r\n");
+            return banner.ToString();
+        }
+
+        /// <summary>
+        /// Gets the assembly version as <c>vMajor.Minor.Build</c> for the default MOTD banner.
+        /// </summary>
+        /// <returns>
+        /// The version string (for example <c>v0.0.1</c>).
+        /// </returns>
+        private static string ServerVersion()
+        {
+            Version? version = typeof(TadServer).Assembly.GetName().Version;
+            return version == null ? "v0.0.1" : "v" + version.ToString(3);
         }
 
         /// <summary>

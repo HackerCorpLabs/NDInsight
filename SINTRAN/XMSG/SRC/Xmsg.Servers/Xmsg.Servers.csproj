@@ -16,6 +16,8 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <RootNamespace>NDInsight.Sintran.Xmsg.Servers</RootNamespace>
     <AssemblyName>NDInsight.Sintran.Xmsg.Servers</AssemblyName>
+    <!-- Drives the default TAD MOTD banner ("Emulated TAD server version vN.N.N"). -->
+    <Version>0.0.1</Version>
   </PropertyGroup>
 
   <ItemGroup>

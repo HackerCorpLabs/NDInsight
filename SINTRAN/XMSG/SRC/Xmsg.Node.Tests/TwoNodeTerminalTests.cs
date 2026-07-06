@@ -436,6 +436,30 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
+        /// The MOTD banner is generated per host: a dynamic date/time line (from the injected clock), the
+        /// configurable MOTD line (default = the assembly version banner), and a "--- HOST ID:nnn ---" line
+        /// built from this node's number. Guards the replacement of the old hardcoded 1998/RETROCORE banner.
+        /// </summary>
+        [Fact]
+        public void ServerHost_Motd_HasDynamicDateVersionAndHostId()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+
+            // Connect, then the terminal-setup (TMOD) frame that triggers the server's MOTD burst.
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildTerminalSetup()));
+
+            string screen = terminal.Text;
+            Assert.Contains("--- HOST ID:102 ---", screen);                 // host id from the node number
+            Assert.Contains("Emulated TAD server version v", screen);       // default MOTD line (assembly version)
+            Assert.Contains("JULY", screen);                               // dynamic date, FixedClock = 2026-07-02
+            Assert.Contains("2026", screen);
+            Assert.DoesNotContain("RETROCORE", screen);                     // the old hardcoded banner is gone
+            Assert.DoesNotContain("VSX/500", screen);
+        }
+
+        /// <summary>
         /// A one-directional in-memory transport: forwards each frame's bytes to a target codec.
         /// </summary>
         private sealed class PipeTransport : IXmsgTransport

@@ -5,6 +5,12 @@
 
   "self": 102,
 
+  // TAD login-banner middle line (replaces the stock "SINTRAN III - VSX/500"). Remove or blank it to
+  // fall back to the built-in "Emulated TAD server version vN.N.N". The date/time line and the
+  // "--- HOST ID:nnn ---" line are always generated (nnn = "self" above). Kept short (<= 64 chars) so
+  // the banner stays inside one terminal frame.
+  "motd": "Emulated TAD server version v0.0.1",
+
   // Log file + Linux-syslog rotation. A restart immediately rotates and starts a fresh empty file;
   // the live file also rotates once it passes maxSizeMb. "keep" archived versions (.1 .2 .3) are
   // retained, older ones deleted. Set "enabled": false or "level": "off" to disable file logging.

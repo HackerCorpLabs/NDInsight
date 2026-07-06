@@ -166,7 +166,7 @@ internal static class Program
             }
             else
             {
-                await RunSeamAsync(transport, host, port, node, routingEntries, cts.Token);
+                await RunSeamAsync(transport, host, port, node, routingEntries, topology?.Motd, cts.Token);
             }
         }
         catch (OperationCanceledException)
@@ -535,7 +535,7 @@ internal static class Program
     /// </summary>
     private static async Task RunSeamAsync(
         TcpBridgeTransport transport, string host, int port, ushort node,
-        IReadOnlyList<RoutingTableEntry> routingEntries, CancellationToken token)
+        IReadOnlyList<RoutingTableEntry> routingEntries, string? motdLine, CancellationToken token)
     {
         string linkId = $"hdlc:{host}:{port}";
 
@@ -566,8 +566,10 @@ internal static class Program
         // - the node secure-ACKs each server frame via the closed-form model.
         NDInsight.Sintran.Xmsg.Node.Services.XmsgServerHost serverHost =
             new NDInsight.Sintran.Xmsg.Node.Services.XmsgServerHost(node, sequenceStore);
+        // The MOTD banner middle line comes from the topology file when set; otherwise the server uses its
+        // built-in "Emulated TAD server version vN.N.N". The host-id line is generated from our own node.
         NDInsight.Sintran.Xmsg.Servers.Tad.TadServer tadServer =
-            new NDInsight.Sintran.Xmsg.Servers.Tad.TadServer(() => DateTime.Now);
+            new NDInsight.Sintran.Xmsg.Servers.Tad.TadServer(() => DateTime.Now, users: null, motdLine: motdLine);
         tadServer.SessionOpened += (tadNumber, clientSystem) =>
             Console.WriteLine($"[tad] session opened: tty{tadNumber} from node {clientSystem}");
         tadServer.SessionClosed += (tadNumber, clientSystem) =>
