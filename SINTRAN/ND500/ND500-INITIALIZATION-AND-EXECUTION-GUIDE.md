@@ -6,6 +6,22 @@
 **Date:** 2025-11-06
 **Purpose:** Comprehensive guide for system operators and developers on how to initialize the ND-500 CPU, load programs via domains (DOM), and execute programs using PSEG/DSEG segments.
 
+> **WARNING - KNOWN ERRORS in section 2 (flagged 2026-07-07, corrections pending)**
+>
+> The boot/detection material in section 2 (DETECTND500, INIT5MPM, CONFIG3022 and the
+> memory map placing 5MPM inside ND-100 RAM at 0x040000) repeats fabricated content
+> from the retired old/ND500-BOOT-DETECTION-MECHANISM.md:
+>
+> 1. Detection polarity is reversed: in the real CH5CPUPRESENT
+>    (PH-P2-OPPSTART.NPL:3913-3917), A=0 after the trapped IOX read of RSTA5 means
+>    NO error, i.e. the 3022 IS present.
+> 2. 5MPM is a separate multiport memory module with BASE-register translation,
+>    not pages allocated from ND-100 RAM (see WHERE-IS-5MPM-LOCATED.md).
+>
+> The operational content (domains, PLACE-DOMAIN, PSEG/DSEG, memory fixing) is not
+> affected. Until corrected, use ND500-BUS-INTERFACE-REFERENCE.md for anything about
+> boot, detection, or the bus interface.
+
 ---
 
 ## Table of Contents

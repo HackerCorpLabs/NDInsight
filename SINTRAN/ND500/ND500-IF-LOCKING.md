@@ -1,5 +1,22 @@
 # ND-500 Interface Locking Mechanism
 
+> **WARNING - KNOWN ERRORS (flagged 2026-07-07, corrections pending)**
+>
+> This document contains claims contradicted by the SINTRAN III NPL sources:
+>
+> 1. The "High-Level TAG-IN Codes" (8 = MonitorCallRequest, 9 = PageFaultRequest,
+>    16 = OperationComplete) are an EMULATOR-INTERNAL model, not hardware behavior.
+>    SINTRAN never reads RTAG5 or writes LTAG5 anywhere in the NPL sources; monitor
+>    calls are signalled via the message STOPR field in shared memory.
+> 2. Control register bit 4 is NOT "ClearInterrupt".
+> 3. The IOX offset column mixes octal and decimal (LTAG5 listed as "+9"; correct
+>    octal offset is 11). Master clear is spelled "MCLE5" here; other docs use MCLR5,
+>    and no symbol exists at offset 6 in the symbol table.
+>
+> The lock state machine itself (SLOC5/UNLC5/TERM5/5ILOC) is broadly consistent with
+> the NPL sources. Until corrected, verify every register/bit claim against
+> [ND500-BUS-INTERFACE-REFERENCE.md](ND500-BUS-INTERFACE-REFERENCE.md).
+
 ## Overview
 
 The **InterfaceLocked** state (bit 5 of the Status Register) is a critical hardware interlock in the PCB 3022 (ND-500 Interface) that prevents the ND-100 from modifying interface settings while the ND-500 is executing an operation.

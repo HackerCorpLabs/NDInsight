@@ -18,7 +18,7 @@ Documentation for the ND-500 processor, a byte-oriented CPU used alongside the N
 |----------|--------|---------|
 | [CC-P2-N500.md](CC-P2-N500.md) | CC-P2-N500.NPL | Compiler/code generation |
 | [MP-P2-N500.md](MP-P2-N500.md) | MP-P2-N500.NPL | Monitor program analysis |
-| [MP-P2-N500_API_Documentation.md](MP-P2-N500_API_Documentation.md) | MP-P2-N500.NPL | API documentation |
+| [old/MP-P2-N500_API_Documentation.md](old/MP-P2-N500_API_Documentation.md) | MP-P2-N500.NPL | RETIRED (duplicate of MP-P2-N500.md) |
 | [RP-P2-N500.md](RP-P2-N500.md) | RP-P2-N500.NPL | Runtime program analysis |
 | [XC-P2-N500.md](XC-P2-N500.md) | XC-P2-N500.NPL | Executive/control program |
 
@@ -27,14 +27,14 @@ Documentation for the ND-500 processor, a byte-oriented CPU used alongside the N
 | Document | Purpose |
 |----------|---------|
 | [ND500-ND5000-INTERFACE-COMPREHENSIVE-GUIDE.md](ND500-ND5000-INTERFACE-COMPREHENSIVE-GUIDE.md) | **COMPLETE emulator implementation guide - DMA (PCB 3022) and Octobus (SAMSON) interfaces, C# code** |
-| [ND-500-INTERFACE.md](ND-500-INTERFACE.md) | ND-500 interface overview |
+| [old/ND-500-INTERFACE.md](old/ND-500-INTERFACE.md) | RETIRED (early guesswork, superseded - see old/README.md) |
 | [ND500-IF-USAGE-DEEP-ANALYSIS.md](ND500-IF-USAGE-DEEP-ANALYSIS.md) | **Complete IOX command reference (PCB 3022), code loading, domain setup, scheduling** |
 | [ND500-SWAPPER-ANALYSIS.md](ND500-SWAPPER-ANALYSIS.md) | **Swapper (5SWAP) - event-driven page swapping** |
 | [ND500-SWAPPER-LOADING-MECHANISM.md](ND500-SWAPPER-LOADING-MECHANISM.md) | **How swapper is loaded - INZ500, MSINIT, 5SWRT RT-program** |
 | [ND500-SCHEDULING-ANALYSIS.md](ND500-SCHEDULING-ANALYSIS.md) | **Process scheduling - execution queue, timeslicer** |
 | [ND500-MONITOR-CALL-MECHANISM.md](ND500-MONITOR-CALL-MECHANISM.md) | **ND-500 to ND-100 monitor calls - inter-processor dispatch** |
 | [ND500-MONITOR-CALL-PARAMETER-PASSING.md](ND500-MONITOR-CALL-PARAMETER-PASSING.md) | **Complete parameter passing, response write-back, extended mon calls (>255)** |
-| [ND500-BOOT-DETECTION-MECHANISM.md](ND500-BOOT-DETECTION-MECHANISM.md) | Hardware detection mechanism |
+| [old/ND500-BOOT-DETECTION-MECHANISM.md](old/ND500-BOOT-DETECTION-MECHANISM.md) | RETIRED (fabricated, reversed detection polarity - see old/README.md) |
 | [ND500-INITIALIZATION-AND-EXECUTION-GUIDE.md](ND500-INITIALIZATION-AND-EXECUTION-GUIDE.md) | Boot and startup sequences |
 | [ND5000-SAMSON-ARCHITECTURE.md](ND5000-SAMSON-ARCHITECTURE.md) | **ND-5000 (SAMSON) vs ND-500 - Octobus, MFB, different I/O handling** |
 | [SINTRAN-DOMAIN-SETUP-DEEP-DIVE.md](SINTRAN-DOMAIN-SETUP-DEEP-DIVE.md) | Domain setup analysis |
@@ -127,13 +127,13 @@ Documentation for the ND-500 processor, a byte-oriented CPU used alongside the N
 
 ### Understanding ND-500
 
-1. **Architecture:** [ND-500-INTERFACE.md](ND-500-INTERFACE.md)
+1. **Architecture:** [ND500-IF-USAGE-DEEP-ANALYSIS.md](ND500-IF-USAGE-DEEP-ANALYSIS.md)
 2. **5MPM Hardware:** [../OS/MPM5-KEY-FINDINGS.md](../OS/MPM5-KEY-FINDINGS.md)
 3. **Domain Setup:** [../OS/12-ND500-DOMAIN-SETUP-AND-MEMORY-MAPPING.md](../OS/12-ND500-DOMAIN-SETUP-AND-MEMORY-MAPPING.md)
 
 ### ND-500 Programming
 
-1. **API Reference:** [MP-P2-N500_API_Documentation.md](MP-P2-N500_API_Documentation.md)
+1. **API Reference:** [MP-P2-N500.md](MP-P2-N500.md)
 2. **Runtime:** [RP-P2-N500.md](RP-P2-N500.md)
 3. **Monitor:** [MP-P2-N500.md](MP-P2-N500.md)
 

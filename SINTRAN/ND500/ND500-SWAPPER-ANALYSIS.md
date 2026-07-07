@@ -1,5 +1,14 @@
 # ND-500 Swapper (5SWAP) - Deep Analysis
 
+> **WARNING - KNOWN ERROR (flagged 2026-07-07, corrections pending)**
+>
+> This document repeatedly states that the 5SWAP swapper process "runs on the ND-500".
+> That is WRONG. 5SWAP is an ND-100 RT-program: the 5SWRT RT-program
+> (RP-P2-N500.NPL:16-58) performs the disk transfers using ND-100 constructs
+> (*2BANK, MON 131/ABSLI). See ND500-SWAPPER-LOADING-MECHANISM.md for the verified
+> analysis. The FIFO/queue mechanics described here are otherwise sourced and useful,
+> but read every "runs on ND-500" / "offload to ND-500 CPU" framing as ND-100 instead.
+
 ## Purpose
 
 Complete analysis of the SINTRAN III swapper subsystem for ND-500. The swapper is an **event-driven segment loading and page swapping service** - NOT a passive polling mechanism.
