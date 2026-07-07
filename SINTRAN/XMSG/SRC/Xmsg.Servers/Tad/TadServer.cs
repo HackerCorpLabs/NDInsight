@@ -83,11 +83,12 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         // reply length is unbounded when chunked at 255.
         private const int FullBufferChunk = 255;
 
-        // Flow-control window: at most this many continuation chunks may be UN-CONSUMED (no 7DUMM back yet)
-        // at once. GOD-LLM 2026-07-07 / 22.16: 100 consumes/displays one continuation per 7DUMM it returns;
-        // sending two in the same instant (window 2, no gap) made 100 consume only one and drop the other.
-        // Window 1 sends one continuation, waits for its DUMM (the natural inter-chunk gap), then the next.
-        private const int OutputWindow = 1;
+        // Intra-pair spacing for streamed terminal output. The real host transmits the two 255-byte
+        // continuations of a pair ~45-47 ms apart and NEVER back-to-back (TAD-Message-Formats.md 22.16,
+        // measured in two independent captures). This gap is the prime suspect for why a byte-identical
+        // emulated burst rendered only its final chunk; DrainSessionOutput holds the second chunk of a pair
+        // until this many milliseconds have elapsed since the first (the periodic pump re-drains to send it).
+        private const double ContinuationPairGapMillis = 46.0;
 
         // The MOTD frame's TAD message STRUCTURE is VERIFIED from conn-to-d102 frame 62: BMMX(01,0000) /
         // ECKM(01) / a BDAT banner / SYCN(0002 WaitUser) / a BDAT "ENTER " prompt / RFI. The banner text
@@ -1093,10 +1094,10 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// Begins a logged-in reply as a windowed output burst and sends the first batch of frames.
         /// </summary>
         /// <remarks>
-        /// Output is streamed under the TAD flow-control handshake (22.6): bare 255-byte continuations
-        /// then a short final frame carrying SYCN 000A + prompt BDAT + RFI, with at most
-        /// <see cref="OutputWindow"/> datagrams unacked at once. The remaining chunks are sent by
-        /// <see cref="DrainSessionOutput"/> as 100 ACKs the outstanding ones.
+        /// Output is streamed under the verified 22.16 output-queue algorithm: bare 255-byte continuation
+        /// pairs spaced ~46 ms apart, then a short final frame carrying SYCN 000A + prompt BDAT + RFI. Only
+        /// the first chunk goes out here; the remaining chunks are sent by <see cref="DrainSessionOutput"/>
+        /// as the intra-pair timer elapses and 100 ACKs the outstanding ones.
         /// </remarks>
         /// <param name="session">The session.</param>
         /// <param name="transport">The node transport.</param>
@@ -1142,11 +1143,12 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// Sends as many of a session's pending output chunks as the flow-control window allows.
         /// </summary>
         /// <remarks>
-        /// Emits bare 255-byte continuations (count 0xFF, no RFI) while fewer than
-        /// <see cref="OutputWindow"/> output datagrams are unacked. The final (short, &lt; 255) frame - which
-        /// carries SYCN 000A + the prompt BDAT + RFI - is sent only once ALL prior continuations are acked
-        /// (outstanding count 0), reproducing "the final RFI-chunk is sent only after the preceding
-        /// continuation is ACKed". Each sent frame's Flags 1 is recorded so an ACK can release the window.
+        /// Emits bare 255-byte continuations (count 0xFF, no RFI) in pairs spaced by
+        /// <see cref="ContinuationPairGapMillis"/>, waiting between pairs for both chunks to be acked (and
+        /// their 7DUMMs seen). The last continuation goes out ALONE, and the final (short, &lt; 255) frame -
+        /// which carries SYCN 000A + the prompt BDAT + RFI - is sent only once that last continuation is
+        /// acked (outstanding count 0). Each sent frame's Flags 1 is recorded so an ACK can release the
+        /// window; the periodic pump re-drives this to release a pair's second chunk once the gap elapses.
         /// </remarks>
         /// <param name="session">The session whose output to drain.</param>
         /// <param name="transport">The node transport.</param>
@@ -1158,6 +1160,11 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 return;
             }
 
+            // The VERIFIED real-host output-queue algorithm (TAD-Message-Formats.md 22.16): stream the
+            // reply as 255-byte continuation PAIRS spaced ~46 ms apart, waiting between pairs for both
+            // chunks to be acked (and their 7DUMMs seen); send the last continuation ALONE; then the FINAL
+            // (short) chunk carrying SYCN 000A + prompt BDAT + RFI, only after that last continuation's ACK.
+            DateTime now = _clock();
             while (true)
             {
                 bool nextIsFinal = session.OutputContent.Length - session.OutputOffset < FullBufferChunk;
@@ -1170,11 +1177,10 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                         return;
                     }
 
-                    // The final terminator waits until every continuation has been both CONSUMED (a 7DUMM
-                    // back for each) and delivered (acked - window drained to 0), so the last continuation is
-                    // on 100's screen before the terminator/prompt (22.16: final sent after the last
-                    // continuation's ACK; it triggers no DUMM of its own).
-                    if (session.DummsConsumed < session.ContinuationsSent || session.OutstandingOutputCount > 0)
+                    // The final must not go out mid-pair, and only after the last continuation is DELIVERED
+                    // (acked -> window drained to 0). It is NOT gated on the last continuation's 7DUMM: 22.16
+                    // shows the final precedes the last DUMM (the final chunk itself triggers no DUMM).
+                    if (session.PairAwaitingSecond || session.OutstandingOutputCount > 0)
                     {
                         return;
                     }
@@ -1196,23 +1202,56 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                     return;
                 }
 
-                // Continuation: bare 255-byte BDAT, paced by 100's CONSUMPTION, not just delivery. 100 sends
-                // one 7DUMM per continuation it consumes/displays (GOD-LLM 2026-07-07 / 22.16). Keep at most
-                // OutputWindow continuations UN-CONSUMED at once - sending both chunks of a pair in the same
-                // instant made 100 consume only one (1 DUMM for 2 chunks) and drop the other from the screen.
-                if (session.ContinuationsSent - session.DummsConsumed >= OutputWindow)
+                if (session.PairAwaitingSecond)
+                {
+                    // SECOND chunk of the current pair: gated ONLY by the ~46 ms intra-pair timer, never by an
+                    // ACK (22.16: the second chunk of a pair is transmitted before either chunk is acked). The
+                    // gap is the prime suspect for why a byte-identical burst rendered only its last chunk.
+                    if ((now - session.LastContinuationAt).TotalMilliseconds < ContinuationPairGapMillis)
+                    {
+                        return;   // wait for the pump to re-drain once the gap has elapsed
+                    }
+
+                    SendContinuation(session, transport, outgoing, now);
+                    session.PairAwaitingSecond = false;   // pair complete; the barrier below now holds until
+                    continue;                             // both chunks are acked (and their DUMMs seen)
+                }
+
+                // FIRST chunk of a NEW pair: require the previous pair fully settled - both delivered (acked)
+                // AND their 7DUMMs seen - so we reproduce the real inter-pair cadence, not just fire-and-forget.
+                if (session.OutstandingOutputCount > 0 || session.DummsConsumed < session.ContinuationsSent)
                 {
                     return;
                 }
 
-                string piece = session.OutputContent.Substring(session.OutputOffset, FullBufferChunk);
-                XmsgFrame chunk = BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA,
-                    new TadMessageBuilder().BdatText(piece).Build());
-                TrackOutput(session, chunk);
-                session.MarkContinuationSent();
-                session.OutputOffset += FullBufferChunk;
-                outgoing.Add(chunk);
+                SendContinuation(session, transport, outgoing, now);
+
+                // If the piece that now remains is under one buffer, this continuation was the LAST one and
+                // it goes ALONE (22.16); otherwise we owe a second chunk after the intra-pair gap.
+                bool loneLast = session.OutputContent.Length - session.OutputOffset < FullBufferChunk;
+                session.PairAwaitingSecond = !loneLast;
+                return;   // wait: either the 46 ms gap (second chunk) or, if lone, the final after its ACK
             }
+        }
+
+        /// <summary>
+        /// Emits one bare 255-byte continuation chunk (BDAT count 0xFF, no RFI), tracks it for the ACK
+        /// window, advances the burst offset, and stamps the send time for the intra-pair gap.
+        /// </summary>
+        /// <param name="session">The session whose burst to advance.</param>
+        /// <param name="transport">The node transport.</param>
+        /// <param name="outgoing">The list that receives the continuation frame.</param>
+        /// <param name="now">The current clock time, stamped as this continuation's send time.</param>
+        private void SendContinuation(TadServerSession session, IXmsgServerTransport transport, List<XmsgFrame> outgoing, DateTime now)
+        {
+            string piece = session.OutputContent.Substring(session.OutputOffset, FullBufferChunk);
+            XmsgFrame chunk = BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA,
+                new TadMessageBuilder().BdatText(piece).Build());
+            TrackOutput(session, chunk);
+            session.MarkContinuationSent();
+            session.LastContinuationAt = now;
+            session.OutputOffset += FullBufferChunk;
+            outgoing.Add(chunk);
         }
 
         /// <summary>

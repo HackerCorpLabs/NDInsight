@@ -640,6 +640,57 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
+        /// An out-of-model incoming frame (its Counter implies a DIFFERENT link seed) must NOT poison
+        /// the host's learned seed: every frame the host originates afterwards still satisfies the
+        /// envelope invariant <c>Counter + Flags1.low + Flags2.low == link seed</c> (0x14 here).
+        /// Regression for the live 2026-07-07 failure: the per-frame seed refresh let one bad received
+        /// frame push the link seed to 0x16, so the next output chunk went out with an invalid Counter
+        /// (violating the invariant that held 753/753 in the capture corpus).
+        /// </summary>
+        [Fact]
+        public void ServerHost_OutOfModelFrame_DoesNotPoisonLinkSeed()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            List<XmsgFrame> fromServer = new List<XmsgFrame>();
+            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+            clientCodec.PacketReceived += delegate (string linkId, XmsgPacketInfo packet)
+            {
+                fromServer.Add(packet.Frame);
+            };
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // username
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // password
+
+            // Poison attempt: a command frame that is valid EXCEPT its Counter, which implies link
+            // seed 0x16 instead of 0x14 (the measured live poisoning signature). The server must
+            // answer it — and everything after it — with envelopes still derived from the TRUE seed.
+            XmsgFrame poisoned = client.BuildInput("help");
+            poisoned.SubHeader!.Counter = (byte)(poisoned.SubHeader.Counter + 2);
+            poisoned.ClearRawBytes();
+            fromServer.Clear();
+            clientCodec.SendPacket(new XmsgPacket(poisoned));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("time")));
+
+            int checkedFrames = 0;
+            for (int i = 0; i < fromServer.Count; i++)
+            {
+                XmsgFrame frame = fromServer[i];
+                if (frame.SubHeader == null)
+                {
+                    continue;   // secure-ACKs carry no sub-header; the invariant applies to data frames
+                }
+
+                byte implied = XmsgEnvelope.LearnSeed(
+                    frame.Header!.Flags1, frame.SubHeader.Counter, frame.Header.Flags2);
+                Assert.Equal(0x14, implied);
+                checkedFrames++;
+            }
+
+            Assert.True(checkedFrames > 0, "no server data frames captured — the scenario did not run");
+        }
+
+        /// <summary>
         /// The framework dispatch path MUST secure-ACK (subtype <c>0x03</c>) each session data frame it
         /// receives. Regression guard for the XmsgNode flag bug: the dispatch block gated its ACK on
         /// AcknowledgeData (false in the runner) instead of AcknowledgeTadFrames, so the live 100 got no
@@ -702,12 +753,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
-        /// The "3" / echo diagnostic renders as three 255-sentinel frames, streamed one-per-consumption. On
-        /// the command only the FIRST continuation goes out (one bare 255-byte BDAT, no RFI) - 100 consumes
-        /// one continuation per 7DUMM (GOD-LLM 2026-07-07 / 22.16), so with the DUMM-paced window the next
-        /// continuation and the RFI terminator are WITHHELD until 100's 7DUMM confirms it displayed this one.
-        /// Sending the whole batch at once made 100 render only the last chunk. The distinct
-        /// "ECHO FRAME n OF 3" markers let a live run show which frames 100 actually displays.
+        /// The "3" / echo diagnostic streams as 255-byte continuation PAIRS spaced ~46 ms apart (the
+        /// verified 22.16 output-queue algorithm). On the command only the FIRST chunk of the first pair
+        /// goes out (one bare 255-byte BDAT, no RFI); the SECOND chunk is held until the intra-pair gap
+        /// elapses (released by the runner's periodic pump on the live link - the constant test clock never
+        /// advances it), and the final RFI terminator waits until the last continuation is acked. The
+        /// distinct "ECHO FRAME n OF 3" markers let a live run show which frames 100 actually displays.
         /// </summary>
         [Fact]
         public void ServerHost_EchoDiagnostic_FirstChunkIsOneContinuation()
@@ -722,11 +773,11 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             clientCodec.SendPacket(new XmsgPacket(client.BuildInput("3")));
 
             IReadOnlyList<TadFrameShape> first = terminal.TadFrames;
-            Assert.Single(first);                            // DUMM-paced window caps the unconsumed batch at 1
+            Assert.Single(first);                            // only the pair's first chunk; the second waits on the gap timer
             Assert.Equal(255, first[0].BdatBytes);           // a full 255-byte continuation
             Assert.False(first[0].HasRfi, "continuation must not carry an RFI");
 
-            // Frame 1's marker rode the first continuation; frames 2 and 3 wait for 100's 7DUMM.
+            // Frame 1's marker rode the first continuation; frames 2 and 3 wait for the intra-pair gap / ACKs.
             string screen = terminal.Text;
             Assert.Contains("ECHO FRAME 1 OF 3", screen);
             Assert.DoesNotContain("ECHO FRAME 2 OF 3", screen);

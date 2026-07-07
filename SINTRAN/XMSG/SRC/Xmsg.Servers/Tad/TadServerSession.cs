@@ -186,9 +186,26 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
 
         /// <summary>
         /// Gets the number of 7DUMMs 100 has sent back during the current burst - its CONSUMPTION signal
-        /// (GOD-LLM 2026-07-07 / TAD-Message-Formats.md 22.16: DUMMs pair 1:1 with consumed continuations).
+        /// (TAD-Message-Formats.md 22.16: DUMMs pair 1:1 with consumed continuations). Kept as a barrier
+        /// input for the inter-pair cadence, NOT as the display gate (the window=1 DUMM experiment proved
+        /// 1:1 DUMMs alone do not make 100 render the continuations - see 22.16 retraction note).
         /// </summary>
         public int DummsConsumed { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the clock time the last continuation chunk was transmitted, so the drain can
+        /// enforce the VERIFIED 45-47 ms intra-pair gap (22.16: the real host never fires the two chunks
+        /// of a pair back-to-back; the ~46 ms spacing is the prime suspect for why a byte-identical burst
+        /// renders only partially).
+        /// </summary>
+        public DateTime LastContinuationAt { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the first chunk of the current pair has been sent and
+        /// the second chunk is still owed (gated only by the intra-pair gap timer, not by an ACK - 22.16
+        /// shows the second chunk of a pair goes out BEFORE either chunk is acked).
+        /// </summary>
+        public bool PairAwaitingSecond { get; set; }
 
         /// <summary>Gets the content still to stream (without the trailing prompt).</summary>
         public string OutputContent { get; private set; } = string.Empty;
@@ -230,6 +247,8 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             OutputActive = true;
             ContinuationsSent = 0;
             DummsConsumed = 0;
+            LastContinuationAt = default;
+            PairAwaitingSecond = false;
         }
 
         /// <summary>

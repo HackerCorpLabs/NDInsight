@@ -95,6 +95,24 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         public event LinkRawFrameReceived? RawFrameReceived;
 
         /// <summary>
+        /// A periodic callback fired on the adapter's own loop thread once per pump iteration (after each
+        /// read or idle tick, before the pending writes are flushed).
+        /// </summary>
+        /// <remarks>
+        /// Runs on the SAME single thread as inbound-frame processing, so a handler may safely send frames
+        /// down the codec / touch node state with no locking. Used to drive time-based work that has no
+        /// inbound trigger - notably releasing the second chunk of a terminal-output pair once the verified
+        /// ~46 ms intra-pair gap has elapsed (TAD-Message-Formats.md 22.16).
+        /// </remarks>
+        public delegate void LinkLoopTick();
+
+        /// <summary>
+        /// Occurs once per pump iteration on the adapter's loop thread, for time-based sending that has no
+        /// inbound-frame trigger.
+        /// </summary>
+        public event LinkLoopTick? LoopTick;
+
+        /// <summary>
         /// Initialises the adapter over a transport and LAPB link.
         /// </summary>
         /// <param name="linkId">
@@ -269,6 +287,11 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
                     // interval is just the timer resolution; the keepalive cadence is the T3 period.
                     _link.Tick(CurrentMillis);
                 }
+
+                // Time-based sending with no inbound trigger (e.g. releasing the second chunk of a
+                // terminal-output pair once the ~46 ms intra-pair gap has elapsed). Runs on THIS loop
+                // thread, so a handler may send down the codec without locking. See 22.16.
+                LoopTick?.Invoke();
 
                 await FlushPendingAsync(cancellationToken);
                 RaiseStatusIfChanged();

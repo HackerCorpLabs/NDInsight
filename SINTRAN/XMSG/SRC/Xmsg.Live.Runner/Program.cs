@@ -773,15 +773,28 @@ internal static class Program
             Console.WriteLine($"[rx-raw] a=0x{(body.Length > 0 ? body[0] : 0):X2} {kind} [{Convert.ToHexString(body)}]");
         };
 
+        // Time-based output pump (runs on the adapter loop thread, no locking needed). A multi-chunk
+        // terminal reply is streamed as 255-byte continuation PAIRS spaced ~46 ms apart (22.16): the SECOND
+        // chunk of each pair has no inbound trigger, so DrainPending must be re-driven on a timer to release
+        // it once the gap elapses. serverHost.DrainPending walks each active session's burst and returns the
+        // now-permitted frames; we send them straight down the codec, same as the inbound-driven path.
+        adapter.LoopTick += delegate ()
+        {
+            System.Collections.Generic.IReadOnlyList<XmsgFrame> pumped = serverHost.DrainPending();
+            for (int i = 0; i < pumped.Count; i++)
+            {
+                codec.SendPacket(new XmsgPacket(pumped[i]));
+            }
+        };
+
         adapter.Initiate();
         Console.WriteLine("[runner] SABM sent; pumping seam link (LAPB + codec + XmsgLayer)...");
-        // Tick the LAPB timers every second so T1 retransmission and the N2 retry limit actually run.
-        // With the old keepaliveInterval: null the timers never ticked, so a lost/REJ'd I-frame was
-        // retransmitted only ONCE (event-driven, on the REJ) and then never retried — if that copy also
-        // missed, 100's V(R) stuck and its TAD layer timed out (the login-prompt "beep"). The idle branch
-        // now only TICKS; it no longer floods the link with an RR every second — idle keepalive is the
-        // conformant T3 poll emitted from inside Tick, so a healthy link is still near-silent.
-        await adapter.RunAsync(token, keepaliveInterval: TimeSpan.FromSeconds(1));
+        // Tick every 20 ms so (a) the LAPB T1/T3/N2 timers run and (b) the output pump above can release a
+        // continuation pair's second chunk within the ~46 ms intra-pair window. The idle branch only TICKS
+        // + pumps; it does NOT flood the link with RRs (the T3 keepalive poll is emitted from inside Tick),
+        // so a healthy idle link stays near-silent and DrainPending returns nothing when no burst is active.
+        // (Was 1 s: too coarse to reproduce the measured 45-47 ms intra-pair spacing.)
+        await adapter.RunAsync(token, keepaliveInterval: TimeSpan.FromMilliseconds(20));
     }
 
     /// <summary>
