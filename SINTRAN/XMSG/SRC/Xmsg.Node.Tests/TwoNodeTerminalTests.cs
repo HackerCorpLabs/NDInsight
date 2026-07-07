@@ -702,13 +702,15 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
-        /// The "3" / echo diagnostic renders as three 255-sentinel frames. On the command, only the first
-        /// batch goes out - exactly two bare 255-byte continuations (no RFI); the final (frame 3, with the
-        /// RFI) is WITHHELD until the flow-control handshake advances (100 ACKs and its 7DUMM is ACKed). The
-        /// distinct "ECHO FRAME n OF 3" markers let a live run show which frames 100 actually displays.
+        /// The "3" / echo diagnostic renders as three 255-sentinel frames, streamed one-per-consumption. On
+        /// the command only the FIRST continuation goes out (one bare 255-byte BDAT, no RFI) - 100 consumes
+        /// one continuation per 7DUMM (GOD-LLM 2026-07-07 / 22.16), so with the DUMM-paced window the next
+        /// continuation and the RFI terminator are WITHHELD until 100's 7DUMM confirms it displayed this one.
+        /// Sending the whole batch at once made 100 render only the last chunk. The distinct
+        /// "ECHO FRAME n OF 3" markers let a live run show which frames 100 actually displays.
         /// </summary>
         [Fact]
-        public void ServerHost_EchoDiagnostic_FirstBatchIsTwoContinuations()
+        public void ServerHost_EchoDiagnostic_FirstChunkIsOneContinuation()
         {
             TerminalCapture terminal = new TerminalCapture();
             TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
@@ -720,16 +722,14 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             clientCodec.SendPacket(new XmsgPacket(client.BuildInput("3")));
 
             IReadOnlyList<TadFrameShape> first = terminal.TadFrames;
-            Assert.Equal(2, first.Count);                    // window caps the unacked first batch at 2
-            Assert.Equal(255, first[0].BdatBytes);           // both are full 255-byte continuations
-            Assert.Equal(255, first[1].BdatBytes);
+            Assert.Single(first);                            // DUMM-paced window caps the unconsumed batch at 1
+            Assert.Equal(255, first[0].BdatBytes);           // a full 255-byte continuation
             Assert.False(first[0].HasRfi, "continuation must not carry an RFI");
-            Assert.False(first[1].HasRfi, "the RFI terminator (frame 3) must be withheld from the first batch");
 
-            // Frame 1 and frame 2 markers rode the first batch; frame 3 has not been sent yet.
+            // Frame 1's marker rode the first continuation; frames 2 and 3 wait for 100's 7DUMM.
             string screen = terminal.Text;
             Assert.Contains("ECHO FRAME 1 OF 3", screen);
-            Assert.Contains("ECHO FRAME 2 OF 3", screen);
+            Assert.DoesNotContain("ECHO FRAME 2 OF 3", screen);
             Assert.DoesNotContain("ECHO FRAME 3 OF 3", screen);
         }
 

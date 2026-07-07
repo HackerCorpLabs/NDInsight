@@ -181,6 +181,15 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
 
         private readonly HashSet<ushort> _outstandingOutput = new HashSet<ushort>();
 
+        /// <summary>Gets the number of 255-byte continuation chunks sent in the current burst.</summary>
+        public int ContinuationsSent { get; private set; }
+
+        /// <summary>
+        /// Gets the number of 7DUMMs 100 has sent back during the current burst - its CONSUMPTION signal
+        /// (GOD-LLM 2026-07-07 / TAD-Message-Formats.md 22.16: DUMMs pair 1:1 with consumed continuations).
+        /// </summary>
+        public int DummsConsumed { get; private set; }
+
         /// <summary>Gets the content still to stream (without the trailing prompt).</summary>
         public string OutputContent { get; private set; } = string.Empty;
 
@@ -219,6 +228,24 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             OutputOffset = 0;
             OutputFinalSent = false;
             OutputActive = true;
+            ContinuationsSent = 0;
+            DummsConsumed = 0;
+        }
+
+        /// <summary>
+        /// Records that a continuation chunk was sent (for the DUMM-consumption pacing).
+        /// </summary>
+        public void MarkContinuationSent()
+        {
+            ContinuationsSent++;
+        }
+
+        /// <summary>
+        /// Records that 100 sent a 7DUMM during the burst (it consumed/displayed a continuation).
+        /// </summary>
+        public void NoteDummConsumed()
+        {
+            DummsConsumed++;
         }
 
         /// <summary>

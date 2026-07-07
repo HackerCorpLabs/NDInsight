@@ -63,6 +63,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         private const byte TmodOpcode = 0x0C;
         private const byte TtypOpcode = 0x0D;
         private const byte DescOpcode = 0x0F;
+        private const byte DummOpcode = 0x18;   // 7DUMM - 100's per-continuation consumption/display signal
         private const byte OpsvOpcode = 0x1F;
 
         // XMCSM control/service words (their high half is the frame class). VERIFIED from captures.
@@ -82,10 +83,11 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         // reply length is unbounded when chunked at 255.
         private const int FullBufferChunk = 255;
 
-        // Flow-control window: at most this many OUTPUT datagrams may be unacked at once during a burst
-        // (TAD-Message-Formats.md 22.6). The host streams up to 2 chunks, then waits for 100's ACKs before
-        // sending more; the final (RFI-bearing) chunk is sent only once all prior continuations are acked.
-        private const int OutputWindow = 2;
+        // Flow-control window: at most this many continuation chunks may be UN-CONSUMED (no 7DUMM back yet)
+        // at once. GOD-LLM 2026-07-07 / 22.16: 100 consumes/displays one continuation per 7DUMM it returns;
+        // sending two in the same instant (window 2, no gap) made 100 consume only one and drop the other.
+        // Window 1 sends one continuation, waits for its DUMM (the natural inter-chunk gap), then the next.
+        private const int OutputWindow = 1;
 
         // The MOTD frame's TAD message STRUCTURE is VERIFIED from conn-to-d102 frame 62: BMMX(01,0000) /
         // ECKM(01) / a BDAT banner / SYCN(0002 WaitUser) / a BDAT "ENTER " prompt / RFI. The banner text
@@ -286,6 +288,17 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             if (HasOpcode(incoming, BdatOpcode))
             {
                 return OnTerminalInput(session, incoming, transport);
+            }
+
+            // A 7DUMM (opcode 0x18) is 100's CONSUMPTION signal during a burst: it sends one back per
+            // continuation it has displayed (1:1). Count it so DrainSessionOutput may release the next
+            // continuation / the final terminator only after the prior chunk is actually on screen.
+            if (HasOpcode(incoming, DummOpcode) && session.OutputActive)
+            {
+                session.NoteDummConsumed();
+                List<XmsgFrame> drained = new List<XmsgFrame>();
+                DrainSessionOutput(session, transport, drained);
+                return drained;
             }
 
             // CERS / DUMM and other bare control frames need no reply (the node ACKs them).
@@ -1157,8 +1170,11 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                         return;
                     }
 
-                    // The final terminator waits until every continuation is acked (window drained to 0).
-                    if (session.OutstandingOutputCount > 0)
+                    // The final terminator waits until every continuation has been both CONSUMED (a 7DUMM
+                    // back for each) and delivered (acked - window drained to 0), so the last continuation is
+                    // on 100's screen before the terminator/prompt (22.16: final sent after the last
+                    // continuation's ACK; it triggers no DUMM of its own).
+                    if (session.DummsConsumed < session.ContinuationsSent || session.OutstandingOutputCount > 0)
                     {
                         return;
                     }
@@ -1180,8 +1196,11 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                     return;
                 }
 
-                // Continuation: bare 255-byte BDAT, but only while the window has room.
-                if (session.OutstandingOutputCount >= OutputWindow)
+                // Continuation: bare 255-byte BDAT, paced by 100's CONSUMPTION, not just delivery. 100 sends
+                // one 7DUMM per continuation it consumes/displays (GOD-LLM 2026-07-07 / 22.16). Keep at most
+                // OutputWindow continuations UN-CONSUMED at once - sending both chunks of a pair in the same
+                // instant made 100 consume only one (1 DUMM for 2 chunks) and drop the other from the screen.
+                if (session.ContinuationsSent - session.DummsConsumed >= OutputWindow)
                 {
                     return;
                 }
@@ -1190,6 +1209,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 XmsgFrame chunk = BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA,
                     new TadMessageBuilder().BdatText(piece).Build());
                 TrackOutput(session, chunk);
+                session.MarkContinuationSent();
                 session.OutputOffset += FullBufferChunk;
                 outgoing.Add(chunk);
             }
