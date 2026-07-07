@@ -10,8 +10,9 @@
 >    calls are signalled via the message STOPR field in shared memory.
 > 2. Control register bit 4 is NOT "ClearInterrupt".
 > 3. The IOX offset column mixes octal and decimal (LTAG5 listed as "+9"; correct
->    octal offset is 11). Master clear is spelled "MCLE5" here; other docs use MCLR5,
->    and no symbol exists at offset 6 in the symbol table.
+>    octal offset is 11). Master clear is spelled "MCLE5" here; the correct symbol is
+>    MCLR5 (=000006 in the symbol tables). Note SINTRAN never issues MCLR5; it stops
+>    the ND-500 with the 5MCST sequence (UNLC5, LCON5:=40, RETG5:=2) instead.
 >
 > The lock state machine itself (SLOC5/UNLC5/TERM5/5ILOC) is broadly consistent with
 > the NPL sources. Until corrected, verify every register/bit claim against
