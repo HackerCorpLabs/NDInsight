@@ -1,13 +1,12 @@
 # ND-500 Swapper (5SWAP) - Deep Analysis
 
-> **WARNING - KNOWN ERROR (flagged 2026-07-07, corrections pending)**
->
-> This document repeatedly states that the 5SWAP swapper process "runs on the ND-500".
-> That is WRONG. 5SWAP is an ND-100 RT-program: the 5SWRT RT-program
-> (RP-P2-N500.NPL:16-58) performs the disk transfers using ND-100 constructs
-> (*2BANK, MON 131/ABSLI). See ND500-SWAPPER-LOADING-MECHANISM.md for the verified
-> analysis. The FIFO/queue mechanics described here are otherwise sourced and useful,
-> but read every "runs on ND-500" / "offload to ND-500 CPU" framing as ND-100 instead.
+> **Corrected 2026-07-08.** Earlier versions said the swapper "runs on the ND-500";
+> that was wrong. **5SWAP is an ND-100 RT-program** (5SWRT, RP-P2-N500.NPL:16-58,
+> using *2BANK and MON 131/ABSLI - both ND-100 constructs). What lives on the ND-500
+> side is **process #0** (S500S/5SWPROC), whose message buffer SWMSG carries the swap
+> requests; the ND-100 program serves that process. See
+> [ND500-SWAPPER-LOADING-MECHANISM.md](ND500-SWAPPER-LOADING-MECHANISM.md) and
+> [ND500-BUS-INTERFACE-REFERENCE.md](ND500-BUS-INTERFACE-REFERENCE.md) section 12.
 
 ## Purpose
 
@@ -19,14 +18,15 @@ Complete analysis of the SINTRAN III swapper subsystem for ND-500. The swapper i
 
 ## 1. What the Swapper Does
 
-The **5SWAP** process running on ND-500 handles:
+The swapper subsystem (ND-100 RT-program **5SWAP**/5SWRT serving ND-500 **process
+#0**) handles:
 
 | Function | Description |
 |----------|-------------|
 | **Segment allocation** | Allocating disk pages for new memory segments |
 | **Page swapping** | Reading/writing memory pages to/from disk |
-| **Disk I/O coordination** | Managing disk transfers via queue pool elements |
-| **Memory management offload** | Moving work from ND-100 to ND-500 CPU |
+| **Disk I/O coordination** | Managing disk transfers via queue pool elements (on the ND-100) |
+| **ND-500 memory service** | Serving page faults and segment loads FOR the ND-500 processes |
 
 ---
 
@@ -367,8 +367,8 @@ flowchart TB
         G[Process descriptions]
     end
 
-    subgraph "ND-500 Side"
-        H[5SWAP Process]
+    subgraph "ND-100 Side (driver level, serving ND-500 process 0)"
+        H[5SWAP RT-program / 5SWRT]
         I[LSWPAGE Handler]
         J[LALLOPAGE Handler]
     end
@@ -407,35 +407,33 @@ flowchart TB
 
 ```mermaid
 sequenceDiagram
-    participant P as Process
-    participant K as ND-100 Kernel
-    participant M as 5MPM Memory
-    participant S as 5SWAP (ND-500)
+    participant P as ND-500 process (page fault)
+    participant K as ND-100 driver level
+    participant M as Message memory (SWMSG)
+    participant S as 5SWAP RT-program (ND-100)
     participant D as Disk
 
-    P->>K: Request page (page fault)
+    P->>K: Page fault message (via level-12 driver)
     K->>K: 5ACTSWAPPER
     K->>M: Write request to SWMSG
     K->>M: Check swapper status
 
     alt Swapper free (PSWWAIT)
         K->>M: Set SWPPING status
-        K->>K: XACTRDY + LOWACT500
-        K->>S: Hardware activation
-        S->>M: Read SWMSG request
-        S->>D: M5TRANS (disk read)
+        K->>K: XACTRDY (+ MCCO restart of process 0)
+        S->>M: Read SWMSG request (waits on PSW1WAIT)
+        S->>D: MON 131 ABSLI (disk transfer, ND-100 side)
         D-->>S: Data transfer complete
-        S->>M: Write result to SWMSG
+        S->>M: Write result / MONICO restart
         S->>M: Set PSWWAIT (idle)
-        S->>K: Interrupt/completion
-        K->>P: Resume with page
+        K->>P: ND-500 process reactivated
     else Swapper busy
         K->>M: Insert in Swap-wait-FIFO
         K->>P: Block process (LSWPWAIT)
-        Note over S: Later, when current request completes
-        S->>M: SWPD4: Check FIFO
-        S->>M: Dequeue waiting request
-        S->>S: Process request
+        Note over K: Later, when current request completes
+        K->>M: SWPD4: Check FIFO
+        K->>M: Dequeue waiting request
+        K->>K: 5ACTSWAPPER for the dequeued request
     end
 ```
 
@@ -447,11 +445,11 @@ sequenceDiagram
 
 The swapper is **event-driven**:
 
-1. **Process requests service** → 5ACTSWAPPER called
-2. **XACTRDY evaluates priority** → selects highest-priority work
-3. **LOWACT500 activates ND-500** → hardware interrupt/flag
-4. **ND-500 wakes up** → processes request from 5MPM
-5. **Completion triggers next** → SWPD4 checks FIFO
+1. **Process requests service** -> 5ACTSWAPPER called (on the ND-100)
+2. **XACTRDY evaluates priority** -> selects highest-priority work
+3. **The ND-500 is (re)activated** -> and the 5SWAP RT-program (ND-100) is
+   scheduled to perform the disk work (5SWRT waits on PSW1WAIT, then MON 131)
+4. **Completion triggers next** -> SWPD4 checks the swap-wait FIFO
 
 ### 9.2 Critical Code Paths to Emulate
 
@@ -487,8 +485,9 @@ stateDiagram-v2
 
 ## 10. Related Documents
 
+- [ND500-BUS-INTERFACE-REFERENCE.md](ND500-BUS-INTERFACE-REFERENCE.md) - authoritative bus-interface spec
+- [ND500-SWAPPER-LOADING-MECHANISM.md](ND500-SWAPPER-LOADING-MECHANISM.md) - how the swapper is loaded (verified)
 - [ND500-IF-USAGE-DEEP-ANALYSIS.md](ND500-IF-USAGE-DEEP-ANALYSIS.md) - IOX commands and 500HIST polling
-- [ND-500-INTERFACE.md](ND-500-INTERFACE.md) - Hardware interface overview
 - [MP-P2-N500.md](MP-P2-N500.md) - Main driver module analysis
 - [../OS/15-DISK-IO-SUBSYSTEM.md](../OS/15-DISK-IO-SUBSYSTEM.md) - Disk I/O and queue pools
 - [../OS/17-SCHEDULER-AND-PRIORITIES.md](../OS/17-SCHEDULER-AND-PRIORITIES.md) - Task scheduling
@@ -510,6 +509,6 @@ stateDiagram-v2
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2026-01-29
-**Source**: MP-P2-N500.NPL (lines 1031-1188, 2851-2908, 2970-3040)
+**Document Version**: 2.0 (corrected execution side: 5SWAP runs on the ND-100)
+**Last Updated**: 2026-07-08
+**Source**: MP-P2-N500.NPL (lines 1031-1188, 2851-2908, 2970-3040), RP-P2-N500.NPL (lines 16-58)

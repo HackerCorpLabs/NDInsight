@@ -1,265 +1,106 @@
 # ND-500 Processor Documentation
 
-**ND-500 CPU Architecture and SINTRAN Integration**
+**ND-500 CPU architecture, the 3022/5015 bus interface, and SINTRAN integration**
+
+Folder overhauled 2026-07-08: every bus-interface claim was re-verified against the
+SINTRAN NPL sources, the symbol tables and the hardware manuals; fabricated content
+was retired to `old/`. Start with the Tier 1 documents.
 
 ---
 
-## Overview
-
-Documentation for the ND-500 processor, a byte-oriented CPU used alongside the ND-100 in dual-CPU SINTRAN III systems.
-
----
-
-## Documents
-
-### NPL Source Analysis
-
-| Document | Source | Purpose |
-|----------|--------|---------|
-| [CC-P2-N500.md](CC-P2-N500.md) | CC-P2-N500.NPL | Compiler/code generation |
-| [MP-P2-N500.md](MP-P2-N500.md) | MP-P2-N500.NPL | Monitor program analysis |
-| [old/MP-P2-N500_API_Documentation.md](old/MP-P2-N500_API_Documentation.md) | MP-P2-N500.NPL | RETIRED (duplicate of MP-P2-N500.md) |
-| [RP-P2-N500.md](RP-P2-N500.md) | RP-P2-N500.NPL | Runtime program analysis |
-| [XC-P2-N500.md](XC-P2-N500.md) | XC-P2-N500.NPL | Executive/control program |
-
-### Hardware Interface Deep Dives
+## Tier 1 - Authoritative (start here)
 
 | Document | Purpose |
 |----------|---------|
-| [ND500-ND5000-INTERFACE-COMPREHENSIVE-GUIDE.md](ND500-ND5000-INTERFACE-COMPREHENSIVE-GUIDE.md) | **COMPLETE emulator implementation guide - DMA (PCB 3022) and Octobus (SAMSON) interfaces, C# code** |
-| [old/ND-500-INTERFACE.md](old/ND-500-INTERFACE.md) | RETIRED (early guesswork, superseded - see old/README.md) |
-| [ND500-IF-USAGE-DEEP-ANALYSIS.md](ND500-IF-USAGE-DEEP-ANALYSIS.md) | **Complete IOX command reference (PCB 3022), code loading, domain setup, scheduling** |
-| [ND500-SWAPPER-ANALYSIS.md](ND500-SWAPPER-ANALYSIS.md) | **Swapper (5SWAP) - event-driven page swapping** |
-| [ND500-SWAPPER-LOADING-MECHANISM.md](ND500-SWAPPER-LOADING-MECHANISM.md) | **How swapper is loaded - INZ500, MSINIT, 5SWRT RT-program** |
-| [ND500-SCHEDULING-ANALYSIS.md](ND500-SCHEDULING-ANALYSIS.md) | **Process scheduling - execution queue, timeslicer** |
-| [ND500-MONITOR-CALL-MECHANISM.md](ND500-MONITOR-CALL-MECHANISM.md) | **ND-500 to ND-100 monitor calls - inter-processor dispatch** |
-| [ND500-MONITOR-CALL-PARAMETER-PASSING.md](ND500-MONITOR-CALL-PARAMETER-PASSING.md) | **Complete parameter passing, response write-back, extended mon calls (>255)** |
-| [old/ND500-BOOT-DETECTION-MECHANISM.md](old/ND500-BOOT-DETECTION-MECHANISM.md) | RETIRED (fabricated, reversed detection polarity - see old/README.md) |
-| [ND500-INITIALIZATION-AND-EXECUTION-GUIDE.md](ND500-INITIALIZATION-AND-EXECUTION-GUIDE.md) | Boot and startup sequences |
-| [ND5000-SAMSON-ARCHITECTURE.md](ND5000-SAMSON-ARCHITECTURE.md) | **ND-5000 (SAMSON) vs ND-500 - Octobus, MFB, different I/O handling** |
-| [SINTRAN-DOMAIN-SETUP-DEEP-DIVE.md](SINTRAN-DOMAIN-SETUP-DEEP-DIVE.md) | Domain setup analysis |
-| [WHERE-IS-5MPM-LOCATED.md](WHERE-IS-5MPM-LOCATED.md) | 5MPM memory location analysis |
+| [ND500-BUS-INTERFACE-REFERENCE.md](ND500-BUS-INTERFACE-REFERENCE.md) | **THE spec** for ND-100 <-> ND-500 communication: IOX registers + four-mode decode, CONTROL/STATUS bits, activation protocol, message memory, level-12 ISR, boot/detection, microcode load, master clear/terminate/power-fail, locking, TAG hardware, SAMSON delta, emulator checklist |
+| [ND500-EVIDENCE-AND-CONTRADICTIONS.md](ND500-EVIDENCE-AND-CONTRADICTIONS.md) | The citation trail: verbatim NPL/symbol-table/manual quotes behind every claim, plus verdicts on the 12 contradictions (C1-C12) found across the older docs |
+| [ND500-EMULATOR-DISCREPANCY-AUDIT.md](ND500-EMULATOR-DISCREPANCY-AUDIT.md) | Burn-down list D01-D20: where the RetroCore NDBusND500IF.cs emulation differs from the spec, with severity and fix order |
 
----
+**The headline correction:** SINTRAN never exchanges "TAG codes" with the ND-500.
+The real protocol is: build a message in mailbox memory, load the 3022 MAR, poke
+CONTROL; answers come back as messages dispatched by the level-12 driver. The
+"high-level TAG codes 8/9/16" found in older docs and in the C# emulator were an
+invention.
 
-## ND-500 Architecture
-
-### Key Characteristics
-
-**CPU Type:** Byte-oriented (NOT 32-bit word CPU!)
-- Byte-addressable memory
-- 8-bit bytes as basic unit
-- 16-bit and 32-bit operations supported
-- 32-bit memory bus for bandwidth optimization
-
-**Memory:**
-- Byte addressing (unlike ND-100's word addressing)
-- Virtual memory with segmentation
-- Shared multiport memory (5MPM) with ND-100
-
-**See:** [../OS/MPM5-KEY-FINDINGS.md](../OS/MPM5-KEY-FINDINGS.md) for hardware details
-
-### Integration with ND-100
-
-```
-┌──────────┐         ┌──────────┐
-│  ND-100  │  5MPM   │  ND-500  │
-│ (Control)│◄───────►│ (Compute)│
-│ Word CPU │         │ Byte CPU │
-└──────────┘         └──────────┘
-     │                     │
-     │  Message Passing    │
-     └─────────────────────┘
-```
-
-**Communication:**
-- Shared multiport memory (5MPM)
-- Message passing protocol
-- Process descriptors in 5MPM
-- TAG-IN/TAG-OUT signaling
-- Interrupt-driven coordination
-
----
-
-## Topics Covered
-
-### ND-500 Programming (NPL Sources)
-
-**CC-P2-N500.NPL:**
-- Code generation for ND-500
-- Compiler integration
-- Object code format
-
-**MP-P2-N500.NPL:**
-- Monitor program
-- System services
-- Monitor calls
-
-**RP-P2-N500.NPL:**
-- Runtime support
-- Program execution
-- Resource management
-
-**XC-P2-N500.NPL:**
-- Executive control
-- Task scheduling
-- Inter-CPU coordination
-
-### Integration with SINTRAN
-
-**Domains:**
-- ND-500 runs in "domains" (process spaces)
-- Each domain has program/data segments
-- Segment capabilities control access
-- Monitor segment (31) for ND-100 calls
-
-**Message Passing:**
-- ND-500 requests I/O via messages
-- ND-100 processes requests
-- Results returned via message buffers
-- DVIO/DVINST system calls
-
-**See:** [../OS/08-MESSAGE-PASSING-DETAILED.md](../OS/08-MESSAGE-PASSING-DETAILED.md)
-
----
-
-## Quick Start
-
-### Understanding ND-500
-
-1. **Architecture:** [ND500-IF-USAGE-DEEP-ANALYSIS.md](ND500-IF-USAGE-DEEP-ANALYSIS.md)
-2. **5MPM Hardware:** [../OS/MPM5-KEY-FINDINGS.md](../OS/MPM5-KEY-FINDINGS.md)
-3. **Domain Setup:** [../OS/12-ND500-DOMAIN-SETUP-AND-MEMORY-MAPPING.md](../OS/12-ND500-DOMAIN-SETUP-AND-MEMORY-MAPPING.md)
-
-### ND-500 Programming
-
-1. **API Reference:** [MP-P2-N500.md](MP-P2-N500.md)
-2. **Runtime:** [RP-P2-N500.md](RP-P2-N500.md)
-3. **Monitor:** [MP-P2-N500.md](MP-P2-N500.md)
-
-### For Emulator Developers
-
-1. **Quick Reference:** [../Emulator/ND500-QUICK-REFERENCE.md](../Emulator/ND500-QUICK-REFERENCE.md)
-2. **Integration Guide:** [../Emulator/ND500-INTEGRATION-GUIDE.md](../Emulator/ND500-INTEGRATION-GUIDE.md)
-3. **C# Implementation:** [../Emulator/ND500-EMULATION-COMPLETE.cs](../Emulator/ND500-EMULATION-COMPLETE.cs)
-
----
-
-## Related Documentation
-
-### OS Integration (../OS/)
-
-| Document | Topic |
-|----------|-------|
-| [05-ND500-DMA-KERNEL.md](../OS/05-ND500-DMA-KERNEL.md) | DMA operations |
-| [06-MULTIPORT-MEMORY-AND-ND500-COMMUNICATION.md](../OS/06-MULTIPORT-MEMORY-AND-ND500-COMMUNICATION.md) | 5MPM architecture |
-| [07-ND500-IO-AND-USER-INTERACTION.md](../OS/07-ND500-IO-AND-USER-INTERACTION.md) | User interaction |
-| [08-MESSAGE-PASSING-DETAILED.md](../OS/08-MESSAGE-PASSING-DETAILED.md) | Message protocol |
-| [09-ND500-CODE-LOADING.md](../OS/09-ND500-CODE-LOADING.md) | Code loading |
-| [10-ND500-STANDALONE-EMULATOR.md](../OS/10-ND500-STANDALONE-EMULATOR.md) | Standalone emulation |
-| [12-ND500-DOMAIN-SETUP-AND-MEMORY-MAPPING.md](../OS/12-ND500-DOMAIN-SETUP-AND-MEMORY-MAPPING.md) | Domain configuration |
-
-### Hardware Documentation
-
-| Document | Topic |
-|----------|-------|
-| [../OS/MPM5-KEY-FINDINGS.md](../OS/MPM5-KEY-FINDINGS.md) | MPM5 multiport memory hardware |
-| [../OS/MPM5-DOCUMENTATION-UPDATE-SUMMARY.md](../OS/MPM5-DOCUMENTATION-UPDATE-SUMMARY.md) | MPM5 updates |
-
-### Emulator Implementation (../Emulator/)
+## Tier 2 - Verified deep dives
 
 | Document | Purpose |
 |----------|---------|
-| [KERNEL-ACCESS-EMULATOR.md](../Emulator/KERNEL-ACCESS-EMULATOR.md) | Read SINTRAN kernel |
-| [ND500-EMULATION-COMPLETE.cs](../Emulator/ND500-EMULATION-COMPLETE.cs) | Complete C# code |
-| [ND500-INTEGRATION-GUIDE.md](../Emulator/ND500-INTEGRATION-GUIDE.md) | Integration guide |
-| [ND500-QUICK-REFERENCE.md](../Emulator/ND500-QUICK-REFERENCE.md) | Quick reference |
-| [ND500-MESSAGE-STRUCTURE-VERIFIED.md](../Emulator/ND500-MESSAGE-STRUCTURE-VERIFIED.md) | Message structure |
+| [ND500-IF-USAGE-DEEP-ANALYSIS.md](ND500-IF-USAGE-DEEP-ANALYSIS.md) | IOX command usage, code loading, domain setup, scheduling via the interface |
+| [ND500-ND5000-INTERFACE-COMPREHENSIVE-GUIDE.md](ND500-ND5000-INTERFACE-COMPREHENSIVE-GUIDE.md) | DMA (3022) and Octobus (SAMSON) implementation guide (note: its 5CPUTYPE bits-14/15 claim is wrong - see dossier C8) |
+| [ND500-IF-LOCKING.md](ND500-IF-LOCKING.md) | Interface lock state machine (corrected 2026-07-08) |
+| [ND500-MONITOR-CALL-MECHANISM.md](ND500-MONITOR-CALL-MECHANISM.md) | ND-500 -> ND-100 monitor call dispatch (5STDRIV -> DECOMESS -> MCHANDLE) |
+| [ND500-MONITOR-CALL-PARAMETER-PASSING.md](ND500-MONITOR-CALL-PARAMETER-PASSING.md) | Parameter passing, response write-back, extended MON calls (>255) |
+| [ND500-SCHEDULING-ANALYSIS.md](ND500-SCHEDULING-ANALYSIS.md) | Execution queue, timeslicer, process scheduling |
+| [ND500-SWAPPER-LOADING-MECHANISM.md](ND500-SWAPPER-LOADING-MECHANISM.md) | How the swapper is loaded (INZ500, MSINIT, 5SWRT) |
+| [ND500-SWAPPER-ANALYSIS.md](ND500-SWAPPER-ANALYSIS.md) | Swapper FIFO/queue mechanics (corrected 2026-07-08: 5SWAP runs on the ND-100) |
+| [ND5000-SAMSON-ARCHITECTURE.md](ND5000-SAMSON-ARCHITECTURE.md) | ND-5000 (SAMSON) vs ND-500: Octobus, MFbus, ACCP |
+| [WHERE-IS-5MPM-LOCATED.md](WHERE-IS-5MPM-LOCATED.md) | 5MPM is separate multiport hardware with BASE translation (canonical statement) |
+| [SINTRAN-DOMAIN-SETUP-DEEP-DIVE.md](SINTRAN-DOMAIN-SETUP-DEEP-DIVE.md) | Domain / process-descriptor / segment-capability walkthrough |
+| [ND500-INITIALIZATION-AND-EXECUTION-GUIDE.md](ND500-INITIALIZATION-AND-EXECUTION-GUIDE.md) | Operator guide: domains, PLACE-DOMAIN, PSEG/DSEG (section 2 rewritten 2026-07-08) |
+
+## Tier 3 - Raw NPL source analyses
+
+Line-referenced analyses of the driver modules; foundational input for the deep
+dives. Their embedded early IOX table has been superseded by the master reference.
+
+| Document | Source module | Content |
+|----------|---------------|---------|
+| [MP-P2-N500.md](MP-P2-N500.md) | MP-P2-N500.NPL | Main driver: 5STDRIV, XACT500, XTER500, MCHANDEL, DVIO |
+| [CC-P2-N500.md](CC-P2-N500.md) | CC-P2-N500.NPL | Command/control: 5MCST, SLOCK/SUNLOCK, ITO500XQ |
+| [RP-P2-N500.md](RP-P2-N500.md) | RP-P2-N500.NPL | RT level: 5SWRT, XMSINIT, N500SCHEDULER |
+| [XC-P2-N500.md](XC-P2-N500.md) | XC-P2-N500.NPL | CLE5STATUS, status masks, FIFO ops |
+
+## Tier 4 - Retired (do not use as sources)
+
+[old/README.md](old/README.md) explains why each was retired and what supersedes it:
+
+| Document | Reason |
+|----------|--------|
+| [old/ND500-BOOT-DETECTION-MECHANISM.md](old/ND500-BOOT-DETECTION-MECHANISM.md) | Fabricated DETECTND500 with reversed detection polarity |
+| [old/ND-500-INTERFACE.md](old/ND-500-INTERFACE.md) | Early guesswork register table |
+| [old/MP-P2-N500_API_Documentation.md](old/MP-P2-N500_API_Documentation.md) | Duplicate of MP-P2-N500.md |
 
 ---
 
-## Key Concepts
+## ND-500 architecture in brief
 
-### Byte-Oriented vs Word-Oriented
+- The ND-500 is a **byte-addressed** CPU (8-bit bytes, 16/32-bit operations, 32-bit
+  memory bus for bandwidth); the ND-100 is a **word-addressed** 16-bit CPU. The
+  "32-bit" in ND-500 marketing refers to the memory bus, not a word size.
+- The two machines communicate through the **PCB 3022** (ND-100 side) / **PCB 5015**
+  (ND-500 side) interface and shared message memory, with level-12 interrupts to the
+  ND-100 - see the master reference.
+- ND-500 programs run in **domains** (process spaces) with program/data segments and
+  segment capabilities; monitor calls are serviced by SINTRAN on the ND-100.
 
-**ND-100 (Word CPU):**
-- 16-bit words
-- Word addresses (address 0x1000 = word 0x1000)
-- 16-bit memory bus
+## Related documentation
 
-**ND-500 (Byte CPU):**
-- 8-bit bytes
-- Byte addresses (address 0x1000 = byte 0x1000)
-- 32-bit memory bus (fetches 4 bytes for efficiency)
-
-**CRITICAL:** "32-bit" refers to **memory bus width**, NOT CPU word size!
-
-### Multiport Memory (5MPM)
-
-**Shared RAM:**
-- Physical RAM accessible by both CPUs
-- ND-100 sees it as word memory
-- ND-500 sees it as byte memory
-- Thread-safe access required
-- Contains process descriptors, message buffers
-
-**Address Translation:**
-- ND-100: Typically 0x00040000 physical
-- ND-500: Typically 0x80000000 physical
-- BASE register translates addresses
-- Same physical RAM, different channel addresses
-
-### Domains
-
-**Domain = ND-500 Process:**
-- Own program/data segments
-- Segment capabilities for access control
-- Message buffer in 5MPM
-- Process descriptor in 5MPM
-- Created via PLACE-DOMAIN command
-
-**Segment Capability:**
-- 16-bit descriptor
-- Contains physical segment number
-- Permission bits (W, P, S)
-- **S bit (bit 13):** SHARED - bypass cache for 5MPM!
+- `../OS/` - OS-level companions: [IOX-REGISTER-COMPLETE-REFERENCE.md](../OS/IOX-REGISTER-COMPLETE-REFERENCE.md),
+  [MPM5-KEY-FINDINGS.md](../OS/MPM5-KEY-FINDINGS.md),
+  [06-MULTIPORT-MEMORY-AND-ND500-COMMUNICATION.md](../OS/06-MULTIPORT-MEMORY-AND-ND500-COMMUNICATION.md),
+  [08-MESSAGE-PASSING-DETAILED.md](../OS/08-MESSAGE-PASSING-DETAILED.md),
+  [12-ND500-DOMAIN-SETUP-AND-MEMORY-MAPPING.md](../OS/12-ND500-DOMAIN-SETUP-AND-MEMORY-MAPPING.md)
+- `../Emulator/` - emulator artifacts. WARNING: the interface model in
+  ND500-QUICK-REFERENCE.md and DETAILED-TAG-MECHANISM-EXPLANATION.md is the OLD
+  fabricated one; validate anything from that folder against the Tier 1 docs.
+- `../NPL-SOURCE/` - the SINTRAN III sources and symbol tables (ground truth).
+- `../../Reference-Manuals/500/` - the hardware manuals, especially
+  "ND-30.013.02 Test Micro Program Descriptions for ND-500" (register-level spec of
+  both interface cards) and "ND-10.004.01-MPM 5 Technical Description".
 
 ---
 
-## Common Misconceptions
-
-### ❌ WRONG: "ND-500 is a 32-bit CPU"
-### ✅ CORRECT: "ND-500 is byte-oriented with 32-bit memory bus"
-
-The 32-bit refers to bandwidth optimization (fetch 4 bytes at once), not CPU architecture.
-
-### ❌ WRONG: "5MPM is special memory hardware"
-### ✅ CORRECT: "5MPM is standard RAM with special port modules"
-
-MPM5 = Multiport Memory 5th generation. Standard Dynamic RAM accessed through twin 16-bit port modules.
-
-### ❌ WRONG: "Both CPUs see same addresses"
-### ✅ CORRECT: "Address translation via BASE register"
-
-ND-100 and ND-500 see different channel addresses that map to same physical RAM.
-
----
-
-## Version History
+## Version history
 
 | Date | Version | Changes |
 |------|---------|---------|
-| 2026-01-29 | 1.8 | Added ND500-ND5000-INTERFACE-COMPREHENSIVE-GUIDE.md - Complete emulator implementation guide for both DMA and Octobus interfaces |
-| 2026-01-29 | 1.7 | Added ND5000-SAMSON-ARCHITECTURE.md - ND-5000 vs ND-500 differences, Octobus, MFB, MAILINK |
-| 2026-01-29 | 1.6 | Added ND500-SWAPPER-LOADING-MECHANISM.md - complete swapper loading analysis, INZ500, MSINIT, 5SWRT |
-| 2026-01-29 | 1.5 | Added ND500-MONITOR-CALL-PARAMETER-PASSING.md - complete parameter passing, response mechanism, extended mon calls |
-| 2026-01-29 | 1.4 | Expanded ND500-IF-USAGE-DEEP-ANALYSIS.md with code loading, domain setup, and process scheduling via interface |
-| 2026-01-29 | 1.3 | Added scheduling analysis, monitor call mechanism, swapper analysis |
-| 2026-01-29 | 1.1 | Added deep dives: IOX command reference, boot detection, initialization guide |
+| 2026-07-08 | 2.0 | Folder overhaul: added the three Tier 1 docs (bus-interface reference, evidence dossier, emulator audit); retired 3 fabricated/duplicate docs to old/; corrected IF-LOCKING, SWAPPER-ANALYSIS and the initialization guide; rewrote this index |
+| 2026-01-29 | 1.8 | Added ND500-ND5000-INTERFACE-COMPREHENSIVE-GUIDE.md |
+| 2026-01-29 | 1.3-1.7 | Deep-dive additions (scheduling, monitor calls, swapper, SAMSON) |
 | 2025-10-17 | 1.0 | Initial ND-500 documentation structure |
 
 ---
 
-**Parent:** [../README.md](../README.md) - SINTRAN Documentation  
+**Parent:** [../README.md](../README.md) - SINTRAN Documentation
 **Related:** [../Emulator/](../Emulator/) - Emulator Implementation
-

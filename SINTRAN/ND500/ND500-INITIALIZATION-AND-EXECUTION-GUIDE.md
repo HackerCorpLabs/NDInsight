@@ -6,21 +6,13 @@
 **Date:** 2025-11-06
 **Purpose:** Comprehensive guide for system operators and developers on how to initialize the ND-500 CPU, load programs via domains (DOM), and execute programs using PSEG/DSEG segments.
 
-> **WARNING - KNOWN ERRORS in section 2 (flagged 2026-07-07, corrections pending)**
->
-> The boot/detection material in section 2 (DETECTND500, INIT5MPM, CONFIG3022 and the
-> memory map placing 5MPM inside ND-100 RAM at 0x040000) repeats fabricated content
-> from the retired old/ND500-BOOT-DETECTION-MECHANISM.md:
->
-> 1. Detection polarity is reversed: in the real CH5CPUPRESENT
->    (PH-P2-OPPSTART.NPL:3913-3917), A=0 after the trapped IOX read of RSTA5 means
->    NO error, i.e. the 3022 IS present.
-> 2. 5MPM is a separate multiport memory module with BASE-register translation,
->    not pages allocated from ND-100 RAM (see WHERE-IS-5MPM-LOCATED.md).
->
-> The operational content (domains, PLACE-DOMAIN, PSEG/DSEG, memory fixing) is not
-> affected. Until corrected, use ND500-BUS-INTERFACE-REFERENCE.md for anything about
-> boot, detection, or the bus interface.
+> **Corrected 2026-07-08:** section 2 (boot/detection/initialization) was rewritten
+> as a verified summary - the former DETECTND500/INIT5MPM/CONFIG3022 content was
+> fabricated. For anything about the bus interface, boot or detection, the
+> authoritative source is
+> [ND500-BUS-INTERFACE-REFERENCE.md](ND500-BUS-INTERFACE-REFERENCE.md).
+> The operational content (domains, PLACE-DOMAIN, PSEG/DSEG, memory fixing) is
+> unaffected.
 
 ---
 
@@ -78,91 +70,52 @@ User Program Execution Flow:
 
 ## 2. ND-500 CPU Initialization
 
-### 2.1 System Boot Detection
+> **Corrected 2026-07-08.** The former content of this section (routines
+> `DETECTND500`, `INIT5MPM`, `CONFIG3022`, `INIT5PROCS`, `LOAD5XMSG` and a memory
+> map placing "5MPM" at ND-100 address 0x040000) was fabricated - none of those
+> routines exist in the SINTRAN sources, and the detection polarity was reversed.
+> The verified boot/detection/initialization story is in
+> [ND500-BUS-INTERFACE-REFERENCE.md](ND500-BUS-INTERFACE-REFERENCE.md) section 8;
+> the summary below replaces the old text.
 
-During SINTRAN boot (in `SINTR` routine), the system detects ND-500 presence:
+### 2.1 System Boot Detection (verified summary)
 
-```npl
-% From PH-P2-OPPSTART.NPL boot sequence
-CALL SYSEVAL              % Detect CPU type (ND-100/110/120)
-CALL DETECTND500          % Check for ND-500 coprocessor
-IF ND500PRESENT THEN
-    CALL INIT5MPM         % Initialize multiport memory
-    CALL INIT5PROCS       % Setup process descriptor table
-    CALL LOAD5XMSG        % Load XMSG kernel into 5MPM
-FI
-```
+At startup the routine **CH5CPUPRESENT** (PH-P2-OPPSTART.NPL:3903-3945) probes each
+generated ND-500 CPU:
 
-### 2.2 Multiport Memory (5MPM) Setup
+1. Arm the IOX-error trap (`A:=200; TRR IIE`), attempt an IOX read of the 3022
+   STATUS register (RSTA5), read IIC.
+2. **A=0 means NO IOX error - the 3022 interface IS present**; the CPU is flagged
+   OLD500 and 5ALIVE.
+3. If the IOX faults, probe the Octobus (IOX 100406) instead; if that answers, the
+   CPU is a SAMSON/ND-5000 and gets a master-clear + continue frame pair via
+   IOX 100405.
 
-**Physical Address Allocation:**
+### 2.2 Message memory setup (verified summary)
 
-```
-ND-100 Physical Memory:
-┌─────────────────────────────┐
-│ 0x000000 - 0x03FFFF        │ Regular RAM (256KB)
-├─────────────────────────────┤
-│ 0x040000 - 0x05FFFF        │ 5MPM (128KB)
-│   - Process Descriptors    │ ← Shared with ND-500
-│   - Message Buffers        │
-│   - XMSG Kernel            │
-│   - Communication Area     │
-├─────────────────────────────┤
-│ 0x060000+                  │ Additional RAM
-└─────────────────────────────┘
-```
+There is no "5MPM allocated from ND-100 RAM at 0x040000". The mailbox/message area
+lives in ND-100-addressable physical memory (SINTRAN RESIDENT); its bank is derived
+at startup from 5FPMAILBOX (`AD SH 12 -> 5MBBANK`, RP-P2-N500.NPL:737). **XMSINIT**
+(RP-P2-N500.NPL:732-859) zeroes the area and builds: the per-CPU shared extension
+datafields (X500DF), one message buffer per ND-500 process (process descriptor
+field MESSBUFF points at it), the histogram message (HIMESS), the watchdog message
+(WATCHDOG) and the swap-wait FIFO. On multiport systems the same physical RAM is
+visible to the ND-500 through the MPM port modules with BASE-register translation
+(master reference section 8.4).
 
-**5MPM Structure:**
+### 2.3 ND-500 CPU startup (verified summary)
 
-```
-5MPM Memory Layout (in shared physical RAM):
-
-┌─────────────────────────────┐ 5MPM Base (S500S)
-│ Process Descriptor 0        │ ← 5PRDSIZE words each
-│   XADPROC (self-pointer)    │
-│   MESSBUFF (message buffer) │
-│   STATUS (process status)   │
-├─────────────────────────────┤
-│ Process Descriptor 1        │
-├─────────────────────────────┤
-│ Process Descriptor 2-N      │
-├─────────────────────────────┤ (S500E)
-│ Message Buffer Pool         │ ← Each 55MESSIZE words
-├─────────────────────────────┤
-│ XMSG Kernel Code            │ ← Communication subsystem
-├─────────────────────────────┤
-│ Shared Data Area            │
-└─────────────────────────────┘ 5MPM End
-```
-
-### 2.3 ND-500 CPU Startup
-
-**Automatic Initialization Sequence:**
-
-After SINTRAN boot detects the ND-500 via `DETECTND500` (see section 2.1), the following happens automatically:
-
-1. **Hardware Detection** (Already completed during boot)
-   - `DETECTND500` NPL routine checks for 5015 Control Board on 3022 bus
-   - Verifies ND-500 responds to control signals
-   - Sets `ND500PRESENT` flag if successful
-   - No user command needed - this is automatic
-
-2. **Memory Mapping**
-   - ND-100 allocates physical 5MPM region
-   - ND-500 maps same physical memory to its address space
-   - Both CPUs can access 5MPM simultaneously
-   - Performed by `INIT5MPM` routine during boot
-
-3. **Process Table Initialization**
-   - Create process descriptor slots (typically 8-16 slots)
-   - Allocate message buffers for inter-CPU communication
-   - Initialize TAG-IN/TAG-OUT signaling registers
-   - Performed by `INIT5PROCS` routine during boot
-
-4. **Ready State**
-   - ND-500 waits for first domain to be placed
-   - Monitor kernel ready to handle ND-500 requests
-   - User can now use PLACE-DOMAIN, RECOVER-DOMAIN commands
+1. **Microcode load** - the control store (144-bit words, 9 x 16-bit parts) is
+   loaded from the ND-100 through the 3022/5015 WA/BREAK/CSCNT path; at the
+   operator level this is the ND-500 Monitor's LOAD-CONTROL-STORE, reloaded
+   automatically on warm start (master reference section 8.2).
+2. **Mailbox initialization** - XMSINIT as above.
+3. **Swapper start** - ND-500 process #0 is the swapper process, served by the
+   ND-100 RT-program 5SWAP/5SWRT (master reference section 12).
+4. **Ready state** - the ND-500 microcode sits in its IDLE loop; "nothing but an
+   activate or a terminate from the ND-100 can cause the micro program to leave
+   the IDLE loop" (ND-05.012.01 section 13). Users can now PLACE-DOMAIN /
+   RECOVER-DOMAIN (sections 3-7 below).
 
 ---
 
