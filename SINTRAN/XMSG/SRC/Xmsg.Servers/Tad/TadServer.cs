@@ -96,22 +96,20 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         // 01 02 0000 (param 1 = 0) and 02 02 000A (param 2 = 0x000A).
         private static readonly byte[] AcceptTrailer = { 0x01, 0x02, 0x00, 0x00, 0x02, 0x02, 0x00, 0x0A };
 
-        // The command registry: the single source of truth the "help" command lists. Numbered aliases
-        // (1..4) dispatch through the terminal menu; the rest are handled directly in HandleCommand.
+        // The command registry: the single source of truth the "help" command lists. Descriptions are terse
+        // and 1..4 are grouped so the whole listing fits ONE < 255-byte terminal frame - multi-chunk
+        // terminal output is not rendered by 100 (it displays only the final chunk), so every command reply
+        // must stay under one buffer. Numbered aliases (1..4) dispatch through the terminal menu; the rest
+        // are handled directly in HandleCommand.
         private static readonly CommandDoc[] CommandRegistry =
         {
-            new CommandDoc("1 / time", "show the current time"),
-            new CommandDoc("2 / date", "show the current date"),
-            new CommandDoc("3 / echo", "3-frame echo diagnostic"),
-            new CommandDoc("4", "disconnect (immediate)"),
-            new CommandDoc("stat", "session / terminal info"),
-            new CommandDoc("who", "list logged-in users"),
-            new CommandDoc("tell <ttyN|user> <text>", "message one user"),
-            new CommandDoc("wall <text>", "broadcast to all users"),
-            new CommandDoc("list servers", "registered XROUT servers"),
-            new CommandDoc("list service", "known XROUT services"),
-            new CommandDoc("list route", "routing table"),
-            new CommandDoc("help", "show this command list"),
+            new CommandDoc("1-4", "time / date / echo / disc"),
+            new CommandDoc("stat", "session info"),
+            new CommandDoc("who", "list users"),
+            new CommandDoc("tell N txt", "message a user"),
+            new CommandDoc("wall txt", "broadcast"),
+            new CommandDoc("list", "servers | service | route"),
+            new CommandDoc("help", "this list"),
         };
 
         /// <summary>
@@ -958,11 +956,11 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <returns>The help text (ending with the prompt).</returns>
         private static string BuildHelpReport()
         {
-            StringBuilder sb = new StringBuilder(512);
+            StringBuilder sb = new StringBuilder(256);
             sb.Append("\r\n----- COMMANDS -----\r\n");
             for (int i = 0; i < CommandRegistry.Length; i++)
             {
-                sb.Append("  ").Append(CommandRegistry[i].Name.PadRight(22))
+                sb.Append("  ").Append(CommandRegistry[i].Name.PadRight(12))
                   .Append(CommandRegistry[i].Description).Append("\r\n");
             }
 
@@ -1028,23 +1026,32 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <returns>The report text (ending with the prompt).</returns>
         private static string BuildServiceList()
         {
+            // Compact mnemonic=code tokens, wrapped, TRUNCATED to fit one < 255-byte frame (the full XROUT
+            // table is ~30 verbs; 100 renders only the last chunk of a multi-frame reply, so a long list
+            // cannot be shown across frames). "help" points to this as a summary.
             IReadOnlyList<XmsgServiceInfo> services = XmsgKnownServices.All();
-            StringBuilder sb = new StringBuilder(640);
-            sb.Append("\r\n----- SERVICES -----\r\n");
+            StringBuilder sb = new StringBuilder(256);
+            sb.Append("\r\n----- XROUT SERVICES -----\r\n");
+            const int Budget = 230;   // leave room for the "...\r\n# " terminator under 255
+            int onLine = 0;
             for (int i = 0; i < services.Count; i++)
             {
-                XmsgServiceInfo svc = services[i];
-                sb.Append("  ").Append(svc.Mnemonic.PadRight(8))
-                  .Append("0x").Append(svc.ServiceByte.ToString("X2"));
-                if (svc.Description.Length != 0)
+                string token = services[i].Mnemonic + "=" + services[i].ServiceByte.ToString("X2") + "  ";
+                if (sb.Length + token.Length > Budget)
                 {
-                    sb.Append("  ").Append(svc.Description);
+                    sb.Append("...");
+                    break;
                 }
 
-                sb.Append("\r\n");
+                sb.Append(token);
+                if (++onLine == 4)
+                {
+                    sb.Append("\r\n");
+                    onLine = 0;
+                }
             }
 
-            sb.Append("# ");
+            sb.Append("\r\n# ");
             return sb.ToString();
         }
 

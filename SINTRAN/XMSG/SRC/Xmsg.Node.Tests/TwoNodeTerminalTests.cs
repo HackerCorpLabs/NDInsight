@@ -506,7 +506,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
-        /// "list service" lists the known XROUT services (XSLET, XSGSY, ...) from the code table.
+        /// "list service" lists the known XROUT services (XSLET, ...) from the code table.
         /// </summary>
         [Fact]
         public void ServerHost_ListService_ListsXroutServices()
@@ -514,6 +514,30 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             string screen = RunLoggedInCommand("list service");
             Assert.Contains("SERVICES", screen);
             Assert.Contains("XSLET", screen);
+        }
+
+        /// <summary>
+        /// help and list service MUST each fit one &lt; 255-byte terminal frame - 100 renders only the final
+        /// chunk of a multi-frame reply, so a long listing would show only its tail. Guards that regression.
+        /// </summary>
+        [Theory]
+        [InlineData("help")]
+        [InlineData("list service")]
+        public void ServerHost_IntrospectionCommand_IsSingleFrame(string command)
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));
+            terminal.Clear();
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput(command)));
+
+            IReadOnlyList<TadFrameShape> frames = terminal.TadFrames;
+            Assert.Single(frames);   // exactly one frame - 100 will render it whole
+            Assert.True(frames[0].BdatBytes < 255, $"'{command}' reply is {frames[0].BdatBytes} bytes; must fit one buffer");
+            Assert.True(frames[0].HasRfi, "the single frame must carry the RFI");
         }
 
         /// <summary>
