@@ -178,7 +178,77 @@ version table in section 1.2).
 - Symbol tables: `../NPL-SOURCE/SYMBOLS/L07/` (match the L-release exactly).
 - The verified NPL driver sources in `../NPL-SOURCE/NPL/` for the resident side.
 
-## 6. Expected deliverables
+## 6. Additional guidance (hard-won, read carefully)
+
+### 6.1 Poisoned priors - sources you must NOT trust
+
+- `../Emulator/ND500-QUICK-REFERENCE.md`, `../Emulator/DETAILED-TAG-MECHANISM-EXPLANATION.md`
+  and the C# emulator `NDBusND500IF.cs` (RetroCore repo) all implement a FABRICATED
+  "high-level TAG code" protocol (codes 8/9/16 = MonitorCall/PageFault/
+  OperationComplete). It does not exist in hardware or in SINTRAN (spec section
+  10.3, dossier C6). If your model has seen these files, actively distrust that
+  prior. The retired docs in `old/` are wrong in documented ways (`old/README.md`).
+- The OCR'd manuals corrupt register mnemonics (RTAG -> "RFAG/RMAG", LCON ->
+  "LOCN/ICON", DIEN -> "DlEN"). Trust POSITIONS and octal values over names;
+  ND-30.013.02 is the cleaner copy of the section-3 text that NEC-01 duplicates.
+
+### 6.2 Dynamic-analysis shortcut for Q2 (recommended - do this FIRST)
+
+You do not need working ND-500 emulation to recover the message constants.
+SINTRAN's presence test (CH5CPUPRESENT, spec section 8.1) only requires that an
+IOX read of RSTA5 does not bus-fault - the EXISTING RetroCore 3022 device stub
+satisfies that. Therefore:
+
+1. Boot the SINTRAN L system in RetroCore with the 3022 device configured
+   (thumbwheel 0, IOX base 60).
+2. SINTRAN flags the CPU OLD500 + 5ALIVE and runs XMSINIT, which WRITES the real
+   constants into the mailbox area: the histogram message HIMESS gets MICFU :=
+   3RPREG, the watchdog message WATCHDOG gets SENDE := -1 and MICFU := 3RMICV
+   (RP-P2-N500.NPL:801-822), and watchdog restarts write N5STA := MSGN500
+   (MP-P2-N500.NPL:308).
+3. Locate the mailbox bank (5MBBANK, derived from 5FPMAILBOX - or find the
+   WATCHDOG message by its unique SENDE = -1 anchor at offset 3) and dump the
+   area with the DAP/MCP debugger.
+4. Read the numeric values of 3RPREG, 3RMICV, MSGN500 (and DUMMESS from the queue)
+   directly from memory. Field offsets to decode a message: dossier 2.6.2
+   (LINK=0, LINK2=1, N5STA=2, SENDE=3, X5CPU=4, X5ACT=5, MICFU=6, ...).
+5. Cross-validate every value found this way against the static disassembly of
+   ND-500-MON-J:PROG (Q2) - two independent sources per constant is the bar.
+
+CAUTION: consider timing - XMSINIT runs during startup; take the memory dump after
+the system reaches idle. If detection does NOT flag the CPU present, check the
+stub answers IOX base+2 (RSTA5) without error; the trap test is armed via
+IIE bit 200.
+
+### 6.3 Static-analysis tips for ND-500-MON-J:PROG
+
+- Anchor the disassembly on COMMAND STRINGS first: the Background Monitor contains
+  its command names (e.g. "PLACE-DOMAIN", "RESTART-PROCESS" - reintroduced in L,
+  release doc line 2766, and the commands listed in ND-60.136.04A). String tables
+  lead to dispatch tables lead to handlers.
+- Map MON instructions to the SINTRAN monitor-call numbers using
+  `../../Reference-Manuals/ND-860228-2-EN SINTRAN III Monitor Calls.md`; the
+  ND-500-specific calls are in the 500B-523B range (see
+  [ND500-MONITOR-CALL-MECHANISM.md](ND500-MONITOR-CALL-MECHANISM.md)).
+- The message status word carries FLAGS in the high bits: the driver preserves
+  them with `A/\160000\/MSGN500` (MP:992). Expect the status CODES to be small
+  integers in the low bits, and remember "status > 100" has its own meaning
+  (restart) in CHN5STATUS.
+- Byte order: ND-100 files are 16-bit word streams; the ND-500 is big-endian and
+  byte-addressed. When carving :PSEG bytes out of a container, verify pairing
+  against a known instruction sequence before trusting any decode.
+
+### 6.4 Contradiction protocol
+
+If you find ANYTHING that contradicts
+[ND500-BUS-INTERFACE-REFERENCE.md](ND500-BUS-INTERFACE-REFERENCE.md) - for
+example TAG-register IOX access from the background monitor, or status values
+that do not match the manual's 0-4 scheme - do not reconcile silently and do not
+assume you misread. Report it as a dedicated finding with both sides quoted
+(your disassembly evidence vs the spec section). The spec was validated against
+NPL and manuals, but shipped binaries outrank derived documents.
+
+## 7. Expected deliverables
 
 1. `ND500-L-PACKAGE-CONTENTS.md` - the 211305 floppy inventory (Q1).
 2. `ND500-MON-RE-FINDINGS.md` - constants and monitor-call interface (Q2, Q3, Q6),
