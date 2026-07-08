@@ -31,6 +31,13 @@ Documentation of the physical bus signals for the ND-100/ND-110/ND-120 shared ba
 
 - [Olimex-rp2350/](Olimex-rp2350/) - Olimex RP2350-PICO2-BB48R datasheets and pinout reference
 
+- [Backplane-Kicad/](Backplane-Kicad/README.md) - Third-party backplane KiCad reference design
+  (RetroBrew Computers "ECB Backplane-4" project, zip + extracted; same DIN 41612 connector
+  family as the ND-100 bus)
+
+- [ND-Compact-Backwiring/](ND-Compact-Backwiring/README.md) - Photos of an ND Compact backplane
+  board (ND print 324409), connector side and solder/backwiring side (PL1..PL12)
+
 ## Source Data
 
 Signal data extracted from: `ND-120 Commands.xlsx` (sheets: C-BUS, C-PLUG (ND-BUS), Signal Names)

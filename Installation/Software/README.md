@@ -44,10 +44,13 @@ reference. These are *document* subject codes, applied here per product as an ap
 - [`INSTALL-METHODOLOGY.md`](INSTALL-METHODOLOGY.md) — the **generic reusable install process**
   (copy typed files → NRL load+dump → version-branched re-entrant dump → boot-mode hooks), with a
   verbatim worked example (ND-100 Pascal J).
-- [`_templates/PRODUCT-TEMPLATE.md`](_templates/PRODUCT-TEMPLATE.md) — per-product overview
-- [`_templates/VERSION-TEMPLATE.md`](_templates/VERSION-TEMPLATE.md) — per-version install doc
-  (maps onto the ND 4-part release package; handles missing PD/PI sheets — falls back to floppy
-  MODE files / loading notes / observation)
+- [`_templates/`](_templates/README.md) - the documentation templates:
+  - [`_templates/PRODUCT-TEMPLATE.md`](_templates/PRODUCT-TEMPLATE.md) — per-product overview
+  - [`_templates/VERSION-TEMPLATE.md`](_templates/VERSION-TEMPLATE.md) — per-version install doc
+    (maps onto the ND 4-part release package; handles missing PD/PI sheets — falls back to floppy
+    MODE files / loading notes / observation)
+- [`research/`](research/README.md) - temporary working notes (the NDDOC archive inventory backing
+  the doc-category tags above)
 
 > **Note:** PD-sheets (Program Description) and PI-sheets (Product Information) are **missing
 > for many products**. The version template does not depend on them; it tags install steps by

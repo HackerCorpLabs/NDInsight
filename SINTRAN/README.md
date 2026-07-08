@@ -23,14 +23,16 @@ SINTRAN III was a sophisticated real-time operating system providing:
 
 | Folder | Contents | Files |
 |--------|----------|-------|
-| [Devices/](Devices/) | Hardware device documentation (HDLC, SCSI) | 95+ files |
+| [Devices/](Devices/) | Hardware device documentation (HDLC, SCSI, SMD, Octobus, bus signals) | 95+ files |
 | [Emulator/](Emulator/) | C# emulator implementation guides | 5 files |
+| [File-Formats/](File-Formats/README.md) | ND file formats: BRF (relocatable object) and `:PROG` (executable) | 4 files |
 | [ND500/](ND500/) | ND-500 processor documentation | TBD |
 | [NPL-SOURCE/](NPL-SOURCE/) | **SINTRAN III NPL source code & symbols** | **45 NPL + 7 symbol files** |
 | [OS/](OS/) | Core operating system architecture (00-19) | 34 files |
 | [Release-Documentation/](Release-Documentation/) | SINTRAN III release information (versions J-N) | 7 files |
 | [SINTRAN Structures/](SINTRAN%20Structures/) | System structures and data analysis | 6 files |
 | [TAD/](TAD/) | TAD protocol analysis | 7 files |
+| [XMSG/](XMSG/README.md) | XMSG message system: wire protocol, MON 200B API, C# library, COSMOS RE | 40+ files |
 
 ---
 
@@ -59,7 +61,7 @@ SINTRAN III was a sophisticated real-time operating system providing:
 ### Hardware Specifics
 
 **HDLC communication:**
-- [Devices/HDLC/01-HDLC-Hardware-Reference.md](Devices/HDLC/01-HDLC-Hardware-Reference.md)
+- [Devices/HDLC/learning/03-Hardware-Overview.md](Devices/HDLC/learning/03-Hardware-Overview.md)
 - [Devices/HDLC/Quick-Reference-Card.md](Devices/HDLC/Quick-Reference-Card.md)
 
 **SCSI disk controllers:**

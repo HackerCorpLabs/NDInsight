@@ -39,6 +39,12 @@ invention.
 | [SINTRAN-DOMAIN-SETUP-DEEP-DIVE.md](SINTRAN-DOMAIN-SETUP-DEEP-DIVE.md) | Domain / process-descriptor / segment-capability walkthrough |
 | [ND500-INITIALIZATION-AND-EXECUTION-GUIDE.md](ND500-INITIALIZATION-AND-EXECUTION-GUIDE.md) | Operator guide: domains, PLACE-DOMAIN, PSEG/DSEG (section 2 rewritten 2026-07-08) |
 
+## Binary artifacts
+
+| Folder | Contents |
+|--------|----------|
+| [swapper/](swapper/README.md) | The ND-500 swapper binary itself (SWAPPER-K01 PSEG/DSEG), its disassembly, the resident monitor symbol table (N500-SYMBOLS.SYMB, 7157 symbols), and the RE analysis |
+
 ## Tier 3 - Raw NPL source analyses
 
 Line-referenced analyses of the driver modules; foundational input for the deep

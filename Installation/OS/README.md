@@ -43,6 +43,18 @@ verification reference.
 
 ---
 
+## Subfolders
+
+| Folder | Contents |
+|--------|----------|
+| [versions/](versions/README.md) | Per-version install notes (H, K, K05, L, M) - see also the table below |
+| [floppy-contents/](floppy-contents/README.md) | Golden-disk and distribution-floppy content dumps (the verification reference) |
+| [mode-files/](mode-files/README.md) | Ready-to-use, tailored mode files (HENT-MODE, LOAD-MODE, XMSG-START, DUMP-REENTRANT) |
+| [SUBSYSTEM/](SUBSYSTEM/README.md) | Subsystem Package II (ND-210400) library-diskette documents |
+| [research/](research/README.md) | Temporary working research notes (HDD image findings) |
+
+---
+
 ## Per-version guides
 
 Notes below are **verified facts only** (transcribed from the distribution archives). Blank = not yet verified.

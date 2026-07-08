@@ -9,7 +9,7 @@ implementation, and the superseded notes it was distilled from.
 
 | Path | Contents |
 |------|----------|
-| **[DOC/](DOC/)** | The documentation set (below) |
+| **[DOC/](DOC/README.md)** | The documentation set - core specs (below) plus the LAPB/TAD work, the COSMOS application RE, and the dated investigation log; see [DOC/README.md](DOC/README.md) for the full index |
 | **[SRC/](SRC/)** | C# protocol library + xUnit tests + the enum generator — see [SRC/README.md](SRC/README.md) |
 | **[OLD/](OLD/)** | Superseded / historical notes, kept for provenance only ([OLD/README.md](OLD/README.md)) |
 | `XMSG-PL-VALUES-M.INCL` | The **official ND include file** (PLANC `CONSTANT`s) — XMSG version M, 1988-08-18. The source of truth for all numeric values. |
@@ -23,6 +23,10 @@ implementation, and the superseded notes it was distilled from.
 | [DOC/XMSG-PROTOCOL.md](DOC/XMSG-PROTOCOL.md) | **Wire format** — HDLC framing, LAPB, the 13-byte SINTRAN header, packet subtypes (incl. the `0x03` ACK), the XMSG sub-header, and the ROUTING/TAD/DC/PAD sub-protocols. What the bytes on the line mean. |
 | [DOC/XMSG-API.md](DOC/XMSG-API.md) | **Programming / API** — the MON 200B calling convention, T-register option bits, the XROUT "letter" / standard-message format, magic numbers / ports / names, secure-message semantics, and the **complete constant catalog**. |
 | [DOC/XMSG-COMMAND-REFERENCE.md](DOC/XMSG-COMMAND-REFERENCE.md) | **Operator utility** — the `XMSG-COMMAND` program (network management commands, tracing, dumps). |
+| [DOC/COSMOS-RE/](DOC/COSMOS-RE/README.md) | **COSMOS application RE** - four COSMOS ND-100 programs (CONNECT-TO, FA server, File Transfer, XFTRA) decoded in Ghidra: how applications actually use MON 200B, with C# reconstructions. |
+
+The full DOC index (LAPB requirements, TAD analyses, capture plans, and the dated
+question/answer investigation log) is in [DOC/README.md](DOC/README.md).
 
 The HDLC hardware / COM5025 / DMA layer *beneath* XMSG is documented separately in
 [../HDLC-Frame-Format-Reference.md](../Devices/HDLC/HDLC-Frame-Format-Reference.md).

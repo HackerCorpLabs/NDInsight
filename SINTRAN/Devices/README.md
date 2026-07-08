@@ -27,8 +27,10 @@ Both device drivers have **complete NPL source code** available in [../NPL-SOURC
 |-------------|-------------|-------|------|--------|
 | **[HDLC/](HDLC/)** | Communication | 30+ | ~350KB | ✅ Consolidated |
 | **[SCSI/](SCSI/)** | Storage | 10+ | ~125KB | ✅ Complete |
+| **[SMD/](SMD/README.md)** | Storage (SMD disk) | 1 | - | ✅ Complete |
 | **[LINE-PRINTER-CONFIG-INSPECTION.md](LINE-PRINTER-CONFIG-INSPECTION.md)** | Output (Printer) | 1 | ~15KB | ✅ Complete |
 | **[Octobus/](Octobus/)** | Inter-processor bus | 2 | - | ✅ Reference |
+| **[BusSignals/](BusSignals/README.md)** | ND-100 bus (physical) | 5+ | - | ✅ Reference |
 | **Total** | - | **40+** | **~490KB** | - |
 
 ---
@@ -44,17 +46,20 @@ Both device drivers have **complete NPL source code** available in [../NPL-SOURC
 
 Complete HDLC (High-Level Data Link Control) protocol implementation analysis. The hdlc-analysis directory was consolidated from 50+ scattered analysis files into 6 focused documents for better accessibility and maintainability.
 
-### 📚 Core Documentation (Consolidated Structure)
+### 📚 Core Documentation (Hierarchical Structure)
 
-| Document | Purpose | Content |
+| Location | Purpose | Content |
 |----------|---------|---------|
 | **[README.md](HDLC/README.md)** | Overview & Navigation | Quick start guide, document index, implementation checklist |
-| **[01-HDLC-Hardware-Reference.md](HDLC/01-HDLC-Hardware-Reference.md)** | Hardware Specifications | COM5025 chip, X.21 interface, IOX bus, constants |
-| **[02-HDLC-Register-Reference.md](HDLC/02-HDLC-Register-Reference.md)** | Register Map | Complete register map (HDEV+0 to +17), bit definitions |
-| **[03-HDLC-DMA-Operations.md](HDLC/03-HDLC-DMA-Operations.md)** | DMA Implementation | DMA descriptors, LKEY field structure, buffer management |
-| **[04-HDLC-Interrupt-Handlers.md](HDLC/04-HDLC-Interrupt-Handlers.md)** | Interrupt Processing | HIINT/HOINT handlers, state machines, timing |
-| **[05-HDLC-Protocol-Implementation.md](HDLC/05-HDLC-Protocol-Implementation.md)** | Protocol Layer | LAPB, X.25, PAD connections, pseudocode |
-| **[06-HDLC-Emulator-Guide.md](HDLC/06-HDLC-Emulator-Guide.md)** | **C# Implementation** | **Complete emulator implementation guide** ⭐ |
+| **[learning/](HDLC/learning/)** | Getting Started | 01-Getting-Started, 02-Understanding-Packets, 03-Hardware-Overview, 04-Software-Flow |
+| **[reference/](HDLC/reference/)** | Reference Material | [Register-Reference](HDLC/reference/Register-Reference.md), [DMA-Reference](HDLC/reference/DMA-Reference.md), [Interrupt-Reference](HDLC/reference/Interrupt-Reference.md), [Protocol-Reference](HDLC/reference/Protocol-Reference.md) |
+| **[deep-dives/](HDLC/deep-dives/)** | Deep Dives | COM5025 interface, interrupt control, PROCPKT, XSSDATA |
+| **[implementation/](HDLC/implementation/)** | **C# Implementation** | **[Emulator-Implementation-Guide](HDLC/implementation/Emulator-Implementation-Guide.md)** ⭐, Debugging-Guide, Testing-Scenarios |
+| **[appendices/](HDLC/appendices/)** | Appendices | Pseudocode, constants/variables, packet traces, bug history |
+| **[HDLC-Frame-Format-Reference.md](HDLC/HDLC-Frame-Format-Reference.md)** | Frame Format | On-the-wire HDLC frame format |
+| **[HDLC-Raw-Programming-Guide.md](HDLC/HDLC-Raw-Programming-Guide.md)** | Raw Programming | Programming the controller directly (+ [PDF](HDLC/HDLC-Raw-Programming-Guide.pdf)) |
+| **[ND-100 Pico PCB-Interface Reference.md](HDLC/ND-100%20Pico%20PCB-Interface%20Reference.md)** | Pico Interface | ND-100 Pico PCB interface reference |
+| **[WireShark/](HDLC/WireShark/)** | Dissector | `hdlc_tcp.lua` Wireshark dissector for the nd100x HDLC TCP bridge |
 
 📖 **[See HDLC/README.md for complete index](HDLC/README.md)**
 
@@ -73,18 +78,18 @@ Complete HDLC (High-Level Data Link Control) protocol implementation analysis. T
 
 | Finding | Impact | Document Reference |
 |---------|--------|-------------------|
-| **SILFO+TXUND Check** | Transmission success = `(RTTS & 0x8002) == 0` | 02-Register-Reference, 06-Emulator-Guide |
-| **Auto-Clear Bits** | DMA request bit (4) clears before read | 02-Register-Reference |
-| **X.21 Error Bits** | Bits 13-14 persistent, require WRTC clear | 01-Hardware-Reference, 02-Register-Reference |
-| **LKEY Structure** | Bits 7-0 = COM5025 control, 8-10 = block status | 03-DMA-Operations |
-| **FSERM Constant** | 0x1003 = single frame (TSOM+TEOM) | 01-Hardware-Reference, 03-DMA-Operations |
+| **SILFO+TXUND Check** | Transmission success = `(RTTS & 0x8002) == 0` | reference/Register-Reference, implementation/Emulator-Implementation-Guide |
+| **Auto-Clear Bits** | DMA request bit (4) clears before read | reference/Register-Reference |
+| **X.21 Error Bits** | Bits 13-14 persistent, require WRTC clear | reference/Register-Reference |
+| **LKEY Structure** | Bits 7-0 = COM5025 control, 8-10 = block status | reference/DMA-Reference |
+| **FSERM Constant** | 0x1003 = single frame (TSOM+TEOM) | reference/DMA-Reference |
 
 ### 📊 Consolidation Summary
 
 **Before:** 50+ scattered analysis files
-**After:** 6 comprehensive, well-organized documents
+**After:** a hierarchical structure (learning / reference / deep-dives / implementation / appendices)
 **Method:** Content analysis, deduplication, logical grouping
-**Preserved:** All original files in `HDLC/archive/to-delete/` subdirectory
+**Preserved:** Original files in the `HDLC/archive/` subdirectory
 
 ### Hardware Interface
 
@@ -126,17 +131,17 @@ X.21 Physical Interface
 
 **For Understanding HDLC:**
 1. [HDLC/README.md](HDLC/README.md) - Start here for overview
-2. [HDLC/01-HDLC-Hardware-Reference.md](HDLC/01-HDLC-Hardware-Reference.md) - Hardware basics
+2. [HDLC/learning/03-Hardware-Overview.md](HDLC/learning/03-Hardware-Overview.md) - Hardware basics
 3. [HDLC/Quick-Reference-Card.md](HDLC/Quick-Reference-Card.md) - Quick lookup
 
 **For Emulator Development:**
-1. [HDLC/06-HDLC-Emulator-Guide.md](HDLC/06-HDLC-Emulator-Guide.md) - C# implementation
-2. [HDLC/02-HDLC-Register-Reference.md](HDLC/02-HDLC-Register-Reference.md) - Register details
-3. [HDLC/04-HDLC-Interrupt-Handlers.md](HDLC/04-HDLC-Interrupt-Handlers.md) - Interrupt handling
+1. [HDLC/implementation/Emulator-Implementation-Guide.md](HDLC/implementation/Emulator-Implementation-Guide.md) - C# implementation
+2. [HDLC/reference/Register-Reference.md](HDLC/reference/Register-Reference.md) - Register details
+3. [HDLC/reference/Interrupt-Reference.md](HDLC/reference/Interrupt-Reference.md) - Interrupt handling
 
 **For Protocol Analysis:**
-1. [HDLC/05-HDLC-Protocol-Implementation.md](HDLC/05-HDLC-Protocol-Implementation.md) - Protocol layer
-2. [HDLC/03-HDLC-DMA-Operations.md](HDLC/03-HDLC-DMA-Operations.md) - DMA details
+1. [HDLC/reference/Protocol-Reference.md](HDLC/reference/Protocol-Reference.md) - Protocol layer
+2. [HDLC/reference/DMA-Reference.md](HDLC/reference/DMA-Reference.md) - DMA details
 3. [../TAD/](../TAD/) - Higher-level TAD protocol
 
 ---
@@ -418,10 +423,10 @@ Hardware Controller (COM5025, NCR 5386)
 
 ### HDLC Emulation Workflow
 
-1. **Read Hardware Specs** - [HDLC/01-HDLC-Hardware-Reference.md](HDLC/01-HDLC-Hardware-Reference.md)
-2. **Understand Registers** - [HDLC/02-HDLC-Register-Reference.md](HDLC/02-HDLC-Register-Reference.md)
-3. **Implement COM5025** - [HDLC/06-HDLC-Emulator-Guide.md](HDLC/06-HDLC-Emulator-Guide.md)
-4. **Add Interrupts** - [HDLC/04-HDLC-Interrupt-Handlers.md](HDLC/04-HDLC-Interrupt-Handlers.md)
+1. **Read Hardware Specs** - [HDLC/learning/03-Hardware-Overview.md](HDLC/learning/03-Hardware-Overview.md)
+2. **Understand Registers** - [HDLC/reference/Register-Reference.md](HDLC/reference/Register-Reference.md)
+3. **Implement COM5025** - [HDLC/implementation/Emulator-Implementation-Guide.md](HDLC/implementation/Emulator-Implementation-Guide.md)
+4. **Add Interrupts** - [HDLC/reference/Interrupt-Reference.md](HDLC/reference/Interrupt-Reference.md)
 5. **Test with TAD** - [../TAD/](../TAD/)
 
 **Critical:**
@@ -512,6 +517,24 @@ When adding new device documentation:
 **Status**: ✅ Complete with source code
 
 ---
+
+---
+
+## 💽 SMD Disk Controller
+
+**Location:** [SMD/](SMD/README.md)
+**Hardware:** ND-100 SMD (Storage Module Device) disk controller
+
+| Document | Description |
+|----------|-------------|
+| [SMD/SMD-CONTROLLER-PROGRAMMING-GUIDE.md](SMD/SMD-CONTROLLER-PROGRAMMING-GUIDE.md) | Complete register map, I/O sequences, and programming model (sources: nd100x emulator, `IP-P2-DISK-START.NPL`, SINTRAN boot trace analysis) |
+
+---
+
+## 🔩 ND-100 Bus Signals (physical layer)
+
+**Location:** [BusSignals/](BusSignals/README.md)
+**Scope:** the physical ND-100/ND-110/ND-120 backplane bus - C-connector pinout and signals, controller-card design, backplane reference material (KiCad project, backwiring photos)
 
 ---
 

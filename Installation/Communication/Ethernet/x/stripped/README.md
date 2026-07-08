@@ -5,10 +5,17 @@ Ethernet II Option, ND product 210580, version B01, dated 1987-02-27),
 extracted from the four `ENCOS-SER-Bn-B01:BPUN` distribution files in the
 parent folder (`..`). The BPUN files originate from the distribution floppy
 `210580B01-XX-01D` (see the PD sheet
-[ND-210580-02-EN.md](../ND-210580-02-EN.md)).
+[ND-210580-02-EN.md](../../ND-210580-02-EN.md)).
 
 Extraction performed 2026-07-07. All statements below are marked VERIFIED
 (checked against the actual bytes or official documentation) or ASSUMPTION.
+
+## Subfolders
+
+| Folder | Contents |
+|--------|----------|
+| [docs/](docs/README.md) | The 68000 firmware reverse-engineering documentation (complete reference, quick map, emulator correctness analysis, fix plan, session handoff) |
+| [protocode/](protocode/README.md) | C# behavioral model of the firmware (LANCE/MFP/mailbox/command dispatcher) |
 
 ---
 
@@ -136,7 +143,7 @@ initialization (interpretation, not verified).
 
 - **ND-100-side supervisor**: `ENCOS-ERR-0-B01:BRF` (in `..`), loaded on
   segment ENCOSE0 as RT program ENNS0. BRF symbols (decoded per
-  [BRF-FILE-FORMAT.md](../../../../SINTRAN/File-Formats/BRF-FILE-FORMAT.md)):
+  [BRF-FILE-FORMAT.md](../../../../../SINTRAN/File-Formats/BRF-FILE-FORMAT.md)):
   `ENNS0` (MAIN), `POSUERR`, `READPIO`, `SEGLOAD`, `UNLOAD`, `UEIEDIN`.
   The startup failure message "POSU Error during startup / Check if RTCOMMON
   is in interface memory / Error in communicating with XROUT" comes from this
@@ -149,4 +156,4 @@ initialization (interpretation, not verified).
   Reversing `SEGLOAD`/`READPIO` (ND-100 side) plus the reset code at 0x1CFE
   (68000 side) yields the mailbox protocol - the surface an emulated
   ND-110063 device must implement.
-- PD sheet / install doc: [ND-210580-02-EN.md](../ND-210580-02-EN.md)
+- PD sheet / install doc: [ND-210580-02-EN.md](../../ND-210580-02-EN.md)

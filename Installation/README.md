@@ -14,7 +14,9 @@ This branch is for *how to install*, as opposed to:
 | Area | Contents |
 |------|----------|
 | [OS/](OS/README.md) | Installing the SINTRAN III operating system on a fresh disk from distribution floppies |
+| [Communication/](Communication/README.md) | Installing the communication products (COSMOS Basic, Ethernet II, TCP/IP, X.21, X.25, Network Monitor): product sheets, floppy images, extracted files, verified install guides |
 | [Software/](Software/README.md) | Installing application software / subsystems on a running SINTRAN III system *(later phase)* |
+| [ND-NUMBERING-REFERENCE.md](ND-NUMBERING-REFERENCE.md) | How ND article and document numbers work (used throughout this branch) |
 
 ---
 

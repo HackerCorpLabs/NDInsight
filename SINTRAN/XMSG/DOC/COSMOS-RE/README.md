@@ -12,9 +12,9 @@ The work was produced by two parallel sessions and merged here:
 
 | Folder | Contents | Put here |
 |--------|----------|----------|
-| **`ProtoCode/`** | Behavioural **C#** reconstructions — readable "what the code does", *not* runnable ND-100 emulators. Compile clean on net8.0. | new `.cs` |
-| **`Analysis/`** | Per-program analysis docs + the cross-program synthesis. The authoritative write-ups. | new analysis `.md` |
-| **`Planning/`** | Coordination, corrections, and the capture-validation plan. Process — not findings. | briefs, validation plans, inter-session notes |
+| **[`ProtoCode/`](ProtoCode/README.md)** | Behavioural **C#** reconstructions — readable "what the code does", *not* runnable ND-100 emulators. Compile clean on net8.0. | new `.cs` |
+| **[`Analysis/`](Analysis/README.md)** | Per-program analysis docs + the cross-program synthesis. The authoritative write-ups. | new analysis `.md` |
+| **[`Planning/`](Planning/README.md)** | Coordination, corrections, and the capture-validation plan. Process — not findings. | briefs, validation plans, inter-session notes |
 
 ### `ProtoCode/`
 | File | Program |
