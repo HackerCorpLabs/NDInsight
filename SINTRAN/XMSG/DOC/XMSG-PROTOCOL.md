@@ -4,6 +4,40 @@
 by SINTRAN III / COSMOS / NORD-NET to carry inter-node messages (routing, terminal
 / TAD, PAD, file transfer, mail) over an HDLC serial link.
 
+## What this document is — and how it relates to the TAD message formats
+
+XMSG is the **transport**: this document specifies everything needed to get ANY
+payload from one node's port to another's, byte-correct — HDLC framing and FCS, the
+ND LAPB dialect (including the odd-length address bit), the 13-byte SINTRAN header,
+the datagram-sequence/Counter/channel **envelope** (the seed model, §18.5), secure
+ACKs (§6), reachability and restart/resync (§5.1), relaying (§18.8 S11), and the
+port-0 **server/service dispatch** (§7 terminology, §18.8 S10). It is deliberately
+payload-agnostic: the same rules carry TAD today and `*XM-FIDO` or a user
+application's letters tomorrow.
+
+What the payloads MEAN is the next layer up. For the terminal protocol — the TAD
+opcode catalog, the login ladder, echo control, and the complete `connect-to` session
+with build recipes for client and server — see
+**[TAD-Message-Formats.md](../../TAD/TAD-Message-Formats.md)**. Rule of thumb: *this
+document tells you how to build and validate a frame; the TAD document tells you what
+to put in it and when, for a terminal session.* An implementer needs both.
+
+## Table of contents
+
+| § | Content |
+|---|---|
+| 1–2 | Layer model · HDLC framing (flags, stuffing, FCS-16 + test vector) |
+| 3 | ND LAPB dialect: 3.1 addresses (incl. the `0x80` odd-length bit) · 3.2 control bytes · 3.3 node-id info field · 3.4 balanced setup · 3.5 sequencing/REJ/T1 · 3.6 ND deviations + the 16-bit node number · 3.7 → [LAPB-REQUIREMENTS.md](LAPB-REQUIREMENTS.md) |
+| 4 | SINTRAN header: 4.1 subtypes (Data/Ack/Reach/Error) · 4.1.1 XENSE/XEIMA rejects · 4.2 Flags1 sequence, persistence, behind/ahead · 4.3 Protocol ID = derived channel |
+| 5 | Data frames + XMSG sub-header · 5.1 reachability incl. the RESYNC form · 5.2 role byte |
+| 6 | **Secure ACK** — the stateless closed form (`S_ack = seed + 0x0B`), wrap, `0x0002` class |
+| 7 | Addressing: ports, magic numbers, **SERVER vs SERVICE terminology + node architecture drawing** |
+| 8–12 | XF\* function codes · sub-protocol trailers (9.1 XSGSY/routing, 9.2 TAD, 9.4 PAD) · XM5 header · XR\*/XE\* status codes · driver mapping |
+| 13–17 | Consolidation corrections · open questions · constants · reproduction · implementation checklist |
+| 18 | **The envelope model and scenarios**: 18.4 role/frameFlags decode · 18.5 seed formula · 18.7 accept/port-assign anatomy · 18.8 worked scenarios **S1–S11** (fresh start, continuation, mirror trap, epochs, measured connect/accept table, restart resync, reconnect, reboot, ACK wrap, port-0 dispatch + name census, relay) |
+
+---
+
 This document supersedes and merges three earlier notes — the peer protocol
 spec, its pcap validation, and the NPL-symbol analysis — plus the format content
 that used to live in the Wireshark dissector README. Those are archived under [OLD/](../OLD/).
@@ -26,10 +60,14 @@ captures  >  the Wireshark dissector (a reverse-engineering artifact)  >  the ND
 symbol tables  >  the peer's prose spec. Section 13 records exactly what this
 rule changed.
 
-**Evidence base:** 13 `.pcapng` captures held in the separate sibling
+**Evidence base:** 14 `.pcapng` captures held in the separate sibling
 **X25Emulator** repository (its `pcap/` directory) — nodes 100/102/103, several
 relayed 103↔102 via 100; 6379 raw de-framed frames, of which **1947 passed FCS**
-and form the statistics cited below.
+and form the statistics cited below, PLUS the 2026-07-05 **reboot capture**
+`multiple-connect-100-to102-and-then-reboot-and connect-again.pcapng` (379
+FCS-valid frames: fresh link, two consecutive connect-to sessions, a 102 reboot
+with the resync exchange, a third session, and 102 acting as CLIENT toward 100 —
+the source for §5.1's resync form and §18.8 S7/S8).
 
 **Related documents (kept separate by scope):**
 - [LAPB-REQUIREMENTS.md](LAPB-REQUIREMENTS.md) — the **normative acceptance spec**
@@ -54,17 +92,17 @@ and form the statistics cited below.
 
 ```
  ┌──────────────────────────────────────────────────────────────────┐
- │ HDLC frame      7E | byte-stuffed( LAPB frame | FCS ) | 7E         │  sec 2
- │   LAPB frame    address | control | information                   │  sec 3
- │     information ┌────────────────────────────────────────────┐    │
- │                 │ SINTRAN header (13 bytes)                   │    │  sec 4
- │                 │   Markers, Packet Type, Subtype, Dest/Src,  │    │
- │                 │   Flags1, Flags2, Protocol ID               │    │
- │                 ├────────────────────────────────────────────┤    │
- │                 │ Sub-protocol payload                        │    │  sec 7-9
- │                 │   ROUTING / TAD / DC / DB / PAD              │    │
- │                 │   (XMSG sub-header + user data)             │    │
- │                 └────────────────────────────────────────────┘    │
+ │ HDLC frame      7E | byte-stuffed( LAPB frame | FCS ) | 7E       │  sec 2
+ │   LAPB frame    address | control | information                  │  sec 3
+ │     information ┌─────────────────────────────────────────────┐  │
+ │                 │ SINTRAN header (13 bytes)                   │  │  sec 4
+ │                 │   Markers, Packet Type, Subtype, Dest/Src,  │  │
+ │                 │   Flags1, Flags2, Protocol ID               │  │
+ │                 ├─────────────────────────────────────────────┤  │
+ │                 │ Sub-protocol payload                        │  │  sec 7-9
+ │                 │   ROUTING / TAD / DC / DB / PAD             │  │
+ │                 │   (XMSG sub-header + user data)             │  │
+ │                 └─────────────────────────────────────────────┘  │
  └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -130,6 +168,7 @@ After de-framing: `address(1) | control(1) | information(0..n)`.
 | `0x01` | link-establishment frames (SABM, UA) |
 | `0x09` | data-transfer frames (RR, I-frames) with EVEN info-field length |
 | `0x89` | I-frames with **ODD info-field length** (see below) |
+| `0x07` | observed on a few ACK-carrying I-frames (first of a back-to-back ack pair) — meaning UNKNOWN; tolerate on RX (§6) |
 
 > **Address bit `0x80` = odd-info-length marker [VERIFIED, all captures, 230+ data
 > frames, 0 counterexamples].** `0x89` appears on exactly the I-frames whose info field
@@ -315,16 +354,19 @@ Dest/Src are the relay nodes; the endpoints sit inside the payload. In relayed
 captures the *same* logical frame appears on two links with the per-link counter
 re-stamped by +1.
 
-> **Relay is transparent at the destination link — [VERIFIED from
-> `conn-to-102-from103-via100.pcapng`].** When node 103 connects to node 102
-> *through* relay node 100, the frames arriving on the **102-facing link** are
-> **normal `0x13` frames**, and their SINTRAN header carries the **logical
-> originator** as the source: `Dest 102 (0x0066) / Src 103 (0x0067)` — *not*
-> `0x12` relay frames with 100 in the header. The physical relay node 100 appears
-> **only at the LAPB layer** (its node number `0x0064` in the SABM/UA/RR info
-> field of section 3.3); it never appears in the SINTRAN header or the XMSG
-> sub-header endpoints on this segment. Concretely, two node identities coexist
-> per link:
+> **Relay marking — CORRECTED 2026-07-06 [VERIFIED from
+> `conn-to-102-from103-via100.md` L545/L547, L1041/L1045, L1327/L1333].** When
+> node 103 connects to node 102 *through* relay node 100, each logical frame
+> traverses BOTH links: the **originator's hop carries marker `0x13`**, and the
+> **relay's forwarded hop (toward the destination) carries marker `0x12`** with
+> the sub-header Counter re-stamped **+1** — everything else (SINTRAN endpoints
+> `Dest 102 / Src 103`, Flags1, ports, XMCSM, payload) byte-identical. (An earlier
+> revision claimed the destination-facing link carried `0x13`; the port-mapped
+> dump proves the opposite — e.g. the connect letter is `21 13 …` on the 103↔100
+> hop and `21 12 …` with Counter `0x0D→0x0E` on the 100→102 hop.) The relay node
+> 100 itself appears **only at the LAPB layer** (its node number in the SABM/UA/RR
+> info field of section 3.3); it never appears in the SINTRAN header or the XMSG
+> sub-header endpoints. Concretely, two node identities coexist per link:
 >
 > | Layer | Field | Whose node number | 103-via-100 shows |
 > |-------|-------|-------------------|-------------------|
@@ -414,6 +456,16 @@ appears to encode a per-sub-protocol class rather than a raw length.
 symbol `XMSEQ`): it increments per data message on a direction, is `0xFFFF` on
 broadcast/reachability frames, and is **echoed verbatim by the ACK** (Section 6).
 
+**Continuity across sessions [VERIFIED, reboot capture 2026-07-05]:** the
+per-direction Flags1 is ONE counter for the LINK, not per session or per role. In
+`multiple-connect-…pcapng`, node 100 runs `0x0000 → 0x0028` continuously across a
+list-route exchange, TWO complete connect-to sessions (logins, teardowns, DCONs)
+and the next connect; node 102 likewise — and when 102 later switches to the
+CLIENT role, its connect letters continue the same counter it used as host. A
+reconnect after DCON arrives at simply `last + 1` (session-2 connect `0x0016`
+directly after DCON `0x0015`), and the responder's accept is ITS own `last + 1`
+(`0x0017`) — both sides at epoch 1 on `D9`, working perfectly.
+
 **Persistence and out-of-sequence behaviour [VERIFIED live]:**
 - The receiver's expected-next-Flags1 (kernel `XSRSQ`, one per remote system per
   direction) **persists across the sender's process/link restarts** — it resets
@@ -427,6 +479,13 @@ broadcast/reachability frames, and is **echoed verbatim by the ACK** (Section 6)
   **`XENSE`** reject (Section 4.1.1) that echoes the offending Flags1. This
   asymmetry makes a deliberate ahead-jump a safe resync probe after a restart
   when persisted state is lost.
+- **Exception — no pair state at all (fresh boot):** a node that receives a data
+  frame for a pair it has NO state for answers with the **resync
+  ReachabilityRequest** (echoing the frame's Flags1, §5.1), which zeroes both
+  directions and makes the peer REPLAY the datagram from `0x0000`
+  [VERIFIED, reboot capture]. XENSE appears to be the established-state mismatch
+  path; the reachability resync is the no-state path [INFERRED split — both
+  behaviours individually verified].
 
 ### 4.3 Protocol ID (offset 12)  [VERIFIED — derived channel; see Section 18.5]
 
@@ -517,14 +576,43 @@ The reply swaps Dest/Src Node; `Flags 1 = 0xFFFF` (broadcast marker),
 `Flags 2 = 0x0001`, Protocol ID `0xDE` (ROUTING), followed by the per-direction
 counter byte.
 
-**Restart-signal semantics [VERIFIED live]:** a received ReachabilityRequest is
-more than a liveness probe — it is the sender's **XMSG-restart announcement**.
-After it, the sender's datagram sequences for this pair are zeroed, and the
-receiver must reset its stored expected/outgoing Flags1 for that node to
-`0x0000` (§4.2). In every capture, `Flags1 = 0x0000` data streams begin only
-immediately after a reachability exchange on that link. A bare LAPB/HDLC link
-restart (SABM) does **not** carry this meaning and does not reset datagram
-sequences — the two layers restart independently.
+**Restart-signal semantics [VERIFIED live + capture 2026-07-05]:** a received
+ReachabilityRequest is more than a liveness probe — it is a **pair-state reset**.
+After the request/reply exchange, BOTH directions' datagram sequences are zeroed
+(§4.2). In every capture, `Flags1 = 0x0000` data streams begin only immediately
+after a reachability exchange on that link. A bare LAPB/HDLC link restart (SABM)
+does **not** carry this meaning and does not reset datagram sequences — the two
+layers restart independently.
+
+**The RESYNC variant — how a rebooted node re-joins a climbed peer [VERIFIED,
+`multiple-connect-…-reboot-…pcapng` t≈473s].** There are TWO reachability-request
+forms:
+
+1. **Link-start form:** `Flags1 = 0xFFFF`, channel `0xDE`, trailing `0x08`
+   (reply = request trailing + 6). Sent at first contact.
+2. **Resync form:** when a node WITHOUT pair state (fresh boot) receives a data
+   frame with a climbed Flags1, it does NOT reply XENSE and does NOT stay silent —
+   it sends a ReachabilityRequest **echoing the offending frame's Flags1** (the
+   capture: rebooted 102 got connect `F1 0x0028/D9` and sent `0x19` with
+   `F1 = 0x0028`, channel `DD` = `0xDE − epoch(echoed F1)`, trailing
+   `(0x08 − F1) & 0xFF = 0xE0`). The peer answers `0x13` (echo, trailing +6),
+   **zeroes the pair state in both directions, and RE-SENDS the pending datagram
+   from `Flags1 0x0000`** — the capture shows 100 re-issuing the identical connect
+   letter at `0x0000/DA/ctr 0x14` two frames later, and the session then running
+   fresh. This is the protocol-native recovery a restarted responder should use
+   instead of guessing/persisting: echo-ReachRequest on the first out-of-expectation
+   frame, then proceed from zero.
+
+**Reachability trailing byte — closed form [VERIFIED 2026-07-06, all 16 reach frames
+in the corpus, all links]:** `trailing_request = ((seed − 0x0C) − F1adj) & 0xFF`,
+where `F1adj = 0` for the link-start form (`Flags1 0xFFFF`) and `F1adj = the echoed
+Flags1` for the resync form; `trailing_reply = trailing_request + 6`. Measured bases:
+100↔102 `0x08` (seed 0x14), 100↔103 `0x07` (0x13), 102↔103 `0x05` (0x11); resync
+`0xE0/0xE6` at echoed F1 `0x0028`. Zero mismatches. Two relay refinements
+[VERIFIED]: **the relay does NOT re-stamp reachability trailing bytes** (the
+marker-0x12 leg carries the unmodified m13-seed value — unlike data Counters and ACK
+trailers, which get +1), and the reachability **Flags2 is the hop count**
+(`0x0001` direct, `0x0002` on the relayed leg, consistent across all 16 frames).
 
 ### 5.2 Role byte (sub-header offset 4)  [VERIFIED low nibble; INFERRED high nibble]
 
@@ -592,20 +680,57 @@ subtype-`0x03` frame** (14 bytes: 13-byte header + 1 payload byte), sent in the
 **A `0x03` byte cannot be decoded in isolation** — its meaning is fixed by the
 data frame it answers (`Flags 1` identifies which datagram).
 
-**Closed form for building an ACK [VERIFIED 602/602 ACKs + live]** — with the
-per-link `seed` of Section 18.5 and the acked data frame's `Flags1`:
+**Closed form for building an ACK [VERIFIED 904/904 ACKs, all 14 captures, incl. the
+0x0002 class, all four link seeds, both relay legs, the DE→DD wrap and the reboot
+reset]** — the ACK is the §18.5 envelope arithmetic applied to the ECHOED data Flags1
+with an ACK seed `S_ack = link_seed + 0x0B`:
 
 ```
-channel  = 0xDE − epoch(acked stream)                 ; epoch per §18.5, from the ACKED frame's Flags1
-trailing = ((seed + 0x0A) − ackedFlags1) & 0xFF       ; the single payload byte
-Flags1   = ackedFlags1 (echo) ; Flags2 = 0x0001
+S_ack    = seed + 0x0B                                 ; link constant (0x1F for 100↔102)
+baseLow  = (S_ack − (Flags2 & 0xFF)) & 0xFF            ; class 0x0001 → seed+0x0A; class 0x0002 → seed+0x09
+trailing = (baseLow − ackedFlags1) & 0xFF
+epoch    = (ackedFlags1 − baseLow + 0xFF) >> 8
+channel  = 0xDE − epoch
+Flags1   = ackedFlags1 (echo)
 ```
+
+The ACK is therefore a **pure per-direction FUNCTION of the acked frame's Flags1** —
+no counter state, no per-connect re-seed, no cross-direction interaction, and no reset
+at session boundaries (it resets only with the pair state, i.e. the reachability
+resync). A per-connect re-seed coincides with this function only while the connect's
+Flags1 is below `baseLow` — the live session-3 crash (our ACK on `DE` where the model
+required `DD` at echoed F1 `0x2A`) proves the peer VALIDATES the ACK channel. The old
+"connect-channel + 4 / counter seed+0x0A decrementing" reading was the epoch-0 special
+case of this function.
+
+> **LIVE-CONFIRMED 2026-07-06 (real 100, 4 back-to-back reconnects, no restart):** the
+> stateless closed form held throughout, including the `DE → DD` channel step at the
+> ACK baseLow crossing (114 `DD` ACKs emitted and accepted); the outgoing Flags1
+> meanwhile continued `0x0000 → 0x0013 → 0x0026 → 0x003E` across the four sessions
+> with no per-connect reset (§18.8 S7/S9). This is the implementation-grade
+> confirmation of both rules.
 
 Examples: capture ack `DD/0x26` for connect `Flags1 0x00F8` at epoch 1
 (seed `0x14`: `0x1E − 0xF8 = 0x26`); live ack `DD/0x09` for connect `0x0015`.
 The epoch-0 special case reads as "connect-channel + 4, trailing seed+0x0A
 decrementing" — same formula. This confirms the payload byte is derived state,
-not a free counter.
+not a free counter. **The ACK wrap is captured live** (reboot capture, t≈265s):
+when `(seed+0x0A) − F1` crosses zero the trailing byte wraps (`0xFF, 0xFE…`) and
+the ack channel steps down `DE → DD` — exactly the epoch term of the formula.
+
+**Two newly observed ACK variations [reboot capture 2026-07-05]:**
+- **`Flags2 = 0x0002`** appears on the second ACK of SOME back-to-back pairs — and its
+  Counter fits the same closed form with `baseLow = S_ack − 2` (24/24 measured). It is
+  NOT mandatory: the real 102 acked one pair `0x0001/0x0001` (t≈168.57s) and another
+  `0x0001/0x0002` (t≈545.08s) in the same capture, so the class choice is situational.
+  Since both classes satisfy `trailing + Flags1 + Flags2low ≡ S_ack`, a sum-checking
+  receiver cannot distinguish them. **Emitters MAY always use `0x0001`** [measured
+  optionality; receiver tolerance additionally supported by live sessions that acked
+  pairs with `0x0001/0x0001` throughout]. Receivers MUST accept both.
+- **LAPB address `0x07`** carries some first-of-a-pair ACK I-frames (six
+  occurrences, both directions, FCS-valid, even length — so not the `0x80`
+  odd-length rule). Meaning UNKNOWN; receivers must tolerate and route it as a
+  data-transfer address.
 
 > [CAPTURE-SPECIFIC] The peer's send-message capture describes the same ACK
 > mechanism (Flags 1 echoes the datagram sequence; a per-direction counter in the
@@ -662,13 +787,120 @@ ack line uses the peer's subtype `0x07`; in this corpus that ack is subtype `0x0
 
 ## 7. Addressing model  [SYMBOLS + INFERRED]
 
-A host has a **node number** (100, 102, …) and runs service tasks (XROUT, TADAD,
-XMFIDO, BAK01, …), each owning one or more **ports**. A remote reference is a
+> **Terminology — SERVER vs SERVICE (fix the words once):**
+> - A **SERVER** is a named, registered program in XROUT's registry: `*TADADM`
+>   (logical port 2), `*XM-FIDO` (4), `*COSPO` (5), `*FA-FSA` (7), `*XFTRA` (8),
+>   `*FA-SERVER` (11) — COSMOS's own `list-servers` command names them (full table
+>   in §7.1), each with a well-known LOGICAL port and free session slots.
+>   Its WIRE port is `(logical << 7) | incarnation`, minted per boot (342/358 for
+>   `*TADADM`); clients learn it from the server's reply, never compute it.
+> - A **SERVICE** is a numbered XROUT operation in the XMCSM low byte ("the service
+>   byte", bit 6 set = request): `XSLET` 0x41 "send a letter", `XSGSY` 0x4B "get
+>   routing info"; replies carry the status code (`XRSOK`…) in the same byte.
+> - So: `connect-to` invokes the XSLET **service** to deliver a letter to the
+>   `*TADADM` **server**; `list-route` invokes the XSGSY **service** directly — no
+>   server, no name on the wire. Everything arrives at port 0 and forks on the
+>   XMCSM low byte. (The `XF*` codes are a third namespace: MON 200B API
+>   **functions**, §8 — never a wire selector.)
+
+One node's receive-side architecture (ports/names as measured on 100↔102):
+
+```
+                incoming data frame, dst port 0x0000
+                               │
+                 ┌─────────────▼──────────────┐
+                 │   XROUT  (the router)      │
+                 │   fork on XMCSM low byte   │
+                 │   = the "SERVICE" selector │
+                 └────┬──────────────────┬────┘
+         XSGSY 0x4B   │                  │   XSLET 0x41
+         (direct      │                  │   (letter: route by NAME
+          service)    ▼                  ▼    found in the payload)
+        ┌───────────────────┐   ┌───────────────────────────────┐
+        │ routing table     │   │ SERVER registry (list-servers)│
+        │ reply 0x01000100  │   │  *TADADM 2   *XM-FIDO 4        │
+        │ (XRSOK; port-echo │   │  *COSPO 5    *FA-FSA 7         │
+        │  anomaly, §9.1)   │   │  *XFTRA 8    *FA-SERVER 11     │
+        │                   │   │  (name -> logical port + SPs) │
+        └───────────────────┘   └──────┬──────────────────┬─────┘
+                                       ▼                  ▼
+                             ┌──────────────────┐ ┌──────────────────┐
+                             │ *TADADM SERVER   │ │ *XM-FIDO SERVER  │
+                             │ wire port =      │ │ wire port =      │
+                             │ (2<<7)|incarn.   │ │ (4<<7)|incarn.   │
+                             │ = 342 or 358 ... │ │ (not yet on wire)│
+                             └────────┬─────────┘ └──────────────────┘
+                                      │ ACCEPT / PORT-ASSIGN sent FROM
+                                      │ the wire port (client learns it here)
+                                      ▼
+                             terminal/session port, minted per session
+                             ( (slot<<7)|incarnation, e.g. 787/798/1218 )
+```
+
+A host has a **node number** (100, 102, …) and runs tasks that own one or more
+**ports** — XROUT, TADAD, XMFIDO are XMSG service tasks; `BAK01`/`BAK02` are SINTRAN
+**background tasks** (BAK01 typically attached to the console terminal, BAK02 to the
+next logged-in terminal), listed here only as port-owning processes. A remote reference is a
 32-bit **magic number** = port + system + a random component, so stale references
 cannot be reused. On the wire the destination is `XMDSY` (system) + `XMDPT`
 (port). XMSG provides `XFP2M` (port → magic) / `XFM2P` (magic → port) to build
 and resolve addresses, and `XFRTN` ("return message") to reply to a received
 message without minting a new address (it swaps src/dst).
+
+### 7.1 Port lifecycle — who allocates which port, and when
+
+Every port on the wire is `(logical slot << 7) | low7`; what differs is WHO mints it
+and WHEN. Four kinds exist, and none of them is ever computed by the peer:
+
+| Kind | Allocated by | When | Lifetime | Examples (measured) |
+|---|---|---|---|---|
+| **Port 0** | fixed by the protocol | — | forever | the XROUT letter/service sink (§18.8 S10) |
+| **Server registry port** | the server at registration | server startup | until re-registration; low7 incarnation changes per boot | `*TADADM` slot 2 → wire 342/358; `*XM-FIDO` slot 4 |
+| **Asker / client port** | **the ORIGINATING node's XMSG kernel at `XFOPN`** (§8) [INFERRED mechanism; measured pattern VERIFIED] | when the client program (connect-to, an XROUT query, a user app) opens its port | ONE port for the whole session/transaction, then released | connect-to on 100 = always slot 5, fresh low7 per connect (683, 648, 739, 664, 657…); connect-to on 103 = slot 4 (581); XROUT queries = slots 5/6/8/9 (722, 845, 1049, 1222…) |
+| **Session / terminal port** | the HOST at port-assign | per accepted session | until DCON | 787, 798, 833, 1218 (slot 6/9…) |
+
+Supporting observations [VERIFIED]: the same machine + program class reuses the same
+logical slot with a varying low7 per open (100's connect-to: nine different low7
+values, all slot 5); different programs occupy different slots. The low7 is the
+magic-number "random part" (masks `5PSHZ/5PMS1/5PMSK`) — though on retrocore-100
+consecutive XROUT opens showed an INCREMENTING low7 (`0x52, 0x62, 0x63, 0x64`), so it
+may be an incarnation counter rather than random [observed pattern; exact scheme
+UNKNOWN]. Peers must treat every non-zero port as an opaque learned value: the asker
+port is learned from the connect/request frame, the server wire port from the accept,
+the terminal port from the port-assign — nothing but port 0 is ever known a priori.
+
+#### The XROUT server registry — live `list-servers` on a real COSMOS install
+
+[VERIFIED — live `list-servers` output on node 100 with COSMOS installed. Names/ports
+VERIFIED; the "meaning" column is INFERRED from the name text unless noted.] Only two
+of these (`*TADADM`, and `*XM-FIDO` by inference) have been seen on the wire so far; the
+rest name the sub-protocols still to be captured. "Free SPs" = free session/subprocess
+slots the server can hand out (the per-server session cap).
+
+The names map onto the documented COSMOS service triad — **Remote Spooling / Remote
+File Access / ND-MAIL** (COSMOS Operator Guide `ND-30.025.02` ch. 7 and the service
+diagram at its line 765) — plus the terminal and transport servers:
+
+| Logical port | Name | Free SPs | Purpose |
+|---:|---|---:|---|
+| 2 | `*TADADM` | — | Terminal Access Device admin — the connect-to terminal server [VERIFIED, this spec] |
+| 4 | `*XM-FIDO` | — | XMSG file-I/O / forwarding daemon (XMFIDO in the crash logs) — the transport/forwarding layer [INFERRED] |
+| 5 | `*COSPO` | — | **COsmos SPOoling** — the Remote Spooling (remote print) server [INFERRED-strong: COSMOS ch. 7 "Remote Spooling"] |
+| 7 | `*FA-FSA` | 2 | Remote **F**ile **A**ccess — the FSART/File-Server-Admin control side [INFERRED: FA = File Access, COSMOS line 765] |
+| 8 | `*XFTRA` | 1 | file **TRA**nsfer [INFERRED from name] |
+| 11 | `*FA-SERVER` | 30 | Remote **F**ile **A**ccess server — the bulk file server (30 session slots) [INFERRED] |
+
+Implications: (1) COSMOS's three inter-node services each have a server here — spooling
+(`*COSPO`), file access (`*FA-*`, `*XFTRA`, with `*XM-FIDO` as the transport), and mail
+(**ND-MAIL** — a documented COSMOS service NOT in this particular registry, so either not
+installed/started on node 100 or under a different name; watch for it). (2) "The file
+server" is really a FAMILY (`*XM-FIDO`/`*XFTRA`/`*FA-FSA`/`*FA-SERVER`) — a file-transfer
+capture may touch several names; census the letter names (§18.8 S10) to see which the
+operation actually uses. (3) The registry is the authoritative name→logical-port map; a
+node's OWN `list-servers` gives the wire ports `(logical<<7)|incarnation`.
+(4) `list-servers` (a.k.a. `LI-SER`) is a LOCAL registry query and produces no inter-node
+wire traffic (§18.8). (5) All servers share the one XMSG transport — the
+envelope/ACK/odd-address/port rules carry over unchanged (`LEARNING-A-NEW-PROTOCOL.md`).
 
 **Frame sizing** [VERIFIED from symbols]: `X4FSO = 312` (max RX frame bytes),
 `X4FRM = 20` (frame overhead), `X4LTO = 10` (link timeout XTUs). So the largest
@@ -787,14 +1019,28 @@ is the XROUT service code** (`0x4B` = 75 = `XSGSY` "get routing info"; `0x41` = 
 [XMSG-API.md](XMSG-API.md) section 6.4.
 
 > **Request vs reply is a service-byte replacement, not a flag toggle** [VERIFIED
-> against source]. The XROUT value/include file states (`XMSG-VALUES-M.SYMB`
-> header comments): the service byte has **bit 6 set ⇒ service request**, and the
-> return message carries the status/error byte with **bit 6 reset**. So request
-> `…014B` (low byte `0x4B` = `XSGSY`, bit 6 set) becomes reply `…0100` (low byte
-> `0x00` = `XRSOK`, bit 6 reset "OK — not an error"); the upper three bytes
-> `01 00 01` are unchanged. `XSNUL = 64 = 0x40` is the lowest service, confirming
-> bit 6 (`0x40`) as the request base. XROUT status/error codes run `XRSOK = 0` …
-> `XRIRR = 54`, all returned with bit 6 reset.
+> against source — versions L AND M agree]. The authoritative XROUT value/include
+> file is `xmsg-pl-values-l.incl` (version L, `87.01.05`; also `XMSG-VALUES-M.SYMB`
+> for version M — identical values). Its section header states verbatim: *"Values
+> in byte 1 of message. **Bit 6 is set => service request**"* and, for the error
+> table, *"Error values returned in byte 1 of return message (**Bit 6 reset**)"*.
+> So the service byte has **bit 6 set ⇒ service request**, and the return message
+> carries the status/error byte with **bit 6 reset**. So request `…014B` (low byte
+> `0x4B` = `XSGSY`, bit 6 set) becomes reply `…0100` (low byte `0x00` = `XRSOK`,
+> bit 6 reset "OK — not an error"); the upper three bytes `01 00 01` are unchanged.
+> `XSNUL = 64 = 0x40` is the lowest service, confirming bit 6 (`0x40`) as the
+> request base. XROUT status/error codes run `XRSOK = 0` … `XRILX = 55`, all
+> returned with bit 6 reset.
+>
+> Symbol values now confirmed from the file (were INFERRED, now **VERIFIED by
+> symbol**): `XSLET = 65 = 0x41` "Send a letter"; `XSGNM = 68 = 0x44` "Get name of
+> port (param MAGNO)" vs `XSGNI = 69 = 0x45` "Get name (param MC/PORTNO)" — so an
+> observed `0x0845` letter is specifically **`XSGNI` get-name (MC/PORTNO variant)**,
+> not the MAGNO variant; `XSGSY = 75 = 0x4B` "Get routing info for system N";
+> `XSGSG = 96 = 0x60 = XSMAX` (highest legal service). The same file's crash table
+> lists `XXPER = 20` "Protocol error in communications system" (= octal 24, the
+> `24B` crash we localized to `XHNRR+6`) and `XXRO2 = 24` "XROUT fatal error — see
+> XROUT Basefield".
 
 > **Stateless-RPC response anomaly** [INFERRED]: in LI ROUTING responses the
 > responder fills `XMSSY/XMSPT` with the **originator's** address, not its own —
@@ -1240,6 +1486,10 @@ Base    = Flags1 + Counter = baseLow + 0x100*epoch ; the old "envelope Base", no
   `0x01…`→`0xDD`, control `0x00…`→`0xDE`); the epoch subtracts the number of counter wraps so far.
 - **Observed seeds:** 100↔102 = `0x14`, 100↔103 = `0x13`, 102↔103 = `0x11` (direct) / `0x12`
   (relayed leg = seed+1). What the seed byte *encodes* is still UNKNOWN; **learn it from the peer**.
+  The "seed = 122 − responderNode" hypothesis is **REFUTED** (2026-07-06): in the reboot
+  capture's session 4 the roles swap (100 is the responder) and the seed stays `0x14`
+  (the ACK base holds at `0x1E`) — it would have had to become `0x16`. The seed is a
+  **per-link constant**, indifferent to who is asking.
 
 **The fresh-responder consequence (this is the fix).** A freshly-started responder has `Flags1`
 near `0x0000`, i.e. **epoch 0**, so its terminal-data frames (`XMCSM 0x01080000`) ride **`0xDD`** —
@@ -1255,6 +1505,17 @@ put an inconsistent Counter/epoch on an otherwise correct DD/DC frame → the fa
 "protocol error in communications system", XMSG's own `ZCRAS`). The Flags1 continuity check runs
 first and yields the *recoverable* `XENSE` (`0xFFDE`, −34); a frame that passes it but carries an
 inconsistent Counter/epoch hits the fatal path.
+
+> **Crash SITE located (2026-07-06, symbol-table bracketing).** The reported
+> "Physical address 134265B" falls **6 words into routine `XHNRR`**
+> (`XHNRR=134257B`, next symbol `XNCTR=134704B`) in the **L07** XMSG symbol list
+> (`SYMBOLS/L07/XMSG-SYMBOL-LIST.SYMB.TXT:2034`) — an early guard/ZCRAS call in a
+> receive-side handler (`XHNRR` sits in the `XHNTT/XHNTR/XHNTI/HNACK/HINCT` module;
+> "X Handle N… Receive" reading INFERRED). Version note: in the M06 list the same
+> address lands inside a data buffer (`X6BUF`), so **the live machine's XMSG layout
+> matches L07, not M06** — use L07 for any further address bracketing. (The identical
+> numeric address in `s3vs-4.symb` is a different segment — kernel ND-500 monitor
+> code, not the XMSG POF.)
 
 > **Crash-code radix caveat.** The console suffix `B` means octal: `24B` = 20 decimal =
 > **`XXPER`** (`XMSG-VALUES-M.SYMB:349`; the file is in decimal). Do not confuse it with
@@ -1444,13 +1705,369 @@ frames parsed; script over the raw= lines of the decode report):**
 | **new-conn** | `0x0046` **D9** (L8152) | `0x0046` **D9** `0xCE` (L8686) | **EQUAL — epoch 1** |
 | conn-to-d102 | `0x00F8` D9 (L2021) | `0x012F` D8 `0xE5` (L2472) | +0x37, accept HIGHER epoch |
 | test1 | `0x011E` D8 (L11320) | `0x00E9` D9 `0x2B` (L10247) | −0x35, accept LOWER epoch |
+| reboot-cap session 1 | `0x0004` DA | `0x0004` DA `0x10` | **EQUAL** (fresh link) |
+| reboot-cap session 2 (**reconnect, no reboot**) | `0x0016` **D9** `0xFE` | `0x0017` **D9** `0xFD` | **+1 — both continuations, epoch 1** |
+| reboot-cap session 3 (post-resync) | `0x0000` DA | `0x0000` DA `0x14` | EQUAL (both reset by resync) |
+| reboot-cap session 4 (102 as client) | `0x0012` DA | `0x0011` DA `0x03` | −1 (100's own continuation) |
 
 Conclusions [VERIFIED]: (1) the two counters are independent — deltas of +55, −53, ±1
 and 0 exist; no function maps connect F1 to accept F1. (2) **Equality is common and
 harmless** (symmetric histories), including at epoch 1 on D9. (3) The accept may sit on
 a lower OR higher epoch than the connect. (4) **Zero `0x0400`-class frames with
-Counter `0xFF` exist anywhere in the corpus** — a wrap-boundary connect or accept
-letter is unprecedented on the wire; the corpus cannot say whether it is legal.
+Counter `0xFF` exist anywhere in the corpus** (incl. the 2026-07-05 reboot capture,
+whose session-2 letters landed at `0xFE`/`0xFD`) — a wrap-boundary connect or accept
+letter remains unobserved; the corpus cannot say whether it is legal.
+
+**S7 — Climbed reconnect WITHOUT any restart [VERIFIED, reboot capture t≈260s]:**
+Session 1 ends: teardown ladder, `0xFD` (102's F1 `0x0016`), 100's DCON (F1 `0x0015`),
+102 ACKs it. Twenty seconds later 100 reconnects:
+
+| Frame | F1 | Channel/ctr | Note |
+|---|---|---|---|
+| 100 connect | `0x0016` | `D9` / `0xFE` | 100's continuation (+1 after its DCON), epoch 1 |
+| 102 secure-ACK | echo `0x0016` | `DE` / `0x08` | trailing `0x1E − 0x16` |
+| 102 accept | **`0x0017`** | **`D9` / `0xFD`** | **102's OWN continuation** (+1 after its `0xFD`) |
+
+The whole second session then runs at epoch-1 channels (terminal data on `DC`,
+control on `DD`) and completes — login, commands, logout, DCON. **This is the
+definitive answer to the reconnect question: both sides simply continue, epoch 1
+letters on D9 included; nothing resets at session end.**
+
+**S8 — Reboot resync [VERIFIED, reboot capture t≈465–475s]:**
+102 reboots (new TCP session, SABM exchange). 100, unaware, connects at its
+continuation:
+
+```
+100 -> 102   connect  F1 0x0028  D9/ctr 0xEC          (climbed; 102 has NO state)
+102 -> 100   0x19 ReachabilityRequest, F1 = 0x0028 (ECHO), chan DD, trail 0xE0
+100 -> 102   0x13 ReachabilityReply,   F1 = 0x0028,        chan DD, trail 0xE6 (+6)
+100 -> 102   connect RE-SENT at F1 0x0000, DA/ctr 0x14     <- 100 reset BOTH directions
+102 -> 100   accept  F1 0x0000, DA/ctr 0x14               (fresh handshake; session works)
+```
+
+A rebooted/stateless responder therefore needs NO persistence and NO guessing:
+answer the first out-of-expectation frame with the echo-ReachabilityRequest and the
+peer resets and replays. (Our persist-and-continue strategy remains valid and is what
+real nodes do across sessions — S7; the resync is the recovery path for lost state.)
+
+**S9 — Third reconnect: the secure-ACK channel wrap [VERIFIED rule §6; live crash
+2026-07-05 when violated]:**
+Sessions keep climbing the counters; eventually a connect arrives with a Flags1 PAST
+the ACK baseLow (`seed + 0x0A` = `0x1E` for 100↔102). The ACK — a pure function of the
+echoed Flags1 (§6) — must then ride the stepped-down channel:
+
+| Connect Flags1 | correct ACK | wrong (per-connect reseed) | live result of wrong |
+|---|---|---|---|
+| `0x0016` (session 2) | `DE / 0x08` | `DE / 0x08` — coincides | works (hides the bug) |
+| `0x002A` (session 3) | **`DD / 0xF4`** | `DE / 0xF4` | **PERF_CONNCT / fatal 24B** |
+
+Any per-connect re-derivation of ACK state ("connect counter + 0x0A", wrap reset)
+reproduces the closed form only below the baseLow and then crashes the peer — the peer
+VALIDATES the ACK channel. Implement the §6 stateless function; never seed ACK state
+from the connect.
+
+**S10 — Port-0 dispatch: the three request shapes [VERIFIED, reboot capture +
+corpus scan + live `list-servers`]:**
+Every request arrives at the host's **port 0** and forks on the XMCSM low byte (the
+XROUT "service byte"). Mnemonic: *connect-to invokes the XSLET SERVICE to deliver a
+letter to the `*TADADM` SERVER; list-route invokes the XSGSY SERVICE directly — no
+server involved.* The three shapes:
+
+| Shape | XMCSM | Dst port | Name on wire | Reply | Then |
+|---|---|---|---|---|---|
+| **S10a — connect-to** (session-opening letter) | `0x04000041` (XSLET) | `0` | `*TADADM` in the letter (`FF 07 2A "TADADM" 00 FE 04 "Dnnn"`, XMLEN 16) | ACCEPT **from the server's wire port** `(2<<7)\|incarnation` — this is how the client learns it | session-setup → port-assign → terminal session (TAD spec §22.4) |
+| **S10b — list-systems** (query letter, no session) | `0x04000041` (XSLET) | `0` | `*TADADM` + the query TLV **`04 02 0001`** (param 4, value 1 — the "directory-query" marker [bytes VERIFIED in 9 letters across 4 captures; meaning INFERRED]; XMLEN 20) | accept-shaped letter from the server's wire port | nothing — no session follows (reboot capture L293/L295) |
+| **S10c — list-route** (direct XROUT service) | `0x0100014B` (XSGSY, code 0x4B) | `0` | **none** — the code IS the selector | `0x01000100` (XRSOK); NOTE the §9.1 anomaly: the reply's source-port field echoes the REQUESTER's port (`p738→738`), not an XROUT port | request/reply pairs echo Flags1+Counter (§9.1.1) |
+
+Dispatch decision, as a receiver implements it:
+
+```mermaid
+flowchart TD
+    RX["data frame arrives at dst port 0x0000"] --> SVC{"XMCSM low byte<br/>(the SERVICE selector)"}
+    SVC -->|"0x4B XSGSY"| ROUTE["look up routing table<br/>reply XMCSM 0x01000100 (XRSOK)<br/>echo request Flags1 + Counter + channel<br/>(port-echo anomaly, 9.1)"]
+    SVC -->|"0x41 XSLET"| NAME{"parse letter:<br/>FF len 2A name ..."}
+    SVC -->|"other"| DROP["unknown service - no handler observed<br/>in the corpus (UNKNOWN behaviour)"]
+    NAME -->|"*TADADM"| TAD{"letter form?"}
+    NAME -->|"*XM-FIDO"| FIDO["file server (registered, never<br/>yet addressed in a capture)"]
+    NAME -->|"unregistered name"| UNK["not observed - likely an error<br/>letter reply (UNKNOWN)"]
+    TAD -->|"XMLEN 16: name + Dnnn"| CONNECT["S10a connect-to:<br/>ACCEPT from wire port (2 shl 7)+inc<br/>then session-setup, port-assign,<br/>terminal session"]
+    TAD -->|"XMLEN 20: + option TLV"| LISTSYS["S10b list-systems:<br/>accept-shaped reply only,<br/>NO session"]
+```
+
+And the three shapes side by side on the wire:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Client node
+    participant R as Host XROUT (port 0)
+    participant S as *TADADM server (wire port 342/358)
+
+    rect rgb(235,245,255)
+    Note over C,S: S10a - connect-to (XSLET letter to a named SERVER)
+    C->>R: letter to port 0: *TADADM + "Dnnn" (XMCSM 04000041)
+    R->>S: route by NAME
+    S->>C: ACCEPT from wire port (2 shl 7)+incarnation
+    Note over C: client LEARNS the wire port here
+    C->>S: SESSION-SETUP to that port ... port-assign, terminal session
+    end
+
+    rect rgb(235,255,235)
+    Note over C,S: S10b - list-systems (XSLET letter, no session)
+    C->>R: letter to port 0: *TADADM + option TLV (XMLEN 20)
+    R->>S: route by NAME
+    S->>C: accept-shaped reply - and nothing more
+    end
+
+    rect rgb(255,245,230)
+    Note over C,R: S10c - list-route (direct XSGSY SERVICE - no server)
+    C->>R: XMCSM 0100014B to port 0 (code 0x4B selects the service)
+    R->>C: XMCSM 01000100 (XRSOK), echoing Flags1/Counter/channel
+    end
+```
+
+#### S10a in detail — the route of a `connect-to`
+
+```
+ NODE 100 (asker)                              NODE 102 (host)
+ ─────────────────                             ────────────────
+ @CONNECT-TO D102
+      │
+      ▼
+ C-T program ── XSLET letter ─────────────────► port 0  (XROUT)
+ (asker port,   "*TADADM"+"D102"                   │ name lookup
+  e.g. 739)     XMCSM 04000041                     ▼
+      ▲                                        *TADADM SERVER
+      │◄───────── ACCEPT ───────────────────── wire port 342 ((2 shl 7)+0x56)
+      │           (client LEARNS 342 here)
+      ├── SESSION-SETUP ──────────────────────► 342
+      │◄───────── PORT-ASSIGN ──────────────── 342   mints TERMINAL port 787
+      │◄───────── DUMM (channel prime) ─────── 787
+      ├── TMOD/TTYP/DESC/OPSV, ESCA ──────────► 787
+      │◄───────── 0x20, RESE / banner ──────── 787
+      │  ... login ladder, keystrokes, output — ALL between 739 ◄─► 787 ...
+      │◄───────── teardown ladder + 0xFD(342) + optional host DCON(787)
+      └── DCON ───────────────────────────────► 787        session over
+ Three port hops: 0 (name) → 342 (setup) → 787 (session). Ports 342/787 are
+ learned from frames, never computed by the client.
+```
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as user on 100
+    participant A as asker port 739
+    participant R as port 0 (XROUT on 102)
+    participant W as *TADADM wire port 342
+    participant T as terminal port 787
+
+    U->>A: @CONNECT-TO D102
+    A->>R: XSLET letter *TADADM + "D102"
+    R->>W: registry lookup: name -> server
+    W->>A: ACCEPT (learn 342)
+    A->>W: SESSION-SETUP
+    W->>A: PORT-ASSIGN (mints 787)
+    T->>A: DUMM (prime)
+    A->>T: TMOD chain + ESCA ... RECO x2
+    T->>A: 0x20, RESE x2, BANNER + SYCN 0002 + RFI
+    Note over A,T: login ladder to SYCN 000A, then keystrokes/output on 739-787
+    T->>A: teardown ladder + 0xFD (from 342) + optional host DCON
+    A->>T: DCON
+```
+
+#### S10b in detail — the route of a `list-systems`
+
+```
+ NODE 102 (asker)                              NODE 100 (host)
+ ─────────────────                             ────────────────
+ C-T: LIST-SYSTEMS
+      │
+      ▼
+ C-T program ── XSLET letter ─────────────────► port 0  (XROUT)
+ (asker port    "*TADADM"+"D100"                   │ name lookup
+  648)          + one option TLV (XMLEN 20)        ▼
+      ▲                                        *TADADM SERVER
+      └◄──────── accept-shaped letter ──────── wire port 358 ((2 shl 7)+0x66)
+                 (01 02 0000 0202 000A + RFI-ish tail)
+
+ ...and that is ALL: no session-setup, no port-assign, no terminal port.
+ The reply's arrival/status = "TAD access available on that system".
+ Same envelope duties as any letter: secure-ACKed both ways.
+```
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as user on 102
+    participant A as asker port 648
+    participant R as port 0 (XROUT on 100)
+    participant W as *TADADM wire port 358
+
+    U->>A: C-T LIST-SYSTEMS
+    A->>R: XSLET letter *TADADM + option TLV (XMLEN 20)
+    R->>W: registry lookup: name -> server
+    W->>A: accept-shaped reply (status)
+    Note over A,W: nothing follows - a pure directory query.<br/>Reboot capture L293/L295 - query TLV = 04 02 0001 (param 4, value 1)
+```
+
+#### S10c in detail — the route of a `list-route`
+
+```
+ NODE 100 (asker)                              NODE 102 (target)
+ ─────────────────                             ─────────────────
+ @LIST-ROUTE 102
+      │            TWO XSGSY datagrams PER queried system (9.1.1):
+      ▼
+ XROUT(100) ── req#1 F1=n   "table lookup" ───► port 0 (XROUT)
+            ── req#2 F1=n+1 "liveness probe" ─► port 0    │ routing table
+      ▲                                                   ▼
+      │◄────── reply#1 (echoes F1=n,   ctr, channel) ── XROUT itself
+      │◄────── reply#2 (echoes F1=n+1, ctr, channel)    (NO server, NO name;
+      ▼                                                  reply source-port field
+ operator output:                                        ECHOES the asker's port
+   L: / T: rows  ◄─ reply#1  (routing table)             = the 9.1 anomaly)
+   A: row        ◄─ reply#2  (really reachable?)
+ Unanswered probe ⇒ "no access to system NNN" with A:*->
+```
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as user on 100
+    participant X1 as XROUT on 100
+    participant X2 as XROUT on 102 (port 0)
+
+    U->>X1: @LIST-ROUTE 102
+    X1->>X2: XSGSY req 1 (XMCSM 0100014B, param = system no)
+    X1->>X2: XSGSY req 2 - the liveness probe (F1+1, ctr-1)
+    X2->>X1: reply 1 XRSOK 01000100 - echoes req 1 F1/ctr/channel
+    X2->>X1: reply 2 - echoes req 2 F1/ctr/channel
+    X1->>U: prints the L:/T: rows (reply 1) and the A: actual-path row (reply 2)
+    Note over X1,X2: no server involved - the XMCSM low byte 0x4B IS the selector.<br/>A reply with the WRONG echoed counter is rejected and<br/>the operator sees "no access to system NNN" (9.1.1)
+```
+
+**S11 — Indirect traffic: 102 ↔ 103 via relay 100 [VERIFIED,
+`conn-to-102-from103-via100.pcapng` + `li-rout-103-tree` + `li-syst-tad-103`]:**
+There is no physical 102↔103 link — 100 is the hub — so every 102↔103 frame crosses
+two hops. What changes per hop and what is end-to-end:
+
+```
+   NODE 103 (originator)      NODE 100 (relay)          NODE 102 (destination)
+   ────────────────────       ─────────────────         ──────────────────────
+        │  LAPB link A (SABM info: 103/100)  │  LAPB link B (SABM info: 100/102)
+        │                                    │
+        │ 21 13 000E 0066 0067 ...           │ 21 12 000E 0066 0067 ...
+        ├──────── marker 0x13 ──────────────►├──────── marker 0x12 ─────────────►
+        │ F1, ports, XMCSM, payload          │ SAME bytes, EXCEPT:
+        │ ctr = seedPair − F2low − F1        │   marker 0x13 → 0x12  ("relayed")
+        │ (seedPair(102,103) = 0x11)         │   Counter += 1        (hop stamp)
+        │                                    │   channel re-derived  (usually
+        │                                    │    equal; DIFFERS at a wrap:
+        │                                    │    DC/FF → DD/00, md L1207/L1213)
+        ◄──────── replies take the same path in reverse; ACKs relayed likewise ──
+   END-TO-END (path-independent):  SINTRAN nodes 103↔102, Flags1 (one sequence per
+   LOGICAL node pair!), ports, XMCSM, payload, the secure-ACK echo.
+   PER-HOP: LAPB (separate links, separate V(S)/V(R)), marker 13/12, Counter ±1.
+   NOTE the seed is per LOGICAL PAIR, not per wire: on the same physical 100↔103
+   link, 103↔102-pair frames use seed 0x11(+1 on the forwarded hop) while native
+   100↔103 frames use seed 0x13.
+```
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant O as 103 (originator)
+    participant R as 100 (relay)
+    participant D as 102 (destination)
+
+    Note over O,R: LAPB link A (103/100)
+    Note over R,D: LAPB link B (100/102)
+    O->>R: 21 13 | dst 102 src 103 | F1 | ctr = f(seed 0x11) | payload
+    R->>D: 21 12 | SAME frame, Counter+1 (seed lane 0x12), channel re-derived
+    Note over D: sees logical source 103 - replies are addressed to 103, not 100
+    D->>R: 21 13 | dst 103 src 102 | reply (same F1 space of the 102-103 pair)
+    R->>O: 21 12 | Counter+1
+    Note over O,D: secure ACKs are END-TO-END (echo the pair's F1) and are<br/>relayed the same way, trailing byte +1 on the forwarded hop
+    Note over R: 100 never appears in the SINTRAN/XMSG headers - only in<br/>the LAPB SABM/UA/RR info fields of each hop (section 4 table)
+```
+
+How the originator KNOWS to relay: its XROUT routing table — the XSGSY records'
+connection-type parameter (`2` = "Via (relay)", §9.1) name 100 as the way to reach
+102/103. Implication for a responder: always reply to `Header.SrcNode` (the logical
+source), never to the LAPB neighbour; and keep ONE envelope state per LOGICAL node
+pair, keyed independently of which physical link the frames arrive on. The Counter+1
+hop stamp is applied by the RELAY, not by either endpoint. (Whether a relay decrements
+a hop budget or can chain >2 hops: [UNKNOWN — only one-relay topologies captured].)
+
+#### How the name census was made — and how new names will show up
+
+**The method (reproducible on any capture):** every XROUT letter opens with the
+fixed signature `FF <len> 2A <name…>` (serial, length, `*`, name). Scanning the RAW
+bytes of every FCS-valid frame in the corpus for that signature and extracting the
+name is therefore an EXHAUSTIVE census, not a sample: **18 letters exist in the
+corpus, and all 18 say `TADADM`.** (Scan: for each `raw=` frame, find `FF ll 2A`,
+take `ll−1` name bytes, keep `[A-Z0-9]+` hits.)
+
+**Why only TADADM so far — no other name COULD have appeared:** the corpus exercises
+exactly three operations (connect-to, list-systems, list-route) plus link management.
+The first two are `*TADADM` letters by definition; list-route, reachability and the
+routing exchanges are NAMELESS services (the XMCSM low byte selects them). Nothing in
+the traffic ever had a reason to address another server.
+
+**Where new names will come from** (each is a new letter in a future capture, and the
+same scan will find it):
+
+| Trigger | Expected letter name | Basis |
+|---|---|---|
+| Remote file access / file transfer (COSMOS remote-file operations) | `*XM-FIDO` (logical port 4) | registered in the live `list-servers` output; XMFIDO is the XMSG file-I/O daemon named in the crash logs and manuals |
+| Other system tasks | unknown | §7 lists task names like `BAK01`/`BAK02` — these are SINTRAN **background tasks** (BAK01 typically attached to the console terminal, BAK02 to the next logged-in terminal), NOT services; whether any of them registers an XROUT letter name is UNKNOWN |
+| **User applications** | any name the application registers | the API supports it directly: a program opens a port (`XFOPN`), registers/looks up names via the magic-number services (`XSGMG` "get magic number from name", `XSCMG` "check", `XFP2M`/`XFM2P`), and remote peers then address it with an XSLET letter carrying that name — exactly the `*TADADM` pattern with a different string |
+
+**What the name is FOR — and only for:** the name is the letter's **delivery address
+inside the destination node** — XROUT looks it up in the server registry
+(name → registered port; the `XSGMG` "get magic number from name" machinery) and
+hands the letter to that server. It plays NO part in node-to-node ROUTING: which
+NODE the frame goes to (and whether it is relayed, S11) is decided by the SINTRAN
+header's destination node + the XSGSY routing tables, before the name is ever read.
+Node addressing = numbers; in-node server addressing = the name. (The `"Dnnn"` string
+in the SECOND TLV of the connect letter is application payload for the TAD server —
+the target-system name the user typed — not a routing field either.)
+
+**How the receiver tells the letter kinds apart:** by the letter's option TLVs, not
+by any type code — a connect-to is `name + FE-target` (XMLEN 16); a list-systems is
+the same plus one extra option TLV (XMLEN 20); and the follow-up traffic differs
+(session-setup arrives only after a connect-accept). Note that `list-servers` itself
+produces NO wire traffic at all [INFERRED — it is an XMSG-COMMAND/local-registry
+query; no capture taken while running it shows a letter]. If a future letter kind
+can't be told apart by its TLVs, capture it and extend this table.
+
+**Empty or unregistered name: [UNKNOWN — never captured].** No letter in the corpus
+has an empty name field or an unregistered name, so the real machine's reaction is
+unverified. The plausible reply family is an XROUT error letter carrying one of the
+`XR*` status codes (§11: `XRUNN` unknown name, `XRNSP` no such port, `XRDDF`
+destination not defined) — a responder implementation should send a status≠OK letter
+rather than silence, and this is a safe live experiment (letters are the recoverable
+path; worst observed outcome for a malformed letter family is a reject, not a crash —
+still, capture it).
+
+**What to record when a new name first appears** (so the new sub-protocol slots into
+this spec): (1) the letter name + its logical port (compare `list-servers`); (2) the
+XMCSM class words its session uses (new `Flags2` values ⇒ new `baseLow = seed − F2low`
+lanes — the envelope, ACK and odd-length-address rules are all protocol-AGNOSTIC and
+should carry over unchanged); (3) its trailer opcode vocabulary (the TAD chain format
+may or may not be reused); (4) whether it follows the accept → port-assign →
+session-port pattern or replies letter-only like list-systems. Re-running the name
+census plus the envelope/ACK conformance scans on the first `*XM-FIDO` capture is the
+fastest way to confirm the framework generalises.
+
+The live `list-servers` registry (§7.1) already shows a whole family not yet on the
+wire — `*XM-FIDO` (4), `*COSPO` (5), `*FA-FSA` (7), `*XFTRA` (8), `*FA-SERVER` (11) —
+the file/COSMOS sub-protocols still to capture. **Framework guidance:** the pluggable
+NAMED things (TAD today, the file-server family soon) deserve `IXmsgServer` — `Name`
+(`"*TADADM"`), `LogicalPort` (2), per-boot incarnation, letters routed to them BY NAME;
+reserve the word "service" for the port-0 XMCSM-low-byte dispatch in the router (S10c
+and the XSLET delivery step itself). Terminology and the node-architecture ASCII
+drawing: §7.
 
 **S6 — Restart resync (no persisted state):**
 We restart with F1 = `0x0000` but 100's `XSRSQ` expects `0x0007`.

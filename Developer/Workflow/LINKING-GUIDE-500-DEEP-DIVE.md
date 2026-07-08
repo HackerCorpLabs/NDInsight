@@ -986,6 +986,8 @@ User Directory:
 
 **Note:** Conversion is one-way (cannot convert DOM back to old format).
 
+**See also:** [CONVERT-DOMAIN-PSEG-DSEG-TO-DOM.md](CONVERT-DOMAIN-PSEG-DSEG-TO-DOM.md) - detailed step-by-step conversion procedure with full parameter reference.
+
 ---
 
 ## 4. ND Linker User Interface
@@ -2596,6 +2598,8 @@ Domain: NEWPROG:DOM
 - **Preserves all functionality:** Execution identical
 - **No recompilation needed:** NRF files not involved
 - **Safe:** Old files untouched (can delete after verification)
+
+**See also:** [CONVERT-DOMAIN-PSEG-DSEG-TO-DOM.md](CONVERT-DOMAIN-PSEG-DSEG-TO-DOM.md) - detailed procedure, all 5 parameters, segment handling rules, and what to do when the :LINK file is missing.
 
 **When to convert:**
 

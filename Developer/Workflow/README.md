@@ -91,6 +91,25 @@ Comprehensive guide to ND-500 program linking, NRF format, and domain creation.
 
 ---
 
+### [CONVERT-DOMAIN-PSEG-DSEG-TO-DOM.md](CONVERT-DOMAIN-PSEG-DSEG-TO-DOM.md)
+**Converting Old-Format ND-500 Domains (PSEG/DSEG/LINK) to Domain Files (:DOM)**
+
+Step-by-step procedure for the CONVERT-DOMAIN program (ND-211229).
+
+**Contents:**
+- Old (Linkage-Loader triple) vs new (:DOM) domain formats
+- Full CONVERT-DOMAIN command syntax with all 5 parameters
+- Step-by-step conversion, verification, and cleanup
+- Segment handling rules (slave vs free segments, cross-user)
+- What to do when the :LINK file or DESC entry is missing
+- Quick reference card
+
+**Target Audience:**
+- System supervisors migrating legacy ND-500 domains
+- Developers working with old Linkage-Loader output
+
+---
+
 ### [SCRIPT-GUIDE.md](SCRIPT-GUIDE.md)
 **MODE Scripts and Build Automation**
 

@@ -103,10 +103,10 @@ ram:ccad  AAA -0x7b             ; A := B-0x7b = address of (pointer to block)
 ram:ccae  MON 0x30              ; MON 60B - the ND-500 monitor call
 ram:ccaf  JMP *0xccb1           ; error-skip convention: next word = error path
 ram:ccb1  STA -0x70,B           ; save returned status (A)
-ram:ccb3  LDT *0xccc4           ; T := 0x041A (= 2032B)
-ram:ccb4  SKP DA,UEQ,ST         ; if A != 2032B skip
-ram:ccb6  LDT *0xccc5           ; T := 0x080F (= 4017B)
-ram:ccb7  SKP DA,EQL,ST         ; if A == 4017B ...
+ram:ccb3  LDT *0xccc4           ; T := 0x041A (= 2032B octal = ECSLOAD)
+ram:ccb4  SKP DA,UEQ,ST         ; if A != 0x041A skip
+ram:ccb6  LDT *0xccc5           ; T := 0x080F  (identity UNRESOLVED - see below)
+ram:ccb7  SKP DA,EQL,ST         ; if A == 0x080F ...
 ram:ccb9  LDX -0x7e,B
 ram:ccba  STA 0x6,X             ; store status into caller structure offset 6
 ram:ccbb  JPL 0xccc6            ; (wait/yield via runtime pointer)
@@ -118,17 +118,24 @@ error; returned A = status code.** (The wrapper's `ORA I *0xccc2` / `AAA` prelud
 combines the caller's function code with the derived stack param-block address
 before the MON.) The status is stored at offset 6 of the caller's block.
 
-**Retry statuses 2032B and 4017B DECODED (second source: 5P-P2-MON60.NPL).**
-Both are control-store-load conditions, so the wrapper's loop means "wait until
-the control store is loaded, then retry the call":
-- 2032B (0x041A) = **ECSLOAD** "CONTROL STORE MUST BE LOADED" (5P-P2-MON60.NPL:66)
-- 4017B (0x080F = 2063 octal) = **PFECSLOAD** "LOAD CS. AFTER POWER FAIL"
-  (5P-P2-MON60.NPL:91)
+**Retry statuses - CORRECTED (2026-07-08, reviewer catch).** The two compared
+words are `ram:ccc4 = 0x041A` and `ram:ccc5 = 0x080F`, read directly from the
+binary (hexdump at ram:ccc1: `... fe dd 04 1a 08 0f b4 78 ...`), so ram:ccc5 is
+genuinely 0x080F - NOT a misread.
 
-Both belong to the MON-60 return-code block 2000B-2136B in 5P-P2-MON60.NPL lines
-40-114 (EILFUNC=2011 illegal function, ENOCPU=2052 no CPU, etc.). These are
-MON-60 return codes, NOT message-status (0-4) values - consistent with handoff
-6.3's note that "status > 100B has its own meaning".
+- **ram:ccc4 = 0x041A = 2032B octal = ECSLOAD** "CONTROL STORE MUST BE LOADED"
+  (5P-P2-MON60.NPL:66). CONFIRMED (0x041A = 1050 decimal = 2032 octal).
+- **ram:ccc5 = 0x080F = 2063 decimal - identity UNRESOLVED.** My earlier claim
+  that this is PFECSLOAD was WRONG: it was a base-confusion. PFECSLOAD = 2063
+  OCTAL = 1075 decimal = **0x0433**, which is NOT the stored word 0x080F. There
+  is no 4017B (= 2063 decimal reread as octal) symbol in the MON-60 status table
+  (5P-P2-MON60.NPL:40-114). So the second retry code 0x080F does not map to any
+  known MON-60 status symbol and is carried as UNKNOWN.
+
+ECSLOAD (0x041A) IS a MON-60 return code (block 2000B-2136B). The wrapper loops
+while A equals ECSLOAD or 0x080F, i.e. a wait-and-retry on a
+control-store-not-ready-class condition, but only the ECSLOAD half is positively
+identified. These are MON-60 return codes, NOT message-status (0-4) values.
 
 ### 2.3 The MON 60B subfunction stub array (ram:ccc8-ce6d) - DECODED
 
@@ -338,9 +345,10 @@ item, not a new claim. The genuinely new evidence is Q6, Q3, and DUMMESS.)
 4. **NEW - user-side interface fully documented (Q3).** The Background Monitor
    reaches the resident driver ONLY through MON 60B, function code in A,
    dispatched by a stub array at ram:ccc8-ce6d whose SAA immediates ARE the
-   5P-P2-MON60.NPL function codes (sections 2.2-2.4). Retry statuses decoded to
-   ECSLOAD=2032B / PFECSLOAD=4017B (control-store-load conditions). Two-source
-   result (this binary + 5P-P2-MON60.NPL). Previously the user side was
+   5P-P2-MON60.NPL function codes (sections 2.2-2.4). Retry status ram:ccc4 =
+   0x041A = ECSLOAD (control store must be loaded); the second retry word
+   ram:ccc5 = 0x080F is UNRESOLVED (NOT PFECSLOAD - see corrected section 2.2).
+   Two-source result (this binary + 5P-P2-MON60.NPL). Previously the user side was
    undocumented; the resident side (MCHANDLE/DECOMESS) was already in the dossier.
 5. No XMSG (MON 200B) usage found in the background monitor - consistent with the
    ND-500 path being MON 60B, not XMSG.

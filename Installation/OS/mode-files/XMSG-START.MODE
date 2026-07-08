@@ -1,0 +1,52 @@
+@CC ===================================================================
+@CC (SYSTEM)XMSG-START:MODE   --- GENERIC TEMPLATE ---
+@CC Replace every <TOKEN> and edit the name/link/route lists for your
+@CC network. See mode-files/README.md and the boot guide sections 5, 11.
+@CC
+@CC Start the XMSG kernel and bring up the network (names + links).
+@CC Called from LOAD-MODE:BATC on every warm start.
+@CC ===================================================================
+@CC
+@CC --- Stop then start the XMSG kernel, waiting for segments to fix ---
+@SINTRAN-SERVICE-PROGRAM
+@STOP-XMSG
+@EXIT
+@HOLD 0 0
+@HOLD 2 2
+@SINTRAN-SERVICE-PROGRAM
+@START-XMSG
+@EXIT
+@HOLD 0 0
+@HOLD 3 2
+@CC
+@CC --- Configure names, links and routing -----------------------------
+@CC   <alias>   = symbolic name for a neighbour  (e.g. D100)
+@CC   <node-nr> = its node number in DECIMAL      (e.g. 100)
+@CC   <HDLC-UNIT> = HDLC logical unit in OCTAL     (e.g. 1360, 1362)
+@CC   <via>     = a neighbour used to relay to an indirect node
+@(UTILITY)XMSG-COMMAND
+SET-PRIVILEGED
+@CC   -- one DEFINE-REMOTE-NAME per remote node (direct AND indirect) --
+DEFINE-REMOTE-NAME,,<alias-1> <node-nr-1>
+DEFINE-REMOTE-NAME,,<alias-2> <node-nr-2>
+@CC   -- one START-LINK per DIRECT HDLC neighbour ----------------------
+START-LINK,<HDLC-UNIT-1>,,,-1,,
+START-LINK,<HDLC-UNIT-2>,,,-1,,
+@CC   -- for Ethernet (DLAN) neighbours use this instead of START-LINK: -
+@CC DEFINE-NETWORK-CONNECTION <alias>,ENNS0,,0,0,0,0
+@CC   -- for nodes reached THROUGH a neighbour, add a route: -----------
+@CC DEFINE-SYSTEM-ROUTE,,<dest-alias> <via>
+@CC   -- if THIS node relays traffic for others: -----------------------
+ENABLE-ROUTE-THROUGH
+LIST-LINKS,,,
+LIST-ROUTING-INFO,,,
+EXIT
+@CC
+@CC --- Large networks: replace the inline lists above with include ----
+@CC     files pulled in from INSIDE XMSG-COMMAND, e.g.:
+@CC         MODE (UTILITY)DEFINE-REMOTE:INCL,1
+@CC         MODE (UTILITY)DEFINE-ETH-DLAN:INCL,1
+@CC         MODE (UTILITY)DEF-ROUT-<node>:INCL,1
+@CC ===================================================================
+@CC END OF XMSG-START:MODE
+@CC ===================================================================

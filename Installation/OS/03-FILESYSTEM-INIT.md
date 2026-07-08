@@ -1,0 +1,51 @@
+# 03 — File-System Initialisation
+
+> Status: SCAFFOLD. Verified source: `System initialisation.txt` (K and M are near-identical).
+
+After the OS is loaded and started, log in and build the file system. Login: press `ESC`,
+then `<enter><enter>` (verified comment in source).
+
+## Verified command sequence (abridged, SINTRAN-K)
+
+```
+CREATE-DIRECTORY PACK-ONE DISC-75MB-1 0      # see 01-DISK-DEVICES.md
+ENTER-DIRECTORY  PACK-ONE DISC-75MB-1 0
+CREATE-USER SYSTEM
+LOGOUT
+# log in as SYSTEM
+GIVE-USER-SPACE SYSTEM 15000
+SET-INITIAL-FILE-ACCESS R,RWA,RWAD
+SET-DEFAULT-FILE-ACCESS R,RWA,RWAD
+ALLOCATE-FILE SINTRAN:DATA    1   77B
+ALLOCATE-FILE MACM-AREA:DATA  100 100B
+ALLOCATE-FILE SEGFIL0:DATA    200 10000D
+SET-FILE-ACCESS SINTRAN:DATA   N N RWA
+SET-FILE-ACCESS MACM-AREA:DATA N N RWA
+SET-FILE-ACCESS SEGFIL0:DATA   N RWA RWA
+SINTRAN-SERVICE-PROG
+  DEFINE-SEGMENT-FILE Y Y 0 SEGFIL0:DATA
+EXIT
+CREATE-FILE MAILBOX:DATA,,
+CREATE-FILE RTFIL:DATA,,
+SET-TERMINAL-FILE   "TERMINAL"
+SET-TEMPORARY-FILE  "SYSTEM-OUTPUT-1:SYMB"
+SET-PERIPHERAL-FILE "FLOPPY-1"          1000B
+SET-PERIPHERAL-FILE "LINE-PRINTER"      5
+SET-PERIPHERAL-FILE "PAPERTAPE-READER"  2     # K; absent in M
+SET-PERIPHERAL-FILE "PAPERTAPE-PUNCH"   3     # K; absent in M
+CREATE-USER FLOPPY-USER / UTILITY / BPUN-FILES / SCRATCH / RT
+CREATE-FRIEND RT
+SET-FRIEND-ACCESS RT RWA
+```
+
+## Standard system files (verification target — `BIGDISK0-*.txt`)
+`SINTRAN:DATA`, `MACM-AREA:DATA`, `SEGFIL0:DATA`, `MAILBOX:DATA`, `RTFIL:DATA`, symbol
+files (`FILSYS-SYMBOLS`, `RTLO-SYMBOLS`, `SYMBOL-1/2-LIST`, `N500-SYMBOLS`, `LIBRARY-MARKS`),
+`S3-CONFIGURATION:PROG`/`:CNFG`, `PATCHES:OUT`, `PATCH-FILE:OUT`.
+
+## Known per-version deltas (verified)
+- K declares PAPERTAPE reader/punch peripheral files; M does not.
+- Standard users: SYSTEM, FLOPPY-USER, UTILITY, BPUN-FILES, SCRATCH, RT (GAMES seen on K disk dump).
+
+## Command reference
+Link each verb to [`../../Operations/SINTRAN/OPCOM-COMMAND-REFERENCE.md`](../../Operations/SINTRAN/OPCOM-COMMAND-REFERENCE.md). TODO: verify each is present there.

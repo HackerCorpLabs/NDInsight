@@ -193,6 +193,8 @@ User Directory:
 
 This converts `OLD-PROG` (old format with DESC entry) to `NEW-PROG:DOM` (new self-contained format).
 
+**See also:** [CONVERT-DOMAIN-PSEG-DSEG-TO-DOM.md](CONVERT-DOMAIN-PSEG-DSEG-TO-DOM.md) - detailed step-by-step conversion procedure.
+
 **When to Use Each:**
 - **New :DOM format:** All new development, portable applications
 - **Old DESC format:** Legacy RT programs that don't recognize :DOM (e.g., old SIBAS, NOTIS versions)

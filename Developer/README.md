@@ -123,6 +123,7 @@ Developer/
 | **[COMPILER-COMMANDS-REFERENCE.md](Workflow/COMPILER-COMMANDS-REFERENCE.md)** | All compiler commands | 18KB |
 | **[LINKING-GUIDE.md](Workflow/LINKING-GUIDE.md)** | NRL linker, BRF, PROG files | 17KB |
 | **[LINKING-GUIDE-500-DEEP-DIVE.md](Workflow/LINKING-GUIDE-500-DEEP-DIVE.md)** | ND-500 linker deep dive | - |
+| **[CONVERT-DOMAIN-PSEG-DSEG-TO-DOM.md](Workflow/CONVERT-DOMAIN-PSEG-DSEG-TO-DOM.md)** | Convert old PSEG/DSEG/LINK domains to :DOM | - |
 | **[SCRIPT-GUIDE.md](Workflow/SCRIPT-GUIDE.md)** | MODE files, automation | 15KB |
 | **[TOOLS-REFERENCE.md](Workflow/TOOLS-REFERENCE.md)** | Complete tools reference | 22KB |
 

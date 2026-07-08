@@ -1,0 +1,77 @@
+@CC ===================================================================
+@CC (SYSTEM)HENT-MODE:MODE   --- GENERIC TEMPLATE ---
+@CC Replace every <TOKEN> before use. See mode-files/README.md for the
+@CC full substitution table.
+@CC
+@CC COLD-START mode file. Run BY HAND after a cold start:
+@CC     @ENTER-DIRECTORY <MAIN-DIR> <DISC-DEVICE> 0
+@CC     (log in as SYSTEM)
+@CC     @MODE (SYSTEM)HENT-MODE:MODE,,,
+@CC On a cold start the initial commands are NOT executed automatically;
+@CC this file re-defines them (they persist in the image for warm starts).
+@CC ===================================================================
+@SET-UNAVAILABLE $THE COMPUTER IS BEING COLD-STARTED$
+@CC
+@CC --- Define the initial commands (stored in the SINTRAN image) --------
+@INITIAL-COMMAND ENTER-DIRECTORY <MAIN-DIR> <DISC-DEVICE> 0
+@NEXT-INITIAL-COMMAND CONNECT-FILE SYSTEM-OUTPUT-1 105 W
+@NEXT-INITIAL-COMMAND CLOSE-FILE 105
+@NEXT-INITIAL-COMMAND SET-ERROR-DEVICE 1
+@NEXT-INITIAL-COMMAND BATCH 1
+@NEXT-INITIAL-COMMAND APPEND-BATCH 1 LOAD-MODE:BATC SYSTEM-OUTPUT-1
+@CC
+@CC --- Enter any EXTRA directories (one pair per additional pack) ------
+@CC @ENTER-DIRECTORY <OTHER-DIR> <DISC-DEVICE> <UNIT>
+@CC @SET-DEFAULT-DIRECTORY <OTHER-DIR>
+@CC
+@CC --- Define the segment file, background programs, RT ----------------
+@SINTRAN-SERVICE-PROGRAM
+@DEFINE-SEGMENT-FILE Y Y 0 <SEGMENT-FILE>
+@EXIT
+@INITIALIZE-BACKGROUND-PROGRAMS
+@RTENTER
+@CC
+@CC --- Load the DMA/comms driver into its segment ---------------------
+@RT-LOADER
+READ-BINARY (BPUN-FILES)<DMAC-BINARY> <DMAC-SEG>
+YES
+END-LOAD
+EXIT
+@CC
+@CC --- Load the COSMOS TAD administrator into segment 36 (S3TAD) -------
+@CC     Needed BEFORE @START-TADADM, else you get "TADADM NOT LOADED".
+@CC     COS-TADADM:BPUN comes from SINTRAN generated WITH TAD support
+@CC     (copied to (SYSTEM)), NOT from the COSMOS Basic floppy.
+@CC     Omit this block if this machine has no TADs / no remote terminal
+@CC     access. Confirm the file exists: @LIST-FILES (SYSTEM)COS-TADADM
+@RT-LOADER
+READ-BINARY (SYSTEM)COS-TADADM 36
+YES
+END-LOAD
+EXIT
+@CC
+@CC --- Initialise MAIL -------------------------------------------------
+@MAIL
+@INITIALIZE 10
+@RUN-MAIL
+@EXIT
+@CC
+@CC --- Make editors/compilers reentrant (cold start only) -------------
+@MODE (UTILITY)DUMP-REENTRANT:MODE,,,
+@CC
+@CC --- Load XMSG reentrant (COSMOS needs the inter-system version) -----
+@MODE (UTILITY)XMSG-LOAD:MODE,,,
+@CC
+@CC --- COSMOS BASIC cold-start half (OPTIONAL; delete if no COSMOS) ----
+@CC     COSMOS-specific; see COSMOS Basic / COS-BOOT-WIRING.md
+@MODE (<COSMOS-USER>)COS-HENT-<REV>:MODE,,
+@CC
+@CC --- Hand off to the warm-start job ---------------------------------
+@CONNECT-FILE SYSTEM-OUTPUT-1 105 W
+@CLOSE-FILE 105
+@SET-ERROR-DEVICE 1
+@BATCH 1
+@APPEND-BATCH 1 LOAD-MODE:BATC SYSTEM-OUTPUT-1
+@CC ===================================================================
+@CC END OF HENT-MODE:MODE
+@CC ===================================================================

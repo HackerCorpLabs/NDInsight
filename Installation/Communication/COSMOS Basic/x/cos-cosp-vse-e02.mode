@@ -1,0 +1,21 @@
+@cc ___________________________________________
+@cc ~ Mode file to load COSPO into a free     ~
+@cc ~ segment and start Cosmos spooling.      ~
+@cc ~_________________________________________~
+@cc
+@STOP-SPOOLING COSMOS-SPOOLING
+@SET-PERIPHERAL-FILE "COSMOS-SPOOLING",1731B
+@Hold 0,0
+@Hold 12,2
+@Abort COSPO
+@Schedule 503b
+@RT-loader
+CHANGE-RT-DESCRIPTION COSPO,,0,,,,,,,
+CLEAR-SEGMENT COSPOOL
+SET-PAGE-TABLE 0
+NEW-SEGMENT COSPOOL,2,DM,,,,,,,
+READ-BINARY (COSMOS-BASIC)COS-COSP-VSE-E02,COSPOOL,,,
+END-LOAD
+WRITE-SEGMENT COSPOOL,,,,
+CHANGE-RT-DESCRIPTION COSPO,,COSPOOL,,,,,,,
+EXIT-LOADER

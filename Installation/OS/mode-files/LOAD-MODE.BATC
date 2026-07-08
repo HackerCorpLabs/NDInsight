@@ -1,0 +1,20 @@
+@ENTER SYSTEM,<SYSTEM-PASSWORD>,,<PROJECT>
+@CC ===================================================================
+@CC (SYSTEM)LOAD-MODE:BATC   --- GENERIC TEMPLATE (thin batch wrapper) ---
+@CC The ONLY things here are the batch-specific bits: log in, run the
+@CC real warm-start config (LOAD-MODE:MODE), announce, terminate.
+@CC ALL configuration lives in LOAD-MODE:MODE (no password there) so
+@CC nothing is duplicated. This file holds the SYSTEM password ->
+@CC set file access PUBLIC=N FRIEND=N. Replace the <TOKEN>s.
+@CC ===================================================================
+@MODE (SYSTEM)LOAD-MODE:MODE,,,
+@CC
+@CC --- Announce availability (MAIL broadcast; && is a batch escape) ----
+@MAIL
+@DIRECT-BROADCAST
+$$
+SYSTEM IS AVAILABLE
+$$
+&
+EXIT
+&&

@@ -1,0 +1,42 @@
+@ENTER SYSTEM,<SYSTEM-PASSWORD>,,<PROJECT>
+@CC ===================================================================
+@CC (UTILITY)DUMP-REENTRANT:MODE   --- GENERIC TEMPLATE ---
+@CC Replace <SYSTEM-PASSWORD>/<PROJECT>. EDIT THE PRODUCT LIST to the
+@CC subsystems this site actually has; delete the rest.
+@CC
+@CC Make the most-used ND-100 programs reentrant. Run once per COLD
+@CC start (called from HENT-MODE:MODE). The reentrant segments live in
+@CC the segment file and survive warm starts.
+@CC
+@CC Format: @DUMP-REENTRANT <name> <start-adr> <restart-adr> <file>
+@CC   Start/restart addresses are OCTAL and come from each product's PD
+@CC   sheet (they are the SAME on any machine). -1 = 177777, -3 = 177775.
+@CC   Empty (,,) = use the file's own defaults.
+@CC   File names use no directory prefix -> resolved on the default
+@CC   directory. Add (<DIR>) only if a product lives elsewhere.
+@CC ===================================================================
+@CC
+@CC --- SUBSYSTEM PACKAGE II (210400B): addresses VERIFIED vs PD sheet -
+@DUMP-REENTRANT DITAP        70       70     (BPUN-FILES)DITAP-1880D:BPUN;1
+@DUMP-REENTRANT FMAC     177777   177775     (BPUN-FILES)FMAC:BPUN;1
+@DUMP-REENTRANT MAC      177777   177775     (BPUN-FILES)MAC-1415C:BPUN;1
+@DUMP-REENTRANT QED           0        1     (BPUN-FILES)QED:BPUN;1
+@DUMP-REENTRANT NPL           0        1     (BPUN-FILES)NPL-1896D:BPUN;1
+@CC
+@CC --- Other editors/tools: addresses PLAUSIBLE, VERIFY vs each PD sheet
+@DUMP-REENTRANT PED           0        1     (SYSTEM)PED-ENG-J:BPUN;1
+@DUMP-REENTRANT NRL           0        1     (BPUN-FILES)NRL-1935I:BPUN;1
+@DUMP-REENTRANT GPM           0        1     (BPUN-FILES)GPM-2365B:BPUN;1
+@DUMP-REENTRANT FIL-EXTR      0        1     (BPUN-FILES)FIL-EXTR-2221B:BPUN;1
+@DUMP-REENTRANT BRF           0        1     (BPUN-FILES)BRF-EDITOR:BPUN;1
+@DUMP-REENTRANT LOOK-FILE     0        1     (BPUN-FILES)LOOK-FILE-2244D:BPUN;1
+@DUMP-REENTRANT PERFORM-E     0        1     (BPUN-FILES)PERFORM-E:BPUN;1
+@CC
+@CC --- VERIFY these before trusting them ------------------------------
+@CC FTN: confirm start/restart against the FORTRAN PD sheet.
+@DUMP-REENTRANT FTN           0        1     (BPUN-FILES)FTN:BPUN;1
+@CC ASSEMBLER-500: the manual dumps it with EMPTY addresses (,,), not 0/1.
+@CC @DUMP-REENTRANT ASSEMBLER-500 ,, (BPUN-FILES)ASSEMBLER-500:BPUN;1
+@CC ===================================================================
+@CC END OF DUMP-REENTRANT:MODE
+@CC ===================================================================

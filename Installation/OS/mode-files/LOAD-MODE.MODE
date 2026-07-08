@@ -1,0 +1,37 @@
+@CC ===================================================================
+@CC (SYSTEM)LOAD-MODE:MODE   --- GENERIC TEMPLATE (warm-start config) ---
+@CC The real warm-start content. Called from LOAD-MODE:BATC (batch), or
+@CC run by hand:  @MODE (SYSTEM)LOAD-MODE:MODE,,,
+@CC No @ENTER and no password here -- it runs in the caller's context.
+@CC Replace the <TOKEN>s; delete OPTIONAL lines you do not use.
+@CC ===================================================================
+@SET-UNAVAILABLE $THE COMPUTER IS BEING STARTED$
+@CC
+@CC --- Directories & floppy drives (main dir entered by INITIAL-COMMAND)
+@DEFINE-MASS-STORAGE-UNIT FLOPPY-DISC-1 0
+@CC @ENTER-DIRECTORY <OTHER-DIR> <DISC-DEVICE> <UNIT>
+@CC @SET-DEFAULT-DIRECTORY <OTHER-DIR>
+@CC
+@CC --- Terminal types (OPTIONAL; one line per terminal, site-specific)-
+@CC @SET-TERMINAL-TYPE <term-no> <type>
+@CC
+@CC --- Extra batch processors (only if you use batch 2+, else leave off)
+@CC @BATCH 2
+@CC
+@CC --- Start XMSG and bring up the network links ----------------------
+@MODE (SYSTEM)XMSG-START:MODE,,,
+@CC
+@CC --- Start COSMOS Basic Module (OPTIONAL; needs XMSG up) ------------
+@CC     Starts TADADM internally via the file-server part.
+@MODE (<COSMOS-USER>)COS-START-<REV>:MODE,,
+@CC
+@CC --- If you did NOT install the COSMOS file-server part, uncomment: --
+@CC @START-TADADM
+@CC
+@CC --- Make the system available -------------------------------------
+@SET-AVAILABLE
+@OPERATOR $ *** SYSTEM IS AVAILABLE *** $
+@CC ===================================================================
+@CC END OF LOAD-MODE:MODE
+@CC (the 'system available' MAIL broadcast is done by LOAD-MODE:BATC)
+@CC ===================================================================

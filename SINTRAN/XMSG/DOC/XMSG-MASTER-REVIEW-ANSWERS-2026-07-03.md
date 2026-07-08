@@ -1,5 +1,19 @@
 # Master handoff — expert review answers (2026-07-03)
 
+> ⚠️ **ERRATA (2026-07-05) — read before using this document.** Later measurement and
+> live testing superseded three findings below:
+> 1. **Problem B crash candidate #1 ("Flags1 echo") is RETRACTED**: accept F1 equal to
+>    the connect F1 is capture-common and harmless (measured; `XMSG-PROTOCOL.md`
+>    §18.8 S6a). The fatal-24B causes actually found later: a stale per-connect
+>    secure-ACK re-seed emitting the wrong ACK channel past the ACK baseLow (§18.8 S9),
+>    and reset-to-zero/echoed sequence values (behind/ahead symptoms).
+> 2. **Problem A's "unexplained first-transmission loss" was SOLVED**: the LAPB address
+>    bit `0x80` marks ODD info-field length; odd frames sent as `0x09` are discarded
+>    (`XMSG-PROTOCOL.md` §3.1) — help/echo-"3" were odd, time/date even.
+> 3. The teardown/DCON and reconnect rules were fully settled by the 2026-07-05 reboot
+>    capture (`XMSG-PROTOCOL.md` §5.1, §18.8 S7–S9; `TAD-Message-Formats.md` §22.7).
+> This document remains valid as the LAPB defect audit and login-ladder extraction.
+
 Answers to the three open problems in the MASTER handoff. Evidence: code review of
 `SINTRAN/XMSG/SRC/` (file:line cites below), byte extraction from
 `SINTRAN/XMSG/SRC/pcap-decode-report.txt` (line refs), and the COSMOS manuals.

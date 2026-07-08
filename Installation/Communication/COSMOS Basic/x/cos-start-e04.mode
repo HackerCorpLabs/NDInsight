@@ -1,0 +1,27 @@
+@CC =================================================================
+@CC =                                                               =
+@CC = FILE NAME: COS-START-E04:MODE                                 =
+@CC = START-UP OF COSMOS BASIC MODULE VERSION E                     =
+@CC = RUN THIS MODE FILE DURING WARM START, ANYTIME AFTER X-MESSAGE =
+@CC = AND TADADM ARE RUNNING.                                       =
+@CC =                                                               =
+@CC =================================================================
+@CC
+@OPERATOR *** START COSMOS BASIC MODULE ***
+@CC *****************
+@CC * FILE TRANSFER *
+@CC *****************
+@ABORT XFTRAD
+@RT XFTRAD
+@CC
+@CC *******************
+@CC * COSMOS SPOOLING *
+@CC *******************
+@RTON COSPO
+@START-SPOOLING COSMOS-SPOOLING
+@MODE (COSMOS-BASIC)COS-DEF-PRIN-E:MODE,,,
+@CC 
+@CC *****************************************
+@CC * REMOTE FILE ACCCESS, FILE SERVER PART *
+@CC *****************************************
+@MODE (COSMOS-BASIC)COS-FA-SERV-E:MODE,,,

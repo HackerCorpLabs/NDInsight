@@ -1,0 +1,12046 @@
+; ═══════════════════════════════════════════════════════════════
+; ND-500 Disassembly
+; ═══════════════════════════════════════════════════════════════
+; File: SWAPPER-K01.PSEG
+;
+; File Type:    RAW BINARY (PSEG/DSEG format)
+; Size:         38161 bytes (37.3 KB)
+; Base Address: 0x00000000 (file offsets)
+;
+; ═══════════════════════════════════════════════════════════════
+;
+        ??? ; opcode 0x0000
+        ??? ; opcode 0x0000
+        ??? ; opcode 0x0000
+        ??? ; opcode 0x0000
+init         $0x8024254,$0x24,$0x1F44
+w move       $0x1A,b.0x14
+w stz        b.0x1C
+w comp2      $0x8012818,$0x5245562E
+if >< go     $0x4
+w set1       b.0x1C
+w stz        b.0x20
+w comp2      $0x801281C,$0x2D4B3031
+if >< go     $0x4
+w set1       b.0x20
+w1 :=        b.0x1C
+w1 and       b.0x20
+w1 =:        b.0x18
+w test       r1
+if >< go     $0x14
+w1 :=        b.0x14
+call         $0x800062F,$0x0
+if -k go     $0xA
+r:=          b.0x0
+r:=          r.0x8
+tos:=        r.0x0
+retk
+call         $0x80081A5,$0x0
+ifkret
+call         $0xFFFFFFFFF8000000,$0x0 ; MON 0B EXITT
+entd
+r:=          r2
+w2 :=        r2.(0x0)
+w1 comp      r2
+if = go      $0xF
+w test       r2
+if >< go     $0x4
+go           $0x1D
+w add3       r2,r3,r2
+go           $0xFFFFFFFFFFFFFFEC
+w add3       r2,r3,r2
+w3 :=        r2.(0x0)
+w stz        r2.(0x0)
+r=:          r2
+w3 =:        r2.(0x0)
+clrk
+retd
+clrk
+retd
+ents         $0x18
+w test       $0x8023D70
+if = go      $0xC1
+w test       b.0x14
+if = go      $0xBC
+w test       $0x8023D6C
+if = go      $0x2D
+r:=          b.0x8
+w move       $0x8014D34,r.0x14
+w move       $0x8014D38,r.0x18
+w stz        r.0x1C
+w stz        r.0x20
+w stz        r.0x24
+w stz        r.0x28
+w stz        r.0x2C
+call         $0x800894A,$0x0
+ifkret
+call         $0x8008AAA,$0x0
+ifkret
+go           $0x87
+w stz        $0x8023D7C
+w2 :=        $0x8014D34
+r:=          $0x8023D7C
+w2 putbi     r.0x0,$0x0
+w3 :=        $0x8014D38
+w3 putbi     r.0x0,$0x1
+w test       r3
+if = go      $0x1C
+dctsb
+w stz        $0x8023D3C
+w stz        $0x8014D38
+w incr       $0x802626C
+w incr       $0x8026274
+w test       $0x8014D34
+if = go      $0x16
+pctsb
+w stz        $0x8014D34
+w incr       $0x802626C
+w incr       $0x8026270
+w test       $0x8028F64
+if = go      $0x13
+call         $0x8009381,$0x2,$0x8012A34,$0x8023D7C
+ifkret
+call         $0xFFFFFFFFF80000FF,$0x2,$0x8012A34,$0x8023D7C ; MON 377B
+ifkret
+go           $0x40
+w test       $0x8014D38
+if = go      $0x1C
+dctsb
+w stz        $0x8023D3C
+w stz        $0x8014D38
+w incr       $0x802626C
+w incr       $0x8026274
+w test       $0x8014D34
+if = go      $0x16
+pctsb
+w stz        $0x8014D34
+w incr       $0x802626C
+w incr       $0x8026270
+ret
+ents         $0x18
+w test       $0x8023D70
+if = go      $0xC7
+w test       b.0x14
+if = go      $0xC2
+w test       $0x8023D6C
+if = go      $0x23
+r:=          b.0x8
+w stz        r.0x14
+w stz        r.0x18
+w set1       r.0x1C
+w set1       r.0x20
+w set1       r.0x24
+w stz        r.0x28
+w stz        r.0x2C
+call         $0x800894A,$0x0
+ifkret
+call         $0x8008AAA,$0x0
+ifkret
+go           $0x97
+w stz        $0x8023D7C
+w2 :=        $0x8014D34
+r:=          $0x8023D7C
+w2 putbi     r.0x0,$0x0
+w3 :=        $0x8014D38
+w3 putbi     r.0x0,$0x1
+w setbi      r.0x0,$0x4
+w setbi      r.0x0,$0x3
+w test       r3
+if = go      $0x1C
+dctsb
+w stz        $0x8023D3C
+w stz        $0x8014D38
+w incr       $0x802626C
+w incr       $0x8026274
+w test       $0x8014D34
+if = go      $0x16
+pctsb
+w stz        $0x8014D34
+w incr       $0x802626C
+w incr       $0x8026270
+dcc
+w incr       $0x8026278
+w test       $0x8028F64
+if = go      $0x13
+call         $0x8009381,$0x2,$0x8012A34,$0x8023D7C
+ifkret
+call         $0xFFFFFFFFF80000FF,$0x2,$0x8012A34,$0x8023D7C ; MON 377B
+ifkret
+go           $0xA
+dcc
+w incr       $0x8026278
+ret
+ents         $0x34
+w1 :=        b.0x18
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xD
+w shl        r1,$0x36
+w1 and       $0x3F
+w1 *         $0x2
+go           $0xB
+w shl        r1,$0x37
+w1 and       $0x7F
+w1 *         $0x4
+w2 :=        b.0x14
+w2 *         $0x800
+w1 +         r2
+w1 =:        b.0x30
+w1 :=        b.0x30
+go           $0x2
+w1 =:        b.0x24
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xC
+r:=          b.0x24
+dmof
+h1 :=        r.0x0
+dmon
+go           $0xA
+r:=          b.0x24
+dmof
+w1 :=        r.0x0
+dmon
+w1 =:        b.0x30
+w1 :=        b.0x30
+go           $0x2
+w1 =:        b.0x28
+w test       r1
+if >< go     $0x40
+r:=          b.0x8
+w move       b.0x1C,r.0x14
+call         $0x80036CB,$0x0
+ifkret
+w1 =:        b.0x28
+w1 *         $0x8
+w2 :=        $0x3
+by rladdr    $0x30000000+
+w2 putbf     r.0x4,$0x16,$0x3
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xF
+w1 :=        b.0x28
+r:=          b.0x24
+dmof
+h1 =:        r.0x0
+dmon
+go           $0xC
+w1 :=        b.0x28
+r:=          b.0x24
+dmof
+w1 =:        r.0x0
+dmon
+w1 :=        b.0x28
+ret
+ents         $0x3C
+w2 :=        b.0x14
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xB
+h1 laddr     $0x28010800+
+go           $0x9
+w1 laddr     $0x28010800+
+w1 =:        b.0x34
+w1 :=        b.0x34
+go           $0x2
+w1 =:        b.0x2C
+r:=          b.0x2C
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xA
+h1 getbf     r.0x0,$0x0,$0xE
+go           $0x8
+w1 getbf     r.0x0,$0x0,$0x1E
+w1 =:        b.0x34
+w1 :=        b.0x34
+go           $0x2
+w1 =:        b.0x20
+r:=          b.0x2C
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xA
+h1 getbf     r.0x0,$0xE,$0x2
+go           $0x8
+w1 getbf     r.0x0,$0x1E,$0x2
+w1 =:        b.0x34
+w1 :=        b.0x34
+go           $0x2
+w1 =:        b.0x28
+w test       r1
+if = go      $0x6B
+w move       b.0x20,b.0x24
+w1 comp      $0x2
+if >< go     $0x16
+r:=          b.0x8
+w move       b.0x24,r.0x14
+w move       b.0x18,r.0x18
+w move       b.0x14,r.0x1C
+call         $0x8000275,$0x0
+ifkret
+w1 =:        b.0x24
+w1 :=        b.0x18
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xA
+w1 and       $0x3FF
+w1 *         $0x2
+go           $0xA
+w1 :=        b.0x18
+w1 and       $0x1FF
+w1 *         $0x4
+w2 :=        b.0x24
+w2 *         $0x800
+w1 +         r2
+w1 =:        b.0x38
+w1 :=        b.0x38
+go           $0x2
+w1 =:        b.0x30
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xC
+r:=          b.0x30
+dmof
+h1 :=        r.0x0
+dmon
+go           $0xA
+r:=          b.0x30
+dmof
+w1 :=        r.0x0
+dmon
+w1 =:        b.0x38
+w1 :=        b.0x38
+go           $0x2
+w1 =:        b.0x20
+w1 :=        b.0x20
+ret
+ents         $0x40
+w1 =:        b.0x1C
+w2 :=        b.0x14
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xB
+h1 laddr     $0x28010800+
+go           $0x9
+w1 laddr     $0x28010800+
+w1 =:        b.0x30
+w1 :=        b.0x30
+go           $0x2
+w1 =:        b.0x28
+r:=          b.0x28
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xA
+h1 getbf     r.0x0,$0xE,$0x2
+go           $0x8
+w1 getbf     r.0x0,$0x1E,$0x2
+w1 =:        b.0x30
+w1 :=        b.0x30
+go           $0x2
+w1 =:        b.0x24
+w test       r1
+if >< go     $0x3B
+w move       $0x10,b.0x2C
+w stz        b.0x34
+w test       b.0x18
+if >< go     $0x4
+w set1       b.0x34
+w move       b.0x34,b.0x30
+w test       b.0x30
+if >< go     $0xB
+w1 :=        b.0x2C
+call         $0x800062F,$0x0
+ifkret
+w1 :=        b.0x1C
+r:=          b.0x28
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xA
+h1 putbf     r.0x0,$0x0,$0xE
+go           $0x8
+w1 putbf     r.0x0,$0x0,$0x1E
+go           $0x87
+r:=          b.0x28
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xA
+h1 getbf     r.0x0,$0x0,$0xE
+go           $0x8
+w1 getbf     r.0x0,$0x0,$0x1E
+w1 =:        b.0x3C
+w1 :=        b.0x3C
+go           $0x2
+w1 =:        b.0x20
+w comp2      b.0x24,$0x2
+if >< go     $0x15
+r:=          b.0x8
+w1 =:        r.0x14
+w move       b.0x18,r.0x18
+w move       b.0x14,r.0x1C
+call         $0x8000275,$0x0
+ifkret
+w1 =:        b.0x20
+w1 :=        b.0x18
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xA
+w1 and       $0x3FF
+w1 *         $0x2
+go           $0xA
+w1 :=        b.0x18
+w1 and       $0x1FF
+w1 *         $0x4
+w2 :=        b.0x20
+w2 *         $0x800
+w1 +         r2
+w1 =:        b.0x3C
+w1 :=        b.0x3C
+go           $0x2
+w1 =:        b.0x34
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xF
+w1 :=        b.0x1C
+r:=          b.0x34
+dmof
+h1 =:        r.0x0
+dmon
+go           $0xC
+w1 :=        b.0x1C
+r:=          b.0x34
+dmof
+w1 =:        r.0x0
+dmon
+ret
+ents         $0x20
+w incr       $0x8023D3C
+w move       $0x8023D3C,b.0x1C
+w comp2      b.0x1C,$0x400
+if << go     $0xA
+w test       $0x8023D74
+if >< go     $0x11
+w comp2      b.0x1C,$0x200
+if << go     $0x26
+w test       $0x8023D78
+if = go      $0x1E
+dctsb
+w stz        $0x8023D3C
+w stz        $0x8014D38
+w incr       $0x802626C
+w incr       $0x8026274
+w stz        b.0x1C
+r:=          b.0x8
+w move       $0x8012A3C,r.0x14
+w move       b.0x1C,r.0x18
+w1 :=        b.0x14
+call         $0x80003ED,$0x0
+ifkret
+w1 :=        b.0x1C
+ret
+ents         $0x2C
+w1 :=        b.0x14
+w1 *         $0x64
+by rladdr    $0x8038000+
+h2 :=        r.0x5E
+w2 =:        b.0x1C
+w stz        b.0x18
+w test       b.0x1C
+if = go      $0x15
+w incr       b.0x18
+w1 :=        b.0x1C
+w1 *         $0x8
+by rladdr    $0x30000000+
+h2 :=        r.0x0
+w2 =:        b.0x1C
+go           $0xFFFFFFFFFFFFFFEB
+w move       $0x40,b.0x20
+w2 :=        b.0x14
+w2 *         $0x64
+by rladdr    $0x8038000+
+h3 :=        r.0x6
+w stz        b.0x28
+w comp2      b.0x18,r3
+if >< go     $0x4
+w set1       b.0x28
+w move       b.0x28,b.0x24
+w test       b.0x24
+if >< go     $0xB
+w1 :=        b.0x20
+call         $0x800062F,$0x0
+ifkret
+ret
+ents         $0x28
+r:=          b.0x14
+h1 :=        r.0x6
+h1 +         b.0x18
+h1 =:        r.0x6
+w move       $0x28,b.0x1C
+w stz        b.0x24
+h2 :=        r.0x6
+h2 comp      $0xFFFF
+if = go      $0x4
+w set1       b.0x24
+w move       b.0x24,b.0x20
+w test       b.0x20
+if >< go     $0xB
+w1 :=        b.0x1C
+call         $0x800062F,$0x0
+ifkret
+ret
+ents         $0x24
+w1 :=        b.0x18
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x1C
+w move       b.0x14,b.0x20
+r:=          b.0x20
+h3 :=        r.0x5E
+h3 =:        r2.(0x0)
+w4 :=        b.0x18
+h4 =:        r.0x5E
+r:=          b.0x14
+h1 :=        r.0x54
+h1 =:        r2.(0x2)
+r:=          b.0x8
+w move       b.0x14,r.0x14
+h set1       r.0x18
+call         $0x80005BD,$0x0
+ifkret
+ret
+ents         $0x1C
+w1 =:        b.0x14
+w1 =:        $0x8023E9C
+w stz        b.0x18
+w test       $0x8023D6C
+if = go      $0x32
+w test       $0x8023D70
+if = go      $0x28
+w test       b.0x18
+if = go      $0x24
+r:=          b.0x8
+w stz        r.0x14
+w stz        r.0x18
+w set1       r.0x1C
+w set1       r.0x20
+w stz        r.0x24
+w stz        r.0x28
+w stz        r.0x2C
+call         $0x800894A,$0x0
+ifkret
+dcc
+call         $0x8008AAA,$0x0
+ifkret
+go           $0x4
+dcc
+call         $0xFFFFFFFFF80000FF,$0x2,$0x8012A20,$0x8023E9C ; MON 377B
+ifkret
+go           $0xFFFFFFFFFFFFFFEF
+ret
+ents         $0x2C
+w move       $0x8014D00,b.0x18
+w test       b.0x18
+if = go      $0x4B
+w move       b.0x18,b.0x14
+w move       $0x1D,b.0x1C
+w1 :=        $0x8014D04
+w1 *         $0x800
+w stz        b.0x24
+w comp2      b.0x14,r1
+if << go     $0x4
+w set1       b.0x24
+w2 :=        $0x8014D08
+w2 *         $0x800
+w2 -         $0x1
+w stz        b.0x28
+w comp2      b.0x14,r2
+if >> go     $0x4
+w set1       b.0x28
+w3 :=        b.0x24
+w3 and       b.0x28
+w3 =:        b.0x20
+w test       r3
+if >< go     $0xB
+w1 :=        b.0x1C
+call         $0x800062F,$0x0
+ifkret
+w move       @b.0x18,b.0x18
+w test       b.0x18
+if >< go     $0xFFFFFFFFFFFFFFB9
+ret
+ents         $0x2C
+w test       b.0x18
+if >< go     $0xB
+w1 :=        b.0x14
+w1 +         $0x20
+w1 =:        b.0x20
+go           $0x5
+w move       b.0x14,b.0x20
+w1 :=        $0x8014D2C
+w1 *         $0x100
+by2 laddr    $0x68000000+
+w2 =:        b.0x24
+w3 :=        b.0x20
+w3 *         $0x2
+w4 laddr     r2.(0x0)
+w4 =:        b.0x28
+by rladdr    @b.0x28+
+h1 :=        r.0x0
+w1 and       $0x1FFF
+ret
+ents         $0x2C
+w1 :=        $0x8014D2C
+w1 *         $0x100
+h2 :=        b.0x14
+w2 *         $0x2
+by rladdr    $0x68000000+
+w3 laddr     r.0x40
+w3 =:        b.0x28
+by3 laddr    @b.0x28+
+w3 =:        b.0x24
+h4 :=        b.0x16
+w4 putbf     r3.(0x0),$0x10,$0xD
+w1 :=        b.0x18
+w1 putbi     r3.(0x0),$0x1F
+w2 :=        b.0x20
+w2 putbi     r3.(0x0),$0x1E
+w4 :=        b.0x1C
+w4 putbi     r3.(0x0),$0x1D
+ret
+ents         $0x28
+w stz        b.0x18
+h1 :=        $0x80128F6
+h1 -         $0x1
+h1 =:        b.0x1C
+h wconv      r1,r2
+w comp2      b.0x18,r2
+if >> go     $0x41
+w1 :=        b.0x18
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x20
+w3 getbf     r2.(0x4),$0x16,$0x3
+w test       r3
+if = go      $0x1F
+w3 getbf     r2.(0x4),$0x19,$0x3
+w3 =:        b.0x24
+w3 comp      $0x4
+if << go     $0x13
+w3 comp      $0x7
+if >> go     $0xF
+by4 :=       r2.(0x4)
+by shl       r4,$0x3B
+w test       r4
+if >< go     $0x4
+bi1 clr
+ret
+w incr       b.0x18
+h wconv      b.0x1C,r3
+w comp2      b.0x18,r3
+if <<= go    $0xFFFFFFFFFFFFFFC3
+w1 :=        $0x1
+ret
+ents         $0x28
+w test       $0x8023D70
+if = go      $0x14
+w comp2      $0x8023D58,$0x1
+if >< go     $0xB
+r:=          b.0x14
+w1 getbi     r.0x4,$0x19
+ret
+go           $0x21
+bi1 rwip     b.0x18
+if >< go     $0x17
+w1 :=        b.0x18
+w1 *         $0x8
+w1 =:        b.0x24
+w1 :=        b.0x24
+by rladdr    $0x30000000+
+w1 getbi     r.0x4,$0x1C
+go           $0x6
+w1 :=        $0x1
+go           $0x2
+ret
+ents         $0x18
+w1 =:        b.0x14
+w test       r1
+if >< go     $0x7
+w1 :=        $0x8
+ret
+go           $0x12
+w1 +         $0x40
+w1 -         $0x1
+w2 :=        $0x40
+w2 udiv      r1,r2,r1
+w1 *         $0x8
+ret
+ents         $0x28
+w1 :=        $0x80128E0
+h1 =:        b.0x1C
+h comp2      b.0x1C,b.0x14
+if << go     $0x11
+h comp2      b.0x1C,b.0x16
+if >> go     $0xA
+h1 :=        b.0x14
+h1 -         $0x1
+h1 =:        b.0x1C
+h1 :=        b.0x1C
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x20
+h comp2      b.0x1C,$0x80128F6
+if >>= go    $0x7
+w1 :=        $0x451
+retk
+w3 getbf     r2.(0x4),$0x16,$0x3
+w3 =:        b.0x24
+w test       r3
+if = go      $0x27
+w3 comp      $0x2
+if = go      $0x23
+w3 comp      $0x3
+if = go      $0x1F
+by4 :=       r2.(0x4)
+by shl       r4,$0x3B
+w test       r4
+if >< go     $0x14
+h comp2      b.0x1C,$0x8014D18
+if = go      $0xA
+h4 :=        r2.(0x2)
+h4 comp      b.0x18
+if >< go     $0x7
+h decr       b.0x1C
+go           $0xFFFFFFFFFFFFFF9B
+r:=          b.0x8
+h move       b.0x1C,r.0x14
+call         $0x8003A0A,$0x0
+ifkret
+h1 :=        b.0x1C
+ret
+ents         $0x34
+w1 =:        b.0x18
+w2 :=        b.0x14
+w2 *         $0x8
+w1 :=        r2
+call         $0x8000807,$0x0
+ifkret
+r:=          b.0x18
+w1 =:        r.0x4
+w move       b.0x18,b.0x24
+w test       $0x8014D00
+if = go      $0xB
+w comp2      $0x8014D00,b.0x18
+if <<= go    $0x19
+w2 :=        $0x8014D00
+w2 =:        b.0x1C
+w2 =:        @b.0x18
+w3 :=        b.0x18
+w3 =:        $0x8014D00
+w3 =:        b.0x20
+go           $0x5F
+w move       $0x8014D00,b.0x1C
+w test       b.0x1C
+if = go      $0x12
+w comp2      b.0x1C,b.0x18
+if >>= go    $0xD
+w move       b.0x1C,b.0x20
+w move       @b.0x1C,b.0x1C
+w test       b.0x1C
+if >< go     $0xFFFFFFFFFFFFFFF2
+w set1       b.0x28
+w stz        b.0x30
+w comp2      b.0x1C,b.0x18
+if = go      $0x4
+w set1       b.0x30
+w move       b.0x30,b.0x2C
+w test       b.0x2C
+if >< go     $0xB
+w1 :=        b.0x28
+call         $0x800062F,$0x0
+ifkret
+w1 :=        b.0x20
+w1 +         r1.(0x4)
+w1 comp      b.0x18
+if >< go     $0x13
+r:=          b.0x20
+w1 :=        r.0x4
+r:=          b.0x18
+w1 +         r.0x4
+r:=          b.0x20
+w1 =:        r.0x4
+w move       b.0x20,b.0x24
+go           $0xF
+r:=          b.0x18
+w move       b.0x1C,@b.0x18
+w2 :=        b.0x18
+w2 =:        @b.0x20
+w2 =:        b.0x20
+w2 :=        b.0x20
+w2 +         r2.(0x4)
+w2 comp      b.0x1C
+if >< go     $0x12
+w2 :=        @b.0x1C
+w2 =:        @b.0x20
+r:=          b.0x1C
+w3 :=        r.0x4
+r:=          b.0x20
+w3 +         r.0x4
+w3 =:        r.0x4
+call         $0x800068B,$0x0
+ifkret
+w1 :=        b.0x24
+ret
+ents         $0x38
+w1 :=        b.0x18
+w1 *         $0x64
+by2 laddr    $0x8038000+
+w2 =:        b.0x1C
+w3 :=        r2.(0xE)
+w test       r3
+if = go      $0x20
+r:=          r2.(0xE)
+w3 laddr     r.0x0
+w3 =:        b.0x24
+w4 :=        b.0x14
+bi test      @b.0x24+
+if >< go     $0x3
+ret
+r:=          r2.(0xE)
+w1 laddr     r.0x0
+w1 =:        b.0x24
+bi stz       @b.0x24+
+go           $0x2B
+h4 :=        r2.(0x12)
+w comp2      b.0x14,r4
+if = go      $0x3
+ret
+w move       $0x33,b.0x24
+w stz        b.0x2C
+h3 :=        r2.(0xC)
+h3 comp      $0x1
+if >< go     $0x4
+w set1       b.0x2C
+w move       b.0x2C,b.0x28
+w test       b.0x28
+if >< go     $0xB
+w1 :=        b.0x24
+call         $0x800062F,$0x0
+ifkret
+r:=          b.0x1C
+h1 :=        r.0xC
+h1 comp      $0x1
+if >< go     $0xE6
+w1 getbf     r.0x4,$0x1A,$0x4
+w1 =:        b.0x2C
+bi test      $0x80129E4+
+if = go      $0x1E
+w comp2      r.0x32,$0x64
+if = go      $0x17
+w2 :=        b.0x18
+r:=          b.0x8
+h2 =:        r.0x14
+h stz        r.0x16
+h move       $0x3F,r.0x18
+call         $0x8003A2D,$0x0
+ifkret
+r:=          b.0x1C
+w clebi      r.0x12,$0xA
+r:=          b.0x8
+w move       b.0x18,r.0x14
+call         $0x8004EF5,$0x0
+ifkret
+bi2 clr
+r:=          b.0x1C
+h2 =:        r.0xC
+w2 :=        b.0x14
+w2 *         $0x100
+by1 laddr    $0x20000900+
+w1 =:        b.0x34
+w1 :=        b.0x34
+go           $0x2
+w1 =:        b.0x20
+w2 :=        r1.(0xFFFFFFFFFFFFFFEC)
+w test       r2
+if = go      $0x2E
+r:=          r1.(0xFFFFFFFFFFFFFFEC)
+h wconv      r.0x0,r2
+w2 comp      b.0x18
+if >< go     $0x23
+r:=          b.0x8
+w move       $0xC4,r.0x14
+r:=          b.0x20
+w1 :=        r.0xEC
+call         $0x80008AE,$0x0
+ifkret
+bi2 clr
+r:=          b.0x20
+w2 =:        r.0xEC
+r:=          b.0x1C
+w stz        r.0x5A
+w clebi      r.0x12,$0xD
+r:=          b.0x1C
+w1 :=        r.0x4A
+w test       r1
+if = go      $0x22
+w1 :=        @b.0x1C
+call         $0x8000807,$0x0
+ifkret
+r:=          b.0x8
+w1 =:        r.0x14
+r:=          b.0x1C
+w1 :=        r.0x4A
+call         $0x80008AE,$0x0
+ifkret
+bi2 clr
+r:=          b.0x1C
+w2 =:        r.0x4A
+w2 :=        r.0xE
+w test       r2
+if = go      $0x1A
+r:=          b.0x8
+w move       $0x60,r.0x14
+r:=          b.0x1C
+w1 :=        r.0xE
+call         $0x80008AE,$0x0
+ifkret
+bi2 clr
+r:=          b.0x1C
+w2 =:        r.0xE
+bi2 clr
+h2 =:        r.0x12
+w3 :=        b.0x18
+w stz        $0x80262BC+
+go           $0x39
+h2 :=        r.0xC
+h2 -         $0x1
+h2 =:        r.0xC
+r:=          b.0x1C
+w3 getbi     r.0x12,$0x8
+w3 or        $0x8014D34
+w3 =:        $0x8014D34
+w4 getbi     r.0x12,$0x7
+w4 or        $0x8014D38
+w4 =:        $0x8014D38
+r:=          b.0x8
+w set1       r.0x14
+call         $0x800008D,$0x0
+ifkret
+ret
+ents         $0x4C
+w1 =:        b.0x14
+call         $0x800068B,$0x0
+ifkret
+w1 :=        b.0x14
+call         $0x8000807,$0x0
+ifkret
+w1 =:        b.0x1C
+w1 :=        $0x8014D00
+w1 =:        b.0x24
+w move       $0x8014D00,b.0x18
+w test       b.0x18
+if = go      $0x18
+r:=          b.0x18
+w comp2      b.0x1C,r.0x4
+if <= go     $0xE0
+w1 laddr     @b.0x18
+w1 =:        b.0x24
+w move       @b.0x18,b.0x18
+w test       b.0x18
+if >< go     $0xFFFFFFFFFFFFFFEC
+w set1       b.0x28
+r:=          b.0x8
+w move       b.0x28,r.0x14
+call         $0x8002DE1,$0x0
+ifkret
+h1 =:        b.0x20
+w test       r1
+if >< go     $0x1F
+w incr       b.0x28
+w comp2      b.0x28,$0x3
+if <<= go    $0xFFFFFFFFFFFFFFE8
+r:=          b.0x8
+h set1       r.0x14
+h stz        r.0x16
+h move       $0x3F,r.0x18
+call         $0x8000828,$0x0
+ifkret
+h1 =:        b.0x20
+h1 :=        b.0x20
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x2C
+w3 :=        $0x8014D08
+h3 =:        r2.(0x6)
+w4 :=        $0x7
+w4 putbf     r2.(0x4),$0x1D,$0x3
+w1 :=        $0x1
+w1 putbf     r2.(0x4),$0x16,$0x3
+w3 :=        $0x8012A38
+h3 =:        r2.(0x2)
+h4 :=        b.0x20
+w4 =:        b.0x30
+r:=          b.0x8
+w move       $0x8012A38,r.0x14
+w move       $0x8014D08,r.0x18
+w1 :=        r4
+call         $0x80003ED,$0x0
+ifkret
+w2 :=        $0x8012A38
+w2 *         $0x64
+by3 laddr    $0x8038000+
+r:=          b.0x8
+w3 =:        r.0x14
+h4 :=        b.0x20
+w4 =:        r.0x18
+call         $0x80005F2,$0x0
+ifkret
+w2 :=        $0x8014D08
+w2 *         $0x800
+w2 =:        b.0x18
+w stz        r2.(0x0)
+w incr       $0x8014D08
+r:=          b.0x8
+w move       $0x800,r.0x14
+w1 :=        r2
+call         $0x80008AE,$0x0
+ifkret
+w1 =:        b.0x18
+w incr       $0x8014D10
+go           $0xFFFFFFFFFFFFFF0B
+w comp2      r.0x4,b.0x1C
+if = go      $0x1E
+w1 :=        b.0x18
+w1 +         b.0x1C
+w1 =:        @b.0x24
+w2 :=        @b.0x18
+r:=          @b.0x24
+w2 =:        r.0x0
+r:=          b.0x18
+w3 :=        r.0x4
+w3 -         b.0x1C
+r:=          @b.0x24
+w3 =:        r.0x4
+go           $0x8
+w4 :=        @b.0x18
+w4 =:        @b.0x24
+w1 :=        b.0x1C
+w sha        r1,$0x3E
+w1 -         $0x1
+bi2 clr
+w4 laddr     @b.0x18
+w4 =:        b.0x40
+w3 laddr     @b.0x40+
+w3 =:        b.0x38
+w1 +         $0x1
+w1 =:        b.0x34
+bi2 clr
+if < go      $0x6
+bi3 clr
+w3 sfill     b.0x34
+call         $0x800068B,$0x0
+ifkret
+w1 :=        b.0x18
+ret
+ents         $0x38
+r:=          b.0x14
+h1 :=        r.0x10
+w1 =:        b.0x20
+w1 comp      $0x7
+if < go      $0xE
+h wconv      $0x8012854,r2
+w1 comp      r2
+if <= go     $0x7
+w1 :=        $0x437
+retk
+w1 :=        b.0x20
+w1 *         $0x64
+by3 laddr    $0x8038000+
+w3 =:        b.0x1C
+h4 :=        r3.(0x5E)
+w test       r4
+if >< go     $0x9
+h4 :=        r3.(0x62)
+w test       r4
+if = go      $0x7
+w1 :=        $0x437
+retk
+w4 :=        r3
+by bmove     $0x8023EBC,r4.(0x0),$0x64
+w2 :=        r.0x12
+w2 =:        r3.(0x0)
+w1 :=        r.0x16
+w1 =:        r3.(0x16)
+w4 :=        r.0x1A
+w4 =:        r3.(0x32)
+w2 :=        b.0x20
+h2 =:        r3.(0x54)
+h1 :=        r.0x1E
+h1 =:        r3.(0x4)
+w4 getbf     r3.(0x4),$0x1A,$0x4
+w4 =:        b.0x24
+w stz        b.0x28
+bi test      $0x80129F8+
+if = go      $0x4
+w set1       b.0x28
+w2 :=        b.0x28
+w2 putbi     r3.(0x12),$0x9
+w1 getbf     r3.(0x4),$0x1A,$0x4
+w1 =:        b.0x28
+w stz        b.0x2C
+bi test      $0x80129EC+
+if = go      $0x4
+w set1       b.0x2C
+w4 :=        b.0x2C
+w4 putbi     r3.(0x12),$0x8
+w2 getbf     r3.(0x4),$0x1A,$0x4
+w2 =:        b.0x2C
+w stz        b.0x30
+bi test      $0x80129F0+
+if = go      $0x4
+w set1       b.0x30
+w1 :=        b.0x30
+w1 putbi     r3.(0x12),$0x7
+w4 getbf     r3.(0x4),$0x1A,$0x4
+w4 =:        b.0x30
+w stz        b.0x34
+bi test      $0x80129F4+
+if = go      $0x4
+w set1       b.0x34
+w2 getbi     r3.(0x4),$0x17
+bi2 inv
+w2 and       b.0x34
+w2 putbi     r3.(0x12),$0x6
+w comp2      r3.(0x0),$0x10
+if >>= go    $0x10
+by1 :=       r3.(0x5)
+by1 and      $0x20
+if >< go     $0x7
+w clebi      r3.(0x4),$0x12
+w4 :=        b.0x20
+w4 *         $0x18
+by2 laddr    $0x8014D3C+
+by bmove     $0x8023EA4,r2.(0x0),$0x18
+r:=          b.0x14
+w swap       r.0x2C,r.0x28
+w swap       r.0x3C,r.0x38
+r:=          b.0x1C
+by1 laddr    r.0x1E
+r:=          b.0x14
+w bmove      r.0x20,r1.(0x0),$0x4
+r:=          b.0x1C
+by2 laddr    r.0x36
+r:=          b.0x14
+w bmove      r.0x30,r2.(0x0),$0x4
+r:=          b.0x1C
+w3 getbf     r.0x4,$0x1A,$0x4
+w3 =:        b.0x34
+w3 comp      $0xD
+if = go      $0x10
+w3 comp      $0xE
+if = go      $0xC
+w4 :=        r.0x1E
+bi set1      $0x8023D86+
+w1 :=        b.0x20
+ret
+ents         $0x4C
+r:=          b.0x8
+w set1       r.0x14
+call         $0x8000199,$0x0
+ifkret
+w2 :=        b.0x18
+w2 *         $0x64
+by3 laddr    $0x8038000+
+w3 =:        b.0x1C
+h stz        $0x8014D18
+h4 :=        r3.(0xC)
+w test       r4
+if >< go     $0xDC
+w1 :=        r3
+call         $0x8002C8F,$0x0
+ifkret
+w2 :=        b.0x14
+r:=          b.0x1C
+h2 =:        r.0x12
+h3 :=        $0x1
+h3 =:        r.0xC
+w test       @b.0x1C
+if >< go     $0x10
+by4 :=       r.0x5
+by4 and      $0x8
+if = go      $0x8
+w move       $0x80,@b.0x1C
+by1 :=       r.0x14
+by1 and      $0x2
+if >< go     $0xA
+by2 :=       r.0x5
+by2 and      $0x8
+if = go      $0x11
+w1 :=        @b.0x1C
+call         $0x8000AF9,$0x0
+ifkret
+r:=          b.0x1C
+w1 =:        r.0x4A
+w2 :=        b.0x18
+w stz        $0x80262BC+
+by3 :=       r.0x5
+by3 and      $0x4
+if = go      $0x81
+by4 laddr    b.0x20
+w4 =:        b.0x3C
+h2 =:        r4.(0x10)
+w1 :=        b.0x14
+h1 =:        r4.(0x6)
+w setbi      r4.(0x10),$0xF
+w setbi      r4.(0x10),$0xC
+w set1       $0x8014D0C
+w clebi      r4.(0x10),$0xE
+w clebi      r4.(0x10),$0xD
+bi2 clr
+h2 =:        r4.(0x18)
+h2 =:        r4.(0x14)
+h1 :=        $0x10
+h1 =:        r4.(0x16)
+go           $0x12
+entd
+l=:          b.0x40
+w1 =:        b.0xC
+r:=          b.0x1C
+w clebi      r.0x4,$0x12
+clrk
+jumpg        b.0x40
+w1 :=        b.0x18
+w1 *         $0x18
+by2 laddr    $0x8014D3C+
+w2 =:        b.0x44
+by3 laddr    b.0x20
+r:=          b.0x8
+w3 =:        r.0x14
+w stz        r.0x18
+call         $0x80057CB,$0x0
+if -k go     $0x8
+call         $0x8000E67,$0x0
+r:=          b.0x44
+by rladdr    r.0x8
+w1 =:        r.0x0
+w1 +         $0x8
+r:=          b.0x44
+by rladdr    r.0x10
+w1 =:        r.0x0
+go           $0xA1
+w2 :=        r3.(0xE)
+w test       r2
+if >< go     $0xA
+h2 :=        r3.(0x12)
+w2 comp      b.0x14
+if >< go     $0x3
+ret
+w2 :=        r3.(0xE)
+w test       r2
+if >< go     $0x60
+w1 :=        $0x300
+call         $0x8000AF9,$0x0
+if -k go     $0x8
+call         $0x8000E67,$0x0
+r:=          b.0x1C
+w1 =:        r.0xE
+h2 :=        r.0x12
+r:=          b.0x1C
+r:=          r.0xE
+w3 laddr     r.0x0
+w3 =:        b.0x48
+bi set1      @b.0x48+
+r:=          b.0x1C
+by4 :=       r.0x14
+by4 and      $0x80
+if = go      $0x13
+h1 :=        r.0x12
+r:=          b.0x1C
+r:=          r.0xE
+w3 laddr     r.0x40
+w3 =:        b.0x48
+bi set1      @b.0x48+
+r:=          b.0x1C
+by2 :=       r.0x14
+by2 and      $0x40
+if = go      $0x13
+h4 :=        r.0x12
+r:=          b.0x1C
+r:=          r.0xE
+w3 laddr     r.0x20
+w3 =:        b.0x48
+bi set1      @b.0x48+
+r:=          b.0x1C
+r:=          r.0xE
+w3 laddr     r.0x0
+w3 =:        b.0x48
+w1 :=        b.0x14
+bi test      @b.0x48+
+if = go      $0x3
+ret
+r:=          b.0x1C
+r:=          r.0xE
+w2 laddr     r.0x0
+w2 =:        b.0x48
+bi set1      @b.0x48+
+r:=          b.0x1C
+h4 :=        r.0xC
+h4 +         $0x1
+h4 =:        r.0xC
+ret
+ents         $0x60
+w1 :=        b.0x14
+w1 *         $0x64
+by2 laddr    $0x8038000+
+w2 =:        b.0x20
+w test       $0x8023D68
+if >< go     $0x1D
+w move       $0x17,b.0x3C
+w stz        b.0x44
+w test       b.0x18
+if >< go     $0x4
+w set1       b.0x44
+w move       b.0x44,b.0x40
+w test       b.0x40
+if >< go     $0xB
+w1 :=        b.0x3C
+call         $0x800062F,$0x0
+ifkret
+w1 :=        b.0x18
+w2 :=        $0x8
+w2 udiv      r1,r2,r1
+w1 =:        b.0x2C
+w3 :=        b.0x18
+w4 :=        $0x8
+w3 udiv      r3,r4,r4
+w3 =:        b.0x30
+r:=          b.0x20
+by2 laddr    r.0x1E
+w2 =:        b.0x44
+w move       $0x2E,b.0x48
+w stz        b.0x50
+by1 :=       r2.(0xC)
+by shl       r1,$0x3A
+w test       r1
+if >< go     $0x4
+w set1       b.0x50
+w move       b.0x50,b.0x4C
+w test       b.0x4C
+if >< go     $0xB
+w1 :=        b.0x48
+call         $0x800062F,$0x0
+ifkret
+r:=          b.0x44
+w1 :=        r.0xC
+w1 and       $0x3FFFFFFF
+w1 +         b.0x2C
+h2 :=        r.0x6
+w2 *         r1
+w2 +         r.0x8
+w2 =:        b.0x24
+h3 :=        r.0x6
+w3 =:        b.0x28
+by4 laddr    b.0x34
+w4 =:        b.0x50
+bi1 clr
+w1 putbf     r4.(0x0),$0xC,$0x14
+by2 :=       $0x30
+w2 putbf     r4.(0x0),$0x0,$0x6
+h3 :=        r.0x4
+w3 putbf     r4.(0x0),$0x6,$0x6
+bi1 clr
+h1 =:        b.0x38
+w2 :=        b.0x14
+h2 =:        b.0x3A
+w test       $0x8028F64
+if = go      $0x1F
+w3 laddr     @b.0x44
+w3 =:        b.0x54
+call         $0x8009187,$0x7,$0x8012A24,b.0x38,@b.0x54,b.0x34,$0x8014CF8,b.0x24,b.0x28
+ifkret
+w move       $0x50,b.0x54
+w2 :=        @b.0x44
+bi1 :=       $0x8023D86+
+w1 =:        b.0x58
+w test       r1
+if >< go     $0xB
+w1 :=        b.0x54
+call         $0x800062F,$0x0
+ifkret
+r:=          b.0x8
+w stz        r.0x14
+call         $0x800008D,$0x0
+ifkret
+w2 laddr     @b.0x44
+w2 =:        b.0x5C
+call         $0xFFFFFFFFF80000FF,$0x7,$0x8012A24,b.0x38,@b.0x5C,b.0x34,$0x8014CF8,b.0x24,b.0x28 ; MON 377B
+ifkret
+dcc
+w incr       $0x8026278
+w incr       $0x802627C
+w1 :=        b.0x30
+w1 *         $0x100
+w2 :=        b.0x1C
+by bmove     $0x80144F8+,r2.(0x0),$0x100
+ret
+ents         $0x2C
+w1 :=        b.0x18
+w2 :=        $0x8
+w2 udiv      r1,r2,r1
+w1 =:        b.0x24
+r:=          b.0x8
+w move       b.0x14,r.0x14
+w1 =:        r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x20
+w test       r1
+if = go      $0x50
+w test       $0x8023D6C
+if = go      $0x19
+w3 :=        b.0x18
+w3 *         $0x100
+w1 :=        $0x100
+w2 :=        b.0x1C
+w4 :=        b.0x14
+rphs         $0xFFFFFFFFFFFFFFC4
+h1 :=        $0x1
+w set1       $0x2C
+go           $0x2F
+r:=          b.0x8
+w1 =:        r.0x14
+call         $0x80004FB,$0x0
+ifkret
+w1 =:        b.0x28
+w1 :=        b.0x28
+w1 *         $0x800
+w2 :=        b.0x18
+w2 and       $0x7
+w2 *         $0x100
+w2 +         r1
+by1 laddr    $0x10000000+
+r:=          b.0x1C
+w bmove      r1.(0x0),r.0x0,$0x40
+go           $0x15
+r:=          b.0x8
+w move       b.0x14,r.0x14
+w move       b.0x18,r.0x18
+w2 :=        b.0x1C
+w2 =:        r.0x1C
+call         $0x8000F4D,$0x0
+ifkret
+ret
+ents         $0x144
+w1 :=        b.0x18
+w2 :=        $0x8
+w2 udiv      r1,r2,r1
+w1 =:        b.0x28
+r:=          b.0x8
+w move       b.0x14,r.0x14
+w1 =:        r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x2C
+w test       r1
+if = go      $0x50
+w test       $0x8023D6C
+if = go      $0x19
+w3 :=        b.0x18
+w3 *         $0x100
+w1 :=        $0x80
+w2 :=        b.0x1C
+w4 :=        b.0x14
+rphs         $0xFFFFFFFFFFFFFFC4
+h1 :=        $0x1
+w set1       $0x2C
+go           $0x2F
+r:=          b.0x8
+w1 =:        r.0x14
+call         $0x80004FB,$0x0
+ifkret
+w1 =:        b.0x30
+w1 :=        b.0x30
+w1 *         $0x800
+w2 :=        b.0x18
+w2 and       $0x7
+w2 *         $0x100
+w2 +         r1
+by1 laddr    $0x10000000+
+r:=          b.0x1C
+w bmove      r1.(0x0),r.0x0,$0x20
+go           $0x4A
+r:=          b.0x8
+w move       b.0x14,r.0x14
+w move       b.0x18,r.0x18
+by2 laddr    b.0x34
+w2 =:        r.0x1C
+call         $0x8000F4D,$0x0
+ifkret
+w2 laddr     b.0x34
+w2 =:        b.0x138
+w move       $0x80,b.0x134
+w sub3       b.0x24,b.0x20,b.0x13C
+w3 :=        b.0x20
+w3 mulad     $0x2,b.0x1C
+w3 =:        b.0x140
+w incr       b.0x13C
+w mul2       b.0x13C,$0x2
+if < go      $0xC
+bi1 clr
+bi2 clr
+by smove     b.0x134,b.0x13C
+ret
+ents         $0x12C
+w1 :=        b.0x18
+w2 :=        $0x8
+w2 udiv      r1,r2,r1
+w1 =:        b.0x20
+r:=          b.0x8
+w move       b.0x14,r.0x14
+w1 =:        r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x24
+w test       r1
+if = go      $0x24
+w1 :=        b.0x24
+w1 *         $0x800
+w2 :=        b.0x18
+w2 and       $0x7
+w2 *         $0x100
+w2 +         r1
+dmof
+by1 :=       r2.(0xFFFFFFFFFFFFFFBA)
+dmon
+w test       r1
+if >< go     $0x4
+bi1 clr
+ret
+w1 :=        $0x1
+ret
+go           $0x2A
+r:=          b.0x8
+w move       b.0x14,r.0x14
+w move       b.0x18,r.0x18
+by2 laddr    b.0x28
+w2 =:        r.0x1C
+call         $0x8000F4D,$0x0
+ifkret
+by2 :=       b.0xFFFFFFFFFFFFFFE3
+w stz        b.0x128
+w test       r2
+if = go      $0x6
+w set1       b.0x128
+w1 :=        b.0x128
+ret
+ents         $0x128
+w1 :=        b.0x18
+w2 :=        $0x8
+w2 udiv      r1,r2,r1
+w1 =:        b.0x20
+r:=          b.0x8
+w move       b.0x14,r.0x14
+w1 =:        r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x24
+w test       r1
+if = go      $0x1D
+w1 :=        b.0x24
+w1 *         $0x800
+w2 :=        b.0x18
+w2 and       $0x7
+w2 *         $0x100
+w2 +         r1
+dmof
+w1 :=        r2.(0xFFFFFFFFFFFFFF96)
+dmon
+w1 =:        b.0x1C
+go           $0x1A
+r:=          b.0x8
+w move       b.0x14,r.0x14
+w move       b.0x18,r.0x18
+by2 laddr    b.0x28
+w2 =:        r.0x1C
+call         $0x8000F4D,$0x0
+ifkret
+w move       b.0xFFFFFFFFFFFFFFBE,b.0x1C
+ret
+ents         $0x138
+w2 :=        $0x80129DC
+w2 *         $0x100
+by1 laddr    $0x20000900+
+r:=          r1
+w1 :=        r.0x5C
+w1 and       $0xFF
+w1 =:        b.0x134
+w1 :=        b.0x134
+go           $0x2
+w1 =:        b.0x124
+w2 :=        $0x8
+w2 udiv      r1,r2,r1
+w1 =:        b.0x128
+r:=          b.0x8
+w move       b.0x14,r.0x14
+w1 =:        r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x20
+w test       r1
+if = go      $0x31
+w1 :=        b.0x20
+w1 *         $0x800
+w2 :=        b.0x124
+w2 and       $0x7
+w2 *         $0x100
+w1 +         r2
+w2 :=        b.0x18
+w2 *         $0x2
+w2 +         r1
+dmof
+h1 :=        r2.(0x0)
+dmon
+h1 and       $0x1FFF
+w1 =:        b.0x12C
+w1 :=        b.0x12C
+ret
+go           $0x31
+r:=          b.0x8
+w move       b.0x14,r.0x14
+w move       b.0x124,r.0x18
+by2 laddr    b.0x24
+w2 =:        r.0x1C
+call         $0x8000F4D,$0x0
+ifkret
+w2 :=        b.0x18
+w2 *         $0x2
+w4 laddr     b.0x24
+w4 =:        b.0x130
+by rladdr    @b.0x130+
+h3 :=        r.0x0
+w3 and       $0x1FFF
+w1 :=        r3
+ret
+ents         $0xF0
+w1 :=        b.0x18
+w1 *         $0x64
+by2 laddr    $0x8038000+
+w2 =:        b.0xC0
+w test       b.0x28
+if = go      $0x1C
+w stz        b.0xBC
+w comp2      $0x8023D68,$0x1
+if >< go     $0xD
+w3 :=        r2.(0x0)
+w3 *         $0x8
+w3 -         $0x1
+w3 =:        b.0xB8
+go           $0x4
+w stz        b.0xB8
+go           $0x2C
+w test       $0x8023D68
+if >< go     $0x1E
+w move       $0x46,b.0xC8
+w stz        b.0xD0
+w test       b.0x24
+if >< go     $0x4
+w set1       b.0xD0
+w move       b.0xD0,b.0xCC
+w test       b.0xCC
+if >< go     $0xB
+w1 :=        b.0xC8
+call         $0x800062F,$0x0
+ifkret
+w1 :=        b.0x24
+w1 =:        b.0xBC
+w1 =:        b.0xB8
+w move       b.0xBC,b.0xB4
+w comp2      b.0xB4,b.0xB8
+if >> go     $0x11F
+r:=          b.0x8
+w move       b.0x18,r.0x14
+w move       b.0xB4,r.0x18
+w1 laddr     b.0x34
+w1 =:        r.0x1C
+w stz        r.0x20
+w move       $0x3F,r.0x24
+call         $0x800111A,$0x0
+ifkret
+w stz        b.0x2C
+w1 :=        b.0x2C
+w1 *         $0x2
+by2 laddr    b.0x34+
+w2 =:        b.0x30
+h3 :=        r2.(0x0)
+w3 and       $0x1FFF
+w3 comp      b.0x1C
+if << go     $0x56
+by3 :=       r2.(0x0)
+by3 and      $0x80
+if >< go     $0x4D
+w move       $0x15,b.0xD0
+h4 :=        r2.(0x0)
+w4 and       $0x1FFF
+h4 =:        b.0xD4
+w stz        b.0xDC
+w4 comp      b.0x1C
+if << go     $0x4
+w set1       b.0xDC
+w stz        b.0xE0
+h comp2      b.0xD4,$0x8012854
+if >> go     $0x4
+w set1       b.0xE0
+w4 :=        b.0xDC
+w4 and       b.0xE0
+w4 =:        b.0xD8
+w test       r4
+if >< go     $0xB
+w1 :=        b.0xD0
+call         $0x800062F,$0x0
+ifkret
+r:=          b.0x8
+w move       b.0x14,r.0x14
+r:=          b.0x30
+h1 :=        r.0x0
+w1 and       $0x1FFF
+r:=          b.0x8
+w1 =:        r.0x18
+callg        b.0x20,$0x0
+ifkret
+w incr       b.0x2C
+w comp2      b.0x2C,$0x1F
+if <<= go    $0xFFFFFFFFFFFFFF92
+by wconv     $0x20,b.0x2C
+w1 :=        b.0x2C
+w1 *         $0x2
+by2 laddr    b.0x34+
+w2 =:        b.0xC4
+h3 :=        r2.(0x0)
+w3 and       $0x1FFF
+w3 comp      b.0x1C
+if << go     $0x67
+h3 :=        r2.(0x0)
+w3 and       $0x1FFF
+w3 *         $0x64
+by rladdr    $0x8038000+
+by4 :=       r.0x5
+by4 and      $0x40
+if >< go     $0x4D
+w move       $0x15,b.0xDC
+h1 :=        r2.(0x0)
+w1 and       $0x1FFF
+h1 =:        b.0xE4
+w stz        b.0xE8
+w1 comp      b.0x1C
+if << go     $0x4
+w set1       b.0xE8
+w stz        b.0xEC
+h comp2      b.0xE4,$0x8012854
+if >> go     $0x4
+w set1       b.0xEC
+w1 :=        b.0xE8
+w1 and       b.0xEC
+w1 =:        b.0xE0
+w test       r1
+if >< go     $0xB
+w1 :=        b.0xDC
+call         $0x800062F,$0x0
+ifkret
+r:=          b.0x8
+w move       b.0x14,r.0x14
+r:=          b.0xC4
+h1 :=        r.0x0
+w1 and       $0x1FFF
+r:=          b.0x8
+w1 =:        r.0x18
+callg        b.0x20,$0x0
+ifkret
+w incr       b.0x2C
+w comp2      b.0x2C,$0x3F
+if <<= go    $0xFFFFFFFFFFFFFF80
+w incr       b.0xB4
+w comp2      b.0xB4,b.0xB8
+if <<= go    $0xFFFFFFFFFFFFFEE7
+ret
+ents         $0x20
+w1 =:        b.0x18
+w test       r1.(0xC)
+if = go      $0x2B
+r:=          r1.(0xC)
+w2 laddr     r.0x10
+w2 =:        b.0x1C
+w1 :=        @b.0x1C
+w test       r1
+if = go      $0x1C
+w1 :=        @b.0x1C
+w1 comp      b.0x18
+if >< go     $0xB
+r:=          b.0x18
+w1 :=        r.0x8
+w1 =:        @b.0x1C
+go           $0xC
+r:=          @b.0x1C
+w2 laddr     r.0x8
+w2 =:        b.0x1C
+go           $0xFFFFFFFFFFFFFFE1
+r:=          b.0x18
+w move       b.0x14,r.0xC
+r:=          b.0x14
+w1 :=        r.0x10
+r:=          b.0x18
+w1 =:        r.0x8
+w2 :=        b.0x18
+r:=          b.0x14
+w2 =:        r.0x10
+ret
+ents         $0x1C
+w1 =:        b.0x18
+w2 :=        r1.(0x4)
+r:=          r1.(0x0)
+w2 =:        r.0x4
+w3 :=        r1.(0x0)
+r:=          r1.(0x4)
+w3 =:        r.0x0
+w4 :=        @b.0x14
+w4 =:        r1.(0x0)
+w move       b.0x14,r1.(0x4)
+r:=          @b.0x18
+w1 =:        r.0x4
+r:=          b.0x14
+w move       b.0x18,@b.0x14
+ret
+ents         $0x1C
+w1 :=        b.0x14
+w1 *         $0x800
+w2 :=        b.0x18
+w2 *         $0x800
+dmof
+w bmove      r2.(0x0),r1.(0x0),$0x200
+dmon
+ret
+ents         $0xB0
+r:=          b.0x18
+w1 :=        r.0xC
+w1 and       $0x3FFFFFFF
+w1 =:        b.0x2C
+w stz        b.0x58
+w2 :=        b.0x1C
+w2 and       $0x3F
+w2 =:        b.0x38
+w3 :=        b.0x1C
+w shl        r3,$0x3A
+w3 =:        b.0x30
+w3 and       $0x7
+w3 =:        b.0x34
+w4 :=        r.0x10
+w4 =:        b.0x54
+w test       r4
+if = go      $0x17
+r:=          b.0x54
+h comp2      b.0x14,r.0x14
+if >< go     $0x8
+w comp2      b.0x30,r.0x10
+if = go      $0x255
+w move       r.0x8,b.0x54
+w test       b.0x54
+if >< go     $0xFFFFFFFFFFFFFFED
+h comp2      b.0x14,$0x1
+if >< go     $0x4B
+r:=          b.0x18
+by1 :=       r.0xC
+by shl       r1,$0x3A
+w1 comp      $0x2
+if >< go     $0x3F
+go           $0x15
+entd
+l=:          b.0x5C
+w1 =:        b.0xC
+w1 comp      $0x12
+if >< go     $0x6
+w set1       b.0x58
+go           $0x3
+retk
+clrk
+jumpg        b.0x5C
+r:=          b.0x8
+h move       $0x2,r.0x14
+w move       b.0x18,r.0x18
+w1 :=        b.0x1C
+w shl        r1,$0x37
+w1 =:        r.0x1C
+w move       b.0x20,r.0x20
+w2 :=        b.0x24
+w2 =:        r.0x24
+call         $0x8001563,$0x0
+if -k go     $0x8
+call         $0x80015BB,$0x0
+w1 =:        b.0x2C
+w stz        b.0x4C
+r:=          b.0x18
+w1 :=        r.0x10
+w1 =:        b.0x54
+w test       r1
+if = go      $0x23
+w move       b.0x54,b.0x60
+r:=          b.0x60
+w test       r.0x18
+if = go      $0x11
+h comp2      r.0x14,$0x4
+if = go      $0xB
+w incr       b.0x4C
+w comp2      b.0x4C,$0x2
+if <= go     $0x4
+w stz        r.0x18
+r:=          b.0x54
+w move       r.0x8,b.0x54
+w test       b.0x54
+if >< go     $0xFFFFFFFFFFFFFFE1
+r:=          $0x8012A50
+w move       r.0x4,b.0x54
+w test       b.0x54
+if = go      $0x4A
+w1 :=        $0x8012A50
+w comp2      b.0x54,r1
+if >< go     $0x32
+w1 :=        $0x8E0
+call         $0x8000AF9,$0x0
+if -k go     $0x8
+call         $0x80015BB,$0x0
+w1 =:        b.0x54
+r:=          $0x8012A50
+w2 :=        r.0x4
+w2 =:        r1.(0x4)
+w3 :=        $0x8012A50
+w3 =:        r1.(0x0)
+w incr       $0x8014D14
+go           $0x13
+r:=          b.0x54
+w test       r.0x18
+if = go      $0x9
+w move       r.0x4,b.0x54
+w test       b.0x54
+if >< go     $0xFFFFFFFFFFFFFFBA
+r:=          b.0x54
+w stz        r.0x18
+r:=          b.0x8
+w move       b.0x18,r.0x14
+w1 :=        b.0x54
+call         $0x80014CB,$0x0
+if -k go     $0x8
+call         $0x80015BB,$0x0
+r:=          b.0x54
+h move       b.0x14,r.0x14
+w2 laddr     r.0x1C
+w2 =:        b.0x68
+bi2 clr
+w move       $0x40,b.0x64
+bi3 clr
+w3 sfill     b.0x64
+r:=          b.0x54
+w move       b.0x30,r.0x10
+w move       b.0x20,b.0x6C
+r:=          b.0x6C
+h1 :=        r.0x6
+w1 =:        b.0x3C
+h2 :=        r.0x6
+w2 *         b.0x34
+w2 =:        b.0x40
+w3 :=        $0x8
+w3 udiv      r2,r3,r2
+w2 =:        b.0x40
+h4 :=        r.0x6
+w4 *         b.0x2C
+w4 +         r2
+w4 =:        b.0x40
+w add2       b.0x40,r.0x8
+by2 laddr    b.0x50
+w2 =:        b.0x70
+bi4 clr
+w4 putbf     r2.(0x0),$0xC,$0x14
+h1 :=        r.0x4
+w1 putbf     r2.(0x0),$0x6,$0x6
+by3 :=       $0x30
+w3 putbf     r2.(0x0),$0x0,$0x6
+h comp2      b.0x14,$0x1
+if >< go     $0x15
+r:=          b.0x18
+by4 :=       r.0xC
+by shl       r4,$0x3A
+w4 comp      $0x1
+if >< go     $0x9
+w comp2      b.0x1C,$0x200
+if >>= go    $0xA
+w test       b.0x2C
+if = go      $0x6
+w test       b.0x58
+if = go      $0x5
+go           $0xE4
+w test       $0x8028F64
+if = go      $0x2A
+w move       b.0x24,b.0x74
+w4 laddr     @b.0x6C
+w4 =:        b.0x78
+call         $0x8009187,$0x7,$0x8012A24,@b.0x74,@b.0x78,b.0x50,$0x8014CF8,b.0x40,b.0x3C
+if -k go     $0x8
+call         $0x80015BB,$0x0
+w move       $0x50,b.0x74
+w3 :=        @b.0x6C
+bi2 :=       $0x8023D86+
+w2 =:        b.0x78
+w test       r2
+if >< go     $0x12
+w1 :=        b.0x74
+call         $0x800062F,$0x0
+if -k go     $0x8
+call         $0x80015BB,$0x0
+r:=          b.0x8
+w stz        r.0x14
+call         $0x800008D,$0x0
+if -k go     $0x8
+call         $0x80015BB,$0x0
+w move       b.0x24,b.0x7C
+w2 laddr     @b.0x6C
+w2 =:        b.0x80
+call         $0xFFFFFFFFF80000FF,$0x7,$0x8012A24,@b.0x7C,@b.0xFFFFFFFFFFFFFF80,b.0x50,$0x8014CF8,b.0x40,b.0x3C ; MON 377B
+if -k go     $0x8
+call         $0x80015BB,$0x0
+dcc
+w incr       $0x8026278
+w incr       $0x802627C
+w incr       $0x8023F28
+r:=          b.0x6C
+h1 :=        r.0x6
+w2 :=        $0x8
+w1 udiv      r2,r1,r2
+w3 :=        b.0x34
+w4 :=        r2
+w3 udiv      r3,r4,r4
+w3 *         $0x40
+w3 =:        b.0x48
+w3 +         $0x3F
+w1 :=        b.0x48
+w2 laddr     $0x80144F8+
+w2 =:        b.0x88
+w3 -         r1
+w3 +         $0x1
+w3 =:        b.0x84
+r:=          b.0x54
+w4 laddr     r.0x1C
+w4 =:        b.0x94
+w move       $0x40,b.0x90
+bi1 clr
+bi2 clr
+w smove      b.0x84,b.0x90
+w incr       $0x8023F24
+w1 :=        $0x8023F24
+w1 /         $0x8023F28
+w1 =:        $0x8026260
+w2 :=        $0x8012A50
+r:=          b.0x8
+w2 =:        r.0x14
+w1 :=        b.0x54
+call         $0x8001515,$0x0
+if -k go     $0x8
+call         $0x80015BB,$0x0
+w move       $0x4,b.0x7C
+w stz        b.0x98
+r:=          b.0x54
+w comp2      r.0xC,b.0x18
+if >< go     $0x4
+w set1       b.0x98
+w move       b.0x98,b.0x80
+w test       b.0x80
+if >< go     $0x12
+w1 :=        b.0x7C
+call         $0x800062F,$0x0
+if -k go     $0x8
+call         $0x80015BB,$0x0
+w move       b.0x54,$0x8023F2C
+r:=          b.0x54
+w2 laddr     r.0x1C
+w2 =:        b.0x98
+w3 :=        b.0x38
+w1 :=        @b.0xFFFFFFFFFFFFFF98+
+w1 and       $0x3FFFFFFF
+w1 =:        b.0x44
+w test       r1
+if >< go     $0x16C
+h comp2      b.0x14,$0x1
+if >< go     $0x17
+w4 laddr     r.0x1C
+w4 =:        b.0x98
+w4 laddr     @b.0xFFFFFFFFFFFFFF98+
+w4 =:        $0x8023F20
+w1 :=        $0x12
+retk
+go           $0x151
+w move       b.0x20,b.0x98
+r:=          b.0x98
+h4 :=        r.0x6
+w4 =:        b.0x3C
+h1 :=        r.0x6
+w1 *         b.0x34
+w1 =:        b.0x40
+w3 :=        $0x8
+w3 udiv      r1,r3,r1
+w1 =:        b.0x40
+h2 :=        r.0x6
+w2 *         b.0x2C
+w2 +         r1
+w2 =:        b.0x40
+w add2       b.0x40,r.0x8
+by1 laddr    b.0x50
+w1 =:        b.0x9C
+bi2 clr
+w2 putbf     r1.(0x0),$0xC,$0x14
+h4 :=        r.0x4
+w4 putbf     r1.(0x0),$0x6,$0x6
+by3 :=       $0x30
+w3 putbf     r1.(0x0),$0x0,$0x6
+w test       $0x8028F64
+if = go      $0x2A
+w move       b.0x24,b.0xA0
+w2 laddr     @b.0xFFFFFFFFFFFFFF98
+w2 =:        b.0xA4
+call         $0x8009187,$0x7,$0x8012A24,@b.0xFFFFFFFFFFFFFFA0,@b.0xFFFFFFFFFFFFFFA4,b.0x50,$0x8014CF8,b.0x40,b.0x3C
+if -k go     $0x8
+call         $0x80015BB,$0x0
+w move       $0x50,b.0xA0
+w2 :=        @b.0xFFFFFFFFFFFFFF98
+bi1 :=       $0x8023D86+
+w1 =:        b.0xA4
+w test       r1
+if >< go     $0x12
+w1 :=        b.0xA0
+call         $0x800062F,$0x0
+if -k go     $0x8
+call         $0x80015BB,$0x0
+r:=          b.0x8
+w stz        r.0x14
+call         $0x800008D,$0x0
+if -k go     $0x8
+call         $0x80015BB,$0x0
+w move       b.0x24,b.0xA8
+w2 laddr     @b.0xFFFFFFFFFFFFFF98
+w2 =:        b.0xAC
+call         $0xFFFFFFFFF80000FF,$0x7,$0x8012A24,@b.0xFFFFFFFFFFFFFFA8,@b.0xFFFFFFFFFFFFFFAC,b.0x50,$0x8014CF8,b.0x40,b.0x3C ; MON 377B
+if -k go     $0x8
+call         $0x80015BB,$0x0
+dcc
+w incr       $0x8026278
+w incr       $0x802627C
+w incr       $0x8023F28
+r:=          b.0x98
+h1 :=        r.0x6
+w2 :=        $0x8
+w1 udiv      r2,r1,r2
+w3 :=        b.0x34
+w4 :=        r2
+w3 udiv      r3,r4,r4
+w3 *         $0x40
+w3 =:        b.0x48
+w3 +         $0x3F
+w1 :=        b.0x48
+w2 laddr     $0x80144F8+
+w2 =:        b.0x88
+w3 -         r1
+w3 +         $0x1
+w3 =:        b.0x84
+r:=          b.0x54
+w4 laddr     r.0x1C
+w4 =:        b.0x94
+w move       $0x40,b.0x90
+bi1 clr
+bi2 clr
+w smove      b.0x84,b.0x90
+r:=          b.0x54
+w2 laddr     r.0x1C
+w2 =:        b.0xA8
+w3 :=        b.0x38
+w1 :=        @b.0xFFFFFFFFFFFFFFA8+
+w1 and       $0x3FFFFFFF
+w1 =:        b.0x44
+w test       r1
+if >< go     $0x14
+w4 laddr     r.0x1C
+w4 =:        b.0xA8
+w4 laddr     @b.0xFFFFFFFFFFFFFFA8+
+w4 =:        $0x8023F20
+w1 :=        $0x12
+retk
+w1 :=        b.0x44
+ret
+ents         $0x58
+h1 :=        b.0x14
+w1 *         $0x8
+by rladdr    $0x30000000+
+h2 :=        r.0x2
+w2 =:        b.0x24
+w2 *         $0x64
+by3 laddr    $0x8038000+
+w3 =:        b.0x20
+r:=          b.0x20
+w4 getbi     r.0x12,$0x8
+w4 or        $0x8014D34
+w4 =:        $0x8014D34
+w1 getbi     r.0x12,$0x7
+w1 or        $0x8014D38
+w1 =:        $0x8014D38
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xF
+w2 :=        b.0x24
+h rladdr     $0x28010800+
+h1 :=        r.0x0
+go           $0xC
+w2 :=        b.0x24
+w rladdr     $0x28010800+
+w1 :=        r.0x0
+w1 =:        b.0x34
+w1 :=        b.0x34
+go           $0x2
+w1 =:        b.0x28
+w test       $0x8023D6C
+if = go      $0x100
+w stz        b.0x1C
+r:=          b.0x20
+w1 getbi     r.0x12,$0x6
+go           $0x2
+w test       r1
+if = go      $0x78
+w test       $0x8023D70
+if = go      $0x9
+call         $0x8008BD5,$0x0
+ifkret
+h move       b.0x14,b.0x1A
+h1 :=        b.0x1A
+w test       r1
+if = go      $0x5C
+h1 :=        b.0x1A
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x30
+h3 :=        r2.(0x6)
+h3 =:        b.0x34
+h3 comp      b.0x16
+if << go     $0x34
+h3 comp      b.0x18
+if >> go     $0x2F
+by4 :=       r2.(0x5)
+by4 and      $0x10
+if >< go     $0x27
+h1 :=        b.0x1A
+w1 =:        b.0x38
+bi1 rwip     b.0x38
+if >< go     $0x17
+w1 :=        b.0x38
+w1 *         $0x8
+w1 =:        b.0x40
+w1 :=        b.0x40
+by rladdr    $0x30000000+
+w1 getbi     r.0x4,$0x1C
+go           $0x6
+w1 :=        $0x1
+go           $0x2
+w1 =:        b.0x1C
+r:=          b.0x30
+h1 :=        r.0x0
+h1 =:        b.0x1A
+w test       b.0x1C
+if >< go     $0x4
+go           $0xFFFFFFFFFFFFFFA1
+w test       $0x8023D70
+if = go      $0x25
+r:=          b.0x8
+w move       $0x8014D34,r.0x14
+w move       $0x8014D38,r.0x18
+w move       b.0x1C,r.0x1C
+w move       b.0x1C,r.0x20
+w stz        r.0x24
+w stz        r.0x28
+w set1       r.0x2C
+call         $0x800894A,$0x0
+ifkret
+w test       b.0x1C
+if = go      $0x3C
+w stz        b.0x3C
+w test       $0x8023D6C
+if = go      $0x32
+w test       $0x8023D70
+if = go      $0x28
+w test       b.0x3C
+if = go      $0x24
+r:=          b.0x8
+w stz        r.0x14
+w stz        r.0x18
+w set1       r.0x1C
+w set1       r.0x20
+w stz        r.0x24
+w stz        r.0x28
+w stz        r.0x2C
+call         $0x800894A,$0x0
+ifkret
+dcc
+call         $0x8008AAA,$0x0
+ifkret
+go           $0x4
+dcc
+w test       $0x8023D70
+if = go      $0x9
+call         $0x8008AAA,$0x0
+ifkret
+w stz        b.0x40
+w1 :=        b.0x40
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x10
+w2 :=        b.0x24
+h rladdr     $0x28010800+
+h1 =:        r.0x0
+go           $0xC
+w2 :=        b.0x24
+w rladdr     $0x28010800+
+w1 =:        r.0x0
+w test       $0x8023D70
+if = go      $0x1E
+w test       $0x8023D6C
+if = go      $0xB
+call         $0x8008CF7,$0x0
+ifkret
+go           $0xD
+r:=          b.0x8
+w set1       r.0x14
+call         $0x800008D,$0x0
+ifkret
+h move       b.0x14,b.0x1A
+h1 :=        b.0x1A
+w test       r1
+if = go      $0x91
+w incr       $0x802628C
+h1 :=        b.0x1A
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x44
+h3 :=        r2.(0x6)
+h3 =:        b.0x48
+h3 comp      b.0x16
+if << go     $0x65
+h3 comp      b.0x18
+if >> go     $0x60
+by4 :=       r2.(0x5)
+by4 and      $0x10
+if >< go     $0x58
+h1 :=        b.0x1A
+w1 =:        b.0x4C
+bi1 rwip     b.0x4C
+if >< go     $0x17
+w1 :=        b.0x4C
+w1 *         $0x8
+w1 =:        b.0x54
+w1 :=        b.0x54
+by rladdr    $0x30000000+
+w1 getbi     r.0x4,$0x1C
+go           $0x6
+w1 :=        $0x1
+go           $0x2
+w test       r1
+if = go      $0x31
+r:=          b.0x8
+w move       $0x31,r.0x14
+h1 :=        b.0x1A
+w1 =:        r.0x18
+call         $0x80025E9,$0x0
+ifkret
+h2 :=        b.0x1A
+w2 =:        b.0x50
+bi zwip      b.0x50
+w1 :=        b.0x50
+w1 *         $0x8
+by rladdr    $0x30000000+
+w clebi      r.0x4,$0x1C
+w incr       $0x8026290
+r:=          b.0x44
+h1 :=        r.0x0
+h1 =:        b.0x1A
+go           $0xFFFFFFFFFFFFFF6D
+w1 :=        b.0x28
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x10
+w2 :=        b.0x24
+h rladdr     $0x28010800+
+h1 =:        r.0x0
+go           $0xC
+w2 :=        b.0x24
+w rladdr     $0x28010800+
+w1 =:        r.0x0
+ret
+ents         $0x60
+h wconv      @b.0x14,r1
+w1 *         $0x64
+by2 laddr    $0x8038000+
+w2 =:        b.0x18
+by3 laddr    r2.(0x1E)
+w3 =:        b.0x30
+w move       b.0x14,b.0x3C
+r:=          b.0x3C
+w move       r.0x8,b.0x2C
+by4 :=       r2.(0x2A)
+by shl       r4,$0x3A
+w test       r4
+if >< go     $0x106
+w4 :=        r.0x4
+w4 +         b.0x2C
+w4 comp      r2.(0x0)
+if <<= go    $0x9
+w4 :=        r2.(0x0)
+w4 -         r.0x4
+w4 =:        b.0x2C
+w move       r.0xC,b.0x40
+w4 :=        b.0x40
+w4 +         $0x80128D8
+w4 *         $0x400
+w1 :=        r4
+go           $0x2
+w1 =:        b.0x20
+w3 =:        b.0x44
+by2 laddr    b.0x34
+w2 =:        b.0x48
+by4 :=       $0x30
+w4 putbf     r2.(0x0),$0x0,$0x6
+h1 :=        r3.(0x4)
+w1 putbf     r2.(0x0),$0x6,$0x6
+bi4 clr
+w4 putbf     r2.(0x0),$0xC,$0x14
+r:=          b.0x44
+h3 :=        r.0x6
+w3 *         b.0x2C
+w3 =:        b.0x24
+w1 :=        r.0xC
+w1 and       $0x3FFFFFFF
+r:=          b.0x3C
+w1 +         r.0x4
+r:=          b.0x44
+h2 :=        r.0x6
+w2 *         r1
+w2 +         r.0x8
+w2 =:        b.0x28
+h4 :=        $0x1
+h4 =:        b.0x38
+h3 :=        @b.0x3C
+h3 =:        b.0x3A
+w test       $0x8028F64
+if = go      $0x1B
+w1 laddr     @b.0x44
+w1 =:        b.0x4C
+call         $0x8009187,$0x7,$0x8012A24,b.0x38,@b.0x4C,b.0x34,b.0x20,b.0x28,b.0x24
+ifkret
+w move       $0x50,b.0x4C
+w3 :=        @b.0x44
+bi2 :=       $0x8023D86+
+w2 =:        b.0x50
+w test       r2
+if >< go     $0xB
+w1 :=        b.0x4C
+call         $0x800062F,$0x0
+ifkret
+r:=          b.0x8
+w stz        r.0x14
+call         $0x800008D,$0x0
+ifkret
+w2 laddr     @b.0x44
+w2 =:        b.0x54
+call         $0xFFFFFFFFF80000FF,$0x7,$0x8012A24,b.0x38,@b.0x54,b.0x34,b.0x20,b.0x28,b.0x24 ; MON 377B
+ifkret
+r:=          b.0x3C
+w move       r.0xC,b.0x1C
+w2 :=        r.0xC
+w2 +         b.0x2C
+w2 -         $0x1
+w2 =:        b.0x54
+w comp2      b.0x1C,r2
+if >> go     $0x1E
+bi zpgu      b.0x1C
+bi zwip      b.0x1C
+w1 :=        b.0x1C
+w1 *         $0x8
+by rladdr    $0x30000000+
+w clebi      r.0x4,$0x1C
+w incr       b.0x1C
+w comp2      b.0x1C,b.0x54
+if <<= go    $0xFFFFFFFFFFFFFFE6
+go           $0x5C
+w move       r.0xC,b.0x1C
+w1 :=        r.0xC
+w1 +         b.0x2C
+w1 -         $0x1
+w1 =:        b.0x58
+w comp2      b.0x1C,r1
+if >> go     $0x4C
+go           $0x11
+entd
+l=:          b.0x5C
+w1 =:        b.0xC
+w1 comp      $0x12
+if = go      $0x3
+retk
+clrk
+jumpg        b.0x5C
+w set1       $0x8014D0C
+r:=          b.0x8
+w move       $0x30,r.0x14
+w move       b.0x1C,r.0x18
+call         $0x80025E9,$0x0
+if -k go     $0x8
+call         $0x8001D97,$0x0
+bi zpgu      b.0x1C
+bi zwip      b.0x1C
+w1 :=        b.0x1C
+w1 *         $0x8
+by rladdr    $0x30000000+
+w clebi      r.0x4,$0x1C
+w incr       b.0x1C
+w comp2      b.0x1C,b.0x58
+if <<= go    $0xFFFFFFFFFFFFFFB8
+ret
+ents         $0x3C
+w move       b.0x14,b.0x24
+w1 :=        b.0x18
+r:=          b.0x24
+w1 +         r.0x8
+w1 -         $0x1
+r:=          b.0x8
+w1 =:        r.0x14
+h wconv      @b.0x24,r2
+w2 =:        r.0x18
+call         $0x8003727,$0x0
+ifkret
+w stz        b.0x1C
+r:=          b.0x24
+w2 :=        r.0x8
+w2 -         $0x1
+w2 =:        b.0x28
+w comp2      b.0x1C,r2
+if > go      $0x21
+h wconv      @b.0x24,r1
+r:=          b.0x8
+w1 =:        r.0x14
+r:=          b.0x24
+w2 :=        r.0x4
+w2 +         b.0x1C
+r:=          b.0x8
+w2 =:        r.0x18
+bi1 clr
+call         $0x80003ED,$0x0
+ifkret
+d loopi      b.0x1C,b.0x28,$0xFFFFFFFFFFFFFFE5
+r:=          b.0x24
+w move       b.0x18,r.0x4
+w stz        b.0x1C
+w1 :=        r.0x8
+w1 -         $0x1
+w1 =:        b.0x2C
+w comp2      b.0x1C,r1
+if > go      $0x74
+h wconv      @b.0x24,r1
+r:=          b.0x8
+w1 =:        r.0x14
+w2 :=        b.0x18
+w2 +         b.0x1C
+w2 =:        r.0x18
+call         $0x8000312,$0x0
+ifkret
+h1 =:        b.0x20
+w test       r1
+if = go      $0x1C
+r:=          b.0x8
+h move       b.0x20,r.0x14
+call         $0x8003A0A,$0x0
+ifkret
+h2 :=        b.0x20
+w2 =:        b.0x30
+w1 :=        r2
+call         $0x80027A1,$0x0
+ifkret
+r:=          b.0x24
+w2 :=        r.0xC
+w2 +         b.0x1C
+w2 =:        b.0x34
+h wconv      @b.0x24,r3
+r:=          b.0x8
+w3 =:        r.0x14
+w4 :=        b.0x18
+w4 +         b.0x1C
+w4 =:        r.0x18
+w1 :=        r2
+call         $0x80003ED,$0x0
+ifkret
+w2 :=        b.0x18
+w2 +         b.0x1C
+r:=          b.0x24
+w3 :=        r.0xC
+w3 +         b.0x1C
+w3 *         $0x8
+by rladdr    $0x30000000+
+h2 =:        r.0x6
+d loopi      b.0x1C,b.0x2C,$0xFFFFFFFFFFFFFF92
+h wconv      @b.0x24,r1
+w1 *         $0x64
+by2 laddr    $0x8038000+
+w2 =:        b.0x38
+by3 :=       r2.(0x14)
+by3 and      $0x10
+if >< go     $0x10
+by rladdr    r2.(0x1E)
+by4 :=       r.0xC
+by shl       r4,$0x3A
+w test       r4
+if = go      $0xE
+r:=          b.0x8
+w move       b.0x14,r.0x14
+call         $0x8001C51,$0x0
+ifkret
+ret
+ents         $0x64
+w incr       $0x8023F34
+w move       b.0x14,b.0x3C
+h wconv      @b.0x3C,r1
+w1 *         $0x64
+by2 laddr    $0x8038000+
+w2 =:        b.0x2C
+by3 laddr    r2.(0x1E)
+w3 =:        b.0x30
+by4 :=       r3.(0xC)
+by shl       r4,$0x3A
+w test       r4
+if >< go     $0x19A
+r:=          b.0x3C
+w4 :=        r.0x8
+w4 -         $0x1
+w4 =:        b.0x28
+w test       r4
+if < go      $0x3B
+r:=          b.0x3C
+w1 :=        r.0xC
+w1 +         b.0x28
+w1 =:        b.0x40
+bi1 rwip     b.0x40
+if >< go     $0x17
+w1 :=        b.0x40
+w1 *         $0x8
+w1 =:        b.0x48
+w1 :=        b.0x48
+by rladdr    $0x30000000+
+w1 getbi     r.0x4,$0x1C
+go           $0x6
+w1 :=        $0x1
+go           $0x2
+w test       r1
+if >< go     $0x9
+d loopd      b.0x28,$0x0,$0xFFFFFFFFFFFFFFD6
+go           $0xA
+w1 :=        b.0x28
+w1 +         $0x1
+w1 =:        b.0x18
+go           $0x4
+w stz        b.0x18
+w test       b.0x18
+if <<= go    $0x14E
+r:=          b.0x3C
+w move       r.0xC,b.0x44
+w1 :=        b.0x44
+w1 +         $0x80128D8
+w1 *         $0x400
+go           $0x2
+w1 =:        b.0x20
+w move       r.0xC,b.0x28
+w2 :=        r.0xC
+w2 +         b.0x18
+w2 -         $0x1
+w2 =:        b.0x48
+w comp2      b.0x28,r2
+if > go      $0x40
+bi1 rwip     b.0x28
+if >< go     $0x17
+w1 :=        b.0x28
+w1 *         $0x8
+w1 =:        b.0x50
+w1 :=        b.0x50
+by rladdr    $0x30000000+
+w1 getbi     r.0x4,$0x1C
+go           $0x6
+w1 :=        $0x1
+go           $0x2
+w test       r1
+if >< go     $0x8
+w incr       $0x8023F30
+bi zwip      b.0x28
+w1 :=        b.0x28
+w1 *         $0x8
+by rladdr    $0x30000000+
+w clebi      r.0x4,$0x1C
+d loopi      b.0x28,b.0x48,$0xFFFFFFFFFFFFFFC6
+w move       b.0x30,b.0x4C
+by1 laddr    b.0x34
+w1 =:        b.0x50
+by2 :=       $0x31
+w2 putbf     r1.(0x0),$0x0,$0x6
+r:=          b.0x4C
+h3 :=        r.0x4
+w3 putbf     r1.(0x0),$0x6,$0x6
+bi4 clr
+w4 putbf     r1.(0x0),$0xC,$0x14
+h2 :=        r.0x6
+w2 *         b.0x18
+w2 =:        b.0x1C
+w3 :=        r.0xC
+w3 and       $0x3FFFFFFF
+r:=          b.0x3C
+w3 +         r.0x4
+r:=          b.0x4C
+h1 :=        r.0x6
+w1 *         r3
+w1 +         r.0x8
+w1 =:        b.0x24
+w set1       b.0x54
+w test       $0x8023D6C
+if = go      $0x32
+w test       $0x8023D70
+if = go      $0x28
+w test       b.0x54
+if = go      $0x24
+r:=          b.0x8
+w stz        r.0x14
+w stz        r.0x18
+w set1       r.0x1C
+w set1       r.0x20
+w stz        r.0x24
+w stz        r.0x28
+w stz        r.0x2C
+call         $0x800894A,$0x0
+ifkret
+dcc
+call         $0x8008AAA,$0x0
+ifkret
+go           $0x4
+dcc
+h1 :=        $0x1
+h1 =:        b.0x38
+h2 :=        @b.0x3C
+h2 =:        b.0x3A
+w test       $0x8028F64
+if = go      $0x1B
+w3 laddr     @b.0x4C
+w3 =:        b.0x58
+call         $0x8009187,$0x7,$0x8012A24,b.0x38,@b.0x58,b.0x34,b.0x20,b.0x24,b.0x1C
+ifkret
+w move       $0x50,b.0x58
+w2 :=        @b.0x4C
+bi1 :=       $0x8023D86+
+w1 =:        b.0x5C
+w test       r1
+if >< go     $0xB
+w1 :=        b.0x58
+call         $0x800062F,$0x0
+ifkret
+r:=          b.0x8
+w stz        r.0x14
+call         $0x800008D,$0x0
+ifkret
+w2 laddr     @b.0x4C
+w2 =:        b.0x60
+call         $0xFFFFFFFFF80000FF,$0x7,$0x8012A24,b.0x38,@b.0x60,b.0x34,b.0x20,b.0x24,b.0x1C ; MON 377B
+ifkret
+r:=          b.0x2C
+h2 :=        r.0x5E
+r:=          b.0x8
+h2 =:        r.0x14
+h stz        r.0x16
+h move       $0xFFFF,r.0x18
+call         $0x80019D5,$0x0
+ifkret
+r:=          b.0x3C
+h move       $0x3F,r.0x2
+ret
+ents         $0x50
+w comp2      $0x80240B8,$0xA
+if >< go     $0x110
+w2 :=        $0x80129DC
+w2 *         $0x100
+by1 laddr    $0x20000900+
+w1 =:        b.0x44
+w1 :=        b.0x44
+go           $0x2
+w1 =:        b.0x34
+r:=          b.0x34
+w1 :=        r.0x0
+w1 =:        b.0x44
+w1 :=        b.0x44
+go           $0x2
+w1 =:        b.0x18
+r:=          b.0x34
+w1 :=        r.0x48
+w1 and       $0xFFFF
+w1 =:        b.0x44
+w1 :=        b.0x44
+go           $0x2
+w1 =:        b.0x1C
+r:=          b.0x8
+w1 =:        r.0x14
+by2 :=       b.0x18
+by shl       r2,$0x3D
+w2 =:        r.0x18
+call         $0x800129E,$0x0
+ifkret
+w1 =:        b.0x20
+w2 getbf     b.0x18,$0xB,$0x10
+w2 =:        b.0x2C
+h3 :=        b.0x1A
+w3 and       $0x7FF
+w3 =:        b.0x30
+r:=          b.0x8
+w1 =:        r.0x14
+w2 =:        r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x24
+w comp2      b.0x30,$0x7FF
+if >>= go    $0x1F
+w test       r1
+if >< go     $0x7
+w1 :=        $0x801
+retk
+w3 :=        b.0x24
+w3 *         $0x800
+w3 +         b.0x30
+dmof
+h1 :=        r3.(0x0)
+dmon
+h1 =:        b.0x38
+go           $0x42
+r:=          b.0x8
+w move       b.0x20,r.0x14
+w2 :=        b.0x2C
+w2 +         $0x1
+w2 =:        r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x28
+w test       b.0x24
+if = go      $0x6
+w test       r1
+if >< go     $0x7
+w1 :=        $0x801
+retk
+w3 :=        b.0x24
+w3 *         $0x800
+w3 +         $0x7FF
+w4 :=        b.0x28
+w4 *         $0x800
+dmof
+by1 :=       r3.(0x0)
+by2 :=       r4.(0x0)
+dmon
+by1 =:       b.0x38
+by2 =:       b.0x39
+w stz        b.0x40
+by comp2     b.0x38,$0x3D
+if >< go     $0x4
+w set1       b.0x40
+w stz        b.0x44
+by1 :=       b.0x39
+bi test      $0x8023F38+
+if = go      $0x4
+w set1       b.0x44
+w2 :=        b.0x40
+w2 and       b.0x44
+w stz        b.0x48
+by comp2     b.0x38,$0x3E
+if >< go     $0x4
+w set1       b.0x48
+w stz        b.0x4C
+bi test      $0x8023F58+
+if = go      $0x4
+w set1       b.0x4C
+w3 :=        b.0x48
+w3 and       b.0x4C
+w3 or        r2
+w3 =:        b.0x3C
+w1 :=        r3
+ret
+bi1 clr
+ret
+ents         $0xD8
+w1 :=        b.0x24
+w1 =:        b.0x5C
+h wconv      b.0x16,r2
+w2 *         $0x64
+by3 laddr    $0x8038000+
+w3 =:        b.0x34
+w stz        b.0x60
+w test       r3.(0x32)
+if = go      $0x4
+w set1       b.0x60
+w4 :=        b.0x60
+h4 =:        b.0x58
+h1 :=        b.0x16
+h1 =:        b.0x5A
+h comp2      b.0x14,$0x31
+if >< go     $0x83
+w test       r3.(0x5A)
+if = go      $0x7D
+w2 :=        r3.(0x5A)
+w2 *         $0x100
+by rladdr    $0x20000900+
+w4 :=        r.0xEC
+w4 =:        b.0x3C
+w test       r4
+if = go      $0x63
+w4 =:        b.0x60
+w stz        b.0x38
+h1 :=        r4.(0x2)
+h1 =:        b.0x64
+h wconv      r1,r3
+w comp2      b.0x38,r3
+if > go      $0x4E
+w1 :=        b.0x38
+w1 *         $0x4
+r:=          b.0x60
+w3 laddr     r.0x20
+w3 =:        b.0x68
+by rladdr    @b.0x68+
+h wconv      r.0x2,r2
+w comp2      b.0x18,r2
+if >< go     $0x18
+w4 :=        b.0x38
+w4 *         $0x4
+r:=          b.0x60
+w2 laddr     r.0x20
+w2 =:        b.0x68
+by rladdr    @b.0x68+
+h comp2      r.0x0,b.0x16
+if = go      $0xF
+w incr       b.0x38
+h wconv      b.0x64,r3
+w comp2      b.0x38,r3
+if <= go     $0xFFFFFFFFFFFFFFC8
+go           $0x12
+r:=          b.0x8
+w move       b.0x3C,r.0x14
+call         $0x8001EE9,$0x0
+ifkret
+r:=          b.0x60
+w incr       r.0x14
+go           $0x5
+w stz        r3.(0x5A)
+r:=          b.0x34
+w comp2      b.0x18,@b.0x34
+if << go     $0xAA
+w move       $0x25,b.0x68
+w1 getbi     r.0x4,$0x15
+w1 =:        b.0x6C
+w test       r1
+if >< go     $0xB
+w1 :=        b.0x68
+call         $0x800062F,$0x0
+ifkret
+r:=          b.0x34
+by1 :=       r.0x5
+by1 and      $0x8
+if = go      $0x81
+w1 :=        @b.0x34
+call         $0x8000807,$0x0
+ifkret
+w1 =:        b.0x4C
+w2 :=        b.0x18
+w2 +         $0x1
+w1 :=        r2
+call         $0x8000807,$0x0
+ifkret
+w1 *         $0x8
+w1 =:        @b.0x34
+w1 :=        @b.0x34
+call         $0x8000AF9,$0x0
+ifkret
+w1 =:        b.0x48
+w2 :=        b.0x4C
+w sha        r2,$0x3E
+w2 -         $0x1
+bi3 clr
+r:=          b.0x34
+r:=          r.0x4A
+w1 laddr     r.0x0
+w1 =:        b.0x7C
+w4 laddr     @b.0x7C+
+w4 =:        b.0x74
+w2 +         $0x1
+w2 =:        b.0x70
+bi1 clr
+w3 laddr     @b.0x48
+w3 =:        b.0x7C
+w4 laddr     @b.0x7C+
+w4 =:        b.0x84
+w2 :=        $0x1FFFFFF
+w2 +         $0x1
+w2 =:        b.0x80
+if < go      $0x8
+bi1 clr
+bi2 clr
+w smove      b.0x70,b.0x80
+r:=          b.0x8
+w move       b.0x4C,r.0x14
+r:=          b.0x34
+w1 :=        r.0x4A
+call         $0x80008AE,$0x0
+ifkret
+w2 :=        b.0x48
+r:=          b.0x34
+w2 =:        r.0x4A
+w3 :=        b.0x18
+w3 +         $0x1
+w3 =:        @b.0x34
+by4 :=       r.0x14
+by4 and      $0x2
+if = go      $0x2B
+h comp2      b.0x14,$0x31
+if = go      $0xD
+w move       r.0x4A,b.0x7C
+w1 :=        b.0x18
+bi test      @b.0x7C+
+if = go      $0x19
+w move       r.0x4A,b.0x7C
+w1 :=        b.0x18
+bi set1      @b.0x7C+
+w set1       b.0x40
+by2 laddr    r.0x36
+w2 =:        @b.0x5C
+w2 =:        b.0x44
+go           $0xD
+w stz        b.0x40
+by1 laddr    r.0x1E
+w1 =:        @b.0x5C
+w1 =:        b.0x44
+r:=          b.0x5C
+w stz        r.0x10
+w move       b.0x44,b.0x7C
+r:=          b.0x7C
+by1 :=       r.0xC
+by shl       r1,$0x3A
+w test       r1
+if >< go     $0x4F
+w move       $0x1C,b.0x9C
+w stz        b.0xA4
+w1 :=        r.0xC
+w1 and       $0x3FFFFFFF
+w test       r1
+if = go      $0x4
+w set1       b.0xA4
+w move       b.0xA4,b.0xA0
+w test       b.0xA0
+if >< go     $0xB
+w1 :=        b.0x9C
+call         $0x800062F,$0x0
+ifkret
+w test       b.0x40
+if = go      $0x12
+r:=          b.0x7C
+w1 :=        r.0xC
+w1 and       $0x3FFFFFFF
+w1 +         b.0x18
+w1 =:        b.0x30
+go           $0x15
+r:=          b.0x7C
+w1 :=        r.0xC
+w1 and       $0x3FFFFFFF
+w1 +         b.0x18
+r:=          b.0x34
+w1 +         r.0x16
+w1 =:        b.0x30
+go           $0x190
+go           $0x160
+entd
+l=:          b.0xA4
+w1 =:        b.0xC
+w1 comp      $0x12
+if >< go     $0x14E
+r:=          b.0x34
+w1 getbf     r.0x4,$0x1A,$0x4
+w1 =:        b.0xA8
+bi test      $0x80129E8+
+if >< go     $0x13C
+w move       $0x27,b.0xAC
+w stz        b.0xB4
+h comp2      b.0x14,$0x30
+if >< go     $0x4
+w set1       b.0xB4
+w move       b.0xB4,b.0xB0
+w test       b.0xB0
+if >< go     $0xB
+w1 :=        b.0xAC
+call         $0x800062F,$0x0
+ifkret
+r:=          b.0x34
+w1 getbf     r.0x4,$0x1A,$0x4
+w1 =:        b.0xB4
+bi test      $0x80129E4+
+if = go      $0x104
+w test       b.0x20
+if = go      $0xFC
+w test       $0x8014D0C
+if >< go     $0xE
+call         $0x80020D4,$0x0
+ifkret
+w test       r1
+if = go      $0xE8
+w test       $0x8028F64
+if = go      $0x20
+r:=          b.0x34
+w1 laddr     r.0x32
+w1 =:        b.0xB8
+call         $0x8009272,$0x6,$0x8012A2C,@b.0xFFFFFFFFFFFFFFB8,$0x80240B4,b.0x18,b.0x28,b.0x2C
+ifkret
+r:=          b.0x8
+w stz        r.0x14
+call         $0x800008D,$0x0
+ifkret
+r:=          b.0x34
+w2 laddr     r.0x32
+w2 =:        b.0xB8
+call         $0xFFFFFFFFF80000FF,$0x6,$0x8012A2C,@b.0xFFFFFFFFFFFFFFB8,$0x80240B4,b.0x18,b.0x28,b.0x2C ; MON 377B
+ifkret
+w2 :=        b.0x28
+r:=          $0x8023F20
+w2 =:        r.0x0
+w move       $0x2F,b.0xB8
+w stz        b.0xC0
+w test       r2
+if = go      $0x4
+w set1       b.0xC0
+w move       b.0xC0,b.0xBC
+w test       b.0xBC
+if >< go     $0xB
+w1 :=        b.0xB8
+call         $0x800062F,$0x0
+ifkret
+r:=          b.0x7C
+w1 :=        r.0xC
+w1 and       $0x3FFFFFFF
+w test       r1
+if = go      $0x42
+w1 :=        r.0xC
+w1 =:        b.0xC0
+w1 and       $0xC0000000
+go           $0x2
+w1 =:        b.0x50
+w2 :=        b.0x2C
+w2 and       $0xC0000000
+w1 :=        r2
+go           $0x2
+w1 =:        b.0x54
+w comp2      b.0x50,r1
+if >< go     $0x21
+w move       $0x30,b.0xC4
+w stz        b.0xCC
+w3 :=        r.0xC
+w comp2      b.0x2C,r3
+if >< go     $0x4
+w set1       b.0xCC
+w move       b.0xCC,b.0xC8
+w test       b.0xC8
+if >< go     $0xB
+w1 :=        b.0xC4
+call         $0x800062F,$0x0
+ifkret
+w1 :=        b.0x2C
+r:=          b.0x7C
+w1 =:        r.0xC
+r:=          $0x8023F2C
+w set1       r.0x18
+r:=          b.0x8
+w move       b.0x44,r.0x14
+w1 :=        $0x8023F2C
+call         $0x80014CB,$0x0
+ifkret
+go           $0x5
+w1 :=        $0x12
+retk
+r:=          b.0x5C
+w set1       r.0x10
+ret
+go           $0x5
+w1 :=        b.0xC
+retk
+clrk
+jumpg        b.0xA4
+r:=          b.0x8
+h set1       r.0x14
+w move       b.0x44,r.0x18
+w2 :=        b.0x18
+r:=          b.0x34
+w2 +         r.0x16
+r:=          b.0x8
+w2 =:        r.0x1C
+w3 :=        @b.0x5C
+w3 =:        r.0x20
+by4 laddr    b.0x58
+w4 =:        r.0x24
+call         $0x8001563,$0x0
+if -k go     $0x8
+call         $0x80023F9,$0x0
+w1 =:        b.0x30
+w move       @b.0x5C,b.0xCC
+r:=          b.0xCC
+h2 :=        r.0x6
+r:=          b.0x5C
+w2 =:        r.0xC
+r:=          b.0xCC
+h3 :=        r.0x6
+w3 *         r1
+w3 +         r.0x8
+r:=          b.0x5C
+w3 =:        r.0x8
+by4 laddr    r.0x4
+w4 =:        b.0xD0
+bi1 clr
+w1 putbf     r4.(0x0),$0xC,$0x14
+r:=          b.0xCC
+h2 :=        r.0x4
+w2 putbf     r4.(0x0),$0x6,$0x6
+h3 :=        b.0x14
+w3 putbf     r4.(0x0),$0x0,$0x6
+r:=          b.0x34
+by1 :=       r.0x5
+by1 and      $0x8
+if = go      $0x25
+h comp2      b.0x14,$0x30
+if >< go     $0x14
+w move       r.0x4A,b.0xD4
+w2 :=        b.0x18
+bi test      @b.0xFFFFFFFFFFFFFFD4+
+if >< go     $0x7
+r:=          b.0x5C
+w set1       r.0x10
+ret
+go           $0xC
+w move       r.0x4A,b.0xD4
+w2 :=        b.0x18
+bi set1      @b.0xFFFFFFFFFFFFFFD4+
+ret
+ents         $0x64
+w1 :=        b.0x18
+h1 =:        $0x8014D18
+w2 :=        b.0x18
+w2 *         $0x8
+by3 laddr    $0x30000000+
+w3 =:        b.0x3C
+w4 :=        b.0x14
+r:=          b.0x8
+h4 =:        r.0x14
+h1 :=        r3.(0x2)
+h1 =:        r.0x16
+h2 :=        r3.(0x6)
+w2 =:        r.0x18
+w move       b.0x18,r.0x1C
+w set1       r.0x20
+by4 laddr    b.0x1C
+w4 =:        r.0x24
+call         $0x80021F3,$0x0
+ifkret
+w comp2      b.0x14,$0x31
+if >< go     $0x8
+w incr       $0x8026268
+by2 laddr    b.0x1C
+w2 =:        b.0x40
+w test       r2.(0x10)
+if = go      $0x23
+r:=          b.0x8
+w move       b.0x18,r.0x14
+call         $0x8003626,$0x0
+ifkret
+bi zwip      b.0x18
+w1 :=        b.0x18
+w1 *         $0x8
+by rladdr    $0x30000000+
+w clebi      r.0x4,$0x1C
+go           $0x143
+w comp2      b.0x18,$0x80128DC
+if <<= go    $0x1E
+w move       $0x8012A1C,b.0x34
+r:=          b.0x8
+w move       $0x8012A18,r.0x14
+w move       b.0x18,r.0x18
+call         $0x8001543,$0x0
+ifkret
+go           $0x46
+w move       $0x5,b.0x44
+h3 :=        $0x80128F6
+w stz        b.0x4C
+w comp2      b.0x18,r3
+if << go     $0x4
+w set1       b.0x4C
+h4 :=        $0x80128F4
+w stz        b.0x50
+w comp2      b.0x18,r4
+if >> go     $0x4
+w set1       b.0x50
+w2 :=        b.0x4C
+w2 and       b.0x50
+w2 =:        b.0x48
+w test       r2
+if >< go     $0xB
+w1 :=        b.0x44
+call         $0x800062F,$0x0
+ifkret
+w1 :=        b.0x18
+w1 +         $0x80128D8
+w1 *         $0x400
+go           $0x2
+w1 =:        b.0x34
+r:=          b.0x40
+w1 :=        r.0x14
+h1 =:        b.0x38
+w2 :=        b.0x18
+w2 *         $0x8
+by rladdr    $0x30000000+
+h3 :=        r.0x2
+h3 =:        b.0x3A
+w test       $0x8028F64
+if = go      $0x31
+r:=          @b.0x40
+w4 laddr     r.0x0
+w4 =:        b.0x4C
+r:=          b.0x40
+by1 laddr    r.0x4
+w1 =:        b.0x50
+w2 laddr     r.0x8
+w2 =:        b.0x54
+w3 laddr     r.0xC
+w3 =:        b.0x58
+call         $0x8009187,$0x7,$0x8012A24,b.0x38,@b.0x4C,@b.0x50,b.0x34,@b.0x54,@b.0x58
+ifkret
+w move       $0x50,b.0x4C
+r:=          @b.0x40
+w3 :=        r.0x0
+bi2 :=       $0x8023D86+
+w2 =:        b.0x50
+w test       r2
+if >< go     $0xB
+w1 :=        b.0x4C
+call         $0x800062F,$0x0
+ifkret
+r:=          b.0x8
+w stz        r.0x14
+call         $0x800008D,$0x0
+ifkret
+r:=          @b.0x40
+w2 laddr     r.0x0
+w2 =:        b.0x54
+r:=          b.0x40
+by3 laddr    r.0x4
+w3 =:        b.0x58
+w4 laddr     r.0x8
+w4 =:        b.0x5C
+w1 laddr     r.0xC
+w1 =:        b.0x60
+call         $0xFFFFFFFFF80000FF,$0x7,$0x8012A24,b.0x38,@b.0x54,@b.0x58,b.0x34,@b.0x5C,@b.0x60 ; MON 377B
+ifkret
+w comp2      b.0x18,$0x80128DC
+if <<= go    $0x27
+r:=          b.0x8
+w move       b.0x18,r.0x14
+w move       $0x8012A18,r.0x18
+call         $0x8001543,$0x0
+ifkret
+bi zwip      b.0x18
+w1 :=        b.0x18
+w1 *         $0x8
+by rladdr    $0x30000000+
+w clebi      r.0x4,$0x1C
+ret
+ents         $0x28
+w1 =:        b.0x14
+w2 :=        b.0x14
+w2 *         $0x8
+by rladdr    $0x30000000+
+w1 getbf     r.0x4,$0x19,$0x3
+go           $0x2
+w1 =:        b.0x18
+w3 :=        b.0x14
+w3 *         $0x8
+by rladdr    $0x30000000+
+w4 getbf     r.0x4,$0x19,$0x3
+w4 *         $0xC
+by rladdr    $0x801296C+
+w move       r.0x8,b.0x24
+w2 :=        b.0x14
+w1 :=        $0x8012A0C
+w1 udiv      r2,r1,r2
+w2 *         $0xE
+w2 +         b.0x24
+w2 =:        b.0x24
+w1 :=        b.0x24
+go           $0x2
+w1 =:        b.0x1C
+w3 :=        b.0x14
+w3 *         $0x8
+by4 laddr    $0x30000000+
+w4 =:        b.0x20
+h2 :=        r1.(0x4)
+h2 =:        r4.(0x0)
+w3 :=        b.0x14
+h3 =:        r1.(0x4)
+bi2 clr
+w2 putbf     r4.(0x4),$0x1D,$0x3
+w1 :=        $0x4
+w1 putbf     r4.(0x4),$0x16,$0x3
+bi3 clr
+h3 =:        r4.(0x2)
+h3 =:        r4.(0x6)
+w clebi      r4.(0x4),$0x1C
+w clebi      r4.(0x4),$0x14
+w stz        $0x80128F0
+w incr       $0x8026288
+ret
+ents         $0x68
+w1 :=        b.0x18
+w1 *         $0x64
+by2 laddr    $0x8038000+
+w2 =:        b.0x1C
+w3 :=        r2.(0x4A)
+w test       r3
+if = go      $0x2E
+w1 :=        r2.(0x0)
+call         $0x8000807,$0x0
+ifkret
+w shl        r1,$0x3E
+w1 -         $0x1
+bi2 clr
+r:=          b.0x1C
+r:=          r.0x4A
+w4 laddr     r.0x0
+w4 =:        b.0x48
+w3 laddr     @b.0x48+
+w3 =:        b.0x40
+w1 +         $0x1
+w1 =:        b.0x3C
+bi2 clr
+if < go      $0x6
+bi3 clr
+w3 sfill     b.0x3C
+w test       $0x8023D70
+if = go      $0x4E
+r:=          b.0x1C
+w1 getbi     r.0x12,$0x8
+w1 or        $0x8014D34
+w1 =:        $0x8014D34
+w2 getbi     r.0x12,$0x7
+w2 or        $0x8014D38
+w2 =:        $0x8014D38
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xF
+w2 :=        b.0x18
+h rladdr     $0x28010800+
+h1 :=        r.0x0
+go           $0xC
+w2 :=        b.0x18
+w rladdr     $0x28010800+
+w1 :=        r.0x0
+w1 =:        b.0x58
+w1 :=        b.0x58
+go           $0x2
+w1 =:        b.0x34
+w test       $0x8023D6C
+if = go      $0xF2
+r:=          b.0x1C
+h1 laddr     r.0x5E
+w1 =:        b.0x20
+w stz        b.0x30
+r:=          b.0x1C
+w1 getbi     r.0x12,$0x6
+go           $0x2
+w test       r1
+if = go      $0x62
+w test       $0x8023D70
+if = go      $0x9
+call         $0x8008BD5,$0x0
+ifkret
+h1 :=        @b.0x20
+w1 =:        b.0x24
+w test       r1
+if = go      $0x4A
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x28
+bi1 rwip     b.0x24
+if >< go     $0x17
+w1 :=        b.0x24
+w1 *         $0x8
+w1 =:        b.0x48
+w1 :=        b.0x48
+by rladdr    $0x30000000+
+w1 getbi     r.0x4,$0x1C
+go           $0x6
+w1 :=        $0x1
+go           $0x2
+w stz        b.0x48
+r:=          b.0x28
+by2 :=       r.0x4
+by shl       r2,$0x3B
+w test       r2
+if >< go     $0x4
+w set1       b.0x48
+w1 and       b.0x48
+w1 =:        b.0x30
+w test       r1
+if >< go     $0x9
+h2 laddr     r.0x0
+w2 =:        b.0x20
+go           $0xFFFFFFFFFFFFFFB1
+w test       $0x8023D70
+if = go      $0x25
+r:=          b.0x8
+w move       $0x8014D34,r.0x14
+w move       $0x8014D38,r.0x18
+w move       b.0x30,r.0x1C
+w move       b.0x30,r.0x20
+w stz        r.0x24
+w stz        r.0x28
+w set1       r.0x2C
+call         $0x800894A,$0x0
+ifkret
+w test       b.0x30
+if = go      $0x3C
+w stz        b.0x48
+w test       $0x8023D6C
+if = go      $0x32
+w test       $0x8023D70
+if = go      $0x28
+w test       b.0x48
+if = go      $0x24
+r:=          b.0x8
+w stz        r.0x14
+w stz        r.0x18
+w set1       r.0x1C
+w set1       r.0x20
+w stz        r.0x24
+w stz        r.0x28
+w stz        r.0x2C
+call         $0x800894A,$0x0
+ifkret
+dcc
+call         $0x8008AAA,$0x0
+ifkret
+go           $0x4
+dcc
+w test       $0x8023D70
+if = go      $0x9
+call         $0x8008AAA,$0x0
+ifkret
+w test       $0x8023D70
+if = go      $0x77
+w stz        b.0x54
+w1 :=        b.0x54
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x10
+w2 :=        b.0x18
+h rladdr     $0x28010800+
+h1 =:        r.0x0
+go           $0xC
+w2 :=        b.0x18
+w rladdr     $0x28010800+
+w1 =:        r.0x0
+w test       $0x8023D6C
+if = go      $0xB
+call         $0x8008CF7,$0x0
+ifkret
+go           $0xD
+r:=          b.0x8
+w set1       r.0x14
+call         $0x800008D,$0x0
+ifkret
+w1 :=        b.0x34
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x14
+w2 :=        $0x8012A44
+h rladdr     $0x28010800+
+h1 =:        r.0x0
+go           $0x10
+w2 :=        $0x8012A44
+w rladdr     $0x28010800+
+w1 =:        r.0x0
+w move       $0x8012A44,b.0x38
+go           $0x5
+w move       b.0x18,b.0x38
+w stz        b.0x2C
+r:=          b.0x1C
+h1 laddr     r.0x5E
+w1 =:        b.0x20
+h1 :=        @b.0x20
+w1 =:        b.0x24
+w test       r1
+if = go      $0x87
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x28
+r:=          b.0x8
+w move       b.0x1C,r.0x14
+w move       b.0x24,r.0x18
+call         $0x80007C8,$0x0
+ifkret
+w test       r1
+if = go      $0x5E
+r:=          b.0x28
+by1 :=       r.0x4
+by shl       r1,$0x3B
+w test       r1
+if >< go     $0x52
+r:=          b.0x8
+w move       b.0x38,r.0x14
+r:=          b.0x28
+h1 :=        r.0x6
+r:=          b.0x8
+w1 =:        r.0x18
+bi1 clr
+call         $0x80003ED,$0x0
+ifkret
+r:=          b.0x28
+h2 :=        r.0x0
+h2 =:        @b.0x20
+r:=          b.0x8
+w move       b.0x1C,r.0x14
+h move       $0x3F,r.0x18
+call         $0x80005BD,$0x0
+ifkret
+bi zpgu      b.0x24
+bi zwip      b.0x24
+w1 :=        b.0x24
+w1 *         $0x8
+by rladdr    $0x30000000+
+w clebi      r.0x4,$0x1C
+w1 :=        b.0x24
+call         $0x80027A1,$0x0
+ifkret
+w set1       b.0x2C
+go           $0x9
+r:=          b.0x28
+h2 laddr     r.0x0
+w2 =:        b.0x20
+go           $0xFFFFFFFFFFFFFF75
+w test       $0x8023D70
+if = go      $0x59
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x13
+w2 :=        $0x8012A44
+h rladdr     $0x28010800+
+h1 :=        r.0x0
+go           $0x10
+w2 :=        $0x8012A44
+w rladdr     $0x28010800+
+w1 :=        r.0x0
+w1 =:        b.0x64
+w1 :=        b.0x64
+go           $0x2
+w1 =:        b.0x58
+w1 =:        b.0x5C
+w1 :=        b.0x5C
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x10
+w2 :=        b.0x18
+h rladdr     $0x28010800+
+h1 =:        r.0x0
+go           $0xC
+w2 :=        b.0x18
+w rladdr     $0x28010800+
+w1 =:        r.0x0
+go           $0x2A
+w test       b.0x2C
+if = go      $0x26
+r:=          b.0x1C
+w2 getbi     r.0x12,$0x8
+w2 or        $0x8014D34
+w2 =:        $0x8014D34
+w3 getbi     r.0x12,$0x7
+w3 or        $0x8014D38
+w3 =:        $0x8014D38
+ret
+ents         $0x20
+w1 =:        b.0x14
+h2 :=        r1.(0x5E)
+h2 =:        b.0x18
+w test       r2
+if = go      $0x65
+r:=          b.0x14
+w2 getbi     r.0x12,$0x8
+w2 or        $0x8014D34
+w2 =:        $0x8014D34
+w3 getbi     r.0x12,$0x7
+w3 or        $0x8014D38
+w3 =:        $0x8014D38
+h1 :=        b.0x18
+w test       r1
+if = go      $0x30
+w incr       $0x8026258
+h1 :=        b.0x18
+w1 =:        b.0x1C
+bi zpgu      b.0x1C
+h1 :=        b.0x18
+w1 *         $0x8
+by rladdr    $0x30000000+
+w setbi      r.0x4,$0x15
+h3 :=        b.0x18
+w3 *         $0x8
+by rladdr    $0x30000000+
+h4 :=        r.0x0
+h4 =:        b.0x18
+go           $0xFFFFFFFFFFFFFFCE
+r:=          b.0x8
+w set1       r.0x14
+call         $0x800008D,$0x0
+ifkret
+ret
+ents         $0x18
+w1 =:        b.0x14
+w2 :=        $0x80129CC
+w1 :=        b.0x14
+w3 :=        $0x4E
+clrk
+call         $0x800005F,$0x0
+ifkret
+w2 :=        $0x80129CC
+w1 :=        b.0x14
+if = go      $0xA
+w move       r2.(0x0),r1.(0x4E)
+w1 =:        r2.(0x0)
+w move       $0x80129CC,$0x80129D0
+r:=          b.0x14
+h1 laddr     r.0x5E
+w1 =:        r.0x1A
+w clebi      r.0x4,$0x14
+ret
+ents         $0x1C
+w1 :=        b.0x14
+w1 *         $0x64
+by2 laddr    $0x8038000+
+w2 =:        b.0x18
+w1 :=        r2
+call         $0x8002B6E,$0x0
+ifkret
+w1 :=        b.0x18
+call         $0x8002BE4,$0x0
+ifkret
+ret
+ents         $0x1C
+r:=          b.0x8
+w move       b.0x18,r.0x14
+call         $0x8002C2B,$0x0
+ifkret
+ret
+ents         $0x18
+w stz        $0x80129D4
+w move       $0x80129CC,b.0x14
+w test       b.0x14
+if = go      $0x14
+w move       b.0x14,$0x80129D4
+r:=          b.0x14
+w1 :=        r.0x4E
+w1 =:        b.0x14
+w test       r1
+if >< go     $0xFFFFFFFFFFFFFFF0
+ret
+ents         $0x18
+w1 =:        b.0x14
+call         $0x8002B6E,$0x0
+ifkret
+w2 :=        $0x80129CC
+w1 :=        b.0x14
+w3 :=        $0x4E
+clrk
+call         $0x800005F,$0x0
+ifkret
+w comp2      $0x80129D4,b.0x14
+if >< go     $0x9
+call         $0x8002C65,$0x0
+ifkret
+w test       $0x80129D4
+if = go      $0xF
+w2 :=        b.0x14
+r:=          $0x80129D4
+w2 =:        r.0x4E
+go           $0x9
+w move       b.0x14,$0x80129CC
+bi3 clr
+r:=          b.0x14
+w3 =:        r.0x4E
+w move       b.0x14,$0x80129D4
+h4 laddr     r.0x5E
+w4 =:        r.0x1A
+w clebi      r.0x4,$0x14
+ret
+ents         $0x38
+w stz        b.0x1C
+call         $0x8002D23,$0x0
+w move       $0x3,b.0x1C
+call         $0x8002D23,$0x0
+w move       $0x4,b.0x1C
+call         $0x8002D23,$0x0
+w move       $0x7,b.0x1C
+call         $0x8002D23,$0x0
+go           $0xC0
+entd
+l=:          b.0x2C
+w1 :=        b.0x1C
+w1 *         $0xC
+by rladdr    $0x801296C+
+w move       r.0x0,b.0x28
+w test       b.0x28
+if = go      $0xA7
+w move       b.0x28,b.0x30
+r:=          b.0x30
+h1 :=        r.0x0
+w comp2      b.0x14,r1
+if << go     $0xA
+h2 :=        r.0x2
+w comp2      b.0x14,r2
+if <<= go    $0x13
+h3 :=        r.0x0
+w comp2      b.0x18,r3
+if << go     $0x80
+h4 :=        r.0x2
+w comp2      b.0x18,r4
+if >> go     $0x77
+h1 laddr     r.0x4
+w1 =:        b.0x24
+h1 :=        @b.0x24
+h1 =:        b.0x34
+w test       r1
+if = go      $0x21
+h1 :=        b.0x34
+w1 comp      b.0x14
+if << go     $0x8
+h1 :=        b.0x34
+w1 comp      b.0x18
+if <<= go    $0x15
+h1 :=        @b.0x24
+w1 *         $0x8
+by rladdr    $0x30000000+
+h2 laddr     r.0x0
+w2 =:        b.0x24
+go           $0xFFFFFFFFFFFFFFD9
+h2 :=        @b.0x24
+w test       r2
+if = go      $0x41
+h2 :=        @b.0x24
+h2 =:        b.0x20
+h1 :=        b.0x20
+w1 comp      b.0x14
+if << go     $0x2D
+h1 :=        b.0x20
+w1 comp      b.0x18
+if >> go     $0x27
+h1 :=        b.0x20
+w1 *         $0x8
+by rladdr    $0x30000000+
+h2 :=        r.0x0
+bi3 clr
+w4 :=        r1
+by rladdr    $0x30000000+
+h3 =:        r.0x0
+h2 =:        b.0x20
+w decr       $0x8026288
+go           $0xFFFFFFFFFFFFFFD1
+h2 :=        b.0x20
+h2 =:        @b.0x24
+go           $0xFFFFFFFFFFFFFF93
+r:=          b.0x28
+w move       r.0x6,b.0x28
+w test       b.0x28
+if >< go     $0xFFFFFFFFFFFFFF5F
+jumpg        b.0x2C
+ret
+ents         $0x30
+w stz        b.0x24
+w1 :=        b.0x24
+w1 *         $0x4
+w2 :=        b.0x14
+w2 +         r1
+w move       $0x8023F78+,b.0x20
+w3 :=        b.0x20
+w3 *         $0xC
+by rladdr    $0x801296C+
+w move       r.0x4,b.0x28
+w test       b.0x28
+if = go      $0x39
+r:=          b.0x28
+h1 :=        r.0x4
+w1 =:        b.0x1C
+w test       r1
+if = go      $0x27
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x2C
+h3 :=        r2.(0x0)
+h3 =:        r.0x4
+bi4 clr
+h4 =:        r2.(0x0)
+w decr       $0x8026288
+w incr       $0x8026264
+w1 :=        b.0x1C
+ret
+w move       r.0xA,b.0x28
+w test       b.0x28
+if >< go     $0xFFFFFFFFFFFFFFCB
+w incr       b.0x24
+w comp2      b.0x24,$0x1
+if <<= go    $0xFFFFFFFFFFFFFFA3
+w set1       $0x80128F0
+bi1 clr
+ret
+ents         $0x18
+r:=          b.0x14
+w1 :=        r.0x1A
+w test       r1
+if = go      $0x26
+r:=          r.0x1A
+h1 :=        r.0x0
+w test       r1
+if >< go     $0x1D
+r:=          b.0x14
+by1 :=       r.0x5
+by1 and      $0x10
+if = go      $0x8
+bi2 clr
+w2 =:        r.0x1A
+go           $0xD
+h2 laddr     r.0x5E
+w2 =:        r.0x1A
+w setbi      r.0x4,$0x14
+ret
+ents         $0x4C
+h1 :=        b.0x14
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x1C
+h3 :=        r2.(0x2)
+w3 *         $0x64
+by4 laddr    $0x8038000+
+w4 =:        b.0x28
+w1 getbf     r2.(0x4),$0x16,$0x3
+w1 =:        b.0x30
+jumpg        $0x8023F98+
+r:=          b.0x28
+h1 laddr     r.0x62
+w1 =:        b.0x20
+go           $0x1DB
+r:=          b.0x28
+w1 getbi     r.0x12,$0x8
+w1 or        $0x8014D34
+w1 =:        $0x8014D34
+w2 getbi     r.0x12,$0x7
+w2 or        $0x8014D38
+w2 =:        $0x8014D38
+w test       $0x8023D6C
+if = go      $0xBA
+w test       $0x8023D70
+if = go      $0x9
+call         $0x8008BD5,$0x0
+ifkret
+h2 :=        b.0x14
+w2 =:        b.0x34
+bi1 rwip     b.0x34
+if >< go     $0x17
+w1 :=        b.0x34
+w1 *         $0x8
+w1 =:        b.0x3C
+w1 :=        b.0x3C
+by rladdr    $0x30000000+
+w1 getbi     r.0x4,$0x1C
+go           $0x6
+w1 :=        $0x1
+go           $0x2
+w1 =:        b.0x3C
+r:=          b.0x28
+w1 getbi     r.0x12,$0x6
+go           $0x2
+w1 and       b.0x3C
+w1 =:        b.0x2C
+w test       $0x8023D70
+if = go      $0x24
+r:=          b.0x8
+w move       $0x8014D34,r.0x14
+w move       $0x8014D38,r.0x18
+w1 =:        r.0x1C
+w move       b.0x2C,r.0x20
+w stz        r.0x24
+w stz        r.0x28
+w set1       r.0x2C
+call         $0x800894A,$0x0
+ifkret
+w test       b.0x2C
+if = go      $0x3C
+w stz        b.0x38
+w test       $0x8023D6C
+if = go      $0x32
+w test       $0x8023D70
+if = go      $0x28
+w test       b.0x38
+if = go      $0x24
+r:=          b.0x8
+w stz        r.0x14
+w stz        r.0x18
+w set1       r.0x1C
+w set1       r.0x20
+w stz        r.0x24
+w stz        r.0x28
+w stz        r.0x2C
+call         $0x800894A,$0x0
+ifkret
+dcc
+call         $0x8008AAA,$0x0
+ifkret
+go           $0x4
+dcc
+w test       $0x8023D70
+if = go      $0x9
+call         $0x8008AAA,$0x0
+ifkret
+r:=          b.0x1C
+h2 :=        r.0x2
+r:=          b.0x8
+w2 =:        r.0x14
+r:=          b.0x1C
+h3 :=        r.0x6
+r:=          b.0x8
+w3 =:        r.0x18
+bi1 clr
+call         $0x80003ED,$0x0
+ifkret
+w test       $0x8023D70
+if = go      $0x1E
+w test       $0x8023D6C
+if = go      $0xB
+call         $0x8008CF7,$0x0
+ifkret
+go           $0xD
+r:=          b.0x8
+w set1       r.0x14
+call         $0x800008D,$0x0
+ifkret
+r:=          b.0x8
+w move       b.0x28,r.0x14
+h2 :=        b.0x14
+w2 =:        r.0x18
+call         $0x80007C8,$0x0
+ifkret
+w test       r1
+if = go      $0x13
+r:=          b.0x8
+w move       $0x31,r.0x14
+h1 :=        b.0x14
+w1 =:        r.0x18
+call         $0x80025E9,$0x0
+ifkret
+h2 :=        b.0x14
+w2 =:        b.0x3C
+bi zpgu      b.0x3C
+bi zwip      b.0x3C
+w1 :=        b.0x3C
+w1 *         $0x8
+by rladdr    $0x30000000+
+w clebi      r.0x4,$0x1C
+r:=          b.0x28
+h1 laddr     r.0x5E
+w1 =:        b.0x20
+r:=          b.0x8
+w move       b.0x28,r.0x14
+h move       $0x3F,r.0x18
+call         $0x80005BD,$0x0
+ifkret
+go           $0x60
+w1 :=        $0x80128F8
+w1 =:        b.0x20
+go           $0x56
+h1 :=        b.0x14
+w1 =:        b.0x40
+w1 *         $0x8
+by rladdr    $0x30000000+
+w2 getbf     r.0x4,$0x19,$0x3
+w2 *         $0xC
+by rladdr    $0x801296C+
+w move       r.0x8,b.0x48
+w3 :=        b.0x40
+w4 :=        $0x8012A0C
+w4 udiv      r3,r4,r3
+w3 *         $0xE
+w3 +         b.0x48
+w3 =:        b.0x48
+w1 :=        b.0x48
+go           $0x2
+w1 =:        b.0x24
+h2 laddr     r1.(0x4)
+w2 =:        b.0x20
+go           $0x17
+w move       $0x61,b.0x44
+w stz        b.0x48
+w test       b.0x48
+if >< go     $0xB
+w1 :=        b.0x44
+call         $0x800062F,$0x0
+ifkret
+go           $0x2
+w1 :=        b.0x20
+ret
+ents         $0x30
+r:=          b.0x14
+w1 :=        r.0x1A
+w test       r1
+if >< go     $0x4
+bi1 clr
+ret
+r:=          b.0x14
+r:=          r.0x1A
+h1 :=        r.0x0
+h1 =:        b.0x1A
+w test       r1
+if = go      $0xB8
+h1 :=        b.0x1A
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x1C
+h3 :=        b.0x1A
+w3 =:        b.0x20
+bi1 rpgu     b.0x20
+w1 =:        b.0x28
+w1 :=        b.0x28
+go           $0x2
+w test       r1
+if >< go     $0x8A
+r:=          b.0x14
+by1 :=       r.0x5
+by1 and      $0x10
+if >< go     $0x29
+h2 :=        b.0x1A
+w2 =:        b.0x24
+bi1 rwip     b.0x24
+if >< go     $0x17
+w1 :=        b.0x24
+w1 *         $0x8
+w1 =:        b.0x2C
+w1 :=        b.0x2C
+by rladdr    $0x30000000+
+w1 getbi     r.0x4,$0x1C
+go           $0x6
+w1 :=        $0x1
+go           $0x2
+w test       r1
+if >< go     $0x58
+r:=          b.0x1C
+by1 :=       r.0x4
+by shl       r1,$0x3B
+w test       r1
+if >< go     $0x4C
+by1 :=       r.0x5
+by1 and      $0x20
+if = go      $0x43
+w test       $0x8023D6C
+if = go      $0xA
+w test       $0x8023D70
+if >< go     $0x10
+r:=          b.0x8
+h move       b.0x1A,r.0x14
+call         $0x8002E84,$0x0
+ifkret
+r:=          b.0x1C
+h2 :=        r.0x0
+r:=          b.0x14
+r:=          r.0x1A
+h2 =:        r.0x0
+w3 :=        b.0x14
+r:=          b.0x8
+w3 =:        r.0x14
+call         $0x8002E50,$0x0
+ifkret
+r:=          b.0x1C
+w clebi      r.0x4,$0x15
+h1 :=        b.0x1A
+ret
+r:=          b.0x1C
+h3 laddr     r.0x0
+r:=          b.0x14
+w3 =:        r.0x1A
+go           $0xFFFFFFFFFFFFFF3E
+r:=          b.0x14
+by4 :=       r.0x5
+by4 and      $0x10
+if >< go     $0x10
+w setbi      r.0x4,$0x14
+h1 laddr     r.0x5E
+w1 =:        r.0x1A
+go           $0xFFFFFFFFFFFFFF26
+bi3 clr
+w3 =:        r.0x1A
+bi1 clr
+ret
+ents         $0x28
+w1 :=        $0x80129D0
+w1 =:        b.0x18
+w test       r1
+if = go      $0x6B
+w move       $0x3,b.0x1C
+w stz        b.0x24
+w test       r1
+if = go      $0x4
+w set1       b.0x24
+w move       b.0x24,b.0x20
+w test       b.0x20
+if >< go     $0xB
+w1 :=        b.0x1C
+call         $0x800062F,$0x0
+ifkret
+r:=          b.0x18
+w1 :=        r.0x4E
+w1 =:        $0x80129D0
+w2 :=        r.0x1A
+w test       r2
+if = go      $0xD
+h2 :=        r.0xA
+h3 :=        r.0x6
+h2 comp      r3
+if << go     $0x18
+w2 :=        $0x80129CC
+w1 :=        b.0x18
+w3 :=        $0x4E
+clrk
+call         $0x800005F,$0x0
+ifkret
+go           $0x1B
+w2 :=        b.0x18
+r:=          b.0x8
+w2 =:        r.0x14
+call         $0x800309A,$0x0
+ifkret
+h1 =:        b.0x16
+w test       r1
+if = go      $0x6
+h1 :=        b.0x16
+ret
+go           $0xFFFFFFFFFFFFFF8D
+w2 :=        $0x80129CC
+w2 =:        $0x80129D0
+w test       r2
+if = go      $0x5
+go           $0xFFFFFFFFFFFFFF7B
+bi1 clr
+ret
+ents         $0x40
+w stz        b.0x18
+w set1       b.0x1C
+call         $0x800318E,$0x0
+ifkret
+w1 =:        b.0x14
+w test       r1
+if = go      $0x62
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x30
+h3 :=        r2.(0x2)
+w3 *         $0x64
+by4 laddr    $0x8038000+
+w4 =:        b.0x2C
+r:=          b.0x2C
+w1 getbi     r.0x12,$0x8
+w1 or        $0x8014D34
+w1 =:        $0x8014D34
+w2 getbi     r.0x12,$0x7
+w2 or        $0x8014D38
+w2 =:        $0x8014D38
+r:=          b.0x2C
+w1 getbi     r.0x12,$0x6
+go           $0x2
+r:=          b.0x30
+w1 putbi     r.0x4,$0x10
+w1 or        b.0x24
+w1 =:        b.0x24
+w2 :=        b.0x18
+h2 =:        r.0x0
+w move       b.0x14,b.0x18
+w incr       b.0x1C
+w comp2      b.0x1C,$0xA
+if <<= go    $0xFFFFFFFFFFFFFF95
+w test       $0x8023D6C
+if = go      $0xD6
+w stz        b.0x20
+w test       b.0x24
+if = go      $0x57
+w test       $0x8023D70
+if = go      $0x9
+call         $0x8008BD5,$0x0
+ifkret
+w move       b.0x18,b.0x14
+w test       b.0x14
+if = go      $0x41
+w1 :=        b.0x14
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x34
+bi1 rwip     b.0x14
+if >< go     $0x17
+w1 :=        b.0x14
+w1 *         $0x8
+w1 =:        b.0x3C
+w1 :=        b.0x3C
+by rladdr    $0x30000000+
+w1 getbi     r.0x4,$0x1C
+go           $0x6
+w1 :=        $0x1
+go           $0x2
+r:=          b.0x34
+w2 getbi     r.0x4,$0x10
+w1 and       r2
+w1 =:        b.0x20
+h3 :=        r.0x0
+w3 =:        b.0x14
+w test       r1
+if >< go     $0x4
+go           $0xFFFFFFFFFFFFFFBF
+w test       $0x8023D70
+if = go      $0x25
+r:=          b.0x8
+w move       $0x8014D34,r.0x14
+w move       $0x8014D38,r.0x18
+w move       b.0x20,r.0x1C
+w move       b.0x20,r.0x20
+w stz        r.0x24
+w stz        r.0x28
+w set1       r.0x2C
+call         $0x800894A,$0x0
+ifkret
+w test       b.0x20
+if = go      $0x3C
+w stz        b.0x38
+w test       $0x8023D6C
+if = go      $0x32
+w test       $0x8023D70
+if = go      $0x28
+w test       b.0x38
+if = go      $0x24
+r:=          b.0x8
+w stz        r.0x14
+w stz        r.0x18
+w set1       r.0x1C
+w set1       r.0x20
+w stz        r.0x24
+w stz        r.0x28
+w stz        r.0x2C
+call         $0x800894A,$0x0
+ifkret
+dcc
+call         $0x8008AAA,$0x0
+ifkret
+go           $0x4
+dcc
+w test       $0x8023D70
+if = go      $0x9
+call         $0x8008AAA,$0x0
+ifkret
+w move       b.0x18,b.0x14
+w test       b.0x14
+if = go      $0x2B
+w1 :=        b.0x14
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x28
+h3 :=        r2.(0x2)
+r:=          b.0x8
+w3 =:        r.0x14
+h4 :=        r2.(0x6)
+w4 =:        r.0x18
+bi1 clr
+call         $0x80003ED,$0x0
+ifkret
+r:=          b.0x28
+h2 :=        r.0x0
+w2 =:        b.0x14
+go           $0xFFFFFFFFFFFFFFD5
+w test       $0x8023D70
+if = go      $0x1E
+w test       $0x8023D6C
+if = go      $0xB
+call         $0x8008CF7,$0x0
+ifkret
+go           $0xD
+r:=          b.0x8
+w set1       r.0x14
+call         $0x800008D,$0x0
+ifkret
+w test       b.0x18
+if = go      $0x78
+w1 :=        b.0x18
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x3C
+h3 :=        r2.(0x2)
+w3 *         $0x64
+by4 laddr    $0x8038000+
+w4 =:        b.0x2C
+w move       b.0x18,b.0x14
+h1 :=        r2.(0x0)
+w1 =:        b.0x18
+r:=          b.0x8
+w4 =:        r.0x14
+w move       b.0x14,r.0x18
+call         $0x80007C8,$0x0
+ifkret
+w test       r1
+if = go      $0x12
+r:=          b.0x8
+w move       $0x31,r.0x14
+w move       b.0x14,r.0x18
+call         $0x80025E9,$0x0
+ifkret
+r:=          b.0x8
+w move       b.0x2C,r.0x14
+h move       $0x3F,r.0x18
+call         $0x80005BD,$0x0
+ifkret
+bi zpgu      b.0x14
+bi zwip      b.0x14
+w1 :=        b.0x14
+w1 *         $0x8
+by rladdr    $0x30000000+
+w clebi      r.0x4,$0x1C
+w1 :=        b.0x14
+call         $0x80027A1,$0x0
+ifkret
+go           $0xFFFFFFFFFFFFFF88
+ret
+ents         $0x3C
+w1 :=        b.0x14
+w1 *         $0x64
+by2 laddr    $0x8038000+
+w2 =:        b.0x24
+h3 :=        r2.(0x6)
+h4 :=        r2.(0x8)
+h3 comp      r4
+if << go     $0x64
+w stz        b.0x28
+w1 :=        b.0x24
+r:=          b.0x8
+w1 =:        r.0x14
+call         $0x800309A,$0x0
+ifkret
+w1 =:        b.0x20
+w test       r1
+if >< go     $0x2E
+r:=          b.0x8
+w move       b.0x14,r.0x14
+call         $0x8002C2B,$0x0
+ifkret
+w incr       b.0x28
+w move       $0xD,b.0x30
+w stz        b.0x38
+w comp2      b.0x28,$0x2
+if >> go     $0x4
+w set1       b.0x38
+w move       b.0x38,b.0x34
+w test       b.0x34
+if >< go     $0xB
+w1 :=        b.0x30
+call         $0x800062F,$0x0
+ifkret
+go           $0xFFFFFFFFFFFFFFC3
+w test       $0x8023D70
+if = go      $0x16
+w test       $0x8023D6C
+if = go      $0xE
+r:=          b.0x8
+h1 =:        r.0x14
+call         $0x8002E84,$0x0
+ifkret
+w1 :=        b.0x20
+ret
+go           $0x2A
+w test       b.0x18
+if = go      $0x12
+r:=          b.0x8
+w move       $0x2,r.0x14
+call         $0x8002DE1,$0x0
+ifkret
+w1 =:        b.0x20
+go           $0x16
+by1 :=       r2.(0x4)
+by shl       r1,$0x3A
+r:=          b.0x8
+w1 =:        r.0x14
+call         $0x8002DE1,$0x0
+ifkret
+w1 =:        b.0x20
+w test       b.0x20
+if = go      $0x5
+w1 :=        b.0x20
+ret
+w test       $0x8023D70
+if = go      $0x28
+w test       $0x8023D6C
+if = go      $0x20
+call         $0x800321E,$0x0
+ifkret
+r:=          b.0x24
+by2 :=       r.0x4
+by shl       r2,$0x3A
+r:=          b.0x8
+w2 =:        r.0x14
+call         $0x8002DE1,$0x0
+ifkret
+w1 =:        b.0x20
+go           $0xB
+call         $0x800318E,$0x0
+ifkret
+w1 =:        b.0x20
+w test       r1
+if = go      $0x3
+ret
+w comp2      $0x80128E4,$0x14
+if >= go     $0x7
+w1 :=        $0x451
+retk
+go           $0x1B
+entd
+l=:          b.0x38
+w1 =:        b.0xC
+r:=          b.0x8
+w move       b.0x2C,r.0x14
+call         $0x8004C4B,$0x0
+ifkret
+w1 :=        b.0xC
+retk
+clrk
+jumpg        b.0x38
+w test       $0x8023D6C
+if = go      $0x69
+w test       $0x8023D70
+if = go      $0x61
+w move       $0x80129D8,b.0x2C
+w test       b.0x2C
+if = go      $0x54
+r:=          b.0x2C
+h2 :=        r.0xD8
+h wconv      r2,r1
+r:=          b.0x8
+w1 =:        r.0x14
+call         $0x80053F0,$0x0
+if -k go     $0x8
+call         $0x800353C,$0x0
+call         $0x800321E,$0x0
+if -k go     $0x8
+call         $0x800353C,$0x0
+r:=          b.0x24
+by2 :=       r.0x4
+by shl       r2,$0x3A
+r:=          b.0x8
+w2 =:        r.0x14
+call         $0x8002DE1,$0x0
+if -k go     $0x8
+call         $0x800353C,$0x0
+w1 =:        b.0x20
+w test       r1
+if >< go     $0xC
+r:=          b.0x2C
+w2 :=        r.0xFC
+w2 =:        b.0x2C
+w test       r2
+if >< go     $0xFFFFFFFFFFFFFFB0
+go           $0x45
+w move       $0x80129D8,b.0x2C
+w test       b.0x2C
+if = go      $0x3A
+r:=          b.0x2C
+h2 :=        r.0xD8
+h wconv      r2,r1
+r:=          b.0x8
+w1 =:        r.0x14
+call         $0x80053F0,$0x0
+if -k go     $0x8
+call         $0x800353C,$0x0
+call         $0x800318E,$0x0
+if -k go     $0x8
+call         $0x800353C,$0x0
+w1 =:        b.0x20
+w test       r1
+if >< go     $0xC
+r:=          b.0x2C
+w2 :=        r.0xFC
+w2 =:        b.0x2C
+w test       r2
+if >< go     $0xFFFFFFFFFFFFFFCA
+w test       b.0x20
+if >< go     $0x7
+w1 :=        $0x451
+retk
+r:=          b.0x8
+w move       b.0x2C,r.0x14
+call         $0x8004C4B,$0x0
+if -k go     $0x8
+call         $0x800353C,$0x0
+w1 :=        b.0x20
+ret
+ents         $0x18
+w1 :=        b.0x14
+w1 *         $0x800
+r:=          r1
+dmof
+w bmove      $0x0,r.0x0,$0x200
+dmon
+ret
+ents         $0x30
+r:=          b.0x8
+w move       b.0x14,r.0x14
+w stz        r.0x18
+call         $0x8003440,$0x0
+ifkret
+w1 =:        b.0x28
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x24
+w3 :=        b.0x14
+w3 *         $0x64
+by4 laddr    $0x8038000+
+w4 =:        b.0x20
+w1 :=        b.0x18
+h1 =:        r2.(0x6)
+w3 :=        $0x1
+w3 putbf     r2.(0x4),$0x16,$0x3
+w4 :=        b.0x14
+h4 =:        r2.(0x2)
+go           $0x18
+entd
+l=:          b.0x2C
+w1 =:        b.0xC
+w1 :=        b.0x28
+call         $0x80027A1,$0x0
+ifkret
+w1 :=        b.0xC
+retk
+clrk
+jumpg        b.0x2C
+r:=          b.0x8
+w move       $0x30,r.0x14
+w move       b.0x28,r.0x18
+call         $0x80025E9,$0x0
+if -k go     $0x8
+call         $0x8003685,$0x0
+r:=          b.0x8
+w move       b.0x20,r.0x14
+w move       b.0x28,r.0x18
+call         $0x80005F2,$0x0
+if -k go     $0x8
+call         $0x8003685,$0x0
+w1 :=        b.0x28
+ret
+ents         $0x28
+r:=          b.0x8
+w move       b.0x14,r.0x14
+w set1       r.0x18
+call         $0x8003440,$0x0
+ifkret
+w1 =:        b.0x1C
+w2 :=        b.0x14
+w1 *         $0x8
+by rladdr    $0x30000000+
+h2 =:        r.0x2
+w3 :=        b.0x1C
+w3 *         $0x8
+by4 laddr    $0x30000000+
+w4 =:        b.0x20
+w1 :=        b.0x14
+w1 *         $0x64
+by2 laddr    $0x8038000+
+w2 =:        b.0x24
+h3 :=        r2.(0x62)
+h3 =:        r4.(0x0)
+w1 :=        b.0x1C
+h1 =:        r2.(0x62)
+r:=          b.0x8
+w move       b.0x1C,r.0x14
+call         $0x8003626,$0x0
+ifkret
+w1 :=        b.0x1C
+ret
+ents         $0x40
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x13
+w2 :=        b.0x18
+h rladdr     $0x28010800+
+h1 getbf     r.0x0,$0xE,$0x2
+go           $0x10
+w2 :=        b.0x18
+w rladdr     $0x28010800+
+w1 getbf     r.0x0,$0x1E,$0x2
+w1 =:        b.0x2C
+w1 :=        b.0x2C
+go           $0x2
+w1 =:        b.0x24
+w1 :=        $0x8023D5C
+w1 *         $0x3
+w2 :=        b.0x24
+w2 +         r1
+w comp2      b.0x14,$0x8023D40+
+if <<= go    $0x120
+r:=          b.0x8
+w move       b.0x18,r.0x14
+call         $0x80036CB,$0x0
+ifkret
+w1 =:        b.0x1C
+w2 :=        b.0x24
+w2 +         $0x1
+w2 =:        b.0x24
+w2 =:        b.0x28
+w1 :=        b.0x28
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x13
+w2 :=        b.0x18
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0xE,$0x2
+go           $0x10
+w2 :=        b.0x18
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x1E,$0x2
+w1 :=        b.0x1C
+w1 *         $0x8
+w2 :=        $0x2
+by rladdr    $0x30000000+
+w2 putbf     r.0x4,$0x16,$0x3
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x13
+w2 :=        b.0x18
+h rladdr     $0x28010800+
+h1 getbf     r.0x0,$0x0,$0xE
+go           $0x10
+w2 :=        b.0x18
+w rladdr     $0x28010800+
+w1 getbf     r.0x0,$0x0,$0x1E
+w1 =:        b.0x30
+w1 :=        b.0x30
+go           $0x2
+w1 =:        b.0x20
+w1 comp      b.0x1C
+if = go      $0x6C
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x2C
+w3 getbf     r2.(0x4),$0x16,$0x3
+w3 comp      $0x2
+if >< go     $0xA
+w3 :=        $0x3
+w3 putbf     r2.(0x4),$0x16,$0x3
+w stz        b.0x34
+w1 :=        b.0x34
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xA
+w1 and       $0x3FF
+w1 *         $0x2
+go           $0xA
+w1 :=        b.0x34
+w1 and       $0x1FF
+w1 *         $0x4
+w2 :=        b.0x1C
+w2 *         $0x800
+w1 +         r2
+w1 =:        b.0x3C
+w1 :=        b.0x3C
+go           $0x2
+w1 =:        b.0x30
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xF
+w1 :=        b.0x20
+r:=          b.0x30
+dmof
+h1 =:        r.0x0
+dmon
+go           $0xC
+w1 :=        b.0x20
+r:=          b.0x30
+dmof
+w1 =:        r.0x0
+dmon
+w1 :=        b.0x1C
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x13
+w2 :=        b.0x18
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0x0,$0xE
+go           $0x10
+w2 :=        b.0x18
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x0,$0x1E
+go           $0xFFFFFFFFFFFFFED0
+ret
+ents         $0x44
+w move       b.0x14,b.0x20
+h1 :=        @b.0x20
+h1 =:        b.0x2C
+w test       r1
+if = go      $0x21
+h1 :=        b.0x2C
+w1 comp      b.0x18
+if << go     $0x8
+h1 :=        b.0x2C
+w1 comp      b.0x1C
+if <<= go    $0x15
+h1 :=        @b.0x20
+w1 *         $0x8
+by rladdr    $0x30000000+
+h2 laddr     r.0x0
+w2 =:        b.0x20
+go           $0xFFFFFFFFFFFFFFD9
+h2 :=        @b.0x20
+w test       r2
+if = go      $0x86
+h2 :=        @b.0x20
+w2 =:        b.0x24
+w comp2      b.0x24,b.0x18
+if << go     $0x72
+w comp2      b.0x24,b.0x1C
+if >> go     $0x6D
+w1 :=        b.0x24
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x28
+w move       $0x50,b.0x34
+w3 getbf     r2.(0x4),$0x16,$0x3
+w3 =:        b.0x30
+w stz        b.0x3C
+w3 comp      $0x4
+if >< go     $0x4
+w set1       b.0x3C
+w stz        b.0x40
+w test       r3
+if >< go     $0x4
+w set1       b.0x40
+w4 :=        b.0x3C
+w4 or        b.0x40
+w4 =:        b.0x38
+w test       r4
+if >< go     $0xB
+w1 :=        b.0x34
+call         $0x800062F,$0x0
+ifkret
+r:=          b.0x28
+w1 getbf     r.0x4,$0x16,$0x3
+w1 comp      $0x4
+if >< go     $0x8
+w decr       $0x8026288
+w1 :=        b.0x24
+w1 *         $0x8
+by rladdr    $0x30000000+
+h2 :=        r.0x0
+bi3 clr
+w4 :=        r1
+by rladdr    $0x30000000+
+h3 =:        r.0x0
+w2 =:        b.0x24
+go           $0xFFFFFFFFFFFFFF8D
+w2 :=        b.0x24
+h2 =:        @b.0x20
+go           $0xFFFFFFFFFFFFFF4F
+ret
+ents         $0x34
+h1 :=        b.0x18
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x20
+h3 :=        r2.(0x2)
+w3 *         $0x64
+by4 laddr    $0x8038000+
+w4 =:        b.0x24
+w1 getbf     r2.(0x4),$0x16,$0x3
+w1 comp      $0x4
+if >< go     $0x8
+w decr       $0x8026288
+w1 :=        r4.(0x1A)
+h3 laddr     r2.(0x0)
+w1 comp      r3
+if >< go     $0x16
+h1 :=        r2.(0x0)
+w1 *         $0x8
+by rladdr    $0x30000000+
+h4 laddr     r.0x0
+r:=          b.0x24
+w4 =:        r.0x1A
+w move       b.0x14,b.0x1C
+w move       $0x11,b.0x28
+h1 :=        @b.0x1C
+w stz        b.0x30
+w test       r1
+if = go      $0x4
+w set1       b.0x30
+w move       b.0x30,b.0x2C
+w test       b.0x2C
+if >< go     $0xB
+w1 :=        b.0x28
+call         $0x800062F,$0x0
+ifkret
+h1 :=        @b.0x1C
+h1 comp      b.0x18
+if = go      $0x15
+h1 :=        @b.0x1C
+w1 *         $0x8
+by rladdr    $0x30000000+
+h2 laddr     r.0x0
+w2 =:        b.0x1C
+go           $0xFFFFFFFFFFFFFFC9
+h2 :=        @b.0x1C
+w2 *         $0x8
+by rladdr    $0x30000000+
+h3 :=        r.0x0
+h3 =:        @b.0x1C
+r:=          b.0x8
+w move       b.0x24,r.0x14
+call         $0x8002E50,$0x0
+ifkret
+h2 :=        b.0x18
+w2 *         $0x8
+bi3 clr
+by rladdr    $0x30000000+
+h3 =:        r.0x0
+ret
+ents         $0x18
+r:=          b.0x8
+h move       b.0x14,r.0x14
+call         $0x8002E84,$0x0
+ifkret
+r:=          b.0x8
+w1 =:        r.0x14
+h move       b.0x14,r.0x18
+call         $0x800394F,$0x0
+ifkret
+ret
+ents         $0x28
+h comp2      b.0x14,$0x7
+if < go      $0xC
+h comp2      b.0x14,$0x8012854
+if <= go     $0x7
+w1 :=        $0x437
+retk
+h wconv      b.0x14,r2
+w2 *         $0x64
+by3 laddr    $0x8038000+
+w3 =:        b.0x1C
+by4 :=       r3.(0x14)
+by4 and      $0x20
+if = go      $0x27
+w1 :=        r3.(0x5A)
+w1 *         $0x100
+by rladdr    $0x20000900+
+w2 :=        r.0xEC
+w2 =:        b.0x20
+r:=          b.0x8
+w2 =:        r.0x14
+call         $0x8001EE9,$0x0
+ifkret
+r:=          b.0x20
+w2 :=        r.0x18
+w2 +         $0x1
+w2 =:        r.0x18
+r:=          b.0x1C
+w3 getbf     r.0x4,$0x1A,$0x4
+w3 =:        b.0x24
+bi test      $0x80129E4+
+if = go      $0x1D
+h4 :=        r.0x5E
+r:=          b.0x8
+h4 =:        r.0x14
+h move       b.0x16,r.0x16
+h move       b.0x18,r.0x18
+call         $0x80019D5,$0x0
+ifkret
+go           $0x7
+w1 :=        $0x219
+retk
+ret
+entd
+l=:          b.0xA4
+r:=          @b.0xFFFFFFFFFFFFFFAC
+w1 :=        r.0x0
+r:=          @b.0xFFFFFFFFFFFFFFA8
+w comp2      r.0x0,r1
+if >< go     $0x19
+w stz        b.0xB4
+r:=          b.0xAC
+w2 :=        r.0x8
+r:=          b.0xA8
+w comp2      r.0x8,r2
+if >> go     $0x4
+w set1       b.0xB4
+w1 :=        b.0xB4
+clrk
+jumpg        b.0xA4
+go           $0x1C
+r:=          @b.0xFFFFFFFFFFFFFFAC
+w3 :=        r.0x0
+r:=          @b.0xFFFFFFFFFFFFFFA8
+w comp2      r.0x0,r3
+if >>= go    $0xA
+w1 :=        $0x1
+clrk
+jumpg        b.0xA4
+go           $0x7
+bi1 clr
+clrk
+jumpg        b.0xA4
+entd
+l=:          b.0x68
+w stz        b.0x9C
+w1 :=        b.0x78
+w1 -         $0x1
+w1 =:        b.0xB8
+w comp2      b.0x9C,r1
+if > go      $0x6C
+w1 :=        b.0x78
+w1 -         $0x1
+w1 =:        b.0xA0
+w1 comp      b.0x9C
+if < go      $0x5E
+w1 :=        b.0xA0
+w1 +         $0x1
+w1 *         $0x1E
+by2 laddr    @b.0x6C+
+w2 =:        b.0xA8
+w3 :=        b.0xA0
+w3 *         $0x1E
+by4 laddr    @b.0x6C+
+w4 =:        b.0xAC
+call         $0x8003AB8,$0x0
+if -k go     $0x4
+jumpg        b.0x68
+w test       r1
+if = go      $0x35
+w1 :=        b.0xA0
+w1 +         $0x1
+w1 *         $0x1E
+by2 laddr    b.0x7C
+by bmove     @b.0x6C+,r2.(0x0),$0x1E
+w3 :=        b.0xA0
+w3 *         $0x1E
+w4 :=        b.0xA0
+w4 +         $0x1
+w4 *         $0x1E
+by2 laddr    @b.0x6C+
+by bmove     @b.0x6C+,r2.(0x0),$0x1E
+w1 :=        b.0xA0
+w1 *         $0x1E
+by2 laddr    @b.0x6C+
+by bmove     b.0x7C,r2.(0x0),$0x1E
+d loopd      b.0xA0,b.0x9C,$0xFFFFFFFFFFFFFFA9
+d loopi      b.0x9C,b.0xB8,$0xFFFFFFFFFFFFFF9A
+clrk
+jumpg        b.0x68
+entd
+l=:          b.0xBC
+by1 laddr    @b.0xFFFFFFFFFFFFFFC0
+w1 =:        b.0xCC
+r:=          @b.0xFFFFFFFFFFFFFFC4
+w2 :=        r.0x0
+r:=          r1.(0x0)
+w comp2      r.0x0,r2
+if >< go     $0x18
+w3 :=        r1.(0x8)
+w3 +         r1.(0xC)
+w stz        b.0xD0
+r:=          b.0xC4
+w3 comp      r.0x8
+if >< go     $0x4
+w set1       b.0xD0
+w1 :=        b.0xD0
+clrk
+jumpg        b.0xBC
+bi1 clr
+clrk
+jumpg        b.0xBC
+entd
+l=:          b.0xD4
+w1 :=        b.0xD8
+w1 =:        b.0x214
+w2 :=        r1.(0x0)
+w2 *         $0x8
+by rladdr    $0x30000000+
+h3 :=        r.0x2
+w3 =:        b.0xDC
+w3 *         $0x64
+by4 laddr    $0x8038000+
+w4 =:        b.0x218
+r:=          b.0x214
+w1 :=        r.0x4
+w1 +         $0x8
+w1 -         $0x1
+w1 =:        b.0xE0
+w2 :=        r4.(0x0)
+w2 -         $0x1
+w1 comp      r2
+if <<= go    $0x12
+by3 :=       r4.(0x5)
+by3 and      $0x20
+if >< go     $0x9
+w1 :=        r4.(0x0)
+w1 -         $0x1
+w1 =:        b.0xE0
+w move       $0x3F,b.0xE4
+w move       r.0x4,b.0xF0
+w comp2      b.0xF0,r1
+if >> go     $0x10F
+go           $0x26
+entd
+l=:          b.0x21C
+w1 =:        b.0xC
+w1 comp      $0x12
+if >< go     $0x10
+r:=          b.0x214
+w comp2      b.0xF0,r.0x4
+if = go      $0x7
+go           $0xED
+go           $0x6
+setk
+jumpg        b.0xD4
+clrk
+jumpg        b.0x21C
+by1 laddr    b.0x1EC
+w1 =:        b.0x220
+r:=          b.0x8
+h move       $0x30,r.0x14
+w2 :=        b.0xDC
+h2 =:        r.0x16
+w move       b.0xF0,r.0x18
+w stz        r.0x1C
+w stz        b.0x224
+r:=          b.0x214
+w comp2      b.0xF0,r.0x4
+if >< go     $0x6
+w set1       b.0x224
+w3 :=        b.0x224
+r:=          b.0x8
+w3 =:        r.0x20
+by4 laddr    r1.(0x0)
+w4 =:        r.0x24
+call         $0x80021F3,$0x0
+if -k go     $0x8
+call         $0x8003C07,$0x0
+by rladdr    @b.0x220
+w test       r.0x10
+if = go      $0x76
+w2 :=        @b.0x214
+w2 +         $0x8
+r:=          b.0x214
+w2 +         r.0x4
+w2 -         b.0xF0
+w2 +         b.0xE4
+w2 =:        b.0x20C
+r:=          b.0x8
+w2 =:        r.0x14
+call         $0x8003626,$0x0
+if -k go     $0x8
+call         $0x8003C07,$0x0
+bi zwip      b.0x20C
+w1 :=        b.0x20C
+w1 *         $0x8
+by rladdr    $0x30000000+
+w clebi      r.0x4,$0x1C
+r:=          b.0x8
+w move       b.0xDC,r.0x14
+w move       b.0xF0,r.0x18
+w1 :=        b.0x20C
+call         $0x80003ED,$0x0
+if -k go     $0x8
+call         $0x8003C07,$0x0
+w2 :=        b.0x20C
+w2 *         $0x8
+by3 laddr    $0x30000000+
+w3 =:        b.0x224
+w clebi      r3.(0x4),$0x14
+w1 :=        b.0xF0
+h1 =:        r3.(0x6)
+go           $0x1B
+r:=          b.0x220
+w move       b.0xF0,r.0x18
+w incr       b.0xE4
+w3 :=        b.0xE4
+w3 *         $0x1E
+by2 laddr    b.0xFFFFFFFFFFFFFFFC+
+by bmove     b.0x1EC,r2.(0x0),$0x1E
+w incr       b.0xF0
+w comp2      b.0xF0,b.0xE0
+if <<= go    $0xFFFFFFFFFFFFFEF7
+go           $0x14
+entd
+l=:          b.0x228
+w1 =:        b.0xC
+setk
+jumpg        b.0xD4
+clrk
+jumpg        b.0x228
+w2 laddr     b.0xFC
+w2 =:        b.0x6C
+w stz        b.0x70
+w move       $0x7,b.0x74
+w move       b.0xE4,b.0x78
+call         $0x8003AFA,$0x0
+if -k go     $0x8
+call         $0x8003D13,$0x0
+w stz        b.0xE8
+w comp2      b.0xE8,b.0xE4
+if > go      $0x1A5
+w move       b.0xE8,b.0xEC
+w1 :=        b.0xE8
+w1 *         $0x1E
+by rladdr    b.0xFFFFFFFFFFFFFFFC+
+w move       r.0xC,b.0xF8
+w comp2      b.0xEC,b.0xE4
+if >= go     $0x3C
+w1 :=        b.0xEC
+w1 *         $0x1E
+by2 laddr    b.0xFFFFFFFFFFFFFFFC+
+w2 =:        b.0xC0
+w3 :=        b.0xEC
+w3 +         $0x1
+w3 *         $0x1E
+by4 laddr    b.0xFFFFFFFFFFFFFFFC+
+w4 =:        b.0xC4
+call         $0x8003B79,$0x0
+if -k go     $0x8
+call         $0x8003D13,$0x0
+w test       r1
+if = go      $0x14
+w incr       b.0xEC
+w1 :=        b.0xEC
+w1 *         $0x1E
+by rladdr    b.0xFFFFFFFFFFFFFFFC+
+w2 :=        r.0xC
+w2 +         b.0xF8
+w2 =:        b.0xF8
+go           $0xFFFFFFFFFFFFFFC3
+w2 :=        @b.0x214
+w2 +         b.0xE8
+w2 =:        b.0x22C
+w2 +         $0x80128D8
+w2 *         $0x400
+w1 :=        r2
+go           $0x2
+w1 =:        b.0xF4
+w3 :=        b.0xE8
+w3 *         $0x1E
+by rladdr    b.0xFFFFFFFFFFFFFFFC+
+by4 laddr    r.0x0
+w4 =:        b.0x234
+w2 :=        r4.(0x14)
+h2 =:        b.0x210
+w1 :=        b.0xDC
+h1 =:        b.0x212
+w test       $0x8028F64
+if = go      $0x3D
+r:=          r4.(0x0)
+w3 laddr     r.0x0
+w3 =:        b.0x238
+by2 laddr    r4.(0x4)
+w2 =:        b.0x23C
+w1 laddr     r4.(0x8)
+w1 =:        b.0x240
+call         $0x8009187,$0x7,$0x8012A24,b.0x210,@b.0x238,@b.0x23C,b.0xF4,@b.0x240,b.0xF8
+if -k go     $0x8
+call         $0x8003D13,$0x0
+w move       $0x50,b.0x238
+r:=          @b.0x234
+w3 :=        r.0x0
+bi2 :=       $0x8023D86+
+w2 =:        b.0x23C
+w test       r2
+if >< go     $0x14
+w1 :=        b.0x238
+call         $0x800062F,$0x0
+if -k go     $0x8
+call         $0x8003D13,$0x0
+r:=          b.0x8
+w stz        r.0x14
+call         $0x800008D,$0x0
+if -k go     $0x8
+call         $0x8003D13,$0x0
+r:=          @b.0x234
+w2 laddr     r.0x0
+w2 =:        b.0x240
+r:=          b.0x234
+by3 laddr    r.0x4
+w3 =:        b.0x244
+w4 laddr     r.0x8
+w4 =:        b.0x248
+call         $0xFFFFFFFFF80000FF,$0x7,$0x8012A24,b.0x210,@b.0x240,@b.0x244,b.0xF4,@b.0x248,b.0xF8 ; MON 377B
+if -k go     $0x8
+call         $0x8003D13,$0x0
+w comp2      b.0xE8,b.0xEC
+if > go      $0x57
+w1 :=        @b.0x214
+w1 +         b.0xE8
+w1 =:        b.0x240
+r:=          b.0x8
+w move       b.0xDC,r.0x14
+w2 :=        b.0xE8
+w2 *         $0x1E
+by rladdr    b.0xFFFFFFFFFFFFFFFC+
+w3 :=        r.0x18
+r:=          b.0x8
+w3 =:        r.0x18
+call         $0x80003ED,$0x0
+if -k go     $0x8
+call         $0x8003D13,$0x0
+w2 :=        @b.0x214
+w2 +         b.0xE8
+w2 *         $0x8
+by3 laddr    $0x30000000+
+w3 =:        b.0x244
+w clebi      r3.(0x4),$0x14
+w1 :=        b.0xE8
+w1 *         $0x1E
+by rladdr    b.0xFFFFFFFFFFFFFFFC+
+w2 :=        r.0x18
+h2 =:        r3.(0x6)
+w incr       b.0xE8
+go           $0xFFFFFFFFFFFFFFA8
+go           $0xFFFFFFFFFFFFFE5B
+clrk
+jumpg        b.0xD4
+entd
+l=:          b.0x24C
+w1 :=        b.0x250
+w1 =:        b.0x398
+w2 :=        r1.(0x0)
+w2 *         $0x8
+by rladdr    $0x30000000+
+h3 :=        r.0x2
+w3 =:        b.0x380
+w3 *         $0x64
+by4 laddr    $0x8038000+
+w4 =:        b.0x37C
+w move       r1.(0x0),b.0x388
+w2 :=        r1.(0x0)
+w2 +         $0x8
+w2 -         $0x1
+w2 =:        b.0x38C
+r:=          b.0x37C
+w3 getbi     r.0x12,$0x8
+w3 or        $0x8014D34
+w3 =:        $0x8014D34
+w4 getbi     r.0x12,$0x7
+w4 or        $0x8014D38
+w4 =:        $0x8014D38
+w test       $0x8023D6C
+if = go      $0x127
+w stz        b.0x384
+r:=          b.0x37C
+w1 getbi     r.0x12,$0x6
+go           $0x2
+w test       r1
+if = go      $0x7D
+w test       $0x8023D70
+if = go      $0xE
+call         $0x8008BD5,$0x0
+if -k go     $0x6
+jumpg        b.0x24C
+w move       b.0x388,b.0x378
+w comp2      b.0x378,b.0x38C
+if >> go     $0x58
+w1 :=        b.0x378
+w1 *         $0x8
+by rladdr    $0x30000000+
+w2 getbi     r.0x4,$0x14
+bi2 inv
+w2 =:        b.0x3A4
+bi1 rwip     b.0x378
+if >< go     $0x1D
+w1 :=        b.0x378
+w1 *         $0x8
+w1 =:        b.0x3A8
+w1 :=        b.0x3A8
+by rladdr    $0x30000000+
+w1 getbi     r.0x4,$0x1C
+go           $0x6
+w1 :=        $0x1
+go           $0x2
+w1 and       b.0x3A4
+w1 =:        b.0x384
+w test       r1
+if >< go     $0xF
+w incr       b.0x378
+w comp2      b.0x378,b.0x38C
+if <<= go    $0xFFFFFFFFFFFFFFAC
+w test       $0x8023D70
+if = go      $0x2E
+r:=          b.0x8
+w move       $0x8014D34,r.0x14
+w move       $0x8014D38,r.0x18
+w move       b.0x384,r.0x1C
+w move       b.0x384,r.0x20
+w stz        r.0x24
+w stz        r.0x28
+w set1       r.0x2C
+call         $0x800894A,$0x0
+if -k go     $0x6
+jumpg        b.0x24C
+w test       b.0x384
+if = go      $0x4A
+w stz        b.0x3AC
+w test       $0x8023D6C
+if = go      $0x3E
+w test       $0x8023D70
+if = go      $0x34
+w test       b.0x3AC
+if = go      $0x2E
+r:=          b.0x8
+w stz        r.0x14
+w stz        r.0x18
+w set1       r.0x1C
+w set1       r.0x20
+w stz        r.0x24
+w stz        r.0x28
+w stz        r.0x2C
+call         $0x800894A,$0x0
+if -k go     $0x6
+jumpg        b.0x24C
+dcc
+call         $0x8008AAA,$0x0
+if -k go     $0x6
+jumpg        b.0x24C
+go           $0x4
+dcc
+w test       $0x8023D70
+if = go      $0xE
+call         $0x8008AAA,$0x0
+if -k go     $0x6
+jumpg        b.0x24C
+r:=          b.0x398
+w move       r.0x4,b.0x390
+w2 :=        r.0x4
+w2 +         $0x8
+w2 -         $0x1
+w2 =:        b.0x3B0
+w comp2      b.0x390,r2
+if >> go     $0x28
+r:=          b.0x8
+w move       b.0x380,r.0x14
+w move       b.0x390,r.0x18
+bi1 clr
+call         $0x80003ED,$0x0
+if -k go     $0x6
+jumpg        b.0x24C
+w incr       b.0x390
+w comp2      b.0x390,b.0x3B0
+if <<= go    $0xFFFFFFFFFFFFFFDC
+w test       $0x8023D70
+if = go      $0x28
+w test       $0x8023D6C
+if = go      $0x10
+call         $0x8008CF7,$0x0
+if -k go     $0x6
+jumpg        b.0x24C
+go           $0x12
+r:=          b.0x8
+w set1       r.0x14
+call         $0x800008D,$0x0
+if -k go     $0x6
+jumpg        b.0x24C
+w move       $0x3F,b.0x254
+w move       b.0x388,b.0x378
+w comp2      b.0x378,b.0x38C
+if >> go     $0xA4
+w1 :=        b.0x378
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x3B4
+by3 :=       r2.(0x5)
+by3 and      $0x10
+if >< go     $0x74
+r:=          b.0x8
+w move       b.0x37C,r.0x14
+w move       b.0x378,r.0x18
+call         $0x80007C8,$0x0
+if -k go     $0x6
+jumpg        b.0x24C
+w test       r1
+if = go      $0x58
+r:=          b.0x8
+h move       $0x31,r.0x14
+r:=          b.0x3B4
+h1 :=        r.0x2
+r:=          b.0x8
+h1 =:        r.0x16
+r:=          b.0x3B4
+h2 :=        r.0x6
+r:=          b.0x8
+w2 =:        r.0x18
+w stz        r.0x1C
+w stz        r.0x20
+by3 laddr    b.0x358
+w3 =:        r.0x24
+call         $0x80021F3,$0x0
+if -k go     $0x6
+jumpg        b.0x24C
+w2 :=        b.0x378
+h2 =:        b.0x374
+w incr       b.0x254
+w3 :=        b.0x254
+w3 *         $0x1E
+by4 laddr    b.0x268+
+by bmove     b.0x358,r4.(0x0),$0x1E
+r:=          b.0x3B4
+w setbi      r.0x4,$0x14
+w incr       b.0x378
+w comp2      b.0x378,b.0x38C
+if <<= go    $0xFFFFFFFFFFFFFF62
+w stz        b.0x258
+w comp2      b.0x258,b.0x254
+if > go      $0x1B5
+w move       b.0x258,b.0x25C
+w1 :=        b.0x258
+w1 *         $0x1E
+by rladdr    b.0x268+
+w move       r.0xC,b.0x264
+w2 :=        b.0x258
+w2 *         $0x1E
+by rladdr    b.0x268+
+h3 :=        r.0x1C
+w3 =:        b.0x3B8
+w3 +         $0x80128D8
+w3 *         $0x400
+w1 :=        r3
+go           $0x2
+w1 =:        b.0x260
+w comp2      b.0x25C,b.0x254
+if >= go     $0x6B
+w1 :=        b.0x25C
+w1 *         $0x1E
+by rladdr    b.0x268+
+h2 :=        r.0x1C
+h2 +         $0x1
+w3 :=        b.0x25C
+w3 +         $0x1
+w3 *         $0x1E
+by rladdr    b.0x268+
+h2 comp      r.0x1C
+if >< go     $0x49
+w2 :=        b.0x25C
+w2 *         $0x1E
+by4 laddr    b.0x268+
+w4 =:        b.0xC0
+w1 :=        b.0x25C
+w1 +         $0x1
+w1 *         $0x1E
+by3 laddr    b.0x268+
+w3 =:        b.0xC4
+call         $0x8003B79,$0x0
+if -k go     $0x6
+jumpg        b.0x24C
+w test       r1
+if = go      $0x1D
+w incr       b.0x25C
+w1 :=        b.0x25C
+w1 *         $0x1E
+by rladdr    b.0x268+
+w2 :=        r.0xC
+w2 +         b.0x264
+w2 =:        b.0x264
+go           $0xFFFFFFFFFFFFFF90
+w2 :=        $0x8026268
+w2 +         b.0x25C
+w2 -         b.0x258
+w2 +         $0x1
+w2 =:        $0x8026268
+w3 :=        b.0x258
+w3 *         $0x1E
+by rladdr    b.0x268+
+by4 laddr    r.0x0
+w4 =:        b.0x3C0
+w1 :=        r4.(0x14)
+h1 =:        b.0x394
+w2 :=        b.0x380
+h2 =:        b.0x396
+w test       $0x8028F64
+if = go      $0x3F
+r:=          r4.(0x0)
+w3 laddr     r.0x0
+w3 =:        b.0x3C4
+by1 laddr    r4.(0x4)
+w1 =:        b.0x3C8
+w2 laddr     r4.(0x8)
+w2 =:        b.0x3CC
+call         $0x8009187,$0x7,$0x8012A24,b.0x394,@b.0x3C4,@b.0x3C8,b.0x260,@b.0x3CC,b.0x264
+if -k go     $0x6
+jumpg        b.0x24C
+w move       $0x50,b.0x3C4
+r:=          @b.0x3C0
+w3 :=        r.0x0
+bi2 :=       $0x8023D86+
+w2 =:        b.0x3C8
+w test       r2
+if >< go     $0x12
+w1 :=        b.0x3C4
+call         $0x800062F,$0x0
+if -k go     $0x6
+jumpg        b.0x24C
+r:=          b.0x8
+w stz        r.0x14
+call         $0x800008D,$0x0
+if -k go     $0x6
+jumpg        b.0x24C
+r:=          @b.0x3C0
+w2 laddr     r.0x0
+w2 =:        b.0x3CC
+r:=          b.0x3C0
+by3 laddr    r.0x4
+w3 =:        b.0x3D0
+w4 laddr     r.0x8
+w4 =:        b.0x3D4
+call         $0xFFFFFFFFF80000FF,$0x7,$0x8012A24,b.0x394,@b.0x3CC,@b.0x3D0,b.0x260,@b.0x3D4,b.0x264 ; MON 377B
+if -k go     $0x6
+jumpg        b.0x24C
+w2 :=        b.0x25C
+w2 +         $0x1
+w2 =:        b.0x258
+go           $0xFFFFFFFFFFFFFE47
+clrk
+jumpg        b.0x24C
+entd
+l=:          b.0x3D8
+w move       @b.0x3E0,b.0x3E4
+w1 :=        @b.0x3E0
+w1 +         $0x8
+w1 -         $0x1
+w1 =:        b.0x3E8
+w comp2      b.0x3E4,r1
+if >> go     $0x24
+w1 :=        b.0x3E4
+w1 *         $0x8
+by rladdr    $0x30000000+
+by2 :=       r.0x5
+by2 and      $0x10
+if >< go     $0x2F
+w incr       b.0x3E4
+w comp2      b.0x3E4,b.0x3E8
+if <<= go    $0xFFFFFFFFFFFFFFE0
+w move       $0x3B,b.0x3EC
+w stz        b.0x3F0
+w test       b.0x3F0
+if >< go     $0x12
+w1 :=        b.0x3EC
+call         $0x800062F,$0x0
+if -k go     $0x6
+jumpg        b.0x3D8
+w1 :=        b.0x3E4
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x3F4
+w3 :=        b.0x38
+h3 =:        r2.(0x6)
+r:=          b.0x8
+w move       $0x30,r.0x14
+w move       b.0x3E4,r.0x18
+call         $0x80025E9,$0x0
+if -k go     $0x6
+jumpg        b.0x3D8
+h wconv      b.0x50,r2
+r:=          b.0x8
+w2 =:        r.0x14
+w move       b.0x38,r.0x18
+w1 :=        b.0x3E4
+call         $0x80003ED,$0x0
+if -k go     $0x6
+jumpg        b.0x3D8
+r:=          b.0x3F4
+w clebi      r.0x4,$0x14
+clrk
+jumpg        b.0x3D8
+ents         $0x444
+r:=          b.0x14
+h2 :=        r.0x6
+h wconv      r2,r1
+w1 =:        b.0x1C
+h move       r.0x22,b.0x50
+w2 :=        b.0x1C
+w2 *         $0x100
+by1 laddr    $0x20000900+
+w1 =:        b.0x3FC
+w1 :=        b.0x3FC
+go           $0x2
+w1 =:        b.0x54
+h wconv      b.0x50,r2
+w2 =:        b.0x3F8
+w2 :=        b.0x3F8
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xB
+h1 laddr     $0x28010800+
+go           $0x9
+w1 laddr     $0x28010800+
+w1 =:        b.0x400
+w1 :=        b.0x400
+go           $0x2
+w1 =:        b.0x40
+h wconv      b.0x50,r2
+w2 *         $0x64
+by3 laddr    $0x8038000+
+w3 =:        b.0x18
+r:=          b.0x14
+w4 :=        r.0x1E
+w4 and       $0x7FFFFFF
+w sha        r4,$0x35
+w4 =:        b.0x38
+h1 :=        r3.(0xC)
+w test       r1
+if >< go     $0x17
+by1 :=       r3.(0x5)
+by1 and      $0x40
+if = go      $0x9
+h2 :=        r.0xC
+h2 comp      $0x19
+if = go      $0x7
+w1 :=        $0x437
+retk
+w4 :=        b.0x1C
+w2 :=        $0x8028ABC+
+w2 +         $0x1
+w2 =:        $0x8028ABC+
+h wconv      b.0x50,r3
+w1 :=        $0x80262BC+
+w1 +         $0x1
+h wconv      b.0x50,r2
+w1 =:        $0x80262BC+
+w incr       $0x802625C
+r:=          b.0x18
+w4 :=        r.0x56
+w4 +         $0x1
+w4 =:        r.0x56
+h wconv      b.0x50,r3
+w3 comp      $0x8023FB0
+if >< go     $0x3
+noop
+h comp2      b.0x50,$0x7
+if < go      $0xC
+h comp2      b.0x50,$0x8012854
+if <= go     $0xA
+w move       $0x218,b.0xC
+go           $0x14B
+r:=          b.0x18
+w1 getbf     r.0x4,$0x1A,$0x4
+w1 =:        b.0x3FC
+w1 comp      $0xD
+if << go     $0xE
+w1 comp      $0xE
+if >> go     $0xA
+w move       $0x218,b.0xC
+go           $0x130
+by2 :=       r.0x14
+by2 and      $0x20
+if = go      $0xBA
+go           $0x25
+entd
+l=:          b.0x400
+w1 =:        b.0xC
+w1 comp      $0x22D
+if >< go     $0x5
+retk
+go           $0xE
+w1 comp      $0x801
+if >< go     $0x5
+ret
+go           $0x5
+go           $0x108
+clrk
+jumpg        b.0x400
+r:=          b.0x18
+w1 :=        r.0x5A
+w1 *         $0x100
+by rladdr    $0x20000900+
+w2 :=        r.0xEC
+w2 =:        b.0x58
+w2 =:        b.0x404
+w comp2      b.0x38,r2.(0x4)
+if >> go     $0xB
+r:=          b.0x18
+by3 :=       r.0x14
+by3 and      $0x10
+if = go      $0x5D
+h wconv      r2.(0x2),r4
+w4 *         $0x4
+w1 laddr     r2.(0x20)
+w1 =:        b.0x408
+by bmove     @b.0x408+,b.0x5C,$0x4
+r:=          b.0x8
+w move       b.0x58,r.0x14
+call         $0x8001EE9,$0x0
+if -k go     $0x8
+call         $0x8004543,$0x0
+r:=          b.0x8
+w move       b.0x58,r.0x14
+w move       b.0x38,r.0x18
+call         $0x8001DE0,$0x0
+if -k go     $0x8
+call         $0x8004543,$0x0
+r:=          b.0x404
+w3 laddr     r.0x20
+w3 =:        b.0x408
+bi4 clr
+by2 laddr    @b.0x408+
+by bmove     b.0x5C,r2.(0x0),$0x4
+h stz        r.0x2
+w incr       r.0x1C
+go           $0x10
+entd
+l=:          b.0x408
+w1 =:        b.0xC
+clrk
+jumpg        b.0x408
+r:=          b.0x18
+w comp2      r.0x56,$0x8014D1C
+if >< go     $0x1A
+w test       $0x8014D1C
+if = go      $0x12
+w1 :=        b.0x18
+call         $0x8002B6E,$0x0
+if -k go     $0x8
+call         $0x80045EA,$0x0
+r:=          b.0x18
+w comp2      r.0x56,$0x8014D20
+if << go     $0x1D
+w test       $0x8014D20
+if = go      $0x15
+w stz        r.0x56
+w1 :=        b.0x18
+call         $0x8002BE4,$0x0
+if -k go     $0x8
+call         $0x80045EA,$0x0
+r:=          b.0x18
+w comp2      b.0x38,@b.0x18
+if << go     $0x239
+by2 :=       r.0x5
+by2 and      $0x20
+if >< go     $0x22F
+w3 getbf     r.0x4,$0x1A,$0x4
+h wconv      $0x8023FB4+,r4
+w4 =:        b.0xC
+w test       $0x8023D6C
+if = go      $0x89
+r:=          b.0x54
+w1 :=        r.0x48
+w1 and       $0xFFFF
+w1 =:        b.0x410
+w1 :=        b.0x410
+go           $0x2
+w1 =:        b.0x24
+r:=          b.0x54
+w1 :=        r.0x5C
+w1 and       $0xFF
+w1 =:        b.0x410
+w1 :=        b.0x410
+go           $0x2
+w1 =:        b.0x28
+r:=          b.0x8
+w move       b.0x24,r.0x14
+w1 =:        r.0x18
+call         $0x8001245,$0x0
+if -k go     $0x8
+call         $0x80045EA,$0x0
+r:=          b.0x8
+w move       r.0x1C,b.0x2C
+w stz        b.0x40C
+w2 getbi     b.0x2C,$0x1D
+if = go      $0x6
+w set1       b.0x40C
+w move       b.0x40C,b.0x60
+w move       b.0x24,r.0x14
+w move       b.0x28,r.0x18
+call         $0x80011D6,$0x0
+if -k go     $0x8
+call         $0x80045EA,$0x0
+w1 =:        b.0x30
+w stz        b.0x40C
+r:=          b.0x14
+w2 getbi     r.0x24,$0x6
+if = go      $0x6
+w set1       b.0x40C
+w move       b.0x40C,b.0x3C
+go           $0x41
+w1 :=        $0x1D
+w stz        b.0x40C
+w4 laddr     @b.0x54
+w4 =:        b.0x410
+w3 getbi     @b.0x410+,$0x1D
+if = go      $0x6
+w set1       b.0x40C
+w move       b.0x40C,b.0x60
+w stz        b.0x40C
+w2 laddr     @b.0x54
+w2 =:        b.0x410
+w3 :=        $0x27
+w test       @b.0x410+
+if = go      $0x6
+w set1       b.0x40C
+w move       b.0x40C,b.0x30
+w stz        b.0x3C
+w test       b.0x60
+if = go      $0x1D
+w test       b.0x30
+if >< go     $0x19
+w test       b.0x3C
+if >< go     $0x15
+r:=          b.0x14
+h1 :=        r.0xC
+h1 =:        b.0x414
+h1 comp      $0x13
+if < go      $0x7
+h1 comp      $0x16
+if <= go     $0x8
+w1 :=        b.0xC
+retk
+go           $0x12D
+r:=          b.0x54
+w3 :=        r.0xE0
+r:=          b.0x14
+w comp2      r.0x1E,r3
+if >< go     $0x16
+r:=          b.0x54
+w comp2      r.0xDC,$0xA
+if << go     $0x7
+w1 :=        b.0xC
+retk
+go           $0x8
+w1 :=        r.0xDC
+w1 +         $0x1
+w1 =:        r.0xDC
+go           $0xB
+w1 :=        r.0x1E
+r:=          b.0x54
+w1 =:        r.0xE0
+w set1       r.0xDC
+w test       $0x8028F6C
+if = go      $0x21
+r:=          b.0x8
+w move       b.0x1C,r.0x14
+r:=          b.0x14
+w4 :=        r.0x1E
+r:=          b.0x8
+w4 =:        r.0x18
+w move       b.0xC,r.0x1C
+call         $0x8009450,$0x0
+if -k go     $0x8
+call         $0x80045EA,$0x0
+w2 :=        $0x10
+w3 :=        $0x1
+w4 laddr     @b.0x54
+w4 =:        b.0x40C
+w3 putbi     @b.0x40C+,$0x1D
+r:=          b.0x54
+w move       b.0xC,r.0xD4
+w test       $0x8023D70
+if = go      $0xBC
+w test       $0x8023D6C
+if = go      $0x69
+r:=          b.0x8
+w move       b.0x1C,r.0x14
+call         $0x800892D,$0x0
+if -k go     $0x8
+call         $0x80045EA,$0x0
+w1 =:        b.0x64
+call         $0x8008915,$0x0
+if -k go     $0x8
+call         $0x80045EA,$0x0
+w comp2      b.0x64,r1
+if = go      $0x3F
+r:=          b.0x8
+w move       b.0x64,r.0x14
+call         $0x8008EC8,$0x0
+if -k go     $0x8
+call         $0x80045EA,$0x0
+w2 :=        $0x10
+w3 :=        $0x1
+w4 laddr     @b.0x54
+w4 =:        b.0x40C
+w3 putbi     @b.0x40C+,$0x1D
+r:=          b.0x54
+w move       b.0xC,r.0xD4
+r:=          b.0x8
+w move       b.0x64,r.0x14
+call         $0x8008F8C,$0x0
+if -k go     $0x8
+call         $0x80045EA,$0x0
+go           $0x4C
+w test       $0x8028F64
+if = go      $0x1A
+call         $0x8009381,$0x2,$0x8012A34,$0x8023D80
+if -k go     $0x8
+call         $0x80045EA,$0x0
+r:=          b.0x8
+w stz        r.0x14
+call         $0x800008D,$0x0
+if -k go     $0x8
+call         $0x80045EA,$0x0
+call         $0xFFFFFFFFF80000FF,$0x2,$0x8012A34,$0x8023D80 ; MON 377B
+if -k go     $0x8
+call         $0x80045EA,$0x0
+ret
+r:=          b.0x8
+w move       b.0x38,r.0x14
+h wconv      b.0x50,r2
+w2 =:        r.0x18
+call         $0x8003727,$0x0
+if -k go     $0x8
+call         $0x80045EA,$0x0
+w test       $0x8023D6C
+if = go      $0x58
+r:=          b.0x14
+w2 :=        r.0x24
+w sha        r2,$0x23
+w2 and       $0x7
+w2 =:        b.0x40C
+w stz        b.0x410
+w2 comp      $0x1
+if >< go     $0x6
+w set1       b.0x410
+w stz        b.0x418
+w2 comp      $0x2
+if >< go     $0x6
+w set1       b.0x418
+w3 :=        b.0x410
+w3 or        b.0x418
+w stz        b.0x41C
+w2 comp      $0x5
+if >< go     $0x6
+w set1       b.0x41C
+w3 or        b.0x41C
+w stz        b.0x420
+w2 comp      $0x7
+if >< go     $0x6
+w set1       b.0x420
+w3 or        b.0x420
+w3 =:        $0x8014D0C
+go           $0x1B
+w stz        b.0x410
+r:=          b.0x14
+h2 getbi     r.0x24,$0x9
+if = go      $0x6
+w set1       b.0x410
+w move       b.0x410,$0x8014D0C
+go           $0x25
+entd
+l=:          b.0x410
+w1 =:        b.0xC
+w1 comp      $0x22D
+if >< go     $0x5
+retk
+go           $0xE
+w1 comp      $0x801
+if >< go     $0x5
+ret
+go           $0x5
+go           $0xFFFFFFFFFFFFFD37
+clrk
+jumpg        b.0x410
+w move       b.0x18,b.0x418
+h wconv      b.0x50,r1
+w1 *         $0x18
+by2 laddr    $0x8014D3C+
+w2 =:        b.0x41C
+r:=          b.0x418
+by3 :=       r.0x5
+by3 and      $0x4
+if = go      $0x29A
+w stz        b.0x44
+w4 :=        b.0x38
+w4 +         $0x8
+w4 -         $0x1
+r:=          b.0x8
+w4 =:        r.0x14
+h wconv      b.0x50,r1
+w1 =:        r.0x18
+call         $0x8003727,$0x0
+if -k go     $0x8
+call         $0x8004914,$0x0
+r:=          b.0x40
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xA
+h1 getbf     r.0x0,$0xE,$0x2
+go           $0x8
+w1 getbf     r.0x0,$0x1E,$0x2
+w1 =:        b.0x428
+w1 :=        b.0x428
+go           $0x2
+w1 =:        b.0x420
+jumpg        $0x8023FD0+
+w move       $0x3C,b.0x424
+w stz        b.0x428
+w test       b.0x428
+if >< go     $0x14
+w1 :=        b.0x424
+call         $0x800062F,$0x0
+if -k go     $0x8
+call         $0x8004914,$0x0
+go           $0x228
+h wconv      b.0x50,r1
+r:=          b.0x8
+w1 =:        r.0x14
+w move       b.0x38,r.0x18
+call         $0x8000312,$0x0
+if -k go     $0x8
+call         $0x8004914,$0x0
+w test       r1
+if >< go     $0x208
+r:=          b.0x41C
+by rladdr    r.0x8
+w comp2      r.0x4,$0x1000000
+if = go      $0x3A
+w1 :=        b.0x38
+r:=          b.0x41C
+by rladdr    r.0x8
+w1 -         r.0x4
+w1 =:        b.0x42C
+w test       r1
+if < go      $0x27
+w1 comp      $0x7
+if > go      $0x23
+w move       b.0x38,b.0x3DC
+r:=          b.0x41C
+by2 laddr    r.0x8
+w2 =:        b.0x3E0
+call         $0x800436C,$0x0
+if -k go     $0x8
+call         $0x8004914,$0x0
+go           $0xD9
+r:=          b.0x41C
+by rladdr    r.0x10
+w comp2      r.0x4,$0x1000000
+if = go      $0x3A
+w2 :=        b.0x38
+r:=          b.0x41C
+by rladdr    r.0x10
+w2 -         r.0x4
+w2 =:        b.0x430
+w test       r2
+if < go      $0x27
+w2 comp      $0x7
+if > go      $0x23
+w move       b.0x38,b.0x3DC
+r:=          b.0x41C
+by3 laddr    r.0x10
+w3 =:        b.0x3E0
+call         $0x800436C,$0x0
+if -k go     $0x8
+call         $0x8004914,$0x0
+go           $0x91
+r:=          b.0x41C
+by rladdr    r.0x8
+w2 :=        r.0x4
+w2 +         $0x8
+w comp2      b.0x38,r2
+if >< go     $0x7
+w set1       b.0x44
+go           $0x7C
+w3 :=        @b.0x41C
+w3 +         $0x1
+w comp2      b.0x38,r3
+if >< go     $0x61
+r:=          b.0x41C
+w4 :=        r.0x4
+w4 +         $0x1
+w comp2      @b.0x41C,r4
+if >< go     $0x52
+r:=          b.0x41C
+by rladdr    r.0x8
+w comp2      r.0x4,$0x1000000
+if = go      $0x3E
+r:=          b.0x41C
+by rladdr    r.0x8
+w1 :=        r.0x4
+w comp2      b.0x38,r1
+if >>= go    $0x30
+r:=          b.0x41C
+by rladdr    r.0x8
+w2 :=        r.0x4
+w2 -         b.0x38
+w2 =:        b.0x434
+w test       r2
+if < go      $0x1D
+w2 comp      $0x7
+if > go      $0x19
+r:=          b.0x41C
+w bmove      r.0x8,b.0x48,$0x2
+by3 laddr    r.0x8
+w bmove      r.0x10,r3.(0x0),$0x2
+w bmove      b.0x48,r.0x10,$0x2
+w set1       b.0x44
+go           $0x11
+w2 :=        @b.0x41C
+r:=          b.0x41C
+w2 =:        r.0x4
+w move       b.0x38,@b.0x41C
+w test       b.0x44
+if = go      $0xE5
+r:=          b.0x41C
+by rladdr    r.0x10
+w comp2      r.0x4,$0x1000000
+if = go      $0x2A
+r:=          b.0x41C
+by4 laddr    r.0x10
+w4 =:        b.0x250
+call         $0x8003EEE,$0x0
+if -k go     $0x8
+call         $0x8004914,$0x0
+w2 :=        $0x1000000
+r:=          b.0x41C
+by rladdr    r.0x10
+w2 =:        r.0x4
+w move       b.0x38,b.0x20
+w3 :=        b.0x38
+w3 +         $0x8
+w3 -         $0x1
+w3 =:        b.0x438
+w comp2      b.0x20,r3
+if >> go     $0x55
+h wconv      b.0x50,r1
+r:=          b.0x8
+w1 =:        r.0x14
+w move       b.0x20,r.0x18
+call         $0x8000312,$0x0
+if -k go     $0x8
+call         $0x8004914,$0x0
+h1 =:        b.0x34
+w test       r1
+if = go      $0x2C
+r:=          b.0x8
+h move       b.0x34,r.0x14
+call         $0x8003A0A,$0x0
+if -k go     $0x8
+call         $0x8004914,$0x0
+h2 :=        b.0x34
+w2 =:        b.0x43C
+w1 :=        r2
+call         $0x80027A1,$0x0
+if -k go     $0x8
+call         $0x8004914,$0x0
+w incr       b.0x20
+w comp2      b.0x20,b.0x438
+if <<= go    $0xFFFFFFFFFFFFFFAF
+r:=          b.0x41C
+w bmove      r.0x8,b.0x48,$0x2
+by1 laddr    r.0x8
+w bmove      r.0x10,r1.(0x0),$0x2
+w bmove      b.0x48,r.0x10,$0x2
+w2 :=        b.0x38
+r:=          b.0x41C
+by rladdr    r.0x8
+w2 =:        r.0x4
+r:=          b.0x41C
+by3 laddr    r.0x8
+w3 =:        b.0xD8
+call         $0x8003BAB,$0x0
+if -k go     $0x8
+call         $0x8004914,$0x0
+w2 :=        $0x3F
+w2 =:        @b.0x41C
+r:=          b.0x41C
+w2 =:        r.0x4
+go           $0x2
+h wconv      b.0x50,r2
+r:=          b.0x8
+w2 =:        r.0x14
+w move       b.0x38,r.0x18
+call         $0x8000312,$0x0
+if -k go     $0x8
+call         $0x8004914,$0x0
+w test       r1
+if >< go     $0x38
+h wconv      b.0x50,r1
+r:=          b.0x8
+w1 =:        r.0x14
+w move       b.0x38,r.0x18
+call         $0x8003640,$0x0
+if -k go     $0x8
+call         $0x8004914,$0x0
+w1 =:        b.0x440
+h wconv      b.0x50,r2
+r:=          b.0x8
+w2 =:        r.0x14
+w move       b.0x38,r.0x18
+call         $0x80003ED,$0x0
+if -k go     $0x8
+call         $0x8004914,$0x0
+r:=          b.0x54
+w stz        r.0xDC
+w stz        r.0xE0
+ret
+ents         $0x20
+w1 :=        $0x80129D8
+w1 =:        b.0x18
+w2 :=        $0x80129D8
+w1 :=        b.0x14
+w3 :=        $0xFC
+clrk
+call         $0x800005F,$0x0
+ifkret
+w move       $0x80129D8,b.0x1C
+w test       b.0x1C
+if = go      $0x1F
+r:=          b.0x1C
+by1 :=       r.0xFFFFFFFFFFFFFFFB
+r:=          b.0x14
+by2 :=       r.0xFFFFFFFFFFFFFFFB
+by1 comp     r2
+if >> go     $0x11
+r:=          b.0x1C
+w1 laddr     r.0xFC
+w1 =:        b.0x18
+w3 :=        r.0xFC
+w3 =:        b.0x1C
+w test       r3
+if >< go     $0xFFFFFFFFFFFFFFE5
+w1 :=        b.0x14
+w1 =:        @b.0x18
+w2 :=        b.0x1C
+r:=          b.0x14
+w2 =:        r.0xFC
+ret
+ents         $0x30
+r:=          b.0x14
+h1 :=        r.0x6
+w1 =:        b.0x18
+w2 :=        b.0x18
+w2 *         $0x100
+by1 laddr    $0x20000900+
+w1 =:        b.0x24
+w1 :=        b.0x24
+go           $0x2
+w1 =:        b.0x1C
+r:=          b.0x14
+h2 :=        r.0x12
+w2 =:        b.0x20
+w2 =:        b.0x24
+r:=          b.0x1C
+w1 :=        b.0x24
+h1 =:        r.0x4A
+bi1 clr
+r:=          b.0x1C
+w1 =:        r.0xEC
+r:=          b.0x8
+w move       b.0x18,r.0x14
+r:=          b.0x1C
+w1 :=        r.0x48
+w1 and       $0xFFFF
+w1 =:        b.0x2C
+w1 :=        b.0x2C
+go           $0x2
+r:=          b.0x8
+w1 =:        r.0x18
+w set1       r.0x1C
+w2 :=        $0x8000DA8
+w2 =:        r.0x20
+w stz        r.0x24
+w set1       r.0x28
+call         $0x8001349,$0x0
+ifkret
+r:=          b.0x8
+w move       b.0x1C,r.0x14
+call         $0x8004C4B,$0x0
+ifkret
+r:=          b.0x8
+w move       b.0x18,r.0x14
+r:=          b.0x1C
+w1 :=        r.0x48
+w1 and       $0xFFFF
+w1 =:        b.0x2C
+w1 :=        b.0x2C
+go           $0x2
+r:=          b.0x8
+w1 =:        r.0x18
+call         $0x8000DA8,$0x0
+ifkret
+r:=          b.0x1C
+w1 :=        r.0x48
+w1 and       $0xFFFF
+w1 =:        b.0x2C
+w1 :=        b.0x2C
+go           $0x2
+w1 *         $0x64
+by rladdr    $0x8038000+
+w setbi      r.0x4,$0x16
+r:=          b.0x1C
+w stz        r.0xF4
+w3 :=        b.0x18
+w stz        $0x8028ABC+
+w test       $0x8023D6C
+if = go      $0x10
+dcc
+w incr       $0x8026278
+w incr       $0x802627C
+r:=          b.0x1C
+w stz        r.0xDC
+w stz        r.0xE0
+ret
+ents         $0x34
+h wconv      b.0x14,r1
+w1 =:        b.0x1C
+w2 :=        b.0x1C
+w2 *         $0x100
+by1 laddr    $0x20000900+
+r:=          r1
+w1 :=        r.0x48
+w1 and       $0xFFFF
+w1 =:        b.0x24
+w1 :=        b.0x24
+go           $0x2
+w test       r1
+if = go      $0xD0
+h wconv      b.0x14,r1
+w1 =:        b.0x20
+w2 :=        b.0x20
+w2 *         $0x100
+by1 laddr    $0x20000900+
+w1 =:        b.0x28
+w1 :=        b.0x28
+go           $0x2
+w1 =:        b.0x18
+w2 :=        $0x80129D8
+w1 :=        b.0x18
+w3 :=        $0xFC
+clrk
+call         $0x800005F,$0x0
+ifkret
+h wconv      b.0x14,r1
+r:=          b.0x8
+w1 =:        r.0x14
+r:=          b.0x18
+w1 :=        r.0x48
+w1 and       $0xFFFF
+w1 =:        b.0x28
+w1 :=        b.0x28
+go           $0x2
+r:=          b.0x8
+w1 =:        r.0x18
+w set1       r.0x1C
+w2 :=        $0x8000972
+w2 =:        r.0x20
+w stz        r.0x24
+w set1       r.0x28
+call         $0x8001349,$0x0
+ifkret
+h wconv      b.0x14,r2
+r:=          b.0x8
+w2 =:        r.0x14
+r:=          b.0x18
+w1 :=        r.0x48
+w1 and       $0xFFFF
+w1 =:        b.0x28
+w1 :=        b.0x28
+go           $0x2
+r:=          b.0x8
+w1 =:        r.0x18
+call         $0x8000972,$0x0
+ifkret
+w move       $0x32,b.0x24
+w stz        b.0x2C
+r:=          b.0x18
+w2 :=        r.0xEC
+w test       r2
+if >< go     $0x4
+w set1       b.0x2C
+w move       b.0x2C,b.0x28
+w test       b.0x28
+if >< go     $0xB
+w1 :=        b.0x24
+call         $0x800062F,$0x0
+ifkret
+h wconv      b.0x14,r1
+w stz        $0x8028ABC+
+w stz        b.0x2C
+h wconv      b.0x14,r2
+w2 =:        b.0x30
+w2 :=        b.0x30
+w2 *         $0x100
+by1 laddr    $0x20000900+
+r:=          r1
+w1 :=        b.0x2C
+h1 =:        r.0x4A
+ret
+ents         $0x28
+w1 :=        b.0x14
+w1 *         $0x64
+by2 laddr    $0x8038000+
+w2 =:        b.0x20
+h3 :=        r2.(0x62)
+w3 =:        b.0x18
+bi4 clr
+h4 =:        r2.(0x62)
+w test       b.0x18
+if = go      $0x34
+w1 :=        b.0x18
+w1 *         $0x8
+by rladdr    $0x30000000+
+h2 :=        r.0x0
+w2 =:        b.0x1C
+bi zpgu      b.0x18
+bi zwip      b.0x18
+w1 :=        b.0x18
+w1 *         $0x8
+by rladdr    $0x30000000+
+w clebi      r.0x4,$0x1C
+w1 :=        b.0x18
+call         $0x80027A1,$0x0
+ifkret
+w move       b.0x1C,b.0x18
+go           $0xFFFFFFFFFFFFFFCC
+w stz        b.0x24
+w1 :=        b.0x24
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x10
+w2 :=        b.0x14
+h rladdr     $0x28010800+
+h1 =:        r.0x0
+go           $0xC
+w2 :=        b.0x14
+w rladdr     $0x28010800+
+w1 =:        r.0x0
+ret
+ents         $0x34
+w1 :=        b.0x14
+w1 *         $0x64
+by2 laddr    $0x8038000+
+w2 =:        b.0x20
+r:=          b.0x20
+w3 getbi     r.0x12,$0x8
+w3 or        $0x8014D34
+w3 =:        $0x8014D34
+w4 getbi     r.0x12,$0x7
+w4 or        $0x8014D38
+w4 =:        $0x8014D38
+w test       $0x8023D6C
+if = go      $0xCA
+w stz        b.0x28
+r:=          b.0x20
+w1 getbi     r.0x12,$0x6
+go           $0x2
+w test       r1
+if = go      $0x42
+r:=          b.0x20
+h1 :=        r.0x5E
+w1 =:        b.0x18
+w test       b.0x18
+if = go      $0x37
+bi1 rwip     b.0x18
+if >< go     $0x17
+w1 :=        b.0x18
+w1 *         $0x8
+w1 =:        b.0x30
+w1 :=        b.0x30
+by rladdr    $0x30000000+
+w1 getbi     r.0x4,$0x1C
+go           $0x6
+w1 :=        $0x1
+go           $0x2
+w1 =:        b.0x28
+w test       r1
+if >< go     $0x13
+w2 :=        b.0x18
+w2 *         $0x8
+by rladdr    $0x30000000+
+h3 :=        r.0x0
+w3 =:        b.0x18
+go           $0xFFFFFFFFFFFFFFC9
+w test       $0x8023D70
+if = go      $0x25
+r:=          b.0x8
+w move       $0x8014D34,r.0x14
+w move       $0x8014D38,r.0x18
+w move       b.0x28,r.0x1C
+w move       b.0x28,r.0x20
+w stz        r.0x24
+w stz        r.0x28
+w stz        r.0x2C
+call         $0x800894A,$0x0
+ifkret
+w test       b.0x28
+if = go      $0x3C
+w stz        b.0x2C
+w test       $0x8023D6C
+if = go      $0x32
+w test       $0x8023D70
+if = go      $0x28
+w test       b.0x2C
+if = go      $0x24
+r:=          b.0x8
+w stz        r.0x14
+w stz        r.0x18
+w set1       r.0x1C
+w set1       r.0x20
+w stz        r.0x24
+w stz        r.0x28
+w stz        r.0x2C
+call         $0x800894A,$0x0
+ifkret
+dcc
+call         $0x8008AAA,$0x0
+ifkret
+go           $0x4
+dcc
+w test       $0x8023D70
+if = go      $0x9
+call         $0x8008AAA,$0x0
+ifkret
+w stz        b.0x30
+w1 :=        b.0x30
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x10
+w2 :=        b.0x14
+h rladdr     $0x28010800+
+h1 =:        r.0x0
+go           $0xC
+w2 :=        b.0x14
+w rladdr     $0x28010800+
+w1 =:        r.0x0
+r:=          b.0x20
+w1 :=        r.0x2E
+w1 =:        b.0x24
+w test       r1
+if = go      $0x13
+r:=          b.0x24
+h comp2      r.0x14,$0x4
+if = go      $0x4
+w stz        r.0x18
+w move       r.0x8,b.0x24
+w test       b.0x24
+if >< go     $0xFFFFFFFFFFFFFFF1
+bi1 clr
+r:=          b.0x20
+w1 =:        r.0x2E
+w1 =:        r.0x46
+w comp2      b.0x20,$0x80129D0
+if >< go     $0xB
+w2 :=        r.0x4E
+w2 =:        $0x80129D0
+w2 :=        $0x80129CC
+w1 :=        b.0x20
+w3 :=        $0x4E
+clrk
+call         $0x800005F,$0x0
+ifkret
+r:=          b.0x20
+h1 :=        r.0x5E
+w1 =:        b.0x18
+bi2 clr
+h2 =:        r.0x5E
+bi3 clr
+w3 =:        r.0x1A
+bi4 clr
+h4 =:        r.0x6
+w test       b.0x18
+if = go      $0x50
+w1 :=        b.0x18
+w1 *         $0x8
+by rladdr    $0x30000000+
+by2 :=       r.0x4
+by shl       r2,$0x3B
+w test       r2
+if = go      $0x9
+h decr       $0x8012A10
+w2 :=        b.0x18
+w2 *         $0x8
+by rladdr    $0x30000000+
+h3 :=        r.0x0
+w3 =:        b.0x1C
+bi zpgu      b.0x18
+bi zwip      b.0x18
+w1 :=        b.0x18
+w1 *         $0x8
+by rladdr    $0x30000000+
+w clebi      r.0x4,$0x1C
+w1 :=        b.0x18
+call         $0x80027A1,$0x0
+ifkret
+w move       b.0x1C,b.0x18
+go           $0xFFFFFFFFFFFFFFB0
+r:=          b.0x8
+w move       b.0x14,r.0x14
+call         $0x8004E7B,$0x0
+ifkret
+ret
+ents         $0x60
+r:=          b.0x8
+w move       b.0x14,r.0x14
+call         $0x8000560,$0x0
+ifkret
+w2 :=        b.0x14
+w2 *         $0x64
+by3 laddr    $0x8038000+
+w3 =:        b.0x34
+h4 laddr     r3.(0x5E)
+w4 =:        b.0x28
+w4 =:        r3.(0x1A)
+r:=          b.0x34
+w1 getbi     r.0x12,$0x8
+w1 or        $0x8014D34
+w1 =:        $0x8014D34
+w2 getbi     r.0x12,$0x7
+w2 or        $0x8014D38
+w2 =:        $0x8014D38
+w comp2      $0x8023D5C,$0x0
+if >< go     $0xF
+w2 :=        b.0x14
+h rladdr     $0x28010800+
+h1 :=        r.0x0
+go           $0xC
+w2 :=        b.0x14
+w rladdr     $0x28010800+
+w1 :=        r.0x0
+w1 =:        b.0x44
+w1 :=        b.0x44
+go           $0x2
+w1 =:        b.0x3C
+w test       $0x8023D6C
+if = go      $0xEE
+w stz        b.0x38
+r:=          b.0x34
+w1 getbi     r.0x12,$0x6
+go           $0x2
+w test       r1
+if = go      $0x66
+w test       $0x8023D70
+if = go      $0x9
+call         $0x8008BD5,$0x0
+ifkret
+w move       b.0x28,b.0x24
+h1 :=        @b.0x24
+w1 =:        b.0x2C
+w test       r1
+if = go      $0x4B
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x30
+w stz        b.0x40
+by3 :=       r2.(0x4)
+by shl       r3,$0x3B
+w test       r3
+if >< go     $0x4
+w set1       b.0x40
+bi1 rwip     b.0x2C
+if >< go     $0x17
+w1 :=        b.0x2C
+w1 *         $0x8
+w1 =:        b.0x48
+w1 :=        b.0x48
+by rladdr    $0x30000000+
+w1 getbi     r.0x4,$0x1C
+go           $0x6
+w1 :=        $0x1
+go           $0x2
+w1 and       b.0x40
+w1 =:        b.0x38
+w test       r1
+if >< go     $0xB
+r:=          b.0x30
+h2 laddr     r.0x0
+w2 =:        b.0x24
+go           $0xFFFFFFFFFFFFFFB0
+w test       $0x8023D70
+if = go      $0x25
+r:=          b.0x8
+w move       $0x8014D34,r.0x14
+w move       $0x8014D38,r.0x18
+w move       b.0x38,r.0x1C
+w move       b.0x38,r.0x20
+w stz        r.0x24
+w stz        r.0x28
+w set1       r.0x2C
+call         $0x800894A,$0x0
+ifkret
+w test       b.0x38
+if = go      $0x3C
+w stz        b.0x40
+w test       $0x8023D6C
+if = go      $0x32
+w test       $0x8023D70
+if = go      $0x28
+w test       b.0x40
+if = go      $0x24
+r:=          b.0x8
+w stz        r.0x14
+w stz        r.0x18
+w set1       r.0x1C
+w set1       r.0x20
+w stz        r.0x24
+w stz        r.0x28
+w stz        r.0x2C
+call         $0x800894A,$0x0
+ifkret
+dcc
+call         $0x8008AAA,$0x0
+ifkret
+go           $0x4
+dcc
+w test       $0x8023D70
+if = go      $0x9
+call         $0x8008AAA,$0x0
+ifkret
+w stz        b.0x44
+w1 :=        b.0x44
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x10
+w2 :=        b.0x14
+h rladdr     $0x28010800+
+h1 =:        r.0x0
+go           $0xC
+w2 :=        b.0x14
+w rladdr     $0x28010800+
+w1 =:        r.0x0
+w test       $0x8023D70
+if = go      $0x1E
+w test       $0x8023D6C
+if = go      $0xB
+call         $0x8008CF7,$0x0
+ifkret
+go           $0xD
+r:=          b.0x8
+w set1       r.0x14
+call         $0x800008D,$0x0
+ifkret
+w1 :=        b.0x3C
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x14
+w2 :=        $0x8012A44
+h rladdr     $0x28010800+
+h1 =:        r.0x0
+go           $0x10
+w2 :=        $0x8012A44
+w rladdr     $0x28010800+
+w1 =:        r.0x0
+w move       b.0x28,b.0x24
+h1 :=        @b.0x24
+w1 =:        b.0x2C
+w test       r1
+if = go      $0xB5
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x48
+by3 :=       r2.(0x4)
+by shl       r3,$0x3B
+w test       r3
+if >< go     $0x95
+h3 :=        r2.(0x6)
+h3 =:        b.0x4C
+w3 comp      b.0x18
+if << go     $0x8A
+h3 :=        b.0x4C
+w3 comp      b.0x1C
+if >> go     $0x83
+h3 :=        $0x80128F4
+w comp2      b.0x2C,r3
+if >> go     $0x6
+w test       b.0x20
+if = go      $0x73
+r:=          b.0x8
+w move       $0x8012A44,r.0x14
+h4 :=        r2.(0x6)
+w4 =:        r.0x18
+bi1 clr
+call         $0x80003ED,$0x0
+ifkret
+r:=          b.0x8
+w move       b.0x34,r.0x14
+w move       b.0x2C,r.0x18
+call         $0x80007C8,$0x0
+ifkret
+w test       r1
+if = go      $0x12
+r:=          b.0x8
+w move       $0x31,r.0x14
+w move       b.0x2C,r.0x18
+call         $0x80025E9,$0x0
+ifkret
+r:=          b.0x48
+h2 :=        r.0x0
+h2 =:        @b.0x24
+r:=          b.0x8
+w move       b.0x34,r.0x14
+h move       $0x3F,r.0x18
+call         $0x80005BD,$0x0
+ifkret
+bi zpgu      b.0x2C
+bi zwip      b.0x2C
+w1 :=        b.0x2C
+w1 *         $0x8
+by rladdr    $0x30000000+
+w clebi      r.0x4,$0x1C
+w1 :=        b.0x2C
+call         $0x80027A1,$0x0
+ifkret
+go           $0x8
+h3 laddr     r2.(0x0)
+w3 =:        b.0x24
+go           $0xFFFFFFFFFFFFFF47
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x13
+w2 :=        $0x8012A44
+h rladdr     $0x28010800+
+h1 :=        r.0x0
+go           $0x10
+w2 :=        $0x8012A44
+w rladdr     $0x28010800+
+w1 :=        r.0x0
+w1 =:        b.0x5C
+w1 :=        b.0x5C
+go           $0x2
+w1 =:        b.0x50
+w1 =:        b.0x54
+w1 :=        b.0x54
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x10
+w2 :=        b.0x14
+h rladdr     $0x28010800+
+h1 =:        r.0x0
+go           $0xC
+w2 :=        b.0x14
+w rladdr     $0x28010800+
+w1 =:        r.0x0
+r:=          b.0x34
+by1 :=       r.0x5
+by1 and      $0x1
+if >< go     $0x15
+h2 :=        r.0x5E
+w test       r2
+if >< go     $0xE
+r:=          b.0x8
+w move       b.0x14,r.0x14
+call         $0x8004E7B,$0x0
+ifkret
+ret
+ents         $0x24
+w2 :=        b.0x14
+w2 *         $0x100
+by1 laddr    $0x20000900+
+r:=          r1
+w1 :=        r.0x48
+w1 and       $0xFFFF
+w1 =:        b.0x20
+w1 :=        b.0x20
+go           $0x2
+w1 =:        b.0x18
+r:=          b.0x8
+w move       b.0x14,r.0x14
+w1 =:        r.0x18
+w set1       r.0x1C
+w2 :=        $0x8002C52
+w2 =:        r.0x20
+w stz        r.0x24
+w set1       r.0x28
+call         $0x8001349,$0x0
+ifkret
+w incr       $0x8026254
+w comp2      b.0x14,$0x80129DC
+if = go      $0xE
+r:=          b.0x8
+w move       b.0x18,r.0x14
+call         $0x8002C2B,$0x0
+ifkret
+ret
+ents         $0x48
+r:=          b.0x14
+h1 :=        r.0x10
+h1 =:        b.0x38
+h1 comp      $0x7
+if << go     $0xB
+h1 comp      $0x8012854
+if <<= go    $0x7
+w1 :=        $0x437
+retk
+h1 :=        r.0x10
+w1 *         $0x64
+by2 laddr    $0x8038000+
+w2 =:        b.0x24
+w3 :=        r2.(0xE)
+w test       r3
+if = go      $0x77
+by3 :=       r.0x13
+by3 and      $0x1
+if >< go     $0x2A
+h1 :=        r.0x6
+h wconv      r1,r4
+r:=          b.0x24
+r:=          r.0xE
+w2 laddr     r.0x40
+w2 =:        b.0x3C
+bi stz       @b.0x3C+
+r:=          b.0x24
+r:=          r.0xE
+w3 laddr     r.0x40
+w3 =:        b.0x2C
+w stz        b.0x30
+w move       $0xFE,b.0x34
+go           $0x28
+h1 :=        r.0x6
+h wconv      r1,r2
+r:=          b.0x24
+r:=          r.0xE
+w4 laddr     r.0x20
+w4 =:        b.0x3C
+bi stz       @b.0x3C+
+r:=          b.0x24
+r:=          r.0xE
+w3 laddr     r.0x20
+w3 =:        b.0x2C
+w stz        b.0x30
+w move       $0xFE,b.0x34
+w stz        b.0x1C
+w1 :=        b.0x30
+w1 =:        b.0x18
+w4 :=        b.0x34
+w4 =:        b.0x3C
+w1 comp      r4
+if > go      $0x11
+w1 :=        b.0x18
+bi test      @b.0x2C+
+if >< go     $0x8
+d loopi      b.0x18,b.0x3C,$0xFFFFFFFFFFFFFFF9
+go           $0x4
+w set1       b.0x1C
+go           $0x18
+by1 :=       r.0x13
+by1 and      $0x1
+if >< go     $0x9
+w clebi      r2.(0x12),$0xF
+go           $0x7
+w clebi      r2.(0x12),$0xE
+w stz        b.0x1C
+w test       b.0x1C
+if >< go     $0xAE
+r:=          b.0x24
+h2 :=        r.0x5E
+h2 =:        b.0x28
+h1 :=        b.0x28
+w test       r1
+if = go      $0x9F
+h1 :=        b.0x28
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x20
+h move       b.0x28,b.0x2A
+h3 :=        r2.(0x0)
+h3 =:        b.0x28
+by4 :=       r2.(0x4)
+by4 and      $0x80
+if = go      $0x9
+h decr       $0x8012A12
+by1 :=       r2.(0x4)
+by shl       r1,$0x3B
+w test       r1
+if = go      $0x68
+r:=          b.0x14
+w1 getbi     r.0x10,$0x0
+w3 laddr     r2.(0x4)
+w3 =:        b.0x40
+bi stz       @b.0x40+
+by4 :=       r2.(0x4)
+by shl       r4,$0x3B
+w test       r4
+if >< go     $0x4D
+h decr       $0x8012A10
+by4 :=       r2.(0x5)
+by4 and      $0x10
+if = go      $0x3E
+r:=          b.0x24
+h3 laddr     r.0x5E
+r:=          b.0x8
+w3 =:        r.0x14
+h move       b.0x2A,r.0x18
+call         $0x800394F,$0x0
+ifkret
+h2 :=        b.0x2A
+w2 =:        b.0x40
+bi zpgu      b.0x40
+bi zwip      b.0x40
+w1 :=        b.0x40
+w1 *         $0x8
+by rladdr    $0x30000000+
+w clebi      r.0x4,$0x1C
+h1 :=        b.0x2A
+w1 =:        b.0x44
+call         $0x80027A1,$0x0
+ifkret
+go           $0xFFFFFFFFFFFFFF60
+ret
+entd
+l=:          b.0x6C
+h comp2      b.0x2E,$0x80128F6
+if << go     $0xD
+h comp2      b.0x2E,$0x80128F4
+if <<= go    $0xE
+w1 :=        b.0x64
+w1 :=        $0x8023FDC+
+setk
+jumpg        b.0x6C
+h1 :=        b.0x38
+w test       r1
+if = go      $0x5E
+h1 :=        b.0x38
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x28
+by3 :=       r2.(0x4)
+by shl       r3,$0x3B
+w test       r3
+if = go      $0x3E
+h3 :=        r2.(0x6)
+h3 =:        b.0x78
+h3 comp      b.0x32
+if << go     $0x32
+h3 comp      b.0x34
+if >> go     $0x2D
+h4 :=        b.0x2E
+h1 :=        r2.(0x6)
+h4 +         r1
+h4 -         b.0x32
+h4 comp      b.0x38
+if = go      $0x1B
+by4 :=       r2.(0x4)
+by shl       r4,$0x3B
+w4 comp      $0x4
+if = go      $0x4
+w set1       b.0x64
+w4 :=        b.0x64
+w1 :=        $0x8023FDC+
+setk
+jumpg        b.0x6C
+h3 :=        r2.(0x0)
+h3 =:        b.0x38
+go           $0xFFFFFFFFFFFFFFA0
+h2 :=        b.0x2E
+h2 +         b.0x2C
+h2 -         $0x1
+h2 =:        b.0x70
+h move       b.0x32,b.0x72
+h move       b.0x2E,b.0x38
+h3 :=        b.0x38
+w3 comp      r2
+if >> go     $0xA8
+h1 :=        b.0x38
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x74
+w3 getbf     r2.(0x4),$0x16,$0x3
+w test       r3
+if >< go     $0xA
+w1 :=        $0x21C
+setk
+jumpg        b.0x6C
+by3 :=       r2.(0x4)
+by shl       r3,$0x3B
+w test       r3
+if = go      $0x3D
+by3 :=       r2.(0x4)
+by shl       r3,$0x3B
+w3 comp      $0x4
+if = go      $0x4
+w set1       b.0x64
+h3 :=        r2.(0x2)
+w3 comp      b.0x24
+if = go      $0x14
+w3 :=        b.0x68
+w3 *         $0x2
+w3 +         b.0x64
+w1 :=        $0x8023FE4+
+setk
+jumpg        b.0x6C
+go           $0x17
+h4 :=        r2.(0x6)
+h4 comp      b.0x72
+if = go      $0xE
+w4 :=        b.0x64
+w1 :=        $0x8023FDC+
+setk
+jumpg        b.0x6C
+w4 getbf     r2.(0x4),$0x19,$0x3
+w4 =:        b.0x7C
+r:=          b.0x20
+by3 :=       r.0x4
+by shl       r3,$0x3A
+w3 *         $0x20
+w3 +         r4
+bi test      $0x80129FC+
+if = go      $0xC
+h comp2      b.0x38,$0x80128F4
+if <<= go    $0xA
+w1 :=        $0x21A
+setk
+jumpg        b.0x6C
+h incr       b.0x72
+h2 :=        b.0x38
+w2 +         $0x1
+h2 =:        b.0x38
+h4 :=        b.0x70
+w2 comp      r4
+if <<= go    $0xFFFFFFFFFFFFFF5E
+clrk
+jumpg        b.0x6C
+entd
+l=:          b.0x80
+h1 :=        b.0x32
+w1 =:        b.0x84
+w stz        b.0x64
+h move       $0x80128F6,b.0x2E
+h move       $0x80128F6,b.0x38
+h2 :=        b.0x38
+h3 :=        $0x80128F4
+w2 comp      r3
+if >> go     $0x6D
+h1 :=        b.0x38
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x88
+w3 getbf     r2.(0x4),$0x16,$0x3
+w test       r3
+if = go      $0x1B
+by3 :=       r2.(0x4)
+by shl       r3,$0x3B
+w test       r3
+if = go      $0x20
+h3 :=        r2.(0x2)
+w3 comp      b.0x24
+if >< go     $0x9
+h3 :=        r2.(0x6)
+w3 comp      b.0x84
+if = go      $0x12
+h3 :=        b.0x38
+h3 +         $0x1
+h3 =:        b.0x2E
+h4 :=        b.0x32
+w4 =:        b.0x84
+go           $0x1C
+by3 :=       r2.(0x4)
+by shl       r3,$0x3B
+w3 comp      $0x4
+if = go      $0x4
+w set1       b.0x64
+w incr       b.0x84
+h3 :=        b.0x34
+w comp2      b.0x84,r3
+if <<= go    $0x6
+clrk
+jumpg        b.0x80
+h3 :=        b.0x38
+w3 +         $0x1
+h3 =:        b.0x38
+h4 :=        $0x80128F4
+w3 comp      r4
+if <<= go    $0xFFFFFFFFFFFFFF97
+h1 :=        $0x80128F4
+h1 -         $0x80128F6
+h comp2      b.0x2C,r1
+if << go     $0xC
+w1 :=        $0x224
+setk
+jumpg        b.0x80
+go           $0xF
+bi2 clr
+w2 +         b.0x64
+w1 :=        $0x8023FE4+
+setk
+jumpg        b.0x80
+ents         $0xF0
+r:=          b.0x14
+h1 :=        r.0x10
+w1 =:        b.0x24
+w1 comp      $0x7
+if < go      $0xE
+h wconv      $0x8012854,r2
+w1 comp      r2
+if <= go     $0x7
+w1 :=        $0x437
+retk
+w stz        b.0x5C
+w1 :=        b.0x24
+w1 *         $0x64
+by3 laddr    $0x8038000+
+w3 =:        b.0x20
+w test       b.0x18
+if = go      $0x41
+h2 :=        r.0x6
+h wconv      r2,r4
+r:=          b.0x8
+w4 =:        r.0x14
+w move       b.0x24,r.0x18
+call         $0x8000DA8,$0x0
+ifkret
+r:=          b.0x20
+by2 :=       r.0x5
+by2 and      $0x4
+if = go      $0x22
+w clebi      r.0x4,$0x12
+bi4 clr
+w4 putbi     b.0x58,$0x0
+r:=          b.0x14
+h1 :=        r.0x6
+h1 =:        b.0x4E
+by2 laddr    b.0x48
+r:=          b.0x8
+w2 =:        r.0x14
+call         $0x800544E,$0x0
+ifkret
+r:=          b.0x14
+by2 :=       r.0x12
+by2 and      $0x80
+if = go      $0x2A
+h3 :=        r.0x14
+h3 =:        b.0x32
+h4 :=        r.0x16
+h4 comp      $0x3F
+if >< go     $0xC
+w4 :=        @b.0x20
+w4 -         $0x1
+h4 =:        b.0x34
+go           $0x10
+h4 :=        r.0x14
+h3 :=        r.0x16
+h4 +         r3
+h4 -         $0x1
+h4 =:        b.0x34
+go           $0xD
+h stz        b.0x32
+w3 :=        @b.0x20
+w3 -         $0x1
+h3 =:        b.0x34
+h3 :=        b.0x34
+h3 -         b.0x32
+h3 +         $0x1
+h3 =:        b.0x2C
+h4 :=        b.0x34
+w4 comp      @b.0x20
+if << go     $0x28
+r:=          b.0x20
+by4 :=       r.0x5
+by4 and      $0x20
+if >< go     $0x1D
+w1 getbf     r.0x4,$0x1A,$0x4
+w1 =:        b.0x8C
+bi test      $0x80129E8+
+if = go      $0x9
+w1 :=        $0x217
+retk
+go           $0x7
+w1 :=        $0x218
+retk
+h3 +         $0x8012A10
+h3 +         $0x14
+w3 comp      $0x80128E4
+if <<= go    $0x7
+w1 :=        $0x223
+retk
+r:=          b.0x20
+by3 :=       r.0x5
+by3 and      $0x1
+if = go      $0x51
+h move       b.0x32,b.0x36
+h2 :=        b.0x36
+h4 :=        b.0x34
+w2 comp      r4
+if >> go     $0x42
+r:=          b.0x8
+w move       b.0x24,r.0x14
+h1 :=        b.0x36
+w1 =:        r.0x18
+call         $0x8000312,$0x0
+ifkret
+h1 =:        b.0x3C
+w test       r1
+if = go      $0x1B
+h1 :=        b.0x3C
+w1 *         $0x8
+by rladdr    $0x30000000+
+w2 getbf     r.0x4,$0x16,$0x3
+w test       r2
+if >< go     $0x7
+w1 :=        $0x225
+retk
+h2 :=        b.0x36
+w2 +         $0x1
+h2 =:        b.0x36
+h3 :=        b.0x34
+w2 comp      r3
+if <<= go    $0xFFFFFFFFFFFFFFC2
+r:=          b.0x14
+by1 :=       r.0x12
+by1 and      $0x40
+if = go      $0x2D
+w set1       b.0x44
+r:=          b.0x20
+w2 :=        r.0xE
+w test       r2
+if >< go     $0x9
+w setbi      r.0x12,$0xE
+go           $0x19
+r:=          b.0x14
+h4 :=        r.0x6
+h wconv      r4,r3
+r:=          b.0x20
+r:=          r.0xE
+w1 laddr     r.0x20
+w1 =:        b.0x90
+bi set1      @b.0xFFFFFFFFFFFFFF90+
+go           $0x68
+h2 :=        $0x8012A10
+h2 +         b.0x2C
+w2 comp      $0x801284C
+if <<= go    $0x7
+w1 :=        $0x21B
+retk
+w stz        b.0x44
+r:=          b.0x20
+w2 :=        r.0xE
+w test       r2
+if >< go     $0x30
+w setbi      r.0x12,$0xF
+w move       $0x34,b.0x90
+w stz        b.0x98
+r:=          b.0x14
+h4 :=        r.0x6
+r:=          b.0x20
+h3 :=        r.0x12
+h4 comp      r3
+if >< go     $0x4
+w set1       b.0x98
+w move       b.0x98,b.0x94
+w test       b.0x94
+if >< go     $0xB
+w1 :=        b.0x90
+call         $0x800062F,$0x0
+ifkret
+go           $0x19
+r:=          b.0x14
+h2 :=        r.0x6
+h wconv      r2,r1
+r:=          b.0x20
+r:=          r.0xE
+w3 laddr     r.0x40
+w3 =:        b.0x98
+bi set1      @b.0xFFFFFFFFFFFFFF98+
+r:=          b.0x14
+by4 :=       r.0x12
+by4 and      $0x10
+if = go      $0x138
+h2 :=        $0x80128F4
+h2 -         $0x80128F6
+h comp2      b.0x2C,r2
+if << go     $0x7
+w1 :=        $0x224
+retk
+w stz        b.0x64
+r:=          b.0x20
+h3 :=        r.0x5E
+h3 =:        b.0x38
+r:=          b.0x14
+by4 :=       r.0x12
+by4 and      $0x20
+if = go      $0x31
+w set1       b.0x68
+h2 :=        r.0x18
+h2 =:        b.0x2E
+h2 comp      $0x80128F6
+if << go     $0x11
+h2 +         b.0x2C
+h2 -         $0x1
+h2 comp      $0x80128F4
+if <<= go    $0x7
+w1 :=        $0x21C
+retk
+call         $0x80055BF,$0x0
+ifkret
+go           $0xA2
+w stz        b.0x68
+h1 :=        b.0x38
+w test       r1
+if = go      $0x8B
+h1 :=        b.0x38
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x28
+by3 :=       r2.(0x4)
+by shl       r3,$0x3B
+w test       r3
+if = go      $0x4
+w set1       b.0x5C
+by3 :=       r2.(0x4)
+by shl       r3,$0x3B
+w test       r3
+if = go      $0x5C
+h3 :=        r2.(0x6)
+h3 =:        b.0x9C
+h3 comp      b.0x32
+if << go     $0x50
+h3 comp      b.0x34
+if >> go     $0x4B
+by4 :=       r2.(0x4)
+by shl       r4,$0x3B
+w4 comp      $0x4
+if = go      $0x4
+w set1       b.0x64
+h4 :=        b.0x38
+h1 :=        r2.(0x6)
+h4 -         r1
+h4 +         b.0x32
+h4 =:        b.0x2E
+go           $0x1C
+entd
+l=:          b.0x98
+w1 =:        b.0xC
+w test       b.0x5C
+if = go      $0xD
+w1 :=        b.0x64
+w1 :=        $0x8023FDC+
+retk
+go           $0x3
+retk
+clrk
+jumpg        b.0x98
+call         $0x80055BF,$0x0
+if -k go     $0x8
+call         $0x8005A87,$0x0
+go           $0x19
+h3 :=        r2.(0x0)
+h3 =:        b.0x38
+go           $0xFFFFFFFFFFFFFF74
+call         $0x800570E,$0x0
+if -k go     $0x8
+call         $0x8005A87,$0x0
+h1 :=        b.0x2E
+h1 +         b.0x2C
+h1 -         $0x1
+h1 =:        b.0x30
+go           $0xD
+entd
+l=:          b.0xA0
+w1 =:        b.0xC
+retk
+clrk
+jumpg        b.0xA0
+r:=          b.0x8
+w move       b.0x24,r.0x14
+h1 :=        b.0x32
+w1 =:        r.0x18
+h2 :=        b.0x34
+w2 =:        r.0x1C
+w set1       r.0x20
+call         $0x80050E1,$0x0
+if -k go     $0x8
+call         $0x8005AD6,$0x0
+go           $0xD1
+r:=          b.0x8
+w move       b.0x24,r.0x14
+h2 :=        b.0x32
+w2 =:        r.0x18
+h3 :=        b.0x34
+w3 =:        r.0x1C
+w set1       r.0x20
+call         $0x80050E1,$0x0
+if -k go     $0x8
+call         $0x8005AD6,$0x0
+h move       $0x80128F6,b.0x38
+h2 :=        b.0x38
+h3 :=        $0x80128F4
+w2 comp      r3
+if >> go     $0x3E
+h1 :=        b.0x38
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x28
+w3 getbf     r2.(0x4),$0x16,$0x3
+w test       r3
+if = go      $0xD
+by3 :=       r2.(0x4)
+by shl       r3,$0x3B
+w test       r3
+if = go      $0x15
+h3 :=        b.0x38
+w3 +         $0x1
+h3 =:        b.0x38
+h4 :=        $0x80128F4
+w3 comp      r4
+if <<= go    $0xFFFFFFFFFFFFFFCF
+go           $0x9
+h move       b.0x38,b.0x2E
+go           $0x7
+w1 :=        $0x21B
+retk
+h2 :=        b.0x2C
+w2 =:        b.0x40
+h move       b.0x2E,b.0x38
+h3 :=        b.0x38
+h4 :=        $0x80128F4
+w3 comp      r4
+if >> go     $0x43
+h1 :=        b.0x38
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0xA4
+w3 getbf     r2.(0x4),$0x16,$0x3
+w test       r3
+if = go      $0xF
+by3 :=       r2.(0x4)
+by shl       r3,$0x3B
+w test       r3
+if >< go     $0x4
+w decr       b.0x40
+w test       b.0x40
+if <= go     $0x15
+h3 :=        b.0x38
+w3 +         $0x1
+h3 =:        b.0x38
+h4 :=        $0x80128F4
+w3 comp      r4
+if <<= go    $0xFFFFFFFFFFFFFFC9
+go           $0x8
+h move       b.0x38,b.0x30
+go           $0x7
+w1 :=        $0x21B
+retk
+go           $0x56
+entd
+l=:          b.0xA8
+w1 =:        b.0xC
+h move       b.0x38,b.0x3A
+h1 :=        b.0x3A
+h2 :=        b.0x30
+w1 comp      r2
+if >> go     $0x3B
+h1 :=        b.0x3A
+w1 *         $0x8
+by rladdr    $0x30000000+
+w2 getbf     r.0x4,$0x16,$0x3
+w2 comp      $0x4
+if >< go     $0x17
+h2 :=        b.0x3A
+w2 =:        b.0xAC
+w1 :=        r2
+call         $0x80027A1,$0x0
+if -k go     $0x8
+call         $0x8005AD6,$0x0
+h2 :=        b.0x3A
+w2 +         $0x1
+h2 =:        b.0x3A
+h3 :=        b.0x30
+w2 comp      r3
+if <<= go    $0xFFFFFFFFFFFFFFC9
+w1 :=        b.0xC
+retk
+clrk
+jumpg        b.0xA8
+h2 :=        b.0x34
+r:=          b.0x8
+w2 =:        r.0x14
+w move       b.0x24,r.0x18
+call         $0x8003727,$0x0
+if -k go     $0x8
+call         $0x8005BD2,$0x0
+w2 :=        b.0x24
+w2 *         $0x64
+by rladdr    $0x8038000+
+w3 getbi     r.0x4,$0x19
+w3 =:        $0x8014D0C
+h4 :=        b.0x2E
+r:=          b.0x8
+w4 =:        r.0x14
+h1 :=        b.0x30
+w1 =:        r.0x18
+call         $0x8002CF7,$0x0
+if -k go     $0x8
+call         $0x8005BD2,$0x0
+h move       b.0x2E,b.0x38
+h move       b.0x32,b.0x36
+h2 :=        b.0x36
+h3 :=        b.0x34
+w2 comp      r3
+if >> go     $0x3A2
+h1 :=        b.0x38
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x28
+r:=          b.0x8
+w move       b.0x24,r.0x14
+h3 :=        b.0x36
+w3 =:        r.0x18
+call         $0x8000312,$0x0
+if -k go     $0x8
+call         $0x8005BD2,$0x0
+h1 =:        b.0x3C
+w test       r1
+if >< go     $0x2ED
+h1 :=        b.0x38
+w test       r1
+if >< go     $0x7
+w1 :=        $0x21B
+retk
+r:=          b.0x28
+w2 getbf     r.0x4,$0x16,$0x3
+w2 comp      $0x4
+if = go      $0x1D6
+w2 getbf     r.0x4,$0x16,$0x3
+w2 =:        b.0xB0
+bi test      $0x80129E0+
+if = go      $0x1B0
+r:=          b.0x8
+h move       b.0x2E,r.0x14
+h move       b.0x30,r.0x16
+w3 :=        b.0x24
+h3 =:        r.0x18
+call         $0x8000828,$0x0
+if -k go     $0x8
+call         $0x8005BD2,$0x0
+h1 =:        b.0x3A
+w1 =:        b.0xB4
+call         $0x80027A1,$0x0
+if -k go     $0x8
+call         $0x8005BD2,$0x0
+r:=          b.0x28
+h2 :=        r.0x2
+r:=          b.0x8
+w2 =:        r.0x14
+call         $0x80036CB,$0x0
+if -k go     $0x8
+call         $0x8005BD2,$0x0
+h1 =:        b.0x3A
+r:=          b.0x8
+w1 =:        r.0x14
+h2 :=        b.0x38
+w2 =:        r.0x18
+call         $0x8001543,$0x0
+if -k go     $0x8
+call         $0x8005BD2,$0x0
+r:=          b.0x28
+h2 :=        r.0x2
+w2 =:        b.0xB8
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x13
+w2 :=        b.0xB8
+h rladdr     $0x28010800+
+h1 getbf     r.0x0,$0x0,$0xE
+go           $0x10
+w2 :=        b.0xB8
+w rladdr     $0x28010800+
+w1 getbf     r.0x0,$0x0,$0x1E
+w1 =:        b.0xC0
+w1 :=        b.0xC0
+go           $0x2
+h2 :=        b.0x38
+w1 comp      r2
+if >< go     $0x50
+h1 :=        b.0x3A
+w1 =:        b.0xBC
+w1 =:        b.0xC0
+r:=          b.0x28
+h3 :=        r.0x2
+w3 =:        b.0xC4
+w1 :=        b.0xC0
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x13
+w2 :=        b.0xC4
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0x0,$0xE
+go           $0x10
+w2 :=        b.0xC4
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x0,$0x1E
+h1 :=        b.0x3A
+w1 *         $0x8
+w2 :=        $0x2
+by rladdr    $0x30000000+
+w2 putbf     r.0x4,$0x16,$0x3
+go           $0xC3
+r:=          b.0x28
+h2 :=        r.0x2
+w2 =:        b.0xC8
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x13
+w2 :=        b.0xC8
+h rladdr     $0x28010800+
+h1 getbf     r.0x0,$0x0,$0xE
+go           $0x10
+w2 :=        b.0xC8
+w rladdr     $0x28010800+
+w1 getbf     r.0x0,$0x0,$0x1E
+w1 =:        b.0xD0
+w1 :=        b.0xD0
+go           $0x2
+h1 =:        b.0x3E
+w1 =:        b.0xCC
+h2 :=        b.0x38
+w2 =:        b.0xD0
+h3 :=        b.0x3A
+w3 =:        b.0xD4
+w1 :=        b.0xCC
+w1 *         $0x800
+w2 :=        r1
+w2 +         $0x800
+w3 :=        b.0xD0
+w4 :=        b.0xD4
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x1B
+dmof
+h3 comp      r1.(0x0)
+if = go      $0xB
+w1 +         $0x2
+w1 comp      r2
+if < go      $0xFFFFFFFFFFFFFFF6
+bi1 clr
+go           $0x1F
+h4 =:        r1.(0x0)
+w1 :=        $0x1
+go           $0x17
+dmof
+w3 comp      r1.(0x0)
+if = go      $0xB
+w1 +         $0x4
+w1 comp      r2
+if < go      $0xFFFFFFFFFFFFFFF7
+bi1 clr
+go           $0x7
+w4 =:        r1.(0x0)
+w1 :=        $0x1
+dmon
+w1 =:        b.0xDC
+w1 :=        b.0xDC
+go           $0x2
+w1 =:        b.0x60
+w move       $0x20,b.0xD8
+w test       b.0x60
+if >< go     $0x12
+w1 :=        b.0xD8
+call         $0x800062F,$0x0
+if -k go     $0x8
+call         $0x8005BD2,$0x0
+h1 :=        b.0x3A
+w1 *         $0x8
+w2 :=        $0x3
+by rladdr    $0x30000000+
+w2 putbf     r.0x4,$0x16,$0x3
+r:=          b.0x8
+h move       b.0x38,r.0x14
+call         $0x8003A0A,$0x0
+if -k go     $0x8
+call         $0x8005BD2,$0x0
+go           $0x6
+bi2 clr
+h2 =:        r.0x0
+r:=          b.0x8
+w move       b.0x20,r.0x14
+h2 :=        b.0x38
+w2 =:        r.0x18
+call         $0x80005F2,$0x0
+if -k go     $0x8
+call         $0x8005BD2,$0x0
+w2 :=        $0x1
+r:=          b.0x28
+w2 putbf     r.0x4,$0x16,$0x3
+w test       b.0x18
+if >< go     $0xC
+r:=          b.0x14
+by3 :=       r.0x12
+by3 and      $0x10
+if >< go     $0x53
+r:=          b.0x28
+w clebi      r.0x4,$0x14
+h1 :=        b.0x36
+h1 =:        r.0x6
+r:=          b.0x8
+w move       $0x30,r.0x14
+h2 :=        b.0x38
+w2 =:        r.0x18
+call         $0x80025E9,$0x0
+if -k go     $0x8
+call         $0x8005BD2,$0x0
+h2 :=        b.0x38
+w2 =:        b.0xDC
+r:=          b.0x8
+w move       b.0x24,r.0x14
+h3 :=        b.0x36
+w3 =:        r.0x18
+w1 :=        r2
+call         $0x80003ED,$0x0
+if -k go     $0x8
+call         $0x8005BD2,$0x0
+r:=          b.0x20
+w2 getbi     r.0x4,$0x19
+r:=          b.0x28
+w2 putbi     r.0x4,$0x1C
+go           $0x8
+r:=          b.0x28
+w setbi      r.0x4,$0x14
+by2 :=       r.0x4
+by shl       r2,$0x3B
+w test       r2
+if >< go     $0x8
+h incr       $0x8012A10
+w2 :=        b.0x44
+w4 laddr     r.0x4
+w4 =:        b.0xE0
+bi set1      @b.0xFFFFFFFFFFFFFFE0+
+r:=          b.0x14
+by1 :=       r.0x12
+by1 and      $0x10
+if = go      $0x6
+h incr       b.0x38
+go           $0x4D
+h move       b.0x2E,b.0x38
+h3 :=        b.0x38
+h4 :=        $0x80128F4
+w3 comp      r4
+if >> go     $0x35
+h1 :=        b.0x38
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x28
+w3 getbf     r2.(0x4),$0x16,$0x3
+w test       r3
+if = go      $0xD
+by3 :=       r2.(0x4)
+by shl       r3,$0x3B
+w test       r3
+if = go      $0x15
+h3 :=        b.0x38
+w3 +         $0x1
+h3 =:        b.0x38
+h4 :=        $0x80128F4
+w3 comp      r4
+if <<= go    $0xFFFFFFFFFFFFFFCF
+h stz        b.0x38
+h move       b.0x38,b.0x2E
+go           $0x7B
+r:=          b.0x14
+by1 :=       r.0x12
+by1 and      $0x10
+if = go      $0x46
+w move       $0x16,b.0xE0
+w stz        b.0xE8
+h comp2      b.0x3C,b.0x38
+if >< go     $0x4
+w set1       b.0xE8
+h2 :=        b.0x38
+w2 *         $0x8
+w stz        b.0xEC
+by rladdr    $0x30000000+
+by3 :=       r.0x4
+by shl       r3,$0x3B
+w test       r3
+if = go      $0x4
+w set1       b.0xEC
+w3 :=        b.0xE8
+w3 and       b.0xEC
+w3 =:        b.0xE4
+w test       r3
+if >< go     $0x12
+w1 :=        b.0xE0
+call         $0x800062F,$0x0
+if -k go     $0x8
+call         $0x8005BD2,$0x0
+h incr       b.0x38
+go           $0xF
+h1 :=        b.0x3C
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x28
+r:=          b.0x28
+by2 :=       r.0x4
+by shl       r2,$0x3B
+w test       r2
+if >< go     $0x8
+h incr       $0x8012A10
+w2 :=        b.0x44
+w3 laddr     r.0x4
+w3 =:        b.0xE8
+bi set1      @b.0xFFFFFFFFFFFFFFE8+
+h4 :=        b.0x36
+w4 +         $0x1
+h4 =:        b.0x36
+h1 :=        b.0x34
+w4 comp      r1
+if <<= go    $0xFFFFFFFFFFFFFC64
+r:=          b.0x14
+by1 :=       r.0x12
+by1 and      $0x10
+if >< go     $0x49
+h move       b.0x38,b.0x3A
+h2 :=        b.0x3A
+h3 :=        b.0x30
+w2 comp      r3
+if >> go     $0x3B
+h1 :=        b.0x3A
+w1 *         $0x8
+by rladdr    $0x30000000+
+w2 getbf     r.0x4,$0x16,$0x3
+w2 comp      $0x4
+if >< go     $0x17
+h2 :=        b.0x3A
+w2 =:        b.0xE8
+w1 :=        r2
+call         $0x80027A1,$0x0
+if -k go     $0x8
+call         $0x8005BD2,$0x0
+h2 :=        b.0x3A
+w2 +         $0x1
+h2 =:        b.0x3A
+h3 :=        b.0x30
+w2 comp      r3
+if <<= go    $0xFFFFFFFFFFFFFFC9
+h1 :=        $0x8012A10
+w1 comp      $0x801284C
+if <<= go    $0x7
+w1 :=        $0x21B
+retk
+r:=          b.0x14
+by2 :=       r.0x12
+by2 and      $0x10
+if = go      $0xA
+h3 :=        b.0x2E
+w1 :=        r3
+ret
+go           $0x5
+w1 :=        $0x3F
+ret
+ents         $0x2C
+r:=          b.0x14
+h1 :=        r.0x10
+w1 *         $0x64
+by rladdr    $0x8038000+
+w2 :=        r.0x0
+r:=          b.0x8
+w2 =:        r.0x14
+r:=          b.0x14
+h3 :=        r.0x10
+r:=          b.0x8
+w3 =:        r.0x18
+call         $0x8003727,$0x0
+ifkret
+r:=          b.0x14
+h2 :=        r.0x14
+h2 =:        b.0x18
+h3 :=        r.0x18
+h3 =:        b.0x1A
+w move       r.0x1A,b.0x1C
+w set1       b.0x20
+h4 :=        r.0x16
+h4 =:        b.0x24
+w comp2      b.0x20,r4
+if >> go     $0x4A
+h riom       b.0x1C,b.0x18,$0x8023EA0
+w1 :=        $0x8023D60
+h wconv      $0x8023FF4+,r2
+w2 +         b.0x1C
+w2 =:        b.0x1C
+h wconv      b.0x1A,r3
+w3 -         $0x80128D8
+w3 =:        b.0x28
+r:=          b.0x14
+h4 :=        r.0x10
+r:=          b.0x8
+w4 =:        r.0x14
+h wconv      b.0x18,r1
+w1 =:        r.0x18
+w1 :=        r3
+call         $0x80003ED,$0x0
+ifkret
+w incr       b.0x20
+h2 :=        b.0x24
+w comp2      b.0x20,r2
+if <<= go    $0xFFFFFFFFFFFFFFBA
+r:=          b.0x14
+h1 :=        r.0x10
+w1 *         $0x64
+by rladdr    $0x8038000+
+w setbi      r.0x4,$0x10
+ret
+ents         $0x40
+w move       $0x18,b.0x28
+r:=          b.0x14
+h2 :=        r.0x10
+h wconv      r2,r1
+w stz        b.0x30
+w1 comp      $0x3F
+if >= go     $0x4
+w set1       b.0x30
+w move       b.0x30,b.0x2C
+w test       b.0x2C
+if >< go     $0xB
+w1 :=        b.0x28
+call         $0x800062F,$0x0
+ifkret
+w stz        b.0x1C
+r:=          b.0x14
+h1 :=        r.0x10
+h1 -         $0x1
+h1 =:        b.0x34
+h wconv      r1,r2
+w comp2      b.0x1C,r2
+if >> go     $0x142
+w1 :=        b.0x1C
+w1 *         $0x4
+r:=          b.0x14
+w3 laddr     r.0x14
+w3 =:        b.0x30
+by rladdr    @b.0x30+
+h2 :=        r.0x0
+w2 -         $0x80128D8
+w2 =:        b.0x18
+h4 :=        $0x80128F6
+w2 comp      r4
+if >>= go    $0x9
+h2 =:        $0x80128F6
+w2 :=        b.0x1C
+w2 *         $0x4
+r:=          b.0x14
+w1 laddr     r.0x14
+w1 =:        b.0x30
+by rladdr    @b.0x30+
+h3 :=        r.0x2
+w3 =:        b.0x24
+w test       b.0x18
+if >< go     $0x6
+w set1       b.0x18
+w decr       b.0x24
+w3 :=        $0x80128F8
+r:=          b.0x8
+w3 =:        r.0x14
+w move       b.0x18,r.0x18
+w4 :=        b.0x18
+w4 +         b.0x24
+w4 -         $0x1
+w4 =:        r.0x1C
+call         $0x8003891,$0x0
+ifkret
+w set1       b.0x20
+w comp2      b.0x20,b.0x24
+if >> go     $0x54
+w move       $0x19,b.0x30
+w1 :=        b.0x18
+w1 *         $0x8
+w stz        b.0x3C
+by rladdr    $0x30000000+
+w2 getbf     r.0x4,$0x16,$0x3
+w test       r2
+if >< go     $0x4
+w set1       b.0x3C
+w move       b.0x3C,b.0x38
+w test       b.0x38
+if >< go     $0xB
+w1 :=        b.0x30
+call         $0x800062F,$0x0
+ifkret
+bi zpgu      b.0x18
+bi zwip      b.0x18
+w1 :=        b.0x18
+w1 *         $0x8
+by rladdr    $0x30000000+
+w clebi      r.0x4,$0x1C
+w1 :=        b.0x18
+call         $0x80027A1,$0x0
+ifkret
+w incr       b.0x18
+w incr       b.0x20
+w comp2      b.0x20,b.0x24
+if <<= go    $0xFFFFFFFFFFFFFFB0
+w add2       $0x80128EC,b.0x24
+w1 :=        b.0x18
+w1 -         $0x1
+w1 =:        b.0x3C
+h2 :=        $0x80128F4
+w1 comp      r2
+if << go     $0x15
+w1 comp      $0x80128DC
+if >> go     $0xD
+w3 :=        b.0x18
+w3 -         $0x1
+h3 =:        $0x80128F4
+w1 :=        b.0x18
+w1 -         $0x1
+w1 comp      $0x80128E0
+if <<= go    $0xC
+w1 :=        b.0x18
+w1 -         $0x1
+w1 =:        $0x80128E0
+w4 :=        $0x80128EC
+w4 +         $0x80128E8
+w4 =:        $0x80128E4
+w2 :=        $0x80128E4
+w2 /         $0x2
+w2 =:        $0x801284C
+w comp2      $0x801284C,$0x80128EC
+if <<= go    $0xD
+w move       $0x80128EC,$0x801284C
+w incr       b.0x1C
+h wconv      b.0x34,r3
+w comp2      b.0x1C,r3
+if <<= go    $0xFFFFFFFFFFFFFEC4
+ret
+ents         $0x164
+r:=          b.0x14
+h1 :=        r.0x10
+h1 =:        b.0x20
+h move       $0x80128F6,b.0x18
+w stz        b.0x130
+h stz        b.0x1E
+w set1       b.0x128
+h comp2      b.0x1E,b.0x20
+if >> go     $0x272
+h1 :=        b.0x18
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x134
+h comp2      b.0x18,$0x80128F4
+if >> go     $0x4D
+w3 getbf     r2.(0x4),$0x16,$0x3
+w test       r3
+if = go      $0x1F
+by3 :=       r2.(0x4)
+by shl       r3,$0x3B
+w test       r3
+if >< go     $0x14
+w3 getbf     r2.(0x4),$0x19,$0x3
+w3 =:        b.0x138
+w test       r3
+if << go     $0x2A
+w3 comp      $0x3
+if >> go     $0x26
+w3 getbf     r2.(0x4),$0x16,$0x3
+w test       r3
+if = go      $0x18
+w3 getbf     r2.(0x4),$0x19,$0x3
+w3 =:        b.0x13C
+w3 comp      $0x4
+if << go     $0xA
+w3 comp      $0x7
+if >> go     $0x6
+w stz        b.0x128
+h incr       b.0x18
+go           $0xFFFFFFFFFFFFFF9E
+h move       b.0x18,b.0x1C
+h stz        b.0x22
+h1 :=        b.0x18
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x134
+w stz        b.0x140
+h comp2      b.0x1E,b.0x20
+if >>= go    $0x6
+w set1       b.0x140
+w stz        b.0x144
+h comp2      b.0x18,$0x80128F4
+if >> go     $0x6
+w set1       b.0x144
+w3 :=        b.0x140
+w3 and       b.0x144
+w stz        b.0x148
+w test       $0x80129D8
+if >< go     $0x6
+w set1       b.0x148
+w stz        b.0x14C
+w comp2      $0x80128E4,$0x14
+if <= go     $0x6
+w set1       b.0x14C
+w4 :=        b.0x148
+w4 or        b.0x14C
+w4 and       r3
+w4 =:        b.0x12C
+w test       r4
+if = go      $0xCF
+by1 :=       r2.(0x4)
+by shl       r1,$0x3B
+w test       r1
+if >< go     $0xC3
+w1 getbf     r2.(0x4),$0x16,$0x3
+w test       r1
+if = go      $0xB8
+w1 getbf     r2.(0x4),$0x19,$0x3
+w1 =:        b.0x140
+w1 comp      $0x4
+if << go     $0xA9
+w1 comp      $0x7
+if >> go     $0xA4
+h3 :=        b.0x18
+w3 *         $0x8
+by4 laddr    $0x30000000+
+w4 =:        b.0x144
+w2 getbf     r4.(0x4),$0x16,$0x3
+w2 =:        b.0x148
+bi test      $0x80129E0+
+if = go      $0x34
+h1 :=        r4.(0x2)
+r:=          b.0x8
+w1 =:        r.0x14
+w stz        r.0x18
+w move       $0x3F,r.0x1C
+w set1       r.0x20
+call         $0x80050E1,$0x0
+ifkret
+r:=          b.0x144
+w2 getbf     r.0x4,$0x16,$0x3
+w2 =:        b.0x14C
+bi test      $0x80129E0+
+if = go      $0xA
+w stz        b.0x128
+h incr       b.0x18
+go           $0x50
+r:=          b.0x144
+w1 getbf     r.0x4,$0x16,$0x3
+w1 comp      $0x4
+if = go      $0x2A
+r:=          b.0x8
+h move       b.0x18,r.0x14
+call         $0x8003A0A,$0x0
+ifkret
+h2 :=        $0x80128F8
+r:=          b.0x144
+h2 =:        r.0x0
+bi3 clr
+w3 putbf     r.0x4,$0x16,$0x3
+h move       b.0x18,$0x80128F8
+h incr       b.0x1E
+h incr       b.0x18
+h incr       b.0x22
+w test       b.0x128
+if = go      $0xA
+h move       b.0x18,$0x80128F6
+go           $0xFFFFFFFFFFFFFECB
+h1 :=        b.0x1C
+r:=          b.0x8
+w1 =:        r.0x14
+h2 :=        b.0x18
+h2 -         $0x1
+h wconv      r2,r3
+w3 =:        r.0x18
+call         $0x8002CF7,$0x0
+ifkret
+h move       b.0x1C,b.0x1A
+h2 :=        b.0x18
+h2 -         $0x1
+h2 =:        b.0x150
+h3 :=        b.0x1A
+h wconv      r2,r4
+w3 comp      r4
+if > go      $0x49
+h1 :=        b.0x1A
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x154
+w3 getbf     r2.(0x4),$0x16,$0x3
+w3 comp      $0x4
+if >< go     $0x1C
+h3 :=        $0x80128F8
+h3 =:        r2.(0x0)
+h move       b.0x1A,$0x80128F8
+bi3 clr
+w3 putbf     r2.(0x4),$0x16,$0x3
+h3 :=        b.0x1A
+w3 +         $0x1
+h3 =:        b.0x1A
+h wconv      b.0x150,r4
+w3 comp      r4
+if <= go     $0xFFFFFFFFFFFFFFBB
+w1 :=        b.0x130
+w1 *         $0x4
+w2 laddr     b.0x28
+w2 =:        b.0x15C
+by2 laddr    @b.0x15C+
+w2 =:        b.0x158
+h3 :=        b.0x1C
+w3 +         $0x80128D8
+h3 =:        r2.(0x0)
+h4 :=        b.0x22
+h4 =:        r2.(0x2)
+w test       r4
+if = go      $0x6
+w incr       b.0x130
+h4 :=        b.0x22
+w1 :=        $0x80128EC
+w1 -         r4
+w1 =:        $0x80128EC
+w comp2      b.0x130,$0x3F
+if > go      $0xB
+w test       b.0x12C
+if = go      $0x5
+go           $0xFFFFFFFFFFFFFD8C
+w move       $0x38,b.0x15C
+call         $0x8000769,$0x0
+ifkret
+w1 =:        b.0x160
+w test       r1
+if >< go     $0xD
+w1 :=        b.0x15C
+call         $0x800062F,$0x0
+ifkret
+w1 :=        b.0x130
+h1 =:        b.0x24
+w2 :=        $0x80128E8
+w2 +         $0x80128EC
+w2 =:        $0x80128E4
+w3 :=        $0x80128E4
+w3 /         $0x2
+w3 =:        $0x801284C
+w comp2      $0x801284C,$0x80128EC
+if <<= go    $0xD
+w move       $0x80128EC,$0x801284C
+w test       $0x8028F64
+if = go      $0x14
+call         $0x80092E8,$0x3,$0x8012A30,b.0x24,$0x80240B4
+ifkret
+r:=          b.0x8
+w stz        r.0x14
+call         $0x800008D,$0x0
+ifkret
+call         $0xFFFFFFFFF80000FF,$0x3,$0x8012A30,b.0x24,$0x80240B4 ; MON 377B
+ifkret
+ret
+entd
+l=:          b.0x5C
+h wconv      b.0x60,r1
+w test       r1
+if < go      $0x8
+h comp2      b.0x60,$0x1F
+if <= go     $0x9
+w1 :=        $0x7C
+setk
+jumpg        b.0x5C
+r:=          b.0x4C
+w1 :=        r.0x48
+w1 and       $0xFFFF
+w1 =:        b.0xE8
+w1 :=        b.0xE8
+go           $0x2
+r:=          b.0x8
+w1 =:        r.0x14
+r:=          b.0x4C
+w1 :=        r.0x5C
+w1 and       $0xFF
+w1 =:        b.0xF0
+w1 :=        b.0xF0
+go           $0x2
+r:=          b.0x8
+w1 =:        r.0x18
+w2 laddr     b.0x62
+w2 =:        r.0x1C
+w stz        r.0x20
+w move       $0x3F,r.0x24
+call         $0x800111A,$0x0
+if -k go     $0x4
+jumpg        b.0x5C
+h2 :=        $0x20
+h2 +         b.0x60
+h wconv      r2,r3
+w3 *         $0x2
+by rladdr    b.0x62+
+h4 :=        r.0x0
+w4 and       $0x1FFF
+h4 =:        b.0x54
+h wconv      r4,r1
+w test       r1
+if >< go     $0xA
+w1 :=        $0x226
+setk
+jumpg        b.0x5C
+h wconv      r4,r2
+w2 *         $0x64
+by3 laddr    $0x8038000+
+w3 =:        b.0x50
+clrk
+jumpg        b.0x5C
+ents         $0x120
+go           $0x29
+entd
+l=:          b.0xF4
+w1 =:        b.0xC
+w1 :=        $0x4
+w2 :=        b.0xC
+w3 laddr     @b.0x4C
+w3 =:        b.0xF8
+w2 =:        @b.0xFFFFFFFFFFFFFFF8+
+w4 :=        $0x10
+w2 :=        $0x1
+w3 laddr     @b.0x4C
+w3 =:        b.0xF8
+w2 putbi     @b.0xFFFFFFFFFFFFFFF8+,$0x8
+ret
+clrk
+jumpg        b.0xF4
+h wconv      b.0x14,r1
+w1 =:        b.0xF8
+w2 :=        b.0xF8
+w2 *         $0x100
+by1 laddr    $0x20000900+
+w1 =:        b.0x100
+w1 :=        b.0x100
+go           $0x2
+w1 =:        b.0x4C
+w2 :=        $0x8023D60
+h wconv      $0x8024000+,r3
+w3 +         $0x80240B4
+w3 =:        b.0x28
+h riom       b.0x28,b.0x16,$0x8023FFC
+w test       $0x8028F60
+if = go      $0x1D
+w1 laddr     b.0x16
+r:=          b.0x8
+w1 =:        r.0x14
+w stz        r.0x18
+w move       $0x3,r.0x1C
+call         $0x8009144,$0x0
+if -k go     $0x8
+call         $0x8006685,$0x0
+w2 :=        b.0x16
+by2 =:       b.0xFC
+by2 comp     $0x8024004
+if >> go     $0x1F1
+jumpg        $0x8024008+
+w test       $0x8023FF8
+if = go      $0x6
+w move       $0x2,b.0x16
+r:=          b.0x4C
+w1 :=        r.0xEC
+w1 =:        b.0x58
+w test       r1
+if >< go     $0xE3
+w1 :=        $0x620
+call         $0x8000AF9,$0x0
+if -k go     $0x8
+call         $0x8006685,$0x0
+r:=          b.0x4C
+w1 =:        r.0xEC
+w2 :=        r.0xEC
+w2 =:        b.0x58
+w2 =:        b.0x100
+w3 :=        b.0x1A
+h3 =:        b.0x60
+call         $0x80065E9,$0x0
+if -k go     $0x8
+call         $0x8006685,$0x0
+r:=          b.0x100
+h move       b.0x54,@b.0x100
+h move       $0x3F,r.0x2
+w test       b.0x16
+if = go      $0x8
+w comp2      b.0x1E,$0x2
+if >= go     $0x16
+w2 :=        $0x8014D24
+h2 =:        b.0x42
+w2 =:        r.0x8
+bi3 clr
+h3 =:        b.0x40
+w3 =:        r.0x4
+go           $0x13
+w4 :=        b.0x1E
+h4 =:        b.0x42
+w4 =:        r.0x8
+w1 :=        b.0x22
+h1 =:        b.0x40
+w1 =:        r.0x4
+h2 :=        b.0x14
+h2 =:        b.0x32
+h3 :=        b.0x54
+h3 =:        b.0x3C
+w clebi      b.0x3C,$0xE
+w clebi      b.0x3C,$0xD
+w setbi      b.0x3C,$0xF
+w setbi      b.0x3C,$0xC
+w set1       $0x8014D0C
+bi4 clr
+h4 =:        b.0x44
+by1 laddr    b.0x2C
+r:=          b.0x8
+w1 =:        r.0x14
+w set1       r.0x18
+call         $0x80057CB,$0x0
+if -k go     $0x8
+call         $0x8006685,$0x0
+r:=          b.0x100
+w1 =:        r.0xC
+w stz        r.0x10
+bi2 clr
+w2 =:        r.0x14
+w2 =:        r.0x18
+w stz        r.0x1C
+h3 :=        b.0x14
+r:=          b.0x50
+w3 =:        r.0x5A
+w setbi      r.0x12,$0xD
+w stz        b.0x104
+w test       b.0x16
+if >< go     $0x6
+w set1       b.0x104
+w1 :=        b.0x104
+w1 putbi     r.0x12,$0xC
+go           $0x1F
+w comp2      b.0x16,$0x2
+if >< go     $0x19
+r:=          b.0x8
+w1 =:        r.0x14
+w2 :=        b.0x22
+w2 =:        r.0x18
+call         $0x8001DE0,$0x0
+if -k go     $0x8
+call         $0x8006685,$0x0
+go           $0xF6
+r:=          b.0x4C
+w1 :=        r.0xEC
+w1 =:        b.0x58
+w test       r1
+if >< go     $0xA
+w move       $0x227,b.0xC
+go           $0xFFFFFFFFFFFFFE43
+w1 =:        b.0x104
+w move       $0x31,b.0x10C
+h2 :=        r1.(0x2)
+h2 =:        b.0x108
+w stz        b.0x114
+h2 comp      $0x3F
+if < go      $0x6
+w set1       b.0x114
+h wconv      r2,r3
+w stz        b.0x118
+w3 comp      $0x28
+if > go      $0x6
+w set1       b.0x118
+w3 :=        b.0x114
+w3 and       b.0x118
+w3 =:        b.0x110
+w test       r3
+if >< go     $0x14
+w1 :=        b.0x10C
+call         $0x800062F,$0x0
+if -k go     $0x8
+call         $0x8006685,$0x0
+w1 :=        b.0x1A
+h1 =:        b.0x60
+call         $0x80065E9,$0x0
+if -k go     $0x8
+call         $0x8006685,$0x0
+r:=          b.0x104
+h2 :=        r.0x2
+h2 +         $0x1
+h wconv      r2,r3
+w3 comp      $0x28
+if <= go     $0x17
+w incr       r.0x10
+r:=          b.0x8
+w move       b.0x58,r.0x14
+call         $0x8001EE9,$0x0
+if -k go     $0x8
+call         $0x8006685,$0x0
+r:=          b.0x104
+h incr       r.0x2
+h wconv      r.0x2,r2
+w2 *         $0x4
+w3 laddr     r.0x20
+w3 =:        b.0x114
+by3 laddr    @b.0x114+
+w3 =:        b.0x48
+h move       b.0x54,r3.(0x0)
+w4 :=        b.0x1E
+h4 =:        r3.(0x2)
+h1 :=        b.0x14
+r:=          b.0x50
+w1 =:        r.0x5A
+go           $0x24
+w move       $0x3A,b.0x114
+w stz        b.0x118
+w test       b.0x118
+if >< go     $0x14
+w1 :=        b.0x114
+call         $0x800062F,$0x0
+if -k go     $0x8
+call         $0x8006685,$0x0
+w1 :=        $0x10
+bi2 clr
+w3 laddr     @b.0x4C
+w3 =:        b.0x11C
+w2 putbi     @b.0x11C+,$0x8
+ret
+ents         $0x18
+r:=          b.0x14
+h1 :=        r.0xA
+w1 =:        $0x801284C
+r:=          b.0x14
+h2 :=        r.0x2
+w2 =:        $0x8014D1C
+h3 :=        r.0x4
+w3 =:        $0x8014D20
+ret
+ents         $0x20
+r:=          b.0x14
+h1 :=        r.0x10
+h1 =:        b.0x1C
+h1 comp      $0x7
+if << go     $0xB
+h1 comp      $0x8012854
+if <<= go    $0x7
+w1 :=        $0x437
+retk
+h1 :=        r.0x10
+w1 *         $0x64
+by2 laddr    $0x8038000+
+w2 =:        b.0x18
+h3 :=        r.0x12
+h3 =:        r2.(0xA)
+h4 :=        r.0x14
+h4 =:        r2.(0x8)
+ret
+ents         $0x28
+h wconv      b.0x14,r1
+r:=          b.0x8
+w1 =:        r.0x14
+h wconv      b.0x14,r2
+w2 =:        b.0x1C
+w2 :=        b.0x1C
+w2 *         $0x100
+by1 laddr    $0x20000900+
+r:=          r1
+w1 :=        r.0x48
+w1 and       $0xFFFF
+w1 =:        b.0x24
+w1 :=        b.0x24
+go           $0x2
+r:=          b.0x8
+w1 =:        r.0x18
+w set1       r.0x1C
+w2 :=        $0x8000972
+w2 =:        r.0x20
+h wconv      b.0x16,r3
+w3 =:        r.0x24
+w stz        r.0x28
+call         $0x8001349,$0x0
+ifkret
+ret
+ents         $0x1C
+w comp2      b.0x18,$0x7
+if < go      $0xF
+h wconv      $0x8012854,r1
+w comp2      b.0x18,r1
+if <= go     $0x7
+w1 :=        $0x437
+retk
+r:=          b.0x8
+w move       b.0x14,r.0x14
+w move       b.0x18,r.0x18
+call         $0x8000972,$0x0
+ifkret
+ret
+ents         $0x1C
+w comp2      b.0x18,$0x7
+if < go      $0xF
+h wconv      $0x8012854,r1
+w comp2      b.0x18,r1
+if <= go     $0x7
+w1 :=        $0x437
+retk
+r:=          b.0x8
+w move       b.0x14,r.0x14
+w move       b.0x18,r.0x18
+call         $0x8000DA8,$0x0
+ifkret
+ret
+ents         $0x24
+w stz        $0x8023D3C
+bi1 clr
+w1 laddr     $0x8032000+
+w1 =:        b.0x1C
+w1 and       $0x7FFFFFF
+w2 :=        $0x800
+w2 udiv      r1,r2,r1
+w1 =:        b.0x18
+r:=          b.0x8
+w move       $0x8012A38,r.0x14
+w1 =:        r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x14
+r:=          b.0x8
+w move       $0x8012A38,r.0x14
+w move       b.0x18,r.0x18
+bi1 clr
+call         $0x80003ED,$0x0
+ifkret
+w set1       b.0x20
+w1 :=        b.0x20
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A3C
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0xE,$0x2
+go           $0x14
+w2 :=        $0x8012A3C
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x1E,$0x2
+w1 :=        b.0x14
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A3C
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0x0,$0xE
+go           $0x14
+w2 :=        $0x8012A3C
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x0,$0x1E
+w set1       $0x8014D34
+w set1       $0x8014D38
+r:=          b.0x8
+w set1       r.0x14
+call         $0x800008D,$0x0
+ifkret
+ret
+ents         $0x14
+r:=          b.0x8
+h move       $0x2,r.0x14
+w1 :=        $0x8012A3C
+h1 =:        r.0x16
+w set1       r.0x18
+w set1       r.0x1C
+w stz        r.0x20
+call         $0x8000724,$0x0
+ifkret
+r:=          b.0x8
+h move       $0x5,r.0x14
+w2 :=        $0x8012A38
+h2 =:        r.0x16
+w set1       r.0x18
+w set1       r.0x1C
+w stz        r.0x20
+call         $0x8000724,$0x0
+ifkret
+r:=          b.0x8
+h move       $0x4,r.0x14
+w2 :=        $0x8012A38
+h2 =:        r.0x16
+w set1       r.0x18
+w set1       r.0x1C
+w stz        r.0x20
+call         $0x8000724,$0x0
+ifkret
+r:=          b.0x8
+h move       $0x6,r.0x14
+w2 :=        $0x8012A48
+h2 =:        r.0x16
+w set1       r.0x18
+w set1       r.0x1C
+w set1       r.0x20
+call         $0x8000724,$0x0
+ifkret
+ret
+ents         $0x3C
+w1 laddr     $0x80144F8
+w1 and       $0x7FFFFFF
+w1 =:        b.0x14
+w2 :=        b.0x14
+w shl        r2,$0x35
+w2 =:        b.0x2C
+w3 :=        b.0x14
+w3 and       $0x7FF
+w3 =:        b.0x24
+r:=          b.0x8
+w move       $0x8012A38,r.0x14
+w2 =:        r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x28
+w1 +         $0x80128D8
+w1 *         $0x400
+w2 :=        b.0x24
+w3 :=        $0x2
+w3 udiv      r2,r3,r2
+w2 +         r1
+w1 :=        r2
+go           $0x2
+w1 =:        $0x8014CF8
+bi4 clr
+w4 laddr     $0x8031000+
+w4 and       $0x7FFFFFF
+w4 =:        b.0x18
+w3 :=        $0x800
+w3 udiv      r4,r3,r4
+w4 =:        b.0x1C
+w move       $0x50,b.0x20
+w4 *         $0x800
+w stz        b.0x28
+w4 comp      b.0x18
+if >< go     $0x4
+w set1       b.0x28
+w move       b.0x28,b.0x24
+w test       b.0x24
+if >< go     $0xB
+w1 :=        b.0x20
+call         $0x800062F,$0x0
+ifkret
+r:=          b.0x8
+w set1       r.0x14
+w move       b.0x1C,r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        $0x8012A18
+w2 :=        b.0x18
+w shl        r2,$0x35
+w2 =:        b.0x38
+w3 :=        b.0x18
+w3 and       $0x7FF
+w3 =:        b.0x30
+r:=          b.0x8
+w move       $0x8012A38,r.0x14
+w2 =:        r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x34
+w1 +         $0x80128D8
+w1 *         $0x400
+w2 :=        b.0x30
+w3 :=        $0x2
+w3 udiv      r2,r3,r2
+w2 +         r1
+w1 :=        r2
+go           $0x2
+w1 =:        $0x8012A1C
+ret
+ents         $0x20
+w1 :=        b.0x14
+w1 =:        b.0x18
+by2 :=       r1.(0x11)
+w2 and       $0x7
+w2 =:        $0x8023D58
+w3 getbi     r1.(0x10),$0x13
+w3 =:        $0x8023D64
+w4 getbi     r1.(0x10),$0x15
+w4 =:        $0x8023D68
+w4 comp      $0x1
+if >< go     $0x10
+w stz        $0x8023D60
+w set1       $0x8023D5C
+go           $0xE
+w set1       $0x8023D60
+w stz        $0x8023D5C
+w stz        b.0x1C
+w2 comp      $0x3
+if >< go     $0x4
+w set1       b.0x1C
+w move       b.0x1C,$0x8023D6C
+call         $0x8008E09,$0x0
+ifkret
+w1 =:        $0x8023D70
+w stz        b.0x1C
+w test       $0x8023D5C
+if >< go     $0x4
+w set1       b.0x1C
+w move       b.0x1C,$0x8023D74
+w stz        b.0x1C
+w test       $0x8023D5C
+if = go      $0x4
+w set1       b.0x1C
+w move       b.0x1C,$0x8023D78
+ret
+ents         $0x58
+bi1 clr
+w1 laddr     $0x8033000+
+w1 =:        b.0x30
+w1 and       $0x7FFF800
+w2 :=        $0x800
+w2 udiv      r1,r2,r1
+go           $0x2
+w1 =:        b.0x18
+w move       $0x801280C,b.0x38
+bi3 clr
+by3 laddr    @b.0x38+
+w3 =:        b.0x34
+w3 and       $0x7FFF800
+w4 :=        $0x800
+w4 udiv      r3,r4,r3
+w1 :=        r3
+go           $0x2
+w1 =:        b.0x2C
+w stz        b.0x38
+w1 :=        b.0x38
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A48
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0xE,$0x2
+go           $0x14
+w2 :=        $0x8012A48
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x1E,$0x2
+r:=          b.0x8
+w move       $0x8012A38,r.0x14
+w move       b.0x18,r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x3C
+r:=          b.0x8
+w move       $0x8012A48,r.0x14
+w stz        r.0x18
+call         $0x80003ED,$0x0
+ifkret
+w set1       b.0x40
+w1 :=        b.0x40
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A48
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0xE,$0x2
+go           $0x14
+w2 :=        $0x8012A48
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x1E,$0x2
+w stz        b.0x28
+r:=          b.0x8
+w move       $0x8012A38,r.0x14
+w1 :=        b.0x28
+w1 +         b.0x18
+w1 +         $0x1
+w1 =:        r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x44
+r:=          b.0x8
+w move       $0x8012A48,r.0x14
+w move       b.0x28,r.0x18
+call         $0x80003ED,$0x0
+ifkret
+w incr       b.0x28
+w comp2      b.0x28,$0x2
+if <<= go    $0xFFFFFFFFFFFFFFCE
+w move       $0x2,b.0x48
+w1 :=        b.0x48
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A48
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0xE,$0x2
+go           $0x14
+w2 :=        $0x8012A48
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x1E,$0x2
+w stz        b.0x28
+r:=          b.0x8
+w move       $0x8012A38,r.0x14
+w1 :=        b.0x28
+w1 +         b.0x18
+w1 =:        r.0x18
+bi1 clr
+call         $0x80003ED,$0x0
+ifkret
+w incr       b.0x28
+w comp2      b.0x28,$0x3
+if <<= go    $0xFFFFFFFFFFFFFFE4
+w stz        b.0x1C
+r:=          b.0x8
+w move       $0x8012A38,r.0x14
+w1 :=        b.0x2C
+w1 +         b.0x1C
+w1 =:        r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x20
+r:=          b.0x8
+w move       $0x8012A48,r.0x14
+w move       b.0x1C,r.0x18
+call         $0x80003ED,$0x0
+ifkret
+w test       b.0x20
+if = go      $0x6
+w incr       b.0x1C
+go           $0xFFFFFFFFFFFFFFCF
+w decr       b.0x1C
+w stz        b.0x28
+w comp2      b.0x28,b.0x1C
+if >> go     $0x20
+r:=          b.0x8
+w move       $0x8012A38,r.0x14
+w1 :=        b.0x2C
+w1 +         b.0x28
+w1 =:        r.0x18
+bi1 clr
+call         $0x80003ED,$0x0
+ifkret
+w incr       b.0x28
+w comp2      b.0x28,b.0x1C
+if <<= go    $0xFFFFFFFFFFFFFFE4
+w1 :=        b.0x1C
+w1 +         $0x1
+w1 *         $0x800
+w2 :=        $0x8
+w2 udiv      r1,r2,r1
+w1 =:        b.0x24
+w1 -         $0x1
+w move       r1,b.0x54
+w stz        b.0x50
+w3 :=        $0x30000000
+w3 =:        b.0x4C
+by bmove     b.0x4C,$0x801280C,$0xC
+w1 :=        b.0x24
+ret
+ents         $0x70
+r:=          $0x801280C
+w1 :=        r.0x8
+w1 +         $0x1
+w1 *         $0x8
+w1 =:        b.0x30
+w2 :=        $0x800
+w2 udiv      r1,r2,r1
+w1 =:        b.0x2C
+w3 :=        b.0x18
+w3 *         $0x8
+w3 =:        b.0x28
+w4 :=        $0x800
+w4 udiv      r3,r4,r3
+w3 =:        b.0x24
+w2 :=        b.0x28
+w1 :=        $0x800
+w2 udiv      r2,r1,r1
+w test       r2
+if = go      $0x4
+w incr       b.0x24
+w2 :=        b.0x24
+w2 -         b.0x2C
+w2 =:        b.0x44
+r:=          b.0x14
+h3 :=        r.0x2
+w3 =:        b.0x48
+w2 comp      r3
+if <<= go    $0x6
+w3 =:        b.0x4C
+go           $0x4
+w2 =:        b.0x4C
+w2 :=        b.0x2C
+w2 +         b.0x4C
+w2 =:        b.0x24
+w2 *         $0x800
+w2 =:        b.0x28
+h3 :=        r.0x2
+w3 -         b.0x4C
+h3 =:        r.0x2
+w4 :=        b.0x1C
+w4 =:        b.0x40
+w4 =:        b.0x3C
+w move       b.0x2C,b.0x38
+w1 :=        b.0x24
+w1 -         $0x1
+w1 =:        b.0x50
+w comp2      b.0x38,r1
+if >> go     $0x4E
+r:=          b.0x8
+w move       $0x8012A48,r.0x14
+w move       b.0x38,r.0x18
+w1 :=        b.0x3C
+call         $0x80003ED,$0x0
+ifkret
+w2 :=        b.0x3C
+w2 *         $0x8
+by3 laddr    $0x30000000+
+w3 =:        b.0x54
+bi4 clr
+w4 putbf     r3.(0x4),$0x16,$0x3
+w1 :=        b.0x3C
+w1 +         $0x1
+h1 =:        r3.(0x0)
+r:=          b.0x14
+by2 :=       r.0x1
+w2 and       $0x7
+w2 putbf     r3.(0x4),$0x19,$0x3
+w clebi      r3.(0x4),$0x14
+w incr       b.0x3C
+w incr       b.0x38
+w comp2      b.0x38,b.0x50
+if <<= go    $0xFFFFFFFFFFFFFFB6
+w1 :=        b.0x3C
+w1 -         $0x1
+w1 *         $0x8
+h2 :=        $0x80128F8
+by rladdr    $0x30000000+
+h2 =:        r.0x0
+w3 :=        b.0x40
+h3 =:        $0x80128F8
+w move       $0x68,b.0x58
+w2 :=        b.0x1C
+w2 +         b.0x4C
+w stz        b.0x60
+w2 comp      b.0x3C
+if >< go     $0x4
+w set1       b.0x60
+w move       b.0x60,b.0x5C
+w test       b.0x5C
+if >< go     $0xB
+w1 :=        b.0x58
+call         $0x800062F,$0x0
+ifkret
+w add2       b.0x1C,b.0x4C
+w1 :=        b.0x38
+w1 +         $0x1
+w1 *         $0x800
+w2 :=        $0x8
+w2 udiv      r1,r2,r1
+w1 =:        b.0x34
+w1 -         $0x1
+w move       r1,b.0x6C
+w stz        b.0x68
+w3 :=        $0x30000000
+w3 =:        b.0x64
+by bmove     b.0x64,$0x801280C,$0xC
+w1 :=        b.0x34
+ret
+ents         $0x48
+w test       $0x8023D74
+if = go      $0x9
+w move       $0x400,b.0x18
+go           $0x7
+w move       $0x200,b.0x18
+by wconv     $0x2,b.0x14
+r:=          b.0x8
+w move       $0x8012A48,r.0x14
+w1 :=        b.0x14
+w1 *         b.0x18
+w1 =:        r.0x18
+call         $0x8000312,$0x0
+ifkret
+w test       r1
+if >< go     $0xA
+w decr       b.0x14
+w test       b.0x14
+if >>= go    $0xFFFFFFFFFFFFFFE2
+go           $0xA
+w1 :=        b.0x14
+w1 +         $0x1
+w1 =:        b.0x24
+go           $0x15
+w move       $0x48,b.0x28
+w stz        b.0x2C
+w test       b.0x2C
+if >< go     $0xB
+w1 :=        b.0x28
+call         $0x800062F,$0x0
+ifkret
+w move       b.0x24,b.0x14
+w comp2      b.0x14,$0x2
+if >> go     $0xE5
+w set1       b.0x30
+w1 :=        b.0x30
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A48
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0xE,$0x2
+go           $0x14
+w2 :=        $0x8012A48
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x1E,$0x2
+r:=          b.0x8
+w move       $0x8012A48,r.0x14
+w move       b.0x14,r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x1C
+r:=          b.0x8
+w move       $0x8012A48,r.0x14
+w move       b.0x14,r.0x18
+bi1 clr
+call         $0x80003ED,$0x0
+ifkret
+w move       $0x2,b.0x34
+w1 :=        b.0x34
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A48
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0xE,$0x2
+go           $0x14
+w2 :=        $0x8012A48
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x1E,$0x2
+w1 :=        $0x80128F8
+r:=          b.0x8
+w1 =:        r.0x14
+w2 :=        b.0x1C
+h2 =:        r.0x18
+call         $0x800394F,$0x0
+ifkret
+bi zpgu      b.0x1C
+bi zwip      b.0x1C
+w1 :=        b.0x1C
+w1 *         $0x8
+by rladdr    $0x30000000+
+w clebi      r.0x4,$0x1C
+w1 :=        b.0x1C
+w1 *         $0x8
+h2 :=        $0x8023D84
+by rladdr    $0x30000000+
+h2 =:        r.0x0
+w3 :=        b.0x1C
+h3 =:        $0x8023D84
+w incr       b.0x14
+w comp2      b.0x14,$0x2
+if <<= go    $0xFFFFFFFFFFFFFF21
+w comp2      b.0x24,$0x1
+if >< go     $0x110
+w set1       b.0x38
+w1 :=        b.0x38
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A48
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0xE,$0x2
+go           $0x14
+w2 :=        $0x8012A48
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x1E,$0x2
+r:=          b.0x8
+w move       $0x8012A48,r.0x14
+w stz        r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x1C
+w stz        b.0x3C
+w1 :=        b.0x3C
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A48
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0xE,$0x2
+go           $0x14
+w2 :=        $0x8012A48
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x1E,$0x2
+r:=          b.0x8
+w move       $0x8012A48,r.0x14
+w stz        r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x20
+r:=          b.0x8
+w move       $0x8012A48,r.0x14
+w stz        r.0x18
+w1 :=        b.0x1C
+call         $0x80003ED,$0x0
+ifkret
+w set1       b.0x40
+w1 :=        b.0x40
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A48
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0xE,$0x2
+go           $0x14
+w2 :=        $0x8012A48
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x1E,$0x2
+w1 :=        $0x80128F8
+r:=          b.0x8
+w1 =:        r.0x14
+w2 :=        b.0x20
+h2 =:        r.0x18
+call         $0x800394F,$0x0
+ifkret
+w2 :=        b.0x20
+w2 *         $0x8
+h3 :=        $0x8023D84
+by rladdr    $0x30000000+
+h3 =:        r.0x0
+w4 :=        b.0x20
+h4 =:        $0x8023D84
+go           $0x37
+w move       $0x2,b.0x44
+w1 :=        b.0x44
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A48
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0xE,$0x2
+go           $0x14
+w2 :=        $0x8012A48
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x1E,$0x2
+ret
+ents         $0xF4
+w stz        b.0xB0
+call         $0x80072E6,$0x0
+w move       $0x3,b.0xB0
+call         $0x80072E6,$0x0
+w move       $0x4,b.0xB0
+call         $0x80072E6,$0x0
+w move       $0x7,b.0xB0
+call         $0x80072E6,$0x0
+go           $0x29
+entd
+l=:          b.0xB4
+w1 :=        b.0xB0
+w1 *         $0xC
+by2 laddr    $0x801296C+
+w2 =:        b.0xB8
+w3 :=        b.0xB0
+w3 *         $0xE
+by4 laddr    $0x80128FC+
+w4 =:        r2.(0x0)
+w4 =:        r2.(0x4)
+w4 =:        r2.(0x8)
+jumpg        b.0xB4
+w1 :=        b.0x14
+w1 =:        b.0xBC
+w move       $0x1D,b.0xC4
+h2 :=        r1.(0x58)
+h2 =:        b.0xC0
+w stz        b.0xCC
+w test       r2
+if << go     $0x4
+w set1       b.0xCC
+h2 :=        b.0xC0
+w stz        b.0xD0
+w2 comp      $0xD
+if >> go     $0x4
+w set1       b.0xD0
+w2 :=        b.0xCC
+w2 and       b.0xD0
+w2 =:        b.0xC8
+w test       r2
+if >< go     $0xB
+w1 :=        b.0xC4
+call         $0x800062F,$0x0
+ifkret
+w stz        $0x8026288
+r:=          b.0xBC
+h1 :=        r.0x58
+h1 -         $0x1
+h1 =:        $0x80128D4
+h move       $0xFFFF,$0x80128F6
+h stz        $0x80128F4
+bi2 clr
+w2 =:        $0x80128E4
+w3 :=        $0x80128E4
+w3 =:        $0x80128E0
+w move       $0x80128E0,$0x80128DC
+bi4 clr
+w4 =:        b.0x2C
+w4 =:        $0x80128E8
+w4 =:        $0x80128EC
+call         $0x8006D09,$0x0
+ifkret
+w1 =:        b.0x24
+w stz        b.0xAC
+w1 :=        b.0xAC
+w1 *         $0x4
+by2 laddr    $0x801289C+
+by bmove     $0x8024034,r2.(0x0),$0x4
+w incr       b.0xAC
+w comp2      b.0xAC,$0xD
+if <<= go    $0xFFFFFFFFFFFFFFE6
+w stz        b.0xAC
+w1 :=        b.0xAC
+w1 *         $0x4
+by2 laddr    b.0x38+
+by bmove     $0x8024038,r2.(0x0),$0x4
+w incr       b.0xAC
+w comp2      b.0xAC,$0x1B
+if <<= go    $0xFFFFFFFFFFFFFFE9
+w1 laddr     b.0x34
+w1 =:        b.0xD8
+bi2 clr
+w move       $0x1C,b.0xD4
+bi3 clr
+bi3 sfill    b.0xD4
+w stz        b.0x28
+h wconv      $0x80128D4,r1
+w comp2      b.0x28,r1
+if > go      $0x79
+w1 :=        b.0x28
+w1 *         $0x4
+r:=          b.0xBC
+w2 laddr     r.0x20
+w2 =:        b.0xD0
+by2 laddr    @b.0xFFFFFFFFFFFFFFD0+
+w2 =:        b.0xCC
+h3 :=        r2.(0x2)
+w3 +         b.0x2C
+w3 =:        b.0x2C
+by4 :=       r2.(0x1)
+w4 and       $0x7
+w1 :=        $0x8024014+
+w1 putbf     r2.(0x0),$0x10,$0x3
+w3 :=        b.0x28
+w3 *         $0x4
+h4 :=        r2.(0x2)
+by rladdr    $0x801289C+
+h4 =:        r.0x2
+w1 :=        b.0x28
+w1 *         $0x4
+r:=          b.0xCC
+by2 :=       r.0x1
+w2 and       $0x7
+by rladdr    $0x801289C+
+w2 putbf     r.0x0,$0x10,$0x3
+w3 :=        b.0x28
+w3 *         $0x4
+w4 :=        b.0x28
+w4 *         $0x4
+by1 laddr    b.0x38+
+by bmove     $0x801289C+,r1.(0x0),$0x4
+w incr       b.0x28
+h wconv      $0x80128D4,r2
+w comp2      b.0x28,r2
+if <= go     $0xFFFFFFFFFFFFFF8B
+bi2 clr
+by rladdr    b.0x38+
+h1 :=        r.0x2
+h1 -         $0x1
+bi3 clr
+by rladdr    b.0x38+
+h1 =:        r.0x2
+w set1       b.0x1C
+w stz        b.0x28
+h wconv      $0x80128D4,r4
+w comp2      b.0x28,r4
+if > go      $0x15D
+w1 :=        b.0x28
+w1 *         $0x4
+by2 laddr    b.0x38+
+w2 =:        b.0xD0
+w comp2      b.0x2C,b.0x24
+if <<= go    $0x2B
+by3 :=       r2.(0x1)
+w3 and       $0x7
+w3 comp      $0x3
+if >< go     $0x22
+w3 :=        b.0x28
+w3 *         $0x4
+by4 laddr    b.0x38+
+r:=          b.0x8
+w4 =:        r.0x14
+w move       b.0x2C,r.0x18
+w move       b.0x1C,r.0x1C
+call         $0x8006EF1,$0x0
+ifkret
+r:=          b.0x8
+w move       r.0x1C,b.0x1C
+w1 =:        b.0x24
+w comp2      b.0x1C,b.0x24
+if <<= go    $0x15
+w move       $0x60,b.0xDC
+w stz        b.0xE0
+w test       b.0xE0
+if >< go     $0xB
+w1 :=        b.0xDC
+call         $0x800062F,$0x0
+ifkret
+r:=          b.0xD0
+by1 :=       r.0x1
+w1 and       $0x7
+w1 =:        b.0xE4
+w stz        b.0xE8
+w1 comp      $0x4
+if << go     $0x4
+w set1       b.0xE8
+w stz        b.0xEC
+w1 comp      $0x7
+if >> go     $0x4
+w set1       b.0xEC
+w2 :=        b.0xE8
+w2 and       b.0xEC
+w2 =:        b.0x20
+w test       r2
+if = go      $0xE
+w stz        b.0x30
+w3 :=        $0x80128F8
+w3 =:        b.0xA8
+go           $0x3A
+w move       $0x4,b.0x30
+by3 :=       r.0x1
+w3 and       $0x7
+w3 *         $0xC
+by rladdr    $0x801296C+
+r:=          r.0x8
+h4 laddr     r.0x4
+w4 =:        b.0xA8
+r:=          b.0xD0
+h1 :=        r.0x2
+w1 +         $0x8026288
+w1 =:        $0x8026288
+h2 :=        r.0x2
+w2 +         $0x80128E8
+w2 =:        $0x80128E8
+w move       b.0x1C,b.0x18
+w set1       b.0xAC
+h1 :=        r.0x2
+h1 =:        b.0xF0
+w comp2      b.0xAC,r1
+if >> go     $0x3C
+w1 :=        b.0x1C
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0xE8
+r:=          b.0xD0
+by3 :=       r.0x1
+w3 and       $0x7
+w3 putbf     r2.(0x4),$0x19,$0x3
+w4 :=        b.0x1C
+w4 +         $0x1
+h4 =:        r2.(0x0)
+w clebi      r2.(0x4),$0x14
+w3 :=        b.0x30
+w3 putbf     r2.(0x4),$0x16,$0x3
+w incr       b.0x1C
+w incr       b.0xAC
+h4 :=        b.0xF0
+w comp2      b.0xAC,r4
+if <<= go    $0xFFFFFFFFFFFFFFC8
+w1 :=        b.0x1C
+w1 -         $0x1
+w1 *         $0x8
+h2 :=        @b.0xFFFFFFFFFFFFFFA8
+by rladdr    $0x30000000+
+h2 =:        r.0x0
+w3 :=        b.0x18
+h3 =:        @b.0xFFFFFFFFFFFFFFA8
+w test       b.0x20
+if = go      $0x18
+w4 :=        b.0x1C
+w4 -         $0x1
+w4 comp      $0x80128DC
+if <<= go    $0xC
+w4 :=        b.0x1C
+w4 -         $0x1
+w4 =:        $0x80128DC
+w1 :=        b.0x1C
+w1 -         $0x1
+w1 comp      $0x80128E0
+if <<= go    $0xC
+w1 :=        b.0x1C
+w1 -         $0x1
+w1 =:        $0x80128E0
+w incr       b.0x28
+h wconv      $0x80128D4,r2
+w comp2      b.0x28,r2
+if <= go     $0xFFFFFFFFFFFFFEA9
+w1 :=        b.0x1C
+w1 -         $0x1
+w1 =:        $0x8012820
+call         $0x800702C,$0x0
+ifkret
+ret
+ents         $0x70
+w test       $0x8023D5C
+if >< go     $0x9
+w move       $0x3FF,b.0x14
+go           $0x7
+w move       $0x1FF,b.0x14
+w1 :=        $0x80128F8
+w1 =:        b.0x28
+w set1       b.0x18
+w1 :=        b.0x18
+w2 :=        b.0x18
+w2 *         $0x64
+by rladdr    $0x8038000+
+h1 =:        r.0x54
+w incr       b.0x18
+w comp2      b.0x18,$0x6
+if <<= go    $0xFFFFFFFFFFFFFFEA
+w set1       b.0x18
+w1 :=        b.0x18
+w1 *         $0x64
+by2 laddr    $0x8038000+
+w2 =:        b.0x24
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x13
+w2 :=        b.0x18
+h rladdr     $0x28010800+
+h1 getbf     r.0x0,$0xE,$0x2
+go           $0x10
+w2 :=        b.0x18
+w rladdr     $0x28010800+
+w1 getbf     r.0x0,$0x1E,$0x2
+w1 =:        b.0x40
+w1 :=        b.0x40
+go           $0x2
+w1 =:        b.0x38
+w test       r1
+if << go     $0x6
+w1 comp      $0x1
+if <<= go    $0x15
+w move       $0x61,b.0x3C
+w stz        b.0x40
+w test       b.0x40
+if >< go     $0xB
+w1 :=        b.0x3C
+call         $0x800062F,$0x0
+ifkret
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x13
+w2 :=        b.0x18
+h rladdr     $0x28010800+
+h1 getbf     r.0x0,$0x0,$0xE
+go           $0x10
+w2 :=        b.0x18
+w rladdr     $0x28010800+
+w1 getbf     r.0x0,$0x0,$0x1E
+w1 =:        b.0x48
+w1 :=        b.0x48
+go           $0x2
+w1 =:        b.0x20
+r:=          b.0x8
+w move       b.0x28,r.0x14
+h1 =:        r.0x18
+call         $0x800394F,$0x0
+ifkret
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x13
+w2 :=        b.0x18
+h rladdr     $0x28010800+
+h1 getbf     r.0x0,$0xE,$0x2
+go           $0x10
+w2 :=        b.0x18
+w rladdr     $0x28010800+
+w1 getbf     r.0x0,$0x1E,$0x2
+w1 =:        b.0x48
+w1 :=        b.0x48
+go           $0x2
+w test       r1
+if >< go     $0x3D
+w1 :=        b.0x20
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x44
+w3 :=        b.0x1C
+h3 =:        r2.(0x6)
+w4 :=        $0x7
+w4 putbf     r2.(0x4),$0x1D,$0x3
+w1 :=        $0x1
+w1 putbf     r2.(0x4),$0x16,$0x3
+w3 :=        b.0x18
+h3 =:        r2.(0x2)
+r:=          b.0x8
+w move       b.0x24,r.0x14
+w move       b.0x20,r.0x18
+call         $0x80005F2,$0x0
+ifkret
+go           $0xB1
+w2 :=        b.0x20
+w2 *         $0x8
+by3 laddr    $0x30000000+
+w3 =:        b.0x48
+bi4 clr
+h4 =:        r3.(0x6)
+w1 :=        $0x7
+w1 putbf     r3.(0x4),$0x1D,$0x3
+w2 :=        $0x2
+w2 putbf     r3.(0x4),$0x16,$0x3
+w4 :=        b.0x18
+h4 =:        r3.(0x2)
+w1 :=        b.0x20
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x4C
+r:=          b.0x24
+h3 :=        r.0x62
+h3 =:        r2.(0x0)
+w4 :=        b.0x20
+h4 =:        r.0x62
+w stz        b.0x1C
+w comp2      b.0x1C,b.0x14
+if >> go     $0x65
+r:=          b.0x8
+w move       b.0x18,r.0x14
+w move       b.0x1C,r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x20
+w test       r1
+if = go      $0x49
+r:=          b.0x8
+w move       b.0x28,r.0x14
+h1 =:        r.0x18
+call         $0x800394F,$0x0
+ifkret
+w2 :=        b.0x20
+w2 *         $0x8
+by3 laddr    $0x30000000+
+w3 =:        b.0x4C
+w4 :=        b.0x1C
+h4 =:        r3.(0x6)
+w1 :=        $0x7
+w1 putbf     r3.(0x4),$0x1D,$0x3
+w2 :=        $0x1
+w2 putbf     r3.(0x4),$0x16,$0x3
+w4 :=        b.0x18
+h4 =:        r3.(0x2)
+r:=          b.0x8
+w move       b.0x24,r.0x14
+w move       b.0x20,r.0x18
+call         $0x80005F2,$0x0
+ifkret
+w incr       b.0x1C
+w comp2      b.0x1C,b.0x14
+if <<= go    $0xFFFFFFFFFFFFFF9F
+w incr       b.0x18
+w comp2      b.0x18,$0x4
+if <<= go    $0xFFFFFFFFFFFFFE48
+r:=          $0x801280C
+w1 :=        r.0x8
+w1 +         $0x1
+w1 =:        b.0x2C
+w1 *         $0x8
+w1 =:        b.0x30
+w2 :=        $0x800
+w2 udiv      r1,r2,r1
+w1 =:        b.0x34
+w3 :=        b.0x30
+w4 :=        $0x800
+w3 udiv      r3,r4,r4
+w test       r3
+if = go      $0x4
+w incr       b.0x34
+w1 :=        $0x8012A48
+w1 *         $0x64
+by3 laddr    $0x8038000+
+w3 =:        b.0x24
+w stz        b.0x1C
+w2 :=        b.0x34
+w2 -         $0x1
+w2 =:        b.0x50
+w comp2      b.0x1C,r2
+if >> go     $0x69
+r:=          b.0x8
+w move       $0x8012A48,r.0x14
+w move       b.0x1C,r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x20
+r:=          b.0x8
+w move       b.0x28,r.0x14
+h1 =:        r.0x18
+call         $0x800394F,$0x0
+ifkret
+w2 :=        b.0x20
+w2 *         $0x8
+by3 laddr    $0x30000000+
+w3 =:        b.0x54
+w4 :=        b.0x1C
+h4 =:        r3.(0x6)
+w1 :=        $0x7
+w1 putbf     r3.(0x4),$0x1D,$0x3
+w2 :=        $0x1
+w2 putbf     r3.(0x4),$0x16,$0x3
+w4 :=        $0x8012A48
+h4 =:        r3.(0x2)
+r:=          b.0x8
+w move       b.0x24,r.0x14
+w move       b.0x20,r.0x18
+call         $0x80005F2,$0x0
+ifkret
+w incr       b.0x1C
+w comp2      b.0x1C,b.0x50
+if <<= go    $0xFFFFFFFFFFFFFF9B
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A48
+h rladdr     $0x28010800+
+h1 getbf     r.0x0,$0x0,$0xE
+go           $0x14
+w2 :=        $0x8012A48
+w rladdr     $0x28010800+
+w1 getbf     r.0x0,$0x0,$0x1E
+w1 =:        b.0x5C
+w1 :=        b.0x5C
+go           $0x2
+w1 =:        b.0x20
+r:=          b.0x8
+w move       b.0x28,r.0x14
+h1 =:        r.0x18
+call         $0x800394F,$0x0
+ifkret
+w2 :=        b.0x20
+w2 *         $0x8
+by3 laddr    $0x30000000+
+w3 =:        b.0x58
+bi4 clr
+h4 =:        r3.(0x6)
+w1 :=        $0x7
+w1 putbf     r3.(0x4),$0x1D,$0x3
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A48
+h rladdr     $0x28010800+
+h1 getbf     r.0x0,$0xE,$0x2
+go           $0x14
+w2 :=        $0x8012A48
+w rladdr     $0x28010800+
+w1 getbf     r.0x0,$0x1E,$0x2
+w1 =:        b.0x60
+w1 :=        b.0x60
+go           $0x2
+w1 comp      $0x1
+if >< go     $0xD
+w1 :=        $0x2
+r:=          b.0x58
+w1 putbf     r.0x4,$0x16,$0x3
+go           $0xB
+w1 :=        $0x3
+r:=          b.0x58
+w1 putbf     r.0x4,$0x16,$0x3
+w1 :=        $0x8012A48
+h1 =:        r.0x2
+w2 :=        b.0x20
+w2 *         $0x8
+by3 laddr    $0x30000000+
+w3 =:        b.0x5C
+r:=          b.0x24
+h4 :=        r.0x62
+h4 =:        r3.(0x0)
+w1 :=        b.0x20
+h1 =:        r.0x62
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A48
+h rladdr     $0x28010800+
+h1 getbf     r.0x0,$0xE,$0x2
+go           $0x14
+w2 :=        $0x8012A48
+w rladdr     $0x28010800+
+w1 getbf     r.0x0,$0x1E,$0x2
+w1 =:        b.0x60
+w1 :=        b.0x60
+go           $0x2
+w1 comp      $0x2
+if >< go     $0x158
+w set1       b.0x5C
+w1 :=        b.0x5C
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A48
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0xE,$0x2
+go           $0x14
+w2 :=        $0x8012A48
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x1E,$0x2
+w stz        b.0x1C
+w comp2      b.0x1C,b.0x14
+if >> go     $0xE7
+r:=          b.0x8
+w move       $0x8012A48,r.0x14
+w move       b.0x1C,r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x20
+w test       r1
+if = go      $0xCD
+w move       $0x2,b.0x60
+w1 :=        b.0x60
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A48
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0xE,$0x2
+go           $0x14
+w2 :=        $0x8012A48
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x1E,$0x2
+r:=          b.0x8
+w move       b.0x28,r.0x14
+w1 :=        b.0x20
+h1 =:        r.0x18
+call         $0x800394F,$0x0
+ifkret
+w2 :=        b.0x20
+w2 *         $0x8
+by3 laddr    $0x30000000+
+w3 =:        b.0x64
+bi4 clr
+h4 =:        r3.(0x6)
+w1 :=        $0x7
+w1 putbf     r3.(0x4),$0x1D,$0x3
+w2 :=        $0x2
+w2 putbf     r3.(0x4),$0x16,$0x3
+w4 :=        $0x8012A48
+h4 =:        r3.(0x2)
+w1 :=        b.0x20
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x68
+r:=          b.0x24
+h3 :=        r.0x62
+h3 =:        r2.(0x0)
+w4 :=        b.0x20
+h4 =:        r.0x62
+w set1       b.0x68
+w1 :=        b.0x68
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A48
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0xE,$0x2
+go           $0x14
+w2 :=        $0x8012A48
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x1E,$0x2
+w incr       b.0x1C
+w comp2      b.0x1C,b.0x14
+if <<= go    $0xFFFFFFFFFFFFFF1F
+w move       $0x2,b.0x6C
+w1 :=        b.0x6C
+w comp2      $0x8023D5C,$0x0
+if >< go     $0x17
+w2 :=        $0x8012A48
+h rladdr     $0x28010800+
+h1 putbf     r.0x0,$0xE,$0x2
+go           $0x14
+w2 :=        $0x8012A48
+w rladdr     $0x28010800+
+w1 putbf     r.0x0,$0x1E,$0x2
+ret
+ents         $0x30
+w1 :=        $0x3E79C
+by1 laddr    $0x8038000+
+w1 =:        b.0x24
+w1 and       $0x7FFF800
+w2 :=        $0x800
+w2 udiv      r1,r2,r1
+go           $0x2
+w1 +         $0x1
+w1 =:        b.0x14
+r:=          b.0x8
+w move       $0x8012A38,r.0x14
+w move       b.0x14,r.0x18
+call         $0x8000312,$0x0
+ifkret
+w test       r1
+if = go      $0x6
+w incr       b.0x14
+go           $0xFFFFFFFFFFFFFFE7
+w1 :=        b.0x14
+w1 =:        $0x8014D08
+w1 =:        $0x8014D04
+bi2 clr
+w2 laddr     $0x8032800+
+w2 =:        b.0x28
+w2 and       $0x7FFF800
+w3 :=        $0x800
+w3 udiv      r2,r3,r2
+w1 :=        r2
+go           $0x2
+w1 =:        b.0x14
+r:=          b.0x8
+w move       $0x8012A38,r.0x14
+w1 =:        r.0x18
+call         $0x8000312,$0x0
+ifkret
+w1 =:        b.0x18
+r:=          b.0x8
+w move       $0x8012A38,r.0x14
+w move       b.0x14,r.0x18
+bi1 clr
+call         $0x80003ED,$0x0
+ifkret
+r:=          b.0x8
+w move       $0x8012A38,r.0x14
+w move       $0x8014D08,r.0x18
+w1 :=        b.0x18
+call         $0x80003ED,$0x0
+ifkret
+w set1       b.0x20
+h1 :=        $0x8023D84
+w1 =:        b.0x18
+w test       r1
+if = go      $0x4D
+w incr       b.0x20
+w incr       $0x8014D08
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x2C
+h3 :=        r2.(0x0)
+h3 =:        $0x8023D84
+h4 :=        $0x80128F8
+h4 =:        r2.(0x0)
+w1 :=        b.0x18
+h1 =:        $0x80128F8
+r:=          b.0x8
+w move       $0x8012A38,r.0x14
+w move       $0x8014D08,r.0x18
+w1 :=        b.0x18
+call         $0x80003ED,$0x0
+ifkret
+go           $0xFFFFFFFFFFFFFFAB
+w add2       $0x8014D04,$0x10000
+w add2       $0x8014D08,$0x10000
+w2 :=        $0x8014D04
+w2 *         $0x800
+w2 =:        b.0x1C
+w stz        r2.(0x0)
+w incr       $0x8014D08
+w incr       $0x8014D10
+w3 :=        $0x800
+w3 *         b.0x20
+r:=          b.0x8
+w3 =:        r.0x14
+w1 :=        r2
+call         $0x80008AE,$0x0
+ifkret
+w1 =:        b.0x1C
+ret
+ents         $0x80
+w move       $0x8012898,$0x8012A0C
+w1 :=        $0x8012820
+w1 /         $0x8012A0C
+w1 +         $0x1
+w1 =:        b.0x30
+w1 -         $0x1
+w move       r1,b.0x54
+w stz        b.0x50
+w2 :=        $0x80128FC
+w2 =:        b.0x4C
+w3 :=        b.0x54
+w3 -         b.0x50
+w3 +         $0x1
+w3 *         $0xE
+w3 *         $0x8
+w3 =:        b.0x34
+w stz        b.0x24
+call         $0x8007CBD,$0x0
+w move       $0x3,b.0x24
+call         $0x8007CBD,$0x0
+w move       $0x4,b.0x24
+call         $0x8007CBD,$0x0
+w move       $0x7,b.0x24
+call         $0x8007CBD,$0x0
+go           $0x260
+entd
+l=:          b.0x58
+w1 :=        b.0x34
+call         $0x8000AF9,$0x0
+ifkret
+w1 =:        b.0x14
+w stz        b.0x18
+w2 :=        b.0x30
+w2 -         $0x1
+w2 =:        b.0x1C
+w stz        b.0x2C
+w3 :=        b.0x18
+w3 =:        b.0x28
+w4 :=        b.0x1C
+w4 =:        b.0x5C
+w3 comp      r4
+if > go      $0x31
+w1 :=        b.0x28
+w1 *         $0xE
+by2 laddr    @b.0x14+
+w2 =:        b.0x60
+w3 :=        b.0x2C
+h3 =:        r2.(0x0)
+w add2       b.0x2C,$0x8012A0C
+w4 :=        b.0x2C
+w4 -         $0x1
+h4 =:        r2.(0x2)
+bi1 clr
+h1 =:        r2.(0x4)
+bi3 clr
+w3 =:        r2.(0x6)
+w stz        r2.(0xA)
+d loopi      b.0x28,b.0x5C,$0xFFFFFFFFFFFFFFD5
+h stz        b.0x20
+w stz        b.0x48
+h wconv      $0x80128D4,r1
+w comp2      b.0x48,r1
+if >> go     $0x70
+w1 :=        b.0x48
+w1 *         $0x4
+by2 laddr    $0x801289C+
+w2 =:        b.0x64
+by3 :=       r2.(0x1)
+w3 and       $0x7
+w3 comp      b.0x24
+if >< go     $0x42
+h3 :=        b.0x20
+w4 :=        $0x8012A0C
+w4 udiv      r3,r4,r3
+w3 =:        b.0x44
+h1 :=        b.0x20
+h4 :=        r2.(0x2)
+h1 +         r4
+h1 -         $0x1
+w3 :=        $0x8012A0C
+w3 udiv      r1,r3,r1
+w1 =:        b.0x68
+w comp2      b.0x44,r1
+if >> go     $0x16
+w1 :=        b.0x44
+w1 *         $0xE
+h2 :=        $0x1
+by rladdr    @b.0x14+
+h2 =:        r.0x4
+w incr       b.0x44
+w comp2      b.0x44,b.0x68
+if <<= go    $0xFFFFFFFFFFFFFFEE
+r:=          b.0x64
+h1 :=        r.0x2
+h add2       b.0x20,r1
+w incr       b.0x48
+h wconv      $0x80128D4,r2
+w comp2      b.0x48,r2
+if <<= go    $0xFFFFFFFFFFFFFF94
+w1 :=        b.0x24
+w1 *         $0xC
+by rladdr    $0x801296C+
+w2 laddr     r.0x0
+w2 =:        b.0x40
+w3 :=        b.0x18
+w3 =:        b.0x28
+w4 :=        b.0x1C
+w4 =:        b.0x6C
+w3 comp      r4
+if > go      $0x2D
+w1 :=        b.0x28
+w1 *         $0xE
+by rladdr    @b.0x14+
+h2 :=        r.0x4
+w test       r2
+if = go      $0x1B
+w2 :=        b.0x28
+w2 *         $0xE
+by3 laddr    @b.0x14+
+w3 =:        @b.0x40
+w4 :=        b.0x28
+w4 *         $0xE
+by rladdr    @b.0x14+
+w1 laddr     r.0x6
+w1 =:        b.0x40
+d loopi      b.0x28,b.0x6C,$0xFFFFFFFFFFFFFFD9
+w stz        @b.0x40
+w1 :=        b.0x24
+w1 *         $0xC
+by rladdr    $0x801296C+
+w2 laddr     r.0x4
+w2 =:        b.0x40
+w3 :=        b.0x1C
+w3 =:        b.0x28
+w4 :=        b.0x18
+w4 =:        b.0x70
+w3 comp      r4
+if < go      $0x2E
+w1 :=        b.0x28
+w1 *         $0xE
+by rladdr    @b.0x14+
+h2 :=        r.0x4
+w test       r2
+if = go      $0x1B
+w2 :=        b.0x28
+w2 *         $0xE
+by3 laddr    @b.0x14+
+w3 =:        @b.0x40
+w4 :=        b.0x28
+w4 *         $0xE
+by rladdr    @b.0x14+
+w1 laddr     r.0xA
+w1 =:        b.0x40
+d loopd      b.0x28,b.0x70,$0xFFFFFFFFFFFFFFD9
+w stz        @b.0x40
+w1 :=        b.0x24
+w1 *         $0xC
+by rladdr    $0x801296C+
+w test       r.0x0
+if = go      $0xBA
+w2 :=        b.0x18
+w2 =:        b.0x44
+w3 :=        b.0x1C
+w3 =:        b.0x74
+w2 comp      r3
+if >> go     $0x15
+w1 :=        b.0x44
+w1 *         $0xE
+bi2 clr
+by rladdr    @b.0x14+
+h2 =:        r.0x4
+w incr       b.0x44
+w comp2      b.0x44,b.0x74
+if <<= go    $0xFFFFFFFFFFFFFFEF
+w1 :=        b.0x24
+w1 *         $0xC
+by rladdr    $0x801296C+
+w move       r.0x8,b.0x3C
+r:=          b.0x3C
+h1 :=        r.0x4
+h1 =:        b.0x20
+w test       r1
+if = go      $0x6D
+h1 :=        b.0x20
+w1 *         $0x8
+by2 laddr    $0x30000000+
+w2 =:        b.0x78
+h3 :=        r2.(0x0)
+h3 =:        r.0x4
+bi4 clr
+h4 =:        r2.(0x0)
+h1 :=        b.0x20
+w3 :=        $0x8012A0C
+w3 udiv      r1,r3,r1
+w1 *         $0xE
+by rladdr    @b.0x14+
+h2 laddr     r.0x4
+w2 =:        b.0x38
+h1 :=        @b.0x38
+w test       r1
+if = go      $0x1D
+h1 :=        @b.0x38
+h1 comp      b.0x20
+if <<= go    $0x15
+h1 :=        @b.0x38
+w1 *         $0x8
+by rladdr    $0x30000000+
+h2 laddr     r.0x0
+w2 =:        b.0x38
+go           $0xFFFFFFFFFFFFFFE0
+h2 :=        b.0x20
+w2 *         $0x8
+h3 :=        @b.0x38
+by rladdr    $0x30000000+
+h3 =:        r.0x0
+h4 :=        b.0x20
+h4 =:        @b.0x38
+go           $0xFFFFFFFFFFFFFF8C
+w4 :=        b.0x24
+w4 *         $0xC
+bi1 clr
+by1 laddr    @b.0x14+
+by rladdr    $0x801296C+
+w1 =:        r.0x8
+go           $0x2E
+w2 :=        b.0x1C
+w2 -         b.0x18
+w2 +         $0x1
+w2 *         $0xE
+r:=          b.0x8
+w2 =:        r.0x14
+w1 :=        b.0x14
+call         $0x80008AE,$0x0
+ifkret
+w2 :=        b.0x24
+w2 *         $0xC
+by3 laddr    $0x801296C+
+w3 =:        b.0x7C
+bi4 clr
+w4 =:        r3.(0x8)
+w4 =:        r3.(0x0)
+w stz        r3.(0x4)
+jumpg        b.0x58
+ret
+entd
+l=:          b.0x28
+w1 :=        b.0x2C
+w1 =:        b.0x30
+w move       $0x48,b.0x34
+h2 :=        r1.(0x10)
+h shl        r2,$0x3A
+w stz        b.0x3C
+w test       r2
+if >< go     $0x4
+w set1       b.0x3C
+w move       b.0x3C,b.0x38
+w test       b.0x38
+if >< go     $0xE
+w1 :=        b.0x34
+call         $0x800062F,$0x0
+if -k go     $0x4
+jumpg        b.0x28
+clrk
+jumpg        b.0x28
+entd
+l=:          b.0x40
+ced=:        $0x8014D2C
+clrk
+jumpg        b.0x40
+ents         $0x60
+call         $0x8009007,$0x0
+ifkret
+w test       $0x8014CFC
+if = go      $0x44
+w set1       $0x8014D34
+w set1       $0x8014D38
+r:=          b.0x8
+w set1       r.0x14
+call         $0x800008D,$0x0
+ifkret
+by hconv     $0x7,b.0x18
+h2 :=        $0x8012854
+h2 -         $0xA
+h2 =:        b.0x44
+h comp2      b.0x18,r2
+if > go      $0x16
+h wconv      b.0x18,r1
+r:=          b.0x8
+w1 =:        r.0x14
+call         $0x8004EF5,$0x0
+ifkret
+w loopi      b.0x18,b.0x44,$0xFFFFFFFFF180FE79
+if = go      $0x8
+noop
+w4 :=        r.0x30
+if = go      $0x8
+        ??? ; opcode 0x0001
+d1 =:        b.0x70
+noop
+w move       $0x8030F98,$0x8012890
+call         $0x8007F4D,$0x0
+ifkret
+call         $0x8006B17,$0x0
+ifkret
+h set1       b.0x18
+h wconv      b.0x18,r1
+w1 *         $0x100
+h2 :=        b.0x18
+by rladdr    $0x20000900+
+h2 =:        r.0xD8
+w loopi      b.0x18,$0xFE,$0xFFFFFFFFEC18450C
+w3 or        $0x18
+by test      $0x20
+bi2 clr
+call         $0x800870D,$0x0
+ifkret
+w2 :=        b.0x14
+w2 =:        b.0x2C
+call         $0x8007F1B,$0x0
+ifkret
+w2 :=        b.0x14
+r:=          b.0x8
+w2 =:        r.0x14
+call         $0x8006C7D,$0x0
+ifkret
+w set1       $0x8014D34
+w set1       $0x8014D38
+r:=          b.0x8
+w set1       r.0x14
+call         $0x800008D,$0x0
+ifkret
+w2 :=        b.0x14
+r:=          b.0x8
+w2 =:        r.0x14
+call         $0x80072BB,$0x0
+ifkret
+call         $0x8007B08,$0x0
+ifkret
+call         $0x8007C5B,$0x0
+ifkret
+cwip
+w1 :=        b.0x14
+w1 =:        b.0x48
+h2 :=        r1.(0x66)
+h2 =:        $0x8012854
+r:=          b.0x48
+by3 laddr    r.0x68
+r:=          b.0x8
+w3 =:        r.0x14
+call         $0x800693E,$0x0
+ifkret
+r:=          b.0x48
+h2 :=        r.0x14
+w2 =:        $0x8014D28
+h3 :=        r.0x12
+w3 =:        $0x80128D8
+w2 *         $0x100
+h4 :=        r.0x1A
+by rladdr    $0x20000900+
+h4 =:        r.0xF8
+h4 =:        b.0x24
+w move       $0x22,b.0x4C
+w stz        b.0x54
+bi1 clr
+by1 laddr    $0x8038000+
+w1 comp      $0x8035000
+if <= go     $0x4
+w set1       b.0x54
+w move       b.0x54,b.0x50
+w test       b.0x50
+if >< go     $0xB
+w1 :=        b.0x4C
+call         $0x800062F,$0x0
+ifkret
+w move       $0x22,b.0x54
+h wconv      $0x8012854,r1
+w1 *         $0x64
+w stz        b.0x5C
+bi2 clr
+by2 laddr    $0x30000000+
+by3 laddr    $0x8038000+
+w2 comp      r3
+if <= go     $0x4
+w set1       b.0x5C
+w move       b.0x5C,b.0x58
+w test       b.0x58
+if >< go     $0xB
+w1 :=        b.0x54
+call         $0x800062F,$0x0
+ifkret
+h set1       b.0x18
+h comp2      b.0x18,$0x8012854
+if > go      $0x1E
+h wconv      b.0x18,r1
+w1 *         $0x64
+by rladdr    $0x8038000+
+w clebi      r.0x12,$0xA
+w loopi      b.0x18,$0x8012854,$0xFFFFFFFFEDC30800
+d3 -         b.0x28
+        ??? ; opcode 0x0000
+ifkret
+call         $0x8006B92,$0x0
+ifkret
+w2 :=        $0x8012A50
+w2 =:        b.0x20
+h stz        b.0x18
+h wconv      b.0x18,r1
+w1 *         $0x11C
+by2 laddr    $0x8012A58+
+w2 =:        b.0x1C
+w move       b.0x20,r2.(0x4)
+h3 :=        b.0x18
+h3 +         $0x1
+h wconv      r3,r4
+w4 *         $0x11C
+by1 laddr    $0x8012A58+
+w1 =:        r2.(0x0)
+w1 =:        r2.(0x8)
+w2 =:        b.0x20
+w loopi      b.0x18,$0x17,$0xFFFFFFFFCF18474A
+retd
+bi1 clr
+by1 laddr    $0x8012A58+
+bi2 clr
+by rladdr    $0x8038000+
+w1 =:        r.0x2E
+r:=          $0x8012A50
+w1 =:        r.0x0
+w3 :=        $0x8012A50
+w3 =:        @b.0x1C
+w move       b.0x1C,r.0x4
+call         $0x80075F7,$0x0
+ifkret
+w set1       $0x8014CFC
+ret
+ents         $0x88
+bi1 clr
+w1 =:        $0x80240B0
+w1 =:        $0x80240B4
+w1 =:        b.0x14
+go           $0x16
+entd
+l=:          b.0x1C
+w1 =:        b.0xC
+w1 :=        $0x21
+call         $0x800062F,$0x0
+ifkret
+clrk
+jumpg        b.0x1C
+w test       $0x8028F70
+if = go      $0x30
+w test       $0x80240B0
+if = go      $0x28
+r:=          $0x80240BC
+h3 :=        r.0x6
+h wconv      r3,r2
+r:=          b.0x8
+w2 =:        r.0x14
+w move       $0x80240B0,r.0x18
+call         $0x80094B6,$0x0
+if -k go     $0x8
+call         $0x80081BC,$0x0
+w stz        b.0x18
+w test       b.0x18
+if >< go     $0x53
+w test       $0x8028F64
+if = go      $0x1B
+call         $0x8009208,$0x3,$0x8012A28,$0x80240B0,b.0x14
+if -k go     $0x8
+call         $0x80081BC,$0x0
+r:=          b.0x8
+w stz        r.0x14
+call         $0x800008D,$0x0
+if -k go     $0x8
+call         $0x80081BC,$0x0
+call         $0xFFFFFFFFF80000FF,$0x4,$0x8012A28,$0x80240B0,$0x80240B4,b.0x14 ; MON 377B
+if -k go     $0x8
+call         $0x80081BC,$0x0
+w test       $0x8014CFC
+if = go      $0x16
+call         $0x8008E09,$0x0
+if -k go     $0x8
+call         $0x80081BC,$0x0
+w1 =:        $0x8023D70
+w1 :=        $0x80240B0
+w1 =:        $0x80240B8
+w stz        $0x80240B0
+w2 :=        $0x8028EB8+
+w2 +         $0x1
+w3 :=        $0x80240B8
+w2 =:        $0x8028EB8+
+go           $0x12
+entd
+l=:          b.0x20
+w1 =:        b.0xC
+w1 =:        $0x80240B0
+clrk
+jumpg        b.0x20
+w move       $0x2D,b.0x24
+w stz        b.0x2C
+w test       $0x80240B8
+if << go     $0x4
+w set1       b.0x2C
+w stz        b.0x30
+w comp2      $0x80240B8,$0x1C
+if >> go     $0x4
+w set1       b.0x30
+w1 :=        b.0x2C
+w1 and       b.0x30
+w1 =:        b.0x28
+w test       r1
+if >< go     $0x12
+w1 :=        b.0x24
+call         $0x800062F,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+w1 :=        $0x80240B8
+h riom       $0x80240B4,$0x80240BC,$0x802403C+
+r:=          $0x80240BC
+h2 :=        r.0x8
+h wconv      r2,r1
+w1 =:        $0x80129DC
+w stz        $0x8014D0C
+w incr       $0x8026280
+w test       $0x8028F60
+if = go      $0x21
+w3 :=        $0x80240BC
+r:=          b.0x8
+w3 =:        r.0x14
+w move       $0x80240B8,r.0x18
+call         $0x800908A,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+w comp2      $0x80240B8,$0x5
+if = go      $0x15
+w comp2      $0x80240B8,$0x3
+if = go      $0xC
+w comp2      $0x80128E4,$0x14
+if <= go     $0x3A3
+w1 :=        $0x80240B8
+jumpg        $0x8026198+
+w1 :=        $0x80240BC
+r:=          b.0x8
+w1 =:        r.0x14
+call         $0x8007F5C,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x37A
+w1 :=        $0x80240BC
+r:=          b.0x8
+w1 =:        r.0x14
+call         $0x8004425,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x35F
+w1 :=        $0x80240BC
+r:=          b.0x8
+w1 =:        r.0x14
+call         $0x800613B,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x344
+w1 :=        $0x80240BC
+r:=          b.0x8
+w1 =:        r.0x14
+call         $0x80062BB,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x329
+w1 :=        $0x80240BC
+r:=          b.0x8
+w1 =:        r.0x14
+w set1       r.0x18
+call         $0x80057CB,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+w1 =:        b.0x14
+go           $0x30A
+w1 :=        $0x80240BC
+r:=          b.0x8
+w1 =:        r.0x14
+call         $0x800544E,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x2EF
+r:=          $0x80240BC
+h1 :=        r.0x6
+r:=          b.0x8
+h1 =:        r.0x14
+call         $0x8004D7E,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x2D0
+w1 :=        $0x80240BC
+r:=          b.0x8
+w1 =:        r.0x14
+call         $0x8004CA2,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x2B5
+r:=          $0x80240BC
+h1 :=        r.0x14
+w1 *         $0x100
+by2 laddr    $0x20000900+
+r:=          b.0x8
+w2 =:        r.0x14
+call         $0x8004C4B,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x28D
+w1 :=        $0x80240BC
+r:=          b.0x8
+w1 =:        r.0x14
+call         $0x8006099,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x272
+r:=          $0x80240BC
+h2 :=        r.0x6
+h wconv      r2,r1
+r:=          b.0x8
+w1 =:        r.0x14
+r:=          $0x80240BC
+h3 :=        r.0x10
+r:=          b.0x8
+w3 =:        r.0x18
+call         $0x80069F0,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x244
+r:=          $0x80240BC
+h2 :=        r.0x6
+h wconv      r2,r1
+r:=          b.0x8
+w1 =:        r.0x14
+r:=          $0x80240BC
+h3 :=        r.0x10
+r:=          b.0x8
+w3 =:        r.0x18
+call         $0x8006A1D,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x216
+bi1 clr
+w2 laddr     $0x802624C+
+w2 =:        b.0x38
+w3 :=        $0x7
+w3 +         $0x1
+w3 =:        b.0x34
+bi4 clr
+w1 laddr     $0x8012824+
+w1 =:        b.0x44
+w2 :=        $0x7
+w2 +         $0x1
+w2 =:        b.0x40
+if < go      $0x8
+bi1 clr
+bi2 clr
+w smove      b.0x34,b.0x40
+call         $0x8009007,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x1DD
+r:=          $0x80240BC
+by1 laddr    r.0x10
+r:=          b.0x8
+w1 =:        r.0x14
+call         $0x800693E,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x1BF
+r:=          $0x80240BC
+h1 :=        r.0x10
+r:=          b.0x8
+h1 =:        r.0x14
+h stz        r.0x16
+h move       $0x3F,r.0x18
+call         $0x8003A2D,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x19A
+w1 :=        $0x80240BC
+r:=          b.0x8
+w1 =:        r.0x14
+call         $0x8006963,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x17F
+r:=          $0x80240BC
+h2 :=        r.0x6
+h wconv      r2,r1
+r:=          b.0x8
+w1 =:        r.0x14
+r:=          $0x80240BC
+h4 :=        r.0x6
+h wconv      r4,r3
+w3 =:        b.0x2C
+w2 :=        b.0x2C
+w2 *         $0x100
+by1 laddr    $0x20000900+
+r:=          r1
+w1 :=        r.0x48
+w1 and       $0xFFFF
+w1 =:        b.0x60
+w1 :=        b.0x60
+go           $0x2
+r:=          b.0x8
+w1 =:        r.0x18
+w set1       r.0x1C
+w2 :=        $0x800283B
+w2 =:        r.0x20
+w stz        r.0x24
+w set1       r.0x28
+call         $0x8001349,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x11E
+r:=          $0x80240BC
+h1 :=        r.0x6
+r:=          b.0x8
+h1 =:        r.0x14
+call         $0x800667D,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0xFF
+w1 :=        $0x80240BC
+r:=          b.0x8
+w1 =:        r.0x14
+call         $0x8000C5C,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+w1 =:        b.0x14
+go           $0xE2
+r:=          $0x80240BC
+h1 :=        r.0x6
+r:=          b.0x8
+h1 =:        r.0x14
+r:=          $0x80240BC
+h2 :=        r.0x10
+r:=          b.0x8
+h2 =:        r.0x16
+call         $0x800699F,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0xB5
+go           $0xB2
+go           $0xAF
+go           $0xAC
+w move       $0x36,b.0x30
+w stz        b.0x5C
+w test       b.0x5C
+if >< go     $0x12
+w1 :=        b.0x30
+call         $0x800062F,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x8F
+w move       $0x36,b.0x60
+w stz        b.0x64
+w test       b.0x64
+if >< go     $0x12
+w1 :=        b.0x60
+call         $0x800062F,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x72
+w move       $0x36,b.0x68
+w stz        b.0x6C
+w test       b.0x6C
+if >< go     $0x12
+w1 :=        b.0x68
+call         $0x800062F,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x56
+w move       $0x36,b.0x70
+w stz        b.0x74
+w test       b.0x74
+if >< go     $0x12
+w1 :=        b.0x70
+call         $0x800062F,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x3A
+w move       $0x36,b.0x78
+w stz        b.0x7C
+w test       b.0x7C
+if >< go     $0x12
+w1 :=        b.0x78
+call         $0x800062F,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x1E
+w move       $0x36,b.0x80
+w stz        b.0x84
+w test       b.0x84
+if >< go     $0x12
+w1 :=        b.0x80
+call         $0x800062F,$0x0
+if -k go     $0x8
+call         $0x80082A1,$0x0
+go           $0x2
+go           $0xB
+w move       $0x223,$0x80240B0
+go           $0xFFFFFFFFFFFFFAB1
+ret
+ents         $0x20
+w move       b.0x14,$0x802620C
+r:=          $0x802620C
+dmof
+h1 :=        r.0x2
+dmon
+h1 =:        b.0x1A
+h1 :=        b.0x1A
+go           $0x2
+w1 =:        $0x8026210
+r:=          $0x802620C
+dmof
+w1 laddr     r.0x24
+dmon
+w1 =:        b.0x1C
+w1 :=        b.0x1C
+go           $0x2
+w1 =:        $0x8026214
+r:=          $0x802620C
+dmof
+w1 laddr     r.0x28
+dmon
+w1 =:        b.0x1C
+w1 :=        b.0x1C
+go           $0x2
+w1 =:        $0x8026218
+r:=          $0x802620C
+dmof
+w1 laddr     r.0x0
+dmon
+w1 =:        b.0x1C
+w1 :=        b.0x1C
+go           $0x2
+w1 =:        $0x802621C
+r:=          $0x802620C
+dmof
+w1 :=        r.0x18
+dmon
+w1 -         $0xC
+w1 =:        b.0x1C
+w1 :=        b.0x1C
+go           $0x2
+w1 =:        $0x802622C
+r:=          $0x802620C
+dmof
+w1 :=        r.0x40
+w2 :=        r.0x44
+w3 :=        r.0x48
+dmon
+w1 =:        $0x8026220
+w2 =:        $0x8026224
+w3 =:        $0x8026228
+ret
+ents         $0x30
+w set1       b.0x18
+w4 :=        b.0x14
+dmof
+by tset      r4.(0x0)
+dmon
+if = go      $0x10
+dmof
+h comp2      r4.(0x4E),$0x5
+dmon
+if = go      $0x5
+bi1 clr
+go           $0x10
+h2 :=        $0x5
+dmof
+h2 =:        r4.(0x4E)
+dmon
+w1 :=        $0x1
+go           $0x2
+w test       r1
+if >< go     $0x88
+w comp2      b.0x18,$0x3
+if > go      $0x29
+w1 :=        b.0x18
+w move       $0x8026230+,b.0x1C
+        ??? ; opcode 0xFF1F
+w3 :=        r1
+w2 :=        r1
+w2 +         b.0x1C
+w2 comp      r1
+if >= go     $0xA
+        ??? ; opcode 0xFF1F
+w1 comp      r3
+if << go     $0x4
+go           $0xFFFFFFFFFFFFFFFA
+        ??? ; opcode 0xFF1F
+w1 comp      r2
+if >> go     $0x4
+go           $0xFFFFFFFFFFFFFFFA
+go           $0x25
+w move       $0x802623C,b.0x20
+        ??? ; opcode 0xFF1F
+w3 :=        r1
+w2 :=        r1
+w2 +         b.0x20
+w2 comp      r1
+if >= go     $0xA
+        ??? ; opcode 0xFF1F
+w1 comp      r3
+if << go     $0x4
+go           $0xFFFFFFFFFFFFFFFA
+        ??? ; opcode 0xFF1F
+w1 comp      r2
+if >> go     $0x4
+go           $0xFFFFFFFFFFFFFFFA
+w move       $0x87,b.0x24
+w stz        b.0x2C
+w comp2      b.0x18,$0x4C4B40
+if > go      $0x4
+w set1       b.0x2C
+w move       b.0x2C,b.0x28
+w test       b.0x28
+if >< go     $0x1C
+dcc
+w1 :=        $0x802621C
+dmof
+h stz        r1.(0x0)
+dmon
+tutti
+w1 :=        b.0x24
+call         $0x800062F,$0x0
+ifkret
+go           $0xFFFFFFFFFFFFFF51
+ret
+ents         $0x34
+r:=          b.0x14
+        ??? ; opcode 0xFF1F
+w1 =:        b.0x20
+w2 :=        r1
+w3 :=        r1
+w2 +         b.0x18
+w2 =:        b.0x24
+dmof
+w2 comp      r1
+if >>= go    $0x3B
+        ??? ; opcode 0xFF1F
+w1 comp      r3
+if << go     $0x35
+h comp2      r.0x8,$0x1
+if >< go     $0x68
+h test       r.0x10
+if = go      $0x64
+dmon
+w move       $0xA,b.0x2C
+        ??? ; opcode 0xFF1F
+w3 :=        r1
+w2 :=        r1
+w2 +         b.0x2C
+w2 comp      r1
+if >= go     $0xA
+        ??? ; opcode 0xFF1F
+w1 comp      r3
+if << go     $0x4
+go           $0xFFFFFFFFFFFFFFFA
+        ??? ; opcode 0xFF1F
+w1 comp      r2
+if >> go     $0x4
+go           $0xFFFFFFFFFFFFFFFA
+r:=          b.0x14
+w3 :=        b.0x20
+dmof
+go           $0xFFFFFFFFFFFFFFC9
+        ??? ; opcode 0xFF1F
+w1 comp      r2
+if >> go     $0x3B
+h comp2      r.0x8,$0x1
+if >< go     $0x2F
+h test       r.0x10
+if = go      $0x2B
+dmon
+w move       $0xA,b.0x30
+        ??? ; opcode 0xFF1F
+w3 :=        r1
+w2 :=        r1
+w2 +         b.0x30
+w2 comp      r1
+if >= go     $0xA
+        ??? ; opcode 0xFF1F
+w1 comp      r3
+if << go     $0x4
+go           $0xFFFFFFFFFFFFFFFA
+        ??? ; opcode 0xFF1F
+w1 comp      r2
+if >> go     $0x4
+go           $0xFFFFFFFFFFFFFFFA
+r:=          b.0x14
+w2 :=        b.0x24
+dmof
+go           $0xFFFFFFFFFFFFFFC9
+h stz        r.0x10
+dmon
+bi1 clr
+ret
+h1 :=        r.0x10
+dmon
+h1 =:        b.0x28
+h1 :=        b.0x28
+ret
+ents         $0x1C
+w2 :=        $0x802622C
+dmof
+h1 :=        r2.(0x0)
+dmon
+w1 =:        b.0x18
+w1 :=        b.0x18
+ret
+ents         $0x24
+w1 :=        $0x80240B4
+w1 -         $0xC
+w1 =:        b.0x20
+r:=          b.0x20
+dmof
+h1 :=        r.0x0
+dmon
+w1 =:        b.0x1C
+w1 :=        b.0x1C
+ret
+ents         $0x68
+h stz        b.0x34
+by1 laddr    b.0x30
+w1 =:        b.0x48
+bi2 clr
+h2 =:        r1.(0x2)
+w3 :=        b.0x14
+w3 putbi     r1.(0x0),$0x0
+w4 :=        b.0x18
+w4 putbi     r1.(0x0),$0x1
+w2 :=        b.0x1C
+w2 putbi     r1.(0x0),$0x4
+w3 :=        b.0x20
+w3 putbi     r1.(0x0),$0x3
+w4 :=        b.0x24
+w4 putbi     r1.(0x0),$0x2
+w2 :=        b.0x28
+w2 putbi     r1.(0x0),$0x5
+w3 :=        b.0x2C
+w3 putbi     r1.(0x0),$0xF
+h4 :=        r1.(0x2)
+h4 =:        b.0x34
+w test       r4
+if = go      $0x114
+w stz        b.0x40
+call         $0x8008915,$0x0
+ifkret
+w1 =:        b.0x38
+w2 :=        $0x8026214
+dmof
+w1 :=        r2.(0x0)
+dmon
+w1 =:        b.0x50
+w1 :=        b.0x50
+go           $0x2
+w1 =:        b.0x3C
+w test       b.0x2C
+if = go      $0x39
+w1 :=        $0x8026218
+dmof
+h1 :=        r1.(0x0)
+dmon
+w1 =:        b.0x50
+w1 :=        b.0x50
+go           $0x2
+w test       r1
+if >< go     $0x22
+solo
+w1 :=        $0x8026218
+dmof
+h set1       r1.(0x0)
+dmon
+r:=          b.0x8
+w move       $0x802621C,r.0x14
+call         $0x80087BE,$0x0
+ifkret
+w test       b.0x3C
+if = go      $0xB4
+w incr       b.0x40
+w move       $0x80,b.0x4C
+w stz        b.0x54
+w comp2      b.0x40,$0x8026210
+if >> go     $0x4
+w set1       b.0x54
+w move       b.0x54,b.0x50
+w test       b.0x50
+if >< go     $0x1C
+dcc
+w1 :=        $0x802621C
+dmof
+h stz        r1.(0x0)
+dmon
+tutti
+w1 :=        b.0x4C
+call         $0x800062F,$0x0
+ifkret
+w1 :=        b.0x3C
+w1 -         $0x802620C
+w1 /         $0x100
+go           $0x2
+w1 =:        b.0x44
+w1 comp      b.0x38
+if = go      $0x57
+h move       $0x8043,b.0x58
+r:=          b.0x3C
+h1 :=        b.0x34
+h2 :=        b.0x58
+w1 and       $0x803F
+dmof
+h3 :=        r.0xE
+h shl        r3,$0x8
+h3 or        r2
+h comp2      r.0x8,$0x1
+if >< go     $0x2F
+h1 =:        r.0x10
+        ??? ; opcode 0xFFEE
+        ??? ; opcode 0x0000
+if k go      $0xFFFFFFFFFFFFFFFD
+dmon
+w test       $0x8028F68
+if = go      $0x1B
+w1 =:        b.0x64
+w3 =:        b.0x60
+r=:          b.0x5C
+r:=          b.0x8
+w move       b.0x64,r.0x14
+w move       b.0x60,r.0x18
+w move       b.0x5C,r.0x1C
+call         $0x80093EA,$0x0
+ifkret
+go           $0x6
+h stz        r.0x10
+dmon
+r:=          b.0x3C
+dmof
+w1 :=        r.0x4
+dmon
+w1 =:        b.0x60
+w1 :=        b.0x60
+go           $0x2
+w1 =:        b.0x3C
+go           $0xFFFFFFFFFFFFFF4D
+ret
+ents         $0x44
+call         $0x8008915,$0x0
+ifkret
+w1 =:        b.0x1C
+w move       $0x8026240,b.0x14
+bi stz       b.0x14+
+w set1       b.0x2C
+w set1       b.0x18
+w1 :=        b.0x18
+bi test      b.0x14+
+if = go      $0x37
+w2 :=        b.0x18
+w2 *         $0x100
+w2 +         $0x802620C
+w1 :=        r2
+go           $0x2
+w1 =:        b.0x20
+r:=          b.0x8
+w1 =:        r.0x14
+w move       $0x8026230,r.0x18
+call         $0x8008879,$0x0
+ifkret
+w2 :=        b.0x18
+h1 =:        b.0x22+
+h3 :=        b.0x22+
+w test       r3
+if >< go     $0x6
+bi stz       b.0x14+
+w incr       b.0x18
+w comp2      b.0x18,$0x4
+if <<= go    $0xFFFFFFFFFFFFFFBF
+clrk
+w stz        b.0x30
+w2 :=        b.0x30
+by1 :=       b.0x14+
+by3 :=       $0x8026244+
+by1 comp     r3
+if = go      $0x4
+setk
+d loopi      b.0x30,$0x3,$0xFFFFFFFFFFFFFFEF
+if -k go     $0xB0
+w set1       b.0x18
+w1 :=        b.0x18
+bi test      b.0x14+
+if = go      $0x72
+w2 :=        b.0x18
+w2 *         $0x100
+w2 +         $0x802620C
+w1 :=        r2
+go           $0x2
+w1 =:        b.0x20
+h move       $0x8043,b.0x34
+w3 :=        b.0x18
+h move       b.0x22+,b.0x36
+r:=          b.0x20
+h1 :=        b.0x36
+h2 :=        b.0x34
+w1 and       $0x803F
+dmof
+h3 :=        r.0xE
+h shl        r3,$0x8
+h3 or        r2
+h comp2      r.0x8,$0x1
+if >< go     $0x2F
+h1 =:        r.0x10
+        ??? ; opcode 0xFFEE
+        ??? ; opcode 0x0000
+if k go      $0xFFFFFFFFFFFFFFFD
+dmon
+w test       $0x8028F68
+if = go      $0x1B
+w1 =:        b.0x40
+w3 =:        b.0x3C
+r=:          b.0x38
+r:=          b.0x8
+w move       b.0x40,r.0x14
+w move       b.0x3C,r.0x18
+w move       b.0x38,r.0x1C
+call         $0x80093EA,$0x0
+ifkret
+go           $0x6
+h stz        r.0x10
+dmon
+w incr       b.0x18
+w comp2      b.0x18,$0x4
+if <<= go    $0xFFFFFFFFFFFFFF84
+w incr       b.0x2C
+w comp2      b.0x2C,$0xF
+if <<= go    $0xFFFFFFFFFFFFFF1A
+w move       $0x82,b.0x30
+w stz        b.0x38
+w test       b.0x38
+if >< go     $0x1C
+dcc
+w1 :=        $0x802621C
+dmof
+h stz        r1.(0x0)
+dmon
+tutti
+w1 :=        b.0x30
+call         $0x800062F,$0x0
+ifkret
+ret
+ents         $0x44
+w1 :=        $0x8026218
+dmof
+h1 :=        r1.(0x0)
+dmon
+w1 =:        b.0x2C
+w1 :=        b.0x2C
+go           $0x2
+w test       r1
+if >< go     $0x106
+h move       $0x8000,b.0x14
+w1 :=        $0x8026218
+dmof
+h set1       r1.(0x0)
+dmon
+w stz        b.0x1C
+call         $0x8008915,$0x0
+ifkret
+w1 =:        b.0x18
+w2 :=        $0x8026214
+dmof
+w1 :=        r2.(0x0)
+dmon
+w1 =:        b.0x2C
+w1 :=        b.0x2C
+go           $0x2
+w1 =:        b.0x20
+solo
+r:=          b.0x8
+w move       $0x802621C,r.0x14
+call         $0x80087BE,$0x0
+ifkret
+w test       b.0x20
+if = go      $0xB4
+w incr       b.0x1C
+w move       $0x80,b.0x28
+w stz        b.0x30
+w comp2      b.0x1C,$0x8026210
+if >> go     $0x4
+w set1       b.0x30
+w move       b.0x30,b.0x2C
+w test       b.0x2C
+if >< go     $0x1C
+dcc
+w1 :=        $0x802621C
+dmof
+h stz        r1.(0x0)
+dmon
+tutti
+w1 :=        b.0x28
+call         $0x800062F,$0x0
+ifkret
+w1 :=        b.0x20
+w1 -         $0x802620C
+w1 /         $0x100
+go           $0x2
+w1 =:        b.0x24
+w1 comp      b.0x18
+if = go      $0x57
+h move       $0x8043,b.0x34
+r:=          b.0x20
+h1 :=        b.0x14
+h2 :=        b.0x34
+w1 and       $0x803F
+dmof
+h3 :=        r.0xE
+h shl        r3,$0x8
+h3 or        r2
+h comp2      r.0x8,$0x1
+if >< go     $0x2F
+h1 =:        r.0x10
+        ??? ; opcode 0xFFEE
+        ??? ; opcode 0x0000
+if k go      $0xFFFFFFFFFFFFFFFD
+dmon
+w test       $0x8028F68
+if = go      $0x1B
+w1 =:        b.0x40
+w3 =:        b.0x3C
+r=:          b.0x38
+r:=          b.0x8
+w move       b.0x40,r.0x14
+w move       b.0x3C,r.0x18
+w move       b.0x38,r.0x1C
+call         $0x80093EA,$0x0
+ifkret
+go           $0x6
+h stz        r.0x10
+dmon
+r:=          b.0x20
+dmof
+w1 :=        r.0x4
+dmon
+w1 =:        b.0x3C
+w1 :=        b.0x3C
+go           $0x2
+w1 =:        b.0x20
+go           $0xFFFFFFFFFFFFFF4D
+call         $0x8008AAA,$0x0
+ifkret
+ret
+ents         $0x44
+w1 :=        $0x8026218
+dmof
+h stz        r1.(0x0)
+dmon
+h stz        b.0x24
+w stz        b.0x18
+call         $0x8008915,$0x0
+ifkret
+w1 =:        b.0x14
+w2 :=        $0x8026214
+dmof
+w1 :=        r2.(0x0)
+dmon
+w1 =:        b.0x2C
+w1 :=        b.0x2C
+go           $0x2
+w1 =:        b.0x1C
+w test       b.0x1C
+if = go      $0xB4
+w incr       b.0x18
+w move       $0x80,b.0x28
+w stz        b.0x30
+w comp2      b.0x18,$0x8026210
+if >> go     $0x4
+w set1       b.0x30
+w move       b.0x30,b.0x2C
+w test       b.0x2C
+if >< go     $0x1C
+dcc
+w1 :=        $0x802621C
+dmof
+h stz        r1.(0x0)
+dmon
+tutti
+w1 :=        b.0x28
+call         $0x800062F,$0x0
+ifkret
+w1 :=        b.0x1C
+w1 -         $0x802620C
+w1 /         $0x100
+go           $0x2
+w1 =:        b.0x20
+w1 comp      b.0x14
+if = go      $0x57
+h move       $0x8042,b.0x34
+r:=          b.0x1C
+h1 :=        b.0x24
+h2 :=        b.0x34
+w1 and       $0x803F
+dmof
+h3 :=        r.0xE
+h shl        r3,$0x8
+h3 or        r2
+h comp2      r.0x8,$0x1
+if >< go     $0x2F
+h1 =:        r.0x10
+        ??? ; opcode 0xFFEE
+        ??? ; opcode 0x0000
+if k go      $0xFFFFFFFFFFFFFFFD
+dmon
+w test       $0x8028F68
+if = go      $0x1B
+w1 =:        b.0x40
+w3 =:        b.0x3C
+r=:          b.0x38
+r:=          b.0x8
+w move       b.0x40,r.0x14
+w move       b.0x3C,r.0x18
+w move       b.0x38,r.0x1C
+call         $0x80093EA,$0x0
+ifkret
+go           $0x6
+h stz        r.0x10
+dmon
+r:=          b.0x1C
+dmof
+w1 :=        r.0x4
+dmon
+w1 =:        b.0x3C
+w1 :=        b.0x3C
+go           $0x2
+w1 =:        b.0x1C
+go           $0xFFFFFFFFFFFFFF4D
+w1 :=        $0x802621C
+dmof
+h2 :=        r1.(0x4E)
+dmon
+w2 =:        b.0x38
+w comp2      b.0x38,$0x5
+if >< go     $0x12
+w1 :=        $0x802621C
+dmof
+h stz        r1.(0x4E)
+h stz        r1.(0x0)
+dmon
+tutti
+ret
+ents         $0x38
+w2 :=        $0x8026214
+dmof
+w1 :=        r2.(0x0)
+dmon
+w1 =:        b.0x28
+w1 :=        b.0x28
+go           $0x2
+w1 =:        b.0x18
+w stz        b.0x1C
+w stz        b.0x20
+w test       b.0x18
+if = go      $0x64
+w incr       b.0x1C
+w move       $0x80,b.0x24
+w stz        b.0x2C
+w comp2      b.0x1C,$0x8026210
+if >> go     $0x4
+w set1       b.0x2C
+w move       b.0x2C,b.0x28
+w test       b.0x28
+if >< go     $0x1C
+dcc
+w1 :=        $0x802621C
+dmof
+h stz        r1.(0x0)
+dmon
+tutti
+w1 :=        b.0x24
+call         $0x800062F,$0x0
+ifkret
+w2 :=        b.0x18
+dmof
+h2 :=        r2.(0x8)
+dmon
+h2 comp      $0x1
+if >< go     $0x6
+w1 :=        $0x1
+go           $0x5
+bi1 clr
+go           $0x2
+w test       r1
+if = go      $0x4
+w incr       b.0x20
+r:=          b.0x18
+dmof
+w1 :=        r.0x4
+dmon
+w1 =:        b.0x34
+w1 :=        b.0x34
+go           $0x2
+w1 =:        b.0x18
+go           $0xFFFFFFFFFFFFFF9C
+w move       $0x81,b.0x2C
+w stz        b.0x34
+w test       b.0x20
+if <<= go    $0x4
+w set1       b.0x34
+w move       b.0x34,b.0x30
+w test       b.0x30
+if >< go     $0x1C
+dcc
+w1 :=        $0x802621C
+dmof
+h stz        r1.(0x0)
+dmon
+tutti
+w1 :=        b.0x2C
+call         $0x800062F,$0x0
+ifkret
+w stz        b.0x34
+w comp2      b.0x20,$0x1
+if <<= go    $0x4
+w set1       b.0x34
+w1 :=        b.0x34
+ret
+ents         $0x38
+w1 :=        b.0x14
+w1 *         $0x100
+w1 +         $0x802620C
+go           $0x2
+w1 =:        b.0x1C
+h move       $0x20,b.0x18
+call         $0x8008915,$0x0
+ifkret
+w1 =:        b.0x20
+w1 comp      b.0x14
+if = go      $0x9D
+w set1       b.0x24
+h move       $0x8043,b.0x28
+r:=          b.0x1C
+h1 :=        b.0x18
+h2 :=        b.0x28
+w1 and       $0x803F
+dmof
+h3 :=        r.0xE
+h shl        r3,$0x8
+h3 or        r2
+h comp2      r.0x8,$0x1
+if >< go     $0x2F
+h1 =:        r.0x10
+        ??? ; opcode 0xFFEE
+        ??? ; opcode 0x0000
+if k go      $0xFFFFFFFFFFFFFFFD
+dmon
+w test       $0x8028F68
+if = go      $0x1B
+w1 =:        b.0x34
+w3 =:        b.0x30
+r=:          b.0x2C
+r:=          b.0x8
+w move       b.0x34,r.0x14
+w move       b.0x30,r.0x18
+w move       b.0x2C,r.0x1C
+call         $0x80093EA,$0x0
+ifkret
+go           $0x6
+h stz        r.0x10
+dmon
+r:=          b.0x8
+w move       b.0x1C,r.0x14
+w move       $0x8026230,r.0x18
+call         $0x8008879,$0x0
+ifkret
+w test       r1
+if = go      $0x2E
+w incr       b.0x24
+w comp2      b.0x24,$0xF
+if <<= go    $0xFFFFFFFFFFFFFF8F
+w move       $0x82,b.0x2C
+w stz        b.0x30
+w test       b.0x30
+if >< go     $0x1C
+dcc
+w1 :=        $0x802621C
+dmof
+h stz        r1.(0x0)
+dmon
+tutti
+w1 :=        b.0x2C
+call         $0x800062F,$0x0
+ifkret
+ret
+ents         $0x34
+w1 :=        b.0x14
+w1 *         $0x100
+w1 +         $0x802620C
+go           $0x2
+w1 =:        b.0x1C
+h stz        b.0x18
+call         $0x8008915,$0x0
+ifkret
+w1 =:        b.0x20
+w1 comp      b.0x14
+if = go      $0x57
+h move       $0x8042,b.0x24
+r:=          b.0x1C
+h1 :=        b.0x18
+h2 :=        b.0x24
+w1 and       $0x803F
+dmof
+h3 :=        r.0xE
+h shl        r3,$0x8
+h3 or        r2
+h comp2      r.0x8,$0x1
+if >< go     $0x2F
+h1 =:        r.0x10
+        ??? ; opcode 0xFFEE
+        ??? ; opcode 0x0000
+if k go      $0xFFFFFFFFFFFFFFFD
+dmon
+w test       $0x8028F68
+if = go      $0x1B
+w1 =:        b.0x30
+w3 =:        b.0x2C
+r=:          b.0x28
+r:=          b.0x8
+w move       b.0x30,r.0x14
+w move       b.0x2C,r.0x18
+w move       b.0x28,r.0x1C
+call         $0x80093EA,$0x0
+ifkret
+go           $0x6
+h stz        r.0x10
+dmon
+ret
+ents         $0x24
+w1 :=        $0x802624C
+w1 =:        b.0x14
+w2 :=        $0x8028F2C
+w2 =:        b.0x18
+w3 :=        $0x802624C
+w3 =:        $0x8028F30
+w stz        $0x8028F34
+w2 -         r1
+w2 /         $0x4
+w2 -         $0x1
+w2 =:        $0x8028F38
+r:=          $0x8028F30
+w sub3       r.0x8,r.0x4,b.0x1C
+w2 :=        r.0x4
+w2 mulad     $0x4,r.0x0
+w2 =:        b.0x20
+bi2 clr
+w incr       b.0x1C
+if < go      $0x6
+bi4 clr
+w4 sfill     b.0x1C
+w1 :=        $0x8026298
+w1 =:        $0x8026248
+w bmove      $0x8028F3C,$0x8026298,$0x3
+w bmove      $0x8028F48,$0x80262A4,$0x3
+w bmove      $0x8028F54,$0x80262B0,$0x3
+ret
+ents         $0x3C
+w1 :=        b.0x18
+w1 =:        b.0x1C
+w test       $0x8028F60
+if = go      $0xA9
+w2 :=        $0x8028F78
+w2 and       $0x8028F7C
+w stz        b.0x24
+w2 comp      $0x3F
+if >< go     $0x4
+w set1       b.0x24
+w move       b.0x24,b.0x20
+w2 :=        b.0x14
+w2 =:        b.0x24
+w test       b.0x20
+if >< go     $0x2B
+w comp2      $0x8028F78,$0x3F
+if = go      $0xA
+w1 comp      $0x8028F78
+if >< go     $0x72
+w comp2      $0x8028F7C,$0x3F
+if = go      $0x11
+h4 :=        r2.(0x6)
+h wconv      r4,r3
+w3 comp      $0x8028F7C
+if >< go     $0x5A
+w set1       $0x8028F80
+w incr       $0x8028F84
+w comp2      $0x8028F84,$0x400
+if < go      $0x8
+w stz        $0x8028F84
+w1 :=        $0x8028F84
+w1 *         $0x20
+by2 laddr    $0x8028F8C+
+w2 =:        b.0x28
+w move       b.0x1C,r2.(0x0)
+r:=          b.0x24
+h4 :=        r.0x6
+h wconv      r4,r3
+w3 =:        r2.(0x4)
+w1 laddr     r.0x10
+w1 =:        b.0x30
+w move       $0x6,b.0x2C
+w4 laddr     r2.(0x8)
+w4 =:        b.0x38
+w move       $0x6,b.0x34
+bi1 clr
+bi2 clr
+w smove      b.0x2C,b.0x34
+go           $0x8
+w stz        $0x8028F80
+ret
+ents         $0x30
+w test       $0x8028F60
+if = go      $0x36
+w test       $0x8028F80
+if = go      $0x2E
+w1 :=        $0x8028F84
+w1 *         $0x20
+w sub3       b.0x1C,b.0x18,b.0x20
+w2 :=        b.0x18
+w2 mulad     $0x4,b.0x14
+w2 =:        b.0x24
+w incr       b.0x20
+by rladdr    $0x8028F8C+
+w3 laddr     r.0x8
+w3 =:        b.0x2C
+w move       $0x6,b.0x28
+bi1 clr
+bi2 clr
+w smove      b.0x20,b.0x28
+ret
+ents         $0x34
+w test       $0x8028F64
+if = go      $0x74
+w comp2      $0x8028F74,$0x3F
+if = go      $0xE
+w1 :=        @b.0x14
+w comp2      $0x8028F74,r1
+if >< go     $0x5F
+w incr       $0x8028F84
+w comp2      $0x8028F84,$0x400
+if < go      $0x8
+w stz        $0x8028F84
+w1 :=        $0x8028F84
+w1 *         $0x20
+by rladdr    $0x8028F8C+
+by2 laddr    r.0x0
+w2 =:        b.0x30
+w3 :=        $0x10
+w3 =:        r2.(0x0)
+w stz        r2.(0x4)
+w4 :=        @b.0x14
+w4 =:        r2.(0x8)
+w1 :=        @b.0x1C
+w1 =:        r2.(0xC)
+by3 laddr    r2.(0x10)
+by bmove     @b.0x20,r3.(0x0),$0x4
+w4 :=        @b.0x24
+w4 =:        r2.(0x14)
+w1 :=        @b.0x28
+w1 =:        r2.(0x18)
+w3 :=        @b.0x2C
+w3 =:        r2.(0x1C)
+ret
+ents         $0x24
+w test       $0x8028F64
+if = go      $0x5D
+w comp2      $0x8028F74,$0x3F
+if = go      $0xE
+w1 :=        @b.0x14
+w comp2      $0x8028F74,r1
+if >< go     $0x48
+w incr       $0x8028F84
+w comp2      $0x8028F84,$0x400
+if < go      $0x8
+w stz        $0x8028F84
+w1 :=        $0x8028F84
+w1 *         $0x20
+by rladdr    $0x8028F8C+
+by2 laddr    r.0x0
+w2 =:        b.0x20
+w3 :=        $0x10
+w3 =:        r2.(0x0)
+w stz        r2.(0x4)
+w4 :=        @b.0x14
+w4 =:        r2.(0x8)
+w1 :=        @b.0x18
+w1 =:        r2.(0xC)
+w3 :=        @b.0x1C
+w3 =:        r2.(0x10)
+ret
+ents         $0x30
+w test       $0x8028F64
+if = go      $0x69
+w comp2      $0x8028F74,$0x3F
+if = go      $0xE
+w1 :=        @b.0x14
+w comp2      $0x8028F74,r1
+if >< go     $0x54
+w incr       $0x8028F84
+w comp2      $0x8028F84,$0x400
+if < go      $0x8
+w stz        $0x8028F84
+w1 :=        $0x8028F84
+w1 *         $0x20
+by rladdr    $0x8028F8C+
+by2 laddr    r.0x0
+w2 =:        b.0x2C
+w3 :=        $0x10
+w3 =:        r2.(0x0)
+w stz        r2.(0x4)
+w4 :=        @b.0x14
+w4 =:        r2.(0x8)
+w1 :=        @b.0x18
+w1 =:        r2.(0xC)
+w3 :=        @b.0x1C
+w3 =:        r2.(0x10)
+w4 :=        @b.0x20
+w4 =:        r2.(0x14)
+w1 :=        @b.0x24
+w1 =:        r2.(0x18)
+ret
+ents         $0x40
+w test       $0x8028F64
+if = go      $0x8C
+w comp2      $0x8028F74,$0x3F
+if = go      $0xE
+w1 :=        @b.0x14
+w comp2      $0x8028F74,r1
+if >< go     $0x76
+w incr       $0x8028F84
+w comp2      $0x8028F84,$0x400
+if < go      $0x8
+w stz        $0x8028F84
+w1 :=        $0x8028F84
+w1 *         $0x20
+by rladdr    $0x8028F8C+
+by2 laddr    r.0x0
+w2 =:        b.0x20
+w3 :=        $0x10
+w3 =:        r2.(0x0)
+w stz        r2.(0x4)
+w4 :=        @b.0x14
+w4 =:        r2.(0x8)
+h1 :=        @b.0x18
+w1 =:        r2.(0xC)
+w move       $0x2,b.0x2C
+w stz        b.0x28
+r:=          b.0x18
+w3 laddr     r.0x4
+w3 =:        b.0x24
+w sub3       b.0x2C,b.0x28,b.0x30
+w4 :=        b.0x28
+w4 mulad     $0x4,b.0x24
+w4 =:        b.0x34
+w incr       b.0x30
+w mul2       b.0x30,$0x4
+w1 laddr     r2.(0x10)
+w1 =:        b.0x3C
+w move       $0xC,b.0x38
+bi1 clr
+bi2 clr
+by smove     b.0x30,b.0x38
+w1 :=        @b.0x1C
+r:=          b.0x20
+w1 =:        r.0x1C
+ret
+ents         $0x20
+w test       $0x8028F64
+if = go      $0x5C
+w comp2      $0x8028F74,$0x3F
+if = go      $0xE
+w1 :=        @b.0x14
+w comp2      $0x8028F74,r1
+if >< go     $0x47
+w incr       $0x8028F84
+w comp2      $0x8028F84,$0x400
+if < go      $0x8
+w stz        $0x8028F84
+w1 :=        $0x8028F84
+w1 *         $0x20
+by rladdr    $0x8028F8C+
+by2 laddr    r.0x0
+w2 =:        b.0x1C
+w3 :=        $0x10
+w3 =:        r2.(0x0)
+w stz        r2.(0x4)
+w4 :=        @b.0x14
+w4 =:        r2.(0x8)
+by1 laddr    r2.(0xC)
+by bmove     @b.0x18,r1.(0x0),$0x4
+ret
+ents         $0x28
+w test       $0x8028F68
+if = go      $0x59
+w incr       $0x8028F84
+w comp2      $0x8028F84,$0x400
+if < go      $0x8
+w stz        $0x8028F84
+w1 :=        $0x8028F84
+w1 *         $0x20
+by2 laddr    $0x8028F8C+
+w2 =:        b.0x20
+w3 :=        $0x6
+w3 =:        r2.(0x0)
+w stz        r2.(0x4)
+w4 :=        b.0x14
+w1 laddr     r2.(0x8)
+w1 =:        b.0x24
+bi3 clr
+w4 =:        @b.0x24+
+w1 :=        b.0x18
+r:=          b.0x20
+w2 laddr     r.0x8
+w2 =:        b.0x24
+w4 :=        $0x1
+w1 =:        @b.0x24+
+w3 :=        b.0x1C
+w1 laddr     r.0x8
+w1 =:        b.0x24
+w2 :=        $0x2
+w3 =:        @b.0x24+
+ret
+ents         $0x28
+w test       $0x8028F6C
+if = go      $0x59
+w incr       $0x8028F84
+w comp2      $0x8028F84,$0x400
+if < go      $0x8
+w stz        $0x8028F84
+w1 :=        $0x8028F84
+w1 *         $0x20
+by2 laddr    $0x8028F8C+
+w2 =:        b.0x20
+w3 :=        $0x19
+w3 =:        r2.(0x0)
+w stz        r2.(0x4)
+w4 :=        b.0x14
+w1 laddr     r2.(0x8)
+w1 =:        b.0x24
+bi3 clr
+w4 =:        @b.0x24+
+w1 :=        b.0x18
+r:=          b.0x20
+w2 laddr     r.0x8
+w2 =:        b.0x24
+w4 :=        $0x1
+w1 =:        @b.0x24+
+w3 :=        b.0x1C
+w1 laddr     r.0x8
+w1 =:        b.0x24
+w2 :=        $0x2
+w3 =:        @b.0x24+
+ret
+ents         $0x24
+w test       $0x8028F70
+if = go      $0x4D
+w incr       $0x8028F84
+w comp2      $0x8028F84,$0x400
+if < go      $0x8
+w stz        $0x8028F84
+w1 :=        $0x8028F84
+w1 *         $0x20
+by2 laddr    $0x8028F8C+
+w2 =:        b.0x1C
+w3 :=        $0x1A
+w3 =:        r2.(0x0)
+w stz        r2.(0x4)
+w4 :=        b.0x14
+w1 laddr     r2.(0x8)
+w1 =:        b.0x20
+bi3 clr
+w4 =:        @b.0x20+
+w1 :=        b.0x18
+r:=          b.0x1C
+w2 laddr     r.0x8
+w2 =:        b.0x20
+w4 :=        $0x1
+w1 =:        @b.0x20+
+ret
+        ??? ; opcode 0x0000
