@@ -280,9 +280,9 @@ Hardware bit map (TMP section 3.2) with SINTRAN symbols where they exist
   clears 5PFAIL (XC:36-45; dossier 2.3).
 - **Stop reasons live in TWO places** (dossier C12): the hardware field STATUS bits
   10-14, and the message field STOPR (offset 11). The SINTRAN driver dispatches ONLY
-  on the message field (section 7.3). The numeric stop-reason codes are UNVERIFIED
-  (older docs claim MOCALL=1, TRAPCODE=2, 5FMOCALL=3, TPSTRA=65 - plausible,
-  unconfirmed).
+  on the message field (section 7.3). Stop-reason codes verified in the symbol
+  tables (dossier 2.6.5): MOCALL=1, TRAPCODE=2, 5FMOCALL=3. TPSTRA=65 remains
+  UNVERIFIED.
 
 ---
 
@@ -376,30 +376,37 @@ tables (dossier 2.6.2, 4.9):
 
 ### 6.3 Message status word (N5STA) values
 
-Manual definition (ND-05.012.01 section 13): 0 = block free, 1 = message to ND-500,
-2 = message in process, 3 = answer to ND-100, 4 = error return from ND-500.
+Values verified in the L07+M06 symbol tables (under truncated names, dossier 2.6.5
+as revised 2026-07-08), matching the ND-05.012.01 section-13 scheme exactly:
 
-SINTRAN symbols with UNVERIFIED numeric values (dossier 2.6.5, 4.9): MSGN500
-(plausibly 1), WAITING, ANSWER (plausibly 3), 5ERANSWER (plausibly 4), plus
-swapper-message states PSWWAIT, PSW1WAIT, SWPWAIT, SWPPING, SWACTIVE and the dummy
-message DUMMESS. High bits of N5STA carry flags: the driver preserves them with
+| Value (oct) | Symbol | Meaning |
+|---|---|---|
+| 0 | - | block free |
+| 1 | MSGN500 | message to ND-500 |
+| 2 | WAITING | message in process / waiting |
+| 3 | ANSWER | answer to ND-100 |
+| 4 | 5ERANSWER | error return from ND-500 |
+
+Swapper-message states: SWPWAIT=5, SWPPING=6, PSWWAIT=7, PSW1WAIT=15. SWACTIVE and
+the dummy message DUMMESS remain UNVERIFIED as numbers (no symbols found). High
+bits of N5STA carry flags: the driver preserves them with
 `A/\160000\/MSGN500  % Keep pow. fail flags` (MP:992). Status values above 100 mean
 "restart the ND-100 process" to the ISR dispatch (section 7.3).
 
 ### 6.4 MICFU command codes
 
-Semantics verified, numeric values UNVERIFIED (dossier 2.6.5):
+Values verified in the L07+M06 symbol tables (dossier 2.6.5 as revised):
 
-| Symbol | Meaning | Written at |
-|---|---|---|
-| 3START | start process | MP:2991 (dispatch check MP:808) |
-| 3MONCO | restart after monitor call | MP:808, MP:2887 |
-| 3WMONCO | wait monitor call | MP:808 |
-| 3TRACO | trap continue | MP:808 |
-| 3FITRNSF | file transfer | MP:2991 |
-| 3RPREG | read P register (histogram message) | RP:803, RP:811 |
-| 3RMICV | read microprogram version (watchdog message) | RP:282, RP:384, RP:822 |
-| 3SWMESS / SWFUN | message to swapper / swapper function | MP:2876-2877 |
+| Value (oct) | Symbol | Meaning | Written at |
+|---|---|---|---|
+| 1 | 3RMICV | read microprogram version (watchdog message) | RP:282, RP:384, RP:822 |
+| 5 | 3SWMESS | message to swapper (with SWFUN function field) | MP:2876-2877 |
+| 23 | 3START | start process | MP:2991 (dispatch check MP:808) |
+| 24 | 3MONCO | restart after monitor call | MP:808, MP:2887 |
+| 25 | 3TRACO | trap continue | MP:808 |
+| 26 | 3WMONCO | wait monitor call | MP:808 |
+| 27 | 3FITRNSF | file transfer | MP:2991 |
+| 44 | 3RPREG | read P register (histogram message) | RP:803, RP:811 |
 
 ### 6.5 Per-CPU shared extension (X500DF) - FIFO and semaphore (ND-5000 era)
 
@@ -410,7 +417,7 @@ Semantics verified, numeric values UNVERIFIED (dossier 2.6.5):
 | 5 | X5MXF | FIFO wrap limit |
 | 6 | X5FIF | FIFO base |
 | 47 | X5RES | semaphore owner (-1 = held by ND-100) |
-| UNVERIFIED | X5SEMA | test-and-set word |
+| 0 | X5SEMA | test-and-set word (first word of X500DF) |
 
 Semaphore protocol SLOCK/SUNLOCK (NPL:CC-P2-N500.NPL:702-772; dossier 2.6.4): on
 old-500 systems both are NO-OPS (direct exit - the semaphore belongs to the ND-5000
@@ -513,9 +520,10 @@ ND-500 CPU datafield:
 Exit = no CPU present; Exit+1 = present. The reversed-polarity version of this test
 found in the retired boot-detection doc is wrong (dossier C1).
 
-CPUAVAILABLE encoding (dossier 2.5.5, C8): type value (OLD500/SAMSON) in the LOW bits
-(masked by 5CPUTYPE), flag bits in the high bits (mask 140000 preserved on update);
-5ALIVE and 5NOTPRESENT are flag bits. Numeric values UNVERIFIED.
+CPUAVAILABLE encoding (dossier 2.5.5, C8 as revised): type value in the LOW bits,
+masked by 5CPUTYPE = 7: OLD500 = 1, SAMSON = 3 (symbol tables L07+M06). Flag bits:
+5ALIVE = bit 15 (octal), 5NOTPRESENT = bit 17 (octal); the update idiom
+`/\140000\/type` preserves the top two bits.
 
 ### 8.2 Microcode (control store) load
 
@@ -693,6 +701,14 @@ the microcode stops the process, writes the stop reason into the message STOPR f
 after servicing, SINTRAN restarts the ND-500 process by setting MICFU=3MONCO and
 re-activating (sections 5, 6.4).
 
+**User-side interface (from the shipped binary):** the ND-500/5000 Background
+Monitor (ND-500-MON-J04:PROG) never touches the 3022 registers itself - it reaches
+the resident driver exclusively through **MON 60B** with A = pointer to a parameter
+block; skip-return signals error; the returned status is stored at offset 6 of the
+caller block, and statuses 2032B/4017B trigger a wait-and-retry (meanings
+UNVERIFIED). The resident handler source is 5P-P2-MON60.NPL. Evidence:
+[ND500-MON-RE-FINDINGS.md](ND500-MON-RE-FINDINGS.md) sections 1-2.
+
 Deep dives (parameter passing, MON >255, response write-back):
 [ND500-MONITOR-CALL-MECHANISM.md](ND500-MONITOR-CALL-MECHANISM.md) and
 [ND500-MONITOR-CALL-PARAMETER-PASSING.md](ND500-MONITOR-CALL-PARAMETER-PASSING.md).
@@ -816,3 +832,5 @@ The concrete gap list against the current C# implementation is maintained in
 | Date | Change |
 |---|---|
 | 2026-07-08 | Initial version, written from the Phase 2 evidence dossier |
+| 2026-07-08 | Hardware catalogue data folded in (PCB 5012/3022 level 12/cable pinout/PCB 3109+3096); ND-5000 octobus physical detail |
+| 2026-07-08 | Protocol constants resolved from symbol tables under truncated names (N5STA values, MICFU codes, stop reasons, CPUAVAILABLE values, X5SEMA=0); MON 60B user-side interface added from the ND-500-MON-J04 disassembly |

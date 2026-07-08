@@ -450,9 +450,11 @@ contexts.
 | X5MXF | 5 | FIFO max (wrap) | 6500; MP:703,706 |
 | X5FIF | 6 | FIFO base | 6499; MP:709 |
 | X5RES | 47 | semaphore owner (-1 = held by ND-100) | 6885; CC:728-729,755,767-769 |
-| X5SEMA | (field, offset value not in N500-SYMBOLS extract) | test-and-set word | CC:716,722,766 |
+| X5SEMA (SYM: X5SEM) | 0 | test-and-set word (first word of X500DF) | SYM L07:6560, M06:6655; CC:716,722,766 |
 
-VERIFIED except X5SEMA numeric offset (UNVERIFIED - referenced as `"X5SEMA"` by name).
+VERIFIED (X5SEMA offset resolved 2026-07-08 via the truncated symbol X5SEM=000000).
+Also in the same tables: MAILI (MAILINK) = 000022 - MAILINK is a datafield field at
+offset 22, not a standalone constant (SYM L07:5614, M06:5687).
 
 #### 2.6.4 Semaphore protocol - SLOCK/SUNLOCK (NPL:CC-P2-N500.NPL:702-772)
 
@@ -488,12 +490,38 @@ Codes written to MICFU by SINTRAN, with locations:
 | 3SWMESS / SWFUN | message to swapper / swapper function | MP:2876-2877 |
 | 3RMED / 3WMEP | (error-answer decode context) | MP:839 |
 
-The NUMERIC VALUES of these codes (and of the status codes ANSWER, 5ERANSWER, MSGN500,
-WAITING, SWPWAIT, PSWWAIT, SWPPING, DUMMESS) are NOT defined anywhere in this
-repository's NPL sources, symbol tables, or the s3vs-4.symb listing (grep performed
-2026-07-08; only `SYMBOL LSWPWAIT=4` at s3vs-4.symb:58518 exists). They come from a
-definitions module not present here. UNVERIFIED values / VERIFIED semantics.
-(Manual evidence may supply values - see section 4.)
+**Numeric values - RESOLVED 2026-07-08 (second pass).** An earlier grep for the
+FULL names concluded the values were absent; that was a false negative - the
+symbol tables truncate names to about 5 characters (correction recorded in 6.7).
+The values, verified in BOTH L07 and M06 N500-SYMBOLS.SYMB.TXT (line numbers =
+L07/M06), all octal:
+
+Message status codes (match the ND-05.012.01 scheme in 4.9 exactly):
+
+| Symbol | Value | SYM lines L07/M06 | Manual scheme |
+|---|---|---|---|
+| MSGN5 (MSGN500) | 1 | 7064/7163 | 1 = message to ND-500 |
+| WAITI (WAITING) | 2 | 2180/2242 | 2 = message in process |
+| ANSWE (ANSWER) | 3 | 2798/2851 | 3 = answer to ND-100 |
+| 5ERAN (5ERANSWER) | 4 | 1541/1591 | 4 = error return |
+
+MICFU codes: 3RMIC(3RMICV)=1, 3SWME(3SWMESS)=5, 3STAR(3START)=23,
+3MONC(3MONCO)=24, 3TRAC(3TRACO)=25, 3WMON(3WMONCO)=26, 3FITR(3FITRNSF)=27,
+3RPRE(3RPREG)=44 (L07 lines 4373/4595/3191/4372/4371/4987/3190/4593).
+
+Stop reasons (message STOPR field): MOCAL(MOCALL)=1, TRAPC(TRAPCODE)=2,
+5FMOC(5FMOCALL)=3 (L07 lines 5640/276/1004) - the older docs' claimed values are
+now confirmed.
+
+Swapper states: SWPWA(SWPWAIT)=5, SWPPI(SWPPING)=6, PSWWA(PSWWAIT)=7,
+PSW1W(PSW1WAIT)=15 (L07 lines 4130/4837/2297/2839).
+
+Still open: DUMMESS (no DUMME symbol exists; the similar 7DUMM=30 is a DIFFERENT
+symbol - do not conflate). The full-name-to-truncated-name identifications are
+unambiguous (each truncation is unique in the file). Evidence class: symbol-table
+verified in two SINTRAN versions + manual-scheme match for the status codes;
+binary/dynamic confirmation per the two-source rule is tracked in
+[ND500-MON-RE-FINDINGS.md](ND500-MON-RE-FINDINGS.md).
 
 ### 2.7 Swapper (interface-relevant summary)
 
@@ -539,16 +567,23 @@ Items 1, 2, 3, 5 and 8 were RESOLVED by the hardware manuals (section 4); items 
    remains UNVERIFIED - it is outside the 60-77 register range documented by TMP
    section 3.14 and was not found in the manuals; possibly a later-generation or
    generation-specific register.
-4. **Numeric values of message status codes and MICFU codes.** STILL OPEN as verified
-   numbers. Manual hint (4.9): status 0=free, 1=message to ND-500, 2=in process,
-   3=answer, 4=error return; plausible mapping MSGN500~1, ANSWER~3, 5ERANSWER~4.
-   Treat as UNVERIFIED values.
+4. **Numeric values of message status codes and MICFU codes.** RESOLVED 2026-07-08
+   (see 2.6.5 as revised): MSGN500=1, WAITING=2, ANSWER=3, 5ERANSWER=4; all eight
+   MICFU codes; stop reasons MOCALL/TRAPCODE/5FMOCALL = 1/2/3; swapper states.
+   Found under TRUNCATED names (MSGN5, ANSWE, ...) in L07+M06 N500-SYMBOLS - the
+   earlier "absent" conclusion was a full-name grep false negative (6.7). Only
+   DUMMESS remains unknown.
 5. **Microcode load procedure.** RESOLVED (4.8): WA/BREAK/CSCNT via TAG-IN strobes,
    144-bit words in 9 parts, LOAD-CONTROL-STORE at the operator level. SINTRAN NPL
    does not contain the loader loop because the Loader Monitor performs it.
-6. **Numeric values of OLD500, SAMSON, 5CPUTYPE, 5ALIVE, 5NOTPRESENT.** STILL OPEN
-   (see C8). Usage pattern verified: type in low bits, flags in high bits.
-7. **X5SEMA numeric offset** within X500DF. STILL OPEN.
+6. **Numeric values of OLD500, SAMSON, 5CPUTYPE, 5ALIVE, 5NOTPRESENT.** RESOLVED
+   2026-07-08 under truncated names (SYM L07:6174/5041/396/560/24, identical in
+   M06): OLD50(OLD500)=1, SAMSO(SAMSON)=3, 5CPUT(5CPUTYPE)=7 (low-bit mask),
+   5ALIV(5ALIVE)=15 (bit number, octal), 5NOTP(5NOTPRESENT)=17 (bit number,
+   octal). Confirms the low-bit-mask usage pattern AND the SAMSON doc's values
+   (see C8 as revised).
+7. **X5SEMA numeric offset** within X500DF. RESOLVED 2026-07-08: offset 0
+   (X5SEM=000000, SYM L07:6560, M06:6655; see 2.6.3 as revised).
 8. **CONTROL/STATUS bit meanings.** RESOLVED: full hardware bit maps in 4.3,
    including STATUS bits 10-14 = ND-500 stop reason (values of the stop-reason codes
    remain UNVERIFIED - C12).
@@ -1028,14 +1063,16 @@ the deciding evidence.
   15-14 (mask 140000), OLD500=01 (0x4000), SAMSON=10 (0x8000).
 - Claim B (ND5000-SAMSON-ARCHITECTURE.md): 5CPUTYPE mask = 000007 (low bits),
   OLD500=1, SAMSON=3, citing SYMBOL-1-LIST.SYMB.TXT.
-- **VERDICT: Claim A is wrong about the field position; Claim B's model (low-bit
-  mask) is right but its citation is false and its values are unverified.** Deciding
-  evidence: `CPUAVAILABLE/\140000\/OLD500` PRESERVES bits 15-14 and ORs the type into
-  the low bits (2.5.5); `CPUAVAILABLE/\5CPUTYPE><SAMSON` / `B/\5CPUTYPE = SAMSON`
-  use 5CPUTYPE as a low-bit mask (MP:265, PH-RESTART:112). The numeric values of
-  5CPUTYPE/OLD500/SAMSON/5ALIVE/5NOTPRESENT appear in NO symbol table or listing in
-  this repository (grep 2026-07-08) - Claim B's "SYMBOL-1-LIST" citation does not
-  check out. Values remain UNVERIFIED.
+- **VERDICT (revised 2026-07-08): Claim B is CORRECT in full - model AND values.**
+  Deciding evidence: `CPUAVAILABLE/\140000\/OLD500` PRESERVES bits 15-14 and ORs the
+  type into the low bits (2.5.5); `CPUAVAILABLE/\5CPUTYPE><SAMSON` uses 5CPUTYPE as
+  a low-bit mask (MP:265, PH-RESTART:112); and the symbol tables (under TRUNCATED
+  names, see 6.7) give 5CPUT=000007, SAMSO=000003, OLD50=000001 (SYM L07:396/5041/
+  6174, identical in M06) - exactly the SAMSON doc's claimed values. The initial
+  verdict's "values appear in NO symbol table" was a full-name grep false negative;
+  Claim B's symbol-table citation was right after all. Claim A (bits 15-14) remains
+  wrong. Also resolved: 5ALIV(5ALIVE)=15 and 5NOTP(5NOTPRESENT)=17 (octal bit
+  numbers) are the high flag bits.
 
 ### C9 - Segment-capability bit layout
 
@@ -1076,9 +1113,10 @@ Raised by this pass: an earlier NPL-only conclusion ("stop reasons are NOT in ST
 bits 10-14") conflicted with older docs claiming a STOPREASON field there.
 **VERDICT: both locations are real (2.3 as revised): hardware defines STATUS bits
 10-14 = "ND-500 stop reason" (TMP section 3.2); the SINTRAN driver dispatches on the
-message STOPR field (offset 11), not on those bits.** The older docs' claimed VALUES
-(MOCALL=1, TRAPCODE=2, 5FMOCALL=3, TPSTRA=65) are not confirmed by NPL or the mined
-manual text and remain UNVERIFIED as numbers.
+message STOPR field (offset 11), not on those bits.** VALUES (updated 2026-07-08):
+MOCALL=1, TRAPCODE=2, 5FMOCALL=3 are now CONFIRMED by the symbol tables (2.6.5 as
+revised) - the older docs' claim was right. TPSTRA=65 remains UNVERIFIED (no
+symbol found).
 
 ---
 
@@ -1105,6 +1143,15 @@ Recorded so future readers do not resurrect these errors:
 6. **ND500 folder README** previously said the ND-500 is "byte-oriented (NOT 32-bit
    word CPU!)" etc. - out of scope for this dossier; architecture claims are handled
    by the master reference where relevant to the bus interface only.
+7. **"Constant values are not in the symbol tables" - WRONG (self-correction,
+   2026-07-08).** The symbol tables truncate names to about 5 characters; greps for
+   the full names (MSGN500, ANSWER, 5CPUTYPE, X5SEMA, MAILINK, ...) returned false
+   negatives. Under the truncated names (MSGN5, ANSWE, 5CPUT, X5SEM, MAILI, ...)
+   the values exist in both L07 and M06 - see 2.6.5, 2.6.3, section 3 items 4/6/7,
+   C8 and C12 as revised. Credit: the truncation was spotted during the
+   ND-500-MON-J04 reverse-engineering session
+   ([ND500-MON-RE-FINDINGS.md](ND500-MON-RE-FINDINGS.md)). Lesson for future
+   searches: grep symbol tables with 5-character prefixes.
 
 ---
 
