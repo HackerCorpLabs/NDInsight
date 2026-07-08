@@ -571,8 +571,12 @@ Items 1, 2, 3, 5 and 8 were RESOLVED by the hardware manuals (section 4); items 
    (see 2.6.5 as revised): MSGN500=1, WAITING=2, ANSWER=3, 5ERANSWER=4; all eight
    MICFU codes; stop reasons MOCALL/TRAPCODE/5FMOCALL = 1/2/3; swapper states.
    Found under TRUNCATED names (MSGN5, ANSWE, ...) in L07+M06 N500-SYMBOLS - the
-   earlier "absent" conclusion was a full-name grep false negative (6.7). Only
-   DUMMESS remains unknown.
+   earlier "absent" conclusion was a full-name grep false negative (6.7).
+   DUMMESS is NOT a constant at all: it is a variable holding the ADDRESS of the
+   dummy/sentinel message heading the execution queue ("INTEGER DUMMESS % Address
+   of dummy msg", DP-P2-VARIABLES.NPL:119; set in XMSINIT,
+   RP-P2-N500.NPL:793 "EX.QUEUE HEAD IN MULTI-CPU SYSTEMS") - resolved
+   dynamically, only readable from a live system.
 5. **Microcode load procedure.** RESOLVED (4.8): WA/BREAK/CSCNT via TAG-IN strobes,
    144-bit words in 9 parts, LOAD-CONTROL-STORE at the operator level. SINTRAN NPL
    does not contain the loader loop because the Loader Monitor performs it.

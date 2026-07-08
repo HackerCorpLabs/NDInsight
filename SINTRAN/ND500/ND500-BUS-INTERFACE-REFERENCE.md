@@ -387,9 +387,11 @@ as revised 2026-07-08), matching the ND-05.012.01 section-13 scheme exactly:
 | 3 | ANSWER | answer to ND-100 |
 | 4 | 5ERANSWER | error return from ND-500 |
 
-Swapper-message states: SWPWAIT=5, SWPPING=6, PSWWAIT=7, PSW1WAIT=15. SWACTIVE and
-the dummy message DUMMESS remain UNVERIFIED as numbers (no symbols found). High
-bits of N5STA carry flags: the driver preserves them with
+Swapper-message states: SWPWAIT=5, SWPPING=6, PSWWAIT=7, PSW1WAIT=15. SWACTIVE
+remains UNVERIFIED as a number. DUMMESS is not a constant: it holds the ADDRESS of
+the sentinel message heading the execution queue (DP-P2-VARIABLES.NPL:119, set in
+XMSINIT at RP-P2-N500.NPL:793) - queue walkers compare node addresses against it
+to skip the sentinel. High bits of N5STA carry flags: the driver preserves them with
 `A/\160000\/MSGN500  % Keep pow. fail flags` (MP:992). Status values above 100 mean
 "restart the ND-100 process" to the ISR dispatch (section 7.3).
 
@@ -705,9 +707,15 @@ re-activating (sections 5, 6.4).
 Monitor (ND-500-MON-J04:PROG) never touches the 3022 registers itself - it reaches
 the resident driver exclusively through **MON 60B** with A = pointer to a parameter
 block; skip-return signals error; the returned status is stored at offset 6 of the
-caller block, and statuses 2032B/4017B trigger a wait-and-retry (meanings
-UNVERIFIED). The resident handler source is 5P-P2-MON60.NPL. Evidence:
-[ND500-MON-RE-FINDINGS.md](ND500-MON-RE-FINDINGS.md) sections 1-2.
+caller block. The resident handler source is 5P-P2-MON60.NPL, whose header
+(5P-P2-MON60.NPL:55-104) defines the full MON60 error-status symbol table (values
+2000B-2100B). Wait-and-retry statuses: ECSLOAD = 2032B "CONTROL STORE MUST BE
+LOADED" (5P-P2-MON60.NPL:66, matches the disassembly constant 0x041A exactly); the
+second retry constant is most plausibly PFECSLOAD = 2063B "LOAD CS. AFTER POWER
+FAIL" (5P-P2-MON60.NPL:91) but the disassembly recorded 0x080F (= 2063 DECIMAL) -
+a base-confusion discrepancy pending recheck (UNVERIFIED which reading is right;
+see the review note in [ND500-MON-RE-FINDINGS.md](ND500-MON-RE-FINDINGS.md)).
+Evidence: [ND500-MON-RE-FINDINGS.md](ND500-MON-RE-FINDINGS.md) sections 1-2.
 
 Deep dives (parameter passing, MON >255, response write-back):
 [ND500-MONITOR-CALL-MECHANISM.md](ND500-MONITOR-CALL-MECHANISM.md) and
