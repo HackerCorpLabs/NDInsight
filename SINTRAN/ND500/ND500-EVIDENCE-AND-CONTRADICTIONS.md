@@ -831,6 +831,18 @@ array, differential transceivers); small-cabinet: Double Bus Controller (324244)
 MFbus = MPM-5 successor (Port 324355 and Dynamic RAM 324158 identical). The
 octobus carries messages/interrupts only, not data (except debug).
 
+Catalogue entry for part 324118 (supplied by project owner 2026-07-08): PCB 3109
+"N-100 Octobus & MPM Line Driver". Chipset listed as "(2) 36600B ND-OBCON"
+(ND-OBCON = the octobus controller; the meaning of "36600B" in the entry is
+UNVERIFIED - recorded verbatim). LEDs: LD1 = REQ transmit request, LD2 = MASTER
+(matches the XREQ/master-arbitration protocol above). Switches: SW1 = REMOVE
+"remove master" (default down), TH5 = SPEED (octobus speed - matches the 1/4 MHz
+options), TH4 = STATION low value, TH3 = STATION high value (station number -
+matches the fixed station numbering), TH2 = OCTO octobus device number, TH1 = MPM
+"not present", SW1(H17) = configuration switches. Connectors: A = address +
+control signals, B = data + control signals (the multiport line-driver channel
+cable pair toward the MFbus/MPM cabinet), C = standard ND-100 system bus.
+
 NOT FOUND in any manual: the IOX device numbers 100405/100406 (used by
 CH5CPUPRESENT, 2.5.5) and the symbol MAILINK. These are SINTRAN-side constructs;
 carry as software-verified (NPL) / hardware-undocumented.

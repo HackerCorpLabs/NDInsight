@@ -749,12 +749,20 @@ Instead:
   controller gate array plus the MC68000 access processor (ACCP), attaches the
   ND-5000 CPU to the octobus; shared memory is reached via the MFbus channel
   interface (MPCC) on the mother board.
-- **ND-120 side:** the MFbus Line Driver card (part 324118 - a Multiport Line
-  Driver with an added OCTC gate array) holds the octobus controller and the
-  differential line transceivers linking the MFbus system, the ND-120 and DMA
-  controllers. Small-cabinet variant: the Double Bus Controller (part 324244)
-  combines MFbus Controller + Line Driver + Port on one card with dedicated
-  Double Bus Backwiring.
+- **ND-120 side:** PCB 3109 "N-100 Octobus & MPM Line Driver" (part 324118 - the
+  card ND-05.020.01 calls the MFbus Line Driver: a Multiport Line Driver with an
+  added OCTC/ND-OBCON octobus controller gate array and differential line
+  transceivers). Catalogue details (ND hardware catalogue entry for part 324118):
+  chipset "(2) 36600B ND-OBCON"; LEDs LD1 = REQ (transmit request), LD2 = MASTER;
+  switches SW1 = REMOVE (remove master, default down), thumbwheels TH5 = octobus
+  SPEED, TH4/TH3 = STATION number (low/high value), TH2 = octobus device number,
+  TH1 = MPM (not present), SW1(H17) = configuration; connectors A = address +
+  control signals, B = data + control signals, C = standard ND-100 system bus.
+  The A/B cable pair is the classic multiport line-driver channel (address cable +
+  data cable) to the MFbus/MPM cabinet; the station-number and speed thumbwheels
+  match the octobus protocol parameters above. Small-cabinet variant: the Double
+  Bus Controller (part 324244) combines MFbus Controller + Line Driver + Port on
+  one card with dedicated Double Bus Backwiring.
 - **Data path:** shared memory on the MFbus - the MFbus system is the MPM-5
   successor (MFbus Port = MPM-5 Port, part 324355; MFbus Dynamic RAM = MPM-5 RAM,
   part 324158) with octobus support added.
