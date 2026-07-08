@@ -53,9 +53,12 @@ replaced it and why.
 
 Components (TMP sections 2-3; dossier 4.5, 4.10, 4.12):
 
-- **PCB 3022** - "ND-500 interface", sits in the ND-100 bus. Holds the CONTROL,
+- **PCB 3022** - "N-100 N-500 Interface", sits in the ND-100 bus. Holds the CONTROL,
   STATUS, MAR, DATA, DATAX, upper/lower DMA limit and TAG-OUT-side registers. Up to
-  5 cards per ND-100, selected by thumbwheel (section 3.1).
+  5 cards per ND-100, device number selected by switch J12 / thumbwheel (section
+  3.1). Hard-wired to ND-100 interrupt level 12 (ND hardware catalogue entry for
+  the 3022). Connectors: A = ND-500 interface, B = not present, C = standard ND-100
+  system bus.
 - **PCB 5015 "CONTROL II"** - the ND-500 side of the interface. Holds
   DATA-IN/DATA-OUT (32-bit), BREAK, WA (control-store write address), CSCNT
   (control-store control) and the TAG-IN/TAG-OUT registers.
@@ -412,13 +415,14 @@ loop, error N5LTIMOUT on timeout.
 
 ### 7.1 Level and ident
 
-The 3022 interrupts the ND-100 on **level 12** (software assignment: driver header
-"Level 12 - ND5000 communication driver kernel", NPL:MP-P2-N500.NPL:654;
+The 3022 interrupts the ND-100 on **level 12**. HARDWARE-confirmed: the ND hardware
+catalogue entry for the 3022 states it is connected to hardware interrupt level 12
+(via switch J12 for the device number). Software-confirmed independently: driver
+header "Level 12 - ND5000 communication driver kernel" (NPL:MP-P2-N500.NPL:654);
 ND-60.133.02A "HDLC output and the ND-500 driver are handled by level 12"; ident
-tables ID12T/ITB12, PH-OPPSTART:3176-3177). The **ident code is 16** octal for
-thumbwheel 0 (then 116/36/114/76 - section 3.1). The hardware manuals do not state
-the level explicitly (TMP avoids the interrupt system entirely); treat "level 12" as
-software-confirmed (dossier 4.7).
+tables ID12T/ITB12 (PH-OPPSTART:3176-3177). The **ident code is 16** octal for
+thumbwheel 0 (then 116/36/114/76 - section 3.1). TMP itself avoids the interrupt
+system entirely (dossier 4.7).
 
 ### 7.2 Driver kernel flow - 5STDRIV / N500 (old 500)
 

@@ -527,8 +527,9 @@ Items 1, 2, 3, 5 and 8 were RESOLVED by the hardware manuals (section 4); items 
 7 remain open.
 
 1. **Ident code(s) of the 3022.** RESOLVED: ident 16/116/36/114/76 octal for
-   thumbwheel 0-4 (ND-06.015.02, section 4.1). Level 12 is a software (SINTRAN)
-   assignment (4.7).
+   thumbwheel 0-4 (ND-06.015.02, section 4.1). Interrupt level 12 is confirmed at
+   both the hardware level (ND hardware catalogue entry for the 3022) and the
+   software level (4.7).
 2. **Function of MCLR5 (offset 6).** RESOLVED: hardware master-clear command strobe;
    restarts the microprogram at control-store address 0 (4.2). SINTRAN never issues
    it (2.2).
@@ -734,11 +735,15 @@ hardware bounds guard on ND-500-initiated DMA into ND-100 memory. VERIFIED (manu
 
 ### 4.7 Interrupt level
 
-Hardware manuals do NOT state the interrupt level; TMP explicitly avoids interrupts
+The mined manuals do NOT state the interrupt level; TMP explicitly avoids interrupts
 ("They do not use the interrupt system"). Software evidence: ND-60.133.02A SINTRAN III
 Real Time Guide - "HDLC output and the ND-500 driver are handled by level 12" - plus
-the NPL evidence (section 2.5.6). VERDICT: level 12 confirmed at the software level;
-ident 16/116/36/114/76 per thumbwheel confirmed at the hardware level (4.1).
+the NPL evidence (section 2.5.6). RESOLVED 2026-07-08 at the hardware level too: the
+ND hardware catalogue entry for the PCB 3022 ("N-100 N-500 Interface"; supplied by
+project owner) states the card is connected to hardware interrupt level 12, with
+switch J12 selecting the device number and connectors A = ND-500 interface, B = not
+present, C = standard ND-100 system bus. VERDICT: level 12 confirmed at BOTH levels;
+ident 16/116/36/114/76 per thumbwheel confirmed (4.1).
 
 ### 4.8 Microcode (control-store) loading
 
