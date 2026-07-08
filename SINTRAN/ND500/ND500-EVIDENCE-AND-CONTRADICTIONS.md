@@ -851,11 +851,17 @@ their strobe semantics (4.2, 4.5).
 Connector positions: the ND-100 side pins are labeled Aa n / Ac n = europlug
 position A, rows a and c - independently confirmed by the ND hardware catalogue
 ("3022 connector A = ND-500 interface"). The ND-500 rack side pins are labeled
-Ca n / Cc n = europlug position C, rows a and c. DERIVED (by the same reading):
-the cable lands on connector C at the ND-500 end, presumably connector C of the
-5015 CONTROL II position; the drawing names only "europlug in N-500 rack", not the
-card, so the 5015-connector-C attribution is UNVERIFIED pending the 5015 hardware
-catalogue entry (part 322515).
+Ca n / Cc n = europlug position C, rows a and c.
+
+5015 catalogue entry (part 322515, supplied by project owner 2026-07-08): all four
+5015 connectors (A, B, C, D) are listed as "Standard ND-500 bus" - the card has NO
+dedicated interface edge connector. DERIVED conclusion: the 64-wire flat cable
+terminates on the ND-500 RACK BACKWIRING europlug at position C (rows a and c) of
+the 5015's crate slot; the DBU/TIN/control signals reach the 5015 through
+slot-specific backwiring on the crate backplane, not through a front/edge cable
+connector. Consistent with the drawing's "INTERNAL CABLE: ND-500" note (plug panel
+to backwiring) and with the 5015 inventory listing "Drivers/receivers for data
+bus/tag bus + control signals" (NEC-01 p.57).
 
 ### 4.13 Reference sequences for emulator validation (TMP section 3.15)
 
