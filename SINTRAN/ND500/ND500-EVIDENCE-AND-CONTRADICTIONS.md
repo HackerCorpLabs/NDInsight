@@ -834,6 +834,20 @@ crate (ND hardware catalogue entry for part 322512; supplied by project owner
 2026-07-08). The 5012 is internal to the ND-500 CPU, not part of the ND-100
 communication path.
 
+### 4.12b Physical cable between the machines (NEC-01)
+
+NEC-01 section "INTERNAL - EXTERNAL CABLE ND 500 - ND 100 I/O" (drawing 3-9387 B,
+21.08.80; NEC-01 file lines 3282-3358) gives the complete 64-wire pinout of the
+ND-100 <-> ND-500 connection: a 64-wire FLAT CABLE of differential pairs (each
+signal has a 0/1 polarity wire pair), routed europlug (ND-500 rack) <-> 2x37-pin
+D-connector plug panels <-> europlug (ND-100 backwiring, i.e. 3022 connector A).
+Signals: DBU 0-15 (16 data pairs), TIN 0-4 (5 TAG-IN pairs), UNLOCK, PWR.FAIL,
+MSTR.CH, RETAG, DATA IN, SPARE, ACTIVATE, STOP, DATA OUT, grounds. "EXTERNAL CABLE
+TYPE 1 / TYPE 2: 64 wire flat cable." VERIFIED (manual). Corroborates: the DBU bus
+is 16 bits wide (32-bit transfers cross in halves, MOST bit), and master clear /
+activate / stop / unlock / return-tag are DISCRETE signal lines - consistent with
+their strobe semantics (4.2, 4.5).
+
 ### 4.13 Reference sequences for emulator validation (TMP section 3.15)
 
 TMP section 3.15.1 "Master clear, set stop bit, reset tag bits" (MAC code, quoted):

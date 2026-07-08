@@ -68,6 +68,16 @@ Components (TMP sections 2-3; dossier 4.5, 4.10, 4.12):
   ND-100 communication path.
 - **Buses** (TMP section 2): CDB (internal ND-500 CPU bus), DBU (bus between 3022 and
   5015), BDU/DOUB (data bus on the 3022), XD bus (control-store load path).
+- **Physical link** (NEC-01 "INTERNAL - EXTERNAL CABLE ND 500 - ND 100 I/O", drawing
+  3-9387 B, dated 21.08.80): a **64-wire flat cable of differential pairs** from the
+  ND-100 backwiring (3022 connector A) through 2x37-pin D-connector plug panels on
+  both cabinets to the europlug in the ND-500 rack. Signal pairs: **DBU 0-15** (the
+  16-bit data bus - 32-bit values cross in two halves, MOST bit selecting), **TIN
+  0-4** (TAG-IN code lines), and discrete control lines **UNLOCK, PWR.FAIL, MSTR.CH
+  (master clear), RETAG, DATA IN, ACTIVATE, STOP, DATA OUT**, one SPARE pair, plus
+  grounds. Note the discrete wires: master clear, activate, stop, unlock and the
+  return-tag are dedicated signal lines, matching their command-strobe semantics
+  (sections 3.2, 9).
 - **Message memory** - physical ND-100-addressable memory holding the mailbox area
   (message blocks). The message block "resides in RESIDENT of SINTRAN III"
   (ND-05.012.01 section 13; dossier 4.9). On multiport (MPM) systems the same
