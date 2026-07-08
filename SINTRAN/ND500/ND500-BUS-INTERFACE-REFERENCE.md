@@ -56,11 +56,13 @@ Components (TMP sections 2-3; dossier 4.5, 4.10, 4.12):
 - **PCB 3022** - "ND-500 interface", sits in the ND-100 bus. Holds the CONTROL,
   STATUS, MAR, DATA, DATAX, upper/lower DMA limit and TAG-OUT-side registers. Up to
   5 cards per ND-100, selected by thumbwheel (section 3.1).
-- **PCB 5015 "CONTROL II"** - the ND-500 side. Holds DATA-IN/DATA-OUT (32-bit),
-  BREAK, WA (control-store write address), CSCNT (control-store control) and the
-  TAG-IN/TAG-OUT registers. A companion card 5012 "CONTROL I" exists (naming
-  confirmed); UNVERIFIED which control-store bit groups and the loop counter sit
-  on which of the two cards.
+- **PCB 5015 "CONTROL II"** - the ND-500 side of the interface. Holds
+  DATA-IN/DATA-OUT (32-bit), BREAK, WA (control-store write address), CSCNT
+  (control-store control) and the TAG-IN/TAG-OUT registers.
+- **PCB 5012 "N-500 Control 1"** (part number 322512) - CPU controller #1 in the
+  ND-500/1 CPU: OR logic, ALU functions and loop control; typical position #14 in
+  the ND-500/1 crate (ND hardware catalogue entry for part 322512). Not part of the
+  ND-100 communication path.
 - **Buses** (TMP section 2): CDB (internal ND-500 CPU bus), DBU (bus between 3022 and
   5015), BDU/DOUB (data bus on the 3022), XD bus (control-store load path).
 - **Message memory** - physical ND-100-addressable memory holding the mailbox area

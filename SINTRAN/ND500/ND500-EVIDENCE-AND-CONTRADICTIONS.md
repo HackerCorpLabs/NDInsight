@@ -822,7 +822,12 @@ BREAK (16-bit, control-store data), WA (control-store write address), CSCNT
 (control-store control register: bit0 CSLOAD, bit1 CSREAD, bits2-5 WE0-3 part
 select, bit6 BRKEN, bit7 STADREN, bit8 TSTPTTY, bit9 TSTTIQ "Returns TAG-OUT instead
 of TAG-IN", bit10 CSPTY, bit11 AFIN, bit12 PFIN, bit13 BALM), TAG-IN, TAG-OUT with
-MOST bit. Card naming confirmed: 5015 = CONTROL II (companion 5012 = CONTROL I).
+MOST bit. Card naming confirmed: 5015 = CONTROL II. The companion card PCB 5012
+"N-500 Control 1" (part number 322512) is CPU controller #1 in the ND-500/1 CPU -
+OR logic, ALU functions and loop control, typical position #14 in the ND-500/1
+crate (ND hardware catalogue entry for part 322512; supplied by project owner
+2026-07-08). The 5012 is internal to the ND-500 CPU, not part of the ND-100
+communication path.
 
 ### 4.13 Reference sequences for emulator validation (TMP section 3.15)
 
