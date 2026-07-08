@@ -730,10 +730,39 @@ Deep dives (parameter passing, MON >255, response write-back):
 | Driver path | N500 branch of 5STDRIV | XN500 branch (selected by *NNJ patch points) |
 | Mailbox model | CONTROL/STATUS/MAR registers | "mailbox contains 3 registers: Control, Status, Address" (ND-05.009.4 section 1.3) - same triple, new transport |
 
+**Physical connection in the ND-5000** (ND-05.020.01; dossier 4.11): the dedicated
+3022/5015 card pair and its 64-wire flat cable are GONE - "the octobus replaces one
+pair of interface modules for each ND-500 CPU that is connected to the ND-120".
+Instead:
+
+- **Octobus (control/interrupt path):** a serial, self-arbitrating message bus for
+  up to 62 stations. The GLOBAL octobus is four differential signal pairs,
+  converted to TTL on each LOCAL octobus: XREQ (request), XCLK (clock), XDAT
+  (data), XRFO (master refresh, 15 us period). Clock 1 or 4 MHz; one byte takes
+  8 us at 4 MHz. Fixed station numbers (octal): 1 = ND-120 CPU, 2-7 = MFbus
+  controllers, 10-13 = SCSI, 70-76 = ND-5000 CPUs. Frame = start/stop + 30 bits
+  (priority, destination, C/B flags, source, information byte, parity, ack);
+  arbitration by bit dominance, lowest station number becomes MASTER and drives
+  XRFO. The octobus normally carries NO data - only "look in the mailbox" messages
+  (data moves through shared MFbus memory).
+- **ND-5000 side:** the Access Module, a "baby card" with the OCTC octobus
+  controller gate array plus the MC68000 access processor (ACCP), attaches the
+  ND-5000 CPU to the octobus; shared memory is reached via the MFbus channel
+  interface (MPCC) on the mother board.
+- **ND-120 side:** the MFbus Line Driver card (part 324118 - a Multiport Line
+  Driver with an added OCTC gate array) holds the octobus controller and the
+  differential line transceivers linking the MFbus system, the ND-120 and DMA
+  controllers. Small-cabinet variant: the Double Bus Controller (part 324244)
+  combines MFbus Controller + Line Driver + Port on one card with dedicated
+  Double Bus Backwiring.
+- **Data path:** shared memory on the MFbus - the MFbus system is the MPM-5
+  successor (MFbus Port = MPM-5 Port, part 324355; MFbus Dynamic RAM = MPM-5 RAM,
+  part 324158) with octobus support added.
+
 The IOX numbers 100405/100406 and the MAILINK symbol are SINTRAN-side facts
-(verified in NPL); they appear in no hardware manual in this repository (dossier
-4.11). Full architecture:
-[ND5000-SAMSON-ARCHITECTURE.md](ND5000-SAMSON-ARCHITECTURE.md).
+(verified in NPL); they are SINTRAN's window to the ND-120's octobus controller
+and do not appear as constants in the hardware manuals (dossier 4.11). Full
+architecture: [ND5000-SAMSON-ARCHITECTURE.md](ND5000-SAMSON-ARCHITECTURE.md).
 
 ---
 

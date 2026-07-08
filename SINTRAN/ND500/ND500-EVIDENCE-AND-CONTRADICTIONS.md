@@ -816,6 +816,21 @@ contains 3 registers: Control register... Status register... Address register" -
 the conceptual successor of the 3022 CONTROL/STATUS/MAR triple. Octobus protocol:
 ND-05.020.01 Appendix 2 (Octobus Protocol Version 5).
 
+Octobus physical detail (ND-05.020.01, verified 2026-07-08 in the file at lines
+1156, 1372, 3404-3424, 10682-10685, 10744-10783): "the octobus replaces one pair
+of interface modules for each ND-500 CPU" (line 3422) - i.e. the 3022/5015 pair
+disappears in the ND-5000. Global octobus = four differential signals converted to
+TTL locally: XREQ, XCLK, XDAT, XRFO (15 us master refresh); 1 or 4 MHz, 8 us/byte
+at 4 MHz; up to 62 stations with fixed numbers (1 = ND-120 CPU, 2-7 = MFbus
+controllers, 10-13 = SCSI, 70-76 = ND-5000 CPUs); frame = start/stop + 30 bits
+(priority/destination/C/B/source/information/parity/ack), bit-dominance
+arbitration, lowest station number becomes MASTER. ND-5000 side: Access Module
+baby card (OCTC gate array + MC68000 ACCP); MFbus via MPCC on the mother board.
+ND-120 side: MFbus Line Driver (part 324118, Multiport Line Driver + OCTC gate
+array, differential transceivers); small-cabinet: Double Bus Controller (324244).
+MFbus = MPM-5 successor (Port 324355 and Dynamic RAM 324158 identical). The
+octobus carries messages/interrupts only, not data (except debug).
+
 NOT FOUND in any manual: the IOX device numbers 100405/100406 (used by
 CH5CPUPRESENT, 2.5.5) and the symbol MAILINK. These are SINTRAN-side constructs;
 carry as software-verified (NPL) / hardware-undocumented.
