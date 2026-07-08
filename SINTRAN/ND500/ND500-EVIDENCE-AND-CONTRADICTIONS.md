@@ -848,6 +848,15 @@ is 16 bits wide (32-bit transfers cross in halves, MOST bit), and master clear /
 activate / stop / unlock / return-tag are DISCRETE signal lines - consistent with
 their strobe semantics (4.2, 4.5).
 
+Connector positions: the ND-100 side pins are labeled Aa n / Ac n = europlug
+position A, rows a and c - independently confirmed by the ND hardware catalogue
+("3022 connector A = ND-500 interface"). The ND-500 rack side pins are labeled
+Ca n / Cc n = europlug position C, rows a and c. DERIVED (by the same reading):
+the cable lands on connector C at the ND-500 end, presumably connector C of the
+5015 CONTROL II position; the drawing names only "europlug in N-500 rack", not the
+card, so the 5015-connector-C attribution is UNVERIFIED pending the 5015 hardware
+catalogue entry (part 322515).
+
 ### 4.13 Reference sequences for emulator validation (TMP section 3.15)
 
 TMP section 3.15.1 "Master clear, set stop bit, reset tag bits" (MAC code, quoted):
