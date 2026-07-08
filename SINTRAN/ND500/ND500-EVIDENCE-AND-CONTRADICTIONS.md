@@ -831,17 +831,37 @@ array, differential transceivers); small-cabinet: Double Bus Controller (324244)
 MFbus = MPM-5 successor (Port 324355 and Dynamic RAM 324158 identical). The
 octobus carries messages/interrupts only, not data (except debug).
 
-Catalogue entry for part 324118 (supplied by project owner 2026-07-08): PCB 3109
-"N-100 Octobus & MPM Line Driver". Chipset listed as "(2) 36600B ND-OBCON"
-(ND-OBCON = the octobus controller; the meaning of "36600B" in the entry is
-UNVERIFIED - recorded verbatim). LEDs: LD1 = REQ transmit request, LD2 = MASTER
-(matches the XREQ/master-arbitration protocol above). Switches: SW1 = REMOVE
-"remove master" (default down), TH5 = SPEED (octobus speed - matches the 1/4 MHz
-options), TH4 = STATION low value, TH3 = STATION high value (station number -
-matches the fixed station numbering), TH2 = OCTO octobus device number, TH1 = MPM
-"not present", SW1(H17) = configuration switches. Connectors: A = address +
-control signals, B = data + control signals (the multiport line-driver channel
-cable pair toward the MFbus/MPM cabinet), C = standard ND-100 system bus.
+Catalogue entries (supplied by project owner 2026-07-08) - TWO ND-100 octobus/MPM
+line driver boards exist with the same name and layout:
+
+| | PCB 3109 | PCB 3096 |
+|---|---|---|
+| Name | N-100 Octobus & MPM Line Driver | N-100 Octobus/MPM Line Driver |
+| Part number | 324118 | 324133 |
+| Chipset | (2) 36600B ND-OBCON | (2) 36600D NDOBCON |
+| LEDs | LD1 = REQ transmit request, LD2 = MASTER | LD1 = transmit request, LD2 = master |
+| Remove-master switch | SW1 (default down) | SW2 |
+| Thumbwheels | TH5 speed, TH4/TH3 station low/high, TH2 octobus device number, TH1 MPM (not present) | TH5 speed, TH4/TH3 station low/high, TH2 octobus device number |
+| Config switches | SW1 (H17) | SW1 (H17) |
+| Connectors | A = address + control, B = data + control, C = standard ND-100 bus | same |
+| Board | - | print B, ECO E, 367 x 280 mm, 4 layers |
+
+The LED/switch set matches the octobus protocol above (XREQ line, master
+arbitration, 1/4 MHz speed, fixed station numbers). Connectors A/B are the
+multiport line-driver channel cable pair toward the MFbus/MPM cabinet.
+
+Chipset field decoded: with two entries showing "36600B" vs "36600D", the field
+reads as ND chip part number 36600 plus a REVISION letter for the OBCON octobus
+controller gate array (DERIVED from the two catalogue entries; the earlier
+single-entry reading "meaning unverified" is superseded).
+
+Physical chip observations (project owner, from the actual boards, 2026-07-08):
+the 3109 carries a 64-pin package (32 pins per side) marked "ND-O2CON TAC 8450";
+the 3096 carries a SMALLER SQUARE package marked "NDOBCON XAE8740" - likely a
+newer ASIC/package revision of the same controller. ASSUMPTION (plausible, not
+verified): the trailing 8450 / 8740 are date codes (1984 week 50 / 1987 week 40),
+which would make the 3096's silicon the newer of the two; the "O2CON" vs "OBCON"
+marking difference is recorded verbatim and unexplained.
 
 NOT FOUND in any manual: the IOX device numbers 100405/100406 (used by
 CH5CPUPRESENT, 2.5.5) and the symbol MAILINK. These are SINTRAN-side constructs;
