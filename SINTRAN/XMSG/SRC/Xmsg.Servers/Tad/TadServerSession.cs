@@ -86,6 +86,13 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <summary>Gets or sets a value indicating whether the MOTD has been sent.</summary>
         public bool MotdSent { get; set; }
 
+        /// <summary>
+        /// Gets or sets the number of RECOs received during bring-up. The captured ladder is
+        /// ESCA → ESRS+RESE#1, first RECO → RESE#2, second RECO → MOTD
+        /// (XMSG-TAD-REAL-SETUP-REFERENCE-2026-07-07.md §1).
+        /// </summary>
+        public int BringupRecoCount { get; set; }
+
         /// <summary>Gets a value indicating whether this session has completed login.</summary>
         public bool IsLoggedIn
         {

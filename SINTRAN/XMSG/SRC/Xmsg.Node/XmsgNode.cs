@@ -84,6 +84,21 @@ namespace NDInsight.Sintran.Xmsg.Node
 
         private ushort _outgoingDatagramSequence;
 
+        // The per-link seed for the session ACK model, learned ONCE from the first valid data frame.
+        // It is a per-link CONSTANT (VERIFIED across every session/reconnect/reboot in the corpus), so
+        // it must never be re-learned per frame: a single out-of-model received frame would poison the
+        // seed for the next frames we originate (measured live 2026-07-07 — a burst chunk went out with
+        // the Counter for seed 0x16 instead of 0x14; same bug class as the historical per-connect ACK
+        // re-seed that 24B-crashed 100).
+        private bool _linkSeedLearned;
+        private byte _linkSeed;
+
+        /// <summary>
+        /// Optional diagnostics sink for envelope anomalies (a received frame whose implied seed
+        /// disagrees with the learned link seed — the out-of-model frame to hunt in a capture).
+        /// </summary>
+        public Action<string>? Log { get; set; }
+
         /// <summary>
         /// Raised when a data frame is delivered to this node's application layer.
         /// </summary>
@@ -259,9 +274,7 @@ namespace NDInsight.Sintran.Xmsg.Node
                 // stateless ACK the old path used: seed from the link seed, ride the 0xDE anchor channel.
                 if (AcknowledgeTadFrames)
                 {
-                    byte seed = XmsgEnvelope.LearnSeed(
-                        incoming.Header.Flags1, incoming.SubHeader.Counter, incoming.Header.Flags2);
-                    _receiver.UseSessionAckModel(seed);
+                    _receiver.UseSessionAckModel(LearnLinkSeedOnce(incoming));
                     served.Add(_receiver.ReceiveDataFrame(incoming, (SintranProtocolId)XmsgEnvelope.ChannelAnchor));
                 }
 
@@ -312,10 +325,9 @@ namespace NDInsight.Sintran.Xmsg.Node
                         // arithmetic with ACK seed = link-seed + 0x0B. One continuous sequence across
                         // every connect - never re-seeded per connect (the old connect-Counter+0x0A
                         // re-seed reset the channel to DE where the real 102 rode DD past the ACK baseLow,
-                        // crashing 100 at PERF_CONNCT on the third connect). Learn the link seed here.
-                        byte linkSeed = Packet.XmsgEnvelope.LearnSeed(
-                            incoming.Header.Flags1, incoming.SubHeader.Counter, incoming.Header.Flags2);
-                        _receiver.UseSessionAckModel(linkSeed);
+                        // crashing 100 at PERF_CONNCT on the third connect). Learn the link seed here
+                        // (once — see LearnLinkSeedOnce).
+                        _receiver.UseSessionAckModel(LearnLinkSeedOnce(incoming));
                     }
 
                     // Secure-ACK the connect (subtype 0x03, echoes Flags1) on the session ACK
@@ -400,11 +412,22 @@ namespace NDInsight.Sintran.Xmsg.Node
                 result.Add(single);
             }
 
-            // NOTE: we deliberately DO NOT drain the next output chunk here on the ACK. ConfirmDelivered
-            // (in HandleFrame) only RELEASES the flow-control window. The next chunk is sent when 100 sends
-            // its 7DUMM and we secure-ACK it (the dispatch path above) - that is the "commit"/flush half of
-            // the handshake (TAD-Message-Formats.md 22.6). Draining on the ACK sent the terminator BEFORE
-            // 100's DUMM committed the preceding continuation, so 100 dropped the continuation from display.
+            // On an ACK, drain ONLY the servers whose output advances on the ACK (segmented mode,
+            // window-of-1: the next segment is released now that the prior one is delivered). ConfirmDelivered
+            // (in HandleFrame above) has already released the window. Servers paced by another signal - the
+            // TAD SENTINEL stream, which advances on 100's 7DUMM commit via the dispatch path above - are NOT
+            // drained here: draining THEM on the ACK sent the terminator before 100's DUMM committed the
+            // preceding continuation, so 100 dropped it from display (the historical multi-chunk bug). The
+            // opt-in (IXmsgServer.AdvancesOutputOnAck) keeps each mode on its correct pacing signal.
+            if (ServerHost != null && incoming.Header.Subtype == SintranPacketSubtype.Ack)
+            {
+                IReadOnlyList<XmsgFrame> ackDrained = ServerHost.DrainOnAck();
+                for (int i = 0; i < ackDrained.Count; i++)
+                {
+                    result.Add(ackDrained[i]);
+                }
+            }
+
             return result;
         }
 
@@ -473,6 +496,15 @@ namespace NDInsight.Sintran.Xmsg.Node
                     if (TadResponder != null && TadResponder.CanResyncAccept)
                     {
                         return TadResponder.ResyncAcceptDown();
+                    }
+
+                    // Same recovery on the framework ServerHost path (the live runner): the host keeps
+                    // the un-ACKed accept and rebuilds it one Flags1 lower per XENSE. The error code
+                    // rides the Flags2 field of the subtype-0x07 frame; only XENSE (-34 = 0xFFDE) is a
+                    // sequencing reject we can recover from — other codes (e.g. XEIMA 0xFFED) are not.
+                    if (ServerHost != null && incoming.Header.Flags2 == unchecked((ushort)XmsgError.XENSE))
+                    {
+                        return ServerHost.ResyncAcceptDown(incoming.Header.SourceNode);
                     }
 
                     return null;
@@ -570,6 +602,42 @@ namespace NDInsight.Sintran.Xmsg.Node
         private void RaiseDelivered(ushort datagramSequence)
         {
             OnDataDelivered?.Invoke(datagramSequence);
+        }
+
+        /// <summary>
+        /// Learns the per-link seed from the FIRST valid data frame and returns it; later frames only
+        /// VALIDATE against it. The seed is a per-link constant (VERIFIED across every session,
+        /// reconnect and reboot in the corpus — 0x14 for 100&lt;-&gt;102), so re-learning per frame is
+        /// wrong: one out-of-model received frame would poison the seed for the frames we originate
+        /// next (measured live 2026-07-07: a burst chunk carried the Counter for seed 0x16 instead of
+        /// 0x14). A mismatch is logged with the offending frame's envelope — that frame is the thing
+        /// to hunt in a capture.
+        /// </summary>
+        /// <param name="incoming">
+        /// The received data frame (must have a sub-header).
+        /// </param>
+        /// <returns>
+        /// The established link seed.
+        /// </returns>
+        private byte LearnLinkSeedOnce(XmsgFrame incoming)
+        {
+            byte implied = XmsgEnvelope.LearnSeed(
+                incoming.Header!.Flags1, incoming.SubHeader!.Counter, incoming.Header.Flags2);
+
+            if (!_linkSeedLearned)
+            {
+                _linkSeed = implied;
+                _linkSeedLearned = true;
+                return _linkSeed;
+            }
+
+            if (implied != _linkSeed)
+            {
+                Log?.Invoke(
+                    $"[node] WARNING: frame from node {incoming.Header.SourceNode} F1=0x{incoming.Header.Flags1:X4} ctr=0x{incoming.SubHeader.Counter:X2} F2=0x{incoming.Header.Flags2:X4} implies seed 0x{implied:X2} but link seed is 0x{_linkSeed:X2} — keeping 0x{_linkSeed:X2} (out-of-model frame)");
+            }
+
+            return _linkSeed;
         }
     }
 }

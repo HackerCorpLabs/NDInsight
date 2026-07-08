@@ -29,6 +29,10 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         private readonly List<IXmsgServer> _servers;
         private readonly Dictionary<ushort, XmsgLink> _links;
 
+        // The last un-ACKed connect-accept per remote node, kept so a XENSE sequencing reject can be
+        // recovered by rebuilding the accept one Flags 1 lower (ResyncAcceptDown). Cleared on the ACK.
+        private readonly Dictionary<ushort, PendingAccept> _pendingAccepts = new Dictionary<ushort, PendingAccept>();
+
         // Session port allocation preserves the live-verified first-session value 0x0211 and increments
         // the incarnation for each further session, so ports are unique across servers and sessions.
         private ushort _nextSessionPort;
@@ -67,6 +71,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         {
             get { return _nodeNumber; }
         }
+
+        /// <summary>
+        /// Optional diagnostics sink. Used for envelope anomalies (for example a received frame whose
+        /// implied seed disagrees with the established link seed — an out-of-model frame worth capturing).
+        /// </summary>
+        public Action<string>? Log { get; set; }
 
         /// <summary>
         /// Registers a server (for example the TAD <c>*TADADM</c> server).
@@ -158,6 +168,34 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         }
 
         /// <summary>
+        /// Drains only the servers whose windowed output advances on an ACK
+        /// (<see cref="IXmsgServer.AdvancesOutputOnAck"/>). Called by the node right after it applies an
+        /// incoming ACK (<see cref="ConfirmDelivered"/>) so a window-of-1 segmented reply releases its next
+        /// segment on the ACK. Servers paced by another in-band signal (the TAD sentinel stream, driven by
+        /// 100's 7DUMM commit) are skipped, so an ACK never prematurely releases their next frame.
+        /// </summary>
+        /// <returns>The frames released by ACK-advancing servers, in order (possibly empty).</returns>
+        public IReadOnlyList<XmsgFrame> DrainOnAck()
+        {
+            List<XmsgFrame> all = new List<XmsgFrame>();
+            for (int i = 0; i < _servers.Count; i++)
+            {
+                if (!_servers[i].AdvancesOutputOnAck)
+                {
+                    continue;
+                }
+
+                IReadOnlyList<XmsgFrame> part = _servers[i].DrainPending(this);
+                for (int j = 0; j < part.Count; j++)
+                {
+                    all.Add(part[j]);
+                }
+            }
+
+            return all;
+        }
+
+        /// <summary>
         /// Describes every registered server (name, ports, sessions, free slots) for the
         /// <c>list servers</c> command - the COSMOS <c>list-servers</c> shape.
         /// </summary>
@@ -200,6 +238,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
                 _store.SaveNextFlags1(remoteNode, next);
             }
 
+            // The peer ACKed our accept -> the sequence was accepted; no XENSE resync possible/needed.
+            if (_pendingAccepts.TryGetValue(remoteNode, out PendingAccept? pending) && pending.Flags1 == ackedFlags1)
+            {
+                _pendingAccepts.Remove(remoteNode);
+            }
+
             // Let a server that is streaming a windowed multi-chunk reply release its flow-control window
             // for the acked output frame. Harmless for servers that do no windowed output.
             for (int i = 0; i < _servers.Count; i++)
@@ -219,6 +263,94 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         {
             _store.SaveNextFlags1(remoteNode, 0x0000);
             _links.Remove(remoteNode);
+            _pendingAccepts.Remove(remoteNode);
+        }
+
+        /// <summary>
+        /// Recovers from a XENSE (network sequencing error, code <c>0xFFDE</c>) reject of our
+        /// connect-accept: our Flags 1 was AHEAD of the peer's expected-from-us (typically the peer's
+        /// XMSG restarted while our persisted sequence had climbed). Rebuilds the accept one Flags 1
+        /// LOWER and corrects the link + persisted sequence; one step per XENSE converges on the
+        /// peer's exact expected value, at which point it answers with the session-setup instead of
+        /// another XENSE — the same learn-from-the-peer recovery the legacy responder used, with no
+        /// restart or state-file surgery.
+        /// </summary>
+        /// <param name="remoteNode">The node that sent the XENSE.</param>
+        /// <returns>The rebuilt accept at the next-lower sequence, or null when there is no
+        /// un-ACKed accept to resync (the error concerns something else).</returns>
+        public XmsgFrame? ResyncAcceptDown(ushort remoteNode)
+        {
+            if (!_pendingAccepts.TryGetValue(remoteNode, out PendingAccept? pending)
+                || !_links.TryGetValue(remoteNode, out XmsgLink? link))
+            {
+                return null;
+            }
+
+            ushort f1 = (ushort)(pending.Flags1 - 1);
+            pending.Flags1 = f1;
+            link.NextFlags1 = (ushort)(f1 + 1);
+            // Correct the stored value too, so a later restart uses the recovered base (ACK-driven
+            // persistence then advances it as usual).
+            _store.SaveNextFlags1(remoteNode, f1);
+            Log?.Invoke($"[host] XENSE from node {remoteNode}: accept was ahead — resending at Flags1 0x{f1:X4}");
+
+            return AssembleDatagram(link, remoteNode, pending.ClientSystem, pending.ClientPort,
+                pending.SourcePort, pending.ControlService, pending.FrameFlags, pending.Role,
+                pending.Payload, f1);
+        }
+
+        /// <summary>
+        /// The build inputs of an un-ACKed connect-accept, retained so <see cref="ResyncAcceptDown"/>
+        /// can rebuild it at a lower Flags 1 after a XENSE reject.
+        /// </summary>
+        private sealed class PendingAccept
+        {
+            /// <summary>Initialises the retained accept inputs.</summary>
+            /// <param name="clientSystem">The client's system number.</param>
+            /// <param name="clientPort">The client's port.</param>
+            /// <param name="sourcePort">Our source port.</param>
+            /// <param name="controlService">The XMCSM control/service word.</param>
+            /// <param name="frameFlags">The sub-header frame-flags byte.</param>
+            /// <param name="role">The sub-header role byte.</param>
+            /// <param name="payload">The trailer payload bytes.</param>
+            /// <param name="flags1">The Flags 1 the accept was sent with.</param>
+            public PendingAccept(
+                ushort clientSystem, ushort clientPort, ushort sourcePort, uint controlService,
+                byte frameFlags, byte role, byte[] payload, ushort flags1)
+            {
+                ClientSystem = clientSystem;
+                ClientPort = clientPort;
+                SourcePort = sourcePort;
+                ControlService = controlService;
+                FrameFlags = frameFlags;
+                Role = role;
+                Payload = payload;
+                Flags1 = flags1;
+            }
+
+            /// <summary>Gets the client's system number.</summary>
+            public ushort ClientSystem { get; }
+
+            /// <summary>Gets the client's port.</summary>
+            public ushort ClientPort { get; }
+
+            /// <summary>Gets our source port.</summary>
+            public ushort SourcePort { get; }
+
+            /// <summary>Gets the XMCSM control/service word.</summary>
+            public uint ControlService { get; }
+
+            /// <summary>Gets the sub-header frame-flags byte.</summary>
+            public byte FrameFlags { get; }
+
+            /// <summary>Gets the sub-header role byte.</summary>
+            public byte Role { get; }
+
+            /// <summary>Gets the trailer payload bytes.</summary>
+            public byte[] Payload { get; }
+
+            /// <summary>Gets or sets the Flags 1 of the (re)sent accept.</summary>
+            public ushort Flags1 { get; set; }
         }
 
         /// <summary>
@@ -278,14 +410,57 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
                 throw new InvalidOperationException($"No XMSG link to node {remoteNode} (no seed learned).");
             }
 
-            // Frame class is the top 16 bits of the XMCSM word (VERIFIED, 601/601 data frames).
-            ushort frameClass = (ushort)(controlService >> 16);
             ushort f1 = link.NextFlags1;
-            byte ctr = XmsgEnvelope.ComputeCounter(link.Seed, f1, frameClass);
-            SintranProtocolId channel = XmsgEnvelope.DeriveChannel(link.Seed, f1, frameClass, controlService);
 
             // Advance the single continuous per-link sequence for the next originated frame.
             link.NextFlags1 = (ushort)(f1 + 1);
+
+            // Retain the accept (the only XSLET-class frame the host originates) so a XENSE reject
+            // (our sequence AHEAD of the peer's expected-from-us, e.g. after the peer's XMSG restarted
+            // while our persisted sequence had climbed) can be recovered by ResyncAcceptDown — the
+            // same step-down-one-per-XENSE convergence the legacy responder used. Cleared when the
+            // peer ACKs the accept (ConfirmDelivered).
+            if ((controlService & 0xFF) == XsletServiceByte)
+            {
+                _pendingAccepts[remoteNode] = new PendingAccept(
+                    clientSystem, clientPort, sourcePort, controlService, frameFlags, role, payload, f1);
+            }
+
+            return AssembleDatagram(link, remoteNode, clientSystem, clientPort, sourcePort,
+                controlService, frameFlags, role, payload, f1);
+        }
+
+        /// <summary>
+        /// Assembles a datagram at an EXPLICIT Flags 1 (no sequence advance) — the shared body of
+        /// <see cref="BuildDatagram"/> and <see cref="ResyncAcceptDown"/>.
+        /// </summary>
+        /// <param name="link">The per-remote-node link (seed source).</param>
+        /// <param name="remoteNode">The client's node number.</param>
+        /// <param name="clientSystem">The client's system number.</param>
+        /// <param name="clientPort">The client's port.</param>
+        /// <param name="sourcePort">Our source port.</param>
+        /// <param name="controlService">The XMCSM control/service word.</param>
+        /// <param name="frameFlags">The sub-header frame-flags byte.</param>
+        /// <param name="role">The sub-header role byte.</param>
+        /// <param name="payload">The trailer payload bytes.</param>
+        /// <param name="f1">The datagram sequence (Flags 1) to stamp.</param>
+        /// <returns>The assembled datagram.</returns>
+        private XmsgFrame AssembleDatagram(
+            XmsgLink link,
+            ushort remoteNode,
+            ushort clientSystem,
+            ushort clientPort,
+            ushort sourcePort,
+            uint controlService,
+            byte frameFlags,
+            byte role,
+            byte[] payload,
+            ushort f1)
+        {
+            // Frame class is the top 16 bits of the XMCSM word (VERIFIED, 601/601 data frames).
+            ushort frameClass = (ushort)(controlService >> 16);
+            byte ctr = XmsgEnvelope.ComputeCounter(link.Seed, f1, frameClass);
+            SintranProtocolId channel = XmsgEnvelope.DeriveChannel(link.Seed, f1, frameClass, controlService);
 
             XmsgFrame frame = new XmsgFrame();
             frame.Header.Marker1 = SintranHeader.Marker1Value;
@@ -333,7 +508,14 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
 
         /// <summary>
         /// Ensures a link exists for the incoming frame's source node, learning the seed and loading the
-        /// outgoing sequence from the store on first contact; refreshes the seed on later frames.
+        /// outgoing sequence from the store on first contact. The seed is learned ONCE and never
+        /// overwritten: it is a per-link CONSTANT (VERIFIED — 0x14 for 100&lt;-&gt;102 across every session,
+        /// reconnect and reboot in the corpus). The earlier per-frame refresh let a single out-of-model
+        /// received frame poison the seed for the NEXT frame we originate (measured live 2026-07-07: a
+        /// burst chunk went out with Counter for seed 0x16 instead of 0x14, violating the envelope
+        /// invariant — the same bug class as the historical per-connect ACK re-seed 24B crash). A
+        /// mismatch now only logs the offending frame, which is exactly the diagnostic needed to find
+        /// out-of-model traffic.
         /// </summary>
         /// <param name="incoming">
         /// The received data frame.
@@ -356,7 +538,14 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
 
             if (_links.TryGetValue(node, out XmsgLink? link))
             {
-                link.Seed = seed;
+                // NEVER adopt a differing seed — report it instead. The frame that disagrees with the
+                // established link seed is out-of-model (or corrupt) and is the thing to investigate.
+                if (link.Seed != seed)
+                {
+                    Log?.Invoke(
+                        $"[host] WARNING: node {node} frame F1=0x{incoming.Header.Flags1:X4} ctr=0x{incoming.SubHeader.Counter:X2} F2=0x{incoming.Header.Flags2:X4} implies seed 0x{seed:X2} but link seed is 0x{link.Seed:X2} — keeping 0x{link.Seed:X2} (out-of-model frame)");
+                }
+
                 return;
             }
 

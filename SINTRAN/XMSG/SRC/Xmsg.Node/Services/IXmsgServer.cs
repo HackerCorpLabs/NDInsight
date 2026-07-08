@@ -107,5 +107,13 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         /// The Flags 1 the ACK echoes (identifies the acknowledged frame).
         /// </param>
         void NotifyAck(ushort remoteNode, ushort ackedFlags1);
+
+        /// <summary>
+        /// Gets whether this server's windowed output advances on the remote's <b>ACK</b> (subtype 0x03),
+        /// so the host should drain it immediately after an incoming ACK. Servers whose output is instead
+        /// paced by a different in-band signal (for example the TAD sentinel stream, which advances on
+        /// 100's 7DUMM commit) return false so an ACK does NOT prematurely release the next frame.
+        /// </summary>
+        bool AdvancesOutputOnAck { get; }
     }
 }

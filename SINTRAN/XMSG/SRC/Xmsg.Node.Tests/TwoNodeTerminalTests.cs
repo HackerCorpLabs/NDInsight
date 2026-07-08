@@ -764,7 +764,8 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         public void ServerHost_EchoDiagnostic_FirstChunkIsOneContinuation()
         {
             TerminalCapture terminal = new TerminalCapture();
-            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+            TadConnectClient client = BuildViaServerHost(terminal, null, out XmsgCodec clientCodec, out _, out TadServer tadServer);
+            tadServer.OutputMode = TadOutputMode.SentinelStream;   // this test pins the 255-sentinel behavior
 
             clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
             clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // username
@@ -785,6 +786,133 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
+        /// In the default <see cref="TadOutputMode.CompleteSegments"/> mode the FIRST frame of a
+        /// &gt;255-byte reply is a COMPLETE BDAT segment of at most 240 bytes — NOT a 255-byte sentinel —
+        /// and carries no RFI (more follows). This is the receiver-decode-backed construct
+        /// (COS-CONN-TO-E02-Analysis.md §5b): no count==0xFF anywhere, plain complete elements, window-of-1.
+        /// (The in-memory harness is single-shot — it does not pump the client ACKs that release later
+        /// segments — so only the first frame is observable here, as in the sentinel test above; whole-reply
+        /// delivery is a live-machine property.)
+        /// </summary>
+        [Fact]
+        public void ServerHost_SegmentedOutput_FirstFrameIsCompleteSegment_NotSentinel()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildViaServerHost(terminal, null, out XmsgCodec clientCodec, out _, out TadServer tadServer);
+            Assert.Equal(TadOutputMode.CompleteSegments, tadServer.OutputMode);   // the default
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // username
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // password
+            terminal.Clear();                                                     // isolate the echo reply
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("3")));        // ~560-byte 3-frame echo
+
+            IReadOnlyList<TadFrameShape> frames = terminal.TadFrames;
+            Assert.Single(frames);                                    // window-of-1: next waits on the ACK
+            Assert.True(frames[0].BdatBytes <= 240, $"segment is {frames[0].BdatBytes} bytes; must be <= 240");
+            Assert.NotEqual(255, frames[0].BdatBytes);                // never the 0xFF sentinel
+            Assert.False(frames[0].HasRfi, "a non-final segment must not carry an RFI");
+
+            // The first segment carries the start of the reply (frame 1), not the tail.
+            string screen = terminal.Text;
+            Assert.Contains("ECHO FRAME 1 OF 3", screen);
+            Assert.DoesNotContain("ECHO FRAME 3 OF 3", screen);
+        }
+
+        /// <summary>
+        /// Segmented output advances on the remote's ACK: after 100 ACKs segment 1, the host releases
+        /// segment 2 (window-of-1). This exercises the live-critical path the single-shot pipe cannot -
+        /// XmsgNode drains ACK-advancing servers (<see cref="XmsgServerHost.DrainOnAck"/>) after applying
+        /// an ACK - by driving the ServerHost directly. Without it the burst would stall after segment 1
+        /// on the real machine.
+        /// </summary>
+        [Fact]
+        public void ServerHost_SegmentedOutput_ReleasesNextSegmentOnAck()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            List<XmsgFrame> fromServer = new List<XmsgFrame>();
+            TadConnectClient client = BuildViaServerHost(terminal, null, out XmsgCodec clientCodec, out XmsgServerHost serverHost, out _);
+            clientCodec.PacketReceived += delegate (string linkId, XmsgPacketInfo packet)
+            {
+                fromServer.Add(packet.Frame);
+            };
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // username
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // password
+            terminal.Clear();
+            fromServer.Clear();
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("3")));        // ~560-byte 3-frame echo
+
+            // Segment 1 went out and was rendered; capture its Flags1 from the parsed header (the frame
+            // 100 will ACK). The received frame's TAD bytes live in the capture, not TrailingBytes, so
+            // assert its content via the terminal text.
+            XmsgFrame segment1 = LastTerminalDataFrame(fromServer);
+            ushort seg1Flags1 = segment1.Header.Flags1;
+            Assert.Contains("ECHO FRAME 1", terminal.Text);
+            Assert.DoesNotContain("ECHO FRAME 2", terminal.Text);   // segment 2 not sent yet (window-of-1)
+
+            // 100 ACKs segment 1 -> the node applies it (ConfirmDelivered) then drains ACK-advancing
+            // servers. Simulate that pair: release the window, then DrainOnAck.
+            serverHost.ConfirmDelivered(100, seg1Flags1);
+            IReadOnlyList<XmsgFrame> released = serverHost.DrainOnAck();
+
+            Assert.Single(released);                                  // exactly the next segment
+            Assert.Contains("ECHO FRAME 2", TadText(released[0]));    // frame 2, released by the ACK (built frame)
+            Assert.NotEqual((ushort)seg1Flags1, released[0].Header.Flags1);
+        }
+
+        /// <summary>
+        /// Returns the last terminal-data (XMCSM 0x01080000) frame in a captured list.
+        /// </summary>
+        /// <param name="frames">The captured frames.</param>
+        /// <returns>The last terminal-data frame.</returns>
+        private static XmsgFrame LastTerminalDataFrame(List<XmsgFrame> frames)
+        {
+            XmsgFrame? found = null;
+            for (int i = 0; i < frames.Count; i++)
+            {
+                if (frames[i].SubHeader != null && frames[i].SubHeader!.ControlService == 0x01080000u)
+                {
+                    found = frames[i];
+                }
+            }
+
+            Assert.NotNull(found);
+            return found!;
+        }
+
+        /// <summary>
+        /// Renders the printable ASCII of a frame's BDAT bytes, for asserting which echo-frame it carries.
+        /// </summary>
+        /// <param name="frame">The terminal-data frame.</param>
+        /// <returns>The frame's BDAT text (7-bit ASCII).</returns>
+        private static string TadText(XmsgFrame frame)
+        {
+            StringBuilder sb = new StringBuilder();
+            byte[] payload = frame.TrailingBytes ?? Array.Empty<byte>();
+            int i = 0;
+            while (i < payload.Length)
+            {
+                if (payload[i] == 0x00) { i++; continue; }   // skip pads / 16-bit-op prefixes
+                byte op = payload[i];
+                int count = i + 1 < payload.Length ? payload[i + 1] : 0;
+                if (op == 0x01)   // BDAT
+                {
+                    for (int j = 0; j < count && i + 2 + j < payload.Length; j++)
+                    {
+                        int c = payload[i + 2 + j] & 0x7F;
+                        if (c >= 32 && c < 127) { sb.Append((char)c); }
+                    }
+                }
+
+                i += 2 + count;
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>
         /// The MOTD banner is generated per host: a dynamic date/time line (from the injected clock), the
         /// configurable MOTD line (default = the assembly version banner), and a "--- HOST ID:nnn ---" line
         /// built from this node's number. Guards the replacement of the old hardcoded 1998/RETROCORE banner.
@@ -795,9 +923,14 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             TerminalCapture terminal = new TerminalCapture();
             TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
 
-            // Connect, then the terminal-setup (TMOD) frame that triggers the server's MOTD burst.
+            // Connect, then the full client-driven bring-up ladder as every real capture shows it:
+            // TMOD chain (host stays silent) → ESCA (host: ESRS + RESE#1) → RECO (host: RESE#2)
+            // → RECO (host: the MOTD banner). See XMSG-TAD-REAL-SETUP-REFERENCE-2026-07-07.md §1.
             clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
             clientCodec.SendPacket(new XmsgPacket(client.BuildTerminalSetup()));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildEsca()));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildReco()));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildReco()));
 
             string screen = terminal.Text;
             Assert.Contains("--- HOST ID:102 TAD:1 ---", screen);           // host id + this session's tty number
@@ -806,6 +939,145 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             Assert.Contains("2026", screen);
             Assert.DoesNotContain("RETROCORE", screen);                     // the old hardcoded banner is gone
             Assert.DoesNotContain("VSX/500", screen);
+        }
+
+        /// <summary>
+        /// The bring-up follows the captured client-driven ladder byte-for-byte in shape
+        /// (XMSG-TAD-REAL-SETUP-REFERENCE-2026-07-07.md §1): the host is SILENT after the TMOD chain;
+        /// ESCA is answered by ESRS (ff 0x86) + RESE#1 (ff 0x96); the first RECO by RESE#2 (ff 0x92);
+        /// the second RECO by the banner (ff 0x96). Regression for the old unprompted
+        /// 0x20+RESE+RESE+MOTD burst, which no real capture contains.
+        /// </summary>
+        [Fact]
+        public void ServerHost_BringupLadder_IsClientDriven_WithAlternatingFrameFlags()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            List<XmsgFrame> fromServer = new List<XmsgFrame>();
+            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+            clientCodec.PacketReceived += delegate (string linkId, XmsgPacketInfo packet)
+            {
+                fromServer.Add(packet.Frame);
+            };
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+
+            // TMOD chain: the host must answer NOTHING (its only frames so far are the ACKs and the
+            // connect-time accept/port-assign/DUMM, which arrive before this point).
+            fromServer.Clear();
+            clientCodec.SendPacket(new XmsgPacket(client.BuildTerminalSetup()));
+            int dataAfterTmod = CountDataFrames(fromServer);
+            Assert.Equal(0, dataAfterTmod);
+
+            // ESCA -> ESRS (0x20, class 0x0008, ff 0x86) + RESE#1 (class 0x0108, ff 0x96).
+            fromServer.Clear();
+            clientCodec.SendPacket(new XmsgPacket(client.BuildEsca()));
+            List<XmsgFrame> escaReplies = DataFrames(fromServer);
+            Assert.Equal(2, escaReplies.Count);
+            Assert.Equal(0x00080000u, escaReplies[0].SubHeader!.ControlService);
+            Assert.Equal(0x86, escaReplies[0].SubHeader!.FrameFlags);
+            Assert.Equal(0x01080000u, escaReplies[1].SubHeader!.ControlService);
+            Assert.Equal(0x96, escaReplies[1].SubHeader!.FrameFlags);
+
+            // First RECO -> RESE#2, ff 0x92.
+            fromServer.Clear();
+            clientCodec.SendPacket(new XmsgPacket(client.BuildReco()));
+            List<XmsgFrame> reco1Replies = DataFrames(fromServer);
+            Assert.Single(reco1Replies);
+            Assert.Equal(0x92, reco1Replies[0].SubHeader!.FrameFlags);
+
+            // Second RECO -> the banner, ff 0x96, ending with SYCN 0002 + "ENTER " + RFI.
+            fromServer.Clear();
+            clientCodec.SendPacket(new XmsgPacket(client.BuildReco()));
+            List<XmsgFrame> reco2Replies = DataFrames(fromServer);
+            Assert.Single(reco2Replies);
+            Assert.Equal(0x96, reco2Replies[0].SubHeader!.FrameFlags);
+            Assert.Contains("ENTER", terminal.Text);
+        }
+
+        /// <summary>
+        /// A XENSE reject (subtype 0x07, code 0xFFDE in Flags2) of our connect-accept — the peer's
+        /// XMSG restarted while our persisted sequence had climbed — must be answered by re-sending
+        /// the accept ONE Flags1 lower with a formula-consistent envelope (step-down convergence).
+        /// Regression for the live 2026-07-07 hang: the ServerHost path had no XENSE recovery (only
+        /// the legacy TadResponder did), so the connect-to stalled forever.
+        /// </summary>
+        [Fact]
+        public void ServerHost_XenseRejectOfAccept_ResendsAcceptOneLower()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            List<XmsgFrame> fromServer = new List<XmsgFrame>();
+            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+            clientCodec.PacketReceived += delegate (string linkId, XmsgPacketInfo packet)
+            {
+                fromServer.Add(packet.Frame);
+            };
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+
+            // Find the accept (the only XSLET-class frame the host sends).
+            XmsgFrame? accept = null;
+            for (int i = 0; i < fromServer.Count; i++)
+            {
+                if (fromServer[i].SubHeader != null && fromServer[i].SubHeader!.ControlService == 0x04000041u)
+                {
+                    accept = fromServer[i];
+                }
+            }
+
+            Assert.NotNull(accept);
+            ushort acceptF1 = accept!.Header.Flags1;
+
+            // 100's XENSE reject: subtype 0x07, Flags1 echoing the rejected accept, the error code
+            // riding the Flags2 field (0xFFDE = -34 = XENSE "network sequencing error").
+            XmsgFrame xense = new XmsgFrame();
+            xense.Header.Subtype = SintranPacketSubtype.NetworkError;
+            xense.Header.DestinationNode = 102;
+            xense.Header.SourceNode = 100;
+            xense.Header.Flags1 = acceptF1;
+            xense.Header.Flags2 = unchecked((ushort)XmsgError.XENSE);
+            xense.Header.ProtocolId = SintranProtocolId.Routing;
+            xense.ClearRawBytes();
+
+            fromServer.Clear();
+            clientCodec.SendPacket(new XmsgPacket(xense));
+
+            // The host re-sends the accept one Flags1 lower, envelope still satisfying the seed model.
+            List<XmsgFrame> replies = DataFrames(fromServer);
+            Assert.Single(replies);
+            XmsgFrame resent = replies[0];
+            Assert.Equal(0x04000041u, resent.SubHeader!.ControlService);
+            Assert.Equal((ushort)(acceptF1 - 1), resent.Header.Flags1);
+            Assert.Equal(0x14, XmsgEnvelope.LearnSeed(
+                resent.Header.Flags1, resent.SubHeader!.Counter, resent.Header.Flags2));
+        }
+
+        /// <summary>
+        /// Counts the data frames (frames with a sub-header — ACKs carry none) in a captured list.
+        /// </summary>
+        /// <param name="frames">The captured frames.</param>
+        /// <returns>The number of data frames.</returns>
+        private static int CountDataFrames(List<XmsgFrame> frames)
+        {
+            return DataFrames(frames).Count;
+        }
+
+        /// <summary>
+        /// Filters a captured list down to the data frames (frames with a sub-header).
+        /// </summary>
+        /// <param name="frames">The captured frames.</param>
+        /// <returns>The data frames, in order.</returns>
+        private static List<XmsgFrame> DataFrames(List<XmsgFrame> frames)
+        {
+            List<XmsgFrame> data = new List<XmsgFrame>();
+            for (int i = 0; i < frames.Count; i++)
+            {
+                if (frames[i].SubHeader != null)
+                {
+                    data.Add(frames[i]);
+                }
+            }
+
+            return data;
         }
 
         /// <summary>

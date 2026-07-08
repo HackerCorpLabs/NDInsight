@@ -12,6 +12,27 @@ using NDInsight.Sintran.Xmsg.SubProtocol;
 namespace NDInsight.Sintran.Xmsg.Servers.Tad
 {
     /// <summary>
+    /// How a logged-in reply longer than one terminal buffer is streamed to the connect-to client.
+    /// </summary>
+    public enum TadOutputMode
+    {
+        /// <summary>
+        /// N consecutive COMPLETE BDAT segments (each &lt;= <c>SegmentChunk</c> bytes), window-of-1,
+        /// only the final segment carrying SYCN 000A + prompt + RFI. Backed by the Ghidra decode of the
+        /// receiver (no count==0xFF semantics; each element renders its own bytes) — see
+        /// COS-CONN-TO-E02-Analysis.md §5b. Default: the 255-sentinel stream never rendered on real 100.
+        /// </summary>
+        CompleteSegments,
+
+        /// <summary>
+        /// Bare 255-byte continuation pairs (count 0xFF) spaced ~46 ms, then a short final frame with
+        /// SYCN + prompt + RFI (TAD-Message-Formats.md §22.16). Byte-faithful to the real host capture
+        /// but empirically renders ONLY the final chunk on real 100 — retained for A/B comparison.
+        /// </summary>
+        SentinelStream,
+    }
+
+    /// <summary>
     /// The TAD terminal server - the named XROUT server <c>*TADADM</c> that answers <c>connect-to</c>.
     /// It plugs into the node as an <see cref="IXmsgServer"/>, manages one tty session per concurrent
     /// connect, and builds every reply through the node's <see cref="IXmsgServerTransport"/> so it owns no
@@ -57,14 +78,42 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         // (TAD-Message-Formats.md 22.6), not folded into the content BDAT.
         private const string TerminalPrompt = "# ";
 
+        /// <summary>
+        /// How multi-buffer logged-in replies are streamed. Defaults to
+        /// <see cref="TadOutputMode.CompleteSegments"/> — the receiver decode (COS-CONN-TO-E02-Analysis.md
+        /// §5b) shows the client has no 255-sentinel concept and renders each BDAT element's bytes, so N
+        /// complete segments should each render; the old <see cref="TadOutputMode.SentinelStream"/> is kept
+        /// for A/B testing against real 100.
+        /// </summary>
+        public TadOutputMode OutputMode { get; set; } = TadOutputMode.CompleteSegments;
+
+        /// <summary>
+        /// Segmented output (<see cref="TadOutputMode.CompleteSegments"/>) advances window-of-1 on 100's
+        /// ACK, so the host must drain on an incoming ACK. The sentinel stream advances on 100's 7DUMM
+        /// commit instead, so it must NOT drain on an ACK (that sent the terminator before the DUMM
+        /// committed the prior continuation - the historical multi-chunk drop).
+        /// </summary>
+        public bool AdvancesOutputOnAck
+        {
+            get { return OutputMode == TadOutputMode.CompleteSegments; }
+        }
+
         // TAD opcode bytes we test for on the RX side.
         private const byte BdatOpcode = 0x01;
+        private const byte EscaOpcode = 0x08;   // 7ESCA - the asker's escape signal (bring-up step 2)
         private const byte DconOpcode = 0x09;
         private const byte TmodOpcode = 0x0C;
         private const byte TtypOpcode = 0x0D;
         private const byte DescOpcode = 0x0F;
+        private const byte RecoOpcode = 0x17;   // 7RECO - reset confirm (bring-up steps 3/4)
         private const byte DummOpcode = 0x18;   // 7DUMM - 100's per-continuation consumption/display signal
         private const byte OpsvOpcode = 0x1F;
+
+        // The port-assign 7LUN value byte (the TAD Logical Unit index; LU = 768 + value). Real captures
+        // carry 0x04 (conn-to-d102) and 0x02 (new-conn) — the allocation rule is UNKNOWN, but 0x00 was
+        // NEVER observed, so emit a real observed value rather than zero
+        // (XMSG-TAD-REAL-SETUP-REFERENCE-2026-07-07.md checklist point 3).
+        private const byte LunIndexByte = 0x02;
 
         // XMCSM control/service words (their high half is the frame class). VERIFIED from captures.
         private const uint XsletLetterControlService = (uint)XmcsmService.XsletLetter;      // connect / accept (0x04000041)
@@ -82,6 +131,13 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         // chunking at 128/240 failed identically: both are short non-final frames with no RFI. Total
         // reply length is unbounded when chunked at 255.
         private const int FullBufferChunk = 255;
+
+        // Segmented-output mode chunk size (mode CompleteSegments). Any value < 255 works: the connect-to
+        // RECEIVER (cos-conn-to-e02.prog, tad_rx_BDAT_01 @ram:2b62, Ghidra-decoded 2026-07-08) renders
+        // `count` bytes per BDAT element with NO special-casing of count==0xFF — i.e. the "255 = more
+        // follows" sentinel is a fiction, the binary has no such concept. 240 is even and leaves headroom
+        // for the trailing SYCN/prompt/RFI on the final segment. See COS-CONN-TO-E02-Analysis.md §5b.
+        private const int SegmentChunk = 240;
 
         // Intra-pair spacing for streamed terminal output. The real host transmits the two 255-byte
         // continuations of a pair ~45-47 ms apart and NEVER back-to-back (TAD-Message-Formats.md 22.16,
@@ -280,6 +336,20 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 return OnTerminalSetup(session, incoming, transport);
             }
 
+            // Bring-up ladder, client-driven (XMSG-TAD-REAL-SETUP-REFERENCE-2026-07-07.md §1, VERIFIED
+            // in both reference captures): the client's ESCA is answered with ESRS + RESE#1; its first
+            // RECO with RESE#2; its second RECO with the MOTD banner. The real host NEVER volunteers
+            // these — each step waits for the client frame.
+            if (HasOpcode(incoming, EscaOpcode) && !session.MotdSent)
+            {
+                return OnEscape(session, transport);
+            }
+
+            if (HasOpcode(incoming, RecoOpcode) && !session.MotdSent)
+            {
+                return OnResetConfirm(session, transport);
+            }
+
             if (HasOpcode(incoming, DconOpcode))
             {
                 CloseSession(session);
@@ -450,7 +520,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 0x07, 0x05, 0x00, 0x00, sysByte, portHi, portLo,
                 0x1F, 0x03, 0x4C, 0x00, 0x00,
                 0x00,
-                0x0B, 0x02, 0x03, 0x00,
+                0x0B, 0x02, 0x03, LunIndexByte,
                 0x15, 0x02, 0x01, 0x08,
                 0xFF, 0x00,
             };
@@ -471,36 +541,72 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         }
 
         /// <summary>
-        /// Answers 100's terminal-setup (TMOD chain) with the login-screen burst: control 0x20, RESE,
-        /// RESE, then the MOTD.
+        /// Captures 100's terminal-setup (TMOD chain) parameters. The real host answers NOTHING here —
+        /// the bring-up continues only when the client sends its ESCA (see <see cref="OnEscape"/>).
+        /// The earlier one-shot burst (0x20 + RESE + RESE + MOTD, all unprompted) deviated from every
+        /// captured session, where each step is client-driven
+        /// (XMSG-TAD-REAL-SETUP-REFERENCE-2026-07-07.md §1).
         /// </summary>
         /// <param name="session">The session.</param>
         /// <param name="request">The terminal-setup frame.</param>
         /// <param name="transport">The node transport.</param>
-        /// <returns>The burst frames.</returns>
+        /// <returns>No frames — the host is silent until the client's ESCA.</returns>
         private IReadOnlyList<XmsgFrame> OnTerminalSetup(TadServerSession session, XmsgFrame request, IXmsgServerTransport transport)
         {
             CaptureNegotiation(request, session);
+            return Array.Empty<XmsgFrame>();
+        }
 
+        /// <summary>
+        /// Answers the client's ESCA (bring-up): ESRS (0x20, class 0x0008, ff 0x86) followed by RESE #1
+        /// (class 0x0108, ff 0x96), both from the session port — the exact reply pair in both reference
+        /// captures (ESRS answers the escape; the RESE opens the reset/confirm exchange).
+        /// </summary>
+        /// <param name="session">The session.</param>
+        /// <param name="transport">The node transport.</param>
+        /// <returns>ESRS + RESE #1.</returns>
+        private IReadOnlyList<XmsgFrame> OnEscape(TadServerSession session, IXmsgServerTransport transport)
+        {
             List<XmsgFrame> outgoing = new List<XmsgFrame>();
 
-            // control 0x20 (XMCSM 0x00080000): TAD opcode 0x20, empty.
+            // ESRS (XMCSM 0x00080000): TAD opcode 0x20, empty, ff 0x86 (Setup).
             outgoing.Add(BuildSession(session, transport, BareTadControlService,
                 (byte)XmsgFrameFlags.Setup, (byte)XmsgSendOptions.None,
                 new TadMessageBuilder().Raw(0x20, ReadOnlySpan<byte>.Empty).Build()));
 
-            // RESE, RESE (XMCSM 0x01080000).
+            // RESE #1 (XMCSM 0x01080000), ff 0x96 (DataA) — first of the observed 96/92 alternation.
             outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA,
                 new TadMessageBuilder().Rese().Build()));
-            outgoing.Add(BuildSession(session, transport, TerminalDataControlService,
-                (byte)XmsgFrameFlags.DataB, (byte)XmsgSendOptions.None,
-                new TadMessageBuilder().Rese().Build()));
 
-            // MOTD (XMCSM 0x01080000): the banner + ENTER prompt chain, banner generated for this host
-            // and this session's tty number.
+            session.BringupRecoCount = 0;
+            return outgoing;
+        }
+
+        /// <summary>
+        /// Advances the bring-up on the client's RECO: the first RECO is answered with RESE #2
+        /// (ff 0x92), the second with the MOTD banner (ff 0x96) — completing the captured ladder
+        /// ESCA → ESRS+RESE, RECO → RESE, RECO → BANNER.
+        /// </summary>
+        /// <param name="session">The session.</param>
+        /// <param name="transport">The node transport.</param>
+        /// <returns>RESE #2, or the MOTD, or nothing when the ladder is already complete.</returns>
+        private IReadOnlyList<XmsgFrame> OnResetConfirm(TadServerSession session, IXmsgServerTransport transport)
+        {
+            List<XmsgFrame> outgoing = new List<XmsgFrame>();
+            session.BringupRecoCount++;
+
+            if (session.BringupRecoCount == 1)
+            {
+                // RESE #2, ff 0x92 (DataB) — the second of the observed 96/92 alternation.
+                outgoing.Add(BuildSession(session, transport, TerminalDataControlService,
+                    (byte)XmsgFrameFlags.DataB, (byte)XmsgSendOptions.None,
+                    new TadMessageBuilder().Rese().Build()));
+                return outgoing;
+            }
+
+            // Second RECO: the MOTD banner (ff 0x96), banner generated for this host and tty number.
             outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA,
                 BuildMotdPayload(transport.NodeNumber, session.TadNumber)));
-
             session.MotdSent = true;
             return outgoing;
         }
@@ -1160,6 +1266,12 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 return;
             }
 
+            if (OutputMode == TadOutputMode.CompleteSegments)
+            {
+                DrainSegmentedOutput(session, transport, outgoing);
+                return;
+            }
+
             // The VERIFIED real-host output-queue algorithm (TAD-Message-Formats.md 22.16): stream the
             // reply as 255-byte continuation PAIRS spaced ~46 ms apart, waiting between pairs for both
             // chunks to be acked (and their 7DUMMs seen); send the last continuation ALONE; then the FINAL
@@ -1232,6 +1344,72 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 session.PairAwaitingSecond = !loneLast;
                 return;   // wait: either the 46 ms gap (second chunk) or, if lone, the final after its ACK
             }
+        }
+
+        /// <summary>
+        /// Streams a logged-in reply as N COMPLETE BDAT segments (mode
+        /// <see cref="TadOutputMode.CompleteSegments"/>): each non-final segment is a plain
+        /// <c>BDAT(&lt;= SegmentChunk)</c> with NO count-0xFF sentinel, NO SYCN and NO RFI; the final
+        /// segment carries <c>BDAT(tail) + SYCN 000A + prompt BDAT + RFI</c>. A strict window-of-1
+        /// (next segment only after the previous is ACKed) keeps 100's element buffer from overrunning.
+        /// </summary>
+        /// <remarks>
+        /// Rationale [Ghidra 2026-07-08, COS-CONN-TO-E02-Analysis.md §5b]: the connect-to receiver
+        /// (<c>tad_rx_BDAT_01</c>) renders <c>count</c> bytes per BDAT element with no special handling of
+        /// <c>count==0xFF</c> — there is no "255 = more follows" concept in the binary. So a long reply
+        /// delivered as consecutive complete elements should render each element, exactly like the login
+        /// banner and command replies (which already render). This is the untested construct the decode
+        /// points to, distinct from the sentinel stream that renders only its final chunk on real 100.
+        /// </remarks>
+        /// <param name="session">The session whose output to drain.</param>
+        /// <param name="transport">The node transport.</param>
+        /// <param name="outgoing">The list that receives the frame(s) to send.</param>
+        private void DrainSegmentedOutput(TadServerSession session, IXmsgServerTransport transport, List<XmsgFrame> outgoing)
+        {
+            // Window-of-1: wait for the previous segment to be ACKed before sending the next. This is the
+            // simplest correct pacing; unlike the sentinel stream there is no pair/gap/DUMM choreography.
+            if (session.OutstandingOutputCount > 0)
+            {
+                return;
+            }
+
+            int remaining = session.OutputContent.Length - session.OutputOffset;
+            bool isFinal = remaining <= SegmentChunk;
+
+            if (isFinal)
+            {
+                if (session.OutputFinalSent)
+                {
+                    session.OutputActive = false;   // burst complete
+                    return;
+                }
+
+                string tail = session.OutputContent.Substring(session.OutputOffset);
+                TadMessageBuilder builder = new TadMessageBuilder().BdatText(tail).Sycn(SycnState.LoggedIn);
+                if (session.OutputPrompt.Length != 0)
+                {
+                    builder.BdatText(session.OutputPrompt);
+                }
+
+                builder.Rfi();
+                XmsgFrame finalFrame = BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA, builder.Build());
+                TrackOutput(session, finalFrame);
+                session.OutputOffset = session.OutputContent.Length;
+                session.OutputFinalSent = true;
+                session.OutputActive = false;   // complete the moment the terminator is sent, so a queued
+                                                // tell/wall inject can start on the very next drain
+                outgoing.Add(finalFrame);
+                return;
+            }
+
+            // A non-final COMPLETE segment: plain BDAT, no SYCN, no RFI, no 0xFF sentinel.
+            string piece = session.OutputContent.Substring(session.OutputOffset, SegmentChunk);
+            XmsgFrame segment = BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA,
+                new TadMessageBuilder().BdatText(piece).Build());
+            TrackOutput(session, segment);
+            session.OutputOffset += SegmentChunk;
+            outgoing.Add(segment);
+            // Return with a segment outstanding; the next segment is released by DrainPending once 100 ACKs.
         }
 
         /// <summary>
