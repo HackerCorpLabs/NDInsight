@@ -24,7 +24,7 @@ parameters:
 - name: Param2
   type: INTEGER
   io: I/O
-  description: Parameter 2. Block size if function code 2. Buffer to receive file name if function code 3. If function code 4: TYPRING, status, SINTRAN III open-file number or device number.
+  description: 'Parameter 2. Block size if function code 2. Buffer to receive file name if function code 3. If function code 4: TYPRING, status, SINTRAN III open-file number or device number.'
 - name: Param3
   type: BYTES
   io: I/O

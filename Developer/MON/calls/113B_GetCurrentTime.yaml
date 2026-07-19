@@ -103,3 +103,84 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
+emulation:
+  status: implemented
+  nd500x_handler: /home/ronny/repos/nd500x/src/libmon/handlers/mon_113B_GetCurrentTime.c
+  last_updated: '2026-07-17'
+
+  note: >-
+    Fully implemented against a real clock source. By default it uses the host
+    localtime; with the environment variable ND500X_PIN_CLOCK set it uses a
+    pinned UTC instant so a whole compile run is bit-reproducible (commit
+    4fa340a). ND500X_PIN_CLOCK=1 pins to 1990-01-01 12:00:00 UTC (epoch
+    631195200) - the instant AGREED WITH the RetroCore C# emulator so both
+    produce an identical MON time stream for a cross-emulator checkpoint diff.
+    ND500X_PIN_CLOCK=<secs> pins to an arbitrary epoch.
+
+  parameter_notes:
+    - name: TimeBuffer
+      note: >-
+        OUT parameter, and the ONLY output - there is no W1 return. On ND-500
+        each of the 7 elements is a 32-bit word (W BLOCK), so the handler writes
+        at byte offsets +0, +4, +8, +12, +16, +20, +24 - a 28-byte buffer, not
+        the 14 bytes an ND-100 (H) reading would give. On ND-100 INTEGER is a
+        16-bit halfword; getting this wrong silently shifts every field.
+      verified: true
+    - name: TimeBuffer
+      note: >-
+        OUT-PARAMETER DEFECT CLASS - this call's entire result is its OUT
+        parameter. Returning SUCCESS without writing all 7 words is the failure
+        shape that cost days on 412B FSCNT (commit 73ac594) and 144B MAGTP
+        function 0 (commit 6ad9c09): the caller reads a stale cell and dies far
+        away. The write IS the contract.
+      verified: true
+    - name: 'TimeBuffer[0]'
+      note: >-
+        Basic time units SINCE MIDNIGHT, computed as
+        (hour*3600 + min*60 + sec) * 50. 50 basic time units per second (20 ms
+        each).
+      verified: true
+    - name: 'TimeBuffer[6]'
+      note: 'Year is the last two digits (tm_year % 100), e.g. 85 for 1985, 90 for 1990.'
+      verified: true
+
+  return_contract:
+    success: 'K flag cleared; 7 words written to TimeBuffer.'
+    errors:
+      - code: 111
+        octal: 157B
+        meaning: 'Missing parameter (fewer than 1 argument supplied)'
+      - code: 124
+        octal: 174B
+        meaning: 'Illegal parameter (host time breakdown failed - an emulator-side guard)'
+
+  verified:
+    - claim: 'MON 113B dispatches via MCTAB to the L07 worker CLOCK in segment 003-S3CP.'
+      evidence: >-
+        Carve L-VSX-500 113B-GetCurrentTime/README.md: MCTAB slot (segment
+        044-S3IDPIT, byte offset 1974) = 040756B = CLOCK; CLOCK worker body
+        carved at 040756B-040765B in 003-S3CP (byte offset 9180). Reproduced:
+        dd if=044-S3IDPIT.bin bs=1 skip=1974 count=2 -> 41 ee.
+    - claim: 'The pinned clock makes a full NC run bit-reproducible.'
+      evidence: >-
+        Commit 4fa340a: "Verified: 6/6 fresh pinned runs bit-identical; full
+        ctest 18/18 pass." 113B is one of the calls routed through it.
+
+  unverified:
+    - >-
+      The CLOCK worker body is carved but was not decoded field by field for
+      this note, so the buffer layout above is the MANUAL's, cross-checked only
+      against the handler - not read from the carved worker's stores.
+    - >-
+      Whether real SINTRAN returns local time or UTC. nd500x uses host LOCALTIME
+      when unpinned and GMTIME when pinned (mon_clock_breakdown), so the two
+      modes can differ by the host's timezone offset. Not settled from a manual.
+    - >-
+      Not yet audited against the carve - listed under "NOT yet audited vs carve"
+      in /home/ronny/repos/nd500x/docs/HANDOFF_MON_COMPLETENESS.md.
+
+  sources:
+    - doc: '/mnt/e/Dev/Ronny/NDInsight/tools/sintran-segment-carver/versions/L-VSX-500/re/mon-analysis/113B-GetCurrentTime/README.md'
+      note: 'MCTAB[113B] = CLOCK = 040756B, worker carved in 003-S3CP.'
+    - doc: /home/ronny/repos/nd500x/src/libmon/mon_clock.c
+      note: 'The pinnable clock source (ND500X_PIN_CLOCK), shared with 114B, 142B and 41B.'

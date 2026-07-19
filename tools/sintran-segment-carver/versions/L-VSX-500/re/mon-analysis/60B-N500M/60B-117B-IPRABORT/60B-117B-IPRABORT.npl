@@ -1,0 +1,32 @@
+% NPL SOURCE REFERENCE - MON 60B 117B/122B - IPRABORT/ILOGOFF (verbatim, 5P-P2-MON60.NPL)
+IPRABORT:    % FUNCTION=117: ABORT PROCESS
+ILOGOFF:     % FUNCTION=122: LOGOFF PROCESS
+       IF 5D11><0 OR 5D12<<=5SWPROC OR A>>MX5PROCS GO FAR EEILPAR  % LEGAL PROCESS NUMBER?
+       A-5SWPROC*5PRDSIZE+"S500S"
+       IF A.RTRES=0 GO FAR 5OKRET                          % YES, IS THIS PROC. RESERVED BY ANYONE?
+       A=:D                                                % D=RT-DESCR. OF ACTUAL PROCS. OWNER.
+       IF 5FUNCTION=PRSTOP THEN                            % IS FUNCTION ABORT-PROCESS?
+          IF D=RTREF THEN                                  % ABORT CALLER?
+             ABREL=:5FUNCTION; GO FAR 5NOPAR               % YES, CHANGE FUNCTION TO "ABREL"
+          FI; *IOF
+          X.PSTAT BONE 5SYSABORT BZERO SOFFLOGG            % MARK THAT PROC. SHOULD BE ABORTED
+       ELSE                                                % LOGOFF PROC.
+          IF D=RTREF THEN                                  % LOGOFF CALLER?
+             *IOF
+             X.PSTAT BONE SOFFLOGG BZERO 5SYSABORT=:X.PSTAT % MARK THAT PROC SHOULD BE LOGGED OFF
+             *ION
+             XN5REL=:5FUNCTION; GO FAR 5NOPAR              % YES, CHANGE FUNCTION TO "XN5REL"
+          FI; *IOF
+          X.PSTAT BONE SOFFLOGG BZERO 5SYSABORT            % MARK THAT PROC SHOULD BE LOGGED OFF
+       FI
+INPRABORT:                                                 % A=PSTAT; INTERRUPT OFF
+       A=:X.PSTAT                                          % MARK THAT PROC IS "IN-BREAK" STATUS
+       CALL SLOCK; 0/\0
+       T:=5MBBANK; X:=X.MESSBUFF; *AAX 5MSFL; LDATX
+       A BONE 5IBRK BONE 52ESCSET; *STATX                  % MARK THAT PROC IS "IN-BREAK" STATUS
+       *AAX XADPR-5MSFL; LDXTX
+       CALL SUNLOCK
+       X.RTRES; *IRW MLEVB DX
+       "SYSABORT"; *IRW MLEVB DP
+       MLEV; *MST PIE; MST PID; ION
+       GO FAR 5OKRET; *)FILL

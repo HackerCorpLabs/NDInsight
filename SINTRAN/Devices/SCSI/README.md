@@ -27,6 +27,7 @@ Documentation for SCSI (Small Computer System Interface) disk and optical drive 
 | [scsi_inquiry_explained.md](scsi_inquiry_explained.md) | INQUIRY explanation | ~120 |
 | [SCSI-Optical-Commands-Addendum.md](SCSI-Optical-Commands-Addendum.md) | Optical drive commands | ~95 |
 | [SCSI-controller.md](SCSI-controller.md) | Controller documentation | ~85 |
+| [scsi-disk-format.md](scsi-disk-format.md) | Physical disk-management layer: spare region, disk-parameter block, and the defect/reallocation table at the last block - creation spec for building valid ND SCSI disk images | - |
 
 ---
 
@@ -112,6 +113,8 @@ SCSIDevice              // Base device class
 |----------|-------------|
 | [ND-11.021.1 EN-Floppy and Streamer Controller 3106 3112.md](ND-11.021.1%20EN-Floppy%20and%20Streamer%20Controller%203106%203112.md) | Floppy and streamer controller hardware reference (OCR) |
 | [nd-scsi-3201.md](nd-scsi-3201.md) | SCSI 3201 controller reference |
+| [SCSI-MOUNT-FIX-PLAN.md](SCSI-MOUNT-FIX-PLAN.md) | Ranked, manually-testable fix + tracing plan for `ENTER-DIRECTORY` SCSI mount failure (carved CHDSI/SCDTS path correlated with the C# controller and the known ND-3201 bugs) |
+| [SCSI-TRACE-HOWTO.md](SCSI-TRACE-HOWTO.md) | How to enable the toggleable `[SCSI-TRACE]` logging in the emulator and read a mount capture (good vs bad mount: block-0 byte 2016 name, READ CAPACITY=1024, RSTAU/RITRG interrupt pattern) |
 
 ---
 

@@ -1,6 +1,6 @@
 # cos-fa-serv-e04.prog — Reverse-Engineering Analysis (COSMOS File-Access Server)
 
-**Program:** `E:\Dev\Ronny\NDInsight\Installation\Communication\COSMOS Basic\x\cos-fa-serv-e04.prog`
+**Program:** `Installation/Communication/COSMOS Basic/x/cos-fa-serv-e04.prog`
 **Identity:** COSMOS **File-Access Server** (`*FA-SERVER` port 11, `*FA-FSA` port 7). ND-100 SINTRAN-III `:PROG`, **PLANC**, banked (BANK2), 329 functions.
 **RT program:** launched by `cos-fa-serv-e04.mode` (`START-TADADM`, `FS-ADMINISTRATOR → SELECT-FSA, START-SERVER 1`).
 **Status tags:** `[BIN]` decoded from binary in Ghidra · `[SYM]` ND symbol files · `[DOC]` XMSG/TAD specs · `[INF]` inferred.

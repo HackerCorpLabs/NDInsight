@@ -117,3 +117,42 @@ extraction:
   version: '1.0'
   validated: true
   ocr_corrected: false
+emulation:
+  status: implemented
+  nd500x_handler: /home/ronny/repos/nd500x/src/libmon/handlers/mon_263B_GetDeviceType.c
+  last_updated: '2026-07-17'
+  detail: >-
+    Implemented 2026-07-17 (commit ba66f33). The ND linker calls GDEVT on the
+    DDBTABLES file and on the domain file it opens; the stub had returned -1 and
+    halted execution.
+  device_types:
+    radix: decimal
+    source: 'SINTRAN III Monitor Calls (ND-860228.2 EN)'
+    values:
+      - {code: 0, name: Unspecified}
+      - {code: 1, name: Terminal}
+      - {code: 2, name: 'Terminal access device (TAD)'}
+      - {code: 3, name: 'Communication channel'}
+      - {code: 4, name: 'Internal block device'}
+      - {code: 5, name: 'Floppy disk drive'}
+      - {code: 6, name: 'Magnetic tape station'}
+      - {code: 7, name: 'Mass-storage file'}
+  dev_attr_bits:
+    - {bit: 0, meaning: 'InByte/OutByte allowed'}
+    - {bit: 1, meaning: 'StartOnInterrupt allowed'}
+    - {bit: 2, meaning: 'DeviceControl allowed'}
+    - {bit: 3, meaning: 'Block calls allowed'}
+    - {bit: 4, meaning: 'ClearDevice available'}
+    - {bit: 5, meaning: 'Reservation not needed'}
+    - {bit: 6, meaning: 'COSMOS remote open file'}
+  mapping:
+    - 'An open mass-storage file (device 64-127) -> DevType 7, DevAttr = InByte/OutByte + Block calls + Reservation-not-needed.'
+    - 'Device 1 / terminal / character device -> DevType 1, DevAttr = InByte/OutByte + Reservation-not-needed.'
+    - 'Unmodelled device -> DevType 0 (Unspecified), DevAttr 0 (unverified branch, no program exercises it).'
+  parameter_notes:
+    - name: DevType
+      note: 'OUT (INTEGER word). Must be written - a GDEVT that returns success without writing DevType/DevAttr is the 412B FSCNT / 144B MAGTP OUT-parameter defect class.'
+      verified: true
+    - name: DevAttr
+      note: 'OUT (INTEGER4). Manual says "returned in the combined A and D registers", but the ND-500 CALLG passes 4 parameter addresses, so it is written to the parameter block via a dword write.'
+      verified: true

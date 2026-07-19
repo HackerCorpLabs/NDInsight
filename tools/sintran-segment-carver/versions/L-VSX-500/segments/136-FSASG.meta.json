@@ -1,0 +1,35 @@
+{
+ "segment_number_oct": "136",
+ "segment_number_dec": 94,
+ "name": "FSASG",
+ "description": null,
+ "content": {
+  "nonzero": true,
+  "byte_order": "big-endian"
+ },
+ "size": {
+  "pages": 33,
+  "bytes": 67584,
+  "words": 33792
+ },
+ "segfil0": {
+  "madr_page": 8321,
+  "flag_oct": "000100",
+  "segfil": 0
+ },
+ "load_address": {
+  "oct": null,
+  "dec": null,
+  "hex": null
+ },
+ "symbol_file": "FILSYS-SYMBOLS",
+ "confidence": "high",
+ "file": "136-FSASG.bin",
+ "ghidra": {
+  "processor": "ND-100 big-endian 16-bit (word-addressed)",
+  "format": "Raw Binary",
+  "base_address_hex": null,
+  "base_address_oct": null,
+  "note": "Load the .bin as-is (big-endian) - do NOT byte-swap for Ghidra. ND-100 is word-addressed: set the base in the word address space. Byte-swap to little-endian ONLY for nd100-dis."
+ }
+}

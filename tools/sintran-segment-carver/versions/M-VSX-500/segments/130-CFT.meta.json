@@ -1,0 +1,35 @@
+{
+ "segment_number_oct": "130",
+ "segment_number_dec": 88,
+ "name": "CFT",
+ "description": null,
+ "content": {
+  "nonzero": true,
+  "byte_order": "big-endian"
+ },
+ "size": {
+  "pages": 48,
+  "bytes": 98304,
+  "words": 49152
+ },
+ "segfil0": {
+  "madr_page": 8073,
+  "flag_oct": "000121",
+  "segfil": 0
+ },
+ "load_address": {
+  "oct": "0",
+  "dec": 0,
+  "hex": "0x0000"
+ },
+ "symbol_file": "SYMBOL-1-LIST",
+ "confidence": "M06 (SINTRAN-M-2026)",
+ "file": "130-CFT.bin",
+ "ghidra": {
+  "processor": "ND-100 big-endian 16-bit (word-addressed)",
+  "format": "Raw Binary",
+  "base_address_hex": "0x0000",
+  "base_address_oct": "0",
+  "note": "Load the .bin as-is (big-endian) - do NOT byte-swap for Ghidra. ND-100 is word-addressed: set the base in the word address space. Byte-swap to little-endian ONLY for nd100-dis."
+ }
+}

@@ -1,3 +1,8 @@
+> **Cross-reference**: source-verified L07 datafield offsets and per-process
+> command-processor structures (DFLAG/5IESC, FLAGB, RIFIL/DFOPP/ROFIL, TTNO,
+> TTIFIELD, CPNT/CSTRIN), plus what the NPL source tree can and cannot answer:
+> [NPL coverage and gaps](../../SINTRAN/NPL-SOURCE/NPL-COVERAGE-AND-GAPS.md)
+
 ## Page 1
 
 # SINTRAN III System Documentation

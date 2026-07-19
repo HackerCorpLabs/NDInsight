@@ -1,8 +1,134 @@
-# ND-3201 SCSI/Floppy Controller - Z80 Firmware Analysis
+# ND-3201 SCSI/Floppy Controller - Board Reference
 
-**Firmware:** 45900E.bin (8KB ROM, Z80)
-**Board:** ND-3201 (also 3204/3205/3206/3207 variants)
+**Board:** ND-3201, PN 350001 (also 3204/3205/3206/3207 variants)
+**Firmware:** 45900E.bin (8KB ROM, Z80) - drives the FLOPPY half only (see below)
 **Purpose:** SCSI and floppy disk controller for Norsk Data ND-100 minicomputer
+
+---
+
+## THE ARCHITECTURE: Two Independent Halves
+
+This is the single most important fact about the board, and an earlier revision of this
+document got it backwards. Read this before anything else.
+
+The ND-3201 is **two independent controllers sharing one PCB and one host connector**:
+
+| Half | Hardware | Who drives it |
+|------|----------|---------------|
+| **SCSI** | NCR 5386 | The **ND-100 host**. The NCR register file is hardware-decoded straight onto the ND-100 IOX bus. SINTRAN's driver is the SCSI protocol engine - it issues NCR commands, services NCR interrupts, and programs the transfer counter and MAR itself, phase by phase. |
+| **Floppy** | Z80 + AM9517 DMA + FD1797 | The **Z80 firmware** (45900E.bin). Classic intelligent-controller model: the host writes a command block, the Z80 executes it and signals completion. |
+
+**The Z80 never touches the NCR 5386. Not once, anywhere in the 8KB ROM.**
+
+### Evidence (VERIFIED - exhaustive byte-level I/O sweep of 45900E.bin)
+
+Every `D3`/`DB`/`ED 4x`/`ED 5x`/`ED 6x`/`ED 7x` I/O opcode in ram:0000-1fff was located and its
+port resolved (including the `(C)`-register forms, traced back to what C holds). Findings:
+
+1. **The claimed "NCR window" at Z80 ports 0x20-0x3D is a complete AM9517/8237 DMA register
+   file** - every control register at its exact datasheet offset (0x28 Command/Status, 0x29
+   Request, 0x2A Single Mask, 0x2B Mode, 0x2C Clear Byte Pointer, 0x2D Master Clear, channel n
+   addr/count at 0x20+2n / 0x21+2n through the byte-pointer flip-flop). `IN A,(0x28)` at ram:012a
+   reads it as Status. Under the old NCR reading, that same instruction would read NCR "Diagnostic
+   Status" while 0x29 received `0x4|channel` as an NCR command - incoherent.
+2. **The NCR5386 signature is absent.** No port anywhere receives an NCR command code
+   (0x00/0x01/0x03/0x04/0x08/0x09/0x0B/0x24/0x54/0x94/0xA4), and no port is read in the
+   "write command -> later read interrupt register" pattern that defines NCR usage.
+3. **The only command-code-shaped byte stream goes to port 0x70, and they are FD179x opcodes** -
+   0x02 Restore, 0x12/0x18/0x1C Seek, 0x88/0x8C Read Sector, 0xC4 Read Address, 0xD0/0xD4 Force
+   Interrupt, 0xF0/0xF2 Write Track - confirmed by the adjacent 0x71/0x72/0x73 Track/Sector/Data
+   triple and the `BIT 0,A` Busy poll on 0x70.
+4. **The DMA exists to serve the floppy.** AM9517 channels are programmed immediately before every
+   FD1797 data-moving command, and the current-address register is polled during Write Track
+   (ram:1248). This explains what the 8237 is *for* without SCSI existing at all.
+5. **No unattributed port block remains** in which an NCR could hide. The only partly-characterised
+   ports are 0x75 and 0x76 (one write site each) - two isolated bytes, far too narrow for a
+   16-register NCR file.
+
+### Independent corroboration
+
+- **The SINTRAN NPL driver** (`IP-P2-SCSI-DRIV.NPL`) drives the NCR directly over IOX. Its symbols
+  map one-for-one onto NCR 5386 registers and match this document's ND-100 IOX table exactly:
+  `WNCOM=43`&#8323; ("WRITE NCR COMMAND REGISTER") = IOX 0x23, `RITRG=54`&#8323; ("READ INTERRUPT
+  REGISTER") = IOX 0x2C, `RAUXS=50`&#8323; = IOX 0x28, `RNDAT=40`&#8323; = IOX 0x20. The driver
+  issues "Message Accepted TO NCR", "Set ATN TO NCR", "DMA MODE + TRANSFER INFO", and
+  "SET RESET ON SCSI BUS" itself. A Z80-mediated SCSI path is impossible against this source.
+- **The ND-3106/3112 manual (ND-11.021.1)**, cited later in this document, confirms the Z80-side
+  ports 0x50-0x57, the command-block format, `FDVSEL` (port 0x74 = **Floppy Drive Select**) and the
+  CTC assignment as *identical* to those **floppy controllers**. The Z80 half of the ND-3201 is
+  essentially an ND-3112 floppy controller.
+
+### Consequence for SCSI debugging
+
+**The Z80 firmware is not in the SCSI path.** Questions about what the board does when the ND-100
+writes WCONT during a *SCSI* operation are answered by the SINTRAN driver and the NCR 5386
+datasheet - not by this ROM. See "What WCONT Actually Does" below.
+
+### Open questions (INFERRED / UNVERIFIED)
+
+- This ROM image maps only 0x0000-0x3FFF. A second or bank-switched ROM cannot be excluded from the
+  image alone, though nothing observed suggests one.
+- Ports 0x75/0x76 have a single write site each and are not fully characterised.
+- Whether the floppy half answers on a *separate* IOX device address from the SCSI half (TH3 sets
+  the floppy device number) is not verified here, though it would explain how both halves coexist
+  behind one WCONT/RSTAU-shaped interface.
+
+---
+
+## Document Status and Retractions
+
+**Corrected on the basis of the byte-level sweep above.** The following claims from the earlier
+revision were DISPROVED and have been removed or rewritten. They are listed so that anyone holding
+a copy of the old text knows not to trust it:
+
+| Retracted claim | Reality |
+|---|---|
+| Z80 ports 0x20-0x3D are NCR 5386 registers | They are the AM9517 DMA controller (0x20-0x2D) |
+| NCR INT -> CTC1 Ch3 -> dynamic Z80 ISR chain services SCSI phases | The Z80 never accesses the NCR. The chain does not exist |
+| WCONT Active pulses CTC1 Ch0 in counter mode (TC=1), waking the Z80 for every command | CTC1 Ch0 is programmed in **timer** mode, prescaler 16, TC=16 (control word 0x95 at ram:0109). No 0xC5 counter-mode word is written to port 0x10 anywhere. That code is an interrupt-plumbing selftest: it installs a stub ISR, starts a timer, and checks the ISR ran (LED error 2 on failure) |
+| SRAM 0x2000 is a host command mailbox polled by the idle loop | `ram:024a` reads `(0x2000)` and calls an **error trap** (0x1d1c = RST 08 + code 0x95) if it is non-zero. It is a RAM-corruption watchdog. Nothing writes a command there; nothing dispatches on its value |
+| The Z80 command flow (ISR 0x02AB decode/dispatch) governs SCSI I/O | That flow is the **floppy** half's command path (ND-3112-style command block via ports 0x50-0x57) |
+| "Change 4: Implement ExecuteGo() properly" in the C# recommendations | Based on the false Z80-command model. Retracted - see the C# section |
+| ~25 function names (all `ncr5386_*`, most `scsi_*` / `nd100_bus_*`) | Misnamed. Corrected in the Ghidra DB and in the Function Reference below |
+
+Claims that were **independently corroborated and are retained**: the ND-100 IOX register map
+(matches the NPL driver), the RSTAU/WCONT bit tables, the POST and event error codes (traced to
+ND-11.021.1), the 7-segment font, and the memory map.
+
+Every claim below should be labelled VERIFIED (read from bytes/source) or INFERRED (reasoned).
+
+---
+
+## Section Map - which half does each section describe?
+
+This document grew as a Z80 firmware analysis, so its sections are not physically grouped by half.
+Rather than claim a tidy split that does not exist, here is what each section actually covers:
+
+| Section | Half | Trust |
+|---------|------|-------|
+| Thumbwheel Switches | Both (TH1/TH2 = SCSI, TH3 = floppy) | Good |
+| Hardware on Card, Memory Map | Board | Good |
+| **Z80 I/O Port Map** | **Floppy** (Z80-side ports) | Corrected - 0x20-0x2D is AM9517, not NCR |
+| RST / IM2 Vector Tables, Boot Sequence | Floppy (Z80 POST) | Good, but ISR *purposes* were inferred from the false NCR premise |
+| ND-100 to Z80 Command Flow, Trigger Mechanism | Floppy | Trigger mechanism DISPROVED; command flow is the floppy protocol, not SCSI |
+| Z80 to ND-100 Response Flow | Floppy | Good |
+| **ND-100 Side Register Map (IOX)**, RSTAU/WCONT bits | **SCSI** | **Solid - corroborated by `IP-P2-SCSI-DRIV.NPL`** |
+| POST / Event Error Codes | Floppy | Solid - traced to ND-11.021.1 |
+| Function Reference | Floppy | 21 names corrected; ~13 still suspect |
+| RAM Variable Reference | Floppy | Names inferred; treat with care |
+| Deep Dive: NCR 5386 Interrupt Path | - | **RETRACTED IN FULL - fiction** |
+| Deep Dive: FD1797 / AM9517 / CTC / Floppy Boot | Floppy | Good |
+| **What WCONT Actually Does** | **Both** | **Solid - the authoritative answer for SCSI** |
+| C# Emulator Analysis / Recommended Changes | SCSI | Several issues retracted - read the warnings |
+| ND-3106/3112 Manual Confirmations | Floppy | Solid - independent manual |
+
+**If you are debugging SCSI:** read "THE ARCHITECTURE", "What WCONT Actually Does", and
+"ND-100 Side Register Map (IOX)". Ignore everything Z80.
+
+**If you are implementing floppy support:** almost everything else applies, but re-verify names
+against the Ghidra DB, which is now more accurate than this document's prose.
+
+---
 
 ## Thumbwheel Switches
 
@@ -31,7 +157,7 @@ Every IN instruction (both `IN A,(n)` and `IN r,(C)` forms) in the entire 8KB RO
 |------|--------|
 | 0x10 | CTC1 Ch0 |
 | 0x16-0x17 | CTC2 Ch2/Ch3 (calibration) |
-| 0x20-0x2C | NCR 5386 registers |
+| 0x20-0x2D | AM9517 DMA registers (CORRECTED - not NCR 5386) |
 | 0x50-0x57 | ND-100 bus interface |
 | 0x70-0x71 | FD1797 status/track |
 | 0x77 | Glue logic status |
@@ -80,31 +206,39 @@ All Z80 configuration comes from the ND-100 host via command data read from port
 | 0x16 | CTC2 | Ch2 | CTC clock calibration |
 | 0x17 | CTC2 | Ch3 | 7-segment display refresh |
 
-### NCR 5386 SCSI Controller (ports 0x20-0x3D)
+### AM9517/8237 DMA Controller (ports 0x20-0x2D) - VERIFIED
 
-| Port | R/W | NCR Register | Description |
-|------|-----|-------------|-------------|
-| 0x20 | R | RNDAT | Read NCR Data Register |
-| 0x21 | W | WNDAT | Write NCR Data Register |
-| 0x22 | R | RNCOM | Read NCR Command Register |
-| 0x23 | W | WNCOM | Write NCR Command Register |
-| 0x24 | R | RNCNT | Read NCR Control Register |
-| 0x25 | W | WNCNT | Write NCR Control Register |
-| 0x26 | R | RDESI | Read Destination ID Register |
-| 0x27 | W | WDESI | Write Destination ID Register |
-| 0x28 | R | RAUXS | Read Auxiliary Status |
-| 0x29 | W | WAUXS | Write Auxiliary Status |
-| 0x2A | R | ROIDN | Read Own ID Number |
-| 0x2B | W | WOIDN | Write Own ID Number |
-| 0x2C | R | RITRG | Read Interrupt Register |
-| 0x2E | R | RSOUI | Read Source ID |
-| 0x32 | R | RDIST | Read Diagnostic Status |
-| 0x38 | R | RTCM | Read Transfer Counter MSB |
-| 0x39 | W | WTCM | Write Transfer Counter MSB |
-| 0x3A | R | RTC2 | Read Transfer Counter 2nd byte |
-| 0x3B | W | WTC2 | Write Transfer Counter 2nd byte |
-| 0x3C | R | RTCL | Read Transfer Counter LSB |
-| 0x3D | W | WTCL | Write Transfer Counter LSB |
+**This block was previously and wrongly documented as "NCR 5386 SCSI Controller (ports
+0x20-0x3D)".** It is the AM9517 DMA controller, at base 0x20. There is no NCR 5386 in the Z80's
+I/O space. See "THE ARCHITECTURE" at the top of this document.
+
+| Port | R/W | 8237 offset | Register | Evidence |
+|------|-----|-------------|----------|----------|
+| 0x20 | R/W | base+0x00 | Channel 0 Base/Current Address | `ram:1248: IN A,(0x20)` current-address readback during Write Track |
+| 0x21 | R/W | base+0x01 | Channel 0 Base/Current Word Count | `ram:0718` `INC C` from addr port, then `OUT (C),E; OUT (C),D` |
+| 0x22-0x27 | R/W | base+0x02..07 | Channels 1-3 Address / Word Count | `ram:0718`: port = `(A AND 3) * 2 + 0x20` |
+| 0x28 | W | base+0x08 | Command Register | `ram:0709: LD A,0x20; OUT (0x28),A` |
+| 0x28 | R | base+0x08 | Status Register | `ram:012a: IN A,(0x28)`, `ram:1dfc` |
+| 0x29 | W | base+0x09 | Request Register | `ram:0141: LD A,0x4; OR C; OUT (0x29),A` (bit 2 = set/clear, bits 0-1 = channel) |
+| 0x2A | W | base+0x0A | Single Mask Register | `ram:0714: OUT (0x2a),A` (A = channel); `ram:1e00: LD A,0xf; OUT (0x2a),A` |
+| 0x2B | W | base+0x0B | Mode Register | `ram:0718: OUT (0x2b),A` then `AND 0x3` to extract the channel from the mode byte |
+| 0x2C | W | base+0x0C | Clear Byte Pointer flip-flop | `ram:0718: OUT (0x2c),A` immediately before the 16-bit addr/count writes |
+| 0x2D | W | base+0x0D | Master Clear | `ram:0709: LD A,0x20; OUT (0x2d),A` |
+
+The 16-bit address and count are each written low-byte-then-high-byte to the *same* port, which is
+only meaningful because of the byte-pointer flip-flop cleared via 0x2C. That sequence is the
+signature that identifies this block beyond doubt.
+
+The DMA serves the **floppy**: channels are programmed immediately before every FD1797 command that
+moves data, and the current-address register is polled during Write Track (`ram:1248`).
+
+Ports 0x2E-0x3F are never accessed by the ROM.
+
+> **NOTE - do not confuse the two 0x20-0x3D ranges.** The ND-100's *IOX* offsets 0x20-0x3D really
+> are the NCR 5386 register file (see Part 1). The Z80's *I/O port* range 0x20-0x2D is the AM9517.
+> The earlier revision of this document appears to have assumed the Z80 ports mirrored the IOX
+> offsets and copied the NCR table across. They are unrelated address spaces on opposite sides of
+> the board.
 
 ### 7-Segment Display (ports 0x40-0x41)
 
@@ -200,15 +334,15 @@ Note: Vectors at 0x2074 and 0x2076 are dynamically modified during SCSI operatio
 
 ```mermaid
 flowchart TD
-    RST0["RST0 (0x0000) — OUT 0x74=0x01, OUT 0x70=0x02"]
-    MAIN["MAIN (0x003B) — OUT 0x54=0x08, SP=0x2070"]
-    RAM["MainLoop (0x0086) — RAM Test: 0x00 / 0xFF / addr"]
-    ERR["Error Display — 7-seg error 0-7, infinite loop"]
-    POSTINIT["Post-RAM Init — IX=0x2080, IY=0x2100, init CTC"]
-    NCRTEST["scsi_select_and_verify — Test NCR 5386"]
-    SELF["selftest_and_init — Bus check, CTC calibrate, data line test"]
-    CTRLINIT["init_controller_state — probe RAM, clear state, restore vectors"]
-    IDLE["Main Idle Loop — EI, HALT, process_pending_command"]
+    RST0["RST0 (0x0000) - OUT 0x74=0x01, OUT 0x70=0x02"]
+    MAIN["MAIN (0x003B) - OUT 0x54=0x08, SP=0x2070"]
+    RAM["MainLoop (0x0086) - RAM Test: 0x00 / 0xFF / addr"]
+    ERR["Error Display - 7-seg error 0-7, infinite loop"]
+    POSTINIT["Post-RAM Init - IX=0x2080, IY=0x2100, init CTC"]
+    NCRTEST["scsi_select_and_verify - Test NCR 5386"]
+    SELF["selftest_and_init - Bus check, CTC calibrate, data line test"]
+    CTRLINIT["init_controller_state - probe RAM, clear state, restore vectors"]
+    IDLE["Main Idle Loop - EI, HALT, process_pending_command"]
 
     RST0 --> MAIN --> RAM
     RAM -->|FAIL| ERR
@@ -266,8 +400,8 @@ sequenceDiagram
     Z80->>NCR: scsi_select_and_verify: test select + ID readback
 
     Note over Z80: selftest_and_init (0x0161)
-    Z80->>P77: IN (0x77) — check FDC busy
-    Z80->>P70: IN (0x70) — check bus busy, wait
+    Z80->>P77: IN (0x77) - check FDC busy
+    Z80->>P70: IN (0x70) - check bus busy, wait
     Z80->>CTC: calibrate_ctc_clock: 6-step binary search
     Z80->>P70: OUT 0x73=0x01, OUT 0x70=0x12 (seek track 1)
     Z80->>P54: Test bus data lines via write_and_readback_port
@@ -279,7 +413,7 @@ sequenceDiagram
     Z80->>CTC: Program CTC1 Ch0: control=0x95, constant=0x10
 
     Note over Z80: Idle Loop (0x0244)
-    Z80->>Z80: EI, HALT — waiting for CTC interrupt
+    Z80->>Z80: EI, HALT - waiting for CTC interrupt
 ```
 
 ### C# Equivalent of Boot Sequence
@@ -294,15 +428,15 @@ The C# emulator does not emulate the Z80 boot. Here is what an equivalent `Reset
 /// </summary>
 private void SimulateZ80Boot()
 {
-    // Step 1: RST0 + MAIN — initial port states
+    // Step 1: RST0 + MAIN - initial port states
     // Port 0x74 = 0x01, Port 0x70 = 0x02
     // Port 0x54 = 0x08 (self-test in progress flag to ND-100)
     // Port 0x55 = 0x00, Port 0x56 = 0x00
     // The ND-100 can read RSTAU and see the controller is in self-test
 
-    // Step 2: RAM test — we skip this (no Z80 RAM to test)
+    // Step 2: RAM test - we skip this (no Z80 RAM to test)
 
-    // Step 3: CTC init — we don't emulate CTC timers
+    // Step 3: CTC init - we don't emulate CTC timers
     // On real HW: IM2 mode set, vector table at 0x2070 initialized
 
     // Step 4: NCR 5386 reset and selftest
@@ -312,7 +446,7 @@ private void SimulateZ80Boot()
     // Firmware writes 0x0F to Own ID register (enable all IDs initially)
     ncr5386.Write((byte)SCSIRegisters.IDRegister, 0x0F);
 
-    // Step 5: CTC calibration — skip (no CTC to calibrate)
+    // Step 5: CTC calibration - skip (no CTC to calibrate)
 
     // Step 6: Clear all controller state
     regs.Clear();
@@ -351,44 +485,69 @@ sequenceDiagram
     ND100->>HW: IOX WCONT bit 2 (Active) + bit 0 (Enable IRQ)
     HW->>HW: Latch data into shared registers (ports 0x50-0x54)
     HW->>CTC: Pulse CLK/TRG input
-    CTC->>Z80: IM2 interrupt (vector 0x70 → ISR 0x02AB)
-    Z80->>HW: IN (0x50), IN (0x54) — read command word
+    CTC->>Z80: IM2 interrupt (vector 0x70 -> ISR 0x02AB)
+    Z80->>HW: IN (0x50), IN (0x54) - read command word
     Z80->>Z80: Decode command type (SCSI/floppy/identity)
 
     alt SCSI Command (bit 0 = 1)
         Z80->>HW: DMA read config from ND-100 memory
         Z80->>NCR: Program NCR registers (Own ID, transfer counter)
-        Z80->>Z80: ISR chain: 0x1298 → 0x12BF → 0x0505
+        Z80->>Z80: ISR chain: 0x1298 -> 0x12BF -> 0x0505
         NCR-->>Z80: INT (via CTC1 Ch3) on each phase complete
-        Z80->>HW: OUT (0x54-0x57) — write results
+        Z80->>HW: OUT (0x54-0x57) - write results
         Z80->>HW: OUT (0x70) = 0xD4 (DMA ready) or 0xD0 (done)
     else Floppy Command (bit 4 = 1)
-        Z80->>HW: IN (0x51-0x53) — read block address
+        Z80->>HW: IN (0x51-0x53) - read block address
         Z80->>HW: DMA read 12-byte config from ND-100
-        Z80->>HW: OUT (0x74) — drive select
-        Z80->>HW: OUT (0x73) — FD1797 data (track)
-        Z80->>HW: OUT (0x70) — FD1797 command (seek/read/write)
+        Z80->>HW: OUT (0x74) - drive select
+        Z80->>HW: OUT (0x73) - FD1797 data (track)
+        Z80->>HW: OUT (0x70) - FD1797 command (seek/read/write)
     else Identity Query
         Z80->>HW: DMA write ROM identity block to ND-100 memory
     end
 
-    HW->>HW: Port 0x70 write detected → set RSTAU[3] Ready, clear RSTAU[2] Active
+    HW->>HW: Port 0x70 write detected -> set RSTAU[3] Ready, clear RSTAU[2] Active
     HW->>ND100: Assert Level 11 interrupt (RSTAU[0] was set)
-    ND100->>HW: IOX RSTAU — read status
-    ND100->>HW: IOX RITRG — read NCR interrupt register (acknowledges)
+    ND100->>HW: IOX RSTAU - read status
+    ND100->>HW: IOX RITRG - read NCR interrupt register (acknowledges)
 ```
 
-### Trigger Mechanism
+### Trigger Mechanism - RETRACTED (the CTC1 Ch0 counter-mode theory is DISPROVED)
 
-CTC1 Channel 0 is configured in **counter mode** (control word 0xC5) with **time constant 1**. Its CLK/TRG input pin is wired to the ND-100 bus interface glue logic.
+The earlier revision claimed CTC1 Ch0 was configured in **counter mode** with **time constant 1**,
+pulsed by the glue logic on every WCONT-Active write, and that this is what wakes the Z80 for every
+host command. **This is wrong.** VERIFIED from bytes:
 
-When the ND-100 writes to WCONT (IOX+5) with the "Active" bit set:
+```
+ram:00fa: 11 5e 01    LD DE,0x15e          ; stub ISR = "XOR A; RETI" at ram:015e
+ram:00fd: ed 53 70 20 LD (0x2070),DE       ; IM2 vector slot for CTC1 ch0 (I=0x20, vector 0x70)
+ram:0109: 3e 95       LD A,0x95            ; <-- CTC control word
+ram:010b: d3 10       OUT (0x10),A
+ram:010d: 3e 10       LD A,0x10            ; <-- time constant = 16
+ram:010f: d3 10       OUT (0x10),A
+ram:0111: fb          EI
+ram:0112: 06 16       LD B,0x16
+ram:0114: 10 fe       DJNZ 0x0114          ; delay, allow the timer to fire
+ram:0116: a7          AND A                ; did the stub ISR run and zero A?
+ram:0117: c2 b2 01    JP NZ,0x01b2         ; no -> LED Error 2
+```
 
-1. Board hardware latches command data into shared registers (Z80 ports 0x50-0x54)
-2. Board hardware sends **one pulse** to CTC1 Ch0 CLK/TRG input
-3. CTC1 Ch0 counts 1->0, fires IM2 interrupt with vector byte 0x70
-4. Z80 reads ISR address from (0x2070) = **0x02AB**
-5. Command receive ISR executes
+Decoding **0x95 = 1001_0101**: D0=1 control word, D1=0 no reset, D2=1 time constant follows,
+D3=0 auto trigger, D4=1 rising edge, D5=0 prescaler /16, **D6=0 -> TIMER mode**, D7=1 interrupt
+enable.
+
+So CTC1 Ch0 is in **timer** mode, prescaler 16, **time constant 16** - not counter mode, not TC=1.
+No `0xC5` counter-mode control word is written to port 0x10 anywhere in the ROM. What this code
+actually is: an **interrupt-plumbing selftest**. It installs a stub ISR that zeroes A, starts a
+timer, delays, and verifies the ISR ran - proving IM2 + CTC interrupts work. Failure lights LED
+error 2.
+
+The actual mechanism by which the host wakes the Z80 for a **floppy** command is not fully
+determined. What is VERIFIED: `ram:0441` does `OUT (0x53),A; HALT` - it arms the ND-100 interface
+control register and halts awaiting a host-driven interrupt. The command data itself moves over
+ports 0x50-0x57 (see the ND-3106/3112 manual section), not through an SRAM mailbox.
+
+**None of this applies to SCSI operations**, which the ND-100 drives directly against the NCR 5386.
 
 ### Command Receive ISR (0x02AB)
 
@@ -651,6 +810,54 @@ The error code (lower 6 bits) is shifted left by 1 and written to port 0x55 (DHI
 
 ## Function Reference
 
+> **NAMING CORRECTION.** The names in the tables below came from the original speculative pass and
+> many are wrong - they say "scsi"/"ncr5386" for code that is actually floppy or DMA. 21 functions
+> were renamed in the Ghidra DB (`45900E.bin`) to match the verified evidence. Where a table below
+> still shows an old name, the map here wins.
+
+### Applied renames (Ghidra DB is authoritative)
+
+| Address | Old name (WRONG) | Corrected name |
+|---------|------------------|----------------|
+| 0x012e | scsi_select_and_verify | `dma9517_channel_register_selftest` |
+| 0x03f7 | scsi_data_transfer | `nd100_arm_iface_and_halt_for_host` |
+| 0x0614 | scsi_start_io_operation | `nd100_write_completion_status` |
+| 0x06a1 | nd100_start_dma_transfer | `fd1797_force_interrupt_d4` |
+| 0x06b6 | scsi_enable_selection | `dma9517_mask_channel_and_nd100_ctrl` |
+| 0x0708 | ncr5386_reset_parity | `dma9517_master_clear_and_init` |
+| 0x0711 | ncr5386_set_own_id_and_program | `dma9517_program_and_unmask_channel` |
+| 0x0717 | ncr5386_program_transfer | `dma9517_load_mode_addr_count` |
+| 0x0732 | ncr5386_read_verify_transfer | `dma9517_readback_and_verify_addr_count` |
+| 0x0aff | clear_nd100_bus_attention | `floppy_glue_control_write_74` |
+| 0x0b46 | start_nd100_bus_transfer | `fd1797_seek_to_track` |
+| 0x0bae | disconnect_nd100_bus | `fd1797_force_interrupt_d0` |
+| 0x0e8b | nd100_bus_dma_transfer | `fd1797_read_address_with_side_select` |
+| 0x0ee8 | nd100_bus_issue_cmd_and_wait | `fd1797_seek_step_issue_command` |
+| 0x0fe6 | nd100_block_transfer_loop | `fd1797_read_write_sector_loop` |
+| 0x1050 | scsi_select_target | `floppy_drive_motor_select_and_busy_poll` |
+| 0x1090 | nd100_bus_output_and_wait | `floppy_drive_select_and_wait_ready` |
+| 0x10ba | check_scsi_bus_change | `floppy_read_status_disk_change` |
+| 0x11ce | scsi_execute_io_operation | `fd1797_format_write_track` |
+| 0x1afa | setup_7seg_display_scsi_id | `ctc2_program_channel3` |
+| 0x1d4c | scsi_command_entry_point | `controller_full_reset_and_init` |
+
+Note the two most misleading of these: **`scsi_execute_io_operation` (0x11ce) is the floppy FORMAT
+routine** (FD1797 Write Track 0xF0/0xF2 with DMA address polling), and **`setup_7seg_display_scsi_id`
+(0x1afa) is CTC2 channel 3 programming** - nothing to do with either the display or SCSI.
+
+### Still-suspect names (NOT yet renamed - no byte-level evidence gathered)
+
+These carry SCSI-flavoured names but, given that no NCR access exists in this ROM, are very likely
+misnamed too. Treat with suspicion until swept:
+
+`scsi_transfer_with_disconnect` (0x03f1), `setup_dma_and_start_scsi` (0x045a),
+`scsi_select_and_send` (0x0a37), `scsi_reselection_handler` (0x0a5d),
+`setup_ncr_dma_pointer` (0x0b0b), `set_scsi_target_id` (0x103c),
+`dispatch_by_scsi_id` (0x1a95), `add_scsi_id_offset_to_hl` (0x10df),
+`scsi_init_data_buffer` (0x06c9), `scsi_setup_dma_and_select` (0x06d2),
+`setup_scsi_params_table_a` (0x10e9), `setup_scsi_buffers_from_table` (0x10ee),
+`copy_cdb_and_setup_lba` (0x0aa2).
+
 ### Boot and Initialization
 
 | Address | Name | Description |
@@ -685,14 +892,17 @@ The error code (lower 6 bits) is shifted left by 1 and written to port 0x55 (DHI
 | 0x10BA | check_scsi_bus_change | Detect bus sense mismatch, call disconnect/reconnect handlers |
 | 0x138A | store_status_by_unit | Store status byte in per-unit table at 0x2125 |
 
-### NCR 5386 Functions
+### AM9517 DMA Functions (was: "NCR 5386 Functions" - ENTIRELY MISNAMED)
 
-| Address | Name | Description |
-|---------|------|-------------|
-| 0x0708 | ncr5386_reset_parity | Write 0x20 to ports 0x2D/0x28, reset parity state |
-| 0x0711 | ncr5386_set_own_id_and_program | Program transfer params then set Own ID |
-| 0x0717 | ncr5386_program_transfer | Write transfer counter and DMA address to NCR registers |
-| 0x0732 | ncr5386_read_verify_transfer | Read back transfer counter, verify against expected values |
+**There are no NCR 5386 functions in this ROM.** Every function previously in this section is
+AM9517 DMA code. Renamed in the Ghidra DB:
+
+| Address | Old name (WRONG) | Corrected name | What it actually does |
+|---------|------------------|----------------|-----------------------|
+| 0x0708 | ncr5386_reset_parity | `dma9517_master_clear_and_init` | AM9517 Master Clear (0x2D) + Command register write 0x20 (0x28) |
+| 0x0711 | ncr5386_set_own_id_and_program | `dma9517_program_and_unmask_channel` | Program channel addr/count, then unmask via Single Mask (0x2A) |
+| 0x0717 | ncr5386_program_transfer | `dma9517_load_mode_addr_count` | Write Mode (0x2B), clear byte pointer (0x2C), load addr+count at 0x20+2n |
+| 0x0732 | ncr5386_read_verify_transfer | `dma9517_readback_and_verify_addr_count` | Read back current addr/count, verify vs expected |
 
 ### ND-100 Bus Interface
 
@@ -872,17 +1082,38 @@ The error code (lower 6 bits) is shifted left by 1 and written to port 0x55 (DHI
 | 0x2194 | scsi_device_id | SCSI device ID from command |
 | 0x2195 | cmd_mode_flags | Command mode flags (0x00=return, 0x40=normal, 0x80=target) |
 
-## Deep Dive: NCR 5386 Interrupt Path to ND-100
+## Deep Dive: NCR 5386 Interrupt Path to ND-100 - RETRACTED IN FULL
 
-### How NCR 5386 interrupts reach the Z80
+> **DISPROVED. DO NOT USE. Retained only so that readers holding the old text can see exactly what
+> was withdrawn and why.**
+>
+> This entire section is built on the claim that the Z80 reads and writes NCR 5386 registers at
+> ports 0x20-0x3D. **It does not.** An exhaustive byte-level sweep of every I/O opcode in the ROM
+> found no NCR access of any kind: that port range is the AM9517 DMA controller, and the only
+> command-code stream in the ROM goes to the FD1797 at port 0x70. See "THE ARCHITECTURE" at the top
+> of this document.
+>
+> Consequently the following are all fiction: the NCR INT -> CTC1 Ch3 wiring, the dynamic ISR chain
+> at (0x2076) "servicing SCSI phases", the three-phase SCSI ISR sequence (0x1298 / 0x12BF / 0x0505),
+> and the claim that NCR interrupts reach the ND-100 only after Z80 processing.
+>
+> **What is actually true:** the NCR 5386 interrupts the **ND-100 directly** (RSTAU bit 9 = "NCR
+> Interrupt"; level 11 when WCONT bit 0 enabled). SINTRAN's `SCINT` handler services it. The Z80 is
+> not in this path at any point.
+>
+> The CTC channels and ISRs named below are real, but they serve the **floppy** half. Their true
+> assignment is not established; the earlier mapping was derived from the false NCR premise and
+> should not be trusted.
+
+### How NCR 5386 interrupts reach the Z80 - RETRACTED (see warning above)
 
 ```mermaid
 flowchart LR
     NCR["NCR 5386 INT pin"] -->|pulse| CTC["CTC1 Ch3, port 0x13, TC=1"]
-    CTC -->|IM2 vector 0x76| VEC["RAM 0x2076 — dynamic ISR addr"]
-    VEC -->|Phase 1| ISR1["ISR 0x1298 — Send CDB bytes"]
-    VEC -->|Phase 2| ISR2["ISR 0x12BF — DMA data transfer"]
-    VEC -->|Phase 3| ISR3["ISR 0x0505 — Status/completion"]
+    CTC -->|IM2 vector 0x76| VEC["RAM 0x2076 - dynamic ISR addr"]
+    VEC -->|Phase 1| ISR1["ISR 0x1298 - Send CDB bytes"]
+    VEC -->|Phase 2| ISR2["ISR 0x12BF - DMA data transfer"]
+    VEC -->|Phase 3| ISR3["ISR 0x0505 - Status/completion"]
     ISR1 -->|update 0x2076| VEC
     ISR2 -->|update 0x2076| VEC
     ISR3 --> DONE["Mainline resumes after HALT"]
@@ -964,7 +1195,16 @@ This suggests the NCR 5386 has a separate reselection signal routed to CTC2 Ch0,
 - I cannot verify from firmware alone which NCR 5386 pin connects to which CTC channel. The firmware evidence strongly suggests Ch3 for normal operations and CTC2 Ch0 for reselection, but confirming requires the board schematic.
 - The NCR 5386 has multiple interrupt sources (Function Complete, Bus Service, Disconnect, Reconnect, etc.) but only one INT pin. The two CTC channels may be driven by different board logic signals derived from NCR status, not directly from the INT pin.
 
+<!-- END OF RETRACTED SECTION -->
+
+---
+
 ## Deep Dive: FD1797 Floppy Disc Controller
+
+> This and the AM9517 / CTC / Floppy Boot deep-dives below describe **the floppy half** - what the
+> 45900E.bin ROM actually implements. Per the ND-3106/3112 manual section near the end of this
+> document, the Z80-side interface is *identical* to those floppy controllers - port 0x74 is
+> literally `FDVSEL` (Floppy Drive Select). The Z80 half of the ND-3201 is essentially an ND-3112.
 
 ### Confirmed Port Mapping
 
@@ -1086,17 +1326,17 @@ This configures the AM9517's direction control through the glue logic.
 ```mermaid
 flowchart TB
     subgraph CTC1["CTC1 (ports 0x10-0x13)"]
-        C1C0["Ch0 — Timer — ND-100 cmd reception — ISR 0x02AB"]
-        C1C1["Ch1 — Timer — Calibration reference — ISR 0x1D26"]
-        C1C2["Ch2 — External? — SCSI bus phase — ISR 0x0BB8"]
-        C1C3["Ch3 — External — NCR INT handler — ISR DYNAMIC"]
+        C1C0["Ch0 - Timer - ND-100 cmd reception - ISR 0x02AB"]
+        C1C1["Ch1 - Timer - Calibration reference - ISR 0x1D26"]
+        C1C2["Ch2 - External? - SCSI bus phase - ISR 0x0BB8"]
+        C1C3["Ch3 - External - NCR INT handler - ISR DYNAMIC"]
     end
 
     subgraph CTC2["CTC2 (ports 0x14-0x17)"]
-        C2C0["Ch0 — SCSI timeout watchdog — ISR 0x0AF3"]
-        C2C1["Ch1 — UNUSED — ISR 0x1D26 error trap"]
-        C2C2["Ch2 — Counter — Calibration high byte — ISR 0x141F"]
-        C2C3["Ch3 — Timer — 7-seg display refresh — ISR 0x1AD5"]
+        C2C0["Ch0 - SCSI timeout watchdog - ISR 0x0AF3"]
+        C2C1["Ch1 - UNUSED - ISR 0x1D26 error trap"]
+        C2C2["Ch2 - Counter - Calibration high byte - ISR 0x141F"]
+        C2C3["Ch3 - Timer - 7-seg display refresh - ISR 0x1AD5"]
     end
 
     subgraph Triggers["External Trigger Sources"]
@@ -1190,7 +1430,7 @@ flowchart TD
     SCSIINIT["SCSI-style init (0x0383)"]
     FD1797["FD1797: Restore, Seek, Read/Write"]
     AM9517["AM9517 DMA: byte transfer"]
-    COMPLETE["OUT port 0x70 — signal completion"]
+    COMPLETE["OUT port 0x70 - signal completion"]
 
     CMD --> ISR --> READ --> CHK0
     CHK0 -->|1 = SCSI| SCSI
@@ -1259,11 +1499,77 @@ The ND-3201 floppy implementation is **completely different** from the standalon
 
 The ND-3201's floppy operations go through the same Z80 command processing pipeline as SCSI operations. The Z80 receives the command from the ND-100, programs the FD1797 and AM9517 for the floppy transfer, then signals completion back to the ND-100 via port 0x70.
 
-## What the Z80 Does When WCONT is Written
+## What WCONT Actually Does
 
-On the real hardware, the ND-100 writes to WCONT (IOX+5) to control the board. Different bits cause different board-level actions. The Z80 firmware's behavior depends on which bits are set and what the board hardware does in response.
+**This section supersedes the "What the Z80 Does When WCONT is Written" material that follows it.**
 
-### WCONT Bit 2: Active (Start Operation)
+WCONT (IOX+5) is written by the ND-100. What happens next depends on **which half of the board the
+operation belongs to**, and the earlier revision conflated them.
+
+### For a SCSI operation (VERIFIED against IP-P2-SCSI-DRIV.NPL)
+
+The Z80 is not involved. WCONT is a **hardware control latch** on the SCSI half. The ND-100 drives
+the NCR 5386 itself, and the interrupt it is waiting for comes from the **NCR**, not from firmware.
+
+The decisive evidence is the tail of SINTRAN's interrupt handler `SCINT`:
+
+```
+SCINT: T:=HDEV+RSTAU; *IOXT              % READ DEVICE STATUS
+       IF A=:SCSSR BIT 11 THEN           % INTERRUPT FROM NCR
+          ...decode phase, service it, issue the next NCR command...
+       FI
+       5\/SCCCW; T:=HDEV+WCONT; *IOXT    % ACTIVATE+ENABLE INTERRUPT   <-- line 187
+       GO SCWTI                          % park, wait for next interrupt
+```
+
+Line 187 is the **unconditional common tail**: every path that services an interrupt falls into it
+on the way out. `SCCCW` is zeroed on handler entry (`0=:SCCCW`, line 139) and set to `40`&#8323;
+only when a data transfer needs the DMA/direction bit (line 746). Therefore:
+
+| Observed WCONT value | Meaning |
+|---|---|
+| `0x0005` (`5 \/ 0`) | SCINT exit re-arm, no transfer pending. Enable-Interrupt + Active only |
+| `0x0065` (`5 \/ 40`&#8323;) | Same tail, during a data transfer (adds DMA-enable + write-direction) |
+
+**A bare `WCONT=5` is not a request for work.** It means "I have finished servicing this interrupt;
+re-arm the controller so a *future* NCR event can interrupt me," followed by parking at `SCWTI`.
+`SCWTI` is the driver's normal wait-for-interrupt exit - **every** route out of the handler ends
+`GO SCWTI` ("BUSY RETURN", "NO RETURN"), so "parked at SCWTI" is the ordinary idle state between
+phases, not evidence of a hang.
+
+**Consequence:** if the last interrupt serviced was a target Disconnect and nothing is queued, the
+correct hardware behaviour after that final `WCONT=5` is **silence**. No NCR event exists, so no
+interrupt should fire. A controller that manufactured a completion interrupt here would be wrong:
+`SCINT` would re-enter, read RSTAU, find the NCR-interrupt bit (11) clear, service nothing, fall to
+line 187, re-arm, and park again - an interrupt storm that accomplishes nothing.
+
+Note also line 147: on Disconnect the driver calls `DCTHR` (disconnect logical thread) and goes to
+`BUSFP` -> `SELEC`, which checks the **arbitration queue** for the next operation. If no further
+work was queued, the driver is correctly idle - and the reason nothing was queued is a **CPU-side**
+decision in SINTRAN's connect/verify layer, not a controller defect.
+
+### For a floppy operation (INFERRED)
+
+The Z80 half plausibly does use an ND-3112-style command-block model (host writes a command block,
+controller executes, signals completion via port 0x70 -> RSTAU Ready -> level 11). The material
+below describes that path. Treat it as **the floppy protocol**, and note that its specific trigger
+mechanism (CTC1 Ch0 counter-mode pulse) is DISPROVED - see "Trigger Mechanism" above.
+
+### WCONT Bit 4: Clear Device (VERIFIED, applies to both halves)
+
+Asserts the Z80 RESET pin, so the floppy half reboots through its POST. This part of the original
+analysis stands.
+
+---
+
+## What the Z80 Does When WCONT is Written - PARTIALLY RETRACTED
+
+> **WARNING.** The SCSI branch of everything below is DISPROVED - the Z80 never touches the NCR
+> 5386. Read "What WCONT Actually Does" above instead. The **floppy** and **Clear Device** paths
+> remain broadly valid, but the trigger mechanism described (CTC1 Ch0 counter mode, TC=1) is
+> refuted, and the function names cited were misnamed (see the Function Reference).
+
+### WCONT Bit 2: Active (Start Operation) - SCSI branch RETRACTED
 
 ```mermaid
 flowchart TD
@@ -1281,10 +1587,10 @@ flowchart TD
     FLOPPY_INIT["init_floppy_drive or SCSI-style init"]
     IDENT["DMA write ROM identity block to ND-100"]
     IO_OP["scsi_start_io_operation (0x0614)"]
-    RESULTS["OUT 0x54-0x57 — write results"]
+    RESULTS["OUT 0x54-0x57 - write results"]
     SIGNAL{"Error?"}
-    DMA_START["OUT 0x70 = 0xD4 — DMA ready"]
-    DISCONNECT["OUT 0x70 = 0xD0 — done"]
+    DMA_START["OUT 0x70 = 0xD4 - DMA ready"]
+    DISCONNECT["OUT 0x70 = 0xD0 - done"]
     ND100_IRQ["Board sets RSTAU Ready, clears Active, IRQ level 11"]
 
     WCONT --> LATCH --> PULSE --> WAKE --> ISR --> DECODE
@@ -1563,17 +1869,46 @@ private void ExecuteGo()
 
 **Why this works anyway:** The SINTRAN driver programs the NCR 5386 directly via IOX registers (WNCOM, WDESI, WNDAT, transfer counters, etc.) and the C# emulator passes all those writes through to the NCR5386SCSI class. The NCR emulation handles the SCSI protocol autonomously. The controller emulator just manages DMA between NCR and ND-100 memory via `StepGoState()`.
 
-**Why this differs from real hardware:** On the real board, the Z80 firmware is an active participant:
-- Receives the high-level command from the ND-100 via ports 0x50-0x54
-- Decides what SCSI operations to perform
-- Programs the NCR 5386 itself (the Z80 ISRs at 0x1298/0x12A6/0x12BF handle multi-phase transfers)
-- Manages retries (up to 3 in `scsi_execute_io_operation`)
-- Handles disconnect/reconnect
-- Signals completion to the ND-100 via port 0x70
+**Why this differs from real hardware - RETRACTED.** The original claimed the Z80 "programs the NCR
+5386 itself (ISRs at 0x1298/0x12A6/0x12BF)", "manages retries", and "handles disconnect/reconnect"
+for SCSI. **All false** - the Z80 never touches the NCR (VERIFIED, see "THE ARCHITECTURE").
 
-The C# emulator's approach is architecturally valid for emulation purposes, but it means the emulator can only work with SINTRAN versions that program the NCR 5386 directly via IOX. If any SINTRAN code relies on the Z80 firmware's high-level command processing (via the command word on ports 0x50-0x54), it would not work.
+**Why it actually works - and why it is not merely "architecturally valid for emulation purposes":**
+the "Why this works anyway" paragraph above is not a lucky accident, it is a correct description of
+the hardware. On the real board the NCR 5386 is decoded straight onto the ND-100 IOX bus and
+SINTRAN *is* the SCSI protocol engine. An emulator that passes IOX writes through to an NCR model
+and lets the driver run the protocol is **faithful**, not a shortcut.
 
-### Issue 4: NCR interrupt path skips Z80 processing
+An empty `ExecuteGo()` is therefore not a design limitation for the SCSI path. `StepGoState()`
+raising the IRQ only when `regs.InterruptFromNCR5386` is set matches the hardware contract: the
+board completes a GO when the NCR has something to report, and stays silent otherwise. See
+"What WCONT Actually Does".
+
+**The residual limitation is real but is about FLOPPY, not SCSI:** the emulator has no Z80, so any
+SINTRAN code that drives the *floppy* half through the ND-3112-style command word on ports
+0x50-0x54 has nothing to talk to. That is Issue 7 (No floppy support), and it is the correct place
+for this concern.
+
+### Issue 4: NCR interrupt path skips Z80 processing - NOT AN ISSUE (RETRACTED)
+
+> **This was never a defect. The emulator is right and this "issue" was the false model talking.**
+>
+> There is no Z80 processing to skip. The NCR 5386 interrupts the ND-100 **directly** (RSTAU bit 9,
+> level 11 when WCONT bit 0 is set), and SINTRAN's `SCINT` services it. The claimed chain
+> `NCR INT -> CTC1 Ch3 -> Z80 ISR (0x1298 -> 0x12BF -> 0x0505) -> port 0x70 -> ND-100` does not
+> exist: the Z80 never reads or writes an NCR register anywhere in the ROM (VERIFIED by exhaustive
+> I/O sweep).
+>
+> The premise "the Z80 only signals the ND-100 after the FULL operation completes" is also
+> backwards for SCSI. Per `IP-P2-SCSI-DRIV.NPL`, the driver **wants** an interrupt per SCSI phase -
+> `SCINT` decodes the phase, issues the next NCR command, re-arms (line 187) and parks at `SCWTI`.
+> Signalling "after any single NCR interrupt" is not the emulator seeing intermediate states by
+> accident; it is exactly the contract the driver is written against.
+>
+> The device trace corroborates this: 24 NCR interrupts = 24 controller completions = 24 RITRG
+> acks, perfectly balanced, with the READ_6 data DMA'd successfully.
+
+**Original text (RETRACTED), preserved for reference:**
 
 **File:** NDBusDiscControllerSCSI.cs, lines 750-767 and 1220-1234
 **Severity:** Timing/behavioral difference
@@ -1716,13 +2051,32 @@ The emulator reads/writes the high byte first (even offset = MSB, odd offset = L
 2. Run the full SINTRAN boot and disk test suite
 3. If it works, keep it enabled. If operations hang or produce errors, the delay is needed and the issue is elsewhere (possibly in the NCR5386SCSI state machine).
 
-### Change 4: Implement ExecuteGo() properly (ENHANCEMENT)
+### Change 4: Implement ExecuteGo() properly - RATIONALE RETRACTED
 
-**What:** Replace the empty ExecuteGo() with proper state management that matches the Z80 firmware's behavior.
+> **The justification below is DISPROVED.** It rests on "the Z80 firmware actively manages the
+> command lifecycle" for SCSI. It does not - the Z80 never touches the NCR 5386 (see "THE
+> ARCHITECTURE"). The parenthetical in the original text, "The C# emulator works because SINTRAN
+> programs the NCR directly", was the correct insight and should have been the conclusion.
+>
+> **Do NOT make a bare `WCONT=Active` produce a completion interrupt.** Per "What WCONT Actually
+> Does", a `WCONT=5` with no NCR command loaded is `SCINT`'s exit re-arm (NPL line 187). Silence is
+> the correct response. Manufacturing an interrupt there causes `SCINT` to re-enter, find RSTAU bit
+> 11 clear, service nothing, re-arm, and park - an interrupt storm.
+>
+> The existing emulator behaviour - `StepGoState()` raising the ND-100 IRQ **only** when
+> `regs.InterruptFromNCR5386` is set - already matches the hardware contract: a GO completes when
+> the NCR has something to report. The sample code below happens to preserve that gate
+> (`if (regs.InterruptFromNCR5386)`), so it is not itself harmful, but it should be adopted (if at
+> all) as state-machine tidying, **not** as "matching the Z80 firmware".
+>
+> The doc-comment in the sample code below is factually wrong on points 1-4 and must not be pasted
+> into the source.
+
+**What:** Replace the empty ExecuteGo() with proper state management.
 
 **Where:** Line 1326 in NDBusDiscControllerSCSI.cs
 
-**Why:** The empty ExecuteGo() relies on StepGoState() to handle everything, but the state transitions don't match the real hardware. On the real board, the Z80 firmware actively manages the command lifecycle. The C# emulator works because SINTRAN programs the NCR directly, but the state machine (active/ready/interrupt) should still behave correctly.
+**Why (ORIGINAL, RETRACTED):** The empty ExecuteGo() relies on StepGoState() to handle everything, but the state transitions don't match the real hardware. On the real board, the Z80 firmware actively manages the command lifecycle. The C# emulator works because SINTRAN programs the NCR directly, but the state machine (active/ready/interrupt) should still behave correctly.
 
 **Sample implementation based on Z80 firmware behavior:**
 
@@ -2349,7 +2703,7 @@ This table shows how Z80 port writes/reads map to what the ND-100 sees via IOX:
 The emulated SCSI controller loops indefinitely with this pattern every ~5 seconds:
 
 ```
-BUS RESET → 4s → SELECTION:0 → ReadCapacity → STATUS:0 GOOD → 5s → BUS RESET → repeat
+BUS RESET -> 4s -> SELECTION:0 -> ReadCapacity -> STATUS:0 GOOD -> 5s -> BUS RESET -> repeat
 ```
 
 The ReadCapacity SCSI command **succeeds every time** on the SCSI bus (correct 8-byte response, STATUS 0 GOOD, MESSAGE_IN 0x00 = Command Complete). But SINTRAN resets the bus again ~5 seconds later.
@@ -2365,17 +2719,17 @@ sequenceDiagram
     SINT->>CTRL: IOX WNCOM = Select (target 0)
     CTRL->>NCR: Write CommandRegister
     NCR->>NCR: Runs full SCSI transaction synchronously
-    Note over NCR: Select → ReadCapacity → DATA_IN → STATUS → MSG_IN
+    Note over NCR: Select -> ReadCapacity -> DATA_IN -> STATUS -> MSG_IN
     NCR-->>CTRL: OnInterrupt(1)
     Note over CTRL: InterruptFromNCR5386 = true
 
     SINT->>CTRL: IOX WCONT = 5 (Active + Enable IRQ)
     Note over CTRL: active=true, readyForTransfer=false
 
-    Note over CTRL: Clock() → StepGoState()
+    Note over CTRL: Clock() -> StepGoState()
     Note over CTRL: Sees InterruptFromNCR5386=true
     Note over CTRL: active=false, readyForTransfer=true
-    CTRL-->>SINT: SetInterruptBit(true) → Level 11 IRQ
+    CTRL-->>SINT: SetInterruptBit(true) -> Level 11 IRQ
 
     SINT->>CTRL: IOX RSTAU (read status)
     Note over CTRL: Returns bit 9 set (NCR interrupt)
@@ -2405,7 +2759,7 @@ case Register.RSTAU:
     // ...
     if (regs.InterruptFromNCR5386) rval |= 1 << 9;
     // ...
-    regs.InterruptFromNCR5386 = false;  // ← THIS CAUSES THE LOOP
+    regs.InterruptFromNCR5386 = false;  // <- THIS CAUSES THE LOOP
     break;
 ```
 
@@ -2416,7 +2770,7 @@ On **real hardware**, RSTAU bit 9 is a **hardware signal** that mirrors the NCR 
 The SINTRAN interrupt handler (SCINT) follows this exact sequence:
 
 ```
-SCINT: T:= HDEV + RSTAU; *IOXT     % 1. Read status → sees bit 9
+SCINT: T:= HDEV + RSTAU; *IOXT     % 1. Read status -> sees bit 9
        "0"; T:= HDEV + WCONT; *IOXT % 2. Clear controller
        T+"RAUXS-WCONT"; *IOXT       % 3. Read NCR aux status
        T+"RITRG-RAUXS"; *IOXT       % 4. Read NCR interrupt reg (acknowledge)
@@ -2479,8 +2833,8 @@ private void Ncr5386_OnInterrupt(byte intr)
 
         // Complete the operation immediately if controller is active.
         // On real hardware, the Z80 ISR chain handles this over many
-        // cycles, but the end result is the same: active→false,
-        // readyForTransfer→true, then ND-100 gets interrupt.
+        // cycles, but the end result is the same: active->false,
+        // readyForTransfer->true, then ND-100 gets interrupt.
         if (regs.active)
         {
             regs.active = false;
@@ -2518,7 +2872,7 @@ SINTRAN writes WCONT bit 10 (SCSI Bus Reset) in these situations:
 4. **No interrupt after command**: If the controller stays busy (RSTAU bit 2 set) for too long
 5. **RSTAU shows unexpected state**: If the status bits don't match expected completion pattern
 
-In your log, cause #2 or #4 is most likely — SINTRAN's 5-second timeout expires because the completion interrupt didn't propagate correctly to the ND-100.
+In your log, cause #2 or #4 is most likely - SINTRAN's 5-second timeout expires because the completion interrupt didn't propagate correctly to the ND-100.
 
 ## Floppy Boot Process
 
@@ -2540,20 +2894,20 @@ sequenceDiagram
     CTRL->>FD: OUT 0x70 = 0x00 (Restore to track 0)
     CTRL->>FD: Wait for BUSY clear
     CTRL->>FD: OUT 0x73 = 0x01, OUT 0x70 = 0x12 (Seek track 1, verify)
-    CTRL->>FD: IN 0x71 — verify track register = 1
+    CTRL->>FD: IN 0x71 - verify track register = 1
 
-    Note over CTRL: Idle loop — waiting for ND-100
+    Note over CTRL: Idle loop - waiting for ND-100
 
-    ND->>CTRL: IOX WCONT (Active) — device init command
+    ND->>CTRL: IOX WCONT (Active) - device init command
     Note over CTRL: ISR 0x02AB reads port 0x50 bit 4 = device init
     CTRL->>CTRL: Read ports 0x51-0x53 (block address)
     CTRL->>ND: DMA read 12-byte device config into 0x2080
     Note over CTRL: Device type = 0x2C (floppy)
     Note over CTRL: Dispatch to init_floppy_drive (0x08A1)
 
-    CTRL->>FD: OUT 0x70 = 0xD0 (Force Interrupt — abort pending)
+    CTRL->>FD: OUT 0x70 = 0xD0 (Force Interrupt - abort pending)
     CTRL->>FD: OUT 0x74 = 0x00, OUT 0x75 = 0x00 (deselect drives)
-    CTRL->>FD: OUT 0x70 = 0x00 (Restore — seek track 0)
+    CTRL->>FD: OUT 0x70 = 0x00 (Restore - seek track 0)
     CTRL->>FD: Wait for BUSY clear
     CTRL->>CTRL: Clear drive control block (28 bytes at 0x2100)
     CTRL->>CTRL: Extract head count from config bits 7:6
@@ -2564,11 +2918,11 @@ sequenceDiagram
 
     Note over ND: SINTRAN sends read command
 
-    ND->>CTRL: IOX WCONT (Active) — read sectors
+    ND->>CTRL: IOX WCONT (Active) - read sectors
     CTRL->>CTRL: ISR dispatches to nd100_block_transfer_loop
 
     loop For each sector
-        CTRL->>FD: IN 0x71 — check current track
+        CTRL->>FD: IN 0x71 - check current track
         CTRL->>FD: OUT 0x73 = target track, OUT 0x70 = 0x18 (Seek)
         CTRL->>FD: Wait for seek complete
         CTRL->>FD: OUT 0x72 = sector number
@@ -2648,44 +3002,44 @@ All errors go through `scsi_start_io_operation` (0x0614) which writes to ports 0
 ### Your Specific Error Codes
 
 **Error code 0x20 (decimal 32) = port 0x55 value 0x20:**
-This is event 0x90 (lower 6 bits = 0x10, shifted left = 0x20). It means **"Drive Not Ready"** — triggered when FD1797 status bit 7 (Not Ready) is set. Causes:
+This is event 0x90 (lower 6 bits = 0x10, shifted left = 0x20). It means **"Drive Not Ready"** - triggered when FD1797 status bit 7 (Not Ready) is set. Causes:
 - Floppy drive motor not spinning
 - No disk inserted
 - Drive door open
 - Drive not connected
 
 **Error code 0x06 (decimal 6) = port 0x55 value 0x06:**
-Lower 6 bits = 0x03, so the event code would be 0x83 or similar. But 0x06 doesn't directly match an event table entry as a port 0x55 value. If 0x06 is seen in the **sense byte** (port 0x56 or 0x208F), it means **SCSI Sense Key 0x06 = "Unit Attention"** — the SCSI target device was reset or media was changed. This comes from the NCR 5386 reading the actual sense data from the SCSI target disk, not from the floppy path.
+Lower 6 bits = 0x03, so the event code would be 0x83 or similar. But 0x06 doesn't directly match an event table entry as a port 0x55 value. If 0x06 is seen in the **sense byte** (port 0x56 or 0x208F), it means **SCSI Sense Key 0x06 = "Unit Attention"** - the SCSI target device was reset or media was changed. This comes from the NCR 5386 reading the actual sense data from the SCSI target disk, not from the floppy path.
 
 ### Complete Error Code Reference
 
 | Event Addr | Code Byte | Port 0x55 | Trigger | FD1797 Status | Meaning |
 |-----------|-----------|-----------|---------|--------------|---------|
-| 0x1CFB | 0x85 | 0x0A | NCR parity check | — | SCSI parity error |
-| 0x1CFD | 0x86 | 0x0C | scsi_reselection_handler | — | SCSI bus error |
-| 0x1CFF | 0x87 | 0x0E | — | — | Seek retry exhausted |
+| 0x1CFB | 0x85 | 0x0A | NCR parity check | - | SCSI parity error |
+| 0x1CFD | 0x86 | 0x0C | scsi_reselection_handler | - | SCSI bus error |
+| 0x1CFF | 0x87 | 0x0E | - | - | Seek retry exhausted |
 | 0x1D01 | 0x88 | 0x10 | seek_and_select_drive | Bit 3+4 | Seek verify failed |
 | 0x1D03 | 0x89 | 0x12 | nd100_block_transfer_loop | Bit 3 or 4 | CRC / Record Not Found |
-| 0x1D05 | 0x8A | 0x14 | set_status_and_restart | — | Track mismatch |
-| 0x1D0A | 0x8B | 0x16 | init_floppy_drive | — | Invalid format code |
-| 0x1D0C | 0x8C | 0x18 | check_scsi_bus_change | — | Unexpected disconnect |
-| 0x1D0E | 0x8D | 0x1A | check_scsi_bus_change | — | Unexpected reconnect |
-| 0x1D10 | 0x8E | 0x1C | scsi_execute_io_operation | — | Unit attention / Write protect |
-| 0x1D12 | 0x8F | 0x1E | scsi_reselection_handler | — | SCSI bus error (reselect) |
+| 0x1D05 | 0x8A | 0x14 | set_status_and_restart | - | Track mismatch |
+| 0x1D0A | 0x8B | 0x16 | init_floppy_drive | - | Invalid format code |
+| 0x1D0C | 0x8C | 0x18 | check_scsi_bus_change | - | Unexpected disconnect |
+| 0x1D0E | 0x8D | 0x1A | check_scsi_bus_change | - | Unexpected reconnect |
+| 0x1D10 | 0x8E | 0x1C | scsi_execute_io_operation | - | Unit attention / Write protect |
+| 0x1D12 | 0x8F | 0x1E | scsi_reselection_handler | - | SCSI bus error (reselect) |
 | 0x1D14 | 0x90 | **0x20** | poll_nd100_bus_ready, scsi_select_target | Bit 7 | **Drive Not Ready / Bus timeout** |
 | 0x1D16 | 0x91 | 0x22 | scsi_select_target | Bit 0 stuck | FD1797 busy timeout |
 | 0x1D18 | 0x92 | 0x24 | nd100_block_transfer_loop | Bit 2 | **Lost Data** |
-| 0x1D1A | 0x93 | 0x26 | nd100_bus_issue_cmd_and_wait | — | Reselection retry exhausted |
-| 0x1D1C | 0x95 | 0x2A | process_pending_command | — | Command re-entry |
-| 0x1D1E | 0x96 | 0x2C | NMI watchdog | — | Watchdog timeout |
-| 0x1D20 | 0x97 | 0x2E | scsi_execute_io_operation | — | I/O retries exhausted (3x) |
-| 0x1D22 | 0x98 | 0x30 | compute_chs_from_lba | — | Sector out of range |
-| 0x1D24 | 0x9A | 0x34 | CTC2 Ch0 ISR | — | SCSI operation timeout |
-| 0x1D26 | 0x9B | 0x36 | ncr5386_read_verify_transfer | — | Transfer counter mismatch |
-| 0x1D28 | 0x20 | 0x40 | set_nd100_dma_address verify | — | DMA address readback fail |
-| 0x1D2C | 0x22 | 0x44 | — | — | (reserved) |
-| 0x1D2E | 0x22 | 0x44 | dispatch_by_scsi_id | — | End of dispatch table |
-| 0x1D32 | 0xA6 | 0x4C | set_nd100_dma_address | — | DMA address mismatch |
+| 0x1D1A | 0x93 | 0x26 | nd100_bus_issue_cmd_and_wait | - | Reselection retry exhausted |
+| 0x1D1C | 0x95 | 0x2A | process_pending_command | - | Command re-entry |
+| 0x1D1E | 0x96 | 0x2C | NMI watchdog | - | Watchdog timeout |
+| 0x1D20 | 0x97 | 0x2E | scsi_execute_io_operation | - | I/O retries exhausted (3x) |
+| 0x1D22 | 0x98 | 0x30 | compute_chs_from_lba | - | Sector out of range |
+| 0x1D24 | 0x9A | 0x34 | CTC2 Ch0 ISR | - | SCSI operation timeout |
+| 0x1D26 | 0x9B | 0x36 | ncr5386_read_verify_transfer | - | Transfer counter mismatch |
+| 0x1D28 | 0x20 | 0x40 | set_nd100_dma_address verify | - | DMA address readback fail |
+| 0x1D2C | 0x22 | 0x44 | - | - | (reserved) |
+| 0x1D2E | 0x22 | 0x44 | dispatch_by_scsi_id | - | End of dispatch table |
+| 0x1D32 | 0xA6 | 0x4C | set_nd100_dma_address | - | DMA address mismatch |
 
 ## Confirmed from ND-3106/3112 Manual (ND-11.021.1)
 
@@ -2739,7 +3093,7 @@ The 3106/3112 error codes stored in Status Word 1 bits 9-14 match the ND-3201 ev
 | 14 | 0x0C | Single sided diskette | 0x1D0C (0x8C) | YES |
 | 15 | 0x0D | Double sided diskette | 0x1D0E (0x8D) | YES |
 | 16 | 0x0E | Write protected | 0x1D10 (0x8E) | YES |
-| 17 | 0x0F | Deleted record | 0x1D12 (0x8F) | — |
+| 17 | 0x0F | Deleted record | 0x1D12 (0x8F) | - |
 | 20 | 0x10 | **Drive not ready** | 0x1D14 (0x90) | YES |
 | 21 | 0x11 | Controller busy | 0x1D16 (0x91) | YES |
 | 22 | 0x12 | Lost data | 0x1D18 (0x92) | YES |
@@ -2814,7 +3168,7 @@ flowchart TD
 
     CAUSE1["NMI Watchdog Timeout
     Counter at 0x20AA reaches 0
-    Event 0x96 → full reinit
+    Event 0x96 -> full reinit
     ~10 second timeout"]
 
     CAUSE2["CTC2 Ch0 Timeout

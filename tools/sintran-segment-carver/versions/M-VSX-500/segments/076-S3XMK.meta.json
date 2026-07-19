@@ -1,0 +1,35 @@
+{
+ "segment_number_oct": "076",
+ "segment_number_dec": 62,
+ "name": "S3XMK",
+ "description": "XMSG kernel",
+ "content": {
+  "nonzero": true,
+  "byte_order": "big-endian"
+ },
+ "size": {
+  "pages": 31,
+  "bytes": 63488,
+  "words": 31744
+ },
+ "segfil0": {
+  "madr_page": 1532,
+  "flag_oct": "000010",
+  "segfil": 0
+ },
+ "load_address": {
+  "oct": "102000",
+  "dec": 33792,
+  "hex": "0x8400"
+ },
+ "symbol_file": "XMSG-SYMBOL-LIST",
+ "confidence": "M06 (SINTRAN-M-2026)",
+ "file": "076-S3XMK.bin",
+ "ghidra": {
+  "processor": "ND-100 big-endian 16-bit (word-addressed)",
+  "format": "Raw Binary",
+  "base_address_hex": "0x8400",
+  "base_address_oct": "102000",
+  "note": "Load the .bin as-is (big-endian) - do NOT byte-swap for Ghidra. ND-100 is word-addressed: set the base in the word address space. Byte-swap to little-endian ONLY for nd100-dis."
+ }
+}

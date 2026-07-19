@@ -1,0 +1,15 @@
+% NPL SOURCE REFERENCE - MON 60B 077B - IRMESS read message (verbatim, 5P-P2-MON60.NPL)
+IRMESS:      % FUNCTION=077: READ MESSAGE
+       IF 5D11=0 AND 5D12>>=5SWPROC THEN         % READ ONE SPECIFIC MESSAGE?
+           IF A=-1 THEN                          % YES, -1= OWN PROCES
+              X:=5PRDESCR
+           ELSE
+              IF A>>MX5PROCS GO FAR EEILPAR      % LEGAL PROC. NO?
+              A-5SWPROC*5PRDSIZE+"S500S"=:X      % X=ADDR OF ACTUAL PROC.DESCR.
+           FI; X.MESSBUFF
+        ELSE
+           GO FAR ILLFUNC                        % NOT IMPLEMENTED (ILLEGAL FUNCTION CODE)
+        FI; A=:D; A:=5MBBANK; CALL XSUPDWINDOW   % SETUP WINDOW TO MESSAGE
+        A:="55MESSIZE-55MSNEGSIZE-3" SH 1; T:=5P2
+        CALL TOUSMOVE                            % COPY MESSAGE TO USER'S BUFFER
+        GO FAR 5OKRET; *)FILL

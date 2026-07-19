@@ -1,0 +1,27 @@
+% NPL SOURCE REFERENCE - MON 60B 102B - IFORGET stop ND-500 system (verbatim, 5P-P2-MON60.NPL)
+IFORGET:     % FUNCTION=102: STOP ND-500 SYSTEM (ABORT ALL ACTIVE PROCS, AND RELEASE MON60 BUFFERS)
+       *IOF
+       RTREF=:NSPREF                                       % ND-500 CPU RESERVED FOR SPECIAL USE
+       SYSINITFLAG BONE B5STOP=:SYSINITFLAG                % MARK SYSTEM IN STOP-ND-500 MODE
+       CCPUDF=:B; N5STOPPED; CALL RSTARTALL                % REMOVE ALL PROCS. FROM EX-QUEUE
+       *ION
+       "N500DF"=:B; 5SWPROC+1=:FORGPRNO
+       X:="S500S"+5PRDSIZE
+       FOR FORGPRNO DO WHILE FORGPRNO<<=MX5PROCS           % ABORT ALL ACTIVE PROCS.
+          IF X.RTRES><0 AND A><RTREF THEN                  % PROC USED AND NOT USED BY CALLER?
+             *IOF                                          % YES
+             X=:D
+             IF A.STATUS BIT 5BACKGROUND THEN              % BACKGROUND PROCESS?
+                A BONE 5ESCF=:X.STATUS                     % YES, SET ESCAPE PRIORITY OF SHADOW PROCESS
+             FI
+             D.PSTAT BONE 5SYSABORT=:X.PSTAT               % MARK THAT PROC SHOULD BE ABORTED
+             CALL SLOCK; 0/\0
+             T:=5MBBANK; X:=X.MESSBUFF; *AAX 5MSFL; LDATX
+             A BONE 5IBRK BONE 52ESCSET; *STATX            % MARK THAT PROC SHOULD BE ABORTED
+             *AAX XADPR-5MSFL; LDXTX
+             CALL SUNLOCK
+             X.RTRES; *IRW MLEVB DX
+             "SYSABORT"; *IRW MLEVB DP
+             MLEV; *MST PIE; MST PID; ION
+          FI; X+5PRDSIZE
+       OD; GO FAR 5NOPAR; *)FILL

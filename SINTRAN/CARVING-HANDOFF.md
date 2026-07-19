@@ -1,0 +1,495 @@
+# SINTRAN III Carving + MON-Call RE — Status + Handoff
+
+**Full path:** `SINTRAN/CARVING-HANDOFF.md`
+(WSL: `SINTRAN/CARVING-HANDOFF.md`)
+
+**THIS IS THE LIVING STATUS DOCUMENT for the carving / MON-call / segment / NPL RE effort.**
+It is the single place that answers "where are we?". See the maintenance rule in section 6 —
+**it must be updated whenever a MON call, a segment, or NPL code is analysed.**
+
+**Last status refresh:** 2026-07-15
+**Version under analysis:** L-VSX-500 (L07)
+**Current priority:** ND-500 <-> ND-100 communication interface (section 4a) — driven by the
+RetroCore emulator goal of recreating the 5MPM handshake.
+
+> ## ND-500 work has its own status doc
+> **`SINTRAN/ND500/ND500-STATUS-AND-INDEX.md`**
+> ([`ND500\ND500-STATUS-AND-INDEX.md`](ND500/ND500-STATUS-AND-INDEX.md))
+> That file is the **ND-500 status of record + master document index**: the evidence register,
+> the 5MPM message layout, the level-12 GOSW gap, the poisoned priors, and links to every ND-500
+> document and artifact. **If the work is ND-500, update that file, not this one.** This file owns
+> ND-100 dispatch, segment coverage, and the overall MON-call counts.
+
+> ## OUTPUT LOCATION RULE
+> **Everything goes under `E:\Dev\Ronny\NDInsight\`. The D: drive is NOT a destination.**
+> `D:\ND\t\re\` is a **one-off delivery snapshot** from an earlier session, kept only as a historical
+> reference. Never write to it. Where D: is mentioned below, it is a read-only relic — and its prose
+> is known stale (section 1a).
+
+This effort is **separate** from the live SCSI-mount debugging, which lives in
+`SINTRAN/Devices/SCSI/` and works on running-K traces, not the static carve.
+
+---
+
+## 0. Where the output lives
+
+| What | Path |
+|---|---|
+| **FULL working tree — 156 call folders** | `tools/sintran-segment-carver/versions/L-VSX-500/re/mon-analysis/` |
+| **Master MON index (full, authoritative)** | `tools/sintran-segment-carver/versions/L-VSX-500/re/MON-CALL-INDEX.md` |
+| Curated delivery mirror — 35 folders | `D:\ND\t\re\mon-analysis\` |
+| Delivery-mirror index (SUBSET — see section 1a) | `D:\ND\t\re\MON-CALL-INDEX.md` |
+| Golden-path folder spec | `D:\ND\t\re\mon-analysis\GOLDEN-PATH.md` |
+| Verified parameter contracts | `D:\ND\t\re\TASK-05-results.md` |
+| Carved segments, all versions | `tools/sintran-segment-carver/versions/{K,L,M}-VSX-500/segments/` |
+| Symbol tables per version | `SINTRAN/NPL-SOURCE/SYMBOLS/{K03,L07,M06}/` |
+| ND-500 subject docs | `SINTRAN/ND500/` |
+| NC-oracle deliverables | `SINTRAN/ND500/mon-oracle-for-NC/` |
+| Carve method | `tools/sintran-segment-carver/EXTRACTING-SEGMENTS.md`, `EXTRACTING-RESIDENT-CODE.md` |
+
+**Exemplar folder = `317B-ExecuteCommand/`** — the only one built on the corrected dispatch model.
+Do NOT copy `005B-ReadScratchFile/`'s Dispatch section; it still shows the retired fictional model.
+
+---
+
+## 1. CURRENT STATUS (audited 2026-07-15)
+
+### 1.1 MON-call coverage (ND-100 side)
+
+MON calls implemented in L07: **216**. Folders that exist: **156**.
+
+| Status | Count | Meaning |
+|---|---|---|
+| `byte-verified` | **1** | Folder fully rebuilt on the corrected model. **317B only.** |
+| `worker VERIFIED; dispatch needs rewrite` | 87 | The `MCTAB[N]` worker word is byte-verified, but the folder body still documents the fictional `GOTAB -> CALLPROC` dispatch. |
+| `WORKER CHANGED` | 34 | `MCTAB` disagrees with the folder's worker. **These folders are WRONG.** |
+| `NO FOLDER` | 94 | Implemented in L07, never analysed. |
+
+**Read that honestly:** `worker VERIFIED` is a claim about ONE carved word, not about the folder.
+Only 1 of 216 folders is actually trustworthy end to end.
+
+Folders documenting MON numbers **not present in MCTAB** — may be documenting nothing, need audit:
+`155B`, `175B`, `176B`, `177B`, `324B`.
+
+### 1.2 Segment coverage
+
+~60 segments are carved. **Only 4 were ever disassembled** (`006-S3FS`, `025-S3IRPIT`,
+`026-S3IMPIT`, `030-S3SM5`), plus `003-S3CP` / `044-S3IDPIT` referenced by address only.
+
+**Consequence — read this before ever writing "uncarved":** when a doc says a routine or table
+is "resident and uncarved", that has almost always meant *nobody looked in the other 56 segments*.
+Check them before concluding anything is absent. This is the single most repeated error in this effort.
+
+Not yet promoted into `re/segments-ref/` (referenced by address only, no `.asm`):
+**`003-S3CP`** (holds `UECOM`/`COMSB`/`UELOG`) and **`044-S3IDPIT`** (holds `MCTAB`).
+
+### 1.3 ND-500 status — the honest version
+
+The full index's ND-500 table asserts in prose that ND-500 calls were "never affected by the GOTAB
+bug ... always byte-verified". **That claim is unsupported**: the ND-500 table has no worker column,
+no segment column and no per-row status. Do not rely on it.
+
+What is actually true, verified from the folders themselves:
+
+**Byte-verified and symbol-pinned (the handler BODIES):**
+`STAPR=140356B` (500B) · `NSTOP=140511B` (501B) · `NINST=141272B` / `XNINS=141277B` (503B) ·
+`OSTRS=141205B` (504B) · `GERRC=141633B` (505B) · `5SIBM=141716B` (506B) · `SWMC=142153B` (510B) ·
+`DVIO=141027B` (511B) · `A5XMS=142253B` (512B) · `B5XMS=142253B` (513B — **same body as 512B**) ·
+`M5TMO=140563B` (514B, in `026-S3IMPIT`, load `32000B`) · `5MTRA=143445B` (515B).
+
+**NOT byte-proven — the gap that matters:** every `MON 5xxB -> handler` LINK. The level-12 `GOSW`
+table mapping `5CMNO-L12MIN` to the handler is claimed resident-and-uncarved. The entire 500B-523B
+ordering comes from ONE NPL line range (`MP-P2-N500.NPL:1385-1390`) — and **NPL is a different
+revision than the carved bytes**. So: bodies real, dispatch unproven.
+
+**Inverted case** (`264B`, `265B`, `266B`, `416B`, `420B`): S3SM5 `0x60` vector routing IS
+byte-proven, but the bodies decode only partially.
+
+**Byte-proven ABSENT** (S3SM5 vector slot = `0000`): `425B` (`0x28a`), `426B` (`0x28c`),
+`427B` (`0x28e`), `436B` (`0x29c`), `437B` (`0x29e`). For 436B/437B the `GOTAB` hit is a
+**coincidental** index into the device table (`DT85W`/`DT86R`) — not a handler. Servicing point NOT LOCATED.
+
+**`60B-N500M`:** `GOTAB[60B]=000000` fall-through is byte-proven. Symbol `N500M=030416B` lands in a
+data/ASCII region — real servicing is in the separate `ND-500-MONITOR` / `MP-P2-N500` back-end,
+outside this carve. Its ~67-subfunction table is manual-sourced, not byte-sourced.
+
+**Missing 5MPM interface facts (blocking the emulator):**
+- Offsets for `MCNO`, `SMCNO`, `FUNCV`, `KFLIP`, `NUMPA`, `N5STA` — "not found in symbol files".
+- Status-code VALUES `MSGN500` / `WAITING` / `ANSWER` / `5ERANSWER` — absent from NPL. Manual hint
+  only (0=free, 1=to-ND500, 2=in-process, 3=answer, 4=error), **unverified**.
+- The `5STDRIV` -> `CHN5STATUS` -> `DECOMESS` -> `MCHANDEL` chain: NPL-documented, **never located
+  in carved bytes**.
+
+**Known-good ND-500 values (symbol-verified):** `MOCAL=1`, `TRAPC=2`, `5FMOC=3`; MICFU
+`3STAR=23B`, `3MONC=24B`, `3TRAC=25B`, `3WMON=26B`, `3MONO=34B`, `33MON=46B`; `STOPR` at message
+offset `000011B`; `TRAPN` at `000016B`; STOPREASON = bits 10-14 of `RSTA5`, mask `037000B`.
+
+### 1.3a ND-500 interface carve — DONE (2026-07-15)
+
+The ND-100 <-> ND-500 communication interface has been reverse-engineered end to end from the
+carved L07 bytes. The full path `command -> thunk -> gateway -> MON 60 -> N500M 5IFUNC ->
+FPT2ENTRY -> FUNCS[code] -> ND-500 op` is mapped and byte-verified, and the control-store gate
+that blocked the emulator is solved (return `RSTA5` STATUS bit 9 `5CLOST` clear). Both sides:
+
+- **ND-100 -> ND-500 (MON 60B / N500M worker):**
+  `tools/sintran-segment-carver/versions/L-VSX-500/re/mon-analysis/60B-N500M/`
+  — 47 subfunction folders + the `5IFUNC` table + a caller-vs-worker cross-analysis.
+- **ND-500 system monitor (S3SM5 side):**
+  `tools/sintran-segment-carver/versions/L-VSX-500/re/ND500-SYSTEM-MONITOR/`
+  — the `FUNCS` operation table, the `3022` IOX driver + byte-validated register map, the
+  control-store gate fix, the `5MPM` message + activation, the level-12 return path, and all
+  `FUNCS` routine bodies.
+- **Status of record:** `SINTRAN/ND500/ND500-STATUS-AND-INDEX.md`.
+
+This supersedes the older "`60B-N500M` lives outside the carve" conclusion in section 1.3 and the
+phase-1 items in section 4a (kept below for their evidence-register detail).
+
+### 1.4 POISONED PRIOR — active bug in the emulator
+
+The **"TAG code" protocol** (codes 8/9/16 = MonitorCall / PageFault / OperationComplete) documented in
+`SINTRAN\Emulator\ND500-QUICK-REFERENCE.md`, `DETAILED-TAG-MECHANISM-EXPLANATION.md`, and implemented in
+RetroCore's **`NDBusND500IF.cs`**, is **FABRICATED**. It exists neither in the ND hardware nor in
+SINTRAN. Recorded in `ND500-L-RELEASE-RE-TASK-HANDOFF.md`. It must be removed and replaced with the
+real 5MPM handshake once section 4a lands.
+
+### 1.4a SCSI ENTER-DIRECTORY mount bug — RESOLVED (2026-07-14, verified live)
+
+Not a SINTRAN bug: RetroCore's ND-100 `RDIV` (141600) early-returned on overflow without writing A/D,
+so the mount's geometry-check division `(UHLIM/2)/divisor` read a zero quotient and aborted with 243B
+before block 0 was read. Fixed (always write A/D, then set Z); mount works. Full write-up:
+`tools\sintran-segment-carver\versions\L-VSX-500\re\kernel-carving\RCBLO\README.md` section 4.
+
+### 1.5 File-name abbreviation matcher — CARVED (2026-07-16)
+
+The SINTRAN file-name subpart abbreviation/matching algorithm (used by OPEN/FOPEN and the whole
+FILSYS name/list family) is byte-verified. Full write-up:
+`tools\sintran-segment-carver\versions\L-VSX-500\re\segments-ref\006-S3FS\FLPAR-MDEAB-FILENAME-RESOLVER-CARVE.md`.
+
+Result: matching is **character-prefix** via one shared comparator **`COMPS @041552`** (supplied
+string is a prefix of the stored string = match; exact match distinguished; `-`(55) = positional/
+empty subpart that matches any value in that slot; `*`(52) = wildcard; `'`(47) = string terminator).
+Each name class scanner (`GDIRI` dir, `GNAMI` name/device, `GOBJI` file) **counts** COMPS matches:
+exact wins outright; else 0 -> "No such", 1 -> unique, >1 -> "Ambiguous". Verified file codes from
+`GOBJI @056326`: **056** no-such / unique / **057** ambiguous (056576-056607). Callers use the
+`SPUSH/SPOP` (003752/003776) reentrant-stack **multi-return skip-count** (`MIN ,B4`) convention.
+
+**Two poisoned priors corrected here:** (1) the request's assumption that `0111`=ambiguous is WRONG
+— ambiguous-file is **057**; `0111/0113` are a *separate* access/type classifier in `MDEAB`'s `,B27`
+bit-tree. (2) An interim draft's "numeric not prefix" claim was a misread of GOBJI's hash pre-filter;
+the definitive compare is COMPS and it IS a prefix match.
+
+Still OPEN: GOBJI hash-prefilter field layout (entry[42]/[44]) - low value, implementers may
+omit the pre-filter; FLPAR descriptor output layout - not needed for external resolvers.
+
+**0106-0114 DECODED (2026-07-17):** the MDEAB `,B27` bit-tree codes are the ACCESS-DENIED error
+family (ND-60.050.06 p.286): 070 not-directory, 0106 not-write, 0110 not-write+append,
+0111 **not-read**, 0112 not-R+W+common, 0113 not-R+W, 0114 not-R+common. `,B27` = requested
+access mask, bit0..4 = R/W/A/C/D. GFIAC@057771 reads the granted side from file entry[43B]
+(owner/friend/public select via GUSEN/GUSEI/RUSER/RUSEB) and returns `(access>>12B)&17B`.
+
+**Addendum 2026-07-17 (byte-decoded 041624-041706, closing the `-` edge cases):** if the STORED
+name ends before its next `-` while the supplied name still has a `-` subpart -> **NO MATCH**
+(041624-041627, checked every skip iteration). A match that used a positional `-` can only be
+**PREFIX**, never EXACT (041664->041666->041613). `,B12` = -(field width): budget exhaustion in
+the main loop = EXACT (full-field equality); during a B-skip = NO MATCH. Field width is
+caller-supplied (GNAMI passes `SAT 20` = 16 chars). Also corrected: GNAMI does a **LINEAR scan**
+(`,B22 += 16B` = entry stride) and UNPACKS the stored name for COMPS - the earlier "hash bucket
++16 / packs 7 chars" wording was wrong.
+
+### 1.6 Background logout machinery + the "FS RT flag" loop — CARVED (2026-07-17)
+
+Answer to the live SCSI-boot loop (RELEASE-USER re-running ~4/s forever):
+`SINTRAN\Devices\SCSI\CARVE-ANSWER-FS-RT-FLAG.md`. Key results, all byte-verified in
+003-S3CP/013-S3SCP (identical copies) unless marked:
+
+- The "FS RT program main loop" is **BLOGO @066663B** (background LOGOUT, SYMBOL-1-LIST),
+  loop body 066671B; tail jumps to **XBLOG @041554B** (pointer cell 066754B = 041554B).
+  SYMBOL-1-LIST is hereby validated for the 041xxx-067xxx S3CP range (XBLOG exact pointer
+  match + LOGOU/XLOGO/ALOGO/BILCM boundary coherence + existing UECOM anchor).
+- The state flag is background-datafield word **,B -103**; complete writer sweep = 11 writers.
+  1 <- login (CCCOM 061722B); 2 <- request posters (MODE 102677B, LOGDI 103001B);
+  0 <- five sites ALL gated on flag==2/even; -1 <- BLOGO 066725B + abort path 067010B.
+  **No -1 -> done writer exists**; -1 is the resting logged-out state. Re-runs are driven by
+  the router **050045B-050053B** (flag 1 or -1 -> JMP I via ptr 050200B = BLOGO) on every
+  activation. The emulator bug is a re-activation loop, not a missing flag write.
+- BLOGO gate-calls FILSYS **RLUSE @115020B** via inline-argument convention (JPL I through a
+  pointer cell holding gate 016561B; next word = FILSYS target; inline args at 066734B /
+  067005B / 067274B all = 115020B). RLUSE decrements user-entry word +25B once, NO zero
+  guard (115057B-115066B); helper calls = TUSEN 053174B / RUSER 053246B / WUSER 053410B.
+  RUSCN @106562B is the increment twin (106636B-106645B).
+- **POISONED PRIOR:** "main loop ~ CHNUS+25B" (FILSYS symbol) was numeric coincidence -
+  FILSYS link space == 006-S3FS carve VAs (RRLUS/RLUSE twin-entry proof) and the loop bytes
+  are not in S3FS. Also: the live boot disk is a DIFFERENT SINTRAN generation than this carve
+  (P-relative literals and one RLUSE B-frame offset differ; in-page offsets incompatible) -
+  anchor live<->carve by hex fingerprint only, never by constant offset.
+
+### 1.7 MON 50B OPEN quoted-filename semantics — CARVED (2026-07-17)
+
+For the nd500x linker/NC bring-up. Answer doc: `SINTRAN\ND500\CARVE-ANSWER-OPEN-QUOTED-FILENAME.md`.
+Byte-verified in 006-S3FS unless noted:
+
+- `MCTAB[50B] = 103034B = OPFIL` (044-S3IDPIT; validated vs RDISK/MAGTP slots; slot 200B is 0
+  in this build). Chain: OPFIL -> FCON@067002B -> FFILE@065144B -> **GCFIL@064670B**.
+- **GCFIL** is the quote handler: first char '"' (test 064677B) -> strip-by-copy -> dispatch
+  **CROBJ@063726B** (create); unquoted -> **GFILI@057173B** (lookup only, NO create path in
+  its pointer pool). `NAME;"n"` -> **CRNEW@064410B**. No flag - routine dispatch.
+- **CROBJ**: GOBJI error 056B/057B -> create (COBJE@061502B + CNEWV@063313B); lookup success
+  T!=0 -> **error 076B "File already exists"** (064040B). Quoted = create ONLY if absent;
+  existing quoted file is an ERROR, never truncate/overwrite/open-as-is.
+- **Unquoted missing = 056B "No such file name" for EVERY access code** - write-open-creates
+  does not exist in SINTRAN III. Emulator auto-create is non-standard, confirmed.
+- SEPUS@043100B skips one leading quote before `(USER)` (quote wraps the WHOLE spec);
+  SEPFS@042622B treats any interior quote as error 021B.
+
+### 1.8 Unqualified OPEN: current-user -> (SYSTEM) fallback is SINTRAN-internal — CARVED (2026-07-18)
+
+For the nd500x / mon_path.c author. Answer doc:
+`tools\sintran-segment-carver\versions\L-VSX-500\re\segments-ref\006-S3FS\CARVE-ANSWER-UNQUALIFIED-OPEN-USER-SYSTEM-FALLBACK.md`.
+Byte-verified in 006-S3FS:
+
+- **An unqualified 50B OPEN does NOT search "current user only."** `GFILI@057173B` scans the
+  caller's default directory first (filled by `GDEFD@055263B`), and on **56B "No such file name"**
+  it walks the directory table via **`GDIRT@050124B`** and finally scans the **(SYSTEM)** directory
+  via **`GSYSI@055540B`** (SYSTEM index resolved by NAME via `GMUSI@054527B`, not a hardcoded user
+  number). `GFILI` calls `GOBJI@056326B` **twice**: first 057263B, again (under SYSTEM) 057443B.
+- **The fallback is INTERNAL to the file system (GFILI in 006-S3FS), NOT the linker's job.** A caller
+  does not prepend `(SYSTEM)`; SINTRAN does the second scan itself.
+- **Gated by `,B40 == -1`** (057414B-057417B): if a user is named explicitly, `,B40 != -1` and the
+  fallback is suppressed -> only that user's directory searched. [V structure; the exact SEPOB
+  setter of `,B40` = still OPEN, but the BEHAVIOUR is confirmed by the manual.]
+- `GFIAC@057771B` (friend/public/ring access) is a **post-resolution permission gate** run by the
+  open worker AFTER the entry is found — it does NOT steer which user/dir is name-searched.
+- **Independent confirmation:** ND-60.050.06 SINTRAN III Users Guide lines 1720-1724 states the
+  rule verbatim (own directory first, then user SYSTEM; a named user restricts to that user). The
+  carve pins WHERE the rule lives (GFILI) and proves it is file-system-internal.
+
+**Full GFILI body carved (2026-07-18):**
+`tools\...\re\segments-ref\006-S3FS\GFILI-COMPLETE-CARVE.md` - complete instruction-level walk of
+`GFILI@057173B-057504B` (all pointer cells resolved, frame-local map, stage A-F flow). Two upgrades
+from the fallback answer doc, now [V]:
+- The `,B40` fallback gate is byte-proven: at `057213B-057217B` GFILI re-reads spec char[0] via
+  `GETCH`, and if it is `'('` (a `(USER)` prefix) it zeroes `,B40`; the SYSTEM fallback at `057414B`
+  runs only when `,B40 == -1`. This is the mechanism behind Users-Guide rule "named user -> only that
+  user". (Was [OPEN].)
+- **`GFIAC@057771B` is NOT referenced anywhere in GFILI's body** (every pointer cell listed) -
+  confirming GFILI is lookup-only and access-checking is a separate caller stage. (Was [I].)
+- Also mapped: GFILI calls SPUSH/SEPOB/GETCH/SEPFS/GOBJI(x2)/GVERS/GNEXV/GDIRT/GSYSI/SPOP; version
+  chain = GVERS(parse)+GNEXV(walk entry keys +41B/+44B). Version numeric semantics still OPEN.
+
+---
+
+## 1a. Index discrepancy (resolved 2026-07-15 — do not re-panic)
+
+The D: index prose says "**Six rows** changed worker: 15B, 45B, 120B, 304B, 313B, 327B". The E: index
+marks **34**. **This is not a factual contradiction.** The D: file is the **35-folder delivery subset**;
+the E: file is the full 156. The D: prose is additionally **stale** — its own table already shows seven
+changed (`15B`, `45B`, `51B`, `120B`, `304B`, `313B`, `327B`) plus `42B` flipped from "absent" to
+`OLDOP=103037B`.
+
+**The E: full index is authoritative.** The D: mirror is a delivery snapshot; treat its prose as stale.
+
+Confirmed worker corrections: `15B -> SETUP=103417` · `42B -> OLDOP=103037` (**NOT absent**) ·
+`45B -> BDBRK=002235` · `51B -> GBRKD=014263` · `120B -> XWFIL=026407` · `304B -> MAPSI=103675` ·
+`313B -> IBRSI=110543` · `327B -> MFFSC=111563` · `312B -> MOINF=032600` · `317B -> UECOM=050701`.
+
+---
+
+## 2. Two separate efforts (split confirmed)
+
+| Effort | What | Version | Data | Home |
+|--------|------|---------|------|------|
+| **A. Carving + MON RE** (this doc) | static RE of the SINTRAN image | **L07** (+K03/M06 carves) | carved `.bin` + NPL symbols | `E:\...\versions\L-VSX-500\re\` |
+| **B. SCSI mount bug** (separate) | why `@ENTER-DIRECTORY` fails on SCSI | **K-VSX-500** running trace | live opcode+register traces | `SINTRAN/Devices/SCSI/` |
+
+Do not conflate them — different versions, different data, different methods.
+
+---
+
+## 3. CRITICAL GOTCHAS (learned the hard way — do not repeat)
+
+1. **VERSION <-> SYMBOL ALIGNMENT.** Binary and symbol table must be the same version or every name
+   is wrong. Proven: **binary `K-VSX-500` <-> symbols `K03`** (K03 `ENDIR=127774`/`RCBLO=032433` land
+   on `STD I` prologues in K). **`L07` symbols do NOT fit K** (`ENDIR=140176` lands on mid-routine junk).
+2. **NPL source is a DIFFERENT revision** than the carved L bytes. Use NPL for logic, never as
+   authoritative bytes. **Carved bytes are ground truth.**
+3. **Overlays: the same virtual address decodes in many segments.** An address is meaningless without
+   knowing which segment is mapped. Pick the segment by *structural coherence* — take 2-3 sibling
+   symbols and find the segment where ALL land on parallel entries. Never by "it disassembles to something".
+4. **`nd100-dis` takes little-endian input** — byte-swap the big-endian carve first. Always confirm a
+   disassembled opcode word equals the source word before trusting the mnemonic.
+5. **Honest status only.** Mark VERIFIED (from bytes) vs INFERRED. Never upgrade a subagent's or the
+   NPL's claim to VERIFIED without checking bytes yourself. Never fabricate `.ASM` / `.bin`.
+6. **A table is only "the" table if its known slots match.** Validate against 2-3 independently known
+   entries first. GOTAB: slot 0 = `MFELL 072114B`, slot 1 = `M1 071633B`, slot 2 = `M2 071635B`.
+   MCTAB: `MON 005B -> RDISK 102021B`, `MON 200B -> XMSG 007516B`, `MON 144B -> MAGTP 026354B`.
+7. **"Symbol lands on a `021xxx STD I` prologue" is NOT a universal entry test.** Handlers reached by
+   a dispatch `JMP` have no link to save and no `STD I` (`UECOM=050701B` starts `146141 RADD CLD SL DD`).
+   Use that test for JPL-called routines only.
+8. **"Uncarved" usually means "nobody looked."** See section 1.2. 56 segments have never been disassembled.
+9. **Reproduce every offset with `dd` before publishing it.** Never publish a computed offset.
+
+---
+
+## 3a. THE ND-100 MON DISPATCH MODEL (corrected 2026-07-13 — byte-verified)
+
+The previous model ("`GOTAB[N]` -> **uncarved CALLPROC** -> worker") was **wrong**. There is no
+uncarved bridge. Full derivation: `D:\ND\t\re\mon-analysis\317B-ExecuteCommand\README.md`.
+
+```
+MON N  ->  ENT14 072167B          level-14 entry (in 017-S3SMPIT / 026-S3IMPIT, NOT commoncode)
+       ->  X := MEM[MGOTA + N]    MGOTA = 071233B ; 072256B LDX I ,X 20
+       ->  JMP ,X   (072260B)     a DIRECT JUMP - no call, no bridge
+       ->  GOTAB[N]:
+             32 of 256 slots = resident fast handlers (MON 1B, 2B, 21B-24B, 63B,
+                               163B, 200B XMSG, 310B, 346B-377B); arm B-level via IOB14=071660B
+            224 of 256 slots = MFELL 072114B
+       ->  MFELL: IRW 20 DX (pass MON number) ; IRW 20 DP := CALLP 032201B ; MST PID/PIE
+                  == a program-LEVEL switch (this is the thing once called "CALLPROC")
+       ->  CALLP on the monitor level
+       ->  MCTAB[N]   MCTAB / 9MCTA = 005620B, in segment 044-S3IDPIT
+       ->  worker
+```
+
+- **`MCTAB` @ `005620B` is the real monitor-call table**, one word per MON number, indexed by N.
+  216 of 256 slots populated; every populated slot lands on a named L07 symbol.
+- **`GOTAB` is NOT the monitor-call table** — level-14 fast path only. It is `MFELL` for 224 of 256
+  calls, so it cannot identify a call.
+- **Commoncode's `071233B` is NOT the GOTAB** (slot 0 = `000000`, slot 1 = `120303B`). Everything
+  derived from it — every `112xxx`/`120xxx`/`121xxx` "GOTAB entry" in the old index, and the shipped
+  NC oracle values for MON 312B/317B — was wrong and has been corrected.
+- **MON 312B (MOINF) returns `MCTAB[N]`**, not `GOTAB[N]`.
+- `ENT14`, `CALLP`, `MOINF` do not resolve in the commoncode carve but do in the PIT segments.
+  SYMBOL-1-LIST `03xxxx`/`07xxxx` code addresses describe the PIT-mapped resident image, not that carve.
+
+---
+
+## 4. PLAN — remaining work, in priority order
+
+**Agreed priority (2026-07-15): ND-500 interface first; cleanup limited to what ND-500 touches.**
+Goal: recreate the ND-100 <-> ND-500 communication in the RetroCore emulator.
+
+### 4a. PHASE 1 — the ND-500 <-> ND-100 interface (ACTIVE PRIORITY)
+
+**Detailed plan + evidence register: [`ND500\ND500-STATUS-AND-INDEX.md`](ND500/ND500-STATUS-AND-INDEX.md) section 6.**
+Keep ND-500 detail there; this is the summary.
+
+The MON-call *bodies* are largely NOT what the emulator needs. The **handshake** is — in **both
+directions**:
+
+- **ND-100 -> ND-500 = MON 60B (`N500M`) across the 3022 bus. ITEM 0, TOP PRIORITY.** Essentially
+  every `ND-500-MON` command reaches the ND-500 through this one call, so without it the emulator can
+  answer the ND-500 but cannot drive it. `MCTAB[60B] -> N500M=030416B` is byte-verified but the body
+  has never been disassembled; the prior "lives outside the carve" conclusion shows the
+  wrong-overlay signature (gotcha 3) and is probably wrong. **Carve `N500M` and every dependency
+  recursively, down to the 3022 bus registers.** External decode of `ND-500-MON:PROG` (REPORTED)
+  found exactly ONE `MON 60` site and **zero `IOXT`** — so SINTRAN owns the bus registers and this is
+  the only door. See ND-500 doc section 3a.
+- **ND-500 -> ND-100 = the level-12 / 5MPM path.** Items 1-7 below.
+
+Close these, in order:
+
+1. **Disassemble the never-touched ND-500 segments.** `030-S3SM5` (has `.asm`, verify it),
+   `062-S3SSM5`, `046-S3S5PIT`, `050-S3I5PIT`, `020-S3SDT5`, `021-S3NMS5`, plus `025-S3IRPIT` /
+   `026-S3IMPIT`. Promote each into `re/segments-ref/<seg>/` with `.asm` + `.symbols.txt` + `.meta.md`.
+2. **Byte-locate the level-12 GOSW table.** This is the #1 gap — it turns every 5xx link from
+   NPL-guess into byte-fact. Validate it against known slots before trusting it (gotcha 6):
+   index 0 must be `STAPR=140356B`, index 1 `NSTOP=140511B`, index 11 `DVIO=141027B`.
+3. **Byte-locate `5STDRIV`, `CHN5STATUS`, `DECOMESS`, `MCHANDEL`.** NPL cites
+   `MP-P2-N500.NPL:659, 730-759, 803-818, 1251-1406` for logic — bytes are authority.
+4. **Recover the 5MPM message-block layout from bytes:** offsets of `MCNO`, `SMCNO`, `FUNCV`,
+   `KFLIP`, `NUMPA`, `N5STA`. Known already: `STOPR` @ `000011B`, `TRAPN` @ `000016B`.
+5. **Recover the real status-code values** (`MSGN500`, `WAITING`, `ANSWER`, `5ERANSWER`) from the
+   compare instructions in `CHN5STATUS`. The 0..4 manual hint is unverified — prove or kill it.
+6. **Recover the return path `MONICO`** (NPL `CC-P2-N500.NPL:363-372`: write `FUNCV`, `KFLIP`,
+   `MICFU=3MONCO`, status `MSGN500`, `PSTAT=5ACTIVE`, `XACTRDY`, `LCON5=5`) from bytes.
+7. **Then fix the emulator:** remove the fabricated TAG protocol from `NDBusND500IF.cs` (section 1.4)
+   and implement the byte-verified handshake. Write the interface spec doc as the deliverable.
+
+### 4b. PHASE 2 — ND-500-touching cleanup only (agreed scope)
+
+- Rewrite the Dispatch sections of the ND-500 call folders onto the corrected model / real GOSW.
+- Finish the partially-decoded bodies: `264B`, `265B`, `266B`, `416B`, `420B`.
+- **Locate the 436B/437B servicing point** (byte-proven absent from S3SM5; the `GOTAB` hits are
+  coincidental device-table indices).
+- Reconcile `ND500-MONITOR-CALL-MECHANISM.md` against `ND500-L-RELEASE-RE-TASK-HANDOFF.md` — they
+  disagree on whether the MICFU values are known.
+- Audit the ND-500 table in the full index: give it a real worker/segment/status column, and delete
+  the unsupported "always byte-verified" prose.
+
+### 4c. DEFERRED (explicitly not now)
+
+- The 87 stale-dispatch ND-100 folders; the 34 `WORKER CHANGED` folders; the 94 missing folders.
+- Promote `003-S3CP` + `044-S3IDPIT` into `segments-ref/` (unblocks resident-worker rows).
+- Disassemble `MOINF` (`032600B`) and confirm from bytes that it reads `MCTAB[N]` (currently INFERRED;
+  this is what the NC oracle promises other teams).
+- Audit the 5 folders whose MON numbers are absent from MCTAB (`155B`, `175B`, `176B`, `177B`, `324B`).
+- Task #13 — Phase 2 deep ND-500 monitor disassembly (`S3SM5` param contracts, `S3SSM5`/`M06`).
+- Task #27 — carve user-selected MON groups (file-system, directory, disk-io, octobus/graphics).
+- Task #29 — find what *creates* the SCSI last-block layout (create-directory / format writer).
+- Recover real L bytes for folders currently backed only by NPL-source `.ASM`.
+- RE the ND-500 bus / Octobus hardware interface.
+- RE the SCSI / floppy / CD-ROM drivers — `NPL-SOURCE\NPL\IP-P2-SCSI-DISK.NPL`,
+  `IP-P2-SCSI-DRIV.NPL`, `IP-P2-DISK-START.NPL`.
+- RE SINTRAN III filesystem internals — existing output `SINTRAN/Filesystem/`.
+- Housekeeping: stale `S3SM5` disassembly prompt; commit carver/tool work; commit the `nd500-dis` fix.
+
+### 4d. Open ND-500 questions (from ND500-L-RELEASE-RE-TASK-HANDOFF.md)
+
+- **Q2 (highest value, = 4a.5)** — message status code values.
+- **Q3** — the USER side of the monitor-to-driver interface: which MON calls the background monitor
+  issues, with which parameter blocks. The `:PROG` side is undocumented.
+- **Q6** — does `ND-500-MON:PROG` ever IOX the 3022 directly, or is register access confined to
+  resident SINTRAN? (spec predicts the latter) — unconfirmed.
+- Q1 (211305 floppy contents) · Q4 (`SWAPPER-K:PSEG/DSEG` — first real ND-500-side code) ·
+  Q5 (segment capability word; contradiction C9: 11-bit vs 12-bit segment field) ·
+  Q7 (microcode image — artifact NOT FOUND on `F:\ND`).
+
+---
+
+## 5. Tooling
+
+`nd100-dis` lives in **WSL** (`/usr/local/bin/nd100-dis`) and takes **little-endian** input.
+`python3` is WSL-only; on Windows use `python.exe`. **The Bash tool in Claude Code is Git Bash,
+not WSL — `/mnt/e` paths do NOT resolve there.** Use PowerShell with `E:\...` paths, or invoke
+`wsl` explicitly.
+
+```bash
+# disassemble segment SEG (octal load base L, decimal Ld) around [lo..hi]
+python3 -c "d=bytearray(open('SEG.bin','rb').read());d[0::2],d[1::2]=d[1::2],d[0::2];open('/tmp/x.le','wb').write(d)"
+nd100-dis -a -o -b Ld /tmp/x.le | awk '$1>=lo && $1<=hi'
+```
+
+Instruction-semantics ground truth: the nd100x emulator (`~/repos/nd100x`), nd500x (`~/repos/nd500x`),
+and Ghidra SLEIGH (`E:\Dev\Ronny\ghidra-nd100`).
+
+---
+
+## 6. MAINTENANCE RULE — how to keep this document true
+
+**This document is the status of record. Update it IN THE SAME change as the analysis work.**
+
+Update it whenever any of these happen:
+
+| Trigger | What to update here |
+|---|---|
+| A **MON call** is analysed / rebuilt / corrected | The counts in section 1.1; move the call out of `NO FOLDER` / `WORKER CHANGED`; if it is an ND-500 call, update section 1.3 |
+| A **segment** is disassembled or promoted to `segments-ref/` | Section 1.2 — the "only 4 disassembled" statement and the not-yet-promoted list |
+| **NPL code** is analysed | Note it where it is used as evidence, and re-mark any claim it upgrades or contradicts. NPL never makes anything VERIFIED (gotcha 2) |
+| A **table / address / offset** is byte-proven | Section 1.3 (ND-500) or 3a (ND-100); add known-slot values to gotcha 6 |
+| A claim is **disproven** | Delete it and say so. Do not leave it hedged. Section 1.4 is the model for recording a poisoned prior |
+| A **phase-1 item lands** | Tick it in 4a and move the next item up |
+
+Rules for edits:
+- **Never upgrade a status without checking bytes yourself.** VERIFIED means "I read the bytes".
+- **Counts must come from the full index** (`E:\...\versions\L-VSX-500\re\MON-CALL-INDEX.md`), not
+  from the D: delivery mirror (section 1a).
+- When this document and a per-call folder disagree, **this document names the winner explicitly** —
+  it does not leave both standing.
+- Keep the honest counts. A number that flatters the effort is worse than no number.
+
+---
+
+**Owner note:** the live SCSI-mount investigation (effort B) is at a good stopping point documented in
+`SINTRAN/Devices/SCSI/mount-gate-diff.md` and
+`SINTRAN/Devices/SCSI/scsi-open-last-block-read.md`; it does not depend on the
+carving thread except for the create-directory writer (task #29).

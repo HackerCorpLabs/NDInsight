@@ -2,6 +2,13 @@
 
 **The authoritative reference for how the ND-100 and the ND-500 communicate.**
 
+> **BYTE-VALIDATED 2026-07-15.** The IOX register table (section 3.2) was independently confirmed
+> against the carved SINTRAN system-monitor driver (`030-S3SM5` IOX routines `WADR`/`WRDAT`/`RDATL`/
+> `REDAT`/`WRTAG`/`RSTAT`/`5MCLE` at `051023B`+; access pattern `LDT ,X -3 (device); AAT <off>; IOXT`).
+> Every offset this driver uses (`+2 RSTA5`, `+5 LCON5`, `+6 MCLR5`, `+11 LTAG5`, `+13 LLOW5/WDAT`,
+> `+14 SLOC5`, `+15 CLKD5`, `+16 UNLC5`, `+17 RETG5`) matches this table. Carve:
+> `tools\sintran-segment-carver\versions\L-VSX-500\re\ND500-SYSTEM-MONITOR\ND500-3022-IOX-INTERFACE.md`.
+
 **Date:** 2026-07-08
 **Supersedes:** old/ND-500-INTERFACE.md, old/ND500-BOOT-DETECTION-MECHANISM.md, and the
 interface-register content of the Emulator/ folder docs (ND500-QUICK-REFERENCE.md,

@@ -1,0 +1,31 @@
+seg 1 SEG001: JSON name=None -> fact 'SEG001'
+seg 15 S3BFLY: JSON range=None -> fact '26000:26000'
+seg 21 S3NMS5: JSON name='S3NM5' -> fact 'S3NMS5'
+seg 23 S3DPIT: JSON range='4000:135777' -> fact '4000:131777'
+seg 24 S3SSGT: JSON name='S3SGST' -> fact 'S3SSGT'
+seg 32 S3RTACC: missing from JSON
+seg 35 S3MPIT: JSON range='32000:155777' -> fact '32000:151777'
+seg 40 S3FUDRT: JSON range='164000:173777' -> fact '164000:137777'
+seg 47 S3RPIT: JSON range='32000:143777' -> fact '32000:141777'
+seg 50 S3I5PIT: JSON name='S3IS5PIT' -> fact 'S3I5PIT'
+seg 67 S3IPIT: JSON range='32000:77777' -> fact '32000:103777'
+seg 74 S3SXMK: JSON range='102000:177777' -> fact '120000:177777'
+seg 75 S3SXROU: JSON range='0:101777' -> fact '120000:177777'
+seg 76 S3XMK: JSON range='102000:177777' -> fact '120000:177777'
+seg 77 S3XROU: JSON range='0:101777' -> fact '0:177777'
+seg 101 S3DNAM: JSON name=None -> fact 'S3DNAM'
+seg 114 S3SERWC: JSON range='0:147777' -> fact '0:37777'
+seg 115 S3IERWC: JSON range='0:147777' -> fact '0:37777'
+seg 120 S3SPRMA: JSON name='S3SPPRMA' -> fact 'S3SPRMA'
+seg 122 S3SEVMS: JSON name='S3SPWRS' -> fact 'S3SEVMS'
+seg 123 S3IEVMS: JSON name='S3IPWRS' -> fact 'S3IEVMS'
+seg 130 CFT: JSON name='S3SHDM' -> fact 'CFT'
+seg 131 SEG131: JSON name='S3IHDM' -> fact 'SEG131'
+seg 132 CCT: JSON name='S3SFAC' -> fact 'CCT'
+seg 133 SEG133: JSON name='S3IFAC' -> fact 'SEG133'
+seg 134 SNA3270: JSON name='S3SNKDAT' -> fact 'SNA3270'
+seg 135 XFTRAD: JSON name='S3INKDAT' -> fact 'XFTRAD'
+seg 136 FSASG: missing from JSON
+seg 137 COSPOOL: missing from JSON
+seg 140 SEG140: missing from JSON
+seg 141 SEG141: missing from JSON

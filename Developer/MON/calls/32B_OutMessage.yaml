@@ -85,3 +85,57 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
+emulation:
+  status: implemented
+  nd500x_handler: /home/ronny/repos/nd500x/src/libmon/handlers/mon_32B_OutMessage.c
+  last_updated: '2026-07-17'
+
+  parameter_notes:
+    - name: Message
+      note: >-
+        Read as an ND-500 [Length:4][Pointer:4] DESCRIPTOR via
+        mon_read_descriptor_string(), NOT as an inline string. This is the
+        Pascal/FORTRAN calling convention. Capped at 512 characters.
+      verified: true
+
+  verified:
+    - claim: >-
+        32B takes a descriptor, not an inline string, and an auto-detecting reader is
+        the wrong tool for the job.
+      evidence: >-
+        Commit e54507d removed the unsafe auto-detect mon_read_string() and made
+        every caller declare its format explicitly, because auto-detection "could
+        misinterpret memory patterns". 32B was moved to mon_read_descriptor_string;
+        12B, 256B, 317B and 54B were moved to mon_read_sintran_string
+        (0x00/0x27/0xFF terminated). The same descriptor mistake was later found and
+        fixed independently in 317B UECOM (commit 15ca5e9 - the direct read saw the
+        descriptor struct's first byte 0x00 and produced "") and in 12B SETCM
+        (commit b615586). If a MON string comes out EMPTY, suspect the descriptor
+        first.
+    - claim: >-
+        SINTRAN messages already carry their own CR/LF terminators; the handler must
+        not add any.
+      evidence: >-
+        mon_32B_OutMessage.c: "Note: SINTRAN messages already contain \\r\\n
+        terminators, don't add extra" - the handler writes exactly the len bytes it
+        read.
+
+  unverified:
+    - >-
+      NO OBSERVED CALLER. No traced program (NC, CAT-500, ND linker) issues 32B.
+      Implemented but NOT proven end to end.
+    - >-
+      The 512-character cap is nd500x's own MAX_MESSAGE_LEN, matching the handler's
+      header note "max 512 characters". The scanned manual body in this YAML does not
+      state a maximum, so the limit is NOT confirmed from a primary source.
+    - >-
+      32B is documented as writing to "the user's terminal" specifically. nd500x
+      routes it to the single console with no device selection - there is no
+      per-user terminal concept to get wrong yet.
+    - >-
+      The handler never fails except on a missing argument: a descriptor that reads
+      as length 0 writes nothing and still returns success.
+
+  sources:
+    - doc: 'SINTRAN III Monitor Calls (ND-860228.2 EN)'
+      note: 'The manual body of this YAML.'

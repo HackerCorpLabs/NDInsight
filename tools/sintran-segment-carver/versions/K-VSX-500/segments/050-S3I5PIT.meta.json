@@ -1,0 +1,35 @@
+{
+ "segment_number_oct": "050",
+ "segment_number_dec": 40,
+ "name": "S3I5PIT",
+ "description": "Image of 5PIT segment",
+ "content": {
+  "nonzero": true,
+  "byte_order": "big-endian"
+ },
+ "size": {
+  "pages": 5,
+  "bytes": 10240,
+  "words": 5120
+ },
+ "segfil0": {
+  "madr_page": 456,
+  "flag_oct": "000111",
+  "segfil": 0
+ },
+ "load_address": {
+  "oct": "26000",
+  "dec": 11264,
+  "hex": "0x2C00"
+ },
+ "symbol_file": "N500-SYMBOLS",
+ "confidence": "K (correct disk SINTRAN-K05-XMSG-2026)",
+ "file": "050-S3I5PIT.bin",
+ "ghidra": {
+  "processor": "ND-100 big-endian 16-bit (word-addressed)",
+  "format": "Raw Binary",
+  "base_address_hex": "0x2C00",
+  "base_address_oct": "26000",
+  "note": "Load the .bin as-is (big-endian) - do NOT byte-swap for Ghidra. ND-100 is word-addressed: set the base in the word address space. Byte-swap to little-endian ONLY for nd100-dis."
+ }
+}

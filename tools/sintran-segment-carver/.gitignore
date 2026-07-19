@@ -1,0 +1,37 @@
+# Large raw SEGFIL0 extracts (14-17 MB each) - re-createable with:
+#   ndtool -x -F 'SYSTEM/SEGFIL0:DATA' -o <dir> <SMD image>
+# Kept out of git to avoid permanent repo bloat; the small segment-table
+# dumps and listings in inputs/ ARE committed (they are the essential facts).
+versions/*/inputs/*-segfil0-be.bin
+
+# ---------------------------------------------------------------------------
+# Generated segments-ref bundles (same philosophy as above).
+#
+# Ground truth is versions/*/segments/*.bin - those ARE committed. Everything
+# under re/segments-ref/ is regenerated from those bytes by:
+#     python3 make-segment-ref.py L-VSX-500 --all      (needs nd100-dis; WSL)
+# A full L rebuild takes ~17 seconds.
+#
+# *.hex   NOT committed (70 MB). It is only a formatted view of bytes already in
+#         the committed .bin, and needs NO special tooling to regenerate.
+# *.asm   committed ONLY for the 8-segment MON core (un-ignored below). The .asm
+#         is the one artifact a visitor CANNOT reproduce without nd100-dis, which
+#         is not in this repo - so the segments every MON doc links to stay
+#         browsable. All 216 MON workers + the whole dispatch chain live in these 8.
+#         The other ~61 .asm (53 MB) are one command away for anyone who wants them.
+# *.symbols.txt / *.meta.md   committed (small, browsable, no tooling needed).
+# ---------------------------------------------------------------------------
+versions/*/re/segments-ref/**/*.hex
+versions/*/re/segments-ref/**/*.asm
+
+# MON workers:  003-S3CP (78 calls), 006-S3FS (72), 025-S3IRPIT (59),
+#               030-S3SM5 (4), 004-S3RTL (3)
+!versions/*/re/segments-ref/003-S3CP/003-S3CP.asm
+!versions/*/re/segments-ref/006-S3FS/006-S3FS.asm
+!versions/*/re/segments-ref/025-S3IRPIT/025-S3IRPIT.asm
+!versions/*/re/segments-ref/030-S3SM5/030-S3SM5.asm
+!versions/*/re/segments-ref/004-S3RTL/004-S3RTL.asm
+# Dispatch chain: ENT14 + GOTAB + MFELL in 026-S3IMPIT; MCTAB in 044-S3IDPIT.
+!versions/*/re/segments-ref/026-S3IMPIT/026-S3IMPIT.asm
+!versions/*/re/segments-ref/044-S3IDPIT/044-S3IDPIT.asm
+!versions/*/re/segments-ref/SINTRAN-DATA_commoncode/SINTRAN-DATA_commoncode.asm

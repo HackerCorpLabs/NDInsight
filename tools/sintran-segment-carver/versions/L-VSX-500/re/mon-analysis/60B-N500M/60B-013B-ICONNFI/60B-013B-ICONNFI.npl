@@ -1,0 +1,7 @@
+% NPL SOURCE REFERENCE - MON 60B subfunction 013B - ICONNFI
+% Verbatim from 5P-P2-MON60.NPL. NPL logic, not authoritative bytes.
+
+ICONNFI:     % FUNCTION=013: CONNECT FILE
+       T:=200; A:=5P1; CALL FRUSMOVE             % COPY FILE NAME TO MON60 BUFFER
+       T:=4; A:=5P3; X:=100; CALL XFRUSMOVE      % COPY FILE TYPE TO MON60 BUFFER
+       GO FAR 5NOPAR; *)FILL

@@ -109,3 +109,78 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
+emulation:
+  status: implemented
+  nd500x_handler: /home/ronny/repos/nd500x/src/libmon/handlers/mon_74B_SetStartByte.c
+  last_updated: '2026-07-17'
+
+  parameter_notes:
+    - name: BytePointer
+      note: >-
+        INTEGER4 read as a full 32-bit word on the ND-500, not a halfword. The
+        first byte of a file is 0.
+      verified: true
+
+  return_contract:
+    success: 'K flag cleared; the entry position is set and the host file seeked.'
+    errors:
+      - code: 87
+        octal: 127B
+        meaning: 'File number out of range'
+      - code: 90
+        octal: 132B
+        meaning: 'No file opened with this number'
+      - code: 99
+        octal: 143B
+        meaning: 'No such block (host seek failed)'
+      - code: 111
+        octal: 157B
+        meaning: 'Missing parameter'
+
+  observed_calls:
+    - caller: 'ND linker (linker-b01.dom), DDB table load'
+      params:
+        BytePointer: 0
+      expectation: >-
+        The linker OPENs 'DDBTABLES-G':VTM (abbreviation-resolves to
+        DDBTABLES-G06:VTM), 74B SETBTs the byte pointer to 0, then reads the file
+        via 144B MAGTP function 0. The position set here is the position that
+        read starts from.
+      note: >-
+        Also observed in a FAILURE cascade: when the linker's first 50B OPEN
+        (empty file name) fails, the following 74B SETBT is issued with an
+        invalid file number (56) and errors. That SETBT error is a SYMPTOM of the
+        OPEN failure, not a SETBT defect - do not chase it.
+
+  verified:
+    - claim: 'BytePointer is a 32-bit INTEGER4.'
+      evidence: >-
+        Recorded as carve-verified in
+        /home/ronny/repos/nd500x/docs/MON_COMPLETENESS_MATRIX.md row 74B
+        ("byte ptr read as 32-bit INTEGER4 (carve-verified)"). NOTE: that row
+        does not record the octal address of the carved worker, so the specific
+        byte cite is not reproducible from our notes - treat the width as
+        verified, the citation as incomplete.
+    - claim: 'The position set here is honoured by subsequent transfers.'
+      evidence: >-
+        Runtime: the linker SETBTs to 0 and its following 144B MAGTP function 0
+        read starts at 0 ("pos=10000" octal after a 4096-byte read). Commit
+        940ba39 implemented the real seek (the handler had been an
+        auto-generated stub returning -1).
+
+  unverified:
+    - >-
+      Seeking BEYOND the end of the file is allowed by the host and reported as
+      SUCCESS. What real SINTRAN does for a byte pointer past the end of a file
+      is not established.
+    - >-
+      Whether the real SETBT interacts with the block size (76B SETBS) - e.g.
+      rejecting a pointer that is not on a block boundary - is not established;
+      nd500x accepts any pointer.
+
+  sources:
+    - doc: 'SINTRAN III Monitor Calls (ND-860228.2 EN)'
+      note: 'The manual page this YAML was extracted from.'
+    - doc: /home/ronny/repos/nd500x/docs/MON_COMPLETENESS_MATRIX.md
+      note: 'Row 74B SETBT - PASS, carve-verified width.'
+    - commit: '940ba39 (nd500x) - real SETBT implementation (was a stub returning -1)'

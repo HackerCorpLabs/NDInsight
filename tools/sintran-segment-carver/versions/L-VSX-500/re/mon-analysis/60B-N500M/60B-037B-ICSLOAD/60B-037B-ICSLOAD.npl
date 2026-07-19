@@ -1,0 +1,28 @@
+% =============================================================================
+% NPL SOURCE REFERENCE - MON 60B subfunction 037B - ICSLOAD
+% Verbatim copy from the MON 60 worker source:
+%   E:\Dev\Ronny\NDInsight\SINTRAN\NPL-SOURCE\NPL\5P-P2-MON60.NPL
+% This is the authoritative logic the .pseudo.c is derived from. NPL is a
+% (possibly) different revision than the carved L07 bytes - use for logic, not
+% as authoritative bytes.
+% =============================================================================
+
+% --- the dispatch (fetch subfunction code, index 5IFUNC, jump) ---------------
+        X=:D; T:=5PRDESCR=:A.S0; 5FUNCTION=:X.S1         % 1. PROCESS DESCR.
+        A:=X+2=:D.S0                                     % 2. M60 FUNCTION
+        T:=XPARANT
+ SKPLG :"5D11"+B=:D; X:=ZAREG
+        A:=OLDPAGE; X+1=:B; CALL GND5PAR                 % FETCH MON-60 PARAMETERS
+        "N500DF"=:B; X:=5FUNCTION; *1BANK
+        A:=5IFUNC(X); *2BANK           % ADDR OF FUNCTION DEPENDANT "ROUTINE"
+        A=:P                           % GO TO ENTRY POINT ACCORDING TO FUNCTION CODE
+
+% --- 5IFUNC table slot 037 (000 - 037 row) ----------------------------------
+% INTEGER ARRAY 5IFUNC:=( ...
+%   5NOPAR,5NOPAR,5NOPAR,IDAMW,5NOPAR,5NOPAR,5NOPAR,ICSLOAD,   % 030 - 037
+%   ... )
+
+% --- the 037B handler body ---------------------------------------------------
+ICSLOAD:     % FUNCTION=037: LOAD CONTROL STORE (LOAD A FILE INTO CS)
+         A:=5P3; T:=200; CALL FRUSMOVE           % COPY FILE NAME TO MON60 BUFFER
+         GO FAR 5NOPAR; *)FILL

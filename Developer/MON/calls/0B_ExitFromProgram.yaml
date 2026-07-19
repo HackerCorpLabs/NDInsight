@@ -51,3 +51,66 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
+emulation:
+  status: verified
+  nd500x_handler: /home/ronny/repos/nd500x/src/libmon/handlers/mon_0B_ExitFromProgram.c
+  last_updated: '2026-07-17'
+
+  note: >-
+    In the emulator LEAVE has no SINTRAN to return to, so the handler requests a
+    CPU halt ("Program exit (MON 0B LEAVE)") and reports success. It does NOT
+    close open files or release reserved devices, which the manual says a
+    background program does on LEAVE - see unverified below.
+
+  observed_calls:
+    - caller: 'ND linker (linker-b01.dom) @PC=0xB0016205'
+      params: {}
+      expectation: >-
+        A clean program exit. This PC is the verified anchor for "the linker
+        terminated normally" - a MON halt here is the expected end state, not a
+        failure.
+      note: 'Reported as a verified anchor for the ND linker path (2026-07-17).'
+    - caller: 'NC C front-end (nc-a06.dom)'
+      params: {}
+      expectation: >-
+        NC ends every successful compile with a clean MON 0B LEAVE. Used
+        throughout the nd500x work as the regression signal - e.g. commit
+        15ca5e9/b615586: "NC unchanged: clean MON 0B LEAVE at instr 1902382".
+      note: 'The instruction number is a determinism check, not part of the contract.'
+
+  return_contract:
+    success: 'CPU halts; K flag cleared. The handler never returns an error.'
+    errors: []
+
+  verified:
+    - claim: >-
+        MON 0B is dispatched through MCTAB, not the level-14 GOTAB, and its L07
+        worker is PRTEX.
+      evidence: >-
+        Carve L-VSX-500: MCTAB base 005620B in segment 044-S3IDPIT; the 0B slot
+        (byte offset 1824) reads 35 bb = 032673B = PRTEX in segment 003-S3CP.
+        dd if=044-S3IDPIT.bin bs=1 skip=1824 count=2 -> 35 bb. The earlier
+        "GOTAB[0B]=000000 fall-through / LEAVE=144142B zero-filled" reading is
+        retracted by the carve itself (CORRECTED 2026-07-15 header).
+    - claim: 'The emulator halts the CPU on 0B and both real ND programs reach it.'
+      evidence: >-
+        handler mon_0B_ExitFromProgram.c calls mon_request_halt(); observed for
+        NC (clean LEAVE) and the ND linker (PC=0xB0016205).
+
+  unverified:
+    - >-
+      The manual behaviours "background programs close all files not set
+      permanently open" and "RT programs release all reserved devices" are NOT
+      implemented by the nd500x handler - it only halts. No program observed so
+      far depends on the implicit close, but a program that LEAVEs with a
+      half-written file would not get it flushed by this call.
+    - >-
+      The PRTEX worker body was not read; only the MCTAB slot value is
+      byte-proven. Whatever PRTEX does beyond terminating is unknown.
+    - >-
+      "Batch jobs continue with the next command" has no analogue in the
+      emulator (there is no batch processor).
+
+  sources:
+    - doc: '/mnt/e/Dev/Ronny/NDInsight/tools/sintran-segment-carver/versions/L-VSX-500/re/mon-analysis/0B-ExitFromProgram/README.md'
+      note: 'CORRECTED 2026-07-15 header carries the byte-verified MCTAB[0B] = PRTEX = 032673B.'

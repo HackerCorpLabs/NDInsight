@@ -92,6 +92,137 @@ LOCAL MEMORY (ND-100 only):                  MPM5 HARDWARE (Separate Module):
                                              └─────────────────────────────────┘
 ```
 
+### 2.3 What Makes MPM3 Different — Short Answer
+
+**MPM3 ("Big MPM"/BMPM) is the original (1978) multiport memory generation — a physically
+separate crate of memory hardware wired with dedicated hardware "ports" so more than one
+CPU can reach the same physical storage banks, and it's the only one of the memory types
+below that ships with its own dedicated ECC self-test/error-log service channel (fixed
+IOX ports `750B`-`753B`, section 9.5) — which is precisely the hook SINTRAN uses to
+detect it: nothing else answers that specific interface.** Everything else (MPM4, MPM5,
+plain local RAM, PIOC memory) is either a later hardware generation with a *different*
+self-test interface, or has no self-test interface at all and is only ever inferred by
+elimination.
+
+### 2.4 Comprehensive Memory Type Reference
+
+**How to read this table:** SINTRAN's boot code (`PH-P2-OPPSTART.NPL`) does not have one
+uniform "what type is this memory" test. It has a *stack* of hardware-specific probes,
+run in a fixed order, each of which can positively claim a page for its own type; a page
+that no probe claims keeps the default it was given at the very start. This table lists
+each type in the order SINTRAN tests for it.
+
+| Type | Symbol / code | What it physically is | How it's wired/connected | How SINTRAN detects it | Source |
+|---|---|---|---|---|---|
+| **MPM3 ("Big MPM"/BMPM)** | `KMPM3` = `1B` | Original (Aug. 1978) multiport hardware generation: a separate **crate** of storage banks (1132 storage modules) reached through dedicated **ports** (1142/1143 hardware) and **channels** — literally separate physical cabling per connected CPU into the same banks (manual figures 1.12/1.13 show the same banks "as seen from NORD-10/S" and "as seen from NORD-50" — i.e. two different CPU types, two different physical ports, one shared bank). | Multi-port at the backplane/cabling level; has its own **service channel** carrying a dedicated ECC **Error Log** module (1145/1146). | Two-stage IOX probe: `IOX 750B` (device-wide presence test, section 4.1) then, per page, `IOX 751B` write/write/read-bit-10 sequence (section 9.4/9.5) — only real BMPM hardware answers because only it has the error-log service channel behind those addresses. | `../../Reference-Manuals/ND-06.007.01 BIG MULTIPORT MEMORY SYSTEM.md`; this doc sections 4, 9.4, 9.5 |
+| **MPM4** | `KMPM4` = `2B` | Later multiport hardware generation (`ND-10.003.01`), BUSC-attached (bus controller). | Reached via BUSC address ranges (`IOX 100200B`-`100217B`). | Assigned from the `DMPM4` array, itself built during BUSC device-presence scanning (section 9.2 step 8) — a *different* code path from the ECCR per-page test below; this is a device/range-configuration match, not the forced-error trick. | `../../Reference-Manuals/500/ND-10.003.01 TECHNICAL INTRODUCTION TO MULTIPORT 4.md`; this doc section 9.2 step 8 |
+| **MPM5** | `KMPM5` = `4B` | The generation this document is primarily about: **Twin 16-Bit Port** modules (PCB 5152/5155) used for ND-100/ND-500 shared memory (section 2.2 diagram) — Port A to ND-100, Port B to ND-500, arbitration logic + BASE registers resolving the shared physical RAM underneath. | Two hardware ports (A/B) into one shared DRAM module, with address-window/BASE-register translation (section 6). | **Not positively detected at all.** Every bank found to physically exist is *initially* marked `KMPM5` by default (section 9.2, `RETU: All Memory = MPM5`); the refinement passes for MPM3/MPM4/KMECCR/PIOC only ever reclassify pages *away* from MPM5. Whatever no other probe claims stays MPM5 by elimination. | This doc section 9.2-9.4 |
+| **Local/OnCpu memory** | `KMECCR` = `10B` (8 decimal) — **CORRECTED 2026-07-10:** an earlier version of this table merged this code into the "MPM4" row and marked local memory's type code "unverified." That was wrong — `KMECCR` is its own distinct code and its documented name is literally **"Local/OnCpu memory"** (verified in `MPM5-MEMORY-DETECTION-AND-IDENTIFICATION.md` section 3.3's type-code table). | Ordinary on-CPU RAM equipped with its own on-board ECC/parity circuitry (the `ND-10.003.01` 6-check-bit scheme) — this is what's actually being positively detected by the `TRR ECCR` forced-check-and-readback sequence (section 9.4), **not** a multiport type. | Single-port, CPU-local — but with genuine on-board error-correction hardware, which is precisely what lets it answer the ECCR probe. | The `TRR ECCR` forced-parity-error sequence (`A:=11;*TRR ECCR` then `A:=4;*TRR ECCR;TRR 10`, section 9.4) — this **is** a positive test for local memory, contradicting what an earlier version of this doc claimed ("no positive test found for local memory"). Local memory *without* on-board ECC still has no positive test and still falls back to `KMPM5` by elimination — only ECC-equipped local memory is distinguishable. | `../../SINTRAN/OS/MPM5-MEMORY-DETECTION-AND-IDENTIFICATION.md` section 3.3; this doc section 9.4 |
+| **PIOC memory** | `KMPIOC` = `20B` (16 decimal) — value confirmed in `MPM5-MEMORY-DETECTION-AND-IDENTIFICATION.md` section 3.3 (earlier version of this table marked it unverified; corrected 2026-07-10) | Memory reserved for the **PIOC** (Peripheral I/O Controller, an MC68000-based card) — a different sharing use case entirely: I/O-processor-visible buffer memory, not CPU-to-CPU compute sharing. See section 2.6 below for the PIOC/Ethernet local-memory model in detail. | N/A as a *detection* matter — not a distinct hardware port type; it's a **software-declared** page range. Physically, though, PIOC memory is genuine bank-mapped **local** DRAM on the card (see section 2.6). | **Not hardware-probed at all.** Read from the `MMPIOCS` array, populated at system generation (SYSGEN) time, and applied at boot by directly marking those page ranges `KMPIOC` (section 9.2 step 7) — this overrides whatever MPM3/MPM4/MPM5/KMECCR classification a page would otherwise receive. | This doc section 9.2 step 7 |
+
+### 2.5 Why Are There Different Memory Types At All?
+
+Two independent reasons, both verified from the sources above:
+
+1. **Hardware generations, not a single design.** MPM3 (1978, crate/port/channel
+   architecture with a dedicated ECC error-log box) and MPM4 (on-chip ECC storage
+   modules) and MPM5 (the simpler ND-100/ND-500 Twin-Port design this document otherwise
+   covers) are three *different, successive* Norsk Data multiport-memory products,
+   roughly a decade apart, each with its own detection interface. SINTRAN's boot code
+   never dropped support for the older generations — it just accumulated one probe per
+   generation, tried in sequence, because a given installed system could have any of
+   them (or none).
+2. **A genuinely different use case for PIOC.** PIOC memory isn't a multiport-hardware
+   generation at all — it's ordinary memory set aside by configuration for the Peripheral
+   I/O Controller to see, which is why it's the only type in this table that's declared
+   rather than detected.
+
+### 2.6 PIOC and Ethernet Cards: Local (Bank-Mapped) Memory, NOT Multiport Hardware
+
+**User-confirmed (2026-07-10), verified against the official hardware manuals — both
+cards use ordinary ND-100-local memory for host communication and code loading, not the
+MPM3/MPM4/MPM5 multiport hardware described above.**
+
+**Ethernet controller** (`../../Reference-Manuals/Devices/ND-12.055.1 EN Ethernet II
+Controller.md`, section 2.4/2.4.1, lines 605-627): the card carries 512Kbyte local DRAM.
+Verbatim: *"The local DRAM is accessible from the ND-100 as if it were any other ND-100
+memory bank. The location of the DRAM in the ND-100 address space can be set by two
+thumbwheels... Messages between the controller and ND-100 can be transferred via special
+mailbox areas in the DRAM."* This is a **bank-mapped window into ordinary local memory**,
+not a multiport-hardware channel — the card's own on-board CPU (68000), the on-board
+LANCE Ethernet chip, and the ND-100 all arbitrate for the same DRAM by priority (ND-100
+highest, LANCE, then 68000 lowest), which is a simple bus-arbitration scheme, not the
+MPM3-style crate/port/channel architecture or MPM5's twin-port design.
+
+**PIOC (Peripheral I/O Controller, also MC68000-based; used for X.25/Ethernet-class
+networking per `../../Developer/MON/calls/255B_PIOCCFunction.yaml`):** same local-memory
+model, confirmed in `../../Reference-Manuals/ND-06.015.02 ND-100 Functional
+Description.md` lines 12679, 12741: card variants are named **"PIOC/64" and "PIOC/256"
+depending on the local memory size in K words**, and that local RAM is *"reached from the
+ND-100 CPU or from the DMA devices"* (with a thumbwheel able to privatize half of it on
+the PIOC/256 variant). **Code loading is confirmed too:** `PIOCFunction` (`MON 255B`)
+function 4 is literally *"Load segment into PIOC memory"* (`255B_PIOCCFunction.yaml`),
+and functions 2/3 are *"Send information to a PIOC-process"* / *"Read a message from a
+PIOC-process"* — the same mailbox-in-local-memory pattern as the Ethernet card.
+
+**Why this design makes sense:** both cards are self-contained MC68000 subsystems that
+mostly compute independently (running Ethernet/X.25 protocol stacks); they only need an
+occasional, simple, host-arbitrated memory window for the ND-100 to hand them code and
+exchange short messages — the expensive, real multiport hardware (MPM3 crate wiring,
+MPM5 twin-port arbitration logic) exists specifically for the ND-100/ND-500 case, where
+*two full CPUs* need genuinely concurrent, low-latency access to a large shared region —
+a materially different and more demanding requirement than a peripheral card's mailbox.
+
+### 2.7 ND-500 Bus Interface and Octobus: Confirmed on MPM5-Family Hardware, With Semaphore Locking
+
+**User's assumption confirmed on both counts** — verified in
+`../../SINTRAN/ND500/ND500-BUS-INTERFACE-REFERENCE.md` section 13 (lines 743-796) and
+`../../SINTRAN/NPL-SOURCE/NPL/RP-P2-N500.NPL`.
+
+**Data path is MPM5-family hardware, for both ND-500 generations, not just the Octobus
+one:**
+- **Old ND-500 (3022/5015 DMA cards):** per this document's own coverage, this is the
+  classic ND-100/ND-500 shared-memory path — MPM5 Twin-Port hardware (section 2.4 row
+  above).
+- **ND-5000/SAMSON (Octobus path):** bus-interface doc line 749/789-791 — *"Physical
+  path: Octobus + access module (MC68000 'ACCP') + MFbus shared memory"*; *"Data path:
+  shared memory on the MFbus - the MFbus system is the MPM-5 successor (MFbus Port =
+  MPM-5 Port, part 324355; MFbus Dynamic RAM = MPM-5 RAM, part 324158) with octobus
+  support added."* So the Octobus/SAMSON generation doesn't replace MPM5 memory — it
+  keeps the same MPM-5 RAM/Port hardware parts and adds the Octobus as a new
+  control/interrupt path alongside it. The Octobus itself normally carries **no data at
+  all** — only "look in the mailbox" signaling messages; the actual data transfer is
+  through the MFbus/MPM-5 shared memory (line 770-771).
+
+**Semaphore locking — confirmed, but the mechanism differs by generation (bus-interface
+doc line 753, its section 13 comparison table):**
+- **Old ND-500 (3022 DMA) path — software lock, no hardware semaphore needed:** the
+  bus-interface doc states *"Mutual exclusion: none needed (driver-level)"* — meaning
+  SINTRAN's own driver code serializes access rather than relying on dedicated lock
+  hardware. This is confirmed directly in the NPL source: `RP-P2-N500.NPL` lines
+  218-220 use `CALL SLOCK` / `CALL SUNLOCK` around a mailbox-queue insert, explicitly
+  commented *"Lock queue semaphore"* / *"Unlock queue semaphore"* — this guards the
+  `MAILINK`-based mailbox linked list that lives in MPM5 memory (the same code walks
+  `5MBBANK`/`CNVBYADR`, "Convert multi-port address," immediately above the lock).
+- **ND-5000/SAMSON (Octobus) path — dedicated hardware semaphore:** the bus-interface
+  doc's comparison table names it explicitly: *"Mutual exclusion: X5SEMA hardware
+  test-and-set (SLOCK/SUNLOCK)"* — i.e. the newer generation has an actual hardware
+  test-and-set register (`X5SEMA`) in the MFbus interface itself, rather than relying
+  purely on SINTRAN-side software discipline.
+
+So: yes to MPM5-family hardware for both paths, yes to semaphore-based locking for both
+— but it's worth being precise that the *old* path's "semaphore" is a software construct
+in the SINTRAN driver (`SLOCK`/`SUNLOCK` calls around the mailbox queue), while the
+*Octobus/SAMSON* path additionally has genuine lock hardware (`X5SEMA` test-and-set) it
+can rely on.
+
+The practical consequence for emulation (tying back to section 9.3): since SINTRAN never
+positively tests for "is this genuinely local, non-shared RAM," an emulator only needs to
+correctly answer (or correctly *fail to answer*) the MPM3 (`750B`/`751B`) and MPM4
+(`100115B`/ECCR) probes to get local vs. MPM3 vs. MPM4 classification right — true MPM5
+and plain local memory are indistinguishable to this detection code and will both end up
+typed `KMPM5` unless a PIOC range excludes them.
+
 ---
 
 ## 3. Understanding ND-100 Addressing (The Bank Confusion)
@@ -1114,6 +1245,82 @@ flowchart TD
 - IOX instruction responses for hardware detection
 - Page-level hardware tests (`IOX 751` for MPM3, `TRR ECCR` for MPM4)
 - `MMPIOCS` array configuration for PIOC memory
+
+### 9.4 The Actual Per-Page Discrimination Mechanism: Forced Parity Error
+
+**User-confirmed summary (2026-07-09), matched against the NPL source already quoted in
+section 13.5 (`PH-P2-OPPSTART.NPL:3830-3869`, `MPM3MAP`/`MPM4MAP`):** detection across all
+memory during boot works by deliberately arming a parity-error trap, then probing each
+page. Local (on-board) RAM equipped with ECC/parity hardware answers the probe and gets
+positively identified; MPM5 memory has no such on-board ECC circuitry, does not answer
+the same way, and is left classified as MPM5 by exclusion. This matches the default
+state established earlier in this document (section 9.2 flowchart: "RETU: All Memory =
+MPM5" is the *starting* classification before any refinement runs) — MPM5 is the
+fallback bucket, not something positively detected in its own right.
+
+**One terminology correction worth being precise about:** the NPL source names this
+**"MEMORY PARITY ERROR"** (line 1832 comment: `A:=400; *TRR IIE % ENABLE FOR MEMORY
+PARITY ERROR`), not "CRC" — parity and CRC are different error-detection schemes
+(parity = 1 check bit typically per byte/word, detects only single-bit errors; CRC is a
+multi-bit polynomial checksum). The Multiport 4 hardware manual
+(`../../Reference-Manuals/500/ND-10.003.01 TECHNICAL INTRODUCTION TO MULTIPORT 4.md`
+line 256) describes the mechanism as **single-bit error correction with multi-bit error
+detection, "accomplished by 6 [check] bits generated and checked within the memory
+module"** — this is an ECC (error-correcting code) scheme, closer to Hamming-code-style
+ECC than either simple parity or CRC, though the NPL source's own comment calls it
+"parity." Functionally your description is exactly right (deliberately force an
+error-detection condition; hardware that has the on-board error-detection circuitry
+responds, MPM5 doesn't); the precise name for the mechanism per the sources found is
+parity/ECC, not CRC.
+
+**Exact mechanism, cited (`PH-P2-OPPSTART.NPL:3830-3869`, this doc's section 13.5):**
+
+1. `A:=400; *TRR IIE` — arm the interrupt-enable register for the memory-parity-error
+   trap.
+2. `*TRA PGS; TRA PEA; TRA IIC` — clear the page-status, parity-error-address, and
+   interrupt-code registers (baseline before the probe).
+3. Per page: `TTMMAP` checks the bank physically exists; `TNINITP` checks it isn't in a
+   reserved/invisible range.
+4. The actual discriminating test differs by candidate hardware type:
+   - **ECCR/MPM4 path:** `A:=11; *TRR ECCR` then `A:=4; *TRR ECCR; TRR 10` — writes a
+     control pattern to the ECCR register, forces the check condition, then reads back
+     status bit 10. If `A=10`, the page is positively identified as `KMECCR` (ECC-equipped
+     local/MPM4 memory) via `SMEMTYPE`.
+   - **MPM3 path:** `A:=140751; *IOX 751` then `A:=140764; *IOX 751; TRR 10` — same
+     write-pattern/force/read-back-bit-10 idea via IOX port 751 instead of the ECCR
+     register. `A=10` -> classified `KMPM3`.
+5. `ORGCOUNT=:X.S0` restores the page's original content (the probe is non-destructive
+   by design), then `*TRA PES; TRA PEA; TRA IIC; TRA PGS` clears the error registers
+   again before moving to the next page.
+6. Whatever page never matches either positive test (never reports `A=10`) keeps its
+   default MPM5 classification from the initial "all memory = MPM5" pass (section 9.2).
+
+### 9.5 What IOX Ports 750-753 Actually Are
+
+**Verified from the official hardware manual,
+`../../Reference-Manuals/ND-06.007.01 BIG MULTIPORT MEMORY SYSTEM.md`, and cross-checked
+against `IOX-REGISTER-COMPLETE-REFERENCE.md` section 2.1.** Ports `750B`-`753B` are
+**fixed wired device numbers** (device number `5B`) for the **BIG MPM (MPM3) error-log
+I/O interface** (manual modules 1145/1146) — a dedicated register block whose real
+hardware purpose is scanning the multiport memory's ECC error log bit-by-bit to identify
+which bank/crate reported a memory error (manual line 1517: *"The error logs are not
+ordinary working memory and therefore they need a dedicated interface to read them... An
+IOX command initiates scanning of the error log in a bank, bit for bit."*):
+
+| IOX address | Register name (manual) | Purpose |
+|---|---|---|
+| `750B` | Read Scan Register (DR) | Device-presence test — does a BIG MPM/MPM3 controller exist at all (section 4.1 of this doc) |
+| **`751B`** | **Load Command Register (DW)** | **Per-page test — writes a command from the CPU A register into the error-log interface's command register; used by `MPM3MAP` to positively identify individual MPM3-backed pages (section 9.4 above)** |
+| `752B` | Read Status Register | Error-log readback; manual line 1639 notes this is also the only source of interrupts from this interface — "memory errors detected by the ECC system at each port" |
+| `753B` | Load Control Register | Error-log control |
+
+So `750B` answers "is an MPM3 controller present system-wide," and `751B` answers "is
+*this specific page* backed by MPM3 hardware" — SINTRAN repurposes the error-log
+command/status handshake as a detection probe rather than for its originally-intended
+error-reporting purpose, which is exactly the forced-error-condition trick discussed in
+section 9.4: only memory actually wired through this MPM3 error-log interface can answer
+the probe with the expected `A=10B` result; MPM5 has no such interface behind it and
+never responds, leaving it in the default MPM5 classification bucket.
 
 ## 10. ADRZERO Constraints: Avoiding Kernel Memory Overlap
 

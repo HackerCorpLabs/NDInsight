@@ -134,7 +134,7 @@ Comprehensive documentation for SINTRAN III operating system (160+ files, ~7.4MB
 | **[SINTRAN Structures/](SINTRAN/SINTRAN%20Structures/)** | System structures analysis | 6 files with kernel data structures (570KB) |
 | **[Devices/](SINTRAN/Devices/)** | Hardware device drivers | HDLC (30+ docs) + SCSI (10+ docs) |
 | **[Emulator/](SINTRAN/Emulator/)** | C# emulator implementation | 5 files with production code |
-| **[ND500/](SINTRAN/ND500/)** | ND-500 coprocessor | Integration and communication |
+| **[ND500/](SINTRAN/ND500/)** | ND-500 coprocessor | Integration + communication. ND-100 <-> ND-500 interface reverse-engineered end to end (byte-verified from L07); status of record: `SINTRAN\ND500\ND500-STATUS-AND-INDEX.md` |
 | **[TAD/](SINTRAN/TAD/)** | TAD protocol | Terminal access protocol analysis |
 
 📖 **[See SINTRAN/README.md for complete overview](SINTRAN/README.md)**

@@ -115,3 +115,52 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
+emulation:
+  status: implemented
+  nd500x_handler: /home/ronny/repos/nd500x/src/libmon/handlers/mon_24B_Out8Bytes.c
+  last_updated: '2026-07-17'
+
+  parameter_notes:
+    - name: OutData
+      note: >-
+        Taken as a RAW BYTE ADDRESS (arg_addresses[1]) and read byte by byte - not a
+        descriptor and not a 0x27-terminated string. Same convention as 22B.
+      verified: true
+
+  return_contract:
+    success: 'K flag cleared; exactly 8 bytes written.'
+    errors:
+      - code: 24
+        octal: 030B
+        meaning: 'No such device name (unsupported device class)'
+      - code: 90
+        octal: 132B
+        meaning: 'No file opened with this number'
+      - code: 124
+        octal: 174B
+        meaning: 'Illegal parameter (file not open for writing, or short host write)'
+      - code: 111
+        octal: 157B
+        meaning: 'Missing parameter (fewer than 2 CALLG args)'
+
+  verified:
+    - claim: >-
+        ALL 8 BYTES are written, including embedded 0 bytes. This is the ONLY
+        difference from 22B OutUpTo8Bytes, which stops at the first 0.
+      evidence: 'mon_24B_Out8Bytes.c - unconditional loop over i < 8, no zero test.'
+
+  unverified:
+    - >-
+      NO OBSERVED CALLER. No traced program issues 24B; they use 504B DVOUTS, exactly
+      as the manual advises ("On the ND-500, you are advised to use the faster
+      OutputString"). Implemented but NOT proven end to end.
+    - >-
+      nd500x ALSO accepts file numbers here and writes 8 bytes to the open file. The
+      manual describes 24B as writing "to a character device, e.g. a terminal" and
+      does not say whether a file number is legal. Whether the file path is correct
+      behaviour or an over-permissive emulation is UNKNOWN. (Note the contrast: 22B,
+      whose manual explicitly says file numbers are illegal, does reject them.)
+
+  sources:
+    - doc: 'SINTRAN III Monitor Calls (ND-860228.2 EN)'
+      note: 'The manual body of this YAML.'

@@ -1,0 +1,35 @@
+{
+ "segment_number_oct": "006",
+ "segment_number_dec": 6,
+ "name": "S3FS",
+ "description": "File system segment",
+ "content": {
+  "nonzero": true,
+  "byte_order": "big-endian"
+ },
+ "size": {
+  "pages": 53,
+  "bytes": 108544,
+  "words": 54272
+ },
+ "segfil0": {
+  "madr_page": 560,
+  "flag_oct": "000110",
+  "segfil": 0
+ },
+ "load_address": {
+  "oct": "26000",
+  "dec": 11264,
+  "hex": "0x2C00"
+ },
+ "symbol_file": "FILSYS-SYMBOLS",
+ "confidence": "K (correct disk SINTRAN-K05-XMSG-2026)",
+ "file": "006-S3FS.bin",
+ "ghidra": {
+  "processor": "ND-100 big-endian 16-bit (word-addressed)",
+  "format": "Raw Binary",
+  "base_address_hex": "0x2C00",
+  "base_address_oct": "26000",
+  "note": "Load the .bin as-is (big-endian) - do NOT byte-swap for Ghidra. ND-100 is word-addressed: set the base in the word address space. Byte-swap to little-endian ONLY for nd100-dis."
+ }
+}

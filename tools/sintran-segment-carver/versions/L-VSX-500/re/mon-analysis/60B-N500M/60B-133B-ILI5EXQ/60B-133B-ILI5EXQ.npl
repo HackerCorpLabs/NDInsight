@@ -1,0 +1,41 @@
+% NPL SOURCE REFERENCE - MON 60B 133B/150B - ILI5EXQ/ILI5TQU (shared ILI5F) list ex/time queue (verbatim, 5P-P2-MON60.NPL)
+ILI5EXQ:     % FUNCTION=133: LIST ND-500 EX-QUEUE
+       K:="0"; GO FAR ILI5F; *)FILL                  % K=ROUTINE SWITCH
+ILI5TQU:     % FUNCTION=150: LIST ND-500 TIME-QUEUE
+       K:=1; GO ILI5F; *)FILL                        % K=ROUTINE SWITCH
+% ILI5EXQ: K=0 -> LIST EX-QUEUE ; ILI5TQU: K=1 -> LIST TIME-QUEUE
+ILI5F: *IOF                                                % THESE ROUTINES MUST BE EXECUTED IN IOF!
+       CURPROG.BUFWINDOW=:D; A:=142000                     % PHYS.PAGE OF MON60 BUFFER TO RT-DESCR
+       X:="WNDBF+WNDBF+174000"; T:=0; *STDTX               % SET PIT ENTRY
+       IF K THEN
+          AD:=5ATIME=:LOGBADR.DS0; X+2=:L                  % SAVE 5ATIME FIRST IN BUFFER (TIME-QUEUE)
+          X:=X500DF; *AAX X5BTI
+       ELSE
+          CCPUDF=:B; CALL GETC5PROC
+          A=:"N500DF".LOGBADR.S0; X+1=:L                   % SAVE CURRENT ACTIVE PROC FIRST (EX-QUEUE)
+          X:=MAILINK; *AAX X5BEX                           % D=FIRST FREE ADDR; X=START OF EX-QUEUE
+       FI
+       DO
+          T:=5MBBANK; *LDDTX
+       WHILE D><-1                                         % -1 IS END OF EX-QUEUE AND TIME-QUEUE
+*NNC40, CNVBYADR
+          IF X:=D><DUMMESS THEN
+             T:=A; *SENDE@3 LDATX
+             IF A=:D><-1 THEN                                 % PROC.NO=-1 IS HISTOGRAM OR WATCHDOG MESS
+                IF K THEN                                     % LIST-TIME-QUEUE
+                   X:=:L; A=:X.S0; X+1:=:L                    % PROCESS NUMBER
+                   T:=5MBBANK; *AAX D5TIM; LDDTX; AAX -D5TIM  % START-TIME OF PROC
+                ELSE                                          % LIST-EXEC-QUEUE
+                   T:=5MBBANK; *AAX 5PRIO; LDATX; AAX -5PRIO
+                   A:=:D
+                FI
+                X:=:L; AD=:X.DS0; X+2:=:L
+             FI
+          FI
+ILIEOD:OD
+       -1=:L.S0                                            % -1 IN BUFFER IS END OF DATA
+       "N500DF"=:B
+       *ION
+       A:=X-LOGBADR SH 1 + 2                               % NUMBER OF BYTES TO MOVE
+       T:=5P1; CALL TOUSMOVE                               % COPY DATA (EX-QUEUE OR TIME-QUEUE) TO USER
+       GO FAR 5OKRET; *)FILL

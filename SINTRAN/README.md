@@ -34,6 +34,14 @@ SINTRAN III was a sophisticated real-time operating system providing:
 | [TAD/](TAD/) | TAD protocol analysis | 7 files |
 | [XMSG/](XMSG/README.md) | XMSG message system: wire protocol, MON 200B API, C# library, COSMOS RE | 40+ files |
 
+**ND-500 <-> ND-100 interface reverse-engineering (done, byte-verified from L07):**
+- Status of record + master index: `SINTRAN/ND500/ND500-STATUS-AND-INDEX.md`
+  ([ND500/ND500-STATUS-AND-INDEX.md](ND500/ND500-STATUS-AND-INDEX.md))
+- MON 60B / N500M worker carve (47 subfunction folders + 5IFUNC table):
+  `tools/sintran-segment-carver/versions/L-VSX-500/re/mon-analysis/60B-N500M/`
+- ND-500 system monitor carve (FUNCS table, 3022 IOX driver, control-store gate, 5MPM message, level-12 return):
+  `tools/sintran-segment-carver/versions/L-VSX-500/re/ND500-SYSTEM-MONITOR/`
+
 ---
 
 ## Quick Start

@@ -3,6 +3,41 @@
 **Source**: SINTRAN III NPL Source Code Analysis (s3vs-4 build)
 **Files Analyzed**: PH-P2-OPPSTART.NPL, MP-P2-N500.NPL, CC-P2-N500.NPL, N500-SYMBOLS.SYMB.TXT
 
+> **CORRECTIONS 2026-07-15** (byte-level carve of the L-VSX-500 resident image; see
+> `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\OCTOBUS-ND100-ND5000-REFERENCE.md` for the
+> full consolidated reference and the carve evidence):
+>
+> 1. **Section 2 (Frame Bit Structure) is INCOMPLETE/WRONG**: bits 14-8 are NOT
+>    "Reserved/Data". The full frame is C=bit 15, **B(broadcast)=bit 14,
+>    DEST/SOURCE station=bits 13-8**, E=bit 7, **K(kick)=bit 6, M(multibyte)=bit 5,
+>    S(start/end)=bit 4**, low bits = code/number/data. Byte-proven by the SOCTO
+>    receive dispatch in `re\segments-ref\026-S3IMPIT\026-S3IMPIT.asm` (035555-035577)
+>    and by SKICK (037254) building `C | K | station<<8 | kickno`.
+> 2. **RETRACTED 2026-07-16 - section 9's ident codes 40/41 are CORRECT.**
+>    The earlier version of this point "corrected" them to 37B/40B based on the
+>    ITB13 byte evidence (ITB13+37B/+40B hold the IOCT0/OOCT0 datafield
+>    addresses 123511/123537). That reading was DISPROVEN LIVE by two
+>    independent ND diagnostics run against the RetroCore emulator on
+>    2026-07-16: TPE OCTOBUS B00 LIST-OCTOBUS-DEVICES prints the hardware
+>    table (100400 -> 40/41 ... 100430 -> 46/47, receive/transmit, LVL 13),
+>    and CONFIGURATION D05 reported "Wrong identcode(s) found on level 13D.
+>    Expected identcodes: 40B and 41B. Found identcodes: 37B and 40B" while
+>    the emulator answered 37B/40B - and NO ERRORS once it answered 40B/41B.
+>    The ITB13 slot index is therefore NOT the ident code itself (plausibly
+>    the table holds ident N at ITB13+N-1 - UNVERIFIED). The 41B/42B values
+>    near the frame sender remain on-wire CM codes (CMMAC/CMACO), unrelated.
+> 3. **The driver bodies ARE carved** (earlier claims of "uncarved" are obsolete):
+>    SOCTO=035546, SOCTW=036342, SKICK=037254, MBSEND=037425, OMBREAD=037660,
+>    CONOMD=040062, ECONID=040467 in `026-S3IMPIT.asm` (load base 32000B; symbol
+>    03xxxx addresses resolve against the PIT-mapped image, NOT commoncode).
+> 4. **Kick numbers on the wire** (triple-verified: NPL symbols + ND-05.020.01 p.336
+>    + ND-5800 microcode OCB_DEC_K): N100KICK=1, activate=2, CLRKICK=3, clock=4,
+>    NUCLEUS=5, IDLEKICK=6. The "kick types" table in section 5 lists assembler
+>    symbols (0KICK/FKICK/PKICK/...) whose relationship to these wire numbers is
+>    NOT established - do not conflate them.
+> 5. Control-register values byte-confirmed: 4 = transmit enable (bit 2),
+>    1 = interrupt enable (bit 0), 20B = clear/master-clear (bit 4).
+
 ---
 
 ## 1. Register Layout
@@ -41,12 +76,21 @@ Octobus frames are 16-bit words with the following bit layout:
 
 ### Control/Data Frame Format
 
+> **CORRECTED 2026-07-15** (was: bits 14-8 "Reserved/Data", bit 7 "Enable"). The
+> full layout below is byte-proven by the carved SOCTO/SKICK driver code and
+> matches ND-05.020.01 Appendix 2 section 2.5. EBIT is the EMERGENCY bit, not
+> "enable" (EBIT|CMMAC = the manual's emergency code 241B).
+
 | Bit | Symbol | Name | Description |
 |-----|--------|------|-------------|
 | 15 | CBIT | Control Bit | 1=Control frame, 0=Data frame |
-| 14-8 | - | Reserved/Data | Upper data bits or reserved |
-| 7 | EBIT | Enable Bit | 1=Enable processing, 0=Disabled |
-| 6-0 | - | Command/Data | Command code or data bits |
+| 14 | - | Broadcast (B) | 1=broadcast to station type, 0=unicast |
+| 13-8 | - | DEST/SOURCE | Destination station when sending; source when receiving |
+| 7 | EBIT | Emergency (E) | 1=emergency message (highest priority) |
+| 6 | - | Kick (K) | 1=kick message (kick number in bits 5-0) |
+| 5 | - | Multibyte (M) | 1=SOMB/EOMB framing |
+| 4 | - | Start (S) | 1=start of multibyte, 0=end |
+| 3-0 / 6-0 | - | Number/Data | OMD/ident/kick number or CM* command code |
 
 **Symbol Definitions** (N500-SYMBOLS.SYMB.TXT):
 ```
@@ -361,10 +405,19 @@ FI
 
 ### Ident Codes
 
+> **CORRECT AS ORIGINALLY WRITTEN - LIVE-VERIFIED 2026-07-16.** This table was
+> temporarily "corrected" to 37B/40B based on the ITB13 byte evidence; that
+> reading was then DISPROVEN by two independent ND diagnostics (TPE OCTOBUS B00
+> LIST-OCTOBUS-DEVICES and CONFIGURATION D05: "Expected identcodes: 40B and
+> 41B") - see the retraction in the corrections banner at the top of this file.
+
 | Controller | Ident Code (Octal) | Description |
 |------------|-------------------|-------------|
-| Input | 40 | Input controller interrupt |
-| Output | 41 | Output controller interrupt |
+| Input (receive) | 40 | Input controller interrupt (level 13) |
+| Output (transmit) | 41 | Output controller interrupt (level 13) |
+
+Interfaces 2-4 (100410/100420/100430) use ident pairs 42/43, 44/45, 46/47
+(TPE LIST-OCTOBUS-DEVICES table, live 2026-07-16).
 
 ### Interrupt Enable
 
@@ -374,7 +427,7 @@ Interrupts are enabled by setting bit 0 in the control register:
 
 ### IDENT Operation
 
-The IDENT instruction returns the controller's ident code when the controller has an active interrupt. After IDENT is read, the interrupt is acknowledged (cleared).
+The IDENT instruction returns the controller's ident code when the controller has an active interrupt. IDENT is a ONE-SHOT acknowledge (live-verified vs TPE OCTOBUS B00, 2026-07-16): it clears the interrupt request AND the interrupt-enable bit of the acknowledged controller - software must re-enable (re-arm) to get the next interrupt. Interrupts are EVENT-triggered (a word arrived / a transfer completed); an idle ready-for-transfer state with the enable set does NOT interrupt.
 
 ---
 

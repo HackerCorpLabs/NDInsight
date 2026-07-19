@@ -123,3 +123,57 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
+emulation:
+  status: implemented
+  nd500x_handler: /home/ronny/repos/nd500x/src/libmon/handlers/mon_54B_DeleteFile.c
+  last_updated: '2026-07-17'
+
+  return_contract:
+    success: 'K flag cleared; the host file is removed.'
+    errors:
+      - code: 46
+        octal: 056B
+        meaning: 'No such file name'
+      - code: 111
+        octal: 157B
+        meaning: 'Missing parameter'
+      - code: 124
+        octal: 174B
+        meaning: 'Illegal parameter (empty file name, or host remove failed)'
+
+  verified:
+    - claim: >-
+        An empty name returns 174B (124 decimal) and a valid-but-nonexistent name
+        returns 056B (46 decimal).
+      evidence: >-
+        Audited against the NC path; recorded as MATCH in
+        /home/ronny/repos/nd500x/docs/MON_COMPLETENESS_MATRIX.md row 54B
+        ("empty->124dec, valid+nomatch->46dec").
+
+  unverified:
+    - >-
+      Version handling is NOT modelled. The manual says: include a version number
+      to delete a specific version, otherwise ALL versions are deleted. nd500x
+      removes exactly one host file.
+    - >-
+      "You must have directory access to the file in order to delete it" and the
+      RT-user rule are not modelled - there is no access-rights model.
+    - >-
+      "The pages of the file are released" has no meaning here - there is no page
+      allocator.
+    - >-
+      Unlike 50B OPEN, this handler reads the name with mon_read_sintran_string
+      (inline), NOT with the [len][ptr] descriptor reader. Whether real callers
+      pass DeleteFile's name as a descriptor - as they demonstrably do for 50B
+      OPEN, 221B CreateFile, 317B UECOM and 12B SETCM - has NOT been observed. If
+      they do, this handler would read an empty name.
+    - >-
+      54B has NOT been audited against the carve.
+      /home/ronny/repos/nd500x/docs/HANDOFF_MON_COMPLETENESS.md lists 54B among
+      the calls "NOT yet audited vs carve".
+
+  sources:
+    - doc: 'SINTRAN III Monitor Calls (ND-860228.2 EN)'
+      note: 'The manual page this YAML was extracted from.'
+    - doc: /home/ronny/repos/nd500x/docs/MON_COMPLETENESS_MATRIX.md
+      note: 'Row 54B MDLFI/DeleteFile - MATCH.'

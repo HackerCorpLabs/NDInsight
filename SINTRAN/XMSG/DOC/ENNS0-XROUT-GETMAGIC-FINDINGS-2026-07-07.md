@@ -190,8 +190,8 @@ not exhaustively prove its absence.
 
 ## 7. Files
 
-- This doc: `E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\DOC\ENNS0-XROUT-GETMAGIC-FINDINGS-2026-07-07.md`
-- Prior handoff: `E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\DOC\ENNS0-XROUT-DISASSEMBLY-HANDOFF.md`
-- Constants: `E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\DOC\XMSG-API.md` (section 6),
-  `E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\xmsg-constants.json`
-- Wire subtype 0x07 / XEIMA: `E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\DOC\XMSG-PROTOCOL.md`
+- This doc: `SINTRAN/XMSG/DOC/ENNS0-XROUT-GETMAGIC-FINDINGS-2026-07-07.md`
+- Prior handoff: `SINTRAN/XMSG/DOC/ENNS0-XROUT-DISASSEMBLY-HANDOFF.md`
+- Constants: `SINTRAN/XMSG/DOC/XMSG-API.md` (section 6),
+  `SINTRAN/XMSG/xmsg-constants.json`
+- Wire subtype 0x07 / XEIMA: `SINTRAN/XMSG/DOC/XMSG-PROTOCOL.md`

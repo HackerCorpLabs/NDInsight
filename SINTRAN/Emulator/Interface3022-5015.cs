@@ -1,3 +1,35 @@
+// =====================================================================================
+// !!! WARNING - THIS FILE CONTAINS A FABRICATED (DEBUNKED) PROTOCOL - DO NOT TRUST !!!
+// =====================================================================================
+//
+// The "TAG protocol" modeled below (TAGValue enum: MONITOR_CALL_REQUEST, PAGE_FAULT,
+// ACTIVATE_PROCESS, SWAP_REQUEST, etc.) is FABRICATED. It does NOT exist in the real
+// hardware or in SINTRAN. Verified facts:
+//
+//   - TAG-IN / TAG-OUT are a low-level REGISTER-ACCESS control channel between the
+//     3022 (ND-100 side) and the 5015 "CONTROL II" (ND-500 side). They select which
+//     5015 register (DATA-IN, DATA-OUT, WA, BREAK, CSCNT, ...) a transfer targets,
+//     plus the MOST bit (upper/lower half of the 32-bit data registers).
+//   - They are NOT a message protocol and carry NO monitor-call, page-fault,
+//     activate, terminate, or swap codes.
+//   - SINTRAN never touches the TAG registers at runtime. Real ND-100 <-> ND-500
+//     communication is: message blocks in shared memory (DMA via 24-bit MAR) +
+//     the CONTROL/STATUS registers on the 3022 + a level-12 interrupt (ident 16).
+//   - The TAG registers are only used by the microcode loader (control-store load
+//     via WA/BREAK/CSCNT) and by test programs (TMP).
+//
+// AUTHORITATIVE, BYTE/SOURCE-VERIFIED REFERENCE (read this instead):
+//   ..\ND500\ND500-BUS-INTERFACE-REFERENCE.md
+//     - Section 10   "TAG-IN / TAG-OUT - what they really are"
+//     - Section 10.3 "The fabricated protocol, for the record" (debunks THIS file)
+//     - Sections 5-7 the real activation / message-memory / level-12 protocol
+// Primary sources: ND-30.013.02 Test Micro Program Descriptions for ND-500 (TMP),
+// NEC-01 ND-500 course pages 57 and 73-76 (both in Reference-Manuals\500\).
+//
+// This file is kept ONLY as a historical record of the earlier (wrong) emulation
+// approach. Do NOT copy the TAGValue enum or its handshake logic into new code.
+// =====================================================================================
+//
 // 3022/5015 Interface - Communication between ND-100 and ND-500
 //
 // Architecture Decision: INTEGRATED APPROACH
@@ -8,6 +40,8 @@
 // The 3022 is an IOX device on the ND-100 side
 // The 5015 is connected to the ND-500 MMU
 // They communicate via TAG registers and interrupts
+//   ^ WRONG (see warning above): runtime communication is shared-memory messages +
+//     level-12 interrupt; TAG registers are only for register access / ucode load / test
 
 using System;
 using System.Collections.Generic;

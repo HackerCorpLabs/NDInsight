@@ -75,7 +75,7 @@ never a receiver concept.
 
 ## The fix
 
-File map (all under `E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\`):
+File map (all under `SINTRAN/XMSG/SRC/`):
 
 - **`Xmsg.Servers/Tad/TadServer.cs`**
   - New `enum TadOutputMode { CompleteSegments, SentinelStream }`.

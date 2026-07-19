@@ -1,0 +1,35 @@
+{
+ "segment_number_oct": "044",
+ "segment_number_dec": 36,
+ "name": "S3IDPIT",
+ "description": "Image of DPIT",
+ "content": {
+  "nonzero": true,
+  "byte_order": "big-endian"
+ },
+ "size": {
+  "pages": 45,
+  "bytes": 92160,
+  "words": 46080
+ },
+ "segfil0": {
+  "madr_page": 1019,
+  "flag_oct": "000111",
+  "segfil": 0
+ },
+ "load_address": {
+  "oct": "4000",
+  "dec": 2048,
+  "hex": "0x0800"
+ },
+ "symbol_file": "SYMBOL-1-LIST",
+ "confidence": "medium",
+ "file": "044-S3IDPIT.bin",
+ "ghidra": {
+  "processor": "ND-100 big-endian 16-bit (word-addressed)",
+  "format": "Raw Binary",
+  "base_address_hex": "0x0800",
+  "base_address_oct": "4000",
+  "note": "Load the .bin as-is (big-endian) - do NOT byte-swap for Ghidra. ND-100 is word-addressed: set the base in the word address space. Byte-swap to little-endian ONLY for nd100-dis."
+ }
+}

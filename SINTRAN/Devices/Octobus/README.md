@@ -26,7 +26,13 @@ The Octobus is a high-speed serial interface used to connect the ND-100 control 
 
 ## Related Documentation
 
-- [../ND500/](../ND500/) - ND-500 processor documentation
+- [../../ND5000/README.md](../../ND5000/README.md) - **ND-5000/SAMSON documentation index**
+  (master protocol reference, OMD-0 test protocol RE, microcode catalog,
+  emulation handoff). The ND5000 folder holds the newest, evidence-marked
+  material - read its index for the recommended order.
+- [../../ND500/README.md](../../ND500/README.md) - ND-500 processor documentation
+  (the old link pointed at Devices\ND500 which does not exist)
+- [../../ND500/ND500-BUS-OCTOBUS-HW-INTERFACE.md](../../ND500/ND500-BUS-OCTOBUS-HW-INTERFACE.md) - ND-500 side + MON 60 subfunction table
 - [../../OS/06-MULTIPORT-MEMORY-AND-ND500-COMMUNICATION.md](../../OS/06-MULTIPORT-MEMORY-AND-ND500-COMMUNICATION.md) - 5MPM shared memory
 - [../../NPL-SOURCE/NPL/MP-P2-N500.NPL](../../NPL-SOURCE/NPL/MP-P2-N500.NPL) - ND-500 monitor routines
 - [../../NPL-SOURCE/NPL/PH-P2-OPPSTART.NPL](../../NPL-SOURCE/NPL/PH-P2-OPPSTART.NPL) - Octobus initialization (OCSTART)
@@ -41,4 +47,4 @@ The documentation in this folder is derived from analysis of:
 
 ---
 
-*Last Updated: 2026-01-31*
+*Last Updated: 2026-07-16*

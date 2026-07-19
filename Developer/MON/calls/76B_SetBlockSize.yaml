@@ -129,3 +129,70 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
+emulation:
+  status: implemented
+  nd500x_handler: /home/ronny/repos/nd500x/src/libmon/handlers/mon_76B_SetBlockSize.c
+  last_updated: '2026-07-17'
+
+  parameter_notes:
+    - name: BlockSize
+      note: >-
+        The block size recorded here is what 117B RFILE and 120B WFILE multiply
+        BlockNo by to compute the file offset. With no SETBS the default is 512
+        bytes, matching the manual.
+      verified: true
+
+  return_contract:
+    success: 'K flag cleared; the block size is recorded on the open-file entry.'
+    errors:
+      - code: 87
+        octal: 127B
+        meaning: 'File number out of range'
+      - code: 90
+        octal: 132B
+        meaning: 'No file opened with this number'
+      - code: 111
+        octal: 157B
+        meaning: 'Missing parameter'
+      - code: 124
+        octal: 174B
+        meaning: 'Illegal parameter (block size 0, or above the emulator cap)'
+
+  observed_calls:
+    - caller: 'ND linker (linker-b01.dom), startup'
+      params:
+        BlockSize: 0
+      expectation: >-
+        Observed in a FAILURE cascade only: when the linker's first 50B OPEN
+        (empty file name) fails, the following 76B SETBS arrives with block size
+        0 and errors. That is a SYMPTOM of the OPEN failure, not a SETBS defect.
+
+  verified:
+    - claim: 'The default block size is 512 bytes and is applied when SETBS never ran.'
+      evidence: >-
+        Manual: "The standard block size is 512 bytes. This block size is set
+        when the file is opened." Both mon_117B_ReadFromFile.c and
+        mon_120B_WriteToFile.c fall back to DEFAULT_BLOCK_SIZE 512 when
+        entry->block_size is 0.
+
+  unverified:
+    - >-
+      "The block size is reset when the file is closed" - nd500x clears the whole
+      entry at close, so the effect matches, but the reset is not an explicit
+      modelled step.
+    - >-
+      The manual says the block size "must be an even number". nd500x does NOT
+      enforce evenness; it accepts any value in 1..65536.
+    - >-
+      The 65536 upper cap is an emulator invention, not a documented SINTRAN
+      limit.
+    - >-
+      Access code D (direct transfer) requires the block size to be a multiple of
+      the page size (2048 bytes). That constraint is not enforced here or in
+      117B/120B.
+
+  sources:
+    - doc: 'SINTRAN III Monitor Calls (ND-860228.2 EN)'
+      note: 'The manual page this YAML was extracted from.'
+    - doc: /home/ronny/repos/nd500x/docs/MON_COMPLETENESS_MATRIX.md
+      note: 'Row 76B SETBS - MATCH (prior).'

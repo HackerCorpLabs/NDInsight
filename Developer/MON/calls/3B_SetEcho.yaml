@@ -110,3 +110,88 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
+emulation:
+  status: implemented
+  nd500x_handler: /home/ronny/repos/nd500x/src/libmon/handlers/mon_3B_SetEcho.c
+  last_updated: '2026-07-17'
+
+  echo_strategies:
+    radix: decimal
+    note: >-
+      The strategy codes as nd500x implements them (mon_terminal_state.h /
+      mon_503B_InputString.c should_echo_char_ex). Strategies 3-6 are a documented
+      gap - see unverified.
+    codes:
+      - code: -1
+        name: ECHO_STRAT_NONE
+        description: 'Negative = no echo; characters are not displayed.'
+        status: implemented
+      - code: 0
+        name: ECHO_STRAT_ALL
+        description: 'Echo all characters.'
+        status: implemented
+      - code: 1
+        name: ECHO_STRAT_NO_CONTROL
+        description: 'Echo except control characters. nd500x tests ch >= 32 && ch < 127.'
+        status: implemented
+      - code: 2
+        name: ECHO_STRAT_MAC
+        description: 'MAC echo strategy - printable characters plus CR and LF.'
+        status: implemented
+      - code: 7
+        name: ECHO_STRAT_USER
+        description: 'User-defined 128-bit table read from the Table parameter (4 x 32-bit words).'
+        status: implemented
+
+  parameter_notes:
+    - name: Table
+      note: >-
+        Read as 4 consecutive 32-bit words from arg_addresses[2] (128 bits) when
+        strategy is 7. On ND-500 these are W, not H.
+      verified: true
+    - name: EchoStrategy
+      note: 'Read as a signed 32-bit word - the strategy is meaningfully negative.'
+      verified: true
+
+  verified:
+    - claim: >-
+        THE ECHO TABLE HAS INVERTED SEMANTICS FROM THE BREAK TABLE: bit = 0 means
+        ECHO, bit = 1 means DO NOT echo. (The break table is the natural way round:
+        bit = 1 means break.) This is a real trap - the two 128-bit tables look
+        identical and are not.
+      evidence: >-
+        /home/ronny/repos/nd500x/src/libmon/handlers/mon_503B_InputString.c
+        should_echo_char_ex(): "INVERTED: bit=0 means echo, bit=1 means don't echo"
+        -> return !bit_table_test_bit(user_table, ch); versus is_break_char_ex()
+        -> return bit_table_test_bit(user_table, ch).
+    - claim: >-
+        The state 3B sets is REAL per-device state, consumed by the input calls: a
+        later 503B DVINST / 511B DVIO with no per-call EchoStrat argument falls back
+        to mon_get_echo_strategy(device).
+      evidence: >-
+        mon_503B_InputString.c mon_dvinst_read(): echo_strat = (ctx->arg_count > 5)
+        ? read arg 5 : mon_get_echo_strategy(device_no).
+
+  unverified:
+    - >-
+      STRATEGIES 3-6 (the manual's "system-defined tables") ARE NOT IMPLEMENTED.
+      nd500x silently falls through to a PLACEHOLDER (echo all except control
+      characters). The actual system tables are not in the scanned pages and no
+      traced program selects 3-6.
+    - >-
+      Strategy 8 ("last user-defined table") is handled for BREAK (4B/503B) but
+      there is no ECHO_STRAT_LAST_USER path proven by any caller.
+    - >-
+      The manual's note "If 8-bit I/O is set (TerminalFunction, function number 112),
+      you will get echo always if bit 7 in the echo table is set" IS modelled in the
+      503B input path (should_echo_char_ex, eight_bit_io && ch >= 128 -> test bit 7),
+      but the 8-bit I/O flag itself is never set by any traced program, so that path
+      has never executed.
+    - >-
+      NO OBSERVED CALLER. No traced program (NC, CAT-500, ND linker) issues 3B.
+      Echo behaviour reaches the emulator instead through the per-call EchoStrat
+      argument of 503B/511B.
+
+  sources:
+    - doc: 'SINTRAN III Monitor Calls (ND-860228.2 EN)'
+      note: 'The manual body of this YAML.'

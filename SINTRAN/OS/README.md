@@ -1310,6 +1310,12 @@ All markdown files in this folder:
 | [18-DEVICE-DRIVER-FRAMEWORK.md](18-DEVICE-DRIVER-FRAMEWORK.md) | Device driver architecture and framework |
 | [19-MEMORY-MAP-REFERENCE.md](19-MEMORY-MAP-REFERENCE.md) | Complete memory map reference |
 | [20-MPM-VS-LOCAL-MEMORY-DETECTION.md](20-MPM-VS-LOCAL-MEMORY-DETECTION.md) | MPM vs local memory detection (MFbus/Octobus) |
+| [21-SEMAPHORES-EXPLAINED.md](21-SEMAPHORES-EXPLAINED.md) | Semaphores: ND-100 datafield reservation (BRESERVE/RESRV), ND-500/5000 shared-memory test-and-set (SLOCK/X5SEMA) |
+| [21-SEMAPHORES-RECOVERED-CODE.md](21-SEMAPHORES-RECOVERED-CODE.md) | BRESERVE/BRELEASE/RESRV/RELES machine code recovered from a running SINTRAN L07 (annotated listings, live verification) |
+| [22-READING-RT-AND-SEGMENT-TABLES-FROM-MEMORY.md](22-READING-RT-AND-SEGMENT-TABLES-FROM-MEMORY.md) | Direct memory-read of the RT-program list and segment table (version detection, root pointers, DPIT translation) - no JSON |
+| [23-MON-CALL-DISPATCH-DEVELOPER-GUIDE.md](23-MON-CALL-DISPATCH-DEVELOPER-GUIDE.md) | How a MON call dispatches (level 14, GOTAB jump table, handler levels); reading it in memory, DAP breakpoints, disassembly |
+| [24-INITIAL-COMMANDS-AND-STARTUP.md](24-INITIAL-COMMANDS-AND-STARTUP.md) | SINTRAN startup commands: the in-memory initial-command buffer (INICO / @LIST-INITIAL-COMMANDS) and the disk mode files (HENT-MODE / LOAD-MODE) |
+| [26-INITIAL-COMMAND-BUFFER-ON-DISK.md](26-INITIAL-COMMAND-BUFFER-ON-DISK.md) | Locate/decode/encode the SINTRAN initial-command buffer (INIBU) offline in an NDFS image - implementation spec for ndfs-c/ts/py and RetroFS.NDFS |
 
 ### Hardware and Device References
 

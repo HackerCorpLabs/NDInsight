@@ -247,6 +247,7 @@ grep "^SYMB.*=04" SYMBOLS/L07/SYMBOL-1-LIST.SYMB.TXT  # Addresses starting with 
 
 The following SINTRAN III components do **not** have NPL source code available:
 
+- **RT-monitor reservation core** - `BRESERVE`/`BRELEASE` and the `RESRV`/`RELES`/`PRSRV`/`PRLS` monitor call handlers are called throughout the NPL files but defined in a module not present here (also absent from s3vs-4.symb - call sites only). Entry addresses are in SYMBOL-1-LIST.SYMB.TXT per version (M06: BRESE=011435, BRELE=011462, PRSRV=037101, RESRV=037106, RELES=037161; internal moncalls 2RESR=122B, 2RELE=123B). See ../OS/21-SEMAPHORES-EXPLAINED.md for behavior. **L07 machine code recovered** from a running system via emulator: ../OS/21-SEMAPHORES-RECOVERED-CODE.md (annotated BRESERVE/BRELEASE listings, RESRV/RELES capture).
 - **File system implementation** (Level 11/23) - Only symbols in SYMBOLS/{version}/FILSYS-SYMBOLS.SYMB.TXT
 - **XMSG message system** - Only symbols in SYMBOLS/{version}/XMSG-SYMBOL-LIST.SYMB.TXT (L07+)
 - **Complete terminal handlers** - Partial code only

@@ -75,7 +75,7 @@ own conclusion: the display decision is in the ASKER'S receiver, not reproducibl
 
 We found the ND-100 Ghidra project on disk here: `E:\Dev\Ronny\ghidra-nd100` (Ghidra 12.0.4 ND-100
 build, dated 2026-07-07). The connect-to binary is
-`E:\Dev\Ronny\NDInsight\Installation\Communication\COSMOS Basic\x\cos-conn-to-e02.prog`.
+`Installation/Communication/COSMOS Basic/x/cos-conn-to-e02.prog`.
 
 ## Questions
 

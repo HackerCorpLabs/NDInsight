@@ -1,6 +1,6 @@
 # cos-conn-to-e02.prog — XMSG/TAD Structures, Startup & Disconnect
 
-**Program:** `E:\Dev\Ronny\NDInsight\Installation\Communication\COSMOS Basic\x\cos-conn-to-e02.prog`
+**Program:** `Installation/Communication/COSMOS Basic/x/cos-conn-to-e02.prog`
 **Identity:** COSMOS CONNECT-TO client, *"VERSION - E02, September 25, 1987"*. TAD **asker / RP** role.
 **CPU / format:** ND-100 big-endian 16-bit, SINTRAN-III `:PROG`, **PLANC**, 210 functions.
 

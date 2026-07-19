@@ -109,3 +109,94 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
+emulation:
+  status: implemented
+  nd500x_handler: /home/ronny/repos/nd500x/src/libmon/handlers/mon_4B_SetBreak.c
+  last_updated: '2026-07-17'
+
+  break_strategies:
+    radix: decimal
+    note: >-
+      The strategy codes as nd500x implements them (mon_terminal_state.h and
+      mon_503B_InputString.c is_break_char_ex). These same codes are what 503B
+      DVINST and 511B DVIO accept as a per-call override.
+    codes:
+      - code: -1
+        name: BREAK_STRAT_NONE
+        description: 'Negative = no break; input continues until max chars or EOF.'
+        status: implemented
+      - code: 0
+        name: BREAK_STRAT_ALL
+        description: 'Every character breaks.'
+        status: implemented
+      - code: 1
+        name: BREAK_STRAT_CONTROL
+        description: 'Control characters (ch < 32) break.'
+        status: implemented
+      - code: 2
+        name: BREAK_STRAT_MAC
+        description: 'MAC - CR, LF, ESC, EOF and 0x27 break.'
+        status: implemented
+      - code: 7
+        name: BREAK_STRAT_USER
+        description: 'User-defined 128-bit table read from the Table parameter (4 x 32-bit words).'
+        status: implemented
+      - code: 8
+        name: BREAK_STRAT_LAST_USER
+        description: "Last user-defined table (do not resend the table); uses the device's stored table."
+        status: implemented
+      - code: 9
+        name: BREAK_STRAT_MAX_ONLY
+        description: 'No character breaks - only the NoOfChar count terminates input.'
+        status: implemented
+
+  parameter_notes:
+    - name: Table
+      note: >-
+        Read as 4 consecutive 32-bit words from arg_addresses[2] (128 bits) when
+        strategy is 7. Stored to per-device state, so a later strategy-8 call can
+        reuse it.
+      verified: true
+    - name: NoOfChar
+      note: 'Read from arg 3 as a 32-bit word when 4 or more CALLG args are present.'
+      verified: true
+
+  verified:
+    - claim: >-
+        The break table is the NATURAL way round - bit = 1 means BREAK - unlike the
+        echo table, where bit = 0 means echo. Do not share code between them.
+      evidence: >-
+        mon_503B_InputString.c is_break_char_ex() -> bit_table_test_bit(user_table,
+        ch) versus should_echo_char_ex() -> !bit_table_test_bit(...).
+    - claim: >-
+        The state 4B sets is REAL per-device state consumed by the input calls: a
+        503B DVINST with no per-call BreakStrat argument falls back to
+        mon_get_break_strategy(device).
+      evidence: 'mon_503B_InputString.c mon_dvinst_read().'
+    - claim: >-
+        A VALID TERMINAL LINE-INPUT BREAK TABLE ALWAYS BREAKS ON CR (0x0D). nd500x
+        uses this as a sanity check to reject a mis-decoded table.
+      evidence: >-
+        mon_503B_InputString.c: if a user-table strategy yields a table that does not
+        break on CR, it is treated as invalid and the read falls back to MAC-style
+        line breaks. This guard exists because the ND linker's 503B arg layout was
+        mis-read positionally, producing a "table" that broke on the letter 'T' but
+        not on CR, truncating every command at its first 'T'. Commit fc3ac5b.
+
+  unverified:
+    - >-
+      STRATEGIES 3-6 (the manual's "system-defined tables") ARE NOT IMPLEMENTED.
+      nd500x silently falls through to a PLACEHOLDER that uses the MAC set
+      (CR/LF/ESC/EOF/0x27). The real system tables are not in the scanned pages.
+    - >-
+      NO OBSERVED CALLER of 4B itself. Break behaviour reaches the emulator through
+      the per-call BreakStrat argument of 503B/511B instead. NC uses strategy 1.
+    - >-
+      8-bit I/O handling for characters >= 128 (test bit 7 of the user table) is
+      coded but never executed - no traced program sets the 8-bit I/O flag.
+
+  sources:
+    - doc: 'SINTRAN III Monitor Calls (ND-860228.2 EN)'
+      note: 'The manual body of this YAML.'
+    - doc: /home/ronny/repos/nd500x/src/libmon/handlers/mon_503B_InputString.c
+      note: 'is_break_char_ex() - the strategy table as actually implemented, shared by 503B and 511B.'

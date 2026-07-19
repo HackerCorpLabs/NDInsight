@@ -123,3 +123,57 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
+emulation:
+  status: stub
+  nd500x_handler: /home/ronny/repos/nd500x/src/libmon/handlers/mon_17B_SetTerminalType.c
+  last_updated: '2026-07-17'
+
+  stub_behaviour: >-
+    ACCEPT-AND-IGNORE SUCCESS NO-OP - SAY SO. 17B MSTTY validates nothing and stores
+    nothing: the emulated console has no ND-specific terminal-type behaviour to
+    configure. Consequence worth knowing: a 17B MSTTY followed by a 16B MGTTY does
+    NOT read back the type that was set - 16B always answers 0.
+
+  parameter_notes:
+    - name: TerminalType
+      note: >-
+        Read as a 32-bit word (ND-500 INTEGER = W) despite the manual typing it
+        INTEGER2, then discarded.
+      verified: true
+
+  observed_calls:
+    - caller: 'ND linker (linker-b01.dom), startup'
+      expectation: 'Called during startup terminal configuration; only needs not to fail.'
+      note: >-
+        Before this handler existed the auto-generated stub returned error -1 and the
+        linker crashed in startup device configuration. Commit 940ba39.
+
+  return_contract:
+    success: 'K flag cleared.'
+    errors:
+      - code: 111
+        octal: 157B
+        meaning: 'Missing parameter (fewer than 2 CALLG args)'
+
+  verified:
+    - claim: 'The linker proceeds past its startup with the accept-and-ignore no-op.'
+      evidence: 'Commit 940ba39: "17B MSTTY (SetTerminalType): accept-and-ignore success no-op."'
+
+  unverified:
+    - >-
+      THE PRIVILEGE RULE IS NOT ENFORCED. The manual says "Public background users
+      may only set the terminal type for their own terminal. A background program
+      must be run from user SYSTEM or RT to set the terminal type for another
+      terminal." nd500x does not check the user and never returns a privilege error.
+      Which error code real SINTRAN returns for that violation is unknown - do not
+      guess one.
+    - >-
+      No terminal type is validated against Appendix H (which we do not hold), so an
+      illegal type is accepted silently.
+    - >-
+      THE CARVE WAS NOT MINED FOR THIS ENTRY. A carve folder exists at
+      .../L-VSX-500/re/mon-analysis/17B-SetTerminalType/ and has not been read in.
+
+  sources:
+    - doc: 'SINTRAN III Monitor Calls (ND-860228.2 EN)'
+      note: 'The manual body of this YAML.'

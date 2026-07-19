@@ -1,6 +1,6 @@
 # cos-file-tra-e02.prog — XMSG interface analysis
 
-**Binary:** `E:\Dev\Ronny\NDInsight\Installation\Communication\COSMOS Basic\x\cos-file-tra-e02.prog`
+**Binary:** `Installation/Communication/COSMOS Basic/x/cos-file-tra-e02.prog`
 **Format:** ND-100 :PROG (SINTRAN-III executable), image base ram:0000
 **Product string (ram:5d75):** `COSMOS File Transfer - Version E02`
 **Analysed in:** Ghidra (ND-100:BE:16), MCP session 2026-07-06

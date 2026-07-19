@@ -1,0 +1,20 @@
+% NPL SOURCE REFERENCE - MON 60B 124B - ISTAMLOG start moncall log (verbatim, 5P-P2-MON60.NPL)
+ISTAMLOG:    % FUNCTION=124: START MONITOR CALL LOG
+       IF 5MLOG><RTREF AND A><0 THEN ELOGINUSE; GO FAR ERET FI % MONCALL LOG IN USE BY ANOTHER PROC?
+       AD:=5DD1                                            % NO, ITS FREE
+       IF A><0 OR D><0 THEN                                % LOG MONCALLS FOR ALL PROCS OR FOR OWN?
+          IF BACKGROUND><0 AND 5PASSTYPE><2 GO FAR EENAUTORISED % LOG FOR ALL, ALLOWED FOR USER SYSTEM ONLY
+          A:= -1                                           % 5LOGPROC=-1 MEANS LOG MONCALLS FOR ALL PROCS
+       ELSE                                                % LOG MONCALLS FOR OWN PROCESS ONLY
+          5PRDESCR-"S500S"; A=:D:=0; T:=5PRDSIZE; *RDIV ST % COMPUTE PROC.NO OF CALLER
+          A-1*2+"F5DSG"=:T; X:="5RPRONO"
+          CALL GET1L; CALL ERRFATAL
+       FI; A=:5MLOPROC; RTREF=:5MLOG                       % SPECIFY WHICH PROC TO LOG AND WHO IS USING MONCALL LOG
+       A:=5FBUM60=:D:=0; AD SH 12; T:=A; X:=D              % FIRST MON60 BUFFER IS USED FOR MONCALL LOGGING
+       A:=1776+X=:L                                        % L=END OF MON60 BUFFER -2
+       A:=0; D:=0
+       DO
+          *STDTX                                           % CLEAR MONCALL LOG BUFFER
+       WHILE X><L
+          X+2
+       OD; GO FAR 5OKRET; *)FILL

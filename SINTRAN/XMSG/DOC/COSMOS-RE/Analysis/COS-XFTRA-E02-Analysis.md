@@ -1,6 +1,6 @@
 # cos-xftra-e02.prog — XMSG transport exerciser analysis
 
-**Binary:** `E:\Dev\Ronny\NDInsight\Installation\Communication\COSMOS Basic\x\cos-xftra-e02.prog`
+**Binary:** `Installation/Communication/COSMOS Basic/x/cos-xftra-e02.prog`
 **Format:** ND-100 :PROG (SINTRAN-III executable), image base ram:0000
 **Analysed in:** Ghidra (ND-100:BE:16), MCP session 2026-07-06
 **Symbol authority:** `F:\ND\SINTRAN-K05-XMSG-2026\XMSG-Symb\XMSG-PL-VALUES-L.INCL` (XMSG version L).

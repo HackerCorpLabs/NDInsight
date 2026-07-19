@@ -7,7 +7,7 @@ with three buckets. **No content changed — only locations.**
 
 ## New layout
 ```
-E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\DOC\COSMOS-RE\
+SINTRAN/XMSG/DOC/COSMOS-RE/
 ├── ProtoCode\   ← C# reconstructions (src)
 │   ├── CosConnToE02.cs      CosFaServerE04.cs
 │   ├── CosFileTraE02.cs     CosXftraE02.cs        ← yours

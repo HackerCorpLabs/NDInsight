@@ -1,0 +1,494 @@
+{
+ "2": {
+  "name": "S3IMAGE",
+  "range": "0:175777",
+  "pit": 1,
+  "desc": "Image of common code, start/restart"
+ },
+ "3": {
+  "name": "S3CP",
+  "range": "30000:177777",
+  "pit": 11,
+  "desc": "Command segment"
+ },
+ "4": {
+  "name": "S3RTIL",
+  "range": "30000:123777",
+  "pit": 11,
+  "desc": "RT-Loader segment"
+ },
+ "5": {
+  "name": "S3ERS",
+  "range": "144000:145777",
+  "pit": 7,
+  "desc": "System segment for error program"
+ },
+ "6": {
+  "name": "S3FS",
+  "range": "26000:177777",
+  "pit": 4,
+  "desc": "File system segment"
+ },
+ "7": {
+  "name": "S3DMAC",
+  "range": "64000:153777",
+  "pit": 11,
+  "desc": "DMAC segment"
+ },
+ "8": {
+  "name": "S3RTFIL",
+  "range": "0:177777",
+  "pit": 2,
+  "desc": "Rtfii segment"
+ },
+ "9": {
+  "name": "S3ERRL",
+  "range": "0:17777",
+  "pit": 1,
+  "desc": "Error log segment"
+ },
+ "10": {
+  "name": "S3FSFS",
+  "range": "26000:177777",
+  "pit": 1,
+  "desc": "Save of file system segment"
+ },
+ "11": {
+  "name": "S3SCP",
+  "range": "26000:177777",
+  "pit": 1,
+  "desc": "Save of command segment"
+ },
+ "12": {
+  "name": "S3ERRP",
+  "range": "30000:67777",
+  "pit": 11,
+  "desc": "Error program segment"
+ },
+ "13": {
+  "name": "S3BFLY",
+  "range": "26000:26000",
+  "pit": null,
+  "desc": "Reserved for butterfly"
+ },
+ "14": {
+  "name": "S3SRPIT",
+  "range": "32000:177777",
+  "pit": 1,
+  "desc": "Save of RPIT"
+ },
+ "15": {
+  "name": "S3SMPIT",
+  "range": "32000:177777",
+  "pit": 1,
+  "desc": "Save of MPIT"
+ },
+ "16": {
+  "name": "S3SDT5",
+  "range": "0:175777",
+  "pit": 14,
+  "desc": "ND-500 standard domains segment"
+ },
+ "17": {
+  "name": "S3NM5S",
+  "range": "0:175777",
+  "pit": 13,
+  "desc": "ND-500 name tables segment"
+ },
+ "18": {
+  "name": "S3RFAC",
+  "range": "26000:171777",
+  "pit": 3,
+  "desc": "Remote file access segment"
+ },
+ "19": {
+  "name": "S3DPIT",
+  "range": "4000:131777",
+  "pit": 7,
+  "desc": "DPIT segment"
+ },
+ "20": {
+  "name": "S3SSGST",
+  "range": "0:37777",
+  "pit": 1,
+  "desc": "Save of segment table"
+ },
+ "21": {
+  "name": "S3RIPIT",
+  "range": "32000:177777",
+  "pit": 1,
+  "desc": "Image of RPIT"
+ },
+ "22": {
+  "name": "S3MIPIT",
+  "range": "32000:177777",
+  "pit": 1,
+  "desc": "Image of MPIT"
+ },
+ "23": {
+  "name": "S3ISGT",
+  "range": "0:37777",
+  "pit": 1,
+  "desc": "Image of segment table"
+ },
+ "24": {
+  "name": "S3SMS5",
+  "range": "40000:177777",
+  "pit": 5,
+  "desc": "ND-500 System Monitor segment"
+ },
+ "25": {
+  "name": "S3SSPD",
+  "range": "164000:165777",
+  "pit": 7,
+  "desc": "Save of spooling data fields"
+ },
+ "29": {
+  "name": "S3MP1T",
+  "range": "32000:151777",
+  "pit": 12,
+  "desc": "MPIT segment"
+ },
+ "30": {
+  "name": "S3TAD",
+  "range": "110000:133777",
+  "pit": 11,
+  "desc": "TADADM segment"
+ },
+ "31": {
+  "name": "S3RTD",
+  "range": "0:177777",
+  "pit": 1,
+  "desc": "RT-Loader data segment"
+ },
+ "32": {
+  "name": "S3FURDT",
+  "range": "164000:137777",
+  "pit": 7,
+  "desc": "File user data segment for RT prog."
+ },
+ "33": {
+  "name": "S3IMED",
+  "range": "26000:27777",
+  "pit": 1,
+  "desc": "Image of edit routines"
+ },
+ "34": {
+  "name": "S3ED",
+  "range": "26000:27777",
+  "pit": 11,
+  "desc": "Edit routines"
+ },
+ "35": {
+  "name": "S3PATCH",
+  "range": "174000:177777",
+  "pit": 2,
+  "desc": "Used for patching purposes"
+ },
+ "36": {
+  "name": "S3DIPIT",
+  "range": "4000:135777",
+  "pit": 1,
+  "desc": "Image of DPIT"
+ },
+ "37": {
+  "name": "S3ISYS",
+  "range": "144000:151777",
+  "pit": 1,
+  "desc": "Image of system segment"
+ },
+ "38": {
+  "name": "S3SSPIT",
+  "range": "26000:37777",
+  "pit": 1,
+  "desc": "Save of 5PIT segment"
+ },
+ "39": {
+  "name": "S3RP1IT",
+  "range": "32000:141777",
+  "pit": 10,
+  "desc": "RP1IT segment"
+ },
+ "40": {
+  "name": "S3IP1IT",
+  "range": "26000:37777",
+  "pit": 1,
+  "desc": "Image of 5PIT segment"
+ },
+ "41": {
+  "name": "S3SP1IT",
+  "range": "26000:37777",
+  "pit": 5,
+  "desc": "5PIT segment"
+ },
+ "42": {
+  "name": "S3SAVE",
+  "range": "0:175777",
+  "pit": 1,
+  "desc": "Save of common code & start/restart"
+ },
+ "43": {
+  "name": "S3SOP1T",
+  "range": "4000:135777",
+  "pit": 1,
+  "desc": "Save of DPIT"
+ },
+ "44": {
+  "name": "S3SSYS",
+  "range": "144000:151777",
+  "pit": 1,
+  "desc": "Save of system segment"
+ },
+ "45": {
+  "name": "S3SSERR",
+  "range": "30000:67777",
+  "pit": 1,
+  "desc": "Save of error program"
+ },
+ "46": {
+  "name": "S3SRTIC",
+  "range": "30000:67777",
+  "pit": 1,
+  "desc": "Save of RT-Loader code segment"
+ },
+ "47": {
+  "name": "S3SRTD",
+  "range": "0:25777",
+  "pit": 1,
+  "desc": "Save of RT-Loader data segment"
+ },
+ "48": {
+  "name": "S3SECOM",
+  "range": "26000:31777",
+  "pit": 1,
+  "desc": "Save of extended common"
+ },
+ "49": {
+  "name": "S3IECOM",
+  "range": "26000:31777",
+  "pit": 1,
+  "desc": "Image of extended common"
+ },
+ "50": {
+  "name": "S3SMS5",
+  "range": "40000:177777",
+  "pit": 1,
+  "desc": "Save of ND-500 System Monitor"
+ },
+ "51": {
+  "name": "S3MEMTF",
+  "range": "172000:172000",
+  "pit": null,
+  "desc": "MEMTOF segment"
+ },
+ "52": {
+  "name": "S3JECOM",
+  "range": "26000:31777",
+  "pit": 10,
+  "desc": "Extended common segment"
+ },
+ "53": {
+  "name": "S3SIPIT",
+  "range": "32000:177777",
+  "pit": 1,
+  "desc": "Save of IPIT"
+ },
+ "54": {
+  "name": "S3IIPIT",
+  "range": "32000:177777",
+  "pit": 1,
+  "desc": "Image of IPIT"
+ },
+ "55": {
+  "name": "S3IPIT",
+  "range": "32000:103777",
+  "pit": 15,
+  "desc": "IPIT segment"
+ },
+ "56": {
+  "name": "S3SSM",
+  "range": "30000:137777",
+  "pit": 1,
+  "desc": "Save service/mail segment"
+ },
+ "57": {
+  "name": "S3SM",
+  "range": "30000:137777",
+  "pit": 11,
+  "desc": "Service/mail segment"
+ },
+ "59": {
+  "name": "S3SDMWD",
+  "range": "2000:11777",
+  "pit": 1,
+  "desc": "Save of disk mirroring WD segment"
+ },
+ "60": {
+  "name": "S3IDMWD",
+  "range": "2000:11777",
+  "pit": 1,
+  "desc": "Image of disk mirroring WD segment"
+ },
+ "61": {
+  "name": "S3SXMK",
+  "range": "120000:177777",
+  "pit": 1,
+  "desc": "Save of XMSG kernel"
+ },
+ "62": {
+  "name": "S3XMK",
+  "range": "120000:177777",
+  "pit": 2,
+  "desc": "XMSG kernel"
+ },
+ "63": {
+  "name": "S3XROU",
+  "range": "0:177777",
+  "pit": 2,
+  "desc": "XMSG xrouter segment"
+ },
+ "64": {
+  "name": "S3SDNAM",
+  "range": "164000:177777",
+  "pit": 1,
+  "desc": "Save of device name table"
+ },
+ "65": {
+  "name": "S3DNAM",
+  "range": "164000:177777",
+  "pit": 7,
+  "desc": "Device name table"
+ },
+ "66": {
+  "name": "S3SXMFI",
+  "range": "0:153777",
+  "pit": 1,
+  "desc": "Save of XMSG watchdog (XMFID0)"
+ },
+ "67": {
+  "name": "S3XMFI",
+  "range": "0:153777",
+  "pit": 1,
+  "desc": "XMSG watchdog (XMFID0)"
+ },
+ "68": {
+  "name": "S3SNKSE",
+  "range": "30000:177777",
+  "pit": 11,
+  "desc": "Save of NUCLEUS server"
+ },
+ "69": {
+  "name": "S3INKSE",
+  "range": "30000:177777",
+  "pit": 11,
+  "desc": "Image of NUCLEUS server"
+ },
+ "70": {
+  "name": "S3SNKNA",
+  "range": "0:177777",
+  "pit": 1,
+  "desc": "Save of NUCLEUS name server"
+ },
+ "71": {
+  "name": "S3INKNA",
+  "range": "0:177777",
+  "pit": 1,
+  "desc": "Image of NUCLEUS name server"
+ },
+ "72": {
+  "name": "S3SUI110",
+  "range": "0:77777",
+  "pit": 1,
+  "desc": "Save of ND-110 Microprogram"
+ },
+ "73": {
+  "name": "S3UI110",
+  "range": "0:77777",
+  "pit": 1,
+  "desc": "Image of ND-110 Microprogram"
+ },
+ "74": {
+  "name": "S3SUI120",
+  "range": "0:77777",
+  "pit": 1,
+  "desc": "Save of ND-120 Microprogram"
+ },
+ "75": {
+  "name": "S3UI120",
+  "range": "0:77777",
+  "pit": 1,
+  "desc": "Image of ND-120 Microprogram"
+ },
+ "76": {
+  "name": "S3SEIWC",
+  "range": "0:37777",
+  "pit": 1,
+  "desc": "Save of ERS Watchdog program"
+ },
+ "77": {
+  "name": "S3IEIWC",
+  "range": "0:37777",
+  "pit": 1,
+  "desc": "Image of ERS Watchdog program"
+ },
+ "78": {
+  "name": "S3SERWD",
+  "range": "0:157777",
+  "pit": 1,
+  "desc": "Save of ERS Watchdog data"
+ },
+ "79": {
+  "name": "S3IERWD",
+  "range": "0:157777",
+  "pit": 2,
+  "desc": "Image of ERS Watchdog data"
+ },
+ "80": {
+  "name": "S3SPRMA",
+  "range": "30000:177777",
+  "pit": 11,
+  "desc": "Save of Processor Manager server"
+ },
+ "81": {
+  "name": "S3IPRMA",
+  "range": "30000:177777",
+  "pit": 11,
+  "desc": "Image of Processor Manager server"
+ },
+ "82": {
+  "name": "S3SEVMS",
+  "range": "30000:177777",
+  "pit": 11,
+  "desc": "Save of Event Message server"
+ },
+ "83": {
+  "name": "S3IEVMS",
+  "range": "30000:177777",
+  "pit": 11,
+  "desc": "Image of Event Message server"
+ },
+ "84": {
+  "name": "S3SB0PC",
+  "range": "30000:177777",
+  "pit": 11,
+  "desc": "Save of Bopcom Server"
+ },
+ "85": {
+  "name": "S3IB0PC",
+  "range": "30000:177777",
+  "pit": 11,
+  "desc": "Image of Bopcom Server"
+ },
+ "86": {
+  "name": "S3SMTSE",
+  "range": "30000:37777",
+  "pit": 11,
+  "desc": "Save of MT server"
+ },
+ "87": {
+  "name": "S3IMTSE",
+  "range": "30000:37777",
+  "pit": 11,
+  "desc": "Image of MT server"
+ }
+}

@@ -49,7 +49,7 @@ The remaining wall is purely the ND-100 XMSG/XROUT registration.
 
 ---
 
-## 3. Files (all in `E:\Dev\Ronny\NDInsight\Installation\Communication\Ethernet\x\`)
+## 3. Files (all in `Installation/Communication/Ethernet/x/`)
 
 | File | What it is |
 |------|-----------|

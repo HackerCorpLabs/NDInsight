@@ -116,3 +116,63 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
+emulation:
+  status: implemented
+  nd500x_handler: /home/ronny/repos/nd500x/src/libmon/handlers/mon_22B_OutUpTo8Bytes.c
+  last_updated: '2026-07-17'
+
+  parameter_notes:
+    - name: OutData
+      note: >-
+        Taken as a RAW BYTE ADDRESS (arg_addresses[1]) and read byte by byte - NOT
+        as an ND-500 [Length][Pointer] descriptor and NOT as a 0x27-terminated
+        SINTRAN string. Contrast 32B OutMessage (descriptor) and 162B OutString
+        (descriptor in its 2-arg form). If a caller passes a descriptor here it will
+        print the descriptor bytes.
+      verified: true
+    - name: DeviceNo
+      note: '32-bit word. File numbers are rejected before anything is written.'
+      verified: true
+
+  return_contract:
+    success: 'K flag cleared; 0 to 8 bytes written.'
+    errors:
+      - code: 124
+        octal: 174B
+        meaning: 'Illegal parameter (a file number was passed - the manual says file numbers are illegal)'
+      - code: 24
+        octal: 030B
+        meaning: 'No such device name (not a character device or terminal)'
+      - code: 111
+        octal: 157B
+        meaning: 'Missing parameter (fewer than 2 CALLG args)'
+
+  verified:
+    - claim: >-
+        Writing stops at the first 0 byte and the 0 is NOT output; at most 8 bytes
+        are written.
+      evidence: >-
+        Implements the manual's own rule ("Writing terminates when a character with
+        value 0 is found. The 0 byte is not output.") - mon_22B_OutUpTo8Bytes.c
+        loop over i < 8 with break on b == 0.
+    - claim: >-
+        File numbers are rejected, per the manual's "Only for terminals, TADs,
+        internal devices, and synchronous modems. File numbers are illegal."
+      evidence: 'is_mass_storage_file(device_no) -> error 124 (174B), before any output.'
+
+  unverified:
+    - >-
+      NO OBSERVED CALLER. No traced program (NC, CAT-500, ND linker) issues 22B; they
+      use 504B DVOUTS / 162B OUTST. Implemented but NOT proven end to end.
+    - >-
+      Error 124 (174B Illegal parameter) for the file-number case is a CHOICE, not a
+      read value - the manual says file numbers are illegal but does not give the
+      code it returns.
+    - >-
+      TADs, internal devices and synchronous modems (the other device classes the
+      manual permits) are not modelled at all; nd500x accepts only character
+      devices and terminals and returns 24 (030B) for everything else.
+
+  sources:
+    - doc: 'SINTRAN III Monitor Calls (ND-860228.2 EN)'
+      note: 'The manual body of this YAML.'

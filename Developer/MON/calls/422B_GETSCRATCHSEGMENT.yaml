@@ -94,3 +94,124 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
+emulation:
+  status: verified
+  nd500x_handler: /home/ronny/repos/nd500x/src/libmon/handlers/mon_422B_GetScratchSegment.c
+  last_updated: '2026-07-17'
+
+  note: >-
+    HEALTHY. This is the call to copy when implementing a segment-returning MON
+    call. It does real work through the host allocate_segment callback (a genuine
+    MMU/PST-backed scratch segment), and it WRITES ITS OUT PARAMETER. Contrast
+    412B FSCNT, which was bookkeeping-only and did NOT write its OUT parameter -
+    see the defect-class note below.
+
+  parameter_notes:
+    - name: RetLogSegmentNo
+      note: >-
+        OUT PARAMETER - AND THIS IS THE WHOLE POINT. nd500x writes it with
+        mon_write_param_word(ctx, 2, assigned_segment) whenever arg_count >= 3.
+        THE OUT-PARAMETER DEFECT CLASS: a handler that returns SUCCESS without
+        writing its OUT/IO parameter causes failures that surface TENS OF
+        THOUSANDS of instructions later, in a completely unrelated place.
+        Confirmed instances: 412B FSCNT (commit 73ac594 - the caller read 0 from
+        the stale cell, addressed segment 0, read zeros 67 times at vaddr
+        0x00000000, never touched the real mapping at 0x20000000, and failed with
+        "*ERROR* can't generate code" WITHOUT EVER READING ITS INPUT) and 144B
+        MAGTP function 0 (commit 6ad9c09 - the linker''s tables stayed blank, it
+        walked blank memory as records, computed a bogus pointer 0x40404040, took
+        a protect violation, and the symptom appeared ~83000 instructions later
+        as a stack overflow). If a call has an OUT or IO parameter, the write IS
+        the contract. 422B GSWSP is the reference for doing it right - commit
+        73ac594 fixed 412B by making it write "like 422B GSWSP''s
+        mon_write_param_word".
+      verified: true
+    - name: 'SegmentSize / LogSegmentNo / RetLogSegmentNo'
+      note: >-
+        On ND-500 all three INTEGER parameters are 32-bit words (W BLOCK).
+        SegmentSize is in BYTES. LogSegmentNo = 0 asks the system to pick the
+        first available free segment.
+      verified: true
+    - name: RetLogSegmentNo
+      note: >-
+        The handler header says it is "only written if LogSegmentNo was 0", but
+        the code writes it UNCONDITIONALLY whenever a third argument is present.
+        Writing it always is the safer behaviour and nothing has been observed to
+        object; the header text is the stale one.
+      verified: true
+
+  observed_calls:
+    - caller: 'CAT-500 code generator (cat-cat5-b06.dom), startup'
+      params:
+        LogSegmentNo: 0
+      expectation: >-
+        Returns AssignedSeg=2 (observed 2026-07-17). CAT-500 issues GSWSP as part
+        of its fixed startup sequence (11B TIME, 114B TUSED, 143B RSIO, 422B
+        GSWSP, 41B ROBJE, 76B SETBS, 62B RMAX, 73B SMAX, 504B DVOUTS, 503B
+        DVINST) before its banner and "Cat-500:" prompt.
+      note: >-
+        Audited clean: "422B GSWSP: segment mapping clean"
+        (docs/HANDOFF_MON_COMPLETENESS.md); "422B GSWSP uses the real
+        allocate_segment callback (genuine MMU-backed scratch segment - not a
+        blocker)" (docs/CAT500_UECOM_CSHARP_HANDOFF.md Part C).
+
+  return_contract:
+    success: >-
+      K flag cleared; RetLogSegmentNo written with the assigned logical segment
+      number; the segment is connected to the caller''s domain and MMU-backed.
+    errors:
+      - code: -1
+        octal: null
+        meaning: >-
+          NOT a SINTRAN code. Internal guard when the host allocate_segment
+          callback is absent.
+      - code: null
+        octal: null
+        meaning: >-
+          On allocation failure the handler passes the CALLBACK''S return code
+          straight through to mon_set_error. Those values are host-internal and
+          are NOT the SINTRAN Appendix A codes.
+
+  verified:
+    - claim: 'nd500x allocates a real MMU/PST-backed segment and reports its number.'
+      evidence: >-
+        Handler calls ctx->allocate_segment(cpu, machine, 0xFF, requested_segment,
+        segment_size, &assigned_segment) - 0xFF is the sentinel for "use the
+        current domain", which the callback reads from cpu->CED. Observed
+        AssignedSeg=2 for CAT-500. Audited "segment mapping clean".
+    - claim: '422B is the model for the OUT-parameter contract.'
+      evidence: >-
+        Commit 73ac594 and docs/MON_CSHARP_SYNC_HANDOFF.md PART C: "412B FSCNT:
+        return the assigned SegmentNo through the OUTPUT arg slot (like 422B
+        GSWSP''s mon_write_param_word), not the deprecated W1/error-code channel".
+
+  unverified:
+    - >-
+      NO CARVED WORKER EXISTS FOR THIS CALL. 422B belongs to the ND-500 monitor
+      family (410B-427B) dispatched through the S3SM5 numeric vector table, and
+      its vector slot is EMPTY: slot 0x0284 = 0x0000, byte-proven, in segment
+      030-S3SM5 (load base 40000B). The actual servicing point is NOT LOCATED.
+      The carve folder deliberately contains no .ASM and no .pseudo.c - "there is
+      no worker in any carved segment ... Fabricating one would be wrong". The
+      short name GSWSP appears in no carved segment''s symbol table.
+    - >-
+      Therefore SINTRAN''s real error codes for this call are UNKNOWN. nd500x
+      returns host callback codes, which are certainly not them.
+    - >-
+      The default segment name "SCRATCH-SEGMENT:DSEG" the manual documents is not
+      modelled - nd500x names nothing.
+    - >-
+      "Reserves space for it on the swap file" has no emulator analogue; there is
+      no swap file.
+    - >-
+      The handler does not check arg_count before reading arguments 0 and 1.
+
+  sources:
+    - doc: '/mnt/e/Dev/Ronny/NDInsight/tools/sintran-segment-carver/versions/L-VSX-500/re/mon-analysis/422B-GetScratchSegment/README.md'
+      note: >-
+        Documents the ABSENCE: S3SM5 vector slot 0x0284 = 0x0000 (byte-proven),
+        servicing point NOT LOCATED, no worker body anywhere.
+    - doc: /home/ronny/repos/nd500x/docs/CAT500_UECOM_CSHARP_HANDOFF.md
+      note: 'Part C - GSWSP is clean; the CAT-500 blocker is 412B FSCNT, not this call.'
+    - doc: /home/ronny/repos/nd500x/docs/HANDOFF_MON_COMPLETENESS.md
+      note: 'Audit line: "422B GSWSP: segment mapping clean".'

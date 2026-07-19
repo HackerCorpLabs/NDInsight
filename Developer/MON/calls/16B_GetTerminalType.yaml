@@ -118,3 +118,75 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
+emulation:
+  status: stub
+  nd500x_handler: /home/ronny/repos/nd500x/src/libmon/handlers/mon_16B_GetTerminalType.c
+  last_updated: '2026-07-17'
+
+  stub_behaviour: >-
+    RETURNS A CONSTANT - SAY SO. 16B MGTTY always reports terminal type 0 and never
+    consults DeviceNumber. There is no per-device terminal-type state in nd500x:
+    17B MSTTY accepts and discards the type, so a set-then-get round trip does NOT
+    read back what was set.
+
+  parameter_notes:
+    - name: TerminalType
+      note: >-
+        Written as a 32-bit word (ND-500 INTEGER = W), not a halfword, despite the
+        manual typing it INTEGER2.
+      verified: true
+    - name: DeviceNumber
+      note: 'Read for logging only; the returned type does not depend on it.'
+      verified: true
+
+  observed_calls:
+    - caller: 'ND linker (linker-b01.dom), startup'
+      expectation: >-
+        Called during linker startup terminal configuration. Type 0 is accepted and
+        the linker proceeds.
+      note: >-
+        Before this handler existed the auto-generated stub returned error -1 and the
+        linker crashed in startup device configuration. Commit 940ba39.
+
+  return_contract:
+    success: 'K flag cleared; TerminalType written to the OUT parameter.'
+    errors:
+      - code: 111
+        octal: 157B
+        meaning: 'Missing parameter (fewer than 2 CALLG args)'
+
+  verified:
+    - claim: 'The linker proceeds past its startup with terminal type 0.'
+      evidence: 'Commit 940ba39: "16B MGTTY (GetTerminalType): returns generic terminal type 0."'
+
+  unverified:
+    - >-
+      THAT 0 IS THE RIGHT ANSWER. The choice is INFERRED, not read: the handler
+      comment reasons that Appendix H type 0 means "an ordinary/undefined terminal,
+      the safe generic answer for an emulated console". Appendix H is NOT in the
+      scanned set we hold, so the meaning of type 0 is NOT confirmed from a primary
+      source. The only positive evidence is that the linker accepts it.
+    - >-
+      THE CARVE WAS NOT MINED FOR THIS ENTRY. A carve folder exists at
+      .../L-VSX-500/re/mon-analysis/16B-GetTerminalType/ and has not been read in.
+    - >-
+      What real MGTTY returns for a device that is not a terminal is unknown;
+      nd500x returns 0 for any DeviceNumber.
+
+  sources:
+    - doc: 'SINTRAN III Monitor Calls (ND-860228.2 EN)'
+      note: 'The manual body of this YAML. It defers the type list to Appendix H, which we do not hold.'
+  updates_2026_07_17:
+    - topic: 'Terminal type is SINTRAN state (round-trips with 17B/336B 101B)'
+      status: verified
+      detail: >-
+        The terminal type lives in SINTRAN's per-terminal datafield, set by
+        @SET-TERMINAL-TYPE (and MON 17B MSTTY / 336B function 101B); 16B MGTTY
+        only REPORTS it. Type 0 means NOT SET - a program that needs VTM then ASKS
+        the user ("Terminal type 000 is unknown. / What is your terminal type?"),
+        which is CORRECT behaviour, not a fault. nd500x models it as per-device
+        state; the startup default stands in for @SET-TERMINAL-TYPE
+        (ND500X_TERMINAL_TYPE, default 6 = DEC VT100). The type numbers are read
+        from the DDBTABLES:VTM menu, NOT a manual (Appendix H not in the scanned
+        set), and DIFFER between DDBTABLES variants.
+      nd500x_commits: '558ecc6, c87c8d0'

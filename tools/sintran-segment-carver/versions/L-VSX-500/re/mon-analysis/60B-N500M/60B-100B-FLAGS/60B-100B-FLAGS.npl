@@ -1,0 +1,22 @@
+% NPL SOURCE REFERENCE - MON 60B 100B/101B - RRFLAG/WWFLAG (verbatim, 5P-P2-MON60.NPL)
+RRFLAG:      % FUNCTION=100: READ FLAGS FROM ND-500 DATA SEGMENT
+WWFLAG:      % FUNCTION=101: WRITE FLAGS INTO ND-500 DATA SEGMENT
+       IF 5D12=-1 THEN                                     % 5D12 = PROCESS NUMBER
+          X:=5PRDESCR                                      % -1 MEANS OWN PROCESS
+       ELSE
+          IF A<<=5SWPROC OR A>>MX5PROCS GO FAR EEILPAR     % LEGAL PROCESS NUMBER ?
+          A-5SWPROC*5PRDSIZE+"S500S"=:X                    % X=ACTUAL PROCESS DESCR
+          IF X.RTRES=0 GO FAR EEILPAR                      % ERROR IF PROC. NOT IN USE
+       FI; X=:5D32
+       X:=X.MESSBUFF; T:=5MBBANK; *SENDE@3 LDATX
+       A-5SWPROC*2+"F5DSG"=:T; CALL M1MEXY; T=:5OLDSEG     % GET ACTUAL ND-500 DATA SEGMENT
+       IF 5FUNCTION=5RFLAG THEN                            % WHICH FUNCTION?
+          AD:="FF500".DS0=:5DD2                            % READ FLAGS
+       ELSE
+          IF 5D32><5PRDESCR THEN                           % WRITE TO OWN PROC?
+             IF BACKGROUND><0 AND 5PASSTYPE=0 GO FAR EENAUTHORISED % ONLY ALLOWED FROM RT-PROGR OR USER SYSTEM
+          FI; AD:=5DD2=:"FT500".DS0                        % WRITE FLAGS
+       FI; T:=5OLDSEG; CALL M1MEXY                         % GET CALLER'S ORIGINAL SEGMENTS
+       IF 5FUNCTION=5RFLAG THEN
+          X:=5P2; AD:=5DD2; CALL STDS0                     % COPY FLAGS TO USER
+       FI; GO FAR 5OKRET; *)FILL

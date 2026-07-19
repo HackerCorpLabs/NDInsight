@@ -152,3 +152,176 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
+emulation:
+  status: partial
+  nd500x_handler: /home/ronny/repos/nd500x/src/libmon/handlers/mon_144B_DeviceFunction.c
+  last_updated: '2026-07-17'
+
+  function_codes:
+    radix: octal
+    note: >-
+      The manual body says only "Function code. See the following pages." THIS is
+      that table. It is OCTAL - it skips 8 and 9, which is the giveaway.
+    source:
+      doc: 'ND-60.050.06 SINTRAN III Users Guide'
+      page: 232
+      table: '9.1'
+    codes:
+      - code: 0
+        name: Read-Record
+        description: >-
+          Reads a record from the device, or from the open file given by DeviceNo,
+          into Buffer.
+        param1: 'Octal addr. of data buf. for area users to read (manual)'
+        param2: 'Octal no. of words (manual)'
+        status: implemented
+      - code: 1
+        name: Write-Record
+        param2: 'Octal no. of words'
+        status: not_implemented
+      - code: 5
+        name: Unlock-and-Stop
+        status: not_implemented
+      - code: 6
+        name: Lock-Cassette
+        status: not_implemented
+      - code: 7
+        name: Erase-EOF
+        status: not_implemented
+      - code: 10
+        name: Advance-to-EOF
+        status: not_implemented
+      - code: 11
+        name: Reverse-to-EOF
+        status: not_implemented
+      - code: 12
+        name: Write-EOF
+        status: not_implemented
+      - code: 13
+        name: Rewind
+        status: not_implemented
+      - code: 14
+        name: Write-Erase-Gap
+        status: not_implemented
+      - code: 15
+        name: Back-Space-Records
+        status: not_implemented
+      - code: 16
+        name: Advance-Records
+        status: not_implemented
+      - code: 17
+        name: Unload
+        status: not_implemented
+      - code: 20
+        name: Read Status
+        description: 'Reads the device status register via an IOX instruction.'
+        status: not_implemented
+      - code: 21
+        name: Clear Device
+        status: not_implemented
+      - code: 23
+        name: Select Density-and-Parity
+        param2: 'Density/parity value (Users Guide section 9.2.2.1)'
+        status: not_implemented
+      - code: 24
+        name: Read Last Status
+        description: >-
+          Returns the status of the last operation, saved by the driver, without
+          executing an IOX instruction.
+        status: not_implemented
+
+  observed_calls:
+    - caller: 'ND linker (linker-b01.dom) @0xB004E9BC, via wrapper @0xB004E98A'
+      params:
+        FunctionCode: 0
+        Buffer: '0xB00530BC'
+        DeviceNo: 65
+        DeviceParam1: 4096
+        DeviceParam2: 3
+      expectation: >-
+        The linker OPENs 'DDBTABLES-G':VTM (abbreviation-resolves to
+        DDBTABLES-G06:VTM), 74B SETBTs the byte pointer to 0, then issues this
+        call, and IMMEDIATELY requires the first word of Buffer to be 1
+        (0xB004AFB8 "w comp2 r.0x0,$0x1"), else it raises error 0x106A. The real
+        DDBTABLES-G06:VTM begins 00 00 00 01 and carries 0x40-byte records at
+        +0x78 - exactly where the linker then indexes. The file image maps
+        directly onto the buffer.
+      note: >-
+        If this call returns success WITHOUT filling Buffer, the linker's tables
+        stay blank and it later walks blank memory as records, computes a bogus
+        pointer 0x40404040 (0x20202020+0x20202020 - spaces read as a record),
+        takes a protect violation, and aborts via its own trap handler. The
+        failure surfaces ~83000 instructions later as a stack overflow, which is
+        a symptom, NOT the bug.
+
+  return_contract:
+    success: 'K flag cleared; Buffer filled for transfer functions.'
+    errors:
+      - code: 90
+        octal: 132B
+        meaning: 'No file opened with this number (Read-Record on a non-open device)'
+      - code: 3
+        octal: 003B
+        meaning: 'End of file / seek failed'
+      - code: 97
+        octal: 141B
+        meaning: 'Transfer error'
+
+  verified:
+    - claim: 'Function codes are octal, and this is the right table.'
+      evidence: >-
+        The table skips 8 and 9. Independently, the ND linker's own MAGTP wrapper
+        at 0xB004E98A special-cases function codes 0x10 and 0x14 (16 and 20
+        decimal = 20B and 24B octal) = exactly Read Status / Read Last Status -
+        the codes the manual says take dummy parameters ("in the range 5B to 24B,
+        except 23B, the parameter buffer and the two device dependent parameters
+        are dummies").
+    - claim: 'Function 0 reads the open file named by DeviceNo into Buffer.'
+      evidence: >-
+        Implemented and run: error 0x106A drops from 1 occurrence to 0, and the
+        downstream protect violation and stack overflow disappear entirely.
+        Log: "Read-Record 4096 bytes from device 101 into 0xB00530BC, pos=10000".
+    - claim: 'DeviceNo may be an open-file number, not only a logical device.'
+      evidence: >-
+        Manual parameter text says "Logical device number (or open-file number)".
+        Observed: DeviceNo=65, the file number returned by the preceding 50B OPEN.
+        Corroborated by the access-code table entry for code 8: "Direct transfer
+        for ReadFromFile, WriteToFile and DeviceFunction".
+
+  unverified:
+    - >-
+      WHICH parameter carries the transfer size. Table 9.1 lists param2 as "octal
+      no. of words", but the linker passes param1=4096 and param2=3, and 4096 is
+      the only value that can span the table it then indexes. nd500x treats
+      param1 as a BYTE count. This is INFERRED from the caller's usage, not read
+      from a manual - the pages that would settle the ND-500 parameter convention
+      are not in the scanned set.
+    - >-
+      The return convention for the status-reporting functions (20B-24B): the
+      manual says "the hardware status is returned" but the format is not in the
+      scanned pages.
+    - >-
+      All function codes other than 0 are unimplemented in nd500x and currently
+      return benign SUCCESS. That is NOT correct behaviour - they are real device
+      operations against hardware not emulated.
+
+  discrepancies:
+    - was: >-
+        The carve of the ND-100 worker (L-VSX-500 segment 006-S3FS, MAGTP
+        @026354B) validates the function code to the range 100B..177B, which would
+        make function 0 out of range.
+      is: >-
+        The ND linker passes function 0 and expects it to work. The carve itself
+        notes GOTAB[144B] = 000000 is a fall-through and the real dispatch lives
+        in an UNCARVED overlay, so that range check is not authoritative for the
+        ND-500 path.
+      evidence: >-
+        /mnt/e/Dev/Ronny/NDInsight/tools/sintran-segment-carver/versions/L-VSX-500/re/mon-analysis/144B-DeviceFunction/144B-DeviceFunction.pseudo.c
+
+  sources:
+    - doc: 'ND-60.050.06 SINTRAN III Users Guide'
+      page: 232
+      table: '9.1'
+      note: 'The function-code table. Concluded on page 233 (codes 20-24).'
+    - doc: /home/ronny/repos/nd500x/docs/HANDOFF_CSHARP_STRING_WRITE_MMU.md
+      note: 'Section 7 item 3 - full port notes for the C# side.'

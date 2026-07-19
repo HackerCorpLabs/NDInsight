@@ -921,7 +921,7 @@ the driver processes the next queued request.
 - **FWQU**: remove task from waiting queue on I/O completion
 - **RTENTRY**: mark task as ready for execution
 
-Source: `/mnt/e/Dev/Ronny/NDInsight/SINTRAN/OS/18-DEVICE-DRIVER-FRAMEWORK.md`
+Source: `SINTRAN/OS/18-DEVICE-DRIVER-FRAMEWORK.md`
 
 ### 6.8 Building Safety Into Your Protocol
 

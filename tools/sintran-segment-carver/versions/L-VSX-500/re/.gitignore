@@ -1,0 +1,5 @@
+# built password tools (rebuild with `make`)
+passcrack
+passdb
+# generated lookup databases
+*.db

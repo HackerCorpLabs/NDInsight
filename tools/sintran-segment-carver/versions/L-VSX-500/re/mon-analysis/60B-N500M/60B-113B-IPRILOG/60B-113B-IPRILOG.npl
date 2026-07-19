@@ -1,0 +1,14 @@
+% NPL SOURCE REFERENCE - MON 60B 113B - IPRILOG read log data (verbatim, 5P-P2-MON60.NPL)
+IPRILOG:     % FUNCTION=113: READ LOG DATA (PRINT LOG INFO)
+       IF 5HRTP><RTREF THEN ELOGNRESERVED; GO FAR ERET FI  % LOGGING FACILITY RESERVED BY THE CALLER?
+       IF 5HIFLAG=2 THEN                                   % YES, WHICH LOG FUNCTION?
+          T:=16                                            % PROCESS-LOG-ONE
+       ELSE                                                % PROCESS-LOG-ALL
+          0=:"5HIDATA".S2; T:=MX5PROCS+1=:X.S3+3 SH 1
+       FI; X:=T; "5HIDATA"=:D; T:=5P2; A:=OLDPAGE
+       K:=1; CALL MOVUS                                    % COPY SAMPLED DATA TO USER FROM "5HIDATA"
+       AD:=5DD1
+       IF A=0 AND D=0 THEN                                 % SHOULD LOGGING-DATA-BUFFER BE CLEARED?
+          X:="5HIDATA"                                     % YES, CLEAR LOGGING-DATA-BUFFER
+          DO WHILE X<<="5HIOUTSIDE"+1; 0=:X.S0; X+1; OD
+       FI; GO FAR 5OKRET; *)FILL

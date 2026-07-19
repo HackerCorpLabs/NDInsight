@@ -1,0 +1,32 @@
+% NPL SOURCE REFERENCE - MON 60B 5NOPAR common path (verbatim, 5P-P2-MON60.NPL)
+% Every 5IFUNC handler ends here (GO FAR 5NOPAR): the shared hand-off to the ND-500 SYSTEM MONITOR.
+5NOPAR: A:=5PRDESCR-"S500S"=:D:=0; T:=5PRDSZIE; *RDIV ST   % COMPUTE PROCESS NUMBER
+       T:=RTREF.RSEGM=:5RSEGM; 0=:X.RSEGM                  % SAVE USER'S RSEGM AND SET RSEGM=0
+       A-1*2+"F5DSG"=:T; CALL M1MEXY; T=:5OLDSEG           % GET IN ND-500 DATA SEGMENT
+       IF N5FUNCTION><N5REL THEN
+          IF A=N5RES OR 5FUNCTION=N5RES OR A=MRESSPES OR A=SSTDOM THEN
+             "DASEGSTART+DSEGSIZE-2"=:L; A:=0=:D
+             X:="DASEGSTART"; DO AD=:X.DS0; WHILE X<<L; X+2; OD % CLEAR ND500 DATA SEGMENT
+             X:="DFIX5DSPAGE"; AD:=IOFEXIT=:X.DS0               % SET UP IOF;EXIT
+          FI
+       FI
+       IF 5FUNCTION=N5RES THEN 5P1=:SGBRKADR FI
+NOPA1: IF 5FUNCTION=WISON OR A=TSTFUNC THEN
+          SBUFFR=:B; D:=0; X:="S500S"
+          DO WHILE D<<=MX5PROCS
+             X.RTRES=:S1; B+1; D+1; X+5PRDSIZE             % COPY RTRES OF ALL PROCS TO SBUFFR ON ND-500 DATA SEGM
+          OD; A:=D=:SBUFFER.S0                             % NUMBER OF ND-500 PROCS IN THIS SYSTEM
+          "N500DF"=:B
+       FI
+       N5FUNCTION SH 10\/5FUNCTION=:5FUNCTION
+       T:="S500DF"; A:="N500DF+ZPREG"=:D; A:=5DFSIZE=:L
+       *MOVAA                                              % SAVE MONCALL INFO ON ND-500 DATA SEGM.
+TOSYMON: *IOF
+       X:=RTREF; CALL BRELEASE; *ION                       % RELEASE N500DF DATAFIELD
+       IF "S500DF-ZPREG".5FUNCTION/\377=FORGET THEN         % STOP-ND-500?
+          CALL CFORGET
+       FI
+       IF BACKGROUND><0 THEN CALL ESCON FI                 % SET ESCAPE ON.
+       CALL FPT2ENTRY                                      % ENTER ND-500 SYSTEM MONITOR
+       GO FAR 5PT2RET                                      % NORMAL RETURN (ERROR AND OK)
+       GO FAR SYMNLOAD                                     % ERROR, SYSTEM MONITOR NOT LOADED

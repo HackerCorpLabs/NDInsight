@@ -1,0 +1,19 @@
+# @LIST-RT-PROGRAMS  (SINTRAN III VSX - K, correct disk BIGDISK0-K SINTRAN-K05-XMSG-2026)
+  NAME  RT-DESC  PRIOR STATUS    P-REG  T.LEFT  INTERV   ACTUAL SEGM
+   DUMMY  60467B      0 READY    34360B                    0B      0B
+   STSIN  60515B      0 PASSIVE  35475B                    5B      3B
+   RTERR  60543B     64 IO-WAIT  30037B                    5B     14B
+   1SWAP  60571B    191 PASSIVE  55105B                    0B      0B
+   TIMRT  60617B    128 PASSIVE  36701B                    0B      0B
+   RTDIL  60645B    192 PASSIVE      0B                    0B      0B
+   BPTMP  60673B     63 PASSIVE  57206B                    0B      0B
+   RTSLI  60721B    128 PASSIVE  36250B                    0B      0B
+   5SWAP  61023B     64 PASSIVE      0B                    0B      0B
+   RWRT1  61051B     64 PASSIVE      0B                    0B      0B
+   RTRFA  61331B     64 IO-WAIT  25377B                    5B      0B
+   XROUT  63165B      0 PASSIVE      0B                    0B      0B
+   XMFIDO 63241B      0 PASSIVE      0B                    0B      0B
+   BAK01  67751B     45 READY    35760B                 1150B      3B
+   BCH01  74767B     64 PASSIVE      0B                    0B      0B
+# (abbreviated; full list: DUMMY..BCH05, RWRT1-26/FDRT1-2, SPRT1-9/SPR10-20, UDR01-06, BAK01-34, BCH01-05)
+# RT-DESC base 60467B (K), stride 26B; XMSG present (XROUT/XTRACE/XMFIDO)

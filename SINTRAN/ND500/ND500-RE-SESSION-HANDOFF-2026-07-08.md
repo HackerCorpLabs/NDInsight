@@ -29,7 +29,7 @@ and exactly where to pick up. Every claim is cited to a file+offset or .asm line
   `ND-500-MON-J04.PROG` program was CLOSED after Q2/Q3/Q6 - reopen it to re-check
   anything in that binary. The BRF loader works and gives named symbols.
 - **ND-500 disassembler:** the swapper PSEG was disassembled OUTSIDE Ghidra into
-  `swapper/SWAPPER-K01.PSEG.asm`. Ghidra has NO ND-500 processor module - do not
+  `old/SWAPPER-K01.PSEG.asm`. Ghidra has NO ND-500 processor module - do not
   try to disassemble PSEG/DSEG in Ghidra.
 - **ND-500 instruction reference (WSL):** `/home/ronny/repos/nd500x/docs/instructions/`
   - `asm/*.md` (241 hand-written), `instructions.json`, `instructions.md`.
@@ -43,14 +43,14 @@ and exactly where to pick up. Every claim is cited to a file+offset or .asm line
 
 ## 2. Documents produced this session (full paths)
 
-1. `E:\Dev\Ronny\NDInsight\SINTRAN\ND500\ND500-MON-RE-FINDINGS.md`
+1. `SINTRAN/ND500/ND500-MON-RE-FINDINGS.md`
    Q2/Q3/Q6 for the Background Monitor (ND-500-MON-J04.PROG). Has a second-reviewer
    block at the top; the retry-status error it flagged is now FIXED in-body.
-2. `E:\Dev\Ronny\NDInsight\SINTRAN\ND500\swapper\SWAPPER-K01-ANALYSIS.md`
+2. `SINTRAN/ND500/old/SWAPPER-K01-ANALYSIS.md`
    Full swapper analysis (Q4) with Mermaid diagrams, DSEG hex map, ASCII field maps.
-3. `E:\Dev\Ronny\NDInsight\SINTRAN\ND500\ND500-PLACE-LIBRARY-C9-FINDINGS.md`
+3. `SINTRAN/ND500/ND500-PLACE-LIBRARY-C9-FINDINGS.md`
    Q5/C9 partial: capability bit-name inventory + logical-address widths.
-4. `E:\Dev\Ronny\NDInsight\SINTRAN\ND500\swapper\` also holds the copied binaries:
+4. `SINTRAN/ND500/swapper/` also holds the copied binaries:
    `SWAPPER-K01.PSEG`, `SWAPPER-K01.DSEG`, `SWAPPER-K01.PSEG.asm`, `N500-SYMBOLS.SYMB`.
 
 ---

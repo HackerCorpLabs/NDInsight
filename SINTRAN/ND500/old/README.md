@@ -79,3 +79,34 @@ PH-P2-OPPSTART.NPL:274).
 
 Superseded by: ../ND500-BUS-INTERFACE-REFERENCE.md (IOX register reference section) and
 ../ND500-IF-USAGE-DEEP-ANALYSIS.md.
+
+---
+
+## Superseded ND-500 swapper analysis (moved 2026-07-15)
+
+Unlike the documents above, these three are **not fabricated** - they were valid earlier
+work (2026-07-08) that has been fully superseded by a more complete, byte-verified pass.
+They are kept for provenance. The current canonical swapper analysis lives in `../swapper/`.
+
+### SWAPPER-K01-ANALYSIS.md
+
+The first ND-500-side swapper reverse-engineering write-up. Superseded by
+[../swapper/swapper-k01-deep-analysis.md](../swapper/swapper-k01-deep-analysis.md) (role
+determination, MON 377B descriptor decode, request/response loop) and
+[../swapper/swapper-k01.pseg.md](../swapper/swapper-k01.pseg.md) (routine-level pseudo-C).
+Corrections the newer pass makes: **WPHS is absent** (only RPHS present); the swapper **does**
+reach ND-100 memory, via sanctioned **RIOM DMA**; the pre-trap "internal call with identical
+args" is a **trace/log routine**, not a try-local-else-forward fast path.
+
+### SWAPPER-MON-DISPATCH.md
+
+Investigated whether the swapper is the trap target for ND-500 monitor calls. The question is
+answered definitively in [../swapper/swapper-k01-deep-analysis.md](../swapper/swapper-k01-deep-analysis.md):
+the swapper is a CLIENT of SINTRAN, has no receive-side MON dispatcher, and every `MON 377B`
+is an OUTWARD trap (segment-31 monitor call 255 = N5SWAP).
+
+### SWAPPER-K01.PSEG.asm
+
+The earlier plain ND-500 disassembly of the swapper PSEG. Superseded by the richer
+[../swapper/swapper-k01-pseg.asm](../swapper/swapper-k01-pseg.asm) (produced with
+`nd500-dis -a -o` at base `0x08000000`, with address/byte prefixes).

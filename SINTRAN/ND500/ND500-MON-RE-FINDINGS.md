@@ -239,7 +239,7 @@ NOTE: the current dossier (ND500-EVIDENCE-AND-CONTRADICTIONS.md item 4, RESOLVED
 The tables below are an independent re-derivation and match the dossier exactly.
 
 
-Source: E:\Dev\Ronny\NDInsight\SINTRAN\NPL-SOURCE\SYMBOLS\L07\N500-SYMBOLS.SYMB.TXT
+Source: SINTRAN/NPL-SOURCE/SYMBOLS/L07/N500-SYMBOLS.SYMB.TXT
 (line numbers below). IMPORTANT CAVEATS:
 - Symbol names in the table are truncated to 5 characters; the full-name mapping
   (e.g. MSGN5 -> MSGN500) is an identification, not a certainty, though each is

@@ -1,0 +1,74 @@
+# @LIST-RT-PROGRAMS  (SINTRAN III VSX/500 L, after XMSG started)
+  NAME  RT-DESC  PRIOR STATUS    P-REG  T.LEFT  INTERV   ACTUAL SEGM
+   DUMMY  12071B      0 READY    40442B                    0B      0B
+   STSIN  12117B      0 PASSIVE  42022B                    5B      3B
+   RTERR  12145B     64 PASSIVE      0B                    0B      0B
+   1SWAP  12173B    191 PASSIVE  70654B                    0B      0B
+   TIMRT  12221B    128 PASSIVE  43673B      0      1      0B      0B
+   RTDIL  12247B    192 PASSIVE      0B                    0B      0B
+   DIMWD  12275B     64 PASSIVE   4027B                    0B     73B
+   BPTMP  12323B     63 PASSIVE  72745B      9     15      0B      0B
+   RTSLI  12351B    128 PASSIVE  42332B      0      0      0B      0B
+   ACCRT  12377B     64 PASSIVE      0B                    0B      0B
+   TERMP  12425B    128 PASSIVE      0B                    0B      0B
+   5SWAP  12453B     64 PASSIVE      0B                    0B      0B
+   RWRT1  12501B     64 PASSIVE      0B                    0B      0B
+   RWRT2  12527B     64 PASSIVE  27473B                    5B      0B
+   RWRT3  12555B     64 PASSIVE      0B                    0B      0B
+   RWRT5  12603B     64 PASSIVE      0B                    0B      0B
+   RWRT7  12631B     64 PASSIVE      0B                    0B      0B
+   RWRT8  12657B     64 PASSIVE      0B                    0B      0B
+   RWRT9  12705B     64 PASSIVE      0B                    0B      0B
+   RTRFA  12733B     64 IO-WAIT  27235B                    5B      0B
+   DUMM2  12761B      0 PASSIVE      0B                    0B      0B
+   SPRT1  13007B     44 PASSIVE      0B                    0B      0B
+   SPRT2  13035B     44 PASSIVE      0B                    0B      0B
+   SPRT3  13063B     44 PASSIVE      0B                    0B      0B
+   SPRT4  13111B     44 PASSIVE      0B                    0B      0B
+   SPRT5  13137B     44 PASSIVE      0B                    0B      0B
+   SPRT6  13165B     44 PASSIVE      0B                    0B      0B
+   SPRT7  13213B     44 PASSIVE      0B                    0B      0B
+   SPRT8  13241B     44 PASSIVE      0B                    0B      0B
+   SPRT9  13267B     44 PASSIVE      0B                    0B      0B RTOFF
+   SPR10  13315B     44 PASSIVE      0B                    0B      0B RTOFF
+   SPR11  13343B     44 PASSIVE      0B                    0B      0B RTOFF
+   SPR12  13371B     44 PASSIVE      0B                    0B      0B RTOFF
+   SPR13  13417B     44 PASSIVE      0B                    0B      0B RTOFF
+   SPR14  13445B     44 PASSIVE      0B                    0B      0B RTOFF
+   SPR15  13473B     44 PASSIVE      0B                    0B      0B RTOFF
+   SPR16  13521B     44 PASSIVE      0B                    0B      0B RTOFF
+   COSPO  13547B     44 PASSIVE      0B                    0B      0B RTOFF
+  RWRT10  13575B     64 PASSIVE      0B                    0B      0B
+  RWRT11  13623B     64 PASSIVE      0B                    0B      0B
+  RWRT12  13651B     64 PASSIVE      0B                    0B      0B
+  RWRT13  13677B     64 PASSIVE      0B                    0B      0B
+  RWRT20  13725B     64 PASSIVE      0B                    0B      0B
+  RWRT14  13753B     64 PASSIVE      0B                    0B      0B
+  RWRT21  14001B     64 PASSIVE      0B                    0B      0B
+  RWRT25  14027B     64 PASSIVE      0B                    0B      0B
+  RWRT26  14055B     64 PASSIVE      0B                    0B      0B
+  RWRT41  14103B     64 PASSIVE      0B                    0B      0B
+  RWRT42  14131B     64 PASSIVE      0B                    0B      0B
+   TADAD  14157B     32 PASSIVE      0B                    0B      0B
+   UDR01  14205B     64 PASSIVE      0B                    0B      0B RTOFF
+   UDR02  14233B     64 PASSIVE      0B                    0B      0B RTOFF
+   UDR03  14261B     64 PASSIVE      0B                    0B      0B RTOFF
+   UDR04  14307B     64 PASSIVE      0B                    0B      0B RTOFF
+   UDR05  14335B     64 PASSIVE      0B                    0B      0B RTOFF
+   UDR06  14363B     64 PASSIVE      0B                    0B      0B RTOFF
+   XROUT  14411B     64 IO-WAIT   2631B                   76B     77B
+  XTRACE  14437B     64 PASSIVE      0B                    0B      0B
+  XMFIDO  14465B     30 READY   114427B                    0B    103B
+  NKSERV  14513B     30 PASSIVE      0B                    0B      0B
+  NKNAME  14541B     30 PASSIVE      0B                    0B      0B
+  ERS3WD  14567B     30 IO-WAIT  26772B                  117B    115B
+  PROMAN  14615B     30 PASSIVE      0B                    0B      0B
+  EVMESG  14643B     30 PASSIVE      0B                    0B      0B
+  BOPCOM  14671B     30 PASSIVE      0B                    0B      0B
+  MTSERV  14717B     30 PASSIVE      0B                    0B      0B
+   RTREC  14745B     30 PASSIVE      0B                    0B      0B
+  XFTRAD  14773B      0 PASSIVE      0B                    0B      0B
+   FSART  15021B      0 PASSIVE      0B                    0B      0B
+   BAK01  23337B     32 READY     4452B                 1072B      3B
+# BAK02..BAK34 23365B..24665B  (prio 64, PASSIVE) - background terminal processes
+# BCH01..BCH05 30505B..30635B  (prio 64, PASSIVE) - batch processes

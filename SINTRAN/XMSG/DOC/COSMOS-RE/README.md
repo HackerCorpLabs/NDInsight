@@ -82,4 +82,4 @@ left (see the fa-serv doc §6).
 - `..\..\..\TAD\TAD-Message-Formats.md` — the TAD wire spec (opcodes, login ladder, connect session).
 - `..\XMSG-PROTOCOL.md` — the transport spec (framing, LAPB, envelope, secure-ACK, ports).
 - The annotated Ghidra programs themselves live in
-  `E:\Dev\Ronny\NDInsight\Installation\Communication\COSMOS Basic\x\`.
+  `Installation/Communication/COSMOS Basic/x/`.

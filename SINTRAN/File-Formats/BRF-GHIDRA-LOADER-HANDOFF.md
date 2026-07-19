@@ -19,7 +19,7 @@ self-contained.
   processor (MAC assembler, FORTRAN, COBOL, PLANC, BASIC, PASCAL, NPL, C) and
   consumed by the ND Relocating Loader. It is a byte stream of "BRF groups", each
   led by a one-byte control number. See the full spec:
-  `E:\Dev\Ronny\NDInsight\SINTRAN\File-Formats\BRF-FILE-FORMAT.md`
+  `SINTRAN/File-Formats/BRF-FILE-FORMAT.md`
   (primary manual: `Reference-Manuals\ND-60.066.04 ND Relocating Loader.md` ch.2).
 
 - **Target CPU:** ND-100, 16-bit word machine (NOT byte-addressed). Ghidra needs
@@ -29,8 +29,8 @@ self-contained.
   first; the reference linker below works in WORD addresses (1 slot = 1 16-bit word).
 
 - **Sample BRF files to test against:**
-  `E:\Dev\Ronny\NDInsight\Installation\Communication\Ethernet\x\encos-err-i-b01.brf`
-  `E:\Dev\Ronny\NDInsight\Installation\Communication\Ethernet\x\encos-err-ii-b01.brf`
+  `Installation/Communication/Ethernet/x/encos-err-i-b01.brf`
+  `Installation/Communication/Ethernet/x/encos-err-ii-b01.brf`
   Each: 174 BRF units, all checksums valid, PLANC compiler output. The ND-100-side
   ENNS0 COSMOS Ethernet supervisor. Symbols include MAIN `ENNS0`, ENTR `POSUERR`,
   `SEGLOAD`, `READPIO`, `START_P`, plus LIBR/ENTR `UEIE*` pairs.

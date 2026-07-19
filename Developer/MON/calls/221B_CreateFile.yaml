@@ -145,3 +145,84 @@ extraction:
   version: '1.0'
   validated: false
   ocr_corrected: false
+emulation:
+  status: partial
+  nd500x_handler: /home/ronny/repos/nd500x/src/libmon/handlers/mon_221B_CreateFile.c
+  last_updated: '2026-07-17'
+
+  parameter_notes:
+    - name: FileName
+      note: >-
+        Real callers pass the name as a [Length:4][Pointer:4] string DESCRIPTOR,
+        not inline text; reading the slot directly yields the descriptor struct
+        (first byte 0x00) and so an empty name. nd500x uses
+        mon_read_descriptor_string.
+      verified: true
+    - name: NoOfPages
+      note: >-
+        1 SINTRAN page = 2048 bytes. When NoOfPages > 0 nd500x pre-allocates
+        NoOfPages*2048 bytes by seeking and writing one byte.
+      verified: true
+
+  return_contract:
+    success: 'K flag cleared; an empty (or pre-allocated) host file exists.'
+    errors:
+      - code: 62
+        octal: 076B
+        meaning: 'File already exists'
+      - code: 111
+        octal: 157B
+        meaning: 'Missing parameter (no args)'
+      - code: 124
+        octal: 174B
+        meaning: 'Illegal parameter (empty file name, or host create failed)'
+
+  verified:
+    - claim: 'An abbreviated name is NOT resolved on create.'
+      evidence: >-
+        SINTRAN permits abbreviation only on a READ open; the matcher is hooked
+        in mon_file_table.c only after a literal open fails on a read open, and
+        never here. Commit badb3c4.
+
+  unverified:
+    - >-
+      The indexed / contiguous / allocated distinction the manual draws is NOT
+      modelled - every created file is a plain host file. StartAddress is read
+      and logged but has NO effect.
+    - >-
+      "You need directory access to the user who owns the file" and "an indexed
+      file not yet written to may be converted to a contiguous file" are not
+      modelled - there is no access-rights model behind CreateFile.
+    - >-
+      The manual's default file type ":DATA" is not applied by the handler; the
+      type comes from the name (NAME:TYPE) or the path translator.
+    - >-
+      Version handling is not modelled (no new-version-on-create behaviour).
+
+  emulator_specific:
+    - note: >-
+        SCRATCH-* names are routed to a SCRATCH directory by the path translator,
+        and an EXISTING scratch file is deleted and recreated rather than
+        returning 076B "file already exists". That special case is an emulator
+        decision for the compiler pipeline, not a carved SINTRAN rule.
+      evidence: 'mon_221B_CreateFile.c (is_scratch_file branch).'
+
+  discrepancies:
+    - was: >-
+        nd500x defaults an OMITTED NoOfPages to 1, pre-allocating 2048 bytes.
+      is: >-
+        Per the manual field ("Use 0 if you want to create an indexed file") the
+        omitted default should be 0 - an indexed file with no pre-allocation.
+        This is an audited-but-NOT-YET-FIXED defect in nd500x, recorded here so
+        the next implementer does not copy it.
+      evidence: >-
+        /home/ronny/repos/nd500x/docs/MON_CSHARP_SYNC_HANDOFF.md Part C
+        ("221B CreateFile: omitted NoOfPages should default to 0 (indexed, no
+        prealloc), not 1") and MON_COMPLETENESS_MATRIX.md row 221B (PARTIAL).
+
+  sources:
+    - doc: 'SINTRAN III Monitor Calls (ND-860228.2 EN)'
+      note: 'The manual page this YAML was extracted from.'
+    - doc: /home/ronny/repos/nd500x/docs/MON_CSHARP_SYNC_HANDOFF.md
+      note: 'Part C - the NoOfPages default defect.'
+    - commit: '6b57202 (nd500x) - real SINTRAN error codes (file already exists = 62 / 076B)'

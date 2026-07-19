@@ -8,6 +8,12 @@ was retired to `old/`. Start with the Tier 1 documents.
 
 ---
 
+## Monitor calls — start at the MON hub
+
+| Folder | Purpose |
+|--------|---------|
+| [MON/](MON/README.md) | **All monitor-call documentation, indexed**: how ND-500 MON calls are activated, mapped 500↔100, dispatched, serviced, and answered; the per-call routing map; the ND-100 level-14/GOTAB system; and how to find the code for any MON call. Start here for anything MON-related. |
+
 ## Tier 1 - Authoritative (start here)
 
 | Document | Purpose |
@@ -39,11 +45,34 @@ invention.
 | [SINTRAN-DOMAIN-SETUP-DEEP-DIVE.md](SINTRAN-DOMAIN-SETUP-DEEP-DIVE.md) | Domain / process-descriptor / segment-capability walkthrough |
 | [ND500-INITIALIZATION-AND-EXECUTION-GUIDE.md](ND500-INITIALIZATION-AND-EXECUTION-GUIDE.md) | Operator guide: domains, PLACE-DOMAIN, PSEG/DSEG (section 2 rewritten 2026-07-08) |
 
+## Byte-level RE carve (2026-07-15) - the ND-100 <-> ND-500 interface, end to end
+
+The full ND-100 <-> ND-500 command/answer path was carved from the L-VSX-500 image bytes this
+session. The deliverables live under `tools\` (outside this folder; owned by the carver tool). Full
+paths and their relative links:
+
+| Deliverable | Full path | What |
+|-------------|-----------|------|
+| ND-500 system monitor carve | `tools/sintran-segment-carver/versions/L-VSX-500/re/ND500-SYSTEM-MONITOR/` ([README](../../tools/sintran-segment-carver/versions/L-VSX-500/re/ND500-SYSTEM-MONITOR/README.md)) | Segment `030-S3SM5` (base `40000B`): `FPT2ENTRY=040003B` trampoline -> `5FP2E=142231B` entry, the `FUNCS=142031B` operation table, 3022 IOX driver + register map (byte-validated both ways), control-store gate, 5MPM message + `ACT50` activation, level-12 return path |
+| - FUNCS operation table | [FUNCS-dispatch-table.md](../../tools/sintran-segment-carver/versions/L-VSX-500/re/ND500-SYSTEM-MONITOR/FUNCS-dispatch-table.md) | 128-entry ND-500 operation table (server twin of the worker's `5IFUNC`) |
+| - 3022 IOX interface | [ND500-3022-IOX-INTERFACE.md](../../tools/sintran-segment-carver/versions/L-VSX-500/re/ND500-SYSTEM-MONITOR/ND500-3022-IOX-INTERFACE.md) | The `WADR`/`WRDAT`/`RDATL`/`REDAT`/`WRTAG`/`RSTAT` IOX driver + register offset map (matches `ND500-BUS-INTERFACE-REFERENCE.md` section 3.2) |
+| - control-store gate | [ND500-CONTROL-STORE-GATE.md](../../tools/sintran-segment-carver/versions/L-VSX-500/re/ND500-SYSTEM-MONITOR/ND500-CONTROL-STORE-GATE.md) | The emulator fix: return `RSTA5` bit 9 `5CLOST` CLEAR = control store loaded = clock running |
+| - 5MPM message + activation | [ND500-5MPM-MESSAGE-AND-ACTIVATION.md](../../tools/sintran-segment-carver/versions/L-VSX-500/re/ND500-SYSTEM-MONITOR/ND500-5MPM-MESSAGE-AND-ACTIVATION.md) | Message-block layout + the `ACT50` (MAR + CONTROL) activation |
+| - level-12 return path | [ND500-LEVEL12-RETURN-PATH.ASM](../../tools/sintran-segment-carver/versions/L-VSX-500/re/ND500-SYSTEM-MONITOR/ND500-LEVEL12-RETURN-PATH.ASM) | ISR chain `5STDR -> CHN5S -> DECOM -> MCHAN` in the RESIDENT `026-S3IMPIT`, dispatch on MICFU |
+| MON 60B / N500M worker carve | `tools/sintran-segment-carver/versions/L-VSX-500/re/mon-analysis/60B-N500M/` ([README](../../tools/sintran-segment-carver/versions/L-VSX-500/re/mon-analysis/60B-N500M/README.md)) | The ND-100 -> ND-500 gateway: worker `N500M=030416B` in `050-S3I5PIT` (5PIT), all 47 `5IFUNC` subfunction folders, the `5NOPAR` common path, error handlers, and the caller-vs-worker cross-analysis |
+| - 5IFUNC dispatch table | [60B-5IFUNC-dispatch-table.md](../../tools/sintran-segment-carver/versions/L-VSX-500/re/mon-analysis/60B-N500M/60B-5IFUNC-dispatch-table.md) | 128-entry subfunction map, 3-way cross-verified |
+| - caller-vs-worker cross-analysis | [60B-CROSS-ANALYSIS-caller-vs-worker.md](../../tools/sintran-segment-carver/versions/L-VSX-500/re/mon-analysis/60B-N500M/60B-CROSS-ANALYSIS-caller-vs-worker.md) | Reconciles the `nd-500-mon:prog` caller carve against this worker carve (both agree on `5IFUNC`) |
+
+**Status of record for this carve:** [ND500-STATUS-AND-INDEX.md](ND500-STATUS-AND-INDEX.md) sections 3a
+and 6. **Open follow-up:** wire these into RetroCore `NDBusND500IF.cs` and delete the fabricated
+"TAG code protocol" (message codes 8/9/16) from the `..\Emulator\` docs and the emulator code.
+
 ## Binary artifacts
 
 | Folder | Contents |
 |--------|----------|
-| [swapper/](swapper/README.md) | The ND-500 swapper binary itself (SWAPPER-K01 PSEG/DSEG), its disassembly, the resident monitor symbol table (N500-SYMBOLS.SYMB, 7157 symbols), and the RE analysis |
+| [nd-500-mon/](nd-500-mon/README.md) | The ND-500/5000 MONITOR J04 (`MON-DEBUG:PROG`) - the ND-100-side operator front end: the `:PROG` binary, its ND-100 disassembly, the full analysis (the single `MON 60` gateway at `146256B`), big-endian bank images, recovered symbol residue, the control-store/DMA debug handoff, the bring-up feedback, and `mon60-callers/` (INDEX + SUBFUNCTION-TABLE + 101 per-subfunction folders) |
+| [swapper/](swapper/README.md) | The ND-500 swapper domain (SWAPPER-K01 PSEG/DSEG binaries), the resident monitor symbol table (N500-SYMBOLS.SYMB, 7157 symbols), the disassembly, and the RE analysis - start at `swapper/swapper-k01-deep-analysis.md` (the swapper is an ND-500-side paging/swap worker DOMAIN and a CLIENT of SINTRAN) |
 
 ## Tier 3 - Raw NPL source analyses
 
