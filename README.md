@@ -1,26 +1,25 @@
-# NDInsight - NORD Computer Systems Analysis & Documentation
+# NDInsight - Norsk Data Computer Systems Analysis & Documentation
 
-**Comprehensive technical analysis and documentation for Norsk Data NORD computer systems**
+**Comprehensive technical analysis and documentation for Norsk Data computer systems**
 
 ---
 
 ## 📖 Overview
 
-**NDInsight** is a centralized repository of deep technical analysis, reverse-engineered documentation, and implementation guides for the **Norsk Data NORD computer systems**, focusing on the **SINTRAN III operating system** and its hardware architecture.
+**NDInsight** is a centralized repository of deep technical analysis, reverse-engineered documentation, OCR'd manuals, and implementation guides for **Norsk Data computer systems** - NORD-1/10/50, ND-100/110/120, ND-500 and ND-5000 - focusing on the **SINTRAN III operating system** and its hardware architecture.
 
-The analysis is made from original SINTRAN III source code, Norsk Data technical manuals, and with heavy use of AI (Claude AI, Cursor AI, ChatGPT AI). While comprehensive, there might be errors and hallucinations - use with appropriate verification.
+The analysis is made from original SINTRAN III source code, official Norsk Data technical manuals, and with heavy use of AI (Claude AI, Cursor AI, ChatGPT AI). While comprehensive, there might be errors and hallucinations - use with appropriate verification.
 
 ### What's Inside
 
-- **SINTRAN III NPL source code** - 45 files of authentic operating system source code
-- **SINTRAN L07 symbol tables** - 7 files mapping memory addresses to kernel structures
+- **SINTRAN III NPL source code** - 45 files of authentic operating system source code, plus symbol tables
 - **Kernel-level documentation** extracted from SINTRAN III source code
-- **Hardware analysis** of communication protocols (HDLC, X.21, TAD)
-- **ND-500 coprocessor** integration and communication
-- **Device driver** implementation details (with complete source code)
-- **SCSI subsystem** analysis (with complete source code)
-- **Emulator implementation** guides and C# code
-- **Complete reference manuals** for all NORD/SINTRAN components and languages
+- **Hardware analysis** of communication protocols (HDLC, X.21, X.25, TAD, XMSG, Octobus)
+- **ND-500 / ND-5000 coprocessor** integration and communication, reverse-engineered end to end
+- **Device driver** implementation details (SCSI, DOMINO/NUCLEUS, printers) with complete source code
+- **Emulator implementation** guides and production C# code
+- **Hundreds of official Norsk Data reference manuals and product data sheets**, OCR'd and indexed
+- **A hands-on reverse-engineering toolkit** (segment carver + boot-floppy analysis) with real source, disassembly and carved evidence
 
 ---
 
@@ -32,18 +31,32 @@ NDInsight/
 ├── CLAUDE.md                    ← AI assistant guidance
 ├── MERMAID_COLOR_STANDARDS.md   ← Diagram color standards
 ├── Developer/                   ← Developer guides and language references
+├── Installation/                ← Installing SINTRAN III and application software
+│   ├── OS/                      ← Installing SINTRAN III from distribution floppies
+│   ├── Communication/           ← Installing COSMOS/Ethernet/TCP-IP/X.21/X.25 products
+│   ├── Software/                ← Installing application software (later phase)
+│   ├── Installation-Description/← OCR'd "Program Description" install/requirements sheets
+│   └── Product-Info/            ← OCR'd product data-sheets/brochures
 ├── Operations/                  ← Operator and user guides (COSMOS, SINTRAN)
-├── Reference-Manuals/           ← Complete NORD/SINTRAN reference manuals
+├── Reference-Manuals/           ← Official Norsk Data reference manuals (incl. NORD-1, NORD-10, ND-500/5000, NOTIS)
 ├── scripts/                     ← Documentation processing scripts (Python, PowerShell)
+├── tools/                       ← Reverse-engineering toolkit
+│   ├── sintran-segment-carver/  ← Carved SINTRAN image segments, symbol matching, RE notes
+│   └── boot-floppy/             ← Disc boot-sector anatomy, MACM generation, patch analysis
 └── SINTRAN/                     ← SINTRAN III Operating System
-    ├── Devices/                 ← Hardware device documentation
+    ├── Devices/                 ← Hardware device documentation (HDLC, SCSI, DOMINO/NUCLEUS)
     ├── Emulator/                ← C# emulator implementation guides
+    ├── File-Formats/            ← On-disk / on-tape file format analysis
+    ├── Filesystem/              ← SINTRAN filesystem structures
     ├── ND500/                   ← ND-500 coprocessor documentation
+    ├── ND5000/                  ← ND-5000 / Octobus documentation
     ├── NPL-SOURCE/              ← ⭐ SINTRAN III source code & symbols
     ├── OS/                      ← Core OS kernel documentation
+    ├── Print/                   ← Printing/spooling subsystem
     ├── Release-Documentation/   ← SINTRAN III release notes (versions J-N)
     ├── SINTRAN Structures/      ← System structures and data analysis
     ├── TAD/                     ← TAD protocol analysis
+    ├── TSS/                     ← TSS subsystem documentation
     └── XMSG/                    ← XMSG message system: DOC/ (protocol, API, commands), SRC/ (C# library), constants
 ```
 
@@ -58,6 +71,13 @@ NDInsight/
 2. [SINTRAN/OS/01-BOOT-SEQUENCE.md](SINTRAN/OS/01-BOOT-SEQUENCE.md) - How the system boots
 3. [SINTRAN/README.md](SINTRAN/README.md) - Complete SINTRAN documentation guide
 
+### Installing a System?
+
+**Start here:**
+1. [Installation/README.md](Installation/README.md) - Installation guides index
+2. [Installation/OS/](Installation/OS/) - Installing SINTRAN III from distribution floppies
+3. [Installation/Installation-Description/README.md](Installation/Installation-Description/README.md) - Per-product install/requirements sheets
+
 ### Building an Emulator?
 
 **Critical resources:**
@@ -71,176 +91,70 @@ NDInsight/
 1. [Developer/README.md](Developer/README.md) - Developer documentation index
 2. [Reference-Manuals/README.md](Reference-Manuals/README.md) - Complete language references
 
+### Reverse-Engineering a SINTRAN Image?
+
+**Toolkit and method:**
+1. [tools/sintran-segment-carver/](tools/sintran-segment-carver/) - Carved segments, symbol matching, byte-verified findings
+2. [tools/boot-floppy/](tools/boot-floppy/) - Disc boot-sector anatomy, MACM generation dialogue, patch format
+
 ---
 
 ## 📂 Main Sections
 
-### [Developer/](Developer/) - Development Guides
+Each top-level folder has its own README with full navigation; this page only summarizes.
 
-Complete guides for developing software on SINTRAN III systems.
-
-**Contents:**
-- **Languages/** - NPL, MAC, PLANC, PASCAL, FORTRAN, COBOL, BASIC, C
-- **Editors/** - QED, PED, LED editor guides
-- **Workflow/** - Compiler, linker, tools, scripts
-
-📖 **[See Developer/README.md for full details](Developer/README.md)**
-
----
-
-### [Operations/](Operations/) - Operator and User Guides
-
-Operator guides and user manuals for running SINTRAN III and COSMOS systems.
-
-**Contents:**
-- **Cosmos/** - COSMOS network operator guides (8 manuals)
-  - Network Monitor Operators Guide
-  - X.21 and X.25 Operator Guides
-  - TELNET/FTP Client User Guide
-  - COSMOS Programmer Guides
-- **SINTRAN/** - SINTRAN III system operation (operator and tuning guides)
-
-📖 **For system operation and administration**
-
----
-
-### [Reference-Manuals/](Reference-Manuals/) - Official Documentation
-
-Authoritative reference manuals for all NORD/SINTRAN components (25 complete manuals, ~2.2MB).
-
-**Categories:**
-- System & CPU Architecture (ND-500, SINTRAN Commands)
-- Assemblers (NORD-500 Assembler, MAC, MACM)
-- System Programming (NPL)
-- Application Languages (PLANC, PASCAL, FORTRAN, COBOL, BASIC)
-- Editors (QED, PED)
-- System Tools (Relocating Loader)
-
-📖 **[See Reference-Manuals/README.md for full index](Reference-Manuals/README.md)**
-
----
+| Section | Contents | Index |
+|---|---|---|
+| **[Developer/](Developer/)** | Language guides (NPL, MAC, PLANC, PASCAL, FORTRAN, COBOL, BASIC, C), editors (QED, PED, LED), build workflow | [README.md](Developer/README.md) |
+| **[Installation/](Installation/)** | How to install SINTRAN III and applications; OCR'd install-description and product-info sheets | [README.md](Installation/README.md) |
+| **[Operations/](Operations/)** | Operator/admin guides for COSMOS networking and SINTRAN system operation | [README.md](Operations/README.md) |
+| **[Reference-Manuals/](Reference-Manuals/)** | Official Norsk Data reference manuals across the whole product line - CPU architecture, assemblers, languages, editors, NOTIS office suite, NORD-1/NORD-10 | [README.md](Reference-Manuals/README.md) |
+| **[SINTRAN/](SINTRAN/)** | The core: kernel docs, source code, device drivers, ND-500/ND-5000 integration, protocols, emulator | [README.md](SINTRAN/README.md) |
+| **[tools/](tools/)** | Reverse-engineering toolkit: SINTRAN segment carver and boot-floppy/disc-generation analysis, with real source and carved evidence | [tools/README.md](tools/README.md) |
 
 ### [SINTRAN/](SINTRAN/) - Operating System Documentation
 
-Comprehensive documentation for SINTRAN III operating system (160+ files, ~7.4MB).
+The largest and oldest part of the repository.
 
-#### Key Subdirectories
+| Directory | Description |
+|-----------|-------------|
+| **[NPL-SOURCE/](SINTRAN/NPL-SOURCE/)** ⭐ | **SINTRAN III source code** - 45 NPL files + symbol tables from the s3vs-4 build |
+| **[OS/](SINTRAN/OS/)** | Core kernel documentation, chapters 00-19 |
+| **[Release-Documentation/](SINTRAN/Release-Documentation/)** | SINTRAN III release notes, versions J-N |
+| **[SINTRAN Structures/](SINTRAN/SINTRAN%20Structures/)** | Kernel data structures analysis |
+| **[Devices/](SINTRAN/Devices/)** | HDLC, SCSI and DOMINO/NUCLEUS device drivers |
+| **[Emulator/](SINTRAN/Emulator/)** | C# emulator implementation guides and production code |
+| **[ND500/](SINTRAN/ND500/)** | ND-500 coprocessor. ND-100 <-> ND-500 interface reverse-engineered end to end (byte-verified from L07); status of record: `SINTRAN/ND500/ND500-STATUS-AND-INDEX.md` |
+| **[ND5000/](SINTRAN/ND5000/)** | ND-5000 / Octobus fabric analysis |
+| **[TAD/](SINTRAN/TAD/)** | Terminal Access Device protocol |
+| **[XMSG/](SINTRAN/XMSG/)** | Inter-node messaging: wire protocol, monitor-call API, C# library |
+| **[Print/](SINTRAN/Print/)** | Printing/spooling subsystem |
+| **[Filesystem/](SINTRAN/Filesystem/)**, **[File-Formats/](SINTRAN/File-Formats/)** | On-disk structures and file formats |
+| **[TSS/](SINTRAN/TSS/)** | TSS subsystem |
 
-| Directory | Description | Details |
-|-----------|-------------|---------|
-| **[NPL-SOURCE/](SINTRAN/NPL-SOURCE/)** ⭐ | **SINTRAN III source code** | 45 NPL files + 7 symbol tables (4.4MB) |
-| **[OS/](SINTRAN/OS/)** | Core kernel documentation | 34 files covering chapters 00-19 (550KB) |
-| **[Release-Documentation/](SINTRAN/Release-Documentation/)** | SINTRAN III release notes | 7 files covering versions J-N (1.2MB) |
-| **[SINTRAN Structures/](SINTRAN/SINTRAN%20Structures/)** | System structures analysis | 6 files with kernel data structures (570KB) |
-| **[Devices/](SINTRAN/Devices/)** | Hardware device drivers | HDLC (30+ docs) + SCSI (10+ docs) |
-| **[Emulator/](SINTRAN/Emulator/)** | C# emulator implementation | 5 files with production code |
-| **[ND500/](SINTRAN/ND500/)** | ND-500 coprocessor | Integration + communication. ND-100 <-> ND-500 interface reverse-engineered end to end (byte-verified from L07); status of record: `SINTRAN\ND500\ND500-STATUS-AND-INDEX.md` |
-| **[TAD/](SINTRAN/TAD/)** | TAD protocol | Terminal access protocol analysis |
-
-📖 **[See SINTRAN/README.md for complete overview](SINTRAN/README.md)**
-
----
-
-### [SINTRAN/NPL-SOURCE/](SINTRAN/NPL-SOURCE/) - Source Code ⭐
-
-**Authentic SINTRAN III operating system source code** from the s3vs-4 build job.
-
-**What's Included:**
-- **45 NPL source files** - Kernel, device drivers, ND-500 interface, disk I/O
-- **7 symbol tables (SINTRAN L07)** - Memory addresses and kernel structures
-- **s3vs-4.symb** - Original 3.9MB build output
-
-**Key Components:**
-- 5P-P2-MON60.NPL - Monitor/kernel core
-- IP-P2-SCSI-*.NPL - SCSI drivers (complete implementation)
-- MP-P2-HDLC-DRIV.NPL - HDLC communication driver
-- CC-P2-N500.NPL, MP-P2-N500.NPL - ND-500 interface code
-
-📖 **[See SINTRAN/NPL-SOURCE/README.md for details](SINTRAN/NPL-SOURCE/README.md)**
-
----
-
-### [SINTRAN/OS/](SINTRAN/OS/) - Kernel Documentation
-
-Complete kernel documentation extracted from SINTRAN III source code (34 files, 550KB).
-
-**Chapters 00-19:**
-- 00: Architecture Overview
-- 01-12: Boot, queues, MMU, ND-500 integration, memory
-- 13: Interrupt handler (Level 14)
-- 14: Monitor kernel and system calls
-- 15: Disk I/O subsystem
-- 16: Page fault handler
-- 17: Scheduler and priorities
-- 18: Device driver framework
-- 19: Memory map reference
-
-📖 **[See SINTRAN/OS/README.md for complete index](SINTRAN/OS/README.md)**
-
----
-
-### [SINTRAN/Devices/](SINTRAN/Devices/) - Hardware Devices
-
-Device driver documentation with complete source code analysis.
-
-**[HDLC/](SINTRAN/Devices/HDLC/)** - High-Level Data Link Control
-- COM5025 chip specification
-- X.21 interface protocol
-- LAPB/X.25 protocol implementation
-- C# emulator guide
-
-**[SCSI/](SINTRAN/Devices/SCSI/)** - SCSI Disk Controllers
-- NCR 5386 protocol controller
-- 27 SCSI commands documented
-- Disk, optical, tape drivers
-- C# implementation guide
-
-📖 **[See SINTRAN/Devices/README.md for details](SINTRAN/Devices/README.md)**
-
----
-
-### [SINTRAN/Emulator/](SINTRAN/Emulator/) - Emulator Implementation
-
-C# emulator implementation guides with production code.
-
-**Contents:**
-- KERNEL-ACCESS-EMULATOR.md - Reading kernel structures from C#
-- ND500-EMULATION-COMPLETE.cs - Complete ND-500 emulation (677 lines)
-- ND500-INTEGRATION-GUIDE.md - Step-by-step integration guide
-- ND500-QUICK-REFERENCE.md - Quick reference card
-
-📖 **[See SINTRAN/Emulator/README.md for details](SINTRAN/Emulator/README.md)**
+📖 **[See SINTRAN/README.md for the complete overview](SINTRAN/README.md)**
 
 ---
 
 ## 📊 Repository Statistics
 
-### Documentation by Category
+*Counts are approximate and drift as the repository grows - see each section's own README for exact current numbers.*
 
-| Category | Files | Size | Status |
-|----------|-------|------|--------|
-| **NPL Source Code** | **45** | **3.9MB** | ✅ Complete (s3vs-4) |
-| **Symbol Tables (L07)** | **7** | **450KB** | ✅ Complete |
-| **Reference Manuals** | 25 | ~2.2MB | ✅ Complete Collection |
-| **OS Kernel Docs** | 34 | 550KB | ✅ Phase 1 Complete |
-| **Release Documentation** | 7 | 1.2MB | ✅ Versions J-N |
-| **SINTRAN Structures** | 6 | 570KB | ✅ Complete |
-| **HDLC Analysis** | 30+ | ~350KB | ✅ Consolidated |
-| **SCSI Analysis** | 10+ | ~125KB | ✅ Complete |
-| **Developer Guides** | 20+ | ~500KB | ✅ Multiple Languages |
-| **Operations Guides** | 10+ | ~600KB | ✅ COSMOS & SINTRAN |
-| **Emulator Code** | 6 | ~100KB | ✅ Production Ready |
-| **ND-500 Docs** | 6+ | ~200KB | ✅ Complete |
-| **TAD Protocol** | 7 | ~150KB | ✅ Complete |
-| **XMSG Reference** | 1 | 40KB | ✅ Complete |
-| **Total** | **210+** | **~10.9MB** | - |
+| Section | Markdown Files | Size | Highlights |
+|---|---|---|---|
+| **SINTRAN/** | ~550 | ~92MB | NPL source (45 files), kernel docs (ch. 00-19), ND-500/5000, XMSG, TSS |
+| **tools/** | ~400 | ~200MB | Segment carver + boot-floppy RE toolkit; also 250+ carved binaries, 200+ C/ASM/NPL source files |
+| **Installation/** | ~700 | ~21MB | 284 OCR'd install-description sheets + 364 OCR'd product-info sheets + install guides |
+| **Reference-Manuals/** | ~160 | ~29MB | Official manuals: NORD-1, NORD-10, ND-500/5000, NOTIS suite, languages, editors |
+| **Developer/** | ~35 | ~4MB | Language guides, editors, build workflow |
+| **Operations/** | ~20 | ~3MB | COSMOS and SINTRAN operator guides |
+| **Total** | **~1,900** | **~350MB** | - |
 
 ### Source Code Coverage
 
 **What We Have (NPL Source):**
 - ✅ Kernel/Monitor core (MON60)
-- ✅ SCSI device drivers (disk, optical, tape)
-- ✅ HDLC communication driver
+- ✅ SCSI, DOMINO/NUCLEUS and HDLC device drivers
 - ✅ ND-500 interface code
 - ✅ Disk I/O subsystem
 - ✅ Segment administration
@@ -248,31 +162,22 @@ C# emulator implementation guides with production code.
 - ✅ Terminal handlers (partial)
 
 **What's Missing:**
-- ❌ File system implementation (but symbols available)
-- ❌ XMSG message system (but symbols available)
+- ❌ Complete file system implementation (symbols available)
+- ❌ Complete XMSG message system source (symbols + wire protocol available)
 - ❌ Complete terminal handlers
-- ❌ Network subsystems (beyond HDLC)
+- ❌ Network subsystems beyond HDLC/XMSG/Octobus
 - ❌ Batch processing components
-
-### Documentation Quality Metrics
-
-| Metric | Value |
-|--------|-------|
-| **Total Words** | ~100,000+ words |
-| **Code Examples** | 200+ NPL/C# examples |
-| **Mermaid Diagrams** | 40+ diagrams |
-| **Reference Tables** | 150+ tables |
-| **Cross-References** | 300+ internal links |
-| **Production C# Code** | ~2,700 lines |
 
 ---
 
 ## 🛠️ Technologies Documented
 
 ### Hardware
-- **NORD-10/100** - 16-bit minicomputer (1970s-1980s)
-- **ND-500** - 32-bit coprocessor
+- **NORD-1, NORD-10/10-S, NORD-50** - Early Norsk Data minicomputers
+- **ND-100/110/120** - 16-bit minicomputer family (1970s-1990s)
+- **ND-500 / ND-5000** - 32-bit coprocessor / server family
 - **MPM5** - Multiport memory (shared RAM)
+- **Octobus** - ND-100 <-> ND-5000 fabric
 - **COM5025** - HDLC controller chip
 - **NCR 5386** - SCSI protocol controller
 
@@ -280,13 +185,13 @@ C# emulator implementation guides with production code.
 - **SINTRAN III** - Real-time operating system
 - **NPL** - NORD Programming Language (system programming)
 - **MAC** - Macro assembler
-- **PLANC, PASCAL, FORTRAN, COBOL, BASIC, C** - Application languages
+- **PLANC, PASCAL, FORTRAN, COBOL, BASIC, C, SIMULA, Ada** - Application languages
+- **NOTIS** - Norsk Data's office automation suite (WP, DS, IR, ID, RG, CALC, BG, DRAW, PM)
 
 ### Protocols
-- **HDLC** - High-Level Data Link Control
-- **X.21** - Serial interface standard
-- **X.25** - Packet switching protocol
-- **LAPB** - Link Access Procedure Balanced
+- **HDLC / X.21 / X.25 / LAPB** - Link and packet layers
+- **XMSG** - Inter-node messaging (SINTRAN's native IPC/networking layer)
+- **COSMOS** - Norsk Data's network operating environment
 - **TAD** - Terminal Access Device protocol
 
 ---
@@ -295,42 +200,17 @@ C# emulator implementation guides with production code.
 
 ### Sources
 1. **SINTRAN III Source Code** - Direct NPL source analysis (s3vs-4 build)
-2. **Hardware Manuals** - Official Norsk Data documentation
+2. **Official Norsk Data Manuals** - OCR'd from scanned originals (see Acknowledgments)
 3. **Protocol Specifications** - HDLC, X.21, X.25, TAD standards
-4. **Reverse Engineering** - Bit-level analysis when needed
+4. **Reverse Engineering** - Bit-level / byte-verified analysis when source isn't available
 
 ### Quality Standards
-- ✅ **No guesswork** - Only verified facts from source/manuals
+- ✅ **No guesswork** - Only verified facts from source/manuals; unverified claims are marked `ASSUMPTION:` or `UNVERIFIED:`
 - ✅ **Source citations** - Every claim traced to source
 - ✅ **Cross-references** - Extensive linking between documents
 - ✅ **Visual aids** - Mermaid diagrams for complex flows
 - ✅ **Production code** - Working C# implementations included
 - ✅ **WCAG 2.1 AA** - Accessible diagram color standards
-
----
-
-## 📂 Complete Folder Navigation
-
-Each major folder has its own README for detailed navigation:
-
-| Folder | README | Contents |
-|--------|--------|----------|
-| **Reference-Manuals/** | [README.md](Reference-Manuals/README.md) | 15 complete NORD/SINTRAN reference manuals |
-| **Operations/** | - | Operator and user guides for COSMOS & SINTRAN |
-| **Developer/** | [README.md](Developer/README.md) | Development guides, quick-starts, language references |
-| **Developer/Languages/** | [README.md](Developer/Languages/README.md) | System & Application language guides |
-| **Developer/Workflow/** | [README.md](Developer/Workflow/README.md) | Compiler commands, linking, tools |
-| **SINTRAN/** | [README.md](SINTRAN/README.md) | SINTRAN III complete documentation overview |
-| **SINTRAN/NPL-SOURCE/** | [README.md](SINTRAN/NPL-SOURCE/README.md) | Source code & symbol tables |
-| **SINTRAN/OS/** | [README.md](SINTRAN/OS/README.md) | Operating system kernel (chapters 00-19) |
-| **SINTRAN/Release-Documentation/** | - | SINTRAN III release information (versions J-N) |
-| **SINTRAN/SINTRAN Structures/** | - | System structures and data analysis |
-| **SINTRAN/Devices/** | [README.md](SINTRAN/Devices/README.md) | Hardware device documentation |
-| **SINTRAN/Devices/HDLC/** | [README.md](SINTRAN/Devices/HDLC/README.md) | HDLC communication controller |
-| **SINTRAN/Devices/SCSI/** | [README.md](SINTRAN/Devices/SCSI/README.md) | SCSI disk controllers |
-| **SINTRAN/Emulator/** | [README.md](SINTRAN/Emulator/README.md) | C# emulator implementation |
-| **SINTRAN/ND500/** | [README.md](SINTRAN/ND500/README.md) | ND-500 processor documentation |
-| **SINTRAN/TAD/** | [README.md](SINTRAN/TAD/README.md) | TAD protocol analysis |
 
 ---
 
@@ -343,52 +223,29 @@ Each major folder has its own README for detailed navigation:
 - Access production C# code
 - Verify against actual NPL source
 
-### For System Archaeologists
-→ Start at [SINTRAN/OS/README.md](SINTRAN/OS/README.md)
+### For System Archaeologists / Reverse Engineers
+→ Start at [tools/sintran-segment-carver/](tools/sintran-segment-carver/) and [SINTRAN/OS/README.md](SINTRAN/OS/README.md)
 - Study 1970s-1980s OS design
-- Analyze interrupt-driven architecture
-- Learn paging and virtual memory
-- Understand multi-CPU coordination
+- Carve and cross-reference SINTRAN image segments
+- Analyze interrupt-driven architecture, paging and multi-CPU coordination
 
 ### For Software Developers
 → Start at [Developer/README.md](Developer/README.md)
 - Learn SINTRAN development
-- Choose your language (8 languages supported)
+- Choose your language (8+ languages supported)
 - Access complete reference manuals
-- Follow practical examples
+
+### For System Installers / Operators
+→ Start at [Installation/README.md](Installation/README.md)
+- Install SINTRAN III from distribution media
+- Look up a product's requirements/prerequisites
+- Follow operator guides for COSMOS and SINTRAN administration
 
 ### For Hardware Analysts
 → Start at [SINTRAN/Devices/README.md](SINTRAN/Devices/README.md)
 - Understand device driver architecture
 - Analyze communication protocols
-- Study HDLC and SCSI implementations
-- Access chip-level specifications
-
----
-
-## 🗺️ Project Roadmap
-
-### ✅ Completed (Phase 1)
-- Core kernel documentation (Chapters 00-19)
-- HDLC protocol analysis (consolidated)
-- SCSI subsystem analysis
-- ND-500 integration guide
-- TAD protocol documentation
-- NPL source code organization
-- Symbol table documentation
-- C# emulator code
-
-### 🚧 Current Focus
-- Developer guide improvements
-- Cross-reference validation
-- Documentation accessibility
-
-### 📋 Planned (Phase 2)
-- Monitor calls comprehensive guide
-- XMSG development guide
-- File system analysis (from symbols)
-- Additional device drivers
-- Build system analysis (MODE files)
+- Study HDLC, SCSI and DOMINO/NUCLEUS implementations
 
 ---
 
@@ -416,12 +273,12 @@ This repository is a work in progress. Areas for contribution:
 - **SINTRAN Source Code** - Foundation for this analysis
 - **Hardware Manuals** - Official Norsk Data documentation
 - **Emulator Community** - Keeping vintage computing alive
+- **Jonny Oddene** ([sintran.com](https://sintran.com/) / [norsk-data.com](http://norsk-data.com/)) - A huge thank-you for the enormous personal effort scanning and preserving thousands of Norsk Data documents. A number of the manuals in this repository were OCR'd from material sourced through his sites. Without his work to rescue and archive this documentation, a large part of it would have been lost.
+- **[ndwiki.org](https://www.ndwiki.org/)** - The only wiki dedicated to Norsk Data history and technology
 
 ---
 
-**Last Updated**: 2026-02-15
-**Repository Version**: 1.1
-**Documentation Status**: Phase 1 Complete ✅
+**Last Updated**: 2026-07-20
 
 ---
 
