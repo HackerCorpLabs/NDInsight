@@ -2,6 +2,17 @@
 
 **Fast lookup for ND-500 emulation development**
 
+> ## ⚠ DEPRECATED 2026-07-20 — TAG/IOX TABLES IN THIS CARD ARE FABRICATED
+>
+> The "TAG-OUT codes" (0x01 READ_5MPM …), the "MicrocodeFunction" enum and the IOX
+> offset table below are **not real** — they came from the invented emulator protocol
+> disproven against ND-30.013.02 and the SINTRAN NPL sources (real offsets are OCTAL:
+> RMAR5 0, LMAR5 1, RSTA5 2, LCON5 5, MCLR5 6, TERM5 7, RTAG5 10, LTAG5 11, …).
+> **Do not use this card.** Use instead:
+> `E:\Dev\Ronny\NDInsight\SINTRAN\ND500\ND500-BUS-INTERFACE-REFERENCE.md`
+> (§3.2 register decode, §10 real TAG semantics, §14 emulation checklist).
+> Kept only as a record of the poisoned prior.
+
 ---
 
 ## 🎯 Core Concepts

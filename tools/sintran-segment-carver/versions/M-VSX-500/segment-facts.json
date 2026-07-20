@@ -597,7 +597,7 @@
    "flag_oct": "000111",
    "name_source": "L-derived (M LIST-SEGMENT not captured)",
    "confidence": "M06 (SINTRAN-M-2026)",
-   "description": "Save of XMSG kernel"
+   "description": "Save of XMSG xrouter segment"
   },
   {
    "segnum": 62,

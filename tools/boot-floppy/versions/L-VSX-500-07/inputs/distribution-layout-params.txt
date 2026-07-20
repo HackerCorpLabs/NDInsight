@@ -1,0 +1,312 @@
+
+%% PATCHING PROCEDURE:
+%% ===================
+
+%% BEFORE 22! IS TYPED, PATCHES TO THE SYSTEM CAN BE DONE BY CALLING
+%% A  SET OF MACROES FOR THIS PURPOSE.
+%% THE MACROES ARE CALLED BY ENTERING THE MACRO-NAME FOLLOWED BY
+%% CARRIAGE-RETURN AND LINE-FEED.
+
+%% MACRO NAMES AND CORRESPONDING AREA:
+%% -----------------------------------------------------------------
+%%     - PCCST               COMMON-CODE AND START ROUTINES
+%%     - PRDAT               RESIDENT DATA PART ONE
+%%     - P2RDA               RESIDENT DATA PART TWO
+%%     - PSYSG               SYSTEM SEGMENT
+%%     - PSPDF               SPOOLING DATAFIELDS
+%%     - PEXCO               EXT  COMMON (RPIT MPIT IPIT)
+%%     - PRPIT               RPIT
+%%     - PMPIT               MPIT
+%%     - PIPIT               IPIT
+%%     - PFILS               FILE-SYSTEM AND SPOOLING PROGRAM
+%%     - PRTLO               RT-LOADER
+%%     - POPCO               COMMAND SEGMENT
+%%     - PSERV               SERVICE AND MAIL SEGMENT
+%%     - PERRP               ERROR-PROGRAM
+%%     - PSGTB               SEGMENT TABLE
+%%     - P500M               ND-500 MONITOR
+%%     - PDIMI               DISK MIRRORING
+%%     - PXMK                XMSG KERNEL
+%%     - PXRO                XMSG XROUT
+%%     - PXFI                XMSG WATCHDOG
+%%
+%%     - PEND                RESET CORE-IMAGE BEFORE STARTING!
+%%
+%%     I M P O R T A N T !
+%%     THE MACRO / PCCST/ MUST ALWAYS BE USED BEFORE STARTING
+%%     IF ANY OF THE OTHER MACROES HAVE BEEN USED.
+%% -----------------------------------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%  )9BYTT PARAMETRES ARE AS FOLLOWS:
+%%  NO  1:  MSTYP  - SYMBOL USED:  F
+%%  NO  2:  DEVNO  - SYMBOL USED:  G
+%%  NO  3:  CORAD  - SYMBOL USED:  D  (DUMMY)
+%%  NO  4:  LONG   - SYMBOL USED:  D  (DUMMY)
+%%  NO  5:  CLM    - SYMBOL USED:  D  (DUMMY)
+%%  NO  6:  BLST   - SYMBOL USED:  D  (DUMMY)
+%%  NO  7:  DRES   - SEE BELOW
+%%  NO  8:  CRMAX  - SYMBOL USED:  A
+%%  NO  9:  MACAD  - SYMBOL USED:  D  (DUMMY)
+%%  NO 10:  DASA   - SYMBOL USED:  H
+%%
+%%  SYMBOLS FOR PARAMETER 7: (CORE IMAGE ADDRESS)
+%%      EP       - ERROR PROGRAM
+%%      RL       - RT-LOADER
+%%      CCS      - COMMON-CODE AND STARTUP ROUTINES (SEGFIL0 START)
+%%      RD       - RESIDENT-DATA  PART ONE
+%%      SY       - SYSTEM SEGMENT
+%%      SPD      - SPOOLING DATAFIELDS
+%%      XP       - EXT COMMON
+%%      RP       - RPIT
+%%      MP       - MPIT
+%%      IP       - IPIT
+%%      STB      - SEGMENT TABLE
+%%      FS       - FILE SYSTEM
+%%      CS       - COMMAND SEGMENT
+%%      SM       - SERVICE MAIL SEGMENT
+%%      5P       - 5PIT
+%%      5M       - ND-500 MONITOR
+%%      DM       - DISK MIRRORING
+%%      XK       - XMSG KERNEL
+%%      XR       - XMSG XROUT
+%%      XF       - XMSG WATCHDOG
+%%      NM       - DEVICE NAME TABLE SEGMENT
+%%      NS       - NUCLEUS SERVER
+%%      NN       - NUCLEUS NAME SERVER
+%%      U1       - MICRO CODE 110
+%%      U2       - MICRO CODE 120
+%%      EC       - ERROR WATCH-DOG CODE
+%%      ED       - ERROR WATCH-DOG DATA
+%%      PM       - PROCESS MANAGER
+%%      ES       - EVENT   MANAGER
+%%      PB       - BOPCOM SERVER
+%%      MT       - MTSERV
+%%
+%%  NOTE THAT THE ABOVE SYMBOLS STATES BLOCK ADDRESSES FOR THE
+%%  RESPECTIVE AREAS AND MUST BE CALCULATED FROM PAGE NUMBER
+%%  DEPENDING ON DISK TYPE.
+%% ---------------------------------------------------------------------
+%%  CORRESPONDING PAGE NUMBERS FOR THE SYMBOLS ABOVE.
+" -MADEF
+PEP=100-14
+PRL=137-14
+
+PPOP=1
+PCCS=200
+PRD=300-2
+PSY=355-62
+PSPD=360-72
+PXP=361-13
+PRP=363-15
+PMP=446-15
+PIP=531-15
+P5P=200+414-13
+P5M=200+421-20
+PSTB=200+501
+PU1=200+521
+PU2=200+561
+PFS=200+621-13
+PCS=200+706-13
+PSM=200+773-14
+PXK=200+1037-50
+PXR=200+1067
+PXF=200+1137
+PNM=200+1225-72
+PDM=200+1233-1
+PNS=200+1237-14
+PNN=200+1323
+PEC=200+1423
+PED=200+1443
+PPM=200+1533-14
+PEX=200+1617-14
+PBO=200+1703-14
+PMT=200+1767-14
+
+A=175777     % CRMAX
+FA=177677
+UA=077777    %CRMAX FOR U-CODE
+F=MSTYP      % MASS STORAGE TYPE
+D=0          % DUMMY PARAMETER
+
+% DEVICE NUMBER
+"BD288+BDFIX -MADEF
+G=1540
+"W8INC+REMOV+FIXED -MADEF
+G=500
+"SCASI -MADEF
+G=144300
+
+% BIT 17 IS SET IF FIXED DISK
+"BD288+W8INC+REMOV+SCASI -MADEF
+FR=0
+"BDFIX+FIXED
+FR=100000
+
+
+"BD288+BDFIX+W8INC+SCASI -MADEF
+H=1@1 FR
+POP=PPOP@1 FR
+EP=PEP@1 FR
+RL=PRL@1 FR
+CCS=PCCS@1 FR
+RD=PRD@1 FR
+SY=PSY@1 FR
+SPD=PSPD@1 FR
+XP=PXP@1 FR
+RP=PRP@1 FR
+MP=PMP@1 FR
+IP=PIP@1 FR
+STB=PSTB@1 FR
+U1=PU1@1 FR
+U2=PU2@1 FR
+FS=PFS@1 FR
+CS=PCS@1 FR
+SM=PSM@1 FR
+5P=P5P@1 FR
+5M=P5M@1 FR
+DM=PDM@1 FR
+XK=PXK@1 FR
+XR=PXR@1 FR
+NM=PNM@1 FR
+XF=PXF@1 FR
+NS=PNS@1 FR
+NN=PNN@1 FR
+EC=PEC@1 FR
+ED=PED@1 FR
+PM=PPM@1 FR
+ES=PEX@1 FR
+BO=PBO@1 FR
+MT=PMT@1 FR
+
+)MCDEF POPST
+)9BYTT F G D D D D POP A D H
+]
+)MCDEF PERRP
+)9BYTT F G D D D D EP A D H
+]
+)MCDEF PRTLO
+)9BYTT F G D D D D RL A D H
+]
+)MCDEF PCCST
+)9BYTT F G D D D D CCS A D H
+]
+)MCDEF PRDAT
+)9BYTT F G D D D D RD A D H
+]
+)MCDEF PSYSG
+)9BYTT F G D D D D SY A D H
+]
+)MCDEF PSPDF
+)9BYTT F G D D D D SPD A D H
+]
+)MCDEF PEXCO
+)9BYTT F G D D D D XP A D H
+]
+)MCDEF PRPIT
+)9BYTT F G D D D D RP A D H
+]
+)MCDEF PMPIT
+)9BYTT F G D D D D MP A D H
+]
+)MCDEF PIPIT
+)9BYTT F G D D D D IP A D H
+]
+)MCDEF PSGTB
+)9BYTT F G D D D D STB A D H
+]
+)MCDEF PFILS
+)9BYTT F G D D D D FS A D H
+]
+)MCDEF POPCO
+)9BYTT F G D D D D CS FA D H
+]
+)MCDEF PSERV
+)9BYTT F G D D D D SM FA D H
+]
+)MCDEF P5PIT
+)9BYTT F G D D D D 5P A D H
+]
+)MCDEF P500M
+)9BYTT F G D D D D 5P A D H
+]
+)MCDEF PDIMI
+)9BYTT F G D D D D DM A D H
+]
+)MCDEF PXMK
+)9BYTT F G D D D D XK A D H
+]
+)MCDEF PXRO
+)9BYTT F G D D D D XR A D H
+]
+)MCDEF PNKSE
+)9BYTT F G D D D D NS FA D H
+]
+)MCDEF PNKNA
+)9BYTT F G D D D D NN FA D H
+]
+)MCDEF PUC11
+)9BYTT F G D D D D U1 UA D H
+]
+)MCDEF PUC12
+)9BYTT F G D D D D U2 UA D H
+]
+)MCDEF PERSC
+)9BYTT F G D D D D EC FA D H
+]
+)MCDEF PERSD
+)9BYTT F G D D D D ED FA D H
+]
+)MCDEF PPRMA
+)9BYTT F G D D D D PM FA D H
+]
+)MCDEF PEVGA
+)9BYTT F G D D D D ES FA D H
+]
+)MCDEF PBOPC
+)9BYTT F G D D D D BO FA D H
+]
+)MCDEF PMTSE
+)9BYTT F G D D D D MT FA D H
+]
+)MCDEF PFNAM
+)9BYTT F G D D D D NM FA D H
+]
+)MCDEF PFIDO
+)9BYTT F G D D D D XF FA D H
+]
+)MCDEF PDIMW
+)9BYTT F G D D D D DM FA D H
+]
+)MCDEF PEND
+)9BYTT F G D D D D CCS A D H
+]
+
+"DEBUG
+% STOP AFTER PATCH MACROES, TEMPORARY FOR DEBUG USE G69
+10,1$
+%%====================================================================%%
+%% PATCH       POPST PERRP PRTLO PRDAT PSYSG PSPDF PEXCO PRPIT PMPIT  %%
+%% MACROES     P5PIT P500M PDIMI PXMK  PIPIT PSGTB PFILS POPCO PSERV  %%
+%% SAVE AREA   PXRO  PNKSE PNKNA PUC11 PUC12 PERSC PERSD PPRMA PEVGA  %%
+%%             PBOPC PMTSE PFNAM PFIDO PDIMW                          %%
+%%                                                                    %%
+%% RESET TO IMAGE OPPSTART BEFORE 22!: PCCST                          %%
+%%====================================================================%%
+% 10,0$ WILL CONTINUE LOADING.
+1,0$
+"
+0/MADEF^
+
+10,1$
+%%====================================================================%%
+%%  SINTRAN-III/VSX  VERSION L   LOAD  SINTRAN-DISKETTE 1             %%
+%%====================================================================%%
+10,0$
+
+)MCDEF VOLNA
+ 000072/MSTYQ  %%
+]
+"DEBUG;10,1$;"
+POPST
+10,0,10$
+)9READ

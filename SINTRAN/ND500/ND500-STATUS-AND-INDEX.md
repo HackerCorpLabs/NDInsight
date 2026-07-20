@@ -17,6 +17,240 @@ or NPL routine is analysed. **All output goes under `E:\Dev\Ronny\NDInsight\` �
 
 ---
 
+## 0a. 2026-07-20 — FOUR RETRACTIONS, one carve answer, and the open-questions register
+
+**Read this before citing any pre-2026-07-20 conclusion about the swapper or the octobus mailbox.**
+
+New documents of record:
+- [`OPEN-QUESTIONS-REGISTER-2026-07-20.md`](OPEN-QUESTIONS-REGISTER-2026-07-20.md) — **everything both
+  tracks do not know**, ~90 deduplicated items with answer routes (`CARVE`/`MICROCODE`/`LIVE`/
+  `MANUAL`/`UNANSWERABLE`). §1 = 3022/swapper track, §2 = octobus/ACCP track.
+- [`REMEDIATION-PLAN-OCTOBUS-TRACK-2026-07-20.md`](REMEDIATION-PLAN-OCTOBUS-TRACK-2026-07-20.md) —
+  what we are doing about them, in dependency order.
+- [`NDIX-KERNEL-INTERFACE-EVIDENCE-2026-07-20.md`](NDIX-KERNEL-INTERFACE-EVIDENCE-2026-07-20.md) —
+  **independent, non-carve evidence** for the interface from the NDIX Release-3 kernel source
+  (`E:\Dev\Ronny\NDIX-C\kernel\`), ND-05.012.01 §13 (vendor message protocol, primary text for
+  the N5STA lifecycle and MICFU-era function table), and NEC-01 (the 5015's registers are
+  **microcode unit-select codes** — the CPU has no I/O path to the 5015, it is an internal
+  module). Key new facts: NDIX's only outbound primitive is `callg 0xF8000180` through a
+  `PC_IND|PC_OMC` segment-31 capability = **MON 600B**; the FE_INIT handshake hands SINTRAN the
+  interrupt entry points and receives the whole memory map incl. `private` (the ADRZERO window
+  constant) and `sharedseg`; inbound is `int_descr` chains + forced entry at `intvec`. Partial
+  MANUAL-route answer to register item C7/Q-OTH-05 (classic RIOM path = TAG-OUT 6/7 + 3022 MAR).
+  Same session: the fabricated "high-level TAG protocol" was scrubbed from the four remaining
+  contaminated docs (list in that document's §8).
+
+### Retracted 2026-07-20 [V] — do not resurrect
+
+| Was believed | Actually |
+|---|---|
+| The ND-5000 swapper **is control-store microcode** and must be modelled in C# | It is **ordinary ND-500 macrocode** — `SWAPPER-K01.PSEG`, 38,161 B at physical `0x06F800`, byte-identical incl. `REV`/`-K01`. It **executes** on the functional `CpuND500`. See `ND500-D4-RUN-BLOCKER-FINDING-2026-07-19.md` §12c/§12d/§12e, and the retraction banner now on `SWAPPER-START-MECHANISM-CARVE-2026-07-19.md` |
+| `LDSWA` contains a **CPU-type branch** (classic → 14B/21B/23B, 5000 → control store) | `LDSWA` (`143551`-`143621`) has **no CPU-type test**; its only descriptor test is bit 3 of `mem[mem[B-57]-22]` = the "swapper already loaded" done-bit |
+| `> Loading Control Store` / `> Loading Swapper` are two **branches** of a generation choice | They are **steps 0 and 3 of one state machine**, `500IN` @`075150`, done-mask complete `0o217`. Bit 0 is tested before bit 3 — hence both print, in that order, on one machine |
+| A level-12 poll at `033620` reading `-1` is the missing ND-500 signal | **Red herring.** Instruction is `LDX I 114` (*indirect*, P-relative literal pool), not `LDX ,B 114`; `033620` is in segment `017-S3SMPIT` (generic level-12 MPIT entry), not the resident; the cell is `IL12Q`=`0o007265`, the **disk driver's** software queue head, where `-1` is normal |
+
+### The swapper image transport — ANSWERED [V] (closes register §1 B1 / octobus Q4)
+
+`LDSWA`(143551) → `PLSWA`(144212) → `144002` (`MON 50` OPEN, `GFMAD`/`GFDEV`/`GFSEC`) → loop
+`143647` → `144117` → **`MON 131` (ABSTR)** = ordinary **disk-controller DMA into ND-100 physical
+memory**; destination page allocated by **`MON 61` (FIXC5)**. Path `143600`-`144400` contains only
+`BFILL`, `MON 50`, `MON 131`, two 2-word `MOVEW`, `MON 43` — **no IOX, no window store loop, no
+mailbox, no ACCP, no SAMSON branch**. (An earlier guess of "ACCP/DMA transport" was wrong.)
+
+### The real `ND-500(0) timeout` gate [V]
+
+`N500TMR` (`RP-P2-N500.NPL:300-341` @127642-127660): `RN5STATUS` ≠ `ANSWER` → check
+`MAILINK.X5BRK` → if 0, raise `N5TIMOUT` (`2000B`). Plus `MP-P2-N500.NPL:362/:545`:
+`IF CPUAVAILABLE NBIT 5ALIVE GO FAR EN5TIMOUT`. **Three gates:** (a) 5MPM status word becomes
+`ANSWER`; (b) `5ALIVE` set in `CPUAVAILABLE`; (c) a level-12 **hardware** interrupt whose
+`IDENT PL12` indexes `ITB12` (`0o153563`) to a real datafield.
+
+### Mailbox base — how the ND-5000 legitimately learns it [READ + INFER]
+
+`ND-05.017.01:3961`: SINTRAN **patches system parameters into the first page of
+CONTROL-STORE:DATA** before the ACCP burns it. CS words `000020`-`000027` are in that page, and
+`START_MESS` (`026`) / `SAMSON_CPU` (`025`) are exactly the two constants that cannot be static.
+`START_MESS = 0x2000` is a **5MPM/MFbus window-relative byte address** (offset 0 = ADRZERO) — same
+space as the LPARP pointer seen as `0x18000`. **No ACCP command carries a mailbox address.**
+
+> **Emulator rule:** derive `START_MESS` / `SAMSON_CPU` from the **loaded** control store (words
+> `000026`/`000025`), never hardcoded and never from the on-disk file (which holds placeholders).
+
+Also corrected: the checksum addend is at **`base + N·8`**, not `region23[0]` — ABSRE's epilogue
+(`044642`-`044644`) advances the shared index. `XMSINIT-BUFFER-GEOMETRY-CARVE-2026-07-19.md` patched.
+
+### Method note
+
+All four retractions shared one failure mode: **a plausible mechanism asserted from partial evidence,
+then cited by later documents as fact.** Specific traps worth remembering — misreading an
+addressing mode (`LDX I` vs `LDX ,B`); assuming a PC below one segment's load base is "the
+resident"; treating two console strings printed in sequence as two arms of a branch; and citing
+another track's *emulator* behaviour as hardware corroboration.
+
+---
+
+## 0f. 3022 bundle ANSWERED — RFLAG/SFLAG don't cross the bus; poll=watchdog; site-A is a buffer not a ring (added 2026-07-19)
+
+Answer doc: [`CARVE-ANSWER-3022-FLAG-POLL-RING-2026-07-19.md`](CARVE-ANSWER-3022-FLAG-POLL-RING-2026-07-19.md).
+Seeds: `CARVE-PROMPT-3022-FLAG-POLL-RING-BUNDLE-2026-07-19.md`,
+`ND500-F6-MESSAGE-RING-RAW-CARVE-SEED-2026-07-19.md`, `ND500-BUS-INTERFACE-COMMAND-LADDER-ANALYSIS-2026-07-19.md`.
+
+- **(a) RFLAG(100B)/SFLAG(101B) do NOT cross the 3022.** `FUNCS[100B]=FUNCS[101B]=ERRFP=141574B`
+  **[BYTES, 030-S3SM5.bin]** = no ND-500-side op. Handler `RRFLAG/WWFLAG` (5IFUNC[100/101]) maps the
+  process **data segment** via `M1MEXY` and reads `FF500=166004B` / writes `FT500=166002B`
+  (`DASEGSTART=166000B`) as ordinary ND-100 memory **[NPL 5P-P2-MON60.NPL:1516-1538; SYMBOL:141-146]** —
+  no IOXT/ACTIVATE/MSGHDR. Confirms the command-ladder "ND-100-cached, no command-specific 3022 traffic."
+  Caller = MON 60 with 2 param ptrs (procno @`,X 6`, flag word @`,X 7`) **[BYTES, nd-500-mon-j04.prog]**.
+  OPEN: L07 byte body of RRFLAG/WWFLAG in 050-S3I5PIT (README "pending").
+- **(b) The background poll = the WATCHDOG `3RMICV` (MICFU=1, SENDE=-1)**, timer-armed by `LTTMR=23B`,
+  re-sent on each ANSWER (RP-P2-N500.NPL:282/384/820-822; N500TMR:305-347) **[NPL+SYMBOL]**. **Site-B
+  decode CONFIRMED byte-for-byte:** `N5STA(2)=3 ANSWER`, `SENDE(3)=0xFFFF=-1 watchdog`, `MICFU(6)=1`,
+  `word7=0x2E9A=11930=027232B` version. It is the watchdog answer buffer, NOT the ring. "ResidentRead" =
+  `3RMED=10B` (command-triggered mem read); its cadence OPEN.
+- **(c) Site A (0x420E30) is a reused 200B message buffer (process-1 MESSBUFF), NOT the LAST-N500-MSG
+  ring.** The `0x420E35` "03→04" is the N5STA word flipping ANSWER→5ERANSWER on buffer reuse (MICFU
+  1→8), not a ring index — architect index-hypothesis **REFUTED**. The actual "last 64 messages" ring is
+  NOT in the 5MPM window and NOT found in the carve/NPL/symbols; **[ASSUMPTION]** it lives in
+  `ND-500-MON:PROG`'s own memory (carve `LIST-TABLE` there). Record size/capacity/head-tail UNRESOLVED.
+
+## 0e. DOMINO/NUCLEUS/octobus-driver I/O stack BYTE-CARVED (added 2026-07-19)
+
+Three new byte-verified docs in
+`tools\sintran-segment-carver\versions\L-VSX-500\re\domino-nucleus-io\`
+(+ annotated listings a-*.txt). Plan/context doc:
+[`..\ND5000\OCTOBUS-DEVICE-CONTROLLERS-ANALYSIS-AND-EMULATION-PLAN-2026-07-19.md`](../ND5000/OCTOBUS-DEVICE-CONTROLLERS-ANALYSIS-AND-EMULATION-PLAN-2026-07-19.md).
+Parent handoff carries the summary (its section 1.9). All addresses L07.
+
+UPDATE 2026-07-20: the plan was critically reviewed
+([`..\ND5000\OCTOBUS-PLAN-CRITICAL-REVIEW-2026-07-20.md`](../ND5000/OCTOBUS-PLAN-CRITICAL-REVIEW-2026-07-20.md))
+and a SCSI-DIOC plan was added
+([`..\ND5000\SCSI-DIOC-OCTOBUS-EMULATION-PLAN-2026-07-20.md`](../ND5000/SCSI-DIOC-OCTOBUS-EMULATION-PLAN-2026-07-20.md)).
+Scheduled follow-up carves (its phase S0): CONKI @040765 — DONE
+2026-07-20 [V]: **incoming octobus KICK 1 dispatches to DKICK @044747**
+(NKINI -> CONKI(T=1, A=14B=PIL level 12, X=0, B=125144); receive chain
+035555 -> 036047 KICKENT[frame & 17B] -> 036233 fires level 12 with
+P := mem[125143] = DKICK; receiver masks with 17B so kicks 20B-37B alias
+0-17B; full doc `re\domino-nucleus-io\CONKI-KICKENT-CARVE.md`). Still
+DOMDF initializer: CARVED 2026-07-20 [V] - it is the FILSYS DOMINO
+pool/port module in 006-S3FS base 026000B (QUINI @134206 writes
+DLPRT/DSVER via MON 347 fn 1; GPOOL/RGPOO/RCPOO write PDF.DRPRT via
+DOPPR = MON 347 fn 3 open-port-by-NAME; unit binding = named pool port +
+DXPOO/OPAIN, the "DSVER+32..67 static header" is DISPROVEN as don't-care
+tail; BDTMU/BDTMV live in RPIT not MPIT - poisoned prior killed; doc
+`re\domino-nucleus-io\DOMDF-INITIALIZER-CARVE.md`). Segment 105-S3INKSE
+interior: CARVED 2026-07-20 [V] - PLANC-compiled server; doNuc
+dispatcher @037033 (fns 1..14B, table dd-verified); fn 10B @047432 =
+descriptor create/provision writing port +20 KICKDEST / +30 OWNID
+(coherence vs kernel layout PASSED); doc
+`re\domino-nucleus-io\NKSE-SERVER-INTERIOR-CARVE.md`. Remaining [OPEN]
+tail: DRPRT/DLPRT sub-offset pin, freelist head (runtime global), full
+NCALL per-word map (live round-trip), fn 11B-14B bodies. PROMAN auto-run: RESOLVED 2026-07-20 [V]
+SAFE — PROMAN never runs at boot on this image (live @LIST-RT-PROGRAMS:
+PASSIVE P=0; no PMA-* files on the pack; segments 120/121=PROMAN
+string-proven); emulated DIOC stations 10B-13B get NO boot-protocol
+traffic (`re\domino-nucleus-io\PROMAN-AUTORUN-RECON.md`). Standing
+correction: host->remote NUCLEUS kick is byte-verified kick 1 (NUCKI),
+NOT kick 5 (that is only the kick-name table); the remote->host kick is
+now ALSO proven = 1.
+
+### BDIO / DOMINO nucleus block-I/O (level 12 + monitor level)
+
+Doc: `re\domino-nucleus-io\BDIO-DOMINO-DRIVER-CARVE.md`. BYTE-VERIFIED in
+017-S3SMPIT (=026-S3IMPIT), base 032000B.
+
+- The DOMINO disk path does NOT use the 3022/MPM message block: it is
+  nucleus messaging (NKWRI/NKSEN/NKREC/NKREA at 043411/042171/043076/
+  043375) through the global DOMDF=041064 record (body at DSVER=041104B),
+  level-12 wait via WT12=033616 with DOMDF.NFUNC(+6) = REBDI=074246 as the
+  continuation. Function codes: read=166B (size 74B), write=167B (70B),
+  compare=213B (70B); NKREA read-back max 76B.
+- Level-12 start: BDMTR (monitor level) arms level 12 with IRW LV12(140B):
+  B=controller DF, X=que DF, P=controller.STDRIV(-2), then MST PID bit 12.
+  Byte-verified at 073515-073526.
+- DCNVA 073750 converts ND-100 phys word addr -> DOMINO byte addr:
+  `((addr - (N500D.ADRZERO << 10dec)) << 1) | bit31`; bias cached by
+  self-modifying the entry word to 124012 (JMP). N500D=051767 [SYMBOL-2],
+  ADRZERO=+60. Same bit-31 semantics as the ND-500 MPM convention.
+- HSTAT (queue DF +10): -1 illegal fn, -2 nucleus reject (SINEC 1661),
+  -3 illegal mem addr, -4 device error (SINEC 1662 + BDTMU retry),
+  -5 = statuses 104031B/104651B/104622B. Mirror-pool change arms BDTMV.
+- Evidence: 13 dd-reproduced anchors + 40 literal-pool symbol hits.
+  NPL = MP-P2-DISK-START.NPL (different revision, logic-only, +237B shift).
+
+### Octobus driver routine bodies
+
+Doc: `re\domino-nucleus-io\OCTOBUS-DRIVER-ROUTINES-CARVE.md`. Full
+annotated disassembly + pseudo-C: XKICK500/LV12KICK (146526/146555),
+XRS5CPU (146642), RS5CPU (146700), 5OMBREAD/I5OMBR/GN5CPUDF
+(146756/147240/147252), CON5OMD (147271), MFPREPARE (147300), CON5IDENT
+(147334), 5MTRANS (143445), 5MRDTRANS (144740) - all 026-S3IMPIT (load
+32000B, = 017-S3SMPIT) - plus SKICK/SIDEN (037254/037256), MBSEND
+(037425), OMBREAD (037660).
+
+Key byte-proven facts [V]:
+- Overlay proof: 14 siblings at NPL+200B; every literal-pool pointer
+  resolves to a named L07 symbol.
+- LMFIELD = 011545, LMDF = 011537 (LMDF[0] = 5OMDNO, runtime-allocated by
+  CON5OMD); DPITPHYS = 0, DPITBANK = 1 in this build.
+- CPU df offsets: 5STATION=17B, MAILINK=22B, CPUAVAILABLE=27B (5ALIVE =
+  bit 13 dec, 5CPUTYPE mask 7, SAMSON=3), CPUNO=-14B, stride 5CPUDFSZ=46B;
+  list bounds cells S5CPUDF=052222 / E5CPUDF=052404; 5MBBANK cell 004654.
+- SKICK builds C|K|station<<8|kick and IOXes control:=4 / frame /
+  control:=1 on the OUTPUT base (df[-3]=HDEV+4) when idle, else queues in
+  a single-frame ring; SIDEN = same body, no K bit. Errors 13B-20B.
+- MBSEND has NO IOXT: validates (station 1..76B, OMD <=17B, length 1..255
+  BYTES -> errors 101430/101431/101427), pops a CBPOOL buffer (free head
+  007341 / count 007342), copies payload from LMFIELD+4, queues on the TX
+  df, and if idle FIRES LEVEL 13 with P:=SOCTW(036342). (Corrects the
+  catalog row that placed "IOXT at 037320+" under MBSEND - 037320 is
+  SKICK's direct-TX path.)
+- OMBREAD receive record: [0]=src station, [1]=src OMD, [2]=broadcast bit,
+  [3]=byte count, +4=payload; empty status 101410 (cell 147171).
+- 5OMBREAD: SAMSON source range is 70B..77B in L07 (LN5DEST=77, not M06's
+  73); MPFATAL @146750 = 1,0,0,1,0,0,0,0,0,1,1,0; ack/nack ->
+  CPUAVAILABLE|=5ALIVE; mp hwfault(200B)/trap(201B) with CMICP=1 ->
+  shadow-id patch into S4, record LMFIELD+2 len+4; else LMFIELD+3 len+2;
+  MF etype -> 9FLER + MFACK reply; SEC codes ORed with N5SECCODE=2000B.
+  9FLER record: SEC at LMREC+2, source station at LMREC+3.
+- MFPREPARE wire body (station 2..6, OMD 4, 3 bytes): 0E 01 <5OMDNO>;
+  CON5IDENT (SAMSON, OMD 3, 7 bytes): 0E 01 <5OMDNO> 00 00 00 00.
+- 5MTRANS: 5MPM displacements 5MNWA=100B, 5MREQ=105B, 5MEMA=106B,
+  5MLGN=110B, 5MDIS=111B, 5DSEC=112B, 5MNOS=115B, PLINK=147B; disk queue
+  element RTRES=1/NLINK=5/ABFUN=14B/MEMAD=15B/ABPA2=17B/ABP31=21B/
+  REQID=25B/ADMESS=26B/5MNOWAIT=27B; function codes 60 (read+clear cache),
+  61 (write), 66 (read keep cache); M5TRA=000012 = per-controller entry at
+  disk-controller df offset 12B (JPL I ,B 12); wait status 5MWAIT=22B;
+  success -> 5MRDTRANS (pointer cell 144014 = 144740).
+Open: OMBREAD entry[-10..-12] status semantics; helper 036765
+level-dispatch details; MBSEND code 101426 site.
+
+### NUCLEUS kernel + the NUCLEUS <-> ND-500 bridge (MON 347)
+
+Docs: `re\domino-nucleus-io\NUCLEUS-PRIMITIVES-CARVE.md` (primitives +
+kernel structures + kick path + MON 347B) and NUCLEUS-SEGMENTS-RECON.md
+(segments 104-107 recon + follow-up target list). Summary in the parent
+handoff section 1.9; ND-500-specific facts:
+
+- MP-P2-N500 L1381 `IF A = 347 GO 5SERVER` [NPL-V] lands in **ENUCL =
+  050123** (MPIT): function code from 5MPM message word +102; fn 0..6 ->
+  N5FU0 (NKGET), N5FU1 (NKSEN under IOF), N5FU2 (NKREC), N5FU3/5/6; fn 7
+  -> driver code 137167. Answers via NURET 047315 (writes message words
+  +110/+0/+2; chains resident 023044 + driver cells 145466/135067).
+  ND-500 owner ids = CLUST (041574) + process number. MCTAB[347B]=047072
+  [V] = SERVE (the MON-CALL-INDEX name "MGDAE" is a flat-table collision;
+  overlay = MPIT, not 003-S3CP - index row needs that fix).
+- N5FU5 tail (050100) emits SKICK(A=1,X=0,T=station) directly - an
+  ND-500-initiated octobus NUCLEUS kick.
+- 5NFUN..5NMBU (047541-047555) are the ND-500 NUCLEUS parameter cells in
+  MPIT (zero on disk, runtime-populated).
+- NUCLEUS delayed abort NKREL -> 5NUREL (MP-P2-N500 L563 area) [NPL-V],
+  body not carved this pass.
+- [OPEN] ENKIC=047526 (N500-SYMBOLS, ACCP family: NSPIT/GMESS/ACCPE/
+  VPARP/OCTOS/NMPIT) resolves in NO carved overlay tried; callers exist in
+  007-S3DMAC, 130-CFT, 135-XFTRAD, 134-SNA3270.
+
+---
+
 ## 0d. Q7 ANSWERED - ND-500 completion detection is INTERRUPT-DRIVEN (level 12), not RSTA5 poll (added 2026-07-18)
 
 Answer doc: [`CARVE-ANSWER-Q7-COMPLETION-POLL-VS-INTERRUPT.md`](CARVE-ANSWER-Q7-COMPLETION-POLL-VS-INTERRUPT.md).
@@ -248,6 +482,115 @@ trigger the servicer on that write (keep the OCB kick as the preempt trigger), a
 `N5STA:=3` (+ version `027232B`@HW7, CPUPAR `001741B`@HW `0o10` for the RMVER path; watchdog reads
 neither). OPEN: exact "Wrong microprogram" string source; window-offset attribution; pre-CS-load
 vs post-start ordering of the first 3RMICV.
+
+**CS-load "Wrong microprogram" CORRECTED 2026-07-19** — the newest byte-verified carve
+[`../ND5000/CARVE-ANSWER-OCTOBUS-WRONG-MICROPROGRAM-2026-07-19.md`](../ND5000/CARVE-ANSWER-OCTOBUS-WRONG-MICROPROGRAM-2026-07-19.md)
+**SUPERSEDES** the earlier `CARVE-ANSWER-OCTOBUS-CSLOAD-VERSION-CHECK-2026-07-19.md` (which mis-attributed
+the block to VPARP echo / an OCB 202/203 fault). **Both of those framings are refuted by a live
+bidirectional ACCP wire trace (2026-07-19):**
+- **VPARP is a pure §5.3.16 self-consistency echo and our reply is byte-correct** on the wire
+  (`VPARP -> [00 65 96 9B 49]` = SINTRAN's own written word). VPARP is NOT the blocker.
+- **"Microprogram error: Wrong microprogram" is SINTRAN status `EWRON = 002203B`** (N500-SYMBOLS
+  L07:1525, rendered from `014-S3ERRP.bin`), set **ND-100-side** by the ND-500 **swapper** CS-load path
+  when the **CPU type/model it reads != the control-store image word-7 model**. It is **NOT** an OCB
+  202/203 decode: `5OMBREAD @146556` takes its silent `5ALIVE` branch for our `ETYPE=0` MFACK (proven).
+  J04 (thin MON60 client) just retries `LOAD-CONTROL-STORE` on status `ECSLOAD=002032B`, re-running the
+  prologue -> endless `DISKICK/STOPMIC/CPURES/LPARP/VPARP` loop.
+- **The model check is NOT an octobus command:** the complete ACCP trace (boot -> loop) has ONLY
+  CMSYSPAR/RTEST/CMALI/DISKICK/STOPMIC/CPURES/LPARP/VPARP — no READ-CPU-MODEL (§5.3.57) or any
+  model/version read. The swapper reads the compared model from ND-100-internal state (cached / mailbox
+  / MPM cell). The prologue sender is the swapper + L07 `MONACCP=157`/`STSELFTST=155` (commented out in
+  M06 NPL), living in uncarved `030-S3SM5.bin`/`062-S3SSM5.bin`/`116-S3SERWD.bin`.
+- **New lead / fix target:** the monitor `VERSION` cmd shows `Micro program.: 0` + `Module: MB.0 ALU.3
+  AAP.0 IDAC.0 ... ACCP.0` (mostly `.0`) — the CPU module/model config the swapper compares, reported
+  (mostly) zero by the emulator. FIX = report the ND-5800 module/model config + micro version
+  (drive from the loaded CS image word-7 / word-1, not a hardcoded constant) at wherever the swapper
+  reads them. OPEN (carve in flight, swapper EWRON setter): the exact compare source + location, and
+  which module/version cells the swapper actually reads.
+
+---
+
+## 0i. HANDOFF — 3022/swapper track, session ending 2026-07-20
+
+[`HANDOFF-3022-SWAPPER-TRACK-2026-07-20.md`](HANDOFF-3022-SWAPPER-TRACK-2026-07-20.md) — where D4
+stands (swapper executing, PC `0x04` -> `0x913B`), what is established, the seven emulator bugs fixed,
+the five retracted claims, the ordered next actions, and the working notes (flaky harness, available
+diagnostics, dirty-tree caveats).
+
+## 0h. OPEN QUESTIONS REGISTER — everything this track does not know (added 2026-07-20)
+
+[`OPEN-QUESTIONS-REGISTER-2026-07-20.md`](OPEN-QUESTIONS-REGISTER-2026-07-20.md) lists every open
+item with its answer route (CARVE / MICROCODE / LIVE / MANUAL) and priority. Read it before starting
+any ND-500 work, and add to it rather than re-deriving. Top five: **A1** who builds the PCB/PST;
+**A2** where the program segment number comes from at 3START; **A3** where PSTP comes from; **B1**
+what transport delivers the swapper PSEG/DSEG (no RESIWR names them); **C1** whether B30 accepts
+MICFU 21B. It also records the four claims this track had to RETRACT, so they are not re-adopted.
+
+## 0g. SWAPPER EXECUTES on the emulated CPU; its LINK SEGMENT is 1 — carve resolves the MMU set-up (added 2026-07-20)
+
+Finding doc: [`ND500-D4-RUN-BLOCKER-FINDING-2026-07-19.md`](ND500-D4-RUN-BLOCKER-FINDING-2026-07-19.md)
+sections 12d-12i. Question set for the microcode track:
+[`QUESTIONS-FOR-ND5000-MICROCODE-SWAPPER-START-2026-07-20.md`](QUESTIONS-FOR-ND5000-MICROCODE-SWAPPER-START-2026-07-20.md).
+
+The real ND-500 swapper now RUNS on the functional `CpuND500` under live SINTRAN L. Nothing is faked
+(swapper injection, the `AnnounceSwapperAlive` announce, and the 3MONCO "parked but alive" intercept
+were all deleted).
+
+- **SINTRAN places the swapper's EXECUTABLE itself [BYTES].** MPM physical `0x06F800`, 19 dense pages,
+  byte-for-byte identical to `swapper/SWAPPER-K01.PSEG` (38,161 bytes, incl. the `REV`/`-K01` tags).
+  It arrives on the "> Loading Swapper" path; **no `14B` RESIWR ever names that address** (those stop
+  at `0x6F7FF` and are 40/44 ZERO pages). The old "the swapper is control-store microcode" claim is a
+  **POISONED PRIOR — deleted**; ND-500 code is ordinary executable code in an executable segment,
+  microcode is only what "> Loading Control Store" puts in the CPU's control storage.
+- **SINTRAN names the layout in the two page tables it DMAs [BYTES].** RESIWR page `0x6E800` =
+  PROGRAM table (`00DF 00E0 ...`, `0xDF << 11` = `0x06F800`, 19 pages); `0x6E000` = DATA table
+  (`0049 004A ...` = `0x00024800`, 107 pages); `0x6F000` = an undecoded descriptor (`02 C0` at +3).
+- **The swapper's LINK SEGMENT is 1 [CARVE, decisive].** `swapper/swapper-k01-pseg.asm` disassembles
+  at base `0x08000000` and the code's own operands are segment-1 addresses. Entry
+  `init $1000441124,$44,$17504` = **`0x08024254`** = the run-time stack bottom per
+  `swapper-k01-deep-analysis.md` section 5.1 (DSEG `0x24254..0x26197`, 8004 bytes), and
+  `call $1000100645` = **`0x080081A5`**. Both matched live traps EXACTLY (write `0x08024255` at
+  program address `0o21`; instruction fetch `0x080081A5`). Code and data therefore share logical
+  segment 1 and are separated by the I/D split: program capability -> PSEG, data capability -> DSEG.
+- **TOP BLOCKER: the swapper stops at its RIOM intake with zero descriptors [V]; the "DSEG is never
+  loaded" explanation is SUSPECTED, NOT VERIFIED.** With the correct segment-1 mapping
+  the swapper runs to `PC=0x080082EE` and faults writing `VA 0x00000002`. The carve identifies that
+  instruction as its DMA intake — `1000101356: h riom $1000440264,$1000440274,$1000440074+` =
+  `0x240B4`/`0x240BC`/`0x2408C`, the RIOM triple documented in `swapper-k01-deep-analysis.md`. It
+  writes to ~0 because those descriptor cells read ZERO. A dense-region scan of the whole MPM window
+  shows data at `0x000000-0x0007FF` and `0x06F800-0x078FFF` (the PSEG) and **nothing at `0x24800`**,
+  although the DATA page table reserves 107 pages there (`0x35800` = 219,136 bytes vs
+  `swapper/SWAPPER-K01.DSEG` = 218,117 bytes) and only ONE 256-byte `14B` RESIWR ever touched it.
+  **The DSEG IS loaded — a "DSEG never loaded" claim was DISPROVEN and is deleted [V].** A
+  content-signature probe (density is useless here: a mostly-zero 218 KB segment never reaches the
+  25%-non-zero bar) finds `DSEG+0x2408C @phys 0x04888C` = `00 00 00 08 00 00 00 0B 00 00 00 08` and
+  `DSEG+0x26198 @phys 0x04A998` = `08 00 83 D8 08 00 83 F7 08 00 84 74`, byte-identical to
+  `swapper/SWAPPER-K01.DSEG`; a window-wide fn-table sweep hits once, implying DSEG base `0x024800` —
+  exactly what the DATA page table said. **Placement and mapping are correct for BOTH segments.**
+  **Actual cause: the RIOM descriptor cells are RUNTIME variables [V]** — `+0x240B4`/`+0x240BC` are
+  zero in the DSEG file itself, filled by the swapper from its SWMSG before RIOM. So the swapper
+  reached its intake without a valid message; **the open thread is the MESSAGE path, not the loader.**
+  Per `5SWRT` (`RP-P2-N500.NPL:12-58`) SINTRAN computes `A:=SWMSG+"SWPINFO"=:D:=5MBBANK; AD=:DSWMSG`
+  (physical address of `SWPINFO` in `SWMSG`) — the pointer the swapper's RIOM needs. NEXT: find what
+  writes DSEG `0x240B4`, and whether SINTRAN ever delivers that pointer to us.
+- **OPEN [important]: SINTRAN's 21B image sends `P = 0x00000004` — offset only, NO segment bits.**
+  Neither halfword order yields `0x08000004`, so the segment number reaches the CPU by some path we
+  do not model. The emulator currently takes it from the carve (segment 1).
+- **OPEN: who builds the PCB/PST, and when.** A scan of all 8 MB of the MPM window for a PSTE naming
+  either page table (`(0xDD << 2)|mode`, `(0xDC << 2)|mode`) found **0 candidates**, so SINTRAN does
+  not build them there during PLACE-DOMAIN. The 21B block carries `PS` (`reg[18]`) but **no `PSTP`**.
+  Candidates unresolved: the swapper itself, the microcode at process start (context block /
+  `LCNTXT`), or CPU-internal state. This is the headline question for the ND-5000/microcode track.
+- **OPEN: our trap report to SINTRAN carries wrong fields.** For a fault the CPU records as an
+  INSTRUCTION fetch at `0x080081A5`, SINTRAN printed `DATA segment READ access / Logical address
+  1 100645B`; a segment-1 data write printed `Logical address 0 0B`.
+- Emulator-side defects found and fixed en route (RetroCore, uncommitted): PTE bit 0 is PROTECTION
+  (`PG_W`=0/`PG_R`=1) with validity = `PFN != 0` — `MapExistingPhysicalRegion` had written `|0x1` on
+  every PTE, marking all pages read-only; and mailbox `17B` = `3DEPR` was unhandled, which had made
+  SINTRAN re-send the bring-up cycle forever.
+
+Evidence grade: placement + page tables + link segment = **BYTES/CARVE**; the `P`-segment provenance
+and PCB/PST provenance = **OPEN**.
 
 ---
 
@@ -1101,6 +1444,15 @@ implement to actually run/connect the ND-500 CPU.
 | [`ND500-IF-LOCKING.md`](ND500-IF-LOCKING.md) · [`ND500-IF-USAGE-DEEP-ANALYSIS.md`](ND500-IF-USAGE-DEEP-ANALYSIS.md) | locking / usage |
 | [`WHERE-IS-5MPM-LOCATED.md`](WHERE-IS-5MPM-LOCATED.md) | 5MPM location |
 | [`ND5000-SAMSON-ARCHITECTURE.md`](ND5000-SAMSON-ARCHITECTURE.md) | |
+
+### DOMINO / NUCLEUS / octobus driver carve (2026-07-19, byte-verified)
+| Doc (under `tools\sintran-segment-carver\versions\L-VSX-500\re\domino-nucleus-io\`) | What |
+|---|---|
+| `BDIO-DOMINO-DRIVER-CARVE.md` | In-kernel DOMINO block-I/O: STRBDIO/REBDIO/MBUILD/DCNVA, fn 166B/167B/213B message layout, NKWRI/NKSEN/NKREC/NKREA gates, HSTAT ladder, pseudo-C. See section 0e |
+| `OCTOBUS-DRIVER-ROUTINES-CARVE.md` | SKICK/MBSEND/OMBREAD + XKICK500/5OMBREAD/MFPREPARE/CON5IDENT/5MTRANS bodies, LMFIELD consumption, wire bytes, pseudo-C. See section 0e |
+| `NUCLEUS-PRIMITIVES-CARVE.md` | NKSEND/NKGETINFO/NCALL/NKWRI + NUCST, kernel structure byte layout (master block/port/message/kick table), NKSEND->SKICK kick path, MON 347B=SERVE. See section 0e |
+| `NUCLEUS-SEGMENTS-RECON.md` | Segments 104-107 (NKSE/NKNA server) recon + follow-up carve target list |
+| [`..\ND5000\OCTOBUS-DEVICE-CONTROLLERS-ANALYSIS-AND-EMULATION-PLAN-2026-07-19.md`](../ND5000/OCTOBUS-DEVICE-CONTROLLERS-ANALYSIS-AND-EMULATION-PLAN-2026-07-19.md) | The device/controller architecture + RetroCore reusable-objects design + phased plan that drove this carve |
 
 ### MON calls
 | Doc | Note |

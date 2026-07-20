@@ -55,11 +55,44 @@ H RIOM <ND-100 addr/r/W>, <buffer/w/H>, <no of halfwords>
 I/O processor memory → ND-500 memory buffer
 ```
 
-**Mechanism:**
-1. ND-500 initiates RIOM instruction
-2. 3022/5015 interface hardware performs DMA from ND-100 physical memory
-3. Data transferred to ND-500 logical memory without interrupting ND-100
-4. Transfer completes asynchronously
+**Mechanism [CORRECTED 2026-07-20 from the B30 microcode - the previous text was an authored
+inference and is wrong in mechanism]:**
+
+RIOM is **not a DMA engine**. It is a **microcoded copy loop**: the CPU's own microprogram issues
+ordinary physical memory reads, one halfword per iteration, on its own memory port. From the B30
+image (`MICRO-5800-B30.md:5307-5320`):
+
+```
+012255 RIOM_0:  SC2 := BM01                      ; build mask, bit 1
+012256          ALU,AND A,MIC,STS B,SC2          ; test MIC status bit 1
+012257          C,SEQ COND,MZRO -> ILLEG         ; not privileged -> IIC trap
+012261          ... G,OPS LADDR EA2SAVE ADACT    ; operand 2's EA -> destination pointer
+012262          ... D,LC   READ ADACT            ; operand 3 (count) -> LC
+012263          D,DAC,DPA := SC1                 ; operand 1 VALUE -> DAC physical-address reg
+012266 RIOM_2:  LCDECR  C,SEQ INVSEQ COND,LCZ    ; decrement, exit when zero
+012270 RIOM_3:  SC1 := DATA (TYP,HW)   RD,POF    ; read halfword from ND-100
+012272          <SC1>                  WRITE     ; write halfword to ND-500, loop
+```
+
+1. ND-500 executes RIOM; the microprogram first checks privilege (`-> ILLEG` = IIC trap).
+2. Operand 2's **effective address** goes to the destination pointer (`LADDR ... ADACT`); operand 1's
+   **value** goes to the DAC physical-address register; operand 3 becomes the loop counter `LC`.
+3. Each iteration does `RD,POF` = "PERFORM A PHYSICAL READ WITH MMS" (`ND-05.022.1:2467`; the bus
+   request is `RPOFF`, "paging off read memory, physical address translation",
+   `ND-05.020.01:5777`), then a plain `WRITE` to ND-500 memory.
+4. There is **no descriptor, no controller command and no word-count register in any interface** -
+   the counter is the microcode's own `LC` and the pointers are its own EA registers.
+
+This is why the manual can say the transfer "does not interrupt the ND-100 program execution": it is
+DMA only *from the ND-100's point of view* - the ND-100 CPU is never involved because the ND-500
+reaches memory through its own port.
+
+It also resolves the manual's "private ND-100 memory, **not directly addressable** by the ND-500":
+not reachable through the ND-500's normal paged/segmented addressing. RIOM's trick is exactly
+paging-off plus a raw physical address, which is how it escapes the segment model.
+
+**Note:** `RD,POF` is physical **with MMS** - paging is off but the MMS unit stays in the path.
+Docs describing POF as simply "treated as physical" are imprecise.
 
 ### Example Usage
 
@@ -79,12 +112,13 @@ H RIOM 66000B:W, PG, 1024
 
 | Characteristic | Description |
 |----------------|-------------|
-| **Access Method** | DMA (Direct Memory Access) |
-| **ND-100 Addressing** | Physical 24-bit word addresses |
+| **Access Method** | Microcoded copy loop (`RD,POF` physical read + `WRITE`), NOT a DMA engine |
+| **ND-100 Addressing** | Physical word addresses, held in the DAC address register; **no masking anywhere in the microcode loop** (so no 16-bit wrap) |
 | **Memory Scope** | Any ND-100 physical memory (not limited to 5MPM) |
-| **ND-100 Interruption** | Does NOT interrupt ND-100 program execution |
-| **Interface** | 3022 (ND-100 side) / 5015 (ND-500 side) controller cards |
-| **Direction** | ND-100 → ND-500 (see WIOM for reverse) |
+| **ND-100 Interruption** | Does NOT interrupt ND-100 program execution - the ND-100 CPU is never involved |
+| **Interface** | ND-5000: the CPU's own port (MFbus channel / MPCC). **[OPEN]** for classic 500 via Control II / 5015 - no manual describes that physical path, and the `RIOM_0..3` labels also exist in MICRO-5200, so the loop structure probably carries over but the port does not necessarily |
+| **Direction** | ND-100 → ND-500 only. **There is no reverse instruction - "WIOM" does not exist** (no manual, no index entry, no opcode table). Writes go via ordinary stores to the shared segment, the microprogram, or the ND-100 itself |
+| **Privilege** | Microcode checks it: `012256-012257 ... -> ILLEG` (IIC trap when not privileged) |
 
 **Source:** [ND-500 Reference Manual](../../Reference-Manuals/ND-05.009.4%20EN%20ND-500%20Reference%20Manual.md) (lines 10826-10842)
 

@@ -16,7 +16,10 @@ This branch is for *how to install*, as opposed to:
 | [OS/](OS/README.md) | Installing the SINTRAN III operating system on a fresh disk from distribution floppies |
 | [Communication/](Communication/README.md) | Installing the communication products (COSMOS Basic, Ethernet II, TCP/IP, X.21, X.25, Network Monitor): product sheets, floppy images, extracted files, verified install guides |
 | [Software/](Software/README.md) | Installing application software / subsystems on a running SINTRAN III system *(later phase)* |
+| [Installation-Description/](Installation-Description/README.md) | 284 OCR'd Norsk Data "Program Description" / "Product Information" / "Installation Description" documents - the ND Software Library's per-product install/requirements sheets, covering nearly every SINTRAN III product ND shipped for ND-100/110/120/500/5000, OWS/PC and Uniline/XENIX, grouped by product family (SINTRAN III, ND-500/5000, NOTIS, NORTEXT, SIBAS/R, COSMOS, TCP/IP, SNA, hardware, patches, and more) |
+| [Product-Info/](Product-Info/README.md) | 364 OCR'd Norsk Data product data-sheets (document series `ND-nnn(nn)-<rev>-<lang>`) - short marketing/technical brochures covering CPU hardware, storage, terminals, printers, communications, networking, and the software catalogue from the NORD-10 through ND-5000 era, grouped by product family |
 | [ND-NUMBERING-REFERENCE.md](ND-NUMBERING-REFERENCE.md) | How ND article and document numbers work (used throughout this branch) |
+| [INSTALL-ND-LINKAGE-LOADER-AND-BACKUP-SYSTEM.md](INSTALL-ND-LINKAGE-LOADER-AND-BACKUP-SYSTEM.md) | Installing the ND-500 Linkage-Loader (210319H02-XX-01D) + prerequisite Backup System (210337I04-XX-01D) - verified live session walkthrough with all observed gotchas |
 
 ---
 

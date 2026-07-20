@@ -1,0 +1,20 @@
+patch file : /mnt/c/Users/ronny/AppData/Local/Temp/claude/E--Dev-Ronny-TSS/99a76ebf-5679-4047-ab73-913fc5c72446/scratchpad/patchwork/K05patch/PATCHES-10200.PATC
+segments   : /mnt/e/Dev/Ronny/NDInsight/tools/sintran-segment-carver/versions/K-VSX-500/segments (35 loaded)
+symbols    : 9106
+
+  total                5823
+  open                 1875
+  has-OLD              1251
+  unknown-segment       271
+  complex-address       522
+  unknown-symbol        244
+  out-of-segment          0
+
+  APPLIED                 1
+  NOT-APPLIED             8
+  UNRESOLVED-NEW        200
+  MISMATCH                5
+
+NOTE: UNRESOLVED-NEW means "new value is assembly source, not a
+      number - this script will not guess".  A large MISMATCH count
+      usually means the SYMBOL list does not match this generation.

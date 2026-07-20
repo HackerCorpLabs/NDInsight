@@ -1,6 +1,42 @@
 # ND-500 Monitor Call Architecture: Complete Technical Guide
 
+> ## ⚠ CORRECTION 2026-07-20 — the TAG-value table in this file is FABRICATED
+>
+> **The table around lines 580-610 (`0x01 MON_CALL_REQUEST`, …) is not real**, and the IOX offset
+> table beside it contradicts the verified codes. Debunked in
+> `SINTRAN\ND500\ND500-BUS-INTERFACE-REFERENCE.md` §10.3: the TAG field is **4 bits**, and the
+> value cited as a message type is the **DIEN strobe**. There is no high-level TAG protocol —
+> monitor calls do **not** travel as TAG codes.
+>
+> **What actually happens** (vendor: `ND500UC\manuals\ND-05.012.01 ND-500 Micro Program Guide.md`
+> §13, lines 1090-1400; `ND-30.013.02 Test Micro Program Descriptions` §3.12-3.14):
+>
+> - A monitor call is a **`callg` through a segment-31 capability** carrying `PC_IND|PC_OMC`. The
+>   microcode's trap decoder routes it (trap code 6 → `CALL_MON`), builds the stop record **in the
+>   process's own message in shared memory**, and answers it. Cross-confirmed from the NDIX kernel
+>   side: `callg $0xf8000180,$4,…` — segment 31, offset `0x180` = **600 octal**.
+> - The wire-level TAG lines are **register strobes only**. TAG-OUT: `0/1` MAR, `2/3` STATUS,
+>   `4` read CONTROL, `5` reset activate, `6/7` DATA register (the RIOM/WIOM DMA into ND-100
+>   memory). TAG-IN: clock/enable strobes for the control-store-load and debug path.
+> - Verified ND-100-side IOX octal codes: RMAR `060`, LMAR `061`, RSTA `062`, LCON `065`,
+>   MCLR `066`, TERM `067`, RTAG `070`, WTAG `071`, WDAT `073`, SLOC `074`, CLKD `075`,
+>   UNLC `076`, RETG `077`.
+> - Message-status lifecycle (vendor-anchored, matches the byte-verified model): `0` free,
+>   `1` message-to-ND-500, `2` in-process, `3` answer, `4` error.
+>
+> Authoritative replacements: `SINTRAN\ND500\ND500-BUS-INTERFACE-REFERENCE.md`,
+> `SINTRAN\ND500\ND500-MONITOR-CALL-MECHANISM.md`, and
+> `E:\Dev\Ronny\ND5000UC\microcode\MAILBOX-MICROCODE-PSEUDOCODE.md` §3.8 for the decoded
+> `CALL_MON` path.
+
 **How ND-500 Programs Invoke ND-100 Monitor Calls via Segment 31**
+
+> **Scope: classic ND-500 only.** Everything below describes the **classic ND-500**
+> generation — an ND-500 CPU with a 5015 interface card, talking to an ND-100 through a
+> 3022 card and 5MPM shared memory. The **ND-5000 (SAMSON)** uses an entirely different
+> transport (octobus / ACCP, no 3022, no 5015). The message layout and the monitor call
+> concept carry over; the signalling, the register set and the IOX codes in this document
+> do **not**. Do not read this file as ND-5000 documentation.
 
 ---
 
@@ -9,7 +45,7 @@
 1. [Overview: The "Other CPU" Mechanism](#overview-the-other-cpu-mechanism)
 2. [Segment 31 and the "Other Machine" Bit](#segment-31-and-the-other-machine-bit)
 3. [Complete Monitor Call Flow](#complete-monitor-call-flow)
-4. [MICFU Codes: Beyond 8-Bit MON Numbers](#micfu-codes-beyond-8-bit-mon-numbers)
+4. [MICFU and MCNO: Who Says What, and In Which Direction](#micfu-and-mcno-who-says-what-and-in-which-direction)
 5. [Memory Locations and Disassembly Guide](#memory-locations-and-disassembly-guide)
 6. [Message Buffer Structure](#message-buffer-structure)
 7. [Hardware: 3022/5015 Interface](#hardware-30225015-interface)
@@ -51,7 +87,7 @@ graph TB
     end
 
     subgraph "3022/5015 Interface"
-        INTERFACE[Hardware Interface<br/>TAG Registers<br/>Interrupt Signaling]
+        INTERFACE[Hardware Interface<br/>STATUS / CONTROL / MAR / DATA<br/>activate + level-12 interrupt]
     end
 
     subgraph "ND-100 Interrupt System"
@@ -119,7 +155,7 @@ sequenceDiagram
     participant TRAP as Trap Handler
 
     CPU->>CPU: Fetch CALLG instruction
-    Note over CPU: CALLG #0x1F000000<br/>(segment 31, offset 0)
+    Note over CPU: callg $0xf8000180<br/>(segment 31, offset 0x180 = 600 oct)
 
     CPU->>SEG: Check segment 31 capabilities
     SEG->>SEG: Read ProgramCapabilities[31]<br/>Value = 0xC000
@@ -131,8 +167,8 @@ sequenceDiagram
     Note over TRAP: CPU does NOT execute CALLG<br/>Trap handler takes over instead
 
     TRAP->>TRAP: Save CPU state (PC, registers)
-    TRAP->>TRAP: Fill message buffer
-    TRAP->>TRAP: Signal ND-100 via TAG register
+    TRAP->>TRAP: Fill message buffer (N5STA, STOPR=MOCALL)
+    TRAP->>TRAP: Set STATUS "finished" + stop reason -> level-12 IRQ
     TRAP->>CPU: Set IsWaiting flag
     Note over CPU: CPU suspends execution<br/>Waits for ND-100 response
 ```
@@ -144,17 +180,19 @@ sequenceDiagram
 if (instruction.IsCALLG())
 {
     uint targetAddress = instruction.GetTarget();
-    byte segment = (byte)((targetAddress >> 24) & 0x1F);  // Top 5 bits
+    // Segment number is the top 5 bits of the 32-bit address: 0xf8000180 -> 31.
+    byte segment = (byte)((targetAddress >> 27) & 0x1F);
 
     if (segment == 0x1F)  // Segment 31?
     {
         ushort progCap = _cpu.ProgramCapabilities[31];
 
-        // Check for "Other CPU" bit (bit 14)
+        // Check for the "other machine" capability (PC_OMC)
         if ((progCap & 0x4000) != 0)
         {
-            // TRIGGER TRAP - don't execute CALLG normally!
-            _trapHandler.HandleOtherCPUTrap(_cpu, targetAddress);
+            // Raise the instruction-fetch/protect trap. The trap decoder then routes
+            // trap code 6 to CALL_MON - the CALLG itself is never performed.
+            _trapHandler.RaiseInstructionFetchTrap(_cpu, targetAddress);
             return;
         }
     }
@@ -163,7 +201,13 @@ if (instruction.IsCALLG())
 // Execute CALLG normally for other segments...
 ```
 
-**Key Point:** The CPU hardware (or emulator) detects the O=1 bit **before** attempting to execute the CALLG. It doesn't try to fetch code from segment 31 - instead, it immediately traps.
+> **Note on the address encoding (corrected 2026-07-20).** The shift used to be `>> 24`,
+> which pairs with the literal `#0x1F000000` that this document used elsewhere. That
+> encoding does not match the only cross-confirmed real call we have — the NDIX kernel's
+> `callg $0xf8000180,$4,…`, where segment 31 sits in bits 31-27. The shift has been
+> corrected to `>> 27` and the `0x1F000000` literals replaced accordingly.
+
+**Key Point:** The CPU detects the capability **before** attempting to execute the CALLG. It doesn't try to fetch code from segment 31 - instead, it immediately traps.
 
 ---
 
@@ -188,39 +232,39 @@ sequenceDiagram
     USER->>LIB: Call DVIO(device=1, buffer, len)
     activate LIB
 
-    LIB->>MPM: Fill message buffer:<br/>MICFU=0x01 (DVIO_OUT)<br/>Device=1, Address, Length
-    LIB->>LIB: Prepare parameters
+    LIB->>LIB: Marshal parameters into the<br/>CALLG argument list
 
-    LIB->>CPU500: CALLG #0x1F000000
-    Note over CPU500: Segment 31 call
+    LIB->>CPU500: callg $0xf8000180, $4, args...
+    Note over CPU500: Segment 31, offset 0x180<br/>= 600 octal
 
     CPU500->>CPU500: Check seg 31 capabilities
-    CPU500->>CPU500: O bit = 1, trigger trap!
+    CPU500->>CPU500: PC_IND|PC_OMC set -> trap!
 
-    CPU500->>TRAP: HandleOtherCPUTrap()
+    CPU500->>TRAP: Trap decoder: code 6 -> CALL_MON
     activate TRAP
 
-    TRAP->>MPM: Save state at offset +0x00:<br/>PC, Registers, Status
-    TRAP->>MPM: Set ITMQUEUE flag (offset +0x1C)
-    TRAP->>IF: SignalMonitorCall(processNum)
-    TRAP->>CPU500: Set IsWaiting = true
+    TRAP->>MPM: N500A (+7)  := saved P
+    TRAP->>MPM: STOPR (+11) := MOCALL<br/>MCNO (+13) := low halfword of<br/>the CALLG target (600 oct)
+    TRAP->>MPM: NUMPA (+12) := argc;<br/>copy args into ADDRESS slots (+40+2k)<br/>and VALUE slots (+100+2k)
+    TRAP->>MPM: N5STA (+2) := 3 (ANSWER)
+    TRAP->>CPU500: Microcode enters IDLE loop
     deactivate TRAP
 
-    Note over CPU500: ND-500 SUSPENDED<br/>Waiting for response
+    Note over CPU500: ND-500 in IDLE loop<br/>Only an activate or a terminate<br/>can bring it out
 
-    IF->>IF: Write TAG-OUT register<br/>Value = 0x01 (MON_CALL_REQUEST)
-    IF->>INT: Trigger interrupt level 12
+    IF->>IF: STATUS "finished" (bit 3)<br/>+ stop reason (bits 10-14)
+    IF->>INT: Trigger interrupt level 12<br/>(ident 16 oct, gated by CONTROL bit 0)
     activate INT
 
-    INT->>IF: Read TAG-IN via IOX
-    IF-->>INT: TAG = 0x01 (monitor call)
+    INT->>IF: Read STATUS via IOX (RSTA5)
+    INT->>MPM: Walk message queue from MAILINK,<br/>check N5STA=3 / STOPR=MOCALL
 
     INT->>MPM: Read message buffer
-    MPM-->>INT: MICFU=0x01, device=1, etc.
+    MPM-->>INT: MCNO, NUMPA, parameter slots
 
-    INT->>INT: Decode MICFU = 0x01<br/>(DVIO Output)
+    INT->>INT: MCHANDLE: dispatch on MCNO<br/>(e.g. 600 oct)
 
-    INT->>MPM: Read data from ND-500 address<br/>(translate 5MPM address)
+    INT->>MPM: Read the caller's data<br/>via the parameter addresses
     MPM-->>INT: User data bytes
 
     INT->>SINT: Call SINT routine for DVIO
@@ -232,20 +276,18 @@ sequenceDiagram
     SINT-->>INT: Error code = 0 (success)
     deactivate SINT
 
-    INT->>MPM: Write result at offset +0x02:<br/>Error code = 0
-    INT->>MPM: Clear ITMQUEUE flag
-    INT->>IF: SignalComplete(processNum)
+    INT->>MPM: Write FUNCV (function value / result)
+    INT->>MPM: N5STA := 1 (MSGN500),<br/>MICFU := 24 oct (3MONCO)
+    INT->>IF: XACT500: activate via LCON5<br/>(CONTROL bit 2)
     deactivate INT
 
-    IF->>IF: Write TAG-IN register<br/>Value = 0x02 (OPERATION_COMPLETE)
-    IF->>TRAP: WakeUpProcess(processNum)
+    IF->>TRAP: Activate wakes the microcode<br/>out of the IDLE loop
     activate TRAP
 
-    TRAP->>MPM: Read error code
-    MPM-->>TRAP: Error = 0
+    TRAP->>MPM: Read MICFU = 3MONCO<br/>-> "restart after monitor call"
+    MPM-->>TRAP: FUNCV = 0
 
-    TRAP->>CPU500: Restore state<br/>R0 = 0 (error code)<br/>PC = PC + 4 (skip CALLG)
-    TRAP->>CPU500: Set IsWaiting = false
+    TRAP->>CPU500: Resume the process at the<br/>instruction after the CALLG,<br/>FUNCV delivered as the result
     deactivate TRAP
 
     Note over CPU500: ND-500 RESUMES
@@ -259,132 +301,71 @@ sequenceDiagram
 
 ---
 
-## MICFU Codes: Beyond 8-Bit MON Numbers
+## MICFU and MCNO: Who Says What, and In Which Direction
 
-### The Problem with 8-Bit MON Calls
+> **CORRECTION 2026-07-20.** This section used to claim that MICFU was a 16-bit
+> "monitor call function" written by the ND-500 library before the trap, and it listed a
+> table of values (`0x00 DVIO_IN`, `0x01 DVIO_OUT`, `0x10 RFILE`, `0x30 PAGE-FAULT`, …)
+> together with a category tree and two code samples built on it. **All of that was
+> invented.** MICFU is an ND-100 → ND-500 *command* code with a small set of verified
+> octal values, and it is never what carries a monitor call. The monitor call number
+> lives in **MCNO**, written by the microcode. Authoritative table:
+> `SINTRAN\ND500\ND500-BUS-INTERFACE-REFERENCE.md` §6.4 (and §6.2 for the message layout).
 
-On the ND-100, monitor calls use the **MON** instruction with an 8-bit immediate operand:
+### The two fields, and their directions
 
-```assembly
-MON 45    ; Monitor call number 45 (decimal)
+Both live in the same message in 5MPM, but they travel opposite ways:
+
+| Field | Offset (oct) | Written by | Meaning |
+|---|---|---|---|
+| **MICFU** | 6 | **ND-100** | *Command* to the ND-500: "start this process", "restart after monitor call", "read your microprogram version", … |
+| **MCNO** | 13 | **ND-500 microcode** | The monitor call number the macro-program asked for |
+| **FUNCV** | 13 | **ND-100** | The function value handed back when the call is answered |
+
+So a monitor call is *not* expressed as a MICFU. It is expressed as a `callg` into
+segment 31, and the microcode's trap decoder (trap code 6 → `CALL_MON`) records the
+low halfword of the CALLG target as MCNO. MICFU only appears afterwards, when the
+ND-100 has finished the work and commands the ND-500 to carry on.
+
+### Verified MICFU command codes
+
+Values verified in the SINTRAN L07 + M06 symbol tables (reference §6.4). Octal:
+
+| Value (oct) | Symbol | Meaning |
+|---|---|---|
+| 1 | 3RMICV | Read microprogram version (the watchdog message) |
+| 5 | 3SWMESS | Message to the swapper (carries its own SWFUN field) |
+| 23 | 3START | Start process |
+| **24** | **3MONCO** | **Restart after monitor call** — the one that ends the flow above |
+| 25 | 3TRACO | Trap continue |
+| 26 | 3WMONCO | Wait monitor call |
+| 27 | 3FITRNSF | File transfer |
+| 44 | 3RPREG | Read P register (histogram message) |
+
+There is no "0x00-0x0F device I/O / 0x10-0x2F file operations" range. Anything you may
+have read elsewhere in that shape came from the fabricated model.
+
+### Where the monitor call number actually comes from
+
+The number is part of the call target, not of any pre-loaded message field. From the
+NDIX kernel side a monitor call looks like:
+
+```
+callg   $0xf8000180, $4, ...      ; segment 31, offset 0x180 = 600 octal
 ```
 
-This limits ND-100 to **256 different monitor calls** (0-255).
+`0xf8……` selects segment 31; the offset `0x180` is the monitor call number, and the
+microcode copies it into MCNO. The `$4` is the argument count, which the microcode
+records in NUMPA before copying the arguments into the message's parameter slots.
 
-But the ND-500 needs to invoke ND-100 monitor functions, **and** the ND-100 needs to handle ND-500-specific operations (page faults, process management, etc.).
+**Key Insight:** the ND-500 program does **not** hand-build a message before trapping.
+It just makes a normal `callg`; the microcode builds the whole stop record for it.
 
-### Solution: MICFU (Monitor Initiated Call Function)
+### On 8-bit MON numbers
 
-Instead of using MON instruction numbers, the ND-500 uses **MICFU codes** stored in the message buffer.
-
-**MICFU = 16-bit function code** (allows 65,536 different functions!)
-
-### MICFU Code Categories
-
-```mermaid
-graph TB
-    MICFU[MICFU Codes<br/>16-bit values]
-
-    MICFU --> DEV[0x00-0x0F<br/>Device I/O]
-    MICFU --> FILE[0x10-0x2F<br/>File Operations]
-    MICFU --> MEM[0x30-0x4F<br/>Memory Management]
-    MICFU --> PROC[0x50-0x6F<br/>Process Control]
-    MICFU --> SYSTEM[0x70-0x8F<br/>System Calls]
-    MICFU --> MISC[0x90+<br/>Miscellaneous]
-
-    DEV --> DVIO_IN[0x00: DVIO Input]
-    DEV --> DVIO_OUT[0x01: DVIO Output]
-    DEV --> DVIO_CTRL[0x02: DVIO Control]
-
-    FILE --> RFILE[0x10: RFILE<br/>Read file block]
-    FILE --> WFILE[0x11: WFILE<br/>Write file block]
-    FILE --> OPEN[0x12: OPEN<br/>Open file]
-    FILE --> CLOSE[0x13: CLOSE<br/>Close file]
-
-    MEM --> PAGE_FAULT[0x30: Page Fault<br/>Load page from disk]
-    MEM --> ALLOC[0x31: Allocate Memory]
-    MEM --> FREE[0x32: Free Memory]
-
-    PROC --> CREATE[0x50: Create Process]
-    PROC --> DELETE[0x51: Delete Process]
-    PROC --> SUSPEND[0x52: Suspend Process]
-```
-
-### Standard MICFU Codes
-
-| MICFU | Function | ND-100 MON Equivalent | Description |
-|-------|----------|-----------------------|-------------|
-| **0x00** | DVIO_IN | MON 4 (INBT) | Device input |
-| **0x01** | DVIO_OUT | MON 5 (OUTBT) | Device output |
-| **0x02** | DVIO_CTRL | MON 6 (IOCTL) | Device control |
-| **0x10** | RFILE | MON 14 (RFILE) | Read file block |
-| **0x11** | WFILE | MON 15 (WFILE) | Write file block |
-| **0x12** | OPEN | MON 16 (OPEN) | Open file |
-| **0x13** | CLOSE | MON 17 (CLOSE) | Close file |
-| **0x14** | DELETE-FILE | MON 20 | Delete file |
-| **0x20** | LOAD | MON 19 (LOAD) | Load program |
-| **0x21** | DUMP | MON 18 (DUMP) | Dump program |
-| **0x30** | PAGE-FAULT | None | ND-500 page fault |
-| **0x31** | ALLOCATE-SEGMENT | None | ND-500 specific |
-| **0x32** | FREE-SEGMENT | None | ND-500 specific |
-| **0x40** | ATTACH-SEGMENT | None | ND-500 specific |
-| **0x41** | DETACH-SEGMENT | None | ND-500 specific |
-| **0xFF** | UNDEFINED | - | Invalid/test |
-
-### How MICFU is Used
-
-**ND-500 library code:**
-
-```assembly
-; Write to terminal (DVIO output)
-        LDWS    R0, #1              ; Device 1 (terminal)
-        LDAQ    buffer_address      ; Buffer to write
-        LDWS    R2, #80             ; 80 bytes
-
-        ; Prepare message buffer in 5MPM
-        LDWSA   W1, message_buffer  ; Address of message buffer
-        LDWS    R3, #0x0001         ; MICFU = DVIO_OUT
-        STWS    [W1+3], R3          ; Store MICFU at offset +3 words
-        STWS    [W1+14], R0         ; Device number
-        STWS    [W1+15], Q          ; Buffer address (A/Q)
-        STWS    [W1+16], A
-        STWS    [W1+17], R2         ; Byte count
-
-        ; Trigger monitor call via segment 31
-        CALLG   #0x1F000000         ; ← Traps to ND-100
-
-        ; When returns, R0 = error code
-        TSTWS   R0
-        JMPZ    success
-        ; Handle error...
-```
-
-**ND-100 interrupt handler:**
-
-```csharp
-public void HandleInterrupt(ND100InterruptData data)
-{
-    // Read MICFU from message buffer (offset +3 words)
-    uint messageAddr = GetMessageBufferAddress(processNumber);
-    ushort micfu = _mpm.ReadWord(messageAddr + 6);  // +3 words * 2 bytes
-
-    switch (micfu)
-    {
-        case 0x00:
-            HandleDVIO_IN();
-            break;
-        case 0x01:
-            HandleDVIO_OUT();
-            break;
-        case 0x10:
-            HandleRFILE();
-            break;
-        // ... etc
-    }
-}
-```
-
-**Key Insight:** The MICFU code is **not** part of the CALLG instruction. It's stored in shared memory (5MPM) by the ND-500 library code **before** triggering the trap.
+The old text framed MICFU as a workaround for the ND-100's 8-bit `MON` operand. That
+framing does not survive: the ND-500's monitor call number is a segment-31 *offset*, so
+it is naturally wider than 8 bits without needing any separate function-code scheme.
 
 ---
 
@@ -424,19 +405,16 @@ Example DVIO location:
    MONITOR   6        567    YES
    ```
 
-3. **Look for CALLG instructions:**
-   ```
-   N500: DISASSEMBLE 05001200,20
+3. **Look for CALLG instructions targeting segment 31.**
 
-   05001200: LDWS    R0, [B+14]    ; Get device number
-   05001204: LDAQ    [B+15]        ; Get buffer address
-   05001208: LDWS    R2, [B+17]    ; Get byte count
-   0500120C: LDWSA   W1, 80000400  ; Message buffer in 5MPM
-   05001210: LDWS    R3, #0001     ; MICFU = DVIO_OUT
-   05001214: STWS    [W1+3], R3    ; Store MICFU
-   05001218: CALLG   #1F000000     ; ← Call segment 31 (TRAP!)
-   0500121C: RET                    ; Return to caller
-   ```
+   (The worked disassembly that used to sit here — a library routine loading a 5MPM
+   message address and storing a MICFU before the call — was invented, and has been
+   removed. No such code exists: the library does not touch the message.)
+
+   What you are actually looking for is a `callg` whose target has the top five address
+   bits equal to 31, with the monitor call number in the low halfword, e.g.
+   `callg $0xf8000180, $4, …` (segment 31, offset `0x180` = 600 octal). Everything after
+   that instruction happens in microcode, not in visible ND-500 code.
 
 #### On the ND-100 Side
 
@@ -444,95 +422,70 @@ Example DVIO location:
 
 The ND-100 interrupt level 12 handler is part of SINTRAN III kernel:
 
-```
-Memory address: Depends on SINTRAN version
-Typical range:  0x0400 - 0x0800 (page table 0)
-
-Symbol table entry:
-  INT12-HANDLER   0x0512
-```
+The handler reached from the level-12 ident is **5STDRIV**, in the SINTRAN source
+`MP-P2-N500.NPL` (lines 656-694). The addresses that used to be printed here
+(`INT12-HANDLER 0x0512`, `ND500-TRAP`, `MICFU-DISPATCH`) were invented and have been
+removed — those symbols do not exist in the SINTRAN symbol table.
 
 **How to find it:**
 
-1. **Check SINTRAN symbols:**
-   ```
-   @LIST-SYMBOLS (SYSTEM)SINTRAN-SYMBOLS:SYMB
+1. **Look up the real symbols.** The names that do exist are `5STDRIV` (the level-12
+   driver), `CLE5STATUS` (read + clear STATUS), `CHN5STATUS` (dispatch on N5STA),
+   `DECOMESS` (dispatch on MICFU/STOPR), `MCHANDLE` (monitor call handler) and
+   `XACT500` (hand the ND-500 its next work and activate it). Their addresses depend on
+   the SINTRAN version you carved; resolve them from that image's symbol table rather
+   than from any number quoted in a document.
 
-   INT12-HANDLER    0000512B
-   ND500-TRAP       0000534B
-   MICFU-DISPATCH   0000556B
-   ```
+2. **Follow the ident, not a vector table.** The ND-100 has no level-12 vector slot in
+   low memory (the `Address 0x000C` entry printed here before was invented). On an
+   interrupt the level-12 code executes `IDENT PL12`; the 3022 answers with its ident
+   code — **16 octal** for thumbwheel setting 0 — and SINTRAN's ident dispatch table
+   routes that code to `5STDRIV`.
 
-2. **Trace interrupt vector:**
+3. **Real handler flow** (the former invented disassembly checking a "TAG value"
+   has been removed — the driver never reads TAG registers):
    ```
-   ; ND-100 interrupt vector table (low memory)
-   Address 0x000C:  0x0512    ; Level 12 handler address
-   ```
+   5STDRIV (NPL:MP-P2-N500.NPL:656-694), entered from the level-12 ident:
 
-3. **Disassemble handler:**
-   ```
-   ND-100 disassembly at 0x0512:
-
-   0512: SAVE  4,L         ; Save registers
-   0513: LDA   T,IOX       ; Read IOX register (3022 interface)
-   0514: IOXT  100,1       ; Device 100₈ (3022), offset 1 (TAG-IN)
-   0515: EXAM  T           ; Check TAG value
-   0516: SUB   T,=1        ; Compare to MON_CALL_REQUEST
-   0517: SKIP  Z           ; If equal, process monitor call
-   0518: JMP   OTHER       ; Else, other interrupt
-   0519: ; Read message buffer from 5MPM...
+   1. CALL CLE5STATUS            % read RSTA5 (STATUS), clear latched power bits
+   2. status /\ 720 >< 0 ?      % 5PAGF/5DMAER/5PFAIL/5POWOF error paths
+   3. Scan execution queue from MAILINK, following LINK fields (via 5MBBANK)
+   4. CHN5STATUS per message     % dispatch on N5STA
+   5. DECOMESS on answers        % dispatch on STOPR (MOCALL -> MCHANDLE)
+   6. CALL XACT500; WT12         % give ND-500 next work, wait for next IRQ
    ```
 
 ### Message Buffer Structure in 5MPM
 
-Each ND-500 process has a **message buffer** in the 5MPM (5-port memory):
+Each ND-500 process has a **message** in shared memory. (The former layout here —
+"base 0x400 + N*0x100", PC_SAVED/ITMQUEUE fields — was invented and has been
+replaced by the verified layout.)
+
+**Verified message layout** (ND-100 halfword offsets, octal; symbol-table +
+carve-verified — see `SINTRAN\ND500\ND500-BUS-INTERFACE-REFERENCE.md` §6.2, and
+vendor ND-05.012.01 §13.1 for the 6-word header):
 
 ```
-Base address for process N:
-  0x400 + (N * 0x100)
-
-Example: Process 2
-  Message buffer at: 0x80000600
+Offset | Field  | Description
+-------|--------|-------------------------------------------------
+0      | LINK   | word: next message in chain (-1 = end)
+2      | N5STA  | status: 0 free, 1 MSGN500, 2 WAITING, 3 ANSWER, 4 5ERANSWER
+4      | X5CPU  | CPU number
+6      | MICFU  | micro function code (see reference 6.4)
+7      | N500A  | saved P register
+11     | STOPR  | stop reason (MOCALL/5FMOCALL/TRAPCODE/...)
+12     | NUMPA  | number of parameters
+13     | MCNO / FUNCV | monitor call number / function value
+16     | TRAPN  | trap number
+17-30  | trap record
+40+2k  | parameter ADDRESSES (16 slots)
+100+2k | parameter VALUES, 32-bit (16 slots)
+140    | ABUFA  | buffer pointer
 ```
 
-**Buffer Layout (32-bit words):**
-
-```
-Offset | Field      | Size    | Description
--------|------------|---------|----------------------------------
-+0x00  | PC_SAVED   | 4 bytes | Saved ND-500 PC
-+0x04  | R0_SAVED   | 4 bytes | Saved ND-500 R0
-+0x08  | R1_SAVED   | 4 bytes | Saved ND-500 R1
-...    | ...        | ...     | Other saved registers
-+0x18  | MICFU      | 2 bytes | Monitor function code
-+0x1A  | RESULT     | 2 bytes | Error code from ND-100
-+0x1C  | ITMQUEUE   | 2 bytes | Flag: 1=pending, 0=complete
-+0x1E  | PARAM1     | 4 bytes | First parameter (varies)
-+0x22  | PARAM2     | 4 bytes | Second parameter
-+0x26  | PARAM3     | 4 bytes | Third parameter
-...    | ...        | ...     | More parameters
-```
-
-**Example: DVIO_OUT message buffer:**
-
-```
-Offset | Field        | Value        | Meaning
--------|--------------|--------------|----------------------------
-+0x18  | MICFU        | 0x0001       | DVIO_OUT
-+0x1E  | DEVICE       | 0x0001       | Device 1 (terminal)
-+0x22  | BUFFER_ADDR  | 0x80001000   | ND-500 buffer address
-+0x26  | BYTE_COUNT   | 0x00000050   | 80 bytes (0x50)
-+0x1C  | ITMQUEUE     | 0x0001       | Call pending
-```
-
-**After ND-100 completes:**
-
-```
-Offset | Field        | Value        | Meaning
--------|--------------|--------------|----------------------------
-+0x1A  | RESULT       | 0x0000       | Success (error code 0)
-+0x1C  | ITMQUEUE     | 0x0000       | Call complete
-```
+Status lifecycle: 1 MSGN500 -> 2 WAITING (set by microcode at start of handling)
+-> 3 ANSWER or 4 5ERANSWER (set by microcode when finished). Vendor statement:
+ND-05.012.01 §13.1 ("Status of the block").
 
 ---
 
@@ -564,51 +517,42 @@ graph LR
     CARD3022 <-->|DMA| MPM
 ```
 
-### TAG Registers (Inter-CPU Communication)
+### TAG Registers (CORRECTED — register strobes, not inter-CPU messaging)
 
-The 3022/5015 interface uses **TAG registers** for signaling between CPUs:
+**The former "TAG Values" table (0x01 MON_CALL_REQUEST etc.) was fabricated and has
+been removed.** Both TAG registers are on the 5015 (ND-30.013.02 §3.12/3.13):
 
-**TAG-OUT (ND-500 → ND-100):**
-- Written by ND-500 trap handler
-- Read by ND-100 via IOX
+- **TAG-IN (ND-100 → 5015):** 4-bit strobe codes that clock/enable individual 5015
+  registers (DICLK1/2, DUCLK, WACLK, BRKCLK, TGCLK, CNTCLK, DIEN, DUEN, WAR, BRKR,
+  CNTR, RESBRK, DUNL, EOUTEN). Used by the control-store loader and test programs;
+  never by the runtime driver.
+- **TAG-OUT (5015 → 3022, driven by ND-500 microcode):** 3-bit codes commanding the
+  3022 — read/write MAR, read/write STATUS, read CONTROL, reset activate, and
+  read/write DATA **and ND-100 memory** (the microcode's message-fetch/answer DMA
+  path, also underlying the RIOM/WIOM instructions).
 
-**TAG-IN (ND-100 → ND-500):**
-- Written by ND-100 via IOX
-- Read by ND-500 trap handler
+**Real inter-CPU signaling:** ND-100 → ND-500 = activate (CONTROL bit 2, LCON5);
+ND-500 → ND-100 = STATUS "finished" (bit 3) + stop reason (bits 10-14) raising the
+level-12 interrupt when CONTROL bit 0 is set.
 
-**TAG Values:**
+### IOX Offsets for 3022 Interface (verified, OCTAL — see reference §3.2 for the
+four-mode decode; the former table here was wrong)
 
-| Value | Name | Direction | Meaning |
-|-------|------|-----------|---------|
-| 0x00 | IDLE | - | No communication |
-| 0x01 | MON_CALL_REQUEST | 500→100 | ND-500 needs monitor call |
-| 0x02 | OPERATION_COMPLETE | 100→500 | ND-100 finished operation |
-| 0x03 | PAGE_FAULT | 500→100 | ND-500 page fault |
-| 0x04 | ERROR | 100→500 | ND-100 error occurred |
-
-**Access via IOX (ND-100):**
-
-```assembly
-; ND-100 code to read TAG-IN
-IOXT    100,1          ; Device 100₈, offset 1 = TAG-IN
-LDA     T              ; Result in A register
-
-; ND-100 code to write TAG-OUT
-LDA     2              ; Value 2 = OPERATION_COMPLETE
-IOXT    100,2          ; Device 100₈, offset 2 = TAG-OUT
-```
-
-### IOX Offsets for 3022 Interface
-
-| Offset | Name | Direction | Purpose |
-|--------|------|-----------|---------|
-| 0 | STATUS | Read | Interface status bits |
-| 1 | TAG-IN | Read | TAG from ND-500 |
-| 2 | TAG-OUT | Write | TAG to ND-500 |
-| 3 | CONTROL | Write | Control register |
-| 4 | MAR-LOW | R/W | Memory Address Register (low) |
-| 5 | MAR-HIGH | R/W | Memory Address Register (high) |
-| 6 | DATA | R/W | Memory data transfer |
+| Offset (oct) | Mnemonic | Purpose (unlocked, not test mode) |
+|---|---|---|
+| 0 | RMAR5 | Read memory address register |
+| 1 | LMAR5 | Load memory address register |
+| 2 | RSTA5 | Read STATUS register |
+| 5 | LCON5 | Load CONTROL register (bit 2 = activate) |
+| 6 | MCLR5 | ND-500 master clear |
+| 7 | TERM5 | Terminate |
+| 10 | RTAG5 | Read TAG (readback) |
+| 11 | LTAG5/WTAG | Write 5015 TAG-IN strobe |
+| 13 | WDAT | Write DATAX |
+| 14 | SLOC5 | Set locked |
+| 15 | CLKD5 | Clock DATA (locked mode) |
+| 16 | UNLC5 | Release locked |
+| 17 | RETG5 | Return tag (bit 1 = stop bit) |
 
 ---
 
@@ -652,191 +596,77 @@ LDAA    [B+3]           ; Address of MSG
 LDWS    R2, #13         ; Length = 13
 
 ; Call DVIO library
-CALLG   DVIO            ; Call DVIO routine (segment 5)
+CALLG   DVIO            ; Call DVIO routine (ordinary intra-domain call)
 
 ; DVIO library code
 DVIO:
-    ; Get current process number
-    LDWS    W1, PROC_NUM
-    ; Calculate message buffer address
-    SHLWS   W1, #8          ; * 256
-    ADDWS   W1, #0x400      ; + base offset
-    LDWSA   W2, 0x80000000  ; 5MPM base
-    ADDWS   W2, W1          ; Message buffer address in W2
+    ; Nothing to marshal into shared memory. The library simply re-issues the
+    ; request as a monitor call: a CALLG whose target is in segment 31, with the
+    ; monitor call number as the offset and the arguments as the CALLG arg list.
+    CALLG   $0xf8000180, $4, dev, buf, len, err   ; <- traps to CALL_MON
 
-    ; Fill message buffer
-    LDWS    R3, #0x0001     ; MICFU = DVIO_OUT
-    STWS    [W2+3], R3      ; Store MICFU
-    STWS    [W2+14], R0     ; Device number
-    STAQ    [W2+15]         ; Buffer address (A/Q)
-    STWS    [W2+17], R2     ; Byte count
-
-    ; Set ITMQUEUE flag
-    LDWS    R3, #1
-    STWS    [W2+14], R3     ; ITMQUEUE = 1 (pending)
-
-    ; CRITICAL: Call segment 31 to trigger trap
-    CALLG   #0x1F000000     ; ← TRAPS HERE!
-
-    ; When execution resumes, R0 = error code
+    ; On resume, the function value written by the ND-100 (FUNCV) is the result.
     RET                      ; Return to user program
 ```
 
+> **CORRECTION 2026-07-20.** The body of `DVIO` above used to contain a dozen lines that
+> computed a message-buffer address as `5MPM base + 0x400 + process*0x100`, stored a
+> "MICFU = DVIO_OUT" and set an "ITMQUEUE" flag. None of that exists. There is no such
+> base-plus-index formula (a process's message is found by walking the LINK chain from
+> MAILINK), there is no ITMQUEUE field, and the library never writes the message at all.
+
 **What Happens:**
 
-1. CPU detects CALLG to segment 31
-2. Checks ProgramCapabilities[31] = 0xC000 (O bit set)
-3. Triggers trap instead of executing CALLG
-4. Trap handler takes over...
+1. CPU fetches a CALLG whose target is in segment 31
+2. The segment-31 capability carries `PC_IND|PC_OMC`
+3. That raises an instruction-fetch/protect trap instead of performing the call
+4. The trap decoder routes trap code 6 to `CALL_MON`, which builds the stop record
 
-**Trap Handler (ND-500):**
-
-```csharp
-public void HandleOtherCPUTrap(ND500CPU cpu, uint targetAddress)
-{
-    uint processNum = cpu.CurrentProcess;
-    uint messageAddr = 0x80000400 + (processNum * 0x100);
-
-    // Save CPU state to message buffer
-    _mpm.WriteDoubleWord(messageAddr + 0x00, cpu.PC);
-    _mpm.WriteDoubleWord(messageAddr + 0x04, cpu.Registers[0]);
-    // ... save other registers ...
-
-    // MICFU already written by library code
-    ushort micfu = _mpm.ReadWord(messageAddr + 0x18);
-    Console.WriteLine($"[TRAP] MICFU = 0x{micfu:X4}");
-
-    // Signal ND-100 via TAG register
-    _interface.SignalND100MonitorCall(processNum);
-
-    // Suspend ND-500 execution
-    cpu.IsWaiting = true;
-    Console.WriteLine($"[TRAP] Process {processNum} waiting for ND-100");
-}
-```
-
-**3022/5015 Interface:**
+**Corrected emulator pseudo-code** (the former version implemented the fabricated
+TAG protocol with invented message offsets — replaced 2026-07-20; the per-gap list
+against the real C# code is `SINTRAN\ND500\ND500-EMULATOR-DISCREPANCY-AUDIT.md`):
 
 ```csharp
-public void SignalND100MonitorCall(byte processNumber)
+// ND-500 microcode side: monitor-call stop
+public void HandleOtherMachineCall(ND500CPU cpu, uint targetAddress)
 {
-    // Write TAG-OUT register
-    _tagOut = 0x01;  // MON_CALL_REQUEST
+    // Message address comes from the process's own message (queue LINK chain),
+    // NOT from a computed "base + N*0x100" formula.
+    var msg = CurrentProcessMessage();
 
-    Console.WriteLine($"[5015] Signaling ND-100 for process {processNumber}");
+    msg.N500A = cpu.P;                  // saved P (halfword offset 7)
+    msg.STOPR = STOPR_MOCALL;           // stop reason (offset 0o11)
+    msg.MCNO  = targetAddress & 0x07FFFFFF; // e.g. 0x180 = 600 octal
+    // parameters into ADDRESS slots (0o40+2k) / VALUE slots (0o100+2k)
 
-    // Trigger ND-100 interrupt level 12
-    _nd100.QueueInterrupt(12, processNumber);
-}
-```
-
-**ND-100 Interrupt Handler:**
-
-```csharp
-public void HandleInterrupt(ND100InterruptData data)
-{
-    byte processNum = data.ProcessNumber;
-    uint messageAddr = 0x00040400 + (processNum * 0x100);  // ND-100 sees 5MPM here
-
-    // Read TAG-IN via IOX
-    ushort tag = _interface.ReadTAG_IN();
-    if (tag != 0x01)  // MON_CALL_REQUEST
-    {
-        Console.WriteLine($"[INT12] Unexpected TAG: 0x{tag:X4}");
-        return;
-    }
-
-    // Read MICFU from message buffer
-    ushort micfu = _mpm.ReadWord(messageAddr + 0x18);
-
-    Console.WriteLine($"[INT12] MICFU = 0x{micfu:X4}");
-
-    // Dispatch to handler
-    switch (micfu)
-    {
-        case 0x0001:  // DVIO_OUT
-            HandleDVIO_OUT(messageAddr);
-            break;
-        // ... other cases ...
-    }
+    msg.N5STA = N5STA_ANSWER;           // 3 = answer to ND-100
+    Status |= STATUS_FINISHED;          // bit 3, plus stop reason in bits 10-14
+    if ((Control & CONTROL_INTENABLE) != 0)
+        _nd100.RaiseInterrupt(level: 12, ident: ThumbwheelIdent); // 16 octal
+    EnterIdleLoop();                    // wait for activate/terminate
 }
 
-private void HandleDVIO_OUT(uint messageAddr)
+// ND-100 side: level-12 driver (5STDRIV shape)
+public void HandleLevel12()
 {
-    // Read parameters from message buffer
-    ushort device = _mpm.ReadWord(messageAddr + 0x1E);
-    uint bufferAddr = _mpm.ReadDoubleWord(messageAddr + 0x22);
-    ushort byteCount = _mpm.ReadWord(messageAddr + 0x26);
+    var status = ReadIOX(RSTA5);        // the real "what happened" channel
+    if ((status & (PAGF|DMAER|PFAIL|POWOF)) != 0) { HandleErrors(status); return; }
 
-    Console.WriteLine($"[DVIO_OUT] Device={device}, Buffer=0x{bufferAddr:X8}, Bytes={byteCount}");
+    for (var m = Mailink; m != -1; m = m.LINK)      // walk the message queue
+        if (m.N5STA == N5STA_ANSWER && m.STOPR == STOPR_MOCALL)
+            MCHandle(m);                             // dispatch on m.MCNO
 
-    // Read data from ND-500 buffer
-    byte[] data = new byte[byteCount];
-    for (int i = 0; i < byteCount; i++)
-    {
-        data[i] = _mpm.ReadByte(bufferAddr + (uint)i);
-    }
-
-    // Write to actual device (simulated terminal)
-    _deviceManager.Write(device, data);
-
-    // Write success result
-    _mpm.WriteWord(messageAddr + 0x1A, 0);  // Error code = 0 (success)
-
-    // Clear ITMQUEUE flag
-    _mpm.WriteWord(messageAddr + 0x1C, 0);
-
-    // Signal completion
-    _interface.SignalOperationComplete();
-}
-```
-
-**Interface Signals Completion:**
-
-```csharp
-public void SignalOperationComplete()
-{
-    // Write TAG-IN register
-    _tagIn = 0x02;  // OPERATION_COMPLETE
-
-    Console.WriteLine($"[3022] Signaling operation complete");
-
-    // Wake up ND-500 process
-    _trapHandler.ResumeAfterMonitorCall(_nd500.CurrentProcess);
-}
-```
-
-**Trap Handler Resumes ND-500:**
-
-```csharp
-public void ResumeAfterMonitorCall(byte processNumber)
-{
-    uint messageAddr = 0x80000400 + (processNumber * 0x100);
-
-    // Restore CPU state
-    _nd500.PC = _mpm.ReadDoubleWord(messageAddr + 0x00);
-    _nd500.Registers[0] = _mpm.ReadDoubleWord(messageAddr + 0x04);
-    // ... restore other registers ...
-
-    // Read error code from message buffer
-    ushort errorCode = _mpm.ReadWord(messageAddr + 0x1A);
-    _nd500.Registers[0] = errorCode;  // Return in R0
-
-    // Advance PC past CALLG instruction (4 bytes)
-    _nd500.PC += 4;
-
-    // Resume execution
-    _nd500.IsWaiting = false;
-
-    Console.WriteLine($"[TRAP] Process {processNumber} resumed at PC=0x{_nd500.PC:X8}");
+    Xact500();                          // give ND-500 next work: set message
+                                        // N5STA := MSGN500, MICFU := 3MONCO (24B),
+                                        // then activate via LCON5 (CONTROL bit 2)
 }
 ```
 
 **ND-500 Resumes:**
 
 ```assembly
-    CALLG   #0x1F000000     ; ← Returns here with R0 = error code
-    RET                      ; Return to user program
+    CALLG   $0xf8000180, $4, ...   ; <- resumes after this, result = FUNCV
+    RET                            ; Return to user program
 ```
 
 **User Program Gets Result:**
@@ -858,34 +688,37 @@ HELLO, WORLD!
 
 ### Key Takeaways
 
-1. **Segment 31 is NOT executed** - it triggers a trap when the O bit is set
-2. **The "Other CPU" bit** (bit 14 in capabilities) is what makes the trap happen
-3. **MICFU codes** replace MON instruction numbers, allowing 16-bit function codes
-4. **Message buffer in 5MPM** holds all parameters and results
-5. **TAG registers** coordinate between ND-100 and ND-500
-6. **ND-500 suspends** during monitor call, waiting for ND-100 to complete
+1. **Segment 31 is NOT executed** - the capability carries `PC_IND|PC_OMC`, so a CALLG into it traps
+2. **The trap decoder** routes trap code 6 to `CALL_MON`; everything from there on is microcode
+3. **MCNO carries the monitor call number** (the segment-31 offset). **MICFU is the opposite direction** — an ND-100 command to the ND-500, e.g. `3MONCO` = 24 octal, "restart after monitor call"
+4. **The message in 5MPM** holds the stop record, the parameters and the result (FUNCV)
+5. **STATUS "finished" + level-12 interrupt** (500→100) and **activate via CONTROL bit 2** (100→500) coordinate the CPUs — TAG registers are register strobes only
+6. **The ND-500 sits in its IDLE loop** during the call: "nothing but an activate or a terminate from the ND-100 can cause the micro program to leave the IDLE loop"
 
 ### To Find MON Call Implementations
 
 **On ND-500:**
 - Check XMSG/MONITOR domain files
 - Disassemble from domain load address
-- Look for CALLG #0x1F000000 instructions
+- Look for `callg` instructions whose target is in segment 31 (`0xf8……`)
 
 **On ND-100:**
-- Check SINTRAN symbol table (INT12-HANDLER)
-- Trace interrupt vector at address 0x000C
-- Disassemble from interrupt handler address
+- Resolve `5STDRIV` / `DECOMESS` / `MCHANDLE` in the symbol table of the image you carved
+- Follow the level-12 **ident** (16 octal at thumbwheel 0), not a low-memory vector
+- Disassemble from `5STDRIV`
 
 **In 5MPM:**
-- Message buffer at 0x400 + (process * 0x100)
-- MICFU at offset +0x18 (word 3)
-- Parameters at offsets +0x1E onwards
+- Find a process's message by walking the LINK chain from MAILINK — there is no
+  "base + process*0x100" formula
+- Use the verified halfword offsets above: N5STA +2, MICFU +6, N500A +7, STOPR +11,
+  NUMPA +12, MCNO/FUNCV +13, parameter addresses +40+2k, parameter values +100+2k (octal)
 
 ---
 
-**Document Version:** 1.0
-**Date:** 2025-11-18
+**Document Version:** 2.0 (body de-fabricated 2026-07-20 — TAG protocol, MICFU code table,
+message-buffer address formula and the code samples built on them replaced with the
+verified model; see the correction header at the top of this file)
+**Date:** 2025-11-18, revised 2026-07-20
 **Purpose:** Technical documentation of ND-500 to ND-100 monitor call architecture
 
 **Related Documents:**

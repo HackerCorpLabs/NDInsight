@@ -37,7 +37,29 @@ interpretation/inference, [C] = contradiction, [UNCERTAIN] = explicitly open.
    Microcode side: every ACCP-touching routine in the ND-5800 control store
    (ACCP_READ/ACCP_WRITE/TRAP_OMESS, OCB_DEC_K kick dispatch), AFLAG
    handshake bits, TRAP_OCBM report formats.
-6. **[SINTRAN-OCTOBUS-MESSAGE-CATALOG.md](SINTRAN-OCTOBUS-MESSAGE-CATALOG.md)** -
+6. **[OCTOBUS-DEVICE-CONTROLLERS-ANALYSIS-AND-EMULATION-PLAN-2026-07-19.md](OCTOBUS-DEVICE-CONTROLLERS-ANALYSIS-AND-EMULATION-PLAN-2026-07-19.md)** -
+   ALL octobus device types (station map, DOMINO DIOC module table, MFbus
+   controllers), how each CPU (ND-100 / ND-5000 / DIOC) talks to devices
+   (two-bus model: octobus signals, MFbus/MPM carries data; NUCLEUS
+   kick-table model; PROMAN boot), the RetroCore coupling analysis, the
+   reusable-octobus-objects design (OctobusFrame / OmdDispatcher /
+   MultibyteAssembler / OctobusDeviceStation / ISharedMemoryWindow) and
+   the phased controller-emulation implementation plan. Critically
+   reviewed 2026-07-20: all phases carry ordered TODO task lists with
+   verification gates.
+7. **[OCTOBUS-PLAN-CRITICAL-REVIEW-2026-07-20.md](OCTOBUS-PLAN-CRITICAL-REVIEW-2026-07-20.md)** -
+   The 2026-07-20 three-angle critical review of item 6 (RetroCore code /
+   SINTRAN carves / hardware manuals): full findings with evidence
+   (DEV-n / SIN-Fn / HW-An IDs referenced from the plan), incl. the
+   kick-1-vs-kick-5 correction, the MF error-record wire direction, the
+   361B=0xF1 emergency-code analysis, and the multi-CPU hardwiring list.
+8. **[SCSI-DIOC-OCTOBUS-EMULATION-PLAN-2026-07-20.md](SCSI-DIOC-OCTOBUS-EMULATION-PLAN-2026-07-20.md)** -
+   The SCSI controller (DOMINO SCSI DIOC, module 21B, station 13B) plan:
+   carve-first sequencing (CONKI kick number, DOMDF initializer, segment
+   105 interior), NucleusClient/BdioEngine architecture reusing the
+   byte-verified BDIO/NUCLEUS carves, and phases S0-S5 to full SINTRAN
+   disk I/O against RetroCore SCSIHDD.
+9. **[SINTRAN-OCTOBUS-MESSAGE-CATALOG.md](SINTRAN-OCTOBUS-MESSAGE-CATALOG.md)** -
    The OS side: every octobus message SINTRAN sends/expects (kick call
    sites, CMSYSPAR/CMCPURES multibyte builders, 5OMBREAD receive dispatch,
    CH5CPUPRESENT/OCSTART/XX5CONOMD startup ladders, MF-controller error

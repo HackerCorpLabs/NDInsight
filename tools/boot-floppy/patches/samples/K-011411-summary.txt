@@ -1,0 +1,29 @@
+file            : /mnt/c/Users/ronny/AppData/Local/Temp/claude/E--Dev-Ronny-TSS/99a76ebf-5679-4047-ab73-913fc5c72446/scratchpad/patchwork/K011411/PATCHES.PATC
+lines           : 10456
+patch records   : 297
+open-location deposits : 1994
+sequential deposits    : 4411
+unparsed lines  : 173  ()KILL operand lists, stray text; see "unparsed_lines" in the JSON)
+deposits with recorded OLD value : 1276
+targets (coreload / image file):
+   S3SMPIT           1878
+   S3SRPIT           1337
+   S3SSM5             931
+   S3OPCSV            601
+   S3SAVE             522
+   S3FSSV             490
+   S3SRTC             141
+   S3S5PIT            120
+   S3SDPIT            103
+   62                  96
+   13                  55
+   12                  41
+   S3SRTD              22
+   S3COM               22
+   S3MEMTF             20
+   63                  16
+   S3SERRP              4
+   S3IRPIT              2
+   S3RPIT               2
+   S3ISGT               1
+   S3SSGT               1

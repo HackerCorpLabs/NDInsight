@@ -82,8 +82,36 @@ call with identical args" is a trace/log routine, not a fast-path.
 
 ---
 
+## Live execution status (2026-07-20)
+
+This swapper now **actually executes** on the RetroCore functional `CpuND500` under live SINTRAN L,
+which turned several parts of this analysis into live-verified facts:
+
+- **Link base confirmed:** the disassembly base `0x08000000` is real - the swapper runs in **logical
+  segment 1**, with code and data in the SAME segment separated by the I/D split (program capability
+  -> PSEG, data capability -> DSEG). SINTRAN itself places the executable at MPM physical `0x06F800`,
+  byte-for-byte identical to `SWAPPER-K01.PSEG`.
+- **Entry sequence confirmed instruction-for-instruction:** `init $1000441124` = `0x08024254` (the
+  stack bottom in section 5.1) and `call $1000100645` = `0x080081A5` both matched live traps exactly.
+- **The RIOM intake is where it currently stops:** `1000101356: h riom $1000440264,$1000440274,
+  $1000440074+` (= `0x240B4`/`0x240BC`/`0x2408C`) writes to address ~0 because **the DSEG content is
+  never loaded** - `0x24800` stays zero although the data page table reserves 107 pages
+  (`0x35800` = 219,136 bytes vs `SWAPPER-K01.DSEG` = 218,117). The swapper is running against an
+  empty data segment. How DSEG content is meant to be delivered is the open question.
+- **Retired prior:** "the swapper is control-store microcode" was wrong. Microcode is only what
+  "> Loading Control Store" puts in the CPU's control storage; this swapper is ordinary ND-500
+  executable code.
+
+Details: [`../ND500-D4-RUN-BLOCKER-FINDING-2026-07-19.md`](../ND500-D4-RUN-BLOCKER-FINDING-2026-07-19.md)
+sections 12d-12j; status of record [`../ND500-STATUS-AND-INDEX.md`](../ND500-STATUS-AND-INDEX.md)
+section 0g.
+
+---
+
 ## Related
 
+- `SINTRAN/ND500/ND500-SWAPPER-LOADING-MECHANISM.md` - **how SINTRAN loads the swapper (INZ500,
+  MSINIT, 5SWRT)** - the first place to look for the missing DSEG-delivery step.
 - `SINTRAN/ND500/ND500-SWAPPER-ANALYSIS.md` - swapper FIFO/queue mechanics from the ND-100 side.
 - `SINTRAN/ND500/ND500-SWAPPER-LOADING-MECHANISM.md` - how SINTRAN loads the swapper (INZ500, MSINIT, 5SWRT).
 - `SINTRAN/ND500/nd-500-mon/` - the ND-100-side ND-500/5000 monitor (the other end of the MON 377B gate and the MON 60 front door).

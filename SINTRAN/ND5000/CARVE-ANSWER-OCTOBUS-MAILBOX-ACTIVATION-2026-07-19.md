@@ -294,3 +294,105 @@ bring-up proceeds past the point it currently aborts.
 - **[OPEN]** `SAMSON_CPU` 0-vs-1 basis in the B30 image (pseudocode notes constant 0) vs the SINTRAN layout
   (CPU0/station 70B = block slot 1). The SINTRAN side is unambiguous and the discovery hook reads the true
   address, so this does not affect the emulator.
+
+---
+
+## Memory-config: the configurable mailbox/MPM base (follow-up 2026-07-19)
+
+**Headline:** there are **two distinct bases**, and only one is operator-configurable:
+
+1. **The MPM-5 WINDOW base** — where ND-500 physical address 0 lands in ND-100 physical memory. This IS
+   operator-configurable, and it is exactly what `0x420000` represents. Default matches; override supported.
+2. **The MAILBOX base inside that window** (`5MBBANK`/`X500DF`) — **NOT configured; dynamically allocated**
+   at ND-500 init. This is why it is never at window offset 0 and why the emulator can't hardcode it.
+
+The `N500: MEMORY-CONFIGURATION` map Ronny saw shows base (1), not base (2).
+
+### 1. The DISPLAY / DEFINE commands (Q-follow-up 1 & 2)
+
+| nd-500-mon command | MON60 subfn | Does | Cite |
+|---|---|---|---|
+| `DEFINE-MEMORY-CONFIGURATION` | `MEMDEF = 40B` | operator gives **"ND-100 page for ND-500 phys addr 0"** (+ memory-parts table); sets `ADRZERO` | nd-500-mon-j04.prog.md:1357 (`014625`); 5P-P2-MON60.NPL:197, :529-590 (`026504`-`026744`) `[V]` |
+| `LIST-MEMORY-CONFIGURATION` | `LIMEM = 60B` | copies the **74B-word (60 dec) memory-config table** (Local vs MPM-5 parts + ADRZERO) to the user — the "MEMORY MAP" display | 5P-P2-MON60.NPL:213, :2117-2119 (`035445 FLIMEM`) `[V]` |
+| `MEMORY-CONFIGURATION` | (display) | prints the same map | nd-500-mon-j04.prog.md:1358 (`014676`) `[V]` |
+
+**`ADRZERO` is the ND-100-visible cell that holds the window base.** `CHMEMDEF` stores the command's
+parameter into it: `5D12=:ADRZERO` (5P-P2-MON60.NPL:587, `026733`). `[V]` The parameter's meaning is
+literally *"ND-100 page for ND-500 phys addr 0"* (nd-500-mon-j04.prog.md:1357). `[V]`
+
+### 2. The OVERRIDE and its ND-100-visible cell
+
+- **Override mechanism:** `DEFINE-MEMORY-CONFIGURATION` (`MEMDEF 40B`). It (re)defines the ND-100 page for
+  ND-500 address 0 and the memory-parts table (which physical parts are Local ND-100 RAM vs MPM-5 shared),
+  guarded by `EMDFCOM 2033B` "DEFINE-MEMORY-CONFIG. COMMAND IS REQUIRED" (5P-P2-MON60.NPL:67). `[V]`
+- **The cell:** `ADRZERO` (symbol `ADRZE = 000060`, L07 SYMBOL-1). It is written from `5D12`
+  (`5D12 = 000041`, the DEFM parameter). `[V symbol values]` Its exact **flat** ND-100 address is
+  `[OPEN]` — `ADRZE=000060` is a field displacement; whether it resolves off `N500DF` (`N500D=051767B`)
+  → `~052047B` or off another base is not byte-verified here.
+- **The mailbox base is NOT in this command's parameters.** There is no operator knob for `5FPMAILBOX`/
+  `5MBBANK`; the memory-config command only pins the window/parts. `[V — no such parameter in MEMDEF]`
+
+### 3. The concrete configured value on this SINTRAN-L system
+
+**Window base (configurable, base 1)** — from the live `N500: MEM-CONF` (skill live-map, 2026-07-16):
+`ND-500 address zero = ND-100 page 004100B = ND-100 word 010200000B = 0x210000 word = byte 0x420000`. `[V live]`
+So `ADRZERO = page 004100B`, and `page 004100B << 10 (×2000B words) = 0x210000 word = 0x420000 byte`. **The
+emulator's `0x420000` window base is correct for the default config.** If an operator ever issues a
+different `DEFINE-MEMORY-CONFIGURATION`, the emulator's window base must follow `ADRZERO`.
+
+**Mailbox base (allocated, base 2)** — `5FPMAILBOX` is allocated at ND-500 init by `5GBUFF`, NOT configured:
+```
+INZ500 (027051-027104):
+  ... compute number of mailbox pages -> 5NPMAILBOX      (027053-027076)
+  CALL 5GBUFF                                            (027102)  % allocate from ND-500 memory pool
+  A =: 5FPMAILBOX                                        (027104)  % first page of the mailbox buffer
+```
+`[V]` Then `XMSINIT` derives `5MBBANK = 5FPMAILBOX << 10` (RP-P2-N500.NPL:737, `131133`) and the header
+offset `X500DF` within it. `[V]` So the mailbox header's ND-100 physical byte address =
+`(5MBBANK + X500DF) × 2`, and its **emulator window offset = that − 0x420000** — a value fixed only after
+`INZ500`/`XMSINIT` run, varying with the allocator, **not** derivable from the memory-config command.
+
+Candidate ND-100 cells the emulator can read once valid (post-INZ500), **grade `[I]`, verify at runtime:**
+- `5MBBANK` cell: symbol `5MBBA = 004654B` (L07 SYMBOL-1) — holds the page-aligned bank word-base. `[I]`
+- `5FPMAILBOX` cell: symbol `5FPMA = 111102B`, `5NPMAILBOX = 111103B` (L07 SYMBOL-2). `[I]`
+- `X500DF` pointer cell: `051734B` (L07; prior carve, resolved). `[NPL-V arithmetic]`
+- The SYMBOL-1 (`004654`) vs SYMBOL-2 (`111102`) values sit in different link namespaces; **which is the
+  flat resident address for this carve is `[OPEN]`** — validate by reading and checking the value is
+  page-aligned and inside `[0x420000, 0xC1FFFF]`.
+
+### 4. Best emulator strategy (Q-follow-up 4)
+
+**Split the problem by base:**
+
+- **Window base (base 1): CONFIGURE it (option b), and read `ADRZERO` only to support overrides.** The
+  emulator already uses `0x420000`, which equals the live `ADRZERO` (page 004100B). Keep it configurable;
+  if you want to honor operator `DEFINE-MEMORY-CONFIGURATION`, read `ADRZERO` and set the window base to
+  `ADRZERO_page << 11` bytes. For the current default, nothing changes. `[V]`
+
+- **Mailbox base (base 2): SELF-DISCOVER (option c) as primary; cell-read (option a) as a cross-check.**
+  Because `5FPMAILBOX` is allocator-dependent and the cells are only valid after `INZ500`/`XMSINIT`, the
+  most faithful + robust trigger is the `X5ACT` `0xFFFF→0x0000` write-hook (see §Q3-A): it needs no timing
+  assumption and no namespace resolution, and the same hook both locates and triggers the servicer. Use the
+  cell-read (`5MBBANK` @ candidate `004654B` + `X500DF` @ `051734B`) as an offline sanity check that your
+  discovered header matches `(5MBBANK + X500DF) × 2 − windowBase`. `[I / recommendation]`
+
+**Net:** the "configurable base" Ronny is pointing at is the **MPM-5 window base** (`ADRZERO`, live
+`004100B` = `0x420000`), set/overridden by `DEFINE-MEMORY-CONFIGURATION` and shown by
+`LIST-MEMORY-CONFIGURATION`. Match the emulator window to it (default already correct). The **mailbox
+offset inside the window is still allocated, not configured**, so the servicer must obtain it by reading
+`5MBBANK`+`X500DF` after init or (preferred) self-discovering via the `X5ACT` write — the memory-config
+command does not carry it.
+
+### Evidence index (this section)
+
+| Claim | Where | Grade |
+|---|---|---|
+| `DEFINE-MEMORY-CONFIGURATION` param = "ND-100 page for ND-500 phys addr 0" | nd-500-mon-j04.prog.md:1357 (`014625`) | V |
+| `MEMDEF=40B`, `LIMEM=60B` subfn numbers | 5P-P2-MON60.NPL:197, :213 | V |
+| `5D12 =: ADRZERO` (window-base cell written from DEFM param) | 5P-P2-MON60.NPL:587 (`026733`) | V |
+| `LIST-MEMORY-CONFIGURATION` copies 74B-word map (`FLIMEM`) | 5P-P2-MON60.NPL:2117-2119 (`035445`) | V |
+| `5FPMAILBOX` allocated by `5GBUFF` at init (not configured) | 5P-P2-MON60.NPL:027051-027104 | V |
+| `5MBBANK = 5FPMAILBOX << 10` | RP-P2-N500.NPL:737 (`131133`) | NPL-V |
+| Live `ADRZERO` = page `004100B` = word `010200000B` = byte `0x420000` | skill live-map (`N500: MEM-CONF`, 2026-07-16) | V-live |
+| Symbol values `ADRZE=000060`, `5MBBA=004654`, `5FPMA=111102`, `N500D=051767`, `X500D=177745` | L07 SYMBOL-1/SYMBOL-2 | V(symbol) |
+| Flat resident address of `5MBBANK`/`5FPMAILBOX`/`ADRZERO` cells | — | OPEN |

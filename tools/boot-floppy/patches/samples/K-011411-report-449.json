@@ -1,0 +1,319 @@
+[
+ {
+  "system": "SIN-K",
+  "report": 449,
+  "revision": null,
+  "program": null,
+  "reason": null,
+  "text": [],
+  "line": 15,
+  "context": {
+   "program": "DMAC",
+   "image_file": null,
+   "coreload": "S3SSM5",
+   "guard": "8N500 WM500"
+  },
+  "directives": [
+   {
+    "line": 17,
+    "cmd": "RESSM",
+    "args": ""
+   },
+   {
+    "line": 19,
+    "cmd": "KILL",
+    "args": "XX YY XX"
+   },
+   {
+    "line": 21,
+    "cmd": "CLOAD",
+    "args": "S3SSM5"
+   },
+   {
+    "line": 37,
+    "cmd": "FILL",
+    "args": ""
+   },
+   {
+    "line": 38,
+    "cmd": "KILL",
+    "args": "UT"
+   },
+   {
+    "line": 39,
+    "cmd": "KILL",
+    "args": "SG62F; SG62F=*; SG62F:"
+   }
+  ],
+  "symbols": [
+   {
+    "line": 18,
+    "text": "XX=4000; YY=200"
+   }
+  ],
+  "deposits": [
+   {
+    "line": 22,
+    "address_expr": "OPSYD+27",
+    "new_expr": "JMP I *+1",
+    "old_octal": "142065",
+    "comment": "OLD: 142065",
+    "context": {
+     "program": "DMAC",
+     "image_file": null,
+     "coreload": "S3SSM5",
+     "guard": "8N500 WM500"
+    },
+    "raw": "OPSYD+27/ JMP I *+1                % OLD: 142065",
+    "kind": "open"
+   },
+   {
+    "line": 23,
+    "address_expr": "*",
+    "new_expr": "SG62F",
+    "old_octal": "124004",
+    "comment": "OLD: 124004",
+    "context": {
+     "program": "DMAC",
+     "image_file": null,
+     "coreload": "S3SSM5",
+     "guard": "8N500 WM500"
+    },
+    "raw": "*/ SG62F                    % OLD: 124004",
+    "kind": "open"
+   },
+   {
+    "line": 24,
+    "address_expr": "SG62F",
+    "new_expr": "SKP IF DA UEQ ST",
+    "old_octal": null,
+    "comment": null,
+    "context": {
+     "program": "DMAC",
+     "image_file": null,
+     "coreload": "S3SSM5",
+     "guard": "8N500 WM500"
+    },
+    "raw": "SG62F/  SKP IF DA UEQ ST",
+    "kind": "open"
+   },
+   {
+    "line": 25,
+    "kind": "sequential",
+    "address_expr": "SG62F+1",
+    "base_expr": "SG62F",
+    "word_offset": 1,
+    "label": null,
+    "new_expr": "JMP I (OPSYD+275",
+    "old_octal": null,
+    "comment": null,
+    "context": {
+     "program": "DMAC",
+     "image_file": null,
+     "coreload": "S3SSM5",
+     "guard": "8N500 WM500"
+    },
+    "raw": "JMP I (OPSYD+275"
+   },
+   {
+    "line": 26,
+    "kind": "sequential",
+    "address_expr": "SG62F+2",
+    "base_expr": "SG62F",
+    "word_offset": 2,
+    "label": "LDA",
+    "new_expr": "B -200",
+    "old_octal": null,
+    "comment": "CFLAG",
+    "context": {
+     "program": "DMAC",
+     "image_file": null,
+     "coreload": "S3SSM5",
+     "guard": "8N500 WM500"
+    },
+    "raw": "LDA ,B -200                % CFLAG"
+   },
+   {
+    "line": 27,
+    "kind": "sequential",
+    "address_expr": "SG62F+3",
+    "base_expr": "SG62F",
+    "word_offset": 3,
+    "label": null,
+    "new_expr": "SAT 1",
+    "old_octal": null,
+    "comment": null,
+    "context": {
+     "program": "DMAC",
+     "image_file": null,
+     "coreload": "S3SSM5",
+     "guard": "8N500 WM500"
+    },
+    "raw": "SAT 1"
+   },
+   {
+    "line": 28,
+    "kind": "sequential",
+    "address_expr": "SG62F+4",
+    "base_expr": "SG62F",
+    "word_offset": 4,
+    "label": null,
+    "new_expr": "SKP IF DA EQL ST",
+    "old_octal": null,
+    "comment": null,
+    "context": {
+     "program": "DMAC",
+     "image_file": null,
+     "coreload": "S3SSM5",
+     "guard": "8N500 WM500"
+    },
+    "raw": "SKP IF DA EQL ST"
+   },
+   {
+    "line": 29,
+    "kind": "sequential",
+    "address_expr": "SG62F+5",
+    "base_expr": "SG62F",
+    "word_offset": 5,
+    "label": null,
+    "new_expr": "JMP UT",
+    "old_octal": null,
+    "comment": null,
+    "context": {
+     "program": "DMAC",
+     "image_file": null,
+     "coreload": "S3SSM5",
+     "guard": "8N500 WM500"
+    },
+    "raw": "JMP UT"
+   },
+   {
+    "line": 30,
+    "kind": "sequential",
+    "address_expr": "SG62F+6",
+    "base_expr": "SG62F",
+    "word_offset": 6,
+    "label": "LDA",
+    "new_expr": "X SYDST",
+    "old_octal": null,
+    "comment": null,
+    "context": {
+     "program": "DMAC",
+     "image_file": null,
+     "coreload": "S3SSM5",
+     "guard": "8N500 WM500"
+    },
+    "raw": "LDA ,X SYDST"
+   },
+   {
+    "line": 31,
+    "kind": "sequential",
+    "address_expr": "SG62F+7",
+    "base_expr": "SG62F",
+    "word_offset": 7,
+    "label": null,
+    "new_expr": "BSKP ONE 0 DA",
+    "old_octal": null,
+    "comment": "5SINUSE",
+    "context": {
+     "program": "DMAC",
+     "image_file": null,
+     "coreload": "S3SSM5",
+     "guard": "8N500 WM500"
+    },
+    "raw": "BSKP ONE 0 DA              % 5SINUSE"
+   },
+   {
+    "line": 32,
+    "kind": "sequential",
+    "address_expr": "SG62F+8",
+    "base_expr": "SG62F",
+    "word_offset": 8,
+    "label": null,
+    "new_expr": "JMP I (OPSYD+35",
+    "old_octal": null,
+    "comment": null,
+    "context": {
+     "program": "DMAC",
+     "image_file": null,
+     "coreload": "S3SSM5",
+     "guard": "8N500 WM500"
+    },
+    "raw": "JMP I (OPSYD+35"
+   },
+   {
+    "line": 33,
+    "kind": "sequential",
+    "address_expr": "SG62F+9",
+    "base_expr": "SG62F",
+    "word_offset": 9,
+    "label": null,
+    "new_expr": "BSKP ZRO 20 DA",
+    "old_octal": null,
+    "comment": "5SINIT",
+    "context": {
+     "program": "DMAC",
+     "image_file": null,
+     "coreload": "S3SSM5",
+     "guard": "8N500 WM500"
+    },
+    "raw": "BSKP ZRO 20 DA             % 5SINIT"
+   },
+   {
+    "line": 34,
+    "kind": "sequential",
+    "address_expr": "SG62F+10",
+    "base_expr": "SG62F",
+    "word_offset": 10,
+    "label": null,
+    "new_expr": "JMP I (OPSYD+275",
+    "old_octal": null,
+    "comment": null,
+    "context": {
+     "program": "DMAC",
+     "image_file": null,
+     "coreload": "S3SSM5",
+     "guard": "8N500 WM500"
+    },
+    "raw": "JMP I (OPSYD+275"
+   },
+   {
+    "line": 35,
+    "kind": "sequential",
+    "address_expr": "SG62F+11",
+    "base_expr": "SG62F",
+    "word_offset": 11,
+    "label": "UT",
+    "new_expr": "LDA ,X SYDST",
+    "old_octal": null,
+    "comment": null,
+    "context": {
+     "program": "DMAC",
+     "image_file": null,
+     "coreload": "S3SSM5",
+     "guard": "8N500 WM500"
+    },
+    "raw": "UT,     LDA ,X SYDST"
+   },
+   {
+    "line": 36,
+    "kind": "sequential",
+    "address_expr": "SG62F+12",
+    "base_expr": "SG62F",
+    "word_offset": 12,
+    "label": null,
+    "new_expr": "JMP I (OPSYD+35",
+    "old_octal": null,
+    "comment": null,
+    "context": {
+     "program": "DMAC",
+     "image_file": null,
+     "coreload": "S3SSM5",
+     "guard": "8N500 WM500"
+    },
+    "raw": "JMP I (OPSYD+35"
+   }
+  ],
+  "unparsed_lines": []
+ }
+]

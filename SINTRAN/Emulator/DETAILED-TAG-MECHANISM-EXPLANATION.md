@@ -1,5 +1,25 @@
 # DETAILED EXPLANATION: What "TAG-OUT/TAG-IN Does the Heavy Lifting" Means
 
+> ## ⚠ DEPRECATED 2026-07-20 — THIS ENTIRE DOCUMENT DESCRIBES A FABRICATED PROTOCOL
+>
+> The "high-level TAG mechanism" explained below (TAG codes as message types:
+> monitor-call request, operation complete, DMA read/write requests, etc.) **does not
+> exist in the real hardware**. It was an emulator invention, disproven 2026-07-08
+> against ND-30.013.02 (TMP) and the SINTRAN NPL sources. In reality:
+>
+> - TAG-IN/TAG-OUT are **4-bit/3-bit register-level strobes** between the 3022 and
+>   5015, used only by the microcode (DMA via TAG-OUT codes 6/7), the control-store
+>   loader and the test programs. The runtime SINTRAN driver never touches them.
+> - Real signaling: ND-100→ND-500 = **activate** (CONTROL bit 2, LCON5);
+>   ND-500→ND-100 = **STATUS "finished" + stop reason → level-12 interrupt**.
+> - Monitor calls travel in the 5MPM **message** (N5STA / STOPR / MCNO fields).
+>
+> **Do not implement anything from this file.** Authoritative replacement:
+> `E:\Dev\Ronny\NDInsight\SINTRAN\ND500\ND500-BUS-INTERFACE-REFERENCE.md`
+> (esp. §10.3, and §14 for what a correct emulation must model). Gap list against
+> the C# code: `E:\Dev\Ronny\NDInsight\SINTRAN\ND500\ND500-EMULATOR-DISCREPANCY-AUDIT.md`.
+> Kept only as a record of the poisoned prior.
+
 ## Overview
 
 When I said **"Your existing TAG-OUT/TAG-IN mechanism already does most of the heavy lifting"**, here's EXACTLY what I meant:

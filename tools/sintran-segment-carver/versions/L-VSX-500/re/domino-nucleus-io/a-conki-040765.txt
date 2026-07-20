@@ -1,0 +1,209 @@
+CONKI @ 040765 - full annotated listing + callers + receive-side consumers
+Segment: 026-S3IMPIT.bin (= 017-S3SMPIT, byte-identical), load base 032000B
+(nd100-dis -a -o -b 13312 on byte-swapped image). Byte offset in file =
+(addr - 032000B) * 2, big-endian. Symbols: SYMBOL-1-LIST (L07) unless noted.
+Every word below cross-checked against the raw big-endian bytes (dd table in
+CONKI-KICKENT-CARVE.md section 1). Date 2026-07-20.
+
+=============================================================================
+CONKI @ 040765 - connect kick: register a (level, datafield) pair for an
+incoming octobus kick number in the ring's input-controller KICKENT table.
+Entry: A = DLEVE dispatch code (14B = activate PIL level 12)
+       T = kick number (1..17B) = KICKENT index
+       X = octobus ring (0..3)
+       B = datafield address to register (DFADD)
+Exit:  error  -> return L+1, A = 1014xx status
+       success-> return L+2 (RADD AD1 CLD SL DP), A unchanged
+=============================================================================
+
+040765  146131  RADD CLD SB DD     ; D := B  (save caller B = datafield arg)
+040766  133403  JXN 040771         ; ring negative -> error 101402
+040767  173775  AAX -3             ; X := ring - 3
+040770  141070  SKP IF 0 GRE SX    ; ring <= 3 ?
+040771  124022  JMP 041013         ;   no -> error A := 101402 (bad ring)
+040772  173403  AAX 3              ; restore X := ring
+040773  173377  AAT -1             ; T := kick - 1
+040774  141006  SKP IF DT GRE 0    ; kick >= 1 ?
+040775  124003  JMP 041000         ;   no -> (JMP 041021) error 101407
+040776  173362  AAT -16            ; T := kick - 1 - 16B
+040777  141060  SKP IF 0 GRE ST    ; kick <= 17B ?
+041000  124021  JMP 041021         ;   no -> error A := 101407 (bad kick no)
+041001  173017  AAT 17             ; restore T := kick  (-1 -16B +17B = 0)
+041002  057022  LDX I ,X 22        ; X := mem[mem[ring + 22B]]
+                                   ;   page-zero ring table at 22B..25B ->
+                                   ;   octobus INPUT controller datafield
+                                   ;   (OCTICONT per OPPSTART/CENTRY [NPL-V])
+041003  133013  JXZ 041016         ; not configured -> error 101403
+041004  146173  RADD CLD SX DB     ; B := input controller df
+041005  146167  RADD CLD ST DX     ; X := T = kick number
+041006  057765  LDX I ,B ,X -13    ; X := mem[ df[-13] + kick ]
+                                   ;   df[-13] = KICKENT pointer table
+                                   ;   (16 pointers, one per kick 0..17B);
+                                   ;   stored pointer = entry base + 1, i.e.
+                                   ;   points at the DLEVE word (OLINK is at
+                                   ;   pointer-1; see chain code 036022)
+041007  050764  LDT ,B -14         ; T := df[-14] = table bank (IENTBANK)
+041010  143316  STDTX              ; phys store double at (T,X):
+                                   ;   mem[X]   := A = DLEVE  (14B from NKINI)
+                                   ;   mem[X+1] := D = DFADD  (caller B)
+041011  146113  RADD CLD SD DB     ; restore caller B
+041012  146542  RADD AD1 CLD SL DP ; SUCCESS: return L+2
+041013  044012  LDA 041025         ; A := 101402  (bad ring)
+041014  146113  RADD CLD SD DB     ; restore caller B
+041015  146142  EXIT               ; error return L+1
+041016  044010  LDA 041026         ; A := 101403  (ring not configured)
+041017  146113  RADD CLD SD DB
+041020  146142  EXIT
+041021  044006  LDA 041027         ; A := 101407  (bad kick number)
+041022  146113  RADD CLD SD DB
+041023  146142  EXIT
+; --- constant pool (data) ---
+041024  007331                     ; pointer cell (next routine GSTAT family)
+041025  101402                     ; error: bad ring
+041026  101403                     ; error: ring not configured
+041027  101407                     ; error: bad kick number
+
+=============================================================================
+CALLER: NKINI @ 041703, kick-registration tail (042112-042146)
+(prologue/master-block part in a-data-nkini.txt; shown here for the arguments)
+=============================================================================
+
+042112  171400  SAX 0              ; X := 0
+042113  047046  LDA I ,X 46        ; A := mem[mem[46B]]  (version/config word)
+042114  156570  SHA ZIN SHR 10     ; A >>= 8
+042115  171003  SAT 3
+042116  143056  SKP IF DT LST SA   ; 3 < A ?
+042117  124003  JMP 042122
+042120  170401  SAA 1              ; A := 1
+042121  124002  JMP 042123
+042122  124034  JMP 042156         ; error exit
+042123  005037  STA I 042162       ; mem[007307] := 1     (resident counter)
+042124  045037  LDA I 042163       ; A := mem[007310]
+042125  172401  AAA 1
+042126  005035  STA I 042163       ; mem[007310]++        (resident counter)
+042127  054035  LDX 042164         ; X := 125144  (cell [042164] = 125144)
+042130  144037  SWAP SB DX         ; B := 125144 = DKICK datafield, X := old B
+042131  014271  STX 042022         ; save old B
+042132  146107  RADD CLD 0 DX      ; X := 0    <- RING = 0
+042133  171001  SAT 1              ; T := 1    <- KICK NUMBER = 1 (NUCKI)
+042134  170414  SAA 14             ; A := 14B  <- DLEVE code = level 12
+042135  174200  BSET ONE SSPTM
+042136  135027  JPL I 042165       ; CALL CONKI  ([042165] = 040765)
+042137  124002  JMP 042141         ;   error return (A = 1014xx kept)
+042140  146105  RADD CLD 0 DA      ;   success: A := 0
+042141  050261  LDT 042022         ; restore B
+042142  146163  RADD CLD ST DB
+042143  174000  BSET ZRO SSPTM
+042144  005022  STA I 042166       ; NSAVA := status
+042145  044403  LDA ,B 3           ; restore L
+042146  146154  RADD CLD SA DL
+
+=============================================================================
+RECEIVE SIDE 1: octobus input frame-type decoder (035555-035576)
+(runs on the octobus input interrupt with B = input controller df)
+=============================================================================
+
+035555  146151  RADD CLD SA DD     ; D := A = received frame
+035556  175375  BSKP ONE 170 DA    ; bit 15 (C, control frame) set?
+035557  125064  JMP I 035643       ;   no -> multibyte/data path
+035560  175075  BSKP ZRO 70 DA     ; bit 7 clear?
+035561  125063  JMP I 035644       ;   set -> reject
+035562  175065  BSKP ZRO 60 DA     ; bit 6 (K) clear?
+035563  124011  JMP 035574         ;   K SET -> KICK frame
+035564  175255  BSKP ONE 50 DA     ; bit 5 (M) set?
+035565  124004  JMP 035571         ;   -> ident-family
+035566  175045  BSKP ZRO 40 DA     ; bit 4?
+035567  124010  JMP 035577
+035570  125055  JMP I 035645       ; -> 035761
+035571  146115  RADD CLD SD DA
+035572  135054  JPL I 035646       ; -> 036060 (IDENT dispatch)
+035573  125051  JMP I 035644
+035574  146115  RADD CLD SD DA     ; A := frame
+035575  135052  JPL I 035647       ; -> 036047 (KICK dispatch)  [035647]=036047
+035576  125046  JMP I 035644
+
+=============================================================================
+RECEIVE SIDE 2: kick lookup + level dispatch (036047-036136 + arms)
+=============================================================================
+
+036047  070070  AND 036137         ; A := frame & 000017 = kick number & 17B
+                                   ;   (only LOW 4 BITS select the entry;
+                                   ;    SKICK allows numbers up to 37B)
+036050  146157  RADD CLD SA DX     ; X := kick number
+036051  057765  LDX I ,B ,X -13    ; X := mem[ df[-13] + kick ] = KICKENT entry
+                                   ;   SAME table CONKI writes
+036052  050764  LDT ,B -14         ; T := bank
+036053  124034  JMP 036107         ; join common dispatch
+
+036107  143312  LDDTX              ; A := entry[0] = DLEVE, D := entry[1] = DFADD
+036110  140001  SKP IF DD EQL 0    ; DFADD == 0 ?
+036111  124004  JMP 036115         ;   registered -> dispatch
+036112  040405  MIN ,B 5           ;   unregistered: bump df[5] error count
+036113  144400  RAND 0 0
+036114  146142  EXIT
+036115  070022  AND 036137         ; A := DLEVE & 000017
+036116  146052  RADD SA DP         ; computed jump: P := 036117 + (DLEVE&17B)
+; --- 16-way dispatch table (index = DLEVE & 17B) ---
+036117  124162  JMP 036301         ; 0  -> datafield driver activation (013552)
+036120  124161  JMP 036301         ; 1  -> "
+036121  124160  JMP 036301         ; 2  -> "
+036122  124171  JMP 036313         ; 3  -> error (JPL I -> 000215)
+036123  124170  JMP 036313         ; 4  -> error
+036124  124164  JMP 036310         ; 5  -> fire level 5 (SAA 40; MST PID)
+036125  124166  JMP 036313         ; 6  -> error
+036126  124165  JMP 036313         ; 7  -> error
+036127  124164  JMP 036313         ; 10 -> error
+036130  124163  JMP 036313         ; 11 -> error
+036131  124014  JMP 036145         ; 12B -> activate PIL level 10 (IRW 120)
+036132  124046  JMP 036200         ; 13B -> activate PIL level 11 (IRW 130)
+036133  124100  JMP 036233         ; 14B -> activate PIL level 12 (IRW 140) <==
+036134  124157  JMP 036313         ; 15B -> error
+036135  124156  JMP 036313         ; 16B -> error
+036136  124155  JMP 036313         ; 17B -> error
+036137  000017                     ; mask constant (both uses above)
+
+=============================================================================
+RECEIVE SIDE 3: the level-12 activation arm (036233-036265)
+=============================================================================
+
+036233  045033  LDA I 036266       ; A := mem[007347] (level-pending mask [I])
+036234  175345  BSKP ONE 140 DA    ; bit 12 set (level 12 already activated)?
+036235  124021  JMP 036256         ;   no -> fire now
+; --- busy: chain the KICKENT entry for later drain ---
+036236  146145  RADD CLD SL DA     ; save L
+036237  004305  STA 036144
+036240  044035  LDA 036275
+036241  144035  SWAP SB DA
+036242  004301  STA 036143
+036243  135033  JPL I 036276       ; -> 036022 chain-append: link via
+                                   ;   mem[entry-1] = OLINK (terminator -1)
+036244  044405  LDA ,B 5
+036245  131403  JAF 036250
+036246  146137  RADD CLD SB DX
+036247  135030  JPL I 036277
+036250  150402  ION
+036251  044272  LDA 036143         ; restore B
+036252  146153  RADD CLD SA DB
+036253  044271  LDA 036144         ; restore L
+036254  146154  RADD CLD SA DL
+036255  146142  EXIT
+; --- fire level 12 ---
+036256  146115  RADD CLD SD DA     ; A := D = DFADD (registered datafield)
+036257  153543  IRW 140 DB         ; level-12 B := DFADD  (= 125144)
+036260  146157  RADD CLD SA DX     ; X := DFADD
+036261  046377  LDA ,X -1          ; A := mem[DFADD - 1]  (= mem[125143])
+                                   ;   [125143] = 044747 = DKICK  [V, 044-S3IDPIT]
+036262  153542  IRW 140 DP         ; level-12 P := DKICK
+036263  044015  LDA 036300         ; A := 010000 (bit-12 mask)
+036264  150306  MST PID            ; FIRE level 12 -> DKICK runs
+036265  146142  EXIT
+036266  007347                     ; pointer cell: resident level-pending mask
+...
+036300  010000                     ; bit-12 mask constant
+
+=============================================================================
+Datafield contents (044-S3IDPIT.bin, base 004000B, resident DPIT data):
+  [125142] = 044747 = DKICK   (byte off 83140, bytes 49 e7)
+  [125143] = 044747 = DKICK   (byte off 83142, bytes 49 e7)  <- read by 036261
+  [125144] = 000000 on disk   (datafield head; runtime cells)
+=============================================================================

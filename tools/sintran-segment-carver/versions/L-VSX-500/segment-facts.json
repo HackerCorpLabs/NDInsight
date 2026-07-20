@@ -926,7 +926,7 @@
    "load_address_oct": "120000",
    "address_range": "120000:177777",
    "pit": 1,
-   "description": "Save of XMSG kernel",
+   "description": "Save of XMSG xrouter segment",
    "madr": 567,
    "segle": 40,
    "flag_oct": "000111",

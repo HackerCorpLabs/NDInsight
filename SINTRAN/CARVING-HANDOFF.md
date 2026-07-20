@@ -278,6 +278,177 @@ from the fallback answer doc, now [V]:
 
 ---
 
+### 1.9 DOMINO / NUCLEUS / octobus-driver I/O stack — CARVED (2026-07-19)
+
+Three byte-verified carve docs in
+`tools\sintran-segment-carver\versions\L-VSX-500\re\domino-nucleus-io\`
+(BDIO-DOMINO-DRIVER-CARVE.md, OCTOBUS-DRIVER-ROUTINES-CARVE.md,
+NUCLEUS-PRIMITIVES-CARVE.md + NUCLEUS-SEGMENTS-RECON.md + annotated
+listings a-*.txt). Context/plan doc:
+`SINTRAN\ND5000\OCTOBUS-DEVICE-CONTROLLERS-ANALYSIS-AND-EMULATION-PLAN-2026-07-19.md`.
+The ND-500 status doc carries the full fact blocks (section 0e there).
+
+NEXT CARVES SCHEDULED (2026-07-20, SCSI-DIOC plan
+`SINTRAN\ND5000\SCSI-DIOC-OCTOBUS-EMULATION-PLAN-2026-07-20.md` phase S0):
+ALL FOUR DONE 2026-07-20: S0-1 CONKI, S0-2 DOMDF initializer, S0-3 NKSE
+segment-105 interior, S0-4 PROMAN auto-run (fact blocks below).
+Remaining [OPEN] tail: DRPRT/DLPRT symbol->sub-offset pin (SYMBOL-2-LIST
+NKMBU pinning or live create-port capture); freelist-head master offset
+(runtime global, zero on disk); full NCALL per-word map (live
+round-trip); fn 11B-14B worker bodies.
+
+**105-S3INKSE NUCLEUS server interior — CARVED (2026-07-20, S0-3) [V]:**
+the segment is a PLANC-compiled program (runtime lib at 112xxx; frame
+stubs 112541 ENTER / 112576 LEAVE / 112570 ERRETURN - worker addresses
+appear as data words after call sites, not jump operands). **doNuc
+dispatcher @037033** [V]: linear SAT-ladder on request word +12,
+functions 1..14B, full fn->worker table dd-verified; default ->
+"doNuc: unknown func=" @040101 + "*** Nucleus FATAL Error" @040062.
+**fn 10B = 047432 = descriptor CREATE/provision** [V] - the SIN-F5a/c
+port-number writer: sets port +20 (KICKDEST/remote station), +30
+(OWNID/port-number identity block), +2 OWNER, +4 FREELINK via field-set
+helpers 070345/070422/070477/070560 - offsets MATCH the kernel-verified
+port layout (7-item coherence check vs NUCLEUS-PRIMITIVES-CARVE.md
+section 4 PASSED, no divergence). ACONV number->ID = 056332
+(ID = number<<6 + base, error 101004 ILLNO); validity/free walker
+057631; allocator front-end 063371/063464; NCALL client wrappers
+072263/073207/073266 confirm the request skeleton {state, word-count,
+caller-id block, param, >=7-word reply}. RECON targets: 1 DONE,
+2 PARTIAL (freelist head [OPEN]), 3 PARTIAL (skeleton only), 5 [OPEN].
+Doc: `re\domino-nucleus-io\NKSE-SERVER-INTERIOR-CARVE.md`
+(+ 6 a-nkse-105-*.txt listings). Results land in domino-nucleus-io\ and
+get folded back into this section per the standing rule. NOTE the
+2026-07-20 correction: the host->remote NUCLEUS kick is byte-verified
+kick 1 (NUCKI); "kick 5" is only the manual's kick-NAME table - never
+wire kick 5 on the NUCLEUS path.
+
+**CONKI / KICKENT — CARVED (2026-07-20, S0-1) [V]:** CONKI @040765
+(SYMBOL-1-LIST; 017-S3SMPIT = 026-S3IMPIT, base 032000B) registers
+KICKENT[T] := (DLEVE=A, DFADD=B) in the ring-X octobus INPUT controller's
+kick table (pointer table at input-df[-13], bank at df[-14]). Arg
+meanings PROVEN: T = kick number (1..17B), A = DLEVE dispatch code =
+octal PIL level (12B->lvl10, 13B->lvl11, 14B->lvl12), X = ring,
+B = datafield. HEADLINE: NKINI calls CONKI(T=1, A=14B, X=0, B=125144),
+and the receive path (decoder 035555 -> kick dispatch 036047
+KICKENT[frame & 17B] -> code-14B arm 036233) fires PIL level 12 with
+P := mem[125143] = 044747 = DKICK — **incoming octobus KICK 1 dispatches
+to DKICK**, matching the send side (NKICK -> SKICK kick 1) end to end.
+Receiver masks the frame with 17B: kicks 20B-37B ALIAS 0-17B. Kick
+dispatch codes: 0-2 datafield driver activation via 013552, 5 fire
+level 5, 12B/13B/14B activate PIL 10/11/12. ECONID @040467 is a separate
+body (ident lists at df[-7]), no shared helper. Corrected lead: cells
+007341/007342 are the CBPOOL free-list head/count, NOT CONKI
+registration cells. Remaining [OPEN]: cell 007347 level-pending mask
+semantics; OLINK busy-chain drain point; which subsystems register DLEVE
+codes 0-2/5. Doc: `re\domino-nucleus-io\CONKI-KICKENT-CARVE.md`
+(+ a-conki-040765.txt).
+
+**DOMDF initializer — CARVED (2026-07-20, S0-2) [V]:** the initializer is
+the FILSYS DOMINO pool/port module in **006-S3FS (= 012-S3SFS), VA
+133203-137000, base 026000B** (35 FILSYS sibling symbols on parallel PROC
+entries = overlay proof) - NOT resident init, NOT NUCST, NOT userland.
+**QUINI @134206** (lazy, guard DOMDF+15) creates the local NUCLEUS port
+via MON 347 fn 1 (DCRPR, T=3) -> DOMDF.DLPRT(041103); writes
+DSVER(041104):=1, DOMDF+21:=30B; creates one NUCLEUS message per disk
+queue element (BFQUE 033341..EFQUE 036350, stride 37B) storing DMSID at
+elem+13. **PDF.DRPRT** written by GPOOL @133343 / RGPOO @133701 / RCPOO
+@134516, value = **DOPPR @136352 = MON 347 fn 3 open-port-by-NAME** (pool
+name lookup); same routines fill PDF.DIPOO/OPAIX/ARESZ from the connect
+answer (answer layout [OPEN] -> segment-105 carve). MON 347 wrapper
+family byte-mapped (CRPRT/OPPRT/CRMSG/CLPRT T=1; DCRPR/DOPPR/DCRMS/DCLPR
+T=3; SNMSG/RCMSG/REMSG/WRMSG X=1/2/3); GVACD scans devnos 2260B-2277B.
+**DISPROVEN: the "DSVER+32..67 static header"** - those words are the
+generated zero tail + ADOML lock + NKMBU start, swept along because the
+70B/76B transfer windows exceed the 32B-word record; DON'T CARE for the
+DIOC. **The SCSI unit/LUN binding = PDF.DRPRT (per-pool named port) +
+DXPOO/OPAIN in each message**, resolved DIOC-side. On-disk DOMDF is zero
+except +2..3 and +6=074246 REBDIO pre-planted at generation [V].
+POISONED PRIOR killed: BDTMU=075326/BDTMV=075356 bodies are in the RPIT
+overlay (016-S3SRPIT), NOT MPIT (MPIT bytes there are XMSG code); they
+queue the pool DF and start RT RECST @075225 -> FILSYS RGPOOL/RCPOOL.
+Doc: `re\domino-nucleus-io\DOMDF-INITIALIZER-CARVE.md`
+(+ a-domdf-init-006-s3fs.txt; 90 words dd-reproduced).
+
+**PROMAN auto-run — RESOLVED (2026-07-20, S0-4) [V]: PROMAN does NOT run
+at boot on this image.** An emulated SCSI DIOC at stations 10B-13B gets
+NO EchoTest/IdentY/SetBxP/BxDoLd/RegMod/Go-On traffic. Decisive: live
+@LIST-RT-PROGRAMS shows PROMAN 14615B PASSIVE P-REG=0B (never executed;
+same for NKSERV/NKNAME/EVMESG/BOPCOM/MTSERV; calibration XROUT/XMFIDO
+did run); pack BIGDISK0-L.IMG has NO (SYSTEM)PMA-CONFIG / PMA-* images /
+DOMINO kit. Segment identity string-proven: 120/121 = PROMAN ("PROMAN
+started", "(SYSTEM)PMA-CONFIG", boot-error ladder, module table incl.
+"SCSI"), 124/125 = BOPCOM. [NPL-V] no kernel auto-start exists;
+OCSTART/NUCST only allocate memory. NEW find [V, consumer OPEN]: a
+server-start table in the command processor (003-S3CP @0xbb60 /
+013-S3SCP @0xc360) = (RTdesc,flag) pairs NKSERV,2 NKNAME,0 PROMAN,2
+EVMESG,0 BOPCOM,2 MTSERV,2 — its consumer/flag semantics/gate are
+[OPEN]; it did not fire this boot. Answer flips only if PROMAN is
+deliberately started AND MF-bus crate interrogation (or PMA-CONFIG)
+reports the DIOC AND PMA-* images are installed; re-open if the harness
+ever emulates crate interrogation. Doc:
+`re\domino-nucleus-io\PROMAN-AUTORUN-RECON.md`.
+
+**BDIO / DOMINO block-I/O driver [V]:**
+- Overlay: **017-S3SMPIT** (= 026-S3IMPIT, byte-identical, cmp = 0 diffs),
+  base 032000B — NOT 065-S3SIPIT (decodes to garbage there). Proven by 9
+  SUBR siblings (BDMTR 073454 / BDMFU 073565 / MBUIL 073700 / DCNVA 073750 /
+  SSBDI 074000 / BDTRA 074012 / BD12T 074024 / STRBD 074072 / REBDI 074246,
+  SYMBOL-2) + 40 literal-pool symbol hits, 13 anchors dd-reproduced.
+- STRBDIO builds the BDIO message in the global **DOMDF=041064** record
+  (body at DSVER = DOMDF+20 = 041104B), function codes read=166B (size
+  74B) / write=167B (70B) / compare=213B (70B), sends via nucleus gates
+  **NKWRI 043411 / NKSEN 042171**, waits WT12 033616 with DOMDF.NFUNC(+6)
+  = REBDI as continuation; REBDIO drains NKREC 043076 / NKREA 043375
+  (read-back max 76B), decodes DSSTS -> HSTAT (-2 nucleus reject SINEC
+  1661, -4 device error SINEC 1662 + BDTMU retry, -5 = statuses
+  104031B/104651B/104622B).
+- **DCNVA 073750**: DOMINO byte addr = `((nd100_word_addr -
+  (N500D.ADRZERO << 10dec)) << 1) | bit31`; bias cached by SELF-MODIFYING
+  the entry word to 124012 (JMP). N500D=051767, ADRZERO=+60.
+- NPL = MP-P2-DISK-START.NPL (different revision, +237B shift, logic 1:1).
+
+**Octobus driver routine set [V]** (one-liner; full block in ND-500 doc):
+SKICK/MBSEND/OMBREAD + XKICK500/5OMBREAD/MFPREPARE/CON5IDENT/5MTRANS/
+5MRDTRANS byte-carved in 026-S3IMPIT. **MBSEND has NO IOXT** — it queues a
+CBPOOL buffer and fires level 13 (P:=SOCTW 036342); 037320 is SKICK's
+direct-TX IOXT block. Max multibyte length 255 bytes. L07 SAMSON stations
+are **70-77B** (LN5DEST=77; M06's 73 is a different build).
+
+**NUCLEUS kernel (DOMINO message passing) [V]:**
+- Overlay: NK* primitives in **017-S3SMPIT = 026-S3IMPIT** (base 032000B),
+  NOT 003-S3CP, NOT the NKSE segments (104/105 hold the server *program*).
+  Proven by call-target density (21 family targets / 64 pointer hits) +
+  uniform prologue.
+- Byte-proven kernel structures (octal word offsets): master block (+2
+  descr-table ID, +7 count, +20 kick-table ID, +25 version, +74/76 health
+  flags); descriptors = 40B-word records (LOCK+0, TYPE+1, OWNER+2..3);
+  port (+10 MESS HEAD, +12 MESS TAIL, +14 KICKLINK, +16 KICK HEAD,
+  **+20 KICK DEST = octobus station**, +21 INQUEUE, +22 KICK PROC/EVENTS,
+  +30 OWNID) — order matches ND-820026 fig 25 exactly; message (+10 LINK,
+  +12 BUFFERPOINTER, +14 HOMEPORT, +21 OWNINDEX); buffer (+23 SIZE,
+  +25 LENGTH, data +26B); kick table = 14B-word entries per octobus
+  station (KHEAD+0, KTAIL+2, KLOCK+4).
+- Kick path [V]: NKSEND -> port+20 == own station ? SETEV local (16-way)
+  : NKICK enqueue + (only when queue was empty) SKICK(A=1=NUCKI kick, X=0,
+  T=station). Receive: DKICK 044747 drains the own-station entry.
+- **MON 347B = NUCLEUS**: MCTAB[347B]=047072 [V] = `SERVE` (MON-CALL-INDEX
+  name "MGDAE" is a flat-table collision; overlay is MPIT not 003-S3CP —
+  index row needs the fix).
+- Locking: physical TSET = opcode 140516 (nd100-dis "USER1"), lock value
+  070000B, 020 retries with master+74/76 health-flag abort.
+- [OPEN]: ENKIC=047526 (N500-SYMBOLS, ACCP family) resolves in NO carved
+  overlay tried; server-side structures (hash array, freelists, NCALL
+  mailbox map) need a segment-105 carve — recon + target list in
+  NUCLEUS-SEGMENTS-RECON.md.
+
+**Poisoned prior (recorded per rule below):** the MCTAB validation example
+"MON 200B -> XMSG 007516B" used in section 3 did NOT reproduce —
+MCTAB[200B] = 000000 in 044-S3IDPIT [V] (coherent: MON 200B XMSG is a
+GOTAB level-14 fast call, its slot in MCTAB is empty, as section 1.7
+already noted). Validation slots are now 005B/144B/317B/347B.
+
+---
+
 ## 1a. Index discrepancy (resolved 2026-07-15 — do not re-panic)
 
 The D: index prose says "**Six rows** changed worker: 15B, 45B, 120B, 304B, 313B, 327B". The E: index
@@ -321,7 +492,11 @@ Do not conflate them — different versions, different data, different methods.
    NPL's claim to VERIFIED without checking bytes yourself. Never fabricate `.ASM` / `.bin`.
 6. **A table is only "the" table if its known slots match.** Validate against 2-3 independently known
    entries first. GOTAB: slot 0 = `MFELL 072114B`, slot 1 = `M1 071633B`, slot 2 = `M2 071635B`.
-   MCTAB: `MON 005B -> RDISK 102021B`, `MON 200B -> XMSG 007516B`, `MON 144B -> MAGTP 026354B`.
+   MCTAB: `MON 005B -> RDISK 102021B`, `MON 144B -> MAGTP 026354B`,
+   `MON 347B -> SERVE 047072B` (NUCLEUS; [V 2026-07-19]); the 317B slot is also validated
+   (value in the 317B-ExecuteCommand golden-path folder). The OLD example
+   "MON 200B -> XMSG 007516B" is WRONG — MCTAB[200B] = 000000 [V 2026-07-19]
+   (XMSG is a GOTAB level-14 fast call); see section 1.9.
 7. **"Symbol lands on a `021xxx STD I` prologue" is NOT a universal entry test.** Handlers reached by
    a dispatch `JMP` have no link to save and no `STD I` (`UECOM=050701B` starts `146141 RADD CLD SL DD`).
    Use that test for JPL-called routines only.

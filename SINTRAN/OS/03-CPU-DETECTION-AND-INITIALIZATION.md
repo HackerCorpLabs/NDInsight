@@ -349,13 +349,19 @@ Due to a **microcode bug** in the ND-110/ND-120, the `VERSN` instruction must be
 
 The backplane PROM contains 8 bytes of information:
 
-| Byte | Variable | Content | Purpose |
-|------|----------|---------|---------|
-| 0 | INF0 | CPU Number | System number for this CPU |
-| 1 | INF1 | CPU Type | Hardware type code |
-| 2 | INF2 | License Info | Number of legal users (high byte) |
-| 3 | INF3 | Magic Number | Must be 52652₈ (validation) |
-| 4-7 | - | Reserved | Future use |
+Corrected 2026-07-20: the table below used to list `INF0..INF3` against byte indices 0-3.
+That was wrong. `INF0..INF3` are four **INTEGERs (words)**, filled by eight `SBYT` stores from
+byte index 0 to byte index 7, so each variable spans **two** PROM bytes (ND `SBYT`: even byte
+index = the left/most-significant byte of the word).
+
+| PROM byte | Variable | Content | Purpose |
+|-----------|----------|---------|---------|
+| 0 (MSB) + 1 (LSB) | INF0 | `SYSNO` | CPU number -> banner "CPU NUMBER". Skipped when the word is -1 |
+| 2 (MSB) + 3 (LSB) | INF1 | `HWINFO(2)` | System type -> banner "CPU TYPE". Skipped when the word is -1 |
+| 4 | INF2 high byte | `NLEGU` | Number of legal users. Skipped when the byte is 377₈ |
+| 5 | INF2 low byte | - | **Never read by SINTRAN** |
+| 6 (MSB) + 7 (LSB) | INF3 | Magic number | Must be 52652₈ = 21930 = `0x55AA`, else `GCPUNR` exits at once |
+| 8-15 | - | Unknown | `GCPUNR` only reads bytes 0-7; the rest of the PROM is not read by SINTRAN |
 
 #### Validation
 
@@ -363,7 +369,11 @@ The backplane PROM contains 8 bytes of information:
 IF INF3><52652 THEN EXIT FI             % Not correct PROM
 ```
 
-The magic number 52652₈ (22186 decimal) validates that the PROM is programmed correctly.
+The magic number 52652₈ (**21930** decimal, `0x55AA`) validates that the PROM is programmed correctly.
+
+> Corrected 2026-07-20: this line previously said "22186 decimal", which is wrong.
+> 52652₈ = 5·8⁴ + 2·8³ + 6·8² + 5·8 + 2 = 20480 + 1024 + 384 + 40 + 2 = **21930** = `0x55AA`,
+> i.e. PROM byte 6 = `0x55` and PROM byte 7 = `0xAA`.
 
 #### Result Assignment
 

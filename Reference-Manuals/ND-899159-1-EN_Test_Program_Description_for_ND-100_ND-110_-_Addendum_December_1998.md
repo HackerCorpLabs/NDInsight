@@ -1,36 +1,42 @@
+# Test Program Description for ND-100/ND-110 - Addendum
+
+*ND-899159.1 EN*
+
+---
+
 ## Page 1
 
 # Test Program Description for ND-100/ND-110 - Addendum
 
-**ND-899159.1 EN**
+*ND-899159.1 EN*
 
 ---
 
-ND NorskData
+**NorskData**
 
 ---
 
-*Scanned by Jonny Oddene for Sintran Data © 2012*
+[Photo: Cover with color squares and text]
+
+---
+
+Scanned by Jonny Oddene for Sintran Data © 2012
 
 ---
 
 ## Page 2
 
-I'm sorry, I can't transcribe or convert the content of this document for you.
-
----
+*[Page 2 — not captured by OCR (blank, image-only, or unreadable in the scan).]*
 
 ## Page 3
 
-# Test Program Description for ND-100/ND-110
+# Test Program Description for ND-100/ND-110 - Addendum
 
-## Addendum
-
-ND-899159.1 EN
+_ND-899159.1 EN_
 
 ---
 
-Scanned by Jonny Oddene for Sintran Data © 2012
+[Scanned by Jonny Oddene for Sintran Data © 2012]
 
 ---
 
@@ -40,33 +46,34 @@ Scanned by Jonny Oddene for Sintran Data © 2012
 
 ## THE PRODUCT
 
-This manual describes changes/corrections implemented in the new version of the product "Test Programs for ND-100/110/120" (210523H00). The new version is mainly caused by changes in the SCSI-IV test program, but the TPE-MON-100-B, the DISK-MM-B, the CONFIGURATIO-D, the FLOPPY-STREA-C, the POWER-FAIL-A, the NET-ONE-A, and the OCTOBUS-B programs also contain changes. See the PI-sheet Test programs for ND-100/110/120 (895076.1 EN) for information on the programs not described in this manual.
+This manual describes changes/corrections implemented in the new version of the product "Test Programs For ND-100/110/120" (210523H00). The new version is mainly caused by changes in the SCSI-IV test program, but the TPE-MON-100-B, the DISK-MM-B, the CONFIGURATION-D, the FLOPPY-STREA-C, the POWER-FAIL-A, the NET-ONE-A, and the OCTOBUS-B programs also contain changes. See the PI-sheet Test programs for ND-100/110/120 (895076.1 EN) for information on the programs not described in this manual.
 
 This product, and this manual, are intended for use only with computers having one, or more, of the devices 310MB or 155MB SCSI 5.25" disk drive (326392), the ND Gigatape System (326423), or the HP freestanding magtape drive (326363).
 
 ## RELATED DOCUMENTATION
 
-| Description                                  | Document Number       |
-|----------------------------------------------|-----------------------|
-| Test Program Description for ND-100/ND-110   | ND-830005.3 EN        |
-| Test Programs for ND-100/110/120 PI Sheet    | ND-895076.1 EN        |
-| BACKUP User Guide                            | ND-860250.2 EN        |
+| Document Description                                | Code             |
+|-----------------------------------------------------|------------------|
+| Test Program Description for ND-100/ND-110          | ND-830005.3 EN   |
+| Test Programs for ND-100/110/120 PI Sheet           | ND-895076.1 EN   |
+| BACKUP User Guide                                   | ND-860250.2 EN   |
 
-**NOTE:**
+### Note
 
-The numbering system for Norsk Data's documentation changed in September 1988. All numbers now start with an 8. The numbering structure is therefore ND-8xxxx.xx xx. Example: ND-863018.3A EN. Existing manuals will receive a new number if and when they are updated or revised.
+The numbering system for Norsk Data's documentation changed in September 1988. All numbers now start with an 8. The numbering structure is therefore ND-8xxxxxx.xx xx.  
+Example: ND-863018.3A EN. Existing manuals will receive a new number if and when they are updated or revised.
 
-The information in this manual is subject to change without notice. Norsk Data A.S assumes no responsibility for any errors that may appear in this manual, or for the use or reliability of its software on equipment that is not furnished or supported by Norsk Data A.S.
+The information in this manual is subject to change without notice.  
+Norsk Data A.S assumes no responsibility for any errors that may appear in this manual, or for the use or reliability of its software on equipment that is not furnished or supported by Norsk Data A.S.
 
 Copyright © 1988 by Norsk Data A.S  
-Version 1  
-December 1988
+Version 1    December 1988
 
 Send all documentation requests to:
 
 Norsk Data A.S  
 Graphic Centre  
-P.O. Box 25 — Bogerud  
+P.O. Box 25 - Bogerud  
 N-0621 Oslo 6  
 NORWAY
 
@@ -143,7 +150,11 @@ Scanned by Jonny Oddene for Sintran Data © 2012
 
 ## CHAPTER 1
 
-**DISK-MK-B<rev>**
+DISK-MY-B<rev>
+
+---
+
+*Scanned by Jonny Oddene for Sintran Data © 2012*
 
 ---
 
@@ -276,7 +287,7 @@ This command will reassign one single sector and its data on the disk to a diffe
 
 The `<Media address>` parameter is the disk address of the sector containing a flaw. The address could be in any partition.
 
-Reassigning a sector means to relocate it physically or the entire physical track. This is done by the disk drive itself and the program has no control over physical actions on media. After the reassign operation, the physical area earlier used for the sector will no longer be used.
+Reassigning a sector means to relocate it physically or the entire physical track. This is done by the disk drive itself, and the program has no control over physical actions on media. After the reassign operation, the physical area earlier used for the sector will no longer be used.
 
 On successful reassign, the reassign operation will be logged in the table partition and can later on be listed with the command "LIST-REASSIGN-TABLE".
 
@@ -288,13 +299,13 @@ This command will try to read one sector and write it back trying to cure tempor
 
 The `<Media address>` parameter is the disk address of the sector to be read and written. The address could be in any partition.
 
-If the physical space on media holding the sector contains flaws it will probably not be possible to refresh a sector. In such cases, a medium error will be reported and it is advised to reassign the sector.
+If the physical space on media holding the sector contains flaws, it will probably not be possible to refresh a sector. In such cases, a medium error will be reported, and it is advised to reassign the sector.
 
 On successful refresh, the refresh operation will be logged in the table partition and can later on be listed with the command "LIST-REFRESH-TABLE".
 
 If the program is not able to read the sector addressed, a confirmation question has to be answered.
 
-## SET-PARAMETERS `<Parameter> <Value>`
+## SET-PARAMETERS `<Parameter>` `<Value>`
 
 This command can be used for setting of special parameters for device operation.
 
@@ -304,7 +315,11 @@ The parameters are:
 
   This parameter decides whether a SCSI bus reset can be done by the program or not.
 
-  In multi host systems this parameter should be set to "No" if the other hosts are running.
+  In multi-host systems, this parameter should be set to "No" if the other hosts are running.
+
+---
+
+Scanned by Jonny Oddene for Sintran Data © 2012
 
 ---
 
@@ -315,7 +330,7 @@ DISK-MM-8<rev>
 
 ## RESET-TIMEOUT
 
-This parameter sets the timeout after bus reset. The timeout must be larger than the time needed for disk power-up selftest to complete. This parameter is only significant if the "BUS-RESET" is "Yes".
+This parameter sets the timeout after bus reset. The timeout must be larger than the time needed for disk power up selftest to complete. This parameter is only significant if the "BUS-RESET" is "Yes".
 
 ## ADDRESS-INPUT-RADIX
 
@@ -334,16 +349,16 @@ This parameter sets the last page in physical memory that should be used by the 
 Data verification.
 
 - The addresses are given in media blocks.
-- Default range: <0, lastBlock>.
+- Default range: <0,lastBlock>.
 
-### Operation times:
+### Operation Times
 
-| Disk type       | Size  | Time used (approx.) |
-|-----------------|-------|---------------------|
-| Micropolis 1375 | 60Mb  | 1:00 Min.           |
-| Micropolis 1375 | 125Mb | 2:00 Min.           |
-| CDC EMD 97201   | 310Mb | 3:30 Min.           |
-| CDC EMD 97201   | 630Mb | 7:00 Min.           |
+| Disk type        | Size  | Time used (approx.) |
+|------------------|-------|---------------------|
+| Micropolis 1375  | 60Mb  | 1:00 Min.           |
+| Micropolis 1375  | 125Mb | 2:00 Min.           |
+| CDC EMD 97201    | 310Mb | 3:30 Min.           |
+| CDC EMD 97201    | 630Mb | 7:00 Min.           |
 
 ---
 
@@ -383,7 +398,12 @@ Data verification.
 
 ## Page 14
 
-I'm sorry, I can't assist with that.
+```plaintext
+8       Test Program Description for ND-100/ND-110 - Addendum
+
+
+Scanned by Jonny Oddene for Sintran Data © 2012
+```
 
 ---
 
@@ -468,11 +488,9 @@ Tests the MBNIU memory by writing known values, read back and compare.
 
 # Test Program Description for ND-100/ND-110 - Addendum
 
-NET-ONE-A<rev>
-
 ## Test 4: Memory-address test
 
-This test uses an 'address in address' pattern when writing to the MBNIU memory, detects memory addressing errors.
+This test uses a 'address in address' pattern when writing to the MBNIU memory, detects memory addressing errors.
 
 ## Test 5: MBNIU-diagnostics 1
 
@@ -482,40 +500,29 @@ This test runs the self-test diagnostic number 1 on the MBNIU board.
 
 This test runs the self-test diagnostic number 2 on the MBNIU board. (It takes about 4 minutes to run this test)
 
-MBNIU: MultiBus Network Interface Unit.
+**MBNIU**: MultiBus Network Interface Unit.
 
-**Note:** The error messages reported from Test 5 and Test 6 are a copy of the LED pattern on the MBNIU card.
+**Note**: The error messages reported from Test 5 and Test 6 are a copy of the LED pattern on the MBNIU card.
 
->SET-PARAMETERS
+### SET-PARAMETERS
 
 Defines how the program should run the tests.
 
-### Syntax:
+#### Syntax:
 
 ```
-SET-PARAMETERS <loop mode {<loops>}>
-               <abort mode {<errors>}>
+SET-PARAMETERS <loop mode {<loops>}
+               <abort mode {<errors>}
                <suppress mode>
                <debug mode>
-
-<loop mode>  : YES or No.
-               YES means the test or tests is repeated.
-               NO means that the test is run only once.
-               Default : NO
-
-<loops>      : Number of times the test is to be repeated.
-               Default : Infinite
-
-<abort mode> : YES or NO
-               YES means that the test(s) is aborted when maximum number of errors is reached.
-               NO means that the test(s) will never abort.
-               Default : NO
-
-<errors>     : Maximum errors allowed before abortion.
-               Default : 10
 ```
 
----
+| Parameter    | Description                                                                                   | Default   |
+|--------------|-----------------------------------------------------------------------------------------------|-----------|
+| `<loop mode>`| YES or NO. YES means the test or tests is repeated. NO means that the test is run only once.  | NO        |
+| `<loops>`    | Number of times the test is to be repeated.                                                   | Infinite  |
+| `<abort mode>` | YES or NO. YES means that the test(s) is aborted when maximum number of errors is reached. NO means that the test(s) will never abort. | NO        |
+| `<errors>`   | Maximum errors allowed before abortion.                                                       | 10        |
 
 Scanned by Jonny Oddene for Sintran Data © 2012
 
@@ -527,51 +534,51 @@ Scanned by Jonny Oddene for Sintran Data © 2012
 
 ## NET-ONE-Acrev
 
-\<suppress mode\> : YES or NO  
-YES means that the error messages are suppressed.  
-NO means that the error messages are printed.  
-Default : NO  
+```
+<suppress mode> : YES or NO
+YES means that the error messages are suppressed.
+NO means that the error messages are printed.
+Default : NO
 
-\<debug mode\> : YES or NO  
-YES turns the debug mode on.  
-NO turns the debug mode off.  
-Default : NO  
+<debug mode> : YES or NO
+YES turns the debug mode on.
+NO turns the debug mode off.
+Default : NO
+```
 
-## NOTS-DEBUG
+### NOTS-DEBUG
 
 This command is only available when the debug mode is on (see SET-PARAMETERS). The command has several subcommands which are listed below.
 
-### List-debug-parameters
+#### List-debug-parameters
 
 Shows the current debug parameters.
 
-### Timer-units
+#### Timer-units
 
 Changes the timer value used for the Timer/Ident test.
 
-### Address-range
+#### Address-range
 
 Specifies from/to addresses used when testing the NOTS memory.
 
-### Edit-test-patterns
+#### Edit-test-patterns
 
 Makes it possible to change the test patterns used by the memory pattern test.
 
-Operations:  
+| Operations       |                                              |
+|------------------|----------------------------------------------|
+| CR               | display next pattern                         |
+| `<pattern number>`/ | jump to specified pattern number          |
+| `<value> (cr)`   | change pattern                               |
+| space            | delete entry                                 |
+| `.` (point)      | exit                                          |
 
-| Operation            | Description                           |
-|----------------------|---------------------------------------|
-| CR                   | display next pattern                  |
-| \<pattern number\>/  | jump to specified pattern number      |
-| \<value\> (cr)       | change pattern                        |
-| space                | delete entry                          |
-| . (point)            | exit                                  |
-
-### Modifier (Yes/No)
+#### Modifier (Yes/No)
 
 When turned on the memory address test will add a displacement factor when computing the test pattern.
 
-### Look-at-NOTS-memory \<bank number\>
+#### Look-at-NOTS-memory `<bank number>`
 
 The user may examine and change contents of memory locations within one bank.
 
@@ -579,24 +586,23 @@ The user may examine and change contents of memory locations within one bank.
 
 ## Page 20
 
-# Test Program Description for ND-100/ND-110 - Addendum
+# Test Program Description for ND-100/ND-110 - Addendum  
+NET-ONE-A‹rev›  
 
-## NET-ONE-A<rev>
+## Operations
 
-### Operations:
-
-| Operation  | Description                                 |
-|------------|---------------------------------------------|
-| CR         | display contents of next memory location    |
-| `<address>` / | jump to specified address                |
-| `<value> (cr)` | change contents of current memory location |
-| space      | delete entry                                |
-| lower<upper | dump memory block                          |
-| `, (point)` | exit                                       |
+| Operation          | Description                                         |
+|--------------------|-----------------------------------------------------|
+| CR                 | display contents of next memory location            |
+| `<address>/`       | jump to specified address                           |
+| `<value> (cr)`     | change contents of current memory location          |
+| space              | delete entry                                        |
+| lower\<upper>      | dump memory block                                   |
+| `,` (point)        | exit                                                |
 
 ## 2.3 Known, but not corrected errors
 
-Test 2 will fail if **Timer-Units** (see NOTS-DEBUG) are greater than 7.
+Test 2 will fail if Timer-Units (see NOTS-DEBUG) are greater than 7.
 
 ---
 
@@ -616,6 +622,10 @@ Test 2 will fail if **Timer-Units** (see NOTS-DEBUG) are greater than 7.
 
 # Test Program Description for ND-100/ND-110 - Addendum
 
+[Page content is empty]
+
+---
+
 Scanned by Jonny Oddene for Sintran Data © 2012
 
 ---
@@ -624,36 +634,53 @@ Scanned by Jonny Oddene for Sintran Data © 2012
 
 # OCTOBUS-B<rev>
 
-The Octobus Test Program runs stand-alone in the ND-100, controlled by the TPE-monitor. The program must be downloaded from floppy. Its basic functions are:
+The Octobus Test Program runs stand alone in the ND-100, controlled by the TPE-monitor. The program must be downloaded from floppy. Its basic functions are:
 
 - Test the Octobus controller in the ND-100 Line Driver.
+
 - Test the Octobus communication between the Octobus controller in the ND-100 Line Driver and the present Domino controllers.
+
 - The Octobus communication between the ND-100, the MFBus controller and the ACCP can be tested manually by using the Octobus Test Program, the MFBus Test and Maintenance program and the ACCP Console Monitor.
+
 - Find the Octobus configuration.
 
 ## 3.1 Requirement
 
-Following requirements must be fulfilled to run the program satisfactorily:
+Following requirements must be fulfilled to run the program satisfactory:
 
 - The configuration of the Octobus must follow the specification: A Domino controller may have Octobus station number from 10b to 67b.
+
 - Test 4, test 5 and test 6 require Domino prom version not older than version C (Domi-Opcom, 73100C).
 
 ## 3.2 Commands
 
 The commands available for the user are:
 
-- SET-PARAMETERS <loop> <abort> <supress> <error report level> <test all> <max message length>
-- SELECT-DEVICE <Octobus controller number>
-- SELECT-OCTOBUS-STATION <Octobus station number>
+- SET-PARAMETERS \<loop> \<abort> \<supress> \<error report level> \<test a1l> \<max message length>
+
+- SELECT-DEVICE \<Octobus controller number>
+
+- SELECT-OCTOBUS-STATION \<Octobus station number>
+
 - LIST-HARDWARE-CONFIGURATION
+
 - LIST-OCTOBUS-DEVICES
-- DECODE-STATUS-REGISTER <transmit/receive> <register content>
-- RUN <test sequence>
+
+- DECODE-STATUS-REGISTER \<transmit/receive> \<register content>
+
+- RUN \<test sequence>
+
 - OCTOBUS-FACILITIES
 
 ---
 
+Scanned by Jonny Oddene for Sintran Data © 2012
+
+---
+
 ## Page 24
+
+# Test Program Description for ND-100/ND-110 - Addendum
 
 ## 3.2.1 SET-PARAMETERS
 
@@ -671,19 +698,19 @@ The parameter 'Maximum message length' specifies the size of the largest multiby
 
 The user may specify the appearance of the error messages. This is done by answering 'Yes' to the question 'Define error reporting level'. The following questions must then be answered (default values in parenthesis):
 
-- Controller number (Yes)
+- Controller number (Yes)  
   The number of the failing Octobus Controller.
 
-- Hardware device number (Yes)
+- Hardware device number (Yes)  
   The hardware device number for the failing Octobus controller.
 
-- Type of error (Yes)
+- Type of error (Yes)  
   Specify what is wrong.
 
-- Error information (Yes)
-  This information depends on the type of error. It may be register contents, or found and expected values.
+- Error information (Yes)  
+  This information depends on type of error. It may be register contents, or found and expected values.
 
-- Decoding of status (Yes)
+- Decoding of status (Yes)  
   Decoding of register contents shown under 'Error information'.
 
 ## 3.2.2 SELECT-DEVICE
@@ -695,15 +722,16 @@ The user has the possibility to choose which Octobus device to test, if there ar
 ## Page 25
 
 # Test Program Description for ND-100/ND-110 - Addendum
-### OCTOBUS-B<rev>
 
-If one wants to test all present Octobus devices, this may be specified under SET-PARAMETERS. Default is that only one Octobus controller is tested.
+## OCTOBUS-B<rev>
 
-## 3.2.3 SELECT-OCTOBUS-STATION
+If one wants to test all present Octobus devices, this may be specified under `SET-PARAMETERS`. Default is that only one Octobus controller is tested.
+
+### 3.2.3 SELECT-OCTOBUS-STATION
 
 In test 4, 5 and 6 the Octobus communication between ND-100 and the Domino controllers is tested. Default is that the communication between ND-100 and all possible Octobus stations is tested. If you want to test the communication between ND-100 and one specified Octobus station, you have to specify this station by using this command.
 
-## 3.2.4 LIST-HARDWARE-CONFIGURATION
+### 3.2.4 LIST-HARDWARE-CONFIGURATION
 
 Will find present Octobus controllers, and all the Octobus stations present for each controller. These stations may be the MFBus controller, the ACCP and/or the Domino modules. Before returning to TPE, a configuration table is shown. This table consists of, from left to right:
 
@@ -711,10 +739,10 @@ Will find present Octobus controllers, and all the Octobus stations present for 
 - Octobus hardware device number.
 - Receive ident code (level 13).
 - Transmit ident code (level 13).
-- The Octobus controller’s station number.
+- The Octobus controller's station number.
 - Stations seen by the Octobus controller.
 
-## 3.2.5 LIST-OCTOBUS-DEVICES
+### 3.2.5 LIST-OCTOBUS-DEVICES
 
 This command presents a table showing all devices defined for the ND-100 Octobus interface, by Norsk Data. This table consists of, from left to right:
 
@@ -723,7 +751,7 @@ This command presents a table showing all devices defined for the ND-100 Octobus
 - Receive ident code (level 13).
 - Transmit ident code (level 13).
 
-## 3.2.6 DECODE-STATUS-REGISTER
+### 3.2.6 DECODE-STATUS-REGISTER
 
 It presents a decoding of a given Octobus status register. The status register may be transmit or receive.
 
@@ -806,7 +834,7 @@ The user has direct access to all the Octobus registers. The available functions
 ## Page 28
 
 # Test Program Description for ND-100/ND-110 - Addendum
-## OCTOBUS-8<rev>
+OCTOBUS-8\<rev\>
 
 - WRITE-RECEIVE-CONTROL
 - WRITE-TRANSMIT-DATA
@@ -815,37 +843,41 @@ The user has direct access to all the Octobus registers. The available functions
 
 Dependent of the function (read or write), the register content is presented to the user, or the user must specify the content.
 
-### 3.2.8.2 RESTART
+## 3.2.8.2 RESTART
 
 Hardware decoded message to specified Octobus station. Activates the RESET signal and restarts the controller after a total reset.
 
-### 3.2.8.3 CONTINUE
+## 3.2.8.3 CONTINUE
 
 Hardware decoded message to specified Octobus station. Deactivates the HALT signal.
 
-### 3.2.8.4 STOP
+## 3.2.8.4 STOP
 
 Hardware decoded message to specified Octobus station. Activates the HALT signal. Halt must remain active until the CONTINUE message is received.
 
-### 3.2.8.5 INT7
+## 3.2.8.5 INT7
 
 Hardware decoded message to specified Octobus station. Generates a level 7 interrupt. Force the processor out of a hang situation.
 
-### 3.2.8.6 RESET-COUNTER
+## 3.2.8.6 RESET-COUNTER
 
 Hardware decoded message to specified Octobus station. Resets the time reference counter.
 
-### 3.2.8.7 POWER-UP
+## 3.2.8.7 POWER-UP
 
 Hardware decoded message to specified Octobus station. Power up.
 
-### 3.2.8.8 POWER-DOWN
+## 3.2.8.8 POWER-DOWN
 
 Hardware decoded message to specified Octobus station. Power down.
 
-### 3.2.8.9 READ-OCTOBUS-TRANSMIT-STATUS
+## 3.2.8.9 READ-OCTOBUS-TRANSMIT-STATUS
 
 The content of the Octobus transmit status register is presented to the user, and decoded.
+
+---
+
+Scanned by Jonny Oddene for Sintran Data © 2012
 
 ---
 
@@ -895,9 +927,7 @@ Page 25
 
 ## Page 32
 
-I'm sorry, I can't assist with identifying or transcribing content from this page.
-
----
+*[Page 32 — not captured by OCR (blank, image-only, or unreadable in the scan).]*
 
 ## Page 33
 
@@ -956,53 +986,55 @@ Scanned by Jonny Oddene for Sintran Data © 2012
 
 # Test Program Description for ND-100/ND-110 - Addendum
 
-## EXTENDED-MESSAGE-CODE `<Value>`
+## SCSI-TV-C<rev>
+
+### EXTENDED-MESSAGE-CODE `<Value>`
 
 Decodes the extended SCSI message code.
 
-## COMMAND-CODE `<Value>`
+### COMMAND-CODE `<Value>`
 
 Decodes the SCSI command operation code.
 
-## SENSE-KEY `<Value>`
+### SENSE-KEY `<Value>`
 
 Decodes the SCSI sense key.
 
-## ADDITIONAL-SENSE-CODE `<Value>`
+### ADDITIONAL-SENSE-CODE `<Value>`
 
 Decodes the SCSI extended sense key.
 
-## STATUS-CODE `<Value>`
+### STATUS-CODE `<Value>`
 
 Decodes the SCSI status byte.
 
-## MEMORY-ADDRESS `<Value>`
+### MEMORY-ADDRESS `<Value>`
 
-Decodes a physical memory address in bank, page in bank and displacement in page.
+Decodes a physical memory address in bank, page in bank, and displacement in page.
 
-### Commands
+## Commands
 
-#### `DUMP-SENSE-DATA`
+### >DUMP-SENSE-DATA
 
-Gives a hex dump of the contents of the sense block from the last request sense (i.e. the last error message reported from the SCSI device). The operator could then use the reference manual to decode the different field in the sense block.
+Gives a hex dump of the contents of the sense block from the last request sense (i.e., the last error message reported from the SCSI device). The operator could then use the reference manual to decode the different field in the sense block.
 
-#### `LIST-DEFINED-DEVICES`
+### >LIST-DEFINED-DEVICES
 
-This command list all SCSI devices defined under SINTRAN.
+This command lists all SCSI devices defined under SINTRAN.
 
-#### `LIST-PRESENT-DEVICES`
+### >LIST-PRESENT-DEVICES
 
 This command will list all SCSI host adapters in ND-100 and the connected devices along with some important device information.
 
-#### `PRINT-TAPE-STATISTICS`
+### >PRINT-TAPE-STATISTICS
 
 Prints the statistic data which are collected while running the magtape/streamer tests. (Only available when a sequential device is selected).
 
-#### `RUN-adapter-TESTS <Test list>`
+### >RUN-adapter-TESTS `<Test list>`
 
 This command will execute all or a specified sequence of tests for the ND-100 SCSI host adapter.
 
-#### `RUN-DEVICE-TESTS <Test list>`
+### >RUN-DEVICE-TESTS `<Test list>`
 
 This command will execute all or a specified sequence of tests for the SCSI device (e.g., disk or streamer).
 
@@ -1278,44 +1310,45 @@ Reads data from the data partition and writes it to the scratch partition. The s
 
 # Test Program Description for ND-100/ND-110 - Addendum
 
-## Test 20 : Write/read magtape
+## Test 20: Write/read magtape
 
-This tests simulates normal use of the magtape drive (see also SET-TAPE-PARAMETERS).
+This test simulates normal use of the magtape drive (see also `SET-TAPE-PARAMETERS`).
 
-## Test 21 : BOT test
+## Test 21: BOT test
 
 This test checks correct positioning at BOT for various rewind conditions.
 
-## Test 22 : Wear test
+## Test 22: Wear test
 
 The purpose of this test is to try to detect a deterioration due to repeated writing and reading.
 
-## Test 23 : Filemark test
+## Test 23: Filemark test
 
 The purpose of this test is to check the detection of a filemark under various circumstances.
 
-## Test 30 : Write/read streamer
+## Test 30: Write/read streamer
 
-This tests simulates normal use of the drive (see also SET-TAPE-PARAMETERS).
+This test simulates normal use of the drive (see also `SET-TAPE-PARAMETERS`).
 
-## Test 31 : Over/under run
+## Test 31: Over/under run
 
 Writes and reads data with delay between the next data transfer to provoke over/under run.
 
-## Test 32 : Filemark/space test
+## Test 32: Filemark/space test
 
 Writes and reads data with different number of records for each operation, after a write operation a filemark is written. Space over filemark, space over records and space to end-of-recorded-data are also tested.
 
-## Test 40 : Write to optical
+## Test 40: Write to optical
 
 Writes a specified number of blocks to the optical disk. This test may operate in two different modes:
 
 1. The standard test area, which is the last megabyte on the disk, will not be used by other ND software products and is therefore used as default by SCSI-TV for write and read on the disk media.
-2. If you use a test prepared with the CREATE-OPTICAL-TEST-DISK command, the whole disk will be reserved for the media tests.
 
-**Note:** The write enable parameter in the SET-OPTICAL-DISK-PARAMETERS must be set to YES.
+2. If you use a test prepared with the `CREATE-OPTICAL-TEST-DISK` command, the whole disk will be reserved for the media tests.
 
-## 41 : Read/test optical disk
+**Note:** The write enable parameter in the `SET-OPTICAL-DISK-PARAMETERS` must be set to YES.
+
+## Test 41: Read/test optical disk
 
 Read back and test the last blocks written by the write to optical disk test.
 
@@ -1323,7 +1356,9 @@ Read back and test the last blocks written by the write to optical disk test.
 
 ## Page 41
 
-# 4.5 Known but not Corrected Errors
+# Test Program Description for ND-100/ND-110 - Addendum
+
+## 4.5 Known but not Corrected Errors
 
 - Early versions of the MICROPOLIS disk 1370 for 60MB will not be recognized by the test program.
 
@@ -1334,13 +1369,11 @@ Read back and test the last blocks written by the write to optical disk test.
   ```
   MPM4 Memory out of range
   ```
-
   appear, reload the program and use the commands:
 
   ```
   >SET-BUFFER-LIMITS <MPM5 first page>,<MPM5 last page>
   ```
-
   for setting of correct buffer limits before selecting the device.
 
   If one of the error messages:
@@ -1349,7 +1382,6 @@ Read back and test the last blocks written by the write to optical disk test.
   MPM4 Parity error
   MPM4 Power fail
   ```
-
   appear, please reload the program before you continue.
 
 - The program fails if there is too little memory available for swapping in SINTRAN.
@@ -1359,7 +1391,6 @@ Read back and test the last blocks written by the write to optical disk test.
   ```
   *E* (050353B) (PB) No memory available
   ```
-
   appears when loading the program, use the ND-500/5000 MONITOR to take some memory from the 500(0) processes.
 
   Use the following commands before reloading the program:
@@ -1370,21 +1401,17 @@ Read back and test the last blocks written by the write to optical disk test.
   N500: EXIT
   ```
 
-Scanned by Jonny Oddene for Sintran Data © 2012.
-
 ---
 
 ## Page 42
 
-I'm sorry, the image does not contain any visible text or diagrams to convert into Markdown.
+I'm unable to retrieve any text or images from the scanned page you provided. If there's another image or document, please try uploading again, or let me know if there's something specific you need help with.
 
 ---
 
 ## Page 43
 
-I'm sorry, I can't process this image without visible text or diagrams to transcribe.
-
----
+*[Page 43 — not captured by OCR (blank, image-only, or unreadable in the scan).]*
 
 ## Page 44
 
@@ -1394,4 +1421,3 @@ I'm sorry, I can't process this image without visible text or diagrams to transc
 Scanned by Jonny Oddene for Sintran Data © 2012
 
 ---
-

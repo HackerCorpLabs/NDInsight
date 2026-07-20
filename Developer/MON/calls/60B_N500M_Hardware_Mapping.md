@@ -4,6 +4,20 @@
 **Audience:** Developers new to Norsk Data systems
 **Date:** 2025-02-05
 
+> **CORRECTED 2026-07-20.** This document originally described a "high-level TAG code
+> protocol" (TAG-IN 8 = monitor-call request, TAG-OUT 16 = operation complete, process
+> number in TAG bits 8-11, etc.). **That protocol never existed** — it was an emulator
+> invention, disproven against ND-30.013.02 (TMP) and the SINTRAN NPL sources. The TAG
+> registers are 4-bit register-level strobes between the 3022 and the 5015 used by the
+> microcode, the control-store loader and the test programs; the runtime driver never
+> exchanges codes through them. Monitor calls travel entirely inside the 5MPM message
+> (status word `N5STA`, stop reason `STOPR`), and the ND-500→ND-100 "doorbell" is the
+> STATUS-register "finished" bit raising the level-12 interrupt.
+> Authoritative reference:
+> `E:\Dev\Ronny\NDInsight\SINTRAN\ND500\ND500-BUS-INTERFACE-REFERENCE.md`
+> (sections 4, 5, 7 and 10, incl. 10.3 "The fabricated protocol, for the record").
+> The sections below have been rewritten accordingly.
+
 ---
 
 ## 1. Introduction for Newcomers
@@ -44,12 +58,12 @@ The Norsk Data ND-500 is a **32-bit coprocessor** that works alongside the **16-
 The ND-100 and ND-500 communicate through:
 
 1. **5MPM (Multiport Memory)** - Shared RAM both CPUs can read/write
-2. **TAG Registers** - Hardware signal lines to get each other's attention
+2. **STATUS/CONTROL registers** - the real attention signals: activate (CONTROL bit 2) one way, "finished" + level-12 interrupt the other
 3. **3022/5015 Interface Cards** - The physical hardware connecting them
 
 **Analogy:** Think of it like two people in separate rooms:
 - The **5MPM** is a shared whiteboard where they write messages
-- The **TAG registers** are doorbells to say "I wrote something, come read it!"
+- The **activate strobe and the level-12 interrupt** are the doorbells saying "I wrote something, come read it!" (the TAG registers are NOT doorbells — they are register-level strobes for control-store load, test and microcode DMA)
 
 ### 1.3 What is MON 60?
 
@@ -62,116 +76,38 @@ The ND-100 and ND-500 communicate through:
 
 ---
 
-## 2. Understanding TAG-IN and TAG-OUT (Critical!)
+## 2. Understanding TAG-IN and TAG-OUT (Corrected)
 
-### 2.1 The Confusing Names Explained
+### 2.1 What the TAG registers really are
 
-The names "TAG-IN" and "TAG-OUT" confuse everyone at first. Here's the key:
+Both TAG registers live **on the 5015 card** (the ND-500 side). Their names are from
+the 5015's perspective (ND-30.013.02 sections 3.12/3.13):
 
-**The names are from the 3022 interface card's perspective (which sits in the ND-100).**
+- **TAG-IN** = strobes coming **IN** to the 5015 **from the ND-100** (written via the
+  3022's WTAG/LTAG5 IOX offset). Its 4-bit codes clock/enable individual 5015
+  registers: DICLK1/DICLK2 (clock DATA-IN halves), DUCLK, WACLK (control-store write
+  address), BRKCLK, TGCLK, CNTCLK, DIEN, DUEN, WAR, BRKR, CNTR, RESBRK, DUNL, EOUTEN.
+  This is the control-store-load and test/debug path.
+- **TAG-OUT** = strobes going **OUT** of the 5015 toward the 3022, **driven by the
+  ND-500 microcode**. Its 3-bit codes command the 3022: read/write MAR, read/write
+  STATUS, read CONTROL, reset activate, read/write DATA **(and ND-100 memory — this
+  is the microcode's DMA path for fetching messages and writing answers)**.
 
-Think of the 3022 card as a "mailbox" sitting in the ND-100:
-- **TAG-IN** = mail coming **IN** to the mailbox (from ND-500)
-- **TAG-OUT** = mail going **OUT** of the mailbox (to ND-500)
+**They are register-level hardware strobes, not a message protocol.** No monitor-call
+codes, no process numbers, no completion codes ever travel through them. The runtime
+SINTRAN driver does not use them at all; only the control-store loader and the test
+programs (TMP) touch them from the ND-100 side.
 
-```
-                        ┌─────────────────────────────────┐
-                        │     3022 Interface Card         │
-                        │     (sits in ND-100)            │
-                        │                                 │
-     ND-500 ──────────► │  ┌─────────┐                   │
-     writes this        │  │ TAG-IN  │  "IN" = coming    │
-                        │  │         │  INTO the 3022    │
-                        │  └─────────┘  FROM ND-500      │
-                        │                                 │
-                        │  ┌─────────┐                   │
-     ND-500 ◄────────── │  │ TAG-OUT │  "OUT" = going    │
-     reads this         │  │         │  OUT of the 3022  │
-                        │  └─────────┘  TO ND-500        │
-                        │                                 │
-                        └─────────────────────────────────┘
-```
+### 2.2 How signaling actually works
 
-### 2.2 Clear Direction Table
+| Direction | Mechanism |
+|-----------|-----------|
+| ND-100 → ND-500 ("go") | **Activate**: CONTROL register bit 2 via LCON5. "Nothing but an activate or a terminate from the ND-100 can cause the micro program to leave the IDLE loop" (ND-05.012.01 section 13) |
+| ND-500 → ND-100 ("done"/"stopped") | Microcode writes answer status into the message (`N5STA`), sets STATUS "finished" (bit 3) + stop reason (STATUS bits 10-14); the 3022 raises **level-12 interrupt** (ident 16₈ for thumbwheel 0) if CONTROL bit 0 is set |
+| Request/response payload | Entirely in the **5MPM message block** (N5STA, MICFU, STOPR, MCNO, parameters) |
 
-| Register | Who Writes It | Who Reads It | Data Flows | Used For |
-|----------|---------------|--------------|------------|----------|
-| **TAG-IN** | ND-500 | ND-100 | ND-500 → ND-100 | ND-500 sends requests |
-| **TAG-OUT** | ND-100 | ND-500 | ND-100 → ND-500 | ND-100 sends responses |
-
-### 2.3 IOX Commands (How ND-100 Accesses TAGs)
-
-The ND-100 uses IOX instructions to access the TAG registers:
-
-| IOX Command | Offset | What It Does | English Meaning |
-|-------------|--------|--------------|-----------------|
-| **RTAG5** | +8 | **R**ead TAG-**IN** | "Read what ND-500 sent me" |
-| **LTAG5** | +9 | **L**oad TAG-**OUT** | "Send this to ND-500" |
-
-**Code Example (NPL):**
-```npl
-% ND-100 reads what ND-500 sent
-T:=HDEV+RTAG5; *IOXT          % Execute IOX at device+8
-A =: REQUEST                   % A register now contains ND-500's message
-
-% ND-100 sends response to ND-500
-A := 16                        % 16 = "operation complete" code
-T:=HDEV+LTAG5; *IOXT          % Execute IOX at device+9, sends A to ND-500
-```
-
-### 2.4 Complete Communication Example
-
-Here's a step-by-step example of an ND-500 program asking the ND-100 to read a file:
-
-```
-STEP 1: ND-500 Prepares Request
-─────────────────────────────────────────────────────────────────────────
-   ND-500 writes to shared memory (5MPM):
-   - "I want to read a file"
-   - "The filename is HERE"
-   - "Put the data THERE"
-
-   ND-500 writes to its TAG register:
-   - Code 8 = "I have a monitor call request"
-   - Process number = 3 (my process ID)
-
-   Result: TAG-IN register now contains 0x0308
-           (code 8 in low byte, process 3 in next nibble)
-
-STEP 2: ND-100 Receives Request
-─────────────────────────────────────────────────────────────────────────
-   Hardware generates Level 12 interrupt on ND-100
-
-   ND-100 interrupt handler runs:
-   T:=HDEV+RTAG5; *IOXT        % Read TAG-IN
-   A now = 0x0308
-
-   ND-100 extracts:
-   - Code = 8 (monitor call request)
-   - Process = 3
-
-   ND-100 reads shared memory to get full request details
-
-STEP 3: ND-100 Processes Request
-─────────────────────────────────────────────────────────────────────────
-   ND-100 reads the file from disk
-   ND-100 copies file data to shared memory (5MPM)
-   ND-100 writes result status to shared memory
-
-STEP 4: ND-100 Signals Completion
-─────────────────────────────────────────────────────────────────────────
-   A := 16                      % Code 16 = "operation complete"
-   T:=HDEV+LTAG5; *IOXT        % Write TAG-OUT
-
-   Result: TAG-OUT register now contains 16
-           ND-500 sees this and knows to read results
-
-STEP 5: ND-500 Continues
-─────────────────────────────────────────────────────────────────────────
-   ND-500 reads TAG-OUT, sees code 16
-   ND-500 reads results from shared memory
-   ND-500 program continues execution
-```
+See `E:\Dev\Ronny\NDInsight\SINTRAN\ND500\ND500-BUS-INTERFACE-REFERENCE.md`
+sections 4, 5, 7 and 10 for the register bit tables and driver flows.
 
 ---
 
@@ -193,8 +129,8 @@ The 3022 is the interface card that sits in the ND-100 and connects to the ND-50
 | +5 | 005 | LCON5 | Write | Load Control | "Wake up ND-500!" |
 | +6 | 006 | MCLR5 | Write | Master Clear | "Reset everything!" |
 | +7 | 007 | TERM5 | Write | Terminate | "Stop that process!" |
-| **+8** | **010** | **RTAG5** | **Read** | **Read TAG-IN** | **"What did ND-500 send?"** |
-| **+9** | **011** | **LTAG5** | **Write** | **Write TAG-OUT** | **"Send this to ND-500"** |
+| +8 | 010 | RTAG5 | Read | Read tag (readback) | Diagnostic readback of TAG bits (return-tag path) |
+| +9 | 011 | LTAG5/WTAG | Write | Write 5015 TAG-IN strobe | Control-store load / test strobes only — NOT runtime signaling |
 
 ### 3.2 Status Register (RSTA5) Explained
 
@@ -234,30 +170,51 @@ Write these values to LCON5 to control the ND-500:
 
 ---
 
-## 4. TAG Command Codes
+## 4. TAG Strobe Codes (Corrected — register-level only)
 
-### 4.1 TAG-IN Codes (ND-500 → ND-100)
+**The former "TAG command code" tables (8 = MonitorCallRequest, 16 = OperationComplete,
+etc.) were fabricated and have been removed.** The real codes, from ND-30.013.02
+sections 3.12/3.13, are hardware register strobes:
 
-These are the codes ND-500 sends to request things from ND-100:
+### 4.1 TAG-IN codes (ND-100 → 5015, written via WTAG/LTAG5) — octal
 
-| Code | Name | Meaning | MON 60? |
-|------|------|---------|---------|
-| 1 | DMARead | "I need you to DMA read for me" | No |
-| 2 | DMAWrite | "I need you to DMA write for me" | No |
-| 3 | ClearInterrupt | "Clear my interrupt" | No |
-| **8** | **MonitorCallRequest** | **"I have a monitor call!"** | **Yes** |
-| 9 | PageFaultRequest | "I had a page fault!" | Related |
+| Code | Name | Function |
+|------|------|----------|
+| 1 | DICLK1 | clock DATA-IN-1 register |
+| 2 | DICLK2 | clock DATA-IN-2 register |
+| 3 | DUCLK | clock DATA-OUT register |
+| 4 | WACLK | clock control-store write-address (WA) register |
+| 5 | BRKCLK | clock BREAK register |
+| 6 | TGCLK | clock TAG-OUT register |
+| 7 | CNTCLK | clock CSCNT register |
+| 10 | DIEN | enable DATA-IN register to CDB bus |
+| 11 | DUEN | enable DATA-OUT register (least significant) |
+| 12 | WAR | read WA register |
+| 13 | BRKR | read BREAK register |
+| 14 | CNTR | read CSCNT register |
+| 15 | RESBRK | reset break |
+| 16 | DUNL | unlock |
+| 17 | EOUTEN | enable data line driver |
 
-### 4.2 TAG-OUT Codes (ND-100 → ND-500)
+(The field is 4 bits — the old "code 16 = OperationComplete" was not even
+representable. Decimal 8/9 are the DIEN/DUEN strobes.)
 
-These are the codes ND-100 sends back to ND-500:
+### 4.2 TAG-OUT codes (5015 → 3022, driven by ND-500 microcode) — octal
 
-| Code | Name | Meaning |
-|------|------|---------|
-| 1 | DMAComplete | "DMA is done" |
-| 2 | InterruptAck | "I got your interrupt" |
-| **16** | **OperationComplete** | **"Your monitor call is done!"** |
-| 17 | ActivateProcess | "You can run now" |
+| Code | Function |
+|------|----------|
+| 0 | read memory address register (MAR) |
+| 1 | write MAR |
+| 2 | read STATUS register |
+| 3 | write STATUS register |
+| 4 | read CONTROL register |
+| 5 | reset activate |
+| 6 | read DATA register (and ND-100 memory) |
+| 7 | write DATA register (and then into ND-100 memory) |
+
+Codes 6/7 are how the microcode DMAs messages out of ND-100 memory and writes
+answers back. Bit 3 = "ND-100 if 0"; bit 7 = MOST (most/least half of the 32-bit
+data registers).
 
 ---
 
@@ -316,18 +273,20 @@ When ND-500 makes a monitor call, it fills out this message structure:
 
 TIME ──────────────────────────────────────────────────────────────────►
 
-  ND-500                              ND-100
+  ND-500 (microcode)                  ND-100 (SINTRAN)
     │                                   │
-    │ 1. Fill MCNO, STOPR, 5AP1-4      │
-    │ 2. Write TAG-IN = 8              │
-    │──────────────────────────────────►│
-    │                                   │ 3. Read TAG-IN
-    │                                   │ 4. Read message from 5MPM
-    │                                   │ 5. Process request
+    │ 1. Fill MCNO, STOPR, 5AP1-4       │
+    │    (message via TAG-OUT 6/7 DMA)  │
+    │ 2. N5STA := ANSWER; STATUS        │
+    │    "finished" + stop reason       │
+    │──── level-12 interrupt ──────────►│
+    │                                   │ 3. Read RSTA5 (status)
+    │                                   │ 4. Walk message queue, check N5STA
+    │                                   │ 5. STOPR=MOCALL → MCHANDLE
     │                                   │ 6. Fill FUNCV, KFLIP, 5DP1-4
-    │                                   │ 7. Write TAG-OUT = 16
-    │◄──────────────────────────────────│
-    │ 8. Read TAG-OUT                   │
+    │                                   │ 7. N5STA/MICFU := restart; LCON5
+    │◄──── activate (CONTROL bit 2) ────│
+    │ 8. Leave IDLE loop, fetch message │
     │ 9. Read results from 5MPM         │
     │ 10. Continue execution            │
     ▼                                   ▼
@@ -346,16 +305,16 @@ TIME ─────────────────────────
 ├─────────────────┤     ├─────────────────┤     ├─────────────────┤
 │                 │     │                 │     │                 │
 │  MON 60 call    │────►│ Write message   │     │                 │
+│                 │     │ (N5STA, STOPR)  │     │                 │
+│  STATUS "fin."  │─────┼─ level-12 IRQ ──┼────►│ Interrupt!      │
 │                 │     │                 │     │                 │
-│  TAG-IN = 8     │─────┼─────────────────┼────►│ Interrupt!      │
-│                 │     │                 │     │                 │
-│  (waiting...)   │     │                 │     │ Read message    │◄─┐
-│                 │     │                 │◄────│                 │  │
+│  (IDLE loop)    │     │                 │     │ Read message    │◄─┐
+│                 │     │                 │◄────│ (N5STA/STOPR)   │  │
 │                 │     │                 │     │ Process it      │  │
 │                 │     │                 │     │                 │  │
 │                 │     │ Write results   │◄────│                 │  │
 │                 │     │                 │     │                 │  │
-│  TAG-OUT = 16   │◄────┼─────────────────┼─────│ TAG-OUT = 16    │  │
+│  activate       │◄────┼─────────────────┼─────│ LCON5 (bit 2)   │  │
 │                 │     │                 │     │                 │  │
 │  Read results   │◄────│                 │     │                 │  │
 │                 │     │                 │     │                 │  │
@@ -373,22 +332,24 @@ TIME ─────────────────────────
    a. Gets message buffer address from process descriptor
    b. Writes MCNO (function code) to message buffer
    c. Writes parameters to 5AP1-5AP4
-   d. Sets STOPR = 1 (meaning "monitor call")
-   e. Sets 5ITMQUEUE flag in status
-   f. Writes to 5015 TAG register: code 8 + process number
-3. ND-500 enters wait state
+   d. Sets STOPR = MOCALL (meaning "monitor call")
+   e. Writes answer status into the message (N5STA)
+   f. Sets STATUS "finished" (bit 3) + stop reason (bits 10-14);
+      3022 raises the level-12 interrupt if CONTROL bit 0 is set
+3. ND-500 microcode returns to the IDLE loop (waits for activate)
 ```
 
 **Phase 2: ND-100 Receives and Processes**
 
 ```
-1. 3022 card generates Level 12 interrupt
-2. ND-100 interrupt handler (5STDRIV) runs:
-   a. T:=HDEV+RTAG5; *IOXT        % Read TAG-IN
-   b. Extract process number (bits 8-11)
-   c. Calculate message buffer address
-3. DECOMESS routine reads message from 5MPM
-4. MCHANDEL dispatcher checks MCNO:
+1. 3022 card generates Level 12 interrupt (ident 16 octal for thumbwheel 0)
+2. ND-100 interrupt handler (5STDRIV, NPL:MP-P2-N500.NPL:656-694) runs:
+   a. CALL CLE5STATUS              % read RSTA5, clear latched power bits
+   b. Check error bits (5PAGF/5DMAER/5PFAIL/5POWOF)
+   c. Scan the execution queue from MAILINK, following LINK fields
+3. CHN5STATUS dispatches on each message's N5STA;
+   answers go to DECOMESS, which reads STOPR
+4. STOPR = MOCALL/5FMOCALL -> MCHANDLE dispatcher checks MCNO:
    - If 500-523: Handle directly (fast path)
    - Otherwise: Forward to background kernel
 5. Handler executes the requested function
@@ -401,18 +362,18 @@ TIME ─────────────────────────
    a. FUNCV = return value
    b. 5DP1-5DP4 = output parameters
    c. KFLIP = 0 (success) or 1 (error)
-   d. MICFU = 3 (restart code = 3MONCO)
-2. Clear 5ITMQUEUE flag
-3. Write TAG-OUT:
-   a. A := 16                    % Operation complete
-   b. T:=HDEV+LTAG5; *IOXT      % Send to ND-500
+   d. MICFU = restart code (24B 3MONCO = restart after monitor call)
+2. Message status set back to "message to ND-500"
+3. Activate the ND-500:
+   T:=HDEV+LCON5; *IOXT           % CONTROL bit 2 = activate
+   (see reference section 5 for the ACT50 / enable-sequence paths)
 ```
 
 **Phase 4: ND-500 Resumes**
 
 ```
-1. ND-500 sees TAG-OUT = 16
-2. ND-500 microcode:
+1. The activate wakes the microcode out of the IDLE loop
+2. ND-500 microcode fetches the message (TAG-OUT 6 DMA via MAR) and:
    a. Reads FUNCV from message buffer
    b. Reads 5DP1-5DP4 output parameters
    c. Checks KFLIP for error
@@ -427,17 +388,20 @@ TIME ─────────────────────────
 
 ### 7.1 Which Functions Use Which Hardware
 
-| MON 60 Function | TAG Codes Used | IOX Commands | 5MPM Fields |
-|-----------------|----------------|--------------|-------------|
-| **Read Register (0B)** | 8 → 16 | RSTA5 | MCNO, 5AP1, 5DP1 |
-| **Write Register (1B)** | 8 → 16 | LSTA5 | MCNO, 5AP1, 5AP2 |
-| **Read Memory (2B/3B)** | 8 → 1 → 16 | DMA sequence | MCNO, N500A, NRBYT |
-| **Write Memory (4B/5B)** | 8 → 2 → 16 | DMA sequence | MCNO, N500A, NRBYT |
-| **Run Program (12B)** | 8 → 16 | LCON5 (5) | MCNO, STOPR, FUNCV |
-| **Read Control Store (23B)** | 8 → 16 | CS read | MCNO, 5AP1, 5AP2 |
-| **Master Clear (35B)** | 8 → 16 | MCLR5 | MCNO |
-| **Read Status (41B)** | 8 → 16 | RSTA5, RMAR5 | MCNO, 5DP1, 5DP2 |
-| **Read Flag (100B)** | 8 → 16 | None | MCNO, 5AP1, 5DP1 |
+| MON 60 Function | Signaling | IOX Commands | 5MPM Fields |
+|-----------------|-----------|--------------|-------------|
+| **Read Register (0B)** | message + activate | RSTA5, LCON5 | MCNO, 5AP1, 5DP1 |
+| **Write Register (1B)** | message + activate | RSTA5, LCON5 | MCNO, 5AP1, 5AP2 |
+| **Read Memory (2B/3B)** | message + activate | LMAR5, LCON5 | MCNO, N500A, NRBYT |
+| **Write Memory (4B/5B)** | message + activate | LMAR5, LCON5 | MCNO, N500A, NRBYT |
+| **Run Program (12B)** | message + activate | LCON5 | MCNO, STOPR, FUNCV |
+| **Read Control Store (23B)** | TAG-IN strobes (WACLK/CNTCLK) | LTAG5, WDAT | MCNO, 5AP1, 5AP2 |
+| **Master Clear (35B)** | strobe | MCLR5 | MCNO |
+| **Read Status (41B)** | direct read | RSTA5, RMAR5 | MCNO, 5DP1, 5DP2 |
+| **Read Flag (100B)** | message + activate | None | MCNO, 5AP1, 5DP1 |
+
+(All "message + activate" rows signal completion back via STATUS "finished" +
+level-12 interrupt — never via TAG codes.)
 
 ### 7.2 Fast-Path vs Slow-Path Functions
 
@@ -455,43 +419,40 @@ TIME ─────────────────────────
 
 ## 8. Quick Reference
 
-### 8.1 TAG Direction Summary
+### 8.1 TAG Direction Summary (corrected)
 
 ```
-TAG-IN  = ND-500 → ND-100  (ND-500 sends requests)
-TAG-OUT = ND-100 → ND-500  (ND-100 sends responses)
+Both TAG registers are ON the 5015 (ND-500 side):
+TAG-IN  = ND-100 → 5015  register strobes (control-store load, test/debug)
+TAG-OUT = 5015 → 3022    3022-register commands driven by ND-500 microcode
+                         (incl. DMA read/write of ND-100 memory, codes 6/7)
 
-RTAG5 (+8) = ND-100 reads TAG-IN  = "What did ND-500 say?"
-LTAG5 (+9) = ND-100 writes TAG-OUT = "Tell ND-500 this"
+RTAG5 (offset 10B) = readback of tag bits (return-tag diagnostic path)
+LTAG5 (offset 11B) = write a TAG-IN strobe code
+Neither is used by the runtime SINTRAN driver.
 ```
 
-### 8.2 Common TAG Codes
+### 8.2 Real signaling (no "TAG codes" exist)
 
 ```
-ND-500 sends (TAG-IN):     ND-100 sends (TAG-OUT):
-  8 = Monitor call           16 = Operation complete
-  9 = Page fault             17 = Activate process
-  1 = DMA read request        1 = DMA complete
-  2 = DMA write request       2 = Interrupt ack
+ND-500 → ND-100:  message N5STA := ANSWER; STATUS "finished" (bit 3)
+                  + stop reason (bits 10-14) → level-12 interrupt
+                  (gated by CONTROL bit 0)
+ND-100 → ND-500:  message N5STA := "message to ND-500";
+                  activate via CONTROL bit 2 (LCON5)
 ```
 
 ### 8.3 Essential IOX Commands
 
 ```npl
-% Read what ND-500 sent
-T:=HDEV+RTAG5; *IOXT         % A = TAG-IN value
+% Check ND-500 status (the real "what happened" channel)
+T:=HDEV+RSTA5; *IOXT         % A = status bits (finished, stop reason...)
 
-% Send response to ND-500
-A:=16; T:=HDEV+LTAG5; *IOXT  % TAG-OUT = 16
-
-% Check ND-500 status
-T:=HDEV+RSTA5; *IOXT         % A = status bits
-
-% Activate ND-500
-A:=5; T:=HDEV+LCON5; *IOXT   % Start ND-500 running
+% Activate ND-500 (the real "go" channel)
+A:=5; T:=HDEV+LCON5; *IOXT   % bit 0 int-enable + bit 2 activate
 
 % Reset ND-500
-T:=HDEV+MCLR5; *IOXT         % Master clear
+T:=HDEV+MCLR5; *IOXT         % Master clear (restarts microcode at CS addr 0)
 ```
 
 ---
@@ -509,7 +470,7 @@ T:=HDEV+MCLR5; *IOXT         % Master clear
 
 ### 9.2 Debugging Tips
 
-1. **Check TAG registers first** - Most problems are TAG signaling issues
+1. **Check STATUS (RSTA5) first** - finished/busy/lock/stop-reason live there
 2. **Verify 5MPM addresses** - ND-100 and ND-500 see different addresses!
 3. **Look at STOPREASON** - Tells you why ND-500 stopped
 4. **Check KFLIP** - Non-zero means error occurred
@@ -541,8 +502,8 @@ T:=HDEV+MCLR5; *IOXT         % Master clear
 | **MCNO** | Monitor Call Number (function code) |
 | **MON 60** | Monitor call for ND-500 control |
 | **NPL** | Norsk Data Programming Language (like C) |
-| **TAG-IN** | Register for ND-500 to ND-100 signals |
-| **TAG-OUT** | Register for ND-100 to ND-500 signals |
+| **TAG-IN** | 5015 register: strobe codes written by ND-100 (CS load / test only) |
+| **TAG-OUT** | 5015 register: 3022-command codes driven by ND-500 microcode (incl. DMA) |
 
 ---
 

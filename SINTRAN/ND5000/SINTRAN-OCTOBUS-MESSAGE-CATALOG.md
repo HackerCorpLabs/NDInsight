@@ -39,8 +39,12 @@ the M06 symbol tables (values octal):
 | 5 | MDP1 | MDP1 | first parameter word |
 | 4 (recv) | ETYPE | ETYPE | received: high byte = SEC/status, low byte = reporting source |
 
-Received-record extras (5OMBREAD / 9FLER): `EOCTSOURCE` = offset 1,
-`ESECCODE` = offset 0 of the error record handed to the layer manager;
+Received-record extras (5OMBREAD / 9FLER): the L07 carve (2026-07-19,
+OCTOBUS-DRIVER-ROUTINES-CARVE.md) byte-proves the 9FLER record stores the
+SEC code at **LMREC+2** and the source station at **LMREC+3** [V]. The
+earlier "EOCTSOURCE = offset 1 / ESECCODE = offset 0" reading here came
+from M06 symbols and may be relative to a different record base -
+[UNCERTAIN] until re-verified against M06 bytes; for L07 use +2/+3.
 `N5SECCODE` = 2000B is OR-ed into the SEC code as the "ND-500 class" tag. [V]
 
 MBSEND takes the record plus a physical address/bank (`"LMFIELD+DPITPHYS"=:D;
@@ -59,7 +63,7 @@ From M06 SYMBOL-1-LIST / N5000-SYMBOLS (values octal):
 | FMFDEST | 2 | first MF-controller station |
 | LMFDEST | 6 | last MF-controller station |
 | FN5DEST | 70 | first ND-5000 (SAMSON) CPU station |
-| LN5DEST | 73 | last ND-5000 CPU station (M06 supports 4 SAMSONs; the hardware station table allows 70-76B) |
+| LN5DEST | 73 | last ND-5000 CPU station in M06 (4 SAMSONs). **L07 = 77B** [V 2026-07-19 carve, 5OMBREAD range check] - the hardware station table allows 70-76B; per-build constant |
 | OMDACCP | 3 | OMD on the SAMSON consumed by the ACCP command library |
 | MFOMDNO | 4 | OMD on the MF-controller for host messages |
 | N100IDENT | 1 | the ND-100's octobus IDENT number |
@@ -238,7 +242,7 @@ In-kernel L addresses (carve) vs M06 symbol addresses (all octal):
 | SOCTO | 035546 | SOCTO=036176 | send single octobus frame |
 | SOCTW | 036342 | SOCTW=036772 | send octobus frame + wait [I from name] |
 | SKICK | 037254 | SKICK=037704 | send kick; carve shows `BSET ONE SSK` then a body SHARED with SIDEN (037256 `BSET ZRO SSK`) - kick vs ident is a one-flag variant of the same sender [V] |
-| MBSEND | 037425 | MBSEN=040055 | send multibyte message (IOF-protected, IOXT sequence at 037320+: `LDT ,B -3; AAT 3; SAA 4; IOXT; ...` = write 100405/100406 pattern) [I on exact register mapping] |
+| MBSEND | 037425 | MBSEN=040055 | send multibyte message. **NO IOXT in MBSEND** [V 2026-07-19]: validates (station 1..76B, OMD <=17B, length 1..255 bytes), pops a CBPOOL buffer, queues on the TX datafield, and if idle fires level 13 with P:=SOCTW (036342) to transmit. The IOXT block at 037320+ belongs to SKICK's direct-TX path (control:=4 / frame / control:=1), not MBSEND - the earlier reading of this row was wrong. Full body: OCTOBUS-DRIVER-ROUTINES-CARVE.md |
 | OMBREAD | 037660 | OMBRE=040310 | read received multibyte message into buffer |
 | CONOMD | 040062 | CONOM=040512 | connect/allocate an OMD entry |
 | ECONID | 040467 | ECONI=041117 | connect an ident entry to a level |

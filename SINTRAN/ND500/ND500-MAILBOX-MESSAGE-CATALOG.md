@@ -354,6 +354,67 @@ Source: `MICROCODE-ANSWER-INIT-SAMSON-AND-13B-2026-07-17.md` (lossless B30 listi
   5ERANSWER(4). Register-image width in ND-100 memory (2 words/reg, hi first) is INFERRED -
   log offsets 10B-12B on the next live run to pin count+source.
 
+- **MICFU 17B IDENTIFIED (2026-07-19): `3DEPR` = DEPOSIT REGISTER (`DEPRG`)** - the single-
+  register write member of the ND-500 register examine/deposit family. NEW carve driven by
+  the D4 boot-harness instruction trace (see 7c-bis below). Symbol `3DEPR=000017`
+  [SYMBOL: N500-SYMBOLS.SYMB:3192 (L07) + N5000-SYMBOLS.SYMB:3282 (M06)]. NPL receive
+  dispatch `N5XXC` @133512 slot 17 = `DEPRG` [NPL: MP-P2-N500.NPL:397, table row
+  `WAMED, RNEWCO, EXARG, DEPRG` = codes 14-17]. Like 21B it is QUEUE-ONLY (falls to the
+  common tail @133626 = set timeout timer + `GO FAR TOQUEUE`; no ND-100 post-processing,
+  MICFU is not rewritten) [NPL: MP-P2-N500.NPL:414-422]. On the answer, `DECOMESS` sees
+  MICFU=3DEPR is NOT in {3MONCO,3TRACO,3START,3WMONCO} -> routes to `5RRTWT` (restart the
+  requesting ND-100 process). **The answer carries NO data on the deposit path** - the
+  microcode need only set N5STA:=ANSWER(3) vs 5ERANSWER(4), identical rule to the 21B twin.
+
+  The register family and its symbols (EXA=examine/read, DEP=deposit/write; suffix = address
+  space): `3EXAD`/`3DEPD` = 06/07 (memory-descriptor), `3EXAR`/`3DEPR` = 16/17 (**ReGister**),
+  `3EXAP`/`3DEPP` = 32/33 (memory-physical) [NPL: MP-P2-N500.NPL:395,397,400]. So
+  **16B = `EXARG` = EXAMINE REGISTER** (read one register - the read twin of 17B; queue-only,
+  same common tail) [SYMBOL: `3EXAR=000016`]. Adjacent **15B = `RNEWCO`** is NOT a register
+  op but a microprogram/control-store reload-restart handler ("...FIND ANOTHER PROCESS TO
+  LOAD THE MIC.PROGR.") with real body logic [NPL: MP-P2-N500.NPL:568-570; SYMBOL
+  `3RESO=000015`].
+
+  **Layout (INFERRED, register-family mirror of 20B/21B - NOT byte-pinned):** word 6 MICFU=17B,
+  word 7 register number, plus a value/count field; the microcode listing that defines the
+  exact single-register deposit fields lives outside this repo (`ND5000UC`, referenced only),
+  so the per-register semantics are NOT asserted. For the D4 hack only the ANSWER(3) matters.
+
+  **GENERATION:** register examine/deposit/read/write (06/07, 16/17, 20/21, 32/33) is a
+  CLASSIC-500 family. DIRECT B30 evidence exists only for the 21B twin (-> MSG_ILLEG on the
+  5800 image, lines 336-338); that 17B is likewise classic-only is a strong family inference,
+  NOT an independently carved B30 fact. The SINTRAN SENDER (`N5XXC`, L07) is common to both
+  machines and emits 17B regardless; the generational split is whether the target microcode
+  honors it. Sender-of-record for the message BUILD (which stores MICFU:=17B) is NOT locatable
+  in the available NPL - 3DEPR/3EXAR/3RREG/3WREG are never literally stored anywhere in the
+  tree (only the N5XXC table + fall-through label reference them), so the register messages are
+  built by numeric code from a table or by an ND-500-monitor command interpreter absent from
+  this source set. Not guessed.
+
+### 7c-bis. D4 boot-harness trace (2026-07-19) - 17B DEPRG is the post-CS-load blocker
+
+Instruction-level trace + 3022 register log of the D4 `Nd500_D4_RunDomain_RealCpu_Capture`
+run (offline `EnableTraceFile` + hex-aware SINTRAN-L symbol resolver; artifacts in the
+scratchpad). CORRECTS the older "stuck in CS-load / Loading Swapper" framing:
+
+1. **CS-load COMPLETES.** `RETG5:=0` (MON-60 25B MICRO-START) fires and 5CLOST (0x0200)
+   CLEARS in the full run (3022 log `RETG5 RESTART/MICRO-START (0x00) -> 5CLOST CLEARED`).
+   The `csStore[]` read-back model in NDBusND500IF works. The earlier "stuck forever" read
+   was an artifact of a capped CPU-trace window landing mid-download.
+2. **After CS-load, SINTRAN drives a repeating mailbox bring-up cycle** against one reused
+   message buffer: `...N x 14B RESIWR (process-0 image) -> 12B MSG_CACHE -> 21B 3WREG
+   (register block) -> 17B 3DEPR (single-register deposit) -> 1B 3RMICV (watchdog poll)`,
+   then repeats.
+3. **On the emulated servicer (built as `Nd500Generation.Classic`, NDBusND500IF.cs:933)**
+   every message in that cycle is ACCEPTED except **17B**, which has no servicer case ->
+   hits the `default` -> **5ERANSWER(4)** [Nd500MicrocodeServicer.cs:608-612]. SINTRAN gets
+   the error, cannot advance the bring-up, and re-sends the whole cycle = the D4 "NO WELL
+   DEFINED PROGRAM" wall now sits HERE, one step past the 21B blocker of 7c.
+4. **Fix direction:** on Classic, answer 17B DEPRG with ANSWER(3) (queue-only, no data
+   read-back), same contract as 21B. Whether the register value must actually be deposited
+   into CpuND500 to satisfy a LATER check is untested - the immediate gate is only the
+   error answer.
+
 ### 7d. The "swapper alive" contract (2026-07-17 - the M1/M2 acceptance chain)
 
 The full chain SINTRAN needs to consider the swapper started; ND-100 side NPL/byte-cited,

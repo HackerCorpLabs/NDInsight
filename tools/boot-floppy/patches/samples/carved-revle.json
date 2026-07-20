@@ -1,0 +1,47 @@
+[
+ {
+  "segment": "S3IDPIT",
+  "file": "/mnt/e/Dev/Ronny/NDInsight/tools/sintran-segment-carver/versions/K-VSX-500/segments/044-S3IDPIT.bin",
+  "base_oct": "4000",
+  "revle_addr_oct": "4057",
+  "revle_oct": "010200",
+  "sysno_oct": "000144",
+  "version_dir": "/mnt/e/Dev/Ronny/NDInsight/tools/sintran-segment-carver/versions/K-VSX-500"
+ },
+ {
+  "segment": "S3IDPIT",
+  "file": "/mnt/e/Dev/Ronny/NDInsight/tools/sintran-segment-carver/versions/L-VSX-500/segments/044-S3IDPIT.bin",
+  "base_oct": "4000",
+  "revle_addr_oct": "4057",
+  "revle_oct": "000000",
+  "sysno_oct": "000146",
+  "version_dir": "/mnt/e/Dev/Ronny/NDInsight/tools/sintran-segment-carver/versions/L-VSX-500"
+ },
+ {
+  "segment": "S3SDPIT",
+  "file": "/mnt/e/Dev/Ronny/NDInsight/tools/sintran-segment-carver/versions/L-VSX-500/segments/053-S3SDPIT.bin",
+  "base_oct": "4000",
+  "revle_addr_oct": "4057",
+  "revle_oct": "000000",
+  "sysno_oct": "000146",
+  "version_dir": "/mnt/e/Dev/Ronny/NDInsight/tools/sintran-segment-carver/versions/L-VSX-500"
+ },
+ {
+  "segment": "S3IDPIT",
+  "file": "/mnt/e/Dev/Ronny/NDInsight/tools/sintran-segment-carver/versions/M-VSX-500/segments/044-S3IDPIT.bin",
+  "base_oct": "4000",
+  "revle_addr_oct": "4057",
+  "revle_oct": "003200",
+  "sysno_oct": "000144",
+  "version_dir": "/mnt/e/Dev/Ronny/NDInsight/tools/sintran-segment-carver/versions/M-VSX-500"
+ },
+ {
+  "segment": "S3SDPIT",
+  "file": "/mnt/e/Dev/Ronny/NDInsight/tools/sintran-segment-carver/versions/M-VSX-500/segments/053-S3SDPIT.bin",
+  "base_oct": "4000",
+  "revle_addr_oct": "4057",
+  "revle_oct": "003200",
+  "sysno_oct": "000144",
+  "version_dir": "/mnt/e/Dev/Ronny/NDInsight/tools/sintran-segment-carver/versions/M-VSX-500"
+ }
+]

@@ -292,9 +292,29 @@ The physical page work is done in-domain with ND-500 supervisor instructions, no
 | `WPHS`  | - | **0** | - | **absent** |
 
 Note **WPHS (write physical segment) does NOT occur** - a correction to the prior-art claim
-"RPHS/WPHS for page moves" (`SWAPPER-MON-DISPATCH.md` section 3). Only `RPHS` is present. The
-write-back-to-physical path is therefore either via a different primitive, via `RIOM`'s
-companion, or handled on the ND-100 side; from these bytes it is **UNKNOWN** which. The
+"RPHS/WPHS for page moves" (`SWAPPER-MON-DISPATCH.md` section 3). Only `RPHS` is present.
+
+**CORRECTION (2026-07-20): "via RIOM's companion" is DEAD - there is no companion.** An earlier
+revision of this paragraph offered three possibilities for the write-back path; the second was a
+supposed write-side partner to `RIOM` ("WIOM"). **No such instruction exists** - it appears in no
+ND-500 manual, no manual index, and none of the three opcode tables; the "RIOM/WIOM pair" was
+invented prose that had also propagated into the emulator's source comments (since deleted).
+Of the three options only **"handled on the ND-100 side"** survives, and the mechanism is now
+understood: the ND-500 does not need a write instruction at all, because
+1. **ordinary stores into the SHARED segment** are the normal path (`ND500_MMU_SPECIFICATION.md`
+   defines `DC_SHSEG 6` "Shared segment (ND-100 <-> ND-500)", mapped `SG_RW | DC_SHS` - read/write,
+   caching disabled because a second master touches the same cells);
+2. **the CPU microprogram** writes mailbox answers directly ("The CPU microprogram initiates and
+   controls the DMA access channel to the I/O-processor memory"), which is why
+   `ND500-WHO-ANSWERS-THE-MAILBOX.md` concludes the answerer is THE MICROCODE; and
+3. **the ND-100** can reach ND-500 memory itself as the master I/O processor - which is what the
+   swapper relies on when it traps outward via `MON 377B` (15 sites), so this route collapses into 2.
+
+`RIOM` is therefore not half of a pair: it is the escape hatch for the one direction nothing else
+covers - reading ND-100 memory the ND-500 cannot address ("usually private ND-100 memory, not
+directly addressable by the ND-500"). Writing never needed an instruction.
+
+The
 `PCTSB`/`DCTSB` mnemonic *names* are as the disassembler emits them; their precise semantics
 are not established from these files (INFERRED to be page/data control-table maintenance).
 

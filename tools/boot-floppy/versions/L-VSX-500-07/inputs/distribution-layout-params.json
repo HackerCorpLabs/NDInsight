@@ -1,0 +1,270 @@
+{
+  "source_image": "D:/ND/S/VSXL1.IMG",
+  "source_volume": "250305L07-XX-01D",
+  "source_file": "(SYSTEM)SINTRAN-L-1:DATA",
+  "note": "Page numbers are SEGFIL page addresses, the same quantity as \"madr\" in segment-facts.json. The image base is 0o200: madr = page - 0o200. A trailing \"-N\" in the raw expression is a length/offset, not part of the address.",
+  "header_bytes": 7457,
+  "layout_params": {
+    "PEP": {
+      "raw": "100-14",
+      "page_oct": "100",
+      "page_dec": 64,
+      "madr_oct": null,
+      "madr_dec": null
+    },
+    "PRL": {
+      "raw": "137-14",
+      "page_oct": "137",
+      "page_dec": 95,
+      "madr_oct": null,
+      "madr_dec": null
+    },
+    "PPOP": {
+      "raw": "1",
+      "page_oct": "1",
+      "page_dec": 1,
+      "madr_oct": null,
+      "madr_dec": null
+    },
+    "PCCS": {
+      "raw": "200",
+      "page_oct": "200",
+      "page_dec": 128,
+      "madr_oct": "0",
+      "madr_dec": 0
+    },
+    "PRD": {
+      "raw": "300-2",
+      "page_oct": "300",
+      "page_dec": 192,
+      "madr_oct": "100",
+      "madr_dec": 64
+    },
+    "PSY": {
+      "raw": "355-62",
+      "page_oct": "355",
+      "page_dec": 237,
+      "madr_oct": "155",
+      "madr_dec": 109
+    },
+    "PSPD": {
+      "raw": "360-72",
+      "page_oct": "360",
+      "page_dec": 240,
+      "madr_oct": "160",
+      "madr_dec": 112
+    },
+    "PXP": {
+      "raw": "361-13",
+      "page_oct": "361",
+      "page_dec": 241,
+      "madr_oct": "161",
+      "madr_dec": 113
+    },
+    "PRP": {
+      "raw": "363-15",
+      "page_oct": "363",
+      "page_dec": 243,
+      "madr_oct": "163",
+      "madr_dec": 115
+    },
+    "PMP": {
+      "raw": "446-15",
+      "page_oct": "446",
+      "page_dec": 294,
+      "madr_oct": "246",
+      "madr_dec": 166
+    },
+    "PIP": {
+      "raw": "531-15",
+      "page_oct": "531",
+      "page_dec": 345,
+      "madr_oct": "331",
+      "madr_dec": 217
+    },
+    "P5P": {
+      "raw": "200+414-13",
+      "page_oct": "614",
+      "page_dec": 396,
+      "madr_oct": "414",
+      "madr_dec": 268
+    },
+    "P5M": {
+      "raw": "200+421-20",
+      "page_oct": "621",
+      "page_dec": 401,
+      "madr_oct": "421",
+      "madr_dec": 273
+    },
+    "PSTB": {
+      "raw": "200+501",
+      "page_oct": "701",
+      "page_dec": 449,
+      "madr_oct": "501",
+      "madr_dec": 321
+    },
+    "PU1": {
+      "raw": "200+521",
+      "page_oct": "721",
+      "page_dec": 465,
+      "madr_oct": "521",
+      "madr_dec": 337
+    },
+    "PU2": {
+      "raw": "200+561",
+      "page_oct": "761",
+      "page_dec": 497,
+      "madr_oct": "561",
+      "madr_dec": 369
+    },
+    "PFS": {
+      "raw": "200+621-13",
+      "page_oct": "1021",
+      "page_dec": 529,
+      "madr_oct": "621",
+      "madr_dec": 401
+    },
+    "PCS": {
+      "raw": "200+706-13",
+      "page_oct": "1106",
+      "page_dec": 582,
+      "madr_oct": "706",
+      "madr_dec": 454
+    },
+    "PSM": {
+      "raw": "200+773-14",
+      "page_oct": "1173",
+      "page_dec": 635,
+      "madr_oct": "773",
+      "madr_dec": 507
+    },
+    "PXK": {
+      "raw": "200+1037-50",
+      "page_oct": "1237",
+      "page_dec": 671,
+      "madr_oct": "1037",
+      "madr_dec": 543
+    },
+    "PXR": {
+      "raw": "200+1067",
+      "page_oct": "1267",
+      "page_dec": 695,
+      "madr_oct": "1067",
+      "madr_dec": 567
+    },
+    "PXF": {
+      "raw": "200+1137",
+      "page_oct": "1337",
+      "page_dec": 735,
+      "madr_oct": "1137",
+      "madr_dec": 607
+    },
+    "PNM": {
+      "raw": "200+1225-72",
+      "page_oct": "1425",
+      "page_dec": 789,
+      "madr_oct": "1225",
+      "madr_dec": 661
+    },
+    "PDM": {
+      "raw": "200+1233-1",
+      "page_oct": "1433",
+      "page_dec": 795,
+      "madr_oct": "1233",
+      "madr_dec": 667
+    },
+    "PNS": {
+      "raw": "200+1237-14",
+      "page_oct": "1437",
+      "page_dec": 799,
+      "madr_oct": "1237",
+      "madr_dec": 671
+    },
+    "PNN": {
+      "raw": "200+1323",
+      "page_oct": "1523",
+      "page_dec": 851,
+      "madr_oct": "1323",
+      "madr_dec": 723
+    },
+    "PEC": {
+      "raw": "200+1423",
+      "page_oct": "1623",
+      "page_dec": 915,
+      "madr_oct": "1423",
+      "madr_dec": 787
+    },
+    "PED": {
+      "raw": "200+1443",
+      "page_oct": "1643",
+      "page_dec": 931,
+      "madr_oct": "1443",
+      "madr_dec": 803
+    },
+    "PPM": {
+      "raw": "200+1533-14",
+      "page_oct": "1733",
+      "page_dec": 987,
+      "madr_oct": "1533",
+      "madr_dec": 859
+    },
+    "PEX": {
+      "raw": "200+1617-14",
+      "page_oct": "2017",
+      "page_dec": 1039,
+      "madr_oct": "1617",
+      "madr_dec": 911
+    },
+    "PBO": {
+      "raw": "200+1703-14",
+      "page_oct": "2103",
+      "page_dec": 1091,
+      "madr_oct": "1703",
+      "madr_dec": 963
+    },
+    "PMT": {
+      "raw": "200+1767-14",
+      "page_oct": "2167",
+      "page_dec": 1143,
+      "madr_oct": "1767",
+      "madr_dec": 1015
+    },
+    "FA": {
+      "raw": "177677",
+      "page_oct": "177677",
+      "page_dec": 65471,
+      "madr_oct": "177477",
+      "madr_dec": 65343
+    },
+    "FR": {
+      "raw": "100000",
+      "page_oct": "100000",
+      "page_dec": 32768,
+      "madr_oct": "77600",
+      "madr_dec": 32640
+    }
+  },
+  "macro_legend": {
+    "PCCST": "COMMON-CODE AND START ROUTINES",
+    "PRDAT": "RESIDENT DATA PART ONE",
+    "P2RDA": "RESIDENT DATA PART TWO",
+    "PSYSG": "SYSTEM SEGMENT",
+    "PSPDF": "SPOOLING DATAFIELDS",
+    "PEXCO": "EXT  COMMON (RPIT MPIT IPIT)",
+    "PRPIT": "RPIT",
+    "PMPIT": "MPIT",
+    "PIPIT": "IPIT",
+    "PFILS": "FILE-SYSTEM AND SPOOLING PROGRAM",
+    "PRTLO": "RT-LOADER",
+    "POPCO": "COMMAND SEGMENT",
+    "PSERV": "SERVICE AND MAIL SEGMENT",
+    "PERRP": "ERROR-PROGRAM",
+    "PSGTB": "SEGMENT TABLE",
+    "P500M": "ND-500 MONITOR",
+    "PDIMI": "DISK MIRRORING",
+    "PXMK": "XMSG KERNEL",
+    "PXRO": "XMSG XROUT",
+    "PXFI": "XMSG WATCHDOG",
+    "PEND": "RESET CORE-IMAGE BEFORE STARTING!"
+  }
+}
