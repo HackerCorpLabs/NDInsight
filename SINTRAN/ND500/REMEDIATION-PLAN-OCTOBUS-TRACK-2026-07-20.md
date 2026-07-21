@@ -28,7 +28,7 @@ cannot start on evidence until the blocker clears.
 |---|---|---|---|---|
 | **B0** | Account weekly API limit (resets **Jul 22, 1pm Europe/Oslo**) — no carve/audit agents until then | capacity | every carve + agent task | OPEN until Jul 22 |
 | **B1** | **Q-OCT-22** — is `START_MESS` actually patched into control-store page 0, and with what value? | CARVE | **P1-T1** (mailbox base). If refuted, the whole base-derivation approach changes | Brief ready: `CARVE-REQUEST-Q-OCT-22-CS-PAGE0-PATCHER-2026-07-20.md`. Blocked on B0 |
-| **B2** | **Q-OCT-24** — does L07 clear X5ACT with a single `STZTX` (halfword), or byte-at-a-time? | LIVE trace | **P1-T6** (activation machinery). If single `STZTX`, the byte-path hook is dead code built on a misobservation | Verified [V]: `STZ`/`STZTX` cannot emit byte writes. The clear opcode L07 executes is unconfirmed. Blocked on a harness run |
+| **B2** | **Q-OCT-24** — does L07 clear X5ACT with a single `STZTX` (halfword), or byte-at-a-time? | LIVE trace | **P1-T6** (activation machinery) **and now P1-T1** — see coupling | Verified [V]: `STZ`/`STZTX` cannot emit byte writes. The clear opcode L07 executes is unconfirmed. Blocked on a harness run. **Coupling found 2026-07-20 (reg §2.6a):** the X5ACT `0xFFFF→0` write is *also* what triggers mailbox **self-discovery** (`OnMpmActivationWrite`→`ConfigureMailbox`, `OctobusND5000Station.cs:747`), which re-bases the mailbox off the P1-T1 window-start guess. So if this write isn't detected, BOTH activation AND the mailbox base fail → N500TMR timeout. Sharpest harness diagnostic: does the `"X5ACT self-discovery:"` log line appear, and does its `header=` match `INZ500`'s `5FPMAILBOX`? |
 | **B3** | **Q-SWP-04** — 32-bit register word order (high-first vs low-first) in the 21B image / MPM | MICROCODE | **P2-T1** (the three contradictory word orders). Do NOT unify on a guess | OPEN — shared with the 3022 track |
 
 **Rule for the blockers:** each has a concrete resolution route already written. None is "think
@@ -56,11 +56,11 @@ Each either has its evidence already (P1-T2..T5) or is gated on a Phase-0 verdic
 
 | Task | Depends | Now (defect) | Fix | Verify |
 |---|---|---|---|---|
-| **P1-T1** mailbox base | **B1** (Q-OCT-22) | `ND100Machine.ND5000.cs:155` defaults header to `mpmStart` (offset 0) — a guess | If B1 confirms: derive `START_MESS`/`SAMSON_CPU` from **loaded** CS words `000026`/`000025`; keep X5ACT self-discovery as a **cross-check** that logs loudly on disagreement. If B1 refutes: use self-discovery as primary | MPM dump: signature-found mailbox == derived base |
-| **P1-T2** CS-load gate can fail | — (evidence in hand) | `OctobusND5000Station.cs:316-352,1760-1791` computes the checksum it then serves — gate can't fail | Serve read-back from the stored image only; compute addend from what was stored | New corrupt-one-word test **must** yield `EILOCS 002103B`; positive path stays green |
-| **P1-T3** window collision | — | `ND100Memory.cs:266-285` — 3022 + octobus both default `0x420000`, 3022 wins silently | Detect overlap at attach; **throw** | Unit test: both cards same base → throws |
-| **P1-T4** dead error state | — | `NDBusND500IF.cs:1556-67,1506-07,429-96,414-16` — `Error`/`DMAError`/`ND500Operation`/`ND500StopReason`/`DisableTagInDecoding…` declared, never read/written | Wire each with a cited source, or delete + `[?]`-comment. No silent third option | grep: every `StatusRegisterBits` member has a read+write, or an explicit unmodelled note |
-| **P1-T5** phantom station | — | `NDBusOctobus.cs:1815-19` registers a SCSI station at wire 10 in the **device ctor**, every machine | Move to the tests that need it | Boot harness shows no station 10 unless a test adds it. **Check against `OCTOBUS-NOANSWER-STATION10-BUGREPORT`** — may be this artifact |
+| **P1-T1** mailbox base **→ LIVE-CONFIRMED as THE blocker; fix now concrete (reg §2.1c/§2.1d)** | none — carved formula in hand | **Live harness (2026-07-20):** boot completes CS-load+STAMIC0+ENKICK, then the mailbox is **never walked** ("NO mailbox MICFU processed"), so `3RMICV` is never answered → `Micro program.: 0` → J04 monitor-internal FATAL → `ND-500(0) timeout`. Root cause: `OnMpmActivationWrite` **sniffs for the first `0xFFFF→0`** and mis-bases (run3: 4096 candidates, 1 spurious). The `mpmStart` guess AND the sniff are both wrong | **Read `START_MESS` from the loaded CS — ACTUAL CORRECT WAY, Q-OCT-22 RESOLVED 2026-07-21 (§2.1e):** live CS dump shows word 026 `START_MESS`=**0x8800** (patched; placeholder 0x2000), word 025 `SAMSON_CPU`=**0x0001**. `header=mpmStart+_controlStore[0x16*8+7]=0x428800`, `extblock=header+SAMSON_CPU*256`, `X5ACT=extblock+0x0A`. No resident read/MMU/sniff — the servicer reads its own `_controlStore[]` like the microcode. Base the ext-block there, arm `X5ACT:=-1`, trigger the walk, answer `N5STA:=3` | Harness: servicer processes `3RMICV`, `Micro program.:` shows real version (not 0), no monitor-internal FATAL, `start-swapper` proceeds past "Loading Control Store". **Dead ends (don't repeat):** `0xFFFF→0` sniff → noise (0x800000); resident `5FPMAILBOX` read → 0 (needs MMU). OCB 202B report refuted (run3). |
+| ~~**P1-T2** CS-load gate can fail~~ **→ RECLASSIFIED: likely NON-defect** | JRWCS carve 2026-07-20 | ~~gate can't fail = defect~~. **Carved JRWCS (`030-S3SM5:045771`):** sum loop `046036-046045` sums read-back words; `046046` calls **ABSLD** (`044656`) which reads the addend from `base+N*8` of the **same param block** (`LDD ,X 21` descriptor, `044671-044701`); `046052-046053` compares. Both operands are read back from the one shared param area — so on real HW the addend is what the **ACCP dump wrote**, making `addend==Σ(words)` tautological *by design*. The emulator's self-consistent serving is **faithful** | **Do NOT implement the artificial-failure fix** — it would inject a failure mode real HW lacks. Real gate only catches param-area transfer faults, not CS-content corruption | **One residual [confirm, don't assume]:** read `ND-05.017.01` CMRWC(025B) to confirm the ACCP *computes+writes* the addend (vs ND-100 preloading it). If ACCP writes it → close as non-defect. See reg §2.9a |
+| **P1-T3** window collision **(CONFIRMED, latent — not on critical path)** | — | **Verified 2026-07-20:** `ND100Memory.cs:246-291` `FindMemoryBank` tests `_nd500` (3022, `:267-273`) **before** `_octobus` (`:281-285`); both default `0x420000` (`NDBusND500IF.cs:782`, `NDBusOctobus.cs:1789`); no overlap guard → 3022 silently shadows octobus. **BUT** the octobus-only harness registers no 3022 (`_nd500==null`), so it resolves correctly today — this bites only if both cards coexist | Detect overlap at attach; **throw** | Unit test: both cards same base → throws. *Defer behind critical-path items (presence gate, P1-T1)* |
+| **P1-T4** dead error state **→ RECLASSIFIED: not a defect, off-path** | — | **Audited 2026-07-20:** the names (`Error=1<<4`, `DMAError=1<<6`, `ND500Operation`, `ND500StopReason`) are `[Flags]` **enum members documenting the 3022 status-register bit layout** (comments cite each bit position); grep shows no logic read/write, i.e. pure documentation. In `NDBusND500IF` (3022) — **not on the octobus path** | **Do NOT delete** — that violates the standing keep-comments rule (these document the real hardware register). Leave as-is, or add an "unmodelled bit" note only if a bit is *read* but never set (none are). No action needed for the octobus track | n/a |
+| **P1-T5** phantom station **→ RECLASSIFIED: intentional, off-path** | — | **Audited 2026-07-20 vs `OCTOBUS-NOANSWER-STATION10-BUGREPORT`:** station 10 (SCSI) is **required** by the TPE diagnostic — TPE test 4/5 query wire 10; those tests **pass** after the interrupt-model fix. It is station 10, not the ND-5000's 70B → **irrelevant to the SINTRAN timeout** | Optional hygiene only: if moved out of the ctor, the TPE boot harness must still register it or tests 4/5 break. Not worth the risk now | TPE octobus tests stay green |
 | **P1-T6** X5ACT byte machinery | **B2** (Q-OCT-24) | `ND100Memory.cs:495-524` byte-path hook + comment claim byte-at-a-time; store instr can't emit it | If B2 = single `STZTX`: remove the byte-path machinery as dead code, rely on the halfword hook `:543`. If B2 = byte-at-a-time: keep, and document the real source | Harness activation still fires; no dead branch left |
 
 ---
@@ -156,3 +156,47 @@ footnote.** Rule 6 (carry the grade at point of use) is the standing defence.
 - The 3022 track's D4/MMU chain (register §1) — theirs, except shared B3/Q-SWP-04.
 - Anything requiring the ACCP EPROM (Q-CSL-12, Q-OTH-10) or the missing MPM channel specs
   ND-10.005/006, ND-05.011 — unanswerable, not deferred.
+
+---
+
+# ░░ UPDATE 2026-07-21 — timeout RESOLVED; the line is now "run the swapper" ░░
+
+**P1-T1 is DONE and verified (this closes the whole B1/Q-OCT-22 → mailbox-base chain).**
+Live harness run11 (`FullFlow_Octobus_Login_Nd500_Status_StartSwapper_Capture`, current code):
+`ND-500(0) timeout` = **0** (was 22); servicer processes `3RMICV(1)` **4×** at the real
+START_MESS-derived mailbox nodes `0x428E30`/`0x42C130`; test **Passed**. Fix chain =
+START_MESS base (read `_controlStore[0x16*8+7]`=0x8800) + Clock-driven microcode-IDLE-loop
+poll + transport-aware X5BEX/LINK resolution (window-relative byte, not 3022 `<<1`). No
+regression in the 3022/servicer path (see [[nd5000-timeout-convergence]]).
+
+## Grounded current state (run11 OUTCOME line — MEASURED, not inferred)
+```
+ENTER=OK  login=OK  nd-500=OK   status=STALL  start-swapper=STALL  list=STALL  stop-system=STALL
+[after start-swapper]  ND-5000  st=56  PC=0x00000000  stopMode=WAIT  octobus.IN=0x0105
+```
+Meaning: the fatal timeout is gone (login/@nd-500 reach the monitor), **but the ND-5000 CPU
+never leaves WAIT — PC stays 0, it never executes the swapper.** `status`/`start-swapper`/
+`list` STALL because the monitor waits on a running CPU that stays parked.
+
+## WHAT'S LEFT — download swapper → run it → show in LIST-ACTIVE-PROCESSES
+Critical path is #2 → #3 → #4 → #5; #1 and #6 bracket it.
+
+| # | Item | Now (measured/where) | What must happen | Grade |
+|---|------|----------------------|------------------|-------|
+| **1** | **Swapper image actually loaded** | PC=0 after start-swapper — unconfirmed the image reached MPM | Confirm `start-swapper` DMAs the swapper **macrocode** image into the MPM window (retracted-material note: arrives by `MON 131` ABSTR disk DMA, NOT the mailbox copy engine). Trace the MPM window for the image landing where the start-context PC will point. | [NEEDS VERIFY] |
+| **2** | **Start the ND-5000 CPU (THE blocker — P3-T1)** | `stopMode=WAIT PC=0`; `_microprogramRunning` is a **bool stub** `OctobusND5000Station.cs:1503-16` | Apply the start/context block (21B register context → P=swapper entry, B, domain) AND unpark the CPU (leave WAIT) so the real `CPU.ND5000` executes. Replace the bool with a real sequencer start via the CPU.ND5000 package + ACCP Access-Module bridge. | [D] gated on Q-OCT-19 |
+| **3** | **Run-thread stability (Task #12)** | ND-5000 runaway crash / headless park model | Once the CPU executes, the run thread must not crash/hang. Fix the park/run model so the swapper can run to a MON stop. | [D] |
+| **4** | **Service swapper MON calls while running** | block-copy MICFU family calibrated ([[nd5000-mailbox-copy-engine]]) but never exercised by a really-running CPU | Drive the swapper's MON calls through the servicer once the CPU runs; fix gaps that only appear under real execution. | [partial] |
+| **5** | **Real "alive"/status — NOT fabricated (P2-T3)** | `Nd500MicrocodeServicer.cs:797-804` synthesises a MON 377B "alive" WITHOUT the CPU running — this is why `status` looks like it should answer but the process isn't real | Gate the fake behind an explicit `FakeSwapper` option (default OFF). With #2/#3 done, the answer comes from the actually-running swapper → LIST-ACTIVE-PROCESSES shows it for real. | [must-fix] |
+| **6** | **End-to-end assertion** | OUTCOME line only captures STALL | Extend the harness to drive LIST-ACTIVE-PROCESSES and ASSERT the swapper appears (turn the capture test into a pass/fail gate). | [test] |
+
+**Guardrail:** #5 means today's "it almost works" is partly a LIE (fabricated alive record).
+Do not count the swapper as "showing up" until it shows up with the fake OFF and the CPU
+actually executing (#2/#3). See the retraction guardrail above — no symbol-name inference.
+
+## Tangential (not on this critical path)
+- ND500 bus-interface **test-suite hang** fixed 2026-07-21 by marking the exhaustive
+  CPU-instruction corpora `[Explicit]` (`TestND500_GenerateComprehensiveTests`,
+  `TestComprehensiveExportAndRun`, long NC drives in `TestNC_AnalyzeExecution`) — they ran a
+  16MB machine per case ×23,728 cases and blew past the CI hang timeout, masking ~1700 other
+  tests. Not the swapper line; keeps `dotnet test Emulated.Tests.ND500` able to exit.

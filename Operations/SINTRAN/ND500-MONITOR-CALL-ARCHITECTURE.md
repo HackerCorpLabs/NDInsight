@@ -16,7 +16,7 @@
 >   process's own message in shared memory**, and answers it. Cross-confirmed from the NDIX kernel
 >   side: `callg $0xf8000180,$4,…` — segment 31, offset `0x180` = **600 octal**.
 > - The wire-level TAG lines are **register strobes only**. TAG-OUT: `0/1` MAR, `2/3` STATUS,
->   `4` read CONTROL, `5` reset activate, `6/7` DATA register (the RIOM/WIOM DMA into ND-100
+>   `4` read CONTROL, `5` reset activate, `6/7` DATA register (the RIOM DMA into ND-100
 >   memory). TAG-IN: clock/enable strobes for the control-store-load and debug path.
 > - Verified ND-100-side IOX octal codes: RMAR `060`, LMAR `061`, RSTA `062`, LCON `065`,
 >   MCLR `066`, TERM `067`, RTAG `070`, WTAG `071`, WDAT `073`, SLOC `074`, CLKD `075`,
@@ -529,7 +529,8 @@ been removed.** Both TAG registers are on the 5015 (ND-30.013.02 §3.12/3.13):
 - **TAG-OUT (5015 → 3022, driven by ND-500 microcode):** 3-bit codes commanding the
   3022 — read/write MAR, read/write STATUS, read CONTROL, reset activate, and
   read/write DATA **and ND-100 memory** (the microcode's message-fetch/answer DMA
-  path, also underlying the RIOM/WIOM instructions).
+  path, also underlying the RIOM instruction; there is no WIOM - manual ND-05.009.4
+  section 16.23 defines RIOM only, with no write companion).
 
 **Real inter-CPU signaling:** ND-100 → ND-500 = activate (CONTROL bit 2, LCON5);
 ND-500 → ND-100 = STATUS "finished" (bit 3) + stop reason (bits 10-14) raising the

@@ -107,7 +107,12 @@ own trap line omits it), so its absence from section 16.23 is not evidence.
 **IMPLEMENTED** (RetroCore commit 84ca6098d): `Riom.cs` guards operand 1 against REGISTER, CONSTANT
 and CONSTANT_SHORT and raises IOS via `TrapIllegalOperand`; metadata already forbade both modes for
 this operand; tests `Test_RIOM_RegisterBuffer_RaisesIos` / `Test_RIOM_ConstantBuffer_RaisesIos` added
-(9/9 IO suite). The C-side port (nd500x) is the other track's pass.
+(9/9 IO suite). **C-side port (nd500x) DONE 2026-07-20:** the IOS guard was the only RIOM fix
+missing from the C (source-as-W / EA-buffer / 24-bit / no-Z were already ported). Added the same
+`ND500_ADDR_REGISTER`/`CONSTANT`/`CONSTANT_SHORT` -> `trap_illegal_operand` (TRAP_IOS) guard to
+`~/repos/nd500x/src/cpu/instructions/IO/Riom.c` (WSL) + two IOS cases to `test/test_riom.c`; builds
+clean, **6/6 test_riom pass** (REGISTER mode 13 and CONSTANT mode 12 both raise IOS). STANDING RULE
+(Ronny 2026-07-20): every emulator fix must be applied to BOTH RetroCore C# and the C nd500x.
 NOTE: the "templates carry per-operand mode info" idea was WRONG - their addressing-mode bits are
 identical across all three RIOM operands; only the size field differs. That is now moot.
 
@@ -148,7 +153,7 @@ are **microcode unit-select codes on the internal CDB/XD bus** (NEC-01 course, u
 lines 1098-1103 + page 57; ND-30.013.02 §3.13 "when micro-programmed"). The microcode drives
 **TAG-OUT codes 6/7** ("read/write DATA register **and ND-100 memory**") with the 3022's 24-bit MAR,
 bounded by the 3022 DMA limit registers, over the 5015->3022 DBU cable — that is the classic path
-from the ND-500 into ND-100 memory, i.e. what RIOM/WIOM bottom out in (consistent with
+from the ND-500 into ND-100 memory, i.e. what RIOM bottoms out in (there is no WIOM; consistent with
 `ND500-BUS-INTERFACE-REFERENCE.md` §10.2). **Still open:** the exact classic-generation microword
 sequence (needs a 5200/5400 control-store listing; B30 is octobus-generation).
 
@@ -225,10 +230,153 @@ Since the level-12/`IL12Q` reading was a red herring, here is what actually prod
 
 plus `MP-P2-N500.NPL:362/:545`: `IF CPUAVAILABLE NBIT 5ALIVE GO FAR EN5TIMOUT`.
 
-**Three gates, all of which must hold:** (a) the 5MPM message status word becomes `ANSWER`;
-(b) `5ALIVE` is set in `CPUAVAILABLE`; (c) a level-12 **hardware** interrupt whose `IDENT PL12`
-returns the ND-500 interface ident so `ITB12` (`0o153563`) yields a non-zero datafield
-(seg `017-S3SMPIT` @033643-033653).
+**What N500TMR DIRECTLY checks [V, re-verified from the full routine 2026-07-20]:** only two things —
+(a) the message's **`N5STA`** field == `ANSWER` (=3), read by `RN5STATUS` (`CC-P2-N500.NPL:680-683`:
+`T:=5MBBANK; *N5STA@3 LDATX`) at watchdog expiry (`:337`); and (b) `5ALIVE` set in `CPUAVAILABLE`
+(precondition `:308` — if clear, N500TMR just returns, no timeout). **N500TMR contains NO level-12
+reference.** The earlier "three gates" phrasing over-bundled the interrupt path.
+
+**Where (c) the level-12 interrupt actually fits [OPEN — do not assume required]:** `ITB12`/`IDENT PL12`
+machinery is real (`PH-P2-OPPSTART.NPL:81,2015-2020,3177,3208-3231`) but lives in ND-100 interrupt-table
+setup, not N500TMR. Whether it is *causally necessary* hinges on **who writes `N5STA=ANSWER`**: if the
+ND-100's level-12 ITB12 handler writes it (on the ND-5000's answer interrupt), then (c) is upstream-
+required; if the ND-5000 microprogram writes the mailbox `N5STA` directly, (c) is only a prompt-wakeup
+optimisation and the timeout is pure memory-poll. **Unresolved — needs the trace.** Note the emulated
+octobus card interrupts the ND-100 on **level 13** (`NDBusOctobus.cs:1768`), not 12; chasing a "missing
+level-12" would be a false lead until this write-owner question is settled.
+
+**The P1-T1 ↔ timeout causal link [V mechanism]:** `RN5STATUS` reads `N5STA` at `5MBBANK` + message
+address — i.e. in the runtime-allocated mailbox (`5FPMAILBOX`, §2.6a). So **if the emulator's servicer
+writes `N5STA=ANSWER` to the wrong cell (e.g. `ConfigureMailbox` based at the window start instead of
+`5FPMAILBOX`), RN5STATUS reads SINTRAN's correct cell, sees not-ANSWER, and N500TMR fires the
+timeout.** This promotes P1-T1 from "downstream, fix later" to a **prime suspect** for the current
+"ND-500(0) timeout" — assuming `5ALIVE` is already being set (presence achieved, Task #8). The
+actionable emulator question: **does the servicer write `N5STA=ANSWER`, and to exactly the cell
+`5MBBANK`+msg+`N5STA` that RN5STATUS reads?** Confirm by trace.
+
+### 2.1b Static-investigation conclusion (2026-07-20 loop — 7 iterations, no harness)
+
+The harness-free investigation converged. Synthesis, most-load-bearing first:
+
+1. **The live fault is the N5STA message round-trip, NOT presence.** The symptom is *"ND-500(0)
+   timeout,"* not *"No ND-500(0) CPU found."* Per N500TMR, a clear `5ALIVE` returns early with **no**
+   timeout (`:308`) — so a timeout *proves* `5ALIVE` is set, i.e. presence/connect already works (Task
+   #8 done). The fault is downstream, at `N5STA≠ANSWER` (`RN5STATUS`, `CC-P2-N500.NPL:680`). This also
+   rules out P2-T3 ("fake alive") as the current fault.
+2. **That round-trip is governed by the mailbox base**, which the emulator SELF-CORRECTS via X5ACT
+   self-discovery (`OctobusND5000Station.cs:712-764` → `ConfigureMailbox`), **iff** the X5ACT `0xFFFF→0`
+   write is detected (**Q-OCT-24**). So P1-T1 and Q-OCT-24 are one coupled question at runtime.
+3. **Single sharpest diagnostic (one harness run):** does `"X5ACT self-discovery:"` (`:749`) log, and
+   does its `header=` equal `INZ500`'s `5FPMAILBOX` (the first mailbox-header write under
+   `TraceMpmWrites`)? Fires+matches → base correct → look at per-MICFU `N5STA=ANSWER` writes next.
+   Doesn't fire → that IS the fault (activation + mailbox base both fail together).
+4. **Phase-1 audit complete, all off-critical-path items resolved without code changes:** P1-T2
+   non-defect (§2.9a), P1-T3 latent/off-path, P1-T4 register documentation—do-not-delete, P1-T5
+   intentional TPE dependency. Zero code changes made — five would have been wrong.
+
+**Everything remaining is gated on the harness (run the diagnostic; trace Q-OCT-24) or Jul-22 (the
+Q-OCT-22 SAMSON-side carve, a secondary refinement — not the live fault).** No further harness-free
+progress is available on the critical path.
+
+### 2.1c LIVE-HARNESS confirmation + corrections (2026-07-20, harness run directly)
+
+The octobus boot harness (`Nd100SintranNd5000OctobusBootHarnessTests.FullFlow_…`) was run 3× against
+`BIGDISK0-L.IMG`. This **corrects** part of §2.1b (which theorised ahead of the evidence) and pins the
+real fault. `[V from live trace]`.
+
+**1. The boot gets MUCH further than the static analysis assumed.** It completes the entire ACCP
+bring-up: presence → selftest → terminate → **VPARP echo passes** → **128× LCS0 (control store loads)**
+→ **STAMIC0 (start mic)** → ENKICK. All the old blockers are cleared.
+
+**2. The `N5STA=ANSWER` / mailbox-base theory (§2.1b) was premature — the boot never reaches the N5STA
+round-trip.** The servicer trace says verbatim: *"NO mailbox MICFU processed — the mailbox was never
+walked over the octobus."* So self-discovery / N5STA analysis was about a stage never reached this boot.
+
+**3. The 202B model-report hypothesis is REFUTED [experiment].** `SendMicroprogramModelReport()` emits an
+inbound OCB `[82 01 38 38 2E 9A]` (FaultType 202B, reporter 1). I disabled it, forced a full rebuild, and
+re-ran (run3): **zero change** — same 10 init cycles, same `ND-500(0) timeout`. So the OCB 202B frame is
+NOT the loop driver. Reverted. (Lesson: the carved 5OMBREAD decode looked damning, but the live test
+killed the hypothesis — run it, don't reason it.)
+
+**4. The REAL fault: the mailbox is never walked, so `3RMICV` (the ND-500 watchdog) is never answered.**
+Chain `[V]`: mic starts → SINTRAN arms the `3RMICV` watchdog and activates via `X5ACT:=0` → the emulator
+never processes it → SINTRAN reads the micro version as **`Micro program.: 0`** → the J04 monitor raises
+`FATAL … ND-500(0) Monitor Internal` → `ND-500(0) timeout / CPU locked`, re-inited on every `@nd-500`
+command. This is the `N500TMR → N5TIMOUT → RSTARTALL` teardown (§2.1), driven by the missing 3RMICV
+answer.
+
+**5. Root cause of the missed walk — the self-discovery HEURISTIC mis-fires.** The emulator's
+`OnMpmActivationWrite` sniffs for the *first* `0xFFFF→0` write and guesses the ext-block from it. The
+run3 activation dump: **4096 candidate writes, exactly ONE real `0xFFFF→0` (`Z 0x00800000`)**; the rest
+are `→0`-not-from-`0xFFFF`. The one candidate either mis-bases the ext-block or the walked `X5BEX` chain
+is empty → no MICFU processed. The heuristic is the bug.
+
+**6. Q-OCT-24 RESOLVED [V carve + V live]:** SINTRAN clears X5ACT with a **single `STZTX`** (one halfword
+`0xFFFF→0`), NOT byte-at-a-time — `ACT51: T:=5MBBANK; X:=MAILINK; *AAX X5ACT; STZTX` (`MP-P2-N500.NPL:3027`,
+`145500`); init `-1` by `XMSINIT` (`RP-P2-N500.NPL:755`). Confirmed live: the emulator DID observe a clean
+`0xFFFF→0`. So the byte-path activation machinery (`ND100Memory.cs:495-524`) is dead code built on a
+misobservation — **P1-T6 / B2 answered: single STZTX.**
+
+### 2.1d The CARVED deterministic mailbox address (replaces the sniff) [NPL-V]
+
+From `CARVE-ANSWER-OCTOBUS-MAILBOX-ACTIVATION-2026-07-19.md` §Placement (lines 96-123), verified against
+`XMSINIT` (`RP-P2-N500.NPL:732-772`). The mailbox is NOT sniffable-only; it is computable:
+
+```
+5MBBANK (words)   = 5FPMAILBOX << 10            (:737  5FPMAILBOX=:D:=0; AD SH 12; A=:5MBBANK)
+header (words)    = 5MBBANK + X500DF            (:743  A:=D=:X500DF)
+extblock(cpu)     = header + cpu·5EXTDFSIZE      (5EXTD = 200B = 128 words = 256 bytes; cpu 1 = stn 70B)
+X5BEX  = extblock + word 0     (ex-queue head, init -1)
+X5ACT  = extblock + word 5 = +0x0A bytes   (work flag; init -1; ACT51 writes 0; microcode polls +0x0A)
+X5PRO  = extblock + word 6 = +0x0C bytes
+
+→ X5ACT_window_byte = (5FPMAILBOX<<10 + X500DF)·2 + cpu·256 + 0x0A
+→ X5ACT_phys_byte   = mpmStart + that
+```
+
+`5FPMAILBOX` (boot-allocated page, `5FPMA`≈`111102` [INFER abs]) and `X500DF` (header word-offset in the
+mailbox bank) are **SINTRAN resident variables the emulator can read from its own ND-100 memory**. This is
+a modeling shortcut, NOT the real-HW mechanism (the ND-5000 learns the base from `START_MESS`/CS page 0 =
+**Q-OCT-22**, still uncarved) — but it is deterministic and exact, and strictly better than the
+`0xFFFF→0` sniff.
+
+**THE FIX (P1-T1, now concrete):** in `ConfigureMailbox`/`OnMpmActivationWrite`, stop sniffing. Read
+`5FPMAILBOX` + `X500DF` from ND-100 memory, compute `X5ACT_phys_byte` per the formula, base the ext-block
+there, arm `X5ACT:=-1`, and trigger the servicer walk on the `→0` write to that exact cell. Then answer
+`3RMICV` (`N5STA:=ANSWER(3)`) and the watchdog succeeds → teardown stops.
+
+### 2.1e ⭐ Q-OCT-22 RESOLVED + the ACTUAL-CORRECT-WAY fix (live CS dump, 2026-07-21)
+
+Dumping the **loaded** control-store page-0 words from the harness (`OctobusND5000Station.ControlStoreWord`)
+settles it. `START_MESS` IS patched. `[V live]`
+
+```
+CS word 025 (SAMSON_CPU) LARG hw7 = 0x0001   ← patched = CPU number 1
+CS word 026 (START_MESS)  LARG hw7 = 0x8800   ← patched (on-disk placeholder = 0x2000)
+CS word 027 (ZERO_P)      LARG hw7 = 0x0000   ← matches "ZERO_P"
+```
+Self-confirming mapping: `SAMSON_CPU=1` (the CPU number) and `ZERO_P=0` land exactly where the carve
+predicted, proving word 026 = `START_MESS` — and it reads **0x8800, not the placeholder**. Cross-check:
+`START_MESS=0x8800` → mailbox at `mpmStart + 0x8800 = 0x428800`, and the observed mailbox writes were at
+**0x428A10** — same region. (The sniff's `0x800000` was noise; the resident-read of `5FPMAILBOX` failed
+because monitor vars need MMU translation — both dead ends, both avoided by this.)
+
+**This is the real-hardware mechanism**: the ND-5000 microcode learns the mailbox base from `START_MESS`
+in the control store it loaded, which SINTRAN patched (`ND-05.017.01:3961`). The emulator's servicer *is*
+the microcode replacement, so it reads the same loaded `_controlStore[]` — **no resident read, no MMU, no
+sniff.** This SUPERSEDES the §2.1d resident-var approach and the §2.6a self-discovery fallback.
+
+```
+START_MESS = _controlStore[0x16*8 + 7]        // word 026 halfword 7 = 0x8800  (0x16 = 026 octal)
+SAMSON_CPU = _controlStore[0x15*8 + 7]        // word 025 halfword 7 = 0x0001
+header_phys   = mpmStart + START_MESS          // 0x428800
+extblock_phys = header_phys + SAMSON_CPU*256   // 0x428900   [INIT_ADRP: START_MESS + SAMSON_CPU*256]
+X5ACT_phys    = extblock_phys + 0x0A           // 0x42890A   (X5BEX = extblock+0)
+```
+**FIX:** compute the base from `_controlStore[026]/[025]` right after CS-load completes; base the ext-block
+there; arm `X5ACT:=-1`; trigger the walk on the `→0` write there; answer `3RMICV` (`N5STA:=3`). Halfword-7
+indexing is the same the working `SendMicroprogramModelReport` uses for the version (`word1 hw7`).
+*(Open detail, minor: which observed activation write is the real ACT51 `X5ACT:=0` — verify next run.)*
 
 ## 2.2 Cross-corpus open-question inventory
 
@@ -437,7 +585,7 @@ Items marked **§1** duplicate a section-1 entry and are cross-referenced rather
 |---|---|---|---|
 | ~~Q-OCT-16~~ | ~~What address space is `START_MESS = 0x2000` in?~~ | **ANSWERED 2026-07-20 — see §2.6** | — |
 | ~~Q-OCT-17~~ | ~~How should an emulated station DERIVE the mailbox base?~~ | **ANSWERED 2026-07-20 — see §2.6** | — |
-| Q-OCT-22 | **Which ND-100 code performs the CS page-0 patch?** The manual says system parameters are patched into the first page of `CONTROL-STORE:DATA` before the ACCP burns it, but the patcher is **not** in `NPL-SOURCE/NPL/*.NPL` and not in `MON-DEBUG:PROG` — it lives in an uncarved segment | CARVE | Yes — confirms *which* CS words are patched |
+| ~~Q-OCT-22~~ **RESOLVED 2026-07-21 (§2.1e)** | **YES, `START_MESS` IS patched.** Live CS dump: word 026 (`START_MESS`) = **0x8800** (not the 0x2000 placeholder); word 025 (`SAMSON_CPU`) = **0x0001**; word 027 (`ZERO_P`)=0. → mailbox at `mpmStart+0x8800=0x428800` (matches observed writes at 0x428A10). The emulator reads `_controlStore[026]/[025]` — real-HW mechanism, no resident read/MMU/sniff | Done (live) | — |
 | Q-OCT-23 | What is the `CNVWADR` / `CNVBYADR` algorithm? (`CNVWADR=055160` L07; resident disassembly at that address is mid-routine.) Do **not** assume it is a plain `−ADRZERO` | CARVE | Feeds Q-CSL-16 |
 | Q-OCT-18 | What do ACCP interrogation commands `2`, `1`, `3` (3-, 3- and 1-word replies) mean, and what is the reply byte layout? The CPU issues these during INIT_SAMSON before reaching IDLE | UNANSWERABLE from firmware (EPROM never dumped) — needs ND-05.020.01 ACCP chapter or a live capture | Marked `[OPEN]` in the microcode track's `BOOT-STARTUP.md` |
 | Q-OCT-19 | What do `STAMIC0`/`CONTMIC`/`RESTMIC` do to the sequencer — start at CS `000000` (SAMSON cold vector), at `GOIDLE` (`000016`/`000017`, warm), at an ACCP-supplied address, or resume at the current MPC? | MICROCODE | Emulator currently sets a bool and ACKs |
@@ -471,12 +619,16 @@ CS words `000020`-`000027` are in that first page. `START_MESS` (word `026`) and
 (word `025`) are precisely the two constants that **cannot** be static in a shipped file —
 `SAMSON_CPU` is per-CPU, and a multi-CPU ND-5000 loads the same file into every CPU. The `0o20000`
 / `0` seen in the dumps are shipped placeholders. *(That `START_MESS` specifically is among the
-patched words is [INFER], strong — the patcher itself is uncarved, Q-OCT-22.)*
+patched words is **[V CONFIRMED 2026-07-21, §2.1e]** — live CS dump shows word 026 = 0x8800 not the
+0x2000 placeholder, and word 025 `SAMSON_CPU` = 0x0001 = the CPU number. Q-OCT-22 resolved.)*
 
-Corroboration [INFER]: `INZ500` allocates the ACCP and HW buffers **before** the mailbox
-(`5P-P2-MON60.NPL:627-644`), and those live at `0x10000`/`0x18000`. A mailbox at a literal `0x2000`
-would sit *below* buffers allocated earlier — inconsistent with `5GBUFF`'s ascending scan
-(`RP-P2-N500.NPL:891-932`).
+Corroboration [VERIFIED by read of INZ500, 2026-07-20 — upgraded from INFER]: `INZ500` allocates the
+ACCP buffer (`A=:5FPACCPBUF`, `5P-P2-MON60.NPL:629`) and the HW buffer (`A=:5FPHWBUF`, `:631`)
+**before** the mailbox (`A=:5FPMAILBOX`, `:640`), each by a separate `CALL 5GBUFF`. The mailbox base
+`5FPMAILBOX` is therefore itself a **`5GBUFF`-allocated ADRZERO-relative physical page** (`5GBUFF`
+returns `A+ADRZERO`, `RP-P2-N500.NPL:901`), computed at `:633-640` (page count → `5NPMAILBOX`). It is
+categorically **not** a hardcoded `0x2000`. A mailbox at a literal `0x2000` would sit *below* buffers
+allocated earlier — inconsistent with `5GBUFF`'s ascending scan (`RP-P2-N500.NPL:891-932`).
 
 **No ACCP command carries the mailbox address [READ].** The full table
 (`ND-05.017.01:11018-11065`, appendix A.3, codes 15B-65B) has exactly one address-bearing command,
@@ -518,6 +670,90 @@ truncations exist): `N500D=051767` (abs) · `5FPAC=011252` (abs, matches the NPL
 `MAILL=000021` / `MAILI=000022` (CPU-datafield displacements) · `5EXTD=000200` ·
 ext-block words `X5BEX=0`, `X5NAC=2`, `X5ACT=5`, `X5ACC=20`, `X5OCT=22`, `X5HWB=24` ·
 `5OMDN=000000` · `5STAT=000017`.
+
+## 2.6a Carve progress 2026-07-20 (loop iteration — static, no harness)
+
+Attempted the Q-OCT-22 carve directly (main-loop static read; sub-agent dispatch still blocked by the
+weekly limit until Jul 22). **Q-OCT-22 is NOT closed by this pass** — recording only what is verified.
+
+**[VERIFIED by read] The ND-100 side addresses the ND-500 message area via `5MBBANK` + `MESSBUFF`,
+never via `START_MESS`.** The idiom is pervasive and identical across MON60 (`5P-P2-MON60.NPL`):
+`T:=5MBBANK; X:=5PRDESCR.MESSBUFF; *AAX <field>; LDATX/STATX` — lines 702-703, 728, 942, 978, 1100,
+1181, 1223, 1251, 1403. Line **1100** is explicit: `X:=5PRDESCR.MESSBUFF; *AAX ABUFA; LDDTX
+% AD=PHYS ADDR OF MON60 BUFFER`. So `5MBBANK` is the physical bank/window and `MESSBUFF` the
+per-process offset; together they are the **ND-100 end** of the shared window. `START_MESS` is the
+**SAMSON end** (window-relative `0x2000`). Two views, one physical window.
+  - *Implication for P1-T1 (de-risks it):* the emulator's **ND-100-side** mailbox base
+    (`ND100Machine.ND5000.cs:155 ConfigureMailbox`) should track what SINTRAN actually computes for
+    `5MBBANK:MESSBUFF`, independent of whatever the microcode holds in `START_MESS`. The two only need
+    to *agree on the same physical cell* — they are not required to be the same number.
+  - *NOT yet verified [open]:* that `5MBBANK:MESSBUFF` physical **equals** `window_base + START_MESS`.
+    That equality is the actual Q-OCT-22 reconciliation and is still unproven.
+
+**[VERIFIED by read] `ICSLOAD` (MON60 func=037, `5P-P2-MON60.NPL:1380`) does not patch anything** — it
+copies the filename to the MON60 buffer and `GO FAR 5NOPAR`. Any page-0 patch lives in the
+far-continuation worker (the `LDSWA 143551` / `PLSWA 144212` disassembly path), **not** the dispatcher.
+
+**[VERIFIED by read] The ACCP command layer is ruled out as the patcher.** `GMESS 44717 / ACCPE 45001
+/ TRANS 45053 / RECEI 45145 / MCLSA 45220 / CONTA 45225 / STOPA 45232 / TERMA 45237 / WACCP 45267`
+build a small fixed command block (`,B 103-107`: cmd code, params) — they carry ACCP *commands*, not
+CS-page content. Consistent with §2.6's "no ACCP command carries the mailbox address."
+
+**[VERIFIED by read of INZ500] The ND-100-side mailbox base is a dynamically allocated ADRZERO-relative
+physical page, not a constant.** `INZ500` (`5P-P2-MON60.NPL:600-640`) computes the mailbox page count
+into `5NPMAILBOX` (`:633-638`), calls `5GBUFF`, and stores `A=:5FPMAILBOX` (`:640`). `5GBUFF` returns
+`A+ADRZERO` (`RP-P2-N500.NPL:901`). The ACCP buffer (`5FPACCPBUF`, `:629`) and HW buffer (`5FPHWBUF`,
+`:631`) are allocated *before* the mailbox. This upgrades §2.6's allocation-order corroboration from
+INFER to VERIFIED and nails the ND-100 half of P1-T1: the emulator's ND-100-side base must track the
+runtime `5FPMAILBOX`/`5MBBANK`, never a literal `0x2000`.
+  - *Still open [Q-OCT-22 proper]:* how the SAMSON side's `START_MESS = 0x2000` comes to name the same
+    physical cell — either (a) `START_MESS` is patched with a `5FPMAILBOX`-derived offset, or (b) the
+    MPM window base is positioned so `window_base + 0x2000 == 5FPMAILBOX`. Distinguishing (a) from (b)
+    still needs the far-worker carve or a live trace; neither was reachable this pass.
+
+**[VERIFIED — methodology limit] Static disassembly of `030-S3SM5` cannot cleanly answer Q-OCT-22.**
+The worker region (`LDSWA 143551`, `PLSWA/GP1XR 144212`) interleaves code with register-save and
+generic-parameter **data tables** (one symbol per line in `.symbols.txt`), which the carver
+disassembles as instructions. Reading it by eye risks a false verdict. A rigorous answer needs the
+**Jul-22 sub-agent carve** (control-flow-followed) **or a live harness trace** (MCP was down this
+pass). Do not manufacture a patch verdict from this disassembly.
+
+**[VERIFIED by read of emulator source] The emulator↔carve linkage for P1-T1 is now exact.** In
+`RetroCore` (branch `ethernet-ii-controller-fixes`):
+- `ND100Machine.ND5000.cs:155` — `stationObj.ConfigureMailbox(mailboxHeaderByteAddress ?? mpmStart,
+  cpuNumber)`. The doc at `:90-92` already states: *"default = mpmStart … Under real SINTRAN the header
+  location comes from #CPUDF."*
+- `Nd100SintranNd5000OctobusBootHarnessTests.cs:153-159` — the real-SINTRAN octobus harness passes
+  `mpmStart`/`mpmSize` but **omits `mailboxHeaderByteAddress`** → it defaults to the MPM **window start**
+  `0x420000`. The harness comment `:27-29` calls this out: *"we pass header = MPM window start as a
+  first guess."*
+
+**Structural prediction (from the INZ500 carve, testable):** the guess is very likely wrong for the
+real-SINTRAN path. `INZ500` allocates the ACCP buffer and HW buffer *before* the mailbox, all via the
+ascending `5GBUFF` scan, so `5FPMAILBOX` sits **above** the window base, not at it. And the SAMSON side
+reads the mailbox at `window_base + START_MESS (0x2000)`, not at `+0`. So `header = window start`
+assumes both "mailbox at window base" and "START_MESS = 0", each contradicted by the carve.
+  - *How to get the real value (needs a harness run — MCP was down this pass):* the harness already
+    arms `TraceMpmWrites`; the address where SINTRAN's `INZ500` first writes the mailbox global header
+    (`X5NACTIVEQ`, ext-block layout) is the empirical `5FPMAILBOX` for this image. Feed that back as
+    `mailboxHeaderByteAddress`.
+  - *Refined 2026-07-20 (emulator read `OctobusND5000Station.cs:712-764`) — the base SELF-CORRECTS at
+    runtime, so P1-T1 and Q-OCT-24 are COUPLED:* the emulator does not stay on the window-start guess.
+    On the first X5ACT `0xFFFF→0` write, `OnMpmActivationWrite` computes `extBlock = addr − 5·2`,
+    `header = extBlock − cpu·256`, sanity-checks it, and calls `ConfigureMailbox(header, cpu)` (`:747`)
+    — which overwrites `_mailboxHeaderBase`/`_extBlockBase` (`:672`). So the whole message chain
+    (`ServiceMailbox`/`WalkQueue`/`ProcessMessage` → the `N5STA=ANSWER` write at `msgBase + N5STA·2`,
+    `Nd500MicrocodeServicer.cs:232`) re-anchors to the REAL SINTRAN location **iff that X5ACT write is
+    detected**. Detecting it is exactly **Q-OCT-24 (B2)**: does SINTRAN's clear arrive as a catchable
+    halfword `0xFFFF→0`? Therefore:
+    - If self-discovery **fires** → base is correct → the `N5STA=ANSWER` cell matches what `RN5STATUS`
+      reads → mailbox base is NOT the timeout cause; look elsewhere (per-MICFU answer, `5ALIVE`).
+    - If self-discovery **does not fire** (X5ACT clear missed, or the "first −1→0 wins" heuristic
+      latched a wrong cell — §2.7 item 4) → base stays at the window-start guess → `N5STA=ANSWER` lands
+      in the wrong cell → **N500TMR timeout** (§2.1 chain).
+    - *So the sharpest single diagnostic on a harness run:* does the `"X5ACT self-discovery: …"` log
+      line (`:749`) appear, and does its `header=` match SINTRAN's `INZ500` `5FPMAILBOX`? That one line
+      decides whether P1-T1 or Q-OCT-24 is the live fault.
 
 ## 2.7 Silent assumptions in the RetroCore C# implementation
 
@@ -570,7 +806,36 @@ sees the activation") **wrong**.
 
 | ID | Question | Route | Blocking |
 |---|---|---|---|
-| **Q-OCT-24** | **Does L07 SINTRAN actually clear X5ACT with a single `STZTX` (one halfword store), or byte-at-a-time?** The carve (diff revision) says `STZTX`; the emulator comment claims an observed byte-at-a-time clear. If `STZTX`, the byte-path activation machinery is dead code built around a misobservation | **LIVE** — instruction-trace the octobus harness at the X5ACT clear; read the actual store opcode(s). Do NOT assume either way | Yes — the activation path rests on which is true |
+| ~~**Q-OCT-24**~~ **RESOLVED 2026-07-20 (§2.1c)** | **Single `STZTX`, one halfword `0xFFFF→0`** — carve `ACT51 MP-P2-N500.NPL:3027` + live harness (the emulator observed a clean `0xFFFF→0`). NOT byte-at-a-time. | Done. The byte-path machinery (`ND100Memory.cs:495-524`) is dead code on a misobservation — remove it (P1-T6) | — |
+
+## 2.9a P1-T2 reclassified — the CS-load checksum gate is NOT a defect (JRWCS carve 2026-07-20)
+
+`[V from carve]` The remediation plan listed **P1-T2** as "the checksum gate can't fail = defect,"
+with the fix "make a corrupt-word test yield `EILOCS`." Carving **JRWCS** (`030-S3SM5:045771`, real
+executable code) refutes that premise:
+
+- **The sum loop** `046036-046045` sums the read-back microwords (via the `,B -77` param pointer) into
+  `B-177` — `Σ(block[0 .. N·8-1])`.
+- **The expected value** comes from the helper called at `046046` (`JPL I 32` → tail pointer `046100`
+  = `044656` = **ABSLD**, confirmed in `.symbols.txt:142`). ABSLD (`044656-044707`) loads the
+  param-area descriptor `LDD ,X 21` (same idiom as TRANS/RECEI), adds a running index (`,B 100`), and
+  fetches `A := mem[base + index]` — i.e. it returns the **next** word after the microwords,
+  `block[N·8]`, from the **same contiguous param block**.
+- **The compare** `046052-046053` (`SKP IF DA UEQ ST`) tests `Σ(words) == block[N·8]`, error →
+  `046064` (`MIN ,B -74`, the `EILOCS` path).
+
+**Both operands are read back from the one shared parameter area.** SINTRAN does *not* hold its own
+expected checksum in a local — it reads the addend back through ABSLD. That structure means the addend
+was **placed in the block by the CMRWC dump (the ACCP)**, so `addend == Σ(words)` holds *by design* on
+real hardware. The gate can only catch a param-area transfer/memory fault, never CS-content
+corruption. **The emulator's "self-consistent by construction" serving
+(`OctobusND5000Station.cs:1757,1790`) is therefore faithful, not a bug.**
+
+**Action:** do **not** implement P1-T2's artificial-failure fix — it would add a failure mode real HW
+lacks. This is the 5th "doc/plan says the code is broken, the code is already right" instance — the
+plan itself was wrong here. **One residual to confirm, not assume:** `ND-05.017.01` CMRWC (025B) —
+verify the ACCP *computes and writes* the addend into `block[N·8]` (vs the ND-100 preloading it). The
+read-back-via-ABSLD structure already implies the former; the manual line closes it.
 
 ## 2.8 NDIX cross-check (2026-07-20) — and a generation warning
 

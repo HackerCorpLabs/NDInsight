@@ -220,7 +220,12 @@ side that implements MON 600B with at least FE_INIT semantics and this response 
   Descriptions for ND-500.md:923-940`): the MOST bit "determines which part of the register to
   use **when micro-programmed**" — direct vendor confirmation that microcode manipulates
   DATA-IN/DATA-OUT/TAG-OUT itself.
-- Consequence for the ISA level: `RIOM`/`WIOM` (Reference Manual §16.23; per-instruction doc
+<!-- CORRECTION 2026-07-20: the original said "RIOM/WIOM". There is no WIOM. Manual ND-05.009.4
+     section 16.23 = "Read I/O processor memory" (RIOM only); 16.24 = "Clear translation speedup
+     buffer". No "Write I/O processor memory" section exists. The WIOM name propagated from a
+     hallucinated dangling See-Also in the generated riom.md (now removed). RIOM has no write
+     companion. Text below corrected to RIOM. -->
+- Consequence for the ISA level: `RIOM` (Reference Manual section 16.23; per-instruction doc
   `E:\Dev\Ronny\ND500-DOCS\instructions\asm\riom.md` — supervisor-only halfword DMA against
   ND-100 private memory "through the ND-500 interface", "does not interrupt ND-100 program
   execution") are implemented by the microcode driving **TAG-OUT codes 6/7 with the 3022 MAR**
@@ -259,3 +264,40 @@ All four are now corrected or deprecation-bannered:
 
 Authority for all corrections: [`ND500-BUS-INTERFACE-REFERENCE.md`](ND500-BUS-INTERFACE-REFERENCE.md)
 §3.2/§4/§5/§7/§10, ND-30.013.02 §3.12-3.15, ND-05.012.01 §13.
+
+---
+
+## 9. Octobus-code impact assessment (D4 plan task 0.4, 2026-07-20)
+
+**Question asked:** does this NDIX evidence require changes to the octobus transport logic
+(`OctobusND5000Station.cs`, `NDBusOctobus.cs`), or is it doc/TODO-only?
+
+**Verdict: NO octobus code change. TODO/doc-only.** Rationale, per finding:
+
+1. **fecall / segment-31 PC_OMC / MON 600B (section 2)** is the **3022-style mailbox doorbell**, not
+   octobus frame transport. It belongs to the 3022/swapper bridge track (`CpuND500.ND100Bridge.cs`
+   segment-31 handling), not the octobus station. No octobus change.
+2. **The `(phys + private)/2` address arithmetic (section 2.1)** is IDENTICAL to the emulator's
+   existing `MapND100ToPhysical` / `MapPhysicalToND100` (`_private + word*2`). NDIX independently
+   **corroborates the current 3022 bridge**; it also confirms `private` is handed over by SINTRAN at
+   boot (FE_INIT), which supports the C4 note now in `CpuND500.ND100Bridge.cs`. No change - evidence
+   FOR existing code.
+3. **The §13 message protocol + status lifecycle 0/1/2/3/4 (section 5)** corroborates the existing
+   servicer/MICFU handling; the function table (23 start / 24 restart-moncall / 25 restart-trap)
+   matches the symbol-table values already modelled. No octobus change.
+4. **The 5015 unit-select / RIOM-via-TAG-OUT-6/7 finding (section 6)** is a MANUAL partial answer to
+   C7 / Q-OTH-05 (classic-500 physical path), already recorded in the register. Classic 3022/5015
+   generation, not octobus. Doc-only.
+
+**TODO items surfaced (not octobus, not blocking D4):**
+- **[TODO-NDIX-1]** If the emulator ever targets NDIX as a guest OS, the ND-100 side must implement
+  **MON 600B with FE_INIT semantics** and the `init_rpk` response block (section 3). New feature on the
+  3022/mailbox side; nothing exists today. Not on the SINTRAN-L D4 critical path.
+- **[TODO-BRIDGE-1]** `IsND100SharedMemory` keys on `ND100_SHARED_SEGMENT = 6`, but NDIX's OMC
+  doorbell is **segment 31** (`0xF8000180 >> 27`) with the `PC_OMC 0x4000` capability flag. These are
+  different roles (segment 6 = shared data window; segment 31 = OMC call gate), so this is likely fine,
+  but the segment-31 OMC path is worth an explicit check when the bridge track resumes. 3022 bridge
+  item, not octobus.
+
+Both TODOs are 3022/bridge-track, not octobus. The octobus open questions (Q-OCT-*, Q-CSL-*, Q-ACT-*)
+are unaffected by this evidence.

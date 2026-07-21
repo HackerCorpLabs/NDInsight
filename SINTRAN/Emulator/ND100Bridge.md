@@ -6,7 +6,7 @@ This document describes the **RIOM (Read I/O processor Memory)** instruction and
 
 **Key Findings:**
 - RIOM uses DMA to access **any ND-100 physical memory**, not just 5MPM
-- Two separate memory access mechanisms: direct 5MPM and RIOM/WIOM instructions
+- Two separate memory access mechanisms: direct 5MPM and the RIOM instruction (read-only; there is no WIOM - see the Access Model table below)
 - 5MPM is a separate hardware module with different address views from ND-100 and ND-500
 - Multiple ND-500 CPUs share partitioned 5MPM space via dedicated ports
 
@@ -133,7 +133,7 @@ The ND-100/ND-500 architecture provides two distinct memory access mechanisms:
 | Mechanism | Memory Scope | Access Type | Speed | Interrupt ND-100? | Purpose |
 |-----------|--------------|-------------|-------|-------------------|---------|
 | **Direct 5MPM Access** | 5MPM only | CPU read/write | Fast | N/A (shared) | Message buffers, coordination, IPC |
-| **RIOM/WIOM Instructions** | Any ND-100 physical memory | DMA via interface | Slower | No | Bulk data transfer to/from private RAM |
+| **RIOM Instruction** (read-only; no WIOM exists) | Any ND-100 physical memory | Microcoded copy via interface | Slower | No | Bulk read of ND-100/private RAM into an ND-500 buffer |
 
 ### Why Two Mechanisms?
 
