@@ -190,8 +190,16 @@ message builders (MSWIN swap-in @octal 140771=0xC1F9, body-fill @octal 162155=0x
   back-edge **155225 `JMP -103 ->155122`**) calling the LEAF chain-walk **155310..155323**
   (0xDAC8..0xDAD3, `LDX ,X ,B -41`/`LDX ,X ,B -51` + `JPL I 126 ->155450`). A table/chain scan
   spinning, not a single-cell poll; scans via mem[27]/mem[26] table pointers + B-relative locals,
-  exit tests `JAZ`@155264 + `BSKP ONE 10 DA`@155302. [OPEN: which exact table/entry + the servicer
-  write that satisfies it - the resumed carve agent is finishing this.]
+  exit tests `JAZ`@155264 + `BSKP ONE 10 DA`@155302.
+- **EXACT GATE PINNED 2026-07-21 [V]:** the "ready entry" test @155263..155302 = `LDA I 27` (probe
+  absolute low-core cell **27B**); converges ONLY when **cell 27B != 0 AND the swapper-answer record's
+  `+42B` field has BIT 3 set** (`mem[26]->[X-146]->record+42B`, `BSKP ONE 10 DA`). Set in real HW by
+  the ND-500 swapper ANSWERing (5ACTSWAPPER/XACTRDY post, ENDPL/SPLAC build the entry); faked swapper
+  never does. **TASK-8 FIX = SERVICER-side: functional swapper must genuinely ANSWER (post answer + 23B
+  handshake via NDBusND500IF, the path that emits synthetic 22B today) so SINTRAN fills 27B + bit3.
+  Fallback: servicer pokes 27B ptr + mask 000010B @record+42B after msg accepted.** [OPEN: uniquely
+  name 26B/27B + the exact record address - needs a LIVE LOW-CORE DUMP of 26B/27B during the spin; do
+  NOT guess-poke.]
 
 ## Dependencies / ordering
 
