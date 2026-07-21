@@ -1,5 +1,28 @@
 # CARVE: Who posts the MSWIN (reason-5) swapper message with an empty body?
 
+## CORRECTION 2026-07-21 (SUPERSEDED on the sender identity) - see `CARVE-S3SM5-MSWIN-STAMP-AND-FILL-2026-07-21.md`
+
+**This doc's BOTTOM LINE ("no ND-100 routine fills the body; the sender is ND-500-side / 030-S3SM5
+monitor or ND-5800 microcode") is DISPROVEN.** A reliable decode of `030-S3SM5` (see the new doc)
+shows:
+- **`030-S3SM5` is ND-100 code, NOT byte-addressed ND-500 code** (nd100-dis on the byte-swapped LE
+  image decodes cleanly at word base 040000B; nd500-dis gives garbage; matches the project memory's
+  "S3SM5 is ND-100 (compiled 5STDRIV)" note). It is the ND-100 System Monitor that manages the ND-500
+  swapper and emits the "> Loading Swapper" string.
+- **S3SM5 ITSELF (ND-100 code) stamps `MICFU(off6):=3SWMESS`(literal 5) and writes `SWFUN(off7)` + the
+  ~15-word body** - the MSWIN builder is at runtime octal 140771..141001 and the full body builder at
+  162155..162207. So the fill is ND-100 code and does NOT require ND-5800 microcode.
+- **Why this doc got it wrong [V]:** its "proven negative" grep covered ONLY the resident nucleus
+  (`s3vs-4.symb` + the NPL tree). **S3SM5's source is NOT in the repo** (it is a paged segment,
+  carved as bytes only), so its stores were invisible to that grep. The negative was scope-limited,
+  not a true absence.
+
+The relay/offset facts below (5ACTSWAPPER writes SWPST+HSWPI only; SWMESS fall-through; MICFU vs SWFUN
+both =5 as different fields; the LNEWSWAP-EMPTY genuine-no-work path) remain [V] and useful. Read the
+rest of this doc through the correction above.
+
+---
+
 Date: 2026-07-21
 Scope: static SINTRAN III L (L-VSX-500) carve, ND-5800 image, D4 flow
 Method: direct reading of the carved NPL source + full build symb + carved ND-500

@@ -94,8 +94,23 @@ New documents of record:
   decoded). Ties to the core D4 blocker: the ND-500-side placement/sender that fills the body never
   genuinely runs on the faked 5800 path, so HSWPI addresses a reused, zeroed process-1 MON-200B buffer.
   Trap flagged: `MICFU=3SWMESS=5` and `SWFUN=MSWIN=5` are two DIFFERENT fields both equal to 5; MON 510B
-  (SWMC) is a separate path, NOT the sender. **Next: instruction-decode `030-S3SM5.bin` (or live ND-500
-  single-step during PLACE-DOMAIN) to name the routine that stamps MICFU/SWFUN and fills the body.**
+  (SWMC) is a separate path, NOT the sender. **CORRECTED by the S3SM5 decode below - the sender IS
+  ND-100 code (in S3SM5); this doc's "ND-500-side / no ND-100 code" bottom line is superseded.**
+- [`CARVE-S3SM5-MSWIN-STAMP-AND-FILL-2026-07-21.md`](CARVE-S3SM5-MSWIN-STAMP-AND-FILL-2026-07-21.md)
+  — **The MSWIN sender/filler IS ND-100 code in `030-S3SM5`.** `[V]`: `030-S3SM5` is **ND-100 code, NOT
+  ND-500 byte-addressed** (reliable decode = byte-swap BIG->LITTLE then `nd100-dis -a -o -b 40000`; base
+  word 040000B=0x4000; `nd500-dis` gives garbage; corroborated by sibling `006-S3FS.dis` + the memory
+  note; S3SM5 emits the "> Loading Swapper" string). It is the ND-100 System Monitor managing the ND-500
+  swapper. `[V]`: S3SM5 stamps `MICFU(off6):=3SWMESS`(literal 5) and writes `SWFUN(off7)` + the ~15-word
+  body - MSWIN builder at runtime octal **140771..141001** (SWFUN:=caller `[B-77]`), full body builder at
+  **162155..162207** (offsets 2,3,4,10-17,110,112); the message buffer is `X:=[B-67]`. So the fill does
+  NOT need ND-5800 microcode; it CORRECTS the prior doc (whose grep only covered the resident nucleus -
+  S3SM5 source is not in the repo, so its stores were invisible). Decode saved:
+  `tools\sintran-segment-carver\versions\L-VSX-500\re\030-S3SM5.dis`. `[I]` (offsets rest on N500-SYMBOLS
+  match), `[OPEN]`: routine has no symbol name (addressed by number); enclosing subroutine entry; and
+  WHETHER the MSWIN builder runs in D4 or the `[B-61]` gate diverts to MSWSWAIT / stalls before it.
+  **Next: live single-step PLACE-DOMAIN, BP at octal 140771 + 162155 - does the builder run, and does
+  `X:=[B-67]` equal the live HSWPI buffer (byte 0x420E30)?**
 
 - [`TRACKB-SHARED-ND500-CPU-INTERFACE-DESIGN-2026-07-21.md`](TRACKB-SHARED-ND500-CPU-INTERFACE-DESIGN-2026-07-21.md)
   — **Track B unblock design: how to wire the real microword `CpuND5000` into the octobus attach path.**
