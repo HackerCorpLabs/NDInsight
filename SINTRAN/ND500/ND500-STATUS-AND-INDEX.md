@@ -149,17 +149,21 @@ New documents of record:
   153021/152112/151250).
 
 - [`CORRECTION-HOT-LOOP-IS-IOX-POLL-NOT-S3SM5-2026-07-21.md`](CORRECTION-HOT-LOOP-IS-IOX-POLL-NOT-S3SM5-2026-07-21.md)
-  — **RETRACTS the "cell 27B software table scan" task-8 gate.** A live REGISTER trace proves the D4
-  place-domain hot loop's runtime BYTES do NOT match `030-S3SM5.dis` (0xDAB3 runtime `0xBA14`/`JPL I
-  *0x14` vs S3SM5 `045027`/`LDA I 27`; 0xDACA runtime `0xD10D`/`IOXT` vs S3SM5 `004004`/`STA 4`) = a
-  WRONG-OVERLAY confound. The REAL hot loop (non-S3SM5, ~`0xDA40..0xDAD3`) is a **device-poll-with-
-  timeout**: `MON 117B` + dynamic `IOXT` (device addr `[[B-2E]-3]+0xB` from an interface table) + retry
-  counter `[B-7A]` + `RDIV` 100; it polls device/swapper readiness, times out, prints "The Swapper
-  stopped". Full runtime disasm in the doc. `[OPEN]`: identify the overlay by BYTE-matching runtime
-  words to a carved segment, decode MON 117B + the IOX readiness register, find why the emulator never
-  satisfies it. METHOD LESSON: compare the executed WORD to the segment word before attributing a
-  running PC to a carved segment. **Supersedes the "cell 27B" claims in
-  `CARVE-S3SM5-CSLOAD-VERIFY-LOOP-...` and the S3SM5-scan framing in earlier entries.**
+  — **The D4 place-domain hot loop IS `030-S3SM5`, a device-poll-with-timeout; the `030-S3SM5.dis` FILE
+  is CORRUPT.** `[V byte]`: the `.bin` at the hot PCs matches the live RUNTIME trace byte-for-byte
+  (0xDA50=`D64F` MON117B, 0xDAB3=`BA14`, 0xDAC8=`CC7E`, 0xDACA/0xDAAD=`D10D` IOXT), so there is NO
+  overlay confound - the running code is S3SM5. BUT the agent-generated `030-S3SM5.dis` shows DIFFERENT
+  words than the `.bin` at the same addresses (e.g. 0xDAB3 `.dis` `045027` vs `.bin` `BA14`), so the
+  `.dis` is corrupt/misaligned. That corrupt `.dis` caused BOTH the retracted "cell 27B table scan"
+  (da22546/e830dda) AND the mistaken "not-S3SM5" claim (85b446b). BYTE-VERIFIED loop: `MON 117B` @0xDA50
+  + dynamic `IOXT` @0xDAAD/0xDAB7 (device addr `[[B-2E]-3]+0xB`) + retry counter `[B-7A]` + `RDIV` 100;
+  polls device/swapper readiness, times out -> "The Swapper stopped". **CASCADE WARNING: the corrupt
+  `.dis` also underlies `CARVE-S3SM5-MSWIN-STAMP-AND-FILL-...` (builders @140771/162155) and
+  `CARVE-S3SM5-CSLOAD-VERIFY-LOOP-...` (cell 27B) - their address-level S3SM5 claims are SUSPECT until
+  re-derived from a CORRECT disassembly.** Still SOLID (runtime): empty MSWIN body -> 0x913B crash;
+  poll times out. `[OPEN]`: regenerate a correct `030-S3SM5` disasm (diagnose the .dis byte-order/
+  alignment bug), then decode MON 117B + the IOX readiness register + the emulator fix. METHOD LESSON:
+  compare the `.bin`/executed WORD, not just the address, before trusting a `.dis`.
 
 ### Retracted 2026-07-20 [V] — do not resurrect
 

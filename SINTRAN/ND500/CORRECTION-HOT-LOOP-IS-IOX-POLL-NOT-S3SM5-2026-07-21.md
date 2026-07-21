@@ -1,4 +1,34 @@
-# CORRECTION: the D4 place-domain hot loop is a DEVICE-I/O POLL, not the S3SM5 table scan
+# CORRECTION: the D4 place-domain hot loop is a DEVICE-I/O POLL (it IS 030-S3SM5; the .dis was corrupt)
+
+## FINAL BYTE-VERIFIED CORRECTION 2026-07-21e (supersedes the "not-S3SM5 / overlay confound" claim below)
+
+I was WRONG that this is a non-S3SM5 overlay. Reading the ground-truth `.bin` directly settles it:
+`030-S3SM5.bin` at the runtime PCs matches the RUNTIME TRACE byte-for-byte (base 0x4000, so runtime
+word W is at `.bin` byte `(W-0x4000)*2`):
+
+| PC | `.bin` word (ground truth) | runtime trace | agent's `030-S3SM5.dis` (WRONG) |
+|---|---|---|---|
+| 0xDA50 | `0xD64F` MON 117B | `0xD64F` MON 117B | (not analysed) |
+| 0xDAB3 | `0xBA14` JPL I *0x14 | `0xBA14` | `045027` LDA I 27 |
+| 0xDAC8 | `0xCC7E` COPY SX DT | `0xCC7E` | `056737` LDX ,X ,B -41 |
+| 0xDACA | `0xD10D` IOXT | `0xD10D` | `004004` STA 4 |
+| 0xDAAD | `0xD10D` IOXT | `0xD10D` | (n/a) |
+
+So: **the hot loop IS `030-S3SM5` (no overlay confound).** The thing that is wrong is the
+agent-generated **`030-S3SM5.dis` FILE** - its words disagree with the `.bin` at the same addresses,
+so it is CORRUPT/MISALIGNED and must NOT be used (it caused BOTH the retracted "cell 27B table scan"
+AND my mistaken "not-S3SM5" claim). The `.bin` and the live trace are the ground truth and they agree.
+The device-poll-with-timeout characterisation below is CORRECT (it is byte-verified from the `.bin`);
+only the "not-S3SM5 / different overlay" attribution in the original title/body is wrong.
+
+**Net truth:** the hot loop is `030-S3SM5` code at runtime 0xDA40..0xDAD0 (base 0x4000), a
+device-poll-with-timeout (MON 117B + dynamic IOXT + retry counter `[B-7A]`). ACTION: regenerate a
+CORRECT disassembly of `030-S3SM5` (the current `.dis` is bad) before any further address-level claims;
+until then use the `.bin` + live trace only.
+
+---
+
+# (original, partially-wrong) CORRECTION: the D4 place-domain hot loop is a DEVICE-I/O POLL, not the S3SM5 table scan
 
 **Full path:** `E:\Dev\Ronny\NDInsight\SINTRAN\ND500\CORRECTION-HOT-LOOP-IS-IOX-POLL-NOT-S3SM5-2026-07-21.md`
 **Date:** 2026-07-21

@@ -191,19 +191,22 @@ message builders (MSWIN swap-in @octal 140771=0xC1F9, body-fill @octal 162155=0x
   (0xDAC8..0xDAD3, `LDX ,X ,B -41`/`LDX ,X ,B -51` + `JPL I 126 ->155450`). A table/chain scan
   spinning, not a single-cell poll; scans via mem[27]/mem[26] table pointers + B-relative locals,
   exit tests `JAZ`@155264 + `BSKP ONE 10 DA`@155302.
-- ~~**EXACT GATE PINNED 2026-07-21 [V]:** ... cell 27B + record+42B bit3 ...~~ **RETRACTED
-  2026-07-21d** - see `CORRECTION-HOT-LOOP-IS-IOX-POLL-NOT-S3SM5-2026-07-21.md`. A live REGISTER trace
-  of the hot loop shows the runtime BYTES do NOT match `030-S3SM5.dis` (0xDAB3 runtime `0xBA14 JPL I
-  *0x14` vs S3SM5 `045027 LDA I 27`; 0xDACA runtime `0xD10D IOXT` vs S3SM5 `004004 STA 4`). So the
-  "cell 27B software table scan" was the WRONG OVERLAY. The REAL hot loop is a **device-poll-with-
-  timeout** (non-S3SM5 overlay, ~`0xDA40..0xDAD3`): `MON 117B` @0xDA50 + dynamic `IOXT` @0xDAAD/0xDAB7
-  (device addr = `[[B-2E]-3]+0xB` from an interface table) + retry counter `[B-7A]` + `RDIV` by 100.
-  It polls device/swapper readiness, times out, and place-domain prints "The Swapper stopped".
-  **REVISED [OPEN]: (1) identify the overlay by BYTE-MATCHING the runtime words to a carved segment
-  (do NOT trust S3SM5.dis); (2) what MON 117B + the IOX register `[X-3]+0xB` check; (3) why the
-  emulator never makes that readiness true + where to fix (3022 NDBusND500IF status vs servicer).**
-  METHOD LESSON: a live PC trace gives the ADDRESS; always compare the executed WORD to the segment's
-  word before attributing a running PC to a carved segment (overlays alias addresses).
+- **FINAL BYTE-VERIFIED 2026-07-21e** (`CORRECTION-HOT-LOOP-IS-IOX-POLL-NOT-S3SM5-2026-07-21.md`):
+  the hot loop **IS `030-S3SM5`** (the `.bin` at these PCs matches the RUNTIME trace byte-for-byte:
+  0xDA50=`D64F` MON117B, 0xDAB3=`BA14`, 0xDAC8=`CC7E`, 0xDACA/0xDAAD=`D10D` IOXT). There is NO overlay
+  confound. What was wrong is the agent-generated **`030-S3SM5.dis` FILE - it is CORRUPT** (its words
+  disagree with the `.bin` at the same addresses), which caused BOTH the "cell 27B table scan"
+  (da22546/e830dda) AND my "not-S3SM5" claim (85b446b). BYTE-VERIFIED TRUTH: the hot loop is an
+  `030-S3SM5` **device-poll-with-timeout** at runtime 0xDA40..0xDAD0 (base 0x4000): `MON 117B` @0xDA50
+  + dynamic `IOXT` @0xDAAD/0xDAB7 (device addr `[[B-2E]-3]+0xB`) + retry counter `[B-7A]` + `RDIV` 100;
+  it polls device/swapper readiness, times out, prints "The Swapper stopped".
+  **CASCADE: the corrupt `.dis` also underlies `CARVE-S3SM5-MSWIN-STAMP-AND-FILL-...` (builders @140771/
+  162155, MICFU/SWFUN stamp) and `CARVE-S3SM5-CSLOAD-VERIFY-LOOP-...` (cell 27B) - those address-level
+  S3SM5 claims are now SUSPECT and must be re-derived from a CORRECT disassembly.** Still SOLID (runtime/
+  byte-verified): empty MSWIN body -> 0x913B crash; place-domain spins in this poll then times out.
+  **NEXT: regenerate a CORRECT `030-S3SM5` disassembly (diagnose the .dis tooling bug - byte-order/
+  alignment), then decode MON 117B + the IOX readiness register + why the emulator never satisfies it.**
+  METHOD LESSON: compare the executed/`.bin` WORD, not just the address, before trusting a `.dis`.
 
 ## Dependencies / ordering
 
