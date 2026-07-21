@@ -30,16 +30,19 @@ mark every claim [V]/[INFERRED]/[OPEN]; UNKNOWN beats a plausible wrong answer.
 | 4 | Answer-ring insert (X5FIF) = WINDOW-RELATIVE BYTE offset (finding #3) | A+B | **DONE [V]** | `SYS_DATAF 025636`/`GIVEINT 025427`: base used directly as a byte addr; servicer routed through `ResolveMailboxLink`; oracle 141/141. |
 | 5 | Differential oracle: same mailbox tests through microcode CPU AND servicer | A+B | **DONE [V]** | `MailboxOracleRunner` [Values] Engine; parity asserted. |
 | 6 | Full 21B register/context block applied at start (task #15 legacy) | A | **DONE [V]** | 181 R1/R2 tests green; `ApplyRegisterBlockValue`. |
-| 7 | **Diagnose octobus X5BEX-resolves-to-zeros stall (STATUS / START-SWAPPER)** | A+B | **IN PROGRESS** | See "Current blocker" below. Step now: (a) differential-run the X5BEX chain (leading N5STA=0 node) through both engines; if identical -> (b) carve `XN500`/`CHN5STATUS`/`5RRTWT` wake path (`MP-P2-N500.NPL` XN500@134723, CHN5STATUS@135004, 5RRTWT@132152). Acceptance: root cause named [V]. |
+| 7 | **Diagnose octobus X5BEX-resolves-to-zeros stall (STATUS / START-SWAPPER)** | A+B | **DONE [V live]** | RE-BASELINE (below): root cause NAMED - it is NOT a mailbox-wake failure. The wake path runs (XN500/CHN5STATUS/5RRTWT all fire, PIL=12); "resolves-to-zeros" = the ND-5000 CPU *state* dump reads all zeros = CpuND500/CpuND5000 integration gap. Rolls into tasks 9/11. |
 | 8 | **CS-load "Loading Swapper" verify stall** (Track A dominant blocker) | A | OPEN | Why the ND-100 CS-load driver never emits `RETG5:=0` / never exits `[0xD000..0xDAD3]`; live single-step the verify + servicer CS-readback. Acceptance: ND-100 leaves the verify loop, reaches `SPLAC`/`ENDPL`. |
 | 9 | **Config plumbing (G2): CpuTypeAndModel / SystemParameters / ACCP identity** | A+B | OPEN | Model the CPU-type/model + system-parameter + ACCP identity so SINTRAN's generation checks (`CPUAVAILABLE & 7 == 3 SAMSON`) and 3RMICV report agree with the loaded image. Acceptance: no generation-mismatch; values sourced from the loaded CS, not hardcoded. |
 | 10 | **Production wiring (G1): machine-level `AttachNd500Cpu` for classic 3022** | A | OPEN | Bring the 3022/`NDBusND500IF` path to the same one-call machine attachment the octobus `AttachNd5000Cpu` has. Acceptance: `AttachNd500Cpu` wires CPU + shared MPM + doorbell + run thread; a wiring test passes. |
 | 11 | **Wire `CpuND5000` into the D4/boot harness (Track B start)** | B | OPEN | Attach the real microcode CPU alongside/instead of the functional `CpuND500`; boot it from the loaded CS. Acceptance: CpuND5000 ticks the loaded CS without faulting on attach. |
 | 12 | **RUN/init command routes operator RUN to the attached CpuND500** | A+B | OPEN | Operator RUN -> RUNN precondition (task #13 [V]) -> `3START` the placed domain on the attached CPU. Acceptance: RUN issues 23B to the CPU for a placed domain (no "NO WELL DEFINED PROGRAM"). |
-| 13 | **Completion wake: parked `ITO500XQ` process restarts on answer** | A+B | OPEN | Make the octobus answer path fire what `XN500`/`CHN5STATUS`/`5RRTWT` need to restart the parked ND-100 process (see task 7 carve). Acceptance: STATUS/START-SWAPPER return; the parked process wakes. |
+| 13 | **Completion wake: parked `ITO500XQ` process restarts on answer** | A+B | **DONE [V live]** | RE-BASELINE: the wake already works - `XN500`(135123)/`CHN5STATUS`(135205)/`5RRTWT`(132352) all execute PIL=12 (181/105/31 hits); the parked process restarts. Do NOT chase the ident-routing hypothesis (DISPROVEN). |
 | 14 | **Acceptance: green D4 - RUN LINKAGE-LOAD-H02 reaches `NLL:`** | A+B | OPEN | `Nd500_D4_RunDomain_RealCpu_Capture` reaches `NLL:` (harness is FLAKY - take >=2 samples). Acceptance: `NLL:` printed. |
 
-(6 DONE, 1 IN PROGRESS, 7 OPEN. Tasks 8/13 are the two real blockers; 9/10/11/12 are wiring; 14 is the gate.)
+(8 DONE, 5 OPEN. RE-BASELINE 2026-07-21 closed tasks 7 + 13: the completion wake is NOT the blocker.
+The remaining real blockers are task 8 (CS-load "Loading Swapper" verify stall, Track A) and the
+CPU-STATE integration tasks 9 + 11 (the ND-5000 status/process dumps read all zeros because the
+attached CPU state is not real). 10/12 are wiring; 14 is the gate.)
 
 ---
 
