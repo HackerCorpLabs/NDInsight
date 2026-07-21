@@ -28,11 +28,18 @@ A live `Nd500_D4_RunDomain_RealCpu_Capture` run settled the "one load-bearing fa
   upstream D4 RUN-precondition blocker). The swapper is 3STARTed as a placement formality against an
   empty MESSBUFF.
 - **Consequence for the fix (old section 4.2 option 1 is WRONG):** a gate on `SWMSG.SWPINFO == 0`
-  would NEVER fire (the pointer is 0x210718, non-zero). The correct anti-crash gate keys on the
-  MESSAGE BODY at the pointer being empty - but message-control `= 5`'s meaning must be CARVED
-  (SWPDECODER dispatch) before gating, so we do not invent "empty = idle" semantics. [OPEN: carve
-  what control=5 + empty body means to the swapper; whether real SINTRAN ever 3STARTs with an empty
-  MESSBUFF or the swapper's own dispatch absorbs it.]
+  would NEVER fire (the pointer is 0x210718, non-zero). And control=5 is NOT a "no work" sentinel to
+  gate on either - the Q-MMU-06 swapper-asm carve (memory `nd500-d4-path-to-nll`) shows control=5 =
+  fn code **MSWIN** ("init/activate working set", handler idx 5, the deepest paging worker), a
+  LEGITIMATE work reason that SINTRAN posts via `5ACTSWAPPER @144762B`. So there is NO valid gate here.
+- **The real defect is upstream and OUT of this emulator:** the requester's MESSBUFF body at
+  0x420E30 (a reused 200B / process-1 buffer that HSWPI points at) is empty because whoever POSTED the
+  MSWIN message never filled its body. That SENDER is OUTSIDE the carved NPL tree (placement /
+  segment-admin / init, possibly uncarved 030-S3SM5). **[OPEN - the true next carve]: who posts the
+  MSWIN(fn5) message to the swapper, and why is its body empty in the D4 flow?** Genuine "no work" is
+  the LNEWSWAP-EMPTY path (MP-P2-N500.NPL:1060) which zeroes HSWPI and does NOT restart the swapper -
+  never "reason 5 + zero buffer", so the empty body is an illegitimate upstream state, not a swapper
+  or emulator bug.
 
 Everything below is the ORIGINAL 2026-07-20 static analysis, kept for its correct file:line chain but
 READ IT THROUGH THIS CORRECTION - wherever it says "SWPINFO is zero" read "the MESSBUFF body is zero;

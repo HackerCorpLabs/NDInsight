@@ -151,8 +151,16 @@ exchange decisively:
   swapper null-derefs at `PC=0x0800913B` (MMU PV, read addr 0x0A, r2=0) -> `CRASHED`.
 - This **disproves** `EMULATOR-SWPINFO-GAP-ANALYSIS-2026-07-20.md`'s "SWPINFO reads zero" premise (the
   pointer is fine; the body is empty) and its option-1 fix (a `SWPINFO==0` gate never fires). Corrected
-  in that doc's LIVE CORRECTION header. Root remains the D4 RUN-precondition: no real domain activation
-  -> MESSBUFF never populated. [OPEN: carve message-control=5 + empty-body semantics before any gate.]
+  in that doc's LIVE CORRECTION header.
+- Reconciled with the Q-MMU-06 swapper-asm carve (memory `nd500-d4-path-to-nll`): control=5 is fn code
+  **MSWIN** ("init/activate working set", swapper handler idx 5, the deepest paging worker - NOT a
+  no-op). SINTRAN legitimately posts this reason via `5ACTSWAPPER @144762B` (MP-P2-N500.NPL:2857),
+  copying `SWFUN=MSWIN` + `CNVWADR(requester msg)=0x210718` into SWMSG. So it is NOT "no activation".
+  The empty part is the **REQUESTER's MESSBUFF body at 0x420E30** (a reused 200B/process-1 buffer),
+  which its **SENDER never filled** - and that sender is OUTSIDE the carved NPL tree (placement /
+  segment-admin / init, possibly uncarved 030-S3SM5). **THE real [OPEN]: carve who posts the MSWIN
+  message and why its body is empty.** Do NOT build a gate on control=5 (it is a legitimate work
+  reason; genuine "no work" is the LNEWSWAP-EMPTY path that zeroes HSWPI and never restarts the swapper).
 
 ## Dependencies / ordering
 
