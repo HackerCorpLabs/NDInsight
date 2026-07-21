@@ -131,6 +131,23 @@ New documents of record:
   station CS-load must land in `CpuND5000.Cs` (DUCS checksum preserved) and the C# servicer/bridge is
   DISABLED for the microcode CPU.
 
+- [`CARVE-S3SM5-CSLOAD-VERIFY-LOOP-2026-07-21.md`](CARVE-S3SM5-CSLOAD-VERIFY-LOOP-2026-07-21.md)
+  — **What S3SM5's non-terminating `[0xD000..0xDAD3]` loop really is (task-8 root, re-characterised).**
+  `[V]`: it is NOT a 3022 CS-load verify poll - there is ZERO ND-500 3022 IOX in the band (the real
+  3022 devices are 0650B-0777B, absent here); the "153011B IOXT/RETG5" the emulator cited is a
+  table-bit-set loop, so the CS poll lives in a different MON-60/N500M overlay, and NDBusND500IF's
+  CS-load/RETG5/5CLOST + "Loading Control Store" wedge are already modeled/fixed. The band is S3SM5
+  PLANC swapper-management code (MON 116B UNFIX / 50B+43B OPEN+CLOSE / 61B FIXC5 / 76B SETBS / 217B
+  GUIOI + table/chain scans) doing a SOFTWARE WAIT on ND-100 table state that the REAL swapper (proc 0)
+  would build by answering the swapper message + building descriptor/segment/process tables
+  (5ACTSWAPPER/XACTRDY/LSWPWAIT). `[I]`: the faked functional swapper never runs/answers, so the wait
+  never flips and S3SM5 never falls through to the msg builder at 162150B. **FIX IS SERVICER-SIDE
+  (functional swapper builds the tables), NOT a 3022 register.** `[OPEN]`: exact polled cell + tight
+  loop - the trace PC span covers the whole ~1363-word routine, so a live PC HISTOGRAM over
+  `[0xD000..0xDAD3]` is needed to pick the hot non-terminating loop and read the cell its SKP/JMP tests
+  (candidates: outer 155225 `JMP ->155122`, chain scans 155765../156020.., back-jumps
+  153021/152112/151250).
+
 ### Retracted 2026-07-20 [V] — do not resurrect
 
 | Was believed | Actually |
