@@ -39,6 +39,44 @@ New documents of record:
   MANUAL-route answer to register item C7/Q-OTH-05 (classic RIOM path = TAG-OUT 6/7 + 3022 MAR).
   Same session: the fabricated "high-level TAG protocol" was scrubbed from the four remaining
   contaminated docs (list in that document's §8).
+- [`CARVE-SWAPPER-CONTEXT-BLOCK-BUILDER-2026-07-20.md`](CARVE-SWAPPER-CONTEXT-BLOCK-BUILDER-2026-07-20.md)
+  — **Phase-2 answer: SINTRAN builds NEITHER the swapper's context/register block NOR the PST NOR the
+  PCB.** Its swapper-start handler `SWMESS` (`MP-P2-N500.NPL:428-462`) writes ONLY the 5MPM mailbox
+  MESSAGE (`SWMSG`: `MICFU=3START`, `SENDE/5RECE=5SWPROC`, `SWPFU=SWACTIVE`, `5PRIO=300`, `5CPUN`,
+  `SWPINFO`). The per-process register block IS known to SINTRAN (`CNTXP=57`/`ADRZE=60`/`REGBS=200`/
+  `ERREG=152`, `REGBSZ 0o200 words = 0o400-byte microcode stride`) but `CNTXPAGE` is referenced
+  EXACTLY ONCE — a READ in `GERRC` after a trap; nothing writes `P/PS/DOM` to seed it. So `P=4/PS=1`
+  must come from the microcode: cold-start vector `MACRO_STARTL` (literals) fits a COLD start;
+  mailbox-23B/`CNTXTLOAD` is only a WARM restart (needs a prior `CNTXTSAVE`). SINTRAN-vs-ACCP left
+  `[OPEN]` with the live discriminator: dump `CNTXPAGE+ADRZERO` before the first swapper instruction.
+  Also ties the D4 `r2=0` null-deref at `0x913B` to an unset `SWMSG.SWPINFO` (no posted work message).
+- [`CARVE-RUN-TO-WORK-POSTING-CHAIN-2026-07-20.md`](CARVE-RUN-TO-WORK-POSTING-CHAIN-2026-07-20.md)
+  — **Phase-4 chain: operator RUN -> swapper gets real work -> domain runs (road to NLL:).** `5ACTSWAPPER`
+  (`MP-P2-N500.NPL:2851`, `144762`) posts `SWMSG.SWPINFO` (`HSWPI=104`) ONLY when a RUNNING ND-500 process
+  PAGE-FAULTS. Path `[V]`: domain `3START` (=23B) -> executes -> STOP message -> `DECOMESS` (`135161`) reads
+  `STOPR`: `MOCALL(1)` -> `MCHANDEL` (`136764`, the `NLL:` output path, swapper NOT involved); `TRAPCODE(2)`
+  -> `TRAPDECODER` (`135314`) -> trap `46`=PAGE FAULT -> `CALL 5ACTSWAPPER` -> swapper pages it in via
+  `5SWRT` (`RP-P2-N500.NPL:16`, `MON 131` ABSTR) -> restarts domain. RUN posts NO swapper work directly;
+  faking `SWPINFO` is not a substitute for the domain running. **Current D4 stop is UPSTREAM**: the SWAPPER's
+  own cold-start (process 0) has not parked, so RUN never `3START`s the domain and `5ACTSWAPPER` is not
+  reached yet. `[OPEN]`: whether `LINKAGE-LOAD-H02` demand-faults at all — if placed resident it can reach
+  `NLL:` via `MCHANDEL` alone with the swapper idle. Symbol values verified vs `SYMBOLS\L07\*`.
+- [`SWAPPER-START-CPU-MMU-SETUP-CARVE-2026-07-21.md`](SWAPPER-START-CPU-MMU-SETUP-CARVE-2026-07-21.md)
+  — **MICROCODE-SIDE companion to the two docs above: what the B30 microcode sets up (CPU regs, MMU,
+  code/data addresses) at process/swapper start.** `[V]` (independently grep-confirmed): the register
+  context block = `0o4000 + 0o400*proc` BYTES (256-byte / 64-word stride = the `REGBSZ 0o200`-word stride
+  the context-block-builder doc noted); **P (code entry) = ctx offset 0x00** -> `IAC,P` at `014757`,
+  EXECUTE `014636` resumes macro fetch there; A1-A4 (data base) = offsets 0x20-0x2C. **The MMU page-table
+  root `MM,PSTP`/`MM,PUWP` is written at EXACTLY 4 sites, both CPU-INIT, from CONSTANTS** — INIT_SAM
+  `014572`/`014573` (const 2) and macro-start `017731`/`017732` (`PSTP:=0`, `PUWP:=4`) — **never
+  per-process, never from the image load address**; there are ZERO `IMM,*`/`DMM,*` page-table WRITES (the
+  `017534`-`017557` refs are LOOK_SRF debug READS). Per process only the DOMAIN+SEGMENT switch
+  (`MM,PS`/`MM,PHS`/`MM,DOM`/`MM,ADOM` via `CNTXTLOAD`). `[INFERRED]`: PSTP roots a domain-keyed table;
+  **SINTRAN/ACCP build those tables — the microcode never builds them at start and ASSUMES they exist =
+  the microcode-side confirmation of the D4 RUN blocker** (if SINTRAN's real placement never runs, the MMU
+  has nothing to translate through). Also `[INFERRED]`/UNVERIFIED: whether an `MM,PSTP` write fans out to
+  both IMM+DMM units or they are read-back aliases (model rec: update both). Resolves the context-block
+  doc's `[OPEN]` cold-start P source (= ctx offset 0x00; PSTP/PUWP are init constants).
 
 ### Retracted 2026-07-20 [V] — do not resurrect
 

@@ -702,6 +702,18 @@ see `CNTXT-BLOCK-DECODE-2026-07-17.md` and the `LCNTXT` instruction); or the con
 internally. **This is the exact question for the ND-5000 / microcode track** - if the microcode
 contains the MMU table-walk and the process-start capability load, it answers it outright.
 
+> **UPDATE 2026-07-21 (B30 microcode carve, narrows this):** the microcode does NOT build the PCB/PST and
+> does NOT set a per-process page-table root. The page-table pointers `MM,PSTP`/`MM,PUWP` are written at
+> exactly 4 sites, ALL CPU-INIT, from CONSTANTS - INIT_SAM `014572`/`014573` and macro-start
+> `017731`/`017732` (`PSTP:=0`, `PUWP:=4`) - never per-process, never from the image load address
+> (independently grep-confirmed; ZERO `IMM,*`/`DMM,*` page-table writes). Per process the start path only
+> switches DOMAIN+SEGMENT (`MM,PS`/`MM,PHS`/`MM,DOM`/`MM,ADOM` from the context block via `CNTXTLOAD`).
+> So the microcode ASSUMES a memory-resident PST/PCB already rooted at `PSTP` - it contains the table-walk
+> but NOT a capability-load that builds the tables. That eliminates "the microcode builds them" and leaves
+> **the swapper itself (or SINTRAN/ACCP) as the builder** - consistent with 12f/12g/12h. Full carve +
+> context-block layout (P = ctx offset 0x00, data base A1-A4 = 0x20-0x2C, stride `0o400`/process):
+> [`SWAPPER-START-CPU-MMU-SETUP-CARVE-2026-07-21.md`](SWAPPER-START-CPU-MMU-SETUP-CARVE-2026-07-21.md).
+
 **Current run (deliberate HACK, labelled in code):** point ALL 32 program and 32 data segments at the
 two tables we do have, and let the swapper run as far as it can. This is permissive and wrong as an
 architecture (it can never fault where the real machine would), but it is an evidence-gathering run:
