@@ -109,8 +109,13 @@ New documents of record:
   `tools\sintran-segment-carver\versions\L-VSX-500\re\030-S3SM5.dis`. `[I]` (offsets rest on N500-SYMBOLS
   match), `[OPEN]`: routine has no symbol name (addressed by number); enclosing subroutine entry; and
   WHETHER the MSWIN builder runs in D4 or the `[B-61]` gate diverts to MSWSWAIT / stalls before it.
-  **Next: live single-step PLACE-DOMAIN, BP at octal 140771 + 162155 - does the builder run, and does
-  `X:=[B-67]` equal the live HSWPI buffer (byte 0x420E30)?**
+  **LIVE ANSWER 2026-07-21b [V, gated ND-100 trace]: the builders do NOT run.** During PLACE-DOMAIN
+  S3SM5 is confined to `[0xC499, 0xDAD3]` = its CS-load "Loading Swapper" verify loop (1.5M+
+  non-terminating iterations, cap hit) and never advances to 0xC1F9 or 0xE46D (cross-checked vs
+  `030-S3SM5.dis` = same overlay, no confound). So the empty swapper body is DOWNSTREAM of the CS-load
+  verify stall: S3SM5 never reaches its body-fill (162155). Root = task 8 (CS-load verify stall); the
+  0x913B crash is a symptom. Next: carve WHAT the verify loop @0xD000..0xDAD3 polls and why it never
+  satisfies (that is the task-8 fix).
 
 - [`TRACKB-SHARED-ND500-CPU-INTERFACE-DESIGN-2026-07-21.md`](TRACKB-SHARED-ND500-CPU-INTERFACE-DESIGN-2026-07-21.md)
   — **Track B unblock design: how to wire the real microword `CpuND5000` into the octobus attach path.**

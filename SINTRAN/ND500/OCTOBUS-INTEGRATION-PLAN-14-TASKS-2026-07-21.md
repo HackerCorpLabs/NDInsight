@@ -31,7 +31,7 @@ mark every claim [V]/[INFERRED]/[OPEN]; UNKNOWN beats a plausible wrong answer.
 | 5 | Differential oracle: same mailbox tests through microcode CPU AND servicer | A+B | **DONE [V]** | `MailboxOracleRunner` [Values] Engine; parity asserted. |
 | 6 | Full 21B register/context block applied at start (task #15 legacy) | A | **DONE [V]** | 181 R1/R2 tests green; `ApplyRegisterBlockValue`. |
 | 7 | **Diagnose octobus X5BEX-resolves-to-zeros stall (STATUS / START-SWAPPER)** | A+B | **DONE [V live]** | RE-BASELINE (below): root cause NAMED - it is NOT a mailbox-wake failure. The wake path runs (XN500/CHN5STATUS/5RRTWT all fire, PIL=12); "resolves-to-zeros" = the ND-5000 CPU *state* dump reads all zeros = CpuND500/CpuND5000 integration gap. Rolls into tasks 9/11. |
-| 8 | **CS-load "Loading Swapper" verify stall** (Track A dominant blocker) | A | OPEN | Why the ND-100 CS-load driver never emits `RETG5:=0` / never exits `[0xD000..0xDAD3]`; live single-step the verify + servicer CS-readback. Acceptance: ND-100 leaves the verify loop, reaches `SPLAC`/`ENDPL`. |
+| 8 | **CS-load "Loading Swapper" verify stall** (Track A dominant blocker) | A | **OPEN - CONFIRMED ROOT [V live]** | LIVE FINDING 2026-07-21b: the verify loop is in S3SM5 `[0xD000..0xDAD3]` and does NOT terminate (1.5M+ non-terminating iterations), so S3SM5 never reaches its own MSWIN body-fill (octal 162155) -> empty swapper body -> 0x913B crash. So THIS is the root and 0x913B is downstream. Next: find what the S3SM5 verify loop @0xD000..0xDAD3 waits on (which cell/answer it polls) and why it never satisfies. Acceptance: S3SM5 leaves the verify loop, reaches its MSWIN builders / `SPLAC`/`ENDPL`. |
 | 9 | **Config plumbing (G2): CpuTypeAndModel / SystemParameters / ACCP identity** | A+B | OPEN | Model the CPU-type/model + system-parameter + ACCP identity so SINTRAN's generation checks (`CPUAVAILABLE & 7 == 3 SAMSON`) and 3RMICV report agree with the loaded image. Acceptance: no generation-mismatch; values sourced from the loaded CS, not hardcoded. |
 | 10 | **Production wiring (G1): machine-level `AttachNd500Cpu` for classic 3022** | A | OPEN | Bring the 3022/`NDBusND500IF` path to the same one-call machine attachment the octobus `AttachNd5000Cpu` has. Acceptance: `AttachNd500Cpu` wires CPU + shared MPM + doorbell + run thread; a wiring test passes. |
 | 11 | **Wire `CpuND5000` into the D4/boot harness (Track B start)** | B | **DESIGNED [V] - unblock path defined** | Design done (`TRACKB-SHARED-ND500-CPU-INTERFACE-DESIGN-2026-07-21.md`): HYBRID = extract a small RetroCore interface `INd500ProcessCpu` (run-thread lifecycle + `ParkOnIdle()`) that `CpuND500` implements (no body changes) + a `CpuND5000Adapter` in `Emulated.HW`. **`CpuND5000.cs` needs NO changes** (adapter reaches it via public `Cs`/`Regs`/`State`/`Memory`/`Tick()`/`Run()`/`RaiseTrap()`); only 2 OPTIONAL conveniences requested (coordination doc `E:\Dev\Ronny\ND5000UC\CARVER-REQUEST-SHARED-CPU-INTERFACE-2026-07-21.md`). Retype `AttachRealCpu`/`AttachNd5000Cpu`/`Nd5000CpuAttachment.Cpu` to the interface; add `AttachMicrocodeCpu` that skips the functional bridge. [OPEN=boot-from-CS: CpuND5000 boots from the loaded 128-bit CS + owns the mailbox, so the station's CS-load must land in `CpuND5000.Cs` (DUCS checksum preserved) and the C# servicer/bridge is DISABLED for it.] Acceptance: CpuND5000 ticks the loaded CS without faulting on attach. |
@@ -161,6 +161,26 @@ exchange decisively:
   segment-admin / init, possibly uncarved 030-S3SM5). **THE real [OPEN]: carve who posts the MSWIN
   message and why its body is empty.** Do NOT build a gate on control=5 (it is a legitimate work
   reason; genuine "no work" is the LNEWSWAP-EMPTY path that zeroes HSWPI and never restarts the swapper).
+
+## LIVE FINDING 2026-07-21b [V, gated ND-100 trace] - S3SM5 CS-load verify loop is the wall; the empty body is downstream
+
+Ran the D4 harness with the place-domain trace gate widened to `[0xC1F0,0xE480)` to span BOTH S3SM5
+message builders (MSWIN swap-in @octal 140771=0xC1F9, body-fill @octal 162155=0xE46D). Result:
+- The traced place-domain execution (1.5M in-range instructions, cap hit = "loop did not terminate")
+  is CONFINED to `[0xC499, 0xDAD3]` = S3SM5's CS-load "Loading Swapper" VERIFY LOOP. Cross-checked
+  against `030-S3SM5.dis`: that band, and both builders, are ALL S3SM5 code (140771=`LDA ,B -77`,
+  162155=`LDD ,X -26`, 155323/0xDAD3=`STZ ,B -200`), so the executing overlay IS S3SM5 (no overlay
+  confound).
+- **Neither builder (0xC1F9, 0xE46D) is ever reached.** S3SM5 spins 1.5M+ non-terminating iterations
+  in `[0xD000..0xDAD3]` and never advances to its own MSWIN body-fill code.
+- **CONCLUSION [V]: the swapper's MSWIN body is empty because S3SM5 is STUCK in the CS-load
+  "Loading Swapper" verify loop and never runs the fill (162155).** So the causal chain is:
+  CS-load verify stall (task 8) -> S3SM5 never fills the body -> swapper derefs empty body ->
+  `0x913B` crash. **Task 8 is the confirmed root; the empty body + 0x913B crash are downstream
+  symptoms.** This validates the memory's Track-A critical-path call from the message-builder angle.
+- The reason-5 + pointer the swapper's MON 377B receives is a partial/stale SWMSG set up before the
+  fill; the 15-word body fill (162155) is the step that never runs. [OPEN: exactly what the verify
+  loop @0xD000..0xDAD3 waits on and why it never satisfies - i.e. the actual task-8 fix.]
 
 ## Dependencies / ordering
 
