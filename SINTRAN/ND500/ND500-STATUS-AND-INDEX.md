@@ -77,6 +77,25 @@ New documents of record:
   has nothing to translate through). Also `[INFERRED]`/UNVERIFIED: whether an `MM,PSTP` write fans out to
   both IMM+DMM units or they are read-back aliases (model rec: update both). Resolves the context-block
   doc's `[OPEN]` cold-start P source (= ctx offset 0x00; PSTP/PUWP are init constants).
+- [`EMULATOR-SWPINFO-GAP-ANALYSIS-2026-07-20.md`](EMULATOR-SWPINFO-GAP-ANALYSIS-2026-07-20.md)
+  — the D4 swapper `0x913B` null-deref, with a **LIVE CORRECTION 2026-07-21** [V, ran
+  `Nd500_D4_RunDomain_RealCpu_Capture`]: the SWPINFO **pointer is NOT zero** — SINTRAN's MON 377B
+  RESTART write-back delivers `@0x240B4 := 0x210718` (= requester MESSBUFF byte `0x420E30`) + control 5.
+  What is empty is the **MESSBUFF BODY** (15 zero words); the swapper derefs it -> `CRASHED @0x0800913B`.
+  Disproves the earlier "SWPINFO reads zero" premise and any `SWPINFO==0` gate. Reproduces the Q-MMU-06
+  carve exactly. control=5 = fn `MSWIN` (legitimate work), so no valid gate exists.
+- [`CARVE-MSWIN-MESSAGE-SENDER-2026-07-21.md`](CARVE-MSWIN-MESSAGE-SENDER-2026-07-21.md)
+  — **Who posts the empty MSWIN(fn5) message.** `[V, NEGATIVE]`: NO ND-100 routine fills the message
+  body — `5ACTSWAPPER` (`144762B`) is only a relay (writes `SWPST=fn` + `HSWPI=pointer`, copies NONE of
+  the 15-word body); a full grep of every NPL file + the `s3vs-4.symb` build shows `SWFUN` is only ever
+  LOADED (never STORED) and `MICFU := 3SWMESS` is never written by ND-100 code, so both fields arrive
+  pre-set from the ND-500 side. `[I]`: the poster is `030-S3SM5` (ND-500 System Monitor) and/or the
+  ND-5800 microcode; `[OPEN]`: the exact S3SM5 routine (S3SM5 carved but not reliably instruction-
+  decoded). Ties to the core D4 blocker: the ND-500-side placement/sender that fills the body never
+  genuinely runs on the faked 5800 path, so HSWPI addresses a reused, zeroed process-1 MON-200B buffer.
+  Trap flagged: `MICFU=3SWMESS=5` and `SWFUN=MSWIN=5` are two DIFFERENT fields both equal to 5; MON 510B
+  (SWMC) is a separate path, NOT the sender. **Next: instruction-decode `030-S3SM5.bin` (or live ND-500
+  single-step during PLACE-DOMAIN) to name the routine that stamps MICFU/SWFUN and fills the body.**
 
 ### Retracted 2026-07-20 [V] — do not resurrect
 
