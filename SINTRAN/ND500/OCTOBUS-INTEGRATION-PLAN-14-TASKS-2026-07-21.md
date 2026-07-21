@@ -141,6 +141,19 @@ that ident. This is checkable without a full boot; a live run only CONFIRMS the 
 
 ---
 
+## LIVE FINDING 2026-07-21 [V, classic-3022 D4 run] - swapper crash is an EMPTY message body, not a null pointer
+
+A `Nd500_D4_RunDomain_RealCpu_Capture` run (classic 3022 / `CpuND500`) captured the swapper's MON 377B
+exchange decisively:
+- SINTRAN's RESTART write-back delivers a **NON-ZERO** SWPINFO pointer `@0x080240B4 := 0x00210718`
+  (= ND-100 byte 0x420E30 = MESSBUFF) + message-control `@0x080240B0 := 5`.
+- The MESSBUFF the pointer addresses (`0x420E30`) is **all zeros**; RIOM pulls 15 zero words, and the
+  swapper null-derefs at `PC=0x0800913B` (MMU PV, read addr 0x0A, r2=0) -> `CRASHED`.
+- This **disproves** `EMULATOR-SWPINFO-GAP-ANALYSIS-2026-07-20.md`'s "SWPINFO reads zero" premise (the
+  pointer is fine; the body is empty) and its option-1 fix (a `SWPINFO==0` gate never fires). Corrected
+  in that doc's LIVE CORRECTION header. Root remains the D4 RUN-precondition: no real domain activation
+  -> MESSBUFF never populated. [OPEN: carve message-control=5 + empty-body semantics before any gate.]
+
 ## Dependencies / ordering
 
 - **Task 8 (CS-load verify stall) gates RUN on Track A** - `ENDPL`/`SPLAC` build `S500S` from swapper

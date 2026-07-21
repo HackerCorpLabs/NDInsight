@@ -12,7 +12,35 @@ as `NNNB` or `0oNNN`, hex as `0xNN`.
 
 ---
 
-## BOTTOM LINE (verdict)
+## LIVE CORRECTION 2026-07-21 [V, D4 harness run `_d4_swpinfo_run.txt`] - the pointer is NOT zero
+
+A live `Nd500_D4_RunDomain_RealCpu_Capture` run settled the "one load-bearing fact" below and
+**DISPROVES this doc's original premise that `SWPINFO` reads zero.** Captured facts:
+- **The MON 377B RESTART write-back delivers a NON-ZERO SWPINFO pointer:** `@0x080240B4 := 0x00210718`
+  (ND-100 word 0x210718 = byte 0x420E30 = MESSBUFF), with message-control `@0x080240B0 := 0x00000005`.
+  So SINTRAN DID answer with a valid pointer - the pointer is not the problem.
+- **What is zero is the MESSAGE BODY the pointer points at:** `RIOM src=0x00210718 dest=0x080240BC
+  count=15` reads ND-100 `0x420E30` = 15 words of `00`. The swapper then dispatches an EMPTY message
+  and null-derefs: `MMU read protection violation at 0x0000000A PC=0x0800913B` (r2=0 -> read addr 0x0A).
+- **Therefore the original "reads zero either way / SWPINFO pointer is zero" claim (old section 1.3)
+  is DELETED.** The correct statement: the pointer is delivered fine; the MESSBUFF it addresses was
+  never populated with a real work message, because no real ND-500 domain activation exists (the
+  upstream D4 RUN-precondition blocker). The swapper is 3STARTed as a placement formality against an
+  empty MESSBUFF.
+- **Consequence for the fix (old section 4.2 option 1 is WRONG):** a gate on `SWMSG.SWPINFO == 0`
+  would NEVER fire (the pointer is 0x210718, non-zero). The correct anti-crash gate keys on the
+  MESSAGE BODY at the pointer being empty - but message-control `= 5`'s meaning must be CARVED
+  (SWPDECODER dispatch) before gating, so we do not invent "empty = idle" semantics. [OPEN: carve
+  what control=5 + empty body means to the swapper; whether real SINTRAN ever 3STARTs with an empty
+  MESSBUFF or the swapper's own dispatch absorbs it.]
+
+Everything below is the ORIGINAL 2026-07-20 static analysis, kept for its correct file:line chain but
+READ IT THROUGH THIS CORRECTION - wherever it says "SWPINFO is zero" read "the MESSBUFF body is zero;
+the pointer is 0x210718".
+
+---
+
+## BOTTOM LINE (verdict) [ORIGINAL - superseded on the "pointer is zero" point by the LIVE CORRECTION above]
 
 **It is CAUSE 1 + CAUSE 3 (one mechanism), NOT cause 2 and NOT cause 4.**
 
