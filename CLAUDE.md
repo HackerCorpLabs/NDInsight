@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**NDInsight** is a comprehensive documentation and analysis repository for **Norsk Data computer systems**, focusing on the **SINTRAN III operating system** (1970s-1980s real-time OS), hardware architecture (NORD-10, ND-100, ND-500 processors), and historical computer preservation through C# emulator implementation.
+**NDInsight** is a comprehensive documentation and analysis repository for **Norsk Data NORD computer systems**, focusing on the **SINTRAN III operating system** (1970s-1980s real-time OS), hardware architecture (NORD-10, ND-100, ND-500 processors), and historical computer preservation through C# emulator implementation.
 
 **Project Type**: Documentation repository with production C# emulator code
 **Primary Language**: Markdown (210+ files)
