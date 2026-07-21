@@ -97,6 +97,20 @@ New documents of record:
   (SWMC) is a separate path, NOT the sender. **Next: instruction-decode `030-S3SM5.bin` (or live ND-500
   single-step during PLACE-DOMAIN) to name the routine that stamps MICFU/SWFUN and fills the body.**
 
+- [`TRACKB-SHARED-ND500-CPU-INTERFACE-DESIGN-2026-07-21.md`](TRACKB-SHARED-ND500-CPU-INTERFACE-DESIGN-2026-07-21.md)
+  — **Track B unblock design: how to wire the real microword `CpuND5000` into the octobus attach path.**
+  `[V]`: pure "both CPUs implement one interface" is impossible (`CpuND5000` is a leaf NuGet that cannot
+  see `Emulated.HW`), and pure "adapter, zero RetroCore changes" is impossible (`AttachNd5000Cpu`/
+  `AttachRealCpu`/bridge ctor are typed to the CONCRETE `CpuND500`). RECOMMEND HYBRID: extract a small
+  RetroCore interface `INd500ProcessCpu` (run-thread lifecycle + `ParkOnIdle()`) implemented by
+  `CpuND500` (no body changes) + a `CpuND5000Adapter` in `Emulated.HW`; retype the attach path to the
+  interface; add `AttachMicrocodeCpu` that skips the functional bridge. **`CpuND5000.cs` needs NO
+  changes** (adapter uses public `Cs`/`Regs`/`State`/`Memory`/`Tick()`/`Run()`/`RaiseTrap()`); 2
+  OPTIONAL conveniences in `E:\Dev\Ronny\ND5000UC\CARVER-REQUEST-SHARED-CPU-INTERFACE-2026-07-21.md`.
+  `[OPEN]` boot-from-CS: CpuND5000 boots from the loaded 128-bit CS and OWNS the mailbox, so the
+  station CS-load must land in `CpuND5000.Cs` (DUCS checksum preserved) and the C# servicer/bridge is
+  DISABLED for the microcode CPU.
+
 ### Retracted 2026-07-20 [V] — do not resurrect
 
 | Was believed | Actually |
