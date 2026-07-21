@@ -191,15 +191,19 @@ message builders (MSWIN swap-in @octal 140771=0xC1F9, body-fill @octal 162155=0x
   (0xDAC8..0xDAD3, `LDX ,X ,B -41`/`LDX ,X ,B -51` + `JPL I 126 ->155450`). A table/chain scan
   spinning, not a single-cell poll; scans via mem[27]/mem[26] table pointers + B-relative locals,
   exit tests `JAZ`@155264 + `BSKP ONE 10 DA`@155302.
-- **EXACT GATE PINNED 2026-07-21 [V]:** the "ready entry" test @155263..155302 = `LDA I 27` (probe
-  absolute low-core cell **27B**); converges ONLY when **cell 27B != 0 AND the swapper-answer record's
-  `+42B` field has BIT 3 set** (`mem[26]->[X-146]->record+42B`, `BSKP ONE 10 DA`). Set in real HW by
-  the ND-500 swapper ANSWERing (5ACTSWAPPER/XACTRDY post, ENDPL/SPLAC build the entry); faked swapper
-  never does. **TASK-8 FIX = SERVICER-side: functional swapper must genuinely ANSWER (post answer + 23B
-  handshake via NDBusND500IF, the path that emits synthetic 22B today) so SINTRAN fills 27B + bit3.
-  Fallback: servicer pokes 27B ptr + mask 000010B @record+42B after msg accepted.** [OPEN: uniquely
-  name 26B/27B + the exact record address - needs a LIVE LOW-CORE DUMP of 26B/27B during the spin; do
-  NOT guess-poke.]
+- ~~**EXACT GATE PINNED 2026-07-21 [V]:** ... cell 27B + record+42B bit3 ...~~ **RETRACTED
+  2026-07-21d** - see `CORRECTION-HOT-LOOP-IS-IOX-POLL-NOT-S3SM5-2026-07-21.md`. A live REGISTER trace
+  of the hot loop shows the runtime BYTES do NOT match `030-S3SM5.dis` (0xDAB3 runtime `0xBA14 JPL I
+  *0x14` vs S3SM5 `045027 LDA I 27`; 0xDACA runtime `0xD10D IOXT` vs S3SM5 `004004 STA 4`). So the
+  "cell 27B software table scan" was the WRONG OVERLAY. The REAL hot loop is a **device-poll-with-
+  timeout** (non-S3SM5 overlay, ~`0xDA40..0xDAD3`): `MON 117B` @0xDA50 + dynamic `IOXT` @0xDAAD/0xDAB7
+  (device addr = `[[B-2E]-3]+0xB` from an interface table) + retry counter `[B-7A]` + `RDIV` by 100.
+  It polls device/swapper readiness, times out, and place-domain prints "The Swapper stopped".
+  **REVISED [OPEN]: (1) identify the overlay by BYTE-MATCHING the runtime words to a carved segment
+  (do NOT trust S3SM5.dis); (2) what MON 117B + the IOX register `[X-3]+0xB` check; (3) why the
+  emulator never makes that readiness true + where to fix (3022 NDBusND500IF status vs servicer).**
+  METHOD LESSON: a live PC trace gives the ADDRESS; always compare the executed WORD to the segment's
+  word before attributing a running PC to a carved segment (overlays alias addresses).
 
 ## Dependencies / ordering
 

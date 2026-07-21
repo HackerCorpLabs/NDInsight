@@ -148,6 +148,19 @@ New documents of record:
   (candidates: outer 155225 `JMP ->155122`, chain scans 155765../156020.., back-jumps
   153021/152112/151250).
 
+- [`CORRECTION-HOT-LOOP-IS-IOX-POLL-NOT-S3SM5-2026-07-21.md`](CORRECTION-HOT-LOOP-IS-IOX-POLL-NOT-S3SM5-2026-07-21.md)
+  — **RETRACTS the "cell 27B software table scan" task-8 gate.** A live REGISTER trace proves the D4
+  place-domain hot loop's runtime BYTES do NOT match `030-S3SM5.dis` (0xDAB3 runtime `0xBA14`/`JPL I
+  *0x14` vs S3SM5 `045027`/`LDA I 27`; 0xDACA runtime `0xD10D`/`IOXT` vs S3SM5 `004004`/`STA 4`) = a
+  WRONG-OVERLAY confound. The REAL hot loop (non-S3SM5, ~`0xDA40..0xDAD3`) is a **device-poll-with-
+  timeout**: `MON 117B` + dynamic `IOXT` (device addr `[[B-2E]-3]+0xB` from an interface table) + retry
+  counter `[B-7A]` + `RDIV` 100; it polls device/swapper readiness, times out, prints "The Swapper
+  stopped". Full runtime disasm in the doc. `[OPEN]`: identify the overlay by BYTE-matching runtime
+  words to a carved segment, decode MON 117B + the IOX readiness register, find why the emulator never
+  satisfies it. METHOD LESSON: compare the executed WORD to the segment word before attributing a
+  running PC to a carved segment. **Supersedes the "cell 27B" claims in
+  `CARVE-S3SM5-CSLOAD-VERIFY-LOOP-...` and the S3SM5-scan framing in earlier entries.**
+
 ### Retracted 2026-07-20 [V] — do not resurrect
 
 | Was believed | Actually |
