@@ -185,7 +185,13 @@ message builders (MSWIN swap-in @octal 140771=0xC1F9, body-fill @octal 162155=0x
   swapper-management code (MON 116B/50B/43B/61B/76B/217B + table scans) doing a SOFTWARE WAIT on
   ND-100 table state the REAL swapper would build. So the task-8 FIX is SERVICER-side (make the
   functional swapper answer + build the descriptor/segment/process tables), NOT a 3022 register.
-  [OPEN: exact polled cell + tight loop - needs a live PC histogram over the band.]
+- **HISTOGRAM DONE 2026-07-21 [V, live D4 trace PC histogram]:** the non-terminating hot region is
+  PINNED = OUTER scan loop octal **155205..155303** (0xDA85..0xDAC3, 585 non-converging iters,
+  back-edge **155225 `JMP -103 ->155122`**) calling the LEAF chain-walk **155310..155323**
+  (0xDAC8..0xDAD3, `LDX ,X ,B -41`/`LDX ,X ,B -51` + `JPL I 126 ->155450`). A table/chain scan
+  spinning, not a single-cell poll; scans via mem[27]/mem[26] table pointers + B-relative locals,
+  exit tests `JAZ`@155264 + `BSKP ONE 10 DA`@155302. [OPEN: which exact table/entry + the servicer
+  write that satisfies it - the resumed carve agent is finishing this.]
 
 ## Dependencies / ordering
 
