@@ -22,9 +22,27 @@ The device-poll-with-timeout characterisation below is CORRECT (it is byte-verif
 only the "not-S3SM5 / different overlay" attribution in the original title/body is wrong.
 
 **Net truth:** the hot loop is `030-S3SM5` code at runtime 0xDA40..0xDAD0 (base 0x4000), a
-device-poll-with-timeout (MON 117B + dynamic IOXT + retry counter `[B-7A]`). ACTION: regenerate a
-CORRECT disassembly of `030-S3SM5` (the current `.dis` is bad) before any further address-level claims;
-until then use the `.bin` + live trace only.
+read-with-timeout loop (MON 117B + dynamic IOXT + retry counter `[B-7A]`).
+
+### .dis REGENERATED + VERIFIED CORRECT 2026-07-21e
+
+Root cause of the corrupt `.dis`: it was disassembled WITHOUT the byte-swap. `030-S3SM5.bin` is
+big-endian; `nd100-dis` needs it byte-swapped to LE first. Correct recipe (verified):
+```
+python3 -c "d=open('030-S3SM5.bin','rb').read(); b=bytearray(len(d)); b[0::2],b[1::2]=d[1::2],d[0::2]; open('le.bin','wb').write(b)"
+nd100-dis -a -o -b 040000 le.bin
+```
+The DIRECT-BE disasm gives garbage (155120 -> `LDA I ,B ,X -52`); the byte-swapped disasm is correct
+(155120 -> `MON 117 ; RFILE`). `re/030-S3SM5.dis` has been REGENERATED with the byte-swap and verified
+against the `.bin`/runtime at 155120/155205/155255/155263/155310/155312 (all match). Use it now.
+
+**KEY: `MON 117B` = `RFILE` (ReadFromFile)** [V, nd100-dis annotation]. So this loop is a FILE-READ
+loop (reading an image/segment) plus IOX, with a retry/timeout counter `[B-7A]` - it is LOADING
+something and timing out, NOT a pure hardware status poll. Re-analyse the loop on the corrected `.dis`.
+
+**Downstream cleanup:** the two earlier S3SM5 docs (`CARVE-S3SM5-MSWIN-STAMP-AND-FILL-...`,
+`CARVE-S3SM5-CSLOAD-VERIFY-LOOP-...`) were built on the OLD corrupt `.dis`; their address-level claims
+(builders @140771/162155, cell 27B) must be RE-DERIVED from this corrected `.dis`.
 
 ---
 
