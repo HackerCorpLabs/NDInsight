@@ -406,6 +406,17 @@ ever emulates crate interrogation. Doc:
   (N500D.ADRZERO << 10dec)) << 1) | bit31`; bias cached by SELF-MODIFYING
   the entry word to 124012 (JMP). N500D=051767, ADRZERO=+60.
 - NPL = MP-P2-DISK-START.NPL (different revision, +237B shift, logic 1:1).
+- **BDIO record = ABSTrans message; address model (2026-07-23)**
+  [`domino-nucleus-io/BDIO-ADDRESS-MODEL-FINDINGS-2026-07-23.md` +
+  `QUDF-ABPA2-PRODUCER-CARVE-2026-07-23.md`]: record fields map to ABSTrans
+  ABFUN/MEMA1/ABP21/ABP31 (ND-820023). (a) The DOMINO memory address DMYAD is
+  window-relative once bit 31 is stripped -> `mpmByte = mpmStart + (DMYAD &
+  0x7FFFFFFF)` (ADRZERO cancels since mpmStart = ADRZERO*2048) [V-derived].
+  (b) The media address DSTBL (=ABP21) is copied VERBATIM into QUDF.ABPA2 by
+  `GAPFU 000744B` / `GAPFD 034006B` (`LDD I,B 2 / STD ,X 17`, xxd-verified) and
+  by MBUILD; the DOMINO `BDMTR` path SKIPS the SMD `TOSECT` geometry conversion
+  -> DSTBL is a LOGICAL 2KB-page/block index, disk byte offset = DSTBL*2048,
+  length = DNRPG*2048 [V driver path]. Consumed by RetroCore `BdioRecord.cs`.
 
 **Octobus driver routine set [V]** (one-liner; full block in ND-500 doc):
 SKICK/MBSEND/OMBREAD + XKICK500/5OMBREAD/MFPREPARE/CON5IDENT/5MTRANS/
