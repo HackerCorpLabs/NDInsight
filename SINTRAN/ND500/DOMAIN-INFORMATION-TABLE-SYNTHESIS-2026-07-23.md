@@ -91,6 +91,41 @@ and there is NO "compact vs manual layout" conflict. The microcode's "+0x48" is 
 its within-entry base of PCB+0x80 (pcb_call): 0x80+0x48 = 0xC8. NDIX also confirms **KDOM = kernel =
 domain 0** (so a privileged cold-start domain 0 is exactly right).
 
+## 3c. NDIX resolves "who sets PIA", + the Context Block (CXB) layout  [CODE, authoritative]
+
+From `E:\Dev\Ronny\NDIX-C\verified-docs\VERIFIED_SOURCE_CODE_REFERENCE.md` (quotes real kernel C):
+
+**Who sets PIA — RESOLVED (was OPEN in §5).** `kpcbinit()` (vm_machdep.c:120-168) initialises the
+kernel PCB and does `pcp->pcb_pia = 1;`, sets `pcb_call` (call_ce=1 domain 1, call_p=4, call_b=
+USRSTACK), then `asm("dctsb");` to load the new data. **The OS kernel writes pcb_pia into the PCB/DIT
+— exactly what our harness `SetDomainPia` does.** So on a real SINTRAN/NDIX boot PIA is OS-seeded, not
+microcode/ACCP-seeded; the privileged-instruction hang only appears because our bring-up harness had
+no OS to run kpcbinit. `dctsb` itself is the kernel's "load new data / commit PCB" instruction.
+
+**Context Block (CXB) — `struct cxb`, CXBSIZ = 256** (cxb.h). This is the per-process register
+save/restore block that CNTXTLOAD reads (base 0o4000 in the harness). Byte-packed `long` fields (all
+offsets ×4) — **matches our reverse-engineered ctx-block layout exactly**:
+
+| off | field | off | field | off | field |
+|-----|-------|-----|-------|-----|-------|
+| 0x00 | cx_p (P) | 0x30-0x3C | cx_e1-e4 (E1-4) | 0x64/0x68 | cx_nu1/nu2 |
+| 0x04 | cx_l (L) | 0x40 | cx_st1 (ST1) | 0x6C/0x70 | cx_am11/al11 |
+| 0x08 | cx_b (B) | 0x44 | cx_st2 (ST2) | 0x74.. | cx_ote/cte/mte/temm |
+| 0x0C | cx_r (R) | 0x48 | cx_ps (PS) | 0x94/0x98 | cx_mic1/mic2 |
+| 0x10-0x1C | cx_i1-i4 (X1-4) | 0x4C | cx_tos | 0x9C.. | cx_pmem[10] |
+| 0x20-0x2C | cx_a1-a4 (A1-4) | 0x50/0x54 | cx_ll/cx_hl | 0xC4.. | cx_trapnum/bsp/trap_p/info/vaddr |
+| | | 0x58 | cx_tha | 0xD8.. | cx_sftwbuffer[10] |
+| | | 0x5C/0x60 | cx_ced/cx_cad | | |
+
+NB the CXB HAS slots for tos/ll/hl/tha/ote/... (0x4C-0x90), but CNTXTLOAD sources those from the DIT,
+not the ctx block (they are the trap-save copies) — consistent with the carve.
+
+**Also verified in NDIX** (for the MON-600 / ACCP lane, not the DIT): the fecall interface
+(ND-500→ND-100 call = MON 600): `FE_INIT/IDEV/OPEN/CLOS/READ/WRIT/DCTL/EXIT/ERRM` (if.h), packet
+structs `init_pkt`/`exit_pkt`, generic devices (DISK/TAPE/TERM/CLOCK/XMSG...), and address macros
+`htob(x)=x<<1` / `btoh(x)=x>>1` (ND-100 word ↔ ND-500 byte), NBPG=2048, NBSG=128MB. NOTE: 3022/5015
+bus-interface details are NOT in NDIX source (only its .md docs) — that stays with the SINTRAN carve.
+
 ## 4. Microcode addressing — VERIFIED by raw control-store decode  [MICROCODE, verified]
 
 Pinned by `MicrowordDecodeTests.Dit_AddressingPath_RawDecodeDump` (reads the raw B30 words via
