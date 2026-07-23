@@ -120,6 +120,14 @@ offsets ×4) — **matches our reverse-engineered ctx-block layout exactly**:
 NB the CXB HAS slots for tos/ll/hl/tha/ote/... (0x4C-0x90), but CNTXTLOAD sources those from the DIT,
 not the ctx block (they are the trap-save copies) — consistent with the carve.
 
+**More NDIX confirmations** (`verified-docs\CPU_REGISTERS_MMS_COMPLETE_REFERENCE.md`, reg.h/trap.h/
+locore.h): register index map (P=0..CAD=24, OTE..TEMM=29-36) matches our model; **ST1 flag bits
+S_PIA=1/S_Z=5/S_C=6/S_S=7/S_K=8/O=9** (third independent confirmation of the oracle flag layout);
+**CNTXMASK=0x1c3ffff** = the context save/load mask (low regs + ST1/ST2 loaded, trap-enables OTE/CTE/
+MTE/TEMM NOT context-switched — they're DIT-sourced, matching the carve); PCB offsets PCB_TRAP=139
+(0x8B)/PCB_ITH=187(0xBB)/ALT_P=0203(0x83=call_p)/ALT_B=0207(0x87=call_b) all match our byte-packed
+pcb offsets incl pcb_pia@0xC8; T_IIC=33 = the Illegal-Instruction-Code trap dctsb raises on PIA-clear.
+
 **Also verified in NDIX** (for the MON-600 / ACCP lane, not the DIT): the fecall interface
 (ND-500→ND-100 call = MON 600): `FE_INIT/IDEV/OPEN/CLOS/READ/WRIT/DCTL/EXIT/ERRM` (if.h), packet
 structs `init_pkt`/`exit_pkt`, generic devices (DISK/TAPE/TERM/CLOCK/XMSG...), and address macros
