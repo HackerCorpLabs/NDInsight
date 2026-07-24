@@ -49,7 +49,7 @@ and `D:\OCR\ai\ND-324534-G1-EN\NDBusEthernetII-Schematic-Review.md` (schematic).
 
 ---
 
-## CURRENT LEAD - A4 (uncommitted, built clean, AWAITING TPE VALIDATION)
+## CURRENT LEAD - A4 (VALIDATED, READY TO COMMIT)
 **Change:** control-word bit-2 handler (~line 1236 in NDBusEthernetII.cs). Replaced the broken
 rising-edge `memoryMap.SetMFPInterrupt()` with a proper LEVEL drive of MFP GPIP I6:
 
@@ -67,27 +67,34 @@ so the firmware's GPDR polling never saw it deassert -> after the first OPCOM wa
 ND-100 commands produced no fresh edge. This matches the observed stall symptom:
 **"ND-100 responds/IDENTs once, firmware then floods unanswered SCIP."**
 
-**RISK:** the review calls this "test-11 territory." If TPE test 11 regresses, the AER edge
-polarity is wrong - adjust polarity or revert like C-1.
+**TPE VALIDATION (2026-07-22):** Tests 1-11 ALL PASS ✓ (NO REGRESSION on test 11).
+Tests 12/24/25/26 fail as expected (baseline failures, not A4-related).
+
+**STATUS:** Commit A4 to NDBusEthernetII.cs immediately.
 
 **DO NOT TOUCH YET:** the separate ND-interrupt path at ~line 848 (case 116 vector handler,
-does `GPIO_6=false; MFP.TriggerInterrupt(6)`). Leave until A4 is validated in isolation.
+does `GPIO_6=false; MFP.TriggerInterrupt(6)`). Leave until A4 is committed and ENNS0 trace is analyzed.
 
 ---
 
-## NEXT STEPS (for whoever picks this up)
-1. Ask Ronny to rebuild `Emulated.HW` + relaunch HOST, run `TPE> run` (all tests).
-   - If tests 1-11 hold (esp. 11): commit A4.
-   - If 11 regresses: flip AER polarity or revert A4.
-2. Then `START-NETWORK-SERVER ENNS0` with fresh trace. Key question:
-   **does the firmware now process MORE THAN ONE ND-100 command, and does ND-100 respond more
-   than once?** If yes, the handshake advanced past the single-OPCOM wall -> keep going.
-3. If A4 doesn't advance it: continue in the controller. Candidates not yet examined:
-   - the case-116 line-848 duplicate ND-interrupt path (reconcile with A4).
-   - 68K<->ND-100 monitor postbox handshake (postbox ~0x40A: counters 0x40A/0x410,
-     monitor_code 2=wait/3=ready/4=warmboot; 0x406=CMD, 0x408=subfunc, 0x4C0=started).
-     `maybe_monitor_wait_ack` loops resending monitor_code=2 until D0==1 - check what
-     supplies D0=1 on the emulated side.
+## NEXT STEPS (Session 2026-07-22)
+1. **AFTER WINDOWS REBOOT:** Commit A4 to NDBusEthernetII.cs (no changes, tests validated).
+   ```
+   // A4: control bit 2 (ND interrupt) is a LEVEL on MFP GPIP I6 (active-low)
+   memoryMap.MFP.GPIO_6 = !ND_interrupt;
+   if (ND_interrupt && !previousND_interrupt)
+       Logger.Log("ND-100 -> 68000: GPIP I6 asserted (ND interrupt, vector 0x4E)", Logger.LogLevel.Device);
+   ```
+2. Rebuild `Emulated.HW`, relaunch HOST.
+3. Boot menu option 8 "SINTRAN Ronny Ethernet II Test" added to ND100Script.ini.
+   - Uses ND100-ETH config (Ethernet II + DMA Floppy + SMD).
+   - Boot label: `ND-BOOT-ETHII-SINTRAN`.
+   - Boot disk: **`D:\BIGDISK0-L.IMG`** (replaced with `F:\RC\RonnyTest\HDLC1\BIGDISK0-L2-100.IMG`, original backed up as `.BACKUP`).
+4. Run `RT ENNS0` + `START-NETWORK-SERVER ENNS0` with `DebugTrace 2 4`. Delete trace file first.
+   Key question: **does firmware process MORE than ONE ND-100 command?** If yes -> handshake advanced.
+5. If A4 doesn't advance ENNS0: continue in controller. Candidates:
+   - case-116 line-848 duplicate ND-interrupt path (reconcile with A4).
+   - 68K<->ND-100 monitor postbox handshake (postbox ~0x40A: D0 ready signal).
 
 ## Constraints (from user, non-negotiable)
 - NEVER mention Claude in commits. One change at a time. Both oracles each step.

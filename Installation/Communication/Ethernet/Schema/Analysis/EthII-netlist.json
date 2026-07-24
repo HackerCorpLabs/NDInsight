@@ -1,0 +1,140 @@
+{
+  "$comment": "Ethernet II (ND 324534 print G, PCB 3094) interrupt+clock subsystem netlist. Transcribed from 300dpi schematic scans (sheets referenced as S1..S5 with grid). active_low nets use suffix 0 in the schematic (NAME0); NAME1 is the active-high complement. PAL pin functions are inferred (no dumps exist) - see 'inferred' flags.",
+  "card": {
+    "id": "324534",
+    "print": "G",
+    "pcb": "3094",
+    "product": "ND-110063 Ethernet II controller",
+    "sheets": {
+      "S1": "CPU and Memory Control",
+      "S2": "Bus Buffers",
+      "S3": "DMA and I/O Control (MFP + N100 bus control)",
+      "S4": "Memory and Error Correction",
+      "S5": "Ethernet Interface"
+    }
+  },
+  "components": [
+    { "ref": "18D", "part": "MC68HC000-12", "desc": "68000 CPU, 12.5 MHz", "sheet": "S1" },
+    { "ref": "19F", "part": "74LS148", "desc": "IPL priority encoder", "sheet": "S1" },
+    { "ref": "21C", "part": "PAL16L8B", "id": "453-00", "desc": "IACK decode / cycle control", "sheet": "S1", "inferred": true },
+    { "ref": "13F", "part": "PAL16R4B", "id": "455-02", "desc": "LEV7INT/NMI + MODCR registers (RAMMODE, PARITYDIS)", "sheet": "S1", "inferred": true },
+    { "ref": "9F", "part": "PAL16R4B", "id": "455-01", "desc": "I/O cycle sequencer (IORQ, DAS, READY, PALDTACK)", "sheet": "S3", "inferred": true },
+    { "ref": "16D", "part": "TBP24S10", "id": "452-00", "desc": "address space decoder (PROTS, ROMS, IOSPACEH, IOSPACEL, DRAMS)", "sheet": "S1", "inferred": true },
+    { "ref": "29G", "part": "MK68901-4", "desc": "MFP: interrupt ctrl, 4 timers, USART, GPIP", "sheet": "S3" },
+    { "ref": "29D", "part": "AM7990", "desc": "LANCE", "sheet": "S5" },
+    { "ref": "29B", "part": "AM7992B", "desc": "SIA", "sheet": "S5" },
+    { "ref": "106", "part": "74F138", "desc": "I/O space decoder (dual enable = EF00xx/EF01xx mirror)", "sheet": "S3" },
+    { "ref": "5D", "part": "74LS139", "desc": "LANIO sub-decode: LANCE/XCVPW/LANRESET/ETHSTAT", "sheet": "S3" },
+    { "ref": "5D2", "part": "74LS139", "desc": "ND-100 IOX offset decode: OCW / OSR strobes", "sheet": "S3", "note": "second half, grid D5" },
+    { "ref": "1B_RFT", "part": "74ALS74", "desc": "RFT flip-flop (SCIP doorbell latch)", "sheet": "S3" },
+    { "ref": "1B_RIE", "part": "74ALS74", "desc": "RIE flip-flop (ND interrupt enable)", "sheet": "S3" },
+    { "ref": "7F_OPCOM", "part": "74LS74", "desc": "OPCOM flip-flop", "sheet": "S1" },
+    { "ref": "86", "part": "74LS175", "desc": "control-word level bits register (PRES, HALT, PLOWE, CWDIS)", "sheet": "S1" },
+    { "ref": "18F", "part": "74F74", "desc": "MERR flip-flop", "sheet": "S4" },
+    { "ref": "11E", "part": "74S74", "desc": "PWEN flip-flop (transceiver power)", "sheet": "S5" },
+    { "ref": "9E", "part": "74S244", "desc": "ETHSTAT read buffer", "sheet": "S5" },
+    { "ref": "12B", "part": "74LS165", "desc": "bus-timeout shifter -> BERR after 8 ticks", "sheet": "S1" },
+    { "ref": "9D", "part": "TBP18S030", "id": "089-01", "desc": "IDENT code PROM, BD00-07", "sheet": "S2" },
+    { "ref": "16D2", "part": "TBP18S030", "id": "089-00", "desc": "IDENT code PROM, BD08-15", "sheet": "S2" },
+    { "ref": "10B+7B", "part": "74F521 x2", "desc": "device-number comparators -> DEQL", "sheet": "S2" },
+    { "ref": "9A", "part": "74F174", "desc": "BAPR-clocked latch: LNA16/LNA17/NORA/LSPOK/LINT12", "sheet": "S3" },
+    { "ref": "23C", "part": "XTAL-OSC-50MHz", "desc": "main oscillator", "sheet": "S1" },
+    { "ref": "17A", "part": "XTAL-OSC-40MHz", "desc": "Ethernet oscillator", "sheet": "S5" },
+    { "ref": "8F", "part": "74?74+RC180k", "desc": "DCL delayed-clear generator (~200us)", "sheet": "S1" }
+  ],
+  "nets": [
+    { "name": "IPL_mapping", "kind": "table", "desc": "LS148@19F input N -> 68000 level N",
+      "inputs": { "2": "LANINTR0", "3": "901INTR0", "4": "CONSOLEINTR0", "5": "MERR0", "6": "OPCOM0", "7": "LEV7INT0" },
+      "outputs": ["IPL0..2 -> 68000 pins 25/24/23"] },
+
+    { "name": "LANINTR0", "active_low": true, "driver": "AM7990.INTR (open-drain, 2k7 pullup)", "loads": ["LS148@19F.in2", "S244@9E.in (ETHSTAT bit0)"],
+      "semantics": "LEVEL: held while CSR0 cause & INEA; cleared by firmware CSR0 write / INEA=0 / LANRESET. NOT cleared by IACK." },
+
+    { "name": "901INTR0", "active_low": true, "driver": "MK68901.INTR", "loads": ["LS148@19F.in3"],
+      "semantics": "LEVEL per MFP interrupt controller; vector supplied on IAK901 cycle." },
+
+    { "name": "CONSOLEINTR0", "active_low": true, "driver": "gate26G(FF7F(TREDY0), RREDY0)", "loads": ["LS148@19F.in4"],
+      "semantics": "MFP USART RR/TR ready PINS (not MFP int ctrl). Autovector level 4. Gated by CONSPRES strap. CLRREDY0 (PAL 453-00) clears FF." },
+
+    { "name": "MERR0", "active_low": true, "driver": "F74@18F.Q", "loads": ["LS148@19F.in5", "PAL455-02.in"],
+      "set": "RPERR1 (F280 parity trees, reads only, LDS/UDS gated) clocked on AS*T6",
+      "clear": "CLRMERR0 (PAL 453-00, level-5 IACK)" },
+
+    { "name": "OPCOM0", "active_low": true, "driver": "LS74@7F.Qbar", "loads": ["LS148@19F.in6", "PAL455-02.in"],
+      "set": "clock = NAND(BND03_1, OCW1): EVERY ND-100 control write with bit3=1",
+      "clear": "CLROPCOM0 (PAL 453-00, level-6 IACK)" },
+
+    { "name": "LEV7INT0", "active_low": true, "driver": "PAL455-02@13F (registered, clk 12CLK)", "loads": ["LS148@19F.in7"],
+      "set": "PLOW0 = NAND-ish(PLOWE1, MCL1): control bit6 is an ENABLE; NMI fires on ND-100 Master Clear pulse with enable set",
+      "inferred": true },
+
+    { "name": "AUTOVECTOR0", "active_low": true, "driver": "PAL453-00.p17", "loads": ["68000.VPA"],
+      "semantics": "asserted during IACK of levels 2,4,5,6,7 -> autovector" },
+    { "name": "IAK9010", "active_low": true, "driver": "PAL453-00.p18", "loads": ["MK68901.IACK"],
+      "semantics": "level-3 IACK -> MFP supplies vector (VR base 0x40)" },
+    { "name": "CLROPCOM0", "active_low": true, "driver": "PAL453-00.p14", "loads": ["OPCOM_FF.Rbar"] },
+    { "name": "CLRMERR0", "active_low": true, "driver": "PAL453-00.p13", "loads": ["MERR_FF.Rbar"] },
+
+    { "name": "DTACK_68K", "driver": "AND@13A(MDTACK0, IDTACK0, PDTACK0)", "loads": ["68000.DTACK"],
+      "note": "PDTACK0 = MK68901 DTACK output pin" },
+
+    { "name": "BERR0", "active_low": true, "driver": "LS165@12B.Q7", "loads": ["68000.BERR"],
+      "semantics": "shift-register timeout: 8 ticks @ ~6.25MHz (~1.3us) while AS with NOREQ*LANGR", "uncertain": ["clock label 6,?5CLK"] },
+
+    { "name": "MFP_GPIP", "kind": "table",
+      "I0..I4": "n.c. (unused)",
+      "I5": "LANERROR0 (LANCE memory-cycle error: protect violation / bus error / addr out of range)",
+      "I6": "NCINT0 = NAND(BND02_1, OCW1) - PULSE per control write with bit2=1",
+      "I7": "WRIV0 = write-protect violation (LANGRbar*AS*PROTA)" },
+
+    { "name": "MFP_clocks", "kind": "table",
+      "XTAL1": "3CLK 3.125MHz", "CLK": "3CLK 3.125MHz",
+      "TDO": "TERCLK -> RC+TC (USART baud from Timer D)",
+      "RESET": "PMCL0 (hardware reset by ND-100 reset bit / master clear)" },
+
+    { "name": "MFP_vectors_octal", "kind": "table", "VR_base": "0x40",
+      "117": "GPIP7 WRIV", "116": "GPIP6 NCINT (ND-100 doorbell)", "114": "USART rx full", "113": "USART rx error",
+      "112": "USART tx empty", "111": "USART tx error", "107": "GPIP5 LANERROR", "105": "Timer C RTC (~128.07 Hz)" },
+
+    { "name": "IO_decode", "kind": "table", "mechanism": "F138@106 with TWO active-low enables (IOSPACEL0=EF00xx, IOSPACEH0=EF01xx) -> EF01xx mirrors EF00xx",
+      "EF00C0-FF": "MFP (odd addresses, LDS)", "EF00B8-BF": "ETHSTAT R (bit0=LANINTR, bit2=PWEN, active-low)",
+      "EF00B0-B7": "LANRESET W (pulse)", "EF00A8-AF": "XCVPW W (D0->PWEN FF, cleared by PWOFF 12V-sense)",
+      "EF00A0-A7": "LANCE RDP=A0 RAP=A2", "EF0080-9F": "SCIP W (clocks RFT FF -> INT12)",
+      "EF0060-7F": "EAREN R (error address A1-16)", "EF0040-5F": "MERRSTAT R",
+      "EF0020-3F": "MODCR (EF0020 EPROMMODE, EF0022 PARITYDIS, EF0024 BREAKMODE)", "EF0010-1F": "PROFF W", "EF0000-0F": "not used" },
+
+    { "name": "RFT", "desc": "SCIP doorbell latch", "part": "ALS74@1B", "D": "1 (H3)",
+      "clock": "SCIP1 (any 68000 access to EF0080-9F/EF0180-9F)",
+      "clear": "CLINT0", "outputs": ["RFT1"] },
+    { "name": "RIE", "desc": "ND interrupt enable", "part": "ALS74@1B", "D": "BND00_1 (control bit 0)",
+      "clock": "OCW1 (EVERY control-word write)", "clear": "CLINT0", "outputs": ["RIE1", "RIE0 -> status bit0"] },
+    { "name": "INT12_1", "driver": "AND@2D(RFT1, RIE1)", "loads": ["ALS38@1C -> BINT120 (bus, o.c., level 12)", "F174@9A.D (latched to LINT12 on BAPR)", "status bit2"] },
+    { "name": "CLINT0", "active_low": true, "driver": "OR-equivalent@2D(DCL0, PIDENT0)",
+      "semantics": "IDENT answer OR delayed master-clear clears BOTH RFT and RIE" },
+    { "name": "IDENT_chain", "kind": "table",
+      "in": "INIDENT0 (Ca22)", "claim": "PIDENT0 when LINT12 latched (enables IDENT PROMs 089-00/01 onto BD00-15, thumbwheel-selected code 2240-2243 oct)",
+      "pass": "OUTIDENT0 (Cc22) when not claiming", "side_effect": "PIDENT0 -> CLINT0" },
+
+    { "name": "ND100_control_word", "kind": "table", "strobe": "OCW1 (IOX offset 1 or 3)",
+      "bit0": "RIE FF (enable SCIP interrupt)", "bit2": "NCINT pulse -> MFP I6",
+      "bit3": "sets OPCOM FF -> level 6", "bit4": "PRES (68000+MFP+LANCE reset, LED)",
+      "bit5": "HALT", "bit6": "PLOWE (power-low enable; NMI on Master Clear)",
+      "bit8": "CWDIS (disable parity check)" },
+    { "name": "ND100_status_word", "kind": "table", "strobe": "OSR (IOX offset 0 or 2)",
+      "bits15_8": "bank number", "bit6": "0=512KB", "bit5": "HALT", "bit4": "RESET active",
+      "bit2": "INT12 = RFT AND RIE", "bit0": "RIE" },
+
+    { "name": "PWEN", "part": "S74@11E", "D": "D00", "clock": "XCVPW0*R/W0", "clear": "PWOFF0 (LM339 +12V sense)",
+      "loads": ["transceiver 12V switch", "ETHSTAT bit2 (active-low)"] },
+
+    { "name": "clock_tree", "kind": "table",
+      "50MHz": "osc@23C (mux with EXTERN test clock)",
+      "25MHz": "50/2 (F112@21D)", "12.5MHz": "25/2 = 12CLK (68000 CLK, PALs)",
+      "6.25MHz": "12.5/2 (BERR timeout shifter; label partly illegible)",
+      "3.125MHz": "3CLK (MFP XTAL1+CLK)",
+      "20MHz": "40MHz osc@17A /2 = SIA20CLK (AM7992B)",
+      "RTC": "MFP Timer C: 3.125MHz/100/244 = 128.07 Hz",
+      "baud": "MFP Timer D -> TERCLK -> USART RC/TC",
+      "DCL": "~200us RC delayed clear after power-low" }
+  ]
+}
