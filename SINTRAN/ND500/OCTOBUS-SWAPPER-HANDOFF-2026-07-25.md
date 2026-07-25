@@ -57,9 +57,10 @@ traps 9/10/11 and `SINTRAN\ND500\swapper\`.
 
 ## 5. CURRENT STATE (this is where you resume)
 
-> **STATUS AT END OF SESSION 2026-07-25: 194 macro instructions**, stopped on
-> `ORD,OP1 with no stored first operand` at `Mpc=0o3544` (bit-field family). Sweep
-> `match=12691 / diverge=4962`, suite 301 passed / 0 failed. **Read 5.5.14 and 7.0 first** - the walkthrough below (48 instructions, the MON-call
+> **STATUS AT END OF SESSION 2026-07-25: 287 macro instructions**, stopped on
+> `Conditional fetch with ABR value 0` at `Mpc=0o573` - this one needs a Target Branch Cache model
+> and the obvious no-op is SILENTLY WRONG. Sweep `match=12775 / diverge=4968`, suite 301 passed /
+> 0 failed. **Read 5.5.16 and 7.0 first** - the walkthrough below (48 instructions, the MON-call
 > stop) is the session's STARTING point, kept because the decode work in 5.1-5.5.7 is still the
 > reference for how the message path works.
 
@@ -600,22 +601,103 @@ and the disassembler's `@b.50+` spells out the mode: `@` indirection, `b.50` = B
 post-index. The resulting `OcaEa=0x68000044` is sane too - the nearby `by rladdr $15000000000+` at
 `1000003470` shows `0o15000000000` = `0x68000000`, so the EA lands in the expected segment.
 
-### 5.5.14 Current stop
+### 5.5.14 ORD,OP1 means operand ONE, not the previous operand - 287 instructions
 
-**194 macro instructions**, `P=0x0800074D`:
+The stop at 194 was `ORD,OP1 with no stored first operand` at `Mpc=0o3544`, inside PUTBF, reached
+from `w4 putbf r3.(0),$20,$15`.
+
+This was a **semantic error, not a missing feature**. `ORD,OP1` had been modelled as "the operand
+before the last G,OPS advance", latching on EVERY advance. `MICROCODE-FIELDS.md` (ORCON.D, bits 1-0)
+is explicit that it is not:
 
 ```
-ORD,OP1 with no stored first operand
-  Mpc=1892 (0o3544)   InstrDt=0   OcaEa=0x68000044
+01  ORD,OP   - OR destination in current from operand specifier
+10  ORD,OP1  - OR destination (in next) from FIRST operand specifier
 ```
 
-`P=0x0800074D` is octal `1000003515` = `w4 putbf r3.(0),$20,$15` - the **bit-field instruction
-family** (PUTBF = put bit field), a new area. `ORD,OP1` is the microword's "route the STORED first
-operand" control, so the gap is that the bit-field path expects a first operand to have been latched
-by an earlier word and nothing stored it. Start by dumping the `0o3544` band and finding which word
-should have done the store.
+The two readings **coincide for two-operand instructions**, which is why the old model survived so
+long. PUTBF is the first three-operand case to reach here: `PUTBFW` (`0o525`) issues `G,OPS` for
+operand 1 and `0o526` issues `G,OPS` again for operand 2, so the unconditional latch left operand 2
+- the bit-offset CONSTANT - as the write-back target. A constant is neither a register nor a memory
+address, hence the throw. The instruction must of course write its result back to operand 1, the
+bit-field destination.
 
-Sweep baselines now `match=12691 / diverge=4962`. Suite 301 passed / 0 failed.
+Fix: latch only when the operand being advanced past is index 0, and rename `PrevOca*` to `Op1*` so
+the field name states what it holds. `Op1Kind` is now per-instruction state and is cleared on
+new-instruction setup - under the old latch-every-advance model that was carried implicitly by the
+constant re-latching.
+
+**This was worth 194 -> 287 macro instructions**, the largest single jump of the session.
+
+Per-file proof: zero files lost matches; the only file whose diverge grew is `bitfield_putbf.json`,
+`0 match / 0 diverge` -> **84 match / 6 diverge**.
+
+> **OPEN:** all 6 residuals are a single shape - `W putbf In,$24,$8: S=0!=1`. Sign flag only, only
+> for REGISTER first operands, only at bit offset 24 length 8, i.e. exactly when the inserted field
+> lands on the destination word's sign bit. Every memory destination matches, so the
+> register-destination write path is not feeding the sign back into status the way the functional
+> `CpuND500` does.
+
+### 5.5.15 LOOP path: G,DIR1/2/4 and AB,EA1DIR
+
+Both resolved from the manuals, both leaving the sweep untouched.
+
+**`G,DIR1/2/4`** ("fetch a one/two/four-byte direct operand", GET `1000/1001/1011`) are a deliberate
+**NO-OP**. The real IDU prefetches the literal into a latch; this flattened CPU has no prefetch
+pipeline and reads the displacement LAZILY at the branch via `ReadDirectDisplacement()`. Fetching
+here as well would advance `P` TWICE and corrupt the stream.
+
+The widths agree, which is what makes the lazy read correct rather than merely convenient -
+`ReadDirectDisplacement` takes its width from `InstrDt` (BY 1, H 2, else 4), and the microcode pairs
+each LOOP variant with the matching `G,DIR` code while the sequences are otherwise identical word
+for word:
+
+```
+000570 LOOPIB ... G,OPS -> 000571 LOOPIB_0 ... G,DIR1   (byte)
+000574 LOOPIH ... G,OPS -> 000575 LOOPIH_0 ... G,DIR2   (halfword)
+```
+
+**`AB,EA1DIR`** (AB `1010`) is simply **"Use EA1"** (ND-05.022.1:1406). The `DIR` is NOT "direct
+operand" - it names the DIRECT BYPASS PATH to the DAC (ND-05.022.1:1440: when the DAC is busy with
+an OCA-controlled request, "Only AB,ADR, AB,ADR+4 and the AB,EA1DIR may be used and will cause the
+address to be presented by the DAC in the next cycle"). It is NOT scaled, matching the AA side and
+for the same reason - EA1 is an already-computed effective address.
+
+### 5.5.16 Current stop - NEEDS A DESIGN DECISION, DO NOT PATCH IT BLIND
+
+**287 macro instructions**, `P=0x08007FF0`:
+
+```
+Conditional fetch with ABR value 0 not implemented yet
+  Mpc=379 (0o573)   InstrDt=3
+```
+
+`0o573` is the last word of `LOOPIB`:
+
+```
+000572   ... ABR,NEXT TBC,PREL ... AB=12
+000573   ... T,JMP COND,SAVC1 TBC,NEXT G,OOPS,F WRITE C,MEMOT   (ABR = 0)
+```
+
+`ABR 00` = "No alternative branch" (MICROCODE-FIELDS.md, ABR bits 52-51).
+
+> **DO NOT implement this as `case 0: return;`.** It looks like a harmless no-op and it is NOT.
+> `G,OOPS,F` means "fetch next instruction for the PREFERRED branch, break if the test condition is
+> FALSE". The preferred target is the **`TBC,PREL` address cached by `0o572`** (P + displacement =
+> the loop-back target); `ABR 00` only says the *alternative* path is plain fall-through. A bare
+> `return` would take the fall-through ALWAYS, so `LOOPIB` would never loop - every loop in the
+> swapper would silently execute exactly once, with no throw to reveal it.
+
+**What this actually needs:** a model of the Target Branch Cache. `RouteBranch` currently handles
+`TBC,NPCREL` only for `Get` 4/7/14 and otherwise switches on `Abr`; the preferred/TBC side of a
+CONDITIONAL fetch (`G,OOPS,T` / `G,OOPS,F`) is not modelled at all. The minimum is: on `Get` 5/6,
+when the test selects the preferred path, branch to the target the preceding word cached via `TBC`
+(here `TBC,PREL` = `P + displacement`), and only fall through when the ABR path is selected.
+
+This is the first place the TBC becomes load-bearing, so it deserves being done properly rather than
+patched - getting it wrong corrupts branch behaviour silently across the whole ISA.
+
+Sweep baselines now `match=12775 / diverge=4968`. Suite 301 passed / 0 failed.
 
 ## 6. Key files
 
@@ -646,8 +728,11 @@ provenance. **The live queue is 7.0.**
 
 ### 7.0 THE ACTUAL NEXT STEPS
 
-1. **`ORD,OP1 with no stored first operand` at `Mpc=0o3544`** - the current stop at 194 instructions,
-   reached from `w4 putbf r3.(0),$20,$15` (bit-field family). See 5.5.14.
+1. **Model the Target Branch Cache for CONDITIONAL fetches** - the current stop at 287 instructions
+   (`Conditional fetch with ABR value 0`, `Mpc=0o573`). **Read 5.5.16 before touching it** - the
+   obvious one-line no-op is silently wrong and would make every LOOP execute once.
+2. **The putbf sign-flag residual** - 6 vectors, `W putbf In,$24,$8: S=0!=1`, register destinations
+   only (5.5.14).
 2. **Width-correct the AAP multiply-overflow latch** (`_aapMulOverflow`) - explains 12 of the 21
    residual `ARITHMETIC_mulad` divergences (5.5.12).
 3. **Settle the MULAD carry convention** - explains the other 9 (all W, carry-only).
