@@ -171,17 +171,24 @@ index into the same array - no ND-100 emulation needed to feed it.
 
 **The MICFU-24 (3MONCO) restart works. Two things had to be right; the first was missing.**
 
-**(a) The MICFU-24 dispatch is real.** Decoded from the B30 cross-reference table
-(`MICRO-5800-B30.LABE`), which lists for each label the addresses that reference it - so the MSG_nn
-dispatch slot that names a handler identifies the MICFU:
-```
-MSG_STARTP0 015660* <- 015246   (MICFU 22)
-MSG_START   015671* <- 015247   (MICFU 23)
-MSG_CONMC   015676* <- 015250   (MICFU 24)  <- continue after monitor call
-MSG_CONTRP  015671* <- 015251   (MICFU 25)  <- SAME address as MSG_START (an alias)
-MSG_CONWR   015703* <- 015252   (MICFU 26)
-MSG_CONBH   015221* <- 015253   (MICFU 27 = MSG_ILLEG's address)
-```
+**(a) The MICFU-24 dispatch is real - BYTE-PROVEN from the dispatch microwords.** MSG_00 is at
+0o15224, so the slot for MICFU n is `0o15224 + n` and each slot's NEXT field is the handler address.
+Decoded directly out of `MICRO-5800-B30.DATA` (not inferred from the LABE cross-reference lists):
+
+| MICFU | slot | handler | label |
+|---|---|---|---|
+| 0o20, 0o21 | 0o15244/45 | 0o15221 | MSG_ILLEG |
+| 0o22 | 0o15246 | 0o15660 | MSG_STARTP0 |
+| 0o23 | 0o15247 | 0o15671 | MSG_START |
+| **0o24** | **0o15250** | **0o15676** | **MSG_CONMC** (continue after monitor call) |
+| **0o25** | **0o15251** | **0o15671** | same address as MICFU 23 - `MSG_CONTRP` is an ALIAS |
+| 0o26 | 0o15252 | 0o15703 | MSG_CONWR |
+| 0o27 | 0o15253 | 0o15221 | MSG_ILLEG (so `MSG_CONBH` is an alias for illegal) |
+
+The LABE cross-reference derivation and this direct decode agree exactly. Reproduce with
+`MicrowordDecodeTests.MsgConmc_RestartPath_RawDecodeDump`, which dumps the whole table for
+MICFU 0..0o37.
+
 This also **corrects section 4**: MICFU 25 is `MSG_CONTRP` (continue after trap), which merely
 shares address 0o15671 with `MSG_START` - not a second start entry.
 
