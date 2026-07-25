@@ -231,14 +231,32 @@ loop) and leaves `IDRY` or `TRAP`.
 | `false` | 11202 pass / 2068 fail (**40 REGRESS**) | FAIL | 2 failed |
 | `true`  | 11242 pass / 2028 fail (baseline) | PASS | **0 failed** |
 
-~11k differential vectors accept `true` and reject `false`. So it is a condition that reads TRUE on
-a machine with no stall = `COND,IDRY` (instruction memory ready; always ready here, no IMEM latency
-modelled). `COND,TRAP` would read FALSE with nothing pending - exactly what the corpus rejects.
+~11k differential vectors accept `true` and reject `false`. So TESTOBJ 38 is a **normally-asserted
+signal** - true whenever the machine is not stalled. Implemented in `Conditions.cs` as
+`case 38: return true`.
 
-Implemented in `Conditions.cs` as `case 38: return true`, with the full rationale in-file.
-**STATUS: the value is corpus-verified; the mnemonic (IDRY) is INFERRED** from site distribution +
-polarity. No manual we hold tabulates TESTOBJ field VALUES for the ND-5000. If a valued table turns
-up, confirm the name - the behaviour is already pinned.
+**The value is genuinely undocumented - established by exhausting the sources, 2026-07-25:**
+- `E:\Dev\Ronny\ND5000UC\manual\mnemonics.md` IS the valued TESTOBJ table (and what
+  `microcode-5000-def.json` was generated from). It enumerates with deliberate holes - 4-7, 12-15,
+  22-23, 29-31, 33, **38-39**, 45-47, 50-55, 58 - running `37 COND,MFS` straight to `40 COND,MFO`.
+- `ND-05.022.1` Appendix A has the same hole: `459 COND,MFS` -> `460 COND,MFO`.
+- The rendered listing `E:\Dev\Ronny\ND5000UC\microcode\MICRO-5800-B30.md:7141` prints the word at
+  0o15720 as `TESTOBJ=46` (octal 46 = 38 decimal) - a bare number, while naming every other
+  condition it renders. Its symbol table has the hole too.
+
+**Candidate elimination** (the ND-500 glossary `ND-05.012.01` names three conditions the valued
+tables lack - MFUFO, IDRY, TRAP):
+- **MFUFO** - out on site distribution; a floating-point condition cannot sit in a byte-block-move loop.
+- **TRAP** - out on POLARITY; normally FALSE with nothing pending, and `false` is what the corpus
+  refutes. Note `ND-05.022.1` chapter 8 **does** list TRAP for the ND-5000, so this exclusion rests
+  on measurement, not on absence from a manual.
+- **IDRY** - the only candidate shaped like a normally-true readiness signal, but it appears ONLY in
+  the ND-500 glossary; `ND-05.022.1` chapter 8 does NOT list it for the ND-5000. Fits the behaviour,
+  fails the provenance.
+
+**STATUS: behaviour corpus-verified and safe to rely on; MNEMONIC UNRESOLVED. Do NOT write "IDRY"
+into docs as fact** (an earlier revision of this section did - corrected). Settling it needs a
+source we do not have: a B30-era valued TESTOBJ table, or the microcode assembler's own symbols.
 
 ### 5.5.2 CURRENT STOP: a macro operand gap, and the message body is still uncarved
 
