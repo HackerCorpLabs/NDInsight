@@ -395,6 +395,43 @@ identified.
 **Remaining body fields are now UNBLOCKED** - the RIOM runaway that was overwriting the parse
 region is fixed (5.5.4), so the access log reads out cleanly. That is the next carve.
 
+### 5.5.6 SMOVE dispatch family added - 125 instructions
+
+The stop at `P=0x08009137` was `Opcode 176551 (octal) has no entry in the reconstructed dispatch
+map`. `0o176551` = `0xFD69` = `w smove b.54,b.64` (swapper `0o110467`, bytes `375 151 113 115`) -
+the whole SMOVE family was missing.
+
+Assignment mirrors the SMOVN family (consecutive opcodes -> CS entries stride 2, ordered
+BI, BY, H, W, gap, D). `64870-64875` was the only free run between `64869` and `64876`, and
+`0xFD69` = 64873 lands on **W**, matching the disassembler. Entries are the LABE addresses
+`SMOVEBI 001235 / SMOVEBY 001237 / SMOVEHW 001241 / SMOVEW 001243 / SMOVED 001245`.
+
+**Confirmed by the new stop:** `Mpc=676` = `0o1244` = SMOVEW's entry `0o1243` **plus one word** -
+the right routine was entered and advanced. Now stops on a real microcode gap,
+`IDU fetch control G,OPSTRD at CS 0o1244 not implemented yet` (string-operand fetch, which is
+exactly what SMOVE needs). That is the next microword item.
+
+### 5.5.7 TRAP: do NOT regenerate DispatchMapB30.g.cs from dispatch-map-b30.json
+
+**The "generated" file is HAND-MAINTAINED; the JSON is badly stale. Regenerating destroys
+corrections that exist only in the `.g.cs`.** Found the hard way this session - a regeneration
+silently reverted:
+```
+map[184] ENTS   dataType 0 -> -1              (the 07-22 type-less-stack-op fix)
+map[195] CALL   lost directMask/directSizes   (the 07-22 CALL direct-operand fix)
+```
+and the swapper collapsed **124 -> 16 macro instructions**. Some entries differ outright:
+```
+.g.cs   map[120] = DispatchEntry(1304, 0, 0)   // W1 /   DIVW 002430, golden-vector verified
+json    map[120] = DispatchEntry(1294, 0, 3)   // BY1 /  [nd500x-json]
+```
+- a different instruction entirely.
+
+So **add dispatch entries BY HAND to the `.g.cs`** (as done for SMOVE, with an inline comment
+saying so). The JSON has been moved toward truth (SMOVE rows added; ENTS `dataType` and CALL
+`directMask`/`directSizes` back-ported) but is NOT yet safe to regenerate from - `map[120-123]`,
+`[232-235]`, `[64828-64831]` at least still diverge. Reconciling it is a separate job.
+
 ## 6. Key files
 
 - **Diagnostic test** (drives the microword swapper-start, has the SPIN DUMP):
