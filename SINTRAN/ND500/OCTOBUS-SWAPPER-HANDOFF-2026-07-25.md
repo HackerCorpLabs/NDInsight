@@ -314,13 +314,43 @@ table, so it will misfire identically against a real SINTRAN message. The fix be
 `CpuND5000.cs` (RIOM body `RIOM_0 @ 0o12255`; the fault surfaces near `0o12272`), which at the time
 of writing carries another session's in-flight work - handed to that lane rather than edited here.
 
-### 5.5.5 The message BODY layout is still uncarved
+### 5.5.5 SWMSG body - first field carved, TWO independent methods agreeing
 
-The stub fills the ND-100-resident message with a traceable low-magnitude probe pattern
-(`0x1000 + offset`) and says so in its own summary. The real SWMSG field layout cannot be read off
-until the RIOM count is fixed, because the runaway transfer overwrites the region the swapper would
-then parse. Once fixed, the access log above is the instrument that carves it: the offsets read,
-their widths, and the P that read them.
+The message body can be carved STATICALLY from the listing even while the dynamic run is blocked,
+and the two methods cross-check each other.
+
+**Watch the operand specifier.** At `0o101377` the byte after the opcode is `317` = `0xCF` =
+**constant :W**, so:
+```
+1000101377: 030 317 010 002 100 274   r:=    $1000440274   ; R := the ADDRESS 0x080240BC
+1000101405: 011 202                   h2 :=  r.10          ; HALFWORD at R+8 = 0x080240C4
+1000101407: 375 120 321 320           h wconv r2,r1        ; widen halfword -> word
+1000101413: 040 304 010 001 051 334   w1 =:  $1000224734   ; store to a DSEG variable
+1000101427: 117 304 010 002 142 200   w incr $1000461200   ; bump a counter
+```
+`r:=` here loads R with the buffer BASE ADDRESS as a constant - it is NOT an indirection through
+`[0x240BC]`. (Offsets in this disassembly are OCTAL: `r.10` = +8 decimal.)
+
+**Dynamically confirmed, same run:** the access log contains
+`P=0x08008305  RD +0x14 (0x080240C4) w2` - and `0o101405` = `0x8305`. Static listing and live
+access log agree on both the address and the width.
+
+**So: SWMSG field 1 = a HALFWORD at message-buffer offset +8 (`0o10`),** widened to a word and
+stored. VERIFIED two ways. Its meaning is not yet named - that needs the DSEG variable
+`$1000224734` traced to its consumers.
+
+After that the swapper dispatches on the function code:
+```
+1000101504: w comp2 $1000440270,$5    ; fn == 5 ?
+1000101515: w comp2 $1000440270,$3    ; fn == 3 ?
+1000101540: w1 :=   $1000440270       ; else index = fn code
+1000101546: jumpg   $1000460630+      ; via the dispatch table at 0x08026198
+```
+
+**Remaining body fields still uncarved.** They read out of the same access log once the RIOM count
+bug (5.5.4) is fixed - the runaway transfer currently overwrites the region the swapper would
+parse, so anything beyond the first field would be observing corrupted data. The instrument is
+already in place; it is the count fix that gates it.
 
 ## 6. Key files
 
