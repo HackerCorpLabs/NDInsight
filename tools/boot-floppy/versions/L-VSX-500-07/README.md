@@ -44,16 +44,75 @@ Companion sets for this version: `210373L03-XX-01D` (XMSG L03) and
 | `inputs/distribution-layout-params.json` | the same, parsed: 34 parameters with page/madr values, plus the 21-entry macro→area legend |
 | `carve-crosscheck.md` | **the findings** — what this confirms, corrects and leaves open in `segment-facts.json` |
 
-Both `inputs/` files are generated together by
-`E:\Dev\Ronny\NDInsight\tools\boot-floppy\tools\extract_layout_params.py`
-from the extracted `SINTRAN-L-1:DATA` stream. It takes the source stream as
-argument 1 and the output directory as argument 2:
+## The two tools for this distribution
+
+Both live in `E:\Dev\Ronny\NDInsight\tools\boot-floppy\tools\`. They are
+specific to this floppy set — they hard-code L07 paths — and each carries a
+full header comment, so the file itself is the reference. Summary:
+
+### `extract_layout_params.py` — generates everything in `inputs/`
+
+**This is the only thing that produces the two `inputs/` files.** They are
+committed; if either is ever doubted, re-run this and diff.
+
+`SINTRAN-L-1:DATA` is the MACM generation stream ND shipped. Its first 7,457
+bytes are plain text that MACM reads: `NAME=octal` lines giving each SINTRAN
+system area's SEGFIL page number, plus a `%%` legend mapping patch-macro
+names to area names. Everything after that first control byte is binary and
+is ignored.
+
+Why it is worth having: that header is a **third, independent witness** to
+the segment page map — neither the live `LIST-SEGMENT` dump nor the OCR'd
+release-manual §8.3. It is what confirmed 28 of 32 layout parameters against
+carved `madr` values and let 30 segments rated `medium` *only* because of OCR
+damage be promoted to `high`. See [`carve-crosscheck.md`](carve-crosscheck.md).
+
+One non-obvious rule it implements: in an expression such as `300-2`, the
+leading additive terms are the **page address** and a trailing `-N` is a
+length/in-page offset that is **not** part of the address. SEGFIL page
+numbers relate to the carver's `madr` as `madr = page - 0o200`.
 
 ```
 python E:\Dev\Ronny\NDInsight\tools\boot-floppy\tools\extract_layout_params.py ^
        D:\ND\extract\VSXL1\SINTRAN-L-1.DATA ^
        E:\Dev\Ronny\NDInsight\tools\boot-floppy\versions\L-VSX-500-07\inputs
 ```
+
+Verified 2026-07-25: reproduces both committed files byte-for-byte in
+content (7,457-byte header, 34 parameters, 21 legend entries); the only
+difference is line endings — CRLF in the repository, LF from the script.
+
+### `analyze_vsxl1.py` — how the shipped MACM differs from the analysed one
+
+Read-only; prints, writes nothing. It parses each BPUN tape into **the
+program it actually loads** (skips the NUL leader, finds `!`, reads the
+big-endian base and word count, then the words and the trailing checksum)
+and reports base, length, span and checksum validity for the floppy's
+`MACM-1718L:BPUN` against the standalone `D:\ND\BPUN\MACM-1718L.BPUN`. It
+word-diffs them only when base and length match.
+
+Why it is worth having: **every Ghidra finding in
+[`../../MACM-DIALOGUE.md`](../../MACM-DIALOGUE.md) and
+[`../../MSTYP-SWTYP-BRIDGE.md`](../../MSTYP-SWTYP-BRIDGE.md) was made on the
+standalone binary**, and ND shipped a different build. `MACM-DIALOGUE.md`
+open question 7 records this and says the floppy copy "was **not** examined".
+This is the tool for it.
+
+Measured 2026-07-25:
+
+| copy | base | words | span | checksum |
+|---|---|---|---|---|
+| floppy | `076203` | 19738 | `076203`–`144634` | `121055` OK |
+| standalone | `077120` | 19273 | `077120`–`144630` | `117607` OK |
+
+Both checksums verify, so the difference is **real, not tape damage**. They
+are different programs: the floppy build is 465 words larger, with its base
+**461 words lower** and its top **4 words higher** (461 + 4 = 465) — i.e.
+extended almost entirely *downward*, both images ending at nearly the same
+address. Content near the top sits at close to the same address in both
+builds; content near the bottom is displaced by ~461 words. That is the
+constraint on whether an address-specific finding carries over. Which side
+the MSTYP tables fall on is **still open** — this script does not resolve it.
 
 Large binaries are **not** copied in. `SINTRAN-L-1:DATA` is 1.05 MB and the
 floppy images are 1.2 MB each; they stay at their `D:\ND\S\` paths and are

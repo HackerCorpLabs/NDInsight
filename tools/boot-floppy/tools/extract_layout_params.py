@@ -1,14 +1,55 @@
 #!/usr/bin/env python3
 """Extract the distribution layout-parameter block from SINTRAN-L-1:DATA.
 
-The MACM generation stream opens with a plain-text header that defines each
-SINTRAN system area's SEGFIL page number, plus the macro-name -> area-name
-legend. That block is an authoritative, non-OCR witness for the segment
-page map, independent of both the live LIST-SEGMENT dump and the OCR'd
-release-manual section 8.3.
+WHAT THIS IS
+    The generator of both files in
+        tools/boot-floppy/versions/L-VSX-500-07/inputs/
+    Those files are committed; this script is the only thing that produces
+    them. If they are ever doubted, re-run this and diff.
 
-Writes:  distribution-layout-params.txt   verbatim header text
-         distribution-layout-params.json  parsed parameters + legend
+WHY IT MATTERS
+    SINTRAN-L-1:DATA is the MACM generation stream shipped on ND's own
+    distribution floppy. It opens with a plain-text header that MACM reads:
+    "NAME=octal" lines giving each SINTRAN system area's SEGFIL page number,
+    plus a "%%" comment legend mapping patch-macro names to area names.
+
+    That header is a THIRD, INDEPENDENT WITNESS to the segment page map -
+    it is neither the live LIST-SEGMENT dump nor the OCR'd release-manual
+    section 8.3. It is what allowed 28 of 32 layout parameters to be
+    confirmed against carved "madr" values, and 30 segments whose confidence
+    was only "medium" because of OCR damage to be promoted to "high".
+    See ../versions/L-VSX-500-07/carve-crosscheck.md for the findings.
+
+INPUT
+    A SINTRAN*-1:DATA stream extracted from the distribution floppy. Extract
+    it WITHOUT -p:
+        ndtool -x -o D:\\ND\\extract\\VSXL1 D:\\ND\\S\\VSXL1.IMG
+    (-p strips bit 7 and corrupts the binary half of the file. This script
+    strips ND parity itself, in memory, which is safe.)
+
+USAGE
+    python3 extract_layout_params.py [SOURCE-STREAM] [OUTPUT-DIR]
+    Defaults: /mnt/d/ND/extract/VSXL1/SINTRAN-L-1.DATA  and  the CWD.
+    To regenerate the committed copies, pass
+        ../versions/L-VSX-500-07/inputs  as OUTPUT-DIR.
+
+OUTPUT
+    distribution-layout-params.txt    the verbatim header text
+    distribution-layout-params.json   parsed parameters + legend
+
+HOW IT WORKS, AND THE ONE NON-OBVIOUS RULE
+    The header runs from byte 0 to the first control byte (7457 bytes for
+    L07); everything after that is binary and is ignored. Parameters are
+    parsed as "NAME=expr" where expr is OCTAL. In an expression like
+    "300-2", the leading additive terms are the PAGE ADDRESS and a trailing
+    "-N" is a length/in-page offset that is NOT part of the address -
+    reading it as arithmetic gives the wrong page. SEGFIL page numbers
+    relate to the carver's "madr" as: madr = page - 0o200.
+
+MEASURED ON L07 (2026-07-25, verified against the committed copies)
+    header 7457 bytes; 34 layout parameters; 21 legend entries. Output is
+    byte-identical to the committed files apart from line endings (those
+    are CRLF in the repository, this writes LF).
 """
 import json
 import re
