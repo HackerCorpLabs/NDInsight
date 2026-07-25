@@ -44,6 +44,17 @@ Companion sets for this version: `210373L03-XX-01D` (XMSG L03) and
 | `inputs/distribution-layout-params.json` | the same, parsed: 34 parameters with page/madr values, plus the 21-entry macro→area legend |
 | `carve-crosscheck.md` | **the findings** — what this confirms, corrects and leaves open in `segment-facts.json` |
 
+Both `inputs/` files are generated together by
+`E:\Dev\Ronny\NDInsight\tools\boot-floppy\tools\extract_layout_params.py`
+from the extracted `SINTRAN-L-1:DATA` stream. It takes the source stream as
+argument 1 and the output directory as argument 2:
+
+```
+python E:\Dev\Ronny\NDInsight\tools\boot-floppy\tools\extract_layout_params.py ^
+       D:\ND\extract\VSXL1\SINTRAN-L-1.DATA ^
+       E:\Dev\Ronny\NDInsight\tools\boot-floppy\versions\L-VSX-500-07\inputs
+```
+
 Large binaries are **not** copied in. `SINTRAN-L-1:DATA` is 1.05 MB and the
 floppy images are 1.2 MB each; they stay at their `D:\ND\S\` paths and are
 extracted on demand.
