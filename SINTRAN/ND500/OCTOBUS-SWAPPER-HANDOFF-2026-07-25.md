@@ -57,10 +57,12 @@ traps 9/10/11 and `SINTRAN\ND500\swapper\`.
 
 ## 5. CURRENT STATE (this is where you resume)
 
-> **STATUS AT END OF SESSION 2026-07-25: 287 macro instructions**, stopped on
-> `Conditional fetch with ABR value 0` at `Mpc=0o573` - this one needs a Target Branch Cache model
-> and the obvious no-op is SILENTLY WRONG. Sweep `match=12775 / diverge=4968`, suite 301 passed /
-> 0 failed. **Read 5.5.16 and 7.0 first** - the walkthrough below (48 instructions, the MON-call
+> **STATUS AT END OF SESSION 2026-07-25: MILESTONE - 420 macro instructions, 2 MON restarts, NO
+> THROW.** The swapper completed initialisation and reached its MAIN MESSAGE-WAIT LOOP at
+> `P=0x08000677`. Every microcode gap on this path is closed; the run now ends on the diagnostic's
+> tick budget because the STUB sink keeps answering with the same message. Closing that needs the
+> real octobus mailbox transport, NOT more microcode. Sweep `match=12797 / diverge=4972`, suite 301
+> passed / 0 failed. **Read 5.6 and 7.0 first** - the walkthrough below (48 instructions, the MON-call
 > stop) is the session's STARTING point, kept because the decode work in 5.1-5.5.7 is still the
 > reference for how the message path works.
 
@@ -663,41 +665,75 @@ an OCA-controlled request, "Only AB,ADR, AB,ADR+4 and the AB,EA1DIR may be used 
 address to be presented by the DAC in the next cycle"). It is NOT scaled, matching the AA side and
 for the same reason - EA1 is an already-computed effective address.
 
-### 5.5.16 Current stop - NEEDS A DESIGN DECISION, DO NOT PATCH IT BLIND
+### 5.5.16 Conditional-fetch branch for ABR,(none) - RESOLVED
 
-**287 macro instructions**, `P=0x08007FF0`:
-
-```
-Conditional fetch with ABR value 0 not implemented yet
-  Mpc=379 (0o573)   InstrDt=3
-```
-
-`0o573` is the last word of `LOOPIB`:
+`ABR 00` = "No alternative branch" (MICROCODE-FIELDS.md, ABR bits 52-51). `0o573` is the last word
+of `LOOPIB`:
 
 ```
 000572   ... ABR,NEXT TBC,PREL ... AB=12
 000573   ... T,JMP COND,SAVC1 TBC,NEXT G,OOPS,F WRITE C,MEMOT   (ABR = 0)
 ```
 
-`ABR 00` = "No alternative branch" (MICROCODE-FIELDS.md, ABR bits 52-51).
+> **THE TRAP, recorded because it looks trivial:** implementing this as `case 0: return;` is
+> SILENTLY WRONG. With no alternative branch the ABR route is plain fall-through, so it is the
+> **PREFERRED** route that carries the jump - the inverse of the existing `ABR,NPCREL` case. A bare
+> `return` falls through ALWAYS, so every LOOP executes exactly once, with no throw to reveal it.
 
-> **DO NOT implement this as `case 0: return;`.** It looks like a harmless no-op and it is NOT.
-> `G,OOPS,F` means "fetch next instruction for the PREFERRED branch, break if the test condition is
-> FALSE". The preferred target is the **`TBC,PREL` address cached by `0o572`** (P + displacement =
-> the loop-back target); `ABR 00` only says the *alternative* path is plain fall-through. A bare
-> `return` would take the fall-through ALWAYS, so `LOOPIB` would never loop - every loop in the
-> swapper would silently execute exactly once, with no throw to reveal it.
+"Preferred == a P-relative branch" for `ABR=0` was **surveyed, not assumed**. The B30 image has 26
+`G,OOPS,T/F` words; the 14 with no ABR mnemonic are ALL conditional branches whose taken path is
+P-relative - `LOOPIB`/`LOOPIH`/`FLOOPIB` (`0o573`, `0o577`), `LOOPDH`/`FLOOPDB` (`0o615`, `0o621`),
+`IFSTH`/`IFNSTB`/`IFNSTH` (`0o3654`, `0o3661`, `0o3666`), `LOOP_IOV_B/H` and `LOOPB_1` (`0o3673`,
+`0o3700`, `0o3705`), and the FLOOP/DLOOP ends (`0o27416..0o27424`). Each pairs `TBC,NEXT` on itself
+with a `TBC,PREL` earlier.
 
-**What this actually needs:** a model of the Target Branch Cache. `RouteBranch` currently handles
-`TBC,NPCREL` only for `Get` 4/7/14 and otherwise switches on `Abr`; the preferred/TBC side of a
-CONDITIONAL fetch (`G,OOPS,T` / `G,OOPS,F`) is not modelled at all. The minimum is: on `Get` 5/6,
-when the test selects the preferred path, branch to the target the preceding word cached via `TBC`
-(here `TBC,PREL` = `P + displacement`), and only fall through when the ABR path is selected.
+Target is `Npc + displacement` - the instruction START, not the post-displacement P. AUTHORITATIVE:
+the functional answer key, `Loopi.cs:174` `regs.P = (uint)((long)fi.StartAddress + displacement)`.
 
-This is the first place the TBC becomes load-bearing, so it deserves being done properly rather than
-patched - getting it wrong corrupts branch behaviour silently across the whole ISA.
+Polarity cross-check on LOOPIB: `0o572` does `CSAVE COND,MSORZ` (signed "index <= limit") and
+`0o573` is `G,OOPS,F`, which falls through on FALSE - so it branches when index <= limit, exactly
+the documented LOOPI operation.
 
-Sweep baselines now `match=12775 / diverge=4968`. Suite 301 passed / 0 failed.
+**`G,DIR1/2/4` upgraded from pure no-op to latching the WIDTH.** In the LOOP family the operand data
+type and the displacement width are INDEPENDENT (`W LOOPI:B` = word operands, byte displacement), so
+deriving the width from `InstrDt` is wrong for the mixed variants; the `G,DIR` code is the
+authoritative statement of it. Confirmed from the other side by `Loopi.cs`: ":H variants (halfword
+displacement): 0xFD1E, 0xFD1F, 0x00E1, 0xFD21, 0xFD22; all other LOOPI opcodes use a 1-byte signed
+displacement."
+
+**Validation - the strongest of the session:** `BRANCH_loopi.json` = **16 match / 0 diverge**, the
+exact family the swapper uses, in complete agreement with the functional oracle.
+
+## 5.6 MILESTONE: the swapper reaches its MAIN MESSAGE LOOP - microcode gaps on this path are CLOSED
+
+**420 macro instructions, 2 MON restarts, and NO throw.** The run now ends on the diagnostic's tick
+budget, not on an unimplemented feature.
+
+It is parked at `P=0x08000677` = octal `1000003167` (`swapper-k01-pseg.asm:520`):
+
+```
+1000003167: call $...377,$2,$1000225040,$1000437234   ; MON 377B, 2-ARGUMENT form
+1000003207: ifkret
+1000003210: go $...757                                 ; backward jump - loop
+```
+
+That is the swapper's **message-wait loop**: ask the ND-100 for a message, process it, repeat. So
+the swapper has completed initialisation and is now doing its actual job.
+
+Note this is the **2-argument** MON 377B form that section 7.2 step 1 predicted would exist
+(`argcount varies and the argument block must be decoded per call site`) - a different site from the
+`0o507` one noted there, with arguments `$1000225040`, `$1000437234`.
+
+**Why it spins:** `SwapperAnnounceSink` in the diagnostic is a STUB that always answers with the
+same announce message (function code 5, source `0x00210718`). The swapper keeps being handed the
+same message and loops forever. **This is not a CPU defect and no further microcode will fix it.**
+
+**What closes it:** the real octobus mailbox transport - handoff step 2(b), wiring `IMonitorCallSink`
+to `OctobusND5000Station.cs` so real SINTRAN answers arrive. Alternatively, a smarter diagnostic stub
+that returns a "no message" / different message on the second call would show more of the loop body
+without needing the transport.
+
+Sweep baselines now `match=12797 / diverge=4972`. Suite 301 passed / 0 failed.
 
 ## 6. Key files
 
@@ -728,11 +764,18 @@ provenance. **The live queue is 7.0.**
 
 ### 7.0 THE ACTUAL NEXT STEPS
 
-1. **Model the Target Branch Cache for CONDITIONAL fetches** - the current stop at 287 instructions
-   (`Conditional fetch with ABR value 0`, `Mpc=0o573`). **Read 5.5.16 before touching it** - the
-   obvious one-line no-op is silently wrong and would make every LOOP execute once.
-2. **The putbf sign-flag residual** - 6 vectors, `W putbf In,$24,$8: S=0!=1`, register destinations
-   only (5.5.14).
+1. **Wire `IMonitorCallSink` to the real octobus mailbox transport** in `OctobusND5000Station.cs`
+   (step 2(b) of the old queue). This is now THE blocker - the swapper is sitting in its message
+   loop being fed the same stub answer forever (5.6). No amount of further microcode work moves it.
+   Cheaper interim step: make the diagnostic stub answer differently on the second call, which walks
+   more of the loop body without needing the transport.
+2. **The sub-word WIDTH family** - one root cause behind residuals in three separate instruction
+   families, so fixing it pays off three times:
+   - `mulad` 12 vectors: AAP multiply-overflow latch (`_aapMulOverflow`) computed at 32 bits (5.5.12)
+   - `putbf` 6 vectors: `W putbf In,$24,$8: S=0!=1`, register destinations only (5.5.14)
+   - `loopd` 4 vectors: `I1=FFFFFFFF!=000000FF`, a 32-bit -1 where a byte 0xFF was wanted (5.5.16)
+3. **The MULAD carry convention** - functional `CpuND500` reports `C=0` where the microword takes
+   the add's carry (5.5.12).
 2. **Width-correct the AAP multiply-overflow latch** (`_aapMulOverflow`) - explains 12 of the 21
    residual `ARITHMETIC_mulad` divergences (5.5.12).
 3. **Settle the MULAD carry convention** - explains the other 9 (all W, carry-only).
