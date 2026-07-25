@@ -299,20 +299,52 @@ P=0x080082EE     RD [0x240B4]; writes the message as big-endian HALFWORDS from [
 the wrong table. The real table (32-bit entries) reads `[0]=13 [1]=10 [2]=15 [3]=138 [4]=9 [5]=70`;
 function code 5 selects **15 halfwords**.
 
-### 5.5.4 CURRENT BLOCKER: the RIOM count is read 32-bit at a halfword address
+### 5.5.4 RIOM runaway - FIXED. Cause was the post-index SCALE SOURCE, not the read width
 
-**MEASURED:** the RIOM DMA transfers **983040 halfwords** spanning `0x080240BC..0x082040BA` - it
-runs to the end of memory - against a count operand of 15.
+**RETRACTION.** An earlier revision of this section said "the RIOM count is read 32-bit at a
+halfword address" and handed it to the CpuND5000 lane as their bug. **Both parts were wrong.** The
+symptom was right; the cause was mine, introduced by the 0xE0-0xE3 commit in 5.5.2. Fixed in
+`07d5e032a`. If that hand-off was passed on, retract it.
 
-`983040 = 15 * 65536 = 0x000F0000`. The count VALUE is correct but sits in the **high halfword**,
-which is exactly what a 32-bit big-endian read at the halfword address `0x08024046` yields
-(`halfword[5]=15` followed by `halfword[6]=0`). So the count operand is read at width 4 where it
-should be width 2. The out-of-range write at `0x08040000` is this overrun, not a bad address.
+**Symptom (measured):** the RIOM DMA transferred **983040 halfwords** spanning
+`0x080240BC..0x082040BA`, running to the end of memory, against a count operand of 15.
 
-**This is independent of the synthetic test message** - the count comes from the swapper's own DSEG
-table, so it will misfire identically against a real SINTRAN message. The fix belongs in
-`CpuND5000.cs` (RIOM body `RIOM_0 @ 0o12255`; the fault surfaces near `0o12272`), which at the time
-of writing carries another session's in-flight work - handed to that lane rather than edited here.
+**What the direct measurement showed.** Widening the probe window over the count table logged the
+read itself:
+```
+P=0x080082EE  RD +0x16 (0x08024046) w4 = 0x000F0000
+```
+The **w4 read is CORRECT** - the count table holds 32-bit entries on a 4-byte stride:
+`0x2403C`=13, `0x24040`=10, `0x24044`=15, `0x24048`=138, `0x2404C`=9, `0x24050`=70. (The
+alternating zeros in a halfword dump are the high halves - that is what misled the first reading.)
+What was wrong is the **ADDRESS**: `0x08024046` is mid-word, unaligned to a 4-byte table.
+
+**Root cause.** `PostIndexScale` was fed `Regs.InstrDt`, the INSTRUCTION data type. `h riom` is a
+halfword-TRANSFER instruction (`InstrDt = 2`) whose COUNT operand is a 32-bit word. Scale 2 gives
+`0x2403C + 2*5 = 0x08024046`, and a 32-bit read there returns `0x000F0000` - the count 15 sitting
+in the high halfword = 983040. The OPERAND type gives `0x2403C + 4*5 = 0x08024050`, aligned,
+entry **70**.
+
+**Fix.** `EnsureOcaDecoded` now takes an optional `operandDataType` used for the post-index scale,
+falling back to `Regs.InstrDt`. The three call sites holding the microword pass
+`EffectiveDataType(in word)` - the microword's own type, which already defers to the instruction
+type when the word carries TYP,DR. The CALL-argument site has no microword and keeps the fallback.
+
+**Verified by prediction, not by fitting:** scale 4 predicts EA `0x24050`, count 70, 70 writes.
+Measured after the change: `70 writes, 0x080240BC..0x08024146`, out-of-range access `(none)`.
+
+**LESSON worth keeping:** an instruction's data type and its individual operands' data types are
+NOT the same thing. Conflating them produced an unaligned address whose 32-bit read still returned
+a plausible-looking number, which then read as a width bug. Prefer the microword's own type.
+
+### 5.5.4a Result: 124 macro instructions, level with the functional CPU
+
+87 -> **124 macro instructions**, `P=0x08009137`. That is the same region where the functional
+`CpuND500` stopped (`0x0800913B`, `GATE1-SWAPPER-COLDSTART-TRACE-ANALYSIS-2026-07-21.md`) - the
+microword lane has caught up to the functional lane's furthest point.
+
+New stop is an ordinary dispatch gap: `Opcode 176551 (octal) at P=0x08009137 has no entry in the
+reconstructed dispatch map`.
 
 ### 5.5.5 SWMSG body - first field carved, TWO independent methods agreeing
 
@@ -347,10 +379,21 @@ After that the swapper dispatches on the function code:
 1000101546: jumpg   $1000460630+      ; via the dispatch table at 0x08026198
 ```
 
-**Remaining body fields still uncarved.** They read out of the same access log once the RIOM count
-bug (5.5.4) is fixed - the runaway transfer currently overwrites the region the swapper would
-parse, so anything beyond the first field would be observing corrupted data. The instrument is
-already in place; it is the count fix that gates it.
+**Field 1 traced to its consumers.** `$1000224734` = `0x080129DC` has exactly ONE writer (the site
+above) and THREE readers. Two readers do the identical thing:
+```
+1000011244 / 1000020344:  w2 :=     $1000224734    ; the field value
+                          w2 *      $400           ; x 256
+                          by1 laddr $4000004400+   ; index a table at 0x20000900
+```
+Value x 256 into a table of **256-byte records** - which is the VERIFIED PCB/DIT stride (see the
+DIT notes in `SwapperStartDiagnosticTests.cs`). The third reader (`1000052070`) compares it against
+a local and branches. **INFERRED (shape-strong, not byte-proven): field 1 is a process/domain
+INDEX**, not a count or a flag. Naming it properly needs the table at `0x20000900` (segment 4)
+identified.
+
+**Remaining body fields are now UNBLOCKED** - the RIOM runaway that was overwriting the parse
+region is fixed (5.5.4), so the access log reads out cleanly. That is the next carve.
 
 ## 6. Key files
 
