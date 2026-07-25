@@ -258,19 +258,69 @@ tables lack - MFUFO, IDRY, TRAP):
 into docs as fact** (an earlier revision of this section did - corrected). Settling it needs a
 source we do not have: a B30-era valued TESTOBJ table, or the microcode assembler's own symbols.
 
-### 5.5.2 CURRENT STOP: a macro operand gap, and the message body is still uncarved
+### 5.5.2 Absolute post-indexed operands (0xE0-0xE3) implemented - RIOM now reached
 
-New stop reason, the ordinary self-service-loop signature:
-```
-Operand specifier 0xE0 at P=0x0800828C not implemented yet (P5 slice)   [Mpc=0o206]
-```
-That is a plain macro-instruction operand gap on the post-MON path - next item.
+The stop after the MON restart was `Operand specifier 0xE0 at P=0x0800828C not implemented yet`.
+`0xE0-0xE3` = octal `340B+y` = **absolute post-indexed**, `<label>(Rn)`, `ea = a + p * (Rn)`:
+a 4-byte absolute address, `Rn` = I1-I4 from the low 2 bits, `p` = the ELEMENT SIZE of the data
+type (`Reference-Manuals\500\ND500-adressing-modes.md:484-516`). Implemented in `CpuND5000.cs`
+mirroring the functional oracle `AddressingMode.ABSOLUTE_PI` (`CpuND500.Fetch.cs:690` + scaling at
+`:298-331`). First hit: swapper `0o101213 w2 := $1000507270+` - the disassembler's trailing `+`
+IS the post-index marker.
 
-The stub still fills the ND-100-resident message with a synthetic probe pattern
-(`0x5A5A0000 | offset`) and says so in its own summary. The real SWMSG field layout is NOT carved;
-it becomes observable once the swapper gets past the operand gap to its RIOM at `P=0x080082EE`
-(`h riom [0x240B4] -> [0x240BC]`, count = `[0x0802408C + fn*2]` = **8 halfwords** for fn 5, read
-from the swapper's own DSEG).
+Note a new `PostIndexScale()` was added rather than reusing `AccessWidth()`: AccessWidth is the
+width of ONE transaction and returns 4 for TYP,DF because the 32-bit interface moves a double as
+two halves, but the post-index SCALE for a double is 8. Reusing it would silently halve every
+double-indexed address.
+
+**Result: 55 -> 87 macro instructions.** The swapper reaches and EXECUTES its RIOM at
+`P=0x080082EE` - message intake - for the first time on the microword CPU.
+
+### 5.5.3 SWMSG INTAKE CARVED (2026-07-25) - control block confirmed live
+
+`RealSwapper_ServiceMon377BAnnounce_HowFarThen` now logs every access to the message region tagged
+with the macro P that made it (`ProbeMemory`). The observed sequence confirms
+`swapper-k01-pseg.asm:10543-10546` **executing**, no longer just read:
+
+```
+P=0x080081AC/B2  WR [0x240B0]=0, [0x240B4]=0        init clears the control block
+P=0x0800823F     RD [0x240B0], RD [0x240B4]         MON 377B passes them as args
+                 WR [0x240B0]=5, WR [0x240B4]=src   <- the sink's answer
+P=0x08008279     RD [0x240B0] = 5
+P=0x0800827F     WR [0x240B8] = 5                   <- FUNCTION CODE copy
+P=0x08008285     WR [0x240B0] = 0                   <- control word cleared
+P=0x08008293/B7/C3/E8  RD [0x240B8] x4              validation (>=0, <=0o34) + count index
+P=0x080082EE     RD [0x240B4]; writes the message as big-endian HALFWORDS from [0x240BC]
+```
+
+**ADDRESS CORRECTION - `swapper-k01-deep-analysis.md:242` is WRONG.** The RIOM count operand
+`$1000440074` is **`0x0802403C`**, not `0x0802408C`. Verify: `0x2403C` = 147516 decimal =
+`0o440074`. An earlier revision of this section inherited the slip and quoted "8 halfwords" from
+the wrong table. The real table (32-bit entries) reads `[0]=13 [1]=10 [2]=15 [3]=138 [4]=9 [5]=70`;
+function code 5 selects **15 halfwords**.
+
+### 5.5.4 CURRENT BLOCKER: the RIOM count is read 32-bit at a halfword address
+
+**MEASURED:** the RIOM DMA transfers **983040 halfwords** spanning `0x080240BC..0x082040BA` - it
+runs to the end of memory - against a count operand of 15.
+
+`983040 = 15 * 65536 = 0x000F0000`. The count VALUE is correct but sits in the **high halfword**,
+which is exactly what a 32-bit big-endian read at the halfword address `0x08024046` yields
+(`halfword[5]=15` followed by `halfword[6]=0`). So the count operand is read at width 4 where it
+should be width 2. The out-of-range write at `0x08040000` is this overrun, not a bad address.
+
+**This is independent of the synthetic test message** - the count comes from the swapper's own DSEG
+table, so it will misfire identically against a real SINTRAN message. The fix belongs in
+`CpuND5000.cs` (RIOM body `RIOM_0 @ 0o12255`; the fault surfaces near `0o12272`), which at the time
+of writing carries another session's in-flight work - handed to that lane rather than edited here.
+
+### 5.5.5 The message BODY layout is still uncarved
+
+The stub fills the ND-100-resident message with a traceable low-magnitude probe pattern
+(`0x1000 + offset`) and says so in its own summary. The real SWMSG field layout cannot be read off
+until the RIOM count is fixed, because the runaway transfer overwrites the region the swapper would
+then parse. Once fixed, the access log above is the instrument that carves it: the offsets read,
+their widths, and the P that read them.
 
 ## 6. Key files
 

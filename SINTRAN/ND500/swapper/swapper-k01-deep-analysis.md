@@ -239,8 +239,16 @@ The third `RIOM` is the message-intake path and ties the message-control block t
 |---|---|---|---|
 | 0x080240B4 | 1000440264 | ND-100 source address of the message | `h riom` operand 1 |
 | 0x080240BC | 1000440274 | ND-500 message buffer base | `h riom` operand 2; `r:= $1000440274` x15 (record base) |
-| 0x0802408C+ | 1000440074+ | halfword count, indexed per command (29-entry table) | `h riom` operand 3 |
+| **0x0802403C+** | 1000440074+ | halfword count, indexed per command (29-entry table) | `h riom` operand 3 |
 | 0x080240B8 | 1000440270 | message function code | `w1 := $1000440270; jumpg $1000460630+` (lines 10599-10600) |
+
+> **CORRECTION 2026-07-25** - this row previously read `0x0802408C+`. That was an arithmetic slip:
+> `0o1000440074` = **`0x0802403C`**, not `0x0802408C`. Verify: `0x2403C` = 147516 decimal =
+> `0o440074`. The wrong address was inherited by a diagnostic run, which read a count from the
+> wrong table and reported "8 halfwords". Measured against the CORRECT base, the table (32-bit
+> entries) reads `[0]=13 [1]=10 [2]=15 [3]=138 [4]=9 [5]=70 ...`, and message function code 5
+> selects **15 halfwords**. Observed live in
+> `RealSwapper_ServiceMon377BAnnounce_HowFarThen` (RetroCore `CPU.ND5000` tests).
 
 So the swapper reads its request out of ND-100 private memory by DMA, into its own D-space
 buffer at 0x240BC, and reads the function code at 0x240B8. This **corrects** the older prior-art
