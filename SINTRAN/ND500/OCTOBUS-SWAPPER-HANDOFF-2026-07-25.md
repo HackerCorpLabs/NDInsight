@@ -57,6 +57,12 @@ traps 9/10/11 and `SINTRAN\ND500\swapper\`.
 
 ## 5. CURRENT STATE (this is where you resume)
 
+> **STATUS AT END OF SESSION 2026-07-25: 191 macro instructions**, stopped on operand specifier
+> `0xE5` (P5 slice) at `P=0x08000746`. Sweep `match=12691 / diverge=4962`, suite 301 passed /
+> 0 failed. **Read 5.5.13 and 7.0 first** - the walkthrough below (48 instructions, the MON-call
+> stop) is the session's STARTING point, kept because the decode work in 5.1-5.5.7 is still the
+> reference for how the message path works.
+
 **REVISED 2026-07-25 (later same day) - the earlier text of this section was stale and is
 corrected below. It described a 34-instruction `dctsb` spin at P=0x08000162; that state no
 longer exists.** Re-measured by actually running the diagnostic (output quoted below).
@@ -432,6 +438,158 @@ saying so). The JSON has been moved toward truth (SMOVE rows added; ENTS `dataTy
 `directMask`/`directSizes` back-ported) but is NOT yet safe to regenerate from - `map[120-123]`,
 `[232-235]`, `[64828-64831]` at least still diverge. Reconciling it is a separate job.
 
+### 5.5.8 SWMSG body second consumer carved - it is a message TRACE recorder, not a decoder
+
+With the RIOM runaway fixed (5.5.4) the `ProbeMemory` access log reads out cleanly, and a SECOND
+body-field consumer became visible, distinct from the field-1 read already carved in 5.5.5:
+
+```
+P=0x08008305  RD +0x14 (0x080240C4) w2     <- field 1, buffer+8  (carved in 5.5.5)
+P=0x0800911A  RD +0x92 (0x080240C2) w2     <- NEW, buffer+6
+```
+
+`P=0x0800911A` is octal `1000110432`, and the macrocode there (`swapper-k01-pseg.asm`) resolves it
+completely:
+
+```
+1000110430: 030 111              r:=      b.44      ; r = the message buffer (0x080240BC)
+1000110432: 013 311 006          h4 :=    r.6       ; <- the observed halfword read
+1000110435: 375 120 323 322      h wconv  r4,r3     ; halfword -> word
+1000110441: 042 365 004          w3 =:    r2.(4)    ; store into entry+4
+1000110444: 375 074 204          w1 laddr r.20
+1000110454: 375 077 365 010      w4 laddr r2.(10)
+1000110467: 375 151 113 115      w smove  b.54,b.64 ; <- P=0x08009137
+```
+
+That `r = b.44` is confirmed DYNAMICALLY, not assumed: the observed read address is exactly
+`0x080240BC + 6`.
+
+**So buffer+6 is not being decoded - it is being RECORDED.** This whole region is a message
+trace/history recorder: a counter at `$1000507604` is incremented, wrapped at `0o2000`, scaled by
+`0o40` (32-byte entries) onto base `$1000507614`. Each entry is:
+
+| offset | content |
+|--------|---------|
+| `+0`    | word from `b.34` |
+| `+4`    | word-extended halfword from `msg+6` |
+| `+0o10` | 6 bytes SMOVE'd from `msg+0o20` |
+
+Do NOT read semantic meaning into buffer+6 from this site - a trace recorder logs a field without
+interpreting it. Its meaning still needs a consumer that *branches* on it.
+
+### 5.5.9 D,IDU,CSIT RESOLVED from the hardware manual - it was blocking the trace SMOVE
+
+The stop at `P=0x08009137` IS that `w smove`, and `D,IDU,CSIT` sits inside the SMOVE microcode loop.
+So CSIT was not optional decoration - it was the single instruction blocking the swapper.
+
+`ND-05.020.01 EN ND-5000 Hardware Description`, chapter 7, section 7.3.3, Table 15:
+
+```
+| D,IDU,CSIT  | - conditional single instruction trap (1 bit) |
+```
+
+It is a **1-bit WRITE-ONLY latch** (note the asymmetry - the A-operand column of the same table has
+no `A,IDU,CSIT`, so the microprogram can arm it but not read it back). It arms the `SIT` "single
+instruction trace" trap that section 7.3.4 lists as macrostatus bit 17. It therefore has **no
+data-path effect at all**, and on a CPU with no trap model discarding the bit is the FAITHFUL
+behaviour, not a placeholder - the same situation as `D,MIC,RESTU` and `COND,IRALT`.
+
+This retires the `[OPEN 2026-07-25]` note that previously sat in `OperandRouter.cs`.
+
+### 5.5.10 The regression-ceiling question, answered with per-file evidence
+
+Landing CSIT moved the sweep ceiling `2002 -> 4941`, which looked alarming. **It is not a
+regression, and that was proven rather than argued.** `Sweep_AllGoldenVectors_Report` was captured
+before and after and the per-file match counts diffed:
+
+- **ZERO files lost matches.**
+- Files that execute any vector at all went **100 -> 121**.
+- ~4200 vectors that previously THREW at CSIT now run: 1264 match, 2939 diverge.
+
+The 2939 are pre-existing failures DOWNSTREAM of CSIT that the throw had been masking. The ceiling
+move admits newly-**visible** debt, not newly-**broken** behaviour.
+
+**This per-file diff is now the standard method** for any change that unblocks a throwing path. The
+aggregate gate in `JsonVectorSweepTests.cs` cannot distinguish a regression from newly-exposed debt;
+the per-file report can. Use it every time.
+
+### 5.5.11 ADD3/SUB3 dispatch family added - 148 instructions
+
+Next stop was `opcode 176156 (octal) has no entry in the reconstructed dispatch map` at
+`P=0x08009041`, where the macrocode is `w sub3 r.10,r.4,b.34`. The whole three-operand family was
+missing.
+
+The two-byte opcode reading is **cross-checked, not assumed**: the same listing encodes `by rladdr`
+as `0o374,0o132` = `0xFC5A`, and the map already carried `0xFC5A` as `BY RLADDR [labe]`. So the
+swapper's disassembler and the labe-derived map agree on the encoding.
+
+Opcode ranges come from the **functional `CpuND500`** (the oracle's answer key): `Instructionset.Init.cs`
+registers `add3 = 0xFC67..0xFC6B` and `sub3 = 0xFC6C..0xFC70`, each with prefixes `BY|H|W|F|D` and
+`variantNumber` 0..4. Variant 2 (`W`) of `sub3` is `0xFC6E` - exactly the trapped opcode, which is
+the cross-check that the ordering is right rather than merely plausible.
+
+> **TRAP:** the XML comment in `Emulated.HW\ND\CPU\ND500\Instructions\ARITHMETIC\Sub3.cs` claims
+> `BYn SUB3 = 0xFC54+(n-1)` and `Wn SUB3 = 0x0084+(n-1)`. That comment is **STALE and
+> self-contradicting** - `0xFC55` is already `BI RLADDR`. The `AddToDictionary` call sites are the
+> truth; the doc comment is not.
+
+Control-store targets from `MICRO-5800-B30.LABE`, with F and D on their own routines:
+`ADD3 0o277`, `ADD3F 0o2177`, `ADD3D 0o2221`; `SUB3 0o302`, `SUB3F 0o2241`, `SUB3D 0o2265`.
+
+### 5.5.12 ST,ACCA implemented - 191 instructions
+
+Next stop: `Status operation ST,ACCA not implemented yet` at `Mpc=0o2631`.
+
+**That address is `MULADW`, not SUB3** as the raw number might suggest - the B30 listing labels
+`MULADBY 002617`, `MULADH 002623`, `MULADW 002627`. The swapper reaches it via `w2 mulad $4,r.0` at
+octal `1000110110`.
+
+The accumulate semantics were read off the microcode, not guessed. Every `ST,ACCA` site in the image
+is the SECOND status write of a two-part arithmetic instruction whose FIRST write is an
+`ST,SAVM`/`ST,SAVF` saving the AAP status:
+
+```
+002627 MULADW  AAP2,IMUL ...          ; start the integer multiply
+002630          ... ST,SAVM ...       ; save status FROM THE MULTIPLY
+002631          ALU,A+B ... ST,ACCA   ; add the product, ACCUMULATE
+```
+
+`MULADBY`/`MULADH` and the whole `PSUM` family (`002640..002653`) use the identical `SAVM -> ACCA`
+pairing. A multiply-add can overflow in EITHER the multiply OR the add, so **O is sticky**
+(`O |= new overflow`); a plain `SAVA` would discard the multiply overflow. **Z, S and C are
+replaced**, and that is forced by the data rather than assumed: ORing Z is wrong for
+`product 0 + addend 5` (would report Z=1) and ANDing Z is wrong for `product 5 + addend -5` (would
+report Z=0) - only replacement satisfies both.
+
+Per-file proof again: zero files lost matches; the only file whose diverge grew is
+`ARITHMETIC_mulad.json`, `0 match / 0 diverge` (entirely unsupported) -> **87 match / 21 diverge**.
+
+The 21 residuals **corroborate** the semantics:
+- **9 are W1/W4 and fail on CARRY ONLY**, never on overflow. At word width, where no sub-word
+  artifacts exist, the accumulated O is right in every case.
+- 12 are BY/H and fail on O. Overflow failing only at sub-word width points at the AAP
+  multiply-overflow latch (`_aapMulOverflow`, saved by `ST,SAVM`) being computed at 32 bits. ACCA
+  only ORs in what SAVM already latched, so this is **not** an ACCA defect.
+
+**Two open items, both pre-existing and both outside ST,ACCA:**
+1. Width-correct the AAP multiply-overflow latch (`_aapMulOverflow`).
+2. Settle the MULAD carry convention - the functional `CpuND500` reports `C=0` where the microword
+   takes the add's carry.
+
+### 5.5.13 Current stop
+
+**191 macro instructions**, `P=0x08000744`:
+
+```
+Operand specifier 0xE5 at P=08000746 not implemented yet (P5 slice)
+  Mpc=497 (0o761)   InstrDt=3   OcaEa=0x0802439C
+```
+
+Note `0xE5` is adjacent to the `0xE0-0xE3` absolute post-indexed block implemented in 5.5.2, so
+start from that decode and the ND-500 Reference Manual operand-specifier table.
+
+Sweep baselines now `match=12691 / diverge=4962`. Suite 301 passed / 0 failed.
+
 ## 6. Key files
 
 - **Diagnostic test** (drives the microword swapper-start, has the SPIN DUMP):
@@ -455,7 +613,30 @@ saying so). The JSON has been moved toward truth (SMOVE rows added; ENTS `dataTy
 
 ## 7. Recommended next steps (in order)
 
-**REVISED 2026-07-25 (later same day) to match the corrected section 5.**
+**REVISED AGAIN 2026-07-25 (end of the octobus-lane session).** Steps 1 and 2 below are **DONE** -
+MON 377B is decoded (5.5), the sink stub is built and the restart works (5.5.1). They are kept for
+provenance. **The live queue is 7.0.**
+
+### 7.0 THE ACTUAL NEXT STEPS
+
+1. **Operand specifier `0xE5` (P5 slice) at `P=0x08000746`** - the current stop at 191 instructions.
+   Start from the `0xE0-0xE3` absolute post-indexed decode implemented in 5.5.2 (adjacent block) plus
+   the ND-500 Reference Manual operand-specifier table. `InstrDt=3` (byte) at the stop.
+2. **Width-correct the AAP multiply-overflow latch** (`_aapMulOverflow`) - explains 12 of the 21
+   residual `ARITHMETIC_mulad` divergences (5.5.12).
+3. **Settle the MULAD carry convention** - explains the other 9 (all W, carry-only).
+4. **Work the 2939 newly-visible divergences** exposed by CSIT (5.5.10). These are real pre-existing
+   gaps that were masked by a throw, now measurable for the first time.
+5. When the swapper hits `nkMove/nkSend/nkReceive/nkGetInfo`, use the NUCLEUS decode ref to locate
+   their B30 microword CS routines via the Mpc trace.
+
+**METHOD NOTE - use this for every unblocking change:** when a fix lets previously-throwing vectors
+execute, the aggregate sweep gate cannot tell a regression from newly-exposed debt. Run
+`Sweep_AllGoldenVectors_Report` before and after and diff the PER-FILE match counts. If no file
+loses matches, a ceiling rise is newly-visible debt and is safe to accept with the evidence
+recorded. This settled both CSIT and ST,ACCA. See 5.5.10.
+
+### 7.2 Historical queue (steps 1-2 now COMPLETE)
 
 1. **Decode MON 377B as called at `P=0x0800823F` (0o101077).** Pin what the swapper requests and
    what each of the 4 arguments is: `$1000225050`, `$1000440260`, `$1000440264`, `b.24`. Note the
