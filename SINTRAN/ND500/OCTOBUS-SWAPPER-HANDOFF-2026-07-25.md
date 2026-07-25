@@ -57,9 +57,9 @@ traps 9/10/11 and `SINTRAN\ND500\swapper\`.
 
 ## 5. CURRENT STATE (this is where you resume)
 
-> **STATUS AT END OF SESSION 2026-07-25: 191 macro instructions**, stopped on operand specifier
-> `0xE5` (P5 slice) at `P=0x08000746`. Sweep `match=12691 / diverge=4962`, suite 301 passed /
-> 0 failed. **Read 5.5.13 and 7.0 first** - the walkthrough below (48 instructions, the MON-call
+> **STATUS AT END OF SESSION 2026-07-25: 194 macro instructions**, stopped on
+> `ORD,OP1 with no stored first operand` at `Mpc=0o3544` (bit-field family). Sweep
+> `match=12691 / diverge=4962`, suite 301 passed / 0 failed. **Read 5.5.14 and 7.0 first** - the walkthrough below (48 instructions, the MON-call
 > stop) is the session's STARTING point, kept because the decode work in 5.1-5.5.7 is still the
 > reference for how the message path works.
 
@@ -576,17 +576,44 @@ The 21 residuals **corroborate** the semantics:
 2. Settle the MULAD carry convention - the functional `CpuND500` reports `C=0` where the microword
    takes the add's carry.
 
-### 5.5.13 Current stop
+### 5.5.13 Local indirect post-indexed operands (0xE4-0xEF) - 194 instructions
 
-**191 macro instructions**, `P=0x08000744`:
+Specifier `0xE5` at `P=0x08000746` is **LOCAL INDIRECT POST-INDEXED**, `IND(B.<displ>)(Rn)`,
+`ea = ((B) + d) + p x (Rn)` - the array-through-a-pointer mode. It composes the one level of
+indirection of LOCAL IND (`0xC5-0xC7`) with the element-size post-index scaling of ABSOLUTE P.I.
+(`0xE0-0xE3`, section 5.5.2). **Order matters:** the index is added AFTER the dereference, to the
+pointed-to address, not to the pointer's location.
+
+Encoding (`ND500-adressing-modes.md`): `344B+y = 0xE4+y` 1-byte displacement, `350B+y = 0xE8+y`
+2-byte, `354B+y = 0xEC+y` 4-byte, index register in the low two bits.
+
+CONFIRMED against the listing rather than assumed - octal `1000003504` is
 
 ```
-Operand specifier 0xE5 at P=08000746 not implemented yet (P5 slice)
-  Mpc=497 (0o761)   InstrDt=3   OcaEa=0x0802439C
+376 046 345 050        by3 laddr  @b.50+
+            ^^^ ^^^
+            |   displacement 0o50
+            0xE5 = the specifier
 ```
 
-Note `0xE5` is adjacent to the `0xE0-0xE3` absolute post-indexed block implemented in 5.5.2, so
-start from that decode and the ND-500 Reference Manual operand-specifier table.
+and the disassembler's `@b.50+` spells out the mode: `@` indirection, `b.50` = B+0o50, trailing `+`
+post-index. The resulting `OcaEa=0x68000044` is sane too - the nearby `by rladdr $15000000000+` at
+`1000003470` shows `0o15000000000` = `0x68000000`, so the EA lands in the expected segment.
+
+### 5.5.14 Current stop
+
+**194 macro instructions**, `P=0x0800074D`:
+
+```
+ORD,OP1 with no stored first operand
+  Mpc=1892 (0o3544)   InstrDt=0   OcaEa=0x68000044
+```
+
+`P=0x0800074D` is octal `1000003515` = `w4 putbf r3.(0),$20,$15` - the **bit-field instruction
+family** (PUTBF = put bit field), a new area. `ORD,OP1` is the microword's "route the STORED first
+operand" control, so the gap is that the bit-field path expects a first operand to have been latched
+by an earlier word and nothing stored it. Start by dumping the `0o3544` band and finding which word
+should have done the store.
 
 Sweep baselines now `match=12691 / diverge=4962`. Suite 301 passed / 0 failed.
 
@@ -619,9 +646,8 @@ provenance. **The live queue is 7.0.**
 
 ### 7.0 THE ACTUAL NEXT STEPS
 
-1. **Operand specifier `0xE5` (P5 slice) at `P=0x08000746`** - the current stop at 191 instructions.
-   Start from the `0xE0-0xE3` absolute post-indexed decode implemented in 5.5.2 (adjacent block) plus
-   the ND-500 Reference Manual operand-specifier table. `InstrDt=3` (byte) at the stop.
+1. **`ORD,OP1 with no stored first operand` at `Mpc=0o3544`** - the current stop at 194 instructions,
+   reached from `w4 putbf r3.(0),$20,$15` (bit-field family). See 5.5.14.
 2. **Width-correct the AAP multiply-overflow latch** (`_aapMulOverflow`) - explains 12 of the 21
    residual `ARITHMETIC_mulad` divergences (5.5.12).
 3. **Settle the MULAD carry convention** - explains the other 9 (all W, carry-only).
