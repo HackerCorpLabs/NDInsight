@@ -6,7 +6,7 @@
 
 ## 📖 Overview
 
-This folder contains **89 complete reference manuals** (in the root) spanning system architecture,
+This folder contains **90 complete reference manuals** (in the root) spanning system architecture,
 ND-100/ND-110 hardware, the SINTRAN III operating system, database systems, programming languages,
 assemblers, editors, compilers, linkers, debuggers, diagnostics/test programs, and development
 tools. Five further sub-collections (NORD-1, NORD-10, ND-500/ND-5000, Device Controllers, and the
@@ -24,7 +24,7 @@ documentation for all NORD/SINTRAN development work.
 
 ## 📁 Sub-Collections
 
-In addition to the 89 manuals in this folder, related material is grouped into five sub-folders,
+In addition to the 90 manuals in this folder, related material is grouped into five sub-folders,
 each with its own index:
 
 | Sub-Collection | Index | Manuals | Scope |
@@ -52,11 +52,11 @@ each with its own index:
 | **Application Languages** | 24 |
 | **Compilers & Linkers** | 2 |
 | **Debuggers** | 2 |
-| **Editors** | 4 |
+| **Editors** | 5 |
 | **Office Software (NOTIS-1)** | 1 |
 | **Diagnostics & Test Programs** | 4 |
 | **Documentation & Catalogues** | 1 |
-| **Total** | **89** |
+| **Total** | **90** |
 
 ---
 
@@ -328,6 +328,7 @@ Cross-development tools for the Intel-8080 microprocessor, hosted on NORD hardwa
 
 | Manual | Document # | Lines | Description |
 |--------|-----------|-------|-------------|
+| **LED User Guide** | ND-60.266.2 EN | 2,091 | LED program editor for ND-500 (ND 211160B), version 2 (April 1988) - windows/regions, home and function-key commands, navigation, editing, user-written key-bound extensions, plus chapter 7 on the LED Debugger for ND-500 (ND 211157B, enhanced Symbolic Debugger). Appendix D compares LED with PED |
 | **PED User's Guide** | ND-60.121.4 | 4,890 | PED editor reference (English) - screen-oriented text editing |
 | **PED Bruker-Veiledning** | ND-60.148.01 | 1,787 | PED editor guide (Norwegian) - Norwegian language version |
 | **QED User Manual** | ND-60.031.04 EN | 1,537 | QED editor reference - line-oriented text editing |
@@ -525,21 +526,21 @@ All manuals are high-quality OCR-scanned versions from original NORD/SINTRAN doc
 | Application Languages | 24 |
 | Compilers & Linkers | 2 |
 | Debuggers | 2 |
-| Editors | 4 |
+| Editors | 5 |
 | Office Software (NOTIS-1) | 1 |
 | Diagnostics & Test Programs | 4 |
 | Documentation & Catalogues | 1 |
-| **Total (Root)** | **89** |
+| **Total (Root)** | **90** |
 
 ### Whole Collection
 
 | Location | Manuals |
 |----------|---------|
-| Root | 89 |
+| Root | 90 |
 | [500/](500/README.md) - ND-500 / ND-5000 | 17 |
 | [Devices/](Devices/README.md) - Device Controllers | 2 |
 | [Notis/](Notis/README.md) - NOTIS Office System | 31 |
-| **Grand Total** | **140** |
+| **Grand Total** | **141** |
 
 ### By Era
 
@@ -622,6 +623,7 @@ All manuals are high-quality OCR-scanned versions from original NORD/SINTRAN doc
 | ND-60.174.Q01 | SINTRAN III Quick Reference Card | SINTRAN III | 537 |
 | ND-60.197.01 | Ethernet Basic Software Programmer Guide | Networking | 2,404 |
 | ND-60.214.01 | CC-100/500 C-Compiler | Language (C) | 4,768 |
+| ND-60.266.2 | LED User Guide | Editor | 2,091 |
 | ND-60158-5 | Symbolic Debugger - User Guide | Debugger | 6,749 |
 | ND-820023-1 | SINTRAN III-VSX System Documentation | SINTRAN III | 12,107 |
 | ND-820059.1 | SINTRAN III-VSX Fatal Error Routine Addresses | SINTRAN III | 953 |
@@ -684,8 +686,8 @@ When adding new reference manuals:
 ---
 
 **Last Updated**: 2026-07-19
-**Total Manuals (Root)**: 89
-**Total Manuals (All Collections)**: 140
+**Total Manuals (Root)**: 90
+**Total Manuals (All Collections)**: 141
 **Status**: ✅ Complete Collection
 
 ---
