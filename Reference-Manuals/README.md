@@ -6,7 +6,7 @@
 
 ## 📖 Overview
 
-This folder contains **87 complete reference manuals** (in the root) spanning system architecture,
+This folder contains **89 complete reference manuals** (in the root) spanning system architecture,
 ND-100/ND-110 hardware, the SINTRAN III operating system, database systems, programming languages,
 assemblers, editors, compilers, linkers, debuggers, diagnostics/test programs, and development
 tools. Five further sub-collections (NORD-1, NORD-10, ND-500/ND-5000, Device Controllers, and the
@@ -24,7 +24,7 @@ documentation for all NORD/SINTRAN development work.
 
 ## 📁 Sub-Collections
 
-In addition to the 87 manuals in this folder, related material is grouped into five sub-folders,
+In addition to the 89 manuals in this folder, related material is grouped into five sub-folders,
 each with its own index:
 
 | Sub-Collection | Index | Manuals | Scope |
@@ -44,7 +44,7 @@ each with its own index:
 | **System & CPU Architecture** | 5 |
 | **Hardware Documentation** | 1 |
 | **ND-100 / ND-110 Hardware & Architecture** | 6 |
-| **SINTRAN III System & OS** | 21 |
+| **SINTRAN III System & OS** | 23 |
 | **Database Systems (SIBAS)** | 6 |
 | **Assemblers** | 7 |
 | **Intel-8080 Cross-Tools** | 2 |
@@ -56,7 +56,7 @@ each with its own index:
 | **Office Software (NOTIS-1)** | 1 |
 | **Diagnostics & Test Programs** | 4 |
 | **Documentation & Catalogues** | 1 |
-| **Total** | **87** |
+| **Total** | **89** |
 
 ---
 
@@ -123,10 +123,12 @@ The core SINTRAN III operating-system manual set. (The **SINTRAN III Monitor Cal
 | **SINTRAN III Håndbok for driftsansvarlig** | - | 22,933 | (NO) Norwegian handbook for the system-responsible / operations administrator |
 | **SINTRAN III Reference Manual** | ND-60.128.5 EN | 21,694 | Master SINTRAN III reference - commands, subsystems, system behaviour |
 | **SINTRAN III Real Time Guide** | ND-60.133.02A | 14,445 | Real-time programming under SINTRAN III |
+| **COSMOS Programmer Guide** | ND-60.164.3 EN | 16,900 | Version 3 (05/86), product ND-10609B, based on XMSG version J. The COSMOS programmer library: XMSG task-to-task messaging from PLANC (XMP) and FORTRAN (XMF), RR-LIB remote-routine server/client from PLANC (RRP), and TLIB transport from PLANC (TLP) and FORTRAN (TLF). Per-routine reference sections plus an appendix of the raw XMSG functions - the authoritative source for the XMSG call interface, ports, message buffers and XROUT services |
 | **SINTRAN III-VSX System Documentation** | ND-820023-1 EN | 12,107 | SINTRAN III-VSX system documentation |
 | **SINTRAN III Users Guide** | ND-60.050.06 | 11,589 | General user guide to SINTRAN III |
 | **SINTRAN III Timesharing / Batch Guide** | ND-60.132.03 | 6,616 | Timesharing and batch processing guide |
-| **SINTRAN III Communication Guide** | ND-60.134.2 EN | 5,740 | Communications / networking under SINTRAN III |
+| **SINTRAN III Communication Guide** | ND-60.134.2 EN | 5,740 | Communications / networking under SINTRAN III (dated Nov 1981 - predates ND Ethernet; contains nothing on Ethernet, TCP/IP or ENNS0) |
+| **Ethernet Basic Software Programmer Guide** | ND-60.197.01 | 2,404 | *Raw OCR import - read the source PDF for tables and numeric values.* Host-to-controller programming contract: Media Access Process and its three Service Points (Command / Receive / Transmit), the datagram call interface, DIX vs IEEE framing, and the four-physical-address multi-protocol scheme. Describes the two-board Ethernet I Interface, not the one-board ND 110063 |
 | **SINTRAN III System Documentation, Appendix A - Data Fields** | ND-60.112.01 | 4,455 | System data-field definitions (system documentation appendix) |
 | **SINTRAN III - Real Time Loader** | ND-60.051.8 EN | 3,430 | Real Time Loader (RT loader) manual |
 | **SINTRAN III Introduction** | ND-60.125.04 | 3,245 | Introduction / getting started with SINTRAN III |
@@ -515,7 +517,7 @@ All manuals are high-quality OCR-scanned versions from original NORD/SINTRAN doc
 | System & CPU Architecture | 5 |
 | Hardware Documentation | 1 |
 | ND-100 / ND-110 Hardware | 6 |
-| SINTRAN III System & OS | 21 |
+| SINTRAN III System & OS | 23 |
 | Database (SIBAS) | 6 |
 | Assemblers | 7 |
 | Intel-8080 Cross-Tools | 2 |
@@ -527,17 +529,17 @@ All manuals are high-quality OCR-scanned versions from original NORD/SINTRAN doc
 | Office Software (NOTIS-1) | 1 |
 | Diagnostics & Test Programs | 4 |
 | Documentation & Catalogues | 1 |
-| **Total (Root)** | **87** |
+| **Total (Root)** | **89** |
 
 ### Whole Collection
 
 | Location | Manuals |
 |----------|---------|
-| Root | 87 |
+| Root | 89 |
 | [500/](500/README.md) - ND-500 / ND-5000 | 17 |
 | [Devices/](Devices/README.md) - Device Controllers | 2 |
 | [Notis/](Notis/README.md) - NOTIS Office System | 31 |
-| **Grand Total** | **138** |
+| **Grand Total** | **140** |
 
 ### By Era
 
@@ -616,7 +618,9 @@ All manuals are high-quality OCR-scanned versions from original NORD/SINTRAN doc
 | ND-60.145.7A | ND FORTRAN Reference | Language (FORTRAN) | 16,676 |
 | ND-60.148.01 | PED Bruker-Veiledning (NO) | Editor | 1,787 |
 | ND-60.151.3 | SINTRAN III Utilities Manual | SINTRAN III | 2,257 |
+| ND-60.164.3 | COSMOS Programmer Guide | SINTRAN III | 16,900 |
 | ND-60.174.Q01 | SINTRAN III Quick Reference Card | SINTRAN III | 537 |
+| ND-60.197.01 | Ethernet Basic Software Programmer Guide | Networking | 2,404 |
 | ND-60.214.01 | CC-100/500 C-Compiler | Language (C) | 4,768 |
 | ND-60158-5 | Symbolic Debugger - User Guide | Debugger | 6,749 |
 | ND-820023-1 | SINTRAN III-VSX System Documentation | SINTRAN III | 12,107 |
@@ -680,8 +684,8 @@ When adding new reference manuals:
 ---
 
 **Last Updated**: 2026-07-19
-**Total Manuals (Root)**: 87
-**Total Manuals (All Collections)**: 138
+**Total Manuals (Root)**: 89
+**Total Manuals (All Collections)**: 140
 **Status**: ✅ Complete Collection
 
 ---
