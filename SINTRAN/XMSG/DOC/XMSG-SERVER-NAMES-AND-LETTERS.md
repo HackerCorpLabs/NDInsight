@@ -280,10 +280,11 @@ Two rules that are easy to get wrong:
 - `XSGIN` is **CLOSED 2026-07-27** - captured for a system name, a port name and an unknown
   name, confirming that the port number comes back as parameter 1 only for a port name:
   [XMSG-XSGIN-NAME-LOOKUP-CAPTURED-2026-07-27.md](XMSG-XSGIN-NAME-LOOKUP-CAPTURED-2026-07-27.md).
-- `XSGMG` remains open. No ordinary XMSG-COMMAND command issues it. The raw request builder
-  that could hand-build service 71 is confirmed to EXIST, behind `SET-ADVANCED-MODE` plus
-  `SET-PRIVILEGED` (`OPEN-PORT` and `GET-MESSAGE-SPACE` already driven successfully), but
-  the remaining commands' prompts are unknown and the boot harness is currently crashing
-  intermittently, so the request has not been assembled. Details and the exact next step:
+- `XSGMG` remains open, and the XMSG-COMMAND route is now a DEAD END rather than an untried
+  one. The raw builder exists behind `SET-ADVANCED-MODE` plus `SET-PRIVILEGED`, and it
+  assembles a byte-correct service-71 request - but `MESSAGE-STATUS` shows the message stays
+  at length 0, because nothing copies the output buffer into it. Both send paths were tried
+  and both fail for that reason. Next: carve XMSG-COMMAND to find which command issues
+  `XFWRI`, or wait for the ENNS0 network-server path. Full detail:
   [XMSG-XSGIN-NAME-LOOKUP-CAPTURED-2026-07-27.md](XMSG-XSGIN-NAME-LOOKUP-CAPTURED-2026-07-27.md)
   sections 7 and 8.

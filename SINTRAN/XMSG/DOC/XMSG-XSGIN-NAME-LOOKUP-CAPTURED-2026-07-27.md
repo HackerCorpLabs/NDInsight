@@ -194,12 +194,51 @@ and XROUT answers. But it answers with an error, because the message is empty:
 | the OUTPUT BUFFER address (`17060`, from LIST-BUFFER) | rejected before sending: "*- XMSG error code: -6: Illegal message buffer pointer" |
 | blank | same as the message address - empty message, status 8 |
 
-So `BUFFER-READY` assembles the buffer but does not write it into the message, and the
-command that does is still unidentified. Untried candidates: `SET-CURRENT-MESSAGE` before
-routing, and `SEND-MESSAGE` instead of `ROUTE-MESSAGE`.
+### Why, exactly [VERIFIED - and it closes this route]
 
-**This is one step from done.** Everything else works: the gates, the assembly, the route to
-XROUT, and a live reply path.
+`MESSAGE-STATUS` settles it. Immediately after `BUFFER-READY`, with the output buffer
+holding all 14 assembled bytes:
+
+```
+X-C(Adv):MESSAGE-STATUS
+Message address?
+Message has type 1, length 0 bytes and remote magno 0
+```
+
+**The message is empty.** `BUFFER-READY` assembles the request in the OUTPUT BUFFER and
+never writes it into the message, so every send carries nothing. That explains both failure
+modes exactly:
+
+| Send path | XROUT's answer | Why |
+|---|---|---|
+| `ROUTE-MESSAGE` | status **8 = XRMTL**, too short | message length 0, shorter than the 4-byte header |
+| `SEND-MESSAGE` (to port 0, system 0) | status **6 = XRMMP**, missing mandatory parameter | reaches XROUT's parser, which finds no parameter 1 |
+
+Both candidates from the previous attempt are now genuinely tested and both fail:
+`SET-CURRENT-MESSAGE` (which takes TWO answers, "Message address?" then "Port no?") does
+not bind the buffer to the message, and `SEND-MESSAGE` (FOUR answers: "To port/magic no?",
+"System?", "From port no?", "Message address?") does not either.
+
+### Conclusion: no capture, and this route is a dead end as it stands
+
+There is no command among those identified that copies the output buffer into a message.
+Unless one exists under a name not yet tried, the XMSG command program's buffer commands
+appear to be for DECODING received messages and for format work - note `DECODE-BUFFER`
+reads the INPUT buffer - rather than for sending hand-built requests.
+
+Remaining routes to an `XSGMG` capture, in order of cost:
+
+1. **Carve XMSG-COMMAND itself.** Find which command issues `XFWRI` from the program's own
+   port. That names the missing step directly, or proves there isn't one. Same method as
+   the MAGNO carve.
+2. **The network-server path.** ENNS0 uses `getMagic`/`XSGMG` for inter-node resolution
+   (`ENNS0-XROUT-GETMAGIC-FINDINGS-2026-07-07.md`); blocked on Ethernet II bring-up.
+
+### What was gained anyway
+
+Three XROUT/XMSG statuses are now OBSERVED rather than read from a symbol file - 8 (XRMTL),
+6 (XRMMP) and 2 (XRUNN) - along with the kernel's own -6 "Illegal message buffer pointer",
+and the complete prompt map above, which did not exist in any document.
 
 ### What the failures already confirmed
 
