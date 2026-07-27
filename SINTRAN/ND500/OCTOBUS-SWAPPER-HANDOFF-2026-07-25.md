@@ -1016,6 +1016,15 @@ The swapper now executes normally and enters a WAIT state - parked, which is wha
 swapper does when it has reached its message loop and has nothing to do. Reproduced
 across runs at the same PC.
 
+### 7.6.0 CORRECTION: the swapper is NOT idling - it reports a FATAL ERROR
+
+An earlier reading of this run said the swapper "parks in WAIT, which is what a swapper
+does when it has nothing to do". **That was wrong.** The second MON 377B is the swapper
+reporting SWPFATAL to SINTRAN. It is parked because nobody answered its death notice.
+
+The claim in 7.6.1 that N5STA 5/6 are an undocumented anomaly was also wrong - those
+values are documented and benign. Both corrections are folded into 7.6.2.
+
 ### 7.6.1 What the parked swapper is waiting for (2026-07-27)
 
 The harness now dumps the bridge's MON call log. It localises the blocker exactly:
@@ -1066,6 +1075,80 @@ PHYSRD/PHYSWR (the octobus pair), `0x13` = 3START, `0x14` = 3MONCO, `0x05` = 3SW
 
 **Still open:** `list-active-processes` shows only SYSTEM, i.e. SINTRAN does not yet
 consider the swapper a running process. Likely the same unanswered call.
+
+### 7.6.2 RESOLVED: N5STA 5/6 are normal, and the real blocker is SWPFATAL 0o201
+
+Both questions above are answered from the repo - no microcode needed.
+
+**N5STA 5 and 6 are documented and benign.** They are swapper-process states, part of a
+contiguous enum in the SINTRAN symbol tables
+(`SINTRAN/NPL-SOURCE/SYMBOLS/K03/SYMBOL-1-LIST.SYMB.TXT` lines 1970-1985):
+
+```
+MFREE=0  MSGN5=1  WAITI=2  ANSWE=3  5ERAN=4
+SWPWA=5  SWPPI=6  PSWWA=7  MPBRK=10B  SUSPS=11B ...
+```
+
+Full spellings from `SINTRAN/NPL-SOURCE/NPL/MP-P2-N500.NPL`: **SWPWAIT=5** ("process is
+waiting for the swapper", line 2862) and **SWPPING=6** ("process is using the swapper",
+line 2870), with PSWWAIT=7 = swapper free. The observed 5 -> 6 transition is exactly the
+`5ACTSWAPPER` sequence. Nothing wrong here - close this line of inquiry.
+
+**MON 377B decoded.** 377B = MON 255 = `N5SWAP`, handled by `SWPDECODER`
+(`MP-P2-N500.NPL:913-919`). Sub-functions: 0=ESWPFATAL, **1=LNEWSWAP**, 2=LSWPAGE,
+3=LPRSUSPEND, 4=LALLOPAGE, 5=LDATREADY, 6=LCLTSB, bound SWFMAX=6.
+
+- First call, selector 1 = LNEWSWAP ("ask the ND-100 for a message") - ANSWERED, correct.
+- Second call, selector **0x427 = 0o2047 = SWPFA (SWPFATAL)**. Confirmed uniquely in
+  `SINTRAN/ND500/swapper/N500-SYMBOLS.SYMB`, and by the vendor manual
+  `Reference-Manuals/500/ND-05.017.01 EN ND-5000 HARDWARE MAINTENANCE.md:11995`
+  ("2047B | FATAL ERROR IN SWAPPER"). Being > SWFMAX, SWPDECODER routes it to ESWPFATAL.
+
+**So the swapper is REPORTING A FATAL ERROR, not waiting for work.**
+
+**The exact fatal, byte-verified against the disassembly.** Our instruction trace matches
+`swapper-k01-pseg.asm` opcode-for-opcode (0xDA=332B `if <<=`, 0xFF15=377/025 `dcc`,
+0xFF18=`dmof`, 0xFF16=`dmon`), and the MON call site at `1000003167` = VA `0x08000677`
+carries args `$1000225040`=0x12A20 and `$1000437234`=0x23E9C - identical to the live
+capture. The reporting routine is at `1000003057` (VA 0x08000617): it stores the caller's
+code into the fatal slot 0x23E9C and issues the MON.
+
+The caller is the routine at `1000107011` (VA 0x08008E09). Its loop:
+
+```
+1000107141  w2 := b.30              ; current list element
+1000107143  dmof                    ; DATA MMU OFF - physical addressing
+1000107145  h2 := r2.(10)           ; halfword at element+8
+1000107150  dmon
+1000107152  h2 comp $1              ; is it 1?
+1000107172  w incr b.40             ; yes -> count it
+1000107174  r := b.30
+1000107176  dmof
+1000107200  w1 := r.4               ; follow link at element+4 (physical)
+1000107214  go (loop)
+1000107216  w move $201,b.54        ; loop done -> error code 0o201
+1000107225  w test b.40
+1000107227  if <<= go $4            ; b.40 == 0 ...
+1000107263  w1 := b.54
+1000107265  call SWPFATAL           ; ... -> FATAL 0o201
+```
+
+**The swapper walks a list in PHYSICAL memory, counts elements whose halfword at +8 is 1,
+and reports fatal 0o201 when it finds NONE.** The list head is read from its data segment
+at `$1000461024` (VA 0x08026214) before the first `dmof`, so that word holds a PHYSICAL
+pointer.
+
+Note 0o201 is the swapper's own internal code, NOT one of the 2047B sub-codes in the
+manual (that table only runs 1B-46B, ND-05.017.01 around line 12000).
+
+**Next, and it is now a narrow question:** what should be at DSEG `0x08026214`, and is the
+physical list it points at present and correctly linked in our emulated memory? A count of
+zero means either the head pointer is empty/garbage, or the elements are there but their
++8 halfword is not 1. Both are directly observable - dump the head word and walk the list.
+
+**Also confirmed by this:** the swapper genuinely uses `DMOF`/`DMON` (data MMU off/on) and
+our CPU executes them, so the note that ND-5000 translation is "always on" describes the
+MMS default state, not these explicit instructions.
 
 
 ## 8. Standing constraints
