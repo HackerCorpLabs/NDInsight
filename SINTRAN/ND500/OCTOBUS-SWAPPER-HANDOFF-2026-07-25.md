@@ -1016,9 +1016,56 @@ The swapper now executes normally and enters a WAIT state - parked, which is wha
 swapper does when it has reached its message loop and has nothing to do. Reproduced
 across runs at the same PC.
 
-**Next:** determine what the parked swapper is waiting for and whether SINTRAN considers
-it started (`list-active-processes` still shows only SYSTEM). That is a mailbox/message
-question now, not a CPU or MMU one.
+### 7.6.1 What the parked swapper is waiting for (2026-07-27)
+
+The harness now dumps the bridge's MON call log. It localises the blocker exactly:
+
+```
+MON 377B argc=4 ret=0x08008255 ...                     -> ANSWERED
+  RESTART write-back: @0x080240B0:=0x00000005 @0x080240B4:=0x00008E30
+MON 377B argc=2 ret=0x08000687 | [0]=0x00000427 [1]=0x00000081  -> NO ANSWER
+```
+
+**The monitor-call round trip WORKS end to end** - the first call was answered and the
+swapper resumed and ran on. It is parked on the SECOND call, and `PC=0x08000687` is
+precisely that call's return address. So this is not a broken MON path; it is one
+specific call going unanswered.
+
+**The thread to pull.** The first answer hands the swapper `0x00008E30`. The mailbox
+doorbell walk then shows a message block at exactly that address whose `N5STA` reads 5
+and then 6. The documented status set is:
+
+| N5STA | Meaning |
+|-------|---------|
+| 0 | free (INFERRED, no symbol) |
+| 1 | MSGN500 - message to ND-500 |
+| 2 | WAITING - in process |
+| 3 | ANSWER - answer to ND-100 |
+| 4 | 5ERANSWER - error return |
+
+5 and 6 are **outside** it. And the servicer only ever processes a message whose
+`N5STA == 1`, so that block is silently skipped by everything.
+
+**UNRESOLVED - do not guess.** Candidates, explicitly unranked and unproven:
+- a status convention the SWAPPER writes for its own buffer (it was handed 0x8E30 by
+  SINTRAN, so both sides touch it)
+- a direction/state encoding not yet carved
+- a misread field in the walk
+
+The ND-500 microcode settles this.
+
+**Also re-check while you are there:** MICFU 5 (`3SWMESS`, MessageToSwapper) is currently
+accepted ONLY on the Classic generation - `understood = Generation ==
+Nd500Generation.Classic` - on the stated grounds that SINTRAN never transmits it on the
+5800. That is an assumption from the carve, not an observation, and it should be tested
+against a live capture.
+
+**Mailbox decode gotcha** (cost time once): MICFU values are OCTAL in the symbols but
+stored DECIMAL in the enum. So in a doorbell walk `0x18`/`0x19` are 30B/31B =
+PHYSRD/PHYSWR (the octobus pair), `0x13` = 3START, `0x14` = 3MONCO, `0x05` = 3SWMESS.
+
+**Still open:** `list-active-processes` shows only SYSTEM, i.e. SINTRAN does not yet
+consider the swapper a running process. Likely the same unanswered call.
 
 
 ## 8. Standing constraints
