@@ -724,14 +724,47 @@ Note this is the **2-argument** MON 377B form that section 7.2 step 1 predicted 
 (`argcount varies and the argument block must be decoded per call site`) - a different site from the
 `0o507` one noted there, with arguments `$1000225040`, `$1000437234`.
 
-**Why it spins:** `SwapperAnnounceSink` in the diagnostic is a STUB that always answers with the
-same announce message (function code 5, source `0x00210718`). The swapper keeps being handed the
-same message and loops forever. **This is not a CPU defect and no further microcode will fix it.**
+**Why it spins - CORRECTED 2026-07-25 (later the same day). The explanation below this line is the
+measured one; the paragraph it replaces was wrong.**
 
-**What closes it:** the real octobus mailbox transport - handoff step 2(b), wiring `IMonitorCallSink`
-to `OctobusND5000Station.cs` so real SINTRAN answers arrive. Alternatively, a smarter diagnostic stub
-that returns a "no message" / different message on the second call would show more of the loop body
-without needing the transport.
+~~It spins because `SwapperAnnounceSink` always answers with the same message, so the swapper is
+handed the same thing forever.~~ **WRONG.** Retracted, with the measurement that killed it.
+
+What actually happens, from the instrumented run:
+
+- The swapper makes **exactly TWO** MON 377B calls, not a stream of them: the 4-argument one at
+  `P=0x0800823F`, then the 2-argument one at `P=0x08000677`. There is no repeated re-announce.
+- After the second one it is **never dispatched again**. The microcode's IDLE poll walks
+  `0o24670..0o24723`, returns to `0o24670`, and repeats - it never reaches the MICFU-24 dispatch slot
+  at `0o15250` or `MSG_CONMC` at `0o15676`.
+- Reason: **the activation message is destroyed before the restart.** A mailbox guard added to the
+  diagnostic's `ProbeMemory` names the writer. At macro `P=0x08009053` the swapper executes
+  `w4 sfill b.34` (`swapper-k01-pseg.asm:11718`) - a bulk string fill of `0x80000000` whose
+  destination descriptor is computed **from the fabricated probe message**. It fills over the
+  harness's mailbox; the re-posted MICFU 24 then lands in a wrecked queue.
+
+Observed message header at each restart (this is the evidence):
+
+```
+restart #1 (after  48 macro instrs): LINK=0xFFFFFFFF N5STA=0x0002 X5CPU=0x0001 MICFU=0x0013  X5ACT=0x0001
+restart #2 (after 420 macro instrs): LINK=0x80000000 N5STA=0x8000 X5CPU=0x8000 MICFU=0x8000  X5ACT=0x0000
+```
+
+Every field at restart #2 is the `sfill` pattern.
+
+**Consequences for the plan:**
+
+- A smarter stub does **not** help. The swapper acts on message CONTENT past this point, so any
+  synthetic message yields a synthetic fill destination and more scribbling.
+- Relocating the harness mailbox does **not** help. TRIED: moving `ExtBlock` `0x1000 -> 0x4000` only
+  moved the clobber (the fill then landed on `HeaderBase` at `0x2000`). Reverted, with the finding
+  recorded in the constant's comment so it is not retried.
+- What is needed is a **structurally valid SWMSG** - either carved field-by-field, or supplied by the
+  real octobus transport. The transport is still the right destination; this changes the REASON and
+  removes the two cheap shortcuts that looked available.
+
+**The diagnostic remains a good microcode-gap finder** (it found all eight gaps up to 420
+instructions). It simply cannot carry the swapper past message intake on a fabricated message.
 
 Sweep baselines now `match=12797 / diverge=4972`. Suite 301 passed / 0 failed.
 
@@ -764,11 +797,20 @@ provenance. **The live queue is 7.0.**
 
 ### 7.0 THE ACTUAL NEXT STEPS
 
-1. **Wire `IMonitorCallSink` to the real octobus mailbox transport** in `OctobusND5000Station.cs`
-   (step 2(b) of the old queue). This is now THE blocker - the swapper is sitting in its message
-   loop being fed the same stub answer forever (5.6). No amount of further microcode work moves it.
-   Cheaper interim step: make the diagnostic stub answer differently on the second call, which walks
-   more of the loop body without needing the transport.
+1. **Give the swapper a STRUCTURALLY VALID SWMSG.** Still the blocker, but see the corrected 5.6 -
+   the two cheap shortcuts are dead: a smarter stub does not help (the swapper acts on message
+   content and computes a fill destination from it), and relocating the harness mailbox does not help
+   (tried; the `sfill` followed). Two routes, and the first is a prerequisite for judging the second:
+   - **(a) Carve the SWMSG field layout** so a valid message can be fabricated. Partial work exists
+     (5.5.3 control block, 5.5.5 first body field, 5.5.8 the trace recorder). The `sfill` at
+     `P=0x08009053` is now a precise carving lever: its descriptor in `b.34` is built from message
+     fields, so working backwards from what a SANE fill destination would be pins those fields.
+   - **(b) Wire `IMonitorCallSink` to the real octobus transport** in `OctobusND5000Station.cs`.
+     Bigger than it looks - see `TRACKB-SHARED-ND500-CPU-INTERFACE-DESIGN-2026-07-21.md`: the
+     microword CPU must NOT go through `Nd500CpuProcessBridge`/the C# servicer (the microcode does
+     that work itself), so it needs a `CpuND5000Adapter` + a separate `AttachMicrocodeCpu` path, and
+     `Emulated.HW` does not currently reference the ND5000 package. That doc's "single next step"
+     (extract `INd500ProcessCpu`) is DONE; the retyping of `AttachRealCpu` / `AttachNd5000Cpu` is not.
 2. **The sub-word WIDTH family** - one root cause behind residuals in three separate instruction
    families, so fixing it pays off three times:
    - `mulad` 12 vectors: AAP multiply-overflow latch (`_aapMulOverflow`) computed at 32 bits (5.5.12)
@@ -820,6 +862,82 @@ Useful for orientation - the route is not the one the old section 5 assumed:
 #46 P=0x08008237 op=0xD2
 #47 P=0x0800823F op=0xC3  <- MON 377B, throws (no sink)
 ```
+
+## 7.5 MMU bring-up: the swapper now RUNS (2026-07-27, functional CpuND500 lane)
+
+Five defects stood between "start-swapper crashes on its first instruction fetch" and
+"the swapper executes thousands of instructions". All five are fixed and committed in
+RetroCore; all were found by making the emulator read SINTRAN's REAL tables instead of
+emulator-built shadows. Every claim below was measured on a live SINTRAN III L boot over
+the octobus.
+
+| # | Defect | Fix | Evidence |
+|---|--------|-----|----------|
+| 1 | Process start never loaded **PS** (the process segment register) | Load PS, plus ST1/ST2/TOS/LL/HL/THA, from the context block | Microcode 015043 NEW_PS_1 `TYP,HW ... D,MM,PS` sits right before NEW_CED/NEW_CAD, which we already had |
+| 2 | Emulator waited for an MMU **enable** step | There is none - a started process runs translated from instruction one | ND-05.020.01 section 6.2: the MMS baby card controls translation, "not, as in the ND-500/2, by the microprogram" |
+| 3 | Capability came from an emulator **shadow** table | Walk the guest's real table via PS and CED | ND-05.009.4 section 4.3 (Figure 16 text) |
+| 4 | Page table entries read off the **raw bus**, bypassing MPM routing, and decoded the page number from bits **31-2** | Use the physical path; page number is bits **29-0**, unshifted | Nanostate 6 CAPIT "Bit 31 and bit 30 must be 0"; live index page reads 0xE9 0xEA 0xEB 0xEC |
+| 5 | DC_PAC (bit 14) treated as a **user/kernel mode gate** | It is the ALT-prefix gate for other domains only | ND-05.009.4 section 4.2.3.2 |
+
+Also corrected: a zero CAPABILITY is a protect violation (MMS code 8), not a page fault
+(code 13) - decided before the PST is consulted (nanostate 8 CAPT).
+
+### Verified addressing anchors (three-way agreement)
+
+Patched control-store cells, the manual's shift rule, and the monitor's own
+MEMORY-CONFIGURATION output all agree:
+
+| Cell | Contents | ND-500 page | Byte address |
+|------|----------|-------------|--------------|
+| OFFSET (0o20) | context (register) block area | 124B | 0x0002A000 |
+| PSTBASE (0o21) | physical segment table | 164B | 0x0003A000 |
+| (0o22) | WIP/PGU table | 123B | - |
+
+### What SINTRAN actually grants the swapper (measured)
+
+```
+CED=0  PS=3  PSTP=0x0003A000
+PROGRAM  seg  1: 0x0002 psn=2
+         seg  2: 0xC000 INDIRECT other machine
+         seg 31: 0xC000 INDIRECT other machine   <- the ND-100, i.e. the MON call path
+DATA     seg  1: 0x8001 psn=1 WRITE
+         seg  2: 0x8004 psn=4 WRITE
+         seg  3: 0x8005 psn=5 WRITE
+         seg 13: 0xA003 psn=3 WRITE SHARED       <- the ND-100 shared segment
+```
+
+Physical segment table: PSN 1 and 2 single-indexed (pages 0xE6 / 0xE7), PSN 3 direct
+(page 0xE8). Everything else is zero.
+
+### Progression of the blocker (each row is a real fix, not a workaround)
+
+```
+PC=0x08000004  "program MMU disabled"        -> fixes 1 + 2
+PC=0x08000004  unmapped walk                 -> fix 3 (capability now reads 0x0002)
+PC=0x08000004  opcode 0x0000                 -> fix 4 (was resolving to the wrong page)
+PC=0x08000011  write protect violation       -> fix 5
+PC=0x0800913B  data segment 0 offset 10      <- CURRENT
+```
+
+SINTRAN's own trap reporting works end to end throughout: it prints
+"ND-500(0) Trap / Protect violation / Shadow process 5SWAP", so the trap record reaches
+the ND-100 rather than the emulator dying alone.
+
+### 7.5.1 OPEN: data segment 0, offset 10, at PC 0x0800913B
+
+The swapper reads virtual address 0x0000000A. Data segment 0 has NO capability in the
+domain, so this is now correctly reported as a protect violation.
+
+NOT RESOLVED - do not guess. What is known:
+- The context block starts the swapper with L, B, R and every index register ZERO, so a
+  null base register plus a field offset of 10 is ONE candidate explanation, and would
+  make this an operand/instruction bug rather than a mapping question.
+- It is not the Address Zero case (that is VA 0 exactly, and is ignorable).
+- Segment 13 - the segment shared with the ND-100 - IS mapped, so the swapper's message
+  path is available to it.
+
+Settling this needs either an operand-level trace of how 0x0000000A was computed, or the
+ND-500 microcode (expected imminently). Both beat speculation.
 
 ## 8. Standing constraints
 
