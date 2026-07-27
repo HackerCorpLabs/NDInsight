@@ -19,8 +19,9 @@ disassembly question and two carving oddities - no more emulator driving is need
 | `Xmsg.Live` / `Xmsg.Live.Runner` | live two-node runner over TCP/HDLC |
 | **`Xmsg.Api`** | **NEW - the user-facing library.** `XmsgKernel` (COSMOS appendix A function set), `XmsgMagicNumber`, `XmsgMessageBuffer`, typed `XroutRequests` builders for every XS* service, RR-LIB `IRrClient`/`IRrServer` |
 | **`Xmsg.Api.Node`** | **NEW - bridge.** Puts an `XmsgKernel` on the real datagram path (`XmsgKernelServer`) |
+| **`Xmsg.Chat`** | **NEW - a worked APPLICATION on `Xmsg.Api`.** A named chat service with seats, roster and broadcast. The vocabulary is ours (no chat service exists on any ND image); everything under it is captured behaviour. Read it as the answer to "what does writing an XMSG program look like?" |
 
-**333 tests green**, 0 warnings, `dotnet format` clean. Build/test:
+**340 tests green**, 0 warnings, `dotnet format` clean. Build/test:
 `dotnet test SRC\Xmsg.Protocol.slnx -c Release`.
 
 Write clients and servers against `Xmsg.Api`; do not hand-build frames.
@@ -67,6 +68,16 @@ Each has its own doc; all are indexed in `DOC\README.md`.
 ---
 
 ## 3. Open items
+
+### 3.0 NEXT SESSION: capture the file servers
+
+`*XFTRA` and the `*FA-*` family are the last big unknown - we have their registrations but not one
+byte of their working traffic, and our own notes describe their purpose as inferred from their
+names. Plan, with the capture order, the two methods and the traps:
+**[PLAN-FILE-SERVER-CAPTURE-2026-07-28.md](PLAN-FILE-SERVER-CAPTURE-2026-07-28.md)**.
+
+This also decides the remote-execution console's file transfer: today the honest recommendation is
+to write our own agent, because the machine's file servers are undecoded.
 
 ### 3.1 `XSGMG` - one disassembly question away
 
