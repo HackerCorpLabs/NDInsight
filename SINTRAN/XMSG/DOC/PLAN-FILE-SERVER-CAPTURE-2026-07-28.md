@@ -75,11 +75,85 @@ in order:
 - the **XMCSM class words** used after the letter: each new `Flags2 = XMCSM >> 16` is a new lane
 - the trailer vocabulary: is it a TAD-style `[opcode][count][data]` chain, or something else?
 
-**Open question to resolve first:** what command actually starts a transfer? The image holds
-`COS-FILE-TRA-E02:PROG` and `COS-FILE-TRANS:PROG`, but the user-facing command name is not
-established. Find it by listing `(SYSTEM)` programs on the running machine, or by reading the
-remaining `COS-*:MODE` files - they are plain text once bit 7 is stripped (they are stored with
-parity set; that is why they look like garbage in a hex dump).
+### The command is documented - and the program can dump its own buffers
+
+`ND-30.025.02 COSMOS Operator Guide` section 6.2 documents it. `TRANSFER-FILE` is an ordinary
+program any user can run:
+
+```
+@TRANSFER-FILE
+COSMOS File-Transfer (version B) of 1983.11.11 11:00
+Hello SYSTEM
+F-T:
+```
+
+Its full command set, from `LIST-ALL-COMMANDS` in the manual:
+
+| Command | Arguments |
+|---|---|
+| `SET-DEFAULT-REMOTE-SYSTEM` | system name, user name, password |
+| `TRANSFER-FILE` / `TRANSFER` | To, From |
+| `CHECKOUT` | remote system and user name, number of page transfers |
+| `APPEND-REMOTE-BATCH` | batch system and user name, input file, output file |
+| `DEFINE-TRANSFER-CONDITIONS` | number of buffers, size in bytes, secure messages |
+| `LIST-NAMES` | system name or number |
+| **`DEBUGPRINT-ON` / `DEBUGPRINT-OFF`** | - |
+| **`DECODE-BUFFER`** | input buffer (y/n) |
+| `GET-ERROR-MESSAGE` | error value |
+| `LIST-VARIABLES`, `GET-DEFAULT-REMOTE-SYSTEM`, `MODE`, `HELP`, `EXIT` | - |
+
+### TRIED IT ALREADY - here is where it stands [2026-07-27, late]
+
+Two probe runs went in before the tree stopped compiling. Findings, so nobody repeats them:
+
+**1. The image has version E02, not the manual's version B.**
+
+```
+@TRANSFER-FILE
+COSMOS File Transfer - Version E02 - 1987.10.07 09:38
+Hello SYSTEM
+F-T:
+```
+
+The command set SHRANK between versions. On E02 these all answer `** Illegal command **`:
+`DEBUGPRINT-ON`, `DEBUGPRINT-OFF`, `DECODE-BUFFER`, `CHECKOUT`, `LIST-ALL-COMMANDS`,
+`LIST-VARIABLES`, `DEFINE-TRANSFER-CONDITIONS`. **So there is no built-in buffer dump to lean on** -
+scratch the plan above that hoped for one. The MON 200 trace is the instrument.
+
+What DOES work, with its prompts:
+
+| Command | Prompts |
+|---|---|
+| `SET-DEFAULT-REMOTE-SYSTEM` | "Remote system name?", "Remote user name?", "Password?" |
+| `TRANSFER-FILE` | "To?", "From?" |
+
+**2. The file-name syntax, which is where both attempts died.** From the program's own `?` help,
+quoted in ND-60.163.4 COSMOS User Guide:
+
+```
+SYSTEM(REMOTE-USER(PASSWORD)).(DIRECTORY:USER)FILENAME:TYPE
+```
+
+The separator between access information and file name is a **dot**, not a colon, and a file that
+does not exist yet must be **quoted** so SINTRAN creates it - `MINOR(JONES)."MONTHLY-MEMO"` is the
+manual's own example. Get either wrong and it fails LOCALLY, before anything reaches the network:
+
+| What was typed | What happened |
+|---|---|
+| `D102:(SYSTEM)XMSG-COPY:BATC` | `ILLEGAL CHARACTER IN PARAMETER` - the colon |
+| `XMSG-COPY:BATC` | `NO SUCH FILE NAME` - unquoted new file |
+| `D102(SYSTEM)."XMSG-COPY:BATC"` | **queued, not yet run** - the build broke first |
+
+The harness test is written and waiting: `Boot_Login_StartCosmos_ProbeFileTransfer` in
+`Nd100SintranEthernetIIBootHarnessTests.cs`. **Start here in the morning** - one run should either
+produce the outgoing request or a new error that says why.
+
+**3. Remote file ACCESS needs something we have never loaded.** The ~30 SINTRAN commands that work
+on remote files require the File User on the LOCAL machine: `COS-FA-USER-1:BPUN` on segment 22 and
+`COS-FA-USER-2:BPUN` on segment 26, loaded by `(UTILITY)COS-FA-USER-LOAD:MODE` (Operator Guide
+page 78). Our harness has never run that. Note also the recorded version gate: the File User needs
+revision F or later, and this image may only carry E - so `TRANSFER-FILE` is the more promising
+route of the two.
 
 ### Step 3: two systems, for the transfer itself
 
@@ -100,6 +174,13 @@ Per `LEARNING-A-NEW-PROTOCOL.md`: name census, class-word map, trailer vocabular
 VERIFIED / INFERRED / UNKNOWN with capture references. Then extend the dissector and re-verify.
 
 ---
+
+## 3a. Blocker to clear first thing
+
+`E:\Dev\Repos\Ronny\RetroCore` did not compile when this was written - `NDBusEthernetIIHle.cs`
+references `OP_POST_RX_BUFFER`, `OP_ENABLE_RX_POOL`, `CMPL_POOL_OK`, `OP_SET_STATION_ADDR`,
+`OP_SET_MODE` and `OP_READ_STATS`, none of which exist yet. That is in-flight Ethernet HLE work, not
+XMSG, and it was left alone. The probe test cannot run until it builds.
 
 ## 4. Traps, all of which have already bitten
 
