@@ -210,7 +210,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <summary>
         /// Builds an ESCA (escape) control frame — sent once with the terminal-setup chain (spec 22.4).
         /// </summary>
-        /// <returns>The ESCA frame.</returns>
+        /// <returns>
+        /// The ESCA frame.
+        /// </returns>
         public XmsgFrame BuildEsca()
         {
             return BuildControl(TadOp.Esca, controlService: (uint)XmcsmService.BareTadControl,
@@ -220,7 +222,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <summary>
         /// Builds a RECO (reset-confirm) control frame — the answer to each host RESE (spec 22.4).
         /// </summary>
-        /// <returns>The RECO frame.</returns>
+        /// <returns>
+        /// The RECO frame.
+        /// </returns>
         public XmsgFrame BuildReco()
         {
             return BuildControl(TadOp.Reco, controlService: TerminalDataControlService,
@@ -231,7 +235,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// Builds a CERS (escape-response) control frame — sent after each consumed host burst / CESC
         /// transition (spec 22.6).
         /// </summary>
-        /// <returns>The CERS frame.</returns>
+        /// <returns>
+        /// The CERS frame.
+        /// </returns>
         public XmsgFrame BuildCers()
         {
             return BuildControl(TadOp.Cers, controlService: TerminalDataControlService,
@@ -241,7 +247,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <summary>
         /// Builds a DUMM (dummy keepalive) control frame — sent when idle (spec 22.6).
         /// </summary>
-        /// <returns>The DUMM frame.</returns>
+        /// <returns>
+        /// The DUMM frame.
+        /// </returns>
         public XmsgFrame BuildDumm()
         {
             return BuildControl(TadOp.Dumm, controlService: TerminalDataControlService,
@@ -252,7 +260,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// Builds a DCON (disconnect) control frame — sent after the host's 0xFD to end the session
         /// (spec 22.7).
         /// </summary>
-        /// <returns>The DCON frame.</returns>
+        /// <returns>
+        /// The DCON frame.
+        /// </returns>
         public XmsgFrame BuildDcon()
         {
             return BuildControl(TadOp.Dcon, controlService: (uint)XmcsmService.BareTadControl,
@@ -262,10 +272,18 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <summary>
         /// Builds a single-message control frame (one empty TAD message).
         /// </summary>
-        /// <param name="opcode">The TAD opcode.</param>
-        /// <param name="controlService">The XMCSM control/service word (its high half is the frame-class).</param>
-        /// <param name="role">The sub-header role byte.</param>
-        /// <returns>The assembled control frame.</returns>
+        /// <param name="opcode">
+        /// The TAD opcode.
+        /// </param>
+        /// <param name="controlService">
+        /// The XMCSM control/service word (its high half is the frame-class).
+        /// </param>
+        /// <param name="role">
+        /// The sub-header role byte.
+        /// </param>
+        /// <returns>
+        /// The assembled control frame.
+        /// </returns>
         private XmsgFrame BuildControl(byte opcode, uint controlService, byte role)
         {
             byte[] tad = new TadMessageBuilder().Raw(opcode, ReadOnlySpan<byte>.Empty).Build();

@@ -282,11 +282,41 @@ local function bitfield_label(value, bits)
     return table.concat(parts, "+")
 end
 
--- Port display (spec §7.1): every wire port is (logical slot << 7) | incarnation.
--- Port 0 is the XROUT well-known sink for letters and direct services.
+-- Port display. VERIFIED 2026-07-26: a wire port field is the LOW WORD of the XMSG
+-- magic number (MAGNO), so it is (port number << 7) | random, with the port number
+-- 9 bits and 1-based and the random part 7 bits. The matching system field is the
+-- magic's high word, so system+port together reassemble a whole 32-bit MAGNO.
+-- Carved from the XMSG L03 kernel (ZCRMG at 131055, MFM2P at 126774); see
+-- NDInsight SINTRAN/XMSG/DOC/XMSG-MAGIC-NUMBER-LAYOUT-CARVED-2026-07-26.md and
+-- XMSG-WIRE-PORT-IS-MAGIC-LOW-WORD-2026-07-26.md.
+--
+-- The random part is drawn by the kernel routine ZRAND, which is NOT random: it is a
+-- linear congruential generator whose low 7 bits step as r' = (53*r + 25) mod 128 and
+-- cycle through all 128 values. ZRAND redraws 0 and 127, so a minted port never
+-- carries either -- a port field showing one of those is a reserved address, not an
+-- allocated port. Port 0 is the XROUT well-known sink for letters and direct services.
+local ZRAND_A7, ZRAND_C7 = 53, 25
+
+-- Next value the kernel's randomiser actually yields after r (low 7 bits only).
+-- ZRAND redraws 0 and 127, so a raw step onto either is skipped: the accepted range
+-- is 1..126 and a prediction must not display a value the kernel would never mint.
+local function zrand_step(r)
+    local n = band(r * ZRAND_A7 + ZRAND_C7, 0x7F)
+    while n == 0 or n == 0x7F do
+        n = band(n * ZRAND_A7 + ZRAND_C7, 0x7F)
+    end
+    return n
+end
+
 local function port_label(p)
     if p == 0 then return "0 = XROUT (letters/services)" end
-    return string.format("%d (slot %d, inc 0x%02X)", p, rshift(p, 7), band(p, 0x7F))
+    local port, rnd = rshift(p, 7), band(p, 0x7F)
+    local note = ""
+    if rnd == 0 or rnd == 0x7F then
+        note = ", random NOT kernel-mintable"
+    end
+    return string.format("%d (port %d, random %d, next %d%s)",
+                         p, port, rnd, zrand_step(rnd), note)
 end
 
 -- ── ProtoFields ───────────────────────────────────────────────────────────────
@@ -811,7 +841,20 @@ end
 --                        '*' of the name as the registry displays it (*TADADM)
 --   FE <len> <text>      the target system name the user typed (e.g. "D102")
 --   04 02 00 01          the list-systems / directory-query marker TLV
--- A 0x00 between TLVs is padding. Non-letter-shaped payloads (e.g. the constant
+-- A 0x00 between TLVs is padding.
+--
+-- These tags are XROUT PARAMETER BLOCKS in the sense of the COSMOS Programmer
+-- Guide appendix B section 2: the tag byte is the parameter number, negative
+-- (two's complement) for a string. So 0xFF is string parameter 1 and 0xFE is
+-- string parameter 2 — which for XSLET (appendix B section 3.4) are exactly
+-- "port or connection name" and "system name". The 0x00 padding is the manual's
+-- even-boundary fill.
+--
+-- NOTE: there is deliberately NO 4-byte serial/service/length header parsed here.
+-- That header is the MESSAGE BUFFER form; it is not carried in an XMSG data
+-- frame, where the service travels in XMCSM instead. This dissector had it right
+-- from the start — the C# library did not, and was corrected in 2026-07 (see
+-- XroutMessageFraming and DOC/XMSG-SERVER-NAMES-AND-LETTERS.md section 5). Non-letter-shaped payloads (e.g. the constant
 -- accept letter 01 02 0000 0202 000A) fall through as generic TLVs.
 
 local function dissect_xrout_letter(tvb, pinfo, tree, off, tlen)
@@ -876,7 +919,7 @@ end
 --   +3   Frame Flags      status byte (see frameflags_bits)
 --   +4   Role             high byte of the XMSG send-option word (XF* flags)
 --   +5-6  XMDSY           destination system (BE)
---   +7-8  XMDPT           destination port (BE) — (slot<<7)|incarnation
+--   +7-8  XMDPT           destination port (BE) — MAGNO low word: (port<<7)|random
 --   +9-10 XMSSY           source system (BE)
 --   +11-12 XMSPT          source port (BE)
 --   +13-16 XMCSM          class word (hi 16 = Flags2) + service/status byte

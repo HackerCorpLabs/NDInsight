@@ -36,10 +36,18 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// Learns the per-link seed byte from a received frame:
         /// <c>seed = (Counter + Flags1 + (Flags2 &amp; 0xFF)) &amp; 0xFF</c>.
         /// </summary>
-        /// <param name="flags1">The frame's Flags 1 (datagram sequence).</param>
-        /// <param name="counter">The frame's sub-header Counter.</param>
-        /// <param name="flags2">The frame's Flags 2 (equals XMCSM &gt;&gt; 16).</param>
-        /// <returns>The link seed byte.</returns>
+        /// <param name="flags1">
+        /// The frame's Flags 1 (datagram sequence).
+        /// </param>
+        /// <param name="counter">
+        /// The frame's sub-header Counter.
+        /// </param>
+        /// <param name="flags2">
+        /// The frame's Flags 2 (equals XMCSM &gt;&gt; 16).
+        /// </param>
+        /// <returns>
+        /// The link seed byte.
+        /// </returns>
         public static byte LearnSeed(ushort flags1, byte counter, ushort flags2)
         {
             return (byte)(counter + flags1 + (flags2 & 0xFF));
@@ -49,9 +57,15 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// The per-class base low byte: <c>(seed - (Flags2 &amp; 0xFF)) &amp; 0xFF</c>. Control frames
         /// (Flags2 low 0x00) use <c>seed</c>; terminal-data frames (Flags2 low 0x08) use <c>seed - 8</c>.
         /// </summary>
-        /// <param name="seed">The link seed.</param>
-        /// <param name="flags2">The frame's Flags 2.</param>
-        /// <returns>The base low byte.</returns>
+        /// <param name="seed">
+        /// The link seed.
+        /// </param>
+        /// <param name="flags2">
+        /// The frame's Flags 2.
+        /// </param>
+        /// <returns>
+        /// The base low byte.
+        /// </returns>
         public static byte BaseLow(byte seed, ushort flags2)
         {
             return (byte)(seed - (flags2 & 0xFF));
@@ -60,10 +74,18 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// <summary>
         /// Computes the sub-header Counter: <c>(baseLow - Flags1) &amp; 0xFF</c>.
         /// </summary>
-        /// <param name="seed">The link seed.</param>
-        /// <param name="flags1">The datagram sequence for this frame.</param>
-        /// <param name="flags2">The frame's Flags 2.</param>
-        /// <returns>The sub-header Counter byte.</returns>
+        /// <param name="seed">
+        /// The link seed.
+        /// </param>
+        /// <param name="flags1">
+        /// The datagram sequence for this frame.
+        /// </param>
+        /// <param name="flags2">
+        /// The frame's Flags 2.
+        /// </param>
+        /// <returns>
+        /// The sub-header Counter byte.
+        /// </returns>
         public static byte ComputeCounter(byte seed, ushort flags1, ushort flags2)
         {
             return (byte)(BaseLow(seed, flags2) - flags1);
@@ -73,10 +95,18 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// Computes the epoch (cumulative counter-wrap count) for a frame:
         /// <c>(Flags1 - baseLow + 0xFF) &gt;&gt; 8</c>. Zero while Flags1 ≤ baseLow (a fresh direction).
         /// </summary>
-        /// <param name="seed">The link seed.</param>
-        /// <param name="flags1">The datagram sequence for this frame.</param>
-        /// <param name="flags2">The frame's Flags 2.</param>
-        /// <returns>The epoch (0, 1, 2, …).</returns>
+        /// <param name="seed">
+        /// The link seed.
+        /// </param>
+        /// <param name="flags1">
+        /// The datagram sequence for this frame.
+        /// </param>
+        /// <param name="flags2">
+        /// The frame's Flags 2.
+        /// </param>
+        /// <returns>
+        /// The epoch (0, 1, 2, …).
+        /// </returns>
         public static int ComputeEpoch(byte seed, ushort flags1, ushort flags2)
         {
             // int arithmetic; the +0xFF keeps small (Flags1 - baseLow) negatives at epoch 0.
@@ -87,11 +117,21 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// Derives the sub-protocol channel from the full seed model:
         /// <c>Channel = 0xDE - (XMCSM &gt;&gt; 24) - epoch</c>.
         /// </summary>
-        /// <param name="seed">The link seed.</param>
-        /// <param name="flags1">The datagram sequence for this frame.</param>
-        /// <param name="flags2">The frame's Flags 2.</param>
-        /// <param name="controlService">The XMCSM control/service word.</param>
-        /// <returns>The derived Protocol ID.</returns>
+        /// <param name="seed">
+        /// The link seed.
+        /// </param>
+        /// <param name="flags1">
+        /// The datagram sequence for this frame.
+        /// </param>
+        /// <param name="flags2">
+        /// The frame's Flags 2.
+        /// </param>
+        /// <param name="controlService">
+        /// The XMCSM control/service word.
+        /// </param>
+        /// <returns>
+        /// The derived Protocol ID.
+        /// </returns>
         public static SintranProtocolId DeriveChannel(byte seed, ushort flags1, ushort flags2, uint controlService)
         {
             int epoch = ComputeEpoch(seed, flags1, flags2);
@@ -103,9 +143,15 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// Computes the envelope base <c>Flags1 + Counter</c> (16-bit, wrapping) — the legacy view,
         /// equal to <c>baseLow + 0x100*epoch</c>.
         /// </summary>
-        /// <param name="flags1">The datagram sequence.</param>
-        /// <param name="counter">The sub-header counter.</param>
-        /// <returns>The 16-bit base.</returns>
+        /// <param name="flags1">
+        /// The datagram sequence.
+        /// </param>
+        /// <param name="counter">
+        /// The sub-header counter.
+        /// </param>
+        /// <returns>
+        /// The 16-bit base.
+        /// </returns>
         public static ushort ComputeBase(ushort flags1, byte counter)
         {
             return (ushort)(flags1 + counter);
@@ -116,10 +162,18 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// <c>Channel = 0xDE - (XMCSM &gt;&gt; 24) - (Base &gt;&gt; 8)</c>, where <c>Base = Flags1 + Counter</c>.
         /// Equivalent to the seed model when the Counter is the model-correct one (Base&gt;&gt;8 == epoch).
         /// </summary>
-        /// <param name="flags1">The datagram sequence.</param>
-        /// <param name="counter">The per-direction counter.</param>
-        /// <param name="controlService">The XMCSM control/service word.</param>
-        /// <returns>The derived Protocol ID.</returns>
+        /// <param name="flags1">
+        /// The datagram sequence.
+        /// </param>
+        /// <param name="counter">
+        /// The per-direction counter.
+        /// </param>
+        /// <param name="controlService">
+        /// The XMCSM control/service word.
+        /// </param>
+        /// <returns>
+        /// The derived Protocol ID.
+        /// </returns>
         public static SintranProtocolId DeriveChannel(ushort flags1, byte counter, uint controlService)
         {
             ushort baseValue = ComputeBase(flags1, counter);

@@ -47,14 +47,30 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         /// server and session on that link), and derives the Counter and channel from the envelope
         /// model, using the seed learned when the link was first seen.
         /// </summary>
-        /// <param name="remoteNode">The client's node number (header destination, for example 100).</param>
-        /// <param name="clientSystem">The client's system number (sub-header destination system).</param>
-        /// <param name="clientPort">The client's port (sub-header destination port).</param>
-        /// <param name="sourcePort">Our source port (the server's well-known port or a session port).</param>
-        /// <param name="controlService">The XMCSM control/service word (its high half is the frame class).</param>
-        /// <param name="frameFlags">The sub-header frame-flags byte.</param>
-        /// <param name="role">The sub-header role byte.</param>
-        /// <param name="payload">The trailer payload bytes (a TAD chain, a letter body, and so on).</param>
+        /// <param name="remoteNode">
+        /// The client's node number (header destination, for example 100).
+        /// </param>
+        /// <param name="clientSystem">
+        /// The client's system number (sub-header destination system).
+        /// </param>
+        /// <param name="clientPort">
+        /// The client's port (sub-header destination port).
+        /// </param>
+        /// <param name="sourcePort">
+        /// Our source port (the server's well-known port or a session port).
+        /// </param>
+        /// <param name="controlService">
+        /// The XMCSM control/service word (its high half is the frame class).
+        /// </param>
+        /// <param name="frameFlags">
+        /// The sub-header frame-flags byte.
+        /// </param>
+        /// <param name="role">
+        /// The sub-header role byte.
+        /// </param>
+        /// <param name="payload">
+        /// The trailer payload bytes (a TAD chain, a letter body, and so on).
+        /// </param>
         /// <returns>
         /// The assembled datagram, ready to transmit.
         /// </returns>

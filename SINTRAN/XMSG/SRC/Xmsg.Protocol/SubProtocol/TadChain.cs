@@ -47,12 +47,16 @@ namespace NDInsight.Sintran.Xmsg.SubProtocol
         /// Appends a TAD message (opcode + data bytes) to the chain. Used when BUILDING an
         /// outbound frame (the responder side), the inverse of <see cref="Parse"/>.
         /// </summary>
-        /// <param name="opcode">The TAD opcode (for example <c>0x01</c> = BDAT terminal data).</param>
+        /// <param name="opcode">
+        /// The TAD opcode (for example <c>0x01</c> = BDAT terminal data).
+        /// </param>
         /// <param name="data">
         /// The message data. Must be at most 255 bytes because the on-wire count is a single
         /// byte (TAD-Message-Formats.md). Null is treated as empty.
         /// </param>
-        /// <returns>This chain, for chaining calls.</returns>
+        /// <returns>
+        /// This chain, for chaining calls.
+        /// </returns>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown when <paramref name="data"/> is longer than 255 bytes.
         /// </exception>
@@ -74,7 +78,9 @@ namespace NDInsight.Sintran.Xmsg.SubProtocol
         /// <c>count(1)</c>, then <c>count</c> data bytes. No alignment pad bytes are emitted
         /// (they are optional and only appear between messages in some captures).
         /// </summary>
-        /// <returns>The serialised TAD payload (goes in the frame after the XMSG sub-header).</returns>
+        /// <returns>
+        /// The serialised TAD payload (goes in the frame after the XMSG sub-header).
+        /// </returns>
         public byte[] ToBytes()
         {
             int total = 0;

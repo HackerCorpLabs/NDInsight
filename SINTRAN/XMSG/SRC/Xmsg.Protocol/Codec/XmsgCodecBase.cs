@@ -31,8 +31,12 @@ namespace NDInsight.Sintran.Xmsg.Codec
         /// Initialises the base with the downward transport and the link identity stamped on
         /// every up-event.
         /// </summary>
-        /// <param name="linkId">The link identity (for example <c>"hdlc:127.0.0.1:10362"</c>).</param>
-        /// <param name="transport">The downward transport sink.</param>
+        /// <param name="linkId">
+        /// The link identity (for example <c>"hdlc:127.0.0.1:10362"</c>).
+        /// </param>
+        /// <param name="transport">
+        /// The downward transport sink.
+        /// </param>
         /// <exception cref="ArgumentNullException">
         /// Thrown when <paramref name="linkId"/> or <paramref name="transport"/> is null.
         /// </exception>
@@ -73,7 +77,9 @@ namespace NDInsight.Sintran.Xmsg.Codec
         /// <summary>
         /// Raises the <see cref="PacketReceived"/> up-event, stamping this codec's link id.
         /// </summary>
-        /// <param name="packet">The decoded packet to surface upward.</param>
+        /// <param name="packet">
+        /// The decoded packet to surface upward.
+        /// </param>
         protected void RaisePacketReceived(XmsgPacketInfo packet)
         {
             PacketReceived?.Invoke(_linkId, packet);

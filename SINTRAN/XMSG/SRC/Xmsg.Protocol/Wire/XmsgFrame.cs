@@ -165,6 +165,8 @@ namespace NDInsight.Sintran.Xmsg
         ///  - XMCSM <c>0x0100014B</c> or <c>0x01000100</c> — LI ROUTING (XSGSY) reply, an
         ///    XROUT letter of 4-byte parameter blocks.
         ///  - XMCSM low byte <c>0x41</c> — XSLET (send letter), an XROUT letter.
+        /// Letters are parsed with <see cref="XroutMessageFraming.BodyOnly"/>: on this transport
+        /// the XROUT header is not on the wire.
         ///  - otherwise — a TAD message chain (terminal session data / control).
         /// Any part that cannot be decoded is retained verbatim (letter tail in
         /// <see cref="TrailingBytes"/>, TAD tail in <see cref="SubProtocol.TadChain.Remainder"/>),
@@ -177,13 +179,16 @@ namespace NDInsight.Sintran.Xmsg
                 || xmcsm == (uint)XmcsmService.XsgsyReply
                 || (xmcsm & 0xFFu) == XmcsmMask.XsletServiceLowByte;
 
-            if (isLetter && trailer.Length >= XroutMessage.HeaderSize)
+            if (isLetter && trailer.Length >= 2)
             {
-                // The XROUT letter parser is strict (parameter-number range, declared
-                // length); on any malformed letter fall back to keeping the tail verbatim.
+                // BODY-ONLY framing: an XROUT message inside an XMSG data frame carries NO
+                // 4-byte serial/service/length header - the parameter blocks start at the first
+                // trailer byte and the service is in XMCSM instead. Assuming a header here read
+                // the connect letter's leading "FF 07" (string parameter 1, length 7) as
+                // serial 255 plus service 7 and lost every parameter. See XroutMessageFraming.
                 try
                 {
-                    result.Body = XroutMessage.Parse(trailer);
+                    result.Body = XroutMessage.Parse(trailer, XroutMessageFraming.BodyOnly);
                 }
                 catch (Exception)
                 {
@@ -226,7 +231,10 @@ namespace NDInsight.Sintran.Xmsg
                 SubHeader.Serialize(subBytes);
                 if (Body != null)
                 {
-                    bodyBytes = Body.ToArray();
+                    // Body-only framing: the XROUT header is not on the wire (see
+                    // XroutMessageFraming). Encoding must match DecodeDataTrailer or a decoded
+                    // frame would not re-serialise byte-identically.
+                    bodyBytes = Body.ToArray(XroutMessageFraming.BodyOnly);
                 }
                 else
                 {

@@ -105,8 +105,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// <summary>
         /// Sends the SYSTEM username then the SYSTEM password to reach the logged-in command loop.
         /// </summary>
-        /// <param name="client">The connect-to client.</param>
-        /// <param name="codec">The client codec.</param>
+        /// <param name="client">
+        /// The connect-to client.
+        /// </param>
+        /// <param name="codec">
+        /// The client codec.
+        /// </param>
         private static void LogIn(TadConnectClient client, XmsgCodec codec)
         {
             codec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // username
@@ -555,8 +559,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// Logs a session in (SYSTEM/SYSTEM), clears the capture, runs one command, and returns the captured
         /// terminal text (the first windowed batch for a multi-frame reply).
         /// </summary>
-        /// <param name="command">The command to run.</param>
-        /// <returns>The terminal text captured for the command.</returns>
+        /// <param name="command">
+        /// The command to run.
+        /// </param>
+        /// <returns>
+        /// The terminal text captured for the command.
+        /// </returns>
         private static string RunLoggedInCommand(string command)
         {
             TerminalCapture terminal = new TerminalCapture();
@@ -865,8 +873,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// <summary>
         /// Returns the last terminal-data (XMCSM 0x01080000) frame in a captured list.
         /// </summary>
-        /// <param name="frames">The captured frames.</param>
-        /// <returns>The last terminal-data frame.</returns>
+        /// <param name="frames">
+        /// The captured frames.
+        /// </param>
+        /// <returns>
+        /// The last terminal-data frame.
+        /// </returns>
         private static XmsgFrame LastTerminalDataFrame(List<XmsgFrame> frames)
         {
             XmsgFrame? found = null;
@@ -885,8 +897,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// <summary>
         /// Renders the printable ASCII of a frame's BDAT bytes, for asserting which echo-frame it carries.
         /// </summary>
-        /// <param name="frame">The terminal-data frame.</param>
-        /// <returns>The frame's BDAT text (7-bit ASCII).</returns>
+        /// <param name="frame">
+        /// The terminal-data frame.
+        /// </param>
+        /// <returns>
+        /// The frame's BDAT text (7-bit ASCII).
+        /// </returns>
         private static string TadText(XmsgFrame frame)
         {
             StringBuilder sb = new StringBuilder();
@@ -1054,8 +1070,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// <summary>
         /// Counts the data frames (frames with a sub-header — ACKs carry none) in a captured list.
         /// </summary>
-        /// <param name="frames">The captured frames.</param>
-        /// <returns>The number of data frames.</returns>
+        /// <param name="frames">
+        /// The captured frames.
+        /// </param>
+        /// <returns>
+        /// The number of data frames.
+        /// </returns>
         private static int CountDataFrames(List<XmsgFrame> frames)
         {
             return DataFrames(frames).Count;
@@ -1064,8 +1084,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// <summary>
         /// Filters a captured list down to the data frames (frames with a sub-header).
         /// </summary>
-        /// <param name="frames">The captured frames.</param>
-        /// <returns>The data frames, in order.</returns>
+        /// <param name="frames">
+        /// The captured frames.
+        /// </param>
+        /// <returns>
+        /// The data frames, in order.
+        /// </returns>
         private static List<XmsgFrame> DataFrames(List<XmsgFrame> frames)
         {
             List<XmsgFrame> data = new List<XmsgFrame>();
@@ -1085,7 +1109,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// </summary>
         private sealed class PipeTransport : IXmsgTransport
         {
-            /// <summary>The sink that receives forwarded bytes (the other node's codec).</summary>
+            /// <summary>
+            /// The sink that receives forwarded bytes (the other node's codec).
+            /// </summary>
             public Action<byte[]>? Target { get; set; }
 
             /// <summary>
@@ -1109,7 +1135,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             private readonly List<SintranPacketSubtype> _subtypes = new List<SintranPacketSubtype>();
             private readonly List<TadFrameShape> _tadFrames = new List<TadFrameShape>();
 
-            /// <summary>Gets the accumulated terminal text.</summary>
+            /// <summary>
+            /// Gets the accumulated terminal text.
+            /// </summary>
             public string Text
             {
                 get { return _text.ToString(); }
@@ -1205,13 +1233,19 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// </summary>
         private readonly struct TadFrameShape
         {
-            /// <summary>The number of data bytes in the frame's first BDAT element.</summary>
+            /// <summary>
+            /// The number of data bytes in the frame's first BDAT element.
+            /// </summary>
             public readonly int BdatBytes;
 
-            /// <summary>Whether the frame contains an RFI (ready-for-input) message.</summary>
+            /// <summary>
+            /// Whether the frame contains an RFI (ready-for-input) message.
+            /// </summary>
             public readonly bool HasRfi;
 
-            /// <summary>The frame's Flags 1 (the value a matching ACK echoes).</summary>
+            /// <summary>
+            /// The frame's Flags 1 (the value a matching ACK echoes).
+            /// </summary>
             public readonly ushort Flags1;
 
             /// <summary>

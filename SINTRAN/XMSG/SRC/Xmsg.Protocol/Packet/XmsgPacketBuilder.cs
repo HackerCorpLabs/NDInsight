@@ -18,20 +18,30 @@ namespace NDInsight.Sintran.Xmsg.Packet
     /// </remarks>
     public static class XmsgPacketBuilder
     {
-        /// <summary>Flags 2 value carried by a secure ACK (subtype 0x03). VERIFIED constant.</summary>
+        /// <summary>
+        /// Flags 2 value carried by a secure ACK (subtype 0x03). VERIFIED constant.
+        /// </summary>
         public const ushort AckFlags2 = 0x0001;
 
-        /// <summary>Flags 1 broadcast marker carried by reachability frames. VERIFIED constant.</summary>
+        /// <summary>
+        /// Flags 1 broadcast marker carried by reachability frames. VERIFIED constant.
+        /// </summary>
         public const ushort ReachabilityFlags1 = 0xFFFF;
 
-        /// <summary>Flags 2 value carried by reachability frames. VERIFIED constant.</summary>
+        /// <summary>
+        /// Flags 2 value carried by reachability frames. VERIFIED constant.
+        /// </summary>
         public const ushort ReachabilityFlags2 = 0x0001;
 
         /// <summary>
         /// Builds a data (subtype <c>0x0E</c>) packet from a full envelope field set.
         /// </summary>
-        /// <param name="fields">The header + sub-header + payload fields.</param>
-        /// <returns>The built data packet.</returns>
+        /// <param name="fields">
+        /// The header + sub-header + payload fields.
+        /// </param>
+        /// <returns>
+        /// The built data packet.
+        /// </returns>
         /// <remarks>
         /// This is the exact assembly the captured responder frames use: fixed markers, packet type
         /// <c>0x00</c>, subtype Data; the sub-header's constant <c>0x21 0x00</c> marker is written by
@@ -84,7 +94,9 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// The envelope fields. <see cref="XmsgDataFields.ProtocolId"/> is ignored and overwritten
         /// with <see cref="XmsgEnvelope.DeriveChannel(ushort, byte, uint)"/> of the Flags1 / Counter / XMCSM.
         /// </param>
-        /// <returns>The built session-data packet on the derived channel.</returns>
+        /// <returns>
+        /// The built session-data packet on the derived channel.
+        /// </returns>
         public static XmsgPacket CreateSessionData(XmsgDataFields fields)
         {
             // Derive the channel from the universal envelope identity (VERIFIED against the
@@ -96,8 +108,12 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// <summary>
         /// Builds a secure-delivery ACK (subtype <c>0x03</c>) for a received data frame.
         /// </summary>
-        /// <param name="destinationNode">The node the ACK is sent to (the data frame's source).</param>
-        /// <param name="sourceNode">The replying node (the data frame's destination).</param>
+        /// <param name="destinationNode">
+        /// The node the ACK is sent to (the data frame's source).
+        /// </param>
+        /// <param name="sourceNode">
+        /// The replying node (the data frame's destination).
+        /// </param>
         /// <param name="datagramSequence">
         /// The Flags 1 (datagram sequence) to echo from the acknowledged data frame.
         /// </param>
@@ -110,7 +126,9 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// The single trailing byte: the receiver's decrementing per-direction counter (seeded at
         /// connect-counter + 0x0A). Sending <c>0x00</c> is a malformed ACK that crashed 100.
         /// </param>
-        /// <returns>The 14-byte ACK packet.</returns>
+        /// <returns>
+        /// The 14-byte ACK packet.
+        /// </returns>
         public static XmsgPacket CreateAck(
             ushort destinationNode,
             ushort sourceNode,
@@ -135,14 +153,22 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// <summary>
         /// Builds a reachability reply (subtype <c>0x13</c>) answering a reachability request.
         /// </summary>
-        /// <param name="destinationNode">The requester the reply is sent to.</param>
-        /// <param name="sourceNode">The replying node.</param>
-        /// <param name="protocolId">The channel to reply on (echo the request's Protocol ID).</param>
+        /// <param name="destinationNode">
+        /// The requester the reply is sent to.
+        /// </param>
+        /// <param name="sourceNode">
+        /// The replying node.
+        /// </param>
+        /// <param name="protocolId">
+        /// The channel to reply on (echo the request's Protocol ID).
+        /// </param>
         /// <param name="trailingCommand">
         /// The trailing reply command byte (the request counter + 6; VERIFIED across both captured
         /// request/reply pairs: 102 request 0x08 -&gt; reply 0x0E, 103 request 0x07 -&gt; reply 0x0D).
         /// </param>
-        /// <returns>The reachability-reply packet.</returns>
+        /// <returns>
+        /// The reachability-reply packet.
+        /// </returns>
         public static XmsgPacket CreateReachabilityReply(
             ushort destinationNode,
             ushort sourceNode,
@@ -166,16 +192,28 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// <summary>
         /// Builds a network-error / reject packet (subtype <c>0x07</c>).
         /// </summary>
-        /// <param name="destinationNode">The node the reject is sent to.</param>
-        /// <param name="sourceNode">The rejecting node.</param>
-        /// <param name="datagramSequence">The Flags 1 (datagram sequence) to echo from the offending frame.</param>
+        /// <param name="destinationNode">
+        /// The node the reject is sent to.
+        /// </param>
+        /// <param name="sourceNode">
+        /// The rejecting node.
+        /// </param>
+        /// <param name="datagramSequence">
+        /// The Flags 1 (datagram sequence) to echo from the offending frame.
+        /// </param>
         /// <param name="errorCode">
         /// The Flags 2 word: a NEGATIVE XE* code (e.g. XEIMA -19 = <c>0xFFED</c> invalid magic,
         /// XENSE -34 = <c>0xFFDE</c> sequence error). Pass the raw 16-bit two's-complement value.
         /// </param>
-        /// <param name="protocolId">The channel to send the reject on.</param>
-        /// <param name="trailingByte">The single trailing reject byte.</param>
-        /// <returns>The network-error packet.</returns>
+        /// <param name="protocolId">
+        /// The channel to send the reject on.
+        /// </param>
+        /// <param name="trailingByte">
+        /// The single trailing reject byte.
+        /// </param>
+        /// <returns>
+        /// The network-error packet.
+        /// </returns>
         public static XmsgPacket CreateNetworkError(
             ushort destinationNode,
             ushort sourceNode,

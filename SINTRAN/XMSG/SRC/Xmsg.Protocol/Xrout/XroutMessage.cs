@@ -94,25 +94,59 @@ namespace NDInsight.Sintran.Xmsg
         /// </exception>
         public static XroutMessage Parse(ReadOnlySpan<byte> source)
         {
-            if (source.Length < HeaderSize)
-            {
-                throw new ArgumentException("XROUT message requires at least a 4-byte header.", nameof(source));
-            }
+            return Parse(source, XroutMessageFraming.WithHeader);
+        }
 
+        /// <summary>
+        /// Parses an XROUT message in the requested framing.
+        /// </summary>
+        /// <param name="source">
+        /// The message bytes.
+        /// </param>
+        /// <param name="framing">
+        /// Whether the four-byte header is present. Messages taken off the wire are
+        /// <see cref="XroutMessageFraming.BodyOnly"/>; see that type for the evidence.
+        /// </param>
+        /// <returns>
+        /// The parsed <see cref="XroutMessage"/>. With body-only framing the
+        /// <see cref="Serial"/> and <see cref="Service"/> properties stay zero, because those
+        /// values are not in the bytes - the service is in the frame's XMCSM word instead.
+        /// </returns>
+        /// <exception cref="ArgumentException">
+        /// Thrown when header framing is requested and <paramref name="source"/> is shorter than
+        /// <see cref="HeaderSize"/> bytes.
+        /// </exception>
+        public static XroutMessage Parse(ReadOnlySpan<byte> source, XroutMessageFraming framing)
+        {
             XroutMessage message = new XroutMessage();
-            message.Serial = source[0];
-            message.Service = source[1];
-            message.Length = BigEndian.ReadUInt16(source.Slice(2, 2));
+            ReadOnlySpan<byte> remainder;
 
-            // Bound the remainder by the declared length, clamped to what is present.
-            int available = source.Length - HeaderSize;
-            int remainderLength = message.Length;
-            if (remainderLength > available)
+            if (framing == XroutMessageFraming.BodyOnly)
             {
-                remainderLength = available;
+                message.Length = (ushort)source.Length;
+                remainder = source;
             }
+            else
+            {
+                if (source.Length < HeaderSize)
+                {
+                    throw new ArgumentException("XROUT message requires at least a 4-byte header.", nameof(source));
+                }
 
-            ReadOnlySpan<byte> remainder = source.Slice(HeaderSize, remainderLength);
+                message.Serial = source[0];
+                message.Service = source[1];
+                message.Length = BigEndian.ReadUInt16(source.Slice(2, 2));
+
+                // Bound the remainder by the declared length, clamped to what is present.
+                int available = source.Length - HeaderSize;
+                int remainderLength = message.Length;
+                if (remainderLength > available)
+                {
+                    remainderLength = available;
+                }
+
+                remainder = source.Slice(HeaderSize, remainderLength);
+            }
 
             int pos = 0;
             while (pos < remainder.Length)
@@ -208,6 +242,32 @@ namespace NDInsight.Sintran.Xmsg
         /// </remarks>
         public byte[] ToArray()
         {
+            return ToArray(XroutMessageFraming.WithHeader);
+        }
+
+        /// <summary>
+        /// Serialises this message in the requested framing.
+        /// </summary>
+        /// <param name="framing">
+        /// Whether to emit the four-byte header. Use
+        /// <see cref="XroutMessageFraming.BodyOnly"/> for bytes destined for an XMSG data frame.
+        /// </param>
+        /// <returns>
+        /// A new array containing the serialised message.
+        /// </returns>
+        /// <remarks>
+        /// The <see cref="Length"/> property is updated to the computed remainder length either
+        /// way.
+        /// </remarks>
+        public byte[] ToArray(XroutMessageFraming framing)
+        {
+            if (framing == XroutMessageFraming.BodyOnly)
+            {
+                byte[] body = BuildRemainder();
+                Length = (ushort)body.Length;
+                return body;
+            }
+
             byte[] remainder = BuildRemainder();
             Length = (ushort)remainder.Length;
 

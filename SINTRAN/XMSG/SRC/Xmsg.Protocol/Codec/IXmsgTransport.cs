@@ -17,7 +17,9 @@ namespace NDInsight.Sintran.Xmsg.Codec
         /// <summary>
         /// Sends one complete XMSG information field downward toward the wire.
         /// </summary>
-        /// <param name="bytes">The information-field bytes (SINTRAN header onward).</param>
+        /// <param name="bytes">
+        /// The information-field bytes (SINTRAN header onward).
+        /// </param>
         void Send(ReadOnlySpan<byte> bytes);
     }
 }

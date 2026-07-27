@@ -30,7 +30,9 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// <summary>
         /// Initialises the view over an already-decoded frame.
         /// </summary>
-        /// <param name="frame">The decoded frame; must not be null and must have a header.</param>
+        /// <param name="frame">
+        /// The decoded frame; must not be null and must have a header.
+        /// </param>
         /// <exception cref="ArgumentNullException">
         /// Thrown when <paramref name="frame"/> or its header is null.
         /// </exception>
@@ -82,31 +84,41 @@ namespace NDInsight.Sintran.Xmsg.Packet
             }
         }
 
-        /// <summary>Gets the destination node number (SINTRAN header offsets 4-5).</summary>
+        /// <summary>
+        /// Gets the destination node number (SINTRAN header offsets 4-5).
+        /// </summary>
         public ushort DestinationNode
         {
             get { return _frame.Header.DestinationNode; }
         }
 
-        /// <summary>Gets the source node number (SINTRAN header offsets 6-7).</summary>
+        /// <summary>
+        /// Gets the source node number (SINTRAN header offsets 6-7).
+        /// </summary>
         public ushort SourceNode
         {
             get { return _frame.Header.SourceNode; }
         }
 
-        /// <summary>Gets Flags 1 (offsets 8-9): the datagram sequence, or 0xFFFF on broadcast.</summary>
+        /// <summary>
+        /// Gets Flags 1 (offsets 8-9): the datagram sequence, or 0xFFFF on broadcast.
+        /// </summary>
         public ushort Flags1
         {
             get { return _frame.Header.Flags1; }
         }
 
-        /// <summary>Gets Flags 2 (offsets 10-11): the frame-class word (a negative XE code for a network error).</summary>
+        /// <summary>
+        /// Gets Flags 2 (offsets 10-11): the frame-class word (a negative XE code for a network error).
+        /// </summary>
         public ushort Flags2
         {
             get { return _frame.Header.Flags2; }
         }
 
-        /// <summary>Gets the sub-protocol selector / channel (Protocol ID, offset 12).</summary>
+        /// <summary>
+        /// Gets the sub-protocol selector / channel (Protocol ID, offset 12).
+        /// </summary>
         public SintranProtocolId ProtocolId
         {
             get { return _frame.Header.ProtocolId; }
@@ -130,55 +142,73 @@ namespace NDInsight.Sintran.Xmsg.Packet
             get { return _frame.SubHeader; }
         }
 
-        /// <summary>Gets the sub-header per-direction counter (offset 0), or 0 for a short frame.</summary>
+        /// <summary>
+        /// Gets the sub-header per-direction counter (offset 0), or 0 for a short frame.
+        /// </summary>
         public byte Counter
         {
             get { return _frame.SubHeader != null ? _frame.SubHeader.Counter : (byte)0; }
         }
 
-        /// <summary>Gets the sub-header frame-flags byte (offset 3), or 0 for a short frame.</summary>
+        /// <summary>
+        /// Gets the sub-header frame-flags byte (offset 3), or 0 for a short frame.
+        /// </summary>
         public byte FrameFlags
         {
             get { return _frame.SubHeader != null ? _frame.SubHeader.FrameFlags : (byte)0; }
         }
 
-        /// <summary>Gets the sub-header role byte (offset 4; low nibble 4 = asker, 0 = responder), or 0.</summary>
+        /// <summary>
+        /// Gets the sub-header role byte (offset 4; low nibble 4 = asker, 0 = responder), or 0.
+        /// </summary>
         public byte Role
         {
             get { return _frame.SubHeader != null ? _frame.SubHeader.Role : (byte)0; }
         }
 
-        /// <summary>Gets the XMDSY destination system (offsets 5-6), or 0 for a short frame.</summary>
+        /// <summary>
+        /// Gets the XMDSY destination system (offsets 5-6), or 0 for a short frame.
+        /// </summary>
         public ushort DestinationSystem
         {
             get { return _frame.SubHeader != null ? _frame.SubHeader.DestinationSystem : (ushort)0; }
         }
 
-        /// <summary>Gets the XMDPT destination port (offsets 7-8), or 0 for a short frame.</summary>
+        /// <summary>
+        /// Gets the XMDPT destination port (offsets 7-8), or 0 for a short frame.
+        /// </summary>
         public ushort DestinationPort
         {
             get { return _frame.SubHeader != null ? _frame.SubHeader.DestinationPort : (ushort)0; }
         }
 
-        /// <summary>Gets the XMSSY source system (offsets 9-10), or 0 for a short frame.</summary>
+        /// <summary>
+        /// Gets the XMSSY source system (offsets 9-10), or 0 for a short frame.
+        /// </summary>
         public ushort SourceSystem
         {
             get { return _frame.SubHeader != null ? _frame.SubHeader.SourceSystem : (ushort)0; }
         }
 
-        /// <summary>Gets the XMSPT source port (offsets 11-12), or 0 for a short frame.</summary>
+        /// <summary>
+        /// Gets the XMSPT source port (offsets 11-12), or 0 for a short frame.
+        /// </summary>
         public ushort SourcePort
         {
             get { return _frame.SubHeader != null ? _frame.SubHeader.SourcePort : (ushort)0; }
         }
 
-        /// <summary>Gets the XMCSM control/service dispatch word (offsets 13-16), or 0 for a short frame.</summary>
+        /// <summary>
+        /// Gets the XMCSM control/service dispatch word (offsets 13-16), or 0 for a short frame.
+        /// </summary>
         public uint ControlService
         {
             get { return _frame.SubHeader != null ? _frame.SubHeader.ControlService : 0u; }
         }
 
-        /// <summary>Gets the XMLEN user-data length low byte (offset 18), or 0 for a short frame.</summary>
+        /// <summary>
+        /// Gets the XMLEN user-data length low byte (offset 18), or 0 for a short frame.
+        /// </summary>
         public byte UserDataLength
         {
             get { return _frame.SubHeader != null ? _frame.SubHeader.UserDataLength : (byte)0; }

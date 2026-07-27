@@ -21,8 +21,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
         /// <summary>
         /// Initialises the transport over a link.
         /// </summary>
-        /// <param name="link">The link to send SINTRAN frames on.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="link"/> is null.</exception>
+        /// <param name="link">
+        /// The link to send SINTRAN frames on.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="link"/> is null.
+        /// </exception>
         public LinkXmsgTransport(ILink link)
         {
             _link = link ?? throw new ArgumentNullException(nameof(link));

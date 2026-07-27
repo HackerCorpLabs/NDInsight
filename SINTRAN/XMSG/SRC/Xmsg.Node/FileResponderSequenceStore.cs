@@ -24,8 +24,12 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// <summary>
         /// Opens (and loads) the store at the given file path, creating the parent directory if needed.
         /// </summary>
-        /// <param name="path">The state file path.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="path"/> is null.</exception>
+        /// <param name="path">
+        /// The state file path.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="path"/> is null.
+        /// </exception>
         public FileResponderSequenceStore(string path)
         {
             _path = path ?? throw new ArgumentNullException(nameof(path));
@@ -51,7 +55,9 @@ namespace NDInsight.Sintran.Xmsg.Node
             Persist();
         }
 
-        /// <summary>Reads the state file into the in-memory map; tolerant of a missing/garbled file.</summary>
+        /// <summary>
+        /// Reads the state file into the in-memory map; tolerant of a missing/garbled file.
+        /// </summary>
         private void Load()
         {
             if (!File.Exists(_path))
@@ -94,7 +100,9 @@ namespace NDInsight.Sintran.Xmsg.Node
             }
         }
 
-        /// <summary>Rewrites the whole state file from the in-memory map.</summary>
+        /// <summary>
+        /// Rewrites the whole state file from the in-memory map.
+        /// </summary>
         private void Persist()
         {
             string? directory = Path.GetDirectoryName(_path);

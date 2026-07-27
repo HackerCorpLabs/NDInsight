@@ -10,9 +10,13 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
     /// </summary>
     public enum LinkBinding
     {
-        /// <summary>The payload is a SINTRAN/XMSG L3 frame.</summary>
+        /// <summary>
+        /// The payload is a SINTRAN/XMSG L3 frame.
+        /// </summary>
         Xmsg,
-        /// <summary>The payload is an X.25 L3 packet.</summary>
+        /// <summary>
+        /// The payload is an X.25 L3 packet.
+        /// </summary>
         X25
     }
 
@@ -33,9 +37,15 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
         /// <summary>
         /// Returns the L3 binding a payload on the given link should be handled as.
         /// </summary>
-        /// <param name="linkId">The link the payload arrived on.</param>
-        /// <param name="payload">The payload bytes (unused by the per-link-binding stub).</param>
-        /// <returns>The L3 binding to route the payload to.</returns>
+        /// <param name="linkId">
+        /// The link the payload arrived on.
+        /// </param>
+        /// <param name="payload">
+        /// The payload bytes (unused by the per-link-binding stub).
+        /// </param>
+        /// <returns>
+        /// The L3 binding to route the payload to.
+        /// </returns>
         LinkBinding Classify(string linkId, ReadOnlySpan<byte> payload);
     }
 
@@ -51,7 +61,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
         /// <summary>
         /// Initialises the detector with the link's fixed L3 binding.
         /// </summary>
-        /// <param name="binding">The binding to report for every payload on this link.</param>
+        /// <param name="binding">
+        /// The binding to report for every payload on this link.
+        /// </param>
         public BoundProtocolDetector(LinkBinding binding)
         {
             _binding = binding;

@@ -44,7 +44,7 @@ namespace NDInsight.Sintran.Xmsg.Live
         /// Raised for every FCS-valid LAPB frame received from the transport (raw body,
         /// before the link processes it). Diagnostic hook for logging the live exchange.
         /// </summary>
-        public event Action<byte[]>? OnRawFrameReceived;
+        public event RawFrameReceivedHandler? OnRawFrameReceived;
 
         /// <summary>
         /// Initialises a live node over a transport, link and node runtime.
@@ -107,13 +107,17 @@ namespace NDInsight.Sintran.Xmsg.Live
         /// Runs the receive/respond pump, optionally sending an RR keepalive whenever the
         /// transport is idle for <paramref name="keepaliveInterval"/>.
         /// </summary>
-        /// <param name="cancellationToken">A token that stops the pump.</param>
+        /// <param name="cancellationToken">
+        /// A token that stops the pump.
+        /// </param>
         /// <param name="keepaliveInterval">
         /// When non-null, the idle interval after which an RR keepalive (and retransmit tick)
         /// is emitted. Required for a live link — the peer times the link out without RRs.
         /// When null the pump simply blocks on reads (used by the in-memory tests).
         /// </param>
-        /// <returns>A task that completes when the pump stops.</returns>
+        /// <returns>
+        /// A task that completes when the pump stops.
+        /// </returns>
         public async Task RunAsync(CancellationToken cancellationToken, TimeSpan? keepaliveInterval)
         {
             byte[] buffer = new byte[512];

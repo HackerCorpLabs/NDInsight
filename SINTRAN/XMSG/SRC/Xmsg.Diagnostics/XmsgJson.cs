@@ -22,7 +22,7 @@ namespace NDInsight.Sintran.Xmsg.Diagnostics
     /// </remarks>
     public static class XmsgJson
     {
-        private static readonly JsonSerializerOptions Options = CreateOptions();
+        private static readonly JsonSerializerOptions s_options = CreateOptions();
 
         /// <summary>
         /// Serialises a frame to an indented JSON string.
@@ -44,7 +44,7 @@ namespace NDInsight.Sintran.Xmsg.Diagnostics
             }
 
             XmsgFrameDto dto = ToDto(frame);
-            return JsonSerializer.Serialize(dto, Options);
+            return JsonSerializer.Serialize(dto, s_options);
         }
 
         /// <summary>
@@ -69,7 +69,7 @@ namespace NDInsight.Sintran.Xmsg.Diagnostics
                 throw new ArgumentNullException(nameof(json));
             }
 
-            XmsgFrameDto? dto = JsonSerializer.Deserialize<XmsgFrameDto>(json, Options);
+            XmsgFrameDto? dto = JsonSerializer.Deserialize<XmsgFrameDto>(json, s_options);
             if (dto == null)
             {
                 throw new FormatException("JSON did not deserialise to a frame.");

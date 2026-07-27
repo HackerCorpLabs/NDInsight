@@ -115,9 +115,21 @@ namespace NDInsight.Sintran.Xmsg.Diagnostics
         /// </param>
         private static void AppendBody(StringBuilder sb, XroutMessage body)
         {
-            sb.Append("XROUT letter: serial=").Append(body.Serial)
-              .Append("  service/status=0x").Append(body.Service.ToString("X2"))
-              .Append("  params=").Append(body.Parameters.Count)
+            // Serial and service are NOT on the wire - they belong to the message-buffer form of
+            // an XROUT message, and the service a frame acts on is its XMCSM word (printed with
+            // the sub-header above). Print them only when something actually set them, so the dump
+            // stops implying the wire carries a header it does not. See XroutMessageFraming.
+            if (body.Serial != 0 || body.Service != 0)
+            {
+                sb.Append("XROUT letter [buffer header: serial=").Append(body.Serial)
+                  .Append(" service/status=0x").Append(body.Service.ToString("X2")).Append(']');
+            }
+            else
+            {
+                sb.Append("XROUT letter:");
+            }
+
+            sb.Append("  params=").Append(body.Parameters.Count)
               .Append('\n');
 
             IReadOnlyList<XroutParameter> parameters = body.Parameters;

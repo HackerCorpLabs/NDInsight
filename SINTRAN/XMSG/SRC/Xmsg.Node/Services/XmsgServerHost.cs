@@ -60,6 +60,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
             _store = store ?? new NullResponderSequenceStore();
             _servers = new List<IXmsgServer>();
             _links = new Dictionary<ushort, XmsgLink>();
+            // Fixed port word, kept deliberately. Its SHAPE is correct - port number 4 in the
+            // high nine bits, 0x11 in the low seven - and a responder may answer on any
+            // well-formed port word, which is VERIFIED live with this exact value. A real kernel
+            // would draw the low seven bits from ZRAND instead; XmsgPortWordAllocator does that
+            // if we ever want the traffic to look kernel-minted, but switching is a live-behaviour
+            // change and buys fidelity, not function.
             _nextSessionPort = (ushort)((4 << 7) | 0x11);   // 0x0211, the live-verified layout
             _nextSessionNumber = 1;
         }
@@ -76,7 +82,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         /// Optional diagnostics sink. Used for envelope anomalies (for example a received frame whose
         /// implied seed disagrees with the established link seed — an out-of-model frame worth capturing).
         /// </summary>
-        public Action<string>? Log { get; set; }
+        public XmsgLogHandler? Log { get; set; }
 
         /// <summary>
         /// Registers a server (for example the TAD <c>*TADADM</c> server).
@@ -174,7 +180,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         /// segment on the ACK. Servers paced by another in-band signal (the TAD sentinel stream, driven by
         /// 100's 7DUMM commit) are skipped, so an ACK never prematurely releases their next frame.
         /// </summary>
-        /// <returns>The frames released by ACK-advancing servers, in order (possibly empty).</returns>
+        /// <returns>
+        /// The frames released by ACK-advancing servers, in order (possibly empty).
+        /// </returns>
         public IReadOnlyList<XmsgFrame> DrainOnAck()
         {
             List<XmsgFrame> all = new List<XmsgFrame>();
@@ -275,7 +283,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         /// another XENSE — the same learn-from-the-peer recovery the legacy responder used, with no
         /// restart or state-file surgery.
         /// </summary>
-        /// <param name="remoteNode">The node that sent the XENSE.</param>
+        /// <param name="remoteNode">
+        /// The node that sent the XENSE.
+        /// </param>
         /// <returns>The rebuilt accept at the next-lower sequence, or null when there is no
         /// un-ACKed accept to resync (the error concerns something else).</returns>
         public XmsgFrame? ResyncAcceptDown(ushort remoteNode)
@@ -305,15 +315,33 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         /// </summary>
         private sealed class PendingAccept
         {
-            /// <summary>Initialises the retained accept inputs.</summary>
-            /// <param name="clientSystem">The client's system number.</param>
-            /// <param name="clientPort">The client's port.</param>
-            /// <param name="sourcePort">Our source port.</param>
-            /// <param name="controlService">The XMCSM control/service word.</param>
-            /// <param name="frameFlags">The sub-header frame-flags byte.</param>
-            /// <param name="role">The sub-header role byte.</param>
-            /// <param name="payload">The trailer payload bytes.</param>
-            /// <param name="flags1">The Flags 1 the accept was sent with.</param>
+            /// <summary>
+            /// Initialises the retained accept inputs.
+            /// </summary>
+            /// <param name="clientSystem">
+            /// The client's system number.
+            /// </param>
+            /// <param name="clientPort">
+            /// The client's port.
+            /// </param>
+            /// <param name="sourcePort">
+            /// Our source port.
+            /// </param>
+            /// <param name="controlService">
+            /// The XMCSM control/service word.
+            /// </param>
+            /// <param name="frameFlags">
+            /// The sub-header frame-flags byte.
+            /// </param>
+            /// <param name="role">
+            /// The sub-header role byte.
+            /// </param>
+            /// <param name="payload">
+            /// The trailer payload bytes.
+            /// </param>
+            /// <param name="flags1">
+            /// The Flags 1 the accept was sent with.
+            /// </param>
             public PendingAccept(
                 ushort clientSystem, ushort clientPort, ushort sourcePort, uint controlService,
                 byte frameFlags, byte role, byte[] payload, ushort flags1)
@@ -328,28 +356,44 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
                 Flags1 = flags1;
             }
 
-            /// <summary>Gets the client's system number.</summary>
+            /// <summary>
+            /// Gets the client's system number.
+            /// </summary>
             public ushort ClientSystem { get; }
 
-            /// <summary>Gets the client's port.</summary>
+            /// <summary>
+            /// Gets the client's port.
+            /// </summary>
             public ushort ClientPort { get; }
 
-            /// <summary>Gets our source port.</summary>
+            /// <summary>
+            /// Gets our source port.
+            /// </summary>
             public ushort SourcePort { get; }
 
-            /// <summary>Gets the XMCSM control/service word.</summary>
+            /// <summary>
+            /// Gets the XMCSM control/service word.
+            /// </summary>
             public uint ControlService { get; }
 
-            /// <summary>Gets the sub-header frame-flags byte.</summary>
+            /// <summary>
+            /// Gets the sub-header frame-flags byte.
+            /// </summary>
             public byte FrameFlags { get; }
 
-            /// <summary>Gets the sub-header role byte.</summary>
+            /// <summary>
+            /// Gets the sub-header role byte.
+            /// </summary>
             public byte Role { get; }
 
-            /// <summary>Gets the trailer payload bytes.</summary>
+            /// <summary>
+            /// Gets the trailer payload bytes.
+            /// </summary>
             public byte[] Payload { get; }
 
-            /// <summary>Gets or sets the Flags 1 of the (re)sent accept.</summary>
+            /// <summary>
+            /// Gets or sets the Flags 1 of the (re)sent accept.
+            /// </summary>
             public ushort Flags1 { get; set; }
         }
 
@@ -383,15 +427,33 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         /// Builds one outgoing datagram to a client endpoint, assigning the per-link Flags 1 and deriving
         /// the Counter and channel from the envelope model.
         /// </summary>
-        /// <param name="remoteNode">The client's node number.</param>
-        /// <param name="clientSystem">The client's system number.</param>
-        /// <param name="clientPort">The client's port.</param>
-        /// <param name="sourcePort">Our source port.</param>
-        /// <param name="controlService">The XMCSM control/service word.</param>
-        /// <param name="frameFlags">The sub-header frame-flags byte.</param>
-        /// <param name="role">The sub-header role byte.</param>
-        /// <param name="payload">The trailer payload bytes.</param>
-        /// <returns>The assembled datagram.</returns>
+        /// <param name="remoteNode">
+        /// The client's node number.
+        /// </param>
+        /// <param name="clientSystem">
+        /// The client's system number.
+        /// </param>
+        /// <param name="clientPort">
+        /// The client's port.
+        /// </param>
+        /// <param name="sourcePort">
+        /// Our source port.
+        /// </param>
+        /// <param name="controlService">
+        /// The XMCSM control/service word.
+        /// </param>
+        /// <param name="frameFlags">
+        /// The sub-header frame-flags byte.
+        /// </param>
+        /// <param name="role">
+        /// The sub-header role byte.
+        /// </param>
+        /// <param name="payload">
+        /// The trailer payload bytes.
+        /// </param>
+        /// <returns>
+        /// The assembled datagram.
+        /// </returns>
         /// <exception cref="InvalidOperationException">
         /// Thrown when no link to <paramref name="remoteNode"/> exists.
         /// </exception>
@@ -434,17 +496,39 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         /// Assembles a datagram at an EXPLICIT Flags 1 (no sequence advance) — the shared body of
         /// <see cref="BuildDatagram"/> and <see cref="ResyncAcceptDown"/>.
         /// </summary>
-        /// <param name="link">The per-remote-node link (seed source).</param>
-        /// <param name="remoteNode">The client's node number.</param>
-        /// <param name="clientSystem">The client's system number.</param>
-        /// <param name="clientPort">The client's port.</param>
-        /// <param name="sourcePort">Our source port.</param>
-        /// <param name="controlService">The XMCSM control/service word.</param>
-        /// <param name="frameFlags">The sub-header frame-flags byte.</param>
-        /// <param name="role">The sub-header role byte.</param>
-        /// <param name="payload">The trailer payload bytes.</param>
-        /// <param name="f1">The datagram sequence (Flags 1) to stamp.</param>
-        /// <returns>The assembled datagram.</returns>
+        /// <param name="link">
+        /// The per-remote-node link (seed source).
+        /// </param>
+        /// <param name="remoteNode">
+        /// The client's node number.
+        /// </param>
+        /// <param name="clientSystem">
+        /// The client's system number.
+        /// </param>
+        /// <param name="clientPort">
+        /// The client's port.
+        /// </param>
+        /// <param name="sourcePort">
+        /// Our source port.
+        /// </param>
+        /// <param name="controlService">
+        /// The XMCSM control/service word.
+        /// </param>
+        /// <param name="frameFlags">
+        /// The sub-header frame-flags byte.
+        /// </param>
+        /// <param name="role">
+        /// The sub-header role byte.
+        /// </param>
+        /// <param name="payload">
+        /// The trailer payload bytes.
+        /// </param>
+        /// <param name="f1">
+        /// The datagram sequence (Flags 1) to stamp.
+        /// </param>
+        /// <returns>
+        /// The assembled datagram.
+        /// </returns>
         private XmsgFrame AssembleDatagram(
             XmsgLink link,
             ushort remoteNode,

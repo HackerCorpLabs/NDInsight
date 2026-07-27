@@ -8,4 +8,8 @@
   <Project Path="Xmsg.Servers/Xmsg.Servers.csproj" />
   <Project Path="Xmsg.Live/Xmsg.Live.csproj" />
   <Project Path="Xmsg.Live.Tests/Xmsg.Live.Tests.csproj" />
+  <Project Path="Xmsg.Api/Xmsg.Api.csproj" />
+  <Project Path="Xmsg.Api.Tests/Xmsg.Api.Tests.csproj" />
+  <Project Path="Xmsg.Api.Node/Xmsg.Api.Node.csproj" />
+  <Project Path="Xmsg.Api.Node.Tests/Xmsg.Api.Node.Tests.csproj" />
 </Solution>

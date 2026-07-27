@@ -481,14 +481,30 @@ internal static class Program
     /// TadAskerSession. Sends the connect letter when the link comes up, drives the TAD handshake,
     /// renders host terminal text, and forwards stdin lines as keystroke frames.
     /// </summary>
-    /// <param name="transport">The connected bridge transport.</param>
-    /// <param name="host">The bridge host (for the link id).</param>
-    /// <param name="port">The bridge port (for the link id).</param>
-    /// <param name="ownNode">This client's node number.</param>
-    /// <param name="hostNode">The host node we connect to.</param>
-    /// <param name="targetName">The remote name carried in the connect letter.</param>
-    /// <param name="token">A token that stops the session.</param>
-    /// <returns>A task that completes when the pump stops.</returns>
+    /// <param name="transport">
+    /// The connected bridge transport.
+    /// </param>
+    /// <param name="host">
+    /// The bridge host (for the link id).
+    /// </param>
+    /// <param name="port">
+    /// The bridge port (for the link id).
+    /// </param>
+    /// <param name="ownNode">
+    /// This client's node number.
+    /// </param>
+    /// <param name="hostNode">
+    /// The host node we connect to.
+    /// </param>
+    /// <param name="targetName">
+    /// The remote name carried in the connect letter.
+    /// </param>
+    /// <param name="token">
+    /// A token that stops the session.
+    /// </param>
+    /// <returns>
+    /// A task that completes when the pump stops.
+    /// </returns>
     private static async Task RunClientAsync(
         TcpBridgeTransport transport, string host, int port, ushort ownNode, ushort hostNode, string targetName, byte seed, CancellationToken token)
     {

@@ -52,11 +52,18 @@ namespace NDInsight.Sintran.Xmsg.Tests
             Assert.Equal(0x02AD, decoded.SubHeader.SourcePort);
             Assert.Equal(0x0100014Bu, decoded.SubHeader.ControlService);
 
-            // Body equality.
+            // Body equality. The XROUT header is NOT carried on this transport, so the serial
+            // and service the builder set never reach the wire and come back as zero; the
+            // service the receiver acts on is the XMCSM word asserted above. What must survive
+            // is the parameter blocks. See XroutMessageFraming for the capture evidence.
             Assert.NotNull(decoded.Body);
-            Assert.Equal(42, decoded.Body!.Serial);
-            Assert.Equal((byte)XroutService.XSGSY, decoded.Body.Service);
+            Assert.Equal(0, decoded.Body!.Serial);
+            Assert.Equal(0, decoded.Body.Service);
             Assert.Equal(2, decoded.Body.Parameters.Count);
+            Assert.Equal(1, decoded.Body.Parameters[0].ParameterNumber);
+            Assert.Equal(new byte[] { 0x00, 0x66 }, decoded.Body.Parameters[0].Data);
+            Assert.Equal(2, decoded.Body.Parameters[1].ParameterNumber);
+            Assert.Equal(new byte[] { 0x00, (byte)XroutConnectionType.Via }, decoded.Body.Parameters[1].Data);
 
             // Decode -> re-serialize must be byte-identical.
             Assert.Equal(wire, decoded.ToArray());

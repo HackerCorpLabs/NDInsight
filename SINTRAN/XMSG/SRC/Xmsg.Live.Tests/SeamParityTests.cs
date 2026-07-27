@@ -45,7 +45,9 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             Assert.Equal(legacyWire, seamWire);
         }
 
-        /// <summary>Runs the legacy LiveNode + XmsgNode path over the inbound stream; returns the wire bytes it writes.</summary>
+        /// <summary>
+        /// Runs the legacy LiveNode + XmsgNode path over the inbound stream; returns the wire bytes it writes.
+        /// </summary>
         private static async Task<byte[]> RunLegacy(byte[] inbound)
         {
             InMemoryDuplex duplex = new InMemoryDuplex(inbound);
@@ -59,7 +61,9 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             return duplex.GetWrittenBytes();
         }
 
-        /// <summary>Runs the seam LapbLayerAdapter + XmsgCodec + XmsgLayer path over the inbound stream; returns the wire bytes it writes.</summary>
+        /// <summary>
+        /// Runs the seam LapbLayerAdapter + XmsgCodec + XmsgLayer path over the inbound stream; returns the wire bytes it writes.
+        /// </summary>
         private static async Task<byte[]> RunSeam(byte[] inbound)
         {
             InMemoryDuplex duplex = new InMemoryDuplex(inbound);
@@ -119,7 +123,9 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             return inbound.ToArray();
         }
 
-        /// <summary>Builds a LAPB data I-frame body: addr 0x09, control from N(S)/N(R), then info.</summary>
+        /// <summary>
+        /// Builds a LAPB data I-frame body: addr 0x09, control from N(S)/N(R), then info.
+        /// </summary>
         private static byte[] IFrame(int sendSeq, int receiveSeq, byte[] info)
         {
             byte control = (byte)((receiveSeq << 5) | (sendSeq << 1));

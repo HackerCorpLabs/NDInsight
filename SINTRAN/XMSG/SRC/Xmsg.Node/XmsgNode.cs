@@ -97,7 +97,7 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// Optional diagnostics sink for envelope anomalies (a received frame whose implied seed
         /// disagrees with the learned link seed — the out-of-model frame to hunt in a capture).
         /// </summary>
-        public Action<string>? Log { get; set; }
+        public XmsgLogHandler? Log { get; set; }
 
         /// <summary>
         /// Raised when a data frame is delivered to this node's application layer.
@@ -240,8 +240,12 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// frames (secure ACK + connect-accept + greeting), which the single-frame
         /// <see cref="HandleFrame"/> cannot express.
         /// </summary>
-        /// <param name="incoming">The decoded received frame.</param>
-        /// <returns>The response frames, in transmit order (possibly empty).</returns>
+        /// <param name="incoming">
+        /// The decoded received frame.
+        /// </param>
+        /// <returns>
+        /// The response frames, in transmit order (possibly empty).
+        /// </returns>
         public IReadOnlyList<XmsgFrame> HandleFrames(XmsgFrame incoming)
         {
             if (incoming == null)
@@ -459,8 +463,12 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// any (reachability reply, list-route reply, or secure ACK). Use
         /// <see cref="HandleFrames"/> for paths that emit more than one frame.
         /// </summary>
-        /// <param name="incoming">The decoded received frame (its header selects the behaviour).</param>
-        /// <returns>The response frame, or <c>null</c> when none is needed.</returns>
+        /// <param name="incoming">
+        /// The decoded received frame (its header selects the behaviour).
+        /// </param>
+        /// <returns>
+        /// The response frame, or <c>null</c> when none is needed.
+        /// </returns>
         /// <exception cref="ArgumentNullException">
         /// Thrown when <paramref name="incoming"/> or its header is null.
         /// </exception>

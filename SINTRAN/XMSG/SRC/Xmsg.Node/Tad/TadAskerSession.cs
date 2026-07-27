@@ -30,21 +30,31 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <summary>
         /// Occurs when the host sends terminal text (BDAT), high bit stripped, for display.
         /// </summary>
-        public event Action<string>? TerminalText;
+        public event TadTerminalTextHandler? TerminalText;
 
         /// <summary>
         /// Occurs with a human-readable diagnostic of what the driver decided.
         /// </summary>
-        public event Action<string>? Log;
+        public event XmsgLogHandler? Log;
 
         /// <summary>
         /// Initialises the asker session.
         /// </summary>
-        /// <param name="clientNode">This client's node number (the asker).</param>
-        /// <param name="serverNode">The host's node number.</param>
-        /// <param name="clientPort">The client's session-source port.</param>
-        /// <param name="seed">The shared link seed (100↔102 = 0x14, 100↔103 = 0x13).</param>
-        /// <param name="targetName">The remote name to connect to (for example "D100").</param>
+        /// <param name="clientNode">
+        /// This client's node number (the asker).
+        /// </param>
+        /// <param name="serverNode">
+        /// The host's node number.
+        /// </param>
+        /// <param name="clientPort">
+        /// The client's session-source port.
+        /// </param>
+        /// <param name="seed">
+        /// The shared link seed (100↔102 = 0x14, 100↔103 = 0x13).
+        /// </param>
+        /// <param name="targetName">
+        /// The remote name to connect to (for example "D100").
+        /// </param>
         /// <param name="sequenceStore">
         /// Persists the client's outgoing datagram sequence per host node across restarts (null = a
         /// non-persisting store starting at 0).
@@ -63,7 +73,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <summary>
         /// Starts the session: the connect letter to the host's port 0.
         /// </summary>
-        /// <returns>The frames to transmit (the connect letter).</returns>
+        /// <returns>
+        /// The frames to transmit (the connect letter).
+        /// </returns>
         public IReadOnlyList<XmsgFrame> Start()
         {
             Log?.Invoke($"[asker] connect-to {_targetName}");
@@ -74,8 +86,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// Reacts to one frame received from the host: acks it (if data), renders any BDAT, and drives
         /// the next step of the handshake.
         /// </summary>
-        /// <param name="frame">The decoded frame received from the host.</param>
-        /// <returns>The frames to transmit in response (ACK first, then any driving frames).</returns>
+        /// <param name="frame">
+        /// The decoded frame received from the host.
+        /// </param>
+        /// <returns>
+        /// The frames to transmit in response (ACK first, then any driving frames).
+        /// </returns>
         public IReadOnlyList<XmsgFrame> OnReceive(XmsgFrame frame)
         {
             List<XmsgFrame> outgoing = new List<XmsgFrame>();
@@ -133,8 +149,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <summary>
         /// Builds a typed keystroke line to send to the host (the user pressed Enter).
         /// </summary>
-        /// <param name="text">The line the user typed.</param>
-        /// <returns>The BDAT frame to transmit.</returns>
+        /// <param name="text">
+        /// The line the user typed.
+        /// </param>
+        /// <returns>
+        /// The BDAT frame to transmit.
+        /// </returns>
         public IReadOnlyList<XmsgFrame> SendLine(string text)
         {
             return new List<XmsgFrame> { _client.BuildInput(text ?? string.Empty) };
@@ -144,8 +164,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// Drives the terminal phase: RESE→RECO, the priming DUMM→terminal-setup, and CERS after a
         /// host burst that grants input (ends with RFI).
         /// </summary>
-        /// <param name="frame">The received terminal-data frame.</param>
-        /// <param name="outgoing">The list to append response frames to.</param>
+        /// <param name="frame">
+        /// The received terminal-data frame.
+        /// </param>
+        /// <param name="outgoing">
+        /// The list to append response frames to.
+        /// </param>
         private void DriveTerminalPhase(XmsgFrame frame, List<XmsgFrame> outgoing)
         {
             if (HasOpcode(frame, TadOp.Rese))
@@ -177,7 +201,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <summary>
         /// Raises <see cref="TerminalText"/> for the concatenated BDAT text of a frame (high bit stripped).
         /// </summary>
-        /// <param name="frame">The received frame.</param>
+        /// <param name="frame">
+        /// The received frame.
+        /// </param>
         private void RenderBdat(XmsgFrame frame)
         {
             if (frame.Tad == null || TerminalText == null)
@@ -210,9 +236,15 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <summary>
         /// Returns true when the frame's TAD chain contains a message with the given opcode.
         /// </summary>
-        /// <param name="frame">The frame to inspect.</param>
-        /// <param name="opcode">The TAD opcode to look for.</param>
-        /// <returns>True when present.</returns>
+        /// <param name="frame">
+        /// The frame to inspect.
+        /// </param>
+        /// <param name="opcode">
+        /// The TAD opcode to look for.
+        /// </param>
+        /// <returns>
+        /// True when present.
+        /// </returns>
         private static bool HasOpcode(XmsgFrame frame, byte opcode)
         {
             if (frame.Tad == null)

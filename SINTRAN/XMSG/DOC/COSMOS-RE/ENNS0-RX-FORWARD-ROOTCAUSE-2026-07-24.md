@@ -117,9 +117,40 @@ and then:
 
 So: **deliver-to-ND-100 (and the SCIP that wakes ENNS0/PDRIV/XRTEN) happens only when
 RCVCOMPLETE successfully built a message buffer (`$18(A6) != 0`), i.e. only when the frame
-passed all three gates.** Every discard takes the 0x6034 branch: advance the ring, re-append
-the buffer, yield - which is precisely the reported trace (ring pointers move, then the
-scheduler goes on to transmit the next routing frame, with no notification to the ND-100).
+passed all three gates.** Every discard takes the 0x6034 branch: re-append the buffer, yield -
+which is precisely the reported trace (ring pointers move, then the scheduler goes on to
+transmit the next routing frame, with no notification to the ND-100).
+
+> **CORRECTION (2026-07-25, Ghidra RE pass) - two structural details above are wrong.**
+> 1. **Ring advance is NOT part of the discard branch.** Accept and discard both reach the shared
+>    tail `0x5ff2` -> `LanceRxDescriptorClear` (0x553c) -> `0x5ffc` FREE++ / CONS=(CONS+1) mod 128.
+>    The two paths diverge only at `0x601a`. So "advance the ring" is common, not discard-specific;
+>    what the discard branch uniquely does is re-arm the buffer via `0x5b60` and yield.
+> 2. **`0x5ffc` is NOT dead code**, despite Ghidra reporting no xrefs to it. Execution RESUMES at the
+>    instruction following the `jmp (A5)`. The same applies at `0x5dd0` (after the group-filter call)
+>    where `0x5dd2` clearly consumes the returned D0.
+>
+>    **CORRECTION (2026-07-26) - the REASON given here was wrong.** This is not a "coroutine yield".
+>    It is the PLANC-MC **two-entry return convention**, now verified byte-level across the image:
+>    - Every compiled routine ends `movea.l (SP)+,A6 ; movea.l (SP)+,A2 ; jmp (0x2,A2)` - the second
+>      pop takes the RETURN ADDRESS into A2, and the jump goes to **retaddr + 2**, skipping the
+>      2-byte `4E D5 jmp (A5)`. Byte search finds 400+ of these epilogues and **zero** routines that
+>      return to +0.
+>    - `jmp (A5)` is therefore the **error-unwind trampoline**, reached only when the runtime returns
+>      to +0. A5 holds `#XRET` (0x135A8) normally, or `#ERET` (0x13596) at an outermost frame.
+>      `#XRET` is the only +0 returner in the image; it pops one frame, re-arms A5 to itself, and
+>      lands on the caller's `jmp (A5)` - a one-frame-at-a-time stack unwind.
+>    - A5 is loaded in exactly 5 places image-wide: the three process roots (`POMNPROCES` 0x7BBA,
+>      `AUTO_START` 0x7E26, `POCSPROCES` 0xE398) set it to `#XRET`; `#XRET` and `#ERET` re-arm it.
+>
+>    Note this firmware DOES also have a genuine cooperative-coroutine scheduler (the PIOCOS task
+>    system with STOP / `movem` save-restore, see `ENNS0-Startup-RE-2026-07-23\FIRST-SUPERKICK-BRIDGE-DECODE-2026-07-23.md`).
+>    The error above was attributing `bsr; jmp (A5)` to that scheduler. The two are unrelated.
+>
+> Also note the gate-2 mechanism is better understood now: `0x1888a` is a "length field present"
+> switch, and clearing it disables the gate-2 length test entirely, which is what makes Ethernet II
+> traffic possible. Full decode:
+> [ETHERNET-II-FEASIBILITY-AND-MODE-WORD-RE-2026-07-25.md](ETHERNET-II-FEASIBILITY-AND-MODE-WORD-RE-2026-07-25.md).
 
 ---
 

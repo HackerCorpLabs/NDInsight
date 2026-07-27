@@ -88,14 +88,18 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// Used to make the per-link outgoing-Flags1 lifecycle loudly visible: the value continued on a
         /// connect, and - critically - when a peer ReachabilityRequest resets the store to 0x0000.
         /// </summary>
-        public Action<string>? Log { get; set; }
+        public XmsgLogHandler? Log { get; set; }
 
         /// <summary>
         /// Initialises the responder for a given node with a clock (injected for deterministic
         /// tests; the live runner passes <c>() =&gt; DateTime.Now</c>).
         /// </summary>
-        /// <param name="nodeNumber">This node's number (for example 103).</param>
-        /// <param name="clock">Supplies the current time for the MOTD and the Time/Date commands.</param>
+        /// <param name="nodeNumber">
+        /// This node's number (for example 103).
+        /// </param>
+        /// <param name="clock">
+        /// Supplies the current time for the MOTD and the Time/Date commands.
+        /// </param>
         /// <param name="sequenceStore">
         /// Persists our outgoing datagram sequence per remote node across restarts. When null, a
         /// non-persisting store is used (every remote starts at 0x0000) — correct for tests and for
@@ -122,8 +126,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// Returns true when a frame carries a DCON (disconnect indication, TAD opcode 0x09) — 100's
         /// graceful teardown, e.g. its 1-minute "TAD not logged in" idle timeout.
         /// </summary>
-        /// <param name="frame">The incoming data frame.</param>
-        /// <returns>True when this frame disconnects the session.</returns>
+        /// <param name="frame">
+        /// The incoming data frame.
+        /// </param>
+        /// <returns>
+        /// True when this frame disconnects the session.
+        /// </returns>
         public bool IsDisconnect(XmsgFrame frame)
         {
             if (!_connected || frame == null || frame.Tad == null)
@@ -159,8 +167,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// received; the previous drift (saving on send, over-counting an un-received reply) is what
         /// made a later connect XENSE-reject our accept.
         /// </summary>
-        /// <param name="remoteNode">The node that ACKed (source of the 0x03 frame), e.g. 100.</param>
-        /// <param name="ackedFlags1">The Flags1 the ACK echoes (the frame 100 confirmed receiving).</param>
+        /// <param name="remoteNode">
+        /// The node that ACKed (source of the 0x03 frame), e.g. 100.
+        /// </param>
+        /// <param name="ackedFlags1">
+        /// The Flags1 the ACK echoes (the frame 100 confirmed receiving).
+        /// </param>
         public void ConfirmDelivered(ushort remoteNode, ushort ackedFlags1)
         {
             // 0xFFFF is the reachability broadcast marker, never a real data sequence — ignore it.
@@ -186,7 +198,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// restart does NOT send one and 100 continues its sequence. Resetting here keeps our sequence
         /// in step across 100's restarts without any manual state-file surgery.
         /// </summary>
-        /// <param name="remoteNode">The node that (re)started, e.g. 100.</param>
+        /// <param name="remoteNode">
+        /// The node that (re)started, e.g. 100.
+        /// </param>
         public void ResetSequence(ushort remoteNode)
         {
             _sequenceStore.SaveNextFlags1(remoteNode, 0x0000);
@@ -211,7 +225,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// value (at which point 100 answers with the session-setup instead of another XENSE) with no
         /// manual restart or file surgery. This is the learn-from-100 recovery for a drifted sequence.
         /// </summary>
-        /// <returns>The rebuilt accept at the next-lower sequence, or null when not resyncable.</returns>
+        /// <returns>
+        /// The rebuilt accept at the next-lower sequence, or null when not resyncable.
+        /// </returns>
         public XmsgFrame? ResyncAcceptDown()
         {
             if (!CanResyncAccept)
@@ -241,8 +257,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// Returns true when the frame is a SYSTEM-TAD connect request addressed to this node
         /// (the <c>*TADADM</c> letter that opens a <c>connect-to</c>).
         /// </summary>
-        /// <param name="frame">The decoded incoming data frame.</param>
-        /// <returns>True when this is a connect request we should answer.</returns>
+        /// <param name="frame">
+        /// The decoded incoming data frame.
+        /// </param>
+        /// <returns>
+        /// True when this is a connect request we should answer.
+        /// </returns>
         public static bool IsConnectRequest(XmsgFrame frame)
         {
             return frame != null
@@ -259,8 +279,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// Handles an incoming connect request: allocates a session port and produces the
         /// connect-accept plus the terminal greeting (MOTD + menu + prompt) as BDAT.
         /// </summary>
-        /// <param name="request">The connect-request frame.</param>
-        /// <returns>The frames to transmit, in order.</returns>
+        /// <param name="request">
+        /// The connect-request frame.
+        /// </param>
+        /// <returns>
+        /// The frames to transmit, in order.
+        /// </returns>
         public IReadOnlyList<XmsgFrame> OnConnect(XmsgFrame request)
         {
             List<XmsgFrame> outgoing = new List<XmsgFrame>();
@@ -287,6 +311,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             // part is deliberately FIXED (not random) so the wire bytes are reproducible while we
             // iterate live; the magic-number model only requires the (logical<<7)|low7 layout,
             // which this satisfies (4<<7 | 0x11 = 0x0211). [INFERRED value; VERIFIED layout.]
+            // Fixed port word, kept deliberately. Its SHAPE is correct - port number 4 in the
+            // high nine bits, 0x11 in the low seven - and a responder may answer on any
+            // well-formed port word, which is VERIFIED live with this exact value. A real kernel
+            // would draw the low seven bits from ZRAND instead; XmsgPortWordAllocator does that
+            // if we ever want the traffic to look kernel-minted, but switching is a live-behaviour
+            // change and buys fidelity, not function.
             _sessionWirePort = (ushort)((4 << 7) | 0x11);
             _connected = true;
             _motdSent = false;
@@ -373,8 +403,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// the captured 102 trailer with the system byte and session-port bytes substituted for
         /// ours; the remaining option bytes are copied verbatim (not yet decoded).
         /// </remarks>
-        /// <param name="request">The session-setup frame.</param>
-        /// <returns>The port-assignment frame.</returns>
+        /// <param name="request">
+        /// The session-setup frame.
+        /// </param>
+        /// <returns>
+        /// The port-assignment frame.
+        /// </returns>
         public IReadOnlyList<XmsgFrame> OnSessionSetup(XmsgFrame request)
         {
             List<XmsgFrame> outgoing = new List<XmsgFrame>();
@@ -433,7 +467,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             return outgoing;
         }
 
-        /// <summary>XMCSM control/service word for a TAD terminal-data frame. VERIFIED from captures.</summary>
+        /// <summary>
+        /// XMCSM control/service word for a TAD terminal-data frame. VERIFIED from captures.
+        /// </summary>
         private const uint TerminalDataControlService = (uint)XmcsmService.TerminalData;
 
         /// <summary>
@@ -449,13 +485,19 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// </summary>
         private ushort _respFlags1;
 
-        /// <summary>The connect frame, retained so the accept can be rebuilt during a XENSE resync.</summary>
+        /// <summary>
+        /// The connect frame, retained so the accept can be rebuilt during a XENSE resync.
+        /// </summary>
         private XmsgFrame? _connectFrame;
 
-        /// <summary>The Flags1 our accept currently uses; stepped down on each XENSE resync.</summary>
+        /// <summary>
+        /// The Flags1 our accept currently uses; stepped down on each XENSE resync.
+        /// </summary>
         private ushort _acceptFlags1;
 
-        /// <summary>True once 100 sent the session-setup (accept confirmed) — resync stops here.</summary>
+        /// <summary>
+        /// True once 100 sent the session-setup (accept confirmed) — resync stops here.
+        /// </summary>
         private bool _sessionSetupSeen;
 
         /// <summary>
@@ -463,13 +505,19 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// </summary>
         private enum LoginPhase
         {
-            /// <summary>Awaiting the username line (the banner's "ENTER " prompt, SYCN 0002).</summary>
+            /// <summary>
+            /// Awaiting the username line (the banner's "ENTER " prompt, SYCN 0002).
+            /// </summary>
             Username,
 
-            /// <summary>Awaiting the password line (no-echo, ECKM FF).</summary>
+            /// <summary>
+            /// Awaiting the password line (no-echo, ECKM FF).
+            /// </summary>
             Password,
 
-            /// <summary>A valid SYSTEM/SYSTEM login completed (SYCN 000A asserted).</summary>
+            /// <summary>
+            /// A valid SYSTEM/SYSTEM login completed (SYCN 000A asserted).
+            /// </summary>
             LoggedIn,
         }
 
@@ -484,7 +532,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         private int _loginFaults;
         private string _pendingUsername = string.Empty;
 
-        /// <summary>True once we have sent the MOTD, so we do not re-send it on repeated setup frames.</summary>
+        /// <summary>
+        /// True once we have sent the MOTD, so we do not re-send it on repeated setup frames.
+        /// </summary>
         private bool _motdSent;
 
         /// <summary>
@@ -501,8 +551,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// Returns true when the frame is 100's terminal-setup (it carries a TMOD message), i.e. the
         /// negotiation 100 sends after our DUMM. Answering it with the MOTD burst is the last step.
         /// </summary>
-        /// <param name="frame">The incoming data frame.</param>
-        /// <returns>True when this is the terminal-setup that should trigger the MOTD.</returns>
+        /// <param name="frame">
+        /// The incoming data frame.
+        /// </param>
+        /// <returns>
+        /// True when this is the terminal-setup that should trigger the MOTD.
+        /// </returns>
         public bool IsTerminalSetup(XmsgFrame frame)
         {
             if (!_connected || _motdSent || frame == null || frame.Tad == null)
@@ -528,8 +582,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// values): control <c>0x20</c>, RESE, RESE, then the MOTD. VERIFIED shapes from conn-to-d102
         /// frames 57/58/60/62.
         /// </summary>
-        /// <param name="request">The terminal-setup (TMOD) frame; its source is 100's session endpoint.</param>
-        /// <returns>The burst frames, in transmit order.</returns>
+        /// <param name="request">
+        /// The terminal-setup (TMOD) frame; its source is 100's session endpoint.
+        /// </param>
+        /// <returns>
+        /// The burst frames, in transmit order.
+        /// </returns>
         public IReadOnlyList<XmsgFrame> OnTerminalSetup(XmsgFrame request)
         {
             List<XmsgFrame> outgoing = new List<XmsgFrame>();
@@ -566,13 +624,27 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// single outgoing datagram sequence. Then advances the sequence. Control-class frames
         /// (Flags2 0x0400) land on DA at epoch 0; terminal-data frames (Flags2 0x0108) on DD at epoch 0.
         /// </summary>
-        /// <param name="request">The triggering frame (source addressing = 100's endpoint).</param>
-        /// <param name="controlService">The XMCSM control/service word (its high half is the derived frame-class).</param>
-        /// <param name="frameFlags">The sub-header frame-flags byte for this frame type.</param>
-        /// <param name="role">The sub-header role byte (0x40 setup, 0x00 data-phase).</param>
-        /// <param name="sourcePort">Our source port (TADADM for control, session port for data).</param>
-        /// <param name="payload">The trailer payload bytes (param blocks or TAD chain).</param>
-        /// <returns>The assembled frame on the derived channel with the computed counter.</returns>
+        /// <param name="request">
+        /// The triggering frame (source addressing = 100's endpoint).
+        /// </param>
+        /// <param name="controlService">
+        /// The XMCSM control/service word (its high half is the derived frame-class).
+        /// </param>
+        /// <param name="frameFlags">
+        /// The sub-header frame-flags byte for this frame type.
+        /// </param>
+        /// <param name="role">
+        /// The sub-header role byte (0x40 setup, 0x00 data-phase).
+        /// </param>
+        /// <param name="sourcePort">
+        /// Our source port (TADADM for control, session port for data).
+        /// </param>
+        /// <param name="payload">
+        /// The trailer payload bytes (param blocks or TAD chain).
+        /// </param>
+        /// <returns>
+        /// The assembled frame on the derived channel with the computed counter.
+        /// </returns>
         private XmsgFrame BuildResponderFrame(
             XmsgFrame request,
             uint controlService,
@@ -622,9 +694,15 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// Handles a terminal-data frame (the user's typed line) during an active session and
         /// produces the menu response. Returns an empty list when the frame is not terminal input.
         /// </summary>
-        /// <param name="frame">The incoming data frame.</param>
-        /// <param name="disconnect">Set true when the session should close after the response.</param>
-        /// <returns>The response frames.</returns>
+        /// <param name="frame">
+        /// The incoming data frame.
+        /// </param>
+        /// <param name="disconnect">
+        /// Set true when the session should close after the response.
+        /// </param>
+        /// <returns>
+        /// The response frames.
+        /// </returns>
         public IReadOnlyList<XmsgFrame> OnTerminalInput(XmsgFrame frame, out bool disconnect)
         {
             disconnect = false;
@@ -988,9 +1066,15 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// CESC 00; BMMX/ECKM/CESC line-discipline restore; "--EXIT--" + SYCN 000B (LoggedOut);
         /// CESC 01; then the 0xFD session notification. Shared by menu choices 4, 5 and 7.
         /// </summary>
-        /// <param name="frame">The triggering input frame (addressing source).</param>
-        /// <param name="outgoing">The response list to append to.</param>
-        /// <param name="farewellText">The goodbye text for the first ladder frame.</param>
+        /// <param name="frame">
+        /// The triggering input frame (addressing source).
+        /// </param>
+        /// <param name="outgoing">
+        /// The response list to append to.
+        /// </param>
+        /// <param name="farewellText">
+        /// The goodbye text for the first ladder frame.
+        /// </param>
         private void AppendTeardownLadder(XmsgFrame frame, List<XmsgFrame> outgoing, string farewellText)
         {
             outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
@@ -1015,8 +1099,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// worked), so we use the host-natural role <c>0x00</c>. The DCON rides class 0x0008 with
         /// frameFlags 0x82, mirroring every captured (client) DCON.
         /// </remarks>
-        /// <param name="request">The triggering frame (addressing source).</param>
-        /// <returns>The DCON frame.</returns>
+        /// <param name="request">
+        /// The triggering frame (addressing source).
+        /// </param>
+        /// <returns>
+        /// The DCON frame.
+        /// </returns>
         private XmsgFrame BuildDconIndication(XmsgFrame request)
         {
             byte[] tad = new TadMessageBuilder().Raw(TadOp.Dcon, ReadOnlySpan<byte>.Empty).Build();

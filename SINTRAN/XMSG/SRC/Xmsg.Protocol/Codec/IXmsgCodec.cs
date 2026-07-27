@@ -8,8 +8,12 @@ namespace NDInsight.Sintran.Xmsg.Codec
     /// Up-event delegate: a complete XMSG packet arrived from the link identified by
     /// <paramref name="linkId"/> (sender/link-id first, per the seam's named-delegate rule).
     /// </summary>
-    /// <param name="linkId">The identity of the link the packet came in on.</param>
-    /// <param name="packet">The decoded read-only packet view.</param>
+    /// <param name="linkId">
+    /// The identity of the link the packet came in on.
+    /// </param>
+    /// <param name="packet">
+    /// The decoded read-only packet view.
+    /// </param>
     public delegate void XmsgPacketReceived(string linkId, XmsgPacketInfo packet);
 
     /// <summary>
@@ -32,14 +36,18 @@ namespace NDInsight.Sintran.Xmsg.Codec
         /// <summary>
         /// Encodes an outgoing packet and sends it down through the held transport.
         /// </summary>
-        /// <param name="packet">The packet to serialise and send.</param>
+        /// <param name="packet">
+        /// The packet to serialise and send.
+        /// </param>
         void SendPacket(XmsgPacket packet);
 
         /// <summary>
         /// Processes one complete information field arriving from the link, raising the
         /// <see cref="PacketReceived"/> up-event when it decodes to a valid XMSG packet.
         /// </summary>
-        /// <param name="data">The information-field bytes (SINTRAN header onward).</param>
+        /// <param name="data">
+        /// The information-field bytes (SINTRAN header onward).
+        /// </param>
         void ProcessBytes(ReadOnlySpan<byte> data);
 
         /// <summary>

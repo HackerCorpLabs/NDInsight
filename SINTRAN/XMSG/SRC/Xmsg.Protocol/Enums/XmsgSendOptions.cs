@@ -7,6 +7,11 @@ namespace NDInsight.Sintran.Xmsg
     /// word. Each bit selects a send option.
     /// </summary>
     /// <remarks>
+    /// This is the SAME bit set as <see cref="XmsgOption"/>, shifted down by 8: XmsgOption is the
+    /// 16-bit MON 200B T-register word (source of truth, generated from the official constants) and
+    /// this enum is its high byte as it appears on the wire. Convert with
+    /// <see cref="XmsgOptionConversion"/>; the lockstep is enforced by a unit test, so never
+    /// re-number one enum without the other.
     /// The option-bit names and values are VERIFIED from XMSG-VALUES-M.SYMB (the XF* symbols); the
     /// placement of that byte into the wire role octet is INFERRED, but it decodes every observed role
     /// value (0xE4/0x84/0x94/0x40/0x00/0x60/0xC4/0x54) with zero exceptions. Note in particular that

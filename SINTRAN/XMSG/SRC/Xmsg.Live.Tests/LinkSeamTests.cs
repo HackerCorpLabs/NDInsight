@@ -83,7 +83,9 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             Assert.False(adapter.SendData(new byte[] { 0x21, 0x13 }));
         }
 
-        /// <summary>Builds a LAPB data I-frame body: addr 0x09, control from N(S)/N(R), then info.</summary>
+        /// <summary>
+        /// Builds a LAPB data I-frame body: addr 0x09, control from N(S)/N(R), then info.
+        /// </summary>
         private static byte[] BuildIFrameBody(int sendSeq, int receiveSeq, byte[] info)
         {
             byte control = (byte)((receiveSeq << 5) | (sendSeq << 1));   // bit0 = 0 -> I-frame

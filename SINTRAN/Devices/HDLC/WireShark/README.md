@@ -44,6 +44,26 @@ every `git pull` that touched this file.)
 
 ---
 
+## Verify a repo edit WITHOUT installing it (no admin needed)
+
+Loading the repo copy with `-X lua_script:` while an installed copy exists aborts with
+`Proto_new: there cannot be two protocols with the same description`. Overriding the
+plugin directory to an empty folder stops the installed copy loading, so the repo copy
+is the only one and can be tested directly:
+
+```bash
+mkdir -p /tmp/noplugins
+WIRESHARK_PLUGIN_DIR=/tmp/noplugins tshark \
+  -X lua_script:"<repo path>/hdlc_tcp.lua" -r capture.pcapng -Y hdlc_lapb -V
+```
+
+(`WIRESHARK_CONFIG_DIR` does NOT work for this - it only moves the personal config
+directory, and the installed copy lives in the global one.)
+
+The acceptance check before installing: run it over several captures and require
+**zero Lua errors** and **no NEW expert warnings** versus the installed copy. Count
+them with `grep -c "Expert Info"` on both and compare - the numbers must match.
+
 ## Use — the display filter you type at the top of the window
 
 The `nd100x --hdlc` bridge uses a **configurable TCP port**, and Wireshark

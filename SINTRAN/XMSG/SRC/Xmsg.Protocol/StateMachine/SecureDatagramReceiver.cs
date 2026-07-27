@@ -88,7 +88,9 @@ namespace NDInsight.Sintran.Xmsg
         /// The TAD-session path does NOT use this - it uses the stateless closed form via
         /// <see cref="UseSessionAckModel"/>. This remains for the reachability / list-route ACKs.
         /// </remarks>
-        /// <param name="value">The value the next legacy ACK will carry as its trailing byte.</param>
+        /// <param name="value">
+        /// The value the next legacy ACK will carry as its trailing byte.
+        /// </param>
         public void SeedCounter(byte value)
         {
             _counter = value;

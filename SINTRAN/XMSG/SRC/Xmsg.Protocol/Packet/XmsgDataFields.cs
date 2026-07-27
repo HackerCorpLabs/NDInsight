@@ -15,43 +15,69 @@ namespace NDInsight.Sintran.Xmsg.Packet
     /// </remarks>
     public struct XmsgDataFields
     {
-        /// <summary>Destination node number (SINTRAN header offsets 4-5).</summary>
+        /// <summary>
+        /// Destination node number (SINTRAN header offsets 4-5).
+        /// </summary>
         public ushort DestinationNode;
 
-        /// <summary>Source node number (SINTRAN header offsets 6-7).</summary>
+        /// <summary>
+        /// Source node number (SINTRAN header offsets 6-7).
+        /// </summary>
         public ushort SourceNode;
 
-        /// <summary>Flags 1 — the per-direction datagram sequence (offsets 8-9).</summary>
+        /// <summary>
+        /// Flags 1 — the per-direction datagram sequence (offsets 8-9).
+        /// </summary>
         public ushort Flags1;
 
-        /// <summary>Flags 2 — the frame-class word (offsets 10-11); <c>0x0400</c> for the setup frames.</summary>
+        /// <summary>
+        /// Flags 2 — the frame-class word (offsets 10-11); <c>0x0400</c> for the setup frames.
+        /// </summary>
         public ushort Flags2;
 
-        /// <summary>The sub-protocol selector / channel (Protocol ID, offset 12).</summary>
+        /// <summary>
+        /// The sub-protocol selector / channel (Protocol ID, offset 12).
+        /// </summary>
         public SintranProtocolId ProtocolId;
 
-        /// <summary>Sub-header per-direction counter (offset 0).</summary>
+        /// <summary>
+        /// Sub-header per-direction counter (offset 0).
+        /// </summary>
         public byte Counter;
 
-        /// <summary>Sub-header frame-flags byte (offset 3); <c>0x86</c> for the setup frames.</summary>
+        /// <summary>
+        /// Sub-header frame-flags byte (offset 3); <c>0x86</c> for the setup frames.
+        /// </summary>
         public byte FrameFlags;
 
-        /// <summary>Sub-header role byte (offset 4); low nibble 4 = asker, 0 = responder.</summary>
+        /// <summary>
+        /// Sub-header role byte (offset 4); low nibble 4 = asker, 0 = responder.
+        /// </summary>
         public byte Role;
 
-        /// <summary>XMDSY destination system number (offsets 5-6, big-endian).</summary>
+        /// <summary>
+        /// XMDSY destination system number (offsets 5-6, big-endian).
+        /// </summary>
         public ushort DestinationSystem;
 
-        /// <summary>XMDPT destination port (offsets 7-8, big-endian).</summary>
+        /// <summary>
+        /// XMDPT destination port (offsets 7-8, big-endian).
+        /// </summary>
         public ushort DestinationPort;
 
-        /// <summary>XMSSY source system number (offsets 9-10, big-endian).</summary>
+        /// <summary>
+        /// XMSSY source system number (offsets 9-10, big-endian).
+        /// </summary>
         public ushort SourceSystem;
 
-        /// <summary>XMSPT source port (offsets 11-12, big-endian).</summary>
+        /// <summary>
+        /// XMSPT source port (offsets 11-12, big-endian).
+        /// </summary>
         public ushort SourcePort;
 
-        /// <summary>XMCSM control/service dispatch word (offsets 13-16).</summary>
+        /// <summary>
+        /// XMCSM control/service dispatch word (offsets 13-16).
+        /// </summary>
         public uint ControlService;
 
         /// <summary>
