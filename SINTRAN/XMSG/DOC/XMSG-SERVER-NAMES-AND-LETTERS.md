@@ -280,7 +280,10 @@ Two rules that are easy to get wrong:
 - `XSGIN` is **CLOSED 2026-07-27** - captured for a system name, a port name and an unknown
   name, confirming that the port number comes back as parameter 1 only for a port name:
   [XMSG-XSGIN-NAME-LOOKUP-CAPTURED-2026-07-27.md](XMSG-XSGIN-NAME-LOOKUP-CAPTURED-2026-07-27.md).
-- `XSGMG` remains open, and now for a known reason: nothing the XMSG command program
-  exposes issues it, with or without privilege. The untried route is that program's raw
-  request builder (`Clear-Buffer` / `Append-String` / `Route-Message` / `Decode-Buffer`),
-  which can hand-build service 71 directly.
+- `XSGMG` remains open. No ordinary XMSG-COMMAND command issues it. The raw request builder
+  that could hand-build service 71 is confirmed to EXIST, behind `SET-ADVANCED-MODE` plus
+  `SET-PRIVILEGED` (`OPEN-PORT` and `GET-MESSAGE-SPACE` already driven successfully), but
+  the remaining commands' prompts are unknown and the boot harness is currently crashing
+  intermittently, so the request has not been assembled. Details and the exact next step:
+  [XMSG-XSGIN-NAME-LOOKUP-CAPTURED-2026-07-27.md](XMSG-XSGIN-NAME-LOOKUP-CAPTURED-2026-07-27.md)
+  sections 7 and 8.

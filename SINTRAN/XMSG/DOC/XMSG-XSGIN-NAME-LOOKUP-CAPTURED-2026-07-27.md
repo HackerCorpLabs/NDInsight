@@ -93,9 +93,17 @@ body. **UNRESOLVED.**
 
 ## 6. Why `XSGMG` did not appear [VERIFIED as far as it goes]
 
-`XSGMG` is privileged, so the probe raised privilege with `SET-PRIVILEGED` and repeated the
-lookups. The traffic was identical - still `XSGIN`. Nothing the XMSG command program
-exposes resolves a name to a magic number.
+`XSGMG` is privileged, so the probe tried `SET-PRIVILEGED` and repeated the lookups. The
+traffic was identical - still `XSGIN`.
+
+**CORRECTION (same day):** that first probe did NOT actually raise privilege.
+`SET-PRIVILEGED` answered "** Command not recognised **", which the run did not check. The
+command exists only in ADVANCED mode - see section 8. The conclusion happens to survive,
+because the commands that emit `XSGIN` are the same either way, but the reasoning was wrong
+and is corrected here rather than quietly.
+
+Nothing the XMSG command program exposes as an ordinary command resolves a name to a magic
+number.
 
 That is consistent with what `XSGMG` is for: handing one task another task's addressable
 identity, which is the network server's job when routing between systems, not an operator
@@ -110,7 +118,61 @@ command. The remaining ways to capture it:
    `XMSG-COMMAND-REFERENCE.md` and was not probed. **This is the cheapest remaining route
    and is untried.**
 
-## 7. Bonus: an XSLET with parameter 10 [OBSERVED, NOT EXPLAINED]
+## 7. The raw request builder EXISTS, behind advanced mode [VERIFIED]
+
+The route to `XSGMG` is real and now half-opened. `XMSG-COMMAND-REFERENCE.md` lists the
+builder commands, but on this build every one of them - and `SET-PRIVILEGED` itself -
+answers "** Command not recognised **" at the ordinary prompt. They are not absent, they
+are **gated**:
+
+```
+X-C:SET-ADVANCED-MODE
+
+X-C(Adv):SET-PRIVILEGED
+*- WARNING: You can now bypass system protection mechanisms -*
+
+X-C(Adv):OPEN-PORT
+New Port no: 5
+
+X-C(Adv):GET-MESSAGE-SPACE
+No. of bytes?
+Current message: 161605
+```
+
+So the sequence is: `SET-ADVANCED-MODE`, then `SET-PRIVILEGED`, then the builder commands.
+Without privilege, `OPEN-PORT` in advanced mode answers
+"*- XMSG error code: -27: Privileged function called without privilege" - which is itself a
+clean confirmation of what the privilege gate does.
+
+Note the program's own `?` is NOT an inventory: it lists only "new and modified commands
+for product no. 210373M" (two of them). The reference document's list is broader than what
+the ordinary prompt accepts, and advanced mode is the reason.
+
+**What remains:** the prompts for `FILL-OUTPUT-BUFFER`, `APPEND-STRING`, `APPEND-INTEGER`,
+`BUFFER-READY`, `ROUTE-MESSAGE`, `RECEIVE-MESSAGE` and `DECODE-BUFFER` are still unknown,
+so the `XSGMG` request has not been assembled. **BLOCKED, not finished** - see below.
+
+## 8. BLOCKER: the boot harness crashes intermittently
+
+Three consecutive runs ended with the host process dying - no exception, no log line, the
+process simply gone (the signature of a stack overflow, which cannot be caught). It died at
+a DIFFERENT point each time:
+
+| Run | Last thing on the console |
+|---|---|
+| 1 | `CLEAR-BUFFER` in advanced mode |
+| 2 | `START-TADADM` |
+| 3 | `SET-ADVANCED-MODE` |
+
+Earlier runs of the same harness completed the full sequence twice, and the registry probe
+crashed once then passed on retry, so this is intermittent rather than caused by any one
+command. **Do not read run 1 as "CLEAR-BUFFER is fatal"** - that was my first inference and
+runs 2 and 3 refute it.
+
+This is emulator-side and belongs with the existing Ethernet-harness instability, not with
+XMSG. Finishing `XSGMG` needs it stable enough to get through one ~15-command sequence.
+
+## 9. Bonus: an XSLET with parameter 10 [OBSERVED, NOT EXPLAINED]
 
 `LIST-CONNECTIONS` answered with system `D100` produced:
 
