@@ -112,6 +112,79 @@ namespace NDInsight.Sintran.Xmsg.Api
         }
 
         /// <summary>
+        /// Builds a create-connection-port request (XSCRS) with no uniqueness flag, which is the
+        /// form the real COSMOS servers use.
+        /// </summary>
+        /// <param name="serial">
+        /// The caller's serial number.
+        /// </param>
+        /// <param name="portName">
+        /// The connection name.
+        /// </param>
+        /// <param name="maximumConnections">
+        /// The initial free-connection count.
+        /// </param>
+        /// <returns>
+        /// The request message, to be sent FROM the port that is to be named.
+        /// </returns>
+        /// <remarks>
+        /// Parameter 3 is optional and OBSERVED to be omitted: a MON 200 trace of *FA-FSA,
+        /// *FA-FSA-I and *FA-SERVER registering shows a string parameter 1 followed only by
+        /// integer parameter 2. Every one of them passed ZERO as the initial count and then raised
+        /// it with <see cref="AdjustFreeConnections"/>, one call per service point, which is what
+        /// produces the free-SP totals the operator sees. See
+        /// DOC/XMSG-XSCRS-CONNECTION-PORTS-CAPTURED-2026-07-27.md.
+        /// </remarks>
+        public static XroutMessage CreateConnectionPort(
+            byte serial,
+            string portName,
+            ushort maximumConnections)
+        {
+            if (portName == null)
+            {
+                throw new ArgumentNullException(nameof(portName));
+            }
+
+            return new XroutMessageBuilder()
+                .WithSerial(serial)
+                .WithService(XroutService.XSCRS)
+                .AddString(1, portName)
+                .AddInteger16(2, maximumConnections)
+                .Build();
+        }
+
+        /// <summary>
+        /// Builds a create-connection-port request (XSCRS) carrying nothing but the name.
+        /// </summary>
+        /// <param name="serial">
+        /// The caller's serial number.
+        /// </param>
+        /// <param name="portName">
+        /// The connection name.
+        /// </param>
+        /// <returns>
+        /// The request message, to be sent FROM the port that is to be named.
+        /// </returns>
+        /// <remarks>
+        /// The barest observed form: the file-transfer server *XFTRA registers with the name alone,
+        /// no count parameter at all, and then issues a single XSNSP of +1. So parameter 2 is
+        /// optional as well, and an absent count behaves as zero.
+        /// </remarks>
+        public static XroutMessage CreateConnectionPort(byte serial, string portName)
+        {
+            if (portName == null)
+            {
+                throw new ArgumentNullException(nameof(portName));
+            }
+
+            return new XroutMessageBuilder()
+                .WithSerial(serial)
+                .WithService(XroutService.XSCRS)
+                .AddString(1, portName)
+                .Build();
+        }
+
+        /// <summary>
         /// Builds a request to adjust a connection port's free-connection count (XSNSP).
         /// </summary>
         /// <param name="serial">

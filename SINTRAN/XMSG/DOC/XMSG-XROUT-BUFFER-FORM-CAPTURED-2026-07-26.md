@@ -137,9 +137,13 @@ equal to this" is turned into a walk.
 
 ## What this does NOT show
 
-- **`XSCRS`** (create connection port) was not seen in this capture. `*XFTRA`,
-  `*FA-FSA` and `*FA-SERVER` do register with connection counts, so they presumably use
-  it; the trace window here did not cover their startup.
+- **`XSCRS`** (create connection port) was not seen in this capture. **RESOLVED
+  2026-07-27** - captured in a later run of the same harness; see
+  [XMSG-XSCRS-CONNECTION-PORTS-CAPTURED-2026-07-27.md](XMSG-XSCRS-CONNECTION-PORTS-CAPTURED-2026-07-27.md).
+  The reason given here ("the trace window did not cover their startup") was wrong: the
+  harness always drove the products, that run simply did not reach them. The capture also
+  corrected an assumption - the free-SP count is built by repeated `XSNSP` of +1, not set
+  by `XSCRS` parameter 2.
 - The reply direction is only partly visible: `XFWRI` shows what a task WRITES, so
   XROUT's answers appear only when XROUT itself writes them.
 

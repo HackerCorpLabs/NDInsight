@@ -47,6 +47,67 @@ namespace NDInsight.Sintran.Xmsg.Api.Tests
         }
 
         /// <summary>
+        /// Our builders reproduce, byte for byte, the XSCRS registrations captured from a running
+        /// SINTRAN - including the two shorter forms the real servers actually use.
+        /// </summary>
+        /// <remarks>
+        /// Bytes from a MON 200 XFWRI trace, 2026-07-27. *XFTRA sends the name alone; the file
+        /// access servers add an initial count of zero and no uniqueness flag. Evidence:
+        /// DOC/XMSG-XSCRS-CONNECTION-PORTS-CAPTURED-2026-07-27.md.
+        /// </remarks>
+        [Fact]
+        public void CreateConnectionPort_ReproducesTheCapturedNameOnlyRegistration()
+        {
+            XroutMessage message = XroutRequests.CreateConnectionPort(0x53, "*XFTRA");
+
+            Assert.Equal(
+                FromHex("5350 0008 FF06 2A5846545241"),
+                message.ToArray(XroutMessageFraming.WithHeader));
+        }
+
+        /// <summary>
+        /// The file-access form: name plus an initial count of zero, no uniqueness flag, with the
+        /// pad byte that even-aligns the integer block after an odd-length name.
+        /// </summary>
+        [Fact]
+        public void CreateConnectionPort_ReproducesTheCapturedZeroCountRegistration()
+        {
+            XroutMessage message = XroutRequests.CreateConnectionPort(0x53, "*FA-FSA", 0);
+
+            Assert.Equal(
+                FromHex("5350 000E FF07 2A46412D465341 00 0202 0000"),
+                message.ToArray(XroutMessageFraming.WithHeader));
+        }
+
+        /// <summary>
+        /// The +1 that adds a single service point, as every captured server issues it.
+        /// </summary>
+        [Fact]
+        public void AdjustFreeConnections_ReproducesTheCapturedIncrement()
+        {
+            XroutMessage message = XroutRequests.AdjustFreeConnections(0x54, 1);
+
+            Assert.Equal(
+                FromHex("5451 0004 0102 0001"),
+                message.ToArray(XroutMessageFraming.WithHeader));
+        }
+
+        /// <summary>
+        /// Parses a hex string, ignoring spaces so a capture keeps its field boundaries visible.
+        /// </summary>
+        private static byte[] FromHex(string hex)
+        {
+            string packed = hex.Replace(" ", string.Empty);
+            byte[] result = new byte[packed.Length / 2];
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i] = Convert.ToByte(packed.Substring(i * 2, 2), 16);
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// A letter without a system name omits parameter 2 entirely rather than sending it empty.
         /// </summary>
         [Fact]

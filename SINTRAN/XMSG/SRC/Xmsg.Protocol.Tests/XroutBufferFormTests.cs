@@ -154,12 +154,135 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             Assert.Equal(0x006401F9u, from);
         }
 
+        /// <summary>
+        /// The file-transfer server creates its connection port with the NAME ALONE - no count
+        /// parameter at all.
+        /// </summary>
+        /// <remarks>
+        /// Captured 2026-07-27 while *XFTRA started. The manual lists three parameters for XSCRS;
+        /// this proves parameters 2 and 3 are genuinely optional.
+        /// </remarks>
+        [Fact]
+        public void XscrsForXftra_CarriesTheNameOnly()
+        {
+            byte[] buffer = FromHex("5350 0008 FF06 2A5846545241");
+
+            XroutMessage message = XroutMessage.Parse(buffer, XroutMessageFraming.WithHeader);
+
+            Assert.Equal((byte)XroutService.XSCRS, message.Service);
+            Assert.Single(message.Parameters);
+            Assert.Equal("*XFTRA", message.Parameters[0].AsText());
+        }
+
+        /// <summary>
+        /// The file-access servers create their connection ports with an initial count of ZERO,
+        /// then raise it one service point at a time.
+        /// </summary>
+        /// <remarks>
+        /// This is the mechanism behind the "Free SPs" column: XSCRS does not set the total. Note
+        /// the pad byte after the odd-length name - the integer block that follows is even-aligned.
+        /// </remarks>
+        [Theory]
+        [InlineData("5350 000E FF07 2A46412D465341 00 0202 0000", "*FA-FSA")]
+        [InlineData("5350 0010 FF09 2A46412D4653412D49 00 0202 0000", "*FA-FSA-I")]
+        [InlineData("5350 0010 FF0A 2A46412D534552564552 0202 0000", "*FA-SERVER")]
+        public void XscrsForFileAccess_StartsAtZeroConnections(string hex, string expectedName)
+        {
+            byte[] buffer = FromHex(hex);
+
+            XroutMessage message = XroutMessage.Parse(buffer, XroutMessageFraming.WithHeader);
+
+            Assert.Equal((byte)XroutService.XSCRS, message.Service);
+            Assert.Equal(2, message.Parameters.Count);
+            Assert.Equal(expectedName, message.Parameters[0].AsText());
+
+            uint initialConnections;
+            Assert.True(message.Parameters[1].TryGetUInt32(out initialConnections));
+            Assert.Equal(0u, initialConnections);
+        }
+
+        /// <summary>
+        /// Each service point is added by its own XSNSP of exactly +1.
+        /// </summary>
+        /// <remarks>
+        /// Captured once for *XFTRA, twice for *FA-FSA and thirty times for *FA-SERVER - matching
+        /// the 1 / 2 / 30 the registry then reported.
+        /// </remarks>
+        [Fact]
+        public void Xsnsp_AddsOneServicePoint()
+        {
+            byte[] buffer = FromHex("54510004" + "01020001");
+
+            XroutMessage message = XroutMessage.Parse(buffer, XroutMessageFraming.WithHeader);
+
+            Assert.Equal((byte)XroutService.XSNSP, message.Service);
+            Assert.Single(message.Parameters);
+
+            uint delta;
+            Assert.True(message.Parameters[0].TryGetUInt32(out delta));
+            Assert.Equal(1u, delta);
+        }
+
+        /// <summary>
+        /// A registry walk answers with a third parameter - the free-connection count - but only
+        /// for connection ports.
+        /// </summary>
+        /// <remarks>
+        /// The *FA-SERVER entry reports 0x1E = 30, the total its thirty XSNSP calls built up. A
+        /// plain XSNAM port such as *XM-FIDO answers with no parameter 3 at all, which is how a
+        /// caller tells the two port kinds apart.
+        /// </remarks>
+        [Fact]
+        public void XsgniReply_ReportsFreeConnectionsForAConnectionPort()
+        {
+            byte[] connectionPort = FromHex(
+                "0100 0016 0104 006405CC FE0A 2A46412D534552564552 0302 001E");
+
+            XroutMessage message = XroutMessage.Parse(connectionPort, XroutMessageFraming.WithHeader);
+
+            Assert.Equal(3, message.Parameters.Count);
+            Assert.Equal("*FA-SERVER", message.Parameters[1].AsText());
+
+            uint freeConnections;
+            Assert.True(message.Parameters[2].TryGetUInt32(out freeConnections));
+            Assert.Equal(30u, freeConnections);
+
+            // ... and the magic number decomposes as port 11, which is where the registry listed it.
+            uint magic;
+            Assert.True(message.Parameters[0].TryGetUInt32(out magic));
+            int portNumber;
+            int random;
+            Assert.True(XmsgPortWordAllocator.TrySplit((ushort)(magic & 0xFFFF), out portNumber, out random));
+            Assert.Equal(11, portNumber);
+            Assert.Equal(76, random);
+        }
+
+        /// <summary>
+        /// The named-port answer for *XM-FIDO has no free-connection parameter.
+        /// </summary>
+        [Fact]
+        public void XsgniReply_HasNoFreeConnectionsForANamedPort()
+        {
+            byte[] namedPort = FromHex(
+                "01000010" + "0104006401F8" + "FE082A584D2D4649444F");
+
+            XroutMessage message = XroutMessage.Parse(namedPort, XroutMessageFraming.WithHeader);
+
+            Assert.Equal(2, message.Parameters.Count);
+            Assert.Equal("*XM-FIDO", message.Parameters[1].AsText());
+        }
+
+        /// <summary>
+        /// Parses a hex string, ignoring spaces so a capture can be written with its field
+        /// boundaries visible.
+        /// </summary>
         private static byte[] FromHex(string hex)
         {
-            byte[] result = new byte[hex.Length / 2];
+            string packed = hex.Replace(" ", string.Empty);
+            byte[] result = new byte[packed.Length / 2];
             for (int i = 0; i < result.Length; i++)
             {
-                result[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
+                result[i] = Convert.ToByte(packed.Substring(i * 2, 2), 16);
             }
 
             return result;

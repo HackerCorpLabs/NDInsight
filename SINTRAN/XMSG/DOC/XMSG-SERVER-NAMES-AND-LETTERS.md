@@ -78,8 +78,14 @@ port number, but never the magic (appendix B section 3.11, VERIFIED).
 
 That table is the whole reason `XSCRS` exists: it is how one logical service name is
 spread across a **pool of server ports**, with XROUT doing the load distribution.
-A server that can handle N simultaneous clients registers with the count set to N
-and increments it again as each session ends.
+
+**How the count is actually built [VERIFIED 2026-07-27]** - not the way this section
+originally described it. A server does *not* register with the count set to N. Every
+captured server registers with **zero** (`*XFTRA` omits the parameter entirely) and then
+issues **one `XSNSP` of +1 per service point**: 1 for `*XFTRA`, 2 for `*FA-FSA`, 30 for
+`*FA-SERVER`, matching what the operator then sees. The counter is a running total the
+server maintains, spent by XROUT one letter at a time and topped up as sessions end. Bytes
+and method: [XMSG-XSCRS-CONNECTION-PORTS-CAPTURED-2026-07-27.md](XMSG-XSCRS-CONNECTION-PORTS-CAPTURED-2026-07-27.md).
 
 ### Name lifetime
 
@@ -260,9 +266,15 @@ Two rules that are easy to get wrong:
 
 ## 8. Open
 
-- Only `*TADADM` has its logical port confirmed from the wire. A capture of a session
-  to `*XFTRA` (expected port 8) or `*FA-SERVER` (11) would confirm the others; port
-  number 8 already appears on the wire, so it is reachable.
-- No `XSNAM`/`XSCRS` registration exchange has been captured - our knowledge of the
-  registration step is from the manual only, not from bytes.
+- Only `*TADADM` has its logical port confirmed from the wire. Port numbers are
+  load-order dependent, not well known, so a wire capture only ever confirms the boot it
+  came from - the registry walk in
+  [XMSG-XSCRS-CONNECTION-PORTS-CAPTURED-2026-07-27.md](XMSG-XSCRS-CONNECTION-PORTS-CAPTURED-2026-07-27.md)
+  is the authoritative view for a given startup order.
+- ~~No `XSNAM`/`XSCRS` registration exchange has been captured~~ - **CLOSED 2026-07-27.**
+  Both are captured from guest memory, with the buffers, the follow-up `XFSND` to XROUT
+  and the `XSNSP` calls that build the free-SP count. `XSNAM`:
+  [XMSG-XROUT-BUFFER-FORM-CAPTURED-2026-07-26.md](XMSG-XROUT-BUFFER-FORM-CAPTURED-2026-07-26.md).
+  `XSCRS`:
+  [XMSG-XSCRS-CONNECTION-PORTS-CAPTURED-2026-07-27.md](XMSG-XSCRS-CONNECTION-PORTS-CAPTURED-2026-07-27.md).
 - No `XSGMG`/`XSGIN` exchange exists in the corpus either.
