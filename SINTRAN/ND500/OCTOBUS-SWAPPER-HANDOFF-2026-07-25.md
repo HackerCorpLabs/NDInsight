@@ -936,8 +936,39 @@ NOT RESOLVED - do not guess. What is known:
 - Segment 13 - the segment shared with the ND-100 - IS mapped, so the swapper's message
   path is available to it.
 
-Settling this needs either an operand-level trace of how 0x0000000A was computed, or the
-ND-500 microcode (expected imminently). Both beat speculation.
+### Narrowed by an instruction trace (2026-07-27)
+
+An opt-in instruction trace ring was added to `CpuND500`
+(`InstructionTraceDepth` / `DumpInstructionTrace`) and settles two things.
+
+**Two diagnostic defects had to be fixed first, and both had been misleading us:**
+
+1. MMU traps reported the WRONG instruction. `ExecuteDecodedInstruction` advances PC
+   before the instruction runs, so `regs.PC` names the NEXT instruction throughout
+   execution - including when an access traps. The stop reported at `0x0800913B` is
+   really the instruction at `0x08009137`, four bytes earlier. The architecture keeps
+   these apart deliberately: the context block has BOTH a "Trapping P register" and a
+   "Restart P register" (ND-05.017.01 Appendix A.1, registers 0 and 1). Now reported
+   as the trapping P. The C port `nd500x` had the identical bug and had already fixed
+   it for page faults only; protect violations there are still uncorrected.
+2. The trace entry must be opened BEFORE the fetch, because the ND-500 fetch also
+   decodes operands - so an instruction faulting during operand decode would never
+   appear, and the trace would end on its predecessor.
+
+**What the trace establishes:**
+
+- The swapper retires exactly **129 instructions**, from `0x08000004` to `0x08009137`.
+  (An earlier note in this file's history said "thousands" - that was wrong; the PC
+  covers a lot of address space but few instructions.)
+- At the faulting instruction, **B=0x08024300 and R=0x080240BC are both valid
+  segment-1 pointers**. So the null-base-register hypothesis for the `0x0000000A`
+  operand is **DEAD** - do not re-investigate it.
+- The faulting instruction is at `0x08009137`, opcode `0xFD69`.
+
+**Next step:** decode `0xFD69`'s operand form at `0x08009137` and work out which
+operand yields address `0x0000000A`. The ND-500 microcode (expected imminently) or the
+disassembler both beat speculation. Do NOT guess.
+
 
 ## 8. Standing constraints
 
