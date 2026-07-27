@@ -1187,14 +1187,56 @@ Bad memory configuration") shows the swapper does read a memory-interval structu
 the element layout has NOT been carved and the `+8` field has NOT been identified. It
 could equally be a segment table, a process table, or something else.
 
+### 7.6.4 ROOT CAUSE ONE LEVEL UP: the base pointer is NULL (2026-07-27)
+
+Step 1 below is done, and it moves the defect. `0x26214` is not a list head that SINTRAN
+fills - it is DERIVED. The single writer is the initialiser at `1000103415`:
+
+```
+1000103423  w move b.24,$1000461014   ; 0x2620C := the incoming BASE POINTER
+1000103432  r := $1000461014          ; r := that base
+1000103440  dmof
+1000103476  w1 laddr r.44             ; ADDRESS of base + 0o44
+1000103511  w1 =: $1000461024         ; 0x26214 := it
+1000103527  w1 laddr r.50             ; ADDRESS of base + 0o50  -> 0x26218
+```
+
+MEASURED live (PS=3, CED=0):
+
+```
+VA 0x0802620C -> PA 0x0004FA0C = 0x00000000    <- THE BASE POINTER IS ZERO
+VA 0x08026210 -> PA 0x0004FA10 = 0x00000000
+VA 0x08026214 -> PA 0x0004FA14 = 0x00000024    = 0 + 0o44
+VA 0x08026218 -> PA 0x0004FA18 = 0x00000028    = 0 + 0o50
+```
+
+The two derived words are exactly the offsets off a null base. So the scan walks garbage,
+finds one element whose `+8` is 0, counts no matches, and reports SWPFATAL 0o201.
+
+**The defect is therefore NOT in the list and NOT in the scan.** It is that the caller at
+`1000077777` (VA `0x08007FFF`) hands the initialiser a null base pointer. Parameters
+arrive in W1 (= our I1 - VERIFIED: at the SWPFATAL call I1 held 0x81, exactly the error
+code the caller loaded with `w1 := b.54`).
+
+The memory-part-table hypothesis in 7.6.3 is now IRRELEVANT to the failure - whatever the
+structure is, the swapper never got its address. Do not spend time on it.
+
 **What to do next, in order:**
-1. Carve what the routine at `1000107011` actually scans - the DSEG cross-reference
-   (`swapper-k01.dseg.md` line 1104) shows `0x26214` is WRITTEN by the swapper (`w1 =:`),
-   so it is a variable, not a load-time constant. Find who writes it.
-2. Establish the element layout, in particular what `+8` means and who is supposed to set
-   it to 1 - SINTRAN, the ACCP, or the swapper itself.
-3. Only then decide whether the emulator is failing to populate something, or the swapper
-   is being started before SINTRAN has set it up.
+1. DONE - see above. The single writer of 0x26214 is the initialiser at 1000103415, and it
+   derives the value from a base pointer at 0x2620C which is NULL.
+2. Find where the caller at `1000077777` is supposed to get that base pointer. It is early
+   startup, so likely from the swapper's start-up data, from the LNEWSWAP answer, or from
+   a value SINTRAN/the ACCP should have placed. Note manual error 46B is "INIT SWAPPER -
+   Illegal startup data", which is the right neighbourhood.
+3. Only then decide whether the emulator fails to supply something, or the swapper is
+   started before SINTRAN has set it up.
+
+**Tooling note.** Reaching that caller in the instruction trace needs a ring deeper than
+256, and every attempt at a deeper ring aborted the test host. That is NOT established as
+the ring's fault: a second session was running concurrently against the SAME writable pack
+(`%TEMP%etrocore-nd5000-octobus\BIGDISK0-L.IMG`), which is a likelier cause and also
+aborted a run at depth 256. Re-test deep tracing on a quiet machine. Concurrent harness
+runs sharing that pack should be avoided regardless - they can corrupt it.
 
 
 ## 8. Standing constraints
