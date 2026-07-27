@@ -965,9 +965,60 @@ An opt-in instruction trace ring was added to `CpuND500`
   operand is **DEAD** - do not re-investigate it.
 - The faulting instruction is at `0x08009137`, opcode `0xFD69`.
 
-**Next step:** decode `0xFD69`'s operand form at `0x08009137` and work out which
-operand yields address `0x0000000A`. The ND-500 microcode (expected imminently) or the
-disassembler both beat speculation. Do NOT guess.
+### 7.5.2 RESOLVED - it was never a mapping problem (2026-07-27)
+
+`0xFD69` is `W SMOVE` (string move). The answer came from recording the operand's
+addressing at fault time (`LastOperandAddressing`, quoted by the MMU when it refuses):
+
+```
+operand: mode=LOCAL_SHORT reg=0 disp=52 B=0x08024300 -> ea=0x08024334
+```
+
+The refused address `0x0000000A` has NO relationship to that - a valid segment-1
+address. The bad address was therefore computed INSIDE the instruction, not by operand
+decoding.
+
+**Root cause:** every STRING instruction obtained its descriptor address with
+`ReadOperandValue`, taking the operand's VALUE as the address of the descriptor - one
+indirection too many. It was actually fetching the descriptor's first word (the element
+count) and using that as a pointer.
+
+ND-05.009.4 section 8.15 "Descriptor addressing": "`<operand>` is the address of a
+descriptor, and it can be any operand specifier except ALT, constant or register." The
+manual's own SMOVE example settles it:
+
+```
+D SMOVE IND(B.DATABLOCK), B.COPY
+```
+
+`B.COPY` names a descriptor sitting AT B+COPY; `IND(...)` is how a program asks for one
+more level. Indirection is the operand specifier's job, not the instruction's.
+
+Fixed at all 27 sites across 17 STRING instructions, via a single
+`GetDescriptorAddress` helper (which also handles the constant-mode case, where there is
+no effective address and the constant's value IS the descriptor address - the nd500x C
+port draws the same distinction, and was already correct here).
+
+**Two hypotheses this killed, both recorded here earlier, both wrong:**
+- a null base register - B and R were valid segment-1 pointers throughout
+- a bug in PRE-INDEXED addressing - ND-05.009.4 section 8.9 confirms `ea=(Rn)+d` with no
+  base register, so the existing code was right
+
+## 7.6 MILESTONE: the swapper runs and parks (2026-07-27)
+
+```
+PC=0x08000687  stopMode=WAIT  PS=3  CED=0
+"The Swapper stopped" on the SINTRAN console: 12 occurrences before, ZERO after
+CPU crashes: ZERO
+```
+
+The swapper now executes normally and enters a WAIT state - parked, which is what a
+swapper does when it has reached its message loop and has nothing to do. Reproduced
+across runs at the same PC.
+
+**Next:** determine what the parked swapper is waiting for and whether SINTRAN considers
+it started (`list-active-processes` still shows only SYSTEM). That is a mailbox/message
+question now, not a CPU or MMU one.
 
 
 ## 8. Standing constraints
