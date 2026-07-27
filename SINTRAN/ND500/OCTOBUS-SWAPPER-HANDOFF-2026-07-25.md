@@ -1150,6 +1150,52 @@ zero means either the head pointer is empty/garbage, or the elements are there b
 our CPU executes them, so the note that ND-5000 translation is "always on" describes the
 MMS default state, not these explicit instructions.
 
+### 7.6.3 The list, captured live (2026-07-27)
+
+Captured with the swapper's context still loaded (PS=3, CED=0). Capturing it after the run
+does NOT work: the finally block runs once the process context has been cleared, PS reads
+0, the capability walk resolves nothing, and every address reports "unmapped" - which is
+indistinguishable from a genuine mapping failure. Sample it while PS is non-zero.
+
+```
+VA 0x08026214 -> PA 0x0004FA14 = 0x00000024      <- list head word
+VA 0x08026218 -> PA 0x0004FA18 = 0x00000028
+physical list from 0x00000024 (link at +4):
+  [0] @0x00000024 +8=0x0000 link=0x00000000
+  -> 1 element
+```
+
+**The observation, and only the observation:** the head word is `0x24`, the walk reaches
+ONE element there, and that element's `+8` halfword is `0`. The swapper counts only
+elements whose `+8` is `1`, so it counts zero and reports SWPFATAL 0o201.
+
+Note `0x24` as a PHYSICAL address lands in the low MPM window (RouteToMpm sends physical
+addresses below the MPM size into the shared window), i.e. inside the 5MPM area - so it is
+not obviously a nonsense pointer.
+
+**HYPOTHESIS, NOT VERIFIED - do not build on this without checking.** The list may be the
+MEMORY PART table. `MEMORY-CONFIGURATION` on this machine reports exactly one part:
+
+```
+   PART       WIDTH        N100   N500P  N500D
+     0B      0B-  7777B      Y      Y      Y
+```
+
+one entry, flagged available to the ND-500 - which would match a scan that counts parts
+whose flag is 1. The manual's swapper error 30B ("INCREASE - Too many memory intervals.
+Bad memory configuration") shows the swapper does read a memory-interval structure. But
+the element layout has NOT been carved and the `+8` field has NOT been identified. It
+could equally be a segment table, a process table, or something else.
+
+**What to do next, in order:**
+1. Carve what the routine at `1000107011` actually scans - the DSEG cross-reference
+   (`swapper-k01.dseg.md` line 1104) shows `0x26214` is WRITTEN by the swapper (`w1 =:`),
+   so it is a variable, not a load-time constant. Find who writes it.
+2. Establish the element layout, in particular what `+8` means and who is supposed to set
+   it to 1 - SINTRAN, the ACCP, or the swapper itself.
+3. Only then decide whether the emulator is failing to populate something, or the swapper
+   is being started before SINTRAN has set it up.
+
 
 ## 8. Standing constraints
 
