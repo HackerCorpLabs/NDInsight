@@ -12,4 +12,6 @@
   <Project Path="Xmsg.Api.Tests/Xmsg.Api.Tests.csproj" />
   <Project Path="Xmsg.Api.Node/Xmsg.Api.Node.csproj" />
   <Project Path="Xmsg.Api.Node.Tests/Xmsg.Api.Node.Tests.csproj" />
+  <Project Path="Xmsg.Chat/Xmsg.Chat.csproj" />
+  <Project Path="Xmsg.Chat.Tests/Xmsg.Chat.Tests.csproj" />
 </Solution>
