@@ -277,4 +277,10 @@ Two rules that are easy to get wrong:
   [XMSG-XROUT-BUFFER-FORM-CAPTURED-2026-07-26.md](XMSG-XROUT-BUFFER-FORM-CAPTURED-2026-07-26.md).
   `XSCRS`:
   [XMSG-XSCRS-CONNECTION-PORTS-CAPTURED-2026-07-27.md](XMSG-XSCRS-CONNECTION-PORTS-CAPTURED-2026-07-27.md).
-- No `XSGMG`/`XSGIN` exchange exists in the corpus either.
+- `XSGIN` is **CLOSED 2026-07-27** - captured for a system name, a port name and an unknown
+  name, confirming that the port number comes back as parameter 1 only for a port name:
+  [XMSG-XSGIN-NAME-LOOKUP-CAPTURED-2026-07-27.md](XMSG-XSGIN-NAME-LOOKUP-CAPTURED-2026-07-27.md).
+- `XSGMG` remains open, and now for a known reason: nothing the XMSG command program
+  exposes issues it, with or without privilege. The untried route is that program's raw
+  request builder (`Clear-Buffer` / `Append-String` / `Route-Message` / `Decode-Buffer`),
+  which can hand-build service 71 directly.

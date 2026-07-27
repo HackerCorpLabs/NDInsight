@@ -273,6 +273,88 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         }
 
         /// <summary>
+        /// Looking a SYSTEM name up with XSGIN answers with the system number as parameter 2 and
+        /// no parameter 1.
+        /// </summary>
+        /// <remarks>
+        /// Captured 2026-07-27 from the XMSG command program's Get-System-Name-or-Number. The
+        /// absent parameter 1 is the point: the manual makes the port number optional, returned
+        /// only when the name is a port name. See
+        /// DOC/XMSG-XSGIN-NAME-LOOKUP-CAPTURED-2026-07-27.md.
+        /// </remarks>
+        [Fact]
+        public void XsginForASystemName_AnswersWithTheSystemNumberOnly()
+        {
+            XroutMessage request = XroutMessage.Parse(
+                FromHex("0152 0006 FF04 44313032"), XroutMessageFraming.WithHeader);
+
+            Assert.Equal((byte)XroutService.XSGIN, request.Service);
+            Assert.Single(request.Parameters);
+            Assert.Equal("D102", request.Parameters[0].AsText());
+
+            XroutMessage reply = XroutMessage.Parse(
+                FromHex("0100 0004 0202 0066"), XroutMessageFraming.WithHeader);
+
+            Assert.Equal((byte)XroutError.XRSOK, reply.Service);
+            Assert.Single(reply.Parameters);
+            Assert.Equal(2, reply.Parameters[0].ParameterNumber);
+
+            uint systemNumber;
+            Assert.True(reply.Parameters[0].TryGetUInt32(out systemNumber));
+            Assert.Equal(102u, systemNumber);
+        }
+
+        /// <summary>
+        /// Looking a PORT name up answers with both outputs - port number as parameter 1, system
+        /// number as parameter 2.
+        /// </summary>
+        /// <remarks>
+        /// `*TADADM` sat on port 4 of system 100 in that boot, which is exactly what came back.
+        /// This is the form that resolves a name without needing privilege, and without ever
+        /// yielding a magic number.
+        /// </remarks>
+        [Fact]
+        public void XsginForAPortName_AnswersWithPortAndSystem()
+        {
+            XroutMessage request = XroutMessage.Parse(
+                FromHex("0152 000A FF07 2A5441444144 4D 00"), XroutMessageFraming.WithHeader);
+
+            Assert.Equal((byte)XroutService.XSGIN, request.Service);
+            Assert.Equal("*TADADM", request.Parameters[0].AsText());
+
+            XroutMessage reply = XroutMessage.Parse(
+                FromHex("0100 0008 0102 0004 0202 0064"), XroutMessageFraming.WithHeader);
+
+            Assert.Equal(2, reply.Parameters.Count);
+
+            uint portNumber;
+            Assert.True(reply.Parameters[0].TryGetUInt32(out portNumber));
+            Assert.Equal(4u, portNumber);
+
+            uint systemNumber;
+            Assert.True(reply.Parameters[1].TryGetUInt32(out systemNumber));
+            Assert.Equal(100u, systemNumber);
+        }
+
+        /// <summary>
+        /// An unknown name comes back with the service byte overwritten by a status, and no
+        /// parameters at all.
+        /// </summary>
+        /// <remarks>
+        /// Captured by asking for "D10", an abbreviation that is not a defined name. The console
+        /// then printed "System name D10 is not known".
+        /// </remarks>
+        [Fact]
+        public void XsginForAnUnknownName_AnswersWithAStatusAndNoParameters()
+        {
+            XroutMessage reply = XroutMessage.Parse(
+                FromHex("0102 0000"), XroutMessageFraming.WithHeader);
+
+            Assert.Equal(0x02, reply.Service);
+            Assert.Empty(reply.Parameters);
+        }
+
+        /// <summary>
         /// Parses a hex string, ignoring spaces so a capture can be written with its field
         /// boundaries visible.
         /// </summary>

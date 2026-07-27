@@ -93,6 +93,57 @@ namespace NDInsight.Sintran.Xmsg.Api.Tests
         }
 
         /// <summary>
+        /// Our XSGIN builder reproduces the captured even-length lookup exactly.
+        /// </summary>
+        /// <remarks>
+        /// Bytes from the XMSG command program, 2026-07-27. Evidence:
+        /// DOC/XMSG-XSGIN-NAME-LOOKUP-CAPTURED-2026-07-27.md.
+        /// </remarks>
+        [Fact]
+        public void GetNameInformation_ReproducesTheCapturedSystemNameLookup()
+        {
+            XroutMessage message = XroutRequests.GetNameInformation(0x01, "D102");
+
+            Assert.Equal(
+                FromHex("0152 0006 FF04 44313032"),
+                message.ToArray(XroutMessageFraming.WithHeader));
+        }
+
+        /// <summary>
+        /// With an ODD-length name as the last parameter, we emit no trailing pad byte and the
+        /// XMSG command program does. Both forms are accepted by XROUT.
+        /// </summary>
+        /// <remarks>
+        /// This is a real difference between writers, not a bug on either side, and it is worth a
+        /// test so nobody "fixes" one into the other by accident:
+        /// <list type="bullet">
+        /// <item>XMSG-COMMAND writes `*TADADM` as `FF 07 &lt;7 chars&gt; 00`, length 10 - padded to a
+        /// word boundary even though nothing follows.</item>
+        /// <item>TADADM itself writes its XSNAM registration as `FF 07 &lt;7 chars&gt;`, length 8,
+        /// with no pad (see XMSG-XSCRS-CONNECTION-PORTS-CAPTURED-2026-07-27.md, section 6).</item>
+        /// </list>
+        /// Both registered and resolved correctly on the same machine, so the trailing pad is the
+        /// caller's choice. We match TADADM. Padding BETWEEN parameters is not optional and we do
+        /// emit it - see the XSCRS round trip above.
+        /// </remarks>
+        [Fact]
+        public void GetNameInformation_OmitsTheOptionalTrailingPadByte()
+        {
+            XroutMessage message = XroutRequests.GetNameInformation(0x01, "*TADADM");
+            byte[] ours = message.ToArray(XroutMessageFraming.WithHeader);
+
+            byte[] captured = FromHex("0152 000A FF07 2A54414441444D 00");
+
+            Assert.Equal(captured.Length - 1, ours.Length);
+            for (int i = 4; i < ours.Length; i++)
+            {
+                // Identical from the first parameter byte on; only the header length and the
+                // absent trailing pad differ.
+                Assert.Equal(captured[i], ours[i]);
+            }
+        }
+
+        /// <summary>
         /// Parses a hex string, ignoring spaces so a capture keeps its field boundaries visible.
         /// </summary>
         private static byte[] FromHex(string hex)
