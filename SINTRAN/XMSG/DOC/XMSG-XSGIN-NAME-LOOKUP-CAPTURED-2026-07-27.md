@@ -148,9 +148,70 @@ Note the program's own `?` is NOT an inventory: it lists only "new and modified 
 for product no. 210373M" (two of them). The reference document's list is broader than what
 the ordinary prompt accepts, and advanced mode is the reason.
 
-**What remains:** the prompts for `FILL-OUTPUT-BUFFER`, `APPEND-STRING`, `APPEND-INTEGER`,
-`BUFFER-READY`, `ROUTE-MESSAGE`, `RECEIVE-MESSAGE` and `DECODE-BUFFER` are still unknown,
-so the `XSGMG` request has not been assembled. **BLOCKED, not finished** - see below.
+### The prompts, all of them [VERIFIED]
+
+Learned by typing each command bare. Documented nowhere else:
+
+| Command | Prompts |
+|---|---|
+| `OPEN-PORT` | none - answers "New Port no: N" |
+| `GET-MESSAGE-SPACE` | "No. of bytes?" - answers "Current message: &lt;octal address&gt;" |
+| `CLEAR-BUFFER` | none |
+| `FILL-OUTPUT-BUFFER` | "Automatic?" then "No. of bytes?" - a test-data generator, NOT a way to attach the buffer |
+| `APPEND-STRING` | "Parameter no?" then "Text?" |
+| `APPEND-INTEGER` | "Parameter no?" then "Integer value?" |
+| `BUFFER-READY` | "Ref. no?" (serial) then "Service no?" |
+| `ROUTE-MESSAGE` | "From port no?" then "Message address?" |
+| `RECEIVE-MESSAGE` | "Port no?" then "Wait?" |
+| `DECODE-BUFFER` | "Input buffer?" |
+| `LIST-BUFFER` | none - prints both buffers with addresses and lengths |
+
+### The request assembles correctly
+
+```
+X-C(Adv):APPEND-STRING
+Parameter no? 1
+Text? *TADADM
+X-C(Adv):BUFFER-READY
+Ref. no? 1
+Service no? 71
+X-C(Adv):LIST-BUFFER
+Output buffer address: 17060, length (bytes): 14, max: 511.
+```
+
+14 bytes is exactly right for `01 47 00 0A FF 07 "*TADADM" 00` - serial, service 71, length
+10, string parameter 1 padded to a word.
+
+### STILL STUCK: the buffer never reaches the message
+
+`ROUTE-MESSAGE` does send - the trace shows
+`XFSND [Receiving port: 0x00000000 Sending port: 5]`, a route to XROUT from our own port -
+and XROUT answers. But it answers with an error, because the message is empty:
+
+| "Message address?" answered with | Result |
+|---|---|
+| the MESSAGE address (`161605`, from GET-MESSAGE-SPACE) | request sent, XROUT replies `00 08 00 00` = status **8 = XRMTL**, "too short message" |
+| the OUTPUT BUFFER address (`17060`, from LIST-BUFFER) | rejected before sending: "*- XMSG error code: -6: Illegal message buffer pointer" |
+| blank | same as the message address - empty message, status 8 |
+
+So `BUFFER-READY` assembles the buffer but does not write it into the message, and the
+command that does is still unidentified. Untried candidates: `SET-CURRENT-MESSAGE` before
+routing, and `SEND-MESSAGE` instead of `ROUTE-MESSAGE`.
+
+**This is one step from done.** Everything else works: the gates, the assembly, the route to
+XROUT, and a live reply path.
+
+### What the failures already confirmed
+
+Not nothing - two XROUT statuses are now observed rather than read from a symbol file:
+
+- **8 = XRMTL** "too short message or resulting message too long", from routing an empty
+  message.
+- **2 = XRUNN** "unknown name", from the `XSGIN` lookup of "D10" in section 3 - the console
+  text "System name D10 is not known" matches the symbol exactly.
+
+And **XMSG -6** "Illegal message buffer pointer" is confirmed as the kernel's own reply to a
+bad `XFSND` pointer.
 
 ## 8. BLOCKER: the boot harness crashes intermittently
 
@@ -169,8 +230,18 @@ crashed once then passed on retry, so this is intermittent rather than caused by
 command. **Do not read run 1 as "CLEAR-BUFFER is fatal"** - that was my first inference and
 runs 2 and 3 refute it.
 
+**Tested and ruled out: the MON 200 decoder change.** The obvious suspect was the odd-byte
+fix made the same day, so it was reverted and the registry test re-run: it passed. Then the
+fix was restored and the same test re-run: it passed again. Four subsequent probe runs also
+passed with the fix in place. The change is not the cause, and the crashes cluster in time
+rather than around any command or any code state - which points at something environmental.
+No dump was produced (`--blame-crash` attached but collected nothing) and the Windows
+Application log has no matching event, which is what a stack overflow looks like: the
+process dies without a catchable exception.
+
 This is emulator-side and belongs with the existing Ethernet-harness instability, not with
-XMSG. Finishing `XSGMG` needs it stable enough to get through one ~15-command sequence.
+XMSG. It stopped blocking after a while - six later runs completed - but it will waste time
+again.
 
 ## 9. Bonus: an XSLET with parameter 10 [OBSERVED, NOT EXPLAINED]
 
