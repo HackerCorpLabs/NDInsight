@@ -1,5 +1,16 @@
 # Plan: capture the COSMOS file-server messages (2026-07-28)
 
+> **PARTLY DONE the same day.** Step 2 (local capture) succeeded for both servers: see
+> [XMSG-XFTRA-FILE-TRANSFER-REQUEST-CAPTURED-2026-07-28.md](XMSG-XFTRA-FILE-TRANSFER-REQUEST-CAPTURED-2026-07-28.md),
+> [XMSG-XFTRA-CONTROLLED-VARIATION-2026-07-28.md](XMSG-XFTRA-CONTROLLED-VARIATION-2026-07-28.md)
+> and [XMSG-FA-SERVER-REQUEST-CAPTURED-2026-07-28.md](XMSG-FA-SERVER-REQUEST-CAPTURED-2026-07-28.md).
+> Step 1's conformance scans are still PENDING and cannot run yet - nothing inter-node has
+> been captured, because no peer ever answered. Current state:
+> [XMSG-HANDOFF-2026-07-28.md](XMSG-HANDOFF-2026-07-28.md).
+>
+> One assumption below was also disproved: `*XFTRA`'s purpose is no longer inferred, and the
+> two servers turned out NOT to share a convention.
+
 Next session's target: get real bytes out of `*XFTRA` (file transfer) and the `*FA-*` family (file
 access), so their protocols stop being "inferred from the name" and start being decoded.
 

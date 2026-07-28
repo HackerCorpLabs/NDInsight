@@ -1,7 +1,9 @@
 # Writing a TCP/IP driver for SINTRAN on the ND Ethernet II controller
 
-**Date**: 2026-07-27
-**Status**: foundations PROVEN; two blockers remain, both named below.
+**Date**: 2026-07-28
+**Status**: the transmit path is **fully decoded** and the firmware **can** send Ethernet II frames
+with the mode word at 0x1888A clear - proven from the header-build code, not inferred. What remains
+is the receive completion path, and the coexistence problem in section 7.
 
 Every claim here is marked **PROVEN** (read from the firmware image or demonstrated by a passing
 test), **EVIDENCED** (strongly implied by code that has been read), or **UNKNOWN**. Nothing is
@@ -80,8 +82,9 @@ Boot handshake, in this order (**PROVEN** from `reset_entry`):
 3. **Register any multicast/broadcast addresses** via command 12. **PROVEN**: there is **no
    hardcoded broadcast** - `FF:FF:FF:FF:FF:FF` is accepted only if registered, or if filtering is
    off (`0x18888 == 0`, and note nonzero = filtering ENABLED, the opposite of older repo notes).
-4. **Submit frames** - the request shape is now known; see section 5. The remaining gap is the
-   buffer pointer field, not the whole protocol.
+4. **Submit frames** - the request and descriptor shapes are **fully decoded**; see section 5.
+   Remember to leave >= 12 bytes of headroom in the buffer and to put the EtherType in the two
+   bytes immediately before your IP header.
 
 ---
 
@@ -107,29 +110,56 @@ Dispatched through the **DATA table at 0x189E0** (21 entries, 0..0x14), bounds-c
 | +0x14 | long | **version - must be 1**, else **-21** |
 | +0x18 | — | the transmit descriptor starts here |
 
-### Transmit descriptor (node + 0x18)
+**PROVEN**: the transmit subfunction index is **16 (0x10)**, i.e. `node[0x0A] = 0x40`. The table at
+0x189E0 sends index 16 to the validator at 0x6B9E; indices 18 and 20 go to 0x6C6A
+(POST-RX-BUFFER); every other index goes to the reject stub at 0x6D56.
+
+### Transmit descriptor (node + 0x18) - COMPLETE
 
 | Offset | Size | Field |
 |---|---|---|
-| +0x06 | word | **header length** |
-| +0x08 | word | **total length** - must be <= **0x5DC (1500)**, else **-22** |
+| +0x00 | long | **BUFFER BASE ADDRESS** - the frame buffer pointer |
+| +0x06 | word | **header length** - offset inside the buffer where the HOST's data begins |
+| +0x08 | word | **total length** - byte count from `base + hdrlen` onward, <= **0x5DC (1500)**, else **-22** |
 
-### The mode word gates TRANSMIT too
+Also in the node, not the descriptor: **+0x22, six bytes, the DESTINATION MAC** (copied into the
+frame at 0x60E0).
 
-```
-tst.w (0x1888A)
-  mode != 0  ->  header length must be >= 14      /* dst + src + type/length */
-  mode == 0  ->  header length must be >= 12      /* dst + src only          */
-  otherwise  ->  status -23
-```
+### How the header is built - and why this settles the DIX question
 
-**This is significant**: 0x1888A is not only a receive filter, it changes what the firmware will
-*accept for transmission*.
+**PROVEN** from `XMTRINGAPPEND` (0x6054), which reads the descriptor at 0x609C / 0x60CA.
 
-**INTERPRETATION - NOT PROVEN**: with the mode word clear the firmware appears not to require the
-caller to supply the 2-byte type/length field (it may fill it itself); with the mode word set it
-demands all 14 so it can validate the 802.3 length. **Confirm before relying on it** - this is
-exactly the sort of plausible reading that has been wrong before in this project.
+The firmware does **not** take a ready-made header from the host. It **backs up** from the host's
+data and writes the MAC header in place, so the host must leave `hdrlen` bytes of headroom in front
+of its data:
+
+| | mode (0x1888A) != 0 - 802.3 | mode (0x1888A) == 0 - DIX |
+|---|---|---|
+| header start | `base + hdrlen - 14` | `base + hdrlen - 12` |
+| required hdrlen | >= 14 | >= 12 |
+| bytes 12-13 | firmware **writes totallen** as an 802.3 LENGTH | firmware **writes nothing** |
+| on-wire length | `14 + totallen` | `12 + totallen` |
+| what totallen counts | payload only | **the 2 type bytes + payload** |
+
+> **The earlier 14-vs-12 reading is now PROVEN, not interpretation.** With the mode word clear the
+> firmware builds only dst+src and leaves bytes 12-13 alone - they come straight out of the host
+> buffer. **The host places the EtherType there itself.** The firmware never invents, fills in, or
+> validates a type field in this mode.
+
+Consequences that matter for a driver:
+
+- **Max IP payload in DIX mode is 1498, not 1500**, because the 1500 cap is applied to `totallen`
+  and `totallen` includes the two type bytes.
+- The source MAC is always copied verbatim from `LNMAPHYSIC` (0x1885E); **no bits are forced or
+  masked** in any byte, so no protocol-family encoding is stamped into the address.
+- If `g_maOperatingMode` (0x18886) == 4 (NORMAL), the on-wire length is padded up to **60** bytes.
+  In loopback modes (1 and 3) there is no padding.
+
+### LANCE handoff (end of XMTRINGAPPEND)
+
+TX ring base **0x18410**, 8-byte entries, ring index at `(0x18408)+2` wrapping **mod 0x80** (128
+descriptors). Per entry: address low word at +0x00, address bits 16-23 at +0x03, **negated** length
+at +0x04, then `STP|ENP` (0x0300), then `OWN` (0x8000), then a poke of **0x48 to 0xEF00A0**.
 
 **PROVEN**: 1500 is used ONLY as an MTU bound here. It is never used to classify a received frame,
 and 1536 / 0x0600 - the DIX-vs-802.3 discriminator - appears nowhere in this path.
@@ -143,12 +173,72 @@ and 1536 / 0x0600 - the DIX-vs-802.3 discriminator - appears nowhere in this pat
 | `LNMAIOACTI == 0` and `(0x18880) == 0` | **-8** |
 | otherwise | 0, proceed |
 
+### Posting receive buffers
+
+**PROVEN**: subfunction **18 (0x12)** is POST-RX-BUFFER, handled at 0x6C6A. A version-1 buffer node
+must declare `descriptor+0x04 == 0x5F0` (**1520 bytes**) or it is rejected with **-22**. 1520 is
+comfortably more than a full 1514-byte Ethernet II frame, so **receive buffer size is not a
+constraint on TCP/IP**.
+
+### How a node reaches DATASERVIC - DECODED 2026-07-28
+
+**PROVEN**: the enqueue primitive is at **0x8AC8** (`POSI_SEND`). Arguments are the queue object
+pointer in the callee frame at +0x14 and the node (or chain head) in **A0**.
+
+| Queue object | Drained by |
+|---|---|
+| 0x18834 | `CMDSERVICE` - the command sub-process |
+| **0x18848** | **`DATASERVIC` - the data sub-process** (via `posi_getall` 0x514A) |
+
+It has two paths. If `(0x1A2D0)` is non-zero it **defers**, appending the node to a local pending
+list (0x1A2C8 for commands, 0x1A2CC for data). Otherwise it builds a message
+`{+0x14 queue object, +0x18 word from 0x1A290, +0x1A node}` and posts it through the message
+primitive at 0x11DC4, falling back to the deferred list if that returns -2 (no buffer).
+
+The firmware's own transmit producer does exactly this at 0xB444-0xB456: load the accumulated node
+chain from **0x1A2BC**, set the queue object to 0x18848, call `POSI_SEND`, clear 0x1A2BC. The batch
+flusher at 0xB380 walks that chain and recognises transmit by **subfunction 0x10 (16)** - the same
+index the table at 0x189E0 routes to 0x6B9E.
+
+**This is what a test should call.** Build the node and descriptor, then call `POSI_SEND` with the
+queue object 0x18848. That is the firmware's own enqueue, not a synthetic entry point, so
+`DATASERVIC` then runs the whole validated path down into `XMTRINGAPPEND` exactly as in production.
+
+### MEASURED on the running card, 2026-07-28
+
+Boot harness `Nd100EthernetIIOracleDramDumpTests`, SINTRAN III L, ENNS0 reported started:
+
+| Cell | Value | Meaning |
+|---|---|---|
+| `LNMAPHYSIC` 0x1885E | **08:00:26:64:00:00** | the station MAC SINTRAN writes (ND OUI 08:00:26) |
+| 0x18886 | 0x0004 | `g_maOperatingMode` = NORMAL, so 60-byte padding is active |
+| 0x18888 | 0x0001 | filtering ENABLED (nonzero polarity confirmed) |
+| **0x1888A** | **0x0001** | **802.3 mode at rest - DIX is gated off** |
+| 0x188C6 | 0x0001 | data path up (zero would give -16) |
+| 0x188C8 | 0x0005 | expected id - a node must carry 5 at +0x04 |
+| 0x1A290 | 0x0005 | same value from the message layer - cross-confirms the id |
+| 0x1A2B0/B4/B8/**BC** | all 0 | deferred-send pending heads rest at zero |
+| 0x1A2D0 | 0x0000 | selector zero, so `POSI_SEND` takes the direct-send path |
+
+Three predictions from the static RE (filtering polarity, operating mode driving the pad, the mode
+word starting non-zero) were confirmed against the live firmware.
+
+**Two negative results, both measured, both important:**
+
+1. **The card transmits NOTHING on its own once ENNS0 is started** - zero frames in a 20-second
+   capture off the LANCE transmit hook. So there is no live traffic to observe, and any transmit
+   test must inject a frame.
+2. **Writing a node address into 0x1A2BC does not send it.** After 20 seconds the head still held
+   the node, and it still did after three GPIP I6 doorbell strobes. Nothing on an idle card polls
+   that cell - the producer writes it and drains it within the same call path, so it is **not** an
+   injection point. Driving a transmit from outside therefore requires calling `POSI_SEND` (0x8AC8)
+   directly.
+
 ### What is still unknown
 
-- Where the frame BYTES live - the descriptor carries lengths at +0x06/+0x08, but the buffer
-  pointer field has not been identified
-- Which subfunction index is transmit (the handler above is one entry of the 21)
-- The RX completion path back to the host
+- The RX completion path back to the host (`RCVCOMPLETE` 0x5C42 is the LANCE-side entry)
+- What the ND-100 does to make the producer build nodes onto 0x1A2BC. That is the **host driver's**
+  side, and it is **not needed to exercise the card**
 
 ---
 
@@ -209,11 +299,15 @@ codebase is thumbwheel 0. So this cannot be answered by reading; it must be run.
 
 ## 7. Will it still work with COSMOS?
 
-**The most important open question, and currently UNKNOWN.**
+**Now largely answered, and the answer is bad for single-card coexistence.**
 
-The mode word at 0x1888A appears to be **global, not per-frame**. If it is, clearing it for TCP/IP
-may break COSMOS, which presumably relies on the 802.3 length check. That would make the original
-goal - TCP/IP *alongside* COSMOS on one card - impossible without either:
+**PROVEN**: 0x1888A is a single global word with **no per-request override**. The transmit path
+reads it directly (`tst.w (0x1888a).l` at 0x6086) rather than taking a flag from the request node,
+and it decides both the header size the firmware builds and whether a length field is written at
+all. There is nowhere for a caller to say "this frame is DIX and that one is 802.3".
+
+So clearing it for TCP/IP changes the format of **every** frame the card sends, including COSMOS's.
+That makes the original goal - TCP/IP *alongside* COSMOS on one card - impossible without either:
 
 - a firmware patch making the check per-frame (accept when bytes 12-13 >= 0x0600, validate
   otherwise - which is exactly what real dual-stack hardware does), or
@@ -231,17 +325,16 @@ problem entirely.
 ```
 1. Fix the 68K reset bug                    small, unblocks everything
 2. Two-controller experiment (section 6)    answers both the MAC and the coexistence strategy
-3. ~~Decode the DATASERVIC transmit request~~  DONE 2026-07-27 - only the buffer pointer field
-                                               and the subfunction index remain
-4. Runtime mode-word flip experiment        proves the DIX gate end-to-end - now much sharper,
-                                            because the mode word demonstrably changes the
-                                            ACCEPTED header length (14 vs 12), which is directly
-                                            observable as status -23 on a wrong-sized header
-5. Write the driver
+3. ~~Decode the DATASERVIC transmit request~~  DONE 2026-07-28 - COMPLETE, including the buffer
+                                               pointer and the subfunction index (16)
+4. Runtime mode-word flip experiment        confirms the decode on the running firmware
+5. Write the driver                         nothing in the transmit path blocks this any more
 ```
 
-Step 4 is now the cheapest decisive test: submit the same descriptor twice, once with the mode word
-set and once clear, and watch the status code. No wire access needed.
+Step 4 is now a confirmation rather than a discovery. Build one buffer, submit it twice - once with
+0x1888A set and once clear - and check the emitted bytes: with the mode word set, bytes 12-13 of
+the frame must be the payload length written by the firmware; with it clear, they must be whatever
+the host put there. That distinguishes the two paths directly, without needing a wire.
 
 ---
 

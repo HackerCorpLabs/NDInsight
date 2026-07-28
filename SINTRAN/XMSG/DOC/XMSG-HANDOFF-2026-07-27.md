@@ -1,7 +1,12 @@
 # XMSG handoff (2026-07-27)
 
-State of the XMSG work after the API-library + capture sessions of 26-27 July. Read this
-first; it points at everything else.
+> **SUPERSEDED by [XMSG-HANDOFF-2026-07-28.md](XMSG-HANDOFF-2026-07-28.md) - read that
+> first.** The conclusion below that "the capture surface is exhausted" was WRONG. A
+> purpose-built SINTRAN K image reopened it the next day and yielded both COSMOS file
+> servers' opening letters plus the successful-answer form. This file is kept for the
+> library inventory and the open items it still describes accurately.
+
+State of the XMSG work after the API-library + capture sessions of 26-27 July.
 
 **Status: the library is done and the capture surface is exhausted.** What remains is one
 disassembly question and two carving oddities - no more emulator driving is needed.
