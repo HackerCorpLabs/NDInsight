@@ -1251,9 +1251,81 @@ the parameter register (verified: at the SWPFATAL call W1/I1 held 0x81, exactly 
 code). So the swapper genuinely passes a null base pointer, and everything in 7.6.4 that
 derives from that is unaffected.
 
-**Next:** re-carve the caller from the RAW BYTES (or a corrected disassembly) to find where
-that base pointer was supposed to come from. Do not trust the current listing for that
-stretch.
+### 7.6.6 THE CHAIN IS COMPLETE: RIOM never delivers the message (2026-07-28)
+
+Re-carved from the raw bytes (the listing is unreliable there). At the call:
+
+```
+0o77767  030 105   r:= b.24       -> R = 0x080240BC
+0o77771  014 242   w1 := r.210    -> W1 = 0          <- the null base pointer
+0o77773  030 102   r:= b.10
+0o77775  040 205   w1 =: r.24
+0o77777  303 ...   call the globals initialiser
+```
+
+Address code `242` is RECORD SHORT, `ea = (R) + d*4`, `d = 242B - 200B = 34`, so offset
+136 = `0o210` (ND-05.009.4 RECORD table; the listing's own `r.330` for `266B` confirms the
+convention). Every boundary matches the executed trace.
+
+Word offset `0o104` = byte 136 = **`HSWPI` = `SWMSG.SWPINFO`** in the SINTRAN symbol table
+(`SINTRAN/NPL-SOURCE/SYMBOLS/K03/N500-SYMBOLS.SYMB.TXT`). So the swapper is reading the
+SWPINFO pointer out of the message record it keeps at `0x080240BC`.
+
+MEASURED:
+
+```
+0x080240B4 = 0x00008E30   <- message pointer from SINTRAN's MON 377B answer
+0x080240B8 = 0x00000005
+0x080240BC .. 0x0802414C  = ALL ZERO      <- the message record, never filled
+0x08024144 = 0x00000000   <- HSWPI, byte 136: the null base pointer
+```
+
+**SINTRAN never copies a message into ND-500 memory - it only ever hands over an ADDRESS.**
+Verified in the source: `5ACTSWAPPER` (`MP-P2-N500.NPL:2851+`) writes
+`SWMSG.HSWPI/SWPIN := CNVWADR(requester message)` and `SWMSG.SWPST`, then restarts the
+swapper. There is no copy loop, no RESIWR/PHYSWR transfer, anywhere on that path.
+
+**The swapper fetches the body itself, with RIOM** (`swapper-k01-pseg.asm:10577`):
+
+```
+1000101356: h riom $1000440264,$1000440274,$1000440074+
+            ;      src ptr cell 0x240B4 -> dest 0x240BC, count table 0x2403C+
+```
+
+So the destination of that DMA is exactly the record we measure as all zero, and its
+source is the `0x8E30` SINTRAN supplied.
+
+**THE GAP: the RIOM ND-100 address mapping.** `CpuND500.ND100Bridge.cs` maps an ND-100
+address as `_private + address*2`, and the octobus path sets `_private = 0`
+(`Nd500CpuProcessBridge.cs:75`). So RIOM reads physical byte `0x8E30 * 2 = 0x11C60`. But
+that same pointer value resolves, in our own octobus servicer's doorbell walk, to ND-100
+address **`0x428E30`** - i.e. it is an offset inside the 5MPM window at `0x420000`. RIOM is
+therefore reading somewhere else entirely, gets zeros, and the record stays empty.
+
+This is not a new suspicion: `Instructions/IO/Riom.cs` already carries an OPEN note saying
+the `_private` handling for this path is UNRESOLVED, that a live SINTRAN source lands at
+the wrong address, and warning that the RIOM tests cannot detect it because they seed data
+through the same biased mapping in both directions. The swapper is now a live
+demonstration of that bug.
+
+**NOT RESOLVED - do not guess the fix.** What `CNVWADR` ("convert multiport address")
+produces, and therefore how a swapper message pointer should be turned into an address
+RIOM can read, has to be carved from `MP-P2-N500.NPL` before any code changes. Getting it
+wrong silently reads the wrong memory, which is precisely the failure mode here.
+
+**A caution from the source.** `5ACTSWAPPER` stores the pointer as a DOUBLE word
+(`*AAX HSWPI; STDTX`): A to `0o104` (byte 136) and D to `0o105` (byte 138). If the pointer
+is 32 bits across that pair, then byte 136 alone is only half of it. Check which half the
+swapper expects before concluding the value is simply absent.
+
+**Also note:** `LNEWSWAP` deliberately ZEROES `HSWPI`/`SWPIN` when the swap FIFO is empty
+(`MP-P2-N500.NPL:1058-1065`), so a zero there is also the legitimate "no work" state. Do
+not assume zero always means a lost transfer - distinguish the two before acting.
+
+**Superseded:** the earlier guess that MICFU 5 (3SWMESS) should populate this record is
+WRONG. `3SWMESS` is an ND-500 -> ND-100 request meaning "pass this message to the
+swapper"; SINTRAN's handler ends in `CALL 5ACTSWAPPER`, which posts a pointer. It pushes
+no data. Do not pursue it.
 
 **Tooling note.** Reaching that caller in the instruction trace needs a ring deeper than
 256, and every attempt at a deeper ring aborted the test host. That is NOT established as
