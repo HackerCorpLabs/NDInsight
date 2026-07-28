@@ -1327,6 +1327,53 @@ WRONG. `3SWMESS` is an ND-500 -> ND-100 request meaning "pass this message to th
 swapper"; SINTRAN's handler ends in `CALL 5ACTSWAPPER`, which posts a pointer. It pushes
 no data. Do not pursue it.
 
+### 7.6.7 CORRECTION: RIOM's mapping is FINE - the POINTER is unconverted (2026-07-28)
+
+Section 7.6.6 blamed the RIOM address mapping. That was too quick. Checking the arithmetic
+against `Riom.cs`'s own worked example settles it:
+
+```
+Riom.cs example : ND-100 WORD 0x210718 -> byte 0x420E30    (word * 2, _private = 0)
+0x210718 * 2 = 0x420E30                                     CORRECT
+```
+
+The octobus path sets `_private = 0` (`Nd500CpuProcessBridge.cs:75`), so **RIOM's mapping
+is already right for a properly converted pointer.** The `_private = 0x40000` case in that
+OPEN note is a different (3022) configuration.
+
+**The defect is the POINTER VALUE, not the mapping:**
+
+```
+message lives at ND-100 byte   0x428E30
+  as an ND-100 WORD address    0x214718   <- what RIOM needs
+swapper was actually handed    0x008E30
+0x428E30 - ADRZERO (0x420000) = 0x008E30  <- EXACTLY the raw 5MPM offset
+```
+
+So the swapper received the **unconverted 5MPM offset**. `CNVWADR` should have turned it
+into an ND-100 address (this is the ADRZERO map: `ACCP-REGION25-ADDRESS-HANDOFF-CARVE-2026-07-19.md`
+lines 139-143 - "window-physical byte address = ADRZERO (0x420000) + CNVBYADR(5MPM
+offset)"). Feed RIOM `0x214718` and it lands on `0x428E30`, which is where the message
+actually is.
+
+**It is NOT a truncation on our side.** `ReadRestartRecord`
+(`Nd500MicrocodeServicer.cs:1041+`) assembles each write-back value as
+`(high << 16) | low` from consecutive ND-100 words. SINTRAN genuinely wrote
+`0x00008E30` - high half zero. Verified by reading the code, not assumed.
+
+**OPEN, and the next thing to carve:** why SINTRAN's `CNVWADR` yields an unconverted
+offset in this run. `5ACTSWAPPER` does `A:=5MBBANK; CNVWADR` (`MP-P2-N500.NPL:2857-2861`),
+so the conversion is driven by **5MBBANK**, not by ADRZERO directly. ADRZERO is reported
+correctly by MEMORY-CONFIGURATION in our run (`004100` = 0x420000), but 5MBBANK is a
+separate value and has not been checked. Start there.
+
+Note the routine bodies for `CNVWADR` (0o055160) and `CNVBYADR` (0o055034) are NOT in the
+NPL tree - only call sites and symbol values. They will have to come from a segment carve
+or the running system.
+
+**Do not "fix" RIOM.** Its mapping is correct; changing it to compensate for a bad pointer
+would hide the real defect and break the cases that currently work.
+
 **Tooling note.** Reaching that caller in the instruction trace needs a ring deeper than
 256, and every attempt at a deeper ring aborted the test host. That is NOT established as
 the ring's fault: a second session was running concurrently against the SAME writable pack
