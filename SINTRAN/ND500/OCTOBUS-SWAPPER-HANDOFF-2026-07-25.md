@@ -1231,10 +1231,35 @@ structure is, the swapper never got its address. Do not spend time on it.
 3. Only then decide whether the emulator fails to supply something, or the swapper is
    started before SINTRAN has set it up.
 
+### 7.6.5 WARNING: the swapper disassembly is wrong after a LOOPI (2026-07-28)
+
+A frozen instruction trace (stop recording on reaching the initialiser) shows the `loopi`
+at `1000077760` is **7 bytes**, not the 10 the listing claims, so the next instruction is
+at `1000077767`, not `1000077772`.
+
+Confirmed three ways - the manual says `0xFCDF` is `H LOOPI:B` (byte displacement, and
+LOOPI has no `:W` form at all); byte `354` = -20 gives `0o77760 - 20 = 0o77734`; and the
+live CPU branches to exactly `0o77734`.
+
+**This voids the note in 7.6.4 that the caller executes `w3 or $30` / `by test $40` /
+`bi2 clr` before its call - those instructions do not exist.** Full writeup:
+`SINTRAN/ND500/swapper/DISASSEMBLY-DEFECT-LOOPI-LENGTH-2026-07-28.md`.
+
+**What still stands, because it is measured rather than read off the listing:** at the call
+into the globals initialiser (`0o77777` = VA `0x08007FFF`), **W1 = 0x00000000**, and W1 is
+the parameter register (verified: at the SWPFATAL call W1/I1 held 0x81, exactly the error
+code). So the swapper genuinely passes a null base pointer, and everything in 7.6.4 that
+derives from that is unaffected.
+
+**Next:** re-carve the caller from the RAW BYTES (or a corrected disassembly) to find where
+that base pointer was supposed to come from. Do not trust the current listing for that
+stretch.
+
 **Tooling note.** Reaching that caller in the instruction trace needs a ring deeper than
 256, and every attempt at a deeper ring aborted the test host. That is NOT established as
 the ring's fault: a second session was running concurrently against the SAME writable pack
-(`%TEMP%etrocore-nd5000-octobus\BIGDISK0-L.IMG`), which is a likelier cause and also
+(`%TEMP%
+etrocore-nd5000-octobus\BIGDISK0-L.IMG`), which is a likelier cause and also
 aborted a run at depth 256. Re-test deep tracing on a quiet machine. Concurrent harness
 runs sharing that pack should be avoided regardless - they can corrupt it.
 
