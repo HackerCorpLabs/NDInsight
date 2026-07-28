@@ -401,14 +401,127 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             Assert.Equal(9, message.Parameters[5].ParameterNumber);
             Assert.Equal("SYMB", message.Parameters[5].AsText());
 
-            // Buffer size and count - the DEFINE-TRANSFER-CONDITIONS defaults.
-            uint bufferSize;
-            Assert.True(message.Parameters[6].TryGetUInt32(out bufferSize));
-            Assert.Equal(1024u, bufferSize);
+            // 1024 and 2. Plausibly a buffer size and count - the DEFINE-TRANSFER-CONDITIONS
+            // defaults - but that is a GUESS. Controlled variation on 2026-07-28 moved neither,
+            // so nothing observed so far distinguishes them from any other constant.
+            uint firstConstant;
+            Assert.True(message.Parameters[6].TryGetUInt32(out firstConstant));
+            Assert.Equal(1024u, firstConstant);
 
-            uint bufferCount;
-            Assert.True(message.Parameters[7].TryGetUInt32(out bufferCount));
-            Assert.Equal(2u, bufferCount);
+            uint secondConstant;
+            Assert.True(message.Parameters[7].TryGetUInt32(out secondConstant));
+            Assert.Equal(2u, secondConstant);
+        }
+
+        /// <summary>
+        /// The remote system name is parameter 2 and the remote user name is parameter 12, each
+        /// proven by moving alone.
+        /// </summary>
+        /// <remarks>
+        /// Captured on 2026-07-28 by driving TRANSFER-FILE six times on the SINTRAN K image and
+        /// changing exactly one input per run. This request differs from the baseline only in the
+        /// remote user - SYSTEM became RT - so the message shrank by four bytes and nothing else
+        /// moved. A separate run changing only the system to D101 moved only parameter 2.
+        /// </remarks>
+        [Fact]
+        public void XftraRequest_NamesTheRemoteSystemInP2AndTheRemoteUserInP12()
+        {
+            byte[] request = FromHex(
+                "0141 0036 "                                 // XSLET, 54 bytes - four fewer than the baseline
+                + "FF06 2A5846545241 "                       // p1  string "*XFTRA"
+                + "FE04 44313032 "                           // p2  string "D102"   - the remote SYSTEM
+                + "F402 5254 "                               // p12 string "RT"     - the remote USER
+                + "0D02 0000 "                               // p13 integer 0       - empty password
+                + "F810 22584D53472D434F50593A4241544322 "   // p8  string "\"XMSG-COPY:BATC\""
+                + "F704 53594D42 "                           // p9  string "SYMB"
+                + "0A02 0400 "                               // p10 integer 1024
+                + "0B02 0002");                              // p11 integer 2
+
+            XroutMessage message = XroutMessage.Parse(request, XroutMessageFraming.WithHeader);
+
+            Assert.Equal((byte)XroutService.XSLET, message.Service);
+            Assert.Equal(8, message.Parameters.Count);
+
+            Assert.Equal(2, message.Parameters[1].ParameterNumber);
+            Assert.Equal("D102", message.Parameters[1].AsText());
+
+            Assert.Equal(12, message.Parameters[2].ParameterNumber);
+            Assert.Equal("RT", message.Parameters[2].AsText());
+        }
+
+        /// <summary>
+        /// An odd-length string is followed by a pad byte, and the declared message length counts
+        /// the pad.
+        /// </summary>
+        /// <remarks>
+        /// Every string captured before 2026-07-28 happened to be even-length, so the padding rule
+        /// had never been exercised. Renaming the destination to a 17-character spec grew the
+        /// message from 58 to 60 bytes - two, not one - and put a zero byte after the text.
+        /// A parser that advances by the declared parameter length alone desynchronises here and
+        /// misreads every parameter that follows.
+        /// </remarks>
+        [Fact]
+        public void OddLengthStringParameter_IsPaddedToAWordAndTheLengthCountsThePad()
+        {
+            byte[] request = FromHex(
+                "0141 003C "                                 // XSLET, 60 bytes - two more than the baseline
+                + "FF06 2A5846545241 "                       // p1  string "*XFTRA"
+                + "FE04 44313032 "                           // p2  string "D102"
+                + "F406 53595354454D "                       // p12 string "SYSTEM"
+                + "0D02 0000 "                               // p13 integer 0
+                + "F811 224F544845522D434F50593A53594D4222 00 "  // p8 17 chars + one pad byte
+                + "F704 53594D42 "                           // p9  string "SYMB" - UNCHANGED, see below
+                + "0A02 0400 "                               // p10 integer 1024
+                + "0B02 0002");                              // p11 integer 2
+
+            XroutMessage message = XroutMessage.Parse(request, XroutMessageFraming.WithHeader);
+
+            Assert.Equal(8, message.Parameters.Count);
+
+            // The odd-length value itself is 17 bytes; the pad is framing, not content.
+            Assert.Equal(8, message.Parameters[4].ParameterNumber);
+            Assert.Equal("\"OTHER-COPY:SYMB\"", message.Parameters[4].AsText());
+
+            // Parameter 9 stayed "SYMB" even though the destination type became SYMB in this run
+            // and was BATC in the baseline. So p9 is NOT the destination file type, which was the
+            // obvious reading of the first capture. Its meaning is still unknown.
+            Assert.Equal(9, message.Parameters[5].ParameterNumber);
+            Assert.Equal("SYMB", message.Parameters[5].AsText());
+
+            // The parameters after the pad still parse, which is the point of the test.
+            uint firstConstant;
+            Assert.True(message.Parameters[6].TryGetUInt32(out firstConstant));
+            Assert.Equal(1024u, firstConstant);
+        }
+
+        /// <summary>
+        /// DEF-REMOTE emits XSDRN with the system name as string parameter 1 and the system number
+        /// as integer parameter 2.
+        /// </summary>
+        /// <remarks>
+        /// Service 73 was carved out of the ENNS0 binary; this is the first time it has been seen
+        /// on live traffic, emitted by the XMSG command program's DEF-REMOTE.
+        /// </remarks>
+        [Fact]
+        public void DefineRemoteName_CarriesTheNameAndTheSystemNumber()
+        {
+            byte[] request = FromHex(
+                "0149 000A "                 // service 0x49 = 73 = XSDRN, 10 bytes of body
+                + "FF04 44313031 "           // p1 string "D101"
+                + "0202 0065");              // p2 integer 101
+
+            XroutMessage message = XroutMessage.Parse(request, XroutMessageFraming.WithHeader);
+
+            Assert.Equal(73, message.Service);
+            Assert.Equal(2, message.Parameters.Count);
+
+            Assert.Equal(1, message.Parameters[0].ParameterNumber);
+            Assert.Equal("D101", message.Parameters[0].AsText());
+
+            uint systemNumber;
+            Assert.Equal(2, message.Parameters[1].ParameterNumber);
+            Assert.True(message.Parameters[1].TryGetUInt32(out systemNumber));
+            Assert.Equal(101u, systemNumber);
         }
 
         /// <summary>
