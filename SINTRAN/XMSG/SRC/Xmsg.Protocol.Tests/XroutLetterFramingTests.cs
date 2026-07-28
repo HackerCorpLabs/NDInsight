@@ -104,6 +104,73 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         }
 
         /// <summary>
+        /// The ACCEPT: a letter that succeeded keeps its service byte and comes back with two
+        /// integer parameters, sent from the server's own port rather than from XROUT.
+        /// </summary>
+        /// <remarks>
+        /// This is the success counterpart to the XRNRO refusal the file-server captures kept
+        /// producing, and the two forms are opposites. On refusal XROUT overwrites the service
+        /// byte with the error and returns the whole original body untouched. On acceptance the
+        /// service byte is left as sent and the body is REPLACED by a fixed 8-byte answer.
+        ///
+        /// The source address is the point most likely to be got wrong when writing a responder:
+        /// the request went to port 0 (the XROUT sink) but the answer comes from 102:342, the
+        /// server's own port. XROUT forwarded the letter and left the exchange. See
+        /// XMSG-XSLET-ACCEPT-VS-XRNRO-2026-07-28.md.
+        ///
+        /// The body below appears 35 times across the whole pcap corpus - several capture files,
+        /// several sessions, client nodes 100 and 103 - and never varied.
+        /// </remarks>
+        [Fact]
+        public void AcceptedLetter_KeepsItsServiceByteAndAnswersFromTheServersOwnPort()
+        {
+            byte[] wire = FromHex(
+                "2113000E00640066012F0400D8E5210086400064" +   // SINTRAN header, 102 -> 100
+                "02AB00660156" +                               // dst 100:683, src 102:342 (*TADADM)
+                "04000041" +                                   // XMCSM low byte 0x41 = XSLET, NOT an error
+                "0008" +                                       // XMLEN - only 8 bytes of body
+                "010200000202000A");                           // int p1 = 0, int p2 = 10
+
+            XmsgFrame frame = XmsgFrame.Parse(wire);
+
+            // Byte-identical round trip, so the decode below is of the real frame and not of a
+            // reconstruction that quietly dropped something.
+            Assert.Equal(wire, frame.ToArray());
+
+            Assert.NotNull(frame.SubHeader);
+            XmsgSubHeader subHeader = frame.SubHeader!;
+
+            // The answer is addressed to the client's port and comes FROM the server's own port -
+            // not from port 0, where the request was sent.
+            Assert.Equal(683, subHeader.DestinationPort);
+            Assert.Equal(342, subHeader.SourcePort);
+
+            // The service byte survived. A responder must echo the service it was sent rather than
+            // invent a success code.
+            Assert.Equal((byte)XroutService.XSLET, (byte)(subHeader.ControlService & 0xFF));
+
+            // The wire form carries no 4-byte XROUT header, so the parameters start at the first
+            // trailer byte - which is why the frame parser hands back a Body with two parameters
+            // rather than mistaking the leading bytes for a serial and a service.
+            Assert.NotNull(frame.Body);
+            XroutMessage message = frame.Body!;
+
+            Assert.Equal(2, message.Parameters.Count);
+
+            uint accepted;
+            Assert.Equal(1, message.Parameters[0].ParameterNumber);
+            Assert.True(message.Parameters[0].TryGetUInt32(out accepted));
+            Assert.Equal(0u, accepted);
+
+            // Constant in every observation. Meaning UNKNOWN - the manual documents XSLET's inputs
+            // only and says nothing about what comes back.
+            uint unknownSecondValue;
+            Assert.Equal(2, message.Parameters[1].ParameterNumber);
+            Assert.True(message.Parameters[1].TryGetUInt32(out unknownSecondValue));
+            Assert.Equal(10u, unknownSecondValue);
+        }
+
+        /// <summary>
         /// The two framings are distinguishable and each round-trips through its own form.
         /// </summary>
         [Fact]
