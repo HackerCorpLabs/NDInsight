@@ -355,6 +355,93 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         }
 
         /// <summary>
+        /// The file-transfer request: an XSLET letter to *XFTRA carrying the whole transfer
+        /// specification as extra parameters.
+        /// </summary>
+        /// <remarks>
+        /// Captured 2026-07-28 - the first working traffic ever decoded from a COSMOS file server.
+        /// Note the parameters are NOT in numerical order on the wire (1, 2, 12, 13, 8, 9, 10, 11);
+        /// they are tagged, so order carries no meaning and a parser must not assume ascending.
+        /// See DOC/XMSG-XFTRA-FILE-TRANSFER-REQUEST-CAPTURED-2026-07-28.md.
+        /// </remarks>
+        [Fact]
+        public void XsletToXftra_CarriesTheWholeTransferSpecification()
+        {
+            byte[] request = FromHex(
+                "0141 003A "                                 // XSLET, 58 bytes of body
+                + "FF06 2A5846545241 "                       // p1  string "*XFTRA"
+                + "FE04 44313032 "                           // p2  string "D102"
+                + "F406 53595354454D "                       // p12 string "SYSTEM"
+                + "0D02 0000 "                               // p13 integer 0
+                + "F810 22584D53472D434F50593A4241544322 "   // p8  string "\"XMSG-COPY:BATC\""
+                + "F704 53594D42 "                           // p9  string "SYMB"
+                + "0A02 0400 "                               // p10 integer 1024
+                + "0B02 0002");                              // p11 integer 2
+
+            XroutMessage message = XroutMessage.Parse(request, XroutMessageFraming.WithHeader);
+
+            Assert.Equal((byte)XroutService.XSLET, message.Service);
+            Assert.Equal(8, message.Parameters.Count);
+
+            // The two documented XSLET fields: who to reach, and on which system.
+            Assert.Equal(1, message.Parameters[0].ParameterNumber);
+            Assert.Equal("*XFTRA", message.Parameters[0].AsText());
+            Assert.Equal(2, message.Parameters[1].ParameterNumber);
+            Assert.Equal("D102", message.Parameters[1].AsText());
+
+            // Everything else is the application's own, documented nowhere.
+            Assert.Equal(12, message.Parameters[2].ParameterNumber);
+            Assert.Equal("SYSTEM", message.Parameters[2].AsText());
+
+            // The destination file name keeps its quotes - the REMOTE system is what reads them
+            // as "create this file", so the client must not strip them.
+            Assert.Equal(8, message.Parameters[4].ParameterNumber);
+            Assert.Equal("\"XMSG-COPY:BATC\"", message.Parameters[4].AsText());
+
+            Assert.Equal(9, message.Parameters[5].ParameterNumber);
+            Assert.Equal("SYMB", message.Parameters[5].AsText());
+
+            // Buffer size and count - the DEFINE-TRANSFER-CONDITIONS defaults.
+            uint bufferSize;
+            Assert.True(message.Parameters[6].TryGetUInt32(out bufferSize));
+            Assert.Equal(1024u, bufferSize);
+
+            uint bufferCount;
+            Assert.True(message.Parameters[7].TryGetUInt32(out bufferCount));
+            Assert.Equal(2u, bufferCount);
+        }
+
+        /// <summary>
+        /// An unroutable letter comes back with the status in the service byte and the body
+        /// untouched.
+        /// </summary>
+        /// <remarks>
+        /// We modelled this rule from header-only error replies. This is the first time it has been
+        /// seen on a message with a real 58-byte body, and the body survives intact - which is how
+        /// a sender matches the returned letter to what it sent.
+        /// </remarks>
+        [Fact]
+        public void UnroutableLetter_ReturnsTheWholeBodyWithTheStatusInPlaceOfTheService()
+        {
+            byte[] reply = FromHex(
+                "010C 003A "                                 // service byte replaced by 12 = XRNRO
+                + "FF06 2A5846545241 "
+                + "FE04 44313032 "
+                + "F406 53595354454D "
+                + "0D02 0000 "
+                + "F810 22584D53472D434F50593A4241544322 "
+                + "F704 53594D42 "
+                + "0A02 0400 "
+                + "0B02 0002");
+
+            XroutMessage message = XroutMessage.Parse(reply, XroutMessageFraming.WithHeader);
+
+            Assert.Equal((byte)XroutError.XRNRO, message.Service);
+            Assert.Equal(8, message.Parameters.Count);
+            Assert.Equal("*XFTRA", message.Parameters[0].AsText());
+        }
+
+        /// <summary>
         /// Parses a hex string, ignoring spaces so a capture can be written with its field
         /// boundaries visible.
         /// </summary>
