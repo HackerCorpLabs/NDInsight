@@ -442,6 +442,62 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         }
 
         /// <summary>
+        /// The remote-file-access request: an XSLET letter to *FA-SERVER whose application data is
+        /// RAW BYTES after the parameter block, not tagged parameters.
+        /// </summary>
+        /// <remarks>
+        /// Captured 2026-07-28 on the SINTRAN K image - it cannot be captured on L or M, where the
+        /// File User is blocked by the revision-F gate. The contrast with *XFTRA matters: that
+        /// server packs its whole specification into tagged parameters 8-13, this one declares a
+        /// length covering only the two documented XSLET fields and appends opaque payload. Both
+        /// are "the remainder of the message can contain data for the receiving task".
+        /// See DOC/XMSG-FA-SERVER-REQUEST-CAPTURED-2026-07-28.md.
+        /// </remarks>
+        [Fact]
+        public void XsletToFaServer_DeclaresOnlyTheLetterAndAppendsRawPayload()
+        {
+            byte[] request = FromHex(
+                "1B41 0012 "                     // XSLET, length 18 - the LETTER only
+                + "FF0A 2A46412D534552564552 "   // p1 string "*FA-SERVER"
+                + "FE04 44313032 "               // p2 string "D102"
+                + "07E2 0000 0006 6400");        // raw payload, outside the declared length
+
+            XroutMessage message = XroutMessage.Parse(request, XroutMessageFraming.WithHeader);
+
+            Assert.Equal((byte)XroutService.XSLET, message.Service);
+
+            // Only the two documented fields are parameters. The trailing eight bytes are payload
+            // for the receiving task and must NOT be mistaken for a malformed parameter.
+            Assert.Equal(2, message.Parameters.Count);
+            Assert.Equal("*FA-SERVER", message.Parameters[0].AsText());
+            Assert.Equal("D102", message.Parameters[1].AsText());
+        }
+
+        /// <summary>
+        /// The file server's letter comes back refused exactly as the file-transfer one did.
+        /// </summary>
+        /// <remarks>
+        /// Worth pinning because the CONSOLE said something quite different - the File User retries
+        /// for about a minute and then reports "NO ANSWER FROM REMOTE SYSTEM", which reads as if the
+        /// request had been accepted and gone unanswered. It had not: XROUT refused it immediately,
+        /// with the same status as file transfer. A console message is not evidence about the wire.
+        /// </remarks>
+        [Fact]
+        public void FaServerLetter_IsRefusedWithTheSameStatusAsFileTransfer()
+        {
+            byte[] reply = FromHex(
+                "1B0C 0012 "
+                + "FF0A 2A46412D534552564552 "
+                + "FE04 44313032 "
+                + "07E2 0000 0006 6400");
+
+            XroutMessage message = XroutMessage.Parse(reply, XroutMessageFraming.WithHeader);
+
+            Assert.Equal((byte)XroutError.XRNRO, message.Service);
+            Assert.Equal("*FA-SERVER", message.Parameters[0].AsText());
+        }
+
+        /// <summary>
         /// Parses a hex string, ignoring spaces so a capture can be written with its field
         /// boundaries visible.
         /// </summary>
