@@ -6,6 +6,10 @@ namespace NDInsight.Sintran.Xmsg
     /// </summary>
     /// <remarks>
     /// Values from XMSG-API.md section 5.1.
+    /// Audited against the version-L symbol files (XMSG-VALUES-L.SYMB and
+    /// XMSG-PL-VALUES-L.INCL): neither file defines any link-state symbol, so
+    /// there is nothing to add here and no ND symbol name to attach. The
+    /// symbol files only define the XSLKI service code that starts a link.
     /// </remarks>
     public enum XmsgLinkState : int
     {

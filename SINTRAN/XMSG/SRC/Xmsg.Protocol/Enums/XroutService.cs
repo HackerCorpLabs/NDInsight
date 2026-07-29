@@ -11,6 +11,19 @@ namespace NDInsight.Sintran.Xmsg
     /// <summary>
     /// XROUT service codes (XS*), byte 1 of the standard-message header.
     /// </summary>
+    /// <remarks>
+    /// From XMSG-PL-VALUES-L.INCL / XMSG-VALUES-L.SYMB, section
+    /// "XROUT - SERVICE VALUES": "Values in byte 1 of message. Bit 6 is set
+    /// => service request".
+    /// The matching error section says: "Error values returned in byte 1 of
+    /// return message (Bit 6 reset)". So bit 6 (value 64) of byte 1 is what
+    /// tells a service REQUEST apart from an error REPLY: set means request,
+    /// reset means error code. That is why every service value here starts at
+    /// 64 (XSNUL) - the low 6 bits carry the service number.
+    /// Values in the ND symbol files are DECIMAL, not octal (the .SYMB is
+    /// bracketed by @DEC ... @OCT and carries the warning "This file is now in
+    /// DECIMAL to keep PLANC happy!"). The values below are decimal.
+    /// </remarks>
     public enum XroutService : int
     {
         /// <summary>
@@ -116,6 +129,10 @@ namespace NDInsight.Sintran.Xmsg
         /// <summary>
         /// Send letter and kick if unavailable (privileged)
         /// </summary>
+        /// <remarks>
+        /// Second comment line from both symbol files: "When COSROUT is
+        /// running: XSLEK is not available".
+        /// </remarks>
         XSLEK = 84,
 
         /// <summary>

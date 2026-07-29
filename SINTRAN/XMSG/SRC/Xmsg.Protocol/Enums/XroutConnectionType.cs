@@ -6,6 +6,10 @@ namespace NDInsight.Sintran.Xmsg
     /// </summary>
     /// <remarks>
     /// Values from XMSG-API.md section 4.3 (COSMOS Programmer Guide lines 10724-10756).
+    /// Audited against the version-L symbol files (XMSG-VALUES-L.SYMB and
+    /// XMSG-PL-VALUES-L.INCL): neither file defines any connection-type symbol,
+    /// so there is nothing to add here and no ND symbol name to attach. The
+    /// symbol files only define the XSGSY/XSGMC service code that returns it.
     /// </remarks>
     public enum XroutConnectionType : int
     {
