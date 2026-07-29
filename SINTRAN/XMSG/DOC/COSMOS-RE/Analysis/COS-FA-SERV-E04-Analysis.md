@@ -136,3 +136,72 @@ Already named this way: `fa_bitmap_free_slot_reg2` (0x4391), `fa_init_entry_bloc
 **To verify a `FUN_ram_*` is a fragment (skip it), not a real function:** check whether its decompile
 is a byte-identical tail of a neighbouring routine. If so, it's a phantom split — do not name it as
 independent logic.
+
+---
+
+## 6. Corrections and additions from the 2026-07-29 carve `[BIN]`
+
+A second carving pass, run with a live wire capture as the oracle, corrected two claims above and
+recovered the entry descriptor properly.
+
+### 6.1 CORRECTION: the entry descriptor is ~0x752 words, not ~0x2e `[BIN-VERIFIED]`
+
+Read off `fa_reinit_entry_block` (0x2817), which touches every live field in order, and cross-checked
+against `fa_build_entry_reply_fields` (0x36d1).
+
+| Offset (words) | Meaning |
+|---|---|
+| `+0x000` | packed; bits 14-15 cleared on reinit, 0-13 preserved |
+| `+0x004` | packed; high byte cleared, low byte preserved |
+| `+0x005`, `+0x006` | per-session sub-chain heads A and B |
+| `+0x007` | flags; bit 15 set on reinit (free/valid) |
+| `+0x008` | **entry id** - emitted as the leading `92 <id>` of every reply |
+| `+0x00A` | packed tag word: bits 0-5 preserved, 6-10 = 5-bit tag, 11-15 cleared before serializing |
+| `+0x011 .. +0x74B` | **the message/reply buffer, 1850 words = 3700 bytes** |
+| `+0x74C` | reply body length in bytes, rounded up to even |
+| `+0x74F`, `+0x750`, `+0x751` | buffer descriptor: offset, base (= entry + 0x11), flags |
+
+Minimum size **0x752 words (3748 bytes)**. The arithmetic closes exactly: `0x11 + 1850 = 0x74B`, and
+`+0x74C` is the next word. A 0x2e-word descriptor cannot hold the 3700-byte buffer this code sets up.
+
+Unresolved: `+0x20` (a second packed tag word, per 0x3fa3) overlaps the buffer range. Either it
+belongs to a different record type sharing the tag layout, or the buffer starts later on that path.
+Not settled, not guessed.
+
+### 6.2 CORRECTION: 0x8c99 is not the core request engine `[BIN]`
+
+`0x8c5d`, `0x8c99`, `0x8cd4`, `0x8d26`, `0x8d74` are a uniform generated family of thin wrappers:
+build an option word (bit 15 = XFWTF wait, set only by 0x8c5d), call one primitive, set
+`g_fa_msgio_call_made_flag`, run a common status translation. `0x8c99` reads exactly ONE QFORM
+parameter via `fa_read_typed_param` (0xA004). The engine proper is elsewhere.
+
+### 6.3 The reply serializer, confirmed against live traffic `[BIN + CAPTURE]`
+
+`fa_build_entry_reply_fields` (0x36d1) emits:
+
+```
+92 <entry[+8]>                 entry id
+if error != 0:  F2 0001 ; A2 <errno>       e.g. 0x0030 = 48 = wrong password
+else:           F2 0002 ; A2 <val> ; F2 0003 ; A2 <val>
+F2 00FF                        end-of-list sentinel (literal at 0x3774)
+```
+
+The accept/reject fork is a single `JAZ` at 0x36e8 on the SINTRAN error number. This reproduces
+instruction for instruction the diff measured on the wire in
+`../../XMSG-FA-ACCESS-PASSWORD-ON-THE-WIRE-2026-07-29.md`: the rejected reply differs from the
+accepted one only by an inserted `F2 0001 A2 0030`. Two independent sources, same answer.
+
+### 6.4 A reliable fragment test for THIS binary `[BIN]`
+
+A real PLANC routine here always opens with `RADD SL, DX` or `COPY SL, DX` (save return link).
+Any `FUN_ram_*` lacking that is a phantom split, and should be named `frag_of_<parent>_<addr>`
+rather than given an independent name. This is sharper than the byte-identical-tail test in
+section 5 and was used to reclassify nine addresses, in both directions - `0x8cd4` was labelled a
+fragment but has its own prologue and literal pool, so it is a real function.
+
+### 6.5 Open question on 0x29c0's name `[BIN]`
+
+`fa_build_entry_reply_fields` CALLS `0x29c0` at 0x375b, from inside a reply BUILDER, with
+`(entry, cursor-triple, length, 1)`. That is hard to square with the name
+`fa_parse_request_params`. It looks like a bidirectional tagged-field codec taking a direction or
+mode flag, used for both parsing and emitting. Verify before relying on the current name.
