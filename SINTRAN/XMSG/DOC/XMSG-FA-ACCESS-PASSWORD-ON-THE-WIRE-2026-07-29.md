@@ -210,6 +210,50 @@ against all 65 data frames and both were falsified. The next step is disassembly
 staring at frames - and the capture is now the oracle to check that disassembly against, which is
 a better position than either source alone.
 
+### 6.2 SOLVED: F2 is a field SELECTOR, and 0xFF ends the list [VERIFIED]
+
+Loading `cos-fa-serv-e04` into Ghidra settled it immediately. `fa_process_params_dispatch`
+(0x35da) does this:
+
+> loops over up to 30 (0x1e) parameter fields; for each, reads its tag byte; **if the tag is not
+> `0xFF`** (the sentinel) and is in range, computed-jumps through the tag-indexed table
+> `g_fa_param_dispatch_table` (0x9039).
+
+So the body is not a flat list of self-describing values - it is a **selector/value stream**, and
+`0xFF` terminates it. That is why a flat walk desynchronised: it treated selectors as values.
+
+The capture confirms it exactly. Counting `F2 <id>` occurrences across every frame:
+
+| Selector | Occurrences | Meaning |
+|---|---|---|
+| `F2 00FF` | 20 | **end of parameter list** - the carve's sentinel |
+| `F2 0001` | 14 | field 1 |
+| `F2 0002` | 12 | field 2 |
+| `F2 0003` | 5 | field 3 |
+| `F2 0004` | 5 | field 4 |
+
+Small sequential field numbers plus a `0xFF` terminator - a parameter list, exactly as the
+dispatcher describes. The 20 frames carrying the sentinel are the FA protocol frames; the rest of
+the capture is acks and control.
+
+Walking the request from section 1 with this model finally parses:
+
+```
+8000 0001 92 0002 92 0001     header, before the first selector
+F2 0001   A2 07D0             field 1 = 2000
+F2 0002   8C 06 92 0001 ...   field 2
+F2 0003   BD "BAK03  SYSTEM"  field 3 = string(13), the local process and user
+F2 0004   ... "SECRET" ... 6D2A   field 4 = the credentials block: remote user AND password
+F2 00FF                       end
+```
+
+Field 4 carries **both** the remote user name and the folded password word - which is why the
+password sits where it does, and why only that one byte moved when the password changed.
+
+Remaining: the exact value grammar inside fields 2 and 4 (the `8C` and `E1` tags), and what the
+`8000 0001 92 0002 92 0001` header means. But the container is no longer a mystery, and a reader
+can now be written that finds field boundaries reliably instead of guessing.
+
 ## 7. Caveat
 
 `XMLEN` reads `0x3F` on one request and `0x40` on the other while the visible trailer is the same
