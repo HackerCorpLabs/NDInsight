@@ -188,9 +188,27 @@ container around them is not a flat list. Something - most likely a per-operatio
 a structural/nesting meaning for class 8 - decides where tagged fields begin and end. **Do not
 build a codec on a flat walk**; it would silently mis-parse two frames in three rather than fail.
 
+A second hypothesis was tried and also fails. The carve records that the EMIT side uses tags
+`92/94/A2/F2` while the PARSE side compares against different indices, which predicts that
+**replies** might be flat even if requests are not. Walking the two directions separately:
+
+| Direction | Data frames | Clean walks |
+|---|---|---|
+| replies (from the server) | 32 | 9 |
+| requests (from the client) | 33 | 12 |
+
+Both fail at about the same rate, so the framing is not direction-dependent either.
+
 Closing this needs the request-parse side of the carve read properly:
 `fa_parse_request_params` (0x29c0) and the dispatch tables `g_fa_param_dispatch_table` (0x9039) /
-(0x9044), which is where the real framing is decided.
+(0x9044), which is where the real framing is decided. That requires the `cos-fa-serv-e04` binary
+loaded in Ghidra - as of this writing only the two 68k Ethernet/octobus images are open, so it
+could not be read here.
+
+**Status: byte-level inference on this capture is exhausted.** Two plausible models were tested
+against all 65 data frames and both were falsified. The next step is disassembly, not more
+staring at frames - and the capture is now the oracle to check that disassembly against, which is
+a better position than either source alone.
 
 ## 7. Caveat
 
