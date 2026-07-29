@@ -124,7 +124,45 @@ number.** Absence of that field is success. Confirmed for the wrong-password cas
 numbers (no such user, no such file, no access) have not yet been elicited, so treat the general
 rule as [INFERRED] and the 48 = wrong password mapping as [VERIFIED].
 
-## 6. Caveat
+## 6. The QFORM tag encoding, confirmed from the wire [VERIFIED]
+
+The Ghidra carve of `cos-fa-serv-e04` read four emitter tag bytes straight out of the binary
+(`0x92` INT16, `0x94` INT32, `0xA2`, `0xF2`) and proposed - marked `[INFERRED]` - that a tag is
+
+```
+tag = (type_class << 4) | length_in_bytes
+```
+
+The capture confirms that rule, using fields whose contents are known independently:
+
+| Tag | Low nibble | Bytes that follow | Content | Verdict |
+|---|---|---|---|---|
+| `BD` | D = 13 | 13 | `BAK03  SYSTEM` - exactly 13 characters | length rule holds |
+| `B0` `10` | 0 = escape | 16 | `SECRET` + NUL padding - exactly 16 | escape form |
+| `92` | 2 | 2 | INT16 | matches the carve |
+| `A2` | 2 | 2 | the error number (see section 5) | matches the carve |
+| `F2` | 2 | 2 | field/selector | matches the carve |
+
+Two results:
+
+1. **The `(class << 4) | length` encoding is no longer inferred.** A 13-character string carried
+   under tag `0xBD` cannot be coincidence, and it was not derivable from the emitter table alone -
+   the carve only ever saw fixed-length emitters (2 and 4 bytes), so nothing in the binary
+   exercised the length nibble across its range.
+2. **A length of 0 is an escape: the NEXT byte is the real length.** `B0 10` introduces a 16-byte
+   value. The carve did not have this - it could not, since no fixed-length emitter needs it. This
+   is what lets QFORM carry values of 16 bytes and up in a 4-bit length field.
+
+The carve also flagged that the request-PARSE side compares tags against `0x01/0x10/0x80` and
+warned those might be internal type indices rather than wire bytes, `[UNVERIFIED]`. The capture
+answers that too: the request on the wire uses the **same** `92/A2/F2/BD/B0` vocabulary as the
+reply, so `0x01/0x10/0x80` are indeed internal indices and not raw wire tags.
+
+Not everything parses yet. The trailer opens `80 00 00 01` and contains an `E1` and several `8C`
+tags whose length nibbles do not obviously fit the surrounding structure, so the grammar above is
+confirmed for the tags listed and **not yet complete**. Building a full reader is the next step.
+
+## 7. Caveat
 
 `XMLEN` reads `0x3F` on one request and `0x40` on the other while the visible trailer is the same
 length. Not explained. Flagged rather than hand-waved.
