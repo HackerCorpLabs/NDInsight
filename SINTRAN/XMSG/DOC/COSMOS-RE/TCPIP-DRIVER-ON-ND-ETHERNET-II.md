@@ -234,6 +234,69 @@ word starting non-zero) were confirmed against the live firmware.
    injection point. Driving a transmit from outside therefore requires calling `POSI_SEND` (0x8AC8)
    directly.
 
+### PROVEN ON THE RUNNING CARD - the A/B pair, 2026-07-29
+
+Both halves of the mode-word model were driven through the real firmware and the emitted bytes
+captured off the LANCE. Tests `Transmit_DixFrame_IsEmittedByTheLance` and
+`Transmit_8023Frame_FirmwareWritesTheLengthField` in `Nd100EthernetIIOracleDramDumpTests`.
+
+| | mode word | hdrlen | totallen | on-wire | bytes 12-13 |
+|---|---|---|---|---|---|
+| DIX | **0x0000** | 12 | 42 | **60** (12+42=54, padded) | **0x0800** - our EtherType survived |
+| 802.3 | **0x0001** | 14 | 64 | **78** (=14+64, no pad needed) | **0x0040** = 64 - firmware wrote the length |
+
+Every prediction held simultaneously: the 12-vs-14 backwards header build, the 60-byte minimum pad
+under `g_maOperatingMode == 4`, `on-wire = hdrlen + totallen`, and the mode word deciding whether
+the firmware writes bytes 12-13 at all. Destination MAC, source MAC (from `LNMAPHYSIC`) and the
+payload were byte-exact after DMA in both cases.
+
+> **The ND Ethernet II card transmits genuine Ethernet II / DIX frames when 0x1888A is cleared.**
+> This is measured, not inferred. The central question behind the TCP/IP goal is answered: yes.
+
+**How the frame was submitted**: the pending head 0x1A2BC is NOT an injection point (nothing polls
+it). The test calls `POSI_SEND` (0x8AC8) directly on the 68K - stage a PLANC frame, node in A0,
+queue object 0x18848 at frame+0x14, and a fake return link pointing at a parked `bra.s *` so the
+CPU spins harmlessly instead of running loose. All registers are saved and restored, and the test
+asserts the card is still running afterwards so a wrecked card cannot masquerade as a result.
+
+**Harness constraint**: only ONE machine boot per `dotnet test` invocation. A second boot in the
+same process reaches "SINTRAN III RUNNING" but login never answers, and the test host then crashes.
+Run these tests one per invocation.
+
+### The RECEIVE delivery node - DECODED 2026-07-29
+
+`RCVCOMPLETE` (0x5C42) builds a delivery node whose descriptor mirrors the transmit one.
+
+**PROVEN - the frame is NOT copied and the MAC header is NOT stripped.** `descriptor.base`
+(node+0x18) is set to the LANCE buffer address, which points at byte 0 of the frame, i.e. at the
+destination MAC. `descriptor.len` (node+0x1C) is the BUFFER size (from -BCNT), not the frame length.
+The destination MAC is additionally duplicated to node+0x22 and the source MAC to node+0x28.
+
+**The mode word 0x1888A is read here too - a THIRD consumer** (after the transmit header build and
+the receive filter):
+
+```
+mode != 0   hdrlen = 14, totallen = frame bytes 12-13
+            -> the 802.3 length field is TRUSTED VERBATIM as the payload length
+mode == 0   hdrlen = 12, totallen = framelen - 12
+            -> bytes 12-13 are handed to the host as ordinary payload
+```
+
+> So with the mode word clear the host **receives the EtherType as part of its data** and parses it
+> itself - which is exactly what a DIX/TCP-IP stack needs. The firmware never validates bytes 12-13
+> as a length in the delivery path.
+
+Independent of the mode word there is a **size gate** before the classifier: frames shorter than 60
+or longer than 1514 (0x5EA = 1500 + 14) are rejected, both bumping the saturating counter at
+`g_nmaStatsBlock+0x2A`.
+
+LANCE hardware errors (RMD1 ERR, bit 14) bump one counter each: CRC +0x1C, FRAM +0x1E, BUFF +0x22
+(also sets bit 2 of the event word 0x1894C), OFLO +0x20 (bit 1 of 0x1894C).
+
+**Every rejection is a SILENT drop**: the discard path clears the delivery-node pointer, still
+clears the descriptor and advances the ring, and never reaches the host-notify step - so no SCIP and
+no level-12 interrupt. By design.
+
 ### What is still unknown
 
 - The RX completion path back to the host (`RCVCOMPLETE` 0x5C42 is the LANCE-side entry)
@@ -284,6 +347,74 @@ one PIOC in a machine.
 
 **The emulated machine has never been configured with two cards** - every instantiation in the
 codebase is thumbwheel 0. So this cannot be answered by reading; it must be run.
+
+### RETRACTED: the two-card failure below was an EMULATOR BUG, not ND behaviour
+
+**Corrected 2026-07-29 after a documentation and code review.** The measurement below is accurate,
+but the conclusion drawn from it was wrong. Do not cite it as evidence about SINTRAN.
+
+**Multiple controllers are documented and supported.** `Reference-Manuals\Devices\ND-12.055.1 EN
+Ethernet II Controller.md`: *"ND-100 based systems can drive a maximum of four Ethernet II
+controllers."* `Installation\Communication\Ethernet\ND-210580-02-EN.md`: *"ENNS1 ==> EtherNet
+Network Server 1. Where 1 is the same number as the thumbwheel setting of the Ethernet Interface."*
+SINTRAN is generated for up to 3 Ethernet interfaces, and COSMOS reserves virtual sysids 9800-9803
+for four concurrent network servers.
+
+**Two defects in the experiment, one of them fatal:**
+
+1. **`ND100Memory` only tracks ONE Ethernet card.** `Emulated.Machines\ND\ND100\ND100Memory.cs`
+   lines 88-89 and 150-157 hold a single `NDBusEthernetII _ethernet` field, overwritten on each
+   registration, and `FindMemoryBank` consults only that one. With two cards registered, card 0's
+   DRAM is unreachable from the ND-100 - the driver writes firmware, comm block and MAC into card 1
+   while card 0 is released from reset with empty DRAM. That is precisely the observed symptom.
+2. **Both cards claim the same ND-100 memory window.** `NDBusEthernetII.cs:534` hardcodes
+   `physicalPageStart = 0x400 * 2048` and `memoryBank = 16` for every instance. On real hardware
+   each card sits in its own 512 KB bank, selected by the **7J/9J thumbwheels** (ND-12.055.1,
+   Table 2) - a strap the emulator never reads.
+3. Additionally, no `ENNS1` RT program was installed. The installer produces one per card by
+   renaming the BRF symbol `ENNS0` -> `ENNS<channel>`; the harness only ever started `ENNS0`.
+
+**What the emulator needs before this experiment can be repeated**: make `ND100Memory` hold a list
+of Ethernet cards and iterate in `FindMemoryBank` (and the DMA-log gates at lines 400 and 517), and
+derive `memoryBank` / `physicalPageStart` from the thumbwheel instead of hardcoding them. The
+ident/IOX decode is already correct and per-instance, so nothing else needs to change.
+
+**Separately - ND shipped TCP/IP exactly this way.** ND's own product sheets
+(`HOW-ND-SHIPPED-TCPIP-PRODUCT-EVIDENCE-2026-07-26.md`) state *"Possibility of running TCP/IP in
+several Ethernet III controllers simultaneously"*, *"you will have to assign an Internet address for
+each controller"*, and conclude **one protocol per controller - dual stack needs two cards**. That
+independently corroborates the global-mode-word finding: COSMOS and TCP/IP on one card is not how
+the product worked, and two cards is the intended answer rather than a workaround.
+
+---
+
+### SUPERSEDED measurement, 2026-07-29 - kept for the record
+
+Test `TwoControllers_StationMacAssignment`, run with `RETROCORE_ETH_CARDS=2` (a second
+`NDBusEthernetII` at thumbwheel 1). Same boot and ENNS0 ladder that succeeds every time with one
+card:
+
+```
+ENNS0 started = False
+card 0 (thumbwheel 0) LNMAPHYSIC = 00:00:00:00:00:00   68KRunning=False
+card 1 (thumbwheel 1) LNMAPHYSIC = 00:00:00:00:00:00   68KRunning=False
+XMSG Routing/Naming error: Unknown name (of server or system)
+```
+
+**Adding a second controller does not merely duplicate the MAC - it prevents bring-up completely.**
+Neither card is given a station address and neither 68K is left running. So the MAC question is
+still unanswered: there was never a second initialised card to compare.
+
+**UNKNOWN - do not assume either way**: whether this is SINTRAN's genuine behaviour (for example
+both cards colliding on the `*XM-ENNS0` registration that the card performs over an MBOXH XMSG
+conversation - the known source of "Unknown name") or an emulation limitation (both controllers
+answering the same ident, or the machine configuration not really supporting a second ETH). One
+card working and two failing is consistent with both explanations.
+
+**Consequence for the coexistence strategy**: "run COSMOS on one card and TCP/IP on the other"
+cannot be assumed to work. It is not currently demonstrable, and until the failure above is
+understood the only demonstrated path to Ethernet II on this hardware is a single card with the
+global mode word cleared - which excludes COSMOS at the same time.
 
 ### The experiment
 

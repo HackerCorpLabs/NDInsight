@@ -1,0 +1,106 @@
+<!--
+  __planc  -  ND PLANC-MC calling convention for the MC68000.
+
+  Paste this <prototype> block into the <prototype> list of your Ghidra 68000 compiler spec:
+      <GHIDRA_INSTALL>\Ghidra\Processors\68000\data\languages\68000.cspec
+  Back that file up first. Restart Ghidra afterwards.
+
+  Then set it per function:  right-click > Edit Function > Calling Convention > __planc
+  or via the MCP tool set_function_prototype.
+
+  ---------------------------------------------------------------------------------------------
+  WHAT THIS MODELS  (all verified against ND manuals and the ENCOS 68000 image)
+
+  Leading argument
+      D0   scalars of 32 bits or less (BOOLEAN, BYTE, INTEGER1/2/4, ENUMERATION)
+      A0   everything else, passed as a POINTER to the actual parameter
+    Source: ND-820026.1 EN DOMINO and NUCLEUS Software Guide, line 3424 -
+      "Simple variables and constants not exceeding 32 bits are passed via the D0-register.
+       All other variables and constants as pointer to the actual parameter are passed via
+       the A0-register."
+
+  Return value
+      D0   BOOLEAN, BYTE, INTEGER1, INTEGER2, ENUMERATION  (and, by inference, INTEGER4)
+      A0   REAL8 (as pointer), POINTER, ARRAY / RECORD / SET (address)
+    Source: ND-60.117.5 EN PLANC Reference Manual, lines 12379-12388.
+
+  Preserved across a call
+      A5   the runtime error vector (#XRET / #ERET). Never used for data. Reserved.
+      A6   the PLANC frame pointer. Saved and restored by the callee prologue/epilogue.
+
+  Destroyed by a call
+      D0-D7, A0-A4.  No compiled routine in the ENCOS image saves any of them - there is no
+      movem in any prologue or epilogue.
+    Source: ND-820026.1 ~line 4420 - "Most CPU registers (D0:D7, A0:A4) may be overwritten
+      after the call."
+
+  ---------------------------------------------------------------------------------------------
+  WHAT THIS CANNOT MODEL  -  read this before trusting a decompiled signature
+
+  1. Second and subsequent arguments are NOT on the machine stack. The caller writes them into
+     the CALLEE'S FRAME at offset 0x14 (octal 24B) upward, before the call. Ghidra's prototype
+     model has no way to express that, because it assumes an argument area relative to the stack
+     pointer and PLANC frames are bump-allocated in a separate arena. Multi-argument routines will
+     still need their extra parameters read by hand from the frame.
+
+  2. The skip return (normal return to RETLINK+2) is a CONTROL FLOW property, not a convention
+     property. It is fixed by PlancFixFlow.java, not by this file. Install both.
+
+  3. Frames are never popped, so a caller may legitimately read secondary results out of a
+     callee's frame after the call. That will decompile as a load from a stale pointer. It is not
+     a bug in the binary.
+  ---------------------------------------------------------------------------------------------
+-->
+
+<prototype name="__planc" extrapop="4" stackshift="4">
+  <input>
+    <!-- Leading argument: scalars <= 32 bits in D0, everything else as a pointer in A0. -->
+    <pentry minsize="1" maxsize="4" metatype="int">
+      <register name="D0"/>
+    </pentry>
+    <pentry minsize="1" maxsize="4" metatype="ptr">
+      <register name="A0"/>
+    </pentry>
+    <!--
+      Fallback so Ghidra does not silently invent register arguments for routines with more than
+      one parameter. Anything beyond the leading argument really lives in the callee frame at
+      0x14+ and must be recovered manually - see note 1 above.
+    -->
+    <pentry minsize="1" maxsize="500" align="2">
+      <addr offset="4" space="stack"/>
+    </pentry>
+  </input>
+
+  <output>
+    <!-- Pointer / composite results come back in A0. -->
+    <pentry minsize="1" maxsize="4" metatype="ptr">
+      <register name="A0"/>
+    </pentry>
+    <!-- Integer, boolean, byte, enumeration results come back in D0. -->
+    <pentry minsize="1" maxsize="4">
+      <register name="D0"/>
+    </pentry>
+  </output>
+
+  <unaffected>
+    <!-- A5 is the runtime error vector; A6 is the PLANC frame pointer. Both survive every call. -->
+    <register name="A5"/>
+    <register name="A6"/>
+  </unaffected>
+
+  <killedbycall>
+    <register name="D0"/>
+    <register name="D1"/>
+    <register name="D2"/>
+    <register name="D3"/>
+    <register name="D4"/>
+    <register name="D5"/>
+    <register name="D6"/>
+    <register name="D7"/>
+    <register name="A0"/>
+    <register name="A1"/>
+    <register name="A2"/>
+    <register name="A3"/>
+    <register name="A4"/>
+  </killedbycall>
+</prototype>
