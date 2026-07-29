@@ -254,6 +254,88 @@ Remaining: the exact value grammar inside fields 2 and 4 (the `8C` and `E1` tags
 `8000 0001 92 0002 92 0001` header means. But the container is no longer a mystery, and a reader
 can now be written that finds field boundaries reliably instead of guessing.
 
+## 6.3 CORRECTION: the tag rule is right for classes 1-7 only [VERIFIED]
+
+Section 6 above says the `(class << 4) | length` encoding "is no longer inferred". That was
+overstated. Disassembling the reader itself - `qform_read_tag_and_value` at `ram:0x7d01`, found by
+following `fa_process_params_dispatch` (0x35da) through `0x3630` and `0x295b` - gives the real
+rule, with the masks read out of its literal pool at `0x7d82..0x7d89`:
+
+```
+bit 7 CLEAR                    -> END OF STREAM            (BSKP 7 @ 0x7d14)
+class = (tag & 0x70) >> 4                                  (mask @ 0x7d82/0x7d83)
+
+class 1..7 : length  = tag & 0x0F                          (mask @ 0x7d84)
+class 0    : subtype = tag & 0x17   <- NOT a length        (mask @ 0x7d85)
+             length is ALWAYS escaped into the next byte
+
+escape: a following 0x80 continues accumulation; the first non-0x80 byte is the length
+scalar reader rejects length > 4  -> error 0x1FC4
+overrun                           -> error 0x1FC6
+```
+
+The evidence in section 6 was sound - `0xBD` really does carry 13 bytes and `0xB0 0x10` really does
+carry 16 - but both are class 3, so they only ever tested the classes-1-to-7 branch. The
+generalisation to all tags was mine, and it was wrong. It could never have explained `0x80` or
+`0x8C`.
+
+### 0x8C is a NESTED RECORD - and that is why the flat walk failed [VERIFIED]
+
+`0x8C` = class 0, subtype 4, escape length. So `F2 0002  8C 06  92 0001 ...` reads as: select
+field 2, then a subtype-4 value **6 bytes long whose contents are themselves tagged**.
+
+`0x8C` is a **constructed, length-delimited sub-record**. The flat walker descended into nested
+payloads and read them as top-level tags, which is exactly the desynchronisation measured in
+section 6.1 - and exactly why the failures looked like ASCII letters being mistaken for tags.
+`0x80` is the same mechanism with subtype 0.
+
+### 0xE1 is decodable but its meaning is unknown [PARTIAL]
+
+`0xE1` = class 6, length 1: one header byte, one value byte. A parser can read or skip it correctly
+today. What class 6 *means* is **not determined** - there is no `0xE1` emitter in this binary and
+nothing found assigns semantics to class 6. Recorded as unknown rather than guessed.
+
+### A fifth emitter the earlier carve missed [VERIFIED]
+
+Searching the emitter literal-pool signature finds **five** emitters, not four:
+
+| Emitter | Addr | Tag | Class | Value |
+|---|---|---|---|---|
+| `msg_put_param_word` | 0x7a55 | `0x92` | 1 | 2 bytes |
+| `msg_put_param_dword` | 0x7a91 | `0x94` | 1 | 4 bytes |
+| `msg_put_param_typed_a_word` | 0x7acd | `0xA2` | 2 | 2 bytes |
+| **`msg_put_param_typed_a_dword`** | **0x7b09** | **`0xA4`** | **2** | **4 bytes - NEW** |
+| `msg_put_param_typed_c` | 0x7b45 | `0xF2` | 7 | selector |
+
+There is **no `0x8C` and no `0xE1` emitter**: this server never writes them. They are read-side
+only, produced by the SINTRAN client. That matches the capture, where both appear in the request
+and neither in the reply.
+
+### Why the dispatch tables looked like code [RESOLVED]
+
+An earlier attempt to dump `0x9038` returned instruction bytes. The tables are in the **data bank**,
+not `ram:`. In `BANK2` they are exactly what the dispatcher describes: `9038` = bound 3, `9039..903c`
+= handlers for invalid/field-1/field-2/field-3, and a second table at `9043`/`9044` with bound 1 -
+which is where wire field 4, the credentials block, must land, since it exceeds the first table's
+bound.
+
+The reply-side table at `903d` clinches the selector model independently: each entry simply loads a
+field number 0/1/2/3, and `0x3847` loads `0xFF`.
+
+This also settles the carve's own `[UNVERIFIED]` caveat: the `0x01/0x10/0x80` values compared in
+`fa_parse_request_params` are **field/operation numbers**, not wire tags.
+
+### Still open
+
+The `80 00 00 01` opener does **not** decode cleanly with the real rule: `80` plus escape byte `00`
+consumes two bytes for an empty subtype-0 marker, and the next byte `00` has bit 7 clear, which
+means end-of-stream - yet the message plainly continues. So either the body handed to this reader
+starts after a 4-byte non-QFORM preamble, or the grouping in section 1 splits it wrongly. Not
+resolved; flagged rather than smoothed over.
+
+Also unresolved: the multi-byte (>= 128) escape-length accumulation at `0x7d48`. The single-byte
+case is confirmed against the wire (`B0 10` = 16); no captured frame exercises the continuation.
+
 ## 7. Caveat
 
 `XMLEN` reads `0x3F` on one request and `0x40` on the other while the visible trailer is the same
