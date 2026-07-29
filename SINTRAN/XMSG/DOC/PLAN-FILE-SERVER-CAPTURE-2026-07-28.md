@@ -126,6 +126,13 @@ Hello SYSTEM
 F-T:
 ```
 
+> **WRONG - corrected 2026-07-29.** These commands DO exist on E02. They are gated behind
+> `SET-ADVANCED-MODE`, which changes the prompt to `F-T(Adv.):`. All of them were run successfully
+> against `(COSMOS-BASIC)COS-FILE-TRA-E02:PROG` on node 100, including `LIST-VARIABLES`, which
+> confirmed the transfer buffer size and count. See
+> `XMSG-LIST-FILES-ON-THE-WIRE-2026-07-29.md` section 6b. The paragraph below stands only as a record
+> of the mistake - do not act on it.
+
 The command set SHRANK between versions. On E02 these all answer `** Illegal command **`:
 `DEBUGPRINT-ON`, `DEBUGPRINT-OFF`, `DECODE-BUFFER`, `CHECKOUT`, `LIST-ALL-COMMANDS`,
 `LIST-VARIABLES`, `DEFINE-TRANSFER-CONDITIONS`. **So there is no built-in buffer dump to lean on** -

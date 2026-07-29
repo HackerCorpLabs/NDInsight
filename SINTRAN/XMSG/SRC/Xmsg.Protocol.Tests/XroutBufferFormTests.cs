@@ -401,9 +401,19 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             Assert.Equal(9, message.Parameters[5].ParameterNumber);
             Assert.Equal("SYMB", message.Parameters[5].AsText());
 
-            // 1024 and 2. Plausibly a buffer size and count - the DEFINE-TRANSFER-CONDITIONS
-            // defaults - but that is a GUESS. Controlled variation on 2026-07-28 moved neither,
-            // so nothing observed so far distinguishes them from any other constant.
+            // 1024 and 2 - a buffer size and a buffer count.
+            //
+            // This was a GUESS until 2026-07-29, when the FILE-TRANSFER program's advanced mode was
+            // found to expose exactly:
+            //     Define-transfer-conditions <No of buffers>,<Size in bytes>,<Secure messages>
+            // Those are the only three transfer knobs the program has, and the COSMOS User Guide
+            // p.146 says "files are transferred using two 1024-byte buffers at a time" - which is
+            // precisely 2 and 1024. So p10 is the size and p11 the count.
+            //
+            // Still NOT proven: controlled variation on 2026-07-28 moved neither field, so no
+            // capture yet shows them changing together with the setting. Driving
+            // Define-transfer-conditions with different values and re-capturing would settle it.
+            // The third knob, "Secure messages", has not been located in the letter at all.
             uint firstConstant;
             Assert.True(message.Parameters[6].TryGetUInt32(out firstConstant));
             Assert.Equal(1024u, firstConstant);
@@ -611,9 +621,92 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         }
 
         /// <summary>
+        /// LIST-SYSTEMS probes each system by opening a letter to that system's <c>*TADADM</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Captured in <c>E:\Dev\Ronny\X25Emulator\pcap\li-syst-tad-103.pcapng</c>, frame 529. Frame
+        /// 541 is byte-identical except that parameter 2 reads <c>"D102"</c>, so the command walks the
+        /// systems it knows about and sends one of these per system.
+        /// </para>
+        /// <para>
+        /// This is the THIRD server to confirm the XSLET parameter tagging - after <c>*FA-SERVER</c>
+        /// and <c>*XFTRA</c> - and the first to exercise the word pad on parameter 1 rather than on a
+        /// file name. <c>*TADADM</c> is 7 characters, so the parameter declares 7 and a pad byte
+        /// follows; the pad is counted by the MESSAGE length, not by the parameter length.
+        /// </para>
+        /// <para>
+        /// It also distinguishes LIST-SYSTEMS from LIST-ROUTING: the routing captures
+        /// (<c>li-rout-103-tree.pcapng</c>, <c>li-rout-102-tree.pcapng</c>) carry no server name at
+        /// all, so they never open a conversation like this one.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void ListSystems_ProbesEachSystemViaItsTadadm()
+        {
+            byte[] request = FromHex(
+                "0141 0014 "                    // XSLET, 20 bytes of body
+                + "FF07 2A54414441444D 00 "     // p1  string "*TADADM", 7 chars plus a pad byte
+                + "FE04 44313030 "              // p2  string "D100" - the system being probed
+                + "0402 0001");                 // p4  integer 1
+
+            XroutMessage message = XroutMessage.Parse(request, XroutMessageFraming.WithHeader);
+
+            Assert.Equal((byte)XroutService.XSLET, message.Service);
+            Assert.Equal(3, message.Parameters.Count);
+
+            // The server being reached, with the pad stripped as framing rather than content.
+            Assert.Equal(1, message.Parameters[0].ParameterNumber);
+            Assert.Equal("*TADADM", message.Parameters[0].AsText());
+
+            Assert.Equal(2, message.Parameters[1].ParameterNumber);
+            Assert.Equal("D100", message.Parameters[1].AsText());
+
+            // Parameter 4 was 1 on every probe in the capture. Meaning UNKNOWN - nothing varied it.
+            Assert.Equal(4, message.Parameters[2].ParameterNumber);
+            uint probeConstant;
+            Assert.True(message.Parameters[2].TryGetUInt32(out probeConstant));
+            Assert.Equal(1u, probeConstant);
+        }
+
+        /// <summary>
+        /// The same probe addressed to a different system differs only in parameter 2.
+        /// </summary>
+        /// <remarks>
+        /// Frames 529 and 541 of the same capture. This is what makes the reading "one letter per
+        /// system" rather than "one letter that carries a list".
+        /// </remarks>
+        [Fact]
+        public void ListSystemsProbe_DiffersOnlyInTheSystemName()
+        {
+            byte[] toD100 = FromHex("0141 0014 FF07 2A54414441444D 00 FE04 44313030 0402 0001");
+            byte[] toD102 = FromHex("0141 0014 FF07 2A54414441444D 00 FE04 44313032 0402 0001");
+
+            Assert.Equal(toD100.Length, toD102.Length);
+
+            int differences = 0;
+            for (int i = 0; i < toD100.Length; i++)
+            {
+                if (toD100[i] != toD102[i]) { differences++; }
+            }
+
+            // Exactly one byte: the last character of the system name.
+            Assert.Equal(1, differences);
+
+            XroutMessage a = XroutMessage.Parse(toD100, XroutMessageFraming.WithHeader);
+            XroutMessage b = XroutMessage.Parse(toD102, XroutMessageFraming.WithHeader);
+
+            Assert.Equal("D100", a.Parameters[1].AsText());
+            Assert.Equal("D102", b.Parameters[1].AsText());
+            Assert.Equal(a.Parameters[0].AsText(), b.Parameters[0].AsText());
+        }
+
+        /// <summary>
         /// Parses a hex string, ignoring spaces so a capture can be written with its field
         /// boundaries visible.
         /// </summary>
+        /// <param name="hex">The hex text, with or without spaces.</param>
+        /// <returns>The decoded bytes.</returns>
         private static byte[] FromHex(string hex)
         {
             string packed = hex.Replace(" ", string.Empty);

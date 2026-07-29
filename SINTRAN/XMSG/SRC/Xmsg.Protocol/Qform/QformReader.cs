@@ -37,10 +37,20 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Qform
         public const int EndOfListSelector = 0x00FF;
 
         /// <summary>
-        /// The escape-continuation byte. The reader accumulates while it sees this value and takes
-        /// the first byte that is not it as the length.
+        /// Marks a length byte as an ESCAPE: the real length is the byte that follows.
         /// </summary>
-        private const byte LengthEscapeContinue = 0x80;
+        /// <remarks>
+        /// Resolved from the capture <c>fa-access-secret-102-to-100-2026-07-29.pcapng</c>, frame 23,
+        /// which carries <c>8C 80 46</c>. Reading 0x80 as a marker gives a declared length of 0x46 =
+        /// 70, and the constructed value's contents total exactly 70 bytes: a <c>B0 3E</c> string
+        /// (2 + 62) plus <c>A2 0000</c> (3) plus <c>A2 FFFF</c> (3). The length is therefore
+        /// arithmetically confirmed, not merely consistent with a clean parse.
+        /// <para>
+        /// Measured over the 34 data frames of that capture, treating 0x80 as an escape marker takes
+        /// the reader from 28 clean walks to 32.
+        /// </para>
+        /// </remarks>
+        private const byte LengthEscapeMarker = 0x80;
 
         /// <summary>
         /// Walks a body and returns every field found, including fields nested inside constructed
@@ -145,17 +155,21 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Qform
             byte first = body[i];
             i++;
 
-            if (first != LengthEscapeContinue)
+            if (first != LengthEscapeMarker)
             {
                 return first;
             }
 
-            // The reader accumulates across 0x80 bytes, but the exact arithmetic at 0x7d48 was NOT
-            // resolved and no captured frame exercises it. Refusing here is deliberate: a guessed
-            // continuation rule would mis-parse silently, which is worse than not parsing at all.
-            throw new QformFormatException(
-                "QFORM multi-byte escape length (0x80 continuation) is not decoded yet. "
-                + "No captured frame exercises it and the accumulation arithmetic at ram:0x7d48 is unresolved.");
+            // 0x80 is a marker rather than a length: the length is the following byte. See the
+            // remarks on LengthEscapeMarker for the frame that pins this arithmetically.
+            if (i >= body.Length)
+            {
+                throw new QformFormatException("QFORM escaped length marker is not followed by a length byte.");
+            }
+
+            byte escaped = body[i];
+            i++;
+            return escaped;
         }
     }
 

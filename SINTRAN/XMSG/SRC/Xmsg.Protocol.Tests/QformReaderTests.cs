@@ -166,20 +166,57 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         }
 
         /// <summary>
-        /// The multi-byte escape-length continuation is refused rather than guessed.
+        /// A length byte of 0x80 is an escape marker: the real length is the byte after it.
         /// </summary>
         /// <remarks>
-        /// The reader in the binary accumulates across 0x80 bytes, but the arithmetic at ram:0x7d48
-        /// is unresolved and no captured frame exercises it. Failing loudly beats mis-parsing
-        /// silently, which is the failure mode that cost the earlier flat reader two frames in
-        /// three.
+        /// Previously this case was refused as undecoded. Frame 23 of
+        /// <c>fa-access-secret-102-to-100-2026-07-29.pcapng</c> resolved it.
         /// </remarks>
         [Fact]
-        public void UndecodedMultiByteEscape_ThrowsRatherThanGuessing()
+        public void EscapeMarker_TakesTheLengthFromTheByteAfterIt()
         {
             byte[] body = FromHex("B0 80 04 00000000");
 
-            Assert.Throws<QformFormatException>(() => QformReader.Read(body));
+            IReadOnlyList<QformField> fields = QformReader.Read(body);
+
+            Assert.Single(fields);
+            Assert.Equal(4, fields[0].ValueLength);
+        }
+
+        /// <summary>
+        /// The captured constructed value whose escaped length is confirmed by arithmetic.
+        /// </summary>
+        /// <remarks>
+        /// Frame 23 carries <c>8C 80 46</c>: an escaped length of 0x46 = 70, and the contents
+        /// account for exactly 70 bytes - a 62-byte string under <c>B0 3E</c> (2 + 62) plus two
+        /// three-byte <c>A2</c> integers. Had 0x80 meant anything else the inner fields could not
+        /// close on the declared boundary.
+        /// </remarks>
+        [Fact]
+        public void CapturedEscapedConstructedValue_ContentsAccountForItsDeclaredLength()
+        {
+            byte[] body = FromHex(
+                "8C 80 46"
+                + "B0 3E 28534543524554292745542853454352455429292E285345435245542927000048FF"
+                + "00000000000000000000000000000000000000000000000000000000"
+                + "A2 0000"
+                + "A2 FFFF");
+
+            IReadOnlyList<QformField> fields = QformReader.Read(body);
+
+            Assert.Equal(4, fields.Count);
+
+            Assert.True(fields[0].IsConstructed);
+            Assert.Equal(70, fields[0].ValueLength);
+
+            // The three nested fields sit one level down and consume the constructed value exactly.
+            Assert.Equal(1, fields[1].Depth);
+            Assert.Equal(62, fields[1].ValueLength);
+            Assert.Equal(1, fields[2].Depth);
+            Assert.Equal(1, fields[3].Depth);
+
+            int consumed = (2 + 62) + (1 + 2) + (1 + 2);
+            Assert.Equal(fields[0].ValueLength, consumed);
         }
 
         /// <summary>

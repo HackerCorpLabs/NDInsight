@@ -4,6 +4,8 @@
   <Project Path="Xmsg.Hdlc/Xmsg.Hdlc.csproj" />
   <Project Path="Xmsg.Diagnostics/Xmsg.Diagnostics.csproj" />
   <Project Path="Xmsg.Node/Xmsg.Node.csproj" />
+  <Project Path="Xmsg.Ndfs.Tests/Xmsg.Ndfs.Tests.csproj" />
+  <Project Path="Xmsg.Ndfs/Xmsg.Ndfs.csproj" />
   <Project Path="Xmsg.Node.Tests/Xmsg.Node.Tests.csproj" />
   <Project Path="Xmsg.Servers/Xmsg.Servers.csproj" />
   <Project Path="Xmsg.Live/Xmsg.Live.csproj" />
@@ -11,6 +13,10 @@
   <Project Path="Xmsg.Api/Xmsg.Api.csproj" />
   <Project Path="Xmsg.Api.Tests/Xmsg.Api.Tests.csproj" />
   <Project Path="Xmsg.Api.Node/Xmsg.Api.Node.csproj" />
+  <Project Path="../../../../RetroFS/src/RetroFS.Core/RetroFS.Core.csproj" />
+  <Project Path="../../../../RetroFS/src/RetroFS.Local/RetroFS.Local.csproj" />
+  <Project Path="../../../../RetroFS/src/RetroFS.NDFS/RetroFS.NDFS.csproj" />
+  <Project Path="../../../../RetroFS/src/RetroFS.Utilities/RetroFS.Utilities.csproj" />
   <Project Path="Xmsg.Api.Node.Tests/Xmsg.Api.Node.Tests.csproj" />
   <Project Path="Xmsg.Chat/Xmsg.Chat.csproj" />
   <Project Path="Xmsg.Chat.Tests/Xmsg.Chat.Tests.csproj" />
