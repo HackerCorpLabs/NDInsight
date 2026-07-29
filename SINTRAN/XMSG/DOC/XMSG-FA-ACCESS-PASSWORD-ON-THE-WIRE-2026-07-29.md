@@ -160,7 +160,37 @@ reply, so `0x01/0x10/0x80` are indeed internal indices and not raw wire tags.
 
 Not everything parses yet. The trailer opens `80 00 00 01` and contains an `E1` and several `8C`
 tags whose length nibbles do not obviously fit the surrounding structure, so the grammar above is
-confirmed for the tags listed and **not yet complete**. Building a full reader is the next step.
+confirmed for the tags listed and **not yet complete**.
+
+### 6.1 The trailer is NOT a flat tag list [VERIFIED NEGATIVE]
+
+The obvious next move - walk the whole trailer as `tag, value, tag, value...` - was tried against
+every data frame in the capture and **fails**:
+
+| Walk started at trailer offset | Frames walked | Clean walks |
+|---|---|---|
+| 0 | 65 | **21** |
+| 2 | 65 | 19 |
+| 4 | 65 | 14 |
+| 6 | 65 | 10 |
+| 8 | 65 | 14 |
+
+Two thirds of frames cannot be walked that way, and no fixed prefix rescues it - skipping bytes
+only makes it worse, so the failure is not a missing header.
+
+The tag histogram from those walks shows what is actually going wrong: it is full of "tags" in
+class 4 (`41`, `42`, `43`, `45`, `4B`, `4E`...), which are simply the ASCII letters `A`, `B`, `C`,
+`E`, `K`, `N`. The walker is marching into **string payloads and reading their characters as
+tags**. That only happens if the reader is out of step with the real structure.
+
+So: the `(class << 4) | length` rule is right for the individual fields proven by content, but the
+container around them is not a flat list. Something - most likely a per-operation record layout, or
+a structural/nesting meaning for class 8 - decides where tagged fields begin and end. **Do not
+build a codec on a flat walk**; it would silently mis-parse two frames in three rather than fail.
+
+Closing this needs the request-parse side of the carve read properly:
+`fa_parse_request_params` (0x29c0) and the dispatch tables `g_fa_param_dispatch_table` (0x9039) /
+(0x9044), which is where the real framing is decided.
 
 ## 7. Caveat
 
