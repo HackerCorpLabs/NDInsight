@@ -336,6 +336,29 @@ resolved; flagged rather than smoothed over.
 Also unresolved: the multi-byte (>= 128) escape-length accumulation at `0x7d48`. The single-byte
 case is confirmed against the wire (`B0 10` = 16); no captured frame exercises the continuation.
 
+### 6.4 The corrected grammar, measured [VERIFIED]
+
+The same 65 data frames, walked with the corrected rule (bit-7 terminator, class-0 constructed
+values descended into, escape lengths honoured):
+
+| Grammar | Clean walks of 65 |
+|---|---|
+| flat tag list (section 6.1) | 21 |
+| **corrected, from the reader routine** | **50** |
+
+From 32% to 77% by fixing one thing: descending into class-0 constructed values instead of walking
+over their contents. That is the measurement that says the decode is real rather than merely
+plausible.
+
+The remaining 15 failures are consistent with the unresolved `80 00 00 01` opener above - the reader
+starts mid-structure on those frames. Nothing else is known to be wrong with the grammar, but 15
+frames is not zero, so it is not claimed to be complete.
+
+Implemented as `QformReader` in `SRC/Xmsg.Protocol/Qform/`, with tests fed from these captured
+bytes. The multi-byte escape continuation deliberately THROWS rather than guessing: silent
+mis-parsing is the exact failure mode that made the flat reader look like it worked on a third of
+the traffic.
+
 ## 7. Caveat
 
 `XMLEN` reads `0x3F` on one request and `0x40` on the other while the visible trailer is the same
@@ -353,3 +376,37 @@ Fold algorithm:
 `E:\Dev\Ronny\NDInsight\tools\sintran-segment-carver\versions\L-VSX-500\re\PASSWORD-ALGORITHM.md`
 (the implementation used here was self-checked against all three of its published vectors -
 `ORANGE`, `TIGER42`, `sky-9` - before being applied).
+
+---
+
+## 8. OPEN: this capture breaks the envelope channel formula [VERIFIED FAILURE]
+
+Adding this capture to the corpus makes `EnvelopeConformanceTests` fail: **26 of its 65 data frames
+mismatch**, while every other capture in the corpus still passes. The suite is red, deliberately -
+this is a finding, not a broken test, and hiding it by excluding the capture would throw away the
+result.
+
+The failures share one exact signature:
+
+```
+fa-access-secret...  F1=0x0029 F2=0x0070 XMCSM=0x007007F0 seed=0x14
+                     wire ch=0xDD ctr=0x7B   predicted ch=0xDE ctr=0x7B
+```
+
+- **Counter is always right.** `ComputeCounter` reproduces the wire Counter on every failing frame,
+  so the seed is being learned correctly (0x14, the documented 100-102 seed) and that half of the
+  model is intact.
+- **Channel is always exactly one too high** - wire `0xDD`, predicted `0xDE`. Never two, never low.
+
+So `channel = 0xDE - (XMCSM >> 24) - epoch` is short by one on these frames. Either `epoch` should
+be 1 where the current derivation gives 0, or there is a term the model does not have.
+
+Why this matters beyond a red test: the envelope formulas were verified on **753 of 753** frames
+from the older corpus, which is what made them trustworthy. This is the first traffic that
+disagrees, and it is also the first traffic captured from a **different machine set** (the three
+purpose-built SINTRAN K images) rather than the original pair. Whether the difference is the
+machines, the K version, the relay topology, or a genuine gap in the model is **UNKNOWN**.
+
+39 of the 65 frames DO match, so it is not a wholesale difference - something distinguishes the two
+groups, and identifying it is the next step. Do not "fix" the formula against these 26 frames until
+that is understood; a change that satisfies them and breaks the 753 would be a step backwards.
