@@ -24,9 +24,9 @@ namespace NDInsight.Sintran.Xmsg.Api.Tests
         [InlineData("TIGER42", 37323)]
         [InlineData("COFFEE7", 32983)]
         [InlineData("sky-9", 56806)]
-        public void PublishedVectors_FoldToTheirDocumentedWords(string password, int expected)
+        public void PublishedVectors_EncodeToTheirDocumentedWords(string password, int expected)
         {
-            Assert.Equal((ushort)expected, SintranPassword.Fold(password));
+            Assert.Equal((ushort)expected, SintranPassword.Encode(password));
         }
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace NDInsight.Sintran.Xmsg.Api.Tests
         [Fact]
         public void CapturedWireWord_MatchesTheCapturedPassword()
         {
-            Assert.Equal((ushort)0x6D2A, SintranPassword.Fold("secret"));
+            Assert.Equal((ushort)0x6D2A, SintranPassword.Encode("secret"));
         }
 
         /// <summary>
@@ -54,7 +54,7 @@ namespace NDInsight.Sintran.Xmsg.Api.Tests
         [Fact]
         public void CapturedControlWord_IsTheDocumentedOrangeValue()
         {
-            Assert.Equal((ushort)0x382A, SintranPassword.Fold("ORANGE"));
+            Assert.Equal((ushort)0x382A, SintranPassword.Encode("ORANGE"));
         }
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace NDInsight.Sintran.Xmsg.Api.Tests
         [InlineData("OrAnGe")]
         public void CaseDoesNotChangeTheWord(string password)
         {
-            Assert.Equal((ushort)14378, SintranPassword.Fold(password));
+            Assert.Equal((ushort)14378, SintranPassword.Encode(password));
         }
 
         /// <summary>
@@ -83,7 +83,7 @@ namespace NDInsight.Sintran.Xmsg.Api.Tests
         {
             // '1' = 0x31, '2' = 0x32. acc = ROL16(0,3) + 0x31 = 0x31; then ROL16(0x31,3) = 0x188,
             // + 0x32 = 0x1BA.
-            Assert.Equal((ushort)0x01BA, SintranPassword.Fold("12"));
+            Assert.Equal((ushort)0x01BA, SintranPassword.Encode("12"));
         }
 
         /// <summary>
@@ -92,9 +92,9 @@ namespace NDInsight.Sintran.Xmsg.Api.Tests
         [Theory]
         [InlineData("")]
         [InlineData(null)]
-        public void EmptyPasswordFoldsToZero(string? password)
+        public void EmptyPasswordEncodesToZero(string? password)
         {
-            Assert.Equal((ushort)0, SintranPassword.Fold(password));
+            Assert.Equal((ushort)0, SintranPassword.Encode(password));
         }
 
         /// <summary>
@@ -117,7 +117,7 @@ namespace NDInsight.Sintran.Xmsg.Api.Tests
                 expected = (ushort)((rotated + password[i]) & 0xFFFF);
             }
 
-            Assert.Equal(expected, SintranPassword.Fold(password));
+            Assert.Equal(expected, SintranPassword.Encode(password));
 
             // And it must differ from a shift-only fold, or the test proves nothing.
             int shiftOnly = 0;
@@ -126,17 +126,17 @@ namespace NDInsight.Sintran.Xmsg.Api.Tests
                 shiftOnly = ((shiftOnly << 3) + password[i]) & 0xFFFF;
             }
 
-            Assert.NotEqual((ushort)shiftOnly, SintranPassword.Fold(password));
+            Assert.NotEqual((ushort)shiftOnly, SintranPassword.Encode(password));
         }
 
         /// <summary>
         /// The wire form is high byte first, as captured.
         /// </summary>
         [Fact]
-        public void WriteFolded_EmitsHighByteFirst()
+        public void EncodeTo_EmitsHighByteFirst()
         {
             byte[] buffer = new byte[2];
-            SintranPassword.WriteFolded("secret", buffer);
+            SintranPassword.EncodeTo("secret", buffer);
 
             Assert.Equal(0x6D, buffer[0]);
             Assert.Equal(0x2A, buffer[1]);
@@ -146,10 +146,10 @@ namespace NDInsight.Sintran.Xmsg.Api.Tests
         /// A destination too small to hold the word is refused rather than half-written.
         /// </summary>
         [Fact]
-        public void WriteFolded_RejectsATooSmallDestination()
+        public void EncodeTo_RejectsATooSmallDestination()
         {
             byte[] buffer = new byte[1];
-            Assert.Throws<ArgumentException>(() => SintranPassword.WriteFolded("secret", buffer));
+            Assert.Throws<ArgumentException>(() => SintranPassword.EncodeTo("secret", buffer));
         }
 
         /// <summary>

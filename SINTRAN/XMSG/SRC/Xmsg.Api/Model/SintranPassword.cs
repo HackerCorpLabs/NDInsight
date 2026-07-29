@@ -33,14 +33,14 @@ namespace NDInsight.Sintran.Xmsg.Api
     public static class SintranPassword
     {
         /// <summary>
-        /// Folds a typed password into the 16-bit word SINTRAN stores and puts on the wire.
+        /// Encodes a typed password into the 16-bit word SINTRAN stores and puts on the wire.
         /// </summary>
         /// <param name="password">
-        /// The password as typed. <see langword="null"/> or empty folds to 0, which is how SINTRAN
+        /// The password as typed. <see langword="null"/> or empty encodes to 0, which is how SINTRAN
         /// represents "no password".
         /// </param>
-        /// <returns>The folded word.</returns>
-        public static ushort Fold(string? password)
+        /// <returns>The encoded word.</returns>
+        public static ushort Encode(string? password)
         {
             if (string.IsNullOrEmpty(password))
             {
@@ -71,7 +71,7 @@ namespace NDInsight.Sintran.Xmsg.Api
         }
 
         /// <summary>
-        /// Writes the folded word into <paramref name="destination"/> in the byte order it takes on
+        /// Encodes a typed password into <paramref name="destination"/> in the byte order it takes on
         /// the wire (high byte first).
         /// </summary>
         /// <param name="password">The password as typed.</param>
@@ -79,7 +79,7 @@ namespace NDInsight.Sintran.Xmsg.Api
         /// <exception cref="ArgumentException">
         /// <paramref name="destination"/> is shorter than two bytes.
         /// </exception>
-        public static void WriteFolded(string? password, Span<byte> destination)
+        public static void EncodeTo(string? password, Span<byte> destination)
         {
             if (destination.Length < 2)
             {
@@ -88,13 +88,13 @@ namespace NDInsight.Sintran.Xmsg.Api
                     nameof(destination));
             }
 
-            ushort word = Fold(password);
+            ushort word = Encode(password);
             destination[0] = (byte)(word >> 8);
             destination[1] = (byte)(word & 0xFF);
         }
 
         /// <summary>
-        /// Tests whether a typed password folds to an expected stored word.
+        /// Tests whether a typed password encodes to an expected stored word.
         /// </summary>
         /// <remarks>
         /// Because the fold is case-insensitive, this returns <see langword="true"/> for any casing
@@ -102,10 +102,10 @@ namespace NDInsight.Sintran.Xmsg.Api
         /// </remarks>
         /// <param name="password">The password as typed.</param>
         /// <param name="storedWord">The stored or captured 16-bit word.</param>
-        /// <returns><see langword="true"/> if the password folds to that word.</returns>
+        /// <returns><see langword="true"/> if the password encodes to that word.</returns>
         public static bool Matches(string? password, ushort storedWord)
         {
-            return Fold(password) == storedWord;
+            return Encode(password) == storedWord;
         }
     }
 }
