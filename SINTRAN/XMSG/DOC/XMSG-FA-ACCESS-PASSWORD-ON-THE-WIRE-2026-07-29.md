@@ -100,7 +100,31 @@ Ghidra carve of `cos-fa-serv-e04`. Decoding it properly is the next job; the car
 (`COSMOS-RE/Analysis/COS-FA-SERV-E04-Analysis.md`, 13 operations and typed-param protocol) is
 the reference to check it against.
 
-## 5. Caveat
+## 5. How a rejection is signalled [VERIFIED]
+
+The reply distinguishes accepted from rejected by **adding a tagged error field**, not by changing
+what is already there. Comparing the reply to the good request against the reply to the bad one:
+
+```
+accepted:  ... 92 0002  92 0001                 f2 00FF
+rejected:  ... 92 0002  92 0001  f2 0001 A2 0030  f2 00FF
+```
+
+`A2` introduces a 16-bit integer; the value is `0x0030` = 48 decimal = **060 octal**, which the
+SINTRAN III Reference Manual lists as **"Wrong password"** (ND-60.128.5, the octal/decimal error
+table). So the file server reports failures using the ordinary SINTRAN file-system error numbers,
+carried inside the FA reply rather than as an XMSG-level status.
+
+The XMCSM class also moves - `0x0012` on the accepted reply, `0x0018` on the rejected one - so
+there appear to be two independent signals. The error field is the one to read, because it says
+*which* failure; the class only says that the shape differs.
+
+For a client, then: **look for an `A2` field in the reply and treat its value as a SINTRAN error
+number.** Absence of that field is success. Confirmed for the wrong-password case; other error
+numbers (no such user, no such file, no access) have not yet been elicited, so treat the general
+rule as [INFERRED] and the 48 = wrong password mapping as [VERIFIED].
+
+## 6. Caveat
 
 `XMLEN` reads `0x3F` on one request and `0x40` on the other while the visible trailer is the same
 length. Not explained. Flagged rather than hand-waved.
