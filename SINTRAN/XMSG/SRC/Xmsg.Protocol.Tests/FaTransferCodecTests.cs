@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using NDInsight.Sintran.Xmsg.Hdlc;
 using NDInsight.Sintran.Xmsg.Protocol.Fa;
+using NDInsight.Sintran.Xmsg.Tests;
+
 using Xunit;
 using Xunit.Abstractions;
 
@@ -55,7 +57,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             List<byte[]> messages = ReassembleDataMessages();
             if (messages.Count == 0)
             {
-                _output.WriteLine("capture not found; skipping (set XMSG_PCAP_DIR).");
+                _output.WriteLine("recorded .pcapng files absent and XMSG_PCAP_OPTIONAL is set; skipping.");
                 return;
             }
 
@@ -92,7 +94,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             List<byte[]> messages = ReassembleDataMessages();
             if (messages.Count == 0)
             {
-                _output.WriteLine("capture not found; skipping (set XMSG_PCAP_DIR).");
+                _output.WriteLine("recorded .pcapng files absent and XMSG_PCAP_OPTIONAL is set; skipping.");
                 return;
             }
 
@@ -119,7 +121,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             List<byte[]> messages = ReassembleDataMessages();
             if (messages.Count == 0)
             {
-                _output.WriteLine("capture not found; skipping (set XMSG_PCAP_DIR).");
+                _output.WriteLine("recorded .pcapng files absent and XMSG_PCAP_OPTIONAL is set; skipping.");
                 return;
             }
 
@@ -145,10 +147,10 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         [Fact]
         public void ControlMessages_AreByteIdenticalToTheCapturedBodies()
         {
-            string? path = LocateCapture();
+            string? path = PcapFiles.File(CaptureName);
             if (path == null)
             {
-                _output.WriteLine("capture not found; skipping (set XMSG_PCAP_DIR).");
+                _output.WriteLine("recorded .pcapng files absent and XMSG_PCAP_OPTIONAL is set; skipping.");
                 return;
             }
 
@@ -207,7 +209,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         {
             List<byte[]> messages = new List<byte[]>();
 
-            string? path = LocateCapture();
+            string? path = PcapFiles.File(CaptureName);
             if (path == null) { return messages; }
 
             IReadOnlyList<LapbFrame> frames = HdlcPcap.ReadFramesInCaptureOrder(path);
@@ -245,27 +247,5 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             return messages;
         }
 
-        /// <summary>
-        /// Finds the transfer capture, or null when the corpus is not present.
-        /// </summary>
-        private static string? LocateCapture()
-        {
-            string? fromEnv = Environment.GetEnvironmentVariable("XMSG_PCAP_DIR");
-            if (!string.IsNullOrEmpty(fromEnv))
-            {
-                string direct = Path.Combine(fromEnv!, CaptureName);
-                if (File.Exists(direct)) { return direct; }
-            }
-
-            DirectoryInfo? dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir != null)
-            {
-                string candidate = Path.Combine(dir.FullName, "X25Emulator", "pcap", CaptureName);
-                if (File.Exists(candidate)) { return candidate; }
-                dir = dir.Parent;
-            }
-
-            return null;
-        }
     }
 }

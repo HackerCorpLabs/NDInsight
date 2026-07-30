@@ -105,10 +105,10 @@ namespace NDInsight.Sintran.Xmsg.Tests
         [Fact]
         public void AllCaptures_EnvelopeModel_ReproducesEveryDataFrameChannel()
         {
-            string? pcapDir = LocatePcapDirectory();
+            string? pcapDir = PcapFiles.Directory();
             if (pcapDir == null)
             {
-                _output.WriteLine("pcap directory not found (set XMSG_PCAP_DIR or place X25Emulator next to NDInsight); skipping.");
+                _output.WriteLine("recorded .pcapng files absent and XMSG_PCAP_OPTIONAL is set; skipping.");
                 return;
             }
 
@@ -222,33 +222,5 @@ namespace NDInsight.Sintran.Xmsg.Tests
             Assert.Equal(0, totalMismatch);
         }
 
-        /// <summary>
-        /// Resolves the pcap capture directory (env var override, else a sibling X25Emulator/pcap).
-        /// </summary>
-        /// <returns>
-        /// The directory path, or <c>null</c> when the captures cannot be located.
-        /// </returns>
-        private static string? LocatePcapDirectory()
-        {
-            string? fromEnv = Environment.GetEnvironmentVariable("XMSG_PCAP_DIR");
-            if (!string.IsNullOrEmpty(fromEnv) && Directory.Exists(fromEnv))
-            {
-                return fromEnv;
-            }
-
-            DirectoryInfo? dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir != null)
-            {
-                string candidate = Path.Combine(dir.FullName, "X25Emulator", "pcap");
-                if (Directory.Exists(candidate))
-                {
-                    return candidate;
-                }
-
-                dir = dir.Parent;
-            }
-
-            return null;
-        }
     }
 }

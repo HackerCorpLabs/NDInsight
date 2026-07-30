@@ -6,6 +6,8 @@ using NDInsight.Sintran.Xmsg;
 using NDInsight.Sintran.Xmsg.Hdlc;
 using NDInsight.Sintran.Xmsg.Node.Tad;
 
+using NDInsight.Sintran.Xmsg.Tests;
+
 using Xunit;
 using Xunit.Abstractions;
 
@@ -46,7 +48,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         [Fact]
         public void Replay_ClientConnectTo_FollowsObservedPhaseOrder()
         {
-            string? dir = LocatePcapDirectory();
+            string? dir = PcapFiles.Directory();
             if (dir == null)
             {
                 _output.WriteLine("pcap directory not found; skipping replay test.");
@@ -138,33 +140,5 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             return -1;
         }
 
-        /// <summary>
-        /// Resolves the pcap capture directory.
-        /// </summary>
-        /// <returns>
-        /// The directory path, or <c>null</c> when the captures cannot be located.
-        /// </returns>
-        private static string? LocatePcapDirectory()
-        {
-            string? fromEnv = Environment.GetEnvironmentVariable("XMSG_PCAP_DIR");
-            if (!string.IsNullOrEmpty(fromEnv) && Directory.Exists(fromEnv))
-            {
-                return fromEnv;
-            }
-
-            DirectoryInfo? dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir != null)
-            {
-                string candidate = Path.Combine(dir.FullName, "X25Emulator", "pcap");
-                if (Directory.Exists(candidate))
-                {
-                    return candidate;
-                }
-
-                dir = dir.Parent;
-            }
-
-            return null;
-        }
     }
 }

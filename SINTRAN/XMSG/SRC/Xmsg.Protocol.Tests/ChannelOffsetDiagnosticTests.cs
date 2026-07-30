@@ -60,10 +60,10 @@ namespace NDInsight.Sintran.Xmsg.Tests
         [Fact]
         public void ChannelMismatches_AllHaveANonClassMarkerFlagsTwo()
         {
-            string? dir = LocateCaptureDirectory();
+            string? dir = PcapFiles.Directory();
             if (dir == null)
             {
-                _output.WriteLine("capture directory not found; skipping (set XMSG_PCAP_DIR).");
+                _output.WriteLine("recorded .pcapng files absent and XMSG_PCAP_OPTIONAL is set; skipping.");
                 return;
             }
 
@@ -182,23 +182,5 @@ namespace NDInsight.Sintran.Xmsg.Tests
             return text.ToString();
         }
 
-        /// <summary>
-        /// Resolves the pcap capture directory, or null when it cannot be located.
-        /// </summary>
-        private static string? LocateCaptureDirectory()
-        {
-            string? fromEnv = Environment.GetEnvironmentVariable("XMSG_PCAP_DIR");
-            if (!string.IsNullOrEmpty(fromEnv) && Directory.Exists(fromEnv)) { return fromEnv; }
-
-            DirectoryInfo? dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir != null)
-            {
-                string candidate = Path.Combine(dir.FullName, "X25Emulator", "pcap");
-                if (Directory.Exists(candidate)) { return candidate; }
-                dir = dir.Parent;
-            }
-
-            return null;
-        }
     }
 }

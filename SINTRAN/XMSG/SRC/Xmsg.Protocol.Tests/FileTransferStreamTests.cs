@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using NDInsight.Sintran.Xmsg.Hdlc;
+using NDInsight.Sintran.Xmsg.Tests;
+
 using Xunit;
 using Xunit.Abstractions;
 
@@ -60,10 +62,10 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         [Fact]
         public void TransferStream_FrameLevelShape()
         {
-            string? path = LocateCapture();
+            string? path = PcapFiles.File(CaptureName);
             if (path == null)
             {
-                _output.WriteLine("capture not found; skipping (set XMSG_PCAP_DIR).");
+                _output.WriteLine("recorded .pcapng files absent and XMSG_PCAP_OPTIONAL is set; skipping.");
                 return;
             }
 
@@ -149,10 +151,10 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         [Fact]
         public void TransferStream_IsTheSendWindowActuallyUsed()
         {
-            string? path = LocateCapture();
+            string? path = PcapFiles.File(CaptureName);
             if (path == null)
             {
-                _output.WriteLine("capture not found; skipping (set XMSG_PCAP_DIR).");
+                _output.WriteLine("recorded .pcapng files absent and XMSG_PCAP_OPTIONAL is set; skipping.");
                 return;
             }
 
@@ -209,10 +211,10 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         [InlineData("claude-delete-file-102-to-100-2026-07-29.pcapng")]
         public void TransferStream_DumpInformationFieldHeads(string captureName)
         {
-            string? path = LocateCapture(captureName);
+            string? path = PcapFiles.File(captureName);
             if (path == null)
             {
-                _output.WriteLine("capture not found; skipping (set XMSG_PCAP_DIR).");
+                _output.WriteLine("recorded .pcapng files absent and XMSG_PCAP_OPTIONAL is set; skipping.");
                 return;
             }
 
@@ -256,32 +258,5 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             else { counts[key] = 1; }
         }
 
-        /// <summary>
-        /// Finds a capture by name, or null when the corpus is not present.
-        /// </summary>
-        /// <param name="captureName">
-        /// The capture file name; defaults to the transfer capture.
-        /// </param>
-        private static string? LocateCapture(string? captureName = null)
-        {
-            string name = captureName ?? CaptureName;
-
-            string? fromEnv = Environment.GetEnvironmentVariable("XMSG_PCAP_DIR");
-            if (!string.IsNullOrEmpty(fromEnv))
-            {
-                string direct = Path.Combine(fromEnv!, name);
-                if (File.Exists(direct)) { return direct; }
-            }
-
-            DirectoryInfo? dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir != null)
-            {
-                string candidate = Path.Combine(dir.FullName, "X25Emulator", "pcap", name);
-                if (File.Exists(candidate)) { return candidate; }
-                dir = dir.Parent;
-            }
-
-            return null;
-        }
     }
 }
