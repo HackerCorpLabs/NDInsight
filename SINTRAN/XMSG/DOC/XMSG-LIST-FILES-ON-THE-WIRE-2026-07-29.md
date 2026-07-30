@@ -887,10 +887,153 @@ This is the third time flow-grouping has nearly produced a wrong published claim
 yielded an impossible count of 16 outstanding LAPB frames. **Never answer an ordering question with
 `ReadFrames`.**
 
+### The complete transfer, message by message
+
+Every body in the transfer, in wire order, dumped from the capture rather than reconstructed:
+
+```
+102->100  62  0141 003a ff06 *XFTRA fe04 D100 f406 SYSTEM 0d02 0000
+              f80f "XFERTEST:DATA" 00 f704 SYMB 0a02 0400 0b02 0002
+100->102  70  0100 0000 ff06 d000 XFERTEST' ... DATA <object entry>
+102->100 1030 0042 0000 0000 <1024 bytes>      \
+100->102    6 0000 0000 0000                    | four times, strictly
+102->100 1030 0042 0000 0200 <1024 bytes>       | alternating
+100->102    6 0000 0000 0000                   /
+102->100    6 0043 ffff ffff                   end of transfer
+100->102    6 0000 0000 0001                   completion
+```
+
+Points worth recording:
+
+- **The opening letter is an XSLET letter** with the parameter tagging already known from
+  `XSLET`: `FF` = string parameter 1 (`*XFTRA`, the server name), `FE` = parameter 2 (`D100`),
+  `F4` = `SYSTEM`, `F8` = the quoted file name `XFERTEST:DATA`, `F7` = `SYMB`.
+- **The opening reply carries a 64-byte object entry** for the file just created - the same
+  structure the directory listing returns. So the transfer's opening exchange hands back the
+  created file's directory entry.
+- **The end-of-transfer reply is `0000 0000 0001`**, differing from the four data replies
+  (`0000 0000 0000`) in the final word only. Whether that word is a status or a count is
+  **UNKNOWN** - one capture cannot distinguish them.
+
+The codec is `E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Protocol\Fa\FaTransferCodec.cs`, held to
+these bytes by
+`E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Protocol.Tests\FaTransferCodecTests.cs`: every message
+it builds is byte-identical to the captured one, and the split point it computes matches the
+segmentation the machine used.
+
+**One caveat on the 594-byte split.** It is identical on all four messages, but only one transfer
+has ever been captured. Whether 594 is fixed by the protocol or falls out of this link's frame size
+is UNKNOWN. A transfer of a differently sized file would settle it.
+
 Tests: `E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Protocol.Tests\TransferFragmentationTests.cs`
 (6 tests). Library support added in
 `E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Hdlc\HdlcPcap.cs` and
 `E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Hdlc\HdlcDeframer.cs`.
+
+---
+
+## 6g. The operation code, and a CORRECTION to `FaListFilesCodec`
+
+Dumping FILE-STATISTICS and DELETE-FILE side by side - in wire order, complete bodies rather than
+48-byte heads - settled how an operation is identified.
+
+**The opening request of the two operations is byte-identical apart from the conversation number.**
+Asserted, not eyeballed: 112 bytes, zero differences outside offsets 2-3.
+
+```
+FILE-STAT    07F0 0046  8000 0001  92 0002 92 0001 ...
+DELETE-FILE  07F0 0048  8000 0001  92 0002 92 0001 ...
+                  ^^^^ conversation number only
+```
+
+So the operation is **not named in the opening exchange at all**, which confirms the earlier
+conclusion that the word after the message type is a conversation counter rather than an opcode.
+
+### Where the operation IS named
+
+The first QFORM field of each exchange is an operation code, and the second is the exchange
+sequence. Both are echoed by the reply, which is what matches a reply to its request.
+
+| Exchange | DELETE-FILE | FILE-STATISTICS | Payload |
+| --- | --- | --- | --- |
+| 1 | `92 0002` | `92 0002` | pack and user - `BAK05  SYSTEM`, then a 56-byte block holding `SYSTEM'` |
+| 2 | `92 000B` | `92 000C` | delete: the file name `XFERTEST:DATA`; stat: the enquiry block |
+| 3 | `92 0003` | `92 0003` | close |
+
+**`92 000B` in exchange 2 is what makes a delete a delete.** Codes so far:
+
+| Code | Meaning |
+| --- | --- |
+| `0002` | open, carrying the directory and user spec |
+| `000B` | delete |
+| `000C` | directory or file enquiry (LIST-FILES, FILE-STATISTICS) |
+| `0003` | close |
+
+The session header also resolves cleanly: its first byte is `0x80 + n` counting exchanges from
+zero, and the token is `0001` on the first exchange, then `D761` from the asker and `9081` from the
+responder.
+
+### CORRECTION to `FaListFilesCodec`
+
+That codec declared:
+
+```csharp
+public const ushort LeadingConstant = 0x000C;   // "Meaning UNKNOWN"
+```
+
+**It is not a constant - it is the operation code**, and it only looked constant because every
+frame examined at the time belonged to one operation. Renamed to `OperationDirectoryEnquiry` and
+now sourced from `FaExchangeCodec`. This is the second time in this work that "constant on every
+captured frame" has meant "only one case was captured"; the first was the 594-byte fragment split,
+which is still flagged UNKNOWN for the same reason.
+
+New code: `E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Protocol\Fa\FaExchangeCodec.cs`, tested by
+`E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Protocol.Tests\FaExchangeCodecTests.cs`. The body dump
+used to derive it is
+`E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Protocol.Tests\FaOperationDumpTests.cs`.
+
+---
+
+## 6h. Client and server drivers, verified by replay
+
+Both halves of a file-server conversation are now driven by code, and both are held to the captures
+by replay: the client driver rebuilds every request the real client sent, and the server driver
+rebuilds every message node 100 answered with - byte for byte, in both cases.
+
+| | `FaClientConversation` | `FaServerConversation` |
+| --- | --- | --- |
+| Conversation number | its own (003F, 0044, 0046, 0048 ...) | always `0002` |
+| Session token | `0001` on exchange 1, then `D761` | `9081` on **every** exchange |
+| Session counter | `0x80 + n` | `0x80 + n` |
+| Short-ack constant | `8485` | `922A` |
+
+**The token asymmetry is the trap.** A server written symmetric with the client would send `0001`
+on its first reply; the capture says `9081` from the very first one. There is a test whose only job
+is to pin that difference.
+
+Conversation lengths differ by operation and are NOT a fixed three:
+
+- DELETE-FILE: open (`0002`), delete (`000B`), close (`0003`) - 3 exchanges.
+- FILE-STATISTICS: open, then the enquiry `000C` **four times**, then close - 6 exchanges.
+
+The server also sends three messages that are not replies: the connection confirmation
+`07D2 0002 <client conversation> 6400` - the one server message carrying the CLIENT's conversation
+number, and the system number 100 - the short acknowledgements, and the close
+`07C0 0002 <client conversation> 0000`, which both sides send identically.
+
+### Structural resemblance to RR-LIB - a lead, NOT a finding
+
+The conversation looks like the request-response model in `Xmsg.Api.Rr`: an opening letter carrying
+user data that names the server, a confirmation, request/response pairs, then a disconnect. **No
+document has been found stating that `*FA-SERVER` is an RR-LIB server.** The mapping is inferred
+from shape alone and is recorded as a lead worth chasing, not as established fact.
+
+Code:
+`E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Protocol\Fa\FaClientConversation.cs`,
+`E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Protocol\Fa\FaServerConversation.cs`.
+Tests:
+`E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Protocol.Tests\FaClientConversationTests.cs`,
+`E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Protocol.Tests\FaServerConversationTests.cs`.
 
 ---
 
@@ -908,3 +1051,123 @@ To build a server that answers real clients, the following are not yet captured:
    exists at all - only the opening letter. The block size, position/count fields and
    the acknowledgement rule are known from disassembly only.
 5. **`DELETE-FILE`**, and a read and a write against an open file.
+
+---
+
+## 6i. The spec block across two users, and a third "constant" that was not one (2026-07-30)
+
+Two of the values the listing codec hard-codes were checked against a SECOND directory,
+which needed no new capture - the two listings already on disk are against two different
+users on node 100, `SYSTEM` and `SECRET`.
+
+### What survived
+
+| Value | First case | Second case | Verdict |
+| --- | --- | --- | --- |
+| Selector-1 value `0x0078` | SYSTEM, 11 requests | SECRET, 2 requests | **VERIFIED across two users** |
+| Spec block length 62 | SYSTEM | SECRET | **VERIFIED across two users** |
+
+Neither is a single-case artefact any longer. Note the one thing this pair cannot settle:
+`SYSTEM` and `SECRET` are both six characters, so a length that happens to track the user
+name length would look constant here too.
+
+### What did NOT survive: "byte-identical from one entry to the next"
+
+`FaListFilesCodec` documented the request body as byte-identical across a listing apart
+from the serial and the cursor. Measured over all eleven directory enquiries in the SYSTEM
+capture, that holds only from the `0xFFFF` request onward. The enquiry BEFORE it differs:
+
+```
+request 0   cursor 002d   ...4d29 2927 3704 b5dc 0000 0000 0000 48ff 0000 0000 ... 0000 0000
+request 1   cursor ffff   ...4d29 2927 3704 b5dc 2704 0000 2705 48ff 0000 ffff ... 0540 b56b
+requests 2-10  cursors 1..9, block byte-identical to request 1
+```
+
+Same leading filespec text, but a zero-filled tail where the walk requests carry values.
+So part of the 62-byte block is state that exists only once the walk has started, not
+something the caller supplies for the whole listing.
+
+**Meaning UNKNOWN.** It is consistent with a position handle carried forward from the
+previous reply - `0x2704`/`0x2705` look like terminated small values and `0xFFFF` matches
+the cursor of the request it appears in - but nothing in either capture tests that reading.
+The block stays opaque and must be replayed, never synthesised.
+
+### The block's leading text, both users
+
+```
+SYSTEM   (SYSTEM)'EM).(SYSTEM)'         then 3704 b5dc ... 48ff ... zero fill
+SECRET   (SECRET)'ET(SECRET)).(SECRET)' then 0000 ... 48ff ... zero fill
+```
+
+23 of the 62 bytes differ between the two users. `0x48FF` sits in the same relative
+position in both. The text is truncated **on the left** - the SECRET block still shows the
+password parentheses that were typed, the SYSTEM one does not - so this is a fixed-width
+window over the typed specification, not a self-describing string. Where the window starts
+is UNKNOWN.
+
+### Cursor sequence, now asserted
+
+`0xFFFF` asks for the first entry, then the cursor runs `1, 2, 3, ...` one per entry. The
+SYSTEM walk is `ffff` then 1..9 for ten entries; the SECRET walk is `ffff` then 1 for two.
+
+Locked in by `Xmsg.Protocol.Tests.FaSpecBlockCrossUserTests`
+(`SpecBlock_IsSameShapeButDifferentContentForTwoUsers`, `EntryWalkRequests_ShareOneSpecBlock`).
+
+### Methodological note, for the fourth time
+
+This is the fourth "constant on every captured frame" in this decode that turned out to
+mean "only one case was captured": `LeadingConstant` (was the operation code), the 594-byte
+fragment split (one file size), and now the per-listing spec block. `RequestSelector1Value`
+and the 62-byte length are the two that DID survive - and they only count as surviving
+because a second case was actually run against them.
+
+---
+
+## 6j. Why the envelope channel rule failed on this traffic (2026-07-30)
+
+`EnvelopeConformanceTests.AllCaptures_EnvelopeModel_ReproducesEveryDataFrameChannel` had been
+red at 70 mismatches out of 970 ever since the file-server captures joined the corpus. The
+cause is now identified, and it is caused by the very finding in section 6f.
+
+### The rule and its hidden assumption
+
+```
+baseLow = (seed - (Flags2 & 0xFF)) & 0xFF
+epoch   = (Flags1 - baseLow + 0xFF) >> 8
+Channel = 0xDE - (XMCSM >> 24) - epoch
+```
+
+`Flags2 & 0xFF` was a **message-class marker** in every capture the rule was derived from:
+`0x00` for control, `0x08` for terminal data. On COSMOS file-server traffic Flags 2 is the
+message **body length** (`length - 28`). So `baseLow` becomes a function of how long the
+message happened to be, and the epoch derived from it is a wrap count of nothing.
+
+### The measurement
+
+Split the whole corpus by that one property:
+
+| Flags 2 low byte | Data frames | Channel mismatches |
+| --- | ---: | ---: |
+| a class marker (`0x00` / `0x08`) | 800 | **0** |
+| a body length | 170 | **70** |
+
+The rule is not weakly true everywhere. It is **exactly** true on 800 frames and simply does
+not apply to the other class. Every one of the 70 was the channel off by 1 or 2 with the
+counter correct - and the counter agreeing proves nothing, because the test learns the seed
+from the same frame, which makes `LearnSeed` its own inverse.
+
+### What was changed, and what was not
+
+- The conformance test now asserts the domain where the rule holds and counts the rest
+  without asserting on it. The whole suite is green: **439 passing, 0 failing.**
+- `XmsgEnvelope` carries the scope limit next to the rule itself.
+- `ChannelOffsetDiagnosticTests` locks the 800/0 versus 170/70 split in, so a future change
+  that quietly widens or narrows the domain fails.
+
+**No replacement formula was fitted.** The wire channel offsets on length-valued Flags 2 run
+0, 1, 2 and 3. Three frames were worked through by hand and a rule could be made to fit them,
+which is exactly the mistake section 6i is about. Until that class is captured in quantity,
+the honest options are to track the channel per direction or to leave it undeclared.
+
+**Also worth stating plainly:** the Counter line of the model survives on all 970 frames, so
+only the channel derivation was ever class-dependent.

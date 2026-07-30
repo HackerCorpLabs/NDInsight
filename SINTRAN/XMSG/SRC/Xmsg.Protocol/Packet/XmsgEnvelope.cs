@@ -21,6 +21,22 @@ namespace NDInsight.Sintran.Xmsg.Packet
     /// sequence, e.g. the conn-to-d102 capture). The same XROUT letter class rides DD (epoch 0),
     /// DC (epoch 1) and DB (epoch 2) purely by epoch. This is why the fresh live node's terminal data
     /// belongs on DD with <c>Counter = (seed - 8 - Flags1) &amp; 0xFF</c>.</para>
+    /// <para><b>SCOPE LIMIT, found 2026-07-30.</b> The Channel line above holds only where the LOW BYTE
+    /// of Flags 2 is a message-class marker - <c>0x00</c> control, <c>0x08</c> terminal data. That was
+    /// the whole corpus when the rule was derived. The COSMOS file-server captures broke the
+    /// assumption: there Flags 2 is the message BODY LENGTH, so <c>baseLow = seed - (Flags2 &amp; 0xFF)</c>
+    /// becomes a function of how long the message happened to be, and the epoch derived from it counts
+    /// wraps of nothing. Measured over the current corpus:</para>
+    /// <code>
+    /// Flags2 low byte IS a class marker:  800 frames, 0 channel mismatches
+    /// Flags2 low byte is a length:        170 frames, 70 channel mismatches
+    /// </code>
+    /// <para>So the rule is exactly right on 800 frames and inapplicable on the rest, rather than
+    /// approximately right everywhere. The Counter line is unaffected. What the channel does on
+    /// length-valued Flags 2 is <b>UNKNOWN</b> - observed wire offsets there are 0, 1, 2 and 3, and no
+    /// replacement formula has been fitted on purpose. Track the channel per direction on that traffic,
+    /// or capture enough of it to derive the rule properly. See
+    /// <c>ChannelOffsetDiagnosticTests</c> and <c>EnvelopeConformanceTests</c>.</para>
     /// <para><b>Seed:</b> learn it from any received Data frame via <see cref="LearnSeed"/> rather than
     /// hardcoding. Observed seeds: 100↔102 = 0x14, 100↔103 = 0x13, 102↔103 = 0x11 (direct) / 0x12
     /// (relayed). What the seed byte encodes is UNKNOWN; learn-from-peer sidesteps it.</para>

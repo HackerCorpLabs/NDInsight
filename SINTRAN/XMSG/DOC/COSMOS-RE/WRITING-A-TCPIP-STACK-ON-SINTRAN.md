@@ -222,7 +222,35 @@ mechanisms. Worth an experiment before assuming two cards are mandatory.
 This is the concrete API your driver targets. All **[P]**, decoded from the firmware and verified by
 sending and receiving real frames.
 
-## 4.1 Addresses you need
+## 4.0 WHOSE address space? Read this before anything else
+
+**Every address in this Part is a 68000 address inside the card's own 512 KB DRAM.** They were
+decoded from, and verified against, the ENCOS firmware running on the card's 68000. `POSI_SEND` is a
+subroutine of that firmware. **An ND-100 program cannot call it.**
+
+Two facts make this usable from the host anyway:
+
+- **[P]** The card's DRAM is mapped into ND-100 physical memory. The window is selected by the 7J/9J
+  straps: bank 16 for the first card, +4 per further card, 512 KB each. So the ND-100 can read and
+  write every structure above directly - the node, the descriptor, the mode word, the statistics.
+- **[P]** There are two doorbells. Card to host: the 68000 writes `0xEF0080`, which raises ND-100
+  level 12 with the card's ident. Host to card: the ND-100 sets the channel flag word at card DRAM
+  `0x0B56` and strobes MFP GPIP6, which vectors the 68000 through `0x4E`.
+
+**[U] What is NOT decoded is the host-side frame protocol** - which structure in that window the
+ND-100 is supposed to fill in, and which flag it strobes, so that the firmware's own scheduler picks
+the request up and routes it to the data queue. In our tests we reached the transmit path by calling
+`POSI_SEND` directly from the emulator, which is a debugging shortcut, not something a real ND-100
+program can do. Anyone building this must decode that host protocol first. It is the single largest
+piece of missing work in this document.
+
+**[V-doc] Also know what Norsk Data themselves did**, because it is the opposite of the architecture
+in Part 5: ND's TCP/IP product (211185, "AIP") ran the **IP layer on the card**, on PIOCOS, and the
+ND-100 host talked to it over PIOC ports and XMSG - not raw frames. Evidence: ND's own error text
+`AIPpiocError : PIOCOS error` in the TELNET/FTP guide ND-860284-1. If a host-side raw-frame path
+turns out not to exist, that is why, and the XMSG route becomes the practical one.
+
+## 4.1 Addresses you need (68000 side)
 
 ```
 0x1885E   LNMAPHYSIC     station MAC (6 bytes) - written by host command 0
