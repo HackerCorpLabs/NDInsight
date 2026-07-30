@@ -220,6 +220,21 @@ Not yet modelled at all in our station.
 
 ---
 
+**G3 probe 2026-07-30 - still open, and NOT reproducible the easy way.** Drove the real microcode
+through `OCB_KICK06` (which calls `OCB_CLNUP` at 0o25564) with a message laid down, chained from
+X5BEX, `N5STA = 2`. Result: **`N5STA` came back unchanged at `0002`** - the carve's "writes
+N5STA := 1 (MSGN500)" did not happen.
+
+Reading: `OCB_CLNUP` un-claims the CPU's CURRENT in-progress message, which it finds via
+`ADR_MESS` (0o17334) and the `MSGME` cell (srf 0o2021), plus a `5CPUN@-6` check that the message
+belongs to this CPU. Simply pointing X5BEX at a message does not make it "in progress", so the
+routine has nothing to un-claim and no-ops. Pinning the contract needs that srf state set up
+first - that is the next step, not more guessing.
+
+Useful side result: our kick-6 implementation does NOT touch `N5STA`, so it is not consuming or
+corrupting queued work - it is incomplete, not wrong. The test
+`MailboxClrKickTests.OcbKick06_WithMessage_ShowsWhatOcbClnupDoesToIt` guards that.
+
 ### G4 - kick 2 not mapped to ACTIVATE  **[P2]**
 
 `OCB_DEC_K` sends both 1 and 2 to `ACTIVATE`. We handle only 1. No NPL sender for kick 2 was
