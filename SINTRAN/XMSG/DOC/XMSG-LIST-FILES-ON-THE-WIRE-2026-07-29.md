@@ -1222,3 +1222,43 @@ The trick that made these work: give `dumpcap` a duration short enough that the 
 the terminal session is still connected. Stopping the recorder by hand always came after the
 disconnect, and the disconnect generates its own traffic, which is exactly what had been polluting
 the earlier attributions.
+
+### 6k.1 The two `*FA-USER` frames, partially decoded
+
+Raw information fields from `claude-CLOSEONLY-102-to-100-2026-07-30.pcapng`, the recording whose only
+operator command was `CLOSE-FILE`:
+
+```
+100->102  len=128  2113 000e 0066 0064 0399 0064 da17 2100 8684 0066 0000 0064 0605 0064
+                   0144 0060 0104 0066 0587 5553 4552 <86 zero bytes>
+
+102->100  len=42   2113 000e 0064 0066 03a0 0064 da10 2100 8660 0064 0605 0064 0605 0064
+                   0100 000a fe08 2a46 412d 5553 4552
+```
+
+**What is established:**
+
+ - Both are ordinary subtype `0x0E` data frames with the usual 13-byte SINTRAN header, so the
+   transport is the same as everything else. Only the application layer differs.
+ - The body still begins at offset 28, and `Flags2` is still the body length: 128 - 28 = 100 and
+   42 - 28 = 14, both matching.
+ - The role byte is **`0x86`**, where every `*FA-SERVER` frame uses `0x82`. That confirms an
+   observation made on 2026-07-29 which had been recorded without explanation.
+ - Both sides use port `0x0605`.
+ - The service name is tagged the same way as everywhere else: `FE 08` is string parameter 2 of
+   length 8, holding `*FA-USER`. The parameter tagging rule carries over unchanged.
+
+**What is NOT decoded:**
+
+ - The first two words of the client frame, `0100 000A`. The `000A` is plausibly a length, since 10
+   bytes follow and they are exactly `FE 08` plus the eight name characters - but the `*FA-SERVER`
+   opener starts `1B 41 0012` instead, so the leading word is not the same field. One sample is not
+   enough to say what either word is.
+ - The whole server frame body, `0144 0060 0104 0066 0587 "USER"` followed by 86 zero bytes. The
+   words resemble system and port numbers (`0066` is 102, `0064` is 100, `0587` and `0605` look like
+   ports) but nothing here tests that reading.
+ - Whether these two frames are the complete close exchange, or whether more would appear with a
+   file that had actually been written to. The file closed here had never been written.
+
+Getting further needs several more close recordings to diff against each other, in the way the
+CREATE-FILE name-length experiment was done. That has not been attempted.
