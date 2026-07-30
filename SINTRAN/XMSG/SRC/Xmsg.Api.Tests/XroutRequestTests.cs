@@ -116,12 +116,10 @@ namespace NDInsight.Sintran.Xmsg.Api.Tests
         /// <remarks>
         /// This is a real difference between writers, not a bug on either side, and it is worth a
         /// test so nobody "fixes" one into the other by accident:
-        /// <list type="bullet">
-        /// <item>XMSG-COMMAND writes `*TADADM` as `FF 07 &lt;7 chars&gt; 00`, length 10 - padded to a
-        /// word boundary even though nothing follows.</item>
-        /// <item>TADADM itself writes its XSNAM registration as `FF 07 &lt;7 chars&gt;`, length 8,
-        /// with no pad (see XMSG-XSCRS-CONNECTION-PORTS-CAPTURED-2026-07-27.md, section 6).</item>
-        /// </list>
+        ///  - XMSG-COMMAND writes <c>*TADADM</c> as <c>FF 07 &lt;7 chars&gt; 00</c>, length 10 - padded
+        ///    to a word boundary even though nothing follows.
+        ///  - TADADM itself writes its XSNAM registration as <c>FF 07 &lt;7 chars&gt;</c>, length 8,
+        ///    with no pad (see XMSG-XSCRS-CONNECTION-PORTS-CAPTURED-2026-07-27.md, section 6).
         /// Both registered and resolved correctly on the same machine, so the trailing pad is the
         /// caller's choice. We match TADADM. Padding BETWEEN parameters is not optional and we do
         /// emit it - see the XSCRS round trip above.

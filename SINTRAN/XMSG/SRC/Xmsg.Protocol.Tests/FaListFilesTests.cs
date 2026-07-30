@@ -33,24 +33,32 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             return bytes;
         }
 
-        /// <summary>The opaque directory/user block, identical in every captured request.</summary>
+        /// <summary>
+        /// The opaque directory/user block, identical in every captured request.
+        /// </summary>
         private const string SpecBlockHex =
             "2853595354454d2927454d292e2853595354454d2927"
             + "3704b5dc27040000270548ff0000ffff000000000000000000000000000000000003"
             + "00000540b56b";
 
-        /// <summary>Frame 321: the request for the FIRST entry, cursor 0xFFFF, serial 50.</summary>
+        /// <summary>
+        /// Frame 321: the request for the FIRST entry, cursor 0xFFFF, serial 50.
+        /// </summary>
         private const string Request321Hex =
             "92000c" + "920032" + "f20001" + "920078" + "f20002"
             + "8c8046" + "b03e" + "2853595354454d2927454d292e2853595354454d29273704b5dc27040000270548ff0000ffff00000000000000000000000000000000000300000540b56b"
             + "a20000" + "a2ffff"
             + "f200ff";
 
-        /// <summary>The SINTRAN:DATA record as it arrived, used as an opaque payload here.</summary>
+        /// <summary>
+        /// The SINTRAN:DATA record as it arrived, used as an opaque payload here.
+        /// </summary>
         private const string SintranRecordHex =
             "900053494e5452414e2700000000000000004441544100000000000700200000000000000000000ac1cd0de3c1cd0ef0c1cd0ef00000003f0001dfff000078da";
 
-        /// <summary>Frame 327: the reply carrying SINTRAN:DATA.</summary>
+        /// <summary>
+        /// Frame 327: the reply carrying SINTRAN:DATA.
+        /// </summary>
         private const string Reply327Hex =
             "92000c" + "920032" + "f20002"
             + "8c4b" + "a20000" + "a20000" + "a20001"
@@ -78,7 +86,9 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             Assert.Equal(expected, actual);
         }
 
-        /// <summary>The captured request round-trips back to its serial and cursor.</summary>
+        /// <summary>
+        /// The captured request round-trips back to its serial and cursor.
+        /// </summary>
         [Fact]
         public void CapturedRequest_YieldsItsSerialAndCursor()
         {
@@ -151,7 +161,9 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             Assert.Equal(expected, actual);
         }
 
-        /// <summary>A record of the wrong size is refused rather than framed.</summary>
+        /// <summary>
+        /// A record of the wrong size is refused rather than framed.
+        /// </summary>
         [Fact]
         public void WrongSizedRecord_IsRefused()
         {

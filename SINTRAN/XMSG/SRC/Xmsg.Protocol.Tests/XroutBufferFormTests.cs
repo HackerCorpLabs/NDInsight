@@ -705,8 +705,12 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         /// Parses a hex string, ignoring spaces so a capture can be written with its field
         /// boundaries visible.
         /// </summary>
-        /// <param name="hex">The hex text, with or without spaces.</param>
-        /// <returns>The decoded bytes.</returns>
+        /// <param name="hex">
+        /// The hex text, with or without spaces.
+        /// </param>
+        /// <returns>
+        /// The decoded bytes.
+        /// </returns>
         private static byte[] FromHex(string hex)
         {
             string packed = hex.Replace(" ", string.Empty);

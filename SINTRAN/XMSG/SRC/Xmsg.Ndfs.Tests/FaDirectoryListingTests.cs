@@ -185,7 +185,9 @@ namespace NDInsight.Sintran.Xmsg.Ndfs.Tests
                 entry.ObjectName + " reports " + entry.BytesInFile + " bytes in " + entry.PagesInFile + " pages.");
         }
 
-        /// <summary>A reply built from an entry reads back as the same entry.</summary>
+        /// <summary>
+        /// A reply built from an entry reads back as the same entry.
+        /// </summary>
         /// <remarks>
         /// This is the offline server-to-client loop with the real structure in the middle: the
         /// server side serialises an ObjectEntry into a reply, and the client side gets it back.

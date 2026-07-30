@@ -175,9 +175,15 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
         /// <summary>
         /// Finds the capture ordinal of the segment whose payload contains a stream offset.
         /// </summary>
-        /// <param name="segments">The flow's segments, already ordered as they were concatenated.</param>
-        /// <param name="streamOffset">An offset into the concatenated stream.</param>
-        /// <returns>The capture ordinal of the containing segment, or the last segment's ordinal.</returns>
+        /// <param name="segments">
+        /// The flow's segments, already ordered as they were concatenated.
+        /// </param>
+        /// <param name="streamOffset">
+        /// An offset into the concatenated stream.
+        /// </param>
+        /// <returns>
+        /// The capture ordinal of the containing segment, or the last segment's ordinal.
+        /// </returns>
         private static int FindSegmentOrdinal(List<TcpSegment> segments, int streamOffset)
         {
             int cursor = 0;
@@ -199,9 +205,15 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
         /// Orders two frames by capture ordinal, breaking ties by discovery order so that frames
         /// completed by the same TCP segment keep their stream order.
         /// </summary>
-        /// <param name="a">The first frame.</param>
-        /// <param name="b">The second frame.</param>
-        /// <returns>A negative, zero, or positive value per <see cref="Comparison{T}"/> semantics.</returns>
+        /// <param name="a">
+        /// The first frame.
+        /// </param>
+        /// <param name="b">
+        /// The second frame.
+        /// </param>
+        /// <returns>
+        /// A negative, zero, or positive value per <see cref="Comparison{T}"/> semantics.
+        /// </returns>
         private static int CompareOrderedFrames(OrderedFrame a, OrderedFrame b)
         {
             if (a.Ordinal != b.Ordinal)
@@ -217,19 +229,33 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
         /// </summary>
         private readonly struct OrderedFrame
         {
-            /// <summary>Capture ordinal of the TCP segment that carried the frame's closing flag.</summary>
+            /// <summary>
+            /// Capture ordinal of the TCP segment that carried the frame's closing flag.
+            /// </summary>
             public readonly int Ordinal;
 
-            /// <summary>Discovery order, used only to break ordinal ties stably.</summary>
+            /// <summary>
+            /// Discovery order, used only to break ordinal ties stably.
+            /// </summary>
             public readonly int Tiebreak;
 
-            /// <summary>The frame itself.</summary>
+            /// <summary>
+            /// The frame itself.
+            /// </summary>
             public readonly LapbFrame Frame;
 
-            /// <summary>Initialises the pairing.</summary>
-            /// <param name="ordinal">The completing segment's capture ordinal.</param>
-            /// <param name="tiebreak">Discovery order.</param>
-            /// <param name="frame">The frame.</param>
+            /// <summary>
+            /// Initialises the pairing.
+            /// </summary>
+            /// <param name="ordinal">
+            /// The completing segment's capture ordinal.
+            /// </param>
+            /// <param name="tiebreak">
+            /// Discovery order.
+            /// </param>
+            /// <param name="frame">
+            /// The frame.
+            /// </param>
             public OrderedFrame(int ordinal, int tiebreak, LapbFrame frame)
             {
                 Ordinal = ordinal;

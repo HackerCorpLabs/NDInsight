@@ -27,7 +27,9 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Qform
         /// </summary>
         Constructed = 0,
 
-        /// <summary>Class 1 - integer. Emitted as 0x92 (2 bytes) and 0x94 (4 bytes).</summary>
+        /// <summary>
+        /// Class 1 - integer. Emitted as 0x92 (2 bytes) and 0x94 (4 bytes).
+        /// </summary>
         Integer = 1,
 
         /// <summary>
@@ -42,10 +44,14 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Qform
         /// </summary>
         ByteString = 3,
 
-        /// <summary>Class 4 - never observed on the wire or in the binary.</summary>
+        /// <summary>
+        /// Class 4 - never observed on the wire or in the binary.
+        /// </summary>
         Class4 = 4,
 
-        /// <summary>Class 5 - never observed on the wire or in the binary.</summary>
+        /// <summary>
+        /// Class 5 - never observed on the wire or in the binary.
+        /// </summary>
         Class5 = 5,
 
         /// <summary>
@@ -66,11 +72,21 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Qform
     /// </summary>
     public readonly struct QformField
     {
-        /// <summary>Initialises a decoded field.</summary>
-        /// <param name="tag">The raw tag byte.</param>
-        /// <param name="valueOffset">Offset of the value's first byte within the body.</param>
-        /// <param name="valueLength">Length of the value in bytes.</param>
-        /// <param name="depth">Nesting depth; 0 is top level, 1 is inside one constructed value.</param>
+        /// <summary>
+        /// Initialises a decoded field.
+        /// </summary>
+        /// <param name="tag">
+        /// The raw tag byte.
+        /// </param>
+        /// <param name="valueOffset">
+        /// Offset of the value's first byte within the body.
+        /// </param>
+        /// <param name="valueLength">
+        /// Length of the value in bytes.
+        /// </param>
+        /// <param name="depth">
+        /// Nesting depth; 0 is top level, 1 is inside one constructed value.
+        /// </param>
         public QformField(byte tag, int valueOffset, int valueLength, int depth)
         {
             Tag = tag;
@@ -79,19 +95,29 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Qform
             Depth = depth;
         }
 
-        /// <summary>The raw tag byte as it appears on the wire.</summary>
+        /// <summary>
+        /// The raw tag byte as it appears on the wire.
+        /// </summary>
         public byte Tag { get; }
 
-        /// <summary>Offset of the value's first byte within the body.</summary>
+        /// <summary>
+        /// Offset of the value's first byte within the body.
+        /// </summary>
         public int ValueOffset { get; }
 
-        /// <summary>Length of the value in bytes.</summary>
+        /// <summary>
+        /// Length of the value in bytes.
+        /// </summary>
         public int ValueLength { get; }
 
-        /// <summary>Nesting depth. 0 is top level; 1 is inside one constructed value.</summary>
+        /// <summary>
+        /// Nesting depth. 0 is top level; 1 is inside one constructed value.
+        /// </summary>
         public int Depth { get; }
 
-        /// <summary>The tag's type class, from bits 4 to 6.</summary>
+        /// <summary>
+        /// The tag's type class, from bits 4 to 6.
+        /// </summary>
         public QformClass Class
         {
             get { return (QformClass)((Tag & 0x70) >> 4); }
@@ -106,7 +132,9 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Qform
             get { return Tag & 0x17; }
         }
 
-        /// <summary>True when this field's value is itself a tagged QFORM stream.</summary>
+        /// <summary>
+        /// True when this field's value is itself a tagged QFORM stream.
+        /// </summary>
         public bool IsConstructed
         {
             get { return Class == QformClass.Constructed; }

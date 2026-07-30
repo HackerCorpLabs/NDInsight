@@ -36,8 +36,12 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
     {
         private readonly ITestOutputHelper _output;
 
-        /// <summary>Initialises the test.</summary>
-        /// <param name="output">xUnit output sink, used to report the measured numbers.</param>
+        /// <summary>
+        /// Initialises the test.
+        /// </summary>
+        /// <param name="output">
+        /// xUnit output sink, used to report the measured numbers.
+        /// </param>
         public FileTransferStreamTests(ITestOutputHelper output)
         {
             _output = output;
@@ -242,7 +246,9 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             Assert.True(frames.Count > 0);
         }
 
-        /// <summary>Increments a counter in a dictionary.</summary>
+        /// <summary>
+        /// Increments a counter in a dictionary.
+        /// </summary>
         private static void Increment<T>(Dictionary<T, int> counts, T key)
             where T : notnull
         {
@@ -250,8 +256,12 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             else { counts[key] = 1; }
         }
 
-        /// <summary>Finds a capture by name, or null when the corpus is not present.</summary>
-        /// <param name="captureName">The capture file name; defaults to the transfer capture.</param>
+        /// <summary>
+        /// Finds a capture by name, or null when the corpus is not present.
+        /// </summary>
+        /// <param name="captureName">
+        /// The capture file name; defaults to the transfer capture.
+        /// </param>
         private static string? LocateCapture(string? captureName = null)
         {
             string name = captureName ?? CaptureName;

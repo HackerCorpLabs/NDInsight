@@ -25,19 +25,13 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
     /// <para>
     /// Two things follow, and both are checked below rather than asserted from a hex dump:
     /// </para>
-    /// <list type="number">
-    /// <item><description>
-    /// Subtypes <c>0x0A</c> and <c>0x0C</c> exist and are NOT in <c>SintranPacketSubtype</c>, which
-    /// only knows <c>0x0E</c> for data. They pair up: one <c>0x0C</c> for each <c>0x0A</c>, sharing
-    /// the same Flags1 datagram sequence.
-    /// </description></item>
-    /// <item><description>
-    /// Flags2 means different things in each. On the <c>0x0A</c> it is the TOTAL message length; on
-    /// the <c>0x0C</c> it is the byte OFFSET at which the continuation resumes. That is the
-    /// hypothesis this test exists to confirm or kill: it should hold that
-    /// <c>continuationOffset + continuationBytes == totalLength</c>.
-    /// </description></item>
-    /// </list>
+    ///  - Subtypes <c>0x0A</c> and <c>0x0C</c> exist and are NOT in <c>SintranPacketSubtype</c>, which
+    ///    only knows <c>0x0E</c> for data. They pair up: one <c>0x0C</c> for each <c>0x0A</c>, sharing
+    ///    the same Flags1 datagram sequence.
+    ///  - Flags2 means different things in each. On the <c>0x0A</c> it is the TOTAL message length; on
+    ///    the <c>0x0C</c> it is the byte OFFSET at which the continuation resumes. That is the
+    ///    hypothesis this test exists to confirm or kill: it should hold that
+    ///    <c>continuationOffset + continuationBytes == totalLength</c>.
     /// <para>
     /// If the arithmetic below fails, the model is wrong and nothing downstream should be built on
     /// it - which is exactly why it is measured rather than assumed.
@@ -47,8 +41,12 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
     {
         private readonly ITestOutputHelper _output;
 
-        /// <summary>Initialises the test.</summary>
-        /// <param name="output">xUnit output sink, used to report the measured numbers.</param>
+        /// <summary>
+        /// Initialises the test.
+        /// </summary>
+        /// <param name="output">
+        /// xUnit output sink, used to report the measured numbers.
+        /// </param>
         public TransferFragmentationTests(ITestOutputHelper output)
         {
             _output = output;
@@ -56,13 +54,19 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
 
         private const string CaptureName = "claude-transfer-file-COMPLETE-102-to-100-2026-07-29.pcapng";
 
-        /// <summary>Packet subtype of the first fragment of a segmented message.</summary>
+        /// <summary>
+        /// Packet subtype of the first fragment of a segmented message.
+        /// </summary>
         private const byte SubtypeFirstFragment = 0x0A;
 
-        /// <summary>Packet subtype of a continuation fragment.</summary>
+        /// <summary>
+        /// Packet subtype of a continuation fragment.
+        /// </summary>
         private const byte SubtypeContinuation = 0x0C;
 
-        /// <summary>Size of the SINTRAN header that prefixes every information field.</summary>
+        /// <summary>
+        /// Size of the SINTRAN header that prefixes every information field.
+        /// </summary>
         private const int SintranHeaderSize = 13;
 
         /// <summary>
@@ -206,16 +210,10 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         /// the QFORM request/reply class only. The transfer capture contains two other classes, both
         /// checked in <see cref="TransferClass_FlagsTwoIsTheDeclaredSizeNotTheBodyLength"/>:
         /// </para>
-        /// <list type="bullet">
-        /// <item><description>
-        /// Class <c>0x0080</c>, the XSLET opening letters that name <c>*XFTRA</c> - two frames of 90
-        /// and 98 bytes, where 0x0080 is a class code and not a length at all.
-        /// </description></item>
-        /// <item><description>
-        /// The transfer acknowledgements, which carry the data message's XMCSM verbatim - so Flags2
-        /// reads 1030 - while their own body is six zero bytes.
-        /// </description></item>
-        /// </list>
+        ///  - Class <c>0x0080</c>, the XSLET opening letters that name <c>*XFTRA</c> - two frames of 90
+        ///    and 98 bytes, where 0x0080 is a class code and not a length at all.
+        ///  - The transfer acknowledgements, which carry the data message's XMCSM verbatim - so Flags2
+        ///    reads 1030 - while their own body is six zero bytes.
         /// </remarks>
         [Theory]
         [InlineData("claude-file-stat-102-to-100-2026-07-29.pcapng")]
@@ -563,9 +561,57 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             _output.WriteLine("both readers returned " + byFlow.Count + " identical frames");
         }
 
-        /// <summary>Formats the head of a span as spaced hex, for diagnostic output.</summary>
-        /// <param name="data">The bytes to format.</param>
-        /// <param name="maximum">How many bytes at most to show.</param>
+        /// <summary>
+        /// Dumps every ordinary data-frame body in the transfer capture, in capture order.
+        /// </summary>
+        /// <remarks>
+        /// Reporting only. It exists to confirm the control messages that bracket the four data
+        /// messages - in particular the end-of-transfer message - from bytes rather than from notes.
+        /// </remarks>
+        [Fact]
+        public void TransferCapture_DumpControlMessageBodies()
+        {
+            string? path = LocateCapture();
+            if (path == null)
+            {
+                _output.WriteLine("capture not found; skipping (set XMSG_PCAP_DIR).");
+                return;
+            }
+
+            IReadOnlyList<LapbFrame> frames = HdlcPcap.ReadFramesInCaptureOrder(path);
+
+            for (int i = 0; i < frames.Count; i++)
+            {
+                LapbFrame frame = frames[i];
+                if (frame.Kind != LapbFrameKind.Information || frame.Info.Length < BodyOffsetFullHeader)
+                {
+                    continue;
+                }
+
+                ReadOnlySpan<byte> info = frame.Info.Span;
+                if (info[3] != (byte)SintranPacketSubtype.Data)
+                {
+                    continue;
+                }
+
+                string dir = frame.Key.SourcePort.ToString() + "->" + frame.Key.DestinationPort.ToString();
+                ReadOnlySpan<byte> body = info.Slice(BodyOffsetFullHeader);
+
+                _output.WriteLine(dir + "  bodyLen=" + body.Length + "  body: " + Hex(body, 64));
+            }
+
+            Assert.True(frames.Count > 0);
+        }
+
+        /// <summary>
+        /// Formats the head of a span as spaced hex, for diagnostic output.
+        /// </summary>
+        /// <param name="data">
+        /// The bytes to format.
+        /// </param>
+        /// <param name="maximum">
+        /// How many bytes at most to show.
+        /// </param>
         private static string Hex(ReadOnlySpan<byte> data, int maximum)
         {
             int count = data.Length < maximum ? data.Length : maximum;
@@ -579,8 +625,12 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             return text.ToString();
         }
 
-        /// <summary>Finds a capture by name, or null when the corpus is not present.</summary>
-        /// <param name="captureName">The capture file name; defaults to the transfer capture.</param>
+        /// <summary>
+        /// Finds a capture by name, or null when the corpus is not present.
+        /// </summary>
+        /// <param name="captureName">
+        /// The capture file name; defaults to the transfer capture.
+        /// </param>
         private static string? LocateCapture(string? captureName = null)
         {
             string name = captureName ?? CaptureName;

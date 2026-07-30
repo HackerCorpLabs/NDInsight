@@ -33,7 +33,9 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Qform
     /// </remarks>
     public static class QformReader
     {
-        /// <summary>The selector value that ends a parameter list.</summary>
+        /// <summary>
+        /// The selector value that ends a parameter list.
+        /// </summary>
         public const int EndOfListSelector = 0x00FF;
 
         /// <summary>
@@ -56,8 +58,12 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Qform
         /// Walks a body and returns every field found, including fields nested inside constructed
         /// values.
         /// </summary>
-        /// <param name="body">The message body, starting at the first tag byte.</param>
-        /// <returns>The fields in the order encountered.</returns>
+        /// <param name="body">
+        /// The message body, starting at the first tag byte.
+        /// </param>
+        /// <returns>
+        /// The fields in the order encountered.
+        /// </returns>
         /// <exception cref="QformFormatException">
         /// The body is malformed, or it uses the multi-byte escape-length continuation, which is not
         /// yet decoded (see <see cref="QformFormatException"/>).
@@ -73,9 +79,15 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Qform
         /// Walks a body and reports whether it parses cleanly, without throwing. Intended for
         /// bulk-validating captures.
         /// </summary>
-        /// <param name="body">The message body.</param>
-        /// <param name="fields">The fields found, or an empty list on failure.</param>
-        /// <returns><see langword="true"/> if the whole body parsed.</returns>
+        /// <param name="body">
+        /// The message body.
+        /// </param>
+        /// <param name="fields">
+        /// The fields found, or an empty list on failure.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> if the whole body parsed.
+        /// </returns>
         public static bool TryRead(ReadOnlySpan<byte> body, out IReadOnlyList<QformField> fields)
         {
             try
@@ -90,7 +102,9 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Qform
             }
         }
 
-        /// <summary>Walks one nesting level, recursing into constructed values.</summary>
+        /// <summary>
+        /// Walks one nesting level, recursing into constructed values.
+        /// </summary>
         private static void ReadInto(ReadOnlySpan<byte> body, int start, int depth, List<QformField> fields)
         {
             int i = start;
@@ -144,7 +158,9 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Qform
             }
         }
 
-        /// <summary>Reads an escaped length: the byte after the tag, with 0x80 continuing.</summary>
+        /// <summary>
+        /// Reads an escaped length: the byte after the tag, with 0x80 continuing.
+        /// </summary>
         private static int ReadEscapedLength(ReadOnlySpan<byte> body, ref int i)
         {
             if (i >= body.Length)
@@ -173,11 +189,17 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Qform
         }
     }
 
-    /// <summary>Thrown when a QFORM body cannot be parsed.</summary>
+    /// <summary>
+    /// Thrown when a QFORM body cannot be parsed.
+    /// </summary>
     public sealed class QformFormatException : Exception
     {
-        /// <summary>Initialises the exception.</summary>
-        /// <param name="message">What went wrong.</param>
+        /// <summary>
+        /// Initialises the exception.
+        /// </summary>
+        /// <param name="message">
+        /// What went wrong.
+        /// </param>
         public QformFormatException(string message)
             : base(message)
         {

@@ -39,7 +39,9 @@ namespace NDInsight.Sintran.Xmsg.Api
         /// The password as typed. <see langword="null"/> or empty encodes to 0, which is how SINTRAN
         /// represents "no password".
         /// </param>
-        /// <returns>The encoded word.</returns>
+        /// <returns>
+        /// The encoded word.
+        /// </returns>
         public static ushort Encode(string? password)
         {
             if (string.IsNullOrEmpty(password))
@@ -74,8 +76,12 @@ namespace NDInsight.Sintran.Xmsg.Api
         /// Encodes a typed password into <paramref name="destination"/> in the byte order it takes on
         /// the wire (high byte first).
         /// </summary>
-        /// <param name="password">The password as typed.</param>
-        /// <param name="destination">A span of at least two bytes.</param>
+        /// <param name="password">
+        /// The password as typed.
+        /// </param>
+        /// <param name="destination">
+        /// A span of at least two bytes.
+        /// </param>
         /// <exception cref="ArgumentException">
         /// <paramref name="destination"/> is shorter than two bytes.
         /// </exception>
@@ -100,9 +106,15 @@ namespace NDInsight.Sintran.Xmsg.Api
         /// Because the fold is case-insensitive, this returns <see langword="true"/> for any casing
         /// of the same string - which is SINTRAN's real behaviour, not a bug in the comparison.
         /// </remarks>
-        /// <param name="password">The password as typed.</param>
-        /// <param name="storedWord">The stored or captured 16-bit word.</param>
-        /// <returns><see langword="true"/> if the password encodes to that word.</returns>
+        /// <param name="password">
+        /// The password as typed.
+        /// </param>
+        /// <param name="storedWord">
+        /// The stored or captured 16-bit word.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> if the password encodes to that word.
+        /// </returns>
         public static bool Matches(string? password, ushort storedWord)
         {
             return Encode(password) == storedWord;

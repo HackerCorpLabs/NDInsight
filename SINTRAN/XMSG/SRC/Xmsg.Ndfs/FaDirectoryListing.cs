@@ -29,9 +29,15 @@ namespace NDInsight.Sintran.Xmsg.Ndfs
         /// <summary>
         /// Reads the directory entry out of a <c>LIST-FILES</c> reply body.
         /// </summary>
-        /// <param name="body">The QFORM reply body.</param>
-        /// <param name="serial">The echoed transaction serial, pairing this reply to its request.</param>
-        /// <param name="entry">The decoded object entry.</param>
+        /// <param name="body">
+        /// The QFORM reply body.
+        /// </param>
+        /// <param name="serial">
+        /// The echoed transaction serial, pairing this reply to its request.
+        /// </param>
+        /// <param name="entry">
+        /// The decoded object entry.
+        /// </param>
         /// <returns>
         /// <see langword="true"/> if the reply carried an entry that decoded. A reply whose record has
         /// the in-use bit clear yields <see langword="false"/>, matching
@@ -54,10 +60,18 @@ namespace NDInsight.Sintran.Xmsg.Ndfs
         /// <summary>
         /// Builds a <c>LIST-FILES</c> reply carrying one directory entry.
         /// </summary>
-        /// <param name="serial">The serial of the request being answered.</param>
-        /// <param name="entry">The entry to return.</param>
-        /// <returns>The QFORM reply body.</returns>
-        /// <exception cref="ArgumentNullException">The entry is null.</exception>
+        /// <param name="serial">
+        /// The serial of the request being answered.
+        /// </param>
+        /// <param name="entry">
+        /// The entry to return.
+        /// </param>
+        /// <returns>
+        /// The QFORM reply body.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// The entry is null.
+        /// </exception>
         public static byte[] BuildReply(ushort serial, ObjectEntry entry)
         {
             if (entry == null) { throw new ArgumentNullException(nameof(entry)); }
@@ -71,9 +85,15 @@ namespace NDInsight.Sintran.Xmsg.Ndfs
         /// <summary>
         /// Decodes a raw 64-byte record on its own, for callers that already have one.
         /// </summary>
-        /// <param name="record">The object entry as it arrived on the wire.</param>
-        /// <returns>The decoded entry, or <see langword="null"/> if the in-use bit is clear.</returns>
-        /// <exception cref="ArgumentException">The record is the wrong length.</exception>
+        /// <param name="record">
+        /// The object entry as it arrived on the wire.
+        /// </param>
+        /// <returns>
+        /// The decoded entry, or <see langword="null"/> if the in-use bit is clear.
+        /// </returns>
+        /// <exception cref="ArgumentException">
+        /// The record is the wrong length.
+        /// </exception>
         public static ObjectEntry? ParseRecord(byte[] record)
         {
             if (record == null) { throw new ArgumentNullException(nameof(record)); }
