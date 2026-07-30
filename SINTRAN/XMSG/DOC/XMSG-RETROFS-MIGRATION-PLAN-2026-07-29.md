@@ -505,7 +505,24 @@ allocates from the data length, and the page-count allocator
 `NdfsFileSystem.AllocateFileBlocks(uint filePages, BlockPointer.PointerType)` is **private**.
 
 So a COSMOS `CREATE-FILE` server needs one addition to `INdfsFileSystem`: create an entry with a
-reserved page count and no contents. That is a small, well-scoped change to RetroFS - not the
+reserved page count and no contents.
+
+> **HANDED OFF 2026-07-30 to the NDFS team, and it is NOT as small as the next sentence claimed.**
+> Written up in full at
+> `E:\Dev\Ronny\RetroFS\ai-docs\NDFS-CREATE-FILE-PAGE-COUNT-HANDOFF-2026-07-30.md`.
+>
+> Two findings changed the size of it. First, a page count in SINTRAN means an ALLOCATED /
+> CONTIGUOUS file, not an indexed one, and while NDFS can already READ contiguous files
+> (`GetBlockPointersContiguous`), no create path builds one - so this is a write-side gap in the
+> file system, not just a missing method signature. Second, the page-count allocator that exists
+> (`AllocateFileBlocks`) is an explicit placeholder with zero callers, so it is a decision whether
+> to finish or delete it.
+>
+> It is also blocked on evidence: `CREATE-FILE` has never been recorded, so we do not know whether
+> the remote protocol sends a page count, a contiguity flag or both. Designing the signature around
+> our server now would be a guess.
+
+That is a small, well-scoped change to RetroFS - not the
 interface redesign section 8.4 anticipated.
 
 ### 10.5 Consequence for the package split
