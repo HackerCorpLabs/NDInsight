@@ -250,7 +250,21 @@ queue lock taken before a bad kick would leak.
 
 ---
 
-### G7 - `X5ACT` is never re-armed  **[P2, needs one check]**
+### G7 - NOT A GAP. Withdrawn 2026-07-30, my claim was wrong
+
+`X5ACT` IS re-armed: `OctobusND5000Station.cs:1163`,
+`WriteNd100Word(_extBlockBase + 5 * 2, 1); // re-arm (IDLE_2 writes 1 [V])`, covered by the
+passing test `OctobusMailboxO1Tests.IdlePath_ReArmsX5ActToOne_BeforeConsuming`. The real
+microcode agrees - running the B30 IDLE loop leaves `X5ACT=0001`.
+
+**How I got it wrong:** I searched for the byte offset `0x0A` and concluded "nothing writes it".
+The code writes `5 * 2`. A grep for one spelling of an address is not evidence that nothing
+touches it - check the symbolic form too, or assert on the VALUE instead of searching for the
+write.
+
+Original (incorrect) text follows for the record.
+
+### G7 - `X5ACT` is never re-armed  **[WITHDRAWN - see above]**
 
 The microcode's IDLE loop, on finding work, **re-arms `X5ACT` to 1** and then walks the `X5BEX`
 chain. I found no write to `_extBlockBase + 0x0A` anywhere in `OctobusND5000Station.cs` - the cell
@@ -325,7 +339,15 @@ run cannot be used as evidence about the machine, which is the entire purpose of
 
 ## 3. Order of work
 
-**Done 2026-07-30: G1, G4, G6** (diagnostic half), plus the harness-reproducibility fix below.
+**Done 2026-07-30: G1, G4, G6** (diagnostic half), **G10**, **G2**, plus the harness-reproducibility
+fix below. **G7 withdrawn** - it was never a gap.
+
+- **G10** (top item): `_accpIdle` was cleared only by `ContinueAccp` and `ResetStation`, never by
+  `STAMIC0`/`CONTMIC`/`RESTMIC`. SINTRAN sends 244B TERMINATE as a NORMAL bring-up step (measured:
+  after 3 commands, all answered; 0 of 149 unanswered in a whole run), then restarts the
+  microprogram - and the flag stuck, so every kick was dropped for the rest of the session.
+  Verified: `k3=1`, `X5CLR=0000`, `X5CCL=0001`, `accpIdle=False`, full ladder green.
+- **G2**: kick 6 writes `X5PRO := -1`, so `TER51` completes instead of `ESPTIMOUT`.
 
 **0. G10 FIRST** - SINTRAN terminates the ACCP mid-run (section 0.2). Until that is understood,
 everything downstream runs against a stopped microprogram and no amount of kick-handler correctness
