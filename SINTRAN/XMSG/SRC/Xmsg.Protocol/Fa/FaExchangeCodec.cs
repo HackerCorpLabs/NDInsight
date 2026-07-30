@@ -150,6 +150,52 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         public const ushort OperationCreate = 0x000A;
 
         /// <summary>
+        /// Operation code that opens a file and returns the file number to use for it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Recorded 2026-07-30 in <c>claude-open-close-file-102-to-100-2026-07-30.pcapng</c>, driving
+        /// <c>OPEN-FILE d100(system).ronny-r2:txt,R</c> from node 102:
+        /// </para>
+        /// <code>
+        /// request  92 0005  92 0002  F2 0002  BE "RONNY-R2:TXT'" + pad  F2 00FF
+        /// reply    92 0005  92 0002  F2 0002  A2 0040                   F2 00FF
+        /// </code>
+        /// <para>
+        /// <b>The number in the reply is the REMOTE file number, not the one the caller sees.</b>
+        /// Node 100 answered <c>0x0040</c>, which is 100 octal, while node 102 printed
+        /// <c>FILE NUMBER IS 000101</c> to the operator. 100 octal was already taken locally by
+        /// <c>SCRATCH03:DATA</c>, visible in that machine's own <c>LIST-OPEN-FILES</c>, so the local
+        /// system clearly allocates its own handle and maps it to the remote one. A client must not
+        /// assume the two match.
+        /// </para>
+        /// <para>
+        /// The access type asked for at the terminal - <c>R</c> here - does NOT appear anywhere in the
+        /// request. Where it goes is UNKNOWN; only one access type has been recorded, so it may be
+        /// carried somewhere already dismissed as constant, or negotiated earlier.
+        /// </para>
+        /// </remarks>
+        public const ushort OperationOpenFile = 0x0005;
+
+        /// <summary>
+        /// Operation code seen once after an open, carrying no fields in either direction.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Both request and reply are bare: <c>92 0006 92 &lt;sequence&gt; F2 00FF</c>.
+        /// </para>
+        /// <para>
+        /// <b>Meaning INFERRED, not established.</b> It appears between the open and the closing
+        /// <see cref="OperationClose"/> exchange, and the terminal session that had the file open was
+        /// disconnected at that point, so it is consistent with closing the file. But the operator
+        /// also typed <c>CLOSE-FILE</c> in a later session, and only ONE conversation appears in the
+        /// recording, so which action produced this exchange is not proven. Do not treat it as a
+        /// close until a recording isolates it.
+        /// </para>
+        /// </remarks>
+        public const ushort OperationSixUnknown = 0x0006;
+
+        /// <summary>
         /// Operation code closing a conversation.
         /// </summary>
         /// <remarks>
