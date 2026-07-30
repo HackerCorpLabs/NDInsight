@@ -71,7 +71,29 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// <summary>
         /// Session token carried on every exchange after the first, responder side.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>NOT A CONSTANT - corrected 2026-07-30.</b> This value held on the FILE-STATISTICS and
+        /// DELETE-FILE recordings, so it was fixed here as a constant. The CREATE-FILE recording taken
+        /// later the same day uses <c>0x909E</c> on every server reply instead.
+        /// </para>
+        /// <para>
+        /// Its meaning is UNKNOWN. It is per-conversation, not per-message: it is identical on every
+        /// reply within one conversation and differs between conversations. Treat this constant as
+        /// "the value seen in the two 2026-07-29 recordings" and read the real one off the first
+        /// reply, rather than asserting it.
+        /// </para>
+        /// </remarks>
         public const ushort SessionTokenResponder = 0x9081;
+
+        /// <summary>
+        /// The responder session token seen in the CREATE-FILE recording of 2026-07-30.
+        /// </summary>
+        /// <remarks>
+        /// Recorded only so the two known values sit side by side and neither looks like the rule. Two
+        /// samples are not a pattern; do not infer one from them.
+        /// </remarks>
+        public const ushort SessionTokenResponderCreateFile = 0x909E;
 
         /// <summary>
         /// Operation code opening a conversation: the directory and user spec.
@@ -100,6 +122,32 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// opening exchange does not.
         /// </remarks>
         public const ushort OperationDelete = 0x000B;
+
+        /// <summary>
+        /// Operation code that creates a file with a reserved page count and no contents.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Recorded 2026-07-30 in
+        /// <c>claude-create-file-102-to-100-2026-07-30.pcapng</c>. The request carries the file name
+        /// and the page count and nothing else:
+        /// </para>
+        /// <code>
+        /// 92 000A                       operation
+        /// 92 0002                       exchange sequence
+        /// F2 0002                       selector 2
+        /// BE "RONNY-R2:TXT'" + pad      file name, 0x27 terminated
+        /// F2 0004                       selector 4
+        /// A4 0000 0001                  page count, 32-bit
+        /// F2 00FF                       end of list
+        /// </code>
+        /// <para>
+        /// The file it produces is a CONTINUOUS file - node 100's own <c>FILE-STATISTICS</c> reports
+        /// <c>(CONTINUOUS FILE)</c>, 1 page, 0 bytes. So contiguity is implied by the operation and is
+        /// not a field on the wire.
+        /// </para>
+        /// </remarks>
+        public const ushort OperationCreate = 0x000A;
 
         /// <summary>
         /// Operation code closing a conversation.

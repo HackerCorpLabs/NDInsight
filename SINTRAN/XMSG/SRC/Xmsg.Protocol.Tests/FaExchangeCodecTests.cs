@@ -32,6 +32,11 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         private const string DeleteCapture = "claude-delete-file-102-to-100-2026-07-29.pcapng";
 
         /// <summary>
+        /// The CREATE-FILE recording, taken a day later than the other two.
+        /// </summary>
+        private const string CreateCapture = "claude-create-file-102-to-100-2026-07-30.pcapng";
+
+        /// <summary>
         /// Frame offset at which the message body begins.
         /// </summary>
         private const int BodyOffsetFullHeader = 28;
@@ -44,6 +49,67 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         /// If this ever fails, the "conversation number, not opcode" conclusion is wrong and every
         /// codec resting on it needs revisiting - which is exactly why it is asserted rather than
         /// merely written down.
+        /// </remarks>
+        [Fact]
+        public void OpeningRequest_CarriesAFieldThatIsNotTheConversationNumber()
+        {
+            List<byte[]> deleteBodies = ReadBodies(DeleteCapture);
+            List<byte[]> createBodies = ReadBodies(CreateCapture);
+
+            if (deleteBodies.Count == 0 || createBodies.Count == 0)
+            {
+                _output.WriteLine("recorded .pcapng files absent and XMSG_PCAP_OPTIONAL is set; skipping.");
+                return;
+            }
+
+            byte[] deleteOpen = FindOpeningRequest(deleteBodies);
+            byte[] createOpen = FindOpeningRequest(createBodies);
+
+            Assert.NotNull(deleteOpen);
+            Assert.NotNull(createOpen);
+            Assert.Equal(deleteOpen.Length, createOpen.Length);
+
+            List<int> differing = new List<int>();
+            for (int i = 0; i < deleteOpen.Length; i++)
+            {
+                if (i == FaExchangeCodec.ConversationOffset || i == FaExchangeCodec.ConversationOffset + 1)
+                {
+                    continue;
+                }
+
+                if (deleteOpen[i] != createOpen[i]) { differing.Add(i); }
+            }
+
+            System.Text.StringBuilder detail = new System.Text.StringBuilder();
+            for (int i = 0; i < differing.Count; i++)
+            {
+                int at = differing[i];
+                detail.Append(" offset ").Append(at)
+                    .Append(": DELETE 0x").Append(deleteOpen[at].ToString("x2"))
+                    .Append(" ('").Append((char)deleteOpen[at]).Append("')")
+                    .Append(" vs CREATE 0x").Append(createOpen[at].ToString("x2"))
+                    .Append(" ('").Append((char)createOpen[at]).Append("')");
+            }
+
+            _output.WriteLine("bytes differing outside the conversation number: " + differing.Count
+                + detail.ToString());
+
+            // The opening request is NOT fixed apart from the conversation number. DELETE-FILE carries
+            // the text BAK05 where CREATE-FILE carries BAK03, so there is a second varying field.
+            // Meaning UNKNOWN - it looks like a batch or terminal identifier, but nothing here tests
+            // that reading, so it must not be synthesised.
+            Assert.NotEmpty(differing);
+        }
+
+        /// <summary>
+        /// Two recordings whose opening requests DO match byte for byte apart from the conversation
+        /// number.
+        /// </summary>
+        /// <remarks>
+        /// Kept because it is true of these two and it is what first showed the conversation number is
+        /// a counter rather than an operation code. It is NOT a rule about the protocol - see
+        /// <see cref="OpeningRequest_CarriesAFieldThatIsNotTheConversationNumber"/>, where a third
+        /// recording differs in a second place.
         /// </remarks>
         [Fact]
         public void FileStatAndDelete_OpenWithIdenticalRequestsApartFromTheConversationNumber()
@@ -79,6 +145,9 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             _output.WriteLine("opening request length " + statOpen.Length
                 + "; differences outside the conversation number: " + differences);
 
+            // These two happen to match byte for byte. A THIRD recording does not - see
+            // OpeningRequest_CarriesAFieldThatIsNotTheConversationNumber - so this is a fact about
+            // these two, not a rule about the protocol.
             Assert.Equal(0, differences);
 
             // And the conversation numbers really are different, so the test is not vacuous.
