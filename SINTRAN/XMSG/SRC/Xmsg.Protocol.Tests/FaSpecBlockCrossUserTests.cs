@@ -244,10 +244,10 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
 
                 ReadOnlySpan<byte> body = info.Slice(BodyOffsetFullHeader);
 
-                ushort operation;
+                FaOperation operation;
                 ushort sequence;
                 if (!FaExchangeCodec.TryReadOperation(body, out operation, out sequence)) { continue; }
-                if (operation != FaExchangeCodec.OperationDirectoryEnquiry) { continue; }
+                if (operation != FaOperation.SiiiSpecial) { continue; }
 
                 SpecBlock parsed;
                 if (TryParseSpecBlock(body, out parsed)) { found.Add(parsed); }

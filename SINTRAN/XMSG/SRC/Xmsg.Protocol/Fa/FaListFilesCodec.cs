@@ -99,7 +99,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// See <see cref="FaExchangeCodec"/> for the shared envelope and the codes observed so far.
         /// </para>
         /// </remarks>
-        public const ushort OperationDirectoryEnquiry = FaExchangeCodec.OperationDirectoryEnquiry;
+        public const FaOperation OperationDirectoryEnquiry = FaOperation.SiiiSpecial;
 
         /// <summary>
         /// The value carried under selector 1 in a request.
@@ -169,7 +169,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
             byte[] body = new byte[3 + 3 + 3 + 3 + 3 + 3 + 70 + 3];
             int at = 0;
 
-            at = WriteTagged(body, at, 0x92, OperationDirectoryEnquiry);
+            at = WriteTagged(body, at, 0x92, (ushort)OperationDirectoryEnquiry);
             at = WriteTagged(body, at, 0x92, serial);
             at = WriteTagged(body, at, 0xF2, 0x0001);
             at = WriteTagged(body, at, 0x92, RequestSelector1Value);
@@ -243,7 +243,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
             byte[] body = new byte[3 + 3 + 3 + 2 + 75 + 3];
             int at = 0;
 
-            at = WriteTagged(body, at, 0x92, OperationDirectoryEnquiry);
+            at = WriteTagged(body, at, 0x92, (ushort)OperationDirectoryEnquiry);
             at = WriteTagged(body, at, 0x92, serial);
             at = WriteTagged(body, at, 0xF2, PayloadSelector);
 

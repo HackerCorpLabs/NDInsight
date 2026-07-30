@@ -172,7 +172,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
                 return;
             }
 
-            List<ushort> requestOperations = new List<ushort>();
+            List<FaOperation> requestOperations = new List<FaOperation>();
 
             for (int i = 0; i < bodies.Count; i++)
             {
@@ -190,11 +190,12 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
                 if (messageType != FaExchangeCodec.MessageTypeRequest) { continue; }
                 if (FaExchangeCodec.IsReply(body)) { continue; }
 
-                ushort operation;
+                FaOperation operation;
                 ushort sequence;
                 if (!FaExchangeCodec.TryReadOperation(body, out operation, out sequence)) { continue; }
 
-                _output.WriteLine("request: operation=0x" + operation.ToString("x4")
+                _output.WriteLine("request: operation=" + operation
+                    + " (0x" + ((ushort)operation).ToString("x4") + ")"
                     + " sequence=" + sequence
                     + " sessionByte=0x" + sequenceByte.ToString("x2")
                     + " token=0x" + token.ToString("x4"));
@@ -203,9 +204,9 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             }
 
             Assert.Equal(3, requestOperations.Count);
-            Assert.Equal(FaExchangeCodec.OperationOpenSpec, requestOperations[0]);
-            Assert.Equal(FaExchangeCodec.OperationDelete, requestOperations[1]);
-            Assert.Equal(FaExchangeCodec.OperationClose, requestOperations[2]);
+            Assert.Equal(FaOperation.ReserveFileEntry, requestOperations[0]);
+            Assert.Equal(FaOperation.DeleteFile, requestOperations[1]);
+            Assert.Equal(FaOperation.ReleaseFileEntry, requestOperations[2]);
         }
 
         /// <summary>

@@ -1262,3 +1262,68 @@ operator command was `CLOSE-FILE`:
 
 Getting further needs several more close recordings to diff against each other, in the way the
 CREATE-FILE name-length experiment was done. That has not been attempted.
+
+---
+
+## 6l. The whole operation table, from the server's own binary (2026-07-30)
+
+Every operation code is now named. Not inferred from behaviour - read out of `*FA-SERVER` itself.
+
+The server program `COS-FA-SERV-E04:PROG` is loaded in Ghidra as
+`E:\Dev\Ronny\NDInsight\Installation\Communication\COSMOS Basic\x\cos-fa-serv-e04.prog`, using an
+ND-100 `:PROG` loader. At `BANK2::8731` it holds a word-aligned packed list of thirteen command
+names, immediately followed by a table of handler addresses:
+
+```
+index  0     1     2     3     4     5     6     7     8     9    10    11    12    13   14
+addr 1fb0  1fb0  1ead  1ecc  1edd  1eee  1eff  1f10  1f21  1f32  1f43  1f6c  1f7d  1f8e 1f9f
+```
+
+Reading the names in order against that table gives:
+
+| Opcode | Name | How we know |
+| ---: | --- | --- |
+| `0001` | File-entry-disconnect | handler slot points at the table's padding address, so not dispatched here |
+| `0002` | Reserve-file-entry | opens every recorded conversation |
+| `0003` | Release-file-entry | closes every recorded conversation |
+| `0004` | Change-file-entry-id | never recorded |
+| `0005` | Open-file | **matches the recording** |
+| `0006` | Close-file | resolves the exchange that had no name |
+| `0007` | Set-block-size | never recorded |
+| `0008` | Read-file | never recorded |
+| `0009` | Write-file | never recorded |
+| `000A` | Create-file | **matches the recording** |
+| `000B` | Delete-file | **matches the recording** |
+| `000C` | SIII-special | resolves the "mystery 000C" |
+| `000D` | Device-function | never recorded |
+
+Three independent matches against opcodes established earlier from recordings - Open-file, Create-file
+and Delete-file - are why the numbering is treated as VERIFIED rather than assumed.
+
+### What this corrects
+
+**`0002` and `0003` are not "open spec" and "close spec".** Those were names for what they looked
+like. They reserve and release a FILE ENTRY.
+
+**Operation `0006` IS the file close.** Section 6k concluded it could not be, because it only appeared
+at session teardown and never when the operator typed `CLOSE-FILE`. The wire observation was right;
+the conclusion was wrong. Teardown issues a real close. The operator's `CLOSE-FILE` going to
+`*FA-USER` instead remains true and remains unexplained.
+
+**Selector 1 was never an inconsistent constant.** `0x0078` on a LIST-FILES request and `0x003B` at
+teardown looked like a broken rule. Both are `SIII-special` requests, and selector 1 carries its
+SUB-FUNCTION. Two sub-functions, not two values of one field. Which is which is UNKNOWN.
+
+### What it unblocks
+
+`Read-file` and `Write-file` are ordinary operations `0008` and `0009`. The terminal's `RFILE` and
+`WFILE` commands take a memory-address argument, which is why driving them by hand on a live machine
+was avoided - but the protocol operations carry no such thing, so a client can issue them safely. The
+handlers are at `BANK2::1f21` and `BANK2::1f32`, so their request shapes can be read from the code
+rather than captured.
+
+### Method note
+
+The strings alone were nearly enough - the names are in order and four of them line up with known
+opcodes. The handler table is what makes it evidence rather than a good guess, because it shows the
+opcode is used as an index.

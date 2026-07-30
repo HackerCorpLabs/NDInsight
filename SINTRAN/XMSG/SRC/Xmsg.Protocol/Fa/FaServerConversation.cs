@@ -91,7 +91,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// <returns>
         /// The complete reply body.
         /// </returns>
-        public byte[] BuildReply(ushort operation, ushort sequence, ReadOnlySpan<byte> qformFields)
+        public byte[] BuildReply(FaOperation operation, ushort sequence, ReadOnlySpan<byte> qformFields)
         {
             int length = FaExchangeCodec.QformOffset + 3 + 3 + qformFields.Length;
             byte[] body = new byte[length];
@@ -106,7 +106,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
             WriteUInt16(body, FaExchangeCodec.SessionHeaderOffset + 2, FaExchangeCodec.SessionTokenResponder);
 
             int at = FaExchangeCodec.QformOffset;
-            at = WriteTagged(body, at, 0x92, operation);
+            at = WriteTagged(body, at, 0x92, (ushort)operation);
             at = WriteTagged(body, at, 0x92, sequence);
 
             qformFields.CopyTo(new Span<byte>(body, at, qformFields.Length));

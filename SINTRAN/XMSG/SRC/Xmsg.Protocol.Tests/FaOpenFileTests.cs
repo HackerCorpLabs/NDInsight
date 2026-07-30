@@ -79,10 +79,10 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
 
             for (int i = 0; i < bodies.Count; i++)
             {
-                ushort operation;
+                FaOperation operation;
                 ushort sequence;
                 if (!FaExchangeCodec.TryReadOperation(bodies[i], out operation, out sequence)) { continue; }
-                if (operation != FaExchangeCodec.OperationOpenFile) { continue; }
+                if (operation != FaOperation.OpenFile) { continue; }
 
                 if (FaExchangeCodec.IsReply(bodies[i])) { reply = bodies[i]; }
                 else { request = bodies[i]; }
@@ -193,10 +193,10 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             List<byte[]> bodies = ReadBodies(captureName);
             for (int i = 0; i < bodies.Count; i++)
             {
-                ushort operation;
+                FaOperation operation;
                 ushort sequence;
                 if (!FaExchangeCodec.TryReadOperation(bodies[i], out operation, out sequence)) { continue; }
-                if (operation != FaExchangeCodec.OperationOpenFile) { continue; }
+                if (operation != FaOperation.OpenFile) { continue; }
                 if (FaExchangeCodec.IsReply(bodies[i])) { continue; }
                 return bodies[i];
             }

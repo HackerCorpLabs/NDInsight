@@ -69,7 +69,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
                 ushort messageType = (ushort)((captured[0] << 8) | captured[1]);
                 if (messageType != FaExchangeCodec.MessageTypeRequest) { continue; }
 
-                ushort operation;
+                FaOperation operation;
                 ushort sequence;
                 Assert.True(FaExchangeCodec.TryReadOperation(captured, out operation, out sequence));
 
@@ -80,7 +80,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
                 byte[] reply = server.BuildReply(operation, sequence, payload);
 
                 _output.WriteLine("reply " + (rebuilt + 1)
-                    + ": operation=0x" + operation.ToString("x4")
+                    + ": operation=" + operation + " (0x" + ((ushort)operation).ToString("x4") + ")"
                     + " sequence=" + sequence
                     + " length=" + captured.Length);
 
@@ -152,7 +152,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         public void FirstReply_UsesTheResponderTokenNotTheFirstExchangeToken()
         {
             FaServerConversation server = new FaServerConversation(DeleteConversation);
-            byte[] reply = server.BuildReply(FaExchangeCodec.OperationOpenSpec, 1, new byte[] { 0xF2, 0x00, 0xFF });
+            byte[] reply = server.BuildReply(FaOperation.ReserveFileEntry, 1, new byte[] { 0xF2, 0x00, 0xFF });
 
             ushort token = (ushort)((reply[FaExchangeCodec.SessionHeaderOffset + 2] << 8)
                 | reply[FaExchangeCodec.SessionHeaderOffset + 3]);

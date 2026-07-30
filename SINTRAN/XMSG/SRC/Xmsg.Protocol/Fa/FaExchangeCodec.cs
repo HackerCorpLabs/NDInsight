@@ -96,145 +96,15 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         public const ushort SessionTokenResponderCreateFile = 0x909E;
 
         /// <summary>
-        /// Operation code opening a conversation: the directory and user spec.
-        /// </summary>
-        /// <remarks>
-        /// Carried by exchange 1 of both FILE-STATISTICS and DELETE-FILE, whose bodies are otherwise
-        /// identical. The payload is the pack and user - captured as <c>BAK05  SYSTEM</c> - and a
-        /// 56-byte constructed block holding <c>SYSTEM'</c>.
-        /// </remarks>
-        public const ushort OperationOpenSpec = 0x0002;
-
-        /// <summary>
-        /// Operation code of a directory or file enquiry.
-        /// </summary>
-        /// <remarks>
-        /// Used by LIST-FILES and by exchange 2 of FILE-STATISTICS.
-        /// </remarks>
-        public const ushort OperationDirectoryEnquiry = 0x000C;
-
-        /// <summary>
-        /// Operation code of a delete request.
-        /// </summary>
-        /// <remarks>
-        /// Carried by exchange 2 of DELETE-FILE, whose payload is the file name as a plain string -
-        /// <c>XFERTEST:DATA</c>. This is the field that distinguishes deleting from enquiring; the
-        /// opening exchange does not.
-        /// </remarks>
-        public const ushort OperationDelete = 0x000B;
-
-        /// <summary>
-        /// Operation code that creates a file with a reserved page count and no contents.
-        /// </summary>
-        /// <remarks>
-        /// <para>
-        /// Recorded 2026-07-30 in
-        /// <c>claude-create-file-102-to-100-2026-07-30.pcapng</c>. The request carries the file name
-        /// and the page count and nothing else:
-        /// </para>
-        /// <code>
-        /// 92 000A                       operation
-        /// 92 0002                       exchange sequence
-        /// F2 0002                       selector 2
-        /// BE "RONNY-R2:TXT'" + pad      file name, 0x27 terminated
-        /// F2 0004                       selector 4
-        /// A4 0000 0001                  page count, 32-bit
-        /// F2 00FF                       end of list
-        /// </code>
-        /// <para>
-        /// The file it produces is a CONTINUOUS file - node 100's own <c>FILE-STATISTICS</c> reports
-        /// <c>(CONTINUOUS FILE)</c>, 1 page, 0 bytes. So contiguity is implied by the operation and is
-        /// not a field on the wire.
-        /// </para>
-        /// </remarks>
-        public const ushort OperationCreate = 0x000A;
-
-        /// <summary>
-        /// Operation code that opens a file and returns the file number to use for it.
-        /// </summary>
-        /// <remarks>
-        /// <para>
-        /// Recorded 2026-07-30 in <c>claude-open-close-file-102-to-100-2026-07-30.pcapng</c>, driving
-        /// <c>OPEN-FILE d100(system).ronny-r2:txt,R</c> from node 102:
-        /// </para>
-        /// <code>
-        /// request  92 0005  92 0002  F2 0002  BE "RONNY-R2:TXT'" + pad  F2 00FF
-        /// reply    92 0005  92 0002  F2 0002  A2 0040                   F2 00FF
-        /// </code>
-        /// <para>
-        /// <b>The number in the reply is the REMOTE file number, not the one the caller sees.</b>
-        /// Node 100 answered <c>0x0040</c>, which is 100 octal, while node 102 printed
-        /// <c>FILE NUMBER IS 000101</c> to the operator. 100 octal was already taken locally by
-        /// <c>SCRATCH03:DATA</c>, visible in that machine's own <c>LIST-OPEN-FILES</c>, so the local
-        /// system clearly allocates its own handle and maps it to the remote one. A client must not
-        /// assume the two match.
-        /// </para>
-        /// <para>
-        /// <b>The access type rides under selector 3, and is OMITTED for read.</b> Found by running
-        /// the identical command twice and changing only the access letter, recorded in
-        /// <c>claude-open-W-close-102-to-100-2026-07-30.pcapng</c>:
-        /// </para>
-        /// <code>
-        /// OPEN-FILE ...,R   ... BE "RONNY-R2:TXT'" + pad  F2 00FF
-        /// OPEN-FILE ...,W   ... BE "RONNY-R2:TXT'" + pad  F2 0003  92 0001  F2 00FF
-        /// </code>
-        /// <para>
-        /// Nothing else differed between the two requests, so the attribution is clean. Read is the
-        /// default and sends no field at all; write sends <c>0x0001</c>.
-        /// </para>
-        /// <para>
-        /// The other access letters - X random, A append, C common, and the legal combinations RW,
-        /// RX, WX, WA, RC - have NOT been recorded, so whether the value is a bit set or an
-        /// enumeration is UNKNOWN. Do not assume <c>0x0002</c> is the next one.
-        /// </para>
-        /// </remarks>
-        public const ushort OperationOpenFile = 0x0005;
-
-        /// <summary>
         /// Field selector carrying the access mode on an open request.
         /// </summary>
         /// <remarks>
-        /// Absent means read. <c>0x0001</c> means write. See <see cref="OperationOpenFile"/>.
+        /// Absent means read, <c>0x0001</c> means write. Established by running the same
+        /// <c>OPEN-FILE</c> twice and changing only the access letter, so the attribution is clean.
+        /// The other access letters have not been recorded, so whether the value is a bit set or an
+        /// enumeration is UNKNOWN - do not assume <c>0x0002</c> is next.
         /// </remarks>
         public const ushort SelectorAccessMode = 0x0003;
-
-        /// <summary>
-        /// Operation code seen once after an open, carrying no fields in either direction.
-        /// </summary>
-        /// <remarks>
-        /// <para>
-        /// Both request and reply are bare: <c>92 0006 92 &lt;sequence&gt; F2 00FF</c>.
-        /// </para>
-        /// <para>
-        /// <b>It is NOT the file close.</b> Established 2026-07-30 by two single-action recordings,
-        /// each containing exactly one operator command:
-        /// </para>
-        ///  - <c>claude-OPENONLY-102-to-100-2026-07-30.pcapng</c> - OPEN-FILE alone, with the
-        ///    recording stopped before the session disconnected. It holds exactly two exchanges,
-        ///    <see cref="OperationOpenSpec"/> and <see cref="OperationOpenFile"/>, and nothing else.
-        ///  - <c>claude-CLOSEONLY-102-to-100-2026-07-30.pcapng</c> - CLOSE-FILE alone. It holds NO
-        ///    <c>*FA-SERVER</c> traffic whatsoever; the close is carried by the separate
-        ///    <c>*FA-USER</c> service instead.
-        /// <para>
-        /// So this exchange belongs to SESSION TEARDOWN - it appears when the terminal session that
-        /// held the file ends - and not to any file operation the operator types. What it actually
-        /// does is still UNKNOWN; only its trigger has been narrowed.
-        /// </para>
-        /// <para>
-        /// The same two recordings establish that the conversation is LONG-LIVED. An open leaves it
-        /// standing with no close exchange at all, so it spans the file's open lifetime rather than
-        /// one command. A client must not tear the conversation down after each request.
-        /// </para>
-        /// </remarks>
-        public const ushort OperationSixUnknown = 0x0006;
-
-        /// <summary>
-        /// Operation code closing a conversation.
-        /// </summary>
-        /// <remarks>
-        /// Carried by the final exchange of both captured operations, as <c>92 0003</c>.
-        /// </remarks>
-        public const ushort OperationClose = 0x0003;
 
         /// <summary>
         /// Offset of the message type within a body.
@@ -324,15 +194,18 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// are not tagged that way is not one of these exchanges, and the method reports false rather
         /// than returning bytes read from the wrong place.
         /// </remarks>
-        public static bool TryReadOperation(ReadOnlySpan<byte> body, out ushort operation, out ushort sequence)
+        public static bool TryReadOperation(ReadOnlySpan<byte> body, out FaOperation operation, out ushort sequence)
         {
-            operation = 0;
+            operation = default;
             sequence = 0;
 
             if (body.Length < MinimumBodyLength) { return false; }
             if (body[QformOffset] != 0x92 || body[QformOffset + 3] != 0x92) { return false; }
 
-            operation = ReadUInt16(body, QformOffset + 1);
+            // Cast rather than validate: a code outside FaOperation is a real thing that can arrive
+            // on the wire, and swallowing it here would hide it. Callers that care should compare
+            // against the named values.
+            operation = (FaOperation)ReadUInt16(body, QformOffset + 1);
             sequence = ReadUInt16(body, QformOffset + 4);
             return true;
         }

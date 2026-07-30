@@ -321,10 +321,10 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
 
                 ReadOnlySpan<byte> body = info.Slice(BodyOffsetFullHeader);
 
-                ushort operation;
+                FaOperation operation;
                 ushort sequence;
                 if (!FaExchangeCodec.TryReadOperation(body, out operation, out sequence)) { continue; }
-                if (operation != FaExchangeCodec.OperationCreate) { continue; }
+                if (operation != FaOperation.CreateFile) { continue; }
 
                 found.Add(body.ToArray());
             }

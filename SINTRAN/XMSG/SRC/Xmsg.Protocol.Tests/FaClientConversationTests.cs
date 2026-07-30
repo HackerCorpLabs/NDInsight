@@ -78,7 +78,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
 
                 // Read the operation out of the captured request, then hand the driver everything
                 // after the operation/sequence pair as an opaque payload.
-                ushort operation;
+                FaOperation operation;
                 ushort sequence;
                 Assert.True(FaExchangeCodec.TryReadOperation(captured, out operation, out sequence));
 
@@ -88,7 +88,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
                 byte[] rebuilt = client.BuildRequest(operation, payload);
 
                 _output.WriteLine("exchange " + (i + 1)
-                    + ": operation=0x" + operation.ToString("x4")
+                    + ": operation=" + operation + " (0x" + ((ushort)operation).ToString("x4") + ")"
                     + " capturedSequence=" + sequence
                     + " length=" + captured.Length);
 
@@ -132,7 +132,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
 
                 if (messageType != FaExchangeCodec.MessageTypeRequest) { continue; }
 
-                ushort operation;
+                FaOperation operation;
                 ushort sequence;
                 Assert.True(FaExchangeCodec.TryReadOperation(body, out operation, out sequence));
 

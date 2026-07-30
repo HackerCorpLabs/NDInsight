@@ -84,7 +84,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// <returns>
         /// The complete message body, ready to place in an XMSG message.
         /// </returns>
-        public byte[] BuildRequest(ushort operation, ReadOnlySpan<byte> qformFields)
+        public byte[] BuildRequest(FaOperation operation, ReadOnlySpan<byte> qformFields)
         {
             // 07F0 | conversation | session header (4) | 92 operation | 92 sequence | fields
             int length = FaExchangeCodec.QformOffset + 3 + 3 + qformFields.Length;
@@ -103,7 +103,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
                 _exchangesBuilt == 0 ? FaExchangeCodec.SessionTokenFirst : FaExchangeCodec.SessionTokenAsker);
 
             int at = FaExchangeCodec.QformOffset;
-            at = WriteTagged(body, at, 0x92, operation);
+            at = WriteTagged(body, at, 0x92, (ushort)operation);
             at = WriteTagged(body, at, 0x92, (ushort)(_exchangesBuilt + 1));
 
             qformFields.CopyTo(new Span<byte>(body, at, qformFields.Length));
@@ -132,11 +132,11 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// match a reply to its request - the conversation number is not echoed, because the
         /// responder answers with its own.
         /// </remarks>
-        public static bool IsReplyTo(ReadOnlySpan<byte> body, ushort expectedOperation, ushort expectedSequence)
+        public static bool IsReplyTo(ReadOnlySpan<byte> body, FaOperation expectedOperation, ushort expectedSequence)
         {
             if (!FaExchangeCodec.IsReply(body)) { return false; }
 
-            ushort operation;
+            FaOperation operation;
             ushort sequence;
             if (!FaExchangeCodec.TryReadOperation(body, out operation, out sequence)) { return false; }
 
