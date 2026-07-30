@@ -111,6 +111,98 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         /// <summary>
         /// Confirms the fragmentation model: pairing, and the Flags2 length/offset arithmetic.
         /// </summary>
+        /// <summary>
+        /// A second transfer, of a file only 167 bytes long.
+        /// </summary>
+        /// <remarks>
+        /// Recorded 2026-07-30 to test whether the fragment split tracks the amount of real data. It
+        /// does not - see <see cref="TransferMessage_IsAlwaysAWholeBlockNoMatterHowSmallTheFileIs"/>.
+        /// </remarks>
+        private const string SmallFileCapture = "claude-transfer-SMALL-167bytes-102-to-100-2026-07-30.pcapng";
+
+        /// <summary>
+        /// Requires every transfer data message to be a whole 1030 bytes, split at the same point,
+        /// even when the file contains far less than one block.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The experiment.</b> <c>LOAD-MODE:BATC</c> on node 102 is 167 bytes - one page, and only
+        /// a sixth of one block. It was transferred to node 100 and recorded.
+        /// </para>
+        /// <para>
+        /// <b>Result: the wire looks exactly like a full transfer.</b> Two data messages, both
+        /// declaring 1030, both split 622 + 450 with the continuation resuming at 594. Page 0 with
+        /// displacement 0, then page 0 with displacement 512 words. So the sender ships the WHOLE
+        /// page - two 1024-byte blocks - padded, and the message length never tracks the file.
+        /// </para>
+        /// <para>
+        /// <b>What this settles.</b> The 594-byte split was previously recorded as possibly an
+        /// artefact of one file size. It is not: it holds across two transfers of very different
+        /// files. It is safe to treat as fixed FOR TRANSFERS.
+        /// </para>
+        /// <para>
+        /// <b>What it does not settle.</b> Whether 594 would change for a message of some other
+        /// length is still UNKNOWN, and cannot be tested with this protocol as we understand it -
+        /// the transfer data message is the only message large enough to need splitting, and it is
+        /// always 1030 bytes. So the question may simply not arise.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void TransferMessage_IsAlwaysAWholeBlockNoMatterHowSmallTheFileIs()
+        {
+            string? path = PcapFiles.File(SmallFileCapture);
+            if (path == null)
+            {
+                _output.WriteLine("recorded .pcapng files absent and XMSG_PCAP_OPTIONAL is set; skipping.");
+                return;
+            }
+
+            IReadOnlyList<LapbFrame> frames = HdlcPcap.ReadFramesInCaptureOrder(path);
+
+            int firstFragments = 0;
+            int continuations = 0;
+
+            for (int i = 0; i < frames.Count; i++)
+            {
+                LapbFrame frame = frames[i];
+                if (frame.Kind != LapbFrameKind.Information || frame.Info.Length < SintranHeaderSize)
+                {
+                    continue;
+                }
+
+                ReadOnlySpan<byte> info = frame.Info.Span;
+                byte subtype = info[3];
+                int flags2 = (info[10] << 8) | info[11];
+
+                if (subtype == SubtypeFirstFragment)
+                {
+                    firstFragments++;
+                    _output.WriteLine("first fragment: infoLen=" + info.Length + " declares=" + flags2);
+
+                    // The declared message length is the fixed 1030, not the 167 bytes of real file.
+                    Assert.Equal(TransferMessageLength, flags2);
+                }
+                else if (subtype == SubtypeContinuation)
+                {
+                    continuations++;
+                    _output.WriteLine("continuation:   infoLen=" + info.Length + " resumesAt=" + flags2);
+
+                    // Same split point as the multi-page transfer recorded the day before.
+                    Assert.Equal(594, flags2);
+                }
+            }
+
+            _output.WriteLine("first fragments=" + firstFragments + " continuations=" + continuations);
+
+            // A 167-byte file still ships a whole page: two blocks, so two messages.
+            Assert.Equal(2, firstFragments);
+            Assert.Equal(firstFragments, continuations);
+        }
+
+        /// <summary>
+        /// Confirms the fragmentation model on the original transfer: pairing, and the Flags2
+        /// length and offset arithmetic.
+        /// </summary>
         [Fact]
         public void SegmentedTransferMessage_FlagsTwoIsLengthThenOffset()
         {

@@ -68,30 +68,41 @@ namespace NDInsight.Sintran.Xmsg.Tests
         /// An explicitly named folder that does not exist is an error rather than a silent fallback.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// Found while trying to test the policy: pointing <c>XMSG_PCAP_DIR</c> at a nonexistent path
         /// used to be ignored, because the search quietly went on to walk up the tree and found the
         /// real folder. A mistyped path therefore looked like it worked, which would send someone
-        /// hunting the wrong problem. The variable is restored afterwards.
+        /// hunting the wrong problem.
+        /// </para>
+        /// <para>
+        /// <b>This test used to set the environment variable and restore it afterwards. That was a
+        /// bug.</b> xUnit runs test classes in parallel, so during that window any other test reading
+        /// the variable saw a folder that does not exist and threw. It caused exactly one
+        /// intermittent failure across the suite before it was caught. The check is now a pure
+        /// function and no process-wide state is touched.
+        /// </para>
         /// </remarks>
         [Fact]
         public void WhenTheNamedFolderDoesNotExist_ItThrowsRatherThanFallingBack()
         {
-            string? saved = Environment.GetEnvironmentVariable(PcapFiles.DirectoryVariable);
-            try
-            {
-                string missing = @"E:\this-path-does-not-exist-" + nameof(PcapFilesTests);
-                Environment.SetEnvironmentVariable(PcapFiles.DirectoryVariable, missing);
+            string missing = @"E:\this-path-does-not-exist-" + nameof(PcapFilesTests);
 
-                InvalidOperationException error =
-                    Assert.Throws<InvalidOperationException>(() => PcapFiles.Directory());
+            InvalidOperationException error = Assert.Throws<InvalidOperationException>(
+                () => PcapFiles.CheckNamedFolder(missing, false));
 
-                Assert.Contains(missing, error.Message);
-                Assert.Contains("does not exist", error.Message);
-            }
-            finally
-            {
-                Environment.SetEnvironmentVariable(PcapFiles.DirectoryVariable, saved);
-            }
+            Assert.Contains(missing, error.Message);
+            Assert.Contains("does not exist", error.Message);
+        }
+
+        /// <summary>
+        /// A named folder that does exist, and the case where none was named, both pass silently.
+        /// </summary>
+        [Fact]
+        public void WhenTheNamedFolderExistsOrIsUnset_ItDoesNotThrow()
+        {
+            PcapFiles.CheckNamedFolder(@"E:\somewhere", true);
+            PcapFiles.CheckNamedFolder(null, false);
+            PcapFiles.CheckNamedFolder(string.Empty, false);
         }
 
         /// <summary>

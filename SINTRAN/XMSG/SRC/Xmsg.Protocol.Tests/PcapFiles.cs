@@ -72,16 +72,8 @@ namespace NDInsight.Sintran.Xmsg.Tests
         /// </exception>
         public static string? Directory()
         {
-            // A folder named explicitly and then not present is always an error, even when the
-            // opt-out is set: it means someone typed the path wrong, and quietly walking up to find a
-            // different folder would hide that.
             string? named = Environment.GetEnvironmentVariable(DirectoryVariable);
-            if (!string.IsNullOrEmpty(named) && !System.IO.Directory.Exists(named))
-            {
-                throw new InvalidOperationException(
-                    DirectoryVariable + " is set to '" + named + "', which does not exist. Correct it "
-                    + "or clear the variable to search for the folder instead.");
-            }
+            CheckNamedFolder(named, !string.IsNullOrEmpty(named) && System.IO.Directory.Exists(named));
 
             return Apply(
                 FindDirectory(),
@@ -89,6 +81,39 @@ namespace NDInsight.Sintran.Xmsg.Tests
                 "the folder holding the recorded .pcapng files. Looked at " + DirectoryVariable
                 + ", then walked up from " + AppContext.BaseDirectory + " for a "
                 + WalkUpFolder + Path.DirectorySeparatorChar + "pcap folder");
+        }
+
+        /// <summary>
+        /// Rejects a folder that was named explicitly and is not there.
+        /// </summary>
+        /// <param name="named">
+        /// The folder named by the environment variable, or <see langword="null"/> when none was.
+        /// </param>
+        /// <param name="exists">
+        /// Whether that folder was found.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when a folder was named and does not exist.
+        /// </exception>
+        /// <remarks>
+        /// <para>
+        /// This is always an error, even when the opt-out is set: it means someone typed the path
+        /// wrong, and quietly walking up to find a different folder would hide that.
+        /// </para>
+        /// <para>
+        /// Pure, and separate from <see cref="Directory"/>, so it can be tested without setting the
+        /// environment variable. An earlier version of the test DID set it, and because xUnit runs
+        /// test classes in parallel, any other test reading the variable during that window failed.
+        /// That produced exactly one intermittent failure before it was spotted.
+        /// </para>
+        /// </remarks>
+        public static void CheckNamedFolder(string? named, bool exists)
+        {
+            if (string.IsNullOrEmpty(named) || exists) { return; }
+
+            throw new InvalidOperationException(
+                DirectoryVariable + " is set to '" + named + "', which does not exist. Correct it "
+                + "or clear the variable to search for the folder instead.");
         }
 
         /// <summary>

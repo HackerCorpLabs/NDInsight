@@ -69,9 +69,27 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// Number of body bytes carried by the FIRST of the two frames of a data message.
         /// </summary>
         /// <remarks>
-        /// The remaining <c>1030 - 594 = 436</c> bytes travel in the continuation frame. VERIFIED
-        /// identical on all four messages in the capture. Whether 594 is fixed by the protocol or is
-        /// a property of this link's frame size is UNKNOWN - only one transfer has been captured.
+        /// <para>
+        /// The remaining <c>1030 - 594 = 436</c> bytes travel in the continuation frame.
+        /// </para>
+        /// <para>
+        /// <b>No longer a single-case observation, 2026-07-30.</b> This used to warn that only one
+        /// transfer had been recorded, so 594 might be a property of that one file. A second transfer
+        /// was then recorded, of <c>LOAD-MODE:BATC</c> - a file of only 167 bytes, a sixth of one
+        /// block. It splits at exactly the same point.
+        /// </para>
+        /// <para>
+        /// The reason is that a transfer always ships WHOLE PAGES. The 167-byte file produced two
+        /// full 1030-byte messages, page 0 displacement 0 and page 0 displacement 512 words, padded.
+        /// The message length never tracks how much of the file is real, so within a transfer this
+        /// split cannot vary.
+        /// </para>
+        /// <para>
+        /// Whether 594 would differ for a message of some OTHER length remains UNKNOWN, and probably
+        /// cannot be tested: the transfer data message is the only message large enough to need
+        /// splitting, and it is always 1030 bytes. Locked in by
+        /// <c>TransferFragmentationTests.TransferMessage_IsAlwaysAWholeBlockNoMatterHowSmallTheFileIs</c>.
+        /// </para>
         /// </remarks>
         public const int FirstFragmentBodyLength = 594;
 
