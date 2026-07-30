@@ -602,6 +602,13 @@ legitimately needs the former and has no business with the latter. Splitting the
 already requires for multi-link support - also removes this dependency, letting `Cosmos.Hdlc` depend
 on the link state alone. **One refactor fixes agenda items 1 and 3 together.**
 
+> **WRONG - CORRECTED 2026-07-30, see section 14.** The paragraph above is mistaken. An audit of all 14
+> `Xmsg.Live` files found only two that reference `Xmsg.Node`, and neither depends on the link state:
+> `LiveNode` calls `HandleFrames` (the dispatch entry point, inherent to being a pump), and
+> `LapbLayerAdapter` merely implements `ILink`, which is declared in the wrong package. The 9.2 refactor
+> does **not** fix agenda item 3; moving `ILink` down and moving `LiveNode` into Hosting does, more
+> cheaply and independently.
+
 ### 11.3 CORRECTION: `Xmsg.Api` is not what section 7 says it is
 
 Section 7 states that `Xmsg.Api` "models the SINTRAN MON 200 call surface, which has no RetroFS
@@ -639,8 +646,11 @@ half for no benefit.
 
 - That `Xmsg.Api` splits cleanly at `Kernel`. 11.3 identifies `Rr\` as shared; whether `Kernel\` is
   purely client-side was not checked file by file.
-- That the 9.2 split is sufficient to break `Xmsg.Live`'s dependency on `Xmsg.Node`. It is necessary;
-  whether `LiveNode` touches anything else on `XmsgNode` beyond the link state was not audited.
+- ~~That the 9.2 split is sufficient to break `Xmsg.Live`'s dependency on `Xmsg.Node`. It is necessary;
+  whether `LiveNode` touches anything else on `XmsgNode` beyond the link state was not audited.~~
+  **AUDITED - section 14, and the answer overturned 11.2.** The 9.2 split is neither sufficient nor
+  necessary for this: only 2 of 14 `Xmsg.Live` files reference `Xmsg.Node`, and neither touches the
+  link state.
 - That an `ICosmosTransport` shaped like the TNFS one is adequate. TNFS messages are self-contained
   datagrams; XMSG frames carry per-link envelope state that the layer below assigns, so the send path
   may need to hand back the assigned Flags 1. **Not designed.**
@@ -780,12 +790,15 @@ session no longer needs to resolve open questions - it needs to ratify decisions
 ### 13.1 The one refactor that unblocks the most
 
 **Split the per-link state off `XmsgNode` onto `XmsgLink`.** It is the single highest-value change
-identified, because one refactor fixes three separate problems:
+identified, because one refactor fixes **two** separate problems:
 
  - agenda item 1: multiple concurrent HDLC links become possible at all (9.2).
- - agenda item 3: the `Xmsg.Live -> Xmsg.Node` dependency disappears, so `Cosmos.Hdlc` stops dragging
-   in the server (11.2).
  - the duplication itself: `XmsgLink` and the `XmsgNode` scalars are two representations of one fact.
+
+~~agenda item 3: the `Xmsg.Live -> Xmsg.Node` dependency disappears (11.2).~~ **Struck 2026-07-30 -
+see section 14.** That dependency is a file-placement problem, not this one, and this refactor does not
+fix it. It is fixed separately and far more cheaply by moving `ILink` down out of `Xmsg.Node.Seam` and
+moving `LiveNode` into Hosting.
 
 It is **not** started, deliberately. It changes the envelope state that crashed node 100 once already
 (9.2), so it wants doing with the conformance suite green either side and preferably a live re-test -
@@ -818,3 +831,68 @@ read/write on the stream is refused. So these need you to drive the terminal:
 
 Files created during the captures, still present: `DUMMY:DATA` on nodes 100 and 102, `DUMMY:SYMB` on
 100, `FTPULL:SYMB` on 102.
+
+---
+
+## 14. CORRECTION to 11.2: the `Xmsg.Live -> Xmsg.Node` dependency is a file-placement problem, not the duplication (2026-07-30)
+
+Section 11.5 recorded this as unverified: "That the 9.2 split is sufficient to break `Xmsg.Live`'s
+dependency on `Xmsg.Node`. It is necessary; whether `LiveNode` touches anything else on `XmsgNode`
+beyond the link state was not audited." It has now been audited, and **11.2 was wrong**.
+
+### 14.1 What the audit found
+
+`Xmsg.Live` has 14 source files. Only **two** reference `Xmsg.Node` at all:
+
+| File | Why it depends on `Xmsg.Node` |
+| --- | --- |
+| `LiveNode.cs` | one functional call: `_node.HandleFrames(decoded)` at line 268 |
+| `Seam\LapbLayerAdapter.cs` | implements `ILink`, which is declared in `Xmsg.Node.Seam` |
+
+The other twelve - `HdlcEncoder`, `IByteDuplex`, `InMemoryDuplex`, `LapbLayer`, `LapbLayerState`,
+`LapbOptions`, `RawFrameReceivedHandler`, `TcpBridgeTransport` and the four `Logging` files - are
+**already completely free of `Xmsg.Node`**. That is the whole of the genuine HDLC/LAPB/transport layer.
+
+### 14.2 Why 11.2 was wrong
+
+11.2 claimed the 9.2 refactor (splitting per-link state off `XmsgNode` onto `XmsgLink`) would remove
+this dependency. It will not, because the dependency was never on the link state:
+
+- `LiveNode`'s single use of `XmsgNode` is `HandleFrames` - the **dispatch entry point**. It is a pump:
+  read bytes, run LAPB, decode, hand the frame to the dispatcher, encode the replies, send. Depending
+  on the dispatcher is inherent to being a pump; no amount of splitting state off `XmsgNode` changes
+  that.
+- `LapbLayerAdapter`'s dependency is not on behaviour at all. It implements `ILink`, and `ILink`
+  happens to be **declared in the wrong package**.
+
+### 14.3 The actual fix is cheaper than the refactor
+
+Two moves, neither of which needs the 9.2 work:
+
+1. **Move `ILink` (and the `Xmsg.Node.Seam` interfaces the transport implements) into Core or Hdlc.**
+   An interface implemented by the transport layer and consumed by the node layer belongs below both.
+   `LapbLayerAdapter` then has no `Xmsg.Node` reference.
+2. **`LiveNode` is not HDLC - it is a host.** It composes an `IByteDuplex`, a `LapbLayer` and an
+   `XmsgNode` into a run loop. That is `Cosmos.Hosting`'s job, and `Cosmos.Hosting` may legitimately
+   depend on both the transport and the server.
+
+Result: `Cosmos.Hdlc` = 13 of the 14 files with **zero** dependency on the server half, satisfying
+8.1's "nothing of each other" cleanly.
+
+### 14.4 What this changes about the 9.2 refactor
+
+The 9.2 refactor is still worth doing - it is what makes multiple concurrent links possible (agenda
+item 1) and it removes a genuine duplication between `XmsgLink` and the `XmsgNode` scalars. But its
+value is **narrower than section 13.1 claims**: it fixes agenda item 1 and the duplication, and it does
+**not** fix agenda item 3. Item 3 is fixed by the two moves above, independently and much more cheaply.
+
+So the "one refactor fixes three problems" framing in 13.1 is overstated. Corrected count: one
+refactor fixes two problems, and a separate interface move fixes the third.
+
+### 14.5 Why this is recorded rather than quietly edited
+
+Sections 11.2 and 13.1 were committed and pushed before this audit ran. The claim is left in place
+above with this correction pointing at it, because a plan that silently rewrites its own conclusions is
+harder to trust than one that shows where it was wrong. This is the fourth published claim in this
+decode to be overturned by actually measuring it - see the methodological note in section 6i of
+`XMSG-LIST-FILES-ON-THE-WIRE-2026-07-29.md`.
