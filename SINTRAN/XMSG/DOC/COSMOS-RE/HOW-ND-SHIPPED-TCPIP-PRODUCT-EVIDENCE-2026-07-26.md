@@ -82,6 +82,24 @@ BACKUP-SYSTEM >= H (210337); D02 adds USER ENVIRONMENT >= D03 (210518). Cost sca
 **[OPEN]** Neither 211185 sheet names the on-card image, its banks, or a firmware version - unlike
 210580, whose Program Description lists `ENCOS-SER-B0..B3-B<rev>:BPUN` explicitly.
 
+**[I] But the cost table gives the image away by arithmetic** (added 2026-07-30). Read the two
+per-controller terms together:
+
+```
+Number of segments (ND-100)      3 + 4 * NbOfControllers
+Space required on segment files  120 + 256 * NbOfControllers pages
+```
+
+- **Four segments per controller** is the same shape as ENCOS's four BPUNs, `B0..B3`.
+- **256 pages x 1KW = 512 KB**, which is exactly the ND 110063's DRAM - the same half-megabyte the
+  211154 sheet names ("its own memory (1/2 Mbyte)").
+
+So the per-controller segment cost is, near-certainly, the **downloaded card image itself**, staged
+in four segments and loaded the same four-bank way as COSMOS - just a different image. This is
+inference from arithmetic, not a quotation; no sheet says it. Its practical value: recovered 211185
+media would drop straight into the existing four-bank download path rather than needing a new
+mechanism.
+
 ### 211327 - Basic Module, on a DIFFERENT board [V]
 
 > hardware prerequisites: "CPU type (any of the following): **5000**"; "Other hardware: |
@@ -245,6 +263,15 @@ What exists, all pointing the same way but none decisive:
 **[I] Conclusion: one protocol per controller. Dual stack needs two cards.** Well supported, not
 quoted.
 
+**UPDATE 2026-07-30 - two new pieces of evidence, still not decisive:**
+
+- **[V]** The recovered AIP layer decodes a DIX-attach response of `BAD - other user attached`
+  alongside `DIX attach status ok`. Attaching to media access in DIX mode can fail *because someone
+  else holds it*. That is an exclusivity mechanism, though the document does not define "user".
+- **[V]** The Tingo production system has COSMOS Basic installed but **no `encos-ser-*.bpun`
+  anywhere on the disk** - the COSMOS Ethernet Option was never installed. Its one Ethernet II card
+  carried the TCP/IP image and nothing else. A single real system running the predicted way.
+
 ---
 
 ## 7. The clients are pure XMSG clients - a practical shortcut
@@ -288,9 +315,16 @@ only under **NDIX** on ND-500.
 
 ## 9. Artifacts worth hunting, in priority order
 
+> **UPDATE 2026-07-30 - THE TOP ITEM IS FOUND.** A **211185 B05** installation, complete with the
+> four on-card BPUNs, both servers, both clients and the load mode files, was recovered from the
+> Tingo MFM hard-disk dump under user `TCP-IP`. All four BPUNs pass the documented BPUN checksum.
+> The per-controller arithmetic inferred in section 2 is confirmed by the artifact. See
+> [TCPIP-211185-B05-MEDIA-RECOVERED-2026-07-30.md](TCPIP-211185-B05-MEDIA-RECOVERED-2026-07-30.md).
+> Several `[OPEN]` items below are now answerable and are marked inline.
+
 | Want | Why |
 |---|---|
-| **211185 distribution media** (`211185C-XX-01D` / `211185D-XX-01D`, diskette 2 has the PIOC-MONITOR) | A working DIX-2.0 image for OUR card. Would show the mode word being set and the whole raw-frame path. **Highest value.** |
+| ~~**211185 distribution media**~~ **FOUND 2026-07-30** - not the diskettes, but an installed B05 on the Tingo disk | A working DIX-2.0 image for OUR card. It names a `set DIX mode` media-access command and prints `attached to MEDIA ACCESS in DIX mode`. The PIOC-MONITOR from diskette 2 is still missing. |
 | **ND-60.197 EN Ethernet Basic Software Programmer Guide** (product 210582A, Feb 85, ~100pp) | Catalogued in `ND-40.004.7 EN`; its entry says the reader "should be familiar with ... **DIX 2.0 and IEEE 802.3**". The programmer-level spec for exactly this seam. |
 | **ND-830107.01 / .03 EN OpenLAN Network Supervisor Guide** | Shipped free with 211185 and 211327; the authoritative controller-configuration guide. Likely settles coexistence. |
 | **ND-860284.02 EN** COSMOS TELNET/FTP User Guide 2nd ed. | Repo has only the 1st ed. |

@@ -206,12 +206,24 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// Both request and reply are bare: <c>92 0006 92 &lt;sequence&gt; F2 00FF</c>.
         /// </para>
         /// <para>
-        /// <b>Meaning INFERRED, not established.</b> It appears between the open and the closing
-        /// <see cref="OperationClose"/> exchange, and the terminal session that had the file open was
-        /// disconnected at that point, so it is consistent with closing the file. But the operator
-        /// also typed <c>CLOSE-FILE</c> in a later session, and only ONE conversation appears in the
-        /// recording, so which action produced this exchange is not proven. Do not treat it as a
-        /// close until a recording isolates it.
+        /// <b>It is NOT the file close.</b> Established 2026-07-30 by two single-action recordings,
+        /// each containing exactly one operator command:
+        /// </para>
+        ///  - <c>claude-OPENONLY-102-to-100-2026-07-30.pcapng</c> - OPEN-FILE alone, with the
+        ///    recording stopped before the session disconnected. It holds exactly two exchanges,
+        ///    <see cref="OperationOpenSpec"/> and <see cref="OperationOpenFile"/>, and nothing else.
+        ///  - <c>claude-CLOSEONLY-102-to-100-2026-07-30.pcapng</c> - CLOSE-FILE alone. It holds NO
+        ///    <c>*FA-SERVER</c> traffic whatsoever; the close is carried by the separate
+        ///    <c>*FA-USER</c> service instead.
+        /// <para>
+        /// So this exchange belongs to SESSION TEARDOWN - it appears when the terminal session that
+        /// held the file ends - and not to any file operation the operator types. What it actually
+        /// does is still UNKNOWN; only its trigger has been narrowed.
+        /// </para>
+        /// <para>
+        /// The same two recordings establish that the conversation is LONG-LIVED. An open leaves it
+        /// standing with no close exchange at all, so it spans the file's open lifetime rather than
+        /// one command. A client must not tear the conversation down after each request.
         /// </para>
         /// </remarks>
         public const ushort OperationSixUnknown = 0x0006;

@@ -1171,3 +1171,54 @@ the honest options are to track the channel per direction or to leave it undecla
 
 **Also worth stating plainly:** the Counter line of the model survives on all 970 frames, so
 only the channel derivation was ever class-dependent.
+
+---
+
+## 6k. Single-action recordings: which service does what (2026-07-30)
+
+Three operations had been seen but not attributed, because every earlier recording contained several
+operator commands and a disconnect. Two recordings were then made with exactly ONE command each, and
+the recording stopped BEFORE the session disconnected, which is what makes the attribution sound.
+
+### The split
+
+| operator command | service | exchanges on the wire |
+| --- | --- | --- |
+| `OPEN-FILE` | `*FA-SERVER` | `0002` open spec, then `0005` open file. Nothing else. |
+| `CLOSE-FILE` | **`*FA-USER`** | no `*FA-SERVER` traffic at all |
+| disconnect / logout | `*FA-SERVER` | `0006`, an `000C`, then `0003` |
+
+### What this settles
+
+**The conversation is long-lived.** `claude-OPENONLY-102-to-100-2026-07-30.pcapng` holds exactly two
+exchanges and no close of any kind. The conversation is left standing while the file is open, so it
+spans the file's lifetime rather than one command. A client that tears the conversation down after
+each request is wrong.
+
+**Operation `0x0006` is not the file close.** It had been recorded as "consistent with closing the
+file"; that was wrong. It only appears when the terminal session ends. What it does is still UNKNOWN,
+but its trigger is now narrowed to session teardown.
+
+**`*FA-USER` has a purpose.** Recorded on 2026-07-29 as a second service whose "purpose is not
+established". `claude-CLOSEONLY-102-to-100-2026-07-30.pcapng` contains only this, in a window whose
+sole operator command was `CLOSE-FILE`:
+
+```
+100->102  len=100   0144 0060 0104 0066 0587  "USER" then zero fill
+102->100  len=14    0100 000a fe08 "*FA-USER"
+```
+
+So closing a remote file is handled by `*FA-USER`, not by the file-access server. Both frames still
+need decoding.
+
+**Attribution caveat.** The close window also contained the login sequence. Login on its own has
+never produced file-access traffic in any earlier recording - the `*FA-SERVER` opener has always
+appeared only when a file command was typed - so `CLOSE-FILE` is the reasonable attribution. It is
+not proven to the standard of the open recording, where the command was the only thing in the window.
+
+### Method note
+
+The trick that made these work: give `dumpcap` a duration short enough that the recording ends while
+the terminal session is still connected. Stopping the recorder by hand always came after the
+disconnect, and the disconnect generates its own traffic, which is exactly what had been polluting
+the earlier attributions.

@@ -65,9 +65,136 @@ Be clear-eyed about the difficulty, because it is not where a modern programmer 
 - **There is no existing IP stack to borrow from.** COSMOS is not IP. XMSG is not IP. You are
   starting from Ethernet frames.
 - **[P] The mode word is global.** One card carries either DIX or 802.3, never both simultaneously.
-  ND's own answer to this was two cards - their TCP/IP product sheets say *"one protocol per
-  controller - dual stack needs two cards"* and *"you will have to assign an Internet address for
-  each controller"*. So COSMOS and TCP/IP coexisting means two controllers, not clever multiplexing.
+  ND's own answer to this was two cards. **Attribution matters here**: "one protocol per controller,
+  dual stack needs two cards" is an **[I] inference** drawn from many converging statements, NOT a
+  sentence any ND document contains. What IS **[V]** quoted is the per-controller cost line *"you
+  will have to assign an Internet address for each controller"* and the requirement wording *"One ND
+  110063 Ethernet II Controller **for TCP/IP**"*. So COSMOS and TCP/IP coexisting means two
+  controllers, not clever multiplexing - but nobody wrote that down in those words.
+
+## 1.4 What Norsk Data themselves shipped - and why it is the opposite of Part 5
+
+Before designing anything, know that ND solved this problem, on this exact board, and their
+architecture is the **reverse** of the one in Part 5. Full evidence in
+[HOW-ND-SHIPPED-TCPIP-PRODUCT-EVIDENCE-2026-07-26.md](HOW-ND-SHIPPED-TCPIP-PRODUCT-EVIDENCE-2026-07-26.md).
+
+**[V]** The product was **COSMOS TCP/IP Gateway for Ethernet, ND 211185**, versions C07 (1990) and
+D02 (1992). Its own product info says:
+
+> "Norsk Data has implemented the IP protocol of the COSMOS TCP/IP Gateway as a separate controller
+> with its own processor (Motorola 68000) and its own memory (1/2 Mbyte) ... **The controller is the
+> same as for COSMOS over Ethernet (ND-110063 Ethernet II Controller).**"
+
+**[V] The layer split: TCP on the ND-100, IP on the card.** Quoted from the TELNET/FTP Client User
+Guide ND-860284-1 section 1.3: *"The TCP software is implemented in ND-100 and the IP software is
+implemented in a separate controller."* The on-card IP layer is called **AIP** (ARPA Internet
+Protocol) and runs on PIOCOS over PIOC ports and XMSG - the same transport ENNS0 uses. Its error
+texts give the stack away: `AIPpiocError : PIOCOS error`, `AIPportError : fatal in IOC port message
+system`, `AIPxmsgError : XMSG error`, `AIPBADmaBuffer : BAD address of MA(Media Access) buffer`.
+
+**[V] The ND-100 never sees a raw MAC frame in any shipped ND product.** Every path crosses to the
+controller as XMSG / PIOCOS port messages. That is the single most important sentence in this
+document for anyone choosing an architecture.
+
+**[V] 211185 was DIX only - it did NOT support both framings.** Its documented protocol set:
+
+| Layer | Standard |
+|---|---|
+| Application | Telnet RFC 854; FTP RFC 959, RFC 765 |
+| Transport | TCP RFC 793 |
+| Network | IP RFC 791; ICMP RFC 792; ARP RFC 826; IP Reassembly RFC 815 |
+| **Data Link** | **Baseband Ethernet: DIX 2.0** |
+| Physical | Ethernet Accessories: IS 802.3 |
+
+*"ND's TCP/IP implementation for SINTRAN is based on the UNIX 4.2 BBN implementation."*
+
+802.3 + LLC (DSAP/SSAP 0xA8, control 0x03) is the COSMOS load, a different product. ND's own hardware
+manual ND-12.055.1 Appendix C prints them as two separate columns, "COSMOS stack" and "ARPA stack".
+**[OPEN]** the ARPA layer-2 cell reads "**LLC1 / DIX**", not plain DIX, so whether LLC/SNAP
+encapsulation was also offered is nowhere stated.
+
+**[P] This corroborates the firmware carve exactly.** The mode word at `0x1888A` is a single global
+word with no per-request override - which is precisely what a product line of "one protocol per
+controller, selected by which image you download" requires. `0x1888A = 0` is very likely the exact
+configuration the 211185 on-card image used. **[I]** - the documents state the DIX 2.0 result, never
+the mechanism.
+
+## 1.5 The 211185 on-card image: what is documented, and what is not
+
+**[V] The image itself is NOT documented anywhere.** Neither 211185 product sheet names the on-card
+image, its banks, or a firmware version - unlike the COSMOS Ethernet Option 210580, whose Program
+Description lists `ENCOS-SER-B0..B3-B01:BPUN` explicitly. The words "firmware", "PROM" and "BPUN"
+appear **nowhere** in the 211185, 211327 or 211154 sheets. **[V] No distribution media for any ND
+TCP/IP product exists in this repository** - paper only, verified by sweeps for `*211185*`,
+`*211327*`, `*211154*`, `*.IMAG`, `*BPUN*`, `*AIP-*`.
+
+**[V] What IS documented is the cost, and the numbers are informative:**
+
+```
+Number of segments (ND-100)      3 + 4 * NbOfControllers
+Space required on segment files  120 + 256 * NbOfControllers pages
+```
+
+**[I] Read that arithmetic.** Four segments per controller is the same shape as ENCOS's four BPUNs
+(B0-B3). And 256 pages x 1KW = **512 KB, exactly the card's DRAM**. So the per-controller segment
+cost almost certainly *is* the downloaded card image, loaded the same four-bank way as COSMOS, just a
+different image. Inference from arithmetic, not a quote - but it is tight, and it means a recovered
+211185 media set would drop straight into the existing four-bank load path.
+
+The load step is a mode file: `@MODE (TCP-IP)TCP-IP-LO:MODE,,,` in C07, `TCP-IP-LOAD:MODE` in D02.
+Diskette 2 carries a **PIOC-MONITOR**, "meant for use by ND service personnel only".
+
+**[V] Protocol selection is by which image you download** - proven for the Ethernet III board, where
+PROMAN downloads one of `PMA-ETH3-TCPI:IMAG` / `PMA-ETH3-COSM:IMAG` / `PMA-ETH3-SIBR:IMAG`,
+described as *"Necessary when more than one type of product runs on processors with the same module
+number."* **[I]** for Ethernet II - no document names an Ethernet II TCP/IP image file.
+
+**Practical consequence.** Recovering `211185C-XX-01D` or `211185D-XX-01D` would be worth more than
+any amount of further reverse engineering: it is a working DIX-2.0 image for this exact card, and it
+would show the mode word being set and the entire host-to-card protocol that Part 4.0 lists as the
+biggest unknown here.
+
+> **UPDATE 2026-07-30 - RECOVERED.** An installed **211185 B05** (July 5, 1988) was found on the
+> Tingo MFM hard-disk dump under user `TCP-IP`: the four on-card BPUNs, both servers, both clients,
+> and the load mode files. All four BPUNs pass the documented BPUN checksum. Details in
+> [TCPIP-211185-B05-MEDIA-RECOVERED-2026-07-30.md](TCPIP-211185-B05-MEDIA-RECOVERED-2026-07-30.md).
+> The findings that matter for this guide:
+>
+> - **[V]** The cost-table arithmetic above is confirmed: four banks x 128 KB = the card's 512 KB.
+>   The mode file loads them as four SINTRAN segments with `READ-BINARY` + `SE-LO-AD,,177777`,
+>   exactly as COSMOS loads ENCOS.
+> - **[V]** Bank 0 is **PIOCOS with the same module builds as ENCOS** - same OS, different payload,
+>   now proven rather than inferred.
+> - **[V]** The IP layer issues a media-access command literally named **`set DIX mode`** and reports
+>   `attached to MEDIA ACCESS in DIX mode`. The framing question is settled from ND's own product.
+> - **[V]** DIX attach can fail with `BAD - other user attached` - an exclusivity mechanism, relevant
+>   to the coexistence question in Part 3.4.
+> - **[V]** 437 named symbols with addresses were recovered, including a second build of the
+>   media-access routines we carved from ENCOS (`RCVCOMPLET`, `XMTRINGAPP`, `INITLANCE`, `STARTMA`).
+
+## 1.6 Do not confuse 211185 with the Ethernet III product
+
+**[V]** ND had **two** TCP/IP products on **two** different boards, and only one of them is relevant:
+
+| Product | Runs on | Board | CPU |
+|---|---|---|---|
+| **211185** COSMOS TCP/IP Gateway | **Ethernet II** - our board | ND 110063 | 100 CX / 110 CX / 120 CX / 500 / 5000 |
+| **211327** TCP/IP Basic Module/III | Ethernet III, MF-bus, Domino | ND 110513 | **ND-5000 only** |
+
+Neither 211327 sheet mentions Ethernet II or PCB 3094 at all. **[V]** And ND preferred the other
+board: *"In order to run the X Window System with maximum performance it is necessary to have a
+TCP/IP Basic Module/III running in an Ethernet III controller. Although it is possible to use an
+Ethernet II controller with the COSMOS TCP/IP Gateway, **this is not recommended**."*
+
+**[V] One hard ND limitation worth knowing** (ND-860284-1 p.14): *"an ND host cannot be an IP
+(Internet) gateway, a feature that is standard in the BSD 4.2 version."* No IP routing. Real BSD
+sockets and routing existed only under NDIX on the ND-500.
+
+**[V] A shortcut, if the goal is to satisfy ND's own clients rather than build a stack.** The shipped
+FTP/Telnet clients are pure XMSG clients requiring 0 segments and 0 RT descriptions; they locate the
+stack by XMSG **port name** - `*TCP.` for a local stack, `*TCPGATE` for a remote one. So anything
+that registers and serves those names satisfies them, without a faithful DIX MAC path at all. A far
+smaller target than Parts 4 through 8.
 
 ---
 
@@ -243,6 +370,43 @@ the request up and routes it to the data queue. In our tests we reached the tran
 `POSI_SEND` directly from the emulator, which is a debugging shortcut, not something a real ND-100
 program can do. Anyone building this must decode that host protocol first. It is the single largest
 piece of missing work in this document.
+
+> **UPDATE 2026-07-30 - DECODED.** The recovered 211185 B05 image (section 1.5) contains the
+> **consumer** side of this protocol, and disassembly has now settled the container and the command
+> set. The seam is **PIOCOS ports carrying request blocks (RBs)**, not a raw shared-memory node poked
+> by the ND-100.
+>
+> **[V] Port object**: `+0x04` magic `0xAAAA` (checked on every operation), `+0x06` test-and-set
+> spinlock, `+0x0A` type (2 = ring), `+0x12` write index, `+0x14` read index, `+0x16` a 64-longword
+> slot ring indexed `& 0x3F`, with **bit 31 of each slot as the occupied flag**.
+>
+> **[V] Message header**: `+0x00` free-list link, `+0x08` reply-to port, `+0x0C` home port, `+0x14`
+> capacity, `+0x18` length. The RB hangs off the message at **`+0x10`**.
+>
+> **[V] RB header**: `+0x00` type in bits 15..10, `+0x02` signed status, `+0x08` argument area. The
+> reply is written back into the **same RB in place**.
+>
+> **[V] Request types are EVEN; the response type is request + 1.** Proven mechanically across all
+> 54 reply stamps in the image - every handler's stamp equals its dispatch-table index plus one,
+> which is also why all 13 odd table slots point at a single reject stub.
+>
+> **[V] `PORTSEND` destination selector**: `0` = the message's home port, `-1` = its reply port,
+> otherwise an explicit port address. That is the request/response idiom.
+>
+> **[V] Errors** `0x49xx`: `4953` bad port, `4956` no buffer, `495C` ring full, `495D` length exceeds
+> capacity.
+>
+> **[V] The media-access dispatch table is at `0x24A86`** with its bound at `0x24A84` (`0x1A`), and
+> implements **11 commands, not the 8 named in the strings** - operations 22, 24 and 26 exist beyond
+> the eight AIP names.
+>
+> **[V] `set DIX mode` is request type 12** (`RB[0] = 0x30`), handler at `0x7096`. Identified
+> independently of string ordering: the handler tests the vendor-named `ACTIVEDIXU` and `ACTIVEMAUS`.
+> Its argument is **6 bytes at `RB+0x08`**; `AIPINIT` fills them with `FF FF FF FF FF FF` and the
+> handler validates **only bit 0 of byte 0** as the enable flag. On success it calls `STOPMA` then
+> `STARTMA` - the "MEDIA-ACCESS RESTARTING" path. **[U]** what the other five bytes mean.
+>
+> Full detail in [TCPIP-B05-FIRMWARE-RE-2026-07-30.md](TCPIP-B05-FIRMWARE-RE-2026-07-30.md).
 
 **[V-doc] Also know what Norsk Data themselves did**, because it is the opposite of the architecture
 in Part 5: ND's TCP/IP product (211185, "AIP") ran the **IP layer on the card**, on PIOCOS, and the
@@ -714,8 +878,10 @@ Read them.
 
 Stated plainly so nobody builds on sand:
 
-- **[U]** How to attach a TCP stream to a SINTRAN terminal session (needed for telnetd). Look at TAD
-  and MON 70B.
+- ~~**[U]** How to attach a TCP stream to a SINTRAN terminal session~~ **ANSWERED 2026-07-30: TAD.**
+  **[V]** ND's own FTP starter RT program carries the comment *"Mode file to load FTPRT who allocates
+  a TAD and starts the FTP server"* (`tcp-ip-lo-1-b05.mode`). ND attached network sessions to SINTRAN
+  terminals through TAD. The exact allocation sequence is still **[U]** - read `ftprt-b05.prog`.
 - **[U]** The SINTRAN idiom for waiting on terminal input and network input simultaneously.
 - **[U]** Which SINTRAN timer facility suits TCP retransmission timers.
 - **[U]** Whether PLANC record declarations produce the exact byte offsets the firmware requires -
@@ -726,11 +892,21 @@ Stated plainly so nobody builds on sand:
   coexist on one card despite the global framing mode word. Untested, and would be valuable.
 - **[U]** Where the completion status lands in a transmit node. `node+0x26` is **not** it - that
   offset holds the destination MAC bytes.
+- **[U] The host-to-card frame protocol** - which structure the ND-100 fills and which flag it
+  strobes so the firmware picks the request up. See Part 4.0. This is the largest gap in the
+  document, and it may not have a raw-frame answer at all: **[V]** no shipped ND product ever passed
+  a raw MAC frame to the ND-100 (section 1.4).
+- **[U]** Whether an Ethernet II TCP/IP on-card image file even has a documented name. **[V]** No ND
+  document present names one, and no media survives here (section 1.5).
+- **[U]** Whether 211185's ARPA data link offered LLC/SNAP as well as plain DIX. ND-12.055.1's ARPA
+  layer-2 cell reads "LLC1 / DIX"; the 211185 sheet says DIX 2.0 (section 1.4).
 
 ---
 
 ## Related documents
 
+- `HOW-ND-SHIPPED-TCPIP-PRODUCT-EVIDENCE-2026-07-26.md` - what ND's own sheets and manuals say about
+  211185 / 211327 / 211154, with every quote sourced. Read alongside Parts 1.4 to 1.6.
 - `TCPIP-DRIVER-ON-ND-ETHERNET-II.md` - the full transmit/receive decode with measured values
 - `MAC-ADDRESS-ASSIGNMENT-MULTI-CARD.md` - address format and the multi-card question
 - `Reference-Manuals/ND-60.197.01 EN Ethernet Basic Software Programmer Guide.md`
