@@ -11,6 +11,10 @@ description: >-
   call; contract is RE-derived from the labelled handler body.
 notes:
 - >-
+    Version history: L-version added function 15B (T-register = 15B): get ADP
+    segment number
+    (ND-860230-6-EN Sintran III - Release Information - L-Version.md:1293-1298).
+- >-
     Internal-use monitor call (manual sections 2.14 / 2.17); not intended for user
     programs.
 - >-

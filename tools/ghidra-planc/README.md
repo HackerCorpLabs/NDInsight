@@ -77,7 +77,61 @@ multi-value returns work.
 |---|---|
 | `PlancFixFlow.java` | **Fixes problem 1.** Ghidra script. Flow only - it renames nothing and sets no types. |
 | `PlancUndoFixFlow.java` | Reverts `PlancFixFlow`. |
+| `PlancApplyNdSymbols.java` | Applies ND's **embedded vendor symbol table** - creates and names functions from it. Run AFTER `PlancFixFlow`. |
 | `planc-68000.cspec-snippet.xml` | **Addresses problem 2.** A `__planc` prototype model to paste into the 68000 compiler spec. |
+
+### `PlancApplyNdSymbols.java` and the stale-body trap
+
+ND's firmware images carry a vendor symbol table of 32-byte records near the top of the image,
+giving ND's own name and address for every CODE and DRAM symbol. Mining it is the highest-value
+first move on any of these binaries.
+
+```
++0x00  4  self/next pointer, increments by 0x20
++0x04  1  name length (1..12)
++0x06  1  0x02 = defined, 0xFF = undefined / marker
++0x07  1  segment: 0x10 = CODE, 0x16 = DRAM, 0x11 = other
++0x08  4  address, big-endian
++0x10 12  name (10 characters in practice)
+```
+
+In `tcp-ser-all-banks-b05-68k.bin` the table is at `0x7C3A4-0x7FBA0` (448 records), then an 8-byte
+misalignment, then `0x7FBA8-0x7FD88` (15 more) - **463 records**, 317 CODE and 134 DRAM. Note this
+layout sits **4 bytes later** than the one recorded for the ENCOS table; if a table will not parse,
+shift the record base by -4.
+
+**The trap this script exists to avoid:** Ghidra does **not** recompute an existing function's body
+when control flow changes underneath it, and `createFunction()` on an existing entry point returns
+"already exists" without recomputing. So a function created *before* `PlancFixFlow` keeps its old -
+often 1-byte - body, and naming it merely pins the damage. Applying ~20 names this way is how the
+problem was found.
+
+The script therefore does, per symbol: **disassemble the entry point -> remove any existing function
+there -> create it afresh -> name it.** It uses `setName` rather than `createLabel`, so re-runs do
+not stack duplicate labels.
+
+**Run `PlancFixFlow` first.** Running this against unrepaired flow produces correct-looking functions
+with truncated bodies.
+
+### Running headless
+
+Both scripts take the apply/dry-run decision from a script argument when there is no GUI, so the
+same file serves both modes - there is no separate `*Headless.java` copy to keep in sync.
+
+```
+analyzeHeadless.bat <projectDir> <projectName> -process <program> ^
+  -scriptPath C:\Users\ronny\ghidra_scripts ^
+  -postScript PlancFixFlow.java apply -noanalysis
+```
+
+Omit the `apply` argument for a dry run - that is the safe default, so a mistyped command cannot
+modify the program. Ghidra must be **fully closed** or the project lock rejects the run.
+
+**If the scripts do not appear in the GUI Script Manager**, do not debug the Java - check that
+`$USER_HOME/ghidra_scripts` is still registered under **Bundle Manager**. Deleting the
+`AppData\Roaming\ghidra\<version>\osgi` folder de-registers every script directory along with the
+compiled-bundle cache. Delete only `osgi\felixcache` and `osgi\compiled-bundles` if a cache ever
+needs clearing.
 
 ## Installing and running the script
 
@@ -155,7 +209,32 @@ Even after both fixes, two idioms remain. They are not errors - learn to read th
 | `@A7+0` | `PREV` | previous A6 |
 | `@A7+4` | `RETLINK` | return address; normal return goes to +2 |
 
-**Caveat, unresolved:** the two ND manuals disagree about slots `0B` and `4B`. `ND-820026.1`
+### RESOLVED 2026-07-30: the first parameter is at `0x12` OR `0x14`, per routine
+
+The table above says the first parameter sits at `0x14`. `PlancFixFlow`'s own console note says
+`0x12`. **Both are correct** - the offset is decided by the width of `ERRCODE` at `+0x10`, and a
+single image can contain both conventions.
+
+Measured in `tcp-ser-all-banks-b05-68k.bin` (211185 TCP/IP B05), zero overlap between the two:
+
+| ERRCODE store | Width | Sites | Address range | First parameter |
+|---|---|---|---|---|
+| `move.w D0w,(0x10,A6)` | 2 bytes | 4 | `0x023E0-0x03516` (PIOC-OS kernel) | **`0x12`** |
+| `move.l D0,(0x10,A6)` | 4 bytes | 49 | `0x07E9E-0x2082E` (LANCE, AIP, TCP, SKP, XMSG, ports) | **`0x14`** |
+
+Confirmed from both sides: callee `0x28E6` does `lea (0x12,A6),A0` and its callers stage arguments
+at `0x12/0x16/0x1A/0x1E` (`0x27E8`, `0x285E`, `0x2ED2`, `0x31E8`); `PORTSEND` reads `0x14/0x18/
+0x1C/0x20` and its handler stores `ERRCODE` as a longword.
+
+Cause: the documented **version F word-size change** (2 -> 4 bytes). This image is a pre-F PIOC-OS
+linked against a version-F-or-later TCP program - the same reason the PIOC-OS region is byte-
+identical to ENCOS.
+
+**Consequence for `PlancFrameTypes`**: it must decide the `ERRCODE` width **per routine**, by looking
+at the store into `(0x10,A6)`, not apply one offset globally. A global choice is wrong for roughly
+one region or the other in any mixed image.
+
+**Caveat, still unresolved:** the two ND manuals disagree about slots `0B` and `4B`. `ND-820026.1`
 (valid from compiler version H) says `STP` then `Unused`; `ND-60.117.5` (version G era) says
 `PREVB` then `STP`. Slots `10B`/`14B`/`20B`/`24B` agree in both. The ENCOS binary matches the
 ND-820026 reading. ND-820026.1:5792 documents a deliberate calling-sequence change between

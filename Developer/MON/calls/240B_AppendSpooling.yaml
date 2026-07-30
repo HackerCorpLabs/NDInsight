@@ -13,6 +13,14 @@ description: 'Prints a file. The printer has a queue of files waiting to be outp
   standard syntax for remote file specification is as follows:
 
   `system(user(password:project)).(directory:user)file:type;version`'
+notes:
+- >-
+    Version history: K-version added remote-file support - both the file and the
+    printer may be on remote systems, using the full remote file-specification
+    syntax (ND-60230-5-EN SINTRAN III - Release Information - K-version.md:2004).
+    M-version decreased the maximum length of parameter 4 (the optional message /
+    text) from 128 characters to 80 characters
+    (ND-860230-7A-EN SINTRAN III - Release Information - M-Version.md:1089, 2455).
 see_also:
 - CloseSpoolingFile
 - '@APPEND-SPOOLING-FILE'

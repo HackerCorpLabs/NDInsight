@@ -132,11 +132,25 @@ public class PlancFixFlow extends GhidraScript {
         listing = currentProgram.getListing();
         mem = currentProgram.getMemory();
 
-        DRY_RUN = !askYesNo("PLANC-MC skip-return flow fix",
-                "APPLY changes to " + currentProgram.getName() + " ?\n\n"
-                        + "Yes = apply the fix (reversible: PlancUndoFixFlow, or Ctrl+Z)\n"
-                        + "No  = DRY RUN, report only, change nothing\n\n"
-                        + "Recommended: run No first and read the report.");
+        // Headless has no dialog: askYesNo() throws, which is why a duplicate
+        // PlancFixFlowHeadless.java used to be hand-copied for headless runs. Instead take the
+        // answer from the script argument when there is no GUI, so ONE script serves both modes.
+        //   -postScript PlancFixFlow.java apply   -> apply the fix
+        //   -postScript PlancFixFlow.java         -> DRY RUN (safe default)
+        if (isRunningHeadless()) {
+            String[] scriptArgs = getScriptArgs();
+            DRY_RUN = !(scriptArgs.length > 0 && "apply".equalsIgnoreCase(scriptArgs[0]));
+            println("Headless run: argument = "
+                    + (scriptArgs.length > 0 ? scriptArgs[0] : "<none>")
+                    + " -> " + (DRY_RUN ? "DRY RUN" : "APPLY"));
+        }
+        else {
+            DRY_RUN = !askYesNo("PLANC-MC skip-return flow fix",
+                    "APPLY changes to " + currentProgram.getName() + " ?\n\n"
+                            + "Yes = apply the fix (reversible: PlancUndoFixFlow, or Ctrl+Z)\n"
+                            + "No  = DRY RUN, report only, change nothing\n\n"
+                            + "Recommended: run No first and read the report.");
+        }
 
         println("=== PLANC-MC skip-return flow fix ===");
         println("Program: " + currentProgram.getName());

@@ -10,6 +10,17 @@ description: |-
   This I/O multifunction monitor call is used to change the attributes of terminal and terminal access device (TAD) input/output. It is also used to configure NET/One interfaces and SCSI disks.
 
   This monitor call needs a varying number of input and output parameters depending upon function. All parameters are therefore placed in an array.
+notes:
+- >-
+    Version history: the J-version functions/parameters of MON 336 (IOMTY) were
+    completely revised in the K-version - the call now also configures NET/One
+    interfaces and SCSI disks (SCSI connect/report/remove use functions 300B-302B),
+    and all parameters are passed in an array
+    (ND-60230-5-EN SINTRAN III - Release Information - K-version.md:2261-2265, 13194).
+    M-version added function 26B: get protocol ID and MTAD ID from the MTAD data
+    field (ND-860230-7A-EN SINTRAN III - Release Information - M-Version.md:1190-1199).
+    N-version added function 27B: get IP address and TAD information
+    (ND-860230-8-EN SINTRAN III - Release Information - N-version.md:964-988).
 see_also:
 - SetBreak
 - SetEcho

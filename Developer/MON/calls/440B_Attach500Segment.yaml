@@ -8,6 +8,12 @@ short_names:
 - AT5SGM
 description: Maps a logical ND-500 data segment onto shared ND-100/ND-500(0) physical memory (multiport memory).
 notes:
+- >-
+    Version history: the L-version documents MON 440 as mapping a logical ND-500
+    data segment onto shared ND-100/ND-500 physical (multi-port) memory, and now
+    allows the target physical memory area to be defined either via the "Not
+    initialize page" table (*CHANGE-TABLE) OR to be in a LAMU area
+    (ND-860230-6-EN Sintran III - Release Information - L-Version.md:2774-2776).
 - The specified physical memory area must be defined in the "Not initialize page" table by use of the *CHANGE-TABLE command in the SINTRAN Service Program (follow this command by a warm start to put the change into effect). Note that you should not use the first pages of the multiport memory (starting at "ND-500 page 0") for this.
 see_also: []
 parameters:

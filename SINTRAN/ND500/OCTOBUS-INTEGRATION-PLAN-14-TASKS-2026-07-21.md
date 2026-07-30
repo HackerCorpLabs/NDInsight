@@ -207,6 +207,22 @@ message builders (MSWIN swap-in @octal 140771=0xC1F9, body-fill @octal 162155=0x
   **NEXT: regenerate a CORRECT `030-S3SM5` disassembly (diagnose the .dis tooling bug - byte-order/
   alignment), then decode MON 117B + the IOX readiness register + why the emulator never satisfies it.**
   METHOD LESSON: compare the executed/`.bin` WORD, not just the address, before trusting a `.dis`.
+- **RE-ANALYSIS ON THE CORRECTED .dis 2026-07-21f** (`.dis` fixed+committed `3dd5366`; re-read
+  155000B-155377B, all words `.bin`-cross-checked): the loop is a **FILE-TO-DEVICE IMAGE LOADER**, not a
+  poll (supersedes the 21e "device-poll" label - right code, wrong shape). Byte-verified [V]: `MON 50`
+  OPEN @155012 -> `MON 62` RMAX @155020 (file size -> block count `[B-172]`) -> `MON 76` SETBS @155046 ->
+  setup subr @155233 (`MON 154` ASSIG + `MON 255` PIOCM) -> double loop: outer over `[B-172]` blocks
+  (`MON 117` RFILE @155120/155216), inner over `[B-170]` words streaming each via `IOXT` to device reg
+  `[[B-56]-3]+0xB`; `MON 74` SETBT @155370 repositions for the next segment. **GATE @155327-155331: after
+  a segment it reads device STATUS at IOX reg base+2 and REQUIRES bit 100B (0x40)**, else -> err path
+  155420. `[B-172]` is a BLOCK COUNT (the `[B-7A]` ctr the runtime showed) so exhaustion = COMPLETION, not
+  timeout. This VINDICATES "> Loading Swapper" and kills BOTH cell-27B scan and bare-poll. Task-8 gate now
+  crisp; 3 items still [OPEN], need a live trace: (1) which file `MON 50` @155012 opens (capture filespec);
+  (2) which device `[B-56]`/`[[B-56]-3]` is - 3022/octobus or a PIOC/CAMAC device (ASSIG+PIOCM hint CAMAC,
+  do NOT assume 3022); (3) does it COMPLETE (reach 155324 -> gate on bit 0x40) or SPIN in the inner IOXT
+  loop. Leading hyp [I, UNPROVEN]: emulator iface never raises status bit 0x40 at IOX base+2. Live exp:
+  `ArmNd100Trace("place-domain",0xD000,0xEA00)` already covers 0xDA00-0xDAFF; add OPEN-filespec dump +
+  `[B-56]`/`[[B-56]-3]` read before the first `IOXT`. Full detail: `CORRECTION-HOT-LOOP-...` 21f section.
 
 ## Dependencies / ordering
 

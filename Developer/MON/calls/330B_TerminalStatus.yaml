@@ -11,6 +11,11 @@ description: |-
 
   - You may use the monitor call for batch jobs.
   - This call can only be used from background programs, not RT programs.
+notes:
+- >-
+    Version history: in the M-version the CPU-time returned by MON 330 (TERST) is
+    now the sum of the ND-100 CPU time and the ND-500/5000 CPU time
+    (ND-860230-7A-EN SINTRAN III - Release Information - M-Version.md:1186-1188).
 see_also:
 - '@TERMINAL-STATUS'
 parameters:

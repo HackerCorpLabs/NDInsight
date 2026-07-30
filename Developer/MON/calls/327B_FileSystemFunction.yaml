@@ -9,7 +9,32 @@ short_names:
 description: Multifunction monitor call to make sure that an uncontrolled system stop does not leave the file system inconsistent. The file index block of an open file is written back to the disk.
 notes:
 - This monitor call is particularly useful for SIBAS and ISAM applications.
-- Only function 1 is available on ND-100.
+- >-
+    Introduced in the J-version and EXTENDED in each subsequent version. Function
+    is selected in the T-register (ND-100) or as the first CALLG argument (ND-500).
+    Complete function table (octal function codes), from the SINTRAN release docs
+    (ndfs-extensions.md section 3, cross-referenced to J/K/L/M release information):
+- '  1  WRBIX  - write back index blocks of an open file (J-version).'
+- '  2  return block size of an open file, in words (K-version).'
+- '  3  get full file name of an open file (K-version).'
+- >-
+    '  4  get file/device info - returns TYPRING, status, and the SINTRAN III
+    open-file/device number. IDENTICAL to MON 45 GTYPR (K-version). See
+    [[45B]] GetTypeRing.'
+- '  5  internal use by ND only (L-version).'
+- '  6  get next open file on a directory - iterate open files (L-version).'
+- '  7  set a directory available for general use (L-version).'
+- '  10 set a directory unavailable for general use (L-version).'
+- '  11 get next file matching a string - name pattern matching (L-version).'
+- '  12 get EXSECURITY value - the SINTRAN III EXSECURITY system variable (L-version).'
+- '  13 reset the file-modified bit in the object entry (M-version).'
+- >-
+    Status word returned by function 4: bit 0 = file open for write; bit 1 =
+    spooling file or terminal/TAD.
+- >-
+    Earlier note "Only function 1 is available on ND-100" reflects the J-version;
+    functions 2-13 were added J->M and functions 2/3/4 are usable from ND-500
+    programs (the FraTor ND-500 tools call function 3 via gate 0xF80000D7).
 see_also:
 - OpenFile
 parameters:

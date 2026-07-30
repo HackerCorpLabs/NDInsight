@@ -17,7 +17,7 @@ Three levels, in order. Each is a real milestone; do not skip ahead.
 | Level | Meaning | Test that proves it |
 |---|---|---|
 | **L1 Administrative** | every monitor command the harness drives completes | DONE - full ladder green |
-| **L2 Clean lifecycle** | a domain can be placed, run, and terminated, and the machine shuts down without `ERRFATAL` or `ESPTIMOUT` | the ladder plus PLACE/RUN/NLL, and no 244B during the run |
+| **L2 Clean lifecycle** | a domain can be placed, run, and terminated, and the machine shuts down without `ERRFATAL` or `ESPTIMOUT` | the ladder plus PLACE/RUN/NLL. NOTE: "no 244B during the run" was removed as a criterion on 2026-07-30 - a 244B is sent in every run including a clean one, so its absence was never a valid success signal. What matters is that `accpIdle` ends `False`. |
 | **L3 Multi-CPU / MFbus** | more than one ND-5000, and MFbus memory controllers answering | out of reach today, see the backlog |
 
 **L1 is reached.** `memory-configuration, status, start-swapper, who-is-on,

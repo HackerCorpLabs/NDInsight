@@ -17,6 +17,78 @@ or NPL routine is analysed. **All output goes under `E:\Dev\Ronny\NDInsight\` �
 
 ---
 
+## 00. 2026-07-25 — SWAPPER REACHES ITS MESSAGE-WAIT LOOP; the blocker moves from microcode to transport
+
+**This is the newest status entry. Read it before planning any swapper work.**
+
+Document of record for the detail: [`OCTOBUS-SWAPPER-HANDOFF-2026-07-25.md`](OCTOBUS-SWAPPER-HANDOFF-2026-07-25.md).
+
+**Headline `[V]` (observed in the emulator, reproducible via `SwapperStartDiagnosticTests`):** the ND-500
+swapper now executes **420 macro instructions with NO throw at all**. The diagnostic run ends on its
+4M-tick budget, not on a fault. It is sitting in its **main message-wait loop** at `P=0x08000677`
+(octal `1000003167`):
+
+```
+1000003167: call $...377,$2,$1000225040,$1000437234   ; MON 377B, 2-argument form
+1000003207: ifkret
+1000003210: go $...757                                ; backward branch - this is the loop
+```
+
+**The blocker is no longer the microcode — it is the message.** Any plan that still says "the swapper
+crashes / the microword lane is incomplete" is stale as of this date.
+
+**Why it stops `[V]`, measured with a mailbox guard added to the diagnostic — NOT what was first
+written here.** The swapper makes **exactly two** MON 377B calls (4-arg at `0x0800823F`, 2-arg at
+`0x08000677`) and is then never dispatched again: the microcode IDLE poll walks `0o24670..0o24723`
+and repeats, never reaching the MICFU-24 slot `0o15250` or `MSG_CONMC` `0o15676`. Cause: at macro
+`P=0x08009053` the swapper executes `w4 sfill b.34` (`swapper-k01-pseg.asm:11718`), a bulk fill of
+`0x80000000` whose destination is computed **from the fabricated probe message**. It fills over the
+harness mailbox, so the re-posted MICFU 24 lands in a wrecked queue. Every message field reads
+`0x8000` at the second restart.
+
+**RETRACTED same day:** "it spins because the announce stub returns the same message forever". The
+stub was never the problem. Two shortcuts that followed from that wrong reading are also dead, both
+tested: a smarter stub does not help (the swapper acts on message CONTENT), and relocating the
+harness mailbox does not help (moving `ExtBlock` `0x1000 -> 0x4000` only moved the clobber to
+`HeaderBase`; reverted).
+
+**Eight microword gaps closed to get here** (all in the `CpuND5000` microword lane, which runs the real
+MICRO-5800-B30 control store one 128-bit word per tick): `D,IDU,CSIT` (write-only 1-bit SIT-arm latch,
+ND-05.020.01 chapter 7 section 7.3.3 Table 15 — discarding it is FAITHFUL, the CPU models no trap
+machinery); `ST,ACCA` (sticky O, Z/S/C replaced); ADD3/SUB3 dispatch entries; local indirect
+post-indexed `0xE4-0xEF`; `ORD,OP1` (latch operand index 0 only); `G,DIR1/2/4` displacement width;
+`AB,EA1DIR` (= "use EA1", unscaled — an earlier reading of this as "EA1 + direct operand" was WRONG);
+and `ABR,(none)` (**inverted sense** — the branch is taken when the condition is FALSE).
+
+**MULAD carry adjudicated across all three lanes `[V, MANUAL + MICROCODE]`.** The microword lane and the
+two C-family lanes disagreed. The ND-500 Reference Manual settles it by comparison: 11.1 ADD lists
+"carry from most significant bit -> C (integer)"; **11.7 MUL does NOT list C at all** (Z, S, O, FU, FO
+only); 11.19 MULAD lists it with ADD's exact wording. MULAD is MUL followed by ADD, so **C is the ADD's
+carry-out, not the multiply's excess** — the multiply's excess is already reported through O, so the old
+form double-counted it. Microcode `MULADW` (`002627..002631`) agrees: product to the 32-bit scratch SC7,
+`ST,SAVM`, then `ALU,A+B A,SC7 B,SC5` with `ST,ACCA`. **The microword lane was right; the functional
+`CpuND500` and the `nd500x` C port were both wrong** and have been corrected to match.
+
+**METHOD LESSON (cost most of a session):** the differential-sweep diff format is
+`{name}={expect}!={got}` = **`golden!=microword`**, i.e. GOLDEN FIRST. It was read backwards for an
+entire session, which inverted the characterisation of every divergence. Check the polarity of any
+diff format before reasoning from it.
+
+`[OPEN]` items, in dependency order:
+1. **Give the swapper a structurally valid SWMSG** - carve the field layout (the `sfill` descriptor in
+   `b.34` is a precise lever: work backwards from what a sane fill destination must be), and/or wire
+   `IMonitorCallSink` to the real octobus transport (`OctobusND5000Station.cs`). Note the transport
+   route is NOT small: per `TRACKB-SHARED-ND500-CPU-INTERFACE-DESIGN-2026-07-21.md` the microword CPU
+   must not use `Nd500CpuProcessBridge`/the C# servicer, so it needs a `CpuND5000Adapter` behind a
+   separate `AttachMicrocodeCpu`, and `Emulated.HW` does not reference the ND5000 package today.
+2. Regenerate `ARITHMETIC_mulad.json`. Its 14 remaining divergences are **all** the C flag and are
+   **stale goldens generated from the old behaviour, not emulator bugs**. Deliberately not done: the
+   generator rewrites all 188 corpus files at once, which would freeze other lanes' in-flight CPU work
+   into the oracle.
+3. Sub-word WIDTH residuals: `putbf` 6 vectors (register destinations), `loopd` 4 vectors.
+
+---
+
 ## 0a. 2026-07-20 — FOUR RETRACTIONS, one carve answer, and the open-questions register
 
 **Read this before citing any pre-2026-07-20 conclusion about the swapper or the octobus mailbox.**
@@ -164,6 +236,18 @@ New documents of record:
   poll times out. `[OPEN]`: regenerate a correct `030-S3SM5` disasm (diagnose the .dis byte-order/
   alignment bug), then decode MON 117B + the IOX readiness register + the emulator fix. METHOD LESSON:
   compare the `.bin`/executed WORD, not just the address, before trusting a `.dis`.
+  **UPDATE 2026-07-21f (.dis fixed+committed `3dd5366`; re-analysed on the corrected `.dis`, `.bin`-cross-
+  checked):** the loop is a **FILE-TO-DEVICE IMAGE LOADER**, not a poll (supersedes "device-poll" - right
+  code, wrong shape). `[V]` `MON 50` OPEN @155012 -> `MON 62` RMAX (file size -> block count `[B-172]`) ->
+  `MON 76` SETBS -> setup subr @155233 (`MON 154` ASSIG + `MON 255` PIOCM) -> double loop: outer over
+  `[B-172]` blocks (`MON 117` RFILE), inner over `[B-170]` words streaming each via `IOXT` to device reg
+  `[[B-56]-3]+0xB`; `MON 74` SETBT @155370 repositions for the next segment. **GATE @155327-155331: reads
+  device STATUS at IOX reg base+2, REQUIRES bit 100B (0x40)**, else -> err path 155420. `[B-172]` = a BLOCK
+  COUNT (exhaustion = COMPLETION, not timeout). VINDICATES "> Loading Swapper"; kills cell-27B scan AND
+  bare-poll. Task-8 gate now crisp; 3 items `[OPEN]` (need live trace): which file `MON 50` opens; which
+  device `[B-56]`/`[[B-56]-3]` is (3022/octobus vs PIOC/CAMAC - ASSIG+PIOCM hint CAMAC, do NOT assume
+  3022); does it COMPLETE or SPIN. Leading hyp `[I, UNPROVEN]`: emulator iface never raises status bit
+  0x40 at IOX base+2. See the doc's `2026-07-21f` section.
 
 ### Retracted 2026-07-20 [V] — do not resurrect
 
@@ -1551,6 +1635,7 @@ implement to actually run/connect the ND-500 CPU.
 | Doc | What |
 |---|---|
 | **this file** | ND-500 status of record |
+| [`OCTOBUS-SWAPPER-HANDOFF-2026-07-25.md`](OCTOBUS-SWAPPER-HANDOFF-2026-07-25.md) | **NEWEST swapper state.** Swapper runs 420 instructions with no throw and sits in its MON 377B message-wait loop at `P=0x08000677`; blocker moved from microcode to the octobus transport (announce sink is a stub). Eight microword gaps closed; MULAD carry adjudicated across all three lanes; sweep-diff polarity is `golden!=microword` |
 | [`..\CARVING-HANDOFF.md`](../CARVING-HANDOFF.md) | parent: overall carving + MON status |
 | [`README.md`](README.md) | ND-500 folder readme |
 
@@ -1561,6 +1646,7 @@ implement to actually run/connect the ND-500 CPU.
 | [`ND500-WHO-ANSWERS-THE-MAILBOX.md`](ND500-WHO-ANSWERS-THE-MAILBOX.md) | **The mailbox servicer is THE MICROCODE** (hence MICFU) - not the 5015, not the swapper; three-layer model, MICFU handling map, emulator role mapping. MANUAL/DERIVED + trace-consistent |
 | [`ND500-CS-LOAD-TRACE-FINDINGS-2026-07-16.md`](ND500-CS-LOAD-TRACE-FINDINGS-2026-07-16.md) | **OBSERVED (live traces of real SINTRAN + nd-500-mon J04).** The complete CS-load protocol incl. the previously UNDOCUMENTED verify pass (words 0-7 read-back; mismatch aborts BEFORE micro-start); SLOC5/UNLC5/MCLR5 strobe on IOX READ; RETG5 bit1-clear = clock restart; bare LCON5 activate = lock only. Where it disagrees with the bus reference, the trace record wins |
 | [`CARVE-ANSWER-Q7-COMPLETION-POLL-VS-INTERRUPT.md`](CARVE-ANSWER-Q7-COMPLETION-POLL-VS-INTERRUPT.md) | **Q7: completion detection is INTERRUPT-DRIVEN (level 12), not RSTA5 poll.** [V-NPL] walk of `5STDRIV`/`XACT500`/`CLE5STATUS`/`CHN5STATUS` + [V] L07 symbols. RSTA5 has no finished bit; payload read from MPM `N5STA`. See section 0d. GAP: L07 5STDR byte disassembly |
+| [`ND500-TO-SINTRAN-MON-MAPPING.md`](ND500-TO-SINTRAN-MON-MAPPING.md) | **Complete MON-call mapping ND-500 -> SINTRAN/ND-100 (2026-07-30).** The `callg $0xF80000NN` seg-31 gate (NN = MON number as integer, VERIFIED vs DEABF/DVOUTS/B5XMSG); MCHANDEL GOSW table 500B-523B vs below-500B forward to native MCTAB; shared vs ND-500-specific numbers; the definitive >255 answer (ND-100 native MON = 8-bit field, 377B=255=0xFF boundary; ND-500 MCNO is a 16-bit SOFTWARE-decoded field, no limit); arg marshalling via 4.2.5.2 + 5AP1..5AP4/NUMPA. Per-claim [VERIFIED]/[INFERRED] |
 | [`ND500-MONITOR-CALL-MECHANISM.md`](ND500-MONITOR-CALL-MECHANISM.md) | v1.1. **NPL + symbol only, no carved bytes.** Origin of the section-3 model |
 | [`ND500-MONITOR-CALL-PARAMETER-PASSING.md`](ND500-MONITOR-CALL-PARAMETER-PASSING.md) | cited second-hand by the activation doc |
 | [`ND500-BUS-INTERFACE-REFERENCE.md`](ND500-BUS-INTERFACE-REFERENCE.md) | section 7.4 = MICFU function codes |

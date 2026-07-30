@@ -37,6 +37,50 @@ interpretation/inference, [C] = contradiction, [UNCERTAIN] = explicitly open.
    Microcode side: every ACCP-touching routine in the ND-5800 control store
    (ACCP_READ/ACCP_WRITE/TRAP_OMESS, OCB_DEC_K kick dispatch), AFLAG
    handshake bits, TRAP_OCBM report formats.
+5b. **THE ACCP FIRMWARE ITSELF - reverse engineered 2026-07-27/28, five documents.**
+   The ACCP's own 68000 ROM (`octo.bin`, ND-324716, December 5 1988) is the octobus
+   controller's operating software. It is now **fully disassembled and fully named**:
+   279 functions, zero `FUN_`, 26 hardware registers and 32 RAM globals labelled.
+   - **[ACCP-324716-FIRMWARE-RE-2026-07-27.md](ACCP-324716-FIRMWARE-RE-2026-07-27.md)** -
+     the write-up of record. Memory map, vector table, PLANC conventions, every carve.
+   - **[ACCP-CONSOLE-COMMAND-SET-AND-DISPATCH-2026-07-27.md](ACCP-CONSOLE-COMMAND-SET-AND-DISPATCH-2026-07-27.md)** -
+     all 43 console commands with codes, full parameter syntax and handler addresses.
+     The dispatch is a linear compare chain, not a jump table.
+   - **[OCTOBUS-OBCON-PROTOCOL-AND-ACCP-DRIVER-2026-07-27.md](OCTOBUS-OBCON-PROTOCOL-AND-ACCP-DRIVER-2026-07-27.md)** -
+     ND-14001 chapter 4 transcribed (16-bit software frame, acknowledge codes, octal
+     station ranges, the 7 hardware-decoded messages) PLUS the carved driver:
+     TX `0x770004`, RX `0x880000`, and `ObconRequestDispatch` @0xF686 with 17 function
+     codes. **The dispatcher touches no hardware** - it is a software message layer.
+     **Updated 2026-07-28: the information byte is DECODED** (section 1a) from
+     ND-05.017.01 chapter 3 - `E K M S` flags plus a 4-bit code give emergency / kick /
+     ident / multibyte-start / multibyte-end, and CMD numbers 0-15. Section 1b decodes the
+     captured MFbus scan completely and specifies the expected reply as frames. One byte
+     (`0x03`) remains unknown.
+   - **[ACCP-ND5000-CPU-INTERFACE-SPEC-2026-07-30.md](ACCP-ND5000-CPU-INTERFACE-SPEC-2026-07-30.md)** -
+     **implementation spec for the ACCP <-> ND-5000 CPU interface**, carved from BOTH sides and
+     cross-checked. The four registers (AOB/AIB/AFLAG/AOBASR) mapped onto the ACCP's own
+     addresses: data pair `0x440000`/`0x550000`, gates `0x660001` bits 0/1, and the AOB strobe
+     `0x330000` bit 6 (which resolves a previously unidentified address). Both handshakes as
+     pseudocode, the AIB command channel (1/2/3), kick and trap classes, and the full CPU-model
+     chain MFbus controller -> ACCP -> microcode -> `5ALIVE`. Includes the AFLAG off-by-one
+     warning and a minimum viable implementation order.
+   - **[DOMINO-DIOC-GENERIC-CONTROLLER-ARCHITECTURE-2026-07-28.md](DOMINO-DIOC-GENERIC-CONTROLLER-ARCHITECTURE-2026-07-28.md)** -
+     can we build a generic 68k octobus controller? **Yes.** ND-14001 Figure 22 draws the
+     standard/device-dependent seam itself: OBA, MFA, console+trace, and the 68020 CPU part
+     are all standard; only the device logic + request arbiter and the device differ.
+     Includes the MFA register file (RMT/RMS/WOI/MASTA), station-number assignment, the
+     two-phase node initialization, per-controller doc status (Ethernet III has almost
+     nothing), and **why the ACCP is NOT a DIOC** - do not derive one from the other.
+   - **[ACCP-HARDWARE-ADDRESS-MAP-2026-07-27.md](ACCP-HARDWARE-ADDRESS-MAP-2026-07-27.md)** -
+     full-image sweep of every peripheral address, with the false positives called out.
+   - **[ACCP-FULL-DISASSEMBLY-PLAN-2026-07-27.md](ACCP-FULL-DISASSEMBLY-PLAN-2026-07-27.md)** -
+     the plan, now complete, including the headless-Ghidra recipe that got past a GUI
+     that would not list the ND.PLANC scripts.
+
+   Also: **[PIOC-OS-VS-ACCP-FIRMWARE-COMPARISON-2026-07-27.md](PIOC-OS-VS-ACCP-FIRMWARE-COMPARISON-2026-07-27.md)** -
+   the ACCP is **not** running PIOC-OS. Same PLANC-MC compiler, no kernel, no `trap #2`.
+   Do not carry ENCOS frame offsets or descriptor widths across.
+
 6. **[OCTOBUS-DEVICE-CONTROLLERS-ANALYSIS-AND-EMULATION-PLAN-2026-07-19.md](OCTOBUS-DEVICE-CONTROLLERS-ANALYSIS-AND-EMULATION-PLAN-2026-07-19.md)** -
    ALL octobus device types (station map, DOMINO DIOC module table, MFbus
    controllers), how each CPU (ND-100 / ND-5000 / DIOC) talks to devices
@@ -59,6 +103,12 @@ interpretation/inference, [C] = contradiction, [UNCERTAIN] = explicitly open.
    105 interior), NucleusClient/BdioEngine architecture reusing the
    byte-verified BDIO/NUCLEUS carves, and phases S0-S5 to full SINTRAN
    disk I/O against RetroCore SCSIHDD.
+8a. **[SCSI-DIOC-RETROCORE-IMPLEMENTATION-HANDOFF-2026-07-23.md](SCSI-DIOC-RETROCORE-IMPLEMENTATION-HANDOFF-2026-07-23.md)** -
+   State of the RetroCore SCSI DIOC / BDIO code (2026-07-23): the components
+   built + verified (MpmWindow, OctobusScsiDiocStation, BdioRecord/BdioEngine,
+   BdioRecordScanner, NucleusStructures/NucleusClient, AttachScsiDioc), what is
+   [V] vs [OPEN], and how to close the live tail (S2/S4) in one boot. Read
+   before resuming DIOC work.
 9. **[SINTRAN-OCTOBUS-MESSAGE-CATALOG.md](SINTRAN-OCTOBUS-MESSAGE-CATALOG.md)** -
    The OS side: every octobus message SINTRAN sends/expects (kick call
    sites, CMSYSPAR/CMCPURES multibyte builders, 5OMBREAD receive dispatch,

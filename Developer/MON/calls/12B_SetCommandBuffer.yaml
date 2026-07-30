@@ -13,6 +13,11 @@ description: |-
   - You may apply the SINTRAN III command editing characters to the command buffer when the program has terminated.
   - The parameter is fetched through the alternative page table.
   - You may use this monitor call to erase sensitive information in the command buffer, e.g., password parameters.
+notes:
+- >-
+    Version history: M-version increased the maximum length of the command buffer
+    from 104 characters to 150 characters
+    (ND-860230-7A-EN SINTRAN III - Release Information - M-Version.md:1075).
 see_also:
 - '`ExecuteCommand`'
 - '`CallCommand`'

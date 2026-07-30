@@ -11,6 +11,12 @@ description: |-
 
   - **CloseFile** also resets peripheral files. This is similar to DeviceControl with control flag -1.
   - For non-RT programs, files are closed when your program terminates.
+notes:
+- >-
+    Version history: in the N-version, MON CLOSE (MON 43) used from an RT-program to
+    close a file that was not opened by the program itself now reports the closing
+    of the RT-open file to be logged by the ERS/SINTRAN III Watchdog
+    (ND-860230-8-EN SINTRAN III - Release Information - N-version.md:962, 1406).
 see_also:
 - OpenFile
 - CloseSpoolingFile
