@@ -267,16 +267,16 @@ namespace NDInsight.Sintran.Xmsg.Ndfs.Tests
         }
 
         /// <summary>
-        /// Bytes 1 to 63 survive a round trip through the file system layer unchanged.
+        /// All 64 bytes survive a round trip through the file system layer unchanged.
         /// </summary>
         /// <remarks>
-        /// ObjectEntry keeps the verbatim on-disk bytes and re-serialises from them, so everything
-        /// except byte 0 comes back identical. That is what lets our server answer with entries it
-        /// did not invent. Byte 0 is excluded deliberately - see
-        /// <see cref="RetroFsDropsTheHighHeaderByteOnWrite"/>.
+        /// ObjectEntry keeps the verbatim on-disk bytes and re-serialises from them, so the record
+        /// comes back identical. That is what lets our server answer with entries it did not invent.
+        /// Byte 0 used to be excluded here because ToBytes forced it to 0x80; that bug is fixed, so the
+        /// check now covers the whole record - see <see cref="HeaderWord_SurvivesTheRoundTrip"/>.
         /// </remarks>
         [Fact]
-        public void RecordBelowTheHeaderByte_SurvivesARoundTripThroughTheFileSystemLayer()
+        public void WholeRecord_SurvivesARoundTripThroughTheFileSystemLayer()
         {
             byte[] arrived = FromHex(Sintran);
 
@@ -285,51 +285,59 @@ namespace NDInsight.Sintran.Xmsg.Ndfs.Tests
             byte[] rewritten = new byte[FaListFilesCodec.EntryRecordLength];
             entry.ToBytes(rewritten, 0);
 
-            for (int i = 1; i < FaListFilesCodec.EntryRecordLength; i++)
+            for (int i = 0; i < FaListFilesCodec.EntryRecordLength; i++)
             {
                 Assert.True(arrived[i] == rewritten[i], "Byte " + i + " changed across the round trip.");
             }
         }
 
         /// <summary>
-        /// DEFECT IN RetroFS: ObjectEntry.ToBytes discards the high byte of the header word.
+        /// The header word survives the round trip, keeping the "file modified" flag.
         /// </summary>
         /// <remarks>
         /// <para>
-        /// <c>ObjectEntry.ToBytes</c> writes <c>buffer[offset] = 0x80</c> as a literal instead of
-        /// writing <c>Header</c>. The captured SINTRAN:DATA entry arrives with <c>0x90</c>, so the
-        /// round trip silently clears bit 12 - "file modified", per the field documentation on
-        /// <c>ObjectEntry.Header</c>. Bits 15 to 8 are all at risk, which is the used / write /
-        /// reserved / modified flags and the user-vs-object entry flag.
+        /// FIXED IN RetroFS 2026-07-30. <c>ObjectEntry.ToBytes</c> used to write
+        /// <c>buffer[offset] = 0x80</c> as a literal instead of the <c>Header</c> word. The captured
+        /// SINTRAN:DATA entry arrives with <c>0x90</c> - used PLUS bit 12, "file modified", per the
+        /// field notes on <c>ObjectEntry.Header</c> - so any read/modify/write cycle silently cleared
+        /// that flag. Every flag in bits 15 to 8 was at risk: used, opened-for-write, reserved,
+        /// modified, and the user-vs-object entry flag.
         /// </para>
         /// <para>
-        /// This is a real data-losing bug on the RetroFS write path, not a quirk of this protocol:
-        /// any on-disk entry rewritten through ToBytes loses those flags. It matters here because a
-        /// COSMOS server answering from RetroFS would hand clients entries with the modified flag
-        /// stripped.
+        /// This test used to assert the WRONG behaviour on purpose, as a marker. It now asserts the
+        /// correct behaviour, which is what a test is for.
         /// </para>
         /// <para>
-        /// This test asserts the CURRENT, WRONG behaviour on purpose, so that fixing RetroFS makes it
-        /// fail and forces this note to be revisited. Fix is one line: write the header word instead
-        /// of the literal.
+        /// The fix was not one line. Writing <c>Header</c> verbatim exposed a second defect the
+        /// hardcoded <c>0x80</c> had been hiding: the file-creation path in
+        /// <c>NdfsFileSystem</c> never set <c>Header</c> at all, so a naive fix would have written a
+        /// zero header and marked every newly created file as a free slot. Both halves are fixed
+        /// together, and <c>ObjectEntry.HeaderEntryUsed</c> now exists so a caller building an entry
+        /// has the right constant to reach for.
         /// </para>
         /// </remarks>
         [Fact]
-        public void RetroFsDropsTheHighHeaderByteOnWrite()
+        public void HeaderWord_SurvivesTheRoundTrip()
         {
             byte[] arrived = FromHex(Sintran);
+
+            // Used (bit 15) plus "file modified" (bit 12).
             Assert.Equal(0x90, arrived[0]);
 
             ObjectEntry entry = FaDirectoryListing.ParseRecord(arrived)!;
-
-            // The header was read correctly...
             Assert.Equal(0x9000u, entry.Header);
 
             byte[] rewritten = new byte[FaListFilesCodec.EntryRecordLength];
             entry.ToBytes(rewritten, 0);
 
-            // ...but writing it back forces 0x80 and loses bit 12.
-            Assert.Equal(0x80, rewritten[0]);
+            // Both header bytes come back as they arrived - the modified flag is no longer stripped.
+            Assert.Equal(arrived[0], rewritten[0]);
+            Assert.Equal(arrived[1], rewritten[1]);
+            Assert.Equal(0x9000u, ObjectEntry.FromBytes(rewritten, 0)!.Header);
+
+            // And the used flag is the whole 16-bit word's top bit, not the byte value 0x80.
+            Assert.Equal(0x8000u, ObjectEntry.HeaderEntryUsed);
+            Assert.Equal(ObjectEntry.HeaderEntryUsed, entry.Header & ObjectEntry.HeaderEntryUsed);
         }
     }
 }
