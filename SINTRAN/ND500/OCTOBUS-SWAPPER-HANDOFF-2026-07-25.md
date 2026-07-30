@@ -1395,3 +1395,1575 @@ nd500x port (deferred - octobus work is C#-only for now).
 ---
 *Provenance: live octobus capture (ACCP), agent-verified B30 microcode listing, carved
 SWAPPER-K01. Section 5 INFERRED item is explicitly not yet byte-proven - step 1 above proves it.*
+
+---
+
+## 7.6.8 CARVE: why CNVWADR yields an unconverted offset - 5MBBANK is ZERO (2026-07-28)
+
+### CNVWADR's calling convention (VERIFIED from call sites)
+
+`CNVWADR` is not a CALL - the call sites are written `*NNC24,CNVWADR`, i.e. **patch points**
+(the `NNCnn` labels are collected in `DP-P2-VARIABLES.NPL:212-214`). Its register
+convention is unambiguous from three independent sites:
+
+```
+MP-P2-N500.NPL:2766  5ACTSWAPPER:  X=:D=:MSGTOSW; A:=5MBBANK
+                     *NNC24,CNVWADR
+                     AD=:CMSGTOSW                      <- 32-bit result in A:D
+
+RP-P2-N500.NPL:850   5MBBANK=:T; *CNVWADR
+RP-P2-N500.NPL:849   SWMSG=:D; A:=T ; *NNC39,CNVWADR
+```
+
+**A = bank, D = offset in; AD (32-bit) out.** The HIGH half of the result can only come
+from A. We measured `CMSGTOSW = 0x00008E30`, high half zero, so **`5MBBANK` read 0.**
+
+### 5MBBANK has exactly ONE writer
+
+`RP-P2-N500.NPL:737` in `XMSINIT`:
+
+```
+131133   5FPMAILBOX=:D:=0; AD SH 12; A=:5MBBANK      % MEMORY BANK FOR MESSAGES
+```
+
+`D := 5FPMAILBOX`, `A := 0`, then shift the 32-bit pair left by `12B` = 10 decimal (1 page
+= 1024 words = 2^10), turning a PAGE number into a WORD address. `A` is then the high 16
+bits, so:
+
+```
+5MBBANK = 5FPMAILBOX >> 6
+```
+
+`5MBBANK = 0` therefore means `5FPMAILBOX < 64`.
+
+### Where 5FPMAILBOX comes from, and what it SHOULD have been
+
+`5P-P2-MON60.NPL:640` (`INZ500`): `CALL 5GBUFF; ... A=:5FPMAILBOX`. It is also explicitly
+zeroed on the release path (`5P-P2-MON60.NPL:501  0=:5FPMAILBOX`).
+
+`5GBUFF` is `X5GBUFF` (`RP-P2-N500.NPL:891`). The page it returns is built at line 131763:
+
+```
+131763   A+ADRZERO=:5GBFPAGE; A:=D-1+ADRZERO=:5GBEPART=:5GBLPAGE=:D
+131756   AD:=DPAMEMTABLE(X); IF A=0 THEN A+1 FI       <- part base 0 is bumped to 1
+```
+
+so `5FPMAILBOX = part_base_page + ADRZERO`.
+
+**ADRZERO is a PAGE number, not a byte address.** Confirmed by every use of it:
+`MP-P2-N500.NPL:170` `A:="N500DF".ADRZERO=:D:=0; AD SH 12`, and identically at
+`MP-P2-DISK-START.NPL:269`, `MP-P2-N500.NPL:1943`, `MP-P2-PERF-CODE.NPL:1804`. Our run
+reports `ADRZERO = 004100B` = 2112, which as a page is word `0x210000` = byte `0x420000` -
+exactly the window base used elsewhere. The two figures are consistent.
+
+**So the expected value is:**
+
+```
+5FPMAILBOX = 1 + 2112 + (earlier allocations)   >= 2113
+5MBBANK    = 2113 >> 6                          = 33 = 41B
+```
+
+and `CNVWADR` should have produced `AD = 0x0021_xxxx`, i.e. word address `0x214718` - the
+value section 7.6.7 showed RIOM needs. **It produced 0.**
+
+### Conclusion, and what is NOT yet established
+
+The defect is EARLIER in the chain than `CNVWADR`. `CNVWADR` faithfully passes through a
+bank of 0. One of these is true, and they have NOT been distinguished:
+
+1. `ADRZERO` was 0 or -1 when `XMSINIT` ran (it defaults to -1 -
+   `PH-P2-OPPSTART.NPL:2494-2498` sets it from `CURRPAGE`, and `5P-P2-MON60.NPL:530`
+   tests `IF ADRZERO=-1`). `MEMORY-CONFIGURATION` printing `004100` LATER does not prove
+   it was set at `XMSINIT` time.
+2. `5FPMAILBOX` is still 0 because `5GBUFF` never succeeded, or the area was released.
+
+**A concrete candidate for (2), UNVERIFIED:** `X5GBUFF`'s part filter at `RP-P2-N500.NPL`
+line 131750 demands the part's type byte be EXACTLY equal to `MSHARED|PSACC|DSACC`:
+
+```
+131746   T:=TYPADR; *LBYT
+131750   T:=0 BONE MSHARED BONE PSACC BONE DSACC
+131754   IF A=T THEN
+```
+
+If our emulated memory table does not set `MSHARED` on the part, no part matches, the FOR
+loop falls straight through to `OUT` (the "no memory available" return), and no ND-500
+buffer is ever allocated. Our `MEMORY-CONFIGURATION` shows one part `0B-7777B` with
+`N100/N500P/N500D = Y Y Y`, but whether the emulator sets the `MSHARED` bit in `TYPMTAB`
+has NOT been checked. Check it before changing anything.
+
+### Next step
+
+Dump the LIVE values of `ADRZERO`, `5FPMAILBOX` and `5MBBANK` at the moment `XMSINIT`
+runs. That single measurement separates (1) from (2) and from the `MSHARED` candidate.
+
+Note `5MBBANK` and `5FPMAILBOX` are NOT in the symbol tables and have no declaration
+anywhere in the NPL tree - they are externals whose defining file is missing (the known
+NPL-tree gaps). Their addresses will have to come from a carve or from the datafield
+layout, not from a symbol lookup.
+
+**Still standing from 7.6.7: do not "fix" RIOM.** Its mapping is correct; the pointer it is
+handed is not.
+
+## 7.6.9 BETTER LEAD: CNVWADR is PATCHED OUT when NSAMSON = 0 (2026-07-28)
+
+Section 7.6.8's `5MBBANK` reasoning is sound arithmetic but probably NOT the cause. A
+stronger, fully static mechanism explains the unconverted offset exactly.
+
+**The `*NNCnn,` prefixes mark self-modifying patch sites.** All of them are collected in
+`DP-P2-VARIABLES.NPL:211` under the comment **"Common & Mpit: convert-address table"**:
+
+```
+011773   INTEGER ARRAY MNCTAB:=(
+011773      NNC01,...,NNC27, NNC50..NNC55, 0,0,0,0,0,-1);
+```
+
+`NNTAB` (`DP-P2-VARIABLES.NPL:174`) pairs each table with the instruction to stamp into it:
+
+```
+%           mudom        -mudom
+%     pit  instr  table instr  table
+      MPIT,124001,MNATAB,124001,MNJTAB,
+      MPIT,124002,MNTTAB,124003,MNCTAB,
+```
+
+`BYPASS` (`RP-P2-N500.NPL:1009`, commented **"Patch n500 code according to CPU type"**)
+walks it and picks the column:
+
+```
+132343   IF NSAMSON><0 THEN S1; T:=S2 ELSE S3; T:=S4 FI
+...
+132405   CINSTR; *STATX                  <- OVERWRITES the instruction at each site
+```
+
+So:
+
+- **NSAMSON <> 0 (Samson/octobus):** stamps `124002` into `MNTTAB`. `MNCTAB` is left
+  alone - **`CNVWADR` stays live and converts.**
+- **NSAMSON = 0:** stamps `124003` into `MNCTAB` - **every `CNVWADR`/`CNVBYADR` site in
+  the system is overwritten**, and the address passes through unconverted.
+
+**That is exactly our symptom:** `AD = 0x00008E30`, the raw 5MPM offset, no bank applied.
+
+### Why NSAMSON could be 0 on our machine
+
+`NSAMSON` is counted in `RP-P2-N500.NPL:132206-132255`:
+
+```
+132206   0=:NSAMSON=:N5CPU
+132214   IF X.CPUAVAILABLE/\5CPUTYPE=SAMSON THEN ... MIN NSAMSON
+```
+
+and `CPUAVAILABLE` is stamped `SAMSON` in exactly ONE place -
+`PH-P2-OPPSTART.NPL:3933-3934`, inside the octobus presence probe:
+
+```
+063146   *TRA IIC                        % Read octobus if. status
+063147   A:=200; *TRR IIE
+063151   T:=100406; *IOXT; TRA IIC
+063154   IF A=0 THEN                     % Octobus present? - (assumes Samson)
+063155      DO *IOXT WHILE A NBIT 3 OD   % wait for data ready
+063161      ASTATION\/COMD=:5STATION
+063170      T:=100405; A\/CMMACLE; *IOXT % masterclear Samson system
+063173      A:=X\/CMACONT; *IOXT         % continue accp
+063176      MIFLAG BONE MUDOM=:MIFLAG
+063201      CPUAVAILABLE/\140000\/SAMSON <- the ONLY SAMSON stamp
+```
+
+If our emulated octobus interface does not satisfy this probe exactly - `TRA IIC` reading
+0 after the `IOXT` on `100406`, then bit 3 setting in the data-ready poll - SINTRAN never
+marks the CPU as Samson, `NSAMSON` stays 0, and `BYPASS` patches out every address
+conversion in the ND-500 system.
+
+**NOT YET VERIFIED, in order of cheapness:**
+1. Whether our emulator satisfies the `063146-063154` probe (readable statically in
+   RetroCore - do this FIRST, no run needed).
+2. What instruction `124003` actually is.
+3. The live value of `NSAMSON`.
+
+This also predicts a broad symptom, which is a good check: with `CNVWADR` patched out,
+EVERY ND-500 address conversion in the system is dead, not just the swapper's. If other
+ND-500 addressing works correctly in our run, this hypothesis is WRONG - test it that way
+before changing anything.
+
+### 7.6.10 Symbol addresses (SINTRAN L / L07) - the symbol table truncates to 5 CHARS
+
+Section 7.6.8 said these symbols "are not in any symbol table". **That was wrong** - the
+ND symbol tables keep only the first **5 characters** of a name, so `5MBBANK` is stored as
+`5MBBA`, `5FPMAILBOX` as `5FPMA`. Searching the full names finds nothing. Search truncated.
+
+From `SINTRAN/NPL-SOURCE/SYMBOLS/L07/` (`SYMBOL-1-LIST`, `SYMBOL-2-LIST`, cross-checked
+against `l07-kallsyms.txt`, which lists the same values in hex):
+
+| Symbol       | Stored as | Octal    | Hex word addr | What it is                          |
+|--------------|-----------|----------|---------------|-------------------------------------|
+| `NSAMSON`    | `NSAMS`   | `011250` | `0x12A8`      | number of Samson CPUs - THE GATE    |
+| `N5CPU`      | `N5CPU`   | `011247` | `0x12A7`      | number of live ND-500 CPUs          |
+| `5MBBANK`    | `5MBBA`   | `004654` | `0x09AC`      | message bank number                 |
+| `5FPMAILBOX` | `5FPMA`   | `111102` | `0x9242`      | first mailbox page                  |
+| `5NPMAILBOX` | `5NPMA`   | `111103` | `0x9243`      | number of mailbox pages             |
+| `MNCTAB`     | `MNCTA`   | `011773` | `0x13FB`      | the convert-address patch table     |
+| `NNC24`      | `NNC24`   | `145171` | `0xCA79`      | the `CNVWADR` site in `5ACTSWAPPER` |
+| `NNC06`      | `NNC06`   | `134051` | `0xB829`      | the `CNVWADR` site in `SWMESS`      |
+| `XMSINIT`    | `XMSIN`   | `131265` | `0xB2B5`      | sets `5MBBANK`                      |
+| `N500DF` ptr | `N500D`   | `051767` | `0x53F7`      | base of the ND-500 datafield        |
+| `ADRZERO`    | `ADRZE`   | `000060` | -             | OFFSET `60B` inside `N500DF`        |
+| `MIFLAG`     | `MIFLA`   | `177770` | -             | OFFSET, holds the `MUDOM` bit       |
+
+(`ADRZE` and `MIFLA` are small datafield-relative offsets, not absolute addresses -
+consistent with their use as `"N500DF".ADRZERO` and `X.MIFLAG`.)
+
+### The decisive measurement, now cheap
+
+Read four ND-100 words in the booted system:
+
+```
+NNC24 @ word 0xCA79   -> is it 124003B (PATCHED OUT) or the original CNVWADR site?
+NSAMS @ word 0x12A8   -> 0 means BYPASS took the -mudom column
+5MBBA @ word 0x09AC   -> expected 41B (33); 0 would confirm 7.6.8 instead
+5FPMA @ word 0x9242   -> expected >= 2113
+```
+
+`NNC24` alone decides between 7.6.8 and 7.6.9. `BYPASS` patches at RUNTIME, so this cannot
+be read from the disk image - it has to be sampled from the running machine.
+
+## 7.6.11 MEASURED: N5CPU = 0 and NSAMSON = 0 - SINTRAN does not believe an ND-500 exists (2026-07-28)
+
+### The read convention, proven before any value was trusted
+
+The first probe attempt was VOID and said so: it read resident symbols with RAW PHYSICAL
+reads, and its own anchor (`ADRZERO` must hold page `004100B` = `0x0840`) returned `0x0000`
+in both byte and word conventions. Symbol-table addresses describe the **PIT-mapped
+resident image**, not physical memory, so they must be read THROUGH THE ND-100 MMU.
+
+The harness now sweeps page tables and levels and only accepts a mapping that reproduces
+six independently-known values in a row - `MNCTAB` (`0o11773`) is an array literally
+containing the `NNCnn` patch-site addresses, so:
+
+```
+MNCTAB[0..5] must = NNC01..NNC06 = 0o022616 0o022647 0o022667 0o022747 0o133066 0o134051
+                                 =  0x258E   0x25A7   0x25B7   0x25E7   0xB636   0xB829
+```
+
+**Result: 6/6 at pil=14, D-space/APT.** And on that mapping `ADRZERO` reads `0x0840` =
+2112 - exactly the predicted page. The convention is validated.
+
+### The measurement
+
+```
+NSAMSON    @ 0o11250  = 0x0000      <- number of Samson CPUs
+N5CPU      @ 0o11247  = 0x0000      <- number of live ND-500 CPUs
+5MBBANK    @ 0o4654   = 0x0000
+5FPMAILBOX @ 0o111102 = 0x0000      <- mailbox never allocated
+ADRZERO    @ 0o52047  = 0x0840      (= 2112, CORRECT)
+```
+
+`NSAMSON`, `N5CPU`, `5MBBANK` and `5FPMAILBOX` all read 0 in BOTH test phases and under
+both mappings the sweep selected - they are the stable part of the measurement.
+
+### What this means
+
+**The root cause is earlier than BOTH section 7.6.8 and section 7.6.9.** SINTRAN has not
+registered an ND-500/Samson CPU at all. Everything else follows mechanically:
+
+```
+N5CPU = 0
+  -> INZ500 (5P-P2-MON60.NPL:027017) "IF N5CPU=0 THEN ENOCPU; GO FAR INZRET" bails out
+  -> CALL 5GBUFF never runs      -> 5FPMAILBOX stays 0        [MEASURED 0]
+  -> XMSINIT computes 5MBBANK = 5FPMAILBOX>>6 = 0             [MEASURED 0]
+  -> 5ACTSWAPPER's CNVWADR gets bank 0 -> AD = 0x00008E30     [MEASURED, section 7.6.7]
+  -> RIOM reads the wrong place, record stays zero, SWPFATAL 0o201
+```
+
+Section 7.6.8's arithmetic was right but it was a SYMPTOM. Section 7.6.9's patch mechanism
+is still real, and `NSAMSON = 0` means `BYPASS` DID take the `-mudom` column - but it is
+also a symptom of the same missing detection, not an independent fault.
+
+The swapper still runs in our emulator only because the harness starts it DIRECTLY; SINTRAN
+itself thinks there is no ND-500 to serve.
+
+### The one thing that does not fit - do NOT ignore it
+
+`ADRZERO = 0x0840` is CORRECT, and `ADRZERO` is set by `CHMEMDEF` (`5P-P2-MON60.NPL:026733`
+`5D12=:ADRZERO`), which `INZ500` calls at `027023` - i.e. AFTER the `N5CPU=0` bail-out at
+`027017`. If `N5CPU` had been 0 at that moment, `CHMEMDEF` could not have run and `ADRZERO`
+would still be -1. So either:
+
+1. `N5CPU` was non-zero earlier and something later zeroed it (note
+   `RP-P2-N500.NPL:132206` `0=:NSAMSON=:N5CPU` re-zeroes both at the top of the CPU scan,
+   then re-counts - a scan that finds nothing leaves both at 0), or
+2. `ADRZERO` is also set on another path (`PH-P2-OPPSTART.NPL:2498` sets it from
+   `CURRPAGE`).
+
+Also flagged: in the `octobus-fullflow` phase the sweep matched the anchor at **pil=0**
+and there `ADRZERO` reads `0xFFFF` (= -1). Six-value agreement on `MNCTAB` is therefore
+NECESSARY BUT NOT SUFFICIENT - `MNCTAB`'s page is evidently shared across levels while
+`ADRZERO`'s is not. **Add a second anchor on `ADRZERO`'s own page before trusting any
+value read near it.**
+
+### Next
+
+Find why the CPU scan at `RP-P2-N500.NPL:132211-132255` counts nothing. It tests
+`X.CPUAVAILABLE/\5CPUTYPE=SAMSON` over the `S5CPUDF..E5CPUDF` datafields, and
+`CPUAVAILABLE` is stamped only by the octobus probe at `PH-P2-OPPSTART.NPL:063146-063201`:
+
+```
+063151   T:=100406; *IOXT; TRA IIC
+063154   IF A=0 THEN                     % Octobus present? - (assumes Samson)
+063155      DO *IOXT WHILE A NBIT 3 OD   % wait for data ready
+063170      T:=100405; A\/CMMACLE; *IOXT % masterclear Samson system
+063173      A:=X\/CMACONT; *IOXT         % continue accp
+063201      CPUAVAILABLE/\140000\/SAMSON
+```
+
+Check `NDBusOctobus` against that sequence - IOX `100406`/`100405`, the `TRA IIC` result,
+and the bit-3 data-ready poll. That is a static read of our own device code, no run needed.
+
+## 7.6.12 The 5ALIVE / CMSYSPAR mechanism (2026-07-28)
+
+**CORRECTED by section 7.6.13 - this is NOT the root cause of our SWPFATAL.** The
+mechanism carved below is accurate and will matter later, but the conclusion originally
+written here ("the ACCP never ACKs WriteSysPar") was WRONG. Read 7.6.13 before acting.
+
+### Measured
+
+With the MMU read convention proven (section 7.6.11, MNCTAB anchor 6/6, pil=14 D-space),
+all four ND-500 CPU datafields read:
+
+```
+CPU0 df@0o52222 CPUAVAILABLE=0x0003 type=3 (SAMSON) alive=False
+CPU1 df@0o52270 CPUAVAILABLE=0x0003 type=3 (SAMSON) alive=False
+CPU2 df@0o52336 CPUAVAILABLE=0x0003 type=3 (SAMSON) alive=False
+CPU3 df@0o52404 CPUAVAILABLE=0x0003 type=3 (SAMSON) alive=False
+```
+
+**The octobus presence probe WORKS.** `PH-P2-OPPSTART.NPL:063201`
+(`CPUAVAILABLE/\140000\/SAMSON`) ran and stamped type 3 on every CPU. Section 7.6.9's
+worry that the probe was failing is DISPROVEN - keep `NDBusOctobus` as it is.
+
+What is missing is the **5ALIVE** bit (bit 0o15 = 13), and that is precisely what gates the
+counter the whole chain hangs off (`RP-P2-N500.NPL:132274`):
+
+```
+132214   IF X.CPUAVAILABLE/\5CPUTYPE=SAMSON THEN ... MIN NSAMSON
+132274   IF X.CPUAVAILABLE BIT 5ALIVE THEN MIN N5CPU FI     <- never taken
+```
+
+### What sets 5ALIVE - the actual requirement
+
+`MP-P2-N500.NPL:3455-3470`, routine `5OMBREAD`:
+
+```
+5OMBREAD:  "LMFIELD"=:D; A:=DPITBANK
+           X:=OCTORING; T:=5OMDNO; CALL OMBREAD; GO ERR
+           IF "LMFIELD".MOCTSTATION>=FN5DEST AND A<=LN5DEST THEN
+              X.ETYPE=:D SHZ -10=:CSTS; A:=D/\377=:CMICP
+              % ErrorMessage or Ack/Nack from ACCP/Microprogram?
+              X.MOCTSTATION; CALL FAR GN5CPUDF; GO I5OMBR
+              IF CSTS=MFACK OR A=MFNACK THEN
+                 % Ack/Nack answer on 'WriteSysPar' message
+                 % i.e. I'm present
+                 CPUAVAILABLE BONE 5ALIVE=:CPUAVAILABLE
+```
+
+So a CPU is marked alive ONLY when an **ACK or NACK to the `WriteSysPar` message** arrives
+as an octobus message, read out of the OMD ring. Values (L07 symbols, 5-char names):
+
+| Symbol | Stored as | Value | Meaning |
+|---|---|---|---|
+| `MFACK` | `MFACK` | `000000` | ACK - status 0 |
+| `MFNACK` | `MFNAC` | `000377` | NACK |
+| `FN5DEST` | `FN5DE` | `000070` | first ND-5000 CPU station |
+| `LN5DEST` | `LN5DE` | `000077` | last ND-5000 CPU station |
+| `5OMDNO` | `5OMDN` | `000000` | OMD number used for the read |
+
+The reply must come from a station in `70B..77B` - the ND-5000 CPU range in the octobus
+station map (`Reference-Manuals\500\ND-05.020.01 EN ND-5000 Hardware Description.md`,
+Appendix 2). `CSTS` is `ETYPE >> 8`; `CMICP` is `ETYPE & 0377`.
+
+SINTRAN sends the message from `MP-P2-N500.NPL:3592` and `:3626`:
+
+```
+147107   CMSYSPAR SHZ 10\/N100IDENT=:X.MCOMMAND   % Send OMD numer to mf-controller
+147155   CMSYSPAR SHZ 10\/N100IDENT=:X.MCOMMAND   % Send system par.
+```
+
+### This resolves a previously-open question
+
+The "ACCP `CMSYSPAR` reply-OMD" item has been open in this effort for some time. It is now
+answered: **the ACCP must reply to `CMSYSPAR` with an octobus message whose `ETYPE` high
+byte is `MFACK` (0) or whose low byte is `MFNACK` (0o377), sent from the CPU's own station
+in 70B-77B.** Our HLE servicer does not send it, so `5ALIVE` is never set.
+
+### Corrected chain, end to end
+
+```
+ACCP never ACKs CMSYSPAR
+  -> 5OMBREAD never sets 5ALIVE                        [MEASURED alive=False x4]
+  -> N5CPU stays 0                                      [MEASURED 0]
+  -> INZ500 (5P-P2-MON60.NPL:027017) bails on N5CPU=0
+  -> 5GBUFF never runs -> 5FPMAILBOX = 0                [MEASURED 0]
+  -> XMSINIT: 5MBBANK = 5FPMAILBOX>>6 = 0               [MEASURED 0]
+  -> 5ACTSWAPPER's CNVWADR converts with bank 0
+  -> SWPINFO = 0x00008E30, the raw 5MPM offset          [MEASURED, section 7.6.7]
+  -> RIOM reads the wrong place, record stays zero
+  -> SWPFATAL 0o201
+```
+
+Sections 7.6.8 (5MBBANK) and 7.6.9 (CNVWADR patched out) were both real observations but
+both are SYMPTOMS of this. Fix the ACK and the whole chain should follow.
+
+### Next
+
+Implement the `CMSYSPAR` ACK in the HLE servicer, then re-measure `alive` and `N5CPU`
+before touching anything else. NOT YET VERIFIED: the exact OMD/message layout the reply
+must use, and whether `N100IDENT` in the command word has to be echoed back. Carve the
+ACCP firmware's `CMSYSPAR` handler (octo.bin in Ghidra) for the reply format rather than
+guessing it - guessing a wire format is what section 7.6.6 got wrong.
+
+## 7.6.13 CORRECTION: INZ500 never ran - the ND-500 was never STARTED (2026-07-28)
+
+Section 7.6.12 concluded that a missing `CMSYSPAR` ACK was the root cause. **That was
+wrong**, and it was caught only by checking whether the scan had run at all before
+implementing the ACK.
+
+### Measured (both harness phases, mapping anchored 6/6 at pil=14 D-space)
+
+```
+5MSINIT @ 0o111100 = 0x0000    5CHALIVE=False   5ALBUF=False
+```
+
+`5CHALIVE` (`5CHAL`, bit 3) clear means **`INZ500` never ran**. `5CONOMD` - the CPU scan
+that sets `NSAMSON`/`N5CPU` - is called only from `INZ500` (`5P-P2-MON60.NPL:027013`) under
+`IF 5MSINIT NBIT 5CHALIVE`. And `INZ500` has exactly ONE caller: the **MON 60B dispatcher**
+at `5P-P2-MON60.NPL:030452`, "INITIALIZE ND-500 SYSTEM IF NOT DONE".
+
+**SINTRAN brings the ND-500 subsystem up only when a MON 60B function is actually issued.**
+Booting alone never does it. Our harness starts the swapper DIRECTLY without ever issuing
+one, so SINTRAN knows nothing about the ND-500.
+
+### Therefore
+
+`N5CPU = 0`, `NSAMSON = 0`, `5FPMAILBOX = 0`, `5MBBANK = 0` are all **never-initialised
+zeros**, not faults. Sections 7.6.8, 7.6.9 and 7.6.12 each identified a real mechanism but
+each mis-read an uninitialised value as a broken one.
+
+**The tell that should have caught this three sections earlier:** every CPU datafield reads
+`CPUAVAILABLE = 0x0003` (type = SAMSON). Had `5CONOMD` run, `NSAMSON` would have been **4**.
+It was 0 - so the scan never happened. **A zero means both "counted nothing" and "never
+ran". Distinguish those before diagnosing anything.**
+
+This also re-frames an older note: `CARVE-SWAPPER-CONTEXT-BLOCK-BUILDER-2026-07-20.md`
+section 6 already said the swapper is kicked without a real page-faulting ND-500 process
+behind it. That was the same finding, from the other end.
+
+### What is still valid from 7.6.12
+
+The `5ALIVE` / `CMSYSPAR` carve itself stands and will matter once `INZ500` runs:
+`CMSYSPAR=0o16`, `N100IDENT=1`, `MCOMMAND`/`ETYPE` share offset 4 (SINTRAN sends `0x0E01`),
+`MFACK=0` vs `ETYPE>>8`, `MFNACK=0o377` vs `ETYPE & 0377`, reply from station
+`0o70..0o77`; `CON5IDENT` (`MP-P2-N500.NPL:3617`) sends it to the CPU's own `5STATION` on
+`OMDACCP=3`, length 7, expecting the reply on `5OMDNO=0`.
+
+### Next - and do NOT implement an ACK before this
+
+Make the harness issue a real **MON 60B** (start an ND-500 domain the way SINTRAN normally
+would) so `INZ500` runs. Then re-measure `5MSINIT`, `NSAMSON`, `N5CPU` and the per-CPU
+`alive` flags. Only if `5CHALIVE` is then SET and `N5CPU` still 0 does the `CMSYSPAR` ACK
+become the live suspect.
+
+## 7.6.14 THE ACTUAL BLOCKER: the octobus harness never drives the machine (2026-07-28)
+
+Following 7.6.13's "`INZ500` never ran", the obvious next step was "make the harness issue a
+MON 60B". It already tries to. It never gets the chance:
+
+```
+OUTCOME: ENTER=STALL login=STALL nd-500=STALL status=STALL start-swapper=STALL list=STALL stop-system=STALL
+```
+
+**Every step stalls, starting with the very first ESC -> "ENTER".** The login prompt never
+appears, so `nd-500` is never typed, so no MON 60B is ever issued, so `INZ500` never runs.
+7.6.13's measurement and this are the same fact seen from two ends.
+
+**This is NOT caused by the diagnostic probes added today.** All four runs this session -
+including the FIRST, before any edit - produced a byte-identical OUTCOME line. That is the
+control; the probes are read-only and change nothing.
+
+The boot itself is healthy. `Boot_To_SintranRunning_Octobus_DumpConsole` PASSES in 49 s and
+the console reaches:
+
+```
+SINTRAN III - VSX/500 L
+SINTRAN III RUNNING -
+ERS3WD version B00 has started
+```
+
+and the ND-5000 parks correctly (`PC=0 stopMode=WAIT`, `MicroVersion=0x2E9A`,
+`CpuParameter=0x03E1`). It is specifically the **interactive terminal path** that is dead:
+`_machine.SerialDataOutput(ESC)` followed by a 30 s wait for `"ENTER"` never matches.
+
+### Consequences for everything above
+
+Sections 7.6.7 through 7.6.12 were measured on a machine that BOOTED BUT WAS NEVER DRIVEN.
+The values are real and were read correctly (the MMU mapping is anchor-proven), but "SINTRAN
+never registered an ND-500" simply describes a system that was never asked to. **Do not
+treat any of those zeros as emulator defects.**
+
+Note this does NOT explain the earlier `SWPFATAL 0o201` work, which required a swapper that
+was actually running - so an earlier configuration of this harness clearly did drive the
+machine. Finding what changed is part of the job.
+
+### NOT ESTABLISHED - do not guess
+
+Why the ESC never produces `ENTER` is UNKNOWN. Candidates, none tested:
+
+1. The console/terminal wiring: the harness creates `TERM 5/6/7` and writes via
+   `SerialDataOutput` / `ConnectionManager.OnActiveConsoleOutput`. Whether ESC reaches the
+   terminal SINTRAN treats as its console has not been checked.
+2. `startRunThread: true` (harness line ~201). The ND-5000 run thread is ON and its own
+   comment documents a runaway risk. Not shown to be involved - the CPU parks correctly.
+3. The writable pack `%TEMP%\retrocore-nd5000-octobus\BIGDISK0-L.IMG`, which a concurrent
+   session has previously corrupted. The pack boots, so it is not badly damaged.
+
+The 3022 sibling harness could not be used as an A/B: its tests SKIP in this environment
+(no `[Explicit]`/`[Ignore]` on the test itself, so the skip comes from class/Setup - likely
+a missing image). Establishing a working A/B is worth doing first.
+
+### Next
+
+Fix the login stall before ANY further ND-500 carving. Start by finding which device
+SINTRAN uses as its console in this harness and confirming ESC reaches it - and get the
+3022 harness runnable so there is a known-good comparison.
+
+## 7.6.15 SOLVED: the ND-5000 RUN THREAD kills the ND-100 interactive path (2026-07-28)
+
+### The A/B
+
+The octobus harness setup is byte-for-byte the same as the working 3022 sibling (same
+FX/SMD/HD, same TERM 5/6/7, same console wiring, same boot path) except for the card and
+one thing: `AttachNd5000Cpu(..., startRunThread: true, ...)`. Made that switchable
+(`RETROCORE_ND5000_RUNTHREAD=0`) and re-ran.
+
+```
+startRunThread=TRUE   OUTCOME: ENTER=STALL login=STALL nd-500=STALL status=STALL start-swapper=STALL list=STALL stop-system=STALL
+startRunThread=FALSE  OUTCOME: ENTER=OK    login=OK    nd-500=OK    status=STALL start-swapper=STALL list=OK    stop-system=STALL
+```
+
+**The ND-5000 run thread was killing the ND-100 console.** Nothing about the octobus, the
+ACCP, `CNVWADR`, or the CPU-presence probe was ever wrong.
+
+### With the run thread OFF, SINTRAN initialises the ND-500 correctly
+
+```
+5MSINIT    @ 0o111100 = 0x000F   5CHALIVE=True  5ALBUF=True
+NSAMSON    @ 0o11250  = 0x0004   <- FOUR SAMSON CPUs found
+N5CPU      @ 0o11247  = 0x0001   <- ONE alive
+5FPMAILBOX @ 0o111102 = 0x0851   <- 2129, mailbox ALLOCATED
+5MBBANK    @ 0o4654   = 0x0021   <- 33 = 41B
+ADRZERO    @ 0o52047  = 0x0840   <- 2112
+```
+
+**Section 7.6.8's arithmetic is VINDICATED.** It predicted `5FPMAILBOX >= 2113` and
+`5MBBANK = 2113>>6 = 33 = 41B`. Measured: 2129 and 33. The reasoning was correct; it was
+only ever applied to a system that had never been initialised.
+
+**And `N5CPU = 1` means the CMSYSPAR/CON5IDENT ACK path WORKS** - a CPU really does get
+marked `5ALIVE`. Section 7.6.12's "the ACCP never ACKs WriteSysPar" is doubly dead: wrong
+as a root cause (7.6.13) and wrong on its own terms (here).
+
+### Corrected status of the earlier sections
+
+| Section | Claim | Status now |
+|---|---|---|
+| 7.6.8 | `5MBBANK` should be 41B | **CONFIRMED** - measured 0x21 |
+| 7.6.9 | `CNVWADR` patched out because NSAMSON=0 | DEAD - NSAMSON is 4 |
+| 7.6.11 | `N5CPU=0`, no ND-500 registered | Was true only of an un-driven machine |
+| 7.6.12 | Missing CMSYSPAR ACK is root cause | **DEAD** - N5CPU=1, the ACK works |
+| 7.6.13 | `INZ500` never ran | Correct, and 7.6.15 explains WHY |
+| 7.6.14 | Harness never drives the machine | Correct - cause was the run thread |
+
+### The real tradeoff, and the next problem
+
+`startRunThread: true` exists deliberately (Ronny, 2026-07-21) so the functional `CpuND500`
+actually EXECUTES the swapper over the octobus instead of the mailbox being answered inline.
+So today the harness can have EITHER:
+
+- **run thread ON** - the swapper can execute, but SINTRAN's console is dead, so the ND-500
+  is never initialised and the swapper runs against an uninitialised system. **This is the
+  configuration in which every previous `SWPFATAL 0o201` measurement was taken.**
+- **run thread OFF** - SINTRAN initialises properly (above), `list` works, but the swapper
+  does not execute.
+
+That is almost certainly why the swapper saw a null `SWPINFO`: it was started on a system
+where `5MBBANK` was 0 because `INZ500` had never run. **Re-measure the whole swapper chain
+with the run thread OFF before treating any of it as a real defect.**
+
+Remaining stalls even with the run thread off: `status`, `start-swapper`, `stop-system`
+(`list` is OK). Those are the genuine ND-500 bring-up work and are now reachable.
+
+### NOT ESTABLISHED
+
+WHY the run thread kills the console. It is a second thread driving `CpuND500` alongside the
+ND-100 run loop; whether it starves the ND-100, deadlocks on shared memory, or corrupts
+interrupt state has NOT been determined. Fixing that properly is what would let both
+configurations work at once - do not paper over it by leaving the thread off forever.
+
+## 7.6.16 The NLL install and the octobus bring-up are the SAME blocker (2026-07-28)
+
+Ronny directive: install ND-500 products by attaching the distribution floppy and running the
+real install, NOT by pushing files in with ndtool.
+
+### The 2026-07-19 "floppy crashes boot" note is DEAD
+
+The 3022 harness records that mounting the NLL floppy on fd0 crashes SINTRAN boot (FloppyDMA +
+media, hard host crash) - that crash is why the ndtool workaround was invented. **It does not
+reproduce.** With the 210319 floppy attached on FD0 (`NDBusFloppyDMA`, created as "FX"):
+
+```
+NLL floppy attach FD0 = True (1,310,720 bytes) C:\Users\ronny\Downloads\ND-disk-00042.img
+BOOT SURVIVED with the NLL floppy attached
+DIR INDEX  0 : DISC-75MB-1   UNIT 0 : PACK-ONE
+DIR INDEX 40 : FLOPPY-DISC-1 UNIT 0 : 210319H02-XX-01D
+FILE 0..7 : all eight product files listed
+```
+
+### Mounting it: use the POSITIONAL form
+
+```
+@enter-dir,,f-d-1,0
+```
+
+(Ronny 2026-07-28.) Command and device abbreviate on character prefix, and the directory name
+is SKIPPED as an empty positional so it comes from the floppy's own volume label - which keeps
+it media-independent for the next product floppy.
+
+**Trap:** skipping the name as a POSITIONAL works; answering the interactive `DIRECTORY NAME:`
+prompt with a bare CR does NOT. The prompt form returns to `@` with NO error and enters
+nothing - the failure only surfaces later as `NO SUCH FILE NAME` from LIST-FILES.
+
+Also: `LIST-DIRECTORIES-ENTERED` takes `<directory name> <output file>` (ND-60.050.06 SINTRAN
+III Users Guide 6.2.3). Typed bare it prompts, and swallows the NEXT command line as its
+answer. Use `list-directories-entered,,terminal`.
+
+### Where the install actually stops
+
+Route B (`Installation\ND500-PROGRAM-INSTALL-LINKAGE-LOADER-210319.md` section 5.2), run with
+`RETROCORE_ND5000_RUNTHREAD=0`:
+
+```
+@nd-500                                    OK
+      ND-500/5000 MONITOR  Version J04 88. 6.16 / 88. 8.17
+      ND-5000 timeout:  ACCP was terminated; Microprogram has stopped
+ND-5000: recover-domain (210319H02-XX-01D:FLOPPY-USER)LINKAGE-LOAD-H02
+      > Loading Control Store
+      > Loading Swapper                    <- STALL
+```
+
+`RECOVER-DOMAIN` does not fail. It reaches CS load and then stalls **loading the swapper**.
+
+### Why this matters: it is the run-thread conflict, again
+
+Installing the loader needs SINTRAN INITIALISED and the swapper EXECUTING at the same time.
+Section 7.6.15 established those are currently mutually exclusive:
+
+- run thread ON - the swapper can execute, but ND-100 terminal INPUT is dead, so
+  `recover-domain` can never be typed.
+- run thread OFF - the console works and SINTRAN initialises, but no ND-500 instruction
+  executes, so "Loading Swapper" can never complete.
+
+**One fix unblocks both the octobus bring-up and every ND-500 product install.** This is now
+the single highest-value item.
+
+### Narrowing on that fix
+
+With the run thread ON, console **OUTPUT works** - the boot banner, `SINTRAN III RUNNING` and
+`ERS3WD version B00 has started` all appear. Only INPUT fails. So it is NOT CPU starvation and
+NOT lock contention:
+
+- `MpmWindow.SyncRoot` is taken only for semaphore test-and-set/release, never for ordinary
+  MPM reads or writes, so plain ND-100 memory access cannot contend on it.
+- The CPU was PARKED (`PC=0 stopMode=WAIT`), not running away.
+
+**HYPOTHESIS, NOT MEASURED:** the terminal input path is interrupt-driven on level 12, the same
+level the octobus station uses for idents and doorbells, and
+`ServiceMailboxOnClock = !startRunThread` (`ND100Machine.ND5000.cs:160`) moves that work
+between the ND-100 clock and the CPU thread. Instrument level-12 delivery and terminal input in
+BOTH configurations and compare - do not act on this until measured.
+
+Also new, and unexplained: with the run thread off the monitor reports
+`ND-5000 timeout: ACCP was terminated; Microprogram has stopped` on entry, BEFORE any command.
+
+## 7.6.17 The swapper is never ASKED to run - SINTRAN livelocks on the micro-version check (2026-07-28)
+
+With SINTRAN properly initialised (`N5CPU=1`, `5MBBANK=41B`, `5FPMAILBOX=0x851`) and the run
+thread ON, `start-swapper` still stalls. The reason is now measured, and it is NOT the swapper.
+
+### The CPU is never activated
+
+After `start-swapper`:
+
+```
+ND-5000 PC=0x00000000 stopMode=WAIT      <- never left WAIT
+PSTP=0x0003A000  CTXBASE=0x0002A000      <- but SINTRAN DID build these
+context block @0x0002A100: +0x00 P = 0x08000004   <- entry point present
+PST: 3 mapped segments (PSN 1,2,3), 61 zero
+```
+
+SINTRAN prepares the context correctly and then never activates. **No `3START` (MICFU 0x13)
+is ever sent** - the whole servicer MICFU trace is only `3RMICV`, `CACHE`, `PHYSWR`.
+
+### It is a LIVELOCK, not a hang
+
+The doorbell walk shows the same two messages cycling forever:
+
+```
+activation#11  @0x00428E30 N5STA=0x0001 MICFU=0x0019   MSGN5,  PHYSWR - needs service
+activation#12  @0x00428E30 N5STA=0x0003 MICFU=0x0019   ANSWE - we answered it
+activation#13  @0x00428E30 N5STA=0x0001 MICFU=0x0019   posted AGAIN
+...20+ activations, alternating with @0x0042C130 MICFU=0x0001 (3RMICV)
+```
+
+So our servicer IS answering (state 1 -> 3) and SINTRAN keeps re-posting. It is dissatisfied
+with the answer and retries indefinitely.
+
+### What SINTRAN believes
+
+Even with the run thread ON, the monitor banner says:
+
+```
+ND-500/5000 MONITOR  Version J04 88. 6.16 / 88. 8.17
+ND-5000 timeout:      ACCP was terminated; Microprogram has stopped
+```
+
+We report `MicroVersion=0x2E9A`, `CpuParameter=0x03E1`.
+
+**LEAD (not yet proven):** SINTRAN reads the micro version via `3RMICV`, judges the
+microprogram wrong or stopped, re-loads and re-checks, and therefore never reaches the
+activation step. That is the long-standing "Wrong microprogram" thread, and it now has a
+concrete symptom chain attached to it.
+
+### Ruled OUT by measurement, do not re-investigate
+
+- **Mailbox address is CORRECT.** `5FPMAILBOX = 0x851` (2129 pages); `0x851 << 11 = 0x428800`
+  = the self-discovered header EXACTLY; `+ cpu*256 = 0x428900` = the discovered ext block;
+  `+ 0x0A = 0x42890A` = X5ACT. Activation is not aimed at the wrong place.
+  (Two bugs previously hid this: the carved check used RAW PHYSICAL reads of resident symbols,
+  which always return 0, AND it added `MpmStart` on top of an already-absolute page address.)
+- **The link works.** 914 station->ND-100 frames were read by SINTRAN in the fullflow run.
+- **PHYSWR is answered.** The servicer performs the copy and posts the answer plus the GIVEINT
+  ring insert; the state transition 1 -> 3 is observed live.
+- **IO-device Clock() exceptions are NOT involved.** Isolation was added and measured to catch
+  ZERO faults, and an A/B with isolation disabled behaves identically.
+
+### Next
+
+Find what `3RMICV` must return for SINTRAN to accept the microprogram, and compare against
+`MicroVersion=0x2E9A` / `CpuParameter=0x03E1`. Until that check passes, nothing downstream -
+swapper, domains, NLL install - can proceed.
+
+### 7.6.17a CORRECTION: 3RMICV is the WATCHDOG, not a version-acceptance check
+
+Section 7.6.17 named `MicroVersion=0x2E9A` / `CpuParameter=0x03E1` as the prime suspect. That
+was wrong about the mechanism. `MP-P2-N500.NPL:1209` (`LCLTSB`) shows `3RMICV` is stamped into
+the **WATCHDOG** buffer and sent WITH A TIMER ARMED:
+
+```
+136644   X:=WATCHDOG
+136645   CALL XTER500; 0/\0
+136647   3RMICV; T:=5MBBANK; *MICFU@3 STATX
+136652   MSGN500; CALL WN5STATUS
+136654   CALL ITO500XQ; X=:TMRXQ; LTTMR=:TMR      <- watchdog timer
+136660   CALL XACT500
+```
+
+This matches the earlier carve (`CARVE-ANSWER-3022-FLAG-POLL-RING-2026-07-19.md`): the
+watchdog buffer is permanently stamped `MICFU=3RMICV=1`.
+
+So the repeated `3RMICV` in the doorbell walk is the **watchdog retrying**, and
+`ND-5000 timeout: ACCP was terminated; Microprogram has stopped` is that TIMER EXPIRING - not
+a rejected micro version. The micro-version values are NOT implicated by this evidence.
+
+**Suspect is now the watchdog answer path** (`XTER500` / `ITO500XQ` / `XACT500` and what
+SINTRAN requires to consider the watchdog answered in time), not `3RMICV`'s payload.
+
+## 7.6.18 ROOT CAUSE: 5ALIVE is never set on a SAMSON machine (carved 2026-07-28)
+
+Status: VERIFIED from NPL source. Supersedes the "superseded" note on 7.6.12 - see the
+retraction below.
+
+### The 3START emit path
+
+`3START` is produced in exactly ONE place, `MP-P2-N500.NPL:428` `SWMESS:`:
+
+    SWMESS:                                        % dispatch entry 05 = 3SWMESS
+       IF 5INITFLAG BIT BRESPLACE GO FAR EEIRESPL
+       T:=5MBBANK; *SWFUN@3 LDATX                  % A := X.SWFUNC
+       IF A=MSWSTART THEN                          % Start swapper
+          ...
+          3START; *MICFU@3 STATX                   % line 436
+
+`SWMESS` is entry 5 of the `N5XXC` dispatch table (`MP-P2-N500.NPL:393-409`), reached only
+from `N500C` - the handler that runs when an ND-100 process issues an ND-500 monitor call.
+So `3START` is a TRANSLATION, not a decision: a process asks with `MICFU=3SWMESS` +
+`SWFUNC=MSWSTART`, and the kernel rewrites it to `MICFU=3START` and queues it with `ITO500XQ`.
+
+`MSWSTART` is TESTED in one place and SET in zero - across all 45 NPL files AND the full
+3.9MB `s3vs-4.symb`. The producer is userland (the ND-500 Monitor subsystem), not the kernel.
+
+### The gate that stops it
+
+`N500C:362`:  `IF CPUAVAILABLE NBIT 5ALIVE GO FAR EN5TIMOUT`
+
+Symbols (L07 SYMBOL-1-LIST): `5ALIV=000015` (bit 13 = 0x2000), `CPUAV=000027` (a FIELD OFFSET
+inside the per-CPU descriptor `S5CPUDF`, confirmed by `5P-P2-MON60.NPL:1857`).
+
+Measured on the harness: `CPUAVAILABLE = 0x0003` = SAMSON type, bit 13 CLEAR.
+
+### Why it is clear - the boot scan does not set it for SAMSON
+
+`PH-P2-OPPSTART.NPL:3908` `CH5CPUPRESENT`, the boot-time CPU scan, has two branches:
+
+    IF A=0 THEN                          % old ND-500: IOX to HDEV+RSTA5 answered
+       CPUAVAILABLE/\140000\/OLD500
+       A BONE 5ALIVE                     % alive IMMEDIATELY
+    ...
+       IF A=0 THEN                       % Octobus present - "assumes Samson"
+          ...ASTATION\/COMD=:5STATION
+          ...send CMMACLE + CMACONT (master-clear + start ACCP selftest)...
+          CPUAVAILABLE/\140000\/SAMSON   % 5ALIVE deliberately NOT set
+
+An OLD500 is alive by inspection. A SAMSON must PROVE it, by answering.
+
+### The only writer of 5ALIVE
+
+`MP-P2-N500.NPL:3459` `5OMBREAD`, reaching line 3470:
+
+    IF "LMFIELD".MOCTSTATION>=FN5DEST AND A<=LN5DEST THEN      % gate B: station 70B..77B
+       X.ETYPE=:D SHZ -10=:CSTS; A:=D/\377=:CMICP
+       X.MOCTSTATION; CALL FAR GN5CPUDF; GO I5OMBR             % gate C: silent skip
+       IF CSTS=MFACK OR A=MFNACK THEN                          % gate D
+          CPUAVAILABLE BONE 5ALIVE=:CPUAVAILABLE               % line 3470
+
+Both senders document this in their own headers: `MFPREPARE:3581` and `CON5IDENT:3609` each
+say "Ack/Nack answer is handled by 5OMBREAD". `CON5IDENT:3606` states the intent outright:
+"Send 'alive' message to the ACCP to verify that it's present".
+
+`GN5CPUDF` (`:3545`) matches the reply's source station against each descriptor's `5STATION`
+field, and `5STATION` was set at boot by `PH-P2-OPPSTART.NPL:3929` as `ASTATION\/COMD` - the
+hardware station readback OR the per-CPU index. Not found = plain `EXIT` = `GO I5OMBR`, which
+looks EXACTLY like "no reply arrived". This is the quiet failure mode.
+
+### Consequence
+
+With `5ALIVE` clear, `N500C` bails at its first line. `SWMESS` is unreachable no matter who
+asks, so `3START` can never be emitted. The clear+verify of ND-500 physical 0x96..0xC4
+followed by watchdogs forever is `RP-P2-N500.NPL:384` (`3RMICV; ... X:=WATCHDOG`) doing
+exactly what it should when there is no work - not a stall.
+
+This also means 7.6.16 was right that the swapper blocker and the NLL install blocker are the
+same item, but the shared cause is one level lower than assumed: neither can proceed until
+5ALIVE is set.
+
+### RETRACTION of the 7.6.12 correction
+
+I previously marked 7.6.12 ("missing CMSYSPAR ACK is the root cause") as SUPERSEDED, arguing
+that `N5CPU=1` proved the ACK path worked. That reasoning was wrong: `N5CPU` counts the CPUs
+the BOOT SCAN found, and says nothing about aliveness. 7.6.12 was correct. The supersede note
+on 7.6.12 is withdrawn.
+
+### Emulator side - what is and is not implemented
+
+There is exactly one ND-500-family station class, `OctobusND5000Station.cs:61` (misleading
+name; it IS the production station, it takes a `CpuND500`). It DOES implement the presence
+ACK: `command == 0x0E` (CMSYSPAR = 016B) calls `SendAccpMessack(message[4])` at line 1794,
+and `SendAccpMessack:1981` sends a 2-byte all-zero payload with `sourceOmd: 3` (OMDACCP).
+Payload[0]=0 satisfies gate D (MFACK).
+
+So the ACK is written but is not arriving in a form `5OMBREAD` accepts. Four candidate gates,
+in code order - UNVERIFIED which one:
+
+  A. the reply never leaves the station (handler not reached at all)
+  B. source station outside FN5DEST..LN5DEST (70B..77B)
+  C. `GN5CPUDF` finds no descriptor whose 5STATION matches - SILENT skip
+  D. `ETYPE>>8 != MFACK(0)` and `ETYPE&0xFF != MFNACK(377B)`
+
+Observation, NOT yet linked to the above: nothing in the production machine registers an
+octobus station at 2-7, so there is no MFbus controller. `MFPREPARE` targets the MF
+controller while `CON5IDENT` targets the ACCP - two different destinations. Both are
+"Activated from level 1 (5pit)", so they may be independent activations; whether the missing
+MF controller blocks the ACCP path is NOT determinable from the source and must be measured.
+The real ACCP firmware selftest capture also reports "MFbus controller not found at Octobus
+stations 2-7", so its absence may well be normal.
+
+### Next measurement
+
+One instrumented run logging, for every octobus multibyte the ND-100 station receives:
+source station, OMD, ETYPE, and which of gates A-D it dies at. That single verdict names the
+fix. Probe must capture values where they are already in hand - re-reading memory from inside
+a servicer callback has crashed the test host twice.
+
+## 7.6.19 RETRACTION of 7.6.18 - 5ALIVE IS set, and 3START IS sent (measured 2026-07-28)
+
+Status: MEASURED. Section 7.6.18's ROOT CAUSE claim is WITHDRAWN. Its source carve is kept
+(see "what survives" below), but the conclusion built on it was wrong on BOTH premises.
+
+### Premise 1 was wrong: 5ALIVE is set
+
+Harness run, run thread OFF, per-CPU descriptor scan:
+
+    CPU0 df@0o52222 CPUAVAILABLE=0x2003 type=3 (SAMSON) alive=True
+    CPU1 df@0o52270 CPUAVAILABLE=0x0003 type=3 (SAMSON) alive=False
+    CPU2 df@0o52336 CPUAVAILABLE=0x0003 type=3 (SAMSON) alive=False
+    CPU3 df@0o52404 CPUAVAILABLE=0x0003 type=3 (SAMSON) alive=False
+    5MSINIT@0o111100=0x000F 5CHALIVE=True 5ALBUF=True
+      -> OK: 4 SAMSON CPU(s), 1 alive -> ND-500 subsystem initialised.
+
+CPU0 has bit 13 SET. The ACCP presence ACK works. The "CPUAVAILABLE=0x0003" figure I built
+7.6.18 on was read from CPU1-3 - the three PHANTOM CPUs that do not exist in this machine -
+and I generalised it to the whole system without checking which descriptor it came from.
+`N500C:362` PASSES. It was never the gate.
+
+### Premise 2 was wrong: 3START is emitted, 63 times
+
+MICFU codes counted across the run:
+
+    119 x 0x0000    92 x 0x0001 (3RMICV watchdog)    63 x 0x0013 (3START)
+     62 x 0x0005 (3SWMESS)      26 x 0x0019           24 x 0x0018     1 x 0x000A
+
+`3SWMESS` (05) arrives 62 times and `3START` (0x13) is produced 63 times - exactly the
+translation `SWMESS` (`MP-P2-N500.NPL:436`) is supposed to perform. The ND-500 Monitor DOES
+issue the request and SINTRAN DOES rewrite and queue it. `start-swapper` now reports OK.
+
+### The actual state
+
+    OUTCOME: ENTER=OK login=OK nd-500=OK status=STALL start-swapper=OK list=STALL stop-system=STALL
+    [after start-swapper] ND-5000 st=56 PC=0x00000000 stopMode=WAIT
+      PSTP=0x0003A000 CTXBASE=0x0002A000 PS=0 CED=0 CAD=0 THA=0
+    context block @0x0002A100: P=0x08000004, ST1=0x00000002, PS=0x48480003, 22 of 25 fields zero
+    physical segment table: PSN 1,2,3 mapped, 61 unmapped
+
+So the blocker is NOT "nobody asks" and NOT "the gate rejects it". SINTRAN asks 63 times, the
+servicer receives MICFU 0x13, and the ND-500 CPU never leaves `stopMode=WAIT` with `PC=0`.
+
+**The bug is on OUR side, in the servicer's handling of MICFU 0x13 (3START): it does not
+start the CPU.** That is the next thing to look at.
+
+### What survives from 7.6.18
+
+The source carve is still correct and still useful; only the conclusion was wrong:
+ - `SWMESS` (`MP-P2-N500.NPL:428`) is the ONLY producer of `3START`, dispatch entry 05.
+ - `MSWSTART` is tested once and set nowhere in the kernel - the requester is the userland
+   ND-500 Monitor. (Confirmed empirically: the requests DO arrive.)
+ - The `N500C` gate list (5ALIVE / MSGN500-or-WAITING / FERROR / BRESPLACE) is accurate.
+ - The 5ALIVE mechanism (SAMSON must earn it via 5OMBREAD; `GN5CPUDF` fails SILENTLY) is
+   accurate and worth keeping - it just is not what is broken here.
+
+### Lesson
+
+Two published root causes in a row died on the same mistake: reading a value without
+establishing WHICH instance it came from. 7.6.12 died on a raw-physical read that returned a
+zero indistinguishable from "unset"; 7.6.18 died on a per-CPU field read from the wrong CPU.
+Before building on any measurement, state which descriptor/page/CPU it was taken from.
+
+## 7.6.20 The SINTRAN side is COMPLETE - the only blocker is the run-thread/console race
+
+Status: MEASURED, same run as 7.6.19.
+
+### The 3START message is queued AND taken
+
+Mailbox walk entries for the swapper start message (all at ND-100 byte 0x00428D30):
+
+      1 x  N5STA=0x0001 MICFU=0x0013 link=0xFFFFFFFF   queued, ready, end of chain
+     62 x  N5STA=0x0002 MICFU=0x0013 link=0x00008E30   WAITING, from then on
+
+The `1 -> 2` transition is the servicer's documented take-path
+(`Nd500MicrocodeServicer.cs:705-786`): "when a ProcessHost takes the start, the message stays
+WAITING(2) and the process's next STOP answers it (AnswerProcessStop) - the microcode's
+answer-in-place model". The message never leaves WAITING because the process never stops, and
+it never stops because this run had `startRunThread=False` - the ND-500 CPU had no thread.
+
+Two distinct MICFU printers exist and must not be conflated:
+ - `MICFU=0x%04X` (4 digits) = `OctobusND5000Station.cs:1164`, a MAILBOX WALK dump (what is
+   sitting in the queue).
+ - `MICFU=0x%02X` (2 digits) = the harness `OnServicerMessage` callback
+   (`Nd100SintranNd5000OctobusBootHarnessTests.cs:408`) = what the servicer PROCESSED.
+Serviced this run: 0x01 (x90, watchdog), 0x18 (x12), 0x19 (x13), 0x0A (x1). NOT 0x13, NOT
+0x05 - which is why a naive count made it look like 3START was never handled.
+
+### UNRECONCILED
+
+The `START-SWPINFO` log in that same handler is NOT inside `#if DEBUG_DETAIL`, yet produced
+zero lines. Either `host.ServicerLog` does not reach the captured stream, or the start was
+taken somewhere other than this handler. The state transition and the missing log DISAGREE
+and this has NOT been resolved. Do not build on "the handler ran" until it is.
+
+### Conclusion: the SINTRAN half is done
+
+Verified working end to end this run: 5ALIVE set (CPU0 = 0x2003), 5MSINIT=0x000F (INZ500
+ran), the ND-500 Monitor issues 3SWMESS (62x), SWMESS translates it to 3START, the message is
+queued and taken, PSTP/CTXBASE/context block all built (P=0x08000004, 3 PST segments mapped).
+`start-swapper` reports OK.
+
+`PC=0 stopMode=WAIT` is NOT a failure - it is the direct consequence of the knob we set.
+
+### The one remaining blocker
+
+`RETROCORE_ND5000_RUNTHREAD`:
+  ON  -> the ND-500 CPU executes, but the run thread kills the ND-100 interactive console,
+         login stalls at the first ESC, no MON 60B, INZ500 never runs, SINTRAN uninitialised.
+  OFF -> SINTRAN initialises fully (everything above), but nothing executes.
+
+Both halves work. They cannot currently run at the same time. This race - previously recorded
+as "masked, not fixed" and demoted to a robustness note after the Clock()-exception A/B came
+back negative (0 faults caught, behaviour identical with isolation disabled) - is now THE
+critical path. Nothing else blocks the swapper.
+
+## 7.6.20a RESOLVED: the missing START-SWPINFO line was a logging-level artefact
+
+The "UNRECONCILED" item in 7.6.20 is closed. `Nd500MicrocodeServicer` emits that line via
+`host.ServicerLog(...)`; `OctobusND5000Station.cs:1258` implements it as
+`void IServicerHost.ServicerLog(string message) => Log(message)`, and `Log` (`:375`) calls
+`Logger.Log(..., Logger.LogLevel.Device)` - device-level tracing, which the harness does not
+enable. So the line was never emitted regardless of whether the handler ran.
+
+It is NOT evidence that the start handler was skipped. The `N5STA` 1 -> 2 transition on the
+0x00428D30 message stands unopposed: the start WAS taken. 7.6.20's conclusion is unaffected.
+
+Note for future probes: `ServicerLog` is invisible at default log level. Use a channel the
+harness actually captures (e.g. the `OnServicerMessage` callback, or a public bounded list
+like `Servicer.CopyLog`) when a diagnostic must show up in a normal run.
+
+## 7.6.21 MILESTONE: the swapper RUNS - run thread ON, SINTRAN initialised, no faults
+
+Status: MEASURED 2026-07-28, `RETROCORE_ND5000_RUNTHREAD=1`.
+
+    ----- ND-5000 attach: startRunThread=True -----
+    OUTCOME: ENTER=OK login=OK nd-500=OK status=STALL start-swapper=OK list=OK stop-system=STALL
+
+ND-5000 PC across the run:
+
+    [after start-swapper]           PC=0x00000000 stopMode=WAIT
+    [after status]                  PC=0x00000000 stopMode=WAIT
+    [after process-status]          PC=0x00000000 stopMode=WAIT   (first)
+    [after process-status]          PC=0x08000687 stopMode=WAIT   (later)
+    [after who-is-on]               PC=0x08000687 stopMode=WAIT
+    [after list-active-processes]   PC=0x08000687 stopMode=WAIT
+    [after list-domain]             PC=0x08000687 stopMode=WAIT
+    [after list-standard-domains]   PC=0x08000687 stopMode=WAIT
+    [after version]                 PC=0x08000687 stopMode=WAIT
+
+**The swapper executes.** It enters at the context-block P=0x08000004 and advances to
+0x08000687 (~1667 bytes of code), then parks in WAIT. Across all 12 state dumps:
+
+    lastPageFault=(none)  lastDoubleFault=(none)  lastProtectViolation=(none)   x12
+
+No page faults, no double faults, no protect violations, no SWPFATAL, no runtime exceptions
+(the 10 "Exception" grep hits are all CS8618 build warnings). Clean execution.
+
+Serviced MICFU this run: 0x01 x30 (watchdog), 0x18 x12, 0x19 x13, 0x0A x1.
+
+### 7.6.20's "one remaining blocker" is WITHDRAWN
+
+I had just promoted "the run thread kills the ND-100 console" to THE critical path. It does
+not reproduce. With the run thread ON: ENTER=OK, login=OK, nd-500=OK, and `list` is OK where
+it was STALL with the thread OFF. The console-death behaviour recorded earlier in this
+session is GONE.
+
+I do NOT know why. Candidates, none verified: other work landed in the repo between the
+observations; the original stall was a different fault misattributed to the run thread; or it
+is genuinely intermittent and this run got lucky. **A single passing run does not prove a
+race is fixed** - this needs repeat runs before anyone calls it dead.
+
+### What is actually left
+
+    status=STALL        stop-system=STALL
+
+Both are ND-500 Monitor commands that do not complete. Everything else in the chain works:
+5ALIVE set, INZ500 run, 3SWMESS -> 3START translation, message queued and taken, swapper
+entered and executing without faults.
+
+### Running score of premises I published and then had to withdraw this session
+
+  1. "missing CMSYSPAR ACK is root cause"  (7.6.12) - withdrawn, then REINSTATED, then
+     withdrawn again on measurement. The ACK works.
+  2. "5ALIVE is clear, that is the gate"   (7.6.18) - withdrawn. Read from the wrong CPU
+     descriptor (CPU1-3 are phantoms; CPU0 = 0x2003, alive).
+  3. "3START is never sent"                (7.6.18) - withdrawn. Sent 63 times.
+  4. "the run thread kills the console"    (7.6.20) - withdrawn. Does not reproduce.
+
+Every one of these died on a measurement I could have taken first. The pattern is carving
+ahead of measuring. Measure, THEN carve to explain the measurement.
+
+## 7.6.22 CORRECTION to 7.6.21: the run is NOT clean - "ND-500(0) CPU locked"
+
+Status: MEASURED, same run-thread-ON run as 7.6.21.
+
+7.6.21 called the run clean on the strength of "no page faults, no double faults, no protect
+violations, no exceptions". That was incomplete - I had not read the console transcript. It
+contains, twice (lines 6041 and 6056, wrapped so the leading "Fat" is on the previous line):
+
+    al system error - ND-500(0) CPU locked
+
+i.e. **"Fatal system error - ND-500(0) CPU locked"**. The swapper runs, but SINTRAN then
+declares the CPU locked. The absence of CPU-level faults is real, but it does NOT mean the
+run succeeded.
+
+### What the evidence supports
+
+  - The swapper takes the start: `N5STA` 1 -> 2 (WAITING) on the 0x00428D30 message.
+  - It executes from P=0x08000004 to PC=0x08000687 and parks in `stopMode=WAIT`.
+  - Per the servicer contract, a taken start stays WAITING until the process STOPS and
+    answers (`AnswerProcessStop`).
+  - The swapper parks WITHOUT answering. The ND-500 Monitor times out and reports the CPU
+    locked.
+
+So the swapper is BLOCKED WAITING on something rather than completing its work. That is the
+real remaining defect. Where exactly it parks (PC=0x08000687) is the next thing to identify.
+
+The "CPU locked" string is NOT in the NPL kernel sources - consistent with the earlier finding
+that the ND-500 Monitor is a USERLAND subsystem (`MSWSTART` is tested in the kernel and set
+nowhere in it). Its message table lives in the Monitor binary, so the trigger condition must
+be found by other means than a kernel carve.
+
+### On the two OUTCOME flags
+
+`status=STALL` and `stop-system=STALL` still need care. The stop-confirmation text IS present
+in the transcript (line 6486: "WAIT instruction ran with IONI off. CPU stopped after the WAIT
+instruction. RUN indicator is off." - all three markers the harness waits for), and
+`@stop-system` is issued TWICE (6484, 6600). That pattern suggests the harness's wait window
+misses text that did arrive. I nearly published "both remaining STALLs are harness artefacts"
+on that basis - and it would have been wrong to do so while the CPU-locked error was sitting
+unread in the same transcript. The flags are NOT yet explained; the CPU-locked fault has to be
+understood first, because it plausibly causes both.
+
+`list-active-processes` - which the harness comments call "THE success metric" - does pass.
+
+---
+
+## 7.7 2026-07-29 - THE HARNESS WAS LYING: test contamination, and the real SWPFATAL 201B
+
+### 7.7.1 Root cause of every STALL flag: NUnit fixture reuse (FIXED)
+
+NUnit reuses ONE fixture instance for all tests in a class, so harness INSTANCE FIELDS survive
+into the next test. `Pump()` keys off one of them:
+
+    uint pc = _pumpedOnce ? 0u : (uint)_bootAddress;
+
+so the SECOND test in a run gets a brand-new machine that is NEVER pumped at `_bootAddress`.
+`TearDown` also never stopped the machine, never unsubscribed `Servicer.MessageProcessed`, and
+never cleared the console buffer.
+
+MEASURED effect: with `Boot_To_SintranRunning_*` running FIRST, the next test's ND-100 console
+can PRINT but cannot ACCEPT KEYSTROKES - login stalls at the ESC and every later step reports
+STALL. The SAME test run ALONE passes. This matches the documented ND-100 design: terminal
+OUTPUT is synchronous with the IOX write, terminal INPUT is delivered only by
+`NDBusTerminal.Clock()` raising the level-12 interrupt.
+
+**Everything measured through a paired run is INVALID.** That includes the run-thread theory of
+7.6.20 and the "swapper runs clean" milestone of 7.6.21.
+
+Bisect that established it (clean `HEAD` worktree, one file group at a time): NO source change
+breaks the console. Not `CpuND100.cs`/`ND100Machine.cs`, not the console-history refactor
+(`MachineBase`/`HistoryBufferedConsole`/`TerminalBase`), not the NDBUS/servicer files, not the
+new untracked sources. The 3022 harness - which has NO octobus card at all - fails identically,
+which is what proved it was never an octobus or ND-500 problem.
+
+Fixed in `TearDown` of BOTH harnesses (stop the CPU, unsubscribe, null the refs, reset
+`_pumpedOnce`, clear the console).
+
+Two incidental findings: `HEAD` (b7f45162b) does NOT compile - `OctobusND5000Station.cs:2036`
+calls `MpmWindow.ReadDouble`, which exists only in the uncommitted working tree. And every
+harness timeout is HOST WALL-CLOCK, so "STALL" conflates "never happened" with "not within N
+seconds"; `RETROCORE_HARNESS_TIMEOUT_SCALE` (default 1.0) now exists to separate them. At scale
+4 the contaminated console still produced nothing, which is how "dead, not slow" was settled.
+
+### 7.7.2 The REAL blocker: ERROR CODE 201B = SWPFATAL, and why
+
+With isolation fixed, the console reports what the machine actually thinks:
+
+    FATAL   * 21B:77B * ... * ND-500(0) Monitor Internal
+     *** FATAL SYSTEM ERROR ***
+    ND-500(0) error:      Fatal error from Swapper
+    ERROR CODE:         201B
+
+The mechanism is carved, not guessed:
+
+- `MP-P2-N500.NPL:808-813` - for `MICFU = 3START/3MONCO/3TRACO/3WMONCO` with `STOPR = MOCALL`,
+  SINTRAN calls `MCHANDLE`.
+- `MP-P2-N500.NPL:1273` - `SYMBOL N5SWAP = 377` "MON.CALL USED BY THE SWAPPER". The swapper's
+  own monitor call is dispatched through `SWPDECODER`.
+- `MP-P2-N500.NPL:912-919` - `SWPDECODER` switches on the message's `SWPFU` field:
+
+        T:=5MBBANK; *AAX SWPFU; LDATX          % Swap-function
+        IF A >> SWFMAX GO FAR ESWPFATAL
+        A GOSW  FAR ESWPFATAL, LNEWSWAP, FAR LSWPAGE, FAR LPRSUSPEND,
+                FAR LALLOPAGE, FAR LDATREADY, FAR LCLTSB;
+
+- `MP-P2-N500.NPL:438` - `SWMESS` writes `SWACTIVE` into `SWPFU` when it starts the swapper.
+- Symbol values (from `SYMBOLS/`, 5-char truncation, all three versions agree unless noted):
+  `SWACTIVE = 0`, `SWPFU = 0o101`, `SWFMAX = 6` (L07/K03; M06 has 7), `MSWSTART = 7`.
+
+So **GOSW index 0 IS the fatal slot**. Answering the swapper's message while `SWPFU` is still
+the 0 that `SWMESS` wrote produces `ESWPFATAL` = "Fatal error from Swapper" exactly. A real
+swapper must set a swap function (1..6) before its MON 377B.
+
+`who-is-on` answers normally, so the ND-500 Monitor itself is healthy - it is specifically the
+swapper's reply that is malformed. The servicer's own instrumentation already reports
+`SWMSG.SWPINFO = 0` at start ("no work posted"), and its comment names the missing piece: the
+idle-on-no-work gate.
+
+### 7.7.3 What now blocks measurement: run-to-run nondeterminism
+
+Same binary, same command line, isolated single test, `RETROCORE_ND5000_RUNTHREAD=1`:
+
+- Run A: `start-swapper` OK, `PC` advances to `0x08000687` (`PS=3`), fatal 201B printed, test
+  PASSES in 4.2 min.
+- Run B: `start-swapper` STALL, `PC = 0x00000000`, NO start message processed at all
+  (`startTaken=False`, `startCtx=0`), test host CRASHES.
+
+The crash produces no managed exception, no `octobus-runthread-crash.txt` breadcrumb and no
+dump even under `--blame-crash` - consistent with a hard death (stack overflow / access
+violation). It is INTERMITTENT, not deterministic: the identical command line has both passed
+and crashed.
+
+`RETROCORE_ND5000_RUNTHREAD=0` cannot be used to dodge this: `DrainDoorbells` is wired ONLY
+when the run thread starts, so with the thread off NO mailbox message is ever processed
+(`startCtx=0` for the whole run). The thread is required for any swapper measurement.
+
+New servicer diagnostics for this (all read-only): `LastStartX5Cpu`, `LastStartContextAddress`,
+`LastStartTaken`, `LastAnswerMonNumber`, `LastAnswerSwpfu`, surfaced in the harness state line
+as `startCtx / startX5CPU / startTaken / ansMON / ansSWPFU`.
+
+**Next:** root-cause the nondeterminism (start message sometimes never delivered/taken) before
+implementing the idle-on-no-work gate - an intermittent harness cannot validate the fix.
+
+### 7.7.4 The swapper is REACHED and its fatal is its OWN - error 201B, from an EMPTY list
+
+Full chain verified working (isolated run, `RETROCORE_ND5000_RUNTHREAD=1`):
+
+    startSeen=1 startMicfu=23B swpInfo=0x00008E30 swMsg=0x00428D30
+    startCtx=0x0002A100 startX5CPU=0 startTaken=True
+    ansMON=377B ansSWPFU=2047B ansP=0x08000687 ansArgc=2
+    ansArg0=0x427(=2047B) ansArg1=0x81(=201B) PS=3
+
+So SINTRAN posts 3START, the servicer TAKES it, the context slot 0x0002A100 is correct, REAL
+WORK is attached, the swapper runs to P=0x08000687 and calls MON 377B (N5SWAP) passing
+(SWPFATAL=2047B, 201B). `SWPDECODER` then rejects 2047B > SWFMAX(6) and prints ERROR CODE 201B.
+Nothing between SINTRAN and the swapper is wrong: the swapper decides it has failed.
+
+TWO EARLIER CLAIMS DIED HERE, both mine:
+ - "SWPINFO = 0, no work posted" was a BYTE-ORDER BUG IN THE DIAGNOSTIC. The ND-100 stores a
+   32-bit value HIGH WORD FIRST; the halves were composed backwards, so a valid 0x00008E30
+   (the message at byte 0x00428E30, visible in the MICFU trace) read back as 0x8E300000 and the
+   "no work posted" test fired on it. FIXED. The idle-on-no-work gate is therefore NOT the fix.
+ - The context-slot mismatch theory (`ctx = base + 0x100 + 0x100*X5CPU` resolving to the wrong
+   256-byte block) is DEAD: X5CPU is 0, ctx is 0x0002A100, and that IS where SINTRAN staged
+   P=0x08000004.
+
+**201B is UNDOCUMENTED.** The authoritative table - ND-05.017.01 Appendix A, "Sub-codes for
+Error Message: Fatal Error from Swapper (2047B)" - runs 1B..107B and has no 200-range entry.
+Field bulletins prove such codes exist in the wild (ND-896058-2-EN:1670 documents 207B
+"Pagefault in Swapper"), so 201B is a real code from a later swapper revision. The manuals
+cannot resolve it; only carving the swapper binary can, and 7.6.2/7.6.3 already did:
+
+    the swapper reads a list head from its DSEG at VA 0x08026214 (= 0x24, a PHYSICAL pointer),
+    walks the list following the link at +4, counts elements whose HALFWORD AT +8 is 1,
+    and calls SWPFATAL with 0o201 when the count is ZERO.
+
+NEW MEASUREMENT (2026-07-29): that whole region is EMPTY. ND-500 physical 0 maps to the MPM
+window (ADRZERO), so PA 0x24 is ND-100 byte 0x00420024, and every word from PA 0x20 to PA 0x40
+reads back as zero:
+
+    201B-list @PA 0x0024 (mpm 0x00420024): 0000 0000 | +4 link=0000,0000 | +8 flag=0000
+    (identical for 0x20, 0x28, 0x2C, 0x30, 0x34, 0x38, 0x3C, 0x40)
+
+So this is NOT "the flag has the wrong value" - NOTHING EVER POPULATES THE LIST. The count is
+zero because the table is zero.
+
+**Next, and it is a narrow question:** who is supposed to fill that table, and when? Two
+candidates, neither verified: (a) SINTRAN publishes the memory-part configuration into low MPM
+(the machine's MEMORY-CONFIGURATION reports exactly one part, flagged available to N500P/N500D,
+which would match a scan counting parts whose flag is 1); or (b) the head word 0x24 in the
+swapper's DSEG is STARTUP DATA that SINTRAN is supposed to patch before starting the swapper
+and we never write - note the manual's sibling sub-code 46B is "INIT SWAPPER - Illegal startup
+data". Distinguish them by finding the writer, not by inventing a value: per the
+no-hardcoding rule, filling the table with a plausible constant would hide the real gap.
+
+### 7.7.5 Nobody writes the 0o201 list - confirmed from both ends
+
+CONFIRMED in matched runs (swapper actually started, not just the harness reaching the prompt):
+
+    startSeen=1 startTaken=True swpInfo=0x00008E30 startCtx=0x0002A100
+    201B-list @PA 0x0024 (mpm 0x00420024): 0000 0000 | +4 link=0000,0000 | +8 flag=0000
+
+Two runs, identical. (An earlier zero dump was taken in a run where startSeen=0 and did not
+count; this one does.)
+
+**SINTRAN is exonerated, from source.** Its memory-part table is built by `CHMEMDEF`
+(`5P-P2-MON60.NPL:523-597`, called from `INZ500` at `:624`) into the ND-100 N500 DATAFIELD -
+`AMEMTABLE` at `N500DF+61B` and `TYPMTAB` at `+101B`, `MXMPARTS=16B` - with ordinary ND-100
+stores. There is NO MPM/bank store and no write to any ND-500 physical address anywhere in the
+45 NPL files. `PH-P2-OPPSTART.NPL:2492-2509` (`FN5MEM`) fills the same datafield arrays at cold
+start. `FLIMEM` (function 060B, `:2117`) does not even read that table - it copies the MON60
+reply buffer to the user, so the `PART 0B ... N500P=Y N500D=Y` text comes from the ND-500 side.
+There is also no write-swapper-data MON60 function (only `RSWPDATA=121`, READ), so the swapper
+data segment is initialised by the USERLAND ND-500 Monitor, which is not in this source tree.
+
+**The emulator is exonerated too, on both candidate bugs:**
+ - PHYSWR IS performed (`PerformOctobusBlockCopy`, writeToNd500:true) - not merely acknowledged.
+ - The buffer-side address arithmetic is RIGHT. The copy log shows every PHYSWR moving
+   0x00000000 out of b=0x42CC00, and the never-evicted write log records 5168 ND-100 writes into
+   [0x42CBF0..0x42CC40) of which ZERO are non-zero. We read the same place the ND-100 writes;
+   the zeros are genuine, not a mis-addressed fetch.
+ - No micro-function is rejected. The whole Monitor conversation is 3RMICV(1) x30,
+   PHYSWR(31B) x13, 30B x12, CACHE(12B) x1 - no unknown/unserviced message.
+
+So the ND-500 Monitor writes ZEROS to low ND-500 physical memory (0x420096..0x4200C4) and reads
+them back - a clear/verify pass - and NOTHING, from any side, ever writes PA 0x24.
+
+**Leading hypothesis, NOT VERIFIED:** the head word in the swapper's DSEG at VA 0x08026214 is
+STARTUP DATA the ND-500 Monitor is supposed to patch with the real table address, and the 0x24
+we read is unpatched file content. The manual's sibling sub-code 46B is literally "INIT SWAPPER
+- Illegal startup data". Cheap test: read the swapper :DSEG file on the pack at that offset - if
+it contains 0x24, the value is file content and patching is expected.
+
+Do NOT "fix" this by writing a plausible table into PA 0x24. Per the no-hardcoding rule that
+would hide the real gap - find the writer.
+
+### 7.7.6 GAP FOUND AND FIXED: RIOM read the wrong memory (2026-07-29)
+
+The hypothesis in 7.7.5 (unpatched DSEG startup data) was NOT the answer, and the
+"do not fix RIOM" instruction in 7.6.7 was based on a wrong premise. Both are now
+superseded by measurement.
+
+**Measurement 1 - 5MBBANK is CORRECT.** Read live through the resident MMU mapping
+(a raw physical read returns 0 and would have faked the defect):
+
+```
+5MBBANK@0o4654 = 0x0021 = 33     (5FPMAILBOX = 2129)
+```
+
+Bank 33 is right for a mailbox at ND-100 byte 0x428xxx. So SINTRAN's CNVWADR is not
+failing - it is doing an INTENTIONAL conversion, and 0x00008E30 is its correct output.
+
+**Measurement 2 - what 0x8E30 means.** Both candidate readings dumped from live memory
+at the moment the swapper had the pointer:
+
+```
+HSWPI 0x00008E30 as WINDOW byte 0x428E30: FFFF FFFF 0427 0001 0000 0000 0005 0005 003B 0840 ...
+HSWPI 0x00008E30 as WORD  addr 0x011C60: 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 ...
+```
+
+The window reading holds a real message (LINK = -1, 0x427 = 2047B, 0x840 = ADRZERO page
+2112). The word reading is empty. **HSWPI is a 5MPM-window BYTE offset, not an ND-100
+word address.**
+
+**The defect.** `Riom.cs` mapped its ND-100 operand as `_private + operand*2`, the classic
+3022 WORD-address convention, on a transport where the operand is a window byte offset.
+The swapper's one RIOM therefore read 0x011C60 (empty) instead of 0x428E30, its message
+record stayed all zero, the base pointer it takes from that record was null, the derived
+list head was `0 + 0o44 = 0x24`, the scan counted nothing, and it reported SWPFATAL 0o201.
+That is the entire chain, end to end.
+
+**The fix, and why it is not a hardcode.** The rule already existed in exactly one place
+for the block copies - `Nd500MicrocodeServicer.ResolvePhysicalCopyAddress` (classic:
+`addr << 1`; octobus: `Nd500AddressBase + addr`). RIOM now uses the SAME rule instead of a
+second copy of it: `Nd500CpuProcessBridge` derives base and scale by asking that resolver
+for operand 0 and operand 1, and hands both to `CpuND500.SetND100AddressMapping`. A third
+transport only has to be taught once, and the copy engine and RIOM cannot drift apart.
+
+Files: `Emulated.HW/ND/CPU/ND500/CpuND500.ND100Bridge.cs`,
+`Emulated.HW/ND/CPU/ND500/Servicer/Nd500CpuProcessBridge.cs`,
+`Emulated.HW/ND/CPU/ND500/Servicer/Nd500MicrocodeServicer.cs`,
+`Emulated.HW/ND/CPU/ND500/Instructions/IO/Riom.cs`.
+
+**Verified after the fix** (octobus FullFlow harness):
+
+```
+riom n=1 src=0x00008E30 mapped=0x00428E30 dest=0x080240BC halfwords=15
+```
+
+It now reads the real message. `start-swapper` reports OK.
+
+**STILL OPEN: ERROR CODE 201B has not gone away.** Note the transfer is only 15
+halfwords = 30 bytes, but 7.6.6 places `HSWPI`/the base pointer at byte offset 0o210
+(136) of the record at 0x080240BC - far beyond what this RIOM copies. So EITHER the
+0o210 offset reading in 7.6.6 is wrong, OR a SECOND transfer is supposed to fill the
+rest of the record and is not happening. That is the next thing to settle, and it is
+directly observable: dump 0x080240BC..0x0802414C now that the first 30 bytes are real.
+
+### 7.7.7 SWPFATAL 0o201 IS FIXED - three chained RIOM defects (2026-07-29)
+
+`ERROR CODE 201B` is GONE. The base pointer the swapper needs now arrives:
+
+```
+0x08024144 = 0x00008800   <- RIOM delivers it (was 0x00000000)
+0x0802620C = 0x00008800   <- the globals initialiser stores it
+head word  = 0x00008824   = 0x8800 + 0o44, derived off a REAL base (was 0 + 0o44 = 0x24)
+```
+
+Everything in 7.6.4 through 7.7.6 that treated the null base pointer as the defect was
+correct about the SYMPTOM. The cause was three separate bugs in our RIOM, each one hidden
+by the one before it - which is why every earlier round of measurement kept reading zeros
+and kept looking like a missing SINTRAN write.
+
+**Defect 1 - wrong address CONVENTION.** `Riom.cs` mapped its ND-100 operand as
+`_private + operand*2`, the classic 3022 WORD-address rule, on a transport where SINTRAN's
+CNVWADR emits a 5MPM-window BYTE offset. Established by measuring 5MBBANK live (= 33, so
+CNVWADR is converting deliberately, not failing) and by dumping both candidate readings of
+HSWPI 0x8E30: the window reading held a real message, the word reading was empty. Details
+in 7.7.6.
+
+**Defect 2 - wrong BUS.** `ReadND100Word`/`WriteND100Word` called `SystemBus` directly,
+which bypasses `RouteToMpm`. On the octobus the ND-500's memory IS the multiport memory
+("ND-500 address 0 = the MPM window start"), so the shared message is only reachable
+through that routing - a raw SystemBus read returns zeros no matter what base is
+configured. THIS is what the old `[OPEN]` note in the bridge was actually observing when it
+said "the source reads zero either way in the runs so far". Fixed by routing through
+`ReadPhysical16`/`WritePhysical16`, which fall back to SystemBus when no MPM is attached,
+so the classic path is unchanged. The mapping base is 0, not the window address: a
+window-relative offset is ALREADY an ND-500 physical address on the CPU's own path, and
+adding the window base again overshot by 4 MB into unbacked local memory.
+
+**Defect 3 - wrong operand DATA TYPE, twice over.** The manual's format line is
+
+    H RIOM <ND-100 addr/r/W>,<buffer/w/H>,<no of halfwords>
+
+(ND-05.009.4 section 16.23). Operands 1 and 2 carry EXPLICIT `/W` and `/H` annotations;
+operand 3 carries NONE. "no of halfwords" names what the value MEANS, not its data type.
+We had operand 3 declared `SameAsInstruction` (= H), and the data type sets the POST-INDEX
+SCALE. The swapper takes its count from a post-indexed table which is measurably an array
+of 32-bit words at VA 0x0802403C:
+
+```
+[0]=0x0D [1]=0x0A [2]=0x0F [3]=0x8A [4]=0x09 [5]=0x46 [6]=0x08 [7]=0x00 [8]=0x08 ...
+```
+
+With index 5 and scale 2 the operand landed at 0x24046 - MISALIGNED, straddling two
+entries - and returned the low halfword of `[2]`, i.e. 15. That plausible-looking count was
+pure coincidence, and it stopped the transfer 106 bytes short of the field at
+destination+136. `[5] = 0x46 = 70` halfwords = 140 bytes covers it exactly.
+
+Separately, `Riom.cs` hardcoded `ReadOperandValue(..., DataType.H, 2)` for the count
+regardless of the metadata. After fixing the scale that 2-byte read took the big-endian
+HIGH halfword of `0x00000046` and yielded 0, transferring nothing. Both had to change.
+
+Note this also makes the `count > 0xFFFF` guard reachable again; it had been documented as
+dead code precisely because of the halfword read.
+
+Files:
+- `Emulated.HW/ND/CPU/ND500/CpuND500.ND100Bridge.cs` (routed access, scale, mapping setter)
+- `Emulated.HW/ND/CPU/ND500/Servicer/Nd500CpuProcessBridge.cs` (derives the scale)
+- `Emulated.HW/ND/CPU/ND500/Servicer/Nd500MicrocodeServicer.cs` (resolver made public)
+- `Emulated.HW/ND/CPU/ND500/Instructionset.Init.cs` (operand 3 = WordOnly)
+- `Emulated.HW/ND/CPU/ND500/Instructions/IO/Riom.cs` (word count read, diagnostics)
+
+**LESSON, worth keeping.** Three of the four "do not touch this" notes in this file pointed
+away from RIOM - 7.6.7 said "Do not fix RIOM. Its mapping is correct", and the bridge's own
+CAVEAT said the offset agreement might be coincidence. The note that turned out to matter
+most was the one nobody followed up: "the source reads zero either way in the runs so far."
+A value that is wrong under BOTH candidate hypotheses is evidence that neither hypothesis
+is being tested - i.e. the read is not reaching the memory at all. That should have been
+the first thing checked, and it is cheap to check: dump both candidate addresses and see
+whether EITHER holds plausible data.
+
+**STILL OPEN (not regressions - 201B was the fatal, and it is gone):**
+- `start-swapper` now reports STALL rather than OK. The fatal is gone, so the swapper is
+  getting further; what it is now waiting for has NOT been established. Measure before
+  concluding.
+- `status` and `stop-system` still STALL. `stop-system` also stalls at clean HEAD, so it
+  is pre-existing and unrelated.
+- Run-to-run variance in WHEN the 3START message is processed (startSeen 0 vs 1 at the
+  early sample points) persists.
+
+#### 7.7.7.1 Mirrored to the nd500x C port
+
+Defect 3 is transport-independent and manual-derived, so it is mirrored:
+`~/repos/nd500x/src/cpu/instructions/IO/Riom.c` now reads the count operand with
+`ND500_DTYPE_WORD` instead of `fi->data_type`. In the C port that single dtype argument
+drives BOTH the value width and the post-index scale, so one change covers what took two
+in C# (metadata + the hardcoded read). Verified: builds clean, `ctest -R riom` passes, and
+the 3 failing ctest cases (`ote_instructions`, `mon_calls`, `instruction_validation`) fail
+identically with the change stashed, i.e. they are pre-existing.
+
+Defects 1 and 2 are NOT mirrored, deliberately. Both are about the octobus/5MPM transport:
+the window-relative pointer convention and routing the ND-100 read through the MPM window
+rather than the CPU's local bus. The C port maps a fixed 5MPM region
+(`nd100_memory_offset`, cpu.c around line 1450) and does not host the octobus station or
+the SINTRAN octobus scenario, so there is no equivalent path to correct. Mirroring them
+there would be speculative rather than derived. If nd500x ever grows an octobus transport,
+this is the note to come back to.
+
+### 7.7.8 MILESTONE: the swapper runs its real message loop (2026-07-29)
+
+With the three RIOM defects fixed, the swapper is no longer failing at startup - it is
+running and asking SINTRAN for work:
+
+```
+PC=0x08008255 startSeen=2 startMicfu=23B startTaken=True PS=3
+ansMON=377B ansSWPFU=1B ansArgc=4 ansArg0=0x00000001 ansArg1=0x00000000
+riom n=3 src=0x00008E30 mapped=0x00008E30 dest=0x080240BC halfwords=138, then 70
+```
+
+What each of those means, and why it is a real change rather than a different failure:
+
+- `ansSWPFU=1B` is **LNEWSWAP**, a NORMAL entry in SWPDECODER's jump table
+  (`MP-P2-N500.NPL:913-919`, index 1). Every previous run reported 2047B = SWPFA/SWPFATAL,
+  which is > SWFMAX and therefore lands in the ESWPFATAL slot. The swapper has stopped
+  reporting its own death and started making legitimate requests.
+- `ansArgc=4` - a real four-argument request, not the two-argument (selector, error code)
+  shape of a fatal report.
+- `riom n=3` with counts 138 and 70 - the count now varies per message type, which is what
+  the indexed count table is FOR. A single transfer of a coincidental 15 could never have
+  shown that.
+- `startSeen=2` - a second start-class MICFU was processed (a 25B 3TRACO resume), so the
+  swapper is being re-entered rather than dying once.
+- `PC=0x08008255` vs the old `0x08000687` - execution has moved well past the point where
+  it used to call SWPFATAL.
+
+**STILL OPEN, and NOT resolved by this:** `start-swapper` reports STALL from the operator's
+point of view - the harness does not see the expected prompt within its timeout. The swapper
+is in WAIT having answered its request, so the open question is what the ND-100 side does
+next with an `LNEWSWAP` that has actually been answered. That has NOT been measured yet; do
+not assume it is only a harness timeout. `status` also STALLs, and `stop-system` STALLs at
+clean HEAD too, so that one is pre-existing and unrelated.
+
+### 7.7.9 THE SWAPPER WORKS (2026-07-29)
+
+```
+OUTCOME: ENTER=OK login=OK nd-500=OK status=OK start-swapper=OK list=OK stop-system=STALL
+```
+
+Console, unedited:
+
+```
+ND-5000: status
+> Loading Control Store
+> Loading Swapper
+ZERO 0 / CARRY 0 / SIGN 0 / FLAG 0 / OVERFLOW 0
+
+ND-5000: start-swapper
+> Allocating memory - 7110B pages
+ND-5000: who-is-on
+===>     1 used by SYSTEM           on terminal    1    cpu  1
+```
+
+`start-swapper` loads the swapper, it runs, and it ALLOCATES 7110B PAGES. No fatal, no trap,
+no SWPFATAL. The swapper is doing the job it exists to do.
+
+**The last two "STALL"s were the harness, not the machine.** `status` and `start-swapper`
+were being flagged STALL while actually COMPLETING: the `ND-5000:` prompt arrived just after
+the 60s `RunNd500Command` deadline, which is why the NEXT command always ran fine against a
+returned prompt. Re-running with `RETROCORE_HARNESS_TIMEOUT_SCALE=5` turned both OK with no
+code change - that is the proof, not an argument. The default is now 300s.
+
+Worth stating plainly, because it cost real time twice in this file: every harness timeout is
+HOST WALL-CLOCK, so a STALL conflates "never happened" with "not within N host seconds". A
+false STALL is first-class misleading evidence. Section 7.7 opened with a whole
+investigation built on STALL flags that came from a contaminated fixture; this one ends with
+two more STALLs that meant nothing. Do not treat a STALL as a finding until the timeout has
+been ruled out - it is one env var away.
+
+**Genuinely still open:** `stop-system` STALLs. It ALSO stalls at clean HEAD, so it predates
+all of this work and is unrelated to the swapper. That is the next thing, and it should be
+investigated on its own terms rather than as swapper fallout.
