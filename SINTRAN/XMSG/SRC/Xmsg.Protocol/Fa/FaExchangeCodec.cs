@@ -170,12 +170,33 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// assume the two match.
         /// </para>
         /// <para>
-        /// The access type asked for at the terminal - <c>R</c> here - does NOT appear anywhere in the
-        /// request. Where it goes is UNKNOWN; only one access type has been recorded, so it may be
-        /// carried somewhere already dismissed as constant, or negotiated earlier.
+        /// <b>The access type rides under selector 3, and is OMITTED for read.</b> Found by running
+        /// the identical command twice and changing only the access letter, recorded in
+        /// <c>claude-open-W-close-102-to-100-2026-07-30.pcapng</c>:
+        /// </para>
+        /// <code>
+        /// OPEN-FILE ...,R   ... BE "RONNY-R2:TXT'" + pad  F2 00FF
+        /// OPEN-FILE ...,W   ... BE "RONNY-R2:TXT'" + pad  F2 0003  92 0001  F2 00FF
+        /// </code>
+        /// <para>
+        /// Nothing else differed between the two requests, so the attribution is clean. Read is the
+        /// default and sends no field at all; write sends <c>0x0001</c>.
+        /// </para>
+        /// <para>
+        /// The other access letters - X random, A append, C common, and the legal combinations RW,
+        /// RX, WX, WA, RC - have NOT been recorded, so whether the value is a bit set or an
+        /// enumeration is UNKNOWN. Do not assume <c>0x0002</c> is the next one.
         /// </para>
         /// </remarks>
         public const ushort OperationOpenFile = 0x0005;
+
+        /// <summary>
+        /// Field selector carrying the access mode on an open request.
+        /// </summary>
+        /// <remarks>
+        /// Absent means read. <c>0x0001</c> means write. See <see cref="OperationOpenFile"/>.
+        /// </remarks>
+        public const ushort SelectorAccessMode = 0x0003;
 
         /// <summary>
         /// Operation code seen once after an open, carrying no fields in either direction.

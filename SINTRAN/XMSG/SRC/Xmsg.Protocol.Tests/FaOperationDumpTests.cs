@@ -58,6 +58,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         [InlineData("claude-create-file-102-to-100-2026-07-30.pcapng")]
         [InlineData("claude-create-file-DIRSPEC-102-to-100-2026-07-30.pcapng")]
         [InlineData("claude-open-close-file-102-to-100-2026-07-30.pcapng")]
+        [InlineData("claude-open-W-close-102-to-100-2026-07-30.pcapng")]
         public void DumpEveryMessageBody(string captureName)
         {
             string? path = PcapFiles.File(captureName);

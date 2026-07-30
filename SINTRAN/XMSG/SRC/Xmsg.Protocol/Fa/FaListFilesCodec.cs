@@ -105,9 +105,30 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// The value carried under selector 1 in a request.
         /// </summary>
         /// <remarks>
-        /// Meaning UNKNOWN, but no longer a single-case observation: it is 0x0078 on every request of
-        /// BOTH captured listings, which are against two different users on node 100 (SYSTEM and
-        /// SECRET). Checked by <c>FaSpecBlockCrossUserTests</c>.
+        /// <para>
+        /// Meaning UNKNOWN. It is 0x0078 on every request of both captured LISTINGS, which are
+        /// against two different users on node 100 (SYSTEM and SECRET). Checked by
+        /// <c>FaSpecBlockCrossUserTests</c>.
+        /// </para>
+        /// <para>
+        /// <b>But it is NOT a property of operation 0x000C.</b> Corrected 2026-07-30: the
+        /// <c>claude-open-W-close-102-to-100-2026-07-30.pcapng</c> recording carries an 0x000C request
+        /// with <c>92 003B</c> under selector 1, and a five-byte payload of
+        /// <c>A4 FFFFFFFF</c> instead of the 62-byte directory and user block:
+        /// </para>
+        /// <code>
+        /// 92 000C  92 0003  F2 0001 92 003B  F2 0002 8C 80 05 A4 FFFFFFFF  F2 00FF
+        /// </code>
+        /// <para>
+        /// So 0x0078 belongs to the LIST-FILES use of the operation, not to the operation itself.
+        /// Whatever that other request is - it followed an open and a close at the terminal - is
+        /// UNKNOWN, and this constant must not be written into one.
+        /// </para>
+        /// <para>
+        /// That is the fifth value in this decode to look constant only because a single kind of
+        /// request had been examined. The others were the operation code itself, the responder session
+        /// token, the 594-byte fragment split, and the opening request's BAK field.
+        /// </para>
         /// </remarks>
         public const ushort RequestSelector1Value = 0x0078;
 

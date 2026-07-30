@@ -47,6 +47,11 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         private const string CaptureName = "claude-open-close-file-102-to-100-2026-07-30.pcapng";
 
         /// <summary>
+        /// The same open run again with write access instead of read.
+        /// </summary>
+        private const string WriteCaptureName = "claude-open-W-close-102-to-100-2026-07-30.pcapng";
+
+        /// <summary>
         /// Frame offset at which the message body begins.
         /// </summary>
         private const int BodyOffsetFullHeader = 28;
@@ -62,7 +67,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         [Fact]
         public void OpenFile_RequestNamesTheFileAndTheReplyReturnsANumber()
         {
-            List<byte[]> bodies = ReadBodies();
+            List<byte[]> bodies = ReadBodies(CaptureName);
             if (bodies.Count == 0)
             {
                 _output.WriteLine("recorded .pcapng files absent and XMSG_PCAP_OPTIONAL is set; skipping.");
@@ -125,6 +130,114 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         }
 
         /// <summary>
+        /// Requires the access mode to appear under selector 3 for write, and not at all for read.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A controlled variation: the same command was run twice against the same file, changing
+        /// only the access letter. Everything else - user, file, server, conversation shape - was
+        /// held constant, so any difference in the bytes is attributable to that one change.
+        /// </para>
+        /// <para>
+        /// The read request carries no access field at all. That is worth pinning, because a client
+        /// that always sends the field would be sending something the real machine never sends for a
+        /// read.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void AccessMode_RidesUnderSelectorThreeAndIsOmittedForRead()
+        {
+            byte[]? readRequest = FindOpenRequest(CaptureName);
+            byte[]? writeRequest = FindOpenRequest(WriteCaptureName);
+
+            if (readRequest == null || writeRequest == null)
+            {
+                _output.WriteLine("recorded .pcapng files absent and XMSG_PCAP_OPTIONAL is set; skipping.");
+                return;
+            }
+
+            _output.WriteLine("read  request length " + readRequest.Length);
+            _output.WriteLine("write request length " + writeRequest.Length);
+
+            // The write request is longer by exactly the selector and its value: F2 0003 92 0001.
+            Assert.Equal(readRequest.Length + 6, writeRequest.Length);
+
+            ushort mode;
+            Assert.True(
+                TryReadSelectorValue(writeRequest, FaExchangeCodec.SelectorAccessMode, out mode),
+                "the write request must carry an access mode under selector 3");
+            Assert.Equal(1, mode);
+
+            // Read sends nothing at all under that selector.
+            ushort unused;
+            Assert.False(
+                TryReadSelectorValue(readRequest, FaExchangeCodec.SelectorAccessMode, out unused),
+                "the read request must NOT carry an access mode");
+
+            // Both name the same file, confirming only the access letter differed.
+            Assert.Contains("RONNY-R2:TXT", Printable(readRequest));
+            Assert.Contains("RONNY-R2:TXT", Printable(writeRequest));
+        }
+
+        /// <summary>
+        /// Finds the open request in a recording.
+        /// </summary>
+        /// <param name="captureName">
+        /// The recording to read.
+        /// </param>
+        /// <returns>
+        /// The request body, or <see langword="null"/> when absent.
+        /// </returns>
+        private static byte[]? FindOpenRequest(string captureName)
+        {
+            List<byte[]> bodies = ReadBodies(captureName);
+            for (int i = 0; i < bodies.Count; i++)
+            {
+                ushort operation;
+                ushort sequence;
+                if (!FaExchangeCodec.TryReadOperation(bodies[i], out operation, out sequence)) { continue; }
+                if (operation != FaExchangeCodec.OperationOpenFile) { continue; }
+                if (FaExchangeCodec.IsReply(bodies[i])) { continue; }
+                return bodies[i];
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Reads the two-byte value that follows a given field selector.
+        /// </summary>
+        /// <param name="body">
+        /// The message body.
+        /// </param>
+        /// <param name="selector">
+        /// The selector to look for.
+        /// </param>
+        /// <param name="value">
+        /// The value that followed it.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> when the selector was present with a two-byte value.
+        /// </returns>
+        private static bool TryReadSelectorValue(byte[] body, ushort selector, out ushort value)
+        {
+            value = 0;
+
+            for (int i = FaExchangeCodec.QformOffset + 6; i + 5 < body.Length; i++)
+            {
+                if (body[i] != 0xF2) { continue; }
+                ushort found = (ushort)((body[i + 1] << 8) | body[i + 2]);
+                if (found != selector) { continue; }
+                if (body[i + 3] != 0x92) { continue; }
+
+                value = (ushort)((body[i + 4] << 8) | body[i + 5]);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Reads a two-byte value carried under the given tag.
         /// </summary>
         /// <param name="body">
@@ -181,11 +294,11 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         /// <returns>
         /// The bodies, empty when the recording is absent.
         /// </returns>
-        private static List<byte[]> ReadBodies()
+        private static List<byte[]> ReadBodies(string captureName)
         {
             List<byte[]> bodies = new List<byte[]>();
 
-            string? path = PcapFiles.File(CaptureName);
+            string? path = PcapFiles.File(captureName);
             if (path == null) { return bodies; }
 
             IReadOnlyList<LapbFrame> frames = HdlcPcap.ReadFramesInCaptureOrder(path);
