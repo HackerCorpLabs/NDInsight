@@ -90,7 +90,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
             int length = FaExchangeCodec.QformOffset + 3 + 3 + qformFields.Length;
             byte[] body = new byte[length];
 
-            WriteUInt16(body, FaExchangeCodec.MessageTypeOffset, FaExchangeCodec.MessageTypeRequest);
+            WriteUInt16(body, FaExchangeCodec.MessageTypeOffset, (ushort)FaMessageType.Request);
             WriteUInt16(body, FaExchangeCodec.ConversationOffset, _conversation);
 
             // Session header: 0x80 + n, a zero byte, then the token. The token is 0001 on the very

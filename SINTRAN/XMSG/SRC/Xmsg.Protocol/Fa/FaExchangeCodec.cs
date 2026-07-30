@@ -40,16 +40,6 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
     public static class FaExchangeCodec
     {
         /// <summary>
-        /// Message type of a request carrying a QFORM body.
-        /// </summary>
-        public const ushort MessageTypeRequest = 0x07F0;
-
-        /// <summary>
-        /// Message type of the short eight-byte acknowledgement.
-        /// </summary>
-        public const ushort MessageTypeShortAck = 0x07A2;
-
-        /// <summary>
         /// Conversation number the responder uses on every reply.
         /// </summary>
         /// <remarks>
@@ -138,7 +128,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// The message body, starting at the message type.
         /// </param>
         /// <param name="messageType">
-        /// The message type word.
+        /// The message type.
         /// </param>
         /// <param name="conversation">
         /// The conversation number.
@@ -155,19 +145,19 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// </returns>
         public static bool TryReadEnvelope(
             ReadOnlySpan<byte> body,
-            out ushort messageType,
+            out FaMessageType messageType,
             out ushort conversation,
             out byte sequenceByte,
             out ushort sessionToken)
         {
-            messageType = 0;
+            messageType = default;
             conversation = 0;
             sequenceByte = 0;
             sessionToken = 0;
 
             if (body.Length < QformOffset) { return false; }
 
-            messageType = ReadUInt16(body, MessageTypeOffset);
+            messageType = (FaMessageType)ReadUInt16(body, MessageTypeOffset);
             conversation = ReadUInt16(body, ConversationOffset);
             sequenceByte = body[SessionHeaderOffset];
             sessionToken = ReadUInt16(body, SessionHeaderOffset + 2);

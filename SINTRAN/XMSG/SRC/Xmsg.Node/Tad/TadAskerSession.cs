@@ -215,7 +215,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
             for (int i = 0; i < messages.Count; i++)
             {
-                if (messages[i].Opcode != TadOp.Bdat)
+                if ((TadOp)messages[i].Opcode != TadOp.Bdat)
                 {
                     continue;
                 }
@@ -245,7 +245,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <returns>
         /// True when present.
         /// </returns>
-        private static bool HasOpcode(XmsgFrame frame, byte opcode)
+        private static bool HasOpcode(XmsgFrame frame, TadOp opcode)
         {
             if (frame.Tad == null)
             {
@@ -255,7 +255,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             IReadOnlyList<TadMessage> messages = frame.Tad.Messages;
             for (int i = 0; i < messages.Count; i++)
             {
-                if (messages[i].Opcode == opcode)
+                if ((TadOp)messages[i].Opcode == opcode)
                 {
                     return true;
                 }

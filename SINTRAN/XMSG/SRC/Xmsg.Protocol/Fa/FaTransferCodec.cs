@@ -33,16 +33,6 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
     public static class FaTransferCodec
     {
         /// <summary>
-        /// Function code of a data message carrying one block of file content.
-        /// </summary>
-        public const ushort FunctionData = 0x0042;
-
-        /// <summary>
-        /// Function code of the end-of-transfer marker.
-        /// </summary>
-        public const ushort FunctionEndOfTransfer = 0x0043;
-
-        /// <summary>
         /// Size in bytes of the file-content block carried by one data message.
         /// </summary>
         public const int BlockLength = 1024;
@@ -130,7 +120,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
             }
 
             byte[] body = new byte[DataMessageLength];
-            WriteUInt16(body, 0, FunctionData);
+            WriteUInt16(body, 0, (ushort)FaTransferFunction.Data);
             WriteUInt16(body, 2, page);
             WriteUInt16(body, 4, displacementWords);
             block.CopyTo(new Span<byte>(body, DataHeaderLength, BlockLength));
@@ -146,7 +136,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         public static byte[] BuildEndOfTransfer()
         {
             byte[] body = new byte[ControlMessageLength];
-            WriteUInt16(body, 0, FunctionEndOfTransfer);
+            WriteUInt16(body, 0, (ushort)FaTransferFunction.EndOfTransfer);
             WriteUInt16(body, 2, 0xFFFF);
             WriteUInt16(body, 4, 0xFFFF);
             return body;
@@ -215,7 +205,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
             block = default;
 
             if (body.Length != DataMessageLength) { return false; }
-            if (ReadUInt16(body, 0) != FunctionData) { return false; }
+            if ((FaTransferFunction)ReadUInt16(body, 0) != FaTransferFunction.Data) { return false; }
 
             page = ReadUInt16(body, 2);
             displacementWords = ReadUInt16(body, 4);
@@ -234,7 +224,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// </returns>
         public static bool IsEndOfTransfer(ReadOnlySpan<byte> body)
         {
-            return body.Length == ControlMessageLength && ReadUInt16(body, 0) == FunctionEndOfTransfer;
+            return body.Length == ControlMessageLength && (FaTransferFunction)ReadUInt16(body, 0) == FaTransferFunction.EndOfTransfer;
         }
 
         /// <summary>

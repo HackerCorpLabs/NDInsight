@@ -142,7 +142,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             IReadOnlyList<TadMessage> messages = frame.Tad.Messages;
             for (int i = 0; i < messages.Count; i++)
             {
-                if (messages[i].Opcode == TadOp.Dcon)
+                if ((TadOp)messages[i].Opcode == TadOp.Dcon)
                 {
                     return true;
                 }
@@ -567,7 +567,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             IReadOnlyList<TadMessage> messages = frame.Tad.Messages;
             for (int i = 0; i < messages.Count; i++)
             {
-                if (messages[i].Opcode == TadOp.Tmod)
+                if ((TadOp)messages[i].Opcode == TadOp.Tmod)
                 {
                     return true;
                 }
@@ -598,7 +598,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             // control 0x20 (XMCSM 0x00080000): TAD opcode 0x20, empty. Seed model -> channel DE at epoch 0.
             outgoing.Add(BuildResponderFrame(
                 request, controlService: (uint)XmcsmService.BareTadControl, frameFlags: (byte)XmsgFrameFlags.Setup, role: (byte)XmsgSendOptions.None,
-                sourcePort: _sessionWirePort, payload: new TadMessageBuilder().Raw(0x20, ReadOnlySpan<byte>.Empty).Build()));
+                sourcePort: _sessionWirePort, payload: new TadMessageBuilder().Raw((TadOp)0x20, ReadOnlySpan<byte>.Empty).Build()));
 
             // RESE, RESE (XMCSM 0x01080000): TAD RESE, empty. Channel DD at epoch 0.
             outgoing.Add(BuildResponderFrame(
@@ -1181,7 +1181,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         {
             // TAD 0xFD, empty. Class 0x0006 (XMCSM 0x00060000) -> channel 0xDE at epoch 0; role 0x54,
             // frameFlags 0x82 (observed values for the 0xFD frame, spec 22.6); from the TADADM port 342.
-            byte[] tad = new TadMessageBuilder().Raw(0xFD, ReadOnlySpan<byte>.Empty).Build();
+            byte[] tad = new TadMessageBuilder().Raw((TadOp)0xFD, ReadOnlySpan<byte>.Empty).Build();
             return BuildResponderFrame(
                 request,
                 controlService: (uint)XmcsmService.SessionNotify,

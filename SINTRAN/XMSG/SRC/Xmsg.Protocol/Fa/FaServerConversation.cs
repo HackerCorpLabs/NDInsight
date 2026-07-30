@@ -36,16 +36,6 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         public const ushort AskerShortAckConstant = 0x8485;
 
         /// <summary>
-        /// Message type of the server's connection confirmation.
-        /// </summary>
-        public const ushort MessageTypeConnectionConfirm = 0x07D2;
-
-        /// <summary>
-        /// Message type of the close message, sent by both sides.
-        /// </summary>
-        public const ushort MessageTypeClose = 0x07C0;
-
-        /// <summary>
         /// The conversation number the client is using.
         /// </summary>
         private readonly ushort _clientConversation;
@@ -96,7 +86,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
             int length = FaExchangeCodec.QformOffset + 3 + 3 + qformFields.Length;
             byte[] body = new byte[length];
 
-            WriteUInt16(body, FaExchangeCodec.MessageTypeOffset, FaExchangeCodec.MessageTypeRequest);
+            WriteUInt16(body, FaExchangeCodec.MessageTypeOffset, (ushort)FaMessageType.Request);
             WriteUInt16(body, FaExchangeCodec.ConversationOffset, FaExchangeCodec.ResponderConversation);
 
             body[FaExchangeCodec.SessionHeaderOffset] = (byte)(0x80 + _repliesBuilt);
@@ -132,7 +122,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         public byte[] BuildShortAck(byte counter, bool fromResponder)
         {
             byte[] body = new byte[8];
-            WriteUInt16(body, 0, FaExchangeCodec.MessageTypeShortAck);
+            WriteUInt16(body, 0, (ushort)FaMessageType.ShortAck);
             WriteUInt16(
                 body,
                 2,
@@ -159,7 +149,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         public byte[] BuildConnectionConfirm(byte systemNumber)
         {
             byte[] body = new byte[8];
-            WriteUInt16(body, 0, MessageTypeConnectionConfirm);
+            WriteUInt16(body, 0, (ushort)FaMessageType.ConnectionConfirm);
             WriteUInt16(body, 2, FaExchangeCodec.ResponderConversation);
             WriteUInt16(body, 4, _clientConversation);
             body[6] = systemNumber;
@@ -180,7 +170,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         public byte[] BuildClose()
         {
             byte[] body = new byte[8];
-            WriteUInt16(body, 0, MessageTypeClose);
+            WriteUInt16(body, 0, (ushort)FaMessageType.Close);
             WriteUInt16(body, 2, FaExchangeCodec.ResponderConversation);
             WriteUInt16(body, 4, _clientConversation);
             WriteUInt16(body, 6, 0x0000);

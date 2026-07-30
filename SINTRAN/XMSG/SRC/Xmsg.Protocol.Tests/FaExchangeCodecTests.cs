@@ -178,7 +178,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             {
                 byte[] body = bodies[i];
 
-                ushort messageType;
+                FaMessageType messageType;
                 ushort conversation;
                 byte sequenceByte;
                 ushort token;
@@ -187,7 +187,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
                     continue;
                 }
 
-                if (messageType != FaExchangeCodec.MessageTypeRequest) { continue; }
+                if (messageType != FaMessageType.Request) { continue; }
                 if (FaExchangeCodec.IsReply(body)) { continue; }
 
                 FaOperation operation;
@@ -229,7 +229,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             {
                 byte[] body = bodies[i];
 
-                ushort messageType;
+                FaMessageType messageType;
                 ushort conversation;
                 byte sequenceByte;
                 ushort token;
@@ -238,7 +238,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
                     continue;
                 }
 
-                if (messageType != FaExchangeCodec.MessageTypeRequest) { continue; }
+                if (messageType != FaMessageType.Request) { continue; }
                 if (FaExchangeCodec.IsReply(body)) { continue; }
 
                 if (sequenceByte == 0x80)
@@ -270,7 +270,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             {
                 byte[] body = bodies[i];
 
-                ushort messageType;
+                FaMessageType messageType;
                 ushort conversation;
                 byte sequenceByte;
                 ushort token;
@@ -279,7 +279,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
                     continue;
                 }
 
-                if (messageType == FaExchangeCodec.MessageTypeRequest
+                if (messageType == FaMessageType.Request
                     && !FaExchangeCodec.IsReply(body)
                     && sequenceByte == 0x80)
                 {

@@ -152,10 +152,10 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         public XmsgFrame BuildSessionSetup()
         {
             byte[] tad = new TadMessageBuilder()
-                .Raw(0x06, ReadOnlySpan<byte>.Empty)
-                .Raw(0x1B, ReadOnlySpan<byte>.Empty)
-                .Raw(0x1C, new byte[] { 0x00 })
-                .Raw(0xFF, ReadOnlySpan<byte>.Empty)
+                .Raw((TadOp)0x06, ReadOnlySpan<byte>.Empty)
+                .Raw((TadOp)0x1B, ReadOnlySpan<byte>.Empty)
+                .Raw((TadOp)0x1C, new byte[] { 0x00 })
+                .Raw((TadOp)0xFF, ReadOnlySpan<byte>.Empty)
                 .Build();
             // Asker data role 0x84 = WaitForTransfer|RoutedLetter; frame-flags Setup 0x86.
             return Assemble(controlService: SessionSetupControlService,
@@ -284,7 +284,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <returns>
         /// The assembled control frame.
         /// </returns>
-        private XmsgFrame BuildControl(byte opcode, uint controlService, byte role)
+        private XmsgFrame BuildControl(TadOp opcode, uint controlService, byte role)
         {
             byte[] tad = new TadMessageBuilder().Raw(opcode, ReadOnlySpan<byte>.Empty).Build();
             // Frame-flags per frame class (GOD LLM correction, spec 22.6): the bare-TAD control class

@@ -121,7 +121,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
                 byte[] body = bodies[i];
                 if (!FaExchangeCodec.IsReply(body)) { continue; }
 
-                ushort messageType;
+                FaMessageType messageType;
                 ushort conversation;
                 byte sequenceByte;
                 ushort token;
@@ -130,7 +130,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
                     continue;
                 }
 
-                if (messageType != FaExchangeCodec.MessageTypeRequest) { continue; }
+                if (messageType != FaMessageType.Request) { continue; }
 
                 FaOperation operation;
                 ushort sequence;
@@ -163,7 +163,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             {
                 byte[] body = bodies[i];
 
-                ushort messageType;
+                FaMessageType messageType;
                 ushort conversation;
                 byte sequenceByte;
                 ushort token;
@@ -172,7 +172,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
                     continue;
                 }
 
-                if (messageType == FaExchangeCodec.MessageTypeRequest && !FaExchangeCodec.IsReply(body))
+                if (messageType == FaMessageType.Request && !FaExchangeCodec.IsReply(body))
                 {
                     requests.Add(body);
                 }

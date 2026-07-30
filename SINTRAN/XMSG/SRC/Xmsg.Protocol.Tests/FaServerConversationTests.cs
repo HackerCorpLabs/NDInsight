@@ -66,8 +66,8 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             {
                 byte[] captured = serverBodies[i];
 
-                ushort messageType = (ushort)((captured[0] << 8) | captured[1]);
-                if (messageType != FaExchangeCodec.MessageTypeRequest) { continue; }
+                FaMessageType messageType = (FaMessageType)((captured[0] << 8) | captured[1]);
+                if (messageType != FaMessageType.Request) { continue; }
 
                 FaOperation operation;
                 ushort sequence;
@@ -114,11 +114,11 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             for (int i = 0; i < serverBodies.Count; i++)
             {
                 byte[] body = serverBodies[i];
-                ushort messageType = (ushort)((body[0] << 8) | body[1]);
+                FaMessageType messageType = (FaMessageType)((body[0] << 8) | body[1]);
 
-                if (messageType == FaExchangeCodec.MessageTypeShortAck) { shortAcks.Add(body); }
-                else if (messageType == FaServerConversation.MessageTypeConnectionConfirm) { confirm = body; }
-                else if (messageType == FaServerConversation.MessageTypeClose) { close = body; }
+                if (messageType == FaMessageType.ShortAck) { shortAcks.Add(body); }
+                else if (messageType == FaMessageType.ConnectionConfirm) { confirm = body; }
+                else if (messageType == FaMessageType.Close) { close = body; }
             }
 
             // The connection confirmation carries the CLIENT's conversation number and the system

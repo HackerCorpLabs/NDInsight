@@ -284,14 +284,14 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <exception cref="ArgumentNullException">
         /// Thrown when <paramref name="context"/> is null.
         /// </exception>
-        public XmsgFrame BuildControlFrame(TadFrameContext context, byte opcode, ReadOnlySpan<byte> data)
+        public XmsgFrame BuildControlFrame(TadFrameContext context, TadOp opcode, ReadOnlySpan<byte> data)
         {
             if (context == null)
             {
                 throw new ArgumentNullException(nameof(context));
             }
 
-            byte[] trailer = TadChainWriter.SingleMessage(opcode, data);
+            byte[] trailer = TadChainWriter.SingleMessage((byte)opcode, data);
             return AssembleDataFrame(context, trailer);
         }
 
@@ -353,7 +353,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         private void ApplyMessage(TadMessage message)
         {
             byte[] data = message.Data;
-            switch (message.Opcode)
+            switch ((TadOp)message.Opcode)
             {
                 case TadOp.Tmod:
                     if (data.Length >= 1)

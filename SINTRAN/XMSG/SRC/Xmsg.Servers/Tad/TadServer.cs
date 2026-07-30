@@ -600,7 +600,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             // ESRS (XMCSM 0x00080000): TAD opcode 0x20, empty, ff 0x86 (Setup).
             outgoing.Add(BuildSession(session, transport, BareTadControlService,
                 (byte)XmsgFrameFlags.Setup, (byte)XmsgSendOptions.None,
-                new TadMessageBuilder().Raw(0x20, ReadOnlySpan<byte>.Empty).Build()));
+                new TadMessageBuilder().Raw((TadOp)0x20, ReadOnlySpan<byte>.Empty).Build()));
 
             // RESE #1 (XMCSM 0x01080000), ff 0x96 (DataA) — first of the observed 96/92 alternation.
             outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA,
@@ -1635,7 +1635,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// </returns>
         private XmsgFrame BuildFdNotification(TadServerSession session, IXmsgServerTransport transport)
         {
-            byte[] tad = new TadMessageBuilder().Raw(0xFD, ReadOnlySpan<byte>.Empty).Build();
+            byte[] tad = new TadMessageBuilder().Raw((TadOp)0xFD, ReadOnlySpan<byte>.Empty).Build();
             return transport.BuildDatagram(
                 session.RemoteNode, session.ClientSystem, session.ClientPort,
                 TadAdminWirePort, SessionNotifyControlService,
@@ -1658,7 +1658,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// </returns>
         private XmsgFrame BuildDconIndication(TadServerSession session, IXmsgServerTransport transport)
         {
-            byte[] tad = new TadMessageBuilder().Raw(DconOpcode, ReadOnlySpan<byte>.Empty).Build();
+            byte[] tad = new TadMessageBuilder().Raw((TadOp)DconOpcode, ReadOnlySpan<byte>.Empty).Build();
             return BuildSession(session, transport, BareTadControlService,
                 (byte)XmsgFrameFlags.ControlBare, (byte)XmsgSendOptions.None, tad);
         }
