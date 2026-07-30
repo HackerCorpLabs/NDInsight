@@ -163,10 +163,15 @@ Working: `baseLow = (seed - Flags2low) & 0xFF = (0x14 - 0x80) & 0xFF = 0x94`;
 `0xD9`.
 
 The seed check itself passes exactly, so the frame is not malformed and the parse is not
-wrong. Either the epoch expression is off by one near a wrap, or `Flags2 = 0x0080` is a
-class this link had not carried before. **UNKNOWN — flagged, not explained.** It is worth
-running the envelope conformance scan over this capture plus the older ones before
-touching the formula, since the formula currently holds at 753/753 on the existing corpus.
+wrong. **UNKNOWN — flagged, not explained.**
+
+**UPDATE, same day: the scan was run and this is not a one-frame oddity.** See
+`XMSG-CHANNEL-FORMULA-DIVERGES-ON-FILE-SERVER-TRAFFIC-2026-07-31.md`. Every file-server /
+FA capture in the corpus mismatches; every TAD / routing capture is at exactly zero across
+~1400 frames. The "753/753 VERIFIED" figure was measured on the older corpus, i.e. the set
+that still shows zero — the formula was never exercised against file-server traffic. My
+guesses above (epoch off-by-one, or `Flags2 = 0x0080` being a new class) are BOTH
+unsupported by the wider data. Do not act on them.
 
 ---
 
