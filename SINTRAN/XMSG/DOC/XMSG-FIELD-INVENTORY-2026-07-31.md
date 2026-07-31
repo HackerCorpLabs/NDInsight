@@ -104,8 +104,15 @@ Ack code. The kernel builds these header words bit by bit in registers.
 | 6-7 | Src node | **WIRE** | Logical source, not the LAPB neighbour. |
 | 8-9 | Flags1 | **CARVED** | `XMSEQ` (`0o154`). Assigned from a per-link counter, masked to **15 bits**. See below. |
 | 10-11 | Flags2 | **CARVED** | A copy of `XMCSM`. See section 4. |
-| 12 | Protocol ID / channel | **UNKNOWN** | High byte of word 6; the Counter is its low byte (section 3). The `0xDE - class - epoch` expression predicts it 1449/1449, but nothing carved says the machine computes it that way. **Still the biggest open item** - but now look for a combined-word write, not a byte store. |
-| 13 | Counter | **WIRE** | LOW byte of word 6, not a separate byte after the header. `(Counter + Flags1 + XMCSMlow) & 0xFF == seed` on every frame - a checksum relation. |
+| 12 | "Protocol ID" / channel | **CARVED - SOLVED** | HIGH byte of the header CHECKSUM. Not a channel at all. |
+| 13 | "Counter" | **CARVED - SOLVED** | LOW byte of the same checksum. |
+
+> **SOLVED 2026-07-31.** Word 6 is a ones-complement checksum over the other six header words:
+> `w6 == ~ones_complement_sum(w0..w5, 0)` (16-bit, end-around carry). Carved at kernel
+> `137314` and verified on **3595/3595** frames - every capture, every subtype, both
+> directions. The "channel", the "epoch", and the per-link "seed" do not exist; they were
+> artifacts of curve-fitting to checksum arithmetic. Full write-up and the code:
+> `XMSG-HEADER-WORD6-IS-A-CHECKSUM-2026-07-31.md`.
 
 ---
 
