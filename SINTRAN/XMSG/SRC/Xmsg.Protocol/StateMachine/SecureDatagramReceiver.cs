@@ -164,15 +164,27 @@ namespace NDInsight.Sintran.Xmsg
 
             if (_sessionAckModel && ackChannel != null)
             {
-                // TAD-session closed form: Counter and channel are a stateless function of the echoed
-                // Flags 1. No counter is mutated - the sequence lives entirely in Flags 1 space.
-                ushort echoed = dataHeader.Flags1;
-                ack.Header.ProtocolId =
-                    XmsgEnvelope.DeriveChannel(_sessionAckSeed, echoed, AckFlags2, AckControlService);
-                ack.TrailingBytes = new byte[]
-                {
-                    XmsgEnvelope.ComputeCounter(_sessionAckSeed, echoed, AckFlags2),
-                };
+                // The ACK's "channel" and its "trailing byte" are the two halves of header word 6,
+                // which is a ones-complement checksum over the other six words - carved from the
+                // XMSG kernel at 137314 and verified on all 1671 captured ACKs (3595/3595 frames
+                // overall). See XmsgEnvelope.ComputeHeaderChecksum.
+                //
+                // This REPLACES the S_ack = link-seed + 0x0B closed form that used to live here.
+                // That form reproduced every observed ACK, so this is not a bug fix - but it was a
+                // curve fit to the checksum and it needed a LEARNED per-link seed to work at all.
+                // The checksum needs no learned state: every input is already in the header we just
+                // built, so an ACK is correct BY CONSTRUCTION rather than correct because the seed
+                // happened to be learned first. _sessionAckSeed is consequently unused here now.
+                ushort checksum = XmsgEnvelope.ComputeHeaderChecksum(
+                    (ushort)((ack.Header.Marker1 << 8) | ack.Header.Marker2),
+                    (ushort)SintranPacketSubtype.Ack,      // packet type 0x00 in the high byte
+                    ack.Header.DestinationNode,
+                    ack.Header.SourceNode,
+                    ack.Header.Flags1,                     // echoes the acknowledged datagram
+                    ack.Header.Flags2);
+
+                ack.Header.ProtocolId = (SintranProtocolId)(byte)(checksum >> 8);
+                ack.TrailingBytes = new byte[] { (byte)(checksum & 0xFF) };
                 return ack;
             }
 

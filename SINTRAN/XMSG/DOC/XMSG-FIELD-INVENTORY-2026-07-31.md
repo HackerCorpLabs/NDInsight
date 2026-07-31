@@ -350,11 +350,21 @@ nothing of the sort - **Marker2 is `0xFD` or `0xFE`, not `0x13`/`0x12`**:
 21 fd 00 17 0066 0067 ffff fffd dd   + one trailing byte 0x20
 ```
 
-`Flags1` = `0xFFFF` and `Flags2` = `0xFFFD` (a negative XE* code shape). Since Marker2 is out
-of the known set, **offset 3 may not be a subtype field at all in this family**, and the
-13-byte layout should not be assumed. A scan keyed only on Marker1 = `0x21` (as an earlier
-revision of this document did) wrongly reports these as a new subtype - they need decoding on
-their own terms.
+`Flags1` = `0xFFFF` and `Flags2` = `0xFFFD` (a negative XE* code shape).
+
+**They are HEADER-ONLY frames [2026-07-31].** Their info length is **14 bytes = exactly seven
+words**, so there is no body at all - what an earlier revision of this document listed as a
+"trailing byte `0x1F`" is simply the low half of word 6, i.e. part of the checksum. That was a
+byte-oriented mis-split, the same one that made the Counter look like a standalone field.
+
+**Their header checksum validates under the ordinary rule** (verified as part of the 3595/3595
+sweep), so the seven-word layout genuinely applies to them despite the unusual Marker2. That is
+real evidence about the family rather than an assumption.
+
+What remains UNKNOWN is what they MEAN: Marker2 `0xFD`/`0xFE` is outside the known set, so
+offset 3 (`0x17` here) may not be a subtype field in this family, and `Flags2 = 0xFFFD` looks
+like a negative XE* code but is unconfirmed. The dissector deliberately does not decode them -
+see the marker-guard comment in `hdlc_tcp.lua`.
 
 ## 5. Sub-header
 
