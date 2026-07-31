@@ -685,10 +685,15 @@ data frame it answers (`Flags 1` identifies which datagram).
 the reboot reset]** — the ACK is the §18.5 envelope arithmetic applied to the ECHOED data
 Flags1 with an ACK seed `S_ack = link_seed + 0x0B`:
 
-> The `baseLow` mask corrected in §18.5 on 2026-07-31 does **not** affect this form. ACK
-> `Flags2` low is only ever 1, 2 or 3 — always far below `S_ack` — so `baseLow` never goes
-> negative here. Masked and signed give identical results on all 1671 ACKs. (A `Flags2` low
-> of `0x0003` occurs once in the corpus, alongside the documented `0x0001`/`0x0002`.)
+> **SUPERSEDED 2026-07-31 — an ACK's word 6 is the same header checksum as every other frame's.**
+> See section 18.5. What this closed form calls the ACK's "single trailing payload byte" is not
+> payload at all: it is the LOW byte of header word 6, with the "ack channel" as its high byte,
+> exactly as on a Data frame. The checksum reproduces all **1671** captured ACKs with no separate
+> rule, so `S_ack = seed + 0x0B` and the trailing/epoch arithmetic below are a special case of it
+> and need not be implemented. Retained for context only.
+>
+> (Incidental: a `Flags2` low of `0x0003` occurs once in the corpus, alongside the documented
+> `0x0001`/`0x0002`.)
 
 ```
 S_ack    = seed + 0x0B                                 ; link constant (0x1F for 100↔102)
@@ -1516,7 +1521,53 @@ responder-local state (only 3 data points; a link-index or per-session counter �
 (TAD)** channel, not the connect's `DA` channel. A naive echo-channel `0x03` ACK (on `DA`)
 crashes 100 (XXPER) — the ACK channel is a separate value, not the data channel.
 
-### 18.5 UNIFIED ENVELOPE MODEL — the seed formula  [VERIFIED 601/601 data frames + 602 ACKs]
+### 18.5 THE HEADER CHECKSUM — what offsets 12 and 13 really are  [VERIFIED 3595/3595 frames]
+
+> ## SOLVED 2026-07-31 — read this before anything below it
+>
+> **The SINTRAN header is SEVEN WORDS, and word 6 is a ones-complement checksum over the other
+> six:**
+>
+> ```
+> w0 markers | w1 type:subtype | w2 dest | w3 src | w4 Flags1 | w5 Flags2 | w6 checksum
+>
+> w6 == ~ones_complement_sum(w0, w1, w2, w3, w4, w5, 0)      ; 16-bit, END-AROUND carry
+> ```
+>
+> On the wire that word reads as two bytes:
+>
+> - **offset 12** — long called the "Protocol ID" or "channel" — is the checksum **HIGH** byte
+> - **offset 13** — long called the "Counter" — is the checksum **LOW** byte
+>
+> **There is no channel, no epoch, and no per-link seed.** Those were artifacts of fitting an
+> expression to checksum arithmetic. Carved from the XMSG kernel routine at `137314` (reached
+> from `XSDGM` via the pointer at `137744`; the caller stores the result at `137675 STA ,X 32`,
+> which is word 6 itself) and verified on **3595 of 3595** frames across the whole corpus —
+> every subtype, both directions, every link, no special cases.
+>
+> The fitted model below needed one formula for Data frames (1449), a separate closed form for
+> ACKs (1671), and had nothing to say about the remaining 475. The checksum covers all of them
+> with one line.
+>
+> **Why the old model looked right for so long:** the checksum is a deterministic function of the
+> same header fields the formula used as inputs. Its "per-link seed" was the contribution of the
+> fields nobody varied; its "epoch" was carry propagation out of the low byte; the
+> masked-versus-signed `baseLow` question (corrected earlier the same day, now moot) was that
+> same carry seen as a borrow; and a peer "crashing on a wrong channel" — the XMSG 24B /
+> `PERF_CONNCT` failure — is simply a peer rejecting a corrupt header checksum. The secure-ACK
+> closed form in the ACK section is likewise a special case of this one rule.
+>
+> Full write-up: `SINTRAN/XMSG/DOC/XMSG-HEADER-WORD6-IS-A-CHECKSUM-2026-07-31.md`.
+> Implementation: `XmsgEnvelope.ComputeHeaderChecksum`, pinned by `HeaderChecksumTests`.
+> Dissector: `sintran_hdr_checksum` in `hdlc_tcp.lua`.
+
+---
+
+#### HISTORICAL — the fitted seed model (superseded, kept for context)
+
+> The rest of this section describes the model that was replaced. It is retained because the
+> observations in it are real — only the explanation attached to them was wrong. Do not implement
+> from it.
 
 > **This section supersedes the earlier "mirror the connect base" closed form.** The complete
 > rule was solved analytically over *all* 13 captures and confirmed **live end-to-end against
