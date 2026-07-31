@@ -450,10 +450,63 @@ microword, not just this one. That is worth more than G3 itself.
 **Do not conclude "the harness enters cold" either** - that was probe 8's hypothesis and this
 experiment REFUTED it. Recorded so it is not re-adopted.
 
-**Next:** decode `COND_ALU` (bit 114) and `ALU_FALSE` for 0o25573, and check the emulator actually
-selects between them. Test:
-`MailboxClrKickTests.OcbClnup_NonZeroSc13_ShowsTheEarlyExitWasAHarnessArtefact` (the name records
-the hypothesis; the FINDING line records that it failed).
+Test: `MailboxClrKickTests.OcbClnup_NonZeroSc13_ShowsTheEarlyExitWasAHarnessArtefact` (the name
+records the hypothesis; the FINDING line records that it failed).
+
+### G3 probe 9, 2026-07-31 - CONTRADICTION RESOLVED, and it points at an EMULATOR DEFECT
+
+**The `COND_ALU` suspicion from probe 8 is WITHDRAWN.** Checked directly: `COND_ALU = 0` at
+0o25573, so `ALU_TRUE` (`ALU,A`) really is in force, and the emulator maps `A_OP 0o66` to
+`Wrf[22] = SC13` correctly (`OperandRouter.ReadA`: group 1, `reg = sel - 32 = 22`). Both suspects
+cleared - I flagged them and they were wrong.
+
+**Why forcing `SC13` did nothing:** it was being overwritten before the branch read it. Sampling
+`SC13` at the moment 0o25573 executes shows `00000000` in every run including the `FFFFFFFF`
+preset. Logging only the ticks where `SC13` CHANGES:
+
+```
+  preset SC13 = FFFFFFFF (immediately after write)
+  CS 14672 WROTE SC13: FFFFFFFF -> 00000800
+  CS 14722 WROTE SC13: 00000800 -> 00000000
+  CS 14737 WROTE SC13: 00000000 -> 80000000
+  CS 25571 WROTE SC13: 80000000 -> 00000000     <-- immediately before the branch
+  reached CS 25573 (the branch)
+```
+
+Two structural facts fall out, both correcting earlier entries here:
+
+1. **0o25562 is a CALL, not a fall-through.** Execution goes 0o25561 -> 0o25562 -> **0o14666** and
+   only later returns to 0o25563/0o25564/0o25570. So `SC13` is not caller state inherited from
+   before the kick - it is COMPUTED by the subroutine at 0o14666. Probe 8's "nothing writes SC13
+   between entry and the test" was wrong because it only looked at the straight-line words.
+2. **The word at 0o25571 zeroes `SC13`, one word before 0o25573 tests it.** That makes the early
+   exit UNCONDITIONAL in effect: `OCB_CLNUP` can never enter its body, for ANY mailbox state.
+
+**And 0o25571 should not be writing anything.** Decoded from its microword
+`50080000000180180000000000150000`: `DEST = 0o30` (= 24 = `D,NONE`), `OR_ENABLE = 0`, `ORCON = 0`.
+The emulator's own `WriteDest` treats destination 24 as a no-op and returns. Emulator and
+`microcode-5000-def.json` agree that `DEST` is bits 83-76, so this is not a field-position
+disagreement.
+
+**So something OTHER than the DEST field is writing `SC13` during that word.** [OPEN]
+
+Two readings, and this probe does NOT choose:
+
+- **(a) EMULATOR DEFECT** - an unintended write to `Wrf[22]` somewhere in `Tick()`. If so it is not
+  a G3 issue at all: it would silently corrupt a scratch register on any word of this shape, and it
+  happens to land one word before a conditional that reads it. **This is the higher-value
+  possibility and should be chased first.**
+- **(b) Tick attribution is off by one** - the change is committed during 0o25571's tick but
+  originates in a deferred write from an earlier word (the codebase already models exactly this for
+  `LC`, see `Registers.LcLoadPipe` and the deferral note in `Registers.cs`). Then the real writer is
+  0o25570 or earlier and the DEST decode of THAT word is what to check.
+
+**Next:** read `CpuND5000.Tick()` for writes to `Wrf` outside `WriteDest`, and for any deferred
+write pipeline that could commit a cycle late. That distinguishes (a) from (b) directly.
+
+**Note on the harness:** this iteration was blocked for a while by an unrelated uncommitted edit to
+`src/CpuND5000.cs` (a `_aapProductForQ` field never assigned, CS0649-as-error). Not ours; left
+alone; it compiles again now.
 
 ### G4 - kick 2 not mapped to ACTIVATE  **[P2]**
 
