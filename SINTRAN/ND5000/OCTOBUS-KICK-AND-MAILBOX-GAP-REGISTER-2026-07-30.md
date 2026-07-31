@@ -770,6 +770,45 @@ kick with `AFLAG` bit 12 set and start from the ACCP trap entry, so `SCAN_ACCP` 
 `OCB_CLNUP` in the natural order. That is the setup in which the carve's `N5STA := 1` can finally be
 observed or refuted.
 
+### G3 probe 16, 2026-07-31 - the trap entry does NOT reach `OCB_CLNUP`. Recommend PARKING G3.
+
+Entered at both trap addresses that precede `SCAN_ACCP`, with `AFLAG` bit 12 set and a message laid
+down:
+
+```
+entry      reachedClnup  reachedBody  SC13@clnup  N5STA
+16550             False        False    00000000  0002
+16552             False        False    00000000  0002
+```
+
+**`OCB_CLNUP` is never reached from either entry.** So the trap path with only bit 12 asserted does
+not dispatch to kick 6 - it goes elsewhere, almost certainly `TRAP_OMESS` / `OCB_DECODE`, which need
+an actual kick WORD in AOB to decode, not merely a pending flag. Both entries were tried precisely
+so that a wrong single choice could not masquerade as a null result.
+
+**Honest assessment of where G3 stands.**
+
+**Fully settled, and none of it needs revisiting:**
+ - `OCB_CLNUP` runs 0o25570-0o25573 and returns; the body 0o25574-0o25604 is never entered.
+ - It exits at 0o25573 on `COND,MZRO` testing `SC13`.
+ - `SC13` is the AFLAG word, loaded by `SCAN_ACCP` at 0o16554 (`A,SPEC,AFLAG -> D,SC13`).
+ - `DPA := ADR_MESS` at 0o25572 is confirmed, so the carve's description is sound where reachable.
+ - **A real emulator gap was found and fixed on the way:** AFLAG now composes bits 5, 6, 11, 12.
+
+**Not settled:** whether the body writes `N5STA := 1`. Observing it needs a COMPLETE kick driven
+through the ACCP - a decodable kick word in AOB, the right trap bits, and the dispatch reaching
+kick 4/5/6 - which is a substantially bigger harness than any probe here.
+
+**RECOMMENDATION: park G3 as "mechanism understood, body-observation deferred".** Six probes have
+now gone at reaching the body from different angles and each produced a real narrowing but no
+observation. The remaining question is worth answering with a full kick-injection harness, not more
+entry-point guessing - and that harness is the same one G5 (kicks 4/5) will need, so it should be
+built once, deliberately, rather than approximated again.
+
+**Do not, in the meantime, implement `N5STA := 1` in the station.** It stays unobserved. The
+existing guard test (`OcbKick06_WithMessage_ShowsWhatOcbClnupDoesToIt`) already prevents the
+opposite error of consuming the message.
+
 **Note on the harness:** this iteration was blocked for a while by an unrelated uncommitted edit to
 `src/CpuND5000.cs` (a `_aapProductForQ` field never assigned, CS0649-as-error). Not ours; left
 alone; it compiles again now.
