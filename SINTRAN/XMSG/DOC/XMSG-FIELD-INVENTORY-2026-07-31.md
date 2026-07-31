@@ -408,17 +408,51 @@ header is not built by the XMSG kernel or by XROUT.** XMSG builds the transporte
 plausible `STD ,B 23`, so it must be confirmed by finding an instruction that references it
 rather than trusted on sight.
 
-## 6. Ranked open items
+## 6. Status - what is closed and what is left
 
-1. **What writes SINTRAN header offset 12.** Everything about "channel", "epoch" and "class
-   lanes" is model vocabulary until this is carved. Needs the XMSG kernel disassembled — the
-   NPL tree has only the L07/M06 symbol lists, no XMSG body.
-2. **What selects the `XMCSM` arm.** `XMSTA` ruled out.
-3. **Is the not-size arm actually a checksum?** If yes, over what.
-4. **Header offset 2** — always zero, so only carving can say what it is.
-5. **Retire the 32-bit `ControlService`** in `Xmsg.Protocol` — 108 call sites across 34 files;
-   see the comment on `XmsgDataFields.ControlService`.
-6. **LAPB address `0x07`** on some ACK I-frames.
+### CLOSED this session (all carved, not fitted)
+
+| Item | Result |
+|---|---|
+| Transported header layout | 7 words, `XMTHD`..`XMCSM`, wire 14-27 |
+| `XMCSM` word size | ONE word at 26-27; `Flags2` is a copy of it (1449/1449) |
+| Body start | wire offset 28 |
+| SINTRAN header shape | SEVEN words; unified the Data and ACK models |
+| **Header offset 12 + 13** | **the two halves of a ones-complement header CHECKSUM (3595/3595)** |
+| `XMCSM` two arms | `XMSIZ` by default, checksum when two flag bits are set; both routines carved |
+| `Flags1` | `XMSEQ`, assigned from a per-link counter, masked to **15 bits** |
+| Header offset 2 | not a field - high half of the `type:subtype` word |
+| Subtypes `0x0A`/`0x0C` | bulk file-transfer data, and a PAIR sharing one `Flags1` |
+| `0xFD`/`0xFE` frames | header-only (14 bytes = 7 words); checksum validates normally |
+
+### OPEN - needs the live machines or a new capture
+
+1. **What selects the `XMCSM` arm.** Narrowed to bits 9 and 10 of `phys[X+7]`, a word in the
+   same per-link block whose sequence counter sits at `X+4`. `LDATX` is physical addressing, so
+   this is a runtime address - **static carving cannot finish it**. A DAP breakpoint at
+   `134015` with `X` known would name it in one shot.
+2. **What the `0xFD`/`0xFE` family means.** Layout confirmed, semantics unknown.
+3. **Why `0x0A`/`0x0C` split into a pair.** The corpus cannot answer it: `XMCSM` and both frame
+   sizes are constant, so nothing varies. Needs a transfer captured at a different block size,
+   or the `*XFTRA` transfer loop carved.
+4. **LAPB address `0x07`** on some ACK I-frames.
+
+### OPEN - implementation debt (no research needed, just work)
+
+5. **Retire the 32-bit `ControlService`.** It straddles `XMCSM` and the first body word; 108
+   call sites across 34 files. Documented on `XmsgDataFields.ControlService`.
+6. **`SintranProtocolId` member names are misnomers.** `Tad`/`Routing`/`Pad` name traffic, not
+   a selector. Renaming is a broad breaking change - flagged, not done.
+7. **Delete the superseded `XmsgEnvelope` members** (`LearnSeed`, `BaseLow`, `BaseLowSigned`,
+   `ComputeCounter`, `ComputeEpoch`, `DeriveChannel`, `ChannelAnchor`) once callers migrate.
+8. **Install the fixed `hdlc_tcp.lua`** into `C:\Program Files\Wireshark\plugins` (needs admin).
+
+### OPEN - application layer, barely started
+
+9. **QFORM field selectors** - needs the Ghidra FA handlers read.
+10. **The COSMOS FA operations** (`Open-file`, `Read-file`, `Write-file`, `Reserve-file-entry`,
+    `SIII-special`) - named in `cos-fa-serv-e04.prog` but not decoded.
+11. **An `*XFTRA` client in `Xmsg.Api`** - does not exist; `p11`/`p16` are now known.
 
 ## 7. Disassembly: started, and the tool was broken
 
