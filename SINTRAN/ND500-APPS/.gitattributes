@@ -1,0 +1,22 @@
+# ND-500 runtime files are binary (ND symbolic/object formats, high-bit encoded).
+# They MUST NOT get EOL conversion or git will corrupt bytes needed to run them.
+*.DOM   binary
+*.PSEG  binary
+*.DSEG  binary
+*.NRF   binary
+*.HELP  binary
+*.INIT  binary
+*.JOB   binary
+*.VTM   binary
+*.ERR   binary
+*.LINK  binary
+*.UTIL  binary
+# Any site-edit backups of the above
+*.PRE-C-WORKAROUND    binary
+*.ORIG-PRE-SITE-EDIT  binary
+
+# Disassembly / notes / sources are text.
+*.asm   text
+*.md    text
+*.pasc  text
+*.prog  text
