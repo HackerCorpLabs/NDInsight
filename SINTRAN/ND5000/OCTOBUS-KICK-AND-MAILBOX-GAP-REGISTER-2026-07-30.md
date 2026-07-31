@@ -674,6 +674,55 @@ than bits 7/8. Known real bits now: 9 AOBF, 10 AIBF (modelled); 5, 6, 11, 12 rea
 firmware carve (`ACCP-COMPLETE-REFERENCE.md`) may name them from the other side. **Do not invent
 bit meanings to make the scan pass.**
 
+### G3 probe 14, 2026-07-31 - AFLAG dispatch bits IMPLEMENTED from the verified map. Gate still shut.
+
+**The bit meanings did not need inventing - they were already carved.**
+`ACCP-COMPLETE-REFERENCE.md` "AFLAG bit map [V, but see the warning]" has all of them, and it
+independently confirms this session's decode (it states the same octal BM naming: BM05 = bit 5,
+BM13 = bit 11, BM14 = bit 12):
+
+| Bit | Meaning | Confidence |
+|---|---|---|
+| 5 | async-trap word pending (`TRAP_OCBA` / `TRAP_ATRP`) | [V] |
+| 6 | other trap (`TRAP_OTRP`, NOTREC 210) | [V] |
+| 7 | data-fault indication | **[OPEN]** |
+| 8 | instruction-fault indication | **[OPEN]** |
+| 9 | AOB has data | [V] |
+| 10 | AIB busy | [V] |
+| 11 | power-fail warning (`TRAP_PWF`) | [V] |
+| 12 | **OCB kick / message pending** (`TRAP_OCBAK` / `TRAP_OMESS`) | [V] |
+
+**Implemented** in `AccessModule`: bits 5, 6, 11, 12 are now composed by `ReadAflag` alongside the
+existing 9 and 10, with the provenance and the OCB_CLNUP consequence in the XML docs. **Bits 7 and
+8 were deliberately left out** - the source marks them [OPEN], never re-verified after an
+off-by-one correction shifted every dispatch bit. Adding them to make a poll succeed is exactly the
+failure mode this interface already suffered.
+
+This is a **real fix regardless of G3**: `SCAN_ACCP` runs on every pass of the `OCB_WAITSEX` spin
+too, so until now every ACCP poll in the emulator read a status word that could not report four of
+its conditions.
+
+**But the gate is still shut, and this is NOT explained:**
+
+```
+accpDelivers  reachedBody  SC13@branch  N5STA
+       False        False     00000000  0002
+  AFLAG after setting OcbPending = 00001000 (expect bit 12 = 0x1000)
+        True        False     00000000  0002
+```
+
+`ReadAflag()` demonstrably returns `0x1000` (checked in-run, so the change is live and not a stale
+build), yet `SC13` is still `0` when 0o25573 executes. Given that an in-CPU barrier showed
+`SCAN_ACCP` is the ONLY writer of `SC13` in this run, `SC13` should hold `0x1000`.
+
+**Not guessed at.** Plausible directions, none tested: the busy run may take a different route
+(dispatching `TRAP_OCBAK`) and arrive at 0o25573 having re-scanned an AFLAG that was cleared by the
+dispatch; or `SCAN_ACCP` may run before the flag is visible on that path. **The next step is to log
+`SC13` changes and the CS path for the busy run specifically** - attributing writes with an in-CPU
+barrier, per the method lesson in probe 11, not by sampling `State.Mpc`.
+
+Regression check after the `src` change: mailbox + ACCP + octobus fixtures **50/50 green**.
+
 **Note on the harness:** this iteration was blocked for a while by an unrelated uncommitted edit to
 `src/CpuND5000.cs` (a `_aapProductForQ` field never assigned, CS0649-as-error). Not ours; left
 alone; it compiles again now.
