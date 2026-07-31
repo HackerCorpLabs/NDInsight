@@ -376,6 +376,39 @@ through `ADR_MESS`.
 **Still do not implement `N5STA := 1` from the carve** - it remains unobserved. But it is now
 unobserved-because-unreached, which is a much weaker objection than "reproduction failed".
 
+### G3 probe 7, 2026-07-31 - operand decode. The carve's `DPA := ADR_MESS` is CONFIRMED
+
+Same four words, now decoded through the OPERANDS group (`A_OP` 6 bits, `B_OP`, `DEST`) and the
+`IAC`/`MEMORY` groups:
+
+| CS | A_OP | DEST | meaning |
+|---|---|---|---|
+| 25570 | `A,BM00` | `D,SC14` | set up, then jump to ADR_MESS |
+| 17334 (ADR_MESS) | `A,BM12` | `D,RFA1` | computes a register-file address; **one microword**, returns via 0o104 |
+| 25571 | `A,BM00` | `D,NONE` | no destination - a condition-setting step |
+| **25572** | **`A,RF1`** | **`D,DAC,DPA`** | **`DPA := RF1`** |
+| **25573** | **`A,SC13`** | `D,SC12` | **the zero test is on `SC13`** |
+
+**Two things settle here.**
+
+1. **`DPA := current message (ADR_MESS)` is CONFIRMED** at CS 0o25572 - the carve's first step is
+   right, byte-decoded. `ADR_MESS` writes `RFA1` (a register-file ADDRESS), and 0o25572 then loads
+   `DPA` from `RF1` (the register-file DATA at that address). That is a clean two-step
+   address-then-fetch, and it means the carve's description of this routine is not fabricated -
+   the parts we can reach check out.
+2. **The exit test at 0o25573 is on `SC13`, NOT on `DPA`.** So the routine does not decline because
+   the message pointer is null; it declines on a separate scratch value. `SC13` is **not written
+   anywhere in these four words**, so it arrives from the CALLER (`OCB_KICK06`).
+
+**Corrects probe 6's wording.** Probe 6 said "`ADR_MESS` returned ZERO, meaning no current message".
+That inference does not survive the operand decode - the tested register is `SC13`, and nothing
+observed says `ADR_MESS` returned zero. The honest statement is: **the routine exits on `SC13` being
+zero, and what `SC13` means is not yet known.**
+
+**Next:** find where `OCB_KICK06` (0o25561..0o25567) sets `SC13`. The trace already has the caller's
+path - 0o25565, 0o25505-0o25512, 0o25566, 0o25416, 0o25567, 0o24670 - so this is another
+bounded hand-decode, not a search.
+
 ### G4 - kick 2 not mapped to ACTIVATE  **[P2]**
 
 `OCB_DEC_K` sends both 1 and 2 to `ACTIVATE`. We handle only 1. No NPL sender for kick 2 was
