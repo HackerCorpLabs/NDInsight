@@ -1,13 +1,62 @@
-# The channel formula's `baseLow` must not be masked — SOLVED
+# The channel formula's `baseLow` must not be masked — better fit, NOT a validated mechanism
 
 **Date:** 2026-07-31
-**Status:** root cause found, fix derived, validated on the whole corpus, dissector patched.
+**Status:** an expression that matches the whole corpus and regresses nothing.
+**NOT validated against the kernel carving, and the carving disagrees with the model it
+lives in.** Read section 0 before trusting any of the vocabulary below.
 
 Started from one odd frame in `XMSG-APPEND-REMOTE-BATCH-CAPTURED-2026-07-31.md`.
 
 ---
 
-## 1. The fix
+## 0. Honest status — read this first
+
+An earlier revision of this document was titled "SOLVED" and said "root cause found". That
+overstated what was done. What was actually done is **curve-fitting**: an expression was
+found that reproduces the Protocol-ID byte on 1449 of 1449 captured data frames. That is
+good evidence the expression *predicts* the wire. It is **not** evidence that it is how
+SINTRAN *computes* the byte, and the two were conflated.
+
+Three specific reasons to hold the mechanism claim loosely:
+
+1. **The kernel symbol file contradicts the field layout the formula is built on.**
+   `POFTABS` makes the transported header 7 words / 14 bytes ending after `XMCSM`, and
+   `XMCSM` a **single word**, commented *"datagram checksum; if not checksum, then message
+   size"*. Our layout reads a **32-bit** `XMCSM` and the channel formula uses
+   `XMCSM >> 24` — a shift that cannot exist on a one-word field. This conflict was already
+   documented as OPEN in `XMSG-SUBHEADER-NAMED-FROM-SYMBOLS-2026-07-29.md` section 4, and
+   it was not checked before the "root cause" claim was made.
+
+2. **`Flags2` is a LENGTH on exactly the traffic where the bug shows up.** Measured across
+   the corpus, `Flags2 - infoLen` is `-28` on 492 frames — the file-server ones, matching
+   the "length - 28" rule already noted in `ChannelOffsetDiagnosticTests.cs`. But there are
+   **54 distinct offsets** overall, so it is not a length everywhere. That is precisely the
+   overloaded field the kernel comment describes: checksum **or** size, depending on the
+   message.
+
+   This reframes the whole divergence. On TAD/routing traffic `Flags2` is a small class
+   word and the "class anchors the channel" story works. On file-server traffic `Flags2` is
+   a **message length**, so `baseLow = seed - Flags2low` is subtracting a byte count — which
+   is meaningless as an "epoch base". The formula did not fail because of an isolated
+   masking slip; it failed because a length is being fed into a term that means "class".
+
+3. **The likely real shape is a checksum with a borrow, not an "epoch".** The seed identity
+   `(Counter + Flags1 + Flags2low) & 0xFF == seed` is a **checksum** relation. Removing the
+   mask restores a **borrow** across the byte boundary, which is what an ordinary subtract
+   with carry does. That is a plausible reason the corrected expression fits perfectly — but
+   "epoch" and "class" remain model vocabulary the kernel does not support.
+
+**What is safe to rely on:** the corrected expression reproduces every frame in the corpus
+and breaks nothing that previously passed. Use it to validate and to build frames.
+**What is not settled:** why. Do not cite this document as having explained the mechanism,
+and do not build new inference on the words "epoch" or "class word" without resolving
+section 4 of the sub-header doc first.
+
+---
+
+## 1. The change
+
+(Subject to section 0: this is the better-fitting expression, not a derived mechanism.)
 
 ```
                  baseLow = (seed - F2low) & 0xFF        <- WRONG
@@ -148,4 +197,18 @@ Minor new observation: a `Flags2` low byte of **`0x0003`** occurs once in the co
 spec documents only `0x0001` and `0x0002` for ACKs, so receivers should tolerate `0x0003`
 too.
 
-**Nothing outstanding on this line of work.**
+### Outstanding — the real question
+
+The empirical work is done; the mechanism is not. The next step is **carving, not more
+captures** — no amount of curve-fitting will settle what the kernel actually computes:
+
+1. Resolve `XMSG-SUBHEADER-NAMED-FROM-SYMBOLS-2026-07-29.md` section 4 — is `XMCSM` one
+   word or two? Everything else depends on it, including whether `XMCSM >> 24` is even a
+   real quantity.
+2. Find the code that writes SINTRAN header offset 12 (the Protocol-ID byte). If it is a
+   checksum/borrow rather than a channel selector, the whole "channel lane" vocabulary in
+   `XMSG-PROTOCOL.md` needs rewriting, not patching.
+3. Pin down when `XMCSM` carries a checksum and when it carries a size — the kernel comment
+   says both, and the 54 distinct `Flags2 - infoLen` offsets say the corpus contains both.
+
+Until then the expression is a validated *predictor* and should be described as one.
