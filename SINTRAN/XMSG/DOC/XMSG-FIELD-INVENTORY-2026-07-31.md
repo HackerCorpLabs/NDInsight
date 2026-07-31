@@ -153,12 +153,30 @@ is the opposite of how it first reads:
 So the checksum is the narrow case: it is computed only when both flags are set, and the size
 is the default. That fits the corpus, where 731 of 1449 frames carry a fixed `XMSIZ` constant.
 
-**STILL UNKNOWN - what the bits belong to.** `A` at that point comes from `LDATX` (an indexed
-memory read), NOT from `XMSTA` - the code loads `XMSTA` separately at `134024`. So the flags
-live in whatever table `T`/`X` address. Tracing back, `X` is loaded from `,B 105` at `133757`;
-the base still needs pinning down. Bits 9 and 10 of the `XF*` option word would be `XFSEC`
-(secure) and `XFROU` (routed), which is a plausible fit but is **INFERENCE until the LDATX base
-is identified** - do not record it as fact.
+**STILL UNKNOWN - and static carving CANNOT finish it.** `A` at that point comes from
+`LDATX`, not from `XMSTA` (which the code loads separately at `134024`). `LDATX` is
+**privileged PHYSICAL addressing via the T:X register pair**, so the tested word lives at a
+runtime physical address, not a static one.
+
+Tracing the operands as far as static analysis allows: `T` and `X` are loaded from B-relative
+cells (`,B 101`, `,B 105`, `,B 133`), and **B is the message-buffer base** - confirmed because
+`0o132`=`XMLIM`, `0o133`=`XMCUR`, `0o134`=`XMTHD` all line up with the symbol list. So the
+flag word is reached through the buffer's own current/limit pointers and is a **runtime
+value**.
+
+Bits 9 and 10 of the `XF*` option word would be `XFSEC` (secure) and `XFROU` (routed), which
+fits the "checksum only for secure routed messages" reading - but that is **INFERENCE** and
+must not be recorded as fact.
+
+**To finish this, capture it live over DAP** (both machines are up), the same way the resident
+DATA cells were handled - see the `sintran-carving` resident doc. Another static pass will not
+resolve a physical address chosen at runtime.
+
+**Decoder note:** `nd100-dis` switches this group on `instr & 0xFFC7`, which deliberately
+drops bits 3-5. The mnemonic is still right (the variant is in the low 3 bits: `LDATX`=0,
+`LDXTX`=1, `LDDTX`=2, `LDBTX`=3, `STATX`=4), but `143300`/`143320`/`143340`/`143370` all print
+identically as `LDATX` even though bits 3-5 differ in the real code. If those bits carry
+meaning, the listing is hiding it.
 
 **Bonus: this routine is the transported-header builder.** At `133727`, `LDA 125` reads
 P-relative from `134054` - a genuine literal holding `020400` = the `0x2100` marker - and
@@ -199,12 +217,20 @@ byte, so on size-arm frames the envelope arithmetic is subtracting **a byte coun
 
 Target: what writes SINTRAN header offset 12. Findings so far:
 
-- **The 13-byte SINTRAN header is NOT built by XMSG or XROUT.** The marker word `0x2113`
-  (`020423` octal) appears **nowhere** in `XMSG-KERNEL-L03.BPUN` or `XMSG-XROUT-L03.BPUN`,
-  and no symbol in any symbol list carries that value. So the wrapper is added by a lower
-  layer - SINTRAN's own network/HDLC driver - and offset 12 is not reachable from the XMSG
-  product binaries at all. **That relocates the whole question**: it must be carved from the
-  SINTRAN kernel, not from XMSG.
+- **The marker `0x2113` is almost certainly COMPUTED, not a literal** - which is why no scan
+  finds it. Evidence: `XMTHD` is built from a genuine literal `0x2100` (`134054`, stored at
+  `133730`); the SINTRAN header marker is `0x2113` and its relayed variant is `0x2112`. Same
+  high byte `0x21`, low byte varying with hop - that is a constructed word, so searching for
+  the assembled value was never going to work. **Look for code that builds on a `0x21` high
+  byte instead.**
+- Scanning the carved L segments for `0x2113`/`0x2112` returned **92 word-aligned candidates**
+  with ordinary code contexts - unusable without narrowing. (`S3SMPIT`/`S3IMPIT` show a
+  repeating `2c11 2111 2c13 2113` run that is clearly a table or code, not a marker.) This is
+  the noisy-scan problem again.
+- Segment inventory for the next pass: `076-S3XMK` is the installed XMSG kernel,
+  `077-S3XROU` XROUT, `036-S3TAD` TAD, `135-XFTRAD` the file-transfer daemon. There is **no
+  HDLC/network segment**, so the wrapper builder is most likely in the RESIDENT code
+  (`SINTRAN-DATA_commoncode.bin`), which already has a `.dis` alongside it.
 - **A constant scan is NOISY - verify each hit.** `020400` (the `X5THD` marker) is also the
   encoding of `STD 0,B`. Of six hits in the kernel, three were ordinary instructions and
   `134054` was the **genuine literal** - loaded P-relative by `LDA 125` at `133727` and stored
