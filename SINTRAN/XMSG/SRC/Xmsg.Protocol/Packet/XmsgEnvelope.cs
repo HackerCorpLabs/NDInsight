@@ -121,6 +121,16 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// </returns>
         public static int BaseLowSigned(byte seed, ushort flags2)
         {
+            // CARVED CONTEXT, 2026-07-31: flags2 IS the kernel's 16-bit XMCSM (proven equal on
+            // 1449/1449 frames - see XmsgDataFields.Flags2), and the kernel comments XMCSM as
+            // "datagram checksum; if not checksum, then message size". So the identity
+            //     (Counter + Flags1 + XMCSMlow) & 0xFF == seed
+            // that the whole envelope rests on is a CHECKSUM relation, and this subtraction is one
+            // term of it. Read that way, dropping the 8-bit truncation above is not a fudge: it is
+            // keeping the BORROW that an ordinary subtract produces.
+            // NOT yet confirmed against the kernel CODE - the symbol file gives the field, not the
+            // routine that computes it. Finding what writes SINTRAN header offset 12 is the open
+            // item. Until then treat "epoch"/"class" in this file as MODEL VOCABULARY, not carved.
             return seed - (flags2 & 0xFF);
         }
 

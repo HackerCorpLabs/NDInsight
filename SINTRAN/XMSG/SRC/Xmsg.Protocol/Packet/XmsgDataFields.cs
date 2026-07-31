@@ -31,8 +31,29 @@ namespace NDInsight.Sintran.Xmsg.Packet
         public ushort Flags1;
 
         /// <summary>
-        /// Flags 2 — the frame-class word (offsets 10-11); <c>0x0400</c> for the setup frames.
+        /// Flags 2 (offsets 10-11) — a COPY of the 16-bit XMCSM; <c>0x0400</c> on the setup frames.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// CARVED FACT, 2026-07-31 - this is not an independent "frame-class word". It equals the
+        /// true 16-bit XMCSM at wire 26-27 on <b>1449 of 1449</b> data frames in the corpus. See
+        /// <see cref="ControlService"/> for the full word layout carved from the kernel symbols.
+        /// </para>
+        /// <para>
+        /// The kernel comments XMCSM as <c>"datagram checksum; if not checksum, then message
+        /// size"</c>, i.e. the field is OVERLOADED, and the corpus shows both uses: on COSMOS
+        /// file-server traffic it tracks the frame length (<c>Flags2 - infoLen</c> is a constant
+        /// -28 across 492 frames), while on TAD and routing traffic it is a small constant that
+        /// behaves like a class marker. Measured corpus-wide there are 54 distinct
+        /// <c>Flags2 - infoLen</c> offsets, so neither reading covers everything.
+        /// </para>
+        /// <para>
+        /// This matters for the envelope arithmetic: <see cref="XmsgEnvelope.BaseLowSigned"/>
+        /// subtracts the low byte of this field, so on file-server frames it is subtracting a BYTE
+        /// COUNT. Any reasoning that treats it as a pure class selector will be wrong on exactly
+        /// that traffic.
+        /// </para>
+        /// </remarks>
         public ushort Flags2;
 
         /// <summary>
@@ -76,8 +97,61 @@ namespace NDInsight.Sintran.Xmsg.Packet
         public ushort SourcePort;
 
         /// <summary>
-        /// XMCSM control/service dispatch word (offsets 13-16).
+        /// XMCSM plus the first word of the message body, read as one 32-bit value
+        /// (sub-header offsets 13-16, i.e. wire offsets 26-29).
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// CARVED FACT, 2026-07-31 - <b>this field spans a boundary and is misnamed</b>. The XMSG
+        /// kernel symbol list (<c>SINTRAN/NPL-SOURCE/SYMBOLS/L07/XMSG-SYMBOL-LIST.SYMB.TXT</c>)
+        /// defines the transported header as SEVEN words ending at XMCSM:
+        /// </para>
+        /// <para>
+        /// Word layout, octal symbol values and the wire offset each lands on:
+        ///  - <c>XMTHD=134</c> word 0 - wire 14-15.
+        ///  - <c>XMSTA=135</c> word 1 - wire 16-17 (low byte = 5M* state, high byte = XF* options).
+        ///  - <c>XMDSY=136</c> word 2 - wire 18-19.
+        ///  - <c>XMDPT=137</c> word 3 - wire 20-21.
+        ///  - <c>XMSSY=140</c> word 4 - wire 22-23.
+        ///  - <c>XMSPT=141</c> word 5 - wire 24-25.
+        ///  - <c>XMCSM=142</c> word 6 - wire 26-27, and the header ENDS here.
+        /// </para>
+        /// <para>
+        /// <c>XM5HE=7</c> (words) and <c>XM5HL=16</c> octal = 14 bytes confirm the length, and
+        /// <c>XMLEN=147</c> sits five words past XMCSM - far outside the transported header, so it
+        /// is not the 16-bit length field this layout assumed at wire 30-31 either.
+        /// The source carries the warning
+        /// <c>"Next block is sent directly over link. Do NOT split up!"</c> against that block.
+        /// </para>
+        /// <para>
+        /// So the true <c>XMCSM</c> is ONE word at wire 26-27, commented in the kernel as
+        /// <c>"datagram checksum; if not checksum, then message size"</c>. Wire offsets 28-29 are
+        /// the FIRST WORD OF THE MESSAGE BODY, not header.
+        /// </para>
+        /// <para>
+        /// Confirmed on the wire, independently of the symbol file, across the whole capture
+        /// corpus: Flags 2 (wire 10-11) equals the 16-bit XMCSM (wire 26-27) on <b>1449 of 1449</b>
+        /// data frames - so the long-documented rule "Flags2 == XMCSM &gt;&gt; 16" was that exact
+        /// equality seen through this wrong 32-bit split. And the word at 28-29 takes values that
+        /// are plainly application-layer: <c>0x07F0</c>/<c>0x07A2</c>/<c>0x07C0</c>/<c>0x07D2</c>
+        /// (the FA message types - see <c>FaMessageType</c>), <c>0x0041</c> XSLET,
+        /// <c>0x014B</c> XSGSY, <c>0x0100</c> XRSOK.
+        /// </para>
+        /// <para>
+        /// This is kept as a 32-bit field FOR NOW because splitting it correctly touches 108 call
+        /// sites across 34 files and changes what callers pass (a single <c>0x00800141</c> becomes
+        /// XMCSM <c>0x0080</c> plus body word <c>0x0141</c>). Treat the value as
+        /// <c>(XMCSM &lt;&lt; 16) | firstBodyWord</c> until that refactor lands. Consequently
+        /// <c>ControlService &gt;&gt; 16</c> IS the real XMCSM, and <c>&gt;&gt; 24</c> is its high
+        /// byte - both are genuine quantities despite the misleading name.
+        /// </para>
+        /// <para>
+        /// Doc: <c>SINTRAN/XMSG/DOC/XMSG-SUBHEADER-NAMED-FROM-SYMBOLS-2026-07-29.md</c> section 4
+        /// (which raised the conflict) and
+        /// <c>SINTRAN/XMSG/DOC/XMSG-CHANNEL-FORMULA-DIVERGES-ON-FILE-SERVER-TRAFFIC-2026-07-31.md</c>
+        /// (which resolved it).
+        /// </para>
+        /// </remarks>
         public uint ControlService;
 
         /// <summary>

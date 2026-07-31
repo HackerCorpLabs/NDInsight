@@ -104,6 +104,26 @@ word, and what we call `XMLEN` is the first word of the message body rather than
 but that is **INFERENCE and is not settled**. Anyone touching the frame parser should read this
 section first and resolve it against a capture, not assume either side.
 
+> ## RESOLVED 2026-07-31 — the symbol file was right, and the inference above was correct
+>
+> Settled against the corpus exactly as this section asked. **The symbol file wins:**
+>
+> - **`Flags2` (wire 10-11) equals the 16-bit `XMCSM` (wire 26-27) on 1449 of 1449 data
+>   frames.** So the rule "Flags2 == XMCSM >> 16" was never evidence for a 32-bit field — it
+>   was this exact equality, seen through the wrong split.
+> - **Wire 28-29 is the first word of the message BODY.** Its values are all application-layer:
+>   `0x07F0`/`0x07A2`/`0x07C0`/`0x07D2` (FA message types), `0x0041` XSLET, `0x014B` XSGSY,
+>   `0x0100` XRSOK. Header fields do not look like that.
+> - **The body therefore starts at wire offset 28** = 13 SINTRAN header + 1 Counter + 14
+>   transported header. Confirmed arithmetically: on the frames where `XMCSM` carries a size it
+>   equals the body length **exactly** once 28 is used (constant offset 0, 492 frames).
+>
+> The `XMCSM >> 24` in the envelope formula is still a real quantity — it is the HIGH BYTE of
+> the true 16-bit `XMCSM` — so the arithmetic was not nonsense, only misnamed.
+>
+> Full field-by-field status and the remaining unknowns:
+> `XMSG-FIELD-INVENTORY-2026-07-31.md`.
+
 ## 5. Other facts worth having
 
 - **XROUT service to handler**: the symbol dump pairs all 33 services with their `RS*` handler
