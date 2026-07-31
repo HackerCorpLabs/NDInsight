@@ -504,6 +504,49 @@ Two readings, and this probe does NOT choose:
 **Next:** read `CpuND5000.Tick()` for writes to `Wrf` outside `WriteDest`, and for any deferred
 write pipeline that could commit a cycle late. That distinguishes (a) from (b) directly.
 
+### G3 probe 10, 2026-07-31 - reading (b) is RULED OUT. This is an emulator anomaly. [OPEN]
+
+**The decode is not in dispute.** The emulator's own `Microword` agrees with the hand-decode of the
+raw image, field for field:
+
+```
+  emulator decode CS 25570: AOp=0   Dest=27
+  emulator decode CS 25571: AOp=0   Dest=30      <- 0o30 = 24 = D,NONE
+  emulator decode CS 25572: AOp=214 Dest=350
+  emulator decode CS 25573: AOp=66  Dest=25
+```
+
+So probe 9's reading (b) - "my hand-decode is wrong / field positions disagree" - **is ruled out**.
+Both decoders say the word that writes `SC13` has no destination.
+
+**Static inspection cannot explain the write:**
+
+- `OperandRouter.WriteDest` is called from exactly ONE place (`CpuND5000.cs:1890`), and for
+  `sel = 24` it returns immediately without writing.
+- The only other `Wrf` writes in the CPU are the AAP register-pair path (`Wrf[4+rin]` and
+  `Wrf[12+rin]`, `rin` 0-3), which can only reach indices 4-7 and 12-15. **`SC13` is index 22 and is
+  unreachable from there.**
+- The one cross-word mechanism that could make a word write somewhere unexpected is
+  `_pendingOrconD` / `ResolveOrDestination`, and it is gated on `word.Dest == 31`. 0o25571 has
+  `Dest = 24`.
+
+**So: a register that no code path should write is being written, deterministically, one word before
+a conditional that reads it.** That is an emulator anomaly, not a carve question. Status **[OPEN]**
+- named, reproducible, and NOT explained.
+
+**Deliberately not guessed at.** Three hypotheses have already died this session (harness-enters-cold,
+`COND_ALU`, decode-disagreement); a fourth invented from static reading would be worth nothing.
+
+**What would settle it in one run:** a conditional breakpoint or a temporary write-barrier on
+`Regs.Wrf[22]` inside `CpuND5000.Tick()`, reporting the call stack on change. That requires editing
+`src/CpuND5000.cs`, which is currently carrying someone else's uncommitted work - so it was NOT
+touched. This is the first thing to do once that file is free.
+
+**Impact if it is a defect:** `OCB_CLNUP` can never execute its body under our emulator, so kicks
+4/5/6 can never requeue in-flight work, and G3 cannot be closed by observation at all until this is
+fixed. It would also affect any microword that reads a scratch register written this way - which is
+far wider than this routine.
+
 **Note on the harness:** this iteration was blocked for a while by an unrelated uncommitted edit to
 `src/CpuND5000.cs` (a `_aapProductForQ` field never assigned, CS0649-as-error). Not ours; left
 alone; it compiles again now.
