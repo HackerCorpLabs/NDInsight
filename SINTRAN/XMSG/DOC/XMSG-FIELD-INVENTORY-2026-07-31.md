@@ -64,10 +64,10 @@ Three consequences, each confirmed against all 1449 captured data frames:
 | 0 | Marker1 `0x21` | **WIRE** | Always `0x21`. *Why* — **UNKNOWN**. |
 | 1 | Marker2 | **WIRE** | `0x13` normal, `0x12` relayed. |
 | 2 | PacketType | **UNKNOWN** | Always `0x00` in the whole corpus. Never varies, so nothing can be inferred. |
-| 3 | Subtype | **WIRE** | `0x0E` Data, `0x03` Ack, `0x13`/`0x19` Reach, `0x07` NetworkError. |
+| 3 | Subtype | **WIRE** | `0x0E` Data, `0x03` Ack, `0x13`/`0x19` Reach, `0x07` NetworkError. **Plus three UNDOCUMENTED values found 2026-07-31: `0x0A` and `0x0C` (226 FCS-valid frames each) and `0x17` (4 frames, Flags1 `0xFFFF` like the Reach family).** Not in any table we hold - decode them. |
 | 4-5 | Dest node | **WIRE** | |
 | 6-7 | Src node | **WIRE** | Logical source, not the LAPB neighbour. |
-| 8-9 | Flags1 | **WIRE** | One sequence per direction per link, +1 per Data frame. Monotonic — verified in arrival order. |
+| 8-9 | Flags1 | **CARVED** | `XMSEQ` (`0o154`). Assigned from a per-link counter, masked to **15 bits**. See below. |
 | 10-11 | Flags2 | **CARVED** | A copy of `XMCSM`. See section 4. |
 | 12 | Protocol ID / channel | **UNKNOWN** | The `0xDE - class - epoch` expression predicts it 1449/1449, but nothing carved says the machine computes it that way. **This is the biggest open item.** |
 
@@ -153,30 +153,63 @@ is the opposite of how it first reads:
 So the checksum is the narrow case: it is computed only when both flags are set, and the size
 is the default. That fits the corpus, where 731 of 1449 frames carry a fixed `XMSIZ` constant.
 
-**STILL UNKNOWN - and static carving CANNOT finish it.** `A` at that point comes from
-`LDATX`, not from `XMSTA` (which the code loads separately at `134024`). `LDATX` is
-**privileged PHYSICAL addressing via the T:X register pair**, so the tested word lives at a
-runtime physical address, not a static one.
+**NARROWED 2026-07-31 (after the nd100-dis TX fix) - it is a PER-LINK property, not a message
+option.** The rebuilt disassembler decodes the TX displacement field (bits 3-5), which was
+previously hidden: `EL = (T & 0xFF)<<16 | (X + disp)`. That turns the opaque `LDATX` into a
+named field access:
 
-Tracing the operands as far as static analysis allows: `T` and `X` are loaded from B-relative
-cells (`,B 101`, `,B 105`, `,B 133`), and **B is the message-buffer base** - confirmed because
-`0o132`=`XMLIM`, `0o133`=`XMCUR`, `0o134`=`XMTHD` all line up with the symbol list. So the
-flag word is reached through the buffer's own current/limit pointers and is a **runtime
-value**.
+```
+134004  LDA ,B 154        ; A := XMSEQ            (0o154 - the datagram sequence)
+134005  JAP -> 134013     ; already assigned -> skip
+134006  LDATX 4           ; A := phys[X+4]        the per-link counter
+134007  STA ,B 154        ; XMSEQ := pre-increment value  <- THIS message's sequence
+134010  AAA 1             ; A += 1
+134011  AND 54            ; A &= 077777           <- FIFTEEN-bit mask (constant at 134065)
+134012  STATX 4           ; phys[X+4] := A        write the counter back
+134013  LDA ,B 144        ; A := XMSIZ
+134014  STA ,B 142        ; XMCSM := XMSIZ
+134015  LDATX 7           ; A := phys[X+7]        <- THE FLAG WORD
+```
 
-Bits 9 and 10 of the `XF*` option word would be `XFSEC` (secure) and `XFROU` (routed), which
-fits the "checksum only for secure routed messages" reading - but that is **INFERENCE** and
-must not be recorded as fact.
+So the checksum flag lives at **offset 7 of the same per-link block** that holds the sequence
+counter at offset 4. That makes it a **link/route property**, not a per-message option -
+which **withdraws the earlier `XFSEC`/`XFROU` inference**: those are message options and
+cannot be what is read here.
+
+Still UNKNOWN: what that per-link block is and what bits 9/10 of its word 7 mean. `LDATX` is
+privileged PHYSICAL addressing via the T:X pair, so the block is at a runtime physical
+address. A live DAP capture with `X` known at `134015` would name it immediately.
+
+`B` meanwhile is the **message-buffer base** - confirmed because `0o132`=`XMLIM`,
+`0o133`=`XMCUR`, `0o134`=`XMTHD`, `0o144`=`XMSIZ`, `0o154`=`XMSEQ` all line up with the symbol
+list.
 
 **To finish this, capture it live over DAP** (both machines are up), the same way the resident
 DATA cells were handled - see the `sintran-carving` resident doc. Another static pass will not
 resolve a physical address chosen at runtime.
 
-**Decoder note:** `nd100-dis` switches this group on `instr & 0xFFC7`, which deliberately
-drops bits 3-5. The mnemonic is still right (the variant is in the low 3 bits: `LDATX`=0,
-`LDXTX`=1, `LDDTX`=2, `LDBTX`=3, `STATX`=4), but `143300`/`143320`/`143340`/`143370` all print
-identically as `LDATX` even though bits 3-5 differ in the real code. If those bits carry
-meaning, the listing is hiding it.
+### Flags1 is a 15-bit counter [CARVED]
+
+The mask at `134011` is the constant `077777` at `134065` = **0x7FFF**. So the datagram
+sequence increments modulo **0x8000**, not 0x10000, and `XMSEQ` is assigned the value BEFORE
+the increment (read, stash, +1, mask, write back), guarded so it happens once per message.
+
+The corpus is **consistent but cannot confirm this**: the highest Flags1 on any Data frame is
+`0x03D4`, far below either wrap point, and zero Data frames carry Flags1 >= 0x8000. The mask
+is the evidence; the wire merely fails to contradict it. Anyone modelling wrap behaviour (the
+envelope "epoch" term counts these wraps) must use 0x8000.
+
+Reachability frames use `0xFFFF` as a link-start sentinel and are NOT the counter.
+
+### Decoder note - fixed 2026-07-31
+
+`nd100-dis` previously switched this group on `instr & 0xFFC7`, dropping the bits 3-5
+displacement, so every TX instruction printed bare. The rebuilt version decodes it for all
+seven variants (`LDATX`, `LDXTX`, `LDDTX`, `LDBTX`, `STATX`, `STZTX`, `STDTX`).
+
+Audit of the change across the whole kernel: **116 of 236 TX instructions gained a
+displacement, and NO mnemonic changed** - so the fix adds information rather than correcting
+any earlier reading, and every conclusion in this document that predates it still stands.
 
 **Bonus: this routine is the transported-header builder.** At `133727`, `LDA 125` reads
 P-relative from `134054` - a genuine literal holding `020400` = the `0x2100` marker - and
