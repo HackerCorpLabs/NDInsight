@@ -71,6 +71,11 @@ message at `SWMSG + 5DP2`, so it is runtime data and bit 15 genuinely can be set
 
 ## 0.2 CORRECTION (same day): fixing G1 does NOT fix stop-system - G10 sits above it
 
+> **LATER STATUS, read this before acting on the section below:** G10 is **FIXED AND VERIFIED**
+> (2026-07-30). The analysis here is still correct about the kick being dropped by the `_accpIdle`
+> guard, but its conclusion - that some ACCP exchange timed out - is **WRONG**. 244B TERMINATE is a
+> normal bring-up step sent after 3 fully-answered commands. See the corrected G10 entry below.
+
 After implementing G1 the live harness STILL showed `X5CLR = 0x003F` after `stop-system`. Chased
 with real observables rather than inference (the station's `Log()` never reaches TestContext, so
 "I saw no log line" is not evidence - see the marker rule). Added `KickCounts[64]` +
@@ -109,17 +114,36 @@ answers, and the poll exhausts into `ERRFATAL`.
 Also worth recording: kick 1 was never sent either. That is correct and not a gap - activation goes
 through the `X5ACT := 0` write (ACT51), and the kick is the PREEMPT path only.
 
-### G10 - something makes SINTRAN TERMINATE the ACCP mid-run  **[P1, NEW, OPEN]**
+### G10 - `_accpIdle` sticks after the 244B TERMINATE  **[P1, FIXED AND VERIFIED 2026-07-30]**
 
-244B is what the ND-500 monitor sends **on ACCP timeout** (manual chapter 5.3.9). So during the
-ladder some ACCP exchange of ours failed to answer, or answered too late, and SINTRAN gave up on the
-microprogram. Everything after that point runs against a terminated ACCP - which is why `stop-system`
-reaches `ERRFATAL` no matter how correct the kick-3 handler is.
+**The original title and premise of this gap were WRONG, and both are corrected here rather than
+overwritten**, because the wrong version is what a reader would otherwise act on.
 
-**This is now the top open item, above every other gap here.** The next step is to find WHICH
-exchange timed out: log the 244B arrival with a timestamp and the preceding ACCP command, then work
-back to the command that went unanswered. Do NOT "fix" the `_accpIdle` guard to let kicks through -
-that would paper over a real timeout with behaviour the hardware does not have.
+Originally filed as "something makes SINTRAN TERMINATE the ACCP mid-run", reasoning that 244B is
+what the ND-500 monitor sends **on ACCP timeout** (manual chapter 5.3.9), so some exchange of ours
+must have gone unanswered. **That inference was wrong.** Measured, not inferred: the 244B arrives
+after exactly 3 ACCP commands with **all 3 answered**, and a full run answers **149 of 149**. It is
+present in a fixed run and a broken run alike, at the same place in the ladder, with the same three
+commands behind it.
+
+**244B TERMINATE is an unconditional, NORMAL bring-up step. Receiving one is not a fault signal and
+is not evidence of a timeout.** SINTRAN sends it, then restarts the microprogram.
+
+The actual defect was the flag, not the terminate: `_accpIdle` was cleared only by `ContinueAccp`
+and `ResetStation`, and never by `STAMIC0` / `CONTMIC` / `RESTMIC`. So the microprogram restarted
+but the flag stayed set, and the guard in `OctobusND5000Station.HandleFrame` dropped **every kick
+for the rest of the session**. That is why `stop-system` reached `ERRFATAL` no matter how correct
+the kick-3 handler was.
+
+The standing warning still holds and is now better founded: do NOT "fix" this by letting kicks
+through the `_accpIdle` guard. The guard is authentic - a stopped microprogram genuinely cannot
+execute a kick. The fix is to clear the flag on the restart paths that really do restart it.
+
+**Verified:** `k3=1`, `X5CLR=0000`, `X5CCL=0001`, `accpIdle=False`, full ladder green.
+
+**How we got it wrong:** the first clean capture predated the footer field that records the 244B
+snapshot, so the line was simply not written. We read a missing FIELD as a missing EVENT, and built
+a timeout theory on top of it.
 
 ---
 
@@ -364,11 +388,11 @@ fix below. **G7 withdrawn** - it was never a gap.
   Verified: `k3=1`, `X5CLR=0000`, `X5CCL=0001`, `accpIdle=False`, full ladder green.
 - **G2**: kick 6 writes `X5PRO := -1`, so `TER51` completes instead of `ESPTIMOUT`.
 
-**0. G10 FIRST** - SINTRAN terminates the ACCP mid-run (section 0.2). Until that is understood,
-everything downstream runs against a stopped microprogram and no amount of kick-handler correctness
-changes the outcome.
+**0. G10 - DONE.** Was listed here as "first, until understood". It is understood and fixed: the
+244B TERMINATE is a normal bring-up step, and the defect was `_accpIdle` never being cleared on the
+microprogram-restart paths. See the corrected G10 entry above.
 
-Then:
+Remaining, in order:
 
 1. **G7** (verify `X5ACT` re-arm) - one assertion in the existing mailbox tests; either closes the
    gap or promotes it to a defect.
