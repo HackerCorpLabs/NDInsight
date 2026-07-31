@@ -809,6 +809,54 @@ built once, deliberately, rather than approximated again.
 existing guard test (`OcbKick06_WithMessage_ShowsWhatOcbClnupDoesToIt`) already prevents the
 opposite error of consuming the message.
 
+### G3 probe 17, 2026-07-31 - kick-injection harness BUILT and kicks 4/5/6 reach `OCB_CLNUP`
+
+**The harness works and is validated against an oracle.** Delivering a **framed** kick word into
+AOB with ATRAP and AFLAG bit 12, entering at `TRAP_OMESS` (0o16412), dispatches correctly:
+
+```
+entry                reachedKick03  X5CLR  X5CCL  X5PRO
+TRAP_OMESS 016412             True  0000   0001   FFFF
+OCB_DECODE 016417             True  0000   0001   FFFF
+OCB_MES_K  016424             True  0000   0001   FFFF
+TRAP_OCBA  016550            False  003F   0000   0000
+```
+
+That is the full documented CLRKICK acknowledge, reproduced end to end - so the injection path is
+proven, not assumed.
+
+**Kick words are FRAMED, not bare** - the first attempt used `0x0003` and dispatched nowhere.
+`OCB_MES_K` fast-paths an exact match against `0o100501` (`0x8141`) and `OCB_DEC_K` indexes on
+`word AND 0o77`, so a kick word is `0o1005nn`. Independently corroborated by a real captured frame:
+this register already recorded `lastKickFrame=0xB843` delivered as `0x8143` with `info = 3`.
+Building the harness around a KNOWN kick is what surfaced this immediately instead of yielding a
+plausible null result for 4/5/6.
+
+**Driving kicks 4, 5 and 6 through it:**
+
+```
+kick  word    reachedClnup  reachedBody  N5STA  state
+   4  8144          True        False  0002   SC13@branch=00000000 AFLAG=1000
+   5  8145          True        False  0002   SC13@branch=00000000 AFLAG=1000
+   6  8146          True        False  0002   SC13@branch=00000000 AFLAG=1000
+```
+
+**All three now REACH `OCB_CLNUP` through a real dispatch** - the first time that has happened.
+The body is still not entered and `N5STA` is untouched (never `3`, so nothing consumes the message).
+
+**CORRECTS PROBE 13's FRAMING.** `AFLAG` is `0x1000` at the branch - the flag IS available - and
+`SC13` is still `0`. So while `SCAN_ACCP` at 0o16554 genuinely does `SC13 := AFLAG`, **the value
+`OCB_CLNUP` tests is NOT a fresh AFLAG read**. `SC13` is a general-purpose scratch (600 writers)
+and by the time 0o25573 executes it holds `0` written by something in between. "SC13 is the AFLAG
+word" is right about `SCAN_ACCP`'s write and **wrong as an explanation of the branch value**.
+
+**So the real gate is: whatever leaves `SC13` non-zero immediately before 0o25570.** That is now a
+sharply defined question - and answering it means finding the last `SC13` writer on the kick path,
+using an in-CPU barrier (per the method lesson in probe 11), not the counter.
+
+**Everything below the harness is now unblocked**, including G5: kicks 4/5 can be driven and
+observed for the first time.
+
 **Note on the harness:** this iteration was blocked for a while by an unrelated uncommitted edit to
 `src/CpuND5000.cs` (a `_aapProductForQ` field never assigned, CS0649-as-error). Not ours; left
 alone; it compiles again now.
