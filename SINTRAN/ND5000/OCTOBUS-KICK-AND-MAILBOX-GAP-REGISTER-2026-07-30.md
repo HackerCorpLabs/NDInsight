@@ -259,6 +259,38 @@ Useful side result: our kick-6 implementation does NOT touch `N5STA`, so it is n
 corrupting queued work - it is incomplete, not wrong. The test
 `MailboxClrKickTests.OcbKick06_WithMessage_ShowsWhatOcbClnupDoesToIt` guards that.
 
+### G3 probe 3, 2026-07-31 - the carve's `N5STA := 1` claim is NOT REPRODUCIBLE
+
+Probe 2 supplied the state probe 1 was missing - `MSGME` (srf 0o2021) pointing at the message, and
+the `5CPUN` ownership word at message-6 - and **swept the CPU number 0..15** rather than guessing
+one, because a wrong guess and a genuine no-op look identical.
+
+```
+SUMMARY: 16/16 runs REACHED OCB_CLNUP, 0 changed N5STA, 0 requeued to MSGN500(1), owner=NONE FOUND
+```
+
+**All 16 runs REACHED `OCB_CLNUP` and none of them wrote `N5STA`.** The reachability watch is
+proven non-vacuous by a control in the same test that asserts the watch reports FALSE for an address
+the path never executes - so "reached" is a measurement, not an assumption.
+
+This is **evidence of absence**, not absence of evidence, and it is the first result here that
+actually contradicts the carve rather than merely failing to confirm it. Two readings remain open
+and this probe does NOT choose between them:
+
+1. The carve's "**write `N5STA := 1`**" is **wrong** - possibly read off a neighbouring routine or
+   a mis-rendered listing, the same class of error already found in correction 3 of the catalog.
+2. "In progress" needs **more than `MSGME` + `5CPUN`**, and the routine is still declining early.
+
+**Do NOT implement `N5STA := 1` in the station on the strength of the carve.** It is now a claim
+with a failed reproduction against the real B30 microcode, and the project rule is that executing
+microcode outranks a carve summary.
+
+What would settle it: a microword-level trace through `OCB_CLNUP` (0o25570..) recording which
+compare sends it to its early exit. There is no microcode disassembler in the tree, so this needs
+either one written or a single-step trace with the raw microwords decoded by hand.
+
+Test: `MailboxClrKickTests.OcbClnup_SweepOwningCpu_ReportsWhichOneRequeuesTheMessage`.
+
 ### G4 - kick 2 not mapped to ACTIVATE  **[P2]**
 
 `OCB_DEC_K` sends both 1 and 2 to `ACTIVATE`. We handle only 1. No NPL sender for kick 2 was
