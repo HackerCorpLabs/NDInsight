@@ -1,126 +1,152 @@
-# The envelope channel formula diverges on file-server traffic — corpus-wide scan
+# The envelope channel formula has a spurious Flags2 dependence
 
 **Date:** 2026-07-31
-**Method:** ran the project dissector (`SINTRAN\Devices\HDLC\WireShark\hdlc_tcp.lua`, the
-copy installed in the global Wireshark plugin folder) over **every** `.pcapng` in
-`E:\Dev\Ronny\X25Emulator\pcap\` and counted its own
-`Channel mismatch: Protocol ID 0xNN but seed model expects 0xMM` expert warning.
+**Status:** root cause identified and evidenced. A corrected formula is **not** yet derived.
 
-This started from a single odd frame in
-`XMSG-APPEND-REMOTE-BATCH-CAPTURED-2026-07-31.md`. It is **not** a single odd frame.
+Started from one odd frame in `XMSG-APPEND-REMOTE-BATCH-CAPTURED-2026-07-31.md`. It is not
+one odd frame, and it is not specific to that capture.
 
 ---
 
-## 1. The result: a clean split between two capture families
+## 1. The corpus scan: a clean split between two traffic families
 
-| Capture | Frames | Mismatches |
+Ran the project dissector (`SINTRAN\Devices\HDLC\WireShark\hdlc_tcp.lua`, the copy already
+installed in the global Wireshark plugin folder) over **every** `.pcapng` in
+`E:\Dev\Ronny\X25Emulator\pcap\`, counting its own
+`Channel mismatch: Protocol ID 0xNN but seed model expects 0xMM` warning.
+
+| Family | Captures | Result |
+|---|---|---|
+| File-server / FA (2026-07-29 onward) | 17 | **all mismatch**, rates 2/1192 to 72/340 |
+| TAD / routing / connect (older) | 13 | **exactly zero**, ~1400 frames |
+
+Same two machines, same link, same seed. The split is by traffic family, not by date, size,
+direction or node pair.
+
+Full per-file table is in the git history of this file (commit that introduced it); the
+counts above are the summary that matters.
+
+---
+
+## 2. Root cause: `baseLow` makes the channel depend on `Flags2`, and it must not
+
+The model under test:
+
+```
+baseLow   = (seed - (Flags2 & 0xFF)) & 0xFF
+epoch     = (Flags1 - baseLow + 0xFF) >> 8
+Channel   = 0xDE - (XMCSM >> 24) - epoch
+```
+
+Because `baseLow` is recomputed per frame from `Flags2`, the predicted `epoch` moves when
+the class word moves. **The real channel byte does not.**
+
+The clearest single view, from `claude-file-stat-102-to-100-2026-07-29` — `Flags1` marching
+1 per frame, the actual channel pinned at `0xDC` throughout, and the prediction flipping
+purely on the size of `Flags2`:
+
+```
+ Flags1  Flags2  base   ep  pred  act
+ 0x017F  0x0008  0x0C    2  0xDC  0xDC   ok
+ 0x0180  0x0062  0xB2    1  0xDD  0xDC   *** MISMATCH
+ 0x0181  0x0008  0x0C    2  0xDC  0xDC   ok
+ 0x0182  0x0046  0xCE    1  0xDD  0xDC   *** MISMATCH
+ 0x0183  0x0008  0x0C    2  0xDC  0xDC   ok
+ 0x0184  0x0028  0xEC    1  0xDD  0xDC   *** MISMATCH
+```
+
+Small `Flags2` leaves `baseLow` small and the epoch lands on 2 (correct). Large `Flags2`
+pushes `baseLow` up, the subtraction crosses a 256 boundary, and the epoch drops to 1.
+Nothing about the wire changed.
+
+### The decisive test
+
+Read the TRUE epoch straight off the wire for every Data frame —
+`epoch_true = 0xDE - (XMCSM>>24) - actual_channel` — and ask whether any
+`(direction, Flags1)` pair ever shows two different epochs. `Flags1` is one sequence per
+direction per link, so direction has to be part of the key.
+
+| Capture | frames | (dir,Flags1) with >1 epoch | max distinct Flags2 inside ONE epoch group |
+|---|---:|---:|---:|
+| `claude-file-stat-...-07-29` | 28 | **0** | 11 |
+| `append-remote-batch-...-07-31` | 4 | **0** | 2 |
+| `claude-list-files-SESSION2-...-07-30` | 146 | **0** | 4 |
+| `claude-transfer-SPARSE-...-07-30` | 182 | **0** | 3 |
+| `conn-to-d102-from-100` (clean family) | 49 | **0** | 4 |
+
+**Zero conflicts anywhere**, while up to eleven different class words sit inside a single
+epoch group. The channel byte is determined by direction and `Flags1`; `Flags2` has no
+influence on it. The `Flags2` term in `baseLow` is spurious.
+
+---
+
+## 3. Why the old corpus never caught this
+
+`Flags2` variety, measured across whole captures:
+
+| Capture | distinct `Flags2` | mismatches |
 |---|---:|---:|
-| `append-remote-batch-102-to-100-2026-07-31` | 12 | **4** |
-| `claude-CLOSEONLY-102-to-100-2026-07-30` | 6 | **2** |
-| `claude-create-file-102-to-100-2026-07-30` | 35 | **3** |
-| `claude-create-file-DIRSPEC-102-to-100-2026-07-30` | 34 | **3** |
-| `claude-create-file-NAMELEN-102-to-100-2026-07-30` | 92 | **9** |
-| `claude-delete-file-102-to-100-2026-07-29` | 31 | **3** |
-| `claude-file-stat-102-to-100-2026-07-29` | 59 | **10** |
-| `claude-list-files-d100-system-2026-07-29` | 109 | **27** |
-| `claude-list-files-SESSION2-102-to-100-2026-07-30` | 340 | **72** |
-| `claude-open-close-file-102-to-100-2026-07-30` | 32 | **4** |
-| `claude-open-W-close-102-to-100-2026-07-30` | 47 | **5** |
-| `claude-OPENONLY-102-to-100-2026-07-30` | 20 | **4** |
-| `claude-transfer-file-COMPLETE-102-to-100-2026-07-29` | 45 | **2** |
-| `claude-transfer-PULL-content-100-to-102-2026-07-29` | 326 | **2** |
-| `claude-transfer-SMALL-167bytes-102-to-100-2026-07-30` | 31 | **4** |
-| `claude-transfer-SPARSE-s3config-102-to-100-2026-07-30` | 1192 | **2** |
-| `fa-access-secret-102-to-100-2026-07-29` | 128 | **26** |
-| --- | --- | --- |
-| `conn-to-102-from103-via100` | 179 | 0 |
-| `conn-to-d102-from-100` | 87 | 0 |
-| `device-online-100-102-103` | 126 | 0 |
-| `li-rout-102-tree` | 28 | 0 |
-| `li-rout-103-tree` | 36 | 0 |
-| `li-route-d103-tree-x` | 142 | 0 |
-| `li-route-d103-tree` | 66 | 0 |
-| `li-routing-100-proxy-102` | 50 | 0 |
-| `li-syst-tad-103` | 24 | 0 |
-| `list-routing-info-100-102-then-102-100` | 12 | 0 |
-| `multiple-connect-100-to102-...-connect-again` | 265 | 0 |
-| `new-conn-to-102-from-100` | 108 | 0 |
-| `start-li-li-1err` | 31 | 0 |
-| `test1` | 250 | 0 |
+| `conn-to-d102-from-100` | 5 | 0 |
+| `new-conn-to-102-from-100` | 5 | 0 |
+| `test1` | 5 | 0 |
+| `claude-list-files-SESSION2-...` | 11 | 72 |
+| `claude-file-stat-...` | 15 | 10 |
 
-**Every** file-server / FA capture (2026-07-29 onward) mismatches.
-**Every** TAD / routing / connect capture is at exactly zero, across ~1400 frames.
+TAD and routing traffic barely varies the class word, so `baseLow` stays effectively
+constant and the spurious term never bites. File-server traffic swings `Flags2` across a
+wide range on consecutive frames, and the error surfaces immediately.
 
-The split is by traffic family, not by date, size, direction or node pair — the same two
-machines and the same link produce zero mismatches on TAD traffic and hundreds on
-file-server traffic.
+So the skill's "VERIFIED 753/753" is not false — it is **scope-limited**. It was measured on
+the family that cannot exercise the bug.
 
 ---
 
-## 2. What this says about "VERIFIED 753/753"
+## 4. What a fix must do — and why I am not proposing one yet
 
-The `xmsg-decode` skill states the envelope formulas are VERIFIED on 753/753 data frames.
-That figure was measured on the **older corpus** — precisely the set that still shows zero
-here. So the claim is not wrong, but its scope is narrower than it reads: it was never
-exercised against file-server traffic, and it does not hold there.
+Removing the `Flags2` dependence and using the link seed as the fixed reference
+(`epoch_alt = (Flags1 - seed + 0xFF) >> 8`) does well but is not right:
 
-The formula in question:
+| Capture | `epoch_alt` matches |
+|---|---|
+| `claude-file-stat-...` | 28/28 |
+| `claude-transfer-SPARSE-...` | 182/182 |
+| `conn-to-d102-from-100` | 46/49 |
+| `claude-list-files-SESSION2-...` | 101/146 |
+| `append-remote-batch-...` | 0/4 |
 
-```
-baseLow = (seed - (Flags2 & 0xFF)) & 0xFF
-epoch   = (Flags1 - baseLow + 0xFF) >> 8
-Channel = 0xDE - (XMCSM >> 24) - epoch
-```
+So the seed is not the correct fixed reference in general. `append-remote-batch` sits
+entirely at `epoch_true = 5` where the seed reference says 4 — a whole-capture offset,
+consistent with `epoch` being a **cumulative count over the life of the link** that a
+capture starting mid-stream cannot reconstruct from `Flags1` alone.
 
-The **seed** identity is a different matter and still holds everywhere I checked,
-including on the mismatching frames:
-`(Counter + Flags1low + Flags2low) & 0xFF == seed`. On the APPEND-REMOTE-BATCH request it
-comes out at exactly `0x14`, the known 100-102 seed. So these frames are **well formed**
-and the parse is sound — it is only the predicted channel byte that is wrong.
-
----
-
-## 3. What I ruled OUT
-
-My first hypothesis was that the `Flags2` term is what breaks, because in
-`claude-list-files-SESSION2` the actual channel byte is a **single value** (`0xDB`, 133 data
-frames) while `Flags2` takes **eleven** distinct values (`0x0001, 0x0002, 0x0008, 0x0012,
-0x0020, 0x0022, 0x0028, 0x0046, 0x0062, 0x0064, 0x0070`). In that session the real channel
-plainly does not track `Flags2`, while the formula makes it do so through `baseLow`.
-
-**That hypothesis does not survive the next capture.** In
-`claude-transfer-SPARSE-s3config` the actual channel *does* move (`0xD8` 28, `0xD9` 150,
-`0xDB` 364) and `Flags2` is also spread (`0x0406` 356, `0x0001` 348, `0x0252` 178, plus
-others) — yet that capture has only **2 mismatches in 1192 frames**.
-
-So it is NOT simply "channel is constant" and NOT simply "large or varying `Flags2` breaks
-it". The mismatch rate ranges from 2/1192 to 72/340 with no explanation I can support.
+**One anomaly I cannot explain and did not chase:** in
+`claude-list-files-SESSION2`, within a single direction, the `Flags1` ranges of the two
+epoch groups OVERLAP (dir 45164: epoch 3 spans `0x02F0..0x030C`, epoch 4 spans
+`0x02F1..0x0338`) even though no individual `Flags1` maps to both. A plain cumulative
+counter cannot do that. Either `Flags1` is not monotonic there, or
+`Channel = 0xDE - (XMCSM>>24) - epoch` is missing a term, in which case `epoch_true` as
+computed above is absorbing it. **Resolve this before writing any replacement formula.**
 
 ---
 
-## 4. Status
+## 5. Practical guidance right now
 
-**VERIFIED**
-- Mismatches are confined to the file-server / FA capture family; the TAD / routing family
-  is at zero across ~1400 frames.
-- The seed identity holds on mismatching frames, so they are well formed.
-- In `claude-list-files-SESSION2`, one actual channel value against eleven class words.
-- In `claude-transfer-SPARSE-s3config`, three actual channel values and a low mismatch rate.
+- The mismatching frames are **well formed**. The seed identity
+  `(Counter + Flags1low + Flags2low) & 0xFF == seed` holds on every one of them
+  (0 violations across all frames scanned). Every decode we have done on file-server
+  captures stands; only the predicted channel byte was wrong.
+- Do **not** change `hdlc_tcp.lua` yet. Its warning is correctly telling us the model is
+  wrong, and it is currently our only detector.
+- Do **not** fit a formula to one capture. Any candidate must keep the ~1400-frame TAD
+  corpus at zero AND explain the overlap in section 4.
 
-**UNKNOWN**
-- The cause. I have not identified it and I am not proposing a replacement formula.
+## 6. Tooling
 
-**Do not** "fix" the formula against any single frame. Whatever the correction is, it has to
-keep the ~1400-frame TAD/routing corpus at zero while explaining rates that vary by a factor
-of thirty across file-server captures.
+Two throwaway scanners were used and are worth rebuilding if this is picked up again
+(they live in the session scratchpad, not in the repo):
 
----
-
-## 5. Suggested next step
-
-The cheapest discriminator is probably to dump, for one mismatching capture,
-`(Flags1, Flags2, Counter, XMCSM>>24, actual channel, predicted channel)` per frame and look
-at where predicted and actual part company in sequence — specifically whether the divergence
-appears at a `Flags1` wrap boundary (which would make it an off-by-one in the `epoch`
-expression) or at a change of service/class (which would make it a missing term). I did not
-do this; it needs a small decoder rather than the dissector's summary output.
+- `chanscan.py` — per-frame dump of `(Flags1, Flags2, Counter, XMCSM>>24, baseLow, epoch,
+  predicted, actual)` with a verdict column. Does its own TCP reassembly per direction,
+  HDLC de-framing, un-stuffing and FCS check rather than trusting per-packet splits.
+- `epochtest.py` — reads `epoch_true` off the wire and tests whether `(direction, Flags1)`
+  determines it, plus the seed-referenced variant.
