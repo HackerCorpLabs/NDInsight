@@ -125,12 +125,27 @@ admin-owned installed copy.
 - `hdlc_tcp.lua` — mask removed, reasoning recorded inline (repo copy only; see section 4).
 - `xmsg-decode` skill — envelope block corrected to the signed form and 1449/1449.
 
-**Still to do:**
-
-- `XMSG-PROTOCOL.md` section 18.5 carries the same formula and has NOT been updated.
-- The ACK closed form (`S_ack = seed + 0x0B`, `channel = 0xDE - epoch(echoed Flags1)`) uses
-  the same epoch machinery. In C# it now picks up the fix automatically, but I have not
-  re-validated the ACK scan against the corpus — the original claim there was 904/904 and it
-  was measured on the same TAD-only corpus, so it deserves the same scrutiny.
+- `XMSG-PROTOCOL.md` section 18.5 — formula corrected, with the reasoning and the corpus
+  figures recorded inline. The ACK section header updated from 904/904 to 1671/1671.
 - The channel anomaly in `XMSG-APPEND-REMOTE-BATCH-CAPTURED-2026-07-31.md` section 6 is
   explained by this and is no longer open.
+
+### The ACK closed form was re-scanned and needs NO change
+
+It uses the same epoch machinery and the same masked `baseLow`, and its "904/904" came from
+the same TAD-only corpus, so it deserved the same scrutiny. Re-scanned over every capture:
+
+| Check | masked `baseLow` | signed `baseLow` |
+|---|---|---|
+| trailing byte | 1671/1671 | 1671/1671 |
+| channel | 1671/1671 | 1671/1671 |
+
+Identical, because ACK `Flags2` low is only ever **1, 2 or 3** — always far below
+`S_ack` (~`0x1F`) — so `baseLow` never goes negative and the mask never bites. Frames where
+`F2low > S_ack`: **zero**. Prediction confirmed rather than assumed.
+
+Minor new observation: a `Flags2` low byte of **`0x0003`** occurs once in the corpus. The
+spec documents only `0x0001` and `0x0002` for ACKs, so receivers should tolerate `0x0003`
+too.
+
+**Nothing outstanding on this line of work.**

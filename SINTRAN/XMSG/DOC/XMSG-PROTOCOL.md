@@ -680,10 +680,15 @@ subtype-`0x03` frame** (14 bytes: 13-byte header + 1 payload byte), sent in the
 **A `0x03` byte cannot be decoded in isolation** — its meaning is fixed by the
 data frame it answers (`Flags 1` identifies which datagram).
 
-**Closed form for building an ACK [VERIFIED 904/904 ACKs, all 14 captures, incl. the
-0x0002 class, all four link seeds, both relay legs, the DE→DD wrap and the reboot
-reset]** — the ACK is the §18.5 envelope arithmetic applied to the ECHOED data Flags1
-with an ACK seed `S_ack = link_seed + 0x0B`:
+**Closed form for building an ACK [VERIFIED 1671/1671 ACKs, whole corpus, re-scanned
+2026-07-31; incl. the 0x0002 class, all link seeds, both relay legs, the DE→DD wrap and
+the reboot reset]** — the ACK is the §18.5 envelope arithmetic applied to the ECHOED data
+Flags1 with an ACK seed `S_ack = link_seed + 0x0B`:
+
+> The `baseLow` mask corrected in §18.5 on 2026-07-31 does **not** affect this form. ACK
+> `Flags2` low is only ever 1, 2 or 3 — always far below `S_ack` — so `baseLow` never goes
+> negative here. Masked and signed give identical results on all 1671 ACKs. (A `Flags2` low
+> of `0x0003` occurs once in the corpus, alongside the documented `0x0001`/`0x0002`.)
 
 ```
 S_ack    = seed + 0x0B                                 ; link constant (0x1F for 100↔102)
@@ -1525,12 +1530,34 @@ else — the sub-header `Counter` and the Protocol-ID `Channel` — is arithmeti
 
 ```
 seed    = per-link constant                     ; LEARN it: (Counter + Flags1 + (Flags2 & 0xFF)) & 0xFF
-baseLow = (seed - (Flags2 & 0xFF)) & 0xFF        ; Flags2 == XMCSM >> 16, ALWAYS (601/601)
-Counter = (baseLow - Flags1) & 0xFF
+baseLow = seed - (Flags2 & 0xFF)                 ; SIGNED - do NOT mask. Flags2 == XMCSM >> 16, ALWAYS
+Counter = (baseLow - Flags1) & 0xFF               ; masking fine HERE (a byte, exact mod 256)
 epoch   = (Flags1 - baseLow + 0xFF) >> 8          ; cumulative counter-wrap count; 0 when fresh
 Channel = 0xDE - (XMCSM >> 24) - epoch
 Base    = Flags1 + Counter = baseLow + 0x100*epoch ; the old "envelope Base", now derived
 ```
+
+> **CORRECTED 2026-07-31 — `baseLow` must NOT be masked to 8 bits.** When the low byte of
+> `Flags2` exceeds the seed, `baseLow` is **negative** and has to stay negative. The `epoch`
+> line divides `Flags1 - baseLow` by 256, so folding a negative base into `0..255` moves that
+> boundary and loses a borrow: the epoch comes out one too low and the `Channel` one too
+> HIGH.
+>
+> This was invisible for months because TAD, routing and connect traffic uses only ~5
+> distinct `Flags2` values, all at or below the seed, so the negative case never arises. The
+> COSMOS file-server traffic captured from 2026-07-29 onward carries 11-15 distinct class
+> words per session, many above the seed, and mismatched constantly.
+>
+> Whole-corpus validation, seed learned per frame so every link and both relay legs count:
+> **signed `baseLow` 1449/1449 data frames; masked 1267/1449.** Nothing that previously
+> passed regressed. The earlier "601/601" and "753/753" figures were measured on the
+> TAD/routing family only — scope-limited, not false.
+>
+> The ACK closed form below was re-scanned at the same time and needed **no** change:
+> 1671/1671 on both the trailing byte and the channel, identical under masked or signed,
+> because ACK `Flags2` low is only ever 1, 2 or 3 and never exceeds `S_ack`.
+>
+> Full analysis: `XMSG-CHANNEL-FORMULA-DIVERGES-ON-FILE-SERVER-TRAFFIC-2026-07-31.md`.
 
 - **`Flags1` is ONE sequence per direction per node-pair**, shared across all ports/streams/classes
   (a node running two links keeps a separate `Flags1` per remote — kernel `XSSSQ`/`XSRSQ`, one pair
