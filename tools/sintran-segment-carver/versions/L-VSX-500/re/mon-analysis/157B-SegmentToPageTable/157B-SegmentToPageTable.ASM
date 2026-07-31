@@ -59,7 +59,7 @@
 070011  125106  	JMP I 106		; -> 070117  (error/exit vector)
 070012  051106  	LDT I 106		; T = mem[ mem[070120B] ]
 070013  054424  	LDX ,B 24		; X = segment-table pointer
-070014  143360  	LDATX			; A = phys[EL]  (EL = high8=(T&0377), low16=(X+disp); 24-bit PHYSICAL, MMU bypassed)
+070014  143360  	LDATX 6			; A = phys[EL]  (EL = high8=(T&0377), low16=(X+disp); 24-bit PHYSICAL, MMU bypassed)
 070015  175215  	BSKP ONE 10 DA		; skip if bit set
 070016  125103  	JMP I 103		; -> 070121  (error/exit vector)
 070017  044422  	LDA ,B 22		; A = InterruptLevel (param block +22)
@@ -102,10 +102,10 @@
 070064  146154  	RADD CLD SA DL		; L = A  (page-table walk limit/base)
 070065  051033  	LDT I 33		; T = mem[ mem[070131B] ]  (page bank)
 070066  054424  	LDX ,B 24		; X = segment-table pointer
-070067  143371  	LDXTX			; X = phys[EL]  (PHYSICAL)
+070067  143371  	LDXTX 7			; X = phys[EL]  (PHYSICAL)
 070070  051041  	LDT I 41		; T = mem[ mem[070132B] ]
 070071  133016  	JXZ 16			; -> 070107 (if X == 0)
-070072  143330  	LDATX			; A = phys[EL]  (PHYSICAL page-table entry)
+070072  143330  	LDATX 3			; A = phys[EL]  (PHYSICAL page-table entry)
 070073  146171  	RADD CLD SX DD		; D = X
 070074  070036  	AND 36			; A &= mem[070133B]  (page-frame mask)
 070075  154401  	SHA 1			; A <<= 1

@@ -32,7 +32,7 @@
 064637  044421  	LDA ,B 21		; A = ,B 21 (line status word)
 064640  143304  	STATX			; phys[EL] = A : write terminal-line status
 064641  044423  	LDA ,B 23		; A = ,B 23
-064642  143314  	STATX			; phys[EL] = A : write second status word
+064642  143314  	STATX 1			; phys[EL] = A : write second status word
 064643  124003  	JMP 3		; -> 064646
 064644  044021  	LDA 21			; A = mem[064665B]
 064645  125442  	JMP I ,B 42		; -> [064707] return

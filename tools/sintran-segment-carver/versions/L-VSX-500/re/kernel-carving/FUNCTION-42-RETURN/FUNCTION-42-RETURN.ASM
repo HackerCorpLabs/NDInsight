@@ -103,7 +103,7 @@
 057565  146174   RADD CLD SX DL         ; L := X
 057566  052015   LDT ,X 15              ; \ address of CONTROL RECORD from X.MEMA1/MEMA2
 057567  056016   LDX ,X 16              ; |   (*LDDTX 10)
-057570  143312   LDDTX                  ; /
+057570  143312   LDDTX 1                  ; /
 057571  146147   RADD CLD SL DX
 057572  022017   STD ,X 17              ; AD =: L.ABPA2   (LBA of control record = last block)
 057573  002021   STZ ,X 21              ; 0 =: X.ABP31
@@ -187,11 +187,11 @@
 057732  143110   MOVEW                  ; /
 057733  050425   LDT ,B 25             ; \ *LDDTX 40 : fetch DATA AREA SIZE
 057734  054426   LDX ,B 26             ; |
-057735  143342   LDDTX                  ; /
+057735  143342   LDDTX 4                  ; /
 057736  054404   LDX ,B 4
 057737  052015   LDT ,X 15             ; \ *STDTX 10 : store data-area size into
 057740  056016   LDX ,X 16             ; |            caller's SLINK.MEMA1/MEMA2 buffer
-057741  143316   STDTX                  ; /
+057741  143316   STDTX 1                  ; /
 057742  020776   STD ,B -2             ; \ AD =: UHLIM
 057743  170436   SAA 36                ; |  36 =: status word  (*STATX 00)
 057744  143304   STATX                  ; /  -> caller's buffer gets {geometry, 36}

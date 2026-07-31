@@ -52,6 +52,38 @@ had wrong operands on those lines.
     patched: bare `LDDTX` -> `LDDTX 4` / `LDDTX 2` (offsets decoded with the fixed tool, not hand-
     computed; all other `LDATX`/etc. there are offset-0 and were already correct).
   - `SINTRAN/ND500/nd-500-mon/nd-500-mon-j04.prog.asm` - 3 lines patched: `STATX` -> `STATX 4`.
+- **Third pass - the ANNOTATED analysis listings (207 lines, 23 files).** The `--all` regen covers
+  only `segments-ref/`, and the second pass covered the standalone `.dis`. That left every
+  hand-annotated `.ASM`/`.txt` analysis listing still printing bare mnemonics. A tree-wide scan
+  (excluding `Reference-Manuals/`, which is vendor text) found 207 stale lines; all are now fixed
+  and a re-scan reports zero. These were **surgically patched, not regenerated** - regenerating
+  would delete the hand annotations. Only the mnemonic token was replaced, so comments and column
+  alignment are preserved, and offset-0 lines were left untouched. Replacement text was decoded by
+  the FIXED TOOL (a word->text map built by running `nd100-dis` over the 31 distinct words), never
+  hand-computed - same rule as the second pass. The patch is idempotent.
+  - `re/segments-ref/SINTRAN-DATA_commoncode/SINTRAN-DATA_commoncode.asm` (138) - **missed by the
+    `--all` regen** even though the sibling `resident/...commoncode.dis` was regenerated. Worth
+    checking whether `make-segment-ref.py --all` skips the resident bundle generally.
+  - `re/mon-analysis/` 157B, 201B, 304B, 305B, 320B, 321B, 345B, 144B, 505B, 511B, 512B, 513B;
+    `re/mon-emulation/144B-MAGTP`; `re/kernel-carving/` SCSI-DISKLAYER-COMPLETE (10),
+    FUNCTION-42-RETURN; `re/ND500-SYSTEM-MONITOR/` ND500-3022-IOX-DRIVER (4), FUNCS-file-process;
+    `re/domino-nucleus-io/` a-data-nkini (14), a-snucl-enkic (7), a-conki-040765, a-enucl-ncall,
+    a-nkget-nkick.
+
+- **What the third pass CHANGED IN MEANING** (these are analysis claims, not just text):
+  - `re/ND500-SYSTEM-MONITOR/ND500-3022-IOX-DRIVER.ASM` `051215-051230` - offsets are **7, 7, 6, 2**
+    (`051226` is offset-0). Without them the run read as a read-modify-write of ONE 3022 register;
+    it is actually a multi-word structure walk at `X+8` touching words +7, +6, +0, +2. Re-read any
+    conclusion drawn from this routine - it is MON 60B / item-0 territory.
+  - `re/mon-analysis/157B-SegmentToPageTable` `070014/070067/070072` - offsets **6, 7, 3**. The
+    existing annotations already said `(X+disp)`, i.e. the analyst knew the field existed but could
+    not see its value. This is a page-table walk, so WHICH word is read is the whole claim.
+  - **[OPEN] `re/ND500-HANDLERS-OVERLAY.md:181`** annotates `141634 143340 LDATX` as
+    `A := 5RECE (received-trap register)`. The offset is **4**, so it loads `5RECE+4`, not `5RECE`.
+    Line 78 derives the claim from NPL `*5RECE@3`, which matches neither. NOT yet resolved against
+    bytes - do not treat either reading as verified. (That file is a `.md`, so the sweep did not
+    touch it; the listing line inside it is still the old bare form.)
+
 - **STILL STALE - deliberately left:** `re/006-S3FS.annotated.dis`. It was disassembled from a
   DIFFERENT, half-length carve (27136 words; its `026017` decodes to `LDA ,B 1`, not the current
   segment's `LDATX 3`) and has no word column, so it cannot be address-mapped or offset-patched

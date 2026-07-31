@@ -43,7 +43,7 @@ Exit:  error  -> return L+1, A = 1014xx status
                                    ;   points at the DLEVE word (OLINK is at
                                    ;   pointer-1; see chain code 036022)
 041007  050764  LDT ,B -14         ; T := df[-14] = table bank (IENTBANK)
-041010  143316  STDTX              ; phys store double at (T,X):
+041010  143316  STDTX 1              ; phys store double at (T,X):
                                    ;   mem[X]   := A = DLEVE  (14B from NKINI)
                                    ;   mem[X+1] := D = DFADD  (caller B)
 041011  146113  RADD CLD SD DB     ; restore caller B
@@ -135,7 +135,7 @@ RECEIVE SIDE 2: kick lookup + level dispatch (036047-036136 + arms)
 036052  050764  LDT ,B -14         ; T := bank
 036053  124034  JMP 036107         ; join common dispatch
 
-036107  143312  LDDTX              ; A := entry[0] = DLEVE, D := entry[1] = DFADD
+036107  143312  LDDTX 1              ; A := entry[0] = DLEVE, D := entry[1] = DFADD
 036110  140001  SKP IF DD EQL 0    ; DFADD == 0 ?
 036111  124004  JMP 036115         ;   registered -> dispatch
 036112  040405  MIN ,B 5           ;   unregistered: bump df[5] error count

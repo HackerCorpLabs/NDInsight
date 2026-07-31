@@ -79,11 +79,11 @@
 103174  004315  	STA -63
 103175  004456  	STA ,B 56
 103176  050441  	LDT ,B 41		; T := DevNo/bank selector for physical transfer
-103177  143314  	STATX			; phys[EL] := A  (write DCB word to buffer)
+103177  143314  	STATX 1			; phys[EL] := A  (write DCB word to buffer)
 103200  044437  	LDA ,B 37
-103201  143334  	STATX			; phys[EL] := A  (DCB word)
+103201  143334  	STATX 3			; phys[EL] := A  (DCB word)
 103202  044436  	LDA ,B 36
-103203  143324  	STATX			; phys[EL] := A  (DCB word)
+103203  143324  	STATX 2			; phys[EL] := A  (DCB word)
 103204  044104  	LDA 104
 103205  143304  	STATX			; phys[EL] := A  (DCB word)
 103206  044435  	LDA ,B 35
@@ -106,9 +106,9 @@
 103227  150402  	ION			; I/O interrupts on
 103230  014460  	STX ,B 60
 103231  050441  	LDT ,B 41		; T := DevNo/bank selector
-103232  143310  	LDATX			; A := phys[EL]  (read DCB word from buffer)
+103232  143310  	LDATX 1			; A := phys[EL]  (read DCB word from buffer)
 103233  004456  	STA ,B 56
-103234  143320  	LDATX			; A := phys[EL]  (read DCB word)
+103234  143320  	LDATX 2			; A := phys[EL]  (read DCB word)
 103235  146156  	RADD CLD SA DT
 103236  044433  	LDA ,B 33
 103237  172776  	AAA -2			; (receive tail continues into PIO04=103240B)
