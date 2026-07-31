@@ -590,6 +590,13 @@ a write made elsewhere, and how that turned into a reported "emulator anomaly".
 `State.Mpc` as "the instruction that just ran". Attribute writes with an in-CPU barrier, not by
 sampling the program counter around `Tick()`.
 
+> **STRENGTHENED BY PROBE 18 - and this entry's own conclusion is partly retracted there.**
+> `State.Mpc` is unreliable INSIDE the barrier too, not merely around `Tick()`: probe 18 shows a
+> write whose executing word has `DEST = SC13` while the word stored at the reported `Mpc` has
+> `DEST = NONE`. So "the real writer is CS 0o16554" below is NOT established - it rested on a
+> coincidence. The safe signal is `word.Dest` on the executing word; the ADDRESS needs a facility
+> the CPU does not currently expose.
+
 **G3 status:** the exit is fully explained and correct. What remains is unchanged and unblocked -
 to see the body run, `SC13` must be non-zero at 0o25573, which means setting up whatever 0o16554's
 subroutine reads. That is real mailbox state, not a harness trick.
@@ -856,6 +863,46 @@ using an in-CPU barrier (per the method lesson in probe 11), not the counter.
 
 **Everything below the harness is now unblocked**, including G5: kicks 4/5 can be driven and
 observed for the first time.
+
+### G3 probe 18, 2026-07-31 - `State.Mpc` DOES NOT IDENTIFY THE EXECUTING WORD. Attribution retracted.
+
+Barriered the kick path on `word.Dest == 22` (SC13) and printed, for each write, the `Mpc`, the
+**executing word's own DEST**, and the **DEST of the word stored at that Mpc**:
+
+```
+[SC13] Mpc=25571 := 00000000 execDest=26 destOfWordAtMpc=30
+[SC13] Mpc=16554 := 00001000 execDest=26 destOfWordAtMpc=26
+```
+
+**Read the first line carefully.** The executing word has `DEST = 0o26` (SC13) - it genuinely is an
+SC13 write - but the word STORED at `0o25571` has `DEST = 0o30` (NONE). **They are different words.**
+So `State.Mpc`, sampled inside the execute path, is not the address of the word being executed.
+
+The second line coincides (`26` and `26`), which is exactly what makes this trap dangerous: **the
+attribution is right often enough to look reliable.**
+
+**RETRACTION.** Probe 11 concluded "the real writer is CS 0o16554, a word with a legitimate
+`DEST = SC13`". That conclusion rested on this same coincidence and **is not safe**. What is
+actually established is weaker and is all that should be carried forward:
+
+- The last write to `SC13` before 0o25573 sets it to **0**, and the executing word legitimately has
+  `DEST = SC13`. **No defect** - that part of probe 11 stands.
+- **Which ADDRESS that word occupies is UNKNOWN.** It is not 0o25571 (wrong DEST), and 0o16554
+  cannot be trusted either since the same method produced both.
+
+**Method rule for this emulator, now demonstrated rather than assumed:**
+**never derive a microword address from `State.Mpc`** - not before `Tick()`, not inside the execute
+path. It has now produced three separate wrong attributions in this investigation (probes 9, 10,
+and 11's replacement claim). Distinguish a real SC13 write from a mis-attributed one by reading
+`word.Dest` on the executing word, which IS reliable.
+
+**To name the address properly the CPU must expose the executing word's own address** (a small
+read-only addition next to the existing `State.Mpc`). That is a change to `CpuND5000.cs`, which is
+carrying unrelated in-progress work, so it was not made. The diagnostic barrier used here was
+temporary and `src` is reverted clean.
+
+**G3's remaining question is unchanged and still sharp:** find what leaves `SC13` non-zero
+immediately before 0o25570. It now needs the executing-address facility to answer cleanly.
 
 **Note on the harness:** this iteration was blocked for a while by an unrelated uncommitted edit to
 `src/CpuND5000.cs` (a `_aapProductForQ` field never assigned, CS0649-as-error). Not ours; left
