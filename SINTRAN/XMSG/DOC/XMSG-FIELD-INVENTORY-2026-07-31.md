@@ -97,7 +97,7 @@ Ack code. The kernel builds these header words bit by bit in registers.
 |---|---|---|---|
 | 0 | Marker1 `0x21` | **WIRE** | Always `0x21`. *Why* — **UNKNOWN**. |
 | 1 | Marker2 | **WIRE** | `0x13` normal, `0x12` relayed. |
-| 2 | PacketType | **UNKNOWN** | Always `0x00` in the whole corpus. Never varies, so nothing can be inferred. |
+| 2 | "PacketType" | **RESOLVED - not a field** | The high byte of word 1 (`type:subtype`), `0x00` on all 3595 frames. See below. |
 | 3 | Subtype | **WIRE** | `0x0E` Data, `0x03` Ack, `0x13`/`0x19` Reach, `0x07` NetworkError, **plus `0x0A` and `0x0C` - bulk file-transfer data, decoded 2026-07-31, see below.** |
 | 1 | Marker2 | **WIRE** | `0x13` normal, `0x12` relayed - **and `0xFD`/`0xFE` on a fourth family that is NOT a subtype variant, see below.** |
 | 4-5 | Dest node | **WIRE** | |
@@ -264,6 +264,26 @@ byte, so on size-arm frames the envelope arithmetic is subtracting **a byte coun
 
 ---
 
+## 3c. "PacketType" at offset 2 is not a field [RESOLVED 2026-07-31]
+
+Once the header is read as seven words, bytes 2 and 3 are one word, and offset 2 is simply its
+high half. Measured across the corpus: **`0x00` on all 3595 frames**, and word 1 takes only
+**eight** values, all of the form `0x00XX`:
+
+```
+0x0003  0x0007  0x000A  0x000C  0x000E  0x0013  0x0017  0x0019
+```
+
+- those are exactly the eight observed subtypes.
+
+So there is no separate packet-type field. The subtype is a word whose high byte is always zero
+because every subtype value fits in a byte, and "PacketType" was an artifact of parsing the
+header as bytes. The inventory row is closed as **not a field** rather than left as UNKNOWN -
+there was never anything there to learn.
+
+(It follows that a *future* subtype above `0xFF` would occupy this byte, so a parser should read
+the word rather than assume zero. But nothing in the corpus does.)
+
 ## 4b. Subtypes `0x0A` / `0x0C` - bulk file-transfer data [decoded 2026-07-31]
 
 Found by a corpus scan that counted subtypes rather than assuming the documented five.
@@ -294,9 +314,31 @@ of a file transfer, distinct from the `0x0E` request/reply traffic - which is wh
 earlier analysis missed them: they only occur once a transfer is actually moving content, and
 every scan filtered on `subtype == 0x0E`.
 
-**UNKNOWN:** why two subtypes with two fixed sizes and equal counts, and what selects between
-them. `XMCSM` here is NOT the body length (`0x0C`: `0x0252` = 594 against a 422-byte body), so
-these ride the checksum arm rather than the size arm.
+### They are a PAIR, not two message types [2026-07-31]
+
+The equal counts are not a coincidence. Dumped in arrival order per direction, they **strictly
+alternate** and **every `Flags1` carries both**:
+
+```
+claude-transfer-PULL-content   dir 10362  n=84   ACACACACACACACACACACACACACACACACACACACAC
+   Flags1: 0x1a1 0x1a1 0x1a2 0x1a2 0x1a3 0x1a3 0x1a4 0x1a4
+   Flags1 values carrying BOTH subtypes: 42 of 42
+
+claude-transfer-SPARSE-s3config dir 45164  n=356  ACACACACACACACACACACACACACACACACACACACAC
+   Flags1 values carrying BOTH subtypes: 178 of 178
+```
+
+Same in all four transfer captures, in both directions. So **one datagram sequence number
+produces two frames** - a `0x0A` of 622 bytes followed by a `0x0C` of 450 - and the two are
+halves of a single logical transfer block rather than independent messages. `Flags1` is
+therefore *not* one-per-frame on this traffic, which is worth knowing for anything that treats
+it as a frame counter.
+
+**Still UNKNOWN: why the split, and what distinguishes the halves.** Note the corpus cannot
+answer the arithmetic questions: `XMCSM` is a *constant* on each side (`0x0406` for `0x0A`,
+`0x0252` for `0x0C`) and both frame sizes are fixed, so nothing varies and any numeric relation
+between `XMCSM` and the body lengths holds trivially. Resolving this needs a transfer captured
+with a deliberately different block size, or the `*XFTRA` transfer loop carved.
 
 ## 4c. Marker2 `0xFD`/`0xFE` - a fourth frame family, NOT a subtype [OPEN]
 
