@@ -64,7 +64,8 @@ Three consequences, each confirmed against all 1449 captured data frames:
 | 0 | Marker1 `0x21` | **WIRE** | Always `0x21`. *Why* — **UNKNOWN**. |
 | 1 | Marker2 | **WIRE** | `0x13` normal, `0x12` relayed. |
 | 2 | PacketType | **UNKNOWN** | Always `0x00` in the whole corpus. Never varies, so nothing can be inferred. |
-| 3 | Subtype | **WIRE** | `0x0E` Data, `0x03` Ack, `0x13`/`0x19` Reach, `0x07` NetworkError. **Plus three UNDOCUMENTED values found 2026-07-31: `0x0A` and `0x0C` (226 FCS-valid frames each) and `0x17` (4 frames, Flags1 `0xFFFF` like the Reach family).** Not in any table we hold - decode them. |
+| 3 | Subtype | **WIRE** | `0x0E` Data, `0x03` Ack, `0x13`/`0x19` Reach, `0x07` NetworkError, **plus `0x0A` and `0x0C` - bulk file-transfer data, decoded 2026-07-31, see below.** |
+| 1 | Marker2 | **WIRE** | `0x13` normal, `0x12` relayed - **and `0xFD`/`0xFE` on a fourth family that is NOT a subtype variant, see below.** |
 | 4-5 | Dest node | **WIRE** | |
 | 6-7 | Src node | **WIRE** | Logical source, not the LAPB neighbour. |
 | 8-9 | Flags1 | **CARVED** | `XMSEQ` (`0o154`). Assigned from a per-link counter, masked to **15 bits**. See below. |
@@ -220,6 +221,56 @@ This matters well beyond documentation: `XmsgEnvelope.BaseLowSigned` subtracts t
 byte, so on size-arm frames the envelope arithmetic is subtracting **a byte count**.
 
 ---
+
+## 4b. Subtypes `0x0A` / `0x0C` - bulk file-transfer data [decoded 2026-07-31]
+
+Found by a corpus scan that counted subtypes rather than assuming the documented five.
+**226 FCS-valid frames each**, and they appear in **only four captures** - all of them
+file transfers (`transfer-PULL-content`, `transfer-SPARSE-s3config`,
+`transfer-SMALL-167bytes`, `transfer-file-COMPLETE`).
+
+| | `0x0A` | `0x0C` |
+|---|---|---|
+| info length | **622, always** | **450, always** |
+| Protocol ID | `0xD8` | `0xDA` |
+| `Flags2` / `XMCSM` | `0x0406` | `0x0252` |
+
+They carry a **normal XMSG sub-header** - `XMTHD` = `2100`, and `XMCSM` (wire 26-27) equals
+`Flags2` exactly, as for every other frame - so the transported-header model applies to them
+unchanged. Only the subtype and the fixed framing differ.
+
+The payload is unmistakably **file content**. Stripping the parity bit from the high-bit
+ASCII gives ordinary symbol-table text with CR/LF line endings:
+
+```
+c5 53 56 41 d2 bd 30 30 b7 b1 36 35   ->  "ESVAR=007165"
+53 cc 41 4b 4b bd 30 30 30 b2 30 30   ->  "SLAKK=000200"
+```
+
+That is a `.SYMB` listing being pulled across the link. So these are the **bulk data path**
+of a file transfer, distinct from the `0x0E` request/reply traffic - which is why every
+earlier analysis missed them: they only occur once a transfer is actually moving content, and
+every scan filtered on `subtype == 0x0E`.
+
+**UNKNOWN:** why two subtypes with two fixed sizes and equal counts, and what selects between
+them. `XMCSM` here is NOT the body length (`0x0C`: `0x0252` = 594 against a 422-byte body), so
+these ride the checksum arm rather than the size arm.
+
+## 4c. Marker2 `0xFD`/`0xFE` - a fourth frame family, NOT a subtype [OPEN]
+
+Four frames in `li-rout-102-tree.pcapng`, from node 103, look like "subtype `0x17`" but are
+nothing of the sort - **Marker2 is `0xFD` or `0xFE`, not `0x13`/`0x12`**:
+
+```
+21 fe 00 17 0066 0067 ffff fffd dd   + one trailing byte 0x1F
+21 fd 00 17 0066 0067 ffff fffd dd   + one trailing byte 0x20
+```
+
+`Flags1` = `0xFFFF` and `Flags2` = `0xFFFD` (a negative XE* code shape). Since Marker2 is out
+of the known set, **offset 3 may not be a subtype field at all in this family**, and the
+13-byte layout should not be assumed. A scan keyed only on Marker1 = `0x21` (as an earlier
+revision of this document did) wrongly reports these as a new subtype - they need decoding on
+their own terms.
 
 ## 5. Sub-header
 
