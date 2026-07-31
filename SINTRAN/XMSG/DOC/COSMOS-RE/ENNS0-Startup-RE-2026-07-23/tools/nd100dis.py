@@ -68,8 +68,14 @@ def decode(w, addr):
         return "IOX  %o" % (w & 0o7777)
     # SKP group 140000 with bit patterns; SKP = 140000..140777? Actually skip is 140000|...
     # ND: SKP occupies 140000 range with sub 000? Use: if (w & 0o177000)==0o140000 and low has cond bits -> but many 140xxx are misc.
-    # Register operations 144000-147777
-    if (w & 0o170000)==0o144000:
+    # Register operations, octal 144000-147777.
+    # BUG FIXED 2026-07-31: this used to test (w & 0o170000) == 0o144000, which can NEVER be
+    # true - 0o144000 & 0o170000 is 0o140000, so the constant has a bit outside the mask.
+    # decode_reg was therefore dead code and the ENTIRE ROP group fell through to the SKP
+    # fallback below, printing e.g. 146151 as "SKP IF DD LSS SD" where it is really
+    # "COPY SA DD". Any earlier automated disassembly from this tool mis-decoded every
+    # register operation; hand decodes in the carve docs are unaffected.
+    if 0o144000 <= w <= 0o147777:
         return decode_reg(w)
     # SKP is actually 140000 + ... let me treat 140500-140677 etc. Use explicit:
     # bit-ops BSET/BSKP 150xxx? Actually 174000 range.
@@ -109,14 +115,34 @@ def decode(w, addr):
         return disp_skp(w)
     return ".WORD %06o" % w
 
+# ROP register field encoding. NOTE this is NOT the same table as REG above, which is for
+# the memory-reference addressing modes. Calibrated 2026-07-31 against the three decodes
+# published in XMSG-MAGIC-NUMBER-LAYOUT-CARVED-2026-07-26.md, which were produced by hand:
+#     146175 -> COPY SX DA      146151 -> COPY SA DD      146105 -> COPY S0 DA
+# Those fix the mapping unambiguously: destination = bits 2-0, source = bits 5-3, both read
+# through this table. It also reproduces the known idiom 146142 = COPY SL DP = subroutine
+# return (what the previous version special-cased as "EXIT").
+ROP_REG = {0: '0', 1: 'D', 2: 'P', 3: 'B', 4: 'L', 5: 'A', 6: 'T', 7: 'X'}
+
+
 def decode_reg(w):
-    # 144000 base ROP: sub-function bits. rough decode of COPY/SWAP/RADD/RSUB/RCLR/EXIT
-    # bits: 146xxx COPY? Use common encodings.
-    sr=(w>>3)&7; dr=w&7
-    if w==0o146142: return "EXIT"
-    # COPY = 146 100? RADD=146000, etc. Provide raw + guess
-    grp=(w>>8)&0o17
-    return "ROP  %06o (S%s D%s)" % (w, REG[(w>>3)&7], REG[w&7])
+    """Decode the ROP (register operation) group, octal 144000-147777.
+
+    The sub-function lives in bits 10-6. Only sub-function 021 is named here, because that
+    is the only one pinned against known-good hand decodes; everything else prints its raw
+    sub-function rather than a guessed mnemonic. Do not invent names for the others without
+    calibrating them the same way - a wrong mnemonic reads as fact and is worse than a
+    number.
+    """
+    sub = (w >> 6) & 0o37
+    src = ROP_REG[(w >> 3) & 7]
+    dst = ROP_REG[w & 7]
+    if sub == 0o21:
+        # COPY: verified on all three published samples plus the 146142 return idiom.
+        if w == 0o146142:
+            return "COPY SL DP   ; subroutine return"
+        return "COPY S%s D%s" % (src, dst)
+    return "ROP  sub=%02o S%s D%s" % (sub, src, dst)
 
 def dis_range(img, start, count, symbols):
     addr2sym={v:k for k,v in symbols.items()}

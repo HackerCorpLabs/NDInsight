@@ -122,7 +122,58 @@ byte, so on size-arm frames the envelope arithmetic is subtracting **a byte coun
    see the comment on `XmsgDataFields.ControlService`.
 6. **LAPB address `0x07`** on some ACK I-frames.
 
-## 7. Method note
+## 7. Disassembly: started, and the tool was broken
+
+Target: what writes SINTRAN header offset 12. Findings so far:
+
+- **The 13-byte SINTRAN header is NOT built by XMSG or XROUT.** The marker word `0x2113`
+  (`020423` octal) appears **nowhere** in `XMSG-KERNEL-L03.BPUN` or `XMSG-XROUT-L03.BPUN`,
+  and no symbol in any symbol list carries that value. So the wrapper is added by a lower
+  layer - SINTRAN's own network/HDLC driver - and offset 12 is not reachable from the XMSG
+  product binaries at all. **That relocates the whole question**: it must be carved from the
+  SINTRAN kernel, not from XMSG.
+- **Do not scan for constants in this architecture.** `020400` (the `X5THD` marker) is also
+  the encoding of `STD 0,B`, so a value scan returns ordinary instructions. Six "hits" in the
+  kernel were all code. Navigate by symbol.
+- Useful symbols located in the kernel image: `XSDGM` 137601 (send datagram), `XSCTR` 137562,
+  `XSACK` 140076, `XSFOR` 137560, `ZDCHN` 122204.
+
+### Use `nd100-dis`, not the Python script
+
+**Tool of record: `/home/ronny/repos/nd100-tools/nd100-dis` (WSL).** A real C disassembler
+with full instruction decode plus IO-device and MON-call tables. `tools/nd100dis.py` in this
+repo is a ~140-line ad-hoc script whose own header says it is "minimal, focused on control
+flow / MON / IOX / status polls" - it should not be used for carving.
+
+`nd100-dis` does **not** recognise this BPUN variant (it falls back to raw and mis-frames the
+file - reports 23833 words where the loader places 23551), so the working recipe is to
+flatten first and disassemble the flat image:
+
+```
+python bpun2raw.py XMSG-KERNEL-L03.BPUN kernel-l03.bin      # uses tools/bpun_load.py
+nd100-dis -a -b 40960 -s <offset> -n <count> kernel-l03.bin
+```
+
+**`-b` and `-s` are parsed as DECIMAL** - the `-o` flag only affects output formatting. Base
+`0o120000` is `-b 40960`; an address `A` needs `-s (A - 0o120000)` in decimal. Passing
+`-b 120000` silently wraps mod 2^16 and lands you at `0o152300` with every address wrong.
+Verified: `-b 40960 -s 4653` puts `ZCRMG` at `131055`, matching the published carve.
+
+It is also more precise than the hand decodes: `174220` reads `BSET ONE SSK` (naming the K
+flag) where the doc guessed `BSET ONE 2 D0`, and `146175` reads `RADD CLD SX DA` - which is
+what `COPY` is an alias for.
+
+**A defect in `tools/nd100dis.py`, found and fixed 2026-07-31** (kept because `disbpun.py`
+and other scripts import it). The register-operation test read
+`(w & 0o170000) == 0o144000`, which can never be true because `0o144000 & 0o170000` is
+`0o140000`. `decode_reg` was dead code and the **entire ROP group fell through to the SKP
+fallback** - `146151` printed as `SKP IF DD LSS SD` where it is `COPY SA DD`. **Any earlier
+automated disassembly from that script mis-decoded every register operation.** Hand decodes
+in the carve docs are unaffected. The fix also corrects the ROP register table, which is
+**not** the memory-reference one: `{0:'0', 1:'D', 2:'P', 3:'B', 4:'L', 5:'A', 6:'T', 7:'X'}`,
+calibrated against the three published hand decodes and verified to reproduce them exactly.
+
+## 8. Method note
 
 Everything in section 1 came from reading the kernel's own symbol table and then checking it
 against traffic. Nothing in it came from fitting curves to captures — an earlier attempt this
