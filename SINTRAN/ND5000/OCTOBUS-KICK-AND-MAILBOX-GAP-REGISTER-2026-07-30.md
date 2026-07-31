@@ -285,11 +285,96 @@ and this probe does NOT choose between them:
 with a failed reproduction against the real B30 microcode, and the project rule is that executing
 microcode outranks a carve summary.
 
-What would settle it: a microword-level trace through `OCB_CLNUP` (0o25570..) recording which
-compare sends it to its early exit. There is no microcode disassembler in the tree, so this needs
-either one written or a single-step trace with the raw microwords decoded by hand.
-
 Test: `MailboxClrKickTests.OcbClnup_SweepOwningCpu_ReportsWhichOneRequeuesTheMessage`.
+
+### G3 probes 4 and 5, 2026-07-31 - reading 2 is CONFIRMED, and reading 1 is not needed
+
+Probe 4 traced the microprogram counter step by step from the moment `OCB_CLNUP` is entered, and
+diffed a run with `MSGME` set against one without.
+
+**`OCB_CLNUP` occupies 0o25570..0o25604, but only FOUR microwords execute:**
+
+```
+step  CS
+   0  25570   <- OCB_CLNUP entry
+   1  17334   <- ADR_MESS
+   2    104
+   3    105
+   4  25571
+   5  25572
+   6  25573
+   7    104
+   8    105
+   9  25565   <- back in the CALLER (OCB_KICK06)
+```
+
+**The tail never runs.** `MSGME` is cleared at 0o25601, `MON_ERR?` is at 0o25605 and `MSG_CCMOVE`
+at 0o25611 - none are reached. That is the whole explanation for "no `N5STA` write was ever
+observed": the code that would do it is in a tail this path does not enter.
+
+**The two traces NEVER diverge**, so `MSGME` does not steer this path at all - which retires the
+assumption behind probes 2 and 3.
+
+Probe 5 then logged every memory READ while the routine ran. **`OCB_CLNUP`'s executed microwords
+perform ZERO memory reads** (the one logged read, `CS 25511 [0x2000] r2 = 0`, happens after control
+has already left the routine). So:
+
+- The early exit is decided by **register / srf state**, NOT by anything in memory.
+- That is why supplying `MSGME` and the `5CPUN` word in memory changed nothing - the routine never
+  looks at memory before deciding.
+- The `5CPUN@-6` ownership check the carve describes **cannot be happening on this path**; it would
+  require a memory read, and there is none.
+
+**Status: reading 2 from probe 3 is CONFIRMED** - "in progress" needs state we are not setting, and
+it lives in the srf/registers. Reading 1 (the carve is simply wrong) is neither needed nor
+supported: the `N5STA := 1` code may well be correct and simply unreached.
+
+Tests: `OcbClnup_TracePath_ShowsWhereItLeavesEarly`,
+`OcbClnup_LogReads_NamesTheCellThatDecidesTheEarlyExit`.
+
+### G3 probe 6, 2026-07-31 - THE BRANCH IS NAMED. Hand-decoded from the microword bits
+
+Raw microwords from `MICRO-5800-B30.DATA` (16 bytes/word, word N at file offset N*16):
+
+```
+CS 25570 : 0000000000017006000000001EDC0000
+CS 25571 : 50080000000180180000000000150000
+CS 25572 : 40000001180E8000000000002B7B0000
+CS 25573 : 400000006C0150218120000000440000
+```
+
+Decoded with `tools/microcode-5000-def.json` (SEQUENCER: `COND_SEQ` 69, `SEQ_TRUE` 68-65,
+`SEQ_FALSE` 64-61, `INVSEQ` 60, `TESTOBJ` 58-53; ADDRESS: `ABS_ADDR` 31-16):
+
+| CS | COND_SEQ | TESTOBJ | ABS_ADDR | note |
+|---|---|---|---|---|
+| 25570 | 0 | - | `17334` | unconditional -> ADR_MESS |
+| 25571 | 0 | - | `25` | |
+| 25572 | 0 | - | `25573` | |
+| **25573** | **1** | **0o11 = `COND,MZRO` (Z from ALU operation)** | **`104`** | **THE BRANCH** |
+
+**`ABS_ADDR` is independently corroborated, not assumed.** Three of the four words carry a value
+that matches the OBSERVED execution exactly: `17334` = ADR_MESS (trace step 1), `25573` (step 6),
+`104` (step 7). The field definition and the live trace agree.
+
+**The answer to G3's open question:** `OCB_CLNUP` calls `ADR_MESS`, then at **CS 0o25573 branches on
+the ALU zero flag to 0o104** - the return path. `ADR_MESS` returned **ZERO**, meaning **"this CPU has
+no current message"**, so the routine correctly declines and returns after four microwords. The
+body at 0o25574..0o25604 - the `MSGME` clear, and whatever writes `N5STA` - is only entered when
+`ADR_MESS` returns NON-ZERO.
+
+**Consequence for the carve: it is NOT disproven.** The `N5STA := 1` claim describes the body, and
+this path never enters the body. Probe 3's "evidence of absence" is now correctly scoped: it is
+evidence that the body did not run, NOT evidence that the body does something different. **The
+earlier framing here overstated it and is corrected by this entry.**
+
+**Remaining G3 question, now the only one:** what makes `ADR_MESS` (0o17334) return non-zero. It
+reads no memory on this path, so the answer is in srf/register state. `microcode-5000-def.json` has
+no SRF field group, so naming the cell needs either that field added or a register-level trace
+through `ADR_MESS`.
+
+**Still do not implement `N5STA := 1` from the carve** - it remains unobserved. But it is now
+unobserved-because-unreached, which is a much weaker objection than "reproduction failed".
 
 ### G4 - kick 2 not mapped to ACTIVATE  **[P2]**
 

@@ -143,14 +143,21 @@ words (100102 SENKICK/025006, 100101 SEND_14, 100001 GIVEINT1 — SARG values no
    MSG_CCMOVE; **write N5STA := 1** (back to MSGN500 — returns the message to the queue
    unanswered). Kicks 4/5/6 therefore requeue, not discard, in-flight work.
 
-   > **REPRODUCTION FAILED 2026-07-31 - do not build on the `N5STA := 1` claim.** Driving the
-   > real B30 microcode through `OCB_KICK06` with `MSGME` (srf 0o2021) set and the `5CPUN`
-   > ownership word swept over all 16 values: **16/16 runs reached `OCB_CLNUP` and NONE wrote
-   > `N5STA`.** Reachability is proven by an in-test control, so this is evidence of absence.
-   > Either this correction is itself wrong, or "in progress" needs more state than MSGME +
-   > 5CPUN. Unresolved - see G3 probe 3 in `OCTOBUS-KICK-AND-MAILBOX-GAP-REGISTER-2026-07-30.md`.
-   > The "requeue, not discard" conclusion for kicks 4/5/6 rests on this claim and is therefore
-   > also unconfirmed.
+   > **UNOBSERVED BUT NOT DISPROVEN - status settled 2026-07-31.** Driving the real B30
+   > microcode through `OCB_KICK06`, `OCB_CLNUP` was reached in 16/16 runs and never wrote
+   > `N5STA`. Hand-decoding the microwords explains why: at **CS 0o25573 it branches on the ALU
+   > zero flag to 0o104** (return) because `ADR_MESS` reported **no current message**. Only
+   > 0o25570..0o25573 execute; the body at 0o25574..0o25604 that clears `MSGME` and would write
+   > `N5STA` is never entered.
+   >
+   > So this correction is **not contradicted** - it describes the body, and the body did not
+   > run. An earlier note here said "REPRODUCTION FAILED"; that overstated the result and is
+   > corrected. What is still true: `N5STA := 1` has never been OBSERVED, so do not implement it
+   > in the station on this text alone. The "kicks 4/5/6 requeue, not discard" conclusion rests
+   > on the same unobserved write.
+   >
+   > Open: what makes `ADR_MESS` (0o17334) return non-zero. Full evidence in G3 probes 3-6 of
+   > `OCTOBUS-KICK-AND-MAILBOX-GAP-REGISTER-2026-07-30.md`.
 5. **TRAP_OCBM header word source identified:** 016727-730 loads SC3 := srf[2006] = the
    LSYSPAR word 1 = **5OMDNO<<8** — out-of-band OCB messages (201B-210B, CPU-available
    202B) are addressed to SINTRAN's receive OMD exactly like GIVEINT's interrupt word.
