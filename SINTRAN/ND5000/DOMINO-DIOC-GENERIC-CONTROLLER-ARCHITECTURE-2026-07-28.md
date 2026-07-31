@@ -196,10 +196,8 @@ Still unlocated:
 ## Cross-references
 
 - `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\OCTOBUS-OBCON-PROTOCOL-AND-ACCP-DRIVER-2026-07-27.md` - the octobus protocol and the ACCP driver, including the decoded information byte
-- `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-324716-FIRMWARE-RE-2026-07-27.md` - the ACCP firmware reverse engineering
-- `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-HARDWARE-ADDRESS-MAP-2026-07-27.md` - the ACCP hardware register map
-- `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-RETROCORE-MACHINE-IMPLEMENTATION-HANDOFF-2026-07-27.md` - the RetroCore ACCP machine
-- `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-MACHINE-DEFECT-REPORT-2026-07-28.md` - defects found in that machine
+- `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-COMPLETE-REFERENCE.md` - the ACCP firmware reverse engineering and the ACCP hardware register map (parts 1 and 2)
+- `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-EMULATION-STATUS-AND-HANDOFF.md` - the RetroCore ACCP machine (part 2) and the defects found in it (part 3)
 
 ## Provenance
 

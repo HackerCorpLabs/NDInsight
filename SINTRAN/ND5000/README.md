@@ -37,15 +37,42 @@ interpretation/inference, [C] = contradiction, [UNCERTAIN] = explicitly open.
    Microcode side: every ACCP-touching routine in the ND-5800 control store
    (ACCP_READ/ACCP_WRITE/TRAP_OMESS, OCB_DEC_K kick dispatch), AFLAG
    handshake bits, TRAP_OCBM report formats.
-5b. **THE ACCP FIRMWARE ITSELF - reverse engineered 2026-07-27/28, five documents.**
+5b. **THE ACCP FIRMWARE ITSELF - reverse engineered 2026-07-27/31, now TWO documents.**
    The ACCP's own 68000 ROM (`octo.bin`, ND-324716, December 5 1988) is the octobus
    controller's operating software. It is now **fully disassembled and fully named**:
    279 functions, zero `FUN_`, 26 hardware registers and 32 RAM globals labelled.
-   - **[ACCP-324716-FIRMWARE-RE-2026-07-27.md](ACCP-324716-FIRMWARE-RE-2026-07-27.md)** -
-     the write-up of record. Memory map, vector table, PLANC conventions, every carve.
-   - **[ACCP-CONSOLE-COMMAND-SET-AND-DISPATCH-2026-07-27.md](ACCP-CONSOLE-COMMAND-SET-AND-DISPATCH-2026-07-27.md)** -
-     all 43 console commands with codes, full parameter syntax and handler addresses.
-     The dispatch is a linear compare chain, not a jump table.
+
+   *Consolidated 2026-07-31: twelve ACCP documents were merged VERBATIM into the two
+   below - nothing was summarised or dropped, and the merge was verified line by line
+   (4573 source lines, 0 missing). The originals are in git history.*
+   - **[ACCP-COMPLETE-REFERENCE.md](ACCP-COMPLETE-REFERENCE.md)** - everything factual
+     about the card, in 6 parts:
+     - *part 1* - the write-up of record. Memory map, vector table, PLANC conventions,
+       every carve, and the embedded selftest microcode.
+     - *part 2* - full-image sweep of every peripheral address, with the false positives
+       called out.
+     - *part 3* - all 43 console commands with codes, full parameter syntax and handler
+       addresses. The dispatch is a linear compare chain, not a jump table.
+     - *part 4* - **implementation spec for the ACCP <-> ND-5000 CPU interface**, carved
+       from BOTH sides and cross-checked. The four registers (AOB/AIB/AFLAG/AOBASR)
+       mapped onto the ACCP's own addresses: data pair `0x440000`/`0x550000`, gates
+       `0x660001` bits 0/1, and the AOB strobe `0x330000` bit 6 (which resolves a
+       previously unidentified address). Both handshakes as pseudocode, the AIB command
+       channel (1/2/3), kick and trap classes, and the full CPU-model chain MFbus
+       controller -> ACCP -> microcode -> `5ALIVE`. Includes the AFLAG off-by-one warning
+       and a minimum viable implementation order.
+     - *part 5* - **the CPU model class derivation, SOLVED 2026-07-31.** The matrix
+       builder has **four** phases, not three: a second pass at `0x7DD0` rewrites every
+       word (including a 7-bit Gray decode at `0x7CA2`) before the class chain reads it.
+       Also the `0x220000` armed read port, and why two earlier port designs failed.
+       Read this before touching any CPU-model logic.
+     - *part 6* - the ACCP is **not** running PIOC-OS. Same PLANC-MC compiler, no kernel,
+       no `trap #2`. Do not carry ENCOS frame offsets or descriptor widths across.
+   - **[ACCP-EMULATION-STATUS-AND-HANDOFF.md](ACCP-EMULATION-STATUS-AND-HANDOFF.md)** -
+     everything about the work, in 6 parts: the disassembly plan (complete, including the
+     headless-Ghidra recipe that got past a GUI that would not list the ND.PLANC scripts),
+     the RetroCore machine implementation handoff, the defect report, two raw command-log
+     captures, and the open questions put to the ACCP team.
    - **[OCTOBUS-OBCON-PROTOCOL-AND-ACCP-DRIVER-2026-07-27.md](OCTOBUS-OBCON-PROTOCOL-AND-ACCP-DRIVER-2026-07-27.md)** -
      ND-14001 chapter 4 transcribed (16-bit software frame, acknowledge codes, octal
      station ranges, the 7 hardware-decoded messages) PLUS the carved driver:
@@ -56,14 +83,6 @@ interpretation/inference, [C] = contradiction, [UNCERTAIN] = explicitly open.
      ident / multibyte-start / multibyte-end, and CMD numbers 0-15. Section 1b decodes the
      captured MFbus scan completely and specifies the expected reply as frames. One byte
      (`0x03`) remains unknown.
-   - **[ACCP-ND5000-CPU-INTERFACE-SPEC-2026-07-30.md](ACCP-ND5000-CPU-INTERFACE-SPEC-2026-07-30.md)** -
-     **implementation spec for the ACCP <-> ND-5000 CPU interface**, carved from BOTH sides and
-     cross-checked. The four registers (AOB/AIB/AFLAG/AOBASR) mapped onto the ACCP's own
-     addresses: data pair `0x440000`/`0x550000`, gates `0x660001` bits 0/1, and the AOB strobe
-     `0x330000` bit 6 (which resolves a previously unidentified address). Both handshakes as
-     pseudocode, the AIB command channel (1/2/3), kick and trap classes, and the full CPU-model
-     chain MFbus controller -> ACCP -> microcode -> `5ALIVE`. Includes the AFLAG off-by-one
-     warning and a minimum viable implementation order.
    - **[DOMINO-DIOC-GENERIC-CONTROLLER-ARCHITECTURE-2026-07-28.md](DOMINO-DIOC-GENERIC-CONTROLLER-ARCHITECTURE-2026-07-28.md)** -
      can we build a generic 68k octobus controller? **Yes.** ND-14001 Figure 22 draws the
      standard/device-dependent seam itself: OBA, MFA, console+trace, and the 68020 CPU part
@@ -71,15 +90,6 @@ interpretation/inference, [C] = contradiction, [UNCERTAIN] = explicitly open.
      Includes the MFA register file (RMT/RMS/WOI/MASTA), station-number assignment, the
      two-phase node initialization, per-controller doc status (Ethernet III has almost
      nothing), and **why the ACCP is NOT a DIOC** - do not derive one from the other.
-   - **[ACCP-HARDWARE-ADDRESS-MAP-2026-07-27.md](ACCP-HARDWARE-ADDRESS-MAP-2026-07-27.md)** -
-     full-image sweep of every peripheral address, with the false positives called out.
-   - **[ACCP-FULL-DISASSEMBLY-PLAN-2026-07-27.md](ACCP-FULL-DISASSEMBLY-PLAN-2026-07-27.md)** -
-     the plan, now complete, including the headless-Ghidra recipe that got past a GUI
-     that would not list the ND.PLANC scripts.
-
-   Also: **[PIOC-OS-VS-ACCP-FIRMWARE-COMPARISON-2026-07-27.md](PIOC-OS-VS-ACCP-FIRMWARE-COMPARISON-2026-07-27.md)** -
-   the ACCP is **not** running PIOC-OS. Same PLANC-MC compiler, no kernel, no `trap #2`.
-   Do not carry ENCOS frame offsets or descriptor widths across.
 
 6. **[OCTOBUS-DEVICE-CONTROLLERS-ANALYSIS-AND-EMULATION-PLAN-2026-07-19.md](OCTOBUS-DEVICE-CONTROLLERS-ANALYSIS-AND-EMULATION-PLAN-2026-07-19.md)** -
    ALL octobus device types (station map, DOMINO DIOC module table, MFbus

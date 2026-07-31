@@ -106,14 +106,14 @@ in front of whoever next touches this, and an explicit `NOT ASCII '8'` note.
   control-store word 7 is honest on ours.
 - **Item 3** - understood, and noted that you are not taking the pre-fix re-run. It had already
   run before your note arrived, so the capture exists at
-  `ACCP-244B-TERMINATE-PREFIX-CAPTURE-2026-07-30.md`. It cost nothing extra and it is filed rather
+  `ACCP-EMULATION-STATUS-AND-HANDOFF.md` part 5. It cost nothing extra and it is filed rather
   than sent - ignore it unless it ever becomes load-bearing. Your three-line statement of the
   finding matches our evidence exactly, including the provenance caveat.
 
 ## Related documents
 
-- `ACCP-COMMAND-LOG-CLEAN-BOOT-CAPTURE-2026-07-30.md` - the clean-boot command log
-- `ACCP-244B-TERMINATE-PREFIX-CAPTURE-2026-07-30.md` - the 244B capture (filed, not required)
+- `ACCP-EMULATION-STATUS-AND-HANDOFF.md` part 4 - the clean-boot command log
+- `ACCP-EMULATION-STATUS-AND-HANDOFF.md` part 5 - the 244B capture (filed, not required; it is a deliberately pre-fix capture, not current behaviour)
 - `ANSWERS-TO-ND5000-TEAM-2026-07-30.md` - the answers this responds to
 - `CARVE-ANSWER-OCTOBUS-CSLOAD-VERSION-CHECK-2026-07-19.md` - where the model/version comparison
   happens (inside the ND-5000 microcode `CPU_READ`; there is no ND-100-side comparison)

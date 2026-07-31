@@ -1,7 +1,7 @@
 # Answers to the ND-5000 octobus team
 
 **Date**: 2026-07-30
-**Re**: `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\QUESTIONS-TO-ACCP-TEAM-2026-07-30.md`
+**Re**: `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-EMULATION-STATUS-AND-HANDOFF.md` part 6 (the questions)
 **From**: the ACCP side (ND-324716 / PCB 5616 firmware carve, standalone ACCP machine).
 
 Thanks for the kick-table cross-check - two independent derivations agreeing is worth more than
@@ -82,9 +82,26 @@ Our earlier note claimed `Irq3KickServiceAndTrace` @`0x6C0` was the octobus **re
 06FE  move.w (0x00440000).l,(A1)  ; read the data port, WRITE it to 0x770004
 ```
 
-So IRQ3 is the **CPU-to-octobus forwarding path**: the CPU writes a word to AIB (`0x440000`) and
-the ACCP's IRQ3 transmits it on the octobus. The globals `0x113116` / `0x113144` are loaded from
+So this is the **CPU-to-octobus forwarding path**: the CPU writes a word to AIB (`0x440000`) and
+the ACCP transmits it on the octobus. The globals `0x113116` / `0x113144` are loaded from
 `(0x2,A1)` = `0x770006`, which is transmit-side, not receive-side.
+
+> **SECOND CORRECTION, 2026-07-31 - we owe you this one too, and it is on the same routine.**
+> Everything above about the *direction* (transmit, not receive) stands. The **interrupt level
+> is wrong**: this is not IRQ3.
+>
+> `0x6C0` is not an interrupt handler at all. It is a shared subroutine with exactly two
+> callers - `0x4F4` inside `Vec26_AutoIrq2` and `0x6AA` inside `Vec28_AutoIrq4`. The vector
+> table is unambiguous: **IRQ3 = `0x510`, IRQ4 = `0x694`**, and `0x6C0` lies past both. So the
+> forwarding path runs at **IRQ level 2 or 4, never level 3**.
+>
+> Root cause: the Ghidra symbol was named `Irq3KickServiceAndTrace`, and we trusted the name
+> instead of the vector table. It is now `KickServiceAndTrace_FromIrq2AndIrq4`.
+>
+> **What this changes for you:** nothing about the mechanism or the register map - only which
+> level to mask or prioritise if you model interrupt delivery. If you have written "IRQ3"
+> anywhere against `0x6C0` or `0x788`, it should read IRQ2/IRQ4. Note the separate IRQ3
+> discussion in answer 1 above concerns `0x510`, which genuinely is IRQ3 and is unaffected.
 
 The real receive path is `OctobusReceiveWord` @`0x786C` reading **`0x880000`** gated by
 `0x660001` **bit 2**, with reassembly in `OctobusMessageAssemble` @`0x6C02`. That is where we are
@@ -250,7 +267,7 @@ until someone re-reads the listing for that specific purpose.**
 
 ## 6. The trace - DELIVERED, and thank you for the provenance warning
 
-**Received**: `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-COMMAND-LOG-CLEAN-BOOT-CAPTURE-2026-07-30.md`
+**Received**: `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-EMULATION-STATUS-AND-HANDOFF.md` part 4 (the clean-boot capture)
 - 149 commands in, 150 out, **0 unanswered**, 128 `LCS0` control-store loads, 4 `DUC0` checksum
 dumps, with the model crossing pinpointed at trace line 377.
 
@@ -306,14 +323,14 @@ data. A clean capture cited as 244B evidence would have looked authoritative and
 > - The evidence no longer depends on pre-fix runs at all. Your instinct to withdraw the pre-fix
 >   re-run request was right for a different reason than either of us thought.
 >
-> Full detail in `ACCP-COMMAND-LOG-CLEAN-BOOT-CAPTURE-2026-07-30.md`.
+> Full detail in `ACCP-EMULATION-STATUS-AND-HANDOFF.md`.
 
 ---
 
 ## Related documents
 
-- `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-ND5000-CPU-INTERFACE-SPEC-2026-07-30.md` - the interface spec this thread is about
+- `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-COMPLETE-REFERENCE.md` part 4 - the interface spec this thread is about (part 5 of the same file later supersedes its signature-matrix sections)
 - `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ND5800-MICROCODE-ACCP-OCTOBUS-CATALOG.md` - the CPU-side catalog, including the AFLAG correction history
 - `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\OCTOBUS-OBCON-PROTOCOL-AND-ACCP-DRIVER-2026-07-27.md` - octobus protocol and the ACCP's driver; section 5c contains the IRQ3 claim corrected in answer 1 above
 - `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\DOMINO-DIOC-GENERIC-CONTROLLER-ARCHITECTURE-2026-07-28.md` - what ND-14001 gives you for building an MFbus controller
-- `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-COMMAND-LOG-CLEAN-BOOT-CAPTURE-2026-07-30.md` - the clean-boot bidirectional command log delivered in reply to section 6, including the 244B provenance warning
+- `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-EMULATION-STATUS-AND-HANDOFF.md` part 4 - the clean-boot bidirectional command log delivered in reply to section 6, including the 244B provenance warning

@@ -420,8 +420,64 @@ What supports it:
   *"my CMD, my station"* is a coherent message; *"opcode 3, my station"* is equally
   coherent, which is why this stays a hypothesis.
 
+### Corroboration found 2026-07-30 - three independent sources
+
+**1. Norsk Data's own symbol table defines 3 as the ACCP's OMD number.**
+`SINTRAN\ND500\swapper\N500-SYMBOLS.SYMB` line 6016: `OMDAC=000003`, mapped in
+`ND500-ND5000-INTERFACE-COMPREHENSIVE-GUIDE.md` as *"OMDACCP / OMDAC / 000003 / 3 / **ACCP OMD
+number**"*. So the value the ACCP transmits is, by ND's own definition, its own OMD number.
+That is documentation, not inference.
+
+**2. SINTRAN has a named routine for exactly this operation.** `SUBR MFPREPARE` in
+`NPL-SOURCE\NPL\MP-P2-N500.NPL` (~line 3586) builds a message to the MF controller and carries
+the explicit source comment:
+
+```
+MFOMDNO =:        X.MOCTOMD              % OMD number
+0       =:        X.MBROADCAST           % Not broadcast
+3       =:        X.MMSGLENGTH           % Message length = 2 bytes
+CMSYSPAR SHZ 10\/N100IDENT=:X.MCOMMAND   % Send OMD numer to mf-controller
+5OMDNO SH 10=:X.MDP1
+```
+
+*"Send OMD numer to mf-controller"* is ND's own wording. **Announcing your own OMD number to
+the MF controller is a real, named operation in this protocol family** - not something this
+document invented. It also uses a 2-byte message body, like the ACCP's.
+
+**3. The ACCP connects exactly the two CMDs the hypothesis needs, with sizes that fit their
+roles.** Read from the two OBCON fn 0x49 ("connect CMD") requests at **0x0CF8** and **0x0D56**:
+
+| CMD | Buffer | Size | Role |
+|---|---|---|---|
+| **3** | `0x00112C00` | `0x13F` = 319 bytes | large - the ACCP command library channel SINTRAN drives on OMD 3 |
+| **5** | `0x00112D40` | `0x3F` = 63 bytes | small - the MFbus control / discovery channel |
+
+Confirmed live by `Diag_WhichCmdsAreConnected`: every other entry is empty.
+
+**4. There is no CMD-5 opcode vocabulary.** The payload slot `move.b #imm,(0x16,A6)` has
+**exactly one site in the entire ROM** (0x125A). If `0x03` were an opcode you would expect a
+family of them; the ACCP only ever sends this one value.
+
+### Why this is still NOT proof
+
+Two things genuinely do not line up, and are recorded rather than explained away:
+
+- **The field positions differ.** In `MFPREPARE` the sender's own OMD goes in **DP1** - the
+  *second* content field - while the *first* carries a command code (`CMSYSPAR|N100IDENT`).
+  In the ACCP's message the second content byte is **proven** to be the station number read
+  from 0x900001, not an OMD. The two messages are therefore not the same shape, and the
+  analogy is suggestive rather than binding.
+- **`MFOMD=000004`** in N500-SYMBOLS, while the ACCP uses CMD **5** for its MF channel.
+  Whether the symbol `MFOMD` is the same thing as the NPL variable `MFOMDNO` is
+  **UNVERIFIED**. This discrepancy is unexplained.
+
+Above all: **nobody has yet observed an MF controller parsing that byte.** All of the evidence
+above is about the sender.
+
 What would settle it: the **Octobus Driver Programming Guide** (DVT, 15 Oct 1986), or an
-MFbus-controller ROM showing what it does with the byte. Neither is in this repository.
+MFbus-controller ROM showing what it does with the byte. Neither is in this repository -
+`OctobusAccp\eprom\51200J.bin` and `51201J.bin` are only the two EPROM halves of `octo.bin`
+itself, not a second card.
 
 **Do not encode this hypothesis as fact in emulator code.** The peer in
 `AccpMfBusControllerPeer.cs` treats the byte as opaque and must continue to.
@@ -543,8 +599,17 @@ Every one of these is a hard gate; fail any and the station is rejected.
 
 ### Then the CPU model
 
+> **[REFUTED - do not build on the inference below. It is kept only because the wrong version
+> may already have been read.]** A0 is **NOT** the reply buffer. `0x112C` loads
+> `lea (0x00114550).l,A0` - the signature matrix in ACCP local SRAM. This file's own section 4b
+> already says "ANSWERED: no", and the whole derivation is now carved and live-verified in
+> **part 5 of `ACCP-COMPLETE-REFERENCE.md`**. Model detection is emphatically NOT a pure
+> protocol matter: the reported model is cross-checked against a class the ACCP derives from
+> its own hardware, and a responder built on this paragraph would be wrong.
+
 `DetectCpuModelBySignature` (0x110A region) probes `(A0)+0`, `+4`, `+0x0C` for the signature
-**`0x7F55`** to pick the model class (see the defect report). **[INFERENCE - well supported,
+**`0x7F55`** to pick the model class (see part 3 of `ACCP-EMULATION-STATUS-AND-HANDOFF.md`).
+**[INFERENCE - well supported,
 not proven]** A0 at that point is very likely **`0x001131E6`, the reply buffer** - i.e. the
 signature is looked for **in the MFbus controller's reply, not in ND-5000 memory**. That would
 make model detection a pure protocol matter with no memory probing at all.
@@ -699,8 +764,9 @@ section 4.4 refers to (retry count, retransmit indication) have not been located
 
 ## 4b. CORRECTIONS to section 5, made the same day
 
-Section 5 was written before I re-read `ACCP-324716-FIRMWARE-RE-2026-07-27.md`, which is the
-write-up of record and was already further along than I realised. Three things in section 5
+Section 5 was written before I re-read the firmware write-up of record (then
+`ACCP-324716-FIRMWARE-RE-2026-07-27.md`, now **part 1 of `ACCP-COMPLETE-REFERENCE.md`**), which
+was already further along than I realised. Three things in section 5
 are wrong or overstated. They are corrected here rather than quietly edited, because the
 wrong version may already have been read.
 
@@ -1280,8 +1346,16 @@ section 1a. What remains:
   at 0x10410/0x1041E. The START frame's information byte goes into the per-station reassembly
   record at `+0x06` (section 1e), never into the buffer. `StartFrameInformationOffset` was
   wrong and has been removed from the code.
-- **What fills the signature table at `0x00114550`.** All zeros in the emulator, so the ACCP
-  always derives model class 3 (ND-5800). Presumably ND-5000 datapath state.
+- ~~**What fills the signature table at `0x00114550`**~~ - **ANSWERED 2026-07-31, and any class
+  is now selectable.** The builder at `0x7D26` has FOUR phases: clear, sixteen reads of
+  `0x00220000`, a 16x16 transpose, and then a rewrite pass at `0x7DD0` (bit11:=bit10, field
+  moves, a 7-bit Gray decode at `0x7CA2`) whose output is what the class chain reads. Feeding a
+  computed sequence to the `0x220000` port - which must be modelled as ARMED by a write of
+  `0x0007`, not as a free-running counter - establishes class 2 and gets ND-5500 accepted, live
+  verified. Full carve in **part 5 of `ACCP-COMPLETE-REFERENCE.md`**. The remaining unknown is
+  narrower than "what fills it": it is what the real ND-5000 datapath physically presents at
+  `0x220000`. All-zero reads still give class 3 (ND-5800), which is correct behaviour for a
+  machine with no datapath.
 - ~~**Buffer byte 2**~~ - **ANSWERED: it is a driver FLAGS byte**, not payload. Cleared at
   0x1042E; bit 7 = message complete (`bset` at 0x106CA), bit 6 = buffer overrun (`bset` at
   0x10BAA). Only the **condition behind bit 5** (0x106A4-0x106B8) is still uncarved. See the

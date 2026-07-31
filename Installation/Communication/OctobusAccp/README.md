@@ -55,13 +55,21 @@ Two facts derived separately that agree.
 
 The reverse-engineering pass currently lives at:
 
-**`E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-324716-FIRMWARE-RE-2026-07-27.md`**
+**`E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-COMPLETE-REFERENCE.md`**
 
-It covers the identifying console strings (`S A M S O N   A C C E S S   P R O C E S S O R`,
+Its **part 1** covers the identifying console strings
+(`S A M S O N   A C C E S S   P R O C E S S O R`,
 `Communication ACCP-ND100 started. Version:`, `6 8 0 0 0   T R A P :`), the memory map,
-the SCN2681 DUART debug console, and the exception vector table. That document was
-written against the image while it still sat at `C:\Temp\octo\octo.bin`; its path
-references are now stale and should point here instead.
+the SCN2681 DUART debug console, and the exception vector table. Parts 2-6 add the hardware
+address map, the console command set, the ACCP <-> ND-5000 interface seam, the CPU model
+class derivation, and the PIOC-OS comparison. Its companion
+`E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-EMULATION-STATUS-AND-HANDOFF.md` holds the plan,
+status, defects and captures. The two files absorbed twelve earlier ACCP documents on
+2026-07-31.
+
+Note on provenance: **part 1** was written against the image while it still sat at
+`C:\Temp\octo\octo.bin`, so path references inside that part are stale and should point here
+instead. The other parts were written later and are not affected.
 
 `docs/` is reserved for further writeups so they sit next to the binary, matching the
 Ethernet folder's structure.

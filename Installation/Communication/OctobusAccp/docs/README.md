@@ -5,7 +5,7 @@ Reverse-engineering writeups for the ACCP (ND-324716 / PCB 5616) 68000 firmware 
 
 This folder is currently empty of analysis. The existing RE pass lives at:
 
-**`E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-324716-FIRMWARE-RE-2026-07-27.md`**
+**`E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\ACCP-COMPLETE-REFERENCE.md`**
 
 It was left in `SINTRAN\ND5000\` because that folder holds the rest of the octobus /
 ND-5000 analysis and follows a flat, date-stamped naming convention. Move it here only

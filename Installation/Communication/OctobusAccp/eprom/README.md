@@ -97,7 +97,7 @@ strong evidence the merge is correct.
 ## Resolved since this file was written (2026-07-27)
 
 Full analysis:
-`../../../../SINTRAN/ND5000/ACCP-324716-FIRMWARE-RE-2026-07-27.md`
+`../../../../SINTRAN/ND5000/ACCP-COMPLETE-REFERENCE.md`
 
 - **What the firmware is — ANSWERED.** It is the ACCP's own operating software.
   The text is not in the low region, which is why the first pass missed it; it
@@ -124,8 +124,10 @@ Full analysis:
 The firmware has been completely carved. Every one of its 279 functions is named, all 43
 console commands are decoded with their handlers, and the octobus transmit/receive registers
 are proven from the console commands themselves. See
-`../../../../SINTRAN/ND5000/ACCP-FULL-DISASSEMBLY-PLAN-2026-07-27.md` for the state table and
-the other three documents it links.
+`../../../../SINTRAN/ND5000/ACCP-EMULATION-STATUS-AND-HANDOFF.md` for the state table, and
+its companion `../../../../SINTRAN/ND5000/ACCP-COMPLETE-REFERENCE.md` for the firmware,
+hardware and CPU-model detail. Those two files absorbed twelve earlier ACCP documents on
+2026-07-31; each is organised as six numbered parts.
 
 - **Dump completeness - much stronger evidence now.** The whole image disassembles as valid
   68000 with no unexplained regions: code 0x000000-0x0114FF, text and tables
