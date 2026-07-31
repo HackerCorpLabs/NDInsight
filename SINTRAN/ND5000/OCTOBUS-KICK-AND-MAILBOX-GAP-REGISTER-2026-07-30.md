@@ -841,6 +841,24 @@ queue lock taken before a bad kick would leak.
 
 **Fix**: default branch that logs the kick number unconditionally, plus the queue unlock.
 
+**STATUS 2026-07-31 - diagnostic half CLOSED, unlock half NOT APPLICABLE. Do not "fix" it.**
+
+- **Logging: DONE.** `OctobusND5000Station` has a `default:` branch that logs every unhandled kick
+  unconditionally, naming what the microcode would have run (`OCB_KICK05`, `OCB_KICK06`, or
+  `NOTREC 204`). The "undiagnosable wrong kick number" consequence is gone.
+- **`UNLOCK_QUE`: NOT APPLICABLE, and implementing it now would be a DEFECT.** Checked the whole
+  station: `_mailboxHeaderBase` is only ever compared against 0 and handed to the servicer - **the
+  station never reads or writes the queue-lock word, so it never TAKES the lock.** There is
+  therefore nothing to leak and nothing to release.
+
+  **Writing an unconditional unlock would be actively harmful**: the lock cell is shared with
+  SINTRAN, so releasing a lock we never acquired could clear a lock SINTRAN currently holds. The
+  original entry's "the UNLOCK_QUE is skipped, so a queue lock taken before a bad kick would leak"
+  assumed our station takes the lock. It does not.
+
+  **Correct scoping:** the unlock is owed BY whoever implements queue locking (G3's kick-4/5/6
+  work), as part of that change - not as a standalone fix here.
+
 ---
 
 ### G7 - NOT A GAP. Withdrawn 2026-07-30, my claim was wrong
@@ -878,6 +896,16 @@ check is cheap - assert `X5ACT` after a walk in the existing mailbox tests.
 `X5CCL` (word 0o11, byte +0x12) is documented as *"cache-clear counter (read/compared)"* and the
 executed microcode sets it to 1 during `OCB_KICK03`. We never write it. Subsumed by the G1 fix
 (section 0.1), listed separately because any other cache-clear path owes the same write.
+
+**STATUS 2026-07-31 - CLOSED for every path that exists today.** Audited the station: `X5CCL`
+(`X5CclByteOffset = 0x12`) is written in exactly one place, `ExecuteClearFunctions`, the kick-3
+handler - and kick 3 is the ONLY cache-clear path the station implements. So the "any other
+cache-clear path" caveat has no current subject.
+
+**It becomes live again the moment kicks 4/5 land (G5)**: `OCB_KICK05` runs the same clear
+sequence, so that implementation owes the `X5CCL` write too. Recorded here rather than closed
+silently, so G5's author inherits the requirement instead of rediscovering it from a SINTRAN poll
+that never terminates.
 
 ---
 
@@ -954,9 +982,12 @@ Remaining, in order:
    needs G3. This is the last known **P1**.
 3. **G3** (`OCB_CLNUP` requeue) - prerequisite for an honest G2/G5. Getting this wrong shows up much
    later as lost messages, so do not fake it.
-4. **G6 remainder** - the `UNLOCK_QUE` that `OCB_KICK64` performs; currently we log but do not
-   release a queue lock.
-5. **G8** - subsumed by G1 for the kick-3 path; any other cache-clear path owes the same `X5CCL` write.
+4. ~~**G6 remainder** - the `UNLOCK_QUE` that `OCB_KICK64` performs~~ **- CLOSED 2026-07-31.**
+   Logging was already done; the unlock is NOT owed here because the station never takes the lock,
+   and releasing one we do not hold could clear SINTRAN's. It belongs to whoever implements queue
+   locking. See the G6 entry.
+5. ~~**G8**~~ **- CLOSED 2026-07-31** for every path that exists; kick 3 is the only cache-clear
+   path and it writes `X5CCL`. Re-opens as a requirement on G5 when kicks 4/5 land.
 6. **G5**, **G9** - do NOT build ahead of a proven caller / a resolved trigger.
 
 ---
