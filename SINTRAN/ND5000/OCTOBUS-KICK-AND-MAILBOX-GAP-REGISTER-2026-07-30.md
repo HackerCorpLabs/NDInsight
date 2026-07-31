@@ -409,6 +409,52 @@ zero, and what `SC13` means is not yet known.**
 path - 0o25565, 0o25505-0o25512, 0o25566, 0o25416, 0o25567, 0o24670 - so this is another
 bounded hand-decode, not a search.
 
+### G3 probe 8, 2026-07-31 - `SC13` is general-purpose, and forcing it DOES NOTHING. Contradiction.
+
+Three facts, each independently checked:
+
+1. **`SC13` is not a dedicated flag.** Scanning all 16384 words of the B30 image for `DEST = 0o26`
+   finds **600 writers**. It is a general-purpose scratch register.
+2. **`OCB_KICK06` never writes it.** Decoding 0o25561..0o25567: DESTs are `SC12`, `SC14`, `SC14`,
+   `NONE`, `NONE`, `SC12`, `NONE`. No `SC13`. Nor does `OCB_CLNUP` itself. Only four words execute
+   before `OCB_CLNUP` is entered (0o25561-0o25564), and none of them touch it.
+3. **The ALU op at 0o25573 is `ALU,A`** - "A OPERAND DIRECT THROUGH THE ALU". `B_OP` is `X1` but is
+   ignored by this op. So the zero flag should be exactly `SC13 == 0`.
+
+That predicts a clean experiment: preset `SC13` (WRF index 22) non-zero and the body should run.
+
+```
+SC13       reachedBody  N5STA  writes
+00000000         False  0002   24
+00000001         False  0002   24
+00002800         False  0002   24
+FFFFFFFF         False  0002   24
+```
+
+**It changes NOTHING - not even the write count.** All four runs are byte-identical in effect.
+
+**This is a contradiction, and it is the finding.** The decode says the branch tests `SC13` through
+a pass-through ALU op, and nothing between the preset and the test writes `SC13`. Forcing it should
+change the outcome. It does not. So at least one of these is false:
+
+- the `A_OP` decode (0o66 = `A,SC13`),
+- the WRF index mapping (`Registers.cs` says 20-23 = SC11-SC14, so SC13 = 22),
+- the assumption that `ALU_TRUE` is the field in force - **0o25573 also has `COND_ALU` in play, and
+  if the ALU takes `ALU_FALSE` instead, the operation is a different one entirely**,
+- or our emulator's handling of `COND_ALU` / `ALU_FALSE` / the Z flag on this path.
+
+**The last two are the most likely and the most interesting**, because a `COND_ALU` mishandling
+would be an EMULATOR DEFECT, not a carve question - and it would silently affect every conditional
+microword, not just this one. That is worth more than G3 itself.
+
+**Do not conclude "the harness enters cold" either** - that was probe 8's hypothesis and this
+experiment REFUTED it. Recorded so it is not re-adopted.
+
+**Next:** decode `COND_ALU` (bit 114) and `ALU_FALSE` for 0o25573, and check the emulator actually
+selects between them. Test:
+`MailboxClrKickTests.OcbClnup_NonZeroSc13_ShowsTheEarlyExitWasAHarnessArtefact` (the name records
+the hypothesis; the FINDING line records that it failed).
+
 ### G4 - kick 2 not mapped to ACTIVATE  **[P2]**
 
 `OCB_DEC_K` sends both 1 and 2 to `ACTIVATE`. We handle only 1. No NPL sender for kick 2 was
