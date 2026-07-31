@@ -83,14 +83,63 @@ The corpus shows both arms, and they split almost evenly:
 | **size** | 718 | `XMCSM & 0x1FF == bodyLen` exactly. High bits are `0x0` (492) or `0x2` (226) — i.e. bit `0x400` is a flag sitting above a 9-bit length. |
 | **not-size** | 731 | `XMCSM` is a small constant (`0x0080`, `0x0064`, …) while `bodyLen` varies. |
 
-**UNKNOWN — what selects the arm.** `XMSTA` was the obvious candidate and it is **not** the
-answer: `XMSTA=0x8684` appears in both arms (233 size, 30 not-size), as does `0x86E4`. Tested
-and rejected this session.
+**CARVED 2026-07-31 — the kernel comment is literally true, and here is the code.** Sequence at
+`134013`, with `XMSIZ=0o144`, `XMSTA=0o135`, `XMCSM=0o142` all from the symbol list:
 
-**UNKNOWN — whether the not-size arm is really a checksum.** It is constant across frames with
-different bodies, which is not checksum-like. It behaves more like a class/type constant. The
-kernel comment offers only two arms, so either the comment is incomplete or our reading of the
-constant arm is wrong.
+```
+134013  LDA ,B 144        ; A := XMSIZ
+134014  STA ,B 142        ; XMCSM := XMSIZ          <- the SIZE arm, taken by DEFAULT
+134015  LDATX
+134016  BSKP ONE 110 DA   ; flag bit test
+134017  JMP  -> 134034    ;   set -> keep the size, done
+134021  BSKP ONE 120 DA   ; second flag bit test
+134022  JMP  -> 134034    ;   set -> keep the size, done
+134024  LDA ,B 135        ; A := XMSTA
+134025  STA -104          ; save XMSTA
+134026  STZ ,B 135        ; XMSTA := 0
+134027  STZ ,B 142        ; XMCSM := 0              <- zero the field before computing
+134030  JPL  I 36         ; -> mem[134066] = 137335
+134031  STA ,B 142        ; XMCSM := result         <- the CHECKSUM arm
+134032  LDA -111
+134033  STA ,B 135        ; XMSTA restored
+```
+
+Zeroing `XMCSM` (and `XMSTA`) before computing and storing the result back is the standard
+checksum-over-block idiom, and it explains why `XMSTA` is excluded from the covered bytes.
+
+**The checksum itself, at `137335`** - a ones-complement sum with end-around carry:
+
+```
+137337  LDT ,B 145        ; T := XMDAB   data buffer address
+137340  LDX ,B 146        ; X := XMDAW
+137341  LDA ,B 147        ; A := XMLEN   the LENGTH
+137342  SHA ZIN SHR 1     ; A >>= 1      bytes -> words
+137343  RADD CLD SA DL    ; L := word count
+137344  RADD CLD 0 DD     ; D := 0       accumulator
+137345  SKP IF DL UEQ 0   ; while L != 0
+137347  LDATX             ;   A := mem[X+T]
+137350  RADD SA DD        ;   D += A
+137351  RADD ADC CLD SD DD;   D += carry            <- END-AROUND CARRY
+137352  AAX 1             ;   X++
+137353  RADD CM1 0 DL     ;   L--
+137354  JMP -> 137345
+137355  BSKP ONE SSM      ; odd-length tail, masked with AND 21
+```
+
+So `XMLEN` (`0o147`) **is** a real length field - it is what bounds the checksum - it simply is
+not at wire 30-31 where our layout put it.
+
+This also resolves what the wire measurements could not. The "not-size" arm looked wrong
+because its values are **constant** (`0x0080`, `0x0064`) across frames with different bodies,
+which is not checksum-like. Under the carve those constants are the SIZE arm carrying `XMSIZ`
+- the message **buffer** size, fixed per message class - not the body length. The
+`XMCSM & 0x1FF == bodyLen` frames are the ones where the buffer size happens to equal the body.
+
+**STILL UNKNOWN - which flag bit.** The discriminator is the pair of `BSKP ONE 110 DA` /
+`BSKP ONE 120 DA` tests at `134016`/`134021`, on a value fetched by `LDATX`. The *location* of
+the decision is now carved; the *identity* of the bits is not. `XMSTA` was tested as a
+candidate earlier and rejected on the wire (`XMSTA=0x8684` appears in both arms), consistent
+with the flag living elsewhere.
 
 This matters well beyond documentation: `XmsgEnvelope.BaseLowSigned` subtracts this field's low
 byte, so on size-arm frames the envelope arithmetic is subtracting **a byte count**.

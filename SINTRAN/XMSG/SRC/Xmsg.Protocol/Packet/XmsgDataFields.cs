@@ -41,11 +41,36 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// </para>
         /// <para>
         /// The kernel comments XMCSM as <c>"datagram checksum; if not checksum, then message
-        /// size"</c>, i.e. the field is OVERLOADED, and the corpus shows both uses: on COSMOS
-        /// file-server traffic it tracks the frame length (<c>Flags2 - infoLen</c> is a constant
-        /// -28 across 492 frames), while on TAD and routing traffic it is a small constant that
-        /// behaves like a class marker. Measured corpus-wide there are 54 distinct
-        /// <c>Flags2 - infoLen</c> offsets, so neither reading covers everything.
+        /// size"</c>, and that is CARVED as literally true - the code is at kernel address
+        /// <c>134013</c> in <c>XMSG-KERNEL-L03.BPUN</c>:
+        /// </para>
+        /// <para>
+        /// It first stores <c>XMSIZ</c> (<c>0o144</c>) into <c>XMCSM</c> (<c>0o142</c>) - the SIZE
+        /// arm, taken by default. Two <c>BSKP</c> flag-bit tests then decide: if either is set it
+        /// keeps the size, otherwise it saves <c>XMSTA</c>, ZEROES both <c>XMSTA</c> and
+        /// <c>XMCSM</c>, calls the routine at <c>137335</c>, and stores the result into
+        /// <c>XMCSM</c>. Zeroing the field before computing and storing the result back is the
+        /// standard checksum-over-block idiom, and it is why <c>XMSTA</c> is excluded from the
+        /// covered bytes.
+        /// </para>
+        /// <para>
+        /// The routine at <c>137335</c> is a ones-complement sum with END-AROUND CARRY
+        /// (<c>RADD SA DD</c> followed by <c>RADD ADC CLD SD DD</c>) over <c>XMLEN/2</c> words
+        /// starting at <c>XMDAB</c>/<c>XMDAW</c>, with an odd-length tail path. So <c>XMLEN</c>
+        /// (<c>0o147</c>) IS a real length field - it bounds the checksum - it simply is not at
+        /// wire 30-31 where this layout once put it.
+        /// </para>
+        /// <para>
+        /// This explains the corpus: 718 frames satisfy <c>XMCSM &amp; 0x1FF == bodyLen</c>, and
+        /// 731 carry a CONSTANT (<c>0x0080</c>, <c>0x0064</c>) while the body varies. The
+        /// constants are the size arm carrying <c>XMSIZ</c> - the message BUFFER size, fixed per
+        /// message class - not the body length.
+        /// </para>
+        /// <para>
+        /// UNKNOWN: which flag bit selects the arm. The decision is the <c>BSKP ONE 110 DA</c> /
+        /// <c>BSKP ONE 120 DA</c> pair at <c>134016</c>/<c>134021</c> on a value fetched by
+        /// <c>LDATX</c>. The location is carved; the bit identity is not. Do NOT assume a frame's
+        /// XMCSM is a length without checking - roughly half are checksums.
         /// </para>
         /// <para>
         /// This matters for the envelope arithmetic: <see cref="XmsgEnvelope.BaseLowSigned"/>
