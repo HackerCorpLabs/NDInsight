@@ -31,6 +31,28 @@ This effort is **separate** from the live SCSI-mount debugging, which lives in
 
 ---
 
+## 0a. Tooling / regeneration log
+
+**2026-07-31 - nd100-dis missing-offset bug fixed; ALL L07 segments-ref regenerated.**
+`nd100-dis` was dropping the displacement operand of the post-indexed load/store forms
+`LDATX / LDXTX / LDDTX / LDBTX / STATX / STZTX / STDTX` (e.g. word `143330` printed as bare
+`LDATX` instead of `LDATX 3`; only NONZERO offsets were affected - a zero offset correctly prints
+no operand). The fix is live in `/usr/local/bin/nd100-dis`. Every carved listing made before this
+had wrong operands on those lines.
+
+- **Regenerated (clean, correct):** all L-VSX-500 `re/segments-ref/<SEG>/` bundles via
+  `python3 make-segment-ref.py L-VSX-500 --all` (byte-swap to LE + correct base handled by the
+  script). Verified: `006-S3FS.asm` `026017 143330 LDATX 3`. Segments 130B-141B skip (no load
+  address = un-installed subsystems).
+- **STILL STALE (not yet regenerated - contain the old bare-mnemonic output):** the standalone
+  top-level disassemblies `re/003-S3CP.dis`, `re/006-S3FS.dis`, `re/030-S3SM5.dis`,
+  `resident/SINTRAN-DATA_commoncode.dis`, `re/kernel-carving/SCSI-DRIVER/*.dis`; the HAND-ANNOTATED
+  `re/006-S3FS.annotated.dis`; and `SINTRAN/ND500/nd-500-mon/nd-500-mon-j04.prog.asm`. The plain
+  `.dis` are superseded by the fixed `segments-ref/*.asm`; the annotated ones need manual
+  re-annotation (regenerating destroys the notes), so they are left for a deliberate pass.
+
+---
+
 ## 0. Where the output lives
 
 | What | Path |
