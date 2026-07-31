@@ -628,6 +628,52 @@ status register, and this file already carries "AFLAG bits 7/8 unknown" as an op
 0o16554-0o16564 for which flag it reads, then drive that bit rather than guessing at delivery
 shapes. Test: `MailboxClrKickTests.OcbClnup_WithBusyAccp_ChecksWhetherScanAccpIsTheGate`.
 
+### G3 probe 13, 2026-07-31 - `SC13 := AFLAG`, and our AFLAG CANNOT satisfy the scan. [DEFECT]
+
+`SCAN_ACCP` decoded (0o16554 onward):
+
+| CS | A operand | DEST | test | branch |
+|---|---|---|---|---|
+| 16554 | **`A,SPEC,AFLAG`** | **`D,SC13`** | - | -> 16555 |
+| 16555 | `A,BM13` (mask **bit 11**) | NONE | - | -> 16556 |
+| 16556 | `A,BM14` (mask **bit 12**) | NONE | `COND,MZRO` | -> 16560 |
+| 16560 | `A,BM05` (mask **bit 5**) | NONE | `COND,MZRO` | -> 16562 |
+| 16562 | `A,BM06` (mask **bit 6**) | NONE | `COND,MZRO` | -> 16564 |
+| 16564 | `A,BM00` | NONE | `COND,MZRO` | -> 104 (return) |
+
+**So `SC13` IS the AFLAG word**, byte-verified: 0o16554 reads `A,SPEC,AFLAG` straight into `SC13`.
+That fully explains `OCB_CLNUP`: 0o25573 tests `SC13` for zero, so **an ACCP with AFLAG == 0 makes
+the routine return immediately.** The whole chain from G3's symptom to its cause is now closed.
+
+**And here is a REAL emulator gap - visible in the source, not inferred from a measurement.**
+`AccessModule.ReadAflag()` is:
+
+```csharp
+return ((uint)AobFull << AobfBit) | ((uint)AibFull << AibfBit);   // AOBF bit 9, AIBF bit 10
+```
+
+**It can only ever produce bits 9 and 10.** `SCAN_ACCP` tests bits **5, 6, 11 and 12**. Those four
+bit tests can NEVER fire in our emulator, whatever the ACCP stub does. That is why probe 12's
+delivered AOB word changed nothing: it sets bit 9, which `SCAN_ACCP` does not look at.
+
+**This is a genuine defect and this time it is not a measurement artefact** - it is a two-line
+method that structurally cannot produce the bits the microcode reads. Contrast the two false alarms
+earlier in this file (`COND_ALU`, the "unexplained SC13 write"), both of which were my own errors:
+here the evidence is the source text itself plus a byte-verified decode of the reader.
+
+**Scope beyond G3:** `SCAN_ACCP` is called from the `OCB_WAITSEX` spin as well (catalog correction
+3 - "SCAN_ACCP each pass"), so every path that polls the ACCP is scanning a status word that can
+never report four of its conditions.
+
+**This also extends the existing "AFLAG bits 7/8 unknown" open item** - the unmodelled set is wider
+than bits 7/8. Known real bits now: 9 AOBF, 10 AIBF (modelled); 5, 6, 11, 12 read by `SCAN_ACCP`
+(unmodelled); 7, 8 previously flagged unknown.
+
+**Next:** find what the real ACCP asserts in AFLAG bits 5, 6, 11, 12 before implementing anything -
+`ND-05.020.01` section 5.1.3 is the AFLAG reference already cited in `AccessModule`, and the ACCP
+firmware carve (`ACCP-COMPLETE-REFERENCE.md`) may name them from the other side. **Do not invent
+bit meanings to make the scan pass.**
+
 **Note on the harness:** this iteration was blocked for a while by an unrelated uncommitted edit to
 `src/CpuND5000.cs` (a `_aapProductForQ` field never assigned, CS0649-as-error). Not ours; left
 alone; it compiles again now.
