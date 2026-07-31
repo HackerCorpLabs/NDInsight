@@ -723,6 +723,53 @@ barrier, per the method lesson in probe 11, not by sampling `State.Mpc`.
 
 Regression check after the `src` change: mailbox + ACCP + octobus fixtures **50/50 green**.
 
+### G3 probe 15, 2026-07-31 - ANSWERED. We enter PAST the ACCP scan, so OCB_CLNUP runs before it.
+
+Correlating `AFLAG` against `SC13` every tick of the busy run (test-side only - `CpuND5000.cs` is
+carrying someone else's work and was not touched):
+
+```
+    tick     0: AFLAG=00001000 SC13=00000000
+    tick     7: AFLAG=00001000 SC13=00000800
+    tick    33: AFLAG=00001000 SC13=00000000
+    tick    57: AFLAG=00001000 SC13=80000000
+    tick    76: AFLAG=00001000 SC13=00000000
+    tick    83: AFLAG=00001000 SC13=00002000
+    tick    88: AFLAG=00001000 SC13=00000000
+    tick   137: AFLAG=00001000 SC13=00002000
+    tick   142: AFLAG=00001000 SC13=00000000
+    tick   159: AFLAG=00001000 SC13=00001000     <-- SCAN_ACCP finally reads AFLAG
+    tick   178: AFLAG=00001000 SC13=00000200     <-- ACCP_READ's SC13 := BM11 (bit 9)
+```
+
+**Three things this settles:**
+
+1. **`AFLAG` is never consumed** - it holds `0x1000` for the entire run. The flag is not being
+   cleared behind our back, which was one of the two guesses in probe 14. That guess is dead.
+2. **`SCAN_ACCP` DOES work now** - at tick 159 it reads `AFLAG` and writes `SC13 = 0x1000`, exactly
+   as the probe-13 decode predicted. **The AFLAG fix is confirmed working end to end.**
+3. **But it runs FAR TOO LATE.** `OCB_CLNUP` executes and exits in the first ~33 ticks. The branch
+   sample is the FIRST visit to 0o25573, which happens long before any ACCP scan.
+
+**Root cause, and it is a HARNESS issue, not a microcode or emulator one:** these probes set
+`Mpc = OCB_KICK06` and jump straight in. On real hardware a kick arrives through the trap dispatch
+(`TRAP_OCBA` / `OCB_DECODE`), which runs `SCAN_ACCP` FIRST and only then dispatches to the kick
+handler. By entering at the handler we skip the scan, so `SC13` still holds whatever earlier code
+left - zero - when `OCB_CLNUP` tests it.
+
+Corroboration that the later values are ordinary scratch traffic and not noise: `SC13 = 0x200` at
+tick 178 is `BM11` = bit 9, which the catalog records as `ACCP_READ`'s opening `SC13 := BM11`.
+
+**Note on the superficially similar dead hypothesis.** Probe 8 guessed "the harness enters cold with
+zeroed scratch" and was REFUTED - presetting `SC13` changed nothing. This is a different and
+specific claim, and it is evidenced rather than assumed: the scan that computes `SC13` is bypassed
+by our entry point, and we can see it running correctly 126 ticks later.
+
+**Next:** drive the kick through the trap dispatch instead of jumping to `OCB_KICK06` - deliver the
+kick with `AFLAG` bit 12 set and start from the ACCP trap entry, so `SCAN_ACCP` runs before
+`OCB_CLNUP` in the natural order. That is the setup in which the carve's `N5STA := 1` can finally be
+observed or refuted.
+
 **Note on the harness:** this iteration was blocked for a while by an unrelated uncommitted edit to
 `src/CpuND5000.cs` (a `_aapProductForQ` field never assigned, CS0649-as-error). Not ours; left
 alone; it compiles again now.
