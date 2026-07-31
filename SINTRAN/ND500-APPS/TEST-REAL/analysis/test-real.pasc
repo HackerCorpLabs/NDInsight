@@ -1,0 +1,18 @@
+
+program test_real (input, output);
+
+$include getreal:pasc
+
+var
+   st : packed array[1..100] of char;
+   r  : real;
+
+begin
+   while true do begin
+      writeln;
+      write ('Give real as ASCII string: ');
+      readln (st);
+      getreal (st, r);
+      writeln ('Real value : ', r);
+   end;
+end.

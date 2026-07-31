@@ -1,0 +1,407 @@
+CONVERT-DOM
+                     *****  Convert-Domain Program  *****
+
++----------------------------------------------------------------------+
+! To get a list of all available commands, press SHIFT+HELP.           !
+! To get help on one or more commands/topics, type help or press HELP. !
+! To get help on one command, type the command name and press HELP.    !
++----------------------------------------------------------------------+
+
+Convert-Domain is a program for converting domains in the old domain
+format to new domains in the new domain format.
+
+The main difference between the formats is that the old domain format
+has a description file, while the new format does not.
+
+You may also use the HELP command, which accepts advanced pattern
+matching when searching for topics.
+
+To get help on any command, write the name of the command on the
+command line and then press HELP. This function
+accepts ordinary SINTRAN-III matching rules.
+
+Use SHIFT+HELP to get a list of all commands matching a given string.
+
+Currently, the following topics are defined:
+
+   COMMENT (topic)                        NEW-DOMAIN-FORMAT (topic)
+   CONVERT-DOMAIN (command)               OLD-DOMAIN-FORMAT (topic)
+   EXIT (command)                         SHELL (topic)
+   HELP (command and default topic)       SIBAS (topic)
+   LIMITATIONS (topic)
+
+In addition, the following shell facilities are described:
+
+   %        Shell comment  (NB: Use COMMENT as topic)
+   @        Shell SINTRAN III command invocation
+
+HELP
+                              *****  Help  *****
+
+Convert-Domain is a program for converting domains in the old domain
+format to new domains in the new domain format.
+
+The main difference between the formats is that the old domain format
+has a description file while the new format has not.
+
+The HELP command accepts as topic a string of characters that
+"matches" any of the topics. It uses '-', '*' and '+' in special ways:
+
+   '-'  is used in the same way as ordinary SINTRAN matching.
+
+   '+'  is used to match any single character.
+
+   '*'  is used to match any string (0 or more) of characters.
+
+If '*' is used at the beginning of a string, only those topics ENDING
+with the string will be displayed. If you want to find all items
+CONTAINING a string, you must therefore place an asterisk both
+before and after the string, e.g., *xxx*.
+
+Currently, the following topics are defined:
+
+   COMMENT (topic)                        NEW-DOMAIN-FORMAT (topic)
+   CONVERT-DOMAIN (command)               OLD-DOMAIN-FORMAT (topic)
+   EXIT (command)                         SHELL (topic)
+   HELP (command and default topic)       SIBAS (topic)
+   LIMITATIONS (topic)
+
+In addition, the following shell facilities are described:
+
+   %        (Shell comment)  NB: Use COMMENT as topic.
+   @        (Shell SINTRAN III command invocation)
+
+You may also use the shell built-in help: See the topic "shell" or
+just press SHIFT+HELP when prompted for a command.
+
+OLD-DOMAIN-FORMAT
+                        *****  Old Domain Format  *****
+
+The old domain format has a description file that stores bookkeeping
+information about each domain and each segment for the user who owns
+the description file.
+
+The contents  of each segment is stored in three files with file types
+:PSEG, :DSEG and :LINK.
+
+The old domain format will gradually be phased out so you may want
+to convert many of your domains to the new format
+by using this convert domain program or by relinking/loading
+using ND's LINKER that is released together with this
+program.
+
+Some programs are started by RT programs that do not recognize new domains.
+Such programs should not be converted to the new domain format.
+Do not attempt to convert:
+
+  Sibas, version F or older
+  Notis-DS, version D or older
+  Notis-ID, version B or older.
+
+NEW-DOMAIN-FORMAT
+
+                       *****  New Domain Format  *****
+
+The new domain format has no description file, instead each domain is
+stored on a separate file with file type :DOM and the bookkeeping
+information about it is stored in a header at the beginning of the
+:DOM file. Each segment that is private for this domain is called a
+slave segment and is stored in the domain file.
+
+Thus a simple domain may be copied by using @COPY-FILE only.
+
+If a segment is shared with other domains or for any other reason
+cannot be considered a slave segment, it is called a free segment.
+These are stored in separate :SEG files and the bookkeeping
+information about them is stored at the beginning of the file where it
+is stored.
+
+SHELL
+                             *****  Shell  *****
+
+The ND-SHELL is used as the command processor for Convert-Domain. This
+gives you access to many features provided by the shell. You can, for
+example, see a log of all your keystrokes while running the program.
+Since the LINKER also uses the ND-SHELL, the interface to CONVERT-
+DOMAIN is very similar and has many of the same facilities as the
+LINKER.
+
+If, however, you write parameters on the command line, the SHELL will
+not be used. This means that if you write
+
+   @ND CONV-DOM DEST-DOM SOURCE-DOM
+
+the ND-SHELL will not be used.
+
+Help in the shell:
+
+   You may either use the HELP command - see the topic HELP - or
+   use the shell built-in HELP.
+
+   To display the shell help you use the HELP key.
+
+   Pressing SHIFT+HELP gives a list of all commands matching what
+   you have typed in so far.
+
+   Pressing HELP gives a description of the topic matching what
+   you have typed in so far if it is unambiguous.
+
+Refer to available documentation for the LINKER and ND SHELL for
+further details.
+
+EXIT
+                              *****  Exit  *****
+
+This command leaves the CONVERT-DOMAIN command processor.
+
+CONVERT-DOMAIN
+                         *****  Convert-Domain  *****
+
+The CONVERT-DOMAIN command has 5 parameters:
+
+CONVERT-DOMAIN <Destination domain>
+               <Source domain>
+               <Include linked segments (Yes,No)>
+               <Display progress information (Yes,No)>
+               <Force free segment number(s)>...
+
+The dots indicate that the last parameter is repeated until
+you give no value to it.
+
+<Destination> and <Source> are mandatory, while the other parameters
+are optional. <Destination> will accept an empty string (i.e. just CR).
+
+1  <Destination> is the name of the destination domain that is in
+   the new domain format. If the :DOM file does not exist, it will be
+   created. If you want to prevent an existing :DOM file from being
+   overwritten, you should enclose the name in double quotes.
+   If the file already exists, you will get an error message and no
+   conversion will take place.
+
+   Occurrences of '$' in the destination name will be substituted with
+   the source domain name. An empty string is equivalent to one '$'.
+
+2  <Source> is the name of the source domain. This domain must be in
+   the old domain format. There is no default name.
+
+3  <Include linked Segments> is a parameter that is answered by YES or
+   NO (NO is default). The parameter is optional so you won't be asked
+   for it.
+
+   If you respond with YES, all :SEG files needed to run the
+   destination domain will be copied to the same user as the
+   destination domain, and the destination domain will be linked to
+   these segments.
+
+   This is useful if you want to copy the domain to a floppy diskette
+   and want all the :SEG files to reside on the same floppy.
+
+   If you respond with NO (default), the destination domain will get
+   links to :SEG files that may reside in other user areas than the
+   destination domain itself. If you, for example, have a SOURCE-DOM
+   that is linked to (LIB)LIB-SEG:SEG and user LIB
+   already has LIB-SEG:SEG, the segment will not be converted. Instead,
+   DEST-DOM will only link to (LIB)LIB-SEG:SEG. IF (LIB) has no
+   LIB-SEG:SEG it will attempt to create a file (LIB)LIB-SEG:SEG and,
+   if successful, will convert the segment onto this file. If not
+   successful, it will try to create LIB-SEG:SEG on the same user as
+   the destination domain and, if that won't work either, it will
+   create the file under the current user and convert LIB-SEG to LIB-
+   SEG:SEG.
+
+   NOTE: If you do want a free segment to be placed on a particular
+   user, e.g., a run-time library under user 'libraries' you MUST
+   ensure that it is being placed there. One way to do this is
+   to convert the "domain" in user libraries and thus produce a
+   :SEG file (you probably do not need the :DOM file so you can delete
+   it) PRIOR to converting any applications that are linked to
+   this run-time segment.
+
+4  <Progress Info?> You use this parameter to decide whether or not
+   you want progress information displayed on the screen during
+   conversion:
+
+   YES (default) means that it will give information about what it
+   will do next. For example, immediately before copying the debug
+   part of segment number 3, you will see the following message:
+
+      >> Converting debug part for segment 3 <<
+
+   NO means that this information will not be displayed.
+
+5.... <Force free segment numbers?>
+
+   Convert domain tries to do a 'clever' guess if the segment should
+   be free or not. However, you may want to force a segment to be
+   free even when Convert domain puts it on a :DOM file. A typical
+   example is when you convert Notis-WP and you later want to link
+   Dialogue applications to Notis. To force the program to convert
+   Notis-WP to a :SEG file, you can do this:
+
+   CONVERT-DOMAIN $ NOTIS-WP,,,0:31
+
+   Each segment will be put on a :SEG file, and you will get a
+   Notis-WP:DOM file, too. The domain file will only consist
+   of pointers to :SEG files! Alternatively, you could have written
+   0-31 or 0..31 (all of them work).
+
+
+COMMENT
+
+                          *****  Comments - %  *****
+
+This is used to write comments in SHELL JOBs as in the following
+example:
+
+      % Convert from source to destination
+      CONVERT-DOMAIN destination source
+@
+               *****  Sintran-III Command Execution - @  *****
+
+This is used to give SINTRAN commands when inside the convert domain
+program:
+
+      % Convert from source to dest, delete dest first.
+      @DELETE-FILE destination:DOM
+      CONVERT-DOMAIN destination source
+
+LIMITATIONS
+Some programs are started by RT programs that do not recognize new domains.
+Such programs should not be converted to the new domain format.
+Do not attempt to convert:
+
+  Sibas, version F or older
+  Notis-DS, version D or older
+  Notis-ID, version B or older.
+
+Some programs assume that they are executing in the old domain format.
+Be wary of programs that have commands with a "domain name" parameter,
+because they may be reading the description file at run-time. There
+may also be programs, typically compilers, that read their :LINK file
+at run-time to determine the addresses of routines.
+Do not attempt to convert:
+
+  ND-500 Basic, version B or older
+
+Two programs consist of only :PSEG and :DSEG files, and have no
+description file. They cannot be converted:
+
+  ND-500/5000 Swapper
+  Symbolic Debugger
+
+SIBAS
+                    Do NOT convert Sibas, version F
+
+The Sibas domains SIB2A, SERV2A, etc., in version F of Sibas are
+started by RT programs. Those RT programs do NOT recognize the new
+domain format. By carefully editing the file (SIB2-SYS-F)ND500-RTLOAD-
+F04:MODE, one can load the RT programs with newer libraries that
+recognize the new domain format. That is too complicated to explain
+here, and we advise most customers to NOT attempt to convert Sibas,
+version F, to the new domain format.
+
+                 You may convert Sibas-R, version A
+
+The important rule to remember is that all applications that are
+linked to Sibas must be in the same domain format as Sibas if they use
+Sibas Message communication. If your application leaves a message for
+Sibas in the file (SIB-500)SIBAS-MESSAGE:DSEG, and Sibas reads from
+(SIB-500)SIBAS-MESSAGE:SEG, Sibas will never answer!
+
+You can mix domain formats if you use XMSG Communication, that is,
+Sibas backend to your own local machine. Example: An application in
+the old domain format can access process 1 in the new domain format by
+specifying 201 instead of 1, if the local machine is defined in
+XMSG as *SIB2. (The same rule applies if an application is linked to
+one version of Sibas and it wants to access a Sibas process in a
+different version of Sibas.)
+
+If a Sibas domain exists in both the new and old domain format, SIBRC
+will always start the new domain format domain! If you want to
+convert one process at a time, you should store the new domain format
+Sibas domains on a user other than SIB-500, so you have the
+possibility of starting either version.
+
+You may convert Sibas-R, version A to the new domain format,
+according to this 7-step procedure. This procedure will also work
+if your Sibas-R, version A is linked to version F of Sibas-Message.
+
+       @cc 1) Give the user SIB-500 about 1000 pages
+       @LIST-REENTRANT CONVERT
+       @cc Log in as user SIB-500
+       @ND CONVERT-DOMAIN $ SIB-LIB
+       @cc This will convert the Sibas library, and both message
+       @cc segments.
+
+       @cc 2) Create a SINTRAN user DOM-SIB-500 and give it pages
+       @CC Log in as SINTRAN user DOM-SIB-500
+       @ND CONVERT $ (SIB-500)SIBRP
+       @ND CONVERT $ (SIB-500)SIBRS
+       @CC Since the Sibas message segments already exist on user
+       @CC SIB-500, new copies will not be created.
+
+       @CC 3) If you have applications linked to NOTIS-WP, NOTIS-WP
+       @CC must be converted to a :SEG file.
+       @CC Log in as SINTRAN user DOMAIN
+       @ND CONVERT $ NOTIS-WP,,,0:31
+
+       @CC 4) Log in as a user where a Sibas application exists.
+       @ND CONVERT $ MY-APPLICATION
+
+       @CC 5) Log in as SINTRAN user SYSTEM to see if domains are OK:
+       @ND-500
+       PLACE (DOM-SIB-500)SIBRP
+       LIST-ACTIVE-SEGMENTS
+       PLACE (DOM-SIB-500)SIBRS
+       LIST-ACTIVE-SEGMENTS
+       PLACE (SOME-USER)MY-APPLICATION
+       LIST-ACTIVE-SEGMENTS
+
+       CC See that the Sibas Message segments are the same in all
+       CC 3 cases.
+       EXIT
+
+       @CC 6) Edit the file (ND-OPERATION)SW-CONFIG, so that you
+       @CC have at least these 2 lines (assume proc. 1 is new form.)
+       @CC     SYSTEM-NAME : SIBAS
+       @CC        SIBAS-FILES=1-DOM-SIB-500
+
+       @CC 7) Stop SIBAS, process 1. When you restart it, it will
+       @CC execute in the new domain format.
+
+
+     Converting Applications Linked to the "Wrong Version" of Sibas
+
+If you have applications linked to version F of Sibas, and you are
+updating to a newer version of Sibas in the new domain format, you
+can nevertheless convert those applications if you have the mode
+files that created them:
+
+       @cc 1) Edit each Linkage-Loader mode file so that all
+       @cc LINK-SEGMENT's and FORCE-SEGMENT-LINK's to Sibas are
+       @cc removed. Run the mode file again.
+
+       @CC 2) Convert the incomplete domains you have made:
+       @CC Some incomplete domains may be on product diskettes:
+       @ND CONVERT $ MY-APPLICATION
+       @ND CONVERT $ (2:FLOPPY-USER)NOTIS-RG-D
+
+       @CC 3) Link the incomplete domains to Sibas
+       @ND LINKER
+       SET-ADVANCED
+       APPEND-DOMAIN MY-APPLICATION
+       LINK (SIB-500)SIB-LIB
+       % That will also automatically LINK to message segments
+       LIST-ENT UNDEFINED
+       CLOSE N N
+       APPEND-DOMAIN NOTIS-RG-D
+       LINK (SIB-500)SIB-LIB
+       LIST-ENT UNDEFINED
+       EXIT
+
+Some products without mode files can also be converted in a similar
+way. The product diskettes contain old domain format domains without
+links to Sibas. They are linked to Sibas at installation time, but
+by starting over again with the product diskettes, you can convert
+them before they are linked, and then LINK them to Sibas in the new
+domain format.
