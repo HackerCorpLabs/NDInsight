@@ -594,6 +594,40 @@ sampling the program counter around `Tick()`.
 to see the body run, `SC13` must be non-zero at 0o25573, which means setting up whatever 0o16554's
 subroutine reads. That is real mailbox state, not a harness trick.
 
+### G3 probe 12, 2026-07-31 - `0o16554` is `SCAN_ACCP`. Delivering an AOB word does NOT open the gate.
+
+**The writer is identified by an exact label match**, not by proximity: `MICRO-5800-B30.LABE` lists
+`SCAN_ACCP 016554*`. So the value 0o25573 branches on is **the ACCP scan result**, and the
+neighbouring labels (`SCAN_ACCP1` 0o16560, `SCAN_ACCP2` 0o16562, `SCAN_ACCP3` 0o16564) confirm the
+routine starts exactly there.
+
+That gives a clean hypothesis: our `StubAccpController` presents an idle ACCP, `SCAN_ACCP` writes
+`SC13 := 0`, and `OCB_CLNUP` returns because there is nothing to clean up.
+
+Tested by delivering an asynchronous word into AOB with ATRAP asserted - the shape of a forwarded
+octobus kick - and re-running:
+
+```
+accpDelivers  reachedBody  SC13@branch  N5STA
+       False        False     00000000  0002
+        True        False     00000000  0002
+```
+
+**Negative. `SC13` is still zero at the branch and the body is still not reached.** So delivering
+into AOB is not what `SCAN_ACCP` inspects. The hypothesis is NOT confirmed, and is recorded as such
+rather than being quietly upgraded because the label match looked convincing.
+
+**What this does and does not establish:**
+
+- **Established:** the gate value is produced by `SCAN_ACCP`, byte-verified by label.
+- **NOT established:** that ACCP activity of any kind flips it. One delivery shape was tried and it
+  did nothing.
+
+**Next:** `SCAN_ACCP` most likely tests `AFLAG` bits rather than AOB occupancy (AFLAG is the ACCP
+status register, and this file already carries "AFLAG bits 7/8 unknown" as an open item). Decode
+0o16554-0o16564 for which flag it reads, then drive that bit rather than guessing at delivery
+shapes. Test: `MailboxClrKickTests.OcbClnup_WithBusyAccp_ChecksWhetherScanAccpIsTheGate`.
+
 **Note on the harness:** this iteration was blocked for a while by an unrelated uncommitted edit to
 `src/CpuND5000.cs` (a `_aapProductForQ` field never assigned, CS0649-as-error). Not ours; left
 alone; it compiles again now.
