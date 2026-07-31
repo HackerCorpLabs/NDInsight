@@ -20,11 +20,14 @@
 --     length (the old README "Packet Length" label was wrong).
 --   • Every subtype-0x0E data frame carries the seed-model envelope:
 --       seed    = (Counter + Flags1 + (Flags2 & 0xFF)) & 0xFF   (per-link const)
---       baseLow = (seed − F2low) & 0xFF
+--       baseLow = seed − F2low            (SIGNED — must NOT be masked to 8 bits)
 --       epoch   = (Flags1 − baseLow + 0xFF) >> 8
 --       channel = 0xDE − (XMCSM >> 24) − epoch  == the Protocol-ID byte
 --       Flags2  == XMCSM >> 16
---     VERIFIED 753/753 data frames — mismatches get expert-info.
+--     VERIFIED 1449/1449 data frames, whole corpus, all links (2026-07-31).
+--     The earlier "753/753" figure was measured before the baseLow mask was
+--     removed and covered TAD/routing captures only — see the CORRECTED note
+--     at the envelope-validation site.
 --   • ACK (0x03) trailing byte: S_ack = (trailing + Flags1 + F2low) & 0xFF
 --     = link seed + 0x0B; ack channel = 0xDE − epoch(echoed Flags1).
 --   • Reachability trailing byte closed form: request = ((seed−0x0C) − F1adj),
@@ -1020,19 +1023,33 @@ local function dissect_dc(tvb, pinfo, tree, off, proto_label, ctx)
             "XMSSY/XMSPT echo originator address (stateless-RPC convention)")
     end
 
-    -- ── Envelope validation (spec §18.5 seed model, VERIFIED 753/753) ─────────
+    -- ── Envelope validation (spec §18.5 seed model) ──────────────────────────
     -- seed    = (Counter + Flags1 + F2low) & 0xFF   (per-link constant)
-    -- baseLow = (seed − F2low) & 0xFF
+    -- baseLow = seed − F2low                        (SIGNED — see below)
     -- epoch   = (Flags1 − baseLow + 0xFF) >> 8
     -- channel = 0xDE − (XMCSM >> 24) − epoch  == the header Protocol-ID byte
     -- Also: Flags2 == XMCSM >> 16 on every data frame.
     -- On a relayed hop (marker 0x12) the relay re-stamps Counter +1, so the
     -- derived seed reads seed+1 (the "relay lane") — the arithmetic still
     -- self-checks because seed is derived from the same frame.
+    --
+    -- CORRECTED 2026-07-31: baseLow must NOT be masked to 0..255. When
+    -- F2low > seed the true baseLow is NEGATIVE; masking turned it into a large
+    -- positive, which moved the 256-boundary in the epoch shift and lost a
+    -- borrow — the epoch came out one too low and the predicted channel one too
+    -- HIGH. That is invisible on TAD/routing traffic (5 distinct Flags2 values,
+    -- all <= seed) and fires constantly on file-server traffic (11-15 distinct
+    -- Flags2, many > seed), which is why the old "VERIFIED 753/753" held: it was
+    -- measured only on the family that cannot exercise the bug.
+    -- With the mask removed the model is exact on the WHOLE corpus:
+    -- 1449/1449 data frames across every capture and every link (seeds 0x11,
+    -- 0x13, 0x14 and the relayed +1 lanes), vs 1267/1449 masked.
+    -- See NDInsight SINTRAN/XMSG/DOC/
+    -- XMSG-CHANNEL-FORMULA-DIVERGES-ON-FILE-SERVER-TRAFFIC-2026-07-31.md.
     if ctx then
         local f2low   = band(ctx.flags2, 0xFF)
         local seed    = band(ctr1 + ctx.flags1 + f2low, 0xFF)
-        local baselow = band(seed - f2low, 0xFF)
+        local baselow = seed - f2low          -- signed on purpose; do NOT band()
         local epoch   = rshift(ctx.flags1 - baselow + 0xFF, 8)
         local class   = band(rshift(cmd_word, 24), 0xFF)
         local expchan = band(0xDE - class - epoch, 0xFF)

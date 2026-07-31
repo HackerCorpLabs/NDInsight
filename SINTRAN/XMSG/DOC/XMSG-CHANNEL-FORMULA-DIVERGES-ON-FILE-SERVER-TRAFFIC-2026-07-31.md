@@ -1,152 +1,136 @@
-# The envelope channel formula has a spurious Flags2 dependence
+# The channel formula's `baseLow` must not be masked — SOLVED
 
 **Date:** 2026-07-31
-**Status:** root cause identified and evidenced. A corrected formula is **not** yet derived.
+**Status:** root cause found, fix derived, validated on the whole corpus, dissector patched.
 
-Started from one odd frame in `XMSG-APPEND-REMOTE-BATCH-CAPTURED-2026-07-31.md`. It is not
-one odd frame, and it is not specific to that capture.
-
----
-
-## 1. The corpus scan: a clean split between two traffic families
-
-Ran the project dissector (`SINTRAN\Devices\HDLC\WireShark\hdlc_tcp.lua`, the copy already
-installed in the global Wireshark plugin folder) over **every** `.pcapng` in
-`E:\Dev\Ronny\X25Emulator\pcap\`, counting its own
-`Channel mismatch: Protocol ID 0xNN but seed model expects 0xMM` warning.
-
-| Family | Captures | Result |
-|---|---|---|
-| File-server / FA (2026-07-29 onward) | 17 | **all mismatch**, rates 2/1192 to 72/340 |
-| TAD / routing / connect (older) | 13 | **exactly zero**, ~1400 frames |
-
-Same two machines, same link, same seed. The split is by traffic family, not by date, size,
-direction or node pair.
-
-Full per-file table is in the git history of this file (commit that introduced it); the
-counts above are the summary that matters.
+Started from one odd frame in `XMSG-APPEND-REMOTE-BATCH-CAPTURED-2026-07-31.md`.
 
 ---
 
-## 2. Root cause: `baseLow` makes the channel depend on `Flags2`, and it must not
-
-The model under test:
+## 1. The fix
 
 ```
-baseLow   = (seed - (Flags2 & 0xFF)) & 0xFF
-epoch     = (Flags1 - baseLow + 0xFF) >> 8
-Channel   = 0xDE - (XMCSM >> 24) - epoch
+                 baseLow = (seed - F2low) & 0xFF        <- WRONG
+                 baseLow =  seed - F2low                <- correct (signed)
+
+                 epoch   = (Flags1 - baseLow + 0xFF) >> 8
+                 Channel = 0xDE - (XMCSM >> 24) - epoch
 ```
 
-Because `baseLow` is recomputed per frame from `Flags2`, the predicted `epoch` moves when
-the class word moves. **The real channel byte does not.**
+That is the entire change: **drop the `& 0xFF`.**
+
+When `F2low > seed` the true `baseLow` is **negative**. Masking it to 0..255 turns it into a
+large positive, which moves the 256-boundary inside the epoch shift and loses a borrow. The
+epoch then comes out one too low and the predicted channel one too **high** — which is
+exactly the shape of every mismatch observed (`0xDA` predicted where the wire said `0xD9`,
+`0xDD` where the wire said `0xDC`).
+
+### Validation over the whole corpus
+
+Every `.pcapng` in `E:\Dev\Ronny\X25Emulator\pcap\`, every link, seed learned per frame from
+the frame itself (so the 100-103 and 102-103 links and the relayed +1 lanes are all included
+rather than silently dropped):
+
+| Model | Data frames correct |
+|---|---|
+| masked `baseLow` (old) | 1267 / 1449 |
+| signed `baseLow` (fix) | **1449 / 1449** |
+
+Zero seed violations. Critically, the fix **breaks nothing**: every capture that previously
+passed still passes at 100%.
+
+---
+
+## 2. Why it hid for so long
+
+`Flags2` variety per capture:
+
+| Family | distinct `Flags2` | old-model result |
+|---|---:|---|
+| TAD / routing / connect | 5 | 0 mismatches |
+| File-server / FA | 11 - 15 | mismatches everywhere |
+
+TAD and routing traffic uses a handful of class words, and they are all **below the seed**,
+so `seed - F2low` never goes negative and the mask never bites. File-server traffic swings
+`Flags2` across a wide range on consecutive frames, many values above the seed, and the
+error fires immediately.
+
+So the old **"VERIFIED 753/753" was scope-limited, not false.** It was measured only on the
+family that cannot exercise the bug. This is worth remembering as a general trap: a
+conformance figure is only as good as the variety in the corpus it was measured on.
 
 The clearest single view, from `claude-file-stat-102-to-100-2026-07-29` — `Flags1` marching
-1 per frame, the actual channel pinned at `0xDC` throughout, and the prediction flipping
-purely on the size of `Flags2`:
++1 per frame, actual channel pinned at `0xDC`, prediction flipping purely on `Flags2`:
 
 ```
- Flags1  Flags2  base   ep  pred  act
- 0x017F  0x0008  0x0C    2  0xDC  0xDC   ok
- 0x0180  0x0062  0xB2    1  0xDD  0xDC   *** MISMATCH
- 0x0181  0x0008  0x0C    2  0xDC  0xDC   ok
- 0x0182  0x0046  0xCE    1  0xDD  0xDC   *** MISMATCH
- 0x0183  0x0008  0x0C    2  0xDC  0xDC   ok
- 0x0184  0x0028  0xEC    1  0xDD  0xDC   *** MISMATCH
+ Flags1  Flags2  base(masked)  ep  pred  act
+ 0x017F  0x0008     0x0C        2  0xDC  0xDC   ok      (F2low < seed)
+ 0x0180  0x0062     0xB2        1  0xDD  0xDC   WRONG   (F2low > seed -> mask bites)
+ 0x0181  0x0008     0x0C        2  0xDC  0xDC   ok
+ 0x0182  0x0046     0xCE        1  0xDD  0xDC   WRONG
 ```
 
-Small `Flags2` leaves `baseLow` small and the epoch lands on 2 (correct). Large `Flags2`
-pushes `baseLow` up, the subtraction crosses a 256 boundary, and the epoch drops to 1.
-Nothing about the wire changed.
-
-### The decisive test
-
-Read the TRUE epoch straight off the wire for every Data frame —
-`epoch_true = 0xDE - (XMCSM>>24) - actual_channel` — and ask whether any
-`(direction, Flags1)` pair ever shows two different epochs. `Flags1` is one sequence per
-direction per link, so direction has to be part of the key.
-
-| Capture | frames | (dir,Flags1) with >1 epoch | max distinct Flags2 inside ONE epoch group |
-|---|---:|---:|---:|
-| `claude-file-stat-...-07-29` | 28 | **0** | 11 |
-| `append-remote-batch-...-07-31` | 4 | **0** | 2 |
-| `claude-list-files-SESSION2-...-07-30` | 146 | **0** | 4 |
-| `claude-transfer-SPARSE-...-07-30` | 182 | **0** | 3 |
-| `conn-to-d102-from-100` (clean family) | 49 | **0** | 4 |
-
-**Zero conflicts anywhere**, while up to eleven different class words sit inside a single
-epoch group. The channel byte is determined by direction and `Flags1`; `Flags2` has no
-influence on it. The `Flags2` term in `baseLow` is spurious.
+With `baseLow` signed, rows 2 and 4 become `base = -0x4E` / `-0x32`, epoch 2, channel `0xDC`.
 
 ---
 
-## 3. Why the old corpus never caught this
+## 3. A wrong turn worth recording
 
-`Flags2` variety, measured across whole captures:
+An earlier version of this document claimed the `Flags2` dependence itself was **spurious**
+and that the channel depended on `Flags1` alone. **That was wrong**, and the reasoning that
+produced it was invalid.
 
-| Capture | distinct `Flags2` | mismatches |
-|---|---:|---:|
-| `conn-to-d102-from-100` | 5 | 0 |
-| `new-conn-to-102-from-100` | 5 | 0 |
-| `test1` | 5 | 0 |
-| `claude-list-files-SESSION2-...` | 11 | 72 |
-| `claude-file-stat-...` | 15 | 10 |
+The "decisive test" was: does any `(direction, Flags1)` pair map to two different epochs? It
+returned zero conflicts everywhere, which looked like strong evidence. It was **vacuous** —
+`Flags1` increments by exactly 1 per data frame per direction, so a `(direction, Flags1)`
+pair identifies exactly **one frame**. Single-valuedness was guaranteed by construction and
+carried no information at all.
 
-TAD and routing traffic barely varies the class word, so `baseLow` stays effectively
-constant and the spurious term never bites. File-server traffic swings `Flags2` across a
-wide range on consecutive frames, and the error surfaces immediately.
+What actually broke it open was dumping frames in **arrival order** for one direction and
+doing the arithmetic by hand, which immediately showed the mismatches all had the same
+signature (predicted exactly one too high) and that the signature tracked `F2low > seed`.
 
-So the skill's "VERIFIED 753/753" is not false — it is **scope-limited**. It was measured on
-the family that cannot exercise the bug.
-
----
-
-## 4. What a fix must do — and why I am not proposing one yet
-
-Removing the `Flags2` dependence and using the link seed as the fixed reference
-(`epoch_alt = (Flags1 - seed + 0xFF) >> 8`) does well but is not right:
-
-| Capture | `epoch_alt` matches |
-|---|---|
-| `claude-file-stat-...` | 28/28 |
-| `claude-transfer-SPARSE-...` | 182/182 |
-| `conn-to-d102-from-100` | 46/49 |
-| `claude-list-files-SESSION2-...` | 101/146 |
-| `append-remote-batch-...` | 0/4 |
-
-So the seed is not the correct fixed reference in general. `append-remote-batch` sits
-entirely at `epoch_true = 5` where the seed reference says 4 — a whole-capture offset,
-consistent with `epoch` being a **cumulative count over the life of the link** that a
-capture starting mid-stream cannot reconstruct from `Flags1` alone.
-
-**One anomaly I cannot explain and did not chase:** in
-`claude-list-files-SESSION2`, within a single direction, the `Flags1` ranges of the two
-epoch groups OVERLAP (dir 45164: epoch 3 spans `0x02F0..0x030C`, epoch 4 spans
-`0x02F1..0x0338`) even though no individual `Flags1` maps to both. A plain cumulative
-counter cannot do that. Either `Flags1` is not monotonic there, or
-`Channel = 0xDE - (XMCSM>>24) - epoch` is missing a term, in which case `epoch_true` as
-computed above is absorbing it. **Resolve this before writing any replacement formula.**
+Lesson: a test that cannot fail is not evidence. Check that a proposed invariant has a way
+of being violated before believing a clean result.
 
 ---
 
-## 5. Practical guidance right now
+## 4. What changed in the repo
 
-- The mismatching frames are **well formed**. The seed identity
-  `(Counter + Flags1low + Flags2low) & 0xFF == seed` holds on every one of them
-  (0 violations across all frames scanned). Every decode we have done on file-server
-  captures stands; only the predicted channel byte was wrong.
-- Do **not** change `hdlc_tcp.lua` yet. Its warning is correctly telling us the model is
-  wrong, and it is currently our only detector.
-- Do **not** fit a formula to one capture. Any candidate must keep the ~1400-frame TAD
-  corpus at zero AND explain the overlap in section 4.
+`SINTRAN\Devices\HDLC\WireShark\hdlc_tcp.lua` — the mask removed at the envelope-validation
+site, with the reasoning recorded inline, and the file-header summary corrected from
+753/753 to 1449/1449.
 
-## 6. Tooling
+**The installed copy has NOT been updated.** The dissector Wireshark actually loads lives at
+`C:\Program Files\Wireshark\plugins\hdlc_tcp.lua`, which needs administrator rights to
+replace. Copy the repo file over it and then Analyze -> Reload Lua Plugins (Ctrl+Shift+L).
 
-Two throwaway scanners were used and are worth rebuilding if this is picked up again
-(they live in the session scratchpad, not in the repo):
+I verified the edited file **compiles** (tshark loads it and reaches the `Proto` call) and I
+verified the **arithmetic** independently at 1449/1449 with a standalone scanner. I have
+**not** run the patched dissector end to end, because that requires replacing the
+admin-owned installed copy.
 
-- `chanscan.py` — per-frame dump of `(Flags1, Flags2, Counter, XMCSM>>24, baseLow, epoch,
-  predicted, actual)` with a verdict column. Does its own TCP reassembly per direction,
-  HDLC de-framing, un-stuffing and FCS check rather than trusting per-packet splits.
-- `epochtest.py` — reads `epoch_true` off the wire and tests whether `(direction, Flags1)`
-  determines it, plus the seed-referenced variant.
+---
+
+## 5. Knock-on
+
+**Fixed:**
+
+- `Xmsg.Protocol\Packet\XmsgEnvelope.cs` — `BaseLow` returned `byte`, so the truncation hit
+  both consumers. Added `BaseLowSigned` and pointed `ComputeEpoch` at it; `BaseLow` now
+  delegates to it and keeps the byte truncation, which is correct for its only other
+  consumer (`ComputeCounter` is a byte and is exact modulo 256 either way). Whole XMSG
+  solution builds clean and **all 459 tests pass**, including the envelope tests that encode
+  captured frames — so the fix does not disturb any previously-verified case.
+- `hdlc_tcp.lua` — mask removed, reasoning recorded inline (repo copy only; see section 4).
+- `xmsg-decode` skill — envelope block corrected to the signed form and 1449/1449.
+
+**Still to do:**
+
+- `XMSG-PROTOCOL.md` section 18.5 carries the same formula and has NOT been updated.
+- The ACK closed form (`S_ack = seed + 0x0B`, `channel = 0xDE - epoch(echoed Flags1)`) uses
+  the same epoch machinery. In C# it now picks up the fix automatically, but I have not
+  re-validated the ACK scan against the corpus — the original claim there was 904/904 and it
+  was measured on the same TAD-only corpus, so it deserves the same scrutiny.
+- The channel anomaly in `XMSG-APPEND-REMOTE-BATCH-CAPTURED-2026-07-31.md` section 6 is
+  explained by this and is no longer open.

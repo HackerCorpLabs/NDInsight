@@ -84,7 +84,44 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// </returns>
         public static byte BaseLow(byte seed, ushort flags2)
         {
-            return (byte)(seed - (flags2 & 0xFF));
+            // Truncation to a byte is correct HERE because the only consumer of this form is
+            // the Counter, which is itself a byte and so is exact modulo 256 either way.
+            return (byte)BaseLowSigned(seed, flags2);
+        }
+
+        /// <summary>
+        /// The base low value WITHOUT truncation to a byte, for the epoch calculation.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// When the low byte of <paramref name="flags2"/> exceeds <paramref name="seed"/> this is
+        /// NEGATIVE, and it has to stay negative. <see cref="ComputeEpoch"/> divides
+        /// <c>Flags1 - baseLow</c> by 256, so truncating a negative base into 0..255 moves the
+        /// boundary and loses a borrow: the epoch comes out one too low and the derived channel
+        /// one too high.
+        /// </para>
+        /// <para>
+        /// CORRECTED 2026-07-31. The masked form was verified only against TAD and routing
+        /// captures, where every observed Flags 2 low byte is at or below the seed, so the case
+        /// never arose. File-server traffic carries 11-15 distinct class words per session, many
+        /// above the seed, and mismatched constantly. With the truncation removed the model is
+        /// exact on the whole capture corpus - 1449/1449 data frames across every capture and
+        /// every link - against 1267/1449 with it.
+        /// See <c>SINTRAN/XMSG/DOC/XMSG-CHANNEL-FORMULA-DIVERGES-ON-FILE-SERVER-TRAFFIC-2026-07-31.md</c>.
+        /// </para>
+        /// </remarks>
+        /// <param name="seed">
+        /// The link seed.
+        /// </param>
+        /// <param name="flags2">
+        /// The frame's Flags 2.
+        /// </param>
+        /// <returns>
+        /// The signed base low value; negative when the Flags 2 low byte exceeds the seed.
+        /// </returns>
+        public static int BaseLowSigned(byte seed, ushort flags2)
+        {
+            return seed - (flags2 & 0xFF);
         }
 
         /// <summary>
@@ -126,7 +163,8 @@ namespace NDInsight.Sintran.Xmsg.Packet
         public static int ComputeEpoch(byte seed, ushort flags1, ushort flags2)
         {
             // int arithmetic; the +0xFF keeps small (Flags1 - baseLow) negatives at epoch 0.
-            return (flags1 - BaseLow(seed, flags2) + 0xFF) >> 8;
+            // Uses the SIGNED base - see BaseLowSigned for why truncating here is a defect.
+            return (flags1 - BaseLowSigned(seed, flags2) + 0xFF) >> 8;
         }
 
         /// <summary>
