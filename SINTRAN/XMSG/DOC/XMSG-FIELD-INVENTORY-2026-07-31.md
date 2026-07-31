@@ -135,11 +135,35 @@ which is not checksum-like. Under the carve those constants are the SIZE arm car
 - the message **buffer** size, fixed per message class - not the body length. The
 `XMCSM & 0x1FF == bodyLen` frames are the ones where the buffer size happens to equal the body.
 
-**STILL UNKNOWN - which flag bit.** The discriminator is the pair of `BSKP ONE 110 DA` /
-`BSKP ONE 120 DA` tests at `134016`/`134021`, on a value fetched by `LDATX`. The *location* of
-the decision is now carved; the *identity* of the bits is not. `XMSTA` was tested as a
-candidate earlier and rejected on the wire (`XMSTA=0x8684` appears in both arms), consistent
-with the flag living elsewhere.
+**The discriminator: BOTH bit 9 AND bit 10 must be set to get a checksum.**
+
+`nd100-dis` prints the `BSKP` bit field as `bit<<3`, so `110` octal is bit **9** and `120` is
+bit **10** (divide the printed octal by 8 - established by sweeping the field 0..15 through the
+decoder). And `BSKP` skips the NEXT instruction when the condition holds, so the branch sense
+is the opposite of how it first reads:
+
+```
+134016  BSKP ONE 110 DA   ; skip next if bit 9 SET
+134017  JMP -> 134034     ;   taken when bit 9 CLEAR  -> keep the SIZE
+134021  BSKP ONE 120 DA   ; skip next if bit 10 SET
+134022  JMP -> 134034     ;   taken when bit 10 CLEAR -> keep the SIZE
+134024  ...               ; both SET -> compute the CHECKSUM
+```
+
+So the checksum is the narrow case: it is computed only when both flags are set, and the size
+is the default. That fits the corpus, where 731 of 1449 frames carry a fixed `XMSIZ` constant.
+
+**STILL UNKNOWN - what the bits belong to.** `A` at that point comes from `LDATX` (an indexed
+memory read), NOT from `XMSTA` - the code loads `XMSTA` separately at `134024`. So the flags
+live in whatever table `T`/`X` address. Tracing back, `X` is loaded from `,B 105` at `133757`;
+the base still needs pinning down. Bits 9 and 10 of the `XF*` option word would be `XFSEC`
+(secure) and `XFROU` (routed), which is a plausible fit but is **INFERENCE until the LDATX base
+is identified** - do not record it as fact.
+
+**Bonus: this routine is the transported-header builder.** At `133727`, `LDA 125` reads
+P-relative from `134054` - a genuine literal holding `020400` = the `0x2100` marker - and
+`133730` stores it to `XMTHD`. That is the entry point for anything else about the transported
+header.
 
 This matters well beyond documentation: `XmsgEnvelope.BaseLowSigned` subtracts this field's low
 byte, so on size-arm frames the envelope arithmetic is subtracting **a byte count**.
@@ -181,9 +205,13 @@ Target: what writes SINTRAN header offset 12. Findings so far:
   layer - SINTRAN's own network/HDLC driver - and offset 12 is not reachable from the XMSG
   product binaries at all. **That relocates the whole question**: it must be carved from the
   SINTRAN kernel, not from XMSG.
-- **Do not scan for constants in this architecture.** `020400` (the `X5THD` marker) is also
-  the encoding of `STD 0,B`, so a value scan returns ordinary instructions. Six "hits" in the
-  kernel were all code. Navigate by symbol.
+- **A constant scan is NOISY - verify each hit.** `020400` (the `X5THD` marker) is also the
+  encoding of `STD 0,B`. Of six hits in the kernel, three were ordinary instructions and
+  `134054` was the **genuine literal** - loaded P-relative by `LDA 125` at `133727` and stored
+  to `XMTHD`, which is what identified the transported-header builder. An earlier revision of
+  this document said all six were code; that was a generalisation from checking three.
+  Confirm each hit by finding the instruction that references it, and prefer navigating by
+  symbol.
 - Useful symbols located in the kernel image: `XSDGM` 137601 (send datagram), `XSCTR` 137562,
   `XSACK` 140076, `XSFOR` 137560, `ZDCHN` 122204.
 
