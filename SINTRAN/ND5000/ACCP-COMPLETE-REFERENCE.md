@@ -1279,6 +1279,16 @@ re-opens them.**
   **`0x001143B6` is a SECOND, different flag** - set at 0x650A and cleared at 0x6538, inside
   0x5D00-0x6882, by a routine that is not one of the 43 command handlers. Owner still unknown;
   do not treat the two flags as interchangeable.
+
+  > **USE THIS FIRST on any octobus protocol question** (RetroCore side, 2026-07-31).
+  > `TRACE-COMMUNICATION-DATA YES` sets `0x001143B4` (the `move.w` at `0x9D84`) and **eleven sites
+  > read it, covering BOTH directions**: receive at `0x1095A` / `0x10A3A`, transmit at
+  > `OctoTxTracePrint_fromACCP_A` `0x11078` and `_B` `0x110C0`. With it on, the card **narrates its
+  > own octobus frames to the console**. That is the cheapest possible first move on a protocol
+  > question - it turns a static-analysis argument into a reading.
+  >
+  > Note this flag is **only reachable from the CONSOLE**, not over CMD 3: sending `0x3C` over the
+  > octobus replies `FF 01` and leaves the flag untouched (see the shared-enum refutation).
 - **0x5D00-0x6882 is NOT the command-handler region.** The dispatch map (see
   part 3 of this file) puts every handler at 0x333A, 0x353E,
   0x3A12, 0x400A, 0x4076, or in 0x7EAE-0xADE0. Nothing dispatches into 0x5D00-0x6882, so
@@ -1569,8 +1579,25 @@ Absent: 04, 05, 08, 0B, 0D-1E, 43, 44, 45.
 
 The holes are real. This looks like a **global ND command-code enum** that the console
 shares with something else - most likely the ACCP-ND100 command set, given the string
-`"Illegal ACCP command received from microprogram:"`. **UNVERIFIED** - the holes have not
-been traced to a second consumer.
+`"Illegal ACCP command received from microprogram:"`. ~~**UNVERIFIED** - the holes have not
+been traced to a second consumer.~~
+
+> **REFUTED for the octobus path, 2026-07-31** (RetroCore side, verified by EXECUTING the
+> firmware against a peer, not by reading it).
+>
+> There is **no shared enum**. The ACCP's **CMD-3 (octobus) command dispatcher is a separate
+> compare chain** - head `0x4D50`, following each `bne` target, default arm `0x6746` - carrying
+> **46 commands** in three contiguous runs: **`0x0D-0x18`, `0x1B-0x2D`, `0x30-0x3E`**.
+>
+> That set covers the console table's largest hole (`0x0D-0x1E`), which makes a shared enum look
+> plausible - and that is exactly the trap. **Decisive probe:** console `0x3C` is
+> TRACE-COMMUNICATION-DATA, whose only observable effect is the flag at `0x001143B4`. Sent over
+> CMD 3 to a booted card it replies `FF 01` - a *defined* command returning error code 01, not the
+> undefined-command complaint - **and the trace flag does not move**. **Confirming case:** console
+> `0x3E` is TEST-BUFFERS, but CMD-3 `0x3E` returns the packed CPU model.
+>
+> **Two different enums that overlap numerically.** The console-table holes remain unexplained -
+> the second consumer is still not identified, it is simply *not* the octobus command set.
 
 ---
 
@@ -1961,6 +1988,40 @@ packedByte = (cpuType << 4) | bareDigit
 
 The ACCP firmware computes `model = 0x5000 | (bareDigit << 8)`. **Feeding the packed `0x38`
 through that gives `0x7800`, which is not a model and is refused by the class check.**
+
+> **THE CARD ITSELF CONVERTS BETWEEN THE TWO ENCODINGS - CMD-3 command `0x3E`.**
+> Added 2026-07-31 (RetroCore side, verified by execution against a peer).
+>
+> Handler at **`0x66BE`** (the fall-through of the `0x3E` arm at `0x66B6`) builds:
+>
+> ```
+> packedByte = (class << 4) | ((identityWord >> 8) & 0x0F)
+> ```
+>
+> from the **class byte at `0x001131F6`** and the **identity word at `0x001131F8`**. Confirmed by
+> running it: with a peer answering model digit **9**, the card replies content **`00 39`** -
+> class 3 + digit 9 = ND-5900 - which is **exactly the packed WRSYSINFO byte**.
+>
+> **So the bare-digit form (MFbus discovery reply) and the packed form (SINTRAN / WRSYSINFO) are
+> NOT rival conventions needing a decision.** `0x3E` is the converter, and it lives on the card.
+> Anything that needs the packed byte should ask the card for it rather than composing one.
+>
+> This also independently corroborates the byte-vs-word warning below: the class at `0x001131F6`
+> is a **BYTE** (`move.b` at `0x66EE`), so a word read yields `0x0300` for class 3.
+
+#### CMD-3 reply convention [V, decoded from the peer side 2026-07-31]
+
+Byte 0 is a status byte, byte 1 an error code, and error replies carry a constant `10 11` trailer:
+
+| Command | Reply | Meaning |
+|---|---|---|
+| `0x3E` | `00 39` | OK, packed CPU model (class 3, digit 9) |
+| `0x30` | `00 07 7F` | OK, the `0x077F` selftest status |
+| `0x1F` | `FF 07 10 11` | error 07 |
+| undefined | `FF 06 10 11` | error 06 = undefined command |
+
+**`FF 01` therefore means a DEFINED command that returned error 01** - not "unknown command". That
+distinction is what made the shared-enum refutation above decisive.
 
 > **The ASCII collision is systematic, not a coincidence.** CPU type 3 puts `0b11` in exactly the
 > bit positions where ASCII's `0x30` marker sits, so **every type-3 model reads as a plausible
