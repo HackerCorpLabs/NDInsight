@@ -63,7 +63,29 @@ Entries live in bitmap-allocated slots (`fa_bitmap_find_free_slot` 26d9 / `fa_bi
 
 ### 2.3 The wire body: QFORM typed-parameter list `[BIN]`
 
-Both request and reply bodies are a list of **typed parameters** `[tag][value]` (same model as `cos-xftra`/`cos-file-tra`):
+Both request and reply bodies are a list of **typed parameters** `[tag][value]`:
+
+> **CORRECTION 2026-07-31 — this is NOT the same tag model as `cos-xftra`, and the two COLLIDE.**
+> An earlier revision of this line said "same model as `cos-xftra`/`cos-file-tra`". They are two
+> different encodings living at two different layers:
+>
+> | Layer | Tag rule | Examples |
+> |---|---|---|
+> | XROUT letter (the `*XFTRA` / `*FA-SERVER` opening letter, port 0) | integer param `n` → tag `n`; **string** param `n` → tag `256 - n` | `FF`=1, `FE`=2, `F8`=8, `F7`=9, `F4`=12, `F0`=16; `0x0A`=10, `0x0B`=11, `0x0D`=13 |
+> | FA server QFORM body (this binary) | `(class << 4) \| length_in_bytes` | `0x92` word, `0x94` dword, `0xA2`, `0xF2` |
+>
+> The XROUT rule is verified byte-for-byte against captured letters - see
+> `XMSG-XFTRA-FILE-TRANSFER-REQUEST-CAPTURED-2026-07-28.md` and the
+> `APPEND-REMOTE-BATCH` decode in `XMSG-APPEND-REMOTE-BATCH-CAPTURED-2026-07-31.md`, where
+> `FF 06 2A 58 46 54 52 41` is parameter 1 = `*XFTRA` and `F0 0B ...` is parameter 16.
+>
+> **They are ambiguous on the same byte.** `0xF2` is a class-F 2-byte value under the FA rule
+> and string-parameter-14 under the XROUT rule; `0xF4` is likewise class-F 4-byte versus
+> string-parameter-12. A parser MUST know which layer it is decoding - the opening letter to
+> port 0 uses the XROUT rule, the FA request/reply body uses the QFORM rule. Do not build one
+> decoder for both.
+
+Tags in this binary:
 - **Parse (request):** `fa_parse_request_params` (29c0) → per-field `fa_process_params_dispatch` (35da, table `g_fa_param_dispatch_table` 9039) / `_v2` (3b34, table 9044). Tags: `0x01`, `0x10`, `0x80`=STRING.
 - **Emit (reply):** the emitter primitives write a **1-byte tag then the value**. The tag bytes are
   read directly from each emitter's tag word `[BIN-VERIFIED]`:
