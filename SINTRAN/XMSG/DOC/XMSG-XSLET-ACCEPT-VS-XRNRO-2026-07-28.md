@@ -53,6 +53,25 @@ stated in
 [XMSG-SERVER-NAMES-AND-LETTERS.md](XMSG-SERVER-NAMES-AND-LETTERS.md): XROUT never hands the client
 another task's magic number; the server discloses its own by answering.
 
+> ## The fresh-accept rule is a HARD REQUIREMENT, not a convention [2026-07-31]
+>
+> Independent corroboration from the RetroCore side, working the ND Ethernet II HLE card
+> (`XMSG-RETROCORE-ENNS0-MBOXH-CONTRIBUTION-2026-07-31.md`):
+>
+> **Answering with `XFRTN` (returning the received message) CRASHES the ND-100 XMSG kernel** -
+> `XMSG error code 23B`, `XMFIDO ABORTS`, internal inconsistency. The cause is that a receive can
+> hand back an XMSG-**internal pool block**, and returning it corrupts the pool.
+>
+> So a server must `XFGET` / `XFWRI` / `XFSND` (or `XFSMC`) a **fresh** letter addressed to the
+> requester's magic. Never `XFRTN` the one it received. What this document described as the
+> observed convention now has a concrete failure mode behind it: getting it wrong does not
+> produce a malformed reply, it takes the peer's XMSG down.
+>
+> The same source confirms the accept body `01 02 0000  02 02 000A` on a **different server** -
+> `*XM-ENNS0`, the COSMOS Ethernet network server, during `DEFINE-NETWORK-CONNECTION`. So the
+> accept shape is the **generic XSLET connection accept**, not something specific to `*TADADM`
+> or the file servers, which is a wider claim than this document could make from its own captures.
+
 That last point is the one that changes how a responder must be built. **The refusal we have been
 capturing all week never crossed a wire** - our own local XROUT generated it and handed it straight
 back through MON 200. A pcap of a healthy link would not contain one.
