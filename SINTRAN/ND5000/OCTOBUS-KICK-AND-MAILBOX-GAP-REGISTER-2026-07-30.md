@@ -504,6 +504,15 @@ Two readings, and this probe does NOT choose:
 **Next:** read `CpuND5000.Tick()` for writes to `Wrf` outside `WriteDest`, and for any deferred
 write pipeline that could commit a cycle late. That distinguishes (a) from (b) directly.
 
+### G3 probe 10 - RETRACTED IN FULL by probe 11. There is NO emulator anomaly.
+
+> **DO NOT ACT ON THE SECTION BELOW.** Its conclusion - "a register no code path should write is
+> being written" - was **my own measurement error**, not a defect. `State.Mpc` is updated BEFORE a
+> word executes, so the address my probe logged was the NEXT word, not the writer. The real writer
+> is **CS 0o16554**, a word carrying a perfectly legitimate `DEST = SC13`. Kept visible with this
+> banner because "suspected emulator defect" is exactly the kind of claim that gets re-adopted if it
+> is quietly deleted. Full correction in probe 11 below.
+
 ### G3 probe 10, 2026-07-31 - reading (b) is RULED OUT. This is an emulator anomaly. [OPEN]
 
 **The decode is not in dispute.** The emulator's own `Microword` agrees with the hand-decode of the
@@ -546,6 +555,44 @@ touched. This is the first thing to do once that file is free.
 4/5/6 can never requeue in-flight work, and G3 cannot be closed by observation at all until this is
 fixed. It would also affect any microword that reads a scratch register written this way - which is
 far wider than this routine.
+
+### G3 probe 11, 2026-07-31 - the "anomaly" was MY BUG. Retracting probe 10.
+
+Put a write barrier inside the CPU (temporary, since reverted - `src` is untouched) reporting the CS
+address whenever a word writes `Wrf[22]`:
+
+```
+[SC13-BARRIER] CS 16554 writes SC13 := 00000000
+```
+
+**The writer is CS 0o16554, and its `DEST` field really is `SC13` (0o26).** Nothing improper
+happened. There is no unexplained write, no defect, and nothing to fix in the emulator.
+
+**The error was mine, and it is worth naming precisely.** My probe logged `State.Mpc` before calling
+`Tick()` and labelled it "the word that wrote". But **`State.Mpc` is updated BEFORE the word
+executes**, so that address is the NEXT word, not the executing one. Every "CS X WROTE SC13" line in
+probes 9 and 10 is off by one word - which is how a routine word (0o25571, `D,NONE`) got blamed for
+a write made elsewhere, and how that turned into a reported "emulator anomaly".
+
+**Three consequences:**
+
+1. **Probe 10 is retracted in full** (banner added above; text kept so the wrong claim is not
+   re-adopted). The `COND_ALU` suspicion of probe 8 was already withdrawn in probe 9. **Two
+   suspected emulator defects were raised this session and BOTH were my own measurement errors.**
+2. **The G3 mechanism is now plain and involves no defect:** `SC13` is computed by the subroutine
+   chain called from 0o25562, last written at **0o16554** with the value **0**, and 0o25573 then
+   branches on that zero straight to the return. `OCB_CLNUP` declines because the state it is asked
+   about genuinely says "nothing to clean up".
+3. **The test's log wording is fixed** so it can never mislabel again - it now prints "Mpc now X =
+   NEXT word, NOT the writer" and carries a comment explaining what the false report cost.
+
+**Method lesson, recorded because it burned three probes:** in this emulator, do not read
+`State.Mpc` as "the instruction that just ran". Attribute writes with an in-CPU barrier, not by
+sampling the program counter around `Tick()`.
+
+**G3 status:** the exit is fully explained and correct. What remains is unchanged and unblocked -
+to see the body run, `SC13` must be non-zero at 0o25573, which means setting up whatever 0o16554's
+subroutine reads. That is real mailbox state, not a harness trick.
 
 **Note on the harness:** this iteration was blocked for a while by an unrelated uncommitted edit to
 `src/CpuND5000.cs` (a `_aapProductForQ` field never assigned, CS0649-as-error). Not ours; left
