@@ -99,9 +99,21 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// </returns>
         public static XmsgPacket CreateSessionData(XmsgDataFields fields)
         {
-            // Derive the channel from the universal envelope identity (VERIFIED against the
-            // conn-to-d102 responder frames); override whatever ProtocolId the caller left set.
-            fields.ProtocolId = XmsgEnvelope.DeriveChannel(fields.Flags1, fields.Counter, fields.ControlService);
+            // Word 6 of the SINTRAN header is a ones-complement checksum over the other six words,
+            // carved from the XMSG kernel at 137314 and verified on 3595/3595 captured frames. Its
+            // HIGH byte is what we have historically called the Protocol ID / channel and its LOW
+            // byte is what we have called the Counter, so BOTH are outputs here - neither is a
+            // free choice. See XmsgEnvelope.ComputeHeaderChecksum.
+            ushort checksum = XmsgEnvelope.ComputeHeaderChecksum(
+                (ushort)((SintranHeader.Marker1Value << 8) | SintranHeader.Marker2Normal),
+                (ushort)SintranPacketSubtype.Data,          // packet type 0x00 in the high byte
+                fields.DestinationNode,
+                fields.SourceNode,
+                fields.Flags1,
+                fields.Flags2);
+
+            fields.ProtocolId = (SintranProtocolId)(byte)(checksum >> 8);
+            fields.Counter = (byte)(checksum & 0xFF);
             return CreateData(fields);
         }
 

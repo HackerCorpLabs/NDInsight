@@ -7,6 +7,28 @@ namespace NDInsight.Sintran.Xmsg.Packet
     /// Channel / Protocol ID) is derived arithmetically.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// <b>SUPERSEDED 2026-07-31 - use <see cref="ComputeHeaderChecksum"/>.</b> Everything below this
+    /// notice describes a model that was FITTED to observations and is now known to be the wrong
+    /// explanation. The SINTRAN header is SEVEN WORDS and word 6 is a ones-complement checksum over
+    /// the other six - <c>w6 == ~ones_complement_sum(w0..w5, 0)</c> - carved from the kernel at
+    /// <c>137314</c> and verified on 3595 of 3595 frames, every subtype, no special cases. The wire
+    /// bytes at offsets 12 and 13 are that checksum's high and low halves; there is no channel, no
+    /// epoch and no per-link seed. Doc:
+    /// <c>SINTRAN/XMSG/DOC/XMSG-HEADER-WORD6-IS-A-CHECKSUM-2026-07-31.md</c>.
+    /// </para>
+    /// <para>
+    /// The old model survived because the checksum is a deterministic function of the same header
+    /// fields it used as inputs. Its "per-link seed" was the contribution of the fields nobody
+    /// varied; its "epoch" was carry propagation out of the low byte; the masked-versus-signed
+    /// <c>baseLow</c> question was that same carry seen as a borrow; and a peer crashes on a "wrong
+    /// channel" simply because a bad word 6 is a corrupt header checksum.
+    /// </para>
+    /// <para>
+    /// The members below are kept so existing call sites compile. They reproduce the wire on the
+    /// traffic they were fitted to and NOT in general. Prefer the checksum for anything new.
+    /// </para>
+    /// <para><b>HISTORICAL, from here down.</b></para>
     /// <para><b>The rule (VERIFIED against all 601 captured Data frames + 602 ACKs, zero exceptions —
     /// see <c>SINTRAN/XMSG/DOC/XMSG-CHANNEL-SEQUENCE-ANALYSIS-2026-07-03.md</c>):</b></para>
     /// <code>
@@ -46,7 +68,125 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// <summary>
         /// The constant the channel derivation subtracts from (the top of the Protocol-ID range).
         /// </summary>
+        /// <remarks>
+        /// SUPERSEDED - see <see cref="ComputeHeaderChecksum"/>. There is no "channel range" and
+        /// nothing anchors at <c>0xDE</c>; that value is simply the most common high byte of the
+        /// header checksum for typical headers. Kept only so existing call sites still compile.
+        /// </remarks>
         public const byte ChannelAnchor = 0xDE;
+
+        /// <summary>
+        /// Computes the SINTRAN header checksum - the REAL definition of what the wire carries at
+        /// offsets 12 and 13.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// CARVED 2026-07-31 from the XMSG kernel routine at <c>137314</c>, reached from
+        /// <c>XSDGM</c> through the pointer at <c>137744</c>, whose result the caller stores at
+        /// <c>137675 STA ,X 32</c> - header word 6 itself:
+        /// </para>
+        /// <code>
+        /// T := X + 0o32                  ; limit
+        /// A := 0                         ; accumulator
+        /// X += 0o24                      ; start   -> 0o24..0o32 is SEVEN words, the header
+        /// while X &lt;= T:
+        ///     A += mem[X]                ; ADD
+        ///     A += carry                 ; RADD ADC  -> END-AROUND CARRY
+        ///     X += 1
+        /// if A != 0: A := ~A             ; ones complement
+        /// </code>
+        /// <para>
+        /// The SINTRAN header is SEVEN WORDS, and word 6 is this checksum over the other six with
+        /// the checksum field itself counted as zero. On the wire that word reads as two bytes:
+        /// offset 12 (long mislabelled "Protocol ID" or "channel") is the HIGH byte, and offset 13
+        /// (long mislabelled "Counter") is the LOW byte. <b>There is no channel, no epoch and no
+        /// per-link seed</b> - those were artifacts of curve-fitting an expression to checksum
+        /// arithmetic.
+        /// </para>
+        /// <para>
+        /// Verified on <b>3595 of 3595</b> frames across the whole capture corpus - every subtype
+        /// (Ack 1671, Data 1449, transfer <c>0x0A</c> 226 and <c>0x0C</c> 226, ReachRequest 10,
+        /// ReachReply 6, NetworkError 3, and the <c>0xFD</c>/<c>0xFE</c> family 4), both
+        /// directions, every link, with no per-subtype special cases. The model this replaces
+        /// needed one formula for Data frames, a separate closed form for ACKs, and had nothing to
+        /// say about the remaining 475.
+        /// </para>
+        /// <para>
+        /// Doc: <c>SINTRAN/XMSG/DOC/XMSG-HEADER-WORD6-IS-A-CHECKSUM-2026-07-31.md</c>.
+        /// </para>
+        /// </remarks>
+        /// <param name="markers">
+        /// Word 0 - Marker 1 in the high byte, Marker 2 in the low byte (normally <c>0x2113</c>).
+        /// </param>
+        /// <param name="typeAndSubtype">
+        /// Word 1 - the packet type in the high byte, the subtype in the low byte.
+        /// </param>
+        /// <param name="destinationNode">
+        /// Word 2 - the destination node number.
+        /// </param>
+        /// <param name="sourceNode">
+        /// Word 3 - the source node number.
+        /// </param>
+        /// <param name="flags1">
+        /// Word 4 - the datagram sequence (XMSEQ).
+        /// </param>
+        /// <param name="flags2">
+        /// Word 5 - equal to the 16-bit XMCSM.
+        /// </param>
+        /// <returns>
+        /// Header word 6: the checksum high byte is the wire's offset-12 byte, its low byte is the
+        /// wire's offset-13 byte.
+        /// </returns>
+        public static ushort ComputeHeaderChecksum(
+            ushort markers,
+            ushort typeAndSubtype,
+            ushort destinationNode,
+            ushort sourceNode,
+            ushort flags1,
+            ushort flags2)
+        {
+            // Ones-complement sum with end-around carry, exactly as the kernel loop does it. The
+            // checksum word itself contributes zero, so it is simply not added here.
+            int sum = 0;
+            sum = AddOnesComplement(sum, markers);
+            sum = AddOnesComplement(sum, typeAndSubtype);
+            sum = AddOnesComplement(sum, destinationNode);
+            sum = AddOnesComplement(sum, sourceNode);
+            sum = AddOnesComplement(sum, flags1);
+            sum = AddOnesComplement(sum, flags2);
+
+            // The kernel skips the complement when the sum is zero (JAZ over the RADD CM1). No
+            // frame in the corpus hits that case, but mirror the code rather than the corpus.
+            if (sum == 0)
+            {
+                return 0;
+            }
+
+            return (ushort)(~sum & 0xFFFF);
+        }
+
+        /// <summary>
+        /// Adds one word into a ones-complement accumulator, folding the carry back in.
+        /// </summary>
+        /// <param name="accumulator">
+        /// The running 16-bit accumulator.
+        /// </param>
+        /// <param name="word">
+        /// The word to add.
+        /// </param>
+        /// <returns>
+        /// The updated 16-bit accumulator.
+        /// </returns>
+        private static int AddOnesComplement(int accumulator, ushort word)
+        {
+            int sum = accumulator + word;
+            if (sum > 0xFFFF)
+            {
+                sum = (sum & 0xFFFF) + 1;      // end-around carry (RADD ADC in the kernel)
+            }
+
+            return sum;
+        }
 
         /// <summary>
         /// Learns the per-link seed byte from a received frame:
