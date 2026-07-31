@@ -923,6 +923,40 @@ divergence from the table.
 sender found, so this is unproven-need; do not build it ahead of a caller. Listed for completeness
 of the table. Depends on G3.
 
+**MEASURED 2026-07-31 - the contract is no longer inferred. STILL NOT IMPLEMENTED.** Driving real
+kicks through the injection harness, with kick 3 as a control whose outcome is independently known:
+
+```
+kick  X5ACT  X5PRO  X5CLR  X5CCL  hdrLock
+   3   FFFF   FFFF   0000   0001  00000000   CONTROL - passes (X5CLR=0, X5CCL=1, X5PRO=-1)
+   4   FFFF   FFFF   003F   0000  00000000   OCB_KICK05
+   5   FFFF   FFFF   003F   0000  00000000   OCB_KICK05
+   6   FFFF   FFFF   003F   0000  00000000   OCB_KICK06
+```
+
+`X5PRO` was preset to `5` before each run. What the microcode actually does:
+
+- **Kicks 4, 5 and 6 all set `X5PRO := -1` (ND-500 IDLE).** That is `SET_IDLE`, now observed rather
+  than read off a listing.
+- **They do NOT touch `X5CLR` or `X5CCL`** - `X5CLR` keeps the `0o77` mask it was given and `X5CCL`
+  stays 0. The cache-clear cells belong to kick 3 alone. A future kick-4/5 implementation that
+  writes them would be wrong.
+- **The queue-lock word ends 0 in every case**, including kick 3. Consistent with the G6 finding
+  that our station has no lock to release.
+
+**Independently corroborates the G2 fix.** G2 was implemented on the reasoning that kick 6 writes
+`X5PRO := -1` so `TER51` completes instead of falling into `ESPTIMOUT`. The real microcode confirms
+it - a fix that was justified by inference now has an execution behind it.
+
+**Caveat, stated rather than glossed:** these runs enter through the trap dispatch, so `X5PRO := -1`
+is attributable to the kick path as a whole. Nothing here isolates it to `OCB_KICK05` itself as
+opposed to `SET_IDLE` earlier in that path. The observable contract is what matters for the station
+and that is what is recorded.
+
+**Still do NOT implement kicks 4/5.** The "no known NPL sender" objection is untouched by this -
+knowing what a kick does is not evidence that anything sends it. This entry now says what to build
+IF a caller appears.
+
 ---
 
 ### G6 - unrecognised kicks are silently swallowed  **[P3]**
