@@ -320,6 +320,35 @@ their own terms.
 
 ---
 
+## 5b. Offset-12 hunt: what has been RULED OUT [2026-07-31]
+
+Four independent strategies, all run against `XMSG-KERNEL-L03` and `XMSG-XROUT-L03`, all
+negative. Recorded so nobody repeats them:
+
+1. **Literal `0x2113` / `0x2112`** (`020423`/`020422` octal) - absent from both images, and no
+   symbol in any symbol list carries the value.
+2. **`SAA 41` + shift** (the marker's high byte `0x21` is octal `41`) - `SAA 41` occurs 5 times
+   in XROUT and 0 times in the kernel, but every occurrence is immediately followed by a call,
+   with neighbours `SAA 17`, `SAA 20`, `SAA 35`, `SAA 37`, `SAA 10`. Those are small numeric
+   status/error codes passed in A, not a marker byte. **Red herring.**
+3. **`SHA ZIN 10` + `ORA`** (the shift-left-8 byte-packing idiom). The most promising hit was
+   in `XSDGM` itself at `137703`: `LDA ,X 16 / SHA ZIN 10 / ORA ,X 21 / RADD CLD SA DT`, which
+   builds a genuine `high:low` word and passes it in T. **It is argument packing, not a header
+   field** - the callee resolves through `mem[137745]` to `137515`, which is a **block-move
+   helper**: it rounds a byte count up to words (`AAA 1 / SHA ZIN SHR 1`), unpacks T's high
+   byte at `137524`, and runs a `MOVEW` loop. The XROUT sites are similar packing.
+4. **Marker as a stored word anywhere in either image** - nothing.
+
+Taken together these strengthen the earlier conclusion considerably: **the 7-word SINTRAN
+header is not built by the XMSG kernel or by XROUT.** XMSG builds the transported header only
+(`XMTHD`..`XMCSM`), and hands the message down.
+
+**Next target: the RESIDENT image**, `versions/L-VSX-500/resident/SINTRAN-DATA_commoncode.bin`
+(a `.dis` already exists beside it). A first pass finds several `SHA ZIN 10` sites and a word
+`020423` at address `001005` - which is exactly `0x2113`, though it also disassembles as a
+plausible `STD ,B 23`, so it must be confirmed by finding an instruction that references it
+rather than trusted on sight.
+
 ## 6. Ranked open items
 
 1. **What writes SINTRAN header offset 12.** Everything about "channel", "epoch" and "class
