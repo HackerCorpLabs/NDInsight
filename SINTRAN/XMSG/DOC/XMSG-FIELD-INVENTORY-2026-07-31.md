@@ -57,7 +57,41 @@ Three consequences, each confirmed against all 1449 captured data frames:
 
 ---
 
-## 3. SINTRAN header (wire 0-12)
+## 3. SINTRAN header - it is SEVEN WORDS, not "13 bytes + a counter byte" [2026-07-31]
+
+The ND-100 is word-addressed and the kernel manipulates this header with word-indexed
+instructions (`LDA ,X 1` / `BSET` / `STA ,X 1` in `XSDGM` at `137603`), so the byte-oriented
+description we have been carrying is a mis-framing. The header is **7 words**, exactly like
+the transported header that follows it:
+
+```
+21 13 | 00 0e | 00 64 | 00 66 | 03 d3 | 00 80 | d9 c1
+ w0      w1      w2      w3      w4      w5      w6
+markers subtype dest    src     Flags1  Flags2  ProtoID:Counter
+```
+
+**`w6` packs the Protocol ID in its HIGH byte and the Counter in its LOW byte.** The Counter
+does not "sit between the SINTRAN header and the transported header" as previously recorded -
+it is the low half of the last header word. 7 words + 7 words = 14 words = 28 bytes, which is
+exactly the body start already confirmed independently from `XMCSM == bodyLen`.
+
+**This unifies the ACK model.** An ACK frame reads
+`21 13 | 00 03 | 0066 | 0064 | 03d3 | 0001 | da 4b`. What `XMSG-PROTOCOL.md` calls the ACK's
+"single trailing payload byte" (`0x4B` here) is **not payload** - it is the low half of `w6`,
+the same field as a Data frame's Counter, with the Protocol ID above it. Data frames and ACKs
+share one header shape; only the subtype and what follows differ.
+
+**Consequence for the open offset-12 question:** the Protocol ID is not written on its own. It
+is the high byte of a word whose low byte is the Counter, so whatever computes one computes
+both - which fits the envelope model, where Counter and channel fall out of the same seed
+relation. Look for code writing a COMBINED word, not a byte store to offset 12.
+
+Corroboration from `XSACK` (`140076`): the routine opens with a run of `BSET` on T -
+`ZRO 20`, `ONE 10`, `ONE 0`, `ZRO 30`, `ZRO 50`, `ZRO 60` (remember the printed field is
+`bit<<3`, so those are bits 2,1,0,3,5,6) - which assembles `0b011` = **subtype `0x03`**, the
+Ack code. The kernel builds these header words bit by bit in registers.
+
+## 3b. SINTRAN header fields (wire 0-12)
 
 | Off | Field | Status | Note |
 |---|---|---|---|
@@ -70,7 +104,8 @@ Three consequences, each confirmed against all 1449 captured data frames:
 | 6-7 | Src node | **WIRE** | Logical source, not the LAPB neighbour. |
 | 8-9 | Flags1 | **CARVED** | `XMSEQ` (`0o154`). Assigned from a per-link counter, masked to **15 bits**. See below. |
 | 10-11 | Flags2 | **CARVED** | A copy of `XMCSM`. See section 4. |
-| 12 | Protocol ID / channel | **UNKNOWN** | The `0xDE - class - epoch` expression predicts it 1449/1449, but nothing carved says the machine computes it that way. **This is the biggest open item.** |
+| 12 | Protocol ID / channel | **UNKNOWN** | High byte of word 6; the Counter is its low byte (section 3). The `0xDE - class - epoch` expression predicts it 1449/1449, but nothing carved says the machine computes it that way. **Still the biggest open item** - but now look for a combined-word write, not a byte store. |
+| 13 | Counter | **WIRE** | LOW byte of word 6, not a separate byte after the header. `(Counter + Flags1 + XMCSMlow) & 0xFF == seed` on every frame - a checksum relation. |
 
 ---
 
@@ -276,7 +311,7 @@ their own terms.
 
 | Off | Field | Status | Note |
 |---|---|---|---|
-| 13 | Counter | **WIRE** | Sits *between* the SINTRAN header and the transported header — it belongs to neither. `(Counter + Flags1 + XMCSMlow) & 0xFF == seed` on every frame, which is a **checksum relation**. |
+| 13 | Counter | **WIRE** | See section 3 - it is the LOW byte of header word 6, not a standalone byte. Earlier revisions of this document called it "between the two headers, belonging to neither"; that was the byte-oriented mis-framing. |
 | 16-17 | `XMSTA` | **CARVED** | Low byte = `5M*` message state, high byte = `XF*` send options. Bit assignments confirmed from symbols. |
 | 18-25 | `XMDSY`/`XMDPT`/`XMSSY`/`XMSPT` | **CARVED** | System and port. Port = magic low word: `(port << 7) | random`, `5PSHZ=7`, `5PMS1=177`. |
 | 26-27 | `XMCSM` | **CARVED** | Section 4. |
