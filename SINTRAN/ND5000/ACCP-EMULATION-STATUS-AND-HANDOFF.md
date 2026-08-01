@@ -58,8 +58,12 @@ means section 5 **of the part you are reading** - and "section 5" is easily misr
    the phased build, and what an MFbus controller model must do. **Its section 4z is
    superseded - see the table above.**
    Originally `ACCP-RETROCORE-MACHINE-IMPLEMENTATION-HANDOFF-2026-07-27.md`.
-3. **Part 3** - the defect report (D1-D6a). ~~D1 and D4 are still live;~~ **D1 is FIXED and guarded,
-   D4 CANNOT OCCUR and its stated mechanism was wrong** (both updated 2026-08-01); D6a is stale.
+3. **Part 3** - the defect report (D1-D6b). **ALL CLOSED as of 2026-08-01** - audited one by one
+   against the code and the tests:
+   D1 fixed and guarded by a pair of tests; D2 pinned as literals; D3 banner spacing asserted;
+   D4 cannot occur and its stated mechanism was wrong; D5+D6 already resolved; D6a implemented;
+   D6b implemented with a live peer. **No defect in this list is open.** The entries are kept for
+   their analysis, which is still the best explanation of WHY each mattered.
    Originally `ACCP-MACHINE-DEFECT-REPORT-2026-07-28.md`.
 4. **Part 4** - clean-boot bidirectional ACCP command log. The good capture.
    Originally `ACCP-COMMAND-LOG-CLEAN-BOOT-CAPTURE-2026-07-30.md`.
@@ -1513,7 +1517,13 @@ Also note `g_skipBusyWaitFlag` (0x113138) at 0x737C: when non-zero the routine *
 
 ---
 
-### D2 [HIGH] A wrong expected value - and the correct one is now certain
+### D2 ~~[HIGH]~~ **CLOSED - the eight values are pinned as literals in a test**
+
+> **STATUS 2026-08-01.** The recommendation at the end of this entry - "those eight words belong in
+> a unit test as literals" - **has been done.** `Selftest_PrintsExpectedLcgPatterns` asserts the
+> BUS-test value `1C587698H` and the exact sequence
+> `7698H B027H 0AAAH 2C91H 0D8CH F58BH AFBEH 6195H`, so a regression to `F538H` now fails the build
+> rather than being spotted by eye in a log.
 
 Log 1 printed `... 0D8CH F58BH AFBEH ...`; this log prints `... 0D8CH F538H AFBEH ...`.
 
@@ -1548,7 +1558,13 @@ but the ground truth is now fixed and those eight words belong in a unit test as
 
 ---
 
-### D3 [MEDIUM] Banner spacing is being collapsed
+### D3 ~~[MEDIUM]~~ **CLOSED - the spaced banner is asserted**
+
+> **STATUS 2026-08-01.** A test now asserts the console reproduces
+> `S A M S O N   A C C E S S   P R O C E S S O R` with its runs of spaces intact, so the
+> space-collapsing this entry warned about would fail the build. That matters beyond the banner:
+> the concern here was that collapsing runs of spaces would also corrupt every column-aligned
+> diagnostic the firmware prints, and several selftest reports are column-aligned.
 
 The ROM string at 0x11729 is the **spaced** form:
 
@@ -1638,7 +1654,12 @@ coincidence to check first.
 
 ---
 
-### D6a [HIGH - NEW REGISTER] `HW_ACCP_STATION_CONFIG` @ 0x00900001 is being missed
+### D6a ~~[HIGH - NEW REGISTER]~~ **CLOSED - the register is modelled and configurable**
+
+> **STATUS 2026-08-01.** `0x00900001` is implemented in `AccpMachine` as
+> `OwnStationNumberAddress`, and the card's own station number is served from
+> `AccpMachineConfig.StationNumber` masked to the low 5 bits, exactly as the firmware reads it at
+> 0x122E before the MFbus scan. It is no longer "being missed".
 
 > **[STALE 2026-07-31 - the premise no longer holds, but the requirement below still does.]**
 > `0x900001` **is** in the handoff table (part 2, marked PROVEN 2026-07-28), and the machine
@@ -1674,7 +1695,14 @@ the nibble rule.
 
 ---
 
-### D6b [HIGH] The MFbus discovery protocol - exactly what to answer
+### D6b ~~[HIGH]~~ **CLOSED - discovery is implemented and exercised by a peer**
+
+> **STATUS 2026-08-01.** The MFbus discovery exchange this entry specifies is implemented and has
+> its own test file, `AccpMfBusDiscoveryTests.cs`, driven by `AccpMfBusControllerPeer.cs` - a real
+> peer that answers the scan rather than a stubbed reply. `Discovery_ReplyByte1SelectsCpuModel`
+> proves the model digit is taken from the reply, so the rule is demonstrated rather than assumed.
+>
+> The protocol description below stays as the reference for what the peer must answer.
 
 The "not found at Octobus stations 2-7" message is not a vague failure. It is a precise scan
 you can satisfy:
