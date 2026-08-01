@@ -958,6 +958,41 @@ it.
 **Practical consequence, unchanged and now firmly grounded: do NOT implement `N5STA := 1` in the
 station.** Under our current CPU model the microcode provably never performs it via kicks 4/5/6.
 
+### G3 probe 20, 2026-08-01 - the constant-word sneak is a PERVASIVE IDIOM, not a one-off
+
+Reading 2 above (our sneak model over-fires) is now much weaker. Sweeping the whole B30 image:
+
+| Measure | Count |
+|---|---|
+| Words with `EXUC` set | **345** |
+| ...whose sneak target is a `LARG`-to-WRF **constant word** | **51** |
+| ...of those, the deposited constant is **zero** | 21 |
+| **Distinct** constant words used as sneak targets | **9** |
+| Uses of the constant word at **`0o25`** (the one in `OCB_CLNUP`) | **18** |
+
+**Low CS addresses hold a shared CONSTANT POOL**, and `EXUC` words across the image sneak-execute
+them to deposit values into registers. That is precisely the "CPU_READ constant-word trick" the
+source comment at `CpuND5000.cs:780-786` describes, cited to ND-05.022.1 section 7.2. Nine constants
+serving 51 sites is a compiler-style shared pool, not an accident of decoding.
+
+**So `0o25571` clearing `SC13` via the sneak at `0o25` is ORDINARY** - it is the same
+"clear this scratch" idiom 17 other sites use. Our emulator is reproducing a real, documented and
+heavily-exercised mechanism, not misfiring on one word.
+
+The sequencer condition also checks out: `0o25571` is unconditional (`COND_SEQ = 0`) with
+`SEQ_TRUE = 12` -> type 3, which is not the one-cycle `JMP` that the manual says has no sneak. So
+the sneak SHOULD fire here by the documented rule.
+
+**Conclusion: reading 1 is now much the stronger.** `OCB_CLNUP`'s body is genuinely unreachable on
+the kick path in B30 - the routine clears `SC13` and immediately tests it, so the early exit is
+structural. The carve's `N5STA := 1` must belong to a different entry into 0o25574, or the routine
+is effectively disabled in this microcode revision.
+
+**Not claimed:** that reading 2 is impossible. Confirming the sneak against real hardware is not
+something this project can do, and the sneak rule's exact firing condition was calibrated against
+one site. But the burden has clearly shifted - our model now matches a pattern with 51 instances,
+and a single-site calibration explaining all 51 by accident is not credible.
+
 **Note on the harness:** this iteration was blocked for a while by an unrelated uncommitted edit to
 `src/CpuND5000.cs` (a `_aapProductForQ` field never assigned, CS0649-as-error). Not ours; left
 alone; it compiles again now.
