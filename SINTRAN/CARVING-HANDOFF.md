@@ -84,12 +84,15 @@ had wrong operands on those lines.
     bytes - do not treat either reading as verified. (That file is a `.md`, so the sweep did not
     touch it; the listing line inside it is still the old bare form.)
 
-- **STILL STALE - deliberately left:** `re/006-S3FS.annotated.dis`. It was disassembled from a
-  DIFFERENT, half-length carve (27136 words; its `026017` decodes to `LDA ,B 1`, not the current
-  segment's `LDATX 3`) and has no word column, so it cannot be address-mapped or offset-patched
-  against the current `.bin`. It is doubly SUPERSEDED by the regenerated, symbol-annotated
-  `segments-ref/006-S3FS/006-S3FS.asm`; regenerating it would mean redoing the hand annotation
-  against the current carve. Left for a deliberate re-annotation pass (or deletion).
+- **DELETED 2026-07-31:** `re/006-S3FS.annotated.dis`. It was disassembled from a DIFFERENT,
+  half-length carve (27136 words) whose BYTES diverge from the current `.bin` (its `026017` decodes
+  to `LDA ,B 1`, not the real `LDATX 3`) - so it was not merely stale-offset, it was WRONG content
+  for the current image and misleading to keep. Its 3853 inline labels were all symbol-table derived
+  (FCSTA/VSXGE/INIQ etc. from FILSYS-SYMBOLS / SYMBOL-2-LIST), NOT unique hand analysis, and the
+  correct carve `segments-ref/006-S3FS/006-S3FS.asm` already inserts every in-range symbol as a
+  `>>> NAME(TABLE)` marker. Deleted rather than re-annotated: nothing unique was lost, and
+  `segments-ref/006-S3FS/006-S3FS.asm` is the authoritative replacement (correct bytes, fixed
+  offsets, symbol-annotated).
 
 ---
 
@@ -124,11 +127,29 @@ MON calls implemented in L07: **216**. Folders that exist: **156**.
 |---|---|---|
 | `byte-verified` | **1** | Folder fully rebuilt on the corrected model. **317B only.** |
 | `worker VERIFIED; dispatch needs rewrite` | 87 | The `MCTAB[N]` worker word is byte-verified, but the folder body still documents the fictional `GOTAB -> CALLPROC` dispatch. |
-| `WORKER CHANGED` | 34 | `MCTAB` disagrees with the folder's worker. **These folders are WRONG.** |
+| `WORKER CHANGED` | 34 | `MCTAB` disagrees with the folder's worker. **These folders are WRONG** - but see the audit note below: all 34 now carry an in-folder correction banner. |
 | `NO FOLDER` | 94 | Implemented in L07, never analysed. |
 
 **Read that honestly:** `worker VERIFIED` is a claim about ONE carved word, not about the folder.
 Only 1 of 216 folders is actually trustworthy end to end.
+
+**STALE-MARKER AUDIT 2026-08-01 - the `WORKER CHANGED` folders are SAFE TO OPEN.** Mechanically
+checked every one of the 34 folders the index flags as `WORKER CHANGED`: **all 34 carry an
+in-folder correction banner, zero missing.** So a reader who opens a folder directly - without
+going via this index - is warned that its old worker is wrong. The folder BODIES still need
+rebuilding, which is unchanged; the point of the audit is that none of them silently teaches the
+disproven `GOTAB -> CALLPROC` worker.
+
+Same audit on the three known poisoned priors across the whole tree: the fabricated **TAG-code
+protocol**, **WIOM**, and **"the swapper is control-store microcode"**. Every surviving mention is
+a correction or a retraction - **no document still teaches any of them as current.**
+`SINTRAN\Emulator\DETAILED-TAG-MECHANISM-EXPLANATION.md`,
+`Operations\SINTRAN\ND500-MONITOR-CALL-ARCHITECTURE.md` and
+`Developer\MON\calls\60B_N500M_Hardware_Mapping.md` all carry explicit banners.
+
+Recorded so this audit is not repeated. It was prompted by finding **five** stale markers in the
+ND-5000 octobus docs the same day, where corrections had been written into the file where the work
+happened and never into the files that repeat the claim.
 
 Folders documenting MON numbers **not present in MCTAB** — may be documenting nothing, need audit:
 `155B`, `175B`, `176B`, `177B`, `324B`.
