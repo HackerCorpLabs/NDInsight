@@ -58,7 +58,8 @@ means section 5 **of the part you are reading** - and "section 5" is easily misr
    the phased build, and what an MFbus controller model must do. **Its section 4z is
    superseded - see the table above.**
    Originally `ACCP-RETROCORE-MACHINE-IMPLEMENTATION-HANDOFF-2026-07-27.md`.
-3. **Part 3** - the defect report (D1-D6a). D1 and D4 are still live; D6a is stale.
+3. **Part 3** - the defect report (D1-D6a). ~~D1 and D4 are still live;~~ **D1 is FIXED and guarded,
+   D4 CANNOT OCCUR and its stated mechanism was wrong** (both updated 2026-08-01); D6a is stale.
    Originally `ACCP-MACHINE-DEFECT-REPORT-2026-07-28.md`.
 4. **Part 4** - clean-boot bidirectional ACCP command log. The good capture.
    Originally `ACCP-COMMAND-LOG-CLEAN-BOOT-CAPTURE-2026-07-30.md`.
@@ -1433,7 +1434,20 @@ by how much damage it does if left.
 
 ---
 
-### D1 [CRITICAL] The four "completed OK" tests are FALSE PASSES - root cause found
+### D1 ~~[CRITICAL]~~ **FIXED AND GUARDED** - the four "completed OK" tests were FALSE PASSES
+
+> **STATUS 2026-08-01: FIXED. Do not re-open.** The fix is exactly option 1/2 below:
+> `AccpMachineConfig.AbsentDeviceDataValue` defaults to **`0xFF`**, so an absent ND-5000 reads as
+> all-ones instead of a clean zero, and the four vacuous passes are gone.
+>
+> **Guarded by a PAIR of tests, deliberately:**
+>  - `Selftest_ReportsNoFalsePasses` - asserts `completed OK` never appears with no ND-5000.
+>  - `Selftest_ZeroDataPairCausesFalsePasses` - sets the value back to `0x00` and asserts the false
+>    passes DO return. Without this second test the first could pass for the wrong reason (e.g. the
+>    firmware stopped reaching the selftests at all); with it, the causal link is pinned.
+>
+> The analysis below is kept because it is correct and explains WHY - in particular the crux that
+> the same read means "data" to one group of tests and "error code" to another.
 
 > `Register test abcd completed OK`
 > `TSB test completed OK`
@@ -1548,7 +1562,23 @@ firmware prints - and several of the selftest reports are column-aligned.
 
 ---
 
-### D4 [CONFIRMED - same register as D1] `Result: 00000024H` is a STALE READ-BACK
+### D4 ~~[CONFIRMED]~~ **CANNOT OCCUR IN THE CURRENT MODEL, and its mechanism was WRONG**
+
+> **STATUS 2026-08-01.** The observation was real - the pair did return `0x00000024` - but the
+> stated mechanism, "a read-back-what-was-written model hands it straight back", **does not match
+> the code**. `AccpLoggingStub.WriteByte` **records the write and discards the value**; `ReadByte`
+> returns the configured read value with no memory of writes. Nothing written can come back out.
+>
+> With `AbsentDeviceDataValue = 0xFF` (the D1 fix) the pair reads all-ones, so the result is
+> determined by the model rather than by whatever the firmware last printed.
+>
+> **Guarded by `Selftest_DataPairDoesNotReturnStaleWrittenValues`**, which fails if `0x24` ever
+> appears as a selftest result again, and also asserts the absent-device value is not `0x00` - so it
+> cannot pass merely because the machine stopped reaching the test.
+>
+> **Kept, not deleted**, because the `0x24` = `$` observation is a good catch and the reasoning is
+> the right shape - it was simply aimed at a mechanism this emulator does not have. If a stale value
+> ever reappears, look for a stub that DOES retain writes, not this one.
 
 Carved 2026-07-28 at 0xE186, in the test that follows the "Loading control store with
 selftests..." announcement:
