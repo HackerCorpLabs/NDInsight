@@ -1307,10 +1307,31 @@ re-opens them.**
   > `"$K I C K   T I M E O U T : "` at `0x122FE`, then
   > `"AOB not read by microprogram within timeout."` at `0x12326`.
   >
-  > **That timeout message is directly useful to the kick work**: a mis-framed kick word - one that
+  > ~~**That timeout message is directly useful to the kick work**: a mis-framed kick word - one that
   > is not `0o1005nn`, so `OCB_MES_K` never fast-paths it - should surface from the ACCP end as
-  > exactly this message. It is the ACCP-side counterpart of the framing result we found by
-  > injection.
+  > exactly this message.~~
+  >
+  > **TESTED AND REFUTED, SAME DAY - a mis-framed kick does NOT produce the timeout.** Driving a
+  > bare `0x0003` and a framed `0x8143` through the injection harness and reading AOBF afterwards:
+  >
+  > ```
+  > kickWord  dispatched  AOBF after
+  >   8143          True           0     framed - collected and dispatched
+  >   0003         False           0     bare   - collected and DROPPED
+  > ```
+  >
+  > **The microprogram reads the word either way.** AOBF clears for the bare kick too; it is only
+  > the DISPATCH that fails, because `OCB_MES_K` does not fast-path it and `OCB_DEC_K`'s index
+  > lands nowhere useful.
+  >
+  > **So the ACCP never times out on a mis-framed kick** - from its side the word was collected
+  > normally. And the CPU never acts on it. **Neither end reports anything: a mis-framed kick is
+  > silently swallowed.** That is worse than the prediction, and it means there is no diagnostic
+  > anywhere for this failure - which is exactly why our own station now logs unrecognised kick
+  > numbers unconditionally (gap G6).
+  >
+  > Guarded by `MailboxClrKickTests.MisframedKick_IsLeftUncollectedInAob_MatchingTheAccpTimeoutCondition`
+  > - the name records the hypothesis, the assertions record what actually happens.
 - **0x5D00-0x6882 is NOT the command-handler region.** The dispatch map (see
   part 3 of this file) puts every handler at 0x333A, 0x353E,
   0x3A12, 0x400A, 0x4076, or in 0x7EAE-0xADE0. Nothing dispatches into 0x5D00-0x6882, so
