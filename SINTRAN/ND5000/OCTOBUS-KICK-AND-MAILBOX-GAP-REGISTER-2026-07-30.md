@@ -1038,15 +1038,49 @@ that never terminates.
 
 ---
 
-### G9 - `OCB_WAITSEX` trigger condition unknown  **[OPEN, not a defect yet]**
+### G9 - `OCB_WAITSEX` trigger condition ~~unknown~~ **CONFIRMED 2026-08-01. Bit 15 arms it.**
 
-`OCB_WAITSEX` (025543) spins on **global header** word `0o24` (byte 0x28) until zero. The carve says
+~~`OCB_WAITSEX` (025543) spins on **global header** word `0o24` (byte 0x28) until zero. The carve says
 it is armed when the original `X5CLR` had bit 15 set, but running the real microcode with
 `X5CLR = 0x803F` produced the *same* 26 writes and did not enter the spin, so the stated trigger is
-not confirmed.
+not confirmed.~~
 
-**Not on the critical path**: `ST0PSYS`'s `0o77` never sets bit 15. It could matter for `LMPCLR`,
-whose mask is runtime data. Leave unimplemented with an explicit comment; do not guess.
+**The carved trigger is RIGHT, and the earlier "not confirmed" was a DETECTION FAILURE.**
+`OCB_WAITSEX` spins on global header word `0o24` (byte 0x28) **until zero** - and every setup in
+this fixture pre-zeroes that word. **A spin whose exit condition is already true is entered and left
+in the same breath, which is indistinguishable from never entering it.** The earlier probe could not
+have seen the spin whatever the mask was.
+
+Varying the mask bit and the spin cell independently, driving a real CLRKICK through the injection
+harness:
+
+```
+mask    spinCell  reachedWaitsex  finalX5CLR  spinCellAfter
+003F    zero               False  0000        00000000
+803F    zero                True  0000        00000000
+003F    nonzero            False  0000        00000001
+803F    nonzero             True  0000        00000001
+```
+
+**`X5CLR` bit 15 arms `OCB_WAITSEX`, cleanly and in both cell states.** Bit 15 clear never reaches
+it. That is the carve's stated trigger, now executed rather than read.
+
+Two further observations from the same table:
+
+- **The acknowledge still completes**: `X5CLR` ends `0000` in all four rows, so arming the spin does
+  not cost the `ST0PSYS` ack.
+- **The spin does not clear its own cell** - `spinCellAfter` stays `00000001`. Whatever zeroes
+  header word `0o24` is external to this path, which is consistent with it being a
+  wait-for-someone-else.
+
+**Still NOT on the critical path and still unimplemented**: `ST0PSYS`'s `0o77` never sets bit 15, so
+nothing in the stop-system ladder arms this. It could matter for `LMPCLR`, whose mask is runtime
+data. **The trigger is no longer a guess, so an implementation would now be justified when a caller
+appears** - but no caller has been found, so none is written.
+
+**Lesson worth carrying:** this is the second time in this investigation that a "did not happen"
+was really "could not have been observed" (the first was `OCB_CLNUP`'s body). **Before recording a
+negative, check the setup does not make the positive invisible.**
 
 ---
 
@@ -1117,7 +1151,12 @@ Remaining, in order:
    locking. See the G6 entry.
 5. ~~**G8**~~ **- CLOSED 2026-07-31** for every path that exists; kick 3 is the only cache-clear
    path and it writes `X5CCL`. Re-opens as a requirement on G5 when kicks 4/5 land.
-6. **G5**, **G9** - do NOT build ahead of a proven caller / a resolved trigger.
+6. **G5** - do NOT build ahead of a proven caller. **Its CONTRACT is now measured** (see the G5
+   entry): kicks 4/5/6 set `X5PRO := -1` and leave `X5CLR`/`X5CCL` alone. Build only if a sender
+   turns up.
+   **G9 - trigger RESOLVED 2026-08-01**: `X5CLR` bit 15 arms `OCB_WAITSEX`, executed not inferred.
+   Still unimplemented because no caller sets bit 15 on any known path, but the "do not guess"
+   caveat no longer applies - the guess has been replaced by a measurement.
 
 ---
 
