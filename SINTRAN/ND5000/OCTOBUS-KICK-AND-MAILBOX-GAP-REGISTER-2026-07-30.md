@@ -602,6 +602,13 @@ sampling the program counter around `Tick()`.
 > `DEST = NONE`. So "the real writer is CS 0o16554" below is NOT established - it rested on a
 > coincidence. The safe signal is `word.Dest` on the executing word; the ADDRESS needs a facility
 > the CPU does not currently expose.
+>
+> **CAUSE FOUND IN PROBE 19 - and probe 18's explanation was wrong.** `State.Mpc` DOES identify the
+> fetched word. The reason a write can report a mismatched `Mpc` is the **SNEAK CYCLE**:
+> `ExecuteBody` runs twice per tick, once for the fetched word and once for the word at its
+> `ABS_ADDR` when `EXUC` is set, and BOTH report the same `Mpc`. No CPU facility is needed - the
+> rule is simply that a write reported at `Mpc` may belong to the sneak word at
+> `Cache.Words[word.AbsAddr]`. Check `EXUC` on the fetched word before attributing anything.
 
 **G3 status:** the exit is fully explained and correct. What remains is unchanged and unblocked -
 to see the body run, `SC13` must be non-zero at 0o25573, which means setting up whatever 0o16554's
@@ -909,6 +916,47 @@ temporary and `src` is reverted clean.
 
 **G3's remaining question is unchanged and still sharp:** find what leaves `SC13` non-zero
 immediately before 0o25570. It now needs the executing-address facility to answer cleanly.
+
+### G3 probe 19, 2026-08-01 - ANSWERED. A SNEAK CYCLE zeroes `SC13`, so the exit is UNCONDITIONAL.
+
+**And probe 18's stated cause was wrong** - `State.Mpc` DOES identify the fetched word (it is read at
+`CpuND5000.cs:311` and only updated at the end, line 832). The real mechanism is better:
+
+`ExecuteBody` is called **twice** per tick. Once for the fetched word, and again at line 808 for a
+**sneak word** - `ExecuteBody(in sneak, ...)` - when `EXUC` is set. The sneak word is the one at the
+fetched word's `ABS_ADDR`, and **its own DEST deposits its value**. Both executions report the same
+`State.Mpc`, which is exactly why the attribution looked broken.
+
+Decoded, and it fits perfectly:
+
+```
+CS 0o25571        EXUC=1  DEST=0o30 (NONE)   ABS_ADDR=0o25
+word at 0o25      EXUC=0  DEST=0o26 (SC13)   A_OP=0o357 (A,LARG)   LARG = 0x0
+```
+
+So `0o25571` carries no destination of its own, but its `EXUC` sneak-executes the constant word at
+`0o25`, **which writes the literal `0` into `SC13`**. One word later, `0o25573` tests `SC13` for zero
+with `COND,MZRO` and branches to `0o104` - the return.
+
+**`SC13` is zero there BY CONSTRUCTION, not by circumstance.** No mailbox state, no ACCP flag and no
+kick can change it. **`OCB_CLNUP`'s body at 0o25574..0o25604 is unreachable through the
+`OCB_KICK05` / `OCB_KICK06` call path.** That is why nineteen probes could not enter it.
+
+**Two readings, and this DOES have to be flagged:**
+
+1. **The body is genuinely dead on this path**, and the carve's `N5STA := 1` belongs to some other
+   entry into 0o25574 (a direct jump), or the carve mis-described the routine.
+2. **Our sneak-cycle model runs the sneak when real hardware would not.** The model is
+   `EXUC != 0` plus a sequencer-type rule, calibrated against ONE site (`SHIFT_ROT@017070`, per the
+   comment at `CpuND5000.cs:788-796`). If that rule over-fires here, real hardware leaves `SC13`
+   alone and the body IS reachable.
+
+**Reading 2 cannot be dismissed and is now the higher-value question** - it is a CPU-model question
+affecting every `EXUC` word in the image, not a mailbox question. G3 has effectively handed off to
+it.
+
+**Practical consequence, unchanged and now firmly grounded: do NOT implement `N5STA := 1` in the
+station.** Under our current CPU model the microcode provably never performs it via kicks 4/5/6.
 
 **Note on the harness:** this iteration was blocked for a while by an unrelated uncommitted edit to
 `src/CpuND5000.cs` (a `_aapProductForQ` field never assigned, CS0649-as-error). Not ours; left
