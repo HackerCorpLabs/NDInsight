@@ -49,9 +49,15 @@ OCB_KICK031  025550*  OCB_KICK032 025552*  OCB_KICK06 025561*
 025543  lo=...2B644228  MARG 0x28 = GLOBAL header word 0o24  (the OCB_WAITSEX spin)
 ```
 
-`OCB_WAITSEX` was **not** entered on either mask tested (the run with bit 15 set produced the same
+~~`OCB_WAITSEX` was **not** entered on either mask tested (the run with bit 15 set produced the same
 26 writes), so the spin's trigger condition is still `[OPEN]` - recorded as an observation in the
-test rather than encoded as a guess.
+test rather than encoded as a guess.~~
+
+> **SUPERSEDED 2026-08-01 - this observation was a DETECTION FAILURE, see G9.** `OCB_WAITSEX` spins
+> on global header word `0o24` **until zero**, and the setup used here pre-zeroes that word - so the
+> spin was entered and left in the same instant, which is indistinguishable from never entering it.
+> Re-run with the spin cell non-zero, **`X5CLR` bit 15 DOES arm the spin** and bit 15 clear never
+> reaches it. The carved trigger was correct. Full table in the G9 entry.
 
 ### 0.1 The kick-3 contract our station must implement
 

@@ -42,8 +42,30 @@ formed, correctly routed, and delivered. The station drops it because `_accpIdle
 the microprogram; kicks are delivered to the microprogram. Real hardware behaves the same. Do NOT
 relax the `_accpIdle` guard - that hides a real timeout behind behaviour the hardware does not have.
 
-**The actual defect**: 244B is what the monitor sends **on ACCP timeout** (ND-05.020.01 ch. 5.3.9).
-So one of our ACCP exchanges goes unanswered, or answers too late, and SINTRAN gives up.
+~~**The actual defect**: 244B is what the monitor sends **on ACCP timeout** (ND-05.020.01 ch. 5.3.9).
+So one of our ACCP exchanges goes unanswered, or answers too late, and SINTRAN gives up.~~
+
+> **REFUTED AND FIXED 2026-07-30/31 - do not work this plan's steps below.** Measured, not
+> inferred: **244B TERMINATE ACCP is a NORMAL, unconditional bring-up step.** It arrives after 3
+> ACCP commands with **all 3 answered**, in a run that answers **149 of 149**, and it is present in
+> fixed and broken runs alike at the same point in the ladder. **No exchange goes unanswered and
+> nothing times out.**
+>
+> The manual is not wrong that the monitor *can* send 244B on timeout; it is wrong to read a
+> received 244B as evidence that a timeout occurred.
+>
+> **The real defect was the flag, not the terminate:** `_accpIdle` was cleared only by
+> `ContinueAccp` and `ResetStation`, never by `STAMIC0` / `CONTMIC` / `RESTMIC`, so it outlived the
+> microprogram restart and swallowed every later kick. Fixed; full ladder green (`k3=1`,
+> `X5CLR=0000`, `X5CCL=0001`, `accpIdle=False`).
+>
+> **How the wrong premise arose, worth knowing:** the first clean capture predated the footer field
+> that logs the 244B snapshot, so a missing FIELD was read as a missing EVENT, and a timeout theory
+> was built on top of it.
+>
+> The paragraph above this box - that dropping the kick while `_accpIdle` is set is CORRECT, and
+> that the guard must not be relaxed - **still stands**. Only the diagnosis of *why the flag was
+> set* was wrong. See `OCTOBUS-KICK-AND-MAILBOX-GAP-REGISTER-2026-07-30.md`, entry G10.
 
 ### Steps
 
