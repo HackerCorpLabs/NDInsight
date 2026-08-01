@@ -1289,6 +1289,28 @@ re-opens them.**
   >
   > Note this flag is **only reachable from the CONSOLE**, not over CMD 3: sending `0x3C` over the
   > octobus replies `FF 01` and leaves the flag untouched (see the shared-enum refutation).
+  >
+  > **SCOPE, and a correction to my own advice (2026-08-01).** I suggested tracing as a way at the
+  > `0x220000` function codes. **It will not work, and that suggestion is withdrawn.** All eleven
+  > readers of the flag are `0x628`, `0x706`, `0xEAA`, `0x1EFA`, `0x592E`, `0x9D88`, `0x9D90`,
+  > `0x1095A`, `0x10A3A`, `0x11078`, `0x110C0` - **none is inside the control-store / signature
+  > region `0x71F8`-`0x7C14`**, so `0x220000` traffic is completely silent to the tracer.
+  >
+  > **What the trace DOES cover is wider than "octobus" though - three paths, not one:**
+  >  - octobus inbound - `" to ACCP$"`, descriptor at `0x123EA`.
+  >  - octobus outbound - `" from ACCP"`.
+  >  - **AOB to the CPU** - `" to SAMSON$"`, descriptor at `0x123BA`, printed at `0x0636`
+  >    immediately after the `btst.b #1,(0x00660001)` AOB-busy check.
+  >
+  > **Plus a kick-timeout diagnostic**, emitted when the `0x001131DC` countdown expires with
+  > `0x660001` bit 1 still set:
+  > `"$K I C K   T I M E O U T : "` at `0x122FE`, then
+  > `"AOB not read by microprogram within timeout."` at `0x12326`.
+  >
+  > **That timeout message is directly useful to the kick work**: a mis-framed kick word - one that
+  > is not `0o1005nn`, so `OCB_MES_K` never fast-paths it - should surface from the ACCP end as
+  > exactly this message. It is the ACCP-side counterpart of the framing result we found by
+  > injection.
 - **0x5D00-0x6882 is NOT the command-handler region.** The dispatch map (see
   part 3 of this file) puts every handler at 0x333A, 0x353E,
   0x3A12, 0x400A, 0x4076, or in 0x7EAE-0xADE0. Nothing dispatches into 0x5D00-0x6882, so
@@ -1730,6 +1752,25 @@ BM13 = bit 11, BM14 = bit 12.
 > reading shifts every tested bit. The table above is the corrected one, consistent across both
 > the `SCAN_ACCP` and `ATRAP_CHK` chains. **Bits 7 and 8 were never re-checked and carry the
 > same risk.** Do not trust them without re-reading the listing.
+
+> **BITS 7 AND 8 CANNOT BE ANSWERED FROM `octo.bin` - DEAD END, do not spend time on it.**
+> Established 2026-08-01 from the ACCP firmware side, in answer to a direct request.
+>
+> **AFLAG is a CPU-side hardware status register** (A-source `0151`). **The ACCP firmware never
+> composes it.** What the 68000 actually touches is the write-only latches at
+> `0x330000`/`0x330001` (shadowed in RAM at `0x001144EE`/`0x001144EF`) and reads of `0x660001`.
+> The carved bits there are `0x330001` bits 1, 2, 3, 4, 6 and `0x660001` bits 0, 1, 2 - **none of
+> which is a data-fault or instruction-fault indication.**
+>
+> So the 68000 disassembly is the **wrong artifact** for this question. The answer lives in the
+> **microcode listing or the hardware documentation**, not in the card's firmware.
+>
+> The only route offered from that side is experimental rather than static: with tracing armed,
+> correlate what the ACCP pushes on the AOB path against the CPU-side AFLAG reads on a live run.
+>
+> **Consequence for the emulator:** `AccessModule.ReadAflag` models bits 5, 6, 9, 10, 11, 12 and
+> deliberately leaves 7 and 8 out. That stays the correct choice - there is now a positive reason
+> they cannot be pinned, not merely an absence of evidence.
 
 #### The four primitives [V]
 
