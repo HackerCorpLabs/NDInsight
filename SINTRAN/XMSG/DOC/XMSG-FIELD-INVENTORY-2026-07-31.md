@@ -119,7 +119,7 @@ Ack code. The kernel builds these header words bit by bit in registers.
 ## 4. `XMCSM` — carried twice, and overloaded
 
 **CARVED:** the kernel comments it *"datagram checksum; if not checksum, then message size"*.
-The corpus shows both arms, and they split almost evenly:
+The corpus shows both, and they split almost evenly:
 
 | Arm | Frames | Shape |
 |---|---|---|
@@ -131,7 +131,7 @@ The corpus shows both arms, and they split almost evenly:
 
 ```
 134013  LDA ,B 144        ; A := XMSIZ
-134014  STA ,B 142        ; XMCSM := XMSIZ          <- the SIZE arm, taken by DEFAULT
+134014  STA ,B 142        ; XMCSM := XMSIZ          <- stores the SIZE; this is the default
 134015  LDATX
 134016  BSKP ONE 110 DA   ; flag bit test
 134017  JMP  -> 134034    ;   set -> keep the size, done
@@ -142,7 +142,7 @@ The corpus shows both arms, and they split almost evenly:
 134026  STZ ,B 135        ; XMSTA := 0
 134027  STZ ,B 142        ; XMCSM := 0              <- zero the field before computing
 134030  JPL  I 36         ; -> mem[134066] = 137335
-134031  STA ,B 142        ; XMCSM := result         <- the CHECKSUM arm
+134031  STA ,B 142        ; XMCSM := result         <- stores the CHECKSUM instead
 134032  LDA -111
 134033  STA ,B 135        ; XMSTA restored
 ```
@@ -172,9 +172,10 @@ checksum-over-block idiom, and it explains why `XMSTA` is excluded from the cove
 So `XMLEN` (`0o147`) **is** a real length field - it is what bounds the checksum - it simply is
 not at wire 30-31 where our layout put it.
 
-This also resolves what the wire measurements could not. The "not-size" arm looked wrong
+This also resolves what the wire measurements could not. The frames that did NOT carry a length
+looked wrong
 because its values are **constant** (`0x0080`, `0x0064`) across frames with different bodies,
-which is not checksum-like. Under the carve those constants are the SIZE arm carrying `XMSIZ`
+which is not checksum-like. Under the carve those constants are `XMSIZ`
 - the message **buffer** size, fixed per message class - not the body length. The
 `XMCSM & 0x1FF == bodyLen` frames are the ones where the buffer size happens to equal the body.
 
@@ -260,7 +261,8 @@ P-relative from `134054` - a genuine literal holding `020400` = the `0x2100` mar
 header.
 
 This matters well beyond documentation: `XmsgEnvelope.BaseLowSigned` subtracts this field's low
-byte, so on size-arm frames the envelope arithmetic is subtracting **a byte count**.
+byte, so on frames where XMCSM holds a length the envelope arithmetic is subtracting **a byte
+count**.
 
 ---
 
@@ -419,7 +421,7 @@ rather than trusted on sight.
 | Body start | wire offset 28 |
 | SINTRAN header shape | SEVEN words; unified the Data and ACK models |
 | **Header offset 12 + 13** | **the two halves of a ones-complement header CHECKSUM (3595/3595)** |
-| `XMCSM` two arms | `XMSIZ` by default, checksum when two flag bits are set; both routines carved |
+| `XMCSM` holds one of two things | `XMSIZ` by default, or a checksum when two flag bits are set; both routines carved |
 | `Flags1` | `XMSEQ`, assigned from a per-link counter, masked to **15 bits** |
 | Header offset 2 | not a field - high half of the `type:subtype` word |
 | Subtypes `0x0A`/`0x0C` | bulk file-transfer data, and a PAIR sharing one `Flags1` |
@@ -427,7 +429,8 @@ rather than trusted on sight.
 
 ### OPEN - needs the live machines or a new capture
 
-1. **What selects the `XMCSM` arm.** Narrowed to bits 9 and 10 of `phys[X+7]`, a word in the
+1. **What decides whether `XMCSM` holds the size or the checksum.** Narrowed to bits 9 and 10
+   of `phys[X+7]`, a word in the
    same per-link block whose sequence counter sits at `X+4`. `LDATX` is physical addressing, so
    this is a runtime address - **static carving cannot finish it**. A DAP breakpoint at
    `134015` with `X` known would name it in one shot.

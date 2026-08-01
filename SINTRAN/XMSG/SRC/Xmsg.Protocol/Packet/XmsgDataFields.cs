@@ -46,7 +46,7 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// </para>
         /// <para>
         /// It first stores <c>XMSIZ</c> (<c>0o144</c>) into <c>XMCSM</c> (<c>0o142</c>) - the SIZE
-        /// arm, taken by default. Two <c>BSKP</c> flag-bit tests then decide: if either is set it
+        /// size, which is the default. Two <c>BSKP</c> flag-bit tests then decide: if either is set it
         /// keeps the size, otherwise it saves <c>XMSTA</c>, ZEROES both <c>XMSTA</c> and
         /// <c>XMCSM</c>, calls the routine at <c>137335</c>, and stores the result into
         /// <c>XMCSM</c>. Zeroing the field before computing and storing the result back is the
@@ -63,11 +63,11 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// <para>
         /// This explains the corpus: 718 frames satisfy <c>XMCSM &amp; 0x1FF == bodyLen</c>, and
         /// 731 carry a CONSTANT (<c>0x0080</c>, <c>0x0064</c>) while the body varies. The
-        /// constants are the size arm carrying <c>XMSIZ</c> - the message BUFFER size, fixed per
+        /// constants are <c>XMSIZ</c> - the message BUFFER size, fixed per
         /// message class - not the body length.
         /// </para>
         /// <para>
-        /// UNKNOWN: which flag bit selects the arm. The decision is the <c>BSKP ONE 110 DA</c> /
+        /// UNKNOWN: which flag bit picks size or checksum. The decision is the <c>BSKP ONE 110 DA</c> /
         /// <c>BSKP ONE 120 DA</c> pair at <c>134016</c>/<c>134021</c> on a value fetched by
         /// <c>LDATX</c>. The location is carved; the bit identity is not. Do NOT assume a frame's
         /// XMCSM is a length without checking - roughly half are checksums.
