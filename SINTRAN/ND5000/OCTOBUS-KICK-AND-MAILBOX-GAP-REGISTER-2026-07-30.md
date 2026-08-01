@@ -12,6 +12,40 @@ gap G1).
 
 ---
 
+## STATUS AT A GLANCE (2026-08-01) - READ THIS FIRST
+
+**No gap in this register is open.** This file has grown to twenty probes; the table is the answer,
+the probes are the evidence. **Do not re-open an entry without reading its status line here first** -
+several entries below still carry their original alarming headings, kept deliberately so the wrong
+version cannot be re-adopted, each with a correction banner.
+
+| Gap | State | One-line reason |
+|---|---|---|
+| **G1** kick 3 no-op | **FIXED** | `ExecuteClearFunctions` writes `X5CLR:=0`, `X5CCL:=1`, `X5PRO:=-1`. |
+| **G2** kick 6 no-op | **FIXED** | Writes `X5PRO := -1`, so `TER51` completes instead of `ESPTIMOUT`. Independently confirmed by execution later. |
+| **G3** `OCB_CLNUP` requeue | **ANSWERED - body is UNREACHABLE** | A sneak cycle at `0o25571` deposits constant **0** into `SC13`; `0o25573` tests it for zero and returns. Structural, not circumstantial. **Do not implement `N5STA := 1`.** |
+| **G4** kick 2 | **FIXED** | Mapped to ACTIVATE. |
+| **G5** kicks 4/5 | **CONTRACT MEASURED, deliberately NOT built** | They set `X5PRO := -1` and leave `X5CLR`/`X5CCL` alone. Still no known NPL sender - do not build ahead of one. |
+| **G6** unknown kicks swallowed | **FIXED (logging); unlock NOT owed** | Logging done. The `UNLOCK_QUE` must NOT be added - the station never takes the lock, and releasing one it does not hold could clear SINTRAN's. |
+| **G7** `X5ACT` re-arm | **WITHDRAWN** | Never a gap. |
+| **G8** `X5CCL` | **CLOSED for every path that exists** | Kick 3 is the only cache-clear path and it writes it. Re-opens as a requirement on G5 if kicks 4/5 land. |
+| **G9** `OCB_WAITSEX` trigger | **RESOLVED** | `X5CLR` bit 15 arms it - the earlier negative was a detection failure (the spin cell was pre-zeroed). Unimplemented: no caller sets bit 15. |
+| **G10** 244B terminate | **FIXED, and its premise REFUTED** | 244B is a NORMAL bring-up step, not a timeout. The defect was `_accpIdle` outliving the microprogram restart. |
+
+**Two things were found along the way that matter beyond this register:**
+
+1. **A real emulator defect, fixed:** `ReadAflag` composed only AOBF and AIBF, so the four dispatch
+   bits `SCAN_ACCP` tests (5, 6, 11, 12) could never fire. Every ACCP poll in the emulator was
+   reading a status word that could not report four of its conditions.
+2. **A kick-injection harness now exists** and is validated against kick 3 as an oracle. It is what
+   made G5's contract measurable and G3's answer reachable.
+
+**Three of my own claims in this file were retracted after testing** - two "suspected emulator
+defects" that were measurement errors, and one wrong cause for a real observation. The retractions
+are left in place with banners rather than deleted.
+
+---
+
 ## 0. The alignment result - kick 3 is now SETTLED by execution, not by reading
 
 The blocker on implementing kick 3 was the acknowledge value. The carve summary
