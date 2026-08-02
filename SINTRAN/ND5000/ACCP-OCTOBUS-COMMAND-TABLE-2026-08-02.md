@@ -44,7 +44,7 @@ and all 46 matched the `0C 00 00 <imm>` + `66` shape with zero mismatches.
 | `0x27` | 047B | `5ECE` | - | **LAOB32D** | `[V]` long param -> data-pair write |
 | `0x28` | 050B | `5FD6` | `CMRAS` | **RASTS** | `[V]` no params, returns one status word |
 | `0x29` | 051B | `6016` | `CMLDM` | **LMODE** | `[V]` only non-console caller of `0x77FE` |
-| `0x2A` | 052B | `608C` | `CMTMA` | - | `[OPEN]` one word + running guard; inherited "LOCSM" **refuted** |
+| `0x2A` | 052B | `608C` | `CMTMA` | **LCON** | `[V]` one word -> ACON port; inherited "LOCSM" **refuted** |
 | `0x2B` | 053B | `60F6` | `CMWMP` | **WMPM** | `[V]` two longs = address + data |
 | `0x2C` | 054B | `6178` | `CMRMP` | **RMPM** | `[V]` one long = address |
 | `0x2D` | 055B | `6326` | `CMSET` | SETTRAC | `[I]` three words |
@@ -108,6 +108,31 @@ pointer, `1143B2` pointer-given flag, `1143AC` microprogram running, `1143B6` ki
 **The documented error list 0-9 is incomplete** - arm `0x0D` emits **13**.
 
 ---
+
+## `0x2A` = LCON - and why the inherited "LOCSM" was wrong
+
+**`0x2A` (052B) = LCON, Load CON (5.3.40)** `[V]`. The arm reads **one 16-bit word** and loops it
+through `CmdPortWriteTiny`, which writes straight to the **ACON decoder** at `0x220000`. The manual:
+*"The ACON decoder is loaded (16 bits). This is used to generate strobe pulses according to the bit
+pattern loaded. **Nothing is stored.**"* One word in, written to ACON, nothing retained.
+
+Corroborated by the console twin sharing that worker - `Cmd32_LoadControlDecoder`.
+
+**The earlier carve recorded `0x2A` as LOCSM (Load Control Store Via Memory), and that is wrong on
+three counts:** SINTRAN's symbol is `CMTMA`, not a load-control-store name; the body loads the
+control **decoder**, not the control **store**; and LOCSM takes memory parameters while this arm
+takes one direct word and carries no parameter-pointer guard. **LOCSM has no confirmed arm.**
+
+> **A near-miss worth keeping.** Two rounds ago `CmdPortWriteTiny` briefly looked like proof that
+> `0x3A` was LCON, because the console `Cmd32_LoadControlDecoder` calls it. I rejected that on the
+> grounds that a worker with three callers proves nothing. **The right answer was a different arm
+> sharing the same worker** - `0x2A`, which matches on parameter shape as well. The rule held: the
+> worker narrowed the field, the 16-bit-word shape picked the winner.
+
+**`0x3C` (074B) has THREE guards** - control-store health, running, **and** the parameter pointer -
+so it is a memory-parameter control-store/cache command: **DUCS** (5.3.20) or **DUCC** (5.3.22),
+`[OPEN]` between them. With `0x3B` = DCCD (cache, directly), the family's fourth member DCSD is still
+unplaced.
 
 ## ECHO - the cleanest identification in the set
 
