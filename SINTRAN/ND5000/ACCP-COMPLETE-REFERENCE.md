@@ -1901,7 +1901,36 @@ documented command has no octobus arm**, so the two sets are not the same set an
 attempt to finish the naming by counting sections, or by elimination against the manual's list, will
 produce wrong names - not just possibly, but certainly.
 
-#### The memory-parameter mechanism [V 2026-08-02]
+#### Parameter shapes per arm [V 2026-08-02] - raw material for the remaining names
+
+The first few instructions of an arm say exactly what parameters it takes, because the readers are
+now named. This is measured, not inferred, and it is the input a namer needs:
+
+| Arm | Code | Parameters taken | Guards |
+|---|---|---|---|
+| `4EDC` | `0x14` | **bulk WORD list** into `0x001144F0[]`, with a running **checksum** in `(0x50,A6)` | - |
+| `5A46` | `0x20` | one WORD | running |
+| `5AB0` | `0x21` | **bulk WORD list** into `0x001144F0[]`, **no checksum** | - |
+| `5B38` | `0x22` | none | running |
+| `5BC8` | `0x23` | one LONG (`MsgBody_NextParamLong`) | running |
+| `5C44` | `0x33` | one LONG | running |
+| `5CC0` | `0x24` | none | running |
+| `519C` | `0x16` | one WORD | running |
+| `558A` | `0x36` | one WORD | running |
+| `5E64` | `0x26` | one WORD | kicks |
+| `5ECE` | `0x27` | one LONG | kicks |
+| `5D56` | `0x25` | none | kicks |
+
+**The checksum is a real discriminator.** Messnak code **4 is "checksum error"**, and only the
+control-store load path in the manual carries a checksum. `0x14` accumulates one; `0x21` builds the
+same kind of word array **without** one. So they are two different bulk-word-load commands, and the
+one with the checksum is the control-store load.
+
+**Names deliberately NOT assigned here.** The obvious reading is `0x14` = LOCSD and `0x21` = LMIR,
+and it may well be right - but this session has already walked back two inferences that looked at
+least as good (the RAIB32M/LAOB32M pair was backwards, and arm `0x34` looked like an AIB read
+because of a call whose name came from its caller). **Shape narrows; only a worker or a hardware
+code proves.** These stay `[OPEN]` until one of those turns up.
 
 - **`0x001143AE`** is **the parameter pointer itself** - a longword MFbus address. `LPARP` (arm
   `0x11`) writes it and sets the `0x001143B2` "pointer given" flag; every memory-parameter arm reads
