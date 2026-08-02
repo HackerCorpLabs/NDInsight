@@ -108,8 +108,69 @@ dispatch fell out of the one-occurrence descriptor-array base; the printer fell 
 
 ---
 
+## 4a. The chain from printed text back to the field array `[V]`
+
+Traced end to end after the section-4 dead ends, this time by following callers rather than
+scanning for values:
+
+```
+trap handler
+  132304   STA ,B -146        B-146 := (B - 0o104) + 200      <- the ONLY write
+  132637   JPL -> 151521      call the report printer, passing
+                                param1 = (base = [B-146], count = 8)
+                                plus three more 3-word params
+
+report printer  151521 .. ~154404   (ONE routine, ~1700 words)
+  25 calls to 147211 (print byte substring)
+  154251..154365  numeric renderer:
+      154262  LDA I ,B ,X -150     fetch field[X] through the array pointer
+      154303  SBYT                 emit a digit
+      154305  SAD SHR 3            octal
+      154335  JPL -> 147211        print the six digits
+      154351  SAT 7                loop bound = EIGHT fields
+```
+
+Four facts that make this solid rather than suggestive:
+
+1. **The printer has exactly ONE caller** (`132637`). Not a shared utility - it is the trap
+   report and nothing else.
+2. **`B-146` has exactly ONE writer** (`132304`). The array location is not reassigned.
+3. **The count passed by the caller (8) matches the loop bound in the callee (`SAT 7`)**, derived
+   independently at each end.
+4. The renderer's `SAD SHR 3` + mask + `SBYT` is unambiguously an octal digit emitter, which is
+   what puts the `B` on `10533B`.
+
+**So the eight printed numeric fields live at `(B - 0o104) + 200` in the trap handler's frame**,
+and "At program address" is one of those eight words.
+
+## 4b. What is still missing
+
+**Which index, and what writes the array.** `132461` loads the pointer and reads `array[8]` -
+one *past* the eight printed entries - so the structure is at least nine words. The fill is
+reached through `132457 JPL -> bank1[132517] = 123515`, a routine that computes a count from
+`B-167`/`B-170`, scales it, and passes two buffer addresses plus a double to a MON 60 thunk at
+`123556`.
+
+**That last step is NOT yet trustworthy** and is deliberately left unclaimed: `132440` is a
+conditional (`JAZ`) and I have not established that `132451`-`132466` is on the trap path rather
+than a sibling branch. Given three noise results already recorded in section 4, an unverified
+fourth reading is worth less than an honest gap.
+
+---
+
 ## 5. Next step
 
-Identify the array at `B-150` in the printer's frame: which of its eight entries is
-"At program address", and what writes it. That is the last hop to the answer, and it is
-bounded - the whole printer is 1700 words with 25 known call sites.
+Establish which of the eight words at `(B - 0o104) + 200` is "At program address", and what
+writes them.
+
+Two routes, both bounded:
+
+- **Static:** settle whether `132451`-`132466` is on the trap path (the `JAZ` at `132440`), then
+  read `123515`'s MON 60 thunk at `123556` to see what it fetches from the ND-500.
+- **Dynamic, and probably cheaper:** the printer is a single routine with a single caller and a
+  known 8-word array. A breakpoint at `132637` in the boot harness dumps all eight values at the
+  moment of the fault, which gives the index by inspection instead of by inference - and would
+  also show whether `1` and `10533B` are two fields or one.
+
+The dynamic route is worth preferring here: three of the four static searches in section 4
+produced confident-looking noise, and this one has a live reproduction available.
