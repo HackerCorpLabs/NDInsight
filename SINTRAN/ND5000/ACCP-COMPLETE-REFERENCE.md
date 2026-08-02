@@ -1697,7 +1697,7 @@ makes the other 33 trustworthy.
 | `0x15` | 025B | `4FC0` | `[OPEN]` | `0x31` | 061B | `6504` | **ENKICK** |
 | `0x16` | 026B | `519C` | `[OPEN]` | `0x32` | 062B | `6534` | **DISKICK** |
 | `0x17` | 027B | `56BC` | `[OPEN]` | `0x33` | 063B | `5C44` | `[OPEN]` |
-| `0x18` | 030B | `58A4` | `[OPEN]` | `0x34` | 064B | `5F38` | `[OPEN]` |
+| `0x18` | 030B | `58A4` | **AMICTRAP** | `0x34` | 064B | `5F38` | `[OPEN]` |
 | `0x1B` | 033B | `65B6` | **STARTMIC** | `0x35` | 065B | `5DC0` | `[OPEN]` |
 | `0x1C` | 034B | `562E` | **STOPMIC** | `0x36` | 066B | `558A` | `[OPEN]` |
 | `0x1D` | 035B | `568C` | **CONTMIC** | `0x37` | 067B | `6390` | `[OPEN]` |
@@ -1752,14 +1752,37 @@ Reply_EmitByte(errcode)     ; e.g. 0xFF = -1, 0x01 = 1
 StatusHiRead()              ; the two ASTS bytes
 ```
 
-**Two guard globals `[V]`:**
+**Three guard globals `[V]` - these classify an arm before its body is read:**
 
 - **`0x001143AC`** - microprogram-running flag. Non-zero -> Messnak **-1** ("illegal when microprogram
   is running"). This is the same flag the carve agent found `Cmd31_LoadModeRegister` conspicuously
   lacking.
 - **`0x001143B2`** - parameter-pointer-set flag. Zero -> Messnak **1** ("no parameter pointer is
-  given"). **An arm that tests this is a memory-parameter command** and needs `LPARP` first. That is
-  a strong classifier and narrows names considerably.
+  given"). **An arm that tests this is a memory-parameter command** and needs `LPARP` first.
+  Written by arm `0x11` = `LPARP` at `0x5994`, which confirms both ends of the mechanism. Read by
+  arms `0x13`, `0x15` and `0x34`.
+- **`0x001143B6`** - kicks-enabled flag. Non-zero -> Messnak **-2** ("illegal when kicks are
+  enabled"). ND-05.020.01 5.3.11 names READ AIB as its example, "READ AIB would destroy a kick being
+  sent from the ND-5000", so **an arm with this guard is very likely an AIB reader**.
+
+**Method warning that cost a sweep:** xrefs in this range **undercount**, because parts of the
+dispatcher are still undefined bytes rather than code. `0x4D90` tests `0x001143B2` but did not appear
+in the xref list until it was force-disassembled. **Disassemble the gaps first, then trust xrefs** -
+otherwise a clean-looking empty result is just unanalysed data. Same family as the `bset #5` trap.
+
+#### Commands named this round
+
+**`0x18` (030B) = AMICTRAP** `[V]` - ACCP MICROTRAP, 5.3.14. The arm collects the body bytes, pairs
+them big-endian into 16-bit words, waits on `0x00660001` bit 1, and writes each to AOB at
+`0x00440000`. It then falls into **`0x5958`, the site that writes `0xD0` to MREG-upper** =
+OBACT+AOBF+ATRAP - **ATRAP without OMESS**, which is exactly what 5.3.14 specifies "to distinguish
+this from octobus kicks/idents". The kick shape is `0xD8`, the same word plus OMESS, at `0x061C`.
+That literal is what pins the identity, and it ties the carve agent's MREG literal table directly to
+a command.
+
+**`0x34` (064B) = RAIB32M?** `[I]` - guarded by BOTH the parameter-pointer flag and the kicks-enabled
+flag, which per 5.3.11 points at a memory-parameter AIB reader, i.e. Read AIB32 Via Memory (5.3.34).
+**Not promoted to `[V]`** - the body past the guards has not been read.
 
 **Trap avoided while doing this:** arm `0x13` calls `StatusHiRead`, which looks like it makes the
 command RASTS (5.3.38, Read ASTS). **It does not** - the call is part of the Messnak tail above, which
