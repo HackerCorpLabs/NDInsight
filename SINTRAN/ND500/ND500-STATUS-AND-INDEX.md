@@ -226,10 +226,47 @@ START-PLACE / ISEGLOAD x2 / END-PLACE reading of the carved call graph. Also vis
 index `007` = `IPLSWAPPER` (PLACE SWAPPER) and index `160` = `IN5SEGLOAD`, a second
 segment-load entry point not previously noted.
 
-**NEXT TARGET: the ND-500 SYSTEM MONITOR's own PLACE implementation** (reached through
-`FPT2ENTRY` -> `5FP2E` -> `FUNCS[subfn] @142031B`), and specifically what is supposed to write
-the domain `:PSEG`/`:DSEG` content into the swap file. The swap file was measured VIRGIN with
-only one page read; whoever fills it is the missing actor.
+### CORRECTION, SAME SESSION: "the place is performed on the ND-500 side" IS WRONG
+
+I wrote that above and it is a **name-based error**, corrected within the hour. `FPT2ENTRY`'s
+source comment says "ENTER ND-500 SYSTEM MONITOR" and I read that as crossing to the ND-500. It
+does not.
+
+**The "ND-500 System Monitor" is segment `030-S3SM5`, and it is ND-100 CODE running on the
+ND-100.** It is the system monitor *for* the ND-500, not a monitor *on* it. Verified this pass:
+
+- `030-S3SM5.meta.json`: "ND-500 System Monitor segment", load address `40000B` - which is
+  exactly the `FPT2E = 40000+3` definition in `s3vs-4.symb:76989`.
+- Runtime word `040003` is `125001 JMP I 1` -> pointer at `040004` = **`0o142231`**, the real
+  entry (`5FP2E`).
+- Disassembled `142231` onward with **`nd100-dis`** on the byte-swapped image: clean, idiomatic
+  ND-100 using the same `STA ,B -nn` / `LDX ,B` / `JPL I` frame conventions as every other
+  ND-100 segment. This independently reproduces the 2026-07-21 correction already recorded in
+  the carving skill.
+
+**Consequence: the ND-100 CAN do the disc I/O, and the PLACE work is on the ND-100 after all.**
+Everything else from the previous entry survives - `5NOPAR` really does no I/O, `ISEGLOAD` really
+only copies the name, `FUNCS[006] = RET5` really means no post-return work. What was wrong was
+only *where* the work then happens.
+
+**THE ACTUAL TARGET IS NAMED AND ALREADY CARVED:** `FUNCS[006] = SGLOA @ 142637`,
+"load (place) one segment", in
+`re/ND500-SYSTEM-MONITOR/FUNCS-BODIES/FUNCS-segload-primitives.ASM`. Full chain, every hop named:
+
+```
+RECOVER-DOMAIN -> 042115 loader -> subfn 006
+  -> [worker]  5IFUNC[006] ISEGLOAD (copies the name) -> 5NOPAR -> FPT2ENTRY
+  -> [sysmon]  5FP2E @142231 -> FUNCS[006] = SGLOA @142637 -> the actual segment place
+```
+
+Reading `SGLOA` for the disc access is the next step.
+
+**ALSO FLAGGED - a stale doc that will mislead the next reader.**
+`re/030-S3SM5-routine-map.md` states its disassembler as `nd500-dis` and calls the code region
+"ND-500 code". That contradicts both the carving skill's 2026-07-21 correction and the check
+above. Its **data**-region work (header, string pools, the MON dispatch vector table at `0x60`)
+is unaffected - those are bytes either way - but **every claim it makes about the code region
+should be treated as suspect** until re-derived with `nd100-dis`.
 
 **Worth flagging, not yet a claim:** ISEGLOAD is called with five parameters, **three of which
 are the ADDRESSES of caller locals** for SINTRAN to write back into. That is the same shape as
