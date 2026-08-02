@@ -1704,7 +1704,7 @@ makes the other 33 trustworthy.
 | `0x1E` | 036B | `6438` | **RESTMIC** | `0x38` | 070B | `63B8` | `[OPEN]` |
 | `0x1F` | 037B | `56EA` | **ALIVE** | `0x39` | 071B | `6408` | **CPURES** |
 | `0x20` | 040B | `5A46` | `[OPEN]` | `0x3A` | 072B | `61F4` | `[OPEN]` |
-| `0x21` | 041B | `5AB0` | `[OPEN]` | `0x3B` | 073B | `547E` | `[OPEN]` |
+| `0x21` | 041B | `5AB0` | **LMIR** | `0x3B` | 073B | `547E` | `[OPEN]` |
 | `0x22` | 042B | `5B38` | `[OPEN]` | `0x3C` | 074B | `52C6` | `[OPEN]` |
 | `0x23` | 043B | `5BC8` | `[OPEN]` | `0x3D` | 075B | `6644` | `[OPEN]` |
 | `0x24` | 044B | `5CC0` | `[OPEN]` | `0x3E` | 076B | `66B6` | **READ CPU MODEL** |
@@ -1926,11 +1926,22 @@ control-store load path in the manual carries a checksum. `0x14` accumulates one
 same kind of word array **without** one. So they are two different bulk-word-load commands, and the
 one with the checksum is the control-store load.
 
-**Names deliberately NOT assigned here.** The obvious reading is `0x14` = LOCSD and `0x21` = LMIR,
-and it may well be right - but this session has already walked back two inferences that looked at
-least as good (the RAIB32M/LAOB32M pair was backwards, and arm `0x34` looked like an AIB read
-because of a call whose name came from its caller). **Shape narrows; only a worker or a hardware
-code proves.** These stay `[OPEN]` until one of those turns up.
+**`0x21` (041B) = LMIR** `[V]`, 5.3.28 - **proved a round later, by a worker rather than by shape.**
+The arm loops `CmdPortWriteShort_A` (`0x773E`), and that worker's other caller is `0x8E78`, inside
+the console `Cmd29_LoadMir`. Console and octobus share the MIR-load worker, so the arm driving it is
+the octobus LMIR. The shape guess happened to be right; the proof is what makes it safe to write
+down.
+
+**`0x14` (024B) - the control-store load** `[I]`. It reads **exactly eight words** (`cmpi.l #0x7,D4`,
+so indices 0-7) - **8 x 16 = 128 bits, one control-store word** - then reads a ninth and adds it to
+the running sum, i.e. a trailing **checksum**. With Messnak 4 = "checksum error" and LMIR now taken,
+this is LOCSD (5.3.17). Still `[I]`: the eight-word length and the checksum are measured, but no
+shared worker or hardware code has confirmed it yet.
+
+**The rule this session keeps re-learning:** shape narrows, only a worker or a hardware code proves.
+Every name that has stuck came from a hardware fact - an MREG literal (AMICTRAP), an ACON command
+code (RAIB32D), a read-vs-write worker (LAOB16, LAOB32D), a shared console worker (LMIR). Every name
+withdrawn came from shape, position or a caller's name.
 
 - **`0x001143AE`** is **the parameter pointer itself** - a longword MFbus address. `LPARP` (arm
   `0x11`) writes it and sets the `0x001143B2` "pointer given" flag; every memory-parameter arm reads
