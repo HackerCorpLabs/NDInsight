@@ -1688,7 +1688,7 @@ makes the other 33 trustworthy.
 |---|---|---|---|---|---|---|---|
 | `0x0D` | 015B | `583A` | `[OPEN]` | `0x27` | 047B | `5ECE` | `[OPEN]` |
 | `0x0E` | 016B | `57E8` | **CMSYSPAR** | `0x28` | 050B | `5FD6` | `[OPEN]` |
-| `0x0F` | 017B | `5736` | `[OPEN]` | `0x29` | 051B | `6016` | `[OPEN]` |
+| `0x0F` | 017B | `5736` | `[OPEN]` | `0x29` | 051B | `6016` | **LMODE** |
 | `0x10` | 020B | `6562` | `[OPEN]` | `0x2A` | 052B | `608C` | **LOCSM** |
 | `0x11` | 021B | `5980` | **LPARP** | `0x2B` | 053B | `60F6` | `[OPEN]` |
 | `0x12` | 022B | `59B6` | **VPARP** | `0x2C` | 054B | `6178` | `[OPEN]` |
@@ -1721,6 +1721,27 @@ temptingly - but it prints no numeric code in any section, and the mapping fails
 is 5.3.13 and `CMSYSPAR` is `0x0E`, while `LPARP` is the very next section, 5.3.15, yet is `0x11`.
 That leaves two code slots (`0x0F`, `0x10`) for one intervening section. **Do not name these by
 counting sections.** Read each handler body instead.
+
+**The method that DOES work - cross-reference from the implementation, not the arm.** Instead of
+reading 33 handler bodies, take a worker routine whose identity is already known and ask who calls
+it. The callers that fall between two arm addresses belong to that arm.
+
+Worked example, `[V]` 2026-08-02: `0x77FE` is the mode-register write. It has exactly **two**
+callers - `0x951E` (the console `Cmd31_LoadModeRegister`) and `0x606E`. `0x606E` lies between arms
+`0x6016` and `0x608C`, so it belongs to the `0x6016` arm. **Octobus command `0x29` (051B) is
+therefore LMODE**, which independently agrees with the carve agent's note that "octobus LMODE reaches
+the same code but is Messnak -1 while running".
+
+Two cautions learned doing it:
+
+- **Arm ownership is by address range, not by proximity.** Sort the 46 arm addresses and find the
+  interval the caller falls in. Arms are not in code order, so eyeballing the nearest arm is wrong.
+- **Not every worker is single-caller.** `0x6986` (emit ack byte) has 60+ callers and identifies
+  nothing. Pick workers that touch a distinctive hardware address.
+
+Suggestive but NOT yet verified `[I]`: `0x5924` writes `0x440000` (the AOB register) and lies in the
+`0x58A4` arm, making command `0x18` (030B) a load-AOB command - the manual has LAOB16 at 5.3.35 and
+LAOB32D at 5.3.36. **Which of the two is unresolved; do not write either name down yet.**
 
 **Also rejected while doing this:** `5P-P2-MON60.NPL` has `SYMBOL STOPMIC= 34`, and 34B is `0x1C`,
 which is exactly the ACCP `STOPMIC` code. That is a **collision, not a source** - those symbols are
