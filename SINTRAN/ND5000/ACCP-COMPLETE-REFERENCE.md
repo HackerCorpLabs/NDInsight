@@ -1886,20 +1886,40 @@ only narrowed it; the ACON code proved it.
 `MsgBody_NextParamLong` (`0x7036`, four bytes assembled big-endian - renamed from
 `MicroprogCmd_Helper_7036`), then feeds it to the data-pair **write** worker `0x7320`.
 
-**The prediction held, and then went further than expected.** Four candidate names, three
-kick-guarded arms - so one had to sit elsewhere. **RAIB16 (5.3.32) appears to have NO octobus arm at
-all.** `[V` for the evidence, `I` for the conclusion`]`
+~~**RAIB16 (5.3.32) appears to have NO octobus arm at all.**~~
+> ### RETRACTED 2026-08-02, SAME DAY - and by the trap this very file warns about
+>
+> **`0x24` (044B) = RAIB16.** `[V]` Its body calls `0x72EC` = `AibRead16_AndClearAibf`, stores the
+> 16-bit result and replies with it via `Reply_EmitWord`.
+>
+> **How the wrong claim happened:** the `0x72EC` xref list showed only two callers, neither an arm.
+> But arm `0x24`'s body at `0x5D28` was still **undefined bytes**, so its call was invisible to
+> xrefs - the exact undercount this file records a warning about two sections above, written by me,
+> before I then trusted an xref list anyway. **A negative result from a tool with a known blind spot
+> is not a negative result.**
+>
+> **What this retraction does and does not reach:** the "46 arms = 46 manual sections" idea was
+> declared dead on the strength of the missing RAIB16, and that reasoning is withdrawn with it. The
+> *other* evidence against **positional** mapping still stands on its own - `LSYSPAR` is 5.3.13 and
+> `0x0E`, `LPARP` is the next section but `0x11`, leaving two code slots for one section. So: **do
+> not map by counting sections** (still true), but **do not claim the two sets differ in size**
+> (no longer supported).
 
-`0x72EC` - renamed **`AibRead16_AndClearAibf`** - is unmistakably the 16-bit AIB read: it returns
-**`_HW_DATA_LOW` only** and then issues **ACON command `5` = RAIBF**. It has exactly **two** callers:
-`0x0AEA`, and `0x89B2` inside the console `Cmd2B_ReadAib16`. **No dispatcher arm calls it.**
+**The AIB/AOB family is now closed, and it is exactly six.** Six kick-guarded arms, six AIB/AOB
+commands in the manual:
 
-**This breaks the "46 arms, 46 manual sections" coincidence.** The counts matching (5.3.12 ECHO
-through 5.3.57 READ CPU MODEL is exactly 46) made a positional mapping very tempting, and this file
-already recorded that it fails a spot check. Now there is a structural reason: **at least one
-documented command has no octobus arm**, so the two sets are not the same set and never were. Any
-attempt to finish the naming by counting sections, or by elimination against the manual's list, will
-produce wrong names - not just possibly, but certainly.
+| Arm | Command | Basis |
+|---|---|---|
+| `0x24` | **RAIB16** (5.3.32) | `[V]` calls `AibRead16_AndClearAibf` |
+| `0x25` | **RAIB32D** (5.3.33) | `[V]` calls the 32-bit pair reader + RAIBF |
+| `0x26` | **LAOB16** (5.3.35) | `[V]` word param -> `AobSingleWordWrite` |
+| `0x27` | **LAOB32D** (5.3.36) | `[V]` long param -> data-pair write |
+| `0x34` | **LAOB32M** (5.3.37) | `[I]` memory read -> data-pair write |
+| `0x35` | **RAIB32M** (5.3.34) | `[I]` the remaining slot, memory write |
+
+With four of six proved by hardware behaviour and the family closed at exactly six, the pairing
+argument for `0x34`/`0x35` is far stronger than when it was two unknowns - but they stay `[I]`
+until one of them is read end to end.
 
 #### Parameter shapes per arm [V 2026-08-02] - raw material for the remaining names
 
