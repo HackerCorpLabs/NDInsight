@@ -25,8 +25,8 @@ and all 46 matched the `0C 00 00 <imm>` + `66` shape with zero mismatches.
 | `0x12` | 022B | `59B6` | `CMVER` | VPARP | `[inh]` |
 | `0x13` | 023B | `4D50` | `CMWWC` | **LOCSM** | `[V]` issues **WCS**; memory params + checksum |
 | `0x14` | 024B | `4EDC` | `CMDWW` | **LOCSD** | `[V]` issues **WCS**; 8 words = 128 bits + checksum |
-| `0x15` | 025B | `4FC0` | `CMADR` | DUCS | `[I]` memory param; AMIRCK+MDCLK read path, no WCS |
-| `0x16` | 026B | `519C` | `CMDRW` | DCSD | `[I]` 14-bit CS address, Messnak 3; same read path |
+| `0x15` | 025B | `4FC0` | `CMADR` | **DUCS** | `[V]` store latch bit 2 + memory param |
+| `0x16` | 026B | `519C` | `CMDRW` | **DCSD** | `[V]` store latch bit 2 + direct 14-bit address |
 | `0x17` | 027B | `56BC` | - | - | `[OPEN]` latch enable + sets running |
 | `0x18` | 030B | `58A4` | - | **AMICTRAP** | `[V]` MREG `0xD0` = ATRAP without OMESS |
 | `0x1B` | 033B | `65B6` | `CMRUN` | STARTMIC | `[inh]` |
@@ -60,7 +60,7 @@ and all 46 matched the `0C 00 00 <imm>` + `66` shape with zero mismatches.
 | `0x39` | 071B | `6408` | `CMCPU` | **CPURES** | `[V]` |
 | `0x3A` | 072B | `61F4` | `CMTES` | TESTMPPM | `[I]` **two** longs; completes the multiport trio |
 | `0x3B` | 073B | `547E` | `CMCCD` | **DCCD** | `[V]` CS/cache guard + symbol agree |
-| `0x3C` | 074B | `52C6` | - | - | `[OPEN]` CS/cache guard + running guard |
+| `0x3C` | 074B | `52C6` | - | **DUCC** | `[V]` cache latch bit 1 + memory param |
 | `0x3D` | 075B | `6644` | `CMRPR` | Read PROM Version | `[I]` symbol only |
 | `0x3E` | 076B | `66B6` | - | **READ CPU MODEL** | `[V]` reads class byte `1131F6` |
 
@@ -221,10 +221,35 @@ shadow chain out. A load runs the opposite way - shift in, then WCS - which is e
 | `0x16` (026B) | one **14-bit CS address** (Messnak 3 if > `0x3FFF`) | **DCSD**, Dump Control Store Directly (5.3.19) | `[I]` |
 | `0x15` (025B) | **memory** parameter, address counter | **DUCS**, Dump Control Store Via Memory (5.3.20) | `[I]` |
 
-**Still `[I]`, and the reason is on the record:** the ACON sequence proves the *direction* is a read,
-and the parameter shapes match direct-versus-memory, but the pairing to those two specific manual
-names is elimination - which has misfired before. What would settle it is watching either arm emit
-the word it read.
+### The four dump commands form a 2x2, and a LATCH BIT is the discriminator [V 2026-08-03]
+
+There are **two** copies of the reclock-and-shift read primitive, identical except for which latch
+bit they gate:
+
+| Worker | Gates latch bit | Array | Arms that call it |
+|---|---|---|---|
+| `0x741E` | **2** (`0x04`) | control **STORE** | `0x15`, `0x16` |
+| `0x764E` | **1** (`0x02`) | control **CACHE** | `0x3B`, `0x3C` |
+
+**`0x3B` is `CMCCD` = DCCD, Dump Control *Cache* Directly - and it calls `0x764E`.** That pins latch
+bit 1 to the cache, and therefore bit 2 to the store. The second axis is already carved: the
+**parameter-pointer guard** marks the memory-parameter variants.
+
+Two hardware facts, two axes, four commands - **no elimination required**:
+
+| Arm | Array (latch bit) | Parameters | Command |
+|---|---|---|---|
+| `0x16` | store (bit 2) | direct, 14-bit address | **DCSD** (5.3.19) |
+| `0x15` | store (bit 2) | **memory** | **DUCS** (5.3.20) |
+| `0x3B` | cache (bit 1) | direct | **DCCD** (5.3.21) |
+| `0x3C` | cache (bit 1) | **memory** | **DUCC** (5.3.22) |
+
+All four promoted to `[V]`. This is the cleanest structural result in the phase: every cell is fixed
+by a hardware bit or a guard, and the manual's four dump commands land in the four cells exactly.
+
+**Worth contrasting with how this looked two rounds ago**, when the same four arms were going to be
+assigned by counting what was left over. The 2x2 says the same thing about `0x15`/`0x16`, but for a
+reason that would survive one of them turning out to be something else entirely.
 
 **And the worker's name is now doubly wrong.** `ControlStoreWriteWithVerify` neither writes (no WCS)
 nor is limited to verifying. Left renamed in place rather than re-guessed, with this note as the
