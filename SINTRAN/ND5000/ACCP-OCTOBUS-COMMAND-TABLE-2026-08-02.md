@@ -22,7 +22,7 @@ and all 46 matched the `0C 00 00 <imm>` + `66` shape with zero mismatches.
 | `0x0F` | 017B | `5736` | `CMTEC` | **ECHO** | `[V]` collects n bytes, sends the same n back; **no guards** |
 | `0x10` | 020B | `6562` | `CMREA` | - | `[OPEN]` returns 16 words from `114550` |
 | `0x11` | 021B | `5980` | `CMLPA` | **LPARP** | `[V]` writes the parameter pointer + flag |
-| `0x12` | 022B | `59B6` | `CMVER` | VPARP | `[inh]` |
+| `0x12` | 022B | `59B6` | `CMVER` | **VPARP** | `[V]` no params; running guard + param-pointer guard -> Messnak 1 |
 | `0x13` | 023B | `4D50` | `CMWWC` | **LOCSM** | `[V]` issues **WCS**; memory params + checksum |
 | `0x14` | 024B | `4EDC` | `CMDWW` | **LOCSD** | `[V]` issues **WCS**; 8 words = 128 bits + checksum |
 | `0x15` | 025B | `4FC0` | `CMADR` | **DUCS** | `[V]` store latch bit 2 + memory param |
@@ -144,12 +144,20 @@ them.**
 `0x0D` therefore joins `0x10` and `0x17` as a command with no manual section, and **RECO has no arm
 identified.**
 
-### `0x12` = VPARP needs a look
+### `0x12` = VPARP - CONFIRMED `[V]`, and the doubt was the xref undercount AGAIN
 
-5.3.16 gives VPARP Messnak **1** = *"No parameter pointer is given"*, so it must test the
-parameter-pointer flag `0x001143B2`. **The xref sweep of that flag lists only `0x13`, `0x15` and
-`0x34` - not `0x12`.** Either the arm reaches the flag another way, or the inherited name is wrong.
-`[OPEN]` - and given two of six inherited names have already fallen, worth doing properly.
+5.3.16 gives VPARP no parameters and Messnak **-1** and **1**. The arm has exactly that: no parameter
+read, the running guard, then `tst.w 0x001143B2` answering Messnak **1**, then it reads the pointer
+at `0x001143AE`.
+
+**The reason it looked wrong was that `0x59F4` was still undefined bytes**, so its test of
+`0x001143B2` never reached the xref list - the same undercount that produced the retracted RAIB16
+claim and that this file has now warned about three times.
+
+**That is the FIFTH time this single database defect has misled this work.** The one thing that went
+right here is that it was written up as *"either the arm reaches the flag another way, or the
+inherited name is wrong"* rather than as a finding. **When a sweep contradicts a documented
+behaviour in this range, suspect the disassembly before suspecting the claim.**
 
 ## TERM and ARES have NO arm - and that settles the sets question properly [V 2026-08-03]
 
