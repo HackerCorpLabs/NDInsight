@@ -1709,7 +1709,7 @@ makes the other 33 trustworthy.
 | `0x23` | 043B | `5BC8` | `[OPEN]` | `0x3D` | 075B | `6644` | `[OPEN]` |
 | `0x24` | 044B | `5CC0` | `[OPEN]` | `0x3E` | 076B | `66B6` | **READ CPU MODEL** |
 | `0x25` | 045B | `5D56` | `[OPEN]` | | | | |
-| `0x26` | 046B | `5E64` | `[OPEN]` | | | | |
+| `0x26` | 046B | `5E64` | **LAOB16** | | | | |
 
 **Codes run `0x0D`-`0x3E` with exactly four holes: `0x19`, `0x1A`, `0x2E`, `0x2F`.** Arm order in the
 image is NOT code order - `0x4D50` serves `0x13` while `0x6562` serves `0x10` - so never infer a
@@ -1836,6 +1836,29 @@ kick-guarded and sits elsewhere** - do not assign by elimination until that is r
 
 **Caution carried forward:** `0x18` = AMICTRAP writes AOB and is NOT kick-guarded, which shows the
 guard is not simply "touches AOB". Do not treat the guard as a mechanical rule for the whole family.
+
+**Direction is what actually names these, not the guard.** The workers already carry their direction
+in their names, so one decompile settles an arm:
+
+| Worker | Direction |
+|---|---|
+| `0x72A0` = `AobSingleWordWrite` | writes `_HW_DATA_LOW`, strobes latch bit `0x40` - **into AOB** |
+| `0x70AA` = `MfBusMemoryTransaction_VariantA` | writes `_HW_DATA_*`, command `0x0F`, waits status - **out to MFbus** |
+| `0x7138` = `MfBusMemoryTransaction_VariantB` | same but **returns** `_HW_DATA_*` - **in from MFbus** |
+
+**`0x26` (046B) = LAOB16** `[V]`, 5.3.35. Reads one 16-bit direct parameter, then loops
+`AobSingleWordWrite` until `0x00113138` clears. Kick-guarded, no memory parameter, and the worker
+writes - so it is the direct 16-bit load into AOB.
+
+**`0x35` (065B) = LAOB32M?** `[I]`, 5.3.37. Memory-parameter and kick-guarded, and its body reads the
+pointer then calls `MfBusMemoryTransaction_VariantA` **once** - a single 32-bit write path. That fits
+Load AOB32 Via Memory. Its partner `0x34` would then be RAIB32M, **but do not write that down yet**:
+`0x34` starts by calling STOPMIC, which no AIB read should need, and that is unexplained. Naming
+`0x34` by elimination is exactly the shortcut this file already warns against.
+
+With `0x26` taken, the kick-guarded direct-parameter arms `0x25` and `0x27` are down to three
+candidates - RAIB16 (5.3.32), RAIB32D (5.3.33) and LAOB32D (5.3.36) - for two slots, so one of those
+three still sits somewhere else.
 
 #### The memory-parameter mechanism [V 2026-08-02]
 
