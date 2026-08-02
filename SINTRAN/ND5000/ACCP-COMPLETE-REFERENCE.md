@@ -1686,7 +1686,7 @@ makes the other 33 trustworthy.
 
 | Code | Octal | Arm | Name | Code | Octal | Arm | Name |
 |---|---|---|---|---|---|---|---|
-| `0x0D` | 015B | `583A` | `[OPEN]` | `0x27` | 047B | `5ECE` | `[OPEN]` |
+| `0x0D` | 015B | `583A` | `[OPEN]` | `0x27` | 047B | `5ECE` | **LAOB32D** |
 | `0x0E` | 016B | `57E8` | **CMSYSPAR** | `0x28` | 050B | `5FD6` | `[OPEN]` |
 | `0x0F` | 017B | `5736` | `[OPEN]` | `0x29` | 051B | `6016` | **LMODE** |
 | `0x10` | 020B | `6562` | `[OPEN]` | `0x2A` | 052B | `608C` | **LOCSM** |
@@ -1708,7 +1708,7 @@ makes the other 33 trustworthy.
 | `0x22` | 042B | `5B38` | `[OPEN]` | `0x3C` | 074B | `52C6` | `[OPEN]` |
 | `0x23` | 043B | `5BC8` | `[OPEN]` | `0x3D` | 075B | `6644` | `[OPEN]` |
 | `0x24` | 044B | `5CC0` | `[OPEN]` | `0x3E` | 076B | `66B6` | **READ CPU MODEL** |
-| `0x25` | 045B | `5D56` | `[OPEN]` | | | | |
+| `0x25` | 045B | `5D56` | **RAIB32D** | | | | |
 | `0x26` | 046B | `5E64` | **LAOB16** | | | | |
 
 **Codes run `0x0D`-`0x3E` with exactly four holes: `0x19`, `0x1A`, `0x2E`, `0x2F`.** Arm order in the
@@ -1856,9 +1856,20 @@ Load AOB32 Via Memory. Its partner `0x34` would then be RAIB32M, **but do not wr
 `0x34` starts by calling STOPMIC, which no AIB read should need, and that is unexplained. Naming
 `0x34` by elimination is exactly the shortcut this file already warns against.
 
-With `0x26` taken, the kick-guarded direct-parameter arms `0x25` and `0x27` are down to three
-candidates - RAIB16 (5.3.32), RAIB32D (5.3.33) and LAOB32D (5.3.36) - for two slots, so one of those
-three still sits somewhere else.
+**`0x25` (045B) = RAIB32D** `[V]`, 5.3.33. Takes **no** parameters. Its body calls
+`MfBusCmdDataPairStatus` (`0x7374`) and keeps the result as a long. **What names it is an ACON
+code**: that worker reads the data pair and then issues **command `5` = RAIBF**, "reset AIBF flag and
+clear MASKAIBF flip-flop" (table 9). Reading the pair and clearing AIBF *is* a read of AIB. The guard
+only narrowed it; the ACON code proved it.
+
+**`0x27` (047B) = LAOB32D** `[V]`, 5.3.36. Reads a **32-bit** direct parameter via
+`MsgBody_NextParamLong` (`0x7036`, four bytes assembled big-endian - renamed from
+`MicroprogCmd_Helper_7036`), then feeds it to the data-pair **write** worker `0x7320`.
+
+**The prediction held.** Four candidate names, three kick-guarded arms - so one had to sit elsewhere,
+and it does: **RAIB16 (5.3.32) is not among the kick-guarded arms at all.** Had the set been closed
+by elimination two rounds ago, RAIB16 would have been planted on one of these three and both it and
+the real RAIB16 arm would now be wrong.
 
 #### The memory-parameter mechanism [V 2026-08-02]
 
