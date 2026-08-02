@@ -19,7 +19,7 @@ and all 46 matched the `0C 00 00 <imm>` + `66` shape with zero mismatches.
 |---|---|---|---|---|---|
 | `0x0D` | 015B | `583A` | - | RECO, Read ECO Levels | `[I]` returns 3 words from `1143A0/A2/A4` |
 | `0x0E` | 016B | `57E8` | `CMSYS` | CMSYSPAR / LSYSPAR | `[inh]` + clears `1131E2` |
-| `0x0F` | 017B | `5736` | `CMTEC` | - | `[OPEN]` byte param masked `0x1F` |
+| `0x0F` | 017B | `5736` | `CMTEC` | **ECHO** | `[V]` collects n bytes, sends the same n back; **no guards** |
 | `0x10` | 020B | `6562` | `CMREA` | - | `[OPEN]` returns 16 words from `114550` |
 | `0x11` | 021B | `5980` | `CMLPA` | **LPARP** | `[V]` writes the parameter pointer + flag |
 | `0x12` | 022B | `59B6` | `CMVER` | VPARP | `[inh]` |
@@ -108,6 +108,20 @@ pointer, `1143B2` pointer-given flag, `1143AC` microprogram running, `1143B6` ki
 **The documented error list 0-9 is incomplete** - arm `0x0D` emits **13**.
 
 ---
+
+## ECHO - the cleanest identification in the set
+
+**`0x0F` (017B) = ECHO, Echo Test (5.3.12)** `[V]`, confirmed three independent ways:
+
+1. **Behaviour.** Reads a byte count, collects that many bytes, acks, then emits **the same bytes
+   back**. The manual's wording is "returns the test pattern".
+2. **The absence of guards.** 5.3.11 says *"Some commands never return Messnak, like ECHO TEST"* -
+   and this is the **only arm in all 46 with no guard at all**. An absence that the manual predicts
+   is real evidence, unlike an absence a tool failed to show.
+3. **The symbol.** `CMTEC` reads as "test communication", matching 5.3.12's stated purpose, *"to
+   assure that the basic communication between the ND-120 and the ACCP works"*.
+
+**Detail the manual does not state: the count is masked to `0x1F`, so at most 31 test bytes.**
 
 ## The multiport trio
 
