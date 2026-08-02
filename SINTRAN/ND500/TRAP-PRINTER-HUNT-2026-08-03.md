@@ -108,6 +108,86 @@ dispatch fell out of the one-occurrence descriptor-array base; the printer fell 
 
 ---
 
+## 0. ANSWERED - and the manual was in the repo the whole time `[V]`
+
+**`ND-05.017.01 EN ND-5000 HARDWARE MAINTENANCE` chapter 6 documents this exact report, with two
+worked examples.** No carving was needed.
+
+### 0.1 The address format, proven by the manual reporting ONE fault TWO ways
+
+Page 114 prints the user-facing report:
+
+```
+*** ND-5000 HARDWARE FAULT ***
+At program address:        1                   31B
+From CPU in slot position:                      6D
+Logical address:           1             466414B
+MEMORY MANAGEMENT STATUS:                      5B
+DATA POFF read request
+Physical address:         13       137776414B
+Physical segment:                             8D
+WR:                         13771B
+ACCP status:                62750B
+BADAP:                        140B
+```
+
+Page 115 prints what **the same fault** writes to the error device:
+
+```
+ND-500/5000 trap number: 51B at: 1000000031B ND-500/5000 Hardware fault
+```
+
+`1` and `31B` are the two halves of **`1000000031B`**. So:
+
+> **full VA = (first number) x `0o1000000000` + (second number, octal)**
+
+`0o1000000000` = `0x08000000` = one segment. The first number is the **segment**, the second the
+**byte offset**.
+
+**Therefore `1 10533B` = VA `0o1000010533`** - segment 1, byte offset `0o10533`. That is exactly
+the reading the swapper `.asm` uses, and it is now **verified against the manual instead of
+assumed**. The standing "the frame and units of that address are genuinely UNKNOWN" caveat is
+**closed**.
+
+Corroborated by the manual's second example, a swapper page fault on page 109:
+`At program address:  1  2242B` - same shape, same segment 1, for the same process we are
+debugging.
+
+### 0.2 The all-zero fields are EXPECTED, not evidence of a bug
+
+Our trap reports logical `0:4`, MMS status `0`, physical `0`, physical segment `0`, WR `0`, and
+that was written up as "what decoding an UNFILLED message buffer looks like". **The manual says
+otherwise, in as many words** (page 115):
+
+> "if a memory error occurs during the final read/write access, the MMS status will not have
+> been locked, or the Logical address or WR register."
+
+So for a fault taken on the **final access** - as opposed to during an MMS table lookup - those
+registers are simply **not latched**, and reading zero from them is the documented behaviour.
+Our field pattern matches that case exactly.
+
+**Consequence:** the zeros are not a servicer defect and never were. The "phantom from a trap
+message our servicer never populated" hypothesis is dead, killed by documentation rather than by
+measurement.
+
+### 0.3 What the puzzle now IS
+
+The format is settled, so the anomaly is real and narrow: **VA `0o1000010533` is mid-instruction**
+in a listing whose every length was hand-verified, in a build proven SHA256-identical to what
+runs.
+
+Two candidates remain, and the manual leans on neither:
+
+1. A length defect in the disassembly *before* `0o10533` that the hand-verification from
+   `0o10432` did not cover.
+2. **The ND-5000 reports the address of the memory reference in progress, not the instruction
+   start.** This is a hardware-fault trap taken on a final read/write access - the microcode may
+   well latch the operand address. `[H]` - the manual's field table says "Program address | What
+   kind of instruction", which reads as instruction-start and argues *against* this, so it is a
+   hypothesis and not a conclusion.
+
+---
+
 ## 4a. The chain from printed text back to the field array `[V]`
 
 Traced end to end after the section-4 dead ends, this time by following callers rather than
