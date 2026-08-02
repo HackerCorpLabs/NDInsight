@@ -25,8 +25,8 @@ and all 46 matched the `0C 00 00 <imm>` + `66` shape with zero mismatches.
 | `0x12` | 022B | `59B6` | `CMVER` | VPARP | `[inh]` |
 | `0x13` | 023B | `4D50` | `CMWWC` | **LOCSM** | `[V]` issues **WCS**; memory params + checksum |
 | `0x14` | 024B | `4EDC` | `CMDWW` | **LOCSD** | `[V]` issues **WCS**; 8 words = 128 bits + checksum |
-| `0x15` | 025B | `4FC0` | `CMADR` | - | `[OPEN]` memory param; loops `ControlStoreWriteWithVerify` |
-| `0x16` | 026B | `519C` | `CMDRW` | - | `[OPEN]` 14-bit CS address, Messnak 3 |
+| `0x15` | 025B | `4FC0` | `CMADR` | DUCS | `[I]` memory param; AMIRCK+MDCLK read path, no WCS |
+| `0x16` | 026B | `519C` | `CMDRW` | DCSD | `[I]` 14-bit CS address, Messnak 3; same read path |
 | `0x17` | 027B | `56BC` | - | - | `[OPEN]` latch enable + sets running |
 | `0x18` | 030B | `58A4` | - | **AMICTRAP** | `[V]` MREG `0xD0` = ATRAP without OMESS |
 | `0x1B` | 033B | `65B6` | `CMRUN` | STARTMIC | `[inh]` |
@@ -205,6 +205,30 @@ dump commands DCSD (5.3.19) and DUCS (5.3.20) as the live candidates, `[OPEN]` b
 **The technique, worth reusing:** when a worker's name is untrustworthy, search the image for the
 **hardware command byte** the real operation must issue and see who issues it. Two hits out of a
 131072-byte image settled a question four rounds of reading arms had not.
+
+### And the same map settles `0x15` / `0x16` as DUMPS
+
+`0x741E` issues, in order: **AMIRCK** (`0x18`, reclock MIR **from** the control store) and then, via
+`CmdPortWriteShort_B`, **MDCLK** (`0x10`, clock the MISR serial chain). It checks `HW_STATUS_HI`
+bit 0 and returns a status flag, and it **never issues WCS**.
+
+Reclock-then-shift is the **read** direction: pull a control-store word into MIR, then shift the
+shadow chain out. A load runs the opposite way - shift in, then WCS - which is exactly what
+`ControlStoreWrite_WCS_A`/`_B` do for `0x13` and `0x14`.
+
+| Arm | Parameter | Command | Basis |
+|---|---|---|---|
+| `0x16` (026B) | one **14-bit CS address** (Messnak 3 if > `0x3FFF`) | **DCSD**, Dump Control Store Directly (5.3.19) | `[I]` |
+| `0x15` (025B) | **memory** parameter, address counter | **DUCS**, Dump Control Store Via Memory (5.3.20) | `[I]` |
+
+**Still `[I]`, and the reason is on the record:** the ACON sequence proves the *direction* is a read,
+and the parameter shapes match direct-versus-memory, but the pairing to those two specific manual
+names is elimination - which has misfired before. What would settle it is watching either arm emit
+the word it read.
+
+**And the worker's name is now doubly wrong.** `ControlStoreWriteWithVerify` neither writes (no WCS)
+nor is limited to verifying. Left renamed in place rather than re-guessed, with this note as the
+correction.
 
 ## `0x2A` = LCON - and why the inherited "LOCSM" was wrong
 
