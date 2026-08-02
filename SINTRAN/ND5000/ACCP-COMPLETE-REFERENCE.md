@@ -615,6 +615,26 @@ New facts from this:
   `0x660000`. A stub returning 0 here makes every control-store write report an error - which is
   *correct* behaviour with no ND-5000 present, and matches what the handoff already predicted.
 - **`0x001131E2` is the sticky control-store error latch** (set to -1).
+
+  > **ENRICHED 2026-08-02 (carve agent, `[V]`): this is THE selftest status word, and it is
+  > ORDER-SENSITIVE.** It is not only a control-store latch - it is the single word that *both*
+  > the boot console selftest summary (`0xF1A4`) and the octobus `RTEST` reply (`0x6632`) read.
+  > One address, two readers.
+  >
+  > **`CMSYSPAR` (`0x0E`) and `CPURES` (`0x39`) CLEAR it.** So an `RTEST` issued after either one
+  > returns `00 00 00` while the console still prints `Selftest failed ... 077FH`. Sent as the
+  > FIRST command with nothing before it, `RTEST` returns `00 07 7F` - exact agreement.
+  >
+  > **Poisoned prior, do not re-derive:** the framing *"RTEST may read a different word, or the
+  > ND-5000's status rather than the ACCP's"* is **withdrawn**. Both paths provably read one
+  > address. The question was never *which word* but *when*.
+  >
+  > `RTEST` also clears `0x001144EC` and `0x001144EA` before replying - an undocumented side
+  > effect on a status word, which is what made the first measurement lie.
+  >
+  > Writers already carved in this file: `0x746A` sets it to -1 (control-store error); `0x120C`
+  > sets bit 15 (model not validated). Those are consistent - it is a status word with several
+  > contributors, cleared by specific commands.
 - **`0x00114560` is a new RAM variable**, outside the `0x1131xx` / `0x1143xx` / `0x1144xx` clusters
   seen so far. Bits 10..8 act as a **verbosity / message-level threshold** - the error is only
   printed when that field is >= 1. Worth knowing: a test can suppress or force this diagnostic.
@@ -1640,6 +1660,26 @@ AccpMainInitAndRunConsole @0x205C
 sequence. That matters for two reasons: there is no table to type as pointers, and the
 command codes are sparse (0x03..0x46 with holes), which a jump table could not have been.
 
+> **THERE ARE TWO SEPARATE COMPARE CHAINS ON THIS CARD. Do not conflate them.** They have
+> different lengths, different address ranges and different command-code spaces, so a count or an
+> arm address from one is meaningless in the other.
+>
+> | Chain | Range | Selector | Arms | Codes |
+> |---|---|---|---|---|
+> | **Console** command (this section) | `0x227E-0x2746` | `0x00113334` | **43** | `0x03..0x46`, sparse |
+> | **Octobus** ACCP command | `0x4D50-0x66B6` | `D0` | **46** | `0x0E..0x3E`, sparse |
+>
+> The octobus chain's 46 arms are enumerated in
+> `CARVE-ANSWER-OCTOBUS-ACCP-COMMAND-DISPATCH-AND-RTEST-2026-08-02.md`, confirmed `[V]` by three
+> independent methods (chain walk; external naming from `N500-SYMBOLS.SYMB` + ND-05.020.01 5.3, where
+> all 13 named commands land inside code runs and none in a gap; and a whole-image byte search for
+> `0C 00 00 ?? 66` yielding exactly 46). That third method **includes `0x4D50`, which an earlier scan
+> missed**, and **excludes `0x63DC`, a `beq` false positive**. ~30 of the 46 arms are still unnamed
+> `[OPEN]` - reading the `cmpi.b` immediate at each site would name them.
+>
+> Both chains being linear compares is not a coincidence: it is the ordinary PLANC `CASE` shape
+> (see the `ghidra-planc` skill). **Never go looking for a jump table on this card.**
+
 `0x00113334` holds the current command code. Watch that one word and you know what the
 console is executing.
 
@@ -2175,6 +2215,23 @@ Byte 0 is a status byte, byte 1 an error code, and error replies carry a constan
 
 **`FF 01` therefore means a DEFINED command that returned error 01** - not "unknown command". That
 distinction is what made the shared-enum refutation above decisive.
+
+> **CONVENTION SETTLED 2026-08-02 (carve agent, `[V]` - both halves were previously guesses).**
+> ack = a single `0x00`. nak = `FF <Messnak code> 10 11`.
+>
+> The confirming case is `ALIVE` (`0x1F`): the card answers `FF 07 10 11`, and ND-05.020.01 5.3.26
+> documents exactly one nak for ALIVE - **`7 = NOT alive (stopped)`** - which is correct for a card
+> with no microprogram running. That single agreement pins `0xFF` as the nak marker and byte 1 as
+> the Messnak code. The table above was right; it is now evidenced rather than inferred.
+>
+> **The `0x30` row is ORDER-SENSITIVE and the table cannot show it.** `00 07 7F` is the reply when
+> `RTEST` is sent **first, with nothing before it**. `CMSYSPAR` (`0x0E`) or `CPURES` (`0x39`) clear
+> `0x001131E2` first, after which the same command returns `00 00 00` - and the console still prints
+> `Selftest failed ... 077FH`. Two of the card's own outputs disagreeing, with the card entirely
+> consistent and the measurement at fault. See the `0x001131E2` banner in section 2.
+>
+> **Malformed input is handled, not fatal `[V]`:** an OBCON message with an empty body gives
+> `Communication error at address 6FE4H` -> `ACCP Software Reset performed` -> a clean reboot.
 
 > **The ASCII collision is systematic, not a coincidence.** CPU type 3 puts `0b11` in exactly the
 > bit positions where ASCII's `0x30` marker sits, so **every type-3 model reads as a plausible
