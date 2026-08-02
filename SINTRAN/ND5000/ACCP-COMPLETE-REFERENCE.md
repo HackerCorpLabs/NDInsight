@@ -1938,6 +1938,28 @@ the running sum, i.e. a trailing **checksum**. With Messnak 4 = "checksum error"
 this is LOCSD (5.3.17). Still `[I]`: the eight-word length and the checksum are measured, but no
 shared worker or hardware code has confirmed it yet.
 
+**Worker sharing has a limit, found the hard way 2026-08-02.** `CmdPortWriteTiny` (`0x783A`) is
+called by the console `Cmd32_LoadControlDecoder` **and** by arm `0x3A` **and** by arm `0x2A`. For a
+moment that looked like proof that `0x3A` is LCON (5.3.40). It is not: a worker with three unrelated
+callers is a **generic port write**, not an identity. **Before using a shared worker as proof, count
+its callers - one or two means something, three or more usually does not.** Same shape as `0x6986`
+(emit-ack, 60+ callers) being useless, just less obvious.
+
+`0x14` picked up supporting evidence from the same sweep: it calls `CmdPortWrite_A` (`0x73B2`), and
+so does the console `Cmd21_LoadControlStore` at `0x8CE4`. Combined with the eight-word length and the
+checksum that is a good case for LOCSD - but `0x73B2` has around two dozen callers, so by the rule
+just stated **this does not promote `0x14` to `[V]`.** It stays `[I]`.
+
+**A caution about the thirteen names inherited from the earlier carve.** Those were listed with
+"Source: ND-05.020.01 5.3", but **the manual prints no numeric command codes in any of those
+sections** - this file established that when positional mapping was rejected. So the code-to-name
+mapping for `CMSYSPAR`, `LPARP`, `VPARP`, `STARTMIC`, `STOPMIC`, `CONTMIC`, `RESTMIC`, `ALIVE`,
+`LOCSM`, `RTEST`, `ENKICK`, `DISKICK` and `CPURES` must have come from somewhere else, most likely
+`N500-SYMBOLS.SYMB`. Several are independently corroborated by behaviour (`ENKICK`/`DISKICK` write
+the kicks flag; `LPARP` writes the parameter pointer; `RTEST` reads the selftest word), which is
+reassuring. **`LOCSM` at `0x2A` is NOT corroborated that way and is now load-bearing** - it is the
+reason `0x13` cannot simply be called LOCSM. Worth confirming its provenance before building on it.
+
 **The rule this session keeps re-learning:** shape narrows, only a worker or a hardware code proves.
 Every name that has stuck came from a hardware fact - an MREG literal (AMICTRAP), an ACON command
 code (RAIB32D), a read-vs-write worker (LAOB16, LAOB32D), a shared console worker (LMIR). Every name
