@@ -1707,7 +1707,7 @@ makes the other 33 trustworthy.
 | `0x21` | 041B | `5AB0` | `[OPEN]` | `0x3B` | 073B | `547E` | `[OPEN]` |
 | `0x22` | 042B | `5B38` | `[OPEN]` | `0x3C` | 074B | `52C6` | `[OPEN]` |
 | `0x23` | 043B | `5BC8` | `[OPEN]` | `0x3D` | 075B | `6644` | `[OPEN]` |
-| `0x24` | 044B | `5CC0` | `[OPEN]` | `0x3E` | 076B | `66B6` | `[OPEN]` |
+| `0x24` | 044B | `5CC0` | `[OPEN]` | `0x3E` | 076B | `66B6` | **READ CPU MODEL** |
 | `0x25` | 045B | `5D56` | `[OPEN]` | | | | |
 | `0x26` | 046B | `5E64` | `[OPEN]` | | | | |
 
@@ -1788,6 +1788,23 @@ flag, which per 5.3.11 points at a memory-parameter AIB reader, i.e. Read AIB32 
 > **`0x795A` = STOPMIC**, then reads the parameter pointer and runs a bulk loop gated by
 > `0x00113138`. Stopping the microprogram first fits a control-store operation better than an AIB
 > read. **Treat `0x34` as unresolved, not as RAIB32M.**
+
+**`0x3E` (076B) = READ CPU MODEL** `[V]`, 5.3.57. The arm reads the CPU class **byte** at
+`0x001131F6` and the accept bit at `0x001131FA`, then replies with the packed model byte. This is
+the arm behind the CMD-3 reply `00 39` already documented above, so the command table and the
+dispatcher now agree from both ends.
+
+**A fourth guard, and it classifies the control-store family** `[V]`: arms `0x3B` (073B) and `0x3C`
+(074B) both begin
+
+```
+cmpi.w #0x7F55,(0x0011455C)   ; must MATCH, else...
+-> Messnak 5                  ; "control store / control cache HW error"
+```
+
+So **`0x0011455C` holds a health/ready word whose good value is `0x7F55`**, and **an arm testing it is
+a control-store or control-cache command**. That narrows `0x3B` and `0x3C` to the DCSD / DUCS / DCCD /
+DUCC family (5.3.19-5.3.22) - `[I]`, not resolved between them yet.
 
 #### The memory-parameter mechanism [V 2026-08-02]
 
