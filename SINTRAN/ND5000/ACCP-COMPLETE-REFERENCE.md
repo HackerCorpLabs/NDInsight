@@ -1784,6 +1784,30 @@ a command.
 flag, which per 5.3.11 points at a memory-parameter AIB reader, i.e. Read AIB32 Via Memory (5.3.34).
 **Not promoted to `[V]`** - the body past the guards has not been read.
 
+> **Reading the body WEAKENED this guess, which is why it was not promoted.** Arm `0x34` first calls
+> **`0x795A` = STOPMIC**, then reads the parameter pointer and runs a bulk loop gated by
+> `0x00113138`. Stopping the microprogram first fits a control-store operation better than an AIB
+> read. **Treat `0x34` as unresolved, not as RAIB32M.**
+
+#### The memory-parameter mechanism [V 2026-08-02]
+
+- **`0x001143AE`** is **the parameter pointer itself** - a longword MFbus address. `LPARP` (arm
+  `0x11`) writes it and sets the `0x001143B2` "pointer given" flag; every memory-parameter arm reads
+  it back from here.
+- **`0x7138` = `MfBusMemoryTransaction_VariantB`** (already named) reads a 32-bit word from MFbus
+  memory. Arm `0x13` uses it to pull a `{address, count}` descriptor out of the parameter block,
+  taking the low half to one frame cell and the high half as a count.
+- **`0x7320` = `MfBusDataPairWithLatchGate_33`** (already named) is the data-pair write with the
+  latch gate.
+
+**A cross-check worth noting, and a possible refinement to the `0x220000` census.**
+`MfBusMemoryTransaction_VariantB` drives the command port with ACON `0x000F` (ADCLK) and then
+`0x8013`. The census recorded `0x8013` running **exactly once per boot**, and the carve agent read
+those once-per-boot codes as the self-test bus loopback. Both can be true - they are different call
+sites - but it means **`0x8013` has at least two producers**, and the census's single occurrence only
+tells us which one ran during that particular boot. A boot that exercised a memory-parameter command
+would count more. `[OPEN]` - worth one rerun to settle.
+
 **Trap avoided while doing this:** arm `0x13` calls `StatusHiRead`, which looks like it makes the
 command RASTS (5.3.38, Read ASTS). **It does not** - the call is part of the Messnak tail above, which
 every guarded arm shares. A shared error path is not an identity.
