@@ -17,6 +17,7 @@ Floppy *boot-loader* analysis is deliberately out of scope.
 
 Extracted read-only with
 `ndtool.exe -x -o <outdir> <image>`
+(`E:\Dev\Ronny\norskdata-ndfs\ndfs-c\build-win\ndtool.exe`).
 
 > **Do not add `-p` to a whole-image extract.** `-p` strips the top bit of every byte
 > (`cmd_extract.c`, `ctx->do_parity`). That is right for even-parity **text** and
@@ -25,7 +26,6 @@ Extracted read-only with
 > only where the file is known to be text. The quotes in this document are all ASCII so they
 > were unaffected, but the recipe was published as a general one and is not safe as such.
 > Flagged in `DOC-AUDIT.md` (lines 44, 52, 107-119, edit #4); applied 2026-08-02.
-(`E:\Dev\Ronny\norskdata-ndfs\ndfs-c\build-win\ndtool.exe`).
 
 | image | volume label | files |
 |---|---|---|
@@ -464,8 +464,15 @@ the *core-image* maximum used by the patch macros, not a disc size. [VERIFIED.]
 
 ### 3.1 Is disc size a free parameter?
 
-**No — it must match a fixed table.** The operator does not type a capacity,
-cylinder count or page count anywhere. He types **one octal number from a table
+**No — not at MACM generation time.** The operator does not type a capacity,
+cylinder count or page count anywhere in the `)9BYTT` block.
+
+> **Scope corrected 2026-08-02.** Absence of a size parameter at GENERATION time is equally
+> consistent with "size is supplied later" — and it is: `CARVED-DISC-SUPPORT.md` carves the
+> prompt `ID NUMBER OF PAGES:`, the operator-supplied size that reaches `GSIZE` and thence
+> `ALBIT` at directory-creation time. The `)9BYTT` dummies cannot see that stage, so they
+> cannot speak to it.
+ He types **one octal number from a table
 that is compiled into MACM**, in answer to `ENTER MSTYP:`, plus `R` or `F` in
 answer to `REMOVABLE OR FIXED (R/F):`. [VERIFIED — the prompt strings, and the
 absence of any size parameter in the `)9BYTT` block, where all five candidate

@@ -1910,10 +1910,25 @@ results, bit masking at line 3510).
 | CPU Type | `(word >> 8) & 0x07` | Bits 10-8 (3-bit) |
 | Instruction Set | `word & 0x0F` (fallback from `word & 0xFF`) | Bits 3-0 (4-bit) |
 
-> **Verified emulator value** (via DPIT #7 page table): HWINFO(0) = `001002₈` = `0x0202`.
+> **Observed value** (via DPIT #7 page table): HWINFO(0) = `001002₈` = `0x0202`.
 > - CPU Type: `(0x0202 >> 8) & 0x07` = **2 → ND-100, 48-bit floating** (correct)
 > - Instruction Set: `0x0202 & 0x0F` = **2 → ND-100/CX** (correct)
-> - Clean extraction — no extra bits, no fallback needed.
+>
+> **The FIELD WIDTHS above are NOT verified by this sample [flagged 2026-08-02].** Both fields
+> read `2` with no high bits set, so every plausible competing mask returns the same answer:
+> `&0x0F`, `&0x1F` and `&0xFF` all give 2, and `(>>8)&0x07`, `(>>8)&0x0F` and `(>>8)&0xFF` all
+> give 2. "Clean extraction — no extra bits, no fallback needed" is not a finding; it restates
+> that the sample happens to be small. A 3-bit CPU-type field and a 4-bit instruction-set field
+> are plausible, but this observation cannot distinguish them from wider ones — and the text
+> itself calls `& 0xFF` a "fallback", i.e. it was never decided.
+>
+> Note the sibling `SINVER(0)` description below places OS type in the **high byte**, not bits
+> 10-8, so the two are not obviously consistent.
+>
+> **To settle it:** decode HWINFO(0) on a machine whose type or instruction-set digit exceeds
+> the sample (an ND-110/CX or ND-120 image, instruction set >= 8), or — decisively — read the
+> NPL that writes HWINFO(0) and the mask/shift instructions that read it, as is already done
+> for `SINVER(0)`'s algorithm.
 >
 > **Previous incorrect value** (`006022₈` = `0x0C12`) was read from the wrong physical
 > address without DPIT page table translation and incorrectly decoded as ND-110.
@@ -1963,11 +1978,22 @@ set (parity, flags, or encoding differences between SINTRAN builds).
 
 | Field | Extraction | Notes |
 |---|---|---|
-| Version Letter | `word & 0x7F` | Strip parity bit 7, gives ASCII A-Z |
+| Version Letter | `word & 0x7F` | Strip parity bit 7, gives ASCII A-Z — see note |
 | OS Type | `(word >> 8) & 0x07` | Bits 10-8 (matches SH 10₈ = SH 8₁₀ algorithm) |
 
-> **Verified emulator value** (via DPIT #7 page table): SINVER(0) = `002514₈` = `0x054C`.
+> **Observed value** (via DPIT #7 page table): SINVER(0) = `002514₈` = `0x054C`.
 > - Version letter: `0x054C & 0x7F` = `0x4C` = **'L'** (correct)
+>
+> **The parity-strip half is untested by this sample [flagged 2026-08-02].** In `0x054C` the low
+> byte is `0x4C`, whose bit 7 is already clear — so `& 0x7F` and `& 0xFF` give the same answer,
+> and nothing here shows that a parity bit is ever present or needs stripping. The OS-type field
+> has the same defect: `(>>8)&0x07`, `&0x0F` and `&0xFF` all yield 5. The mask is probably right
+> (the NPL algorithm is cited nearby), but this observation is not what establishes it.
+> `SINTRAN/OS/22-READING-RT-AND-SEGMENT-TABLES-FROM-MEMORY.md` independently warns that a
+> garbage low byte at `SINVER0` can coincidentally decode to the right letter.
+>
+> **To settle it:** a `SINVER(0)` sample from a version where bit 7 is set, or the NPL store
+> site that writes the letter.
 > - OS type: `(0x054C >> 8) & 0x07` = **5 → VSX/500** (correct)
 > - Clean extraction — matches the NPL algorithm exactly:
 >   `A:=5` (VSX/500 because ND-500 present) `SH 10` (shift left 8) `+ ##L` (0x4C) = `0x054C`

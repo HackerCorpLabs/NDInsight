@@ -161,7 +161,7 @@ i.e. the disc-open **copies the area map out of the block buffer into the device
 `031732` (flags), `031744` (starts), `031770` (ends), then finalizes (`STDTX 1`) and returns. The
 derived usable size (`122072` blocks = `61036` pages) is **correct** and matches the directory.
 
-### 4e. Data-integrity validation: disk = memory, nothing corrupts it — [VERIFIED]
+### 4e. Data-integrity validation: disk = memory, nothing corrupts it — [VERIFIED by byte comparison]
 
 Verified the whole transfer path against the on-disk image `D:\ND\HDD\SCSI-K.image`
 (132,415,488 bytes = 129,312 blocks; last LBA = 129311):
@@ -169,8 +169,29 @@ Verified the whole transfer path against the on-disk image `D:\ND\HDD\SCSI-K.ima
 - The bytes at LBA 129311 on disk are **byte-identical** to the bytes the trace shows DMA'd into ND
   memory (`08 00 54 D9 80 00 00 00 …`).
 - The **XOR of all 512 words of the on-disk block = 0** — the identical value SINTRAN's checksum
-  loop produced in memory (`D=0`, PC 111056). A single dropped/shifted/byte-swapped/truncated word
-  would make this nonzero and SINTRAN would reject the block; it does not.
+  loop produced in memory (`D=0`, PC 111056). This confirms SINTRAN's own checksum test passes;
+  it does **not** independently detect corruption. See the note below.
+
+> **CORRECTED 2026-08-02 — the XOR argument here proved less than it claimed.** This bullet
+> read: *"A single dropped/shifted/byte-swapped/truncated word would make this nonzero and
+> SINTRAN would reject the block."* XOR-to-zero is invariant under exactly the corruptions
+> listed:
+>
+> - **Byte-swapped words:** the XOR of the swapped set is the byte-swap of the XOR, and
+>   `swap(0) = 0`. A wholly byte-swapped block still XORs to zero. (This is the same fallacy
+>   that let a byte-swapped allocation bitmap stand as VERIFIED in `page-bitmap.md` for
+>   months — see that file's section 2.)
+> - **Shifted or reordered words:** XOR is commutative, so *any* permutation of the 512 words
+>   gives the same result. A rotated buffer is completely invisible.
+> - **A dropped word:** detected only if that word was nonzero — and 483 of the 512 words here
+>   are zero, so a dropped word is about 94% likely to pass.
+>
+> Only truncation at a nonzero-word boundary is genuinely caught.
+>
+> **The conclusion still stands**, because the *first* bullet carries it: the on-disk bytes at
+> LBA 129311 are byte-identical to what the trace shows arriving in ND memory. That comparison
+> is against an artefact this analysis did not produce and would have failed if the transfer
+> were wrong. It is the evidence; the XOR is not.
 - The block is a valid sparse structure (29 of 512 words nonzero, valid trailing checksum).
 
 **Conclusion:** the block SINTRAN reads is genuine, valid, and correctly delivered SINTRAN

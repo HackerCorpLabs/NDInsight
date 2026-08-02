@@ -213,7 +213,7 @@ Raw first entry, `101-S3DNAM.bin` byte 0, address `164000B`:
 | 10 | `001000` | `1000B` disc, `400B` floppy, `1B` mag tape — **[VERIFIED]** |
 | 11 | `002001` | unit / target selector (SCSI targets 1..8 = `2021`…`2027`,`2020`) — **[VERIFIED]** |
 | 12 | `030346` | = symbol `BABST=030346` (`SYMBOLS\L07\FILSYS-SYMBOLS.SYMB.TXT`) — **[VERIFIED]** |
-| 13 | `000515` | constant, disc class — **[VERIFIED]** |
+| 13 | `000515` | **[NOT DECODED]** - one observed value cannot establish a label; section 8 of this file lists words 12/13 as uncarved. To settle: tabulate word 13 across all 268 entries and show it partitions by device family, as was done for word 14 in section 2A.4 |
 | 14 | `001100` | **LOGICAL DEVICE NUMBER** — **[VERIFIED, see 2A.4]** |
 | 16 | `031140` | **pointer to the `DTxxx` geometry record** — `031140B` = `DT037` in §1.3 — **[VERIFIED]** |
 
@@ -724,7 +724,7 @@ disassembly `re\segments-ref\006-S3FS\006-S3FS.asm`.
 * **The only size check [VERIFIED]** — `137563-137575`: 32-bit compare of
   `bit_start` against the declared page count; on failure `170500 SAA 100`
   (error code `100B`) and `124123 JMP` to the error return.
-* **NO MAXIMUM DISC SIZE IS ENFORCED.** An exhaustive read of `ALBIT`
+* **NO MAXIMUM DISC SIZE IS ENFORCED IN `ALBIT` OR `CRDIR`.** [scope corrected 2026-08-02 - the exhaustive read covers those two routines (~370 words), not the kernel. A ceiling enforced by a caller, by `GSIZE`, by `DEFINE-MASS-STORAGE-UNIT` or on the disc-layout path would leave both looking exactly as read. Absence in two routines is not absence in SINTRAN.] An exhaustive read of `ALBIT`
   (`137500B..137730B`) and `CRDIR` (`136741B..137477B`) finds no comparison of
   the page count against any ceiling constant. **[VERIFIED by exhaustive read]**
   The only implicit ceiling is structural: the bitmap-page count is kept in the
@@ -903,7 +903,17 @@ switches of each build (K 687, L 732, M 914 marks). Example raw line
 
 `8SCS2` existing only in L matches symbol `SCSI2` existing only in L07 —
 **this particular L machine was generated with two SCSI controllers; the K and
-M machines with one.** **[VERIFIED]**
+M machines with one.** **[INFERRED — downgraded 2026-08-02]**
+
+> A conditional-assembly mark EXISTING in a build's mark list is not the same as the mark
+> being SET, and neither is the same as a controller COUNT. "The L build defines a
+> second-controller mark that is not enabled", or "the mark gates a driver variant rather
+> than an instance", produce the identical symbol-table difference. Section 4.5 also counts
+> **10** SCSI unit datafields in L against 9 in K, which is not a 2:1 ratio.
+>
+> **To settle it:** the LIBRARY-MARKS line format carries a value (`176000/^8SCSI %000004`) —
+> read `8SCS2`'s value and compare against a mark known to be off; or count SCSI CONTROLLER
+> datafields (those adjacent to `SCINT`) rather than unit datafields.
 
 ### 6.7 Version deltas that matter for disc support **[VERIFIED]**
 

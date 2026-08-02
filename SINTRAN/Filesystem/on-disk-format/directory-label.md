@@ -272,6 +272,6 @@ Extended info (from byte 2000):
 
 **Provenance:** real bytes `SMD0.IMG` + `250305L07-XX-01D.IMG`; reader
 `ndfs-c/src/master_block.c` + `block_pointer.c`; producer template
-`ndfs-c/src/image_creator.c`; cross-reader `ndtool -i`.
+`ndfs-c/src/image_creator.c`; `ndtool -i` (same library — not an independent cross-reader).
 </content>
 </invoke>

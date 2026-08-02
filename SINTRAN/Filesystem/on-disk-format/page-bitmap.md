@@ -7,7 +7,8 @@ filesystem finds a `0` bit and sets it; to free a page it clears the bit.
 
 Sources: real disk `~/repos/nd100x/SMD0.IMG` (PACK-ONE); NDFS
 `ndfs-c/src/bit_file.c` + `include/ndfs/bit_file.h` (the reader that reproduces
-`ndtool`'s free/used counts); `ndtool -i` (independent cross-reader); carved
+`ndtool`'s free/used counts — note this is NOT independent corroboration, see section 2);
+carved
 `006-S3FS` `GPAGE`/`ALPAG`/`RLPAG`/`RPAGE`/`WPAGE`/`TESTB` (producing/consuming
 code).
 
@@ -153,7 +154,12 @@ free pages            = 38400 - 14277 = 24123
 ```
 
 `ndtool -i SMD0.IMG` reports **Total 38400 / Used 14277 / Free 24123** - an exact
-match. The bitmap is the authoritative free-space map (not the master block's
+match.
+
+> **This is a COUNT check and nothing more.** It confirms the same number of bits is set,
+> which is true under any permutation of them - it is invariant under the byte-swap that
+> section 2 corrects, and `ndtool` is not an independent reader in any case. Useful for
+> spotting a lost or duplicated page; useless for bit ORDER. The bitmap is the authoritative free-space map (not the master block's
 `unreserved_pages`, which reads 11428 on this disk). **VERIFIED.**
 
 The first byte that is not `0xFF` is at byte index **1564** (value `0x03`),

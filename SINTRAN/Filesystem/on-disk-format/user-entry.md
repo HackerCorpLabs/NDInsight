@@ -9,7 +9,8 @@ contiguous pointer names the user **data page** (32 user entries per page).
 Sources: real disk `~/repos/nd100x/SMD0.IMG` (PACK-ONE); NDFS
 `ndfs-c/src/user_entry.c` + `include/ndfs/user_entry.h` and
 `user_friend.c`/`.h` (the reader that round-trips these bytes); `ndtool -u` /
-`--friends` (independent cross-reader); carved `006-S3FS` `RUSER`/`WUSER`/`GUSEN`
+`--friends` (NOT an independent cross-reader — it links the same `ndfs-c` library, so it
+cannot disagree with it); carved `006-S3FS` `RUSER`/`WUSER`/`GUSEN`
 (producing/consuming code). On-disk multi-byte values are **big-endian words**.
 
 ---
@@ -60,7 +61,8 @@ First index entry `0000 48FF` = CONTIGUOUS block **44377B (18687)** - the user
 | 37 | User index | 1 | **VERIFIED** | this account's index |
 | 38-39 | reserved | 2 | OPEN | unmodelled by NDFS |
 | 40-41 | Default file access | 2 | **VERIFIED** | 3 x 5-bit tiers (template for new files) |
-| 42-47 | reserved / tracking | 6 | OPEN | byte 47 hinted `mxobl`/`acobl` |
+| 42-46 | reserved / tracking | 5 | OPEN | 42-43 and 44-45 both hold the user index |
+| 47 | MXOBL/ACOBL | 1 | **VERIFIED** | object-block counts, two ZERO-BASED nibbles - see 4.5 |
 | 48-63 | Friends table | 16 | **VERIFIED** | 8 x 2-byte packed entries |
 
 Reader offsets: `ndfs_ue_from_bytes()` (`user_entry.c` lines 43-58) reads enter
@@ -208,6 +210,7 @@ name field via `LBYT`. See `.../re/mon-analysis/214B-GetUserName/`.
 - Password (18-19) hashing algorithm - field VERIFIED, algorithm INFERRED.
 
 **Provenance:** real bytes `SMD0.IMG`; reader `user_entry.c`/`.h` +
-`user_friend.c`/`.h`; cross-reader `ndtool -u` / `--friends`; producer `006-S3FS`
+`user_friend.c`/`.h`; `ndtool -u` / `--friends` (same library, not an independent check);
+the FRIEND word bit layout is carried by `ND-860228-2` appendix C; producer `006-S3FS`
 `RUSER`/`WUSER`/`GUSEN`.
 </content>

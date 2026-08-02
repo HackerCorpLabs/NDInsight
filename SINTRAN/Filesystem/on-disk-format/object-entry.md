@@ -207,8 +207,17 @@ each bit position.
 
 (The mnemonic order `L M A C I B P T` is high-bit-first.) On PACK-ONE, SINTRAN /
 MACM-AREA / SEGFIL0 all have flags `0x0020` = **A** (allocated); `ndtool` prints
-`FileTypeAsText : A` and `FileType : Contiguous` for them. **VERIFIED** (the A bit
-against real bytes + `ndtool`). The remaining bit meanings are **INFERRED** from
+`FileTypeAsText : A` and `FileType : Contiguous` for them.
+
+> **Evidence downgraded 2026-08-02 — the A bit is NOT verified by this.** Three samples all
+> carrying the identical value `0x0020` is one sample, not three: under any rotation of the
+> mnemonic `L M A C I B P T`, bit 5 would carry a different letter and this check gives the
+> same output. `ndtool` printing `A` re-prints our own `object_entry.h` constant (it links the
+> same library). And `FileType : Contiguous` comes from the file POINTER's 2-bit type field at
+> bytes 60-63, not from this flags word at all — it addresses a neighbouring fact.
+>
+> **To settle it:** one indexed and one contiguous file whose flags words actually DIFFER,
+> cross-read against `ND-30.003.007` F.6's own letter key. The remaining bit meanings are **INFERRED** from
 NDFS names, corroborated by the manual's file-class vocabulary (indexed /
 contiguous / spooling / peripheral). A TERMINAL device object has type bytes
 `27 00 00 00` (empty type) - see `object_entry.c` line 52.
