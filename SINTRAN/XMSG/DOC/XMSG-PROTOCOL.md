@@ -526,16 +526,32 @@ each time that stream's counter wraps.
 
 ---
 
-## 5. Data message (subtype `0x0E`) and the XMSG sub-header  [VERIFIED structure]
+## 5. Data message (subtype `0x0E`) and the XMSG sub-header  [CORRECTED 2026-08-02]
 
-A data message carries the 13-byte SINTRAN header, then the **XMSG sub-header**,
-then user data. Sub-header layout (offsets relative to the start of the payload,
-i.e. SINTRAN offset 13 onward):
+> **The header is 14 bytes (7 words), not 13, and there is no "Counter".**
+>
+> Section 18.5 of this same document carves the answer out of the XMSG kernel routine at
+> `137314` and verifies it on **3595 of 3595** frames: word 6 is a ones-complement header
+> checksum, so **offset 12 is its HIGH byte and offset 13 its LOW byte**. The field called
+> "Counter" below is the checksum low byte. The sub-header therefore starts at SINTRAN
+> **offset 14**, not 13.
+>
+> The layout below was never wrong about the *bytes* — a parser that starts one byte early
+> and carries a phantom first field reproduces every captured frame, which is exactly why a
+> passive decode could not catch it. It is wrong about the *structure*, and an implementer
+> building a struct from it gets every subsequent offset right only by accident.
+>
+> Sections 4.3, 9.1.1 and 18.2 still carry the same off-by-one and the superseded
+> channel/epoch model. Treat **18.5 as authoritative** wherever they disagree.
+
+A data message carries the 14-byte SINTRAN header, then the **XMSG sub-header**,
+then user data. The layout below is retained because the corpus and the older captures are
+annotated in its terms; read the offsets as **one greater** than shown.
 
 ```
 Offset  Size  Symbol   Field             Notes
 ──────  ────  ───────  ────────────────  ──────────────────────────────────
-  0      1    —        Counter           per-direction counter (decrements)
+  0      1    —        [NOT A FIELD]     checksum LOW byte (see banner above)
   1      2    —        Marker            always 0x21 0x00
   3      1    —        Frame Flags       not constant (0x82 / 0x84 / 0x86 / 0x96 seen)
   4      1    —        Role              asker/responder hint (see 5.2)

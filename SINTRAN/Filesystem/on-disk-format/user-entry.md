@@ -155,8 +155,26 @@ Each friend is a 16-bit packed word (NDFS `user_friend.h`):
 
 Worked (SYSTEM): friend 0 = `0x8705` -> active, index **5**, perms
 `0x0700` = R+W+A -> `RWA--`. Friend 1 = `0x8108` -> active, index **8**, perms
-`0x0100` = R -> `R----`. `ndtool --friends SYSTEM` prints exactly
-`[5] RT RWA--` and `[8] COSMOS-BASIC R----`. **VERIFIED.**
+`0x0100` = R -> `R----`.
+
+**VERIFIED against ND documentation (2026-08-02).** `ND-860228-2 EN SINTRAN III Monitor
+Calls`, appendix C, states the word bit by bit:
+
+> Bit 15: set if friend exists. Bit 12: set if friend has directory access. Bit 11: set if
+> friend has common access. Bit 10: set if friend has append access. Bit 9: set if friend has
+> write access. Bit 8: set if friend has read access. Bit 7-0: user index of friend.
+
+corroborated by `ND-30.003.007` ("THE FRIEND TABLE", bits `15 | 12 | 11 | 10 | 9 | 8 | 7 0`).
+The layout above matches exactly.
+
+> **The previous evidence did not support this.** It read: *"`ndtool --friends SYSTEM` prints
+> exactly `[5] RT RWA--` and `[8] COSMOS-BASIC R----`. **VERIFIED**"*. `ndtool` links the same
+> `ndfs-c` library that defines this bit table (`target_link_libraries(ndtool ndfs)`), so it
+> cannot disagree with it — it re-prints our own assumption. Under the reversed hypothesis
+> (R at bit 12 descending to D at bit 8), `0x0700` decodes to `D+C+A` and `ndtool` would have
+> printed *those* letters with equal confidence. The check could not fail. The user-index half
+> was weakly self-supporting (index 5 resolves to a real user, "RT"), but nothing in the cited
+> evidence tested the permission nibble's direction.
 
 Note the friend-permission bit **positions** (bits 8-12) differ from the object
 access-tier layout (bits 0-4 per tier) - friends carry their permission bits in

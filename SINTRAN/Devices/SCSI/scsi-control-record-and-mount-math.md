@@ -79,17 +79,64 @@ long division:
 - Combined quotient `,B 13:,B 14 = 0` -> `SKP IF DD EQL 0` sees 0 -> falls into
   the error path -> `LDA 243B` -> parks it. **VERIFIED** (trace 297281-297287).
 
-**ROOT CAUSE (PROVEN 2026-07-14): the emulator's `RDIV` did not write the quotient
-on overflow.** `RDIV` divides `61036 / 1 = 61036`; that quotient exceeds a signed
-16-bit A (>= 32768), which is an overflow. On real ND-100 hardware, RDIV on
-overflow STILL writes A = low 16 bits of the quotient (`0xEE6C`) and D = remainder
-(`0`), then sets Z. **VERIFIED on a microcode emulator:** `RDIV ST` with
-`A=0, D=0xEE6C, T=1` -> `A=0xEE6C, D=0, STS=010010` (Z set). RetroCore instead
-early-returned on overflow WITHOUT writing A/D, leaving A stale (0). So `,B 14`
-got 0 instead of `0xEE6C`, `SKP IF DD EQL 0` saw a zero quotient, and the mount
-aborted with 243B. Fixed in
+**ROOT CAUSE (2026-07-14): the emulator's `RDIV` did not write A/D on what it
+wrongly believed was an overflow.** `RDIV` divides `61036 / 1 = 61036`. RetroCore
+early-returned without writing A/D, so `,B 14` got 0 instead of `0xEE6C`,
+`SKP IF DD EQL 0` saw a zero quotient, and the mount aborted with 243B. Fixed in
 `E:\Dev\Repos\Ronny\RetroCore\Emulated.HW\ND\CPU\ND100\Instructions.RegisterOperations.cs`
-(`RDIV()`): set Z on overflow but ALWAYS write A/D.
+(`RDIV()`), which now reproduces the microcode for both signs.
+
+> ### CORRECTED 2026-08-02 — the explanation above was wrong, though the fix was right
+>
+> The earlier text said *"that quotient exceeds a signed 16-bit A (>= 32768), which is an
+> overflow"* and *"On real ND-100 hardware, RDIV on overflow STILL writes A = low 16 bits of
+> the quotient and D = remainder, then sets Z"*, marked **VERIFIED on a microcode emulator**
+> with `A=0, D=0xEE6C, T=1 -> A=0xEE6C, D=0, STS=010010`.
+>
+> **`61036 / 1` is not an overflow at all.** Read from the real ND microcode
+> (`E:\Dev\Repos\Ronny\ND120CPUEMU\ND120CPU\ROM\ND-110-RASK.LISTING.TXT`, identical in the
+> ND-120 DELILAH-L listing), the overflow test at `RDIV2` CS `000436` is
+>
+> ```
+> RDIV2:    A,R1      B,A     ALUF,B-A    ALUD,B      COND,CRY
+>           B,R7      ALUF,PASSQ  ALUD,B   T,JMP      RDIVZ  CONDENABL;
+> ```
+>
+> i.e. **`|dividend|_high − |divisor|`, branching on carry** — the predicate is
+> `|dividend|_high >= |divisor|`, *not* `|quotient| >= 32768`. With `A=0, T=1` the high word
+> is 0 and the divisor 1, so `0 >= 1` is false: the routine takes the normal 16-step loop and
+> produces `A=0xEE6C, D=0` **without ever entering the overflow path**. The quotient path is
+> effectively unsigned 16-bit, so 32768..65535 are valid results.
+>
+> And on a genuine overflow the hardware does **not** write a quotient. `RDIVZ` at CS
+> `000461`-`000463` touches nothing but `STS`:
+>
+> ```
+> RDIVZ:    B,10    ALUF,PASSD  ALUD,Q      IDBS,BARG      ; Q := 10B (bit 3 = Z)
+>           B,STS   ALUF,ORDQ   ALUD,B      IDBS,STS       ; STS |= Q
+>           A,STS   ALUF,PASSA  ALUD,NONE   STS,LO  COMM,CONTINUE
+> ```
+>
+> What A and D hold afterwards is the residue of the pre-check: `ALUD,B` at `000436` already
+> wrote `|dividend|_high − |divisor|` back into A, and D holds the `|dividend|` low word.
+>
+> **Why the "VERIFIED" tag was worthless:** the test used **divisor = 1**, where the quotient
+> equals the dividend and the remainder is zero. `A=0xEE6C, D=0` is predicted by at least four
+> different models, so the observation could not discriminate. It also never reached the code
+> path it claimed to be testing. (The reported `STS=010010` is unexplained — the microcode
+> should not set Z for this case; how that value was captured was not recorded.)
+>
+> **The manuals do not settle this.** `ND-06.014.2A EN ND-100 Reference Manual` lines 5350-5369
+> and `ND-06.029.1 EN ND-110 Instruction Set` lines 2152-2177 say only *"If the division causes
+> overflow, the error indicator Z is set to one"* and list `Affected: (A), (D)`. Neither states
+> the register contents on the overflow path. The microcode is the only authority here.
+>
+> **Current code status:** `RDIV()` in RetroCore already implements the microcode faithfully —
+> predicate `dividendMagHigh >= divisorMag`, and on that path it writes
+> `A = dividendMagHigh − divisorMag`, `D = |dividend| low`, `Z` set. Its own comment records
+> that the earlier `Math.Abs(quotient) >= 32768` test was wrong. **No code change is needed;
+> only this document was stale.** The mount still works because `61036 / 1` takes the normal
+> loop under the correct predicate too, and yields the same `A=0xEE6C, D=0`.
 
 The disk data is entirely correct: `,B 9 = 0x0411` (masked `0111octal` -> divisor
 1) is real disk data demand-paged from the control-record buffer, `UHLIM = 122072`

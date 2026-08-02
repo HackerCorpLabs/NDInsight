@@ -9,7 +9,8 @@ block-pointers each name a data page holding **32 object entries** (2048 / 64).
 
 Sources: real disk `~/repos/nd100x/SMD0.IMG` (PACK-ONE); NDFS
 `ndfs-c/src/object_entry.c` + `include/ndfs/object_entry.h` (the reader that
-round-trips these bytes); `ndtool --stat` (independent cross-reader); carved
+round-trips these bytes); `ndtool --stat` (NOT an independent cross-reader - it links the same `ndfs-c` library:
+`target_link_libraries(ndtool ndfs)`, so it cannot disagree with it); carved
 `006-S3FS` `ROBJE`/`FOBJB`/`RINDX` (producing/consuming code). On-disk multi-byte
 values are **big-endian words**.
 
@@ -60,8 +61,8 @@ its first three (192 bytes):
 | 26-27 | Access bits | 2 | **VERIFIED** | 3 x 5-bit tiers, see 4.2 |
 | 28-29 | File-type flags | 2 | **VERIFIED** | `L M A C I B P T`, see 4.3 |
 | 30-31 | Device number | 2 | INFERRED | 0 for ordinary disk files |
-| 32 | File-type code | 1 | **VERIFIED** | 0 DATA, 1 PROG, 2 SYMB, 3 TEXT |
-| 33 | reserved | 1 | OPEN | low byte of the object-index word |
+| 32 | Main directory index of reserving user | 1 | **VERIFIED (ND manual + real pack)** | high byte of the LAST RESERVING USER word; see 4.4 |
+| 33 | User index of reserving user | 1 | **VERIFIED (ND manual)** | low byte of the LAST RESERVING USER word; see 4.4 |
 | 34 | User index (owner) | 1 | **VERIFIED** | index into the [user file](user-entry.md) |
 | 35 | (object slot low byte) | 1 | INFERRED | word 34-35 = `[user | file-slot]` |
 | 36-37 | `current_open_count` | 2 | INFERRED | |
@@ -75,7 +76,8 @@ its first three (192 bytes):
 
 Reader offsets: `ndfs_oe_from_bytes()` (`object_entry.c` lines 43-84) reads name
 at +2, type at +18, `next_version`/`prev_version`/`access_bits`/`file_type_flags`/
-`device_number` at +22/+24/+26/+28/+30, file-type code at +32, user index at +34,
+`device_number` at +22/+24/+26/+28/+30, last-reserving-user at +32 (the reader still calls
+this field `file_type` - a misnomer, see 4.4), owner user index at +34,
 open counts at +36/+38, three dates at +40/+44/+48, pages at +52, bytes-1 at +56,
 file pointer at +60. Each offset below decodes correctly on the real bytes.
 
@@ -92,7 +94,7 @@ file pointer at +60. Each offset below decodes correctly on the real bytes.
 | 26-27 | `00 07` | Access | 0x0007 -> OWN=RWA, FRIEND=none, PUBLIC=none |
 | 28-29 | `00 20` | Flags | 0x0020 -> **A** (allocated) |
 | 30-31 | `00 00` | Device | 0 |
-| 32 | `00` | Type code | 0 = DATA |
+| 32-33 | `00 00` | Last reserving user | main dir index 0 / user index 0 = not reserved |
 | 34-35 | `00 00` | User idx / slot | owner index 0 (SYSTEM) |
 | 40-43 | `B8 AF 2B F6` | Date created | 1996-02-23 18:47:54 (per `ndtool`) |
 | 44-51 | `00...` | Last read / write | never |
@@ -132,15 +134,37 @@ round trip (`object_entry.c` lines 38-41, 100-114).
 The 16-bit access word packs three permission tiers, each 5 bits:
 
 ```
- bit 15 14 | 13 12 11 10 | 9 8 7 6 5 | 4 3 2 1 0
-   (unused) [   PUBLIC   ] [ FRIEND ] [   OWN    ]
+ bit 15 | 14 13 12 11 10 | 9 8 7 6 5 | 4 3 2 1 0
+ (unused)[     PUBLIC    ] [ FRIEND ] [   OWN    ]
 ```
+
+**CORRECTED 2026-08-02:** this diagram previously showed `bit 15 14` unused and PUBLIC as the
+4 bits 13-10. All three tiers are **5 bits**; only bit 15 is unused. Authority:
+`ND-30.003.007 EN SINTRAN III System Supervisor` gives the tier table as `15,14 | 10 | 9 | 5 |
+4 | 0` with rows `D C A W R` for public, friend and own, and its worked example for a `:SYMB`
+file is `002377   ACCESS WORD`, which decodes under the 5/5/5 split as:
+
+| Tier | Bits | Value | Meaning |
+|---|---|---|---|
+| OWN | 4-0 | `11111` | R W A C D — all five |
+| FRIEND | 9-5 | `00111` | R W A |
+| PUBLIC | 14-10 | `00001` | R only |
+
+That matches ND's own stated SYSTEM defaults elsewhere in the same manual
+(`DEFAULT FRIEND ACCESS : READ, WRITE, APPEND`). Under the old 13-10 reading the tiers do not
+line up with those defaults.
+
+Note `ND-860228-2` line 28902 gives `bit 14-9: public / bit 9-4: friend / bit 4-0: own` — the
+ranges overlap and are arithmetically impossible. That line is garbled; use the System
+Supervisor version above, which the `002377` example confirms.
 
 | Tier | Bits | Shift |
 |------|------|-------|
 | OWN | 0-4 | 0 |
 | FRIEND | 5-9 | 5 |
 | PUBLIC | 10-14 | 10 |
+
+(5 bits each; bit 15 unused. Confirmed by ND's `002377` worked example, above.)
 
 Within a tier (5 bits), the letter mapping (NDFS `object_entry.h` lines 36-55):
 
@@ -154,7 +178,12 @@ Within a tier (5 bits), the letter mapping (NDFS `object_entry.h` lines 36-55):
 
 Worked: SINTRAN access `0x0007` -> OWN = `0x07` = R+W+A, FRIEND = 0, PUBLIC = 0.
 SEGFIL0 access `0x00E7` -> OWN = `0x07` (RWA), FRIEND = `0x07` (RWA), PUBLIC = 0.
-`ndtool --stat` decodes these identically. **VERIFIED** (values + tier split).
+**VERIFIED** — but note the evidence: the two real samples `0x0007` and `0x00E7` both keep
+every set bit inside the low 10, so they do not by themselves test the PUBLIC boundary, and
+`ndtool` is not an independent check (it links the same `ndfs-c` library:
+`target_link_libraries(ndtool ndfs)`). The tier split is carried by ND's `002377` example
+above, whose asymmetric `11111 / 00111 / 00001` decodes coherently under this orientation and
+not under the alternatives.
 The exact R/W/A/C/D *letter-to-bit* assignment is **INFERRED** from NDFS/`ndtool`
 (a reader that round-trips real access words); the official manual confirms the
 tier order **public, friend, owner** and the letter set **RWACD**
@@ -184,11 +213,92 @@ NDFS names, corroborated by the manual's file-class vocabulary (indexed /
 contiguous / spooling / peripheral). A TERMINAL device object has type bytes
 `27 00 00 00` (empty type) - see `object_entry.c` line 52.
 
-### 4.4 File-type code (byte 32)
+### 4.4 LAST RESERVING USER (bytes 32-33)  **[SETTLED 2026-08-02]**
 
-Single byte: 0 = DATA, 1 = PROG, 2 = SYMB, 3 = TEXT (`object_entry.h` line 70).
-Distinct from the 4-char type *text* at bytes 18-21. **VERIFIED** (byte 32 = 0 and
-type text `DATA` agree on all three sample entries; `ndtool` prints `Type: DATA`).
+**Bytes 32-33 are one word: the LAST RESERVING USER.** Byte 32 (high) = main directory
+index; byte 33 (low) = user index. **There is no file-type code byte anywhere in the entry** —
+the file type is the 4 ASCII characters at bytes 18-21.
+
+**ND's own annotated `@DUMP-OBJECT-ENTRY`**, `ND-30.003.007 EN SINTRAN III System
+Supervisor`, page 340, labels the word directly:
+
+```
+002377                 ACCESS WORD
+000040                 OBJBL (BITS 017-014)/TEMP/L/M/A/C/I/S/P/T
+000000                 DEVICE NUMBER
+000000                 MAIN DIR INDEX / USER INDEX OF RESERVING USER      <-- bytes 32-33
+000025                 OBJECT INDEX OF THIS ENTRY                         <-- bytes 34-35
+```
+
+and `ND-860228-2 EN SINTRAN III Monitor Calls`, appendix C, states it as a byte range:
+
+```
+| 32:33 | User index in main directory of reserving user. |
+| 34:35 | Object index of this object entry. |
+```
+
+The same dump shows the type is ASCII, not a code: `051531 046502   TYPE (SYMB)`.
+
+**Confirmed independently on a real pack.** On `BIGDISK0-L.IMG`, byte 32 is **0 on all 293
+entries** — across 43 `PROG`, 25 `SYMB`, 40 `BPUN`, 44 `DATA` and 10 other type strings. Under
+the old "0=DATA, 1=PROG, 2=SYMB" claim the PROG files would read 1 and the SYMB files 2. They
+do not. All-zero is exactly what "reserving user" predicts on a pack with nothing reserved.
+
+---
+
+**What this section used to claim, and why its VERIFIED tag was worthless**
+
+It claimed byte 32 was a file-type code (0=DATA, 1=PROG, 2=SYMB, 3=TEXT), citing
+`object_entry.h` line 70, and marked it VERIFIED on this basis:
+
+> byte 32 = 0 and type text `DATA` agree on all three sample entries; `ndtool` prints
+> `Type: DATA`
+
+Both halves fail:
+
+- **The sample could not discriminate.** All three PACK-ONE entries were unreserved SYSTEM
+  files, so byte 32 was `0x00` in every one — and `0` is also the proposed DATA code. Three
+  all-zero samples are one sample, and it agrees with every hypothesis that predicts zero here.
+- **The cross-check was circular.** `ndtool` printing `Type: DATA` is `ndfs-c` echoing its own
+  `object_entry.h` constant. `ndtool` links that library (`ndfs-c/CMakeLists.txt`:
+  `target_link_libraries(ndtool ndfs)`), so it cannot disagree with it.
+
+**Code impact:** all four ports still read byte 32 into a field named `file_type` and write it
+back. In practice they write `0` (the create path never sets it), so no pack has been
+corrupted — but the field is misnamed, and XAT carries it between packs as a "file type", which
+would move a stale reserving-user value. The field should be renamed to `reserving_user_*`.
+
+The claim was: single byte, 0 = DATA, 1 = PROG, 2 = SYMB, 3 = TEXT (`object_entry.h`
+line 70), distinct from the 4-char type *text* at bytes 18-21.
+
+The VERIFIED tag it carried rested on evidence that could not have failed:
+
+- **The sample was non-discriminating.** All three PACK-ONE entries (SINTRAN, MACM-AREA,
+  SEGFIL0) are unreserved SYSTEM files, so byte 32 is `0x00` in every one — and `0` is also
+  the proposed DATA code. Three all-zero samples cannot separate "file-type code" from any
+  other field that happens to be zero here. That is one sample, not three.
+- **The cross-check was circular.** `ndtool` printing `Type: DATA` is `ndfs-c` echoing its
+  own `object_entry.h` constant back. `ndtool` links that library
+  (`ndfs-c/CMakeLists.txt`: `target_link_libraries(ndtool ndfs)`), so it cannot disagree.
+
+**The competing reading has manual support.** See
+[`OBJECT-ENTRY-CARVE-BYTES-32-35-2026-07-30.md`](OBJECT-ENTRY-CARVE-BYTES-32-35-2026-07-30.md)
+section 3.4 Q2 and section 7: `ND-860228-2` appendix C and `ND-30.003.007` F.6 both describe
+bytes 32-33 as the **LAST RESERVING USER** word (byte 32 = main directory index, byte 33 =
+user index), and neither manual documents a file-type-code byte anywhere in the entry. That
+would also account for byte 33, which this table still lists as OPEN.
+
+**Why it matters:** a writer that stamps a file-type code into byte 32 overwrites a real
+directory index on a live pack.
+
+**To settle it:** decode one `:PROG` or `:SYMB` file, or any file owned by a non-zero user or
+that has ever been reserved. Under the manual reading byte 33 tracks the user and byte 32 the
+directory; under the file-type-code reading byte 32 tracks the type suffix. A single non-DATA
+sample decides it. The annotated real `@DUMP-OBJECT-ENTRY` listing at `ND-30.003.007` lines
+13697-13725 is a ready-made vector.
+
+Note this does **not** touch bytes 34-35, which are separately established (byte 34 = owner,
+VERIFIED against a live pack).
 
 ### 4.5 Owner (byte 34) and object-index word
 

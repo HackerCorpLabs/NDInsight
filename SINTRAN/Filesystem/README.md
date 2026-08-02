@@ -139,12 +139,30 @@ Extended-info block (offset 2000), big-endian - **VERIFIED** layout, values from
 | 0x0A | last-system-number | `0066` (102) |
 | 0x0C | pages-available (4-byte) | `110121B` (36945) |
 
-Checksum algorithm - **VERIFIED** (from NDFS `master_block.c`):
-`checksum = (pages_lo XOR pages_hi XOR flag_word XOR res1 XOR res2 XOR res3) + last_system_number`.
+Checksum algorithm - **VERIFIED (kernel)**: a **16-bit ADDITIVE SUM** of the extended
+words. See [`on-disk-format/extended-info-block.md`](on-disk-format/extended-info-block.md)
+section 2, which carries it out of the writer `WXDIR` = 37702B and the validator
+`CHDSI` = 37763B in `006-S3FS`. Both use the identical summation.
 
-Cross-checks that pass: `ndtool -i SMD0.IMG` reports 38400 total / 14277 used /
-24123 free pages; the bit-file placement "in the middle of the directory" matches
-the `@CREATE-DIRECTORY` doc (bit file at block 18468 ≈ mid-disk).
+**CORRECTED 2026-08-02.** This section previously read:
+
+> Checksum algorithm - **VERIFIED** (from NDFS `master_block.c`):
+> `checksum = (pages_lo XOR pages_hi XOR flag_word XOR res1 XOR res2 XOR res3) + last_system_number`.
+
+That is **wrong**, and the "VERIFIED" tag rested on evidence that could not have caught it:
+
+- **It was circular.** The cited proof was our own `master_block.c` — a re-implementation,
+  not SINTRAN. It cannot disagree with itself.
+- **The one sample could not tell XOR from ADD.** On PACK-ONE the only two words sharing a
+  set bit are `flag=0x8000` and `pages_lo=0x9051`, both at bit 15. Under ADD the carry
+  leaves bit 15; under XOR it cancels — and both land on the same stored value. A second
+  disk breaks it immediately (`BIGDISK0-K.IMG` → `0x1051`, `scsi-1.img` → `0xC162`).
+- **The "cross-check that passes" was unrelated.** `ndtool -i` reporting 38400/14277/24123
+  pages says nothing whatsoever about a checksum formula, and `ndtool` is not an
+  independent reader in any case — it links the same `ndfs-c` library
+  (`ndfs-c/CMakeLists.txt`: `target_link_libraries(ndtool ndfs)`).
+
+A writer following the old line would stamp a wrong checksum on every volume it created.
 
 ### 4.2 Object entry (file metadata) - **VERIFIED** layout (NDFS + `ndtool`), byte-decode PENDING
 
