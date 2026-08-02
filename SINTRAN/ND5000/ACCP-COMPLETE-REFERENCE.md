@@ -1674,8 +1674,59 @@ command codes are sparse (0x03..0x46 with holes), which a jump table could not h
 > independent methods (chain walk; external naming from `N500-SYMBOLS.SYMB` + ND-05.020.01 5.3, where
 > all 13 named commands land inside code runs and none in a gap; and a whole-image byte search for
 > `0C 00 00 ?? 66` yielding exactly 46). That third method **includes `0x4D50`, which an earlier scan
-> missed**, and **excludes `0x63DC`, a `beq` false positive**. ~30 of the 46 arms are still unnamed
-> `[OPEN]` - reading the `cmpi.b` immediate at each site would name them.
+> missed**, and **excludes `0x63DC`, a `beq` false positive**.
+
+#### The 46 octobus dispatcher arms, arm address to command code [V, read from octo.bin 2026-08-02]
+
+Every arm's `cmpi.b` immediate read directly out of
+`Installation\Communication\OctobusAccp\eprom\octo.bin` (base 0, so file offset = address; the code
+byte is at `arm+3`). **All 46 matched the `0C 00 00 <imm>` + `66` shape - zero mismatches** - and all
+13 previously-named commands landed on the code the carve already had, which is the cross-check that
+makes the other 33 trustworthy.
+
+| Code | Octal | Arm | Name | Code | Octal | Arm | Name |
+|---|---|---|---|---|---|---|---|
+| `0x0D` | 015B | `583A` | `[OPEN]` | `0x27` | 047B | `5ECE` | `[OPEN]` |
+| `0x0E` | 016B | `57E8` | **CMSYSPAR** | `0x28` | 050B | `5FD6` | `[OPEN]` |
+| `0x0F` | 017B | `5736` | `[OPEN]` | `0x29` | 051B | `6016` | `[OPEN]` |
+| `0x10` | 020B | `6562` | `[OPEN]` | `0x2A` | 052B | `608C` | **LOCSM** |
+| `0x11` | 021B | `5980` | **LPARP** | `0x2B` | 053B | `60F6` | `[OPEN]` |
+| `0x12` | 022B | `59B6` | **VPARP** | `0x2C` | 054B | `6178` | `[OPEN]` |
+| `0x13` | 023B | `4D50` | `[OPEN]` | `0x2D` | 055B | `6326` | `[OPEN]` |
+| `0x14` | 024B | `4EDC` | `[OPEN]` | `0x30` | 060B | `6616` | **RTEST** |
+| `0x15` | 025B | `4FC0` | `[OPEN]` | `0x31` | 061B | `6504` | **ENKICK** |
+| `0x16` | 026B | `519C` | `[OPEN]` | `0x32` | 062B | `6534` | **DISKICK** |
+| `0x17` | 027B | `56BC` | `[OPEN]` | `0x33` | 063B | `5C44` | `[OPEN]` |
+| `0x18` | 030B | `58A4` | `[OPEN]` | `0x34` | 064B | `5F38` | `[OPEN]` |
+| `0x1B` | 033B | `65B6` | **STARTMIC** | `0x35` | 065B | `5DC0` | `[OPEN]` |
+| `0x1C` | 034B | `562E` | **STOPMIC** | `0x36` | 066B | `558A` | `[OPEN]` |
+| `0x1D` | 035B | `568C` | **CONTMIC** | `0x37` | 067B | `6390` | `[OPEN]` |
+| `0x1E` | 036B | `6438` | **RESTMIC** | `0x38` | 070B | `63B8` | `[OPEN]` |
+| `0x1F` | 037B | `56EA` | **ALIVE** | `0x39` | 071B | `6408` | **CPURES** |
+| `0x20` | 040B | `5A46` | `[OPEN]` | `0x3A` | 072B | `61F4` | `[OPEN]` |
+| `0x21` | 041B | `5AB0` | `[OPEN]` | `0x3B` | 073B | `547E` | `[OPEN]` |
+| `0x22` | 042B | `5B38` | `[OPEN]` | `0x3C` | 074B | `52C6` | `[OPEN]` |
+| `0x23` | 043B | `5BC8` | `[OPEN]` | `0x3D` | 075B | `6644` | `[OPEN]` |
+| `0x24` | 044B | `5CC0` | `[OPEN]` | `0x3E` | 076B | `66B6` | `[OPEN]` |
+| `0x25` | 045B | `5D56` | `[OPEN]` | | | | |
+| `0x26` | 046B | `5E64` | `[OPEN]` | | | | |
+
+**Codes run `0x0D`-`0x3E` with exactly four holes: `0x19`, `0x1A`, `0x2E`, `0x2F`.** Arm order in the
+image is NOT code order - `0x4D50` serves `0x13` while `0x6562` serves `0x10` - so never infer a
+code from an arm's position.
+
+**Naming the remaining 33 is still `[OPEN]`, and positional mapping does NOT work.** The manual
+documents 46 commands in sections 5.3.12 (ECHO) through 5.3.57 (READ CPU MODEL) - the same count,
+temptingly - but it prints no numeric code in any section, and the mapping fails a check: `LSYSPAR`
+is 5.3.13 and `CMSYSPAR` is `0x0E`, while `LPARP` is the very next section, 5.3.15, yet is `0x11`.
+That leaves two code slots (`0x0F`, `0x10`) for one intervening section. **Do not name these by
+counting sections.** Read each handler body instead.
+
+**Also rejected while doing this:** `5P-P2-MON60.NPL` has `SYMBOL STOPMIC= 34`, and 34B is `0x1C`,
+which is exactly the ACCP `STOPMIC` code. That is a **collision, not a source** - those symbols are
+MON 60 subfunction numbers, a different namespace (its `RCNTS`/`WCNTS` sit at 23B/24B where the ACCP
+has a hole pattern that does not line up). A name-shaped match in the wrong namespace is the same
+trap that produced `TRAP_OCBAK`.
 >
 > Both chains being linear compares is not a coincidence: it is the ordinary PLANC `CASE` shape
 > (see the `ghidra-planc` skill). **Never go looking for a jump table on this card.**
