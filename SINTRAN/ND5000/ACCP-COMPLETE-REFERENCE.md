@@ -1886,10 +1886,20 @@ only narrowed it; the ACON code proved it.
 `MsgBody_NextParamLong` (`0x7036`, four bytes assembled big-endian - renamed from
 `MicroprogCmd_Helper_7036`), then feeds it to the data-pair **write** worker `0x7320`.
 
-**The prediction held.** Four candidate names, three kick-guarded arms - so one had to sit elsewhere,
-and it does: **RAIB16 (5.3.32) is not among the kick-guarded arms at all.** Had the set been closed
-by elimination two rounds ago, RAIB16 would have been planted on one of these three and both it and
-the real RAIB16 arm would now be wrong.
+**The prediction held, and then went further than expected.** Four candidate names, three
+kick-guarded arms - so one had to sit elsewhere. **RAIB16 (5.3.32) appears to have NO octobus arm at
+all.** `[V` for the evidence, `I` for the conclusion`]`
+
+`0x72EC` - renamed **`AibRead16_AndClearAibf`** - is unmistakably the 16-bit AIB read: it returns
+**`_HW_DATA_LOW` only** and then issues **ACON command `5` = RAIBF**. It has exactly **two** callers:
+`0x0AEA`, and `0x89B2` inside the console `Cmd2B_ReadAib16`. **No dispatcher arm calls it.**
+
+**This breaks the "46 arms, 46 manual sections" coincidence.** The counts matching (5.3.12 ECHO
+through 5.3.57 READ CPU MODEL is exactly 46) made a positional mapping very tempting, and this file
+already recorded that it fails a spot check. Now there is a structural reason: **at least one
+documented command has no octobus arm**, so the two sets are not the same set and never were. Any
+attempt to finish the naming by counting sections, or by elimination against the manual's list, will
+produce wrong names - not just possibly, but certainly.
 
 #### The memory-parameter mechanism [V 2026-08-02]
 
