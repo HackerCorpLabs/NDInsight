@@ -1765,10 +1765,28 @@ StatusHiRead()              ; the two ASTS bytes
   enabled"). ND-05.020.01 5.3.11 names READ AIB as its example, "READ AIB would destroy a kick being
   sent from the ND-5000", so **an arm with this guard is very likely an AIB reader**.
 
-**Method warning that cost a sweep:** xrefs in this range **undercount**, because parts of the
-dispatcher are still undefined bytes rather than code. `0x4D90` tests `0x001143B2` but did not appear
-in the xref list until it was force-disassembled. **Disassemble the gaps first, then trust xrefs** -
-otherwise a clean-looking empty result is just unanalysed data. Same family as the `bset #5` trap.
+**Method warning that cost a sweep, then cost a published claim:** xrefs in this range
+**undercount**, because parts of the dispatcher are still undefined bytes rather than code. `0x4D90`
+tests `0x001143B2` but did not appear in the xref list until it was force-disassembled. **Disassemble
+the gaps first, then trust xrefs** - otherwise a clean-looking empty result is just unanalysed data.
+Same family as the `bset #5` trap.
+
+> **This warning was not enough, twice.** After writing it, an xref list was trusted anyway and
+> produced the retracted "RAIB16 has no arm" claim. Then a sweep that disassembled **all 46 arm
+> heads** still left the kicks guard undercounted, because the guard blocks sit **inside** the arms,
+> not at their heads - `0x5CFE` only appeared after being disassembled individually.
+>
+> **The fix is not more one-address-at-a-time MCP calls.** Use Ghidra's own range disassembly or
+> re-run auto-analysis over `0x4D50`-`0x66B6` in the GUI. Until that is done, treat **every** empty
+> or short xref result in this range as unproven.
+>
+> Once done, the guard sweeps in this section should be re-run - they are the cheapest classifier we
+> have and they are only as good as the disassembly underneath them.
+
+**Verified after the individual fix:** the kicks guard has exactly **six** readers in the arm range -
+`0x5CFE` (`0x24`), `0x5D68` (`0x25`), `0x5E82` (`0x26`), `0x5EEC` (`0x27`), `0x5F74` (`0x34`),
+`0x5DD4` (`0x35`) - matching the six AIB/AOB commands one for one. That family is now closed by
+cross-reference, not just by reading the arms.
 
 #### Commands named this round
 
