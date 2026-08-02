@@ -194,11 +194,42 @@ two `006` in the trace. All 159 MON 60 thunk call sites in bank 1 are now mapped
 subfunction codes (`tools/sintran-segment-carver/thunkmap.py`) - and 159 is exactly the count
 the original analysis reached independently, which is what makes the map trustworthy.
 
-**NEXT CARVE TARGET: `5NOPAR`, the MON 60 common place path.** The ISEGLOAD handler itself only
-copies a segment name and then does `GO FAR 5NOPAR` - "common path performs the place". That
-common path is where the disc fetch must live, and
-`re/mon-analysis/60B-N500M/60B-006B-ISEGLOAD/` records its L07 body location as still
-**pending**. It is not RECOVER-DOMAIN, not the loader, and not ISEGLOAD's own body.
+**`5NOPAR` READ, SAME SESSION - AND IT DOES NO I/O EITHER `[V, NPL SOURCE]`.** Body at
+`s3vs-4.symb:78722` (`034337`), verbatim. In full it: computes the process number; saves the
+user's `RSEGM`; gets into the ND-500 data segment; `*MOVAA` copies the MON-call info block
+(`5DFSIZE` words) there - the source comment is literally "SAVE MONCALL INFO ON ND-500 DATA
+SEGM."; then `CALL FPT2ENTRY` - "ENTER ND-500 SYSTEM MONITOR".
+
+**There is no disc access anywhere in it.** And the post-return table settles the other half:
+`FUNCS[006] = RET5` (table at `034534`), so on return from the ND-500 system monitor,
+subfunction `006` does nothing on the ND-100 side at all.
+
+**So the ND-100 never fetches segment content on ANY leg of this path.** Its entire
+contribution to a PLACE is:
+
+1. `ISEGLOAD` copies the segment **name** into the MON 60 buffer (`5P-P2-MON60.NPL:031625`)
+2. `5NOPAR` copies the MON-call info block into the ND-500 data segment
+3. `FPT2ENTRY` enters the ND-500 SYSTEM MONITOR
+4. on return, `RET5` - nothing
+
+**THE PLACE IS PERFORMED ON THE ND-500 SIDE.** That is why the floppy is never bulk-read: the
+entity that would read it is the ND-500 system monitor, and the ND-500 side is precisely what is
+broken. The fetch is expected to come back to the ND-100 as swapper page traffic (the MON 377B
+`LSWPAGE` calls already measured), not as a bulk read driven by the ND-100.
+
+This **answers** the standing "look inside ISEGLOAD's worker" item: the worker does no I/O by
+design. Delete that line wherever it survives.
+
+**Corroboration from the same table** (`5IFUNC` at `5P-P2-MON60.NPL:1320`): index `006` =
+`ISEGLOAD`, `055` = `ISPLACE`, `056` = `IEPLACE` - independently confirming the
+START-PLACE / ISEGLOAD x2 / END-PLACE reading of the carved call graph. Also visible there:
+index `007` = `IPLSWAPPER` (PLACE SWAPPER) and index `160` = `IN5SEGLOAD`, a second
+segment-load entry point not previously noted.
+
+**NEXT TARGET: the ND-500 SYSTEM MONITOR's own PLACE implementation** (reached through
+`FPT2ENTRY` -> `5FP2E` -> `FUNCS[subfn] @142031B`), and specifically what is supposed to write
+the domain `:PSEG`/`:DSEG` content into the swap file. The swap file was measured VIRGIN with
+only one page read; whoever fills it is the missing actor.
 
 **Worth flagging, not yet a claim:** ISEGLOAD is called with five parameters, **three of which
 are the ADDRESSES of caller locals** for SINTRAN to write back into. That is the same shape as
