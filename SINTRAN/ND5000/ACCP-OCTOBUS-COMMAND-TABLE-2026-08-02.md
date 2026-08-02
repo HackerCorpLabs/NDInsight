@@ -114,6 +114,29 @@ pointer, `1143B2` pointer-given flag, `1143AC` microprogram running, `1143B6` ki
 
 ---
 
+## ACON command `0x08` is UNDOCUMENTED, and it is what enables kicks [V 2026-08-03]
+
+Scanning the whole image for `move.w #imm,(0x00220000)` gives every static ACON write - 52 sites.
+All decode against ND-05.020.01 table 9 **except one**:
+
+| Site | Command | In table 9? |
+|---|---|---|
+| `0x6512` - inside arm `0x31` = **ENKICK** | **`0x08`** | **NO** |
+| `0x6540` - inside arm `0x32` = **DISKICK** | `0x07` = MASKAIBF | yes |
+| `0x6888`, `0x100EC` | `0x08` | **NO** |
+
+**Table 9 lists 0,1,2,5,6,7,9,A,C,D,F,10,11,13,14,15,16,17,18,1A - there is no `0x08`.**
+
+**What it must be.** DISKICK issues **MASKAIBF** ("mask AIB-flag interrupt"). ENKICK issues `0x08`.
+A kick arrives as an AIB-flag interrupt, so enabling kicks means **unmasking** it. `0x08` is
+therefore the **unmask counterpart of MASKAIBF**, missing from the published table.
+
+This also **confirms ENKICK and DISKICK from hardware**, not just from their SINTRAN symbols - they
+are a matched mask/unmask pair on the same interrupt.
+
+**Second correction to ND-05.020.01 from this work**, alongside the incomplete Messnak error list
+(arm `0x0D` emits 13, the manual documents 0-9).
+
 ## The control-store load family, and a flip caught in time
 
 **`0x741E` = `ControlStoreWriteWithVerify`** - it **writes** a control-store word using **ACON command
