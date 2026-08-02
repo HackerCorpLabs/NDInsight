@@ -114,6 +114,33 @@ pointer, `1143B2` pointer-given flag, `1143AC` microprogram running, `1143B6` ki
 
 ---
 
+## TERM and ARES have NO arm - and that settles the sets question properly [V 2026-08-03]
+
+5.3.50 TERM and 5.3.51 ARES both say the same three things:
+
+- the command *"has a special code with the **emergency bit set (bit 7)** and is **detected by the
+  hardware**"*;
+- *"(The octobus driver is not activated.)"*;
+- *"**There is no response to this command.**"*
+
+**They bypass the dispatcher entirely.** A command the hardware decodes and the driver never sees
+cannot have a `cmpi.b` arm, and does not need one. So the last two open arms were never going to be
+TERM and ARES, and the tidy "three arms, three commands" symmetry from two rounds ago was **false**.
+
+**This also repairs, on correct grounds, a claim withdrawn earlier.** The sets genuinely are not the
+same: **TERM and ARES have manual sections but no arms.** The earlier version of this claim rested on
+RAIB16 supposedly having no arm, which was an xref undercount and was retracted. This one rests on
+the manual saying outright that the driver is not involved.
+
+**Consequence for `0x10` and `0x17`:** with TERM and ARES excluded, there is no unclaimed manual
+command left for them. They are commands the firmware implements that **ND-05.020.01 does not
+document**, alongside ACON `0x08` and Messnak 13. Their behaviour is recorded; there is no name to
+find.
+
+**RECO strengthened by the same page.** 5.3.52: *"the print status of each module consists of two
+bytes"* - and arm `0x0D` returns **three words = three modules x two bytes**. That upgrades the `0x0D`
+reading from a guess about shape to a match on structure.
+
 ## An INHERITED name was wrong: `0x1B` is RUNTST, not STARTMIC [V 2026-08-03]
 
 **Reading the manual's parameter lists settled two arms at once.** 5.3.23 STARTMIC takes *"Control
@@ -328,11 +355,15 @@ has misfired twice in this effort already. It needs a worker or a hardware code 
 
 ## What is still open, and the honest reason
 
-- **Ten arms have behaviour recorded but no name.** In every case the distinctive behaviour does not
-  match an unclaimed manual command, and the plausible names are already taken. Forcing them would
-  repeat the mistakes listed above.
-- **`0x2A` = `CMTMA`** contradicts the inherited `LOCSM`. Until that is resolved, `LOCSM` has no home
-  and arm `0x13` cannot be named.
+- **Two arms have behaviour recorded but no name: `0x10` and `0x17`.** With TERM and ARES shown to
+  bypass the dispatcher, **no unclaimed manual command remains**, so these two are almost certainly
+  undocumented - like ACON `0x08` and Messnak 13. `0x10` returns the sixteen-word signature block
+  from `0x00114550`; `0x17` enables the latch and sets the microprogram-running flag. Behaviour
+  recorded, no name to find.
+- **Four names still carry `[inh]`** - `CMSYSPAR` (`0x0E`), `VPARP` (`0x12`), `STOPMIC` (`0x1C`),
+  `CONTMIC` (`0x1D`), `RESTMIC` (`0x1E`). Two of the original six inherited names have already been
+  disproved (`LOCSM` at `0x2A`, `STARTMIC` at `0x1B`), so **these deserve the same parameter-list
+  check** - it is one glance per arm and it falsified both of the others.
 - **The Ghidra database still has undefined pockets inside the arms**, which makes every xref in
   `0x4D50`-`0x66B6` an undercount. This produced two wrong conclusions in one session. **Run a range
   disassembly over that span, then re-run the guard sweeps** - they are the cheapest classifier
