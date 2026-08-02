@@ -288,6 +288,33 @@ and confirm one stored field is the file connect number or a disc/page address t
 later consumes. Also unchecked: whether `055 ISPLACE` / `056 IEPLACE` / `007 IPLSWAPPER` do a
 bulk transfer instead.
 
+### AND THE WHOLE `FUNCS` VOCABULARY HAS NO FILE-TO-MEMORY OPERATION `[V]`
+
+Read the **complete** 60-entry operation set instead of chasing SGLOA's callees one by one.
+The ND-500 system monitor can do registers, memory (logical / physical / examine / deposit /
+physical-segment), control store, place, swapper, swap-file define+delete, process and
+name-segment management, and memory configuration. **Nothing in it reads a file into ND-500
+memory.** Every content-moving operation is a memory primitive fed by the *caller*
+(`PMWRI`, `DMWRI`, `AMEMW`, `WPHSG`) or a read back to it (`RPHSG`, `AMEMR`).
+
+Two names checked rather than assumed, both because they read like what I was hoping to find:
+
+- **`076 TOSWP` is "message to swapper", not "copy segment to swap"** - confirmed at the table
+  entry (`166733`) and in the NPL handler (`ITOSWP: % FUNCTION=076: MESSAGE TO SWAPPER`,
+  `s3vs-4.symb:78328`).
+- **`110 WPHSG` has exactly ONE call site** in the whole monitor image (`055736`), and it is
+  not in the PLACE bracket.
+
+**So the PLACE subfunctions cannot be delivering segment content - no operation they could
+call is capable of it.** Combined with the already-verified fact that the swapper's `LSWPAGE`
+names the swap file's logical device number `0o1100` explicitly, the open question sharpens
+to one sentence:
+
+> **What is supposed to write the domain into the swap file before the swapper reads it?**
+
+The swapper is asking the right file for a page that was never written. That gap is upstream
+of everything carved so far, and it is the next thing to chase.
+
 **ALSO FLAGGED - a stale doc that will mislead the next reader.**
 `re/030-S3SM5-routine-map.md` states its disassembler as `nd500-dis` and calls the code region
 "ND-500 code". That contradicts both the carving skill's 2026-07-21 correction and the check

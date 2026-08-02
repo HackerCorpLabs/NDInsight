@@ -83,6 +83,47 @@ the file connect number or a page/disc address that the swapper later consumes.
 
 ---
 
+## 3a. The whole FUNCS vocabulary has no file-to-memory operation `[V]`
+
+Rather than keep chasing SGLOA's callees, read the **complete** operation set of the ND-500
+system monitor (`FUNCS-dispatch-table.md`, 60 live entries). Grouped:
+
+| Group | Operations |
+|---|---|
+| Registers | `REGRE REGWR REGSR REGSW` |
+| Memory | `PMREA PMWRI DMREA DMWRI AMEMR AMEMW PMEXA PMDEP DMEXA DMDEP RPHSG WPHSG` |
+| Control store | `CSREA CSWRI CSLOA MPSTA MPSTO RMVER` |
+| Place | `SGLOA SPLAC EPLAC` |
+| Swapper | `LDSWA RUNSW TOSWP` |
+| Swap file | `SWFDE SWFDL` |
+| Process / files / name segment | `PROGS CONFI CLOSF RESR5 REL50 LIOPF SPRTE GPRTE SSGTE GSGTE SPRNM LINKT ...` |
+| Memory config | `DEFMC LIMEM MEMSP G5PAG T5PAG` |
+
+**There is no "read a file into ND-500 memory" operation anywhere in the table.** Every
+content-moving operation is a memory primitive driven by the *caller* supplying the bytes
+(`PMWRI`, `DMWRI`, `AMEMW`, `WPHSG`), or a read back to the caller (`RPHSG`, `AMEMR`).
+
+Two name-checks done rather than assumed:
+
+- **`076 TOSWP` is "message to swapper", not "copy segment to swap".** The name reads like a
+  transfer; the table entry (`166733`) and the NPL handler (`ITOSWP:  % FUNCTION=076: MESSAGE
+  TO SWAPPER`, `s3vs-4.symb:78328`) both say message. Checked precisely because the name
+  suggested what I was looking for.
+- **`110 WPHSG` ("write into a physical segment") has exactly ONE call site** in the whole
+  monitor image, at `055736`. It is not part of the PLACE bracket.
+
+**Consequence.** The PLACE subfunctions cannot be delivering segment content - no operation
+they could call is capable of it. Combined with the measured swapper behaviour (its `LSWPAGE`
+names the swap file's logical device number `0o1100` explicitly, already verified), the
+question sharpens to:
+
+> **What is supposed to write the domain into the swap file before the swapper reads it?**
+
+The swapper is asking the right file for a page that was never written. That is the gap,
+and it is upstream of everything carved so far.
+
+---
+
 ## 4. What is NOT established
 
 - The `[I]` above. Four indirect stores are not a proof of a descriptor.
