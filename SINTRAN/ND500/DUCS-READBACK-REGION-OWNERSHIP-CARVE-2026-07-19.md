@@ -23,7 +23,7 @@ octobus/ACCP command table in `CARVE-ANSWER-OCTOBUS-CSLOAD-MICROSTART-2026-07-18
 | DIRWW | 045701 | `SAA 24` (045705) | 024B [V] |
 | **JRWCS** | 045771 | `SAA 25` (045776) | **025B CMRWC / DUCS Dump-Control-Store** [V] |
 | DIRRW | 046104 | `SAA 26` (046110) | 026B [V] |
-| RUNSE | 046210 | `SAA 33` (046214) | 033B STARTMIC [V] |
+| RUNSE | 046210 | `SAA 33` (046214) | **033B `CMRUN` = RUNTST** [V, corrected 2026-08-03] — was "033B STARTMIC [V]", and that name was WRONG. `0o33` is `CMRUN` in `N500-SYMBOLS.SYMB`, and the carved octobus arm `0x1B` reads no parameters and runs the self-test body. STARTMIC is `0o66` = `CMMIC` = arm `0x36`. The `SAA 33` observation was always right; only the name was wrong, read off adjacent manual sections (5.3.23/5.3.24). `RUNSE` issuing `CMRUN` is also the more coherent reading. See `SINTRAN/ND5000/CM-SYMBOLS-ARE-THE-OCTOBUS-ARM-CODES-2026-08-03.md`. |
 | JSTOM | 046241 | `SAA 34` (046245) | 034B STOPMIC [V] |
 | MCLSA/CONTA/STOPA/TERMA | 045220.. | `SAA 41..44` | emergency 241B/242B/.../244B TERMINATE [V] |
 
