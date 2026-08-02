@@ -166,6 +166,37 @@ complete 151-command map:
   The handler is the documented `LDX ,B -176` / `STF ,X 6` marshal-then-`JPL I` shape and
   returns to the command loop at `003527`.
 
+### STOP - THE 5SWAP TRAP IS DOMAIN-INDEPENDENT, AND THE PLACE-CHAIN HUNT WAS THE WRONG TREE (2026-08-03)
+
+Established from the **existing records**, no new run needed. Two measurements, two different
+domains, two different commands, **the same trap at the same address**:
+
+| Date | Command | NLL installed? | Result |
+|---|---|---|---|
+| 2026-07-31 | `RECOVER-DOMAIN` | no | `> Allocating memory - 7110B pages` -> protect violation, 5SWAP, program address `1 10533B` |
+| 2026-08-01 | `ND-5000: LINKAGE-LOADER` | yes | same message, same trap, **same address `1 10533B`** |
+
+`Installation/INSTALL-ND-LINKAGE-LOADER-AND-BACKUP-SYSTEM.md` section 4a-VERIFIED already
+called it "a pre-existing emulator-side defect, independent of the installation".
+
+**Three consequences:**
+
+1. **THE LINKAGE-LOADER INSTALL IS ALREADY COMPLETE.** `DEFINE-STANDARD-DOMAIN LINKAGE-LOADER
+   LINKAGE-LOAD-H02` is accepted and `ND-5000: LINKAGE-LOADER` resolves and starts. This trap
+   is NOT an install blocker and must not be tracked as one.
+2. **The fault does not depend on which domain is placed**, so carving the PLACE chain
+   (`042115` -> `ISEGLOAD` -> `5NOPAR` -> `SGLOA` -> the `FUNCS` vocabulary) could never have
+   found it. That work below is correct and worth keeping - it closed open question 9, mapped
+   all 159 thunk sites, and killed several stale claims - but it was **aimed at the wrong
+   target**. Do not resume it in pursuit of this trap.
+3. "What writes the domain into the swap file?" is **not** the blocker either, for the same
+   reason: the trap fires identically for a domain that was never installed and one that was.
+
+**The real target is the swapper's own paging path**, which fails identically regardless of
+workload - i.e. the unresolved `1 10533B` address puzzle, six explanations dead so far.
+
+---
+
 ### THE SEGMENT-LOAD DEFECT IS NOT IN THE MONITOR (2026-08-02) `[V]`
 
 Follow-on carve, same session:
