@@ -2050,6 +2050,31 @@ carries real information when the manual specifies it.
 identical (`CMRSE` for RTEST, `CMALI` for ALIVE, `CMRUN` for STARTMIC). And remember the **five-character
 truncation**: `CMLMI` and `CMMAC` both sit at `041B`, so a collision is possible anywhere here.
 
+#### Three more arms measured - behaviour recorded, names withheld [V 2026-08-02]
+
+**`0x10` (020B, `CMREA`) returns a SIXTEEN-word block from `0x00114550`.** The loop runs indices
+0-15 (`cmpi.l #0xF`) emitting each word with `Reply_EmitWord`. **`0x00114550` is the CPU-class probe
+address** already recorded in this file, and sixteen words is exactly the **signature matrix** size.
+So this command hands the whole signature block back over the octobus. Name `[OPEN]` - `CMREA` says
+"read" and nothing more.
+
+**`0x16` (026B, `CMDRW`) takes a 14-bit CONTROL-STORE address.** It range-checks its word parameter
+against **`0x3FFF`** and answers Messnak **3 = "illegal address"** when it does not fit. 14 bits is
+16K words, the control-store size. So the parameter is a control-store address, which puts this arm
+in the control-store family even though it carries none of that family's guards. Name `[OPEN]`.
+
+**`0x36` (066B, `CMMIC`) writes ACON command `7` = MASKAIBF, then starts the microprogram.** In
+order: `move.w #0x0007,(0x00220000)` - **mask the AIB-flag interrupt**, straight out of table 9 -
+then `0x001143AC := 1` (running), then a loop driving `ControlStoreGateAndCmd_VariantA` (`0x78CA`)
+with the word parameter. Its own entry guard answers Messnak **9 = "CS not initialized"** from
+`0x0011314A`. Name `[OPEN]`: masking the AIB interrupt before running is a distinctive sequence but
+no manual command is obviously it, and STARTMIC/CONTMIC/RESTMIC are already taken.
+
+**Worth noting for the emulator:** that is now **three** independent places where an ACON command
+code has explained firmware behaviour - `5` = RAIBF in the AIB readers, `7` = MASKAIBF here, and the
+`0x0F`/`0x8013` pair in the MFbus memory transaction. The ACON table is the most productive single
+document in this whole effort.
+
 #### The arms SINTRAN never sends [2026-08-02]
 
 Working the no-symbol group, since those are the commands only a console operator or a test rig
