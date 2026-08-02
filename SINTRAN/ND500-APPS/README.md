@@ -101,6 +101,24 @@ printf 'LOGIN GUEST\nCPU-STAT\nEXIT\n' | ./build/bin/nd500x --monitor \
   using the self-contained `LINKER-AUTO-C.JOB`. See the memory note
   `nc-link-fortran-autojob-missing-libs` and each tool's userguide.
 
+## Gotchas when driving the compilers (NC, PLANC)
+
+Verified 2026-07-31 driving NC-A06 and PLANC-500-G00:
+
+- **Source files need CR (`0x0D`) line terminators, not LF.** A host file written
+  with Unix LF is read as ONE giant line - PLANC-500 reported "1 LINES COMPILED"
+  and wrote an empty NRF. Converting to CR (`tr '\n' '\r'`) gave "11 LINES
+  COMPILED" and a real NRF. (NC tolerated LF only because the test source was a
+  single line.)
+- **CREATE-FILE the output files before COMPILE.** The compilers OPEN their
+  list/object outputs for write without creating them; if absent, COMPILE fails
+  with `SINTRAN ERROR 56B` (no such file). The NC `COMPILE-HELLO.MODE` does this;
+  for PLANC do `CREATE-FILE X:LIST` + `CREATE-FILE X:NRF` first.
+- **PLANC-500 compile (verified):** `CREATE-FILE X:LIST` / `CREATE-FILE X:NRF`,
+  then `PLANC-500-G00`, then `COMPILE X:PLNC,X:LIST,X:NRF` -> real `X.NRF`.
+  Linking a PLANC DOM hits the same FORTRAN-auto-job / missing-lib issue as C
+  (below) and needs `PLANC-LIB` + a PLANC trap setup - not yet driven.
+
 ## How to discover a program's own commands/options
 
 1. **Built-in HELP** - most tools accept a `HELP` (or `help`) command at their

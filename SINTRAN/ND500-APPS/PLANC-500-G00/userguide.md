@@ -100,16 +100,21 @@ disasm].
 
 ## Verified behaviour in nd500x
 
-- The DOM loads and reaches its prompt, waiting for input [verified].
-- A full source-to-`:NRF` compile has NOT been driven end to end here; the
-  command syntax above is extracted from the binary and is not yet
-  run-verified [verified statement of status].
+- The DOM loads and prints its banner ("ND-500 PLANC COMPILER - JUNE 9, 1986
+  VERSION G") and reaches the `**` prompt [verified].
+- **End-to-end compile VERIFIED (2026-07-31).** Driving:
+  `CREATE-FILE X:LIST` / `CREATE-FILE X:NRF`, then `PLANC-500-G00`, then
+  `COMPILE X:PLNC,X:LIST,X:NRF` produced a real object file (an 11-line PLANC
+  `hello` module -> "11 LINES COMPILED. 0 DIAGNOSTICS." and a 270-byte `X.NRF`).
+  Two requirements matter (see ../README.md "Gotchas when driving the compilers"):
+  the source must use CR (`0x0D`) line terminators (LF is read as one line, giving
+  "1 LINES COMPILED" and an empty NRF), and the `:LIST`/`:NRF` outputs must be
+  `CREATE-FILE`d first (else `SINTRAN ERROR 56B`).
 
 ## Known issues / status
 
-- Status: loads and reaches prompt only [verified]. End-to-end compile is
-  unproven in nd500x - the command/option details are [from disasm] and should
-  be confirmed by an actual compile.
+- Status: **compile end-to-end works** [verified]; command/option details beyond
+  `COMPILE` are still [from disasm].
 - The DOM embeds the warning `SQUEEZE OPTION GENERATES INCORRECT CODE FOR THIS
   ROUTINE`, so the `SQUEEZE` optimisation can be unsafe on some routines [from
   disasm].
