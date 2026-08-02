@@ -1950,6 +1950,45 @@ so does the console `Cmd21_LoadControlStore` at `0x8CE4`. Combined with the eigh
 checksum that is a good case for LOCSD - but `0x73B2` has around two dozen callers, so by the rule
 just stated **this does not promote `0x14` to `[V]`.** It stays `[I]`.
 
+#### THE COMMAND-CODE TABLE EXISTS - `N500-SYMBOLS.SYMB` [V 2026-08-02]
+
+Chasing the provenance question below turned up the actual source. **SINTRAN's own symbol table
+carries the ACCP command codes as `CM*` constants in octal**, in
+`SINTRAN\ND500\swapper\N500-SYMBOLS.SYMB` (also in `NPL-SOURCE\SYMBOLS\L07\N500-SYMBOLS.SYMB.TXT`).
+
+**It is trustworthy because two names proved independently this session land on it exactly:**
+`CMLDM=051B` = `0x29`, which was proved LMODE via the `0x77FE` cross-reference, and `CMLMI=041B` =
+`0x21`, proved LMIR via the shared console worker. Neither proof used the table. That is the check
+that turns a promising list into evidence.
+
+| Code | Symbol | Code | Symbol | Code | Symbol |
+|---|---|---|---|---|---|
+| `0x0E` | `CMSYS` | `0x1E` | `CMRES` | `0x2C` | `CMRMP` |
+| `0x0F` | `CMTEC` | `0x1F` | `CMALI` | `0x2D` | `CMSET` |
+| `0x10` | `CMREA` | `0x20` | `CMLMA` | `0x30` | `CMRSE` |
+| `0x11` | `CMLPA` | `0x21` | `CMLMI`/`CMMAC` | `0x31` | `CMENK` |
+| `0x12` | `CMVER` | `0x22` | `CMRMI` | `0x32` | `CMDIS` |
+| `0x13` | `CMWWC` | `0x23` | `CMBUS` | `0x33` | `CMBUF` |
+| `0x14` | `CMDWW` | `0x24` | `CMATE` | `0x36` | `CMMIC` |
+| `0x15` | `CMADR` | `0x28` | `CMRAS` | `0x37` | `CMLOO` |
+| `0x16` | `CMDRW` | `0x29` | `CMLDM` | `0x38` | `CMSPE` |
+| `0x1B` | `CMRUN` | `0x2A` | `CMTMA` | `0x39` | `CMCPU` |
+| `0x1C` | `CMSTO` | `0x2B` | `CMWMP` | `0x3A` | `CMTES` |
+| `0x1D` | `CMCON` | | | `0x3B` | `CMCCD` |
+| | | | | `0x3D` | `CMRPR` |
+
+**Read these as SINTRAN's mnemonics, not the manual's command names** - they line up but are not
+identical (`CMRSE` for RTEST, `CMALI` for ALIVE, `CMRUN` for STARTMIC). And remember the **five-character
+truncation**: `CMLMI` and `CMMAC` both sit at `041B`, so a collision is possible anywhere here.
+
+**Codes with an arm but NO `CM*` symbol:** `0x0D`, `0x17`, `0x18`, `0x25`, `0x26`, `0x27`, `0x34`,
+`0x35`, `0x3C`, `0x3E`. The firmware implements more commands than SINTRAN ever sends - which is a
+second, independent reason the arm set and the manual's section list are not the same set.
+
+**`0x2A` IS `CMTMA`, NOT LOCSM.** The inherited table's `LOCSM` at `0x2A` does not match SINTRAN's
+own symbol, and `LOCSM` was exactly the name blocking arm `0x13` last round. That entry should be
+treated as unsupported until someone shows where it came from.
+
 **A caution about the thirteen names inherited from the earlier carve.** Those were listed with
 "Source: ND-05.020.01 5.3", but **the manual prints no numeric command codes in any of those
 sections** - this file established that when positional mapping was rejected. So the code-to-name
