@@ -1850,14 +1850,34 @@ in their names, so one decompile settles an arm:
 `AobSingleWordWrite` until `0x00113138` clears. Kick-guarded, no memory parameter, and the worker
 writes - so it is the direct 16-bit load into AOB.
 
-**`0x35` (065B) = LAOB32M?** `[I]`, 5.3.37. Memory-parameter and kick-guarded, and its body reads the
-pointer then calls `MfBusMemoryTransaction_VariantA` **once** - a single 32-bit write path. That fits
-Load AOB32 Via Memory. Its partner `0x34` would then be RAIB32M, **but do not write that down yet**:
-`0x34` starts by calling STOPMIC, which no AIB read should need, and that is unexplained. Naming
-`0x34` by elimination is exactly the shortcut this file already warns against.
+~~**`0x35` (065B) = LAOB32M?**~~ **CORRECTED 2026-08-02 - that guess was BACKWARDS.**
+
+> Reading arm `0x34`'s body once it was disassembled settles the pair the other way round:
+>
+> ```
+> 0x5F9E  jsr 0x795A                       ; the STOPMIC / latch-disable routine
+> 0x5FA4  move.l (0x001143AE),D0           ; the parameter pointer
+> 0x5FAA  jsr 0x7138                       ; VariantB = read IN from MFbus memory
+> 0x5FB4  loop: jsr 0x7320                 ; write the data pair OUT
+> ```
+>
+> Fetching a longword **from** memory and writing it **to** the data pair is **Load AOB32 Via
+> Memory**. So **`0x34` (064B) = LAOB32M** `[I` strong`]`, 5.3.37 - and `0x35` is then RAIB32M by
+> pairing, which is **still not written into the table** for the same reason as before.
+>
+> **The STOPMIC call is no longer an anomaly, and it explains itself.** `0x795A` is the latch-disable
+> routine (section 2.4e); `Cmd24_StopMicroprogram` calls it because stopping the microprogram *is*
+> disabling that gate. An arm about to drive AOB has to close the same gate first. The name "STOPMIC"
+> came from its call site, so seeing it inside a load command looked wrong - **the same
+> name-from-caller trap, one level further down.**
+>
+> The earlier guess was tagged `[I]` and never entered the command table, which is the only reason
+> this correction is cheap.
 
 **`0x25` (045B) = RAIB32D** `[V]`, 5.3.33. Takes **no** parameters. Its body calls
-`MfBusCmdDataPairStatus` (`0x7374`) and keeps the result as a long. **What names it is an ACON
+`MfBusCmdDataPairStatus` (`0x7374`) and keeps the result as a long. **Independently confirmed from
+the console side**: the same worker is called at `0x8882`, inside `Cmd2C_ReadAib32`. The two
+dispatchers share the AIB32 read routine, so the octobus arm that calls it is the octobus AIB32 read. **What names it is an ACON
 code**: that worker reads the data pair and then issues **command `5` = RAIBF**, "reset AIBF flag and
 clear MASKAIBF flip-flop" (table 9). Reading the pair and clearing AIBF *is* a read of AIB. The guard
 only narrowed it; the ACON code proved it.
