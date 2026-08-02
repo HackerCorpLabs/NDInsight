@@ -23,8 +23,8 @@ and all 46 matched the `0C 00 00 <imm>` + `66` shape with zero mismatches.
 | `0x10` | 020B | `6562` | `CMREA` | - | `[OPEN]` returns 16 words from `114550` |
 | `0x11` | 021B | `5980` | `CMLPA` | **LPARP** | `[V]` writes the parameter pointer + flag |
 | `0x12` | 022B | `59B6` | `CMVER` | VPARP | `[inh]` |
-| `0x13` | 023B | `4D50` | `CMWWC` | LOCSM | `[I]` memory -> `1144F0` array + checksum, shares `CmdPortWrite_A` with console load |
-| `0x14` | 024B | `4EDC` | `CMDWW` | LOCSD | `[I]` 8 words = 128 bits + checksum |
+| `0x13` | 023B | `4D50` | `CMWWC` | **LOCSM** | `[V]` issues **WCS**; memory params + checksum |
+| `0x14` | 024B | `4EDC` | `CMDWW` | **LOCSD** | `[V]` issues **WCS**; 8 words = 128 bits + checksum |
 | `0x15` | 025B | `4FC0` | `CMADR` | - | `[OPEN]` memory param; loops `ControlStoreWriteWithVerify` |
 | `0x16` | 026B | `519C` | `CMDRW` | - | `[OPEN]` 14-bit CS address, Messnak 3 |
 | `0x17` | 027B | `56BC` | - | - | `[OPEN]` latch enable + sets running |
@@ -158,8 +158,30 @@ it returns non-zero. Both `[OPEN]`.
 > counted `0x0006` **20,964** times per boot, so the real control-store load path is heavily used
 > and easy to spot.
 >
-> `0x13` = LOCSM is **unaffected** - that inference rests on the shared `CmdPortWrite_A` with the
-> console `Cmd21_LoadControlStore` and on the checksum, not on `0x741E`.
+> `0x13` = LOCSM is **unaffected** - that inference rests on the shared worker with the console
+> `Cmd21_LoadControlStore` and on the checksum, not on `0x741E`.
+
+### RESOLVED the same round - the WCS lead worked
+
+Searching the whole image for a write of ACON `0x06` to `0x220000` finds **exactly two sites**:
+`0x73D2` and `0x7408`. They sit inside the two functions formerly called `CmdPortWrite_A` and
+`CmdPortWrite_B`, **renamed `ControlStoreWrite_WCS_A` / `_B`**. Those are the control-store write
+path, and nothing else in the image issues WCS.
+
+**That promotes both loads to `[V]`:**
+
+| Arm | Command | Now proved by |
+|---|---|---|
+| `0x14` (024B) | **LOCSD** (5.3.17) | issues **WCS**; 8 words = 128 bits + checksum; direct parameters |
+| `0x13` (023B) | **LOCSM** (5.3.18) | issues **WCS**; same array + checksum; **memory** parameters |
+
+**And it settles what `0x15` and `0x16` are not.** Neither issues WCS - they go through `0x741E`,
+whose command is AMIRCK, a MIR reclock. **So they are not control-store loads**, which leaves the
+dump commands DCSD (5.3.19) and DUCS (5.3.20) as the live candidates, `[OPEN]` between them.
+
+**The technique, worth reusing:** when a worker's name is untrustworthy, search the image for the
+**hardware command byte** the real operation must issue and see who issues it. Two hits out of a
+131072-byte image settled a question four rounds of reading arms had not.
 
 ## `0x2A` = LCON - and why the inherited "LOCSM" was wrong
 
