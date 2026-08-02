@@ -20,4 +20,6 @@
   <Project Path="Xmsg.Api.Node.Tests/Xmsg.Api.Node.Tests.csproj" />
   <Project Path="Xmsg.Chat/Xmsg.Chat.csproj" />
   <Project Path="Xmsg.Chat.Tests/Xmsg.Chat.Tests.csproj" />
+  <Project Path="Xmsg.Ethernet/Xmsg.Ethernet.csproj" />
+  <Project Path="Xmsg.Ethernet.Tests/Xmsg.Ethernet.Tests.csproj" />
 </Solution>
