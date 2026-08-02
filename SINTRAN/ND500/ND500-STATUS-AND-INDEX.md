@@ -259,7 +259,34 @@ RECOVER-DOMAIN -> 042115 loader -> subfn 006
   -> [sysmon]  5FP2E @142231 -> FUNCS[006] = SGLOA @142637 -> the actual segment place
 ```
 
-Reading `SGLOA` for the disc access is the next step.
+### SGLOA READ (2026-08-03) - IT HAS NO `RFILE` EITHER, AND THAT MAY REFRAME THE WHOLE DEFECT
+
+Full carve: [`SGLOA-SEGMENT-PLACE-CARVED-2026-08-03.md`](SGLOA-SEGMENT-PLACE-CARVED-2026-08-03.md).
+
+`SGLOA`'s 457 words contain **exactly one `MON` of any kind**: `MON 43` (CLOSE) at `143517`.
+It opens a file at `143352` via the shared helper at `100732` (whose `MON 50` is at `100735`)
+and closes it - **with no read of any kind in between**. Every hop of the PLACE chain is now
+accounted for, and **not one of them reads segment content**.
+
+The six `RFILE` calls that DO exist in this segment (`154026`, `154255`, `154334`, `155120`,
+`155216`, `155375`) belong to **`CSLOA` (`FUNCS[037] @153441`, load control store)** - they read
+the microcode file. `FUNCS[040] = DEFMC @155742` bounds that body, and a whole-image scan for
+calls resolving into `153700`-`155600` returns 91 sites, **every one internal to that block**.
+Nothing outside calls in. Anyone reasoning "S3SM5 reads files, so it reads the domain" lands
+here and should stop.
+
+**WORKING HYPOTHESIS, EXPLICITLY NOT ESTABLISHED:** between open and close `SGLOA` writes a
+handful of fields through indirect stores on `B-176` (`STA I ,X 71`, `STZ/STA I ,X 57`,
+`STA I ,X 47`) with no loop and no block-transfer primitive - the shape of **descriptor setup**.
+If the content is paged in later on demand by the swapper (which is what the measured MON 377B
+`LSWPAGE` traffic is), then **"the floppy is never bulk-read at PLACE time" is EXPECTED
+BEHAVIOUR, not the defect** - and the standing "placement requested, segment content never
+fetched" line has been chasing a non-problem.
+
+**Do not act on that until it is proven.** What settles it: identify the structure at `B-176`
+and confirm one stored field is the file connect number or a disc/page address the swapper
+later consumes. Also unchecked: whether `055 ISPLACE` / `056 IEPLACE` / `007 IPLSWAPPER` do a
+bulk transfer instead.
 
 **ALSO FLAGGED - a stale doc that will mislead the next reader.**
 `re/030-S3SM5-routine-map.md` states its disassembler as `nd500-dis` and calls the code region
