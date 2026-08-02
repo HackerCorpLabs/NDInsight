@@ -176,6 +176,73 @@ On module 5 exit it asks whether to copy `IN-NLL-XX-H02:INST` back to the floppy
 
 After this, `N500: LINKAGE-LOADER` (and per the manual `@ND-500-LINKAGE-LOADER`) resolves to the standard domain.
 
+## 4a-VERIFIED. G12 Recovery That Actually Works - Four File Copies, No ND-500
+
+**Status: MEASURED END TO END, 2026-08-01**, in the RetroCore boot harness
+(`NllInstaller_RunFiveModules_Capture`). This supersedes section 4a below for practical purposes:
+section 4a needs RECOVER-DOMAIN, which starts the ND-500 swapper; this does not touch the ND-500
+at all.
+
+Run the installer normally (section 4). It will report `INSTALLATION - FINISHED` while having
+copied no domain - that is G12. Then repair it by hand.
+
+The floppy is a complete NLL installation under FLOPPY-USER, so the whole repair is four ordinary
+file copies onto the user who should own the loader (SYSTEM here - domains on SYSTEM are found
+automatically for every user):
+
+```
+@ENTER-DIRECTORY                      <- module 4 RELEASED the floppy; enter it again
+DIRECTORY NAME:                       (empty CR - taken from the label)
+DEVICE NAME: FLOPPY-DISC-1
+DEVICE UNIT: 0
+
+@COP-FIL "DESCRIPTION-FILE:DESC",(210319H02:FL)DESCRIPTION-FILE:DESC
+@COP-FIL "LINKAGE-LOAD-H02:PSEG",(210319H02:FL)LINKAGE-LOAD-H02:PSEG
+@COP-FIL "LINKAGE-LOAD-H02:DSEG",(210319H02:FL)LINKAGE-LOAD-H02:DSEG
+@COP-FIL "LINKAGE-LOAD-H02:LINK",(210319H02:FL)LINKAGE-LOAD-H02:LINK
+```
+
+Then, inside the monitor:
+
+```
+ND-5000: LIST-DOMAIN
+Domain no.   0: SCRATCH-DOMAIN
+Domain no.   1: LINKAGE-LOAD-H02.......................SA:   26000006721
+
+ND-5000: DEFINE-STANDARD-DOMAIN LINKAGE-LOADER LINKAGE-LOAD-H02
+ND-5000: LINKAGE-LOADER
+> Loading Control Store
+> Loading Swapper
+> Allocating memory - 7110B pages
+```
+
+The domain is registered WITH a start address and the standard domain resolves, which settles an
+open question from section 4a: **the floppy's description file does NOT hard-code its own
+directory**, so plain COPY-FILE is sufficient and COPY-DOMAIN is not required.
+
+### Three command-syntax traps, each of which cost a full run
+
+1. **Quote the DESTINATION only, never the SOURCE.** A quoted name means "create this file", so
+   quoting the source asks SINTRAN to create a file on the floppy and it answers
+   `NOT DIRECTORY ACCESS` - which reads exactly like a directory-permissions problem and is not
+   one. A `@LIST-FILES` on the same floppy in the same breath succeeded; that probe is what
+   disproved the directory theory.
+2. **The command buffer cuts at about 72 characters**, answering `TOO LONG STRING`, with the
+   truncated tail running into the next command in the transcript. Drop the destination user (an
+   unprefixed name lands on the current user) and abbreviate the source directory.
+3. **Module 4 releases the floppy directory** ("Remove floppy ... from station 1 unit 0"). Copies
+   afterwards fail with `DIRECTORY NOT ENTERED` until it is entered again.
+
+`SOURCE EMPTY` on the `:LINK` copy is EXPECTED - that file is 0 bytes on the distribution floppy.
+
+### What still blocks RUNNING it (not an install problem)
+
+Starting the loader needs a defined ND-500 swap file (without one:
+`SWAPPING SPACE NOT AVAILABLE`). With one defined, the start reaches
+`> Allocating memory - 7110B pages` and then takes a protect violation in shadow process 5SWAP.
+That signature is byte-identical to the one seen long before this product was installed, so it is
+a pre-existing emulator-side defect, independent of the installation.
+
 ## 4a. Manual Installation Straight From the Floppy (Recovery Path)
 
 Use this when the installer's module 4 claimed success but `@LIST-FILES (DOMAIN-USER)` is empty (gotcha G12). The trick: the floppy itself is a complete, runnable NLL installation under FLOPPY-USER (description file + :PSEG/:DSEG/:LINK), so NLL can be started directly from the floppy and then told to copy ITSELF to the local disk with its own COPY-DOMAIN command.
