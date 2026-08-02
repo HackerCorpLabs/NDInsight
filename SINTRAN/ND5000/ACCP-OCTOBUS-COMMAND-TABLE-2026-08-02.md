@@ -31,8 +31,8 @@ and all 46 matched the `0C 00 00 <imm>` + `66` shape with zero mismatches.
 | `0x18` | 030B | `58A4` | - | **AMICTRAP** | `[V]` MREG `0xD0` = ATRAP without OMESS |
 | `0x1B` | 033B | `65B6` | `CMRUN` | **RUNTST** | `[V]` no params; runs `0xF22C`; returns `1131E2`. **NOT StartMic** |
 | `0x1C` | 034B | `562E` | `CMSTO` | **STOPMIC** | `[V]` no params; **inverse** guard -> Messnak 0 |
-| `0x1D` | 035B | `568C` | `CMCON` | CONTMIC | `[inh]` |
-| `0x1E` | 036B | `6438` | `CMRES` | RESTMIC | `[inh]` |
+| `0x1D` | 035B | `568C` | `CMCON` | **CONTMIC** | `[V]` no params; calls the `0x79BC` enable wrapper |
+| `0x1E` | 036B | `6438` | `CMRES` | **RESTMIC** | `[V]` **two** words = CS address + interval, exactly 5.3.46 |
 | `0x1F` | 037B | `56EA` | `CMALI` | **ALIVE** | `[V]` answers nak 7 "not alive" |
 | `0x20` | 040B | `5A46` | `CMLMA` | LMAR | `[I]` one word |
 | `0x21` | 041B | `5AB0` | `CMLMI` | **LMIR** | `[V]` shares `0x773E` with console `Cmd29_LoadMir` |
@@ -64,8 +64,14 @@ and all 46 matched the `0C 00 00 <imm>` + `66` shape with zero mismatches.
 | `0x3D` | 075B | `6644` | `CMRPR` | Read PROM Version | `[I]` symbol only |
 | `0x3E` | 076B | `66B6` | - | **READ CPU MODEL** | `[V]` reads class byte `1131F6` |
 
-**Count: 19 `[V]`, 11 `[I]`, 10 `[OPEN]`, 6 `[inh]`.** Codes run `0x0D`-`0x3E` with exactly four
-holes - `0x19`, `0x1A`, `0x2E`, `0x2F`.
+**Final count: 34 `[V]`, 10 `[I]`, 2 `[OPEN]`.** Codes run `0x0D`-`0x3E` with exactly four holes -
+`0x19`, `0x1A`, `0x2E`, `0x2F`. No name is left tagged `[inh]`: all six inherited names were audited
+against the manual's parameter lists, **five confirmed and two disproved** (`STARTMIC` at `0x1B` was
+really RUNTST; `LOCSM` at `0x2A` was really LCON).
+
+The two `[OPEN]` arms are not unfinished work - **`0x10` and `0x17` implement commands ND-05.020.01
+does not document**, which is established rather than assumed: every manual command is now accounted
+for, and TERM and ARES are hardware-decoded with no arm at all.
 
 ---
 
