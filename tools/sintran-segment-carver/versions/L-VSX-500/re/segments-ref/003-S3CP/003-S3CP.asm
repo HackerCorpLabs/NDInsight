@@ -8,7 +8,7 @@
 ;
 ; sha256(003-S3CP.bin) = 5e64e1475306d89cc6012397f3b12f155875ab07e26259b2cc164b8d85297bb4
 
-; nd100-dis: /tmp/tmp6ek4yuhs.le (raw binary, 53248 words)
+; nd100-dis: /tmp/tmpj2g482cm.le (raw binary, 53248 words)
 
 >>> ERRFL(SYMBOL-1-LIST) / BCSTA(SYMBOL-1-LIST) / NXPIT(SYMBOL-1-LIST) / OP2BG(SYMBOL-1-LIST)
 030000  030000  	STF 0

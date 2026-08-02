@@ -419,9 +419,28 @@ manipulated on the shadow (or on a D0 copy of it) and the whole byte is written 
 
 **Master-clear sequence** (identical at 0x0838-0x086E in the IRQ7 path and 0x055A-0x0590 in IRQ3):
 pulse latch bit 1 low, write `0xF0` to `0x330000`, pulse bit 1 high, busy-wait `0x2710` (10000)
-iterations, `jsr 0x795A`, then `jmp 0x00000C72`. **`0x795A` is the octobus-controller re-init
+iterations, `jsr 0x795A`, then `jmp 0x00000C72`. ~~**`0x795A` is the octobus-controller re-init
 routine** - it is the one thing both reset paths call, and therefore the natural next carve target
-for the remaining register semantics.
+for the remaining register semantics.~~
+
+> **CORRECTION 2026-08-02 - `0x795A` is STOPMIC. Do not re-adopt the re-init reading.**
+>
+> The struck-through claim above was wrong twice over, and it survived because the correction was
+> written somewhere else in this same file instead of here:
+>
+> 1. **2026-07-27** (section 2.4e below): carved as a **latch DISABLE**, not a re-init. Section 2.4c
+>    was never updated, so this file has contradicted itself for six days.
+> 2. **2026-08-02** (ACCP-init agent, `[V]`): it is **STOPMIC**. Called by
+>    `Cmd24_StopMicroprogram @ 0x91C6`, and its body matches manual 5.3.24 verbatim - from the
+>    MREG-lower shadow clear bit 3 (MRUN) and bit 1 (SLOW), then clear bit 2 (**AMODE**, polarity 0,
+>    so clearing *asserts* it). `Cmd24` then does `clr.w (0x1143AC)`.
+>
+> The two reset paths call it because **a reset stops the microprogram first**. That is a
+> consequence of what it does, not its identity - which is exactly how the name-based guess got in.
+>
+> **This is the third time a name-based assumption has misled work on this interface**, after
+> `0x300F`/`0x4016`/`0x8013` (assumed initialisation, actually the boot self-test bus loopback) and
+> `0x0007` (assumed a read-arm, actually MASKAIBF). See section 2.4g-census.
 
 The IRQ7 path proper (0x0876): drain `0x880000` while `0x660001` bit 2 is set, write `0` to
 `0x00BB0000`, then `jmp 0x00000C72` to restart the firmware.
@@ -908,7 +927,12 @@ Three things worth having:
    report. That makes **`0x0ECE` the exact instruction a Phase 2 test should aim at** if it wants to
    assert on the decision rather than on the console text.
 
-#### 2.4e `0x795A` carved - it is a latch DISABLE, not a re-init [CARVED 2026-07-27]
+#### 2.4e `0x795A` carved - it is a latch DISABLE, not a re-init [CARVED 2026-07-27; NAMED **STOPMIC** 2026-08-02]
+
+> **Name settled 2026-08-02:** `0x795A` is **STOPMIC** (manual 5.3.24), called by
+> `Cmd24_StopMicroprogram @ 0x91C6`. The latch-disable behaviour carved below is what stopping the
+> microprogram *does*; it is not a separate routine. Section 2.4c carried the old "re-init" reading
+> until 2026-08-02 - see the correction banner there.
 
 `0x795A` was expected (§2.4c) to be a big octobus-controller re-initialisation routine, because both
 master-clear paths call it. **It is not.** It is a short routine that manipulates the `0x330001`

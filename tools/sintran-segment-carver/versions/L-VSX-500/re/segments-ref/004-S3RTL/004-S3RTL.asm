@@ -8,7 +8,7 @@
 ;
 ; sha256(004-S3RTL.bin) = 12e3e27460e147aa00fecad1352ff570492c98d2aa1013da4a898faab882832d
 
-; nd100-dis: /tmp/tmpff2kekkz.le (raw binary, 30720 words)
+; nd100-dis: /tmp/tmpqlhg8udw.le (raw binary, 30720 words)
 
 >>> NXPIT(RTLO-SYMBOLS)
 030000  030000  	STF 0

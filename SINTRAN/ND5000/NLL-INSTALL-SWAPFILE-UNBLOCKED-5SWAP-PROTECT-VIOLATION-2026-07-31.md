@@ -579,7 +579,172 @@ MON 377B argc=7 ... | [4] @0x08024424=0x0027C800 | ...
 `core=0x27C800` IS argument 4. The request, SINTRAN's handling, and the disk
 transfer all agree. Nothing is being lost or mis-parsed on that path.
 
-### The mismatch
+### RESOLVED: the transfer is correct, the swap file is simply EMPTY
+
+The hypothesis below (that the page lands outside the 5MPM window) is **WRONG**,
+and the way it failed is worth keeping.
+
+An ND-100 DMA core address is a **WORD** address - `DMAWrite` does
+`WriteMemory16(coreAddress << 1, ...)`. So `core=0x27C800` means ND-100 BYTE
+address `0x4F9000`, not `0x27C800`. The first check read byte `0x27C800` and got
+`DEAD DEAD DEAD ...` on every word - a read that THREW, i.e. the wrong address,
+not empty memory. (The dump helper reports `DEAD` rather than `0000` precisely so
+a bad address cannot be misread as "the data is missing". Had it returned zeros,
+the wrong hypothesis would have looked confirmed.)
+
+Corrected, on live data:
+
+```
+@0x4F9000 (core word 0x27C800, byte): 0000 0000 0000 0000 0000 0000 0000 0000
+window offset = 0x0D9000 (MpmStart=0x420000, inWindow=True)
+```
+
+`0x4F9000` is **inside** the 5MPM window, at offset `0xD9000`. The page is
+delivered exactly where the ND-500 can see it. Nothing is misaddressed.
+
+**And the zeros are correct too.** On the pristine pack, the swap file's own
+region is blank:
+
+```
+$ xxd -s 65159168 -l 2048 "F:\ND\SINTRAN-L - 2026\HDD\BIGDISK0-L.IMG"
+03e24000: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+(no non-zero bytes in the whole page)
+```
+
+`SWAP-FILE-0` was created fresh in this very session and has never been written.
+Reading page 0 of a virgin swap file returns zeros - the disk did its job
+perfectly.
+
+### So where the defect really is
+
+Every layer is now cleared: the octobus, the mailbox messages, the restarts, the
+MMU, the block copies, the disk controller, the DMA addressing and the swap file
+itself all behave correctly.
+
+What remains is a level up: **the swapper is READING a page that was never
+WRITTEN.** A swap-in only makes sense for a page that was previously swapped out;
+on RECOVER-DOMAIN the domain's contents come from the domain FILES
+(`:PSEG`/`:DSEG` on the floppy). Something earlier in the flow has left the
+swapper believing this page lives on the swap file. It reads zeros, takes a page
+number of 0 out of them, and block-moves from physical page 0 - the trap.
+
+---
+
+## The domain image is never transferred to the swap file
+
+Instrumenting the floppy the same way (the transfer ring now lives on
+`NDBusDeviceBase`, shared by both controllers) gives, for the WHOLE run:
+
+```
+----- FLOPPY transfers (22) -----
+  ReadFormat unit=0 pos=0       words=256  mem=0x04D400
+  ReadData   unit=0 pos=0       words=1024 mem=0x04D400
+  ReadData   unit=0 pos=1044480 words=1024 mem=0x04D000
+  ReadData   unit=0 pos=1046528 words=1024 mem=0x04CC00
+  ... (directory area, 0o1040384-1046528, read and rewritten)
+  ReadData   unit=0 pos=851968  words=1024 mem=0x04A000
+  ReadData   unit=0 pos=854016  words=1024 mem=0x049C00
+  ReadData   unit=0 pos=849920  words=1024 mem=0x049800
+  ...
+  WriteData  unit=0 pos=1042432 words=1024 mem=0x044C00
+```
+
+**Twenty-two transfers for the entire session**, and they are all single pages -
+the floppy's own format block, its directory area (repeatedly, which is
+`ENTER-DIRECTORY` and `LIST-FILES` doing their work), and a handful of scattered
+pages. There is **no bulk sequential read of a domain segment** anywhere in the
+run.
+
+Put beside the disc side of the same run:
+
+- the swap file was touched exactly three times: a seek, a seek-complete, and
+  ONE `ReadTransfer` of one page from its very first block;
+- there is **no `WriteTransfer` to the swap file at all**.
+
+So nothing ever put the domain's contents into the swap file, and the swapper's
+read of swap-file page 0 was always going to return the zeros that are physically
+there.
+
+That is the shape of the defect: **`RECOVER-DOMAIN` never transfers the domain
+image from `(210319H02-XX-01D:FLOPPY-USER)LINKAGE-LOAD-H02:PSEG/:DSEG` into the
+swap file, yet the swapper is asked to page it in from there.**
+
+---
+
+## This lands on a KNOWN, still-open carve item
+
+`DOMAIN-HANDLING-ARCHITECT-BRIEFING-2026-07-19.md` already flagged exactly this
+area as not-yet-carved, and said so in terms worth repeating:
+
+> Do NOT implement PLACE-DOMAIN / RECOVER-DOMAIN FUNCS subfunctions as fact -
+> those are **[TC]**.
+
+and
+
+> The DESCRIPTION-FILE layout, PLACE-DOMAIN subfunction order, standard-domain
+> table, and the installer cross-user copy are all **[TC]** and covered by the
+> outstanding carve prompt.
+
+So the question "what is RECOVER-DOMAIN supposed to do with the domain image"
+cannot be read off anything we hold - it is the deliverable of a carve prompt
+that has been open since 19 July. That is not a dead end, it is the work.
+
+**`012533` is the command-table STRING, not the handler.** The monitor's command
+table at that address holds the NAME "RECOVER-DOMAIN" and its operator prompt,
+backslash-separated - disassembling it yields nonsense instructions
+(`STF I 102`, `BAND 120 DX`), which is the classic data-read-as-code trap.
+
+The carve document is explicit about what is still missing, and it is exactly what
+this investigation needs:
+
+> The command name -> handler address binding requires the *outer* dispatch table
+> (an array of handler addresses / parameter counts that indexes these strings);
+> that table was **not located** in this pass and is **open question 9**.
+
+So the real first task is not "disassemble 012533" - it is **find the outer
+dispatch table** (open question 9) so the RECOVER-DOMAIN handler can be located at
+all. The binary and symbol tables:
+
+```
+E:\Dev\Ronny\NDInsight\SINTRAN\ND500\nd-500-mon\nd-500-mon-j04-bank1.bin
+E:\Dev\Ronny\NDInsight\SINTRAN\ND500\nd-500-mon\nd-500-mon-j04-bank2.bin
+E:\Dev\Ronny\NDInsight\SINTRAN\ND500\nd-500-mon\nd-500-mon-j04-symtab1.sym
+E:\Dev\Ronny\NDInsight\SINTRAN\ND500\nd-500-mon\nd-500-mon-j04.prog.asm
+```
+
+### Oracle status (checked 2026-07-31)
+
+The mailbox differential oracle - same tests through the real B30 microcode and
+the C# servicer - is **43/43 green** after this session's servicer changes, and
+the octobus (5/5) and floppy (11/11) suites pass too. So the diagnostics added
+here did not perturb the message layer, and the servicer-vs-microcode parity that
+was established on the copy family still holds.
+
+It cannot adjudicate THIS defect, for two structural reasons worth recording:
+`23B` start and `24B` restart are explicitly not parity targets (the servicer
+models them through a ProcessHost while the microcode executes ND-500 macrocode),
+and the fault is above the mailbox layer entirely.
+
+---
+
+## Next step
+
+Carve `012533`. Find who is supposed to move the domain image to the swap file,
+and why it does not run. Two candidates, in order:
+
+1. The ND-500 monitor's own RECOVER-DOMAIN path - does it read `:PSEG`/`:DSEG`
+   and write them out, and if so what stops it here?
+2. The swapper's page tables - if a page's backing store should name the DOMAIN
+   FILE rather than the swap file, then the swap-file read is itself the error
+   and the question becomes what set that up.
+
+The floppy log distinguishes these directly: candidate 1 predicts a bulk read of
+the domain files that never happens; candidate 2 predicts the swapper should have
+been reading the floppy, not the disc, all along.
+
+Do NOT reopen anything below - all of it is measured and correct.
+
+### (wrong) The mismatch
 
 The disk controller wrote the page to **ND-100 physical byte 0x27C800**. But the
 5MPM shared window in this configuration starts at **0x00420000** (`mpmStart`),

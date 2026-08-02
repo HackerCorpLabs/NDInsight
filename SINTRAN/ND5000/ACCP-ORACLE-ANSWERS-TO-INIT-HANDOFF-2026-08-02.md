@@ -1494,3 +1494,1285 @@ trace RAM is microprogram-readable only; **in your emulator that restriction doe
 Remaining `[OPEN]` I would take next, in order: the DUMP CONTROL STORE command byte and parameter
 layout; `Cmd27_CheckAlive`'s body; whether the STOP bit interacts with `EXUC` (R3.10); and the
 ND-5400/ND-5500 clock-bit special case at `0x7926`.
+
+---
+---
+
+# ROUND 4 - 2026-08-02 - DUMP CONTROL STORE closed, and the FATAL/ATRAP experiment made executable
+
+Rounds 1-3 are published and untouched. Two items, both requested.
+
+`Reference-Manuals\500\` grepped first, as agreed. It carried both answers: **section 5.3.19 DCSD**
+closes item 1, and **section 5.3.39 LMODE** turns out to be the thing that decides whether item 2 is
+runnable at all.
+
+---
+
+# ITEM 1 - `Cmd22` / DUMP CONTROL STORE - **CLOSED**, with a warning that changes where you put it
+
+## R4.1 Verdict
+
+**The command is DUMP CONTROL STORE DIRECTLY (DCSD), ND-05.020.01 section 5.3.19. Operand is a
+2-byte CS address; the reply is 16 bytes of microinstruction plus a 2-byte checksum addend, most
+significant word first.**
+
+**It is NOT non-destructive. It perturbs MAR, MIR and MISR - all three.** `[V]` So it must be used
+**before** step 3 of the round-3 recipe, never between LOAD MAR and CONTINUE. Used in the wrong
+place it would corrupt exactly the measurement it exists to protect, which is the failure mode you
+asked me to check for.
+
+## R4.2 The command, from the manual
+
+**5.3.19 Dump Control Store Directly (DCSD)** `[V]`:
+
+| Property | Value |
+|---|---|
+| Direct parameters | **CS address, 2 bytes** |
+| Memory parameters | none |
+| Reply parameters | **Microinstruction (16 bytes) + Checksum addend (2 bytes)** = 18 bytes |
+| Checksum | "the checksum is calculated by adding all 16-bit words in the microinstruction" |
+| Messnak `-1` | Illegal when microprogram is running |
+| Messnak `5` | **Control store error in buffered CI-bits** |
+| Note | "Microinstruction (16 bytes) and checksum addend (2 bytes) are sent **after a Messnak 5**" |
+
+**Word order is stated by the sibling sections, and it is the OPPOSITE end first from what you might
+assume.** LOCSM (5.3.18) and DUCS (5.3.20) both lay the buffer out as `[V]`:
+
+```
+uI word 0, Bits 127-112      <-- most significant word FIRST
+...
+uI word 0, Bits 15-0         <-- least significant word LAST
+```
+
+So eight 16-bit words, **bits 127-112 first**, and per section 5.3.11 "Direct parameters with several
+bytes always have the **most significant byte first**" `[V]`.
+
+**Cross-check against round 3, and note the difference.** The LMIR/RMIR staging buffer at
+`0x1144F0` is shifted **`0x1144F0` first** `[V]` (round 3, R3.3). Whether `0x1144F0` holds bits
+127-112 or bits 15-0 is the bit-mapping question, and the manual answers it directly at line 3699
+`[V]`:
+
+> "the lower byte of ASR is connected to the even bytes of MISR and the upper byte of ASR to the odd
+> bytes of MISR... **Bit 7 of byte 15 corresponds to bit 127** in the control word, bit 7 of byte 14
+> to bit 119, bit 0 of byte 1 to bit 8 and **bit 0 of byte 0 to bit 0** of the control word."
+
+So byte 0 is the least significant end and byte 15 the most significant. `[V]` **The wire order for
+DCSD (127-112 first) is therefore the REVERSE of the staging-buffer byte order (byte 0 = bits 7-0
+first).** If you assume one order for both you will get a bit-reversed microword that still has the
+right population count and will pass a casual eyeball. Flagging it because that is the shape of
+error this interface keeps making.
+
+**Two other options exist if you want bulk:** **DUCS (5.3.20)** dumps N words via MFbus memory
+(parameters: word count N, then CS address; requires LOAD PARAMETER POINTER first, else Messnak `1`
+"No parameter pointer is given"), and **DCCD/DUCC (5.3.21/22)** dump the **control cache** word
+pointed to by LA rather than control store. For confirming one site, DCSD is the right one. `[V]`
+
+**OCR caveat, stated rather than smoothed over:** the OCR of 5.3.19 and 5.3.21 labels the returned
+data "**Messnak** parameters" where every sibling section uses "**Messack** parameters" (compare
+5.3.29 RMIR: "Messack parameters: MIR contents (16 bytes)"). Given the separate note that the data
+is *also* sent after a Messnak 5, I read the label as an OCR slip for Messack. `[I]` - if your
+implementation depends on it, check the PDF page 130.
+
+## R4.3 Why it is destructive - carved, not assumed
+
+`Cmd22_LookAtControlStore @ 0xAA5E` is a console browser (round 3, R3.6). The **engine** underneath
+the control-store read is **`0x764E`**, and I disassembled it this round `[V]`:
+
+```
+765a  bset #1 of MREG-upper shadow (0x1144EE) -> MREG bit 9 = AECC (ACCP Enable Control Cache)
+7662  push MREG upper to 0x330000
+766c  move.w #0x0018,(0x220000)      ; ACON AMIRCK - reclock MIR WITHOUT ECMIR
+                                     ; <-- this clocks the ADDRESSED control-store word INTO MIR
+7674  btst #0,(0x00660000)           ; ASTS UPPER byte bit 0 = ASTS bit 8 = CSERR
+                                     ;   "Control store error. (Duplicated bits not equal)",
+                                     ;   polarity 0 -> clear means error
+767c  bne 0x76c4                     ; bit set = no error -> skip the error path
+767e  ...decode 0x11455C, on mismatch: set 0x1131E2 := -1, return -1, print string at 0x11898
+76c4  bclr #1 of MREG-upper shadow (clear AECC), push
+76d6  jsr 0x775A                     ; = 0x2010 (MODE+MDCLK) then 0x77B6
+                                     ; <-- clock MIR into MISR and shift 64 steps out to ASR
+76dc  return status in D0
+```
+
+`0x764E`'s CSERR test is the firmware source of **Messnak 5 "Control store error in buffered
+CI-bits"** `[V]` - the manual's error code and the ASTS bit are the same fact seen from two sides.
+
+**The destruction, item by item, all `[V]`:**
+
+| Register | Perturbed? | Why |
+|---|---|---|
+| **MAR** | **YES** | DCSD's only parameter is a CS address, and the ACCP's sole means of selecting a control-store address is `0x76E6` -> ACON `0x0015` ARMA (round 1 and round 3 R3.2). Dumping address X leaves MAR = X. |
+| **MIR** | **YES** | `0x766C` issues ACON `0x0018` AMIRCK, which clocks the addressed control-store word into MIR. |
+| **MISR** | **YES** | `0x76D6` -> `0x775A` clocks MIR into MISR and shifts it 64 steps out to ASR. Same destructive read-out as RMIR (round 3, R3.4). |
+| **APR** | **YES** | left holding the last word shifted out. |
+| **MREG bit 9 AECC** | set then cleared | restored by `0x76C4`, so net-neutral. |
+
+## R4.4 What this means for the round-3 recipe - the actionable line
+
+**DCSD is a legitimate confirmation step, but only at one place in the sequence.**
+
+Insert it as **step 2.5**, i.e. **after STOP + halt-verify and BEFORE LOAD MAR**:
+
+> ... step 1 STOP -> step 2 verify halted -> **step 2.5 DCSD(X): confirm the control store really
+> holds the word you think it does** -> step 3 LOAD MAR(X) -> step 4 optional LOAD MIR -> step 5
+> CONTINUE -> step 6 STOP -> step 7 READ MIR.
+
+DCSD leaves MAR = X as a side effect, which is harmless because step 3 sets MAR = X anyway. **Do not
+put DCSD anywhere after step 3.** Between LOAD MAR and CONTINUE it would overwrite MIR with the
+control-store word (destroying a LOAD MIR you just did); between CONTINUE and READ MIR it would
+destroy the answer outright and you would read back the word you asked for instead of the word the
+sequencer reached - **a confident wrong answer that looks like a clean measurement.**
+
+DCSD also shares the `0x1143AC` guard and the Messnak `-1` rule `[V]` (guard carved at `0xAAAA` for
+the console path; manual 5.3.19 for the octobus path), so it is subject to the same running-flag
+trap as everything else in round 3.
+
+## R4.5 Item 1 status
+
+**CLOSED.** Command identified (DCSD, 5.3.19), operand layout, reply framing, word order, checksum,
+error codes, and the destructiveness question all answered. Remaining `[OPEN]`: the **numeric command
+byte** for DCSD. The manual specifies every command's name, parameters and error codes but I did not
+find a table of command byte values in it, and I did not carve the ACCP's octobus command dispatcher
+(round 1 R3/Q5 already recorded that the `Cmd*` set I named is the **console monitor**, not the
+octobus CM* dispatch). If you need the numeric byte rather than the semantics, that dispatcher is the
+carve - ask and I will do it.
+
+---
+
+# ITEM 2 - the FATAL/ATRAP experiment for BM05 vs BM06
+
+## R4.6 Verdict, and a blocker you must clear first
+
+**The experiment is sound and I have designed it below. But there are three preconditions, and one
+of them means you very probably have to build something before you can run it at all. Two of the
+three can produce a null that reads as a real answer.**
+
+**The blocker: `LMODE` - the only documented way to write the modus register - is itself "Illegal
+when microprogram is running".** ND-05.020.01 section 5.3.39 `[V]`:
+
+> "**Load Mode (LMODE).** Direct parameters: MODE data (2 bytes). The ACCP modus register is loaded.
+> **This must be done with care since this register is not readable, and all bits are affected.**
+> The lower byte is cleared by hardware reset, and the upper byte is cleared when the microprogram
+> reads AOB.
+> Messnak error codes: **-1. Illegal when microprogram is running.**"
+
+But the experiment requires the microprogram to be **running**, because `SCAN_ACCP @ 0o16554` has to
+execute to dispatch on the bit. **You cannot use LMODE to raise FATAL on a running microprogram.**
+`[V]` That is a hard contradiction and it kills the "drive it through the real firmware" variant.
+
+It is not a problem for you, because you are not driving real firmware - you inject state into an
+emulated interface, exactly as your existing kick harness already does ("deliver a framed word into
+AOB with ATRAP, set AFLAG bit 12"). **Use variant A below. Variant B is recorded only so nobody
+spends a day trying it.**
+
+## R4.7 What FATAL and ATRAP actually are
+
+ND-05.020.01 table 8, MREG (Access Module modus register) `[V]`:
+
+| MREG bit | Name | Polarity | Function |
+|---|---|---|---|
+| 11 | **OMESS** | 1 | Octobus Message in AOB |
+| 12 | **ATRAP** | 1 | ACCP Trap signal to the ND-5000 |
+| 13 | **FATAL** | 1 | **ACCP Fatal trap signal to the ND-5000** |
+| 14 | AOBF | 1 | Flag indicating that AOB contains valid data |
+
+and, immediately above that block in the same table `[V]`:
+
+> "**NOTE! Bits 8-15 are reset by hardware when the ND-5000 reads AOB.**"
+
+MREG is **write-only** and **whole-word** - "this register is not readable, and all bits are
+affected" `[V]`. The ACCP firmware works around this by keeping shadow bytes: **`0x1144EE` shadows
+the upper byte (MREG bits 8-15), `0x1144EF` shadows the lower byte (MREG bits 0-7)**, and writes them
+to `0x330000` / `0x330001` respectively `[V]` (carved rounds 1 and 3).
+
+My round-2 proposal, restated so it can be falsified: **AFLAG bit 5 = ATRAP, AFLAG bit 6 = FATAL.**
+`[I]`, never `[V]`. It rests on ATRAP/FATAL being the only pair of CPU-directed trap signals the ACCP
+owns, plus `ACCP-COMPLETE-REFERENCE.md` calling bits 5 and 6 "async trap" and "other trap".
+
+## R4.8 PRECONDITIONS - verify all four before running anything
+
+| # | Precondition | Why | If violated |
+|---|---|---|---|
+| **F1** | **Your stack can raise FATAL at all, independently of ATRAP.** | You recorded that nothing models FATAL today. | Experiment cannot run. See R4.9. |
+| **F2** | **AFLAG bits 5 and 6 have SEPARATE sources in your AFLAG composer.** | If both are driven from one "trap pending" boolean, both cases produce the same AFLAG and the same dispatch. | **SILENT NULL - the deepest one. Both runs agree, and the agreement looks like a result.** See R4.10. |
+| **F3** | **Nothing reads AOB between raising the flag and `SCAN_ACCP` testing it.** | MREG bits 8-15 are cleared by hardware on an AOB read `[V]`. | **SILENT NULL - the flag evaporates and no BM fires.** See R4.10. |
+| **F4** | **The microprogram is RUNNING and reaches `SCAN_ACCP @ 0o16554`.** | It is the observation point. | Nothing fires; reads as "FATAL is not bit 6". |
+
+## R4.9 What minimally has to exist (F1)
+
+You said FATAL is modelled nowhere. Minimum build, in order:
+
+1. **A settable MREG bit 13** in the emulated access-module interface, writable independently of
+   bit 12 - i.e. an upper-byte MREG write path, not a single `RaiseTrap()` call. The firmware's own
+   pattern is the model: read the shadow byte, set/clear one bit, write the whole byte to
+   `0x330000`.
+2. **A separate input to the AFLAG composer for it.** This is the one that matters (F2). If
+   `AccessModule.ReadAflag` currently ORs one internal trap flag into both bit 5 and bit 6, or
+   derives one from the other, the experiment is unfalsifiable before it starts.
+3. **The hardware auto-clear**: any microprogram read of AOB must clear MREG bits 8-15 (OMESS,
+   ATRAP, FATAL, AOBF together). Worth implementing regardless - it is documented hardware behaviour
+   `[V]` and its absence will eventually produce a stuck trap flag somewhere else.
+
+Item 3 is independently valuable; items 1 and 2 exist only for this experiment but are small.
+
+## R4.10 The two silent nulls, named as instructed
+
+**Null #1 - the AOB auto-clear (F3).** MREG bits 8-15 are cleared by hardware the moment the ND-5000
+reads AOB `[V]`. If your delivery path writes AOB, sets FATAL, and the microprogram's very first act
+is to read AOB, FATAL is gone before `SCAN_ACCP` tests anything. Neither BM fires. That is
+indistinguishable from "FATAL is not one of bits 5 or 6".
+**Detection:** before the run, assert FATAL and read AFLAG *immediately*, with no AOB access in
+between. If bit 6 (or 5) is not set even then, the plumbing is broken, not the hypothesis. **Do this
+check first, every time.**
+
+**Null #2 - shared source (F2).** If bits 5 and 6 come from one flag, run A and run B give identical
+AFLAG values and identical dispatch, and you will conclude "both bits behave the same" when you have
+actually measured nothing. This is worse than null #1 because it produces two consistent runs.
+**Detection:** before the run, assert ATRAP-without-FATAL and read AFLAG; then FATAL-without-ATRAP
+and read AFLAG. **If the two AFLAG values are equal, stop - F2 is violated.** They must differ in
+exactly one bit position for the experiment to mean anything.
+
+Both of these are the same shape as the round-3 `0x1143AC` catch: an omission that yields no data,
+where no data is the same shape as a genuine negative.
+
+**A third hazard, not a null but a mis-read:** FATAL may not route through `SCAN_ACCP` at all. It is
+named "**Fatal** trap signal", and this machine has a separate macro-level **HWF (hardware fault)**
+trap 41 which ND-05.020.01 line 3234 says is "**reported to the supervising computer directly**"
+`[V]`. If FATAL enters a dedicated fatal-trap microroutine that never reaches `SCAN_ACCP`, you will
+see nothing at the observation point and that is a real finding about FATAL - but it is **not**
+evidence about bit 6. Outcome 4 below covers it.
+
+## R4.11 THE PROCEDURE - executable without reading the carve
+
+**Observation point for every run: `SCAN_ACCP @ 0o16554`.** It loads AFLAG into `SC13` and tests
+`BM13`, `BM14`, `BM05`, `BM06`. **BM names are OCTAL**: BM05 = bit 5, BM06 = bit 6, BM13 = bit 11,
+BM14 = bit 12. Record **which of BM05 / BM06 takes its true path**, and the microprogram address
+branched to.
+
+### Phase 0 - plumbing checks. Do not skip; these are the two silent nulls.
+
+**0a.** Assert **ATRAP only** (MREG bit 12 = 1, bit 13 = 0). Read AFLAG **immediately**, with no AOB
+access in between. Record the value as `AFLAG_A`.
+**0b.** Clear all of MREG bits 8-15. Assert **FATAL only** (bit 13 = 1, bit 12 = 0). Read AFLAG
+immediately. Record as `AFLAG_F`.
+**0c.** *Gate:* **`AFLAG_A` must differ from `AFLAG_F`, in exactly one bit position each way.**
+- If they are **equal** -> **F2 violated.** Bits 5 and 6 share a source. Fix the composer; the
+  experiment is meaningless until then.
+- If **neither** shows a bit set -> **F3 or F1 violated.** Something is clearing the flags or FATAL
+  is not wired. Fix before proceeding.
+- If they differ, note **which bit position each sets**. That alone is most of the answer; phases 1
+  and 2 confirm the microcode agrees.
+
+### Phase 1 - ATRAP without FATAL
+
+1. Ensure the microprogram is **running** and will reach `SCAN_ACCP` (F4).
+2. Clear MREG bits 8-15 (OMESS, ATRAP, FATAL, AOBF all 0).
+3. Write a payload word to **AOB**.
+4. Set **MREG bit 14 (AOBF)** and **MREG bit 12 (ATRAP)**. Leave **bit 13 (FATAL) = 0** and leave
+   **bit 11 (OMESS) = 0** - OMESS clear is what makes this an ACCP microtrap rather than an octobus
+   kick, per section 5.3.14 `[V]`, and it also keeps BM14 out of the way.
+5. Let the microprogram run to `SCAN_ACCP`.
+6. **Record which of BM05 / BM06 fires**, and the target address.
+7. *Expected observable if the proposal holds:* **BM05**.
+
+### Phase 2 - FATAL without ATRAP
+
+8. Repeat steps 2-6 with **MREG bit 13 (FATAL) = 1** and **bit 12 (ATRAP) = 0**.
+9. *Expected observable if the proposal holds:* **BM06**.
+
+### Phase 3 - both, as a control
+
+10. Repeat with **both bit 12 and bit 13 set**. Expect **both** BM05 and BM06 to be true; whichever
+    `SCAN_ACCP` tests first wins the dispatch. This tells you the **priority order**, which the two
+    single-signal runs cannot, and it is worth having in the record.
+
+### The four outcomes, including the one that kills my proposal
+
+| # | Phase 1 fires | Phase 2 fires | Conclusion |
+|---|---|---|---|
+| **1** | BM05 | BM06 | **Proposal CONFIRMED.** bit 5 = ATRAP, bit 6 = FATAL. `ACCP-COMPLETE-REFERENCE.md`'s "async trap"/"other trap" is right, and "other trap" specifically means FATAL. Record as `[V]`. |
+| **2** | BM06 | BM05 | **Proposal INVERTED.** bit 5 = FATAL, bit 6 = ATRAP. Same physical mapping, opposite assignment. Fix the reference and the emulator. |
+| **3** | same BM in both phases | same BM | **Proposal FALSIFIED at the root.** Bits 5 and 6 are not the ATRAP/FATAL pair - one of them is something else entirely (a memory-error, cache or SSR-channel flag; ND-05.020.01 line 3296 lists all four candidate populations for this register). **Recheck phase 0c first** - this outcome is also what F2 violation looks like, and they must be told apart before anything is concluded. |
+| **4** | BM05 | **nothing fires** | **FATAL does not route through `SCAN_ACCP`.** It is a separate fatal-trap entry, consistent with HWF trap 41 being "reported to the supervising computer directly" `[V]`. This is a genuine finding, and it means bit 6 is NOT FATAL - but it says nothing about what bit 6 *is*. Outcome 3's follow-up applies. |
+
+**Outcome 3 is the one that falsifies me entirely**, and I would rather you get it than a
+comfortable outcome 1 built on a shared-source composer.
+
+## R4.12 Variant B, recorded so nobody attempts it
+
+Driving this through the real `octo.bin` firmware by sending **LMODE** over the octobus **does not
+work**: LMODE is Messnak `-1` while the microprogram is running `[V]`, and the microprogram must be
+running for `SCAN_ACCP` to execute.
+
+Two further reasons it is a bad path even if the guard could be bypassed `[V]`:
+
+- **LMODE writes all 16 bits at once** and MREG is not readable. A naive `LMODE 0x2000` ("FATAL
+  only") writes MRUN = 0, and since AMODE (bit 2) and MR (bit 6) are **polarity 0**, writing zeros
+  there **asserts AMODE and asserts Master Reset**. That halts and resets the CPU. `SCAN_ACCP` then
+  never runs and you get a clean-looking null. If you ever do write MREG directly, **take the lower
+  byte from the firmware's shadow at `0x1144EF` and OR your upper byte onto it** - never use a
+  literal.
+- `LCON` (5.3.40, ACON strobes) is likewise Messnak `-1` while running.
+
+## R4.13 Item 2 status
+
+**Procedure delivered and executable, but gated on F1/F2** - you must be able to raise FATAL
+independently of ATRAP, with independent AFLAG inputs, before phase 1 means anything. Phase 0 is the
+gate and it is cheap.
+
+`[OPEN]` after the experiment regardless of outcome: whether AFLAG is a literal window onto MREG/ASTS
+or a re-encoding. The bit numbers do not line up (MREG 11/12/13, ASTS 13 vs AFLAG 12/5/6/11), so it
+is composed hardware (round 2, B). This experiment identifies two of its inputs; it does not
+document the composition.
+
+---
+---
+
+# ROUND 5 - 2026-08-02 - YES, the firmware asserts FATAL. You do not have to build the signal.
+
+**In reply to:** `REPLY-TO-ACCP-INIT-AGENT-ROUND3-2026-08-02.md` section 5.
+
+Rounds 1-4 are untouched. Round 4 (written before I saw your round-3 reply) carries the LMODE gate,
+the DCSD destructiveness finding, and the FATAL build list - read it after this, because **this round
+makes most of that build list unnecessary.**
+
+---
+
+## R5.1 Verdict
+
+**YES. `octo.bin` asserts FATAL (MREG bit 13) at two addresses, both writing the literal `0xF0` to
+the MREG upper byte at `0x330000`:**
+
+| Address | Instruction | Path |
+|---|---|---|
+| **`0x056C`** | `move.b #0xF0,(0x00330000).l` | `Vec27_AutoIrq3` |
+| **`0x084A`** | `move.b #0xF0,(0x00330000).l` | `Vec31_AutoIrq7_NMI` |
+
+`[V]` - byte-verified, `13 fc 00 f0 00 33 00 00` at both sites.
+
+`0x330000` is the **even** byte address of MREG, therefore the **upper** byte, MREG bits 8-15 `[V]`
+(ND-05.020.01 p.112: "odd byte address for the lower part and even byte address for the upper
+part"; corroborated by every carved use in rounds 1-3).
+
+`0xF0` = `0b1111 0000` = upper-byte bits 7, 6, 5, 4:
+
+| Upper-byte bit | MREG bit | Name |
+|---|---|---|
+| 7 | 15 | OBACT - Octobus Activity LED |
+| 6 | 14 | AOBF - AOB contains valid data |
+| **5** | **13** | **FATAL - ACCP Fatal trap signal to the ND-5000** |
+| 4 | 12 | ATRAP - ACCP Trap signal to the ND-5000 |
+
+**Bit 5 is set. That is FATAL.** `[V]`
+
+**And better than a bare yes: the firmware also gives you the matched control.** Two other literal
+writes to the same byte differ from `0xF0` in exactly the FATAL bit:
+
+| Address | Value | Bits set | FATAL? |
+|---|---|---|---|
+| `0x056C`, `0x084A` | **`0xF0`** | OBACT, AOBF, **FATAL**, ATRAP | **YES** |
+| `0x5958` | **`0xD0`** | OBACT, AOBF, ATRAP | no |
+| `0x061C` | `0xD8` | OBACT, AOBF, ATRAP, OMESS | no |
+
+**`0xD0` and `0xF0` differ in one bit and one bit only: MREG 13, FATAL.** `[V]` That is a clean
+one-bit differential built entirely out of code that already exists. See R5.5.
+
+---
+
+## R5.2 This was in round 1, unrecognised. Post-mortem.
+
+Round 1 recorded, from `ACCP-COMPLETE-REFERENCE.md`:
+
+> "**Master-clear sequence** (identical at 0x0838-0x086E in the IRQ7 path and 0x055A-0x0590 in
+> IRQ3): pulse latch bit 1 low, **write `0xF0` to `0x330000`**, pulse bit 1 high, busy-wait `0x2710`
+> (10000) iterations, `jsr 0x795A`, then `jmp 0x00000C72`."
+
+The bytes were correct and already published. `0xF0` was carried as an opaque constant because
+nobody had the MREG bit map at the time. Once round 1 found ND-05.020.01 table 8, `0xF0` decoded -
+but nobody went back and re-read the constants already sitting in the file against the newly
+acquired table.
+
+**That is a fourth variant of the failure mode this exchange keeps hitting**, and it is close kin to
+your `0x795A` post-mortem: not an un-carved gap, not a wrong claim, but **a correct observation whose
+meaning arrived later and was never re-applied backwards.** Your case was two halves of one file
+disagreeing for six days; this one is one file agreeing with itself and nobody re-reading it after
+the decoder key showed up.
+
+Suggested rule, offered for the method file: **when a register map is acquired, re-scan the existing
+carve for every literal written to that register.** It is a grep, it takes minutes, and here it would
+have saved a round.
+
+Note also that `0x795A` in that same quoted sentence is the routine your round-3 reply accepted as
+**STOPMIC**, not "octobus re-init". Both corrections live in the same sentence.
+
+---
+
+## R5.3 What the two paths actually do, and why it is observable
+
+Full sequence, identical at both sites `[V]`:
+
+```
+0x056C / 0x084A   move.b #0xF0,(0x00330000)     ; OBACT + AOBF + FATAL + ATRAP, all at once
+0x0574 / 0x0852   bset.b #1,(0x001144EF)        ; MREG lower bit 1 = SLOW (polarity 0) -> de-assert
+0x057C / 0x085A   move.b (0x001144EF),(0x00330001)
+0x0586 / 0x0864   move.l #0x2710,D1             ; 10000
+0x058C / 0x086A   subq.l #1,D1 ; bne            ; <-- ~10,000-iteration busy-wait, CPU STILL RUNNING
+      then        jsr 0x795A                    ; STOPMIC  (round 3: MRUN reset, AMODE set)
+      then        jmp 0x00000C72                ; restart the ACCP firmware
+```
+
+**The busy-wait is the observation window.** FATAL is asserted, the microprogram is left running for
+~10,000 68000 loop iterations, and only then is it stopped. `SCAN_ACCP @ 0o16554` has that whole
+window to sample AFLAG and dispatch. `[V]` on the sequence; `[I]` that the window is long enough -
+it is ~40,000+ 68000 cycles against a microcycle of 63-156 ns, so it is not close, but I have not
+measured it in your emulator.
+
+**This is almost certainly deliberate.** A fatal-trap signal that stopped the CPU in the same
+instruction would give the microprogram no chance to record anything. The delay-then-stop shape is
+what you would design if you wanted the ND-5000 to see FATAL and react before being halted.
+`[I]`
+
+---
+
+## R5.4 How to trigger it - and you can already do this today
+
+**`Vec31_AutoIrq7_NMI` is reachable from the octobus with no emulator work at all.** `[V]`
+
+ND-14001 section 4.6, hardware-decoded messages `[V]`:
+
+| Number (octal) | Name | Description |
+|---|---|---|
+| 241 | RESTART | Activates RESET and restarts the controller |
+| 242 | CONTINUE | Deactivates HALT |
+| 243 | STOP | Activates HALT |
+| **244** | **INT7** | **"Generates a level 7 interrupt. The interrupt (OCINT7) can be stopped by software."** |
+| 245 | RESCOUNT | Resets the time reference counter |
+
+> "Some messages are decoded by hardware, i.e. they do not have to be read by software to affect the
+> receiving node. These messages control the OCTObus node processor... In addition, such messages
+> force the node processor out of a hang situation by generating an interrupt on a non-maskable
+> interrupt level. (**Level 7 on the MC68020 processor.**)"
+
+**Octobus emergency `244B` -> level 7 autovector -> `Vec31_AutoIrq7_NMI` -> `0x084A` -> FATAL.**
+
+Your own notes record that `OctobusND5000Station` already models emergencies **241B / 242B / 244B**.
+So **the trigger already exists in your stack.** `[I]` that your 244B path lands in the real
+firmware's IRQ7 vector - that depends on whether you are running the real `octo.bin` machine or the
+synthetic station, which is your side to confirm. See R5.7.
+
+A second, independent trigger exists and is documented in the command spec `[V]`, ND-05.020.01 p.125:
+
+> "If the ND-120 does not receive a *Messack* or *Messnak*, **the ND-120 sends a TERMINATE to the
+> ACCP** to resolve possible hang-ups etc. **The emergency message on the octobus is decoded by
+> hardware, as an interrupt on level 7.** This causes the ACCP to reset its buffers and start at the
+> top of the communication loop."
+
+So TERMINATE reaches the same vector. Either route works.
+
+`[OPEN]`: what raises **IRQ3** (`Vec27_AutoIrq3`, the `0x056C` site). I did not carve its source this
+round. IRQ7 is the one you can drive, so I did not need it - but if IRQ3 turns out to be easier to
+provoke in your harness, the FATAL assertion there is byte-identical.
+
+---
+
+## R5.5 THE EXPERIMENT, rewritten - one bit, two runs, zero build
+
+This **replaces** round 4's R4.11 phases 1 and 2 for the purpose of deciding BM05 vs BM06. Round 4's
+version needed you to build a FATAL signal. This one does not.
+
+The whole design rests on one fact `[V]`: **`0xF0` and `0xD0` written to `0x330000` differ in
+exactly MREG bit 13 (FATAL), and both already occur in firmware.**
+
+### Preconditions
+
+| # | Precondition | Why | If violated |
+|---|---|---|---|
+| **G1** | You are running the **real `octo.bin`** machine, not the synthetic `OctobusND5000Station`, OR your station's 244B handler is wired to the real vector. | The `0xF0` write only exists in real firmware. | **SILENT NULL** - nothing asserts FATAL, no BM changes, and it reads as "FATAL is not bits 5/6". See R5.7. |
+| **G2** | The microprogram is **running** and reaches `SCAN_ACCP @ 0o16554` within the ~10,000-iteration window. | It is the observation point, and the window closes with STOPMIC. | Nothing fires. |
+| **G3** | **Nothing reads AOB between the `0xF0` write and the AFLAG sample.** | MREG bits 8-15 are cleared by hardware on an AOB read `[V]`, and `0xF0` sets AOBF, which invites exactly that read. | **SILENT NULL** - FATAL evaporates. See R5.7. |
+| **G4** | Your AFLAG composer has **separate inputs for bits 5 and 6**. | Unchanged from round 4 F2. | **SILENT NULL, the deepest** - both runs agree and the agreement looks like a result. |
+
+**G4 is the one piece of round 4's build list that this round does NOT eliminate.** You do not have
+to *generate* FATAL any more, but AFLAG still has to be able to *represent* it distinctly. If bits 5
+and 6 are ORed from one internal flag, stop here.
+
+### Procedure
+
+**Run A - ATRAP without FATAL (the control).**
+1. Bring the microprogram to a state where it is running and reaching `SCAN_ACCP`.
+2. Deliver a normal ACCP trap: MREG upper = **`0xD0`** (OBACT + AOBF + ATRAP, **FATAL clear**). This
+   is what `0x5958` does, and it is also exactly the shape your existing kick/trap harness already
+   produces when it "sets ATRAP".
+3. **Sample AFLAG at `SCAN_ACCP` and record the full value**, plus which of BM05 / BM06 takes its
+   true path and the target address.
+
+**Run B - the same, plus FATAL.**
+4. Repeat from the same starting state, but deliver MREG upper = **`0xF0`** - or, better, trigger it
+   for real by sending octobus emergency **`244B`** and letting `Vec31_AutoIrq7_NMI` write `0xF0`
+   itself at `0x084A`.
+5. Sample AFLAG at `SCAN_ACCP` again, same recording.
+
+**Run C - anti-vacuous control (do not skip; this is your own 3a discipline applied here).**
+6. Confirm run A and run B differ **in the AFLAG value itself**, not only in the dispatch. If the
+   two AFLAG words are identical, G4 is violated and runs A and B measured nothing.
+
+### Reading the answer
+
+| AFLAG bit that differs between A and B | BM that differs | Conclusion |
+|---|---|---|
+| **bit 6** | BM06 | **Round-2 proposal CONFIRMED.** bit 5 = ATRAP, bit 6 = FATAL. `ACCP-COMPLETE-REFERENCE.md`'s "other trap" means FATAL specifically. Promote to `[V]`. |
+| **bit 5** | BM05 | **Proposal INVERTED.** bit 5 = FATAL, bit 6 = ATRAP. Fix the reference and the emulator. |
+| **neither** | neither | **Proposal FALSIFIED.** Bits 5 and 6 are not the ATRAP/FATAL pair. ND-05.020.01 line 3296 lists the other candidate populations for this register (cache and memory-system abnormality flags, SSR-channel traps). **Recheck G4 first** - a shared source produces this identical outcome. |
+| **some other bit** | - | FATAL maps somewhere outside 5/6 entirely. Record the bit; it is a free finding. |
+
+Because the two runs differ in exactly one MREG bit, **whatever changes in AFLAG is FATAL, by
+construction.** That is the whole strength of using `0xD0` vs `0xF0` rather than two hand-built
+signals: you cannot accidentally vary two things at once.
+
+**What this design cannot tell you**, stated plainly: it never presents FATAL *without* ATRAP, so it
+does not establish `SCAN_ACCP`'s **priority order** between BM05 and BM06. Round 4's phase 3 still
+covers that, and it still needs the build. Priority is a nice-to-have; BM05-vs-BM06 is the question,
+and this settles it.
+
+---
+
+## R5.6 How I verified this, and how a negative would have been visible
+
+You asked for the standard I have been holding you to, so here it is explicitly.
+
+**MREG can only be written two ways: to the register at `0x330000`/`0x330001`, or to the firmware's
+shadow bytes `0x1144EE` (upper) / `0x1144EF` (lower).** FATAL is MREG bit 13 = **upper** byte bit 5,
+so the search space is writes to `0x330000` and `0x1144EE`.
+
+I enumerated **every** reference to both, by byte search, not by reading routines I expected to
+matter:
+
+- `search_bytes 001144EE` -> **28 matches, all inspected**
+- `search_bytes 00330000` -> **19 matches, all inspected**
+
+**Result by category** `[V]`:
+
+| Category | Sites | Bit 5 ever set? |
+|---|---|---|
+| `bset.b`/`bclr.b` on the shadow `0x1144EE` | many | **No.** Only bits **0, 1, 2, 6, 7** are ever touched = MREG 8 BUSTEST, 9 AECC, 10 AECS, 14 AOBF, 15 OBACT. **Bit 5 is never bset or bclr.** |
+| `clr.b (0x1144EE)` | `0x0FEE` (boot init) | clears everything |
+| **literal `move.b #imm,(0x00330000)`** | `0x056C` **`0xF0`**, `0x084A` **`0xF0`**, `0x061C` `0xD8`, `0x5958` `0xD0` | **YES - `0xF0` twice** |
+| computed `move.b D0b,(0x1144EE)` + `(0x330000)` | `0x77FE` (`Latch0Write_A`) | **value is caller-supplied** - see below |
+| read-only | `0x947C` (`Cmd31_LoadModeRegister` display) | n/a |
+| data, not code | `0x13F5C` | n/a |
+
+**On the indirect/computed path, which you specifically asked me to check.** `0x77FE` writes an
+arbitrary caller byte to both the shadow and the register `[V]`:
+```
+780a  move.b D0b,(0x001144EE)
+7810  move.b D0b,(0x00330000)
+```
+It has exactly **two** callers `[V]`:
+- **`0x951E`** - inside `Cmd31_LoadModeRegister`: an operator-typed value from the ACCP console.
+- **`0x606E`** - `move.w (0x54,A6),D0w ; lsr.w #8,D0w` then call: takes the **high byte of a 16-bit
+  parameter**. That is the octobus command **LMODE (5.3.39, "MODE data (2 bytes)")** `[V]`.
+
+**So bit 5 IS reachable through a computed write - but only by an operator at the ACCP console or by
+an explicit LMODE command, neither of which is an autonomous firmware path.** And per round 4, LMODE
+is Messnak `-1` while the microprogram is running, so the LMODE route cannot be used for this
+experiment anyway. **Neither computed caller changes the answer: the only places the firmware raises
+FATAL on its own are `0x056C` and `0x084A`.**
+
+**Would a negative have been visible?** Yes, and this is the part that matters. A pure
+`bset #5`-style search would have found nothing and I would have reported "FATAL is never asserted" -
+**because both real sites are literal whole-byte writes that bypass the shadow entirely.** Searching
+only the shadow, or only for a bit-5 constant, produces a confident false negative. I found it only
+by enumerating both addresses exhaustively and decoding every literal. **If you ever repeat this kind
+of search, search the register address as well as the shadow, and decode constants rather than
+pattern-matching bit operations.**
+
+---
+
+## R5.7 The three ways this can still hand you a null that reads as a result
+
+Same discipline as round 3's `0x1143AC` catch.
+
+**Null 1 - wrong machine (G1).** The `0xF0` write exists in **real `octo.bin`**. If your 244B
+emergency is handled by the synthetic `OctobusND5000Station` rather than dispatched into the real
+firmware's level-7 vector, nothing writes `0xF0`, no AFLAG bit changes, and runs A and B come back
+identical - which looks exactly like outcome 3, "proposal falsified".
+**Detection:** put a breakpoint or a trace hook on a write of `0xF0` to `0x330000` and **confirm it
+fires** before you trust run B. If it never fires, you measured nothing.
+
+**Null 2 - the AOB auto-clear (G3).** `0xF0` sets AOBF along with FATAL. MREG bits 8-15 are cleared
+by hardware the instant the ND-5000 reads AOB `[V]`. If the microprogram's response to AOBF is to
+read AOB before `SCAN_ACCP` samples AFLAG, FATAL is gone. Same silent shape.
+**Detection:** sample AFLAG immediately on the `0xF0` write, outside `SCAN_ACCP`, and confirm the
+candidate bit is set at all. If it is set there but never at `SCAN_ACCP`, the race is real and you
+must sample earlier.
+
+**Null 3 - shared AFLAG source (G4).** Unchanged from round 4. Run C is the detector.
+
+**And one non-null mis-read, carried forward from round 4:** FATAL may not route through
+`SCAN_ACCP` at all - it is named "**Fatal** trap signal", and HWF (trap 41) is documented as
+"reported to the supervising computer directly" `[V]`. If run B shows FATAL set in AFLAG (null-2
+check passes) but `SCAN_ACCP` never dispatches on it, that is a genuine finding about FATAL's
+routing and it means bit 6 is not FATAL - but it says nothing about what bit 6 *is*.
+
+---
+
+## R5.8 On your 3a result
+
+Noted, and it is the right way round: you measured the event rather than arguing about the manual,
+with an anti-vacuous control so the 3 EXCYC2 opportunities are not a "could not be seen" zero.
+**39 sneaks and 3 rule-2 opportunities in 62,851 ticks from CS 0 to IDLE** turns my round-3 framing
+from a suggestion into a defect with a count attached.
+
+Holding the fix until the 91-site contradiction resolves is the right call, and the 15
+self-referential chains are the reason - a depth bound chosen before you know whether rule 1 or 7.2
+governs is a bound chosen twice. Round 3's tracer route (R3.9) still stands as the way to settle the
+91 without modifying a microword, and in your emulator the microprogram-only readout restriction
+does not apply.
+
+---
+
+## R5.9 Round 5 status
+
+| Question | Answer |
+|---|---|
+| Does firmware assert FATAL? | **YES** `[V]` |
+| Where | `0x056C` (`Vec27_AutoIrq3`) and `0x084A` (`Vec31_AutoIrq7_NMI`), both `move.b #0xF0,(0x00330000)` |
+| Is it the *initialisation* path? | **No** - both are emergency/master-clear paths. The question was "or anything else", and the answer is these two. |
+| Triggerable without emulator work? | **Yes** - octobus emergency **244B** (INT7), or a TERMINATE, both hardware-decoded to level 7 `[V]` |
+| Is the ND-5000 observable when it fires? | **Yes** - ~10,000-iteration busy-wait with the microprogram still running, before STOPMIC `[V]` |
+| Does this remove the build work? | **Mostly.** You no longer need to generate FATAL or write MREG bit 13. You still need **separate AFLAG inputs for bits 5 and 6** (round 4, F2 / this round, G4). |
+| Bonus | `0xD0` at `0x5958` is a matched control differing from `0xF0` in exactly the FATAL bit `[V]` |
+
+Remaining `[OPEN]` from this round: what raises IRQ3; `SCAN_ACCP`'s BM05/BM06 priority order (needs
+FATAL-without-ATRAP, i.e. round 4's phase 3); and whether AFLAG is a window onto MREG/ASTS or a
+re-encoding (round 2, section B).
+
+---
+---
+
+# ROUND 6 - 2026-08-02 - the complete MREG-upper literal space, and a live FATAL-without-ATRAP route
+
+**In reply to:** `REPLY-TO-ACCP-INIT-AGENT-ROUND4-2026-08-02.md`.
+
+Rounds 1-5 untouched.
+
+Your CAUSE/DESTINATION split is the right cut and I should have made it in round 2. I treated "the
+two documents disagree" as one question when it was two, and then designed a hardware experiment for
+a question that needed no hardware. The destination half is now `[V]` on your side and
+`ACCP-COMPLETE-REFERENCE.md` is vindicated on both lines. Your discipline in refusing to let a
+destination result be cited as a cause result is what makes round 6 necessary, and it is correct.
+
+---
+
+## R6.1 Verdict
+
+**Two answers, and they point opposite ways.**
+
+**(a) NO autonomous firmware path produces FATAL without ATRAP.** Every literal the firmware writes
+to MREG-upper on its own initiative either sets both or sets neither. `[V]`
+
+**(b) BUT a live route exists, and it is not gated:** the ACCP **console** command
+`Cmd31_LoadModeRegister @ 0x945E` writes an operator-supplied byte straight to MREG-upper via
+`0x77FE`, and **it carries no `0x1143AC` running-flag guard** - unlike the octobus LMODE, which is
+Messnak `-1` while running (round 4). **Typing `20` at that prompt asserts FATAL alone, with the
+microprogram running.** `[V]`
+
+**So phase 3 is reachable without building the F2 separate-composer generation path** - provided you
+can drive the ACCP console, which `AccpConsoleTests` suggests you can. You still need AFLAG bits 5
+and 6 to be *representable* separately; you no longer need to *manufacture* the signal.
+
+**(c) The AOB auto-clear does NOT give a natural window** - it clears ATRAP and FATAL together.
+**But a plausible mis-implementation of it would FABRICATE one.** That is the sharp part of this
+round; see R6.5.
+
+---
+
+## R6.2 THE COMPLETE MREG-UPPER LITERAL TABLE
+
+MREG upper byte = MREG bits 8-15, at register `0x330000` (even byte address) with firmware shadow
+`0x1144EE`. Bit map `[V]` (ND-05.020.01 table 8):
+
+| Upper-byte bit | MREG bit | Name | Function |
+|---|---|---|---|
+| 0 | 8 | BUSTEST | route DB via XB/IB back to DB via MPC (AMODE only) |
+| 1 | 9 | AECC | ACCP Enable Control Cache |
+| 2 | 10 | AECS | ACCP Enable Control Store |
+| 3 | 11 | OMESS | Octobus Message in AOB |
+| 4 | 12 | **ATRAP** | ACCP Trap signal to the ND-5000 |
+| 5 | 13 | **FATAL** | ACCP Fatal trap signal to the ND-5000 |
+| 6 | 14 | AOBF | AOB contains valid data |
+| 7 | 15 | OBACT | Octobus Activity LED |
+
+### Every literal written directly to the register `0x330000` - complete, 5 sites `[V]`
+
+| Address | Value | Binary | Bits set | Decode | ATRAP | FATAL |
+|---|---|---|---|---|---|---|
+| **`0x056C`** (`Vec27_AutoIrq3`) | **`0xF0`** | `1111 0000` | 7,6,5,4 | OBACT + AOBF + **FATAL** + **ATRAP** | **1** | **1** |
+| **`0x084A`** (`Vec31_AutoIrq7_NMI`) | **`0xF0`** | `1111 0000` | 7,6,5,4 | OBACT + AOBF + **FATAL** + **ATRAP** | **1** | **1** |
+| `0x061C` (`AobSendWaitAck_KickTimeout`) | `0xD8` | `1101 1000` | 7,6,4,3 | OBACT + AOBF + **ATRAP** + OMESS | **1** | 0 |
+| `0x5958` | `0xD0` | `1101 0000` | 7,6,4 | OBACT + AOBF + **ATRAP** | **1** | 0 |
+| `0x7C10` (`CmdPortWithLatchGate`) | `0x00` | `0000 0000` | none | all cleared | 0 | 0 |
+
+**There is no row with FATAL = 1 and ATRAP = 0.** `[V]`
+
+Note `0x061C` = `0xD8` adds **OMESS** - that is the octobus-kick delivery shape (ATRAP **with**
+OMESS), the exact complement of AMICTRAP's documented "ATRAP without OMESS". Both shapes exist in
+firmware as literals, which is a nice independent confirmation of round 1's reading of section
+5.3.14.
+
+### Every literal written to the shadow `0x1144EE` `[V]`
+
+| Address | Value | Effect |
+|---|---|---|
+| `0x0FEE` | `clr.b` = `0x00` | boot init, all cleared |
+| `0x7C08` | `move.b #0x00` | all cleared (paired with the `0x330000` write at `0x7C10`) |
+
+### Every read-modify-write on the shadow - bit numbers, complete `[V]`
+
+| Shadow bit | MREG bit | Name | `bset` sites | `bclr` sites |
+|---|---|---|---|---|
+| 0 | 8 | BUSTEST | `0x7224` | `0x7276` |
+| 1 | 9 | AECC | `0x765A` | `0x76C4` |
+| 2 | 10 | AECS | `0x7434`, `0x78EC` | `0x7484` |
+| **5** | **13** | **FATAL** | **NONE** | **NONE** |
+| 6 | 14 | AOBF | `0x72CA`, `0x7352` | `0x72DC`, `0x7364` |
+| 7 | 15 | OBACT | `0x4D32` | `0x6890` |
+
+**Bit 5 is never the subject of a `bset` or `bclr` anywhere in the image.** `[V]` Bits 3 (OMESS) and
+4 (ATRAP) are likewise never bset/bclr - they only ever appear inside the whole-byte literals above.
+
+### The one computed path `[V]`
+
+`0x77FE` (`Latch0Write_A`) writes a caller-supplied byte to **both** the shadow and the register:
+```
+780a  move.b D0b,(0x001144EE)
+7810  move.b D0b,(0x00330000)
+```
+Exactly two callers:
+
+| Caller | Route | Value source | Running-flag guard? |
+|---|---|---|---|
+| `0x951E` in **`Cmd31_LoadModeRegister @ 0x945E`** | **ACCP console** | operator types it | **NONE** `[V]` |
+| `0x606E` | octobus **LMODE** (5.3.39); `move.w (0x54,A6),D0w ; lsr.w #8,D0w` takes the high byte of the 2-byte MODE parameter | ND-120 | **YES** - Messnak `-1` while running `[V]` |
+
+---
+
+## R6.3 The console route in detail - this is the phase-3 enabler
+
+`Cmd31_LoadModeRegister @ 0x945E`, disassembled this round `[V]`:
+
+```
+945e  (PLANC entry - NO tst.w (0x001143AC) anywhere in this routine)
+946e  print '<' (0x3C)
+947c  move.b (0x001144EE),D0b ; andi.w #0xff  -> display the CURRENT upper-byte shadow
+94a0  format in the current number base (table at 0x13044, base index 0x1131FC)
+94b6  print '>' (0x3E)
+94c6  read a line into the 0x28-byte buffer at 0x1132FA
+94e8  compare the parsed value against -1 (0x113330) - if -1, skip the write
+950e  jsr 0x47C8            ; parse the number in the current base
+9516  move.l D0,(0x14,A6) ; move.b D0b,(0x18,A6)
+951e  jsr 0x77FE            ; <-- writes D0b to shadow 0x1144EE AND register 0x330000
+9526  ...then repeats the whole prompt/parse/write cycle for the LOWER byte (0x1144EF)
+```
+
+Four things matter `[V]`:
+
+1. **No running-flag guard.** I searched the routine body; there is no `tst.w (0x001143AC)`. Contrast
+   `Cmd28_LoadMar @ 0x8DA6`, `Cmd29_LoadMir @ 0x8E12`, `Cmd2A_ReadMir @ 0x8F72`,
+   `Cmd23_StartMicroprogram @ 0x911E`, `Cmd22_LookAtControlStore @ 0xAAAA` - all five guard, this one
+   does not. **The console path is a deliberate back door**, which makes sense: it is the hardware
+   engineer's register poke.
+2. **It writes the shadow as well as the register**, so no shadow desync (unlike the emergency
+   literals - see R6.4).
+3. **It displays the current value first**, so you can read back what MREG-upper was before you
+   change it - useful, given the register is otherwise unreadable.
+4. **It prompts for the lower byte too.** Do not let it write a lower byte you did not intend: MREG
+   bit 3 MRUN, bit 2 AMODE and bit 6 MR live there, and per round 4 a careless value **stops or
+   master-resets the CPU**, giving you a clean-looking null. If the lower-byte prompt accepts an
+   empty/`-1` response, use it; otherwise re-enter the value the routine just displayed from
+   `0x1144EF`.
+
+**Value to type for phase 3: upper byte = `0x20`** = bit 5 only = **FATAL, with ATRAP, OMESS, AOBF
+and OBACT all clear.** `[V]`
+
+Watch the **number base**: the routine formats and parses in the current console base (`0x1131FC`),
+and this is a Norsk Data machine where octal is the house default. `0x20` is `40` octal. **Check the
+base before typing, or you will assert bit 4 (ATRAP) instead of bit 5 and get a result that looks
+like "FATAL behaves exactly like ATRAP".** That is a silent null of the nastiest kind - it produces
+outcome 3 "proposal falsified" from a typo.
+
+### Phase 3, runnable
+
+| Run | Upper byte | Bits | Purpose |
+|---|---|---|---|
+| 3a | **`0x10`** | ATRAP only | control - should reproduce your measured bit-5 result |
+| 3b | **`0x20`** | **FATAL only** | **the missing shot** |
+| 3c | `0x30` | ATRAP + FATAL | priority order: which BM `SCAN_ACCP` tests first |
+
+Note these deliberately leave **AOBF (bit 6) clear**, unlike the firmware's `0xF0`/`0xD0`. That is a
+feature: with AOBF clear the microprogram has no reason to read AOB, which **closes the auto-clear
+race** described in round 5 null 2 and R6.5 below. Whether the microprogram's trap path still
+dispatches with AOBF clear is `[OPEN]` - if it does not, add bit 6 back (`0x50` / `0x60` / `0x70`)
+and accept the race, with the round-5 detection check.
+
+---
+
+## R6.4 A side finding: the emergency literals desynchronise the shadow
+
+`0x056C`, `0x084A`, `0x061C` and `0x5958` write the **register only** and never touch the shadow
+`0x1144EE`. `[V]` So after any of them, the firmware's shadow no longer describes the hardware.
+
+Consequence: **the next shadow-copy write (`move.b (0x1144EE),(0x330000)`) silently clobbers the
+register with the stale shadow, cancelling FATAL and ATRAP.** There are fifteen such copy sites.
+
+For your purposes this is good news, and I checked it rather than assuming: during the IRQ3/IRQ7
+FATAL window, the only thing that runs is the ~10,000-iteration busy-wait and then
+`jsr 0x795A` (STOPMIC), **and `0x795A` writes only to `0x330001`, the lower byte** - at `0x7972`,
+`0x7982` and `0x79AC`. `[V]` **Nothing clobbers MREG-upper during the window.** That confirms round
+5's observability claim by inspection rather than by hope.
+
+After the firmware restarts at `0xC72`, the first shadow copy will clear FATAL. So the window is
+bounded at both ends and both ends are now known.
+
+---
+
+## R6.5 The AOB auto-clear - no natural window, but a trap worth more than one
+
+**Verdict: the auto-clear clears ATRAP and FATAL TOGETHER, so it gives you no natural
+FATAL-without-ATRAP state.** `[I]` strong - and there is a documentary conflict behind it that you
+should decide deliberately rather than by accident.
+
+**The conflict**, both `[V]` from ND-05.020.01:
+
+| Source | Says |
+|---|---|
+| Table 8 note (p.112), the register definition | "**NOTE! Bits 8-15 are reset by hardware when the ND-5000 reads AOB**" |
+| Prose at line 3484 (section 5.1.3) | "**The flag AOBF and the trap signal ATRAP** are automatically reset when the ND-5000 reads AOB." |
+| Prose at line 3683 (AIB/AOB section) | "**AOBF and ATRAP** are automatically reset when the ND-5000 reads AOB." |
+
+The two prose passages name **only AOBF and ATRAP**. The table note says **all of bits 8-15**, which
+includes FATAL.
+
+**I read the table note as authoritative** `[I]`, for a structural reason rather than a preference:
+the manual frames the register as two halves with two different reset domains - "The **lower byte**
+is reset by hardware reset, while the **upper byte** is reset when the microprogram in the ND-5000
+reads AOB" (p.112) `[V]`. That is a coherent hardware design - a static half and a transient half -
+and it requires all of 8-15 to clear together. The prose passages are naming the two bits their
+paragraph is about, not enumerating the reset domain.
+
+**The trap, and this is the point of the section.** If you implement the *narrow* reading - clear
+AOBF and ATRAP on an AOB read, leave FATAL standing - then after any `0xF0` delivery your emulator
+will spontaneously enter a **FATAL-set, ATRAP-clear** state. That state would look exactly like the
+phase-3 stimulus you are trying to construct, and you would "settle" phase 3 against **an artefact of
+your own auto-clear implementation.**
+
+So the honest summary is:
+
+- **The race does not give you a free window.** `[I]`
+- **A wrong auto-clear would manufacture a fake one**, and it would be indistinguishable from a real
+  result at the observation point. `[V]` that the two readings differ; `[I]` that yours is currently
+  either.
+- **Check which one you implemented before running phase 3**, and if you have not implemented the
+  auto-clear at all (round 4 build item 3), implement the **bits 8-15** version.
+
+This is the same shape as the `bset #5` lesson pointed the other way. There, a method that could not
+match the encoding returned a confident empty set. Here, a plausible-but-narrow implementation would
+return a confident **non**-empty set. Both are worse than a gap, for the same reason: neither leaves
+a hole where a hole belongs.
+
+---
+
+## R6.6 Search completeness - how a negative would have been visible
+
+Applying the round-5 rule to itself.
+
+**Search space:** FATAL is MREG bit 13 = **upper** byte bit 5, writable only at register `0x330000`
+or shadow `0x1144EE`.
+
+**Method:** exhaustive byte search on both addresses, every hit inspected - **not** a pattern search
+for bit-5 operations, which is precisely the method that would have failed.
+
+- `search_bytes 001144EE` -> 28 matches, all classified
+- `search_bytes 00330000` -> 19 matches, all classified
+
+**Classification, complete and totalling to the match counts** `[V]`:
+5 register literals (`0xF0` x2, `0xD8`, `0xD0`, `0x00`); 2 shadow literals (both `0x00`); 15
+shadow-to-register copies; the bset/bclr set tabulated in R6.2; 1 computed write (`0x77FE`) with 2
+callers; 1 read-only display (`0x947C`); 1 data reference (`0x13F5C`).
+
+**Three ways this search could have returned a false empty set, and how each was closed:**
+
+1. **Bit operations only.** Would have missed all five register literals, because they are
+   whole-byte `move.b #imm`. *Closed:* every literal decoded numerically.
+2. **Shadow only.** Would have missed all five register literals, because they bypass the shadow
+   entirely (R6.4). *Closed:* searched the register address too.
+3. **Literals only.** Would have missed `0x77FE`, where the value is a runtime variable and **no
+   bit-5 constant appears anywhere in the image**. *Closed:* followed the computed write to both
+   callers and classified each. **This is the one that changed the answer** - the live phase-3 route
+   in R6.3 exists only on that path.
+
+Had all three been genuinely empty, I would be reporting "FATAL-without-ATRAP is unreachable, build
+the F2 path" - and the search was constructed so that outcome would have been a finding rather than
+an artefact of the method.
+
+---
+
+## R6.7 Round 6 status
+
+| Question | Answer |
+|---|---|
+| Any **autonomous firmware** value with FATAL set and ATRAP clear? | **NO** `[V]` - the five literals are `0xF0`, `0xF0`, `0xD8`, `0xD0`, `0x00` |
+| Any **reachable** FATAL-without-ATRAP at all? | **YES** `[V]` - console `Cmd31_LoadModeRegister @ 0x945E` -> `0x77FE`, **no running-flag guard**, type upper byte `0x20` |
+| Does octobus LMODE work for this? | **No** - Messnak `-1` while running (round 4) |
+| Does the AOB auto-clear give a natural window? | **No** `[I]` - bits 8-15 clear together. **But a narrow implementation would fabricate one.** |
+| Is the FATAL window clobber-free? | **Yes** `[V]` - STOPMIC touches only `0x330001` |
+| Must you still build F2? | **Generation: no.** **Representation: yes** - AFLAG bits 5 and 6 must still be separately representable |
+
+`[OPEN]` after this round: whether the microprogram's trap path dispatches with **AOBF clear** (bears
+on whether `0x20` alone is enough, or you need `0x60`); what raises IRQ3; and whether AFLAG is a
+window onto MREG/ASTS or a re-encoding (round 2, section B) - which is the last structural unknown on
+this interface.
+
+---
+
+## R6.8 On your correction method
+
+Striking the wrong version through under a banner rather than deleting it is right, and it is the
+opposite of what produced the `0x795A` six-day contradiction - there, the correct carve existed in
+section 2.4e while 2.4c kept recommending the wrong thing as a next target, and a reader hit the
+wrong half first. A struck-through claim with the correction above it cannot do that.
+
+The adjacency error is worth recording in its own right: **`TRAP_OCBAK` was assigned to bit 5 because
+it sits next to `TRAP_OCBA` in the label file.** Proximity in a symbol table is not dispatch, and
+that is a general hazard for every label-file-derived claim in this tree - including some of mine. I
+have not re-audited my own rounds for it; if you want that, say so.
+
+---
+---
+
+# ROUND 7 - 2026-08-02 - SELF-AUDIT of rounds 1-6 against the adjacency failure mode
+
+**In reply to:** `REPLY-TO-ACCP-INIT-AGENT-ROUND5-2026-08-02.md`, which accepted my offer to re-audit
+my own work for the failure mode I identified in theirs.
+
+Rounds 1-6 untouched. **Rounds 1-3 are committed, so where this round corrects them the correction
+lives here and must be read as an erratum against them.**
+
+The standard applied: for every claim I tagged `[V]`, what actually backs it - a **decoded
+instruction body**, a **manual table or numbered section**, **observed behaviour**, or a **name, a
+symbol-file position, or a neighbouring entry**? The last category is not `[V]`, however plausible.
+
+**Result: 9 claims re-tagged, 2 of them substantively WRONG. 2 claims upgraded from
+name-derived to genuinely verified. 1 warning that could affect something you have built.**
+
+---
+
+## R7.0 Summary table - read this and the "impact" column first
+
+| # | Round | Claim | Was | Now | Impact on you |
+|---|---|---|---|---|---|
+| **1** | R1 | caller `0x8758` lies inside `Cmd3F_TestBusloop` | `[V]` | **WRONG** - it is inside `Cmd3E_TestBuffers` | cosmetic; conclusion holds |
+| **2** | R4 | `0x764E` is "the control-store read engine" | `[V]` | **WRONG** - it is the control **CACHE** engine | citation only; conclusion holds |
+| **3** | R4 | `Cmd22`'s engine is `0x764E` | `[V]` | **DISPROVEN** by xrefs | citation only |
+| **4** | R1-R6 | the five ACCP port addresses | `[V]` | `[V-behavioural]` - no manual address map exists | none |
+| **5** | R3 | console `Cmd2x` numbers = octobus LMAR/LMIR/RMIR/etc. | `[V]` | `[I]` | **WARNING - see R7.5** |
+| **6** | R3 | `Cmd27_CheckAlive` implements 5.3.26 | `[V]` | `[I]` name-only | none |
+| **7** | R3 | `Cmd26_RestartMicroprogram`, `Cmd20_LookAtControlCache` in the instrument table | `[V]` | `[I]` name-only | none |
+| **8** | R5/R6 | `0x061C` is `AobSendWaitAck_KickTimeout` | implied `[V]` | `[I]` name-only (the value `0xD8` stays `[V]`) | none |
+| **9** | R4 | numeric octobus command bytes | flagged `[OPEN]` for DCSD only | `[OPEN]` for **every** command | **WARNING - see R7.5** |
+| **U1** | R5/R6 | `Vec27_AutoIrq3` = `0x510`, `Vec31_AutoIrq7_NMI` = `0x826` | name-derived | **`[V]` - upgraded, vector table read** | **strengthens** the FATAL route |
+| **U2** | R4 | DCSD perturbs MAR/MIR/MISR | `[V]` on wrong evidence | **`[V]` on correct evidence** | conclusion unchanged |
+
+**Nothing in this audit invalidates a conclusion you have acted on.** Two citations were wrong and
+one routine name was wrong; in both cases I re-verified and the conclusion survived on different
+evidence. The one thing worth checking on your side is R7.5.
+
+---
+
+## R7.1 FINDING 1 (round 1, COMMITTED) - I named the wrong self-test routine, by adjacency
+
+**Round 1 said:**
+
+> "Confirmed by the call graph `[V]`: one of `0x71F8`'s five callers is at `0x8758`, which lies
+> inside **`Cmd3F_TestBusloop`** (`0x868A` is the next function header; 0x8758 is in the body
+> preceding it)."
+
+**That sentence refutes itself and I did not notice.** If `0x868A` is the *next* header, then
+`0x8758` is inside the function *before* it. From the function list `[V]`:
+
+```
+Cmd3E_TestBuffers  @ 0x855C
+Cmd3F_TestBusloop  @ 0x868A
+Cmd2E_LoadAob32    @ 0x87B8
+```
+
+`0x855C <= 0x8758 < 0x868A`, so **`0x8758` is inside `Cmd3E_TestBuffers`, not `Cmd3F_TestBusloop`.**
+
+This is precisely the failure mode under audit: I picked the name that *sounded* like a bus-loop test
+because I had just concluded the routine was a bus loop, and I read function-list adjacency as
+confirmation. The name I wanted was one row away from the name that was there. Same shape as
+`TRAP_OCBAK` sitting next to `TRAP_OCBA`.
+
+**What survives** `[V]`: the body of `0x71F8` itself - MREG bit 8 BUSTEST set from table 8, the
+32-bit out via AOB/ASR, the four ACON words, the 32-bit back via AIB/APR. The bus-loopback reading is
+manual-table plus decoded body and does not depend on the caller's name at all. The claim
+"`0x300F`/`0x4016`/`0x8013` are a self-test step, not initialisation" also survives - `Cmd3E` is a
+test command too, and the once-per-boot count is measured, not named.
+
+**What must be struck:** the words "which lies inside `Cmd3F_TestBusloop`". Correct text: *"one of
+the five callers, `0x8758`, lies inside `Cmd3E_TestBuffers @ 0x855C`; the other four are `0x5C16`,
+`0xB470`, `0xB5DE`, `0xB750`, which I have not attributed."* And even `Cmd3E_TestBuffers` is a
+**name**, not something I decoded - `[I]`.
+
+---
+
+## R7.2 FINDING 2 (round 4) - `0x764E` is the control CACHE engine, not control store
+
+**Round 4 R4.3 said:** "`Cmd22_LookAtControlStore @ 0xAA5E` is a console browser. The **engine**
+underneath the control-store read is **`0x764E`**", and used its body to prove DCSD destructiveness.
+
+**Two things are wrong with that, and I found both by doing what I should have done first.**
+
+**(a) `0x764E` operates on the control CACHE.** Its body sets shadow bit 1 `[V]`:
+```
+765a  bset.b #1,(0x001144EE)     ; MREG bit 9 = AECC = ACCP Enable Control CACHE
+```
+Compare the control-**store** path, which sets shadow bit 2 `[V]`:
+```
+7434  bset.b #2,(0x001144EE)     ; MREG bit 10 = AECS = ACCP Enable Control STORE
+```
+AECC and AECS are distinct bits with distinct names in table 8 `[V]`. **I read `0x764E` as a control-
+store routine because Ghidra calls it `ControlStoreWriteVariant2` - a name that is wrong on two
+counts, since the body is a read and the target is the cache.** I propagated a pre-existing bad name
+instead of decoding the one bit that distinguishes them.
+
+**(b) `Cmd22` does not call it.** `xrefs to 0x764E` `[V]`: **`0x7642`, `0xAF84`, `0x5368`** - and
+`0xAF84` lies inside **`Cmd20_LookAtControlCache @ 0xADE0`**, which is exactly what (a) predicts.
+`0xAA5E` (`Cmd22_LookAtControlStore`) is **not** among the callers. I asserted a call I never checked.
+
+### The conclusion survives, on evidence I verified this round
+
+The control-**store** read-back engine is at **`0x741E` / `0x7434`-`0x749C`**, and I disassembled its
+tail this round `[V]`:
+```
+7434  bset.b #2,(0x1144EE)          ; AECS - control STORE
+743c  copy shadow -> 0x330000
+7446  move.w #0x0018,(0x220000)     ; ACON AMIRCK - reclock MIR without ECMIR
+744e  btst.b #0,(0x00660000)        ; ASTS bit 8 CSERR
+7484  bclr.b #2,(0x1144EE)          ; clear AECS
+748c  copy shadow -> 0x330000
+7496  jsr 0x775A                    ; clock MIR into MISR, shift 64 steps out to ASR
+```
+
+**Same destructive shape: AMIRCK into MIR, then `0x775A` shifts MISR out.** So **round 4's conclusion
+- that dumping a control-store word perturbs MAR, MIR and MISR, and that DCSD must therefore go at
+step 2.5 and never after LOAD MAR - is unchanged and now rests on the right address.** `[V]`
+
+**Erratum for round 4 R4.3:** every occurrence of `0x764E` should read `0x741E`/`0x7434`. `0x764E` is
+the **control cache** analogue (DCCD/DUCC, sections 5.3.21/5.3.22), reached from
+`Cmd20_LookAtControlCache`, and it is destructive in the same way.
+
+**Bonus, since it is free:** this also gives you a real distinction you did not have. **AECS (MREG
+bit 10) selects control store; AECC (MREG bit 9) selects control cache.** If your emulator treats
+those two enables as one, control-store and control-cache dumps will alias.
+
+---
+
+## R7.3 FINDING 3 (rounds 1-6) - all five port addresses are behavioural, not documented
+
+I have written `0x220000 = ACON`, `0x330000/1 = MREG upper/lower`, `0x440000 = AOB/AIB`,
+`0x550000 = ASR/APR`, `0x660000/1 = ASTS` with `[V]` tags throughout.
+
+**ND-05.020.01 contains no ACCP-side byte address map.** I said so myself in round 2 when arguing
+*against* my own read-port claim, and then went on using `[V]` for the map elsewhere. Your round-2
+reply made the same point and I accepted it there but did not propagate it.
+
+What actually backs each:
+
+| Address | Backing | Strength |
+|---|---|---|
+| `0x220000` = ACON | **17 of 17 census codes decode against table 9 with nothing left over** | strongest; behavioural but effectively conclusive |
+| `0x330000`/`0x330001` = MREG upper/lower | the manual's odd/even byte rule (p.112) plus every observed bit matching table 8 | strong |
+| `0x440000` = AOB/AIB, `0x550000` = ASR/APR | two sites assemble a 32-bit value as `0x550000`:`0x440000`, matching "APR = 31-16, AIB = 15-0" | strong |
+| `0x660001` bits 0,1 = ASTS AIBF/AOBF | the poll-then-RAIBF sequence at `0x72EC` reproduces the documented handshake exactly | strong |
+
+**Re-tag: `[V-behavioural]`.** Not one is read from an address map, because none exists. I do not
+think any is wrong - the ACON one in particular would be a remarkable coincidence - but they are a
+different kind of claim from "table 9 says `6h` is WCS", and I blurred the two.
+
+The `0x660000` **upper** byte usage found this round (`btst #0` = ASTS bit 8 CSERR, at `0x744E` and
+`0x7674`) is new corroboration: bit 8 CSERR sits exactly where table 7 puts it, on a path where a
+control-store error is what you would test for. `[V]` as corroboration.
+
+---
+
+## R7.4 FINDING 4-7 - routine identifications I took from names
+
+Honest accounting of the round-3 instrument table.
+
+**Bodies I actually decoded** `[V]` **on behaviour:**
+
+| Routine | What I read | Behaviour verified against |
+|---|---|---|
+| `0x8D98` | guard, operand fetch, `jsr 0x76E6` (-> ARMA) | 5.3.27 LMAR description |
+| `0x8E04` | guard, 8-word staging to `0x1144F0`, `jsr 0x773E` (-> AMIRCK), read-back compare | 5.3.28 LMIR |
+| `0x8F64` | guard, `jsr 0x775A`, print | 5.3.29 RMIR |
+| `0x78CA` | LOAD MAR, AECS, ARMI, ARMA, `ori #0x5C` on MREG-lower | 5.3.23 STARTMIC ("AMODE reset, MRUN set") |
+| `0x795A` | bclr MRUN, bclr AMODE | 5.3.24 STOPMIC ("resetting MRUN and setting AMODE") |
+| `0x79BC`/`0x79E4` | MRUN cleared then set; sets `0x1143AC` | 5.3.25 CONTMIC ("MRUN is first reset and then set") |
+| `0x945E` | prompt/parse/`jsr 0x77FE`, no `tst.w (0x1143AC)` in `0x945E`-`0x9550` | - |
+| `0x77FE` | `move.b D0b` to shadow and register | - |
+| `0xAA5E` | guard only; explicitly declared PARTIAL | - |
+
+**Those are safe.** In every case the manual sentence and the decoded body agree on *behaviour*, which
+is what the recipe depends on. `0x795A` is the strongest case for this method - it was correctly
+identified as STOPMIC precisely because I ignored its existing name.
+
+**Claims that rest on a NAME and must be re-tagged `[I]`:**
+
+- **(4)** The console **command numbers** `0x22`, `0x23`, `0x24`, `0x25`, `0x28`, `0x29`, `0x2A`,
+  `0x30`, `0x31`, `0x3E`, `0x3F` - and the mapping of each to its manual command. **I never read the
+  console dispatch table.** Every "Cmd2A" in my rounds is a Ghidra label from a prior session.
+- **(6)** `Cmd27_CheckAlive @ 0x9D9C` "implements 5.3.26 ALIVE CHECK". Round 3 admitted I did not
+  carve the body, then tagged the row `[V]` anyway. **Name only.**
+- **(7)** `Cmd26_RestartMicroprogram @ 0x9272` and `Cmd20_LookAtControlCache @ 0xADE0` in the R3.9
+  instrument table - listed as capabilities, never decoded. **Name only.** (`Cmd20` is now
+  *corroborated* by the `0x764E` xref in R7.2, which is behavioural - so it fares better than the
+  rest, by accident.)
+- **(8)** `0x061C` attributed to `AobSendWaitAck_KickTimeout` in rounds 5-6. **Name only.** The value
+  `0xD8` and its bit decode stay `[V]` - those I read.
+- Likewise `MfBusMemoryTransaction @ 0x70CC` (round 1, "carved at 0x70CC: `0x300F` open,
+  `0x400A`/`0x400C` sub-function") - I quoted that from the pre-existing reference and never
+  decoded `0x70CC` myself. `[I]`.
+
+**None of these changes an instruction I gave you**, because the round-3 recipe is written in terms
+of manual command *names* and manual-specified parameters, not in terms of `Cmd2x` numbers. But see
+next.
+
+---
+
+## R7.5 THE ONE WARNING - check this on your side
+
+**(5) and (9) together.** I labelled the recipe steps with both a manual command name and a `Cmd2x`
+number, e.g. "**Step 1 - STOP MICROPROGRAM.** `Cmd24`. No parameters."
+
+Two things are wrong with that pairing and I should have separated them:
+
+1. **`Cmd24` is a console-monitor label, and the recipe is an octobus procedure.** These are
+   different command spaces. I noted the distinction myself in round 1 ("the `Cmd*` set I named is
+   the **console monitor**, not the octobus CM* dispatch") and then used the numbers in an octobus
+   recipe anyway.
+2. **I do not know any octobus command byte.** Round 4 flagged this for DCSD only. It is true of
+   **every command in the round-3 recipe** - STOPMIC, LMAR, LMIR, RMIR, CONTMIC, ALIVE. The manual
+   specifies names, parameters, replies and error codes but I found no table of numeric command
+   values in it, and I have not carved the octobus dispatcher.
+
+**If you encoded `0x24` as the octobus command byte for STOP MICROPROGRAM, or `0x28`/`0x29`/`0x2A`
+for LMAR/LMIR/RMIR, that is a defect and the commands will not be recognised.** The symptom would be
+a Messnak, or silence - which under your own harness discipline reads as a null.
+
+**What to do:** treat every octobus command byte as `[OPEN]`. Either carve the octobus dispatcher
+(offer stands, and it is now a small job) or discover the bytes empirically. The *procedure*,
+*parameters*, *reply framing*, *error codes* and *ordering* in round 3 are all manual-backed and
+stand unchanged - only the numeric labels are unsound.
+
+---
+
+## R7.6 TWO UPGRADES - name-derived claims that now verify properly
+
+**(U1) The interrupt vector names, which carry the whole FATAL route.** Rounds 5 and 6 attributed
+`0x056C` to `Vec27_AutoIrq3` and `0x084A` to `Vec31_AutoIrq7_NMI`, and round 5 told you to trigger
+FATAL by sending octobus emergency `244B` (INT7) because it lands on level 7. **That was
+name-derived, it was the highest-stakes claim I made, and you were about to act on it.** So I read
+the 68000 exception vector table `[V]`:
+
+```
+0x60  00 00 04 ae   vector 24  spurious
+0x64  00 00 04 ba   vector 25  IRQ1 autovector
+0x68  00 00 04 c6   vector 26  IRQ2 autovector
+0x6c  00 00 05 10   vector 27  IRQ3 autovector  -> 0x000510
+0x70  00 00 06 94   vector 28  IRQ4 autovector
+0x74  00 00 07 96   vector 29  IRQ5 autovector
+0x78  00 00 07 a8   vector 30  IRQ6 autovector
+0x7c  00 00 08 26   vector 31  IRQ7 autovector  -> 0x000826
+```
+
+- IRQ3 handler entry = **`0x510`**; my FATAL site `0x056C` is `0x5C` bytes into it. **Inside.** `[V]`
+- IRQ7 handler entry = **`0x826`**; my FATAL site `0x084A` is `0x24` bytes into it. **Inside.** `[V]`
+
+**Both names are correct, and now for the right reason.** The `244B` -> level 7 -> `0x826` -> `0x084A`
+-> `0xF0` -> FATAL chain is verified end to end: ND-14001 section 4.6 for `244B` = INT7 = "generates
+a level 7 interrupt", the vector table for level 7 = `0x826`, and the decoded body for the `0xF0`
+write. Round 5's advice stands.
+
+**(U2)** DCSD destructiveness - `[V]` restored on correct evidence, R7.2.
+
+---
+
+## R7.7 What I cannot re-verify without work I have not done
+
+Stated plainly rather than left `[V]` by inertia.
+
+1. **Every octobus command byte value.** `[OPEN]`. Needs the octobus dispatcher carve.
+2. **The console dispatch table** - whether `Cmd2A` really is console command `0x2A`. `[OPEN]`.
+   Cheap; I simply have not done it.
+3. **`Cmd27_CheckAlive` body**, and therefore whether ALIVE CHECK works as 5.3.26 describes in *this*
+   firmware. `[OPEN]`. Round 3's step 2 uses it.
+4. **The exact bit-to-position mapping inside the 128-bit MIR word.** I have `[V]` word order
+   (`0x1144F0` shifted first) and relied on your reading of line 3699 for the bit map. I have not
+   independently derived it. `[I]`.
+5. **What answers a read at `0x220000`** (round 2). Unchanged `[OPEN]`.
+6. **Whether AFLAG is a window onto MREG/ASTS or a re-encoding** (round 2 section B). `[OPEN]`, and
+   with your finding that `Atrap` is not composed into `ReadAflag` at all, this is now the load-
+   bearing structural unknown on the interface.
+7. **What raises IRQ3.** `[OPEN]`. Note the FATAL site there is byte-identical to the IRQ7 one, so if
+   IRQ3 turns out to be easier to provoke it is an equally good trigger.
+8. **My round-1 claim that `0x70CC` uses `0x300F`/`0x400A`/`0x400C`** - quoted from the pre-existing
+   reference, never decoded by me. `[I]`. It matters slightly: round 1 observed that `0x300F` has a
+   census count of 1 while appearing at both `0x71F8` and `0x70CC`, and concluded `0x70CC` never runs
+   in a boot. That conclusion depends on an undecoded claim.
+
+---
+
+## R7.8 What the base rate actually says
+
+Five name-based errors are now on the record for this interface: `0x300F`/`0x4016`/`0x8013`,
+`0x0007`, `0x795A`, `TRAP_OCBAK`, and - added today - `0x764E` and the `Cmd3F` misattribution. Four
+of the six were mine or mine to correct.
+
+The pattern in my own two is worth stating exactly, because it is not carelessness and it will
+recur:
+
+- **`Cmd3F_TestBusloop`:** I had *already* concluded from the body that `0x71F8` was a bus loopback.
+  Then I looked for a caller and found a function list containing the words "TestBusloop". The name
+  did not tell me anything I had not derived - **it confirmed a conclusion I had reached
+  independently, which is exactly when a name is most dangerous**, because there is nothing left to
+  contradict.
+- **`0x764E`:** I needed a control-store read engine, found a routine named
+  `ControlStoreWriteVariant2`, and stopped. One `bset` bit number - 1 versus 2, AECC versus AECS -
+  separated right from wrong, and it was in a table I had already quoted twice.
+
+**The generalisable rule, offered for the method file:** *a name is at its most dangerous when it
+agrees with you.* A name that contradicts your reading gets checked; a name that confirms it gets
+adopted. Both of my errors were confirmations.
+
+**Concrete practice:** when a Ghidra label agrees with a conclusion, that is the moment to decode one
+distinguishing field - the bit number, the vector slot, the xref - and not before publishing. Both
+errors here would have been caught by a single extra lookup that I had every reason to think
+unnecessary.
+
+---
+
+## R7.9 On your auto-clear catch
+
+That the warning fired before you ran phase 3, and that you found the narrow implementation in
+`ReadAob()` and stopped, is the best outcome available from round 6 - and the second finding it
+surfaced is bigger than the first. **`Atrap` not being composed into `ReadAflag` at all, and there
+being no FATAL field**, means the F2 precondition was never "add two inputs" but "the composer does
+not yet represent the causes at all". Every one of my phase-1/2/3 designs assumed those inputs
+existed and only their *positions* were unknown. They did not exist. Recorded here so no future round
+repeats the assumption.
+
+Putting the warning in the XML docs on `ReadAob` rather than in a status file is the right shape, and
+it is the direct antidote to the `0x795A` six-day contradiction: the correction lives where the
+reader is, not in a list that sends them elsewhere.

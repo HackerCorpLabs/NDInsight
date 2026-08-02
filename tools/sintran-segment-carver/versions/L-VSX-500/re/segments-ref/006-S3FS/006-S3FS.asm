@@ -8,7 +8,7 @@
 ;
 ; sha256(006-S3FS.bin) = b4a563d0715a6304a35167ec5ff0090c92b0b99dd743aef159ac6b182e080585
 
-; nd100-dis: /tmp/tmplx0d2qs2.le (raw binary, 54272 words)
+; nd100-dis: /tmp/tmpgoc7r87q.le (raw binary, 54272 words)
 
 >>> FCSTA(FILSYS-SYMBOLS)
 026000  026000  	LDD ,X 0

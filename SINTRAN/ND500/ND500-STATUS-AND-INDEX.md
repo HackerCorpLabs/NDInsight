@@ -17,6 +17,182 @@ or NPL routine is analysed. **All output goes under `E:\Dev\Ronny\NDInsight\` �
 
 ---
 
+## 000. 2026-07-31 — LINKAGE-LOADER install: swap file created, and the blocker moves to RECOVER-DOMAIN
+
+**Full write-up:**
+[`..\ND5000\NLL-INSTALL-SWAPFILE-UNBLOCKED-5SWAP-PROTECT-VIOLATION-2026-07-31.md`](../ND5000/NLL-INSTALL-SWAPFILE-UNBLOCKED-5SWAP-PROTECT-VIOLATION-2026-07-31.md)
+
+Three blockers in series on the ND-500 LINKAGE-LOADER install; the first two are FIXED.
+
+1. **`@SET-AVAIL` must run after login and BEFORE `@ND-500`** [V, live]. Adding it changed
+   RECOVER-DOMAIN's outcome immediately. **Consequence: every ND-500 result the octobus boot
+   harness produced before 2026-07-31 was taken from a machine that had not been made
+   available** - including the "ACCP was terminated" banner readings.
+2. **This pack has NO ND-500 swap file**, so no domain could ever load ("SWAPPING SPACE NOT
+   AVAILABLE" = error 553). Created per ND-30.003.007 section 3.3.9 and verified by
+   `LIST-SWAP-FILE-INFO`: `give-user-space system 8000`, `create-file swap-file-0:swap` at
+   5000 pages, `define-swap-file`. NOTE the harness refreshes the pack each run, so this must
+   be redone in-session.
+3. **OPEN — the swapper block-moves from physical page 0 and traps.** With swap space,
+   RECOVER-DOMAIN reaches `> Allocating memory - 7110B pages`, then 5SWAP takes a "Protect
+   violation".
+
+**What that trap actually is** [V]: the swapper routine at `swapper-k01-pseg.asm:1795`
+(`1000012503`) multiplies its parameter by 0o4000 (a PAGE NUMBER), does `dmof` (data paging
+OFF), `bmove`, `dmon`. So the report's "DATA POFF read request" is real, and
+"Physical address 0 / Physical segment 0" is page_number x 2048 with the page number ZERO.
+
+**Eight hypotheses MEASURED AND DEAD - do not re-open** (each with its measurement in the
+write-up): our MMU (all three fault records `(none)`); a stale non-zero SWPSTAT
+(`ansSWPSTAT=0B`); us posting the trap (`trapsPosted=0`); SINTRAN never restarting
+(`micfu[24B:7]`); us declining restarts (`restarts=7/7`); K/FUNCV carrying an error
+(`K=0` throughout); block-copy address resolution (identical on Samson, and the source
+buffer genuinely holds zeros); and "the swap page lands outside the 5MPM window" (a DMA core
+address is a WORD address, so `core=0x27C800` is byte `0x4F9000`, which IS inside the window).
+
+**Where it really is** [V]: the failing request is `LSWPAGE` (`MP-P2-N500.NPL:136112`,
+SINTRAN's own comment "% Disk I/O"), identified by `swpfu[LNEWSWAP:7 LSWPAGE:1]`. Two of its
+arguments are confirmed: arg[2] `0x240` = 0o1100 = the swap file's LOGICAL DEVICE NUMBER
+(matches `LIST-SWAP-FILE-INFO`), arg[3] `0x30` = 0o60 = `XABSFUNC`. SINTRAN performs the
+transfer correctly - `ReadTransfer pos=65159168 words=1024 core=0x27C800`, exactly
+SWAP-FILE-0's first page - and it reads ZEROS because **the swap file is virgin**: `xxd` on the
+pristine pack at byte 65159168 shows the page blank, and the floppy sees only 22 transfers in
+the whole session (format block + directory), with **no bulk read of a domain segment** and
+**no write to the swap file at all**.
+
+### CORRECTED 2026-07-31 [V, live MON 60B trace] - RECOVER-DOMAIN DOES ask for everything
+
+An earlier version of this section concluded "RECOVER-DOMAIN never transfers the domain image".
+**That was WRONG.** A MON 60B recorder (`SintranLayer.RecordMon60`, deliberately ungated - the
+existing `TraceMonitorCall` is gated on Device logging which the harness switches off, and on a
+DataCommunication filter that excludes MON 60B) captured all 10 calls of a full run. Every one
+comes from `P=0xCCAF` = `146257B`, i.e. the MON at `146256B` - the single MON 60 gateway the
+carve names, so the instrument is provably on the right door.
+
+MON 60 passes parameters FORTRAN-style: A points at a parameter list whose first entry is the
+function code, BY REFERENCE (`Developer\MON\calls\60B_N500M.yaml`). Measured `[A] = A+0xC` and
+`[[A]]` = the code. Decoded against `mon60-callers/SUBFUNCTION-TABLE.md`:
+
+| # | code | subfunction |
+|---|---|---|
+| 1 | `017` | list open files |
+| 2 | `046` | IDEFSWAP - DEFINE SWAP FILE |
+| 3 | `050` | (test function) |
+| 4 | `055` | **ISPLACE - START-PLACE** |
+| 5 | `006` | **ISEGLOAD - LOAD (PLACE), ONE SEGMENT** |
+| 6 | `006` | **ISEGLOAD - LOAD (PLACE), ONE SEGMENT** |
+| 7 | `056` | **IEPLACE - END-PLACE** |
+| 8 | `142` | (redefine default infant file) |
+| 9 | `077` | IRMESS - READ MESSAGE |
+| 10 | `170` | READ ND-500 CPU-TYPE AND MIC.VERSION |
+
+`START-PLACE` -> two `PLACE SEGMENT` -> `END-PLACE` is a correctly bracketed two-segment
+placement, i.e. `:PSEG` + `:DSEG`. Call 2 is the `define-swap-file` command issued in the same
+session, confirming the trace spans the whole run. Every code lands in the valid `000`-`177`
+range with recognisable members, so the decode is not coincidence.
+
+**THE REQUEST SIDE IS CORRECT.** The defect is that SINTRAN receives two `006 ISEGLOAD`
+requests and the floppy is NEVER bulk-read: 22 transfers in the whole session, all format block
+and directory. The placement is asked for; the segment content is never fetched.
+
+### ROOT CAUSE [V] - the directory must be entered as `210319H02`, NOT from the volume label
+
+A MON 50B (OpenFile) recorder shows what the ND-100 System Monitor actually opens. Eleven opens
+in the whole run (no truncation - the cap was never reached), and two of them disagree:
+
+```
+[X]="(210319H02-XX-01D:FLOPPY-USER)LINKAGE-LOAD-H02"    <- description file: FULL name
+[X]="(210319H02:FLOPPY-USER)LINKAGE-LOAD-H02:PSEG"      <- segment: SHORT name
+[X]="(210319H02:FLOPPY-USER)LINKAGE-LOAD-H02:DSEG"      <- segment: SHORT name
+```
+
+**This is NOT a truncation bug in SINTRAN or in the emulator.** The raw distribution floppy
+carries the short form itself:
+
+```
+@0007E0  210319H02-XX-01D          <- the volume LABEL (exactly 1 occurrence)
+@0CD8C5  (210319H02:FLOPPY-USER)LINKAGE-LOAD-H02'
+@0CD805  (210319H02:FLOPPY-USER)SCRATCH-SEG-01'
+@0CF801  (210319H02:FLOPPY-USER)'
+```
+
+ND wrote `210319H02` into the domain's own DESCRIPTION-FILE. SINTRAN follows those references
+faithfully. The mismatch is introduced by HOW WE MOUNT IT: `enter-dir,,f-d-1,0` skips the name
+as a positional, which takes it FROM THE LABEL, so the directory mounts as `210319H02-XX-01D`
+while every internal segment reference names `210319H02`. The `:PSEG`/`:DSEG` opens then resolve
+against a directory that does not exist - hence no bulk floppy read, a swap file nothing ever
+wrote, and the swapper's block-move from physical page 0.
+
+The description file opened under the FULL name only because the monitor built that spec from
+the command line; the segment specs come from INSIDE the description file.
+
+**FIX (operational, no code change):** enter the directory explicitly.
+
+```
+@enter-dir 210319H02,f-d-1,0
+ND-5000: recover-domain (210319H02:FLOPPY-USER)LINKAGE-LOAD-H02
+ND-5000: copy-domain (210319H02:FLOPPY-USER)LINKAGE-LOAD-H02,"LINKAGE-LOAD-H02"
+```
+
+**This CONTRADICTS the "skip the name so it is media-independent" note** on
+`NllFloppy_EnterDirectory_ListFiles_Capture`. That advice holds only while the volume label and
+the description file's internal references agree. On this product floppy they do not, and
+following it is what broke the install.
+
+That also means the `RECOVER-DOMAIN` handler carve and **open question 9** (the outer dispatch
+table) are NOT on the critical path for this defect - the live trace answered what they would
+have. They remain open as carve items.
+
+**Carve note [V]:** `012533` is the RECOVER-DOMAIN command **string in BANK 2** (data) -
+`"RECOVER-DOMAIN\F DSCRATCH'Domain name: \"` - NOT a code address. Disassembling bank 1 there
+yields plausible nonsense (trap 4/8 wearing a new disguise).
+
+**Oracle status 2026-07-31 [V]:** mailbox differential oracle 43/43, octobus 5/5, floppy 11/11
+green after this session's servicer diagnostics. It CANNOT adjudicate this defect: `23B` start
+and `24B` restart are not parity targets, and the fault is above the mailbox layer.
+
+### TOOLING: `nd100-dis` indexed-offset fix + carve regeneration (2026-07-31)
+
+Ronny fixed `nd100-dis` dropping the OFFSET operand on the indexed-through-T family
+(`LDATX`/`LDXTX`/`LDDTX`/`LDBTX`/`STATX`/`STZTX`/`STDTX`). Proven on the same address and raw
+word `143344`: old tool `STATX`, fixed tool `STATX 4`. The failure was SILENT - the mnemonic
+still looked right.
+
+**Why this effort cares:** `*AAX <offset>; LDATX` is exactly how SINTRAN reads swapper/mailbox
+message FIELDS (`*AAX SWPFU; LDATX`, `*AAX HSWPI; LDDTX`). Without the offset a listing does not
+say WHICH field an instruction touched.
+
+**Bare output is CORRECT for offset 0** [V, from `decode.c`]: the decode masks with `0xFFC7`, so
+bits 5-3 are the offset field - `143302 & 0x38 = 0`, `143370 & 0x38 >> 3 = 7`. A remaining bare
+line is offset-zero, not a missing operand.
+
+**REGENERATED 2026-07-31** with `make-segment-ref.py` (which byte-swaps for the disassembler only,
+hashes the original big-endian bytes, and re-inserts the `>>> NAME(TABLE)` L07 symbols - a raw
+`nd100-dis` rerun would have stripped those):
+
+| segment | offsets now shown / family total |
+|---|---|
+| `017-S3SMPIT` | 255 / 1027 |
+| `016-S3SRPIT` | 282 / 606 |
+| `004-S3RTL` | 114 / 127 |
+| `003-S3CP`, `013-S3SCP` | 64 / 107 each |
+| `012-S3SFS`, `006-S3FS` | 12 / 59 each |
+| `007-S3DMAC` | 5 / 18 |
+| `030-S3SM5.dis` (direct nd100-dis) | 89 / 235 |
+
+`014-S3ERRP`, `010-S3RTFIL`, `020-S3SDT5`, `021-S3NMS5` regenerated with 0 offsets shown - their
+handful of family instructions are all genuinely offset-zero.
+
+**STILL STALE:** the three `kernel-carving/SCSI-DRIVER/*.dis` (8 instructions),
+`nd-500-mon-j04.prog.asm` (3), and `006-S3FS.annotated.dis` - the last carries HAND ANNOTATIONS
+and must be merged, never overwritten.
+
+**Any ND-100 disassembly dated before 2026-07-31 is suspect for this opcode family** - re-check
+before trusting an offset read out of one. `030-S3SM5` mattered most here: it is the ND-100
+System Monitor that drives the ND-500 swapper and prints "> Loading Swapper".
+
+---
+
 ## 00. 2026-07-25 — SWAPPER REACHES ITS MESSAGE-WAIT LOOP; the blocker moves from microcode to transport
 
 **This is the newest status entry. Read it before planning any swapper work.**

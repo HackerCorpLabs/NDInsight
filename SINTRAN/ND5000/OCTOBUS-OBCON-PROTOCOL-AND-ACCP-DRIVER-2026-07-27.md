@@ -484,6 +484,368 @@ itself, not a second card.
 
 ---
 
+## 1f. MOCTOMD IS THE *DESTINATION* OMD - this reframes 1d [2026-07-31]
+
+A re-read of the NPL octobus builders in
+`E:\Dev\Ronny\NDInsight\SINTRAN\NPL-SOURCE\NPL\MP-P2-N500.NPL` corrects the field reading
+that section 1d used as its main counter-argument.
+
+There are **four** builders, not one, and they split cleanly by destination:
+
+| Routine | Line | `X.MOCTOMD` written with | Destination |
+|---|---|---|---|
+| `XRS5CPU` (Reset CPU) | 3334 | `OMDACCP` | the ACCP |
+| (MF path) | 3525 | `MFOMDNO` | the MF controller |
+| `MFPREPARE` | 3589 | `MFOMDNO` | the MF controller |
+| `CON5IDENT` | 3623 | `OMDACCP` | the ACCP |
+
+`X.MOCTOMD` therefore holds the **OMD number being addressed**, not the sender's own. The
+sender's own OMD travels in the *payload* - `5OMDNO SH 10 =: X.MDP1` in MFPREPARE,
+`5OMDNO SHZ 10 =: X.S5` in CON5IDENT.
+
+**Consequence for 1d:** the counter-argument recorded there - "MFPREPARE puts own-OMD in DP1
+while the ACCP's second byte is the station number, so the shapes differ" - was based on
+reading MOCTOMD as the sender's OMD. It is not. Both ends do the same thing: **address the
+peer by its OMD in the header, and announce your own identity in the payload.** The ACCP's
+`[0x03][station]` is exactly that announcement, and 1d's hypothesis is stronger than it was.
+
+**And the OMD/CMD numbers line up.** `OMDAC=000003` (N500-SYMBOLS.SYMB:6016) is the number
+SINTRAN addresses the ACCP by, and the ACCP connects a receive buffer on **CMD 3** at ROM
+0x0CF8. Same number, both sides, independently sourced. The acceptance gate at 0x10934 and
+0x10A12 admits only CMD **0, 3 or 5** and calls the error path at 0x05C0 for anything else -
+so the card really does listen on just those.
+
+**STILL NOT PROVEN, and one discrepancy survives.** If CMD were universally the same namespace
+as OMD, then the ACCP addressing the MF controller on CMD 5 would make the MF controller
+OMD 5 - but the symbol table says `MFOMD=000004` (line 5497). Either CMD is a per-station
+connection number that merely coincides with OMD for the ACCP, or `MFOMD` is not what
+`MFOMDNO` resolves to. **`MFOMD` vs `MFOMDNO` remains UNVERIFIED** - `MBSEND` is not in the
+NPL sources present here, so the header-to-wire mapping cannot be carved from them either.
+
+Full OMD namespace found in N500-SYMBOLS.SYMB:
+
+```
+OMDAC=000003     ACCP
+OMDSO=000003
+MFOMD=000004     MF controller
+OMDTA=177767     (-9)
+OMDEN=177766     (-10)
+OMDNO=177777     (-1, "none")
+```
+
+Also worth noting from `XRS5CPU`: SINTRAN reaches this path only for
+`CPUAVAILABLE /\ 5CPUTYPE = SAMSON`, i.e. it is the Samson-specific CPU-reset route, and
+`CON5IDENT`'s own header comment is *"To be able to receive multi byte messages/kicks from the
+ACCP/Samson"*. Both name our card explicitly.
+
+---
+
+## 1g. FLAGS-BYTE BIT 5 = BROADCAST - CARVED [2026-07-31]
+
+The last uncarved bit of the driver flags byte (section 1e) is now settled. It is the START
+frame's **broadcast** bit, latched through the per-station record.
+
+Set/clear on completion, at 0x106A4-0x106B8:
+
+```
+0001068e  move.w (A2),D5w              ; A2 = per-station record
+00010690  move.w D5w,(0x50,A6)
+000106a4  lea    (0x14,A1,D0*0x1),A0   ; A1 = buffer base, 0x14 = data area
+000106a8  move.b (A0),D1b
+000106aa  bclr.l #0x5,D1
+000106ae  tst.w  (0x50,A6)
+000106b2  beq.b  0x000106b8
+000106b4  bset.l #0x5,D1
+000106b8  move.b D1b,(A0)
+```
+
+Record +0x00 is written once, by the START handler at 0x10986-0x1099A, straight from frame
+bit 14:
+
+```
+00010986  move.b (A0),D1b              ; A0 = frame; byte 0 is the HIGH byte
+0001098c  moveq  #0x0,D2
+0001098e  btst.l #0x6,D1               ; bit 6 of high byte = frame bit 14 = B
+00010992  beq.b  0x00010996
+00010994  moveq  #0x1,D2
+00010996  movea.l (0x50,A6),A1
+0001099a  move.w D2w,(A1)              ; record+0x00 := broadcast
+```
+
+Frame bit 14 is the B (broadcast) bit of the OBCON frame. **Corroborated independently on the
+SINTRAN side**: every builder in 1f writes a dedicated `X.MBROADCAST` header field, set to
+`0` with the comment "Not broadcast". Both ends model broadcast as a per-message property.
+
+### Per-station record layout, refined
+
+The START handler at 0x10996-0x109BA initialises the whole record, which pins several offsets
+that were previously only inferred:
+
+| Offset | Written at | Meaning |
+|---|---|---|
+| +0x00 | 0x1099A | broadcast flag (word), from frame bit 14 |
+| +0x02 | 0x109B4 | cleared (abandon) |
+| +0x04 | 0x109B8 | cleared |
+| +0x06 | 0x1099C | information byte of the START frame; low nibble = CMD |
+| +0x07 | 0x109AE | own CMD, initialised to **0xFF**, not 0 - so 0 is a legal value and 0xFF means "not yet received" |
+| +0x08 | 0x109A2 | ring write pointer, `clr.l` |
+| +0x0C | 0x109A6 | set to -1 |
+
+Record base is `0x0011641C + station * 0x20`; the scale is carved from
+`moveq #0x3f,D0 / move.b (A2),D1b / and.b D0b,D1b / asl.l #0x5,D1` at 0x10902-0x10914.
+
+**Bonus**: a debug flag at `0x001143B4` gates a trace that prints the raw frame word followed
+by the string " to ACCP" (descriptor at 0x123EA). Setting it makes the card narrate its own
+octobus receive path.
+
+**Locked by tests**: `ObconMessageTests.ReceiveFlags_Bit5IsTheBroadcastBitOfTheStartFrame` and
+`ObconMessageTests.StationRecord_LayoutMatchesTheStartHandler` in
+`E:\Dev\Repos\Ronny\RetroCore\Nuget\HackerCorpLabs.Emulation.Chips.NorskData\tests\ObconMessageTests.cs`.
+
+---
+
+## 1h. THE CMD-3 COMMAND CHANNEL - the card answers, and 0x3E converts the model [2026-07-31]
+
+Everything before this drove CMD 5 (MFbus discovery). CMD 3 - the 319-byte buffer connected at
+ROM 0x0CF8 - is the SINTRAN-to-ACCP **command** channel, and it round-trips.
+
+### The card narrates it itself
+
+The ROM has a console command for this, in the command table at 0x13357:
+
+```
+TRACE-COMMUNICATION-DATA <Trace Octobus communication to consol? (y/n)>
+```
+
+(the firmware's own spelling of "consol"). YES writes 1 to `0x001143B4` at 0x9D84, NO clears it
+at 0x9D8E. Eleven sites read the flag, covering both directions - `Areceive` at 0x1095A / 0x10A3A
+inbound, `OctoTxTracePrint_fromACCP_A` / `_B` at 0x11078 / 0x110C0 outbound.
+
+**This is the card describing itself**, not our instrumentation describing what we chose to model.
+It should be the first move on any future protocol question.
+
+Observed, sending content `03 02` on CMD 3 with the tracer armed:
+
+```
+8233 0203 0202 0203 0202 8223   to ACCP
+    Undefined ACCP command received:
+    Octal: 003B   Hexadecimal: 03H
+8233 0203 0204 02FF 0206 0210 0211 8223   from ACCP
+```
+
+### Content byte 0 on CMD 3 is an ACCP COMMAND NUMBER
+
+The card echoed our `0x03` back in the complaint as `03H`. The dispatcher is a compare chain
+(PLANC CASE); its default arm is at 0x6746 and emits `0xFF 0x06`.
+
+**This does NOT settle the section-1d question.** That one is about an OUTBOUND message on
+CMD 5; this is an INBOUND message on CMD 3. Different channel, different direction. The two need
+not share a content layout, and nothing here shows they do. Do not let "byte 0 is a command on
+CMD 3" quietly become "byte 0 is a command on CMD 5".
+
+What it does show is that `0x03` is **not** a defined ACCP command - so if the discovery request's
+`0x03` were an opcode in this same namespace, it would be an undefined one.
+
+### Reply shape
+
+`[status][code][...]`. Status `0xFF` is the failure marker on every arm carved so far:
+
+| Condition | Emits | Carved at |
+|---|---|---|
+| undefined command | `FF 06` | 0x6746 |
+| model never confirmed (0x1131FA = 0) | `FF 0B` | 0x66E2 -> 0x6714 |
+| CPU class is 0 | `FF 31` | 0x66DA -> 0x672C |
+| success (command 0x3E) | `00 <packed>` | 0x66E4 -> 0x6712 |
+
+UNVERIFIED: the trailing `10 11` seen after `FF 06` in the observed reply. Not carved; probably
+from the tail builder at 0x6A64, but that is a guess and is not asserted anywhere.
+
+### Command 0x3E is the CPU-model converter
+
+Carved at 0x66BA-0x6712:
+
+```
+000066ee  move.b (0x001131f6).l,D0b   ; CPU class - a BYTE
+000066f8  lsl.w  #0x4,D0w             ; class << 4
+000066fa  move.w (0x001131f8).l,D1w   ; identity word, e.g. 0x5900
+00006700  asr.w  #0x8,D1w             ; -> 0x59
+00006702  moveq  #0xf,D2
+00006704  and.w  D2w,D1w              ; -> 0x09, bare model digit
+00006706  or.w   D0w,D1w              ; (class << 4) | digit
+```
+
+**This reconciles the two CPU-model encodings** that ANSWER-CPU-MODEL-ENCODINGS-2026-07-30.md
+warned must never be plumbed into each other:
+
+- the MFbus discovery reply carries the **bare digit** (`0x09`), widened to an identity word by
+  `0x5000 | (digit << 8)` at 0x12EC-0x12FA;
+- SINTRAN's WRSYSINFO byte is **packed** - bits 0-3 model digit, bits 4-5 CPU type.
+
+They are not rival conventions needing a decision. **Command 0x3E is the converter, and it lives
+on the card.** The ACCP holds class and digit separately and packs them only when SINTRAN asks.
+
+Class 3 + digit 9 packs to `0x39`, which is also ASCII `'9'` - the documented collision. It is
+not text.
+
+Note also: **the class at 0x001131F6 is a BYTE** (`move.b`). Reading it as a word yields `0x0300`
+for class 3.
+
+### Locked by tests
+
+In `E:\Dev\Repos\Ronny\RetroCore\Nuget\HackerCorpLabs.Emulation.Machines.Accp\tests\AccpOctobusTraceTests.cs`:
+
+- `TraceCommand_SetsTheFlagTheOctobusPathReads` - the console command reaches 0x001143B4 both ways.
+- `Cmd3_IsAnAccpCommandChannelAndTheCardAnswers` - inbound CMD 3 is parsed as a command and answered.
+- `Cmd3_Command3EReportsThePackedCpuModelByte` - 0x3E is defined, and the packed byte is computed
+  the way the firmware computes it.
+- `Diag_TraceOutputWhileTheBusIsBusy` - diagnostic, prints the narrated trace.
+
+The peer gained `AccpMfBusControllerPeer.SendMessage(destinationCmd, ownCmd, content)` for
+unsolicited traffic; before this it could only answer the discovery scan.
+
+---
+
+## 1i. THE COMPLETE ACCP COMMAND SET - 46 commands, enumerated and verified [2026-07-31]
+
+The CMD-3 dispatcher (section 1h) is a PLANC CASE compiled to a chain of
+`cmpi.b #imm,D0` + `bne`, each arm's `bne` pointing at the next.
+
+**Enumerated by walking the chain**: head at **0x4D50**, following every branch target,
+terminating at the default ("Undefined ACCP command received") arm at **0x6746**. 46 arms.
+
+### Defined commands - three contiguous runs
+
+```
+0x0D - 0x18    (12)
+0x1B - 0x2D    (19)
+0x30 - 0x3E    (15)
+               ---
+                46
+```
+
+### Undefined in 0x00-0x3F (18)
+
+```
+00 01 02 03 04 05 06 07 08 09 0A 0B 0C   19 1A   2E 2F   3F
+```
+
+**`0x03` is not a defined ACCP command.** That is the one hard fact this enumeration
+contributes to the section-1d question: if the discovery request's `0x03` were an opcode in the
+CMD-3 namespace, it would have an arm here. It does not. (It remains true that CMD 5 outbound and
+CMD 3 inbound need not share a content layout - see 1h.)
+
+### Verified against the running card
+
+`Cmd3_EveryUndefinedCommandIsRefusedIncluding0x03` sends all 18 undefined numbers to a booted
+machine on CMD 3 and requires the card to print "Undefined ACCP command received" for every one.
+It does. Only the undefined numbers are swept: the defined ones include microprogram start/stop
+and control-store loads, so sweeping those would wedge the card partway through and make every
+later result meaningless.
+
+### Two methodology mistakes worth not repeating
+
+Both were made here first, and both were caught by the running card rather than by reading:
+
+1. **A byte-pattern scan over a guessed address window missed an arm.** Scanning for
+   `0C 00 00 imm` from 0x4E00 upward found 46 arms but missed `0x13` at **0x4D50** - the chain
+   starts lower than assumed. The sweep test caught it: `0x13` printed *nothing at all* where a
+   refusal was expected, because it is a real, silently-handled command.
+
+2. **The "cross-check" that appeared to confirm the scan was worthless.** The scan's 46 hits were
+   matched against 46 cross-references to the dispatcher's common exit at 0x6878 and the agreement
+   was taken as proof of completeness. It proves nothing: arms reach the exit *indirectly* (the
+   0x13 arm branches to 0x4ED8, which branches to 0x6878), so the two counts can agree while the
+   set is wrong - which is exactly what happened. Only walking the chain is sound.
+
+Also: **`0x01` is not a command.** A `cmpi.b #0x01` + `beq` at 0x63DC looks like a chain node to a
+pattern scan, but it is an inner test inside another handler. The chain walk excludes it correctly
+and the card refuses `0x01`.
+
+### Reply convention - confirmed empirically
+
+Decoded from the peer's side, not inferred:
+
+| Command | Reply content | Reading |
+|---|---|---|
+| `0x3E` | `00 39` | status 0 = OK, then the **packed** model byte: class 3, digit 9 = ND-5900 |
+| `0x30` | `00 07 7F` | status 0, then `0x077F` - the selftest status word |
+| `0x1F` | `FF 07 10 11` | status 0xFF = error, error code `07` |
+| undefined | `FF 06 10 11` | error code `06` = undefined command |
+
+So byte 0 is a status (`00` OK / `0xFF` error), byte 1 is an error code on the failure path, and
+`10 11` is a constant trailer on the error replies. The `0x3E` carve in section 1h is **confirmed
+by execution**: the card really does emit `(class << 4) | digit`.
+
+### Do ACCP command numbers share the console command table's numbering? MIXED - do not assume
+
+The console command table (entries near 0x130FE: a leading word plus a PLANC string descriptor)
+carries codes 0x03-0x46. Almost every code in 0x1F-0x3E also has a CMD-3 dispatcher arm, and the
+console-only codes are exactly the interactive ones - HELP, VALUE, MAIN-FORMAT, SHOW-REGISTERS,
+DUMP-LOCAL-MEMORY, LOOP-ON-NEXT-COMMAND, SET-CLOCK-SPEED, RESET-CPU, TEST-MEMORY, TEST-BUSLOOP.
+That is what a shared namespace would look like.
+
+**But the evidence does not agree with itself:**
+
+- `0x30` **matches**. Console name `READ-ACCP-STATUS`; the card replies `00 07 7F`, i.e. the
+  selftest status word. Exactly the console name's operation.
+- `0x3E` **does not match**. Console name `TEST-BUFFERS`; the card replies with the packed CPU
+  model byte. Not a buffer test by any reading.
+
+**SETTLED 2026-07-31 - they are SEPARATE enums that merely overlap.**
+
+The earlier hedge here blamed the console-table parse. That was wrong: `ACCP-COMPLETE-REFERENCE.md`
+part 3 carries the same table as **VERIFIED**, with the same record layout
+`{word code, long origo, long lower, long upper}` and the proof that
+`(0x13358 - 0x130FE) / 14 = 43` exactly. The parse was right and the mismatch is real.
+
+The decisive probe is **command `0x3C`**. In the console table `0x3C` is
+`TRACE-COMMUNICATION-DATA`, whose whole observable effect is the flag at `0x001143B4` - a single
+bit that can be read directly. Sent over CMD 3 to a booted card:
+
+```
+--- ACCP command 0x3C ---
+   reply cmd=3 ownCmd=3 content=[ FF 01 10 11 ]
+trace flag before : 0
+trace flag after  : 0
+```
+
+`0x3C` is a *defined* octobus command (it is inside the 0x30-0x3E run and returns error code `01`,
+not the "undefined command" complaint), it does something, and that something is **not**
+toggling the trace flag. So the console command numbering and the CMD-3 command numbering are two
+different enums.
+
+`0x3E` is the clean confirming case: `TEST-BUFFERS` on the console, packed CPU model over CMD 3.
+
+`0x30` returning the selftest status `0x077F`, which matches the console name `READ-ACCP-STATUS`,
+is then either coincidence or two related enums independently assigning a status read to the same
+number. Not resolved, and not important enough to guess about.
+
+### This answers an open question in ACCP-COMPLETE-REFERENCE.md
+
+Part 3 records the console codes as sparse and asks what the holes mean:
+
+> Used: 03, 06, 07, 09, 0A, 0C, 1F, 20-2F, 30-3F, 40, 41, 42, 46.
+> Absent: 04, 05, 08, 0B, 0D-1E, 43, 44, 45.
+> This looks like a **global ND command-code enum** that the console shares with something else -
+> most likely the ACCP-ND100 command set [...] **UNVERIFIED**.
+
+The CMD-3 octobus command set is `0x0D-0x18`, `0x1B-0x2D`, `0x30-0x3E`. It **does** cover the
+console's largest hole (`0x0D-0x1E`), which is why the shared-enum reading is attractive. But the
+`0x3C` probe rules it out for *this* consumer: the octobus command set is not the thing the
+console enum is shared with. The holes remain unexplained, and the ACCP-ND100 guess is refuted for
+the CMD-3 path specifically.
+
+### Still open
+
+The 46 commands are enumerated but **not named**. The console command table at 0x13357 has a
+comparable number of entries (LOAD-CONTROL-STORE, READ-ACCP-STATUS, LOOK-AT-LOCAL-MEMORY, ...),
+so a mapping from ACCP command number to console command is plausible - but it is UNVERIFIED and
+has not been attempted. Naming them means carving each handler.
+
+Known so far: **0x3E = report CPU model** (section 1h).
+
+---
+
 ## 2. Acknowledge and retries - and the ACCP's error strings
 
 The receiver drives two acknowledge bits at the end of every frame:
