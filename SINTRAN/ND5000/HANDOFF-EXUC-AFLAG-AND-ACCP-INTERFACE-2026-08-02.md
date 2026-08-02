@@ -132,6 +132,19 @@ All in `E:\Dev\Repos\Ronny\RetroCore\Nuget\HackerCorpLabs.Emulation.CPU.ND5000\t
 **Baseline: 25 pre-existing failures in this suite.** Verified as pre-existing by stashing and
 re-running, not assumed. Any work here should re-measure that number before and after.
 
+> **"25 failures" is NOT 25 defects - at least a third are deliberate `[V 2026-08-02]`.**
+>
+> - **5 intentional markers**: `Entd`/`Entm`/`Entsn`/`Entt`/`Rett` `..._CannotBeDriven_HardFail` are
+>   bare `Assert.Fail(...)` calls. The ENT*/RET* frame-establish instructions consume pending-call
+>   state the single-instruction oracle cannot seed, and the comment says **"HARD-FAIL per audit -
+>   not skipped"** - someone deliberately chose a visible failure over a silent skip. That is good
+>   practice and should be left alone.
+> - **3 named `_OPEN`**: two transcendental cases and `DoubleDivide_ReturnsDividend_OPEN`.
+>
+> Roughly **17 are real**, clustered in DIV / LOOP / double-precision, matching the known
+> float-divide and transcendental gaps. **Read a failing test's name and body before "fixing" it -
+> one ending `_HardFail` or `_OPEN` is doing its job by failing.**
+
 ---
 
 ## 7. The method lessons, which are the durable part
