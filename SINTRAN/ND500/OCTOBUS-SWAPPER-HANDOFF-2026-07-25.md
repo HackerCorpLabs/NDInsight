@@ -2967,3 +2967,61 @@ been ruled out - it is one env var away.
 **Genuinely still open:** `stop-system` STALLs. It ALSO stalls at clean HEAD, so it predates
 all of this work and is unrelated to the swapper. That is the next thing, and it should be
 investigated on its own terms rather than as swapper fallout.
+
+## 7.8 Session 2026-08-02 - confirm SWMSG is DONE, re-plan, verify #24
+
+**Nothing was broken this session and no new fix was needed - the point of the session was to
+stop chasing a stale plan.** The section-7.0 framing ("carve the SWMSG field layout, the swapper
+is blocked") is FOUR DAYS STALE relative to 7.7.6-7.7.9 below it. Read the LATEST dated section
+before acting on this file - that is the exact "stale status headers" trap the sintran-carving
+skill warns about, and it caught a fresh session cold.
+
+### 7.8.1 SWMSG / SWPFATAL 201B is fixed and COMMITTED - verified from the code, not the doc
+
+The blocker was never the message field layout. It was three chained RIOM defects (7.7.7). The
+fix is committed in RetroCore as `eef020bd1` "ND-500 RIOM: fix three chained defects behind
+SWPFATAL 201B". Confirmed present this session:
+- `Instructionset.Init.cs` - the `riom` count operand is `WordOnly` (defect 3), with the exact
+  measured-proof comment.
+- `Riom.cs` / `CpuND500.ND100Bridge.cs` - routed access + scale + mapping setter (defects 1/2).
+
+Live proof already recorded in 7.7.9: `start-swapper=OK`, `> Allocating memory - 7110B pages`,
+no SWPFATAL. The swapper does its job.
+
+### 7.8.2 Plan cleaned (NDInsight task list)
+
+- Task #22 (X5BEX-resolves-to-zeros / status+start-swapper stall) -> COMPLETED (it WAS the three
+  RIOM defects; the residual STALLs were harness wall-clock, TIMEOUT_SCALE, default now 300s).
+- Task #18 "HACK the ND-5800 image to RUN a domain" -> DELETED. The "hack" was a fallback branch
+  (synthesize MICRO-START + fake swapper mailbox answers) that we NEVER needed - the real CS-load
+  + real swapper protocol path works. Replaced by #27, a verification checkbox (no hacks).
+- New open items: #23 stop-system STALL, #24 3START nondeterminism, #25 sub-word WIDTH root cause
+  (mulad/putbf/loopd), #26 the 2939 CSIT-unmasked divergences, #27 verify the real 5800 CS-load path.
+
+### 7.8.3 #24 (run-to-run nondeterminism) - both documented causes already addressed
+
+Static reading found the two 7.7.3 causes are already fixed in the tree:
+1. **STALL half (start message never noticed):** `CpuND500.ProcessControl.cs` `ParkPollIntervalMs = 1`
+   - the ND-5000 IDLE is a POLL, not a block; an unbounded `WaitOne()` only modelled the kick half,
+   so an ordinary bare-memory-write activation came down to timing. The 1 ms park-poll closes it.
+2. **Hard-crash half (no managed exception):** the re-entrancy stack-overflow is guarded at
+   `OctobusND5000Station.cs:1109-1119` - the ND-100 memory-write path ONLY signals
+   (`MailboxDoorbell.Invoke()` -> `WakeRunThread`, just sets an event), never drains inline. Plus
+   the harness now copies `BIGDISK0-L.IMG` to a PER-SESSION temp (Setup), removing the
+   concurrent-writable-pack corruption the 7.6.7 tooling note flagged as the likelier abort cause.
+
+**Empirical check (running 2026-08-02):** `FullFlow_Octobus_Login_Nd500_Status_StartSwapper_Capture`
+x3, `RETROCORE_HARNESS_TIMEOUT_SCALE=5`, `RETROCORE_ND5000_RUNTHREAD=1`. Run 1 PASSED (31m24s - the
+long duration is the scaled wall-clock waits, not a stall). Runs 2-3 in flight; interim output at
+`C:\Users\ronny\AppData\Local\Temp\claude\E--Dev-Ronny-NDInsight\b2585abf-9e77-4b2e-ba0f-0063296fc872\tasks\bkctod162.output`.
+If 3/3 clean, #24 is resolved-by-prior-fixes; close it with that evidence. If any run reports
+`startTaken=False` or the host dies, dig the two mechanisms above.
+
+### 7.8.4 Uncommitted diagnostics in the tree (someone's in-progress #23 work) - LEFT ALONE
+
+`git status` in RetroCore shows two modified Servicer files, additive DIAGNOSTICS only (not the
+SWMSG fix, which is committed):
+- `Nd500MicrocodeServicer.cs` - `SWPSTAT_WORD_OFFSET = 0o103`, `LastAnswerSwpStat`,
+  `TrapStopsPosted`, a MICFU histogram. Probing the SWPFU=1/LNEWSWAP answer path (the #23 lead).
+- `Nd500CpuProcessBridge.cs` - logs K/FUNCV on restart (K carries the result for some swapper calls).
+These are the natural starting point for #23. Do not commit them without their author.
