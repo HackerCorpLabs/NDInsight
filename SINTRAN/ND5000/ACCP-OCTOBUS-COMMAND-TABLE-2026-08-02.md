@@ -29,7 +29,7 @@ and all 46 matched the `0C 00 00 <imm>` + `66` shape with zero mismatches.
 | `0x16` | 026B | `519C` | `CMDRW` | **DCSD** | `[V]` store latch bit 2 + direct 14-bit address |
 | `0x17` | 027B | `56BC` | - | - | `[OPEN]` latch enable + sets running |
 | `0x18` | 030B | `58A4` | - | **AMICTRAP** | `[V]` MREG `0xD0` = ATRAP without OMESS |
-| `0x1B` | 033B | `65B6` | `CMRUN` | STARTMIC | `[inh]` |
+| `0x1B` | 033B | `65B6` | `CMRUN` | **RUNTST** | `[V]` no params; runs `0xF22C`; returns `1131E2`. **NOT StartMic** |
 | `0x1C` | 034B | `562E` | `CMSTO` | STOPMIC | `[inh]` |
 | `0x1D` | 035B | `568C` | `CMCON` | CONTMIC | `[inh]` |
 | `0x1E` | 036B | `6438` | `CMRES` | RESTMIC | `[inh]` |
@@ -54,7 +54,7 @@ and all 46 matched the `0C 00 00 <imm>` + `66` shape with zero mismatches.
 | `0x33` | 063B | `5C44` | `CMBUF` | TBUF | `[I]` one long |
 | `0x34` | 064B | `5F38` | - | LAOB32M | `[I]` memory read -> data-pair write |
 | `0x35` | 065B | `5DC0` | - | RAIB32M | `[I]` remaining slot in a closed family of six |
-| `0x36` | 066B | `558A` | `CMMIC` | - | `[OPEN]` ACON 7 = MASKAIBF then starts |
+| `0x36` | 066B | `558A` | `CMMIC` | **STARTMIC** | `[V]` CS address word, ARMA reclocks MAR, sets MRUN, Messnak 9 |
 | `0x37` | 067B | `6390` | `CMLOO` | **LOOP** | `[V]` sets `113138`, the loop flag itself |
 | `0x38` | 070B | `63B8` | `CMSPE` | Set Clock Speed | `[I]` one byte -> `0x7B20` |
 | `0x39` | 071B | `6408` | `CMCPU` | **CPURES** | `[V]` |
@@ -113,6 +113,28 @@ pointer, `1143B2` pointer-given flag, `1143AC` microprogram running, `1143B6` ki
 **The documented error list 0-9 is incomplete** - arm `0x0D` emits **13**.
 
 ---
+
+## An INHERITED name was wrong: `0x1B` is RUNTST, not STARTMIC [V 2026-08-03]
+
+**Reading the manual's parameter lists settled two arms at once.** 5.3.23 STARTMIC takes *"Control
+store address (2 bytes)"*, loads MAR with it, sets MRUN, and can answer Messnak **9**. 5.3.53 RUNTST
+takes *"None"*, returns *"Self-test status (2 bytes)"*, and answers only **-1**.
+
+| Arm | What it actually does | Command |
+|---|---|---|
+| `0x1B` (033B, `CMRUN`) | **no parameters**; only the running guard; calls `0xF22C`; replies with **`0x001131E2`, the self-test status word** | **RUNTST** (5.3.53) |
+| `0x36` (066B, `CMMIC`) | reads **one word**; worker issues **ARMA** = "reclock MAR"; sets `1143AC` (MRUN); answers Messnak **9** - the only arm that does | **STARTMIC** (5.3.23) |
+
+**`0x1B` had been carried as STARTMIC since the earlier carve.** It is not: STARTMIC needs an address
+and this arm reads nothing. `CMRUN` reads as "run test", which fits RUNTST.
+
+It also pairs cleanly with `0x30` = RTEST, which reads the **same** `0x001131E2` **without** running
+the test - exactly the 5.3.53 / 5.3.54 relationship.
+
+**This is what the provenance question was about.** Six names arrived from an earlier carve tagged
+`[inh]`; one is now proved wrong and one (`LOCSM` at `0x2A`) was refuted earlier. **The manual's
+parameter lists turned out to be the cheapest test available** - "does this arm read a parameter at
+all?" is one glance and it falsifies a name outright.
 
 ## ACON command `0x08` is UNDOCUMENTED, and it is what enables kicks [V 2026-08-03]
 
