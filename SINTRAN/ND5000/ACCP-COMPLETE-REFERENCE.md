@@ -1806,6 +1806,37 @@ So **`0x0011455C` holds a health/ready word whose good value is `0x7F55`**, and 
 a control-store or control-cache command**. That narrows `0x3B` and `0x3C` to the DCSD / DUCS / DCCD /
 DUCC family (5.3.19-5.3.22) - `[I]`, not resolved between them yet.
 
+#### Guard sweep: what each guard says about which arms [V 2026-08-02]
+
+Reading the first few bytes of an arm now places it in a manual section group before any of its body
+is read. Sweeping all four guards across the dispatcher gives this:
+
+| Guard read by arm | Arms | What it means |
+|---|---|---|
+| `0x001143B6` kicks enabled -> Messnak -2 | `0x25`, `0x26`, `0x27`, **`0x34`**, **`0x35`** | AIB/AOB access - would disturb a kick in flight |
+| `0x001143AE`/`B2` parameter pointer -> Messnak 1 | `0x13`, `0x15`, **`0x34`**, **`0x35`** | memory-parameter command, needs `LPARP` first |
+| `0x0011455C` != `0x7F55` -> Messnak 5 | `0x3B`, `0x3C` | control store / control cache family |
+
+**Two flags are confirmed from both ends `[V]`:**
+
+- `ENKICK` (arm `0x31`) and `DISKICK` (arm `0x32`) are the **writers** of `0x001143B6`, which is
+  exactly what that flag should be. Readers and writers agree.
+- `LPARP` (arm `0x11`) is the **writer** of both `0x001143AE` (the pointer) and `0x001143B2` (the
+  "pointer given" flag).
+
+**The overlap is the useful part.** Exactly two arms carry BOTH the kicks guard and the
+memory-parameter guard: **`0x34` and `0x35`**. The manual has exactly two AIB/AOB commands that take
+their parameters via memory - **RAIB32M** (5.3.34) and **LAOB32M** (5.3.37). So those two names
+belong to those two arms, `[I]` on which is which.
+
+The three arms with the kicks guard but NO memory-parameter guard - **`0x25`, `0x26`, `0x27`** - are
+then the direct-parameter AIB/AOB commands, from RAIB16 (5.3.32), RAIB32D (5.3.33), LAOB16 (5.3.35)
+and LAOB32D (5.3.36). Four candidate names for three arms, so **one of those four is not
+kick-guarded and sits elsewhere** - do not assign by elimination until that is resolved.
+
+**Caution carried forward:** `0x18` = AMICTRAP writes AOB and is NOT kick-guarded, which shows the
+guard is not simply "touches AOB". Do not treat the guard as a mechanical rule for the whole family.
+
 #### The memory-parameter mechanism [V 2026-08-02]
 
 - **`0x001143AE`** is **the parameter pointer itself** - a longword MFbus address. `LPARP` (arm
