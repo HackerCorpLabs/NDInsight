@@ -23,9 +23,9 @@ and all 46 matched the `0C 00 00 <imm>` + `66` shape with zero mismatches.
 | `0x10` | 020B | `6562` | `CMREA` | - | `[OPEN]` returns 16 words from `114550` |
 | `0x11` | 021B | `5980` | `CMLPA` | **LPARP** | `[V]` writes the parameter pointer + flag |
 | `0x12` | 022B | `59B6` | `CMVER` | VPARP | `[inh]` |
-| `0x13` | 023B | `4D50` | `CMWWC` | - | `[OPEN]` memory param, `{addr,count}` descriptor |
+| `0x13` | 023B | `4D50` | `CMWWC` | LOCSM | `[I]` memory -> `1144F0` array + checksum, shares `CmdPortWrite_A` with console load |
 | `0x14` | 024B | `4EDC` | `CMDWW` | LOCSD | `[I]` 8 words = 128 bits + checksum |
-| `0x15` | 025B | `4FC0` | `CMADR` | - | `[OPEN]` memory parameter |
+| `0x15` | 025B | `4FC0` | `CMADR` | - | `[OPEN]` memory param; loops `ControlStoreWriteWithVerify` |
 | `0x16` | 026B | `519C` | `CMDRW` | - | `[OPEN]` 14-bit CS address, Messnak 3 |
 | `0x17` | 027B | `56BC` | - | - | `[OPEN]` latch enable + sets running |
 | `0x18` | 030B | `58A4` | - | **AMICTRAP** | `[V]` MREG `0xD0` = ATRAP without OMESS |
@@ -108,6 +108,33 @@ pointer, `1143B2` pointer-given flag, `1143AC` microprogram running, `1143B6` ki
 **The documented error list 0-9 is incomplete** - arm `0x0D` emits **13**.
 
 ---
+
+## The control-store load family, and a flip caught in time
+
+**`0x741E` = `ControlStoreWriteWithVerify`** - it **writes** a control-store word using **ACON command
+`0x18` = AMIRCK** ("ACCP reclock MIR without ECMIR"), checks `HW_STATUS_HI` bit 0, and sets the
+control-store error latch `0x001131E2` on failure. **Fourth ACON code to explain firmware behaviour.**
+
+**This flipped a reading I was one step from writing down.** Arm `0x15` loops that worker over an
+incrementing address, and from the arm alone the natural guess was a *dump* - control store out to
+memory. The worker's name and its ACON code say the opposite: it **writes**. Decompiling the worker
+before recording the arm is what caught it.
+
+**`0x13` (023B) = LOCSM, Load Control Store Via Memory (5.3.18)** `[I` strong`]`:
+
+- memory-parameter guard, so it needs `LPARP` first;
+- pulls a `{address, count}` descriptor out of the parameter block and then reads successive words
+  **in from MFbus memory** with `MfBusMemoryTransaction_VariantB`;
+- builds the same `0x001144F0` word array as `0x14`, accumulating the same **checksum**;
+- and calls `CmdPortWrite_A` - **the worker the console `Cmd21_LoadControlStore` also calls.**
+
+So `0x13` is the memory-sourced sibling of `0x14` = LOCSD. **That gives LOCSM a home at last**, and
+it is not `0x2A` - see below.
+
+**`0x15` (025B) writes the control store via `ControlStoreWriteWithVerify`**, address counter
+incrementing, memory-parameter guarded. Name `[OPEN]`: it writes, so it is not a dump, and LOCSM and
+LOCSD are both accounted for. **Recorded as an unexplained third control-store writer rather than
+forced into a name.**
 
 ## `0x2A` = LCON - and why the inherited "LOCSM" was wrong
 
