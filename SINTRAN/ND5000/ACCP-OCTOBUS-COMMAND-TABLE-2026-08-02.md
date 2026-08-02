@@ -81,6 +81,11 @@ holes - `0x19`, `0x1A`, `0x2E`, `0x2F`.
 **Everything else misled at least once:** manual section order, position in the image, a caller's
 name, elimination against the manual list, and a shared worker with many callers.
 
+**And a fifth: a WORKER'S OWN NAME.** `ControlStoreWriteWithVerify` (`0x741E`) says "write", but its
+ACON command is `0x18` = AMIRCK, a MIR **reclock**; the write-control-store command is `0x06` = WCS,
+which it never issues. A name assigned by an earlier carve is exactly as unreliable as a name taken
+from a call site. **Check the hardware code the worker actually issues.**
+
 ---
 
 ## The machinery every arm is built from
@@ -131,10 +136,30 @@ before recording the arm is what caught it.
 So `0x13` is the memory-sourced sibling of `0x14` = LOCSD. **That gives LOCSM a home at last**, and
 it is not `0x2A` - see below.
 
-**`0x15` (025B) writes the control store via `ControlStoreWriteWithVerify`**, address counter
-incrementing, memory-parameter guarded. Name `[OPEN]`: it writes, so it is not a dump, and LOCSM and
-LOCSD are both accounted for. **Recorded as an unexplained third control-store writer rather than
-forced into a name.**
+**`0x15` (025B)** drives `0x741E` with an incrementing address counter, memory-parameter guarded.
+**`0x16` (026B)** drives the same worker with a single 14-bit address and answers Messnak **5** when
+it returns non-zero. Both `[OPEN]`.
+
+> ### CAUTION: `ControlStoreWriteWithVerify` is a NAME, not evidence - and the ACON code disagrees
+>
+> That function name came from an earlier carve. Its actual ACON command is **`0x18` = AMIRCK**,
+> *"ACCP reclock MIR without ECMIR"* - a **clock** operation on the microinstruction register.
+> **The command that writes the control store is `0x06` = WCS**, and `0x741E` does not issue it.
+>
+> Reclocking MIR happens on the way **in or out** of a control-store word, so this worker does not
+> settle direction at all. **I was one step from naming `0x15` and `0x16` on the strength of that
+> function name** - the same caller-name trap that produced `TRAP_OCBAK` and the `0x795A` "re-init"
+> reading, arriving for a fourth time in a different costume.
+>
+> **Consequence:** four arms (`0x13`, `0x14`, `0x15`, `0x16`) touch the control-store path but the
+> manual has only two LOAD commands (LOCSD, LOCSM). So at least two of them are **dumps** -
+> DCSD (5.3.19) and DUCS (5.3.20) - and the direction cannot be read off `0x741E`. Whoever picks
+> this up should find who issues **ACON `0x06` (WCS)** and work outward from there; the census
+> counted `0x0006` **20,964** times per boot, so the real control-store load path is heavily used
+> and easy to spot.
+>
+> `0x13` = LOCSM is **unaffected** - that inference rests on the shared `CmdPortWrite_A` with the
+> console `Cmd21_LoadControlStore` and on the checksum, not on `0x741E`.
 
 ## `0x2A` = LCON - and why the inherited "LOCSM" was wrong
 
