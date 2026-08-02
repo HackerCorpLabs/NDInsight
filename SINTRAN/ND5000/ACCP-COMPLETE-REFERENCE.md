@@ -1722,6 +1722,49 @@ is 5.3.13 and `CMSYSPAR` is `0x0E`, while `LPARP` is the very next section, 5.3.
 That leaves two code slots (`0x0F`, `0x10`) for one intervening section. **Do not name these by
 counting sections.** Read each handler body instead.
 
+#### The octobus command layer: helpers, globals and the shared reply shapes [V 2026-08-02]
+
+Carved while naming the arms. These are what every arm is built from, so knowing them makes each
+arm readable at a glance. Renamed in the Ghidra database from the placeholder
+`MicroprogCmd_Helper_*` names:
+
+| Address | Name given | What it does |
+|---|---|---|
+| `0x6986` | `Reply_EmitByte` | Append one byte to the reply. 60+ callers - useless for identifying an arm |
+| `0x69D0` | `Reply_EmitWord` | Append a 16-bit word to the reply |
+| `0x6F9C` | `MsgBody_NextParamByte` | Read the next parameter BYTE from the received body |
+| `0x6FFA` | `MsgBody_NextParamWord` | Read the next parameter WORD |
+| `0x6A64` | `StatusHiRead` (already named) | Read ASTS and emit it as two bytes |
+
+**The message-body reader, which also explains a symptom we already had.**
+`MsgBody_NextParamByte` indexes the body buffer at **`0x001143BC`** using read cursor
+**`0x001144EA`**, bounded by body length **`0x001144EC`**. Its overrun path is **`0x6FE4`** - which is
+exactly the "`Communication error at address 6FE4H`" the card prints for an OBCON message with an
+empty body. The two `clr.w` of `0x1144EC`/`0x1144EA` at the top of most arms are **resetting that
+reader**, not clearing status.
+
+**The Messnak tail is one shared shape**, visible in every guarded arm and matching the documented
+format (byte 0 error code, bytes 1-2 ASTS lower/upper):
+
+```
+Reply_EmitByte(0xFF)        ; nak marker
+Reply_EmitByte(errcode)     ; e.g. 0xFF = -1, 0x01 = 1
+StatusHiRead()              ; the two ASTS bytes
+```
+
+**Two guard globals `[V]`:**
+
+- **`0x001143AC`** - microprogram-running flag. Non-zero -> Messnak **-1** ("illegal when microprogram
+  is running"). This is the same flag the carve agent found `Cmd31_LoadModeRegister` conspicuously
+  lacking.
+- **`0x001143B2`** - parameter-pointer-set flag. Zero -> Messnak **1** ("no parameter pointer is
+  given"). **An arm that tests this is a memory-parameter command** and needs `LPARP` first. That is
+  a strong classifier and narrows names considerably.
+
+**Trap avoided while doing this:** arm `0x13` calls `StatusHiRead`, which looks like it makes the
+command RASTS (5.3.38, Read ASTS). **It does not** - the call is part of the Messnak tail above, which
+every guarded arm shares. A shared error path is not an identity.
+
 **The method that DOES work - cross-reference from the implementation, not the arm.** Instead of
 reading 33 handler bodies, take a worker routine whose identity is already known and ask who calls
 it. The callers that fall between two arm addresses belong to that arm.
