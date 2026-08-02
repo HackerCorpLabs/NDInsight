@@ -192,6 +192,45 @@ find.
 bytes"* - and arm `0x0D` returns **three words = three modules x two bytes**. That upgrades the `0x0D`
 reading from a guess about shape to a match on structure.
 
+## The `CM*` ALIASES - and a mistake in how this file first dumped them [2026-08-03]
+
+**The arm code and the `CM*` code are the same number space.** Evidence, from the ACCP-init agent:
+**39 codes carry a `CM*` symbol, 7 do not, 39 + 7 = 46**, and **all four arm holes (`0x19`, `0x1A`,
+`0x2E`, `0x2F`) have no `CM*` symbol either - four for four.** So any inferred row can be checked by
+looking up `0o<code>` in `N500-SYMBOLS.SYMB` without touching Ghidra.
+
+**Correction to this file's own method.** The first dump here de-duplicated **by value**, which
+silently discarded every alias. **Several codes carry two or three names**, and the discarded ones
+were the informative ones:
+
+| Code | Aliases | What the alias settles |
+|---|---|---|
+| `0x24` | `CMATE`, **`CMR16`** | read 16 -> **RAIB16** |
+| `0x25` | **`CMR32`** | read 32 -> **RAIB32D** |
+| `0x26` | **`CML16`** | load 16 -> **LAOB16** |
+| `0x27` | **`CML32`** | load 32 -> **LAOB32D** |
+| `0x2A` | `CMTMA`, **`CMLDC`** | **load decoder** -> **LCON** |
+| `0x21` | `CMLMI`, `CMMAC`, `CMTMO` | three names on one code |
+| `0x15` | `CMADR`, `CMAD1`, `CMRWC` | |
+| `0x16` | `CMDRW`, `CMAD2` | |
+| `0x22` | `CMRMI`, `CMACO` | |
+| `0x23` | `CMBUS`, `CMAST` | |
+
+**Four of the AIB/AOB names were proved from hardware before these aliases were seen** - `CMR16` from
+`AibRead16_AndClearAibf`, `CMR32` from the pair-read plus ACON 5, `CML16`/`CML32` from the write
+workers. **The symbol table and the firmware agree on all four independently.** `CMLDC` does the same
+for the LCON correction, which is the more useful one since it also refutes the inherited `LOCSM`.
+
+**A caution the agent added and this file endorses:** a `CM*` name is still a **name**. Better than
+section order or position, weaker than a hardware code or a one-or-two-caller worker. `0x2A` carrying
+both `CMTMA` and `CMLDC` shows why - one of those two would have sent a reader nowhere.
+
+**Where it leaves the ten inferred rows:** eight now have symbol support (`CMLMA` LMAR, `CMRMI` RMIR,
+`CMBUS` TBUS, `CMSET` SETTRAC, `CMBUF` TBUF, `CMSPE` Set Clock Speed, `CMTES` TESTMPPM, `CMRPR` Read
+PROM Version). **`0x34` and `0x35` have no `CM*` symbol at all** - consistent with LAOB32M/RAIB32M
+being commands SINTRAN never sends, which is exactly why they had to be argued from the closed
+six-arm family instead.
+
 ## An INHERITED name was wrong: `0x1B` is RUNTST, not STARTMIC [V 2026-08-03]
 
 **Reading the manual's parameter lists settled two arms at once.** 5.3.23 STARTMIC takes *"Control
