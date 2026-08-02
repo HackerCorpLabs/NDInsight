@@ -2,6 +2,16 @@
 
 **Full path:** `SINTRAN/ND500/D4-PLAN-PHASES-AND-TASKS-2026-07-20.md`
 
+> ## STATUS 2026-08-02 - READ THIS FIRST; the phase tables below are HISTORICAL 
+> The octobus swapper track is **GREEN**: `FullFlow_Octobus_Login_Nd500_Status_StartSwapper_Capture`
+> ran 2/2 PASS (status/start-swapper/list/stop-system all OK), deterministic. **Do NOT re-chase the
+> "Loading Swapper" verify stall, the 0x913B swapper deref, SWMSG, or stop-system** - all closed.
+> The 9 completed tasks (#13/#15/#17/#19/#20/#21/#22/#23/#24) were pruned from the live task list on
+> 2026-08-02. The DONE/RESOLVED rows below are kept ONLY as the carve/evidence record.
+> **The only genuinely-open work:** production wiring toward D4 (#10 -> #9/#11/#14/#16 -> #12), and
+> correctness debt (#25 sub-word WIDTH, #26 CSIT divergences, #27 verify the real 5800 CS-load path).
+> See `nd500-octobus-frontier-2026-08` (memory) and `OCTOBUS-SWAPPER-HANDOFF-2026-07-25.md` section 7.8.
+
 Refactors the scattered "next actions" (`HANDOFF-3022-SWAPPER-TRACK-2026-07-20.md` section 5),
 priority lists (`OPEN-QUESTIONS-REGISTER-2026-07-20.md` section "Priority" + 2.3), and pending
 chores into one ordered plan. This file is the **plan of record**; the register is the **unknowns of

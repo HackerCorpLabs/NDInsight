@@ -147,6 +147,38 @@ have. They remain open as carve items.
 `"RECOVER-DOMAIN\F DSCRATCH'Domain name: \"` - NOT a code address. Disassembling bank 1 there
 yields plausible nonsense (trap 4/8 wearing a new disguise).
 
+### OPEN QUESTION 9 IS CLOSED (2026-08-02) `[V]` - and RECOVER-DOMAIN's handler is named
+
+The outer dispatch table of `MON-DEBUG:PROG` J04 is located and decoded. Full derivation and the
+complete 151-command map:
+[`nd-500-mon/COMMAND-DISPATCH-TABLE-CARVED-2026-08-02.md`](nd-500-mon/COMMAND-DISPATCH-TABLE-CARVED-2026-08-02.md).
+
+- **Handler address = `bank2[0o020671 + ordinal]`** - a flat one-word-per-command array of
+  bank-1 code addresses, exactly **151** entries.
+- Ordinals come from a **3-word-per-command descriptor array at bank 2 `011547`**
+  (name pointer, zero, byte length), running `011547`-`012453` and ending precisely where the
+  command string region `012454` begins.
+- The dispatch is three words at bank 1 `003260`: `RADD CLD SA DX` / `LDX I ,X 50` /
+  `JMP ,X 0`. `057050` has I=1 **and** X=1, which on the ND-100 is post-indexing, so the
+  effective address is `M[P+disp] + X` = `bank2[020671 + X]`. Decoded field by field, not
+  read off the mnemonic.
+- **RECOVER-DOMAIN is ordinal 8 -> handler bank 1 `003577` -> worker bank 1 `030302`.**
+  The handler is the documented `LDX ,B -176` / `STF ,X 6` marshal-then-`JPL I` shape and
+  returns to the command loop at `003527`.
+
+**Still open, and do not read this as closing it:** the command -> **MON 60 subfunction**
+binding. The thunks at `146310`-`147070` are called from *inside* the handlers, not from this
+table, and that hop is untraced. The subfunction column in `nd-500-mon-j04.prog.md` section 14
+remains a name-based correspondence.
+
+**Method, worth reusing:** the table was found by searching bank 1 for the single constant
+`0o011547` (the descriptor-array base), which occurs **exactly once**, in the command loop's own
+pointer pool three words from the dispatch. Two range scans tried first were pure noise - a
+151-word window of "plausible code addresses" produced 8 false candidates in bank 1 and 65 in
+bank 2 (bank-2 hits were ASCII text whose word values land in the code-address range). Pick the
+most distinctive single constant; do not range-scan over values that overlap instruction
+encodings.
+
 **Oracle status 2026-07-31 [V]:** mailbox differential oracle 43/43, octobus 5/5, floppy 11/11
 green after this session's servicer diagnostics. It CANNOT adjudicate this defect: `23B` start
 and `24B` restart are not parity targets, and the fault is above the mailbox layer.
