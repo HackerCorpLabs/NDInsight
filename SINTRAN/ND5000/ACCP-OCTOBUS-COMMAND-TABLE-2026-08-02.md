@@ -44,7 +44,7 @@ and all 46 matched the `0C 00 00 <imm>` + `66` shape with zero mismatches.
 | `0x27` | 047B | `5ECE` | - | **LAOB32D** | `[V]` long param -> data-pair write |
 | `0x28` | 050B | `5FD6` | `CMRAS` | **RASTS** | `[V]` no params, returns one status word |
 | `0x29` | 051B | `6016` | `CMLDM` | **LMODE** | `[V]` only non-console caller of `0x77FE` |
-| `0x2A` | 052B | `608C` | `CMTMA` | - | `[OPEN]` inherited "LOCSM" **refuted** |
+| `0x2A` | 052B | `608C` | `CMTMA` | - | `[OPEN]` one word + running guard; inherited "LOCSM" **refuted** |
 | `0x2B` | 053B | `60F6` | `CMWMP` | **WMPM** | `[V]` two longs = address + data |
 | `0x2C` | 054B | `6178` | `CMRMP` | **RMPM** | `[V]` one long = address |
 | `0x2D` | 055B | `6326` | `CMSET` | SETTRAC | `[I]` three words |
@@ -58,7 +58,7 @@ and all 46 matched the `0C 00 00 <imm>` + `66` shape with zero mismatches.
 | `0x37` | 067B | `6390` | `CMLOO` | **LOOP** | `[V]` sets `113138`, the loop flag itself |
 | `0x38` | 070B | `63B8` | `CMSPE` | Set Clock Speed | `[I]` one byte -> `0x7B20` |
 | `0x39` | 071B | `6408` | `CMCPU` | **CPURES** | `[V]` |
-| `0x3A` | 072B | `61F4` | `CMTES` | - | `[OPEN]` |
+| `0x3A` | 072B | `61F4` | `CMTES` | TESTMPPM | `[I]` **two** longs; completes the multiport trio |
 | `0x3B` | 073B | `547E` | `CMCCD` | **DCCD** | `[V]` CS/cache guard + symbol agree |
 | `0x3C` | 074B | `52C6` | - | - | `[OPEN]` CS/cache guard + running guard |
 | `0x3D` | 075B | `6644` | `CMRPR` | Read PROM Version | `[I]` symbol only |
@@ -108,6 +108,16 @@ pointer, `1143B2` pointer-given flag, `1143AC` microprogram running, `1143B6` ki
 **The documented error list 0-9 is incomplete** - arm `0x0D` emits **13**.
 
 ---
+
+## The multiport trio
+
+`WMPM` and `RMPM` were named from parameter **count** - two longs (address + data) versus one long
+(address). `0x3A` takes **two longs** and its symbol is `CMTES`, "test". The manual's third multiport
+command is **TESTMPPM, Test Multiport (5.3.43)**, and the other two test commands are already spoken
+for by `CMBUS` = TBUS (`0x23`) and `CMBUF` = TBUF (`0x33`). So `0x3A` = TESTMPPM, `[I]`.
+
+**Why only `[I]`:** the argument is elimination plus shape, and elimination against the manual's list
+has misfired twice in this effort already. It needs a worker or a hardware code like the others.
 
 ## What is still open, and the honest reason
 
