@@ -2012,6 +2012,34 @@ carries real information when the manual specifies it.
 identical (`CMRSE` for RTEST, `CMALI` for ALIVE, `CMRUN` for STARTMIC). And remember the **five-character
 truncation**: `CMLMI` and `CMMAC` both sit at `041B`, so a collision is possible anywhere here.
 
+#### The arms SINTRAN never sends [2026-08-02]
+
+Working the no-symbol group, since those are the commands only a console operator or a test rig
+would ever issue.
+
+**`0x0D` (015B) = RECO, Read ECO Levels (5.3.52)** `[I` strong`]`. The arm replies with **three
+consecutive words** - `0x001143A0`, `0x001143A2`, `0x001143A4` - each via `Reply_EmitWord`. Three
+revision words returned and nothing else is exactly the shape of a read-ECO-levels command. Note
+`0x001143A0` is already known from the carve as the guard word whose bits 13-8 protect the remote
+master clear, so that block is board revision/config data. Its failure path emits error code **13**,
+which is **outside the manual's documented 0-9 range** - worth remembering before treating that list
+as complete.
+
+**`0x17` (027B) - a start-the-microprogram variant, name `[OPEN]`** `[V` behaviour`]`. The arm calls
+`0x79E4` (the latch **enable**, the counterpart of `0x795A` from section 2.4e) and then writes
+**`0x001143AC := 1`**, the microprogram-running flag. That is the same pair the carve agent found in
+the `0x79BC` enable wrapper, done inline here.
+
+> **Deliberately not named.** STARTMIC, CONTMIC and RESTMIC are already spoken for by `CMRUN`
+> (`0x1B`), `CMCON` (`0x1D`) and `CMRES` (`0x1E`). So `0x17` is a **fourth** command that starts the
+> microprogram, and SINTRAN has no symbol for it. Picking one of the three taken names would be
+> wrong by construction, and inventing a fourth would be a guess. **What it does is recorded; what
+> it is called is not.**
+
+**`0x3C` (074B)** carries the control-store/cache health guard **and** the running guard - a
+control-store or control-cache operation that also needs the microprogram stopped. With `0x3B` =
+`CMCCD` = DCCD, `0x3C` is its sibling in that family (DCSD or DUCC), `[OPEN]` between them.
+
 **Codes with an arm but NO `CM*` symbol:** `0x0D`, `0x17`, `0x18`, `0x25`, `0x26`, `0x27`, `0x34`,
 `0x35`, `0x3C`, `0x3E`. The firmware implements more commands than SINTRAN ever sends - which is a
 second, independent reason the arm set and the manual's section list are not the same set.
