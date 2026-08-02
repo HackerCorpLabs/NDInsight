@@ -1977,6 +1977,37 @@ that turns a promising list into evidence.
 | `0x1D` | `CMCON` | | | `0x3B` | `CMCCD` |
 | | | | | `0x3D` | `CMRPR` |
 
+#### Cross-check: measured shape against the CM symbol [2026-08-02]
+
+Every arm read so far agrees with its `CM*` symbol. Two independent lines - the symbol from
+SINTRAN's table, and the parameter shape or behaviour measured from the firmware - now converge:
+
+| Code | Symbol | Measured | Manual name | Basis |
+|---|---|---|---|---|
+| `0x37` | `CMLOO` | **writes `0x00113138 := 1`** then acks | **LOOP** (5.3.45) | `[V]` mechanism |
+| `0x2B` | `CMWMP` | **two** LONGs = address + data | **WMPM** Write Multiport (5.3.41) | `[V]` |
+| `0x2C` | `CMRMP` | **one** LONG = address | **RMPM** Read Multiport (5.3.42) | `[V]` |
+| `0x28` | `CMRAS` | no params; reads one status word via `0x7852` | **RASTS** Read ASTS (5.3.38) | `[V]` |
+| `0x3B` | `CMCCD` | control-store/cache health guard | **DCCD** Dump Control Cache Directly (5.3.21) | `[V]` two lines |
+| `0x2D` | `CMSET` | **three** WORDs | **SETTRAC** Set Trace Selector (5.3.44) | `[I]` |
+| `0x20` | `CMLMA` | one WORD | LMAR Load MAR (5.3.27) | `[I]` |
+| `0x22` | `CMRMI` | no params | RMIR Read MIR (5.3.29) | `[I]` |
+| `0x23` | `CMBUS` | one LONG | TBUS Test Bus (5.3.31) | `[I]` |
+| `0x33` | `CMBUF` | one LONG | TBUF Test Buffer (5.3.30) | `[I]` |
+| `0x38` | `CMSPE` | - | Set Clock Speed (5.3.55) | `[I]` symbol only |
+| `0x3D` | `CMRPR` | no params | Read ACCP PROM Version (5.3.56) | `[I]` symbol only |
+
+**`0x37` = LOOP is the strongest of these and it explains something we had been stepping over all
+day.** The arm writes **1** into `0x00113138` - **the very flag every other arm tests at the bottom
+of its loop** (`tst.w 0x00113138 / beq done / bra repeat`), and the same flag the hardware workers
+consult as `g_skipBusyWaitFlag`. So the manual's LOOP command ("loop on the next command") is
+implemented by setting one global that turns every subsequent command into a repeat. That is a
+mechanism proof, not a shape match.
+
+**`0x2B` and `0x2C` are a clean pair**: Write Multiport needs an address **and** data, Read Multiport
+needs only an address. The arms take exactly two longs and exactly one long. Parameter *count*
+carries real information when the manual specifies it.
+
 **Read these as SINTRAN's mnemonics, not the manual's command names** - they line up but are not
 identical (`CMRSE` for RTEST, `CMALI` for ALIVE, `CMRUN` for STARTMIC). And remember the **five-character
 truncation**: `CMLMI` and `CMMAC` both sit at `041B`, so a collision is possible anywhere here.
