@@ -17,8 +17,8 @@ and all 46 matched the `0C 00 00 <imm>` + `66` shape with zero mismatches.
 
 | Code | Octal | Arm | `CM*` | Command | Basis |
 |---|---|---|---|---|---|
-| `0x0D` | 015B | `583A` | - | RECO, Read ECO Levels | `[I]` returns 3 words from `1143A0/A2/A4` |
-| `0x0E` | 016B | `57E8` | `CMSYS` | CMSYSPAR / LSYSPAR | `[inh]` + clears `1131E2` |
+| `0x0D` | 015B | `583A` | - | read back system parameters | `[V]` behaviour; **not RECO** - returns the cells `0x0E` writes |
+| `0x0E` | 016B | `57E8` | `CMSYS` | **LSYSPAR** (CMSYSPAR) | `[V]` 3 words = 6 bytes -> `1143A0/A2/A4`, sets `1143A6` |
 | `0x0F` | 017B | `5736` | `CMTEC` | **ECHO** | `[V]` collects n bytes, sends the same n back; **no guards** |
 | `0x10` | 020B | `6562` | `CMREA` | - | `[OPEN]` returns 16 words from `114550` |
 | `0x11` | 021B | `5980` | `CMLPA` | **LPARP** | `[V]` writes the parameter pointer + flag |
@@ -30,7 +30,7 @@ and all 46 matched the `0C 00 00 <imm>` + `66` shape with zero mismatches.
 | `0x17` | 027B | `56BC` | - | - | `[OPEN]` latch enable + sets running |
 | `0x18` | 030B | `58A4` | - | **AMICTRAP** | `[V]` MREG `0xD0` = ATRAP without OMESS |
 | `0x1B` | 033B | `65B6` | `CMRUN` | **RUNTST** | `[V]` no params; runs `0xF22C`; returns `1131E2`. **NOT StartMic** |
-| `0x1C` | 034B | `562E` | `CMSTO` | STOPMIC | `[inh]` |
+| `0x1C` | 034B | `562E` | `CMSTO` | **STOPMIC** | `[V]` no params; **inverse** guard -> Messnak 0 |
 | `0x1D` | 035B | `568C` | `CMCON` | CONTMIC | `[inh]` |
 | `0x1E` | 036B | `6438` | `CMRES` | RESTMIC | `[inh]` |
 | `0x1F` | 037B | `56EA` | `CMALI` | **ALIVE** | `[V]` answers nak 7 "not alive" |
@@ -113,6 +113,43 @@ pointer, `1143B2` pointer-given flag, `1143AC` microprogram running, `1143B6` ki
 **The documented error list 0-9 is incomplete** - arm `0x0D` emits **13**.
 
 ---
+
+## Auditing the inherited names - two confirmed, and one of MY OWN readings overturned [2026-08-03]
+
+**`0x0E` = LSYSPAR / CMSYSPAR - CONFIRMED `[V]`.** 5.3.13 says *"Direct parameters: System parameters
+(6 bytes)"* and shows them as three 16-bit words. The arm reads **exactly three words** and stores
+them to `0x001143A0`, `0x001143A2`, `0x001143A4`, then sets `0x001143A6 := 1` as a
+"parameters given" flag.
+
+**`0x1C` = STOPMIC - CONFIRMED `[V]`, and its guard runs BACKWARDS from every other arm.** 5.3.24
+gives Messnak **0** = *"Microprogram is not started"*. The arm tests `0x001143AC` and naks when it is
+**clear** - the inverse of the usual "illegal while running" test. That is correct for a stop
+command, and it is a nice independent check: a mis-assigned name would almost certainly have the
+guard the normal way round.
+
+### RETRACTED: `0x0D` is NOT RECO
+
+Two rounds ago `0x0D` was recorded `[I]` as RECO, Read ECO Levels, because it returns three words and
+5.3.52 describes two bytes per module.
+
+**It returns the three words `0x001143A0/A2/A4` - the exact cells `0x0E` = CMSYSPAR writes** - and it
+gates on `0x001143A6`, the flag CMSYSPAR sets. So it is the **read-back of the system parameters**,
+not a report of board revisions. The writer and the reader name each other; the module-count
+coincidence was just a coincidence.
+
+**Method note:** this was caught by reading the *writer* of a memory cell after reading its reader.
+Neither arm alone said what the cells were. **When an arm returns some globals, find who writes
+them.**
+
+`0x0D` therefore joins `0x10` and `0x17` as a command with no manual section, and **RECO has no arm
+identified.**
+
+### `0x12` = VPARP needs a look
+
+5.3.16 gives VPARP Messnak **1** = *"No parameter pointer is given"*, so it must test the
+parameter-pointer flag `0x001143B2`. **The xref sweep of that flag lists only `0x13`, `0x15` and
+`0x34` - not `0x12`.** Either the arm reaches the flag another way, or the inherited name is wrong.
+`[OPEN]` - and given two of six inherited names have already fallen, worth doing properly.
 
 ## TERM and ARES have NO arm - and that settles the sets question properly [V 2026-08-03]
 
