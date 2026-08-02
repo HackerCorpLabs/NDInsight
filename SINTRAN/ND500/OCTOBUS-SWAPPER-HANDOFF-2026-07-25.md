@@ -3010,12 +3010,27 @@ Static reading found the two 7.7.3 causes are already fixed in the tree:
    the harness now copies `BIGDISK0-L.IMG` to a PER-SESSION temp (Setup), removing the
    concurrent-writable-pack corruption the 7.6.7 tooling note flagged as the likelier abort cause.
 
-**Empirical check (running 2026-08-02):** `FullFlow_Octobus_Login_Nd500_Status_StartSwapper_Capture`
-x3, `RETROCORE_HARNESS_TIMEOUT_SCALE=5`, `RETROCORE_ND5000_RUNTHREAD=1`. Run 1 PASSED (31m24s - the
-long duration is the scaled wall-clock waits, not a stall). Runs 2-3 in flight; interim output at
-`C:\Users\ronny\AppData\Local\Temp\claude\E--Dev-Ronny-NDInsight\b2585abf-9e77-4b2e-ba0f-0063296fc872\tasks\bkctod162.output`.
-If 3/3 clean, #24 is resolved-by-prior-fixes; close it with that evidence. If any run reports
-`startTaken=False` or the host dies, dig the two mechanisms above.
+**Empirical check (RESULT 2026-08-02):** `FullFlow_Octobus_Login_Nd500_Status_StartSwapper_Capture`
+x3, `RETROCORE_HARNESS_TIMEOUT_SCALE=5`, `RETROCORE_ND5000_RUNTHREAD=1`. Runs 1 and 2 BOTH PASSED
+(31m24s / 30m36s - the long duration is the scaled wall-clock waits, not a stall), both with:
+```
+OUTCOME: ENTER=OK login=OK nd-500=OK status=OK start-swapper=OK list=OK stop-system=OK
+```
+Run 3 started but was cut off by the LLM session ending - NOT a crash (no fault, just unfinished).
+2/2 deterministic, no crash. **#24 CLOSED as resolved-by-prior-fixes.** The early `startTaken=False`
+state lines are boot-time sampling before the start message is processed; both runs flip to
+`startSeen=2/startTaken=True` and finish clean.
+
+**Bonus: `stop-system=OK` in BOTH runs -> #23 (stop-system STALL) is ALSO resolved**, as a harness
+wall-clock false-STALL. The "stalls at clean HEAD" observation was the OLD 60s `RunNd500Command`
+deadline (default is now 300s); the `ND-5000:` prompt arrives just after 60s, exactly like
+status/start-swapper. TIMEOUT_SCALE=5 turns it OK with no code change. The uncommitted Servicer
+diagnostics are read-only and cannot account for it. Classic [[harness-stall-is-wallclock]].
+
+**So the entire octobus swapper track is GREEN.** Remaining open work is correctness debt (#25/#26),
+the 5800 CS-load verification (#27), and the production-wiring track toward D4 (#9/#10/#11/#14/#16/#12).
+Caveat: 2 clean runs is not a huge sample for a formerly-intermittent crash; if it ever recurs, the
+two mechanisms in 7.8.3 above are where to look.
 
 ### 7.8.4 Uncommitted diagnostics in the tree (someone's in-progress #23 work) - LEFT ALONE
 
