@@ -1540,7 +1540,28 @@ the low data lane); for the others it is mostly zero or a small even offset.
 | Address | Hits | Confidence | What it is |
 |---|---|---|---|
 | `0x110000-0x117FFF` | 3 | **PROVEN** | **SRAM**, 32 KB, walk-tested by the reset routine at 0x0BD6 as two 16 KB halves |
-| `0x220000` | 58 | **PROVEN** | **MF-bus / BADAP command port.** Carved at 0x70CC: `0x300F` open, `0x400A`/`0x400C` sub-function, `0x000F` strobe. The most-touched register in the image |
+| `0x220000` | 58 | **PROVEN** | **ACON, the ACCP Control Decoder** (not a generic command port - see 2.4g-census). Carved at 0x70CC: `0x300F`, `0x400A`, `0x400C`, `0x000F` - **all four now decode**, see the banner below. The most-touched register in the image |
+
+> **DECODED 2026-08-02, applying the "re-scan for literals once you have the key" rule.** The four
+> words at `0x70CC` were recorded correctly here as `open` / `sub-function` / `strobe` before
+> ND-05.020.01 table 9 was in hand. With the ACON decode they read as a **documented write
+> sequence**:
+>
+> | Word | Command bits 4-0 | Gating bits 15-12 | Meaning |
+> |---|---|---|---|
+> | `0x300F` | `0x0F` ADCLK | MODE + ASDI | clock the serial register with the SSR mode forced |
+> | `0x400A` | `0x0A` **ALWAD** | EAOB | **ACCP load write address** |
+> | `0x400C` | `0x0C` **ADWRQ** | EAOB | **ACCP data write request on DMPC** |
+> | `0x000F` | `0x0F` ADCLK | none | plain DCLK to ASR |
+>
+> ND-05.020.01 states the sequence outright: *"To start a write request, the address must be loaded
+> in A0B/ASR and the command ALWAD is given to ACON. Then the data to be written is loaded in
+> A0B/ASR and the write request is given by the command ADWRQ."* So `0x70CC` **is** the MFbus write
+> path, and `0x400A`/`0x400C` are address-then-data, not two anonymous sub-functions.
+>
+> This is the third time the rule has produced something: `0xF0` -> FATAL+ATRAP, `0x0007` ->
+> MASKAIBF, and now these four. **When a decoder key arrives, re-read the constants already on the
+> page.**
 | `0x220011` | 2 | candidate | |
 | `0x220050`, `0x220056` | 1 each | candidate | |
 | `0x2200DD` | 1 | likely | `move.b #imm,(0x2200DD).l` - the encoding is unambiguous |
@@ -2448,7 +2469,7 @@ register-file / memory message buffer. See section 7.
 | `0x00660001` bit 0 | read | **AIB data available** - must be SET before reading `0x440000` |
 | `0x00660001` bit 1 | read | **AOB busy** - must be CLEAR before writing `0x440000` |
 | `0x00330000` | write | **strobe / control register.** Bit 6 strobes an AOB write. RAM shadow at `0x001144EE` |
-| `0x00220000` | write | command port. **Writing `0x0005` acknowledges an AIB read** |
+| `0x00220000` | write | **ACON control decoder.** `0x0005` = **RAIBF**, "reset AIBF flag and clear MASKAIBF flip-flop" (table 9) - which is what makes it the acknowledge at the end of every AIB read |
 | `0x00220000` | read | status / identification words - see section 8 |
 
 `0x00440000` and `0x00550000` are **bidirectional**: a write is AOB, a read is AIB. That is
