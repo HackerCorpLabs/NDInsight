@@ -166,6 +166,45 @@ complete 151-command map:
   The handler is the documented `LDX ,B -176` / `STF ,X 6` marshal-then-`JPL I` shape and
   returns to the command loop at `003527`.
 
+### THE SEGMENT-LOAD DEFECT IS NOT IN THE MONITOR (2026-08-02) `[V]`
+
+Follow-on carve, same session:
+[`nd-500-mon/RECOVER-DOMAIN-WORKER-AND-SEGMENT-LOAD-CARVED-2026-08-02.md`](nd-500-mon/RECOVER-DOMAIN-WORKER-AND-SEGMENT-LOAD-CARVED-2026-08-02.md).
+
+The routine that performs a segment placement (bank 1 `042115`, 445 words) contains
+**no `MON` instruction and no `IOX` instruction at all**. The monitor program never reads
+domain segment content and was never meant to - it issues MON 60 subfunction `006` (ISEGLOAD)
+once per segment and SINTRAN does the fetching.
+
+**So "placement requested, segment content never fetched" CANNOT be a monitor-side defect.**
+Stop looking at the caller.
+
+Carved call graph, which reproduces the live MON 60B trace exactly:
+
+```
+043547 -> subfn 140
+043552 -> subfn 055  START-PLACE
+043571 -> 042115  segment loader -> 042230 -> subfn 006  ISEGLOAD
+044031 -> 042115  segment loader -> 042535 -> subfn 006  ISEGLOAD
+044062 -> subfn 056  END-PLACE
+```
+
+`006` has exactly **two** call sites in the whole image, both inside `042115`, matching the
+two `006` in the trace. All 159 MON 60 thunk call sites in bank 1 are now mapped to their
+subfunction codes (`tools/sintran-segment-carver/thunkmap.py`) - and 159 is exactly the count
+the original analysis reached independently, which is what makes the map trustworthy.
+
+**NEXT CARVE TARGET: `5NOPAR`, the MON 60 common place path.** The ISEGLOAD handler itself only
+copies a segment name and then does `GO FAR 5NOPAR` - "common path performs the place". That
+common path is where the disc fetch must live, and
+`re/mon-analysis/60B-N500M/60B-006B-ISEGLOAD/` records its L07 body location as still
+**pending**. It is not RECOVER-DOMAIN, not the loader, and not ISEGLOAD's own body.
+
+**Worth flagging, not yet a claim:** ISEGLOAD is called with five parameters, **three of which
+are the ADDRESSES of caller locals** for SINTRAN to write back into. That is the same shape as
+the swapper's 7-arg MON 377B (`LSWPAGE`) whose write-back measured EMPTY. Whether the two are
+connected or this is just the common calling convention is `[OPEN]`.
+
 **Still open, and do not read this as closing it:** the command -> **MON 60 subfunction**
 binding. The thunks at `146310`-`147070` are called from *inside* the handlers, not from this
 table, and that hop is untraced. The subfunction column in `nd-500-mon-j04.prog.md` section 14
