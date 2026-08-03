@@ -237,7 +237,42 @@ violation. Every measured symptom is accounted for:
 | Logical/MMS/WR all zero | not latched for a fault on the final access - manual p.115 `[V]` |
 | PC 6 bytes past the instruction | pipeline run-ahead `[H]`, see below |
 
-### 0.5 The 6-byte offset
+### 0.45 The 6-byte offset is CONFIRMED BY THE MANUAL - there are TWO program registers `[V]`
+
+The pipeline reading below was written as a hypothesis. **It is now verified, and the mechanism is
+more specific than "run-ahead":** the ND-500/5000 has **two** program registers, and the trap
+report shows the wrong one for finding the instruction.
+
+`ND-05.017.01` chapter 6, STEP 2, the documented procedure after any fatal swapper trap:
+
+```
+N500: ATTACH-PROCESS 0
+N500: LOOK-AT-REGISTER P
+P  : XXXXXXXXXX
+P1 : XXXXXXXXXX:<Failing instruction>
+N500: EXIT
+```
+
+**`P1` is annotated by ND themselves as `<Failing instruction>`. `P` is not.** The whole of
+STEP 2 exists because the address printed in the trap report does **not** identify the
+instruction - if it did, there would be nothing to attach for.
+
+So:
+
+- `At program address: 1 10533B` is **`P`**, and `P` is not the faulting instruction.
+- The faulting instruction is in **`P1`**, which the report never prints.
+- The identification of `RPHS @ 1000010525` stands, and the 6-byte gap between it and `P` is
+  exactly the two-register behaviour the manual describes.
+
+**EMULATOR GAP, verified in code `[V]`:** RetroCore's ND-500 does **not model `P1`**.
+`Emulated.HW\ND\CPU\ND500\Registers.cs` defines `PC` and an alias `P` (`line 710:
+public uint P { get => PC; set => PC = value; }`) and nothing else; a search of the whole
+`Emulated.HW\ND\CPU\ND500\` tree for `P1`, `PrevPc`, `PreviousPc` and `FailingPc` returns no
+matches. **Consequence: our emulator can never report a failing-instruction address, and cannot
+reproduce the manual's own troubleshooting procedure.** Anyone debugging a future ND-500 trap on
+the emulator has to reconstruct it by hand, as was done here.
+
+### 0.5 The 6-byte offset (superseded by 0.45 - kept for the reasoning)
 
 `[H]` - the reported address is **not** the faulting instruction's start; it is 6 bytes (three
 instructions) beyond it. The ND-5000 is pipelined and we already know instructions are staged on
