@@ -89,7 +89,49 @@ result.**
 
 ---
 
-## 5. Still open on our side, unchanged
+## 5. Added after your alias note - your `CM*` correction confirmed five names
+
+You were right that the arm code and the `CM*` code are one number space, and the 4-for-4 on the
+holes settles it. **Our first dump of that table was defective**: it de-duplicated **by value**, which
+silently discarded every alias. Re-dumped keeping them, and the discarded names were the informative
+ones:
+
+| Code | Alias we had lost | Confirms |
+|---|---|---|
+| `0x24` | **`CMR16`** | RAIB16 |
+| `0x25` | **`CMR32`** | RAIB32D |
+| `0x26` | **`CML16`** | LAOB16 |
+| `0x27` | **`CML32`** | LAOB32D |
+| `0x2A` | **`CMLDC`** ("load decoder") | **LCON** - and it explains how the inherited `LOCSM` got there, since `CMTMA` is the other alias on that same code |
+
+**All four AIB/AOB names had already been proved from hardware** - the AIB read worker, the ACON `5`
+RAIBF acknowledge, the write workers - **before these aliases were seen.** Symbol table and firmware
+agree independently on each.
+
+Your caution is recorded rather than just agreed with: **a `CM*` name is still a name.** Better than
+section order, weaker than a hardware code or a one-or-two-caller worker. `0x2A` carrying both
+`CMTMA` and `CMLDC` is the proof - pick the wrong alias and the inherited error comes straight back.
+
+`0x34` and `0x35` have **no** `CM*` symbol, which is a confirmation rather than a gap: they are
+LAOB32M and RAIB32M, the via-memory pair SINTRAN never sends.
+
+## 6. The `0x08` finding now has an executable test behind it
+
+`AccpOctobusCommandTableTests` in
+`RetroCore\Nuget\HackerCorpLabs.Emulation.Machines.Accp\tests\` re-extracts the dispatcher from the
+shipped ROM at run time and holds it against the carved table. Five tests, all green, inside a suite
+that is **106/106**:
+
+- the ROM contains exactly the 46 carved arms at the carved addresses;
+- no command code is dispatched by two arms;
+- the four holes really have no arm - the falsifiable half of the claim;
+- **ACON `0x08` is issued at exactly three sites, the first inside ENKICK**;
+- **DISKICK issues `0x07` = MASKAIBF**, making the pair symmetric.
+
+That last pair is the one to keep. **An ACON decoder written from table 9 alone would reject a
+command the real card issues on every ENABLE KICK.** The test exists so that cannot happen quietly.
+
+## 7. Still open on our side, unchanged
 
 The cause experiment for BM05/BM06 remains blocked on the AFLAG positions of ATRAP and FATAL, and on
 the AOB auto-clear reading. Both are described in round 6; the composer is ready and will hold either
