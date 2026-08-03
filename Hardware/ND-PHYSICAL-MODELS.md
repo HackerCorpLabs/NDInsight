@@ -855,6 +855,69 @@ reported by the owner.
 are **cream** with dark legends - the inverse. The cabinet colours are shared; the panel
 treatment is not. The Satellite also has **no display**, only the buttons and keyswitch.
 
+### 8.4b-1 MEASURED: the ND-100 Satellite, full set (2026-08-03)
+
+Measured by the owner with a tape from the machine standing next to the Compact. These
+numbers supersede everything above about the Satellite except the colours. Recovered from
+the 2026-08-03 night interview; the session that took them initially failed to record them
+here, which is why this section exists in full.
+
+**The box**
+
+| Item | Value |
+|---|---|
+| Width | **230 mm** (measured earlier, re-confirmed by the layout sums below) |
+| Height, box only | **500 mm** |
+| Depth, box only | **647 mm** |
+| Stand | **fixed, 4 feet, 145 mm tall** - no castors on this machine, others had wheels |
+| Overall height | 500 + 145 = **645 mm** (published table says 640) |
+| Base | **no metal base band** - unlike the Compact's 40 mm frame |
+
+**The front panel** - projects like the Compact but the box behind it is flat-sided:
+
+| Height | Projection forward of the box |
+|---|---|
+| Roof | **+25 mm** |
+| Lip, maximum | **+68 mm** |
+| Grille face | **+55 mm** |
+
+Front-most to rear-most is therefore 647 + 68 = **715 mm**. The published table says 770.
+UNRESOLVED: 55 mm unexplained - check whether anything projects out of the rear.
+The lip HEIGHT above the floor was not measured.
+
+**Front face layout**, top to bottom (mm):
+
+| Item | Value |
+|---|---|
+| Badge label | **210 x 20**, 7 below the top edge, 8 clear above the bay. (First given as 288 wide, corrected to 210 after a photo-scale challenge.) |
+| Drive bay | **88 wide x 148 high**, 40 from the left edge. Streamer left, floppy on its side right - 88 x 148 is exactly two 5 1/4 inch drives stood on their sides (2 x 41.3 wide, 146 long) |
+| Key plate | **37 x 55**, cream, 28 right of the bay, top about 38 below the bay top (photo estimate). ONE plate only, with the keyswitch - LOCKED / ON / STANDBY, red ring round the keyhole |
+| Button plate | **165 x 50**, cream, about 20 below the bay (photo estimate). Six buttons of about 16 mm in two groups of three, **35 mm between the groups** |
+| Grille | side margins **10 mm**. Top edge, height and louvre count still open (photo suggests about 14 louvres) |
+
+Cross-check: 40 + 88 + 28 + 37 = 193, leaving **37 mm at the right edge** - the key plate
+mirrors the bay's 40 mm left margin almost exactly. The layout is symmetric to within 3 mm.
+
+**Air-filter cuts on the box sides** - the Satellite's replacement for the Compact's rear
+fans. 44 cuts per side, equal both sides, wrapping over the top edges of the box: each goes
+**35 mm in on the top surface and 30 mm down the side**, with a thin net behind. They start
+**40 mm from the front of the box** (front panel excluded) and end **46 mm from the rear**;
+the spacing between cuts is **7 mm**.
+
+Arithmetic check: the cut field spans 647 - 40 - 46 = 561 mm; 44 cuts + 43 gaps of 7 mm
+gives a cut width of (561 - 301) / 44 = **5.9 mm, so about 6 mm** - and 40 + 44x6 + 43x7
++ 46 = 647 exactly. The owner's note of "55 mm wide" cannot be the width (44 of them would
+need 2.7 m); DERIVED: 55 is the slot length over the edge. Confirm with one caliper check.
+
+**Colours**: front panel in the Compact's dark warm front-panel brown; the rest of the box
+in the Compact's lighter side-panel brown. Badge and control plates cream with dark
+legends - the inverse of the Compact's black panel. The plates are angled outwards like the
+Compact's operator panel, so they read from standing height.
+
+**Still open**: grille top edge + height + louvre count; lip height above the floor; stand
+footprint (an answer "s27=22" was recorded but does not parse - possibly the foot size);
+the 55 cut-length confirmation; the 715 vs 770 depth gap; button plate position by tape.
+
 ### 8.4b-2 The badge is an applied label, not a full-width band
 
 CORRECTION to earlier drafts of this work, which showed the badge as a full-width strip
@@ -996,8 +1059,27 @@ Derived, if the border figures apply symmetrically across the full 540 mm width:
 is **500 mm** wide at the outer face and **480 mm** at the inner wall, giving **440 mm** of
 black across both modules, or **428 mm** once the 12 mm divider is removed.
 
-GAP: the angle of the sloping wall cannot be computed from the 10 mm run alone - it needs
-the recess depth. See the open measurement list.
+**Recess depth MEASURED (2026-08-03 night interview): about 16 mm** from the brown front
+face straight in to the black vertical face at the top of the bay. With the known 10 mm
+horizontal run, the sloping wall angle is atan(10/16) = **about 32 degrees off the face**.
+
+Further top-section numbers from the same interview:
+
+| Item | Value |
+|---|---|
+| Black bay opening height | about **170 mm** |
+| Front edge of the roof down to the bay top | **33 mm** (measured along the sloping face) |
+| Bay bottom down to the lip | **100 mm** |
+| Left black area (vents + tape + floppy) | **230 mm** wide |
+| Right black area (blank panel) | **212 mm** wide |
+| Brown band between bay bottom and operator panel | **25 mm** |
+| Badge label | **460 x 22 mm**, 18 left margin, 5 top margin |
+
+Consistency check flagged at the time: 33 + 170 + 100 = 303 against about 320 expected
+roof-to-lip - **17 mm missing; the owner re-checks**. Also measured: the operator panel
+face angles outwards starting immediately under the 25 mm band, coming out about **16 mm**
+to its end near the lip, ending slightly above the lip's maximum projection - about 38 mm
+if measured at the panel's bottom edge (C9).
 
 #### The machine stands clear of the floor on castors
 
