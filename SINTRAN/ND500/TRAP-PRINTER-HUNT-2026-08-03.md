@@ -170,7 +170,63 @@ Our field pattern matches that case exactly.
 message our servicer never populated" hypothesis is dead, killed by documentation rather than by
 measurement.
 
-### 0.3 What the puzzle now IS
+### 0.3 THE FAULTING INSTRUCTION IS `RPHS` AT `1000010525` - and the old search looked for the wrong opcode
+
+```
+1000010525: 377 365 304    rphs   $1777777777777777777704   <- the physical read
+1000010530: 010 001        h1 :=  $1
+1000010532: 115 054        w set1 $54
+1000010533:                                                  <- reported "At program address"
+```
+
+**`RPHS` = Read from PHysical Segment**, the swapper's swap-in page read
+(`swapper-k01-deep-analysis.md:297`). It reads a *physical* segment, i.e. **a data read that
+bypasses paging** - which is precisely what the trap line "DATA POFF read request" says.
+
+**There are exactly TWO `RPHS` instructions in the entire 38161-byte PSEG**, at `1000010316` and
+`1000010525`. The reported address `1000010533` is **6 bytes past the second one**; the first is
+`0o215` bytes away and not a candidate. So the identification is essentially forced.
+
+**Why this was missed for days.** The standing note reads:
+
+> "there is **no `dmof`** between `0o2364` and `0o11013`, so the 'DATA POFF read request' cannot
+> originate in that region under the current disassembly"
+
+That is **true about `dmof` and wrong as a conclusion.** `dmof`/`dmon` (turn data paging off, then
+on) is *one* way to produce a paging-off read. **`RPHS` is another, and it needs no `dmof` at
+all** - it names a physical segment directly. The search was for the wrong opcode, so a region
+containing the only two physical-read instructions in the program was excluded as impossible.
+
+This also retires the routine at `1000012503` (`dmof` / `w1 * $4000` / `bmove` / `dmon`), which was
+blamed by *behaviour* and never matched the reported address. It is not the faulting site.
+
+### 0.4 The whole chain now closes
+
+`RPHS` is the **swap-in page read**. The swapper is reading a page in, using a page number taken
+from a swap-file page that was never written (the file is virgin - measured, and the read of its
+first page returns zeros). Page number zero -> physical read from physical page 0 -> protect
+violation. Every measured symptom is accounted for:
+
+| Symptom | Explanation |
+|---|---|
+| "DATA POFF read request" | `RPHS` is a paging-off physical read `[V]` |
+| "Physical address 0 / Physical segment 0" | the page number read out of the virgin swap page is 0 `[V]` |
+| Logical/MMS/WR all zero | not latched for a fault on the final access - manual p.115 `[V]` |
+| PC 6 bytes past the instruction | pipeline run-ahead `[H]`, see below |
+
+### 0.5 The 6-byte offset
+
+`[H]` - the reported address is **not** the faulting instruction's start; it is 6 bytes (three
+instructions) beyond it. The ND-5000 is pipelined and we already know instructions are staged on
+the I-level ahead of execution (`ND-05.022.1` section 7.3.4, the EXUC sneak-cycle rules), so a
+program address that has run ahead of the faulting operation is the expected shape.
+
+Not proven, and it does not need to be for the identification above to hold - that rests on
+`RPHS` being the only paging-off read in range. But **anyone reading a trap PC on this machine
+should treat it as approximate**, which is consistent with the manual describing the field only as
+"Program address | What kind of instruction" rather than as an exact fault PC.
+
+### 0.6 What the puzzle WAS
 
 The format is settled, so the anomaly is real and narrow: **VA `0o1000010533` is mid-instruction**
 in a listing whose every length was hand-verified, in a build proven SHA256-identical to what
