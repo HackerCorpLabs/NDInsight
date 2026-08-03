@@ -257,6 +257,27 @@ START-PLACE / ISEGLOAD x2 / END-PLACE reading of the carved call graph. Also vis
 index `007` = `IPLSWAPPER` (PLACE SWAPPER) and index `160` = `IN5SEGLOAD`, a second
 segment-load entry point not previously noted.
 
+### `P1` (TRAPPING P) IS NOW IMPLEMENTED IN BOTH EMULATORS (2026-08-03) `[V]`
+
+The ND-500/5000 keeps **two** program registers. `P` is the RESTART address and runs ahead of a
+fault; **`P1` is the instruction that actually failed**. ND-05.017.01 ch.6 STEP 2 has the engineer
+`ATTACH-PROCESS 0` / `LOOK-AT-REGISTER P` and read **`P1 : ...:<Failing instruction>`** - the whole
+procedure exists because the address in a trap report (`P`) does not identify the instruction.
+
+Neither emulator modelled it, which is why identifying `RPHS @1000010525` from the reported
+`1 10533B` took days. Both now do:
+
+- **RetroCore** `7169dc30e` - `P1` a real property in `Registers.cs`, latched at the top of
+  `RaiseTrap` from `_currentInstructionAddress`. Tests `TestND500_P1TrappingRegister.cs`, 3/3.
+- **nd500x** `4584e9b` - `uint32_t P1` in `cpu_protos.h`, latched in `raise_trap`, exposed by name
+  in `debug_api.c` so `LOOK-AT-REGISTER P1` reproduces the manual procedure. Baseline unchanged.
+
+**When reading any ND-500 trap from now on: use `P1`.** And if a reported trap address does not
+land on an instruction boundary, that is EXPECTED - not a disassembly defect.
+Full derivation: [`TRAP-PRINTER-HUNT-2026-08-03.md`](TRAP-PRINTER-HUNT-2026-08-03.md) section 0.45.
+
+---
+
 ### CORRECTION, SAME SESSION: "the place is performed on the ND-500 side" IS WRONG
 
 I wrote that above and it is a **name-based error**, corrected within the hour. `FPT2ENTRY`'s

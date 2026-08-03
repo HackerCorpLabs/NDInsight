@@ -264,13 +264,28 @@ So:
 - The identification of `RPHS @ 1000010525` stands, and the 6-byte gap between it and `P` is
   exactly the two-register behaviour the manual describes.
 
-**EMULATOR GAP, verified in code `[V]`:** RetroCore's ND-500 does **not model `P1`**.
-`Emulated.HW\ND\CPU\ND500\Registers.cs` defines `PC` and an alias `P` (`line 710:
-public uint P { get => PC; set => PC = value; }`) and nothing else; a search of the whole
-`Emulated.HW\ND\CPU\ND500\` tree for `P1`, `PrevPc`, `PreviousPc` and `FailingPc` returns no
-matches. **Consequence: our emulator can never report a failing-instruction address, and cannot
-reproduce the manual's own troubleshooting procedure.** Anyone debugging a future ND-500 trap on
-the emulator has to reconstruct it by hand, as was done here.
+**EMULATOR GAP - FOUND AND CLOSED, 2026-08-03.** Neither emulator modelled `P1`: RetroCore's
+`Registers.cs` had `PC` plus an alias `P` and nothing else, and a search of the whole
+`Emulated.HW\ND\CPU\ND500\` tree for `P1`, `PrevPc`, `PreviousPc` and `FailingPc` returned no
+matches. That gap is the direct reason this hunt took days rather than one register read.
+
+**Now implemented in BOTH:**
+
+| | Change | Commit |
+|---|---|---|
+| RetroCore | `P1` a real property in `Registers.cs` (not an alias - `P` still aliases `PC`), latched at the TOP of `RaiseTrap` from `_currentInstructionAddress` | `7169dc30e` |
+| nd500x | `uint32_t P1` in `src/cpu/cpu_protos.h`, latched in `raise_trap`, registered in `src/machine/debug_api.c` so `LOOK-AT-REGISTER P1` works | `4584e9b` |
+
+Latched on **every** trap and **before** the fatal-trap throw, so a post-mortem sees it. In nd500x
+it is kept deliberately separate from the `PGF`/`PV` block, which adjusts the **restart** P -
+conflating the two is the mistake the register exists to prevent.
+
+Tests: `Emulated.Tests.ND500\TestND500_P1TrappingRegister.cs`, 3/3 - the failing address, the
+re-latch on a second trap (a stale `P1` is worse than none: it names an innocent instruction with
+full confidence), and independence from `P`. nd500x baseline unchanged at 27/30, the same three
+pre-existing failures, proved by stashing.
+
+**So this write-up is now the last time anyone should have to do this by hand.**
 
 ### 0.5 The 6-byte offset (superseded by 0.45 - kept for the reasoning)
 
