@@ -340,6 +340,40 @@ and confirm one stored field is the file connect number or a disc/page address t
 later consumes. Also unchecked: whether `055 ISPLACE` / `056 IEPLACE` / `007 IPLSWAPPER` do a
 bulk transfer instead.
 
+### THE `B-176` STORES ARE RESOLVED - AND ONE OF THEM FEEDS `RPHS` (2026-08-03) `[V]`
+
+Full carve:
+[`PSPHS-PHYSICAL-SEGMENT-TABLES-CARVED-2026-08-03.md`](PSPHS-PHYSICAL-SEGMENT-TABLES-CARVED-2026-08-03.md).
+
+**First, a correction to the paragraph above.** `B-176` is not a pointer - it is an **array
+index**. `I` set together with `X` while `B` is clear is POST-indexed indirect
+(`EA = M[P+disp] + X`), so each displacement names a pointer word in the routine's own literal
+pool. Bit roles re-derived from the instruction words in the same routine (bit 10 = X, bit 9 = I,
+bit 8 = B, bits 7-0 = signed displacement), so this does not rest on the disassembler's mnemonic.
+
+The four stores go to four separate resident tables, indexed by the segment number:
+
+| Store | Table | Address | Value |
+|---|---|---|---|
+| `STA I ,X 71` | `PSPHS` | `177401B` | physical start (`M[B-174]` OR `M[B-75]`) |
+| `STZ I ,X 57` | `PSLLI` | `175341B` | 0 |
+| `STA I ,X 57` | `PSULI` | `175441B` | size-1, or -1 when the size word is absent |
+| `STA I ,X 47` | `PSMOD` | `175541B` | 0/1 from bit 9 of a descriptor word |
+
+**`PSPHS` = PHysical Start, and `RPHS` = Read from PHysical Segment - the instruction the 5SWAP
+trap fires on** (`RPHS @1000010525`). PLACE writes the entry; the swapper's `RPHS` reads it.
+
+Identification is a 7-for-7 first-try hit in `N500-SYMBOLS.SYMB` that turns out to be one
+family: every `PS*` table has a `DS*` twin (`PSLLI`/`DSLLI`, `PSULI`/`DSULI`, `PSMOD`/`DSMOD`,
+`PSPHS`/`DSPHS`) on a uniform `40B` = 32-word grid, and all of them are unique symbols with no
+overlay aliases. Contents read all-zero on disk, which is what a resident data table does in a
+carve.
+
+**Cheap test this now enables:** read `PSPHS[seg]` at the moment of the trap. Zero means PLACE
+never wrote it for that segment, and the fault is a missing write rather than a missing page.
+Still open: what `M[B-174]` holds (the open/interrogate chain at `143352`-`143414` is uncarved),
+what the `ORA M[B-75]` contributes, and whether the swapper reads `PSPHS` directly or a copy.
+
 ### AND THE WHOLE `FUNCS` VOCABULARY HAS NO FILE-TO-MEMORY OPERATION `[V]`
 
 Read the **complete** 60-entry operation set instead of chasing SGLOA's callees one by one.

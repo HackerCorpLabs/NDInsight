@@ -59,12 +59,20 @@ files, so it must be reading the domain" lands here and should stop.
 143407  JPL -> 100656
 143414  JPL -> 072040
 ...
-143446  STA I ,X 71       \
-143461  STZ I ,X 57        |  indirect stores through the pointer in B-176
-143462  STA I ,X 57        |  - writing FIELDS of a structure, not moving bulk data
-143473  STA I ,X 47       /
+143446  STA I ,X 71       ->  PSPHS[B-176] := physical start
+143461  STZ I ,X 57       ->  PSLLI[B-176] := 0
+143462  STA I ,X 57       ->  PSULI[B-176] := size-1
+143473  STA I ,X 47       ->  PSMOD[B-176] := mode flag
 143517  MON 43            close
 ```
+
+**CORRECTED 2026-08-03.** This block first read as "indirect stores through the pointer in
+`B-176`, writing FIELDS of a structure". That was wrong: `I` plus `X` with `B` clear is
+POST-indexed indirect (`EA = M[P+disp] + X`), so the displacement names a pointer word in the
+routine's own literal pool and `B-176` is the ARRAY INDEX. The four stores go to four separate
+resident tables, all named in `N500-SYMBOLS.SYMB`. Full derivation, the pool dump and the
+evidence for the symbol identification:
+[PSPHS-PHYSICAL-SEGMENT-TABLES-CARVED-2026-08-03.md](PSPHS-PHYSICAL-SEGMENT-TABLES-CARVED-2026-08-03.md).
 
 The shape is **descriptor setup**: open the file, interrogate it through helper routines,
 write a handful of fields into a structure reached indirectly through `B-176`. There is no
@@ -80,6 +88,13 @@ non-problem.
 That would be a significant reframing, so it needs proof before anyone acts on it. What
 would settle it: identify the structure at `B-176` and confirm one of the stored fields is
 the file connect number or a page/disc address that the swapper later consumes.
+
+**UPDATE 2026-08-03 - half of that is now answered.** The four targets are `PSPHS`, `PSLLI`,
+`PSULI` and `PSMOD`, and `PSPHS` is the *PHysical Start* table that the **`RPHS`** instruction
+reads - the same `RPHS` the 5SWAP trap fires on. So a stored field IS an address the swapper
+later consumes. What the stored VALUE is (it comes from the uncarved open/interrogate chain)
+remains open. See
+[PSPHS-PHYSICAL-SEGMENT-TABLES-CARVED-2026-08-03.md](PSPHS-PHYSICAL-SEGMENT-TABLES-CARVED-2026-08-03.md).
 
 ---
 
