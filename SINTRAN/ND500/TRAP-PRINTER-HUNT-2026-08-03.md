@@ -200,6 +200,29 @@ containing the only two physical-read instructions in the program was excluded a
 This also retires the routine at `1000012503` (`dmof` / `w1 * $4000` / `bmove` / `dmon`), which was
 blamed by *behaviour* and never matched the reported address. It is not the faulting site.
 
+### 0.35 Where `RPHS` gets its zero, byte-verified
+
+Both `RPHS` sites share an identical five-instruction setup, differing only in the transfer count:
+
+```
+1000010300: w3 := b.30        1000010507: w3 := b.30
+1000010302: w3 * $400         1000010511: w3 * $400
+1000010306: w1 := $400        1000010515: w1 := $200     <- only difference
+1000010312: w2 := b.34        1000010521: w2 := b.34
+1000010314: w4 := b.24        1000010523: w4 := b.24
+1000010316: rphs              1000010525: rphs
+```
+
+**The physical address is `b.30 x 0o400`.** So `b.30 = 0` gives physical address 0 - which is
+exactly the "Physical address 0 / Physical segment 0" the trap reports.
+
+**`b.30` is a parameter of the routine**, not a local it computes: the routine entry is
+`1000010432 ents $504`, and although `b.30` is written at 51 sites across the PSEG, **none of them
+lies between `10432` and `10507`**. Within this routine it is read-only.
+
+So the zero is supplied by the caller (`1000011701` / `1000063066`), and traces back to the swap
+page that was read as all zeros.
+
 ### 0.4 The whole chain now closes
 
 `RPHS` is the **swap-in page read**. The swapper is reading a page in, using a page number taken
