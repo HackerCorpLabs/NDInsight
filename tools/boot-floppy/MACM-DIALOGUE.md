@@ -636,7 +636,7 @@ high-byte form the SINTRAN kernel uses:
 
 No aligned INQUIRY / READ CAPACITY / READ(6) / READ(10) / WRITE(6) / WRITE(10) /
 TEST UNIT READY / REQUEST SENSE / MODE SENSE constant was found in a
-CDB-construction context. **NOT FOUND.**
+CDB-construction context. **NOT FOUND** [evidence noted 2026-08-02: the negative turns on three ALIGNED `25 00` matches that are dismissed without addresses, disassembly, or a stated criterion for "CDB-building context" - and the passage says "all at odd offsets ... except three", which is self-contradictory. The conclusion is independently supported by section 7.1 (`IOXT` opcode: 0 matches); this bullet's own evidence does not carry it. To settle: list the three aligned addresses and show what reads or stores them.]
 
 ### 7.4 No disk name, vendor ID or product ID
 

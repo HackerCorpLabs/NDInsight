@@ -10,6 +10,12 @@ description: Performs various functions on the LAMU system. A LAMU is a logicall
   The LAMU system is an extension to the ND-100 segment structure. Programs may address more space than
   provided by the 3 available segments.
 notes:
+- >-
+    Version history: functions 7 and 8 were added in the J-version
+    (SINTRAN-III-Release-History.md:452). L-version added function 13B: set the
+    cache- or temporary status of a LAMU - LMOD sub-value 1 = turn cache on,
+    2 = turn cache off, 3 = set LAMU as temporary, 4 = reset temporary LAMU
+    (ND-860230-6-EN Sintran III - Release Information - L-Version.md:1049-1064).
 - Several CPUs may share the same LAMU address space.
 - The monitor call is implemented in Pascal as 10 separate routines, each corresponding to one function
   code. In all other languages, it is presently implemented as one routine, to which you pass the function

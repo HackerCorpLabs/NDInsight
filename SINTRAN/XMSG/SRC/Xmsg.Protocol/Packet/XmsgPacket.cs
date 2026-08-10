@@ -18,7 +18,9 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// <summary>
         /// Initialises an outgoing packet around a built frame.
         /// </summary>
-        /// <param name="frame">The frame to send; must not be null and must have a header.</param>
+        /// <param name="frame">
+        /// The frame to send; must not be null and must have a header.
+        /// </param>
         /// <exception cref="ArgumentNullException">
         /// Thrown when <paramref name="frame"/> or its header is null.
         /// </exception>
@@ -53,19 +55,25 @@ namespace NDInsight.Sintran.Xmsg.Packet
             get { return (XmsgPacketType)(byte)_frame.Header.Subtype; }
         }
 
-        /// <summary>Gets the destination node number.</summary>
+        /// <summary>
+        /// Gets the destination node number.
+        /// </summary>
         public ushort DestinationNode
         {
             get { return _frame.Header.DestinationNode; }
         }
 
-        /// <summary>Gets the source node number.</summary>
+        /// <summary>
+        /// Gets the source node number.
+        /// </summary>
         public ushort SourceNode
         {
             get { return _frame.Header.SourceNode; }
         }
 
-        /// <summary>Gets the sub-protocol selector / channel (Protocol ID).</summary>
+        /// <summary>
+        /// Gets the sub-protocol selector / channel (Protocol ID).
+        /// </summary>
         public SintranProtocolId ProtocolId
         {
             get { return _frame.Header.ProtocolId; }
@@ -74,7 +82,9 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// <summary>
         /// Serialises this packet into a new information-field byte array.
         /// </summary>
-        /// <returns>The serialised information field.</returns>
+        /// <returns>
+        /// The serialised information field.
+        /// </returns>
         public byte[] ToBytes()
         {
             return _frame.ToArray();

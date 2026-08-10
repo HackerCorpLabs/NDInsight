@@ -44,6 +44,58 @@ something and timing out, NOT a pure hardware status poll. Re-analyse the loop o
 `CARVE-S3SM5-CSLOAD-VERIFY-LOOP-...`) were built on the OLD corrupt `.dis`; their address-level claims
 (builders @140771/162155, cell 27B) must be RE-DERIVED from this corrected `.dis`.
 
+### RE-ANALYSIS ON THE CORRECTED .dis 2026-07-21f - IT IS A FILE-TO-DEVICE IMAGE LOADER
+
+Reading the corrected `030-S3SM5.dis` at 155000B-155377B (all words cross-checked against the `.bin`
+raw bytes; the `0xD6` MON-opcode high byte + low bytes verified at 155012/155020/155046/155120/155235/
+155236/155255) shows the routine is a **structured file-to-device image loader**, NOT a poll and NOT a
+table scan. This SUPERSEDES the "device-poll-with-timeout" characterisation above (that framing was on
+the right code but the wrong shape - it is a LOADER whose gate is a specific status bit).
+
+Byte-verified structure [V]:
+
+| Octal | Instr | Meaning |
+|---|---|---|
+| 155012 | `MON 50`  | OPEN the image file |
+| 155020 | `MON 62`  | RMAX get bytes-in-file; converted (>>1 bytes->words, >>12 words->blocks @155024-155035) to a **block count in `[B-172]`** |
+| 155046 | `MON 76`  | SETBS set block size |
+| 155065 -> 155235/6 | `MON 154` + `MON 255` | ASSIG (AssignCAMACLAM) + PIOCM (PIOCFunction) in the setup subroutine @155233 - arms the device path [I: on the static path; not yet confirmed executed live] |
+| 155120 / 155216 / 155375 | `MON 117` | RFILE read a block |
+| 155255 / 155267 / helper 155310-155322 | `IOXT` | stream each word to the device; IOX base = `[[B-56]-3]`, registers poked at base+0xB (155254/155266), base+2, base+5, base+11B |
+| 155370 | `MON 74`  | SETBT reposition the file for the NEXT segment (multi-segment loader) |
+| **155327-155331** | `IOXT` base+2 ; `BSKP ONE 100 DA` | **post-transfer STATUS read at IOX reg base+2; REQUIRES bit 100B (0x40)** to proceed, else -> error/return path 155420 |
+
+Loop shape [V]: outer loop over `[B-172]` blocks (JAZ @155211 -> normal exit 155324 when the block
+counter reaches 0; error exit @155222 -> 155237), inner loop over `[B-170]` words/block streaming each
+word via IOXT (back-edges @155232 -> 155205, @155303 -> 155205, @155305 -> 155177). `[B-172]` = the
+`[B-7A]` counter the runtime trace showed decrementing; it is a BLOCK COUNT derived from file size, so
+its natural exhaustion is COMPLETION, not timeout. After a segment's words are streamed, the loader
+reads the device status (base+2) and gates on **bit 0x40**; on success it SETBTs and reads the next
+segment (155334+), on failure it exits via 155420.
+
+**Net [V]:** the D4 place-domain "Loading Swapper" stall is this loader running. It OPENs an image
+file, streams it word-by-word over an IOX interface, and after each segment gates on **device status
+bit 0x40 (100B) at IOX register base+2**. This is fully consistent with "> Loading Swapper" and kills
+BOTH retracted stories (cell-27B table scan; bare hardware poll).
+
+**Task-8 gate - still [OPEN], now crisply scoped (needs a live trace):**
+1. Which file does `MON 50` @155012 OPEN? (the swapper / control-store image?) - capture OPEN's
+   filespec argument live.
+2. Which device is `[B-56]` / IOX base `[[B-56]-3]`? Is it the 3022/octobus ND-500 interface, or a
+   PIOC/CAMAC device (the ASSIG+PIOCM setup hints CAMAC/PIOC - do NOT assume it is the 3022)? - read
+   `[B-56]` and `[[B-56]-3]` live.
+3. Does the loop COMPLETE (reach 155324, then gate on bit 0x40 @155330) or SPIN in the inner transfer
+   loop (device never accepting words)? - trace `[B-172]`/`[B-170]` and which exit is taken.
+   Leading hypothesis [I]: the emulator's ND-500 interface never raises **status bit 0x40 at IOX
+   base+2**, so the loader either fails the 155330 check or the inner IOXT never advances. UNPROVEN.
+
+Live experiment for the next session: the routine 155000B-155377B maps to runtime PCs **0xDA00-0xDAFF**
+(155000B = 0xDA00, 155120B = 0xDA50, 155377B = 0xDAFF - octal address == runtime PC because the segment
+is mapped at its load base). The existing harness `ArmNd100Trace("place-domain", 0xD000, 0xEA00)`
+already covers this band. Add: dump the OPEN filespec (registers at 155012B / 0xDA0A) and read
+`[B-56]` + `[[B-56]-3]` before the first IOXT. That resolves all three [OPEN]s and pins the exact
+emulator fix (most likely: raise the interface STATUS bit 0x40 at IOX reg base+2 after each block).
+
 ---
 
 # (original, partially-wrong) CORRECTION: the D4 place-domain hot loop is a DEVICE-I/O POLL, not the S3SM5 table scan

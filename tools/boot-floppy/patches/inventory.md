@@ -9,6 +9,11 @@ E:\Dev\Ronny\norskdata-ndfs\ndfs-c\build-win\ndtool.exe -t <image>
 E:\Dev\Ronny\norskdata-ndfs\ndfs-c\build-win\ndtool.exe -x -p -o <dir> <image>
 ```
 
+> **`-p` is correct HERE and nowhere else in this tree.** Patch floppies hold `.PATC` text
+> with even parity, so stripping bit 7 is what you want. **Never copy this line to an image
+> containing `:BPUN` or `:DATA`** — `-p` strips the top bit of every byte and silently
+> corrupts binaries. See `DISC-BOOTSTRAP.md` line 273. (`DOC-AUDIT.md` line 53.)
+
 All listings and dates below are **VERIFIED** — copied from `ndtool -t` output.
 `33CPV` values are **VERIFIED** — read from each floppy's `SYMBOLS:FADM`.
 Record counts / report ranges are **VERIFIED** — produced by

@@ -104,7 +104,12 @@ XROUT reply `XRUNN` = 2 "unknown name" (`XMSG-API.md` section 6.6).
 
 **Magic-number semantics (VERIFIED, `XMSG-API.md` sections 5 / 6):** a magic number
 is a 32-bit `{port + system + random}` in the `A`/`D` register pair (`MAGNO`). The
-random part prevents stale-reference reuse. `getMagic`/`XSGMG` resolves a *name* to
+random part prevents stale-reference reuse. **UPDATE 2026-07-26: the PACKING of
+those three fields is no longer unknown** - it was carved from the XMSG L03 kernel
+(`ZCRMG` / `ZRAND` / `MFM2P`) and is
+`system << 16 | port << 7 | random`, with a 9-bit 1-based port and a 7-bit random.
+See `XMSG-MAGIC-NUMBER-LAYOUT-CARVED-2026-07-26.md`. (The getMagic REQUEST/RESPONSE
+message layout, section 5 below, is a separate open item and remains unextracted.) `getMagic`/`XSGMG` resolves a *name* to
 that 32-bit magic. An emulated XROUT that returns 0 / rejects is exactly the
 "stubbed magic" the handoff describes.
 

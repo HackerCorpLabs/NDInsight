@@ -1,0 +1,595 @@
+
+------------------------------------------------------------------------------
+                  DUMP FROM COSMOS ETHERNET OPTION B01
+  
+                     FOR ND-110063 ETHERNET II (NEW)
+------------------------------------------------------------------------------
+                  COSMOS Ethernet Option stopped due to:
+ 
+1998-08-04 01:32:48 ENNS0-POCS Unexpected status from XMSG.
+                    XMSG not running
+------------------------------------------------------------------------------
+                  ETHERNET MA STATISTICS FOR LOCAL SYSTEM
+------------------------------------------------------------------------------
+frames transmitted successfully            3168
+  including after one collision               0
+   and after multiple collisions              0
+frames aborted(excess collisions)             0
+frames received and given to user          2941
+       received and dropped                   0
+       missed                                 0
+CRC errors                                    0
+alignment errors                              0
+FIFO overflows                                0
+buffer overflows                              0
+bad MA length field                           1
+loss of carrier during transmit               0
+tranmsit underflow                            0
+late collision                                0
+bad length received                           0
+bad address received                          0
+missing transceiver heart beat                0
+jabber detected                               0
+memory error                                  0
+hung transmit state                           0
+restarts                                      0
+------------------------------------------------------------------------------
+                ETHERNET COSMOS SERVER TRACE FOR LOCAL SYSTEM
+                TRACE DISABLED at     263581
+------------------------------------------------------------------------------
+    743836 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr   2 length  622
+    743836 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr   3 length  452
+    743836 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  25 length   36
+    743836 MESG out     to   XGATE   ID   556566 receive from ND   102 length   36
+    743836 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  26 credit   15
+    743837 MESG in      from XGATE   ID   556566 receive
+    743837 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    743837 MESG out     to   XGATE   ID   556416 status OK
+    743837 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr   4 length   14
+    743837 NPDU in      from ND  102 loc 11544 rem  8515 AK nr   4 credit   15
+    743837 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  26 length   14
+    743837 MESG out     to   XGATE   ID   556620 receive from ND   102 length   14
+    743837 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  27 credit   15
+    743837 MESG in      from XGATE   ID   556620 receive
+    743837 NPDU in      from ND  102 loc 11544 rem  8515 AK nr   5 credit   15
+    743840 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  27 length   36
+    743840 MESG out     to   XGATE   ID   556450 receive from ND   102 length   36
+    743840 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  28 credit   15
+    743841 MESG in      from XGATE   ID   556450 receive
+    743841 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    743841 MESG out     to   XGATE   ID   556416 status OK
+    743841 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr   5 length   14
+    743841 NPDU in      from ND  102 loc 11544 rem  8515 AK nr   6 credit   15
+    743842 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  28 length   46
+    743842 MESG out     to   XGATE   ID   556502 receive from ND   102 length   46
+    743842 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  29 credit   15
+    743842 MESG in      from XGATE   ID   556502 receive
+    743842 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    743842 MESG out     to   XGATE   ID   556416 status OK
+    743842 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr   6 length   14
+    743842 NPDU in      from ND  102 loc 11544 rem  8515 AK nr   7 credit   15
+    743843 MESG in      from XGATE   ID   556416 send to ND  102 length   36
+    743843 MESG out     to   XGATE   ID   556416 status OK
+    743843 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr   7 length   36
+    743843 NPDU in      from ND  102 loc 11544 rem  8515 AK nr   8 credit   15
+    743844 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  29 length   14
+    743844 MESG out     to   XGATE   ID   556534 receive from ND   102 length   14
+    743844 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  30 credit   15
+    743844 MESG in      from XGATE   ID   556416 send to ND  102 length   54
+    743844 MESG in      from XGATE   ID   556534 receive
+    743844 MESG out     to   XGATE   ID   556416 status OK
+    743844 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr   8 length   54
+    743844 NPDU in      from ND  102 loc 11544 rem  8515 AK nr   9 credit   15
+    743845 MESG in      from XGATE   ID   556416 send to ND  102 length  622
+    743845 MESG in      from XGATE   ID   556364 send to ND  102 length  452
+    743845 MESG out     to   XGATE   ID   556416 status OK
+    743845 MESG out     to   XGATE   ID   556364 status OK
+    743845 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr   9 length  622
+    743845 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  10 length  452
+    743845 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  30 length   14
+    743845 MESG out     to   XGATE   ID   556566 receive from ND   102 length   14
+    743845 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  31 credit   15
+    743845 MESG in      from XGATE   ID   556566 receive
+    743845 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  11 credit   15
+    743845 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  31 length   36
+    743845 MESG out     to   XGATE   ID   556620 receive from ND   102 length   36
+    743846 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  32 credit   15
+    743846 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  32 length   14
+    743846 MESG out     to   XGATE   ID   556450 receive from ND   102 length   14
+    743846 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  33 credit   15
+    743846 MESG in      from XGATE   ID   556620 receive
+    743846 MESG in      from XGATE   ID   556364 send to ND  102 length   14
+    743846 MESG in      from XGATE   ID   556450 receive
+    743846 MESG out     to   XGATE   ID   556364 status OK
+    743846 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  11 length   14
+    743847 MESG in      from XGATE   ID   556364 send to ND  102 length  622
+    743847 MESG in      from XGATE   ID   556416 send to ND  102 length  452
+    743847 MESG out     to   XGATE   ID   556364 status OK
+    743847 MESG out     to   XGATE   ID   556416 status OK
+    743847 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  12 length  622
+    743847 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  13 length  452
+    743847 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  12 credit   15
+    743848 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  14 credit   15
+    743848 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  33 length   14
+    743848 MESG out     to   XGATE   ID   556502 receive from ND   102 length   14
+    743848 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  34 credit   15
+    743848 MESG in      from XGATE   ID   556502 receive
+    743848 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  34 length   36
+    743848 MESG out     to   XGATE   ID   556534 receive from ND   102 length   36
+    743848 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  35 credit   15
+    743849 MESG in      from XGATE   ID   556534 receive
+    743849 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    743849 MESG out     to   XGATE   ID   556416 status OK
+    743849 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  14 length   14
+    743849 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  15 credit   15
+    743853 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  35 length   36
+    743853 MESG out     to   XGATE   ID   556566 receive from ND   102 length   36
+    743853 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  36 credit   15
+    743853 MESG in      from XGATE   ID   556566 receive
+    743853 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    743853 MESG out     to   XGATE   ID   556416 status OK
+    743853 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  15 length   14
+    743854 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  16 credit   15
+    743855 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  36 length   46
+    743855 MESG out     to   XGATE   ID   556620 receive from ND   102 length   46
+    743855 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  37 credit   15
+    743855 MESG in      from XGATE   ID   556620 receive
+    743855 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    743855 MESG out     to   XGATE   ID   556416 status OK
+    743855 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  16 length   14
+    743855 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  17 credit   15
+    743857 MESG in      from XGATE   ID   556416 send to ND  102 length   36
+    743857 MESG out     to   XGATE   ID   556416 status OK
+    743857 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  17 length   36
+    743858 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  18 credit   15
+    743858 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  37 length   14
+    743858 MESG out     to   XGATE   ID   556450 receive from ND   102 length   14
+    743858 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  38 credit   15
+    743858 MESG in      from XGATE   ID   556450 receive
+    743859 MESG in      from XGATE   ID   556416 send to ND  102 length   54
+    743859 MESG out     to   XGATE   ID   556416 status OK
+    743859 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  18 length   54
+    743859 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  19 credit   15
+    743859 MESG in      from XGATE   ID   556416 send to ND  102 length  622
+    743859 MESG in      from XGATE   ID   556364 send to ND  102 length  452
+    743859 MESG out     to   XGATE   ID   556416 status OK
+    743859 MESG out     to   XGATE   ID   556364 status OK
+    743859 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  38 length   14
+    743859 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  19 length  622
+    743859 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  20 length  452
+    743860 MESG out     to   XGATE   ID   556502 receive from ND   102 length   14
+    743860 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  39 credit   15
+    743860 MESG in      from XGATE   ID   556502 receive
+    743860 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  20 credit   15
+    743860 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  21 credit   15
+    743860 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  39 length   36
+    743861 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  40 length   14
+    743861 MESG out     to   XGATE   ID   556534 receive from ND   102 length   36
+    743861 MESG out     to   XGATE   ID   556566 receive from ND   102 length   14
+    743861 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  41 credit   15
+    743861 MESG in      from XGATE   ID   556534 receive
+    743861 MESG in      from XGATE   ID   556566 receive
+    743861 MESG in      from XGATE   ID   556364 send to ND  102 length   14
+    743861 MESG out     to   XGATE   ID   556364 status OK
+    743861 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  21 length   14
+    743861 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  22 credit   15
+    743862 MESG in      from XGATE   ID   556364 send to ND  102 length  622
+    743862 MESG in      from XGATE   ID   556416 send to ND  102 length  452
+    743862 MESG out     to   XGATE   ID   556364 status OK
+    743862 MESG out     to   XGATE   ID   556416 status OK
+    743862 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  22 length  622
+    743862 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  23 length  452
+    743862 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  41 length   36
+    743862 MESG out     to   XGATE   ID   556620 receive from ND   102 length   36
+    743862 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  42 credit   15
+    743862 MESG in      from XGATE   ID   556620 receive
+    743862 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    743862 MESG out     to   XGATE   ID   556416 status OK
+    743863 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  24 length   14
+    743863 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  24 credit   15
+    743863 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  42 length   14
+    743863 MESG out     to   XGATE   ID   556450 receive from ND   102 length   14
+    743863 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  43 credit   15
+    743863 MESG in      from XGATE   ID   556450 receive
+    743863 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  25 credit   15
+    743867 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  43 length   36
+    743867 MESG out     to   XGATE   ID   556502 receive from ND   102 length   36
+    743867 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  44 credit   15
+    743867 MESG in      from XGATE   ID   556502 receive
+    743867 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    743868 MESG out     to   XGATE   ID   556416 status OK
+    743868 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  25 length   14
+    743868 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  26 credit   15
+    743869 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  44 length   46
+    743869 MESG out     to   XGATE   ID   556534 receive from ND   102 length   46
+    743869 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  45 credit   15
+    743869 MESG in      from XGATE   ID   556534 receive
+    743869 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    743869 MESG out     to   XGATE   ID   556416 status OK
+    743869 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  26 length   14
+    743870 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  27 credit   15
+    743870 MESG in      from XGATE   ID   556416 send to ND  102 length   36
+    743870 MESG out     to   XGATE   ID   556416 status OK
+    743870 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  27 length   36
+    743871 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  28 credit   15
+    743871 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  45 length   14
+    743871 MESG out     to   XGATE   ID   556566 receive from ND   102 length   14
+    743871 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  46 credit   15
+    743871 MESG in      from XGATE   ID   556416 send to ND  102 length   62
+    743871 MESG in      from XGATE   ID   556566 receive
+    743871 MESG out     to   XGATE   ID   556416 status OK
+    743871 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  28 length   62
+    743872 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  29 credit   15
+    743872 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  46 length   14
+    743872 MESG out     to   XGATE   ID   556620 receive from ND   102 length   14
+    743872 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  47 credit   15
+    743872 MESG in      from XGATE   ID   556620 receive
+    743873 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  47 length   36
+    743873 MESG out     to   XGATE   ID   556450 receive from ND   102 length   36
+    743873 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  48 credit   15
+    743873 MESG in      from XGATE   ID   556450 receive
+    743873 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    743873 MESG out     to   XGATE   ID   556416 status OK
+    743873 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  29 length   14
+    743874 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  30 credit   15
+    743874 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  48 length   46
+    743874 MESG out     to   XGATE   ID   556502 receive from ND   102 length   46
+    743874 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  49 credit   15
+    743874 MESG in      from XGATE   ID   556502 receive
+    743874 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    743874 MESG out     to   XGATE   ID   556416 status OK
+    743874 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  30 length   14
+    743875 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  31 credit   15
+    743878 MESG in      from XGATE   ID   556416 send to ND  102 length   36
+    743878 MESG out     to   XGATE   ID   556416 status OK
+    743878 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  31 length   36
+    743878 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  32 credit   15
+    743879 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  49 length   14
+    743879 MESG out     to   XGATE   ID   556534 receive from ND   102 length   14
+    743879 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  50 credit   15
+    743879 MESG in      from XGATE   ID   556416 send to ND  102 length   46
+    743879 MESG in      from XGATE   ID   556534 receive
+    743879 MESG out     to   XGATE   ID   556416 status OK
+    743879 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  32 length   46
+    743879 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  33 credit   15
+    743880 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  50 length   14
+    743880 MESG out     to   XGATE   ID   556566 receive from ND   102 length   14
+    743880 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  51 credit   15
+    743880 MESG in      from XGATE   ID   556566 receive
+    743881 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  51 length   36
+    743881 MESG out     to   XGATE   ID   556620 receive from ND   102 length   36
+    743881 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  52 credit   15
+    743881 MESG in      from XGATE   ID   556620 receive
+    743881 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    743881 MESG out     to   XGATE   ID   556416 status OK
+    743881 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  33 length   14
+    743882 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  34 credit   15
+    743882 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  52 length   46
+    743882 MESG out     to   XGATE   ID   556450 receive from ND   102 length   46
+    743882 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  53 credit   15
+    743882 MESG in      from XGATE   ID   556450 receive
+    743882 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    743882 MESG out     to   XGATE   ID   556416 status OK
+    743882 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  34 length   14
+    743883 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  35 credit   15
+    743883 MESG in      from XGATE   ID   556416 send to ND  102 length   36
+    743883 MESG out     to   XGATE   ID   556416 status OK
+    743883 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  35 length   36
+    743883 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  36 credit   15
+    743884 MESG in      from XGATE   ID   556416 send to ND  102 length   46
+    743884 MESG out     to   XGATE   ID   556416 status OK
+    743884 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  36 length   46
+    743884 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  53 length   14
+    743884 MESG out     to   XGATE   ID   556502 receive from ND   102 length   14
+    743884 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  54 credit   15
+    743884 MESG in      from XGATE   ID   556502 receive
+    743884 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  37 credit   15
+    743884 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  54 length   14
+    743884 MESG out     to   XGATE   ID   556534 receive from ND   102 length   14
+    743885 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  55 credit   15
+    743885 MESG in      from XGATE   ID   556534 receive
+    743886 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  55 length   36
+    743886 MESG out     to   XGATE   ID   556566 receive from ND   102 length   36
+    743886 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  56 credit   15
+    743886 MESG in      from XGATE   ID   556566 receive
+    743886 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    743886 MESG out     to   XGATE   ID   556416 status OK
+    743886 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  37 length   14
+    743886 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  56 length   46
+    743886 MESG out     to   XGATE   ID   556620 receive from ND   102 length   46
+    743886 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  57 credit   15
+    743887 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  38 credit   15
+    743887 MESG in      from XGATE   ID   556620 receive
+    743887 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    743887 MESG out     to   XGATE   ID   556416 status OK
+    743887 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  38 length   14
+    743887 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  39 credit   15
+    743892 MESG in      from XGATE   ID   556416 send to ND  102 length   36
+    743892 MESG out     to   XGATE   ID   556416 status OK
+    743892 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  39 length   36
+    743892 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  40 credit   15
+    743892 MESG in      from XGATE   ID   556416 send to ND  102 length   38
+    743892 MESG out     to   XGATE   ID   556416 status OK
+    743892 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  57 length   14
+    743892 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  40 length   38
+    743892 MESG out     to   XGATE   ID   556450 receive from ND   102 length   14
+    743892 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  58 credit   15
+    743893 MESG in      from XGATE   ID   556450 receive
+    743893 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  41 credit   15
+    743893 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  58 length   14
+    743893 MESG out     to   XGATE   ID   556502 receive from ND   102 length   14
+    743893 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  59 credit   15
+    743893 MESG in      from XGATE   ID   556502 receive
+    743893 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  59 length   36
+    743894 MESG out     to   XGATE   ID   556534 receive from ND   102 length   36
+    743894 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  60 credit   15
+    743894 MESG in      from XGATE   ID   556534 receive
+    743894 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    743894 MESG out     to   XGATE   ID   556416 status OK
+    743894 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  41 length   14
+    743894 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  42 credit   15
+    746946 MESG in      from XGATE   ID   556416 send to ND  102 length   36
+    746946 MESG out     to   XGATE   ID   556416 status OK
+    746946 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  42 length   36
+    746946 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  43 credit   15
+    746947 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  60 length   14
+    746947 MESG out     to   XGATE   ID   556566 receive from ND   102 length   14
+    746947 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  61 credit   15
+    746947 MESG in      from XGATE   ID   556566 receive
+    766913 MESG in      from XGATE   ID   556416 send to ND  102 length   62
+    766913 MESG out     to   XGATE   ID   556416 status OK
+    766913 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  43 length   62
+    766913 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  44 credit   15
+    766913 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  61 length   14
+    766913 MESG out     to   XGATE   ID   556620 receive from ND   102 length   14
+    766913 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  62 credit   15
+    766913 MESG in      from XGATE   ID   556620 receive
+    766915 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  62 length   36
+    766915 MESG out     to   XGATE   ID   556450 receive from ND   102 length   36
+    766915 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  63 credit   15
+    766915 MESG in      from XGATE   ID   556450 receive
+    766915 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    766915 MESG out     to   XGATE   ID   556416 status OK
+    766915 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  44 length   14
+    766915 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  45 credit   15
+    766916 MESG in      from XGATE   ID   556416 send to ND  102 length  140
+    766916 MESG out     to   XGATE   ID   556416 status OK
+    766916 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  45 length  140
+    766917 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  46 credit   15
+    766917 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  63 length   14
+    766917 MESG out     to   XGATE   ID   556502 receive from ND   102 length   14
+    766918 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  64 credit   15
+    766918 MESG in      from XGATE   ID   556502 receive
+    766918 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  64 length   36
+    766918 MESG out     to   XGATE   ID   556534 receive from ND   102 length   36
+    766918 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  65 credit   15
+    766918 MESG in      from XGATE   ID   556534 receive
+    766918 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    766918 MESG out     to   XGATE   ID   556416 status OK
+    766918 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  46 length   14
+    766919 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  47 credit   15
+    766921 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  65 length   46
+    766922 MESG out     to   XGATE   ID   556566 receive from ND   102 length   46
+    766922 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  66 credit   15
+    766922 MESG in      from XGATE   ID   556566 receive
+    766922 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    766922 MESG out     to   XGATE   ID   556416 status OK
+    766922 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  47 length   14
+    766922 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  48 credit   15
+    766923 MESG in      from XGATE   ID   556416 send to ND  102 length   36
+    766923 MESG out     to   XGATE   ID   556416 status OK
+    766923 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  48 length   36
+    766923 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  49 credit   15
+    766923 MESG in      from XGATE   ID   556416 send to ND  102 length   68
+    766923 MESG out     to   XGATE   ID   556416 status OK
+    766923 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  66 length   14
+    766923 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  49 length   68
+    766923 MESG out     to   XGATE   ID   556620 receive from ND   102 length   14
+    766924 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  67 credit   15
+    766924 MESG in      from XGATE   ID   556620 receive
+    766924 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  50 credit   15
+    766924 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  67 length   14
+    766924 MESG out     to   XGATE   ID   556450 receive from ND   102 length   14
+    766924 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  68 credit   15
+    766924 MESG in      from XGATE   ID   556450 receive
+    766928 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  68 length   36
+    766928 MESG out     to   XGATE   ID   556502 receive from ND   102 length   36
+    766928 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  69 credit   15
+    766928 MESG in      from XGATE   ID   556502 receive
+    766928 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    766928 MESG out     to   XGATE   ID   556416 status OK
+    766928 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  50 length   14
+    766928 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  51 credit   15
+    766933 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  69 length   52
+    766934 MESG out     to   XGATE   ID   556534 receive from ND   102 length   52
+    766934 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  70 credit   15
+    766934 MESG in      from XGATE   ID   556534 receive
+    766934 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    766934 MESG out     to   XGATE   ID   556416 status OK
+    766934 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  51 length   14
+    766934 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  52 credit   15
+    766935 MESG in      from XGATE   ID   556416 send to ND  102 length   36
+    766935 MESG out     to   XGATE   ID   556416 status OK
+    766935 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  52 length   36
+    766935 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  53 credit   15
+    766935 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  70 length   14
+    766935 MESG out     to   XGATE   ID   556566 receive from ND   102 length   14
+    766935 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  71 credit   15
+    766936 MESG in      from XGATE   ID   556566 receive
+    769663 MESG in      from XGATE   ID   556416 send to ND  102 length   46
+    769663 MESG out     to   XGATE   ID   556416 status OK
+    769663 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  53 length   46
+    769663 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  54 credit   15
+    769663 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  71 length   14
+    769663 MESG out     to   XGATE   ID   556620 receive from ND   102 length   14
+    769664 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  72 credit   15
+    769664 MESG in      from XGATE   ID   556620 receive
+    769664 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  72 length   36
+    769664 MESG out     to   XGATE   ID   556450 receive from ND   102 length   36
+    769664 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  73 credit   15
+    769665 MESG in      from XGATE   ID   556450 receive
+    769665 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    769665 MESG out     to   XGATE   ID   556416 status OK
+    769665 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  54 length   14
+    769665 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  73 length   46
+    769665 MESG out     to   XGATE   ID   556502 receive from ND   102 length   46
+    769665 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  74 credit   15
+    769665 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  55 credit   15
+    769665 MESG in      from XGATE   ID   556502 receive
+    769665 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    769665 MESG out     to   XGATE   ID   556416 status OK
+    769665 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  55 length   14
+    769666 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  56 credit   15
+    769667 MESG in      from XGATE   ID   556416 send to ND  102 length   36
+    769667 MESG out     to   XGATE   ID   556416 status OK
+    769667 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  56 length   36
+    769667 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  57 credit   15
+    769668 MESG in      from XGATE   ID   556416 send to ND  102 length   38
+    769668 MESG out     to   XGATE   ID   556416 status OK
+    769668 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  57 length   38
+    769668 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  74 length   14
+    769668 MESG out     to   XGATE   ID   556534 receive from ND   102 length   14
+    769668 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  75 credit   15
+    769668 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  58 credit   15
+    769668 MESG in      from XGATE   ID   556534 receive
+    769669 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  75 length   14
+    769669 MESG out     to   XGATE   ID   556566 receive from ND   102 length   14
+    769669 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  76 credit   15
+    769669 MESG in      from XGATE   ID   556566 receive
+    769674 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  76 length   36
+    769674 MESG out     to   XGATE   ID   556620 receive from ND   102 length   36
+    769674 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  77 credit   15
+    769674 MESG in      from XGATE   ID   556620 receive
+    769674 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    769674 MESG out     to   XGATE   ID   556416 status OK
+    769674 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  58 length   14
+    769675 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  59 credit   15
+    779270 MESG in      from XGATE   ID   556416 send to ND  102 length  128
+    779270 MESG out     to   XGATE   ID   556416 status OK
+    779270 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  59 length  128
+    779270 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  60 credit   15
+    779271 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  77 length   14
+    779271 MESG out     to   XGATE   ID   556450 receive from ND   102 length   14
+    779271 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  78 credit   15
+    779271 MESG in      from XGATE   ID   556450 receive
+    779271 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  78 length   42
+    779271 MESG out     to   XGATE   ID   556502 receive from ND   102 length   42
+    779271 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  79 credit   15
+    779271 MESG in      from XGATE   ID   556502 receive
+    779271 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    779271 MESG out     to   XGATE   ID   556416 status OK
+    779272 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  60 length   14
+    779272 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  61 credit   15
+    802957 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  79 length  128
+    802957 MESG out     to   XGATE   ID   556534 receive from ND   102 length  128
+    802957 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  80 credit   15
+    802957 MESG in      from XGATE   ID   556534 receive
+    802957 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    802957 MESG out     to   XGATE   ID   556416 status OK
+    802957 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  61 length   14
+    802958 MESG in      from XGATE   ID   556416 send to ND  102 length   42
+    802958 MESG out     to   XGATE   ID   556416 status OK
+    802958 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  62 length   42
+    802958 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  62 credit   15
+    802958 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  63 credit   15
+    802958 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  80 length   14
+    802958 MESG out     to   XGATE   ID   556566 receive from ND   102 length   14
+    802958 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  81 credit   15
+    802959 MESG in      from XGATE   ID   556566 receive
+    882726 MESG in      from XGATE   ID   556416 send to ND  102 length  128
+    882726 MESG out     to   XGATE   ID   556416 status OK
+    882726 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  63 length  128
+    882726 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  64 credit   15
+    882727 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  81 length   14
+    882727 MESG out     to   XGATE   ID   556620 receive from ND   102 length   14
+    882727 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  82 credit   15
+    882727 MESG in      from XGATE   ID   556620 receive
+    882727 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  82 length   42
+    882727 MESG out     to   XGATE   ID   556450 receive from ND   102 length   42
+    882727 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  83 credit   15
+    882727 MESG in      from XGATE   ID   556450 receive
+    882727 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    882727 MESG out     to   XGATE   ID   556416 status OK
+    882727 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  64 length   14
+    882728 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  65 credit   15
+    898265 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  83 length  128
+    898265 MESG out     to   XGATE   ID   556502 receive from ND   102 length  128
+    898265 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  84 credit   15
+    898265 MESG in      from XGATE   ID   556502 receive
+    898265 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    898265 MESG out     to   XGATE   ID   556416 status OK
+    898265 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  65 length   14
+    898265 MESG in      from XGATE   ID   556416 send to ND  102 length   42
+    898265 MESG out     to   XGATE   ID   556416 status OK
+    898265 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  66 length   42
+    898265 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  66 credit   15
+    898266 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  67 credit   15
+    898266 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  84 length   14
+    898266 MESG out     to   XGATE   ID   556534 receive from ND   102 length   14
+    898266 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  85 credit   15
+    898266 MESG in      from XGATE   ID   556534 receive
+    905121 MESG in      from XGATE   ID   556416 send to ND19999 length   14
+    905121 MESG out     to   XGATE   ID   556416 status OK
+    905121 NPDU out     to   ND19999 loc 11572 rem     0 CR from ND  100
+    905122 NPDU in      from ND19999 loc 11572 rem     1 CC from ND19999
+    905122 NPDU out     to   ND19999 loc 11572 rem     1 DT nr   0 length   14
+    905124 NPDU in      from ND19999 loc 11572 rem     1 AK nr   1 credit   15
+    905125 NPDU in      from ND19999 loc 11572 rem     1 DT nr   1 length   14
+    908062 MESG in      from XGATE   ID   556416 send to ND19999 length   14
+    908062 MESG out     to   XGATE   ID   556416 status OK
+    908062 NPDU out     to   ND19999 loc 11572 rem     1 DT nr   1 length   14
+    908064 NPDU in      from ND19999 loc 11572 rem     1 AK nr   2 credit   15
+    908064 NPDU in      from ND19999 loc 11572 rem     1 DT nr   2 length   14
+    920647 MESG in      from XGATE   ID   556416 send to ND19999 length   14
+    920647 MESG out     to   XGATE   ID   556416 status OK
+    920647 NPDU out     to   ND19999 loc 11573 rem     0 CR from ND  100
+    920649 NPDU in      from ND19999 loc 11573 rem     1 CC from ND19999
+    920650 NPDU out     to   ND19999 loc 11573 rem     1 DT nr   0 length   14
+    920653 NPDU in      from ND19999 loc 11573 rem     1 AK nr   1 credit   15
+    920656 NPDU in      from ND19999 loc 11573 rem     1 DT nr   1 length   14
+    923353 MESG in      from XGATE   ID   556416 send to ND19999 length   14
+    923353 MESG out     to   XGATE   ID   556416 status OK
+    923353 NPDU out     to   ND19999 loc 11573 rem     1 DT nr   1 length   14
+    923354 NPDU in      from ND19999 loc 11573 rem     1 AK nr   2 credit   15
+    923356 NPDU in      from ND19999 loc 11573 rem     1 DT nr   2 length   14
+    932311 MESG in      from XGATE   ID   556416 send to ND19999 length   14
+    932311 MESG out     to   XGATE   ID   556416 status OK
+    932311 NPDU out     to   ND19999 loc 11573 rem     1 DT nr   2 length   14
+    932316 NPDU in      from ND19999 loc 11573 rem     1 AK nr   3 credit   15
+    934767 MESG in      from XGATE   ID   556416 send to ND19999 length   14
+    934767 MESG out     to   XGATE   ID   556416 status OK
+    934767 NPDU out     to   ND19999 loc 11573 rem     1 DT nr   3 length   14
+    934769 NPDU in      from ND19999 loc 11573 rem     1 AK nr   4 credit   15
+    934771 NPDU in      from ND19999 loc 11573 rem     1 DT nr   0 length   14
+    934771 MESG out     to   XGATE   ID   556566 receive from ND 19999 length   14
+    934771 MESG out     to   XGATE   ID   556620 receive from ND 19999 length   14
+    934771 MESG out     to   XGATE   ID   556450 receive from ND 19999 length   14
+    934771 NPDU out     to   ND19999 loc 11573 rem     1 AK nr   3 credit   15
+    934772 MESG in      from XGATE   ID   556566 receive
+    934772 MESG in      from XGATE   ID   556620 receive
+    934772 MESG in      from XGATE   ID   556450 receive
+    934772 MESG in      from XGATE   ID   556416 send to ND19999 length   64
+    934772 MESG in      from XGATE   ID   556364 send to ND19999 length   64
+    934772 MESG out     to   XGATE   ID   556416 status OK
+    934772 MESG out     to   XGATE   ID   556364 status OK
+    934772 NPDU out     to   ND19999 loc 11573 rem     1 DT nr   4 length   64
+    934772 NPDU out     to   ND19999 loc 11573 rem     1 DT nr   5 length   64
+    934772 MESG in      from XGATE   ID   556364 send to ND19999 length   64
+    934772 MESG out     to   XGATE   ID   556364 status OK
+    934772 NPDU out     to   ND19999 loc 11573 rem     1 DT nr   6 length   64
+    934777 NPDU in      from ND19999 loc 11573 rem     1 AK nr   5 credit   15
+    934781 NPDU in      from ND19999 loc 11573 rem     1 DT nr   1 length   14
+    934781 NPDU out     to   ND19999 loc 11573 rem     1 AK nr   3 credit   15
+    934782 NPDU in      from ND19999 loc 11573 rem     1 DT nr   2 length   40
+    934782 NPDU out     to   ND19999 loc 11573 rem     1 AK nr   3 credit   15
+    934784 NPDU in      from ND19999 loc 11573 rem     1 AK nr   6 credit   15
+    934787 NPDU in      from ND19999 loc 11573 rem     1 DT nr   3 length   14
+    934787 MESG out     to   XGATE   ID   556502 receive from ND 19999 length   14
+    934787 NPDU out     to   ND19999 loc 11573 rem     1 AK nr   4 credit   15
+    934787 MESG in      from XGATE   ID   556502 receive
+    934787 NPDU in      from ND19999 loc 11573 rem     1 DT nr   4 length   40
+    934788 MESG out     to   XGATE   ID   556534 receive from ND 19999 length   40
+    934788 NPDU out     to   ND19999 loc 11573 rem     1 AK nr   5 credit   15
+    934788*ERR FATAL error code 16933 info     0POCS
+ 
+---------------------------- End-of-Dump-File -------------------------------

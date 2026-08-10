@@ -12,11 +12,21 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         /// <summary>
         /// Initialises a server-info snapshot.
         /// </summary>
-        /// <param name="name">The registered name (for example <c>*TADADM</c>).</param>
-        /// <param name="logicalPort">The well-known logical port (for example 2).</param>
-        /// <param name="wirePort">The minted wire reply-from port (<c>(logical &lt;&lt; 7) | incarnation</c>).</param>
-        /// <param name="sessionCount">The number of currently-active sessions.</param>
-        /// <param name="sessionCapacity">The maximum concurrent sessions (Free SPs = capacity - count).</param>
+        /// <param name="name">
+        /// The registered name (for example <c>*TADADM</c>).
+        /// </param>
+        /// <param name="logicalPort">
+        /// The well-known logical port (for example 2).
+        /// </param>
+        /// <param name="wirePort">
+        /// The minted wire reply-from port (<c>(logical shifted left 7) | incarnation</c>).
+        /// </param>
+        /// <param name="sessionCount">
+        /// The number of currently-active sessions.
+        /// </param>
+        /// <param name="sessionCapacity">
+        /// The maximum concurrent sessions (Free SPs = capacity - count).
+        /// </param>
         public XmsgServerInfo(string name, int logicalPort, ushort wirePort, int sessionCount, int sessionCapacity)
         {
             Name = name;
@@ -26,22 +36,34 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
             SessionCapacity = sessionCapacity;
         }
 
-        /// <summary>Gets the registered server name.</summary>
+        /// <summary>
+        /// Gets the registered server name.
+        /// </summary>
         public string Name { get; }
 
-        /// <summary>Gets the well-known logical port.</summary>
+        /// <summary>
+        /// Gets the well-known logical port.
+        /// </summary>
         public int LogicalPort { get; }
 
-        /// <summary>Gets the minted wire reply-from port.</summary>
+        /// <summary>
+        /// Gets the minted wire reply-from port.
+        /// </summary>
         public ushort WirePort { get; }
 
-        /// <summary>Gets the number of currently-active sessions.</summary>
+        /// <summary>
+        /// Gets the number of currently-active sessions.
+        /// </summary>
         public int SessionCount { get; }
 
-        /// <summary>Gets the maximum concurrent sessions.</summary>
+        /// <summary>
+        /// Gets the maximum concurrent sessions.
+        /// </summary>
         public int SessionCapacity { get; }
 
-        /// <summary>Gets the number of free session slots (Free SPs).</summary>
+        /// <summary>
+        /// Gets the number of free session slots (Free SPs).
+        /// </summary>
         public int FreeSlots
         {
             get { return SessionCapacity - SessionCount; }
@@ -57,9 +79,15 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         /// <summary>
         /// Initialises a service-info snapshot.
         /// </summary>
-        /// <param name="serviceByte">The XMCSM low "service" byte (for example 0x41 for XSLET).</param>
-        /// <param name="mnemonic">The service mnemonic (for example <c>XSLET</c>).</param>
-        /// <param name="description">A short description, or an empty string when unknown.</param>
+        /// <param name="serviceByte">
+        /// The XMCSM low "service" byte (for example 0x41 for XSLET).
+        /// </param>
+        /// <param name="mnemonic">
+        /// The service mnemonic (for example <c>XSLET</c>).
+        /// </param>
+        /// <param name="description">
+        /// A short description, or an empty string when unknown.
+        /// </param>
         public XmsgServiceInfo(byte serviceByte, string mnemonic, string description)
         {
             ServiceByte = serviceByte;
@@ -67,18 +95,24 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
             Description = description;
         }
 
-        /// <summary>Gets the XMCSM low "service" byte.</summary>
+        /// <summary>
+        /// Gets the XMCSM low "service" byte.
+        /// </summary>
         public byte ServiceByte { get; }
 
-        /// <summary>Gets the service mnemonic.</summary>
+        /// <summary>
+        /// Gets the service mnemonic.
+        /// </summary>
         public string Mnemonic { get; }
 
-        /// <summary>Gets a short description (empty when unknown).</summary>
+        /// <summary>
+        /// Gets a short description (empty when unknown).
+        /// </summary>
         public string Description { get; }
 
         /// <summary>
         /// Gets a value indicating whether this is a request (bit 6 of the service byte set - the XROUT
-        /// convention "service byte has bit 6 set =&gt; service request").
+        /// convention "service byte has bit 6 set => service request").
         /// </summary>
         public bool IsRequest
         {

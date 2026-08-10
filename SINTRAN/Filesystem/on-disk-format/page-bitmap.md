@@ -7,7 +7,8 @@ filesystem finds a `0` bit and sets it; to free a page it clears the bit.
 
 Sources: real disk `~/repos/nd100x/SMD0.IMG` (PACK-ONE); NDFS
 `ndfs-c/src/bit_file.c` + `include/ndfs/bit_file.h` (the reader that reproduces
-`ndtool`'s free/used counts); `ndtool -i` (independent cross-reader); carved
+`ndtool`'s free/used counts — note this is NOT independent corroboration, see section 2);
+carved
 `006-S3FS` `GPAGE`/`ALPAG`/`RLPAG`/`RPAGE`/`WPAGE`/`TESTB` (producing/consuming
 code).
 
@@ -17,8 +18,10 @@ code).
 
 `bit_file_ptr = 0x00004824` -> type **00 CONTIGUOUS**, block **44044B (18468)**.
 The bitmap starts at page 18468 (byte offset `18468 * 2048 = 0x02412000`) and
-spans `ceil(total_pages / 8)` bytes = `ceil(38400 / 8) = 4800` bytes -> under one
-page. **VERIFIED** (pointer bytes + span computed from PACK-ONE's 38400 pages).
+spans `ceil(total_pages / 8)` bytes, rounded up to a whole 16-bit word,
+= `ceil(38400 / 8) = 4800` bytes -> under one page. (38400 is a multiple of 16, so
+the rounding is invisible here; on a 616-page floppy it is the difference between
+77 and 78 bytes, and without it pages 608-615 are unreachable.) **VERIFIED** (pointer bytes + span computed from PACK-ONE's 38400 pages).
 
 Raw start of the bitmap (`xxd -s $((18468*2048)) -l 64`):
 
@@ -34,21 +37,91 @@ files, and the bitmap's own pages) are fully allocated.
 
 ---
 
-## 2. Byte / bit ordering (VERIFIED)
+## 2. Word / bit ordering (CORRECTED 2026-08-02)
 
-For page (block) `N`:
+For page (block) `N`, the bit file is an array of **16-bit WORDS**:
 
 ```
-byte_index = N >> 3        (N / 8)
-bit_index  = N & 7         (N mod 8)
-used       = (bitmap[byte_index] >> bit_index) & 1
+word_index = N >> 4        (N / 16)
+bit        = N & 15        (bit 0 = LSB)
+used       = (word[word_index] >> bit) & 1
 ```
 
-(`bit_file.c` lines 53-62.) So **page 0 = bit 0 of byte 0** (mask `0x01`), page 7
-= bit 7 of byte 0 (mask `0x80`), page 8 = bit 0 of byte 1. Bits run
-**LSB-first within each byte**, bytes in ascending page order. **VERIFIED.**
+On the big-endian byte array that means:
 
-`byte0 = 0xFF` therefore means pages 0-7 are all used.
+```
+byte_index = (N >> 3) ^ 1
+bit_index  = N & 7
+```
+
+So **page 0 is bit 0 of the LOW byte of word 0 — i.e. byte 1, not byte 0**. Page 8 is
+bit 0 of the HIGH byte (byte 0). Pages 0-7 live in odd bytes, pages 8-15 in even bytes.
+
+### Authority
+
+SINTRAN III System Supervisor, **ND-30.003.007 EN, appendix F.2 "Bit-File"**, states the
+formula verbatim:
+
+```
+PAGE = BLOCK*400B + WORD*20B + BIT
+```
+
+`400B` = 256 pages per bit-file block, **`20B` = 16 pages per WORD**. Because the formula
+ADDS the bit number, page `x` sits at **bit 0, the least significant bit**. The Norwegian
+edition **ND-30.003.7 NO** carries the identical formula (`SIDE = BLOKK*400B + ORD*20B +
+BIT`).
+
+The manual also prints a worked example: a bit-file word holding `313B` with the
+Free/Used state of each of the 16 pages it covers. `313B = 0b0000000011001011`, i.e.
+pages `x+0, x+1, x+3, x+6, x+7` used. That vector is now a regression test in every port.
+
+SINTRAN's own allocator agrees: `TPAGF` at 51043B forms the word index with
+`SHA ZIN SHR 4` — **page / 16**, not page / 8. See
+[`../code-logic/allocation.md`](../code-logic/allocation.md) section 1, which had this
+right all along and honestly flagged the intra-word direction as OPEN; the manual closes
+it as LSB-first.
+
+### What this section used to say, and why it was wrong
+
+This section previously asserted `byte_index = N >> 3, bit_index = N & 7` and marked it
+**VERIFIED**. It was not verified — and the evidence cited could not have verified it:
+
+- The cited check was a **popcount** match between `bit_file.c` and `ndtool -i`
+  (14277 used / 24123 free). **Popcount is invariant under byte-swapping within a word.**
+  It cannot distinguish the two conventions, even in principle.
+- The other cited evidence, "the first 4800 bytes are all `0xFF`", is likewise
+  byte-swap invariant.
+- The remaining source was `ndfs-c/src/bit_file.c` — a modern re-implementation, not
+  SINTRAN. Citing it here made the doc and the code confirm each other in a circle.
+
+That false **VERIFIED** propagated into four independent implementations (`ndfs-c`,
+`ndfs-py`, `ndfs-ts`, `RetroFS.NDFS`), all of which read and wrote the bitmap
+byte-swapped. Because each was wrong in both its reader and its writer, every round-trip
+test passed and the defect survived for months.
+
+### How it was caught, and the invariant that catches it
+
+A page that holds a real file's data cannot also be marked free. Measured across three
+genuine ND media:
+
+| Image | file data pages | reported FREE, byte convention | reported FREE, word convention |
+|---|---|---|---|
+| `BIGDISK0-L.IMG` (75 MB pack) | 14 543 | 32 | **0** |
+| `210319H02-XX-01D.img` (floppy) | 201 | 4 | **0** |
+| `Nd-210523I01-XX-01D.img` (floppy) | 481 | 3 | **0** |
+
+The byte convention also fragments the pack implausibly — 39 used/free transitions
+against 17 — producing 8-block-aligned holes that are artefacts of the swap rather than
+real allocation.
+
+**Consequence of the bug:** free-page search returned pages SINTRAN had already
+allocated, so writing to a real pack would overwrite live file data. Reading was
+unaffected, which is why `list`/`extract` always looked correct.
+
+**Lesson for this document set:** a "VERIFIED" tag is only as good as whether the check
+could have failed. Popcount against a byte-swap is a check that cannot fail. Prefer
+invariants that are asymmetric — compared against something the codebase did not itself
+produce.
 
 ---
 
@@ -81,7 +154,12 @@ free pages            = 38400 - 14277 = 24123
 ```
 
 `ndtool -i SMD0.IMG` reports **Total 38400 / Used 14277 / Free 24123** - an exact
-match. The bitmap is the authoritative free-space map (not the master block's
+match.
+
+> **This is a COUNT check and nothing more.** It confirms the same number of bits is set,
+> which is true under any permutation of them - it is invariant under the byte-swap that
+> section 2 corrects, and `ndtool` is not an independent reader in any case. Useful for
+> spotting a lost or duplicated page; useless for bit ORDER. The bitmap is the authoritative free-space map (not the master block's
 `unreserved_pages`, which reads 11428 on this disk). **VERIFIED.**
 
 The first byte that is not `0xFF` is at byte index **1564** (value `0x03`),
@@ -136,12 +214,29 @@ is **OPEN**.
 |--------|-------|---------|
 | Location | contiguous, first page from `bit_file_ptr` (18468 on PACK-ONE) | VERIFIED |
 | Unit | 1 bit / page, `0`=free `1`=used | VERIFIED |
-| Bit order | LSB-first per byte; page 0 = byte0 bit0 | VERIFIED |
-| Span | `ceil(total_pages / 8)` bytes (4800 on PACK-ONE) | VERIFIED |
+| Bit order | **16-bit WORD addressed**: page N = bit `N%16` of word `N/16`, LSB-first. On the byte array: byte `(N>>3)^1`, bit `N&7` — so **page 0 is byte 1**, not byte 0. | VERIFIED (ND-30.003.007 F.2 + 3 real media — see section 2) |
+| Span | `ceil(total_pages / 8)` bytes **rounded up to a whole 16-bit word** (4800 on PACK-ONE; 78 not 77 on a 616-page floppy) | VERIFIED |
 | Reserved | blocks 0-6, first alloc = 7 | VERIFIED (NDFS + bytes) / INFERRED in carved allocator |
 | Alloc direction | upward (NDFS) vs highest-range (manual) | OPEN-Q3 |
 
-**Provenance:** real bytes `SMD0.IMG` (bitmap popcount = `ndtool` used/free);
-reader `bit_file.c`/`.h`; cross-reader `ndtool -i`; producer `006-S3FS`
-`GPAGE`/`ALPAG`/`RLPAG`.
+**Provenance:** ND-30.003.007 EN appendix F.2 (`PAGE = BLOCK*400B + WORD*20B + BIT`, where
+`20B` = 16) and the identical formula in the Norwegian edition ND-30.003.7 NO; SINTRAN's own
+allocator `TPAGF` 51043B (`SHA ZIN SHR 4` = page/16); and the file-data-versus-free invariant
+measured on three genuine ND media (`BIGDISK0-L.IMG`, `210319H02-XX-01D.img`,
+`Nd-210523I01-XX-01D.img`) — **0** contradictions under this reading, 32/4/3 under the
+discredited byte reading. Producer `006-S3FS` `GPAGE`/`ALPAG`/`RLPAG`.
+
+**NOT provenance, and why it must not be cited again:** this footer previously read
+*"real bytes `SMD0.IMG` (bitmap popcount = `ndtool` used/free) … cross-reader `ndtool -i`"*.
+Neither item is evidence for a bit ORDER.
+
+- **Popcount is invariant under byte-swapping.** It returns the identical number whichever
+  convention is correct, so it could never have failed — yet it was the basis for the
+  VERIFIED tag that stood here for months.
+- **`ndtool` is not an independent cross-reader.** It links the very library whose
+  `bit_file.c` is cited as "the reader" (`ndfs-c/CMakeLists.txt`:
+  `target_link_libraries(ndtool ndfs)`), so it cannot disagree with it. "`ndtool` agrees" is
+  a restatement, not a check.
+
+Evidence for an ordering claim must be something that changes when the ordering changes.
 </content>

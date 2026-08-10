@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 
+using NDInsight.Sintran.Xmsg;
 using NDInsight.Sintran.Xmsg.Hdlc;
 
 namespace NDInsight.Sintran.Xmsg.Live
@@ -61,27 +62,84 @@ namespace NDInsight.Sintran.Xmsg.Live
         /// <summary>
         /// Maximum information-field length; a longer received I-field is FRMR reason Y (spec 2.3.2).
         /// </summary>
-        public const int MaxInformationLength = 312;
+        /// <remarks>
+        /// <para><b>RAISED 2026-08-05 from 312, which would have rejected real traffic</b></para>
+        /// Requirement A5 in <c>DOC\LAPB-REQUIREMENTS.md</c> says 312, and the same document names
+        /// the recorded captures as its source of truth. Measured over all 33 of them - 3673
+        /// information frames:
+        /// <code>
+        /// largest info field    622
+        /// over the stated 312   452
+        /// size bands   0:3041  100:132  200:48  400:226  600:226
+        /// </code>
+        /// The 226/226 pairing is the point: those are the fragment pairs of a segmented message -
+        /// a 622-byte first fragment and its continuation - and they occur in exactly the four
+        /// transfer captures and nowhere else. Every other class of traffic (file access, listing,
+        /// TAD, routing) tops out at 292, well inside the old limit.
+        /// <para><b>So 312 held for everything except file CONTENT</b></para>
+        /// Which is the one thing that has to be fragmented in the first place. At 312 we could
+        /// SEND a file and not receive one: all 452 of those frames would have been answered with
+        /// an FRMR instead of being delivered.
+        /// <para><b>Why this exact value, and why it is not a guess</b></para>
+        /// It is DERIVED, not observed. A first fragment carries the full 28-byte addressing head
+        /// and a fixed <see cref="SintranMessageFragment.FirstFragmentBodyLength"/> of body, so
+        /// 594 + 28 = 622 is the largest frame the fragmentation scheme can produce - which is
+        /// exactly the largest ever recorded. A continuation is shorter (it carries no sub-header),
+        /// and an unfragmented frame is shorter still by definition.
+        /// <para><b>RESOLVED 2026-08-07: the spec's 312 is in WORDS</b></para>
+        /// ND's own generation-variable file <c>XMSG-SYS-DEF-L.SYMB</c> defines
+        /// <code>
+        /// X4FSO, Maximum frame size in words (output)________________(old: 312):312
+        /// </code>
+        /// 312 WORDS is 624 bytes. So the number in the LAPB spec is almost certainly this
+        /// variable, and reading it as 312 BYTES is what made 452 recorded frames look illegal.
+        /// Under the word reading there was never a conflict: the largest frame ever recorded is
+        /// 622 bytes, comfortably inside 624, and the derived value above needs no change.
+        /// <para>
+        /// CONFIRMED ON THE LIVE MACHINE 2026-08-07: <c>LIST-GENERATION-VARIABLES</c> on D100
+        /// reports a SECOND frame-size variable that the generation file does not carry -
+        /// <c>X3FSZ, Maximum frame size in words (input) = 312</c>, the counterpart to
+        /// <c>X4FSO</c> (output). Two independent limits, both stated in WORDS, both 312, one per
+        /// direction. There is no reading left in which a bare "312" is a byte count.
+        /// </para>
+        /// <para>
+        /// One question remains and it is now the only one: both variables say "frame", while
+        /// requirement A5 bounds the INFORMATION FIELD. If they bound the whole frame the info
+        /// limit is 624 less address, control and FCS - about 620, under the 622 observed. So
+        /// either they bound the info field, or the LAPB number is a different limit sharing the
+        /// value. Settling it needs the ND LAPB spec read against these two, not another capture.
+        /// </para>
+        /// <para>
+        /// The spec at <c>docs/lapb-nd-spec.md</c> in the X25Emulator repo still says a bare 312
+        /// with no unit. Measured by <c>LapbInformationLengthTests</c>.
+        /// </para>
+        /// </remarks>
+        public const int MaxInformationLength =
+            SintranMessageFragment.FirstFragmentBodyLength + SintranMessageFragment.FirstFragmentBodyOffset;
 
         // Unnumbered control base patterns (P/F bit 0x10 cleared), spec 2.2.3.
-        private const byte SabmBase = 0x2F;
-        private const byte DiscBase = 0x43;
-        private const byte UaBase = 0x63;
-        private const byte DmBase = 0x0F;
-        private const byte FrmrBase = 0x87;
+        // The U-frame bases, S-frame nibbles and the poll/final bit USED TO BE DECLARED HERE, and
+        // again as bare literals in Xmsg.Hdlc\LapbFrame.cs - the parse side. Two independent copies
+        // of the same wire numbers is how a builder and a parser drift apart, so they now live once
+        // in LapbControl, in the lower project that both halves reference.
+        private const byte SabmBase = LapbControl.SabmBase;
+        private const byte DiscBase = LapbControl.DiscBase;
+        private const byte UaBase = LapbControl.UaBase;
+        private const byte DmBase = LapbControl.DmBase;
+        private const byte FrmrBase = LapbControl.FrmrBase;
 
-        // Supervisory low-nibble subtypes, spec 2.2.2.
-        private const byte RrNibble = 0x01;
-        private const byte RnrNibble = 0x05;
-        private const byte RejNibble = 0x09;
+        private const byte RrNibble = LapbControl.RrNibble;
+        private const byte RnrNibble = LapbControl.RnrNibble;
+        private const byte RejNibble = LapbControl.RejNibble;
 
-        // The poll/final bit shared by all frame families (spec 2.2).
-        private const byte PollFinalBit = 0x10;
+        private const byte PollFinalBit = LapbControl.PollFinalBit;
 
-        // FRMR reason bits (spec 2.3.3), OR-combined into the diagnostic's third byte.
-        private const byte FrmrReasonW = 0x01;   // control field invalid / not implemented
-        private const byte FrmrReasonY = 0x04;   // I-field length exceeded the maximum
-        private const byte FrmrReasonZ = 0x08;   // N(R) invalid (outside [V(A), V(S)])
+        // FRMR reason bits (spec 2.3.3), OR-combined into the diagnostic's third byte. Typed as
+        // LapbFrmrReason in LapbControl.cs; these aliases keep the existing call sites readable.
+        // The gap at 0x02 is reason X, which we neither send nor recognise - see that enum.
+        private const byte FrmrReasonW = (byte)LapbFrmrReason.ControlFieldInvalid;
+        private const byte FrmrReasonY = (byte)LapbFrmrReason.InformationFieldTooLong;
+        private const byte FrmrReasonZ = (byte)LapbFrmrReason.ReceiveSequenceInvalid;
 
         private readonly ushort _ownNode;
         private readonly LapbOptions _options;

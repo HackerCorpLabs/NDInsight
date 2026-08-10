@@ -25,6 +25,16 @@
 
 ---
 
+## Installing MAC
+
+MAC (both 48-bit and 32-bit floating-point builds) ships as part of **Subsystem Package II**
+(`ND-210400`), Norsk Data's standard developer-tools bundle for SINTRAN III. Install that
+product first if MAC is not already on the system — full procedure (floppy, prerequisites, the
+`@DUMP-REENTRANT` addresses for every module, and how to keep it loaded across a cold start) is
+in [ND-210400B — Subsystem Package II, version B](../../../Installation/Software/ND-210400/ND-210400B/README.md).
+
+---
+
 ## 1. Introduction
 
 ### 1.1 What is MAC?

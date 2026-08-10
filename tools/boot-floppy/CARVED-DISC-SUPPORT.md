@@ -213,7 +213,7 @@ Raw first entry, `101-S3DNAM.bin` byte 0, address `164000B`:
 | 10 | `001000` | `1000B` disc, `400B` floppy, `1B` mag tape — **[VERIFIED]** |
 | 11 | `002001` | unit / target selector (SCSI targets 1..8 = `2021`…`2027`,`2020`) — **[VERIFIED]** |
 | 12 | `030346` | = symbol `BABST=030346` (`SYMBOLS\L07\FILSYS-SYMBOLS.SYMB.TXT`) — **[VERIFIED]** |
-| 13 | `000515` | constant, disc class — **[VERIFIED]** |
+| 13 | `000515` | **[NOT DECODED]** - one observed value cannot establish a label; section 8 of this file lists words 12/13 as uncarved. To settle: tabulate word 13 across all 268 entries and show it partitions by device family, as was done for word 14 in section 2A.4 |
 | 14 | `001100` | **LOGICAL DEVICE NUMBER** — **[VERIFIED, see 2A.4]** |
 | 16 | `031140` | **pointer to the `DTxxx` geometry record** — `031140B` = `DT037` in §1.3 — **[VERIFIED]** |
 
@@ -501,14 +501,66 @@ whole-segment disassembly
 `INQUI` at `062613B` (L07 `SYMBOL-2-LIST`, +376B revision offset, already
 established in `re\kernel-carving\SCSI-DISKLAYER-COMPLETE\README.md`).
 
-**INQUIRY, 8-byte allocation length [VERIFIED]:**
+**INQUIRY, 8-byte allocation length [VERIFIED — full CDB build, re-carved 2026-08-02]:**
 
-| addr | word | meaning |
-|---|---|---|
-| `062621` | `044073` | `LDA 73` → P-rel `062714` |
-| `062714` | `011000` | the CDB word = **`0x1200` = opcode 0x12 INQUIRY** |
-| `062624` | `170404` | `SAA 4` |
-| `062625` | `156411` | `SHA ZIN 11` → A = 4<<9 = `04000B` = **allocation length 8** |
+The whole sequence, from `065-S3SIPIT.asm`:
+
+```
+062617  050442   LDT ,B 42       ; T := SMBP1
+062620  054443   LDX ,B 43       ; X := SMBP2  -> phys addr of the command buffer
+062621  044073   LDA 73          ; A := (062621+73) = 062714
+062622  143304   STATX           ; -> command word 0
+062623  143315   STZTX 1         ; -> command word 1 = 0
+062624  170404   SAA 4
+062625  156411   SHA ZIN 11      ; A := 4<<9 = 04000B = 0x0800
+062626  143324   STATX 2         ; -> command word 2
+062627  143335   STZTX 3
+062630  143345   STZTX 4
+062631  143355   STZTX 5
+062714  011000   (data word)     ; 0x1200
+```
+
+giving CDB words `w0=0x1200, w1=0, w2=0x0800, w3..w5=0`.
+
+**The byte lane is proved, not assumed.** Word 0 is `0x1200` and the INQUIRY opcode `0x12`
+must be CDB byte 0, so byte 0 is the **high** byte of each word. Confirmed independently by
+REQUEST SENSE in the same driver, which ORs the LUN into the **low** byte of word 0:
+
+```
+063351  170407   SAA 7
+063352  070400   AND ,B 0        ; A := 7 /\ SUDLU   (the LUN)
+063353  156405   SHA ZIN 5       ; LUN << 5
+063354  074076   ORA 76          ; \/ 1400B = 0x0300  (opcode 0x03 in the HIGH byte)
+063355  143304   STATX           ; -> command word 0
+```
+
+`LUN<<5` lands in bits 5-7 of the low byte = SCSI byte 1 bits 5-7, exactly where the LUN
+belongs. So word 2 = `0x0800` puts **byte 4 = 0x08**, byte 5 = 0x00.
+
+**The 6-byte CDB is `12 00 00 00 08 00` — allocation length 8.** `0x0800` was never a length;
+it is `SINBL(4 words) x 2 bytes x 256 (into the high byte lane)`, and `SHZ 11` (`<<9`) applies
+both scalings at once.
+
+**Independently corroborated by the DMA byte count**, which is a literal 8:
+
+```
+063367  000000   (data) SUEBC high word = 0
+063370  000010   (data) SUEBC low  word = 8      ; SINBL@1 = 4<<1
+063376  024371   LDD -7          ; load the double (0, 8)
+063377  020403   STD ,B 3        ; =: SUIBC (byte count) = 8
+```
+
+Symbols: `SINBL=000004`, `SINBS=000070`, `SMBP1=000042`, `SMBP2=000043` (L07
+`SYMBOL-1-LIST.SYMB.TXT`).
+
+> **Why the previous citation was not enough.** This block used to quote only `062624`/`062625`
+> and jump from "A = `04000B`" to "allocation length 8". Those two words show only that A
+> becomes 2048; the step to a *field* value of 8 is a byte-lane claim that was never
+> demonstrated. The conclusion happened to be right, but nothing shown could have detected it
+> being wrong — and `SCSI-DEVICE-STRINGS.md` section 5.3 leans on it to argue that SINTRAN
+> **structurally cannot** hold SCSI vendor/product strings. That conclusion now rests on two
+> independent constants (CDB allocation length **and** DMA byte count, both 8) rather than on
+> an assumed lane.
 
 **Device-type dispatch [VERIFIED bytes, SCSI meanings INFERRED]:**
 
@@ -672,7 +724,7 @@ disassembly `re\segments-ref\006-S3FS\006-S3FS.asm`.
 * **The only size check [VERIFIED]** — `137563-137575`: 32-bit compare of
   `bit_start` against the declared page count; on failure `170500 SAA 100`
   (error code `100B`) and `124123 JMP` to the error return.
-* **NO MAXIMUM DISC SIZE IS ENFORCED.** An exhaustive read of `ALBIT`
+* **NO MAXIMUM DISC SIZE IS ENFORCED IN `ALBIT` OR `CRDIR`.** [scope corrected 2026-08-02 - the exhaustive read covers those two routines (~370 words), not the kernel. A ceiling enforced by a caller, by `GSIZE`, by `DEFINE-MASS-STORAGE-UNIT` or on the disc-layout path would leave both looking exactly as read. Absence in two routines is not absence in SINTRAN.] An exhaustive read of `ALBIT`
   (`137500B..137730B`) and `CRDIR` (`136741B..137477B`) finds no comparison of
   the page count against any ceiling constant. **[VERIFIED by exhaustive read]**
   The only implicit ceiling is structural: the bitmap-page count is kept in the
@@ -754,9 +806,33 @@ L `003-S3CP.bin`, `116734B`…`117406B`. Disc-relevant subcommands:
 Version deltas: K has **no** `RESERVE-DEVICE`/`RELEASE-DEVICE` here;
 **M adds `FORMAT-TRACK`** at `125622B`. **[VERIFIED]**
 
-`DUMP-BOOTSTRAP` — the subcommand that writes the boot block to the disc —
-is at K `153367B`, L `117361B`, M `125575B`. **[VERIFIED]** This is the
-mechanism that writes the disc boot area; `@CREATE-DIRECTORY` does not (§5).
+`DUMP-BOOTSTRAP` exists as a subcommand at K `153367B`, L `117361B`, M `125575B`.
+**[VERIFIED — the name-table entry and handler address]**
+
+~~This is the mechanism that writes the disc boot area; `@CREATE-DIRECTORY` does not (§5).~~
+**[DEMOTED TO INFERRED 2026-08-02 — and contradicted.]**
+
+A name-table entry proves the subcommand exists and where its handler starts. It says nothing
+about what the handler writes, or which device classes it accepts. The competing reading —
+that `DUMP-BOOTSTRAP` is **floppy-only**, and a hard-disc page 0 is authored by the cold-start
+kernel routine in `PH-P2-OPPSTART.NPL` (`FILL2`/`PL011`) — produces the identical name-table
+entry at the identical address. The cited evidence cannot separate them.
+
+Two sources point the other way:
+
+- `DISC-BOOTSTRAP.md` lines 454-456.
+- `ND-60.128.5` p.97: **"Allowed only on floppy disk"**.
+
+`DOC-AUDIT.md` (lines 42, 86-105, edit #5 at 174-176) already ruled that
+`DISC-BOOTSTRAP.md` is the better-supported document and recommended this demotion. The edit
+was never applied; it is applied now.
+
+**Why it matters:** acting on the original sentence would point a boot-block writer at a hard
+disc pack.
+
+**To settle it:** carve the handler at L `117361B` (base `30000B`) and look for a device-class
+parameter and a `MOVNP`/`CRDISC` page-0 write — the check `FIRST-BOOT.md` lines 256-260
+already proposes.
 
 ### 6.3 The canned cold-start `ENTER-DIRECTORY` line **[VERIFIED]**
 
@@ -827,7 +903,17 @@ switches of each build (K 687, L 732, M 914 marks). Example raw line
 
 `8SCS2` existing only in L matches symbol `SCSI2` existing only in L07 —
 **this particular L machine was generated with two SCSI controllers; the K and
-M machines with one.** **[VERIFIED]**
+M machines with one.** **[INFERRED — downgraded 2026-08-02]**
+
+> A conditional-assembly mark EXISTING in a build's mark list is not the same as the mark
+> being SET, and neither is the same as a controller COUNT. "The L build defines a
+> second-controller mark that is not enabled", or "the mark gates a driver variant rather
+> than an instance", produce the identical symbol-table difference. Section 4.5 also counts
+> **10** SCSI unit datafields in L against 9 in K, which is not a 2:1 ratio.
+>
+> **To settle it:** the LIBRARY-MARKS line format carries a value (`176000/^8SCSI %000004`) —
+> read `8SCS2`'s value and compare against a mark known to be off; or count SCSI CONTROLLER
+> datafields (those adjacent to `SCINT`) rather than unit datafields.
 
 ### 6.7 Version deltas that matter for disc support **[VERIFIED]**
 

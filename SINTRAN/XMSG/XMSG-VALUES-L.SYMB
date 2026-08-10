@@ -1,0 +1,387 @@
+                  
+%=========================  XMSG version L  ===============  87.01.05  ========
+%
+%    XMSG-VALUES:SYMB  Defines the values for symbolic names for XMSG
+%    ----------------  functions, XROUT services and error codes.
+%
+%==============================================================================
+
+@DEC
+% =*=*=*= Warning: This file is now in DECIMAL to keep PLANC happy! =*=*=*=
+
+%-------------------------------------------------------------------------------
+%       X M S G   -   F U N C T I O N   V A L U E S
+%-------------------------------------------------------------------------------
+
+SYMBOL XFDUM=0     % Dummy function
+SYMBOL XFDCT=1     % Disconnect from message system
+SYMBOL XFGET=2     % Get message space
+SYMBOL XFREL=3     % Release message space
+SYMBOL XFRHD=4     % Read header from a message (6 bytes)
+SYMBOL XFWHD=5     % Write header to a message (6 bytes)
+SYMBOL XFREA=6     % Read from message to user buffer
+SYMBOL XFWRI=7     % Write from user to message
+SYMBOL XFSCM=8     % Set current message
+SYMBOL XFMST=9     % Get message status
+SYMBOL XFOPN=10    % Open port
+SYMBOL XFCLS=11    % Close port
+SYMBOL XFSND=12    % Send message to a remote port
+SYMBOL XFRCV=13    % Receive a message on a given port
+SYMBOL XFPST=14    % Get local port status
+SYMBOL XFGST=15    % General status or wait
+SYMBOL XFSIN=16    % Service initialisation function (privileged)
+SYMBOL XFSRL=17    % Service release function (obsolete)
+SYMBOL XFABR=18    % Absolute read block from XMSG area (privileged)
+SYMBOL XFABW=19    % Absolute write block to XMSG area (obsolete)
+SYMBOL XFMLK=20    % Lock message system (obsolete)
+SYMBOL XFMUL=21    % Unlock message system (obsolete)
+SYMBOL XFM2P=22    % Magic number to system number and port id.
+SYMBOL XFP2M=23    % Port to magic number
+SYMBOL XFRIN=24    % Routing initialise (obsolete)
+SYMBOL XFCRD=25    % Create driver with context (privileged)
+SYMBOL XFSTD=26    % Start driver (privileged)
+SYMBOL XFDIB=27    % Define indirect buffer (obsolete)
+SYMBOL XFRIB=28    % Read from indirect buffer (obsolete)
+SYMBOL XFWIB=29    % Write to indirect buffer (obsolete)
+SYMBOL XFPRV=30    % Request privilege
+SYMBOL XFRTN=31    % Write word 0 and return message
+SYMBOL XFRRH=32    % Receive message and read word 0
+SYMBOL XFDUB=33    % Define user buffer area for current message (privileged)
+SYMBOL XFWDF=34    % Define wake-up context (drivers only!)
+SYMBOL XFDBK=35    % Define bank no (drivers only)
+SYMBOL XFSMC=36    % Start multi-function call
+SYMBOL XFDMM=37    % Define max memory for a task (privileged)
+SYMBOL XFALM=38    % Allocate messages to a task
+SYMBOL XFFRM=39    % Free allocated messages
+SYMBOL XFLMP=40    % List messages and ports
+SYMBOL XFRRE=41    % Receive and read message
+SYMBOL XFCPV=42    % Check system and/or user privileges
+SYMBOL XFWRT=43    % Write and return message
+SYMBOL XFMRT=44    % Modify routing tables (privileged - COSROUT only!)
+SYMBOL XFSFM=45    % Send message via specified link/netserver (priv - COSROUT only!)
+SYMBOL XFCRR=46    % Cosrout receive and read message (priv - COSROUT only!)
+SYMBOL XFGSM=47    % General status multiple or wait
+SYMBOL X5FUN=48    % == END MARKER == LEAVE ME HERE PLEASE
+
+%--------------------------------------------------------
+% Bit values (options) in function code register (T-reg)
+%--------------------------------------------------------
+
+SYMBOL XFWTF=15  % If set then wait if operation not terminated.
+SYMBOL XFWAK=14  % In XFRCV/PST/GST/RRH/RRE: Wake up task on status change.
+%      XFPRM=13  % In XFOPN: Permanent open requested (Obsolete).
+%      XFOPS=12  % In XFOPN: Specified port number required (not implemented).
+SYMBOL XFPON=13  % In XFSTD: Driver to run with paging on.
+%      XFWOK=13  % In XFDIB: Allow write access to indirect buffer (Obsolete).
+%      XFUSG=13  % In XFREA/WRI: Use the user segno def by XFDUS/XFDBK (not impl.).
+SYMBOL XFHIP=13  % In XFSND/RTN/WRT/SFM: If not XFROU then high-priority message
+                 % In XFPST/GST: If no high-priority message is waiting,
+                 %                 wake up task on status change.
+SYMBOL XFRRO=13  % In XFSND: If XFROU then non-local XROUT (sysno in A-reg).
+SYMBOL XFEXC=13  % In XFALM/GET: Allocate/reserve exclusive message buffer(s).
+                 % In XFFRM: Free exclusively allocated buffer(s).
+SYMBOL XFRES=12  % In XFWRI: Reset message length to 0 before data is written.
+                 % In XFWRT: Reset message length and displacement to 0
+                 %           before data is written.
+SYMBOL XFRMR=12  % In XFRRE: Release the message if the last byte is read.
+SYMBOL XFBNC=12  % In XFSND/RTN/WRT: Bounce message.
+SYMBOL XFFWD=11  % In XFSND/RTN/WRT/SFM: Forward message.
+SYMBOL XFROU=10  % In XFSND: Message to be sent to XROUT (see XFRRO).
+SYMBOL XFRDI=10  % In XFWRT: Reset the current message displacement to 0.
+SYMBOL XFSEC=9   % In XFSND/RTN/WRT: Secure message (Return if not deliv'd).
+SYMBOL XFTCM=8   % In XFSND/SFM: Send task current message
+% == Warning: bits 8,9,10,11,12,13,14 (decimal) are used for bank no in XFABR ==
+SYMBOL XFSYS=7   % Bit set to indicate system mode call (system domain).
+
+%-----------------------------------------------------
+% Function codes when calling DRXMSG from drivers
+%-----------------------------------------------------
+
+SYMBOL XDINF=1     % Get message info
+SYMBOL XDSBP=2     % Set byte pointer
+SYMBOL XDPUS=3     % Put byte sequential
+SYMBOL XDPUR=4     % Put byte random
+SYMBOL XDGES=5     % Get byte sequential
+SYMBOL XDGER=6     % Get byte random
+
+%---------------------------------------------------------------------------
+% Message types: Returned as successfull status from XFRCV (nb: max 4 bits)
+%---------------------------------------------------------------------------
+
+SYMBOL XMTNO=1     % Normal message
+SYMBOL XMROU=2     % Routed message (Via XROUT)
+SYMBOL XMTHI=3     % High priority message
+SYMBOL XMTRE=4     % Return message (Abnormal condition)
+SYMBOL XMKIK=5     % XROUT has been kicked (no message)
+SYMBOL XMTPS=6     % Pseudo message (not used)
+
+%-------------------------------------------------------------------------------
+%      X M S G    U S E R    E R R O R    S Y M B O L S
+%      Returned in T-register
+%-------------------------------------------------------------------------------
+
+SYMBOL XKXXX=16896 % Base for standard error system (41000B)
+SYMBOL XENOT= -1   % No more XT-blocks free
+SYMBOL XEIRM= -2   % Non-local remote port illegal here
+SYMBOL XENIR= -3   % Network layer initialization reject (purely internal)
+SYMBOL XETMM= -4   % Task is not allowed any more memory
+SYMBOL XENIM= -5   % Facility not yet implemented
+SYMBOL XEIBP= -6   % Illegal message buffer pointer
+SYMBOL XEBNY= -7   % Message buffer not yours
+SYMBOL XEIRT= -8   % Illegal function for RT-programs (only drivers)
+SYMBOL XENOP= -9   % No more ports available
+SYMBOL XEIDR= -10  % Function not available to drivers
+SYMBOL XENDM= -11  % No default message
+SYMBOL XEMCH= -12  % Message is already chained
+SYMBOL XEBFC= -13  % Message is in a queue.
+SYMBOL XEAIN= -14  % XMSG Kernel already initialised
+SYMBOL XEBNC= -15  % Return of a bounce message
+SYMBOL XEWNA= -16  % Write Not Allowed (Indirect buffer)
+SYMBOL XENVI= -17  % No Valid Indirect buffer defined
+SYMBOL XEILF= -18  % Illegal function code
+SYMBOL XEIMA= -19  % Invalid magic number
+SYMBOL XEMFL= -20  % Message space full or buffer not available
+SYMBOL XEILM= -21  % Illegal message size or not enough space left
+SYMBOL XEIPN= -22  % Illegal port number
+SYMBOL XEPRV= -23  % Privileged function called without privilege.
+SYMBOL XEPVR= -24  % Privilege request refused
+SYMBOL XERNA= -25  % Remote system not available
+SYMBOL XEROV= -26  % Remote task space overflow
+SYMBOL XEXBF= -27  % Message already has XMSG buffer (XFDUB)
+SYMBOL XEDRI= -28  % Driver called XMSG before return from previous
+SYMBOL XENDP= -29  % No port open (so 'default port' param invalid)
+SYMBOL XEITL= -30  % Illegal transfer length for read/write
+SYMBOL XEIDP= -31  % Illegal displacement in read/write
+SYMBOL XEILR= -32  % Illegal use of reentrant segment in XFDIB
+SYMBOL XENOS= -33  % Indirect Buffer not on valid segment
+SYMBOL XENSE= -34  % Network sequencing error (purely internal significance)
+SYMBOL XERND= -35  % Remote system not defined
+SYMBOL XEPCL= -36  % Remote port closed while message queued
+SYMBOL XENRU= -37  % XMSG not running === do not move - used in SINTRAN ===
+SYMBOL XENTO= -38  % Timeout detected by network layer
+SYMBOL XENUS= -39  % No user segment info defined (XFUSG option)
+SYMBOL XEREJ= -40  % Network remote reject (request retransmit)
+SYMBOL XEIXT= -41  % Driver called XMSG with illegal XT-block
+SYMBOL XETMU= -42  % Too many multi-call functions
+SYMBOL XENCE= -43  % Network checksum error (purely internal significance)
+SYMBOL XEICM= -44  % Function not available to tasks other than COSROUT
+SYMBOL XECRA= -63  % XMSG crash (Info in Basefield)
+
+%-------------------------------------------------------------------------------
+%       X R O U T   -   S E R V I C E    V A L U E S
+%       Values in byte 1 of message. Bit 6 is set => service request
+%-------------------------------------------------------------------------------
+
+SYMBOL XSNUL=64    % Null command returns 0 status to sender
+SYMBOL XSLET=65    % Send a letter
+SYMBOL XSNAM=66    % Give name to this port
+SYMBOL XSCNM=67    % Clear name of this port
+SYMBOL XSGNM=68    % Get name of port (param: MAGNO)
+SYMBOL XSGNI=69    % Get name (param: MC/PORTNO)
+SYMBOL XSGMG=71    % Get magic number from name (privileged)
+SYMBOL XSDRN=73    % Define remote name (privileged)
+SYMBOL XSDSY=74    % Define routing for system N (privileged)
+SYMBOL XSDMC=XSDSY % Define routing for system N  - old symbol
+SYMBOL XSGSY=75    % Get routing info for system N
+SYMBOL XSGMC=XSGSY % Get routing info for system N - old symbol
+SYMBOL XSLKI=76    % Start up specified link (privileged)
+SYMBOL XSTIN=77    % Initialise tracing (open file, ..) (privileged)
+SYMBOL XSTCL=78    % Close tracing (privileged)
+SYMBOL XSTDC=79    % Define tracing conditions (privileged)
+SYMBOL XSCRS=80    % Create service (name, init no of SP's)
+SYMBOL XSNSP=81    % New service point(s) (increment/decrement in SP's)
+SYMBOL XSGIN=82    % Get information about name
+SYMBOL XSDLO=83    % Define local system (privileged)
+SYMBOL XSLEK=84    % Send letter and kick if unavailable (privileged)
+                   % When COSROUT is running: XSLEK is not available
+SYMBOL XSNET=85    % Start/stop gateway (network server) (privileged)
+SYMBOL XSSCI=86    % Set crash information (privileged)
+SYMBOL XSGAT=87    % Get/check attribute
+SYMBOL XSDAT=88    % Define/remove attribute (privileged)
+SYMBOL XSNSI=89    % Get network server information (privileged)
+SYMBOL XSLIN=90    % Get information about a link (privileged)
+SYMBOL XSPIN=91    % Get information about named ports
+SYMBOL XSLSY=92    % Get information about a system (privileged)
+SYMBOL XSGSU=93    % Get info about system utilization (privileged)
+SYMBOL XSCRM=94    % Start/stop Cosmos routing manager (priv - COSROUT only!)
+SYMBOL XSGLI=95    % Get information from link tables (priv - COSROUT only!)
+SYMBOL XSGSG=96    % Get info about system generation variables (privileged)
+SYMBOL XSMAX=XSGSG % Maximum legal service value
+
+%-----------------------------------------------
+% XROUT sub-service values in parameter 1.
+% (Definitions for XSSCI, XSGAT and XSDAT.)
+%-----------------------------------------------
+
+%
+% Sub-service definitions for XSSCI (privileged)
+%
+SYMBOL XSDAR=1     % Enable/disable auto-restart of XMSG
+SYMBOL XSDRF=2     % Define/remove restart-files
+SYMBOL XSDDF=3     % Define/remove dump-files
+SYMBOL XSGDF=4     % Get defined dump-files
+SYMBOL XSDUX=5     % Dump XMSG onto files
+SYMBOL XSGRF=6     % Get defined restart-files
+SYMBOL XSGAR=7     % Get auto-restart definition
+%
+% Sub-service definitions for XSGAT
+%
+SYMBOL XSGXV=1     % Get XMSG version and revision
+SYMBOL XSCMG=2     % Check magic number
+SYMBOL XSGCN=3     % Get complete system or port name (deabbreviate name)
+SYMBOL XSGFR=4     % Get friend information (privileged!)
+SYMBOL XSGLO=5     % Get local system number and name
+%
+% Sub-service definitions for XSDAT (privileged)
+%
+SYMBOL XSDFR=1     % Define friend system
+SYMBOL XSRFR=2     % Remove friend system
+SYMBOL XSECS=3     % Enable checksum
+SYMBOL XSDCS=4     % Disable checksum
+SYMBOL XSDAL=5     % Define alternative link
+SYMBOL XSSRT=6     % Set route through flag
+
+%-------------------------------------------------------------------------------
+%      X R O U T  /  N E T W O R K    S E R V E R   -    E R R O R S
+%      Error values returned in byte 1 of return message (Bit 6 reset)
+%-------------------------------------------------------------------------------
+
+SYMBOL XRXXX=16960 % Base for XROUT errors: 41100B
+SYMBOL XRSOK=0     % OK - not an error!
+SYMBOL XRISN=1     % Illegal service number
+SYMBOL XRUNN=2     % Unknown name (of server or system)
+SYMBOL XRDDF=3     % Another port already has this name
+SYMBOL XRNSP=4     % No space left for names
+SYMBOL XRIPT=5     % Illegal parameter type
+SYMBOL XRMMP=6     % Missing mandatory parameter
+SYMBOL XRUNM=7     % Unknown magic number
+SYMBOL XRMTL=8     % Too short message or resulting message too long
+SYMBOL XRSMF=9     % Standard message format not handled
+SYMBOL XRPRV=10    % Caller was not privileged
+SYMBOL XRISY=11    % Illegal system number parameter
+SYMBOL XRNRO=12    % No access to remote system
+SYMBOL XRIIV=13    % Illegal integer value
+SYMBOL XRNEI=14    % Cannot define route to a neighbour
+SYMBOL XRNXM=15    % Invalid service request - not available to current caller
+SYMBOL XRILN=16    % Illegal/Reserved Logical Unit Number (LUN) for link
+SYMBOL XRNXL=17    % No more Link Descriptors (XL-blocks) for start-link/netserver
+SYMBOL XRNXD=18    % Not enough resources (XD/XF/XM-Blocks) for start-link/netserver
+SYMBOL XRNTR=19    % No trace generated (no trace buffer available)'
+SYMBOL XRTRA=20    % Trace already active
+SYMBOL XRTRP=21    % Trace passive
+SYMBOL XRTFE=22    % Trace/dump file open error (see parameter 1)
+SYMBOL XRTRT=23    % Trace RT-prog (XTRACE) not found
+SYMBOL XRTIS=24    % Illegal trace system number
+SYMBOL XRBLK=25    % Bad link - open unsuccessful
+SYMBOL XRSYD=26    % Attempt to redefine local system no
+SYMBOL XRNLS=27    % No local system number defined
+SYMBOL XRTRE=28    % Too many remote names to this system
+SYMBOL XRRNA=29    % Old service calls (<64) cannot go remote
+SYMBOL XRBUS=30    % Service points busy
+SYMBOL XRNSE=31    % This is not a service port
+SYMBOL XRRPN=32    % Remote port statically declared
+SYMBOL XRUKS=33    % Unknown remote system name or number
+SYMBOL XRMFL=34    % Remote system message table space full
+SYMBOL XRROV=35    % Remote task message space used up
+SYMBOL XRRFU=36    % Routing table full (too many systems)
+SYMBOL XRNRB=37    % No remote batch service available
+SYMBOL XRURT=38    % Unknown RT name
+SYMBOL XRSNR=39    % This server is not running
+SYMBOL XRRND=40    % Netserver: remote system is not defined
+SYMBOL XRNNA=41    % Netserver: network not available
+SYMBOL XRISE=42    % Netserver: internal server error
+SYMBOL XRIRQ=43    % Netserver: invalid request
+SYMBOL XRNGA=44    % XMSG not congfigurated with gateway code
+SYMBOL XRRNL=45    % Remote system not on same LAN
+SYMBOL XRNCO=46    % No connection to this system (unknown status)
+SYMBOL XRAMB=47    % Ambiguous name
+SYMBOL XRFFU=48    % Friend system table full (too many friends)
+SYMBOL XRNTA=49    % Netserver: network temporarily not available
+SYMBOL XRMTO=50    % Netserver: message too old
+SYMBOL XRCNR=51    % COSMOS routing manager is not running
+SYMBOL XRICR=52    % COSMOS routing manager is already running
+SYMBOL XRRID=53    % Routing information defined (start/stop inhibited)
+SYMBOL XRIRR=54    % COSMOS routing manager: invalid request
+
+%-------------------------------------------------------------------------------
+%      X M F I D O  -  S T A T U S E S                                     
+%      Returned as parameter 1 in XROUT format letter.
+%-------------------------------------------------------------------------------
+SYMBOL X412B= 17024    % Base for this error range 41200B
+SYMBOL XEFOK= 0        % Ok.
+SYMBOL XEFCL= 0+X412B  % Watched port closed.
+SYMBOL XEFSU= 1+X412B  % System connection up.
+SYMBOL XEFSD= 2+X412B  % System connection down.
+SYMBOL XEFTO= 3+X412B  % Timeout on request. (No answer from remote XMFIDO)
+SYMBOL XEFAR= 4+X412B  % Start service for this port is already requested.
+SYMBOL XEFIP= 5+X412B  % Illegal parameters.
+SYMBOL XEFOV= 6+X412B  % Time parameter outside legal values.
+SYMBOL XEFNP= 7+X412B  % No corresponding port found.
+SYMBOL XEFIE= 8+X412B  % Internal error in XMFIDO.
+SYMBOL XEFLT= 9+X412B  % Local XMFIDO is terminating.
+SYMBOL XEFRT=10+X412B  % Remote XMFIDO has terminated.
+SYMBOL XEFRU=11+X412B  % Table resources used in XMFIDO.
+
+%-------------------------------------------------------------------------------
+%       X M S G / X R O U T    C R A S H    C O D E S
+%       Printed on the system console and saved in Xmsg basefield
+%-------------------------------------------------------------------------------
+
+SYMBOL XXEIE=1     % Illegal port address in the creation of magic number
+SYMBOL XXIOW=2     % Illegal owner of buffer
+SYMBOL XXBIN=3     % Memory allocation inconsistency
+SYMBOL XXMCE=4     % Message queue length inconsistency
+SYMBOL XXIEN=5     % ZRALL gave port not in XQTAB (Not used)
+SYMBOL XXIFL=6     % XROUT: ZFUNC function >X5FUN
+SYMBOL XXIRT=7     % Illegal RT-Description add used (Not used)
+SYMBOL XXNBF=8     % INIT: No Buffer space available (Not used)
+SYMBOL XXRIN=9     % Inconsistency in resource allocation
+SYMBOL XXNMM=10    % More memory released than owned
+SYMBOL XXNIM=11    % Not implemented (Cannot recover) (Not used)
+SYMBOL XXCLS=12    % Inconsistency in port chain when closing
+SYMBOL XXCHE=13    % Double chaining attempted
+SYMBOL XXNOR=14    % No XMSG-RESIDENT found by initialization (Not used)
+SYMBOL XXICM=15    % Inconsistency in XMPRT/XPCMS Pair
+SYMBOL XX100=16    % This can only be done on N100'S (Not used)
+SYMBOL XXMON=17    % Inconsistency in level 5 monitor queues
+SYMBOL XXMMC=18    % Multisystem XMSG not implemented/generated (Not used)
+SYMBOL XXFBI=19    % Frame buffer handling inconsistency
+SYMBOL XXPER=20    % Protocol error in communications system
+SYMBOL XXILN=21    % Illegal LOG NO for HDLC (bad LOGPH) (Not used)
+SYMBOL XXROU=22    % No legal routing (XROUT) port defined
+SYMBOL XXHER=23    % Error in HDLC Driver or interface to it
+SYMBOL XXRO2=24    % XROUT fatal error - see XROUT Basefield
+SYMBOL XXTAS=25    % Task handling (wait,resume) error
+SYMBOL XXMER=26    % Message handling error (kernel-net interface)
+SYMBOL XXNER=27    % Network gateway error
+SYMBOL XXCRM=28    % No legal COSMOS routing manager port defined
+SYMBOL XXRIC=29    % Inconsistency in COSMOS routing manager
+SYMBOL XXNGA=30    % Gateway code not generated (Not used)
+SYMBOL XXRI2=31    % XROUT: Resource inconsistency
+SYMBOL XXINP=32    % XROUT: Releasing invalid name unit
+SYMBOL XXBER=33    % XROUT: Buffer handling error (xb... routines)
+SYMBOL XXRUT=34    % XROUT: Response with no request outstanding (Not used)
+SYMBOL XXNXM=35    % XROUT: No multi-system xmsg - inconsistent! (Not used)
+SYMBOL XXNLD=36    % XROUT: Not loaded correctly with RT loader
+SYMBOL XXUSR=37    % XROUT: Stopped by 'STOP-XMSG' in SINTRAN-SERVICE (Not used)
+SYMBOL XXN10=38    % XROUT: 8X100 library mark set, but this is ND-10 (Not used)
+SYMBOL XXNSG=39    % XROUT: No space available for fixing tables and/or message area
+SYMBOL XXNI2=40    % XROUT: Not yet implemented (Not used)
+SYMBOL XXMIN=41    % XROUT: System / routing table inconsistency
+SYMBOL XXTAI=42    % XROUT: Table allocation inconsistency
+SYMBOL XXWS3=43    % XROUT: Wrong SINTRAN III SYMBOL--LISTs
+SYMBOL XXN33=44    % XROUT: Not enough space for seg 33 (or too big)
+SYMBOL XXVSX=45    % XROUT: PIT3 version must run on S3 version I or later
+SYMBOL XXNCX=46    % XROUT: CX version must run on a ND-100/CX or a ND-110
+SYMBOL XXWSY=47    % XROUT: Not generated for this system
+SYMBOL XXMNL=48    % XROUT: Length of system/port names too long, reduce length of name
+SYMBOL XXILL=50    % XROUT: Not allowed on this system (error from MON CPUST/ENTSG)
+SYMBOL XXKTB=51    % XROUT: Kernel tables are too big, reduce system parameters
+SYMBOL XXNIN=52    % XROUT: XMSG is not initialized to SINTRAN.
+SYMBOL XXNSA=53    % XROUT: Too many systems, reduce max number of systems accessible
+SYMBOL XXNNP=54    % XROUT: Too many named ports, reduce max number of named ports
+SYMBOL XXILG=55    % XROUT: XMSG is not generated correctly
+SYMBOL XXTBT=56    % XROUT: Physical tables are too big (>64K)
+SYMBOL XXTBM=57    % XROUT: Message buffer pool is too big (>256K)
+@OCT
+@DEV 1

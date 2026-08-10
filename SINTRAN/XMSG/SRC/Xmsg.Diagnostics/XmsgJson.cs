@@ -22,7 +22,7 @@ namespace NDInsight.Sintran.Xmsg.Diagnostics
     /// </remarks>
     public static class XmsgJson
     {
-        private static readonly JsonSerializerOptions Options = CreateOptions();
+        private static readonly JsonSerializerOptions s_options = CreateOptions();
 
         /// <summary>
         /// Serialises a frame to an indented JSON string.
@@ -44,7 +44,7 @@ namespace NDInsight.Sintran.Xmsg.Diagnostics
             }
 
             XmsgFrameDto dto = ToDto(frame);
-            return JsonSerializer.Serialize(dto, Options);
+            return JsonSerializer.Serialize(dto, s_options);
         }
 
         /// <summary>
@@ -69,7 +69,7 @@ namespace NDInsight.Sintran.Xmsg.Diagnostics
                 throw new ArgumentNullException(nameof(json));
             }
 
-            XmsgFrameDto? dto = JsonSerializer.Deserialize<XmsgFrameDto>(json, Options);
+            XmsgFrameDto? dto = JsonSerializer.Deserialize<XmsgFrameDto>(json, s_options);
             if (dto == null)
             {
                 throw new FormatException("JSON did not deserialise to a frame.");
@@ -105,18 +105,22 @@ namespace NDInsight.Sintran.Xmsg.Diagnostics
             if (frame.SubHeader != null)
             {
                 XmsgSubHeader sub = frame.SubHeader;
+                // The DTO keeps the historical field names so existing JSON stays readable. They
+                // are COMPUTED from the correct model: Counter is the header checksum's low byte,
+                // and Pad / UserDataLength are body bytes 2 and 3 (wire 30-31).
+                byte[] bodyBytes = frame.GetBodyBytes();
                 dto.SubHeader = new XmsgSubHeaderDto
                 {
-                    Counter = sub.Counter,
+                    Counter = (byte)(header.Checksum & 0x00FF),
                     FrameFlags = sub.FrameFlags,
                     Role = sub.Role,
                     DestinationSystem = sub.DestinationSystem,
                     DestinationPort = sub.DestinationPort,
                     SourceSystem = sub.SourceSystem,
                     SourcePort = sub.SourcePort,
-                    ControlService = sub.ControlService,
-                    Pad = sub.Pad,
-                    UserDataLength = sub.UserDataLength,
+                    ControlService = frame.ControlService,
+                    Pad = bodyBytes.Length > 2 ? bodyBytes[2] : (byte)0,
+                    UserDataLength = bodyBytes.Length > 3 ? bodyBytes[3] : (byte)0,
                 };
             }
 
@@ -231,17 +235,17 @@ namespace NDInsight.Sintran.Xmsg.Diagnostics
                 XmsgSubHeaderDto s = dto.SubHeader;
                 frame.SubHeader = new XmsgSubHeader
                 {
-                    Counter = s.Counter,
                     FrameFlags = s.FrameFlags,
                     Role = s.Role,
                     DestinationSystem = s.DestinationSystem,
                     DestinationPort = s.DestinationPort,
                     SourceSystem = s.SourceSystem,
                     SourcePort = s.SourcePort,
-                    ControlService = s.ControlService,
-                    Pad = s.Pad,
-                    UserDataLength = s.UserDataLength,
+                    Xmcsm = (ushort)(s.ControlService >> 16),
                 };
+
+                // Counter is the header checksum's LOW byte, so it is restored into the header.
+                frame.Header.Counter = s.Counter;
             }
 
             if (dto.Body != null)

@@ -77,5 +77,38 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             Assert.Equal(0x96, (byte)XmsgFrameFlags.DataA);
             Assert.Equal(0x92, (byte)XmsgFrameFlags.DataB);
         }
+
+        /// <summary>
+        /// Every shared bit of the MON 200B option word and the wire role byte stays in lockstep.
+        /// </summary>
+        /// <remarks>
+        /// XmsgOption (16-bit T-register word, generated from the official constants) and
+        /// XmsgSendOptions (the sub-header role byte) describe ONE bit set in two encodings. This
+        /// test is the anti-drift guard: if either enum is edited, the shift relation must still hold.
+        /// XFSYS (bit 7) is deliberately excluded - it is a call-mode flag that never reaches the wire.
+        /// </remarks>
+        [Fact]
+        public void OptionWord_And_RoleByte_StayInLockstep()
+        {
+            Assert.Equal(XmsgSendOptions.Tcm, XmsgOptionConversion.ToRoleByte(XmsgOption.XFTCM));
+            Assert.Equal(XmsgSendOptions.Secure, XmsgOptionConversion.ToRoleByte(XmsgOption.XFSEC));
+            Assert.Equal(XmsgSendOptions.RoutedLetter, XmsgOptionConversion.ToRoleByte(XmsgOption.XFROU));
+            Assert.Equal(XmsgSendOptions.Forward, XmsgOptionConversion.ToRoleByte(XmsgOption.XFFWD));
+            Assert.Equal(XmsgSendOptions.Bounce, XmsgOptionConversion.ToRoleByte(XmsgOption.XFBNC));
+            Assert.Equal(XmsgSendOptions.HighPriority, XmsgOptionConversion.ToRoleByte(XmsgOption.XFHIP));
+            Assert.Equal(XmsgSendOptions.WakeOnStatus, XmsgOptionConversion.ToRoleByte(XmsgOption.XFWAK));
+            Assert.Equal(XmsgSendOptions.WaitForTransfer, XmsgOptionConversion.ToRoleByte(XmsgOption.XFWTF));
+
+            // The observed connect-letter role 0xE4 widens back to the exact option word.
+            XmsgSendOptions connect = XmsgSendOptions.WaitForTransfer | XmsgSendOptions.WakeOnStatus
+                | XmsgSendOptions.HighPriority | XmsgSendOptions.RoutedLetter;
+            Assert.Equal(0xE4, (byte)connect);
+            Assert.Equal(
+                XmsgOption.XFWTF | XmsgOption.XFWAK | XmsgOption.XFHIP | XmsgOption.XFROU,
+                XmsgOptionConversion.FromRoleByte(connect));
+
+            // XFSYS is below the role byte and is dropped on the way out.
+            Assert.Equal(XmsgSendOptions.None, XmsgOptionConversion.ToRoleByte(XmsgOption.XFSYS));
+        }
     }
 }

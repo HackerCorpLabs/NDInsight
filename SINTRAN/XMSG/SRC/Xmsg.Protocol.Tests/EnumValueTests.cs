@@ -58,6 +58,35 @@ namespace NDInsight.Sintran.Xmsg.Tests
             Assert.Equal(4, (int)XmsgLinkState.Run);
         }
 
+        /// <summary>
+        /// The six link states, as ND publish them.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>Why these are pinned</b></para>
+        /// These numbers had no ND source until 2026-08-07. They came from this project's own
+        /// <c>XMSG-API.md</c>, and neither version-L symbol file defines a link-state symbol at all -
+        /// so they were prose we had written and believed.
+        /// <para>
+        /// ND's X-MESSAGE version-L program description (210373L) states them verbatim, twice: in
+        /// section 7.2 for <c>XSLKI</c> and 7.3 for <c>XSNET</c>, both reading
+        /// "Link state (0=Dead, 1=Init, 2=Call, 3=Conn, 4=Run, 5=Kill)". They needed no change.
+        /// </para>
+        /// <para>
+        /// Pinned here because a VERIFIED claim has to be falsifiable. Anyone renumbering this enum
+        /// now fails a test that names the document to check against.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void LinkStates_MatchThePublishedTable()
+        {
+            Assert.Equal(0, (int)XmsgLinkState.Dead);
+            Assert.Equal(1, (int)XmsgLinkState.Init);
+            Assert.Equal(2, (int)XmsgLinkState.Call);
+            Assert.Equal(3, (int)XmsgLinkState.Conn);
+            Assert.Equal(4, (int)XmsgLinkState.Run);
+            Assert.Equal(5, (int)XmsgLinkState.Kill);
+        }
+
         [Fact]
         public void Subservices_AreGroupedWithoutCollision()
         {

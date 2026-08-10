@@ -1,5 +1,13 @@
 # SCSI DIOC on the Octobus - Emulation Plan (2026-07-20)
 
+> STATUS UPDATE 2026-07-23: S0 (carves), S1 (station), S3 (BDIO record + engine)
+> are BUILT + verified in RetroCore, plus the S4-2 record-scanner tool and an
+> S2 NucleusClient scaffold and machine wiring (AttachScsiDioc). The address
+> model is fully carved (DMYAD window-relative, DSTBL = 2KB-page verbatim).
+> Remaining tail (S2 NUCLEUS record auto-discovery, S4 live mount, Compare
+> status) is blocked on the live machine. Full state + how to close the tail:
+> **[SCSI-DIOC-RETROCORE-IMPLEMENTATION-HANDOFF-2026-07-23.md](SCSI-DIOC-RETROCORE-IMPLEMENTATION-HANDOFF-2026-07-23.md)**.
+
 Goal: emulate a DOMINO SCSI controller (SCSI DIOC, module type 21B) as an
 octobus station in RetroCore so that SINTRAN L07 performs REAL BDIO disk
 I/O (read / write / compare) against the existing RetroCore SCSIHDD disk

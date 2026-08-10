@@ -22,6 +22,7 @@ This folder contains official Norsk Data documentation for the COSMOS network so
 | [ND-60.227.1 EN COSMOS X.25 Programmer Guide.md](<ND-60.227.1 EN COSMOS X.25 Programmer Guide.md>) | COSMOS X.25 programmer guide — X.25 application development (ND-60.227.1) |
 | [ND-60164-3-EN  COSMOS Programmer Guide.md](<ND-60164-3-EN  COSMOS Programmer Guide.md>) | COSMOS programmer guide — general network programming (ND-60164-3) |
 | [ND-860284-1-EN COSMOS TELNET-FTP Client User Guide.md](<ND-860284-1-EN COSMOS TELNET-FTP Client User Guide.md>) | COSMOS TELNET-FTP client user guide — TCP/IP services (ND-860284-1) |
+| [../../Installation/Installation-Description/ND-210373L-EN.md](../../Installation/Installation-Description/ND-210373L-EN.md) | **X-MESSAGE version L program description (210373L, 1988-02-02)** — the message system COSMOS is built on. Filed with the installation documents, but linked here because it is a technical reference: register specs for the XMSG functions and XROUT services that changed in version L, the XMFIDO watchdog letters, and the new error codes. **It documents calls the [COSMOS Programmer Guide](<ND-60164-3-EN  COSMOS Programmer Guide.md>) appendix does not** — `XFGSM` among them. |
 
 ---
 

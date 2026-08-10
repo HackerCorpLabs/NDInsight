@@ -1,0 +1,28 @@
+@(COSMOS-BASIC)COS-SPOO-SER
+Help,hh, Definition of DEFAULT printer:
+Help,hh, (Explanation of parameters below.)
+Def-pri,,ND-969,LINE-PRINTER,Y
+Help,hh,
+Help,hh, Definition of other printers:
+Help,hh,     Local spooling file name
+Help,hh,     ~         Remote system name
+Help,hh,     ~         ~         Remote spooling file name
+Help,hh,     ~         ~         ~       Extra header
+Help,hh,     ~         ~         ~       ~ No of local spooling files
+Help,hh,     ~         ~         ~       ~ ~
+Help,hh,     v         v         v       v v
+Def-pri,LINE-PRINTER,ND-969,LINE-PRINTER,Y,2
+Def-pri,DIABLO-S,ND-1068,DIABLO,Y,1
+Def-pri,PHILIPS-T,ND-5005,PHILIPS,Y,1
+Def-pri,PHILIPS-S,ND-1068,PHILIPS,Y,3
+Help,hh,        ~
+Help,hh,        S: Sheet feeder, T: Tractor feeder
+Help,hh, NB! DIABLO-S etc. must be defined in (SYS)WP-PRINTERS!!!.
+Help,hh, NB! The first parameter must match the old local spooling file
+Help,hh, name when redefining printers:
+Help,hh, Ex: Def-pri,PHILIPS-S,ND-1050,PHILIPS,N,2
+Help,hh, NB!:Number of local spooling files will now still be 3,
+Help,hh, because spooling file no 3 will not be deleted when
+Help,hh, redefining printers.
+Help,hh, (To be safe: "Delete-printer" before "Define-printer".)
+ex

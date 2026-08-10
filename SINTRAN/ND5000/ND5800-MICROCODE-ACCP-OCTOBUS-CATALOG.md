@@ -55,7 +55,7 @@ Kick handlers (B30 only):
 - **OCB_KICK03** (025522): UNLOCK_QUE; read this CPU's definition word; if flagged, write into the START_MESS region and spin in **OCB_WAITSEX** (poll memory word, SCAN_ACCP each pass); then resume EXECUTE or fall to KICK06. [I] "run/resume" kick with message-region semaphore sync.
 - **OCB_KICK05** (025553, kicks 4/5): SET_IDLE, LOCK_QUE, **OCB_CLNUP**, UNLOCK_QUE, PRNOWR(0), NOTREC 204. [I] stop + clean queue.
 - **OCB_KICK06/KICK06** (025561/025563): CNTXTSAVE if process loaded, SET_IDLE, OCB_CLNUP, UNLOCK_QUE, PRNOWR(SC14), IDLE. [I] forced de-schedule.
-- **OCB_CLNUP** (025570): walk per-CPU message region (base from ADR_MESS/SAMSON_CPU), unlink/clear link words, MSG_CCMOVE. [I] flush this CPU's shared-message entries.
+- **OCB_CLNUP** (025570): ~~walk per-CPU message region (base from ADR_MESS/SAMSON_CPU), unlink/clear link words, MSG_CCMOVE~~ **[SUPERSEDED by correction 4 below - it does NOT walk the region]**. See correction 4, and note that correction 4's own `N5STA := 1` claim FAILED reproduction against the real B30 microcode on 2026-07-31 (16/16 runs reached the routine, none wrote N5STA). Treat this routine's contract as **[OPEN]**, not [I].
 
 ## 5. Outbound single-word kick writes [V sites, I meaning]
 
@@ -142,6 +142,22 @@ words (100102 SENKICK/025006, 100101 SEND_14, 100001 GIVEINT1 — SARG values no
    DPA := current message (ADR_MESS); check 5CPUN@−6 vs this CPU; clear MSGME (srf 2021);
    MSG_CCMOVE; **write N5STA := 1** (back to MSGN500 — returns the message to the queue
    unanswered). Kicks 4/5/6 therefore requeue, not discard, in-flight work.
+
+   > **UNOBSERVED BUT NOT DISPROVEN - status settled 2026-07-31.** Driving the real B30
+   > microcode through `OCB_KICK06`, `OCB_CLNUP` was reached in 16/16 runs and never wrote
+   > `N5STA`. Hand-decoding the microwords explains why: at **CS 0o25573 it branches on the ALU
+   > zero flag to 0o104** (return) because `ADR_MESS` reported **no current message**. Only
+   > 0o25570..0o25573 execute; the body at 0o25574..0o25604 that clears `MSGME` and would write
+   > `N5STA` is never entered.
+   >
+   > So this correction is **not contradicted** - it describes the body, and the body did not
+   > run. An earlier note here said "REPRODUCTION FAILED"; that overstated the result and is
+   > corrected. What is still true: `N5STA := 1` has never been OBSERVED, so do not implement it
+   > in the station on this text alone. The "kicks 4/5/6 requeue, not discard" conclusion rests
+   > on the same unobserved write.
+   >
+   > Open: what makes `ADR_MESS` (0o17334) return non-zero. Full evidence in G3 probes 3-6 of
+   > `OCTOBUS-KICK-AND-MAILBOX-GAP-REGISTER-2026-07-30.md`.
 5. **TRAP_OCBM header word source identified:** 016727-730 loads SC3 := srf[2006] = the
    LSYSPAR word 1 = **5OMDNO<<8** — out-of-band OCB messages (201B-210B, CPU-available
    202B) are addressed to SINTRAN's receive OMD exactly like GIVEINT's interrupt word.

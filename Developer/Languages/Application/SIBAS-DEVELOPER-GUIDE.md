@@ -29,6 +29,26 @@ Two generations are documented here:
 
 ---
 
+## Installing SIBAS-II
+
+- **Older article** — [ND-10166](../../../Installation/Software/ND-10166/README.md), version
+  [ND-10166E](../../../Installation/Software/ND-10166/ND-10166E/README.md) — a 9-part floppy
+  set; install dialogue adapted from the later F-revision's real installer text (structurally
+  identical file set), not independently verified for E.
+- **Later article** — [ND-210166](../../../Installation/Software/ND-210166/README.md), version
+  [ND-210166F02](../../../Installation/Software/ND-210166/ND-210166F02/README.md) — **fully
+  verified from a complete, real 17-page PD sheet**: installer-driven and manual install paths,
+  cold-start persistence, and the database-conversion procedure for pre-F databases.
+
+## Programming Against SIBAS
+
+See [SIBAS-DATABASE-PROGRAMMING.md](../../Workflow/SIBAS-DATABASE-PROGRAMMING.md) for the DDL
+(realm/set definition, real `NEW REALM`/`CHANGE REALM` syntax from a real PD sheet) and the real
+DML call names (`SOPDB`, `SFTCH`, `SGET`, `STORE`, `SMODFY`, `SRASE`, `SUBEG`/`SUENDO`, and more)
+— sourced, not invented, with pointers to the full User/Operator manuals for exact parameters.
+
+---
+
 ## Reference Manuals
 
 All manuals live under [Reference-Manuals/](../../../Reference-Manuals/):

@@ -160,7 +160,7 @@ namespace NDInsight.Sintran.Xmsg.Tests
 
         /// <summary>
         /// <see cref="XmsgPacketBuilder.CreateAck"/> reproduces the exact 14-byte secure ACK machine
-        /// 100 accepts: channel = connect-channel + 4 (DA -&gt; DE), trailing = connect counter + 0x0A.
+        /// 100 accepts: channel = connect-channel + 4 (DA -> DE), trailing = connect counter + 0x0A.
         /// </summary>
         [Fact]
         public void CreateAck_ReproducesSecureAck()

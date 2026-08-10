@@ -2,6 +2,16 @@
 
 **Full path:** `E:\Dev\Ronny\NDInsight\SINTRAN\ND500\REMEDIATION-PLAN-OCTOBUS-TRACK-2026-07-20.md`
 
+> ## STATUS 2026-08-02 - READ THIS FIRST; the blocker/phase tables below are HISTORICAL 
+> Every blocker in this doc (B0-B3) and the whole timeout chain is **RESOLVED**. The octobus swapper
+> track is **GREEN**: FullFlow ran 2/2 PASS (status/start-swapper/list/stop-system all OK). **Do NOT
+> re-chase SWMSG, the mailbox base, the CS-load stall, or stop-system** - all closed. The 9 completed
+> tasks (#13/#15/#17/#19/#20/#21/#22/#23/#24) were pruned from the live task list on 2026-08-02; the
+> P0-Tx/P1-Tx rows below are kept only as the evidence record.
+> **The only genuinely-open work:** production wiring toward D4 (#10 -> #9/#11/#14/#16 -> #12), and
+> correctness debt (#25/#26/#27). See `nd500-octobus-frontier-2026-08` (memory) and
+> `OCTOBUS-SWAPPER-HANDOFF-2026-07-25.md` section 7.8.
+
 Companion to `OPEN-QUESTIONS-REGISTER-2026-07-20.md` §2. The register says what we do not know;
 this says what we do about it, ordered by dependency. **Blockers first** — anything below a blocker
 cannot start on evidence until the blocker clears.
@@ -22,7 +32,7 @@ cannot start on evidence until the blocker clears.
 
 ---
 
-# ░░ BLOCKERS ░░ — resolve these first; they gate the phases below
+#  BLOCKERS  — resolve these first; they gate the phases below
 
 | B | Blocker | Type | Gates | Status |
 |---|---|---|---|---|
@@ -159,7 +169,7 @@ footnote.** Rule 6 (carry the grade at point of use) is the standing defence.
 
 ---
 
-# ░░ UPDATE 2026-07-21 — timeout RESOLVED; the line is now "run the swapper" ░░
+#  UPDATE 2026-07-21 — timeout RESOLVED; the line is now "run the swapper" 
 
 **P1-T1 is DONE and verified (this closes the whole B1/Q-OCT-22 → mailbox-base chain).**
 Live harness run11 (`FullFlow_Octobus_Login_Nd500_Status_StartSwapper_Capture`, current code):

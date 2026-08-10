@@ -53,9 +53,11 @@ namespace NDInsight.Sintran.Xmsg.Tests
             Assert.Equal(0x0001, decoded.Header.Flags2);
             Assert.Equal(SintranProtocolId.Routing, decoded.Header.ProtocolId);
 
-            // The single trailing byte is the routing/connection-step command byte.
-            Assert.Single(decoded.TrailingBytes);
-            Assert.Equal(0x17, decoded.TrailingBytes[0]);
+            // CORRECTED 2026-08-04: there is NO trailing byte. This frame is exactly fourteen
+            // bytes and 0xDE17 is header word 6, the checksum. Check the arithmetic: the
+            // ones-complement sum of 2113 0003 0066 0067 0004 0001 is 0x21E8 and ~0x21E8 = 0xDE17.
+            Assert.Empty(decoded.TrailingBytes);
+            Assert.Equal(0xDE17, decoded.Header.Checksum);
         }
 
         [Fact]

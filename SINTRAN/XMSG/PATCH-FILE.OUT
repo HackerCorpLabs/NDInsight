@@ -1,0 +1,532 @@
+
+À(ND-PAÔÃH-SÉN-:SYSÔ©NÅ×-SYSÔ ×ÒÉÔÅ-MÅSSAGÅ ASK
+
+MultiFunction Program MAY 27, 1988
+$Ãèecëiîç SYSÔÅM çeîerátioî iîforíátioî - wáit...
+Checking SYSTEM generation information - wait...
+À
+À(ND-PAÔÃH-SÉN-:SYSÔ©NÅ×-SYSÔ ÃHÅÃK-×ÏÒKMÏDÅ ASK
+
+MultiFunction Program MAY 27, 1988
+
+Symbols file (def=(N---:S)SYMBOLS:FADM): (N---:SYSÔ©SYMBÏÌS:ÆADM
+Symbol-1-list file (def=SYMBOL-1-LIST:SYMB): SYMBÏÌ-±-ÌÉSÔ
+YÅS
+À(ND-PAÔÃH-SÉN-:SYSÔ©NÅ×-SYSÔ ×ÒÉÔÅ-MÅSSAGÅ ASK
+
+MultiFunction Program MAY 27, 1988
+$Dõriîç ğátcèiîç of Siîtráî tèe ğátcè-file óùóteí will ğroäõce oõtğõt
+During patching of Sintran the patch-file system will produce output
+to tèe fileó:to the files:
+.....Pátcè-file:oõt.....Patch-file:out
+.....Pátcèeó:oõt.....Patches:out
+Éî cáóe of áâîoríál teríiîátioî of tèe ğátcèiîç (i.e if ùoõ retõrîIn case of abnormal termination of the patching (i.e if you return
+to Siîtráî coííáîä íoäe witèoõt á íeóóáçe telliîç ùoõ wèetèer tèeto Sintran command mode without a message telling you whether the
+ğátcèiîç ió áâorteä or óõcceóófõllù coíğleteä© tèe fileó lióteä áâoöepatching is aborted or successfully completed) the files listed above
+óèoõlä âe iîöeótiçáteä.$should be investigated.
+
+À
+À(ND-PAÔÃH-SÉN-:SYSÔ©NÅ×-SYSÔ ×ÒÉÔÅ-MÅSSAGÅ ASK
+
+MultiFunction Program MAY 27, 1988
+Defiîiîç SÅGÆÉÌ0 áîä loáäiîç DMAÃ - wáit...Defining SEGFIL0 and loading DMAC - wait...
+À
+ÀÒÔÅNÔÅÒ
+
+ÀSÉN-SÅÒ-PÒÏG
+
+ªÀDÅÆ-SÅG-ÆÉÌÅ YÅS YÅS 0 SÅGÆÉÌ0
+
+SÅGMÅNÔ ÆÉÌÅ AÌÒÅADY DÅÆÉNÅD ÉN MÅMÏÒY
+SÅGMÅNÔ ÆÉÌÅ NAMÅ: SÅGÆÉÌ0:DAÔA
+
+SÅGMÅNÔ ÆÉÌÅ AÌÒÅADY DÅÆÉNÅD ÉN SAVÅ-AÒÅA
+SÅGMÅNÔ ÆÉÌÅ NAMÅ: SÅGÆÉÌ0:DAÔA
+
+ªÀÅØÉÔ
+
+ÀÒÔ-ÌÏADÅÒ
+
+
+REAL TIME LOADER,  SINTRAN III VSX - K
+
+*Y
+*ÒÅAD-BÉNAÒY DMAÃ-±9±5Æ ·
+
+CHANGING EXISTING SEGMENT? Y
+*ÅØÉÔ
+
+ÀÀ  Éf tèió joâ ió áâorteä áfter cálliîç DMAÃ
+
+ÀÀ  ùoõr DMAÃ ió ğroâáâlù oläer tèáî öeróioî-Æ
+
+ÀDMAÃ
+
+
+ª DMAÃ-±9±5Æ ª
+
+MAY ²²¬ ±9¸´
+
+
+©9ÅØÉÔ
+À(ND-PAÔÃH-SÉN-:SYSÔ©NÅ×-SYSÔ ×ÒÉÔÅ-MÅSSAGÅ ASK
+
+MultiFunction Program MAY 27, 1988
+Stárt ğátcèiîç of Siîtráî-ÉÉÉ - wáit...Start patching of Sintran-III - wait...
+À
+ÀMÏDÅ (ND-PAÔÃH-SÉN-:SYSÔ©PAÔÃH-ÆÉÌÅ:MÏDÅ¬¬¬
+
+ÀDMAÃ
+
+
+ª DMAÃ-±9±5Æ ª
+
+MAY ²²¬ ±9¸´
+
+
+©ÃÌÅAÒ
+ØØØ½´000» YYY½²00» ZZZ½´000
+©9ÔABÌ ØØØ YYY ZZZ
+©ÃÌÏAD S3ÆSSV
+SG±²S½²6000
+²600±¯±·····    SG±²Ì½Ş
+²600²¯±·²±±²    SG±²Æ½Ş
+SG±²Ï½SG±²Æ
+©ÃÌÏAD S3ÏPÃSV
+SG±3S½30000
+SG±3S+±¯±·····  SG±3Ì½Ş
+SG±3S+²¯±·6055  SG±3Æ½Ş
+SG±3Ï½SG±3Æ
+©ÃÌÏAD S3SSM5
+SG6²S½´0000
+SG6²S+±¯±·····  SG6²Ì½Ş
+SG6²S+²¯±·360·  SG6²Æ½Ş
+SG6²Ï½SG6²Æ
+©ÃÌÏAD S3SSPD
+SG3±S½±50000
+SG3±S+±¯±65···  SG3±Ì½Ş
+SG3±S+²¯±5±±²±  SG3±Æ½Ş
+SG3±Ï½SG3±Æ
+©ÃÌÏAD S3SÅÒÒP
+SG55S½30000
+SG55S+±¯±²3···  SG55Ì½Ş
+SG55S+²¯05²²²6  SG55Æ½Ş
+SG55Ï½SG55Æ
+©ÃÌÏAD S3SÒÔÃ
+SG56S½30000
+SG56S+±¯06····  SG56Ì½Ş
+SG56S+²¯066²65  SG56Æ½Ş
+SG56Ï½SG56Æ
+©ÃÌÏAD 5²
+²5¯0²6000   SG±·S½Ş
+²6¯±·3···   SG±·Ì½Ş
+²·¯±6±0´·   SG±·Æ½Ş
+SG±·Ï½SG±·Æ
+30¯0²6000   SG±6S½Ş
+3±¯±·3···   SG±6Ì½Ş
+3²¯±´²5±·   SG±6Æ½Ş
+SG±6Ï½SG±6Æ
+33¯000000   SGÃÃS½Ş
+3´¯0²5···   SGÃÃÌ½²5···  
+35¯0²5±6²   SGÃÃÆ½Ş
+SGÃÃÏ½SGÃÃÆ
+55¯000000   SGMÃS½Ş
+56¯0033·6   SGMÃÌ½Ş
+5·¯003²60   SGMÃÆ½Ş
+SGMÃÏ½SGMÃÆ
+36¯0²6000   SGSÒS½Ş
+3·¯065···   SGSÒÌ½Ş
+´0¯065´±5   SGSÒÆ½Ş
+SGSÒÏ½SGSÒÆ
+´±¯00´000   SG53S½Ş
+´²¯±±±···   SG53Ì½Ş
+´3¯±±±²´0   SG53Æ½Ş
+SG53Ï½SG53Æ
+´´¯±±²000   SG60S½Ş
+´5¯±±5···   SG60Ì½Ş
+´6¯±±56·²   SG60Æ½Ş
+SG60Ï½SG60Æ
+´·¯±±´000   SGÒ3S½Ş
+50¯±²3···   SGÒ3Ì½Ş
+5±¯±²²0·6   SGÒ3Æ½Ş
+SGÒ3Ï½SGÒ3Æ
+5²¯0²6000   SG´6S½Ş
+53¯035···   SG´6Ì½3····
+5´¯03·´53   SG´6Æ½Ş
+SG´6Ï½SG´6Æ
+©ÃÌÏAD S3PAÔÃH
+±·´000¯000000  ÒÅVÌÅ
+©9ASSM (ND-PAÔÃH-SÉN-:SYSÔÅM©ÒÅÆÅÒÅNÃÅ:ÆADM
+ ªªªª 000000 DÉAGNÏSÔÉÃS ªªªª 
+
+©9ASSM (ND-PAÔÃH-SÉN-:SYSÔÅM©SYMBÏÌS:ÆADM
+ ªªªª 000000 DÉAGNÏSÔÉÃS ªªªª 
+
+©SYSDÆ
+©9ASSM (SYSÔÅM©SYMBÏÌ-±-ÌÉSÔ
+ ªªªª 000000 DÉAGNÏSÔÉÃS ªªªª 
+
+©SYSDÆ
+©9ASSM (SYSÔÅM©SYMBÏÌ-²-ÌÉSÔ
+ ªªªª 000000 DÉAGNÏSÔÉÃS ªªªª 
+
+©SYSDÆ
+©9ASSM (SYSÔÅM©ÆÉÌSYS-SYMBÏÌS
+ ªªªª 000000 DÉAGNÏSÔÉÃS ªªªª 
+
+©SYSDÆ
+©9ASSM (SYSÔÅM©ÒÔÌÏ-SYMBÏÌS
+ ªªªª 000000 DÉAGNÏSÔÉÃS ªªªª 
+
+©SYSDÆ
+©9ASSM (SYSÔÅM©N500-SYMBÏÌS
+ ªªªª 000000 DÉAGNÏSÔÉÃS ªªªª 
+
+©9ASSM (SYSÔÅM©ÌÉBÒAÒY-MAÒKS
+ ªªªª 000000 DÉAGNÏSÔÉÃS ªªªª 
+
+±¬0¬±$
+
+©ÃÌÏAD S3SDPÉÔ
+ÒÅVÌÅ¯000000   -±
+©9ÅØÉÔ
+ÀMÏDÅ (ND-PAÔÃH-SÉN-:SYSÔÅM©PAÔÃHÅS:PAÔÃ¬PAÔÃHÅS:ÏUÔ
+ÀDMAÃ
+
+
+ª DMAÃ-±9±5Æ ª
+
+MAY ²²¬ ±9¸´
+
+
+©KÉÌÌ USÅD ÆÒÅÅ
+©ÃÌÏAD S3ÆSSV
+SG±²S+²¯±·²±±²  SG±²Æ » USÅD½SG±²Æ-SG±²Ï » ÆÒÅÅ½SG±²Ì-SG±²Æ
+SG±²Æ:±·3²±3      USÅD:00±±0±        ÆÒÅÅ:00´56´  
+©KÉÌÌ USÅD ÆÒÅÅ++
+©ÃÌÏAD S3ÏPÃSV
+SG±3S+²¯±··±²5  SG±3Æ » USÅD½SG±3Æ-SG±3Ï » ÆÒÅÅ½SG±3Ì-SG±3Æ
+SG±3Æ:±··633      USÅD:00±556        ÆÒÅÅ:000±´´  
+©KÉÌÌ USÅD ÆÒÅÅ++
+©ÃÌÏAD S3SSPD
+SG3±S+²¯±5±±²±  SG3±Æ » USÅD½SG3±Æ-SG3±Ï » ÆÒÅÅ½SG3±Ì-SG3±Æ
+SG3±Æ:±5±±²±      USÅD:000000        ÆÒÅÅ:0±´656  
+©KÉÌÌ USÅD ÆÒÅÅ++
+©ÃÌÏAD S3SÅÒÒP
+SG55S+²¯05²²²6  SG55Æ » USÅD½SG55Æ-SG55Ï » ÆÒÅÅ½SG55Ì-SG55Æ
+SG55Æ:05²²²6      USÅD:000000        ÆÒÅÅ:05±55±  
+©KÉÌÌ USÅD ÆÒÅÅ++
+©ÃÌÏAD S3SÒÔÃ
+SG56S+²¯066²65  SG56Æ » USÅD½SG56Æ-SG56Ï » ÆÒÅÅ½SG56Ì-SG56Æ
+SG56Æ:066´´5      USÅD:000±60        ÆÒÅÅ:00±33²  
+©KÉÌÌ USÅD ÆÒÅÅ++
+©ÃÌÏAD S3SSM5
+SG6²S+²¯±·360·  SG6²Æ » USÅD½SG6²S-SG6²Ï » ÆÒÅÅ½SG6²Ì-SG6²Æ
+SG6²Æ:±·360·      USÅD:0´´±·±        ÆÒÅÅ:00´±·0  
+©KÉÌÌ USÅD ÆÒÅÅ++
+©ÃÌÏAD 5²
+²·¯±6±0·0   SG±·Æ     » USÅD½SG±·Æ-SG±·Ï » ÆÒÅÅ½SG±·Ì-SG±·Æ
+SG±·Æ:±6²·56      USÅD:00±·0·        ÆÒÅÅ:0±±0²±  
+©KÉÌÌ USÅD ÆÒÅÅ++
+3²¯±´²5±·   SG±6Æ     » USÅD½SG±6Æ-SG±6Ï » ÆÒÅÅ½SG±6Ì-SG±6Æ
+SG±6Æ:±´´·6²      USÅD:00²²´3        ÆÒÅÅ:0²·0±5  
+©KÉÌÌ USÅD ÆÒÅÅ++
+35¯0²5±6²   SGÃÃÆ     » USÅD½SGÃÃÆ-SGÃÃÏ » ÆÒÅÅ½SGÃÃÌ-SGÃÃÆ
+SGÃÃÆ:0²5655      USÅD:000´·3        ÆÒÅÅ:000±²²  
+©KÉÌÌ USÅD ÆÒÅÅ++
+5·¯003²60   SGMÃÆ     » USÅD½SGMÃÆ-SGMÃÏ » ÆÒÅÅ½SGMÃÌ-SGMÃÆ
+SGMÃÆ:003300      USÅD:0000²0        ÆÒÅÅ:0000·6  
+©KÉÌÌ USÅD ÆÒÅÅ++
+´0¯065´±5   SGSÒÆ     » USÅD½SGSÒÆ-SGSÒÏ » ÆÒÅÅ½SGSÒÌ-SGSÒÆ
+SGSÒÆ:0655·6      USÅD:000±6±        ÆÒÅÅ:000²0±  
+©KÉÌÌ USÅD ÆÒÅÅ++
+´3¯±±±²´0   SG53Æ     » USÅD½SG53Æ-SG53Ï » ÆÒÅÅ½SG53Ì-SG53Æ
+SG53Æ:±±±²´6      USÅD:000006        ÆÒÅÅ:00053±  
+©KÉÌÌ USÅD ÆÒÅÅ++
+´6¯±±56·²   SG60Æ     » USÅD½SG60Æ-SG60Ï » ÆÒÅÅ½SG60Ì-SG60Æ
+SG60Æ:±±56·²      USÅD:000000        ÆÒÅÅ:000±05  
+©KÉÌÌ USÅD ÆÒÅÅ++
+5±¯±²²0·6   SGÒ3Æ     » USÅD½SGÒ3Æ-SGÒ3Ï » ÆÒÅÅ½SGÒ3Ì-SGÒ3Æ
+SGÒ3Æ:±²²0·6      USÅD:000000        ÆÒÅÅ:00±·0±  
+©KÉÌÌ USÅD ÆÒÅÅ++
+5´¯03·´53   SG´6Æ     » USÅD½SG´6Æ-SG´6Ï » ÆÒÅÅ½SG´6Ì-SG´6Æ
+SG´6Æ:03·´53      USÅD:000000        ÆÒÅÅ:0003²´  
+©KÉÌÌ USÅD ÆÒÅÅ++
+©ÃÌÏAD S3PAÔÃH
+±¬0¬±$
+
+©9ASSM ±¬0¬SYMBÏÌS:ÆADM
+©ÌÉSÔ
+©9ASSM ±¬0¬ÒÅÆÅÒÅNÃÅ:ÆADM
+©UÌÉSÔ
+±¬0¬±$
+
+©9ÅØÉÔ
+À(ND-PAÔÃH-SÉN-:SYSÔ©NÅ×-SYSÔ ×ÒÉÔÅ-MÅSSAGÅ ASK
+
+MultiFunction Program MAY 27, 1988
+Ãèecëiîç if ğátcèiîç weît oë - wáit...Checking if patching went ok - wait...
+À
+À(ND-PAÔÃH-SÉN-:SYSÔ©NÅ×-SYSÔ ÆÉÌÅ-ÔÅSÔ ASK
+
+MultiFunction Program MAY 27, 1988
+
+File to test (def=PATCHES:OUT): PAÔÃHÅS:ÏUÔ
+File to Get symbols from (def=SYMBOLS:FADM): SYMBÏÌS:ÆADM
+>Do you want a list of the patches printed on your terminal (def=n)? 
+
+Patches done IN your system:
+               % ==> REPORT: SIN-K       417 
+               % ==> REPORT: SIN-K       414 
+               % ==> REPORT: SIN-K       413 
+               % ==> REPORT: SIN-K       412 
+               % ==> REPORT: SIN-K       406 
+               % ==> REPORT: SIN-K       397 
+               % ==> REPORT: SIN-K       388 
+               % ==> REPORT: SIN-K       385 
+               % ==> REPORT: SIN-K       384 
+               % ==> REPORT: SIN-K       378 
+               % ==> REPORT: SIN-K       377 
+               % ==> REPORT: SIN-K       374 
+               % ==> REPORT: SIN-K       369 
+               % ==> REPORT: SIN-K       364 
+               % ==> REPORT: SIN-K       350 
+               % ==> REPORT: SIN-K       348 
+               % ==> REPORT: SIN-K       347 
+               % ==> REPORT: SIN-K       345 
+               % ==> REPORT: SIN-K       337 
+               % ==> REPORT: SIN-K       331 
+               % ==> REPORT: SIN-K       328 
+               % ==> REPORT: SIN-K       327 
+               % ==> REPORT: SIN-K       320 
+               % ==> REPORT: SIN-K       318 
+               % ==> REPORT: SIN-K       316 
+               % ==> REPORT: SIN-K       315 
+               % ==> REPORT: SIN-K       313 
+               % ==> REPORT: SIN-K       312 
+               % ==> REPORT: SIN-K       311 
+               % ==> REPORT: SIN-K       310 
+               % ==> REPORT: SIN-K       309 
+               % ==> REPORT: SIN-K       307 
+               % ==> REPORT: SIN-K       306 
+               % ==> REPORT: SIN-K       304 
+               % ==> REPORT: SIN-K       303 
+               % ==> REPORT: SIN-K       302 
+               % ==> REPORT: SIN-K       301 
+               % ==> REPORT: SIN-K       300 
+               % ==> REPORT: SIN-K       299 
+               % ==> REPORT: SIN-K       298 
+               % ==> REPORT: SIN-K       297 
+               % ==> REPORT: SIN-K       294 
+               % ==> REPORT: SIN-K       293 
+               % ==> REPORT: SIN-K       292 
+               % ==> REPORT: SIN-K       288 
+               % ==> REPORT: SIN-K       287 
+               % ==> REPORT: SIN-K       286 
+               % ==> REPORT: SIN-K       285 
+               % ==> REPORT: SIN-K       280 
+               % ==> REPORT: SIN-K       278 
+               % ==> REPORT: SIN-K       276 
+               % ==> REPORT: SIN-K       274 
+               % ==> REPORT: SIN-K       273 
+               % ==> REPORT: SIN-K       272 
+               % ==> REPORT: SIN-K       271 
+               % ==> REPORT: SIN-K       269 
+               % ==> REPORT: SIN-K       268 
+               % ==> REPORT: SIN-K       267 
+               % ==> REPORT: SIN-K       263 
+               % ==> REPORT: SIN-K       260 
+               % ==> REPORT: SIN-K       257 
+               % ==> REPORT: SIN-K       252 
+               % ==> REPORT: SIN-K       251 
+               % ==> REPORT: SIN-K       249 
+               % ==> REPORT: SIN-K       248 
+               % ==> REPORT: SIN-K       247 
+               % ==> REPORT: SIN-K       244 
+               % ==> REPORT: SIN-K       243 
+               % ==> REPORT: SIN-K       241 
+               % ==> REPORT: SIN-K       239 
+               % ==> REPORT: SIN-K       237 
+               % ==> REPORT: SIN-K       236 
+               % ==> REPORT: SIN-K       235 
+               % ==> REPORT: SIN-K       233 
+               % ==> REPORT: SIN-K       232 
+               % ==> REPORT: SIN-K       231 
+               % ==> REPORT: SIN-K       230 
+               % ==> REPORT: SIN-K       228 
+               % ==> REPORT: SIN-K       227 
+               % ==> REPORT: SIN-K       226 
+               % ==> REPORT: SIN-K       225 
+               % ==> REPORT: SIN-K       224 
+               % ==> REPORT: SIN-K       223 
+               % ==> REPORT: SIN-K       221 
+               % ==> REPORT: SIN-K       220 
+               % ==> REPORT: SIN-K       219 
+               % ==> REPORT: SIN-K       218 
+               % ==> REPORT: SIN-K       215 
+               % ==> REPORT: SIN-K       213 
+               % ==> REPORT: SIN-K       212 
+               % ==> REPORT: SIN-K       210 
+               % ==> REPORT: SIN-K       209 
+               % ==> REPORT: SIN-K       206 
+               % ==> REPORT: SIN-K       205 
+               % ==> REPORT: SIN-K       199 
+               % ==> REPORT: SIN-K       198 
+               % ==> REPORT: SIN-K       197 
+               % ==> REPORT: SIN-K       196 
+               % ==> REPORT: SIN-K       194 
+               % ==> REPORT: SIN-K       192 
+               % ==> REPORT: SIN-K       191 
+               % ==> REPORT: SIN-K       190 
+               % ==> REPORT: SIN-K       188 
+               % ==> REPORT: SIN-K       187 
+               % ==> REPORT: SIN-K       184 
+               % ==> REPORT: SIN-K       183 
+               % ==> REPORT: SIN-K       182 
+               % ==> REPORT: SIN-K       181 
+               % ==> REPORT: SIN-K       179 
+               % ==> REPORT: SIN-K       177 
+               % ==> REPORT: SIN-K       176 
+               % ==> REPORT: SIN-K       175 
+               % ==> REPORT: SIN-K       174 
+               % ==> REPORT: SIN-K       170 
+               % ==> REPORT: SIN-K       169 
+               % ==> REPORT: SIN-K       168 
+               % ==> REPORT: SIN-K       165 
+               % ==> REPORT: SIN-K       164 
+               % ==> REPORT: SIN-K       163 
+               % ==> REPORT: SIN-K       162 
+               % ==> REPORT: SIN-K       161 
+               % ==> REPORT: SIN-K       160 
+               % ==> REPORT: SIN-K       159 
+               % ==> REPORT: SIN-K       158 
+               % ==> REPORT: SIN-K       157 
+               % ==> REPORT: SIN-K       156 
+               % ==> REPORT: SIN-K       154 
+               % ==> REPORT: SIN-K       153 
+               % ==> REPORT: SIN-K       150 
+               % ==> REPORT: SIN-K       148 
+               % ==> REPORT: SIN-K       147 
+               % ==> REPORT: SIN-K       146 
+               % ==> REPORT: SIN-K       145 
+               % ==> REPORT: SIN-K       142 
+               % ==> REPORT: SIN-K       140 
+               % ==> REPORT: SIN-K       134 
+               % ==> REPORT: SIN-K       133 
+               % ==> REPORT: SIN-K       131 
+               % ==> REPORT: SIN-K       129 
+               % ==> REPORT: SIN-K       128 
+               % ==> REPORT: SIN-K       127 
+               % ==> REPORT: SIN-K       125 
+               % ==> REPORT: SIN-K       124 
+               % ==> REPORT: SIN-K       123 
+               % ==> REPORT: SIN-K       122 
+               % ==> REPORT: SIN-K       121 
+               % ==> REPORT: SIN-K       120 
+               % ==> REPORT: SIN-K       119 
+               % ==> REPORT: SIN-K       118 
+               % ==> REPORT: SIN-K       116 
+               % ==> REPORT: SIN-K       115 
+               % ==> REPORT: SIN-K       114 
+               % ==> REPORT: SIN-K       113 
+               % ==> REPORT: SIN-K       112 
+               % ==> REPORT: SIN-K       106 
+               % ==> REPORT: SIN-K       105 
+               % ==> REPORT: SIN-K       104 
+               % ==> REPORT: SIN-K       102 
+               % ==> REPORT: SIN-K       100 
+               % ==> REPORT: SIN-K        98 
+               % ==> REPORT: SIN-K        95 
+               % ==> REPORT: SIN-K        94 
+               % ==> REPORT: SIN-K        87 
+               % ==> REPORT: SIN-K        84 
+               % ==> REPORT: SIN-K        80 
+               % ==> REPORT: SIN-K        74 
+               % ==> REPORT: SIN-K        72 
+               % ==> REPORT: SIN-K        70 
+               % ==> REPORT: SIN-K        68 
+               % ==> REPORT: SIN-K        67 
+               % ==> REPORT: SIN-K        64 
+               % ==> REPORT: SIN-K        63 
+               % ==> REPORT: SIN-K        61 
+               % ==> REPORT: SIN-K        60 
+               % ==> REPORT: SIN-K        56 
+               % ==> REPORT: SIN-K        55 
+               % ==> REPORT: SIN-K        41 
+               % ==> REPORT: SIN-K        38 
+               % ==> REPORT: SIN-K        37 
+               % ==> REPORT: SIN-K        34 
+               % ==> REPORT: SIN-K        31 
+               % ==> REPORT: SIN-K        30 
+               % ==> REPORT: SIN-K        29 
+               % ==> REPORT: SIN-K        28 
+               % ==> REPORT: SIN-K        27 
+               % ==> REPORT: SIN-K        23 
+               % ==> REPORT: SIN-K        22 
+               % ==> REPORT: SIN-K        21 
+               % ==> REPORT: SIN-K        15 
+               % ==> REPORT: SIN-K        12 
+               % ==> REPORT: SIN-K        11 
+--- 191 patches implemented ---
+ 
+Checking Segments address area - wait...
+ 
+Used/free Space (in Octal number of words) after patching:
+ 
+Segment:  Initial:  Patched:  Actual:   Free:     Total:
+  12      172112    001101    173213    004564    177777     FileSystem segment
+  13      176055    001556    177633    000144    177777     Command segment
+  16      142517    002243    144762    027015    173777     RPIT
+  17      161047    001707    162756    011021    173777     MPIT
+  CC      025162    000473    025655    000122    025777     Common code
+  MC      003260    000020    003300    000076    003376     Micro code
+  SR      065415    000161    065576    000201    065777     Start program code
+  53      111240    000006    111246    000531    111777     Save of DPIT
+  56      066265    000160    066445    001332    067777     RT-loader code
+--- 0 Error(s) detected ---
+--- ok ---
+YÅS
+ÀDMAÃ
+
+
+ª DMAÃ-±9±5Æ ª
+
+MAY ²²¬ ±9¸´
+
+
+©ÃÌÅAÒ
+©ÃÌÏAD S3PAÔÃH
+±·6000¯000000   SYSNÏ» 33ÃPU» 33ÃPN» H×ÉNÆ» ÆÃPUN» ÒÅVÌÅ» 33ÃPV
+©SYSDÆ
+©9ASSM SYMB-²-ÌÉSÔ
+ ªªªª 000000 DÉAGNÏSÔÉÃS ªªªª 
+
+©SYSDÆ
+©9ASSM SYMB-±-ÌÉSÔ
+ ªªªª 000000 DÉAGNÏSÔÉÃS ªªªª 
+
+©SYSDÆ
+©9ASSM SYMBÏÌS:ÆADM
+ ªªªª 000000 DÉAGNÏSÔÉÃS ªªªª 
+
+©ÃÌÏAD S3SDPÉÔ
+SYSNÏ¯000000   33ÃPN
+ÆÃPUN¯000±´´   33ÃPN
+H×ÉNÆ+²¯000000   33ÃPU
+ÒÅVÌÅ¯±·····     33ÃPV» 33ÃPV:0±0²00  
+©9ÅØÉÔ
+À(ND-PAÔÃH-SÉN-:SYSÔ©NÅ×-SYSÔ ×ÒÉÔÅ-MÅSSAGÅ ASK
+
+MultiFunction Program MAY 27, 1988
+---Pátcèiîç ÏÆ Siîtráî-ÉÉÉ óõcceóófõllù  coíğleteä ------Patching OF Sintran-III successfully  completed ---
+$Pleáóe äo á colä ótárt (ÀÃÏÌD-SÔAÒÔ© of ùoõr SYSÔÅM to çet
+Please do a cold start (@COLD-START) of your SYSTEM to get
+tèe ğátcèeó iîto effect.Pleáóe reíeíâer to rõî tèethe patches into effect.Please remember to run the
+ğroçráí S3-ÃÏNÆÉG to cèecë ùoõr coîfiçõrátioî $program S3-CONFIG to check your configuration 
+
+À
+ÀÃÃ ÅÏÆ
+
+ÀÀ
+
+

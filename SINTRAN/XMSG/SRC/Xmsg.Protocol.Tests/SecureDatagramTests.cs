@@ -112,7 +112,11 @@ namespace NDInsight.Sintran.Xmsg.Tests
             bool received = false;
             receiver.OnReceived += delegate (ushort seq) { received = true; deliveredSeq = seq; };
 
-            XmsgFrame ack = receiver.ReceiveDataFrame(data);
+            // The channel is passed EXPLICITLY. It used to be read off the incoming frame's byte 12,
+            // which worked only because the builder fabricated word 6 from WithProtocol(). Once
+            // Build() started deriving the real checksum (2026-08-07) that byte stopped being a
+            // channel - it never was one on the wire - so the test now states what it means.
+            XmsgFrame ack = receiver.ReceiveDataFrame(data, SintranProtocolId.Routing);
 
             Assert.True(received);
             Assert.Equal(7, deliveredSeq);
@@ -126,8 +130,10 @@ namespace NDInsight.Sintran.Xmsg.Tests
             Assert.Equal(SintranProtocolId.Routing, ack.Header.ProtocolId);
 
             // Trailing byte is the receiver's per-direction counter, which decrements.
-            Assert.Single(ack.TrailingBytes);
-            Assert.Equal(0x2D, ack.TrailingBytes[0]);
+            // CORRECTED 2026-08-04: an ACK is fourteen bytes with no trailing byte. What the old
+            // model called the "trailing counter" is the LOW half of header word 6.
+            Assert.Empty(ack.TrailingBytes);
+            Assert.Equal(0x2D, (byte)(ack.Header.Checksum & 0xFF));
             Assert.Equal(0x2C, receiver.Counter);
         }
 
@@ -170,7 +176,7 @@ namespace NDInsight.Sintran.Xmsg.Tests
 
                 Assert.Equal(f1[i], ack.Header.Flags1);            // echoes Flags1
                 Assert.Equal(channel[i], ack.Header.ProtocolId);   // derived channel (DE / DD)
-                Assert.Equal(counter[i], ack.TrailingBytes[0]);    // derived counter
+                Assert.Equal(counter[i], (byte)(ack.Header.Checksum & 0xFF));  // checksum low half
                 Assert.Equal(0x0001, ack.Header.Flags2);           // always class 0x0001
             }
         }
@@ -188,24 +194,30 @@ namespace NDInsight.Sintran.Xmsg.Tests
             XmsgFrame b = receiver.ReceiveDataFrame(DataWithFlags1(0x002A), SintranProtocolId.Routing);
 
             Assert.Equal(SintranProtocolId.Tad, a.Header.ProtocolId);   // DD
-            Assert.Equal(0xF4, a.TrailingBytes[0]);
+            Assert.Equal(0xF4, (byte)(a.Header.Checksum & 0xFF));
             Assert.Equal(a.Header.ProtocolId, b.Header.ProtocolId);
-            Assert.Equal(a.TrailingBytes[0], b.TrailingBytes[0]);
+            Assert.Equal(a.Header.Checksum, b.Header.Checksum);
         }
 
         [Fact]
         public void Receiver_LegacyModel_EchoesChannelAndDecrements_WhenNoSessionModel()
         {
-            // The reachability / list-route path is UNTOUCHED: with no session model and a null ack
-            // channel it echoes the data channel and carries the decrementing legacy counter.
+            // The reachability / list-route path is UNTOUCHED: with no session model it carries the
+            // decrementing legacy counter and echoes the channel it was GIVEN.
+            //
+            // The channel is now passed explicitly. It used to be read off the incoming frame's
+            // byte 12, which only worked because the builder fabricated word 6 from WithProtocol().
+            // Byte 12 is the checksum's high half and never was a channel on the wire, so once
+            // Build() started deriving it (2026-08-07) there was nothing there to echo. The legacy
+            // ECHO behaviour under test is unchanged - only how the test states its input.
             SecureDatagramReceiver receiver = new SecureDatagramReceiver(initialCounter: 0x2D);
 
-            XmsgFrame ack1 = receiver.ReceiveDataFrame(DataWithFlags1(0x0007));
+            XmsgFrame ack1 = receiver.ReceiveDataFrame(DataWithFlags1(0x0007), SintranProtocolId.Dc);
             Assert.Equal(SintranProtocolId.Dc, ack1.Header.ProtocolId);   // echoes the data channel
-            Assert.Equal(0x2D, ack1.TrailingBytes[0]);
+            Assert.Equal(0x2D, (byte)(ack1.Header.Checksum & 0xFF));
 
-            XmsgFrame ack2 = receiver.ReceiveDataFrame(DataWithFlags1(0x0008));
-            Assert.Equal(0x2C, ack2.TrailingBytes[0]);                    // decremented
+            XmsgFrame ack2 = receiver.ReceiveDataFrame(DataWithFlags1(0x0008), SintranProtocolId.Dc);
+            Assert.Equal(0x2C, (byte)(ack2.Header.Checksum & 0xFF));      // decremented
         }
     }
 }

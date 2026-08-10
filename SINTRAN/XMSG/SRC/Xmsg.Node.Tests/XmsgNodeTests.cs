@@ -14,8 +14,8 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
     public sealed class XmsgNodeTests
     {
         /// <summary>
-        /// The captured reachability request (100 -&gt; 102) must yield the exact captured
-        /// reply (102 -&gt; 100) byte-for-byte.
+        /// The captured reachability request (100 -> 102) must yield the exact captured
+        /// reply (102 -> 100) byte-for-byte.
         /// </summary>
         [Fact]
         public void ReachabilityRequest_ProducesExactCapturedReply()
@@ -35,8 +35,8 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
-        /// A data frame in the 102 -&gt; 103 direction must yield the exact captured secure
-        /// ACK (103 -&gt; 102) echoing Flags 1 and carrying the receiver's counter byte.
+        /// A data frame in the 102 -> 103 direction must yield the exact captured secure
+        /// ACK (103 -> 102) echoing Flags 1 and carrying the receiver's counter byte.
         /// </summary>
         [Fact]
         public void DataFrame_ProducesExactCapturedSecureAck()

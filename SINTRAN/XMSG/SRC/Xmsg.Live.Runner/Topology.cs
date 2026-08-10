@@ -93,6 +93,48 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         public TopologyEndpoint? Tcp { get; set; }
 
         /// <summary>
+        /// Gets or sets how this node is reached at the transport layer: <c>hdlc</c> (the default,
+        /// an <c>nd100x --hdlc</c> TCP bridge) or <c>ethernet</c> (a shared COSMOS segment).
+        /// </summary>
+        /// <remarks>
+        /// This is the TRANSPORT, which is a separate question from <see cref="Reach"/>. A node can
+        /// be a direct neighbour over either one, and the SINTRAN header is identical on both -
+        /// verified transport-independent on 128/128 frames - so only the link differs.
+        /// </remarks>
+        public string Transport { get; set; } = "hdlc";
+
+        /// <summary>
+        /// Gets or sets the Ethernet segment settings used when <see cref="Transport"/> is
+        /// <c>ethernet</c>; optional.
+        /// </summary>
+        public EthernetConfig? Ethernet { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether this node is reached over an Ethernet segment.
+        /// </summary>
+        /// <returns>
+        /// True when <see cref="Transport"/> names the Ethernet transport.
+        /// </returns>
+        /// <exception cref="FormatException">
+        /// Thrown when <see cref="Transport"/> is neither <c>hdlc</c> nor <c>ethernet</c>.
+        /// </exception>
+        public bool IsEthernet()
+        {
+            if (string.Equals(Transport, "hdlc", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (string.Equals(Transport, "ethernet", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(Transport, "eth", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            throw new FormatException(
+                $"Node {Id}: unknown transport '{Transport}' (expected 'hdlc' or 'ethernet').");
+        }
+        /// <summary>
         /// Parses <see cref="Reach"/> into the strongly-typed reachability class.
         /// </summary>
         /// <returns>
@@ -126,6 +168,43 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
     }
 
     /// <summary>
+    /// How to reach a COSMOS Ethernet segment.
+    /// </summary>
+    /// <remarks>
+    /// Mirrors the RetroCore machine's own <c>device add ETH 0 --net=</c> choices, so the runner and
+    /// the emulated ND machines are pointed at the same segment by copying one setting.
+    /// </remarks>
+    internal sealed class EthernetConfig
+    {
+        /// <summary>
+        /// Gets or sets the backend: <c>udp</c> (multicast, the default), <c>tcp</c> (dial a peer or
+        /// hub) or <c>listen</c> (accept one peer).
+        /// </summary>
+        public string Net { get; set; } = "udp";
+
+        /// <summary>
+        /// Gets or sets the multicast group for <c>udp</c>. Defaults to the RetroCore group.
+        /// </summary>
+        /// <remarks>
+        /// A C# process CAN see this traffic even when every node is on this host - the backend
+        /// joins the group and enables multicast loopback. What cannot see it is Wireshark/npcap,
+        /// because host-local multicast never reaches a real adapter. Those are different things;
+        /// do not read "not capturable" as "not observable".
+        /// </remarks>
+        public string Group { get; set; } = "239.3.9.4";
+
+        /// <summary>
+        /// Gets or sets the port: the multicast port for <c>udp</c>, or the TCP port otherwise.
+        /// </summary>
+        public int Port { get; set; } = 3094;
+
+        /// <summary>
+        /// Gets or sets the host to dial for <c>tcp</c>, or the address to bind for <c>listen</c>.
+        /// </summary>
+        public string Host { get; set; } = "127.0.0.1";
+    }
+
+    /// <summary>
     /// One TAD login account from the topology config: a username and an optional password.
     /// </summary>
     /// <remarks>
@@ -143,6 +222,50 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         /// Gets or sets the password; empty or null means a passwordless account.
         /// </summary>
         public string? Password { get; set; }
+    }
+
+    /// <summary>
+    /// The COSMOS file server's settings: which Windows folder <c>*FA-SERVER</c> serves.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// When this block is absent, or <see cref="Root"/> is blank, <b>the file server is not
+    /// started at all</b> and the runner says so on one line. That is deliberate: the alternative -
+    /// quietly defaulting to a folder beside the executable - would put whatever happens to be
+    /// sitting next to the runner (its own logs, its state files, its DLLs) on the network to any
+    /// machine that asks, without anyone having chosen to share it. Sharing files is an explicit
+    /// act, so it needs an explicit setting.
+    /// </para>
+    /// <para>
+    /// A relative path is taken relative to the executable's folder; an absolute path is used as
+    /// given. The folder is created if it does not exist, so pointing at a fresh path is enough.
+    /// </para>
+    /// </remarks>
+    internal sealed class FileServerConfig
+    {
+        /// <summary>
+        /// Gets or sets the Windows folder to serve. Blank or null means the file server stays off.
+        /// </summary>
+        public string? Root { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the file server runs at all; defaults to <c>true</c> so setting
+        /// <see cref="Root"/> is enough to turn it on.
+        /// </summary>
+        /// <remarks>
+        /// Set this to <c>false</c> to keep a configured folder in the file while temporarily
+        /// switching the server off, rather than having to delete the setting.
+        /// </remarks>
+        public bool Enabled { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the user index stamped into the synthesised directory entries.
+        /// </summary>
+        /// <remarks>
+        /// There is no real SINTRAN user directory behind a Windows folder, so this is simply the
+        /// user we present the files as owned by. Whether any client reads the field is UNKNOWN.
+        /// </remarks>
+        public byte UserIndex { get; set; }
     }
 
     /// <summary>
@@ -251,6 +374,13 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         /// Gets or sets the log configuration.
         /// </summary>
         public LogConfig Log { get; set; } = new LogConfig();
+
+        /// <summary>
+        /// Gets or sets the COSMOS file server settings. When null (or with a blank root) the file
+        /// server is not started - see <see cref="FileServerConfig"/> for why nothing is served by
+        /// default.
+        /// </summary>
+        public FileServerConfig? FileServer { get; set; }
 
         /// <summary>
         /// Gets or sets the TCP endpoint this runner LISTENS on for inbound neighbour connections, when
@@ -402,6 +532,145 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         }
 
         /// <summary>
+        /// Gets every node declared as a direct neighbour.
+        /// </summary>
+        /// <returns>
+        /// The neighbours, in file order. Empty when none is declared.
+        /// </returns>
+        /// <remarks>
+        /// A relaying runner needs one link, and so one host, per neighbour -
+        /// <see cref="PrimaryEthernetPeer"/> deliberately returns only the first because a lone
+        /// <c>XmsgNodeHost</c> speaks over one link.
+        /// </remarks>
+        public List<TopologyNode> Neighbours()
+        {
+            List<TopologyNode> found = new List<TopologyNode>();
+
+            for (int i = 0; i < Nodes.Count; i++)
+            {
+                if (Nodes[i].ReachKind() == NodeReach.Neighbour)
+                {
+                    found.Add(Nodes[i]);
+                }
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// Gets the node numbers reachable THROUGH a given neighbour.
+        /// </summary>
+        /// <param name="neighbourId">
+        /// The neighbour's node id.
+        /// </param>
+        /// <returns>
+        /// The ids of every <c>via</c> node whose chain begins at <paramref name="neighbourId"/>.
+        /// Empty when nothing is routed that way.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// This is the routing table a relay needs, read straight off the topology: a node declared
+        /// <c>"reach": "via", "via": [ 100 ]</c> is reached by sending to the link whose peer is 100.
+        /// </para>
+        /// <para><b>Only the FIRST hop matters here</b></para>
+        /// The chain may be longer - <c>via: [100, 42]</c> means "through 100, then through 42" -
+        /// but this node's decision is only which of ITS links to use, and that is settled by the
+        /// first entry. The rest is the next relay's problem, which is exactly how the captured
+        /// route-through behaves: each hop re-marks the datagram and passes the original endpoints
+        /// along untouched.
+        /// </remarks>
+        public List<ushort> NodesReachableThrough(ushort neighbourId)
+        {
+            List<ushort> reachable = new List<ushort>();
+
+            for (int i = 0; i < Nodes.Count; i++)
+            {
+                TopologyNode candidate = Nodes[i];
+
+                if (candidate.ReachKind() != NodeReach.Via)
+                {
+                    continue;
+                }
+
+                int[]? via = candidate.Via;
+                if (via == null || via.Length == 0)
+                {
+                    continue;
+                }
+
+                if (via[0] == neighbourId)
+                {
+                    reachable.Add(candidate.Id);
+                }
+            }
+
+            return reachable;
+        }
+
+        /// <summary>
+        /// Gets the first neighbour reached over an Ethernet segment, if any.
+        /// </summary>
+        /// <returns>
+        /// The Ethernet neighbour, or <c>null</c> when every neighbour is on HDLC.
+        /// </returns>
+        /// <remarks>
+        /// Only the FIRST such neighbour is returned. One <c>XmsgNodeHost</c> speaks over one link,
+        /// so a runner on a segment carrying several ND machines currently talks to one of them.
+        /// Serving several peers at once needs a host per link and is not done yet - it is NOT
+        /// simply a matter of listening wider, because each peer is a separate link with its own
+        /// learned link id and its own datagram sequence.
+        /// </remarks>
+        public TopologyNode? PrimaryEthernetPeer()
+        {
+            for (int i = 0; i < Nodes.Count; i++)
+            {
+                TopologyNode candidate = Nodes[i];
+                if (candidate.Id != Self && candidate.IsEthernet()
+                    && candidate.ReachKind() == NodeReach.Neighbour)
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Builds the backend spec string for a node's Ethernet settings.
+        /// </summary>
+        /// <param name="config">
+        /// The Ethernet settings, or null to use the defaults (UDP multicast on the RetroCore group).
+        /// </param>
+        /// <returns>
+        /// A spec accepted by <c>EthernetBackendFactory.FromSpec</c>.
+        /// </returns>
+        /// <exception cref="FormatException">
+        /// Thrown when the configured backend name is not recognised.
+        /// </exception>
+        public static string EthernetSpec(EthernetConfig? config)
+        {
+            EthernetConfig c = config ?? new EthernetConfig();
+
+            if (string.Equals(c.Net, "udp", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"udp:{c.Group}:{c.Port}";
+            }
+
+            if (string.Equals(c.Net, "tcp", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"tcp:{c.Host}:{c.Port}";
+            }
+
+            if (string.Equals(c.Net, "listen", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"listen:{c.Port}";
+            }
+
+            throw new FormatException(
+                $"Unknown ethernet net '{c.Net}' (expected 'udp', 'tcp' or 'listen').");
+        }
+
+        /// <summary>
         /// Gets the TCP endpoint the runner should connect to for its HDLC link.
         /// </summary>
         /// <returns>
@@ -411,6 +680,10 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         /// <remarks>
         /// The runner brings up exactly one HDLC bridge, to its neighbour, so the neighbour's endpoint is
         /// preferred. Nodes reached "via" carry their own endpoint only for a future direct-connect mode.
+        /// <para>
+        /// These remarks used to sit above <see cref="PrimaryEthernetPeer"/>, stranded there when the
+        /// method moved - so that method advertised itself as returning a TCP endpoint. Restored 2026-08-07.
+        /// </para>
         /// </remarks>
         public TopologyEndpoint? PrimaryEndpoint()
         {

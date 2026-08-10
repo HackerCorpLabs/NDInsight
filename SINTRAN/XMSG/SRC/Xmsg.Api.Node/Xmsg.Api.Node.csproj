@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Xmsg.Api.Node: the BRIDGE between the manual-shaped API (Xmsg.Api) and the node's
+    frame-shaped server model (Xmsg.Node). It exists as its own project because neither
+    side may reference the other: Xmsg.Node's hard rule is that it depends on nothing but
+    Xmsg.Protocol, and Xmsg.Api keeps the same rule so it stays transport-agnostic.
+    Everything that has to know about BOTH worlds lives here and nowhere else.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <RootNamespace>NDInsight.Sintran.Xmsg.Api.Node</RootNamespace>
+    <AssemblyName>NDInsight.Sintran.Xmsg.Api.Node</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Xmsg.Api\Xmsg.Api.csproj" />
+    <ProjectReference Include="..\Xmsg.Node\Xmsg.Node.csproj" />
+  </ItemGroup>
+
+</Project>

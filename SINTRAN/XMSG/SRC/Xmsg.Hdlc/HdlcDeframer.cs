@@ -45,6 +45,28 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
         /// </returns>
         public static IReadOnlyList<byte[]> SplitFrames(ReadOnlySpan<byte> stream)
         {
+            return SplitFrames(stream, null);
+        }
+
+        /// <summary>
+        /// Splits a stream on <c>0x7E</c> flags and unstuffs each frame's bytes, optionally
+        /// reporting where in the stream each frame ended.
+        /// </summary>
+        /// <param name="stream">
+        /// The reassembled byte stream (the concatenated TCP payloads of one flow).
+        /// </param>
+        /// <param name="frameEndOffsets">
+        /// When not null, receives one entry per returned frame: the offset of that frame's closing
+        /// flag within <paramref name="stream"/>. Callers use it to map a frame back to the TCP
+        /// segment that completed it, and so to recover capture order across flows - which plain
+        /// per-flow reassembly throws away.
+        /// </param>
+        /// <returns>
+        /// The list of unstuffed frame byte arrays, in stream order. Empty runs between
+        /// consecutive flags are skipped.
+        /// </returns>
+        public static IReadOnlyList<byte[]> SplitFrames(ReadOnlySpan<byte> stream, IList<int>? frameEndOffsets)
+        {
             List<byte[]> frames = new List<byte[]>();
 
             int length = stream.Length;
@@ -82,6 +104,7 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
                     if (unstuffed.Length > 0)
                     {
                         frames.Add(unstuffed);
+                        if (frameEndOffsets != null) { frameEndOffsets.Add(pos); }
                     }
                 }
 

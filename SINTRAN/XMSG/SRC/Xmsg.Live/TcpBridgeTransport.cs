@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -70,6 +71,55 @@ namespace NDInsight.Sintran.Xmsg.Live
             TcpClient client = new TcpClient();
             await client.ConnectAsync(host, port, cancellationToken);
             return new TcpBridgeTransport(client);
+        }
+
+        /// <summary>
+        /// Listens on a port and returns a transport for the first bridge that connects.
+        /// </summary>
+        /// <param name="port">
+        /// The TCP port to listen on.
+        /// </param>
+        /// <param name="cancellationToken">
+        /// A token that stops waiting for a connection.
+        /// </param>
+        /// <returns>
+        /// A task yielding the accepted transport.
+        /// </returns>
+        /// <remarks>
+        /// <para><b>Why this exists: to be in the MIDDLE</b></para>
+        /// <see cref="ConnectAsync"/> dials out, which makes this node a leaf - it can only ever be
+        /// an endpoint of somebody else's link. A relay has to be reachable, so at least one of its
+        /// links must be one the peer dials INTO.
+        /// <para>
+        /// In the live setup that peer is D103, whose <c>RetroCore.ini</c> carries
+        /// <c>device add HDLC 1 --connect=localhost:PORT</c>. Pointing that at us instead of at
+        /// D100 puts this node between the two, which is the only arrangement in which our relay
+        /// carries transit traffic at all.
+        /// </para>
+        /// <para><b>Ordering</b></para>
+        /// The listener must be up before the peer starts, or its connect attempt fails. The
+        /// listener is started before this method awaits, so a caller that has received the task
+        /// can safely tell the operator to start the machine.
+        /// <para>
+        /// One connection only. The listener is stopped as soon as a bridge is accepted, because a
+        /// second HDLC line to the same peer is not a topology this project models.
+        /// </para>
+        /// </remarks>
+        public static async Task<TcpBridgeTransport> ListenAsync(int port, CancellationToken cancellationToken)
+        {
+            // NOT-LIVE-TESTED: real network accept; no bridge is available under test.
+            TcpListener listener = new TcpListener(IPAddress.Loopback, port);
+            listener.Start();
+
+            try
+            {
+                TcpClient client = await listener.AcceptTcpClientAsync(cancellationToken);
+                return new TcpBridgeTransport(client);
+            }
+            finally
+            {
+                listener.Stop();
+            }
         }
 
         /// <inheritdoc/>

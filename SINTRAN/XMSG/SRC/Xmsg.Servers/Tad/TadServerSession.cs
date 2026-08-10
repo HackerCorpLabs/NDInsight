@@ -8,13 +8,19 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
     /// </summary>
     public enum TadServerLoginPhase
     {
-        /// <summary>Awaiting the username line (the banner's "ENTER " prompt).</summary>
+        /// <summary>
+        /// Awaiting the username line (the banner's "ENTER " prompt).
+        /// </summary>
         Username,
 
-        /// <summary>Awaiting the password line (no-echo).</summary>
+        /// <summary>
+        /// Awaiting the password line (no-echo).
+        /// </summary>
         Password,
 
-        /// <summary>A valid login completed.</summary>
+        /// <summary>
+        /// A valid login completed.
+        /// </summary>
         LoggedIn,
     }
 
@@ -35,11 +41,21 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <summary>
         /// Initialises a session for a connect from a given client endpoint.
         /// </summary>
-        /// <param name="remoteNode">The client's node number (header source).</param>
-        /// <param name="clientSystem">The client's system number (sub-header source system).</param>
-        /// <param name="clientPort">The client's source port (stable for the session's lifetime).</param>
-        /// <param name="sessionWirePort">The unique session port allocated for this session.</param>
-        /// <param name="tadNumber">The TAD number (ttyN) shown to operators and used by who/tell/wall.</param>
+        /// <param name="remoteNode">
+        /// The client's node number (header source).
+        /// </param>
+        /// <param name="clientSystem">
+        /// The client's system number (sub-header source system).
+        /// </param>
+        /// <param name="clientPort">
+        /// The client's source port (stable for the session's lifetime).
+        /// </param>
+        /// <param name="sessionWirePort">
+        /// The unique session port allocated for this session.
+        /// </param>
+        /// <param name="tadNumber">
+        /// The TAD number (ttyN) shown to operators and used by who/tell/wall.
+        /// </param>
         public TadServerSession(ushort remoteNode, ushort clientSystem, ushort clientPort, ushort sessionWirePort, int tadNumber)
         {
             RemoteNode = remoteNode;
@@ -56,34 +72,54 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             _pendingOutput = new List<string>();
         }
 
-        /// <summary>Gets the client's node number (header source).</summary>
+        /// <summary>
+        /// Gets the client's node number (header source).
+        /// </summary>
         public ushort RemoteNode { get; }
 
-        /// <summary>Gets the client's system number (sub-header source system).</summary>
+        /// <summary>
+        /// Gets the client's system number (sub-header source system).
+        /// </summary>
         public ushort ClientSystem { get; }
 
-        /// <summary>Gets the client's source port (stable for the whole session).</summary>
+        /// <summary>
+        /// Gets the client's source port (stable for the whole session).
+        /// </summary>
         public ushort ClientPort { get; }
 
-        /// <summary>Gets the unique session port allocated for this session.</summary>
+        /// <summary>
+        /// Gets the unique session port allocated for this session.
+        /// </summary>
         public ushort SessionWirePort { get; }
 
-        /// <summary>Gets the TAD number (ttyN) for this session.</summary>
+        /// <summary>
+        /// Gets the TAD number (ttyN) for this session.
+        /// </summary>
         public int TadNumber { get; }
 
-        /// <summary>Gets or sets the current login phase.</summary>
+        /// <summary>
+        /// Gets or sets the current login phase.
+        /// </summary>
         public TadServerLoginPhase Phase { get; set; }
 
-        /// <summary>Gets or sets the username entered but not yet validated (during the password phase).</summary>
+        /// <summary>
+        /// Gets or sets the username entered but not yet validated (during the password phase).
+        /// </summary>
         public string PendingUsername { get; set; }
 
-        /// <summary>Gets or sets the logged-in username (empty until a valid login).</summary>
+        /// <summary>
+        /// Gets or sets the logged-in username (empty until a valid login).
+        /// </summary>
         public string Username { get; set; }
 
-        /// <summary>Gets or sets the count of wrong-credential attempts.</summary>
+        /// <summary>
+        /// Gets or sets the count of wrong-credential attempts.
+        /// </summary>
         public int LoginFaults { get; set; }
 
-        /// <summary>Gets or sets a value indicating whether the MOTD has been sent.</summary>
+        /// <summary>
+        /// Gets or sets a value indicating whether the MOTD has been sent.
+        /// </summary>
         public bool MotdSent { get; set; }
 
         /// <summary>
@@ -93,7 +129,9 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// </summary>
         public int BringupRecoCount { get; set; }
 
-        /// <summary>Gets a value indicating whether this session has completed login.</summary>
+        /// <summary>
+        /// Gets a value indicating whether this session has completed login.
+        /// </summary>
         public bool IsLoggedIn
         {
             get { return Phase == TadServerLoginPhase.LoggedIn; }
@@ -101,36 +139,56 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
 
         // --- Connect resync (XENSE) state -------------------------------------------------------
 
-        /// <summary>Gets or sets the retained connect frame (to rebuild the accept during a resync).</summary>
+        /// <summary>
+        /// Gets or sets the retained connect frame (to rebuild the accept during a resync).
+        /// </summary>
         public XmsgFrame? ConnectFrame { get; set; }
 
-        /// <summary>Gets or sets the Flags 1 our accept currently uses (stepped down on each XENSE).</summary>
+        /// <summary>
+        /// Gets or sets the Flags 1 our accept currently uses (stepped down on each XENSE).
+        /// </summary>
         public ushort AcceptFlags1 { get; set; }
 
-        /// <summary>Gets or sets a value indicating whether the session-setup has been seen (resync stops).</summary>
+        /// <summary>
+        /// Gets or sets a value indicating whether the session-setup has been seen (resync stops).
+        /// </summary>
         public bool SessionSetupSeen { get; set; }
 
         // --- Negotiation metadata (for the "stat" command) --------------------------------------
 
-        /// <summary>Gets or sets a value indicating whether the TMOD/TTYP/DESC/OPSV chain was received.</summary>
+        /// <summary>
+        /// Gets or sets a value indicating whether the TMOD/TTYP/DESC/OPSV chain was received.
+        /// </summary>
         public bool NegotiationSeen { get; set; }
 
-        /// <summary>Gets or sets the terminal type (TTYP 0x0D).</summary>
+        /// <summary>
+        /// Gets or sets the terminal type (TTYP 0x0D).
+        /// </summary>
         public ushort TerminalType { get; set; }
 
-        /// <summary>Gets or sets the terminal mode (TMOD 0x0C).</summary>
+        /// <summary>
+        /// Gets or sets the terminal mode (TMOD 0x0C).
+        /// </summary>
         public byte TerminalMode { get; set; }
 
-        /// <summary>Gets or sets the escape character (DESC 0x0F).</summary>
+        /// <summary>
+        /// Gets or sets the escape character (DESC 0x0F).
+        /// </summary>
         public byte EscapeChar { get; set; }
 
-        /// <summary>Gets or sets the host OS-version bytes (OPSV 0x1F).</summary>
+        /// <summary>
+        /// Gets or sets the host OS-version bytes (OPSV 0x1F).
+        /// </summary>
         public byte[] OsVersion { get; set; }
 
-        /// <summary>Gets or sets the connect-letter service string (for example "*TADADM").</summary>
+        /// <summary>
+        /// Gets or sets the connect-letter service string (for example "*TADADM").
+        /// </summary>
         public string ConnectService { get; set; }
 
-        /// <summary>Gets or sets the connect-letter target system name (for example "D102").</summary>
+        /// <summary>
+        /// Gets or sets the connect-letter target system name (for example "D102").
+        /// </summary>
         public string ConnectTargetName { get; set; }
 
         // --- tty output queue -------------------------------------------------------------------
@@ -188,7 +246,9 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
 
         private readonly HashSet<ushort> _outstandingOutput = new HashSet<ushort>();
 
-        /// <summary>Gets the number of 255-byte continuation chunks sent in the current burst.</summary>
+        /// <summary>
+        /// Gets the number of 255-byte continuation chunks sent in the current burst.
+        /// </summary>
         public int ContinuationsSent { get; private set; }
 
         /// <summary>
@@ -214,22 +274,34 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// </summary>
         public bool PairAwaitingSecond { get; set; }
 
-        /// <summary>Gets the content still to stream (without the trailing prompt).</summary>
+        /// <summary>
+        /// Gets the content still to stream (without the trailing prompt).
+        /// </summary>
         public string OutputContent { get; private set; } = string.Empty;
 
-        /// <summary>Gets the prompt emitted as its own BDAT in the final frame (for example "# ").</summary>
+        /// <summary>
+        /// Gets the prompt emitted as its own BDAT in the final frame (for example "# ").
+        /// </summary>
         public string OutputPrompt { get; private set; } = string.Empty;
 
-        /// <summary>Gets or sets the offset into <see cref="OutputContent"/> already sent.</summary>
+        /// <summary>
+        /// Gets or sets the offset into <see cref="OutputContent"/> already sent.
+        /// </summary>
         public int OutputOffset { get; set; }
 
-        /// <summary>Gets or sets a value indicating whether the final (terminator) frame has been sent.</summary>
+        /// <summary>
+        /// Gets or sets a value indicating whether the final (terminator) frame has been sent.
+        /// </summary>
         public bool OutputFinalSent { get; set; }
 
-        /// <summary>Gets or sets a value indicating whether an output burst is in progress.</summary>
+        /// <summary>
+        /// Gets or sets a value indicating whether an output burst is in progress.
+        /// </summary>
         public bool OutputActive { get; set; }
 
-        /// <summary>Gets the number of sent-but-unacked output datagrams (the flow-control window use).</summary>
+        /// <summary>
+        /// Gets the number of sent-but-unacked output datagrams (the flow-control window use).
+        /// </summary>
         public int OutstandingOutputCount
         {
             get { return _outstandingOutput.Count; }

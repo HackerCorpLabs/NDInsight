@@ -12,10 +12,16 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
     /// <remarks>
     /// VERIFIED trailer format (XMSG-PROTOCOL.md section 9.1): the XSGSY trailer is a
     /// sequence of 4-byte records <c>[param-number][length=2][value-hi][value-lo]</c>
-    /// with a 16-bit big-endian value. Unlike a standard XROUT "letter" body it has
-    /// NO serial/service/length header — the service is identified by the sub-header
-    /// XMCSM word — so the trailer is assembled and read directly here rather than
-    /// through <see cref="XroutMessage"/>.
+    /// with a 16-bit big-endian value.
+    /// <para>
+    /// CORRECTED 2026-08-04. This used to say the trailer has "NO serial/service/length header -
+    /// the service is identified by the sub-header XMCSM word". That was the 13+19 boundary error
+    /// talking. The sub-header ends at absolute 27 and the XROUT header IS on the wire at 28-31:
+    /// <c>XmcsmService.XsgsyRequest = 0x0100014B</c> decomposes into XMCSM <c>0x0100</c> plus body
+    /// word <c>0x014B</c>, which is serial <c>0x01</c> and service <c>0x4B</c> = 75 = XSGSY. The
+    /// parameter blocks therefore start at absolute 32 - the same number
+    /// <see cref="TrailerOffset"/> always had, reached by a different and now correct sum.
+    /// </para>
     /// </remarks>
     internal static class XsgsyWire
     {
@@ -25,10 +31,10 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
         internal const int ParamBlockSize = 4;
 
         /// <summary>
-        /// Byte offset of the parameter-block trailer inside a data-frame information
-        /// field (SINTRAN header + XMSG sub-header).
+        /// Byte offset of the parameter-block trailer inside a data-frame information field:
+        /// the 14-byte SINTRAN header, the 14-byte XMSG sub-header, and the 4-byte XROUT header.
         /// </summary>
-        internal const int TrailerOffset = SintranHeader.Size + XmsgSubHeader.Size;
+        internal const int TrailerOffset = SintranHeader.Size + XmsgSubHeader.Size + XroutMessage.HeaderSize;
 
         /// <summary>
         /// Assembles a full XSGSY information field from a header, sub-header, and trailer.
@@ -37,7 +43,12 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
         /// The SINTRAN header to serialise first.
         /// </param>
         /// <param name="subHeader">
-        /// The XMSG sub-header; its user-data length is set to the trailer length.
+        /// The XMSG sub-header. Its <see cref="XmsgSubHeader.Xmcsm"/> is set from the high half of
+        /// <paramref name="controlService"/>.
+        /// </param>
+        /// <param name="controlService">
+        /// The historical 32-bit control/service value: XMCSM in the high half, the XROUT serial
+        /// and service bytes in the low half.
         /// </param>
         /// <param name="trailer">
         /// The raw parameter-block trailer bytes.
@@ -48,7 +59,7 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
         /// <exception cref="ArgumentNullException">
         /// Thrown when <paramref name="header"/> or <paramref name="subHeader"/> is null.
         /// </exception>
-        internal static byte[] BuildInfoField(SintranHeader header, XmsgSubHeader subHeader, ReadOnlySpan<byte> trailer)
+        internal static byte[] BuildInfoField(SintranHeader header, XmsgSubHeader subHeader, uint controlService, ReadOnlySpan<byte> trailer)
         {
             if (header == null)
             {
@@ -60,13 +71,22 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
                 throw new ArgumentNullException(nameof(subHeader));
             }
 
-            // VERIFIED (captures): XMLEN carries the trailer byte-length (4 for a request,
-            // 16 for a four-parameter response). XMLEN is the low byte of the length field.
-            subHeader.UserDataLength = (byte)trailer.Length;
+            subHeader.Xmcsm = (ushort)(controlService >> 16);
 
-            byte[] buffer = new byte[SintranHeader.Size + XmsgSubHeader.Size + trailer.Length];
+            byte[] buffer = new byte[TrailerOffset + trailer.Length];
             header.Serialize(buffer);
             subHeader.Serialize(buffer.AsSpan(SintranHeader.Size, XmsgSubHeader.Size));
+
+            // The XROUT header at absolute 28-31: serial, service, then the big-endian length of
+            // what follows. VERIFIED (captures): that length is the trailer byte-length - 4 for a
+            // one-parameter request, 16 for a four-parameter response - which is the same number
+            // the old model recorded in the phantom "XMLEN" byte at 31.
+            int xroutOffset = SintranHeader.Size + XmsgSubHeader.Size;
+            // The low 16 bits of the control service are the XROUT serial and service bytes; the
+            // high 16 went into Xmcsm above.
+            NdEndian.PutBe16(buffer, xroutOffset, (ushort)controlService);
+            NdEndian.PutBe16(buffer, xroutOffset + 2, (ushort)trailer.Length);
+
             trailer.CopyTo(buffer.AsSpan(TrailerOffset));
             return buffer;
         }
@@ -87,7 +107,7 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
         {
             destination[0] = parameterNumber;
             destination[1] = 0x02; // VERIFIED (captures): every XSGSY value is a 2-byte integer.
-            BigEndian.WriteUInt16(destination.Slice(2, 2), value);
+            NdEndian.PutBe16(destination, 2, value);
         }
 
         /// <summary>
@@ -121,7 +141,7 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
 
                 if (number == parameterNumber && length >= 2)
                 {
-                    value = BigEndian.ReadUInt16(trailer.Slice(dataStart, 2));
+                    value = NdEndian.GetBe16(trailer, dataStart);
                     return true;
                 }
 

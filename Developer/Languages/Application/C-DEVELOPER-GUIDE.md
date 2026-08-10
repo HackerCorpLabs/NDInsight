@@ -8,6 +8,19 @@
 
 ---
 
+## Installing the C Compiler
+
+CC-100 (ND-100) and CC-500 (ND-500) are **separate products** with separate floppy sets — CC-500
+has a full install sheet; CC-100's install steps have not yet been transcribed from its floppies.
+
+- **ND-500 — CC-500**, product `ND-210761`: [ND-210761B — C-Compiler for ND-500, version B](../../../Installation/Software/ND-210761/ND-210761B/README.md)
+  (verified from the PD sheet — floppy `210761B00-XX-01D`, or a 3-disk single-density set).
+- **ND-100 — CC-100**, product `ND-10760` (article number assumed from the floppy label, no PD
+  sheet found): [ND-10760A — C-Compiler for ND-100, version A](../../../Installation/Software/ND-10760/ND-10760A/README.md)
+  (install procedure recovered verbatim from the real floppy set `10760A00-1` + `10760A00-2`).
+
+---
+
 ## Quick Start
 
 **See [QUICK-START-EXAMPLES.md](../../QUICK-START-EXAMPLES.md) Section 3 for complete Hello World example.**

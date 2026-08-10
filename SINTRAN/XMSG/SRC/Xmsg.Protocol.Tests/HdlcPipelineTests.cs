@@ -72,7 +72,7 @@ namespace NDInsight.Sintran.Xmsg.Tests
         [Fact]
         public void EveryCapture_HasExpectedFcsValidCount()
         {
-            string? pcapDir = LocatePcapDirectory();
+            string? pcapDir = PcapFiles.Directory();
             if (pcapDir == null)
             {
                 _output.WriteLine("pcap directory not found; skipping per-file count assertions.");
@@ -125,7 +125,7 @@ namespace NDInsight.Sintran.Xmsg.Tests
         [Fact]
         public void Test1Capture_YieldsFcsValidFrames()
         {
-            string? pcapDir = LocatePcapDirectory();
+            string? pcapDir = PcapFiles.Directory();
             if (pcapDir == null)
             {
                 _output.WriteLine("pcap directory not found; skipping.");
@@ -144,33 +144,5 @@ namespace NDInsight.Sintran.Xmsg.Tests
             Assert.True(frames.Count > 0);
         }
 
-        /// <summary>
-        /// Resolves the pcap capture directory.
-        /// </summary>
-        /// <returns>
-        /// The directory path, or <c>null</c> when the captures cannot be located.
-        /// </returns>
-        private static string? LocatePcapDirectory()
-        {
-            string? fromEnv = Environment.GetEnvironmentVariable("XMSG_PCAP_DIR");
-            if (!string.IsNullOrEmpty(fromEnv) && Directory.Exists(fromEnv))
-            {
-                return fromEnv;
-            }
-
-            DirectoryInfo? dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir != null)
-            {
-                string candidate = Path.Combine(dir.FullName, "X25Emulator", "pcap");
-                if (Directory.Exists(candidate))
-                {
-                    return candidate;
-                }
-
-                dir = dir.Parent;
-            }
-
-            return null;
-        }
     }
 }

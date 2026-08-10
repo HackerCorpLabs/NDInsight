@@ -14,7 +14,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
     /// </summary>
     /// <remarks>
     /// Frame references (by ordinal in the decoded connect-to) are noted per test. The client
-    /// direction is 100-&gt;102; the server direction is 102-&gt;100.
+    /// direction is 100->102; the server direction is 102->100.
     /// </remarks>
     public sealed class TadSessionTests
     {
@@ -90,7 +90,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
         /// <summary>
         /// The client reset confirm RECO (capture frame #10) is reproduced byte-for-byte,
-        /// completing the RESE-&gt;RECO exchange proof.
+        /// completing the RESE->RECO exchange proof.
         /// </summary>
         [Fact]
         public void Client_BuildsReco_ByteIdentical()

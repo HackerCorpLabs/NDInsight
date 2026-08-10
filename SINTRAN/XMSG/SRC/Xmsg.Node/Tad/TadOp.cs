@@ -1,98 +1,108 @@
 namespace NDInsight.Sintran.Xmsg.Node.Tad
 {
     /// <summary>
-    /// The TAD opcode byte constants used by the session state machine.
+    /// The TAD opcode byte, identifying what a TAD message carries.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// VERIFIED: opcode values are taken from <c>TAD/TAD-Message-Formats.md</c> section 2,
     /// which verifies them against the SINTRAN III K03/L07/M06 symbol tables. The mnemonic
     /// naming (for human display) is provided separately by
     /// <see cref="SubProtocol.TadOpcodes"/>.
+    /// </para>
+    /// <para>
+    /// The values are sparse and not a contiguous range, so a byte off the wire that matches no
+    /// member here is an opcode we have not decoded rather than a malformed message. Cast and
+    /// compare, but never assume the set is complete.
+    /// </para>
     /// </remarks>
-    public static class TadOp
+    public enum TadOp : byte
     {
         /// <summary>
-        /// BDAT — terminal data block (<c>0x01</c>).
+        /// BDAT - terminal data block (<c>0x01</c>).
         /// </summary>
-        public const byte Bdat = 0x01;
+        Bdat = 0x01,
 
         /// <summary>
-        /// RFI — ready for input / flow-control credit (<c>0x02</c>).
+        /// RFI - ready for input / flow-control credit (<c>0x02</c>).
         /// </summary>
-        public const byte Rfi = 0x02;
+        Rfi = 0x02,
 
         /// <summary>
-        /// ECKM — echo strategy (<c>0x03</c>).
+        /// ECKM - echo strategy (<c>0x03</c>).
         /// </summary>
-        public const byte Eckm = 0x03;
+        Eckm = 0x03,
 
         /// <summary>
-        /// BMMX — break strategy / max break (<c>0x04</c>).
+        /// BMMX - break strategy / max break (<c>0x04</c>).
         /// </summary>
-        public const byte Bmmx = 0x04;
+        Bmmx = 0x04,
 
         /// <summary>
-        /// ESCA — escape received (<c>0x08</c>). Asker-sent; the host answers with opcode <c>0x20</c>.
+        /// ESCA - escape received (<c>0x08</c>). Asker-sent; the host answers with opcode <c>0x20</c>.
         /// </summary>
-        public const byte Esca = 0x08;
+        Esca = 0x08,
 
         /// <summary>
-        /// DCON — disconnect indication (<c>0x09</c>).
+        /// DCON - disconnect indication (<c>0x09</c>).
         /// </summary>
-        public const byte Dcon = 0x09;
+        Dcon = 0x09,
 
         /// <summary>
-        /// CERS — escape / CESC response (<c>0x21</c>). Asker-sent after each host burst / CESC change.
+        /// TMOD - terminal mode flags (<c>0x0C</c>).
         /// </summary>
-        public const byte Cers = 0x21;
+        Tmod = 0x0C,
 
         /// <summary>
-        /// TMOD — terminal mode flags (<c>0x0C</c>).
+        /// TTYP - terminal type id (<c>0x0D</c>).
         /// </summary>
-        public const byte Tmod = 0x0C;
+        Ttyp = 0x0D,
 
         /// <summary>
-        /// TTYP — terminal type id (<c>0x0D</c>).
+        /// CESC - command-escape / session control state (<c>0x0E</c>). Carries a 1-byte state that
+        /// steps 0x00 (auth-prompt) to 0x01 (auth-complete) during the login handshake.
         /// </summary>
-        public const byte Ttyp = 0x0D;
+        Cesc = 0x0E,
 
         /// <summary>
-        /// CESC — command-escape / session control state (<c>0x0E</c>). Carries a 1-byte state that
-        /// steps 0x00 (auth-prompt) → 0x01 (auth-complete) during the login handshake.
+        /// DESC - define escape character (<c>0x0F</c>).
         /// </summary>
-        public const byte Cesc = 0x0E;
+        Desc = 0x0F,
 
         /// <summary>
-        /// DESC — define escape character (<c>0x0F</c>).
+        /// SYCN - session sync / login-state word (<c>0x13</c>).
         /// </summary>
-        public const byte Desc = 0x0F;
+        /// <remarks>
+        /// The 16-bit value steps 0x0002 (connected/ENTER) to 0x0003 (password prompt) to 0x0006
+        /// (password OK) to 0x000A (logged in). VERIFIED from conn-to-d102 frames 62/64/68/70;
+        /// reaching 0x000A is what marks the TAD "logged in" so SINTRAN stops applying the
+        /// 1-minute "not logged in" idle drop.
+        /// </remarks>
+        Sycn = 0x13,
 
         /// <summary>
-        /// SYCN — session sync / login-state word (<c>0x13</c>). The 16-bit value steps
-        /// 0x0002 (connected/ENTER) → 0x0003 (password prompt) → 0x0006 (password OK) → 0x000A
-        /// (logged in). VERIFIED from conn-to-d102 frames 62/64/68/70; reaching 0x000A is what marks
-        /// the TAD "logged in" so SINTRAN stops applying the 1-minute "not logged in" idle drop.
+        /// RESE - reset connection request (<c>0x16</c>).
         /// </summary>
-        public const byte Sycn = 0x13;
+        Rese = 0x16,
 
         /// <summary>
-        /// RESE — reset connection request (<c>0x16</c>).
+        /// RECO - reset confirm (<c>0x17</c>).
         /// </summary>
-        public const byte Rese = 0x16;
+        Reco = 0x17,
 
         /// <summary>
-        /// RECO — reset confirm (<c>0x17</c>).
+        /// DUMM - dummy / no-op keep-the-stream-moving message (<c>0x18</c>).
         /// </summary>
-        public const byte Reco = 0x17;
+        Dumm = 0x18,
 
         /// <summary>
-        /// DUMM — dummy / no-op keep-the-stream-moving message (<c>0x18</c>).
+        /// OPSV - OS / protocol version handshake (<c>0x1F</c>).
         /// </summary>
-        public const byte Dumm = 0x18;
+        Opsv = 0x1F,
 
         /// <summary>
-        /// OPSV — OS / protocol version handshake (<c>0x1F</c>).
+        /// CERS - escape / CESC response (<c>0x21</c>). Asker-sent after each host burst / CESC change.
         /// </summary>
-        public const byte Opsv = 0x1F;
+        Cers = 0x21,
     }
 }

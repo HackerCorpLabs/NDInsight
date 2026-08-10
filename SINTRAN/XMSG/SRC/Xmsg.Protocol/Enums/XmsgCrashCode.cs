@@ -39,7 +39,7 @@ namespace NDInsight.Sintran.Xmsg
         XXIEN = 5,
 
         /// <summary>
-        /// XROUT: ZFUNC function &gt;X5FUN
+        /// XROUT: ZFUNC function >X5FUN
         /// </summary>
         XXIFL = 6,
 
@@ -284,12 +284,12 @@ namespace NDInsight.Sintran.Xmsg
         XXILG = 55,
 
         /// <summary>
-        /// XROUT: Physical tables are too big (&gt;64K)
+        /// XROUT: Physical tables are too big (>64K)
         /// </summary>
         XXTBT = 56,
 
         /// <summary>
-        /// XROUT: Message buffer pool is too big (&gt;256K)
+        /// XROUT: Message buffer pool is too big (>256K)
         /// </summary>
         XXTBM = 57,
     }

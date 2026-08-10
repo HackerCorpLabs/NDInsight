@@ -27,8 +27,8 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
     /// Supervisory-frame subtype, decoded from the low nibble of the control byte.
     /// </summary>
     /// <remarks>
-    /// Per the ND LAPB spec section 2.2.2 the subtype MUST be decoded via <c>ctrl &amp; 0x0F</c>;
-    /// <c>ctrl &amp; 0x03</c> alone cannot tell RR, RNR and REJ apart. The low nibble values are:
+    /// Per the ND LAPB spec section 2.2.2 the subtype MUST be decoded via <c>ctrl AND 0x0F</c>;
+    /// <c>ctrl AND 0x03</c> alone cannot tell RR, RNR and REJ apart. The low nibble values are:
     ///  - <c>0x1</c> — Receive Ready (RR).
     ///  - <c>0x5</c> — Receive Not Ready (RNR).
     ///  - <c>0x9</c> — Reject (REJ).
@@ -150,21 +150,21 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
             _info = new byte[infoLength];
             Array.Copy(frameBytes, 2, _info, 0, infoLength);
 
-            if ((Control & 0x01) == 0)
+            if ((Control & LapbControl.FormatMaskI) == 0)
             {
                 // I-frame: control bit 0 is clear. N(S)/N(R)/P are packed in the control byte.
                 Kind = LapbFrameKind.Information;
-                SendSequence = (Control >> 1) & 0x07;
-                ReceiveSequence = (Control >> 5) & 0x07;
+                SendSequence = (Control >> LapbControl.NsShift) & LapbControl.SequenceMask;
+                ReceiveSequence = (Control >> LapbControl.NrShift) & LapbControl.SequenceMask;
                 SupervisoryKind = LapbSupervisoryKind.Unknown;
                 UnnumberedKind = LapbUnnumberedKind.Unknown;
             }
-            else if ((Control & 0x03) == 0x01)
+            else if ((Control & LapbControl.FormatMaskS) == LapbControl.FormatS)
             {
                 // S-frame: control bits 1..0 == 01. Subtype is the low nibble (spec 2.2.2).
                 Kind = LapbFrameKind.Supervisory;
                 SendSequence = -1;
-                ReceiveSequence = (Control >> 5) & 0x07;
+                ReceiveSequence = (Control >> LapbControl.NrShift) & LapbControl.SequenceMask;
                 SupervisoryKind = DecodeSupervisory(Control);
                 UnnumberedKind = LapbUnnumberedKind.Unknown;
             }
@@ -178,7 +178,7 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
                 UnnumberedKind = DecodeUnnumbered(Control);
             }
 
-            PollFinal = (Control & 0x10) != 0;
+            PollFinal = (Control & LapbControl.PollFinalBit) != 0;
         }
 
         /// <summary>
@@ -276,13 +276,13 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
         private static LapbSupervisoryKind DecodeSupervisory(byte control)
         {
             // Spec 2.2.2: subtype is the low nibble. RR = 0x1, RNR = 0x5, REJ = 0x9.
-            switch (control & 0x0F)
+            switch (control & LapbControl.SupervisoryNibbleMask)
             {
-                case 0x1:
+                case LapbControl.RrNibble:
                     return LapbSupervisoryKind.ReceiveReady;
-                case 0x5:
+                case LapbControl.RnrNibble:
                     return LapbSupervisoryKind.ReceiveNotReady;
-                case 0x9:
+                case LapbControl.RejNibble:
                     return LapbSupervisoryKind.Reject;
                 default:
                     return LapbSupervisoryKind.Unknown;
@@ -302,17 +302,17 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
         private static LapbUnnumberedKind DecodeUnnumbered(byte control)
         {
             // Spec 2.2.3: mask off the P/F bit (0x10), then match the base pattern.
-            switch (control & ~0x10)
+            switch (control & ~LapbControl.PollFinalBit)
             {
-                case 0x2F:
+                case LapbControl.SabmBase:
                     return LapbUnnumberedKind.Sabm;
-                case 0x43:
+                case LapbControl.DiscBase:
                     return LapbUnnumberedKind.Disc;
-                case 0x63:
+                case LapbControl.UaBase:
                     return LapbUnnumberedKind.Ua;
-                case 0x0F:
+                case LapbControl.DmBase:
                     return LapbUnnumberedKind.Dm;
-                case 0x87:
+                case LapbControl.FrmrBase:
                     return LapbUnnumberedKind.Frmr;
                 default:
                     return LapbUnnumberedKind.Unknown;

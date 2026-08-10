@@ -6,6 +6,27 @@
 
 ---
 
+> ## CORRECTION 2026-08-04 - the CS-load half of this answer is INCOMPLETE
+>
+> This doc describes the **octobus command layer** (LOCSD/LOCSM, Messack) correctly. What it does not
+> describe is the **register-level protocol the ACCP actually uses to shift a microword into the
+> ND-5000**, which is now implemented and verified against the real `octo.bin`. Five points had to be
+> measured on the running firmware:
+>
+> 1. **The gate is bit 1 OR bit 2** of the `0x330000` latch. Boot uses bit 1 (`0x764E`) exclusively;
+>    bit 2 (`0x741E`) is only the console command path.
+> 2. **The address is the NINTH gated word**, after the eight 16-bit halves - not a pre-gate write.
+> 3. **The completed word must be LATCHED** - the card closes and reopens the gate between the shift
+>    and the perform. This doc's own phrase "BUFFERED CI-bit groups" turns out to be literal.
+> 4. **Multiple performs happen inside one gate window** - staging must reset after each.
+> 5. **`0x440000` must be HELD and echoed** (32-bit round trip), not ignored.
+>
+> Also: **booting the card never exercises the addressed control-store path.** Boot traffic is all
+> command `0x2018` at address 0; only the typed `LOAD-CONTROL-STORE` reaches `0x0018`.
+>
+> See `ACCP-EMULATION-STATUS-AND-HANDOFF.md` (headline section) and
+> `E:\Dev\Repos\Ronny\RetroCore\Nuget\HackerCorpLabs.Emulation.Machines.Accp\src\Devices\Nd5000ControlStoreLink.cs`.
+
 ## VERDICT
 
 All three handshakes are **ACCP-firmware (68000 EPROM) command-library exchanges over OMD 3**, not

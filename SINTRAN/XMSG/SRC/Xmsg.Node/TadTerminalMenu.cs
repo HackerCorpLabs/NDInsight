@@ -36,7 +36,9 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// The current date/time to stamp into the banner. Passed in (not read from the clock)
         /// so the greeting is deterministic under test.
         /// </param>
-        /// <returns>The full greeting text to emit to the terminal.</returns>
+        /// <returns>
+        /// The full greeting text to emit to the terminal.
+        /// </returns>
         public string BuildGreeting(DateTime now)
         {
             StringBuilder sb = new StringBuilder();
@@ -49,8 +51,12 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// <summary>
         /// Builds the message-of-the-day banner with the supplied date and time.
         /// </summary>
-        /// <param name="now">The timestamp to display.</param>
-        /// <returns>The banner text (leading and trailing CRLF included).</returns>
+        /// <param name="now">
+        /// The timestamp to display.
+        /// </param>
+        /// <returns>
+        /// The banner text (leading and trailing CRLF included).
+        /// </returns>
         public string BuildMotd(DateTime now)
         {
             StringBuilder sb = new StringBuilder();
@@ -66,7 +72,9 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// <summary>
         /// Builds the menu listing. Also used as the response to the <c>help</c> command.
         /// </summary>
-        /// <returns>The menu text.</returns>
+        /// <returns>
+        /// The menu text.
+        /// </returns>
         public string BuildMenu()
         {
             StringBuilder sb = new StringBuilder();
@@ -86,7 +94,9 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// <summary>
         /// Builds the command prompt (<c>#</c>).
         /// </summary>
-        /// <returns>The prompt text, on its own line.</returns>
+        /// <returns>
+        /// The prompt text, on its own line.
+        /// </returns>
         public string BuildPrompt()
         {
             return Crlf + "# ";
@@ -207,7 +217,9 @@ namespace NDInsight.Sintran.Xmsg.Node
     /// </remarks>
     public enum TadDisconnectMode
     {
-        /// <summary>No disconnect — the session continues.</summary>
+        /// <summary>
+        /// No disconnect — the session continues.
+        /// </summary>
         None = 0,
 
         /// <summary>
@@ -235,7 +247,9 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// <summary>
         /// Initialises the result.
         /// </summary>
-        /// <param name="output">The terminal text to send.</param>
+        /// <param name="output">
+        /// The terminal text to send.
+        /// </param>
         /// <param name="disconnect">True when the session should close after sending (uses the
         /// capture-faithful <see cref="TadDisconnectMode.Ladder"/> teardown).</param>
         public TadMenuResult(string output, bool disconnect)
@@ -247,21 +261,31 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// <summary>
         /// Initialises the result with an explicit disconnect mode.
         /// </summary>
-        /// <param name="output">The terminal text to send.</param>
-        /// <param name="mode">The teardown variant to run after sending.</param>
+        /// <param name="output">
+        /// The terminal text to send.
+        /// </param>
+        /// <param name="mode">
+        /// The teardown variant to run after sending.
+        /// </param>
         public TadMenuResult(string output, TadDisconnectMode mode)
         {
             Output = output;
             Mode = mode;
         }
 
-        /// <summary>Gets the terminal text to transmit back to the client.</summary>
+        /// <summary>
+        /// Gets the terminal text to transmit back to the client.
+        /// </summary>
         public string Output { get; }
 
-        /// <summary>Gets the teardown variant to run (None = stay connected).</summary>
+        /// <summary>
+        /// Gets the teardown variant to run (None = stay connected).
+        /// </summary>
         public TadDisconnectMode Mode { get; }
 
-        /// <summary>Gets a value indicating whether the session should disconnect afterwards.</summary>
+        /// <summary>
+        /// Gets a value indicating whether the session should disconnect afterwards.
+        /// </summary>
         public bool Disconnect
         {
             get { return Mode != TadDisconnectMode.None; }

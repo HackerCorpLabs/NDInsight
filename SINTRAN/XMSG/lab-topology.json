@@ -1,0 +1,93 @@
+{
+  "$comment": "Machine-readable lab facts. Prose, provenance and the traps live in LAB.md next to this file. STRICT JSON on purpose - no comments - so any script or tool can read it without a lenient parser. Every value here was read from the machine or its RetroCore.ini, never assumed; LAB.md records how each was established and what is still unverified.",
+
+  "verifiedOn": "2026-08-08",
+
+  "machines": [
+    {
+      "name": "D100",
+      "systemNumber": 100,
+      "folder": "F:\\RC\\RonnyTest\\HDLC1",
+      "exe": "RetroCore.exe",
+      "terminalPort": 9010,
+      "dapPort": 4100,
+      "disk": "BIGDISK0-K-100.IMG",
+      "hdlc": [
+        { "controller": 1, "mode": "listen", "port": 10364, "sintranLu": "1360", "note": "controller 1 is the ONLY one SINTRAN runs a link on" },
+        { "controller": 2, "mode": "listen", "port": 10362, "sintranLu": null, "note": "no SINTRAN link; D102 dials here and gets nothing" }
+      ],
+      "ethernet": { "net": "tcp", "host": "127.0.0.1", "port": 5010 },
+      "iniModified": "2026-08-08: HDLC 1 and 2 listen ports SWAPPED so our relay owns LU 1360's controller. Backup RetroCore.ini.bak-2026-08-08; original lines kept commented in place."
+    },
+    {
+      "name": "D102",
+      "systemNumber": 102,
+      "folder": "F:\\RC\\RonnyTest\\HDLC2",
+      "exe": "RetroCore.exe",
+      "terminalPort": 9102,
+      "dapPort": null,
+      "disk": "BIGDISK0-K-102.IMG",
+      "hdlc": [
+        { "controller": 1, "mode": "connect", "target": "localhost:10362", "sintranLu": "1360", "note": "dials D100 controller 2, which has no SINTRAN link since the swap - D102 currently has NO working line" }
+      ],
+      "ethernet": { "net": "tcp", "host": "127.0.0.1", "port": 5010 }
+    },
+    {
+      "name": "D103",
+      "systemNumber": 103,
+      "folder": "F:\\RC\\RonnyTest\\HDLC3",
+      "exe": "RetroCore.exe",
+      "terminalPort": 9003,
+      "dapPort": 4103,
+      "disk": "BIGDISK0-K-103.IMG",
+      "hdlc": [
+        { "controller": 1, "mode": "connect", "target": "localhost:10366", "sintranLu": "1360", "note": "dials OUR relay's inbound listener" }
+      ],
+      "ethernet": { "net": "tcp", "host": "127.0.0.1", "port": 5010 }
+    },
+    {
+      "name": "D200",
+      "systemNumber": 200,
+      "folder": null,
+      "exe": null,
+      "terminalPort": null,
+      "dapPort": null,
+      "disk": null,
+      "hdlc": [],
+      "ethernet": null,
+      "note": "Added 2026-08-09 because Ronny said so. NOT a RetroCore SINTRAN machine - a high-level Ethernet controller emulator another agent is writing, so folder/exe/disk/terminalPort may never apply. He has already defined it by hand on D100 and D102. UNVERIFIED BY US: whether it sits on hub 127.0.0.1:5010 like the others, and whether it answers anything. Nothing here was read off a machine, which is why every field we do not know is null rather than guessed."
+    }
+  ],
+
+  "ourNode": {
+    "name": "D19999",
+    "systemNumber": 19999,
+    "relayInboundListenPort": 10366,
+    "relayOutboundDial": "127.0.0.1:10364",
+    "topologyFile": "SRC/Xmsg.Live.Runner/topology-d19999-relay.json",
+    "command": "Xmsg.Live.Runner --config topology-d19999-relay.json --relay-listen 10366 --relay-inbound-node 103 127.0.0.1 10364 19999 <seconds>"
+  },
+
+  "tools": {
+    "tshark": "C:\\Program Files\\Wireshark\\tshark.exe",
+    "loopbackInterface": "\\Device\\NPF_Loopback",
+    "captureFilter": "tcp port 10362 or tcp port 10364 or tcp port 10366",
+    "dissector": "SINTRAN/Devices/HDLC/WireShark/hdlc_tcp.lua",
+    "dissectorFilter": "hdlc_lapb",
+    "lapbSpecWsl": "/home/ronny/repos/os/x25emu/docs/lapb-nd-spec.md",
+    "retroTermExe": "E:\\Dev\\Ronny\\RetroTerm\\publish\\RetroTerm.Desktop.exe"
+  },
+
+  "sintran": {
+    "login": "SYSTEM with an empty password; send name, CR, CR in ONE write",
+    "escapeFirst": true,
+    "xmsgCommand": "XMSG-COMMAND",
+    "bringUpSequence": [
+      "DEFINE-REMOTE-NAME,,<name>,<number>   for EVERY system including our own",
+      "DEFINE-SYSTEM-ROUTE,,<dest>,<nextHop> for NON-ADJACENT systems ONLY",
+      "START-LINK,1360,,,-1,,                LU is OCTAL, -1 means retry forever"
+    ],
+    "adjacencyRule": "COSMOS Operator Guide ND-30.025.02 section 2.5.4: a system on the far end of your own cable is ADJACENT and must NOT be given a route. Giving one is what made every peer unreachable.",
+    "restart": "SINTRAN-SERVICE then STOP-XMSG then START-XMSG. This CLEARS the whole name table, including the machine's own name, so the bring-up sequence must be re-run in full."
+  }
+}

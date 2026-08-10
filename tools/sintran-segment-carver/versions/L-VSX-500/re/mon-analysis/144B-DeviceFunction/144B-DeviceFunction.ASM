@@ -304,7 +304,7 @@
 026771  056025  	LDX ,X 25
 026772  146106  	RADD CLD 0 DT
 026773  146135  	RADD CLD SB DA
-026774  143374  	STATX			; device status transfer
+026774  143374  	STATX 7			; device status transfer
 026775  054433  	LDX ,B 33
 026776  135056  	JPL I 56		; -> 027054 (pointer word, finaliser)
 026777  050042  	LDT 42

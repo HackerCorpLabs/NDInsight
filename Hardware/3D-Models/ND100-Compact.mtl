@@ -1,0 +1,119 @@
+newmtl mat_FrontPanel
+Kd 0.4510 0.3490 0.2706
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_Vents
+Kd 0.0706 0.0706 0.0706
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_TapeDrive
+Kd 0.1294 0.1294 0.1294
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_FloppyDrive
+Kd 0.1294 0.1294 0.1294
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_RightPanel
+Kd 0.0784 0.0784 0.0784
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_ButtonPlate
+Kd 0.1020 0.1020 0.1020
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_Buttons
+Kd 0.1686 0.1608 0.1490
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_Badge
+Kd 0.9098 0.8784 0.7882
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_BadgeText
+Kd 0.1020 0.1020 0.1020
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_RearFans
+Kd 0.1490 0.1490 0.1490
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_OpWindow
+Kd 0.7608 0.7294 0.6588
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_OpKey
+Kd 0.6510 0.6314 0.6000
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_OpText
+Kd 0.8784 0.8588 0.8000
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_OpScale
+Kd 0.8784 0.8588 0.8000
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_OpBars
+Kd 0.9020 0.8706 0.7490
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_OpTextDark
+Kd 0.1216 0.1216 0.1216
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_OpScaleNums
+Kd 0.9020 0.8784 0.8314
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_FloppyLed
+Kd 0.7490 0.1020 0.0784
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_TapeLed
+Kd 0.6196 0.7608 0.5216
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_BaseFrame
+Kd 0.4510 0.3490 0.2706
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_CoreFrame
+Kd 0.4510 0.3490 0.2706
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_SidePanelLeft
+Kd 0.7216 0.6196 0.5216
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_SidePanelRight
+Kd 0.7216 0.6196 0.5216
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_TopPanel
+Kd 0.7216 0.6196 0.5216
+Ka 0 0 0
+Ks 0.05 0.05 0.05

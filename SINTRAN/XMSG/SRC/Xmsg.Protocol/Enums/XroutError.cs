@@ -159,7 +159,7 @@ namespace NDInsight.Sintran.Xmsg
         XRTRE = 28,
 
         /// <summary>
-        /// Old service calls (&lt;64) cannot go remote
+        /// Old service calls (below 64) cannot go remote
         /// </summary>
         XRRNA = 29,
 
@@ -289,7 +289,11 @@ namespace NDInsight.Sintran.Xmsg
         XRIRR = 54,
 
         /// <summary>
-        /// Illegal link number parameter
+        /// XRILX - Illegal link number parameter.
+        /// SOURCE DISCREPANCY: present in XMSG-PL-VALUES-L.INCL ("CONSTANT XRILX=55")
+        /// but ABSENT from XMSG-VALUES-L.SYMB, whose XROUT error range stops at
+        /// XRIRR=54. The M-version include file that generated this enum has it, so
+        /// the value 55 is kept.
         /// </summary>
         XRILX = 55,
 

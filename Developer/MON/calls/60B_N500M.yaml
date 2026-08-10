@@ -63,6 +63,7 @@ description: |
   remaining parameters are 32-bit words or arrays.
 
 notes:
+  - "Version history: MON 60 (N500M) gained function 174B (LOIMM) to support the new ND-5830 and ND-5850 ND-5000 system types (SINTRAN-III-Release-History.md:458, table 4.2 - placed in the M-version column). UNVERIFIED: the release documentation names function 174B / LOIMM but gives no argument layout for it, so its parameter contract is not recorded here."
   - "First parameter is always the 16-bit function code"
   - "Remaining parameters depend on the function code"
   - "Skip return indicates successful completion"

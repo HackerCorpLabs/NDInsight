@@ -14,6 +14,15 @@ description: >-
   Intended for ND subsystems only.
 notes:
 - >-
+    Version history: L-version added two disk-transfer subparameter-function values
+    to parameter 5 <disk identifier> - 6 = read without clearing cache and 7 = write
+    without "dump dirty" (write from a cache-inhibit area), both applicable only if
+    cache-inhibit is set for the area (ND-860230-6-EN Sintran III - Release Information
+    - L-Version.md:2782-2792). N-version changed the disk-transfer / event-flag
+    behaviour: the microprogram now always gives an interrupt to the ND-100 and
+    continues scanning the execution queue without waiting for an answer from the
+    ND-100 (ND-860230-8-EN SINTRAN III - Release Information - N-version.md:1645).
+- >-
     Internal-use ND-500 level-12 monitor call; not intended for user programs.
 - >-
     Handler SUBR 5MTRANS at MP-P2-N500.NPL:2440 (body :2441); entered with

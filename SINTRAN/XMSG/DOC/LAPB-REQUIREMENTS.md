@@ -60,7 +60,34 @@ where the corpus is silent.
   locally-originated link-management frame. Other U/S frames: unverified on the wire —
   stamp the same way, tolerate either on receive.
 - A5. I-frame information field = opaque upper-layer (SINTRAN/XMSG) payload. The LAPB
-  layer MUST NOT read or depend on it; max info field 312 bytes.
+  layer MUST NOT read or depend on it; **max info field 622 bytes**.
+
+  **CORRECTED 2026-08-05, was 312.** Measured over all 33 recorded `.pcapng` files,
+  3673 information frames:
+
+  ```
+  largest info field    622
+  over the stated 312   452
+  size bands   0:3041  100:132  200:48  400:226  600:226
+  ```
+
+  The 226/226 pairing is the whole story: those are fragment pairs - a 622-byte first
+  fragment and its ~450-byte continuation - and they occur in the four file-transfer
+  captures and nowhere else. Every other traffic class (file access, listing, TAD,
+  routing) tops out at 292, which is why 312 held for so long.
+
+  622 is not a new measurement so much as a derived one: it is
+  `SintranMessageFragment.FirstFragmentBodyLength + FirstFragmentBodyOffset` = 594 + 28,
+  the largest frame the fragmentation scheme can produce, and exactly the largest ever
+  recorded. `LapbLayer.MaxInformationLength` computes it that way rather than restating
+  the number. Pinned by `LapbInformationLengthTests`; the measurement is commit `86eab68`.
+
+  A receiver enforcing 312 answers a legal fragment with an FRMR, so **a file can be sent
+  but not received** - which is exactly how it presented.
+
+  **The X25Emulator spec still says 312** (WSL `~/repos/os/x25emu/docs/lapb-nd-spec.md`).
+  That document is in another repository and has NOT been updated; the two disagree
+  deliberately until someone with that repo open fixes it.
 
 ## 3. Link establishment
 

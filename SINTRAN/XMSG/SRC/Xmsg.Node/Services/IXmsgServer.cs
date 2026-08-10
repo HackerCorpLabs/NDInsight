@@ -31,12 +31,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
 
         /// <summary>
         /// Gets the well-known logical port this server registers on (for example 2 for <c>*TADADM</c>,
-        /// 4 for <c>*XM-FIDO</c>). The wire reply-from port is <c>(LogicalPort &lt;&lt; 7) | incarnation</c>.
+        /// 4 for <c>*XM-FIDO</c>). The wire reply-from port is <c>(LogicalPort shifted left 7) | incarnation</c>.
         /// </summary>
         int LogicalPort { get; }
 
         /// <summary>
-        /// Gets the minted wire reply-from port (<c>(LogicalPort &lt;&lt; 7) | incarnation</c>) shown by
+        /// Gets the minted wire reply-from port (<c>(LogicalPort shifted left 7) | incarnation</c>) shown by
         /// <c>list servers</c>.
         /// </summary>
         ushort WirePort { get; }

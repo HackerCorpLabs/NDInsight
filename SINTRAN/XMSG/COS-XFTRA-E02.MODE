@@ -1,0 +1,21 @@
+@ENTER RT,,,10
+@ABORT XFTRAD
+@SCHEDULE 503
+@RT-LOADER
+CLEAR-SEGMENT XFTRAD
+YES
+NEW-SEGMENT XFTRAD,2,,,,,,,,,,,,,,,
+READ-PROGFILE (COSMOS-BASIC)COS-XFTRA-E02,,,,,
+END-LOAD
+DECLARE-PROGRAM XFTRAD,,
+CHANGE-RT-DESCRIPTION XFTRAD 30 XFTRAD,,0,,,,,,
+EXIT-LOADER
+
+@CC Remote batch logical device at address 61465:
+@CC 0=no batch, 1237=batch 1, 1241=batch 2, etc.
+@CC Timeoutvalue at address 61641 (in seconds, octal value)
+@LOOK S XFTRAD
+61465/1241
+61641/74
+.
+@CC

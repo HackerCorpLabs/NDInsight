@@ -25,6 +25,7 @@
     <ProjectReference Include="..\Xmsg.Protocol\Xmsg.Protocol.csproj" />
     <ProjectReference Include="..\Xmsg.Node\Xmsg.Node.csproj" />
     <ProjectReference Include="..\Xmsg.Servers\Xmsg.Servers.csproj" />
+    <ProjectReference Include="..\Xmsg.TestSupport\Xmsg.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>

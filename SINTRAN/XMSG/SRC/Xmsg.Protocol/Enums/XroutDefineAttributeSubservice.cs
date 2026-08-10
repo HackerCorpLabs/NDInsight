@@ -36,6 +36,25 @@ namespace NDInsight.Sintran.Xmsg
         /// <summary>
         /// Define alternative link (COSROUT only)
         /// </summary>
+        /// <remarks>
+        /// Minor wording discrepancy: XMSG-PL-VALUES-L.INCL says "Define
+        /// alternative link (COSROUT only)"; XMSG-VALUES-L.SYMB line 241 says
+        /// only "Define alternative link" without the COSROUT qualifier.
+        /// Same value (5) in both.
+        /// </remarks>
         XSDAL = 5,
+
+        /// <summary>
+        /// Set route through flag
+        /// </summary>
+        /// <remarks>
+        /// DISCREPANCY between the two authoritative ND symbol files:
+        /// XMSG-VALUES-L.SYMB line 242 has "SYMBOL XSSRT=6     % Set route
+        /// through flag", but XMSG-PL-VALUES-L.INCL has no XSSRT at all - its
+        /// XSDAT sub-service list stops at XSDAL=5. Included here because the
+        /// .SYMB (the assembler symbol file the running XMSG was built with)
+        /// defines it.
+        /// </remarks>
+        XSSRT = 6,
     }
 }

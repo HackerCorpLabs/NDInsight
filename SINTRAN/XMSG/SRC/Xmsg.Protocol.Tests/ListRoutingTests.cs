@@ -42,11 +42,9 @@ namespace NDInsight.Sintran.Xmsg.Tests
                 sourceSystem: 0x0066,
                 sourcePort: 0x02A5,
                 flags1: 0x012B,
-                counter: 0xE9,
                 flags2: 0x0100,
                 frameFlags: 0x86,
                 role: 0x84,
-                protocolId: SintranProtocolId.Db,
                 controlService: ListRoutingClient.XmcsmXsgsyRequest);
 
             Assert.Equal(expected, actual);
@@ -69,12 +67,10 @@ namespace NDInsight.Sintran.Xmsg.Tests
             byte[] actual = server.BuildResponse(
                 request,
                 entry,
-                counter: 0x20,
                 flags1: 0x00F4,
                 flags2: 0x0100,
                 frameFlags: 0x86,
                 role: 0x60,
-                protocolId: SintranProtocolId.Dc,
                 controlService: ListRoutingServer.XmcsmXsgsyReply);
 
             Assert.Equal(expected, actual);
@@ -120,7 +116,7 @@ namespace NDInsight.Sintran.Xmsg.Tests
             ListRoutingClient client = new ListRoutingClient();
 
             // Hit: query for 100 resolves to the Local entry.
-            byte[] hitBytes = server.Handle(request, table, counter: 0x20, flags1: 0x00F4);
+            byte[] hitBytes = server.Handle(request, table, flags1: 0x00F4);
             XmsgFrame hitFrame = XmsgFrame.Parse(hitBytes);
             RoutingTableEntry hit = client.ParseResponse(hitFrame);
 
@@ -135,7 +131,7 @@ namespace NDInsight.Sintran.Xmsg.Tests
             lowEntries.Add(new RoutingTableEntry(50, XroutConnectionType.Local, 0, 0, 0));
             InMemoryRoutingTable lowTable = new InMemoryRoutingTable(lowEntries);
 
-            byte[] missBytes = server.Handle(request, lowTable, counter: 0x20, flags1: 0x00F4);
+            byte[] missBytes = server.Handle(request, lowTable, flags1: 0x00F4);
             XmsgFrame missFrame = XmsgFrame.Parse(missBytes);
             RoutingTableEntry miss = client.ParseResponse(missFrame);
 

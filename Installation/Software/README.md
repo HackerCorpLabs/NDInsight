@@ -83,20 +83,25 @@ Documented products link from the **Doc** column below.
 |----|------|--------|-----|
 | ND-10018 | RPG-II (RPG Compiler) | ND-100 | 60 |
 | ND-10020 | COBOL (phased out) | ND-100 | 60 |
+| ND-10760 | C-Compiler for ND-100 (CC-100) *(article no. assumed from floppy label)* | ND-100 | 60 |
+| ND-210761 | C-Compiler for ND-500 (CC-500) | ND-500 | 60 |
 | ND-10023 | FORTRAN (48-bit) | NORD-10 | 60 |
 | ND-10024 | BASIC (48-bit) | NORD-10 | 60 |
 | ND-10033 | FORTRAN (32-bit) | NORD-10 | 60 |
 | ND-10034 | BASIC (32-bit) | NORD-10 | 60 |
 | ND-10058 | NORD Simula (48-bit) | NORD-10 | 60 |
 | ND-10067 | FORTRAN Runtime system (48-bit) | NORD-10 | 60 |
-| ND-10076 | Pascal (48-bit) | NORD-10 | 60 |
+| ND-10076 | Pascal for ND-100 (48-bit) | NORD-10 / ND-100 | 60 |
 | ND-10133 | Pascal (32-bit) | NORD-10 | 60 |
+| ND-211001 | ND PASCAL (later, ISO-standard compiler replacing 3 earlier Pascal compilers) | ND-100/500 | 60 |
+| ND-210755 | BASIC for ND-500 | ND-500 | 60 |
 | ND-10136 | FORTRAN Runtime system (32-bit) | NORD-10 | 60 |
 | ND-10176 | COBOL for ND-100/NORD-10 | ND-100 | 60 |
 | ND-10177 | ND-500 COBOL | ND-500 | 60 |
 | ND-10187 | Pascal for ND-500 | ND-500 | 60 |
 | ND-10189 | COBOL runtime System | ND-100 | 60 |
 | ND-10190 | FORTRAN for ND-500 | ND-500 | 60 |
+| ND-210190 | FORTRAN for ND-500 (later article no.) | ND-500 | 60 |
 | ND-10191 | FORTRAN for ND-100/NORD-10 | ND-100 | 60 |
 | ND-10196 | ND-100 APL (48-bit) | ND-100 | 60 |
 | ND-10309 | PLANC for ND-100 | ND-100 | 60 |
@@ -119,6 +124,7 @@ Documented products link from the **Doc** column below.
 |----|------|--------|-----|
 | ND-10311 | ND-500 Assembler | ND-500 | 60 |
 | ND-10319 | Linkage-Loader for ND-500 | ND-500 | 60 |
+| ND-210319 | Linkage-Loader for ND-500 (later article no. — the floppy documented live in [../INSTALL-ND-LINKAGE-LOADER-AND-BACKUP-SYSTEM.md](../INSTALL-ND-LINKAGE-LOADER-AND-BACKUP-SYSTEM.md) is this article, per ND-211224's own PI sheet) | ND-500 | 60 |
 | ND-10320 | ND-500 Monitor (Single-user) | ND-500 | 60 |
 | ND-10333 | ND-500 Monitor (Multi-user) | ND-500 | 60 |
 | ND-10335 | ND-500 Symbolic Debugger | ND-500 | 60 |
@@ -129,6 +135,8 @@ Documented products link from the **Doc** column below.
 | ND-210721 | BRF-Linker for ND-100 | ND-100 | 60 |
 | ND-210913 | SINTRAN III Monitor Call Package | ND-100 | 60 |
 | ND-211034 | ND-500 Swapper | ND-500 | 60 |
+| ND-211224 | ND LINKER for ND-500/ND-5000 | ND-500/5000 | 60 |
+| ND-211229 | CONVERT-DOMAIN (converts Linkage-Loader-format domains to ND LINKER format) | ND-500/5000 | 60 |
 
 ## 4. Editors & Word Processing
 | ID | Name | Target | Tag |
@@ -349,6 +357,57 @@ Documented products link from the **Doc** column below.
 | Product | Versions documented |
 |---------|---------------------|
 | [ND-10022 SINTRAN Utility Programs](ND-10022/README.md) | [ND-10022U](ND-10022/ND-10022U/README.md) |
+| [ND-210400 Subsystem Package II](ND-210400/README.md) | [ND-210400B](ND-210400/ND-210400B/README.md) |
+| [ND-210761 C-Compiler for ND-500 (CC-500)](ND-210761/README.md) | [ND-210761B](ND-210761/ND-210761B/README.md) |
+| [ND-10760 C-Compiler for ND-100 (CC-100)](ND-10760/README.md) | [ND-10760A](ND-10760/ND-10760A/README.md) |
+| [ND-210337 Backup-System](ND-210337/README.md) | [ND-210337I05](ND-210337/ND-210337I05/README.md) — I04 is verified in [INSTALL-ND-LINKAGE-LOADER-AND-BACKUP-SYSTEM.md](../INSTALL-ND-LINKAGE-LOADER-AND-BACKUP-SYSTEM.md) |
+| [ND-10337 Backup-System (older article no.)](ND-10337/README.md) | [ND-10337B](ND-10337/ND-10337B/README.md), [ND-10337F](ND-10337/ND-10337F/README.md) — F is unverified |
+| [ND-10309 PLANC for ND-100](ND-10309/README.md) | [ND-10309A](ND-10309/ND-10309A/README.md), [ND-10309B](ND-10309/ND-10309B/README.md), [ND-10309F](ND-10309/ND-10309F/README.md) — F is unverified |
+| [ND-10023 FORTRAN (48-bit)](ND-10023/README.md) | [ND-10023K](ND-10023/ND-10023K/README.md) — unverified |
+| [ND-10191 Fortran 77 for ND-100/NORD-10](ND-10191/README.md) | [ND-10191A](ND-10191/ND-10191A/README.md), [ND-10191D](ND-10191/ND-10191D/README.md) — both unverified, D's PART1 is missing/unresolved |
+| [ND-210191 Fortran 77 for ND-100/NORD-10 (later article no.)](ND-210191/README.md) | [ND-210191F02](ND-210191/ND-210191F02/README.md) — unverified |
+| [ND-210190 FORTRAN for ND-500](ND-210190/README.md) | [ND-210190K02](ND-210190/ND-210190K02/README.md) — installer identified, not run live |
+| [ND-10335 ND-500 Symbolic Debugger](ND-10335/README.md) | [ND-10335B](ND-10335/ND-10335B/README.md) |
+| [ND-10311 Assembler for ND-500](ND-10311/README.md) | [ND-10311A](ND-10311/ND-10311A/README.md) — install command sourced from the manual |
+| [ND-10177 ND-500 COBOL](ND-10177/README.md) | [ND-10177H00](ND-10177/ND-10177H00/README.md) — PART2 missing, see product page |
+| [ND-210177 COBOL-85 for ND-500/5000](ND-210177/README.md) | [ND-210177J02](ND-210177/ND-210177J02/README.md) — real MODE scripts decoded, [ND-210177K01](ND-210177/ND-210177K01/README.md) — adapted, unverified |
+| [ND-210721 BRF-Linker for ND-100](ND-210721/README.md) | [ND-210721C](ND-210721/ND-210721C/README.md) |
+| [ND-211224 ND LINKER for ND-500/ND-5000](ND-211224/README.md) | [ND-211224B01](ND-211224/ND-211224B01/README.md) — installer identified by analogy, not run live |
+| [ND-10076 Pascal for ND-100](ND-10076/README.md) | [ND-10076J](ND-10076/ND-10076J/README.md) |
+| [ND-210755 BASIC for ND-500](ND-210755/README.md) | [ND-210755A](ND-210755/ND-210755A/README.md) |
+| [ND-10176 COBOL for ND-100/NORD-10](ND-10176/README.md) | [ND-10176A](ND-10176/ND-10176A/README.md) — unverified, [ND-10176H00](ND-10176/ND-10176H00/README.md) — latest complete, real MODE scripts decoded |
+| [ND-10189 COBOL runtime System](ND-10189/README.md) | partial — one floppy found, content identical to ND-10176H00's ISAM bundle |
+| [ND-10536 COB-GEN](ND-10536/README.md) | [ND-10536C00](ND-10536/ND-10536C00/README.md) — unverified |
+| [ND-210073 ISAM for ND-100/ND-500](ND-210073/README.md) | install scripts real/decoded; programming API not documented (manual not in repo) |
+| [ND-211464 VTM terminal tables (VT200)](ND-211464/README.md) | [ND-211464A](ND-211464/ND-211464A/README.md) — verified, complete PD sheet |
+| [ND-10166 SIBAS-II (older article no.)](ND-10166/README.md) | [ND-10166E](ND-10166/ND-10166E/README.md) — floppies verified, install adapted from the F-revision sheet |
+| [ND-210166 SIBAS-II (later article no.)](ND-210166/README.md) | [ND-210166F02](ND-210166/ND-210166F02/README.md) — verified, complete 17-page PD sheet |
+| [ND-211005 UNIQUE Text System](ND-211005/README.md) | [ND-211005C](ND-211005/ND-211005C/README.md) — verified, complete PD sheet |
+| [ND-210729 UNIQUE II (SIBAS, ND-100)](ND-210729/README.md) | PI-sheet only, no PD sheet/floppy located; covers the whole DIALOGUE-1/UNIQUE family |
+| [ND-211250 UNIQUE DOCUMENTATION](ND-211250/README.md) | [ND-211250C13](ND-211250/ND-211250C13/README.md) — identity confirmed via decoded scripts, real MODE files decoded |
+| [ND-210336 ND-100 Symbolic Debugger](ND-210336/README.md) | [ND-210336F01](ND-210336/ND-210336F01/README.md) — install + real worked debugging session, both manual-sourced |
+| [ND-211226 Backup Manager for ND-500/5000](ND-211226/README.md) | [ND-211226B02](ND-211226/ND-211226B02/README.md) — real decoded MODE scripts, installer not run live |
+| [ND-210455 VTM terminal tables (Standard)](ND-210455/README.md) | [ND-210455G04](ND-210455/ND-210455G04/README.md) — floppy confirmed, install not established |
+| [ND-211160 LED for ND-500/5000](ND-211160/README.md) | [ND-211160B03](ND-211160/ND-211160B03/README.md) — verified, complete PD sheet |
+| [ND-211157 LED-DEBUGGER](ND-211157/README.md) | [ND-211157B03](ND-211157/ND-211157B03/README.md) — verified, complete PD sheet |
+| [ND-210886 AUTOMAKE for ND-100](ND-210886/README.md) | [ND-210886B00](ND-210886/ND-210886B00/README.md) — verified, complete PD sheet |
+| [ND-210887 AUTOMAKE for ND-500](ND-210887/README.md) | [ND-210887B00](ND-210887/ND-210887B00/README.md) — verified, complete PD sheet |
+| [ND-211049 SQL for ND-500](ND-211049/README.md) | [ND-211049A02](ND-211049/ND-211049A02/README.md) — verified, complete PD sheet |
+| [ND-211114 ADA for ND-500/5000](ND-211114/README.md) | [ND-211114A00](ND-211114/ND-211114A00/README.md) — install command real, huge 9-disk per-file catalog not fully transcribed |
+| [ND-211037 PLANC for ND-110, compiling on ND-500/5000](ND-211037/README.md) | [ND-211037I01](ND-211037/ND-211037I01/README.md) — verified, complete PD sheet |
+| [ND-210757 CBASIC Compiler for ND-100](ND-210757/README.md) | STUB — PS-sheet only, no install procedure |
+| [ND-211035 CBASIC Compiler for ND-500/5000](ND-211035/README.md) | STUB — PS-sheet only, no install procedure |
+| [ND-211036 CBASIC-Utilities and Runtime](ND-211036/README.md) | STUB — PS-sheet only, no install procedure |
+| [ND-10354 SIMULA for ND-500](ND-10354/README.md) | STUB — PI-sheet only, no install procedure |
+| [ND-211149 ND C for ND-500/ND-5000](ND-211149/README.md) | STUB — PI-sheet only, no install procedure |
+| [ND-10145 MERCUR](ND-10145/README.md) | STUB — PI-sheet only, no install procedure |
+| [ND-211038 PLANC for MC68000 on ND-500/5000](ND-211038/README.md) | STUB — no source located |
+| [ND-250405 PLANC for Intel-386 on ND-500/5000](ND-250405/README.md) | STUB — no source located |
+| [ND-211039 COBOL-85 Runtime](ND-211039/README.md) | STUB — no source located |
+| [ND-250009 NDP](ND-250009/README.md) | STUB — no source located |
+| [ND-211159 LED-FORTRAN](ND-211159/README.md) | STUB — real floppy decoded, no installer program on it |
+| [ND-211158 LED-PLANC](ND-211158/README.md) | STUB — no source located |
+| [ND-230050 LED for OWS](ND-230050/README.md) | STUB — no source located |
 
 ---
 

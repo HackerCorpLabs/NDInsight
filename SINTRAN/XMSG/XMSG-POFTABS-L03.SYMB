@@ -1,0 +1,718 @@
+
+%=========================  XMSG  version L  ====================  87.02.08  ===
+%
+%      XMSG-POFTABS
+%      ------------
+%
+% DEFINITIONS FOR TABLES COMMON TO BOTH KERNEL CODE AND XMSG-COMMAND PROGRAM.
+%             SEE XMSG-SYSTABS FOR TABLES COMMON TO RESIDENT AND KERNEL (XT-BLOCK)
+%
+%===============================================================================
+
+% ==== PASSWORD ==== SHOULD BE CHANGED WHEN SYSTEM TABLES ARE MODIFIED TO FORCE
+%                    RECOMPILATION OF DRIVERS THAT USE THESE TABLES.
+@DEC
+SYMBOL XZPYR=1987,XZPMO=02,XZPDY=08    % DATE OF VERSION (YEAR/MONTH/DAY)
+SYMBOL XPASW=XZPYR-1980*16+XZPMO*32+XZPDY   % ==>7110B
+@OCT
+
+% XMSG version and revision.
+% MUST be changed when a new XMSG version or revision is released.
+SYMBOL XVERS=##L,XREVI=#03         % Released XMSG version and revision
+%
+% The text string containing the Product Number and Name is located on the
+% XMSG-XROUT:SYMB file. The text string has the name XPDUC and must be
+% modified when a new XMSG version is released.
+%
+
+% Bits in configuration mask (CFMSK)
+SYMBOL CMCRM=11           % COSMOS routing management (COSROUT)
+
+%==============================================================================
+%
+%      B A S E F I E L D       F O R      X M S G
+%
+%==============================================================================
+%
+% Sintran variables
+%
+DISP 5S3BA=-200
+       INTEGER POINTER XMSGA
+@LIB 8XPTX
+       INTEGER ZXR14
+       INTEGER QDPIT
+       INTEGER QENPC
+       INTEGER QDIPC
+@ELIB
+@LIB 8XPTX-,
+       INTEGER RET14
+       INTEGER ARRAY POINTER PVLAD
+@ELIB
+@LIB 8XPTX
+       INTEGER Q9ERR
+@ELIB
+@LIB 8XPTX-,
+       INTEGER POINTER 9ERR
+@ELIB
+       INTEGER POINTER PASST
+       INTEGER POINTER ERRFATAL
+       INTEGER POINTER PIDRE
+@LIB 8XPTX-,
+       INTEGER POINTER XWT05
+@ELIB
+       INTEGER POINTER XRTEN
+       INTEGER POINTER ITB13
+       INTEGER Q2PHY
+       INTEGER Q2USR
+@LIB 8XPTX-,
+       INTEGER POINTER XRTDS
+@ELIB
+       INTEGER POINTER XPFAD
+       INTEGER XDHOM
+@LIB 8XPTX
+       INTEGER QLGPH
+@ELIB
+@LIB 8XPTX-,
+       INTEGER POINTER LOGPH
+@ELIB
+       INTEGER ZXRES
+       INTEGER ZXRRS
+       INTEGER POINTER ZXTRS
+       INTEGER QXS12
+       INTEGER QXS13
+@LIB 8XPTX
+       INTEGER QBACK
+       INTEGER QMTOR
+       INTEGER QRTRE
+       INTEGER QCURP
+       INTEGER QRTST
+       INTEGER QRTEN
+       INTEGER QSEGT
+       INTEGER QSEGS
+       INTEGER QIDNT
+       INTEGER QATME
+       INTEGER QATM2
+       INTEGER QENDP
+       INTEGER QXMSU
+       INTEGER QXZRT
+       INTEGER QEXSE
+@ELIB
+@LIB 8XPTX-,
+       INTEGER QBACK
+       INTEGER QMTOR
+       INTEGER QRTRE
+       INTEGER QCURP
+       INTEGER QRTST
+       INTEGER QSEGS
+       INTEGER QIDNT
+       INTEGER QFLPT
+       INTEGER QATME
+       INTEGER QATM2
+       INTEGER QENDP
+       INTEGER QXMSU
+       INTEGER QXZRT
+       INTEGER QEXSE
+@ELIB
+       INTEGER BAK01
+       INTEGER XBCKT
+       INTEGER QGTDF
+       INTEGER QSTDF
+PSID
+
+DISP 5BASE=0
+             % STATIC INFORMATION ASSEMBLED IN (I.E. THERE AT LOAD TIME)
+       INTEGER XINIT         % SET NON-ZERO BY INITIALISATION ======*!
+       INTEGER X8END         % Last word usable in KERNEL for buffers/tables
+       INTEGER X7MMX         % MAX. MESS SIZE IN BYTES
+       INTEGER X7FSZ         % MAXIMUM FRAME SIZE IN BYTES
+       INTEGER X7TO1         % Timeout to use for reception of datagram (XTUs)
+       INTEGER X7TO2         % Timeout to use for transmit of datagram (XTUs)
+       INTEGER X7TRA         % NUMBER OF TRACE BUFFERS (=X5TRA)
+       INTEGER X7MTS         % MAX MEMORY USABLE BY A TASK AT ANY TIME
+       INTEGER X7RTV         % MAX NUMBER OF RT-PROGRAMS
+       INTEGER X7SIR         % SIZE OF SYSTEM IDENT AND ROUTING TABLE
+       INTEGER X7LNK         % MAX NUMBER OF LINKS ACCESSIBLE
+       INTEGER X7TSK         % NUMBER OF TASK ELEMENTS
+       INTEGER X7PRT         % NUMBER OF PORT ELEMENTS
+       INTEGER X7MES         % NUMBER OF MESSAGE ELEMENTS
+       INTEGER X7COM         % NUMBER OF COMMUNICATION DATAGRAM ELEMENTS
+       INTEGER X7FRM         % NUMBER OF RECEIVE FRAME BUFFERS
+       INTEGER XQSTR         % POINTER TO START OF LEVEL 5 QUEUE TABLE
+       INTEGER XQEND         % ADDRESS FOLLOWING END OF TABLE
+       INTEGER POINTER X8FCH % ADDRESS OF HEAD OF FUNCTION CHAIN
+PSID
+
+% ==== WARNING: THE WHOLE BASEFIELD UPWARDS FROM XCRAR GETS ZEROED AT START ====
+
+             % CRASH INFORMATION (SET BY ANY CRASH CAUSE)
+SYMBOL 5CRAS=5BASE; *5CRAS:
+DISP 5BASE
+       INTEGER XCRAR         % REASON (INTERNAL CODE IN XMSG-VALUES)
+       INTEGER XCRAP         % CALLED FROM (ERROR DETECTED AT)
+       DOUBLE XCRAS=XCRAR
+
+             % INFORMATION SET BY LEVEL 14 DRIVER
+@LIB 8XPTX
+       INTEGER PSTAT         % Spare (not used)
+@ELIB
+@LIB 8XPTX-,
+       INTEGER PSTAT         % PAGING STATUS IN BIT 15 (HI ORDER)
+@ELIB
+       INTEGER S14BR         % SAVED LEVEL 14 B-REG
+       INTEGER XPVL          % PREVIOUS LEVEL (MULTIPLIED BY 8!)
+       INTEGER XINDX         % INDEX OF RT-DESCRIPTION IN RT TABLE
+
+             % PHYSICAL MEMORY ALLOCATION - SET UP BY XROUT INITIALISATION
+       INTEGER XBPBK         % BANK IN WHICH KERNEL HAS BEEN LOADED
+       INTEGER XBTBK         % BANK IN WHICH TABLES HAS BEEN LOADED
+       INTEGER XBBNK         % Bank no for start of message buffer space
+       INTEGER XBSTR         % Start address of buffer space (disp within XBBNK)
+       DOUBLE  XBADS=XBBNK   % Help for setting
+       INTEGER XBEBK         % Bank no where message buffer ends
+       INTEGER XBEND         % End of buffer space (displacement within XBEBK)
+       DOUBLE  XBADE=XBEBK   % Help for setting
+       INTEGER XBSAV         % Save location used by buffer alloc. routines
+       INTEGER XBBSC         % Scratch location used by buffer alloc. routines
+       INTEGER XBDES         % ADDRESS OF XBBNK (X REG WHEN CALLING BUFALLOC)
+       INTEGER X8LNK         % START OF LINK TABLE
+       INTEGER X8TSK         % START ADDRESS OF TASK TABLE
+       INTEGER X8PRT         % START OF PORT TABLE
+       INTEGER X8MES         % START OF MESSAGE TABLE (PIT PART)
+       INTEGER X8COM         % START OF COMMUNICATION BLOCKS
+       INTEGER X8FRM         % START OF RECEIVE FRAME BLOCKS
+       INTEGER X8TRA         % POINTER TO 1ST TRACE BUFFER DESCRIPTOR
+       INTEGER ARRAY POINTER X8FUN % POINTER TO START OF FUNCTION VECTOR
+       INTEGER X8RTV         % POINTER TO RT-VECTOR (2 WORDS/RT-PROG)
+       INTEGER X8SIR         % START OF SYSTEM IDENT AND ROUTING TABLE
+       INTEGER X8MCB         % Multi-call buffer start
+       INTEGER X8TRB         % Address of first trace buffer (on XBTBK)
+       INTEGER X8FBF         % Address of first frame buffer (on XBTBK)
+       INTEGER X8LBF         % Address of last word used for frame buffers
+
+             % MULTI-SYSTEM INFO AND ROUTING CONNECTION
+       INTEGER XSYID         % LOCAL SYSTEM NUMBER
+       INTEGER XRFNA         % ><0: forwarding not allowed (ie. passthru stop)
+       INTEGER XRPRT         % ROUTING PORT NUMBER (XROUT) 
+       INTEGER XCPRN         % COSMOS routing manager port&random number (or 0)
+       SYMBOL  5NLEN=20      % MAXIMUM LENGTH OF A PORT NAME IN WORDS
+       SYMBOL  6NLEN=5NLEN*2 % MAXIMUM LENGTH OF A PORT NAME IN BYTES
+       INTEGER XRSYS         % CURRENT REMOTE SYSTEM
+PSID
+
+             % KERNEL WORK AREA:
+SYMBOL 5XKER=5BASE; *5XKER:
+DISP 5BASE
+       INTEGER XCTPT         % CALLER'S TASK BLOCK POINTER
+       INTEGER XSTAT         % RESULT STATUS. IF 0 HANG HIM ONLY
+       INTEGER XFUNC         % CURRENT FUNCTION NUMBER
+       INTEGER XPCLN         % CURRENT LENGTH PARAMETER
+       INTEGER XPDSP         % DISPLACEMENT WITHIN MESSAGE IN BYTES
+PSID
+
+             % NETWORK LAYER VARIABLES:
+SYMBOL 5XNET=5BASE; *5XNET:
+DISP 5BASE
+             % NETWORK LAYER VARIABLES: (+ => TRANSMITTER ONLY)
+       INTEGER XSHEA         % HEADER FOR XS-ELEMENTS (ID- AND ROUTING)
+       INTEGER XSFRE         % HEADER FOR FREE CHAIN OF XS-ELEMENTS
+       INTEGER XSUSE         % Number of XS-elements in use
+       INTEGER XSMUS         % Maximum number of XS-elements used (limit in X7SIR)
+       INTEGER XNCNA         % + CURRENT NETWORK ADDRESS (FOR CURRENT MESSAGE)
+       INTEGER XNCSM         % + -1 ==> checksum disabled (for XNCNA)
+                             % +  0 ==> checksum enabled but NOT provided
+                             % +  1 ==> checksum enabled and provided on XNCMS
+       INTEGER XNPTR         % + POINTER IN CURRENT MESSAGE (NO. OF BYTES SENT)
+       INTEGER XNCMS         % + MESSAGE BEING SENT (XM-ADDRESS)
+       INTEGER XNSEQ         % + Datagram reference number (Xmit without DC)
+       INTEGER XNTQH         % TRANSMIT QUEUE HEAD (WAITING FOR ACK/NAK)
+       INTEGER XNWQH         % WAIT QUEUE FOR MESSAGES WAITING FOR STARTUP
+       INTEGER XNCXD         % CURRENT XD-BLOCK ADDRESS
+       INTEGER XNRQH         % QUEUE HEADER FOR MESSAGES UNDER RECEPTION
+       INTEGER XNXQH         % Transmit queue for messages sent without delivery
+                             % confirmation (waiting for ED-frame to be sent)
+
+
+             % LTAB (LINK DESCRIPTORS) INFO
+       INTEGER XLFRE         % HEADER FOR FREE CHAIN
+       INTEGER XLUSE         % NUMBER OF LINK DESCRIPTORS IN USE
+       INTEGER XLMAX         % MAX VALUE OF XLUSE
+       INTEGER XLLIM         % MAX CANNOT GO ABOVE THIS
+       INTEGER XLCXL         % Current XL-Block being handled by link layer
+
+             % TTAB (TASK DESCRIPTORS) INFO
+       INTEGER XTFRE         % HEADER FOR FREE CHAIN
+       INTEGER XTUSE         % NUMBER OF TASK DESCRIPTORS IN USE
+       INTEGER XTMAX         % MAX VALUE OF XTUSE
+       INTEGER XTLIM         % MAX CANNOT GO ABOVE THIS
+
+             % PTAB (CONTAINING PORTS) INFO
+       INTEGER XPFRE         % HEADER FOR FREE CHAIN
+       INTEGER XPUSE         % NUMBER OF ENTRIES IN USE
+       INTEGER XPMAX         % MAX NUMBER OF ENTRIES USED
+       INTEGER XPLIM         % TOTAL NUMBER OF ENTRIES
+       INTEGER XPLOC         % CURRENT LOCAL PORT POINTER
+       INTEGER XPREM         % CURRENT REMOTE PORT POINTER
+PSID
+             % MESSAGE INFO
+SYMBOL 5MESS=5BASE; *5MESS:
+DISP 5BASE
+       INTEGER XMFRE         % HEADER FOR FREE CHAIN
+       INTEGER XMUSE         % NUMBER OF ENTRIES IN USE
+       INTEGER XMMAX         % MAX NUMBER OF ENTRIES USED
+       INTEGER XMLIM         % TOTAL NUMBER OF ENTRIES
+       INTEGER XMCUR         % CURRENT MESSAGE POINTER (TO XMCHN FOR MESSAGE)
+PSID
+% Message header (XM-block) for XMCUR swapped in by YMSWP.
+% WARNING: 1) Next block is sent directly over link. Do NOT split up!
+%          2) XMTHD   M U S T    be first word in message descriptor.
+%          3) XMTHD must be first of itself, XMSTA, XMDST, XMSRC, XMCSM and
+%             XMLIX and they must NOT stretch over more than 7 words (LDATX).
+%          4) YMSWP must be modified if length of XM-block is changed.
+%          5) XMSIZ must be first of itself, XMDAD, XMLEN, XMSCR and they
+%             must NOT stretch over more than 7 words (LDATX).
+SYMBOL XM5BS=5BASE           % DISPLACEMENT OF MESSAGE IN BASEFIELD
+SYMBOL XM5HS=5BASE-XM5BS     % MARK HEADER START FOR TRANSPORT IN PHYSICAL MEMORY
+DISP 5BASE
+       INTEGER XMTHD         % XNET TRANSPORT HEADER (X5THD)
+       INTEGER XMGAD=XMTHD   % USED TO MAP TO XD-BLOCK BY GATEWAY SOFTWARE
+       INTEGER XMSTA         % MESSAGE STATUS WORD (BIT 17B MUST BE SET)
+       INTEGER XMDSY,XMDPT   % DESTINATION SYSTEM, PORT/RANDOM
+       DOUBLE  XMDST=XMDSY   % DESTINATION MAGIC NO
+       INTEGER XMSSY,XMSPT   % SENDING SYSTEM, PORT/RANDOM
+       DOUBLE  XMSRC=XMSSY   % SOURCE MAGIC NO
+       INTEGER XMCSM         % 1) Datagram checksum (source and destin >=L)
+                             % 2) If not checksum, then message size (=XMSIZ)
+       DOUBLE  XMPOM=XMCSM   % IOC: Twin message identifier in IOC
+PSID
+SYMBOL XM5HE=5BASE-XM5BS     % MARK HEADER END FOR TRANSPORT
+DISP 5BASE
+       INTEGER XMLIX         % 1) IOC: Least significant part of XMPOM
+                             % 2) Kernel->Net: Link index of link where datagram
+                             %                 is to be transmitted (or 0 if it
+                             %                 is to be xmitted on current route)
+                             % 3) Net->Kernel: Link index of link where datagram
+                             %                 (SD fragment) was received
+       INTEGER XMSIZ         % DIRECT MESSAGE BUFFER SIZE IN BYTES
+       INTEGER XMDAB,XMDAW   % BANK, WORD IN BANK ADDRESS OF DIRECT DATA BUFFER
+       DOUBLE  XMDAD=XMDAB   % DOUBLEWORD PHYSICAL ADDRESS OF DIRECT DATA BUFFER
+       INTEGER XMLEN         % CURRENT DIRECT MESSAGE LENGTH IN BYTES
+       INTEGER XMSCR         % 1) WHILE OWNED: READ/WRITE POINTER (CURRENT DISP)
+                             % 2) NET->KERNEL: STATUS FROM NETLAYER
+       INTEGER XMTIM         % NETWORK TIMEOUT
+       INTEGER XMTPT         % POINTER TO OWNER TASK DESCRIPTOR
+       INTEGER XMALL         % 1) Pointer to task that allocated
+       INTEGER XMSNA=XMALL   % 2) Datagram source system number (while mess being rcvd)
+       INTEGER XMPRT         % 1) PORT FOR WHICH MESSAGE IS CURRENT (IF IT IS)
+       INTEGER XMSEQ=XMPRT   % 2) DATAGRAM SEQ NO
+       INTEGER XMBLN=XMPRT   % 3) IOC: Displ in bank to mess length specifier
+PSID
+SYMBOL XM5BE=5BASE           % MARK END IN BASEFIELD
+SYMBOL XM5LN=XM5BE-XM5BS
+% VALUE FOR TRANSPORT HEADER:
+SYMBOL X5THD=20400           % PUT IN XMTHD (VERSION=2, PROTOCOL=1)
+% LENGTH OF TRANSPORT HEADER FOR START OF MESSAGE IN BYTES
+SYMBOL XM5HL=XM5HE-XM5HS*2
+% BITS IN XMSTA MODIFIED BY SEND (INDICATING BUFFER TYPE)
+SYMBOL 5MRED=0               % SET WHEN WHOLE MESSAGE HAS BEEN READ
+SYMBOL 5MRTN=1               % SET IF MESSAGE BEING RETURNED (NON-DELIVERY)
+SYMBOL 5MSEC=2               % SECURE (RETURN IF NON-DELIVERABLE)
+SYMBOL 5MBNC=3               % BOUNCE MESSAGE ON THE WAY OUT
+SYMBOL 5MHIP=4               % HIGH PRIORITY MESSAGE
+SYMBOL 5MROU=5               % SET IF SENT BY ROUTING PROGRAM
+SYMBOL 5MPRV=6               % Set if sent by a privileged task
+SYMBOL 5MRND=7               % RETURN ON NON-DELIVERY (SEND SECURE, NOWAIT)
+SYMBOL 5MWRI=10              % Set if message has been written into
+SYMBOL 5MHIG=5MWRI           % Highest bit modified by send
+% BITS IN XMSTA NOT MODIFIED BY SEND USUALLY
+SYMBOL 5MBUF=11              % DATA SPACE WAS ALLOCATED FROM XMSG BUFFER SPACE
+SYMBOL 5MRCV=12              % Received message (it can be forwarded)
+%            13              % Was indirect buffer info, but is now free
+SYMBOL 5MALL=14              % ALLOCATED MESSAGE (DO NOT RELEASE ON XFREL)
+SYMBOL 5MUAL=15              % Exclusive use (mess is not reserved by i/s-xmsg)
+%      Bit=17 (5MACT) is reserved for 'message unit in use' (see below)
+% Mask to extract bits in XMSTA
+SYMBOL 5MMSM=777             % Bits modified by send (MUST match 5MHIG)
+SYMBOL 5MMSN=-1-5MMSM        % Bits not modified by send USUALLY
+
+DISP 5BASE
+             % DTAB (TRANSMIT DATAGRAM ELEMENTS) INFO
+       INTEGER XDFRE         % HEADER FOR FREE CHAIN
+       INTEGER XDUSE         % NUMBER OF ELEMENTS DESCRIPTORS IN USE
+       INTEGER XDMAX         % MAX VALUE OF XDUSE
+       INTEGER XDLIM         % MAX CANNOT GO ABOVE THIS
+       INTEGER XDTRN         % NO OF XD-BLOCKS FREE FOR MESSAGE SEND
+                             % Note: XDTMX and XDMUS are defined as global variables
+
+             % FTAB (RECEIVER FRAME ELEMENTS) INFO
+       INTEGER XFFRE         % HEADER FOR FREE CHAIN
+       INTEGER XFUSE         % NUMBER OF ELEMENTS DESCRIPTORS IN USE
+       INTEGER XFMAX         % MAX VALUE OF XFUSE
+       INTEGER XFLIM         % MAX CANNOT GO ABOVE THIS
+PSID
+             % TRACE INFORMATION
+SYMBOL 5TRAC=5BASE; *5TRAC:
+DISP 5BASE
+       %       X7TRA         IS SET TO NUMBER OF TRACE BUFFERS (SEE ABOVE)
+       %       X8TRA         POINTS TO FIRST BUFFER DESCRIPTOR (SEE ABOVE)
+       INTEGER XZRTA         % TRACE DUMP PROGRAM RT-ADDRESS
+       INTEGER XZFNO         % FILE NUMBER (IF =0=>NOT ACTIVE)
+       INTEGER XZBNO         % BLOCK NUMBER IN FILE
+       INTEGER XZSNO         % BLOCK SERIAL NUMBER (WORD 0 IN EACH BLOCK)
+       INTEGER XZFIL         % BLOCK NUMBER OF BLOCK BEING FILLED
+       INTEGER XZEMP         % BLOCK NUMBER OF BLOCK BEING/TO BE EMPTIED
+       INTEGER XZMIS         % NUMBER OF MISSED TRACE CALLS
+       INTEGER XZFLG         % COMMUNICATION DUMP-PROG <=> ZTRAC
+       INTEGER XZTIC         % SET TO -1 EACH CLOCK TICK TO FORCE TRACE
+PSID
+
+%======================* END OF BASEFIELD DEFINITION ====================*
+
+%============================================================================
+%
+%      P O R T    E L E M E N T S
+%
+%============================================================================
+DISP 5PLEN=0                 % DEFINE THE STRUCTURE OF A PORT
+       INTEGER XPCHN         % CHAIN FOR FREE OR PORTS FOR ONE PROCESS
+       INTEGER XPSTA         % PORT STATUS WORD.
+       INTEGER XPTPT         % POINTER TO TASK DESCRIPTOR
+       INTEGER XPCHK         % CHECK PART OF MAGIC NUMBER
+       INTEGER XPQHD         % PORT MESSAGE QUEUE HEAD
+       INTEGER XPLEN         % MESSAGE QUEUE LENGTH
+       INTEGER XPCMS         % PORT CURRENT MESSAGE ADDRESS
+       INTEGER XPIMC=XPCMS   % IMMEDIATE CODE ADDRESS (IF 5PIMX IS SET)
+PSID
+SYMBOL 4PLEN=5PLEN        % MAKE LENGTH KNOWN TO MAC
+% BITS IN XPSTA
+SYMBOL 5PKOC=0            % KICK XROUT ON CLOSE (SET BY XROUT)
+%            1 WAS PERMANENT OPEN - BUT IS NOW FREE
+SYMBOL 5PWAI=2            % SET IF A RCV (WAIT) DONE ON THIS PORT (ONLY)
+SYMBOL 5PROU=3            % SET IF THIS PORT IS THE ROUTING PORT (XROUT)
+SYMBOL 5PWAK=4            % FILLING EMPTY MESSQ WILL LEAD TO A WAKE-UP
+SYMBOL 5PKIK=5            % XROUT/COSROUT has been kicked (only on routing ports)
+SYMBOL 5PIMX=16           % IMMEDIATE EXEC OF CODE -> XPIMC ON CHAIN ATTEMPT
+SYMBOL 5PACT=17           % PORT ACTIVE
+% DEFINITION OF FORMAT OF MAGIC NUMBER (SECOND WORD-FIRST IS SYSTEM NUMBER)
+SYMBOL 5PSHZ=7            % NUMBER OF BITS IN RANDOM NUMBER
+SYMBOL 5PMS1=177          % MASK TO EXTRACT RANDOM PART (MUST MATCH 5PSHZ)
+SYMBOL 5PMSK=-1-5PMS1     % MASK TO EXTRACT PORT NUMBER (MUST MATCH 5PSHZ)
+SYMBOL XRLPN=0            % LOGICAL PORT NUMBER FOR ROUTING (NETWORK WIDE)
+
+%============================================================================*
+%
+%      M E S S A G E     E L E M E N T S
+%
+%============================================================================*
+DISP 5MLEN=0  % MESSAGE TABLE ELEMENT
+       INTEGER XMCHN         % CHAIN THROUGH LISTS OF MESSAGES
+       INTEGER XMHAB,XMHAW   % BANK NO, WORD DISPLACEMENT OF HEADER
+       DOUBLE  XMHAD=XMHAB
+PSID
+SYMBOL 4MLEN=5MLEN           % MAKE LENGTH KNOWN TO MAC
+SYMBOL 5MACT=17              % MESSAGE UNIT IN USE (IN XMHAB)
+SYMBOL 5MPCM=16              % MESSAGE IS PORT CURRENT (PORT ADDR IS IN XMPRT)
+
+% BITS IN XTSTA TAKEN OUT OF XMSG-SYSTABS DUE TO SINTRAN CONFLICT
+       % 0 - 3               ARE RESERVED FOR INTERRUPT LEVEL
+SYMBOL 5TWAI=4               % SET IF TASK IN IOWAIT. CLEARED BY XRESU
+SYMBOL 5TGWT=5               % GLOBAL WAITIO ON ALL PORTS
+SYMBOL 5TPRV=6               % PRIVILEGED TASK
+SYMBOL 5TWDF=7               % WAKE CONTEXT DEFINED (DRIVERS ONLY)
+SYMBOL 5TBUS=10              % Driver/RT-program is busy executing an XMSG call
+SYMBOL 5TSYS=11              % SYSTEM PART OF AN RT-PROGRAM
+SYMBOL 5TGWK=12              % GLOBAL WAKE UP (ON ALL PORTS)
+SYMBOL 5TWFA=13              % 1) Waiting for remote ACK (Send secure with wait)
+                             % 2) Waiting for mess buffer (Get message with wait)
+SYMBOL 5TKIC=14              % Task restarted when XMSG was closing down
+SYMBOL 5TACT=17              % INDICATES THAT XT-BLOCK IS IN USE
+
+% RESOURCE DESCRIPTION BLOCK FOR TABLE ELEMENTS
+
+DISP 0
+       INTEGER ZRFRE         % CHAIN HEADER FOR FREE RESOURCES
+       INTEGER ZRUSE         % CURRENT NUMBER IN USE
+       INTEGER ZRMAX         % MAX VALUE OF XRUSE
+       INTEGER ZRTOT         % TOTAL NUMBER OF THIS TYPE OF RESOURCE
+PSID
+
+%==============================================================================
+%
+%      S Y S T E M    I N F O    A N D    R O U T I N G    E L E M E N T
+%
+%==============================================================================
+% There is one XS-block for each known remote system (in physical memory)
+% Warning : 1) XSCHN and XSSID must be left together
+%           2) XSLNK and XSSAD must be left together
+%           3) XSSTA and XSHOP must be left together
+%           4) The whole block must not exceed 8 words (LDATX limitations)
+%           5) XROUT keeps a table containing via, etc 
+DISP XS5LN=0
+       INTEGER XSCHN         % Chain word thru active or free blocks
+       INTEGER XSSID         % System id (0 if free)
+       INTEGER XSLNK         % Link to use (or 0 if not accessible)
+       INTEGER XSSAD         % Secondary address (if via gateway)
+       DOUBLE XSINF=XSLNK    % Set using XSTD by XROUT
+       INTEGER XSSSQ         % Send sequence number
+       INTEGER XSSCN         % Send control and counter (0-dead,<0 init,>0 run)
+       INTEGER XSRSQ         % Receive sequence number
+       INTEGER XSSTA         % System status word
+       INTEGER XSHOP         % No of hops to this guy
+       DOUBLE XSSIN=XSSTA    % XSSTA and XSHOP together
+PSID
+% Bits in XSSTA
+% Bits 0-7 are reserved for 'Option-Version-Protocol' (ie. remote X5VRS).
+SYMBOL 5SFRI=10  % Indicates that this system is defined as friend
+SYMBOL 5SLEC=11  % Checksum on datagrams enabled in local system
+SYMBOL 5SREC=12  % Checksum on datagrams enabled in remote system
+                 % If both 5SLEC and 5SREC are set, a checksum is provided
+                 % (and checked) on the transport layer header and data.
+SYMBOL 5SDCE=13  % Set if checksum error detected on datagram (cleared by XROUT)
+                 % Bits 14-17 not (yet) used
+                 % If unit in use, then XSSID><0; if free, then XSSID=0
+% Mask to extract bits in XSSTA
+SYMBOL 5SVMS=160 % Mask to extract Version part
+@DEC          
+SYMBOL XSVSL=9800,XSVSH=9999 % Limits for virtual system numbers
+@OCT
+SYMBOL XS5RC=4               % Repeat count at network layer
+SYMBOL XS4LN=XS5LN           % Force output to MAC
+
+%==============================================================================
+%
+%      L I N K    T A B L E S 
+%
+%==============================================================================
+% NOTE: Too keep NPL happy, the length of an XL-block cannot be 75B.
+%       (Due to a bug (feature?) in NPL, 'A*75' becomes 'MPY ([75'.)
+
+% LINK DESCRIPTOR BLOCK (ONE PER LINK).   NAMES: XL...
+DISP 5LLEN=0
+ % Common part and interface to lower and higher layers:
+
+  INTEGER XLCHN   % CHAIN THROUGH XL-BLOCKS
+  INTEGER XLSTA   % LINK STATUS
+  INTEGER XLSTT   % Link State (Dead, Init, Calling, Connect, Run, Kill):
+    SYMBOL XLDED=0,XLINI=1,XLCAL=2,XLCON=3,XLRUN=4,XLKIL=5
+  INTEGER XLSID   % Connected to (virtual) system number
+  INTEGER XLLUN   % Link Logical Unit Number (Bit 17 set if HDLC)
+  INTEGER XLPRT=XLLUN % Port number if gateway
+  INTEGER XLAXL   % If XL5AL: XL-block of alternative link (0 if any link)
+  INTEGER XLAID   % If XL5AL: XLAXL must be connected to this system number
+  DOUBLE  XLALI=XLAXL % Both of them together
+  INTEGER XLCXD   % XD-block currently being handled (scratch location)
+  INTEGER XLRFM   % Empty XD-Blocks returned from network layer or other links
+  INTEGER XLTQH   % Transmit queue header from network layer
+  INTEGER XLRRQ   % Queue for XD-blocks returned by link driver
+
+ % Receiver part:
+
+  INTEGER XLRDF   % HDLC Datafield Address (Receiver part)
+  INTEGER XLRTM=XLRDF % Returned trans. mess from net server queue
+  INTEGER XLRVR   % Receiver State Variable (Expected)
+  INTEGER XLRMR   % No of frame buffers currently queued to HDLC receiver
+  INTEGER XLNRB=XLRMR % Total no of receive buffers sent to network server
+  INTEGER XLRAC   % Last AC from any frame
+  INTEGER XLRRS   % Last AC from an OK RR or INFO frame in RUN (receiver state)
+  INTEGER XLRCN   % Error counter
+
+ % Transmitter part:
+
+  INTEGER XLTDF   % HDLC Datafield Address (Transmit part)
+  INTEGER XLBNK=XLTDF % IOC: First bank no used by this IOC
+  INTEGER XLTIT   % Interrupt flag for level 12 (<0: dead, 0: enabled, >0:done)
+   % Transmitter DCB and DMA list:
+  INTEGER XLDRA   % DCB Restart Address (I/O completion)
+  INTEGER XLNTM=XLDRA % No of data transmit messages allocated to the netserver
+  INTEGER XLDID   % HDLC DCB Identification (<0)
+  INTEGER XLMES=XLDID % Transmitter message address if gateway
+  INTEGER XLDLN   % HDLC DCB Length (=10)
+  INTEGER XLDMX   % HDLC DCB Max Length (=10)
+  DOUBLE  XLRMA=XLDLN % Magic number of server port
+  INTEGER XLDCH   % HDLC DCB Chain word (=0)
+  INTEGER XLDFN   % HDLC DCB Function Code to HDLC Driver (=6)
+  DOUBLE  XLLMA=XLDCH % Magic number of own port
+  INTEGER XLDST   % Status from HDLC Driver
+  INTEGER XLNST=XLDST % Status from Network server
+  INTEGER XLDHW   % Hardware status from HDLC Driver
+  DOUBLE  XLDLA   % Address of DMA list (XLTTL)
+  DOUBLE  XLSPI=XLDLA % IOC: PORT ID for server
+  INTEGER ARRAY XLTTL(15) % DMA list for HDLC driver transmitter (13 words) 
+  DOUBLE  ARRAY XLTDL=XLTTL
+  DOUBLE XLOPI=XLTTL  % IOC: PORT ID own
+   % Space for bubble frames:
+  INTEGER XLTAC   % Transmitter A/C bytes
+  INTEGER XLTID   % Sysid with SABM/UA (Set by XROUT in start-link)
+   % (Re)Transmission list. Frames to be sent, sent, not ack'd
+  INTEGER ARRAY XLTLS(10) % Array of pointers to XD-blocks sent, not ack'd
+  INTEGER XLTFR   % First free element (fill pointer)
+  INTEGER XLNTS=XLTFR  % No of transmit messages curr. owned by net server
+  INTEGER XLTVS   % State Variable for send (ie seq. no of next/current info)
+  INTEGER XLTVA   % Ack number from receiver (All up to this ack'd)
+  INTEGER XLTCN   % Retransmission counter (either SABM's or I-frames)
+  INTEGER XLTTI   % Time countdown. Set when transmitter is started in RUN/CALL
+  INTEGER XLTTM   % Time out value to set in XMSG time units
+  DOUBLE XLTNO    % Total number of info frames sent
+  DOUBLE XLTRC    % Number of retransmissions executed
+PSID
+% Force NPL to tell MAC the length of a link block:
+SYMBOL 4LLEN=5LLEN
+% BITS IN XLSTA
+SYMBOL XL5TX=0               % Trigger local transmitter?
+SYMBOL XL5KR=1               % Kick XROUT/COSROUT (Big state change!)
+SYMBOL XL5AR=2               % Autorestart bit (used by XROUT in QCLLK)
+SYMBOL XL5PF=3               % Powerfail has occured - re-initialisation needed
+SYMBOL XL5NW=4               % Waiting for netlayer to run (RR optimisation)
+SYMBOL XL5SR=5               % Send REJ (received I-frame with sequence error)
+SYMBOL XL5RC=6               % REJ condition (discard I-frames until expected seq no)
+SYMBOL XL5AL=7               % Alternative link defined - XLAXL contains address
+SYMBOL XL5IO=13              % IOC: Gateway on IOC used
+SYMBOL XL5WA=14              % Wide area gateway (i.e. costs money)
+SYMBOL XL5GA=15              % Gateway - XLSID contains virtual system no
+SYMBOL XL5IN=16              % Link being initialised (XLTQH=messad for reply)
+SYMBOL XL5AC=17              % Link descriptor in use
+% CONTROL BYTE VALUES USED BY XMSG
+SYMBOL XRR=1,XSREJ=11,XSABM=77,XUA=163
+% KEY VALUES FOR HDLC LIST ELEMENT HEADERS (TRANSMIT, RECEIVE):
+SYMBOL XHKTR=2000,XHKRC=1000,XHKTE=0
+% HEADER VALUES WHEN COMMUNICATING WITH NETWORK SERVER
+SYMBOL XG5IN=201,XG5DA=202,XG5EM=203,XG5KI=204
+
+%============================================================================*
+%
+%      D A T A G R A M     ( X D - B L O C K S )     E L E M E N T S
+%
+%============================================================================*
+%
+% TRANSMIT AND RECEIVE DATAGRAM ELEMENTS (PIT PART). NAMES: XD...
+% ONE ELEMENT FOR EACH NETWORK DATAGRAM TO SEND OR RECEIVE.
+% THERE ARE TWO TYPES OF XD-BLOCK: RECEIVE AND TRANSMIT.
+
+% RECEIVE BLOCKS ARE OWNED BY ONE OF THE LINK LAYER HANDLERS, AND CONTAIN
+% THE OWNER XL-BLOCK ADDRESS IN XDOWN. ASSOCIATED WITH EACH IS A FRAME BUFFER
+% ALLOCATED BY XROUT AT INITIALISATION AND USED FOR RECEIVED FRAMES (INCLUDING
+% THOSE THAT ARE TO BE FORWARDED.
+%
+% TRANSMIT BLOCKS ARE USED FOR TRANSMITTING FRAMES CONTAINING DATA FROM
+% MESSAGES BELONGING TO XMSG KERNEL IN THE CURRENT SYSTEM AND ALLOW
+% UP TO 3 BUFFERS/FRAME:
+%      1) THE LINK, NETWORK AND TRANSPORT INFO HELD IN THE XD-BLOCK ITSELF
+%         SINCE THIS LIES IN THE XD-BLOCK ITS ADDRESS IS NOT REMEMBERED
+%      2) THE PART OF THE XM-BLOCK THAT IS TO BE TRANSMITTED
+%      3) USER DATA - TO FILL REST OF FRAME
+%
+
+DISP 5DLEN=0
+       INTEGER XDCHN         % CHAIN WORD FOR QUEUES
+       INTEGER XDSTA         % STATUS WORD AND TYPE
+       INTEGER XDOWN         % XL-BLOCK ADDRESS OF OWNER LINK (OR 0)
+       INTEGER XDSAD         % SECONDARY ADDRESS (TO GATEWAY ONLY) (XD5MS=0)
+       INTEGER XDTMS=XDSAD   % Corr. transmit message sent to netserver (XD5MS=1)
+       INTEGER XDLAD         % XL-block address of link (or 0) for transmit of
+                             % a datagram which does not have DC (xmit only)
+PSID
+SYMBOL XD5DS=5DLEN           % MARK START OF DCB FOR HDLC IN XD-BLOCK
+                             % DCB IS ONLY USED BY RECEIVER XD-BLOCKS
+DISP 5DLEN
+    % SPACE FOR DCB FOR HDLC LINK (RECEIVER PART). ==DO NOT SHUFFLE!==
+       INTEGER XDRAD         % RESTART ADDRESS ON I/O COMPLETION (LEV 13)
+       INTEGER XDDID         % DCB IDENT (<0)
+       INTEGER XDDLN         % LENGTH OF DCB IN BYTES
+       INTEGER XDMES=XDDLN   % MESSAGE IDENTIFICATION IF HYPERLINK
+       INTEGER XDDSZ         % MAX LENGTH (SIZE) OF DCB IN BYTES (=XDLEN)
+       INTEGER XDDCH         % CHAIN WORD FOR DCB'S TO HDLC
+       INTEGER XDDFN         % FUNCTION CODE TO HDLC
+       INTEGER XDDST         % RETURN STATUS FROM HDLC
+       INTEGER XDNST=XDDST   % RETURN STATUS FROM NETWORK SERVER
+       INTEGER XDDHW         % HARDWARE STATUS RETURNED BY HDLC
+       DOUBLE  XDHST=XDDST   % HDLC SOFTWARE AND HARDWARE STATUS TOGETHER
+       INTEGER XDNB1         % NUMBER OF BYTES IN BUFFER 1 (==MUST LIE HERE==)
+       INTEGER XDDB1,XDDD1   % BANK NUMBER, DISPLACEMENT IN BANK
+       DOUBLE  XDDA1=XDDB1   % DOUBLE WORD ADDRESS OF BUFFER 1
+       INTEGER XDNB2         % NUMBER OF BYTES IN BUFFER 2
+       INTEGER XDDB2,XDDD2   % BANK NUMBER, DISPLACEMENT IN BANK
+                             % CONTAINS THE FRAME BUFFER ADDR. IF RECEIVE
+       DOUBLE  XDDA2=XDDB2   % DOUBLE WORD ADDRESS OF BUFFER 2
+PSID
+SYMBOL XD5NS=1               % EXTRA SPACE REQUIRED FOR NETWORK SERVERS
+                             % = DIFFERENCE BETWEEN XD-ADDRESS AND XM-BUFFER
+SYMBOL XD5HS=5DLEN           % MARK HEADER START FOR LINK/NETWORK LAYERS
+DISP 5DLEN
+       % HERE STARTS THE FIRST (MANDATORY) PART OF EACH FRAME
+       INTEGER XDHAC         % HDLC A/C FIELD
+       INTEGER XDROU         % NETWORK INFO (VERSION, PROTOCOL, HOP COUNT)
+       INTEGER XDTYP         % DATAGRAM TYPE INFO (SD,ED,DC,CONTROL,...)
+       INTEGER XDDNA         % DESTINATION NETWORK ADDRESS
+       INTEGER XDSNA         % SOURCE NETWORK ADDRESS
+       DOUBLE  XDNAD=XDDNA   % BOTH OF THEM TOGETHER!
+       INTEGER XDREF         % CONNECTION REFERENCE FIELD (MESS NO)
+       INTEGER XDSCR         % SCRATCH (SIZE, DISPL, STATUS)
+       INTEGER XDCSM         % CHECKSUM (COMP'T OF ONES COMP'T ADD)
+PSID
+SYMBOL XD5HE=5DLEN           % MARK HEADER END FOR LINK/NETWORK LAYERS
+SYMBOL XD5HL=XD5HE-XD5HS*2   % FRAME HEADER LENGTH IN BYTES
+% BITS IN XDSTA:
+SYMBOL XD5OK=0               % DATAGRAM TRANSMITTED/RECEIVED OK
+SYMBOL XD5KI=1               % KILL BIT SET WHEN OWNER LINK DIES
+SYMBOL XD5AK=2               % Set if this is a network layer acknowledgement
+SYMBOL XD5MS=3               % Set when it has been sent to network server
+SYMBOL XD5AC=17              % XD BLOCK NOT ON FREE CHAIN
+% XNET STANDARD DEFINITIONS:
+SYMBOL X5VRS=20400           % L.H. BYTE OF XDROU (OP=0, VERSION=2, PROTOCOL=1)
+SYMBOL X5VER=40              % Version only (=2) shifted to R.H. byte
+% BITS IN XDROU:
+SYMBOL XD5OP=17              % SET IF OPTION FIELD PRESENT (ILLEGAL IN XMSG)
+% XDTYP BITS:
+SYMBOL XD5CO=0               % BIT SET TO INDICATE THIS IS A CONTROL DGM
+SYMBOL XD5SD=1               % INDICATES START OF DATAGRAM
+SYMBOL XD5ED=2               % INDICATES END OF DATAGRAM
+SYMBOL XD5DC=3               % CONFIRM DELIVERY REQUEST - ALSO WITH XD5IN
+SYMBOL XD5UT=1               % CONTROL DGM REFERS TO AN OUTGOING MESSAGE
+SYMBOL XD5BA=2               % CONTROL DGM : BAD STATUS (REJ OR NAK)
+%            3        IS RESERVED FOR DELIVERY CONFIRM BIT FOR ALL FRAME TYPES
+SYMBOL XD5IN=4               % CONTROL DGM : NETWORK CONNECTION INITIALISE
+SYMBOL XD5CE=5               % Checksum on datagram is enabled (with XD5SD only)
+SYMBOL XD5CP=6               % Checksum on datagram is provided (with XD5ED only)
+% XF-BLOCK (RECEIVE FRAME DESCRIPTORS) IDENTICAL (AT PRESENT) TO XD-BLOCK
+SYMBOL 5FLEN=5DLEN
+
+%==============================================================================
+%
+%      F U N C T I O N    D E S C R I P T O R    B L O C K S
+%
+%==============================================================================
+
+
+DISP 0       % DEFINE A FUNCTION DESCRIPTOR BLOCK (ONE FOR EACH FUNCTION)
+             % GENERATED BY THE ZFUNC MACRO (SEE BELOW)
+       INTEGER XFNEX         % ADDRESS OF NEXT FUNCTION DESCRIPTOR BLOCK
+       INTEGER XFVAL         % FUNCTION VALUE AND STATUS BITS
+       INTEGER XFENT         % FUNCTION HANDLER ENTRY POINT
+PSID
+
+% BITS USED IN FUNCTION DESCRIPTORS (XFVAL)
+SYMBOL XFPRI=17              % SET IF PRIVILEDGED FUNCTION
+SYMBOL XFLDR=15              % SET IF LEGAL FUNCTION FOR DRIVERS
+% TRANSLATIONS TO BITS IN A WORD:
+* 5FPRI=1@XFPRI
+* 5FLDR=1@XFLDR
+
+% DEFINE THE MACRO THAT IS USED TO GENERATE THE CHAIN OF FUNCTION DESCRIPTORS
+% WHICH ARE USED AT INIT TO BUILD UP THE ARRAY OF FUNCTION DESCRIPTOR POINTERS
+% WHICH WILL THEN BE USED AT RUNTIME TO SWITCH DEPENDING ON FUNCTION CODE.
+% MACRO CALL PARAMETERS: XXX,STATUS VALUE, WHERE XXX IS THE FUNCTION ID.
+% AND WILL GENERATE REFERENCES TO START ADDRESS MFXXX.
+
+@MAC
+)9RLPL
+)MCDEF ZFUNC $FUNC,$STAT
+       ZFCHN; )KILL ZFCHN; ZFCHN=*-1
+       XF$FUNC +$STAT ;MF$FUNC ;
+]
+ZFCHN=0
+APTON=BSET ONE; APTOF=BSET ZRO         % Enable/disable alternative page table
+)9SLPL
+@
+%========================================================================*
+%      END OF XMSG-POFTABS:SYMB
+%========================================================================*
+@DEV 1

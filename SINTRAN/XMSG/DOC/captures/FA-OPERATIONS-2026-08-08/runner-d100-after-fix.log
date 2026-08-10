@@ -1,0 +1,41 @@
+[runner] topology loaded: self=19999, 3 node(s), file=topology-d19999-relay.json
+[runner] logging to E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-d19999-relay.log (level Info, max 2 MB, keep 3).
+2026-08-08 15:56:41.380 | [runner] Xmsg.Live.Runner v1.1.0.0 built 2026-08-08 15:53:33
+2026-08-08 15:56:41.383 | [runner] config folder: 
+2026-08-08 15:56:41.384 | [runner] config file:   topology-d19999-relay.json
+2026-08-08 15:56:41.385 | [runner] log folder:    E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0
+2026-08-08 15:56:41.386 | [runner] log file:      E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-d19999-relay.log
+2026-08-08 15:56:41.388 | [runner] path=seam connecting to 127.0.0.1:10364 as node 19999 for 600s
+2026-08-08 15:56:41.417 | [fa] connection numbers 0x0802..0x0841 (state: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\fa-connection.state)
+2026-08-08 15:56:41.423 | [fa] file server ON as *FA-SERVER (logical port 4, wire port 0x0257)
+2026-08-08 15:56:41.423 | [fa] serving folder: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\served-files
+2026-08-08 15:56:41.428 | [fa] files visible now: 4
+2026-08-08 15:56:41.431 | [relay] listening on 10366 for the inbound bridge...
+2026-08-08 15:56:41.755 | [relay] inbound bridge connected on 10366
+2026-08-08 15:56:41.762 | [relay] outbound bridge connected to 127.0.0.1:10364
+2026-08-08 15:56:41.781 | [relay] node 19999: inbound link on 10366 reaches [103], outbound to 127.0.0.1:10364 reaches [100]
+2026-08-08 15:56:41.785 | [relay] SABM sent on both links; pumping...
+2026-08-08 15:56:41.789 | [relay] inbound link Stopped -> Starting (LAPB establishing)
+2026-08-08 15:56:41.791 | [relay] outbound link Stopped -> Starting (LAPB establishing)
+2026-08-08 15:56:42.419 | [relay] inbound link Starting -> Active (LAPB connected)
+2026-08-08 15:56:42.419 | [relay] outbound link Starting -> Active (LAPB connected)
+2026-08-08 15:56:42.419 | [relay] announcing to inbound peer 103
+2026-08-08 15:56:42.419 | [relay] announcing to outbound peer 100
+2026-08-08 15:56:42.502 | [out RX] 100->19999 sub=InitializationNak f1=0xFFFF info=21FE00174E1F0064FFFFFFFD8F69
+2026-08-08 15:56:42.505 | [out RX] 100->19999 sub=InitializationNak *** NO REPLY BUILT *** (this hangs the caller)
+2026-08-08 15:56:42.526 | [in  RX] 103->19999 sub=InitializationNak f1=0xFFFF info=21FE00174E1F0067FFFFFFFD8F66
+2026-08-08 15:56:42.527 | [in  RX] 103->19999 sub=InitializationNak *** NO REPLY BUILT *** (this hangs the caller)
+2026-08-08 15:57:07.707 | [out RX] 100->19999 sub=Data f1=0x0002 info=2113000E4E1F0064000200249035210086E44E1F00000064021F00241B410014FF0A2A46412D534552564552FE0644313939393907E2000000066400A200FF92
+2026-08-08 15:57:07.765 | [fa] connect letter from node 100 (system 100 port 0x021F); serving E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\served-files; answering from session port 0x0211 with an FA ConnectionConfirm 07D2000608026400
+2026-08-08 15:57:07.774 | [out RX] 100->19999 sub=Data answered with 2 frame(s)
+2026-08-08 15:57:07.899 | [out RX] 100->19999 sub=Ack f1=0x0000 info=211300034E1F0064000000019065
+2026-08-08 15:57:07.909 | [out RX] 100->19999 sub=Ack *** NO REPLY BUILT *** (this hangs the caller)
+2026-08-08 15:57:07.975 | [out RX] 100->19999 sub=Data f1=0x0003 info=2113000E4E1F0064000300708FE8210082844E1F02110064021F007007F0080280000001920002920001F20001A207D0F200028C06920001920001F20003BD42414B3032202053595354454DF200048C38B01053595354454D27000000000000000000E180B01000000000000000000000000000000000B01000000000000000000000000000000000F200FF
+2026-08-08 15:57:07.993 | [fa] request ReserveFileEntry seq 1 from system 100: accepted
+2026-08-08 15:57:08.007 | [fa] short acknowledgement 1 to system 100 at Flags1 0x0003
+2026-08-08 15:57:08.008 | [fa] reply to system 100: 18 byte(s), FA body 07F0000280009081920002920001F200...
+2026-08-08 15:57:08.016 | [out RX] 100->19999 sub=Data answered with 3 frame(s)
+2026-08-08 15:57:08.101 | [out RX] 100->19999 sub=Ack f1=0x0001 info=211300034E1F0064000100019064
+2026-08-08 15:57:08.109 | [out RX] 100->19999 sub=Ack *** NO REPLY BUILT *** (this hangs the caller)
+2026-08-08 15:57:08.110 | [out RX] 100->19999 sub=Ack f1=0x0002 info=211300034E1F0064000200029062
+2026-08-08 15:57:08.116 | [out RX] 100->19999 sub=Ack *** NO REPLY BUILT *** (this hangs the caller)

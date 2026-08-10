@@ -8,6 +8,33 @@
 
 ---
 
+## Installing FORTRAN
+
+Four separate products, none with a located PD sheet — all documented from the floppies
+themselves and marked accordingly. Pick the one matching your target machine and floppy set:
+
+- **ND-100/NORD-10, older article** — [ND-10191](../../../Installation/Software/ND-10191/README.md)
+  (product `ND-10191`), a 3-part floppy set. Two revisions found: a complete matched
+  [ND-10191A](../../../Installation/Software/ND-10191/ND-10191A/README.md) set, and a partial
+  [ND-10191D](../../../Installation/Software/ND-10191/ND-10191D/README.md) (PART2/PART3 only —
+  see the product page for the open question about its missing PART1).
+- **ND-100/NORD-10, later article** — [ND-210191](../../../Installation/Software/ND-210191/README.md)
+  (product `ND-210191`), consolidated onto one floppy,
+  [ND-210191F02](../../../Installation/Software/ND-210191/ND-210191F02/README.md).
+- **ND-500** — [ND-210190](../../../Installation/Software/ND-210190/README.md) (product
+  `ND-210190`), version
+  [ND-210190K02](../../../Installation/Software/ND-210190/ND-210190K02/README.md) — ships a real
+  ND-500 domain installer, unlike the plain-file ND-100 products; its exact dialogue has not been
+  captured live yet.
+- **NORD-10, original 48-bit compiler** (predecessor to ND-10191) —
+  [ND-10023](../../../Installation/Software/ND-10023/README.md), version
+  [ND-10023K](../../../Installation/Software/ND-10023/ND-10023K/README.md).
+
+None of these installs have been run live in the emulator yet — every procedure is inferred from
+floppy directory listings, not verified.
+
+---
+
 ## Quick Start
 
 **See [QUICK-START-EXAMPLES.md](../../QUICK-START-EXAMPLES.md) Section 5 for complete Hello World example.**

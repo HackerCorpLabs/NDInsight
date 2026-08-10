@@ -1,0 +1,25 @@
+[runner] topology loaded: self=19999, 4 node(s), file=E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\topology-d19999.json
+[runner] logging to E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-d19999.log (level Info, max 2 MB, keep 3).
+2026-08-07 12:48:00.626 | [runner] Xmsg.Live.Runner v1.1.0.0 built 2026-08-07 12:47:20
+2026-08-07 12:48:00.676 | [runner] config folder: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner
+2026-08-07 12:48:00.736 | [runner] config file:   E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\topology-d19999.json
+2026-08-07 12:48:00.810 | [runner] log folder:    E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0
+2026-08-07 12:48:00.932 | [runner] log file:      E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-d19999.log
+2026-08-07 12:48:00.948 | [runner] path=seam connecting to 127.0.0.1:10364 as node 19999 for 240s
+2026-08-07 12:48:00.964 | [fa] connection numbers 0x0302..0x0341 (state: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\fa-connection.state)
+2026-08-07 12:48:00.983 | [fa] file server ON as *FA-SERVER (logical port 4, wire port 0x0257)
+2026-08-07 12:48:00.993 | [fa] serving folder: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\served-files
+2026-08-07 12:48:01.011 | [fa] files visible now: 4
+2026-08-07 12:48:01.017 | [relay] listening on 10366 for the inbound bridge...
+2026-08-07 12:48:01.240 | [relay] inbound bridge connected on 10366
+2026-08-07 12:48:01.248 | [relay] outbound bridge connected to 127.0.0.1:10364
+2026-08-07 12:48:01.264 | [relay] node 19999: inbound link on 10366 reaches [103], outbound to 127.0.0.1:10364 reaches [100]
+2026-08-07 12:48:01.280 | [relay] SABM sent on both links; pumping...
+2026-08-07 12:48:01.288 | [relay] inbound link Stopped -> Starting (LAPB establishing)
+2026-08-07 12:48:01.297 | [relay] outbound link Stopped -> Starting (LAPB establishing)
+2026-08-07 12:48:01.409 | [relay] outbound link Starting -> Active (LAPB connected)
+2026-08-07 12:48:01.417 | [relay] announcing to outbound peer 100
+2026-08-07 12:48:01.484 | [relay] inbound link Starting -> Active (LAPB connected)
+2026-08-07 12:48:01.493 | [relay] announcing to inbound peer 103
+2026-08-07 12:50:25.425 | [relay] hdlc-out:127.0.0.1:10364 -> hdlc-in:10366 for node 103
+2026-08-07 12:51:05.455 | [relay] hdlc-out:127.0.0.1:10364 -> hdlc-in:10366 for node 103

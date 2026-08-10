@@ -129,6 +129,10 @@ reserved      = raw_blocks - usable_blocks          (top-of-disk reserve)
 | Quantity | Blocks | Pages | Hex | Source |
 |----------|--------|-------|-----|--------|
 | raw_blocks | 129,312 | 64,656 | `0x1F920` | image length 132,415,488 B / 1024; = `898*8*18` |
+
+> **Evidence downgraded 2026-08-02.** A capacity match cannot fix a C/H/S split - 129,312 also factors as 1796*8*9, 449*16*18 and others. The split itself comes from RetroCore `SCSIHDD.cs`, our own re-implementation, which is circular for a claim about the real drive. Nothing breaks today because SCSI addressing is LBA-based.
+> **To settle it:** MODE SENSE page 03h/04h from the real unit, the ND-3201 firmware geometry table, or the SINTRAN disc-type table entry.
+
 | last_LBA | 129,311 | - | `0x1F91F` | READ CAPACITY; carved probe reads exactly this |
 | usable_blocks | 122,072 | 61,036 | `0x1DCD8` | table header word[3]; = directory pages x 2 |
 | reserved | 7,240 | 3,620 | `0x1C48` | raw - usable |
@@ -155,7 +159,11 @@ spare or just device-vs-format rounding needs a second disk / firmware.
 
 ## 3. What `READ CAPACITY` reports: RAW, not usable
 
-**VERIFIED - two independent proofs that the controller presents the RAW medium:**
+**VERIFIED - one genuine proof, plus one that is not independent:**
+
+> **Evidence downgraded 2026-08-02.** Proof 1 is RetroCore's `SCSIHDD`, our own re-implementation: it reports the raw last LBA because we wrote it to, and could not have failed whatever a real ND-3201 does. Proof 2 - SINTRAN successfully reading LBA 129311, above the usable count - IS discriminating and carries the conclusion alone.
+> **To settle it:** nothing further; relabel proof 1 as "consistent with" rather than independent.
+
 
 1. **Emulator/firmware model.** RetroCore `SCSIHDD.cs`:
    `DiskSizeInBlocks = cylinders*heads*sectors - 1 = 898*8*18 - 1 = 129311`, and

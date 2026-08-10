@@ -144,7 +144,17 @@ The hardware manual (ch. 5.3.9) quotes emergency codes as whole octal info bytes
 |---|---|---|---|
 | **241B** (0xA1) | 041B | CMMAC(LE) | Master clear: resets ACCP **and** ND-5000 CPU (full power-up sequence, self-test) |
 | **242B** (0xA2) | 042B | CMACO(NT) | Continue ACCP (sent right after master clear by CH5CPUPRESENT) |
-| **244B** (0xA4) | 044B | (CMATE in symbol dump) | Terminate ACCP -> level-7 interrupt -> firmware idle loop. Used by the ND-500 monitor on ACCP timeout; followed by Alive Check; if that fails, only 241B helps |
+| **244B** (0xA4) | 044B | (CMATE in symbol dump) | Terminate ACCP -> level-7 interrupt -> firmware idle loop. Used by the ND-500 monitor on ACCP timeout; followed by Alive Check; if that fails, only 241B helps. **But receiving one is NOT evidence of a timeout** - see the note below |
+
+> **244B is also a NORMAL bring-up step - do not diagnose a timeout from it [V, measured 2026-07-30].**
+> The "used on ACCP timeout" reading above is what the manual says the monitor *can* do, and it is
+> correct as far as it goes. Measured behaviour: 244B arrives after **3 ACCP commands with all 3
+> answered**, in a run answering **149 of 149**, and appears identically in healthy and broken runs.
+> SINTRAN sends it and then restarts the microprogram.
+>
+> Reading a received 244B as proof that an exchange went unanswered cost this effort a full
+> investigation cycle - the real defect was a station flag (`_accpIdle`) that outlived the restart.
+> Details in `OCTOBUS-KICK-AND-MAILBOX-GAP-REGISTER-2026-07-30.md`, entry G10.
 
 Emergency messages carry R/H interpretation bits (R=0,H=0 software-handled; R=0,H=1 hardware-decoded — the ACCP card's MCL PAL decodes master clear in hardware, print version C+ required for octobus decoding).
 

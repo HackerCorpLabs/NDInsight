@@ -15,7 +15,9 @@ Verified transport facts these tables rest on:
   5MCST stop = `UNLC5`,`LCON5:=40`,`RETG5:=2`; MICRO-START restart = `RETG5:=0`; completion via
   level-12 GOSW (`N5MPA` dispatcher). MAR = ND-100 **word** addr (`<<1` for byte).
 - **Octobus** [V]: no 3022, no bit-9 gate. ACCP over OMD 3: `CMSYSPAR 016B`→MFACK (present),
-  `RTEST 060B`, `CMALI 037B`, `LPARP 021B`/`VPARP 022B`, `STARTMIC 033B`/`STOPMIC 034B`,
+  `RTEST 060B`, `CMALI 037B`, `LPARP 021B`/`VPARP 022B`, **`STARTMIC 066B`(`CMMIC`)/`STOPMIC 034B`(`CMSTO`)**
+  *(corrected 2026-08-03: this line read `STARTMIC 033B`; `0o33` is `CMRUN` = RUNTST. The pair was
+  read off adjacent manual sections 5.3.23/5.3.24. See `SINTRAN/ND5000/CM-SYMBOLS-ARE-THE-OCTOBUS-ARM-CODES-2026-08-03.md`)*,
   `CPURES 071B`, emergencies `241B/242B/244B`. Activation = **`X5ACT := 0` write** at ORCON
   `0x0A` in the per-CPU ext block (NOT a kick; kick K-bit = preempt only). Station 70B = 56 dec.
   5MPM window base = ADRZERO (live default ND-100 byte `0x420000`).
@@ -116,7 +118,7 @@ D4 `NLL:` is the single strongest end-to-end assert (activation + execution + MO
 | F1 | `SET-ND-500-UNAVAILABLE` | silent [V] | Gate flag, no traffic. **[V]** | Same. **[V]** |
 | F2 | `STOP-ND-500` | silent [V] | CPU stop. NEXT start = full warm start (micro reload + swapper place/start). **[V] behavior; [TC] seq** | ACCP `STOPMIC`/`CPURES`; next start re-runs ACCP bring-up. **[?]** |
 | F3 | `@ND-500` + run domain | `NLL:` prompt | Full cold-path activation, deterministic (repeat D). **[TC]** | Same. **[TC]** |
-| F4 | `MICRO-STOP` / `MICRO-START <addr>` | silent [V] | `MPSTO` (FUNCS 034) = `UNLC5`,`LCON5:=40`,`RETG5:=2`; `MPSTA` (FUNCS 025) restart `RETG5:=0` after start-addr via `LLOW5`/`LTAG5`. **[V]** | ACCP `STOPMIC 034B` / `STARTMIC 033B`. **[V]** |
+| F4 | `MICRO-STOP` / `MICRO-START <addr>` | silent [V] | `MPSTO` (FUNCS 034) = `UNLC5`,`LCON5:=40`,`RETG5:=2`; `MPSTA` (FUNCS 025) restart `RETG5:=0` after start-addr via `LLOW5`/`LTAG5`. **[V]** | ACCP `STOPMIC 034B` (`CMSTO`) / **`STARTMIC 066B` (`CMMIC`, arm `0x36`)**. **[V]** *(corrected 2026-08-03 - was `STARTMIC 033B`; `0o33` is `CMRUN` = RUNTST)* |
 | F5 | `LOOK-AT-HARDWARE INTERFACE` | Interface register dump [V] | **DIRECT reads of 3022 registers — single best register-map validator.** Manual requires MICRO-START after. **[V]** | ACCP/station register surface dump. **[?] — confirm what maps here** |
 | F6 | `LIST-TABLE LAST-N500-MSG` | Ring of last 64 msgs to ND-500 [V] | ⚠ 2026-07-19 carve: the ring is **NOT in the 5MPM window** — the F6 raw-dump sites (0x420E30 / 0x424130) are reused process/watchdog message buffers, not the ring. [ASSUMPTION] the ring lives in **`ND-500-MON:PROG`'s own ND-100 memory**; carve its `LIST-TABLE` handler. Empty terminal render = ring unpopulated (no real ND-500 traffic, no microengine). **[TC] — re-scoped off MPM.** | Same re-scope: check the octobus monitor-program ring, not `SnapshotMpmAccess()`. **[TC]** |
 | F7 | `GET-FLAG` / `SET-FLAG` | flag value round-trip [V] | ✅ RESOLVED (carve 2026-07-19): `RFLAG=100B`/`SFLAG=101B` **do NOT cross the 3022** — byte-proven `FUNCS[100B]=FUNCS[101B]=ERRFP=141574B` (no ND-500 op) in `030-S3SM5.bin`; handler `RRFLAG/WWFLAG` maps the process data segment via `M1MEXY` and reads `FF500=166004B` / writes `FT500=166002B` as plain ND-100 memory — no IOXT/ACTIVATE/message. Caller: MON 60 `A=100B/101B`, procno `,X 6`, flag `,X 7`. **Emulator correct.** **[V]** | Check the same on octobus (likely also resident). **[?]** |

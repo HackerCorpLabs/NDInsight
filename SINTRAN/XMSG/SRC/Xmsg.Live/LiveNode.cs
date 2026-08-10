@@ -10,7 +10,7 @@ namespace NDInsight.Sintran.Xmsg.Live
 {
     /// <summary>
     /// Composes a transport, HDLC framing, a <see cref="LapbLayer"/> and an
-    /// <see cref="XmsgNode"/> into a receive-&gt;decode-&gt;respond-&gt;encode-&gt;send loop.
+    /// <see cref="XmsgNode"/> into a receive->decode->respond->encode->send loop.
     /// </summary>
     /// <remarks>
     /// <para><b>Loop</b></para>
@@ -44,7 +44,7 @@ namespace NDInsight.Sintran.Xmsg.Live
         /// Raised for every FCS-valid LAPB frame received from the transport (raw body,
         /// before the link processes it). Diagnostic hook for logging the live exchange.
         /// </summary>
-        public event Action<byte[]>? OnRawFrameReceived;
+        public event RawFrameReceivedHandler? OnRawFrameReceived;
 
         /// <summary>
         /// Initialises a live node over a transport, link and node runtime.
@@ -89,8 +89,45 @@ namespace NDInsight.Sintran.Xmsg.Live
         }
 
         /// <summary>
-        /// Runs the receive/respond pump until the transport reaches end of stream or the
-        /// token is cancelled.
+        /// Runs the receive/respond pump against a LIVE peer, sending an RR keepalive whenever the
+        /// transport has been idle for <paramref name="keepaliveInterval"/>.
+        /// </summary>
+        /// <param name="cancellationToken">
+        /// A token that stops the pump.
+        /// </param>
+        /// <param name="keepaliveInterval">
+        /// The idle interval after which an RR keepalive and a retransmit tick are emitted.
+        /// Required, and deliberately so - see the remarks.
+        /// </param>
+        /// <returns>
+        /// A task that completes when the pump stops.
+        /// </returns>
+        /// <remarks>
+        /// <para><b>The interval is not optional, because omitting it breaks the link silently</b></para>
+        /// <para>
+        /// The pump drives the LAPB tick, so with no interval T1 retransmit and T3 keepalive never
+        /// fire. Nothing reports an error - traffic flows while the peer keeps talking, and the
+        /// link merely loses the ability to recover a dropped frame or hold an idle line open.
+        /// </para>
+        /// <para>
+        /// There used to be a no-argument overload here that quietly meant "no timers", and the
+        /// sibling <c>LapbLayerAdapter</c> had the same defaulted parameter. On 2026-08-08 the
+        /// relay was found running two live links with no timers at all, invisible to a 720-test
+        /// suite because every test drives the pump by hand. Requiring the interval is what keeps
+        /// that from being expressible by accident.
+        /// </para>
+        /// <para>
+        /// A caller that genuinely wants no timers must now say so by name:
+        /// <see cref="RunWithoutTimersAsync"/>.
+        /// </para>
+        /// </remarks>
+        public Task RunAsync(CancellationToken cancellationToken, TimeSpan keepaliveInterval)
+        {
+            return PumpAsync(cancellationToken, keepaliveInterval);
+        }
+
+        /// <summary>
+        /// Runs the pump with NO timers, for in-memory tests and for the legacy reactive-RR path.
         /// </summary>
         /// <param name="cancellationToken">
         /// A token that stops the pump.
@@ -98,23 +135,32 @@ namespace NDInsight.Sintran.Xmsg.Live
         /// <returns>
         /// A task that completes when the pump stops.
         /// </returns>
-        public Task RunAsync(CancellationToken cancellationToken)
+        /// <remarks>
+        /// The legacy runner path uses this on purpose: the original validated runner emitted no
+        /// periodic keepalive and answered with RR only when spoken to. That is a deliberate choice
+        /// to reproduce known-good behaviour, NOT the accidental one described in
+        /// <see cref="RunAsync"/> - which is exactly why it now has to be spelled out at the call
+        /// site instead of falling out of a default.
+        /// </remarks>
+        public Task RunWithoutTimersAsync(CancellationToken cancellationToken)
         {
-            return RunAsync(cancellationToken, null);
+            return PumpAsync(cancellationToken, null);
         }
 
         /// <summary>
-        /// Runs the receive/respond pump, optionally sending an RR keepalive whenever the
-        /// transport is idle for <paramref name="keepaliveInterval"/>.
+        /// The pump itself. Private so the no-timer case is reachable only through the explicitly
+        /// named <see cref="RunWithoutTimersAsync"/>.
         /// </summary>
-        /// <param name="cancellationToken">A token that stops the pump.</param>
-        /// <param name="keepaliveInterval">
-        /// When non-null, the idle interval after which an RR keepalive (and retransmit tick)
-        /// is emitted. Required for a live link — the peer times the link out without RRs.
-        /// When null the pump simply blocks on reads (used by the in-memory tests).
+        /// <param name="cancellationToken">
+        /// A token that stops the pump.
         /// </param>
-        /// <returns>A task that completes when the pump stops.</returns>
-        public async Task RunAsync(CancellationToken cancellationToken, TimeSpan? keepaliveInterval)
+        /// <param name="keepaliveInterval">
+        /// The keepalive interval, or null to run without timers.
+        /// </param>
+        /// <returns>
+        /// A task that completes when the pump stops.
+        /// </returns>
+        private async Task PumpAsync(CancellationToken cancellationToken, TimeSpan? keepaliveInterval)
         {
             byte[] buffer = new byte[512];
 

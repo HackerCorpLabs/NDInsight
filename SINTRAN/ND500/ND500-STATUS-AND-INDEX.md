@@ -17,6 +17,643 @@ or NPL routine is analysed. **All output goes under `E:\Dev\Ronny\NDInsight\` �
 
 ---
 
+## 000. 2026-07-31 — LINKAGE-LOADER install: swap file created, and the blocker moves to RECOVER-DOMAIN
+
+**Full write-up:**
+[`..\ND5000\NLL-INSTALL-SWAPFILE-UNBLOCKED-5SWAP-PROTECT-VIOLATION-2026-07-31.md`](../ND5000/NLL-INSTALL-SWAPFILE-UNBLOCKED-5SWAP-PROTECT-VIOLATION-2026-07-31.md)
+
+Three blockers in series on the ND-500 LINKAGE-LOADER install; the first two are FIXED.
+
+1. **`@SET-AVAIL` must run after login and BEFORE `@ND-500`** [V, live]. Adding it changed
+   RECOVER-DOMAIN's outcome immediately. **Consequence: every ND-500 result the octobus boot
+   harness produced before 2026-07-31 was taken from a machine that had not been made
+   available** - including the "ACCP was terminated" banner readings.
+2. **This pack has NO ND-500 swap file**, so no domain could ever load ("SWAPPING SPACE NOT
+   AVAILABLE" = error 553). Created per ND-30.003.007 section 3.3.9 and verified by
+   `LIST-SWAP-FILE-INFO`: `give-user-space system 8000`, `create-file swap-file-0:swap` at
+   5000 pages, `define-swap-file`. NOTE the harness refreshes the pack each run, so this must
+   be redone in-session.
+3. **OPEN — the swapper block-moves from physical page 0 and traps.** With swap space,
+   RECOVER-DOMAIN reaches `> Allocating memory - 7110B pages`, then 5SWAP takes a "Protect
+   violation".
+
+**What that trap actually is** [V]: the swapper routine at `swapper-k01-pseg.asm:1795`
+(`1000012503`) multiplies its parameter by 0o4000 (a PAGE NUMBER), does `dmof` (data paging
+OFF), `bmove`, `dmon`. So the report's "DATA POFF read request" is real, and
+"Physical address 0 / Physical segment 0" is page_number x 2048 with the page number ZERO.
+
+**Eight hypotheses MEASURED AND DEAD - do not re-open** (each with its measurement in the
+write-up): our MMU (all three fault records `(none)`); a stale non-zero SWPSTAT
+(`ansSWPSTAT=0B`); us posting the trap (`trapsPosted=0`); SINTRAN never restarting
+(`micfu[24B:7]`); us declining restarts (`restarts=7/7`); K/FUNCV carrying an error
+(`K=0` throughout); block-copy address resolution (identical on Samson, and the source
+buffer genuinely holds zeros); and "the swap page lands outside the 5MPM window" (a DMA core
+address is a WORD address, so `core=0x27C800` is byte `0x4F9000`, which IS inside the window).
+
+**Where it really is** [V]: the failing request is `LSWPAGE` (`MP-P2-N500.NPL:136112`,
+SINTRAN's own comment "% Disk I/O"), identified by `swpfu[LNEWSWAP:7 LSWPAGE:1]`. Two of its
+arguments are confirmed: arg[2] `0x240` = 0o1100 = the swap file's LOGICAL DEVICE NUMBER
+(matches `LIST-SWAP-FILE-INFO`), arg[3] `0x30` = 0o60 = `XABSFUNC`. SINTRAN performs the
+transfer correctly - `ReadTransfer pos=65159168 words=1024 core=0x27C800`, exactly
+SWAP-FILE-0's first page - and it reads ZEROS because **the swap file is virgin**: `xxd` on the
+pristine pack at byte 65159168 shows the page blank, and the floppy sees only 22 transfers in
+the whole session (format block + directory), with **no bulk read of a domain segment** and
+**no write to the swap file at all**.
+
+### CORRECTED 2026-07-31 [V, live MON 60B trace] - RECOVER-DOMAIN DOES ask for everything
+
+An earlier version of this section concluded "RECOVER-DOMAIN never transfers the domain image".
+**That was WRONG.** A MON 60B recorder (`SintranLayer.RecordMon60`, deliberately ungated - the
+existing `TraceMonitorCall` is gated on Device logging which the harness switches off, and on a
+DataCommunication filter that excludes MON 60B) captured all 10 calls of a full run. Every one
+comes from `P=0xCCAF` = `146257B`, i.e. the MON at `146256B` - the single MON 60 gateway the
+carve names, so the instrument is provably on the right door.
+
+MON 60 passes parameters FORTRAN-style: A points at a parameter list whose first entry is the
+function code, BY REFERENCE (`Developer\MON\calls\60B_N500M.yaml`). Measured `[A] = A+0xC` and
+`[[A]]` = the code. Decoded against `mon60-callers/SUBFUNCTION-TABLE.md`:
+
+| # | code | subfunction |
+|---|---|---|
+| 1 | `017` | list open files |
+| 2 | `046` | IDEFSWAP - DEFINE SWAP FILE |
+| 3 | `050` | (test function) |
+| 4 | `055` | **ISPLACE - START-PLACE** |
+| 5 | `006` | **ISEGLOAD - LOAD (PLACE), ONE SEGMENT** |
+| 6 | `006` | **ISEGLOAD - LOAD (PLACE), ONE SEGMENT** |
+| 7 | `056` | **IEPLACE - END-PLACE** |
+| 8 | `142` | (redefine default infant file) |
+| 9 | `077` | IRMESS - READ MESSAGE |
+| 10 | `170` | READ ND-500 CPU-TYPE AND MIC.VERSION |
+
+`START-PLACE` -> two `PLACE SEGMENT` -> `END-PLACE` is a correctly bracketed two-segment
+placement, i.e. `:PSEG` + `:DSEG`. Call 2 is the `define-swap-file` command issued in the same
+session, confirming the trace spans the whole run. Every code lands in the valid `000`-`177`
+range with recognisable members, so the decode is not coincidence.
+
+**THE REQUEST SIDE IS CORRECT.** The defect is that SINTRAN receives two `006 ISEGLOAD`
+requests and the floppy is NEVER bulk-read: 22 transfers in the whole session, all format block
+and directory. The placement is asked for; the segment content is never fetched.
+
+### ROOT CAUSE [V] - the directory must be entered as `210319H02`, NOT from the volume label
+
+A MON 50B (OpenFile) recorder shows what the ND-100 System Monitor actually opens. Eleven opens
+in the whole run (no truncation - the cap was never reached), and two of them disagree:
+
+```
+[X]="(210319H02-XX-01D:FLOPPY-USER)LINKAGE-LOAD-H02"    <- description file: FULL name
+[X]="(210319H02:FLOPPY-USER)LINKAGE-LOAD-H02:PSEG"      <- segment: SHORT name
+[X]="(210319H02:FLOPPY-USER)LINKAGE-LOAD-H02:DSEG"      <- segment: SHORT name
+```
+
+**This is NOT a truncation bug in SINTRAN or in the emulator.** The raw distribution floppy
+carries the short form itself:
+
+```
+@0007E0  210319H02-XX-01D          <- the volume LABEL (exactly 1 occurrence)
+@0CD8C5  (210319H02:FLOPPY-USER)LINKAGE-LOAD-H02'
+@0CD805  (210319H02:FLOPPY-USER)SCRATCH-SEG-01'
+@0CF801  (210319H02:FLOPPY-USER)'
+```
+
+ND wrote `210319H02` into the domain's own DESCRIPTION-FILE. SINTRAN follows those references
+faithfully. The mismatch is introduced by HOW WE MOUNT IT: `enter-dir,,f-d-1,0` skips the name
+as a positional, which takes it FROM THE LABEL, so the directory mounts as `210319H02-XX-01D`
+while every internal segment reference names `210319H02`. The `:PSEG`/`:DSEG` opens then resolve
+against a directory that does not exist - hence no bulk floppy read, a swap file nothing ever
+wrote, and the swapper's block-move from physical page 0.
+
+The description file opened under the FULL name only because the monitor built that spec from
+the command line; the segment specs come from INSIDE the description file.
+
+**FIX (operational, no code change):** enter the directory explicitly.
+
+```
+@enter-dir 210319H02,f-d-1,0
+ND-5000: recover-domain (210319H02:FLOPPY-USER)LINKAGE-LOAD-H02
+ND-5000: copy-domain (210319H02:FLOPPY-USER)LINKAGE-LOAD-H02,"LINKAGE-LOAD-H02"
+```
+
+**This CONTRADICTS the "skip the name so it is media-independent" note** on
+`NllFloppy_EnterDirectory_ListFiles_Capture`. That advice holds only while the volume label and
+the description file's internal references agree. On this product floppy they do not, and
+following it is what broke the install.
+
+That also means the `RECOVER-DOMAIN` handler carve and **open question 9** (the outer dispatch
+table) are NOT on the critical path for this defect - the live trace answered what they would
+have. They remain open as carve items.
+
+**Carve note [V]:** `012533` is the RECOVER-DOMAIN command **string in BANK 2** (data) -
+`"RECOVER-DOMAIN\F DSCRATCH'Domain name: \"` - NOT a code address. Disassembling bank 1 there
+yields plausible nonsense (trap 4/8 wearing a new disguise).
+
+### OPEN QUESTION 9 IS CLOSED (2026-08-02) `[V]` - and RECOVER-DOMAIN's handler is named
+
+The outer dispatch table of `MON-DEBUG:PROG` J04 is located and decoded. Full derivation and the
+complete 151-command map:
+[`nd-500-mon/COMMAND-DISPATCH-TABLE-CARVED-2026-08-02.md`](nd-500-mon/COMMAND-DISPATCH-TABLE-CARVED-2026-08-02.md).
+
+- **Handler address = `bank2[0o020671 + ordinal]`** - a flat one-word-per-command array of
+  bank-1 code addresses, exactly **151** entries.
+- Ordinals come from a **3-word-per-command descriptor array at bank 2 `011547`**
+  (name pointer, zero, byte length), running `011547`-`012453` and ending precisely where the
+  command string region `012454` begins.
+- The dispatch is three words at bank 1 `003260`: `RADD CLD SA DX` / `LDX I ,X 50` /
+  `JMP ,X 0`. `057050` has I=1 **and** X=1, which on the ND-100 is post-indexing, so the
+  effective address is `M[P+disp] + X` = `bank2[020671 + X]`. Decoded field by field, not
+  read off the mnemonic.
+- **RECOVER-DOMAIN is ordinal 8 -> handler bank 1 `003577` -> worker bank 1 `030302`.**
+  The handler is the documented `LDX ,B -176` / `STF ,X 6` marshal-then-`JPL I` shape and
+  returns to the command loop at `003527`.
+
+### SOLVED - THE `1 10533B` TRAP IS OUR RPHS OPERAND ENCODING (2026-08-03)
+
+Full proof: [`5SWAP-TRAP-ROOT-CAUSE-RPHS-OPERAND-ENCODING-2026-08-03.md`](5SWAP-TRAP-ROOT-CAUSE-RPHS-OPERAND-ENCODING-2026-08-03.md)
+
+`RPHS` (`0xFFF5`) and `WPHS` (`0xFFF4`) were flagged `O_DIR` in both instruction tables - "operand
+0 is four inline literal bytes". Wrong. The operand is an ordinary operand: an address code
+followed by whatever that code needs.
+
+```
+1000010525:  377 365 | 304 | 010 001 115 054    rphs  <abs 0o1000246454>    7 bytes
+1000010534:  300 057                            go    $57
+```
+
+`0o304` = "32-bit absolute address follows", proven by `1000010477: 104 304 010 002 075 154
+w test $1000436554` in the same routine (`0x08023D6C` in octal IS `0o1000436554`).
+
+Read as a direct operand the instruction is **6** bytes, so decoding resumed at `0o10533` -
+**inside the operand** - and executed garbage. `0o10525 + 6 = 0o10533`, exactly the address
+SINTRAN reported. The disassembler had the opposite bug (3 bytes, printing the nonsense literal
+`$1777777777777777777704`), which is why the two tools never visibly disagreed.
+
+Fixed in RetroCore and nd500x. **This retires the "what reads address `0x00000004`" question
+(nothing does - it was decoded garbage) and the `0o10533` instruction-boundary contradiction.**
+
+**THE MACHINE IS NOW PAST THE SWAPPER (2026-08-04).** The swapper reaches its `MON 377B`
+(`N5SWAP`) at `0o1000101077`, the call is serviced (`ansMON=377B`, `ansP=0x08008255` = the next
+instruction), and SINTRAN starts the loaded domain at **`0xB0000DD1`, which is the CORRECT entry
+point** - offset `0xDD1` of `LINKAGE-LOAD-H02:PSEG` begins with `0xDC` = `init`, the domain
+entry-point instruction. The remaining fault is `PGF - address not present` on that fetch:
+**segment 22's program pages are not mapped.** THAT is the next target - not a wrong PC.
+
+Method note: a `P1` that does not land on an instruction boundary is evidence about the DECODER.
+Days were spent treating it as a puzzle about SINTRAN.
+
+The section below is kept because its conclusions still stand - the trap really was
+domain-independent, and the place-chain hunt really was the wrong tree - but the "unresolved
+address puzzle" it points at is now closed.
+
+### THE 5SWAP TRAP IS DOMAIN-INDEPENDENT, AND THE PLACE-CHAIN HUNT WAS THE WRONG TREE (2026-08-03)
+
+Established from the **existing records**, no new run needed. Two measurements, two different
+domains, two different commands, **the same trap at the same address**:
+
+| Date | Command | NLL installed? | Result |
+|---|---|---|---|
+| 2026-07-31 | `RECOVER-DOMAIN` | no | `> Allocating memory - 7110B pages` -> protect violation, 5SWAP, program address `1 10533B` |
+| 2026-08-01 | `ND-5000: LINKAGE-LOADER` | yes | same message, same trap, **same address `1 10533B`** |
+
+`Installation/INSTALL-ND-LINKAGE-LOADER-AND-BACKUP-SYSTEM.md` section 4a-VERIFIED already
+called it "a pre-existing emulator-side defect, independent of the installation".
+
+**Three consequences:**
+
+1. **THE LINKAGE-LOADER INSTALL IS ALREADY COMPLETE.** `DEFINE-STANDARD-DOMAIN LINKAGE-LOADER
+   LINKAGE-LOAD-H02` is accepted and `ND-5000: LINKAGE-LOADER` resolves and starts. This trap
+   is NOT an install blocker and must not be tracked as one.
+2. **The fault does not depend on which domain is placed**, so carving the PLACE chain
+   (`042115` -> `ISEGLOAD` -> `5NOPAR` -> `SGLOA` -> the `FUNCS` vocabulary) could never have
+   found it. That work below is correct and worth keeping - it closed open question 9, mapped
+   all 159 thunk sites, and killed several stale claims - but it was **aimed at the wrong
+   target**. Do not resume it in pursuit of this trap.
+3. "What writes the domain into the swap file?" is **not** the blocker either, for the same
+   reason: the trap fires identically for a domain that was never installed and one that was.
+
+**The real target is the swapper's own paging path**, which fails identically regardless of
+workload - i.e. the unresolved `1 10533B` address puzzle, six explanations dead so far.
+
+---
+
+### THE SEGMENT-LOAD DEFECT IS NOT IN THE MONITOR (2026-08-02) `[V]`
+
+Follow-on carve, same session:
+[`nd-500-mon/RECOVER-DOMAIN-WORKER-AND-SEGMENT-LOAD-CARVED-2026-08-02.md`](nd-500-mon/RECOVER-DOMAIN-WORKER-AND-SEGMENT-LOAD-CARVED-2026-08-02.md).
+
+The routine that performs a segment placement (bank 1 `042115`, 445 words) contains
+**no `MON` instruction and no `IOX` instruction at all**. The monitor program never reads
+domain segment content and was never meant to - it issues MON 60 subfunction `006` (ISEGLOAD)
+once per segment and SINTRAN does the fetching.
+
+**So "placement requested, segment content never fetched" CANNOT be a monitor-side defect.**
+Stop looking at the caller.
+
+Carved call graph, which reproduces the live MON 60B trace exactly:
+
+```
+043547 -> subfn 140
+043552 -> subfn 055  START-PLACE
+043571 -> 042115  segment loader -> 042230 -> subfn 006  ISEGLOAD
+044031 -> 042115  segment loader -> 042535 -> subfn 006  ISEGLOAD
+044062 -> subfn 056  END-PLACE
+```
+
+`006` has exactly **two** call sites in the whole image, both inside `042115`, matching the
+two `006` in the trace. All 159 MON 60 thunk call sites in bank 1 are now mapped to their
+subfunction codes (`tools/sintran-segment-carver/thunkmap.py`) - and 159 is exactly the count
+the original analysis reached independently, which is what makes the map trustworthy.
+
+**`5NOPAR` READ, SAME SESSION - AND IT DOES NO I/O EITHER `[V, NPL SOURCE]`.** Body at
+`s3vs-4.symb:78722` (`034337`), verbatim. In full it: computes the process number; saves the
+user's `RSEGM`; gets into the ND-500 data segment; `*MOVAA` copies the MON-call info block
+(`5DFSIZE` words) there - the source comment is literally "SAVE MONCALL INFO ON ND-500 DATA
+SEGM."; then `CALL FPT2ENTRY` - "ENTER ND-500 SYSTEM MONITOR".
+
+**There is no disc access anywhere in it.** And the post-return table settles the other half:
+`FUNCS[006] = RET5` (table at `034534`), so on return from the ND-500 system monitor,
+subfunction `006` does nothing on the ND-100 side at all.
+
+**So the ND-100 never fetches segment content on ANY leg of this path.** Its entire
+contribution to a PLACE is:
+
+1. `ISEGLOAD` copies the segment **name** into the MON 60 buffer (`5P-P2-MON60.NPL:031625`)
+2. `5NOPAR` copies the MON-call info block into the ND-500 data segment
+3. `FPT2ENTRY` enters the ND-500 SYSTEM MONITOR
+4. on return, `RET5` - nothing
+
+**THE PLACE IS PERFORMED ON THE ND-500 SIDE.** That is why the floppy is never bulk-read: the
+entity that would read it is the ND-500 system monitor, and the ND-500 side is precisely what is
+broken. The fetch is expected to come back to the ND-100 as swapper page traffic (the MON 377B
+`LSWPAGE` calls already measured), not as a bulk read driven by the ND-100.
+
+This **answers** the standing "look inside ISEGLOAD's worker" item: the worker does no I/O by
+design. Delete that line wherever it survives.
+
+**Corroboration from the same table** (`5IFUNC` at `5P-P2-MON60.NPL:1320`): index `006` =
+`ISEGLOAD`, `055` = `ISPLACE`, `056` = `IEPLACE` - independently confirming the
+START-PLACE / ISEGLOAD x2 / END-PLACE reading of the carved call graph. Also visible there:
+index `007` = `IPLSWAPPER` (PLACE SWAPPER) and index `160` = `IN5SEGLOAD`, a second
+segment-load entry point not previously noted.
+
+### `P1` (TRAPPING P) IS NOW IMPLEMENTED IN BOTH EMULATORS (2026-08-03) `[V]`
+
+The ND-500/5000 keeps **two** program registers. `P` is the RESTART address and runs ahead of a
+fault; **`P1` is the instruction that actually failed**. ND-05.017.01 ch.6 STEP 2 has the engineer
+`ATTACH-PROCESS 0` / `LOOK-AT-REGISTER P` and read **`P1 : ...:<Failing instruction>`** - the whole
+procedure exists because the address in a trap report (`P`) does not identify the instruction.
+
+Neither emulator modelled it, which is why identifying `RPHS @1000010525` from the reported
+`1 10533B` took days. Both now do:
+
+- **RetroCore** `7169dc30e` - `P1` a real property in `Registers.cs`, latched at the top of
+  `RaiseTrap` from `_currentInstructionAddress`. Tests `TestND500_P1TrappingRegister.cs`, 3/3.
+- **nd500x** `4584e9b` - `uint32_t P1` in `cpu_protos.h`, latched in `raise_trap`, exposed by name
+  in `debug_api.c` so `LOOK-AT-REGISTER P1` reproduces the manual procedure. Baseline unchanged.
+
+**When reading any ND-500 trap from now on: use `P1`.** And if a reported trap address does not
+land on an instruction boundary, that is EXPECTED - not a disassembly defect.
+Full derivation: [`TRAP-PRINTER-HUNT-2026-08-03.md`](TRAP-PRINTER-HUNT-2026-08-03.md) section 0.45.
+
+---
+
+### CORRECTION, SAME SESSION: "the place is performed on the ND-500 side" IS WRONG
+
+I wrote that above and it is a **name-based error**, corrected within the hour. `FPT2ENTRY`'s
+source comment says "ENTER ND-500 SYSTEM MONITOR" and I read that as crossing to the ND-500. It
+does not.
+
+**The "ND-500 System Monitor" is segment `030-S3SM5`, and it is ND-100 CODE running on the
+ND-100.** It is the system monitor *for* the ND-500, not a monitor *on* it. Verified this pass:
+
+- `030-S3SM5.meta.json`: "ND-500 System Monitor segment", load address `40000B` - which is
+  exactly the `FPT2E = 40000+3` definition in `s3vs-4.symb:76989`.
+- Runtime word `040003` is `125001 JMP I 1` -> pointer at `040004` = **`0o142231`**, the real
+  entry (`5FP2E`).
+- Disassembled `142231` onward with **`nd100-dis`** on the byte-swapped image: clean, idiomatic
+  ND-100 using the same `STA ,B -nn` / `LDX ,B` / `JPL I` frame conventions as every other
+  ND-100 segment. This independently reproduces the 2026-07-21 correction already recorded in
+  the carving skill.
+
+**Consequence: the ND-100 CAN do the disc I/O, and the PLACE work is on the ND-100 after all.**
+Everything else from the previous entry survives - `5NOPAR` really does no I/O, `ISEGLOAD` really
+only copies the name, `FUNCS[006] = RET5` really means no post-return work. What was wrong was
+only *where* the work then happens.
+
+**THE ACTUAL TARGET IS NAMED AND ALREADY CARVED:** `FUNCS[006] = SGLOA @ 142637`,
+"load (place) one segment", in
+`re/ND500-SYSTEM-MONITOR/FUNCS-BODIES/FUNCS-segload-primitives.ASM`. Full chain, every hop named:
+
+```
+RECOVER-DOMAIN -> 042115 loader -> subfn 006
+  -> [worker]  5IFUNC[006] ISEGLOAD (copies the name) -> 5NOPAR -> FPT2ENTRY
+  -> [sysmon]  5FP2E @142231 -> FUNCS[006] = SGLOA @142637 -> the actual segment place
+```
+
+### SGLOA READ (2026-08-03) - IT HAS NO `RFILE` EITHER, AND THAT MAY REFRAME THE WHOLE DEFECT
+
+Full carve: [`SGLOA-SEGMENT-PLACE-CARVED-2026-08-03.md`](SGLOA-SEGMENT-PLACE-CARVED-2026-08-03.md).
+
+`SGLOA`'s 457 words contain **exactly one `MON` of any kind**: `MON 43` (CLOSE) at `143517`.
+It opens a file at `143352` via the shared helper at `100732` (whose `MON 50` is at `100735`)
+and closes it - **with no read of any kind in between**. Every hop of the PLACE chain is now
+accounted for, and **not one of them reads segment content**.
+
+The six `RFILE` calls that DO exist in this segment (`154026`, `154255`, `154334`, `155120`,
+`155216`, `155375`) belong to **`CSLOA` (`FUNCS[037] @153441`, load control store)** - they read
+the microcode file. `FUNCS[040] = DEFMC @155742` bounds that body, and a whole-image scan for
+calls resolving into `153700`-`155600` returns 91 sites, **every one internal to that block**.
+Nothing outside calls in. Anyone reasoning "S3SM5 reads files, so it reads the domain" lands
+here and should stop.
+
+**WORKING HYPOTHESIS, EXPLICITLY NOT ESTABLISHED:** between open and close `SGLOA` writes a
+handful of fields through indirect stores on `B-176` (`STA I ,X 71`, `STZ/STA I ,X 57`,
+`STA I ,X 47`) with no loop and no block-transfer primitive - the shape of **descriptor setup**.
+If the content is paged in later on demand by the swapper (which is what the measured MON 377B
+`LSWPAGE` traffic is), then **"the floppy is never bulk-read at PLACE time" is EXPECTED
+BEHAVIOUR, not the defect** - and the standing "placement requested, segment content never
+fetched" line has been chasing a non-problem.
+
+**Do not act on that until it is proven.** What settles it: identify the structure at `B-176`
+and confirm one stored field is the file connect number or a disc/page address the swapper
+later consumes. Also unchecked: whether `055 ISPLACE` / `056 IEPLACE` / `007 IPLSWAPPER` do a
+bulk transfer instead.
+
+### THE `B-176` STORES ARE RESOLVED - AND ONE OF THEM FEEDS `RPHS` (2026-08-03) `[V]`
+
+Full carve:
+[`PSPHS-PHYSICAL-SEGMENT-TABLES-CARVED-2026-08-03.md`](PSPHS-PHYSICAL-SEGMENT-TABLES-CARVED-2026-08-03.md).
+
+**First, a correction to the paragraph above.** `B-176` is not a pointer - it is an **array
+index**. `I` set together with `X` while `B` is clear is POST-indexed indirect
+(`EA = M[P+disp] + X`), so each displacement names a pointer word in the routine's own literal
+pool. Bit roles re-derived from the instruction words in the same routine (bit 10 = X, bit 9 = I,
+bit 8 = B, bits 7-0 = signed displacement), so this does not rest on the disassembler's mnemonic.
+
+The four stores go to four separate resident tables, indexed by the segment number:
+
+| Store | Table | Address | Value |
+|---|---|---|---|
+| `STA I ,X 71` | `PSPHS` | `177401B` | physical start (`M[B-174]` OR `M[B-75]`) |
+| `STZ I ,X 57` | `PSLLI` | `175341B` | 0 |
+| `STA I ,X 57` | `PSULI` | `175441B` | size-1, or -1 when the size word is absent |
+| `STA I ,X 47` | `PSMOD` | `175541B` | 0/1 from bit 9 of a descriptor word |
+
+`PSPHS` reads as PHysical Start and `RPHS` is Read from PHysical Segment - the instruction the
+5SWAP trap fires on (`RPHS @1000010525`).
+
+**CAUTION, corrected same day:** that is a name correspondence, NOT a proven link. `RPHS` runs
+on the ND-500 and resolves through the ND-500's own physical segment table pointer (`PSTP`);
+`PSPHS` is an ND-100-side table inside `030-S3SM5`. Whether SINTRAN builds the ND-500 PST from
+`PSPHS` is unproven. Do not write "PLACE writes the entry the swapper reads" until it is.
+
+Identification is a 7-for-7 first-try hit in `N500-SYMBOLS.SYMB` that turns out to be one
+family: every `PS*` table has a `DS*` twin (`PSLLI`/`DSLLI`, `PSULI`/`DSULI`, `PSMOD`/`DSMOD`,
+`PSPHS`/`DSPHS`) on a uniform `40B` = 32-word grid, and all of them are unique symbols with no
+overlay aliases. Contents read all-zero on disk, which is what a resident data table does in a
+carve.
+
+**Cheap test this now enables:** read `PSPHS[seg]` at the moment of the trap. Zero means PLACE
+never wrote it for that segment, and the fault is a missing write rather than a missing page.
+Still open: what `M[B-174]` holds (the open/interrogate chain at `143352`-`143414` is uncarved),
+what the `ORA M[B-75]` contributes, and whether the swapper reads `PSPHS` directly or a copy.
+
+### WARNING: `FullFlow` IS NOT THE 5SWAP REPRODUCER - a green run proves nothing `[V]`
+
+**Measured 2026-08-03** with `RETROCORE_HARNESS_TIMEOUT_SCALE=5`,
+`FullFlow_Octobus_Login_Nd500_Status_StartSwapper_Capture` runs **completely green** in 35
+minutes:
+
+```
+OUTCOME: ENTER=OK login=OK nd-500=OK status=OK start-swapper=OK list=OK stop-system=OK
+trapsPosted=0  lastTRAPN=0B  cpuP1=0x00000000
+```
+
+**Do not read that as "the 5SWAP trap is gone."** The trap is produced by `RECOVER-DOMAIN` and by
+`ND-5000: LINKAGE-LOADER` (see the dated table earlier in this document) - i.e. by **running a
+domain**. `FullFlow` starts the swapper and lists; it parks the swapper at `PC=0x08008255` in its
+message loop and never enters the region containing the fault at `0o1000010525` = `0x08001155`.
+
+Two things follow:
+
+1. A green `FullFlow` is the *expected* result and always was - "swapper track GREEN" predates
+   any of this work. It is not evidence about the trap in either direction.
+2. **Whether the `RPHS` fix changes the trap is still UNMEASURED.** Testing it needs a run that
+   actually loads and runs a domain, and each attempt costs ~35 minutes at the 5x timeout the
+   harness needs on this machine.
+
+**The reproducer is `Nd500SwapFile_CreateAndDefine_Capture`** (in
+`Emulated.Tests\ND100\Nd100SintranNd5000OctobusBootHarnessTests.cs`). It creates and defines the
+ND-500 swap file and then issues
+`recover-domain (210319H02:FLOPPY-USER)LINKAGE-LOAD-H02` - swap file first, domain second, which
+is exactly the order the trap needs. Use that test, not `FullFlow`, for anything about the
+5SWAP trap.
+
+Also confirmed by that run, usefully: `PSTP = 0x0003A000` appears between `@nd-500` and `status`,
+and the wall-clock "STALL" outcomes at the default timeout are purely wall-clock - every stage
+that stalled at 1x passed at 5x with no code change.
+
+### `RPHS` / `WPHS` COULD NEVER EXECUTE IN EITHER EMULATOR (2026-08-03) `[V]`
+
+Handoff to the C port:
+[`HANDOFF-RPHS-WPHS-PHYSICAL-SEGMENT-TO-ND500X-LLM-2026-08-03.md`](HANDOFF-RPHS-WPHS-PHYSICAL-SEGMENT-TO-ND500X-LLM-2026-08-03.md).
+
+Chasing `PSPHS` into the emulator turned up the other half. **Both handlers demanded THREE
+operands while both decoders correctly emit ONE**, so the guard fired on every execution -
+silently a no-op in RetroCore, `trap_illegal_operand` in nd500x. `RPHS` is the instruction the
+5SWAP trap fires on, so part of that trap is **our own defect, not SINTRAN's**.
+
+`ND-05.009.4` sections 16.31 / 16.32 give one operand (the domain number) and carry the rest in
+the index registers: `I1` = byte count, `I2` = address on the domain, `I3` = address on the
+physical segment, `I4` = physical segment number. Five defects were shared by both ports: the
+operand-count guard; source taken from operand 0 instead of `[I4,I3)`; `I3`/`I4` never read; no
+page-boundary stop (it is a PARTIAL move the caller loops on); `I1=0` and `Z=1` set
+unconditionally.
+
+Fixed in RetroCore (commit `f0cf3a436`), with the PSN-rooted half of the MMU walk factored out of
+`TranslateVirtualAddress` into `TranslateThroughPst` plus a public
+`TranslatePhysicalSegmentAddress` - these instructions are handed the PSN outright and must skip
+the capability lookup. The extraction is purely additive, so the virtual path is unchanged.
+
+Tests `TestND500_RphsWphs.cs`, 5/5, **verified to FAIL against the old code**. Full-suite proof
+by arithmetic rather than impression: baseline **2056 tests, 2044 passed, exactly those 5
+failing**; after the fix **2056 tests, 2049 passed, 0 failing**. 2044 + 5 = 2049, so the only
+delta is the five. **`nd500x` is NOT fixed yet** - see the handoff.
+
+**Method note worth keeping:** the usual rule is that the C port leads on MMU work and you read
+the C first. That found nothing here, because nd500x is a comment-for-comment port of the C#
+stub including its wrong parts. **Two ports agreeing is not corroboration when one was copied
+from the other** - the manual settled it in five minutes.
+
+### AND THE WHOLE `FUNCS` VOCABULARY HAS NO FILE-TO-MEMORY OPERATION `[V]`
+
+Read the **complete** 60-entry operation set instead of chasing SGLOA's callees one by one.
+The ND-500 system monitor can do registers, memory (logical / physical / examine / deposit /
+physical-segment), control store, place, swapper, swap-file define+delete, process and
+name-segment management, and memory configuration. **Nothing in it reads a file into ND-500
+memory.** Every content-moving operation is a memory primitive fed by the *caller*
+(`PMWRI`, `DMWRI`, `AMEMW`, `WPHSG`) or a read back to it (`RPHSG`, `AMEMR`).
+
+Two names checked rather than assumed, both because they read like what I was hoping to find:
+
+- **`076 TOSWP` is "message to swapper", not "copy segment to swap"** - confirmed at the table
+  entry (`166733`) and in the NPL handler (`ITOSWP: % FUNCTION=076: MESSAGE TO SWAPPER`,
+  `s3vs-4.symb:78328`).
+- **`110 WPHSG` has exactly ONE call site** in the whole monitor image (`055736`), and it is
+  not in the PLACE bracket.
+
+**So the PLACE subfunctions cannot be delivering segment content - no operation they could
+call is capable of it.** Combined with the already-verified fact that the swapper's `LSWPAGE`
+names the swap file's logical device number `0o1100` explicitly, the open question sharpens
+to one sentence:
+
+> **What is supposed to write the domain into the swap file before the swapper reads it?**
+
+The swapper is asking the right file for a page that was never written. That gap is upstream
+of everything carved so far, and it is the next thing to chase.
+
+**ALSO FLAGGED - a stale doc that will mislead the next reader.**
+`re/030-S3SM5-routine-map.md` states its disassembler as `nd500-dis` and calls the code region
+"ND-500 code". That contradicts both the carving skill's 2026-07-21 correction and the check
+above. Its **data**-region work (header, string pools, the MON dispatch vector table at `0x60`)
+is unaffected - those are bytes either way - but **every claim it makes about the code region
+should be treated as suspect** until re-derived with `nd100-dis`.
+
+**Worth flagging, not yet a claim:** ISEGLOAD is called with five parameters, **three of which
+are the ADDRESSES of caller locals** for SINTRAN to write back into. That is the same shape as
+the swapper's 7-arg MON 377B (`LSWPAGE`) whose write-back measured EMPTY. Whether the two are
+connected or this is just the common calling convention is `[OPEN]`.
+
+**Still open, and do not read this as closing it:** the command -> **MON 60 subfunction**
+binding. The thunks at `146310`-`147070` are called from *inside* the handlers, not from this
+table, and that hop is untraced. The subfunction column in `nd-500-mon-j04.prog.md` section 14
+remains a name-based correspondence.
+
+**Method, worth reusing:** the table was found by searching bank 1 for the single constant
+`0o011547` (the descriptor-array base), which occurs **exactly once**, in the command loop's own
+pointer pool three words from the dispatch. Two range scans tried first were pure noise - a
+151-word window of "plausible code addresses" produced 8 false candidates in bank 1 and 65 in
+bank 2 (bank-2 hits were ASCII text whose word values land in the code-address range). Pick the
+most distinctive single constant; do not range-scan over values that overlap instruction
+encodings.
+
+**Oracle status 2026-07-31 [V]:** mailbox differential oracle 43/43, octobus 5/5, floppy 11/11
+green after this session's servicer diagnostics. It CANNOT adjudicate this defect: `23B` start
+and `24B` restart are not parity targets, and the fault is above the mailbox layer.
+
+### TOOLING: `nd100-dis` indexed-offset fix + carve regeneration (2026-07-31)
+
+Ronny fixed `nd100-dis` dropping the OFFSET operand on the indexed-through-T family
+(`LDATX`/`LDXTX`/`LDDTX`/`LDBTX`/`STATX`/`STZTX`/`STDTX`). Proven on the same address and raw
+word `143344`: old tool `STATX`, fixed tool `STATX 4`. The failure was SILENT - the mnemonic
+still looked right.
+
+**Why this effort cares:** `*AAX <offset>; LDATX` is exactly how SINTRAN reads swapper/mailbox
+message FIELDS (`*AAX SWPFU; LDATX`, `*AAX HSWPI; LDDTX`). Without the offset a listing does not
+say WHICH field an instruction touched.
+
+**Bare output is CORRECT for offset 0** [V, from `decode.c`]: the decode masks with `0xFFC7`, so
+bits 5-3 are the offset field - `143302 & 0x38 = 0`, `143370 & 0x38 >> 3 = 7`. A remaining bare
+line is offset-zero, not a missing operand.
+
+**REGENERATED 2026-07-31** with `make-segment-ref.py` (which byte-swaps for the disassembler only,
+hashes the original big-endian bytes, and re-inserts the `>>> NAME(TABLE)` L07 symbols - a raw
+`nd100-dis` rerun would have stripped those):
+
+| segment | offsets now shown / family total |
+|---|---|
+| `017-S3SMPIT` | 255 / 1027 |
+| `016-S3SRPIT` | 282 / 606 |
+| `004-S3RTL` | 114 / 127 |
+| `003-S3CP`, `013-S3SCP` | 64 / 107 each |
+| `012-S3SFS`, `006-S3FS` | 12 / 59 each |
+| `007-S3DMAC` | 5 / 18 |
+| `030-S3SM5.dis` (direct nd100-dis) | 89 / 235 |
+
+`014-S3ERRP`, `010-S3RTFIL`, `020-S3SDT5`, `021-S3NMS5` regenerated with 0 offsets shown - their
+handful of family instructions are all genuinely offset-zero.
+
+**STILL STALE:** the three `kernel-carving/SCSI-DRIVER/*.dis` (8 instructions),
+`nd-500-mon-j04.prog.asm` (3), and `006-S3FS.annotated.dis` - the last carries HAND ANNOTATIONS
+and must be merged, never overwritten.
+
+**Any ND-100 disassembly dated before 2026-07-31 is suspect for this opcode family** - re-check
+before trusting an offset read out of one. `030-S3SM5` mattered most here: it is the ND-100
+System Monitor that drives the ND-500 swapper and prints "> Loading Swapper".
+
+---
+
+## 00. 2026-07-25 — SWAPPER REACHES ITS MESSAGE-WAIT LOOP; the blocker moves from microcode to transport
+
+**This is the newest status entry. Read it before planning any swapper work.**
+
+Document of record for the detail: [`OCTOBUS-SWAPPER-HANDOFF-2026-07-25.md`](OCTOBUS-SWAPPER-HANDOFF-2026-07-25.md).
+
+**Headline `[V]` (observed in the emulator, reproducible via `SwapperStartDiagnosticTests`):** the ND-500
+swapper now executes **420 macro instructions with NO throw at all**. The diagnostic run ends on its
+4M-tick budget, not on a fault. It is sitting in its **main message-wait loop** at `P=0x08000677`
+(octal `1000003167`):
+
+```
+1000003167: call $...377,$2,$1000225040,$1000437234   ; MON 377B, 2-argument form
+1000003207: ifkret
+1000003210: go $...757                                ; backward branch - this is the loop
+```
+
+**The blocker is no longer the microcode — it is the message.** Any plan that still says "the swapper
+crashes / the microword lane is incomplete" is stale as of this date.
+
+**Why it stops `[V]`, measured with a mailbox guard added to the diagnostic — NOT what was first
+written here.** The swapper makes **exactly two** MON 377B calls (4-arg at `0x0800823F`, 2-arg at
+`0x08000677`) and is then never dispatched again: the microcode IDLE poll walks `0o24670..0o24723`
+and repeats, never reaching the MICFU-24 slot `0o15250` or `MSG_CONMC` `0o15676`. Cause: at macro
+`P=0x08009053` the swapper executes `w4 sfill b.34` (`swapper-k01-pseg.asm:11718`), a bulk fill of
+`0x80000000` whose destination is computed **from the fabricated probe message**. It fills over the
+harness mailbox, so the re-posted MICFU 24 lands in a wrecked queue. Every message field reads
+`0x8000` at the second restart.
+
+**RETRACTED same day:** "it spins because the announce stub returns the same message forever". The
+stub was never the problem. Two shortcuts that followed from that wrong reading are also dead, both
+tested: a smarter stub does not help (the swapper acts on message CONTENT), and relocating the
+harness mailbox does not help (moving `ExtBlock` `0x1000 -> 0x4000` only moved the clobber to
+`HeaderBase`; reverted).
+
+**Eight microword gaps closed to get here** (all in the `CpuND5000` microword lane, which runs the real
+MICRO-5800-B30 control store one 128-bit word per tick): `D,IDU,CSIT` (write-only 1-bit SIT-arm latch,
+ND-05.020.01 chapter 7 section 7.3.3 Table 15 — discarding it is FAITHFUL, the CPU models no trap
+machinery); `ST,ACCA` (sticky O, Z/S/C replaced); ADD3/SUB3 dispatch entries; local indirect
+post-indexed `0xE4-0xEF`; `ORD,OP1` (latch operand index 0 only); `G,DIR1/2/4` displacement width;
+`AB,EA1DIR` (= "use EA1", unscaled — an earlier reading of this as "EA1 + direct operand" was WRONG);
+and `ABR,(none)` (**inverted sense** — the branch is taken when the condition is FALSE).
+
+**MULAD carry adjudicated across all three lanes `[V, MANUAL + MICROCODE]`.** The microword lane and the
+two C-family lanes disagreed. The ND-500 Reference Manual settles it by comparison: 11.1 ADD lists
+"carry from most significant bit -> C (integer)"; **11.7 MUL does NOT list C at all** (Z, S, O, FU, FO
+only); 11.19 MULAD lists it with ADD's exact wording. MULAD is MUL followed by ADD, so **C is the ADD's
+carry-out, not the multiply's excess** — the multiply's excess is already reported through O, so the old
+form double-counted it. Microcode `MULADW` (`002627..002631`) agrees: product to the 32-bit scratch SC7,
+`ST,SAVM`, then `ALU,A+B A,SC7 B,SC5` with `ST,ACCA`. **The microword lane was right; the functional
+`CpuND500` and the `nd500x` C port were both wrong** and have been corrected to match.
+
+**METHOD LESSON (cost most of a session):** the differential-sweep diff format is
+`{name}={expect}!={got}` = **`golden!=microword`**, i.e. GOLDEN FIRST. It was read backwards for an
+entire session, which inverted the characterisation of every divergence. Check the polarity of any
+diff format before reasoning from it.
+
+`[OPEN]` items, in dependency order:
+1. **Give the swapper a structurally valid SWMSG** - carve the field layout (the `sfill` descriptor in
+   `b.34` is a precise lever: work backwards from what a sane fill destination must be), and/or wire
+   `IMonitorCallSink` to the real octobus transport (`OctobusND5000Station.cs`). Note the transport
+   route is NOT small: per `TRACKB-SHARED-ND500-CPU-INTERFACE-DESIGN-2026-07-21.md` the microword CPU
+   must not use `Nd500CpuProcessBridge`/the C# servicer, so it needs a `CpuND5000Adapter` behind a
+   separate `AttachMicrocodeCpu`, and `Emulated.HW` does not reference the ND5000 package today.
+2. Regenerate `ARITHMETIC_mulad.json`. Its 14 remaining divergences are **all** the C flag and are
+   **stale goldens generated from the old behaviour, not emulator bugs**. Deliberately not done: the
+   generator rewrites all 188 corpus files at once, which would freeze other lanes' in-flight CPU work
+   into the oracle.
+3. Sub-word WIDTH residuals: `putbf` 6 vectors (register destinations), `loopd` 4 vectors.
+
+---
+
 ## 0a. 2026-07-20 — FOUR RETRACTIONS, one carve answer, and the open-questions register
 
 **Read this before citing any pre-2026-07-20 conclusion about the swapper or the octobus mailbox.**
@@ -164,6 +801,18 @@ New documents of record:
   poll times out. `[OPEN]`: regenerate a correct `030-S3SM5` disasm (diagnose the .dis byte-order/
   alignment bug), then decode MON 117B + the IOX readiness register + the emulator fix. METHOD LESSON:
   compare the `.bin`/executed WORD, not just the address, before trusting a `.dis`.
+  **UPDATE 2026-07-21f (.dis fixed+committed `3dd5366`; re-analysed on the corrected `.dis`, `.bin`-cross-
+  checked):** the loop is a **FILE-TO-DEVICE IMAGE LOADER**, not a poll (supersedes "device-poll" - right
+  code, wrong shape). `[V]` `MON 50` OPEN @155012 -> `MON 62` RMAX (file size -> block count `[B-172]`) ->
+  `MON 76` SETBS -> setup subr @155233 (`MON 154` ASSIG + `MON 255` PIOCM) -> double loop: outer over
+  `[B-172]` blocks (`MON 117` RFILE), inner over `[B-170]` words streaming each via `IOXT` to device reg
+  `[[B-56]-3]+0xB`; `MON 74` SETBT @155370 repositions for the next segment. **GATE @155327-155331: reads
+  device STATUS at IOX reg base+2, REQUIRES bit 100B (0x40)**, else -> err path 155420. `[B-172]` = a BLOCK
+  COUNT (exhaustion = COMPLETION, not timeout). VINDICATES "> Loading Swapper"; kills cell-27B scan AND
+  bare-poll. Task-8 gate now crisp; 3 items `[OPEN]` (need live trace): which file `MON 50` opens; which
+  device `[B-56]`/`[[B-56]-3]` is (3022/octobus vs PIOC/CAMAC - ASSIG+PIOCM hint CAMAC, do NOT assume
+  3022); does it COMPLETE or SPIN. Leading hyp `[I, UNPROVEN]`: emulator iface never raises status bit
+  0x40 at IOX base+2. See the doc's `2026-07-21f` section.
 
 ### Retracted 2026-07-20 [V] — do not resurrect
 
@@ -1551,6 +2200,7 @@ implement to actually run/connect the ND-500 CPU.
 | Doc | What |
 |---|---|
 | **this file** | ND-500 status of record |
+| [`OCTOBUS-SWAPPER-HANDOFF-2026-07-25.md`](OCTOBUS-SWAPPER-HANDOFF-2026-07-25.md) | **NEWEST swapper state.** Swapper runs 420 instructions with no throw and sits in its MON 377B message-wait loop at `P=0x08000677`; blocker moved from microcode to the octobus transport (announce sink is a stub). Eight microword gaps closed; MULAD carry adjudicated across all three lanes; sweep-diff polarity is `golden!=microword` |
 | [`..\CARVING-HANDOFF.md`](../CARVING-HANDOFF.md) | parent: overall carving + MON status |
 | [`README.md`](README.md) | ND-500 folder readme |
 
@@ -1561,6 +2211,7 @@ implement to actually run/connect the ND-500 CPU.
 | [`ND500-WHO-ANSWERS-THE-MAILBOX.md`](ND500-WHO-ANSWERS-THE-MAILBOX.md) | **The mailbox servicer is THE MICROCODE** (hence MICFU) - not the 5015, not the swapper; three-layer model, MICFU handling map, emulator role mapping. MANUAL/DERIVED + trace-consistent |
 | [`ND500-CS-LOAD-TRACE-FINDINGS-2026-07-16.md`](ND500-CS-LOAD-TRACE-FINDINGS-2026-07-16.md) | **OBSERVED (live traces of real SINTRAN + nd-500-mon J04).** The complete CS-load protocol incl. the previously UNDOCUMENTED verify pass (words 0-7 read-back; mismatch aborts BEFORE micro-start); SLOC5/UNLC5/MCLR5 strobe on IOX READ; RETG5 bit1-clear = clock restart; bare LCON5 activate = lock only. Where it disagrees with the bus reference, the trace record wins |
 | [`CARVE-ANSWER-Q7-COMPLETION-POLL-VS-INTERRUPT.md`](CARVE-ANSWER-Q7-COMPLETION-POLL-VS-INTERRUPT.md) | **Q7: completion detection is INTERRUPT-DRIVEN (level 12), not RSTA5 poll.** [V-NPL] walk of `5STDRIV`/`XACT500`/`CLE5STATUS`/`CHN5STATUS` + [V] L07 symbols. RSTA5 has no finished bit; payload read from MPM `N5STA`. See section 0d. GAP: L07 5STDR byte disassembly |
+| [`ND500-TO-SINTRAN-MON-MAPPING.md`](ND500-TO-SINTRAN-MON-MAPPING.md) | **Complete MON-call mapping ND-500 -> SINTRAN/ND-100 (2026-07-30).** The `callg $0xF80000NN` seg-31 gate (NN = MON number as integer, VERIFIED vs DEABF/DVOUTS/B5XMSG); MCHANDEL GOSW table 500B-523B vs below-500B forward to native MCTAB; shared vs ND-500-specific numbers; the definitive >255 answer (ND-100 native MON = 8-bit field, 377B=255=0xFF boundary; ND-500 MCNO is a 16-bit SOFTWARE-decoded field, no limit); arg marshalling via 4.2.5.2 + 5AP1..5AP4/NUMPA. Per-claim [VERIFIED]/[INFERRED] |
 | [`ND500-MONITOR-CALL-MECHANISM.md`](ND500-MONITOR-CALL-MECHANISM.md) | v1.1. **NPL + symbol only, no carved bytes.** Origin of the section-3 model |
 | [`ND500-MONITOR-CALL-PARAMETER-PASSING.md`](ND500-MONITOR-CALL-PARAMETER-PASSING.md) | cited second-hand by the activation doc |
 | [`ND500-BUS-INTERFACE-REFERENCE.md`](ND500-BUS-INTERFACE-REFERENCE.md) | section 7.4 = MICFU function codes |

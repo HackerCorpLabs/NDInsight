@@ -8,7 +8,7 @@ by SINTRAN III / COSMOS / NORD-NET to carry inter-node messages (routing, termin
 
 XMSG is the **transport**: this document specifies everything needed to get ANY
 payload from one node's port to another's, byte-correct — HDLC framing and FCS, the
-ND LAPB dialect (including the odd-length address bit), the 13-byte SINTRAN header,
+ND LAPB dialect (including the odd-length address bit), the 14-byte SINTRAN header,
 the datagram-sequence/Counter/channel **envelope** (the seed model, §18.5), secure
 ACKs (§6), reachability and restart/resync (§5.1), relaying (§18.8 S11), and the
 port-0 **server/service dispatch** (§7 terminology, §18.8 S10). It is deliberately
@@ -95,7 +95,7 @@ the source for §5.1's resync form and §18.8 S7/S8).
  │ HDLC frame      7E | byte-stuffed( LAPB frame | FCS ) | 7E       │  sec 2
  │   LAPB frame    address | control | information                  │  sec 3
  │     information ┌─────────────────────────────────────────────┐  │
- │                 │ SINTRAN header (13 bytes)                   │  │  sec 4
+ │                 │ SINTRAN header (14 bytes)                   │  │  sec 4
  │                 │   Markers, Packet Type, Subtype, Dest/Src,  │  │
  │                 │   Flags1, Flags2, Protocol ID               │  │
  │                 ├─────────────────────────────────────────────┤  │
@@ -329,8 +329,15 @@ requirements doc that are intentionally NOT duplicated here:
 
 ## 4. SINTRAN header  [VERIFIED]
 
-Every LAPB I-frame carries a fixed **13-byte SINTRAN header** immediately after
+Every LAPB I-frame carries a fixed **14-byte (7-word) SINTRAN header** immediately after
 address and control:
+
+> **CORRECTED 2026-08-04.** This was documented as 13 bytes, with a "Protocol ID" at offset 12 and
+> a "Counter" at offset 13. Offsets 12-13 are ONE 16-bit checksum, so both of those were fitted
+> models over its two halves - which is why neither ever behaved cleanly. The header is 14 bytes,
+> the XMSG sub-header starts at **14** and is 14 bytes, and a message body starts at **28**.
+> See [FA-READ-WRITE-WIRE-PROTOCOL-2026-08-04.md](FA-READ-WRITE-WIRE-PROTOCOL-2026-08-04.md)
+> section 2 for the proof.
 
 ```
 Offset  Size  Field          Notes
@@ -526,16 +533,32 @@ each time that stream's counter wraps.
 
 ---
 
-## 5. Data message (subtype `0x0E`) and the XMSG sub-header  [VERIFIED structure]
+## 5. Data message (subtype `0x0E`) and the XMSG sub-header  [CORRECTED 2026-08-02]
 
-A data message carries the 13-byte SINTRAN header, then the **XMSG sub-header**,
-then user data. Sub-header layout (offsets relative to the start of the payload,
-i.e. SINTRAN offset 13 onward):
+> **The header is 14 bytes (7 words), not 13, and there is no "Counter".**
+>
+> Section 18.5 of this same document carves the answer out of the XMSG kernel routine at
+> `137314` and verifies it on **3595 of 3595** frames: word 6 is a ones-complement header
+> checksum, so **offset 12 is its HIGH byte and offset 13 its LOW byte**. The field called
+> "Counter" below is the checksum low byte. The sub-header therefore starts at SINTRAN
+> **offset 14**, not 13.
+>
+> The layout below was never wrong about the *bytes* — a parser that starts one byte early
+> and carries a phantom first field reproduces every captured frame, which is exactly why a
+> passive decode could not catch it. It is wrong about the *structure*, and an implementer
+> building a struct from it gets every subsequent offset right only by accident.
+>
+> Sections 4.3, 9.1.1 and 18.2 still carry the same off-by-one and the superseded
+> channel/epoch model. Treat **18.5 as authoritative** wherever they disagree.
+
+A data message carries the 14-byte SINTRAN header, then the **XMSG sub-header**,
+then user data. The layout below is retained because the corpus and the older captures are
+annotated in its terms; read the offsets as **one greater** than shown.
 
 ```
 Offset  Size  Symbol   Field             Notes
 ──────  ────  ───────  ────────────────  ──────────────────────────────────
-  0      1    —        Counter           per-direction counter (decrements)
+  0      1    —        [NOT A FIELD]     checksum LOW byte (see banner above)
   1      2    —        Marker            always 0x21 0x00
   3      1    —        Frame Flags       not constant (0x82 / 0x84 / 0x86 / 0x96 seen)
   4      1    —        Role              asker/responder hint (see 5.2)
@@ -656,12 +679,41 @@ DE 04                        Protocol ID (ROUTING) + counter
 In this short empty-buffer message the `XMCSM/Pad/XMLEN` block is truncated: the
 trailing `00 10` sits where `XMCSM` would begin and mirrors the Flags 2 length.
 
+### 5.x A message body MUST be an EVEN number of bytes  [VERIFIED 2026-08-10]
+
+The ND-100 is a 16-bit word machine and a message body is word-addressed. An
+odd-length body is **not rejected — it is silently DISCARDED**: no reply, no
+`XENSE`, no disconnect, just a peer that stops answering. There is nothing to
+grep for, which makes this far more expensive to diagnose than any error would be.
+
+Measured over a complete FA write ladder from a real client (D102) to a real
+server (D100), every message was even:
+
+| step | bytes | | step | bytes | | step | bytes |
+|---|---|---|---|---|---|---|---|
+| `8000` | 112 | | `8300` | 26 | | `8600` | 34 |
+| `8100` | 44 | | `0400` | 594 | | `8700` | 18 |
+| `8200` | 24 | | `8500` | 594 | | `8800` | 18 |
+
+The sender appends a pad byte **only when one is needed** — the steps that come
+out even carry none.
+
+**The pad is not a field and must never be read.** Real machines leave stale
+buffer content there: the same capture carries `0A`, `B0` and `06` on different
+steps. It sits after the QFORM end-of-list selector (`F2 00FF`), where a parser
+has already stopped. Do not confuse it with the `0xF0` body padding rule, which
+is a separate thing.
+
+Capture and working:
+[captures/ND-TO-ND-WRITE-2026-08-10/README.md](captures/ND-TO-ND-WRITE-2026-08-10/README.md).
+
 ---
 
 ## 6. Delivery acknowledgment (subtype `0x03`)  [VERIFIED]
 
 Routed data messages are acknowledged. In this corpus the ACK is a **short
-subtype-`0x03` frame** (14 bytes: 13-byte header + 1 payload byte), sent in the
+subtype-`0x03` frame** (14 bytes: the header and nothing else - the byte once counted
+as a 1-byte payload is the checksum's low half), sent in the
 **opposite** direction to the data frame it acknowledges.
 
 **Mechanism (verified by correlation):**
@@ -680,10 +732,20 @@ subtype-`0x03` frame** (14 bytes: 13-byte header + 1 payload byte), sent in the
 **A `0x03` byte cannot be decoded in isolation** — its meaning is fixed by the
 data frame it answers (`Flags 1` identifies which datagram).
 
-**Closed form for building an ACK [VERIFIED 904/904 ACKs, all 14 captures, incl. the
-0x0002 class, all four link seeds, both relay legs, the DE→DD wrap and the reboot
-reset]** — the ACK is the §18.5 envelope arithmetic applied to the ECHOED data Flags1
-with an ACK seed `S_ack = link_seed + 0x0B`:
+**Closed form for building an ACK [VERIFIED 1671/1671 ACKs, whole corpus, re-scanned
+2026-07-31; incl. the 0x0002 class, all link seeds, both relay legs, the DE→DD wrap and
+the reboot reset]** — the ACK is the §18.5 envelope arithmetic applied to the ECHOED data
+Flags1 with an ACK seed `S_ack = link_seed + 0x0B`:
+
+> **SUPERSEDED 2026-07-31 — an ACK's word 6 is the same header checksum as every other frame's.**
+> See section 18.5. What this closed form calls the ACK's "single trailing payload byte" is not
+> payload at all: it is the LOW byte of header word 6, with the "ack channel" as its high byte,
+> exactly as on a Data frame. The checksum reproduces all **1671** captured ACKs with no separate
+> rule, so `S_ack = seed + 0x0B` and the trailing/epoch arithmetic below are a special case of it
+> and need not be implemented. Retained for context only.
+>
+> (Incidental: a `Flags2` low of `0x0003` occurs once in the corpus, alongside the documented
+> `0x0001`/`0x0002`.)
 
 ```
 S_ack    = seed + 0x0B                                 ; link constant (0x1F for 100↔102)
@@ -792,7 +854,7 @@ ack line uses the peer's subtype `0x07`; in this corpus that ack is subtype `0x0
 >   (logical port 2), `*XM-FIDO` (4), `*COSPO` (5), `*FA-FSA` (7), `*XFTRA` (8),
 >   `*FA-SERVER` (11) — COSMOS's own `list-servers` command names them (full table
 >   in §7.1), each with a well-known LOGICAL port and free session slots.
->   Its WIRE port is `(logical << 7) | incarnation`, minted per boot (342/358 for
+>   Its WIRE port is `(portNumber << 7) | random`, re-minted per boot (342/358 for
 >   `*TADADM`); clients learn it from the server's reply, never compute it.
 > - A **SERVICE** is a numbered XROUT operation in the XMCSM low byte ("the service
 >   byte", bit 6 set = request): `XSLET` 0x41 "send a letter", `XSGSY` 0x4B "get
@@ -834,7 +896,7 @@ One node's receive-side architecture (ports/names as measured on 100↔102):
                                       │ the wire port (client learns it here)
                                       ▼
                              terminal/session port, minted per session
-                             ( (slot<<7)|incarnation, e.g. 787/798/1218 )
+                             ( (portNumber<<7)|random, e.g. 787/798/1218 )
 ```
 
 A host has a **node number** (100, 102, …) and runs tasks that own one or more
@@ -855,19 +917,58 @@ and WHEN. Four kinds exist, and none of them is ever computed by the peer:
 | Kind | Allocated by | When | Lifetime | Examples (measured) |
 |---|---|---|---|---|
 | **Port 0** | fixed by the protocol | — | forever | the XROUT letter/service sink (§18.8 S10) |
-| **Server registry port** | the server at registration | server startup | until re-registration; low7 incarnation changes per boot | `*TADADM` slot 2 → wire 342/358; `*XM-FIDO` slot 4 |
+| **Server registry port** | the server at registration | server startup | until re-registration; the 7-bit random part is re-drawn per boot | `*TADADM` slot 2 → wire 342/358; `*XM-FIDO` slot 4 |
 | **Asker / client port** | **the ORIGINATING node's XMSG kernel at `XFOPN`** (§8) [INFERRED mechanism; measured pattern VERIFIED] | when the client program (connect-to, an XROUT query, a user app) opens its port | ONE port for the whole session/transaction, then released | connect-to on 100 = always slot 5, fresh low7 per connect (683, 648, 739, 664, 657…); connect-to on 103 = slot 4 (581); XROUT queries = slots 5/6/8/9 (722, 845, 1049, 1222…) |
 | **Session / terminal port** | the HOST at port-assign | per accepted session | until DCON | 787, 798, 833, 1218 (slot 6/9…) |
 
 Supporting observations [VERIFIED]: the same machine + program class reuses the same
 logical slot with a varying low7 per open (100's connect-to: nine different low7
-values, all slot 5); different programs occupy different slots. The low7 is the
-magic-number "random part" (masks `5PSHZ/5PMS1/5PMSK`) — though on retrocore-100
-consecutive XROUT opens showed an INCREMENTING low7 (`0x52, 0x62, 0x63, 0x64`), so it
-may be an incarnation counter rather than random [observed pattern; exact scheme
-UNKNOWN]. Peers must treat every non-zero port as an opaque learned value: the asker
-port is learned from the connect/request frame, the server wire port from the accept,
-the terminal port from the port-assign — nothing but port 0 is ever known a priori.
+values, all slot 5); different programs occupy different slots.
+
+**The wire port IS the magic number's low word [VERIFIED 2026-07-26].** The split is
+not merely "logical slot and low7" — a wire port field is literally the low half of a
+32-bit MAGNO, and the accompanying system field is its high half:
+
+```
+XMSPT / XMDPT = (port number << 7) | random     ; 9-bit 1-based port, 7-bit random
+XMSSY / XMDSY = system number
+```
+
+Two independent proofs: the TAD port-assign (`7CORS`) ships a whole 32-bit magic
+number whose halves then appear verbatim as `XMSSY`/`XMSPT` on every following frame;
+and `*TADADM`, logical port 2 in the live registry, has wire ports that shift down to
+exactly 2. See `XMSG-WIRE-PORT-IS-MAGIC-LOW-WORD-2026-07-26.md`.
+
+**The low7 is the magic "random part", and it is NOT random [VERIFIED 2026-07-26].**
+Carved from the XMSG L03 kernel: the creator `ZCRMG` (131055 octal) builds the low
+word with `SHA ZIN 7` then `ORA` of the port block's `RNMAG` word, and the value in
+`RNMAG` comes from `ZRAND` (131152 octal) — a linear congruential generator
+`seed := seed * 012465 + 033031 (mod 2^16)`, masked to 7 bits, **redrawing 0 and 127**
+so the range is 1..126. The low seven bits are themselves a full-period generator:
+
+```
+r' = (53 * r + 25) mod 128        ; cycles through all 128 values
+```
+
+Consequences for reading a capture: a port word's position in that 128-long cycle is
+the allocating node's **allocation ordinal** since XMSG started, so the step distance
+between two observed port words counts the ports allocated in between; and a low7 of
+0 or 127 means the field is a reserved address rather than an allocated port.
+Corpus check across 753 wire endpoint fields: 24 distinct low7 values, all on the
+cycle, including one unbroken run of ten consecutive generator outputs, and no value
+ever 0 or 127.
+
+*Correction to an earlier reading in this section:* the observation that consecutive
+XROUT opens on retrocore-100 showed an "incrementing" low7 (`0x52, 0x62, 0x63, 0x64`)
+does **not** support an incarnation counter. Measured against the generator those are
+112, 1 and 21 steps apart — not consecutive allocations. The apparent increment is
+coincidence in a 128-value space; the LCG explains the corpus far better (a nine-step
+unbroken chain cannot arise by chance).
+
+Peers must still treat every non-zero port as an opaque learned value: the asker port
+is learned from the connect/request frame, the server wire port from the accept, the
+terminal port from the port-assign — nothing but port 0 is ever known a priori.
+Knowing how the kernel mints them does not make guessing them correct.
 
 #### The XROUT server registry — live `list-servers` on a real COSMOS install
 
@@ -880,6 +981,17 @@ slots the server can hand out (the per-server session cap).
 The names map onto the documented COSMOS service triad — **Remote Spooling / Remote
 File Access / ND-MAIL** (COSMOS Operator Guide `ND-30.025.02` ch. 7 and the service
 diagram at its line 765) — plus the terminal and transport servers:
+
+> **CORRECTION 2026-07-26 [VERIFIED]:** the "logical port" column below is NOT a
+> well-known port per name. Booting the BIGDISK0-L image in the emulator and running
+> `list-serv` after starting the same products shows `*XM-FIDO` **3**, `*TADADM` **4**
+> and `*XFTRA` **5**, against 4, 2 and 8 for those names on the COSMOS machine below -
+> every number different, every name the same. Port 4 is even a different server
+> between two runs of that one image (`*XM-ENNS0` vs `*TADADM`). The number is the kernel port-table
+> index of whatever port the server opened, so it tracks what else is loaded and in
+> what order; the gaps below (1, 3, 6, 9, 10) are unnamed ports. Treat the column as
+> one system's observation, never as a name-to-port map - address servers by NAME.
+> See `XMSG-SERVER-NAMES-AND-LETTERS.md` section 4.
 
 | Logical port | Name | Free SPs | Purpose |
 |---:|---|---:|---|
@@ -896,8 +1008,9 @@ Implications: (1) COSMOS's three inter-node services each have a server here —
 installed/started on node 100 or under a different name; watch for it). (2) "The file
 server" is really a FAMILY (`*XM-FIDO`/`*XFTRA`/`*FA-FSA`/`*FA-SERVER`) — a file-transfer
 capture may touch several names; census the letter names (§18.8 S10) to see which the
-operation actually uses. (3) The registry is the authoritative name→logical-port map; a
-node's OWN `list-servers` gives the wire ports `(logical<<7)|incarnation`.
+operation actually uses. (3) The registry is authoritative for WHICH names exist and what port each currently
+occupies on THAT system - it is not a stable name-to-port map, see the correction above;
+a node's OWN `list-servers` gives the wire ports `(portNumber<<7)|random`.
 (4) `list-servers` (a.k.a. `LI-SER`) is a LOCAL registry query and produces no inter-node
 wire traffic (§18.8). (5) All servers share the one XMSG transport — the
 envelope/ACK/odd-address/port rules carry over unchanged (`LEARNING-A-NEW-PROTOCOL.md`).
@@ -1335,7 +1448,7 @@ session (it drives a full 58-frame session with a *real* 102 — `new-conn-to-10
 | U1 | **Frame-flags** | XMSG sub-header **offset 3** (absolute byte 16 of a data frame) | ALL data frames (subtype `0x0E`): connect-accept, port-assign, and every session data frame, both directions | bit7 (`0x80`) always set; bit1 (`0x02`) always set; `0x86` is the common value | `0x82, 0x92, 0x96` — the varying bits are **bit4 (`0x10`)** and **bit2 (`0x04`)**; meaning unknown. NOT a pure echo of the sender (asker `0x82`→responder `0x86` at Flags1=0x0007) |
 | U2 | **Role — high nibble** | XMSG sub-header **offset 4** (absolute byte 17) | ALL data frames (`0x0E`) | low nibble `4`=asker, `0`=responder (VERIFIED) | high nibble: asker `0xC4/0xE4/0x84/0x94`, responder `0x40/0x00`. What the high nibble (`C/E/8/9` vs `4/0`) encodes is unknown |
 | U3 | **Protocol ID / channel — which one a SESSION uses** | SINTRAN header **offset 12** | data frames (`0x0E`) of a connect-to session | **RESOLVED → 18.5**: the channel is DERIVED per frame, `0xDE − (XMCSM>>24) − epoch`, from the SENDER'S OWN sequence state — never echoed, never allocated | ~~responder echoes the sender's channel~~ (superseded — epoch-0 coincidence) |
-| U4 | **Session-port low-7 ("random part")** | in **XMDPT/XMSPT** (sub-header offsets 7-8 / 11-12; abs. bytes 20-21 / 24-25) AND in the port-assign TAD `0x07` message data (`07 05 00 00 sys portHi portLo`) | port-assign frame (XMCSM `0x04000000`) and every session frame | `port = (logical<<7) \| low7`; logical port is the high 9 bits; low7 is the magic "random part" | the low7 the responder assigns: `0x13 / 0x42 / 0x41` — same asker (100) gave `0x42` then `0x41` in two sessions. Whether it is truly free/random or **derived from the sender** (the open hypothesis) is unknown |
+| U4 | **Session-port low-7 ("random part")** — **CLOSED 2026-07-26** | in **XMDPT/XMSPT** (sub-header offsets 7-8 / 11-12; abs. bytes 20-21 / 24-25) AND in the port-assign TAD `0x07` message data (`07 05 00 00 sys portHi portLo`) | port-assign frame (XMCSM `0x04000000`) and every session frame | The whole field is the MAGNO low word: `(port << 7) \| random`, 9-bit 1-based port and 7-bit random; the companion system field is the MAGNO high word | Drawn by the kernel routine `ZRAND`, a linear congruential generator (low 7 bits: `r' = (53r+25) mod 128`, full period, 0 and 127 redrawn). Not sender-derived, not free — see section 7.1 |
 | U5 | **Port-assign `0x0B` option — 2nd data byte** | trailer of the port-assign frame, TAD message `0B 02 03 XX` | ONLY the port-assign frame (XMCSM `0x04000000`, in the setup phase) | opcode `0x0B`, length 2, first data byte `0x03` | 2nd data byte `XX` = `0x00 / 0x04 / 0x02` across the three captures; meaning unknown (does not obviously track asker system or port) |
 | U6 | **Port-assign `0x15` option data** | trailer of the port-assign frame, TAD message `15 02 01 08` | ONLY the port-assign frame | opcode `0x15`, length 2 | data `01 08` (constant in captures) — note `0x0108` is also the terminal-data XMCSM high half (`0x01080000`) and a Flags2 data-class value; whether `0x15` carries that class / a buffer size / a mode is unknown |
 | U7 | **Counter — absolute base value** | XMSG sub-header **offset 0** (absolute byte 13) | ALL data frames (`0x0E`) | **RESOLVED → 18.5**: `Counter = (seed − (Flags2&0xFF) − Flags1) & 0xFF`. The "mystery bases" ARE the seed model: `0x11` = the 102↔103 link seed (setup class, Flags2 low `0x00`), `0x09` = seed − 8 (terminal class, Flags2 low `0x08`) | ~~responder echoes the sender's counter~~ (superseded); only the seed BYTE's meaning remains unknown (learn it from the peer) |
@@ -1348,15 +1461,14 @@ SINTRAN header (13 B, all frames):
   off 3    Subtype  03=ACK 0E=data 13/19=reach 07=net-error
   off 4-7  Dest node / Src node        (swapped in a reply)
   off 8-9  Flags1  = datagram sequence   <-- sender's OWN sequence (18.5; echo model superseded)
-  off 10-11 Flags2 = frame class (== XMCSM >> 16)
-  off 12   Protocol ID = channel        <-- DERIVED from own state (18.5)   [U3 resolved]
+  off 10-11 Flags2 = on a Data frame this IS the XMCSM = the BODY LENGTH
+  off 12-13 Checksum (one 16-bit field; the old "Protocol ID" and "Counter" were its two halves)
 
-XMSG sub-header (only on data 0x0E frames, starts at off 13):
-  off 13   Counter                       <-- DERIVED: (seed - F2low - Flags1) & 0xFF (18.5)   [U7 resolved]
+XMSG sub-header (only on data 0x0E frames, 14 bytes, starts at off 14):
   off 14-15 Marker 21 00
   off 16   Frame-flags                                                 [U1]
   off 17   Role (low nibble 4/0)                                       [U2]
-  off 18-25 XMDSY/XMDPT/XMSSY/XMSPT       (ports carry the low-7)       [U4]
+  off 18-25 XMDSY/XMDPT/XMSSY/XMSPT       (system|port halves of a MAGNO) [U4 closed]
   off 26-29 XMCSM (04000041 connect / 04000000 setup / 01080000 term)
   off 30-31 pad / XMLEN
   off 32+  trailer: TAD chain            (port-assign carries [U5][U6])
@@ -1384,7 +1496,7 @@ here.
 | U1 | Frame-flags bits `0x10`/`0x04` | **NOT IN AVAILABLE SOURCE.** No `XMFL*/XMBIT/XMPRI/XMURG/XMSEC/XMFLG` symbol exists. Dissector stores it as raw hex with no bit decode. The MON 200B option-word bits (`XFSEC=9`, `XFHIP=13`, `XFROU=10`, `XFBNC=12`) are call-time **T-register** bits, NOT this wire byte — no provable mapping. | `XMSG-VALUES-M.SYMB:70-94`; `hdlc_tcp.lua:309`; `XmsgSubHeader.cs:50` |
 | U2 | Role high nibble | **Bits NOT defined**, but the high nibble encodes the **service/command class** (INFERRED labels): `0xC4`=asker LI-ROUTING, `0xE4`=asker SYSTEM-TAD, `0x94`=asker connection-setup, `0x84`=asker legacy, `0x40`=responder SYSTEM-TAD, `0x60`=responder LI-ROUTING, `0x00`=data (no role). | `hdlc_tcp.lua:131-143`; `XMSG-PROTOCOL.md:352-365` |
 | U3 | Session channel selection | **NOT FOUND.** No symbol names the seven channel bytes `0xD8..0xDE`; no per-session allocation rule. The responder echoing the sender's channel is explained at API level by **`XFRTN`** (see below). | symbol-table grep (octal 330-336) — no match |
-| U4 | Session-port low-7 | **Layout VERIFIED, derivation NOT FOUND.** New confirmation: `5PSHZ=000007` (shift count = **7**), `5PMS1=000177` (`0x7F` low-7 mask), `5PMSK=177600` (`0xFF80`) — the official `(logical<<7)\|low7` split. Whether the low-7 is sender-derived or a free "random part" is unresolved; the magic number is documented as `{port+system+random}`, and `XFP2M`/`XSGMG` exist as constants but their minting code is absent. | `XMSG-SYMBOL-LIST.SYMB.TXT:1261-1263`; `XMSG-API.md:182` |
+| U4 | Session-port low-7 | **CLOSED 2026-07-26 — layout AND derivation both VERIFIED.** The symbols `5PSHZ=000007` (shift 7), `5PMS1=000177` (low-7 mask), `5PMSK=177600` already gave the split; the minting code has now been carved out of the XMSG L03 kernel. `ZCRMG` (131055) builds the low word as `SHA ZIN 7` then `ORA RNMAG`; `ZRAND` (131152) is an LCG (`seed*012465+033031 mod 2^16`, masked to 7 bits, 0 and 127 redrawn). The high word is the system number from base-field `XSYID`. | `XMSG-MAGIC-NUMBER-LAYOUT-CARVED-2026-07-26.md`; kernel `XMSG-KERNEL-L03.BPUN` |
 | U5 | Port-assign `0x0B` 2nd byte | **NOT FOUND.** `0x0B` is not a documented TAD opcode; data `03 XX`, `XX = 00/04/02` per session, no symbol, meaning unknown. | `TAD-MISSING.md:41` |
 | U6 | Port-assign `0x15` data `01 08` | **INFERRED:** `0x15` is not a documented TAD opcode; its `01 08` mirrors the terminal-data XMCSM class word `0x01080000` — appears to advertise the frame-class the session's data frames will use; unverified. | `TAD-MISSING.md:42`; `hdlc_tcp.lua:170` |
 | U7 | Counter base (`0x11`/`0x09`) | **NOT FOUND.** Candidate offset symbols exist without semantics (`XMSEQ=000154`, `XNSEQ=000102`, `XSSSQ=000004`, `XSRSQ=000006`); no source defines a decrementing wire counter or its base. | `XMSG-SYMBOL-LIST.SYMB.TXT` |
@@ -1403,8 +1515,8 @@ port-assign chain (`TAD-Message-Formats.md:284-317`). `0x07`, `0x0B`, `0x15`, `0
 **undocumented** connection-setup opcodes (not in the TAD table or `TadOpcodes.cs`).
 
 **Conclusion:** U1, U3, U5, U7 are `[NOT IN AVAILABLE SOURCE]`; U2 and U6 have inferred (not
-bit-verified) meaning; U4's *layout* is verified (`5PSHZ`/`5PMS1`/`5PMSK`) but its low-7
-*derivation* is open. Closing U1/U3/U4/U5/U7 requires the XMSG kernel NPL serialiser
+bit-verified) meaning; **U4 is now CLOSED** — both its layout and its low-7 derivation
+were carved from the XMSG L03 kernel on 2026-07-26. Closing U1/U3/U5/U7 requires the XMSG kernel NPL serialiser
 (`XFSND`/`XFP2M`), which is not in this repository.
 
 ### 18.4 Derivation findings — empirical (pcap) + include-file alignment  [MAJOR PROGRESS]
@@ -1444,20 +1556,69 @@ normal-data letter"** (set for the data / LI-routing / SYSTEM-TAD payload classe
 bare control classes `0x00060000`/`0x00080000` and the responder connect-reset trio). Residual
 ambiguity: 3 keys / 601 frames.
 
-**U4 — Session port is responder-LOCAL, not sender-derived. [EXPLAINED — hypothesis refuted]**
-`port = (freeSlot << 7) | incarnation`, where `freeSlot` is the next free slot in the
-*responder's* own port table and `incarnation` is a local reuse counter. Decisive: sessions S2
+**U4 — Session port is responder-LOCAL, not sender-derived. [CLOSED 2026-07-26 — mechanism carved]**
+`port = (portNumber << 7) | random`, where `portNumber` is the responder's own port-table
+index (1-based, 9 bits) and `random` is a 7-bit draw from the kernel's `ZRAND` generator.
+The original reasoning was right and is now confirmed at the instruction level: sessions S2
 and S3 have identical asker(100)/responder(102)/target(D102) yet different low-7 (`0x42` vs
-`0x41`) — so the low-7 CANNOT be a function of any sender-visible field. **Our node correctly
-mints its own `(slot<<7)|incarnation` — it must NOT try to derive it from 100's port/system;
-that was never the crash cause.** The `0x0B 03 XX` byte (`XX = 00/04/02`) is likewise
+`0x41`), so the low-7 CANNOT be a function of any sender-visible field — it is a generator
+draw. The "incarnation counter" wording used elsewhere in this spec was a guess and is
+superseded; `ZRAND` is a linear congruential generator, not a counter (section 7.1).
+**Our node correctly mints its own port word — it must NOT try to derive it from 100's
+port/system; that was never the crash cause.** The `0x0B 03 XX` byte (`XX = 00/04/02`) is likewise
 responder-local state (only 3 data points; a link-index or per-session counter — undetermined).
 
 **ACK channel [OBSERVED]:** a real responder ACKs the connect (subtype `0x03`) on the **`DD`
 (TAD)** channel, not the connect's `DA` channel. A naive echo-channel `0x03` ACK (on `DA`)
 crashes 100 (XXPER) — the ACK channel is a separate value, not the data channel.
 
-### 18.5 UNIFIED ENVELOPE MODEL — the seed formula  [VERIFIED 601/601 data frames + 602 ACKs]
+### 18.5 THE HEADER CHECKSUM — what offsets 12 and 13 really are  [VERIFIED 3595/3595 frames]
+
+> ## SOLVED 2026-07-31 — read this before anything below it
+>
+> **The SINTRAN header is SEVEN WORDS, and word 6 is a ones-complement checksum over the other
+> six:**
+>
+> ```
+> w0 markers | w1 type:subtype | w2 dest | w3 src | w4 Flags1 | w5 Flags2 | w6 checksum
+>
+> w6 == ~ones_complement_sum(w0, w1, w2, w3, w4, w5, 0)      ; 16-bit, END-AROUND carry
+> ```
+>
+> On the wire that word reads as two bytes:
+>
+> - **offset 12** — long called the "Protocol ID" or "channel" — is the checksum **HIGH** byte
+> - **offset 13** — long called the "Counter" — is the checksum **LOW** byte
+>
+> **There is no channel, no epoch, and no per-link seed.** Those were artifacts of fitting an
+> expression to checksum arithmetic. Carved from the XMSG kernel routine at `137314` (reached
+> from `XSDGM` via the pointer at `137744`; the caller stores the result at `137675 STA ,X 32`,
+> which is word 6 itself) and verified on **3595 of 3595** frames across the whole corpus —
+> every subtype, both directions, every link, no special cases.
+>
+> The fitted model below needed one formula for Data frames (1449), a separate closed form for
+> ACKs (1671), and had nothing to say about the remaining 475. The checksum covers all of them
+> with one line.
+>
+> **Why the old model looked right for so long:** the checksum is a deterministic function of the
+> same header fields the formula used as inputs. Its "per-link seed" was the contribution of the
+> fields nobody varied; its "epoch" was carry propagation out of the low byte; the
+> masked-versus-signed `baseLow` question (corrected earlier the same day, now moot) was that
+> same carry seen as a borrow; and a peer "crashing on a wrong channel" — the XMSG 24B /
+> `PERF_CONNCT` failure — is simply a peer rejecting a corrupt header checksum. The secure-ACK
+> closed form in the ACK section is likewise a special case of this one rule.
+>
+> Full write-up: `SINTRAN/XMSG/DOC/XMSG-HEADER-WORD6-IS-A-CHECKSUM-2026-07-31.md`.
+> Implementation: `XmsgEnvelope.ComputeHeaderChecksum`, pinned by `HeaderChecksumTests`.
+> Dissector: `sintran_hdr_checksum` in `hdlc_tcp.lua`.
+
+---
+
+#### HISTORICAL — the fitted seed model (superseded, kept for context)
+
+> The rest of this section describes the model that was replaced. It is retained because the
+> observations in it are real — only the explanation attached to them was wrong. Do not implement
+> from it.
 
 > **This section supersedes the earlier "mirror the connect base" closed form.** The complete
 > rule was solved analytically over *all* 13 captures and confirmed **live end-to-end against
@@ -1471,12 +1632,34 @@ else — the sub-header `Counter` and the Protocol-ID `Channel` — is arithmeti
 
 ```
 seed    = per-link constant                     ; LEARN it: (Counter + Flags1 + (Flags2 & 0xFF)) & 0xFF
-baseLow = (seed - (Flags2 & 0xFF)) & 0xFF        ; Flags2 == XMCSM >> 16, ALWAYS (601/601)
-Counter = (baseLow - Flags1) & 0xFF
+baseLow = seed - (Flags2 & 0xFF)                 ; SIGNED - do NOT mask. Flags2 == XMCSM >> 16, ALWAYS
+Counter = (baseLow - Flags1) & 0xFF               ; masking fine HERE (a byte, exact mod 256)
 epoch   = (Flags1 - baseLow + 0xFF) >> 8          ; cumulative counter-wrap count; 0 when fresh
 Channel = 0xDE - (XMCSM >> 24) - epoch
 Base    = Flags1 + Counter = baseLow + 0x100*epoch ; the old "envelope Base", now derived
 ```
+
+> **CORRECTED 2026-07-31 — `baseLow` must NOT be masked to 8 bits.** When the low byte of
+> `Flags2` exceeds the seed, `baseLow` is **negative** and has to stay negative. The `epoch`
+> line divides `Flags1 - baseLow` by 256, so folding a negative base into `0..255` moves that
+> boundary and loses a borrow: the epoch comes out one too low and the `Channel` one too
+> HIGH.
+>
+> This was invisible for months because TAD, routing and connect traffic uses only ~5
+> distinct `Flags2` values, all at or below the seed, so the negative case never arises. The
+> COSMOS file-server traffic captured from 2026-07-29 onward carries 11-15 distinct class
+> words per session, many above the seed, and mismatched constantly.
+>
+> Whole-corpus validation, seed learned per frame so every link and both relay legs count:
+> **signed `baseLow` 1449/1449 data frames; masked 1267/1449.** Nothing that previously
+> passed regressed. The earlier "601/601" and "753/753" figures were measured on the
+> TAD/routing family only — scope-limited, not false.
+>
+> The ACK closed form below was re-scanned at the same time and needed **no** change:
+> 1671/1671 on both the trailing byte and the channel, identical under masked or signed,
+> because ACK `Flags2` low is only ever 1, 2 or 3 and never exceeds `S_ack`.
+>
+> Full analysis: `XMSG-CHANNEL-FORMULA-DIVERGES-ON-FILE-SERVER-TRAFFIC-2026-07-31.md`.
 
 - **`Flags1` is ONE sequence per direction per node-pair**, shared across all ports/streams/classes
   (a node running two links keeps a separate `Flags1` per remote — kernel `XSSSQ`/`XSRSQ`, one pair
@@ -1538,7 +1721,7 @@ inconsistent Counter/epoch hits the fatal path.
    → `DD`; the `0x20` control → `DE`.
 4. ACK 100's data frames with subtype `0x03` on the connect-channel + 4 (`DA`→`DE`), Flags2
    `0x0001`, trailing = `seed + 0x0A` decrementing (the already-verified secure-ACK rule).
-5. Session port = our own `(freeSlot<<7)|incarnation` — do not derive from 100.
+5. Session port = our own `(portNumber<<7)|random` — do not derive from 100.
 
 **VERIFIED bring-up (100↔102, seed `0x14`), confirmed live:**
 
@@ -1560,7 +1743,7 @@ bytes (`0x92`/`0x96`/`0x00` — copied from the capture per frame type; not yet 
 
 The peer/friend document `OLD/xmsg-hdlc-protocol.md` is the FCS-verified foundation this
 reference builds on: HDLC framing, LAPB (including the balanced two-SABM handshake, §3.4), the
-13-byte SINTRAN header, the XMSG sub-header (`XMDSY/XMDPT/XMSSY/XMSPT/XMCSM/XMLEN`), the
+14-byte SINTRAN header, the XMSG sub-header (`XMDSY/XMDPT/XMSSY/XMSPT/XMCSM`), the
 `port << 7` wire encoding, the magic-number model, and the `XFRTN` "return message" reply
 pattern that underlies our echo/mirror responder. It also, to its credit, flagged the two things
 this document now resolves rather than getting them wrong:
@@ -1600,7 +1783,7 @@ start-li-li f106, li-rout-102-tree f4 — epochs 0, 1 and 2, responders 100 and 
   endpoint); `1F 03 4C 00 00` (OPSV, constant); `0B 02 03 XX` (`XX` = `00/04/02`,
   responder-local, meaning UNKNOWN — U5); `15 02 01 08` (constant; likely advertises the
   `0x0108` data class — U6, INFERRED).
-- The assigned port is the responder's own `(freeSlot << 7) | incarnation` (18.4/U4) — any
+- The assigned port is the responder's own `(portNumber << 7) | random` (18.4/U4) — any
   well-formed value the responder answers on is accepted (VERIFIED live with `0x0211`).
 - The real responder sequence is always: secure-ACK the connect → **accept** → (ACK
   session-setup) → **port-assign** → **DUMM on the data class**. Omitting the port-assign
@@ -1775,7 +1958,7 @@ server involved.* The three shapes:
 
 | Shape | XMCSM | Dst port | Name on wire | Reply | Then |
 |---|---|---|---|---|---|
-| **S10a — connect-to** (session-opening letter) | `0x04000041` (XSLET) | `0` | `*TADADM` in the letter (`FF 07 2A "TADADM" 00 FE 04 "Dnnn"`, XMLEN 16) | ACCEPT **from the server's wire port** `(2<<7)\|incarnation` — this is how the client learns it | session-setup → port-assign → terminal session (TAD spec §22.4) |
+| **S10a — connect-to** (session-opening letter) | `0x04000041` (XSLET) | `0` | `*TADADM` in the letter (`FF 07 2A "TADADM" 00 FE 04 "Dnnn"`, XMLEN 16) | ACCEPT **from the server's wire port** `(2<<7)\|random` — this is how the client learns it | session-setup → port-assign → terminal session (TAD spec §22.4) |
 | **S10b — list-systems** (query letter, no session) | `0x04000041` (XSLET) | `0` | `*TADADM` + the query TLV **`04 02 0001`** (param 4, value 1 — the "directory-query" marker [bytes VERIFIED in 9 letters across 4 captures; meaning INFERRED]; XMLEN 20) | accept-shaped letter from the server's wire port | nothing — no session follows (reboot capture L293/L295) |
 | **S10c — list-route** (direct XROUT service) | `0x0100014B` (XSGSY, code 0x4B) | `0` | **none** — the code IS the selector | `0x01000100` (XRSOK); NOTE the §9.1 anomaly: the reply's source-port field echoes the REQUESTER's port (`p738→738`), not an XROUT port | request/reply pairs echo Flags1+Counter (§9.1.1) |
 
@@ -1807,7 +1990,7 @@ sequenceDiagram
     Note over C,S: S10a - connect-to (XSLET letter to a named SERVER)
     C->>R: letter to port 0: *TADADM + "Dnnn" (XMCSM 04000041)
     R->>S: route by NAME
-    S->>C: ACCEPT from wire port (2 shl 7)+incarnation
+    S->>C: ACCEPT from wire port (2 shl 7) or random
     Note over C: client LEARNS the wire port here
     C->>S: SESSION-SETUP to that port ... port-assign, terminal session
     end
@@ -2064,7 +2247,7 @@ The live `list-servers` registry (§7.1) already shows a whole family not yet on
 wire — `*XM-FIDO` (4), `*COSPO` (5), `*FA-FSA` (7), `*XFTRA` (8), `*FA-SERVER` (11) —
 the file/COSMOS sub-protocols still to capture. **Framework guidance:** the pluggable
 NAMED things (TAD today, the file-server family soon) deserve `IXmsgServer` — `Name`
-(`"*TADADM"`), `LogicalPort` (2), per-boot incarnation, letters routed to them BY NAME;
+(`"*TADADM"`), `LogicalPort` (2), a per-boot random part, letters routed to them BY NAME;
 reserve the word "service" for the port-0 XMCSM-low-byte dispatch in the router (S10c
 and the XSLET delivery step itself). Terminology and the node-architecture ASCII
 drawing: §7.

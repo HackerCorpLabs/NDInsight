@@ -36,41 +36,106 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
         /// <summary>
         /// Up-event: a packet was received and dispatched on the given link.
         /// </summary>
-        /// <param name="linkId">The link the packet arrived on (sender-first).</param>
-        /// <param name="packet">The decoded packet.</param>
+        /// <param name="linkId">
+        /// The link the packet arrived on (sender-first).
+        /// </param>
+        /// <param name="packet">
+        /// The decoded packet.
+        /// </param>
         public delegate void XmsgMessageReceived(string linkId, XmsgPacketInfo packet);
 
         /// <summary>
         /// Up-event: a TAD terminal session was opened by a remote connect-to.
         /// </summary>
-        /// <param name="linkId">The link the connect arrived on (sender-first).</param>
-        /// <param name="clientSystem">The connecting system (node) number.</param>
-        /// <param name="clientPort">The connecting client's port.</param>
+        /// <param name="linkId">
+        /// The link the connect arrived on (sender-first).
+        /// </param>
+        /// <param name="clientSystem">
+        /// The connecting system (node) number.
+        /// </param>
+        /// <param name="clientPort">
+        /// The connecting client's port.
+        /// </param>
         public delegate void XmsgSessionOpened(string linkId, ushort clientSystem, ushort clientPort);
 
         /// <summary>
         /// Up-event: terminal input text arrived on an open TAD session.
         /// </summary>
-        /// <param name="linkId">The link the terminal data arrived on (sender-first).</param>
-        /// <param name="text">The decoded ASCII terminal text (BDAT), high bit stripped.</param>
+        /// <param name="linkId">
+        /// The link the terminal data arrived on (sender-first).
+        /// </param>
+        /// <param name="text">
+        /// The decoded ASCII terminal text (BDAT), high bit stripped.
+        /// </param>
         public delegate void XmsgTerminalDataReceived(string linkId, string text);
 
-        /// <summary>Occurs when a packet is received and dispatched.</summary>
+        /// <summary>
+        /// Up-event: an inbound packet finished dispatch, reporting how many response frames it
+        /// produced.
+        /// </summary>
+        /// <param name="linkId">
+        /// The link the packet arrived on (sender-first).
+        /// </param>
+        /// <param name="packet">
+        /// The inbound packet that was dispatched.
+        /// </param>
+        /// <param name="responsesProduced">
+        /// The number of response frames dispatch returned. Zero means NOTHING was answered.
+        /// </param>
+        /// <remarks>
+        /// <para>
+        /// This exists because "received but unanswered" was invisible: the live D19999 node logged
+        /// an inbound ReachabilityRequest and D100 then aborted with
+        /// <c>NO ANSWER FROM REMOTE SYSTEM</c>, with nothing in between to say whether the node had
+        /// built no reply, or had built one the link then dropped. Those two faults live in
+        /// completely different code and the log could not tell them apart. A node that accepts a
+        /// link and does not answer HANGS the calling SINTRAN terminal - ESC will not abort it - so
+        /// an unanswered request is never benign.
+        /// </para>
+        /// <para>
+        /// This reports only what the layer knows: how many frames dispatch BUILT. Whether the link
+        /// then carried them is reported separately by
+        /// <c>LinkXmsgTransport.SendRefused</c>, because only the transport can see a refusal.
+        /// </para>
+        /// </remarks>
+        public delegate void XmsgDispatchCompleted(
+            string linkId, XmsgPacketInfo packet, int responsesProduced);
+
+        /// <summary>
+        /// Occurs when a packet is received and dispatched.
+        /// </summary>
         public event XmsgMessageReceived? MessageReceived;
 
-        /// <summary>Occurs when a TAD terminal session is opened.</summary>
+        /// <summary>
+        /// Occurs when a TAD terminal session is opened.
+        /// </summary>
         public event XmsgSessionOpened? SessionOpened;
 
-        /// <summary>Occurs when terminal input text arrives on an open session.</summary>
+        /// <summary>
+        /// Occurs after an inbound packet has been dispatched, reporting whether it was answered.
+        /// </summary>
+        public event XmsgDispatchCompleted? DispatchCompleted;
+
+        /// <summary>
+        /// Occurs when terminal input text arrives on an open session.
+        /// </summary>
         public event XmsgTerminalDataReceived? TerminalDataReceived;
 
         /// <summary>
         /// Initialises the layer over a codec, with this node's number and the secure-ACK counter seed.
         /// </summary>
-        /// <param name="codec">The codec seam the layer sends packets to and receives packets from.</param>
-        /// <param name="nodeNumber">This node's number (for example 102 or 103).</param>
-        /// <param name="ackCounter">The starting value of the per-direction secure-ACK counter.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="codec"/> is null.</exception>
+        /// <param name="codec">
+        /// The codec seam the layer sends packets to and receives packets from.
+        /// </param>
+        /// <param name="nodeNumber">
+        /// This node's number (for example 102 or 103).
+        /// </param>
+        /// <param name="ackCounter">
+        /// The starting value of the per-direction secure-ACK counter.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="codec"/> is null.
+        /// </exception>
         public XmsgLayer(IXmsgCodec codec, ushort nodeNumber, byte ackCounter)
         {
             _codec = codec ?? throw new ArgumentNullException(nameof(codec));
@@ -78,7 +143,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
             _codec.PacketReceived += OnPacketReceived;
         }
 
-        /// <summary>Gets this node's number.</summary>
+        /// <summary>
+        /// Gets this node's number.
+        /// </summary>
         public ushort NodeNumber
         {
             get { return _node.NodeNumber; }
@@ -135,8 +202,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
         /// <summary>
         /// Defines (or re-points) a remote-node name alias (the DEF-REMOTE / XSDRN model).
         /// </summary>
-        /// <param name="name">The alias, matched case-insensitively.</param>
-        /// <param name="systemNumber">The system number the alias resolves to.</param>
+        /// <param name="name">
+        /// The alias, matched case-insensitively.
+        /// </param>
+        /// <param name="systemNumber">
+        /// The system number the alias resolves to.
+        /// </param>
         public void DefineRemote(string name, ushort systemNumber)
         {
             _node.DefineRemote(name, systemNumber);
@@ -146,8 +217,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
         /// Handles one packet arriving up from the codec: dispatch it through the verified services,
         /// send every response back down through the codec, and raise the matching up-events.
         /// </summary>
-        /// <param name="linkId">The link the packet arrived on.</param>
-        /// <param name="packet">The decoded packet.</param>
+        /// <param name="linkId">
+        /// The link the packet arrived on.
+        /// </param>
+        /// <param name="packet">
+        /// The decoded packet.
+        /// </param>
         private void OnPacketReceived(string linkId, XmsgPacketInfo packet)
         {
             // Surface the message first, then act on it.
@@ -162,6 +237,10 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
             {
                 _codec.SendPacket(new XmsgPacket(responses[i]));
             }
+
+            // Report the answer count LAST, after every response has been handed to the codec, so a
+            // subscriber that logs this sees it in the same order the wire did.
+            DispatchCompleted?.Invoke(linkId, packet, responses.Count);
         }
 
         /// <summary>

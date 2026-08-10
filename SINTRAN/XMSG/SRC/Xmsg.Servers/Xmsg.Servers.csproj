@@ -22,6 +22,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Xmsg.Node\Xmsg.Node.csproj" />
+    <!--
+      The FA (remote file access) server serves a Windows folder, and the 64-byte directory record
+      it has to put on the wire is the SINTRAN object entry. Xmsg.Ndfs is the ONE place that knows
+      that structure (it holds the RetroFS dependency so nothing else has to), so the file server
+      goes through it rather than growing its own copy of the layout.
+    -->
+    <ProjectReference Include="..\Xmsg.Ndfs\Xmsg.Ndfs.csproj" />
   </ItemGroup>
 
 </Project>

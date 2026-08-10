@@ -8,6 +8,25 @@
 
 ---
 
+## Installing PLANC
+
+PLANC for ND-100 is product `ND-10309`. Three versions are catalogued — pick whichever floppy you
+have:
+
+- [ND-10309A](../../../Installation/Software/ND-10309/ND-10309A/README.md) (82.02.19) and
+  [ND-10309B](../../../Installation/Software/ND-10309/ND-10309B/README.md) (82.06.15) — verified
+  from their PD sheets, ship as `:BPUN` (`@DUMP-REENTRANT PLANC-100,0,1,<file>`).
+- [ND-10309F](../../../Installation/Software/ND-10309/ND-10309F/README.md) (floppy
+  `10309F00-1S`) — no PD sheet located; ships pre-linked as `:PROG`, procedure adapted from A/B
+  and not independently verified.
+
+All versions need a 126K/128K-word terminal background segment
+(`@CHANGE-BACKGROUND-SEGMENT-SIZE`) and cannot be restarted with `@CONTINUE`. See
+[ND-10309 — PLANC for ND-100](../../../Installation/Software/ND-10309/README.md) for the full
+product overview.
+
+---
+
 ## Quick Start
 
 **See [QUICK-START-EXAMPLES.md](../../QUICK-START-EXAMPLES.md) Section 4 for complete Hello World example.**

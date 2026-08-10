@@ -11,6 +11,19 @@ namespace NDInsight.Sintran.Xmsg
     /// <summary>
     /// XROUT service codes (XS*), byte 1 of the standard-message header.
     /// </summary>
+    /// <remarks>
+    /// From XMSG-PL-VALUES-L.INCL / XMSG-VALUES-L.SYMB, section
+    /// "XROUT - SERVICE VALUES": "Values in byte 1 of message. Bit 6 is set
+    /// => service request".
+    /// The matching error section says: "Error values returned in byte 1 of
+    /// return message (Bit 6 reset)". So bit 6 (value 64) of byte 1 is what
+    /// tells a service REQUEST apart from an error REPLY: set means request,
+    /// reset means error code. That is why every service value here starts at
+    /// 64 (XSNUL) - the low 6 bits carry the service number.
+    /// Values in the ND symbol files are DECIMAL, not octal (the .SYMB is
+    /// bracketed by @DEC ... @OCT and carries the warning "This file is now in
+    /// DECIMAL to keep PLANC happy!"). The values below are decimal.
+    /// </remarks>
     public enum XroutService : int
     {
         /// <summary>
@@ -44,9 +57,53 @@ namespace NDInsight.Sintran.Xmsg
         XSGNI = 69,
 
         /// <summary>
+        /// XSRME get remote magic number (params: LOC, REM NAME, MC).
+        /// </summary>
+        /// <remarks>
+        /// <para><b>Added 2026-08-06 - the M include leaves 70 and 72 unnamed</b></para>
+        /// This enum used to jump from 69 straight to 71, because
+        /// <c>XMSG-PL-VALUES-M.INCL</c> and <c>XMSG-VALUES-M.SYMB</c> both skip the two codes.
+        /// The OLDER Communication Guide names them:
+        /// <code>
+        /// ND-60.134.2 EN SINTRAN III Communication Guide.md:4766   XSRME= 106  Get remote magic number (LOC, REM NAME, MC)
+        /// </code>
+        /// <c>106</c> octal = 70. Described at section 4.4.2.9 (line 2179): it asks the LOCAL XROUT
+        /// to fetch a remote port's magic number and enter it in its own tables. The number is NOT
+        /// returned to the caller - the point is the cache, not the answer.
+        /// <para>
+        /// This is an XROUT-to-XROUT service. A real multi-system dialogue uses it, so if a live
+        /// D100 XROUT sends one we should at least be able to NAME the service byte.
+        /// </para>
+        /// <para>
+        /// Whether revision M dropped it or merely omits it from the include is UNKNOWN - the M
+        /// symbol table does not list it either, and no M-generation XROUT disassembly has been read
+        /// that would settle it. Declared because naming an observed byte beats decoding it as
+        /// unknown; nothing sends it.
+        /// </para>
+        /// </remarks>
+        XSRME = 70,
+
+        /// <summary>
         /// Get magic number from name (privileged)
         /// </summary>
         XSGMG = 71,
+
+        /// <summary>
+        /// XSCMG clear magic number (privileged).
+        /// </summary>
+        /// <remarks>
+        /// The other code the M include leaves unnamed:
+        /// <code>
+        /// ND-60.134.2 EN SINTRAN III Communication Guide.md:4768   XSCMG= 110  Clear magic number (PRIV)
+        /// </code>
+        /// <c>110</c> octal = 72. Described at section 4.4.2.11 (line 2200): XROUT-to-XROUT, "this
+        /// magic number is no longer valid", sent when a local port closes. It is the invalidation
+        /// that answers <see cref="XSRME"/>'s caching - the two are a pair.
+        /// <para>
+        /// Same UNKNOWN as <see cref="XSRME"/> about why M omits it.
+        /// </para>
+        /// </remarks>
+        XSCMG = 72,
 
         /// <summary>
         /// Define remote name (privileged)
@@ -116,6 +173,10 @@ namespace NDInsight.Sintran.Xmsg
         /// <summary>
         /// Send letter and kick if unavailable (privileged)
         /// </summary>
+        /// <remarks>
+        /// Second comment line from both symbol files: "When COSROUT is
+        /// running: XSLEK is not available".
+        /// </remarks>
         XSLEK = 84,
 
         /// <summary>

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
+using NDInsight.Sintran.Xmsg.Packet;
 using NDInsight.Sintran.Xmsg.SubProtocol;
 
 namespace NDInsight.Sintran.Xmsg.Node.Tad
@@ -284,14 +285,14 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <exception cref="ArgumentNullException">
         /// Thrown when <paramref name="context"/> is null.
         /// </exception>
-        public XmsgFrame BuildControlFrame(TadFrameContext context, byte opcode, ReadOnlySpan<byte> data)
+        public XmsgFrame BuildControlFrame(TadFrameContext context, TadOp opcode, ReadOnlySpan<byte> data)
         {
             if (context == null)
             {
                 throw new ArgumentNullException(nameof(context));
             }
 
-            byte[] trailer = TadChainWriter.SingleMessage(opcode, data);
+            byte[] trailer = TadChainWriter.SingleMessage((byte)opcode, data);
             return AssembleDataFrame(context, trailer);
         }
 
@@ -320,25 +321,46 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             frame.Header.SourceNode = context.SourceNode;
             frame.Header.Flags1 = context.DatagramSequence;
             frame.Header.Flags2 = context.FrameClass;
-            frame.Header.ProtocolId = context.ProtocolId;
+
+            // WORD 6 IS COMPUTED, NOT CARRIED - CORRECTED 2026-08-06.
+            //
+            // This used to set Header.ProtocolId from context.ProtocolId and Header.Counter from
+            // context.Counter. Those two properties are compatibility views over the checksum's HIGH
+            // and LOW bytes, so between them they FABRICATED word 6 out of whatever the caller had
+            // put in the context - measured as 0xDD55 where the carved checksum is 0x9008.
+            //
+            // Word 6 is a ones-complement checksum over words 0-5, carved from the kernel and
+            // confirmed on 3595/3595 captured frames. A fabricated one kills D100 with XMSG ERROR
+            // CODE 24; the identical defect on the file-access path cost most of a day. It survived
+            // here because D100 does not validate word 6 on every subtype, and because nodes 100 and
+            // 103 are small enough that the sum's high half contributes nothing - the same accident
+            // that hid it on the FA path until node 19999.
+            //
+            // context.ProtocolId and context.Counter are left alone: they are still meaningful to
+            // callers that read them, they simply no longer decide what goes on the wire.
+            //
+            // NOT YET VERIFIED LIVE against a TAD session - see TadHeaderChecksumTests.
+            XmsgEnvelope.StampChecksum(frame.Header);
 
             XmsgSubHeader sub = new XmsgSubHeader();
-            sub.Counter = context.Counter;
             sub.FrameFlags = context.FrameFlags;
             sub.Role = context.Role;
             sub.DestinationSystem = context.DestinationSystem;
             sub.DestinationPort = context.DestinationPort;
             sub.SourceSystem = context.SourceSystem;
             sub.SourcePort = context.SourcePort;
-            sub.ControlService = context.ControlService;
-            sub.Pad = 0x00;
+            // XMCSM is ONE word at wire 26-27; the rest of the old 32-bit "control service",
+            // the pad and the length byte are the first four bytes of the MESSAGE BODY at wire
+            // 28-31. ComposeBody splits them through the single compatibility facade.
+            ushort xmcsm;
+            byte[] body = XmsgDataFields.ComposeBody(context.ControlService, trailer, out xmcsm);
+            sub.Xmcsm = xmcsm;
 
             // OBSERVED: XMLEN equals the trailer byte length on 100% of captured data frames
             // (it is the low byte of the user-data length). Derived, not supplied.
-            sub.UserDataLength = (byte)trailer.Length;
 
             frame.SubHeader = sub;
-            frame.TrailingBytes = trailer;
+            frame.TrailingBytes = body;
             frame.ClearRawBytes();
             return frame;
         }
@@ -353,7 +375,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         private void ApplyMessage(TadMessage message)
         {
             byte[] data = message.Data;
-            switch (message.Opcode)
+            switch ((TadOp)message.Opcode)
             {
                 case TadOp.Tmod:
                     if (data.Length >= 1)

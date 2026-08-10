@@ -1,0 +1,104 @@
+program cpu_stat (input, output);
+
+type
+    sysrectype = packed record
+                    sysno     : integer2;
+                    cpu_type  : byte;
+                    instr_set : byte;
+                    micro_ver : integer2;
+                    sys_type  : integer2;
+                    oper_sys  : byte;
+                    oper_ver  : char;
+                    sinver    : integer2; (* not used *)
+                    revision  : integer2;
+                    gen_min   : integer2;
+                    gen_hour  : integer2;
+                    gen_day   : integer2;
+                    gen_month : integer2;
+                    gen_year  : integer2;
+                 end;
+
+var
+   sysrec : sysrectype;
+ { month  : array[1..12] of string[9]; }
+   month  : array[1..12] of packed array[1..9] of char;
+
+initprocedure;
+begin
+   month[1]  := 'January';
+   month[2]  := 'February';
+   month[3]  := 'March';
+   month[4]  := 'April';
+   month[5]  := 'May';
+   month[6]  := 'June';
+   month[7]  := 'July';
+   month[8]  := 'August';
+   month[9]  := 'September';
+   month[10] := 'October';
+   month[11] := 'November';
+   month[12] := 'December';
+end;
+
+procedure CPUtype (cpu_type :byte);
+begin
+   case cpu_type of
+     0 : writeln (' (Nord-10 48-bit floating)');
+     1 : writeln (' (Nord-10 32-bit floating)');
+     2 : writeln (' (ND-100 48-bit floating)');
+     3 : writeln (' (ND-100 32-bit floating)');
+     4 : writeln (' (ND-110 48-bit floating)');
+     5 : writeln (' (ND-110 32-bit floating)');
+     6 : writeln (' (ND-120 48-bit floating)');
+     7 : writeln (' (ND-120 32-bit floating)');
+     8 : writeln (' (ND-130 48-bit floating)'); { ?? }
+     9 : writeln (' (ND-130 32-bit floating)'); { ?? }
+     otherwise : writeln (' (Unknown type)')
+   end;
+end;
+
+procedure InstrSet (instr_set :byte);
+begin
+   case instr_set of
+     0 : writeln (' (Standard ND-100)');
+     1 : writeln (' (/CE)');
+     2 : writeln (' (/100 CX  (with 4 pits))');
+     3 : writeln (' (/110 PCX (with 16 pits))');
+     4 : writeln (' (/120 PCX)');
+     8 : writeln (' (/120 CX)');
+     9 : writeln (' (/110 CX print 3095)');
+    10 : writeln (' (/110 CX print 3090)');
+     otherwise : writeln (' (Unknown instruction set (',instr_set:1,')')
+   end;
+end;
+
+procedure OperSys (oper_sys :byte);
+begin
+   case oper_sys of
+     0 : writeln (' (Sintran III VS)');
+     1 : writeln (' (Sintran III VSE)');
+     2 : writeln (' (Sintran III VSE-500)');
+     3 : writeln (' (Sintran III RTP)');
+     4 : writeln (' (Sintran III VSX)');
+     5 : writeln (' (Sintran III VSX-500)');
+     otherwise : writeln (' (Unknown operating system)')
+   end;
+end;
+
+begin
+   GetSystemInfo (0, sysrec);
+   with sysrec do begin
+   writeln;
+   writeln ('CPU number       : ', sysno:8);
+   write   ('CPU type         : ', cpu_type:8);  CPUtype (cpu_type);
+   write   ('Instruction set  : ', instr_set:8); InstrSet (instr_set);
+   writeln ('Micro prog vers. : ', micro_ver:8);
+   writeln ('System type      : ', sys_type:8);
+   write   ('Operating system : ', oper_sys:8);  OperSys (oper_sys);
+   writeln ('Version          : ', oper_ver:8);
+   writeln ('Revision         : ', revision:8:8,'b');
+   writeln ('Generated        : ', gen_day:8, ' ', month[gen_month],
+                                   gen_year:5, gen_hour:4,':', gen_min:2);
+   writeln;
+   end; (* with *)
+   StopProgram;
+end.

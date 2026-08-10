@@ -1,0 +1,2958 @@
+█
+═SиNтрAN═иии═-═VSь╞500═K═█
+---═ретроцоре═еMUлAтеD═K═---█
+█
+═---═SиNтрAN═иии═BAтцH═PроцеSSор═---█
+█
+═USер═SYSтеM═еNтереD═Aт═0╦.╠5.5╠═════╡╦═йUлY═══╠99╦█
+█
+█
+MAьиMUM═тиMе═иS══════╠═MиNUтеS█
+█
+юцц═╙╙╙══вAрM═SтAрт══╙╙╙██
+█
+юSет-UNAVAилABле═$'тHе═цоMPUтер═иS═BеиNG═вAрM-SтAртеD$'██
+█
+юSиNтрAN██
+█
+╙юSтAрт-ьMSG██
+█
+еррор:═ьMSG═iС═АlreАДЫ═rУННiНГ:═UСe═SтоP-ьMSG═to═СtoП═it!█
+╙юеьит██
+█
+юьMSG-цоMMAND██
+
+
+XMSG command program (210373L) of 87.12.30 13:17 
+Compiled for version 1987.02.08 (Release L)
+XMSG kernel version 1987.02.08 (Release L)
+Options: 
+   ND-100/CX only. XPIT. Trace. Watchdog.
+   Inter-system:  Network gateway/IOC.
+   (Type ? to get a list of the new commands.)
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠00╛╠00█
+*- WARNING: You can now bypass system protection mechanisms -*
+Error in communicating with XROUT.
+XMSG Routing/Naming error: Another port already has this name
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠0╡╛╠0╡█
+Error in communicating with XROUT.
+XMSG Routing/Naming error: Another port already has this name
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠03╛╠03█
+Error in communicating with XROUT.
+XMSG Routing/Naming error: Another port already has this name
+
+X-C(Adv):еьит█
+█
+юMоDе═(PAцK-оNе:цоSMоS-BASиц╘цоS-SтAрт-е0╢:MоDе╛╛██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫═филе═NAMе:═цоS-SтAрт-е0╢:MоDе═════════════════════════════════╫██
+█
+юцц═╫═SтAрт-UP═оф═цоSMоS═BASиц═MоDUле═VерSиоN═е═════════════════════╫██
+█
+юцц═╫═рUN═тHиS═MоDе═филе═DUриNG═вAрM═SтAрт╛═ANYтиMе═Aфтер═ь-MеSSAGе═╫██
+█
+юцц═╫═AND═тADADM═Aре═рUNNиNG.═══════════════════════════════════════╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц██
+█
+юоPерAтор═╙╙╙═SтAрт═цоSMоS═BASиц═MоDUле═╙╙╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═филе═трANSфер═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юABорт═ьфтрAD██
+█
+юрт═ьфтрAD██
+█
+юцц██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═цоSMоS═SPоолиNG═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юртоN═цоSPо██
+█
+юSтAрт-SPоолиNG═цоSMоS-SPоолиNG██
+юMоDе═(цоSMоS-BASиц╘цоS-Dеф-PриN-е:MоDе╛╛╛██
+█
+@(COSMOS-BASIC)COS-SPOO-SER█
+
+COSMOS Spooling Service program - Version E02 - 1987.10.07 09:34 
+
+
+C-S-S:Help,hh, Definition of DEFAULT printer:
+
+C-S-S:Help,hh, (Explanation of parameters below.)
+
+C-S-S:Def-pri,,ND-969,LINE-PRINTER,Y
+OK
+C-S-S:Help,hh,
+
+C-S-S:Help,hh, Definition of other printers:
+
+C-S-S:Help,hh,     Local spooling file name
+
+C-S-S:Help,hh,     ~         Remote system name
+
+C-S-S:Help,hh,     ~         ~         Remote spooling file name
+
+C-S-S:Help,hh,     ~         ~         ~       Extra header
+
+C-S-S:Help,hh,     ~         ~         ~       ~ No of local spooling files
+
+C-S-S:Help,hh,     ~         ~         ~       ~ ~
+
+C-S-S:Help,hh,     v         v         v       v v
+
+C-S-S:Def-pri,LINE-PRINTER,ND-969,LINE-PRINTER,Y,2
+
+File already exists,
+but it does not belong to COSMOS-SPOOLING.
+
+C-S-S:Def-pri,DIABLO-S,ND-1068,DIABLO,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-T,ND-5005,PHILIPS,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-S,ND-1068,PHILIPS,Y,3
+OK
+C-S-S:Help,hh,        ~
+
+C-S-S:Help,hh,        S: Sheet feeder, T: Tractor feeder
+
+C-S-S:Help,hh, NB! DIABLO-S etc. must be defined in (SYS)WP-PRINTERS!!!.
+
+C-S-S:Help,hh, NB! The first parameter must match the old local spooling file
+
+C-S-S:Help,hh, name when redefining printers:
+
+C-S-S:Help,hh, Ex: Def-pri,PHILIPS-S,ND-1050,PHILIPS,N,2
+
+C-S-S:Help,hh, NB!:Number of local spooling files will now still be 3,
+
+C-S-S:Help,hh, because spooling file no 3 will not be deleted when
+
+C-S-S:Help,hh, redefining printers.
+
+C-S-S:Help,hh, (To be safe: "Delete-printer" before "Define-printer".)
+
+C-S-S:ex
+█
+юцц═██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═реMоте═филе═AцццеSS╛═филе═SерVер═PAрт═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юMоDе═(цоSMоS-BASиц╘цоS-фA-SерV-е:MоDе╛╛╛██
+█
+@SET-AVAILABLE█
+█
+@START-TADADM█
+█
+@ABORT FSART█
+█
+@RT FSART█
+█
+@HOLD 0,0█
+█
+@HOLD 10,2█
+█
+@FS-ADMINISTRATOR█
+
+COSMOS File Server Administrator - Version: E02 - OCTOBER 7, 1987
+
+FSA: SELECT-FSA,,,,
+Connection established
+FSA(own system): START-SERVER 1,,,,
+ --- please wait ---  
+Server 1 started.     No of FACs attached: 30
+FSA(own system): EXIT█
+@SET-UNAVAILABLE█
+█
+юSет-AVAилABле██
+█
+юеьит██
+"еьит"█
+Nо═SUцH═филе═NAMе█
+█
+█
+═BAтцH═USер═лоGGеD═оUт═Aт═0╦.╠6.0╢═════╡╦═йUлY═══╠99╦█
+█
+═ND-╠00═цPU═тиMе═USеD═иS════╠═SецS█
+═тиMе═лоGGеD═оN═иS═══╠3═SецS█
+█
+═SиNтрAN═иии═-═VSь╞500═K═█
+---═ретроцоре═еMUлAтеD═K═---█
+█
+═---═SиNтрAN═иии═BAтцH═PроцеSSор═---█
+█
+═USер═SYSтеM═еNтереD═Aт═0╦.╠9.30═════╡╦═йUлY═══╠99╦█
+█
+█
+MAьиMUM═тиMе═иS══════╠═MиNUтеS█
+█
+юцц═╙╙╙══вAрM═SтAрт══╙╙╙██
+█
+юSет-UNAVAилABле═$'тHе═цоMPUтер═иS═BеиNG═вAрM-SтAртеD$'██
+█
+юSиNтрAN██
+█
+╙юSтAрт-ьMSG██
+█
+оK:═ьMSG═СtАrteД.█
+╙юеьит██
+█
+юьMSG-цоMMAND██
+
+
+XMSG command program (210373L) of 87.12.30 13:17 
+Compiled for version 1987.02.08 (Release L)
+XMSG kernel version 1987.02.08 (Release L)
+Options: 
+   ND-100/CX only. XPIT. Trace. Watchdog.
+   Inter-system:  Network gateway/IOC.
+   (Type ? to get a list of the new commands.)
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠00╛╠00█
+*- WARNING: You can now bypass system protection mechanisms -*
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠0╡╛╠0╡█
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠03╛╠03█
+Ok
+
+X-C(Adv):еьит█
+█
+юMоDе═(PAцK-оNе:цоSMоS-BASиц╘цоS-SтAрт-е0╢:MоDе╛╛██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫═филе═NAMе:═цоS-SтAрт-е0╢:MоDе═════════════════════════════════╫██
+█
+юцц═╫═SтAрт-UP═оф═цоSMоS═BASиц═MоDUле═VерSиоN═е═════════════════════╫██
+█
+юцц═╫═рUN═тHиS═MоDе═филе═DUриNG═вAрM═SтAрт╛═ANYтиMе═Aфтер═ь-MеSSAGе═╫██
+█
+юцц═╫═AND═тADADM═Aре═рUNNиNG.═══════════════════════════════════════╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц██
+█
+юоPерAтор═╙╙╙═SтAрт═цоSMоS═BASиц═MоDUле═╙╙╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═филе═трANSфер═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юABорт═ьфтрAD██
+█
+юрт═ьфтрAD██
+█
+юцц██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═цоSMоS═SPоолиNG═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юртоN═цоSPо██
+█
+юSтAрт-SPоолиNG═цоSMоS-SPоолиNG██
+юMоDе═(цоSMоS-BASиц╘цоS-Dеф-PриN-е:MоDе╛╛╛██
+█
+@(COSMOS-BASIC)COS-SPOO-SER█
+
+COSMOS Spooling Service program - Version E02 - 1987.10.07 09:34 
+
+
+C-S-S:Help,hh, Definition of DEFAULT printer:
+
+C-S-S:Help,hh, (Explanation of parameters below.)
+
+C-S-S:Def-pri,,ND-969,LINE-PRINTER,Y
+OK
+C-S-S:Help,hh,
+
+C-S-S:Help,hh, Definition of other printers:
+
+C-S-S:Help,hh,     Local spooling file name
+
+C-S-S:Help,hh,     ~         Remote system name
+
+C-S-S:Help,hh,     ~         ~         Remote spooling file name
+
+C-S-S:Help,hh,     ~         ~         ~       Extra header
+
+C-S-S:Help,hh,     ~         ~         ~       ~ No of local spooling files
+
+C-S-S:Help,hh,     ~         ~         ~       ~ ~
+
+C-S-S:Help,hh,     v         v         v       v v
+
+C-S-S:Def-pri,LINE-PRINTER,ND-969,LINE-PRINTER,Y,2
+
+File already exists,
+but it does not belong to COSMOS-SPOOLING.
+
+C-S-S:Def-pri,DIABLO-S,ND-1068,DIABLO,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-T,ND-5005,PHILIPS,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-S,ND-1068,PHILIPS,Y,3
+OK
+C-S-S:Help,hh,        ~
+
+C-S-S:Help,hh,        S: Sheet feeder, T: Tractor feeder
+
+C-S-S:Help,hh, NB! DIABLO-S etc. must be defined in (SYS)WP-PRINTERS!!!.
+
+C-S-S:Help,hh, NB! The first parameter must match the old local spooling file
+
+C-S-S:Help,hh, name when redefining printers:
+
+C-S-S:Help,hh, Ex: Def-pri,PHILIPS-S,ND-1050,PHILIPS,N,2
+
+C-S-S:Help,hh, NB!:Number of local spooling files will now still be 3,
+
+C-S-S:Help,hh, because spooling file no 3 will not be deleted when
+
+C-S-S:Help,hh, redefining printers.
+
+C-S-S:Help,hh, (To be safe: "Delete-printer" before "Define-printer".)
+
+C-S-S:ex
+█
+юцц═██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═реMоте═филе═AцццеSS╛═филе═SерVер═PAрт═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юMоDе═(цоSMоS-BASиц╘цоS-фA-SерV-е:MоDе╛╛╛██
+█
+@SET-AVAILABLE█
+█
+@START-TADADM█
+█
+@ABORT FSART█
+█
+@RT FSART█
+█
+@HOLD 0,0█
+█
+@HOLD 10,2█
+█
+@FS-ADMINISTRATOR█
+
+COSMOS File Server Administrator - Version: E02 - OCTOBER 7, 1987
+
+FSA: SELECT-FSA,,,,
+Connection established
+FSA(own system): START-SERVER 1,,,,
+ --- please wait ---  
+Server 1 started.     No of FACs attached: 30
+FSA(own system): EXIT█
+@SET-UNAVAILABLE█
+█
+юSет-AVAилABле██
+█
+юеьит██
+"еьит"█
+Nо═SUцH═филе═NAMе█
+█
+█
+═BAтцH═USер═лоGGеD═оUт═Aт═0╦.╠9.╢╢═════╡╦═йUлY═══╠99╦█
+█
+═ND-╠00═цPU═тиMе═USеD═иS════╠═SецS█
+═тиMе═лоGGеD═оN═иS═══╠╢═SецS█
+█
+═SиNтрAN═иии═-═VSь╞500═K═█
+---═ретроцоре═еMUлAтеD═K═---█
+█
+═---═SиNтрAN═иии═BAтцH═PроцеSSор═---█
+█
+═USер═SYSтеM═еNтереD═Aт═╠9.╠5.╡╥═════╡╦═йUлY═══╠99╦█
+█
+█
+MAьиMUM═тиMе═иS══════╠═MиNUтеS█
+█
+юцц═╙╙╙══вAрM═SтAрт══╙╙╙██
+█
+юSет-UNAVAилABле═$'тHе═цоMPUтер═иS═BеиNG═вAрM-SтAртеD$'██
+█
+юSиNтрAN██
+█
+╙юSтAрт-ьMSG██
+█
+оK:═ьMSG═СtАrteД.█
+╙юеьит██
+█
+юьMSG-цоMMAND██
+
+
+XMSG command program (210373L) of 87.12.30 13:17 
+Compiled for version 1987.02.08 (Release L)
+XMSG kernel version 1987.02.08 (Release L)
+Options: 
+   ND-100/CX only. XPIT. Trace. Watchdog.
+   Inter-system:  Network gateway/IOC.
+   (Type ? to get a list of the new commands.)
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠00╛╠00█
+*- WARNING: You can now bypass system protection mechanisms -*
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠0╡╛╠0╡█
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠03╛╠03█
+Ok
+
+X-C(Adv):еьит█
+█
+юMоDе═(PAцK-оNе:цоSMоS-BASиц╘цоS-SтAрт-е0╢:MоDе╛╛██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫═филе═NAMе:═цоS-SтAрт-е0╢:MоDе═════════════════════════════════╫██
+█
+юцц═╫═SтAрт-UP═оф═цоSMоS═BASиц═MоDUле═VерSиоN═е═════════════════════╫██
+█
+юцц═╫═рUN═тHиS═MоDе═филе═DUриNG═вAрM═SтAрт╛═ANYтиMе═Aфтер═ь-MеSSAGе═╫██
+█
+юцц═╫═AND═тADADM═Aре═рUNNиNG.═══════════════════════════════════════╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц██
+█
+юоPерAтор═╙╙╙═SтAрт═цоSMоS═BASиц═MоDUле═╙╙╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═филе═трANSфер═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юABорт═ьфтрAD██
+█
+юрт═ьфтрAD██
+█
+юцц██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═цоSMоS═SPоолиNG═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юртоN═цоSPо██
+█
+юSтAрт-SPоолиNG═цоSMоS-SPоолиNG██
+юMоDе═(цоSMоS-BASиц╘цоS-Dеф-PриN-е:MоDе╛╛╛██
+█
+@(COSMOS-BASIC)COS-SPOO-SER█
+
+COSMOS Spooling Service program - Version E02 - 1987.10.07 09:34 
+
+
+C-S-S:Help,hh, Definition of DEFAULT printer:
+
+C-S-S:Help,hh, (Explanation of parameters below.)
+
+C-S-S:Def-pri,,ND-969,LINE-PRINTER,Y
+OK
+C-S-S:Help,hh,
+
+C-S-S:Help,hh, Definition of other printers:
+
+C-S-S:Help,hh,     Local spooling file name
+
+C-S-S:Help,hh,     ~         Remote system name
+
+C-S-S:Help,hh,     ~         ~         Remote spooling file name
+
+C-S-S:Help,hh,     ~         ~         ~       Extra header
+
+C-S-S:Help,hh,     ~         ~         ~       ~ No of local spooling files
+
+C-S-S:Help,hh,     ~         ~         ~       ~ ~
+
+C-S-S:Help,hh,     v         v         v       v v
+
+C-S-S:Def-pri,LINE-PRINTER,ND-969,LINE-PRINTER,Y,2
+
+File already exists,
+but it does not belong to COSMOS-SPOOLING.
+
+C-S-S:Def-pri,DIABLO-S,ND-1068,DIABLO,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-T,ND-5005,PHILIPS,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-S,ND-1068,PHILIPS,Y,3
+OK
+C-S-S:Help,hh,        ~
+
+C-S-S:Help,hh,        S: Sheet feeder, T: Tractor feeder
+
+C-S-S:Help,hh, NB! DIABLO-S etc. must be defined in (SYS)WP-PRINTERS!!!.
+
+C-S-S:Help,hh, NB! The first parameter must match the old local spooling file
+
+C-S-S:Help,hh, name when redefining printers:
+
+C-S-S:Help,hh, Ex: Def-pri,PHILIPS-S,ND-1050,PHILIPS,N,2
+
+C-S-S:Help,hh, NB!:Number of local spooling files will now still be 3,
+
+C-S-S:Help,hh, because spooling file no 3 will not be deleted when
+
+C-S-S:Help,hh, redefining printers.
+
+C-S-S:Help,hh, (To be safe: "Delete-printer" before "Define-printer".)
+
+C-S-S:ex
+█
+юцц═██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═реMоте═филе═AцццеSS╛═филе═SерVер═PAрт═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юMоDе═(цоSMоS-BASиц╘цоS-фA-SерV-е:MоDе╛╛╛██
+█
+@SET-AVAILABLE█
+█
+@START-TADADM█
+█
+@ABORT FSART█
+█
+@RT FSART█
+█
+@HOLD 0,0█
+█
+@HOLD 10,2█
+█
+@FS-ADMINISTRATOR█
+
+COSMOS File Server Administrator - Version: E02 - OCTOBER 7, 1987
+
+FSA: SELECT-FSA,,,,
+Connection established
+FSA(own system): START-SERVER 1,,,,
+ --- please wait ---  
+Server 1 started.     No of FACs attached: 30
+FSA(own system): EXIT█
+@SET-UNAVAILABLE█
+█
+юSет-AVAилABле██
+█
+юеьит██
+"еьит"█
+Nо═SUцH═филе═NAMе█
+█
+█
+═BAтцH═USер═лоGGеD═оUт═Aт═╠9.╠5.╢╠═════╡╦═йUлY═══╠99╦█
+█
+═ND-╠00═цPU═тиMе═USеD═иS════╠═SецS█
+═тиMе═лоGGеD═оN═иS═══╠╢═SецS█
+█
+═SиNтрAN═иии═-═VSь╞500═K═█
+---═ретроцоре═еMUлAтеD═K═---█
+█
+═---═SиNтрAN═иии═BAтцH═PроцеSSор═---█
+█
+═USер═SYSтеM═еNтереD═Aт═╠9.╠9.35═════╡╦═йUлY═══╠99╦█
+█
+█
+MAьиMUM═тиMе═иS══════╠═MиNUтеS█
+█
+юцц═╙╙╙══вAрM═SтAрт══╙╙╙██
+█
+юSет-UNAVAилABле═$'тHе═цоMPUтер═иS═BеиNG═вAрM-SтAртеD$'██
+█
+юSиNтрAN██
+█
+╙юSтAрт-ьMSG██
+█
+оK:═ьMSG═СtАrteД.█
+╙юеьит██
+█
+юьMSG-цоMMAND██
+
+
+XMSG command program (210373L) of 87.12.30 13:17 
+Compiled for version 1987.02.08 (Release L)
+XMSG kernel version 1987.02.08 (Release L)
+Options: 
+   ND-100/CX only. XPIT. Trace. Watchdog.
+   Inter-system:  Network gateway/IOC.
+   (Type ? to get a list of the new commands.)
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠00╛╠00█
+*- WARNING: You can now bypass system protection mechanisms -*
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠0╡╛╠0╡█
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠03╛╠03█
+Ok
+
+X-C(Adv):еьит█
+█
+юMоDе═(PAцK-оNе:цоSMоS-BASиц╘цоS-SтAрт-е0╢:MоDе╛╛██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫═филе═NAMе:═цоS-SтAрт-е0╢:MоDе═════════════════════════════════╫██
+█
+юцц═╫═SтAрт-UP═оф═цоSMоS═BASиц═MоDUле═VерSиоN═е═════════════════════╫██
+█
+юцц═╫═рUN═тHиS═MоDе═филе═DUриNG═вAрM═SтAрт╛═ANYтиMе═Aфтер═ь-MеSSAGе═╫██
+█
+юцц═╫═AND═тADADM═Aре═рUNNиNG.═══════════════════════════════════════╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц██
+█
+юоPерAтор═╙╙╙═SтAрт═цоSMоS═BASиц═MоDUле═╙╙╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═филе═трANSфер═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юABорт═ьфтрAD██
+█
+юрт═ьфтрAD██
+█
+юцц██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═цоSMоS═SPоолиNG═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юртоN═цоSPо██
+█
+юSтAрт-SPоолиNG═цоSMоS-SPоолиNG██
+юMоDе═(цоSMоS-BASиц╘цоS-Dеф-PриN-е:MоDе╛╛╛██
+█
+@(COSMOS-BASIC)COS-SPOO-SER█
+
+COSMOS Spooling Service program - Version E02 - 1987.10.07 09:34 
+
+
+C-S-S:Help,hh, Definition of DEFAULT printer:
+
+C-S-S:Help,hh, (Explanation of parameters below.)
+
+C-S-S:Def-pri,,ND-969,LINE-PRINTER,Y
+OK
+C-S-S:Help,hh,
+
+C-S-S:Help,hh, Definition of other printers:
+
+C-S-S:Help,hh,     Local spooling file name
+
+C-S-S:Help,hh,     ~         Remote system name
+
+C-S-S:Help,hh,     ~         ~         Remote spooling file name
+
+C-S-S:Help,hh,     ~         ~         ~       Extra header
+
+C-S-S:Help,hh,     ~         ~         ~       ~ No of local spooling files
+
+C-S-S:Help,hh,     ~         ~         ~       ~ ~
+
+C-S-S:Help,hh,     v         v         v       v v
+
+C-S-S:Def-pri,LINE-PRINTER,ND-969,LINE-PRINTER,Y,2
+
+File already exists,
+but it does not belong to COSMOS-SPOOLING.
+
+C-S-S:Def-pri,DIABLO-S,ND-1068,DIABLO,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-T,ND-5005,PHILIPS,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-S,ND-1068,PHILIPS,Y,3
+OK
+C-S-S:Help,hh,        ~
+
+C-S-S:Help,hh,        S: Sheet feeder, T: Tractor feeder
+
+C-S-S:Help,hh, NB! DIABLO-S etc. must be defined in (SYS)WP-PRINTERS!!!.
+
+C-S-S:Help,hh, NB! The first parameter must match the old local spooling file
+
+C-S-S:Help,hh, name when redefining printers:
+
+C-S-S:Help,hh, Ex: Def-pri,PHILIPS-S,ND-1050,PHILIPS,N,2
+
+C-S-S:Help,hh, NB!:Number of local spooling files will now still be 3,
+
+C-S-S:Help,hh, because spooling file no 3 will not be deleted when
+
+C-S-S:Help,hh, redefining printers.
+
+C-S-S:Help,hh, (To be safe: "Delete-printer" before "Define-printer".)
+
+C-S-S:ex
+█
+юцц═██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═реMоте═филе═AцццеSS╛═филе═SерVер═PAрт═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юMоDе═(цоSMоS-BASиц╘цоS-фA-SерV-е:MоDе╛╛╛██
+█
+@SET-AVAILABLE█
+█
+@START-TADADM█
+█
+@ABORT FSART█
+█
+@RT FSART█
+█
+@HOLD 0,0█
+█
+@HOLD 10,2█
+█
+@FS-ADMINISTRATOR█
+
+COSMOS File Server Administrator - Version: E02 - OCTOBER 7, 1987
+
+FSA: SELECT-FSA,,,,
+Connection established
+FSA(own system): START-SERVER 1,,,,
+ --- please wait ---  
+Server 1 started.     No of FACs attached: 30
+FSA(own system): EXIT█
+@SET-UNAVAILABLE█
+█
+юSет-AVAилABле██
+█
+юеьит██
+"еьит"█
+Nо═SUцH═филе═NAMе█
+█
+█
+═BAтцH═USер═лоGGеD═оUт═Aт═╠9.╠9.50═════╡╦═йUлY═══╠99╦█
+█
+═ND-╠00═цPU═тиMе═USеD═иS════╠═SецS█
+═тиMе═лоGGеD═оN═иS═══╠╢═SецS█
+█
+═SиNтрAN═иии═-═VSь╞500═K═█
+---═ретроцоре═еMUлAтеD═K═---█
+█
+═---═SиNтрAN═иии═BAтцH═PроцеSSор═---█
+█
+═USер═SYSтеM═еNтереD═Aт═╠3.30.╠9═════╡9═йUлY═══╠99╦█
+█
+█
+MAьиMUM═тиMе═иS══════╠═MиNUтеS█
+█
+юцц═╙╙╙══вAрM═SтAрт══╙╙╙██
+█
+юSет-UNAVAилABле═$'тHе═цоMPUтер═иS═BеиNG═вAрM-SтAртеD$'██
+█
+юSиNтрAN██
+█
+╙юSтAрт-ьMSG██
+█
+оK:═ьMSG═СtАrteД.█
+╙юеьит██
+█
+юьMSG-цоMMAND██
+
+
+XMSG command program (210373L) of 87.12.30 13:17 
+Compiled for version 1987.02.08 (Release L)
+XMSG kernel version 1987.02.08 (Release L)
+Options: 
+   ND-100/CX only. XPIT. Trace. Watchdog.
+   Inter-system:  Network gateway/IOC.
+   (Type ? to get a list of the new commands.)
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠00╛╠00█
+*- WARNING: You can now bypass system protection mechanisms -*
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠0╡╛╠0╡█
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠03╛╠03█
+Ok
+
+X-C(Adv):еьит█
+█
+юMоDе═(PAцK-оNе:цоSMоS-BASиц╘цоS-SтAрт-е0╢:MоDе╛╛██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫═филе═NAMе:═цоS-SтAрт-е0╢:MоDе═════════════════════════════════╫██
+█
+юцц═╫═SтAрт-UP═оф═цоSMоS═BASиц═MоDUле═VерSиоN═е═════════════════════╫██
+█
+юцц═╫═рUN═тHиS═MоDе═филе═DUриNG═вAрM═SтAрт╛═ANYтиMе═Aфтер═ь-MеSSAGе═╫██
+█
+юцц═╫═AND═тADADM═Aре═рUNNиNG.═══════════════════════════════════════╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц██
+█
+юоPерAтор═╙╙╙═SтAрт═цоSMоS═BASиц═MоDUле═╙╙╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═филе═трANSфер═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юABорт═ьфтрAD██
+█
+юрт═ьфтрAD██
+█
+юцц██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═цоSMоS═SPоолиNG═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юртоN═цоSPо██
+█
+юSтAрт-SPоолиNG═цоSMоS-SPоолиNG██
+юMоDе═(цоSMоS-BASиц╘цоS-Dеф-PриN-е:MоDе╛╛╛██
+█
+@(COSMOS-BASIC)COS-SPOO-SER█
+
+COSMOS Spooling Service program - Version E02 - 1987.10.07 09:34 
+
+
+C-S-S:Help,hh, Definition of DEFAULT printer:
+
+C-S-S:Help,hh, (Explanation of parameters below.)
+
+C-S-S:Def-pri,,ND-969,LINE-PRINTER,Y
+OK
+C-S-S:Help,hh,
+
+C-S-S:Help,hh, Definition of other printers:
+
+C-S-S:Help,hh,     Local spooling file name
+
+C-S-S:Help,hh,     ~         Remote system name
+
+C-S-S:Help,hh,     ~         ~         Remote spooling file name
+
+C-S-S:Help,hh,     ~         ~         ~       Extra header
+
+C-S-S:Help,hh,     ~         ~         ~       ~ No of local spooling files
+
+C-S-S:Help,hh,     ~         ~         ~       ~ ~
+
+C-S-S:Help,hh,     v         v         v       v v
+
+C-S-S:Def-pri,LINE-PRINTER,ND-969,LINE-PRINTER,Y,2
+
+File already exists,
+but it does not belong to COSMOS-SPOOLING.
+
+C-S-S:Def-pri,DIABLO-S,ND-1068,DIABLO,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-T,ND-5005,PHILIPS,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-S,ND-1068,PHILIPS,Y,3
+OK
+C-S-S:Help,hh,        ~
+
+C-S-S:Help,hh,        S: Sheet feeder, T: Tractor feeder
+
+C-S-S:Help,hh, NB! DIABLO-S etc. must be defined in (SYS)WP-PRINTERS!!!.
+
+C-S-S:Help,hh, NB! The first parameter must match the old local spooling file
+
+C-S-S:Help,hh, name when redefining printers:
+
+C-S-S:Help,hh, Ex: Def-pri,PHILIPS-S,ND-1050,PHILIPS,N,2
+
+C-S-S:Help,hh, NB!:Number of local spooling files will now still be 3,
+
+C-S-S:Help,hh, because spooling file no 3 will not be deleted when
+
+C-S-S:Help,hh, redefining printers.
+
+C-S-S:Help,hh, (To be safe: "Delete-printer" before "Define-printer".)
+
+C-S-S:ex
+█
+юцц═██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═реMоте═филе═AцццеSS╛═филе═SерVер═PAрт═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юMоDе═(цоSMоS-BASиц╘цоS-фA-SерV-е:MоDе╛╛╛██
+█
+@SET-AVAILABLE█
+█
+@START-TADADM█
+█
+@ABORT FSART█
+█
+@RT FSART█
+█
+@HOLD 0,0█
+█
+@HOLD 10,2█
+█
+@FS-ADMINISTRATOR█
+
+COSMOS File Server Administrator - Version: E02 - OCTOBER 7, 1987
+
+FSA: SELECT-FSA,,,,
+Connection established
+FSA(own system): START-SERVER 1,,,,
+ --- please wait ---  
+Server 1 started.     No of FACs attached: 30
+FSA(own system): EXIT█
+@SET-UNAVAILABLE█
+█
+юSет-AVAилABле██
+█
+юеьит██
+"еьит"█
+Nо═SUцH═филе═NAMе█
+█
+█
+═BAтцH═USер═лоGGеD═оUт═Aт═╠3.30.3╢═════╡9═йUлY═══╠99╦█
+█
+═ND-╠00═цPU═тиMе═USеD═иS════╠═SецS█
+═тиMе═лоGGеD═оN═иS═══╠╢═SецS█
+█
+═SиNтрAN═иии═-═VSь╞500═K═█
+---═ретроцоре═еMUлAтеD═K═---█
+█
+═---═SиNтрAN═иии═BAтцH═PроцеSSор═---█
+█
+═USер═SYSтеM═еNтереD═Aт═╠0.09.5╢══════╠═AUGUSт═══╠99╦█
+█
+█
+MAьиMUM═тиMе═иS══════╠═MиNUтеS█
+█
+юцц═╙╙╙══вAрM═SтAрт══╙╙╙██
+█
+юSет-UNAVAилABле═$'тHе═цоMPUтер═иS═BеиNG═вAрM-SтAртеD$'██
+█
+юSиNтрAN██
+█
+╙юSтAрт-ьMSG██
+█
+оK:═ьMSG═СtАrteД.█
+╙юеьит██
+█
+юьMSG-цоMMAND██
+
+
+XMSG command program (210373L) of 87.12.30 13:17 
+Compiled for version 1987.02.08 (Release L)
+XMSG kernel version 1987.02.08 (Release L)
+Options: 
+   ND-100/CX only. XPIT. Trace. Watchdog.
+   Inter-system:  Network gateway/IOC.
+   (Type ? to get a list of the new commands.)
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠00╛╠00█
+*- WARNING: You can now bypass system protection mechanisms -*
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠0╡╛╠0╡█
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠03╛╠03█
+Ok
+
+X-C(Adv):еьит█
+█
+юMоDе═(PAцK-оNе:цоSMоS-BASиц╘цоS-SтAрт-е0╢:MоDе╛╛██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫═филе═NAMе:═цоS-SтAрт-е0╢:MоDе═════════════════════════════════╫██
+█
+юцц═╫═SтAрт-UP═оф═цоSMоS═BASиц═MоDUле═VерSиоN═е═════════════════════╫██
+█
+юцц═╫═рUN═тHиS═MоDе═филе═DUриNG═вAрM═SтAрт╛═ANYтиMе═Aфтер═ь-MеSSAGе═╫██
+█
+юцц═╫═AND═тADADM═Aре═рUNNиNG.═══════════════════════════════════════╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц██
+█
+юоPерAтор═╙╙╙═SтAрт═цоSMоS═BASиц═MоDUле═╙╙╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═филе═трANSфер═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юABорт═ьфтрAD██
+█
+юрт═ьфтрAD██
+█
+юцц██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═цоSMоS═SPоолиNG═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юртоN═цоSPо██
+█
+юSтAрт-SPоолиNG═цоSMоS-SPоолиNG██
+юMоDе═(цоSMоS-BASиц╘цоS-Dеф-PриN-е:MоDе╛╛╛██
+█
+@(COSMOS-BASIC)COS-SPOO-SER█
+
+COSMOS Spooling Service program - Version E02 - 1987.10.07 09:34 
+
+
+C-S-S:Help,hh, Definition of DEFAULT printer:
+
+C-S-S:Help,hh, (Explanation of parameters below.)
+
+C-S-S:Def-pri,,ND-969,LINE-PRINTER,Y
+OK
+C-S-S:Help,hh,
+
+C-S-S:Help,hh, Definition of other printers:
+
+C-S-S:Help,hh,     Local spooling file name
+
+C-S-S:Help,hh,     ~         Remote system name
+
+C-S-S:Help,hh,     ~         ~         Remote spooling file name
+
+C-S-S:Help,hh,     ~         ~         ~       Extra header
+
+C-S-S:Help,hh,     ~         ~         ~       ~ No of local spooling files
+
+C-S-S:Help,hh,     ~         ~         ~       ~ ~
+
+C-S-S:Help,hh,     v         v         v       v v
+
+C-S-S:Def-pri,LINE-PRINTER,ND-969,LINE-PRINTER,Y,2
+
+File already exists,
+but it does not belong to COSMOS-SPOOLING.
+
+C-S-S:Def-pri,DIABLO-S,ND-1068,DIABLO,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-T,ND-5005,PHILIPS,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-S,ND-1068,PHILIPS,Y,3
+OK
+C-S-S:Help,hh,        ~
+
+C-S-S:Help,hh,        S: Sheet feeder, T: Tractor feeder
+
+C-S-S:Help,hh, NB! DIABLO-S etc. must be defined in (SYS)WP-PRINTERS!!!.
+
+C-S-S:Help,hh, NB! The first parameter must match the old local spooling file
+
+C-S-S:Help,hh, name when redefining printers:
+
+C-S-S:Help,hh, Ex: Def-pri,PHILIPS-S,ND-1050,PHILIPS,N,2
+
+C-S-S:Help,hh, NB!:Number of local spooling files will now still be 3,
+
+C-S-S:Help,hh, because spooling file no 3 will not be deleted when
+
+C-S-S:Help,hh, redefining printers.
+
+C-S-S:Help,hh, (To be safe: "Delete-printer" before "Define-printer".)
+
+C-S-S:ex
+█
+юцц═██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═реMоте═филе═AцццеSS╛═филе═SерVер═PAрт═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юMоDе═(цоSMоS-BASиц╘цоS-фA-SерV-е:MоDе╛╛╛██
+█
+@SET-AVAILABLE█
+█
+@START-TADADM█
+█
+@ABORT FSART█
+█
+@RT FSART█
+█
+@HOLD 0,0█
+█
+@HOLD 10,2█
+█
+@FS-ADMINISTRATOR█
+
+COSMOS File Server Administrator - Version: E02 - OCTOBER 7, 1987
+
+FSA: SELECT-FSA,,,,
+Connection established
+FSA(own system): START-SERVER 1,,,,
+ --- please wait ---  
+Server 1 started.     No of FACs attached: 30
+FSA(own system): EXIT█
+@SET-UNAVAILABLE█
+█
+юSет-AVAилABле██
+█
+юеьит██
+"еьит"█
+Nо═SUцH═филе═NAMе█
+█
+█
+═BAтцH═USер═лоGGеD═оUт═Aт═╠0.╠0.09══════╠═AUGUSт═══╠99╦█
+█
+═ND-╠00═цPU═тиMе═USеD═иS════╠═SецS█
+═тиMе═лоGGеD═оN═иS═══╠╢═SецS█
+█
+═SиNтрAN═иии═-═VSь╞500═K═█
+---═ретроцоре═еMUлAтеD═K═---█
+█
+═---═SиNтрAN═иии═BAтцH═PроцеSSор═---█
+█
+═USер═SYSтеM═еNтереD═Aт═╠0.╢╥.╡0══════╠═AUGUSт═══╠99╦█
+█
+█
+MAьиMUM═тиMе═иS══════╠═MиNUтеS█
+█
+юцц═╙╙╙══вAрM═SтAрт══╙╙╙██
+█
+юSет-UNAVAилABле═$'тHе═цоMPUтер═иS═BеиNG═вAрM-SтAртеD$'██
+█
+юSиNтрAN██
+█
+╙юSтAрт-ьMSG██
+█
+оK:═ьMSG═СtАrteД.█
+╙юеьит██
+█
+юьMSG-цоMMAND██
+
+
+XMSG command program (210373L) of 87.12.30 13:17 
+Compiled for version 1987.02.08 (Release L)
+XMSG kernel version 1987.02.08 (Release L)
+Options: 
+   ND-100/CX only. XPIT. Trace. Watchdog.
+   Inter-system:  Network gateway/IOC.
+   (Type ? to get a list of the new commands.)
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠00╛╠00█
+*- WARNING: You can now bypass system protection mechanisms -*
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠0╡╛╠0╡█
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠03╛╠03█
+Ok
+
+X-C(Adv):еьит█
+█
+юMоDе═(PAцK-оNе:цоSMоS-BASиц╘цоS-SтAрт-е0╢:MоDе╛╛██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫═филе═NAMе:═цоS-SтAрт-е0╢:MоDе═════════════════════════════════╫██
+█
+юцц═╫═SтAрт-UP═оф═цоSMоS═BASиц═MоDUле═VерSиоN═е═════════════════════╫██
+█
+юцц═╫═рUN═тHиS═MоDе═филе═DUриNG═вAрM═SтAрт╛═ANYтиMе═Aфтер═ь-MеSSAGе═╫██
+█
+юцц═╫═AND═тADADM═Aре═рUNNиNG.═══════════════════════════════════════╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц██
+█
+юоPерAтор═╙╙╙═SтAрт═цоSMоS═BASиц═MоDUле═╙╙╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═филе═трANSфер═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юABорт═ьфтрAD██
+█
+юрт═ьфтрAD██
+█
+юцц██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═цоSMоS═SPоолиNG═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юртоN═цоSPо██
+█
+юSтAрт-SPоолиNG═цоSMоS-SPоолиNG██
+юMоDе═(цоSMоS-BASиц╘цоS-Dеф-PриN-е:MоDе╛╛╛██
+█
+@(COSMOS-BASIC)COS-SPOO-SER█
+
+COSMOS Spooling Service program - Version E02 - 1987.10.07 09:34 
+
+
+C-S-S:Help,hh, Definition of DEFAULT printer:
+
+C-S-S:Help,hh, (Explanation of parameters below.)
+
+C-S-S:Def-pri,,ND-969,LINE-PRINTER,Y
+OK
+C-S-S:Help,hh,
+
+C-S-S:Help,hh, Definition of other printers:
+
+C-S-S:Help,hh,     Local spooling file name
+
+C-S-S:Help,hh,     ~         Remote system name
+
+C-S-S:Help,hh,     ~         ~         Remote spooling file name
+
+C-S-S:Help,hh,     ~         ~         ~       Extra header
+
+C-S-S:Help,hh,     ~         ~         ~       ~ No of local spooling files
+
+C-S-S:Help,hh,     ~         ~         ~       ~ ~
+
+C-S-S:Help,hh,     v         v         v       v v
+
+C-S-S:Def-pri,LINE-PRINTER,ND-969,LINE-PRINTER,Y,2
+
+File already exists,
+but it does not belong to COSMOS-SPOOLING.
+
+C-S-S:Def-pri,DIABLO-S,ND-1068,DIABLO,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-T,ND-5005,PHILIPS,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-S,ND-1068,PHILIPS,Y,3
+OK
+C-S-S:Help,hh,        ~
+
+C-S-S:Help,hh,        S: Sheet feeder, T: Tractor feeder
+
+C-S-S:Help,hh, NB! DIABLO-S etc. must be defined in (SYS)WP-PRINTERS!!!.
+
+C-S-S:Help,hh, NB! The first parameter must match the old local spooling file
+
+C-S-S:Help,hh, name when redefining printers:
+
+C-S-S:Help,hh, Ex: Def-pri,PHILIPS-S,ND-1050,PHILIPS,N,2
+
+C-S-S:Help,hh, NB!:Number of local spooling files will now still be 3,
+
+C-S-S:Help,hh, because spooling file no 3 will not be deleted when
+
+C-S-S:Help,hh, redefining printers.
+
+C-S-S:Help,hh, (To be safe: "Delete-printer" before "Define-printer".)
+
+C-S-S:ex
+█
+юцц═██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═реMоте═филе═AцццеSS╛═филе═SерVер═PAрт═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юMоDе═(цоSMоS-BASиц╘цоS-фA-SерV-е:MоDе╛╛╛██
+█
+@SET-AVAILABLE█
+█
+@START-TADADM█
+█
+@ABORT FSART█
+█
+@RT FSART█
+█
+@HOLD 0,0█
+█
+@HOLD 10,2█
+█
+@FS-ADMINISTRATOR█
+
+COSMOS File Server Administrator - Version: E02 - OCTOBER 7, 1987
+
+FSA: SELECT-FSA,,,,
+Connection established
+FSA(own system): START-SERVER 1,,,,
+ --- please wait ---  
+Server 1 started.     No of FACs attached: 30
+FSA(own system): EXIT█
+@SET-UNAVAILABLE█
+█
+юSет-AVAилABле██
+█
+юеьит██
+"еьит"█
+Nо═SUцH═филе═NAMе█
+█
+█
+═BAтцH═USер═лоGGеD═оUт═Aт═╠0.╢╥.36══════╠═AUGUSт═══╠99╦█
+█
+═ND-╠00═цPU═тиMе═USеD═иS════╠═SецS█
+═тиMе═лоGGеD═оN═иS═══╠5═SецS█
+█
+═SиNтрAN═иии═-═VSь╞500═K═█
+---═ретроцоре═еMUлAтеD═K═---█
+█
+═---═SиNтрAN═иии═BAтцH═PроцеSSор═---█
+█
+═USер═SYSтеM═еNтереD═Aт═╠9.╡╠.0╢══════╡═AUGUSт═══╠99╦█
+█
+█
+MAьиMUM═тиMе═иS══════╠═MиNUтеS█
+█
+юцц═╙╙╙══вAрM═SтAрт══╙╙╙██
+█
+юSет-UNAVAилABле═$'тHе═цоMPUтер═иS═BеиNG═вAрM-SтAртеD$'██
+█
+юSиNтрAN██
+█
+╙юSтAрт-ьMSG██
+█
+оK:═ьMSG═СtАrteД.█
+╙юеьит██
+█
+юьMSG-цоMMAND██
+
+
+XMSG command program (210373L) of 87.12.30 13:17 
+Compiled for version 1987.02.08 (Release L)
+XMSG kernel version 1987.02.08 (Release L)
+Options: 
+   ND-100/CX only. XPIT. Trace. Watchdog.
+   Inter-system:  Network gateway/IOC.
+   (Type ? to get a list of the new commands.)
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠00╛╠00█
+*- WARNING: You can now bypass system protection mechanisms -*
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠0╡╛╠0╡█
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠03╛╠03█
+Ok
+
+X-C(Adv):еьит█
+█
+юMоDе═(PAцK-оNе:цоSMоS-BASиц╘цоS-SтAрт-е0╢:MоDе╛╛██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫═филе═NAMе:═цоS-SтAрт-е0╢:MоDе═════════════════════════════════╫██
+█
+юцц═╫═SтAрт-UP═оф═цоSMоS═BASиц═MоDUле═VерSиоN═е═════════════════════╫██
+█
+юцц═╫═рUN═тHиS═MоDе═филе═DUриNG═вAрM═SтAрт╛═ANYтиMе═Aфтер═ь-MеSSAGе═╫██
+█
+юцц═╫═AND═тADADM═Aре═рUNNиNG.═══════════════════════════════════════╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц██
+█
+юоPерAтор═╙╙╙═SтAрт═цоSMоS═BASиц═MоDUле═╙╙╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═филе═трANSфер═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юABорт═ьфтрAD██
+█
+юрт═ьфтрAD██
+█
+юцц██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═цоSMоS═SPоолиNG═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юртоN═цоSPо██
+█
+юSтAрт-SPоолиNG═цоSMоS-SPоолиNG██
+юMоDе═(цоSMоS-BASиц╘цоS-Dеф-PриN-е:MоDе╛╛╛██
+█
+@(COSMOS-BASIC)COS-SPOO-SER█
+
+COSMOS Spooling Service program - Version E02 - 1987.10.07 09:34 
+
+
+C-S-S:Help,hh, Definition of DEFAULT printer:
+
+C-S-S:Help,hh, (Explanation of parameters below.)
+
+C-S-S:Def-pri,,ND-969,LINE-PRINTER,Y
+OK
+C-S-S:Help,hh,
+
+C-S-S:Help,hh, Definition of other printers:
+
+C-S-S:Help,hh,     Local spooling file name
+
+C-S-S:Help,hh,     ~         Remote system name
+
+C-S-S:Help,hh,     ~         ~         Remote spooling file name
+
+C-S-S:Help,hh,     ~         ~         ~       Extra header
+
+C-S-S:Help,hh,     ~         ~         ~       ~ No of local spooling files
+
+C-S-S:Help,hh,     ~         ~         ~       ~ ~
+
+C-S-S:Help,hh,     v         v         v       v v
+
+C-S-S:Def-pri,LINE-PRINTER,ND-969,LINE-PRINTER,Y,2
+
+File already exists,
+but it does not belong to COSMOS-SPOOLING.
+
+C-S-S:Def-pri,DIABLO-S,ND-1068,DIABLO,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-T,ND-5005,PHILIPS,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-S,ND-1068,PHILIPS,Y,3
+OK
+C-S-S:Help,hh,        ~
+
+C-S-S:Help,hh,        S: Sheet feeder, T: Tractor feeder
+
+C-S-S:Help,hh, NB! DIABLO-S etc. must be defined in (SYS)WP-PRINTERS!!!.
+
+C-S-S:Help,hh, NB! The first parameter must match the old local spooling file
+
+C-S-S:Help,hh, name when redefining printers:
+
+C-S-S:Help,hh, Ex: Def-pri,PHILIPS-S,ND-1050,PHILIPS,N,2
+
+C-S-S:Help,hh, NB!:Number of local spooling files will now still be 3,
+
+C-S-S:Help,hh, because spooling file no 3 will not be deleted when
+
+C-S-S:Help,hh, redefining printers.
+
+C-S-S:Help,hh, (To be safe: "Delete-printer" before "Define-printer".)
+
+C-S-S:ex
+█
+юцц═██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═реMоте═филе═AцццеSS╛═филе═SерVер═PAрт═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юMоDе═(цоSMоS-BASиц╘цоS-фA-SерV-е:MоDе╛╛╛██
+█
+@SET-AVAILABLE█
+█
+@START-TADADM█
+█
+@ABORT FSART█
+█
+@RT FSART█
+█
+@HOLD 0,0█
+█
+@HOLD 10,2█
+█
+@FS-ADMINISTRATOR█
+
+COSMOS File Server Administrator - Version: E02 - OCTOBER 7, 1987
+
+FSA: SELECT-FSA,,,,
+Connection established
+FSA(own system): START-SERVER 1,,,,
+ --- please wait ---  
+Server 1 started.     No of FACs attached: 30
+FSA(own system): EXIT█
+@SET-UNAVAILABLE█
+█
+юSет-AVAилABле██
+█
+юеьит██
+"еьит"█
+Nо═SUцH═филе═NAMе█
+█
+█
+═BAтцH═USер═лоGGеD═оUт═Aт═╠9.╡╠.╠9══════╡═AUGUSт═══╠99╦█
+█
+═ND-╠00═цPU═тиMе═USеD═иS════╠═SецS█
+═тиMе═лоGGеD═оN═иS═══╠5═SецS█
+█
+═SиNтрAN═иии═-═VSь╞500═K═█
+---═ретроцоре═еMUлAтеD═K═---█
+█
+═---═SиNтрAN═иии═BAтцH═PроцеSSор═---█
+█
+═USер═SYSтеM═еNтереD═Aт═╠9.╡╥.╡0══════╡═AUGUSт═══╠99╦█
+█
+█
+MAьиMUM═тиMе═иS══════╠═MиNUтеS█
+█
+юцц═╙╙╙══вAрM═SтAрт══╙╙╙██
+█
+юSет-UNAVAилABле═$'тHе═цоMPUтер═иS═BеиNG═вAрM-SтAртеD$'██
+█
+юSиNтрAN██
+█
+╙юSтAрт-ьMSG██
+█
+оK:═ьMSG═СtАrteД.█
+╙юеьит██
+█
+юьMSG-цоMMAND██
+
+
+XMSG command program (210373L) of 87.12.30 13:17 
+Compiled for version 1987.02.08 (Release L)
+XMSG kernel version 1987.02.08 (Release L)
+Options: 
+   ND-100/CX only. XPIT. Trace. Watchdog.
+   Inter-system:  Network gateway/IOC.
+   (Type ? to get a list of the new commands.)
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠00╛╠00█
+*- WARNING: You can now bypass system protection mechanisms -*
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠0╡╛╠0╡█
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠03╛╠03█
+Ok
+
+X-C(Adv):еьит█
+█
+юMоDе═(PAцK-оNе:цоSMоS-BASиц╘цоS-SтAрт-е0╢:MоDе╛╛██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫═филе═NAMе:═цоS-SтAрт-е0╢:MоDе═════════════════════════════════╫██
+█
+юцц═╫═SтAрт-UP═оф═цоSMоS═BASиц═MоDUле═VерSиоN═е═════════════════════╫██
+█
+юцц═╫═рUN═тHиS═MоDе═филе═DUриNG═вAрM═SтAрт╛═ANYтиMе═Aфтер═ь-MеSSAGе═╫██
+█
+юцц═╫═AND═тADADM═Aре═рUNNиNG.═══════════════════════════════════════╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц██
+█
+юоPерAтор═╙╙╙═SтAрт═цоSMоS═BASиц═MоDUле═╙╙╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═филе═трANSфер═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юABорт═ьфтрAD██
+█
+юрт═ьфтрAD██
+█
+юцц██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═цоSMоS═SPоолиNG═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юртоN═цоSPо██
+█
+юSтAрт-SPоолиNG═цоSMоS-SPоолиNG██
+юMоDе═(цоSMоS-BASиц╘цоS-Dеф-PриN-е:MоDе╛╛╛██
+█
+@(COSMOS-BASIC)COS-SPOO-SER█
+
+COSMOS Spooling Service program - Version E02 - 1987.10.07 09:34 
+
+
+C-S-S:Help,hh, Definition of DEFAULT printer:
+
+C-S-S:Help,hh, (Explanation of parameters below.)
+
+C-S-S:Def-pri,,ND-969,LINE-PRINTER,Y
+OK
+C-S-S:Help,hh,
+
+C-S-S:Help,hh, Definition of other printers:
+
+C-S-S:Help,hh,     Local spooling file name
+
+C-S-S:Help,hh,     ~         Remote system name
+
+C-S-S:Help,hh,     ~         ~         Remote spooling file name
+
+C-S-S:Help,hh,     ~         ~         ~       Extra header
+
+C-S-S:Help,hh,     ~         ~         ~       ~ No of local spooling files
+
+C-S-S:Help,hh,     ~         ~         ~       ~ ~
+
+C-S-S:Help,hh,     v         v         v       v v
+
+C-S-S:Def-pri,LINE-PRINTER,ND-969,LINE-PRINTER,Y,2
+
+File already exists,
+but it does not belong to COSMOS-SPOOLING.
+
+C-S-S:Def-pri,DIABLO-S,ND-1068,DIABLO,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-T,ND-5005,PHILIPS,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-S,ND-1068,PHILIPS,Y,3
+OK
+C-S-S:Help,hh,        ~
+
+C-S-S:Help,hh,        S: Sheet feeder, T: Tractor feeder
+
+C-S-S:Help,hh, NB! DIABLO-S etc. must be defined in (SYS)WP-PRINTERS!!!.
+
+C-S-S:Help,hh, NB! The first parameter must match the old local spooling file
+
+C-S-S:Help,hh, name when redefining printers:
+
+C-S-S:Help,hh, Ex: Def-pri,PHILIPS-S,ND-1050,PHILIPS,N,2
+
+C-S-S:Help,hh, NB!:Number of local spooling files will now still be 3,
+
+C-S-S:Help,hh, because spooling file no 3 will not be deleted when
+
+C-S-S:Help,hh, redefining printers.
+
+C-S-S:Help,hh, (To be safe: "Delete-printer" before "Define-printer".)
+
+C-S-S:ex
+█
+юцц═██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═реMоте═филе═AцццеSS╛═филе═SерVер═PAрт═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юMоDе═(цоSMоS-BASиц╘цоS-фA-SерV-е:MоDе╛╛╛██
+█
+@SET-AVAILABLE█
+█
+@START-TADADM█
+█
+@ABORT FSART█
+█
+@RT FSART█
+█
+@HOLD 0,0█
+█
+@HOLD 10,2█
+█
+@FS-ADMINISTRATOR█
+
+COSMOS File Server Administrator - Version: E02 - OCTOBER 7, 1987
+
+FSA: SELECT-FSA,,,,
+Connection established
+FSA(own system): START-SERVER 1,,,,
+ --- please wait ---  
+Server 1 started.     No of FACs attached: 30
+FSA(own system): EXIT█
+@SET-UNAVAILABLE█
+█
+юSет-AVAилABле██
+█
+юеьит██
+"еьит"█
+Nо═SUцH═филе═NAMе█
+█
+█
+═BAтцH═USер═лоGGеD═оUт═Aт═╠9.╡╥.35══════╡═AUGUSт═══╠99╦█
+█
+═ND-╠00═цPU═тиMе═USеD═иS════╠═SецS█
+═тиMе═лоGGеD═оN═иS═══╠5═SецS█
+█
+═SиNтрAN═иии═-═VSь╞500═K═█
+---═ретроцоре═еMUлAтеD═K═---█
+█
+═---═SиNтрAN═иии═BAтцH═PроцеSSор═---█
+█
+═USер═SYSтеM═еNтереD═Aт═╡╡.╢╦.0╥══════╡═AUGUSт═══╠99╦█
+█
+█
+MAьиMUM═тиMе═иS══════╠═MиNUтеS█
+█
+юцц═╙╙╙══вAрM═SтAрт══╙╙╙██
+█
+юSет-UNAVAилABле═$'тHе═цоMPUтер═иS═BеиNG═вAрM-SтAртеD$'██
+█
+юSиNтрAN██
+█
+╙юSтAрт-ьMSG██
+█
+оK:═ьMSG═СtАrteД.█
+╙юеьит██
+█
+юьMSG-цоMMAND██
+
+
+XMSG command program (210373L) of 87.12.30 13:17 
+Compiled for version 1987.02.08 (Release L)
+XMSG kernel version 1987.02.08 (Release L)
+Options: 
+   ND-100/CX only. XPIT. Trace. Watchdog.
+   Inter-system:  Network gateway/IOC.
+   (Type ? to get a list of the new commands.)
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠00╛╠00█
+*- WARNING: You can now bypass system protection mechanisms -*
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠0╡╛╠0╡█
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠03╛╠03█
+Ok
+
+X-C(Adv):еьит█
+█
+юMоDе═(PAцK-оNе:цоSMоS-BASиц╘цоS-SтAрт-е0╢:MоDе╛╛██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫═филе═NAMе:═цоS-SтAрт-е0╢:MоDе═════════════════════════════════╫██
+█
+юцц═╫═SтAрт-UP═оф═цоSMоS═BASиц═MоDUле═VерSиоN═е═════════════════════╫██
+█
+юцц═╫═рUN═тHиS═MоDе═филе═DUриNG═вAрM═SтAрт╛═ANYтиMе═Aфтер═ь-MеSSAGе═╫██
+█
+юцц═╫═AND═тADADM═Aре═рUNNиNG.═══════════════════════════════════════╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц██
+█
+юоPерAтор═╙╙╙═SтAрт═цоSMоS═BASиц═MоDUле═╙╙╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═филе═трANSфер═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юABорт═ьфтрAD██
+█
+юрт═ьфтрAD██
+█
+юцц██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═цоSMоS═SPоолиNG═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юртоN═цоSPо██
+█
+юSтAрт-SPоолиNG═цоSMоS-SPоолиNG██
+юMоDе═(цоSMоS-BASиц╘цоS-Dеф-PриN-е:MоDе╛╛╛██
+█
+@(COSMOS-BASIC)COS-SPOO-SER█
+
+COSMOS Spooling Service program - Version E02 - 1987.10.07 09:34 
+
+
+C-S-S:Help,hh, Definition of DEFAULT printer:
+
+C-S-S:Help,hh, (Explanation of parameters below.)
+
+C-S-S:Def-pri,,ND-969,LINE-PRINTER,Y
+OK
+C-S-S:Help,hh,
+
+C-S-S:Help,hh, Definition of other printers:
+
+C-S-S:Help,hh,     Local spooling file name
+
+C-S-S:Help,hh,     ~         Remote system name
+
+C-S-S:Help,hh,     ~         ~         Remote spooling file name
+
+C-S-S:Help,hh,     ~         ~         ~       Extra header
+
+C-S-S:Help,hh,     ~         ~         ~       ~ No of local spooling files
+
+C-S-S:Help,hh,     ~         ~         ~       ~ ~
+
+C-S-S:Help,hh,     v         v         v       v v
+
+C-S-S:Def-pri,LINE-PRINTER,ND-969,LINE-PRINTER,Y,2
+
+File already exists,
+but it does not belong to COSMOS-SPOOLING.
+
+C-S-S:Def-pri,DIABLO-S,ND-1068,DIABLO,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-T,ND-5005,PHILIPS,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-S,ND-1068,PHILIPS,Y,3
+OK
+C-S-S:Help,hh,        ~
+
+C-S-S:Help,hh,        S: Sheet feeder, T: Tractor feeder
+
+C-S-S:Help,hh, NB! DIABLO-S etc. must be defined in (SYS)WP-PRINTERS!!!.
+
+C-S-S:Help,hh, NB! The first parameter must match the old local spooling file
+
+C-S-S:Help,hh, name when redefining printers:
+
+C-S-S:Help,hh, Ex: Def-pri,PHILIPS-S,ND-1050,PHILIPS,N,2
+
+C-S-S:Help,hh, NB!:Number of local spooling files will now still be 3,
+
+C-S-S:Help,hh, because spooling file no 3 will not be deleted when
+
+C-S-S:Help,hh, redefining printers.
+
+C-S-S:Help,hh, (To be safe: "Delete-printer" before "Define-printer".)
+
+C-S-S:ex
+█
+юцц═██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═реMоте═филе═AцццеSS╛═филе═SерVер═PAрт═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юMоDе═(цоSMоS-BASиц╘цоS-фA-SерV-е:MоDе╛╛╛██
+█
+@SET-AVAILABLE█
+█
+@START-TADADM█
+█
+@ABORT FSART█
+█
+@RT FSART█
+█
+@HOLD 0,0█
+█
+@HOLD 10,2█
+█
+@FS-ADMINISTRATOR█
+
+COSMOS File Server Administrator - Version: E02 - OCTOBER 7, 1987
+
+FSA: SELECT-FSA,,,,
+Connection established
+FSA(own system): START-SERVER 1,,,,
+ --- please wait ---  
+Server 1 started.     No of FACs attached: 30
+FSA(own system): EXIT█
+@SET-UNAVAILABLE█
+█
+юSет-AVAилABле██
+█
+юеьит██
+"еьит"█
+Nо═SUцH═филе═NAMе█
+█
+█
+═BAтцH═USер═лоGGеD═оUт═Aт═╡╡.╢╦.╡╢══════╡═AUGUSт═══╠99╦█
+█
+═ND-╠00═цPU═тиMе═USеD═иS════╡═SецS█
+═тиMе═лоGGеD═оN═иS═══╠6═SецS█
+█
+═SиNтрAN═иии═-═VSь╞500═K═█
+---═ретроцоре═еMUлAтеD═K═---█
+█
+═---═SиNтрAN═иии═BAтцH═PроцеSSор═---█
+█
+═USер═SYSтеM═еNтереD═Aт═00.╡0.╠╢══════3═AUGUSт═══╠99╦█
+█
+█
+MAьиMUM═тиMе═иS══════╠═MиNUтеS█
+█
+юцц═╙╙╙══вAрM═SтAрт══╙╙╙██
+█
+юSет-UNAVAилABле═$'тHе═цоMPUтер═иS═BеиNG═вAрM-SтAртеD$'██
+█
+юSиNтрAN██
+█
+╙юSтAрт-ьMSG██
+█
+оK:═ьMSG═СtАrteД.█
+╙юеьит██
+█
+юьMSG-цоMMAND██
+
+
+XMSG command program (210373L) of 87.12.30 13:17 
+Compiled for version 1987.02.08 (Release L)
+XMSG kernel version 1987.02.08 (Release L)
+Options: 
+   ND-100/CX only. XPIT. Trace. Watchdog.
+   Inter-system:  Network gateway/IOC.
+   (Type ? to get a list of the new commands.)
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠00╛╠00█
+*- WARNING: You can now bypass system protection mechanisms -*
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠0╡╛╠0╡█
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠03╛╠03█
+Ok
+
+X-C(Adv):еьит█
+█
+юMоDе═(PAцK-оNе:цоSMоS-BASиц╘цоS-SтAрт-е0╢:MоDе╛╛██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫═филе═NAMе:═цоS-SтAрт-е0╢:MоDе═════════════════════════════════╫██
+█
+юцц═╫═SтAрт-UP═оф═цоSMоS═BASиц═MоDUле═VерSиоN═е═════════════════════╫██
+█
+юцц═╫═рUN═тHиS═MоDе═филе═DUриNG═вAрM═SтAрт╛═ANYтиMе═Aфтер═ь-MеSSAGе═╫██
+█
+юцц═╫═AND═тADADM═Aре═рUNNиNG.═══════════════════════════════════════╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц██
+█
+юоPерAтор═╙╙╙═SтAрт═цоSMоS═BASиц═MоDUле═╙╙╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═филе═трANSфер═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юABорт═ьфтрAD██
+█
+юрт═ьфтрAD██
+█
+юцц██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═цоSMоS═SPоолиNG═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юртоN═цоSPо██
+█
+юSтAрт-SPоолиNG═цоSMоS-SPоолиNG██
+юMоDе═(цоSMоS-BASиц╘цоS-Dеф-PриN-е:MоDе╛╛╛██
+█
+@(COSMOS-BASIC)COS-SPOO-SER█
+
+COSMOS Spooling Service program - Version E02 - 1987.10.07 09:34 
+
+
+C-S-S:Help,hh, Definition of DEFAULT printer:
+
+C-S-S:Help,hh, (Explanation of parameters below.)
+
+C-S-S:Def-pri,,ND-969,LINE-PRINTER,Y
+OK
+C-S-S:Help,hh,
+
+C-S-S:Help,hh, Definition of other printers:
+
+C-S-S:Help,hh,     Local spooling file name
+
+C-S-S:Help,hh,     ~         Remote system name
+
+C-S-S:Help,hh,     ~         ~         Remote spooling file name
+
+C-S-S:Help,hh,     ~         ~         ~       Extra header
+
+C-S-S:Help,hh,     ~         ~         ~       ~ No of local spooling files
+
+C-S-S:Help,hh,     ~         ~         ~       ~ ~
+
+C-S-S:Help,hh,     v         v         v       v v
+
+C-S-S:Def-pri,LINE-PRINTER,ND-969,LINE-PRINTER,Y,2
+
+File already exists,
+but it does not belong to COSMOS-SPOOLING.
+
+C-S-S:Def-pri,DIABLO-S,ND-1068,DIABLO,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-T,ND-5005,PHILIPS,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-S,ND-1068,PHILIPS,Y,3
+OK
+C-S-S:Help,hh,        ~
+
+C-S-S:Help,hh,        S: Sheet feeder, T: Tractor feeder
+
+C-S-S:Help,hh, NB! DIABLO-S etc. must be defined in (SYS)WP-PRINTERS!!!.
+
+C-S-S:Help,hh, NB! The first parameter must match the old local spooling file
+
+C-S-S:Help,hh, name when redefining printers:
+
+C-S-S:Help,hh, Ex: Def-pri,PHILIPS-S,ND-1050,PHILIPS,N,2
+
+C-S-S:Help,hh, NB!:Number of local spooling files will now still be 3,
+
+C-S-S:Help,hh, because spooling file no 3 will not be deleted when
+
+C-S-S:Help,hh, redefining printers.
+
+C-S-S:Help,hh, (To be safe: "Delete-printer" before "Define-printer".)
+
+C-S-S:ex
+█
+юцц═██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═реMоте═филе═AцццеSS╛═филе═SерVер═PAрт═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юMоDе═(цоSMоS-BASиц╘цоS-фA-SерV-е:MоDе╛╛╛██
+█
+@SET-AVAILABLE█
+█
+@START-TADADM█
+█
+@ABORT FSART█
+█
+@RT FSART█
+█
+@HOLD 0,0█
+█
+@HOLD 10,2█
+█
+@FS-ADMINISTRATOR█
+
+COSMOS File Server Administrator - Version: E02 - OCTOBER 7, 1987
+
+FSA: SELECT-FSA,,,,
+Connection established
+FSA(own system): START-SERVER 1,,,,
+ --- please wait ---  
+Server 1 started.     No of FACs attached: 30
+FSA(own system): EXIT█
+@SET-UNAVAILABLE█
+█
+юSет-AVAилABле██
+█
+юеьит██
+"еьит"█
+Nо═SUцH═филе═NAMе█
+█
+█
+═BAтцH═USер═лоGGеD═оUт═Aт═00.╡0.3╠══════3═AUGUSт═══╠99╦█
+█
+═ND-╠00═цPU═тиMе═USеD═иS════╡═SецS█
+═тиMе═лоGGеD═оN═иS═══╠6═SецS█
+█
+═SиNтрAN═иии═-═VSь╞500═K═█
+---═ретроцоре═еMUлAтеD═K═---█
+█
+═---═SиNтрAN═иии═BAтцH═PроцеSSор═---█
+█
+═USер═SYSтеM═еNтереD═Aт═0╡.55.05══════3═AUGUSт═══╠99╦█
+█
+█
+MAьиMUM═тиMе═иS══════╠═MиNUтеS█
+█
+юцц═╙╙╙══вAрM═SтAрт══╙╙╙██
+█
+юSет-UNAVAилABле═$'тHе═цоMPUтер═иS═BеиNG═вAрM-SтAртеD$'██
+█
+юSиNтрAN██
+█
+╙юSтAрт-ьMSG██
+█
+оK:═ьMSG═СtАrteД.█
+╙юеьит██
+█
+юьMSG-цоMMAND██
+
+
+XMSG command program (210373L) of 87.12.30 13:17 
+Compiled for version 1987.02.08 (Release L)
+XMSG kernel version 1987.02.08 (Release L)
+Options: 
+   ND-100/CX only. XPIT. Trace. Watchdog.
+   Inter-system:  Network gateway/IOC.
+   (Type ? to get a list of the new commands.)
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠00╛╠00█
+*- WARNING: You can now bypass system protection mechanisms -*
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠0╡╛╠0╡█
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠03╛╠03█
+Ok
+
+X-C(Adv):еьит█
+█
+юMоDе═(PAцK-оNе:цоSMоS-BASиц╘цоS-SтAрт-е0╢:MоDе╛╛██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫═филе═NAMе:═цоS-SтAрт-е0╢:MоDе═════════════════════════════════╫██
+█
+юцц═╫═SтAрт-UP═оф═цоSMоS═BASиц═MоDUле═VерSиоN═е═════════════════════╫██
+█
+юцц═╫═рUN═тHиS═MоDе═филе═DUриNG═вAрM═SтAрт╛═ANYтиMе═Aфтер═ь-MеSSAGе═╫██
+█
+юцц═╫═AND═тADADM═Aре═рUNNиNG.═══════════════════════════════════════╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц██
+█
+юоPерAтор═╙╙╙═SтAрт═цоSMоS═BASиц═MоDUле═╙╙╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═филе═трANSфер═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юABорт═ьфтрAD██
+█
+юрт═ьфтрAD██
+█
+юцц██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═цоSMоS═SPоолиNG═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юртоN═цоSPо██
+█
+юSтAрт-SPоолиNG═цоSMоS-SPоолиNG██
+юMоDе═(цоSMоS-BASиц╘цоS-Dеф-PриN-е:MоDе╛╛╛██
+█
+@(COSMOS-BASIC)COS-SPOO-SER█
+
+COSMOS Spooling Service program - Version E02 - 1987.10.07 09:34 
+
+
+C-S-S:Help,hh, Definition of DEFAULT printer:
+
+C-S-S:Help,hh, (Explanation of parameters below.)
+
+C-S-S:Def-pri,,ND-969,LINE-PRINTER,Y
+OK
+C-S-S:Help,hh,
+
+C-S-S:Help,hh, Definition of other printers:
+
+C-S-S:Help,hh,     Local spooling file name
+
+C-S-S:Help,hh,     ~         Remote system name
+
+C-S-S:Help,hh,     ~         ~         Remote spooling file name
+
+C-S-S:Help,hh,     ~         ~         ~       Extra header
+
+C-S-S:Help,hh,     ~         ~         ~       ~ No of local spooling files
+
+C-S-S:Help,hh,     ~         ~         ~       ~ ~
+
+C-S-S:Help,hh,     v         v         v       v v
+
+C-S-S:Def-pri,LINE-PRINTER,ND-969,LINE-PRINTER,Y,2
+
+File already exists,
+but it does not belong to COSMOS-SPOOLING.
+
+C-S-S:Def-pri,DIABLO-S,ND-1068,DIABLO,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-T,ND-5005,PHILIPS,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-S,ND-1068,PHILIPS,Y,3
+OK
+C-S-S:Help,hh,        ~
+
+C-S-S:Help,hh,        S: Sheet feeder, T: Tractor feeder
+
+C-S-S:Help,hh, NB! DIABLO-S etc. must be defined in (SYS)WP-PRINTERS!!!.
+
+C-S-S:Help,hh, NB! The first parameter must match the old local spooling file
+
+C-S-S:Help,hh, name when redefining printers:
+
+C-S-S:Help,hh, Ex: Def-pri,PHILIPS-S,ND-1050,PHILIPS,N,2
+
+C-S-S:Help,hh, NB!:Number of local spooling files will now still be 3,
+
+C-S-S:Help,hh, because spooling file no 3 will not be deleted when
+
+C-S-S:Help,hh, redefining printers.
+
+C-S-S:Help,hh, (To be safe: "Delete-printer" before "Define-printer".)
+
+C-S-S:ex
+█
+юцц═██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═реMоте═филе═AцццеSS╛═филе═SерVер═PAрт═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юMоDе═(цоSMоS-BASиц╘цоS-фA-SерV-е:MоDе╛╛╛██
+█
+@SET-AVAILABLE█
+█
+@START-TADADM█
+█
+@ABORT FSART█
+█
+@RT FSART█
+█
+@HOLD 0,0█
+█
+@HOLD 10,2█
+█
+@FS-ADMINISTRATOR█
+
+COSMOS File Server Administrator - Version: E02 - OCTOBER 7, 1987
+
+FSA: SELECT-FSA,,,,
+Connection established
+FSA(own system): START-SERVER 1,,,,
+ --- please wait ---  
+Server 1 started.     No of FACs attached: 30
+FSA(own system): EXIT█
+@SET-UNAVAILABLE█
+█
+юSет-AVAилABле██
+█
+юеьит██
+"еьит"█
+Nо═SUцH═филе═NAMе█
+█
+█
+═BAтцH═USер═лоGGеD═оUт═Aт═0╡.55.╡╡══════3═AUGUSт═══╠99╦█
+█
+═ND-╠00═цPU═тиMе═USеD═иS════╡═SецS█
+═тиMе═лоGGеD═оN═иS═══╠╥═SецS█
+█
+═SиNтрAN═иии═-═VSь╞500═K═█
+---═ретроцоре═еMUлAтеD═K═---█
+█
+═---═SиNтрAN═иии═BAтцH═PроцеSSор═---█
+█
+═USер═SYSтеM═еNтереD═Aт═╠╡.5╡.09══════3═AUGUSт═══╠99╦█
+█
+█
+MAьиMUM═тиMе═иS══════╠═MиNUтеS█
+█
+юцц═╙╙╙══вAрM═SтAрт══╙╙╙██
+█
+юSет-UNAVAилABле═$'тHе═цоMPUтер═иS═BеиNG═вAрM-SтAртеD$'██
+█
+юSиNтрAN██
+█
+╙юSтAрт-ьMSG██
+█
+оK:═ьMSG═СtАrteД.█
+╙юеьит██
+█
+юьMSG-цоMMAND██
+
+
+XMSG command program (210373L) of 87.12.30 13:17 
+Compiled for version 1987.02.08 (Release L)
+XMSG kernel version 1987.02.08 (Release L)
+Options: 
+   ND-100/CX only. XPIT. Trace. Watchdog.
+   Inter-system:  Network gateway/IOC.
+   (Type ? to get a list of the new commands.)
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠00╛╠00█
+*- WARNING: You can now bypass system protection mechanisms -*
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠0╡╛╠0╡█
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠03╛╠03█
+Ok
+
+X-C(Adv):еьит█
+█
+юMоDе═(PAцK-оNе:цоSMоS-BASиц╘цоS-SтAрт-е0╢:MоDе╛╛██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫═филе═NAMе:═цоS-SтAрт-е0╢:MоDе═════════════════════════════════╫██
+█
+юцц═╫═SтAрт-UP═оф═цоSMоS═BASиц═MоDUле═VерSиоN═е═════════════════════╫██
+█
+юцц═╫═рUN═тHиS═MоDе═филе═DUриNG═вAрM═SтAрт╛═ANYтиMе═Aфтер═ь-MеSSAGе═╫██
+█
+юцц═╫═AND═тADADM═Aре═рUNNиNG.═══════════════════════════════════════╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц██
+█
+юоPерAтор═╙╙╙═SтAрт═цоSMоS═BASиц═MоDUле═╙╙╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═филе═трANSфер═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юABорт═ьфтрAD██
+█
+юрт═ьфтрAD██
+█
+юцц██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═цоSMоS═SPоолиNG═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юртоN═цоSPо██
+█
+юSтAрт-SPоолиNG═цоSMоS-SPоолиNG██
+юMоDе═(цоSMоS-BASиц╘цоS-Dеф-PриN-е:MоDе╛╛╛██
+█
+@(COSMOS-BASIC)COS-SPOO-SER█
+
+COSMOS Spooling Service program - Version E02 - 1987.10.07 09:34 
+
+
+C-S-S:Help,hh, Definition of DEFAULT printer:
+
+C-S-S:Help,hh, (Explanation of parameters below.)
+
+C-S-S:Def-pri,,ND-969,LINE-PRINTER,Y
+OK
+C-S-S:Help,hh,
+
+C-S-S:Help,hh, Definition of other printers:
+
+C-S-S:Help,hh,     Local spooling file name
+
+C-S-S:Help,hh,     ~         Remote system name
+
+C-S-S:Help,hh,     ~         ~         Remote spooling file name
+
+C-S-S:Help,hh,     ~         ~         ~       Extra header
+
+C-S-S:Help,hh,     ~         ~         ~       ~ No of local spooling files
+
+C-S-S:Help,hh,     ~         ~         ~       ~ ~
+
+C-S-S:Help,hh,     v         v         v       v v
+
+C-S-S:Def-pri,LINE-PRINTER,ND-969,LINE-PRINTER,Y,2
+
+File already exists,
+but it does not belong to COSMOS-SPOOLING.
+
+C-S-S:Def-pri,DIABLO-S,ND-1068,DIABLO,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-T,ND-5005,PHILIPS,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-S,ND-1068,PHILIPS,Y,3
+OK
+C-S-S:Help,hh,        ~
+
+C-S-S:Help,hh,        S: Sheet feeder, T: Tractor feeder
+
+C-S-S:Help,hh, NB! DIABLO-S etc. must be defined in (SYS)WP-PRINTERS!!!.
+
+C-S-S:Help,hh, NB! The first parameter must match the old local spooling file
+
+C-S-S:Help,hh, name when redefining printers:
+
+C-S-S:Help,hh, Ex: Def-pri,PHILIPS-S,ND-1050,PHILIPS,N,2
+
+C-S-S:Help,hh, NB!:Number of local spooling files will now still be 3,
+
+C-S-S:Help,hh, because spooling file no 3 will not be deleted when
+
+C-S-S:Help,hh, redefining printers.
+
+C-S-S:Help,hh, (To be safe: "Delete-printer" before "Define-printer".)
+
+C-S-S:ex
+█
+юцц═██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═реMоте═филе═AцццеSS╛═филе═SерVер═PAрт═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юMоDе═(цоSMоS-BASиц╘цоS-фA-SерV-е:MоDе╛╛╛██
+█
+@SET-AVAILABLE█
+█
+@START-TADADM█
+█
+@ABORT FSART█
+█
+@RT FSART█
+█
+@HOLD 0,0█
+█
+@HOLD 10,2█
+█
+@FS-ADMINISTRATOR█
+
+COSMOS File Server Administrator - Version: E02 - OCTOBER 7, 1987
+
+FSA: SELECT-FSA,,,,
+Connection established
+FSA(own system): START-SERVER 1,,,,
+ --- please wait ---  
+Server 1 started.     No of FACs attached: 30
+FSA(own system): EXIT█
+@SET-UNAVAILABLE█
+█
+юSет-AVAилABле██
+█
+юеьит██
+"еьит"█
+Nо═SUцH═филе═NAMе█
+█
+█
+═BAтцH═USер═лоGGеD═оUт═Aт═╠╡.5╡.3╡══════3═AUGUSт═══╠99╦█
+█
+═ND-╠00═цPU═тиMе═USеD═иS════╢═SецS█
+═тиMе═лоGGеD═оN═иS═══╡╡═SецS█
+█
+═SиNтрAN═иии═-═VSь╞500═K═█
+---═ретроцоре═еMUлAтеD═K═---█
+█
+═---═SиNтрAN═иии═BAтцH═PроцеSSор═---█
+█
+═USер═SYSтеM═еNтереD═Aт═╠╥.╢╢.╢3══════3═AUGUSт═══╠99╦█
+█
+█
+MAьиMUM═тиMе═иS══════╠═MиNUтеS█
+█
+юцц═╙╙╙══вAрM═SтAрт══╙╙╙██
+█
+юSет-UNAVAилABле═$'тHе═цоMPUтер═иS═BеиNG═вAрM-SтAртеD$'██
+█
+юSиNтрAN██
+█
+╙юSтAрт-ьMSG██
+█
+оK:═ьMSG═СtАrteД.█
+╙юеьит██
+█
+юьMSG-цоMMAND██
+
+
+XMSG command program (210373L) of 87.12.30 13:17 
+Compiled for version 1987.02.08 (Release L)
+XMSG kernel version 1987.02.08 (Release L)
+Options: 
+   ND-100/CX only. XPIT. Trace. Watchdog.
+   Inter-system:  Network gateway/IOC.
+   (Type ? to get a list of the new commands.)
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠00╛╠00█
+*- WARNING: You can now bypass system protection mechanisms -*
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠0╡╛╠0╡█
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠03╛╠03█
+Ok
+
+X-C(Adv):еьит█
+█
+юMоDе═(PAцK-оNе:цоSMоS-BASиц╘цоS-SтAрт-е0╢:MоDе╛╛██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫═филе═NAMе:═цоS-SтAрт-е0╢:MоDе═════════════════════════════════╫██
+█
+юцц═╫═SтAрт-UP═оф═цоSMоS═BASиц═MоDUле═VерSиоN═е═════════════════════╫██
+█
+юцц═╫═рUN═тHиS═MоDе═филе═DUриNG═вAрM═SтAрт╛═ANYтиMе═Aфтер═ь-MеSSAGе═╫██
+█
+юцц═╫═AND═тADADM═Aре═рUNNиNG.═══════════════════════════════════════╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц██
+█
+юоPерAтор═╙╙╙═SтAрт═цоSMоS═BASиц═MоDUле═╙╙╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═филе═трANSфер═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юABорт═ьфтрAD██
+█
+юрт═ьфтрAD██
+█
+юцц██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═цоSMоS═SPоолиNG═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юртоN═цоSPо██
+█
+юSтAрт-SPоолиNG═цоSMоS-SPоолиNG██
+юMоDе═(цоSMоS-BASиц╘цоS-Dеф-PриN-е:MоDе╛╛╛██
+█
+@(COSMOS-BASIC)COS-SPOO-SER█
+
+COSMOS Spooling Service program - Version E02 - 1987.10.07 09:34 
+
+
+C-S-S:Help,hh, Definition of DEFAULT printer:
+
+C-S-S:Help,hh, (Explanation of parameters below.)
+
+C-S-S:Def-pri,,ND-969,LINE-PRINTER,Y
+OK
+C-S-S:Help,hh,
+
+C-S-S:Help,hh, Definition of other printers:
+
+C-S-S:Help,hh,     Local spooling file name
+
+C-S-S:Help,hh,     ~         Remote system name
+
+C-S-S:Help,hh,     ~         ~         Remote spooling file name
+
+C-S-S:Help,hh,     ~         ~         ~       Extra header
+
+C-S-S:Help,hh,     ~         ~         ~       ~ No of local spooling files
+
+C-S-S:Help,hh,     ~         ~         ~       ~ ~
+
+C-S-S:Help,hh,     v         v         v       v v
+
+C-S-S:Def-pri,LINE-PRINTER,ND-969,LINE-PRINTER,Y,2
+
+File already exists,
+but it does not belong to COSMOS-SPOOLING.
+
+C-S-S:Def-pri,DIABLO-S,ND-1068,DIABLO,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-T,ND-5005,PHILIPS,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-S,ND-1068,PHILIPS,Y,3
+OK
+C-S-S:Help,hh,        ~
+
+C-S-S:Help,hh,        S: Sheet feeder, T: Tractor feeder
+
+C-S-S:Help,hh, NB! DIABLO-S etc. must be defined in (SYS)WP-PRINTERS!!!.
+
+C-S-S:Help,hh, NB! The first parameter must match the old local spooling file
+
+C-S-S:Help,hh, name when redefining printers:
+
+C-S-S:Help,hh, Ex: Def-pri,PHILIPS-S,ND-1050,PHILIPS,N,2
+
+C-S-S:Help,hh, NB!:Number of local spooling files will now still be 3,
+
+C-S-S:Help,hh, because spooling file no 3 will not be deleted when
+
+C-S-S:Help,hh, redefining printers.
+
+C-S-S:Help,hh, (To be safe: "Delete-printer" before "Define-printer".)
+
+C-S-S:ex
+█
+юцц═██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═реMоте═филе═AцццеSS╛═филе═SерVер═PAрт═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юMоDе═(цоSMоS-BASиц╘цоS-фA-SерV-е:MоDе╛╛╛██
+█
+@SET-AVAILABLE█
+█
+@START-TADADM█
+█
+@ABORT FSART█
+█
+@RT FSART█
+█
+@HOLD 0,0█
+█
+@HOLD 10,2█
+█
+@FS-ADMINISTRATOR█
+
+COSMOS File Server Administrator - Version: E02 - OCTOBER 7, 1987
+
+FSA: SELECT-FSA,,,,
+Connection established
+FSA(own system): START-SERVER 1,,,,
+ --- please wait ---  
+Server 1 started.     No of FACs attached: 30
+FSA(own system): EXIT█
+@SET-UNAVAILABLE█
+█
+юSет-AVAилABле██
+█
+юеьит██
+"еьит"█
+Nо═SUцH═филе═NAMе█
+█
+█
+═BAтцH═USер═лоGGеD═оUт═Aт═╠╥.╢╢.5╥══════3═AUGUSт═══╠99╦█
+█
+═ND-╠00═цPU═тиMе═USеD═иS════╠═SецS█
+═тиMе═лоGGеD═оN═иS═══╠╢═SецS█
+█
+═SиNтрAN═иии═-═VSь╞500═K═█
+---═ретроцоре═еMUлAтеD═K═---█
+█
+═---═SиNтрAN═иии═BAтцH═PроцеSSор═---█
+█
+═USер═SYSтеM═еNтереD═Aт═╡3.5╡.╠╡══════3═AUGUSт═══╠99╦█
+█
+█
+MAьиMUM═тиMе═иS══════╠═MиNUтеS█
+█
+юцц═╙╙╙══вAрM═SтAрт══╙╙╙██
+█
+юSет-UNAVAилABле═$'тHе═цоMPUтер═иS═BеиNG═вAрM-SтAртеD$'██
+█
+юSиNтрAN██
+█
+╙юSтAрт-ьMSG██
+█
+оK:═ьMSG═СtАrteД.█
+╙юеьит██
+█
+юьMSG-цоMMAND██
+
+
+XMSG command program (210373L) of 87.12.30 13:17 
+Compiled for version 1987.02.08 (Release L)
+XMSG kernel version 1987.02.08 (Release L)
+Options: 
+   ND-100/CX only. XPIT. Trace. Watchdog.
+   Inter-system:  Network gateway/IOC.
+   (Type ? to get a list of the new commands.)
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠00╛╠00█
+*- WARNING: You can now bypass system protection mechanisms -*
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠0╡╛╠0╡█
+Ok
+
+X-C(Adv):DефиNе-реMоте-NAMе╛╛D╠03╛╠03█
+Ok
+
+X-C(Adv):еьит█
+█
+юMоDе═(PAцK-оNе:цоSMоS-BASиц╘цоS-SтAрт-е0╢:MоDе╛╛██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫═филе═NAMе:═цоS-SтAрт-е0╢:MоDе═════════════════════════════════╫██
+█
+юцц═╫═SтAрт-UP═оф═цоSMоS═BASиц═MоDUле═VерSиоN═е═════════════════════╫██
+█
+юцц═╫═рUN═тHиS═MоDе═филе═DUриNG═вAрM═SтAрт╛═ANYтиMе═Aфтер═ь-MеSSAGе═╫██
+█
+юцц═╫═AND═тADADM═Aре═рUNNиNG.═══════════════════════════════════════╫██
+█
+юцц═╫═══════════════════════════════════════════════════════════════╫██
+█
+юцц═╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫╫██
+█
+юцц██
+█
+юоPерAтор═╙╙╙═SтAрт═цоSMоS═BASиц═MоDUле═╙╙╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═филе═трANSфер═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юABорт═ьфтрAD██
+█
+юрт═ьфтрAD██
+█
+юцц██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═цоSMоS═SPоолиNG═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юртоN═цоSPо██
+█
+юSтAрт-SPоолиNG═цоSMоS-SPоолиNG██
+юMоDе═(цоSMоS-BASиц╘цоS-Dеф-PриN-е:MоDе╛╛╛██
+█
+@(COSMOS-BASIC)COS-SPOO-SER█
+
+COSMOS Spooling Service program - Version E02 - 1987.10.07 09:34 
+
+
+C-S-S:Help,hh, Definition of DEFAULT printer:
+
+C-S-S:Help,hh, (Explanation of parameters below.)
+
+C-S-S:Def-pri,,ND-969,LINE-PRINTER,Y
+OK
+C-S-S:Help,hh,
+
+C-S-S:Help,hh, Definition of other printers:
+
+C-S-S:Help,hh,     Local spooling file name
+
+C-S-S:Help,hh,     ~         Remote system name
+
+C-S-S:Help,hh,     ~         ~         Remote spooling file name
+
+C-S-S:Help,hh,     ~         ~         ~       Extra header
+
+C-S-S:Help,hh,     ~         ~         ~       ~ No of local spooling files
+
+C-S-S:Help,hh,     ~         ~         ~       ~ ~
+
+C-S-S:Help,hh,     v         v         v       v v
+
+C-S-S:Def-pri,LINE-PRINTER,ND-969,LINE-PRINTER,Y,2
+
+File already exists,
+but it does not belong to COSMOS-SPOOLING.
+
+C-S-S:Def-pri,DIABLO-S,ND-1068,DIABLO,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-T,ND-5005,PHILIPS,Y,1
+OK
+C-S-S:Def-pri,PHILIPS-S,ND-1068,PHILIPS,Y,3
+OK
+C-S-S:Help,hh,        ~
+
+C-S-S:Help,hh,        S: Sheet feeder, T: Tractor feeder
+
+C-S-S:Help,hh, NB! DIABLO-S etc. must be defined in (SYS)WP-PRINTERS!!!.
+
+C-S-S:Help,hh, NB! The first parameter must match the old local spooling file
+
+C-S-S:Help,hh, name when redefining printers:
+
+C-S-S:Help,hh, Ex: Def-pri,PHILIPS-S,ND-1050,PHILIPS,N,2
+
+C-S-S:Help,hh, NB!:Number of local spooling files will now still be 3,
+
+C-S-S:Help,hh, because spooling file no 3 will not be deleted when
+
+C-S-S:Help,hh, redefining printers.
+
+C-S-S:Help,hh, (To be safe: "Delete-printer" before "Define-printer".)
+
+C-S-S:ex
+█
+юцц═██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юцц═╙═реMоте═филе═AцццеSS╛═филе═SерVер═PAрт═╙██
+█
+юцц═╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙╙██
+█
+юMоDе═(цоSMоS-BASиц╘цоS-фA-SерV-е:MоDе╛╛╛██
+█
+@SET-AVAILABLE█
+█
+@START-TADADM█
+█
+@ABORT FSART█
+█
+@RT FSART█
+█
+@HOLD 0,0█
+█
+@HOLD 10,2█
+█
+@FS-ADMINISTRATOR█
+
+COSMOS File Server Administrator - Version: E02 - OCTOBER 7, 1987
+
+FSA: SELECT-FSA,,,,
+Connection established
+FSA(own system): START-SERVER 1,,,,
+ --- please wait ---  
+Server 1 started.     No of FACs attached: 30
+FSA(own system): EXIT█
+@SET-UNAVAILABLE█
+█
+юSет-AVAилABле██
+█
+юеьит██
+"еьит"█
+Nо═SUцH═филе═NAMе█
+█
+█
+═BAтцH═USер═лоGGеD═оUт═Aт═╡3.5╡.╡6══════3═AUGUSт═══╠99╦█
+█
+═ND-╠00═цPU═тиMе═USеD═иS════╠═SецS█
+═тиMе═лоGGеD═оN═иS═══╠╢═SецS█

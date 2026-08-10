@@ -18,29 +18,43 @@ namespace NDInsight.Sintran.Xmsg.Packet
     /// </remarks>
     public static class XmsgPacketBuilder
     {
-        /// <summary>Flags 2 value carried by a secure ACK (subtype 0x03). VERIFIED constant.</summary>
+        /// <summary>
+        /// Flags 2 value carried by a secure ACK (subtype 0x03). VERIFIED constant.
+        /// </summary>
         public const ushort AckFlags2 = 0x0001;
 
-        /// <summary>Flags 1 broadcast marker carried by reachability frames. VERIFIED constant.</summary>
+        /// <summary>
+        /// Flags 1 broadcast marker carried by reachability frames. VERIFIED constant.
+        /// </summary>
         public const ushort ReachabilityFlags1 = 0xFFFF;
 
-        /// <summary>Flags 2 value carried by reachability frames. VERIFIED constant.</summary>
+        /// <summary>
+        /// Flags 2 value carried by reachability frames. VERIFIED constant.
+        /// </summary>
         public const ushort ReachabilityFlags2 = 0x0001;
 
         /// <summary>
         /// Builds a data (subtype <c>0x0E</c>) packet from a full envelope field set.
         /// </summary>
-        /// <param name="fields">The header + sub-header + payload fields.</param>
-        /// <returns>The built data packet.</returns>
+        /// <param name="fields">
+        /// The header + sub-header + payload fields.
+        /// </param>
+        /// <returns>
+        /// The built data packet.
+        /// </returns>
         /// <remarks>
         /// This is the exact assembly the captured responder frames use: fixed markers, packet type
         /// <c>0x00</c>, subtype Data; the sub-header's constant <c>0x21 0x00</c> marker is written by
-        /// <see cref="XmsgSubHeader.Serialize"/>; XMLEN (offset 18) is the payload length low byte.
-        /// The frame is built from scratch (no retained RawBytes) so it serialises from the model.
+        /// <see cref="XmsgSubHeader.Serialize"/>. The body goes out verbatim from absolute offset
+        /// 28. The frame is built from scratch (no retained RawBytes) so it serialises from the
+        /// model.
         /// </remarks>
         public static XmsgPacket CreateData(XmsgDataFields fields)
         {
-            byte[] payload = fields.Payload != null ? fields.Payload : Array.Empty<byte>();
+            // The BODY is everything from absolute offset 28: XMCSM's old "low half" (really the
+            // first body word), what the old model called Pad and UserDataLength (really body
+            // bytes 2 and 3), and the payload. XmsgDataFields keeps them in one array.
+            byte[] body = fields.Body != null ? fields.Body : Array.Empty<byte>();
 
             XmsgFrame frame = new XmsgFrame();
             frame.Header.Marker1 = SintranHeader.Marker1Value;
@@ -51,23 +65,19 @@ namespace NDInsight.Sintran.Xmsg.Packet
             frame.Header.SourceNode = fields.SourceNode;
             frame.Header.Flags1 = fields.Flags1;
             frame.Header.Flags2 = fields.Flags2;
-            frame.Header.ProtocolId = fields.ProtocolId;
+            frame.Header.Checksum = fields.Checksum;
 
             XmsgSubHeader sub = new XmsgSubHeader();
-            sub.Counter = fields.Counter;
             sub.FrameFlags = fields.FrameFlags;
             sub.Role = fields.Role;
             sub.DestinationSystem = fields.DestinationSystem;
             sub.DestinationPort = fields.DestinationPort;
             sub.SourceSystem = fields.SourceSystem;
             sub.SourcePort = fields.SourcePort;
-            sub.ControlService = fields.ControlService;
-            sub.Pad = 0x00;
-            // XMLEN is the low byte of the user-data (payload) length (XMSG-PROTOCOL.md section 5).
-            sub.UserDataLength = (byte)payload.Length;
+            sub.Xmcsm = fields.Xmcsm;
 
             frame.SubHeader = sub;
-            frame.TrailingBytes = payload;
+            frame.TrailingBytes = body;
             // Ensure serialisation is driven by the model, not any stray retained bytes.
             frame.ClearRawBytes();
             return new XmsgPacket(frame);
@@ -84,33 +94,52 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// The envelope fields. <see cref="XmsgDataFields.ProtocolId"/> is ignored and overwritten
         /// with <see cref="XmsgEnvelope.DeriveChannel(ushort, byte, uint)"/> of the Flags1 / Counter / XMCSM.
         /// </param>
-        /// <returns>The built session-data packet on the derived channel.</returns>
+        /// <returns>
+        /// The built session-data packet on the derived channel.
+        /// </returns>
         public static XmsgPacket CreateSessionData(XmsgDataFields fields)
         {
-            // Derive the channel from the universal envelope identity (VERIFIED against the
-            // conn-to-d102 responder frames); override whatever ProtocolId the caller left set.
-            fields.ProtocolId = XmsgEnvelope.DeriveChannel(fields.Flags1, fields.Counter, fields.ControlService);
+            // Word 6 of the SINTRAN header is a ones-complement checksum over the other six words,
+            // carved from the XMSG kernel at 137314 and verified on 3595/3595 captured frames. Its
+            // HIGH byte is what we have historically called the Protocol ID / channel and its LOW
+            // byte is what we have called the Counter, so BOTH are outputs here - neither is a
+            // free choice. See XmsgEnvelope.ComputeHeaderChecksum.
+            ushort checksum = XmsgEnvelope.ComputeHeaderChecksum(
+                (ushort)((SintranHeader.Marker1Value << 8) | SintranHeader.Marker2Normal),
+                (ushort)SintranPacketSubtype.Data,          // packet type 0x00 in the high byte
+                fields.DestinationNode,
+                fields.SourceNode,
+                fields.Flags1,
+                fields.Flags2);
+
+            fields.Checksum = checksum;
             return CreateData(fields);
         }
 
         /// <summary>
         /// Builds a secure-delivery ACK (subtype <c>0x03</c>) for a received data frame.
         /// </summary>
-        /// <param name="destinationNode">The node the ACK is sent to (the data frame's source).</param>
-        /// <param name="sourceNode">The replying node (the data frame's destination).</param>
+        /// <param name="destinationNode">
+        /// The node the ACK is sent to (the data frame's source).
+        /// </param>
+        /// <param name="sourceNode">
+        /// The replying node (the data frame's destination).
+        /// </param>
         /// <param name="datagramSequence">
         /// The Flags 1 (datagram sequence) to echo from the acknowledged data frame.
         /// </param>
         /// <param name="ackChannel">
         /// The Protocol-ID the ACK rides. For a TAD session this is the per-session constant
-        /// <em>connect-channel + 4</em> (VERIFIED D9-&gt;DD, DA-&gt;DE); echoing the data channel is
+        /// connect-channel + 4 (VERIFIED D9->DD, DA->DE); echoing the data channel is
         /// the malformed +0 ACK that crashed machine 100 (XXPER).
         /// </param>
         /// <param name="trailingCounter">
         /// The single trailing byte: the receiver's decrementing per-direction counter (seeded at
         /// connect-counter + 0x0A). Sending <c>0x00</c> is a malformed ACK that crashed 100.
         /// </param>
-        /// <returns>The 14-byte ACK packet.</returns>
+        /// <returns>
+        /// The 14-byte ACK packet (header only - an ACK has no body).
+        /// </returns>
         public static XmsgPacket CreateAck(
             ushort destinationNode,
             ushort sourceNode,
@@ -127,22 +156,41 @@ namespace NDInsight.Sintran.Xmsg.Packet
             ack.Header.SourceNode = sourceNode;
             ack.Header.Flags1 = datagramSequence;                     // echo the datagram sequence
             ack.Header.Flags2 = AckFlags2;                            // 0x0001
-            ack.Header.ProtocolId = ackChannel;                      // connect-channel + 4 for TAD
-            ack.TrailingBytes = new byte[] { trailingCounter };
+            // CORRECTED 2026-08-04: an ACK is FOURTEEN bytes and carries no trailing byte at all.
+            // What was modelled as "channel + a trailing counter" is header word 6, the checksum.
+            // Worked example from DOC/captures/FA-READ-WRITE-2026-08-04/capture-read.txt:
+            //   21 13 00 03 00 64 00 66 01 F9 00 01 DC 25
+            // ones-complement sum of the first six words = 0x23DA and ~0x23DA = 0xDC25.
+            // DERIVED 2026-08-07. This used to assemble word 6 from the two parameters, with the
+            // note that they were "kept so callers compile". They still are - the signature is
+            // unchanged so no caller breaks - but they no longer decide the bytes on the wire.
+            //
+            // Proving it was safe was the whole question: every caller of this class is a test
+            // passing CAPTURED values, so computing instead yields identical bytes if and only if
+            // the captures are self-consistent. They are - the suite passes unchanged.
+            XmsgEnvelope.StampChecksum(ack.Header);
             return new XmsgPacket(ack);
         }
 
         /// <summary>
         /// Builds a reachability reply (subtype <c>0x13</c>) answering a reachability request.
         /// </summary>
-        /// <param name="destinationNode">The requester the reply is sent to.</param>
-        /// <param name="sourceNode">The replying node.</param>
-        /// <param name="protocolId">The channel to reply on (echo the request's Protocol ID).</param>
+        /// <param name="destinationNode">
+        /// The requester the reply is sent to.
+        /// </param>
+        /// <param name="sourceNode">
+        /// The replying node.
+        /// </param>
+        /// <param name="protocolId">
+        /// The channel to reply on (echo the request's Protocol ID).
+        /// </param>
         /// <param name="trailingCommand">
         /// The trailing reply command byte (the request counter + 6; VERIFIED across both captured
-        /// request/reply pairs: 102 request 0x08 -&gt; reply 0x0E, 103 request 0x07 -&gt; reply 0x0D).
+        /// request/reply pairs: 102 request 0x08 -> reply 0x0E, 103 request 0x07 -> reply 0x0D).
         /// </param>
-        /// <returns>The reachability-reply packet.</returns>
+        /// <returns>
+        /// The reachability-reply packet.
+        /// </returns>
         public static XmsgPacket CreateReachabilityReply(
             ushort destinationNode,
             ushort sourceNode,
@@ -158,24 +206,40 @@ namespace NDInsight.Sintran.Xmsg.Packet
             reply.Header.SourceNode = sourceNode;
             reply.Header.Flags1 = ReachabilityFlags1;                        // 0xFFFF broadcast marker
             reply.Header.Flags2 = ReachabilityFlags2;                        // 0x0001
-            reply.Header.ProtocolId = protocolId;                            // echo the request channel
-            reply.TrailingBytes = new byte[] { trailingCommand };
+            // Same correction as CreateAck: this is header word 6, not a channel plus a trailing
+            // byte. The reachability request 21 13 00 19 00 66 00 64 FF FF 00 01 DE 08 sums to
+            // 0x21F7 and ~0x21F7 = 0xDE08 - exactly the two bytes at offsets 12-13.
+            // DERIVED 2026-08-07, same as CreateAck. The parameters remain on the signature so no
+            // caller breaks, but the wire bytes are computed.
+            XmsgEnvelope.StampChecksum(reply.Header);
             return new XmsgPacket(reply);
         }
 
         /// <summary>
         /// Builds a network-error / reject packet (subtype <c>0x07</c>).
         /// </summary>
-        /// <param name="destinationNode">The node the reject is sent to.</param>
-        /// <param name="sourceNode">The rejecting node.</param>
-        /// <param name="datagramSequence">The Flags 1 (datagram sequence) to echo from the offending frame.</param>
+        /// <param name="destinationNode">
+        /// The node the reject is sent to.
+        /// </param>
+        /// <param name="sourceNode">
+        /// The rejecting node.
+        /// </param>
+        /// <param name="datagramSequence">
+        /// The Flags 1 (datagram sequence) to echo from the offending frame.
+        /// </param>
         /// <param name="errorCode">
         /// The Flags 2 word: a NEGATIVE XE* code (e.g. XEIMA -19 = <c>0xFFED</c> invalid magic,
         /// XENSE -34 = <c>0xFFDE</c> sequence error). Pass the raw 16-bit two's-complement value.
         /// </param>
-        /// <param name="protocolId">The channel to send the reject on.</param>
-        /// <param name="trailingByte">The single trailing reject byte.</param>
-        /// <returns>The network-error packet.</returns>
+        /// <param name="protocolId">
+        /// The channel to send the reject on.
+        /// </param>
+        /// <param name="trailingByte">
+        /// The single trailing reject byte.
+        /// </param>
+        /// <returns>
+        /// The network-error packet.
+        /// </returns>
         public static XmsgPacket CreateNetworkError(
             ushort destinationNode,
             ushort sourceNode,
@@ -194,8 +258,8 @@ namespace NDInsight.Sintran.Xmsg.Packet
             err.Header.SourceNode = sourceNode;
             err.Header.Flags1 = datagramSequence;
             err.Header.Flags2 = errorCode;                          // negative XE* code
-            err.Header.ProtocolId = protocolId;
-            err.TrailingBytes = new byte[] { trailingByte };
+            // DERIVED 2026-08-07, same as CreateAck.
+            XmsgEnvelope.StampChecksum(err.Header);
             return new XmsgPacket(err);
         }
     }

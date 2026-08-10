@@ -125,7 +125,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             }
         }
 
-        /// <summary>Configures the layer exactly as the runner/parity test do (routing + TAD responder).</summary>
+        /// <summary>
+        /// Configures the layer exactly as the runner/parity test do (routing + TAD responder).
+        /// </summary>
         private static void ConfigureLayer(XmsgLayer layer)
         {
             layer.AcknowledgeData = false;
@@ -159,7 +161,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             // pooled receive buffer and prove the upper stack copies-if-it-retains.
             private byte[] _reusableUpBuffer;
 
-            /// <summary>The SINTRAN frames the upper stack sent DOWN through this link.</summary>
+            /// <summary>
+            /// The SINTRAN frames the upper stack sent DOWN through this link.
+            /// </summary>
             public List<byte[]> SentFrames { get; }
 
             public event LinkPayloadReceived? PayloadReceived;
@@ -227,8 +231,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
                 return true;
             }
 
-            /// <summary>Test hook: simulate one complete L3 payload arriving up on a fresh buffer.</summary>
-            /// <param name="payload">The SINTRAN information field bytes.</param>
+            /// <summary>
+            /// Test hook: simulate one complete L3 payload arriving up on a fresh buffer.
+            /// </summary>
+            /// <param name="payload">
+            /// The SINTRAN information field bytes.
+            /// </param>
             public void DeliverUp(byte[] payload)
             {
                 PayloadReceived?.Invoke(this, payload, payload.Length);
@@ -239,7 +247,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             /// pooled receive buffer). The buffer is overwritten on every call, so a consumer that
             /// retains it across calls would see corruption — which is exactly what this proves absent.
             /// </summary>
-            /// <param name="payload">The SINTRAN information field bytes to copy into the reused buffer.</param>
+            /// <param name="payload">
+            /// The SINTRAN information field bytes to copy into the reused buffer.
+            /// </param>
             public void DeliverUpReusingBuffer(byte[] payload)
             {
                 if (_reusableUpBuffer.Length < payload.Length)

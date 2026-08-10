@@ -1,4 +1,7 @@
-; nd100-dis: /tmp/sd.le.bin (raw binary, 64512 words)
+; SINTRAN-DATA resident common code/data
+; REGENERATED 2026-07-31 with the nd100-dis offset-operand fix (LDATX/LDXTX/LDDTX/LDBTX/STATX/STZTX/STDTX).
+; base 0 (decimal) ; 64512 words ; big-endian .bin byte-swapped BE->LE for nd100-dis.
+
 
 000000  124000  	JMP 0		; -> 000000
 000001  124000  	JMP 0		; -> 000001
@@ -31,7 +34,7 @@
 000034  025777  	LDD I ,B -1
 000035  024130  	LDD 130
 000036  026000  	LDD ,X 0
-000037  165666  	IOX 1666
+000037  165666  	IOX 1666	; HDLC2 Transmitter Status Register (TDSRH) (Read)
 000040  103031  	FAD I ,X 31
 000041  026000  	LDD ,X 0
 000042  031777  	STF I ,B -1
@@ -2093,7 +2096,7 @@
 004052  006022  	STA ,X 22
 004053  146106  	RADD CLD 0 DT
 004054  054371  	LDX -7
-004055  143314  	STATX
+004055  143314  	STATX 1
 004056  044012  	LDA 12
 004057  143304  	STATX
 004060  146115  	RADD CLD SD DA
@@ -3207,14 +3210,14 @@
 006204  171400  	SAX 0
 006205  057102  	LDX I ,X 102
 006206  051102  	LDT I 102
-006207  143361  	LDXTX
+006207  143361  	LDXTX 6
 006210  046003  	LDA ,X 3
 006211  175055  	BSKP ZRO 50 DA
 006212  124007  	JMP 7		; -> 006221
 006213  171400  	SAX 0
 006214  057073  	LDX I ,X 73
 006215  044074  	LDA 74
-006216  143364  	STATX
+006216  143364  	STATX 6
 006217  170401  	SAA 1
 006220  004631  	STA ,B -147
 006221  150401  	IOF
@@ -3548,11 +3551,11 @@
 006731  146106  	RADD CLD 0 DT
 006732  143302  	LDDTX
 006733  020400  	STD ,B 0
-006734  143322  	LDDTX
+006734  143322  	LDDTX 2
 006735  020402  	STD ,B 2
-006736  143342  	LDDTX
+006736  143342  	LDDTX 4
 006737  020404  	STD ,B 4
-006740  143362  	LDDTX
+006740  143362  	LDDTX 6
 006741  020406  	STD ,B 6
 006742  044053  	LDA 53
 006743  146153  	RADD CLD SA DB
@@ -4380,8 +4383,8 @@
 010431  146017  	RADD SD DX
 010432  146161  	RADD CLD ST DD
 010433  051012  	LDT I 12
-010434  143310  	LDATX
-010435  143321  	LDXTX
+010434  143310  	LDATX 1
+010435  143321  	LDXTX 2
 010436  144017  	SWAP SD DX
 010437  146142  	EXIT
 010440  146105  	RADD CLD 0 DA
@@ -4945,7 +4948,7 @@
 011516  061122  	ADD I 122
 011517  146157  	RADD CLD SA DX
 011520  051121  	LDT I 121
-011521  143322  	LDDTX
+011521  143322  	LDDTX 2
 011522  146201  	RADD CM1 0 DD
 011523  146051  	RADD SA DD
 011524  050365  	LDT -13
@@ -4957,7 +4960,7 @@
 011532  175220  	BSKP ONE SSK
 011533  124005  	JMP 5		; -> 011540
 011534  051105  	LDT I 105
-011535  143360  	LDATX
+011535  143360  	LDATX 6
 011536  175375  	BSKP ONE 170 DA
 011537  124002  	JMP 2		; -> 011541
 011540  146142  	EXIT
@@ -5077,8 +5080,8 @@
 011722  061074  	ADD I 74
 011723  146157  	RADD CLD SA DX
 011724  051073  	LDT I 73
-011725  143325  	STZTX
-011726  143335  	STZTX
+011725  143325  	STZTX 2
+011726  143335  	STZTX 3
 011727  146147  	RADD CLD SL DX
 011730  124030  	JMP 30		; -> 011760
 011731  046001  	LDA ,X 1
@@ -5095,7 +5098,7 @@
 011744  146171  	RADD CLD SX DD
 011745  056025  	LDX ,X 25
 011746  146106  	RADD CLD 0 DT
-011747  143334  	STATX
+011747  143334  	STATX 3
 011750  146117  	RADD CLD SD DX
 011751  046001  	LDA ,X 1
 011752  174125  	BSET ZRO 120 DA
@@ -5677,10 +5680,10 @@
 013052  061020  	ADD I 20
 013053  146157  	RADD CLD SA DX
 013054  051017  	LDT I 17
-013055  143350  	LDATX
+013055  143350  	LDATX 5
 013056  174065  	BSET ZRO 60 DA
 013057  174005  	BSET ZRO 0 DA
-013060  143354  	STATX
+013060  143354  	STATX 5
 013061  044356  	LDA -22
 013062  055005  	LDX I 5
 013063  006015  	STA ,X 15
@@ -5896,7 +5899,7 @@
 013405  061114  	ADD I 114
 013406  146157  	RADD CLD SA DX
 013407  051113  	LDT I 113
-013410  143371  	LDXTX
+013410  143371  	LDXTX 7
 013411  051112  	LDT I 112
 013412  150404  	POF
 013413  124020  	JMP 20		; -> 013433
@@ -5908,7 +5911,7 @@
 013421  044322  	LDA -56
 013422  120076  	MPY 76
 013423  146057  	RADD SA DX
-013424  143371  	LDXTX
+013424  143371  	LDXTX 7
 013425  146171  	RADD CLD SX DD
 013426  054075  	LDX 75
 013427  171001  	SAT 1
@@ -5916,7 +5919,7 @@
 013431  146156  	RADD CLD SA DT
 013432  146117  	RADD CLD SD DX
 013433  133015  	JXZ 15		; -> 013450
-013434  143322  	LDDTX
+013434  143322  	LDDTX 2
 013435  144015  	SWAP SD DA
 013436  070066  	AND 66
 013437  154401  	SHA 1
@@ -5980,7 +5983,7 @@
 013531  051017  	LDT I 17
 013532  150404  	POF
 013533  133011  	JXZ 11		; -> 013544
-013534  143330  	LDATX
+013534  143330  	LDATX 3
 013535  070014  	AND 14
 013536  154401  	SHA 1
 013537  145415  	RORA SD DA
@@ -6066,7 +6069,7 @@
 013657  005133  	STA I 133
 013660  146157  	RADD CLD SA DX
 013661  051132  	LDT I 132
-013662  143320  	LDATX
+013662  143320  	LDATX 2
 013663  070131  	AND 131
 013664  154401  	SHA 1
 013665  005130  	STA I 130
@@ -6092,7 +6095,7 @@
 013711  124031  	JMP 31		; -> 013742
 013712  055100  	LDX I 100
 013713  051100  	LDT I 100
-013714  143322  	LDDTX
+013714  143322  	LDDTX 2
 013715  050104  	LDT 104
 013716  142061  	SKP IF DD UEQ ST
 013717  124004  	JMP 4		; -> 013723
@@ -6188,9 +6191,9 @@
 014051  146105  	RADD CLD 0 DA
 014052  146151  	RADD CLD SA DD
 014053  143306  	STDTX
-014054  143326  	STDTX
-014055  143346  	STDTX
-014056  143366  	STDTX
+014054  143326  	STDTX 2
+014055  143346  	STDTX 4
+014056  143366  	STDTX 6
 014057  170404  	SAA 4
 014060  055026  	LDX I 26
 014061  006021  	STA ,X 21
@@ -6278,7 +6281,7 @@
 014203  061046  	ADD I 46
 014204  146157  	RADD CLD SA DX
 014205  051045  	LDT I 45
-014206  143322  	LDDTX
+014206  143322  	LDDTX 2
 014207  146015  	RADD SD DA
 014210  050043  	LDT 43
 014211  143456  	SKP IF DT MLST SA
@@ -6780,10 +6783,10 @@
 015171  061106  	ADD I 106
 015172  146157  	RADD CLD SA DX
 015173  051105  	LDT I 105
-015174  143350  	LDATX
+015174  143350  	LDATX 5
 015175  175015  	BSKP ZRO 10 DA
 015176  124176  	JMP 176		; -> 015374
-015177  143322  	LDDTX
+015177  143322  	LDDTX 2
 015200  146051  	RADD SA DD
 015201  146117  	RADD CLD SD DX
 015202  144015  	SWAP SD DA
@@ -8536,7 +8539,7 @@
 020525  054407  	LDX ,B 7
 020526  056025  	LDX ,X 25
 020527  146106  	RADD CLD 0 DT
-020530  143344  	STATX
+020530  143344  	STATX 4
 020531  055070  	LDX I 70
 020532  046017  	LDA ,X 17
 020533  070067  	AND 67
@@ -8700,7 +8703,7 @@
 020771  120043  	MPY 43
 020772  061043  	ADD I 43
 020773  146157  	RADD CLD SA DX
-020774  143310  	LDATX
+020774  143310  	LDATX 1
 020775  146015  	RADD SD DA
 020776  172777  	AAA -1
 020777  050326  	LDT -52
@@ -8804,7 +8807,7 @@
 021141  075011  	ORA I 11
 021142  131003  	JAZ 3		; -> 021145
 021143  171014  	SAT 14
-021144  153342  	MON 342
+021144  153342  	MON 342		; UELAMUFunction / ADP (342B)
 021145  044006  	LDA 6
 021146  153315  	MON 315		; LAMUFunction / MLAMU (315B)
 021147  153064  	MON 64		; WarningMessage / ERMSG (64B)
@@ -9170,11 +9173,11 @@
 021717  131405  	JAF 5		; -> 021724
 021720  014461  	STX ,B 61
 021721  050441  	LDT ,B 41
-021722  143344  	STATX
+021722  143344  	STATX 4
 021723  146142  	EXIT
 021724  124024  	JMP 24		; -> 021750
 021725  050441  	LDT ,B 41
-021726  143310  	LDATX
+021726  143310  	LDATX 1
 021727  130006  	JAP 6		; -> 021735
 021730  143300  	LDATX
 021731  131003  	JAZ 3		; -> 021734
@@ -9190,20 +9193,20 @@
 021743  131405  	JAF 5		; -> 021750
 021744  014462  	STX ,B 62
 021745  050441  	LDT ,B 41
-021746  143344  	STATX
+021746  143344  	STATX 4
 021747  146142  	EXIT
 021750  146171  	RADD CLD SX DD
 021751  146157  	RADD CLD SA DX
 021752  050441  	LDT ,B 41
 021753  131004  	JAZ 4		; -> 021757
 021754  146157  	RADD CLD SA DX
-021755  143340  	LDATX
+021755  143340  	LDATX 4
 021756  124375  	JMP -3		; -> 021753
 021757  146115  	RADD CLD SD DA
-021760  143344  	STATX
+021760  143344  	STATX 4
 021761  146157  	RADD CLD SA DX
 021762  146105  	RADD CLD 0 DA
-021763  143344  	STATX
+021763  143344  	STATX 4
 021764  146142  	EXIT
 021765  013552  	STT I ,B ,X 152
 021766  044461  	LDA ,B 61
@@ -9216,7 +9219,7 @@
 021775  146142  	EXIT
 021776  146157  	RADD CLD SA DX
 021777  050441  	LDT ,B 41
-022000  143340  	LDATX
+022000  143340  	LDATX 4
 022001  004461  	STA ,B 61
 022002  170401  	SAA 1
 022003  004463  	STA ,B 63
@@ -9230,7 +9233,7 @@
 022013  146142  	EXIT
 022014  146157  	RADD CLD SA DX
 022015  050441  	LDT ,B 41
-022016  143340  	LDATX
+022016  143340  	LDATX 4
 022017  004462  	STA ,B 62
 022020  000404  	STZ ,B 4
 022021  146542  	RADD AD1 CLD SL DP
@@ -9306,7 +9309,7 @@
 022127  146114  	RADD CLD SD DL
 022130  150402  	ION
 022131  146142  	EXIT
-022132  164005  	IOX 5
+022132  164005  	IOX 5	; MEMPAR Write Data Register (IOX5) (Write)
 022133  177600  	BORA SSPTM
 022134  051616  	LDT I ,B -162
 022135  046225  	LDA ,X -153
@@ -9325,7 +9328,7 @@
 022152  146114  	RADD CLD SD DL
 022153  150402  	ION
 022154  146142  	EXIT
-022155  164005  	IOX 5
+022155  164005  	IOX 5	; MEMPAR Write Data Register (IOX5) (Write)
 022156  013552  	STT I ,B ,X 152
 022157  054017  	LDX 17
 022160  146017  	RADD SD DX
@@ -9763,7 +9766,7 @@
 023040  143305  	STZTX
 023041  170424  	SAA 24
 023042  173766  	AAX -12
-023043  143364  	STATX
+023043  143364  	STATX 6
 023044  051024  	LDT I 24
 023045  044024  	LDA 24
 023046  173407  	AAX 7
@@ -9957,7 +9960,7 @@
 023342  143305  	STZTX
 023343  173767  	AAX -11
 023344  170424  	SAA 24
-023345  143364  	STATX
+023345  143364  	STATX 6
 023346  135003  	JPL I 3		; -> 023351
 023347  125350  	JMP I -30		; -> 023317
 023350  004654  	STA ,B -124
@@ -10164,12 +10167,12 @@
 023661  004654  	STA ,B -124
 023662  051011  	LDT I 11
 023663  174527  	BSET BCM 120 DX
-023664  143320  	LDATX
+023664  143320  	LDATX 2
 023665  174527  	BSET BCM 120 DX
-023666  143320  	LDATX
+023666  143320  	LDATX 2
 023667  146142  	EXIT
 023670  051003  	LDT I 3
-023671  143324  	STATX
+023671  143324  	STATX 2
 023672  146142  	EXIT
 023673  004654  	STA ,B -124
 023674  000000  	STZ 0
@@ -12654,7 +12657,7 @@
 030553  124363  	JMP -15		; -> 030536
 030554  044116  	LDA 116
 030555  135116  	JPL I 116		; -> 030673
-030556  165562  	IOX 1562	; FLP1 Read Status 1 (Read) [b1=IntEna; b2=Active; b3=Ready; b4=ErrOR; b5=DelRec; b7=HardErr; b15=DualDensity]
+030556  165562  	IOX 1562	; FLP-PIO1/FLP1 Read Status Register 1 (RSR1) (Read) [b0=(not used); b1=Interrupt enabled; b2=Device busy; b3=Device ready for transfer; b4=Inclusive OR of status register 2 (error occurred); b5=Deleted data address mark (deleted record); b6=Read or write operation completed; b7=Seek or recalibrate completed; b8=Timeout (~1.5s); b9-11=UNCERTAIN (doc: formatting; emulator derives from buffer-address bits)]
 030557  005115  	STA I 115
 030560  135115  	JPL I 115		; -> 030675
 030561  000310  	STZ -70
@@ -12681,7 +12684,7 @@
 030606  142065  	SKP IF DA UEQ ST
 030607  124051  	JMP 51		; -> 030660
 030610  135073  	JPL I 73		; -> 030703
-030611  165562  	IOX 1562	; FLP1 Read Status 1 (Read) [b1=IntEna; b2=Active; b3=Ready; b4=ErrOR; b5=DelRec; b7=HardErr; b15=DualDensity]
+030611  165562  	IOX 1562	; FLP-PIO1/FLP1 Read Status Register 1 (RSR1) (Read) [b0=(not used); b1=Interrupt enabled; b2=Device busy; b3=Device ready for transfer; b4=Inclusive OR of status register 2 (error occurred); b5=Deleted data address mark (deleted record); b6=Read or write operation completed; b7=Seek or recalibrate completed; b8=Timeout (~1.5s); b9-11=UNCERTAIN (doc: formatting; emulator derives from buffer-address bits)]
 030612  005062  	STA I 62
 030613  045061  	LDA I 61
 030614  130017  	JAP 17		; -> 030633
@@ -12934,13 +12937,13 @@
 031203  030326  	STF -52
 031204  031206  	STF I -172
 031205  031423  	STF I ,B 23
-031206  164302  	IOX 302	; CON Read Input Status (Read) [b0=IntEna; b2=Active; b3=Ready; b4=ErrOR; b5=Frame; b6=Parity; b7=Overrun]
+031206  164302  	IOX 302	; CON Read Input Status (Read) [b0=Interrupt Enabled - data available gives interrupt; b1=(unused); b2=Device Activated; b3=Ready for Transfer - data available; b4=Error OR - inclusive OR of bits 5-7; b5=Framing Error; b6=Parity Error; b7=Overrun; b8-10=(unused); b11=Carrier Missing; b12-15=(unused)]
 031207  175235  	BSKP ONE 30 DA
 031210  124003  	JMP 3		; -> 031213
 031211  164300  	IOX 300	; CON Read Input Data (Read)
 031212  124374  	JMP -4		; -> 031206
 031213  170420  	SAA 20
-031214  164303  	IOX 303	; CON Write Input Control (Write) [b0=IntEna; b2=Activate; b3=Test; b4=Clear; b11-12=CharLen; b13=StopBits; b14=Parity]
+031214  164303  	IOX 303	; CON Write Input Control (Write) [b0=Enable interrupt on data available; b1=(unused); b2=Activate Device; b3=Test Mode; b4=Device Clear; b5-10=(unused); b11-12=Character Length (0=8, 1=7, 2=6, 3=5); b13=Stop Bits (0=2 bits, 1=1 bit); b14=Parity (0=none, 1=even parity); b15=(unused)]
 031215  146142  	EXIT
 031216  000000  	STZ 0
 031217  000000  	STZ 0
@@ -13075,22 +13078,22 @@
 031420  000001  	STZ 1
 031421  000007  	STZ 7
 031422  031441  	STF I ,B 41
-031423  164302  	IOX 302	; CON Read Input Status (Read) [b0=IntEna; b2=Active; b3=Ready; b4=ErrOR; b5=Frame; b6=Parity; b7=Overrun]
+031423  164302  	IOX 302	; CON Read Input Status (Read) [b0=Interrupt Enabled - data available gives interrupt; b1=(unused); b2=Device Activated; b3=Ready for Transfer - data available; b4=Error OR - inclusive OR of bits 5-7; b5=Framing Error; b6=Parity Error; b7=Overrun; b8-10=(unused); b11=Carrier Missing; b12-15=(unused)]
 031424  175235  	BSKP ONE 30 DA
 031425  124003  	JMP 3		; -> 031430
 031426  044023  	LDA 23
-031427  164303  	IOX 303	; CON Write Input Control (Write) [b0=IntEna; b2=Activate; b3=Test; b4=Clear; b11-12=CharLen; b13=StopBits; b14=Parity]
-031430  164302  	IOX 302	; CON Read Input Status (Read) [b0=IntEna; b2=Active; b3=Ready; b4=ErrOR; b5=Frame; b6=Parity; b7=Overrun]
+031427  164303  	IOX 303	; CON Write Input Control (Write) [b0=Enable interrupt on data available; b1=(unused); b2=Activate Device; b3=Test Mode; b4=Device Clear; b5-10=(unused); b11-12=Character Length (0=8, 1=7, 2=6, 3=5); b13=Stop Bits (0=2 bits, 1=1 bit); b14=Parity (0=none, 1=even parity); b15=(unused)]
+031430  164302  	IOX 302	; CON Read Input Status (Read) [b0=Interrupt Enabled - data available gives interrupt; b1=(unused); b2=Device Activated; b3=Ready for Transfer - data available; b4=Error OR - inclusive OR of bits 5-7; b5=Framing Error; b6=Parity Error; b7=Overrun; b8-10=(unused); b11=Carrier Missing; b12-15=(unused)]
 031431  175235  	BSKP ONE 30 DA
 031432  124376  	JMP -2		; -> 031430
 031433  164300  	IOX 300	; CON Read Input Data (Read)
 031434  174075  	BSET ZRO 70 DA
 031435  004013  	STA 13
 031436  044013  	LDA 13
-031437  164303  	IOX 303	; CON Write Input Control (Write) [b0=IntEna; b2=Activate; b3=Test; b4=Clear; b11-12=CharLen; b13=StopBits; b14=Parity]
+031437  164303  	IOX 303	; CON Write Input Control (Write) [b0=Enable interrupt on data available; b1=(unused); b2=Activate Device; b3=Test Mode; b4=Device Clear; b5-10=(unused); b11-12=Character Length (0=8, 1=7, 2=6, 3=5); b13=Stop Bits (0=2 bits, 1=1 bit); b14=Parity (0=none, 1=even parity); b15=(unused)]
 031440  124002  	JMP 2		; -> 031442
 031441  004007  	STA 7
-031442  164306  	IOX 306	; CON Read Output Status (Read) [b0=IntEna; b3=Ready]
+031442  164306  	IOX 306	; CON Read Output Status (Read) [b0=Interrupt Enabled - ready gives interrupt; b1-2=(unused); b3=Ready for Transfer; b4-15=(unused)]
 031443  175235  	BSKP ONE 30 DA
 031444  124376  	JMP -2		; -> 031442
 031445  044003  	LDA 3
@@ -13099,7 +13102,7 @@
 031450  000000  	STZ 0
 031451  044004  	LDA 4
 031452  030046  	STF 46
-031453  165562  	IOX 1562	; FLP1 Read Status 1 (Read) [b1=IntEna; b2=Active; b3=Ready; b4=ErrOR; b5=DelRec; b7=HardErr; b15=DualDensity]
+031453  165562  	IOX 1562	; FLP-PIO1/FLP1 Read Status Register 1 (RSR1) (Read) [b0=(not used); b1=Interrupt enabled; b2=Device busy; b3=Device ready for transfer; b4=Inclusive OR of status register 2 (error occurred); b5=Deleted data address mark (deleted record); b6=Read or write operation completed; b7=Seek or recalibrate completed; b8=Timeout (~1.5s); b9-11=UNCERTAIN (doc: formatting; emulator derives from buffer-address bits)]
 031454  004047  	STA 47
 031455  175025  	BSKP ZRO 20 DA
 031456  124034  	JMP 34		; -> 031512
@@ -13113,13 +13116,13 @@
 031466  141251  	RMPY SA DD
 031467  020037  	STD 37
 031470  170400  	SAA 0
-031471  165565  	IOX 1565	; FLP1 Load Pointer High (Write)
+031471  165565  	IOX 1565	; FLP-PIO1/FLP1 Write Drive Address / Difference (WDAD) (Write)
 031472  146125  	RADD CLD SP DA
 031473  172431  	AAA 31
-031474  165567  	IOX 1567	; FLP1 Load Pointer Low (Write)
+031474  165567  	IOX 1567	; FLP-PIO1/FLP1 Write Sector (WSCT) (Write)
 031475  044044  	LDA 44
-031476  165563  	IOX 1563	; FLP1 Load Control (Write) [b1=IntEna; b2=Autoload; b3=Test; b4=Clear; b5=Streamer; b8=ExecCmd]
-031477  165562  	IOX 1562	; FLP1 Read Status 1 (Read) [b1=IntEna; b2=Active; b3=Ready; b4=ErrOR; b5=DelRec; b7=HardErr; b15=DualDensity]
+031476  165563  	IOX 1563	; FLP-PIO1/FLP1 Write Control Word (WCWD) (Write) [b0=(not used); b1=Enable interrupt; b2=Autoload; b3=Test mode; b4=Device clear (deselects drive); b5=Clear interface buffer address; b6=Enable timeout; b7=(not used); b8=Format track command; b9=Write data command; b10=Write deleted data command; b11=Read ID command; b12=Read data command; b13=Seek command; b14=Recalibrate command; b15=Control reset]
+031477  165562  	IOX 1562	; FLP-PIO1/FLP1 Read Status Register 1 (RSR1) (Read) [b0=(not used); b1=Interrupt enabled; b2=Device busy; b3=Device ready for transfer; b4=Inclusive OR of status register 2 (error occurred); b5=Deleted data address mark (deleted record); b6=Read or write operation completed; b7=Seek or recalibrate completed; b8=Timeout (~1.5s); b9-11=UNCERTAIN (doc: formatting; emulator derives from buffer-address bits)]
 031500  175235  	BSKP ONE 30 DA
 031501  124376  	JMP -2		; -> 031477
 031502  004021  	STA 21
@@ -13132,7 +13135,7 @@
 031511  146542  	RADD AD1 CLD SL DP
 031512  044007  	LDA 7
 031513  146542  	RADD AD1 CLD SL DP
-031514  165560  	IOX 1560	; FLP1 Read Data (Read)
+031514  165560  	IOX 1560	; FLP-PIO1/FLP1 Read Data Buffer (RDAT) (Read)
 031515  146157  	RADD CLD SA DX
 031516  034002  	LDF 2
 031517  146142  	EXIT
@@ -13160,16 +13163,16 @@
 031545  014111  	STX 111
 031546  120101  	MPY 101
 031547  004115  	STA 115
-031550  165562  	IOX 1562	; FLP1 Read Status 1 (Read) [b1=IntEna; b2=Active; b3=Ready; b4=ErrOR; b5=DelRec; b7=HardErr; b15=DualDensity]
+031550  165562  	IOX 1562	; FLP-PIO1/FLP1 Read Status Register 1 (RSR1) (Read) [b0=(not used); b1=Interrupt enabled; b2=Device busy; b3=Device ready for transfer; b4=Inclusive OR of status register 2 (error occurred); b5=Deleted data address mark (deleted record); b6=Read or write operation completed; b7=Seek or recalibrate completed; b8=Timeout (~1.5s); b9-11=UNCERTAIN (doc: formatting; emulator derives from buffer-address bits)]
 031551  175025  	BSKP ZRO 20 DA
 031552  124060  	JMP 60		; -> 031632
 031553  170460  	SAA 60
-031554  165563  	IOX 1563	; FLP1 Load Control (Write) [b1=IntEna; b2=Autoload; b3=Test; b4=Clear; b5=Streamer; b8=ExecCmd]
+031554  165563  	IOX 1563	; FLP-PIO1/FLP1 Write Control Word (WCWD) (Write) [b0=(not used); b1=Enable interrupt; b2=Autoload; b3=Test mode; b4=Device clear (deselects drive); b5=Clear interface buffer address; b6=Enable timeout; b7=(not used); b8=Format track command; b9=Write data command; b10=Write deleted data command; b11=Read ID command; b12=Read data command; b13=Seek command; b14=Recalibrate command; b15=Control reset]
 031555  044073  	LDA 73
-031556  165565  	IOX 1565	; FLP1 Load Pointer High (Write)
+031556  165565  	IOX 1565	; FLP-PIO1/FLP1 Write Drive Address / Difference (WDAD) (Write)
 031557  000000  	STZ 0
 031560  000000  	STZ 0
-031561  165562  	IOX 1562	; FLP1 Read Status 1 (Read) [b1=IntEna; b2=Active; b3=Ready; b4=ErrOR; b5=DelRec; b7=HardErr; b15=DualDensity]
+031561  165562  	IOX 1562	; FLP-PIO1/FLP1 Read Status Register 1 (RSR1) (Read) [b0=(not used); b1=Interrupt enabled; b2=Device busy; b3=Device ready for transfer; b4=Inclusive OR of status register 2 (error occurred); b5=Deleted data address mark (deleted record); b6=Read or write operation completed; b7=Seek or recalibrate completed; b8=Timeout (~1.5s); b9-11=UNCERTAIN (doc: formatting; emulator derives from buffer-address bits)]
 031562  004076  	STA 76
 031563  175045  	BSKP ZRO 40 DA
 031564  124056  	JMP 56		; -> 031642
@@ -13178,11 +13181,11 @@
 031567  131503  	JAF 103		; -> 031672
 031570  000100  	STZ 100
 031571  044060  	LDA 60
-031572  165563  	IOX 1563	; FLP1 Load Control (Write) [b1=IntEna; b2=Autoload; b3=Test; b4=Clear; b5=Streamer; b8=ExecCmd]
-031573  165562  	IOX 1562	; FLP1 Read Status 1 (Read) [b1=IntEna; b2=Active; b3=Ready; b4=ErrOR; b5=DelRec; b7=HardErr; b15=DualDensity]
+031572  165563  	IOX 1563	; FLP-PIO1/FLP1 Write Control Word (WCWD) (Write) [b0=(not used); b1=Enable interrupt; b2=Autoload; b3=Test mode; b4=Device clear (deselects drive); b5=Clear interface buffer address; b6=Enable timeout; b7=(not used); b8=Format track command; b9=Write data command; b10=Write deleted data command; b11=Read ID command; b12=Read data command; b13=Seek command; b14=Recalibrate command; b15=Control reset]
+031573  165562  	IOX 1562	; FLP-PIO1/FLP1 Read Status Register 1 (RSR1) (Read) [b0=(not used); b1=Interrupt enabled; b2=Device busy; b3=Device ready for transfer; b4=Inclusive OR of status register 2 (error occurred); b5=Deleted data address mark (deleted record); b6=Read or write operation completed; b7=Seek or recalibrate completed; b8=Timeout (~1.5s); b9-11=UNCERTAIN (doc: formatting; emulator derives from buffer-address bits)]
 031574  175025  	BSKP ZRO 20 DA
 031575  124376  	JMP -2		; -> 031573
-031576  165562  	IOX 1562	; FLP1 Read Status 1 (Read) [b1=IntEna; b2=Active; b3=Ready; b4=ErrOR; b5=DelRec; b7=HardErr; b15=DualDensity]
+031576  165562  	IOX 1562	; FLP-PIO1/FLP1 Read Status Register 1 (RSR1) (Read) [b0=(not used); b1=Interrupt enabled; b2=Device busy; b3=Device ready for transfer; b4=Inclusive OR of status register 2 (error occurred); b5=Deleted data address mark (deleted record); b6=Read or write operation completed; b7=Seek or recalibrate completed; b8=Timeout (~1.5s); b9-11=UNCERTAIN (doc: formatting; emulator derives from buffer-address bits)]
 031577  004061  	STA 61
 031600  070065  	AND 65
 031601  172600  	AAA -200
@@ -13190,18 +13193,18 @@
 031603  170777  	SAA -1
 031604  004063  	STA 63
 031605  044045  	LDA 45
-031606  165563  	IOX 1563	; FLP1 Load Control (Write) [b1=IntEna; b2=Autoload; b3=Test; b4=Clear; b5=Streamer; b8=ExecCmd]
-031607  165562  	IOX 1562	; FLP1 Read Status 1 (Read) [b1=IntEna; b2=Active; b3=Ready; b4=ErrOR; b5=DelRec; b7=HardErr; b15=DualDensity]
+031606  165563  	IOX 1563	; FLP-PIO1/FLP1 Write Control Word (WCWD) (Write) [b0=(not used); b1=Enable interrupt; b2=Autoload; b3=Test mode; b4=Device clear (deselects drive); b5=Clear interface buffer address; b6=Enable timeout; b7=(not used); b8=Format track command; b9=Write data command; b10=Write deleted data command; b11=Read ID command; b12=Read data command; b13=Seek command; b14=Recalibrate command; b15=Control reset]
+031607  165562  	IOX 1562	; FLP-PIO1/FLP1 Read Status Register 1 (RSR1) (Read) [b0=(not used); b1=Interrupt enabled; b2=Device busy; b3=Device ready for transfer; b4=Inclusive OR of status register 2 (error occurred); b5=Deleted data address mark (deleted record); b6=Read or write operation completed; b7=Seek or recalibrate completed; b8=Timeout (~1.5s); b9-11=UNCERTAIN (doc: formatting; emulator derives from buffer-address bits)]
 031610  175025  	BSKP ZRO 20 DA
 031611  124376  	JMP -2		; -> 031607
-031612  165562  	IOX 1562	; FLP1 Read Status 1 (Read) [b1=IntEna; b2=Active; b3=Ready; b4=ErrOR; b5=DelRec; b7=HardErr; b15=DualDensity]
+031612  165562  	IOX 1562	; FLP-PIO1/FLP1 Read Status Register 1 (RSR1) (Read) [b0=(not used); b1=Interrupt enabled; b2=Device busy; b3=Device ready for transfer; b4=Inclusive OR of status register 2 (error occurred); b5=Deleted data address mark (deleted record); b6=Read or write operation completed; b7=Seek or recalibrate completed; b8=Timeout (~1.5s); b9-11=UNCERTAIN (doc: formatting; emulator derives from buffer-address bits)]
 031613  004045  	STA 45
 031614  070051  	AND 51
 031615  172700  	AAA -100
 031616  131424  	JAF 24		; -> 031642
 031617  170440  	SAA 40
-031620  165563  	IOX 1563	; FLP1 Load Control (Write) [b1=IntEna; b2=Autoload; b3=Test; b4=Clear; b5=Streamer; b8=ExecCmd]
-031621  165560  	IOX 1560	; FLP1 Read Data (Read)
+031620  165563  	IOX 1563	; FLP-PIO1/FLP1 Write Control Word (WCWD) (Write) [b0=(not used); b1=Enable interrupt; b2=Autoload; b3=Test mode; b4=Device clear (deselects drive); b5=Clear interface buffer address; b6=Enable timeout; b7=(not used); b8=Format track command; b9=Write data command; b10=Write deleted data command; b11=Read ID command; b12=Read data command; b13=Seek command; b14=Recalibrate command; b15=Control reset]
+031621  165560  	IOX 1560	; FLP-PIO1/FLP1 Read Data Buffer (RDAT) (Read)
 031622  155410  	SHA ROT 10
 031623  064045  	SUB 45
 031624  131003  	JAZ 3		; -> 031627
@@ -13218,7 +13221,7 @@
 031637  146554  	RADD AD1 CLD SA DL
 031640  034013  	LDF 13
 031641  146542  	RADD AD1 CLD SL DP
-031642  165564  	IOX 1564	; FLP1 Read Status 2 (Read) [b0-1=BytesPerSec; b2=DblSided; b3=DblDensity]
+031642  165564  	IOX 1564	; FLP-PIO1/FLP1 Read Status Register 2 (RSR2) (Read) [b0-7=(not used); b8=Drive not ready (unpowered, door open, no diskette, invalid address); b9=Write protected diskette; b10=(not used); b11=Sector missing; b12=CRC error; b13=(not used); b14=Data overrun]
 031643  074015  	ORA 15
 031644  146157  	RADD CLD SA DX
 031645  034006  	LDF 6
@@ -13243,13 +13246,13 @@
 031670  000000  	STZ 0
 031671  000000  	STZ 0
 031672  170440  	SAA 40
-031673  165563  	IOX 1563	; FLP1 Load Control (Write) [b1=IntEna; b2=Autoload; b3=Test; b4=Clear; b5=Streamer; b8=ExecCmd]
+031673  165563  	IOX 1563	; FLP-PIO1/FLP1 Write Control Word (WCWD) (Write) [b0=(not used); b1=Enable interrupt; b2=Autoload; b3=Test mode; b4=Device clear (deselects drive); b5=Clear interface buffer address; b6=Enable timeout; b7=(not used); b8=Format track command; b9=Write data command; b10=Write deleted data command; b11=Read ID command; b12=Read data command; b13=Seek command; b14=Recalibrate command; b15=Control reset]
 031674  044370  	LDA -10
 031675  146157  	RADD CLD SA DX
 031676  060072  	ADD 72
 031677  146156  	RADD CLD SA DT
 031700  046000  	LDA ,X 0
-031701  165561  	IOX 1561	; FLP1 (Not Used) ()
+031701  165561  	IOX 1561	; FLP-PIO1/FLP1 Write Data Buffer (Write)
 031702  173401  	AAX 1
 031703  140067  	SKP IF DX EQL ST
 031704  124374  	JMP -4		; -> 031700
@@ -13277,13 +13280,13 @@
 031732  124002  	JMP 2		; -> 031734
 031733  174275  	BSET ONE 70 DA
 031734  156410  	SHA ZIN 10
-031735  165565  	IOX 1565	; FLP1 Load Pointer High (Write)
+031735  165565  	IOX 1565	; FLP-PIO1/FLP1 Write Drive Address / Difference (WDAD) (Write)
 031736  044034  	LDA 34
-031737  165563  	IOX 1563	; FLP1 Load Control (Write) [b1=IntEna; b2=Autoload; b3=Test; b4=Clear; b5=Streamer; b8=ExecCmd]
-031740  165562  	IOX 1562	; FLP1 Read Status 1 (Read) [b1=IntEna; b2=Active; b3=Ready; b4=ErrOR; b5=DelRec; b7=HardErr; b15=DualDensity]
+031737  165563  	IOX 1563	; FLP-PIO1/FLP1 Write Control Word (WCWD) (Write) [b0=(not used); b1=Enable interrupt; b2=Autoload; b3=Test mode; b4=Device clear (deselects drive); b5=Clear interface buffer address; b6=Enable timeout; b7=(not used); b8=Format track command; b9=Write data command; b10=Write deleted data command; b11=Read ID command; b12=Read data command; b13=Seek command; b14=Recalibrate command; b15=Control reset]
+031740  165562  	IOX 1562	; FLP-PIO1/FLP1 Read Status Register 1 (RSR1) (Read) [b0=(not used); b1=Interrupt enabled; b2=Device busy; b3=Device ready for transfer; b4=Inclusive OR of status register 2 (error occurred); b5=Deleted data address mark (deleted record); b6=Read or write operation completed; b7=Seek or recalibrate completed; b8=Timeout (~1.5s); b9-11=UNCERTAIN (doc: formatting; emulator derives from buffer-address bits)]
 031741  175025  	BSKP ZRO 20 DA
 031742  124376  	JMP -2		; -> 031740
-031743  165562  	IOX 1562	; FLP1 Read Status 1 (Read) [b1=IntEna; b2=Active; b3=Ready; b4=ErrOR; b5=DelRec; b7=HardErr; b15=DualDensity]
+031743  165562  	IOX 1562	; FLP-PIO1/FLP1 Read Status Register 1 (RSR1) (Read) [b0=(not used); b1=Interrupt enabled; b2=Device busy; b3=Device ready for transfer; b4=Inclusive OR of status register 2 (error occurred); b5=Deleted data address mark (deleted record); b6=Read or write operation completed; b7=Seek or recalibrate completed; b8=Timeout (~1.5s); b9-11=UNCERTAIN (doc: formatting; emulator derives from buffer-address bits)]
 031744  004314  	STA -64
 031745  070320  	AND -60
 031746  172600  	AAA -200
@@ -13291,13 +13294,13 @@
 031750  124235  	JMP -143		; -> 031605
 031751  044315  	LDA -63
 031752  156410  	SHA ZIN 10
-031753  165567  	IOX 1567	; FLP1 Load Pointer Low (Write)
+031753  165567  	IOX 1567	; FLP-PIO1/FLP1 Write Sector (WSCT) (Write)
 031754  044017  	LDA 17
-031755  165563  	IOX 1563	; FLP1 Load Control (Write) [b1=IntEna; b2=Autoload; b3=Test; b4=Clear; b5=Streamer; b8=ExecCmd]
+031755  165563  	IOX 1563	; FLP-PIO1/FLP1 Write Control Word (WCWD) (Write) [b0=(not used); b1=Enable interrupt; b2=Autoload; b3=Test mode; b4=Device clear (deselects drive); b5=Clear interface buffer address; b6=Enable timeout; b7=(not used); b8=Format track command; b9=Write data command; b10=Write deleted data command; b11=Read ID command; b12=Read data command; b13=Seek command; b14=Recalibrate command; b15=Control reset]
 031756  044306  	LDA -72
 031757  060015  	ADD 15
 031760  004304  	STA -74
-031761  165562  	IOX 1562	; FLP1 Read Status 1 (Read) [b1=IntEna; b2=Active; b3=Ready; b4=ErrOR; b5=DelRec; b7=HardErr; b15=DualDensity]
+031761  165562  	IOX 1562	; FLP-PIO1/FLP1 Read Status Register 1 (RSR1) (Read) [b0=(not used); b1=Interrupt enabled; b2=Device busy; b3=Device ready for transfer; b4=Inclusive OR of status register 2 (error occurred); b5=Deleted data address mark (deleted record); b6=Read or write operation completed; b7=Seek or recalibrate completed; b8=Timeout (~1.5s); b9-11=UNCERTAIN (doc: formatting; emulator derives from buffer-address bits)]
 031762  175025  	BSKP ZRO 20 DA
 031763  124376  	JMP -2		; -> 031761
 031764  040276  	MIN -102
@@ -13498,7 +13501,7 @@
 032267  014375  	STX -3
 032270  055041  	LDX I 41
 032271  051041  	LDT I 41
-032272  143320  	LDATX
+032272  143320  	LDATX 2
 032273  070040  	AND 40
 032274  154401  	SHA 1
 032275  060037  	ADD 37
@@ -13714,7 +13717,7 @@
 032617  124002  	JMP 2		; -> 032621
 032620  146142  	EXIT
 032621  051104  	LDT I 104
-032622  143360  	LDATX
+032622  143360  	LDATX 6
 032623  175375  	BSKP ONE 170 DA
 032624  124004  	JMP 4		; -> 032630
 032625  146105  	RADD CLD 0 DA
@@ -13725,17 +13728,17 @@
 032632  146135  	RADD CLD SB DA
 032633  004354  	STA -24
 032634  051071  	LDT I 71
-032635  143371  	LDXTX
+032635  143371  	LDXTX 7
 032636  051070  	LDT I 70
 032637  150404  	POF
 032640  133014  	JXZ 14		; -> 032654
 032641  146171  	RADD CLD SX DD
 032642  156376  	SHD ZIN SHR 2
-032643  143330  	LDATX
+032643  143330  	LDATX 3
 032644  154401  	SHA 1
 032645  060062  	ADD 62
 032646  146153  	RADD CLD SA DB
-032647  143320  	LDATX
+032647  143320  	LDATX 2
 032650  074340  	ORA -40
 032651  020400  	STD ,B 0
 032652  143301  	LDXTX
@@ -13749,10 +13752,10 @@
 032662  000000  	STZ 0
 032663  133014  	JXZ 14		; -> 032677
 032664  050375  	LDT -3
-032665  143371  	LDXTX
+032665  143371  	LDXTX 7
 032666  050374  	LDT -4
 032667  133010  	JXZ 10		; -> 032677
-032670  143330  	LDATX
+032670  143330  	LDATX 3
 032671  154401  	SHA 1
 032672  060035  	ADD 35
 032673  146153  	RADD CLD SA DB
@@ -13765,19 +13768,19 @@
 032702  146142  	EXIT
 032703  014355  	STX -23
 032704  050355  	LDT -23
-032705  143360  	LDATX
+032705  143360  	LDATX 6
 032706  175375  	BSKP ONE 170 DA
 032707  124015  	JMP 15		; -> 032724
-032710  143371  	LDXTX
+032710  143371  	LDXTX 7
 032711  050351  	LDT -27
 032712  133012  	JXZ 12		; -> 032724
-032713  143330  	LDATX
+032713  143330  	LDATX 3
 032714  154401  	SHA 1
 032715  060012  	ADD 12
 032716  146153  	RADD CLD SA DB
 032717  044400  	LDA ,B 0
 032720  131002  	JAZ 2		; -> 032722
-032721  143324  	STATX
+032721  143324  	STATX 2
 032722  143301  	LDXTX
 032723  124367  	JMP -11		; -> 032712
 032724  146142  	EXIT
@@ -13928,9 +13931,9 @@
 033145  173767  	AAX -11
 033146  143300  	LDATX
 033147  146154  	RADD CLD SA DL
-033150  143312  	LDDTX
+033150  143312  	LDDTX 1
 033151  173774  	AAX -4
-033152  143316  	STDTX
+033152  143316  	STDTX 1
 033153  146145  	RADD CLD SL DA
 033154  143304  	STATX
 033155  173407  	AAX 7
@@ -13949,16 +13952,16 @@
 033172  061071  	ADD I 71
 033173  146157  	RADD CLD SA DX
 033174  051070  	LDT I 70
-033175  143371  	LDXTX
+033175  143371  	LDXTX 7
 033176  051067  	LDT I 67
 033177  133015  	JXZ 15		; -> 033214
 033200  146171  	RADD CLD SX DD
 033201  156376  	SHD ZIN SHR 2
-033202  143330  	LDATX
+033202  143330  	LDATX 3
 033203  154401  	SHA 1
 033204  060062  	ADD 62
 033205  146153  	RADD CLD SA DB
-033206  143320  	LDATX
+033206  143320  	LDATX 2
 033207  150404  	POF
 033210  020400  	STD ,B 0
 033211  150410  	PON
@@ -14264,7 +14267,7 @@
 033665  035204  	LDF I -174
 033666  004441  	STA ,B 41
 033667  057215  	LDX I ,X -163
-033670  164005  	IOX 5
+033670  164005  	IOX 5	; MEMPAR Write Data Register (IOX5) (Write)
 033671  100000  	FAD 0
 033672  034004  	LDF 4
 033673  033653  	STF I ,B ,X -125
@@ -14343,7 +14346,7 @@
 034004  040366  	MIN -12
 034005  124374  	JMP -4		; -> 034001
 034006  044101  	LDA 101
-034007  164013  	IOX 13	; RTC1 Write Control (Write) [b0=IntEna; b10-11=Freq; b13=ClrRdy; b15=Restart]
+034007  164013  	IOX 13	; RTC1 Write Control Register (Write) [b0=Enable interrupt on Ready for Transfer; b1=Return address on opcom segment (RETSG); b2-9=(unused); b10-11=Frequency select (0=Stop, 1=100us, 2=10us, 3=1us); b12=External Hold Enable (1=enable, 0=disable); b13=Clear Ready for Transfer flag; b14=Clear External Hold signal; b15=Restart clock (preset to N-1)]
 034010  174200  	BSET ONE SSPTM
 034011  045077  	LDA I 77
 034012  164011  	IOX 11	; RTC1 Clear Counter (Write)
@@ -17312,7 +17315,7 @@
 041635  146057  	RADD SA DX
 041636  051043  	LDT I 43
 041637  143305  	STZTX
-041640  143315  	STZTX
+041640  143315  	STZTX 1
 041641  146142  	EXIT
 041642  131026  	JAZ 26		; -> 041670
 041643  004745  	STA ,B -33
@@ -17443,21 +17446,21 @@
 042040  146115  	RADD CLD SD DA
 042041  154402  	SHA 2
 042042  061041  	ADD I 41
-042043  143374  	STATX
-042044  143320  	LDATX
+042043  143374  	STATX 7
+042044  143320  	LDATX 2
 042045  146151  	RADD CLD SA DD
-042046  143360  	LDATX
+042046  143360  	LDATX 6
 042047  174245  	BSET ONE 40 DA
 042050  020402  	STD ,B 2
 042051  044760  	LDA ,B -20
-042052  143334  	STATX
-042053  143371  	LDXTX
+042052  143334  	STATX 3
+042053  143371  	LDXTX 7
 042054  146174  	RADD CLD SX DL
 042055  051027  	LDT I 27
 042056  044760  	LDA ,B -20
 042057  131011  	JAZ 11		; -> 042070
 042060  044402  	LDA ,B 2
-042061  143326  	STDTX
+042061  143326  	STDTX 2
 042062  146401  	RADD AD1 0 DD
 042063  143301  	LDXTX
 042064  044760  	LDA ,B -20
@@ -17470,7 +17473,7 @@
 042073  044404  	LDA ,B 4
 042074  154402  	SHA 2
 042075  172403  	AAA 3
-042076  143314  	STATX
+042076  143314  	STATX 1
 042077  125750  	JMP I ,B -30		; -> 042047
 042100  000010  	STZ 10
 042101  004321  	STA -57
@@ -17638,7 +17641,7 @@
 042343  050311  	LDT -67
 042344  054751  	LDX ,B -27
 042345  143305  	STZTX
-042346  143315  	STZTX
+042346  143315  	STZTX 1
 042347  124341  	JMP -37		; -> 042310
 042350  032000  	STF ,X 0
 042351  000000  	STZ 0
@@ -19411,7 +19414,7 @@
 045720  000077  	STZ 77
 045721  062510  	ADD ,X ,B 110
 045722  062655  	ADD ,X ,B -123
-045723  164004  	IOX 4
+045723  164004  	IOX 4	; MEMPAR Read Parity Error Address (PEA / TRA PEA, IOX4) (Read)
 045724  062536  	ADD ,X ,B 136
 045725  004023  	STA 23
 045726  062512  	ADD ,X ,B 112
@@ -20153,7 +20156,7 @@
 047266  143306  	STDTX
 047267  146105  	RADD CLD 0 DA
 047270  146101  	RADD CLD 0 DD
-047271  143326  	STDTX
+047271  143326  	STDTX 2
 047272  173404  	AAX 4
 047273  040723  	MIN ,B -55
 047274  124361  	JMP -17		; -> 047255
@@ -20164,16 +20167,16 @@
 047301  055024  	LDX I 24
 047302  173404  	AAX 4
 047303  170407  	SAA 7
-047304  143314  	STATX
+047304  143314  	STATX 1
 047305  146175  	RADD CLD SX DA
 047306  055022  	LDX I 22
 047307  051022  	LDT I 22
-047310  143374  	STATX
+047310  143374  	STATX 7
 047311  055014  	LDX I 14
 047312  051014  	LDT I 14
 047313  146105  	RADD CLD 0 DA
 047314  174225  	BSET ONE 20 DA
-047315  143324  	STATX
+047315  143324  	STATX 2
 047316  143305  	STZTX
 047317  124013  	JMP 13		; -> 047332
 047320  042453  	MIN ,X ,B 53
@@ -20190,7 +20193,7 @@
 047333  055041  	LDX I 41
 047334  146175  	RADD CLD SX DA
 047335  143304  	STATX
-047336  143314  	STATX
+047336  143314  	STATX 1
 047337  015036  	STX I 36
 047340  044625  	LDA ,B -153
 047341  146151  	RADD CLD SA DD
@@ -20496,7 +20499,7 @@
 050015  051047  	LDT I 47
 050016  143302  	LDDTX
 050017  143305  	STZTX
-050020  143315  	STZTX
+050020  143315  	STZTX 1
 050021  131002  	JAZ 2		; -> 050023
 050022  134255  	JPL -123		; -> 047677
 050023  173402  	AAX 2
@@ -20618,10 +20621,10 @@
 050207  057050  	LDX I ,X 50
 050210  146057  	RADD SA DX
 050211  051047  	LDT I 47
-050212  143310  	LDATX
+050212  143310  	LDATX 1
 050213  135046  	JPL I 46		; -> 050261
-050214  143315  	STZTX
-050215  143325  	STZTX
+050214  143315  	STZTX 1
+050215  143325  	STZTX 2
 050216  054757  	LDX ,B -21
 050217  052003  	LDT ,X 3
 050220  156172  	SHT ZIN SHR 6
@@ -20632,8 +20635,8 @@
 050225  057032  	LDX I ,X 32
 050226  146057  	RADD SA DX
 050227  051031  	LDT I 31
-050230  143315  	STZTX
-050231  143325  	STZTX
+050230  143315  	STZTX 1
+050231  143325  	STZTX 2
 050232  054757  	LDX ,B -21
 050233  002002  	STZ ,X 2
 050234  002003  	STZ ,X 3
@@ -20841,9 +20844,9 @@
 050546  146157  	RADD CLD SA DX
 050547  051053  	LDT I 53
 050550  044406  	LDA ,B 6
-050551  143344  	STATX
+050551  143344  	STATX 4
 050552  044405  	LDA ,B 5
-050553  143334  	STATX
+050553  143334  	STATX 3
 050554  054407  	LDX ,B 7
 050555  050046  	LDT 46
 050556  146076  	RADD SX DT
@@ -20863,9 +20866,9 @@
 050574  061025  	ADD I 25
 050575  146157  	RADD CLD SA DX
 050576  051024  	LDT I 24
-050577  143350  	LDATX
+050577  143350  	LDATX 5
 050600  174215  	BSET ONE 10 DA
-050601  143354  	STATX
+050601  143354  	STATX 5
 050602  054776  	LDX ,B -2
 050603  056001  	LDX ,X 1
 050604  046001  	LDA ,X 1
@@ -20921,7 +20924,7 @@
 050666  061100  	ADD I 100
 050667  146157  	RADD CLD SA DX
 050670  051077  	LDT I 77
-050671  143330  	LDATX
+050671  143330  	LDATX 3
 050672  004405  	STA ,B 5
 050673  000757  	STZ ,B -21
 050674  045074  	LDA I 74
@@ -20931,7 +20934,7 @@
 050700  061066  	ADD I 66
 050701  146157  	RADD CLD SA DX
 050702  051065  	LDT I 65
-050703  143350  	LDATX
+050703  143350  	LDATX 5
 050704  175215  	BSKP ONE 10 DA
 050705  124002  	JMP 2		; -> 050707
 050706  001053  	STZ I 53
@@ -20947,7 +20950,7 @@
 050720  131406  	JAF 6		; -> 050726
 050721  044406  	LDA ,B 6
 050722  051045  	LDT I 45
-050723  143344  	STATX
+050723  143344  	STATX 4
 050724  060405  	ADD ,B 5
 050725  004406  	STA ,B 6
 050726  173410  	AAX 10
@@ -20957,13 +20960,13 @@
 050732  045036  	LDA I 36
 050733  131412  	JAF 12		; -> 050745
 050734  051033  	LDT I 33
-050735  143350  	LDATX
+050735  143350  	LDATX 5
 050736  174215  	BSET ONE 10 DA
-050737  143354  	STATX
+050737  143354  	STATX 5
 050740  173410  	AAX 10
-050741  143350  	LDATX
+050741  143350  	LDATX 5
 050742  174215  	BSET ONE 10 DA
-050743  143354  	STATX
+050743  143354  	STATX 5
 050744  173410  	AAX 10
 050745  040404  	MIN ,B 4
 050746  040404  	MIN ,B 4
@@ -21151,7 +21154,7 @@
 051234  061120  	ADD I 120
 051235  146157  	RADD CLD SA DX
 051236  051117  	LDT I 117
-051237  143330  	LDATX
+051237  143330  	LDATX 3
 051240  004405  	STA ,B 5
 051241  000757  	STZ ,B -21
 051242  044404  	LDA ,B 4
@@ -21165,15 +21168,15 @@
 051252  131406  	JAF 6		; -> 051260
 051253  044406  	LDA ,B 6
 051254  051101  	LDT I 101
-051255  143344  	STATX
+051255  143344  	STATX 4
 051256  060405  	ADD ,B 5
 051257  004406  	STA ,B 6
 051260  040757  	MIN ,B -21
 051261  124005  	JMP 5		; -> 051266
 051262  051073  	LDT I 73
-051263  143350  	LDATX
+051263  143350  	LDATX 5
 051264  174215  	BSET ONE 10 DA
-051265  143354  	STATX
+051265  143354  	STATX 5
 051266  040404  	MIN ,B 4
 051267  173410  	AAX 10
 051270  124352  	JMP -26		; -> 051242
@@ -21196,7 +21199,7 @@
 051311  061043  	ADD I 43
 051312  146157  	RADD CLD SA DX
 051313  051042  	LDT I 42
-051314  143330  	LDATX
+051314  143330  	LDATX 3
 051315  004405  	STA ,B 5
 051316  000757  	STZ ,B -21
 051317  044040  	LDA 40
@@ -21211,15 +21214,15 @@
 051330  131406  	JAF 6		; -> 051336
 051331  044406  	LDA ,B 6
 051332  051023  	LDT I 23
-051333  143344  	STATX
+051333  143344  	STATX 4
 051334  060405  	ADD ,B 5
 051335  004406  	STA ,B 6
 051336  040757  	MIN ,B -21
 051337  124005  	JMP 5		; -> 051344
 051340  051015  	LDT I 15
-051341  143350  	LDATX
+051341  143350  	LDATX 5
 051342  174215  	BSET ONE 10 DA
-051343  143354  	STATX
+051343  143354  	STATX 5
 051344  173410  	AAX 10
 051345  040404  	MIN ,B 4
 051346  124351  	JMP -27		; -> 051317
@@ -21248,12 +21251,12 @@
 051375  146157  	RADD CLD SA DX
 051376  051105  	LDT I 105
 051377  044406  	LDA ,B 6
-051400  143344  	STATX
+051400  143344  	STATX 4
 051401  045103  	LDA I 103
-051402  143334  	STATX
+051402  143334  	STATX 3
 051403  173410  	AAX 10
 051404  060406  	ADD ,B 6
-051405  143344  	STATX
+051405  143344  	STATX 4
 051406  173410  	AAX 10
 051407  044076  	LDA 76
 051410  061072  	ADD I 72
@@ -21261,7 +21264,7 @@
 051412  124007  	JMP 7		; -> 051421
 051413  045071  	LDA I 71
 051414  051067  	LDT I 67
-051415  143334  	STATX
+051415  143334  	STATX 3
 051416  173410  	AAX 10
 051417  173410  	AAX 10
 051420  124367  	JMP -11		; -> 051407
@@ -21274,7 +21277,7 @@
 051427  061053  	ADD I 53
 051430  146157  	RADD CLD SA DX
 051431  051052  	LDT I 52
-051432  143330  	LDATX
+051432  143330  	LDATX 3
 051433  005054  	STA I 54
 051434  124002  	JMP 2		; -> 051436
 051435  001052  	STZ I 52
@@ -21625,11 +21628,11 @@
 052166  146174  	RADD CLD SX DL
 052167  146105  	RADD CLD 0 DA
 052170  174225  	BSET ONE 20 DA
-052171  143324  	STATX
-052172  143310  	LDATX
+052171  143324  	STATX 2
+052172  143310  	LDATX 1
 052173  143301  	LDXTX
 052174  133002  	JXZ 2		; -> 052176
-052175  143314  	STATX
+052175  143314  	STATX 1
 052176  146171  	RADD CLD SX DD
 052177  146157  	RADD CLD SA DX
 052200  070020  	AND 20
@@ -21723,7 +21726,7 @@
 052330  146157  	RADD CLD SA DX
 052331  051023  	LDT I 23
 052332  170777  	SAA -1
-052333  143314  	STATX
+052333  143314  	STATX 1
 052334  040740  	MIN ,B -40
 052335  124365  	JMP -13		; -> 052322
 052336  055010  	LDX I 10
@@ -21998,7 +22001,7 @@
 052753  057005  	LDX I ,X 5
 052754  146067  	RADD ST DX
 052755  051004  	LDT I 4
-052756  143316  	STDTX
+052756  143316  	STDTX 1
 052757  146142  	EXIT
 052760  004327  	STA -51
 052761  006620  	STA ,X ,B -160
@@ -22169,7 +22172,7 @@
 053226  124005  	JMP 5		; -> 053233
 053227  050414  	LDT ,B 14
 053230  143305  	STZTX
-053231  143315  	STZTX
+053231  143315  	STZTX 1
 053232  124003  	JMP 3		; -> 053235
 053233  173402  	AAX 2
 053234  124363  	JMP -15		; -> 053217
@@ -22286,7 +22289,7 @@
 053413  146057  	RADD SA DX
 053414  051035  	LDT I 35
 053415  044356  	LDA -22
-053416  143314  	STATX
+053416  143314  	STATX 1
 053417  143305  	STZTX
 053420  174000  	BSET ZRO SSPTM
 053421  054354  	LDX -24
@@ -22305,10 +22308,10 @@
 053436  051013  	LDT I 13
 053437  044335  	LDA -43
 053440  143304  	STATX
-053441  143315  	STZTX
+053441  143315  	STZTX 1
 053442  131403  	JAF 3		; -> 053445
-053443  143325  	STZTX
-053444  143335  	STZTX
+053443  143325  	STZTX 2
+053444  143335  	STZTX 3
 053445  174000  	BSET ZRO SSPTM
 053446  146142  	EXIT
 053447  004327  	STA -51
@@ -22323,7 +22326,7 @@
 053460  156412  	SHA ZIN 12
 053461  146057  	RADD SA DX
 053462  050412  	LDT ,B 12
-053463  143310  	LDATX
+053463  143310  	LDATX 1
 053464  171377  	SAT -1
 053465  142065  	SKP IF DA UEQ ST
 053466  124011  	JMP 11		; -> 053477
@@ -22331,7 +22334,7 @@
 053470  124005  	JMP 5		; -> 053475
 053471  050412  	LDT ,B 12
 053472  143305  	STZTX
-053473  143315  	STZTX
+053473  143315  	STZTX 1
 053474  146142  	EXIT
 053475  173402  	AAX 2
 053476  124364  	JMP -14		; -> 053462
@@ -24741,7 +24744,7 @@
 060242  141476  	SKP IF DT MGRE SX
 060243  124013  	JMP 13		; -> 060256
 060244  051101  	LDT I 101
-060245  143312  	LDDTX
+060245  143312  	LDDTX 1
 060246  050361  	LDT -17
 060247  142065  	SKP IF DA UEQ ST
 060250  124003  	JMP 3		; -> 060253
@@ -24776,7 +24779,7 @@
 060305  124002  	JMP 2		; -> 060307
 060306  173401  	AAX 1
 060307  051036  	LDT I 36
-060310  143315  	STZTX
+060310  143315  	STZTX 1
 060311  146171  	RADD CLD SX DD
 060312  146175  	RADD CLD SX DA
 060313  054311  	LDX -67
@@ -25137,7 +25140,7 @@
 061056  004343  	STA -35
 061057  051075  	LDT I 75
 061060  055075  	LDX I 75
-061061  143371  	LDXTX
+061061  143371  	LDXTX 7
 061062  133007  	JXZ 7		; -> 061071
 061063  050335  	LDT -43
 061064  142067  	SKP IF DX UEQ ST
@@ -25147,7 +25150,7 @@
 061070  124372  	JMP -6		; -> 061062
 061071  135066  	JPL I 66		; -> 061157
 061072  051064  	LDT I 64
-061073  143310  	LDATX
+061073  143310  	LDATX 1
 061074  004326  	STA -52
 061075  044760  	LDA ,B -20
 061076  172777  	AAA -1
@@ -25169,7 +25172,7 @@
 061116  146157  	RADD CLD SA DX
 061117  133003  	JXZ 3		; -> 061122
 061120  044302  	LDA -76
-061121  143314  	STATX
+061121  143314  	STATX 1
 061122  044300  	LDA -100
 061123  070035  	AND 35
 061124  131405  	JAF 5		; -> 061131
@@ -25180,7 +25183,7 @@
 061131  051023  	LDT I 23
 061132  146175  	RADD CLD SX DA
 061133  055022  	LDX I 22
-061134  143374  	STATX
+061134  143374  	STATX 7
 061135  054263  	LDX -115
 061136  050263  	LDT -115
 061137  141476  	SKP IF DT MGRE SX
@@ -25188,7 +25191,7 @@
 061141  051015  	LDT I 15
 061142  146105  	RADD CLD 0 DA
 061143  174245  	BSET ONE 40 DA
-061144  143324  	STATX
+061144  143324  	STATX 2
 061145  173404  	AAX 4
 061146  133002  	JXZ 2		; -> 061150
 061147  124367  	JMP -11		; -> 061136
@@ -25950,7 +25953,7 @@
 062533  150206  	MCL PID
 062534  150206  	MCL PID
 062535  150206  	MCL PID
-062536  164004  	IOX 4
+062536  164004  	IOX 4	; MEMPAR Read Parity Error Address (PEA / TRA PEA, IOX4) (Read)
 062537  175025  	BSKP ZRO 20 DA
 062540  124372  	JMP -6		; -> 062532
 062541  044004  	LDA 4
@@ -26364,8 +26367,8 @@
 063371  007766  	STA I ,B ,X -12
 063372  144075  	SWAP SX DA
 063373  143305  	STZTX
-063374  143315  	STZTX
-063375  143325  	STZTX
+063374  143315  	STZTX 1
+063375  143325  	STZTX 2
 063376  144075  	SWAP SX DA
 063377  172403  	AAA 3
 063400  173401  	AAX 1
@@ -26378,8 +26381,8 @@
 063407  007765  	STA I ,B ,X -13
 063410  144075  	SWAP SX DA
 063411  143305  	STZTX
-063412  143315  	STZTX
-063413  143325  	STZTX
+063412  143315  	STZTX 1
+063413  143325  	STZTX 2
 063414  144075  	SWAP SX DA
 063415  172403  	AAA 3
 063416  173401  	AAX 1
@@ -26405,8 +26408,8 @@
 063442  143040  	SKP IF 0 LST SL
 063443  124007  	JMP 7		; -> 063452
 063444  143305  	STZTX
-063445  143315  	STZTX
-063446  143325  	STZTX
+063445  143315  	STZTX 1
+063446  143325  	STZTX 2
 063447  146204  	RADD CM1 0 DL
 063450  173403  	AAX 3
 063451  124371  	JMP -7		; -> 063442
@@ -31076,7 +31079,7 @@
 074541  005042  	STA I 42
 074542  174200  	BSET ONE SSPTM
 074543  124041  	JMP 41		; -> 074604
-074544  164005  	IOX 5
+074544  164005  	IOX 5	; MEMPAR Write Data Register (IOX5) (Write)
 074545  074662  	ORA ,B -116
 074546  076103  	ORA ,X 103
 074547  075774  	ORA I ,B -4
@@ -31154,8 +31157,8 @@
 074657  131404  	JAF 4		; -> 074663
 074660  000721  	STZ ,B -57
 074661  044703  	LDA ,B -75
-074662  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=IntEna; b2=Active; b4=Clear; b7-9=Unit; b11-14=OpCode; b15=CWR]
-074663  165544  	IOX 1544	; SMD1 Read Status/ECC Pattern (Read) [b0=IntEna; b2=Active; b3=Ready; b4=HwErr; b13=NotReady; b14=OnCyl; b15=CWR]
+074662  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=Enable interrupt on Not Active; b1=Enable interrupt on Errors; b2=Active (start operation, triggers seek); b3=Test Mode; b4=Device Clear; b5-6=Core address bits 16-17; b7-9=Unit Select (max 4 units); b10=Marginal Recovery Cycle; b11-14=Operation Code: 0=Read 1=Write 2=ReadParity 3=Compare 4=Seek 5=Format 6=SeekComplete 7=ReturnToZero 8=RunECC 9=SelectRelease; b15=CWR bit (register multiplex)]
+074663  165544  	IOX 1544	; SMD1 Read Status (CWR=0) / Read ECC Pattern (CWR=1) (Read) [b0=Interrupt Enabled; b1=Error Interrupt Enabled; b2=Active (controller busy); b3=Ready for Transfer; b4=Hardware Error (inclusive OR); b5=Illegal Load; b6=Timeout; b7=Hardware Error 2 (disk fault); b8=Address Mismatch; b9=(reserved); b10=Comparer Error; b11-12=(reserved); b13=Disk Unit Not Ready; b14=On Cylinder; b15=CWR bit (register multiplex)]
 074664  175025  	BSKP ZRO 20 DA
 074665  125122  	JMP I 122		; -> 075007
 074666  044743  	LDA ,B -35
@@ -31165,7 +31168,7 @@
 074672  156401  	SHA ZIN 1
 074673  124001  	JMP 1		; -> 074674
 074674  134124  	JPL 124		; -> 075020
-074675  165544  	IOX 1544	; SMD1 Read Status/ECC Pattern (Read) [b0=IntEna; b2=Active; b3=Ready; b4=HwErr; b13=NotReady; b14=OnCyl; b15=CWR]
+074675  165544  	IOX 1544	; SMD1 Read Status (CWR=0) / Read ECC Pattern (CWR=1) (Read) [b0=Interrupt Enabled; b1=Error Interrupt Enabled; b2=Active (controller busy); b3=Ready for Transfer; b4=Hardware Error (inclusive OR); b5=Illegal Load; b6=Timeout; b7=Hardware Error 2 (disk fault); b8=Address Mismatch; b9=(reserved); b10=Comparer Error; b11-12=(reserved); b13=Disk Unit Not Ready; b14=On Cylinder; b15=CWR bit (register multiplex)]
 074676  004702  	STA ,B -76
 074677  175365  	BSKP ONE 160 DA
 074700  134066  	JPL 66		; -> 074766
@@ -31248,7 +31251,7 @@
 075015  076057  	ORA ,X 57
 075016  075351  	ORA I -27
 075017  076055  	ORA ,X 55
-075020  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=IntEna; b2=Active; b4=Clear; b7-9=Unit; b11-14=OpCode; b15=CWR]
+075020  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=Enable interrupt on Not Active; b1=Enable interrupt on Errors; b2=Active (start operation, triggers seek); b3=Test Mode; b4=Device Clear; b5-6=Core address bits 16-17; b7-9=Unit Select (max 4 units); b10=Marginal Recovery Cycle; b11-14=Operation Code: 0=Read 1=Write 2=ReadParity 3=Compare 4=Seek 5=Format 6=SeekComplete 7=ReturnToZero 8=RunECC 9=SelectRelease; b15=CWR bit (register multiplex)]
 075021  146142  	EXIT
 075022  044702  	LDA ,B -76
 075023  070115  	AND 115
@@ -31304,7 +31307,7 @@
 075105  124022  	JMP 22		; -> 075127
 075106  070042  	AND 42
 075107  131420  	JAF 20		; -> 075127
-075110  165542  	IOX 1542	; SMD1 Read Seek Cond/ECC Count (Read) [b0-7=SeekComplete; b8-10=Unit; b11=SeekErr; b13=Correctable]
+075110  165542  	IOX 1542	; SMD1 Read Seek Condition (CWR=0) / Read ECC Count (CWR=1) (Read) [b0-7=Seek Complete status for units 0-7; b8-10=Unit number from last control word; b11=Seek Error for selected unit; b12=SMD 15MHz (always 1 for ND632); b13=ECC error is correctable; b14=ECC parity error (HW fault); b15=Last field read was address field]
 075111  175175  	BSKP ZRO 170 DA
 075112  124015  	JMP 15		; -> 075127
 075113  146156  	RADD CLD SA DT
@@ -31316,7 +31319,7 @@
 075121  044703  	LDA ,B -75
 075122  174375  	BSET ONE 170 DA
 075123  134275  	JPL -103		; -> 075020
-075124  165542  	IOX 1542	; SMD1 Read Seek Cond/ECC Count (Read) [b0-7=SeekComplete; b8-10=Unit; b11=SeekErr; b13=Correctable]
+075124  165542  	IOX 1542	; SMD1 Read Seek Condition (CWR=0) / Read ECC Count (CWR=1) (Read) [b0-7=Seek Complete status for units 0-7; b8-10=Unit number from last control word; b11=Seek Error for selected unit; b12=SMD 15MHz (always 1 for ND632); b13=ECC error is correctable; b14=ECC parity error (HW fault); b15=Last field read was address field]
 075125  064024  	SUB 24
 075126  131562  	JAF 162		; -> 075310
 075127  135023  	JPL I 23		; -> 075152
@@ -31345,7 +31348,7 @@
 075156  044703  	LDA ,B -75
 075157  174375  	BSET ONE 170 DA
 075160  134240  	JPL -140		; -> 075020
-075161  165544  	IOX 1544	; SMD1 Read Status/ECC Pattern (Read) [b0=IntEna; b2=Active; b3=Ready; b4=HwErr; b13=NotReady; b14=OnCyl; b15=CWR]
+075161  165544  	IOX 1544	; SMD1 Read Status (CWR=0) / Read ECC Pattern (CWR=1) (Read) [b0=Interrupt Enabled; b1=Error Interrupt Enabled; b2=Active (controller busy); b3=Ready for Transfer; b4=Hardware Error (inclusive OR); b5=Illegal Load; b6=Timeout; b7=Hardware Error 2 (disk fault); b8=Address Mismatch; b9=(reserved); b10=Comparer Error; b11-12=(reserved); b13=Disk Unit Not Ready; b14=On Cylinder; b15=CWR bit (register multiplex)]
 075162  171365  	SAT -13
 075163  010726  	STT ,B -52
 075164  171000  	SAT 0
@@ -31359,7 +31362,7 @@
 075174  146165  	RADD CLD ST DA
 075175  004725  	STA ,B -53
 075176  131112  	JAZ 112		; -> 075310
-075177  165542  	IOX 1542	; SMD1 Read Seek Cond/ECC Count (Read) [b0-7=SeekComplete; b8-10=Unit; b11=SeekErr; b13=Correctable]
+075177  165542  	IOX 1542	; SMD1 Read Seek Condition (CWR=0) / Read ECC Count (CWR=1) (Read) [b0-7=Seek Complete status for units 0-7; b8-10=Unit number from last control word; b11=Seek Error for selected unit; b12=SMD 15MHz (always 1 for ND632); b13=ECC error is correctable; b14=ECC parity error (HW fault); b15=Last field read was address field]
 075200  130510  	JAN 110		; -> 075310
 075201  004726  	STA ,B -52
 075202  172776  	AAA -2
@@ -31470,13 +31473,13 @@
 075353  170700  	SAA -100
 075354  154403  	SHA 3
 075355  004725  	STA ,B -53
-075356  165544  	IOX 1544	; SMD1 Read Status/ECC Pattern (Read) [b0=IntEna; b2=Active; b3=Ready; b4=HwErr; b13=NotReady; b14=OnCyl; b15=CWR]
+075356  165544  	IOX 1544	; SMD1 Read Status (CWR=0) / Read ECC Pattern (CWR=1) (Read) [b0=Interrupt Enabled; b1=Error Interrupt Enabled; b2=Active (controller busy); b3=Ready for Transfer; b4=Hardware Error (inclusive OR); b5=Illegal Load; b6=Timeout; b7=Hardware Error 2 (disk fault); b8=Address Mismatch; b9=(reserved); b10=Comparer Error; b11-12=(reserved); b13=Disk Unit Not Ready; b14=On Cylinder; b15=CWR bit (register multiplex)]
 075357  175165  	BSKP ZRO 160 DA
 075360  124003  	JMP 3		; -> 075363
 075361  040725  	MIN ,B -53
 075362  124374  	JMP -4		; -> 075356
 075363  044732  	LDA ,B -46
-075364  165543  	IOX 1543	; SMD1 Load Block Address (Write)
+075364  165543  	IOX 1543	; SMD1 Load Block Address I (CWR=0) / Load Block Address II (CWR=1) (Write)
 075365  044703  	LDA ,B -75
 075366  174375  	BSET ONE 170 DA
 075367  134142  	JPL 142		; -> 075531
@@ -31491,19 +31494,19 @@
 075400  174375  	BSET ONE 170 DA
 075401  174575  	BSET BCM 170 DA
 075402  060731  	ADD ,B -47
-075403  165543  	IOX 1543	; SMD1 Load Block Address (Write)
+075403  165543  	IOX 1543	; SMD1 Load Block Address I (CWR=0) / Load Block Address II (CWR=1) (Write)
 075404  135033  	JPL I 33		; -> 075437
 075405  044425  	LDA ,B 25
 075406  165541  	IOX 1541	; SMD1 Load Core Address (Write)
 075407  044426  	LDA ,B 26
 075410  165541  	IOX 1541	; SMD1 Load Core Address (Write)
 075411  044706  	LDA ,B -72
-075412  165547  	IOX 1547	; SMD1 Load Word Count/ECC Ctrl (Write)
+075412  165547  	IOX 1547	; SMD1 Load Word Count (CWR=0) / Load ECC Control (CWR=1) (Write)
 075413  044745  	LDA ,B -33
-075414  165547  	IOX 1547	; SMD1 Load Word Count/ECC Ctrl (Write)
+075414  165547  	IOX 1547	; SMD1 Load Word Count (CWR=0) / Load ECC Control (CWR=1) (Write)
 075415  044740  	LDA ,B -40
 075416  134113  	JPL 113		; -> 075531
-075417  165544  	IOX 1544	; SMD1 Read Status/ECC Pattern (Read) [b0=IntEna; b2=Active; b3=Ready; b4=HwErr; b13=NotReady; b14=OnCyl; b15=CWR]
+075417  165544  	IOX 1544	; SMD1 Read Status (CWR=0) / Read ECC Pattern (CWR=1) (Read) [b0=Interrupt Enabled; b1=Error Interrupt Enabled; b2=Active (controller busy); b3=Ready for Transfer; b4=Hardware Error (inclusive OR); b5=Illegal Load; b6=Timeout; b7=Hardware Error 2 (disk fault); b8=Address Mismatch; b9=(reserved); b10=Comparer Error; b11-12=(reserved); b13=Disk Unit Not Ready; b14=On Cylinder; b15=CWR bit (register multiplex)]
 075420  004702  	STA ,B -76
 075421  175225  	BSKP ONE 20 DA
 075422  125016  	JMP I 16		; -> 075440
@@ -31524,7 +31527,7 @@
 075441  142007  	SKP IF DX UEQ 0
 075442  125060  	JMP I 60		; -> 075522
 075443  000737  	STZ ,B -41
-075444  165542  	IOX 1542	; SMD1 Read Seek Cond/ECC Count (Read) [b0-7=SeekComplete; b8-10=Unit; b11=SeekErr; b13=Correctable]
+075444  165542  	IOX 1542	; SMD1 Read Seek Condition (CWR=0) / Read ECC Count (CWR=1) (Read) [b0-7=Seek Complete status for units 0-7; b8-10=Unit number from last control word; b11=Seek Error for selected unit; b12=SMD 15MHz (always 1 for ND632); b13=ECC error is correctable; b14=ECC parity error (HW fault); b15=Last field read was address field]
 075445  146156  	RADD CLD SA DT
 075446  044703  	LDA ,B -75
 075447  174375  	BSET ONE 170 DA
@@ -31532,7 +31535,7 @@
 075451  044730  	LDA ,B -50
 075452  146154  	RADD CLD SA DL
 075453  174314  	BSET ONE 110 DL
-075454  165544  	IOX 1544	; SMD1 Read Status/ECC Pattern (Read) [b0=IntEna; b2=Active; b3=Ready; b4=HwErr; b13=NotReady; b14=OnCyl; b15=CWR]
+075454  165544  	IOX 1544	; SMD1 Read Status (CWR=0) / Read ECC Pattern (CWR=1) (Read) [b0=Interrupt Enabled; b1=Error Interrupt Enabled; b2=Active (controller busy); b3=Ready for Transfer; b4=Hardware Error (inclusive OR); b5=Illegal Load; b6=Timeout; b7=Hardware Error 2 (disk fault); b8=Address Mismatch; b9=(reserved); b10=Comparer Error; b11-12=(reserved); b13=Disk Unit Not Ready; b14=On Cylinder; b15=CWR bit (register multiplex)]
 075455  070046  	AND 46
 075456  064046  	SUB 46
 075457  131005  	JAZ 5		; -> 075464
@@ -31577,7 +31580,7 @@
 075526  000030  	STZ 30
 075527  175045  	BSKP ZRO 40 DA
 075530  007000  	STA I ,X 0
-075531  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=IntEna; b2=Active; b4=Clear; b7-9=Unit; b11-14=OpCode; b15=CWR]
+075531  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=Enable interrupt on Not Active; b1=Enable interrupt on Errors; b2=Active (start operation, triggers seek); b3=Test Mode; b4=Device Clear; b5-6=Core address bits 16-17; b7-9=Unit Select (max 4 units); b10=Marginal Recovery Cycle; b11-14=Operation Code: 0=Read 1=Write 2=ReadParity 3=Compare 4=Seek 5=Format 6=SeekComplete 7=ReturnToZero 8=RunECC 9=SelectRelease; b15=CWR bit (register multiplex)]
 075532  146142  	EXIT
 075533  173777  	AAX -1
 075534  146071  	RADD SX DD
@@ -31728,14 +31731,14 @@
 075755  146542  	RADD AD1 CLD SL DP
 075756  044703  	LDA ,B -75
 075757  174375  	BSET ONE 170 DA
-075760  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=IntEna; b2=Active; b4=Clear; b7-9=Unit; b11-14=OpCode; b15=CWR]
+075760  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=Enable interrupt on Not Active; b1=Enable interrupt on Errors; b2=Active (start operation, triggers seek); b3=Test Mode; b4=Device Clear; b5-6=Core address bits 16-17; b7-9=Unit Select (max 4 units); b10=Marginal Recovery Cycle; b11-14=Operation Code: 0=Read 1=Write 2=ReadParity 3=Compare 4=Seek 5=Format 6=SeekComplete 7=ReturnToZero 8=RunECC 9=SelectRelease; b15=CWR bit (register multiplex)]
 075761  170401  	SAA 1
 075762  060676  	ADD ,B -102
-075763  165547  	IOX 1547	; SMD1 Load Word Count/ECC Ctrl (Write)
+075763  165547  	IOX 1547	; SMD1 Load Word Count (CWR=0) / Load ECC Control (CWR=1) (Write)
 075764  044703  	LDA ,B -75
-075765  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=IntEna; b2=Active; b4=Clear; b7-9=Unit; b11-14=OpCode; b15=CWR]
+075765  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=Enable interrupt on Not Active; b1=Enable interrupt on Errors; b2=Active (start operation, triggers seek); b3=Test Mode; b4=Device Clear; b5-6=Core address bits 16-17; b7-9=Unit Select (max 4 units); b10=Marginal Recovery Cycle; b11-14=Operation Code: 0=Read 1=Write 2=ReadParity 3=Compare 4=Seek 5=Format 6=SeekComplete 7=ReturnToZero 8=RunECC 9=SelectRelease; b15=CWR bit (register multiplex)]
 075766  146142  	EXIT
-075767  165544  	IOX 1544	; SMD1 Read Status/ECC Pattern (Read) [b0=IntEna; b2=Active; b3=Ready; b4=HwErr; b13=NotReady; b14=OnCyl; b15=CWR]
+075767  165544  	IOX 1544	; SMD1 Read Status (CWR=0) / Read ECC Pattern (CWR=1) (Read) [b0=Interrupt Enabled; b1=Error Interrupt Enabled; b2=Active (controller busy); b3=Ready for Transfer; b4=Hardware Error (inclusive OR); b5=Illegal Load; b6=Timeout; b7=Hardware Error 2 (disk fault); b8=Address Mismatch; b9=(reserved); b10=Comparer Error; b11-12=(reserved); b13=Disk Unit Not Ready; b14=On Cylinder; b15=CWR bit (register multiplex)]
 075770  170477  	SAA 77
 075771  070746  	AND ,B -32
 075772  172776  	AAA -2
@@ -31754,7 +31757,7 @@
 076007  070012  	AND 12
 076010  064010  	SUB 10
 076011  004007  	STA 7
-076012  165542  	IOX 1542	; SMD1 Read Seek Cond/ECC Count (Read) [b0-7=SeekComplete; b8-10=Unit; b11=SeekErr; b13=Correctable]
+076012  165542  	IOX 1542	; SMD1 Read Seek Condition (CWR=0) / Read ECC Count (CWR=1) (Read) [b0-7=Seek Complete status for units 0-7; b8-10=Unit number from last control word; b11=Seek Error for selected unit; b12=SMD 15MHz (always 1 for ND632); b13=ECC error is correctable; b14=ECC parity error (HW fault); b15=Last field read was address field]
 076013  175345  	BSKP ONE 140 DA
 076014  146542  	RADD AD1 CLD SL DP
 076015  044003  	LDA 3
@@ -31785,7 +31788,7 @@
 076046  146056  	RADD SA DT
 076047  170400  	SAA 0
 076050  134315  	JPL -63		; -> 075765
-076051  165542  	IOX 1542	; SMD1 Read Seek Cond/ECC Count (Read) [b0-7=SeekComplete; b8-10=Unit; b11=SeekErr; b13=Correctable]
+076051  165542  	IOX 1542	; SMD1 Read Seek Condition (CWR=0) / Read ECC Count (CWR=1) (Read) [b0-7=Seek Complete status for units 0-7; b8-10=Unit number from last control word; b11=Seek Error for selected unit; b12=SMD 15MHz (always 1 for ND632); b13=ECC error is correctable; b14=ECC parity error (HW fault); b15=Last field read was address field]
 076052  004101  	STA 101
 076053  134350  	JPL -30		; -> 076023
 076054  124034  	JMP 34		; -> 076110
@@ -31796,7 +31799,7 @@
 076061  044746  	LDA ,B -32
 076062  070066  	AND 66
 076063  146156  	RADD CLD SA DT
-076064  165542  	IOX 1542	; SMD1 Read Seek Cond/ECC Count (Read) [b0-7=SeekComplete; b8-10=Unit; b11=SeekErr; b13=Correctable]
+076064  165542  	IOX 1542	; SMD1 Read Seek Condition (CWR=0) / Read ECC Count (CWR=1) (Read) [b0-7=Seek Complete status for units 0-7; b8-10=Unit number from last control word; b11=Seek Error for selected unit; b12=SMD 15MHz (always 1 for ND632); b13=ECC error is correctable; b14=ECC parity error (HW fault); b15=Last field read was address field]
 076065  004066  	STA 66
 076066  175135  	BSKP ZRO 130 DA
 076067  174316  	BSET ONE 110 DT
@@ -31806,12 +31809,12 @@
 076073  070245  	AND -133
 076074  156401  	SHA ZIN 1
 076075  172420  	AAA 20
-076076  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=IntEna; b2=Active; b4=Clear; b7-9=Unit; b11-14=OpCode; b15=CWR]
+076076  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=Enable interrupt on Not Active; b1=Enable interrupt on Errors; b2=Active (start operation, triggers seek); b3=Test Mode; b4=Device Clear; b5-6=Core address bits 16-17; b7-9=Unit Select (max 4 units); b10=Marginal Recovery Cycle; b11-14=Operation Code: 0=Read 1=Write 2=ReadParity 3=Compare 4=Seek 5=Format 6=SeekComplete 7=ReturnToZero 8=RunECC 9=SelectRelease; b15=CWR bit (register multiplex)]
 076077  060045  	ADD 45
 076100  054053  	LDX 53
 076101  175347  	BSKP ONE 140 DX
 076102  174035  	BSET ZRO 30 DA
-076103  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=IntEna; b2=Active; b4=Clear; b7-9=Unit; b11-14=OpCode; b15=CWR]
+076103  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=Enable interrupt on Not Active; b1=Enable interrupt on Errors; b2=Active (start operation, triggers seek); b3=Test Mode; b4=Device Clear; b5-6=Core address bits 16-17; b7-9=Unit Select (max 4 units); b10=Marginal Recovery Cycle; b11-14=Operation Code: 0=Read 1=Write 2=ReadParity 3=Compare 4=Seek 5=Format 6=SeekComplete 7=ReturnToZero 8=RunECC 9=SelectRelease; b15=CWR bit (register multiplex)]
 076104  010746  	STT ,B -32
 076105  010727  	STT ,B -51
 076106  044702  	LDA ,B -76
@@ -31881,7 +31884,7 @@
 076206  044702  	LDA ,B -76
 076207  175305  	BSKP ONE 100 DA
 076210  125110  	JMP I 110		; -> 076320
-076211  165542  	IOX 1542	; SMD1 Read Seek Cond/ECC Count (Read) [b0-7=SeekComplete; b8-10=Unit; b11=SeekErr; b13=Correctable]
+076211  165542  	IOX 1542	; SMD1 Read Seek Condition (CWR=0) / Read ECC Count (CWR=1) (Read) [b0-7=Seek Complete status for units 0-7; b8-10=Unit number from last control word; b11=Seek Error for selected unit; b12=SMD 15MHz (always 1 for ND632); b13=ECC error is correctable; b14=ECC parity error (HW fault); b15=Last field read was address field]
 076212  175135  	BSKP ZRO 130 DA
 076213  124244  	JMP -134		; -> 076057
 076214  170401  	SAA 1
@@ -32267,7 +32270,7 @@
 077010  004024  	STA 24
 077011  004025  	STA 25
 077012  174200  	BSET ONE SSPTM
-077013  164504  	IOX 504
+077013  164504  	IOX 504	; HAWK1/WIN1 Read Status Register (Read) [b0=Ready for transfer / interrupt enabled; b1=Error interrupt enabled; b2=Device active; b3=Device ready for transfer; b4=Inclusive OR of errors (bits 5-11); b5=Write protect violation; b6=Timeout; b7=Hardware error; b8=Address mismatch; b9=Parity error; b10=Compare error; b11=Missing clock(s); b12=Transfer complete (word count reached 0); b13=Transfer on (read/write gate active); b14=On cylinder; b15=Loaded by previous control word / Write format]
 077014  004676  	STA ,B -102
 077015  175025  	BSKP ZRO 20 DA
 077016  125115  	JMP I 115		; -> 077133
@@ -32284,9 +32287,9 @@
 077031  044732  	LDA ,B -46
 077032  140005  	SKP IF DA EQL 0
 077033  125103  	JMP I 103		; -> 077136
-077034  164500  	IOX 500
+077034  164500  	IOX 500	; HAWK1/WIN1 Read Core Address (Read)
 077035  146156  	RADD CLD SA DT
-077036  164500  	IOX 500
+077036  164500  	IOX 500	; HAWK1/WIN1 Read Core Address (Read)
 077037  070100  	AND 100
 077040  144065  	SWAP ST DA
 077041  064744  	SUB ,B -34
@@ -32308,9 +32311,9 @@
 077061  070061  	AND 61
 077062  156403  	SHA ZIN 3
 077063  174245  	BSET ONE 40 DA
-077064  164505  	IOX 505
-077065  164505  	IOX 505
-077066  164504  	IOX 504
+077064  164505  	IOX 505	; HAWK1/WIN1 Load Control Word (Write) [b0=Enable interrupt on device ready; b1=Enable interrupt on errors; b2=Activate device; b3=Test mode; b4=Device clear; b5=Address bit 16; b6=Address bit 17; b7-8=(not assigned); b9-10=Unit select (00=Unit0 .. 11=Unit3) per doc; b11-12=Operation: 00=ReadTransfer 01=WriteTransfer 10=ReadParity 11=Compare; b13=(not assigned); b14=Marginal recovery; b15=Write format]
+077065  164505  	IOX 505	; HAWK1/WIN1 Load Control Word (Write) [b0=Enable interrupt on device ready; b1=Enable interrupt on errors; b2=Activate device; b3=Test mode; b4=Device clear; b5=Address bit 16; b6=Address bit 17; b7-8=(not assigned); b9-10=Unit select (00=Unit0 .. 11=Unit3) per doc; b11-12=Operation: 00=ReadTransfer 01=WriteTransfer 10=ReadParity 11=Compare; b13=(not assigned); b14=Marginal recovery; b15=Write format]
+077066  164504  	IOX 504	; HAWK1/WIN1 Read Status Register (Read) [b0=Ready for transfer / interrupt enabled; b1=Error interrupt enabled; b2=Device active; b3=Device ready for transfer; b4=Inclusive OR of errors (bits 5-11); b5=Write protect violation; b6=Timeout; b7=Hardware error; b8=Address mismatch; b9=Parity error; b10=Compare error; b11=Missing clock(s); b12=Transfer complete (word count reached 0); b13=Transfer on (read/write gate active); b14=On cylinder; b15=Loaded by previous control word / Write format]
 077067  004676  	STA ,B -102
 077070  000732  	STZ ,B -46
 077071  000725  	STZ ,B -53
@@ -32331,7 +32334,7 @@
 077110  125033  	JMP I 33		; -> 077143
 077111  000724  	STZ ,B -54
 077112  125023  	JMP I 23		; -> 077135
-077113  164004  	IOX 4
+077113  164004  	IOX 4	; MEMPAR Read Parity Error Address (PEA / TRA PEA, IOX4) (Read)
 077114  077535  	ORA I ,B ,X 135
 077115  077466  	ORA I ,B ,X 66
 077116  077227  	ORA I ,X -151
@@ -32358,7 +32361,7 @@
 077143  077547  	ORA I ,B ,X 147
 077144  077560  	ORA I ,B ,X 160
 077145  170420  	SAA 20
-077146  164505  	IOX 505
+077146  164505  	IOX 505	; HAWK1/WIN1 Load Control Word (Write) [b0=Enable interrupt on device ready; b1=Enable interrupt on errors; b2=Activate device; b3=Test mode; b4=Device clear; b5=Address bit 16; b6=Address bit 17; b7-8=(not assigned); b9-10=Unit select (00=Unit0 .. 11=Unit3) per doc; b11-12=Operation: 00=ReadTransfer 01=WriteTransfer 10=ReadParity 11=Compare; b13=(not assigned); b14=Marginal recovery; b15=Write format]
 077147  044746  	LDA ,B -32
 077150  175105  	BSKP ZRO 100 DA
 077151  125147  	JMP I 147		; -> 077320
@@ -32403,21 +32406,21 @@
 077220  044102  	LDA 102
 077221  004725  	STA ,B -53
 077222  004724  	STA ,B -54
-077223  164506  	IOX 506
+077223  164506  	IOX 506	; HAWK1/WIN1 Read Block Address (Seek instruction) (Read)
 077224  172777  	AAA -1
 077225  004720  	STA ,B -60
 077226  070075  	AND 75
-077227  164503  	IOX 503
+077227  164503  	IOX 503	; HAWK1/WIN1 Load Block Address (Write) [b0-4=Sector; b5=Surface (0=upper, 1=lower); b6-14=Cylinder; b15=Disk (1=fixed, 0=removable)]
 077230  004723  	STA ,B -55
 077231  044710  	LDA ,B -70
 077232  004726  	STA ,B -52
-077233  164501  	IOX 501
+077233  164501  	IOX 501	; HAWK1/WIN1 Load Core Address (Write)
 077234  044711  	LDA ,B -67
 077235  004744  	STA ,B -34
-077236  164501  	IOX 501
+077236  164501  	IOX 501	; HAWK1/WIN1 Load Core Address (Write)
 077237  170401  	SAA 1
 077240  004745  	STA ,B -33
-077241  164507  	IOX 507
+077241  164507  	IOX 507	; HAWK1/WIN1 Load Word Counter Register (Write)
 077242  050060  	LDT 60
 077243  125061  	JMP I 61		; -> 077324
 077244  044730  	LDA ,B -50
@@ -32453,7 +32456,7 @@
 077302  146165  	RADD CLD ST DA
 077303  156773  	SAD ZIN SHR 5
 077304  066741  	SUB ,X ,B -37
-077305  164507  	IOX 507
+077305  164507  	IOX 507	; HAWK1/WIN1 Load Word Counter Register (Write)
 077306  156173  	SHT ZIN SHR 5
 077307  012741  	STT ,X ,B -37
 077310  146105  	RADD CLD 0 DA
@@ -32479,8 +32482,8 @@
 077334  070054  	AND 54
 077335  156403  	SHA ZIN 3
 077336  174245  	BSET ONE 40 DA
-077337  164505  	IOX 505
-077340  164505  	IOX 505
+077337  164505  	IOX 505	; HAWK1/WIN1 Load Control Word (Write) [b0=Enable interrupt on device ready; b1=Enable interrupt on errors; b2=Activate device; b3=Test mode; b4=Device clear; b5=Address bit 16; b6=Address bit 17; b7-8=(not assigned); b9-10=Unit select (00=Unit0 .. 11=Unit3) per doc; b11-12=Operation: 00=ReadTransfer 01=WriteTransfer 10=ReadParity 11=Compare; b13=(not assigned); b14=Marginal recovery; b15=Write format]
+077340  164505  	IOX 505	; HAWK1/WIN1 Load Control Word (Write) [b0=Enable interrupt on device ready; b1=Enable interrupt on errors; b2=Activate device; b3=Test mode; b4=Device clear; b5=Address bit 16; b6=Address bit 17; b7-8=(not assigned); b9-10=Unit select (00=Unit0 .. 11=Unit3) per doc; b11-12=Operation: 00=ReadTransfer 01=WriteTransfer 10=ReadParity 11=Compare; b13=(not assigned); b14=Marginal recovery; b15=Write format]
 077341  044747  	LDA ,B -31
 077342  173777  	AAX -1
 077343  146071  	RADD SX DD
@@ -32505,7 +32508,7 @@
 077366  176575  	BLDC 170 DA
 077367  130002  	JAP 2		; -> 077371
 077370  146755  	RADD AD1 CM1 CLD SA DA
-077371  164507  	IOX 507
+077371  164507  	IOX 507	; HAWK1/WIN1 Load Word Counter Register (Write)
 077372  004736  	STA ,B -42
 077373  146105  	RADD CLD 0 DA
 077374  050672  	LDT ,B -106
@@ -32566,7 +32569,7 @@
 077463  046741  	LDA ,X ,B -37
 077464  156405  	SHA ZIN 5
 077465  145415  	RORA SD DA
-077466  164503  	IOX 503
+077466  164503  	IOX 503	; HAWK1/WIN1 Load Block Address (Write) [b0-4=Sector; b5=Surface (0=upper, 1=lower); b6-14=Cylinder; b15=Disk (1=fixed, 0=removable)]
 077467  004731  	STA ,B -47
 077470  044671  	LDA ,B -107
 077471  054751  	LDX ,B -27
@@ -32576,16 +32579,16 @@
 077475  144015  	SWAP SD DA
 077476  147155  	RADD ADC CLD SA DA
 077477  060425  	ADD ,B 25
-077500  164501  	IOX 501
+077500  164501  	IOX 501	; HAWK1/WIN1 Load Core Address (Write)
 077501  004726  	STA ,B -52
 077502  064042  	SUB 42
 077503  130047  	JAP 47		; -> 077552
 077504  146115  	RADD CLD SD DA
-077505  164501  	IOX 501
+077505  164501  	IOX 501	; HAWK1/WIN1 Load Core Address (Write)
 077506  004744  	STA ,B -34
 077507  146165  	RADD CLD ST DA
 077510  120671  	MPY ,B -107
-077511  164507  	IOX 507
+077511  164507  	IOX 507	; HAWK1/WIN1 Load Word Counter Register (Write)
 077512  004745  	STA ,B -33
 077513  170403  	SAA 3
 077514  070746  	AND ,B -32
@@ -32603,9 +32606,9 @@
 077530  070016  	AND 16
 077531  145465  	RORA ST DA
 077532  172405  	AAA 5
-077533  164505  	IOX 505
+077533  164505  	IOX 505	; HAWK1/WIN1 Load Control Word (Write) [b0=Enable interrupt on device ready; b1=Enable interrupt on errors; b2=Activate device; b3=Test mode; b4=Device clear; b5=Address bit 16; b6=Address bit 17; b7-8=(not assigned); b9-10=Unit select (00=Unit0 .. 11=Unit3) per doc; b11-12=Operation: 00=ReadTransfer 01=WriteTransfer 10=ReadParity 11=Compare; b13=(not assigned); b14=Marginal recovery; b15=Write format]
 077534  004740  	STA ,B -40
-077535  164504  	IOX 504
+077535  164504  	IOX 504	; HAWK1/WIN1 Read Status Register (Read) [b0=Ready for transfer / interrupt enabled; b1=Error interrupt enabled; b2=Device active; b3=Device ready for transfer; b4=Inclusive OR of errors (bits 5-11); b5=Write protect violation; b6=Timeout; b7=Hardware error; b8=Address mismatch; b9=Parity error; b10=Compare error; b11=Missing clock(s); b12=Transfer complete (word count reached 0); b13=Transfer on (read/write gate active); b14=On cylinder; b15=Loaded by previous control word / Write format]
 077536  175225  	BSKP ONE 20 DA
 077537  124023  	JMP 23		; -> 077562
 077540  004743  	STA ,B -35
@@ -32664,8 +32667,8 @@
 077625  131404  	JAF 4		; -> 077631
 077626  000721  	STZ ,B -57
 077627  044703  	LDA ,B -75
-077630  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=IntEna; b2=Active; b4=Clear; b7-9=Unit; b11-14=OpCode; b15=CWR]
-077631  165544  	IOX 1544	; SMD1 Read Status/ECC Pattern (Read) [b0=IntEna; b2=Active; b3=Ready; b4=HwErr; b13=NotReady; b14=OnCyl; b15=CWR]
+077630  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=Enable interrupt on Not Active; b1=Enable interrupt on Errors; b2=Active (start operation, triggers seek); b3=Test Mode; b4=Device Clear; b5-6=Core address bits 16-17; b7-9=Unit Select (max 4 units); b10=Marginal Recovery Cycle; b11-14=Operation Code: 0=Read 1=Write 2=ReadParity 3=Compare 4=Seek 5=Format 6=SeekComplete 7=ReturnToZero 8=RunECC 9=SelectRelease; b15=CWR bit (register multiplex)]
+077631  165544  	IOX 1544	; SMD1 Read Status (CWR=0) / Read ECC Pattern (CWR=1) (Read) [b0=Interrupt Enabled; b1=Error Interrupt Enabled; b2=Active (controller busy); b3=Ready for Transfer; b4=Hardware Error (inclusive OR); b5=Illegal Load; b6=Timeout; b7=Hardware Error 2 (disk fault); b8=Address Mismatch; b9=(reserved); b10=Comparer Error; b11-12=(reserved); b13=Disk Unit Not Ready; b14=On Cylinder; b15=CWR bit (register multiplex)]
 077632  175025  	BSKP ZRO 20 DA
 077633  125066  	JMP I 66		; -> 077721
 077634  044743  	LDA ,B -35
@@ -32675,7 +32678,7 @@
 077640  156401  	SHA ZIN 1
 077641  124001  	JMP 1		; -> 077642
 077642  134066  	JPL 66		; -> 077730
-077643  165544  	IOX 1544	; SMD1 Read Status/ECC Pattern (Read) [b0=IntEna; b2=Active; b3=Ready; b4=HwErr; b13=NotReady; b14=OnCyl; b15=CWR]
+077643  165544  	IOX 1544	; SMD1 Read Status (CWR=0) / Read ECC Pattern (CWR=1) (Read) [b0=Interrupt Enabled; b1=Error Interrupt Enabled; b2=Active (controller busy); b3=Ready for Transfer; b4=Hardware Error (inclusive OR); b5=Illegal Load; b6=Timeout; b7=Hardware Error 2 (disk fault); b8=Address Mismatch; b9=(reserved); b10=Comparer Error; b11-12=(reserved); b13=Disk Unit Not Ready; b14=On Cylinder; b15=CWR bit (register multiplex)]
 077644  004702  	STA ,B -76
 077645  175365  	BSKP ONE 160 DA
 077646  134036  	JPL 36		; -> 077704
@@ -32728,7 +32731,7 @@
 077725  100312  	FAD -66
 077726  100206  	FAD -172
 077727  100644  	FAD ,B -134
-077730  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=IntEna; b2=Active; b4=Clear; b7-9=Unit; b11-14=OpCode; b15=CWR]
+077730  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=Enable interrupt on Not Active; b1=Enable interrupt on Errors; b2=Active (start operation, triggers seek); b3=Test Mode; b4=Device Clear; b5-6=Core address bits 16-17; b7-9=Unit Select (max 4 units); b10=Marginal Recovery Cycle; b11-14=Operation Code: 0=Read 1=Write 2=ReadParity 3=Compare 4=Seek 5=Format 6=SeekComplete 7=ReturnToZero 8=RunECC 9=SelectRelease; b15=CWR bit (register multiplex)]
 077731  146142  	EXIT
 077732  044702  	LDA ,B -76
 077733  070077  	AND 77
@@ -32770,7 +32773,7 @@
 077777  124022  	JMP 22		; -> 100021
 100000  070042  	AND 42
 100001  131420  	JAF 20		; -> 100021
-100002  165542  	IOX 1542	; SMD1 Read Seek Cond/ECC Count (Read) [b0-7=SeekComplete; b8-10=Unit; b11=SeekErr; b13=Correctable]
+100002  165542  	IOX 1542	; SMD1 Read Seek Condition (CWR=0) / Read ECC Count (CWR=1) (Read) [b0-7=Seek Complete status for units 0-7; b8-10=Unit number from last control word; b11=Seek Error for selected unit; b12=SMD 15MHz (always 1 for ND632); b13=ECC error is correctable; b14=ECC parity error (HW fault); b15=Last field read was address field]
 100003  175175  	BSKP ZRO 170 DA
 100004  124015  	JMP 15		; -> 100021
 100005  146156  	RADD CLD SA DT
@@ -32782,7 +32785,7 @@
 100013  044703  	LDA ,B -75
 100014  174375  	BSET ONE 170 DA
 100015  134313  	JPL -65		; -> 077730
-100016  165542  	IOX 1542	; SMD1 Read Seek Cond/ECC Count (Read) [b0-7=SeekComplete; b8-10=Unit; b11=SeekErr; b13=Correctable]
+100016  165542  	IOX 1542	; SMD1 Read Seek Condition (CWR=0) / Read ECC Count (CWR=1) (Read) [b0-7=Seek Complete status for units 0-7; b8-10=Unit number from last control word; b11=Seek Error for selected unit; b12=SMD 15MHz (always 1 for ND632); b13=ECC error is correctable; b14=ECC parity error (HW fault); b15=Last field read was address field]
 100017  064024  	SUB 24
 100020  131555  	JAF 155		; -> 100175
 100021  135023  	JPL I 23		; -> 100044
@@ -32811,7 +32814,7 @@
 100050  044703  	LDA ,B -75
 100051  174375  	BSET ONE 170 DA
 100052  134256  	JPL -122		; -> 077730
-100053  165544  	IOX 1544	; SMD1 Read Status/ECC Pattern (Read) [b0=IntEna; b2=Active; b3=Ready; b4=HwErr; b13=NotReady; b14=OnCyl; b15=CWR]
+100053  165544  	IOX 1544	; SMD1 Read Status (CWR=0) / Read ECC Pattern (CWR=1) (Read) [b0=Interrupt Enabled; b1=Error Interrupt Enabled; b2=Active (controller busy); b3=Ready for Transfer; b4=Hardware Error (inclusive OR); b5=Illegal Load; b6=Timeout; b7=Hardware Error 2 (disk fault); b8=Address Mismatch; b9=(reserved); b10=Comparer Error; b11-12=(reserved); b13=Disk Unit Not Ready; b14=On Cylinder; b15=CWR bit (register multiplex)]
 100054  171365  	SAT -13
 100055  010726  	STT ,B -52
 100056  171000  	SAT 0
@@ -32825,7 +32828,7 @@
 100066  146165  	RADD CLD ST DA
 100067  004725  	STA ,B -53
 100070  131105  	JAZ 105		; -> 100175
-100071  165542  	IOX 1542	; SMD1 Read Seek Cond/ECC Count (Read) [b0-7=SeekComplete; b8-10=Unit; b11=SeekErr; b13=Correctable]
+100071  165542  	IOX 1542	; SMD1 Read Seek Condition (CWR=0) / Read ECC Count (CWR=1) (Read) [b0-7=Seek Complete status for units 0-7; b8-10=Unit number from last control word; b11=Seek Error for selected unit; b12=SMD 15MHz (always 1 for ND632); b13=ECC error is correctable; b14=ECC parity error (HW fault); b15=Last field read was address field]
 100072  130503  	JAN 103		; -> 100175
 100073  004726  	STA ,B -52
 100074  172776  	AAA -2
@@ -32929,30 +32932,30 @@
 100236  170700  	SAA -100
 100237  154403  	SHA 3
 100240  004725  	STA ,B -53
-100241  165544  	IOX 1544	; SMD1 Read Status/ECC Pattern (Read) [b0=IntEna; b2=Active; b3=Ready; b4=HwErr; b13=NotReady; b14=OnCyl; b15=CWR]
+100241  165544  	IOX 1544	; SMD1 Read Status (CWR=0) / Read ECC Pattern (CWR=1) (Read) [b0=Interrupt Enabled; b1=Error Interrupt Enabled; b2=Active (controller busy); b3=Ready for Transfer; b4=Hardware Error (inclusive OR); b5=Illegal Load; b6=Timeout; b7=Hardware Error 2 (disk fault); b8=Address Mismatch; b9=(reserved); b10=Comparer Error; b11-12=(reserved); b13=Disk Unit Not Ready; b14=On Cylinder; b15=CWR bit (register multiplex)]
 100242  175165  	BSKP ZRO 160 DA
 100243  124003  	JMP 3		; -> 100246
 100244  040725  	MIN ,B -53
 100245  124374  	JMP -4		; -> 100241
 100246  044732  	LDA ,B -46
-100247  165543  	IOX 1543	; SMD1 Load Block Address (Write)
+100247  165543  	IOX 1543	; SMD1 Load Block Address I (CWR=0) / Load Block Address II (CWR=1) (Write)
 100250  044703  	LDA ,B -75
 100251  174375  	BSET ONE 170 DA
 100252  134112  	JPL 112		; -> 100364
 100253  044731  	LDA ,B -47
-100254  165543  	IOX 1543	; SMD1 Load Block Address (Write)
+100254  165543  	IOX 1543	; SMD1 Load Block Address I (CWR=0) / Load Block Address II (CWR=1) (Write)
 100255  135033  	JPL I 33		; -> 100310
 100256  044425  	LDA ,B 25
 100257  165541  	IOX 1541	; SMD1 Load Core Address (Write)
 100260  044426  	LDA ,B 26
 100261  165541  	IOX 1541	; SMD1 Load Core Address (Write)
 100262  044706  	LDA ,B -72
-100263  165547  	IOX 1547	; SMD1 Load Word Count/ECC Ctrl (Write)
+100263  165547  	IOX 1547	; SMD1 Load Word Count (CWR=0) / Load ECC Control (CWR=1) (Write)
 100264  044745  	LDA ,B -33
-100265  165547  	IOX 1547	; SMD1 Load Word Count/ECC Ctrl (Write)
+100265  165547  	IOX 1547	; SMD1 Load Word Count (CWR=0) / Load ECC Control (CWR=1) (Write)
 100266  044740  	LDA ,B -40
 100267  134075  	JPL 75		; -> 100364
-100270  165544  	IOX 1544	; SMD1 Read Status/ECC Pattern (Read) [b0=IntEna; b2=Active; b3=Ready; b4=HwErr; b13=NotReady; b14=OnCyl; b15=CWR]
+100270  165544  	IOX 1544	; SMD1 Read Status (CWR=0) / Read ECC Pattern (CWR=1) (Read) [b0=Interrupt Enabled; b1=Error Interrupt Enabled; b2=Active (controller busy); b3=Ready for Transfer; b4=Hardware Error (inclusive OR); b5=Illegal Load; b6=Timeout; b7=Hardware Error 2 (disk fault); b8=Address Mismatch; b9=(reserved); b10=Comparer Error; b11-12=(reserved); b13=Disk Unit Not Ready; b14=On Cylinder; b15=CWR bit (register multiplex)]
 100271  004702  	STA ,B -76
 100272  175225  	BSKP ONE 20 DA
 100273  125016  	JMP I 16		; -> 100311
@@ -32973,7 +32976,7 @@
 100312  142007  	SKP IF DX UEQ 0
 100313  125044  	JMP I 44		; -> 100357
 100314  000737  	STZ ,B -41
-100315  165542  	IOX 1542	; SMD1 Read Seek Cond/ECC Count (Read) [b0-7=SeekComplete; b8-10=Unit; b11=SeekErr; b13=Correctable]
+100315  165542  	IOX 1542	; SMD1 Read Seek Condition (CWR=0) / Read ECC Count (CWR=1) (Read) [b0-7=Seek Complete status for units 0-7; b8-10=Unit number from last control word; b11=Seek Error for selected unit; b12=SMD 15MHz (always 1 for ND632); b13=ECC error is correctable; b14=ECC parity error (HW fault); b15=Last field read was address field]
 100316  146156  	RADD CLD SA DT
 100317  044703  	LDA ,B -75
 100320  174375  	BSET ONE 170 DA
@@ -32981,7 +32984,7 @@
 100322  044730  	LDA ,B -50
 100323  146154  	RADD CLD SA DL
 100324  174314  	BSET ONE 110 DL
-100325  165544  	IOX 1544	; SMD1 Read Status/ECC Pattern (Read) [b0=IntEna; b2=Active; b3=Ready; b4=HwErr; b13=NotReady; b14=OnCyl; b15=CWR]
+100325  165544  	IOX 1544	; SMD1 Read Status (CWR=0) / Read ECC Pattern (CWR=1) (Read) [b0=Interrupt Enabled; b1=Error Interrupt Enabled; b2=Active (controller busy); b3=Ready for Transfer; b4=Hardware Error (inclusive OR); b5=Illegal Load; b6=Timeout; b7=Hardware Error 2 (disk fault); b8=Address Mismatch; b9=(reserved); b10=Comparer Error; b11-12=(reserved); b13=Disk Unit Not Ready; b14=On Cylinder; b15=CWR bit (register multiplex)]
 100326  070032  	AND 32
 100327  064032  	SUB 32
 100330  131005  	JAZ 5		; -> 100335
@@ -33012,7 +33015,7 @@
 100361  134000  	JPL 0		; -> 100361
 100362  100623  	FAD ,B -155
 100363  007000  	STA I ,X 0
-100364  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=IntEna; b2=Active; b4=Clear; b7-9=Unit; b11-14=OpCode; b15=CWR]
+100364  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=Enable interrupt on Not Active; b1=Enable interrupt on Errors; b2=Active (start operation, triggers seek); b3=Test Mode; b4=Device Clear; b5-6=Core address bits 16-17; b7-9=Unit Select (max 4 units); b10=Marginal Recovery Cycle; b11-14=Operation Code: 0=Read 1=Write 2=ReadParity 3=Compare 4=Seek 5=Format 6=SeekComplete 7=ReturnToZero 8=RunECC 9=SelectRelease; b15=CWR bit (register multiplex)]
 100365  146142  	EXIT
 100366  173777  	AAX -1
 100367  146071  	RADD SX DD
@@ -33132,14 +33135,14 @@
 100551  146542  	RADD AD1 CLD SL DP
 100552  044703  	LDA ,B -75
 100553  174375  	BSET ONE 170 DA
-100554  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=IntEna; b2=Active; b4=Clear; b7-9=Unit; b11-14=OpCode; b15=CWR]
+100554  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=Enable interrupt on Not Active; b1=Enable interrupt on Errors; b2=Active (start operation, triggers seek); b3=Test Mode; b4=Device Clear; b5-6=Core address bits 16-17; b7-9=Unit Select (max 4 units); b10=Marginal Recovery Cycle; b11-14=Operation Code: 0=Read 1=Write 2=ReadParity 3=Compare 4=Seek 5=Format 6=SeekComplete 7=ReturnToZero 8=RunECC 9=SelectRelease; b15=CWR bit (register multiplex)]
 100555  170401  	SAA 1
 100556  060676  	ADD ,B -102
-100557  165547  	IOX 1547	; SMD1 Load Word Count/ECC Ctrl (Write)
+100557  165547  	IOX 1547	; SMD1 Load Word Count (CWR=0) / Load ECC Control (CWR=1) (Write)
 100560  044703  	LDA ,B -75
-100561  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=IntEna; b2=Active; b4=Clear; b7-9=Unit; b11-14=OpCode; b15=CWR]
+100561  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=Enable interrupt on Not Active; b1=Enable interrupt on Errors; b2=Active (start operation, triggers seek); b3=Test Mode; b4=Device Clear; b5-6=Core address bits 16-17; b7-9=Unit Select (max 4 units); b10=Marginal Recovery Cycle; b11-14=Operation Code: 0=Read 1=Write 2=ReadParity 3=Compare 4=Seek 5=Format 6=SeekComplete 7=ReturnToZero 8=RunECC 9=SelectRelease; b15=CWR bit (register multiplex)]
 100562  146142  	EXIT
-100563  165544  	IOX 1544	; SMD1 Read Status/ECC Pattern (Read) [b0=IntEna; b2=Active; b3=Ready; b4=HwErr; b13=NotReady; b14=OnCyl; b15=CWR]
+100563  165544  	IOX 1544	; SMD1 Read Status (CWR=0) / Read ECC Pattern (CWR=1) (Read) [b0=Interrupt Enabled; b1=Error Interrupt Enabled; b2=Active (controller busy); b3=Ready for Transfer; b4=Hardware Error (inclusive OR); b5=Illegal Load; b6=Timeout; b7=Hardware Error 2 (disk fault); b8=Address Mismatch; b9=(reserved); b10=Comparer Error; b11-12=(reserved); b13=Disk Unit Not Ready; b14=On Cylinder; b15=CWR bit (register multiplex)]
 100564  165540  	IOX 1540	; SMD1 Read Core Address (Read)
 100565  004124  	STA 124
 100566  064741  	SUB ,B -37
@@ -33154,7 +33157,7 @@
 100577  070012  	AND 12
 100600  064010  	SUB 10
 100601  004007  	STA 7
-100602  165542  	IOX 1542	; SMD1 Read Seek Cond/ECC Count (Read) [b0-7=SeekComplete; b8-10=Unit; b11=SeekErr; b13=Correctable]
+100602  165542  	IOX 1542	; SMD1 Read Seek Condition (CWR=0) / Read ECC Count (CWR=1) (Read) [b0-7=Seek Complete status for units 0-7; b8-10=Unit number from last control word; b11=Seek Error for selected unit; b12=SMD 15MHz (always 1 for ND632); b13=ECC error is correctable; b14=ECC parity error (HW fault); b15=Last field read was address field]
 100603  175345  	BSKP ONE 140 DA
 100604  146542  	RADD AD1 CLD SL DP
 100605  044003  	LDA 3
@@ -33184,7 +33187,7 @@
 100635  146056  	RADD SA DT
 100636  170400  	SAA 0
 100637  134322  	JPL -56		; -> 100561
-100640  165542  	IOX 1542	; SMD1 Read Seek Cond/ECC Count (Read) [b0-7=SeekComplete; b8-10=Unit; b11=SeekErr; b13=Correctable]
+100640  165542  	IOX 1542	; SMD1 Read Seek Condition (CWR=0) / Read ECC Count (CWR=1) (Read) [b0-7=Seek Complete status for units 0-7; b8-10=Unit number from last control word; b11=Seek Error for selected unit; b12=SMD 15MHz (always 1 for ND632); b13=ECC error is correctable; b14=ECC parity error (HW fault); b15=Last field read was address field]
 100641  004051  	STA 51
 100642  134350  	JPL -30		; -> 100612
 100643  124030  	JMP 30		; -> 100673
@@ -33195,7 +33198,7 @@
 100650  044746  	LDA ,B -32
 100651  070037  	AND 37
 100652  146156  	RADD CLD SA DT
-100653  165542  	IOX 1542	; SMD1 Read Seek Cond/ECC Count (Read) [b0-7=SeekComplete; b8-10=Unit; b11=SeekErr; b13=Correctable]
+100653  165542  	IOX 1542	; SMD1 Read Seek Condition (CWR=0) / Read ECC Count (CWR=1) (Read) [b0-7=Seek Complete status for units 0-7; b8-10=Unit number from last control word; b11=Seek Error for selected unit; b12=SMD 15MHz (always 1 for ND632); b13=ECC error is correctable; b14=ECC parity error (HW fault); b15=Last field read was address field]
 100654  004036  	STA 36
 100655  175135  	BSKP ZRO 130 DA
 100656  174316  	BSET ONE 110 DT
@@ -33205,12 +33208,12 @@
 100662  070253  	AND -125
 100663  156401  	SHA ZIN 1
 100664  172420  	AAA 20
-100665  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=IntEna; b2=Active; b4=Clear; b7-9=Unit; b11-14=OpCode; b15=CWR]
+100665  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=Enable interrupt on Not Active; b1=Enable interrupt on Errors; b2=Active (start operation, triggers seek); b3=Test Mode; b4=Device Clear; b5-6=Core address bits 16-17; b7-9=Unit Select (max 4 units); b10=Marginal Recovery Cycle; b11-14=Operation Code: 0=Read 1=Write 2=ReadParity 3=Compare 4=Seek 5=Format 6=SeekComplete 7=ReturnToZero 8=RunECC 9=SelectRelease; b15=CWR bit (register multiplex)]
 100666  060020  	ADD 20
 100667  054023  	LDX 23
 100670  175347  	BSKP ONE 140 DX
 100671  174035  	BSET ZRO 30 DA
-100672  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=IntEna; b2=Active; b4=Clear; b7-9=Unit; b11-14=OpCode; b15=CWR]
+100672  165545  	IOX 1545	; SMD1 Load Control Word (Write) [b0=Enable interrupt on Not Active; b1=Enable interrupt on Errors; b2=Active (start operation, triggers seek); b3=Test Mode; b4=Device Clear; b5-6=Core address bits 16-17; b7-9=Unit Select (max 4 units); b10=Marginal Recovery Cycle; b11-14=Operation Code: 0=Read 1=Write 2=ReadParity 3=Compare 4=Seek 5=Format 6=SeekComplete 7=ReturnToZero 8=RunECC 9=SelectRelease; b15=CWR bit (register multiplex)]
 100673  044703  	LDA ,B -75
 100674  172420  	AAA 20
 100675  135012  	JPL I 12		; -> 100707
@@ -33232,7 +33235,7 @@
 100715  044702  	LDA ,B -76
 100716  175305  	BSKP ONE 100 DA
 100717  125105  	JMP I 105		; -> 101024
-100720  165542  	IOX 1542	; SMD1 Read Seek Cond/ECC Count (Read) [b0-7=SeekComplete; b8-10=Unit; b11=SeekErr; b13=Correctable]
+100720  165542  	IOX 1542	; SMD1 Read Seek Condition (CWR=0) / Read ECC Count (CWR=1) (Read) [b0-7=Seek Complete status for units 0-7; b8-10=Unit number from last control word; b11=Seek Error for selected unit; b12=SMD 15MHz (always 1 for ND632); b13=ECC error is correctable; b14=ECC parity error (HW fault); b15=Last field read was address field]
 100721  175135  	BSKP ZRO 130 DA
 100722  124324  	JMP -54		; -> 100646
 100723  170401  	SAA 1
@@ -33432,7 +33435,7 @@
 101225  004024  	STA 24
 101226  004025  	STA 25
 101227  174200  	BSET ONE SSPTM
-101230  164504  	IOX 504
+101230  164504  	IOX 504	; HAWK1/WIN1 Read Status Register (Read) [b0=Ready for transfer / interrupt enabled; b1=Error interrupt enabled; b2=Device active; b3=Device ready for transfer; b4=Inclusive OR of errors (bits 5-11); b5=Write protect violation; b6=Timeout; b7=Hardware error; b8=Address mismatch; b9=Parity error; b10=Compare error; b11=Missing clock(s); b12=Transfer complete (word count reached 0); b13=Transfer on (read/write gate active); b14=On cylinder; b15=Loaded by previous control word / Write format]
 101231  004676  	STA ,B -102
 101232  175025  	BSKP ZRO 20 DA
 101233  125115  	JMP I 115		; -> 101350
@@ -33449,9 +33452,9 @@
 101246  044732  	LDA ,B -46
 101247  140005  	SKP IF DA EQL 0
 101250  125103  	JMP I 103		; -> 101353
-101251  164500  	IOX 500
+101251  164500  	IOX 500	; HAWK1/WIN1 Read Core Address (Read)
 101252  146156  	RADD CLD SA DT
-101253  164500  	IOX 500
+101253  164500  	IOX 500	; HAWK1/WIN1 Read Core Address (Read)
 101254  070100  	AND 100
 101255  144065  	SWAP ST DA
 101256  064744  	SUB ,B -34
@@ -33473,9 +33476,9 @@
 101276  070061  	AND 61
 101277  156403  	SHA ZIN 3
 101300  174245  	BSET ONE 40 DA
-101301  164505  	IOX 505
-101302  164505  	IOX 505
-101303  164504  	IOX 504
+101301  164505  	IOX 505	; HAWK1/WIN1 Load Control Word (Write) [b0=Enable interrupt on device ready; b1=Enable interrupt on errors; b2=Activate device; b3=Test mode; b4=Device clear; b5=Address bit 16; b6=Address bit 17; b7-8=(not assigned); b9-10=Unit select (00=Unit0 .. 11=Unit3) per doc; b11-12=Operation: 00=ReadTransfer 01=WriteTransfer 10=ReadParity 11=Compare; b13=(not assigned); b14=Marginal recovery; b15=Write format]
+101302  164505  	IOX 505	; HAWK1/WIN1 Load Control Word (Write) [b0=Enable interrupt on device ready; b1=Enable interrupt on errors; b2=Activate device; b3=Test mode; b4=Device clear; b5=Address bit 16; b6=Address bit 17; b7-8=(not assigned); b9-10=Unit select (00=Unit0 .. 11=Unit3) per doc; b11-12=Operation: 00=ReadTransfer 01=WriteTransfer 10=ReadParity 11=Compare; b13=(not assigned); b14=Marginal recovery; b15=Write format]
+101303  164504  	IOX 504	; HAWK1/WIN1 Read Status Register (Read) [b0=Ready for transfer / interrupt enabled; b1=Error interrupt enabled; b2=Device active; b3=Device ready for transfer; b4=Inclusive OR of errors (bits 5-11); b5=Write protect violation; b6=Timeout; b7=Hardware error; b8=Address mismatch; b9=Parity error; b10=Compare error; b11=Missing clock(s); b12=Transfer complete (word count reached 0); b13=Transfer on (read/write gate active); b14=On cylinder; b15=Loaded by previous control word / Write format]
 101304  004676  	STA ,B -102
 101305  000732  	STZ ,B -46
 101306  000725  	STZ ,B -53
@@ -33496,7 +33499,7 @@
 101325  125033  	JMP I 33		; -> 101360
 101326  000724  	STZ ,B -54
 101327  125023  	JMP I 23		; -> 101352
-101330  164004  	IOX 4
+101330  164004  	IOX 4	; MEMPAR Read Parity Error Address (PEA / TRA PEA, IOX4) (Read)
 101331  101752  	FAD I ,B -26
 101332  101703  	FAD I ,B -75
 101333  101444  	FAD I ,B 44
@@ -33523,7 +33526,7 @@
 101360  101764  	FAD I ,B -14
 101361  101775  	FAD I ,B -3
 101362  170420  	SAA 20
-101363  164505  	IOX 505
+101363  164505  	IOX 505	; HAWK1/WIN1 Load Control Word (Write) [b0=Enable interrupt on device ready; b1=Enable interrupt on errors; b2=Activate device; b3=Test mode; b4=Device clear; b5=Address bit 16; b6=Address bit 17; b7-8=(not assigned); b9-10=Unit select (00=Unit0 .. 11=Unit3) per doc; b11-12=Operation: 00=ReadTransfer 01=WriteTransfer 10=ReadParity 11=Compare; b13=(not assigned); b14=Marginal recovery; b15=Write format]
 101364  044746  	LDA ,B -32
 101365  175105  	BSKP ZRO 100 DA
 101366  125147  	JMP I 147		; -> 101535
@@ -33568,21 +33571,21 @@
 101435  044102  	LDA 102
 101436  004725  	STA ,B -53
 101437  004724  	STA ,B -54
-101440  164506  	IOX 506
+101440  164506  	IOX 506	; HAWK1/WIN1 Read Block Address (Seek instruction) (Read)
 101441  172777  	AAA -1
 101442  004720  	STA ,B -60
 101443  070075  	AND 75
-101444  164503  	IOX 503
+101444  164503  	IOX 503	; HAWK1/WIN1 Load Block Address (Write) [b0-4=Sector; b5=Surface (0=upper, 1=lower); b6-14=Cylinder; b15=Disk (1=fixed, 0=removable)]
 101445  004723  	STA ,B -55
 101446  044710  	LDA ,B -70
 101447  004726  	STA ,B -52
-101450  164501  	IOX 501
+101450  164501  	IOX 501	; HAWK1/WIN1 Load Core Address (Write)
 101451  044711  	LDA ,B -67
 101452  004744  	STA ,B -34
-101453  164501  	IOX 501
+101453  164501  	IOX 501	; HAWK1/WIN1 Load Core Address (Write)
 101454  170401  	SAA 1
 101455  004745  	STA ,B -33
-101456  164507  	IOX 507
+101456  164507  	IOX 507	; HAWK1/WIN1 Load Word Counter Register (Write)
 101457  050060  	LDT 60
 101460  125061  	JMP I 61		; -> 101541
 101461  044730  	LDA ,B -50
@@ -33618,7 +33621,7 @@
 101517  146165  	RADD CLD ST DA
 101520  156773  	SAD ZIN SHR 5
 101521  066741  	SUB ,X ,B -37
-101522  164507  	IOX 507
+101522  164507  	IOX 507	; HAWK1/WIN1 Load Word Counter Register (Write)
 101523  156173  	SHT ZIN SHR 5
 101524  012741  	STT ,X ,B -37
 101525  146105  	RADD CLD 0 DA
@@ -33644,8 +33647,8 @@
 101551  070054  	AND 54
 101552  156403  	SHA ZIN 3
 101553  174245  	BSET ONE 40 DA
-101554  164505  	IOX 505
-101555  164505  	IOX 505
+101554  164505  	IOX 505	; HAWK1/WIN1 Load Control Word (Write) [b0=Enable interrupt on device ready; b1=Enable interrupt on errors; b2=Activate device; b3=Test mode; b4=Device clear; b5=Address bit 16; b6=Address bit 17; b7-8=(not assigned); b9-10=Unit select (00=Unit0 .. 11=Unit3) per doc; b11-12=Operation: 00=ReadTransfer 01=WriteTransfer 10=ReadParity 11=Compare; b13=(not assigned); b14=Marginal recovery; b15=Write format]
+101555  164505  	IOX 505	; HAWK1/WIN1 Load Control Word (Write) [b0=Enable interrupt on device ready; b1=Enable interrupt on errors; b2=Activate device; b3=Test mode; b4=Device clear; b5=Address bit 16; b6=Address bit 17; b7-8=(not assigned); b9-10=Unit select (00=Unit0 .. 11=Unit3) per doc; b11-12=Operation: 00=ReadTransfer 01=WriteTransfer 10=ReadParity 11=Compare; b13=(not assigned); b14=Marginal recovery; b15=Write format]
 101556  044747  	LDA ,B -31
 101557  173777  	AAX -1
 101560  146071  	RADD SX DD
@@ -33670,7 +33673,7 @@
 101603  176575  	BLDC 170 DA
 101604  130002  	JAP 2		; -> 101606
 101605  146755  	RADD AD1 CM1 CLD SA DA
-101606  164507  	IOX 507
+101606  164507  	IOX 507	; HAWK1/WIN1 Load Word Counter Register (Write)
 101607  004736  	STA ,B -42
 101610  146105  	RADD CLD 0 DA
 101611  050672  	LDT ,B -106
@@ -33731,7 +33734,7 @@
 101700  046741  	LDA ,X ,B -37
 101701  156405  	SHA ZIN 5
 101702  145415  	RORA SD DA
-101703  164503  	IOX 503
+101703  164503  	IOX 503	; HAWK1/WIN1 Load Block Address (Write) [b0-4=Sector; b5=Surface (0=upper, 1=lower); b6-14=Cylinder; b15=Disk (1=fixed, 0=removable)]
 101704  004731  	STA ,B -47
 101705  044671  	LDA ,B -107
 101706  054751  	LDX ,B -27
@@ -33741,16 +33744,16 @@
 101712  144015  	SWAP SD DA
 101713  147155  	RADD ADC CLD SA DA
 101714  060425  	ADD ,B 25
-101715  164501  	IOX 501
+101715  164501  	IOX 501	; HAWK1/WIN1 Load Core Address (Write)
 101716  004726  	STA ,B -52
 101717  064042  	SUB 42
 101720  130047  	JAP 47		; -> 101767
 101721  146115  	RADD CLD SD DA
-101722  164501  	IOX 501
+101722  164501  	IOX 501	; HAWK1/WIN1 Load Core Address (Write)
 101723  004744  	STA ,B -34
 101724  146165  	RADD CLD ST DA
 101725  120671  	MPY ,B -107
-101726  164507  	IOX 507
+101726  164507  	IOX 507	; HAWK1/WIN1 Load Word Counter Register (Write)
 101727  004745  	STA ,B -33
 101730  170403  	SAA 3
 101731  070746  	AND ,B -32
@@ -33768,9 +33771,9 @@
 101745  070016  	AND 16
 101746  145465  	RORA ST DA
 101747  172405  	AAA 5
-101750  164505  	IOX 505
+101750  164505  	IOX 505	; HAWK1/WIN1 Load Control Word (Write) [b0=Enable interrupt on device ready; b1=Enable interrupt on errors; b2=Activate device; b3=Test mode; b4=Device clear; b5=Address bit 16; b6=Address bit 17; b7-8=(not assigned); b9-10=Unit select (00=Unit0 .. 11=Unit3) per doc; b11-12=Operation: 00=ReadTransfer 01=WriteTransfer 10=ReadParity 11=Compare; b13=(not assigned); b14=Marginal recovery; b15=Write format]
 101751  004740  	STA ,B -40
-101752  164504  	IOX 504
+101752  164504  	IOX 504	; HAWK1/WIN1 Read Status Register (Read) [b0=Ready for transfer / interrupt enabled; b1=Error interrupt enabled; b2=Device active; b3=Device ready for transfer; b4=Inclusive OR of errors (bits 5-11); b5=Write protect violation; b6=Timeout; b7=Hardware error; b8=Address mismatch; b9=Parity error; b10=Compare error; b11=Missing clock(s); b12=Transfer complete (word count reached 0); b13=Transfer on (read/write gate active); b14=On cylinder; b15=Loaded by previous control word / Write format]
 101753  175225  	BSKP ONE 20 DA
 101754  124023  	JMP 23		; -> 101777
 101755  004743  	STA ,B -35
@@ -33832,16 +33835,16 @@
 102045  144465  	RAND ST DA
 102046  050706  	LDT ,B -72
 102047  054707  	LDX ,B -71
-102050  143335  	STZTX
-102051  143345  	STZTX
-102052  143355  	STZTX
+102050  143335  	STZTX 3
+102051  143345  	STZTX 4
+102052  143355  	STZTX 5
 102053  172701  	AAA -77
 102054  131414  	JAF 14		; -> 102070
 102055  044077  	LDA 77
 102056  143304  	STATX
-102057  143315  	STZTX
+102057  143315  	STZTX 1
 102060  044075  	LDA 75
-102061  143324  	STATX
+102061  143324  	STATX 2
 102062  156750  	SAD ZIN SHR 30
 102063  020720  	STD ,B -60
 102064  024706  	LDD ,B -72
@@ -33853,8 +33856,8 @@
 102072  044064  	LDA 64
 102073  143304  	STATX
 102074  156740  	SAD ZIN SHR 40
-102075  143316  	STDTX
-102076  143336  	STDTX
+102075  143316  	STDTX 1
+102076  143336  	STDTX 3
 102077  024706  	LDD ,B -72
 102100  156601  	SAD ZIN 1
 102101  020716  	STD ,B -62
@@ -33887,11 +33890,11 @@
 102134  050706  	LDT ,B -72
 102135  146174  	RADD CLD SX DL
 102136  054707  	LDX ,B -71
-102137  143316  	STDTX
+102137  143316  	STDTX 1
 102140  146105  	RADD CLD 0 DA
 102141  146141  	RADD CLD SL DD
 102142  156610  	SAD ZIN 10
-102143  143336  	STDTX
+102143  143336  	STDTX 3
 102144  044751  	LDA ,B -27
 102145  156760  	SAD ZIN SHR 20
 102146  156612  	SAD ZIN 12
@@ -34041,7 +34044,7 @@
 102366  050706  	LDT ,B -72
 102367  054707  	LDX ,B -71
 102370  150110  	TRR CCL
-102371  143310  	LDATX
+102371  143310  	LDATX 1
 102372  156570  	SHA ZIN SHR 10
 102373  171006  	SAT 6
 102374  140065  	SKP IF DA EQL ST
@@ -34056,7 +34059,7 @@
 102405  050706  	LDT ,B -72
 102406  054707  	LDX ,B -71
 102407  150110  	TRR CCL
-102410  143330  	LDATX
+102410  143330  	LDATX 3
 102411  004765  	STA ,B -13
 102412  146107  	RADD CLD 0 DX
 102413  124016  	JMP 16		; -> 102431
@@ -34142,8 +34145,8 @@
 102533  171774  	SAX -4
 102534  146101  	RADD CLD 0 DD
 102535  044024  	LDA 24
-102536  164013  	IOX 13	; RTC1 Write Control (Write) [b0=IntEna; b10-11=Freq; b13=ClrRdy; b15=Restart]
-102537  164012  	IOX 12	; RTC1 Read Status (Read) [b0=IntEna; b2=ExtHold; b3=Ready]
+102536  164013  	IOX 13	; RTC1 Write Control Register (Write) [b0=Enable interrupt on Ready for Transfer; b1=Return address on opcom segment (RETSG); b2-9=(unused); b10-11=Frequency select (0=Stop, 1=100us, 2=10us, 3=1us); b12=External Hold Enable (1=enable, 0=disable); b13=Clear Ready for Transfer flag; b14=Clear External Hold signal; b15=Restart clock (preset to N-1)]
+102537  164012  	IOX 12	; RTC1 Read Status Register (Read) [b0=Interrupt Enabled - clock will interrupt on next pulse; b1=(unused); b2=External Hold Pulse received; b3=Ready for Transfer - clock pulse occurred; b4-15=(unused)]
 102540  175035  	BSKP ZRO 30 DA
 102541  124002  	JMP 2		; -> 102543
 102542  124375  	JMP -3		; -> 102537

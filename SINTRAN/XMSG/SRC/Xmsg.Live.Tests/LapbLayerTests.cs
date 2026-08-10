@@ -85,7 +85,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
 
         /// <summary>
         /// Two in-sequence I-frames are delivered and each acknowledged with an RR carrying the new
-        /// V(R); V(R) advances 0 -&gt; 1 -&gt; 2 (spec 4.4).
+        /// V(R); V(R) advances 0 -> 1 -> 2 (spec 4.4).
         /// </summary>
         [Fact]
         public void InSequenceInformation_Delivered_AdvancesVr_AcksRr()

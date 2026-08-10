@@ -41,7 +41,11 @@ def load_prog(path):
     return mem, info
 
 class Img:
-    """Adapter so nd100dis.dis_range(img,...) works (needs img.mem[addr])."""
+    """Adapter exposing img.mem[addr] for callers that want an address->word view.
+
+    (Formerly used by the in-repo nd100dis.py, which has been REMOVED - ND-100 disassembly
+    is done with nd100-dis. Flatten with prog2raw.py and disassemble that.)
+    """
     def __init__(self, mem):
         self.mem = mem
 

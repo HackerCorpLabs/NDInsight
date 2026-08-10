@@ -68,7 +68,7 @@
 065530  061074  	ADD I 74
 065531  146157  	RADD CLD SA DX
 065532  051073  	LDT I 73
-065533  143330  	LDATX			; physical read of a user-table entry
+065533  143330  	LDATX 3			; physical read of a user-table entry
 065534  050072  	LDT 72
 ; --- internal label MLSTO=065535B; the code flows straight through it ---
 065535  140065  	SKP IF DA EQL ST

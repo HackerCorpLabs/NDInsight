@@ -17,6 +17,11 @@ description: 'Executes a SINTRAN III command. Specify the command name and the p
 
   - It may be advisable to use @enable-escape before this call, to avoid having problems terminating some
   commands.'
+notes:
+- >-
+    Version history: M-version increased the maximum length of the command buffer
+    from 104 characters to 150 characters
+    (ND-860230-7A-EN SINTRAN III - Release Information - M-Version.md:1093).
 see_also:
 - CallCommand
 - SetCommandBuffer. CallCommand terminates the program if an error occurs

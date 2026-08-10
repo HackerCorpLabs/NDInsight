@@ -1,5 +1,26 @@
 # XMSG channel/sequence — analysis result (2026-07-03)
 
+> ## SUPERSEDED 2026-08-02 — do not send bytes planned from this file
+>
+> **There is no channel, no epoch, and no per-link seed.** Header word 6 is a ones-complement
+> checksum of words 0-5. See `XMSG-HEADER-WORD6-IS-A-CHECKSUM-2026-07-31.md` and
+> `XMSG-PROTOCOL.md` section 18.5 — carved from the XMSG kernel routine at `137314` and
+> verified on **3595 of 3595** frames, every subtype, both directions, every link.
+>
+> **Why "zero formula failures" across 601 data + 602 ACK frames did not catch this.** The
+> seed is *defined* below as `seed = (Counter + Flags1 + Flags2low) & 0xFF`, then learned per
+> frame from that same identity — so the sweep tested an algebraic restatement, not a
+> prediction. The other header words (markers, subtype, dest, src) never vary within a single
+> link, so their contribution is a constant that the fitted "seed" silently absorbed. A linear
+> function of the same words fits the same data by construction. **The check could not have
+> failed**, however many frames it ran over.
+>
+> This file still contains "Predicted bytes for the live node-102 bring-up" with hardcoded
+> Channel/Counter columns. A wrong word 6 is the documented `PERF_CONNCT` / 24B kernel crash —
+> so **do not transmit anything derived from those tables.** Compute the checksum instead.
+>
+> Retained for its capture annotations and the Flags1 sequence-continuation rules, which stand.
+
 Answer to the question posed in the MOTD bring-up problem statement: on which channel, with
 which Flags1 and Counter, must a freshly-started responder (node 102) send its first
 terminal-data frame so node 100 accepts it.

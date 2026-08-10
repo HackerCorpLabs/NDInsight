@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Xmsg.Api: the USER-FRIENDLY layer. It models the XMSG programming interface exactly as the
+    official manual describes it (ND-60.164.3 EN COSMOS Programmer Guide) - tasks, ports, magic
+    numbers, message buffers, the XF* function set (appendix A), the XROUT services (appendix B)
+    and the server/client model (chapter 4).
+
+    HARD RULE: this project owns NO wire bytes. Envelope/sequence/ACK behaviour stays in
+    Xmsg.Protocol; anything here that starts computing a Counter or a channel byte is a layering
+    leak. The only ProjectReference allowed is Xmsg.Protocol.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <RootNamespace>NDInsight.Sintran.Xmsg.Api</RootNamespace>
+    <AssemblyName>NDInsight.Sintran.Xmsg.Api</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Xmsg.Protocol\Xmsg.Protocol.csproj" />
+  </ItemGroup>
+
+</Project>

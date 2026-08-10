@@ -41,6 +41,8 @@ the privileged SINTRAN driver. On the ND-100 side the front door is `MON 60`/N50
 | `SINTRAN/ND500/nd-500-mon/nd-500-mon-j04-symtab2.sym` | Recovered symbol-table RESIDUE #2 (inter-bank padding) |
 | `SINTRAN/ND500/nd-500-mon/nd-500-control-store-debug-handoff.md` | RetroCore emulator control-store / TAG-OUT DMA "Unmapped memory" crash analysis |
 | `SINTRAN/ND500/nd-500-mon/ND500-BRINGUP-BUS-INTERFACE-FEEDBACK.md` | Bootstrap + bus-interface synthesis for the CPU-connect goal |
+| `SINTRAN/ND500/nd-500-mon/COMMAND-DISPATCH-TABLE-CARVED-2026-08-02.md` | **The outer command dispatch table** `[V]` - how an operator command name reaches its handler, plus the complete 151-command name -> handler map. Closes open question 9 |
+| `SINTRAN/ND500/nd-500-mon/RECOVER-DOMAIN-WORKER-AND-SEGMENT-LOAD-CARVED-2026-08-02.md` | **The PLACE call graph** `[V]` - RECOVER-DOMAIN -> handler -> worker -> START-PLACE / ISEGLOAD x2 / END-PLACE, all 159 MON 60 thunk call sites mapped, and the proof that the segment-load defect is NOT monitor-side |
 | `SINTRAN/ND500/nd-500-mon/mon60-callers/` | The MON 60 carve (see below) |
 
 Note: a `:PROG` file carries **no** symbol table; the two `.sym` files are a leaked

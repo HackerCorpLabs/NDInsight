@@ -6,7 +6,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
     /// own local echo.
     /// </summary>
     /// <remarks>
-    /// On the wire an ECKM message is <c>00 03 01 &lt;value&gt;</c> (the leading <c>0x00</c> is the
+    /// On the wire an ECKM message is <c>00 03 01 value</c> (the leading <c>0x00</c> is the
     /// spec 2.1 prefix). Only these three values appear in the captured logins; the NPL catalog defines
     /// strategies 1-7 with an optional 20-byte custom table, never seen on these links.
     /// </remarks>

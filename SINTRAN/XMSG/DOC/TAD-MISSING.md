@@ -12,7 +12,7 @@ see [TAD-Message-Formats.md](../../TAD/TAD-Message-Formats.md).
 
 **Primary evidence:** `new-conn-to-102-from-100.pcapng` (direct 100 to 102) and
 `conn-to-102-from103-via100.pcapng` (relayed via 100). Both are a single connect-to each. The
-implementation in `Xmsg.Live/Tad` tags every reconstructed value with `OBSERVED` /
+implementation in `Xmsg.Node/Tad` tags every reconstructed value with `OBSERVED` /
 `INFERRED` / `ASSUMED` / `VERIFIED` comments; this document is the prose companion to those
 tags.
 
@@ -189,6 +189,6 @@ size mismatch); the `ERRSP` / completion-code constants in the symbol tables.
 | Undocumented opcodes | not understood | Section 1 above. |
 | Flow control / timeouts / errors / clean teardown | missing | Sections 4-7 above. |
 
-The `Xmsg.Live/Tad` code is faithful to what was captured and refuses to fabricate beyond it;
+The `Xmsg.Node/Tad` code is faithful to what was captured and refuses to fabricate beyond it;
 it is NOT a general correct TAD implementation and must not be presented as one until the gaps
 above are closed.

@@ -34,7 +34,7 @@ namespace NDInsight.Sintran.Xmsg.Tests
         }
 
         /// <summary>
-        /// The seed is learned from any received frame: seed = (Counter + Flags1 + (Flags2 &amp; 0xFF)).
+        /// The seed is learned from any received frame: seed = (Counter + Flags1 + (Flags2 AND 0xFF)).
         /// </summary>
         [Fact]
         public void LearnSeed_RecoversTheLinkSeed()
@@ -49,7 +49,7 @@ namespace NDInsight.Sintran.Xmsg.Tests
 
         /// <summary>
         /// The full seed model (Counter + channel) for the predicted live node-102 bring-up
-        /// (100&lt;-&gt;102 seed 0x14), and for captured frames spanning epochs 0/1/2. Each row:
+        /// (100 to/from 102 seed 0x14), and for captured frames spanning epochs 0/1/2. Each row:
         /// Flags1, Flags2, XMCSM, expected Counter, expected channel.
         /// </summary>
         [Theory]

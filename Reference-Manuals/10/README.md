@@ -15,7 +15,7 @@ that preceded the ND-100.
 
 | Manuals | Total Lines |
 |---------|-------------|
-| **11** | ~50,300 |
+| **13** | ~58,600 |
 
 ---
 
@@ -42,6 +42,8 @@ that preceded the ND-100.
 | Manual | Document # | Lines | Description |
 |--------|-----------|-------|-------------|
 | **Cartridge Disc System for NORD-10** | ND-11.008.01 | 685 | Cartridge disc system for the NORD-10 |
+| **Cartridge Disc System for NORD-10 - Programming Specifications** | ND-11.008.01A | 749 | Revision A, December 1973 (A/S Norsk Data-Elektronikk imprint). 22 pages: system organization, then disc specifications - data format, capacity, access time, transfer rate, power requirement, environment. A later revision of the manual above; both are kept |
+| **HAWK Disk System** | ND-11.009.01 | 7,540 | The HAWK disk system, 168 pages - major components, the card cage, and the drive/system hardware, with figures, tables and a list of abbreviations. The matching controller manual, **ND-11.010.01 NORD-10/HAWK Disk Controller**, is filed with the device controllers in [../Devices/](../Devices/README.md) |
 
 ### Hardware & Wiring
 
@@ -52,7 +54,7 @@ that preceded the ND-100.
 | **Backwiring til NORD-10** | - | 3,202 | (NO) NORD-10 backplane wiring documentation |
 | **NORD-10 Design Goals** | - | 78 | Short note on the NORD-10 design goals |
 
-**Key Topics:** NORD-10 / NORD-10-S CPU architecture, microprogram, instruction set, NORD-50 communication, operator procedures, verification programs, cartridge disc, hardware drawings, backplane wiring
+**Key Topics:** NORD-10 / NORD-10-S CPU architecture, microprogram, instruction set, NORD-50 communication, operator procedures, verification programs, cartridge disc, HAWK disk system, hardware drawings, backplane wiring
 
 ---
 

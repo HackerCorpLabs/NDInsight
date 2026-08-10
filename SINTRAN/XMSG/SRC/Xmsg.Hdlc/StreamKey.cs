@@ -7,7 +7,7 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
     /// IPv4 address and port).
     /// </summary>
     /// <remarks>
-    /// The key is directional: <c>A-&gt;B</c> and <c>B-&gt;A</c> are two distinct
+    /// The key is directional: <c>A->B</c> and <c>B->A</c> are two distinct
     /// streams, mirroring how the reference validator reassembles each half of the
     /// TCP conversation independently.
     /// </remarks>
@@ -100,7 +100,7 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
         }
 
         /// <summary>
-        /// Formats the key as <c>src:port -&gt; dst:port</c> in dotted-quad notation.
+        /// Formats the key as <c>src:port -> dst:port</c> in dotted-quad notation.
         /// </summary>
         /// <returns>
         /// A human-readable representation of the flow.

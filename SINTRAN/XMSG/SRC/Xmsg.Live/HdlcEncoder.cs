@@ -14,7 +14,7 @@ namespace NDInsight.Sintran.Xmsg.Live
     /// <para><b>Framing</b></para>
     /// Steps, per XMSG-PROTOCOL.md section 2:
     ///  - compute the reflected CRC-16 over the body (poly <c>0x8408</c>, init <c>0xFFFF</c>).
-    ///  - transmit FCS = <c>(~crc) &amp; 0xFFFF</c>, stored low byte first, then high byte.
+    ///  - transmit FCS = <c>(~crc) AND 0xFFFF</c>, stored low byte first, then high byte.
     ///  - byte-stuff the body+FCS: every <c>0x7E</c> becomes <c>0x7D 0x5E</c> and every
     ///    <c>0x7D</c> becomes <c>0x7D 0x5D</c> (that is, escape then <c>byte XOR 0x20</c>).
     ///  - wrap with a single opening and closing <c>0x7E</c> flag.

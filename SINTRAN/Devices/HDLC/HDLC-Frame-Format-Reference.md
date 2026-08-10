@@ -343,7 +343,7 @@ T:=MASTB=:X.LMEM1              % bank bits
 FSERM=:X.LKEY                  % continuation key
 ```
 
-### 8.1 LKEY field bit layout  [VERIFIED]
+### 8.1 LKEY field bit layout  [PARTITION UNVERIFIED - see the correction in 8.2]
 
 ```
  15 14 13 12 11 10  9  8   7  6  5  4   3  2  1  0
@@ -355,7 +355,7 @@ FSERM=:X.LKEY                  % continuation key
                 bits 7-0 = chip control bits
 ```
 
-**Block status (bits 9–8):**
+**Block status — recorded values; bit positions UNVERIFIED (see 8.2):**
 
 | Bits 9–8 | LKEY base | Meaning                          |
 |---------:|----------:|----------------------------------|
@@ -374,9 +374,30 @@ FSERM=:X.LKEY                  % continuation key
 |  2  | 0x04  | TABORT | Transmit abort sequence              |
 |  3  | 0x08  | TGA    | Transmit Go-Ahead character          |
 
-### 8.2 The `FSERM` constant  [VERIFIED]
+### 8.2 The `FSERM` constant  [CORRECTED 2026-08-02]
 
-`FSERM = 002003 octal = 0x1003` (`SYMBOL-1-LIST.SYMB.TXT`).
+`FSERM = 002003 octal = **0x403**` (confirmed identical in the K03, L07 and M06
+`SYMBOL-1-LIST.SYMB.TXT`).
+
+> **CORRECTED 2026-08-02 — this read `0x1003`, an arithmetic error.** `002003` octal is 1027
+> decimal = `0x403`; `0x1003` is 4099. The document refutes itself: section 8.1 states
+> *"bit 10 = legal-key flag (must be 1)"*, and
+>
+> ```
+> 0x403  = 0000 0100 0000 0011   bit 10 SET    <- consistent with 8.1
+> 0x1003 = 0001 0000 0000 0011   bit 10 CLEAR  <- contradicts 8.1
+> ```
+>
+> The bit diagram below was drawn from the wrong value and is wrong with it. Note also that the
+> **field partition itself was never evidenced** — a symbol table gives values, not field
+> boundaries — and the "bits 9-8" block-status claim in 8.1 cannot be right either: a 2-bit
+> field holds four values and five are listed (three of them labelled `11`). The listed values
+> `0x0400/0x0600/0x0800/0x0A00/0x0C00` vary in **bits 11-9** (values 2..6), which would overlap
+> the bit-10 flag. At most one of those two claims can stand; neither is established.
+>
+> **To settle it:** pull the LKEY constants for all five states out of
+> `SYMBOL-1-LIST.SYMB.TXT` and find which contiguous bit range takes five distinct values, then
+> cross-check the COM5025 datasheet DCB status encoding.
 
 ```
  15 14 13 12 11 10  9  8   7  6  5  4   3  2  1  0

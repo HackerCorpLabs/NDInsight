@@ -1,0 +1,55 @@
+newmtl mat_Stand
+Kd 0.8392 0.8118 0.7216
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_Cabinet
+Kd 0.8392 0.8118 0.7216
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_Bezel
+Kd 0.1294 0.1098 0.1020
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_Screen
+Kd 0.0588 0.1294 0.0902
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_Badge
+Kd 0.8000 0.8000 0.8196
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_KeyboardCase
+Kd 0.8392 0.8118 0.7216
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_LegendStrip
+Kd 0.8510 0.5804 0.1804
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_KeysWhite
+Kd 0.9020 0.8784 0.8196
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_KeysOrange
+Kd 0.9020 0.6196 0.2000
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_KeysTan
+Kd 0.6392 0.5490 0.4510
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+
+newmtl mat_BadgeText
+Kd 0.1020 0.1020 0.1020
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+

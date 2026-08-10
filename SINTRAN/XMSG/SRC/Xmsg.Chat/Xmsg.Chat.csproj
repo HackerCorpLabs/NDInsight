@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Xmsg.Chat: a worked example of an XMSG APPLICATION - a named service several users join and
+    talk through. Nothing like it exists on any SINTRAN image we have, so the vocabulary in
+    ChatMessageKind is ours; everything it stands on (claiming a name, admission against a
+    free-connection count, learning a sender from an arrived message, port-to-port delivery) is
+    captured from a running machine.
+
+    HARD RULE: this project owns no wire bytes and no kernel behaviour. It talks to Xmsg.Api and
+    nothing else, so it doubles as the answer to "what does writing an XMSG program actually look
+    like?" - if something here has to reach past Xmsg.Api, that is a gap in Xmsg.Api, not a reason
+    to add a reference.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <RootNamespace>NDInsight.Sintran.Xmsg.Chat</RootNamespace>
+    <AssemblyName>NDInsight.Sintran.Xmsg.Chat</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Xmsg.Api\Xmsg.Api.csproj" />
+  </ItemGroup>
+
+</Project>

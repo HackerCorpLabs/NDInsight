@@ -17,15 +17,23 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// <summary>
         /// Loads the next outgoing <c>Flags1</c> to use for a remote node (0x0000 if none stored).
         /// </summary>
-        /// <param name="remoteNode">The remote system (node) number, e.g. 100.</param>
-        /// <returns>The next Flags1 value; 0x0000 for a first-ever contact.</returns>
+        /// <param name="remoteNode">
+        /// The remote system (node) number, e.g. 100.
+        /// </param>
+        /// <returns>
+        /// The next Flags1 value; 0x0000 for a first-ever contact.
+        /// </returns>
         ushort LoadNextFlags1(ushort remoteNode);
 
         /// <summary>
         /// Persists the next outgoing <c>Flags1</c> for a remote node (called after each Data frame).
         /// </summary>
-        /// <param name="remoteNode">The remote system (node) number.</param>
-        /// <param name="nextFlags1">The next Flags1 value to use for the following frame.</param>
+        /// <param name="remoteNode">
+        /// The remote system (node) number.
+        /// </param>
+        /// <param name="nextFlags1">
+        /// The next Flags1 value to use for the following frame.
+        /// </param>
         void SaveNextFlags1(ushort remoteNode, ushort nextFlags1);
     }
 }

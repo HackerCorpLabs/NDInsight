@@ -8,6 +8,12 @@ short_names:
 - FIXMEM
 description: Fixes a logical segment (either whole or in part) of a user's domain in physical memory. This action is intended to speed up access to the segment and is also useful for segment sharing.
 notes:
+- >-
+    Version history: M-version added three fix-type values that allow fixing pages
+    possibly above the old 32 Mbyte limit (up to 128 Mbyte) - 3 = fix pages
+    scattered above 32 Mbyte, 4 = fix pages contiguously above 32 Mbyte, 5 = fix
+    pages absolutely above 32 Mbyte (extending the existing types 0/1/2)
+    (ND-860230-7A-EN SINTRAN III - Release Information - M-Version.md:2214-2226).
 - Only data segments can be fixed.
 see_also:
 - MemoryUnfix

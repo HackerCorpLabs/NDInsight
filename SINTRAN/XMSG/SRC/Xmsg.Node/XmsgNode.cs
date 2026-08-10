@@ -29,8 +29,8 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// The trailing command byte placed in a reachability reply.
         /// </summary>
         /// <remarks>
-        /// OBSERVED: the captured 100-&gt;102 request carries trailing byte <c>0x08</c>
-        /// (Sync-Request) and the 102-&gt;100 reply carries <c>0x0E</c> (Sync-Response)
+        /// OBSERVED: the captured 100->102 request carries trailing byte <c>0x08</c>
+        /// (Sync-Request) and the 102->100 reply carries <c>0x0E</c> (Sync-Response)
         /// (XMSG-PROTOCOL.md sections 5.1 and 9.1). Only one request/reply pair exists in
         /// the corpus, so this is a fixed constant rather than a proven function of the
         /// request.
@@ -82,6 +82,21 @@ namespace NDInsight.Sintran.Xmsg.Node
         private readonly Dictionary<string, ushort> _remoteNames;
         private readonly SecureDatagramReceiver _receiver;
 
+        /// <summary>
+        /// Joins received fragment pairs back into whole data frames.
+        /// </summary>
+        /// <remarks>
+        /// A file-content message is 1032 bytes and arrives as two frames. Every path below the
+        /// dispatch in <see cref="HandleFrames"/> is gated on a data frame with a sub-header, so a
+        /// fragment reaches none of them - it has to be rejoined first. See
+        /// <see cref="SintranFragmentReassembler"/>.
+        /// </remarks>
+        // Its Log is wired in the constructor. Without that, a fragment pair that arrives and is
+        // silently dropped looks exactly like one that never arrived - which is what a live write
+        // against D100 on 2026-08-06 looked like: both halves of the client's data message on the
+        // wire, nothing stored, and a retransmit 39 seconds later.
+        private readonly SintranFragmentReassembler _fragments = new SintranFragmentReassembler();
+
         private ushort _outgoingDatagramSequence;
 
         // The per-link seed for the session ACK model, learned ONCE from the first valid data frame.
@@ -97,7 +112,7 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// Optional diagnostics sink for envelope anomalies (a received frame whose implied seed
         /// disagrees with the learned link seed — the out-of-model frame to hunt in a capture).
         /// </summary>
-        public Action<string>? Log { get; set; }
+        public XmsgLogHandler? Log { get; set; }
 
         /// <summary>
         /// Raised when a data frame is delivered to this node's application layer.
@@ -128,6 +143,10 @@ namespace NDInsight.Sintran.Xmsg.Node
             _remoteNames = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase);
             _receiver = new SecureDatagramReceiver(ackCounter);
             _receiver.OnReceived += RaiseDelivered;
+
+            // Forward the reassembler's own diagnostics to this node's sink, so a refused or held
+            // fragment says so instead of vanishing.
+            _fragments.Log += line => Log?.Invoke(line);
         }
 
         /// <summary>
@@ -240,8 +259,12 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// frames (secure ACK + connect-accept + greeting), which the single-frame
         /// <see cref="HandleFrame"/> cannot express.
         /// </summary>
-        /// <param name="incoming">The decoded received frame.</param>
-        /// <returns>The response frames, in transmit order (possibly empty).</returns>
+        /// <param name="incoming">
+        /// The decoded received frame.
+        /// </param>
+        /// <returns>
+        /// The response frames, in transmit order (possibly empty).
+        /// </returns>
         public IReadOnlyList<XmsgFrame> HandleFrames(XmsgFrame incoming)
         {
             if (incoming == null)
@@ -254,6 +277,20 @@ namespace NDInsight.Sintran.Xmsg.Node
                 throw new ArgumentNullException(nameof(incoming), "Frame header is null.");
             }
 
+            // REJOIN A SPLIT MESSAGE FIRST. A 1032-byte file-content message arrives as a first
+            // fragment (0x0A) and a continuation (0x0C), and every dispatch below is gated on a
+            // Data frame with a sub-header - so a fragment would reach none of them. Accept returns
+            // the frame unchanged when it is not a fragment, so the ordinary paths are untouched.
+            XmsgFrame? rejoined = _fragments.Accept(incoming);
+            if (rejoined == null)
+            {
+                // The first half of a message, or a fragment we cannot use. Nothing to answer yet -
+                // the reply belongs to the WHOLE message.
+                return Array.Empty<XmsgFrame>();
+            }
+
+            incoming = rejoined;
+
             // FRAMEWORK SERVER DISPATCH (the replacement for the TadResponder path below): route server
             // traffic - XSLET connect letters and session data - to the registered servers, secure-ACKing
             // each via the closed-form model seeded from the link seed. Reachability, list-route (XSGSY)
@@ -261,7 +298,7 @@ namespace NDInsight.Sintran.Xmsg.Node
             if (ServerHost != null
                 && incoming.Header.Subtype == SintranPacketSubtype.Data
                 && incoming.SubHeader != null
-                && incoming.SubHeader.ControlService != ListRoutingServer.XmcsmXsgsyRequest)
+                && incoming.ControlService != ListRoutingServer.XmcsmXsgsyRequest)
             {
                 List<XmsgFrame> served = new List<XmsgFrame>();
                 // Gate the secure-ACK on AcknowledgeTadFrames (the session-data ACK flag), NOT
@@ -370,7 +407,7 @@ namespace NDInsight.Sintran.Xmsg.Node
                 //     handshake proceeds, and if it carries terminal input (BDAT) send the menu
                 //     response too.
                 if (TadResponder.IsConnected
-                    && incoming.SubHeader.ControlService != ListRoutingServer.XmcsmXsgsyRequest)
+                    && incoming.ControlService != ListRoutingServer.XmcsmXsgsyRequest)
                 {
                     // Session data frames arrive on various channels (DC/DD/DE) but every ACK
                     // rides the one session-constant channel (connect+4), so pass it explicitly.
@@ -459,8 +496,12 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// any (reachability reply, list-route reply, or secure ACK). Use
         /// <see cref="HandleFrames"/> for paths that emit more than one frame.
         /// </summary>
-        /// <param name="incoming">The decoded received frame (its header selects the behaviour).</param>
-        /// <returns>The response frame, or <c>null</c> when none is needed.</returns>
+        /// <param name="incoming">
+        /// The decoded received frame (its header selects the behaviour).
+        /// </param>
+        /// <returns>
+        /// The response frame, or <c>null</c> when none is needed.
+        /// </returns>
         /// <exception cref="ArgumentNullException">
         /// Thrown when <paramref name="incoming"/> or its header is null.
         /// </exception>
@@ -525,22 +566,27 @@ namespace NDInsight.Sintran.Xmsg.Node
                     // response, unlike a bare 0x03 ACK).
                     if (RoutingTable != null
                         && incoming.SubHeader != null
-                        && incoming.SubHeader.ControlService == ListRoutingServer.XmcsmXsgsyRequest)
+                        && incoming.ControlService == ListRoutingServer.XmcsmXsgsyRequest)
                     {
-                        // Match the real 103 XSGSY response (device-online capture): the stateless
-                        // reply ECHOES the request's transport counters so the asker can correlate
-                        // it and advance. VERIFIED from the capture: for each request the response
-                        // carried the SAME Flags1 (datagram sequence) and the SAME counter byte
-                        // (e.g. req f1=0000/ctr=0x13 -> resp f1=0000/ctr=0x13; req f1=0001/ctr=0x12
-                        // -> resp f1=0001/ctr=0x12). It also echoes the request's Protocol ID
-                        // channel (DD here, not the DC default).
-                        byte requestCounter = incoming.SubHeader != null ? incoming.SubHeader.Counter : (byte)0;
+                        // Match the real 103 XSGSY response (device-online capture): the reply carries
+                        // the SAME Flags1 as the request, so the asker can correlate it.
+                        //
+                        // The capture ALSO shows the response carrying the same counter byte and
+                        // Protocol ID as its request (req f1=0000/ctr=0x13 -> resp f1=0000/ctr=0x13),
+                        // and this used to echo both explicitly. That is not an echo - it is
+                        // arithmetic. Those two bytes are the halves of word 6, which is a SUM over
+                        // words 0-5. A reply differs from its request only by swapping destination
+                        // and source node, and swapping two addends does not change a sum, so the
+                        // computed checksum comes out identical on its own.
+                        //
+                        // So the reply is now built with the checksum COMPUTED (2026-08-06) and the
+                        // echo dropped. ListRoutingTests still rebuilds the captured response byte
+                        // for byte, which is the proof that the arithmetic explanation is the right
+                        // one.
                         byte[] reply = _routingServer.Handle(
                             incoming,
                             RoutingTable,
-                            counter: requestCounter,
-                            flags1: incoming.Header.Flags1,
-                            protocolId: incoming.Header.ProtocolId);
+                            flags1: incoming.Header.Flags1);
                         return XmsgFrame.Parse(reply);
                     }
 
@@ -580,16 +626,17 @@ namespace NDInsight.Sintran.Xmsg.Node
             reply.Header.SourceNode = request.DestinationNode;
             reply.Header.Flags1 = 0xFFFF;                                    // broadcast marker
             reply.Header.Flags2 = 0x0001;
-            reply.Header.ProtocolId = request.ProtocolId;                    // 0xDE (ROUTING)
-
-            // INFERRED: the reply's trailing routing-counter byte = request counter + 6.
-            // Confirmed byte-identical against BOTH captured pairs (node 102: request 0x08
-            // -> reply 0x0E; node 103: request 0x07 -> reply 0x0D). The earlier fixed
-            // constant 0x0E was only correct for node 102. If a future capture contradicts
-            // the +6 rule, this is the line to revisit.
-            byte[]? reqTrailer = requestFrame.TrailingBytes;
-            byte requestCounter = (reqTrailer != null && reqTrailer.Length > 0) ? reqTrailer[0] : ReachabilityReplyCommand;
-            reply.TrailingBytes = new byte[] { (byte)((requestCounter + 6) & 0xFF) };
+            // DERIVED 2026-08-04, and it explains the old rule. Offsets 12-13 are header word 6,
+            // the ones-complement checksum over words 0-5, so the reply carries no trailing byte at
+            // all - the whole frame is fourteen bytes.
+            //
+            // The rule this replaces was "INFERRED: the reply's trailing byte = request byte + 6",
+            // fitted to both captured pairs (node 102: 0x08 -> 0x0E; node 103: 0x07 -> 0x0D). It is
+            // now a consequence rather than a guess: a reply differs from its request only in the
+            // subtype (0x19 request, 0x13 reply, difference 6) and in the swapped node numbers,
+            // which cancel in a sum. A sum six smaller complements to a value six LARGER, so the
+            // checksum low byte necessarily rises by 6 - exactly what both captures show.
+            XmsgEnvelope.StampChecksum(reply.Header);
             return reply;
         }
 
@@ -607,7 +654,7 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// <summary>
         /// Learns the per-link seed from the FIRST valid data frame and returns it; later frames only
         /// VALIDATE against it. The seed is a per-link constant (VERIFIED across every session,
-        /// reconnect and reboot in the corpus — 0x14 for 100&lt;-&gt;102), so re-learning per frame is
+        /// reconnect and reboot in the corpus — 0x14 for 100 to/from 102), so re-learning per frame is
         /// wrong: one out-of-model received frame would poison the seed for the frames we originate
         /// next (measured live 2026-07-07: a burst chunk carried the Counter for seed 0x16 instead of
         /// 0x14). A mismatch is logged with the offending frame's envelope — that frame is the thing
@@ -622,7 +669,7 @@ namespace NDInsight.Sintran.Xmsg.Node
         private byte LearnLinkSeedOnce(XmsgFrame incoming)
         {
             byte implied = XmsgEnvelope.LearnSeed(
-                incoming.Header!.Flags1, incoming.SubHeader!.Counter, incoming.Header.Flags2);
+                incoming.Header!.Flags1, incoming.Header!.Counter, incoming.Header.Flags2);
 
             if (!_linkSeedLearned)
             {
@@ -634,7 +681,7 @@ namespace NDInsight.Sintran.Xmsg.Node
             if (implied != _linkSeed)
             {
                 Log?.Invoke(
-                    $"[node] WARNING: frame from node {incoming.Header.SourceNode} F1=0x{incoming.Header.Flags1:X4} ctr=0x{incoming.SubHeader.Counter:X2} F2=0x{incoming.Header.Flags2:X4} implies seed 0x{implied:X2} but link seed is 0x{_linkSeed:X2} — keeping 0x{_linkSeed:X2} (out-of-model frame)");
+                    $"[node] WARNING: frame from node {incoming.Header.SourceNode} F1=0x{incoming.Header.Flags1:X4} ctr=0x{incoming.Header.Counter:X2} F2=0x{incoming.Header.Flags2:X4} implies seed 0x{implied:X2} but link seed is 0x{_linkSeed:X2} — keeping 0x{_linkSeed:X2} (out-of-model frame)");
             }
 
             return _linkSeed;

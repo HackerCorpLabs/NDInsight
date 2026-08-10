@@ -11,17 +11,35 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!--
+      The topology types are internal to this exe. The test project needs them so the ROUTING
+      decision - which link a datagram leaves by - can be tested rather than reasoned about.
+    -->
+    <InternalsVisibleTo Include="Xmsg.Live.Runner.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Xmsg.Protocol\Xmsg.Protocol.csproj" />
     <ProjectReference Include="..\Xmsg.Hdlc\Xmsg.Hdlc.csproj" />
     <ProjectReference Include="..\Xmsg.Live\Xmsg.Live.csproj" />
     <ProjectReference Include="..\Xmsg.Servers\Xmsg.Servers.csproj" />
     <ProjectReference Include="..\Xmsg.Diagnostics\Xmsg.Diagnostics.csproj" />
+    <!-- SintranFileName: turning a Windows file name into a SINTRAN one for the push option. The
+         rule is narrow (16-character name, 4-character type, dot becomes colon) and lives in one
+         place rather than being repeated here. -->
+    <ProjectReference Include="..\Xmsg.Sync\Xmsg.Sync.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- The checked-in topology is the source of truth; copy it next to the exe so the default
          run (with no config override) finds it right beside the executable. -->
     <None Include="topology.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- The D19999 topology was being hand-copied into bin; that is how a live run ends up on a
+         stale config. Copy it like the default one so the "config" option always finds the
+         checked-in file. -->
+    <None Include="topology-d19999.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -21,8 +21,12 @@ namespace NDInsight.Sintran.Xmsg.Codec
         /// <summary>
         /// Initialises the codec with its link identity and downward transport.
         /// </summary>
-        /// <param name="linkId">The link identity stamped on each up-event.</param>
-        /// <param name="transport">The downward transport sink.</param>
+        /// <param name="linkId">
+        /// The link identity stamped on each up-event.
+        /// </param>
+        /// <param name="transport">
+        /// The downward transport sink.
+        /// </param>
         public XmsgCodec(string linkId, IXmsgTransport transport)
             : base(linkId, transport)
         {

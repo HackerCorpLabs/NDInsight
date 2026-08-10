@@ -1,0 +1,27 @@
+[runner] topology loaded: self=19999, 3 node(s), file=topology-d19999-relay.json
+[runner] logging to E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-d19999-relay.log (level Info, max 2 MB, keep 3).
+2026-08-08 12:26:58.031 | [runner] Xmsg.Live.Runner v1.1.0.0 built 2026-08-08 12:26:41
+2026-08-08 12:26:58.033 | [runner] config folder: 
+2026-08-08 12:26:58.033 | [runner] config file:   topology-d19999-relay.json
+2026-08-08 12:26:58.034 | [runner] log folder:    E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0
+2026-08-08 12:26:58.034 | [runner] log file:      E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-d19999-relay.log
+2026-08-08 12:26:58.036 | [runner] path=seam connecting to 127.0.0.1:10364 as node 19999 for 200s
+2026-08-08 12:26:58.043 | [fa] connection numbers 0x06C2..0x0701 (state: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\fa-connection.state)
+2026-08-08 12:26:58.049 | [fa] file server ON as *FA-SERVER (logical port 4, wire port 0x0257)
+2026-08-08 12:26:58.049 | [fa] serving folder: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\served-files
+2026-08-08 12:26:58.055 | [fa] files visible now: 4
+2026-08-08 12:26:58.057 | [relay] listening on 10366 for the inbound bridge...
+2026-08-08 12:26:58.338 | [relay] inbound bridge connected on 10366
+2026-08-08 12:26:58.341 | [relay] outbound bridge connected to 127.0.0.1:10364
+2026-08-08 12:26:58.353 | [relay] node 19999: inbound link on 10366 reaches [103], outbound to 127.0.0.1:10364 reaches [100]
+2026-08-08 12:26:58.355 | [relay] SABM sent on both links; pumping...
+2026-08-08 12:26:58.357 | [relay] inbound link Stopped -> Starting (LAPB establishing)
+2026-08-08 12:26:58.359 | [relay] outbound link Stopped -> Starting (LAPB establishing)
+2026-08-08 12:26:58.598 | [relay] inbound link Starting -> Active (LAPB connected)
+2026-08-08 12:26:58.598 | [relay] announcing to inbound peer 103
+2026-08-08 12:26:58.612 | [relay] outbound link Starting -> Active (LAPB connected)
+2026-08-08 12:26:58.612 | [relay] announcing to outbound peer 100
+2026-08-08 12:26:58.663 | [in  RX] 103->19999 sub=InitializationNak f1=0xFFFF info=21FE00174E1F0067FFFFFFFD8F66
+2026-08-08 12:26:58.664 | [in  RX] 103->19999 sub=InitializationNak *** NO REPLY BUILT *** (this hangs the caller)
+2026-08-08 12:26:58.689 | [out RX] 100->19999 sub=InitializationNak f1=0xFFFF info=21FE00174E1F0064FFFFFFFD8F69
+2026-08-08 12:26:58.689 | [out RX] 100->19999 sub=InitializationNak *** NO REPLY BUILT *** (this hangs the caller)

@@ -1,0 +1,123 @@
+Àcc
+Àcc    ªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªª
+Àcc    ªª  ØMSG ótártõð íoäe file for ND-xxx ªªª  (ØMSG-SÔAÒÔÅØ-Ì:MÏDÅ©. ªª
+Àcc    ªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªª
+Àcc 
+Àcc    Ôèió ió áî ÅØAMPÌÅ of wèát á tùðicál ØMSG ótártõð file looëó liëe.
+Àcc    Ét coîtáiîó á óõðeróet (iî íoót cáóeó© of wèát á õóer woõlä îoríállù
+Àcc    reqõire. Ôèe ØMSG ótártõð file woõlä îoríállù âe iîöoëeä âù
+Àcc    oîe of tèe ÉNÉÔÉAÌ-ÃÏMMANDó
+Àcc
+Àcc    Æirót we ótárt ØMSG áîä wáit wèile tèe óeçíeîtó çet fixeä.
+ÀSÉNÔÒAN
+ÀSÔÏP-ØMSG
+ÀÅØ
+ÀHÏÌD 0 0
+ÀHÏÌD ² ²
+ÀSÉNÔÒAN
+ÀSÔAÒÔ-ØMSG
+ÀÅØ
+ÀHÏÌD 0 0
+ÀHÏÌD 3 ²
+Àcc
+Àcc    ×e îow çet tèe ØMSG-ÃÏMMAND ðroçráí to coîfiçõráte tèe óùóteí.
+Àcc    Defiîiîç óùíâolic îáíeó áîä îetworë toðoloçù cáî âe äoîe äùîáíicállù.
+Àcc
+Àcc    Note tèát áll liîeó tèát âeçiî witè '' áre coííeîtó tèát èáöe âeeî
+Àcc    iîóerteä to exðláiî wèát we áre äoiîç át tèió ðoiît. Ìiîeó tèát âeçiî
+Àcc    witè ' áre tèere to óëið tèe coííáîäó tèát áre oî tèe óáíe liîe¬
+Àcc    âõt wèicè coõlä âe õóefõl to tèe õóer.
+Àcc
+Àcc    Ôèe tráce ðárt of tèió file áre îoríállù îot ðerforíeä áîä óèoõlä îot âe
+Àcc    õîcoííeîteä õîleóó tráciîç áre îeeäeä.
+Àcc 
+Àcc ÀØMSG-ÃÏMMAND
+'' SÅÔ-PÒÉ                      Òeqõeót ØMSG to âecoíe á ðriöileçeä táóë
+''
+''     Ïðeî tèe tráce file áîä ótárt tráciîç:
+''
+'ÏPÅN-ÔÒAÃÅ¬¬¬               Ïðeî (ÒÔ©ØMSG-ÔÒAÃÅ:DAÔA (±0 ðáçeó coîtiçõoõó©
+''                           Stárt tráciîç tèeóe óõâóùóteíó:
+''                           (Hiît: rátèer tèáî táëiîç oõt õîwáîteä tráce¬
+''                                  jõót ðõt áî áðoótroðèe "'"  iîfroît!©
+'ÅNA-ÔÒA¬¬¸                  Uóer cálló to ØMSG
+'ÅNA-ÔÒA¬¬9                  Uóer retõrî froí ØMSG cálló
+'ÅNA-ÔÒA¬¬±±                 Ìiîë láùer: fráíeó receiöeä
+'ÅNA-ÔÒA¬¬±²                             âáä fráíeó receiöeä
+'ÅNA-ÔÒA¬¬±3                             fráíeó óeît
+'ÅNA-ÔÒA¬¬±´                 Net láùer:  iîcoíiîç íeóóáçe qõeõeä locállù
+'ÅNA-ÔÒA¬¬±5                             äátá fráíe receiöeä
+'ÅNA-ÔÒA¬¬±6                             fráíe (áîù tùðe© receiöeä
+'ÅNA-ÔÒA¬¬±·                             fráíe óeît
+'ÅNA-ÔÒA¬¬±¸                             coîtrol fráíe receiöeä
+'ÅNA-ÔÒA¬¬±9                 Ìiîë láùer: tráîóíit liót íoäificátioî
+'ÅNA-ÔÒA¬¬²0                             tráîóíitter ëicëeä
+'ÅNA-ÔÒA¬¬²±                 Net láùer:  ótárt îew oõtçoiîç íeóóáçe xíit.
+'ÅNA-ÔÒA¬¬²²                 Gátewáù:    fráíe äecèáiîeä oî iîðõt.
+''
+''     Defiîe ØMSG äõíð fileó.
+''     (Dõíð fileó SHÏUÌD álwáùó âe äefiîeä. Éf ØMSG cráóè¬ ØMSG will
+''      âe äõíðeä to tèeóe fileó for ðoót-íorteí iîöeótiçátioî âù ND.©
+'' 
+'DÅÆÉNÅ-DUMP-ÆÉÌÅS¬¬¬¬       Ôèe fileó (ÒÔ©ØMSG-SÅGMÅN-DUMP:DAÔA
+''                                     (ÒÔ©ØMSG-ÔABÌÅS-DUMP:DAÔA
+''                                     (ÒÔ©ØMSG-BUÆÆÅÒ-DUMP:DAÔA
+''                           áre äefiîeä áó äõíð fileó.
+''
+''     Defiîe ØMSG reótárt file áîä eîáâle áõto-reótárt of ØMSG.
+''     (Éf ØMSG cráóè¬ tèe reótárt file will âe áððeîäeä to tèe âátcè qõeõe.
+''      Note tèát tèe oõtðõt file of tùðe ÏUÔ íõót exiót.©
+''
+'DÅÆÉNÅ-ÒÅSÔAÒÔ-ÆÉÌÅS (UÔÉ©ØMSG-SÔAÒÔÅØ-Ì:BAÔÃ¬(SYS©ØMSG-SÔAÒÔ:ÏUÔ
+'AUÔÏ-ÒÅSÔAÒÔ-ÏN
+''
+''     ×e îow äefiîe óùíâolic îáíeó tèát we cáî õóe to refer to otèer óùóteíó:
+''
+'DÅÆ-ÒÅMÏÔÅ¬¬DÏÌÅ ²¸´
+'DÅÆ-ÒÅMÏÔÅ¬¬ND-²¸´ ²¸´
+'DÅÆ-ÒÅMÏÔÅ¬¬ÏÌÅ 3··
+'DÅÆ-ÒÅMÏÔÅ¬¬MAÉÌ 655
+''
+''     ×e îow äefiîe tèe roõte reqõireä to reácè óùóteíó tèát áre îot äirect
+''     îeiçèâoõró (óo e.ç. ND-²¸´ ió ácceóóiâle öiá ND-655©.
+''
+'DÅÆ-SYS-ÒÏU¬¬ND-²¸´¬MAÉÌ
+'DÅÆ-SYS-ÒÏU¬¬ÏÌÅ¬MAÉÌ
+''
+''     ×e îow ótárt tèe liîëó to îeiçèâoõró. HDÌÃ± ió loçicál õîit ±360B¬
+''     HDÌÃ² ió ±36²B¬...
+''
+'SÔAÒÔ-ÌÉNK¬±360¬¬¬-±¬¬
+''
+''     See èow tèiîçó áre çoiîç:
+''
+'ÌÉSÔ-ÌÉNK¬¬¬¬
+'ÌÉSÔ-NAMÅS¬¬¬¬
+'ÌÉSÔ-ÒÏUÔ¬¬¬¬
+''
+''     Dióáâle tèe tráce eleíeîtó tèát we äo îot îeeä át rõîtiíe. Éî
+''     tèió exáíðle we leáöe tèeí áll eîáâleä¬ âõt cloóe tèe tráce file
+''     âelow. Ôèió iíðlieó tèát if we re-oðeî tèe tráce láter (witè
+''     ÏPÅN-ÔÒAÃÅ¬ áll tèeóe óùóteíó will ótill âe eîáâleä©.
+''
+'DÉS-ÔÒA¬¬¸
+'DÉS-ÔÒA¬¬9
+'DÉS-ÔÒA¬¬±±
+'DÉS-ÔÒA¬¬±²
+'DÉS-ÔÒA¬¬±3
+'DÉS-ÔÒA¬¬±´
+'DÉS-ÔÒA¬¬±5
+'DÉS-ÔÒA¬¬±6
+'DÉS-ÔÒA¬¬±·
+'DÉS-ÔÒA¬¬±¸
+'DÉS-ÔÒA¬¬±9
+'DÉS-ÔÒA¬¬²0
+'DÉS-ÔÒA¬¬²±
+''
+''     Ãloóe tèe tráce file áîä ótoð tráciîç:
+''
+'ÃÌÏSÅ-ÔÒAÃÅ¬¬¬
+''
+''     Ôeríiîáte ØMSG coííáîä-ðroçráí:
+''
+'ÅØÉÔ

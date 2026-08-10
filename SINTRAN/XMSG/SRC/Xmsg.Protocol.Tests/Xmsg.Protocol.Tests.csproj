@@ -19,6 +19,7 @@
     <ProjectReference Include="..\Xmsg.Protocol\Xmsg.Protocol.csproj" />
     <ProjectReference Include="..\Xmsg.Hdlc\Xmsg.Hdlc.csproj" />
     <ProjectReference Include="..\Xmsg.Diagnostics\Xmsg.Diagnostics.csproj" />
+    <ProjectReference Include="..\Xmsg.TestSupport\Xmsg.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>

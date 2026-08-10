@@ -54,13 +54,56 @@ RLPAG 50635  BSET ZRO SSK   ; SSK=0
       50636  BSET ZRO SSM   ; SSM=0  -> "mark free"
 ```
 
-The shared body (50637B+) computes the word address of the target bit, reads the
-old value (`BSTA 0 DX` captures the previous bit), then sets or clears bit 10 of
-the word per SSM (50645-50651: `BSKP ONE SSM` -> `BSET ONE 10 DX` else
-`BSET ZRO 10 DX`), and updates the free-page count. SSK selects whether the
-previous value is returned / checked. This is the classic bitmap set-bit /
-clear-bit with the free counter maintained alongside. (VERIFIED from the bytes;
-the exact free-counter field offset is INFERRED.)
+The shared body (50637B+) builds a small **flag word in register X** and hands it
+to two helpers that do the actual bitmap read-modify-write:
+
+```
+050637  021143  STD I 143
+050640  146145  RADD CLD SL DA
+050641  146131  RADD CLD SB DD
+050642  170012  SAB 12
+050643  135140  JPL I 140        ; call via pointer slot 051003
+050644  176207  BSTA 0 DX        ; X bit 0 <- previous value of the page's bit
+050645  175270  BSKP ONE SSM
+050646  124003  JMP 3            ; -> 050651
+050647  174217  BSET ONE 10 DX   ; X bit 1 <- 1   (request "used")
+050650  124002  JMP 2            ; -> 050652
+050651  174017  BSET ZRO 10 DX   ; X bit 1 <- 0   (request "free")
+050652  014411  STX ,B 11        ; save the flag word in the frame
+050653  050401  LDT ,B 1
+050654  135130  JPL I 130        ; call via pointer slot 051004
+```
+
+So X carries **bit 0 = the page's previous state, bit 1 = the requested new
+state**. It is not the bitmap word itself; the word is fetched and written back
+inside the two helpers. The saved flag word is re-tested later at 050675
+(`LDA ,B 11` / `BSKP ZRO 10 DA`). SSK selects whether the previous value is
+returned / checked, and the free-page count is updated at 050656-050665.
+
+**`BSET ONE 10 DX` is bit 1, not bit 10.** The disassembler prints the
+bit-number field pre-shifted, exactly as
+[../on-disk-format/extended-info-block.md](../on-disk-format/extended-info-block.md)
+section 3 states. In a `1740xx` word the low byte is
+`[7] = ONE/ZRO, [6:3] = bit number, [2:0] = register`:
+
+| instruction | low byte | bit no. | register |
+|:---|:---|:---:|:---|
+| `174020  BSET ZRO SSK` | `00010000` | 2 | 0 = STS |
+| `174270  BSET ONE SSM` | `10111000` | 7 | 0 = STS |
+| `174375  BSET ONE 170 DA` | `11111101` | 15 | 5 = A |
+| `174217  BSET ONE 10 DX` | `10001111` | **1** | 7 = X |
+
+The `SSK` -> STS bit 2 and `SSM` -> STS bit 7 rows are independent checks on the
+field extraction: they are named status flags whose bit positions are known, and
+both come out right under `(low >> 3) & 017`. So printed `10` octal = 8 decimal
+= `1 << 3` = bit 1, and printed `170` octal = 120 decimal = `15 << 3` = bit 15.
+
+Note also that the disassembler's `JPL I 140 -> 051003` names the **pointer
+slot**, not the routine. 051002-051024 is a pool of routine addresses (it
+disassembles as nonsense), so 051003 holds the address the call actually goes to.
+
+(VERIFIED from the bytes; the exact free-counter field offset is INFERRED, and
+the two helper routines behind slots 051003 / 051004 are not yet carved.)
 
 ### `TPAGF` 51025B - is this page free? (VERIFIED)
 

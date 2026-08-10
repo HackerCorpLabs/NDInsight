@@ -1,8 +1,10 @@
 # Installation-Description — Norsk Data Program Description / Installation Documents
 
-**284 OCR'd Norsk Data "Program Description" (PD), "Product Information" (PI), "Installation Description" and internal delivery-list documents** — the ND Software Library's per-product install/requirements sheets, covering nearly every SINTRAN III product ND ever shipped for ND-100/110/120/500/5000, OWS/PC and Uniline/XENIX systems.
+**285 OCR'd Norsk Data "Program Description" (PD), "Product Information" (PI), "Installation Description" and internal delivery-list documents** — the ND Software Library's per-product install/requirements sheets, covering nearly every SINTRAN III product ND ever shipped for ND-100/110/120/500/5000, OWS/PC and Uniline/XENIX systems.
 
 Each document is a short, standardised form: product name, ND document number, prerequisites (SINTRAN version, computer type, floating format), and referenced manuals. Some are internal-only "Delivery List" / "Product Structure Sheet" documents listing the diskettes and manuals shipped for a release rather than describing the product itself — these are marked accordingly below.
+
+**One exception worth knowing about:** [210373L X-MESSAGE](./ND-210373L-EN.md) is a full 37-page technical document, not a short form. ND filed it as a Program Description and it carries the usual install procedure, but most of it is register-level specification of the XMSG functions and XROUT services that changed in version L. It is the only place in this repository that documents several of them.
 
 ---
 
@@ -299,6 +301,7 @@ Each document is a short, standardised form: product name, ND document number, p
 
 | Product | Document # | Type | Description |
 |---|---|---|---|
+| **[X-MESSAGE version L](./ND-210373L-EN.md)** | 210373L | PD | The message system COSMOS is built on. Unusually detailed for this collection: XMFIDO watchdog letter layouts, register specs for the new/changed XMSG functions (XFDUM, XFGST, **XFGSM**, XFCPV) and XROUT services (XSGAT, XSLKI, XSNET, XSNSI, XSLIN, XSDAT, XSLSY, XSGSU, XSGSG), the new error codes, then the install/patch procedure. Dated 1988-02-02, 37 pages. |
 | **[COSMOS Ethernet Option](./ND-210580-02-EN.md)** | ND-210580-02-EN | PD | Enables Ethernet (ISO 8802/3 CSMA/CD) transmission under COSMOS for ND-100/ND-500 with X-MESSAGE. |
 | **[COSMOS Network Monitor](./ND-211104-1-EN.md)** | ND-211104-1-EN | PD | Monitors connection/server status and long-term statistics in a COSMOS network on ND-100. |
 | **[COSMOS X.25 Program Access](./ND-211197-1-EN.md)** | ND-211197-1-EN | PD | PLANC libraries to access COSMOS X.25 Option from programs on ND-100/110/120/500/5000. |
@@ -523,4 +526,4 @@ Each document is a short, standardised form: product name, ND document number, p
 
 ---
 
-*284 documents. Part of the [NDInsight](../../README.md) Norsk Data / SINTRAN III documentation and preservation project. All manuals are Norsk Data A.S publications; OCR'd from scanned originals.*
+*285 documents. Part of the [NDInsight](../../README.md) Norsk Data / SINTRAN III documentation and preservation project. All manuals are Norsk Data A.S publications; OCR'd from scanned originals.*

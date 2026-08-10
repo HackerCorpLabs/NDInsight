@@ -1,0 +1,54 @@
+[runner] topology loaded: self=19999, 3 node(s), file=topology-d19999-relay.json
+[runner] logging to E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-d19999-relay.log (level Info, max 2 MB, keep 3).
+2026-08-08 11:29:26.220 | [runner] Xmsg.Live.Runner v1.1.0.0 built 2026-08-08 11:01:51
+2026-08-08 11:29:26.221 | [runner] config folder: 
+2026-08-08 11:29:26.222 | [runner] config file:   topology-d19999-relay.json
+2026-08-08 11:29:26.222 | [runner] log folder:    E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0
+2026-08-08 11:29:26.222 | [runner] log file:      E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-d19999-relay.log
+2026-08-08 11:29:26.223 | [runner] path=seam connecting to 127.0.0.1:10364 as node 19999 for 240s
+2026-08-08 11:29:26.228 | [fa] connection numbers 0x0642..0x0681 (state: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\fa-connection.state)
+2026-08-08 11:29:26.229 | [fa] file server ON as *FA-SERVER (logical port 4, wire port 0x0257)
+2026-08-08 11:29:26.230 | [fa] serving folder: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\served-files
+2026-08-08 11:29:26.233 | [fa] files visible now: 4
+2026-08-08 11:29:26.235 | [relay] listening on 10366 for the inbound bridge...
+2026-08-08 11:29:27.108 | [relay] inbound bridge connected on 10366
+2026-08-08 11:29:27.112 | [relay] outbound bridge connected to 127.0.0.1:10364
+2026-08-08 11:29:27.120 | [relay] node 19999: inbound link on 10366 reaches [103], outbound to 127.0.0.1:10364 reaches [100]
+2026-08-08 11:29:27.123 | [relay] SABM sent on both links; pumping...
+2026-08-08 11:29:27.125 | [relay] inbound link Stopped -> Starting (LAPB establishing)
+2026-08-08 11:29:27.125 | [relay] outbound link Stopped -> Starting (LAPB establishing)
+2026-08-08 11:29:27.186 | [relay] outbound link Starting -> Active (LAPB connected)
+2026-08-08 11:29:27.186 | [relay] announcing to outbound peer 100
+2026-08-08 11:29:27.262 | [relay] outbound link Active -> Starting (LAPB establishing)
+2026-08-08 11:29:27.276 | [relay] inbound link Starting -> Active (LAPB connected)
+2026-08-08 11:29:27.276 | [relay] announcing to inbound peer 103
+2026-08-08 11:29:27.342 | [in  RX] 103->19999 sub=InitializationNak f1=0xFFFF info=21FE00174E1F0067FFFFFFFD8F66
+2026-08-08 11:29:27.343 | [in  RX] 103->19999 sub=InitializationNak *** NO REPLY BUILT *** (this hangs the caller)
+2026-08-08 11:29:39.163 | [relay] outbound link Starting -> Active (LAPB connected)
+2026-08-08 11:29:39.163 | [relay] announcing to outbound peer 100
+2026-08-08 11:29:39.239 | [out RX] 100->19999 sub=InitializationNak f1=0xFFFF info=21FE00174E1F0064FFFFFFFD8F69
+2026-08-08 11:29:39.240 | [out RX] 100->19999 sub=InitializationNak *** NO REPLY BUILT *** (this hangs the caller)
+2026-08-08 11:29:39.362 | [out RX] 100->19999 sub=ReachabilityRequest f1=0xFFFF info=211300194E1F0064FFFF0001904F
+2026-08-08 11:29:39.364 | [out RX] 100->19999 sub=ReachabilityRequest answered with 1 frame(s)
+2026-08-08 11:29:39.441 | [out RX] 100->19999 sub=Data f1=0x0000 info=2113000E4E1F0064000001008F5B210086C44E1F0000006402300100014B000401024E1F
+2026-08-08 11:29:39.447 | [out RX] 100->19999 sub=Data answered with 1 frame(s)
+2026-08-08 11:29:39.515 | [out RX] 100->19999 sub=Ack f1=0x0000 info=211300034E1F0064000000019065
+2026-08-08 11:29:39.519 | [out RX] 100->19999 sub=Ack *** NO REPLY BUILT *** (this hangs the caller)
+2026-08-08 11:29:39.520 | [out RX] 100->19999 sub=Data f1=0x0001 info=2113000E4E1F0064000101008F5A210086C44E1F0000006402300100014B000401024E1F
+2026-08-08 11:29:39.520 | [out RX] 100->19999 sub=Data answered with 1 frame(s)
+2026-08-08 11:29:39.593 | [out RX] 100->19999 sub=Ack f1=0x0001 info=211300034E1F0064000100019064
+2026-08-08 11:29:39.594 | [out RX] 100->19999 sub=Ack *** NO REPLY BUILT *** (this hangs the caller)
+2026-08-08 11:30:19.380 | [out RX] 100->19999 sub=Data f1=0x0000 info=2113000E4E1F0064000001008F5B210086C44E1F0000006402300100014B000401024E1F
+2026-08-08 11:30:19.381 | [out RX] 100->19999 sub=Data answered with 1 frame(s)
+2026-08-08 11:30:19.381 | [out RX] 100->19999 sub=Data f1=0x0001 info=2113000E4E1F0064000101008F5A210086C44E1F0000006402300100014B000401024E1F
+2026-08-08 11:30:19.382 | [out RX] 100->19999 sub=Data answered with 1 frame(s)
+2026-08-08 11:30:59.175 | [out RX] 100->19999 sub=Data f1=0x0000 info=2113000E4E1F0064000001008F5B210086C44E1F0000006402300100014B000401024E1F
+2026-08-08 11:30:59.176 | [out RX] 100->19999 sub=Data answered with 1 frame(s)
+2026-08-08 11:30:59.176 | [out RX] 100->19999 sub=Data f1=0x0001 info=2113000E4E1F0064000101008F5A210086C44E1F0000006402300100014B000401024E1F
+2026-08-08 11:30:59.177 | [out RX] 100->19999 sub=Data answered with 1 frame(s)
+2026-08-08 11:31:38.996 | [out RX] 100->19999 sub=Data f1=0x0000 info=2113000E4E1F0064000001008F5B210086C44E1F0000006402300100014B000401024E1F
+2026-08-08 11:31:38.997 | [out RX] 100->19999 sub=Data answered with 1 frame(s)
+2026-08-08 11:31:38.997 | [out RX] 100->19999 sub=Data f1=0x0001 info=2113000E4E1F0064000101008F5A210086C44E1F0000006402300100014B000401024E1F
+2026-08-08 11:31:38.997 | [out RX] 100->19999 sub=Data answered with 1 frame(s)
+2026-08-08 11:33:26.260 | [runner] time window elapsed; stopping.
+2026-08-08 11:33:26.261 | [runner] done.

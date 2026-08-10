@@ -7,6 +7,23 @@
 **Status:** Complete
 **Sources:** nd100x emulator (`~/repos/nd100x/src/devices/smd/`), SINTRAN III NPL source (`IP-P2-DISK-START.NPL`), SINTRAN boot trace analysis (17,402 IOX accesses, 731 GO commands)
 
+> **Original vendor manual:**
+> [ND-11.013.01A EN - Error Correction Control (ECC) Disk Controller](../../../Reference-Manuals/Devices/ND-11.013.01A%20EN%20ECC%20Disk%20Controller.md)
+> (Norsk Data, original printing 10/78, revision A 06/79). This guide was derived from the emulator
+> and NPL sources listed above, *not* from that manual - so the manual is an independent check on
+> everything below. The two most directly relevant parts:
+>
+> - **Appendix N - ECC Disk Controller Programming Specifications.** The vendor's own register and
+>   command specification. Cross-check against [§2 IOX Register Map](#2-iox-register-map),
+>   [§3 CWR](#3-control-word-register-cwr), [§4 Status Register](#4-status-register) and
+>   [§8 ECC Registers](#8-ecc-registers).
+> - **Appendix L - SINTRAN III SMD Disk Driver Routine.** A printed driver listing, useful alongside
+>   [§16 SINTRAN NPL Source Cross-Reference](#16-sintran-npl-source-cross-reference).
+>
+> Also in that manual: the track/sector format (Appendix G), disk specifications (Appendix M), a
+> theoretical introduction to the error-correcting code itself (Appendix J), the debugging guide
+> (Section 8), and interrupt generation/handling (Section 7).
+
 ---
 
 ## Table of Contents

@@ -1,0 +1,3908 @@
+LINKER
+                  To list all commands, press SHIFT + HELP key.
+
+                  To list extensive information about one command, write
+                  the command name on the command line and press HELP.
+
+                  To display the default value of a parameter, press SHIFT +
+                  HELP after the parameter promt.
+
+                  Default value of a conditional parameter is listed first
+                  among the alternatives.
+
+                  To list extensive informaton about the command, when 
+                  fetching the parameters, just press HELP.
+
+                  ND LINKER accepts number system indicator (B/D/H) after
+                  all input numbers.
+
+                  By default, ND LINKER interprets/displays all addresses in 
+                  octal number system. All other numbers are interpreted/
+                  dispalyed in decimal number system. Decimal number system
+                  indicator is never displayed, whereas octal and hexadecimal
+                  are.
+
+                  Default number system can be changed permanently by the
+                  SET-FORMAT command in the service program.
+
+                  ***** ND LINKER's ND-SHELL user-interface *****
+
+Editing-keys:     As in NOTIS-WP.
+
+DOWN ARROW        Terminates a line. Prompt optional parameters if
+                  any. Optional parameters are not prompted for if
+                  RETURN is used.
+
+SCROLL UP and     Displays previous input and output. This is stored as
+SCROLL DOWN       a history even if it is scrolled off the screen. Help
+                  information or the displayed contents of a file can
+                  also be scrolled.
+
+SHIFT SCROLL UP   Displays first and last input and output. SHIFT + SCROLL
+SHIFT SCROLL      DOWN also refreshes the screen if needed.
+DOWN
+
+FAT LEFT ARROW    Copies lines from the history to the current line for
+FAT RIGHT ARROW   re-execution. Editing is possible before RETURN or DOWN
+                  ARROW is given. In command input lines, commands are
+                  copied. In parameter input lines, non-empty parameters
+                  are copied.
+
+HOME              Aborts output. Next command is requested.
+
+CTRL + S          Halts output until next keystroke.
+
+EXIT              Leaves current program, command, or job.
+
+HELP              Displays help for the current program, command or job.
+                  Any key except the scroll keys can be used to leave
+                  the help information.
+
+SHIFT + HELP      If the cursor is on a command input line, matching
+                  commands are listed. If a command or part of it is
+                  specified, commands matching it are displayed. If
+                  the cursor is on a parameter input line the default
+                  value is displayed.
+
+F3                Lists all files in your user area. If the name of a
+                  file is specified, lists matching files.
+
+F4                List status information.
+
+<>                Displays the contents of the file name typed on the
+                  input line. Text files may also be displayed. The
+                  scroll keys may be used. Move forth and back using
+                  >> and <<.
+
+PRINT             Prints the history on the file specified on the
+                  input line.
+
+SHIFT + PRINT     Saves the input part of the history on the job file
+                  typed at the input line.
+
+
+The following job-control statements are available. Each reserved word
+must start on a separate line.
+
+  PARAMETER <prompt>,<variable>,<par type>,<default value>,<optional(Yes,No)>
+  TERMINATION <On error msg (Yes,No)>  %Abort on error. Default NO.
+  IF <bool expr>...ELSIF <bool expr>...ELSE...ENDIF
+  FOR <var> <from> <to>...WHILE <bool expr>...ENDFOR
+  DO...WHILE <bool expr>...ENDDO
+  RETURN
+  SHOW <prompt>,<string>               %Previous FIELD provides formatting.
+  ASK <prompt>,<variable>,<par type>,<default value>    %Show question.
+  MESSAGE <string>,<string>,...        %Concatenates the strings.
+  FIELD <LeadTextPos>,<ParPos>, <length>, <justification>
+  ERROR <message> <error code>
+  LIST                                 %List job on outstream.
+  ENDLIST
+  DESTINATION <var>,<var>,...          %Save following output parameters.
+
+No abbreviation or error correction is possible. The job-control
+statements are only available in jobs. % indicates a comment.
+PARAMETER statements must be given in the beginning of the job file.
+Four parameter types are important: 1 means anything legal. 40 means
+integer. 60 means file name. 71 means output file. The DESTINATION
+statement saves the output from the next command in the given
+variables.
+
+Variables are created and given values as shown in the examples below.
+Input to parameters may be variables. Abbreviations or missing :VARs
+are not accepted. Variables created in a job are deleted when the job
+terminates.
+
+  ABC:VAR                    %One variable created.
+  ABC:VAR=123                %Assignment example.
+  ABC:VAR=2*(B:VAR+4.1) > 2.5 AND C:VAR=FALSE  %Assignment example.
+  ABC:VAR='FILE-ONE' + ':TEXT' = FILE-NAME:VAR %Assignment example.
+  ABC:VAR         %+RETURN-key displays the current variable value.
+
+Arithmetic and relational operations on integers, reals, booleans and
+strings are understood. String values should be enclosed in single
+quotes. Assigments redefine the type of a variable automatically. The
+following operations are available.
+
+  +  -  /  *  ** MOD SHIFT (  ) SQRT  %Arithmetic operators.
+  =  >  <  <>  <=  =>  >< =< >=       %Relational operators.
+  AND, OR, XOR, NOT                   %Boolean operators.
+  TRUE, FALSE                         %Boolean constants.
+
+
+ND-SHELL facilities:
+
+Commands          Commands are given as in SINTRAN III. Abbreviations
+                  are expanded.
+
+Bell              The bell is sounded if the input is not recognized.
+                  It may be edited. The cursor tries to point to the
+                  most probable error spot. Ambiguity causes the
+                  cursor to be placed at the end of the command or
+                  parameter. It is recommended not to disable the
+                  terminal bell.
+
+Parameters        Parameters are given as in SINTRAN III.
+
+Optional          Less commonly used functions may be available as
+parameters        optional parameters. These are prompted for if the
+                  DOWN ARROW is used instead of RETURN.
+
+Jobs              Jobs are files of type JOB. They contain commands to
+                  the subsystem. A job is started simply by typing
+                  its name. Unrecognized lines are displayed for
+                  correction.
+
+Work areas        You may switch between your SINTRAN III work areas by
+                  typing the name of the area followed by :AREA.
+
+SINTRAN III       SINTRAN III commands can be given by typing the
+commands          @ sign in front of them.
+
+History           All input and output is stored as a history. You may
+                  scroll back and look at it or re-execute commands.
+                  History can be printed by using the PRINT key.
+
+Help              Help is available in all contexts. Typically, the
+                  reference documentation for the current command is
+                  displayed.
+
+Job-control       A job-control language is available in jobs. The
+language          jobs may be given parameters. The execution may
+                  branch and loop. Variables may be created and used
+                  in arithmetic operations.
+
+ABORT-BATCH-ON-ERROR                                   
+ABORT-BATCH-ON-ERROR                                   
+                                                                    
+ 
+ Explanation: This command allows you to specify whether an error
+                in the Linker within a batch/mode file should abort
+                that job. It can be used several times within one job,
+                switching to YES before critical sequences and back
+                again to NO afterwards.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Batch abortion (Yes,No)>
+                     Optional parameter. YES means that the batch job
+                     should terminate if an error occurs, NO means
+                     that it should not. The initial value is NO.
+                     Default is YES.
+ 
+ Example:
+  
+  % Typical mode file that can be used whether or not a domain already exists:
+  @DELETE-FILE PROGRAM:DOM
+  @ND LINKER
+  SET-ADVANCED-MODE,,
+  OPEN-DOMAIN "PROGRAM-1"
+  ABORT-BATCH-ON-ERROR YES
+  % If something goes wrong now, there is no reason to continue.
+  LOAD SUB-1 SUB-2 SUB-3 SUB-4 MAIN
+  ABORT-BATCH-ON-ERROR NO
+  EXIT
+ 
+ Notes:         If an error occurs in a batch or mode job and this
+                command has been executed with the parameter YES, the
+                entire job is terminated. The error message is written
+                on the batch output file, and all open files are
+                closed.
+                
+                If the command has not been executed when an error
+                occurs or the parameter is NO, only the current
+                command is aborted and the next command in the batch
+                input file is executed.
+ 
+ Related old Linkage-Loader command(s):
+                ABORT-BATCH-ON-ERROR<ON/OFF>
+                                                                    
+
+APPEND-DOMAIN                                          
+APPEND-DOMAIN                                          
+                                                                    
+ 
+ Explanation: This command opens an existing domain file, without
+                erasing the information contained in it. It also
+                executes a CLOSE on any current domain or segment
+                file.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Domain name>
+                     Name of an existing domain file. Default file
+                     type is DOM. Directory and user name may be
+                     specified (assuming you have the necessary file
+                     access rights). Remote file syntax is not
+                     allowed.
+                2    <Domain privileges>
+                     Optional parameter. Specify ENABLE-ESCAPE or
+                     DISABLE-ESCAPE (or unambiguous abbreviations of
+                     these). Default is ENABLE-ESCAPE.
+ 
+ Notes:         Use this command instead of OPEN-DOMAIN if you do not
+                want it to lose its contents.
+                The link lock of the domain is not altered by this
+                command.
+                If the domain was linked to a free segment in a
+                previous load session, and you load or reload a module
+                that references that segment, that reference will not
+                be resolved unless you link to the segment in the
+                current session as well. This is because the link
+                information stored in the domain file only includes
+                the symbols that are defined in the slave segments.
+                Similarly, this command does not automatically open
+                any segment file that the domain has been linked to
+                with the FORTRAN-COMMON-SEGMENT attribute. Such
+                segments must be explicitly opened if you want to load
+                to them.
+ 
+ 
+ Example:
+  NDL(ADV): APPEND-DOMAIN MAIN
+  Program:......15457B P01   Data:........106454B D01   Debug:........4216B Bytes
+  NDL(ADV): LINK APP-COMMON
+  Segment APPLIC-COMMON-F:SEG linked as segment 9.
+  NDL(ADV): RELOAD BUGGY-ROUTINE
+  Program:......20745B P01   Data:........211034B D01   Debug:.......10434B Bytes
+  NDL(ADV): CLOSE N N
+ 
+ Related old Linkage-Loader command(s):
+                SET-DOMAIN<domain name>
+                APPEND-SEGMENT<segment name><segment attributes>
+                COMMON-SEGMENT-APPEND<segment name>
+                                                                    
+APPEND-SEGMENT                                         
+APPEND-SEGMENT                                         
+                                                                    
+ 
+ Explanation: This command opens an existing segment file, without
+                erasing information from the segment. Unless the
+                FORTRAN-COMMON-SEGMENT attribute is specified, any
+                currently open domain or segment is closed before the
+                specified segment is opened.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Segment Name>
+                     Name of an existing file. Default file type is
+                     SEG. Directory and user name may be specified
+                     (assuming you have file-access rights). Remote
+                     file syntax is not allowed.
+                2    <Segment attribute> <...>
+                     Optional parameter.  See NOTES, below. Default is
+                     no change in the existing attributes.
+ 
+ Notes:         Use this command instead of OPEN-SEGMENT if you want
+                to avoid losing information which is already on the
+                segment.
+                Segment attributes (parameter 2) are described under
+                OPEN-SEGMENT. Only those attributes you specify are
+                changed. If you do not specify any attributes, the
+                segment attributes will remain unchanged. The FORTRAN-
+                COMMON-SEGMENT attribute is however unchangeable.
+                You can only do APPEND-SEGMENT to a fortran-common-
+                segment when a domain or a different segment is
+                already open. This domain or segment will not be
+                closed by the append-segment command. Instead, the
+                domain or segment is linked to the fortran-common-
+                segment, and you can then load additional data blocks.
+                Note, however, that for FORTRAN-COMMON-SEGMENT
+                automatic CLOSE is not performed on the current domain
+                or segment. The segment is linked to the current
+                domain or segment and additional common blocks may be
+                appended.
+ 
+ Related old Linkage-Loader command(s):
+                APPEND-SEGMENT<segment name><segment attributes>,
+                COMMON-SEGMENT-APPEND<segment name>
+                                                                    
+CHANGE-FILE-REFERENCES                                 
+CHANGE-FILE-REFERENCES                                 
+                                                                    
+ 
+ Explanation: This command is for substituting a domain or segment
+                name reference in a domain or free segment, with a new
+                one. It can also be used to change the link key.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Domain or segment name>
+                     Name of domain/free segment in which the string
+                     to be replaced occurs. Default is current
+                     domain/segment.
+                2    <Old name string>
+                     The string you want to replace. No default.
+                3    <New name string>
+                     The string you want to replace <old string> with.
+                     Default is old name string (parameter 2).
+                4    <New link key>
+                     Should be a number in the range 0:65535. If the
+                     link key is greater, it will be truncated.
+                     Default is that the link key remains unchanged.
+                     If you wish the value to be the Universal link
+                     key, you must type the whole word UNIVERSAL.
+ 
+ Notes:         CHANGE-FILE-REFERENCES searches through all name
+                references in the name pool for the domain or segment
+                you specify in parameter 1, and substitutes all
+                occurrences of <old string> with <new string>.
+                You can list all file name references and their
+                associated link keys using the LIST-STATUS command.
+                If a domain or segment file is copied using the
+                standard utilities for copying files, the file name
+                references to possible linked segments may no longer
+                be valid. In such cases the command CHANGE-FILE-
+                REFERENCES may be used to restore the correct file
+                references.
+ 
+ Example:
+  
+  % In this example we have a domain MAIN linked to a segment SUB both
+  % residing on the same user. When copying DOMAINs and/or segments, the
+  % problem that arises is that the file references within the domain to the
+  % linked segments may no longer be valid.
+  % Let's assume that the segment has been moved (by a normal SINTRAN COPY
+  % command) to the area (DIR:USER) and renamed due to name conflicts to
+  % SEG-SUB:SEG. No changes need to be done to the segment itself, but ALL
+  % domains referring to the segment must be updated.
+  % As the CHANGE-FILE-REFERENCES expects an EXACT match of the file references
+  % to be changed, LIST-STATUS of the domain(s) to get the exact spelling
+  % of the link:
+  NDL(ADV): SET-ADVANCED-MODE
+  NDL(ADV): LIST-STATUS MAIN:DOM
+  Domain: (PACK-THREE-6799:NLL-TEST)MAIN:DOM,1
+  .
+  .
+  .
+  Program segment:   2
+   Linked to:           SUB:SEG                            Link key:   12345
+  Data segment:      2
+   Linked to:           SUB:SEG                            Link key:   12345
+  % Then change the file reference to the moved segment
+  NDL(ADV): LINKER-SERVICE-PROGRAM
+  - ND LINKER's  SERVICE-PROGRAM -
+  NDL(SRV): CHANGE-FILE-REFERENCES MAIN:DOM,SUB:SEG,(DIR:USER)SEG-SUB:SEG
+  Link key changed from 12345 to 12345.
+  2 substitutions done in domain MAIN:DOM.
+  NDL(SRV): EXIT
+  NDL(ADV): LIST-STATUS MAIN:DOM
+  Domain: (PACK-THREE-6799:NLL-TEST)MAIN:DOM,1
+  .
+  .
+  .
+  Program segment:   2
+   Linked to:           (DIR:USER)SEG-SUB:SEG              Link key:   12345
+  Data segment:      2
+   Linked to:           (DIR:USER)SEG-SUB:SEG              Link key:   12345
+  % This is also valid when you move the complete domain to another computer,
+  % move the domain and segments with standard file transfer utilities and
+  % then change the segment file references in the domain to the corresponding
+  % segment file names.
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+CHANGE-LINK-LOCK                                       
+CHANGE-LINK-LOCK                                       
+                                                                    
+ 
+ Explanation: This command is used to change the value of a link
+                lock in a domain or segment.
+                When a domain or segment is created, a random link
+                lock is assigned to it. All links to the domain or
+                segment will use this link lock as their link key. To
+                be able to execute the domain, the link lock must
+                match the link key when you PLACE the domain. If you
+                wish to change the value of this lock, you can do so
+                by using this command.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Domain or segment name>
+                     Default is current domain or segment.
+                2    <New link lock>
+                     A number in the range 0:65535. Larger link locks
+                     are truncated. Default value is the universal
+                     link lock, that is, the word UNIVERSAL in
+                     unabbreviated form.
+ 
+ Notes:         The link lock can be listed using the LIST-STATUS
+                command.
+ 
+ Example:
+  
+  % In this example the routine MAIN found in the file MAIN:NRF calls the
+  % routine SUB residing in the file SUB:NRF.
+  % We first put the routine SUB on a segment (also called SUB).
+  NDL: SET-ADVANCED-MODE
+  NDL(ADV): OPEN-SEGMENT SUB:SEG,2
+  Program:..........4B P02   Data:.............4B D02
+  NDL(ADV): SPECIAL-LOAD SUB:NRF,TOTAL
+  Program:.........20B P02   Data:............50B D02   Debug inf:.....164B Bytes
+  NDL(ADV): CLOSE N,N
+  NDL(ADV): LIST-STATUS SUB:SEG
+  Segment: (PACK-THREE-6799:NLL-TEST)SUB:SEG,1
+  .
+  .
+  Linker version used:  A0C          Link lock:   25200 +      0
+  .
+  .
+  % Note that a unique link LOCK is generated when building a segment.
+THE COMMANDS IN ALPHABETICAL ORDER                                 129
+  
+  % We now build a domain containing the MAIN routine (also called MAIN).
+  NDL(ADV): OPEN-DOMAIN MAIN:DOM
+  NDL(ADV): LOAD MAIN:NRF
+  Program:........140B P01   Data:..........2154B D01   Debug inf:.....156B Bytes
+  NDL(ADV): LINK SUB:SEG
+  Segment SUB:SEG linked as segment 2 .
+  NDL(ADV): CLOSE N,N
+  NDL(ADV): LIST-STATUS MAIN:DOM
+  Domain: (PACK-THREE-6799:NLL-TEST)MAIN:DOM,1
+  .
+  .
+  Linker version used:  A0C          Link lock:   25447 +      0
+  .
+  .
+  Program segment:   2
+   Linked to:                       SUB:SEG                Link key:   25200
+  Data segment:      2
+   Linked to:                       SUB:SEG                Link key:   25200
+  % When an initial link is created to a segment, a matching link KEY is
+  % generated and connected to the link. When the domain is later placed for
+  % execution, the KEYs in the domain are compared to the LOCKs of the
+  % linked segments. Placing can only take place if all the KEYs match their
+  % appropriate LOCKs. Placing and execution of the domain MAIN is therefore
+  % currently possible.
+  % We will now change the link LOCK by rebuilding the segment.
+  NDL(ADV): OPEN-SEGMENT SUB:SEG,
+  Program:..........4B P02   Data:.............4B D02
+  NDL(ADV): SPECIAL-LOAD SUB:NRF,TOTAL
+  Program:.........20B P02   Data:............50B D02   Debug inf:.....164B Bytes
+  NDL(ADV): CLOSE N,N
+  NDL(ADV): LIST-STATUS SUB:SEG
+  Segment: (PACK-THREE-6799:NLL-TEST)SUB:SEG,1
+  .
+  .
+  Linker version used:  A0C          Link lock:   25837 +      0
+  .
+  .
+  % As you see, the link LOCK is now different, and placing and
+  % execution of the domain MAIN is therefore currently impossible.
+  % You can change the link LOCK as shown in this example:
+  NDL(ADV): LINKER-SERVICE-PROGRAM
+  - ND LINKER's  SERVICE-PROGRAM -
+  NDL(SRV): CHANGE-LINK-LOCK SUB:SEG,12345
+  Link lock of segment "SUB:SEG" changed.
+  Link lock changed from 25837 to 12345
+  NDL(SRV): EXIT
+  NDL(ADV): LIST-STATUS SUB:SEG
+  Segment: (PACK-THREE-6799:NLL-TEST)SUB:SEG,1
+  .
+  .
+  Linker version used:  A0C          Link lock:   12345 +      0
+  % Alternatively you may change the link KEYs as follows:
+  NDL(ADV): LINKER-SERVICE-PROGRAM
+  - ND LINKER's  SERVICE-PROGRAM -
+  NDL(SRV): CHANGE-FILE-REFERENCE MAIN:DOM,SUB:SEG,,12345
+130                                 THE COMMANDS IN ALPHABETICAL ORDER
+     
+  Link key changed from 25837 to 12345.
+  2  substitutions done in domain MAIN:DOM.
+  NDL(SRV): EXIT
+  NDL(ADV): LIST-STATUS MAIN:DOM
+  Domain: (PACK-THREE-6799:NLL-TEST)MAIN:DOM,1
+  .
+  .
+  Linker version used:  A0C          Link lock:   25447 +      0
+  .
+  .
+  Program segment:   2
+   Linked to:                       SUB:SEG                Link key:   12345
+  Data segment:      2
+   Linked to:                       SUB:SEG                Link key:   12345
+  % The link KEY/LOCK now match. Placing and execution of the domain
+  % MAIN can therefore be performed.
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+CLOSE                                                  
+CLOSE                                                  
+                                                                    
+ 
+ Explanation: Closes the current domain or segment. The relevant
+                parts of the symbol table are written to the link
+                information area on the file. FORTRAN-COMMON-SEGMENTs
+                are also closed, and symbols defined in them are
+                written to their link information areas.
+                
+ Usage:         This command may be used when you have finished
+                linking and loading.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Load map (No,Yes)>
+                     Optional parameter. YES lists all references and
+                     entries in the symbol table together with their
+                     values. Default is NO.
+                2    <Perform Auto Job/Linker Job (Yes,No)>
+                     Optional parameter. YES means perform Auto Job
+                     and or Linker Job. The search strategy is: search
+                     first on current user, then on user SYSTEM. For
+                     details, see page 55. YES also lists undefined
+                     entries, if any exist. Default is YES.
+                3    <Output file>
+                     Optional parameter. Default is terminal.
+ 
+ Example:
+  
+  SET-ADVANCED-MODE,,
+  OPEN-SEGMENT "SEG-WITHOUT-TRAP",10,,
+  LOAD FILE-1,FILE-2
+  SET-TRAP-CONDITION OWN,DISABLE,ALL
+  CLOSE,,YES
+ 
+ Notes:         CLOSE is automatically executed by OPEN-DOMAIN and
+                EXIT. OPEN-SEGMENT and APPEND-SEGMENT will execute an
+                implicit CLOSE if a non-FORTRAN-COMMON-SEGMENT is
+                opened/appended.
+                In interactive mode, the domain or segment will not be
+                closed the first time if undefined references exist.
+                This, however, does not apply if parameter 2 is NO.
+                
+                If you specify YES in parameter 2, and there are
+                undefined references, or an undefined trap block, the
+                Auto Jobs and Linker Job will be executed. The search
+                strategy for the JOB file is  first those in your own
+                user area, and then, if none are found, search under
+                user SYSTEM.
+                If you have not used a SET-TRAP-COMMAND to define a
+                trap block, CLOSE will copy the first valid trap block
+                found on any linked segments. The same strategy
+                applies for the main start address.
+ 
+ Related old Linkage-Loader command(s):
+                CLOSE-SEGMENT <Y,N>, END-DOMAIN, COMMON-SEGMENT-CLOSE
+                                                                    
+COMPRESS                                               
+COMPRESS                                               
+                                                                    
+ 
+ Explanation: Packs the contents of a segment or domain file,
+                resulting in a file without holes.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Name of domain or segment file>
+                     No default value. If no file type is specified,
+                     DOM is tied first. If no such file is found, file
+                     type SEG is tried.
+                2    <Include debug information (Yes,No)>
+                     Optional parameter.Default is Yes.
+                3    <Include link information (Yes,No)>
+                     Optional paramter. Default is Yes.
+                4    <Create contiguous file (No,Yes)>
+                     Optional parameter. Default is No.
+                5    <Workfile>
+                     Optional parameter. Default is
+                     XQQADZYYWAIJQFXQ:QQZP. The work file must be
+                     contiguous if parameter 4 is YES.
+ 
+ Notes:         This command is most useful if the file will be copied
+                through a network. If you run the program FILE-
+                TRANSFER from the receiving end, the program will send
+                a request through the network for each non-allocated
+                page. This can delay the transfer for hours.
+                It is normally impossible to load or reload  on a
+                segment or domain after it has been compressed, since
+                there will only be room up to the next page boundary.
+                Compress does not reduce the number of pages on disk
+                occupied by the file (except that you save an index
+                page or two if you create a contiguous file). Only the
+                byte count is reduced.
+                There is no way to reverse the effects of the compress
+                command.
+                This command builds a compressed version of the file
+                on a separate workfile. Only if it completes
+                
+                successfully, will the original file be deleted, and
+                the workfile renamed. Otherwise the workfile is
+                deleted.
+                This means that the user must have the necessary
+                amount of unused pages on the SINTRAN user area.
+                However, if an existing file is specified as workfile,
+                it is first deleted, and then created. If a
+                nonexisting file is specified, the name must not be
+                given in quotation marks.
+                Notice that if the specified workfile is on a
+                different user area, the resulting file will be on
+                this user area. The renaming operation will fail if
+                you do not have directory access to the file. In this
+                case, the original file is already deleted, and you
+                must rename the workfile manually.
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+CREATE-ROUTINE-VECTOR                                  
+CREATE-ROUTINE-VECTOR                                  
+                                                                    
+ 
+ Explanation: This command reserves space at the beginning of the
+                current program segment for a routine vector with the
+                specified number of entries.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Number of routines>
+                     Optional parameter. Specify the maximum number of
+                     entries in the routine vector. The default is 64.
+ 
+ Notes:         When you use this comand, you should use it before any
+                code is loaded to the current program segment.
+                You must set the contents of the vector using the
+                INCLUDE-IN-ROUTINE-VECTOR command. This command will
+                load a specified entry with the entry point
+                instruction of a specified routine, followed by a jump
+                instruction to the rest of the code of that routine.
+                Domains and segments that link to a segment with a
+                routine vector, will access the entries indirectly
+                through the routine vector. Only entries in the vector
+                are accessible, all other entries are hidden. However,
+                the SPECIAL-DEFINE command will get any entry in the
+                link information area of the segment.
+                If you want the link information area to contain only
+                the entries in the vector, you should use the SAVE-
+                ENTRIES command before closing the segment with the
+                routine vector.
+ 
+ Related old Linkage-Loader command(s):
+                ENTRY-ROUTINES(<number-of-routines>)
+                                                                    
+DEFINE-ENTRY                                           
+DEFINE-ENTRY                                           
+                                                                    
+ 
+ Explanation: This command puts a defined entry into the symbol
+                table.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Entry name>
+                     No default.
+                2    <Value>
+                     Value you want to assign to the entry. You can
+                     specify a symbol, meaning that this entry shall
+                     have the same value as the specified, symbol, or
+                     you can specify a number. Default is zero.
+                3    <Entry type: (P,D)>
+                     P: Program entry. D: Data entry. Default is P.
+ 
+ Notes:         When specifying the value parameter, the pseudo-
+                symbols #PCLC, #DCLC and #CCLC are available as
+                current Program, Data, and Common Current Location
+                Counters. #THA is available as the address where the
+                Trap Handler Address Vector is allocated. For further
+                information on the THA vector, refer to the command
+                SET-TRAP-CONDITION on page 225.
+ 
+ Example:
+  
+  Example of defining monitor calls on an indirect segment:
+  NDL: SET-ADVANCED-MODE
+  NDL(ADV): OPEN-DOMAIN "MY-DOMAIN"
+  % Define monitor call names other than the usual (mn113 and mon32).
+  NDL(ADV): DEFINE-ENTRY GETCLOCK 37000000113B P
+  NDL(ADV): DEFINE-ENTRY OUTMESSAGE 37000000032B P
+  % You now need to define a program entry alias for a user routine
+  % entry called test1.
+  NDL(ADV): LOAD TEST
+  Program:........304B P01   Data:...........230B D01
+  % Define a program entry alias for a user routine entry called test1.
+  NDL(ADV): DEFINE-ENTRY ALIASNAME TEST1 P
+  
+  % Example defining data entry at current data location counter:
+  NDL(ADV): DEFINE-ENTRY DATAENTRY #DCLC D
+  NDL(ADV): LIST-ENTRIES DEFINED
+  Defined entries:
+  TEST................/FTN........4B P01  ALIASNAME.......................4B P01
+  OUTMESSAGE.....................32B P37  GETCLOCK......................113B P37
+  DATAENTRY.....................230B D01
+  Current load addresses:
+  Program:........304B P01   Data:...........230B D01
+  NDL(ADV): CLOSE
+ 
+ Related old Linkage-Loader command(s):
+                DEFINE-ENTRY <entry> <value> <P/D>
+                                                                    
+DEFINE-FORTRAN-COMMON                                  
+DEFINE-FORTRAN-COMMON                                  
+                                                                    
+ 
+ Explanation: This command allows you to allocate a data area as a
+                FORTRAN COMMON block. It may also be used to allocate
+                general data areas. In the latter case, parameters 2
+                and 3 must be different from default.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Entry name>
+                     Name of the COMMON block. No default value.
+                2    <Length in bytes>
+                     Size of the COMMON block. Default is the same
+                     length as the first COMMON block that is
+                     encountered during the load session.
+                3    <Address or entry>
+                     Address where the COMMON block starts. Default is
+                     the current location counter of the first
+                     occurrence of the COMMON block during the load
+                     session. If any FORTRAN-COMMON-SEGMENTS are
+                     opened, the current common location counter of
+                     the last opened common segment (#CCLC) is chosen.
+                     If no FORTRAN-COMMON-SEGMENTS are open, the
+                     current data location counter (#DCLC) is used.
+ 
+ Example:
+  
+  NDL: SET-ADVANCED-MODE
+  NDL(ADV): OPEN-DOMAIN "FORTRAN-DOM"
+  NDL(ADV): OPEN-SEGMENT "FORTRAN-SEG2" 2 D FORTRAN-COMMON-SEGMENT
+  FORTRAN-COMMON-SEGMENT FORTRAN-SEG2:SEG linked as data segment 2  to current
+  domain.
+  NDL(ADV): DEFINE-FORTRAN-COMMON FORTRAN_COM2,,
+  NDL(ADV): OPEN-SEGMENT "FORTRAN-SEG5" 5 D FORTRAN-COMMON-SEGMENT
+  FORTRAN-COMMON-SEGMENT FORTRAN-SEG5:SEG linked as data segment 5  to current
+  domain.
+  NDL(ADV): DEFINE-FORTRAN-COMMON FORTRAN_COM5,,
+  NDL(ADV): LOAD FORTRAN-PROG
+  Program:........344B P01   Data:...........210B D01
+  Name: FORTRAN-SEG2:SEG     Address:  ......14B D02
+  Name: FORTRAN-SEG5:SEG     Address:  ......14B D05
+  NDL(ADV): CLOSE
+  NDL(ADV): LINKER-AUTO-FORT:JOB
+  %  --> FORTRAN Auto Job:   Trap definition part.
+  
+  %  --> FORTRAN Auto Job:   Link/load part.
+  % Subsequent COMMON blocks will now be defined on FORTRAN-SEG5, since
+  % this is the current COMMON seg. Common block, "FORTRAN-COM" is
+  % defined on segment 2 (i.e. the file FORTRAN-SEG2:SEG) when this
+  % symbol is first encountered during loading of the NRF file. Similarly,
+  % FORTRAN-COM5 is defined on seg. 5 when it first occurs in the NRF
+  % file, and its length (default) is determined at the same time.
+ 
+ Notes:         If an address without the upper five bits (i.e. the
+                logical segment number) is specified, the current data
+                segment is assumed. If a FORTRAN-COMMON-SEGMENT is
+                open, the current common segment is assumed.
+                If the address (parameter 3) plus the length
+                (parameter 2) is greater than the value of the Data
+                Current Location Counter (#DCLC), the #DCLC is
+                increased accordingly.
+                If you specify the length of the COMMON block, it will
+                have this length regardless of the defined size of the
+                first occurrence of the COMMON block. Some programmers
+                use the same COMMON block with different sizes in
+                different modules, so this can be used to override the
+                limitation that the first definition of a COMMON block
+                must be the largest one.
+ 
+ Related old Linkage-Loader command(s):
+                DEFINE-COMMON <name> <common-size> <value>
+
+DELETE-DEBUG-INFORMATION                               
+DELETE-DEBUG-INFORMATION                               
+                                                                    
+ 
+ Explanation: This command is used to permanently delete debug
+                information from one or more NRF modules. The debug
+                information will only be marked as deleted. The
+                command will take effect when (and if) the file is
+                saved. This means that the LIST-NRF command will still
+                include the debug information in its listing.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <First module>
+                     Optional parameter. Default is the first module
+                     in the current NRF Library file.
+                2    <Last module>
+                     Optional parameter. Default is the last module in
+                     the current NRF Library file.
+                3    <Entry type(PD,P,D)>
+                     Optional parameter. Default is PD - i.e., both
+                     program and data entries will be considered when
+                     searching for a module.
+ 
+ Example:
+  
+  The routines used in this example are the same as those used in
+  SET-CASE-SIGNIFICANCE (see page 205). The library was compiled with
+  DEBUG MODE ON. We now enter the Nrf Library Handler and select the
+  newly compiled file as current library file. Since case is significant
+  in this library (See page 205), we must execute the command
+  SET-CASE-SIGNIFICANCE before selecting the library file. If we do not
+  do so, we will get name conflicts as all the symbols in the file have
+  the same name. We may now delete the debug information as shown in the
+  example below:
+  NDL(NLH): SET-CASE-SIGNIFICANCE
+  Case significance (Yes, No): YES
+  NDL(NLH): SET-LIBRARY
+  File name: cases
+  NDL(NLH): LIST-MODULES,,,
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.X Planc... .........42B ..........0B ........340B
+  .....2 case TO CASE....... P.X Planc... .........42B ..........0B ........340B
+  .....3 case TO case....... P.X Planc... .........15B ..........0B ........316B
+  .....4 CASE TO CASE....... P.X Planc... .........15B ..........0B ........316B
+  NDL(NLH): DELETE-DEBUG-INFORMATION
+  
+  % This command deletes all debug information.
+  First module: 
+  Last module: 
+  NDL(NLH): LIST-MODULES
+  File name:  PACK-FOUR-6799:MICKE-TEST)CASES:NRF:1
+  Modules: 
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.X Planc... .........42B ..........0B .....DELETED
+  .....2 case TO CASE....... P.X Planc... .........42B ..........0B .....DELETED
+  .....3 case TO case....... P.X Planc... .........15B ..........0B .....DELETED
+  .....4 CASE TO CASE....... P.X Planc... .........15B ..........0B .....DELETED
+  NDL(NLH): SAVE,,,,,
+  % If this file is now saved and read into the library handler again,
+  % we will see that the debug information is deleted from the file.
+  NDL(NLH): SET-CASE-SIGNIFICANCE
+  Case significance (Yes, No): YES
+  NDL(NLH): SET-LIBRARY
+  File name: cases
+  NDL(NLH): LIST-MODULES,,,
+  Module Nrf-entry           P/D Language Program size Data size   Debug size  
+  .....1 CASE TO case....... P.X Planc... .........42B ..........0B ..........0B
+  .....2 case TO CASE....... P.X Planc... .........42B ..........0B ..........0B
+  .....3 case TO case....... P.X Planc... .........15B ..........0B ..........0B
+  .....4 CASE TO CASE....... P.X Planc... .........15B ..........0B ..........0B
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+DELETE-ENTRIES                                         
+DELETE-ENTRIES                                         
+                                                                    
+ 
+ Explanation: This command removes symbols from the Symbol Table.
+ 
+ Usage:         You can use this command to make some symbols
+                unavailable, to resolve name conflicts and to avoid
+                Symbol Table overflow.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Entry name>...<Entry name>
+                     Optional parameter.Default is that no symbols are
+                     deleted. Use of wildcards is allowed (see notes
+                     in LIST-ENTRIES command on page 170). As many
+                     entries as desired can be specified.
+                2    <Entry selection (Defined,Undefined,All)>
+                     In order to specify this parameter, you must
+                     terminate the list of entries in the previous
+                     parameter, using a "/". Remember to have this
+                     terminator separated from the other parameters,
+                     by a space or a comma. If you specify Defined
+                     (Undefined), the specified entries will only be
+                     deleted from the symbol table if they are defined
+                     (undefined) entries. this is important when
+                     entries are specified using wildcards. Defult is
+                     Defined.
+                3    <Entry type (PD,P,D)>
+                     Optional parameter. To specify this parameter,
+                     the list of entries in the first parameter must
+                     be terminated as explaned in the previous
+                     parameter. This parameter specified whether the
+                     command applies to both program and data segments
+                     (PD), to program segments only (P), or to data
+                     segments only (D). Default is PD.
+ 
+ Notes:         The SAVE-ENTRIES command has priority over the DELETE-
+                ENTRIES command. This means that if you give the
+                command DELETE-ENTRIES * after one or more SAVE-
+                ENTRIES commands, only those entries that have not
+                been explicitly saved with the SAVE-ENTRIES command
+                will be deleted.
+                
+                In version A of the Linker, the last two parameters
+                could not be specified, and the effect of this command
+                was as with the values All,PD. Since this is not the
+                same as the current default value, old MODE files may
+                need revision. To get exactly the same functionality
+                as before, use the command.
+                      DELETE-ENTRIES entry1,entry2,...,/,ALL,PD
+ 
+ Related old Linkage-Loader command(s):
+                KILL-ENTRIES <entries>
+                                                                    
+DELETE-MODULES                                         
+DELETE-MODULES                                         
+                                                                    
+ 
+ Explanation: This command is for deleting one or more modules from
+                the current NRF Library file.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <First module>
+                     The first module you want to delete from the
+                     current NRF Library file. No default value.
+                2    <Last module>
+                     The last module you want to delete from the
+                     current NRF Library file. Default is <first
+                     module>.
+                3    <Entry type(PD,P,D)>
+                     Default is PD, i.e. both program and data entries
+                     will be considered when searching for a module.
+ 
+ Example:
+  
+  The user wants to delete the modules that strip parity from characters
+  since they no longer are in use (or never were). The modules concerned
+  are case TO case and CASE TO CASE.
+  NDL(NLH): SET-CASE-SIGNIFICANCE
+  % Case was significant here.
+  Case significance (Yes, No): YES
+  NDL(NLH): SET-LIBRARY
+  File name: cases
+  % Now list the modules in the file to check if they are still there.
+  NDL(NLH): LIST-MODULES
+  File name:  (PACK-FOUR-6799:MICKE-TEST)CASES:NRF:1
+  Modules: 
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.X Planc... .........42B ..........0B ..........0B
+  .....2 case TO CASE....... P.X Planc... .........42B ..........0B ..........0B
+  .....3 case TO case....... P.X Planc... .........15B ..........0B ..........0B
+  .....4 CASE TO CASE....... P.X Planc... .........15B ..........0B ..........0B
+  % Now we know that the modules we want to delete are the last two
+  % modules in the file.
+  NDL(NLH): DELETE-MODULES
+  First module: case TO case
+  Last module:CASE TO CASE 
+  NDL(NLH): LIST-MODULES
+  File name:  (PACK-FOUR-6799:MICKE-TEST)CASES:NRF:1
+  Modules: 
+  
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.X Planc... .........42B ..........0B ..........0B
+  .....2 case TO CASE....... P.X Planc... .........42B ..........0B ..........0B
+  NDL(NLH):
+ 
+ Related old Linkage-Loader command(s):
+                DELETE-NRF-MODULES <file name> (<first module>) (<last
+                module>)
+                                                                    
+EXIT                                                   
+EXIT                                                   
+                                                                    
+ 
+ Explanation: With this command you return to SINTRAN, the ND-5000
+                Monitor, or User Environment, depending on which of
+                these you entered the Linker from. Current domain or
+                segment will automatically be closed.
+ 
+ Parameters:    No Parameters.
+ 
+ Example:
+  
+  @ND LINKER
+  NDL: SET-ADVANCED-MODE,,
+  NDL(ADV): OPEN-DOMAIN MY-DOMAIN,,
+  % Enter the NRF library handler
+  NDL(ADV): NRF-LIBRARY-HANDLER SUBROUTINES
+  NDL(NLH): DELETE-DEBUG-INFORMATION,,,
+  NDL(NLH): EXIT
+  % Now back in the Linker
+  NDL(ADV): LOAD MAIN,SUBROUTINES
+  % Assume that the appropriate library is auto-linked
+  NDL(ADV): EXIT
+ 
+ Related old Linkage-Loader command(s):
+                EXIT
+                                                                    
+EXIT                                                   
+EXIT                                                   
+                                                                    
+ 
+ Explanation: Use this command to leave the LINKER-SERVICE-PROGRAM
+                and return to the Linker advanced mode.
+ 
+ Parameters:    No Parameters.
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+EXIT                                                   
+EXIT                                                   
+                                                                    
+ 
+ Explanation: Use this command to leave the NRF-LIBRARY-HANDLER and
+                return to the Linker's advanced mode. Remember to SAVE
+                the Current Library file before you EXIT if you want
+                the result of this NRF Library Handler session to be
+                permanent.
+ 
+ Parameters:    No Parameters.
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+FIX-SEGMENT                                            
+FIX-SEGMENT                                            
+                                                                    
+ 
+ Explanation: This command is for fixing in memory a slave segment
+                or a free segment, or a specified part of a segment.
+ 
+ Usage:         Only user SYSTEM may execute domains with fixed
+                segments.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Fix type (Contiguous,Scattered,Absolute,Unfix)>
+                     Default: CONTIGUOUS. See details in notes below.
+                2    <Domain or segment name>
+                     Name of a segment, or domain containing the
+                     segment to be fixed in memory. Default is current
+                     domain or segment.
+                3    <Segment number>
+                     You only need specify this in the case of a slave
+                     segment. Default for free segments is the segment
+                     number of the free segment specified in parameter
+                     2. Default for slave segments is the current
+                     segment number.
+                4    <Segment type (D,P)>
+                     D means data segment. P means Program segment.
+                     Default is D.
+                5    <Low address>
+                     If you want to fix just part of the segment,
+                     specify here the lower bound of the segment area.
+                     Default is the lowest loaded address on the
+                     segment.
+                6    <High address>
+                     If you want to fix just part of the segment,
+                     specify here the upper bound of the segment area.
+                     Default is the highest loaded address on the
+                     segment.
+                7    <Physical address>
+                     If the value of parameter 1 is ABSOLUTE, you must
+                     specify the memory address here. There is no
+                     default.
+ 
+ Notes:         The meaning of parameter 1 is as follows:
+                CONTIGUOUS        The specified segment will be put in
+                                  a contiguous area in memory.
+                SCATTERED         The specified segment will be fixed
+                                  but pages may be scattered through-
+                                  out physical memory.
+                ABSOLUTE          The specified segment will be put
+                                  in a contiguous area in memory,
+                                  starting at the physical address
+                                  you specify in parameter 7.
+                UNFIX             The specified segment is unfixed
+                                  from memory.
+ 
+ Related old Linkage-Loader command(s):
+                FIX-SEGMENT-SCATTERED <seg. name> <type> <lower addr.>
+                <upper addr.>, FIX-SEGMENT-CONTIGUOUS <seg. name>
+                <type> <lower addr.> <upper addr.>, and FIX-SEGMENT-
+                ABSOLUTE <seg. name> <type> <physical addr.> <lower
+                addr.> <upper addr.>
+                                                                    
+FORCE-LIBRARY                                          
+FORCE-LIBRARY                                          
+                                                                    
+ 
+ Explanation: This command controls which kinds of symbols will be
+                included in the fast load vector. It can be used to
+                force The Library Handler to allow modules NOT
+                compiled in library mode to enter their symbols into
+                the FAST load vector. Normally, only symbols appearing
+                in LIB control groups are included in the fast load
+                vector.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Symbols defined by LIB (Yes,No)>
+                     Optional parameter. YES if LIB marked entries
+                     should be included in the fast load vector.
+                     Otherwise NO. Initial value is YES. Default is
+                     YES.
+                2    <Symbols defined by DEF (Yes,No)>
+                     Optional parameter. YES if program symbols should
+                     be included in the fast load vector. Initial
+                     value is NO. Default is YES.
+                3    <Symbols defined by DDF (Yes,No)>
+                     Optional parameter. YES if ordinary data symbols
+                     should be included in the fast load vector.
+                     Initial value is NO. Default is YES.
+                4    <Blockdata/Common (Yes,No)>
+                     Optional parameter. YES if data symbols with a
+                     size specification should be included in the fast
+                     load vector. Initial value is YES. Default is
+                     YES.
+ 
+ Notes:         LIB,DEF, and DDF are control groups in an NRF file.
+                LIB marks symbols as library symbols, and implies that
+                the module containing this control group should be
+                loaded if the symbol has undefined entries in the
+                symbol table. DEF and DDF define symbols as program or
+                data symbols respectively. Refer to appendix D for
+                details about the NRF file format.
+                FORTRAN Common/Blockdata will only get their first
+                occurrence defined in the fast load vector. All others
+                will be ignored.
+152                                 THE COMMANDS IN ALPHABETICAL ORDER
+     
+ Example:
+  
+  The user has a file which he wants to convert into a fast load file. He
+  cannot remember whether it was compiled in library mode or not. If the file
+  was not compiled in library mode then the command PREPARE-LIBRARY will not
+  work and the library handler must be FORCED into making the vector of a
+  fast library file. This is done by executing the command FORCE-LIBRARY:
+  NDL(NLH): SET-CASE-SIGNIFICANCE
+  Case significance (Yes, No): YES
+  NDL(NLH): SET-LIBRARY
+  File name: cases
+  NDL(NLH): LIST-MODULES
+  File name:  (PACK-FOUR-6799:MICKE-TEST)CASES:NRF:1
+  Modules: 
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.. Planc... .........42B ..........0B ..........0B
+  .....2 case TO CASE....... P.. Planc... .........42B ..........0B ..........0B
+  .....3 case TO case....... P.. Planc... .........15B ..........0B ..........0B
+  .....4 CASE TO CASE....... P.. Planc... .........15B ..........0B ..........0B
+  % The code from the beginning of the file must now be listed to see if
+  % there is already a vector.
+  NDL(NLH): LIST-NRF
+  File name:  (PACK-FOUR-6799:MICKE-TEST)CASES:NRF:1
+  First module: 
+  Last module: CASE TO case
+  0B: (LBB,4   0B)
+  % An empty vector not containing any of the routines was found. PREPARE was
+  % probably executed earlier without putting any entries into the vector.
+  0B: (LBB,4   37777777777B)
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.. Planc... .........42B ..........0B ..........0B
+  0B: (BEG,2 0B 2B)
+  0B: (DMO,0)
+  0B: (PMO,0)
+  0B: (DEF,0 CASE TO case=#PCLC)
+  0B: (LDN,         42B)
+  0B:         ENTS +0B, BY1 =:
+  7B:         B.24B:S, BY1 AND 177B, BY1 =: B.
+  16B:         25B, BY1 COMP 101B, IF << GO 14B, BY1 COMP
+  25B:         132B, IF >> GO 7B, BY1 +
+  34B:         40B, RET, BY1 := B.25B, RET
+  42B: (DMO,0)
+  0B: (PMO,0)
+  42B: (FMO,4 #PCLC-40B)
+  2B: (ADI,4) DATA (#DCLC)+30B
+  6B: (DMO,0)
+  0B: (END,0)
+  % Since no entry was marked LIB when the LIST-NRF command was executed,
+  % the user now assumes that the file was compiled with library mode OFF.
+  % To make the library handler produce a fast load vector, the user now
+  % executes the command FORCE-LIBRARY. This will cause the library handler
+  % to make a vector entry for all entries defined in the file.
+  NDL(NLH): FORCE-LIBRARY
+  Symbols defined by LIB (Yes, No): NO
+  Symbols defined by DEF (Yes, No): YES
+  Symbols defined by DDF (Yes, No): NO
+  Blockdata/Common (Yes, No): NO
+  NDL(NLH): SAVE-LIBRARY
+  File name: cases
+  % The file is now saved. If we look at it we will find that the vector
+  % now contains entries for our routines.
+  NDL(NLH): SET-CASE-SIGNIFICANCE
+  Case significance (Yes, No): YES
+  NDL(NLH): SET-LIBRARY
+  File name: cases
+  NDL(NLH): LIST-NRF
+  File name:  (PACK-FOUR-6799:MICKE-TEST)CASES:NRF:1
+  First module: 
+  Last module: CASE TO case
+  0B: (LBB,4   0B)
+  0B: (LBB,4 CASE TO case 126B)
+  0B: (LBB,4 case TO CASE 234B)
+  0B: (LBB,4 case TO case 342B)
+  0B: (LBB,4 CASE TO CASE 423B)
+  0B: (LBB,4   37777777777B)
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.. Planc... .........42B ..........0B ..........0B
+  0B: (BEG,2 0B 2B)
+  0B: (DMO,0)
+  0B: (PMO,0)
+  0B: (DEF,0 CASE TO case=#PCLC)
+  0B: (LDN,         42B)
+  0B:         ENTS +0B, BY1 =:
+  7B:         B.24B:S, BY1 AND 177B, BY1 =: B.
+  16B:         25B, BY1 COMP 101B, IF << GO 14B, BY1 COMP
+  25B:         132B, IF >> GO 7B, BY1 +
+  34B:         40B, RET, BY1 := B.25B, RET
+  42B: (DMO,0)
+  0B: (PMO,0)
+  42B: (FMO,4 #PCLC-40B)
+  2B: (ADI,4) DATA (#DCLC)+30B
+  6B: (DMO,0)
+  0B: (END,0)
+  NDL(NLH):
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+GET-MODULES                                            
+GET-MODULES                                            
+                                                                    
+ 
+ Explanation: For selecting one or more modules from a source file
+                and adding them to the current NRF Library file after
+                the module you specify in parameter 4.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Source file>
+                     The name of an NRF file containing modules you
+                     want to append to the current NRF file. There is
+                     no default file for this parameter.
+                2    <First module>
+                     Optional parameter. The first of the modules in
+                     the source file that you want to insert into the
+                     current NRF Library file. Default is the first
+                     module in the source file.
+                3    <Last module>
+                     Optional parameter. The last of the modules in
+                     the source file that you want to insert into the
+                     current NRF Library file. Default is the last
+                     module in the source file.
+                4    <After module>
+                     Optional parameter. The new modules will be
+                     inserted into the current NRF Library file after
+                     the module you specify here. Default is the last
+                     module in the Library file.
+                5    <Entry type(PD,P,D)>
+                     Optional parameter. Default is PD i.e. both
+                     program and data entries will be considered when
+                     searching for a module.
+ 
+ Notes:         Only modules that have no entries in common with any
+                other module in the current library file will be
+                added, others will be skipped and a warning displayed.
+                FORTRAN Common/Blockdata will only get their first
+                occurrence defined. All others will be ignored.
+                
+ 
+ Example:
+  
+  In this example, the four routines used for converting from uppercase
+  to lowercase and vice versa and for stripping parity are compiled as
+  four separate NRF files.
+  @planc-500
+  - ND-500 PLANC COMPILER - JUNE 9, 1986   VERSION G
+  *compile 1,1,"case1"
+  1          MODULE case1
+  2          EXPORT rtn ALIAS 'CASE TO case'
+  3          ROUTINE BYTE,BYTE : rtn ALIAS 'CASE TO case'
+  4             BYTE : ch
+  5             IF (@ and 177B) =: ch IN #A:#Z THEN ch+32 RETURN
+  ENDIF
+  6             ch RETURN
+  7          ENDROUTINE
+  8          ENDMODULE
+  9          $eof
+   9 LINES COMPILED.       0 DIAGNOSTICS.
+  @planc-500
+  - ND-500 PLANC COMPILER - JUNE 9, 1986   VERSION G
+  *compile 1,1,"case2"
+  1          MODULE case2
+  2          EXPORT rtn ALIAS 'case TO CASE'
+  3          ROUTINE BYTE,BYTE : rtn ALIAS 'case TO CASE'
+  4             BYTE : ch
+  5             IF (@ and 177B) =: ch IN #a:#z THEN ch-32 RETURN ENDIF
+  6             ch RETURN
+  7          ENDROUTINE
+  8          ENDMODULE
+  9          $eof
+   9 LINES COMPILED.       0 DIAGNOSTICS.
+  @planc-500
+  - ND-500 PLANC COMPILER - JUNE 9, 1986   VERSION G
+  *compile 1,1,"case3"
+  1          MODULE case3
+  2          EXPORT rtn ALIAS 'case TO case'
+  3          ROUTINE BYTE,BYTE : rtn ALIAS 'case TO case'
+  4             @ AND 177B RETURN
+  5          ENDROUTINE
+  6          ENDMODULE
+  7          $eof
+   7 LINES COMPILED.       0 DIAGNOSTICS.
+  @planc-500
+  - ND-500 PLANC COMPILER - JUNE 9, 1986   VERSION G
+  *compile 1,1,"case4"
+  1          MODULE case4
+  2          EXPORT rtn ALIAS 'CASE TO CASE'
+  3          ROUTINE BYTE,BYTE : rtn ALIAS 'CASE TO CASE'
+  4             @ AND 177B RETURN
+  5          ENDROUTINE
+  6          ENDMODULE
+  7          $EOF
+   7 LINES COMPILED.       0 DIAGNOSTICS.
+  % We now have four files each with one routine. Later we may find it tiresome
+  % to refer to all four files whenever we want to use one or more of the
+  % routines. To avoid this we make a library containing all four routines.
+  NDL(NLH): SET-CASE-SIGNIFICANCE
+  Case significance (Yes, No): YES
+  NDL(NLH): SET-LIBRARY
+  File name: case1
+  NDL(NLH): LIST-MODULES
+  File name:  (PACK-FOUR-6799:MICKE-TEST)CASE1:NRF:1
+  Modules: 
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.. Planc... .........42B ..........0B ..........0B
+  % The first routine has been copied. We can now copy the remaining routines.
+  NDL(NLH): GET-MODULES
+  Source file: case2
+  First module: 
+  Last module: 
+  After module: 
+  NDL(NLH): LIST-MODULES
+  File name:  (PACK-FOUR-6799:MICKE-TEST)CASE1:NRF:1
+  Modules: 
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.. Planc... .........42B ..........0B ..........0B
+  .....2 case TO CASE....... P.. Planc... .........42B ..........0B ..........0B
+  NDL(NLH): GET-MODULES
+  Source file: case3
+  First module:
+  Last module:
+  After module:
+  NDL(NLH): GET-MODULES
+  Source file: case4
+  First module: 
+  Last module: 
+  After module: 
+  NDL(NLH): LIST-MODULES
+  File name:  (PACK-FOUR-6799:MICKE-TEST)CASE1:NRF:1
+  Modules: 
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.. Planc... .........42B ..........0B ..........0B
+  .....2 case TO CASE....... P.. Planc... .........42B ..........0B ..........0B
+  .....3 case TO case....... P.. Planc... .........15B ..........0B ..........0B
+  .....4 CASE TO CASE....... P.. Planc... .........15B ..........0B ..........0B
+  NDL(NLH): PREPARE-LIBRARY
+  SAVE will generate a FAST library file
+  % Now use the command FORCE-LIBRARY which creates a fast load for our library.
+  NDL(NLH): FORCE N Y N N
+  NDL(NLH): SAVE-LIBRARY
+  File name: CASES
+ 
+ Related old Linkage-Loader command(s):
+                APPEND-NRF-MODULE <source file> <destination file>
+                (<after module>), and FETCH-NRF-MODULES <source file>
+                <destination file> (<first module>) (<last module>)
+                                                                    
+IGNORE-DEBUG-INFORMATION                               
+IGNORE-DEBUG-INFORMATION                               
+                                                                    
+ 
+ Explanation: This command is used to either suppress or include
+                debug information on an NRF file while it is being
+                loaded.
+ 
+ Usage:         If you use this command, do so before loading.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Ignore (Yes,No)>
+                     Optional parameter. Default is YES, meaning that
+                     debug information is not included when the file
+                     is loaded. The value you choose for this
+                     parameter applies until you change it, or leave
+                     the Linker.
+ 
+ Notes:         The initial value when entering the Linker is NO,
+                meaning, debug information is included.
+                This command does not remove debug information from an
+                NRF file. If you want to do this, you must first enter
+                the NRF-LIBRARY-HANDLER and then use the command
+                DELETE-DEBUG-INFORMATION.
+ 
+ Example:
+  
+  % In this example debug information is loaded for only some of the
+  % program modules. Debug information is ignored for the file MEAN:NRF.
+  NDL(ADV): SET-ADVANCED-MODE
+  NDL(ADV): OPEN-DOMAIN "MY-DOMAIN"
+  NDL(ADV): LOAD TEST
+  Program:........302B P01   Data:...........230B D01   Debug inf:.....264B Bytes
+  NDL(ADV): IGNORE-DEBUG-INFORMATION YES
+  NDL(ADV): LOAD MEAN
+  Program:........324B P01   Data:...........374B D01   Debug inf:.....264B Bytes
+  % We can see that the size of the debug information has not increased
+  % after loading the module MEAN:NRF.
+  NDL(ADV): IGNORE-DEBUG-INFORMATION NO
+  NDL(ADV): LOAD MAX
+  Program:........355B P01   Data:...........540B D01   Debug inf:.....516B Bytes
+  % The size of the debug information has increased after loading the
+  % module MAX:NRF.
+  NDL(ADV): CLOSE
+  NDL(ADV): LINKER-AUTO-FORT:JOB
+  %  --> FORTRAN Auto Job:   Trap definition part.
+  %  --> FORTRAN Auto Job:   Link/load part.
+  % Debug information will still be suppressed when you load.
+ 
+ Related old Linkage-Loader command(s):
+                SUPPRESS-DEBUG-INFORMATION <ON/OFF>
+                                                                    
+INCLUDE-IN-ROUTINE-VECTOR                              
+INCLUDE-IN-ROUTINE-VECTOR                              
+                                                                    
+ 
+ Explanation: This command sets up a specified entry in the routine
+                vector as an entry point to a specified routine.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Entry name>
+                     No default value
+                2    <Index in vector>
+                     The index in the routine vector. Default is the
+                     last used plus one, or 0 if none have been used.
+ 
+ Notes:         
+                To create a routine vector, use the CREATE-ROUTINE-
+                VECTOR command.
+                If the specified entry is not a defined program entry,
+                the linker will create a dummy entry in the symbol
+                table with the proper value. This implies that all
+                calls to the routine will go through the routine
+                vector. Even calls to the routine within the module
+                containing it will go through the routine vector. The
+                routine vector is updated when the Linker recognizes a
+                real definition of the specified routine.
+                Note that if the routine is not defined during the
+                load session, all references made to the routine will
+                fail at runtime. (The Linker issues a warning message
+                when you try to close the domain or segment.)
+                The first entry in the routine vector has index 0, and
+                the last has index n-1, if the vector was created with
+                n entries.
+                If the domain or segment is for an ND-500(0), the
+                specified routine must start with an entry point
+                instruction (INIT,ENTD,ENTM,ENTS etc.). (Less advanced
+                users can rely on the compiler to supply these
+                instructions). This instruction is copied into the
+                entry in the routine vector, followed by a jump
+                instruction to the rest of the code of the routine.
+
+                When loading to an MC68000, only the jump instruction
+                is generated in the routine vector.
+ 
+ Example:
+  @ND-500 LINKER
+  NDL: SET-ADVANCED-MODE
+  NDL(ADV): OPEN-SEGMENT MY-LIBRARY,18
+  NDL(ADV): CREATE-ROUTINE-VECTOR 200
+  NDL(ADV): INCLUDE-IN-ROUTINE-VECTOR INITROUT 1
+  NDL(ADV): INCLUDE-IN-ROUTINE-VECTOR ALTINITR 2
+  NDL(ADV): INCLUDE-IN-ROUTINE-VECTOR RECEIVER 3
+  NDL(ADV): INCLUDE-IN-ROUTINE-VECTOR TRANSMIR 4
+  NDL(ADV): INCLUDE-IN-ROUTINE-VECTOR CLEARBUF 5
+  NDL(ADV): INCLUDE-IN-ROUTINE-VECTOR SKIPMESS 6
+  ...
+  NDL(ADV): INCLUDE-IN-ROUTINE-VECTOR RESETRUT 176
+  NDL(ADV): SPECIAL-LOAD MY-LIBRARY:NRF TOTAL
+  Program:..............225634 P22   Data:..................4 D22
+  NDL(ADV): LOAD PLANC-LIB
+  PLANC-LIB-H02
+  PLANC-LIB-H02
+  Program:..............225634 P22   Data:..................4 D22
+  NDL(ADV): LOAD MON-CALL-LIB
+  Program:..............227225 P22   Data:..................4 D22
+  NDL(ADV): CLOSE N N
+ 
+ Related old Linkage-Loader command(s):
+                GLOBAL-ENTRIES <label>...
+                                                                    
+INSERT-MESSAGE                                         
+INSERT-MESSAGE                                         
+                                                                    
+ 
+ Explanation: This command inserts a message into a specified
+                domain or segment file. The Linker displays the
+                message when another domain or segment file is linked
+                to this file.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Domain or segment name>
+                     Name of the file where the message shall be
+                     inserted. No default value.
+                2    <Message>
+                     Any character string not containing spaces.
+ 
+ Notes:         The file must not be open when you use this command.
+                If your message consists of several words, join them
+                with hyphens (-). If the message contains a dollar
+                sign ($), this character will not be displayed, but a
+                line break is introduced at that point when the
+                message is displayed. The message cannot contain
+                question marks, since the Linkers interface will
+                intercept them and take them for HELP commands.
+                There is no need to include dollar signs in the
+                message, as the Linker will output CR LF before each
+                message.
+                If the domain or segment already has a message, it is
+                replaced by the new message.
+                Use the LIST-STATUS command to list the link message.
+                
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+INSERT-MESSAGE                                         
+INSERT-MESSAGE                                         
+                                                                    
+ 
+ Explanation: This command is used for inserting a message into the
+                current library file immediately before a specified
+                module. This message is written on the output device
+                when the file is loaded. If a message already exists
+                at the indicated place, it will be replaced with the
+                new message. If the new message is a blank string, the
+                message at the indicated place will be deleted.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Message>
+                     Any character string not containing spaces. If
+                     your message is more than one word in length use
+                     a hyphen (-) between the words. The character $
+                     (ASCII 36D) is converted to carriage return and
+                     line feed sequence.
+                2    <Before module>
+                     Optional parameter. A reference identifying a
+                     module in the current library file. The message
+                     is inserted immediately before this module.
+                     Default is the first module in the file and
+                     before any fast load vector (see notes below).
+                3    <Entry type(PD,P,D)>
+                     Optional parameter. Default is PD i.e. both
+                     program and data entries will be considered when
+                     searching for a module.
+ 
+ Notes:         One carriage return and line feed sequence is always
+                given before the message is written to the ouput
+                device.
+                If the current library file is a "fast" library file,
+                only a message which is in front of the fast load
+                vector will be written on the output device. Any other
+                messages defined by this command will not be written,
+                as they are located outside the NRF modules. The
+                default value for parameter 2 with fast library files
+                is in front of the fast load vector.
+                When a file is fetched/read by the Nrf Library Handler
+                all messages in the file are written on the output
+                device. Unless they are inside a module, they are
+                deleted from the file when the file is saved with the
+                SAVE-LIBRARY command.
+                
+ Example:
+  
+  Whenever our library is loaded we want a message to be printed on the
+  output device. This may achieved by using the command INSERT-MESSAGE:
+  NDL(NLH): SET-CASE-SIGNIFICANCE YES
+  NDL(NLH): SET-LIBRARY
+  File name: cases
+  NDL(NLH): LIST-MODULES
+  File name:  (PACK-FOUR-6799:MICKE-TEST)CASES:NRF:1
+  Modules: 
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.. Planc... .........42B ..........0B ..........0B
+  .....2 case TO CASE....... P.. Planc... .........42B ..........0B ..........0B
+  .....3 case TO case....... P.. Planc... .........15B ..........0B ..........0B
+  .....4 CASE TO CASE....... P.. Planc... .........15B ..........0B ..........0B
+  NDL(NLH): INSERT-MESSAGE
+  Before module:
+  Message: $Case library loading$
+  % "$" will be printed as CR LF
+  NDL(NLH): INSERT-MESSAGE
+  Before module:
+  Message: Version 007$
+  NDL(NLH): PREPARE-LIBRARY
+  SAVE will generate a FAST library file
+  NDL(NLH): FORCE-LIBRARY
+  Symbols defined by LIB (Yes, No): NO
+  Symbols defined by DEF (Yes, No): YES
+  Symbols defined by DDF (Yes, No): NO
+  Blockdata/Common (Yes, No): NO
+  NDL(NLH): SAVE CASES
+ 
+ Related old Linkage-Loader command(s):
+                INSERT-NRF-MESSAGE <file name> (<module>) <message>
+                                                                    
+LINK                                                   
+LINK                                                   
+                                                                    
+ 
+ Explanation: This command is used to link a free segment to the
+                current domain or segment.
+ 
+ Usage:         Can be used before or after loading to the domain or
+                segment.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Segment name>..<Segment name>
+                     Name of free segment file to link to. This
+                     parameter may be repeated. You may also link to a
+                     segment file in another user area. No default.
+ 
+ Notes:          The specified segment file contains a program and/or
+                a data segment, each with a specific logical segment
+                number. These combinations of program/data and segment
+                numbers must be free in the current domain or segment.
+                For example, if the specified segment file contains
+                program segment number 7, then program segment number
+                7 must be free in the current domain or segment, while
+                the data segment number 7 needs not be free.
+                If the segment linked to is later opened with the
+                OPEN-SEGMENT command, its link lock changes, Then it
+                becomes impossible to place and execute the domain,
+                unless the link lock of the segment is restored to its
+                original value with the Linker's service-program's
+                CHANGE-LINK-LOCK command.
+                Included segments:
+                If the segment file to which you are linking itself
+                contains links to other segments (included segments),
+                their combinations of program/data and segment numbers
+                must also be free in the current domain or segment.
+                References to included segment files are automatically
+                included in the current domain or segment file.
+                However, those included segment files are not 
+                accessed, and the link information they contain is not
+                read into the symbol table. This implies that if you
+                have an unresolved reference to a symbol which is
+                defined in one of these included segments, the
+                reference is not resolved. In this case, you must use
+                the LINK command again, once for each of the included
+                segment files whose link information you need to
+                access.
+                If the segment file to which you link is on a
+                different user area, and included segment files are
+                specified in this file without user name, the user
+                name is added to the file names in the reference in
+                the current file.
+ 
+ Example:
+  
+  NDL: SET-ADVANCED-MODE
+  NDL(ADV): OPEN-SEGMENT "MY-SEGMENT" 10,,
+  Program:..........4B P12   Data:.............4B D12
+  NDL(ADV): LOAD MEAN MAX
+  Program:.........26B P12   Data:...........150B D12
+  Program:.........57B P12   Data:...........314B D12
+  NDL(ADV): CLOSE
+  NDL(ADV): OPEN-DOMAIN "MY-DOMAIN"
+  NDL(ADV): LOAD TEST
+  Program:........304B P01   Data:...........230B D01
+  NDL(ADV): LIST-ENTRIES UNDEFINED
+  Undefined entries:
+  MEAN................/FTN......144B P01  MAX................./FTN......160B P01
+  % Link to the free segment to get the subroutines defined.
+  NDL(ADV): LINK MY-SEGMENT
+  Segment MY-SEGMENT:SEG linked as segment 10.
+  NDL(ADV): CLOSE
+  NDL(ADV): LINKER-AUTO-FORT:JOB
+  %  --> FORTRAN Auto Job:   Trap definition part.
+  %  --> FORTRAN Auto Job:   Link/load part.
+  % The symbols in MY-FREE-SEG can be accessed by the domain MY-DOM. However,
+  % a call cannot be made by program code in MY-FREE-SEGMENT to MY-DOM.
+ 
+ Related old Linkage-Loader command(s):
+                LINK-SEGMENT <segment name>
+                FORCE-SEGMENT-LINK <segment name>
+                                                                    
+LINK-RT-PROGRAMS                                       
+LINK-RT-PROGRAMS                                       
+                                                                    
+ 
+ Explanation: Resolves all undefined references to RT-programs,
+                taking the addresses of the corresponding RT-
+                descriptions as the values.
+ 
+ Usage:         This command should be used after the program modules
+                which refer to the RT-program names have been loaded.
+ 
+ Parameters:    No Parameters.
+ 
+ Notes:         The LINK-RT-PROGRAMS command applies to ND-100/ND-500
+                communication.
+                A domain which contains references to RT programs
+                should not be copied to another machine. The domain
+                should be reloaded/linked.
+                The necessary information is taken from the file
+                (SYSTEM)RTFIL:DATA, which is maintained by the RT-
+                Loader. Only those entries in that file that have the
+                status "defined rt-programs" are considered. Only
+                those entries for which there are undefined
+                references, are inserted into the symbol table.
+ 
+ Related old Linkage-Loader command(s):
+                LINK-RT-PROGRAM
+                                                                    
+LINKER-SERVICE-PROGRAM                                 
+LINKER-SERVICE-PROGRAM                                 
+                                                                    
+ 
+ Explanation: This command is used for entering the Linker-Service-
+                Program. From this program you have access to commands
+                for creating the desired environment for your Linker
+                session. Commands are available for inspecting or
+                changing the domain or segment headers.
+ 
+ Parameters:    No Parameters.
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+LIST-DOMAINS                                           
+LIST-DOMAINS                                           
+                                                                    
+ 
+ Explanation: This command lists all domains which match the name
+                you specify in parameter 1, and gives limited
+                information about each one.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Domain name>
+                     Name of a domain or an abbreviation of a set of
+                     domains. Default is all domains on the specified
+                     user.
+                2    <Output file>
+                     Optional parameter. Default is terminal.
+ 
+ Notes:         The command, LIST-STATUS, gives more information about
+                each domain. Only files of file type DOM are searched.
+ 
+ Related old Linkage-Loader command(s):
+                LIST-DOMAIN <domain name>
+                                                                    
+LIST-ENTRIES                                           
+LIST-ENTRIES                                           
+                                                                    
+ 
+ Explanation: This command is used for listing the Symbol Table and
+                the current load address.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Selection: Undefined,Defined,All>
+                     Enables you to list just those entries which are
+                     defined or those which are undefined. Default is
+                     UNDEFINED.
+                2    <Order: Numerical,Alphabetical>
+                     Optional parameter. Used to determine whether the
+                     list is sorted according to references (entries
+                     in the Symbol Table) or their numeric values
+                     (addresses). Default is NUMERICAL.
+                3    <Entry type: ALL,USER,ENTRY>
+                     Optional parameter.
+                     ALL: lists all entries, including system symbols,
+                     for all users.
+                     USER: lists entries whose first character is
+                     alphanumeric (i.e. not system entries).
+                     ENTRY: lists only those entry names you specify.
+                     If you choose UNDEFINED or ALL in parameter 1,
+                     then the default for this parameter is ALL. If
+                     you choose DEFINED in parameter 1, then the
+                     default for this parameter is USER.
+                4    <Entry name>...<Entry name>
+                     Only meaningful if parameter 3 is ENTRY.
+                     Abbreviations allowed - see NOTES below.
+                5    <Output file>
+                     Optional parameter. Default is terminal.
+ 
+ Notes:         Entry names may be abbreviated as follows:
+                 *      - All entries.
+                 S*     - All entries starting with the string S.
+                 *S     - All entries ending with the string S.
+                 *S*    - All entries containing the string S.
+                For example, "#*", means all system symbols (these
+                always begin with "#").
+ 
+ Related old Linkage-Loader command(s):
+                LIST-ENTRIES-DEFINED (<sort criterium>)
+                LIST-ENTRIES-UNDEFINED (<sort criterium>)
+                VALUE-ENTRIES <entries>
+                                                                    
+LIST-MODULES                                           
+LIST-MODULES                                           
+                                                                    
+ 
+ Explanation: This command is used for listing the symbolic names
+                of all the modules in the NRF Library file you
+                specify, together with their program, data and debug
+                size.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <File name>
+                     Optional parameter. The name of an NRF Library
+                     file. Default is the current NRF Library file.
+                2    <Modules>
+                     Optional parameter. Specify the name of the
+                     module(s) in the above library that you wish to
+                     be listed. Default is *.(ALL)
+                3    <Entry type(PD,P,D)>
+                     Optional parameter. Default is PD i.e. both
+                     program and data entries will be considered when
+                     searching for a module.
+ 
+ Notes:         "*" may be used in symbol names to select the modules
+                to be listed. "*SYM" will list all entries having
+                "SYM" as suffix, "*SYM*" all entries containing "SYM"
+                as a substring. "*" matches any substring.
+                The columns of the listing have the following meaning:
+                Module    This number indicates whether the entries
+                          belong to the same or different modules.
+                Nrf-entry One of the names that can be used to refer
+                          to this module.
+                P,D       P - this is a program entry.
+                          D - this is a data entry.
+                          X - this entry is a library entry.
+                          C - this is a common/blockdata entry.
+                
+                Language          The source language of the
+                                  module.
+                Program size      Size of program part of module if
+                                  loaded.
+                Data size         Size of data part of module if
+                                  loaded.
+                Debug size        Size of debug part of module if
+                                  loaded.
+                
+ Example:
+  
+  Suppose we want to find out which monitor calls are available in the
+  PLANC library. We presume that the names of the monitor calls start
+  with either "MNxxx" or "MONxx" where "xxx" and "xx" are three digit
+  and two digit numbers respectively. Since the command LIST-MODULES
+  accepts abbreviations of module names, we can get the required list by
+  executing the command:
+  NDL(NLH): LIST-MODULES
+  File name:  (PACK-ONE-6799:SYSTEM)PLANC-LIB-G00:NRF:1
+  Modules: MN*
+  % This will list all entries starting with "MN".
+  NDL(NLH): LIST-MODULES
+  File name:  (PACK-ONE-6799:SYSTEM)PLANC-LIB-G00:NRF:1
+  Modules: MON*
+  % This will list all entries starting with "MON". However, we know
+  % that "*" matches any substring when used in a string. If we use the
+  % string "M*N*", it will match any string having "M" as a prefix and
+  % the character "N" somewhere else in the string (but after the "M").
+  NDL(NLH): LIST-MODULES
+  File name:  (PACK-ONE-6799:SYSTEM)PLANC-LIB-G00:NRF:1
+  Modules: M*N*
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  ....31 MON0............... P.X Planc... .........15B ..........0B ..........0B
+  ....32 MON1............... P.X Planc... .........25B ..........0B ..........0B
+         .                    .              .                 .
+         .                    .              .                 .
+         .                    .              .                 .
+  ....79 MN413.............. P.X Planc... .........20B ..........0B ..........0B
+  NDL(NLH):
+ 
+ Related old Linkage-Loader command(s):
+                LIST-NRF-ENTRIES <file name>
+                                                                    
+LIST-NRF                                               
+LIST-NRF                                               
+                                                                    
+ 
+ Explanation: This command is for listing the NRF code of one or
+                more modules in an NRF library file.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <File name>
+                     Optional parameter. The name of an NRF file.
+                     Default is the current NRF Library file.
+                2    <First module>
+                     Optional parameter. The first module for which
+                     you want code information. Default is the first
+                     module in the NRF file. (See notes).
+                3    <Last module>
+                     Optional parameter. The last module for which you
+                     want code information. Default is the last module
+                     in the NRF file.
+                4    <Entry type(PD,P,D)>
+                     Optional parameter. Default is PD, i.e., both
+                     program and data entries will be considered when
+                     searching for a module.
+                5    <Computer (ND500,MC68000)>
+                     Optional parameter. Default is the computer mode
+                     of the first module in the file. The command
+                     will, during listing, try to select the right
+                     computer mode for each module listed.
+ 
+ Notes:         If no information about the computer is available, the
+                default is ND500.
+                Default for the parameter <First module> is from the
+                beginning of the file, rather than the beginning of
+                the first module. Any information residing before the
+                first module in the file will be listed here if the
+                default for first module is used, e.g., the fast load
+                vector or messages inserted before the first module.
+                For an explanation of the headers printed before each
+                module listed, see the command LIST-MODULES.
+                
+ Example:
+  
+  The user has a library file that was compiled long ago. He cannot
+  remember if the code was written for the ND500 or for the MC68000.
+  Since an old compiler was used, no information about the target
+  machine is available in the BEG control byte. The library handler thus
+  cannot supply information about the target machine type. In such a
+  situation the command LIST-NRF, which lists the code in the library,
+  could supply some information about the target machine:
+  NDL(NLH): SET-CASE-SIGNIFICANCE
+  Case significance (Yes, No): YES
+  NDL(NLH): SET-LIBRARY
+  File name: cases
+  NDL(NLH): LIST-NRF
+  File name:  (PACK-FOUR-6799:MICKE-TEST)CASES:NRF:1
+  First module: 
+  Last module: CASE TO case
+  0B: (LBB,4   0B)
+  0B: (LBB,4 CASE TO case 126B)
+  0B: (LBB,4 case TO CASE 234B)
+  0B: (LBB,4 case TO case 342B)
+  0B: (LBB,4 CASE TO CASE 423B)
+  0B: (LBB,4   37777777777B)
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.. Planc... .........42B ..........0B ..........0B
+  0B: (BEG,2 0B 2B)
+  0B: (DMO,0)
+  0B: (PMO,0)
+  0B: (DEF,0 CASE TO case=#PCLC)
+  0B: (LDN,         42B)
+  0B:         ENTS +0B, BY1 =:
+  7B:         B.24B:S, BY1 AND 177B, BY1 =: B.
+  16B:         25B, BY1 COMP 101B, IF << GO 14B, BY1 COMP
+  25B:         132B, IF >> GO 7B, BY1 +
+  34B:         40B, RET, BY1 := B.25B, RET
+  42B: (DMO,0)
+  0B: (PMO,0)
+  42B: (FMO,4 #PCLC-40B)
+  2B: (ADI,4) DATA (#DCLC)+30B
+  6B: (DMO,0)
+  0B: (END,0)
+  % After having seen the listing above, the user decides that this
+  % module was written for the ND500. But to be sure you could list the
+  % code again, this time in MC68000 mode.
+ 
+ Related old Linkage-Loader command(s):
+                LIST-NRF-CODE <sourcefile> (<first module>) (<last
+                module>)
+                                                                    
+LIST-SEGMENTS                                          
+LIST-SEGMENTS                                          
+                                                                    
+ 
+ Explanation: This command lists all free segments which match the
+                name given in parameter 1, together with information
+                about each one.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Segment name>
+                     Name of a segment or part of one. Default: all
+                     segments on that user area. (LIST-STATUS gives
+                     more information about each segment.)
+                2    <Output file>
+                     Optional parameter. Default is terminal.
+ 
+ Notes:         Only files of file type SEG are searched.
+ 
+ Related old Linkage-Loader command(s):
+                LIST-SEGMENT <domain name> <segment name>
+                                                                    
+LIST-STATUS                                            
+LIST-STATUS                                            
+                                                                    
+ 
+ Explanation: This command lists all available information about
+                the domain or segment you specify in parameter 1.
+ 
+ Usage:         This command lists all information about ONE domain or
+                segment. Use LIST-DOMAIN or LIST-SEGMENT for more
+                restricted information about several domains/segments.
+                If the Linker is in the "advanced mode", then all the
+                domain privileges, segment attributes and the trap
+                inforamtion are listed. If the Linker is in the
+                "standard mode", only those domain privileges, segment
+                attributes and traps that are not default values will
+                be listed.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Domain or segment name>
+                     Default file type is DOM. Abbreviations are
+                     allowed, as long as they are unambiguous.
+                2    <Output file>
+                     Optional parameter. Default is terminal.
+ 
+ Notes:         Using this command without a parameter, gives you the
+                status of the current domain/segment. Note that the
+                status of the current domain or segment is not fully
+                updated until that domain or segment is closed.
+                When several languages are listed under "Source code
+                language", the star (*) indicates which is the main
+                start address (MSA) language.
+ 
+ Related old Linkage-Loader command(s):
+                WRITE-DOMAIN-STATUS (<domain name>)
+                WRITE-SEGMENT-STATUS (<segment name>)
+                                                                    
+LIST-STATUS                                            
+LIST-STATUS                                            
+                                                                    
+ 
+ Explanation: With this command you can either list the names of
+                all files referred to in the current session, or some
+                statistics about the files.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Complete (Yes,No)>
+                     Optional parameter. NO means that only a list of
+                     the filenames will be displayed. YES will give
+                     complete information for all files. Default is
+                     YES.
+ 
+ Notes:         The complete listing for each file will contain
+                information about:
+                     - the number of modules in the file,
+                     - the number of entries,
+                     - the total size of the file if saved, and
+                     - the total size of the input file in bytes.
+                The size in bytes of the current library file gives a
+                hint about the size of the file if it is saved.
+                Current heap usage is also listed.
+                    
+                    ---------------- File-usage/statistics  -------------------
+                     A      (PACK-ONE-6799:SYSTEM)PLANC-LIB-G00:NRF:1
+                     B      Size of file is 15386 bytes
+                     C      Modules     87  Entries     95  Bytes        15386
+                    --------------- Heap-usage/statistics ---------------------
+                    Size of heap is 256 pages.
+                    there are 10 pages used and 245 pages left.
+                    Approximate number of bytes used per entry is 216
+ 
+ 
+178                                 THE COMMANDS IN ALPHABETICAL ORDER
+     
+ Notes:         A) Complete file name.
+                B) The size of the input file in bytes.
+                C) The size of the input file in bytes if saved.
+                
+ Example:
+  
+  Suppose we are building a large library and that the routines in our
+  library refer to PLANC and FORTRAN library routines. Also suppose that
+  the last time we tried to make this big library file we got an error
+  message from the library handler that the heap was insufficient. To
+  correct this error and allocate enough heap for the library handler
+  this time we list statistics about the system libraries and use the
+  information given to calculate the heap needed.
+  First list the statistics of the PLANC library:
+  NDL(NLH): SET-LIBRARY plan-lib
+  Message : "PLANC-LIB-G00$"
+  NDL(NLH): LIST-STATUS Y
+  ---------------- File-usage/statistics  --------------------
+  (PACK-ONE-6799:SYSTEM)PLANC-LIB-G00:NRF:1
+  Size of file is 15386 bytes
+  Modules     87  Entries     95  Bytes        15386
+  --------------- Heap-usage/statistics ---------------------
+  Size of heap is 256 pages.
+  there are 10 pages used and 245 pages left.
+  Approximate number of bytes used per entry is 216
+  NDL(NLH):
+  % We then list the statistics of the FORTRAN library.
+  NDL(NLH): SET-LIBRARY (LIBRARY)FORTRAN
+  Message : "FORTRAN-LIB-203101-J03$"
+  NDL(NLH): LIST-STATUS
+  Complete (Yes,No): YES
+  ---------------- File-usage/statistics  --------------------
+  (PACK-TWO-6799:LIBRARIES)FORTRAN-LIB-J03:NRF:1
+  Size of file is 94389 bytes
+  Modules    320  Entries    351  Bytes        94389
+  --------------- Heap-usage/statistics ---------------------
+  Size of heap is 256 pages.
+  there are 40 pages used and 215 pages left.
+  Approximate number of bytes used per entry is 234
+  NDL(NLH):
+  % The PLANC library contained 95 entries each using approximately 216
+  % bytes in the description. The FORTRAN library contained 351 entries,
+  % each using approximately 234 bytes. If the libraries were appended,
+  % we could expect the new library to contain about 446 entries, each
+  % using about 200 to 250 bytes. The total amount of heap necessary to
+  % accommodate the description of this library, assuming 250 bytes per
+  % entry, would then be 250 * 450 entries = 112500 bytes or about 55
+  % pages. However, if we were to build the library using the GET-MODULES
+  % command with an initially empty current library file as in the
+  % following example, we get a different result.
+  
+THE COMMANDS IN ALPHABETICAL ORDER                                 179
+  
+  NDL(NLH): SET-LIBRARY my-lib
+  NDL(NLH): GET-MODULES planc-lib,,,
+  Message : "PLANC-LIB-G00$"
+  NDL(NLH): GET-MODULES (LIBRARY)FORTRAN,,,
+  Message : "FORTRAN-LIB-203101-J03$"
+  NDL(NLH): LIST-STATUS Y
+  ---------------- File-usage/statistics  --------------------
+  (PACK-FOUR-6799:MICKE-TEST)MY-LIB:NRF:1
+  Size of file is 40 bytes
+  Modules    407  Entries    446  Bytes       109775
+  (PACK-ONE-6799:SYSTEM)PLANC-LIB-G00:NRF:1
+  Size of file is 15386 bytes
+  Modules     87  Entries     95  Bytes        15386
+  (PACK-TWO-6799:LIBRARIES)FORTRAN-LIB-J03:NRF:1
+  Size of file is 94389 bytes
+  Modules    320  Entries    351  Bytes        94389
+  --------------- Heap-usage/statistics ---------------------
+  Size of heap is 256 pages.
+  there are 81 pages used and 174 pages left.
+  Approximate number of bytes used per entry is 186
+  NDL(NLH):
+  The library we built contains 446 entries as expected. But the heap
+  used 81 pages. This can be explained if we look at the listing above.
+  The total number of entries, for all files, is 446 + 95 + 351 = 892
+  entries. The total amount of heap used will then be 892 entries * 186
+  bytes/entry = 165912 bytes or 81 pages. This discrepancy in the result
+  is due to the fact that the GET-MODULES command copies parts of
+  descriptions when it is executed. This means that when calculating the
+  necessary heap space for building a large library, we must remember to
+  multiply the number of entries (or the number of bytes used per entry)
+  by a factor of two (since each entry will have two copies of it in
+  memory - one in the source and one in the destination, i.e. the
+  current library).
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+LOAD                                                   
+LOAD                                                   
+                                                                    
+ 
+ Explanation: This command loads relocatable (NRF) code onto the
+                current segments in the current domain or segment. It
+                is not necessary to use the SET-SEGMENT-NUMBER command
+                as the first LOAD command will allocate a default
+                segment.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <File name> <....>
+                     Name of file(s) in NRF format. Default type is
+                     NRF.
+ 
+ Notes:         If you exceed the segment size, you may have to use
+                the command SET-SEGMENT-SIZE. It is also possible that
+                the link or debug areas run full during the loading,
+                in which case you can use the set-area-size commands
+                instead.
+                
+ Example:
+  
+  % This example loads NRF code into the current segment in the domain MY-DOMAIN:
+  @ND Linker
+  NDL: OPEN-DOMAIN "MY-DOMAIN"
+  NDL: LOAD TEST MEAN MAX
+  Program:........302B P01   Data:...........230B D01
+  Program:........324B P01   Data:...........374B D01
+  Program:........355B P01   Data:...........540B D01
+  NDL: CLOSE
+  NDL: LINKER-AUTO-FORT:JOB
+  %  --> FORTRAN Auto Job:   Trap definition part.
+  %  --> FORTRAN Auto Job:   Link/load part.
+  % Load the subroutines into a segment MY-SEGMENT:SEG
+  NDL: SET-ADVANCED-MODE
+  NDL(ADV): OPEN-SEGMENT "MY-SEGMENT" 10,,
+  Program:..........4B P12   Data:.............4B D12
+  NDL(ADV): LOAD MEAN
+  Program:.........26B P12   Data:...........150B D12
+  
+  NDL(ADV): LOAD MAX
+  Program:.........57B P12   Data:...........314B D12
+  NDL(ADV): EXIT
+  NDL(ADV): LINKER-AUTO-FORT:JOB
+  %  --> FORTRAN Auto Job:   Trap definition part.
+  %  --> FORTRAN Auto Job:   Link/load part.
+  % A domain must be linked to this free segment before it can be executed.
+ 
+ Related old Linkage-Loader command(s):
+                LOAD-SEGMENT <file name>
+                                                                    
+MATCH-RT-SEGMENT                                       
+MATCH-RT-SEGMENT                                       
+                                                                    
+ 
+ Explanation: This command defines an ND-100 segment as having the
+                same physical pages of memory as a portion of the
+                current free segment, and inserts in the symbol table
+                all "defined common labels" in the ND-100 segment.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Segment name or number>
+                     Name or number of the ND-100 segment. 0 or
+                     RTCOMMON can also be specified
+ 
+ Notes:         The ND-100 segment must exist, i.e., be defined in the
+                RT-loader, and it must be a non-demand segment.
+                On the ND-500(0) side, the ND-100 segment is matched
+                with either the current data segment, or with the
+                current common segment, if any exists.
+                The two processors do not use the same logical
+                addresses when refering to the shared memory. From the
+                ND-500(0) side, the shared area begins at the first
+                page boundary at or after the current load counter
+                (#DCLC or #CCLC). In the ND-100, the shared area
+                begins at the page boundary before or at the lower
+                bound address of the ND-100 segment.
+                All "defined common labels" in the specified ND-100
+                segment become defined entries in the symbol table.
+                The values of these symbols are the addresses of the
+                "defined common labels" in the ND-100 segment,
+                converted to ND-500(0) addresses.
+                Finally, the current load counter is advanced to the
+                first page boundary after the ND-100 segment.
+ 
+ Example:
+  ...
+  NDL(ADV): OPEN-SEGMENT RPP-SEG,3
+  NDL(ADV): LOAD RPP-500-PART1
+  Program:..................13334 P03    Data:...............2004 D03
+  NDL(ADV): MATCH-RT-SEGMENT RPPID    %starts at 3'4000B
+  NDL(ADV): LOAD RPP-500-PART2        %Starts at p. bound. after RTseg
+  Program:..................13475 P03    Data:..............30454 D03
+  NDL(ADV): SET-LOAD-ADDRESS,,        %Moves to p. bound.
+  Program:..................13475 P03    Data:..............34000 D03
+  NDL(ADV): LOAD RPP-500-PART3
+  Program:..................21420 P03    Data:..............36740 D03
+  NDL(ADV): CLOSE
+  
+ Related old Linkage-Loader command(s):
+                MATCH-COMMON-RT-SEGMENT <segment name/number(octal)>
+                MATCH-RTCOMMON.
+                                                                    
+NRF-LIBRARY-HANDLER                                    
+NRF-LIBRARY-HANDLER                                    
+                                                                    
+ 
+ Explanation: This command is for entering the NRF Library mode.
+                From here you can carry out Library File maintenance.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <File name>
+                     Specify the name of the file you wish to enter.
+                     No default value. The default file type is NRF.
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+OPEN-DOMAIN                                            
+OPEN-DOMAIN                                            
+                                                                    
+ 
+ Explanation: This command opens a domain as the current domain, to
+                be used for all subsequent linking and loading. If the
+                domain already exists, its contents will be erased.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Domain name>
+                     Name of an existing file (or a new file name if
+                     enclosed in double quotation-marks). Default file
+                     type is DOM.
+                2    <Domain privileges>
+                     Optional parameter. Specify one or more of the
+                     following: #PRIVILEGED-INSTRUCTIONS-ALLOWED, NOT-
+                     #PRIVILEGED-INSTRUCTIONS-ALLOWED, ENABLE-ESCAPE
+                     and DISABLE-ESCAPE (or unambiguous abbreviations
+                     of these). Default values are NOT-#PRIVILEGED-
+                     INSTRUCTIONS-ALLOWED and ENABLE-ESCAPE.
+ 
+ Notes:         OPEN-DOMAIN automatically executes CLOSE on the
+                current domain or segment.
+ 
+ Example:
+  
+  % Open a new domain
+  NDL: OPEN-DOMAIN "MY-DOMAIN"
+  % Open an existing domain with privilege disable-escape
+  NDL: OPEN-DOMAIN MY-DOMAIN DISABLE-ESCAPE
+  % Open a domain on floppy
+  NDL: OPEN-DOMAIN (ND:FLOPPY-USER)FLOPPY-DOMAIN
+ 
+ Related old Linkage-Loader command(s):
+                SET-DOMAIN <domain name>
+                                                                    
+OPEN-SEGMENT                                           
+OPEN-SEGMENT                                           
+                                                                    
+ 
+ Explanation: This command opens a free segment as the current
+                segment to be used for all subsequent loading and
+                linking. Any existing contents are erased.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Segment name>
+                     Name of an existing segment file (or a new file
+                     name enclosed in double quotation-marks). Default
+                     file type is SEG.
+                2    <Segment number>
+                     The segment is either allocated a number you
+                     specify, in the range 0 to 31 (0 to 37B octal, 0
+                     to 1FH hexadecimal), or the default value.
+                     Default is the lowest available segment number
+                     starting with 1.
+                3    <Segment type (PD,P,D)>
+                     Optional parameter. Default: PD. (P stands for
+                     program segment, D for data segment, and PD for
+                     both.)
+                4    <Segment attributes>
+                     Optional parameter. You may specify any of the
+                     segment attributes which are listed on page 188.
+ 
+ Example:
+  
+  % Open a new segment.
+  NDL: SET-ADVANCED-MODE
+  NDL(ADV): OPEN-SEGMENT "MY-SEGMENT" 10 PD
+  Program:..........4B P12   Data:.............4B D12
+  % Open a segment to be shared by two domains.
+  % SWAP-ON-ORIGINAL attribute means that any write applied to this segment
+  % will affect the segment file, and are thus permanent.
+  NDL(ADV): OPEN-SEGMENT "COM-SEG" 10 D
+  Segment attributes: SHARED-DATA-SEGMENT NOT-CACHE
+  Segment attributes: SWAP-ON-ORIGINAL-FILE
+                             Data:.............4B D12
+  NDL(ADV): LOAD COMMON-BLOCK
+  Program:..........4B P01   Data:............20B D12
+  NDL(ADV): CLOSE
+  % Several users may run this domain and operate on the same data
+  % segment simultaneously.
+  NDL(ADV): OPEN-DOMAIN "MY-DOMAIN"
+  % Link to the shared segment
+  NDL(ADV): LINK COM-SEG
+  Segment COM-SEG:SEG is linked as segment 10.
+  NDL(ADV): LOAD PLANC-INC
+  Program:........311B P01   Data:..........1034B D01
+  NDL(ADV): LOAD PLANC-LIB
+  PLANC-LIB-F00
+  Program:.......3142B P01   Data:..........1134B D01
+  NDL(ADV): CLOSE
+  % Open FORTRAN common segments.
+  NDL(ADV): OPEN-DOMAIN MY-DOMAIN
+  NDL(ADV): OPEN-SEGMENT "FORT-COM-1" 10 D FORTRAN-COMMON-SEGMENT
+  FORTRAN-COMMON-SEGMENT FORT-COM-1:SEG linked as data segment 10  to current
+  domain.
+  % Common blocks will now be allocated on segment number 10
+  NDL(ADV): OPEN-SEGMENT "FORT-COM-2" 11 D FORTRAN-COMMON-SEGMENT
+  FORTRAN-COMMON-SEGMENT FORT-COM-2:SEG linked as data segment 11  to current
+  domain.
+  % and now on segment number 11.;
+ 
+ Notes:         If you want to avoid erasing the existing contents of
+                the segment file, use the command APPEND-SEGMENT
+                instead.
+                OPEN-SEGMENT automatically executes CLOSE on the
+                current domain and/or segment, if any. The current
+                domain or segment is not closed if FORTRAN-COMMON-
+                SEGMENT is specified in the attribute list.
+                If a free segment is linked to more than one domain,
+                the program segment is, by default, shared by all the
+                domains, but each domain operates on a separate copy
+                of the data segment. If you want the data segment to
+                be shared as well, you must specify the SHARED-DATA-
+                SEGMENT attribute.
+                If a free segment is reopened with this command, it
+                gets a new link lock, thereby invalidating all
+                previous links to it. If you are sure that all symbols
+                have been defined with the same values as before, the
+                links can be made valid again through the CHANGE-LINK-
+                LOCK command.
+ 
+ Related old Linkage-Loader command(s):
+                OPEN-SEGMENT <segment name> <segment attributes>
+     
+segment attributes:
+ WRITE-PERMIT                  Data only     Free/Slave   Default  
+ READ-ONLY                     Data only     Free/Slave            
+                                                                   
+ Write-permit gives read/write access to the data segment.         
+ PARAMETER-ACCESS              Data only     Free/Slave   Default  
+ NOT-PARAMETER-ACCESS          Data only     Free/Slave            
+                                                                   
+ Reflects capability bit no. 14. See ND-500 Reference Manual,      
+ ND-805009.                                                        
+ SWAP-ON-SWAP-FILE             Data only     Free/Slave   Default  
+ SWAP-ON-ORIGINAL-FILE         Data only     Free/Slave            
+                                                                   
+ Swap-on-swap-file is forced when read-only. With swap-on-swap-    
+ file, changes to the segment are not saved when the program       
+ terminales                                                        
+                                                                   
+ With swap-on-original-file, changes are permanent. All pages      
+ must be allocated in the segment when the program runs; no pages  
+ are allocated on page faults.                                     
+ SHARED-DATA-SEGMENT           Data only     Free/slave            
+ NOT-SHARED-DATA-SEGMENT       Data only     Free/slave   Default  
+                                                                   
+ With shared-data-segment, concurrent users of the segment get     
+ the same physical segment number in the data capability           
+ EMPTY-DATA-SEGMENT            Data only     Free only             
+ NOT-EMPTY-DATA-SEGMENT        Data only     Free/slave   Default  
+                                                                   
+ With empty-data-segment, the segment is placed, but not read.     
+ Space is allocated on the swap file, corresponding to the size    
+ of the segment. Zeroed pages are allocated on page faults within  
+ segment limits. Use SET-LOAD-ADDRESS to define the size of the    
+ segment.                                                          
+ FILE-AS-SEGMENT               Data only     Free/slave            
+ NOT-FILE-AS-SEGMENT           Data only     Free/slave   Default  
+                                                                   
+ With file-as-segment, the data segment is not placed. Use         
+ monitor calls 412B FileAsSegment, or 422B GetScratchSegment,      
+ to get a segment at runtime.                                      
+THE COMMANDS IN ALPHABETICAL ORDER                                 189
+ 
+ CACHE                         Data only     Free/slave   Default  
+ NOT-CACHE                     Data only     Free/slave            
+                                                                   
+ Data capability bit no. 13. Segments with not-cache should be     
+ as small as possible. Not-cache is normally used with shared-     
+ data-segment                                                      
+
+ CLEAR-CAPABILITY-ALLOWED      Program/data  Free/slave            
+ NOT-CLEAR-CAPABILITY-ALLOWED  Program/data  Free/slave   Default  
+ COPY-CAPABILITY-ALLOWED       Program/data  Free/slave            
+ NOT-COPY-CAPABILITY-ALLOWED   Program/data  Free/slave   Default  
+ FORTRAN-COMMON-SEGMENT        Data only     Free only             
+ NOT-FORTRAN-COMMON-SEGMENT    Data only     Free/slave   Default  
+                                                                   
+ When opening a segment with fortran-common-segment,any currently  
+ open domain or segment is not closed. Only common blocks are      
+ loaded to the new segment, other program or data areas are loaded 
+ to the domain or the other segment. The new segment is linked to  
+ the domain or other segment.                                      
+                                                                    
+PREPARE-LIBRARY                                        
+PREPARE-LIBRARY                                        
+                                                                    
+ 
+ Explanation: This command is used to indicate if a FAST load
+                vector should be inserted by the SAVE-LIBRARY command.
+                A FAST load vector will decrease load time.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Fast library (Yes,No)>
+                     Optional parameter. YES means SAVE will generate
+                     a FAST library file. NO means SAVE will generate
+                     a SLOW library file. Initial value is YES.
+                     Default is YES.
+ 
+ Notes:         Files not compiled in library mode may be made into
+                "fast" library files by first using the command FORCE-
+                LIBRARY with the appropriate parameters, and then the
+                command above.
+ 
+ Example:
+  
+  In the following example, we have a library that was compiled with
+  LIBRARY-MODE ON and want to convert it into a fast library.
+  NDL(NLH): SET-CASE-SIGNIFICANCE
+  Case significance (Yes, No): YES
+  NDL(NLH): SET-LIBRARY
+  File name: cases
+  NDL(NLH): LIST-MODULES
+  File name:  (PACK-FOUR-6799:MICKE-TEST)CASES:NRF:1
+  Modules:
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.X Planc... .........42B ..........0B ..........0B
+  .....2 case TO CASE....... P.X Planc... .........42B ..........0B ..........0B
+  .....3 case TO case....... P.X Planc... .........15B ..........0B ..........0B
+  .....4 CASE TO CASE....... P.X Planc... .........15B ..........0B ..........0B
+  % The "X" printed in the column "P/D" indicates that this entry is
+  % LIB-marked, i.e. it is referred to by a LIB control byte in the
+  % file. Only LIB-marked entries will get into the fast load vector
+  % unless the user FORCES the library handler to act differently.
+  NDL(NLH): PREPARE-LIBRARY
+  SAVE will generate a FAST library file
+  NDL(NLH): SAVE-LIBRARY
+  File name: cases
+  % We may now check whether the vector was produced or not by using the
+  % command LIST-NRF. If a vector was produced it will be printed before
+  % any other code is listed and before any module name is printed.
+  NDL(NLH): SET-CASE-SIGNIFICANCE
+  Case significance (Yes, No): YES
+  NDL(NLH): SET-LIBRARY
+  File name: cases
+  NDL(NLH): LIST-NRF
+  File name:  (PACK-FOUR-6799:MICKE-TEST)CASES:NRF:1
+  First module: 
+  Last module: CASE TO case
+  0B: (LBB,4   0B)
+  0B: (LBB,4 CASE TO case 126B)
+  0B: (LBB,4 case TO CASE 234B)
+  0B: (LBB,4 case TO case 342B)
+  0B: (LBB,4 CASE TO CASE 423B)
+  0B: (LBB,4   37777777777B)
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.. Planc... .........42B ..........0B ..........0B
+  0B: (BEG,2 0B 2B)
+  Listing aborted
+  NDL(NLH):
+  % Here the user pressed the home () key, which is used to abort listings.
+ 
+ Related old Linkage-Loader command(s):
+                PREPARE-NRF-LIBRARY-FILE <file name>
+                                                                    
+REFER-ENTRY                                            
+REFER-ENTRY                                            
+                                                                    
+ 
+ Explanation: This command is for making references from either a
+                program or a data segment to a program or a data
+                entry.
+ 
+ Usage:         This command may be used for forcing specific library
+                modules to be loaded.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Referred entry name>
+                     The symbol you want to make a reference to. The
+                     reference may be defined or undefined (see
+                     notes). No default.
+                2    <Address of reference>
+                     The address where you make the reference from.
+                     Can be a symbolic address or a numerical address.
+                     You can also use the Program Current Location
+                     Counter (#PCLC), and the Data Current Location
+                     Counter (#DCLC). Default <address> causes no
+                     modification of any memory location if the symbol
+                     was undefined when the command was given and is
+                     later defined.
+                3    <Entry type of referred entry (P,D)>
+                     P: The reference is to a symbol in the program
+                     segment. D: the reference is to a symbol in a
+                     data segment. Default: P.
+                4    <Reference in program or data segment (P,D)>
+                     P: reference is made from a program segment. D:
+                     reference is made from a data segment. If
+                     parameter 3 was P, default is P. If parameter 3
+                     was D, default is D.
+ 
+ Example:
+  
+  NDL: SET-ADVANCED-MODE
+  % Use the command REFER-ENTRY to load the routine #except (and all the
+  % routines that it refers to) into one segment. When loading a library
+  % segment for FORTRAN you should preferably use SPECIAL-LOAD with the
+  % option total, since some FORTRAN programs might refer to routines
+  % other than #except.
+  NDL(ADV): OPEN-SEGMENT "MY-SEGMENT" 10 PD
+  Program:..........4B P12   Data:.............4B D12
+  NDL(ADV): REFER-ENTRY #EXCEPT,,P P
+  NDL(ADV): SPECIAL-LOAD (LIBRARIES)FORTRAN-LIB LIBRARY
+  FORTRAN-LIB-203101-J03
+  Program:......57264B P12   Data:.........30220B D12
+  NDL(ADV): SPECIAL-LOAD (LIBRARIES)EXCEPT-LIB LIBRARY
+  EXCEPT-LIB-204157-D02
+  Program:......73722B P12   Data:.........56032B D12
+  NDL(ADV): CLOSE
+  
+ Notes:         If the reference is to a symbol which is already
+                defined in the Symbol Table, it is immediately
+                replaced with its value. If the reference is to a
+                symbol which is not defined in the Symbol Table, it is
+                entered in the Table as an undefined reference with
+                the address you specify in parameter 2 (i.e. where the
+                reference is made from) instead of a value. If it is
+                already in the Symbol Table but not defined, the
+                address is included in the Table alongside addresses
+                of previous references to that symbol. During linking
+                or loading, the symbol becomes defined and all
+                references to it are replaced by the value.
+                If the reference is undefined when you use this
+                command, and you give the default address 0 (zero) for
+                parameter 2, it will not actually modify any memory
+                location. Address zero is a dummy value enabling you
+                to force loading.
+ 
+ Related old Linkage-Loader command(s):
+                PROGRAM-REFERENCE <entry> <address> <P/D>
+                DATA-REFERENCE <name> <address> <P/D>
+                                                                    
+RELOAD                                                 
+RELOAD                                                 
+                                                                    
+ 
+ Explanation: This command will load NRF code like the LOAD
+                command, but modules already loaded to the segment
+                will be replaced with the modules with the same
+                identifying symbols in the specified file. However,
+                data loaded to the data segment is not replaced, and a
+                warning message is given.
+                
+ Parameters:    No.  Parameter name and Explanation
+                1    <<File Name>>
+                     Name of file(s) in NRF format. Default file type
+                     is NRF.
+ 
+ Notes:         This command is useful while debugging large programs,
+                when changes are made in a single or a small number of
+                modules. You avoid loading the entire domain or
+                segment, you only need to reload the modules that have
+                actually been modified.
+                When you intend to use this command, you should not
+                use OPEN-DOMAIN or OPEN-SEGMENT, which clear the
+                contents of the domain or segment. Use APPEND-DOMAIN
+                or APPEND-SEGMENT instead.
+                You should link to segments containing common data
+                blocks before you reload, in order to avoid new
+                definitions.
+                If modules with the same identifying symbols are
+                loaded during the same load session, only the first
+                module is actually loaded, and a warning message is
+                issued for each subsequent module.
+                It is the user's responsibility to make sure that a
+                routine can be reloaded. On the ND-500(0), a routine
+                can be as small as 4 bytes long, while the jump patch
+                will be 6 bytes long. Reloading such a routine causes
+                the adjacent routine to be overwritten. However, with
+                
+                compiled languages, such routines can only be written
+                using inline assembly. This applies to PLANC SPECIAL
+                routines.
+                If static data layouts have been modified, a reload is
+                not likely to be sufficient, since data are not
+                reloaded. This also applies to constants and initial
+                values of variables.
+                All entry points to the new version of the module
+                become accessible at the same address as with the old
+                version. However, the new code is loaded at the end of
+                the segment (actually at the "current load address").
+                The old code is overwritten with a copy of the new
+                entry point instruction, followed by an unconditional
+                jump to the new code.
+                The space occupied by the old version is not released,
+                and it is the responsibility of the user to load the
+                entire domain or segment to clean it up after the
+                debugging phase is complete.
+                RELOAD cannot normally be used on a compressed domain
+                or segment. A compressed domain or segment has less
+                than one page of free space left in each segment and
+                in the link and debug info areas.
+                PLANC programmers should refer to the SELECT compiler
+                directive to avoid loading excessively large modules.
+ 
+ Example:
+  NDL(ADV): APPEND-DOMAIN SIBRC
+  Program:..........114113B P01    Data:................53473B D01
+  NDL(ADV): LINK SIBRC-COMMON
+  Segment SIBRC-COMMON:SEG linked as segment 2.
+  NDL(ADV): RELOAD SEXMC
+  NDL(ADV): CLOSE N N
+ 
+ Related old Linkage-Loader command(s):
+                RELOAD-SEGMENT <file-name>
+                                                                    
+REPLACE-MODULES                                        
+REPLACE-MODULES                                        
+                                                                    
+ 
+ Explanation: With this command you can replace modules in the
+                current NRF library file with new modules from the
+                file that you specify.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Source file>
+                     Name of the file containing new modules with
+                     which you want to replace modules in the current
+                     NRF Library file. No default value.
+ 
+ Notes:         The new NRF modules you want to replace existing
+                modules with, must have names that are identical to
+                the names of the corresponding old modules in the
+                current NRF Library file, (i.e their symbolic names in
+                the NRF code must be the same). The modules in the NRF
+                library file will be in the same relative order after
+                you have used this command as before, even if the new
+                modules are not the same size as the old ones.
+                Only modules in the source file having at least one
+                entry in common with a module in the current library
+                file AND NO entries in common with any other module in
+                the current library file can be allowed to be
+                replacing modules.
+ 
+ Example:
+  
+  NDL(NLH): SET-CASE-SIGNIFICANCE
+  Case significance (Yes, No): YES
+  NDL(NLH): SET-LIBRARY
+  File name: cases
+  NDL(NLH): LIST-MODULES
+  File name:  (PACK-FOUR-6799:MICKE-TEST)CASES:NRF:1
+  Modules: 
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.. Planc... .........42B ..........0B ..........0B
+  .....2 case TO CASE....... P.. Planc... .........42B ..........0B ..........0B
+  .....3 case TO case....... P.. Planc... .........15B ..........0B ..........0B
+  .....4 CASE TO CASE....... P.. Planc... .........15B ..........0B ..........0B
+  NDL(NLH): REPLACE-MODULES
+  Source file: case1
+  Entry CASE TO case replaced in library
+  NDL(NLH): REPLACE-MODULES
+     
+  Source file: case2
+  Entry case TO CASE replaced in library
+  NDL(NLH): REP case3
+  Entry case TO case replaced in library
+  NDL(NLH): LIST-MODULES
+  File name:  (PACK-FOUR-6799:MICKE-TEST)CASES:NRF:1
+  Modules: 
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.. Planc... .........42B ..........0B ........272B
+  .....2 case TO CASE....... P.. Planc... .........42B ..........0B ........272B
+  .....3 case TO case....... P.. Planc... .........15B ..........0B ........250B
+  .....4 CASE TO CASE....... P.. Planc... .........15B ..........0B ..........0B
+  NDL(NLH): REP case4
+  Entry CASE TO CASE replaced in library
+  NDL(NLH): LIST-MODULES
+  File name:  (PACK-FOUR-6799:MICKE-TEST)CASES:NRF:1
+  Modules: 
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.. Planc... .........42B ..........0B ........272B
+  .....2 case TO CASE....... P.. Planc... .........42B ..........0B ........272B
+  .....3 case TO case....... P.. Planc... .........15B ..........0B ........250B
+  .....4 CASE TO CASE....... P.. Planc... .........15B ..........0B ........250B
+  NDL(NLH):
+ 
+ Related old Linkage-Loader command(s):
+                 NEW-NRF-MODULES <new modules file> <destination file>
+                                                                    
+RESET-LINKER                                           
+RESET-LINKER                                           
+                                                                    
+ 
+ Explanation: This command clears the symbol table, and resets load
+                addresses to their initial values (see notes below).
+ 
+ Notes:         If the wrong files have been loaded in interactive
+                mode, you can use this command to begin from scratch
+                again.
+                No files remain open. You must use OPEN-DOMAIN or
+                OPEN-SEGMENT and load again from the beginning.
+                If you have used the commands APPEND-DOMAIN or APPEND-
+                SEGMENT, it is generally not safe to reopen them with
+                the APPEND commands. In case of mistakes, the best
+                thing to do is to load the domain or segment from the
+                beginning.
+                (There is no way to know whether the domain or segment
+                file has been modified during the load session unless
+                the file has been closed.)
+ 
+ Related old Linkage-Loader command(s):
+                RESET
+                                                                    
+SAVE-ENTRIES                                           
+SAVE-ENTRIES                                           
+                                                                    
+ 
+ Explanation: This command can be used to select the entries that
+                should be saved in the Link information area of the
+                domain or segment file after the execution of the
+                CLOSE command.
+ 
+ Notes:         The entries not included in the entry lists are lost.
+                The APPEND and LINK commands can only reach entries
+                which are saved. If you have only a few entries which
+                you wish other users to access, you can use this
+                command.
+                All undefined entries are listed in the load map
+                regardless of whether they will be saved or not. If
+                you want an undefined entry to be saved on CLOSE, you
+                must explicitly specify the entry name in parameter
+                one of this commands.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Entry name>...<Entry name>
+                     Optional parameter. Initial value is ALL. Default
+                     value: All entries are saved.
+                     Use of wildcards (*) allowed. For details see
+                     notes for the LIST-ENTRY command on page 169.
+ 
+ Related old Linkage-Loader command(s):
+                GLOBAL-ENTRIES <entries>...
+                                                                    
+SAVE-LIBRARY                                           
+SAVE-LIBRARY                                           
+                                                                    
+ 
+ Explanation: This command allows you to save the changes made to
+                the current library file. It also resets the NRF
+                library handler.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <File name>
+                     Default is current library file.
+ 
+ Notes:         To exit from the library handler without saving any
+                changes, use the command EXIT.
+                PREPARE-LIBRARY is used to indicate whether a FAST
+                load vector should be inserted by the SAVE-LIBRARY
+                command.
+ 
+ Example:
+  
+  In this example the user has replaced some of the modules in the
+  library file (see example on page 197) and would like to save
+  the file together with the changes. This can be done as follows:
+  NDL(NLH): SAVE-LIBRARY
+  File name: cases
+  NDL(NLH):
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+SET-ADVANCED-MODE                                      
+SET-ADVANCED-MODE                                      
+                                                                    
+ 
+ Explanation: This command is for switching the Advanced mode on or
+                off. From Advanced Mode you have access to the
+                complete set of ND Linker commands.
+ 
+ Usage:         For basic use of the Linker, you should not need to
+                enter Advanced Mode.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Advanced mode on (Yes,No)>
+                     Optional parameter. Default is YES.
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+SET-AREA-SIZE                                          
+SET-AREA-SIZE                                          
+                                                                    
+ 
+ Explanation: This command is used to specify the size of the area
+                to be allocated for debug and link information on all
+                the subsequently opened domain or segment files (until
+                another SET-AREA-SIZE command is given).
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Debug area size (in pages)>
+                     Initial value is 1024 pages (10 000 000B bytes)
+                     for domains and 2048 pages (20 000 000B bytes)
+                     for free segments. Default is initial size.
+                2    <Link area size (in pages)>
+                     Initial value is 1024 pages (10 000 000B bytes)
+                     for domains and 2048 pages (20 000 000B bytes)
+                     for free segments. Default is initial size.
+ 
+ Example:
+  
+  NDL: SET-ADVANCED-MODE
+  % To demonstrate the error situation, we set the sizes artificially small
+  NDL(ADV): LINKER-SERVICE-PROGRAM
+  - ND LINKER's  SERVICE-PROGRAM -
+  NDL(SRV): SET-AREA-SIZE
+  Debug area size (in pages): 5
+  Link area size (in pages): 5
+  NDL(SRV): EXIT
+  NDL(ADV): OPEN-DOMAIN TEMP
+  NDL(ADV): LOAD QERM
+  *** ERROR - Debug information area of size 24000B full.             (0054:23)
+  % How to recover
+  NDL(ADV): RESET-LINKER
+  NDL(ADV): LINKER-SERVICE-PROGRAM
+  - ND LINKER's  SERVICE-PROGRAM -
+  NDL(SRV): SET-AREA-SIZE 6 6
+  NDL(SRV): EXIT
+  NDL(ADV): OPEN-DOMAIN TEMP
+  NDL(ADV): LOAD QERM
+  Program:......14670B P01   Data:..........3170B D01   Debug:.......26407B Bytes
+  NDL(ADV): LOAD (LIB)PLANC-LIB
+  PLANC-LIB-I01
+  Program:......15030B P01   Data:..........3272B D01   Debug:.......26407B Bytes
+  NDL(ADV): CLOSE
+ 
+ Notes:         This command is not valid when a current domain or
+                segment is open.
+                The sizes must be in the range 0 to 170000B pages
+                (120Mb).
+                Notice that the file will not occupy so many pages on
+                disk, unless these pages actually get filled with
+                information.
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+SET-CASE-SIGNIFICANCE                                  
+SET-CASE-SIGNIFICANCE                                  
+                                                                    
+ 
+ Explanation: This command is used to define how
+                uppercase/lowercase in symbols should be interpreted.
+                If case is NOT significant, symbols that only differ
+                with respect to capital/small letters (e.g. max, Max,
+                MAX) are treated as equal. Default is NO case
+                significance.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Case significance (Yes,No)>
+                     NO means that symbol names having different case
+                     are treated as equivalent. YES means that symbols
+                     having different case are not equivalent, for
+                     example, "Sym" and "SYM" will be treated as
+                     different symbols. Initial value is NO. Default
+                     is YES.
+ 
+ Example:
+  
+  The following PLANC routines are used for converting from uppercase to
+  lowercase and vice versa and for stripping parity. The routines are
+  exported as ALIASes with the same name but different cases.
+  MODULE case1
+     EXPORT rtn ALIAS 'CASE TO case'
+     % In PLANC, an EXPORT statement in a module makes available particular
+     % data elements for access by other modules. However, if a number of
+     % routines have the same name and the same number of parameters, then
+     % each routine may be uniquely identified by use of an ALIAS name for
+     % access from another module.
+     ROUTINE BYTE,BYTE : rtn ALIAS 'CASE TO case'
+        % Routine for converting all uppercase characters to lowercase.
+        BYTE : ch
+        IF (@ and 177B) =: ch IN #A:#Z THEN ch+32 RETURN ENDIF
+        ch RETURN
+     ENDROUTINE
+  ENDMODULE
+  MODULE case2
+     EXPORT rtn ALIAS 'case TO CASE'
+     ROUTINE BYTE,BYTE : rtn ALIAS 'case TO CASE'
+        % Routine for converting all lowercase characters to uppercase.
+        BYTE : ch
+        IF (@ and 177B) =: ch IN #a:#z THEN ch-32 RETURN ENDIF
+        ch RETURN
+     ENDROUTINE
+  ENDMODULE
+  MODULE case3
+     EXPORT rtn ALIAS 'case TO case'
+     ROUTINE BYTE,BYTE : rtn ALIAS 'case TO case'
+        % Routine for stripping parity.
+        @ AND 177B RETURN
+     ENDROUTINE
+  ENDMODULE
+  MODULE case4
+     EXPORT rtn ALIAS 'CASE TO CASE'
+     ROUTINE BYTE,BYTE : rtn ALIAS 'CASE TO CASE'
+        % Routine for stripping parity.
+        @ AND 177B RETURN
+     ENDROUTINE
+  ENDMODULE
+  % The four routines are saved on a single file called CASES. The file
+  % is then compiled, using the Planc-500 compiler, to an NRF file
+  % called CASES:NRF. The file is compiled with the DEBUG-MODE ON.
+  % We now wish to use the NRF Library Handler to convert this file into
+  % a fast library file, that is, a file with a fast load  vector. We first
+  % select our case conversion library as current library.
+  NDL(ADV): NRF-LIBRARY-HANDLER
+  File name: case
+  Symbol already defined : "case TO CASE"
+  *** Nameless module at 124B, given name is "NONAME#1"               (1000:23)
+  Symbol already defined : "case TO case"
+  *** Nameless module at 250B, given name is "NONAME#2"               (1000:23)
+  Symbol already defined : "CASE TO CASE"
+  *** Nameless module at 347B, given name is "NONAME#3"               (1000:23)
+  % The library handler was unable to see the difference between the symbols.
+  % They differ in case, but have the same name. We need to set case significant.
+  NDL(NLH): SET-CASE-SIGNIFICANCE
+  Case significance (Yes, No): YES
+  % We can now try to read our library again.
+  NDL(NLH): SET-LIBRARY
+  File name: case
+  % Now the library handler knows that symbols in different case refer to
+  % different symbols.
+  NDL(NLH): LIST-MODULES
+  File name:  (PACK-FOUR-6799:MICKE-TEST)CASES:NRF, 1
+  Modules: ,,,
+  Module Nrf-entry           P/D Language Program size Data size    Debug size  
+  .....1 CASE TO case....... P.X Planc... .........42B ..........0B ..........0B
+  .....2 case TO CASE....... P.X Planc... .........42B ..........0B ..........0B
+  .....3 case TO case....... P.X Planc... .........15B ..........0B ..........0B
+  .....4 CASE TO CASE....... P.X Planc... .........15B ..........0B ..........0B
+  % They are now seen exactly as we EXPORTed them from PLANC.;
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+SET-COMPUTER                                           
+SET-COMPUTER                                           
+                                                                    
+ 
+ Explanation: This command specifies whether or not you are
+                creating an ND-500(0) domain. If you are, the output
+                is prepared for an ND-500(0) processor. If not, the
+                output is prepared for a Motorola MC680x0 (e.g. PIOC
+                and DOMINO).
+ 
+ Usage:         Use this command if you are programming for the PIOC
+                or DOMINO.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Computer type (ND-500,MC68000)>
+                     Optional parameter. ND-500 indicates code for the
+                     ND-500(0) computer, and MC68000 indicates code
+                     for Motorola MC68000 processor (for example PIOC
+                     Programmable I/O Controllers). Initial value is
+                     ND-500. Default is ND-500.
+ 
+ Notes:         The default file type for both computer modes is NRF.
+ 
+ Related old Linkage-Loader command(s):
+                COMPUTER-MODE <computer-type(100/500/PIOC)> (<P,D>)
+                                                                    
+SET-FORMAT                                             
+SET-FORMAT                                             
+                                                                    
+ 
+ Explanation: With this command you can specify the default number
+                system to be used by the Linker. (This applies both to
+                the input to the Linker, and the output it produces.)
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Format type: Default,Octal,Decimal,Hexadecimal>
+                     Optional parameter. Number system to be used. The
+                     value DEFAULT means reset to the standard default
+                     number system.
+ 
+ Notes:          The standard default number system is octal for
+                addresses and decimal everywhere else.
+                You can, at any time, overrule the number system set
+                with this command by explicitly specifying D, H, or B
+                after a number. The new number system applies until
+                you exit the Linker or until you change the number
+                system again.
+                This command is equivalent to the ND-5000 Monitor
+                command MAIN-FORMAT.
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+SET-HEAP-SIZE                                          
+SET-HEAP-SIZE                                          
+                                                                    
+ 
+ Explanation: This command is used to specify the size of the heap
+                allocated for the symbols in a Linker session. If the
+                symbol table of the Linker has overflowed, a bigger
+                heap size should be specified in a new Linker session
+                and the load session can be started once more.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Symbol table size (in pages)>
+                      Initial value is 256 pages. The default value is
+                     the same.
+                2    <NRF Handler heap size (in pages)>
+                     Optional parameter. Specify the size of the heap
+                     to be used by the NRF Library Handler. Initial
+                     value is 128 pages. Default is initial value.
+ 
+ Notes:         You need to use this command when the symbol table
+                overflows. You should in that case also investigate
+                whether you are loading in an ineffective way. You can
+                often reduce the space used in the symbol table by
+                1)   loading libraries twice, once early, and again at
+                     the end.
+                2)   doing any SPECIAL-LOAD with TOTAL as early as
+                     possible.
+                
+ Example:
+  
+  NDL: SET-ADVANCED-MODE
+  NDL(ADV): LINKER-SERVICE-PROGRAM
+  - ND LINKER's - SERVICE-PROGRAM -
+  NDL(SRV): SET-HEAP-SIZE
+  Symbol Table size (in pages): 1000
+  NRF handler heap size (in pages): 10
+  NDL(SRV): EXIT
+  % All subsequent loading will have a symbol table size
+  % of 1000 pages and NRF-handler heap size of 10 pages.
+  NDL(ADV): OPEN-DOMAIN "MY-DOMAIN"
+  NDL(ADV): LOAD FORTRAN-PROG
+  Program:........344B P01   Data:...........234B D01
+  NDL(ADV): CLOSE
+  NDL(ADV): LINKER-AUTO-FORT:JOB
+  %  --> FORTRAN Auto Job:   Trap definition part.
+  %  --> FORTRAN Auto Job:   Link/load part.
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+SET-HIGH-ADDRESS                                       
+SET-HIGH-ADDRESS                                       
+                                                                    
+ 
+ Explanation: This command enables you to set the highest address
+                available on segments. If any loading above this
+                address is attempted, a warning message is given and
+                the loading is stopped.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Address or entry>
+                     Default is the highest possible address within a
+                     segment, i.e. 777 777 777B.
+                2    <Segment type (D,P,PD)>
+                     Default is D, that is, a data segment.
+ 
+ Notes:         This command should not be confused with SET-SEGMENT-
+                SIZE which is concerned with the layout of the domain
+                or segment file.
+                This command is used mostly when loading to a MC68000
+                computer, when parts of the address space are reserved
+                for the operating system, etc.
+ 
+ Related old Linkage-Loader command(s):
+                HIGH-ADDRESS <address> <space: P,D,C>
+                                                                    
+SET-IO-BUFFERS                                         
+SET-IO-BUFFERS                                         
+                                                                    
+ 
+ Explanation: This command specifies a number of input/output
+                buffers for more efficient handling of sequential
+                files in FORTRAN.
+ 
+ Usage:         Should be used only when the FORTRAN library is loaded
+                to the current segment.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Number of buffers>
+                     Optional parameter. The number of 2 Kbyte buffers
+                     to be used by the FORTRAN library for sequential
+                     I/O for file buffering. Default is 16.
+ 
+ Notes:         When the current domain or segment is closed, two
+                system references (#END_FIOB and #FIO_BUF) will be
+                defined at the lower and upper limits of the buffer
+                area. The current load address will be increased by
+                the size of the buffer area. The total size of all
+                buffers will be <number>*2048 bytes.
+                The user should choose an appropriate number of
+                buffers. The normal number is one for each
+                simultaneously opened sequential file. If a FORTRAN
+                library segment is being created, 16 buffers should be
+                specified.
+                The references defined by this command will be used by
+                the FORTRAN I/O system to determine the location and
+                the size of the buffer. No other use of the area is
+                made.
+ 
+ Related old Linkage-Loader command(s):
+                SET-IO-BUFFERS <No. of buffers>
+                                                                    
+SET-LIBRARY                                            
+SET-LIBRARY                                            
+                                                                    
+ 
+ Explanation: This command allows you to specify a new Library file
+                which then becomes the current Library file.
+                Modifications can now be made to this file (the
+                current library file).
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <File name>
+                     Default is current library file.
+ 
+ Notes:         When you enter the NRF Library Handler you are asked
+                to specify a Library file you want to make changes to.
+                This becomes your current Library file until you leave
+                the NRF Library Handler or specify a new file with
+                this command.
+                
+ Example:
+  
+  NDL(NLH): SET-LIBRARY
+  File name: cases
+  Symbol already defined : "case TO CASE"
+  *** Nameless module at 106B, given name is "NONAME#1"               (1000:23)
+  Symbol already defined : "case TO case"
+  *** Nameless module at 214B, given name is "NONAME#2"               (1000:23)
+  Symbol already defined : "CASE TO CASE"
+  *** Nameless module at 275B, given name is "NONAME#3"               (1000:23)
+  NDL(NLH): SET-CASE-SIGNIFICANCE
+  Case significance (Yes, No): YES
+  NDL(NLH): SET-LIBRARY
+  File name:  (PACK-FOUR-6799:MICKE-TEST)CASES:NRF:1
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+SET-LIST-MODE                                          
+SET-LIST-MODE                                          
+                                                                    
+ 
+ Explanation: This command is for listing all that is written on
+                the output device, in octal format or disassembled
+                format, as it is being read from the NRF file. It also
+                gives the Current Location Counter.
+ 
+ Usage:         This command is for internal debugging. It is used for
+                finding out exactly what the Linker reads from the NRF
+                file before the NRF code is interpreted, and before
+                the result is put in the DOM/SEG file.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Listing (Yes,No)>
+                     Optional parameter. YES turns the listing mode
+                     on, NO turns it off again. Default: YES.
+                2    <Disassemble (Yes,No)>
+                     Optional parameter. Default: YES. NO gives octal
+                     listing.
+ 
+ Notes:         In the event of an error, you can check whether the
+                Linker has misinterpreted the NRF control byte, or
+                whether a compiler has produced erroneous NRF code.
+                Listing mode remains turned on until you repeat the
+                command with parameter 1 as NO.
+ 
+ Related old Linkage-Loader command(s):
+                LIST-MODE
+                                                                    
+SET-LOAD-ADDRESS                                       
+SET-LOAD-ADDRESS                                       
+                                                                    
+ 
+ Explanation: This command enables you to set the address where you
+                want loading to begin. It is only possible to set the
+                load address of segments that are already allocated
+                (that is, slave segments, opened FORTRAN common
+                segments or opened free segments).
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Address or entry>
+                     If no segment number is included in the address,
+                     the address is interpreted as a relative address
+                     within the current program or data segment.
+                     Default is to start loading at the next page
+                     boundary (i.e., the address is the next multiple
+                     of 4000B).
+                2    <Segment type (D,P,PD)>
+                     Default is D, that is, a data segment.
+
+ Notes:         In order to set the load address of a FORTRAN-COMMON-
+                SEGMENT, you must include the segment number as part
+                of the address. Then only the current common location
+                counter (#CCLC) is affected, the current data location
+                counter (#DCLC) is not changed.
+ 
+ Example:
+  
+  % Setting the load address to a page boundary is sometimes preferable.
+  % If you wish to fix some routines in physical memory, these should
+  % start at a page boundary in order to minimize the number of pages
+  % fixed. If you have a routine that disables process switching, (using
+  % solo/tutti instructions) you must be sure that no page fault will occur
+  % in this critical region. One way of doing this, without fixing pages
+  % in physical memory, is to load the routine to a single page by using
+  % this command. Of course, this will only work if your routine does not
+  % exceed one page, and does not access data pages that can cause page
+  % faults.
+  NDL: SET-ADVANCED-MODE
+  NDL(ADV): OPEN-DOMAIN "MY-DOMAIN"
+  NDL(ADV): LOAD FORTRAN-PROG
+  Program:........344B P01   Data:...........234B D01
+  NDL(ADV): SET-LOAD-ADDRESS,,PD
+  Program:.......4000B P01   Data:..........4000B D01
+  NDL(ADV): LOAD ASSEM-ROUTINE
+  Program:.......4104B P01   Data:..........4034B D01
+  NDL(ADV): CLOSE
+ 
+ Related old Linkage-Loader command(s):
+                LOW-ADDRESS <address> <P/D/C>
+                PAGE-MODE (<P/D>)
+                                                                    
+SET-SEGMENT-LIMITS                                     
+SET-SEGMENT-LIMITS                                     
+                                                                    
+ 
+ Explanation: This command defines lower and upper bounds for the
+                size of the working set of pages from a segment. Pages
+                will not be swapped out unless more than the minimum
+                number of pages is already in physical memory. If more
+                than the maximum number of pages are present in
+                physical memory, the excess pages have an increased
+                probability of being swapped out.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Domain or segment name>
+                     Name of a domain or segment containing the
+                     segment to be fixed in memory. Default is current
+                     domain or segment.
+                2    <Segment number>
+                     You only need to specify this in the case of a
+                     slave segment. Default for free segments is the
+                     segment number of the free segment specified in
+                     parameter 1. Default for slave segments is
+                     segment number 1.
+                3    <Segment type (D,P)>
+                     P indicates a Program segment, D indicates Data
+                     segment. Default is P.
+                4    <Minimum number of pages>
+                     The minimum number of pages of the specified
+                     segment that will remain in memory during
+                     execution. Default is 0 (zero).
+                5    <Maximum number of pages>
+                     The maximum number of pages of the specified
+                     segment that may be in memory at any one time
+                     during execution. Default is one.
+ 
+ Notes:         This command is most useful to prevent trashing. This
+                occurs when a program has working set that is larger
+                than its share of physical memory. This leads to
+                frequent page faults, which could be avoided by
+                increasing its share. However, since increasing one
+                program's share of the physical memory implies a
+                reduction in the other programs' share, abuse of this
+                command can easily result in trashing for the other
+                programs instead.
+                It can be apropriate to put a maximum limit for
+                programs that are known to have a small, but rapidly
+                changing working set, e.g. programs that pass
+                sequentially over a large data structure. Thereby,
+                pages that are no longer needed by the program become
+                available for other programs, reducing the other
+                programs probability of trashing
+ 
+ Related old Linkage-Loader command(s):
+                SET-SEGMENT-LIMITS <segment name> <P/D> <minimum>
+                <maximum>
+                                                                    
+SET-SEGMENT-NUMBER                                     
+SET-SEGMENT-NUMBER                                     
+                                                                    
+ 
+ Explanation: This command sets the current segment number for
+                segments which are stored in DOM files (i.e. so called
+                "slave segments").
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Segment number>
+                     0:31. Default is the lowest unused segment number
+                     - starting with 1.
+                2    <Segment type (PD,P,D)>
+                     Optional parameter. P means program segment. D
+                     means data segment. Default is PD (program and
+                     data segments).
+                3    <Segment attribute>. <...>
+                     Optional parameter. The possible attributes are
+                     listed under the command OPEN-SEGMENT.
+ 
+ Example:
+  
+  % In this example the main program is loaded on segment number 1,
+  % and the subroutines on segment number 12B.
+  NDL: SET-ADVANCED-MODE
+  NDL(ADV): OPEN-DOMAIN "MY-DOMAIN"
+  NDL(ADV): LOAD TEST
+  Program:........302B P01   Data:...........230B D01
+  % Main program TEST is loaded into segment no.1 in MY-DOMAIN
+  NDL(ADV): SET-SEGMENT-NUMBER 10 PD
+  NDL(ADV): LOAD MEAN MAX
+  Program:.........26B P12   Data:...........150B D12
+  Program:.........57B P12   Data:...........314B D12
+  Program:..........4B P12   Data:.............4B D12
+  % Subroutines MEAN and MAX are loaded into segment no.10 in MY-DOMAIN
+  NDL(ADV): CLOSE
+  NDL(ADV): LINKER-AUTO-FORT:JOB
+  %  --> FORTRAN Auto Job:   Trap definition part.
+  %  --> FORTRAN Auto Job:   Link/load part.
+ 
+ Notes:         Segment attribute FORTRAN-COMMON-SEGMENT is not valid
+                for slave segments.
+                This command may also be used on free segments when
+                segment attributes other than the defaults are
+                required for the data or program segment or both or,
+                when you want a different segment number for program
+                and data segments. You cannot change the segment
+                numbers of free segments after you have started
+                loading to them.
+                When used with domain files, this command allocates
+                space on the file for a slave segment of the current
+                segment size. (This does not imply allocation of pages
+                on disk.) There must be enough space left within the
+                domain file's size limit of 128 Mbyte to accomodate
+                the current segment size. Note that the size can be
+                considerably larger than the code actually loaded to
+                each segment. Refer to the command SET-SEGMENT-SIZE
+                for details.
+ 
+ Related old Linkage-Loader command(s):
+                SET-SEGMENT-NUMBER <segment number>
+                                                                    
+SET-SEGMENT-SIZE                                       
+SET-SEGMENT-SIZE                                       
+                                                                    
+ 
+ Explanation: This command defines the size of the area reserved on
+                the segment or domain file for the segment(s) you
+                specify in parameter 1. It affects the currently open
+                domain or segment file, or, if no file is open, all
+                domain or segment files opened subsequently during the
+                linker session.
+ 
+ Usage:         You cannot apply this command to a segment that is
+                already allocated. In other words, this command must
+                precede SET-SEGMENT-NUMBER and LOAD for the segment(s)
+                it applies to. On the other hand, when no domain or
+                segment file is open, you can only use ALL for
+                parameter 1.
+                
+ Parameters:    No.  Parameter name and Explanation
+                1    <Segment number>
+                     You can specify ALL. Default is 1 if a domain or
+                     segment file is open, otherwise the default is
+                     ALL.
+                2    <Program size (in pages)>
+                     Number of pages for program segment. Initial and
+                     default values are as specified in the table
+                     below.
+                3    <Data size (in pages)>
+                     Number of pages for the data segment. Initial and
+                     default values are as specified in the table
+                     below.
+                     
+                     The following are the default sizes in pages
+                     (bytes) for domains and segments:
+                         Domain                Segment
+                     
+                     P   1024  (10 000 000B)   2048  (20 000 000B)
+                     
+                     D  16386 (200 000 000B)  59388 (717 760 000B)*1
+                     *1) 128MB - (Default size of P + Default size of
+                     debug area + Default size of link area + header
+                     size (2 + 2 pages)).
+ 
+ Example:
+  % Two frequent reasons for using this command:
+  % 1. to load beyond address 10 000 000B on the program segment of a domain
+  % 2. to fit more than 3 slave segments on the domain.
+  NDL: SET-ADVANCED-MODE
+  NDL(ADV): OPEN-DOMAIN "MY-DOMAIN"
+  NDL(ADV): LINKER-SERVICE-PROGRAM
+  - ND LINKER's - SERVICE-PROGRAM -
+  % This command doubles the size of the program segment:
+  NDL(SRV): SET-SEGMENT-SIZE 1 2048,,
+  % With 3 segments of default size, the space left allows one
+  % default-sized program segment, and one 10236 pages data segment.
+  % Here we have already given away 1024 pages in the previous command.
+  NDL(SRV): SET-SEGMENT-SIZE 4,,9212
+  NDL(SRV): EXIT
+  NDL(ADV): SET-SEGMENT-NUMBER 1,,
+  Program:..........4B P01   Data:.............4B D01
+  NDL(ADV): LOAD LOTS-OF-ROUTINES
+  Program:...13221302B P01   Data:......71100230B D01
+  % (The previous command eats disk space, have you considered using
+  % empty-data-segment for uninitialized data?  Fortunately, pages in
+  % uninitialized arrays are not allocated on disk - except on swap file.)
+  NDL(ADV): SET-SEGMENT-NUMBER 2,,
+  Program:..........4B P02   Data:.............4B D02
+  NDL(ADV): LOAD ROUTINE-2
+  Program:........302B P02   Data:...........230B D02
+  NDL(ADV): SET-SEGMENT-NUMBER 3,,
+  Program:..........4B P03   Data:.............4B D03
+  NDL(ADV): LOAD ROUTINE-3
+  Program:........302B P03   Data:...........230B D03
+  NDL(ADV): SET-SEGMENT-NUMBER 4,,
+  Program:..........4B P04   Data:.............4B D04
+  NDL(ADV): LOAD ROUTINE-4
+  Program:........302B P04   Data:...........230B D04
+  NDL(ADV): CLOSE
+  NDL(ADV): LINKER-AUTO-FORT:JOB
+  %  --> FORTRAN Auto Job:   Trap definition part.
+  %  --> FORTRAN Auto Job:   Link/load part.
+ Notes:         
+                You need not worry about the disk space because of the
+                large default segment sizes. Domain and segment files
+                are normally indexed files, and pages not written to
+                are not allocated on disk, even if other pages with
+                higher page numbers are. In other words, the files can
+                have holes that do not occupy space on disk. If you
+                use contiguous files, however, you should avoid holes,
+                either by using this command, or by loading first to
+                an indexed file, and then converting to a contiguous
+                file using the COMPRESS command.
+                You can test that the segment size is large enough
+                before you start loading if you know approximately
+                what the highest load address will be. Simply set the
+                load address to that value (SET-LOAD-ADDRESS), and
+                then back to 4B if you get no error message.
+                You can load three slave segments without using this
+                command. If you try to set the fourth segment number,
+                you get an error message unless you set a smaller
+                segment size first.
+                If this comand is used when no domain or segment file
+                is open, it takes effect for all files subsequently
+                opened throughout the Linker session.
+ 
+ Related old Linkage-Loader command(s):
+                DEFINE-SEGMENT-SIZE <program-segment(bytes)> <data
+                segment(bytes)>
+                                                                    
+	SET-START-ADDRESS                                      
+SET-START-ADDRESS                                      
+                                                                    
+ 
+ Explanation: This command defines the main start address of the
+                current domain or segment.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Address or entry>
+                     This parameter has no default value.
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+SET-TRAP-CONDITION                                     
+SET-TRAP-CONDITION                                     
+                                                                    
+ 
+ Explanation: This command sets up a trap handler address vector,
+                and defines the trap enabling registers.
+                
+ Parameters:    No.  Parameter name and Explanation
+                1    <Trap destination (Own,Mother,Child)>
+                     Specifies whether the OTE, MTE, or CTE register
+                     pair should be affected. Default is Own.
+                2    <Enable or disable (Enable,Disable)>
+                     Specifies whether the bits corresponding to the
+                     traps given in parameter 4 should be set (enable)
+                     or reset (disable) in the specified register
+                     pair. Default is Enable.
+                3    <Entry name>
+                     Specify the routine that you want to use as trap
+                     handler for the traps given in parameter 4. You
+                     can specify your own routine, or one from EXCEPT-
+                     LIB. Default is the appropriate routine in
+                     EXCEPT-LIB for each trap listed in parameter 4.
+                     This parameter is omitted (not just left empty)
+                     if parameter 1 is Mother or parameter 2 is
+                     Disable.
+                4    <Trap name>...<Trap name>
+                     List of traps affected, or ALL. The trap names
+                     are listed below.
+ 
+ Notes:         This command causes the trap definition part of the
+                LINKER-AUTO job to be skipped. If you want to define
+                one trap condition to be different from the default
+                defined in the LINKER-AUTO job, you should include the
+                entire set-trap-condition part of the LINKER-AUTO job
+                in your mode or job file. You may find it convenient
+                to first call the LINKER-AUTO job explicitly, then set
+                the particular trap condition.
+                
+                The first SET-TRAP-CONDITION command allocates 2000B
+                bytes at the current data load address (#DCLC) for a
+                trap handler address vector and a trap stack. The trap
+                handler address register THA will be set up to point
+                to this area when the domain is placed. If no SET-
+                TRAP-CONDITION command is given during the whole load
+                session, the Linker allocates a trap handler address
+                vector and trap stack area unconditionally when a
+                domain is closed. No such unconditional allocation
+                occurs when a free segment is closed.
+                If computer mode is MC68000, no such area is
+                allocated.
+                The valid trap names are:
+                     Ignorable traps:
+                  9D OVERFLOW
+                 11D INVALID-OPERATION
+                 12D DIVIDE-BY-ZERO
+                 13D FLOATING-UNDERFLOW
+                 14D FLOATING-OVERFLOW
+                 15D BCD-OVERFLOW
+                 16D ILLEGAL-OPERAND-VALUE
+                 17D SINGLE-INSTRUCTION-TRAP
+                 18D BRANCH-TRAP
+                 19D CALL-TRAP
+                 20D BREAKPOINT-INSTRUCTION-TRAP
+                 21D ADDRESS-TRAP-FETCH
+                 22D ADDRESS-TRAP-READ
+                 23D ADDRESS-TRAP-WRITE
+                 24D ADDRESS-ZERO-ACCESS
+                 25D DESCRIPTOR-RANGE
+                 26D ILLEGAL-INDEX
+                 27D STACK-OVERFLOW
+                 28D STACK-UNDERFLOW
+                 29D PROGRAMMED-TRAP
+                     Non-ignorable traps:
+                 30D DISABLE-PROCESS-SWITCH-TIMEOUT
+                 31D DISABLE-PROCESS-SWITCH-ERROR
+                 32D INDEX-SCALING-ERROR
+                 33D ILLEGAL-INSTRUCTION-CODE
+                 34D ILLEGAL-OPERAND-SPECIFIER
+                 35D INSTRUCTION-SEQUENCE-ERROR
+                 36D PROTECT-VIOLATION
+                     Fatal traps:
+                 37D TRAP-HANDLER-MISSING
+                 38D PAGE-FAULT
+                 39D POWER-FAIL
+                 40D PROCESSOR-FAULT
+                 41D HARDWARE-FAULT
+
+                Child domains are not available under SINTRAN. Thus,
+                for most users it has no effect to set or reset bits
+                in the child trap enable registers.
+                The following points are a summary of the effects of
+                the different combinations of trap enable and disable
+                in a multilevel domain tree. Notice that the ND-5000
+                Monitor is the mother of all top-level domains, and
+                the mother of all domains under SINTRAN III. For such
+                domains, propagating a trap to the mother domain is
+                the same thing as reporting it to the Monitor.
+                   
+                1) Fatal traps are reported directly to the Monitor
+                   irrespective of the OTE, MTE & CTE bits in current
+                   and mother domains. (These bits are always reset
+                   anyway. You are not actually allowed to change
+                   them. Any attempt to do so has no effect.)
+                   
+                2) Non-ignorable trap originating in the current
+                   domain:
+                                   Own Enabled   Own Disabled
+                                 
+                  Mother Enabled  Handle here   Propagate to Mother
+                  
+                  Mother Disabled Handle here   Report to Monitor  
+                                 
+                   
+                3) Ignorable trap originating in the current domain:
+                                   Own Enabled   Own Disabled
+                                 
+                  Mother Enabled  Handle here   Propagate to Mother
+                  
+                  Mother Disabled Handle here   Ignore             
+ 
+                4) Non-ignorable trap originating in a child domain
+                   and propagated to the current domain:
+                                   Child Enabled Child Disabled
+                                 
+                  Mother Enabled  Handle here   Propagate to Mother
+                  
+                  Mother Disabled Handle here   Report to Monitor  
+                                 
+                   
+                5) Ignorable trap originating in a child domain and
+                   propagated to the current domain:
+                                   Child Enabled Child Disabled
+                                 
+                  Mother Enabled  Handle here   Propagate to Mother
+                  
+                  Mother Disabled Handle here   Ignore             
+                                 
+ Example:
+  
+  If you want to call different trap handlers than the ones defined in
+  (SYSTEM)LINKER-AUTO-FORT:JOB, the easiest thing to do is to make your
+  own :JOB file:
+   % finish loading
+   LOAD FORTRAN-LIB EXCEPT-LIB
+   SET-IO-BUFFERS
+   MY-TRAP-HANDLERS:JOB
+   CLOSE N N
+  Your file could, for instance, contain these lines:
+   LIST % Remove this command when you see that your :JOB works.
+   MESSAGE 'File: MY-TRAP-HANDLERS:JOB         '
+   SET-TRAP-CONDITION OWN, ENAB, #INVALOP, INVALID-OPERATION
+   SET-TRAP-CONDITION OWN, ENAB, #INVALDI, DIVIDE-BY-ZERO
+   SET-TRAP-CONDITION OWN, ENAB, #FLTOFLW, FLOATING-OVERFLOW
+   SET-TRAP-CONDITION OWN, ENAB, #ILLOPER, ILLEGAL-OPERAND-VALUE
+   SET-TRAP-CONDITION OWN, ENAB, #ILLINDX, ILLEGAL-INDEX
+   SET-TRAP-CONDITION OWN, ENAB, #STKOFLW, STACK-OVERFLOW
+   SET-TRAP-CONDITION OWN, ENAB, #STKUFLW, STACK-UNDERFLOW
+   SET-TRAP-CONDITION OWN, ENAB, #PROGTRA, PROGRAMMED-TRAP
+   SET-TRAP-CONDITION OWN, ENAB, #DISPSWT, DISABLE-PROCESS-SWITCH-TIMEOUT
+   SET-TRAP-CONDITION OWN, ENAB, #DISPSWE, DISABLE-PROCESS-SWITCH-ERROR
+   SET-TRAP-CONDITION OWN, ENAB, #INXSCAL, INDEX-SCALING-ERROR
+   SET-TRAP-CONDITION OWN, ENAB, #ILINCOD, ILLEGAL-INSTRUCTION-CODE
+   SET-TRAP-CONDITION OWN, ENAB, #ILOPSPE, ILLEGAL-OPERAND-SPECIFIER
+   SET-TRAP-CONDITION OWN, ENAB, #INSEQUE, INSTRUCTION-SEQUENCE-ERROR
+   SET-TRAP-CONDITION OWN, ENAB, MYPV,     PROTECT-VIOLATION
+   % Replaced by my own trap handler.
+   % SET-TRAP-CONDITION OWN, ENAB, #PVIOLAT, PROTECT-VIOLATION
+   REFER-ENTRY             #MAINGRA, #THA, D, D
+   % End of MY-TRAP-HANDLERS:JOB
+  You would typically invoke such a :JOB file when loading the segment
+  containing your main start address (MSA). You would probably never use
+  it on free segments.
+  As an alternative, you could do:
+   SET-TRAP-CONDITION OWN, ENAB, MYPV,     PROTECT-VIOLATION
+   % Trap handling section is not skipped when the job is called explicitly.
+   % Expect one error message, it can be ignored:
+   (SYSTEM)LINKER-AUTO-FORT:JOB
+   CLOSE
+  Example 2, Disabling a trap:
+  Let us say that you want to DISABLE a trap that is normally enabled.
+  Once again, you should make your own :JOB file, and replace or alter
+  lines from (SYSTEM)LINKER-AUTO-FORT:JOB. However, you could do this
+  instead:
+   (SYSTEM)LINKER-AUTO-FORT:JOB
+   SET-TRAP-COND OWN DISABLE DIVISION-BY-ZERO
+   CLOSE
+  By running the auto job first, you get all the normal definitions, and
+  then you can DISABLE DIVISION-BY-ZERO, which is normally enabled.
+                                                                    
+SPECIAL-DEFINE                                         
+SPECIAL-DEFINE                                         
+                                                                    
+ 
+ Explanation: 
+                This command reads the link inforamtion of a free
+                segment, and defines entries found, resolving
+                references to them. This is similar to the LINK
+                command, but no link is established, i.e. the segment
+                number remains free if it was so, and no file name is
+                included in the header of the current domain or
+                segment. If the specified segment has a routine
+                vector, this command also accesses symbols outside the
+                routine vector.
+                
+ Parameters:    No.  Parameter name and Explanation
+                1    <Segment name>
+                     Specify the free segment the entry definitions
+                     should be taken from. No default value.
+                2    <Definition type (Library,Total,Select,Omit)>
+                     Decides which entries on <segment name>, should
+                     be copied to the symbol table. Default is
+                     LIBRARY. The selection criteria are similar to
+                     those for SPECIAL-LINK:
+                     Library: Only the entries on <segment name>
+                         which are referred to will be copied into
+                         the symbol table.
+                     Total: All entries will be copied.
+                     Select: Only entries explicitly specified will
+                         be copied.
+                     Omit: All defined entries, excluding those
+                         specified, will be copied.
+                3    <Entry name>...<Entry name>
+                     You will be prompted for this parameter only if
+                     you choose the option SELECT or OMIT in parameter
+                     2. No default value.
+ 
+ Example:
+  % Access entries not in routine vector:
+  NDL: SET-ADVANCED-MODE
+  NDL(ADV): OPEN-DOMAIN "LINK-TO-COBOL"
+  NDL(ADV): LOAD MY-ROUTINES:NRF
+  Program:........344B P12   Data:...........234B D12
+  % Establish the link and access symbols in the routine vector:
+  NDL(ADV): LINK COBOL-LIB-J03
+  % Access symbols outside the routine vector:
+  NDL(ADV): SPECIAL-DEFINE COBOL-LIB-J03 LIBRARY
+  NDL(ADV): CLOSE
+ 
+ Related old Linkage-Loader command(s):
+                None
+                                                                    
+SPECIAL-LINK                                           
+SPECIAL-LINK                                           
+                                                                    
+ 
+ Explanation: This command links a free segment to the current
+                domain or segment file. The entries which should be
+                linked to (i.e. copied to) the symbol table are
+                specified using parameters 2 and 3.
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <Segment name>
+                     Name of the free segment to be linked.
+                2    <Link type (Library,Total,Select,Omit)>
+                     Default is LIBRARY.
+                3    <Entry>...<Entry>
+                     No default value. You are prompted for this
+                     parameter only if the option chosen in parameter
+                     2 was SELECT or OMIT.
+ 
+ Notes:         The meaning of parameter 2 is as follows:
+                LIBRARY means only referred entries are copied into
+                the symbol table. The link is only set up if any
+                entries are defined.
+                TOTAL links all the entries.
+                SELECT links only the entries you specify in parameter
+                3.
+                OMIT links all entries except those you specify in
+                parameter 3.
+ 
+ Example:
+  % Avoid "Redefinition ignored" warning messages:
+  NDL(ADV): SPECIAL-LINK NOTIS-WP LIBRARY
+ 
+ Related old Linkage-Loader command(s):
+                LIBRARY-SEGMENT-LINK <segment name>
+                                                                    
+SPECIAL-LOAD                                           
+SPECIAL-LOAD                                           
+                                                                    
+ 
+ Explanation: This command loads the relocatable (NRF) code in one
+                of four ways, depending on what you specify in
+                parameter 2.
+ 
+ Usage:         Can be used to prevent references from being supplied
+                with definitions possibly found in the file (see
+                OMIT).
+                Can also be used to force loading of an entry from a
+                library file which is not referred (see SELECT).
+ 
+ Parameters:    No.  Parameter name and Explanation
+                1    <File name>
+                     Name of an NRF file to be loaded.
+                2    <Load type (Library,Total,Select,Omit)>
+                     Default is LIBRARY.
+                3    <Entry>...<Entry>
+                     No default value. You are prompted for this
+                     parameter only if the option chosen in parameter
+                     2 was SELECT or OMIT.
+ 
+ Notes:         The meaning of parameter 2 is as follows:
+                LIBRARY means that the file is treated as a library
+                file whether or not it is one. It only loads entries
+                which are referred. You do not need to specify
+                parameter 3.
+                TOTAL loads all the entries. You do not need to
+                specify parameter 3.
+                SELECT loads only referred entries (library load),
+                together with those entries explicitly  given in the
+                entry list, regardless of whether they are referred or
+                not.
+                OMIT performs an ordinary load operation but excludes
+                those entries explicitly specified in the entry list.
+ 
+ Related old Linkage-Loader command(s):
+                LIBRARY-SEGMENT-LOAD <file name>
+                TOTAL-SEGMENT-LOAD <file name>
+                SELECTED-SEGMENT-LOAD <file name>
+                <entries>...<entries>
+                OMITTED-SEGMENT-LOAD <file name> <entry>...<entry>
+                                                                    
+%                                                      
+%                                                      
+                                                                    
+ 
+ Explanation: This is used for writing comments. Whatever you write
+                after % on the line is ignored.
+ 
+ Usage:         This command is particularly useful for making
+                comments in a batch or mode job.
+ 
+ Parameters:    No Parameters.
+ 
+ Related old Linkage-Loader command(s):
+                CC <comment>
+                                                                    
+@<command>                                             
+@<command>                                             
+                                                                    
+ 
+ Explanation: This command permits you to execute a SINTRAN command
+                within the Linker. If a line starts with the character
+                @, the rest of that line is assumed to be a SINTRAN
+                command and executed as such.
+ 
+ Parameters:    No Parameters.
+ 
+ Notes:         Note that control will not return to the Linker or the
+                Monitor if the SINTRAN command starts another program.
+                Not all SINTRAN commands are available from the
+                Linker.

@@ -1,6 +1,7 @@
 using System;
 
 using NDInsight.Sintran.Xmsg;
+using NDInsight.Sintran.Xmsg.Packet;
 
 namespace NDInsight.Sintran.Xmsg.ListRouting
 {
@@ -65,9 +66,6 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
         /// <param name="flags1">
         /// The SINTRAN Flags 1 word (datagram sequence).
         /// </param>
-        /// <param name="counter">
-        /// The XMSG sub-header per-direction counter byte.
-        /// </param>
         /// <param name="flags2">
         /// The SINTRAN Flags 2 frame-class word; defaults to the observed request value.
         /// </param>
@@ -76,9 +74,6 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
         /// </param>
         /// <param name="role">
         /// The XMSG sub-header role byte; defaults to the observed asker value.
-        /// </param>
-        /// <param name="protocolId">
-        /// The SINTRAN Protocol ID; defaults to the observed request channel.
         /// </param>
         /// <param name="controlService">
         /// The XMCSM control/service word; defaults to <see cref="XmcsmXsgsyRequest"/>.
@@ -95,12 +90,9 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
             ushort sourceSystem,
             ushort sourcePort,
             ushort flags1,
-            byte counter,
             ushort flags2 = DefaultRequestFlags2,
             byte frameFlags = DefaultRequestFrameFlags,
             byte role = DefaultRequestRole,
-            // INFERRED default: proto 0xDB (DB) is the channel the request was captured on; overridable.
-            SintranProtocolId protocolId = SintranProtocolId.Db,
             uint controlService = XmcsmXsgsyRequest)
         {
             SintranHeader header = new SintranHeader();
@@ -112,25 +104,40 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
             header.SourceNode = sourceNode;
             header.Flags1 = flags1;
             header.Flags2 = flags2;
-            header.ProtocolId = protocolId;
+            // WORD 6 IS COMPUTED - CORRECTED 2026-08-06.
+            //
+            // This used to be header.ProtocolId = protocolId and header.Counter = counter. Those two
+            // properties are compatibility views over the checksum's HIGH and LOW bytes, so between
+            // them they FABRICATED word 6 from the caller's arguments - measured as 0xDB55 where the
+            // carved checksum is 0x8F16 (ListRoutingHeaderChecksumTests).
+            //
+            // Word 6 is a ones-complement checksum over words 0-5, confirmed on 3595/3595 captured
+            // frames, and a wrong one kills D100 with XMSG ERROR CODE 24.
+            //
+            // The protocolId and counter PARAMETERS are gone (2026-08-06). Their doc even carried the
+            // wrong model - "the XMSG sub-header per-direction counter byte" - when offset 13 is the
+            // checksum's low byte and belongs to the SINTRAN header, not the sub-header.
+            //
+            // Removing them loses nothing: ListRoutingTests still rebuilds a CAPTURED request byte
+            // for byte, which means the computed checksum equals the real frame's word 6. On that
+            // capture (nodes 100 and 102) the old arguments 0xDB / 0xE9 happened to BE the checksum,
+            // which is precisely how small node numbers hide this class of bug.
+            XmsgEnvelope.StampChecksum(header);
 
             XmsgSubHeader sub = new XmsgSubHeader();
-            sub.Counter = counter;
             sub.FrameFlags = frameFlags;
             sub.Role = role;
             sub.DestinationSystem = destinationSystem;
             sub.DestinationPort = destinationPort;
             sub.SourceSystem = sourceSystem;
             sub.SourcePort = sourcePort;
-            sub.ControlService = controlService;
-            sub.Pad = 0x00;
 
             // VERIFIED (captures): a request carries exactly one parameter block,
             // param#1 = the system number being queried.
             Span<byte> trailer = stackalloc byte[XsgsyWire.ParamBlockSize];
             XsgsyWire.WriteParamBlock(trailer, 1, querySystem);
 
-            return XsgsyWire.BuildInfoField(header, sub, trailer);
+            return XsgsyWire.BuildInfoField(header, sub, controlService, trailer);
         }
 
         /// <summary>

@@ -13,7 +13,7 @@ using Xunit;
 namespace NDInsight.Sintran.Xmsg.Live.Tests
 {
     /// <summary>
-    /// Layer 4 proof: the full receive-&gt;decode-&gt;respond-&gt;encode-&gt;send loop over an
+    /// Layer 4 proof: the full receive->decode->respond->encode->send loop over an
     /// in-memory transport answers a SABM with UA and a captured request with the right
     /// response, without touching a real socket.
     /// </summary>
@@ -39,7 +39,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             XmsgNode node = new XmsgNode(nodeNumber: 102, ackCounter: 0x2D);
             LiveNode live = new LiveNode(duplex, link, node);
 
-            await live.RunAsync(CancellationToken.None);
+            await live.RunWithoutTimersAsync(CancellationToken.None);
 
             IReadOnlyList<LapbFrame> replies = DeframeWritten(duplex);
 
@@ -61,7 +61,12 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             byte[] sabm = HdlcEncoder.Encode(new byte[] { 0x01, 0x3F, 0x00, 0x64 });
 
             // A minimal data frame (subtype 0x0E) 100 -> 102, datagram sequence 0x0007.
-            byte[] dataInfo = LiveTestHex.Parse("21 13 00 0E 00 66 00 64 00 07 04 00 DE");
+            // CORRECTED 2026-08-04: the SINTRAN header is FOURTEEN bytes, so this fixture gained
+            // its missing last byte. Word 6 here is 0xDE00 - SYNTHETIC, not a real checksum (the
+            // real one for these six words is 0xDA0D). What the test exercises is the legacy ACK
+            // path, which echoes the data frame's word-6 high byte and its own counter 0x2D, so
+            // only the 0xDE half matters to the expected reply below.
+            byte[] dataInfo = LiveTestHex.Parse("21 13 00 0E 00 66 00 64 00 07 04 00 DE 00");
             byte[] dataFrame = HdlcEncoder.Encode(BuildIFrameBody(0x00, dataInfo));
 
             byte[] inbound = Concat(sabm, dataFrame);
@@ -71,7 +76,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             XmsgNode node = new XmsgNode(nodeNumber: 102, ackCounter: 0x2D);
             LiveNode live = new LiveNode(duplex, link, node);
 
-            await live.RunAsync(CancellationToken.None);
+            await live.RunWithoutTimersAsync(CancellationToken.None);
 
             IReadOnlyList<LapbFrame> replies = DeframeWritten(duplex);
 

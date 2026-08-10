@@ -294,7 +294,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// dedicated typed method yet).
         /// </summary>
         /// <param name="opcode">
-        /// The TAD opcode byte.
+        /// The TAD opcode.
         /// </param>
         /// <param name="data">
         /// The message data (at most 255 bytes).
@@ -302,7 +302,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <returns>
         /// This builder, for chaining.
         /// </returns>
-        public TadMessageBuilder Raw(byte opcode, ReadOnlySpan<byte> data)
+        public TadMessageBuilder Raw(TadOp opcode, ReadOnlySpan<byte> data)
         {
             return Append(opcode, data);
         }
@@ -323,7 +323,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// Appends one message, inserting a word-alignment pad first when the chain length is odd.
         /// </summary>
         /// <param name="opcode">
-        /// The TAD opcode byte.
+        /// The TAD opcode.
         /// </param>
         /// <param name="data">
         /// The message data.
@@ -334,7 +334,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown when <paramref name="data"/> is longer than 255 bytes (the count is a single byte).
         /// </exception>
-        private TadMessageBuilder Append(byte opcode, ReadOnlySpan<byte> data)
+        private TadMessageBuilder Append(TadOp opcode, ReadOnlySpan<byte> data)
         {
             if (data.Length > 255)
             {
@@ -352,12 +352,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             // port-assign opcodes 0x07 / 0x0B are ALWAYS preceded by an extra 0x00 on the wire (a
             // 16-bit opcode or a flag byte — UNKNOWN which). Modelling it as an intrinsic prefix, plus
             // the even-offset alignment above, reproduces the captured MOTD byte-for-byte.
-            if (opcode == TadOp.Eckm || opcode == TadOp.Bmmx || opcode == 0x07 || opcode == 0x0B)
+            if (opcode == TadOp.Eckm || opcode == TadOp.Bmmx || opcode == (TadOp)0x07 || opcode == (TadOp)0x0B)
             {
                 _buffer.Add(0x00);
             }
 
-            _buffer.Add(opcode);
+            _buffer.Add((byte)opcode);
             _buffer.Add((byte)data.Length);
             for (int i = 0; i < data.Length; i++)
             {

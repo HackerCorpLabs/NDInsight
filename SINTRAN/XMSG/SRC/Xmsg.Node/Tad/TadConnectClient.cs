@@ -152,10 +152,10 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         public XmsgFrame BuildSessionSetup()
         {
             byte[] tad = new TadMessageBuilder()
-                .Raw(0x06, ReadOnlySpan<byte>.Empty)
-                .Raw(0x1B, ReadOnlySpan<byte>.Empty)
-                .Raw(0x1C, new byte[] { 0x00 })
-                .Raw(0xFF, ReadOnlySpan<byte>.Empty)
+                .Raw((TadOp)0x06, ReadOnlySpan<byte>.Empty)
+                .Raw((TadOp)0x1B, ReadOnlySpan<byte>.Empty)
+                .Raw((TadOp)0x1C, new byte[] { 0x00 })
+                .Raw((TadOp)0xFF, ReadOnlySpan<byte>.Empty)
                 .Build();
             // Asker data role 0x84 = WaitForTransfer|RoutedLetter; frame-flags Setup 0x86.
             return Assemble(controlService: SessionSetupControlService,
@@ -210,7 +210,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <summary>
         /// Builds an ESCA (escape) control frame — sent once with the terminal-setup chain (spec 22.4).
         /// </summary>
-        /// <returns>The ESCA frame.</returns>
+        /// <returns>
+        /// The ESCA frame.
+        /// </returns>
         public XmsgFrame BuildEsca()
         {
             return BuildControl(TadOp.Esca, controlService: (uint)XmcsmService.BareTadControl,
@@ -220,7 +222,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <summary>
         /// Builds a RECO (reset-confirm) control frame — the answer to each host RESE (spec 22.4).
         /// </summary>
-        /// <returns>The RECO frame.</returns>
+        /// <returns>
+        /// The RECO frame.
+        /// </returns>
         public XmsgFrame BuildReco()
         {
             return BuildControl(TadOp.Reco, controlService: TerminalDataControlService,
@@ -231,7 +235,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// Builds a CERS (escape-response) control frame — sent after each consumed host burst / CESC
         /// transition (spec 22.6).
         /// </summary>
-        /// <returns>The CERS frame.</returns>
+        /// <returns>
+        /// The CERS frame.
+        /// </returns>
         public XmsgFrame BuildCers()
         {
             return BuildControl(TadOp.Cers, controlService: TerminalDataControlService,
@@ -241,7 +247,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <summary>
         /// Builds a DUMM (dummy keepalive) control frame — sent when idle (spec 22.6).
         /// </summary>
-        /// <returns>The DUMM frame.</returns>
+        /// <returns>
+        /// The DUMM frame.
+        /// </returns>
         public XmsgFrame BuildDumm()
         {
             return BuildControl(TadOp.Dumm, controlService: TerminalDataControlService,
@@ -252,7 +260,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// Builds a DCON (disconnect) control frame — sent after the host's 0xFD to end the session
         /// (spec 22.7).
         /// </summary>
-        /// <returns>The DCON frame.</returns>
+        /// <returns>
+        /// The DCON frame.
+        /// </returns>
         public XmsgFrame BuildDcon()
         {
             return BuildControl(TadOp.Dcon, controlService: (uint)XmcsmService.BareTadControl,
@@ -262,11 +272,19 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <summary>
         /// Builds a single-message control frame (one empty TAD message).
         /// </summary>
-        /// <param name="opcode">The TAD opcode.</param>
-        /// <param name="controlService">The XMCSM control/service word (its high half is the frame-class).</param>
-        /// <param name="role">The sub-header role byte.</param>
-        /// <returns>The assembled control frame.</returns>
-        private XmsgFrame BuildControl(byte opcode, uint controlService, byte role)
+        /// <param name="opcode">
+        /// The TAD opcode.
+        /// </param>
+        /// <param name="controlService">
+        /// The XMCSM control/service word (its high half is the frame-class).
+        /// </param>
+        /// <param name="role">
+        /// The sub-header role byte.
+        /// </param>
+        /// <returns>
+        /// The assembled control frame.
+        /// </returns>
+        private XmsgFrame BuildControl(TadOp opcode, uint controlService, byte role)
         {
             byte[] tad = new TadMessageBuilder().Raw(opcode, ReadOnlySpan<byte>.Empty).Build();
             // Frame-flags per frame class (GOD LLM correction, spec 22.6): the bare-TAD control class
@@ -295,7 +313,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             }
 
             // The server's terminal-data frames (XMCSM 0x01080000) carry its session port as the source.
-            if (frame.SubHeader.ControlService == TerminalDataControlService && frame.SubHeader.SourcePort != 0)
+            if (frame.ControlService == TerminalDataControlService && frame.SubHeader.SourcePort != 0)
             {
                 _serverSessionPort = frame.SubHeader.SourcePort;
             }
@@ -348,22 +366,37 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             frame.Header.SourceNode = _clientNode;
             frame.Header.Flags1 = f1;
             frame.Header.Flags2 = frameClass;
-            frame.Header.ProtocolId = channel;
+
+            // WORD 6 IS COMPUTED - CORRECTED 2026-08-06.
+            //
+            // This was the worst of the four. It did not merely carry word 6 through, it DERIVED it
+            // from XmsgEnvelope.ComputeCounter and XmsgEnvelope.DeriveChannel - the fitted
+            // seed/channel model, which XmsgEnvelope's own remarks mark SUPERSEDED and describe as
+            // the wrong explanation. That model reproduces the low byte by construction (the seed is
+            // learned from a received frame) and anchors the high byte at a constant, which is why
+            // it looked right for years and then produced a wrong word 6 the moment a node number
+            // above 255 appeared.
+            //
+            // Word 6 is a ones-complement checksum over words 0-5. A wrong one kills D100 with
+            // XMSG ERROR CODE 24.
+            XmsgEnvelope.StampChecksum(frame.Header);
 
             XmsgSubHeader sub = new XmsgSubHeader();
-            sub.Counter = counter;
             sub.FrameFlags = frameFlags;
             sub.Role = role;
             sub.DestinationSystem = _serverNode;
             sub.DestinationPort = destinationPort;
             sub.SourceSystem = _clientNode;
             sub.SourcePort = sourcePort;
-            sub.ControlService = controlService;
-            sub.Pad = 0x00;
-            sub.UserDataLength = (byte)payload.Length;
+            // XMCSM is ONE word at wire 26-27; the rest of the old 32-bit "control service",
+            // the pad and the length byte are the first four bytes of the MESSAGE BODY at wire
+            // 28-31. ComposeBody splits them through the single compatibility facade.
+            ushort xmcsm;
+            byte[] body = XmsgDataFields.ComposeBody(controlService, payload, out xmcsm);
+            sub.Xmcsm = xmcsm;
 
             frame.SubHeader = sub;
-            frame.TrailingBytes = payload;
+            frame.TrailingBytes = body;
             frame.ClearRawBytes();
             return frame;
         }

@@ -66,7 +66,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             bool sawFd = false;
             TadConnectClient badClient = BuildPairedNodes(badScreen, out XmsgCodec badCodec, frame =>
             {
-                if (frame.SubHeader != null && frame.SubHeader.ControlService == 0x00060000u)
+                if (frame.SubHeader != null && frame.ControlService == 0x00060000u)
                 {
                     sawFd = true;
                 }
@@ -105,8 +105,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// <summary>
         /// Sends the SYSTEM username then the SYSTEM password to reach the logged-in command loop.
         /// </summary>
-        /// <param name="client">The connect-to client.</param>
-        /// <param name="codec">The client codec.</param>
+        /// <param name="client">
+        /// The connect-to client.
+        /// </param>
+        /// <param name="codec">
+        /// The client codec.
+        /// </param>
         private static void LogIn(TadConnectClient client, XmsgCodec codec)
         {
             codec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // username
@@ -202,7 +206,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
                 }
 
                 // Frame 5: the 0xFD session-state notification rides the 0x00060000 class.
-                if (frame.SubHeader.ControlService == 0x00060000u)
+                if (frame.ControlService == 0x00060000u)
                 {
                     sawFd = true;
                 }
@@ -222,7 +226,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
                 // Frame 3: a terminal-data frame (0x01080000) carrying SYCN 000B (LoggedOut) - the logout
                 // signal that actually makes 100 send DCON. The decoded chain is on frame.Tad.
-                if (frame.SubHeader.ControlService == 0x01080000u && frame.Tad != null)
+                if (frame.ControlService == 0x01080000u && frame.Tad != null)
                 {
                     IReadOnlyList<TadMessage> messages = frame.Tad.Messages;
                     for (int i = 0; i < messages.Count; i++)
@@ -517,7 +521,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
-        /// help and list service MUST each fit one &lt; 255-byte terminal frame - 100 renders only the final
+        /// help and list service MUST each fit one terminal frame shorter than 255 bytes - 100 renders only the final
         /// chunk of a multi-frame reply, so a long listing would show only its tail. Guards that regression.
         /// </summary>
         [Theory]
@@ -555,8 +559,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// Logs a session in (SYSTEM/SYSTEM), clears the capture, runs one command, and returns the captured
         /// terminal text (the first windowed batch for a multi-frame reply).
         /// </summary>
-        /// <param name="command">The command to run.</param>
-        /// <returns>The terminal text captured for the command.</returns>
+        /// <param name="command">
+        /// The command to run.
+        /// </param>
+        /// <returns>
+        /// The terminal text captured for the command.
+        /// </returns>
         private static string RunLoggedInCommand(string command)
         {
             TerminalCapture terminal = new TerminalCapture();
@@ -666,7 +674,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             // seed 0x16 instead of 0x14 (the measured live poisoning signature). The server must
             // answer it — and everything after it — with envelopes still derived from the TRUE seed.
             XmsgFrame poisoned = client.BuildInput("help");
-            poisoned.SubHeader!.Counter = (byte)(poisoned.SubHeader.Counter + 2);
+            poisoned.Header!.Counter = (byte)(poisoned.Header.Counter + 2);
             poisoned.ClearRawBytes();
             fromServer.Clear();
             clientCodec.SendPacket(new XmsgPacket(poisoned));
@@ -682,7 +690,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
                 }
 
                 byte implied = XmsgEnvelope.LearnSeed(
-                    frame.Header!.Flags1, frame.SubHeader.Counter, frame.Header.Flags2);
+                    frame.Header!.Flags1, frame.Header.Counter, frame.Header.Flags2);
                 Assert.Equal(0x14, implied);
                 checkedFrames++;
             }
@@ -787,7 +795,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
         /// <summary>
         /// In the default <see cref="TadOutputMode.CompleteSegments"/> mode the FIRST frame of a
-        /// &gt;255-byte reply is a COMPLETE BDAT segment of at most 240 bytes — NOT a 255-byte sentinel —
+        /// >255-byte reply is a COMPLETE BDAT segment of at most 240 bytes — NOT a 255-byte sentinel —
         /// and carries no RFI (more follows). This is the receiver-decode-backed construct
         /// (COS-CONN-TO-E02-Analysis.md §5b): no count==0xFF anywhere, plain complete elements, window-of-1.
         /// (The in-memory harness is single-shot — it does not pump the client ACKs that release later
@@ -865,14 +873,18 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// <summary>
         /// Returns the last terminal-data (XMCSM 0x01080000) frame in a captured list.
         /// </summary>
-        /// <param name="frames">The captured frames.</param>
-        /// <returns>The last terminal-data frame.</returns>
+        /// <param name="frames">
+        /// The captured frames.
+        /// </param>
+        /// <returns>
+        /// The last terminal-data frame.
+        /// </returns>
         private static XmsgFrame LastTerminalDataFrame(List<XmsgFrame> frames)
         {
             XmsgFrame? found = null;
             for (int i = 0; i < frames.Count; i++)
             {
-                if (frames[i].SubHeader != null && frames[i].SubHeader!.ControlService == 0x01080000u)
+                if (frames[i].SubHeader != null && frames[i].ControlService == 0x01080000u)
                 {
                     found = frames[i];
                 }
@@ -885,13 +897,22 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// <summary>
         /// Renders the printable ASCII of a frame's BDAT bytes, for asserting which echo-frame it carries.
         /// </summary>
-        /// <param name="frame">The terminal-data frame.</param>
-        /// <returns>The frame's BDAT text (7-bit ASCII).</returns>
+        /// <param name="frame">
+        /// The terminal-data frame.
+        /// </param>
+        /// <returns>
+        /// The frame's BDAT text (7-bit ASCII).
+        /// </returns>
         private static string TadText(XmsgFrame frame)
         {
             StringBuilder sb = new StringBuilder();
-            byte[] payload = frame.TrailingBytes ?? Array.Empty<byte>();
-            int i = 0;
+            byte[] payload = frame.GetBodyBytes();
+
+            // CORRECTED 2026-08-04: TrailingBytes is now the whole MESSAGE BODY from wire 28, and a
+            // TAD frame's body opens with the same four bytes a letter's does - serial 0x00,
+            // service 0x00, then the big-endian length of the chain. The chain itself starts at 32.
+            // VERIFIED on the captured conn-to-d102 DUMM frame: body 0000 0002 1800.
+            int i = payload.Length >= XroutMessage.HeaderSize ? XroutMessage.HeaderSize : payload.Length;
             while (i < payload.Length)
             {
                 if (payload[i] == 0x00) { i++; continue; }   // skip pads / 16-bit-op prefixes
@@ -973,9 +994,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             clientCodec.SendPacket(new XmsgPacket(client.BuildEsca()));
             List<XmsgFrame> escaReplies = DataFrames(fromServer);
             Assert.Equal(2, escaReplies.Count);
-            Assert.Equal(0x00080000u, escaReplies[0].SubHeader!.ControlService);
+            Assert.Equal(0x00080000u, escaReplies[0].ControlService);
             Assert.Equal(0x86, escaReplies[0].SubHeader!.FrameFlags);
-            Assert.Equal(0x01080000u, escaReplies[1].SubHeader!.ControlService);
+            Assert.Equal(0x01080000u, escaReplies[1].ControlService);
             Assert.Equal(0x96, escaReplies[1].SubHeader!.FrameFlags);
 
             // First RECO -> RESE#2, ff 0x92.
@@ -1018,7 +1039,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             XmsgFrame? accept = null;
             for (int i = 0; i < fromServer.Count; i++)
             {
-                if (fromServer[i].SubHeader != null && fromServer[i].SubHeader!.ControlService == 0x04000041u)
+                if (fromServer[i].SubHeader != null && fromServer[i].ControlService == 0x04000041u)
                 {
                     accept = fromServer[i];
                 }
@@ -1041,21 +1062,47 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             fromServer.Clear();
             clientCodec.SendPacket(new XmsgPacket(xense));
 
-            // The host re-sends the accept one Flags1 lower, envelope still satisfying the seed model.
+            // The host re-sends the accept one Flags1 lower, with a correct header checksum.
             List<XmsgFrame> replies = DataFrames(fromServer);
             Assert.Single(replies);
             XmsgFrame resent = replies[0];
-            Assert.Equal(0x04000041u, resent.SubHeader!.ControlService);
+            Assert.Equal(0x04000041u, resent.ControlService);
             Assert.Equal((ushort)(acceptF1 - 1), resent.Header.Flags1);
-            Assert.Equal(0x14, XmsgEnvelope.LearnSeed(
-                resent.Header.Flags1, resent.SubHeader!.Counter, resent.Header.Flags2));
+
+            // UPDATED 2026-08-05. This used to assert LearnSeed(...) == 0x14 - that the resent
+            // frame's word 6 still satisfied the fitted seed model. XmsgServerHost now DERIVES
+            // word 6 as the carved ones-complement checksum, so that expectation is stale: it
+            // described the arithmetic we used to invent the value with, not a property of the
+            // wire.
+            //
+            // The low byte moved by one here, which is the end-around carry - when the sum's high
+            // half changes, the carry into the low half can change with it. (On the FA listing,
+            // between nodes 100 and 19999, the low bytes happened to agree exactly; that was luck
+            // of the arithmetic, not a rule.)
+            //
+            // What matters for THIS test is unchanged and still checked above: the accept is
+            // re-sent, once, one Flags 1 lower. The checksum is now asserted as the checksum.
+            SintranHeader header = resent.Header;
+            Assert.Equal(
+                XmsgEnvelope.ComputeHeaderChecksum(
+                    (ushort)((header.Marker1 << 8) | header.Marker2),
+                    (ushort)((header.PacketType << 8) | (byte)header.Subtype),
+                    header.DestinationNode,
+                    header.SourceNode,
+                    header.Flags1,
+                    header.Flags2),
+                header.Checksum);
         }
 
         /// <summary>
         /// Counts the data frames (frames with a sub-header — ACKs carry none) in a captured list.
         /// </summary>
-        /// <param name="frames">The captured frames.</param>
-        /// <returns>The number of data frames.</returns>
+        /// <param name="frames">
+        /// The captured frames.
+        /// </param>
+        /// <returns>
+        /// The number of data frames.
+        /// </returns>
         private static int CountDataFrames(List<XmsgFrame> frames)
         {
             return DataFrames(frames).Count;
@@ -1064,8 +1111,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// <summary>
         /// Filters a captured list down to the data frames (frames with a sub-header).
         /// </summary>
-        /// <param name="frames">The captured frames.</param>
-        /// <returns>The data frames, in order.</returns>
+        /// <param name="frames">
+        /// The captured frames.
+        /// </param>
+        /// <returns>
+        /// The data frames, in order.
+        /// </returns>
         private static List<XmsgFrame> DataFrames(List<XmsgFrame> frames)
         {
             List<XmsgFrame> data = new List<XmsgFrame>();
@@ -1085,7 +1136,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// </summary>
         private sealed class PipeTransport : IXmsgTransport
         {
-            /// <summary>The sink that receives forwarded bytes (the other node's codec).</summary>
+            /// <summary>
+            /// The sink that receives forwarded bytes (the other node's codec).
+            /// </summary>
             public Action<byte[]>? Target { get; set; }
 
             /// <summary>
@@ -1109,7 +1162,9 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             private readonly List<SintranPacketSubtype> _subtypes = new List<SintranPacketSubtype>();
             private readonly List<TadFrameShape> _tadFrames = new List<TadFrameShape>();
 
-            /// <summary>Gets the accumulated terminal text.</summary>
+            /// <summary>
+            /// Gets the accumulated terminal text.
+            /// </summary>
             public string Text
             {
                 get { return _text.ToString(); }
@@ -1205,13 +1260,19 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// </summary>
         private readonly struct TadFrameShape
         {
-            /// <summary>The number of data bytes in the frame's first BDAT element.</summary>
+            /// <summary>
+            /// The number of data bytes in the frame's first BDAT element.
+            /// </summary>
             public readonly int BdatBytes;
 
-            /// <summary>Whether the frame contains an RFI (ready-for-input) message.</summary>
+            /// <summary>
+            /// Whether the frame contains an RFI (ready-for-input) message.
+            /// </summary>
             public readonly bool HasRfi;
 
-            /// <summary>The frame's Flags 1 (the value a matching ACK echoes).</summary>
+            /// <summary>
+            /// The frame's Flags 1 (the value a matching ACK echoes).
+            /// </summary>
             public readonly ushort Flags1;
 
             /// <summary>

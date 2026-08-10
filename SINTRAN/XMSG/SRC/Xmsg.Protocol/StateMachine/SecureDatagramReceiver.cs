@@ -19,7 +19,7 @@ namespace NDInsight.Sintran.Xmsg
     /// closed form: the ACK Counter and channel are a STATELESS pure function of the acknowledged
     /// datagram's Flags 1, computed via the envelope arithmetic (<see cref="XmsgEnvelope"/>) with an
     /// ACK seed of <c>link-seed + 0x0B</c>. It is one continuous sequence across every connect (never
-    /// re-seeded per connect), stepping DE -&gt; DD -&gt; DC as Flags 1 climbs past the ACK baseLow.
+    /// re-seeded per connect), stepping DE -> DD -> DC as Flags 1 climbs past the ACK baseLow.
     /// See XMSG-PROTOCOL.md section 6.
     /// </para>
     /// </remarks>
@@ -88,7 +88,9 @@ namespace NDInsight.Sintran.Xmsg
         /// The TAD-session path does NOT use this - it uses the stateless closed form via
         /// <see cref="UseSessionAckModel"/>. This remains for the reachability / list-route ACKs.
         /// </remarks>
-        /// <param name="value">The value the next legacy ACK will carry as its trailing byte.</param>
+        /// <param name="value">
+        /// The value the next legacy ACK will carry as its trailing byte.
+        /// </param>
         public void SeedCounter(byte value)
         {
             _counter = value;
@@ -162,21 +164,33 @@ namespace NDInsight.Sintran.Xmsg
 
             if (_sessionAckModel && ackChannel != null)
             {
-                // TAD-session closed form: Counter and channel are a stateless function of the echoed
-                // Flags 1. No counter is mutated - the sequence lives entirely in Flags 1 space.
-                ushort echoed = dataHeader.Flags1;
-                ack.Header.ProtocolId =
-                    XmsgEnvelope.DeriveChannel(_sessionAckSeed, echoed, AckFlags2, AckControlService);
-                ack.TrailingBytes = new byte[]
-                {
-                    XmsgEnvelope.ComputeCounter(_sessionAckSeed, echoed, AckFlags2),
-                };
+                // The ACK's "channel" and its "trailing byte" are the two halves of header word 6,
+                // which is a ones-complement checksum over the other six words - carved from the
+                // XMSG kernel at 137314 and verified on all 1671 captured ACKs (3595/3595 frames
+                // overall). See XmsgEnvelope.ComputeHeaderChecksum.
+                //
+                // This REPLACES the S_ack = link-seed + 0x0B closed form that used to live here.
+                // That form reproduced every observed ACK, so this is not a bug fix - but it was a
+                // curve fit to the checksum and it needed a LEARNED per-link seed to work at all.
+                // The checksum needs no learned state: every input is already in the header we just
+                // built, so an ACK is correct BY CONSTRUCTION rather than correct because the seed
+                // happened to be learned first. _sessionAckSeed is consequently unused here now.
+                // CORRECTED 2026-08-04: those two halves are ONE header field at offsets 12-13,
+                // so an ACK is fourteen bytes with NO trailing byte. The emitted bytes are
+                // unchanged - only the model is.
+                //
+                // The type/subtype word used to be written here as the LITERAL SintranPacketSubtype
+                // .Ack, which silently assumed PacketType is zero. Subtype is already set on this
+                // header above, so reading it off the header emits the same bytes and drops the
+                // assumption.
+                XmsgEnvelope.StampChecksum(ack.Header);
                 return ack;
             }
 
-            // LEGACY (reachability / list-route): echo the data channel, carry the decrementing counter.
-            ack.Header.ProtocolId = ackChannel ?? dataHeader.ProtocolId;
-            ack.TrailingBytes = new byte[] { _counter };
+            // LEGACY (reachability / list-route): echo the data channel, carry the decrementing
+            // counter. Both are halves of header word 6 - see above; still emitted as chosen
+            // values here because this path exists to reproduce traffic we have not derived.
+            ack.Header.Checksum = (ushort)(((ushort)(ackChannel ?? dataHeader.ProtocolId) << 8) | _counter);
             _counter = (byte)(_counter - 1);
             return ack;
         }

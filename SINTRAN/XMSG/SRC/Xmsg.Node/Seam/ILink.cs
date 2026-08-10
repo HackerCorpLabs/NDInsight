@@ -7,15 +7,25 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
     /// </summary>
     public enum LinkStatus
     {
-        /// <summary>The link is stopped / not running.</summary>
+        /// <summary>
+        /// The link is stopped / not running.
+        /// </summary>
         Stopped,
-        /// <summary>The link is starting up (LAPB establishment in progress).</summary>
+        /// <summary>
+        /// The link is starting up (LAPB establishment in progress).
+        /// </summary>
         Starting,
-        /// <summary>The link is established and can carry L3 traffic.</summary>
+        /// <summary>
+        /// The link is established and can carry L3 traffic.
+        /// </summary>
         Active,
-        /// <summary>The link is shutting down.</summary>
+        /// <summary>
+        /// The link is shutting down.
+        /// </summary>
         Stopping,
-        /// <summary>The link failed and is unusable.</summary>
+        /// <summary>
+        /// The link failed and is unusable.
+        /// </summary>
         Error
     }
 
@@ -23,12 +33,16 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
     /// Handler for an opaque payload delivered up from a link (a LAPB I-frame information field).
     /// The link does not classify the payload.
     /// </summary>
-    /// <param name="link">The link that received the payload (sender-first).</param>
+    /// <param name="link">
+    /// The link that received the payload (sender-first).
+    /// </param>
     /// <param name="payload">
     /// The opaque payload bytes. The buffer may be reused by the link after the handler returns;
     /// handlers that retain the payload MUST copy it inside the callback.
     /// </param>
-    /// <param name="length">Number of valid bytes in <paramref name="payload"/>.</param>
+    /// <param name="length">
+    /// Number of valid bytes in <paramref name="payload"/>.
+    /// </param>
     public delegate void LinkPayloadReceived(ILink link, byte[] payload, int length);
 
     /// <summary>
@@ -36,10 +50,18 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
     /// carried (plus a short human-readable reason) so no information is lost — consumers that only
     /// care about the new value ignore the rest.
     /// </summary>
-    /// <param name="link">The link whose status changed (sender-first).</param>
-    /// <param name="oldStatus">The status before the transition.</param>
-    /// <param name="newStatus">The status after the transition.</param>
-    /// <param name="reason">A short human-readable reason for the transition (for logs).</param>
+    /// <param name="link">
+    /// The link whose status changed (sender-first).
+    /// </param>
+    /// <param name="oldStatus">
+    /// The status before the transition.
+    /// </param>
+    /// <param name="newStatus">
+    /// The status after the transition.
+    /// </param>
+    /// <param name="reason">
+    /// A short human-readable reason for the transition (for logs).
+    /// </param>
     public delegate void LinkStatusChanged(ILink link, LinkStatus oldStatus, LinkStatus newStatus, string reason);
 
     /// <summary>
@@ -56,25 +78,35 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
     /// </remarks>
     public interface ILink : IDisposable
     {
-        /// <summary>Gets the unique name identifying this link (stamped on log lines).</summary>
+        /// <summary>
+        /// Gets the unique name identifying this link (stamped on log lines).
+        /// </summary>
         string Name { get; }
 
-        /// <summary>Gets the current operational status.</summary>
+        /// <summary>
+        /// Gets the current operational status.
+        /// </summary>
         LinkStatus Status { get; }
 
         /// <summary>
         /// Starts the link: initiates LAPB establishment and begins delivering payloads.
         /// </summary>
-        /// <returns>True when the link started; false when it could not start.</returns>
+        /// <returns>
+        /// True when the link started; false when it could not start.
+        /// </returns>
         bool Start();
 
-        /// <summary>Stops the link and tears it down. Idempotent.</summary>
+        /// <summary>
+        /// Stops the link and tears it down. Idempotent.
+        /// </summary>
         void Stop();
 
         /// <summary>
         /// Sends one opaque L3 payload (an information field) as a LAPB I-frame.
         /// </summary>
-        /// <param name="payload">The payload bytes to send.</param>
+        /// <param name="payload">
+        /// The payload bytes to send.
+        /// </param>
         /// <returns>
         /// True when queued for transmission; false when the link is not Active or the send window is
         /// full (logged, never thrown).
@@ -87,10 +119,14 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
         /// </remarks>
         bool SendData(ReadOnlySpan<byte> payload);
 
-        /// <summary>Occurs when a complete L3 payload is delivered up.</summary>
+        /// <summary>
+        /// Occurs when a complete L3 payload is delivered up.
+        /// </summary>
         event LinkPayloadReceived PayloadReceived;
 
-        /// <summary>Occurs when the link status changes (actual transitions only).</summary>
+        /// <summary>
+        /// Occurs when the link status changes (actual transitions only).
+        /// </summary>
         event LinkStatusChanged StatusChanged;
     }
 }

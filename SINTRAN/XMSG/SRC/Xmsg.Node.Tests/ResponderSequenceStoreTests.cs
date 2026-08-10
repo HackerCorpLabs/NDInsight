@@ -4,6 +4,7 @@ using System.IO;
 
 using NDInsight.Sintran.Xmsg;
 using NDInsight.Sintran.Xmsg.Node;
+using NDInsight.Sintran.Xmsg.Node.Services;
 using NDInsight.Sintran.Xmsg.Node.Tad;
 
 using Xunit;
@@ -177,6 +178,62 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
             byte[] accept = frames[0].ToArray();
             Assert.Equal(0x0000, (accept[8] << 8) | accept[9]);
+        }
+
+        [Fact]
+        public void AnsweringAPeerThatIsAheadDoesNotDragOurOwnCountForward()
+        {
+            // THE DEFECT THAT KILLED THE LIVE PUSH, 2026-08-10. Echoing used to ratchet our own
+            // outgoing counter up to the echoed number plus one. That is the "one sequence shared
+            // by both machines" model, and it is wrong: the two counters are independent, so
+            // answering a peer that is AHEAD of us must not move ours at all.
+            //
+            // The numbers here are the real ones off the wire
+            // (DOC/captures/ND-TO-ND-WRITE-2026-08-10/): our next was 0x0022 and D100 was running
+            // eight ahead at 0x0028. The ratchet threw us to 0x0029, D100 was still waiting for
+            // 0x0022, and it answered with XENSE (-34) and then tore the link down.
+            //
+            // Why no earlier test caught it: while both sides are in step the ratchet is a no-op,
+            // and every offline test drove a peer that was in step. It only shows when the counts
+            // DIFFER, which is why this test forces them apart.
+            // A host will not address a node until an inbound frame has taught it the link, so the
+            // client's own letter seeds it - the same way the live push does. That fixture is node
+            // 19999 talking to node 100, which is exactly the pairing this defect was found on.
+            XmsgServerHost host = new XmsgServerHost(FaTestClient.ServerNode);
+            host.Route(FaTestClient.BuildConnectLetter());
+
+            // Spend numbers up to 0x0021 so our next origination is 0x0022. The values are read
+            // back from the frames rather than assumed, so seeding above can cost any number of
+            // them without breaking the test.
+            ushort ourNext = 0x0000;
+            while (ourNext <= 0x0021)
+            {
+                XmsgFrame spent = host.BuildBodyDatagram(
+                    remoteNode: FaTestClient.ClientNode, clientSystem: FaTestClient.ClientNode, clientPort: 0x05B9, sourcePort: 0x0212,
+                    xmcsm: 0x8284, frameFlags: 0x00, role: 0x00,
+                    body: new byte[] { 0x07, 0xF0 },
+                    answeredFlags1: XmsgAnsweredFlags1.None);
+                byte[] spentBytes = spent.ToArray();
+                ourNext = (ushort)(((spentBytes[8] << 8) | spentBytes[9]) + 1);
+            }
+
+            // Answer a frame of the peer's that is well ahead of us. This is the ECHO path.
+            XmsgFrame echo = host.BuildBodyDatagram(
+                remoteNode: FaTestClient.ClientNode, clientSystem: FaTestClient.ClientNode, clientPort: 0x05B9, sourcePort: 0x0212,
+                xmcsm: 0x8284, frameFlags: 0x00, role: 0x00,
+                body: new byte[] { 0x07, 0xA2 },
+                answeredFlags1: 0x0028);
+            byte[] echoBytes = echo.ToArray();
+            Assert.Equal(0x0028, (echoBytes[8] << 8) | echoBytes[9]);   // it echoes, as it must
+
+            // The next thing we ORIGINATE must still be OUR number, 0x0022 - not the peer's 0x0029.
+            XmsgFrame originated = host.BuildBodyDatagram(
+                remoteNode: FaTestClient.ClientNode, clientSystem: FaTestClient.ClientNode, clientPort: 0x05B9, sourcePort: 0x0212,
+                xmcsm: 0x8284, frameFlags: 0x00, role: 0x00,
+                body: new byte[] { 0x07, 0xF0 },
+                answeredFlags1: XmsgAnsweredFlags1.None);
+            byte[] originatedBytes = originated.ToArray();
+            Assert.Equal(0x0022, (originatedBytes[8] << 8) | originatedBytes[9]);
         }
     }
 }

@@ -20,11 +20,14 @@
 --     length (the old README "Packet Length" label was wrong).
 --   • Every subtype-0x0E data frame carries the seed-model envelope:
 --       seed    = (Counter + Flags1 + (Flags2 & 0xFF)) & 0xFF   (per-link const)
---       baseLow = (seed − F2low) & 0xFF
---       epoch   = (Flags1 − baseLow + 0xFF) >> 8
---       channel = 0xDE − (XMCSM >> 24) − epoch  == the Protocol-ID byte
---       Flags2  == XMCSM >> 16
---     VERIFIED 753/753 data frames — mismatches get expert-info.
+--     SUPERSEDED 2026-07-31 — see sintran_hdr_checksum below. The header is
+--     SEVEN WORDS and word 6 is a ones-complement checksum over the other six;
+--     the "channel" is its high byte and the "Counter" its low byte. There is no
+--     channel, no epoch and no seed. The whole baseLow/epoch construction was a
+--     curve fit to that checksum, which is why it kept needing scope caveats.
+--       w6 == ~ones_complement_sum(w0..w5, 0)
+--     VERIFIED 3595/3595 frames offline, every subtype; this dissector validates
+--     3591 of them (it skips the 0xFD/0xFE marker family by design).
 --   • ACK (0x03) trailing byte: S_ack = (trailing + Flags1 + F2low) & 0xFF
 --     = link seed + 0x0B; ack channel = 0xDE − epoch(echoed Flags1).
 --   • Reachability trailing byte closed form: request = ((seed−0x0C) − F1adj),
@@ -282,11 +285,83 @@ local function bitfield_label(value, bits)
     return table.concat(parts, "+")
 end
 
--- Port display (spec §7.1): every wire port is (logical slot << 7) | incarnation.
--- Port 0 is the XROUT well-known sink for letters and direct services.
+-- Port display. VERIFIED 2026-07-26: a wire port field is the LOW WORD of the XMSG
+-- magic number (MAGNO), so it is (port number << 7) | random, with the port number
+-- 9 bits and 1-based and the random part 7 bits. The matching system field is the
+-- magic's high word, so system+port together reassemble a whole 32-bit MAGNO.
+-- Carved from the XMSG L03 kernel (ZCRMG at 131055, MFM2P at 126774); see
+-- NDInsight SINTRAN/XMSG/DOC/XMSG-MAGIC-NUMBER-LAYOUT-CARVED-2026-07-26.md and
+-- XMSG-WIRE-PORT-IS-MAGIC-LOW-WORD-2026-07-26.md.
+--
+-- The random part is drawn by the kernel routine ZRAND, which is NOT random: it is a
+-- linear congruential generator whose low 7 bits step as r' = (53*r + 25) mod 128 and
+-- cycle through all 128 values. ZRAND redraws 0 and 127, so a minted port never
+-- carries either -- a port field showing one of those is a reserved address, not an
+-- allocated port. Port 0 is the XROUT well-known sink for letters and direct services.
+local ZRAND_A7, ZRAND_C7 = 53, 25
+
+-- Next value the kernel's randomiser actually yields after r (low 7 bits only).
+-- ZRAND redraws 0 and 127, so a raw step onto either is skipped: the accepted range
+-- is 1..126 and a prediction must not display a value the kernel would never mint.
+local function zrand_step(r)
+    local n = band(r * ZRAND_A7 + ZRAND_C7, 0x7F)
+    while n == 0 or n == 0x7F do
+        n = band(n * ZRAND_A7 + ZRAND_C7, 0x7F)
+    end
+    return n
+end
+
 local function port_label(p)
     if p == 0 then return "0 = XROUT (letters/services)" end
-    return string.format("%d (slot %d, inc 0x%02X)", p, rshift(p, 7), band(p, 0x7F))
+    local port, rnd = rshift(p, 7), band(p, 0x7F)
+    local note = ""
+    if rnd == 0 or rnd == 0x7F then
+        note = ", random NOT kernel-mintable"
+    end
+    return string.format("%d (port %d, random %d, next %d%s)",
+                         p, port, rnd, zrand_step(rnd), note)
+end
+
+-- ── SINTRAN header checksum ───────────────────────────────────────────────────
+-- CARVED 2026-07-31 from the XMSG kernel routine at 137314 (reached from XSDGM
+-- via the pointer at 137744; the caller stores the result at 137675 STA ,X 32,
+-- which is header word 6 itself):
+--
+--     T := X + 0o32 ; A := 0 ; X += 0o24        -- 0o24..0o32 = SEVEN words
+--     while X <= T: A += mem[X]; A += carry; X += 1     -- end-around carry
+--     if A ~= 0: A := ~A                                -- ones complement
+--
+-- So the SINTRAN header is SEVEN WORDS and word 6 is a ones-complement checksum
+-- over the other six, with the checksum field itself counted as zero. On the
+-- wire that word is read as two bytes:
+--
+--     offset 12  = checksum HIGH byte  (long mislabelled "Protocol ID"/"channel")
+--     offset 13  = checksum LOW  byte  (long mislabelled "Counter")
+--
+-- There is NO channel, NO epoch and NO per-link seed. The old
+-- 0xDE − class − epoch model was a curve fit to this arithmetic: the "seed" was
+-- the contribution of header fields nobody varied, the "epoch" was carry
+-- propagation, and a peer "crashing on a wrong channel" is simply rejecting a
+-- corrupt header checksum.
+--
+-- VERIFIED on 3595/3595 frames across the whole capture corpus - every subtype
+-- (Ack 1671, Data 1449, transfer 0x0A 226 / 0x0C 226, ReachRequest 10,
+-- ReachReply 6, NetworkError 3, and the 0xFD/0xFE family 4), both directions,
+-- every link, with no per-subtype special cases.
+-- Doc: NDInsight SINTRAN/XMSG/DOC/XMSG-HEADER-WORD6-IS-A-CHECKSUM-2026-07-31.md
+local function sintran_hdr_checksum(w0, w1, w2, w3, w4, w5)
+    local sum = 0
+    local function add(w)
+        sum = sum + w
+        if sum > 0xFFFF then
+            sum = band(sum, 0xFFFF) + 1     -- end-around carry (RADD ADC)
+        end
+    end
+    add(w0); add(w1); add(w2); add(w3); add(w4); add(w5)
+    -- The kernel skips the complement when the sum is zero (JAZ over RADD CM1).
+    -- No corpus frame hits that, but mirror the code rather than the corpus.
+    if sum == 0 then return 0 end
+    return band(~sum, 0xFFFF)       -- unary ~ is bitwise NOT (Lua 5.3+), as band/rshift above
 end
 
 -- ── ProtoFields ───────────────────────────────────────────────────────────────
@@ -811,7 +886,20 @@ end
 --                        '*' of the name as the registry displays it (*TADADM)
 --   FE <len> <text>      the target system name the user typed (e.g. "D102")
 --   04 02 00 01          the list-systems / directory-query marker TLV
--- A 0x00 between TLVs is padding. Non-letter-shaped payloads (e.g. the constant
+-- A 0x00 between TLVs is padding.
+--
+-- These tags are XROUT PARAMETER BLOCKS in the sense of the COSMOS Programmer
+-- Guide appendix B section 2: the tag byte is the parameter number, negative
+-- (two's complement) for a string. So 0xFF is string parameter 1 and 0xFE is
+-- string parameter 2 — which for XSLET (appendix B section 3.4) are exactly
+-- "port or connection name" and "system name". The 0x00 padding is the manual's
+-- even-boundary fill.
+--
+-- NOTE: there is deliberately NO 4-byte serial/service/length header parsed here.
+-- That header is the MESSAGE BUFFER form; it is not carried in an XMSG data
+-- frame, where the service travels in XMCSM instead. This dissector had it right
+-- from the start — the C# library did not, and was corrected in 2026-07 (see
+-- XroutMessageFraming and DOC/XMSG-SERVER-NAMES-AND-LETTERS.md section 5). Non-letter-shaped payloads (e.g. the constant
 -- accept letter 01 02 0000 0202 000A) fall through as generic TLVs.
 
 local function dissect_xrout_letter(tvb, pinfo, tree, off, tlen)
@@ -876,7 +964,7 @@ end
 --   +3   Frame Flags      status byte (see frameflags_bits)
 --   +4   Role             high byte of the XMSG send-option word (XF* flags)
 --   +5-6  XMDSY           destination system (BE)
---   +7-8  XMDPT           destination port (BE) — (slot<<7)|incarnation
+--   +7-8  XMDPT           destination port (BE) — MAGNO low word: (port<<7)|random
 --   +9-10 XMSSY           source system (BE)
 --   +11-12 XMSPT          source port (BE)
 --   +13-16 XMCSM          class word (hi 16 = Flags2) + service/status byte
@@ -977,37 +1065,40 @@ local function dissect_dc(tvb, pinfo, tree, off, proto_label, ctx)
             "XMSSY/XMSPT echo originator address (stateless-RPC convention)")
     end
 
-    -- ── Envelope validation (spec §18.5 seed model, VERIFIED 753/753) ─────────
+    -- ── Envelope validation (spec §18.5 seed model) ──────────────────────────
     -- seed    = (Counter + Flags1 + F2low) & 0xFF   (per-link constant)
-    -- baseLow = (seed − F2low) & 0xFF
+    -- baseLow = seed − F2low                        (SIGNED — see below)
     -- epoch   = (Flags1 − baseLow + 0xFF) >> 8
     -- channel = 0xDE − (XMCSM >> 24) − epoch  == the header Protocol-ID byte
     -- Also: Flags2 == XMCSM >> 16 on every data frame.
     -- On a relayed hop (marker 0x12) the relay re-stamps Counter +1, so the
     -- derived seed reads seed+1 (the "relay lane") — the arithmetic still
     -- self-checks because seed is derived from the same frame.
+    --
+    -- CORRECTED 2026-07-31: baseLow must NOT be masked to 0..255. When
+    -- F2low > seed the true baseLow is NEGATIVE; masking turned it into a large
+    -- positive, which moved the 256-boundary in the epoch shift and lost a
+    -- borrow — the epoch came out one too low and the predicted channel one too
+    -- HIGH. That is invisible on TAD/routing traffic (5 distinct Flags2 values,
+    -- all <= seed) and fires constantly on file-server traffic (11-15 distinct
+    -- Flags2, many > seed), which is why the old "VERIFIED 753/753" held: it was
+    -- measured only on the family that cannot exercise the bug.
+    -- With the mask removed the model is exact on the WHOLE corpus:
+    -- 1449/1449 data frames across every capture and every link (seeds 0x11,
+    -- 0x13, 0x14 and the relayed +1 lanes), vs 1267/1449 masked.
+    -- See NDInsight SINTRAN/XMSG/DOC/
+    -- XMSG-CHANNEL-FORMULA-DIVERGES-ON-FILE-SERVER-TRAFFIC-2026-07-31.md.
     if ctx then
-        local f2low   = band(ctx.flags2, 0xFF)
-        local seed    = band(ctr1 + ctx.flags1 + f2low, 0xFF)
-        local baselow = band(seed - f2low, 0xFF)
-        local epoch   = rshift(ctx.flags1 - baselow + 0xFF, 8)
-        local class   = band(rshift(cmd_word, 24), 0xFF)
-        local expchan = band(0xDE - class - epoch, 0xFF)
-
-        local env = tree:add(lapb_proto, tvb(off, 1), "Envelope (derived, spec §18.5)")
-        env:set_generated()
-        env:add(pf.env_seed,  tvb(off, 1), seed):set_generated()
-        env:add(pf.env_epoch, tvb(off, 1), epoch):set_generated()
-        local ch_item = env:add(pf.env_chan, tvb(off, 1), expchan)
-        ch_item:set_generated()
-        env:append_text(string.format("  [seed=0x%02X epoch=%d expected-chan=0x%02X]",
-            seed, epoch, expchan))
-
-        if ctx.proto_id ~= expchan then
-            ch_item:add_expert_info(PI_PROTOCOL, PI_WARN, string.format(
-                "Channel mismatch: Protocol ID 0x%02X but seed model expects 0x%02X",
-                ctx.proto_id, expchan))
-        end
+        -- The channel/Counter check that used to live here is GONE: those two bytes
+        -- are the halves of the header checksum, now validated once for every
+        -- subtype in the header dissector (see sintran_hdr_checksum). Re-deriving a
+        -- "seed" and "epoch" here would just be the old curve fit.
+        --
+        -- The Flags2 == XMCSM check below is KEPT and is now better motivated: both
+        -- are checksum inputs, so a mismatch corrupts word 6. Note that under the
+        -- carved 16-bit XMCSM the rule is a plain equality (Flags2 == XMCSM); the
+        -- ">> 16" here is an artifact of this dissector still reading XMCSM as 32
+        -- bits, which straddles into the message body.
         if ctx.flags2 ~= band(rshift(cmd_word, 16), 0xFFFF) then
             cmd_item:add_expert_info(PI_PROTOCOL, PI_WARN, string.format(
                 "Flags2 0x%04X != XMCSM class word 0x%04X (rule: Flags2 == XMCSM>>16)",
@@ -1056,6 +1147,13 @@ local function dissect_sintran_info(tvb, pinfo, frame_tree)
 
     local mark2 = tvb(1, 1):uint()
     if tvb(0, 1):uint() ~= 0x21 or (mark2 ~= 0x13 and mark2 ~= 0x12) then
+        -- NOTE 2026-07-31: a fourth family exists with Marker2 = 0xFD / 0xFE
+        -- (four frames in li-rout-102-tree.pcapng, from node 103, Flags1 0xFFFF
+        -- and Flags2 0xFFFD). Their header checksum DOES validate under the same
+        -- rule, so the 7-word layout evidently applies to them - but what their
+        -- offset-3 field means is unknown, so they are deliberately NOT dissected
+        -- as ordinary SINTRAN frames here. That is why a corpus sweep shows this
+        -- dissector validating 3591 checksums where an offline scan finds 3595.
         frame_tree:add(lapb_proto, tvb(0), "[Non-SINTRAN info (no 0x21 0x12/0x13 marker)]")
         return nil
     end
@@ -1072,6 +1170,35 @@ local function dissect_sintran_info(tvb, pinfo, frame_tree)
 
     local hdr = frame_tree:add(lapb_proto, tvb(0, SINTRAN_HDR),
                     string.format("%s  [%d → %d  %s]", label, src, dest, proto_nm))
+
+    -- ── Header checksum (word 6) ─────────────────────────────────────────────
+    -- Validate here rather than inside the data-frame path, because the checksum
+    -- holds for EVERY subtype (3595/3595 across the corpus), not just 0x0E. The
+    -- old envelope validator only ran for Data frames and so never checked ACKs,
+    -- the bulk-transfer subtypes, or the reachability frames.
+    if tvb:len() > SINTRAN_HDR then
+        local w6_actual = proto_id * 0x100 + tvb(13, 1):uint()
+        local w6_expect = sintran_hdr_checksum(
+            tvb(0, 2):uint(),     -- w0  markers
+            tvb(2, 2):uint(),     -- w1  packet type : subtype
+            dest,                 -- w2
+            src,                  -- w3
+            flags1,               -- w4
+            flags2)               -- w5  (== the 16-bit XMCSM)
+
+        local ck = hdr:add(lapb_proto, tvb(12, 2), string.format(
+            "Header checksum: 0x%04X  [ProtoID 0x%02X : Counter 0x%02X]",
+            w6_actual, proto_id, tvb(13, 1):uint()))
+        ck:set_generated()
+        if w6_actual == w6_expect then
+            ck:append_text("  [OK]")
+        else
+            ck:append_text(string.format("  [BAD - expected 0x%04X]", w6_expect))
+            ck:add_expert_info(PI_CHECKSUM, PI_WARN, string.format(
+                "SINTRAN header checksum 0x%04X, expected 0x%04X " ..
+                "(ones-complement sum over header words 0-5)", w6_actual, w6_expect))
+        end
+    end
 
     hdr:add(pf.snt_mark1,  tvb(0,  1))
     local m2_item = hdr:add(pf.snt_mark2,  tvb(1,  1))

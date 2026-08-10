@@ -27,6 +27,7 @@ SINTRAN III was a sophisticated real-time operating system providing:
 | [Emulator/](Emulator/) | C# emulator implementation guides | 5 files |
 | [File-Formats/](File-Formats/README.md) | ND file formats: BRF (relocatable object) and `:PROG` (executable) | 4 files |
 | [ND500/](ND500/) | ND-500 processor documentation | TBD |
+| [ND500-APPS/](ND500-APPS/README.md) | **ND-500 vendor programs (FraTor DOMs): runnable files + user guide per program** | **13 programs** |
 | [NPL-SOURCE/](NPL-SOURCE/) | **SINTRAN III NPL source code & symbols** | **45 NPL + 7 symbol files** |
 | [OS/](OS/) | Core operating system architecture (00-19) | 34 files |
 | [Release-Documentation/](Release-Documentation/) | SINTRAN III release information (versions J-N) | 7 files |
@@ -207,6 +208,32 @@ The HDLC hardware/framing layer beneath XMSG is documented separately in
 [HDLC-Frame-Format-Reference.md](Devices/HDLC/HDLC-Frame-Format-Reference.md).
 
 **Cross-Reference:** See also [NPL-SOURCE/XMSG-SYMBOL-LIST.SYMB.TXT](NPL-SOURCE/) for XMSG message system symbols.
+
+---
+
+## ND-500 Applications (FraTor vendor DOMs)
+
+**Location:** [ND500-APPS/](ND500-APPS/README.md)
+
+The real Norsk Data ND-500 vendor programs, preserved with **every file needed to
+run them** in the `nd500x` emulator, plus a `userguide.md` per program. Each
+program has its own folder with `files/` (runtime DOM/PSEG/DSEG/HELP/INIT),
+`analysis/` (disassembly + RE notes), and shared runtime libraries live in
+`_shared/files/`.
+
+Programs (13): NC-A06 (C compiler), LINKER-B01, PLANC-500-G00, FILE-COMPARE,
+CPU-STAT, CONVERT-DOM-A03, CAT-CAT5-B06, LED-FORTRAN-A01, LED-NEW (editor),
+AUTOMAKE-500-C00, CODE-COVERAGE, TEST-REAL, BM-FILERE-B02.
+
+- Start at [ND500-APPS/README.md](ND500-APPS/README.md) for the index, install
+  steps, run conventions (the `@`-is-the-prompt rule, MODE files, scripted drive),
+  the requirements model, and the FORTRAN-LIB/EXCEPT-LIB linking gap.
+- The verified C compile -> link -> run chain and per-program commands are in each
+  program's `userguide.md`.
+- Operational workflow is also captured in the `nd500-apps` skill.
+
+These are the standalone user-mode programs; the ND-500 <-> ND-100 kernel
+interface is in [ND500/](ND500/).
 
 ---
 

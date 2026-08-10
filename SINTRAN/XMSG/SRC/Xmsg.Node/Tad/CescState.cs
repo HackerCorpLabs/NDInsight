@@ -6,7 +6,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
     /// each CESC with a 7CERS.
     /// </summary>
     /// <remarks>
-    /// On the wire a CESC message is <c>0E 01 &lt;value&gt;</c>. Escape is disabled during the login
+    /// On the wire a CESC message is <c>0E 01 value</c>. Escape is disabled during the login
     /// exchange and re-enabled once logged in.
     /// </remarks>
     public enum CescState : byte

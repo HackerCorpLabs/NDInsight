@@ -10,7 +10,7 @@ namespace NDInsight.Sintran.Xmsg
 
     /// <summary>
     /// MON 200B T-register option bits, OR-ed into the high-order byte alongside
-    /// the function code. Each flag mask is <c>1 &lt;&lt; bit</c>.
+    /// the function code. Each flag mask is <c>1 shifted left bit</c>.
     /// </summary>
     [System.Flags]
     public enum XmsgOption : ushort

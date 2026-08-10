@@ -55,16 +55,17 @@ namespace NDInsight.Sintran.Xmsg.Diagnostics
             if (frame.SubHeader != null)
             {
                 XmsgSubHeader s = frame.SubHeader;
-                sb.Append("XMSG sub-header: counter=0x").Append(s.Counter.ToString("X2"))
-                  .Append("  frameFlags=0x").Append(s.FrameFlags.ToString("X2"))
+                sb.Append("XMSG sub-header: frameFlags=0x").Append(s.FrameFlags.ToString("X2"))
                   .Append("  role=0x").Append(s.Role.ToString("X2"))
                   .Append('\n');
                 sb.Append("  endpoints: src ").Append(s.SourceSystem).Append(':').Append(s.SourcePort)
                   .Append(" -> dst ").Append(s.DestinationSystem).Append(':').Append(s.DestinationPort)
                   .Append('\n');
-                sb.Append("  XMCSM=0x").Append(s.ControlService.ToString("X8"))
-                  .Append("  pad=0x").Append(s.Pad.ToString("X2"))
-                  .Append("  XMLEN=").Append(s.UserDataLength)
+                // XMCSM is ONE word at wire 26-27. The 32-bit form is printed beside it because
+                // every historical note and constant is written that way; it is XMCSM in the high
+                // half and the first MESSAGE BODY word (wire 28-29) in the low half.
+                sb.Append("  XMCSM=0x").Append(s.Xmcsm.ToString("X4"))
+                  .Append("  (legacy 32-bit view 0x").Append(frame.ControlService.ToString("X8")).Append(')')
                   .Append('\n');
             }
 
@@ -115,9 +116,21 @@ namespace NDInsight.Sintran.Xmsg.Diagnostics
         /// </param>
         private static void AppendBody(StringBuilder sb, XroutMessage body)
         {
-            sb.Append("XROUT letter: serial=").Append(body.Serial)
-              .Append("  service/status=0x").Append(body.Service.ToString("X2"))
-              .Append("  params=").Append(body.Parameters.Count)
+            // Serial and service are NOT on the wire - they belong to the message-buffer form of
+            // an XROUT message, and the service a frame acts on is its XMCSM word (printed with
+            // the sub-header above). Print them only when something actually set them, so the dump
+            // stops implying the wire carries a header it does not. See XroutMessageFraming.
+            if (body.Serial != 0 || body.Service != 0)
+            {
+                sb.Append("XROUT letter [buffer header: serial=").Append(body.Serial)
+                  .Append(" service/status=0x").Append(body.Service.ToString("X2")).Append(']');
+            }
+            else
+            {
+                sb.Append("XROUT letter:");
+            }
+
+            sb.Append("  params=").Append(body.Parameters.Count)
               .Append('\n');
 
             IReadOnlyList<XroutParameter> parameters = body.Parameters;

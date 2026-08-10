@@ -6,7 +6,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
 {
     /// <summary>
     /// Control-byte decode proof for <see cref="LapbFrame"/>: supervisory subtype (RR/RNR/REJ via
-    /// <c>ctrl &amp; 0x0F</c>) and unnumbered type (SABM/DISC/UA/DM/FRMR via <c>ctrl &amp; ~0x10</c>),
+    /// <c>ctrl AND 0x0F</c>) and unnumbered type (SABM/DISC/UA/DM/FRMR via <c>ctrl AND ~0x10</c>),
     /// per ND LAPB spec sections 2.2.2 and 2.2.3. Every field the parser exposes is asserted, and the
     /// expected values are derived from the spec's encode rules, not from the parser.
     /// </summary>
@@ -14,7 +14,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
     {
         /// <summary>
         /// Each supervisory control byte decodes to the correct subtype, N(R) and P/F, and reports
-        /// no unnumbered type. Control encoding (spec 2.2.2): <c>(N(R) &lt;&lt; 5) | (PF &lt;&lt; 4) | nibble</c>.
+        /// no unnumbered type. Control encoding (spec 2.2.2): <c>(N(R) shifted left 5) | (PF shifted left 4) | nibble</c>.
         /// </summary>
         /// <param name="address">
         /// The LAPB address byte (data-transfer role <c>0x09</c> for S-frames).

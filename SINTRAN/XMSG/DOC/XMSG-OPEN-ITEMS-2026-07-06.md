@@ -1,5 +1,36 @@
 # XMSG/TAD — open items and the plan to close them (status 2026-07-06)
 
+> **PARTLY SUPERSEDED — read this first (banner added 2026-08-06).**
+>
+> This was the standing open-items list. Roughly half of it is now dead, and the dead half is
+> not merely closed — it asks questions that turned out to be about a mechanism that does not
+> exist. Two corrections govern the whole document:
+>
+> **1. There is no "seed" behind header word 6.** Word 6 is a ones-complement checksum over
+> the six words in front of it, carved from the kernel at `137314` and confirmed on 3595 of
+> 3595 captured frames across every subtype. The seed / counter / channel arithmetic this
+> document plans around was FITTED to captures that all ran between nodes 100, 102 and 103 —
+> all under 256, so all contributing nothing to the sum's high half. It reproduced the low
+> byte by construction and anchored the high byte at a constant. Dead as a result:
+>  - Bucket 4's "the ACK channel's SECOND wrap — the only part of the ACK formula not yet
+>    capture-proven". There is no formula left to prove on the emit side.
+>  - Bucket 5's "What the link SEED encodes (0x14/0x13/0x11)", and step 4 of the suggested
+>    order (the seed desk-check against `X4FRM` / `X5FRM`).
+>
+> The seed is still LEARNED from received frames and still used in the receive-side envelope
+> model, so it is not a fiction outright — it is just not where word 6 comes from, which is
+> the only thing this document wanted it for.
+>
+> **2. The file-server family is `*FA-SERVER`, not `*XM-FIDO`.** The prediction in Bucket 3
+> ("So the file-server family is `*XM-FIDO`… This is the decode key to bring to the Bucket-3
+> file operation") is wrong. `LIST-FILES` writes a letter whose first string parameter is
+> exactly `*FA-SERVER`, and that server has since been implemented, captured, and driven live
+> for read, write, delete and three listing walks. The XMFIDO status-code table below is
+> still correct as a table; it is simply not the key to file access. See
+> `FA-READ-WRITE-WIRE-PROTOCOL-2026-08-04.md` and `PLAN-FA-FILE-SERVER-2026-08-06.md`.
+>
+> Bucket 1 (cosmetic) and Bucket 2 (symbol-table results) are unaffected and still stand.
+
 Everything VERIFIED is in `XMSG-PROTOCOL.md` and `../../TAD/TAD-Message-Formats.md`; this
 is only what remains open, after the 2026-07-06 Category-A analysis pass closed the
 `00`-prefix, the reachability trailing form, the `0x0B` LU index, the list-systems TLV

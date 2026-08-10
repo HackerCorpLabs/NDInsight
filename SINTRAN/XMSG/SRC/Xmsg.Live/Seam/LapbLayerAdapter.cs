@@ -207,21 +207,77 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         }
 
         /// <summary>
-        /// Runs the receive/respond pump until end of stream or cancellation. Exposed so a
-        /// deterministic test can drive it over an <see cref="InMemoryDuplex"/> without a background
-        /// task; <see cref="Start"/> uses it live with a keepalive interval.
+        /// Runs the receive/respond pump against a LIVE peer until end of stream or cancellation.
         /// </summary>
         /// <param name="cancellationToken">
         /// A token that stops the pump.
         /// </param>
         /// <param name="keepaliveInterval">
-        /// When non-null, the idle interval after which an RR keepalive + retransmit tick fires
-        /// (required live); when null the pump simply blocks on reads (in-memory tests).
+        /// The idle interval after which an RR keepalive and a retransmit tick fire. Required, and
+        /// deliberately so - see the remarks.
         /// </param>
         /// <returns>
         /// A task that completes when the pump stops.
         /// </returns>
-        public async Task RunAsync(CancellationToken cancellationToken, TimeSpan? keepaliveInterval = null)
+        /// <remarks>
+        /// <para><b>The interval is not optional, because omitting it breaks the link silently</b></para>
+        /// <para>
+        /// The pump is what drives <see cref="LapbLayer.Tick"/>, so with no interval the LAPB T1
+        /// retransmit and T3 keepalive timers NEVER FIRE. Nothing reports an error: frames still
+        /// flow while the peer keeps talking, and the link simply cannot recover a lost frame or
+        /// hold an idle line open. It also silences <see cref="LoopTick"/> except when a frame
+        /// happens to arrive, so any work scheduled there stops happening.
+        /// </para>
+        /// <para>
+        /// This used to be an optional parameter defaulting to null. On 2026-08-08 the relay path
+        /// was found running BOTH its links that way - no timers at all on two live HDLC lines -
+        /// and a 720-test suite never noticed, because every test drives the pump by hand. It was
+        /// found only by reading the adapter while chasing an unrelated fault. Making the parameter
+        /// required is what stops that recurring: a caller now has to say which behaviour it wants.
+        /// </para>
+        /// <para>
+        /// For an in-memory test with no clock, call <see cref="RunWithoutTimersAsync"/> instead.
+        /// Its name is the point - "no timers" should be a visible decision at the call site.
+        /// </para>
+        /// </remarks>
+        public Task RunAsync(CancellationToken cancellationToken, TimeSpan keepaliveInterval)
+        {
+            return PumpAsync(cancellationToken, keepaliveInterval);
+        }
+
+        /// <summary>
+        /// Runs the pump with NO timers, for deterministic in-memory tests that drive both ends
+        /// themselves.
+        /// </summary>
+        /// <param name="cancellationToken">
+        /// A token that stops the pump.
+        /// </param>
+        /// <returns>
+        /// A task that completes when the pump stops.
+        /// </returns>
+        /// <remarks>
+        /// NOT for a live link: without timers LAPB cannot retransmit or keep an idle line open.
+        /// See <see cref="RunAsync"/> for what that costs and how it was missed for months.
+        /// </remarks>
+        public Task RunWithoutTimersAsync(CancellationToken cancellationToken)
+        {
+            return PumpAsync(cancellationToken, null);
+        }
+
+        /// <summary>
+        /// The pump itself. Private so the null case can only be reached through the explicitly
+        /// named <see cref="RunWithoutTimersAsync"/>.
+        /// </summary>
+        /// <param name="cancellationToken">
+        /// A token that stops the pump.
+        /// </param>
+        /// <param name="keepaliveInterval">
+        /// The keepalive interval, or null to run without timers.
+        /// </param>
+        /// <returns>
+        /// A task that completes when the pump stops.
+        /// </returns>
+        private async Task PumpAsync(CancellationToken cancellationToken, TimeSpan? keepaliveInterval)
         {
             byte[] buffer = new byte[512];
 

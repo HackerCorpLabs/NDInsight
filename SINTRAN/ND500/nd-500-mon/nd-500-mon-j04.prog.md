@@ -55,7 +55,9 @@ operator command  ->  this program  ->  MON 60  ||  SINTRAN driver  ->  3022 IOX
 | Retry loop is **unconditional** for those two statuses (the hook at `132170` is an empty stub) | **PROVEN** |
 | Frame layout / calling convention / two-bank PTM model | **PROVEN** from ENTER/LEAVE + a PTM-toggling copy loop |
 | COMAUTO flag @ `155135` = bit 15 (`100000B`) folded into every function word | **PROVEN** - both writers store `100000B`, section 5.7 |
-| ~100 operator commands extracted from bank 2 with verified octal addresses | **PROVEN** (verbatim strings) - command -> subfunction binding still name-based, section 14 |
+| **151** operator commands extracted from bank 2 with verified octal addresses | **PROVEN** (verbatim strings). The exact count is now known, not "~100" - the descriptor array carries a byte length per entry, section 14 |
+| Command name -> **handler address** binding | **PROVEN 2026-08-02** - dispatch array at bank 2 `020671`, see `COMMAND-DISPATCH-TABLE-CARVED-2026-08-02.md` |
+| Command name -> **MON 60 subfunction** binding | **STILL NAME-BASED**. The handler -> thunk hop (`146310`-`147070`) has not been traced, section 14 |
 
 ---
 
@@ -1273,7 +1275,7 @@ flowchart LR
 | 6 | Are the 22 caller-less thunks dead, or dispatched dynamically? | **UNKNOWN** | Resolve `JPL I ,B <disp>` dynamic dispatch; needs a data-flow pass or an emulator trace |
 | 7 | Was `132170` meant to be patched at runtime? | **UNKNOWN**. It is a 6-word stub as shipped; nothing writes to it | An earlier/later build of the monitor |
 | 8 | `B-175` = display / static link? | **INFERRED** from ENTER copying it from the caller | Trace a nested-routine access in an emulator |
-| 9 | Command-name -> handler-address binding | **PARTIAL**. The command-name table is fully extracted with verified addresses (section 14.2); the *outer dispatch table* (handler addresses / param counts indexing these strings) is not yet located, so name -> subfunction is name-correspondence only | Locate the dispatch array in bank 2 that references the string addresses in 14.2, or trace one command through the scanner in an emulator |
+| 9 | Command-name -> handler-address binding | **CLOSED 2026-08-02** `[V]`. The outer dispatch IS in bank 2, exactly where this row predicted: a 151-entry one-word array at `020671`, indexed by command ordinal, reached by `LDX I ,X 50` / `JMP ,X 0` at `003261`. Ordinals come from a 3-word descriptor array at bank 2 `011547`. Full map and derivation: [`COMMAND-DISPATCH-TABLE-CARVED-2026-08-02.md`](COMMAND-DISPATCH-TABLE-CARVED-2026-08-02.md) | Done. What remains is handler -> MON 60 *thunk* binding (the thunks at `146310`-`147070` are called from inside the handlers, not from this table) - that, not this table, is what finally yields name -> subfunction |
 
 ---
 
@@ -1308,11 +1310,23 @@ from the raw words at the head of the table:
   **default value** (e.g. `DOD40000B'Number of words: `), then the operator prompt.
 - The word `056000` (`\`+NUL) pads a command entry to a word boundary.
 
-The command name -> handler address binding requires the *outer* dispatch table (an
-array of handler addresses / parameter counts that indexes these strings); that table
-was **not located** in this pass and is **open question 9**. The names, prompts, and
-defaults below are read verbatim; the subfunction column is a **name-based
-correspondence** to section 6, not a code-proven binding, and is marked accordingly.
+**UPDATE 2026-08-02 - the outer dispatch table IS now located.** It is a 151-entry
+one-word array of bank-1 handler addresses at bank 2 `020671`, indexed by command
+ordinal, with the ordinals supplied by a 3-word-per-command descriptor array at bank 2
+`011547`. Full derivation, the decoded dispatch instruction, and the complete
+name -> handler map:
+[`COMMAND-DISPATCH-TABLE-CARVED-2026-08-02.md`](COMMAND-DISPATCH-TABLE-CARVED-2026-08-02.md).
+
+Two things that follow, and one that does not:
+
+- The **name -> handler** binding is now code-proven `[V]`.
+- The section 14.1 structure below is confirmed - the "name/descriptor boundary"
+  uncertainty is resolved, because the descriptor array carries an explicit byte
+  length per entry, giving exactly **151** commands.
+- The **name -> MON 60 subfunction** column is **still a name-based correspondence**
+  to section 6, NOT code-proven. The handlers call the thunks at `146310`-`147070`
+  internally; that hop has not been traced. Do not read the closure of open question 9
+  as closing the subfunction column.
 
 ### 14.2 The commands (verbatim, in table order)
 

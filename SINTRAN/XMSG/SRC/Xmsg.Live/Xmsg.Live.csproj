@@ -17,6 +17,10 @@
     <ProjectReference Include="..\Xmsg.Node\Xmsg.Node.csproj" />
     <ProjectReference Include="..\Xmsg.Protocol\Xmsg.Protocol.csproj" />
     <ProjectReference Include="..\Xmsg.Hdlc\Xmsg.Hdlc.csproj" />
+    <!-- Xmsg.Ethernet is the second transport under the SAME ILink seam as Xmsg.Hdlc: EthernetLink
+         is the Ethernet sibling of LapbLayerAdapter. Xmsg.Ethernet itself stays free of any
+         reference to Xmsg.Node - the adapter lives here, on the replaceable live side. -->
+    <ProjectReference Include="..\Xmsg.Ethernet\Xmsg.Ethernet.csproj" />
   </ItemGroup>
 
 </Project>

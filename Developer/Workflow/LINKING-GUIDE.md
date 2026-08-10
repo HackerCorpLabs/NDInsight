@@ -17,6 +17,27 @@
 5. [Reentrant Programs](#5-reentrant-programs)
 6. [Binary Management Commands](#6-binary-management-commands)
 7. [Practical Examples](#7-practical-examples)
+8. [What Each Language Actually Produces](#8-what-each-language-actually-produces-evidence-from-real-install-sheets)
+
+---
+
+## Installing the linkers themselves
+
+The tools this guide describes are separate installable products, now documented in
+`Installation/Software/`:
+
+- **ND-100, BRF-Linker** — [ND-210721](../../Installation/Software/ND-210721/README.md), version
+  [ND-210721C](../../Installation/Software/ND-210721/ND-210721C/README.md) — verified from a real
+  PD sheet.
+- **ND-500/5000, ND-500 Linkage-Loader (NLL, older)** — article `ND-10319`/`ND-210319`, installed
+  live and documented in
+  [../../Installation/INSTALL-ND-LINKAGE-LOADER-AND-BACKUP-SYSTEM.md](../../Installation/INSTALL-ND-LINKAGE-LOADER-AND-BACKUP-SYSTEM.md).
+- **ND-500/5000, ND LINKER (NDL, newer, supersedes NLL)** —
+  [ND-211224](../../Installation/Software/ND-211224/README.md), version
+  [ND-211224B01](../../Installation/Software/ND-211224/ND-211224B01/README.md) — installer
+  identified by analogy to the verified NLL installer, not yet run live. `ND-211229`
+  CONVERT-DOMAIN converts NLL-format domains to the newer ND LINKER format; both can run
+  side by side.
 
 ---
 
@@ -451,19 +472,77 @@ START RESTART SEGMENT NAME
 - Device firmware
 - Memory-mapped code
 
-### 6.3 PROG vs BPUN Decision
+### 6.3 What DITAP actually is
 
-**Use PROG when:**
-- Simple utility program
-- Single-user application
-- Not shared across users
-- No reentrant needs
+`DITAP` is a real, small SINTRAN utility program — program number `SUT-1880D` (an earlier
+revision was `SUT-1879D`), one of the ten tools in the **`ND-10022` SINTRAN Utility Programs**
+package and also bundled into **Subsystem Package II** (`ND-210400`, see
+[ND-210400B](../../Installation/Software/ND-210400/ND-210400B/README.md)). Its own PD sheet
+states its job in one line: it converts a `:PROG` file "to a `:BPUN`-file with BOOTSTRAP and
+checksum," so that file can then be used as a reentrant subsystem — nothing more exotic than
+that. (The name is not expanded anywhere in the sources read for this repo — treat "DITAP" as a
+program name, not an acronym with a known expansion.)
 
-**Use BPUN when:**
-- System program
-- May need to be shared
-- Potential reentrant use
-- Complex application
+Two calling forms are attested, both real:
+- **Interactive** (from the `ND-10022` utility's own PD sheet): run `@DITAP`, and it prompts
+  `Destination file:` (default type `BPUN`) then `SOURCE FILE:` (default type `PROG`).
+- **Positional/one-line** (from the actual *ND-30.003.7 EN SINTRAN III System Supervisor* manual's
+  Pascal-J and PLANC-F installation sections): `@DITAP "<bpun-name>" <prog-name>`, e.g.
+  `@DITAP "PASCAL" PASCAL` or `@DITAP "PLANC-100-F<rev>" PLANC-100-F<rev>`.
+
+You only need it on **pre-SINTRAN-I systems** — that's the whole reason it exists in this
+pipeline. SINTRAN I added `@DUMP-PROGRAM-REENTRANT`, which accepts a `:PROG` directly, making the
+`DITAP` detour unnecessary from then on (see §6.3 below for both paths side by side). DITAP itself
+is installed the exact same way it's used on everything else: Subsystem Package II ships it
+pre-built as `DITAP-1880D:BPUN` and dumps it reentrant with `@DUMP-REENTRANT DITAP,70,70,DITAP` —
+addresses `70,70` confirmed identical in two independent sources (the `ND-10022` PD sheet and the
+Subsystem Package II PD sheet).
+
+### 6.4 PROG vs BPUN — the decision, grounded in real install sheets
+
+This isn't a stylistic choice made at compile time — it's decided by **what you want to happen
+to the program after it's built**, and the two formats sit on different sides of one conversion
+step (`DITAP`, or its SINTRAN-I+ replacement). Every product install doc in
+[`Installation/Software/`](../../Installation/Software/README.md) that this repo has actually
+transcribed from a real PD sheet follows one of exactly two shapes:
+
+**Shape A — NRL builds `:PROG` first, then optionally becomes shared.** NRL's `*DUMP` always
+writes a `:PROG` (see [ND-10076 Pascal](../../Installation/Software/ND-10076/ND-10076J/README.md)'s
+verbatim sequence: `*DUMP "PASCAL:PROG",xxxxxx,yyyyyy`). What happens next depends on the SINTRAN
+version:
+- **SINTRAN I or later:** skip BPUN entirely — `@DUMP-PROGRAM-REENTRANT <name>,<name>:PROG` takes
+  the `:PROG` directly and makes it a shared reentrant subsystem.
+- **Pre-SINTRAN-I:** `@DITAP "<name>:BPUN",<name>:PROG` converts the `:PROG` into a `:BPUN`
+  first, because the *old* `@DUMP-REENTRANT` command only accepts `:BPUN` input (and needs
+  explicit octal start/restart addresses, which `DITAP` does not supply — you read those off the
+  PD sheet, e.g. Pascal's `xxxxxx`/`yyyyyy` from NRL's own `*VALUE` output).
+
+**Shape B — Norsk Data ships the product pre-built as `:BPUN`, no NRL step at all.** Several
+system tools arrive on their distribution floppy already linked as `:BPUN` — you never run NRL
+yourself. Confirmed on real floppies: Subsystem Package II's `MAC`/`FMAC`/`NPL`/`QED`/`DITAP` (see
+[ND-210400B](../../Installation/Software/ND-210400/ND-210400B/README.md)'s address table) and the
+ND-500 Assembler (see [ND-10311A](../../Installation/Software/ND-10311/ND-10311A/README.md)'s
+`@DUMP-REENTRANT ASSEMBLER,,(BPUN-FILES)ASSEMBLER-500:BPUN`, quoted from the actual SINTRAN III
+System Supervisor manual). For these, the only decision left is: dump it **reentrant**
+(`@DUMP-REENTRANT <name>,<start>,<restart>,<bpun-file>`, shared, called by name like any SINTRAN
+command) or dump it as a **private `:PROG`** for one user only
+(`@PLACE-BINARY,<bpun-file>` then `@DUMP` — see the Subsystem Package II doc's §3.2 for the exact
+two-command form).
+
+**So "when do I want BPUN, when do I want PROG" really answers a different question — private vs.
+shared:**
+
+| You want... | Use | Why |
+|---|---|---|
+| A program only you (or one job) runs, no one else needs it | **`:PROG`**, run directly with `@<name>` | Simplest — no reentrant-dump step, no segment-file space used, nothing to persist across a cold start |
+| A program many users/terminals call by name, sharing one copy in memory | **reentrant subsystem** (built from a `:BPUN`, or directly from a `:PROG` on SINTRAN I+ via `DUMP-PROGRAM-REENTRANT`) | Saves memory, faster start (already resident), the standard shape for compilers/editors/system tools |
+| A later-generation ND-100 product you're installing today | Check its own install doc first — **later revisions increasingly ship pre-linked `:PROG` instead of raw `:BPUN`** (e.g. [ND-10760A CC-100](../../Installation/Software/ND-10760/ND-10760A/README.md), [ND-210191F02 FORTRAN](../../Installation/Software/ND-210191/ND-210191F02/README.md), [ND-10309F PLANC](../../Installation/Software/ND-10309/ND-10309F/README.md) — all confirmed by mounting the real floppy and listing its files with `ndtool`), so `DUMP-PROGRAM-REENTRANT` is the command you'll actually reach for, not the older BPUN detour |
+
+`:BPUN` on its own is not something you "run" — every real install sheet transcribed so far
+treats it purely as an *input* to a reentrant-dump command (`DUMP-REENTRANT`) or, on the floppy
+side, as raw pre-linked binary storage. If you find yourself with a `:BPUN` you actually want to
+just run once, the correct move is still `@PLACE-BINARY`+`@DUMP` to get a `:PROG`, not running the
+`:BPUN` directly.
 
 ### 6.4 Converting BPUN to PROG
 
@@ -477,9 +556,14 @@ START RESTART SEGMENT NAME
 *EXIT
 ```
 
-2. Or use BPUN directly:
+2. Or make a private `:PROG` from an existing `:BPUN` (verified command shape, see
+   [ND-210400B §3.2](../../Installation/Software/ND-210400/ND-210400B/README.md)):
 ```
-@BPUNFILE:BPUN          % Run BPUN like PROG
+@PLACE-BINARY,(BPUN-FILES)SOURCE:BPUN
+@DUMP
+FILE NAME: "NEWPROG"
+START ADDRESS: <start>
+RESTART ADDRESS: <restart>
 ```
 
 ---
@@ -667,6 +751,98 @@ EXIT
 
 ---
 
+## 8. What Each Language Actually Produces (Evidence From Real Install Sheets)
+
+The tables and examples above describe the mechanism in general. This section is the concrete
+answer, per language, drawn only from real PD sheets and real mounted floppies documented in
+[`Installation/Software/`](../../Installation/Software/README.md) — not inferred defaults.
+
+### 8.1 The decision, as a flow
+
+```mermaid
+flowchart TD
+    SRC[Source file] --> CPUCHOICE{Target CPU?}
+
+    CPUCHOICE -->|ND-100| ND100COMPILE[Compiler / Assembler<br/>NPL, MAC, CC-100, PLANC,<br/>Pascal, FORTRAN-100, COBOL-100]
+    ND100COMPILE --> BRF[":BRF<br/>relocatable object"]
+    BRF --> NRL["NRL (@NRL)<br/>*LOAD ... *DUMP"]
+    NRL --> PROGOUT[":PROG<br/>always NRL's own output"]
+
+    PROGOUT --> SHAREQ{Shared by many users,<br/>or private to one?}
+    SHAREQ -->|Private| RUNPROG["Run directly: @&lt;name&gt;<br/>nothing else to do"]
+    SHAREQ -->|Shared| SINVERQ{SINTRAN version?}
+
+    SINVERQ -->|"H or earlier"| DITAP["DITAP converts<br/>:PROG -&gt; :BPUN"]
+    DITAP --> BPUN[":BPUN<br/>reentrant-dump input only"]
+    BPUN --> DUMPREENT["@DUMP-REENTRANT name,<br/>start,restart,file<br/>(addresses from the PD sheet)"]
+
+    SINVERQ -->|"I or later"| DUMPPROGREENT["@DUMP-PROGRAM-REENTRANT<br/>name,file:PROG<br/>(no address hunting needed)"]
+
+    DUMPREENT --> REENTRANT["Reentrant subsystem<br/>shared, called by name"]
+    DUMPPROGREENT --> REENTRANT
+
+    PREBUILT["Some ND-100 system tools ship<br/>PRE-LINKED as :BPUN or :PROG<br/>on the floppy - no NRL step at all<br/>(MAC/FMAC/NPL/QED, ND-500 Assembler,<br/>later CC-100/PLANC/FORTRAN revisions)"] -.->|"skip straight to"| SHAREQ
+
+    CPUCHOICE -->|ND-500 / ND-5000| ND500COMPILE[Compiler / ND-500 Assembler<br/>COBOL-500, FORTRAN-500,<br/>BASIC-500, ND-500-ASSEMBLER]
+    ND500COMPILE --> NRF[":NRF<br/>relocatable object"]
+    NRF --> LOADERQ{Which loader<br/>does this product use?}
+    LOADERQ -->|"older, verified live"| NLL["ND-500 Linkage-Loader (NLL)<br/>ND-10319 / ND-210319"]
+    LOADERQ -->|"newer, supersedes NLL"| NDL["ND LINKER (NDL)<br/>ND-211224"]
+    NLL --> DOMAINOLD["Domain: :LINK + :DSEG + :PSEG<br/>+ DESCRIPTION-FILE:DESC"]
+    NDL --> DOMAINNEW[":DOM self-contained domain<br/>+ :SEG free/shared segments"]
+    DOMAINOLD --> STDDOM["DEFINE-STANDARD-DOMAIN<br/>(persist across cold start via ND500-HENT)"]
+    DOMAINNEW --> STDDOM
+    CONVERT["ND-211229 CONVERT-DOMAIN<br/>migrates old-shape domains to :DOM"] -.-> DOMAINNEW
+
+    classDef compile fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    classDef object fill:#3F51B5,stroke:#303F9F,stroke-width:2px,color:#fff
+    classDef linker fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
+    classDef prog fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
+    classDef bpun fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#000
+    classDef reentrant fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    classDef decision fill:#E91E63,stroke:#C2185B,stroke-width:2px,color:#fff
+
+    class ND100COMPILE,ND500COMPILE compile
+    class BRF,NRF object
+    class NRL,NLL,NDL linker
+    class PROGOUT,RUNPROG prog
+    class DITAP,BPUN,PREBUILT bpun
+    class DUMPREENT,DUMPPROGREENT,REENTRANT,DOMAINOLD,DOMAINNEW,STDDOM,CONVERT reentrant
+    class CPUCHOICE,SHAREQ,SINVERQ,LOADERQ decision
+```
+
+**Read it as two separate worlds.** ND-100's `:PROG`/`:BPUN` split does not exist on the ND-500 —
+there, the equivalent axis is old-shape domain (`:LINK`/`:DSEG`/`:PSEG` + `DESCRIPTION-FILE:DESC`,
+built by NLL) vs. new-shape `:DOM` (built by the newer ND LINKER) — see §2.6 above. Don't look for
+an ND-500 "BPUN".
+
+### 8.2 Per-language table (only what's been confirmed by mounting a real floppy or reading a real PD sheet)
+
+| Language | CPU | What it compiles to | What ships on the floppy | How it becomes runnable | Install doc |
+|---|---|---|---|---|---|
+| MAC / FMAC (48-bit & 32-bit) | ND-100 | assembles `:MAC`→object | pre-linked **`:BPUN`** (no NRL step) | `@DUMP-REENTRANT <name>,-1,-3,<file>` | [ND-210400B](../../Installation/Software/ND-210400/ND-210400B/README.md) |
+| NPL | ND-100 | compiles to `:MAC` (feeds MAC) | pre-linked **`:BPUN`** | `@DUMP-REENTRANT NPL,0,1,<file>` | [ND-210400B](../../Installation/Software/ND-210400/ND-210400B/README.md) |
+| QED (editor, not a language, included for completeness) | ND-100 | n/a | pre-linked **`:BPUN`** | `@DUMP-REENTRANT QED,0,1,<file>` | [ND-210400B](../../Installation/Software/ND-210400/ND-210400B/README.md) |
+| BRF-Linker | ND-100 | n/a (it IS the linker) | pre-linked **`:PROG`** | `DUMP-PROGRAM-REENTRANT` (I+) or `DITAP`+`DUMP-REENTRANT 27226,27226` (older) | [ND-210721C](../../Installation/Software/ND-210721/ND-210721C/README.md) |
+| PLANC, older (A/B) | ND-100 | ships already object-linked | raw **`:BPUN`** | `@DUMP-REENTRANT PLANC-100,0,1,<file>` | [ND-10309A](../../Installation/Software/ND-10309/ND-10309A/README.md) |
+| PLANC, newer (F) | ND-100 | ships already linked | pre-linked **`:PROG`** | `DUMP-PROGRAM-REENTRANT` (inferred, not run live) | [ND-10309F](../../Installation/Software/ND-10309/ND-10309F/README.md) |
+| Pascal (J) | ND-100 | `PASCAL-COD`+`PASCAL-2LIB` `:BRF` → NRL builds `:PROG` | `:BRF` object files (you run NRL yourself) | `DITAP`+`DUMP-REENTRANT` (H) or `DUMP-PROGRAM-REENTRANT` (I+) | [ND-10076J](../../Installation/Software/ND-10076/ND-10076J/README.md) |
+| C (CC-100), older (A) | ND-100 | `:BRF` banks, built via disk-1 build tools | compiler ships pre-linked **`:PROG`**; user C programs go through NRL to their own `:PROG` (see the real `CSESSION:MODE` example) | compiler: unconfirmed; user programs: NRL `*PROG-FILE` | [ND-10760A](../../Installation/Software/ND-10760/ND-10760A/README.md) |
+| FORTRAN-100 (10191A), older | ND-100 | — | compiler ships in **both `:PROG` and `:BPUN`** forms, your choice | either path | [ND-10191A](../../Installation/Software/ND-10191/ND-10191A/README.md) |
+| FORTRAN-100 (210191F02), newer | ND-100 | — | pre-linked **`:PROG`** only | `DUMP-PROGRAM-REENTRANT` (inferred) | [ND-210191F02](../../Installation/Software/ND-210191/ND-210191F02/README.md) |
+| ND-500 Assembler | ND-500-hosted tool, ND-100 SINTRAN commands | — | pre-linked **`:BPUN`** | `@DUMP-REENTRANT ASSEMBLER,,<file>` (empty = default addresses) — manual-sourced, the one command in this table quoted from the actual System Supervisor manual, not inferred | [ND-10311A](../../Installation/Software/ND-10311/ND-10311A/README.md) |
+| ND-500 Symbolic Debugger | ND-500 | — | **`:NRF`** (linkable module — a different world entirely, see below) | loaded fresh into each debugged program's domain via the Linkage-Loader's `TOTAL-SEGMENT-LOAD` — never dumped reentrant | [ND-10335B](../../Installation/Software/ND-10335/ND-10335B/README.md) |
+| COBOL-500, FORTRAN-500, BASIC-500 | ND-500 | — | **domain** (`:LINK`/`:DSEG`/`:PSEG`) | `COPY-DOMAIN` + `DEFINE-STANDARD-DOMAIN` — no `:PROG`/`:BPUN` concept applies at all | [ND-210177J02](../../Installation/Software/ND-210177/ND-210177J02/README.md), [ND-210190K02](../../Installation/Software/ND-210190/ND-210190K02/README.md), [ND-210755A](../../Installation/Software/ND-210755/ND-210755A/README.md) |
+
+**Not yet documented in this repo** (so not in the table above, don't assume the pattern):
+BASIC/COBOL/PASCAL for ND-100 have multiple older article numbers not yet individually verified
+(e.g. `ND-10024`/`ND-10034` BASIC, `ND-10176` COBOL, `ND-10133` Pascal 32-bit); SIBAS has no
+install doc in this catalog yet. Check
+[`Installation/Software/README.md`](../../Installation/Software/README.md) for the current state
+before assuming any of these follow the same shape.
+
+---
+
 ## Quick Reference
 
 ### NRL Essential Commands
@@ -708,6 +884,9 @@ EXIT
 
 ## See Also
 
+- **[TWO-BANK-PROGRAMS.md](TWO-BANK-PROGRAMS.md)** - splitting code/data into separate ND-100
+  banks: which languages support it, the compile-time switch per language, and the runtime
+  background-segment-size requirement
 - **[NPL-DEVELOPER-GUIDE.md](../Languages/System/NPL-DEVELOPER-GUIDE.md)** - NPL language
 - **[MAC-DEVELOPER-GUIDE.md](../Languages/System/MAC-DEVELOPER-GUIDE.md)** - MAC assembler
 - **[SCRIPT-GUIDE.md](SCRIPT-GUIDE.md)** - Automation with MODE files

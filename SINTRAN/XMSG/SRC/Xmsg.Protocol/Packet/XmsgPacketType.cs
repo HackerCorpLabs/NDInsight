@@ -7,7 +7,7 @@ namespace NDInsight.Sintran.Xmsg.Packet
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This is deliberately the <em>transport</em> granularity: the wire subtype byte, not
+    /// This is deliberately the transport granularity: the wire subtype byte, not
     /// the higher-level XMCSM service class (connect / terminal-data / control / routing).
     /// Service-class dispatch happens INSIDE <c>XmsgLayer</c> once a packet is parsed, exactly
     /// as the plan's decision table specifies — the enum stays at the shape the wire gives us.

@@ -16,4 +16,15 @@
 
 ---
 
+## The message system underneath
+
+COSMOS Basic (210374) runs on **X-MESSAGE** (210373), the message system that carries every
+COSMOS service. Its own program description is filed with the other install documents:
+
+| Document | Contents |
+|----------|----------|
+| [../../Installation-Description/ND-210373L-EN.md](../../Installation-Description/ND-210373L-EN.md) | **X-MESSAGE version L (210373L, 1988-02-02, 37 pages)** — installation and loading procedure, plus register-level specs for the XMSG functions and XROUT services that changed in version L, the XMFIDO watchdog letter layouts, and the new/changed error codes. The two products are adjacent ND numbers and ship together; this is the one to read when a COSMOS service fails at the message layer. |
+
+---
+
 **Parent:** [../README.md](../README.md)

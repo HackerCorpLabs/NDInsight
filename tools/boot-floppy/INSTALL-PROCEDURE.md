@@ -16,8 +16,16 @@ Floppy *boot-loader* analysis is deliberately out of scope.
 ## 0. Sources actually read
 
 Extracted read-only with
-`ndtool.exe -x -p -o <outdir> <image>`
+`ndtool.exe -x -o <outdir> <image>`
 (`E:\Dev\Ronny\norskdata-ndfs\ndfs-c\build-win\ndtool.exe`).
+
+> **Do not add `-p` to a whole-image extract.** `-p` strips the top bit of every byte
+> (`cmd_extract.c`, `ctx->do_parity`). That is right for even-parity **text** and
+> **destroys binaries** — these images carry `:BPUN` files such as `MACM-1718L:BPUN`, and
+> every byte with bit 7 set is silently corrupted. Extract clean, then strip parity per file,
+> only where the file is known to be text. The quotes in this document are all ASCII so they
+> were unaffected, but the recipe was published as a general one and is not safe as such.
+> Flagged in `DOC-AUDIT.md` (lines 44, 52, 107-119, edit #4); applied 2026-08-02.
 
 | image | volume label | files |
 |---|---|---|
@@ -456,8 +464,15 @@ the *core-image* maximum used by the patch macros, not a disc size. [VERIFIED.]
 
 ### 3.1 Is disc size a free parameter?
 
-**No — it must match a fixed table.** The operator does not type a capacity,
-cylinder count or page count anywhere. He types **one octal number from a table
+**No — not at MACM generation time.** The operator does not type a capacity,
+cylinder count or page count anywhere in the `)9BYTT` block.
+
+> **Scope corrected 2026-08-02.** Absence of a size parameter at GENERATION time is equally
+> consistent with "size is supplied later" — and it is: `CARVED-DISC-SUPPORT.md` carves the
+> prompt `ID NUMBER OF PAGES:`, the operator-supplied size that reaches `GSIZE` and thence
+> `ALBIT` at directory-creation time. The `)9BYTT` dummies cannot see that stage, so they
+> cannot speak to it.
+ He types **one octal number from a table
 that is compiled into MACM**, in answer to `ENTER MSTYP:`, plus `R` or `F` in
 answer to `REMOVABLE OR FIXED (R/F):`. [VERIFIED — the prompt strings, and the
 absence of any size parameter in the `)9BYTT` block, where all five candidate
@@ -641,7 +656,8 @@ table; it is only in MACM's MSTYP list. [VERIFIED.]
 
 ```powershell
 # 1. extract (read-only) — repeat per image
-E:\Dev\Ronny\norskdata-ndfs\ndfs-c\build-win\ndtool.exe -x -p -o <outdir> D:\ND\S\VSXL1.IMG
+#    NO -p: it strips bit 7 of every byte and corrupts the :BPUN binaries on this image.
+E:\Dev\Ronny\norskdata-ndfs\ndfs-c\build-win\ndtool.exe -x -o <outdir> D:\ND\S\VSXL1.IMG
 
 # 2. pull out headers, disc-type tables and device-name tables
 python E:\Dev\Ronny\NDInsight\tools\boot-floppy\tools\extract_media_install_evidence.py <media-root> --out <evidence-dir>

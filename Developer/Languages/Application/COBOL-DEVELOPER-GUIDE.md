@@ -8,6 +8,31 @@
 
 ---
 
+## Installing COBOL
+
+ND-500 COBOL only — no PD sheet exists for either article number, so everything below comes from
+the floppies themselves:
+
+- **Older article** — [ND-10177](../../../Installation/Software/ND-10177/README.md) (product
+  `ND-10177`), version
+  [ND-10177H00](../../../Installation/Software/ND-10177/ND-10177H00/README.md) — a 3-disk set
+  with the middle disk (`10177H00-2S`, presumably the runtime library) missing from every source
+  checked.
+- **Later article (COBOL-85)** — [ND-210177](../../../Installation/Software/ND-210177/README.md)
+  (product `ND-210177`), two versions found:
+  [ND-210177J02](../../../Installation/Software/ND-210177/ND-210177J02/README.md) (real
+  `Linkage-Loader` `:MODE` scripts decoded straight from the floppy — the most verified of the
+  two) and
+  [ND-210177K01](../../../Installation/Software/ND-210177/ND-210177K01/README.md) (no script on
+  this disk, procedure adapted from J02, unverified).
+
+Both articles ship as ND-500 **domains** loaded via the Linkage-Loader, not plain SINTRAN
+reentrant subsystems — install the [ND-500 Linkage-Loader](../../../Installation/INSTALL-ND-LINKAGE-LOADER-AND-BACKUP-SYSTEM.md)
+first if it isn't already present. Both articles also bundle an ISAM (indexed-file) add-on,
+corresponding to the separate product `ND-10343`.
+
+---
+
 ## Quick Start
 
 **See [QUICK-START-EXAMPLES.md](../../QUICK-START-EXAMPLES.md) Section 6 for complete Hello World example.**

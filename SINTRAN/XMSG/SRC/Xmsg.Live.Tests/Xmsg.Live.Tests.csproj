@@ -21,4 +21,13 @@
     <ProjectReference Include="..\Xmsg.Live\Xmsg.Live.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      Shared, not copied. PcapFiles decides what happens when the recorded .pcapng files are absent,
+      and that rule has to be identical in every test project - a second copy is how the rule drifts.
+      Linked in rather than moved to a shared project so no new project is added just for one file.
+    -->
+    <Compile Include="..\Xmsg.Protocol.Tests\PcapFiles.cs" Link="PcapFiles.cs" />
+  </ItemGroup>
+
 </Project>

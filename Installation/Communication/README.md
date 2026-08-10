@@ -14,6 +14,7 @@ files extracted from it live in an `x/` subfolder.
 | [COSMOS Basic/](COSMOS%20Basic/README.md) | COSMOS Basic Module (ND-10374, rev E04): verified install guide, boot wiring, PI sheet ND-895036-2, floppy image + extracted files |
 | [COSMOS Network Monitor/](COSMOS%20Network%20Monitor/README.md) | PD sheet for COSMOS Network Monitor (211104A) |
 | [Ethernet/](Ethernet/README.md) | COSMOS Ethernet II Option (210580, rev B01): PD sheet, floppy image, extracted files, and the 68000 firmware reverse engineering |
+| [OctobusAccp/](OctobusAccp/README.md) | ACCP octobus controller (ND-324716 / PCB 5616): the physical AM27C512 EPROM pair, the merged 128 KB 68000 image `octo.bin`, and its validation |
 | [TCP/](TCP/README.md) | PI sheets for TCP/IP Basic Module/III, COSMOS TCP/IP Gateway for Ethernet, COSMOS Telnet/FTP Clients, plus a library-diskette listing |
 | [X.21/](X.21/README.md) | Norwegian internal memo with install tips for the COSMOS X.21 Option |
 | [X.25/](X.25/README.md) | PD sheet COSMOS X.25 Program Access (211197A) + PI sheet COSMOS X.25 Option for PIOC (210570A) |

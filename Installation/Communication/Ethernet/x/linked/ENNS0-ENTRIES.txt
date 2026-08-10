@@ -1,0 +1,187 @@
+BRF unit: Size:  33256 P                POSUERR...1756    ENNS0....32241    
+BRF unit: Size:    145 P                READPIO.....15    INT2GET....122    
+BRF unit: Size:    145 P                                   
+    RES_SLO......0    REL_SLO.....14    SEND_KI.....30    REC_KIC.....46    
+    SEGLOAD.....64    UNLOAD.....102    START_P....115    STOP_PI....132    
+BRF unit: Library mode. Size:     40 P  UEIEDIN......0    
+BRF unit: Library mode. Size:     56 P  UEIEINI......0    
+BRF unit: Library mode. Size:     27 P  UEIEEXI......0    
+BRF unit: Library mode. Size:     20 P  UEIESDV......0    
+BRF unit: Library mode. Size:     11 P  UEERSDV......0    
+BRF unit: Library mode. Size:    235 P                     
+    UEIDMSG......0    UEIFMSG.....63    UEIOMSG....172    
+BRF unit: Library mode. Size:    624 P                     
+    UEERFMS......0    UEEROMS....405    UEERDMS....514    
+BRF unit: Library mode. Size:     56 P  UEIEMSG......0    
+BRF unit: Library mode. Size:     73 P  UEERDIN......0    
+BRF unit: Library mode. Size:    161 P  UEERINI......0    
+BRF unit: Library mode. Size:     21 P  UEEREXI......0    
+BRF unit: Library mode. Size:    363 P  UEERMSG....155    
+BRF unit: Library mode. Size:     12 P  MN254........0    
+BRF unit: Library mode. Size:   1314 P                     
+    UE_OB........0    UE_DB......226    UE_HB......575    UE_DATE...1057    
+BRF unit: Library mode. Size:    101 P  UEJCLIN......0    
+BRF unit: Library mode. Size:     33 P  UEIGERR......0    
+BRF unit: Library mode. Size:     35 P  UEILTHA......0    
+BRF unit: Library mode. Size:     44 P  UEGERR.......0    
+BRF unit: Library mode. Size:     44 P  UELTHAN......0    
+BRF unit: Library mode. Size:     56 P  UEIDTHA......0    
+BRF unit: Library mode. Size:     63 P  UEDTHAN......0    
+BRF unit: Library mode. Size:     37 P  UEIFECC......0    
+BRF unit: Library mode. Size:     33 P  UEISECC......0    
+BRF unit: Library mode. Size:     41 P  UEFECCO......0    
+BRF unit: Library mode. Size:     50 P  UESECCO......0    
+BRF unit: Library mode. Size:     37 P  UEIGFLA......0    
+BRF unit: Library mode. Size:    147 P  UEGFLAG......0    
+BRF unit: Library mode. Size:     56 P  UEIGTRI......0    
+BRF unit: Library mode. Size:     63 P  UEIPTRI......0    
+BRF unit: Library mode. Size:    125 P  UEGUEIN......0    
+BRF unit: Library mode. Size:    114 P  UEPUEIN......0    
+BRF unit: Library mode. Size:     36 P  UEEDTRM......0    
+BRF unit: Library mode. Size:     36 P  UEEDLOG......0    
+BRF unit: Library mode. Size:     27 P  UEIEDMS......0    
+BRF unit: Library mode. Size:     36 P  UEEDMSG......0    
+BRF unit: Library mode. Size:    135 P  UEIEDTR......0    
+BRF unit: Library mode. Size:     36 P  UEEDJCL......0    
+BRF unit: Library mode. Size:     33 P  IMN317.......0    
+BRF unit: Library mode. Size:    116 P  MN317........0    
+BRF unit: Library mode. Size:    207 P  UELOGIN......0    
+BRF unit: Library mode. Size:     47 P  UEADM........0    
+BRF unit: Library mode. Size:     34 P  UEIWRBI......0    
+BRF unit: Library mode. Size:     24 P  UEWRBIX......0    
+BRF unit: Library mode. Size:     20 P  UEMN312......0    
+BRF unit: Library mode. Size:     25 P  UESINVE......0    
+BRF unit: Library mode. Size:     57 P                     
+    UEERFNU......0    UEERBMA......1    UEERFBU......2    UEERFBP......2    
+    UEERFMI......3    UEERFMA......4    UEERFPA......5    UEERFPR.....31    
+    UEEREDV.....55    UEEREV......56    
+BRF unit: Library mode. Size:    603 P  UEERDBU....600    
+BRF unit: Library mode. Size:    457 P  UEBSTCK......0    
+BRF unit: Library mode. Size:    310 P  UESTCK.......0    
+BRF unit: Library mode. Size:   1216 P  5MON_P.....354    
+BRF unit: Library mode. Size:   1270 P  5MON_F.....754    
+BRF unit: Library mode. Size:    145 P  MONITOR.....63    
+BRF unit: Library mode. Size:   2004 P  5MON_X.....340    
+BRF unit: Message : PLANC-1BANK-G00 
+BRF unit: Library mode. Size:     21 P  5BLACK.......0    
+BRF unit: Library mode. Size:    605 P  5OPFI.......47    5CLFI......570    
+BRF unit: Library mode. Size:     34 P  5FILI........0    5FILO.......17    
+BRF unit: Library mode. Size:    144 P  5INFI........1    5UTFI.......63    
+BRF unit: Library mode. Size:    232 P  5INBY........0    
+BRF unit: Library mode. Size:    346 P  5UTBY........0    
+BRF unit: Library mode. Size:    141 P  5INBO........0    
+BRF unit: Library mode. Size:    116 P  5UTBO........0    
+BRF unit: Library mode. Size:    436 P  5INI4........0    
+BRF unit: Library mode. Size:   1177 P  5UTI4.......40    
+BRF unit: Library mode. Size:     42 P  5INRE........0    
+BRF unit: Library mode. Size:     22 P  5UTRE........0    
+BRF unit: Library mode. Size:   1253 P  5INREAL....413    
+BRF unit: Library mode. Size:   1614 P  5UTREAL.....41    
+BRF unit: Library mode. Size:    464 P  5FLOTAB......0    
+BRF unit: Library mode. Size:    245 P                     
+    5SPASI.......0    5ERROR.....114    5GETNO.....175    
+BRF unit: Library mode. Size:     40 P  5OUTBYT......0    5INBYT......16    
+BRF unit: Library mode. Size:     34 P  5IMOD........0    
+BRF unit: Library mode. Size:    226 P  5BCPC........0    
+BRF unit: Library mode. Size:    271 P  5XMOV........0    
+BRF unit: Library mode. Size:     14 P  5DESC........0    
+BRF unit: Library mode. Size:    202 P  5MOVE........0    
+BRF unit: Library mode. Size:   1164 P  5MOVF......311    
+BRF unit: Library mode. Size:    457 P  5MOVX........0    
+BRF unit: Library mode. Size:    651 P  5INIT_R....412    5RANDOM....524    
+BRF unit: Library mode. Size:     47 P  5IMU.........0    
+BRF unit: Library mode. Size:    165 P  5IDV.........0    
+BRF unit: Library mode. Size:     30 P  5CALL........1    
+BRF unit: Library mode. Size:    116 P  5IXI.........0    
+BRF unit: Library mode. Size:    110 P  5AXI.........0    
+BRF unit: Library mode. Size:    226 P  5DXI.........0    
+BRF unit: Library mode. Size:    154 P  5DIXDI.......0    
+BRF unit: Library mode. Size:    266 P  5DADD........0    5DSUB........3    
+BRF unit: Library mode. Size:    231 P  5DMUL........5    
+BRF unit: Library mode. Size:    336 P  5DDIV........3    
+BRF unit: Library mode. Size:     64 P  5DCMP........0    
+BRF unit: Library mode. Size:     26 P  5RCVD........1    
+BRF unit: Library mode. Size:     25 P  5DCVR........1    
+BRF unit: Library mode. Size:     20 P  5DCVR4.......0    
+BRF unit: Library mode. Size:    117 P  5DCVI........2    
+BRF unit: Library mode. Size:     36 P  5ICVD........1    
+BRF unit: Library mode. Size:     22 P  5IDR.........1    
+BRF unit: Library mode. Size:     32 P  5RID.........4    
+BRF unit: Library mode. Size:     33 P  5IDR4........3    
+BRF unit: Library mode. Size:     42 P  5R4ID........4    
+BRF unit: Library mode. Size:    163 P  5I64SLP......0    
+BRF unit: Library mode. Size:    145 P  5I32ADP......0    5I64M1P.....26    
+BRF unit: Library mode. Size:    261 P  5NEW.........0    5DISPOS....212    
+BRF unit: Library mode. Size:   1627 P                     
+    #OVBRK.....725    #OVNAM.....735    #OVLAY....1000    
+BRF unit: Library mode. Size:     13 P  5NIP.........0    
+BRF unit: Library mode. Size:     20 P  5REMV........0    
+BRF unit: Library mode. Size:     15 P  5APPD........0    
+BRF unit: Library mode. Size:      7 P  5INSE........0    
+BRF unit: Library mode. Size:     17 P  5DEMAND......0    
+BRF unit: Library mode. Size:      2 P  5RMARKS......0    
+BRF unit: Library mode. Size:     13 P  5WMARKS......0    
+BRF unit: Library mode. Size:      1 P  MON0.........0    
+BRF unit: Library mode. Size:      5 P  MON1.........0    
+BRF unit: Library mode. Size:      7 P  MON2.........0    
+BRF unit: Library mode. Size:     27 P  MON3.........0    
+BRF unit: Library mode. Size:     31 P  MON4.........0    
+BRF unit: Library mode. Size:      2 P  MON11........0    
+BRF unit: Library mode. Size:     44 P  MON12........0    
+BRF unit: Library mode. Size:      5 P  MON13........0    
+BRF unit: Library mode. Size:      5 P  MON14........0    
+BRF unit: Library mode. Size:     14 P  MON16........0    
+BRF unit: Library mode. Size:      5 P  MON17........0    
+BRF unit: Library mode. Size:     21 P  MON21........0    
+BRF unit: Library mode. Size:     16 P  MON22........0    
+BRF unit: Library mode. Size:     37 P  MON24........0    
+BRF unit: Library mode. Size:     11 P  MON30........0    
+BRF unit: Library mode. Size:     15 P  MON32........0    
+BRF unit: Library mode. Size:     16 P  MON41........0    
+BRF unit: Library mode. Size:     12 P  MON43........0    
+BRF unit: Library mode. Size:     23 P  MON44........0    
+BRF unit: Library mode. Size:     24 P  MON45........0    
+BRF unit: Library mode. Size:     23 P  MON47........0    
+BRF unit: Library mode. Size:    111 P  MON50........0    
+BRF unit: Library mode. Size:     17 P  MON54........0    
+BRF unit: Library mode. Size:     14 P  MON62........0    
+BRF unit: Library mode. Size:     43 P  MON63........0    
+BRF unit: Library mode. Size:      2 P  MON64........0    
+BRF unit: Library mode. Size:      1 P  MON65........0    
+BRF unit: Library mode. Size:     14 P  MON66........0    
+BRF unit: Library mode. Size:     46 P  MON70........0    
+BRF unit: Library mode. Size:      4 P  MON71........0    
+BRF unit: Library mode. Size:      4 P  MON72........0    
+BRF unit: Library mode. Size:     13 P  MON73........0    
+BRF unit: Library mode. Size:     13 P  MON74........0    
+BRF unit: Library mode. Size:     14 P  MON75........0    
+BRF unit: Library mode. Size:     13 P  MON76........0    
+BRF unit: Library mode. Size:     21 P  MN104........0    
+BRF unit: Library mode. Size:     16 P  MN113........0    
+BRF unit: Library mode. Size:      3 P  MN114........0    
+BRF unit: Library mode. Size:     36 P  MN117........0    
+BRF unit: Library mode. Size:     36 P  MN120........0    
+BRF unit: Library mode. Size:     27 P  MN122........0    
+BRF unit: Library mode. Size:     22 P  MN123........0    
+BRF unit: Library mode. Size:     13 P  MN132........0    
+BRF unit: Library mode. Size:     32 P  MN141........0    
+BRF unit: Library mode. Size:     14 P  MN143........0    
+BRF unit: Library mode. Size:     60 P  MN144........0    
+BRF unit: Library mode. Size:     34 P  MN161........0    
+BRF unit: Library mode. Size:     31 P  MN162........0    
+BRF unit: Library mode. Size:     17 P  MN167........0    
+BRF unit: Library mode. Size:     16 P  MN262........0    
+BRF unit: Library mode. Size:     15 P  MN263........0    
+BRF unit: Library mode. Size:    130 P  MN310.......36    
+BRF unit: Library mode. Size:     14 P  MN312........0    
+BRF unit: Library mode. Size:    341 P                     
+    1BANK........0    5PGTB.......27    5INIT.......47    5ENTR......257    
+    5ERET......306    5LEAV......314    
+BRF unit: Library mode. Size:     35 P  5STCO.......15    
+BRF unit: Library mode. Size:     36 P  5FATA.......16    
+BRF unit: Library mode. Size:     37 P  5XERR.......17    
+BRF unit: Library mode. Size:     50 P  5PCHK.......26    
+BRF unit: Library mode. Size:     40 P  5MSG.........0    
+BRF unit: Library mode. Size:     15 P  5QUIT........1    
+BRF unit: Library mode. Size:      4 P  FREE_P.......0    
+

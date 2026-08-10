@@ -132,8 +132,76 @@ namespace NDInsight.Sintran.Xmsg
         public static XroutParameter Integer16(int parameterNumber, ushort value)
         {
             byte[] data = new byte[2];
-            BigEndian.WriteUInt16(data, value);
+            NdEndian.PutBe16(data, 0, value);
             return new XroutParameter(parameterNumber, false, data);
+        }
+
+        /// <summary>
+        /// Creates an integer parameter carrying a single big-endian 32-bit value.
+        /// </summary>
+        /// <param name="parameterNumber">
+        /// The one-based parameter number.
+        /// </param>
+        /// <param name="value">
+        /// The 32-bit value to store, most significant byte first.
+        /// </param>
+        /// <returns>
+        /// A new integer <see cref="XroutParameter"/> with four data bytes.
+        /// </returns>
+        /// <remarks>
+        /// Used for the double-word parameters of the XROUT services, above all the 32-bit magic
+        /// number carried by XSGNM, XSGN1, XSGMG and XSNET.
+        /// </remarks>
+        public static XroutParameter Integer32(int parameterNumber, uint value)
+        {
+            byte[] data = new byte[4];
+            // One 32-bit write, not two 16-bit halves: the helper already puts the most
+            // significant byte first, so splitting the value by hand only invited a wrong shift.
+            NdEndian.PutBe32(data, 0, value);
+            return new XroutParameter(parameterNumber, false, data);
+        }
+
+        /// <summary>
+        /// Decodes this parameter's data as a big-endian unsigned integer.
+        /// </summary>
+        /// <param name="value">
+        /// On return, the decoded value; zero when decoding was not possible.
+        /// </param>
+        /// <returns>
+        /// True when the parameter holds one, two or four data bytes and was decoded.
+        /// </returns>
+        /// <remarks>
+        /// XROUT integer parameters are not fixed width - a system number arrives as two bytes and
+        /// a magic number as four - so callers should use this rather than assume a size.
+        /// </remarks>
+        public bool TryGetUInt32(out uint value)
+        {
+            value = 0;
+
+            if (IsString)
+            {
+                return false;
+            }
+
+            if (Data.Length == 1)
+            {
+                value = Data[0];
+                return true;
+            }
+
+            if (Data.Length == 2)
+            {
+                value = NdEndian.GetBe16(Data, 0);
+                return true;
+            }
+
+            if (Data.Length == 4)
+            {
+                value = NdEndian.GetBe32(Data, 0);
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

@@ -1,6 +1,7 @@
 using System;
 
 using NDInsight.Sintran.Xmsg;
+using NDInsight.Sintran.Xmsg.Packet;
 
 namespace NDInsight.Sintran.Xmsg.ListRouting
 {
@@ -42,9 +43,6 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
         /// <param name="entry">
         /// The routing-table entry to encode into the four reply parameters.
         /// </param>
-        /// <param name="counter">
-        /// The XMSG sub-header per-direction counter byte.
-        /// </param>
         /// <param name="flags1">
         /// The SINTRAN Flags 1 word (datagram sequence).
         /// </param>
@@ -56,9 +54,6 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
         /// </param>
         /// <param name="role">
         /// The XMSG sub-header role byte; defaults to the observed responder value.
-        /// </param>
-        /// <param name="protocolId">
-        /// The SINTRAN Protocol ID; defaults to the observed response channel.
         /// </param>
         /// <param name="controlService">
         /// The XMCSM control/service word; defaults to <see cref="XmcsmXsgsyReply"/>.
@@ -75,13 +70,10 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
         public byte[] BuildResponse(
             XmsgFrame request,
             RoutingTableEntry entry,
-            byte counter,
             ushort flags1,
             ushort flags2 = DefaultResponseFlags2,
             byte frameFlags = DefaultResponseFrameFlags,
             byte role = DefaultResponseRole,
-            // INFERRED default: proto 0xDC (DC) is the channel the response was captured on; overridable.
-            SintranProtocolId protocolId = SintranProtocolId.Dc,
             uint controlService = XmcsmXsgsyReply)
         {
             if (request == null)
@@ -104,7 +96,11 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
             header.SourceNode = request.Header.DestinationNode;
             header.Flags1 = flags1;
             header.Flags2 = flags2;
-            header.ProtocolId = protocolId;
+            // WORD 6 IS COMPUTED - CORRECTED 2026-08-06. See ListRoutingClient.BuildRequest for the
+            // full reasoning; measured here as 0xDC66 where the carved checksum is 0x8F15
+            // (ListRoutingHeaderChecksumTests). The protocolId and counter parameters are GONE
+            // (2026-08-06) - they only ever wrote these two bytes.
+            XmsgEnvelope.StampChecksum(header);
 
             // INFERRED stateless-RPC echo (XMSG-PROTOCOL.md section 9.1 anomaly note):
             // observed in the captures, NOT stated in the ND docs. In a list-routing
@@ -116,15 +112,12 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
             ushort askerPort = request.SubHeader.SourcePort;
 
             XmsgSubHeader sub = new XmsgSubHeader();
-            sub.Counter = counter;
             sub.FrameFlags = frameFlags;
             sub.Role = role;
             sub.DestinationSystem = askerSystem;
             sub.DestinationPort = askerPort;
             sub.SourceSystem = askerSystem;
             sub.SourcePort = askerPort;
-            sub.ControlService = controlService;
-            sub.Pad = 0x00;
 
             // VERIFIED (captures + COSMOS Guide XSGSY): four parameter blocks, in order:
             //   p1 = system number, p2 = connection-type enum, p3 = extra info,
@@ -135,7 +128,7 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
             XsgsyWire.WriteParamBlock(trailer.Slice(2 * XsgsyWire.ParamBlockSize, XsgsyWire.ParamBlockSize), 3, entry.ExtraInfo);
             XsgsyWire.WriteParamBlock(trailer.Slice(3 * XsgsyWire.ParamBlockSize, XsgsyWire.ParamBlockSize), 4, entry.NetworkInfo);
 
-            return XsgsyWire.BuildInfoField(header, sub, trailer);
+            return XsgsyWire.BuildInfoField(header, sub, controlService, trailer);
         }
 
         /// <summary>
@@ -146,9 +139,6 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
         /// </param>
         /// <param name="table">
         /// The routing table to consult.
-        /// </param>
-        /// <param name="counter">
-        /// The XMSG sub-header per-direction counter byte for the reply.
         /// </param>
         /// <param name="flags1">
         /// The SINTRAN Flags 1 word for the reply.
@@ -162,9 +152,6 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
         /// <param name="role">
         /// The XMSG sub-header role byte; defaults to the observed responder value.
         /// </param>
-        /// <param name="protocolId">
-        /// The SINTRAN Protocol ID; defaults to the observed response channel.
-        /// </param>
         /// <returns>
         /// A new array holding the reply information field; when the query has no
         /// matching entry the reply carries system <c>0</c> /
@@ -176,12 +163,10 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
         public byte[] Handle(
             XmsgFrame request,
             IRoutingTable table,
-            byte counter = 0,
             ushort flags1 = 0,
             ushort flags2 = DefaultResponseFlags2,
             byte frameFlags = DefaultResponseFrameFlags,
-            byte role = DefaultResponseRole,
-            SintranProtocolId protocolId = SintranProtocolId.Dc)
+            byte role = DefaultResponseRole)
         {
             if (request == null)
             {
@@ -204,7 +189,7 @@ namespace NDInsight.Sintran.Xmsg.ListRouting
                 entry = new RoutingTableEntry(0, XroutConnectionType.Unavailable, 0, 0, 0);
             }
 
-            return BuildResponse(request, entry, counter, flags1, flags2, frameFlags, role, protocolId, XmcsmXsgsyReply);
+            return BuildResponse(request, entry, flags1, flags2, frameFlags, role, XmcsmXsgsyReply);
         }
     }
 }

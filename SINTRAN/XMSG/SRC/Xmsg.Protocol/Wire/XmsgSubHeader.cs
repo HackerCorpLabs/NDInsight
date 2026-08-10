@@ -4,30 +4,41 @@ namespace NDInsight.Sintran.Xmsg
 {
     /// <summary>
     /// The XMSG (DC/XMSG) sub-header carried by a data message (subtype
-    /// <see cref="SintranPacketSubtype.Data"/>) immediately after the SINTRAN header.
+    /// <see cref="SintranPacketSubtype.Data"/>) immediately after the 14-byte SINTRAN header.
     /// </summary>
     /// <remarks>
     /// <para><b>Layout</b></para>
-    /// Offsets relative to the start of the payload (SINTRAN offset 13 onward);
-    /// see XMSG-PROTOCOL.md section 5:
-    ///  - <c>0</c> Counter (per-direction, decrements).
-    ///  - <c>1</c>..<c>2</c> Marker, always <c>0x21 0x00</c>.
-    ///  - <c>3</c> Frame Flags.
-    ///  - <c>4</c> Role (asker/responder hint).
-    ///  - <c>5</c>..<c>6</c> XMDSY destination system (big-endian).
-    ///  - <c>7</c>..<c>8</c> XMDPT destination port (big-endian).
-    ///  - <c>9</c>..<c>10</c> XMSSY source system (big-endian).
-    ///  - <c>11</c>..<c>12</c> XMSPT source port (big-endian).
-    ///  - <c>13</c>..<c>16</c> XMCSM control / service word.
-    ///  - <c>17</c> Pad, <c>0x00</c>.
-    ///  - <c>18</c> XMLEN user-data length (low byte).
+    /// Offsets relative to the start of the sub-header, which is ABSOLUTE offset 14 on the wire.
+    /// The field names come from the XMSG kernel symbol list
+    /// (<c>SINTRAN/NPL-SOURCE/SYMBOLS/L07/XMSG-SYMBOL-LIST.SYMB.TXT</c>), where the block is seven
+    /// words carrying the warning <c>"Next block is sent directly over link. Do NOT split up!"</c>:
+    ///  - <c>0</c>..<c>1</c> XMTHD - the constant marker <c>0x21 0x00</c> (absolute 14-15).
+    ///  - <c>2</c> XMSTA high half - Frame Flags (absolute 16).
+    ///  - <c>3</c> XMSTA low half - Role / 5M* state (absolute 17).
+    ///  - <c>4</c>..<c>5</c> XMDSY destination system, big-endian (absolute 18-19).
+    ///  - <c>6</c>..<c>7</c> XMDPT destination port, big-endian (absolute 20-21).
+    ///  - <c>8</c>..<c>9</c> XMSSY source system, big-endian (absolute 22-23).
+    ///  - <c>10</c>..<c>11</c> XMSPT source port, big-endian (absolute 24-25).
+    ///  - <c>12</c>..<c>13</c> XMCSM, ONE word, and the sub-header ENDS here (absolute 26-27).
+    /// <para>
+    /// CORRECTED 2026-08-04. This class used to be NINETEEN bytes starting at absolute 13, with a
+    /// phantom <c>Counter</c> at its offset 0 (really the SINTRAN header checksum's low byte), a
+    /// 32-bit <c>ControlService</c> (really XMCSM plus the first word of the MESSAGE BODY), and
+    /// <c>Pad</c> + <c>UserDataLength</c> at its tail (really body bytes 2 and 3). 13 + 19 = 32,
+    /// four bytes past the true body start of 28. Evidence, all independent:
+    /// <c>XM5HE=7</c> words / <c>XM5HL=16</c> octal = 14 bytes in the symbol file; Flags 2 equals
+    /// the 16-bit XMCSM on 1449 of 1449 data frames; and the word at absolute 28-29 is plainly
+    /// application-layer (<c>0x07D2</c> FA ConnectionConfirm, <c>0x0041</c> XSLET, <c>0x014B</c>
+    /// XSGSY, <c>0x0100</c> XRSOK). See <c>FaBodyOffsetTests</c>, which proves on a real captured
+    /// datagram that the file-access body parses at 28 and NOT at 32.
+    /// </para>
     /// </remarks>
     public sealed class XmsgSubHeader
     {
         /// <summary>
-        /// Serialised size of the full XMSG sub-header in bytes.
+        /// Serialised size of the full XMSG sub-header in bytes: SEVEN WORDS.
         /// </summary>
-        public const int Size = 19;
+        public const int Size = 14;
 
         /// <summary>
         /// First marker byte of the constant <c>0x21 0x00</c> sub-header marker.
@@ -40,61 +51,51 @@ namespace NDInsight.Sintran.Xmsg
         public const byte MarkerByte1 = 0x00;
 
         /// <summary>
-        /// Gets or sets the per-direction counter (offset 0).
-        /// </summary>
-        public byte Counter { get; set; }
-
-        /// <summary>
-        /// Gets or sets the frame-flags byte (offset 3).
+        /// Gets or sets the frame-flags byte (offset 2, absolute 16).
         /// </summary>
         public byte FrameFlags { get; set; }
 
         /// <summary>
-        /// Gets or sets the role byte (offset 4): low nibble 4 = asker, 0 = responder.
+        /// Gets or sets the role byte (offset 3, absolute 17): low nibble 4 = asker, 0 = responder.
         /// </summary>
         public byte Role { get; set; }
 
         /// <summary>
-        /// Gets or sets the XMDSY destination system number (offsets 5-6, big-endian).
+        /// Gets or sets the XMDSY destination system number (offsets 4-5, big-endian).
         /// </summary>
         public ushort DestinationSystem { get; set; }
 
         /// <summary>
-        /// Gets or sets the XMDPT destination port (offsets 7-8, big-endian).
+        /// Gets or sets the XMDPT destination port (offsets 6-7, big-endian).
         /// </summary>
         public ushort DestinationPort { get; set; }
 
         /// <summary>
-        /// Gets or sets the XMSSY source system number (offsets 9-10, big-endian).
+        /// Gets or sets the XMSSY source system number (offsets 8-9, big-endian).
         /// </summary>
         public ushort SourceSystem { get; set; }
 
         /// <summary>
-        /// Gets or sets the XMSPT source port (offsets 11-12, big-endian).
+        /// Gets or sets the XMSPT source port (offsets 10-11, big-endian).
         /// </summary>
         public ushort SourcePort { get; set; }
 
         /// <summary>
-        /// Gets or sets the XMCSM control / service word (offsets 13-16), the dispatch
-        /// key for ROUTING and TAD services.
+        /// Gets or sets XMCSM (offsets 12-13, absolute 26-27), the LAST word of the sub-header.
         /// </summary>
-        public uint ControlService { get; set; }
+        /// <remarks>
+        /// The kernel comments this field <c>"datagram checksum; if not checksum, then message
+        /// size"</c>, and it equals the SINTRAN header's Flags 2 on 1449 of 1449 captured data
+        /// frames. It is NOT a service dispatch key - the service lives in the message body that
+        /// starts at absolute 28.
+        /// </remarks>
+        public ushort Xmcsm { get; set; }
 
         /// <summary>
-        /// Gets or sets the pad byte (offset 17), normally <c>0x00</c>.
-        /// </summary>
-        public byte Pad { get; set; }
-
-        /// <summary>
-        /// Gets or sets the XMLEN user-data length low byte (offset 18).
-        /// </summary>
-        public byte UserDataLength { get; set; }
-
-        /// <summary>
-        /// Parses a full XMSG sub-header from the first <see cref="Size"/> bytes of a span.
+        /// Parses an XMSG sub-header from the first <see cref="Size"/> bytes of a span.
         /// </summary>
         /// <param name="source">
-        /// The payload bytes (SINTRAN offset 13 onward); must contain at least
+        /// The bytes starting at absolute wire offset 14; must contain at least
         /// <see cref="Size"/> bytes.
         /// </param>
         /// <returns>
@@ -107,21 +108,18 @@ namespace NDInsight.Sintran.Xmsg
         {
             if (source.Length < Size)
             {
-                throw new ArgumentException("XMSG sub-header requires at least 19 bytes.", nameof(source));
+                throw new ArgumentException("XMSG sub-header requires at least 14 bytes.", nameof(source));
             }
 
             XmsgSubHeader sub = new XmsgSubHeader();
-            sub.Counter = source[0];
-            // source[1..2] is the fixed 0x21 0x00 marker - retained implicitly on serialise.
-            sub.FrameFlags = source[3];
-            sub.Role = source[4];
-            sub.DestinationSystem = BigEndian.ReadUInt16(source.Slice(5, 2));
-            sub.DestinationPort = BigEndian.ReadUInt16(source.Slice(7, 2));
-            sub.SourceSystem = BigEndian.ReadUInt16(source.Slice(9, 2));
-            sub.SourcePort = BigEndian.ReadUInt16(source.Slice(11, 2));
-            sub.ControlService = BigEndian.ReadUInt32(source.Slice(13, 4));
-            sub.Pad = source[17];
-            sub.UserDataLength = source[18];
+            // source[0..1] is the fixed 0x21 0x00 marker - retained implicitly on serialise.
+            sub.FrameFlags = source[2];
+            sub.Role = source[3];
+            sub.DestinationSystem = NdEndian.GetBe16(source, 4);
+            sub.DestinationPort = NdEndian.GetBe16(source, 6);
+            sub.SourceSystem = NdEndian.GetBe16(source, 8);
+            sub.SourcePort = NdEndian.GetBe16(source, 10);
+            sub.Xmcsm = NdEndian.GetBe16(source, 12);
             return sub;
         }
 
@@ -138,21 +136,18 @@ namespace NDInsight.Sintran.Xmsg
         {
             if (destination.Length < Size)
             {
-                throw new ArgumentException("XMSG sub-header requires at least 19 bytes.", nameof(destination));
+                throw new ArgumentException("XMSG sub-header requires at least 14 bytes.", nameof(destination));
             }
 
-            destination[0] = Counter;
-            destination[1] = MarkerByte0;
-            destination[2] = MarkerByte1;
-            destination[3] = FrameFlags;
-            destination[4] = Role;
-            BigEndian.WriteUInt16(destination.Slice(5, 2), DestinationSystem);
-            BigEndian.WriteUInt16(destination.Slice(7, 2), DestinationPort);
-            BigEndian.WriteUInt16(destination.Slice(9, 2), SourceSystem);
-            BigEndian.WriteUInt16(destination.Slice(11, 2), SourcePort);
-            BigEndian.WriteUInt32(destination.Slice(13, 4), ControlService);
-            destination[17] = Pad;
-            destination[18] = UserDataLength;
+            destination[0] = MarkerByte0;
+            destination[1] = MarkerByte1;
+            destination[2] = FrameFlags;
+            destination[3] = Role;
+            NdEndian.PutBe16(destination, 4, DestinationSystem);
+            NdEndian.PutBe16(destination, 6, DestinationPort);
+            NdEndian.PutBe16(destination, 8, SourceSystem);
+            NdEndian.PutBe16(destination, 10, SourcePort);
+            NdEndian.PutBe16(destination, 12, Xmcsm);
         }
     }
 }

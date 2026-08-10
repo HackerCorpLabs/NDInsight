@@ -11,7 +11,7 @@ namespace NDInsight.Sintran.Xmsg.Node
     /// restarts and stays in step with the peer's persistent XSRSQ.
     /// </summary>
     /// <remarks>
-    /// File format: one line per remote node, <c>&lt;nodeDecimal&gt;=&lt;flags1Hex&gt;</c>, for
+    /// File format: one line per remote node, <c>nodeDecimal=flags1Hex</c>, for
     /// example <c>100=0007</c>. The whole (tiny) file is rewritten on each save — the map holds at
     /// most a handful of remote nodes, so this is cheap and keeps the on-disk state always current.
     /// If the file is missing or unreadable, every node simply starts at 0x0000 (a fresh contact).
@@ -24,8 +24,12 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// <summary>
         /// Opens (and loads) the store at the given file path, creating the parent directory if needed.
         /// </summary>
-        /// <param name="path">The state file path.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="path"/> is null.</exception>
+        /// <param name="path">
+        /// The state file path.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="path"/> is null.
+        /// </exception>
         public FileResponderSequenceStore(string path)
         {
             _path = path ?? throw new ArgumentNullException(nameof(path));
@@ -51,7 +55,9 @@ namespace NDInsight.Sintran.Xmsg.Node
             Persist();
         }
 
-        /// <summary>Reads the state file into the in-memory map; tolerant of a missing/garbled file.</summary>
+        /// <summary>
+        /// Reads the state file into the in-memory map; tolerant of a missing/garbled file.
+        /// </summary>
         private void Load()
         {
             if (!File.Exists(_path))
@@ -94,7 +100,9 @@ namespace NDInsight.Sintran.Xmsg.Node
             }
         }
 
-        /// <summary>Rewrites the whole state file from the in-memory map.</summary>
+        /// <summary>
+        /// Rewrites the whole state file from the in-memory map.
+        /// </summary>
         private void Persist()
         {
             string? directory = Path.GetDirectoryName(_path);

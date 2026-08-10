@@ -1,0 +1,364 @@
+
+-----------------------------------------------------------------------------
+                ETHERNET COSMOS SERVER TRACE FOR LOCAL SYSTEM
+                     FOR ND-110063 ETHERNET II (NEW)
+ 
+                Trace enabled at PIOCOS time     263581
+                Trace dumped at SINTRAN time 1998- 8- 4   0:34:25
+  
+                ALL destinations enabled
+-----------------------------------------------------------------------------
+    263581 MESG in      from MONTR   ID  7761724 trace enable
+    263581 MESG out     to   MONTR   ID  7761724 status OK
+    268447 MESG in      from XGATE   ID   556416 send to ND19999 length   14
+    268447 MESG out     to   XGATE   ID   556416 status OK
+    268447 NPDU out     to   ND19999 loc 11557 rem     0 CR from ND  100
+    268449 NPDU in      from ND19999 loc     1 rem 11557 CC from ND19999
+    268449 NPDU out     to   ND19999 loc     1 rem 11557 DR BY NS reason  1
+    268467 NPDU out R 1 to   ND19999 loc 11557 rem     0 CR from ND  100
+    268470 NPDU in      from ND19999 loc     1 rem 11557 CC from ND19999
+    268470 NPDU out     to   ND19999 loc     1 rem 11557 DR BY NS reason  1
+    268487 NPDU out R 2 to   ND19999 loc 11557 rem     0 CR from ND  100
+    268488 NPDU in      from ND19999 loc     1 rem 11557 CC from ND19999
+    268488 NPDU out     to   ND19999 loc     1 rem 11557 DR BY NS reason  1
+    268507 NPDU out R 3 to   ND19999 loc 11557 rem     0 CR from ND  100
+    268508 NPDU in      from ND19999 loc     1 rem 11557 CC from ND19999
+    268508 NPDU out     to   ND19999 loc     1 rem 11557 DR BY NS reason  1
+    268527 NPDU out R 4 to   ND19999 loc 11557 rem     0 CR from ND  100
+    268529 NPDU in      from ND19999 loc     1 rem 11557 CC from ND19999
+    268530 NPDU out     to   ND19999 loc     1 rem 11557 DR BY NS reason  1
+    268547 NPDU out R 5 to   ND19999 loc 11557 rem     0 CR from ND  100
+    268549 NPDU in      from ND19999 loc     1 rem 11557 CC from ND19999
+    268549 NPDU out     to   ND19999 loc     1 rem 11557 DR BY NS reason  1
+    268567 NPDU out R 6 to   ND19999 loc 11557 rem     0 CR from ND  100
+    268568 NPDU in      from ND19999 loc     1 rem 11557 CC from ND19999
+    268568 NPDU out     to   ND19999 loc     1 rem 11557 DR BY NS reason  1
+    268587 NPDU out R 7 to   ND19999 loc 11557 rem     0 CR from ND  100
+    268587 NPDU in      from ND19999 loc     1 rem 11557 CC from ND19999
+    268587 NPDU out     to   ND19999 loc     1 rem 11557 DR BY NS reason  1
+    268607 NPDU out R 8 to   ND19999 loc 11557 rem     0 CR from ND  100
+    268608 NPDU in      from ND19999 loc     1 rem 11557 CC from ND19999
+    268608 NPDU out     to   ND19999 loc     1 rem 11557 DR BY NS reason  1
+    268627 NPDU out R 9 to   ND19999 loc 11557 rem     0 CR from ND  100
+    268629 NPDU in      from ND19999 loc     1 rem 11557 CC from ND19999
+    268629 NPDU out     to   ND19999 loc     1 rem 11557 DR BY NS reason  1
+    268647 NPDU out R10 to   ND19999 loc 11557 rem     0 CR from ND  100
+    268648 NPDU in      from ND19999 loc     1 rem 11557 CC from ND19999
+    268648 NPDU out     to   ND19999 loc     1 rem 11557 DR BY NS reason  1
+    268667 MESG out     to   XGATE   ID   556566 FAILED TRANSMIT to ND 19999
+    268667 MESG in      from XGATE   ID   556566 receive
+    268676 MESG in      from XGATE   ID   556416 send to ND19999 length   14
+    268676 MESG out     to   XGATE   ID   556416 status OK
+    268676 NPDU out     to   ND19999 loc 11558 rem     0 CR from ND  100
+    268677 NPDU in      from ND19999 loc     1 rem 11558 CC from ND19999
+    268677 NPDU out     to   ND19999 loc     1 rem 11558 DR BY NS reason  1
+    268696 NPDU out R 1 to   ND19999 loc 11558 rem     0 CR from ND  100
+    268697 NPDU in      from ND19999 loc     1 rem 11558 CC from ND19999
+    268697 NPDU out     to   ND19999 loc     1 rem 11558 DR BY NS reason  1
+    268716 NPDU out R 2 to   ND19999 loc 11558 rem     0 CR from ND  100
+    268719 NPDU in      from ND19999 loc     1 rem 11558 CC from ND19999
+    268719 NPDU out     to   ND19999 loc     1 rem 11558 DR BY NS reason  1
+    268736 NPDU out R 3 to   ND19999 loc 11558 rem     0 CR from ND  100
+    268737 NPDU in      from ND19999 loc     1 rem 11558 CC from ND19999
+    268737 NPDU out     to   ND19999 loc     1 rem 11558 DR BY NS reason  1
+    268756 NPDU out R 4 to   ND19999 loc 11558 rem     0 CR from ND  100
+    268757 NPDU in      from ND19999 loc     1 rem 11558 CC from ND19999
+    268757 NPDU out     to   ND19999 loc     1 rem 11558 DR BY NS reason  1
+    268776 NPDU out R 5 to   ND19999 loc 11558 rem     0 CR from ND  100
+    268778 NPDU in      from ND19999 loc     1 rem 11558 CC from ND19999
+    268778 NPDU out     to   ND19999 loc     1 rem 11558 DR BY NS reason  1
+    268796 NPDU out R 6 to   ND19999 loc 11558 rem     0 CR from ND  100
+    268798 NPDU in      from ND19999 loc     1 rem 11558 CC from ND19999
+    268798 NPDU out     to   ND19999 loc     1 rem 11558 DR BY NS reason  1
+    268816 NPDU out R 7 to   ND19999 loc 11558 rem     0 CR from ND  100
+    268817 NPDU in      from ND19999 loc     1 rem 11558 CC from ND19999
+    268817 NPDU out     to   ND19999 loc     1 rem 11558 DR BY NS reason  1
+    268836 NPDU out R 8 to   ND19999 loc 11558 rem     0 CR from ND  100
+    268837 NPDU in      from ND19999 loc     1 rem 11558 CC from ND19999
+    268837 NPDU out     to   ND19999 loc     1 rem 11558 DR BY NS reason  1
+    268856 NPDU out R 9 to   ND19999 loc 11558 rem     0 CR from ND  100
+    268857 NPDU in      from ND19999 loc     1 rem 11558 CC from ND19999
+    268857 NPDU out     to   ND19999 loc     1 rem 11558 DR BY NS reason  1
+    268876 NPDU out R10 to   ND19999 loc 11558 rem     0 CR from ND  100
+    268878 NPDU in      from ND19999 loc     1 rem 11558 CC from ND19999
+    268878 NPDU out     to   ND19999 loc     1 rem 11558 DR BY NS reason  1
+    268896 MESG out     to   XGATE   ID   556620 FAILED TRANSMIT to ND 19999
+    268896 MESG in      from XGATE   ID   556620 receive
+    269648 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  61 length  128
+    269648 MESG out     to   XGATE   ID   556450 receive from ND   102 length  128
+    269648 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  62 credit   15
+    269648 MESG in      from XGATE   ID   556450 receive
+    269648 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    269648 MESG out     to   XGATE   ID   556416 status OK
+    269648 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  61 length   14
+    269649 MESG in      from XGATE   ID   556416 send to ND  102 length   42
+    269649 MESG out     to   XGATE   ID   556416 status OK
+    269649 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  62 length   42
+    269649 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  62 credit   15
+    269649 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  63 credit   15
+    269649 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  62 length   14
+    269650 MESG out     to   XGATE   ID   556502 receive from ND   102 length   14
+    269650 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  63 credit   15
+    269650 MESG in      from XGATE   ID   556502 receive
+    292918 MESG in      from XGATE   ID   556416 send to ND19999 length   14
+    292918 MESG out     to   XGATE   ID   556416 status OK
+    292918 NPDU out     to   ND19999 loc 11559 rem     0 CR from ND  100
+    292921 NPDU in      from ND19999 loc 11559 rem     1 CC from ND19999
+    292922 NPDU out     to   ND19999 loc 11559 rem     1 DT nr   0 length   14
+    292925 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    292925 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    292926 NPDU in      from ND19999 loc     1 rem     1 DT nr   1 length   14
+    292926 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    292942 NPDU out R 1 to   ND19999 loc 11559 rem     1 DT nr   0 length   14
+    292944 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    292944 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    292944 NPDU in      from ND19999 loc     1 rem     1 DT nr   2 length   14
+    292944 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    292962 NPDU out R 2 to   ND19999 loc 11559 rem     1 DT nr   0 length   14
+    292964 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    292964 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    292964 NPDU in      from ND19999 loc     1 rem     1 DT nr   3 length   14
+    292964 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    292982 NPDU out R 3 to   ND19999 loc 11559 rem     1 DT nr   0 length   14
+    292984 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    292984 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    292985 NPDU in      from ND19999 loc     1 rem     1 DT nr   4 length   14
+    292985 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293002 NPDU out R 4 to   ND19999 loc 11559 rem     1 DT nr   0 length   14
+    293004 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293004 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293004 NPDU in      from ND19999 loc     1 rem     1 DT nr   5 length   14
+    293004 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293022 NPDU out R 5 to   ND19999 loc 11559 rem     1 DT nr   0 length   14
+    293023 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293023 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293023 NPDU in      from ND19999 loc     1 rem     1 DT nr   6 length   14
+    293023 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293042 NPDU out R 6 to   ND19999 loc 11559 rem     1 DT nr   0 length   14
+    293043 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293043 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293044 NPDU in      from ND19999 loc     1 rem     1 DT nr   7 length   14
+    293044 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293062 NPDU out R 7 to   ND19999 loc 11559 rem     1 DT nr   0 length   14
+    293062 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293062 NPDU in      from ND19999 loc     1 rem     1 DT nr   8 length   14
+    293062 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293062 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293082 NPDU out R 8 to   ND19999 loc 11559 rem     1 DT nr   0 length   14
+    293083 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293083 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293083 NPDU in      from ND19999 loc     1 rem     1 DT nr   9 length   14
+    293083 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293102 NPDU out R 9 to   ND19999 loc 11559 rem     1 DT nr   0 length   14
+    293104 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293104 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293105 NPDU in      from ND19999 loc     1 rem     1 DT nr  10 length   14
+    293105 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293122 NPDU out R10 to   ND19999 loc 11559 rem     1 DT nr   0 length   14
+    293125 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293125 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293125 NPDU in      from ND19999 loc     1 rem     1 DT nr  11 length   14
+    293125 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293142 MESG out     to   XGATE   ID   556534 FAILED TRANSMIT to ND 19999
+    293142 MESG in      from XGATE   ID   556534 receive
+    293153 MESG in      from XGATE   ID   556416 send to ND19999 length   14
+    293153 MESG out     to   XGATE   ID   556416 status OK
+    293153 NPDU out     to   ND19999 loc 11560 rem     0 CR from ND  100
+    293155 NPDU in      from ND19999 loc 11560 rem     1 CC from ND19999
+    293155 NPDU out     to   ND19999 loc 11560 rem     1 DT nr   0 length   14
+    293158 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293158 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293159 NPDU in      from ND19999 loc     1 rem     1 DT nr  12 length   14
+    293159 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293173 NPDU out R 1 to   ND19999 loc 11560 rem     1 DT nr   0 length   14
+    293176 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293176 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293177 NPDU in      from ND19999 loc     1 rem     1 DT nr  13 length   14
+    293177 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293193 NPDU out R 2 to   ND19999 loc 11560 rem     1 DT nr   0 length   14
+    293194 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293194 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293195 NPDU in      from ND19999 loc     1 rem     1 DT nr  14 length   14
+    293195 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293213 NPDU out R 3 to   ND19999 loc 11560 rem     1 DT nr   0 length   14
+    293215 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293215 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293216 NPDU in      from ND19999 loc     1 rem     1 DT nr  15 length   14
+    293216 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293233 NPDU out R 4 to   ND19999 loc 11560 rem     1 DT nr   0 length   14
+    293235 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293235 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293235 NPDU in      from ND19999 loc     1 rem     1 DT nr  16 length   14
+    293235 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293253 NPDU out R 5 to   ND19999 loc 11560 rem     1 DT nr   0 length   14
+    293254 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293255 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293255 NPDU in      from ND19999 loc     1 rem     1 DT nr  17 length   14
+    293255 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293273 NPDU out R 6 to   ND19999 loc 11560 rem     1 DT nr   0 length   14
+    293277 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293277 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293280 NPDU in      from ND19999 loc     1 rem     1 DT nr  18 length   14
+    293280 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293293 NPDU out R 7 to   ND19999 loc 11560 rem     1 DT nr   0 length   14
+    293293 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293293 NPDU in      from ND19999 loc     1 rem     1 DT nr  19 length   14
+    293293 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293293 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293313 NPDU out R 8 to   ND19999 loc 11560 rem     1 DT nr   0 length   14
+    293315 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293315 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293315 NPDU in      from ND19999 loc     1 rem     1 DT nr  20 length   14
+    293315 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293333 NPDU out R 9 to   ND19999 loc 11560 rem     1 DT nr   0 length   14
+    293339 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293339 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293341 NPDU in      from ND19999 loc     1 rem     1 DT nr  21 length   14
+    293341 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293353 NPDU out R10 to   ND19999 loc 11560 rem     1 DT nr   0 length   14
+    293355 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    293355 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293356 NPDU in      from ND19999 loc     1 rem     1 DT nr  22 length   14
+    293356 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    293373 MESG out     to   XGATE   ID   556566 FAILED TRANSMIT to ND 19999
+    293373 MESG in      from XGATE   ID   556566 receive
+    328771 MESG in      from XGATE   ID   556416 send to ND19999 length   14
+    328771 MESG out     to   XGATE   ID   556416 status OK
+    328771 NPDU out     to   ND19999 loc 11561 rem     0 CR from ND  100
+    328774 NPDU in      from ND19999 loc 11561 rem     1 CC from ND19999
+    328774 NPDU out     to   ND19999 loc 11561 rem     1 DT nr   0 length   14
+    328776 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    328776 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328777 NPDU in      from ND19999 loc     1 rem     1 DT nr   1 length   14
+    328777 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328794 NPDU out R 1 to   ND19999 loc 11561 rem     1 DT nr   0 length   14
+    328795 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    328795 NPDU in      from ND19999 loc     1 rem     1 DT nr   2 length   14
+    328795 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328795 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328814 NPDU out R 2 to   ND19999 loc 11561 rem     1 DT nr   0 length   14
+    328815 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    328815 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328815 NPDU in      from ND19999 loc     1 rem     1 DT nr   3 length   14
+    328815 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328834 NPDU out R 3 to   ND19999 loc 11561 rem     1 DT nr   0 length   14
+    328836 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    328836 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328836 NPDU in      from ND19999 loc     1 rem     1 DT nr   4 length   14
+    328836 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328854 NPDU out R 4 to   ND19999 loc 11561 rem     1 DT nr   0 length   14
+    328862 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    328862 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328863 NPDU in      from ND19999 loc     1 rem     1 DT nr   5 length   14
+    328863 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328874 NPDU out R 5 to   ND19999 loc 11561 rem     1 DT nr   0 length   14
+    328880 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    328880 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328881 NPDU in      from ND19999 loc     1 rem     1 DT nr   6 length   14
+    328881 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328894 NPDU out R 6 to   ND19999 loc 11561 rem     1 DT nr   0 length   14
+    328895 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    328896 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328896 NPDU in      from ND19999 loc     1 rem     1 DT nr   7 length   14
+    328896 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328914 NPDU out R 7 to   ND19999 loc 11561 rem     1 DT nr   0 length   14
+    328916 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    328916 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328916 NPDU in      from ND19999 loc     1 rem     1 DT nr   8 length   14
+    328916 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328934 NPDU out R 8 to   ND19999 loc 11561 rem     1 DT nr   0 length   14
+    328936 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    328936 NPDU in      from ND19999 loc     1 rem     1 DT nr   9 length   14
+    328936 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328936 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328954 NPDU out R 9 to   ND19999 loc 11561 rem     1 DT nr   0 length   14
+    328956 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    328956 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328956 NPDU in      from ND19999 loc     1 rem     1 DT nr  10 length   14
+    328956 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328974 NPDU out R10 to   ND19999 loc 11561 rem     1 DT nr   0 length   14
+    328974 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    328974 NPDU in      from ND19999 loc     1 rem     1 DT nr  11 length   14
+    328974 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328974 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    328994 MESG out     to   XGATE   ID   556620 FAILED TRANSMIT to ND 19999
+    328994 MESG in      from XGATE   ID   556620 receive
+    329003 MESG in      from XGATE   ID   556416 send to ND19999 length   14
+    329003 MESG out     to   XGATE   ID   556416 status OK
+    329003 NPDU out     to   ND19999 loc 11562 rem     0 CR from ND  100
+    329005 NPDU in      from ND19999 loc 11562 rem     1 CC from ND19999
+    329005 NPDU out     to   ND19999 loc 11562 rem     1 DT nr   0 length   14
+    329007 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    329007 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329007 NPDU in      from ND19999 loc     1 rem     1 DT nr  12 length   14
+    329007 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329023 NPDU out R 1 to   ND19999 loc 11562 rem     1 DT nr   0 length   14
+    329025 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    329025 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329025 NPDU in      from ND19999 loc     1 rem     1 DT nr  13 length   14
+    329026 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329043 NPDU out R 2 to   ND19999 loc 11562 rem     1 DT nr   0 length   14
+    329045 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    329045 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329045 NPDU in      from ND19999 loc     1 rem     1 DT nr  14 length   14
+    329045 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329063 NPDU out R 3 to   ND19999 loc 11562 rem     1 DT nr   0 length   14
+    329064 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    329064 NPDU in      from ND19999 loc     1 rem     1 DT nr  15 length   14
+    329064 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329064 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329083 NPDU out R 4 to   ND19999 loc 11562 rem     1 DT nr   0 length   14
+    329084 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    329084 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329085 NPDU in      from ND19999 loc     1 rem     1 DT nr  16 length   14
+    329085 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329103 NPDU out R 5 to   ND19999 loc 11562 rem     1 DT nr   0 length   14
+    329104 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    329104 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329105 NPDU in      from ND19999 loc     1 rem     1 DT nr  17 length   14
+    329105 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329123 NPDU out R 6 to   ND19999 loc 11562 rem     1 DT nr   0 length   14
+    329125 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    329125 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329125 NPDU in      from ND19999 loc     1 rem     1 DT nr  18 length   14
+    329126 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329143 NPDU out R 7 to   ND19999 loc 11562 rem     1 DT nr   0 length   14
+    329145 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    329145 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329146 NPDU in      from ND19999 loc     1 rem     1 DT nr  19 length   14
+    329146 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329163 NPDU out R 8 to   ND19999 loc 11562 rem     1 DT nr   0 length   14
+    329164 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    329164 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329165 NPDU in      from ND19999 loc     1 rem     1 DT nr  20 length   14
+    329165 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329183 NPDU out R 9 to   ND19999 loc 11562 rem     1 DT nr   0 length   14
+    329185 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    329185 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329185 NPDU in      from ND19999 loc     1 rem     1 DT nr  21 length   14
+    329185 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329203 NPDU out R10 to   ND19999 loc 11562 rem     1 DT nr   0 length   14
+    329205 NPDU in      from ND19999 loc     1 rem     1 AK nr   1 credit   15
+    329205 NPDU in      from ND19999 loc     1 rem     1 DT nr  22 length   14
+    329205 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329205 NPDU out     to   ND19999 loc     1 rem     1 DR BY NS reason  1
+    329223 MESG out     to   XGATE   ID   556450 FAILED TRANSMIT to ND 19999
+    329223 MESG in      from XGATE   ID   556450 receive
+    339734 MESG in      from XGATE   ID   556416 send to ND  102 length  128
+    339734 MESG out     to   XGATE   ID   556416 status OK
+    339734 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  63 length  128
+    339734 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  64 credit   15
+    339735 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  63 length   14
+    339735 MESG out     to   XGATE   ID   556502 receive from ND   102 length   14
+    339735 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  64 credit   15
+    339735 MESG in      from XGATE   ID   556502 receive
+    339735 NPDU in      from ND  102 loc 11544 rem  8515 DT nr  64 length   42
+    339735 MESG out     to   XGATE   ID   556534 receive from ND   102 length   42
+    339735 NPDU out     to   ND  102 loc 11544 rem  8515 AK nr  65 credit   15
+    339735 MESG in      from XGATE   ID   556534 receive
+    339735 MESG in      from XGATE   ID   556416 send to ND  102 length   14
+    339735 MESG out     to   XGATE   ID   556416 status OK
+    339735 NPDU out     to   ND  102 loc 11544 rem  8515 DT nr  64 length   14
+    339736 NPDU in      from ND  102 loc 11544 rem  8515 AK nr  65 credit   15
+ 
+-------------------------- End-of-Trace-File -------------------------------

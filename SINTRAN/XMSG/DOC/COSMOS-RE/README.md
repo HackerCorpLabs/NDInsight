@@ -41,6 +41,22 @@ The work was produced by two parallel sessions and merged here:
 | `REPLY-TO-FILE-TRA-XFTRA-SESSION.md` | The FA op catalog + the data-driven finding + the bit-7 rule, handed between sessions |
 | `FOLDER-REORG-NOTICE.md`             | The notice that established this layout |
 
+### Root-level docs (Ethernet II card / ENNS0 network server)
+
+These sit at the folder root rather than in `Analysis/` because they cut across the ND-100 programs,
+the ENCOS 68000 firmware and the live network.
+
+| File | Scope |
+|------|-------|
+| [`ETHII-HOST-PROTOCOL-SPEC-2026-07-25.md`](ETHII-HOST-PROTOCOL-SPEC-2026-07-25.md) | The card's host contract: mailbox, command ring, DRAM map, node layout, SCIP |
+| [`ETHERNET-II-FEASIBILITY-AND-MODE-WORD-RE-2026-07-25.md`](ETHERNET-II-FEASIBILITY-AND-MODE-WORD-RE-2026-07-25.md) | **Can this card carry TCP/IP?** The `0x1888A` mode word decoded; raw pass-through mode; ARP/broadcast; COSMOS coexistence. Read its correction banner first |
+| [`HOW-ND-SHIPPED-TCPIP-PRODUCT-EVIDENCE-2026-07-26.md`](HOW-ND-SHIPPED-TCPIP-PRODUCT-EVIDENCE-2026-07-26.md) | **How ND actually did it** - the 211185 Gateway (Ethernet II) vs 211327 Basic Module (Ethernet III), TCP-on-host / IP-on-card split, AIP = ARPA Internet Protocol, per-protocol controller images, and what media to hunt |
+| [`ENNS0-RX-FORWARD-ROOTCAUSE-2026-07-24.md`](ENNS0-RX-FORWARD-ROOTCAUSE-2026-07-24.md) | Why a received frame never became an XMSG message (FCS double-count) |
+| [`ENNS0-RXPOOL-PRODUCER-RE-2026-07-24.md`](ENNS0-RXPOOL-PRODUCER-RE-2026-07-24.md) | Who fills the card's receive-buffer pool |
+| [`XROUT-LAN-NEIGHBOUR-ROUTING-RE-2026-07-24.md`](XROUT-LAN-NEIGHBOUR-ROUTING-RE-2026-07-24.md) | XROUT LAN neighbour routing |
+| [`COSMOS-MULTI-NODE-NETWORK-2026-07-25.md`](COSMOS-MULTI-NODE-NETWORK-2026-07-25.md) | The working two-node COSMOS network write-up |
+| [`ENNS0-Startup-RE-2026-07-23/`](ENNS0-Startup-RE-2026-07-23/README.md) | The ENNS0 startup reverse-engineering session (disassembly, PIOCM, LU 2240B, PRKEY) |
+
 ## How to read the findings
 
 **Confidence tags** appear throughout every doc, C# comment, and Ghidra annotation:
